@@ -1,10 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+const mockEmitAuthTelemetryEvent = vi.fn();
+
 vi.mock('@/i18n/routing', () => ({
   routing: {
     locales: ['sq', 'en', 'sr', 'mk', 'de', 'hr'],
   },
+}));
+
+vi.mock('@/lib/auth-telemetry', () => ({
+  emitAuthTelemetryEvent: (...args: unknown[]) => mockEmitAuthTelemetryEvent(...args),
 }));
 
 import { proxy } from './proxy-logic';
@@ -51,11 +57,33 @@ function mockSessionLookup(payload: unknown, status = 200) {
 describe('proxy auth guard hardening', () => {
   beforeEach(() => {
     process.env.BETTER_AUTH_SECRET = 'proxy-guard-test-secret-which-is-long-enough-123456';
+    process.env.STAFF_AUTH_TOLERANT_TENANTS = '';
+    mockEmitAuthTelemetryEvent.mockReset();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     process.env.BETTER_AUTH_SECRET = ORIGINAL_SECRET;
+    delete process.env.STAFF_AUTH_TOLERANT_TENANTS;
+  });
+
+  it('emits bounce telemetry when a protected route has no session cookie', async () => {
+    const request = makeRequest('/sq/member');
+
+    const response = await proxy(request);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'protected_route_bounce_to_login',
+        reason: 'missing_cookie',
+        tenant: 'tenant_ks',
+        locale: 'sq',
+        surface: 'member',
+        pathname: '/sq/member',
+      })
+    );
   });
 
   it('redirects protected routes when session cookie signature is invalid', async () => {
@@ -65,6 +93,16 @@ describe('proxy auth guard hardening', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'protected_route_bounce_to_login',
+        reason: 'invalid_cookie',
+        tenant: 'tenant_ks',
+        locale: 'sq',
+        surface: 'member',
+        pathname: '/sq/member',
+      })
+    );
   });
 
   it('redirects when signed cookie exists but session introspection returns null', async () => {
@@ -77,6 +115,16 @@ describe('proxy auth guard hardening', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'protected_route_bounce_to_login',
+        reason: 'inactive_session',
+        tenant: 'tenant_ks',
+        locale: 'sq',
+        surface: 'member',
+        pathname: '/sq/member',
+      })
+    );
   });
 
   it('keeps protected routes open when session introspection returns a transient non-ok response', async () => {
@@ -95,6 +143,16 @@ describe('proxy auth guard hardening', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(response.status).toBe(200);
     expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'session_introspection_throttled',
+        reason: 'throttled',
+        tenant: 'tenant_ks',
+        locale: 'sq',
+        surface: 'staff',
+        pathname: '/sq/staff/claims/golden_ks_a_claim_17',
+      })
+    );
   });
 
   it('redirects protected routes when session introspection returns an auth client error', async () => {
@@ -110,6 +168,16 @@ describe('proxy auth guard hardening', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'protected_route_bounce_to_login',
+        reason: 'inactive_session',
+        tenant: 'tenant_ks',
+        locale: 'sq',
+        surface: 'member',
+        pathname: '/sq/member',
+      })
+    );
   });
 
   it('keeps protected routes open when session introspection returns a rate-limit client error', async () => {
@@ -125,6 +193,16 @@ describe('proxy auth guard hardening', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(response.status).toBe(200);
     expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'session_introspection_throttled',
+        reason: 'throttled',
+        tenant: 'tenant_ks',
+        locale: 'sq',
+        surface: 'member',
+        pathname: '/sq/member/documents',
+      })
+    );
   });
 
   it('keeps protected routes open when session introspection throws a transient transport error', async () => {
@@ -140,6 +218,16 @@ describe('proxy auth guard hardening', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(response.status).toBe(200);
     expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'session_introspection_throttled',
+        reason: 'throttled',
+        tenant: 'tenant_ks',
+        locale: 'sq',
+        surface: 'member',
+        pathname: '/sq/member/documents',
+      })
+    );
   });
 
   it('allows protected routes only when signed cookie and introspected session are valid', async () => {
@@ -159,5 +247,149 @@ describe('proxy auth guard hardening', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(response.status).toBe(200);
     expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
+    expect(mockEmitAuthTelemetryEvent).not.toHaveBeenCalled();
+  });
+
+  it('retries inactive sessions once for flagged tenants', async () => {
+    process.env.STAFF_AUTH_TOLERANT_TENANTS = 'tenant_ks';
+    const signed = await signSessionToken(
+      'token-flagged',
+      process.env.BETTER_AUTH_SECRET as string
+    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ session: null }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            session: {
+              id: 's1',
+              token: 'token-flagged',
+              expiresAt: new Date(Date.now() + 60_000).toISOString(),
+            },
+            user: { id: 'u1', role: 'member' },
+          }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }
+        )
+      );
+    const request = makeRequest('/sq/member', `better-auth.session_token=${signed}`);
+
+    const response = await proxy(request);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(200);
+    expect(mockEmitAuthTelemetryEvent).not.toHaveBeenCalled();
+  });
+
+  it('redirects after a second inactive response for flagged tenants', async () => {
+    process.env.STAFF_AUTH_TOLERANT_TENANTS = 'tenant_ks';
+    const signed = await signSessionToken(
+      'token-flagged-inactive',
+      process.env.BETTER_AUTH_SECRET as string
+    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ session: null }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ session: null }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      );
+    const request = makeRequest('/sq/member', `better-auth.session_token=${signed}`);
+
+    const response = await proxy(request);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'protected_route_bounce_to_login',
+        reason: 'inactive_session',
+        tenant: 'tenant_ks',
+        locale: 'sq',
+        surface: 'member',
+        pathname: '/sq/member',
+      })
+    );
+  });
+
+  it('allows flagged tenants when the retry returns unknown', async () => {
+    process.env.STAFF_AUTH_TOLERANT_TENANTS = 'tenant_ks';
+    const signed = await signSessionToken(
+      'token-flagged-unknown',
+      process.env.BETTER_AUTH_SECRET as string
+    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ session: null }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: 'too many requests' }), {
+          status: 429,
+          headers: { 'content-type': 'application/json' },
+        })
+      );
+    const request = makeRequest('/sq/member', `better-auth.session_token=${signed}`);
+
+    const response = await proxy(request);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(200);
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'session_introspection_throttled',
+        reason: 'throttled',
+        tenant: 'tenant_ks',
+        locale: 'sq',
+        surface: 'member',
+        pathname: '/sq/member',
+      })
+    );
+  });
+
+  it('falls back to current inactive behavior when the auth secret is absent', async () => {
+    process.env.BETTER_AUTH_SECRET = '';
+    process.env.STAFF_AUTH_TOLERANT_TENANTS = 'tenant_ks';
+    const signed = await signSessionToken(
+      'token-no-secret',
+      'proxy-guard-test-secret-which-is-long-enough-123456'
+    );
+    const fetchSpy = mockSessionLookup(null);
+    const request = makeRequest('/sq/member', `better-auth.session_token=${signed}`);
+
+    const response = await proxy(request);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'protected_route_bounce_to_login',
+        reason: 'inactive_session',
+        tenant: 'tenant_ks',
+        locale: 'sq',
+        surface: 'member',
+        pathname: '/sq/member',
+      })
+    );
   });
 });

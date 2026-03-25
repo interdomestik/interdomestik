@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoginForm } from './login-form';
 
 let mockSearchParams = new URLSearchParams('');
+const mockEmitAuthTelemetryEvent = vi.fn();
 
 const mockCanAccessAdmin = vi.fn();
 vi.mock('@/actions/admin-access', () => ({
@@ -23,6 +24,10 @@ vi.mock('@/lib/auth-client', () => ({
     },
     getSession: () => mockGetSession(),
   },
+}));
+
+vi.mock('@/lib/auth-telemetry', () => ({
+  emitAuthTelemetryEvent: (...args: unknown[]) => mockEmitAuthTelemetryEvent(...args),
 }));
 
 // Mock next-intl
@@ -117,6 +122,7 @@ vi.mock('@interdomestik/ui', () => ({
 describe('LoginForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEmitAuthTelemetryEvent.mockReset();
     Object.defineProperty(globalThis, 'location', {
       configurable: true,
       value: {
@@ -233,6 +239,38 @@ describe('LoginForm', () => {
     await waitFor(() => {
       expect(screen.getByText(/unsupported account role/i)).toBeInTheDocument();
     });
+
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'staff_post_login_redirect_failed',
+        reason: 'unsupported_redirect_target',
+        pathname: '/en/login',
+      })
+    );
+  });
+
+  it('emits telemetry when role sync never resolves after the retry window', async () => {
+    mockSignInEmail.mockResolvedValue({ error: null });
+    mockGetSession.mockResolvedValue({ data: { user: {} } });
+
+    render(<LoginForm />);
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByText('Sign In'));
+
+    await waitFor(() => {
+      expect(screen.getByText('An error occurred')).toBeInTheDocument();
+    });
+
+    expect(mockLocationAssign).not.toHaveBeenCalled();
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'staff_post_login_redirect_failed',
+        reason: 'post_login_sync_timeout',
+        pathname: '/en/login',
+      })
+    );
   });
 
   it('displays error on invalid credentials', async () => {

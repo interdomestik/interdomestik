@@ -3,6 +3,7 @@
 import { canAccessAdmin } from '@/actions/admin-access';
 import { Link } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
+import { emitAuthTelemetryEvent } from '@/lib/auth-telemetry';
 import {
   getCanonicalRouteForRole,
   getValidatedLocaleFromPathname,
@@ -27,12 +28,17 @@ import * as React from 'react';
 const SESSION_SYNC_RETRY_COUNT = 5;
 const SESSION_SYNC_RETRY_DELAY_MS = 150;
 
-async function resolveAuthenticatedRole(): Promise<string | undefined> {
+type ResolvedAuthenticatedRole = {
+  role?: string;
+  timedOut: boolean;
+};
+
+async function resolveAuthenticatedRole(): Promise<ResolvedAuthenticatedRole> {
   for (let attempt = 0; attempt < SESSION_SYNC_RETRY_COUNT; attempt += 1) {
     const { data: session } = await authClient.getSession();
     const role = (session?.user as { role?: string } | undefined)?.role;
     if (role) {
-      return role;
+      return { role, timedOut: false };
     }
 
     if (attempt < SESSION_SYNC_RETRY_COUNT - 1) {
@@ -40,7 +46,23 @@ async function resolveAuthenticatedRole(): Promise<string | undefined> {
     }
   }
 
-  return undefined;
+  return { timedOut: true };
+}
+
+function emitPostLoginFailureTelemetry(
+  reason: 'post_login_sync_timeout' | 'unsupported_redirect_target',
+  pathname: string,
+  tenantId?: string
+): void {
+  emitAuthTelemetryEvent({
+    eventName: 'staff_post_login_redirect_failed',
+    tenant: tenantId,
+    locale: getValidatedLocaleFromPathname(pathname),
+    surface: 'unknown',
+    host: globalThis.location?.host ?? null,
+    pathname,
+    reason,
+  });
 }
 
 export function LoginForm({ tenantId }: { tenantId?: string }) {
@@ -103,7 +125,24 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
                 return;
               }
 
-              const role = await resolveAuthenticatedRole();
+              const { role, timedOut } = await resolveAuthenticatedRole();
+
+              if (!role) {
+                if (timedOut) {
+                  emitPostLoginFailureTelemetry(
+                    'post_login_sync_timeout',
+                    pathname,
+                    resolvedTenantId
+                  );
+                  setError(t('error'));
+                  setLoading(false);
+                  return;
+                }
+
+                setError(`${t('error')} (Unsupported account role)`);
+                setLoading(false);
+                return;
+              }
 
               const isAdminRole = isAdmin(role);
               if (isAdminRole) {
@@ -117,6 +156,11 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
               // V3 canonical routing standardizes branch_manager to admin overview.
               const canonical = getCanonicalRouteForRole(role, locale);
               if (!canonical) {
+                emitPostLoginFailureTelemetry(
+                  'unsupported_redirect_target',
+                  pathname,
+                  resolvedTenantId
+                );
                 setError(`${t('error')} (Unsupported account role)`);
                 setLoading(false);
                 return;
@@ -124,6 +168,11 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
 
               const target = stripLocalePrefixFromCanonicalRoute(canonical, locale);
               if (!target) {
+                emitPostLoginFailureTelemetry(
+                  'unsupported_redirect_target',
+                  pathname,
+                  resolvedTenantId
+                );
                 setError(`${t('error')} (Unsupported account role)`);
                 setLoading(false);
                 return;

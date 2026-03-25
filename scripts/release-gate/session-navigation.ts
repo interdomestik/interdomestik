@@ -95,9 +95,12 @@ async function resolveReachableBaseUrl(configuredBaseUrl, deployment, options = 
   };
 }
 
-async function gotoWithSessionRetry({ page, navigate, retryLogin }) {
+async function gotoWithSessionRetry({ page, navigate, retryLogin, stopOnLoginBounce = false }) {
   const doRetryLogin = typeof retryLogin === 'function' ? retryLogin : async () => {};
+  return gotoWithSessionRetryInternal({ page, navigate, doRetryLogin, stopOnLoginBounce });
+}
 
+async function gotoWithSessionRetryInternal({ page, navigate, doRetryLogin, stopOnLoginBounce }) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
       await gotoWithTransientRetry({ navigate, maxAttempts: 4 });
@@ -113,7 +116,10 @@ async function gotoWithSessionRetry({ page, navigate, retryLogin }) {
       throw error;
     }
 
-    if (/\/login(?:[/?#]|$)/.test(page.url()) && attempt < 3) {
+    if (/\/login(?:[/?#]|$)/.test(page.url())) {
+      if (stopOnLoginBounce || attempt >= 3) {
+        return page.url();
+      }
       await doRetryLogin();
       continue;
     }

@@ -42,6 +42,7 @@ const {
   classifyInfraNetworkFailure,
   compactErrorMessage,
   resolveConfiguredStaffClaimDetailUrl,
+  resolveP13StaffClaimDetailTarget,
   runP11AndP12,
   runP13,
   selectAlternativeActionableStatus,
@@ -285,6 +286,10 @@ function shouldRunAuthEndpointPreflight(envName) {
   const explicit = parseBooleanEnv(process.env.RELEASE_GATE_AUTH_ENDPOINT_PREFLIGHT);
   if (explicit != null) return explicit;
   return String(envName || '').toLowerCase() !== 'production';
+}
+
+function shouldRunProductionStaffSynthetic(envName) {
+  return String(envName || '').toLowerCase() === 'production';
 }
 
 function checksAllowedToRemainSkipped() {
@@ -979,7 +984,22 @@ async function main() {
         if (selected.includes('P1.2')) checks.push(memberChecks[1]);
       }
       if (selected.includes('P1.3')) {
-        checks.push(await executeCheck('P1.3', () => runP13(browser, runCtx, { checkResult })));
+        if (shouldRunProductionStaffSynthetic(runCtx.envName)) {
+          checks.push(
+            await executeCheck('P1.3', () =>
+              runP13(browser, runCtx, { checkResult, resolveP13StaffClaimDetailTarget })
+            )
+          );
+        } else {
+          checks.push(
+            checkResult(
+              'P1.3',
+              'SKIPPED',
+              [`production_gate=disabled env=${runCtx.envName}`],
+              ['P1.3_SKIPPED_NON_PRODUCTION']
+            )
+          );
+        }
       }
       if (selected.includes('G07')) {
         checks.push(
@@ -1132,6 +1152,7 @@ module.exports = {
   runCheckWithInfraRetry,
   resolveConfiguredRolePanelTarget,
   resolveConfiguredStaffClaimDetailUrl,
+  resolveP13StaffClaimDetailTarget,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
   selectCredentialPreflightAccounts,
@@ -1140,6 +1161,7 @@ module.exports = {
   skipAllowanceReasonForCheck,
   shouldRunAuthEndpointPreflight,
   shouldDisallowSkippedChecks,
+  shouldRunProductionStaffSynthetic,
   waitForStaffClaimsListSurface,
 };
 

@@ -22,6 +22,12 @@ import path from 'node:path';
 import { routes } from '../routes';
 import { getCanonicalRouteForRole } from '../../src/lib/canonical-routes';
 import { gotoApp } from '../utils/navigation';
+import {
+  assertPostAuthSessionProbeStatus,
+  emitSessionProbeSkippedAfterReadyTelemetry,
+  resolvePostAuthProbePlan,
+  type PostAuthProbeMode,
+} from './auth.actions';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -394,7 +400,13 @@ async function performLogin(
   }
 }
 
-async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, tenant: Tenant) {
+async function ensureAuthenticated(
+  page: Page,
+  testInfo: TestInfo,
+  role: Role,
+  tenant: Tenant,
+  probeMode: PostAuthProbeMode = 'bootstrap'
+) {
   // Phase 0: Debug Config
   const info = getProjectUrlInfo(testInfo, null);
   const debugRes = await page.request.get(new URL('/api/_debug/auth', info.origin).toString());
@@ -441,6 +453,23 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   const markers = readyMarkersForRole(roleForRoute);
   await gotoApp(page, targetPath, testInfo, { marker: 'body' });
   await assertAnyReadyMarker(page, markers, 30000);
+
+  const probePlan = resolvePostAuthProbePlan({
+    readyMarkersVisible: true,
+    probeMode,
+  });
+
+  if (!probePlan.shouldProbe) {
+    emitSessionProbeSkippedAfterReadyTelemetry({
+      tenant,
+      locale: info.locale,
+      role,
+      origin: info.origin,
+      pathname: targetPath,
+    });
+    return;
+  }
+
   // Phase 3: Post-ensure validation (Contract guarantee)
   const sessionUrl = new URL('/api/auth/get-session', info.origin).toString();
   const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
@@ -463,19 +492,13 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
     }
 
     if (sessionRes.status() === 401 || sessionRes.status() === 403) {
-      expect(
-        sessionRes.status(),
-        `Session should remain authenticated after ensuring auth for ${role}`
-      ).toBe(200);
+      assertPostAuthSessionProbeStatus(sessionRes.status(), role);
     } else if (sessionRes.status() === 429) {
       console.warn(
         `[Auth] Session probe throttled for ${role}; keeping active page because readiness markers passed.`
       );
     } else {
-      expect(
-        sessionRes.status(),
-        `Session should be valid (200 OK) after ensuring auth for ${role}`
-      ).toBe(200);
+      assertPostAuthSessionProbeStatus(sessionRes.status(), role);
     }
   } finally {
     await sessionProbe.dispose();

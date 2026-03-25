@@ -10,6 +10,7 @@ const {
   envFlag,
   gotoWithTransientRetry,
   markerSnapshot,
+  normalizeRoutePath,
   sleep,
 } = require('./shared.ts');
 const { seedCookieConsentState } = require('./scenario-visits.ts');
@@ -183,12 +184,47 @@ async function closeBrowserContextWithTimeout(context, timeoutMs = 5_000) {
   await Promise.race([context.close().catch(() => {}), sleep(timeoutMs)]);
 }
 
-function trimTrailingSlashes(pathname) {
-  let end = pathname.length;
-  while (end > 1 && pathname.codePointAt(end - 1) === 47) {
-    end -= 1;
+function stripQueryAndFragment(value) {
+  return String(value || '')
+    .trim()
+    .split(/[?#]/, 1)[0]
+    .trim();
+}
+
+function isSameOriginUrl(candidateUrl, baseUrl) {
+  try {
+    return new URL(candidateUrl).origin === new URL(baseUrl).origin;
+  } catch {
+    return false;
   }
-  return pathname.slice(0, end);
+}
+
+function isStaffClaimsListPath(pathname, locale) {
+  const normalizedPath = normalizeRoutePath(pathname);
+  return (
+    normalizedPath === '/staff/claims' ||
+    normalizedPath === `/${String(locale || '').trim()}/staff/claims`
+  );
+}
+
+function isStaffClaimsDetailPath(pathname, locale) {
+  const normalizedPath = normalizeRoutePath(pathname);
+  const segments = normalizedPath.split('/').filter(Boolean);
+  return (
+    segments.length === 4 &&
+    segments[0] === String(locale || '').trim() &&
+    segments[1] === 'staff' &&
+    segments[2] === 'claims' &&
+    segments[3].length > 0
+  );
+}
+
+function buildCanonicalStaffClaimUrl(runCtx, candidatePath) {
+  return buildRouteAllowingLocalePath(
+    runCtx.baseUrl,
+    runCtx.locale,
+    stripQueryAndFragment(candidatePath)
+  );
 }
 
 function resolveConfiguredStaffClaimDetailUrl(runCtx) {
@@ -198,36 +234,149 @@ function resolveConfiguredStaffClaimDetailUrl(runCtx) {
       reason: 'missing',
       source: 'missing',
       url: null,
+      pathnameFamily: null,
     };
   }
 
-  const targetUrl = /^https?:\/\//i.test(configured)
-    ? configured
-    : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, configured);
-
   try {
-    const resolvedTarget = new URL(targetUrl);
-    const resolvedList = new URL(buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.staffClaimsList));
-    const normalizePath = pathname => trimTrailingSlashes(pathname) || '/';
-    if (normalizePath(resolvedTarget.pathname) === normalizePath(resolvedList.pathname)) {
+    if (/^https?:\/\//i.test(configured)) {
+      const parsed = new URL(configured);
+      if (!isSameOriginUrl(configured, runCtx.baseUrl)) {
+        return {
+          reason: 'cross-origin',
+          source: 'invalid',
+          url: null,
+          pathnameFamily: normalizeRoutePath(parsed.pathname),
+        };
+      }
+      const targetUrl = buildCanonicalStaffClaimUrl(runCtx, parsed.pathname);
+      const pathnameFamily = normalizeRoutePath(targetUrl);
+      if (isStaffClaimsListPath(pathnameFamily, runCtx.locale)) {
+        return {
+          reason: 'list-url',
+          source: 'ignored-list',
+          url: null,
+          pathnameFamily,
+        };
+      }
+      if (!isStaffClaimsDetailPath(pathnameFamily, runCtx.locale)) {
+        return {
+          reason: 'invalid-detail-shape',
+          source: 'invalid',
+          url: null,
+          pathnameFamily,
+        };
+      }
+      return {
+        reason: null,
+        source: 'env',
+        url: targetUrl,
+        pathnameFamily,
+      };
+    }
+
+    const targetUrl = buildCanonicalStaffClaimUrl(runCtx, configured);
+    const pathnameFamily = normalizeRoutePath(targetUrl);
+    if (isStaffClaimsListPath(pathnameFamily, runCtx.locale)) {
       return {
         reason: 'list-url',
         source: 'ignored-list',
         url: null,
+        pathnameFamily,
       };
     }
+    if (!isStaffClaimsDetailPath(pathnameFamily, runCtx.locale)) {
+      return {
+        reason: 'invalid-detail-shape',
+        source: 'invalid',
+        url: null,
+        pathnameFamily,
+      };
+    }
+    return {
+      reason: null,
+      source: 'env',
+      url: targetUrl,
+      pathnameFamily,
+    };
   } catch {
     return {
       reason: 'invalid-url',
       source: 'invalid',
       url: null,
+      pathnameFamily: null,
+    };
+  }
+}
+
+function selectPreferredStaffClaimDetailUrl(urls, runCtx) {
+  const deterministicUrl = buildRoute(runCtx.baseUrl, runCtx.locale, DEFAULT_P13_STAFF_CLAIM_ROUTE);
+  const deterministicPath = normalizeRoutePath(deterministicUrl);
+  for (const candidateUrl of urls) {
+    if (normalizeRoutePath(candidateUrl) === deterministicPath) {
+      return candidateUrl;
+    }
+  }
+  return urls[0] || null;
+}
+
+async function resolveP13StaffClaimDetailTarget(page, runCtx, deps = {}) {
+  const collectStaffClaimDetailUrlsFn =
+    deps.collectStaffClaimDetailUrls || collectStaffClaimDetailUrls;
+  const configured = resolveConfiguredStaffClaimDetailUrl(runCtx);
+  const evidence = [
+    `configured_staff_claim_source=${configured.source}`,
+    `configured_staff_claim_reason=${configured.reason || 'none'}`,
+  ];
+
+  if (configured.pathnameFamily) {
+    evidence.push(`configured_staff_claim_pathname_family=${configured.pathnameFamily}`);
+  }
+
+  if (configured.url) {
+    evidence.push('claim_source=STAFF_CLAIM_URL_OVERRIDE');
+    return {
+      detailUrl: configured.url,
+      source: 'configured',
+      evidence,
+      configured,
     };
   }
 
+  if (configured.reason && configured.reason !== 'missing') {
+    evidence.push(`configured_staff_claim_rejected reason=${configured.reason}`);
+  }
+
+  const fallback = await collectStaffClaimDetailUrlsFn(page, runCtx);
+  evidence.push(
+    `fallback_search_elapsed_ms=${fallback.elapsedMs}`,
+    `fallback_link_count=${fallback.urls.length}`
+  );
+
+  if (fallback.urls.length > 0) {
+    const fallbackUrl = selectPreferredStaffClaimDetailUrl(fallback.urls, runCtx);
+    evidence.push(`fallback_detail_url=${fallbackUrl}`);
+    evidence.push('claim_source=staff_claims_list_fallback');
+    return {
+      detailUrl: fallbackUrl,
+      source: 'list-discovery',
+      evidence,
+      configured,
+      fallbackSearchElapsedMs: fallback.elapsedMs,
+      fallbackLinkCount: fallback.urls.length,
+    };
+  }
+
+  const deterministicUrl = buildRoute(runCtx.baseUrl, runCtx.locale, DEFAULT_P13_STAFF_CLAIM_ROUTE);
+  evidence.push(`deterministic_detail_url=${deterministicUrl}`);
+  evidence.push('claim_source=deterministic_staff_claim');
   return {
-    reason: null,
-    source: 'env',
-    url: targetUrl,
+    detailUrl: deterministicUrl,
+    source: 'deterministic',
+    evidence,
+    configured,
+    fallbackSearchElapsedMs: fallback.elapsedMs,
+    fallbackLinkCount: fallback.urls.length,
   };
 }
 
@@ -589,25 +738,13 @@ async function runP13(browser, runCtx, deps) {
   const { checkResult } = deps;
   const evidence = [];
   const signatures = [];
-  let context = await browser.newContext();
-  let page = await context.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
 
-  const reopenStaffContext = async targetUrl => {
-    await context.close().catch(() => {});
-    context = await browser.newContext();
-    page = await context.newPage();
-    await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
-    await loginWithRunContext(page, runCtx, 'staff');
-    await gotoWithSessionRetry({
-      page,
-      navigate: () =>
-        page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
-      retryLogin: () => loginWithRunContext(page, runCtx, 'staff', { forceFresh: true }),
-    });
-  };
   try {
     await loginWithRunContext(page, runCtx, 'staff');
+    evidence.push(`staff_login_url=${page.url()}`);
 
     const claimsList = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.staffClaimsList);
     await gotoWithSessionRetry({
@@ -624,6 +761,7 @@ async function runP13(browser, runCtx, deps) {
       staffListSurface.titleReady;
     evidence.push(
       `staff_claims_list_url=${claimsList}`,
+      `staff_claims_list_final_url=${page.url()}`,
       `staff_page_ready_on_list=${staffReadyOnList}`,
       `staff_list_visible_selector=${staffListSurface.visibleSelector || 'none'}`
     );
@@ -632,224 +770,94 @@ async function runP13(browser, runCtx, deps) {
       return checkResult('P1.3', 'FAIL', evidence, signatures);
     }
 
-    const configuredClaim = resolveConfiguredStaffClaimDetailUrl(runCtx);
-    const allowListFallback = envFlag('RELEASE_GATE_ALLOW_STAFF_CLAIM_LIST_FALLBACK', false);
-    let detailUrl = null;
+    const detailTarget = await resolveP13StaffClaimDetailTarget(page, runCtx, deps);
+    evidence.push(
+      ...detailTarget.evidence,
+      `detail_target_source=${detailTarget.source}`,
+      `detail_target_url=${detailTarget.detailUrl}`
+    );
 
-    if (configuredClaim.url) {
-      detailUrl = configuredClaim.url;
-      evidence.push('claim_source=STAFF_CLAIM_URL_OVERRIDE');
-    } else {
-      if (configuredClaim.reason === 'list-url') {
-        evidence.push('claim_source=STAFF_CLAIM_URL_IGNORED_LIST');
-      }
+    await gotoWithSessionRetry({
+      page,
+      navigate: () =>
+        page.goto(detailTarget.detailUrl, {
+          waitUntil: 'domcontentloaded',
+          timeout: TIMEOUTS.nav,
+        }),
+      retryLogin: () => loginWithRunContext(page, runCtx, 'staff', { forceFresh: true }),
+      stopOnLoginBounce: true,
+    });
 
-      const deterministicDetailUrl = buildRoute(
-        runCtx.baseUrl,
-        runCtx.locale,
-        DEFAULT_P13_STAFF_CLAIM_ROUTE
-      );
-      await reopenStaffContext(deterministicDetailUrl);
-      let deterministicNotFound = await page
-        .getByTestId(MARKERS.notFound)
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      let deterministicSurface = await waitForStaffClaimDetailSurface(page);
-      let deterministicReady =
-        deterministicSurface.detailReady ||
-        deterministicSurface.actionPanelReady ||
-        deterministicSurface.claimSectionReady;
-      evidence.push(`deterministic_url=${page.url()}`);
-
-      if (!deterministicNotFound && !deterministicReady && isLoginUrl(page.url())) {
-        await reopenStaffContext(deterministicDetailUrl);
-        deterministicNotFound = await page
-          .getByTestId(MARKERS.notFound)
-          .isVisible({ timeout: TIMEOUTS.quickMarker })
-          .catch(() => false);
-        deterministicSurface = await waitForStaffClaimDetailSurface(page);
-        deterministicReady =
-          deterministicSurface.detailReady ||
-          deterministicSurface.actionPanelReady ||
-          deterministicSurface.claimSectionReady;
-        evidence.push(`deterministic_url_retry=${page.url()}`);
-      }
-
-      if (!deterministicNotFound && deterministicReady) {
-        detailUrl = deterministicDetailUrl;
-        evidence.push('claim_source=deterministic_staff_claim');
-      } else {
-        const landedOnClaimsList =
-          trimTrailingSlashes(new URL(page.url()).pathname) ===
-          trimTrailingSlashes(new URL(claimsList).pathname);
-        evidence.push(
-          `deterministic_claim_ready=${deterministicReady} deterministic_claim_not_found=${deterministicNotFound} deterministic_visible_selector=${deterministicSurface.visibleSelector || 'none'}`
-        );
-
-        if (!deterministicNotFound && landedOnClaimsList) {
-          const fallback = await collectStaffClaimDetailUrls(page, runCtx);
-          const preferredFallbackUrl =
-            fallback.urls.find(url => url.endsWith(DEFAULT_P13_STAFF_CLAIM_ROUTE)) ||
-            fallback.urls[0] ||
-            null;
-          evidence.push(
-            `fallback_search_elapsed_ms=${fallback.elapsedMs}`,
-            `fallback_link_count=${fallback.urls.length}`
-          );
-          if (preferredFallbackUrl) {
-            detailUrl = preferredFallbackUrl;
-            evidence.push('claim_source=staff_claims_list_fallback');
-          }
-        }
-
-        if (detailUrl) {
-          // Continue with the resolved fallback detail URL rather than failing on
-          // a list redirect from the deterministic canonical path.
-        } else if (!allowListFallback) {
-          signatures.push(
-            deterministicNotFound
-              ? 'P1.3_DETERMINISTIC_STAFF_CLAIM_NOT_FOUND'
-              : 'P1.3_DETERMINISTIC_STAFF_CLAIM_NOT_READY'
-          );
-          return checkResult('P1.3', 'FAIL', evidence, signatures);
-        } else {
-          const fallback = await collectStaffClaimDetailUrls(page, runCtx);
-          evidence.push(
-            `fallback_search_elapsed_ms=${fallback.elapsedMs}`,
-            `fallback_link_count=${fallback.urls.length}`
-          );
-          if (fallback.urls.length === 0) {
-            signatures.push('P1.3_NO_TEST_DATA_STAFF_CLAIMS');
-            return checkResult('P1.3', 'SKIPPED', evidence, signatures);
-          }
-          detailUrl = fallback.urls[0];
-          evidence.push('claim_source=staff_claims_list');
-        }
-      }
+    evidence.push(`detail_url_after_open=${page.url()}`);
+    const detailBounceAfterOpen = isLoginUrl(page.url());
+    evidence.push(`detail_bounced_to_login_after_open=${detailBounceAfterOpen}`);
+    if (detailBounceAfterOpen) {
+      signatures.push('P1.3_DETAIL_BOUNCED_TO_LOGIN_AFTER_OPEN');
+      return checkResult('P1.3', 'FAIL', evidence, signatures);
     }
 
-    await reopenStaffContext(detailUrl);
-
-    evidence.push(`claim_url=${detailUrl}`);
     const notFoundOnDetail = await page
       .getByTestId(MARKERS.notFound)
       .isVisible({ timeout: TIMEOUTS.quickMarker })
       .catch(() => false);
     evidence.push(`detail_not_found=${notFoundOnDetail}`);
     if (notFoundOnDetail) {
-      signatures.push('P1.3_MISCONFIG_STAFF_CLAIM_URL_UNREACHABLE');
-      return checkResult('P1.3', 'SKIPPED', evidence, signatures);
+      signatures.push('P1.3_STAFF_CLAIM_DETAIL_NOT_FOUND');
+      return checkResult('P1.3', 'FAIL', evidence, signatures);
     }
 
     let detailSurface = await waitForStaffClaimDetailSurface(page);
-    if (
-      !detailSurface.detailReady &&
-      !detailSurface.actionPanelReady &&
-      !detailSurface.claimSectionReady &&
-      isLoginUrl(page.url())
-    ) {
-      await reopenStaffContext(detailUrl);
-      detailSurface = await waitForStaffClaimDetailSurface(page);
-      evidence.push(`claim_url_retry=${page.url()}`);
-    }
-    const detailReady = detailSurface.detailReady;
-    const actionPanelReady = detailSurface.actionPanelReady;
-    const claimSectionReady = detailSurface.claimSectionReady;
+    const detailReady =
+      detailSurface.detailReady ||
+      detailSurface.actionPanelReady ||
+      detailSurface.claimSectionReady;
     evidence.push(
       `staff_page_ready_on_detail=${detailReady}`,
       `detail_visible_selector=${detailSurface.visibleSelector || 'none'}`
     );
-
-    evidence.push(
-      `detail_ready=${detailReady} action_panel_ready=${actionPanelReady} claim_section_ready=${claimSectionReady}`
-    );
-    if (!detailReady && !actionPanelReady && !claimSectionReady) {
+    if (!detailReady) {
       signatures.push('P1.3_DETAIL_READY_MARKER_MISSING');
       return checkResult('P1.3', 'FAIL', evidence, signatures);
     }
 
-    const statusTrigger = page.locator(SELECTORS.claimStatusSelectTrigger);
-    const currentStatusLabel = (await statusTrigger.innerText()).trim();
-    await statusTrigger.click();
-    await page
-      .locator(SELECTORS.claimStatusListbox)
-      .waitFor({ state: 'visible', timeout: TIMEOUTS.action });
-    const options = page.locator(SELECTORS.claimStatusOption);
-    const optionCount = await options.count();
-    if (optionCount === 0) {
-      signatures.push('P1.3_STATUS_OPTIONS_MISSING');
-    } else {
-      const optionLabels = [];
-      for (let i = 0; i < optionCount; i += 1) {
-        optionLabels.push((await options.nth(i).innerText()).trim());
-      }
-      const selectedLabel = selectAlternativeActionableStatus(currentStatusLabel, optionLabels);
-      if (selectedLabel) {
-        for (let i = 0; i < optionCount; i += 1) {
-          const candidate = optionLabels[i];
-          if (candidate === selectedLabel) {
-            await options.nth(i).click();
-            break;
-          }
-        }
-        evidence.push(`status_change=${currentStatusLabel} -> ${selectedLabel}`);
-        const noteValue = `gate-note-${Date.now()}`;
-        await page.fill(SELECTORS.claimStatusNote, noteValue);
-        const updateButton = page.getByRole('button', { name: SELECTORS.claimUpdateButtonName });
-        await updateButton.click();
-        await page
-          .waitForFunction(
-            selector => {
-              const button = document.querySelector(selector);
-              return button instanceof HTMLButtonElement && button.disabled;
-            },
-            '[data-testid="staff-update-claim-button"]',
-            { timeout: TIMEOUTS.action }
-          )
-          .catch(() => {});
-        await page
-          .waitForFunction(
-            selector => {
-              const button = document.querySelector(selector);
-              return button instanceof HTMLButtonElement && !button.disabled;
-            },
-            '[data-testid="staff-update-claim-button"]',
-            { timeout: TIMEOUTS.nav }
-          )
-          .catch(() => {});
-        await page.reload({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
-        await page.locator(SELECTORS.staffClaimDetailReady).waitFor({
-          state: 'visible',
-          timeout: TIMEOUTS.marker,
-        });
+    const refreshedUrl = await gotoWithSessionRetry({
+      page,
+      navigate: () =>
+        page.reload({
+          waitUntil: 'domcontentloaded',
+          timeout: TIMEOUTS.nav,
+        }),
+      retryLogin: () => loginWithRunContext(page, runCtx, 'staff', { forceFresh: true }),
+      stopOnLoginBounce: true,
+    });
 
-        const noteVisible = await page
-          .locator(SELECTORS.staffClaimNote)
-          .getByText(noteValue)
-          .isVisible({ timeout: TIMEOUTS.marker })
-          .catch(() => false);
-        evidence.push(`note persisted=${noteVisible} note="${noteValue}"`);
-        if (!noteVisible) {
-          signatures.push(`P1.3_NOTE_NOT_PERSISTED note=${noteValue}`);
-        }
+    evidence.push(`detail_url_after_refresh=${refreshedUrl}`);
+    const detailBounceAfterRefresh = isLoginUrl(page.url());
+    evidence.push(`detail_bounced_to_login_after_refresh=${detailBounceAfterRefresh}`);
+    if (detailBounceAfterRefresh) {
+      signatures.push('P1.3_DETAIL_BOUNCED_TO_LOGIN_AFTER_REFRESH');
+      return checkResult('P1.3', 'FAIL', evidence, signatures);
+    }
 
-        const persistedStatusLabel = (
-          await page.locator(SELECTORS.claimStatusSelectTrigger).innerText()
-        ).trim();
-        const statusPersisted = persistedStatusLabel
-          .toLowerCase()
-          .includes(selectedLabel.toLowerCase());
-        evidence.push(
-          `status persisted=${statusPersisted} expected="${selectedLabel}" actual="${persistedStatusLabel}"`
-        );
-        if (!statusPersisted) {
-          signatures.push(`P1.3_STATUS_NOT_PERSISTED expected="${selectedLabel}"`);
-        }
-      } else {
-        signatures.push(
-          `P1.3_NO_ACTIONABLE_STATUS_TRANSITION current_status=${currentStatusLabel} options=${optionLabels.join('|')}`
-        );
-      }
+    detailSurface = await waitForStaffClaimDetailSurface(page);
+    const detailReadyAfterRefresh =
+      detailSurface.detailReady ||
+      detailSurface.actionPanelReady ||
+      detailSurface.claimSectionReady;
+    evidence.push(
+      `staff_page_ready_after_refresh=${detailReadyAfterRefresh}`,
+      `refresh_visible_selector=${detailSurface.visibleSelector || 'none'}`
+    );
+    if (!detailReadyAfterRefresh) {
+      signatures.push('P1.3_DETAIL_NOT_READY_AFTER_REFRESH');
+      return checkResult('P1.3', 'FAIL', evidence, signatures);
+    }
+
+    if (normalizeRoutePath(page.url()) !== normalizeRoutePath(detailTarget.detailUrl)) {
+      signatures.push(
+        `P1.3_DETAIL_URL_CHANGED_AFTER_REFRESH expected=${normalizeRoutePath(detailTarget.detailUrl)} actual=${normalizeRoutePath(page.url())}`
+      );
+      return checkResult('P1.3', 'FAIL', evidence, signatures);
     }
   } catch (error) {
     const markerState = await markerSnapshot(page).catch(() => ({
@@ -891,6 +899,7 @@ module.exports = {
   classifyInfraNetworkFailure,
   compactErrorMessage,
   resolveConfiguredStaffClaimDetailUrl,
+  resolveP13StaffClaimDetailTarget,
   runP11AndP12,
   runP13,
   selectAlternativeActionableStatus,
