@@ -280,6 +280,14 @@ test('CI audit job runs the scripts/ci contract suite', () => {
   assert.match(auditRunStep.run, /\bpnpm test:ci:contracts\b/);
 });
 
+test('Nightly E2E runs on GitHub-hosted Linux so it does not depend on self-hosted runner availability', () => {
+  const nightlyWorkflow = readWorkflow('.github/workflows/e2e-nightly.yml');
+  const nightlyJob = nightlyWorkflow.jobs.e2e;
+
+  assert.ok(nightlyJob);
+  assert.equal(nightlyJob['runs-on'], 'ubuntu-latest');
+});
+
 test('CD builds distinct staging and production artifacts with explicit Supabase environment separation', () => {
   const cdWorkflow = readWorkflow('.github/workflows/cd.yml');
   const buildStagingJob = cdWorkflow.jobs['build-staging'];
