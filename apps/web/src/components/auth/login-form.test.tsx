@@ -119,13 +119,13 @@ vi.mock('@interdomestik/ui', () => ({
   ),
 }));
 
-describe('LoginForm', () => {
-  function fillAndSubmitCredentials(email = 'test@example.com', password = 'password123'): void {
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: email } });
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: password } });
-    fireEvent.click(screen.getByText('Sign In'));
-  }
+function fillAndSubmitCredentials(email = 'test@example.com', password = 'password123'): void {
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: email } });
+  fireEvent.change(screen.getByLabelText('Password'), { target: { value: password } });
+  fireEvent.click(screen.getByText('Sign In'));
+}
 
+describe('LoginForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockEmitAuthTelemetryEvent.mockReset();
