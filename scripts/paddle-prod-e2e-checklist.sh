@@ -42,6 +42,35 @@ note() {
   printf "    %s\n" "$1"
 }
 
+capture_vercel_logs_json_sample() {
+  local url="$1"
+  local out_file="$2"
+  local timeout_s="${3:-20}"
+  python3 - "$url" "$out_file" "$timeout_s" <<'PY'
+import pathlib
+import subprocess
+import sys
+
+url, out_file, timeout_s = sys.argv[1], sys.argv[2], int(sys.argv[3])
+out_path = pathlib.Path(out_file)
+
+try:
+    completed = subprocess.run(
+        ["vercel", "logs", url, "--json"],
+        capture_output=True,
+        text=True,
+        timeout=timeout_s,
+    )
+    out_path.write_text((completed.stdout or "") + (completed.stderr or ""))
+    raise SystemExit(completed.returncode)
+except subprocess.TimeoutExpired as exc:
+    stdout = exc.stdout.decode() if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+    stderr = exc.stderr.decode() if isinstance(exc.stderr, bytes) else (exc.stderr or "")
+    out_path.write_text(stdout + stderr)
+    raise SystemExit(124)
+PY
+}
+
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || {
     echo "ERROR: '$1' is required but not installed." >&2
@@ -59,6 +88,10 @@ capture_http() {
   echo "$code" >"$code_file"
   printf "%s\n" "$code"
 }
+
+require_cmd vercel
+require_cmd curl
+require_cmd python3
 
 pause_for_operator() {
   local prompt="$1"
@@ -311,10 +344,10 @@ EOF
 
   step "Fetch recent Vercel logs for webhook path"
   set +e
-  vercel logs "${APP_URL#https://}" --prod --no-branch --since 1h >"${OUT_DIR}/vercel-logs-last-1h.txt" 2>&1
+  capture_vercel_logs_json_sample "${APP_URL}" "${OUT_DIR}/vercel-logs-runtime.jsonl" 20
   VERCEL_LOG_EXIT=$?
   set -e
-  note "Saved: ${OUT_DIR}/vercel-logs-last-1h.txt (exit=${VERCEL_LOG_EXIT})"
+  note "Saved: ${OUT_DIR}/vercel-logs-runtime.jsonl (exit=${VERCEL_LOG_EXIT})"
 
   step "Checklist complete"
   note "Fill and attach: ${OUT_DIR}/pilot-evidence-template.md"

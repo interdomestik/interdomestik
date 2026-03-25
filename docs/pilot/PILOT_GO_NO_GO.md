@@ -1,7 +1,7 @@
 ## Pilot Entry Criteria v1.0
 
 - Local pre-launch readiness is green: `pnpm pilot:check` exits `0`.
-- Readiness cadence proof is green: `pnpm pilot:cadence:check -- --pilotId <pilot-id>` exits `0`.
+- Readiness cadence proof is green when the active pilot id already has 3 consecutive qualifying green operating days recorded and `pnpm pilot:cadence:check -- --pilotId <pilot-id>` exits `0`.
 - Release gate green on production: `pnpm release:gate:prod -- --pilotId <pilot-id>` exits `0`.
 - Rollback target and resume rules use a real `pilot-ready-YYYYMMDD` tag created or verified through `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`.
 - The canonical pilot-entry artifact set defined in `docs/pilot/PILOT_RUNBOOK.md` exists and is committed:
@@ -17,7 +17,7 @@
 - Operational control-plane works: admin role assignment/removal succeeds in KS tenant and reflects in UI; cross-tenant admin access remains blocked (MK -> KS).
 - Member evidence is reliable: upload persists after refresh and relogin; uploaded file download/open works.
 - Staff workflow persistence is reliable: status update persists and note persists after refresh at `data-testid="staff-claim-detail-note"`.
-- Observability is quiet enough: `vercel logs --environment production --since 60m --no-branch --level error` has no functional errors; expected authorization-deny noise from negative tests is acceptable.
+- Observability is quiet enough: a bounded live sample from `vercel logs <deployment-url-or-id> --json` shows no functional errors for the current production deployment; expected authorization-deny noise from negative tests is acceptable.
 
 ## Pre-Launch Checks
 
@@ -34,7 +34,7 @@
 ## Launch-Day Checks
 
 - Execute `pnpm pilot:check` successfully.
-- Execute `pnpm pilot:cadence:check -- --pilotId <pilot-id>` successfully.
+- Do not require `pnpm pilot:cadence:check -- --pilotId <pilot-id>` on the literal Day 1 launch of a new pilot id. Use it only after the active pilot id has enough recorded qualifying days to prove the readiness streak.
 - Execute `pnpm release:gate:prod -- --pilotId <pilot-id>` successfully.
 - Start the copied pilot evidence index and record day 1 through `pnpm pilot:evidence:record -- --pilotId <pilot-id> ...`.
 - Record the day-1 observability row in that same copied evidence index through `pnpm pilot:observability:record -- --pilotId <pilot-id> --reference day-1 ...`.
@@ -76,6 +76,21 @@
   - Repeated authentication/login failures for pilot users that block operations.
   - Closed-loop path broken for more than 1 operating day.
   - SLA misses exceed threshold for 3 consecutive operating days.
+
+## Post-Cadence Decision Rule
+
+After `pnpm pilot:cadence:check -- --pilotId <pilot-id>` exits `0` on the active process-proof pilot id:
+
+- default decision: formal process-proof closeout
+- do not continue operating days by inertia
+- do not treat cadence pass alone as expansion approval
+- bounded continuation is allowed only when a refreshed executive review states:
+  - the narrow continuation objective
+  - the explicit stop date or end condition
+  - why closeout is not yet sufficient
+  - why expansion remains `no`
+
+For the current process-proof authority line, a cadence pass proves the missing multi-day operating streak and closes the original repeat-for-cadence gap. That should end the proof loop unless a new bounded continuation decision is written explicitly.
 
 ## Stop the Pilot If
 

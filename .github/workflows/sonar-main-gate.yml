@@ -60,6 +60,36 @@ jobs:
 
           echo "SONAR_GATE_ENABLED=true" >> "$GITHUB_ENV"
 
+      - name: Decide Sonar main gate strategy
+        if: env.SONAR_GATE_ENABLED == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          run_manual_fallback=true
+          skip_reason=''
+
+          if [[ "${GITHUB_EVENT_NAME}" == 'push' ]]; then
+            run_manual_fallback=false
+          elif [[ "${SONAR_HOST_URL:-}" == *"sonarcloud.io"* ]]; then
+            run_manual_fallback=false
+            skip_reason="Skipping manual Sonar fallback on ${GITHUB_EVENT_NAME}: SonarCloud Automatic Analysis owns mainline analysis for this project."
+          fi
+
+          echo "RUN_MANUAL_FALLBACK=${run_manual_fallback}" >> "$GITHUB_ENV"
+
+          if [[ -n "${skip_reason}" ]]; then
+            mkdir -p "${EVIDENCE_DIR}/notes"
+            {
+              echo "# Sonar Main Gate Skipped"
+              echo
+              echo "- reason: ${skip_reason}"
+              echo "- event: ${GITHUB_EVENT_NAME}"
+              echo "- host: ${SONAR_HOST_URL}"
+              echo "- run_id: ${GITHUB_RUN_ID}"
+            } > "${EVIDENCE_DIR}/notes/sonar-summary.md"
+          fi
+
       - name: Await SonarCloud Code Analysis check (blocking on push)
         if: github.event_name == 'push' && env.SONAR_GATE_ENABLED == 'true'
         env:
@@ -68,7 +98,7 @@ jobs:
         run: bash scripts/sonar-check-run-gate.sh
 
       - name: Run Sonar quality gate (manual fallback)
-        if: github.event_name != 'push' && env.SONAR_GATE_ENABLED == 'true'
+        if: github.event_name != 'push' && env.SONAR_GATE_ENABLED == 'true' && env.RUN_MANUAL_FALLBACK == 'true'
         env:
           SONAR_ENFORCEMENT: enforce
           SONAR_RUN_COVERAGE: true

@@ -5,7 +5,7 @@ Pilot may begin when all conditions below are satisfied:
 1. Production Release Gate is GREEN
 
 - `pnpm pilot:check` returns exit code 0
-- Run `pnpm pilot:cadence:check -- --pilotId <pilot-id>` and require a 3-day qualifying green streak before pilot entry or resume.
+- Run `pnpm pilot:cadence:check -- --pilotId <pilot-id>` only after the active pilot id already has 3 consecutive qualifying green days recorded and you need to prove readiness cadence for continuation or expansion.
 - `pnpm release:gate:prod -- --pilotId <pilot-id>` returns exit code 0
 - The canonical pilot-entry artifact set defined in `docs/pilot/PILOT_RUNBOOK.md` exists:
   - a new release-gate record in `docs/release-gates/`

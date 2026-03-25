@@ -60,7 +60,7 @@ The repo now has one canonical ranked operator flow for pilot entry and daily pi
   - `pnpm pilot:observability:record -- --pilotId <pilot-id> ...`
   - `pnpm pilot:decision:record -- --pilotId <pilot-id> ...`
 - Use `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>` only when a rollback target must be created or verified.
-- Use `pnpm pilot:cadence:check -- --pilotId <pilot-id>` for entry or resume cadence proof, not as a replacement for the ranked flow above.
+- Use `pnpm pilot:cadence:check -- --pilotId <pilot-id>` only after qualifying day rows already exist for that pilot id and you need to prove a 3-day readiness streak. It is not a literal day-1 launch command and does not replace the ranked flow above.
 
 ## Readiness Command Authority
 

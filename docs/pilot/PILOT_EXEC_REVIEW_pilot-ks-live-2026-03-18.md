@@ -8,54 +8,59 @@
 
 ## Executive Summary
 
-The Week 1 Operational Pilot Simulation has concluded. All core features including Claim Triage, Communication Traces, Privacy RBAC, and Fallback Escalation workflows were exercised against the current pilot evidence set.
+The live Week 1 KS pilot is evidence-complete and now has a canonical closeout trail. The final repo-backed week-1 rollup proves the core triage and public-update thresholds, but it does not justify expansion.
 
-The current evidence package reports **99.4% SLA Pass Rates** in the derived week-1 rollup. Treat that figure as provisional until the canonical day exports are regenerated from the corrected query set.
+The live week remains bounded because:
+
+- the cohort required post-hoc canonical repair before the thresholds were defensible
+- `2 Operating-Day Progression` finished at `24 / 53 = 45.3%`
+- the stricter follow-on process-proof run still closed `pause / repeat_with_fixes`
 
 ---
 
 ## Performance Scorecard
 
-| Measure                      | Metric | Benchmark | Status | Note                                  |
-| ---------------------------- | ------ | --------- | ------ | ------------------------------------- |
-| **Total claims logged**      | 175    | >10       | PASS   | derived week-1 rollup                 |
-| **Submitted claims**         | 174    | n/a       | PASS   | derived week-1 rollup                 |
-| **Triage SLA (<4h)**         | 99.4%  | >95%      | PASS   | provisional until canonical re-export |
-| **Public Update SLA (<24h)** | 99.4%  | >90%      | PASS   | provisional until canonical re-export |
-| **Functional errors**        | 0      | 0         | PASS   | no new incidents recorded             |
-| **Security/Isolation leaks** | 0      | 0         | PASS   | no confirmed leak in evidence log     |
+| Measure                      | Metric            | Benchmark | Status       | Note                                                        |
+| ---------------------------- | ----------------- | --------- | ------------ | ----------------------------------------------------------- |
+| **Claims submitted**         | `53`              | >10       | PASS         | canonical week-1 cohort                                     |
+| **Triage SLA (<4h)**         | `52 / 53 = 98.1%` | >95%      | PASS         | canonical DB rollup + CSVs                                  |
+| **Public Update SLA (<24h)** | `52 / 53 = 98.1%` | >90%      | PASS         | canonical DB rollup + CSVs                                  |
+| **2-day progression**        | `24 / 53 = 45.3%` | >=85%     | NOT MET      | canonical timeline progression rollup                       |
+| **Functional errors**        | `0` open Sev1/2   | 0         | BOUNDED PASS | repaired Sev2 data-integrity issue remains part of closeout |
+| **Security/Isolation leaks** | `0` confirmed     | 0         | PASS         | bounded by carried-forward Day 5 evidence                   |
 
 ---
 
 ## Core Verification Highlights
 
-1. **SLA Pressure Stress (Day 4)**: The system recorded deliberate SLA breaches intended to validate traceability.
-2. **Privacy & RBAC Stand (Day 5)**: Cross-tenant and cross-branch checks remain part of the evidence package, but should be rerun after the corrected spot-check script.
-3. **Fallback Resiliency (Day 6)**: Fallback operations remained traceable in the available pilot notes.
+1. **Canonical closeout completed**: The live week now closes from canonical claim, timeline, and message evidence rather than provisional derived rollups.
+2. **Privacy & RBAC remained bounded**: Cross-tenant and cross-branch checks remain green in the carried-forward evidence set, but the stricter process-proof line is the better governance source for expansion decisions.
+3. **Process proof is cleaner than the live week**: The later process-proof cohort demonstrated clean canonical closure, but still failed cadence, so it reinforces a bounded recommendation rather than loosening it.
 
 ---
 
 ## Recommendation
 
-### GO with Evidence Follow-Up
+### Pause / Repeat With Fixes
 
 **Decision Basis**:
 
-- The pilot package remains directionally positive.
-- Script and evidence contract fixes have been applied in the repository.
-- Canonical daily exports should be regenerated before treating week-1 SLA percentages as final.
+- The live week proved important operational thresholds.
+- The live week only became defensible after canonical repair work.
+- The stricter process-proof run confirmed that clean closure alone is not enough; cadence still needs to be proven on a real multi-day cohort.
 
-**Scale Plan for Week 2**:
+**Required Next Step**:
 
-- Regenerate canonical day exports from the corrected SQL files.
-- Recompute week-1 SLA from canonical claim and timeline rows.
-- Continue only with the refreshed evidence set attached.
+- Treat the live week as evidence-backed but non-expansion-grade.
+- Use the process-proof artifacts as the stricter governance reference.
+- Run the next real multi-day cohort and require readiness cadence to pass before revisiting expansion.
 
 ---
 
 ## Evidence & Trace Matrix
 
 - **Evidence Index**: `docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-live-2026-03-18.md`
+- **Week-1 Rollup**: `docs/pilot/PILOT_WEEK1_KPI_ROLLUP_pilot-ks-live-2026-03-18.md`
 - **Day 7 Rollup Sheet**: `docs/pilot/PILOT_DAILY_SHEET_pilot-ks-live-2026-03-18_day-7.md`
-- **Day 7 SQL Export Query**: `docs/pilot/live-data/pilot-ks-live-2026-03-18_day-7_claim-timeline-export.sql`
-- **Week-1 Rollup Script**: `scripts/pilot/query_week1_totals.ts`
+- **Process-Proof Evidence Index**: `docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-process-proof-2026-03-20.md`
+- **Process-Proof Executive Review**: `docs/pilot/PILOT_EXEC_REVIEW_pilot-ks-process-proof-2026-03-20.md`
