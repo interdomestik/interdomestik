@@ -32,7 +32,7 @@ export type AuthTelemetryInput = {
   eventName: AuthTelemetryEventName;
   tenant?: string | null;
   locale?: string | null;
-  surface?: AuthTelemetrySurface | string | null;
+  surface?: string | null;
   host?: string | null;
   pathname?: string | null;
   reason: AuthTelemetryReason;
@@ -106,7 +106,7 @@ function normalizeOccurredAt(occurredAt: AuthTelemetryInput['occurredAt']): stri
 
 function extractPathname(pathname: string): string {
   try {
-    return new URL(pathname, 'http://auth-telemetry.local').pathname;
+    return new URL(pathname, 'https://auth-telemetry.invalid').pathname;
   } catch {
     return pathname;
   }

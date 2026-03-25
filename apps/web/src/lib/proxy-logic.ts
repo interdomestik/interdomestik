@@ -1,6 +1,6 @@
 import { routing } from '@/i18n/routing';
 import { emitAuthTelemetryEvent } from '@/lib/auth-telemetry';
-import { getStaffAuthTolerantTenants } from '@/lib/feature-flags';
+import { isStaffAuthTolerantTenant } from '@/lib/feature-flags';
 import {
   resolveTenantFromHost as resolveTenantFromCanonicalHost,
   TENANT_COOKIE_NAME,
@@ -192,6 +192,86 @@ function emitProtectedRouteTelemetry(params: {
   });
 }
 
+type ProtectedRouteContext = {
+  request: NextRequest;
+  tenant: string | null;
+  locale: string;
+  surface: 'staff' | 'member' | 'admin' | 'agent' | 'unknown';
+  isLocale: boolean;
+  localeCandidate?: string;
+};
+
+function redirectProtectedRouteToLogin(
+  context: ProtectedRouteContext,
+  reason: 'missing_cookie' | 'invalid_cookie' | 'inactive_session'
+): NextResponse {
+  emitProtectedRouteTelemetry({
+    eventName: 'protected_route_bounce_to_login',
+    reason,
+    request: context.request,
+    tenant: context.tenant,
+    locale: context.locale,
+    surface: context.surface,
+  });
+
+  return redirectToLogin(context.request, context.isLocale, context.localeCandidate);
+}
+
+function emitThrottledSessionTelemetry(context: ProtectedRouteContext): void {
+  emitProtectedRouteTelemetry({
+    eventName: 'session_introspection_throttled',
+    reason: 'throttled',
+    request: context.request,
+    tenant: context.tenant,
+    locale: context.locale,
+    surface: context.surface,
+  });
+}
+
+async function resolveProtectedRouteResponse(
+  context: ProtectedRouteContext,
+  sessionCookieValue: string,
+  canUseTolerance: boolean
+): Promise<NextResponse | null> {
+  const secret = process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET;
+  if (secret) {
+    const isSignedCookieValid = await isSignedSessionCookieValid(sessionCookieValue, secret);
+    if (!isSignedCookieValid) {
+      return redirectProtectedRouteToLogin(context, 'invalid_cookie');
+    }
+  }
+
+  const firstIntrospection = await introspectSessionState(context.request);
+  if (firstIntrospection.state === 'active') {
+    return null;
+  }
+
+  if (firstIntrospection.state === 'unknown') {
+    if (firstIntrospection.throttled) {
+      emitThrottledSessionTelemetry(context);
+    }
+    return null;
+  }
+
+  if (!canUseTolerance) {
+    return redirectProtectedRouteToLogin(context, 'inactive_session');
+  }
+
+  const retryIntrospection = await introspectSessionState(context.request);
+  if (retryIntrospection.state === 'active') {
+    return null;
+  }
+
+  if (retryIntrospection.state === 'unknown') {
+    if (retryIntrospection.throttled) {
+      emitThrottledSessionTelemetry(context);
+    }
+    return null;
+  }
+
+  return redirectProtectedRouteToLogin(context, 'inactive_session');
+}
+
 function redirectToLogin(
   request: NextRequest,
   isLocale: boolean,
@@ -222,94 +302,34 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   const topLevel = isLocale ? segments[2] : segments[1];
   const locale = isLocale ? possibleLocale : 'sq';
   const surface = getTelemetrySurface(topLevel);
-  const tolerantTenants = getStaffAuthTolerantTenants();
 
   const isProtected = PROTECTED_TOP_LEVEL.has(topLevel);
   const sessionCookieValue = isProtected ? getSessionCookieValue(request) : null;
+  const protectedRouteContext: ProtectedRouteContext = {
+    request,
+    tenant,
+    locale,
+    surface,
+    isLocale,
+    localeCandidate: possibleLocale,
+  };
 
   if (isProtected && !sessionCookieValue) {
-    emitProtectedRouteTelemetry({
-      eventName: 'protected_route_bounce_to_login',
-      reason: 'missing_cookie',
-      request,
-      tenant,
-      locale,
-      surface,
-    });
-    return redirectToLogin(request, isLocale, possibleLocale);
+    return redirectProtectedRouteToLogin(protectedRouteContext, 'missing_cookie');
   }
 
   if (isProtected && sessionCookieValue) {
-    const secret = process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET;
-    if (secret) {
-      const isSignedCookieValid = await isSignedSessionCookieValid(sessionCookieValue, secret);
-      if (!isSignedCookieValid) {
-        emitProtectedRouteTelemetry({
-          eventName: 'protected_route_bounce_to_login',
-          reason: 'invalid_cookie',
-          request,
-          tenant,
-          locale,
-          surface,
-        });
-        return redirectToLogin(request, isLocale, possibleLocale);
-      }
-    }
-
-    const canUseTolerance = Boolean(secret && tenant && tolerantTenants.has(tenant));
-    const firstIntrospection = await introspectSessionState(request);
-
-    if (firstIntrospection.state === 'active') {
-      // Continue to the response below.
-    } else if (firstIntrospection.state === 'unknown') {
-      if (firstIntrospection.throttled) {
-        emitProtectedRouteTelemetry({
-          eventName: 'session_introspection_throttled',
-          reason: 'throttled',
-          request,
-          tenant,
-          locale,
-          surface,
-        });
-      }
-      // Unknown introspection is non-blocking.
-    } else if (canUseTolerance) {
-      const retryIntrospection = await introspectSessionState(request);
-      if (retryIntrospection.state === 'active') {
-        // Continue to the response below.
-      } else if (retryIntrospection.state === 'unknown') {
-        if (retryIntrospection.throttled) {
-          emitProtectedRouteTelemetry({
-            eventName: 'session_introspection_throttled',
-            reason: 'throttled',
-            request,
-            tenant,
-            locale,
-            surface,
-          });
-        }
-        // The retry stays on the protected route.
-      } else {
-        emitProtectedRouteTelemetry({
-          eventName: 'protected_route_bounce_to_login',
-          reason: 'inactive_session',
-          request,
-          tenant,
-          locale,
-          surface,
-        });
-        return redirectToLogin(request, isLocale, possibleLocale);
-      }
-    } else {
-      emitProtectedRouteTelemetry({
-        eventName: 'protected_route_bounce_to_login',
-        reason: 'inactive_session',
-        request,
-        tenant,
-        locale,
-        surface,
-      });
-      return redirectToLogin(request, isLocale, possibleLocale);
+    const canUseTolerance = Boolean(
+      (process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET) &&
+      isStaffAuthTolerantTenant(tenant)
+    );
+    const guardResponse = await resolveProtectedRouteResponse(
+      protectedRouteContext,
+      sessionCookieValue,
+      canUseTolerance
+    );
+    if (guardResponse) {
+      return guardResponse;
     }
   }
 

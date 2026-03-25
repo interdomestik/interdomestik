@@ -12,12 +12,12 @@ import {
   type Tenant,
 } from './auth.project';
 import { getCanonicalRouteForRole } from '../../src/lib/canonical-routes';
-import { emitAuthTelemetryEvent, normalizeAuthPathnameFamily } from '../../src/lib/auth-telemetry';
+import { emitAuthTelemetryEvent } from '../../src/lib/auth-telemetry';
 import { assertNoTenantChooser } from './e2e.diagnostics';
 
 export type PostAuthProbeMode = 'bootstrap' | 'validate';
 
-export const normalizePathnameFamily = normalizeAuthPathnameFamily;
+export { normalizeAuthPathnameFamily as normalizePathnameFamily } from '../../src/lib/auth-telemetry';
 
 function getTelemetrySurface(role: Role): 'staff' | 'member' | 'admin' | 'agent' | 'unknown' {
   if (role === 'staff') return 'staff';

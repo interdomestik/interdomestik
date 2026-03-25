@@ -28,7 +28,9 @@ describe('staff auth tolerant tenants flag', () => {
     const { getStaffAuthTolerantTenants, isStaffAuthTolerantTenant } =
       await import('./feature-flags');
 
-    expect(Array.from(getStaffAuthTolerantTenants()).sort()).toEqual(['pilot-mk', 'tenant_ks']);
+    expect(
+      Array.from(getStaffAuthTolerantTenants()).sort((left, right) => left.localeCompare(right))
+    ).toEqual(['pilot-mk', 'tenant_ks']);
     expect(isStaffAuthTolerantTenant('TENANT_KS')).toBe(true);
     expect(isStaffAuthTolerantTenant('pilot-mk')).toBe(true);
   });

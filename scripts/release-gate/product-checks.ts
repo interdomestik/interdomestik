@@ -355,8 +355,7 @@ async function resolveP13StaffClaimDetailTarget(page, runCtx, deps = {}) {
 
   if (fallback.urls.length > 0) {
     const fallbackUrl = selectPreferredStaffClaimDetailUrl(fallback.urls, runCtx);
-    evidence.push(`fallback_detail_url=${fallbackUrl}`);
-    evidence.push('claim_source=staff_claims_list_fallback');
+    evidence.push(`fallback_detail_url=${fallbackUrl}`, 'claim_source=staff_claims_list_fallback');
     return {
       detailUrl: fallbackUrl,
       source: 'list-discovery',
@@ -368,8 +367,10 @@ async function resolveP13StaffClaimDetailTarget(page, runCtx, deps = {}) {
   }
 
   const deterministicUrl = buildRoute(runCtx.baseUrl, runCtx.locale, DEFAULT_P13_STAFF_CLAIM_ROUTE);
-  evidence.push(`deterministic_detail_url=${deterministicUrl}`);
-  evidence.push('claim_source=deterministic_staff_claim');
+  evidence.push(
+    `deterministic_detail_url=${deterministicUrl}`,
+    'claim_source=deterministic_staff_claim'
+  );
   return {
     detailUrl: deterministicUrl,
     source: 'deterministic',

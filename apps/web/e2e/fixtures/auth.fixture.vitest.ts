@@ -29,7 +29,7 @@ describe('auth fixture probe reduction', () => {
       tenant: 'ks',
       locale: 'sq',
       role: 'staff',
-      origin: 'http://ks.127.0.0.1.nip.io:3000',
+      origin: 'https://ks.127.0.0.1.nip.io:3000',
       pathname: '/sq/staff/claims/pack_ks_claim_123',
     });
 
