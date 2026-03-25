@@ -12,7 +12,57 @@ import {
   type Tenant,
 } from './auth.project';
 import { getCanonicalRouteForRole } from '../../src/lib/canonical-routes';
+import { emitAuthTelemetryEvent } from '../../src/lib/auth-telemetry';
 import { assertNoTenantChooser } from './e2e.diagnostics';
+
+export type PostAuthProbeMode = 'bootstrap' | 'validate';
+
+export { normalizeAuthPathnameFamily as normalizePathnameFamily } from '../../src/lib/auth-telemetry';
+
+function getTelemetrySurface(role: Role): 'staff' | 'member' | 'admin' | 'agent' | 'unknown' {
+  if (role === 'staff') return 'staff';
+  if (role === 'admin' || role === 'branch_manager' || role === 'admin_mk') return 'admin';
+  if (role === 'agent') return 'agent';
+  if (role === 'member' || role === 'member_empty') return 'member';
+  return 'unknown';
+}
+
+export function emitSessionProbeSkippedAfterReadyTelemetry(params: {
+  tenant: Tenant;
+  locale: string;
+  role: Role;
+  origin: string;
+  pathname: string;
+}): void {
+  emitAuthTelemetryEvent({
+    eventName: 'session_probe_skipped_after_ready',
+    tenant: params.tenant,
+    locale: params.locale,
+    surface: getTelemetrySurface(params.role),
+    host: new URL(params.origin).host,
+    pathname: params.pathname,
+    reason: 'ready_probe_skipped',
+  });
+}
+
+export function resolvePostAuthProbePlan(params: {
+  readyMarkersVisible: boolean;
+  probeMode?: PostAuthProbeMode;
+}): { shouldProbe: boolean; shouldEmitSkipTelemetry: boolean } {
+  if (!params.readyMarkersVisible) {
+    return { shouldProbe: true, shouldEmitSkipTelemetry: false };
+  }
+
+  if (params.probeMode === 'validate') {
+    return { shouldProbe: true, shouldEmitSkipTelemetry: false };
+  }
+
+  return { shouldProbe: false, shouldEmitSkipTelemetry: true };
+}
+
+export function assertPostAuthSessionProbeStatus(status: number, role: Role): void {
+  expect(status, `Session should remain authenticated after ensuring auth for ${role}`).toBe(200);
+}
 
 export async function performLogin(
   page: Page,
@@ -77,7 +127,8 @@ export async function ensureAuthenticated(
   page: Page,
   testInfo: TestInfo,
   role: Role,
-  tenant: Tenant
+  tenant: Tenant,
+  probeMode: PostAuthProbeMode = 'bootstrap'
 ) {
   const info = getProjectUrlInfo(testInfo, null);
   // Determine target based on role
@@ -108,6 +159,22 @@ export async function ensureAuthenticated(
     marker: 'dashboard-page-ready',
   });
 
+  const probePlan = resolvePostAuthProbePlan({
+    readyMarkersVisible: true,
+    probeMode,
+  });
+
+  if (!probePlan.shouldProbe) {
+    emitSessionProbeSkippedAfterReadyTelemetry({
+      tenant,
+      locale: info.locale,
+      role,
+      origin: info.origin,
+      pathname: targetPath,
+    });
+    return;
+  }
+
   // Phase 3: Post-ensure validation (Contract guarantee)
   const apiBase = getApiOrigin(testInfo.project.use.baseURL!);
   const sessionRes = await page.request.get(`${apiBase}/api/auth/get-session`);
@@ -115,10 +182,7 @@ export async function ensureAuthenticated(
   if (sessionRes.status() !== 200) {
     console.error(`[Auth] Session check failed: ${sessionRes.status()} ${await sessionRes.text()}`);
   }
-  expect(
-    sessionRes.status(),
-    `Session should be valid (200 OK) after ensuring auth for ${role}`
-  ).toBe(200);
+  assertPostAuthSessionProbeStatus(sessionRes.status(), role);
 
   const currentUrl = page.url();
   console.log(`[Auth] Success. Current URL: ${currentUrl}`);

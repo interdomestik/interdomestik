@@ -1,7 +1,7 @@
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { type TestInfo } from '@playwright/test';
 
-export type Tenant = 'ks' | 'mk';
+export type Tenant = 'ks' | 'mk' | 'pilot';
 export type Role =
   | 'member'
   | 'member_empty'
@@ -55,6 +55,7 @@ export function buildUiLoginUrl(info: ProjectUrlInfo): string {
 
 export function getTenantFromTestInfo(testInfo: TestInfo): Tenant {
   const name = testInfo.project.name;
+  if (name.includes('pilot')) return 'pilot';
   if (name.includes('mk')) return 'mk';
   return 'ks';
 }
@@ -85,6 +86,22 @@ export function getUserForTenant(role: Role, tenant: Tenant) {
   // Branch manager per tenant
   if (role === 'branch_manager') {
     return tenant === 'mk' ? E2E_USERS.MK_BRANCH_MANAGER : E2E_USERS.KS_BRANCH_MANAGER;
+  }
+
+  if (tenant === 'pilot') {
+    switch (role) {
+      case 'member':
+      case 'member_empty':
+        return E2E_USERS.PILOT_MK_MEMBER;
+      case 'admin':
+        return E2E_USERS.PILOT_MK_ADMIN;
+      case 'agent':
+        return E2E_USERS.PILOT_MK_AGENT;
+      case 'staff':
+        return E2E_USERS.PILOT_MK_STAFF;
+      default:
+        throw new Error(`Role ${role} not implemented for pilot tenant`);
+    }
   }
 
   if (tenant === 'mk') {

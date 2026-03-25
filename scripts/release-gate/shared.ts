@@ -17,6 +17,27 @@ function normalizeBaseUrl(baseUrl) {
   return baseUrl.replace(/\/+$/, '');
 }
 
+function trimTrailingSlashes(pathname) {
+  let end = pathname.length;
+  while (end > 1 && pathname.codePointAt(end - 1) === 47) {
+    end -= 1;
+  }
+  return pathname.slice(0, end);
+}
+
+function normalizeRoutePath(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '/';
+
+  try {
+    const parsed = new URL(raw);
+    return trimTrailingSlashes(parsed.pathname) || '/';
+  } catch {
+    const stripped = raw.split(/[?#]/, 1)[0].trim();
+    return trimTrailingSlashes(stripped) || '/';
+  }
+}
+
 function buildRoute(baseUrl, locale, routePath) {
   if (typeof routePath === 'string' && /^https?:\/\//i.test(routePath)) {
     return routePath;
@@ -539,6 +560,7 @@ module.exports = {
   markerSummary,
   markersToString,
   normalizeBaseUrl,
+  normalizeRoutePath,
   parseRetryAfterSeconds,
   resolveForwardedForIp,
   resolvePlaywright,
@@ -546,5 +568,6 @@ module.exports = {
   recordAuthLoginAttempt,
   sessionCacheKeyForAccount,
   sleep,
+  trimTrailingSlashes,
   waitForReadyMarker,
 };

@@ -29,6 +29,7 @@ const {
   resolveAccountPasswordVar,
   resolveConfiguredRolePanelTarget,
   resolveConfiguredStaffClaimDetailUrl,
+  resolveP13StaffClaimDetailTarget,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
   resolveVercelExecutable,
@@ -39,6 +40,7 @@ const {
   skipAllowanceReasonForCheck,
   shouldRunAuthEndpointPreflight,
   shouldDisallowSkippedChecks,
+  shouldRunProductionStaffSynthetic,
   waitForStaffClaimsListSurface,
 } = require('./run.ts');
 const {
@@ -1484,10 +1486,11 @@ test('resolveConfiguredStaffClaimDetailUrl ignores configured staff claim list U
   }
 });
 
-test('resolveConfiguredStaffClaimDetailUrl keeps configured staff claim detail URLs', () => {
+test('resolveConfiguredStaffClaimDetailUrl normalizes configured staff detail URLs and rejects cross-origin values', () => {
   const original = process.env.STAFF_CLAIM_URL;
   try {
-    process.env.STAFF_CLAIM_URL = '/staff/claims/golden_ks_a_claim_05';
+    process.env.STAFF_CLAIM_URL =
+      'https://interdomestik-web.vercel.app/staff/claims/golden_ks_a_claim_05?tab=detail#notes';
 
     const resolved = resolveConfiguredStaffClaimDetailUrl({
       baseUrl: RELEASE_GATE_BASE_URL,
@@ -1500,6 +1503,17 @@ test('resolveConfiguredStaffClaimDetailUrl keeps configured staff claim detail U
       resolved.url,
       'https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_05'
     );
+
+    process.env.STAFF_CLAIM_URL = 'https://example.com/en/staff/claims/golden_ks_a_claim_05';
+
+    const rejected = resolveConfiguredStaffClaimDetailUrl({
+      baseUrl: RELEASE_GATE_BASE_URL,
+      locale: RELEASE_GATE_LOCALE,
+    });
+
+    assert.equal(rejected.source, 'invalid');
+    assert.equal(rejected.reason, 'cross-origin');
+    assert.equal(rejected.url, null);
   } finally {
     if (original === undefined) {
       delete process.env.STAFF_CLAIM_URL;
@@ -1507,6 +1521,67 @@ test('resolveConfiguredStaffClaimDetailUrl keeps configured staff claim detail U
       process.env.STAFF_CLAIM_URL = original;
     }
   }
+});
+
+test('resolveP13StaffClaimDetailTarget prefers configured detail URLs, then list discovery, then the deterministic default', async () => {
+  const original = process.env.STAFF_CLAIM_URL;
+  try {
+    process.env.STAFF_CLAIM_URL = '';
+
+    const listTarget = await resolveP13StaffClaimDetailTarget(
+      {},
+      {
+        baseUrl: RELEASE_GATE_BASE_URL,
+        locale: RELEASE_GATE_LOCALE,
+      },
+      {
+        collectStaffClaimDetailUrls: async () => ({
+          elapsedMs: 37,
+          urls: [`${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff/claims/discovered-claim`],
+        }),
+      }
+    );
+
+    assert.equal(listTarget.source, 'list-discovery');
+    assert.equal(
+      listTarget.detailUrl,
+      `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff/claims/discovered-claim`
+    );
+    assert.equal(listTarget.fallbackSearchElapsedMs, 37);
+
+    const deterministicTarget = await resolveP13StaffClaimDetailTarget(
+      {},
+      {
+        baseUrl: RELEASE_GATE_BASE_URL,
+        locale: RELEASE_GATE_LOCALE,
+      },
+      {
+        collectStaffClaimDetailUrls: async () => ({
+          elapsedMs: 12,
+          urls: [],
+        }),
+      }
+    );
+
+    assert.equal(deterministicTarget.source, 'deterministic');
+    assert.equal(
+      deterministicTarget.detailUrl,
+      `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff/claims/golden_ks_a_claim_05`
+    );
+    assert.equal(deterministicTarget.fallbackLinkCount, 0);
+  } finally {
+    if (original === undefined) {
+      delete process.env.STAFF_CLAIM_URL;
+    } else {
+      process.env.STAFF_CLAIM_URL = original;
+    }
+  }
+});
+
+test('shouldRunProductionStaffSynthetic only enables the staff synthetic in production', () => {
+  assert.equal(shouldRunProductionStaffSynthetic('production'), true);
+  assert.equal(shouldRunProductionStaffSynthetic('staging'), false);
+  assert.equal(shouldRunProductionStaffSynthetic('preview'), false);
 });
 
 test('waitForStaffClaimsListSurface accepts queue fallback when wrapper marker has zero box', async () => {

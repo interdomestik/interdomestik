@@ -1,4 +1,6 @@
 import { routing } from '@/i18n/routing';
+import { isStaffAuthTolerantTenant } from '@/lib/feature-flags';
+import { emitAuthTelemetryEvent } from '@/lib/telemetry';
 import {
   resolveTenantFromHost as resolveTenantFromCanonicalHost,
   TENANT_COOKIE_NAME,
@@ -110,14 +112,21 @@ function isActiveSessionPayload(payload: unknown): boolean {
 
 type SessionIntrospectionResult = 'active' | 'inactive' | 'unknown';
 
-async function introspectSessionState(request: NextRequest): Promise<SessionIntrospectionResult> {
+type SessionIntrospectionObservation = {
+  state: SessionIntrospectionResult;
+  throttled: boolean;
+};
+
+async function introspectSessionState(
+  request: NextRequest
+): Promise<SessionIntrospectionObservation> {
   try {
     const url = request.nextUrl.clone();
     url.pathname = '/api/auth/get-session';
     url.search = '?disableCookieCache=true&disableRefresh=true';
 
     const cookieHeader = request.headers.get('cookie');
-    if (!cookieHeader) return 'inactive';
+    if (!cookieHeader) return { state: 'inactive', throttled: false };
 
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -129,20 +138,138 @@ async function introspectSessionState(request: NextRequest): Promise<SessionIntr
 
     if (!response.ok) {
       if (response.status === 429) {
-        return 'unknown';
+        return { state: 'unknown', throttled: true };
       }
 
       if (response.status >= 400 && response.status < 500) {
-        return 'inactive';
+        return { state: 'inactive', throttled: false };
       }
-      return 'unknown';
+
+      return { state: 'unknown', throttled: true };
     }
 
     const payload = await response.json();
-    return isActiveSessionPayload(payload) ? 'active' : 'inactive';
+    return {
+      state: isActiveSessionPayload(payload) ? 'active' : 'inactive',
+      throttled: false,
+    };
   } catch {
-    return 'unknown';
+    return { state: 'unknown', throttled: true };
   }
+}
+
+function getTelemetrySurface(
+  topLevel: string | undefined
+): 'staff' | 'member' | 'admin' | 'agent' | 'unknown' {
+  if (
+    topLevel === 'staff' ||
+    topLevel === 'member' ||
+    topLevel === 'admin' ||
+    topLevel === 'agent'
+  ) {
+    return topLevel;
+  }
+
+  return 'unknown';
+}
+
+function emitProtectedRouteTelemetry(params: {
+  eventName: 'protected_route_bounce_to_login' | 'session_introspection_throttled';
+  reason: 'missing_cookie' | 'invalid_cookie' | 'inactive_session' | 'throttled';
+  request: NextRequest;
+  tenant: string | null;
+  locale: string;
+  surface: 'staff' | 'member' | 'admin' | 'agent' | 'unknown';
+}): void {
+  emitAuthTelemetryEvent({
+    eventName: params.eventName,
+    tenant: params.tenant,
+    locale: params.locale,
+    surface: params.surface,
+    host: params.request.headers.get('host'),
+    pathname: params.request.nextUrl.pathname,
+    reason: params.reason,
+  });
+}
+
+type ProtectedRouteContext = {
+  request: NextRequest;
+  tenant: string | null;
+  locale: string;
+  surface: 'staff' | 'member' | 'admin' | 'agent' | 'unknown';
+  isLocale: boolean;
+  localeCandidate?: string;
+};
+
+function redirectProtectedRouteToLogin(
+  context: ProtectedRouteContext,
+  reason: 'missing_cookie' | 'invalid_cookie' | 'inactive_session'
+): NextResponse {
+  emitProtectedRouteTelemetry({
+    eventName: 'protected_route_bounce_to_login',
+    reason,
+    request: context.request,
+    tenant: context.tenant,
+    locale: context.locale,
+    surface: context.surface,
+  });
+
+  return redirectToLogin(context.request, context.isLocale, context.localeCandidate);
+}
+
+function emitThrottledSessionTelemetry(context: ProtectedRouteContext): void {
+  emitProtectedRouteTelemetry({
+    eventName: 'session_introspection_throttled',
+    reason: 'throttled',
+    request: context.request,
+    tenant: context.tenant,
+    locale: context.locale,
+    surface: context.surface,
+  });
+}
+
+async function resolveProtectedRouteResponse(
+  context: ProtectedRouteContext,
+  sessionCookieValue: string,
+  canUseTolerance: boolean
+): Promise<NextResponse | null> {
+  const secret = process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET;
+  if (secret) {
+    const isSignedCookieValid = await isSignedSessionCookieValid(sessionCookieValue, secret);
+    if (!isSignedCookieValid) {
+      return redirectProtectedRouteToLogin(context, 'invalid_cookie');
+    }
+  }
+
+  const firstIntrospection = await introspectSessionState(context.request);
+  if (firstIntrospection.state === 'active') {
+    return null;
+  }
+
+  if (firstIntrospection.state === 'unknown') {
+    if (firstIntrospection.throttled) {
+      emitThrottledSessionTelemetry(context);
+    }
+    return null;
+  }
+
+  if (!canUseTolerance) {
+    return redirectProtectedRouteToLogin(context, 'inactive_session');
+  }
+
+  const retryIntrospection = await introspectSessionState(context.request);
+  if (retryIntrospection.state === 'active') {
+    return null;
+  }
+
+  if (retryIntrospection.state === 'unknown') {
+    if (retryIntrospection.throttled) {
+      emitThrottledSessionTelemetry(context);
+    }
+    return null;
+  }
+
+  return redirectProtectedRouteToLogin(context, 'inactive_session');
 }
 
 function redirectToLogin(
@@ -173,26 +300,36 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   const possibleLocale = segments[1];
   const isLocale = routing.locales.includes(possibleLocale as (typeof routing.locales)[number]);
   const topLevel = isLocale ? segments[2] : segments[1];
+  const locale = isLocale ? possibleLocale : 'sq';
+  const surface = getTelemetrySurface(topLevel);
 
   const isProtected = PROTECTED_TOP_LEVEL.has(topLevel);
   const sessionCookieValue = isProtected ? getSessionCookieValue(request) : null;
+  const protectedRouteContext: ProtectedRouteContext = {
+    request,
+    tenant,
+    locale,
+    surface,
+    isLocale,
+    localeCandidate: possibleLocale,
+  };
 
   if (isProtected && !sessionCookieValue) {
-    return redirectToLogin(request, isLocale, possibleLocale);
+    return redirectProtectedRouteToLogin(protectedRouteContext, 'missing_cookie');
   }
 
   if (isProtected && sessionCookieValue) {
-    const secret = process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET;
-    if (secret) {
-      const isSignedCookieValid = await isSignedSessionCookieValid(sessionCookieValue, secret);
-      if (!isSignedCookieValid) {
-        return redirectToLogin(request, isLocale, possibleLocale);
-      }
-    }
-
-    const introspectedSessionState = await introspectSessionState(request);
-    if (introspectedSessionState === 'inactive') {
-      return redirectToLogin(request, isLocale, possibleLocale);
+    const canUseTolerance = Boolean(
+      (process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET) &&
+      isStaffAuthTolerantTenant(tenant)
+    );
+    const guardResponse = await resolveProtectedRouteResponse(
+      protectedRouteContext,
+      sessionCookieValue,
+      canUseTolerance
+    );
+    if (guardResponse) {
+      return guardResponse;
     }
   }
 

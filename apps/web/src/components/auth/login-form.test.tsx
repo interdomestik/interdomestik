@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoginForm } from './login-form';
 
 let mockSearchParams = new URLSearchParams('');
+const mockEmitAuthTelemetryEvent = vi.fn();
 
 const mockCanAccessAdmin = vi.fn();
 vi.mock('@/actions/admin-access', () => ({
@@ -23,6 +24,10 @@ vi.mock('@/lib/auth-client', () => ({
     },
     getSession: () => mockGetSession(),
   },
+}));
+
+vi.mock('@/lib/auth-telemetry', () => ({
+  emitAuthTelemetryEvent: (...args: unknown[]) => mockEmitAuthTelemetryEvent(...args),
 }));
 
 // Mock next-intl
@@ -114,9 +119,16 @@ vi.mock('@interdomestik/ui', () => ({
   ),
 }));
 
+function fillAndSubmitCredentials(email = 'test@example.com', password = 'password123'): void {
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: email } });
+  fireEvent.change(screen.getByLabelText('Password'), { target: { value: password } });
+  fireEvent.click(screen.getByText('Sign In'));
+}
+
 describe('LoginForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEmitAuthTelemetryEvent.mockReset();
     Object.defineProperty(globalThis, 'location', {
       configurable: true,
       value: {
@@ -148,13 +160,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    const submitButton = screen.getByText('Sign In');
-
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.click(submitButton);
+    fillAndSubmitCredentials();
 
     await waitFor(() => {
       expect(mockSignInEmail).toHaveBeenCalledWith({
@@ -175,13 +181,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    const submitButton = screen.getByText('Sign In');
-
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.click(submitButton);
+    fillAndSubmitCredentials();
 
     await waitFor(() => {
       expect(mockLocationAssign).toHaveBeenCalledWith('/en/admin/overview');
@@ -195,13 +195,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    const submitButton = screen.getByText('Sign In');
-
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.click(submitButton);
+    fillAndSubmitCredentials();
 
     await waitFor(() => {
       expect(mockLocationAssign).not.toHaveBeenCalled();
@@ -218,13 +212,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    const submitButton = screen.getByText('Sign In');
-
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.click(submitButton);
+    fillAndSubmitCredentials();
 
     await waitFor(() => {
       expect(mockLocationAssign).not.toHaveBeenCalled();
@@ -233,19 +221,43 @@ describe('LoginForm', () => {
     await waitFor(() => {
       expect(screen.getByText(/unsupported account role/i)).toBeInTheDocument();
     });
+
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'staff_post_login_redirect_failed',
+        reason: 'unsupported_redirect_target',
+        pathname: '/en/login',
+      })
+    );
+  });
+
+  it('emits telemetry when role sync never resolves after the retry window', async () => {
+    mockSignInEmail.mockResolvedValue({ error: null });
+    mockGetSession.mockResolvedValue({ data: { user: {} } });
+
+    render(<LoginForm />);
+
+    fillAndSubmitCredentials();
+
+    await waitFor(() => {
+      expect(screen.getByText('An error occurred')).toBeInTheDocument();
+    });
+
+    expect(mockLocationAssign).not.toHaveBeenCalled();
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'staff_post_login_redirect_failed',
+        reason: 'post_login_sync_timeout',
+        pathname: '/en/login',
+      })
+    );
   });
 
   it('displays error on invalid credentials', async () => {
     mockSignInEmail.mockResolvedValue({ error: { message: 'Invalid credentials' } });
     render(<LoginForm />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    const submitButton = screen.getByText('Sign In');
-
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
-    fireEvent.click(submitButton);
+    fillAndSubmitCredentials('test@example.com', 'wrongpassword');
 
     await waitFor(() => {
       expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
@@ -260,13 +272,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    const submitButton = screen.getByText('Sign In');
-
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.click(submitButton);
+    fillAndSubmitCredentials();
 
     await waitFor(() => {
       expect(screen.getByText('Loading...')).toBeInTheDocument();
@@ -331,9 +337,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.com' } });
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByText('Sign In'));
+    fillAndSubmitCredentials();
 
     await waitFor(() => {
       expect(mockLocationAssign).toHaveBeenCalledWith('/en/pricing?plan=standard');

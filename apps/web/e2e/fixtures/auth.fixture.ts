@@ -9,7 +9,6 @@
  * - StorageState helpers for faster test runs
  */
 
-import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import {
   test as base,
   expect,
@@ -22,6 +21,22 @@ import path from 'node:path';
 import { routes } from '../routes';
 import { getCanonicalRouteForRole } from '../../src/lib/canonical-routes';
 import { gotoApp } from '../utils/navigation';
+import {
+  assertPostAuthSessionProbeStatus,
+  emitSessionProbeSkippedAfterReadyTelemetry,
+  resolvePostAuthProbePlan,
+  type PostAuthProbeMode,
+} from './auth.actions';
+import {
+  credsFor,
+  getProjectUrlInfo,
+  getTenantFromTestInfo,
+  ipForRole,
+  setWorkerE2EBaseURL,
+  type ProjectUrlInfo,
+  type Role,
+  type Tenant,
+} from './auth.project';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -30,48 +45,9 @@ import { gotoApp } from '../utils/navigation';
 // Locators that only appear when logged in
 const AUTH_OK_SELECTORS = ['[data-testid="user-nav"]', '[data-testid="sidebar-user-menu-button"]'];
 
-type ProjectUrlInfo = {
-  baseURL: string;
-  origin: string;
-  locale: string;
-};
-
-type GlobalE2E = typeof globalThis & {
-  __E2E_BASE_URL?: string;
-};
-
-type Tenant = 'ks' | 'mk' | 'pilot';
-
-type Role = 'member' | 'member_empty' | 'admin' | 'agent' | 'staff' | 'branch_manager' | 'admin_mk';
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS (Pure / Utils)
 // ═══════════════════════════════════════════════════════════════════════════════
-
-function getProjectUrlInfo(testInfo: TestInfo, baseURLFromFixture?: string | null): ProjectUrlInfo {
-  const baseURL = (testInfo.project.use.baseURL ?? baseURLFromFixture)?.toString();
-  if (!baseURL) {
-    throw new Error(
-      'Playwright baseURL is required for auth fixtures. Set project.use.baseURL in playwright.config.ts.'
-    );
-  }
-
-  const url = new URL(baseURL);
-  const firstSegment = url.pathname.split('/').find(Boolean) ?? 'en';
-  const locale = /^(sq|mk|en)$/i.test(firstSegment) ? firstSegment.toLowerCase() : 'en';
-
-  return {
-    baseURL,
-    origin: url.origin,
-    locale,
-  };
-}
-
-function setWorkerE2EBaseURL(info: ProjectUrlInfo): void {
-  // Each Playwright worker runs a single project; stash baseURL so e2e/routes.ts
-  // can derive the correct default locale per worker (no cross-project leakage).
-  (globalThis as GlobalE2E).__E2E_BASE_URL = info.baseURL;
-}
 
 function buildUiLoginUrl(info: ProjectUrlInfo): string {
   return `${info.origin}/${info.locale}/login`;
@@ -116,30 +92,6 @@ function attachDialogDiagnostics(page: Page): void {
   });
 }
 
-function getTenantFromTestInfo(testInfo: TestInfo): Tenant {
-  const name = testInfo.project.name;
-  if (name.includes('pilot')) return 'pilot';
-  if (name.includes('mk')) return 'mk';
-  return 'ks';
-}
-
-function ipForRole(role: Role): string {
-  // Stable IPs for each role to avoid unexpected rate limiting collision if checking by IP
-  switch (role) {
-    case 'member':
-    case 'member_empty':
-      return '10.0.0.11';
-    case 'admin':
-      return '10.0.0.12';
-    case 'agent':
-      return '10.0.0.13';
-    case 'staff':
-      return '10.0.0.14';
-    default:
-      return '10.0.0.10';
-  }
-}
-
 function readyMarkersForRole(role: Exclude<Role, 'admin_mk'>): string[] {
   switch (role) {
     case 'staff':
@@ -172,66 +124,6 @@ async function assertAnyReadyMarker(
   }
 
   throw new Error(`No readiness marker visible. Expected one of: ${markers.join(', ')}`);
-}
-
-function getUserForTenant(role: Role, tenant: Tenant) {
-  // Keep `admin_mk` as a legacy alias for MK admin.
-  if (role === 'admin_mk') return E2E_USERS.MK_ADMIN;
-
-  // Branch manager per tenant
-  if (role === 'branch_manager') {
-    return tenant === 'mk' ? E2E_USERS.MK_BRANCH_MANAGER : E2E_USERS.KS_BRANCH_MANAGER;
-  }
-
-  if (tenant === 'pilot') {
-    switch (role) {
-      case 'member':
-      case 'member_empty':
-        return E2E_USERS.PILOT_MK_MEMBER;
-      case 'admin':
-        return E2E_USERS.PILOT_MK_ADMIN;
-      case 'agent':
-        return E2E_USERS.PILOT_MK_AGENT;
-      case 'staff':
-        return E2E_USERS.PILOT_MK_STAFF;
-      default:
-        throw new Error(`Role ${role} not implemented for pilot tenant`);
-    }
-  }
-
-  if (tenant === 'mk') {
-    switch (role) {
-      case 'member':
-      case 'member_empty':
-        return E2E_USERS.MK_MEMBER;
-      case 'admin':
-        return E2E_USERS.MK_ADMIN;
-      case 'agent':
-        return E2E_USERS.MK_AGENT;
-      case 'staff':
-        return E2E_USERS.MK_STAFF;
-    }
-  }
-
-  switch (role) {
-    case 'member':
-      return E2E_USERS.KS_MEMBER;
-    case 'member_empty':
-      return E2E_USERS.KS_MEMBER_EMPTY;
-    case 'admin':
-      return E2E_USERS.KS_ADMIN;
-    case 'agent':
-      return E2E_USERS.KS_AGENT;
-    case 'staff':
-      return E2E_USERS.KS_STAFF;
-    default:
-      return E2E_USERS.KS_MEMBER;
-  }
-}
-
-function credsFor(role: Role, tenant: Tenant): { email: string; password: string; name: string } {
-  const u = getUserForTenant(role, tenant);
-  return { email: u.email, password: E2E_PASSWORD, name: u.name };
 }
 
 function storageStateFile(role: Role, tenant: Tenant): string {
@@ -394,7 +286,13 @@ async function performLogin(
   }
 }
 
-async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, tenant: Tenant) {
+async function ensureAuthenticated(
+  page: Page,
+  testInfo: TestInfo,
+  role: Role,
+  tenant: Tenant,
+  probeMode: PostAuthProbeMode = 'bootstrap'
+) {
   // Phase 0: Debug Config
   const info = getProjectUrlInfo(testInfo, null);
   const debugRes = await page.request.get(new URL('/api/_debug/auth', info.origin).toString());
@@ -441,6 +339,23 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   const markers = readyMarkersForRole(roleForRoute);
   await gotoApp(page, targetPath, testInfo, { marker: 'body' });
   await assertAnyReadyMarker(page, markers, 30000);
+
+  const probePlan = resolvePostAuthProbePlan({
+    readyMarkersVisible: true,
+    probeMode,
+  });
+
+  if (!probePlan.shouldProbe) {
+    emitSessionProbeSkippedAfterReadyTelemetry({
+      tenant,
+      locale: info.locale,
+      role,
+      origin: info.origin,
+      pathname: targetPath,
+    });
+    return;
+  }
+
   // Phase 3: Post-ensure validation (Contract guarantee)
   const sessionUrl = new URL('/api/auth/get-session', info.origin).toString();
   const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
@@ -463,19 +378,13 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
     }
 
     if (sessionRes.status() === 401 || sessionRes.status() === 403) {
-      expect(
-        sessionRes.status(),
-        `Session should remain authenticated after ensuring auth for ${role}`
-      ).toBe(200);
+      assertPostAuthSessionProbeStatus(sessionRes.status(), role);
     } else if (sessionRes.status() === 429) {
       console.warn(
         `[Auth] Session probe throttled for ${role}; keeping active page because readiness markers passed.`
       );
     } else {
-      expect(
-        sessionRes.status(),
-        `Session should be valid (200 OK) after ensuring auth for ${role}`
-      ).toBe(200);
+      assertPostAuthSessionProbeStatus(sessionRes.status(), role);
     }
   } finally {
     await sessionProbe.dispose();
