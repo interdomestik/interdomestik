@@ -47,6 +47,10 @@ authTest.describe('E2E Setup', () => {
     // Extract storage state and save to the specific gate path
     await page.context().storageState({ path: outFile });
 
+    // Pre-generate staff auth state so staff specs can reuse saved sessions
+    // instead of relogging on every retry and tripping auth rate limits.
+    await saveState('staff');
+
     // Verify file exists
     expect(fs.existsSync(outFile)).toBeTruthy();
     console.log(`[Setup] Successfully saved state to ${outFile}`);

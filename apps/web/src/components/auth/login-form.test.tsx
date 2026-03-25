@@ -13,6 +13,7 @@ vi.mock('@/actions/admin-access', () => ({
 const mockSignInEmail = vi.fn();
 const mockSignInSocial = vi.fn();
 const mockGetSession = vi.fn();
+const mockLocationAssign = vi.fn();
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
@@ -116,6 +117,12 @@ vi.mock('@interdomestik/ui', () => ({
 describe('LoginForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        assign: mockLocationAssign,
+      },
+    });
     mockSearchParams = new URLSearchParams('');
     mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
     mockCanAccessAdmin.mockResolvedValue(false);
@@ -157,7 +164,7 @@ describe('LoginForm', () => {
     });
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/member');
+      expect(mockLocationAssign).toHaveBeenCalledWith('/en/member');
     });
   });
 
@@ -177,7 +184,7 @@ describe('LoginForm', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/admin/overview');
+      expect(mockLocationAssign).toHaveBeenCalledWith('/en/admin/overview');
     });
   });
 
@@ -197,7 +204,7 @@ describe('LoginForm', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockPush).not.toHaveBeenCalled();
+      expect(mockLocationAssign).not.toHaveBeenCalled();
     });
 
     await waitFor(() => {
@@ -220,7 +227,7 @@ describe('LoginForm', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockPush).not.toHaveBeenCalled();
+      expect(mockLocationAssign).not.toHaveBeenCalled();
     });
 
     await waitFor(() => {
@@ -329,7 +336,7 @@ describe('LoginForm', () => {
     fireEvent.click(screen.getByText('Sign In'));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/pricing?plan=standard');
+      expect(mockLocationAssign).toHaveBeenCalledWith('/en/pricing?plan=standard');
     });
   });
 });

@@ -31,12 +31,9 @@ vi.mock('@/i18n/routing', () => ({
   ),
 }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: hoisted.getSessionMock,
-    },
-  },
+vi.mock('@/components/shell/session', () => ({
+  getSessionSafe: hoisted.getSessionMock,
+  requireSessionOrRedirect: (session: unknown) => session,
 }));
 
 vi.mock('@interdomestik/domain-claims', () => ({
@@ -75,10 +72,6 @@ vi.mock('next-intl/server', () => ({
     return translations[key] || key;
   }),
   setRequestLocale: vi.fn(),
-}));
-
-vi.mock('next/headers', () => ({
-  headers: vi.fn(async () => new Headers()),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -196,5 +189,27 @@ describe('StaffClaimsPage', () => {
       'Assignment filter'
     );
     expect(screen.getByTestId('staff-claims-status-filters')).toHaveTextContent('Status filter');
+  });
+
+  it('builds locale-relative filter hrefs so localized links do not double-prefix the route', async () => {
+    const tree = await StaffClaimsPage({
+      params: Promise.resolve({ locale: 'sq' }),
+      searchParams: Promise.resolve({
+        assigned: 'unassigned',
+        search: 'Acme',
+        status: 'verification',
+      }),
+    });
+
+    render(tree);
+
+    expect(screen.getByTestId('staff-claims-assigned-filter-all')).toHaveAttribute(
+      'href',
+      '/staff/claims?status=verification&search=Acme'
+    );
+    expect(screen.getByTestId('staff-claims-status-filter-all')).toHaveAttribute(
+      'href',
+      '/staff/claims?assigned=unassigned&search=Acme'
+    );
   });
 });

@@ -24,6 +24,25 @@ import { useTranslations } from 'next-intl';
 import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
+const SESSION_SYNC_RETRY_COUNT = 5;
+const SESSION_SYNC_RETRY_DELAY_MS = 150;
+
+async function resolveAuthenticatedRole(): Promise<string | undefined> {
+  for (let attempt = 0; attempt < SESSION_SYNC_RETRY_COUNT; attempt += 1) {
+    const { data: session } = await authClient.getSession();
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (role) {
+      return role;
+    }
+
+    if (attempt < SESSION_SYNC_RETRY_COUNT - 1) {
+      await new Promise(resolve => setTimeout(resolve, SESSION_SYNC_RETRY_DELAY_MS));
+    }
+  }
+
+  return undefined;
+}
+
 export function LoginForm({ tenantId }: { tenantId?: string }) {
   const t = useTranslations('auth.login');
   const common = useTranslations('common');
@@ -85,8 +104,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
                 return;
               }
 
-              const { data: session } = await authClient.getSession();
-              const role = (session?.user as { role?: string })?.role;
+              const role = await resolveAuthenticatedRole();
 
               const isAdminRole = isAdmin(role);
               if (isAdminRole) {
@@ -115,11 +133,11 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
               if (planIdFromQuery && target === '/member') {
                 const pricingParams = new URLSearchParams();
                 pricingParams.set('plan', planIdFromQuery);
-                router.push(`/pricing?${pricingParams.toString()}`);
+                window.location.assign(`/${locale}/pricing?${pricingParams.toString()}`);
                 return;
               }
 
-              router.push(target);
+              window.location.assign(canonical);
             } catch {
               setError(t('error'));
               setLoading(false);

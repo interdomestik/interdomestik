@@ -12,6 +12,15 @@ function tenantBaseUrl(hostWithPort: string, locale: string): string {
   return `http://${hostWithPort}/${locale}`;
 }
 
+function normalizeLoopbackTenantHost(hostWithPort: string): string {
+  const normalized = hostWithPort.trim().toLowerCase();
+  if (!normalized.includes('.localhost')) {
+    return hostWithPort;
+  }
+
+  return hostWithPort.replace(/\.localhost(?=:\d+$|$)/, `.${BIND_HOST}.nip.io`);
+}
+
 const AUTH_DIR = path.resolve(__dirname, './e2e/.auth');
 const KS_MEMBER_STATE = path.join(AUTH_DIR, 'ks', 'member.json');
 const MK_MEMBER_STATE = path.join(AUTH_DIR, 'mk', 'member.json');
@@ -136,10 +145,18 @@ process.env.PADDLE_WEBHOOK_SECRET_KEY_AL = PADDLE_WEBHOOK_SECRET_KEY_AL;
 
 // Use nip.io to avoid /etc/hosts dependency in CI.
 // Empty env values should not override working defaults.
-const KS_HOST = envOrFallback('KS_HOST', `ks.${BIND_HOST}.nip.io:${PORT}`);
-const MK_HOST = envOrFallback('MK_HOST', `mk.${BIND_HOST}.nip.io:${PORT}`);
-const AL_HOST = envOrFallback('AL_HOST', `al.${BIND_HOST}.nip.io:${PORT}`);
-const PILOT_HOST = envOrFallback('PILOT_HOST', `pilot.${BIND_HOST}.nip.io:${PORT}`);
+const KS_HOST = normalizeLoopbackTenantHost(
+  envOrFallback('KS_HOST', `ks.${BIND_HOST}.nip.io:${PORT}`)
+);
+const MK_HOST = normalizeLoopbackTenantHost(
+  envOrFallback('MK_HOST', `mk.${BIND_HOST}.nip.io:${PORT}`)
+);
+const AL_HOST = normalizeLoopbackTenantHost(
+  envOrFallback('AL_HOST', `al.${BIND_HOST}.nip.io:${PORT}`)
+);
+const PILOT_HOST = normalizeLoopbackTenantHost(
+  envOrFallback('PILOT_HOST', `pilot.${BIND_HOST}.nip.io:${PORT}`)
+);
 
 fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
 

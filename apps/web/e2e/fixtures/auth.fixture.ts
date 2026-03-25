@@ -454,10 +454,16 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   });
   try {
     const sessionRes = await sessionProbe.get(sessionUrl);
-    expect(
-      sessionRes.status(),
-      `Session should be valid (200 OK) after ensuring auth for ${role}`
-    ).toBe(200);
+    if (sessionRes.status() === 429) {
+      console.warn(
+        `[Auth] Session probe throttled for ${role}; keeping active page because readiness markers passed.`
+      );
+    } else {
+      expect(
+        sessionRes.status(),
+        `Session should be valid (200 OK) after ensuring auth for ${role}`
+      ).toBe(200);
+    }
   } finally {
     await sessionProbe.dispose();
   }

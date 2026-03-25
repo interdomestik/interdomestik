@@ -5,14 +5,11 @@ import { gotoApp } from './utils/navigation';
 const goldenId = (...parts: Array<string | number>) => `golden_${parts.join('_').toLowerCase()}`;
 
 test.describe('Staff Claims Readonly', () => {
-  test('staff can view claims and cannot access other-tenant claim', async ({
-    page,
-    loginAs,
+  test('branch managers can view claims and cannot access other-tenant claim', async ({
+    branchManagerPage: page,
   }, testInfo) => {
-    await loginAs('staff');
-
-    await gotoApp(page, routes.staff(testInfo), testInfo, {
-      marker: 'staff-dashboard-ready',
+    await gotoApp(page, routes.staffClaims(testInfo), testInfo, {
+      marker: 'staff-page-ready',
     });
 
     await gotoApp(page, routes.staffClaims(testInfo), testInfo, {

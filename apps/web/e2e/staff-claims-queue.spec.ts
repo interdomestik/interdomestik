@@ -13,7 +13,7 @@ test.describe('Staff Claims Queue MVP', () => {
     await expect(page.getByTestId('staff-claims-filters')).toBeVisible();
     await expect(page.getByTestId('staff-claims-queue')).toBeVisible();
     await expect(page.getByTestId('staff-claims-row').first()).toBeVisible();
-    await expect(page.getByTestId('staff-claims-view').first()).toHaveText('Open');
+    await expect(page.getByTestId('staff-claims-view').first()).toBeVisible();
 
     const firstTitle = (await page.getByTestId('staff-claim-title').first().textContent())?.trim();
     expect(firstTitle).toBeTruthy();

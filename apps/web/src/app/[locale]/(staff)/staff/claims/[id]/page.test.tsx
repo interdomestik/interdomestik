@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildCommercialHandlingScopeSnapshot } from '@interdomestik/domain-claims/staff-claims/commercial-handling-scope';
 
 const hoisted = vi.hoisted(() => ({
-  headersMock: vi.fn(async () => new Headers()),
   getSessionMock: vi.fn(async () => ({
     user: {
       id: 'staff-1',
@@ -81,10 +80,6 @@ const hoisted = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock('next/headers', () => ({
-  headers: hoisted.headersMock,
-}));
-
 vi.mock('next-intl/server', () => ({
   getTranslations: vi.fn(async () => (key: string) => {
     const translations: Record<string, string> = {
@@ -107,12 +102,9 @@ vi.mock('next/navigation', () => ({
   },
 }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: hoisted.getSessionMock,
-    },
-  },
+vi.mock('@/components/shell/session', () => ({
+  getSessionSafe: hoisted.getSessionMock,
+  requireSessionOrRedirect: (session: unknown) => session,
 }));
 
 vi.mock('@interdomestik/domain-claims', () => ({

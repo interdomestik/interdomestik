@@ -1,10 +1,9 @@
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
+import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { Link } from '@/i18n/routing';
-import { auth } from '@/lib/auth';
 import { ACTIONABLE_CLAIM_STATUSES, getStaffClaimsList } from '@interdomestik/domain-claims';
 import { Button, Input } from '@interdomestik/ui';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 type Props = {
@@ -56,7 +55,6 @@ function parseSearchTerm(value: SearchParamValue) {
 
 function buildStaffClaimsHref(args: {
   assigned: StaffAssignmentFilter;
-  locale: string;
   search?: string;
   status?: (typeof ACTIONABLE_CLAIM_STATUSES)[number];
 }) {
@@ -75,7 +73,7 @@ function buildStaffClaimsHref(args: {
   }
 
   const query = params.toString();
-  return query ? `/${args.locale}/staff/claims?${query}` : `/${args.locale}/staff/claims`;
+  return query ? `/staff/claims?${query}` : '/staff/claims';
 }
 
 function getAssignmentStateLabel(args: {
@@ -104,8 +102,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
   setRequestLocale(locale);
   const tClaims = await getTranslations('agent-claims.claims');
 
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return notFound();
+  const session = requireSessionOrRedirect(await getSessionSafe('StaffClaimsPage'), locale);
   // Pilot policy: branch managers can monitor queue volume, but only staff process claims.
   if (session.user.role !== 'staff' && session.user.role !== 'branch_manager') {
     return notFound();
@@ -186,7 +183,6 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                 <Link
                   href={buildStaffClaimsHref({
                     assigned: currentAssignment,
-                    locale,
                     status: currentStatus,
                   })}
                   prefetch={false}
@@ -215,7 +211,6 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                   <Link
                     href={buildStaffClaimsHref({
                       assigned: option.value,
-                      locale,
                       search: currentSearch,
                       status: currentStatus,
                     })}
@@ -239,7 +234,6 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
               <Link
                 href={buildStaffClaimsHref({
                   assigned: currentAssignment,
-                  locale,
                   search: currentSearch,
                 })}
                 prefetch={false}
@@ -255,7 +249,6 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                   <Link
                     href={buildStaffClaimsHref({
                       assigned: currentAssignment,
-                      locale,
                       search: currentSearch,
                       status,
                     })}

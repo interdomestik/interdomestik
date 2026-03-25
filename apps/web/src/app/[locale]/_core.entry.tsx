@@ -80,6 +80,9 @@ type Props = {
 
 export default async function RootLayout({ children, params }: Props) {
   const { locale } = await params;
+  const enableDevtoolsScript = process.env.NEXT_PUBLIC_ENABLE_REACT_DEVTOOLS === 'true';
+  const enableAxe = process.env.NEXT_PUBLIC_ENABLE_AXE === 'true';
+  const hideNextDevToolsBadge = process.env.NODE_ENV === 'development';
 
   // Ensure that the incoming locale is valid
   if (!routing.locales.includes(locale as (typeof routing.locales)[number])) {
@@ -112,16 +115,28 @@ export default async function RootLayout({ children, params }: Props) {
             zIndex: -1,
           }}
         />
-        {process.env.NODE_ENV === 'development' && (
+        {process.env.NODE_ENV === 'development' && enableDevtoolsScript && (
           <script src="http://localhost:8097" async></script>
         )}
+        {hideNextDevToolsBadge ? (
+          <style>
+            {`
+              nextjs-portal,
+              button[aria-label="Open Next.js Dev Tools"],
+              button[aria-label="Open issues overlay"],
+              button[aria-label="Collapse issues badge"] {
+                display: none !important;
+              }
+            `}
+          </style>
+        ) : null}
         <Suspense>
           <PostHogProvider>
             <NextIntlClientProvider messages={messages} locale={locale}>
               <QueryProvider>
                 {children}
                 <Toaster position="top-right" richColors />
-                <AxeProvider />
+                {enableAxe ? <AxeProvider /> : null}
                 <ReferralTracker />
                 <PwaRegistrar />
                 <AnalyticsScripts />
