@@ -127,19 +127,13 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
 
               const { role, timedOut } = await resolveAuthenticatedRole();
 
-              if (!role) {
-                if (timedOut) {
-                  emitPostLoginFailureTelemetry(
-                    'post_login_sync_timeout',
-                    pathname,
-                    resolvedTenantId
-                  );
-                  setError(t('error'));
-                  setLoading(false);
-                  return;
-                }
-
-                setError(`${t('error')} (Unsupported account role)`);
+              if (!role || timedOut) {
+                emitPostLoginFailureTelemetry(
+                  'post_login_sync_timeout',
+                  pathname,
+                  resolvedTenantId
+                );
+                setError(t('error'));
                 setLoading(false);
                 return;
               }

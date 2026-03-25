@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { LOCALES } from '@/i18n/locales';
 
 const mockEmitAuthTelemetryEvent = vi.fn();
 
 vi.mock('@/i18n/routing', () => ({
   routing: {
-    locales: ['sq', 'en', 'sr', 'mk', 'de', 'hr'],
+    locales: LOCALES,
   },
 }));
 
