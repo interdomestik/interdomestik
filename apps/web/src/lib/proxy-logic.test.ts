@@ -9,7 +9,7 @@ vi.mock('@/i18n/routing', () => ({
   },
 }));
 
-vi.mock('@/lib/auth-telemetry', () => ({
+vi.mock('@/lib/telemetry', () => ({
   emitAuthTelemetryEvent: (...args: unknown[]) => mockEmitAuthTelemetryEvent(...args),
 }));
 

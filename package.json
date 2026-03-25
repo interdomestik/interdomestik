@@ -235,7 +235,10 @@
       "rollup": "4.59.0",
       "express-rate-limit": "8.3.0",
       "serialize-javascript": ">=7.0.3",
-      "hono": "^4.12.7"
+      "hono": "^4.12.7",
+      "picomatch@<2.3.2": "2.3.2",
+      "picomatch@>=4.0.0 <4.0.4": "4.0.4",
+      "yaml@>=2.0.0 <2.8.3": "2.8.3"
     }
   },
   "dependencies": {

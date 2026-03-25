@@ -1,6 +1,6 @@
 import { routing } from '@/i18n/routing';
-import { emitAuthTelemetryEvent } from '@/lib/auth-telemetry';
 import { isStaffAuthTolerantTenant } from '@/lib/feature-flags';
+import { emitAuthTelemetryEvent } from '@/lib/telemetry';
 import {
   resolveTenantFromHost as resolveTenantFromCanonicalHost,
   TENANT_COOKIE_NAME,
