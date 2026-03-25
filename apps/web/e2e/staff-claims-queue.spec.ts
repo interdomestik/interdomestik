@@ -30,6 +30,12 @@ test.describe('Staff Claims Queue MVP', () => {
     await expect(page.getByTestId('staff-claims-row')).toHaveCount(1);
     await expect(page.getByTestId('staff-claim-title')).toHaveText([firstTitle]);
 
+    const cookieBanner = page.getByTestId('cookie-consent-banner');
+    if (await cookieBanner.isVisible().catch(() => false)) {
+      await page.getByTestId('cookie-consent-decline').click();
+      await expect(cookieBanner).toHaveCount(0);
+    }
+
     await page.getByTestId('staff-claims-view').first().click();
     await expect(page).toHaveURL(/\/staff\/claims\/[^/]+$/);
     await expect(page.getByTestId('staff-claim-detail-ready')).toBeVisible();

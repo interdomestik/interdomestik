@@ -3,7 +3,7 @@ import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { ACTIONABLE_CLAIM_STATUSES, getStaffClaimsList } from '@interdomestik/domain-claims';
 import { Button, Input } from '@interdomestik/ui';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
@@ -78,9 +78,31 @@ function buildStaffClaimsHref(args: {
   return query ? `/${args.locale}/staff/claims?${query}` : `/${args.locale}/staff/claims`;
 }
 
+function getAssignmentStateLabel(args: {
+  assigneeId: string | null;
+  assigneeName?: string | null;
+  assigneeEmail?: string | null;
+  currentStaffId: string;
+  t: (key: string, values?: Record<string, string | number>) => string;
+}) {
+  if (args.assigneeId == null) {
+    return args.t('staff_queue.assignment_state.unassigned');
+  }
+
+  if (args.assigneeId === args.currentStaffId) {
+    return args.t('staff_queue.assignment_state.assigned_to_you');
+  }
+
+  const assigneeLabel = args.assigneeName || args.assigneeEmail;
+  return assigneeLabel
+    ? args.t('staff_queue.assignment_state.assigned_to_named', { name: assigneeLabel })
+    : args.t('staff_queue.assignment_state.assigned');
+}
+
 export default async function StaffClaimsPage({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const tClaims = await getTranslations('agent-claims.claims');
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return notFound();
@@ -105,6 +127,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
     search: currentSearch,
     status: currentStatus,
     tenantId: session.user.tenantId,
+    viewerRole: session.user.role,
   });
 
   const assignmentOptions =
@@ -124,10 +147,16 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
     <div className="space-y-6" data-testid="staff-page-ready">
       <div>
         <h1 className="text-3xl font-bold tracking-tight" data-testid="page-title">
-          Claims Queue
+          {tClaims('claims_queue')}
         </h1>
 
-        <p className="text-muted-foreground">What needs action today.</p>
+        <p className="text-muted-foreground">{tClaims('staff_queue.subtitle')}</p>
+        <p
+          className="mt-2 text-sm font-medium text-slate-700"
+          data-testid="staff-claims-results-count"
+        >
+          {tClaims('staff_queue.results_count', { count: claims.length })}
+        </p>
       </div>
 
       <section
@@ -145,12 +174,12 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
           <Input
             name="search"
             defaultValue={currentSearch}
-            placeholder="Search claim, member, company, or number"
+            placeholder={tClaims('staff_queue.search_placeholder')}
             data-testid="staff-claims-search-input"
           />
           <div className="flex items-center gap-2">
             <Button type="submit" data-testid="staff-claims-search-submit">
-              Search
+              {tClaims('staff_queue.search')}
             </Button>
             {currentSearch && (
               <Button asChild type="button" variant="ghost">
@@ -162,73 +191,83 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                   })}
                   prefetch={false}
                 >
-                  Clear
+                  {tClaims('staff_queue.clear_search')}
                 </Link>
               </Button>
             )}
           </div>
         </form>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {assignmentOptions.map(option => {
-            const isActive = currentAssignment === option.value;
-            return (
-              <Button
-                asChild
-                key={option.value}
-                size="sm"
-                variant={isActive ? 'default' : 'outline'}
-              >
-                <Link
-                  href={buildStaffClaimsHref({
-                    assigned: option.value,
-                    locale,
-                    search: currentSearch,
-                    status: currentStatus,
-                  })}
-                  prefetch={false}
-                  data-testid={`staff-claims-assigned-filter-${option.value}`}
+        <div className="mt-4 space-y-2" data-testid="staff-claims-assignment-filters">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {tClaims('staff_queue.assignment_filter_label')}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {assignmentOptions.map(option => {
+              const isActive = currentAssignment === option.value;
+              return (
+                <Button
+                  asChild
+                  key={option.value}
+                  size="sm"
+                  variant={isActive ? 'default' : 'outline'}
                 >
-                  {option.label}
-                </Link>
-              </Button>
-            );
-          })}
+                  <Link
+                    href={buildStaffClaimsHref({
+                      assigned: option.value,
+                      locale,
+                      search: currentSearch,
+                      status: currentStatus,
+                    })}
+                    prefetch={false}
+                    data-testid={`staff-claims-assigned-filter-${option.value}`}
+                  >
+                    {option.label}
+                  </Link>
+                </Button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button asChild size="sm" variant={currentStatus ? 'outline' : 'default'}>
-            <Link
-              href={buildStaffClaimsHref({
-                assigned: currentAssignment,
-                locale,
-                search: currentSearch,
-              })}
-              prefetch={false}
-              data-testid="staff-claims-status-filter-all"
-            >
-              All actionable
-            </Link>
-          </Button>
-          {ACTIONABLE_CLAIM_STATUSES.map(status => {
-            const isActive = currentStatus === status;
-            return (
-              <Button asChild key={status} size="sm" variant={isActive ? 'default' : 'outline'}>
-                <Link
-                  href={buildStaffClaimsHref({
-                    assigned: currentAssignment,
-                    locale,
-                    search: currentSearch,
-                    status,
-                  })}
-                  prefetch={false}
-                  data-testid={`staff-claims-status-filter-${status}`}
-                >
-                  {toLabel(status)}
-                </Link>
-              </Button>
-            );
-          })}
+        <div className="mt-3 space-y-2" data-testid="staff-claims-status-filters">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {tClaims('staff_queue.status_filter_label')}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" variant={currentStatus ? 'outline' : 'default'}>
+              <Link
+                href={buildStaffClaimsHref({
+                  assigned: currentAssignment,
+                  locale,
+                  search: currentSearch,
+                })}
+                prefetch={false}
+                data-testid="staff-claims-status-filter-all"
+              >
+                {tClaims('staff_queue.all_actionable')}
+              </Link>
+            </Button>
+            {ACTIONABLE_CLAIM_STATUSES.map(status => {
+              const isActive = currentStatus === status;
+              return (
+                <Button asChild key={status} size="sm" variant={isActive ? 'default' : 'outline'}>
+                  <Link
+                    href={buildStaffClaimsHref({
+                      assigned: currentAssignment,
+                      locale,
+                      search: currentSearch,
+                      status,
+                    })}
+                    prefetch={false}
+                    data-testid={`staff-claims-status-filter-${status}`}
+                  >
+                    {toLabel(status)}
+                  </Link>
+                </Button>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -267,6 +306,18 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
               <div>
                 <ClaimStatusBadge status={claim.status} />
                 <div className="mt-1 text-xs text-muted-foreground">{claim.stageLabel}</div>
+                <div
+                  className="mt-1 text-xs font-medium text-slate-700"
+                  data-testid="staff-claim-assignment-state"
+                >
+                  {getAssignmentStateLabel({
+                    assigneeId: claim.staffId,
+                    assigneeName: claim.assigneeName,
+                    assigneeEmail: claim.assigneeEmail,
+                    currentStaffId: session.user.id,
+                    t: tClaims,
+                  })}
+                </div>
               </div>
               <div>
                 {claim.updatedAt ? new Date(claim.updatedAt).toLocaleDateString(locale) : '-'}
@@ -278,7 +329,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                     prefetch={false}
                     data-testid="staff-claims-view"
                   >
-                    Open
+                    {tClaims('actions.open')}
                   </Link>
                 </Button>
               </div>
@@ -289,7 +340,9 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
               className="px-4 py-10 text-center text-muted-foreground"
               data-testid="staff-claims-empty"
             >
-              {hasActiveFilters ? 'No claims match the current filters' : 'No claims in queue'}
+              {hasActiveFilters
+                ? tClaims('staff_queue.empty_filtered')
+                : tClaims('staff_queue.empty_default')}
             </div>
           )}
         </div>

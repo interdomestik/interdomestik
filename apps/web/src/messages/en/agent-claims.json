@@ -1,6 +1,24 @@
 {
   "agent-claims": {
     "claims": {
+      "staff_queue": {
+        "subtitle": "What needs action today.",
+        "results_count": "{count, plural, one {# claim} other {# claims}}",
+        "search_placeholder": "Search claim, member, company, or number",
+        "search": "Search",
+        "clear_search": "Clear",
+        "assignment_filter_label": "Assignment filter",
+        "status_filter_label": "Status filter",
+        "all_actionable": "All actionable",
+        "empty_filtered": "No claims match the current filters",
+        "empty_default": "No claims in queue",
+        "assignment_state": {
+          "unassigned": "Unassigned",
+          "assigned_to_you": "Assigned to you",
+          "assigned": "Assigned",
+          "assigned_to_named": "Assigned to {name}"
+        }
+      },
       "queue": "Claims Queue",
       "claims_queue": "Claims Queue",
       "manage_triage": "Manage and triage all submitted claims.",
@@ -21,7 +39,8 @@
         "approve": "Approve",
         "reject": "Reject",
         "requestInfo": "Request Info",
-        "review": "Review Case"
+        "review": "Review Case",
+        "open": "Open"
       },
       "details": {
         "title": "Claim Details",
@@ -53,7 +72,8 @@
         "messages": "Messages",
         "documents": "Documents",
         "no_documents": "No documents uploaded",
-        "unknown_date": "Unknown date"
+        "unknown_date": "Unknown date",
+        "branch_manager_readonly_notice": "Branch managers can review claim status and member context here, but assignment, messaging, and claim actions remain staff-only in the pilot."
       },
       "triage": {
         "title": "Triage Actions",

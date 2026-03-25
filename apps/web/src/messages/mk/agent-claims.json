@@ -1,6 +1,24 @@
 {
   "agent-claims": {
     "claims": {
+      "staff_queue": {
+        "subtitle": "Што бара дејство денес.",
+        "results_count": "{count, plural, one {# барање} other {# барања}}",
+        "search_placeholder": "Пребарај барање, член, компанија или број",
+        "search": "Барај",
+        "clear_search": "Исчисти",
+        "assignment_filter_label": "Филтер за доделување",
+        "status_filter_label": "Филтер за статус",
+        "all_actionable": "Сите активни барања",
+        "empty_filtered": "Ниту едно барање не одговара на тековните филтри",
+        "empty_default": "Нема барања во редицата",
+        "assignment_state": {
+          "unassigned": "Недоделено",
+          "assigned_to_you": "Доделено на вас",
+          "assigned": "Доделено",
+          "assigned_to_named": "Доделено на {name}"
+        }
+      },
       "queue": "Редица на барања",
       "manage_triage": "Управувајте и тријажирајте ги сите поднесени барања.",
       "table": {
@@ -20,7 +38,8 @@
         "approve": "Одобри",
         "reject": "Одбиј",
         "requestInfo": "Побарај инфо",
-        "review": "Прегледај случај"
+        "review": "Прегледај случај",
+        "open": "Отвори"
       },
       "details": {
         "title": "Детали за барањето",
@@ -52,7 +71,8 @@
         "messages": "Пораки",
         "documents": "Документи",
         "no_documents": "Нема прикачени документи",
-        "unknown_date": "Непознат датум"
+        "unknown_date": "Непознат датум",
+        "branch_manager_readonly_notice": "Менаџерите на филијали можат да ги прегледуваат статусот на барањето и контекстот на членот овде, но доделувањето, пораките и дејствијата по барањето остануваат само за персоналот во пилотот."
       },
       "triage": {
         "title": "Тријажа дејствија",
