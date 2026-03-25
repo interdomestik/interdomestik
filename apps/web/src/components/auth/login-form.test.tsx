@@ -117,7 +117,7 @@ vi.mock('@interdomestik/ui', () => ({
 describe('LoginForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    Object.defineProperty(window, 'location', {
+    Object.defineProperty(globalThis, 'location', {
       configurable: true,
       value: {
         assign: mockLocationAssign,
@@ -278,8 +278,8 @@ describe('LoginForm', () => {
   });
 
   it('handles GitHub OAuth sign in', async () => {
-    const originalLocation = window.location;
-    Object.defineProperty(window, 'location', {
+    const originalLocation = globalThis.location;
+    Object.defineProperty(globalThis, 'location', {
       value: { origin: 'http://localhost:3000' },
       writable: true,
     });
@@ -296,7 +296,7 @@ describe('LoginForm', () => {
       });
     });
 
-    Object.defineProperty(window, 'location', { value: originalLocation });
+    Object.defineProperty(globalThis, 'location', { value: originalLocation });
   });
 
   it('has forgot password link', () => {

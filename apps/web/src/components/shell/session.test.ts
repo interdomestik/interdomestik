@@ -38,4 +38,14 @@ describe('getSessionSafe', () => {
     expect(first).toEqual(second);
     expect(hoisted.getSessionMock).toHaveBeenCalledTimes(1);
   });
+
+  it('returns immediately without retry when no auth hint is present', async () => {
+    hoisted.headersMock.mockResolvedValueOnce(new Headers({ host: 'ks.localhost:3000' }));
+    hoisted.getSessionMock.mockResolvedValueOnce(null);
+
+    const session = await getSessionSafe('LoggedOutRequest');
+
+    expect(session).toBeNull();
+    expect(hoisted.getSessionMock).toHaveBeenCalledTimes(1);
+  });
 });

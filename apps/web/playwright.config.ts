@@ -13,12 +13,13 @@ function tenantBaseUrl(hostWithPort: string, locale: string): string {
 }
 
 function normalizeLoopbackTenantHost(hostWithPort: string): string {
-  const normalized = hostWithPort.trim().toLowerCase();
+  const trimmed = hostWithPort.trim();
+  const normalized = trimmed.toLowerCase();
   if (!normalized.includes('.localhost')) {
-    return hostWithPort;
+    return trimmed;
   }
 
-  return hostWithPort.replace(/\.localhost(?=:\d+$|$)/, `.${BIND_HOST}.nip.io`);
+  return trimmed.replace(/\.localhost(?=:\d+$|$)/i, `.${BIND_HOST}.nip.io`);
 }
 
 const AUTH_DIR = path.resolve(__dirname, './e2e/.auth');
