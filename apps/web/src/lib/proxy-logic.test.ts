@@ -54,6 +54,34 @@ function mockSessionLookup(payload: unknown, status = 200) {
   );
 }
 
+function expectRedirectToLogin(response: Response): void {
+  expect(response.status).toBe(307);
+  expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
+}
+
+function expectProtectedRouteTelemetry(params: {
+  eventName: 'protected_route_bounce_to_login' | 'session_introspection_throttled';
+  reason: 'missing_cookie' | 'invalid_cookie' | 'inactive_session' | 'throttled';
+  surface: 'staff' | 'member' | 'admin' | 'agent';
+  pathname: string;
+}): void {
+  expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+    expect.objectContaining({
+      eventName: params.eventName,
+      reason: params.reason,
+      tenant: 'tenant_ks',
+      locale: 'sq',
+      surface: params.surface,
+      pathname: params.pathname,
+    })
+  );
+}
+
+function expectAllowedProtectedRoute(response: Response): void {
+  expect(response.status).toBe(200);
+  expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
+}
+
 describe('proxy auth guard hardening', () => {
   beforeEach(() => {
     process.env.BETTER_AUTH_SECRET = 'proxy-guard-test-secret-which-is-long-enough-123456';
@@ -72,18 +100,13 @@ describe('proxy auth guard hardening', () => {
 
     const response = await proxy(request);
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
-    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventName: 'protected_route_bounce_to_login',
-        reason: 'missing_cookie',
-        tenant: 'tenant_ks',
-        locale: 'sq',
-        surface: 'member',
-        pathname: '/sq/member',
-      })
-    );
+    expectRedirectToLogin(response);
+    expectProtectedRouteTelemetry({
+      eventName: 'protected_route_bounce_to_login',
+      reason: 'missing_cookie',
+      surface: 'member',
+      pathname: '/sq/member',
+    });
   });
 
   it('redirects protected routes when session cookie signature is invalid', async () => {
@@ -91,18 +114,13 @@ describe('proxy auth guard hardening', () => {
 
     const response = await proxy(request);
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
-    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventName: 'protected_route_bounce_to_login',
-        reason: 'invalid_cookie',
-        tenant: 'tenant_ks',
-        locale: 'sq',
-        surface: 'member',
-        pathname: '/sq/member',
-      })
-    );
+    expectRedirectToLogin(response);
+    expectProtectedRouteTelemetry({
+      eventName: 'protected_route_bounce_to_login',
+      reason: 'invalid_cookie',
+      surface: 'member',
+      pathname: '/sq/member',
+    });
   });
 
   it('redirects when signed cookie exists but session introspection returns null', async () => {
@@ -113,18 +131,13 @@ describe('proxy auth guard hardening', () => {
     const response = await proxy(request);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
-    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventName: 'protected_route_bounce_to_login',
-        reason: 'inactive_session',
-        tenant: 'tenant_ks',
-        locale: 'sq',
-        surface: 'member',
-        pathname: '/sq/member',
-      })
-    );
+    expectRedirectToLogin(response);
+    expectProtectedRouteTelemetry({
+      eventName: 'protected_route_bounce_to_login',
+      reason: 'inactive_session',
+      surface: 'member',
+      pathname: '/sq/member',
+    });
   });
 
   it('keeps protected routes open when session introspection returns a transient non-ok response', async () => {
@@ -141,18 +154,13 @@ describe('proxy auth guard hardening', () => {
     const response = await proxy(request);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(response.status).toBe(200);
-    expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
-    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventName: 'session_introspection_throttled',
-        reason: 'throttled',
-        tenant: 'tenant_ks',
-        locale: 'sq',
-        surface: 'staff',
-        pathname: '/sq/staff/claims/golden_ks_a_claim_17',
-      })
-    );
+    expectAllowedProtectedRoute(response);
+    expectProtectedRouteTelemetry({
+      eventName: 'session_introspection_throttled',
+      reason: 'throttled',
+      surface: 'staff',
+      pathname: '/sq/staff/claims/golden_ks_a_claim_17',
+    });
   });
 
   it('redirects protected routes when session introspection returns an auth client error', async () => {
@@ -166,18 +174,13 @@ describe('proxy auth guard hardening', () => {
     const response = await proxy(request);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
-    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventName: 'protected_route_bounce_to_login',
-        reason: 'inactive_session',
-        tenant: 'tenant_ks',
-        locale: 'sq',
-        surface: 'member',
-        pathname: '/sq/member',
-      })
-    );
+    expectRedirectToLogin(response);
+    expectProtectedRouteTelemetry({
+      eventName: 'protected_route_bounce_to_login',
+      reason: 'inactive_session',
+      surface: 'member',
+      pathname: '/sq/member',
+    });
   });
 
   it('keeps protected routes open when session introspection returns a rate-limit client error', async () => {
@@ -191,18 +194,13 @@ describe('proxy auth guard hardening', () => {
     const response = await proxy(request);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(response.status).toBe(200);
-    expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
-    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventName: 'session_introspection_throttled',
-        reason: 'throttled',
-        tenant: 'tenant_ks',
-        locale: 'sq',
-        surface: 'member',
-        pathname: '/sq/member/documents',
-      })
-    );
+    expectAllowedProtectedRoute(response);
+    expectProtectedRouteTelemetry({
+      eventName: 'session_introspection_throttled',
+      reason: 'throttled',
+      surface: 'member',
+      pathname: '/sq/member/documents',
+    });
   });
 
   it('keeps protected routes open when session introspection throws a transient transport error', async () => {
@@ -216,18 +214,13 @@ describe('proxy auth guard hardening', () => {
     const response = await proxy(request);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(response.status).toBe(200);
-    expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
-    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventName: 'session_introspection_throttled',
-        reason: 'throttled',
-        tenant: 'tenant_ks',
-        locale: 'sq',
-        surface: 'member',
-        pathname: '/sq/member/documents',
-      })
-    );
+    expectAllowedProtectedRoute(response);
+    expectProtectedRouteTelemetry({
+      eventName: 'session_introspection_throttled',
+      reason: 'throttled',
+      surface: 'member',
+      pathname: '/sq/member/documents',
+    });
   });
 
   it('allows protected routes only when signed cookie and introspected session are valid', async () => {
@@ -245,8 +238,7 @@ describe('proxy auth guard hardening', () => {
     const response = await proxy(request);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(response.status).toBe(200);
-    expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
+    expectAllowedProtectedRoute(response);
     expect(mockEmitAuthTelemetryEvent).not.toHaveBeenCalled();
   });
 

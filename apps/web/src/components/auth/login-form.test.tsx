@@ -120,6 +120,12 @@ vi.mock('@interdomestik/ui', () => ({
 }));
 
 describe('LoginForm', () => {
+  function fillAndSubmitCredentials(email = 'test@example.com', password = 'password123'): void {
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: email } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: password } });
+    fireEvent.click(screen.getByText('Sign In'));
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockEmitAuthTelemetryEvent.mockReset();
@@ -154,13 +160,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    const submitButton = screen.getByText('Sign In');
-
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.click(submitButton);
+    fillAndSubmitCredentials();
 
     await waitFor(() => {
       expect(mockSignInEmail).toHaveBeenCalledWith({
@@ -181,13 +181,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    const submitButton = screen.getByText('Sign In');
-
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.click(submitButton);
+    fillAndSubmitCredentials();
 
     await waitFor(() => {
       expect(mockLocationAssign).toHaveBeenCalledWith('/en/admin/overview');
@@ -201,13 +195,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    const submitButton = screen.getByText('Sign In');
-
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.click(submitButton);
+    fillAndSubmitCredentials();
 
     await waitFor(() => {
       expect(mockLocationAssign).not.toHaveBeenCalled();
@@ -224,13 +212,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    const submitButton = screen.getByText('Sign In');
-
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.click(submitButton);
+    fillAndSubmitCredentials();
 
     await waitFor(() => {
       expect(mockLocationAssign).not.toHaveBeenCalled();
@@ -255,9 +237,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.com' } });
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByText('Sign In'));
+    fillAndSubmitCredentials();
 
     await waitFor(() => {
       expect(screen.getByText('An error occurred')).toBeInTheDocument();
@@ -277,13 +257,7 @@ describe('LoginForm', () => {
     mockSignInEmail.mockResolvedValue({ error: { message: 'Invalid credentials' } });
     render(<LoginForm />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    const submitButton = screen.getByText('Sign In');
-
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
-    fireEvent.click(submitButton);
+    fillAndSubmitCredentials('test@example.com', 'wrongpassword');
 
     await waitFor(() => {
       expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
@@ -298,13 +272,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    const submitButton = screen.getByText('Sign In');
-
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.click(submitButton);
+    fillAndSubmitCredentials();
 
     await waitFor(() => {
       expect(screen.getByText('Loading...')).toBeInTheDocument();
@@ -369,9 +337,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.com' } });
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByText('Sign In'));
+    fillAndSubmitCredentials();
 
     await waitFor(() => {
       expect(mockLocationAssign).toHaveBeenCalledWith('/en/pricing?plan=standard');
