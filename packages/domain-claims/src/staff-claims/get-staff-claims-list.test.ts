@@ -128,6 +128,36 @@ describe('getStaffClaimsList', () => {
     expect(result[0].memberNumber).toBe('M-0001');
   });
 
+  it('falls back to own and unassigned claims when branch manager branch context is missing', async () => {
+    mocks.claimChain.limit.mockResolvedValue([]);
+
+    await getStaffClaimsList({
+      staffId: 'staff-1',
+      tenantId: 'tenant-ks',
+      branchId: null,
+      limit: 20,
+      viewerRole: 'branch_manager',
+    });
+
+    expect(mocks.withTenant).toHaveBeenCalledWith(
+      'tenant-ks',
+      mocks.claims.tenantId,
+      expect.objectContaining({
+        op: 'and',
+        conditions: expect.arrayContaining([
+          expect.objectContaining({ op: 'inArray' }),
+          expect.objectContaining({
+            op: 'or',
+            conditions: expect.arrayContaining([
+              expect.objectContaining({ op: 'eq', left: 'claims.staff_id', right: 'staff-1' }),
+              expect.objectContaining({ op: 'isNull', column: 'claims.staff_id' }),
+            ]),
+          }),
+        ]),
+      })
+    );
+  });
+
   it('maps assignee details for queue operator context', async () => {
     mocks.claimChain.limit.mockResolvedValue([
       {

@@ -79,11 +79,14 @@ export async function getStaffClaimsList(params: {
     conditions.push(eq(claims.branchId, branchId));
   }
 
+  const shouldUseOwnOrUnassignedFallback =
+    viewerRole !== 'branch_manager' || (viewerRole === 'branch_manager' && branchId == null);
+
   if (assignment === 'mine') {
     conditions.push(eq(claims.staffId, staffId));
   } else if (assignment === 'unassigned') {
     conditions.push(isNull(claims.staffId));
-  } else if (viewerRole !== 'branch_manager') {
+  } else if (shouldUseOwnOrUnassignedFallback) {
     const ownOrUnassigned = or(eq(claims.staffId, staffId), isNull(claims.staffId));
     if (ownOrUnassigned) {
       conditions.push(ownOrUnassigned);
