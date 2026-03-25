@@ -67,12 +67,19 @@ jobs:
           SONAR_CHECK_SHA: ${{ github.sha }}
         run: bash scripts/sonar-check-run-gate.sh
 
-      - name: Run Sonar quality gate (manual fallback)
+      - name: Skip scheduled manual Sonar scan
         if: github.event_name != 'push' && env.SONAR_GATE_ENABLED == 'true'
-        env:
-          SONAR_ENFORCEMENT: enforce
-          SONAR_RUN_COVERAGE: true
-        run: bash scripts/sonar-gate.sh
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${EVIDENCE_DIR}/notes"
+          {
+            echo "# Sonar Main Gate Skipped"
+            echo
+            echo "- reason: Scheduled/manual Sonar scans are disabled because SonarCloud Automatic Analysis remains enabled."
+            echo "- event: ${GITHUB_EVENT_NAME}"
+            echo "- run_id: ${GITHUB_RUN_ID}"
+          } > "${EVIDENCE_DIR}/notes/sonar-summary.md"
 
       - name: Upload Sonar gate artifacts
         if: always()
