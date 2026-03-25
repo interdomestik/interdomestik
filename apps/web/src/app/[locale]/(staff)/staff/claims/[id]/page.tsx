@@ -199,6 +199,15 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
         </div>
       </section>
 
+      {session.user.role === 'branch_manager' ? (
+        <section
+          className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950"
+          data-testid="staff-claim-readonly-notice"
+        >
+          {tClaims('details.branch_manager_readonly_notice')}
+        </section>
+      ) : null}
+
       {session.user.role === 'staff' ? (
         <section
           className="rounded-lg border bg-white p-4"

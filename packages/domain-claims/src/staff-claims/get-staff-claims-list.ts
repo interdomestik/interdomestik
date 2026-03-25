@@ -1,6 +1,6 @@
 import { and, claims, db, desc, eq, ilike, inArray, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { isNull, or, type SQL } from 'drizzle-orm';
+import { aliasedTable, isNull, or, type SQL } from 'drizzle-orm';
 import { ACTIONABLE_CLAIM_STATUSES } from '../claims/constants';
 
 export type StaffClaimsAssignmentFilter = 'all' | 'mine' | 'unassigned';
@@ -11,6 +11,9 @@ export type StaffClaimsListItem = {
   companyName: string | null;
   title: string | null;
   status: string | null;
+  staffId: string | null;
+  assigneeName?: string | null;
+  assigneeEmail?: string | null;
   stageLabel: string;
   updatedAt: string | null;
   memberName?: string;
@@ -58,8 +61,18 @@ export async function getStaffClaimsList(params: {
   limit: number;
   search?: string;
   status?: string;
+  viewerRole?: string | null;
 }): Promise<StaffClaimsListItem[]> {
-  const { staffId, tenantId, branchId, assignment = 'all', limit, search, status } = params;
+  const {
+    staffId,
+    tenantId,
+    branchId,
+    assignment = 'all',
+    limit,
+    search,
+    status,
+    viewerRole,
+  } = params;
   const conditions: SQL<unknown>[] = [inArray(claims.status, ACTIONABLE_CLAIM_STATUSES)];
 
   if (branchId != null) {
@@ -70,7 +83,7 @@ export async function getStaffClaimsList(params: {
     conditions.push(eq(claims.staffId, staffId));
   } else if (assignment === 'unassigned') {
     conditions.push(isNull(claims.staffId));
-  } else if (branchId == null) {
+  } else if (viewerRole !== 'branch_manager') {
     const ownOrUnassigned = or(eq(claims.staffId, staffId), isNull(claims.staffId));
     if (ownOrUnassigned) {
       conditions.push(ownOrUnassigned);
@@ -90,6 +103,7 @@ export async function getStaffClaimsList(params: {
   }
 
   const scopedWhere = withTenant(tenantId, claims.tenantId, and(...conditions));
+  const assignee = aliasedTable(user, 'assignee');
 
   const rows = await db
     .select({
@@ -98,12 +112,16 @@ export async function getStaffClaimsList(params: {
       companyName: claims.companyName,
       title: claims.title,
       status: claims.status,
+      staffId: claims.staffId,
+      assigneeName: assignee.name,
+      assigneeEmail: assignee.email,
       updatedAt: claims.updatedAt,
       memberName: user.name,
       memberNumber: user.memberNumber,
     })
     .from(claims)
     .leftJoin(user, eq(claims.userId, user.id))
+    .leftJoin(assignee, eq(claims.staffId, assignee.id))
     .where(scopedWhere)
     .orderBy(desc(claims.updatedAt), desc(claims.id))
     .limit(limit);
@@ -114,6 +132,9 @@ export async function getStaffClaimsList(params: {
     companyName: row.companyName,
     title: row.title,
     status: row.status,
+    staffId: row.staffId ?? null,
+    assigneeName: row.assigneeName ?? null,
+    assigneeEmail: row.assigneeEmail ?? null,
     stageLabel: formatStageLabel(row.status),
     updatedAt: normalizeDate(row.updatedAt),
     memberName: row.memberName ?? undefined,

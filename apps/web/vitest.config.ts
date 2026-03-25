@@ -11,6 +11,14 @@ export default defineConfig({
       '@interdomestik/ui': path.resolve(__dirname, '../../packages/ui/src'),
       '@interdomestik/database': path.resolve(__dirname, '../../packages/database/src'),
       '@interdomestik/domain-ai': path.resolve(__dirname, '../../packages/domain-ai/src'),
+      '@interdomestik/domain-membership-billing': path.resolve(
+        __dirname,
+        '../../packages/domain-membership-billing/src'
+      ),
+      '@interdomestik/domain-referrals': path.resolve(
+        __dirname,
+        '../../packages/domain-referrals/src'
+      ),
       'server-only': path.resolve(__dirname, './src/test/__mocks__/server-only.ts'),
     },
   },

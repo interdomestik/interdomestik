@@ -27,8 +27,15 @@ const mocks = vi.hoisted(() => {
     user: {
       id: 'user.id',
       name: 'user.name',
+      email: 'user.email',
       memberNumber: 'user.member_number',
     },
+    aliasedTable: vi.fn((table, alias) => ({
+      ...table,
+      email: `${alias}.email`,
+      id: `${alias}.id`,
+      name: `${alias}.name`,
+    })),
     eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
     and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
     desc: vi.fn(value => ({ value, op: 'desc' })),
@@ -56,6 +63,7 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
 }));
 
 vi.mock('drizzle-orm', () => ({
+  aliasedTable: mocks.aliasedTable,
   or: mocks.or,
   isNull: mocks.isNull,
 }));
@@ -80,11 +88,14 @@ describe('getStaffClaimsList', () => {
     mocks.claimChain.orderBy.mockReturnValue(mocks.claimChain);
   });
 
-  it('returns claims scoped to tenant and branch when branchId exists', async () => {
+  it('returns all branch claims for branch managers when branchId exists', async () => {
     mocks.claimChain.limit.mockResolvedValue([
       {
         id: 'claim-1',
         claimNumber: 'KS-0001',
+        assigneeEmail: 'staff@example.com',
+        assigneeName: 'Staff User',
+        staffId: null,
         status: 'submitted',
         updatedAt: new Date('2026-01-01T00:00:00Z'),
         memberName: 'Member One',
@@ -97,6 +108,7 @@ describe('getStaffClaimsList', () => {
       tenantId: 'tenant-ks',
       branchId: 'branch-1',
       limit: 20,
+      viewerRole: 'branch_manager',
     });
 
     expect(mocks.withTenant).toHaveBeenCalledTimes(1);
@@ -114,6 +126,66 @@ describe('getStaffClaimsList', () => {
     expect(result).toHaveLength(1);
     expect(result[0].claimNumber).toBe('KS-0001');
     expect(result[0].memberNumber).toBe('M-0001');
+  });
+
+  it('maps assignee details for queue operator context', async () => {
+    mocks.claimChain.limit.mockResolvedValue([
+      {
+        id: 'claim-1',
+        claimNumber: 'KS-0001',
+        companyName: 'Acme',
+        title: 'Claim',
+        status: 'verification',
+        staffId: 'staff-2',
+        assigneeName: 'Drita Gashi',
+        assigneeEmail: 'drita@example.com',
+        updatedAt: new Date('2026-01-01T00:00:00Z'),
+        memberName: 'Member One',
+        memberNumber: 'M-0001',
+      },
+    ]);
+
+    const [result] = await getStaffClaimsList({
+      staffId: 'staff-1',
+      tenantId: 'tenant-ks',
+      branchId: 'branch-1',
+      limit: 20,
+      viewerRole: 'branch_manager',
+    });
+
+    expect(result.assigneeName).toBe('Drita Gashi');
+    expect(result.assigneeEmail).toBe('drita@example.com');
+  });
+
+  it('limits the default staff queue to assigned-to-me and unassigned claims even when branchId exists', async () => {
+    mocks.claimChain.limit.mockResolvedValue([]);
+
+    await getStaffClaimsList({
+      staffId: 'staff-1',
+      tenantId: 'tenant-ks',
+      branchId: 'branch-1',
+      limit: 20,
+      viewerRole: 'staff',
+    });
+
+    expect(mocks.withTenant).toHaveBeenCalledWith(
+      'tenant-ks',
+      mocks.claims.tenantId,
+      expect.objectContaining({
+        op: 'and',
+        conditions: expect.arrayContaining([
+          expect.objectContaining({ op: 'inArray' }),
+          expect.objectContaining({ op: 'eq', left: 'claims.branch_id', right: 'branch-1' }),
+          expect.objectContaining({
+            op: 'or',
+            conditions: expect.arrayContaining([
+              expect.objectContaining({ op: 'eq', left: 'claims.staff_id', right: 'staff-1' }),
+              expect.objectContaining({ op: 'isNull', column: 'claims.staff_id' }),
+            ]),
+          }),
+        ]),
+      })
+    );
   });
 
   it('returns empty when no claims match tenant', async () => {

@@ -1,6 +1,24 @@
 {
   "agent-claims": {
     "claims": {
+      "staff_queue": {
+        "subtitle": "Šta danas traži akciju.",
+        "results_count": "{count, plural, one {# zahtev} other {# zahteva}}",
+        "search_placeholder": "Pretraži zahtev, člana, kompaniju ili broj",
+        "search": "Pretraži",
+        "clear_search": "Obriši",
+        "assignment_filter_label": "Filter dodele",
+        "status_filter_label": "Filter statusa",
+        "all_actionable": "Svi aktivni zahtevi",
+        "empty_filtered": "Nijedan zahtev ne odgovara trenutnim filterima",
+        "empty_default": "Nema zahteva u redu",
+        "assignment_state": {
+          "unassigned": "Nedodeljeno",
+          "assigned_to_you": "Dodeljeno vama",
+          "assigned": "Dodeljeno",
+          "assigned_to_named": "Dodeljeno za {name}"
+        }
+      },
       "queue": "Red zahteva",
       "manage_triage": "Upravljajte i trijaživajte sve podnete zahteve.",
       "table": {
@@ -20,7 +38,8 @@
         "approve": "Odobri",
         "reject": "Odbij",
         "requestInfo": "Zatraži info",
-        "review": "Pregledaj slučaj"
+        "review": "Pregledaj slučaj",
+        "open": "Otvori"
       },
       "details": {
         "title": "Detalji zahteva",
@@ -52,7 +71,8 @@
         "messages": "Poruke",
         "documents": "Dokumenti",
         "no_documents": "Nema otpremljenih dokumenata",
-        "unknown_date": "Nepoznat datum"
+        "unknown_date": "Nepoznat datum",
+        "branch_manager_readonly_notice": "Menadžeri filijala ovde mogu da pregledaju status zahteva i kontekst člana, ali dodela, poruke i radnje nad zahtevom ostaju samo za osoblje u pilotu."
       },
       "triage": {
         "title": "Trijaža radnje",
