@@ -165,4 +165,15 @@ describe('ReferralCard', () => {
     expect(getMemberReferralProgramPreview).not.toHaveBeenCalled();
     expect(screen.queryByText('Invite Friends & Earn')).not.toBeInTheDocument();
   });
+
+  it('can transition from agent viewer to member viewer without hook-order errors', async () => {
+    const { rerender } = render(<ReferralCard isAgent={true} />);
+
+    rerender(<ReferralCard isAgent={false} />);
+
+    expect(await screen.findByText('Invite Friends & Earn')).toBeInTheDocument();
+    expect(getMemberReferralLink).toHaveBeenCalled();
+    expect(getMemberReferralStats).toHaveBeenCalled();
+    expect(getMemberReferralProgramPreview).toHaveBeenCalled();
+  });
 });

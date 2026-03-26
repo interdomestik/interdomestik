@@ -1,8 +1,10 @@
 'use client';
 
 import type { ClientShellUser } from '@/components/shell/client-shell-user';
-import { useDashboardNavigation } from '@/hooks/use-dashboard-navigation';
-import { buildDashboardNavigationModel } from '@/hooks/use-dashboard-navigation';
+import {
+  buildDashboardNavigationModel,
+  useDashboardNavigation,
+} from '@/hooks/use-dashboard-navigation';
 import { usePathname } from '@/i18n/routing';
 import {
   Sidebar,
@@ -22,22 +24,18 @@ import { SidebarBrand } from './sidebar-brand';
 import { SidebarUserMenu } from './sidebar-user-menu';
 
 function DashboardSidebarInner({
-  agentTier = 'standard',
   user,
-  adminAccess,
   role,
   memberItems,
   agentItems,
   adminItems,
-}: {
-  agentTier?: string;
+}: Readonly<{
   user?: ClientShellUser | null;
-  adminAccess?: boolean;
   role?: string;
   memberItems: ReturnType<typeof buildDashboardNavigationModel>['memberItems'];
   agentItems: ReturnType<typeof buildDashboardNavigationModel>['agentItems'];
   adminItems: ReturnType<typeof buildDashboardNavigationModel>['adminItems'];
-}) {
+}>) {
   const pathname = usePathname();
   const isAgent = role === 'agent';
   const t = useTranslations('nav');
@@ -184,7 +182,6 @@ function DashboardSidebarFromSession({ agentTier }: { agentTier?: string }) {
 
   return (
     <DashboardSidebarInner
-      agentTier={agentTier}
       role={role}
       memberItems={memberItems}
       agentItems={agentItems}
@@ -197,11 +194,11 @@ export function DashboardSidebar({
   agentTier = 'standard',
   user,
   adminAccess,
-}: {
+}: Readonly<{
   agentTier?: string;
   user?: ClientShellUser | null;
   adminAccess?: boolean;
-}) {
+}>) {
   const t = useTranslations('nav');
 
   if (user?.role !== undefined) {
@@ -214,9 +211,7 @@ export function DashboardSidebar({
 
     return (
       <DashboardSidebarInner
-        agentTier={agentTier}
         user={user}
-        adminAccess={adminAccess}
         role={navigation.role}
         memberItems={navigation.memberItems}
         agentItems={navigation.agentItems}

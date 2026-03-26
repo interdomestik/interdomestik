@@ -2,7 +2,20 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-STATE_DIR="${ROOT_DIR}/.git/codex-observe-local"
+
+resolve_state_dir() {
+  local git_path=""
+  git_path="$(git -C "${ROOT_DIR}" rev-parse --git-path codex-observe-local 2>/dev/null || true)"
+  if [[ -n "${git_path}" ]]; then
+    printf '%s\n' "${ROOT_DIR}/${git_path}"
+    return 0
+  fi
+
+  printf '%s\n' "${ROOT_DIR}/.tmp/codex-observe-local"
+  return 0
+}
+
+STATE_DIR="$(resolve_state_dir)"
 PID_FILE="${STATE_DIR}/server.pid"
 LOG_FILE="${STATE_DIR}/server.log"
 PORT_FILE="${STATE_DIR}/port"
@@ -21,20 +34,24 @@ is_pid_running() {
     return 1
   fi
   kill -0 "${pid}" 2>/dev/null
+  return $?
 }
 
 read_pid() {
   if [[ -f "${PID_FILE}" ]]; then
     tr -d '[:space:]' < "${PID_FILE}"
   fi
+  return 0
 }
 
 is_port_listening() {
   lsof -nP -iTCP:"${PORT}" -sTCP:LISTEN >/dev/null 2>&1
+  return $?
 }
 
 find_listening_pid() {
   lsof -tiTCP:"${PORT}" -sTCP:LISTEN 2>/dev/null | head -n 1
+  return 0
 }
 
 print_status() {
@@ -125,6 +142,7 @@ show_logs() {
     exit 1
   fi
   tail -n "${OBSERVE_LOCAL_TAIL_LINES:-120}" "${LOG_FILE}"
+  return 0
 }
 
 case "${1:-status}" in
