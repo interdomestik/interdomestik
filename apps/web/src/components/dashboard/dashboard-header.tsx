@@ -6,7 +6,15 @@ import { CommandMenuTrigger } from './command-menu-trigger';
 import { PortalSurfaceIndicator } from './portal-surface-indicator';
 import { UserNav } from './user-nav';
 
-export function DashboardHeader() {
+type DashboardHeaderUser = Readonly<{
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role?: string;
+}>;
+
+export function DashboardHeader({ user }: Readonly<{ user?: DashboardHeaderUser | null }>) {
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-white/10 bg-background/60 px-4 transition-all backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center gap-2">
@@ -19,9 +27,9 @@ export function DashboardHeader() {
           <CommandMenuTrigger />
         </div>
         <div className="flex items-center gap-4">
-          <PortalSurfaceIndicator />
-          <NotificationBell />
-          <UserNav />
+          <PortalSurfaceIndicator role={user?.role} />
+          <NotificationBell subscriberId={user?.id} />
+          <UserNav user={user} />
         </div>
       </div>
     </header>

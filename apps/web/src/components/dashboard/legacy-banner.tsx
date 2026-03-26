@@ -16,16 +16,14 @@ function roleFromPathname(pathname: string | null) {
   return parts[legacyIndex + 1] ?? null;
 }
 
-export function LegacyBanner() {
+function LegacyBannerInner({ role }: Readonly<{ role?: string }>) {
   const pathname = usePathname();
-  const { data: session } = authClient.useSession();
-  const sessionRole = (session?.user as { role?: string })?.role;
   const isLegacy = pathname?.includes('/legacy/') ?? false;
 
   if (!isLegacy) return null;
 
   const locale = getValidatedLocaleFromPathname(pathname);
-  const canonical = getCanonicalRouteForRole(sessionRole ?? roleFromPathname(pathname), locale);
+  const canonical = getCanonicalRouteForRole(role ?? roleFromPathname(pathname), locale);
   const linkHref = stripLocalePrefixFromCanonicalRoute(canonical, locale);
   if (!linkHref) return null;
 
@@ -48,4 +46,19 @@ export function LegacyBanner() {
       </div>
     </div>
   );
+}
+
+function LegacyBannerFromSession() {
+  const { data: session } = authClient.useSession();
+  const role = (session?.user as { role?: string } | undefined)?.role;
+
+  return <LegacyBannerInner role={role} />;
+}
+
+export function LegacyBanner({ role }: Readonly<{ role?: string }>) {
+  if (role !== undefined) {
+    return <LegacyBannerInner role={role} />;
+  }
+
+  return <LegacyBannerFromSession />;
 }

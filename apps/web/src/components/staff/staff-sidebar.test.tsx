@@ -75,6 +75,20 @@ vi.mock('lucide-react', () => ({
 }));
 
 describe('StaffSidebar', () => {
+  it('renders from a provided user without consulting the auth session hook', () => {
+    const useSessionSpy = vi.mocked(authClient.useSession);
+
+    render(
+      <StaffSidebar
+        user={{ name: 'Provided Staff', email: 'provided.staff@example.com', image: null }}
+      />
+    );
+
+    expect(screen.getByText('Provided Staff')).toBeInTheDocument();
+    expect(screen.getByText('provided.staff@example.com')).toBeInTheDocument();
+    expect(useSessionSpy).not.toHaveBeenCalled();
+  });
+
   it('does not render a redundant /staff overview link', () => {
     render(<StaffSidebar />);
 

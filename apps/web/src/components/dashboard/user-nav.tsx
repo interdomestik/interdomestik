@@ -23,11 +23,18 @@ import { Briefcase, LayoutTemplate, LogOut, Settings, User } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-export function UserNav() {
+type UserNavUser = Readonly<{
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role?: string;
+}>;
+
+function UserNavInner({ user }: Readonly<{ user: UserNavUser | null | undefined }>) {
   const locale = useLocale();
   const [mounted, setMounted] = useState(false);
   const [adminAccess, setAdminAccess] = useState(false);
-  const { data: session } = authClient.useSession();
   const t = useTranslations('nav');
 
   useEffect(() => {
@@ -35,9 +42,9 @@ export function UserNav() {
   }, []);
 
   useEffect(() => {
-    if (!session) return;
+    if (!user) return;
 
-    const role = (session.user as unknown as { role?: string })?.role ?? null;
+    const role = user.role ?? null;
     if (isAdmin(role)) {
       setAdminAccess(true);
       return;
@@ -55,7 +62,7 @@ export function UserNav() {
     return () => {
       cancelled = true;
     };
-  }, [session]);
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOutAndRedirectToLogin({
@@ -65,7 +72,7 @@ export function UserNav() {
   };
 
   // Avoid SSR/CSR id mismatches from Radix by rendering menu only after mount.
-  if (!mounted || !session) {
+  if (!mounted || !user) {
     return (
       <Button variant="ghost" className="relative h-9 w-9 rounded-full" disabled>
         <Avatar className="h-9 w-9">
@@ -75,8 +82,7 @@ export function UserNav() {
     );
   }
 
-  const { user } = session;
-  const role = (user as { role?: string }).role;
+  const role = user.role;
   let settingsHref = '/member/settings';
   if (isAdmin(role) || adminAccess) {
     settingsHref = '/admin/settings';
@@ -90,7 +96,7 @@ export function UserNav() {
         <Button variant="ghost" className="relative h-9 w-9 rounded-full" data-testid="user-nav">
           <Avatar className="h-9 w-9">
             <AvatarImage src={user.image || ''} alt={user.name || 'User'} />
-            <AvatarFallback>{user.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+            <AvatarFallback>{user.name?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -143,4 +149,18 @@ export function UserNav() {
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+function UserNavFromSession() {
+  const { data: session } = authClient.useSession();
+
+  return <UserNavInner user={(session?.user as UserNavUser | undefined) ?? null} />;
+}
+
+export function UserNav({ user }: Readonly<{ user?: UserNavUser | null }>) {
+  if (user !== undefined) {
+    return <UserNavInner user={user} />;
+  }
+
+  return <UserNavFromSession />;
 }

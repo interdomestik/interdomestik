@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { authClient } from '@/lib/auth-client';
+
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     useSession: vi.fn(() => ({
@@ -37,6 +39,15 @@ vi.mock('next-intl', () => ({
 import { PortalSurfaceIndicator } from './portal-surface-indicator';
 
 describe('PortalSurfaceIndicator', () => {
+  it('renders from a provided role without consulting the auth session hook', () => {
+    const useSessionSpy = vi.mocked(authClient.useSession);
+
+    render(<PortalSurfaceIndicator role="staff" />);
+
+    expect(screen.getByTestId('portal-surface-indicator')).toHaveTextContent('Portal: Staff');
+    expect(useSessionSpy).not.toHaveBeenCalled();
+  });
+
   it('prefers the canonical staff route over a branch-manager session role', () => {
     render(<PortalSurfaceIndicator />);
 

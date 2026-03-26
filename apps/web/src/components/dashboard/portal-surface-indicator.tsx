@@ -39,11 +39,9 @@ function inferPortalKeyFromRole(role: string | undefined): PortalKey | null {
   return null;
 }
 
-export function PortalSurfaceIndicator() {
+function PortalSurfaceIndicatorInner({ role }: Readonly<{ role?: string }>) {
   const pathname = usePathname();
   const t = useTranslations('dashboard.shell');
-  const { data: session } = authClient.useSession();
-  const role = (session?.user as { role?: string })?.role;
   const pathPortalKey = inferPortalKeyFromPath(pathname);
   const portalKey = pathPortalKey ?? inferPortalKeyFromRole(role) ?? 'member';
   const isLegacy = pathname?.includes('/legacy/') ?? false;
@@ -62,4 +60,15 @@ export function PortalSurfaceIndicator() {
       ) : null}
     </div>
   );
+}
+
+export function PortalSurfaceIndicator({ role }: Readonly<{ role?: string }>) {
+  if (role !== undefined) {
+    return <PortalSurfaceIndicatorInner role={role} />;
+  }
+
+  const { data: session } = authClient.useSession();
+  const sessionRole = (session?.user as { role?: string } | undefined)?.role;
+
+  return <PortalSurfaceIndicatorInner role={sessionRole} />;
 }

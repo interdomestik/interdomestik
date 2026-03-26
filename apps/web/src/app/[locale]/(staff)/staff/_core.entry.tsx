@@ -1,6 +1,7 @@
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { LegacyBanner } from '@/components/dashboard/legacy-banner';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
+import { toClientShellUser } from '@/components/shell/client-shell-user';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { StaffSidebar } from '@/components/staff/staff-sidebar';
 import { BASE_NAMESPACES, STAFF_NAMESPACES, pickMessages } from '@/i18n/messages';
@@ -31,15 +32,16 @@ export default async function StaffLayout({
     ...pickMessages(allMessages, BASE_NAMESPACES),
     ...pickMessages(allMessages, STAFF_NAMESPACES),
   };
+  const shellUser = toClientShellUser(sessionNonNull.user);
 
   return (
     <AuthenticatedShell locale={locale} messages={messages}>
       <SidebarProvider defaultOpen={true}>
-        <StaffSidebar />
+        <StaffSidebar user={shellUser} />
         <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-          <DashboardHeader />
+          <DashboardHeader user={shellUser} />
           <div className="px-6 pt-4 md:px-8">
-            <LegacyBanner />
+            <LegacyBanner role={shellUser.role} />
           </div>
           <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
         </SidebarInset>
