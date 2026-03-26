@@ -18,8 +18,25 @@ interface PageProps {
   }>;
 }
 
+type LatestStatusNote = Awaited<ReturnType<typeof getLatestPublicStatusNoteCore>>;
+
 function toClaimStatus(value: unknown): ClaimStatus {
   return CLAIM_STATUSES.includes(value as ClaimStatus) ? (value as ClaimStatus) : 'draft';
+}
+
+function LatestStatusNoteContent({ latestStatusNote }: { latestStatusNote: LatestStatusNote }) {
+  if (!latestStatusNote?.note) {
+    return <p className="text-muted-foreground">No public status notes yet.</p>;
+  }
+
+  return (
+    <>
+      <p className="whitespace-pre-wrap text-slate-900">{latestStatusNote.note}</p>
+      <p className="text-xs text-muted-foreground">
+        {latestStatusNote.createdAt ? new Date(latestStatusNote.createdAt).toLocaleString() : ''}
+      </p>
+    </>
+  );
 }
 
 export default async function StaffClaimDetailsPage({ params }: PageProps) {
@@ -192,18 +209,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
           Latest status note
         </h2>
         <div className="mt-3 space-y-1 text-sm">
-          {latestStatusNote?.note ? (
-            <>
-              <p className="whitespace-pre-wrap text-slate-900">{latestStatusNote.note}</p>
-              <p className="text-xs text-muted-foreground">
-                {latestStatusNote.createdAt
-                  ? new Date(latestStatusNote.createdAt).toLocaleString()
-                  : ''}
-              </p>
-            </>
-          ) : (
-            <p className="text-muted-foreground">No public status notes yet.</p>
-          )}
+          <LatestStatusNoteContent latestStatusNote={latestStatusNote} />
         </div>
       </section>
 
