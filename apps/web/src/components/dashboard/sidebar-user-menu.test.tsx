@@ -30,7 +30,7 @@ vi.mock('@/lib/auth-client', () => ({
       },
       isPending: false,
       error: null,
-    }),
+    } as unknown as ReturnType<typeof authClient.useSession>),
     signOut: vi.fn(),
   },
 }));
@@ -129,7 +129,7 @@ describe('SidebarUserMenu', () => {
       },
       isPending: false,
       error: null,
-    });
+    } as unknown as ReturnType<typeof authClient.useSession>);
 
     render(<SidebarUserMenu />);
 
