@@ -7,8 +7,9 @@ import { NotificationCenter } from './notification-center';
 const authClient = createAuthClient();
 
 /**
- * NotificationBell - A self-contained notification bell that fetches user session
- * and renders the NotificationCenter if the user is authenticated.
+ * NotificationBell - A self-contained notification bell that uses a provided subscriberId
+ * when available, or falls back to fetching the user session to determine the subscriber.
+ * Renders the NotificationCenter only when a valid subscriber/user id is available.
  */
 export function NotificationBell({ subscriberId }: { subscriberId?: string | null }) {
   const [userId, setUserId] = useState<string | null>(null);
