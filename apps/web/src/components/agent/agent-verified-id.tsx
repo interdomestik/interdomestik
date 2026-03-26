@@ -18,6 +18,93 @@ interface AgentVerifiedIDProps {
   activeSinceLabel?: string;
 }
 
+const DASHBOARD_MONTHS: Record<string, string[]> = {
+  en: [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ],
+  mk: [
+    'јануари',
+    'февруари',
+    'март',
+    'април',
+    'мај',
+    'јуни',
+    'јули',
+    'август',
+    'септември',
+    'октомври',
+    'ноември',
+    'декември',
+  ],
+  sq: [
+    'janar',
+    'shkurt',
+    'mars',
+    'prill',
+    'maj',
+    'qershor',
+    'korrik',
+    'gusht',
+    'shtator',
+    'tetor',
+    'nëntor',
+    'dhjetor',
+  ],
+  sr: [
+    'јануар',
+    'фебруар',
+    'март',
+    'април',
+    'мај',
+    'јун',
+    'јул',
+    'август',
+    'септембар',
+    'октобар',
+    'новембар',
+    'децембар',
+  ],
+};
+
+function getDateLocale(locale: string): string {
+  switch (locale) {
+    case 'sq':
+      return 'sq-AL';
+    case 'mk':
+      return 'mk-MK';
+    case 'sr':
+      return 'sr-RS';
+    default:
+      return locale;
+  }
+}
+
+export function formatVerifiedDate(createdAt: string | Date, locale: string): string {
+  const date = new Date(createdAt);
+  const monthNames = DASHBOARD_MONTHS[locale];
+
+  if (monthNames) {
+    return `${monthNames[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+  }
+
+  return date.toLocaleDateString(getDateLocale(locale), {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
 export function AgentVerifiedID({
   name,
   agentId,
@@ -29,10 +116,7 @@ export function AgentVerifiedID({
   const cardRef = useRef<HTMLDivElement>(null);
   const [rotate, setRotate] = useState({ x: 0, y: 0 });
 
-  const formattedDate = new Date(createdAt).toLocaleDateString(locale, {
-    month: 'long',
-    year: 'numeric',
-  });
+  const formattedDate = formatVerifiedDate(createdAt, locale);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
