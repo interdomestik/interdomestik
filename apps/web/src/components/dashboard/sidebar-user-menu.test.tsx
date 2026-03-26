@@ -116,4 +116,24 @@ describe('SidebarUserMenu', () => {
 
     expect(useSessionSpy).not.toHaveBeenCalled();
   });
+
+  it('localizes the member role label instead of showing the raw session role', () => {
+    vi.mocked(authClient.useSession).mockReturnValue({
+      data: {
+        user: {
+          name: 'Member User',
+          email: 'member.mk.1@interdomestik.com',
+          role: 'member',
+          image: null,
+        },
+      },
+      isPending: false,
+      error: null,
+    });
+
+    render(<SidebarUserMenu />);
+
+    expect(screen.getByText('memberRole')).toBeInTheDocument();
+    expect(screen.queryByText(/^member$/)).not.toBeInTheDocument();
+  });
 });

@@ -28,6 +28,7 @@ vi.mock('@/components/messaging/messaging-panel', () => ({
 }));
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
   useTranslations: (namespace?: string) => {
     if (namespace === 'claims-tracking.status') {
       return (key: string) => {
@@ -52,9 +53,28 @@ vi.mock('next-intl', () => ({
           'detail.matterAllowance.used': 'Used this year',
           'detail.matterAllowance.remaining': 'Remaining this year',
           'detail.matterAllowance.total': 'Plan allowance',
+          'detail.caseDetails': 'Case details',
+          'detail.evidence': 'Evidence',
+          'detail.documentsEmpty': 'No documents uploaded yet',
+          'detail.viewDocument': 'View document',
+          'timeline.title': 'Timeline',
+          'timeline.empty': 'No updates yet',
+          'claimsPro.actions.uploadEvidence': 'Upload evidence',
+          'table.amount': 'Amount',
         };
 
         return translations[key] || `claims.${key}`;
+      };
+    }
+    if (namespace === 'claims.status') {
+      return (key: string) => {
+        const translations: Record<string, string> = {
+          evaluation: 'Evaluation',
+          verification: 'Verification',
+          negotiation: 'Negotiation',
+        };
+
+        return translations[key] || `claims.status.${key}`;
       };
     }
     return (key: string) => (namespace ? `${namespace}.${key}` : key);
@@ -117,7 +137,7 @@ describe('MemberClaimDetailOpsPage', () => {
     });
 
     // If the old bug regresses, we'd render "claims.claims-tracking.status.evaluation".
-    expect(screen.getByText('Evaluation')).toBeInTheDocument();
+    expect(screen.getAllByText('Evaluation').length).toBeGreaterThan(0);
   });
 
   it('shows the member-facing SLA phase when the claim is waiting on member information', () => {

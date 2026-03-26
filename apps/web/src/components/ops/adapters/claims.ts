@@ -39,7 +39,7 @@ export function toOpsTimelineEvents(events: ClaimTimelineEvent[]): OpsTimelineEv
     id: e.id,
     title: e.labelKey, // In real app, translate this using t(e.labelKey) before passing or handle in component
     description: e.note || undefined,
-    date: new Date(e.date).toLocaleString(),
+    date: typeof e.date === 'string' ? e.date : e.date.toISOString(),
     tone: toOpsTimelineTone('neutral'), // Map status changes to tone if needed
   }));
 }

@@ -4,19 +4,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 
 const hoisted = vi.hoisted(() => ({
-  getSessionMock: vi.fn(async () => ({
+  getSessionSafeMock: vi.fn(async () => ({
     user: {
       id: 'member-1',
       name: 'Test Member',
       tenantId: 'tenant-ks',
     },
   })),
-  headersMock: vi.fn(async () => new Headers()),
   redirectMock: vi.fn(),
-}));
-
-vi.mock('next/headers', () => ({
-  headers: hoisted.headersMock,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -29,12 +24,8 @@ vi.mock('next-intl/server', () => ({
   ),
 }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: hoisted.getSessionMock,
-    },
-  },
+vi.mock('@/components/shell/session', () => ({
+  getSessionSafe: hoisted.getSessionSafeMock,
 }));
 
 vi.mock('@/lib/flags', () => ({
@@ -79,7 +70,24 @@ describe('MembershipSuccessPage hotline disclaimer', () => {
 
     render(tree);
 
+    expect(hoisted.getSessionSafeMock).toHaveBeenCalledWith('MemberMembershipSuccessPage');
     expect(screen.getByText('membership.success.hotline_disclaimer.title')).toBeInTheDocument();
     expect(screen.getByText('membership.success.hotline_disclaimer.body')).toBeInTheDocument();
+  });
+
+  it('redirects to the localized login page when the success page opens without a session', async () => {
+    hoisted.getSessionSafeMock.mockResolvedValueOnce(null as never);
+    hoisted.redirectMock.mockImplementationOnce((url: string) => {
+      throw new Error(`redirect:${url}`);
+    });
+
+    await expect(
+      MembershipSuccessPage({
+        params: Promise.resolve({ locale: 'mk' }),
+        searchParams: Promise.resolve({}),
+      })
+    ).rejects.toThrow('redirect:/mk/login');
+
+    expect(hoisted.redirectMock).toHaveBeenCalledWith('/mk/login');
   });
 });

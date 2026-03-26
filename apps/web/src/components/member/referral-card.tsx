@@ -87,17 +87,17 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
         ]);
 
         if (!linkResult.success) {
-          setError(linkResult.error);
+          setError(t('loadError'));
           return;
         }
 
         if (!statsResult.success) {
-          setError(statsResult.error);
+          setError(t('loadError'));
           return;
         }
 
         if (!settingsResult.success) {
-          setError(settingsResult.error);
+          setError(t('loadError'));
           return;
         }
 

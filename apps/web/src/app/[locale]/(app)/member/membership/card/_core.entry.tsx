@@ -1,10 +1,9 @@
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
-import { auth } from '@/lib/auth';
+import { getSessionSafe } from '@/components/shell/session';
 import { and, db, eq, subscriptions } from '@interdomestik/database';
 import { Badge, Button } from '@interdomestik/ui';
 import { ChevronLeft, Phone, QrCode, ShieldCheck, Wallet } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -12,12 +11,10 @@ export default async function MemberCardPage({ params }: { params: Promise<{ loc
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getSessionSafe('MemberMembershipCardPage');
 
   if (!session) {
-    redirect('/login');
+    redirect(`/${locale}/login`);
   }
 
   const t = await getTranslations('membership.card');
@@ -32,7 +29,7 @@ export default async function MemberCardPage({ params }: { params: Promise<{ loc
 
   if (subscription?.status !== 'active') {
     // If not active, user shouldn't see the card
-    redirect('/member/membership');
+    redirect(`/${locale}/member/membership`);
   }
 
   const memberNumber =
@@ -44,7 +41,7 @@ export default async function MemberCardPage({ params }: { params: Promise<{ loc
       <div className="w-full max-w-sm flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm" asChild className="-ml-2">
-            <Link href="/member">
+            <Link href={`/${locale}/member`}>
               <ChevronLeft className="mr-2 h-4 w-4" />
               {t('back_to_dashboard')}
             </Link>

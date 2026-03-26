@@ -13,6 +13,7 @@ import { HomeGrid } from '@/components/member/HomeGrid';
 import { ReferralCard } from '@/components/member/referral-card';
 import { Link } from '@/i18n/routing';
 import { isAgent } from '@/lib/roles.core';
+import { resolveDateLocale } from '@/lib/utils/date';
 import { db, eq, subscriptions, user } from '@interdomestik/database';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import {
@@ -85,12 +86,10 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
         <div className="p-4 rounded-full bg-red-100 text-red-600">
           <ShieldAlert className="w-12 h-12" />
         </div>
-        <h2 className="text-2xl font-bold">Account Configuration Error</h2>
-        <p className="text-muted-foreground">
-          We couldn't retrieve your profile details. Please contact support.
-        </p>
+        <h2 className="text-2xl font-bold">{tLanding('account_error_title')}</h2>
+        <p className="text-muted-foreground">{tLanding('account_error_body')}</p>
         <Button asChild variant="outline" className="rounded-xl">
-          <Link href="/member/help">Get Assistance</Link>
+          <Link href="/member/help">{tLanding('account_error_cta')}</Link>
         </Button>
       </div>
     );
@@ -98,11 +97,11 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
 
   const isActive = subscription?.status === 'active';
   const validThru = subscription?.currentPeriodEnd
-    ? new Date(subscription.currentPeriodEnd).toLocaleDateString(undefined, {
+    ? new Date(subscription.currentPeriodEnd).toLocaleDateString(resolveDateLocale(locale), {
         month: '2-digit',
         year: '2-digit',
       })
-    : 'N/A';
+    : tLanding('unavailable_short');
 
   return (
     <div className="space-y-10 pb-10" data-testid="member-dashboard-ready">
@@ -124,8 +123,10 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
       {activeClaim ? (
         <ActiveClaimFocus
           claimNumber={activeClaim.claimNumber}
+          locale={locale}
           status={activeClaim.status}
           stageLabel={activeClaim.stageLabel}
+          stageKey={activeClaim.stageKey}
           updatedAt={activeClaim.updatedAt}
           nextMemberAction={
             activeClaim.requiresMemberAction ? activeClaim.nextMemberAction : undefined
