@@ -35,11 +35,11 @@ export default async function StaffLayout({
   return (
     <AuthenticatedShell locale={locale} messages={messages}>
       <SidebarProvider defaultOpen={true}>
-        <StaffSidebar />
+        <StaffSidebar user={sessionNonNull.user} />
         <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-          <DashboardHeader />
+          <DashboardHeader user={sessionNonNull.user} />
           <div className="px-6 pt-4 md:px-8">
-            <LegacyBanner />
+            <LegacyBanner role={sessionNonNull.user.role} />
           </div>
           <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
         </SidebarInset>

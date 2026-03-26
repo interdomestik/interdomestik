@@ -107,6 +107,26 @@ describe('UserNav', () => {
     mockCanAccessAdmin.mockResolvedValue(false);
   });
 
+  it('renders from a provided user without consulting the auth session hook', async () => {
+    render(
+      <UserNav
+        user={{
+          id: 'staff-1',
+          name: 'Staff User',
+          email: 'staff@example.com',
+          image: null,
+          role: 'staff',
+        }}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user-nav')).toBeInTheDocument();
+    });
+
+    expect(mockUseSession).not.toHaveBeenCalled();
+  });
+
   it('signs out with a localized hard redirect', async () => {
     mockUseSession.mockReturnValue({
       data: {

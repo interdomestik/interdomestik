@@ -10,11 +10,17 @@ const authClient = createAuthClient();
  * NotificationBell - A self-contained notification bell that fetches user session
  * and renders the NotificationCenter if the user is authenticated.
  */
-export function NotificationBell() {
+export function NotificationBell({ subscriberId }: { subscriberId?: string | null }) {
   const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!subscriberId);
 
   useEffect(() => {
+    if (subscriberId) {
+      setUserId(subscriberId);
+      setLoading(false);
+      return;
+    }
+
     async function fetchSession() {
       try {
         const session = await authClient.getSession();
@@ -29,7 +35,7 @@ export function NotificationBell() {
     }
 
     fetchSession();
-  }, []);
+  }, [subscriberId]);
 
   // Don't render anything while loading or if not authenticated
   if (loading || !userId) {

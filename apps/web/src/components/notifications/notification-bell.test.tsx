@@ -2,10 +2,14 @@ import { render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationBell } from './notification-bell';
 
+const hoisted = vi.hoisted(() => ({
+  mockGetSession: vi.fn(),
+}));
+
 // Mock better-auth
 vi.mock('better-auth/react', () => ({
   createAuthClient: () => ({
-    getSession: vi.fn(),
+    getSession: hoisted.mockGetSession,
   }),
 }));
 
@@ -19,6 +23,16 @@ vi.mock('./notification-center', () => ({
 describe('NotificationBell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('renders from a provided subscriber id without fetching session', async () => {
+    const { getByTestId } = render(<NotificationBell subscriberId="staff-1" />);
+
+    await waitFor(() => {
+      expect(getByTestId('notification-center')).toHaveTextContent('Notifications for staff-1');
+    });
+
+    expect(hoisted.mockGetSession).not.toHaveBeenCalled();
   });
 
   it('returns null while loading', () => {

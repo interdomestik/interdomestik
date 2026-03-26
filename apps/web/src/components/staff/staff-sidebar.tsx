@@ -23,12 +23,17 @@ import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/component
 import { ChevronUp, FileText, LogOut, Shield } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
-export function StaffSidebar() {
+type StaffSidebarUser = {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+};
+
+function StaffSidebarInner({ user }: { user: StaffSidebarUser | null | undefined }) {
   const pathname = usePathname();
   const locale = useLocale();
   const tNav = useTranslations('nav');
   const tClaims = useTranslations('agent-claims.claims');
-  const { data: session } = authClient.useSession();
 
   const navItems = [{ title: tClaims('claims_queue'), href: '/staff/claims', icon: FileText }];
 
@@ -92,14 +97,14 @@ export function StaffSidebar() {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={session?.user?.image || ''} alt={session?.user?.name || ''} />
+                    <AvatarImage src={user?.image || ''} alt={user?.name || ''} />
                     <AvatarFallback className="rounded-lg">
-                      {session?.user?.name?.[0]?.toUpperCase() || 'S'}
+                      {user?.name?.[0]?.toUpperCase() || 'S'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{session?.user?.name || 'Staff'}</span>
-                    <span className="truncate text-xs">{session?.user?.email}</span>
+                    <span className="truncate font-semibold">{user?.name || 'Staff'}</span>
+                    <span className="truncate text-xs">{user?.email}</span>
                   </div>
                   <ChevronUp className="ml-auto size-4" />
                 </SidebarMenuButton>
@@ -122,4 +127,18 @@ export function StaffSidebar() {
       </SidebarFooter>
     </Sidebar>
   );
+}
+
+function StaffSidebarFromSession() {
+  const { data: session } = authClient.useSession();
+
+  return <StaffSidebarInner user={(session?.user as StaffSidebarUser | undefined) ?? null} />;
+}
+
+export function StaffSidebar({ user }: { user?: StaffSidebarUser | null }) {
+  if (typeof user !== 'undefined') {
+    return <StaffSidebarInner user={user} />;
+  }
+
+  return <StaffSidebarFromSession />;
 }
