@@ -1,24 +1,16 @@
 import { ClaimsFilters } from '@/components/dashboard/claims/claims-filters';
 import { MemberClaimsTable } from '@/components/dashboard/claims/member-claims-table';
+import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { Link, redirect } from '@/i18n/routing';
-import { auth } from '@/lib/auth';
 import { Button } from '@interdomestik/ui';
 import { Plus } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { headers } from 'next/headers';
 
 export default async function ClaimsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    redirect({ href: '/login', locale });
-    return null;
-  }
+  const session = requireSessionOrRedirect(await getSessionSafe('MemberClaimsPage'), locale);
 
   // Only members (or default users) should access this page
   // Staff uses /staff/claims, agents don't handle claims here

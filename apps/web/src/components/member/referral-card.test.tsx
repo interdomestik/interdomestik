@@ -176,4 +176,16 @@ describe('ReferralCard', () => {
     expect(getMemberReferralStats).toHaveBeenCalled();
     expect(getMemberReferralProgramPreview).toHaveBeenCalled();
   });
+
+  it('keeps the localized load error copy when the stats action returns a raw backend error string', async () => {
+    vi.mocked(getMemberReferralStats).mockResolvedValueOnce({
+      success: false,
+      error: 'Failed to fetch referral stats',
+    });
+
+    render(<ReferralCard />);
+
+    expect(await screen.findAllByText('Failed to load referral details')).toHaveLength(2);
+    expect(screen.queryByText('Failed to fetch referral stats')).not.toBeInTheDocument();
+  });
 });

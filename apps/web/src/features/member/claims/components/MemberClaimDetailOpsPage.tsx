@@ -16,9 +16,10 @@ import type {
   ClaimTrackingDocument,
   ClaimTimelineEvent,
 } from '@/features/claims/tracking/types';
+import { formatPilotDateTime } from '@/lib/utils/date';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { Upload } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
 
 type SerializedClaimTrackingDocument = Omit<ClaimTrackingDocument, 'createdAt'> & {
@@ -62,9 +63,11 @@ export function MemberClaimDetailOpsPage({
   claim,
   currentUser,
 }: Readonly<MemberClaimDetailOpsPageProps>) {
+  const locale = useLocale();
   const t = useTranslations('claims');
   const tTrackingStatus = useTranslations('claims-tracking.status');
   const tSla = useTranslations('claims-tracking.tracking.sla');
+  const tClaimStatus = useTranslations('claims.status');
 
   // Transform events and translate titles
   const opsEvents = toOpsTimelineEvents(claim.timeline).map(e => ({
@@ -77,6 +80,13 @@ export function MemberClaimDetailOpsPage({
   }));
 
   const opsDocuments = toOpsDocuments(claim.documents);
+  const localizedStatusLabel = (() => {
+    try {
+      return tClaimStatus(claim.status as never);
+    } catch {
+      return claim.status.replace(/_/g, ' ').toUpperCase();
+    }
+  })();
 
   // Policy-driven actions
   const { secondary } = getClaimActions(claim, t);
@@ -102,7 +112,7 @@ export function MemberClaimDetailOpsPage({
           <h1 className="text-2xl font-bold">{claim.title}</h1>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-muted-foreground text-sm">{claim.id}</span>
-            <OpsStatusBadge {...toOpsStatus(claim.status)} />
+            <OpsStatusBadge {...toOpsStatus(claim.status)} label={localizedStatusLabel} />
           </div>
         </div>
         <OpsActionBar secondary={secondaryActions} />
@@ -202,14 +212,14 @@ export function MemberClaimDetailOpsPage({
           <OpsDocumentsPanel
             title={t('detail.evidence')}
             documents={opsDocuments}
-            emptyLabel="No documents uploaded"
-            viewLabel="View"
+            emptyLabel={t('detail.documentsEmpty')}
+            viewLabel={t('detail.viewDocument')}
             headerActions={
               <ClaimEvidenceUploadDialog
                 claimId={claim.id}
                 trigger={
                   <Button size="sm" variant="outline">
-                    <Upload className="w-4 h-4 mr-2" /> Upload
+                    <Upload className="w-4 h-4 mr-2" /> {t('claimsPro.actions.uploadEvidence')}
                   </Button>
                 }
               />
@@ -223,7 +233,12 @@ export function MemberClaimDetailOpsPage({
 
         {/* Sidebar */}
         <div className="lg:col-span-1">
-          <OpsTimeline title={t('timeline.title')} events={opsEvents} emptyLabel="No history yet" />
+          <OpsTimeline
+            title={t('timeline.title')}
+            events={opsEvents}
+            emptyLabel={t('timeline.empty')}
+            formatTimestamp={value => formatPilotDateTime(value, locale, String(value))}
+          />
         </div>
       </div>
     </div>

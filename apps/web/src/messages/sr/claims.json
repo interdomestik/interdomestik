@@ -155,6 +155,8 @@
       "claimAmount": "Traženi Iznos",
       "category": "Kategorija",
       "evidence": "Priloženi Dokazi",
+      "documentsEmpty": "Još nema otpremljenih dokumenata",
+      "viewDocument": "Otvori",
       "matterAllowance": {
         "title": "Kvota predmeta",
         "used": "Iskorišćeno ove godine",

@@ -155,6 +155,8 @@
       "claimAmount": "Баран Износ",
       "category": "Категорија",
       "evidence": "Приложени докази",
+      "documentsEmpty": "Сè уште нема прикачени документи",
+      "viewDocument": "Отвори",
       "matterAllowance": {
         "title": "Квота за случаи",
         "used": "Искористено оваа година",

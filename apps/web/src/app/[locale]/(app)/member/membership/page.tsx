@@ -1,20 +1,18 @@
 import { CoverageMatrix } from '@/components/commercial/coverage-matrix';
 import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matrix-content';
+import { getSessionSafe } from '@/components/shell/session';
 import { MembershipOpsPage } from '@/features/member/membership/components/MembershipOpsPage';
-import { auth } from '@/lib/auth';
 import { getTranslations } from 'next-intl/server';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getMemberDocumentsCore, getMemberSubscriptionsCore } from './_core';
 
-export default async function MembershipPage() {
+export default async function MembershipPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   const coverageMatrix = await getTranslations('coverageMatrix');
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getSessionSafe('MemberMembershipPage');
 
   if (!session) {
-    redirect('/login');
+    redirect(`/${locale}/login`);
   }
 
   const subscriptions = await getMemberSubscriptionsCore({

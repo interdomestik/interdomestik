@@ -1,12 +1,11 @@
 import { ClaimWizard } from '@/components/claims/claim-wizard';
-import { auth } from '@/lib/auth';
+import { getSessionSafe } from '@/components/shell/session';
 import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { Button } from '@interdomestik/ui';
 import { ShieldAlert } from 'lucide-react';
 import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -27,9 +26,7 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
   const query = await searchParams;
   const preselectedCategory = query.category;
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getSessionSafe('MemberNewClaimPage');
 
   if (!session) {
     redirect(`/${locale}/login`);

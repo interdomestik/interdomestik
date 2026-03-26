@@ -1,7 +1,7 @@
 import { db } from '@interdomestik/database';
 import { referrals } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
-import { createMemberReferralRewardCore } from '@interdomestik/domain-referrals/member-referrals/rewards';
+import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
 import { createCommissionCore } from '../../../commissions/create';
 import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
 import { calculateCommission } from '../../../commissions/types';

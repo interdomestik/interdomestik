@@ -1,12 +1,11 @@
 import { PwaInstallButton } from '@/components/pwa/install-button';
 import { FunnelActivationTracker } from '@/components/analytics/funnel-trackers';
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
-import { auth } from '@/lib/auth';
+import { getSessionSafe } from '@/components/shell/session';
 import { isUiV2Enabled } from '@/lib/flags';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { CheckCircle2, Phone, QrCode, Smartphone, Wallet } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
-import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { MockActivationTrigger } from '@/components/billing/mock-activation-trigger';
@@ -18,12 +17,10 @@ interface SuccessPageProps {
 
 export default async function MembershipSuccessPage({ params, searchParams }: SuccessPageProps) {
   const { locale } = await params;
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getSessionSafe('MemberMembershipSuccessPage');
 
   if (!session) {
-    redirect('/login');
+    redirect(`/${locale}/login`);
   }
 
   const resolvedSearchParams = searchParams ? await searchParams : {};
@@ -165,7 +162,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
           variant="ghost"
           className="text-muted-foreground hover:text-primary"
         >
-          <Link href="/member">{t('cta_dashboard')}</Link>
+          <Link href={`/${locale}/member`}>{t('cta_dashboard')}</Link>
         </Button>
       </div>
     </div>

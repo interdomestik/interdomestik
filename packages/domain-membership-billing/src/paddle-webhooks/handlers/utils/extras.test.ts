@@ -1,6 +1,6 @@
 import { db } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createMemberReferralRewardCore } from '@interdomestik/domain-referrals/member-referrals/rewards';
+import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
 import { createCommissionCore } from '../../../commissions/create';
 import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
 import {
@@ -23,7 +23,7 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
-vi.mock('@interdomestik/domain-referrals/member-referrals/rewards', () => ({
+vi.mock('../../../../../domain-referrals/src', () => ({
   createMemberReferralRewardCore: vi.fn(),
 }));
 
