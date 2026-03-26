@@ -127,6 +127,28 @@ describe('UserNav', () => {
     expect(mockUseSession).not.toHaveBeenCalled();
   });
 
+  it('skips admin access action when admin access is provided by the shell', async () => {
+    render(
+      <UserNav
+        user={{
+          id: 'staff-1',
+          name: 'Staff User',
+          email: 'staff@example.com',
+          image: null,
+          role: 'staff',
+        }}
+        adminAccess={false}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user-nav')).toBeInTheDocument();
+    });
+
+    expect(mockUseSession).not.toHaveBeenCalled();
+    expect(mockCanAccessAdmin).not.toHaveBeenCalled();
+  });
+
   it('signs out with a localized hard redirect', async () => {
     mockUseSession.mockReturnValue({
       data: {

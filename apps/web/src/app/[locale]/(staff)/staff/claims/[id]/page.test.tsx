@@ -60,20 +60,24 @@ const hoisted = vi.hoisted(() => ({
   })),
   getLatestPublicStatusNoteCoreMock: vi.fn(async () => null),
   getStaffAssignmentOptionsMock: vi.fn(async () => []),
+  getMessagesForClaimCoreMock: vi.fn(async () => ({ success: true, messages: [] })),
   messagingPanelMock: vi.fn(
     ({
       allowInternal,
       claimId,
       currentUser,
+      fetchOnMount,
     }: {
       allowInternal?: boolean;
       claimId: string;
       currentUser: { role: string };
+      fetchOnMount?: boolean;
     }) => (
       <div
         data-testid="staff-claim-messaging-panel"
         data-allow-internal={String(Boolean(allowInternal))}
         data-claim-id={claimId}
+        data-fetch-on-mount={String(fetchOnMount ?? true)}
         data-role={currentUser.role}
       />
     )
@@ -117,6 +121,10 @@ vi.mock('./_core', () => ({
 
 vi.mock('@/features/staff/claims/assignment-options', () => ({
   getStaffAssignmentOptions: hoisted.getStaffAssignmentOptionsMock,
+}));
+
+vi.mock('@/actions/messages/get.core', () => ({
+  getMessagesForClaimCore: hoisted.getMessagesForClaimCoreMock,
 }));
 
 vi.mock('@/components/staff/claim-action-panel', () => ({
@@ -166,6 +174,7 @@ describe('StaffClaimDetailsPage', () => {
       expect.objectContaining({
         claimId: 'claim-1',
         allowInternal: true,
+        fetchOnMount: false,
         currentUser: expect.objectContaining({
           role: 'staff',
         }),

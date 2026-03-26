@@ -29,6 +29,7 @@ interface MessagingPanelProps {
   readonly isAgent?: boolean;
   readonly allowInternal?: boolean;
   readonly initialMessages?: MessageWithSender[];
+  readonly fetchOnMount?: boolean;
 }
 
 export function MessagingPanel({
@@ -37,11 +38,12 @@ export function MessagingPanel({
   isAgent = false,
   allowInternal = false,
   initialMessages = [],
+  fetchOnMount = true,
 }: MessagingPanelProps) {
   const t = useTranslations('messaging');
   const [messages, setMessages] = useState<MessageWithSender[]>(initialMessages);
   const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(initialMessages.length === 0);
+  const [isLoading, setIsLoading] = useState(fetchOnMount && initialMessages.length === 0);
   const [isPending, startTransition] = useTransition();
 
   const fetchMessages = useCallback(async () => {
@@ -70,12 +72,24 @@ export function MessagingPanel({
   }, [claimId, currentUser.id]);
 
   useEffect(() => {
-    fetchMessages();
+    if (fetchOnMount) {
+      fetchMessages();
+    } else {
+      const unreadIds = initialMessages
+        .filter(message => message.senderId !== currentUser.id && !message.readAt)
+        .map(message => message.id);
+
+      if (unreadIds.length > 0) {
+        void markMessagesAsRead(unreadIds);
+      }
+
+      setIsLoading(false);
+    }
 
     // Poll for new messages every 30 seconds
     const interval = setInterval(fetchMessages, 30000);
     return () => clearInterval(interval);
-  }, [fetchMessages]);
+  }, [currentUser.id, fetchMessages, fetchOnMount, initialMessages]);
 
   const handleRefresh = useCallback(() => {
     startTransition(async () => {

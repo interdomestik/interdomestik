@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationCenter } from './notification-center';
 
@@ -46,7 +46,18 @@ vi.mock('@interdomestik/ui', () => ({
   }: React.PropsWithChildren<React.ButtonHTMLAttributes<HTMLButtonElement>>) => (
     <button {...props}>{children}</button>
   ),
-  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenu: ({
+    children,
+    onOpenChange,
+  }: {
+    children: React.ReactNode;
+    onOpenChange?: (open: boolean) => void;
+  }) => (
+    <div>
+      <button onClick={() => onOpenChange?.(true)}>Open menu</button>
+      {children}
+    </div>
+  ),
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' '),
@@ -82,5 +93,35 @@ describe('NotificationCenter', () => {
 
     expect(await screen.findByText('New message')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
+  });
+
+  it('does not fetch notifications on mount when fetchOnMount is disabled', () => {
+    render(<NotificationCenter subscriberId="user-123" fetchOnMount={false} />);
+
+    expect(mocks.getNotifications).not.toHaveBeenCalled();
+  });
+
+  it('shows a loading state when opened after lazy mount', async () => {
+    let resolveNotifications: ((value: unknown[]) => void) | undefined;
+    mocks.getNotifications.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolveNotifications = resolve;
+        })
+    );
+
+    render(<NotificationCenter subscriberId="user-123" fetchOnMount={false} />);
+
+    expect(screen.getByText('All caught up!')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Open menu'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('All caught up!')).not.toBeInTheDocument();
+    });
+
+    resolveNotifications?.([]);
+
+    expect(await screen.findByText('All caught up!')).toBeInTheDocument();
   });
 });

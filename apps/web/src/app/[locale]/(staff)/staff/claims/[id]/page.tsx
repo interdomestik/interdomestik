@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
+import { getMessagesForClaimCore } from '@/actions/messages/get.core';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { getLatestPublicStatusNoteCore } from './_core';
 
@@ -17,8 +18,25 @@ interface PageProps {
   }>;
 }
 
+type LatestStatusNote = Awaited<ReturnType<typeof getLatestPublicStatusNoteCore>>;
+
 function toClaimStatus(value: unknown): ClaimStatus {
   return CLAIM_STATUSES.includes(value as ClaimStatus) ? (value as ClaimStatus) : 'draft';
+}
+
+function LatestStatusNoteContent({ latestStatusNote }: { latestStatusNote: LatestStatusNote }) {
+  if (!latestStatusNote?.note) {
+    return <p className="text-muted-foreground">No public status notes yet.</p>;
+  }
+
+  return (
+    <>
+      <p className="whitespace-pre-wrap text-slate-900">{latestStatusNote.note}</p>
+      <p className="text-xs text-muted-foreground">
+        {latestStatusNote.createdAt ? new Date(latestStatusNote.createdAt).toLocaleString() : ''}
+      </p>
+    </>
+  );
 }
 
 export default async function StaffClaimDetailsPage({ params }: PageProps) {
@@ -32,7 +50,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     return notFound();
   }
 
-  const [detail, latestStatusNote, assignmentOptions] = await Promise.all([
+  const [detail, latestStatusNote, assignmentOptions, initialMessagesResult] = await Promise.all([
     getStaffClaimDetail({
       claimId: id,
       staffId: session.user.id,
@@ -48,12 +66,21 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
           tenantId: session.user.tenantId,
         })
       : Promise.resolve([]),
+    session.user.role === 'staff'
+      ? getMessagesForClaimCore({
+          session,
+          claimId: id,
+        })
+      : Promise.resolve({ success: true as const, messages: [] }),
   ]);
 
   if (!detail) return notFound();
 
   const currentAssigneeLabel =
     assignmentOptions.find(option => option.id === detail.claim.staffId)?.label ?? null;
+  const initialMessages = initialMessagesResult.success
+    ? (initialMessagesResult.messages ?? [])
+    : [];
   const claimStatus = toClaimStatus(detail.claim.status);
   const slaPhase = deriveClaimSlaPhase(claimStatus);
 
@@ -182,18 +209,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
           Latest status note
         </h2>
         <div className="mt-3 space-y-1 text-sm">
-          {latestStatusNote?.note ? (
-            <>
-              <p className="whitespace-pre-wrap text-slate-900">{latestStatusNote.note}</p>
-              <p className="text-xs text-muted-foreground">
-                {latestStatusNote.createdAt
-                  ? new Date(latestStatusNote.createdAt).toLocaleString()
-                  : ''}
-              </p>
-            </>
-          ) : (
-            <p className="text-muted-foreground">No public status notes yet.</p>
-          )}
+          <LatestStatusNoteContent latestStatusNote={latestStatusNote} />
         </div>
       </section>
 
@@ -224,6 +240,8 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
                 role: session.user.role || 'staff',
               }}
               allowInternal={true}
+              initialMessages={initialMessages}
+              fetchOnMount={false}
             />
           </div>
         </section>
