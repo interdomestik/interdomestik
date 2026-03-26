@@ -67,7 +67,7 @@ describe('useDashboardNavigation', () => {
 
     await waitFor(() => {
       const items = screen.getAllByTestId('nav-item');
-      const agentHub = items.find(item => item.getAttribute('data-title') === 'Agent Hub');
+      const agentHub = items.find(item => item.getAttribute('data-title') === 'agentHub');
       expect(agentHub).toBeTruthy();
       expect(agentHub?.getAttribute('data-href')).toBe('/agent');
     });

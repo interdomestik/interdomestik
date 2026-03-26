@@ -21,9 +21,18 @@
     "overview": "Pregled",
     "consumerRights": "Prava potrošača",
     "agentWorkspace": "Radni prostor agenta",
+    "agentHub": "Centar agenta",
     "agentCrm": "CRM pregled",
     "agentLeads": "Potencijalni klijenti",
+    "members": "Moji članovi",
+    "rapidPos": "Brza prodaja",
+    "clients": "Klijenti",
+    "agentCommissions": "Provizije",
+    "bulkImport": "Masovni uvoz",
     "adminDashboard": "Admin kontrolna tabla",
+    "salesNetwork": "Prodaja i mreža",
+    "membershipSection": "Članstvo",
+    "adminSection": "Administracija",
     "backToWebsite": "Nazad na sajt",
     "language": "Jezik",
     "agentPortal": "Portal za agente",
@@ -31,6 +40,7 @@
     "memberPortal": "Portal za članove",
     "memberRole": "Član",
     "myAccount": "Moj nalog",
-    "toggleMenu": "Prikaži/sakrij meni"
+    "toggleMenu": "Prikaži/sakrij meni",
+    "toggleSidebar": "Otvori/zatvori bočnu traku"
   }
 }

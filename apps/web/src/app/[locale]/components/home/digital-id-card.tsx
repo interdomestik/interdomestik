@@ -8,6 +8,18 @@ interface DigitalIDCardProps {
   memberNumber?: string;
   validThru?: string;
   isActive?: boolean;
+  labels?: {
+    membership: string;
+    claimSupport: string;
+    legalProtection: string;
+    assistance247: string;
+    memberName: string;
+    validThru: string;
+    activeMember: string;
+    protectionPaused: string;
+    addToAppleWallet: string;
+    googlePayReady: string;
+  };
 }
 
 export function DigitalIDCard({
@@ -15,6 +27,18 @@ export function DigitalIDCard({
   memberNumber = 'PRT-0492-X',
   validThru = '12/25',
   isActive = true,
+  labels = {
+    membership: 'Membership',
+    claimSupport: 'Claims support',
+    legalProtection: 'Legal protection',
+    assistance247: '24/7 assistance',
+    memberName: 'Member Name',
+    validThru: 'Valid Thru',
+    activeMember: 'Active Member',
+    protectionPaused: 'Protection Paused',
+    addToAppleWallet: 'Add to Apple Wallet',
+    googlePayReady: 'Google Pay Ready',
+  },
 }: DigitalIDCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [rotate, setRotate] = useState({ x: 0, y: 0 });
@@ -77,7 +101,7 @@ export function DigitalIDCard({
                   ASISTENCA
                 </span>
                 <span className="text-[10px] text-white/40 font-bold tracking-[0.3em] uppercase block mt-1">
-                  Membership
+                  {labels.membership}
                 </span>
               </div>
             </div>
@@ -95,19 +119,19 @@ export function DigitalIDCard({
             <div className="flex items-center gap-2">
               <span className="h-1 w-1 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
               <span className="text-[9px] text-slate-300 font-medium tracking-wide uppercase">
-                Dëmshpërblim
+                {labels.claimSupport}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="h-1 w-1 rounded-full bg-white/20" />
               <span className="text-[9px] text-slate-300 font-medium tracking-wide uppercase">
-                Mbrojtje Ligjore
+                {labels.legalProtection}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="h-1 w-1 rounded-full bg-white/20" />
               <span className="text-[9px] text-slate-300 font-medium tracking-wide uppercase">
-                Asistencë 24/7
+                {labels.assistance247}
               </span>
             </div>
           </div>
@@ -116,7 +140,7 @@ export function DigitalIDCard({
           <div className="relative z-10 flex justify-between items-end">
             <div className="min-w-0 flex-1">
               <p className="text-white/40 text-[9px] font-mono mb-1 tracking-widest uppercase truncate">
-                Member Name
+                {labels.memberName}
               </p>
               <p className="text-lg text-white font-medium tracking-wider drop-shadow-md font-mono truncate uppercase">
                 {name}
@@ -124,7 +148,7 @@ export function DigitalIDCard({
             </div>
             <div className="text-right ml-4">
               <p className="text-white/40 text-[9px] font-mono mb-1 tracking-widest uppercase">
-                Valid Thru
+                {labels.validThru}
               </p>
               <p className="text-lg text-white font-medium tracking-widest drop-shadow-md font-mono">
                 {validThru}
@@ -142,7 +166,7 @@ export function DigitalIDCard({
             className={`h-3 w-3 rounded-full animate-pulse ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`}
           />
           <span className="text-xs text-slate-900 font-bold uppercase tracking-wider">
-            {isActive ? 'Active Member' : 'Protection Paused'}
+            {isActive ? labels.activeMember : labels.protectionPaused}
           </span>
         </div>
       </div>
@@ -154,14 +178,14 @@ export function DigitalIDCard({
           className="group/wallet flex items-center gap-3 px-5 py-3 bg-black text-white rounded-2xl font-black text-xs ring-1 ring-white/20 hover:ring-white/50 transition-all cursor-pointer shadow-lg active:scale-95"
         >
           <CreditCard className="h-4 w-4 text-white/70 group-hover/wallet:text-white transition-colors" />
-          <span>Add to Apple Wallet</span>
+          <span>{labels.addToAppleWallet}</span>
         </button>
         <button
           type="button"
           className="group/wallet flex items-center gap-3 px-5 py-3 bg-slate-50 text-slate-900 rounded-2xl font-black text-xs border border-slate-200 hover:bg-white hover:shadow-xl transition-all cursor-pointer active:scale-95"
         >
           <QrCode className="h-4 w-4 text-slate-400 group-hover/wallet:text-primary transition-colors" />
-          <span>Google Pay Ready</span>
+          <span>{labels.googlePayReady}</span>
         </button>
       </div>
     </div>

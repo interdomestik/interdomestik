@@ -6,11 +6,10 @@ const hoisted = vi.hoisted(() => ({
   mockGetSession: vi.fn(),
 }));
 
-// Mock better-auth
-vi.mock('better-auth/react', () => ({
-  createAuthClient: () => ({
+vi.mock('@/lib/auth-client', () => ({
+  authClient: {
     getSession: hoisted.mockGetSession,
-  }),
+  },
 }));
 
 // Mock NotificationCenter

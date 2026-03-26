@@ -13,16 +13,110 @@ interface AgentVerifiedIDProps {
   name: string;
   agentId: string;
   createdAt: string | Date;
+  locale?: string;
+  verifiedLabel?: string;
+  activeSinceLabel?: string;
 }
 
-export function AgentVerifiedID({ name, agentId, createdAt }: AgentVerifiedIDProps) {
+const DASHBOARD_MONTHS: Record<string, string[]> = {
+  en: [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ],
+  mk: [
+    'јануари',
+    'февруари',
+    'март',
+    'април',
+    'мај',
+    'јуни',
+    'јули',
+    'август',
+    'септември',
+    'октомври',
+    'ноември',
+    'декември',
+  ],
+  sq: [
+    'janar',
+    'shkurt',
+    'mars',
+    'prill',
+    'maj',
+    'qershor',
+    'korrik',
+    'gusht',
+    'shtator',
+    'tetor',
+    'nëntor',
+    'dhjetor',
+  ],
+  sr: [
+    'јануар',
+    'фебруар',
+    'март',
+    'април',
+    'мај',
+    'јун',
+    'јул',
+    'август',
+    'септембар',
+    'октобар',
+    'новембар',
+    'децембар',
+  ],
+};
+
+function getDateLocale(locale: string): string {
+  switch (locale) {
+    case 'sq':
+      return 'sq-AL';
+    case 'mk':
+      return 'mk-MK';
+    case 'sr':
+      return 'sr-RS';
+    default:
+      return locale;
+  }
+}
+
+export function formatVerifiedDate(createdAt: string | Date, locale: string): string {
+  const date = new Date(createdAt);
+  const monthNames = DASHBOARD_MONTHS[locale];
+
+  if (monthNames) {
+    return `${monthNames[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+  }
+
+  return date.toLocaleDateString(getDateLocale(locale), {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+export function AgentVerifiedID({
+  name,
+  agentId,
+  createdAt,
+  locale = 'en',
+  verifiedLabel = 'Verified agent',
+  activeSinceLabel = 'Active since',
+}: AgentVerifiedIDProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [rotate, setRotate] = useState({ x: 0, y: 0 });
 
-  const formattedDate = new Date(createdAt).toLocaleDateString('sq-AL', {
-    month: 'long',
-    year: 'numeric',
-  });
+  const formattedDate = formatVerifiedDate(createdAt, locale);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
@@ -71,7 +165,7 @@ export function AgentVerifiedID({ name, agentId, createdAt }: AgentVerifiedIDPro
               <ShieldCheck className="h-4 w-4 text-indigo-400" />
             </div>
             <span className="text-[10px] font-black text-white/40 tracking-[0.2em] uppercase">
-              Agjent i verifikuar
+              {verifiedLabel}
             </span>
           </div>
         </div>
@@ -89,7 +183,7 @@ export function AgentVerifiedID({ name, agentId, createdAt }: AgentVerifiedIDPro
           <div className="flex items-center gap-1.5">
             <div className="h-1 w-1 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
             <span className="text-[8px] text-slate-400 font-medium tracking-wide uppercase">
-              Aktiv që nga: {formattedDate}
+              {activeSinceLabel}: {formattedDate}
             </span>
           </div>
         </div>

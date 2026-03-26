@@ -19,37 +19,25 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 type IconType = typeof Home;
+type Translator = (key: string) => string;
 
-export function useDashboardNavigation(agentTier: string = 'standard') {
-  const t = useTranslations('nav');
-  const { data: session } = authClient.useSession();
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  const [adminAccess, setAdminAccess] = useState(false);
+export type DashboardNavigationModel = {
+  items: { title: string; href: string; icon: IconType }[];
+  memberItems: { title: string; href: string; icon: IconType }[];
+  agentItems: { title: string; href: string; icon: IconType }[];
+  adminItems: { title: string; href: string; icon: IconType }[];
+  role?: string;
+};
 
-  useEffect(() => {
-    if (!role) return;
-    if (isAdmin(role)) {
-      setAdminAccess(true);
-      return;
-    }
-
-    let cancelled = false;
-    canAccessAdmin()
-      .then(ok => {
-        if (!cancelled) setAdminAccess(ok);
-      })
-      .catch(() => {
-        // Ignore
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [role]);
-
+export function buildDashboardNavigationModel(params: {
+  t: Translator;
+  role?: string;
+  agentTier?: string;
+  adminAccess?: boolean;
+}): DashboardNavigationModel {
+  const { t, role, agentTier = 'standard', adminAccess = false } = params;
   const isAgent = role === 'agent';
 
-  // 1. Personal Membership / Protection Items
   const memberItems = isAgent
     ? []
     : [
@@ -84,30 +72,29 @@ export function useDashboardNavigation(agentTier: string = 'standard') {
   const agentItems: { title: string; href: string; icon: IconType }[] = [];
   if (isAgent) {
     agentItems.push(
-      { title: 'Agent Hub', href: '/agent', icon: Home },
-      { title: 'My Members', href: '/agent/members', icon: Users },
+      { title: t('agentHub'), href: '/agent', icon: Home },
+      { title: t('members'), href: '/agent/members', icon: Users },
       { title: t('trackClaims'), href: '/agent/claims', icon: FileText },
-      { title: 'Rapid POS', href: '/agent/pos', icon: UserPlus }
+      { title: t('rapidPos'), href: '/agent/pos', icon: UserPlus }
     );
 
     // Tier Gating: Leads only for Pro/Office
     if (['pro', 'office'].includes(agentTier)) {
-      agentItems.push({ title: 'Leads', href: '/agent/leads', icon: Users });
+      agentItems.push({ title: t('agentLeads'), href: '/agent/leads', icon: Users });
     }
 
     agentItems.push(
-      { title: 'Clients', href: '/agent/clients', icon: Briefcase },
-      { title: 'Commissions', href: '/agent/commissions', icon: DollarSign }
+      { title: t('clients'), href: '/agent/clients', icon: Briefcase },
+      { title: t('agentCommissions'), href: '/agent/commissions', icon: DollarSign }
     );
 
     // Tier Gating: Bulk Import only for Office
     if (agentTier === 'office') {
-      agentItems.push({ title: 'Bulk Import', href: '/agent/import', icon: Upload });
+      agentItems.push({ title: t('bulkImport'), href: '/agent/import', icon: Upload });
     }
   }
 
-  // 3. Admin Items
-  const adminItems = [];
+  const adminItems: { title: string; href: string; icon: IconType }[] = [];
   if (isAdmin(role) || adminAccess) {
     adminItems.push({
       title: t('adminDashboard'),
@@ -119,4 +106,34 @@ export function useDashboardNavigation(agentTier: string = 'standard') {
   const items = [...memberItems, ...agentItems, ...adminItems];
 
   return { items, memberItems, agentItems, adminItems, role };
+}
+
+export function useDashboardNavigation(agentTier: string = 'standard') {
+  const t = useTranslations('nav');
+  const { data: session } = authClient.useSession();
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  const [adminAccess, setAdminAccess] = useState(false);
+
+  useEffect(() => {
+    if (!role) return;
+    if (isAdmin(role)) {
+      setAdminAccess(true);
+      return;
+    }
+
+    let cancelled = false;
+    canAccessAdmin()
+      .then(ok => {
+        if (!cancelled) setAdminAccess(ok);
+      })
+      .catch(() => {
+        // Ignore
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [role]);
+
+  return buildDashboardNavigationModel({ t, role, agentTier, adminAccess });
 }

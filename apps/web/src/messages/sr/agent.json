@@ -44,59 +44,59 @@
     },
     "claims_queue": "Red zahteva",
     "settings": "Podešavanja",
-    "manage_triage": "Manage and triage all submitted claims.",
+    "manage_triage": "Upravljajte i trijažirajte sve podnete zahteve.",
     "table": {
-      "claimant": "Claimant",
-      "claim": "Claim",
+      "claimant": "Podnosilac",
+      "claim": "Zahtev",
       "status": "Status",
-      "amount": "Amount",
-      "date": "Date",
-      "actions": "Actions",
-      "triage": "Triage",
-      "message_alert": "New message ({count})",
+      "amount": "Iznos",
+      "date": "Datum",
+      "actions": "Akcije",
+      "triage": "Trijaža",
+      "message_alert": "Nova poruka ({count})",
       "no_claims": "Nema pronađenih zahteva.",
-      "no_claims_ready": "Claim List Component Coming Soon",
+      "no_claims_ready": "Komponenta liste zahteva uskoro stiže",
       "recent_activity": "Nedavne aktivnosti"
     },
     "actions": {
-      "approve": "Approve",
-      "reject": "Reject",
-      "requestInfo": "Request Info",
-      "review": "Review Case"
+      "approve": "Odobri",
+      "reject": "Odbij",
+      "requestInfo": "Zatraži informacije",
+      "review": "Pregledaj slučaj"
     },
     "details": {
-      "title": "Claim Details",
+      "title": "Detalji zahteva",
       "claimantInfo": "Podaci podnosioca",
-      "name": "Name",
-      "email": "Email",
+      "name": "Ime",
+      "email": "E-pošta",
       "description": "Opis",
-      "amount": "Amount",
-      "company": "Subject / Company",
-      "title_label": "Title",
-      "category_label": "Category",
+      "amount": "Iznos",
+      "company": "Predmet / kompanija",
+      "title_label": "Naslov",
+      "category_label": "Kategorija",
       "status_label": "Status",
-      "evidence": "Evidence Files",
-      "noEvidence": "No documents uploaded.",
-      "notes": "Internal Notes",
-      "notesPlaceholder": "Private agent notes feature coming soon.",
-      "timeline": "Case Timeline",
-      "no_messages": "No interaction history yet.",
-      "message_placeholder": "Type a message or internal note...",
-      "internal_note": "Internal Note",
-      "send_message": "Send Message",
-      "incident_date": "Incident Date",
-      "messages": "Messages",
-      "documents": "Documents",
-      "no_documents": "No documents uploaded",
-      "unknown_date": "Unknown date"
+      "evidence": "Dokazi",
+      "noEvidence": "Nijedan dokument nije otpremljen.",
+      "notes": "Interne beleške",
+      "notesPlaceholder": "Funkcija privatnih beleški agenta uskoro stiže.",
+      "timeline": "Vremenska linija slučaja",
+      "no_messages": "Još nema istorije interakcija.",
+      "message_placeholder": "Unesite poruku ili internu belešku...",
+      "internal_note": "Interna beleška",
+      "send_message": "Pošalji poruku",
+      "incident_date": "Datum incidenta",
+      "messages": "Poruke",
+      "documents": "Dokumenta",
+      "no_documents": "Nijedan dokument nije otpremljen",
+      "unknown_date": "Nepoznat datum"
     },
     "triage": {
-      "title": "Triage Actions",
-      "changeStatus": "Change Status",
-      "selectStatus": "Select status",
-      "verify": "Verify Info",
-      "reject": "Reject Claim",
-      "notice": "Changing status updates the user's timeline immediately."
+      "title": "Akcije trijaže",
+      "changeStatus": "Promeni status",
+      "selectStatus": "Izaberi status",
+      "verify": "Proveri informacije",
+      "reject": "Odbij zahtev",
+      "notice": "Promena statusa odmah ažurira korisnikovu vremensku liniju."
     },
     "notes": {
       "title": "Agent Notes",
@@ -140,105 +140,105 @@
       }
     },
     "members_page": {
-      "title": "Members",
-      "description": "Your assigned members and active conversations."
+      "title": "Članovi",
+      "description": "Vaši dodeljeni članovi i aktivni razgovori."
     },
     "members_panel": {
-      "title": "My Members",
-      "description": "Members who need your attention right now.",
+      "title": "Moji članovi",
+      "description": "Članovi kojima je trenutno potrebna vaša pažnja.",
       "empty": "No assigned members yet.",
-      "view_all": "View all members"
+      "view_all": "Pogledaj sve članove"
     },
     "member_profile": {
       "actions": {
-        "back": "Back to members",
-        "view_claim": "View claim"
+        "back": "Nazad na članove",
+        "view_claim": "Pogledaj zahtev"
       },
       "sections": {
-        "membership": "Membership",
-        "agent": "Assigned agent",
-        "preferences": "Notification preferences",
-        "claims_overview": "Claims overview",
-        "recent_claims": "Recent claims"
+        "membership": "Članstvo",
+        "agent": "Dodeljeni agent",
+        "preferences": "Podešavanja obaveštenja",
+        "claims_overview": "Pregled zahteva",
+        "recent_claims": "Nedavni zahtevi"
       },
       "labels": {
-        "member_id": "Member ID",
-        "joined": "Joined",
-        "email_verified_yes": "Email verified",
-        "email_verified_no": "Email not verified",
+        "member_id": "ID člana",
+        "joined": "Pridružen",
+        "email_verified_yes": "E-pošta je potvrđena",
+        "email_verified_no": "E-pošta nije potvrđena",
         "status": "Status",
         "plan": "Plan",
-        "period_end": "Period end",
-        "cancel_at_period_end": "Cancel at period end",
-        "no_agent": "No agent assigned",
-        "preferences_unset": "Preferences not set",
-        "no_claims": "No claims yet",
-        "unknown": "Unknown",
-        "not_set": "Not set"
+        "period_end": "Kraj perioda",
+        "cancel_at_period_end": "Otkaži na kraju perioda",
+        "no_agent": "Nema dodeljenog agenta",
+        "preferences_unset": "Podešavanja nisu postavljena",
+        "no_claims": "Još nema zahteva",
+        "unknown": "Nepoznato",
+        "not_set": "Nije postavljeno"
       },
       "status": {
-        "active": "Active",
-        "past_due": "Past due",
-        "paused": "Paused",
-        "canceled": "Canceled",
-        "none": "Not subscribed"
+        "active": "Aktivan",
+        "past_due": "Dospelo",
+        "paused": "Pauziran",
+        "canceled": "Otkazan",
+        "none": "Nije pretplaćen"
       },
       "preferences": {
-        "email_claims": "Email claim updates",
-        "email_newsletter": "Email newsletter",
-        "email_marketing": "Email marketing",
-        "push_claims": "Push claim updates",
-        "push_messages": "Push messages",
-        "in_app": "In-app notifications"
+        "email_claims": "Ažuriranja zahteva e-poštom",
+        "email_newsletter": "Bilten e-poštom",
+        "email_marketing": "Marketing e-poštom",
+        "push_claims": "Push ažuriranja zahteva",
+        "push_messages": "Push poruke",
+        "in_app": "Obaveštenja u aplikaciji"
       },
       "claims": {
-        "total": "Total claims",
-        "open": "Open claims",
-        "resolved": "Resolved",
-        "rejected": "Rejected"
+        "total": "Ukupno zahteva",
+        "open": "Otvoreni zahtevi",
+        "resolved": "Rešeni",
+        "rejected": "Odbijeni"
       }
     },
     "users_filters": {
-      "search_placeholder": "Search by name or email"
+      "search_placeholder": "Pretraži po imenu ili e-pošti"
     },
     "users_table": {
       "sections": {
-        "attention": "Needs attention",
-        "all": "All members"
+        "attention": "Potrebna pažnja",
+        "all": "Svi članovi"
       },
       "headers": {
-        "user": "Member",
-        "assigned_agent": "Assigned agent",
-        "joined": "Joined",
-        "actions": "Actions"
+        "user": "Član",
+        "assigned_agent": "Dodeljeni agent",
+        "joined": "Pridružen",
+        "actions": "Akcije"
       },
-      "view_profile": "View profile",
-      "view_claims": "View claims",
-      "message_alert": "New message ({count})",
-      "no_users": "No members found."
+      "view_profile": "Pogledaj profil",
+      "view_claims": "Pogledaj zahteve",
+      "message_alert": "Nova poruka ({count})",
+      "no_users": "Nema pronađenih članova."
     },
     "crm": "Pregled CRM-a",
     "leads": "Potencijalni klijenti",
     "deals": "Dogovori",
     "crm_dashboard": {
-      "title": "Sales Overview",
-      "subtitle": "Track your performance and pipeline.",
+      "title": "Pregled prodaje",
+      "subtitle": "Pratite svoj učinak i prodajni tok.",
       "stats": {
-        "leads_new": "New Leads",
-        "leads_contacted": "Contacted",
-        "deals_won": "Deals Won",
-        "commission": "Commission"
+        "leads_new": "Novi potencijalni klijenti",
+        "leads_contacted": "Kontaktirani",
+        "deals_won": "Dobijeni poslovi",
+        "commission": "Provizija"
       }
     },
     "leads_page": {
-      "title": "Lead Management",
-      "subtitle": "Manage and convert your potential members.",
+      "title": "Upravljanje potencijalnim klijentima",
+      "subtitle": "Upravljajte i konvertujte svoje potencijalne članove.",
       "table": {
-        "name": "Name",
-        "stage": "Stage",
-        "source": "Source",
-        "last_contact": "Last Contact",
-        "actions": "Actions"
+        "name": "Ime",
+        "stage": "Faza",
+        "source": "Izvor",
+        "last_contact": "Poslednji kontakt",
+        "actions": "Akcije"
       },
       "stages": {
         "new": "Novi",
@@ -288,6 +288,75 @@
       "you": "Vi",
       "deals": "dogovora",
       "yourRank": "Vaš rang"
+    },
+    "dashboardV2": {
+      "assignedBranch": "Dodeljena filijala",
+      "addNewLead": "Dodaj novog potencijalnog klijenta",
+      "rapidPosSale": "Brza POS prodaja",
+      "myMemberDashboard": "Moja članska kontrolna tabla",
+      "verifiedAgent": "Verifikovani agent",
+      "activeSince": "Aktivan od",
+      "monthlyPace": "Mesečni ritam",
+      "paidThisMonth": "Isplaćeno ovog meseca",
+      "pipelinePulse": "Puls prodajnog toka",
+      "clientBase": "Baza klijenata",
+      "active": "Aktivni",
+      "won": "Dobijeni",
+      "conversion": "Konverzija",
+      "totalClients": "Ukupno klijenata",
+      "campaignDescription": "Instant kampanja",
+      "rapidProspect": "Brzi prospekt",
+      "rapidPosLabel": "Brzi POS",
+      "addLead": "Dodaj potencijalnog klijenta",
+      "quickSale": "Brza prodaja",
+      "earningsBoost": "Podsticaj zarade",
+      "expertise": "Ekspertiza",
+      "existingDataPreserved": "Postojeći podaci su sačuvani",
+      "yourClients": "Vaši klijenti",
+      "clientsSignedUp": "Članovi koje ste prijavili ({count} ukupno)",
+      "noClientsYet": "Još nema klijenata. Počnite da prodajete članstva!",
+      "addYourFirstLead": "Dodajte prvog potencijalnog klijenta",
+      "startRapidPosSale": "Pokreni brzu POS prodaju",
+      "viewAllClients": "Pogledaj sve klijente"
+    },
+    "claimsPage": {
+      "title": "Praćenje zahteva klijenata",
+      "empty": "Nema pronađenih klijenata sa zahtevima."
+    },
+    "claimsPro": {
+      "title": "Radna lista zahteva (Pro)",
+      "subtitle": "Pratite i nadgledajte zahteve članova.",
+      "backToWorkspace": "Nazad u radni prostor",
+      "switchToLite": "Prebaci na Lite",
+      "claimNotAccessible": "Ovaj zahtev nije dostupan.",
+      "searchPlaceholder": "Pretraži po broju zahteva ili članu...",
+      "empty": "Nema zahteva koji odgovaraju filterima.",
+      "readOnlyDetails": "Detalji (samo za čitanje)",
+      "statusLabel": "Status slučaja:",
+      "branchLabel": "Filijala:",
+      "na": "Nije primenljivo",
+      "timelineComingSoon": "Vremenska linija i dokumenta uskoro dolaze u sledećem ažuriranju.",
+      "closeMessaging": "Zatvori poruke",
+      "closeLabel": "Zatvori",
+      "dialogDescription": "Detalji izabranog zahteva",
+      "drawerTitle": "Zahtev {claimNumber}",
+      "unknownMember": "Nepoznat",
+      "updatedPrefix": "Až:",
+      "actions": {
+        "uploadEvidence": "Otpremi dokaze",
+        "sendMessage": "Pošalji poruku"
+      },
+      "tabs": {
+        "all": "Svi zahtevi",
+        "open": "Otvoreni / aktivni",
+        "closed": "Zatvoreni / rešeni"
+      },
+      "columns": {
+        "claim": "Zahtev",
+        "status": "Status slučaja",
+        "member": "Član",
+        "meta": "Kreirano / poslednje ažuriranje"
+      }
     }
   }
 }

@@ -71,6 +71,13 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (_isAgent) {
+      setData(null);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
     async function loadData() {
       try {
         const [linkResult, statsResult, settingsResult] = await Promise.all([
@@ -109,7 +116,11 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
     }
 
     loadData();
-  }, [t]);
+  }, [_isAgent, t]);
+
+  if (_isAgent) {
+    return null;
+  }
 
   const handleCopy = async () => {
     if (!data?.link) return;

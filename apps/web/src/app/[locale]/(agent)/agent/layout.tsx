@@ -1,6 +1,7 @@
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { LegacyBanner } from '@/components/dashboard/legacy-banner';
+import { toClientShellUser } from '@/components/shell/client-shell-user';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { AGENT_NAMESPACES, pickMessages } from '@/i18n/messages';
@@ -29,6 +30,7 @@ export default async function AgentLayout({
   const agentTier = sessionNonNull.user.id
     ? await getAgentTier({ agentId: sessionNonNull.user.id })
     : 'standard';
+  const shellUser = toClientShellUser(sessionNonNull.user);
 
   // Load agent-specific messages for client components
   const allMessages = await getMessages();
@@ -38,11 +40,11 @@ export default async function AgentLayout({
     <div className="min-h-screen" data-testid="agent-page-ready">
       <AuthenticatedShell locale={locale} messages={messages}>
         <SidebarProvider defaultOpen={true}>
-          <DashboardSidebar agentTier={agentTier} />
+          <DashboardSidebar agentTier={agentTier} user={shellUser} adminAccess={false} />
           <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-            <DashboardHeader />
+            <DashboardHeader user={shellUser} adminAccess={false} />
             <div className="px-6 pt-4 md:px-8">
-              <LegacyBanner />
+              <LegacyBanner role={shellUser.role} />
             </div>
             <div className="flex-1 p-6 md:p-8 pt-6">{children}</div>
           </SidebarInset>

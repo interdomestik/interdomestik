@@ -84,7 +84,7 @@ export default async function AdminLayout({
                 Admin Panel
               </h1>
               <div className="flex items-center gap-3">
-                <PortalSurfaceIndicator />
+                <PortalSurfaceIndicator role={role} />
                 {isSuperAdmin ? (
                   <div className="flex items-center gap-2">
                     <AdminTenantSelector
@@ -97,7 +97,7 @@ export default async function AdminLayout({
             </div>
           </header>
           <div className="px-6 pt-4 md:px-8">
-            <LegacyBanner />
+            <LegacyBanner role={role} />
           </div>
           {/* SidebarInset renders as <main>, so use <div> here to avoid nested landmarks */}
           <div className="flex-1 overflow-y-auto p-6 md:p-8">

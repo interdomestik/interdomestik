@@ -10,6 +10,26 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+function copyTextFallback(value: string): boolean {
+  if (typeof document === 'undefined') return false;
+
+  const textarea = document.createElement('textarea');
+  textarea.value = value;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  try {
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    document.body.removeChild(textarea);
+  }
+}
+
 export function ReferralLinkCard() {
   const t = useTranslations('agent.commissions.referralLink');
   const [link, setLink] = useState<string>('');
@@ -43,6 +63,13 @@ export function ReferralLinkCard() {
       toast.success(t('copied'));
       setTimeout(() => setIsCopied(false), 2000);
     } catch {
+      if (copyTextFallback(link)) {
+        setIsCopied(true);
+        toast.success(t('copied'));
+        setTimeout(() => setIsCopied(false), 2000);
+        return;
+      }
+
       toast.error(t('copyError'));
     }
   };

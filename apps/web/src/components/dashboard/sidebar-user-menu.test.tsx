@@ -99,4 +99,21 @@ describe('SidebarUserMenu', () => {
       });
     });
   });
+
+  it('does not subscribe to session when user is provided explicitly', () => {
+    const useSessionSpy = vi.mocked(authClient.useSession);
+
+    render(
+      <SidebarUserMenu
+        user={{
+          name: 'Provided User',
+          email: 'provided@interdomestik.com',
+          role: 'agent',
+          image: null,
+        }}
+      />
+    );
+
+    expect(useSessionSpy).not.toHaveBeenCalled();
+  });
 });

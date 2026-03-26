@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   evaluateEmailSignInTenantGuard,
   extractEmailFromSignInBody,
+  getAuthRateLimitConfig,
   getPasswordResetAuditEventFromUrl,
   isEmailPasswordSignInUrl,
   resolveTenantIdForEmailSignIn,
@@ -41,6 +42,38 @@ describe('getPasswordResetAuditEventFromUrl', () => {
     );
 
     expect(event).toBeNull();
+  });
+});
+
+describe('getAuthRateLimitConfig', () => {
+  it('uses a dedicated higher bucket for get-session probes', () => {
+    expect(
+      getAuthRateLimitConfig('GET', 'https://interdomestik-web.vercel.app/api/auth/get-session')
+    ).toEqual({
+      name: 'api/auth/get-session',
+      limit: 180,
+      windowSeconds: 60,
+    });
+  });
+
+  it('uses a dedicated sign-out bucket', () => {
+    expect(
+      getAuthRateLimitConfig('POST', 'https://interdomestik-web.vercel.app/api/auth/sign-out')
+    ).toEqual({
+      name: 'api/auth/sign-out',
+      limit: 20,
+      windowSeconds: 60,
+    });
+  });
+
+  it('keeps the stricter default bucket for sign-in', () => {
+    expect(
+      getAuthRateLimitConfig('POST', 'https://interdomestik-web.vercel.app/api/auth/sign-in/email')
+    ).toEqual({
+      name: 'api/auth',
+      limit: 5,
+      windowSeconds: 60,
+    });
   });
 });
 

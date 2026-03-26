@@ -3,6 +3,7 @@ import { Link } from '@/i18n/routing';
 import { db } from '@/lib/db.server';
 import { Avatar, AvatarFallback } from '@interdomestik/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/card';
+import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { buildAgentWorkspaceClaimHref, getAgentClaimsCore } from './_core';
@@ -35,6 +36,7 @@ type Props = {
 export default async function AgentClaimsPage({ params, searchParams }: Props) {
   const { locale } = await params;
   await searchParams;
+  const t = await getTranslations('agent');
   const session = await getAuth();
   if (!session) redirect(`/${locale}/login`);
 
@@ -56,12 +58,12 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
   return (
     <div className="container py-8 space-y-8" data-testid="agent-claims-page">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Track Client Claims</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('claimsPage.title')}</h1>
       </div>
 
       {groups.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground" data-testid="agent-claims-empty">
-          No clients with claims found.
+          {t('claimsPage.empty')}
         </div>
       ) : (
         <div className="grid gap-6">
@@ -83,6 +85,7 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
                   {group.claims.map(claim => (
                     <Link
                       href={buildAgentWorkspaceClaimHref(claim.id)}
+                      locale={locale}
                       key={claim.id}
                       className="flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
                       data-testid="agent-claim-row"

@@ -132,6 +132,12 @@
       "cancelled": "Claim cancelled",
       "cancelFailed": "Failed to cancel claim"
     },
+    "claimsPro": {
+      "actions": {
+        "uploadEvidence": "Upload evidence",
+        "sendMessage": "Send message"
+      }
+    },
     "edit": {
       "title": "Edit draft",
       "description": "Update the information before submitting your claim.",

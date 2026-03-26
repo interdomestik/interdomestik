@@ -124,7 +124,7 @@ describe('getAgentClaimsCore', () => {
 });
 
 describe('buildAgentWorkspaceClaimHref', () => {
-  it('builds locale-agnostic workspace claim deep-link with claimId query param', () => {
+  it('builds workspace claim deep-link with claimId query param', () => {
     expect(buildAgentWorkspaceClaimHref('claim-123')).toBe(
       '/agent/workspace/claims?claimId=claim-123'
     );

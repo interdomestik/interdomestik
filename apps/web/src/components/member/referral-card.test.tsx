@@ -156,4 +156,24 @@ describe('ReferralCard', () => {
     });
     expect(toastSuccess).toHaveBeenCalledWith('Link copied!');
   });
+
+  it('does not load member referral data for agent viewers on the member surface', () => {
+    render(<ReferralCard isAgent={true} />);
+
+    expect(getMemberReferralLink).not.toHaveBeenCalled();
+    expect(getMemberReferralStats).not.toHaveBeenCalled();
+    expect(getMemberReferralProgramPreview).not.toHaveBeenCalled();
+    expect(screen.queryByText('Invite Friends & Earn')).not.toBeInTheDocument();
+  });
+
+  it('can transition from agent viewer to member viewer without hook-order errors', async () => {
+    const { rerender } = render(<ReferralCard isAgent={true} />);
+
+    rerender(<ReferralCard isAgent={false} />);
+
+    expect(await screen.findByText('Invite Friends & Earn')).toBeInTheDocument();
+    expect(getMemberReferralLink).toHaveBeenCalled();
+    expect(getMemberReferralStats).toHaveBeenCalled();
+    expect(getMemberReferralProgramPreview).toHaveBeenCalled();
+  });
 });

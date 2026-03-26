@@ -16,7 +16,7 @@ const handler = toNextJsHandler(auth);
 
 export async function GET(req: Request) {
   const limited = await enforceRateLimit({
-    ...getAuthRateLimitConfig('GET'),
+    ...getAuthRateLimitConfig('GET', req.url),
     headers: req.headers,
     productionSensitive: true,
   });
@@ -26,7 +26,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const limited = await enforceRateLimit({
-    ...getAuthRateLimitConfig('POST'),
+    ...getAuthRateLimitConfig('POST', req.url),
     headers: req.headers,
     productionSensitive: true,
   });

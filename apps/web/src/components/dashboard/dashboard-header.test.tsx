@@ -7,9 +7,16 @@ vi.mock('./user-nav', () => ({
   UserNav: () => <div data-testid="user-nav-mock">User Nav</div>,
 }));
 
+const notificationBellMock = vi.fn(
+  (_props?: { prefetchNotifications?: boolean; subscriberId?: string | null }) => (
+    <div data-testid="notification-bell-mock">Bell</div>
+  )
+);
+
 // Mock NotificationBell
 vi.mock('@/components/notifications', () => ({
-  NotificationBell: () => <div data-testid="notification-bell-mock">Bell</div>,
+  NotificationBell: (props: { prefetchNotifications?: boolean; subscriberId?: string | null }) =>
+    notificationBellMock(props),
 }));
 
 // Mock PortalSurfaceIndicator
@@ -60,6 +67,14 @@ describe('DashboardHeader', () => {
     render(<DashboardHeader />);
 
     expect(screen.getByTestId('notification-bell-mock')).toBeInTheDocument();
+  });
+
+  it('defaults notification prefetch to lazy mode', () => {
+    render(<DashboardHeader />);
+
+    expect(notificationBellMock).toHaveBeenCalledWith(
+      expect.objectContaining({ prefetchNotifications: false })
+    );
   });
 
   it('renders user nav', () => {

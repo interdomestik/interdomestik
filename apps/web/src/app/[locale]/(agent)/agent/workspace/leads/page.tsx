@@ -6,13 +6,18 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getAgentWorkspaceLeadsCore } from './_core';
 
-export default async function AgentWorkspaceLeadsPage() {
+type Props = {
+  params: Promise<{ locale: string }>;
+};
+
+export default async function AgentWorkspaceLeadsPage({ params }: Readonly<Props>) {
+  const { locale } = await params;
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session) {
-    redirect('/login');
+    redirect(`/${locale}/login`);
   }
 
   const tenantId = ensureTenantId(session);

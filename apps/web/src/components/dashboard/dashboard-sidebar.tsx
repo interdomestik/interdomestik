@@ -1,6 +1,10 @@
 'use client';
 
-import { useDashboardNavigation } from '@/hooks/use-dashboard-navigation';
+import type { ClientShellUser } from '@/components/shell/client-shell-user';
+import {
+  buildDashboardNavigationModel,
+  useDashboardNavigation,
+} from '@/hooks/use-dashboard-navigation';
 import { usePathname } from '@/i18n/routing';
 import {
   Sidebar,
@@ -14,14 +18,27 @@ import {
   SidebarRail,
 } from '@interdomestik/ui';
 import { LayoutGroup } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { NavItem } from './nav-item';
 import { SidebarBrand } from './sidebar-brand';
 import { SidebarUserMenu } from './sidebar-user-menu';
 
-export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: string }) {
+function DashboardSidebarInner({
+  user,
+  role,
+  memberItems,
+  agentItems,
+  adminItems,
+}: Readonly<{
+  user?: ClientShellUser | null;
+  role?: string;
+  memberItems: ReturnType<typeof buildDashboardNavigationModel>['memberItems'];
+  agentItems: ReturnType<typeof buildDashboardNavigationModel>['agentItems'];
+  adminItems: ReturnType<typeof buildDashboardNavigationModel>['adminItems'];
+}>) {
   const pathname = usePathname();
-  const { memberItems, agentItems, adminItems, role } = useDashboardNavigation(agentTier);
   const isAgent = role === 'agent';
+  const t = useTranslations('nav');
 
   return (
     <Sidebar
@@ -70,7 +87,7 @@ export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: strin
           {isAgent && agentItems.length > 1 && (
             <SidebarGroup>
               <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500/50 px-4 mb-2">
-                Sales & Network
+                {t('salesNetwork')}
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1.5">
@@ -96,7 +113,7 @@ export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: strin
           {!isAgent && (
             <SidebarGroup>
               <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-4 mb-2">
-                Membership
+                {t('membershipSection')}
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1.5">
@@ -131,7 +148,7 @@ export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: strin
           {adminItems.length > 0 && (
             <SidebarGroup>
               <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/50 px-4 mb-2">
-                Admin
+                {t('adminSection')}
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1.5">
@@ -153,9 +170,55 @@ export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: strin
       </SidebarContent>
 
       <SidebarFooter className="m-2 rounded-xl border border-white/70 bg-white/70 p-2 shadow-[0_14px_30px_-26px_rgba(15,23,42,0.7)] backdrop-blur-xl">
-        <SidebarUserMenu />
+        <SidebarUserMenu user={user} />
       </SidebarFooter>
-      <SidebarRail />
+      <SidebarRail title={t('toggleSidebar')} />
     </Sidebar>
   );
+}
+
+function DashboardSidebarFromSession({ agentTier }: { agentTier?: string }) {
+  const { memberItems, agentItems, adminItems, role } = useDashboardNavigation(agentTier);
+
+  return (
+    <DashboardSidebarInner
+      role={role}
+      memberItems={memberItems}
+      agentItems={agentItems}
+      adminItems={adminItems}
+    />
+  );
+}
+
+export function DashboardSidebar({
+  agentTier = 'standard',
+  user,
+  adminAccess,
+}: Readonly<{
+  agentTier?: string;
+  user?: ClientShellUser | null;
+  adminAccess?: boolean;
+}>) {
+  const t = useTranslations('nav');
+
+  if (user?.role !== undefined) {
+    const navigation = buildDashboardNavigationModel({
+      t,
+      role: user.role,
+      agentTier,
+      adminAccess: adminAccess ?? false,
+    });
+
+    return (
+      <DashboardSidebarInner
+        user={user}
+        role={navigation.role}
+        memberItems={navigation.memberItems}
+        agentItems={navigation.agentItems}
+        adminItems={navigation.adminItems}
+      />
+    );
+  }
+
+  return <DashboardSidebarFromSession agentTier={agentTier} />;
 }

@@ -21,9 +21,18 @@
     "overview": "Përmbledhje",
     "consumerRights": "Të Drejtat e Konsumatorit",
     "agentWorkspace": "Hapësira e Agjentit",
+    "agentHub": "Qendra e Agjentit",
     "agentCrm": "Paneli CRM",
     "agentLeads": "Lead-et",
+    "members": "Anëtarët e Mi",
+    "rapidPos": "Shitje e Shpejtë",
+    "clients": "Klientët",
+    "agentCommissions": "Komisionet",
+    "bulkImport": "Import Masiv",
     "adminDashboard": "Paneli i Adminit",
+    "salesNetwork": "Shitje dhe Rrjet",
+    "membershipSection": "Anëtarësimi",
+    "adminSection": "Administrim",
     "backToWebsite": "Kthehu tek Uebfaqja",
     "language": "Gjuha",
     "agentPortal": "Portali i Agjentit",
@@ -31,6 +40,7 @@
     "memberPortal": "Portali i Anëtarit",
     "memberRole": "Anëtar",
     "myAccount": "Llogaria Ime",
-    "toggleMenu": "Hap/mbyll menunë"
+    "toggleMenu": "Hap/mbyll menunë",
+    "toggleSidebar": "Hap/mbyll shiritin anësor"
   }
 }

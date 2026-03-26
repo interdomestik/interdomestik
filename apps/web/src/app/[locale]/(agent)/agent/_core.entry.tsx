@@ -17,7 +17,7 @@ export default async function AgentDashboardEntry({
   });
 
   if (!session?.user?.id) {
-    redirect('/auth/login');
+    redirect(`/${locale}/login`);
   }
   await requireEffectivePortalAccessOrNotFound(session, ['agent']);
 

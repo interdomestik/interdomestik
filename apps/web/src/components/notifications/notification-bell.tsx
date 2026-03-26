@@ -1,10 +1,8 @@
 'use client';
 
-import { createAuthClient } from 'better-auth/react';
+import { authClient } from '@/lib/auth-client';
 import { useEffect, useState } from 'react';
 import { NotificationCenter } from './notification-center';
-
-const authClient = createAuthClient();
 
 /**
  * NotificationBell - A self-contained notification bell that uses a provided subscriberId

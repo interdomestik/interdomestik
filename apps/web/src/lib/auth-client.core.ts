@@ -12,4 +12,10 @@ export const authClient = createAuthClient({
   // In the browser, omitting baseURL makes it relative,
   // which is perfect for multi-tenant subdomains.
   baseURL: typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_APP_URL,
+  sessionOptions: {
+    // Avoid background get-session churn on focus/reconnect; route transitions
+    // and explicit auth actions already refresh state in normal use.
+    refetchOnWindowFocus: false,
+    refetchWhenOffline: false,
+  },
 });

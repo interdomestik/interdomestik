@@ -7,11 +7,32 @@ import {
 
 export type AuthMethod = 'GET' | 'POST';
 
-export function getAuthRateLimitConfig(method: AuthMethod): {
+function getAuthPathname(url: string): string | null {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return null;
+  }
+}
+
+export function getAuthRateLimitConfig(
+  method: AuthMethod,
+  url: string
+): {
   name: string;
   limit: number;
   windowSeconds: number;
 } {
+  const pathname = getAuthPathname(url);
+
+  if (pathname?.endsWith('/api/auth/get-session')) {
+    return { name: 'api/auth/get-session', limit: 180, windowSeconds: 60 };
+  }
+
+  if (pathname?.endsWith('/api/auth/sign-out')) {
+    return { name: 'api/auth/sign-out', limit: 20, windowSeconds: 60 };
+  }
+
   switch (method) {
     case 'GET':
       return { name: 'api/auth', limit: 10, windowSeconds: 60 };

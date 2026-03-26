@@ -132,6 +132,12 @@
       "cancelled": "Zahtev otkazan",
       "cancelFailed": "Neuspešno otkazivanje"
     },
+    "claimsPro": {
+      "actions": {
+        "uploadEvidence": "Otpremi dokaz",
+        "sendMessage": "Pošalji poruku"
+      }
+    },
     "edit": {
       "title": "Uredi nacrt",
       "description": "Ažurirajte informacije pre podnošenja zahteva.",

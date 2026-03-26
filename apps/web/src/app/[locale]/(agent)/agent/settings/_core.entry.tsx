@@ -1,12 +1,12 @@
 import { ChangePasswordForm } from '@/components/auth/change-password-form';
 import { ProfileForm } from '@/components/auth/profile-form';
 import { LanguageSettings } from '@/components/settings/language-settings';
-import { redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { Separator } from '@interdomestik/ui/components/separator';
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 function SettingsSkeleton() {
@@ -28,7 +28,7 @@ export default async function AgentSettingsPage({ params }: Readonly<SettingsPag
   });
 
   if (!session) {
-    redirect({ href: '/login', locale });
+    redirect(`/${locale}/login`);
   }
 
   const tCommon = await getTranslations('settings');

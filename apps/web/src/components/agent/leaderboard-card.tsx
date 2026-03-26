@@ -102,7 +102,7 @@ export function LeaderboardCard() {
   };
 
   return (
-    <Card>
+    <Card className="relative z-10">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">

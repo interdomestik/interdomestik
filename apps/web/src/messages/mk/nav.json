@@ -21,9 +21,18 @@
     "overview": "Преглед",
     "consumerRights": "Права на потрошувачите",
     "agentWorkspace": "Работен простор на агент",
+    "agentHub": "Агентски центар",
     "agentCrm": "CRM Табла",
     "agentLeads": "Потенцијални клиенти",
+    "members": "Мои членови",
+    "rapidPos": "Брза продажба",
+    "clients": "Клиенти",
+    "agentCommissions": "Провизии",
+    "bulkImport": "Масовен увоз",
     "adminDashboard": "Админ Табла",
+    "salesNetwork": "Продажба и мрежа",
+    "membershipSection": "Членство",
+    "adminSection": "Админ",
     "backToWebsite": "Назад кон веб-страницата",
     "language": "Јазик",
     "agentPortal": "Портал за агенти",
@@ -31,6 +40,7 @@
     "memberPortal": "Портал за членови",
     "memberRole": "Член",
     "myAccount": "Моја сметка",
-    "toggleMenu": "Отвори/затвори мени"
+    "toggleMenu": "Отвори/затвори мени",
+    "toggleSidebar": "Отвори/затвори странична лента"
   }
 }

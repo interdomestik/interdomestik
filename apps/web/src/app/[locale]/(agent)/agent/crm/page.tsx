@@ -18,7 +18,7 @@ export default async function CRMPage({
   });
 
   if (!session?.user) {
-    redirect('/auth/login');
+    redirect(`/${locale}/login`);
   }
 
   const agentId = session.user.id;

@@ -171,14 +171,14 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                 </div>
 
                 <h1 className="text-4xl md:text-6xl font-display font-black tracking-tight text-white leading-tight">
-                  Mirësevini,
+                  {tLanding('hero_greeting')},
                   <br />
                   <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent italic">
                     {userDetails.name.split(' ')[0]}
                   </span>
                 </h1>
                 <p className="text-lg text-slate-400 font-medium leading-relaxed">
-                  Your global protection network is active and monitoring all systems.
+                  {tLanding('hero_subtitle')}
                 </p>
               </div>
 
@@ -187,10 +187,10 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   <ShieldCheck className="w-5 h-5 text-emerald-400" />
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      Status
+                      {tLanding('status_label')}
                     </span>
                     <span className="text-sm font-black text-white uppercase tracking-tighter">
-                      Active
+                      {tLanding('status_active')}
                     </span>
                   </div>
                 </div>
@@ -198,7 +198,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   <ShieldAlert className="w-5 h-5 text-rose-400" />
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      Protection
+                      {tLanding('protection_label')}
                     </span>
                     <span
                       className="text-sm font-black text-white uppercase tracking-tighter"
@@ -212,10 +212,10 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   <Zap className="w-5 h-5 text-amber-400" />
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      Level
+                      {tLanding('level_label')}
                     </span>
                     <span className="text-sm font-black text-white uppercase tracking-tighter italic font-display">
-                      Premium Elite
+                      {tLanding('level_value')}
                     </span>
                   </div>
                 </div>
@@ -229,6 +229,18 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                 memberNumber={userDetails.memberNumber || 'PENDING'}
                 validThru={validThru}
                 isActive={isActive}
+                labels={{
+                  membership: tLanding('card_membership'),
+                  claimSupport: tLanding('card_claim_support'),
+                  legalProtection: tLanding('card_legal_protection'),
+                  assistance247: tLanding('card_assistance_247'),
+                  memberName: tLanding('card_member_name'),
+                  validThru: tLanding('card_valid_thru'),
+                  activeMember: tLanding('card_active_member'),
+                  protectionPaused: tLanding('card_protection_paused'),
+                  addToAppleWallet: tLanding('card_add_to_apple_wallet'),
+                  googlePayReady: tLanding('card_google_pay_ready'),
+                }}
               />
             </div>
           </div>
@@ -250,7 +262,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   {t('diaspora_ribbon.text')}
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Specialized protection architecture for members across Europe and beyond.
+                  {tLanding('diaspora_description')}
                 </p>
               </div>
             </div>
@@ -279,7 +291,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   label: t('home_grid.cta_incident'),
                   iconName: 'incident',
                   color: 'from-red-600 to-red-700',
-                  description: 'SOS / EMERGENCY',
+                  description: tLanding('cta_incident_kicker'),
                 },
                 {
                   href: '/member/claim-report',
@@ -287,7 +299,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   label: t('home_grid.cta_report'),
                   iconName: 'report',
                   color: 'from-blue-600 to-blue-700',
-                  description: 'NEW REPORT',
+                  description: tLanding('cta_report_kicker'),
                 },
                 {
                   href: '/member/green-card',
@@ -295,7 +307,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   label: t('home_grid.cta_green_card'),
                   iconName: 'green-card',
                   color: 'from-emerald-600 to-emerald-700',
-                  description: 'TRAVEL DOCS',
+                  description: tLanding('cta_green_card_kicker'),
                 },
                 {
                   href: '/member/benefits',
@@ -303,7 +315,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   label: t('home_grid.cta_benefits'),
                   iconName: 'benefits',
                   color: 'from-amber-400 to-orange-400',
-                  description: 'EXCLUSIVE ACCESS',
+                  description: tLanding('cta_benefits_kicker'),
                 },
               ].map(action => (
                 <MatteAnchorCard
@@ -324,16 +336,16 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
             <CardHeader className="p-8 pb-4">
               <CardTitle className="text-sm font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 flex items-center gap-2">
                 <Activity className="w-4 h-4 animate-pulse" />
-                Live Protection
+                {tLanding('live_protection_title')}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8 pt-0 space-y-8">
               <div className="space-y-6">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    <span>System Integrity</span>
+                    <span>{tLanding('system_integrity')}</span>
                     <span className={isActive ? 'text-emerald-500' : 'text-red-500'}>
-                      {isActive ? 'Optimal' : 'Low'}
+                      {isActive ? tLanding('integrity_optimal') : tLanding('integrity_low')}
                     </span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-white/5 overflow-hidden">
@@ -349,13 +361,13 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
                     <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
-                      Nodes
+                      {tLanding('nodes')}
                     </span>
                     <span className="text-xl font-display font-black">124</span>
                   </div>
                   <div className="p-4 rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
                     <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
-                      Latency
+                      {tLanding('latency')}
                     </span>
                     <span className="text-xl font-display font-black">14ms</span>
                   </div>
@@ -364,7 +376,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
 
               <div className="space-y-4">
                 <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  Active Protection Nodes
+                  {tLanding('active_protection_nodes')}
                 </h4>
                 <div className="space-y-3">
                   {['Prishtina-HQ', 'Skopje-East', 'Zürich-Relay'].map(node => (
@@ -372,7 +384,9 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                       <span className="text-xs font-bold">{node}</span>
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        <span className="text-[10px] font-mono text-muted-foreground">Online</span>
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {tLanding('online')}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -385,7 +399,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                 className="w-full rounded-2xl border-blue-500/20 hover:bg-blue-500/5 hover:border-blue-500/40 transition-all font-bold group/pulse"
               >
                 <Link href="/member/help" className="flex items-center justify-center gap-2">
-                  <span>Get Help & Support</span>
+                  <span>{tLanding('get_help_support')}</span>
                   <ArrowRight className="w-4 h-4 group-hover/pulse:translate-x-1 transition-transform" />
                 </Link>
               </Button>
@@ -396,13 +410,15 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
         {/* Secondary Service Tiles - Glass Grid */}
         <div className="space-y-6">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-xl font-display font-black tracking-tight">System Ecosystem</h2>
+            <h2 className="text-xl font-display font-black tracking-tight">
+              {tLanding('system_ecosystem')}
+            </h2>
             <Button
               variant="ghost"
               size="sm"
               className="text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary"
             >
-              Explore All <ArrowRight className="ml-2 w-3 h-3" />
+              {tLanding('explore_all')} <ArrowRight className="ml-2 w-3 h-3" />
             </Button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
@@ -410,11 +426,11 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
               {
                 key: 'property_damage',
                 icon: ShieldCheck,
-                desc: 'Damage assessment',
+                desc: tLanding('property_damage_desc'),
               },
-              { key: 'health_safety', icon: HeartPulse, desc: 'Medical guidance' },
-              { key: 'my_documents', icon: FileText, desc: 'Policy vault' },
-              { key: 'contact_center', icon: Headphones, desc: 'Human support' },
+              { key: 'health_safety', icon: HeartPulse, desc: tLanding('health_safety_desc') },
+              { key: 'my_documents', icon: FileText, desc: tLanding('my_documents_desc') },
+              { key: 'contact_center', icon: Headphones, desc: tLanding('contact_center_desc') },
             ].map((cat, i) => (
               <Card
                 key={i}
@@ -464,10 +480,10 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   <div className="p-2 bg-blue-500 rounded-lg">
                     <Phone className="w-5 h-5 text-white" />
                   </div>
-                  24/7 COMMAND CENTER
+                  {tLanding('command_center_title')}
                 </CardTitle>
                 <div className="px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-[10px] font-black tracking-widest text-blue-400 animate-pulse">
-                  PRIORITY LINE ACTIVE
+                  {tLanding('priority_line_active')}
                 </div>
               </div>
             </CardHeader>
@@ -476,7 +492,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-12">
                 <div className="space-y-3 group/link">
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400/80">
-                    North Macedonia
+                    {tLanding('country_north_macedonia')}
                   </div>
                   <a
                     href="tel:+38970337140"
@@ -486,12 +502,12 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   </a>
                   <div className="flex items-center gap-2 text-xs text-slate-400">
                     <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                    <span>Available now • Avg response 12s</span>
+                    <span>{tLanding('available_now_avg_response', { seconds: '12s' })}</span>
                   </div>
                 </div>
                 <div className="space-y-3 group/link">
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400/80">
-                    Republic of Kosovo
+                    {tLanding('country_kosovo')}
                   </div>
                   <a
                     href="tel:+38349900600"
@@ -501,7 +517,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   </a>
                   <div className="flex items-center gap-2 text-xs text-slate-400">
                     <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                    <span>Available now • Avg response 15s</span>
+                    <span>{tLanding('available_now_avg_response', { seconds: '15s' })}</span>
                   </div>
                 </div>
               </div>
@@ -517,17 +533,18 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
                     <LayoutDashboard className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-display font-black">Status Insight</h3>
+                  <h3 className="text-lg font-display font-black">
+                    {tLanding('status_insight_title')}
+                  </h3>
                 </div>
                 <p className="text-sm text-blue-50 leading-relaxed font-medium">
-                  Your protection status is monitored in real-time by our global operations center.
-                  Keep your documents in the vault for ultra-fast processing during incidents.
+                  {tLanding('status_insight_body')}
                 </p>
                 <Button
                   variant="secondary"
                   className="w-full rounded-xl font-bold bg-white text-blue-600 hover:bg-blue-50"
                 >
-                  Review Security Parameters
+                  {tLanding('review_security_parameters')}
                 </Button>
               </div>
             </Card>

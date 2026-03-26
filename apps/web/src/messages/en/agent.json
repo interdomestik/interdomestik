@@ -134,6 +134,75 @@
       "deals": "deals",
       "yourRank": "Your rank"
     },
+    "dashboardV2": {
+      "assignedBranch": "Assigned Branch",
+      "addNewLead": "Add New Lead",
+      "rapidPosSale": "Rapid POS Sale",
+      "myMemberDashboard": "My Member Dashboard",
+      "verifiedAgent": "Verified Agent",
+      "activeSince": "Active since",
+      "monthlyPace": "Monthly Pace",
+      "paidThisMonth": "Paid this month",
+      "pipelinePulse": "Pipeline Pulse",
+      "clientBase": "Client Base",
+      "active": "Active",
+      "won": "Won",
+      "conversion": "Conversion",
+      "totalClients": "Total Clients",
+      "campaignDescription": "Hunt Campaign",
+      "rapidProspect": "Rapid Prospect",
+      "rapidPosLabel": "Rapid POS",
+      "addLead": "Add Lead",
+      "quickSale": "Quick Sale",
+      "earningsBoost": "Earnings Boost",
+      "expertise": "Expertise",
+      "existingDataPreserved": "Existing data preserved",
+      "yourClients": "Your Clients",
+      "clientsSignedUp": "Members you've signed up ({count} total)",
+      "noClientsYet": "No clients yet. Start selling memberships!",
+      "addYourFirstLead": "Add Your First Lead",
+      "startRapidPosSale": "Start Rapid POS Sale",
+      "viewAllClients": "View All Clients"
+    },
+    "claimsPage": {
+      "title": "Track Client Claims",
+      "empty": "No clients with claims found."
+    },
+    "claimsPro": {
+      "title": "Claims Worklist (Pro)",
+      "subtitle": "Monitor and track member claims.",
+      "backToWorkspace": "Back to Workspace",
+      "switchToLite": "Switch to Lite",
+      "claimNotAccessible": "This claim is not accessible.",
+      "searchPlaceholder": "Search by Claim # or Member...",
+      "empty": "No claims found matching filters.",
+      "readOnlyDetails": "Details (Read Only)",
+      "statusLabel": "Status:",
+      "branchLabel": "Branch:",
+      "na": "N/A",
+      "timelineComingSoon": "Timeline and Documents are coming soon in next update.",
+      "closeMessaging": "Close Messaging",
+      "closeLabel": "Close",
+      "dialogDescription": "Details for the selected claim",
+      "drawerTitle": "Claim {claimNumber}",
+      "unknownMember": "Unknown",
+      "updatedPrefix": "Upd:",
+      "actions": {
+        "uploadEvidence": "Upload Evidence",
+        "sendMessage": "Send Message"
+      },
+      "tabs": {
+        "all": "All Claims",
+        "open": "Open / Active",
+        "closed": "Closed / Resolved"
+      },
+      "columns": {
+        "claim": "Claim",
+        "status": "Status",
+        "member": "Member",
+        "meta": "Created / Last Update"
+      }
+    },
     "leads_page": {
       "stages": {
         "new": "New",
