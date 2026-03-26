@@ -40,6 +40,7 @@ function DashboardSidebarInner({
 }) {
   const pathname = usePathname();
   const isAgent = role === 'agent';
+  const t = useTranslations('nav');
 
   return (
     <Sidebar
@@ -88,7 +89,7 @@ function DashboardSidebarInner({
           {isAgent && agentItems.length > 1 && (
             <SidebarGroup>
               <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500/50 px-4 mb-2">
-                Sales & Network
+                {t('salesNetwork')}
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1.5">
@@ -114,7 +115,7 @@ function DashboardSidebarInner({
           {!isAgent && (
             <SidebarGroup>
               <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-4 mb-2">
-                Membership
+                {t('membershipSection')}
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1.5">
@@ -149,7 +150,7 @@ function DashboardSidebarInner({
           {adminItems.length > 0 && (
             <SidebarGroup>
               <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/50 px-4 mb-2">
-                Admin
+                {t('adminSection')}
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1.5">

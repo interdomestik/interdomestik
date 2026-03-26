@@ -13,13 +13,23 @@ interface AgentVerifiedIDProps {
   name: string;
   agentId: string;
   createdAt: string | Date;
+  locale?: string;
+  verifiedLabel?: string;
+  activeSinceLabel?: string;
 }
 
-export function AgentVerifiedID({ name, agentId, createdAt }: AgentVerifiedIDProps) {
+export function AgentVerifiedID({
+  name,
+  agentId,
+  createdAt,
+  locale = 'en',
+  verifiedLabel = 'Verified agent',
+  activeSinceLabel = 'Active since',
+}: AgentVerifiedIDProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [rotate, setRotate] = useState({ x: 0, y: 0 });
 
-  const formattedDate = new Date(createdAt).toLocaleDateString('sq-AL', {
+  const formattedDate = new Date(createdAt).toLocaleDateString(locale, {
     month: 'long',
     year: 'numeric',
   });
@@ -71,7 +81,7 @@ export function AgentVerifiedID({ name, agentId, createdAt }: AgentVerifiedIDPro
               <ShieldCheck className="h-4 w-4 text-indigo-400" />
             </div>
             <span className="text-[10px] font-black text-white/40 tracking-[0.2em] uppercase">
-              Agjent i verifikuar
+              {verifiedLabel}
             </span>
           </div>
         </div>
@@ -89,7 +99,7 @@ export function AgentVerifiedID({ name, agentId, createdAt }: AgentVerifiedIDPro
           <div className="flex items-center gap-1.5">
             <div className="h-1 w-1 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
             <span className="text-[8px] text-slate-400 font-medium tracking-wide uppercase">
-              Aktiv që nga: {formattedDate}
+              {activeSinceLabel}: {formattedDate}
             </span>
           </div>
         </div>

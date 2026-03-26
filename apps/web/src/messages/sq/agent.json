@@ -133,6 +133,68 @@
       "deals": "marrëveshje",
       "yourRank": "Renditja jote"
     },
+    "dashboardV2": {
+      "assignedBranch": "Dega e caktuar",
+      "addNewLead": "Shto lead të ri",
+      "rapidPosSale": "Shitje e shpejtë POS",
+      "myMemberDashboard": "Paneli im i anëtarit",
+      "verifiedAgent": "Agjent i verifikuar",
+      "activeSince": "Aktiv që nga",
+      "monthlyPace": "Ritmi mujor",
+      "paidThisMonth": "Paguar këtë muaj",
+      "pipelinePulse": "Pulsi i pipeline-it",
+      "clientBase": "Baza e klientëve",
+      "active": "Aktive",
+      "won": "Të fituara",
+      "conversion": "Konvertimi",
+      "totalClients": "Gjithsej klientë",
+      "campaignDescription": "Gjuetia (Hunt)",
+      "rapidProspect": "Rapid Prospect",
+      "rapidPosLabel": "Rapid POS",
+      "addLead": "Shto lead",
+      "quickSale": "Shitje e shpejtë",
+      "earningsBoost": "Rritje e fitimeve",
+      "expertise": "Ekspertiza",
+      "existingDataPreserved": "Të dhënat ekzistuese janë ruajtur",
+      "yourClients": "Klientët tuaj",
+      "clientsSignedUp": "Anëtarët që keni regjistruar ({count} gjithsej)",
+      "noClientsYet": "Ende nuk keni klientë. Filloni të shisni anëtarësime!",
+      "addYourFirstLead": "Shtoni lead-in tuaj të parë",
+      "startRapidPosSale": "Fillo shitjen e shpejtë POS",
+      "viewAllClients": "Shih të gjithë klientët"
+    },
+    "claimsPage": {
+      "title": "Gjurmo Kërkesat e Klientëve",
+      "empty": "Nuk u gjetën klientë me kërkesa."
+    },
+    "claimsPro": {
+      "title": "Lista e kërkesave (Pro)",
+      "subtitle": "Monitoroni dhe ndiqni kërkesat e anëtarëve.",
+      "backToWorkspace": "Kthehu te hapësira e punës",
+      "switchToLite": "Kalo në Lite",
+      "claimNotAccessible": "Kjo kërkesë nuk është e qasshme.",
+      "searchPlaceholder": "Kërko sipas numrit të kërkesës ose anëtarit...",
+      "empty": "Nuk u gjet asnjë kërkesë që përputhet me filtrat.",
+      "readOnlyDetails": "Detajet (vetëm për lexim)",
+      "statusLabel": "Statusi:",
+      "branchLabel": "Dega:",
+      "na": "N/A",
+      "timelineComingSoon": "Kronologjia dhe dokumentet do të vijnë së shpejti në përditësimin tjetër.",
+      "closeMessaging": "Mbyll mesazhet",
+      "unknownMember": "I panjohur",
+      "updatedPrefix": "Përd:",
+      "tabs": {
+        "all": "Të gjitha kërkesat",
+        "open": "Të hapura / aktive",
+        "closed": "Të mbyllura / të zgjidhura"
+      },
+      "columns": {
+        "claim": "Kërkesa",
+        "status": "Statusi",
+        "member": "Anëtari",
+        "meta": "Krijuar / përditësimi i fundit"
+      }
+    },
     "leads_page": {
       "stages": {
         "new": "I/E Re",

@@ -285,6 +285,68 @@
       "you": "Вие",
       "deals": "договори",
       "yourRank": "Ваш ранг"
+    },
+    "dashboardV2": {
+      "assignedBranch": "Доделена филијала",
+      "addNewLead": "Додај нов потенцијален клиент",
+      "rapidPosSale": "Брза POS продажба",
+      "myMemberDashboard": "Моја членска контролна табла",
+      "verifiedAgent": "Потврден агент",
+      "activeSince": "Активен од",
+      "monthlyPace": "Месечно темпо",
+      "paidThisMonth": "Исплатено овој месец",
+      "pipelinePulse": "Пулс на инката",
+      "clientBase": "База на клиенти",
+      "active": "Активни",
+      "won": "Добиени",
+      "conversion": "Конверзија",
+      "totalClients": "Вкупно клиенти",
+      "campaignDescription": "Ловечка кампања",
+      "rapidProspect": "Брз проспект",
+      "rapidPosLabel": "Брза продажба",
+      "addLead": "Додај потенцијален клиент",
+      "quickSale": "Брза продажба",
+      "earningsBoost": "Поттик на заработка",
+      "expertise": "Експертиза",
+      "existingDataPreserved": "Постоечките податоци се зачувани",
+      "yourClients": "Ваши клиенти",
+      "clientsSignedUp": "Членови што сте ги зачлениле ({count} вкупно)",
+      "noClientsYet": "Сè уште нема клиенти. Почнете со продажба на членства!",
+      "addYourFirstLead": "Додајте го првиот потенцијален клиент",
+      "startRapidPosSale": "Започни брза POS продажба",
+      "viewAllClients": "Види ги сите клиенти"
+    },
+    "claimsPage": {
+      "title": "Следење на клиентски барања",
+      "empty": "Не се пронајдени клиенти со барања."
+    },
+    "claimsPro": {
+      "title": "Работна листа на барања (Про)",
+      "subtitle": "Следете и надгледувајте ги членските барања.",
+      "backToWorkspace": "Назад во работниот простор",
+      "switchToLite": "Префрли на Lite",
+      "claimNotAccessible": "Ова барање не е достапно.",
+      "searchPlaceholder": "Пребарај по број на барање или член...",
+      "empty": "Нема барања што одговараат на филтрите.",
+      "readOnlyDetails": "Детали (само за читање)",
+      "statusLabel": "Статус:",
+      "branchLabel": "Филијала:",
+      "na": "Н/Д",
+      "timelineComingSoon": "Временската линија и документите наскоро доаѓаат во следната надградба.",
+      "closeMessaging": "Затвори пораки",
+      "unknownMember": "Непознат",
+      "updatedPrefix": "Аж:",
+      "tabs": {
+        "all": "Сите барања",
+        "open": "Отворени / активни",
+        "closed": "Затворени / решени"
+      },
+      "columns": {
+        "claim": "Барање",
+        "status": "Статус",
+        "member": "Член",
+        "meta": "Креирано / последно ажурирање"
+      }
     }
   }
 }

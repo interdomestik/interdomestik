@@ -76,7 +76,7 @@ export async function AgentDashboardV2Page({
           {branch && (
             <div className="mt-1 flex items-center gap-2">
               <span className="text-xs font-medium uppercase tracking-wider text-primary/70">
-                Assigned Branch:
+                {t('dashboardV2.assignedBranch')}:
               </span>
               <span className="text-xs font-bold" data-testid="agent-branch-context">
                 {branch.name}
@@ -88,17 +88,17 @@ export async function AgentDashboardV2Page({
           <Button asChild>
             {isPro ? (
               <Link href="/agent/leads/new">
-                Add New Lead <ArrowRight className="ml-2 h-4 w-4" />
+                {t('dashboardV2.addNewLead')} <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             ) : (
               <Link href="/agent/pos">
-                Rapid POS Sale <UserPlus className="ml-2 h-4 w-4" />
+                {t('dashboardV2.rapidPosSale')} <UserPlus className="ml-2 h-4 w-4" />
               </Link>
             )}
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="/member" data-testid="agent-member-dashboard-cta">
-              My Member Dashboard
+              {t('dashboardV2.myMemberDashboard')}
             </Link>
           </Button>
         </div>
@@ -112,6 +112,9 @@ export async function AgentDashboardV2Page({
             name={session.user.name ?? 'Agent'}
             agentId={agentId}
             createdAt={session.user.createdAt ?? new Date()}
+            locale={locale}
+            verifiedLabel={t('dashboardV2.verifiedAgent')}
+            activeSinceLabel={t('dashboardV2.activeSince')}
           />
         </div>
 
@@ -120,7 +123,7 @@ export async function AgentDashboardV2Page({
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" />
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">
-              Ritmi mujor
+              {t('dashboardV2.monthlyPace')}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-6">
@@ -128,7 +131,7 @@ export async function AgentDashboardV2Page({
               €{summary ? ((summary.totalPaid ?? 0) / 100).toFixed(0) : '—'}
             </div>
             <p className="text-[10px] font-medium text-white/40 mt-2 uppercase tracking-widest">
-              Paguar këtë muaj
+              {t('dashboardV2.paidThisMonth')}
             </p>
           </CardContent>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5 overflow-hidden">
@@ -141,7 +144,7 @@ export async function AgentDashboardV2Page({
         <Card className="border-white/10 bg-slate-950/40 backdrop-blur-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">
-              {isPro ? 'Pipeline Pulse' : 'Client Base'}
+              {isPro ? t('dashboardV2.pipelinePulse') : t('dashboardV2.clientBase')}
             </CardTitle>
           </CardHeader>
           <CardContent
@@ -158,7 +161,7 @@ export async function AgentDashboardV2Page({
                     {stats.newLeads + stats.contactedLeads}
                   </span>
                   <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500">
-                    Aktive
+                    {t('dashboardV2.active')}
                   </span>
                 </div>
                 <div className="flex flex-col items-center gap-1">
@@ -166,7 +169,7 @@ export async function AgentDashboardV2Page({
                     {stats.wonDeals}
                   </span>
                   <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500">
-                    Të fituara
+                    {t('dashboardV2.won')}
                   </span>
                 </div>
                 <div className="flex flex-col items-center gap-1">
@@ -178,7 +181,7 @@ export async function AgentDashboardV2Page({
                     })()}
                   </span>
                   <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500">
-                    Konvertimi
+                    {t('dashboardV2.conversion')}
                   </span>
                 </div>
               </>
@@ -188,7 +191,7 @@ export async function AgentDashboardV2Page({
                   {stats.clientCount}
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-500">
-                  Total Clients
+                  {t('dashboardV2.totalClients')}
                 </span>
               </div>
             )}
@@ -200,23 +203,23 @@ export async function AgentDashboardV2Page({
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <MatteAnchorCard
           label={tToolkit('campaign.title')}
-          description="Gjuetia (Hunt)"
+          description={t('dashboardV2.campaignDescription')}
           iconName="share"
           href="/agent/toolkit/campaign"
           colorClassName="from-indigo-950/40 to-slate-950/60"
           testId="action-campaign"
         />
         <MatteAnchorCard
-          label={isPro ? 'Rapid Prospect' : 'Rapid POS'}
-          description={isPro ? 'Shto Lead' : 'Shitje e Shpejtë'}
+          label={isPro ? t('dashboardV2.rapidProspect') : t('dashboardV2.rapidPosLabel')}
+          description={isPro ? t('dashboardV2.addLead') : t('dashboardV2.quickSale')}
           iconName="user-plus"
           href={isPro ? '/agent/leads/new' : '/agent/pos'}
           colorClassName="from-slate-900/60 to-slate-950/80"
           testId="action-prospect"
         />
         <MatteAnchorCard
-          label="Earnings Boost"
-          description="Komisionet"
+          label={t('dashboardV2.earningsBoost')}
+          description={t('commissions.title')}
           iconName="trending-up"
           href="/agent/commissions"
           colorClassName="from-emerald-950/40 to-slate-950/60"
@@ -224,7 +227,7 @@ export async function AgentDashboardV2Page({
         />
         <MatteAnchorCard
           label={tToolkit('guides.title')}
-          description="Ekspertiza"
+          description={t('dashboardV2.expertise')}
           iconName="globe"
           href="/agent/toolkit/guides"
           colorClassName="from-slate-900/60 to-slate-950/80"
@@ -243,18 +246,18 @@ export async function AgentDashboardV2Page({
           <ReferralLinkCard />
           <Card className="border-white/5 bg-slate-950/20">
             <CardHeader>
-              <CardTitle>Commission Summary</CardTitle>
-              <CardDescription>Existing data preserved</CardDescription>
+              <CardTitle>{t('commissions.summary')}</CardTitle>
+              <CardDescription>{t('dashboardV2.existingDataPreserved')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center" data-testid="commission-pending">
-                <span className="text-sm text-muted-foreground">Pending</span>
+                <span className="text-sm text-muted-foreground">{t('commissions.pending')}</span>
                 <span className="font-semibold">
                   €{((summary?.totalPending ?? 0) / 100).toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between items-center" data-testid="commission-approved">
-                <span className="text-sm text-muted-foreground">Approved</span>
+                <span className="text-sm text-muted-foreground">{t('commissions.approved')}</span>
                 <span className="font-semibold text-green-600">
                   €{((summary?.totalApproved ?? 0) / 100).toFixed(2)}
                 </span>
@@ -267,27 +270,27 @@ export async function AgentDashboardV2Page({
         <div className="lg:col-span-12">
           <Card>
             <CardHeader>
-              <CardTitle>Your Clients</CardTitle>
+              <CardTitle>{t('dashboardV2.yourClients')}</CardTitle>
               <CardDescription>
-                Members you've signed up ({stats.clientCount} total)
+                {t('dashboardV2.clientsSignedUp', { count: stats.clientCount })}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8 text-muted-foreground">
                 {stats.clientCount === 0 ? (
                   <div>
-                    <p className="mb-4">No clients yet. Start selling memberships!</p>
+                    <p className="mb-4">{t('dashboardV2.noClientsYet')}</p>
                     <Button asChild>
                       {isPro ? (
-                        <Link href="/agent/leads/new">Add Your First Lead</Link>
+                        <Link href="/agent/leads/new">{t('dashboardV2.addYourFirstLead')}</Link>
                       ) : (
-                        <Link href="/agent/pos">Start Rapid POS Sale</Link>
+                        <Link href="/agent/pos">{t('dashboardV2.startRapidPosSale')}</Link>
                       )}
                     </Button>
                   </div>
                 ) : (
                   <Button asChild variant="outline">
-                    <Link href="/agent/clients">View All Clients</Link>
+                    <Link href="/agent/clients">{t('dashboardV2.viewAllClients')}</Link>
                   </Button>
                 )}
               </div>

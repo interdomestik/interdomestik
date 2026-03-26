@@ -72,25 +72,25 @@ export function buildDashboardNavigationModel(params: {
   const agentItems: { title: string; href: string; icon: IconType }[] = [];
   if (isAgent) {
     agentItems.push(
-      { title: 'Agent Hub', href: '/agent', icon: Home },
-      { title: 'My Members', href: '/agent/members', icon: Users },
+      { title: t('agentHub'), href: '/agent', icon: Home },
+      { title: t('members'), href: '/agent/members', icon: Users },
       { title: t('trackClaims'), href: '/agent/claims', icon: FileText },
-      { title: 'Rapid POS', href: '/agent/pos', icon: UserPlus }
+      { title: t('rapidPos'), href: '/agent/pos', icon: UserPlus }
     );
 
     // Tier Gating: Leads only for Pro/Office
     if (['pro', 'office'].includes(agentTier)) {
-      agentItems.push({ title: 'Leads', href: '/agent/leads', icon: Users });
+      agentItems.push({ title: t('agentLeads'), href: '/agent/leads', icon: Users });
     }
 
     agentItems.push(
-      { title: 'Clients', href: '/agent/clients', icon: Briefcase },
-      { title: 'Commissions', href: '/agent/commissions', icon: DollarSign }
+      { title: t('clients'), href: '/agent/clients', icon: Briefcase },
+      { title: t('agentCommissions'), href: '/agent/commissions', icon: DollarSign }
     );
 
     // Tier Gating: Bulk Import only for Office
     if (agentTier === 'office') {
-      agentItems.push({ title: 'Bulk Import', href: '/agent/import', icon: Upload });
+      agentItems.push({ title: t('bulkImport'), href: '/agent/import', icon: Upload });
     }
   }
 

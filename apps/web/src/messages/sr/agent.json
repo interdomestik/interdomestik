@@ -288,6 +288,68 @@
       "you": "Vi",
       "deals": "dogovora",
       "yourRank": "Vaš rang"
+    },
+    "dashboardV2": {
+      "assignedBranch": "Dodeljena filijala",
+      "addNewLead": "Dodaj novog potencijalnog klijenta",
+      "rapidPosSale": "Brza POS prodaja",
+      "myMemberDashboard": "Moja članska kontrolna tabla",
+      "verifiedAgent": "Verifikovani agent",
+      "activeSince": "Aktivan od",
+      "monthlyPace": "Mesečni ritam",
+      "paidThisMonth": "Isplaćeno ovog meseca",
+      "pipelinePulse": "Puls prodajnog toka",
+      "clientBase": "Baza klijenata",
+      "active": "Aktivni",
+      "won": "Dobijeni",
+      "conversion": "Konverzija",
+      "totalClients": "Ukupno klijenata",
+      "campaignDescription": "Instant kampanja",
+      "rapidProspect": "Brzi prospekt",
+      "rapidPosLabel": "Brzi POS",
+      "addLead": "Dodaj potencijalnog klijenta",
+      "quickSale": "Brza prodaja",
+      "earningsBoost": "Podsticaj zarade",
+      "expertise": "Ekspertiza",
+      "existingDataPreserved": "Postojeći podaci su sačuvani",
+      "yourClients": "Vaši klijenti",
+      "clientsSignedUp": "Članovi koje ste prijavili ({count} ukupno)",
+      "noClientsYet": "Još nema klijenata. Počnite da prodajete članstva!",
+      "addYourFirstLead": "Dodajte prvog potencijalnog klijenta",
+      "startRapidPosSale": "Pokreni brzu POS prodaju",
+      "viewAllClients": "Pogledaj sve klijente"
+    },
+    "claimsPage": {
+      "title": "Praćenje zahteva klijenata",
+      "empty": "Nema pronađenih klijenata sa zahtevima."
+    },
+    "claimsPro": {
+      "title": "Radna lista zahteva (Pro)",
+      "subtitle": "Pratite i nadgledajte zahteve članova.",
+      "backToWorkspace": "Nazad u radni prostor",
+      "switchToLite": "Prebaci na Lite",
+      "claimNotAccessible": "Ovaj zahtev nije dostupan.",
+      "searchPlaceholder": "Pretraži po broju zahteva ili članu...",
+      "empty": "Nema zahteva koji odgovaraju filterima.",
+      "readOnlyDetails": "Detalji (samo za čitanje)",
+      "statusLabel": "Status:",
+      "branchLabel": "Filijala:",
+      "na": "N/A",
+      "timelineComingSoon": "Vremenska linija i dokumenta uskoro dolaze u sledećem ažuriranju.",
+      "closeMessaging": "Zatvori poruke",
+      "unknownMember": "Nepoznat",
+      "updatedPrefix": "Až:",
+      "tabs": {
+        "all": "Svi zahtevi",
+        "open": "Otvoreni / aktivni",
+        "closed": "Zatvoreni / rešeni"
+      },
+      "columns": {
+        "claim": "Zahtev",
+        "status": "Status",
+        "member": "Član",
+        "meta": "Kreirano / poslednje ažuriranje"
+      }
     }
   }
 }
