@@ -251,6 +251,7 @@ describe('LoginForm', () => {
         pathname: '/en/login',
       })
     );
+    expect(mockGetSession).toHaveBeenCalledTimes(2);
   });
 
   it('displays error on invalid credentials', async () => {

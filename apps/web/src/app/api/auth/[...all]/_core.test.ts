@@ -51,7 +51,7 @@ describe('getAuthRateLimitConfig', () => {
       getAuthRateLimitConfig('GET', 'https://interdomestik-web.vercel.app/api/auth/get-session')
     ).toEqual({
       name: 'api/auth/get-session',
-      limit: 60,
+      limit: 180,
       windowSeconds: 60,
     });
   });

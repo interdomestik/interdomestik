@@ -26,7 +26,7 @@ export function getAuthRateLimitConfig(
   const pathname = getAuthPathname(url);
 
   if (pathname?.endsWith('/api/auth/get-session')) {
-    return { name: 'api/auth/get-session', limit: 60, windowSeconds: 60 };
+    return { name: 'api/auth/get-session', limit: 180, windowSeconds: 60 };
   }
 
   if (pathname?.endsWith('/api/auth/sign-out')) {

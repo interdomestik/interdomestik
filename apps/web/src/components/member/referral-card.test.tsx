@@ -156,4 +156,13 @@ describe('ReferralCard', () => {
     });
     expect(toastSuccess).toHaveBeenCalledWith('Link copied!');
   });
+
+  it('does not load member referral data for agent viewers on the member surface', () => {
+    render(<ReferralCard isAgent={true} />);
+
+    expect(getMemberReferralLink).not.toHaveBeenCalled();
+    expect(getMemberReferralStats).not.toHaveBeenCalled();
+    expect(getMemberReferralProgramPreview).not.toHaveBeenCalled();
+    expect(screen.queryByText('Invite Friends & Earn')).not.toBeInTheDocument();
+  });
 });

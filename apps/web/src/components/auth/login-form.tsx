@@ -25,8 +25,8 @@ import { useTranslations } from 'next-intl';
 import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
-const SESSION_SYNC_RETRY_COUNT = 5;
-const SESSION_SYNC_RETRY_DELAY_MS = 150;
+const SESSION_SYNC_RETRY_COUNT = 2;
+const SESSION_SYNC_RETRY_DELAY_MS = 250;
 
 type ResolvedAuthenticatedRole = {
   role?: string;

@@ -64,6 +64,10 @@ function getRewardSummary(
 const SKELETON_CARD_IDS = ['friends', 'pending', 'credited', 'paid'] as const;
 
 export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>) {
+  if (_isAgent) {
+    return null;
+  }
+
   const t = useTranslations('dashboard.referral');
   const [data, setData] = useState<ReferralCardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
