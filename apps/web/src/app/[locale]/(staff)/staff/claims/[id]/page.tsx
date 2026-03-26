@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
+import { getMessagesForClaimCore } from '@/actions/messages/get.core';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { getLatestPublicStatusNoteCore } from './_core';
 
@@ -32,7 +33,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     return notFound();
   }
 
-  const [detail, latestStatusNote, assignmentOptions] = await Promise.all([
+  const [detail, latestStatusNote, assignmentOptions, initialMessagesResult] = await Promise.all([
     getStaffClaimDetail({
       claimId: id,
       staffId: session.user.id,
@@ -48,12 +49,21 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
           tenantId: session.user.tenantId,
         })
       : Promise.resolve([]),
+    session.user.role === 'staff'
+      ? getMessagesForClaimCore({
+          session,
+          claimId: id,
+        })
+      : Promise.resolve({ success: true as const, messages: [] }),
   ]);
 
   if (!detail) return notFound();
 
   const currentAssigneeLabel =
     assignmentOptions.find(option => option.id === detail.claim.staffId)?.label ?? null;
+  const initialMessages = initialMessagesResult.success
+    ? (initialMessagesResult.messages ?? [])
+    : [];
   const claimStatus = toClaimStatus(detail.claim.status);
   const slaPhase = deriveClaimSlaPhase(claimStatus);
 
@@ -224,6 +234,8 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
                 role: session.user.role || 'staff',
               }}
               allowInternal={true}
+              initialMessages={initialMessages}
+              fetchOnMount={false}
             />
           </div>
         </section>

@@ -14,7 +14,15 @@ type DashboardHeaderUser = Readonly<{
   role?: string;
 }>;
 
-export function DashboardHeader({ user }: Readonly<{ user?: DashboardHeaderUser | null }>) {
+export function DashboardHeader({
+  user,
+  adminAccess,
+  prefetchNotifications = true,
+}: Readonly<{
+  user?: DashboardHeaderUser | null;
+  adminAccess?: boolean;
+  prefetchNotifications?: boolean;
+}>) {
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-white/10 bg-background/60 px-4 transition-all backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center gap-2">
@@ -28,8 +36,8 @@ export function DashboardHeader({ user }: Readonly<{ user?: DashboardHeaderUser 
         </div>
         <div className="flex items-center gap-4">
           <PortalSurfaceIndicator role={user?.role} />
-          <NotificationBell subscriberId={user?.id} />
-          <UserNav user={user} />
+          <NotificationBell subscriberId={user?.id} prefetchNotifications={prefetchNotifications} />
+          <UserNav user={user} adminAccess={adminAccess} />
         </div>
       </div>
     </header>

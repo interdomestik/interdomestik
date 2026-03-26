@@ -39,7 +39,7 @@ export default async function StaffLayout({
       <SidebarProvider defaultOpen={true}>
         <StaffSidebar user={shellUser} />
         <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-          <DashboardHeader user={shellUser} />
+          <DashboardHeader user={shellUser} adminAccess={false} prefetchNotifications={false} />
           <div className="px-6 pt-4 md:px-8">
             <LegacyBanner role={shellUser.role} />
           </div>

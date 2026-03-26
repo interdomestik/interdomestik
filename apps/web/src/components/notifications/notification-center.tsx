@@ -37,12 +37,13 @@ interface Notification {
 
 interface NotificationCenterProps {
   readonly subscriberId: string;
+  readonly fetchOnMount?: boolean;
 }
 
-export function NotificationCenter({ subscriberId }: NotificationCenterProps) {
+export function NotificationCenter({ subscriberId, fetchOnMount = true }: NotificationCenterProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(fetchOnMount);
   const [isOpen, setIsOpen] = useState(false);
 
   const fetchInitialNotifications = useCallback(async () => {
@@ -59,8 +60,13 @@ export function NotificationCenter({ subscriberId }: NotificationCenterProps) {
   }, []);
 
   useEffect(() => {
+    if (!fetchOnMount) {
+      setLoading(false);
+      return;
+    }
+
     fetchInitialNotifications();
-  }, [subscriberId, fetchInitialNotifications]);
+  }, [subscriberId, fetchInitialNotifications, fetchOnMount]);
 
   useEffect(() => {
     if (!isOpen) return;

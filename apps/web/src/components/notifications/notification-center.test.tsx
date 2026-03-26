@@ -83,4 +83,10 @@ describe('NotificationCenter', () => {
     expect(await screen.findByText('New message')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
   });
+
+  it('does not fetch notifications on mount when fetchOnMount is disabled', () => {
+    render(<NotificationCenter subscriberId="user-123" fetchOnMount={false} />);
+
+    expect(mocks.getNotifications).not.toHaveBeenCalled();
+  });
 });

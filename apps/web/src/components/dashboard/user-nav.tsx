@@ -31,10 +31,21 @@ type UserNavUser = Readonly<{
   role?: string;
 }>;
 
-function UserNavInner({ user }: Readonly<{ user: UserNavUser | null | undefined }>) {
+type UserNavProps = Readonly<{
+  user?: UserNavUser | null;
+  adminAccess?: boolean;
+}>;
+
+function UserNavInner({
+  user,
+  adminAccessOverride,
+}: Readonly<{
+  user: UserNavUser | null | undefined;
+  adminAccessOverride?: boolean;
+}>) {
   const locale = useLocale();
   const [mounted, setMounted] = useState(false);
-  const [adminAccess, setAdminAccess] = useState(false);
+  const [adminAccess, setAdminAccess] = useState(adminAccessOverride ?? false);
   const t = useTranslations('nav');
 
   useEffect(() => {
@@ -42,6 +53,11 @@ function UserNavInner({ user }: Readonly<{ user: UserNavUser | null | undefined 
   }, []);
 
   useEffect(() => {
+    if (adminAccessOverride !== undefined) {
+      setAdminAccess(adminAccessOverride);
+      return;
+    }
+
     if (!user) return;
 
     const role = user.role ?? null;
@@ -62,7 +78,7 @@ function UserNavInner({ user }: Readonly<{ user: UserNavUser | null | undefined 
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [adminAccessOverride, user]);
 
   const handleSignOut = async () => {
     await signOutAndRedirectToLogin({
@@ -157,9 +173,9 @@ function UserNavFromSession() {
   return <UserNavInner user={(session?.user as UserNavUser | undefined) ?? null} />;
 }
 
-export function UserNav({ user }: Readonly<{ user?: UserNavUser | null }>) {
+export function UserNav({ user, adminAccess }: UserNavProps) {
   if (user !== undefined) {
-    return <UserNavInner user={user} />;
+    return <UserNavInner user={user} adminAccessOverride={adminAccess} />;
   }
 
   return <UserNavFromSession />;

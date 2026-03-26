@@ -115,6 +115,18 @@ describe('MessagingPanel', () => {
     expect(screen.getByText('Thread (1 messages)')).toBeInTheDocument();
   });
 
+  it('does not fetch messages on mount when fetchOnMount is disabled', () => {
+    render(
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+        fetchOnMount={false}
+      />
+    );
+
+    expect(mockGetMessages).not.toHaveBeenCalled();
+  });
+
   it('shows message count in title', async () => {
     const initialMessages = [
       {
