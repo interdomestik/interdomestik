@@ -132,6 +132,12 @@
       "cancelled": "Kërkesa për dëmshpërblim u anulua",
       "cancelFailed": "Dështoi anulimi i kërkesës për dëmshpërblim"
     },
+    "claimsPro": {
+      "actions": {
+        "uploadEvidence": "Ngarko dëshmi",
+        "sendMessage": "Dërgo mesazh"
+      }
+    },
     "edit": {
       "title": "Redakto skicën",
       "description": "Përditësoni informacionin para se të dorëzoni kërkesën për dëmshpërblim.",
