@@ -11,7 +11,7 @@ const authClient = createAuthClient();
  * when available, or falls back to fetching the user session to determine the subscriber.
  * Renders the NotificationCenter only when a valid subscriber/user id is available.
  */
-export function NotificationBell({ subscriberId }: { subscriberId?: string | null }) {
+export function NotificationBell({ subscriberId }: Readonly<{ subscriberId?: string | null }>) {
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(!subscriberId);
 

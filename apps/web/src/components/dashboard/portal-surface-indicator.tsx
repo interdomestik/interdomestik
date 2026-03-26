@@ -39,7 +39,7 @@ function inferPortalKeyFromRole(role: string | undefined): PortalKey | null {
   return null;
 }
 
-function PortalSurfaceIndicatorInner({ role }: { role?: string }) {
+function PortalSurfaceIndicatorInner({ role }: Readonly<{ role?: string }>) {
   const pathname = usePathname();
   const t = useTranslations('dashboard.shell');
   const pathPortalKey = inferPortalKeyFromPath(pathname);
@@ -62,8 +62,8 @@ function PortalSurfaceIndicatorInner({ role }: { role?: string }) {
   );
 }
 
-export function PortalSurfaceIndicator({ role }: { role?: string }) {
-  if (typeof role !== 'undefined') {
+export function PortalSurfaceIndicator({ role }: Readonly<{ role?: string }>) {
+  if (role !== undefined) {
     return <PortalSurfaceIndicatorInner role={role} />;
   }
 

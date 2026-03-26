@@ -23,13 +23,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/component
 import { ChevronUp, FileText, LogOut, Shield } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
-type StaffSidebarUser = {
+type StaffSidebarUser = Readonly<{
   name?: string | null;
   email?: string | null;
   image?: string | null;
-};
+}>;
 
-function StaffSidebarInner({ user }: { user: StaffSidebarUser | null | undefined }) {
+function StaffSidebarInner({ user }: Readonly<{ user: StaffSidebarUser | null | undefined }>) {
   const pathname = usePathname();
   const locale = useLocale();
   const tNav = useTranslations('nav');
@@ -135,8 +135,8 @@ function StaffSidebarFromSession() {
   return <StaffSidebarInner user={(session?.user as StaffSidebarUser | undefined) ?? null} />;
 }
 
-export function StaffSidebar({ user }: { user?: StaffSidebarUser | null }) {
-  if (typeof user !== 'undefined') {
+export function StaffSidebar({ user }: Readonly<{ user?: StaffSidebarUser | null }>) {
+  if (user !== undefined) {
     return <StaffSidebarInner user={user} />;
   }
 

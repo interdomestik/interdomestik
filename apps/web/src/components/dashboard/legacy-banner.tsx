@@ -16,7 +16,7 @@ function roleFromPathname(pathname: string | null) {
   return parts[legacyIndex + 1] ?? null;
 }
 
-function LegacyBannerInner({ role }: { role?: string }) {
+function LegacyBannerInner({ role }: Readonly<{ role?: string }>) {
   const pathname = usePathname();
   const isLegacy = pathname?.includes('/legacy/') ?? false;
 
@@ -55,8 +55,8 @@ function LegacyBannerFromSession() {
   return <LegacyBannerInner role={role} />;
 }
 
-export function LegacyBanner({ role }: { role?: string }) {
-  if (typeof role !== 'undefined') {
+export function LegacyBanner({ role }: Readonly<{ role?: string }>) {
+  if (role !== undefined) {
     return <LegacyBannerInner role={role} />;
   }
 

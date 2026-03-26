@@ -1,13 +1,13 @@
-export type ClientShellUser = {
+export type ClientShellUser = Readonly<{
   id?: string;
   name?: string | null;
   email?: string | null;
   image?: string | null;
   role?: string;
-};
+}>;
 
 export function toClientShellUser(
-  user: Partial<ClientShellUser> & Record<string, unknown>
+  user: Readonly<Partial<ClientShellUser> & Record<string, unknown>>
 ): ClientShellUser {
   return {
     id: typeof user.id === 'string' ? user.id : undefined,

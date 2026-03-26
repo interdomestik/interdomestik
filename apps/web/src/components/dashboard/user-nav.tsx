@@ -23,15 +23,15 @@ import { Briefcase, LayoutTemplate, LogOut, Settings, User } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-type UserNavUser = {
+type UserNavUser = Readonly<{
   id?: string;
   name?: string | null;
   email?: string | null;
   image?: string | null;
   role?: string;
-};
+}>;
 
-function UserNavInner({ user }: { user: UserNavUser | null | undefined }) {
+function UserNavInner({ user }: Readonly<{ user: UserNavUser | null | undefined }>) {
   const locale = useLocale();
   const [mounted, setMounted] = useState(false);
   const [adminAccess, setAdminAccess] = useState(false);
@@ -157,8 +157,8 @@ function UserNavFromSession() {
   return <UserNavInner user={(session?.user as UserNavUser | undefined) ?? null} />;
 }
 
-export function UserNav({ user }: { user?: UserNavUser | null }) {
-  if (typeof user !== 'undefined') {
+export function UserNav({ user }: Readonly<{ user?: UserNavUser | null }>) {
+  if (user !== undefined) {
     return <UserNavInner user={user} />;
   }
 
