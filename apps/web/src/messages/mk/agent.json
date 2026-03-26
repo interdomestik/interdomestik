@@ -334,8 +334,15 @@
       "na": "Н/Д",
       "timelineComingSoon": "Временската линија и документите наскоро доаѓаат во следната надградба.",
       "closeMessaging": "Затвори пораки",
+      "closeLabel": "Затвори",
+      "dialogDescription": "Детали за избраното барање",
+      "drawerTitle": "Барање {claimNumber}",
       "unknownMember": "Непознат",
       "updatedPrefix": "Аж:",
+      "actions": {
+        "uploadEvidence": "Прикачи докази",
+        "sendMessage": "Испрати порака"
+      },
       "tabs": {
         "all": "Сите барања",
         "open": "Отворени / активни",

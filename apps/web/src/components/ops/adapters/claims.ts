@@ -55,7 +55,7 @@ export function toOpsStatus(status: ClaimStatus) {
 
 export function getClaimActions(
   claim: { status: string; id: string } | undefined,
-  _t: (key: string) => string
+  t: (key: string) => string
 ): { secondary: OpsActionConfig[] } {
   if (!claim) return { secondary: [] };
 
@@ -66,13 +66,13 @@ export function getClaimActions(
   if (!['closed', 'paid', 'denied'].includes(claim.status)) {
     secondary.push({
       id: 'upload',
-      label: 'Upload Evidence',
+      label: t('claimsPro.actions.uploadEvidence'),
       variant: 'default', // Button variant
     });
 
     secondary.push({
       id: 'message',
-      label: 'Send Message',
+      label: t('claimsPro.actions.sendMessage'),
       variant: 'outline',
     });
   }

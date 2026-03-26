@@ -2,6 +2,7 @@
 
 import { NotificationBell } from '@/components/notifications';
 import { Separator, SidebarTrigger } from '@interdomestik/ui';
+import { useTranslations } from 'next-intl';
 import { CommandMenuTrigger } from './command-menu-trigger';
 import { PortalSurfaceIndicator } from './portal-surface-indicator';
 import { UserNav } from './user-nav';
@@ -23,10 +24,12 @@ export function DashboardHeader({
   adminAccess?: boolean;
   prefetchNotifications?: boolean;
 }>) {
+  const t = useTranslations('nav');
+
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-white/10 bg-background/60 px-4 transition-all backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center gap-2">
-        <SidebarTrigger className="-ml-1" />
+        <SidebarTrigger className="-ml-1" title={t('toggleSidebar')} />
         <Separator orientation="vertical" className="mr-2 h-4" />
       </div>
 

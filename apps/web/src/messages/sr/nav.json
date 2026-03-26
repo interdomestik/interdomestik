@@ -40,6 +40,7 @@
     "memberPortal": "Portal za članove",
     "memberRole": "Član",
     "myAccount": "Moj nalog",
-    "toggleMenu": "Prikaži/sakrij meni"
+    "toggleMenu": "Prikaži/sakrij meni",
+    "toggleSidebar": "Otvori/zatvori bočnu traku"
   }
 }

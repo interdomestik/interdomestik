@@ -40,6 +40,7 @@
     "memberPortal": "Портал за членови",
     "memberRole": "Член",
     "myAccount": "Моја сметка",
-    "toggleMenu": "Отвори/затвори мени"
+    "toggleMenu": "Отвори/затвори мени",
+    "toggleSidebar": "Отвори/затвори странична лента"
   }
 }

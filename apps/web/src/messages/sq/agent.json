@@ -148,7 +148,7 @@
       "won": "Të fituara",
       "conversion": "Konvertimi",
       "totalClients": "Gjithsej klientë",
-      "campaignDescription": "Gjuetia (Hunt)",
+      "campaignDescription": "Fushata e gjuetisë",
       "rapidProspect": "Prospekt i Shpejtë",
       "rapidPosLabel": "Rapid POS",
       "addLead": "Shto lead",
@@ -181,8 +181,15 @@
       "na": "N/A",
       "timelineComingSoon": "Kronologjia dhe dokumentet do të vijnë së shpejti në përditësimin tjetër.",
       "closeMessaging": "Mbyll mesazhet",
+      "closeLabel": "Mbyll",
+      "dialogDescription": "Detajet e kërkesës së zgjedhur",
+      "drawerTitle": "Kërkesa {claimNumber}",
       "unknownMember": "I panjohur",
       "updatedPrefix": "Përd:",
+      "actions": {
+        "uploadEvidence": "Ngarko dëshmi",
+        "sendMessage": "Dërgo mesazh"
+      },
       "tabs": {
         "all": "Të gjitha kërkesat",
         "open": "Të hapura / aktive",

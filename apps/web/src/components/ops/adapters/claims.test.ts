@@ -3,7 +3,11 @@ import { getClaimActions, toOpsStatus } from './claims';
 
 describe('Claims Adapter Policies', () => {
   describe('getClaimActions', () => {
-    const mockT = (key: string) => key;
+    const translations: Record<string, string> = {
+      'claimsPro.actions.uploadEvidence': 'Upload Evidence',
+      'claimsPro.actions.sendMessage': 'Send Message',
+    };
+    const mockT = (key: string) => translations[key] ?? key;
 
     it('should return empty actions when claim is undefined', () => {
       const result = getClaimActions(undefined, mockT);

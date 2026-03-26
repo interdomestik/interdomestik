@@ -182,8 +182,15 @@
       "na": "N/A",
       "timelineComingSoon": "Timeline and Documents are coming soon in next update.",
       "closeMessaging": "Close Messaging",
+      "closeLabel": "Close",
+      "dialogDescription": "Details for the selected claim",
+      "drawerTitle": "Claim {claimNumber}",
       "unknownMember": "Unknown",
       "updatedPrefix": "Upd:",
+      "actions": {
+        "uploadEvidence": "Upload Evidence",
+        "sendMessage": "Send Message"
+      },
       "tabs": {
         "all": "All Claims",
         "open": "Open / Active",

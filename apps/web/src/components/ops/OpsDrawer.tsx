@@ -12,6 +12,8 @@ interface OpsDrawerProps {
   footer?: ReactNode;
   contentClassName?: string;
   testId?: string;
+  closeLabel?: string;
+  descriptionText?: string;
 }
 
 export function OpsDrawer({
@@ -22,12 +24,17 @@ export function OpsDrawer({
   footer,
   contentClassName,
   testId,
+  closeLabel,
+  descriptionText,
 }: OpsDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         className={contentClassName ?? 'sm:max-w-md md:max-w-lg flex flex-col h-full'}
         data-testid={testId ?? OPS_TEST_IDS.DRAWER}
+        closeLabel={closeLabel}
+        descriptionText={descriptionText}
+        titleText={title}
       >
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>

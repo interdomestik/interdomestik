@@ -15,7 +15,6 @@ import {
 import { getClaimActions } from '@/components/ops/adapters/claims';
 import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui';
-import { format } from 'date-fns';
 import { ArrowLeft } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { getSelectedClaimId } from './claim-selection';
@@ -64,6 +63,24 @@ export function AgentClaimsProPage({
   const searchParams = useSearchParams();
   const locale = useLocale();
   const t = useTranslations('agent');
+  const tClaims = useTranslations('claims');
+  const formatDate = useMemo(
+    () =>
+      new Intl.DateTimeFormat(resolveDateLocale(locale), {
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric',
+      }),
+    [locale]
+  );
+  const formatShortDate = useMemo(
+    () =>
+      new Intl.DateTimeFormat(resolveDateLocale(locale), {
+        day: 'numeric',
+        month: 'numeric',
+      }),
+    [locale]
+  );
 
   // URL Selection for Drawer
   const selectedId = (selectedClaimId?.trim() || getSelectedClaimId(searchParams)) ?? null;
@@ -153,7 +170,7 @@ export function AgentClaimsProPage({
       // Status
       <OpsStatusBadge
         key="status"
-        label={claim.status}
+        label={translateClaimStatus(tClaims, claim.status)}
         variant={toOpsBadgeVariant(claim.status)}
       />,
       // Member
@@ -163,9 +180,9 @@ export function AgentClaimsProPage({
       </div>,
       // Meta
       <div key="meta" className="text-xs text-muted-foreground">
-        <div>{format(new Date(claim.createdAt), 'MMM d, yyyy')}</div>
+        <div>{formatDate.format(new Date(claim.createdAt))}</div>
         <div className="opacity-70">
-          {t('claimsPro.updatedPrefix')} {format(new Date(claim.updatedAt), 'MMM d')}
+          {t('claimsPro.updatedPrefix')} {formatShortDate.format(new Date(claim.updatedAt))}
         </div>
       </div>,
     ],
@@ -181,7 +198,7 @@ export function AgentClaimsProPage({
     if (!selectedClaim) return { secondary: [] };
 
     // Use adapter to get standard actions (including message)
-    const available = getClaimActions(selectedClaim, k => k); // Mock t function
+    const available = getClaimActions(selectedClaim, t);
 
     return {
       secondary: available.secondary.map(action => ({
@@ -195,7 +212,7 @@ export function AgentClaimsProPage({
               : () => {},
       })),
     };
-  }, [selectedClaim]);
+  }, [selectedClaim, t]);
 
   // Drawer Footer (Only show when in details mode?)
   // Actually OpsActionBar usually lives in the body or footer.
@@ -255,8 +272,14 @@ export function AgentClaimsProPage({
       <OpsDrawer
         open={!!selectedClaim}
         onOpenChange={open => !open && handleClose()}
-        title={selectedClaim ? `Claim ${selectedClaim.claimNumber}` : ''}
+        title={
+          selectedClaim
+            ? t('claimsPro.drawerTitle', { claimNumber: selectedClaim.claimNumber })
+            : ''
+        }
         testId="ops-drawer"
+        closeLabel={t('claimsPro.closeLabel')}
+        descriptionText={t('claimsPro.dialogDescription')}
         footer={
           viewMode === 'details' && selectedClaim ? (
             <OpsActionBar secondary={actions.secondary} />
@@ -273,7 +296,8 @@ export function AgentClaimsProPage({
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <h3 className="font-medium mb-2">{t('claimsPro.readOnlyDetails')}</h3>
                   <p className="text-sm">
-                    {t('claimsPro.statusLabel')} {selectedClaim.status}
+                    {t('claimsPro.statusLabel')}{' '}
+                    {translateClaimStatus(tClaims, selectedClaim.status)}
                   </p>
                   <p className="text-sm">
                     {t('claimsPro.branchLabel')} {selectedClaim.branch?.name || t('claimsPro.na')}
@@ -308,4 +332,28 @@ export function AgentClaimsProPage({
       </OpsDrawer>
     </div>
   );
+}
+
+function resolveDateLocale(locale: string): string {
+  switch (locale) {
+    case 'mk':
+      return 'mk-MK';
+    case 'sq':
+      return 'sq-AL';
+    case 'sr':
+      return 'sr-RS';
+    default:
+      return locale;
+  }
+}
+
+function translateClaimStatus(
+  tClaims: ReturnType<typeof useTranslations<'claims'>>,
+  status: string
+): string {
+  try {
+    return tClaims(`status.${status}`);
+  } catch {
+    return status;
+  }
 }
