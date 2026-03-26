@@ -17,7 +17,7 @@ type DashboardHeaderUser = Readonly<{
 export function DashboardHeader({
   user,
   adminAccess,
-  prefetchNotifications = true,
+  prefetchNotifications = false,
 }: Readonly<{
   user?: DashboardHeaderUser | null;
   adminAccess?: boolean;

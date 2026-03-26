@@ -12,6 +12,7 @@ type SearchParams = {
 };
 
 type Props = {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<SearchParams>;
 };
 
@@ -27,13 +28,14 @@ function resolveRequestedClaimId(searchParams: SearchParams): string | undefined
   return getSearchParam(searchParams.claimId);
 }
 
-export default async function AgentWorkspaceClaimsPage({ searchParams }: Props) {
+export default async function AgentWorkspaceClaimsPage({ params, searchParams }: Props) {
+  const { locale } = await params;
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session) {
-    redirect('/login');
+    redirect(`/${locale}/login`);
   }
 
   const tenantId = ensureTenantId(session);

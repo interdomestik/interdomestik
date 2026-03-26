@@ -1,6 +1,8 @@
 'use client';
 
+import type { ClientShellUser } from '@/components/shell/client-shell-user';
 import { useDashboardNavigation } from '@/hooks/use-dashboard-navigation';
+import { buildDashboardNavigationModel } from '@/hooks/use-dashboard-navigation';
 import { usePathname } from '@/i18n/routing';
 import {
   Sidebar,
@@ -14,13 +16,29 @@ import {
   SidebarRail,
 } from '@interdomestik/ui';
 import { LayoutGroup } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { NavItem } from './nav-item';
 import { SidebarBrand } from './sidebar-brand';
 import { SidebarUserMenu } from './sidebar-user-menu';
 
-export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: string }) {
+function DashboardSidebarInner({
+  agentTier = 'standard',
+  user,
+  adminAccess,
+  role,
+  memberItems,
+  agentItems,
+  adminItems,
+}: {
+  agentTier?: string;
+  user?: ClientShellUser | null;
+  adminAccess?: boolean;
+  role?: string;
+  memberItems: ReturnType<typeof buildDashboardNavigationModel>['memberItems'];
+  agentItems: ReturnType<typeof buildDashboardNavigationModel>['agentItems'];
+  adminItems: ReturnType<typeof buildDashboardNavigationModel>['adminItems'];
+}) {
   const pathname = usePathname();
-  const { memberItems, agentItems, adminItems, role } = useDashboardNavigation(agentTier);
   const isAgent = role === 'agent';
 
   return (
@@ -153,9 +171,58 @@ export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: strin
       </SidebarContent>
 
       <SidebarFooter className="m-2 rounded-xl border border-white/70 bg-white/70 p-2 shadow-[0_14px_30px_-26px_rgba(15,23,42,0.7)] backdrop-blur-xl">
-        <SidebarUserMenu />
+        <SidebarUserMenu user={user} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );
+}
+
+function DashboardSidebarFromSession({ agentTier }: { agentTier?: string }) {
+  const { memberItems, agentItems, adminItems, role } = useDashboardNavigation(agentTier);
+
+  return (
+    <DashboardSidebarInner
+      agentTier={agentTier}
+      role={role}
+      memberItems={memberItems}
+      agentItems={agentItems}
+      adminItems={adminItems}
+    />
+  );
+}
+
+export function DashboardSidebar({
+  agentTier = 'standard',
+  user,
+  adminAccess,
+}: {
+  agentTier?: string;
+  user?: ClientShellUser | null;
+  adminAccess?: boolean;
+}) {
+  const t = useTranslations('nav');
+
+  if (user?.role !== undefined) {
+    const navigation = buildDashboardNavigationModel({
+      t,
+      role: user.role,
+      agentTier,
+      adminAccess: adminAccess ?? false,
+    });
+
+    return (
+      <DashboardSidebarInner
+        agentTier={agentTier}
+        user={user}
+        adminAccess={adminAccess}
+        role={navigation.role}
+        memberItems={navigation.memberItems}
+        agentItems={navigation.agentItems}
+        adminItems={navigation.adminItems}
+      />
+    );
+  }
+
+  return <DashboardSidebarFromSession agentTier={agentTier} />;
 }

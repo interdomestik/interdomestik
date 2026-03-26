@@ -19,6 +19,19 @@ export function redirectToLocalizedLogin(locale: string, replaceLocation?: Repla
   replace(`/${safeLocale}/login`);
 }
 
+function isExpectedSignOutRedirectError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  if (error.name === 'AbortError') {
+    return true;
+  }
+
+  const message = error.message.toLowerCase();
+  return message.includes('failed to fetch') || message.includes('networkerror');
+}
+
 export async function signOutAndRedirectToLogin({
   locale,
   signOut,
@@ -28,6 +41,15 @@ export async function signOutAndRedirectToLogin({
   signOut: SignOutFn;
   replaceLocation?: ReplaceLocation;
 }): Promise<void> {
-  await signOut();
+  try {
+    await signOut();
+  } catch (error) {
+    // Client-side logout can reject after the auth cookie is already cleared if
+    // navigation interrupts the fetch pipeline. Treat that as a successful logout.
+    if (!isExpectedSignOutRedirectError(error)) {
+      throw error;
+    }
+  }
+
   redirectToLocalizedLogin(locale, replaceLocation);
 }

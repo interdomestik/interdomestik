@@ -8,13 +8,18 @@ import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { getAgentLeadsCore } from './_core';
 
-export default async function AgentLeadsEntry() {
+type Props = {
+  params: Promise<{ locale: string }>;
+};
+
+export default async function AgentLeadsEntry({ params }: Readonly<Props>) {
+  const { locale } = await params;
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session) {
-    redirect('/login');
+    redirect(`/${locale}/login`);
   }
 
   const tenantId = ensureTenantId(session);

@@ -5,13 +5,18 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { CreateLeadForm } from './create-lead-form';
 
-export default async function NewLeadPage() {
+type Props = {
+  params: Promise<{ locale: string }>;
+};
+
+export default async function NewLeadPage({ params }: Readonly<Props>) {
+  const { locale } = await params;
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session?.user) {
-    redirect('/auth/login');
+    redirect(`/${locale}/login`);
   }
 
   return (

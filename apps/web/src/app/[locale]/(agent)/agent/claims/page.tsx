@@ -83,6 +83,7 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
                   {group.claims.map(claim => (
                     <Link
                       href={buildAgentWorkspaceClaimHref(claim.id)}
+                      locale={locale}
                       key={claim.id}
                       className="flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
                       data-testid="agent-claim-row"

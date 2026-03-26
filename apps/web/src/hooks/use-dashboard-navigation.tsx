@@ -19,37 +19,25 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 type IconType = typeof Home;
+type Translator = (key: string) => string;
 
-export function useDashboardNavigation(agentTier: string = 'standard') {
-  const t = useTranslations('nav');
-  const { data: session } = authClient.useSession();
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  const [adminAccess, setAdminAccess] = useState(false);
+export type DashboardNavigationModel = {
+  items: { title: string; href: string; icon: IconType }[];
+  memberItems: { title: string; href: string; icon: IconType }[];
+  agentItems: { title: string; href: string; icon: IconType }[];
+  adminItems: { title: string; href: string; icon: IconType }[];
+  role?: string;
+};
 
-  useEffect(() => {
-    if (!role) return;
-    if (isAdmin(role)) {
-      setAdminAccess(true);
-      return;
-    }
-
-    let cancelled = false;
-    canAccessAdmin()
-      .then(ok => {
-        if (!cancelled) setAdminAccess(ok);
-      })
-      .catch(() => {
-        // Ignore
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [role]);
-
+export function buildDashboardNavigationModel(params: {
+  t: Translator;
+  role?: string;
+  agentTier?: string;
+  adminAccess?: boolean;
+}): DashboardNavigationModel {
+  const { t, role, agentTier = 'standard', adminAccess = false } = params;
   const isAgent = role === 'agent';
 
-  // 1. Personal Membership / Protection Items
   const memberItems = isAgent
     ? []
     : [
@@ -106,8 +94,7 @@ export function useDashboardNavigation(agentTier: string = 'standard') {
     }
   }
 
-  // 3. Admin Items
-  const adminItems = [];
+  const adminItems: { title: string; href: string; icon: IconType }[] = [];
   if (isAdmin(role) || adminAccess) {
     adminItems.push({
       title: t('adminDashboard'),
@@ -119,4 +106,34 @@ export function useDashboardNavigation(agentTier: string = 'standard') {
   const items = [...memberItems, ...agentItems, ...adminItems];
 
   return { items, memberItems, agentItems, adminItems, role };
+}
+
+export function useDashboardNavigation(agentTier: string = 'standard') {
+  const t = useTranslations('nav');
+  const { data: session } = authClient.useSession();
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  const [adminAccess, setAdminAccess] = useState(false);
+
+  useEffect(() => {
+    if (!role) return;
+    if (isAdmin(role)) {
+      setAdminAccess(true);
+      return;
+    }
+
+    let cancelled = false;
+    canAccessAdmin()
+      .then(ok => {
+        if (!cancelled) setAdminAccess(ok);
+      })
+      .catch(() => {
+        // Ignore
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [role]);
+
+  return buildDashboardNavigationModel({ t, role, agentTier, adminAccess });
 }

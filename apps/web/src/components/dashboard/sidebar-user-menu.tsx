@@ -23,13 +23,13 @@ import {
 } from '@interdomestik/ui';
 import { Check, ChevronUp, Globe, Home, LogOut } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import type { ClientShellUser } from '@/components/shell/client-shell-user';
 
-export function SidebarUserMenu() {
+function SidebarUserMenuInner({ user }: { user: ClientShellUser | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('nav');
-  const { data: session } = authClient.useSession();
 
   const handleSignOut = async () => {
     await signOutAndRedirectToLogin({
@@ -38,7 +38,6 @@ export function SidebarUserMenu() {
     });
   };
 
-  const user = session?.user;
   if (!user) return null;
 
   return (
@@ -143,4 +142,17 @@ export function SidebarUserMenu() {
       </SidebarMenuItem>
     </SidebarMenu>
   );
+}
+
+function SidebarUserMenuFromSession() {
+  const { data: session } = authClient.useSession();
+  return <SidebarUserMenuInner user={(session?.user as ClientShellUser | undefined) ?? null} />;
+}
+
+export function SidebarUserMenu({ user }: { user?: ClientShellUser | null }) {
+  if (user !== undefined) {
+    return <SidebarUserMenuInner user={user} />;
+  }
+
+  return <SidebarUserMenuFromSession />;
 }

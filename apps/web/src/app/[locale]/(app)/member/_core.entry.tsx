@@ -1,6 +1,7 @@
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { LegacyBanner } from '@/components/dashboard/legacy-banner';
+import { toClientShellUser } from '@/components/shell/client-shell-user';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { APP_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
@@ -33,8 +34,9 @@ export default async function DashboardLayout({
   }
 
   const role = sessionNonNull.user.role;
+  const shellUser = toClientShellUser(sessionNonNull.user);
   const canonical = getCanonicalRouteForRole(role, locale);
-  if (canonical && role !== 'member' && role !== 'user') {
+  if (canonical && role !== 'member' && role !== 'user' && role !== 'agent') {
     redirect(canonical);
     return null;
   }
@@ -47,11 +49,11 @@ export default async function DashboardLayout({
     <NextIntlClientProvider messages={messages} locale={locale}>
       <div data-testid="dashboard-page-ready">
         <SidebarProvider defaultOpen={true}>
-          <DashboardSidebar />
+          <DashboardSidebar user={shellUser} adminAccess={false} />
           <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-            <DashboardHeader />
+            <DashboardHeader user={shellUser} adminAccess={false} />
             <div className="px-6 pt-4 md:px-8">
-              <LegacyBanner />
+              <LegacyBanner role={shellUser.role} />
             </div>
             <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
           </SidebarInset>
