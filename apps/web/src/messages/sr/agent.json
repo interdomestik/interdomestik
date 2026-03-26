@@ -332,9 +332,9 @@
       "searchPlaceholder": "Pretraži po broju zahteva ili članu...",
       "empty": "Nema zahteva koji odgovaraju filterima.",
       "readOnlyDetails": "Detalji (samo za čitanje)",
-      "statusLabel": "Status:",
+      "statusLabel": "Status slučaja:",
       "branchLabel": "Filijala:",
-      "na": "N/A",
+      "na": "Nije primenljivo",
       "timelineComingSoon": "Vremenska linija i dokumenta uskoro dolaze u sledećem ažuriranju.",
       "closeMessaging": "Zatvori poruke",
       "closeLabel": "Zatvori",
@@ -353,7 +353,7 @@
       },
       "columns": {
         "claim": "Zahtev",
-        "status": "Status",
+        "status": "Status slučaja",
         "member": "Član",
         "meta": "Kreirano / poslednje ažuriranje"
       }
