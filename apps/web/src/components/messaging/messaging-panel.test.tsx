@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MessagingPanel } from './messaging-panel';
 
@@ -13,6 +13,8 @@ vi.mock('@/actions/messages', () => ({
 
 import { getMessagesForClaim } from '@/actions/messages';
 const mockGetMessages = vi.mocked(getMessagesForClaim);
+import { markMessagesAsRead } from '@/actions/messages';
+const mockMarkMessagesAsRead = vi.mocked(markMessagesAsRead);
 
 // Mock child components
 vi.mock('./message-thread', () => ({
@@ -39,6 +41,7 @@ describe('MessagingPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetMessages.mockResolvedValue({ success: true, messages: [] });
+    mockMarkMessagesAsRead.mockResolvedValue({ success: true } as never);
   });
 
   it('renders the messaging panel', async () => {
@@ -125,6 +128,54 @@ describe('MessagingPanel', () => {
     );
 
     expect(mockGetMessages).not.toHaveBeenCalled();
+  });
+
+  it('marks initial unread messages as read when mount fetch is disabled', async () => {
+    render(
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+        fetchOnMount={false}
+        initialMessages={[
+          {
+            id: 'msg-2',
+            claimId: 'claim-1',
+            senderId: 'user-2',
+            content: 'Unread',
+            isInternal: false,
+            readAt: null,
+            createdAt: new Date(),
+            sender: { id: 'user-2', name: 'Other', image: null, role: 'staff' },
+          },
+        ]}
+      />
+    );
+
+    await waitFor(() => {
+      expect(mockMarkMessagesAsRead).toHaveBeenCalledWith(['msg-2']);
+    });
+  });
+
+  it('continues polling when mount fetch is disabled', async () => {
+    vi.useFakeTimers();
+
+    render(
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+        fetchOnMount={false}
+      />
+    );
+
+    expect(mockGetMessages).not.toHaveBeenCalled();
+
+    await act(async () => {
+      vi.advanceTimersByTime(30000);
+    });
+
+    expect(mockGetMessages).toHaveBeenCalledWith('claim-1');
+
+    vi.useRealTimers();
   });
 
   it('shows message count in title', async () => {

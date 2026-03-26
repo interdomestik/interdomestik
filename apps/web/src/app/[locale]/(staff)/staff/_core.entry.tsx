@@ -1,3 +1,4 @@
+import { requireTenantAdminSession } from '@interdomestik/domain-users/admin/access';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { LegacyBanner } from '@/components/dashboard/legacy-banner';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
@@ -33,13 +34,20 @@ export default async function StaffLayout({
     ...pickMessages(allMessages, STAFF_NAMESPACES),
   };
   const shellUser = toClientShellUser(sessionNonNull.user);
+  const adminAccess = await requireTenantAdminSession(sessionNonNull)
+    .then(() => true)
+    .catch(() => false);
 
   return (
     <AuthenticatedShell locale={locale} messages={messages}>
       <SidebarProvider defaultOpen={true}>
         <StaffSidebar user={shellUser} />
         <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-          <DashboardHeader user={shellUser} adminAccess={false} prefetchNotifications={false} />
+          <DashboardHeader
+            user={shellUser}
+            adminAccess={adminAccess}
+            prefetchNotifications={false}
+          />
           <div className="px-6 pt-4 md:px-8">
             <LegacyBanner role={shellUser.role} />
           </div>

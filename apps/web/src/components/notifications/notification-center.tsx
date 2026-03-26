@@ -47,6 +47,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
   const [isOpen, setIsOpen] = useState(false);
 
   const fetchInitialNotifications = useCallback(async () => {
+    setLoading(true);
     try {
       const data = await getNotifications();
       setNotifications(data as unknown as Notification[]);
@@ -70,7 +71,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
 
   useEffect(() => {
     if (!isOpen) return;
-    fetchInitialNotifications();
+    void fetchInitialNotifications();
   }, [isOpen, fetchInitialNotifications]);
 
   const handleMarkAsRead = async (id: string, e?: React.MouseEvent) => {

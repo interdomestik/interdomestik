@@ -72,17 +72,24 @@ export function MessagingPanel({
   }, [claimId, currentUser.id]);
 
   useEffect(() => {
-    if (!fetchOnMount) {
-      setIsLoading(false);
-      return;
-    }
+    if (fetchOnMount) {
+      fetchMessages();
+    } else {
+      const unreadIds = initialMessages
+        .filter(message => message.senderId !== currentUser.id && !message.readAt)
+        .map(message => message.id);
 
-    fetchMessages();
+      if (unreadIds.length > 0) {
+        void markMessagesAsRead(unreadIds);
+      }
+
+      setIsLoading(false);
+    }
 
     // Poll for new messages every 30 seconds
     const interval = setInterval(fetchMessages, 30000);
     return () => clearInterval(interval);
-  }, [fetchMessages, fetchOnMount]);
+  }, [currentUser.id, fetchMessages, fetchOnMount, initialMessages]);
 
   const handleRefresh = useCallback(() => {
     startTransition(async () => {
