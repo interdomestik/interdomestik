@@ -24,16 +24,26 @@ function toClaimStatus(value: unknown): ClaimStatus {
   return CLAIM_STATUSES.includes(value as ClaimStatus) ? (value as ClaimStatus) : 'draft';
 }
 
-function LatestStatusNoteContent({ latestStatusNote }: { latestStatusNote: LatestStatusNote }) {
+function LatestStatusNoteContent({
+  latestStatusNote,
+  emptyLabel,
+  locale,
+}: {
+  latestStatusNote: LatestStatusNote;
+  emptyLabel: string;
+  locale: string;
+}) {
   if (!latestStatusNote?.note) {
-    return <p className="text-muted-foreground">No public status notes yet.</p>;
+    return <p className="text-muted-foreground">{emptyLabel}</p>;
   }
 
   return (
     <>
       <p className="whitespace-pre-wrap text-slate-900">{latestStatusNote.note}</p>
       <p className="text-xs text-muted-foreground">
-        {latestStatusNote.createdAt ? new Date(latestStatusNote.createdAt).toLocaleString() : ''}
+        {latestStatusNote.createdAt
+          ? new Date(latestStatusNote.createdAt).toLocaleString(locale)
+          : ''}
       </p>
     </>
   );
@@ -43,6 +53,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
   const { id, locale } = await params;
   setRequestLocale(locale);
   const tClaims = await getTranslations('agent-claims.claims');
+  const tStatus = await getTranslations('claims-tracking.status');
 
   const session = requireSessionOrRedirect(await getSessionSafe('StaffClaimDetailsPage'), locale);
   // Pilot policy: branch managers have read-only visibility; claim actions remain staff-only.
@@ -90,29 +101,33 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
         <h1 className="text-3xl font-bold tracking-tight">
           {detail.claim.claimNumber || detail.claim.id}
         </h1>
-        <p className="text-muted-foreground">{detail.claim.stageLabel}</p>
+        <p className="text-muted-foreground">{tStatus(claimStatus)}</p>
       </div>
 
       <section className="rounded-lg border bg-white p-4" data-testid="staff-claim-detail-claim">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Claim
+          {tClaims('details.staff_claim.section_title')}
         </h2>
         <div className="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
           <div>
-            <span className="text-muted-foreground">Status</span>
-            <div className="font-medium text-slate-900">{detail.claim.stageLabel}</div>
+            <span className="text-muted-foreground">{tClaims('details.staff_claim.status')}</span>
+            <div className="font-medium text-slate-900">{tStatus(claimStatus)}</div>
           </div>
           <div>
-            <span className="text-muted-foreground">Updated</span>
+            <span className="text-muted-foreground">{tClaims('details.staff_claim.updated')}</span>
             <div className="font-medium text-slate-900">
-              {detail.claim.updatedAt ? new Date(detail.claim.updatedAt).toLocaleDateString() : '-'}
+              {detail.claim.updatedAt
+                ? new Date(detail.claim.updatedAt).toLocaleDateString(locale)
+                : '-'}
             </div>
           </div>
           <div>
-            <span className="text-muted-foreground">Submitted</span>
+            <span className="text-muted-foreground">
+              {tClaims('details.staff_claim.submitted')}
+            </span>
             <div className="font-medium text-slate-900">
               {detail.claim.submittedAt
-                ? new Date(detail.claim.submittedAt).toLocaleDateString()
+                ? new Date(detail.claim.submittedAt).toLocaleDateString(locale)
                 : '-'}
             </div>
           </div>
@@ -121,15 +136,17 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
 
       <section className="rounded-lg border bg-white p-4" data-testid="staff-claim-detail-member">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Member
+          {tClaims('details.staff_member.section_title')}
         </h2>
         <div className="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
           <div>
-            <span className="text-muted-foreground">Name</span>
+            <span className="text-muted-foreground">{tClaims('details.name')}</span>
             <div className="font-medium text-slate-900">{detail.member.fullName}</div>
           </div>
           <div>
-            <span className="text-muted-foreground">Membership #</span>
+            <span className="text-muted-foreground">
+              {tClaims('details.staff_member.membership_number')}
+            </span>
             <div className="font-medium text-slate-900">
               {detail.member.membershipNumber || '-'}
             </div>
@@ -143,11 +160,13 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
           data-testid="staff-claim-detail-matter-allowance"
         >
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Matter allowance
+            {tClaims('details.staff_matter_allowance.section_title')}
           </h2>
           <div className="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-3">
             <div>
-              <span className="text-muted-foreground">Used this year</span>
+              <span className="text-muted-foreground">
+                {tClaims('details.staff_matter_allowance.used_this_year')}
+              </span>
               <div
                 className="font-medium text-slate-900"
                 data-testid="staff-claim-detail-matter-allowance-used"
@@ -156,7 +175,9 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
               </div>
             </div>
             <div>
-              <span className="text-muted-foreground">Remaining this year</span>
+              <span className="text-muted-foreground">
+                {tClaims('details.staff_matter_allowance.remaining_this_year')}
+              </span>
               <div
                 className="font-medium text-slate-900"
                 data-testid="staff-claim-detail-matter-allowance-remaining"
@@ -165,7 +186,9 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
               </div>
             </div>
             <div>
-              <span className="text-muted-foreground">Plan allowance</span>
+              <span className="text-muted-foreground">
+                {tClaims('details.staff_matter_allowance.plan_allowance')}
+              </span>
               <div
                 className="font-medium text-slate-900"
                 data-testid="staff-claim-detail-matter-allowance-total"
@@ -193,23 +216,29 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
 
       <section className="rounded-lg border bg-white p-4" data-testid="staff-claim-detail-agent">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Agent
+          {tClaims('details.staff_agent.section_title')}
         </h2>
         <div className="mt-3 text-sm">
           {detail.agent ? (
             <div className="font-medium text-slate-900">{detail.agent.name}</div>
           ) : (
-            <div className="text-muted-foreground">Unassigned</div>
+            <div className="text-muted-foreground">
+              {tClaims('staff_queue.assignment_state.unassigned')}
+            </div>
           )}
         </div>
       </section>
 
       <section className="rounded-lg border bg-white p-4" data-testid="staff-claim-detail-note">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Latest status note
+          {tClaims('details.staff_note.section_title')}
         </h2>
         <div className="mt-3 space-y-1 text-sm">
-          <LatestStatusNoteContent latestStatusNote={latestStatusNote} />
+          <LatestStatusNoteContent
+            latestStatusNote={latestStatusNote}
+            emptyLabel={tClaims('details.staff_note.empty')}
+            locale={locale}
+          />
         </div>
       </section>
 
@@ -228,7 +257,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
           data-testid="staff-claim-detail-messaging"
         >
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Messages
+            {tClaims('details.messages')}
           </h2>
           <div className="mt-3">
             <MessagingPanel

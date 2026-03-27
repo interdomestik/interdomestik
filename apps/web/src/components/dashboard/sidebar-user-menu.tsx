@@ -24,20 +24,14 @@ import {
 import { Check, ChevronUp, Globe, Home, LogOut } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { ClientShellUser } from '@/components/shell/client-shell-user';
-
-function getLocalizedRoleLabel(role: string | undefined, t: ReturnType<typeof useTranslations>) {
-  if (role === 'member') {
-    return t('memberRole');
-  }
-
-  return role ?? t('memberRole');
-}
+import { getRoleLabel } from '@/lib/roles-i18n';
 
 function SidebarUserMenuInner({ user }: { user: ClientShellUser | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('nav');
+  const tCommon = useTranslations('common');
 
   const handleSignOut = async () => {
     await signOutAndRedirectToLogin({
@@ -67,7 +61,7 @@ function SidebarUserMenuInner({ user }: { user: ClientShellUser | null }) {
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>
                 <span className="truncate text-xs text-muted-foreground capitalize">
-                  {getLocalizedRoleLabel((user as { role?: string }).role, t)}
+                  {getRoleLabel(tCommon, (user as { role?: string }).role, tCommon('roles.member'))}
                 </span>
               </div>
               <ChevronUp className="ml-auto size-4 text-muted-foreground" />

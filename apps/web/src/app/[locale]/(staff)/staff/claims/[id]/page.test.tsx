@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildCommercialHandlingScopeSnapshot } from '@interdomestik/domain-claims/staff-claims/commercial-handling-scope';
 
 const hoisted = vi.hoisted(() => ({
+  locale: 'en',
   getSessionMock: vi.fn(async () => ({
     user: {
       id: 'staff-1',
@@ -85,19 +86,76 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn(async () => (key: string) => {
-    const translations: Record<string, string> = {
-      'details.sla_status_label': 'SLA Status',
-      'details.sla_phase.running': 'Running',
-      'details.sla_phase.incomplete': 'Waiting for member information',
-      'details.sla_phase.not_applicable': 'Not active',
-      'details.branch_manager_readonly_notice':
-        'Branch managers can review claim status and member context here, but assignment, messaging, and claim actions remain staff-only in the pilot.',
+  getTranslations: vi.fn(async (namespace?: string) => (key: string) => {
+    const locale = hoisted.locale;
+
+    if (namespace === 'claims-tracking.status') {
+      const statusTranslations: Record<string, Record<string, string>> = {
+        en: {
+          negotiation: 'Negotiation',
+        },
+        sq: {
+          negotiation: 'Negociim',
+        },
+      };
+
+      return statusTranslations[locale]?.[key] ?? key;
+    }
+
+    const translationsByLocale: Record<string, Record<string, string>> = {
+      en: {
+        'details.sla_status_label': 'SLA Status',
+        'details.sla_phase.running': 'Running',
+        'details.sla_phase.incomplete': 'Waiting for member information',
+        'details.sla_phase.not_applicable': 'Not active',
+        'details.branch_manager_readonly_notice':
+          'Branch managers can review claim status and member context here, but assignment, messaging, and claim actions remain staff-only in the pilot.',
+        'details.staff_claim.section_title': 'Claim',
+        'details.staff_claim.status': 'Status',
+        'details.staff_claim.updated': 'Updated',
+        'details.staff_claim.submitted': 'Submitted',
+        'details.staff_member.section_title': 'Member',
+        'details.name': 'Name',
+        'details.staff_member.membership_number': 'Membership #',
+        'details.staff_matter_allowance.section_title': 'Matter allowance',
+        'details.staff_matter_allowance.used_this_year': 'Used this year',
+        'details.staff_matter_allowance.remaining_this_year': 'Remaining this year',
+        'details.staff_matter_allowance.plan_allowance': 'Plan allowance',
+        'details.staff_agent.section_title': 'Agent',
+        'details.staff_note.section_title': 'Latest status note',
+        'details.staff_note.empty': 'No public status notes yet.',
+        'details.messages': 'Messages',
+      },
+      sq: {
+        'details.sla_status_label': 'Statusi i SLA-së',
+        'details.sla_phase.running': 'Në rrjedhë',
+        'details.sla_phase.incomplete': 'Në pritje të informacionit nga anëtari',
+        'details.sla_phase.not_applicable': 'Jo aktiv',
+        'details.branch_manager_readonly_notice':
+          'Menaxherët e degës mund të rishikojnë statusin e rastit dhe kontekstin e anëtarit këtu, por caktimi, mesazhet dhe veprimet mbi rastin mbeten vetëm për stafin në pilot.',
+        'details.staff_claim.section_title': 'Rasti',
+        'details.staff_claim.status': 'Statusi',
+        'details.staff_claim.updated': 'Përditësuar',
+        'details.staff_claim.submitted': 'Dorëzuar',
+        'details.staff_member.section_title': 'Anëtari',
+        'details.name': 'Emri',
+        'details.staff_member.membership_number': 'Nr. anëtarësie',
+        'details.staff_matter_allowance.section_title': 'Kuota e rastit',
+        'details.staff_matter_allowance.used_this_year': 'Përdorur këtë vit',
+        'details.staff_matter_allowance.remaining_this_year': 'Mbetur këtë vit',
+        'details.staff_matter_allowance.plan_allowance': 'Kuota e planit',
+        'details.staff_agent.section_title': 'Agjenti',
+        'details.staff_note.section_title': 'Shënimi i fundit i statusit',
+        'details.staff_note.empty': 'Nuk ka ende shënime publike të statusit.',
+        'details.messages': 'Mesazhet',
+      },
     };
 
-    return translations[key] || key;
+    return translationsByLocale[locale]?.[key] || key;
   }),
-  setRequestLocale: vi.fn(),
+  setRequestLocale: vi.fn((locale: string) => {
+    hoisted.locale = locale;
+  }),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -138,6 +196,33 @@ vi.mock('@/components/messaging/messaging-panel', () => ({
 import StaffClaimDetailsPage from './page';
 
 describe('StaffClaimDetailsPage', () => {
+  it('localizes section labels on non-English staff claim detail routes', async () => {
+    const tree = await StaffClaimDetailsPage({
+      params: Promise.resolve({
+        locale: 'sq',
+        id: 'claim-1',
+      }),
+    });
+
+    render(tree);
+
+    expect(screen.getAllByText('Negociim')).toHaveLength(2);
+    expect(screen.getByText('Rasti')).toBeInTheDocument();
+    expect(screen.getByText('Statusi')).toBeInTheDocument();
+    expect(screen.getByText('Përditësuar')).toBeInTheDocument();
+    expect(screen.getByText('Dorëzuar')).toBeInTheDocument();
+    expect(screen.getByText('Anëtari')).toBeInTheDocument();
+    expect(screen.getByText('Nr. anëtarësie')).toBeInTheDocument();
+    expect(screen.getByText('Kuota e rastit')).toBeInTheDocument();
+    expect(screen.getByText('Përdorur këtë vit')).toBeInTheDocument();
+    expect(screen.getByText('Mbetur këtë vit')).toBeInTheDocument();
+    expect(screen.getByText('Kuota e planit')).toBeInTheDocument();
+    expect(screen.getByText('Agjenti')).toBeInTheDocument();
+    expect(screen.getByText('Shënimi i fundit i statusit')).toBeInTheDocument();
+    expect(screen.getByText('Nuk ka ende shënime publike të statusit.')).toBeInTheDocument();
+    expect(screen.getByText('Mesazhet')).toBeInTheDocument();
+  });
+
   it('renders annual matter usage and remaining allowance on the canonical staff claim detail page', async () => {
     const tree = await StaffClaimDetailsPage({
       params: Promise.resolve({

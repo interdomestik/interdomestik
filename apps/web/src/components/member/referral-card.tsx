@@ -9,6 +9,7 @@ import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Input } from '@interdomestik/ui/components/input';
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
+import { normalizePublicLink, normalizeWhatsAppShareUrl } from '@/lib/public-links';
 import { AlertCircle, Check, Copy, Gift, Share2, Wallet } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -52,6 +53,14 @@ function getRewardSummary(
   });
 }
 
+function normalizeReferralCardData(data: MemberReferralCardData): MemberReferralCardData {
+  return {
+    ...data,
+    link: normalizePublicLink(data.link),
+    whatsappShareUrl: normalizeWhatsAppShareUrl(data.whatsappShareUrl),
+  };
+}
+
 const SKELETON_CARD_IDS = ['friends', 'pending', 'credited', 'paid'] as const;
 
 export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>) {
@@ -78,7 +87,7 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
           return;
         }
 
-        setData(result.data);
+        setData(normalizeReferralCardData(result.data));
       } catch (loadError) {
         console.error(loadError);
         setError(t('loadError'));
@@ -98,7 +107,7 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
     if (!data?.link) return;
 
     try {
-      await navigator.clipboard.writeText(data.link);
+      await navigator.clipboard.writeText(normalizePublicLink(data.link));
       setIsCopied(true);
       toast.success(t('copied'));
       globalThis.setTimeout(() => setIsCopied(false), 2000);
@@ -109,7 +118,11 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
 
   const handleShare = () => {
     if (!data?.whatsappShareUrl) return;
-    globalThis.open(data.whatsappShareUrl, '_blank', 'noopener,noreferrer');
+    globalThis.open(
+      normalizeWhatsAppShareUrl(data.whatsappShareUrl),
+      '_blank',
+      'noopener,noreferrer'
+    );
   };
 
   if (isLoading) {

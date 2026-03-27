@@ -17,6 +17,8 @@
     "search": "Search",
     "filter": "Filter",
     "all": "All",
+    "unassigned": "Unassigned",
+    "no_results": "No results.",
     "none": "None",
     "yes": "Yes",
     "no": "No",

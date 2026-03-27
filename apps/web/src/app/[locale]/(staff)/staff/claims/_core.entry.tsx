@@ -20,10 +20,6 @@ function getSingleParam(value: SearchParamValue) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function toLabel(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
 function parseStaffAssignmentFilter(
   value: SearchParamValue,
   role: string | null | undefined
@@ -101,6 +97,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
   const tClaims = await getTranslations('agent-claims.claims');
+  const tStatus = await getTranslations('claims-tracking.status');
 
   const session = requireSessionOrRedirect(await getSessionSafe('StaffClaimsPage'), locale);
   // Pilot policy: branch managers can monitor queue volume, but only staff process claims.
@@ -130,13 +127,19 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
   const assignmentOptions =
     session.user.role === 'staff'
       ? [
-          { value: 'all' as const, label: 'My queue + unassigned' },
-          { value: 'mine' as const, label: 'Assigned to me' },
-          { value: 'unassigned' as const, label: 'Unassigned' },
+          { value: 'all' as const, label: tClaims('staff_queue.assignment_filter.all_staff') },
+          { value: 'mine' as const, label: tClaims('staff_queue.assignment_filter.mine') },
+          {
+            value: 'unassigned' as const,
+            label: tClaims('staff_queue.assignment_state.unassigned'),
+          },
         ]
       : [
-          { value: 'all' as const, label: 'All branch claims' },
-          { value: 'unassigned' as const, label: 'Unassigned' },
+          { value: 'all' as const, label: tClaims('staff_queue.assignment_filter.all_branch') },
+          {
+            value: 'unassigned' as const,
+            label: tClaims('staff_queue.assignment_state.unassigned'),
+          },
         ];
   const hasActiveFilters = !!currentSearch || !!currentStatus || currentAssignment !== 'all';
 
@@ -255,7 +258,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                     prefetch={false}
                     data-testid={`staff-claims-status-filter-${status}`}
                   >
-                    {toLabel(status)}
+                    {tStatus(status)}
                   </Link>
                 </Button>
               );
@@ -266,11 +269,11 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
 
       <div className="rounded-lg border bg-white shadow-sm" data-testid="staff-claims-queue">
         <div className="grid grid-cols-1 gap-4 border-b px-4 py-3 text-sm font-medium text-muted-foreground md:grid-cols-5">
-          <span>Claim</span>
-          <span>Member</span>
-          <span>Status + stage</span>
-          <span>Updated</span>
-          <span className="text-right">Action</span>
+          <span>{tClaims('staff_queue.table.claim')}</span>
+          <span>{tClaims('staff_queue.table.member')}</span>
+          <span>{tClaims('staff_queue.table.status_stage')}</span>
+          <span>{tClaims('staff_queue.table.updated')}</span>
+          <span className="text-right">{tClaims('staff_queue.table.action')}</span>
         </div>
         <div className="divide-y" data-testid="staff-claims-list">
           {claims.map(claim => (
@@ -284,21 +287,25 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                   {claim.title || claim.claimNumber || claim.id}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {claim.claimNumber || 'No claim number'}
+                  {claim.claimNumber || tClaims('staff_queue.table.no_claim_number')}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {claim.companyName || 'No company provided'}
+                  {claim.companyName || tClaims('staff_queue.table.no_company')}
                 </div>
               </div>
               <div>
                 <div className="font-medium text-slate-900">{claim.memberName || '-'}</div>
                 <div className="text-xs text-muted-foreground">
-                  {claim.memberNumber ? `#${claim.memberNumber}` : 'No member number'}
+                  {claim.memberNumber
+                    ? `#${claim.memberNumber}`
+                    : tClaims('staff_queue.table.no_member_number')}
                 </div>
               </div>
               <div>
                 <ClaimStatusBadge status={claim.status} />
-                <div className="mt-1 text-xs text-muted-foreground">{claim.stageLabel}</div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {claim.stageLabel || (claim.status ? tStatus(claim.status) : '-')}
+                </div>
                 <div
                   className="mt-1 text-xs font-medium text-slate-700"
                   data-testid="staff-claim-assignment-state"

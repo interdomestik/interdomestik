@@ -15,7 +15,6 @@ import {
   SuccessFeeCollectionSnapshot,
   updateClaimStatus,
 } from '@/actions/staff-claims.core';
-import { getStaffClaimStatusLabel } from '@/lib/claim-ui';
 import { CLAIM_STATUSES as CANONICAL_CLAIM_STATUSES } from '@interdomestik/database/constants';
 import {
   Button,
@@ -28,6 +27,7 @@ import {
   Textarea,
 } from '@interdomestik/ui';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -57,50 +57,61 @@ type RenderedAssignmentOption = AssignmentOption & {
   disabled?: boolean;
 };
 
-const CLAIM_STATUS_OPTIONS: { value: ClaimStatus; label: string }[] = CANONICAL_CLAIM_STATUSES.map(
-  status => ({
-    value: status as ClaimStatus,
-    label: getStaffClaimStatusLabel(status),
-  })
-);
+type TranslateFn = (key: string, values?: Record<string, string | number>) => string;
+
 const RECOVERY_START_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
-const RECOVERY_DECLINE_REASON_OPTIONS: Array<{
-  value: RecoveryDeclineReasonCode;
-  label: string;
-}> = [
-  { value: 'guidance_only_scope', label: 'Guidance-only or referral-only under current scope' },
-  { value: 'insufficient_evidence', label: 'Insufficient evidence for staff-led recovery' },
-  { value: 'no_monetary_recovery_path', label: 'No clear monetary recovery path' },
-  {
-    value: 'counterparty_unidentified',
-    label: 'Counterparty or insurer cannot be identified',
-  },
-  { value: 'time_limit_risk', label: 'Time-limit risk blocks staff-led recovery' },
-  { value: 'conflict_or_integrity_concern', label: 'Conflict of interest or integrity concern' },
-];
-const ESCALATION_DECISION_STATUS_OPTIONS: {
-  value: EscalationDecisionNextStatus;
-  label: string;
-}[] = [
-  { value: 'negotiation', label: getStaffClaimStatusLabel('negotiation') },
-  { value: 'court', label: getStaffClaimStatusLabel('court') },
-];
 
 function getDefaultDecisionNextStatus(currentStatus: string): EscalationDecisionNextStatus {
   return currentStatus === 'court' ? 'court' : 'negotiation';
 }
 
-function formatCollectionMethodLabel(method: SuccessFeeCollectionSnapshot['collectionMethod']) {
+function getRecoveryDeclineReasonOptions(t: TranslateFn) {
+  return [
+    {
+      value: 'guidance_only_scope' as const,
+      label: t('staff_actions.recovery_decision.decline_reasons.guidance_only_scope'),
+    },
+    {
+      value: 'insufficient_evidence' as const,
+      label: t('staff_actions.recovery_decision.decline_reasons.insufficient_evidence'),
+    },
+    {
+      value: 'no_monetary_recovery_path' as const,
+      label: t('staff_actions.recovery_decision.decline_reasons.no_monetary_recovery_path'),
+    },
+    {
+      value: 'counterparty_unidentified' as const,
+      label: t('staff_actions.recovery_decision.decline_reasons.counterparty_unidentified'),
+    },
+    {
+      value: 'time_limit_risk' as const,
+      label: t('staff_actions.recovery_decision.decline_reasons.time_limit_risk'),
+    },
+    {
+      value: 'conflict_or_integrity_concern' as const,
+      label: t('staff_actions.recovery_decision.decline_reasons.conflict_or_integrity_concern'),
+    },
+  ];
+}
+
+function formatCollectionMethodLabel(
+  method: SuccessFeeCollectionSnapshot['collectionMethod'],
+  t: TranslateFn
+) {
   switch (method) {
     case 'deduction':
-      return 'Deduct from payout';
+      return t('staff_actions.success_fee.collection_method_options.deduction');
     case 'payment_method_charge':
-      return 'Charge stored payment method';
+      return t('staff_actions.success_fee.collection_method_options.payment_method_charge');
     case 'invoice':
-      return 'Invoice fallback';
+      return t('staff_actions.success_fee.collection_method_options.invoice');
     default:
       return method;
   }
+}
+
+function getPaymentAuthorizationLabel(value: PaymentAuthorizationState, t: TranslateFn) {
+  return t(`staff_actions.escalation_agreement.payment_authorization_options.${value}`);
 }
 
 const utcDateTimeFormatter = new Intl.DateTimeFormat('en-GB', {
@@ -113,10 +124,10 @@ const utcDateTimeFormatter = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'UTC',
 });
 
-function formatUtcDateTime(value: string | null | undefined) {
-  if (!value) return 'Pending';
+function formatUtcDateTime(value: string | null | undefined, t: TranslateFn) {
+  if (!value) return t('staff_actions.common.pending');
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return 'Pending';
+  if (Number.isNaN(parsed.getTime())) return t('staff_actions.common.pending');
   return `${utcDateTimeFormatter.format(parsed)} UTC`;
 }
 
@@ -147,6 +158,7 @@ function getOutOfScopeAssigneeOption(args: {
   assignmentOptions: ReadonlyArray<AssignmentOption>;
   assigneeId: string | null;
   currentAssigneeLabel?: string | null;
+  t: TranslateFn;
 }): RenderedAssignmentOption | null {
   if (args.assigneeId === null || hasAssignmentOption(args.assignmentOptions, args.assigneeId)) {
     return null;
@@ -154,7 +166,9 @@ function getOutOfScopeAssigneeOption(args: {
 
   return {
     id: args.assigneeId,
-    label: `${args.currentAssigneeLabel ?? 'Current assignee'} (out of scope)`,
+    label: args.t('staff_actions.assignment.out_of_scope', {
+      name: args.currentAssigneeLabel ?? args.t('staff_actions.assignment.current_assignee'),
+    }),
     disabled: true,
   };
 }
@@ -163,36 +177,42 @@ function getAssignmentSuccessDescription(args: {
   nextAssigneeId: string | null;
   selectedAssignmentLabel: string | null;
   staffId: string;
+  t: TranslateFn;
 }) {
   if (args.nextAssigneeId === args.staffId) {
-    return 'Claim assigned to you';
+    return args.t('staff_actions.success.assignment_self');
   }
 
   if (args.selectedAssignmentLabel) {
-    return `Claim assigned to ${args.selectedAssignmentLabel}`;
+    return args.t('staff_actions.success.assignment_named', {
+      name: args.selectedAssignmentLabel,
+    });
   }
 
-  return 'Claim assignment updated';
+  return args.t('staff_actions.success.assignment_updated');
 }
 
 function getAssignmentLabel(args: {
   assigneeId: string | null;
   currentAssigneeLabel?: string | null;
   isAssignedToMe: boolean;
+  t: TranslateFn;
 }) {
   if (args.assigneeId === null) {
-    return 'Unassigned';
+    return args.t('staff_actions.assignment.unassigned');
   }
 
   if (args.isAssignedToMe) {
-    return 'Assigned to you';
+    return args.t('staff_actions.assignment.assigned_to_you');
   }
 
   if (args.currentAssigneeLabel) {
-    return `Assigned to ${args.currentAssigneeLabel}`;
+    return args.t('staff_actions.assignment.assigned_to_named', {
+      name: args.currentAssigneeLabel,
+    });
   }
 
-  return 'Assigned to colleague';
+  return args.t('staff_actions.assignment.assigned_to_colleague');
 }
 
 export function ClaimActionPanel({
@@ -207,6 +227,8 @@ export function ClaimActionPanel({
   assignmentOptions,
   currentAssigneeLabel,
 }: ClaimActionPanelProps) {
+  const t = useTranslations('agent-claims.claims');
+  const tStatus = useTranslations('claims-tracking.status');
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState('');
   const [decisionExplanation, setDecisionExplanation] = useState(
@@ -252,6 +274,15 @@ export function ClaimActionPanel({
     getSelectedAssigneeId({ assignmentOptions, assigneeId, staffId })
   );
   const router = useRouter();
+  const recoveryDeclineReasonOptions = getRecoveryDeclineReasonOptions(t);
+  const claimStatusOptions = CANONICAL_CLAIM_STATUSES.map(status => ({
+    value: status as ClaimStatus,
+    label: tStatus(status),
+  }));
+  const escalationDecisionStatusOptions = [
+    { value: 'negotiation' as const, label: tStatus('negotiation') },
+    { value: 'court' as const, label: tStatus('court') },
+  ];
 
   useEffect(() => {
     setSavedRecoveryDecision(recoveryDecision);
@@ -286,17 +317,18 @@ export function ClaimActionPanel({
       nextAssigneeId,
       selectedAssignmentLabel,
       staffId,
+      t,
     });
 
     startTransition(async () => {
       const result = await assignClaim(claimId, nextAssigneeId);
       if (result.success) {
-        toast.success('Success', {
+        toast.success(t('staff_actions.success.title'), {
           description: successDescription,
         });
         router.refresh();
       } else {
-        toast.error('Error', { description: result.error });
+        toast.error(t('staff_actions.error.title'), { description: result.error });
       }
     });
   };
@@ -319,11 +351,13 @@ export function ClaimActionPanel({
         });
 
         if (result.success) {
-          toast.success('Success', { description: 'Escalation agreement saved' });
+          toast.success(t('staff_actions.success.title'), {
+            description: t('staff_actions.success.agreement_saved'),
+          });
           setSavedAgreement(result.data ?? null);
           router.refresh();
         } else {
-          toast.error('Error', { description: result.error });
+          toast.error(t('staff_actions.error.title'), { description: result.error });
         }
       } finally {
         agreementSaveKeyRef.current = null;
@@ -344,12 +378,14 @@ export function ClaimActionPanel({
         });
 
         if (result.success) {
-          toast.success('Success', { description: 'Recovery matter accepted' });
+          toast.success(t('staff_actions.success.title'), {
+            description: t('staff_actions.success.recovery_accepted'),
+          });
           setSavedRecoveryDecision(result.data ?? recoveryDecision);
           setDeclineReasonCode('');
           router.refresh();
         } else {
-          toast.error('Error', { description: result.error });
+          toast.error(t('staff_actions.error.title'), { description: result.error });
         }
       } finally {
         decisionSaveKeyRef.current = null;
@@ -374,11 +410,13 @@ export function ClaimActionPanel({
       );
 
       if (result.success) {
-        toast.success('Success', { description: 'Recovery matter declined' });
+        toast.success(t('staff_actions.success.title'), {
+          description: t('staff_actions.success.recovery_declined'),
+        });
         setStatus('rejected');
         router.refresh();
       } else {
-        toast.error('Error', { description: result.error });
+        toast.error(t('staff_actions.error.title'), { description: result.error });
       }
     });
   };
@@ -395,20 +433,22 @@ export function ClaimActionPanel({
         trimmedAllowanceOverrideReason || undefined
       );
       if (result.success) {
-        toast.success('Success', { description: 'Claim status updated' });
+        toast.success(t('staff_actions.success.title'), {
+          description: t('staff_actions.success.status_updated'),
+        });
         setNote('');
         setAllowanceOverrideReason('');
         router.refresh();
       } else {
-        toast.error('Error', { description: result.error });
+        toast.error(t('staff_actions.error.title'), { description: result.error });
       }
     });
   };
 
   const handleSuccessFeeCollectionSave = () => {
     if (!hasValidRecoveredAmount) {
-      toast.error('Error', {
-        description: 'Recovered amount must be a positive number.',
+      toast.error(t('staff_actions.error.title'), {
+        description: t('staff_actions.validation.recovered_amount_positive'),
       });
       return;
     }
@@ -421,11 +461,13 @@ export function ClaimActionPanel({
       });
 
       if (result.success) {
-        toast.success('Success', { description: 'Success-fee collection saved' });
+        toast.success(t('staff_actions.success.title'), {
+          description: t('staff_actions.success.collection_saved'),
+        });
         setSavedSuccessFeeCollection(result.data ?? null);
         router.refresh();
       } else {
-        toast.error('Error', { description: result.error });
+        toast.error(t('staff_actions.error.title'), { description: result.error });
       }
     });
   };
@@ -485,15 +527,17 @@ export function ClaimActionPanel({
     assigneeId,
     currentAssigneeLabel,
     isAssignedToMe,
+    t,
   });
   const outOfScopeAssigneeOption = getOutOfScopeAssigneeOption({
     assignmentOptions,
     assigneeId,
     currentAssigneeLabel,
+    t,
   });
   const renderedAssignmentOptions: ReadonlyArray<RenderedAssignmentOption> =
     outOfScopeAssigneeOption ? [outOfScopeAssigneeOption, ...assignmentOptions] : assignmentOptions;
-  const renderedStatusOptions = CLAIM_STATUS_OPTIONS.filter(
+  const renderedStatusOptions = claimStatusOptions.filter(
     option => option.value !== 'rejected' || currentStatus === 'rejected'
   );
 
@@ -502,7 +546,7 @@ export function ClaimActionPanel({
       className="bg-white rounded-lg border shadow-sm p-6 space-y-6"
       data-testid="staff-claim-action-panel"
     >
-      <h3 className="font-semibold text-lg">Staff Actions</h3>
+      <h3 className="font-semibold text-lg">{t('staff_actions.title')}</h3>
 
       {!resolvedCommercialScope.isEligible ? (
         <div
@@ -510,25 +554,26 @@ export function ClaimActionPanel({
           data-testid="staff-commercial-scope-restriction"
         >
           <div className="space-y-1">
-            <h4 className="text-sm font-medium text-slate-900">Launch scope restriction</h4>
+            <h4 className="text-sm font-medium text-slate-900">
+              {t('staff_actions.commercial_scope.title')}
+            </h4>
             <p className="font-medium text-slate-900">{resolvedCommercialScope.staffLabel}</p>
             <p className="text-xs text-slate-700">{resolvedCommercialScope.staffDescription}</p>
           </div>
         </div>
       ) : null}
 
-      {/* Assignment Section */}
       <div className="rounded-lg bg-muted/30 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium">Assignment</p>
+            <p className="text-sm font-medium">{t('staff_actions.assignment.title')}</p>
             <p className="text-xs text-muted-foreground" data-testid="staff-assignment-current">
               {assignmentLabel}
             </p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[16rem]">
             <label htmlFor="staff-assignment-select" className="text-xs font-medium text-slate-700">
-              Assign claim
+              {t('staff_actions.assignment.assign_claim')}
             </label>
             <select
               id="staff-assignment-select"
@@ -554,17 +599,16 @@ export function ClaimActionPanel({
             data-testid="staff-assign-claim-button"
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Assignment
+            {t('staff_actions.assignment.save')}
           </Button>
         </div>
       </div>
 
       <div className="space-y-4 border-t pt-6">
         <div className="space-y-1">
-          <h4 className="text-sm font-medium">Recovery Decision</h4>
+          <h4 className="text-sm font-medium">{t('staff_actions.recovery_decision.title')}</h4>
           <p className="text-xs text-muted-foreground">
-            Staff must explicitly accept or decline the recovery matter before negotiation or court
-            work can start.
+            {t('staff_actions.recovery_decision.description')}
           </p>
         </div>
 
@@ -574,24 +618,29 @@ export function ClaimActionPanel({
         >
           <div className="grid gap-2 md:grid-cols-2">
             <div>
-              <span className="text-muted-foreground">Decision status</span>
+              <span className="text-muted-foreground">
+                {t('staff_actions.recovery_decision.summary_status')}
+              </span>
               <div className="font-medium text-slate-900">
                 {resolvedRecoveryDecision.staffLabel}
               </div>
             </div>
             {resolvedRecoveryDecision.status === 'declined' && declineReasonCode ? (
               <div>
-                <span className="text-muted-foreground">Decline category</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.recovery_decision.summary_decline_category')}
+                </span>
                 <div className="font-medium text-slate-900">
-                  {RECOVERY_DECLINE_REASON_OPTIONS.find(
-                    option => option.value === declineReasonCode
-                  )?.label ?? declineReasonCode}
+                  {recoveryDeclineReasonOptions.find(option => option.value === declineReasonCode)
+                    ?.label ?? declineReasonCode}
                 </div>
               </div>
             ) : null}
             {resolvedRecoveryDecision.explanation ? (
               <div className="md:col-span-2">
-                <span className="text-muted-foreground">Decision explanation</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.recovery_decision.summary_explanation')}
+                </span>
                 <div className="font-medium text-slate-900">
                   {resolvedRecoveryDecision.explanation}
                 </div>
@@ -602,11 +651,12 @@ export function ClaimActionPanel({
 
         <div className="space-y-2">
           <label htmlFor="recovery-decision-explanation" className="text-sm font-medium">
-            Decision explanation <span className="text-xs text-muted-foreground">(Staff only)</span>
+            {t('staff_actions.recovery_decision.explanation_label')}{' '}
+            <span className="text-xs text-muted-foreground">({t('staff_actions.staff_only')})</span>
           </label>
           <Textarea
             id="recovery-decision-explanation"
-            placeholder="Record the staff-only reasoning behind the acceptance or decline decision..."
+            placeholder={t('staff_actions.recovery_decision.explanation_placeholder')}
             value={decisionExplanation}
             onChange={event => setDecisionExplanation(event.target.value)}
             disabled={isPending}
@@ -621,12 +671,12 @@ export function ClaimActionPanel({
             data-testid="staff-accept-recovery-decision-button"
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Accept Recovery Matter
+            {t('staff_actions.recovery_decision.accept')}
           </Button>
 
           <div className="space-y-2">
             <label htmlFor="recovery-decline-reason" className="text-sm font-medium">
-              Decline category
+              {t('staff_actions.recovery_decision.decline_category_label')}
             </label>
             <select
               id="recovery-decline-reason"
@@ -642,8 +692,10 @@ export function ClaimActionPanel({
               }}
               disabled={isPending}
             >
-              <option value="">Select decline category</option>
-              {RECOVERY_DECLINE_REASON_OPTIONS.map(option => (
+              <option value="">
+                {t('staff_actions.recovery_decision.decline_category_placeholder')}
+              </option>
+              {recoveryDeclineReasonOptions.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -660,7 +712,7 @@ export function ClaimActionPanel({
           data-testid="staff-decline-recovery-decision-button"
         >
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Decline Recovery Matter
+          {t('staff_actions.recovery_decision.decline')}
         </Button>
       </div>
 
@@ -670,23 +722,32 @@ export function ClaimActionPanel({
           data-testid="staff-accepted-recovery-prerequisites"
         >
           <div className="space-y-1">
-            <h4 className="text-sm font-medium">Accepted recovery prerequisites</h4>
+            <h4 className="text-sm font-medium">
+              {t('staff_actions.recovery_prerequisites.title')}
+            </h4>
             <p className="text-xs text-muted-foreground">
-              Accepted recovery cannot move into negotiation or court until both prerequisites are
-              ready.
+              {t('staff_actions.recovery_prerequisites.description')}
             </p>
           </div>
           <div className="mt-3 grid gap-2 md:grid-cols-2">
             <div>
-              <span className="text-muted-foreground">Agreement</span>
+              <span className="text-muted-foreground">
+                {t('staff_actions.recovery_prerequisites.agreement')}
+              </span>
               <div className="font-medium text-slate-900">
-                {resolvedAcceptedRecoveryPrerequisites.agreementReady ? 'Ready' : 'Missing'}
+                {resolvedAcceptedRecoveryPrerequisites.agreementReady
+                  ? t('staff_actions.common.ready')
+                  : t('staff_actions.common.missing')}
               </div>
             </div>
             <div>
-              <span className="text-muted-foreground">Collection path</span>
+              <span className="text-muted-foreground">
+                {t('staff_actions.recovery_prerequisites.collection_path')}
+              </span>
               <div className="font-medium text-slate-900">
-                {resolvedAcceptedRecoveryPrerequisites.collectionPathReady ? 'Ready' : 'Missing'}
+                {resolvedAcceptedRecoveryPrerequisites.collectionPathReady
+                  ? t('staff_actions.common.ready')
+                  : t('staff_actions.common.missing')}
               </div>
             </div>
           </div>
@@ -695,10 +756,9 @@ export function ClaimActionPanel({
 
       <div className="space-y-4 border-t pt-6">
         <div className="space-y-1">
-          <h4 className="text-sm font-medium">Escalation Agreement</h4>
+          <h4 className="text-sm font-medium">{t('staff_actions.escalation_agreement.title')}</h4>
           <p className="text-xs text-muted-foreground">
-            Record commercial terms here after the recovery decision is accepted. This agreement
-            detail does not replace the explicit recovery decision above.
+            {t('staff_actions.escalation_agreement.description')}
           </p>
         </div>
 
@@ -709,55 +769,71 @@ export function ClaimActionPanel({
           {resolvedAgreement ? (
             <div className="grid gap-2 md:grid-cols-2">
               <div>
-                <span className="text-muted-foreground">Accepted next state</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.escalation_agreement.accepted_next_state')}
+                </span>
                 <div className="font-medium text-slate-900">
                   {resolvedAgreement.decisionNextStatus
-                    ? getStaffClaimStatusLabel(resolvedAgreement.decisionNextStatus)
-                    : 'Not recorded'}
+                    ? tStatus(resolvedAgreement.decisionNextStatus)
+                    : t('staff_actions.common.not_recorded')}
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Decision reason</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.escalation_agreement.decision_reason')}
+                </span>
                 <div className="font-medium text-slate-900">
-                  {resolvedAgreement.decisionReason ?? 'Not recorded'}
+                  {resolvedAgreement.decisionReason ?? t('staff_actions.common.not_recorded')}
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Fee</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.escalation_agreement.fee')}
+                </span>
                 <div className="font-medium text-slate-900">{resolvedAgreement.feePercentage}%</div>
               </div>
               <div>
-                <span className="text-muted-foreground">Minimum fee</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.escalation_agreement.minimum_fee')}
+                </span>
                 <div className="font-medium text-slate-900">EUR {resolvedAgreement.minimumFee}</div>
               </div>
               <div>
-                <span className="text-muted-foreground">Legal-action cap</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.escalation_agreement.legal_action_cap')}
+                </span>
                 <div className="font-medium text-slate-900">
                   {resolvedAgreement.legalActionCapPercentage}%
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Payment authorization</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.escalation_agreement.payment_authorization')}
+                </span>
                 <div className="font-medium text-slate-900">
-                  {resolvedAgreement.paymentAuthorizationState}
+                  {getPaymentAuthorizationLabel(resolvedAgreement.paymentAuthorizationState, t)}
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Terms version</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.escalation_agreement.terms_version')}
+                </span>
                 <div className="font-medium text-slate-900">{resolvedAgreement.termsVersion}</div>
               </div>
               <div>
-                <span className="text-muted-foreground">Signed</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.escalation_agreement.signed')}
+                </span>
                 <div className="font-medium text-slate-900">
-                  {formatUtcDateTime(resolvedAgreement.signedAt)}
+                  {formatUtcDateTime(resolvedAgreement.signedAt, t)}
                 </div>
               </div>
             </div>
           ) : (
             <p className="text-muted-foreground">
               {resolvedAcceptedRecoveryPrerequisites.isAcceptedRecoveryDecision
-                ? 'Save the accepted escalation agreement before moving this case into negotiation or court.'
-                : 'No escalation agreement saved for this claim.'}
+                ? t('staff_actions.escalation_agreement.empty_requires_save')
+                : t('staff_actions.escalation_agreement.empty')}
             </p>
           )}
         </div>
@@ -765,7 +841,7 @@ export function ClaimActionPanel({
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <label htmlFor="agreement-fee-percentage" className="text-sm font-medium">
-              Fee percentage
+              {t('staff_actions.escalation_agreement.fee_percentage')}
             </label>
             <Input
               id="agreement-fee-percentage"
@@ -779,7 +855,7 @@ export function ClaimActionPanel({
           </div>
           <div className="space-y-2">
             <label htmlFor="agreement-minimum-fee" className="text-sm font-medium">
-              Minimum fee (EUR)
+              {t('staff_actions.escalation_agreement.minimum_fee_input')}
             </label>
             <Input
               id="agreement-minimum-fee"
@@ -793,7 +869,7 @@ export function ClaimActionPanel({
           </div>
           <div className="space-y-2">
             <label htmlFor="agreement-legal-cap" className="text-sm font-medium">
-              Legal-action cap
+              {t('staff_actions.escalation_agreement.legal_action_cap')}
             </label>
             <Input
               id="agreement-legal-cap"
@@ -807,7 +883,7 @@ export function ClaimActionPanel({
           </div>
           <div className="space-y-2">
             <label htmlFor="agreement-terms-version" className="text-sm font-medium">
-              Terms version
+              {t('staff_actions.escalation_agreement.terms_version')}
             </label>
             <Input
               id="agreement-terms-version"
@@ -818,7 +894,7 @@ export function ClaimActionPanel({
           </div>
           <div className="space-y-2">
             <label htmlFor="agreement-decision-next-status" className="text-sm font-medium">
-              Accepted next state
+              {t('staff_actions.escalation_agreement.accepted_next_state')}
             </label>
             <Select
               value={decisionNextStatus}
@@ -826,10 +902,14 @@ export function ClaimActionPanel({
               disabled={isPending}
             >
               <SelectTrigger id="agreement-decision-next-status">
-                <SelectValue placeholder="Select accepted next state" />
+                <SelectValue
+                  placeholder={t(
+                    'staff_actions.escalation_agreement.accepted_next_state_placeholder'
+                  )}
+                />
               </SelectTrigger>
               <SelectContent>
-                {ESCALATION_DECISION_STATUS_OPTIONS.map(option => (
+                {escalationDecisionStatusOptions.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -839,7 +919,7 @@ export function ClaimActionPanel({
           </div>
           <div className="space-y-2">
             <label htmlFor="agreement-payment-auth" className="text-sm font-medium">
-              Payment authorization
+              {t('staff_actions.escalation_agreement.payment_authorization')}
             </label>
             <Select
               value={paymentAuthorizationState}
@@ -849,22 +929,32 @@ export function ClaimActionPanel({
               disabled={isPending}
             >
               <SelectTrigger id="agreement-payment-auth">
-                <SelectValue placeholder="Select authorization state" />
+                <SelectValue
+                  placeholder={t(
+                    'staff_actions.escalation_agreement.payment_authorization_placeholder'
+                  )}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="authorized">Authorized</SelectItem>
-                <SelectItem value="revoked">Revoked</SelectItem>
+                <SelectItem value="pending">
+                  {t('staff_actions.escalation_agreement.payment_authorization_options.pending')}
+                </SelectItem>
+                <SelectItem value="authorized">
+                  {t('staff_actions.escalation_agreement.payment_authorization_options.authorized')}
+                </SelectItem>
+                <SelectItem value="revoked">
+                  {t('staff_actions.escalation_agreement.payment_authorization_options.revoked')}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2 md:col-span-2">
             <label htmlFor="agreement-decision-reason" className="text-sm font-medium">
-              Decision reason
+              {t('staff_actions.escalation_agreement.decision_reason')}
             </label>
             <Textarea
               id="agreement-decision-reason"
-              placeholder="Record why staff accepted this escalation path..."
+              placeholder={t('staff_actions.escalation_agreement.decision_reason_placeholder')}
               value={decisionReason}
               onChange={event => setDecisionReason(event.target.value)}
               disabled={isPending}
@@ -880,16 +970,15 @@ export function ClaimActionPanel({
           data-testid="staff-save-escalation-agreement-button"
         >
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Save Escalation Agreement
+          {t('staff_actions.escalation_agreement.save')}
         </Button>
       </div>
 
       <div className="space-y-4 border-t pt-6">
         <div className="space-y-1">
-          <h4 className="text-sm font-medium">Success-Fee Collection</h4>
+          <h4 className="text-sm font-medium">{t('staff_actions.success_fee.title')}</h4>
           <p className="text-xs text-muted-foreground">
-            Record the recovered amount and let the commercial rules resolve deduction first where
-            allowed, then stored payment method, then invoice due within 7 days.
+            {t('staff_actions.success_fee.description')}
           </p>
         </div>
 
@@ -900,55 +989,69 @@ export function ClaimActionPanel({
           {resolvedSuccessFeeCollection ? (
             <div className="grid gap-2 md:grid-cols-2">
               <div>
-                <span className="text-muted-foreground">Recovered amount</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.success_fee.recovered_amount')}
+                </span>
                 <div className="font-medium text-slate-900">
                   {resolvedSuccessFeeCollection.currencyCode}{' '}
                   {resolvedSuccessFeeCollection.recoveredAmount}
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Success fee</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.success_fee.success_fee')}
+                </span>
                 <div className="font-medium text-slate-900">
                   {resolvedSuccessFeeCollection.currencyCode}{' '}
                   {resolvedSuccessFeeCollection.feeAmount}
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Collection method</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.success_fee.collection_method')}
+                </span>
                 <div className="font-medium text-slate-900">
-                  {formatCollectionMethodLabel(resolvedSuccessFeeCollection.collectionMethod)}
+                  {formatCollectionMethodLabel(resolvedSuccessFeeCollection.collectionMethod, t)}
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Stored payment method</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.success_fee.stored_payment_method')}
+                </span>
                 <div className="font-medium text-slate-900">
-                  {resolvedSuccessFeeCollection.hasStoredPaymentMethod ? 'Yes' : 'No'}
+                  {resolvedSuccessFeeCollection.hasStoredPaymentMethod
+                    ? t('staff_actions.common.yes')
+                    : t('staff_actions.common.no')}
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Invoice due</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.success_fee.invoice_due')}
+                </span>
                 <div className="font-medium text-slate-900">
                   {resolvedSuccessFeeCollection.invoiceDueAt
-                    ? formatUtcDateTime(resolvedSuccessFeeCollection.invoiceDueAt)
+                    ? formatUtcDateTime(resolvedSuccessFeeCollection.invoiceDueAt, t)
                     : '-'}
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Resolved</span>
+                <span className="text-muted-foreground">
+                  {t('staff_actions.success_fee.resolved')}
+                </span>
                 <div className="font-medium text-slate-900">
-                  {formatUtcDateTime(resolvedSuccessFeeCollection.resolvedAt)}
+                  {formatUtcDateTime(resolvedSuccessFeeCollection.resolvedAt, t)}
                 </div>
               </div>
             </div>
           ) : hasCommercialAgreement ? (
             <p className="text-muted-foreground">
               {resolvedAcceptedRecoveryPrerequisites.isAcceptedRecoveryDecision
-                ? 'No success-fee collection path is recorded yet. Save one before moving this accepted case into negotiation or court.'
-                : 'No success-fee collection order has been recorded for this claim.'}
+                ? t('staff_actions.success_fee.empty_requires_save')
+                : t('staff_actions.success_fee.empty')}
             </p>
           ) : (
             <p className="text-muted-foreground">
-              Save the escalation agreement first to unlock success-fee collection.
+              {t('staff_actions.success_fee.locked_without_agreement')}
             </p>
           )}
         </div>
@@ -956,7 +1059,7 @@ export function ClaimActionPanel({
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <label htmlFor="success-fee-recovered-amount" className="text-sm font-medium">
-              Recovered amount
+              {t('staff_actions.success_fee.recovered_amount')}
             </label>
             <Input
               id="success-fee-recovered-amount"
@@ -970,7 +1073,7 @@ export function ClaimActionPanel({
           </div>
           <div className="space-y-2">
             <label htmlFor="success-fee-deduction-path" className="text-sm font-medium">
-              Deduct from payout?
+              {t('staff_actions.success_fee.deduct_from_payout')}
             </label>
             <Select
               value={deductionPath}
@@ -978,11 +1081,17 @@ export function ClaimActionPanel({
               disabled={isPending || !hasCommercialAgreement}
             >
               <SelectTrigger id="success-fee-deduction-path">
-                <SelectValue placeholder="Select collection path" />
+                <SelectValue
+                  placeholder={t('staff_actions.success_fee.collection_path_placeholder')}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="allowed">Yes, deduction is legally allowed</SelectItem>
-                <SelectItem value="fallback">No, use fallback order</SelectItem>
+                <SelectItem value="allowed">
+                  {t('staff_actions.success_fee.deduction_path_options.allowed')}
+                </SelectItem>
+                <SelectItem value="fallback">
+                  {t('staff_actions.success_fee.deduction_path_options.fallback')}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -995,15 +1104,14 @@ export function ClaimActionPanel({
           data-testid="staff-save-success-fee-collection-button"
         >
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Save Success-Fee Collection
+          {t('staff_actions.success_fee.save')}
         </Button>
       </div>
 
-      {/* Status Update Section */}
       <div className="space-y-4 border-t pt-6">
         <div className="space-y-2">
           <label htmlFor="claim-status-select" className="text-sm font-medium">
-            Update Status
+            {t('staff_actions.status_update.title')}
           </label>
           <Select
             value={status}
@@ -1011,7 +1119,7 @@ export function ClaimActionPanel({
             disabled={isPending}
           >
             <SelectTrigger id="claim-status-select">
-              <SelectValue placeholder="Select status" />
+              <SelectValue placeholder={t('staff_actions.status_update.select_status')} />
             </SelectTrigger>
             <SelectContent>
               {renderedStatusOptions.map(s => (
@@ -1025,11 +1133,14 @@ export function ClaimActionPanel({
 
         <div className="space-y-2">
           <label htmlFor="claim-status-note" className="text-sm font-medium">
-            Status Note <span className="text-xs text-muted-foreground">(Visible to member)</span>
+            {t('staff_actions.status_update.note_label')}{' '}
+            <span className="text-xs text-muted-foreground">
+              ({t('staff_actions.status_update.visible_to_member')})
+            </span>
           </label>
           <Textarea
             id="claim-status-note"
-            placeholder="Reason for status change..."
+            placeholder={t('staff_actions.status_update.note_placeholder')}
             value={note}
             onChange={event => setNote(event.target.value)}
             disabled={isPending}
@@ -1039,7 +1150,7 @@ export function ClaimActionPanel({
 
         {requiresAcceptedRecoveryDecision ? (
           <p className="text-xs text-muted-foreground">
-            Accept the recovery matter above before moving the case into negotiation or court.
+            {t('staff_actions.status_update.requires_recovery_decision')}
           </p>
         ) : null}
 
@@ -1051,31 +1162,30 @@ export function ClaimActionPanel({
 
         {requiresAcceptedRecoveryAgreement ? (
           <p className="text-xs text-muted-foreground">
-            Save the accepted escalation agreement before moving this case into negotiation or
-            court.
+            {t('staff_actions.status_update.requires_escalation_agreement')}
           </p>
         ) : null}
 
         {requiresAcceptedRecoveryCollectionPath ? (
           <p className="text-xs text-muted-foreground">
-            Save the success-fee collection path before moving this accepted case into negotiation
-            or court.
+            {t('staff_actions.status_update.requires_collection_path')}
           </p>
         ) : null}
 
         {requiresMatterAllowanceGuard ? (
           <div className="space-y-2">
             <label htmlFor="claim-status-allowance-override" className="text-sm font-medium">
-              Allowance override reason{' '}
-              <span className="text-xs text-muted-foreground">(Staff only)</span>
+              {t('staff_actions.status_update.allowance_override_reason')}{' '}
+              <span className="text-xs text-muted-foreground">
+                ({t('staff_actions.staff_only')})
+              </span>
             </label>
             <p className="text-xs text-muted-foreground">
-              If the member has exhausted annual matter allowance, record the internal override
-              reason here or upgrade coverage before staff-led recovery begins.
+              {t('staff_actions.status_update.allowance_override_description')}
             </p>
             <Textarea
               id="claim-status-allowance-override"
-              placeholder="Explain why recovery should begin despite exhausted allowance..."
+              placeholder={t('staff_actions.status_update.allowance_override_placeholder')}
               value={allowanceOverrideReason}
               onChange={event => setAllowanceOverrideReason(event.target.value)}
               disabled={isPending}
@@ -1098,7 +1208,7 @@ export function ClaimActionPanel({
           data-testid="staff-update-claim-button"
         >
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Update Claim
+          {t('staff_actions.status_update.save')}
         </Button>
       </div>
     </div>

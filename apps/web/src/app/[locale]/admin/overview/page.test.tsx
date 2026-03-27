@@ -79,5 +79,7 @@ describe('AdminOverviewPage', () => {
     expect(screen.getByText('Поднесено')).toBeInTheDocument();
     expect(screen.getByText('Барања по фаза')).toBeInTheDocument();
     expect(screen.getByText('Барања по филијала')).toBeInTheDocument();
+    expect(screen.getByText('Филијала MK A (Главна)')).toBeInTheDocument();
+    expect(screen.queryByText('MK Branch A (Main)')).not.toBeInTheDocument();
   });
 });

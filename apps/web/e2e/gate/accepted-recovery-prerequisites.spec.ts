@@ -1,10 +1,37 @@
 import { claimEscalationAgreements, db, eq } from '@interdomestik/database';
 import { and } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
+import enAgentClaims from '../../src/messages/en/agent-claims.json';
+import mkAgentClaims from '../../src/messages/mk/agent-claims.json';
+import sqAgentClaims from '../../src/messages/sq/agent-claims.json';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
 import { gotoApp } from '../utils/navigation';
+
+function getExpectedPrerequisiteCopy(projectName: string) {
+  if (projectName.includes('mk')) {
+    return mkAgentClaims['agent-claims'].claims.staff_actions.recovery_prerequisites;
+  }
+
+  if (projectName.includes('sq')) {
+    return sqAgentClaims['agent-claims'].claims.staff_actions.recovery_prerequisites;
+  }
+
+  return enAgentClaims['agent-claims'].claims.staff_actions.recovery_prerequisites;
+}
+
+function getExpectedCollectionEmptyCopy(projectName: string) {
+  if (projectName.includes('mk')) {
+    return mkAgentClaims['agent-claims'].claims.staff_actions.success_fee.empty_requires_save;
+  }
+
+  if (projectName.includes('sq')) {
+    return sqAgentClaims['agent-claims'].claims.staff_actions.success_fee.empty_requires_save;
+  }
+
+  return enAgentClaims['agent-claims'].claims.staff_actions.success_fee.empty_requires_save;
+}
 
 test.describe('Accepted recovery prerequisites', () => {
   test('staff see accepted cases with a missing collection path as blocked on the canonical detail page', async ({
@@ -82,21 +109,25 @@ test.describe('Accepted recovery prerequisites', () => {
         marker: 'staff-accepted-recovery-prerequisites',
       });
 
+      const expectedPrerequisites = getExpectedPrerequisiteCopy(testInfo.project.name);
+      const expectedCollectionEmptyCopy = getExpectedCollectionEmptyCopy(testInfo.project.name);
       const prerequisiteSummary = staffPage.getByTestId('staff-accepted-recovery-prerequisites');
       const collectionSummary = staffPage.getByTestId('staff-success-fee-collection-summary');
 
       await expect(prerequisiteSummary).toBeVisible();
-      await expect(prerequisiteSummary.getByText('Accepted recovery prerequisites')).toBeVisible();
-      await expect(prerequisiteSummary.getByText('Agreement')).toBeVisible();
-      await expect(prerequisiteSummary.getByText('Ready', { exact: true })).toBeVisible();
-      await expect(prerequisiteSummary.getByText('Collection path')).toBeVisible();
-      await expect(prerequisiteSummary.getByText('Missing', { exact: true })).toBeVisible();
-
+      await expect(prerequisiteSummary.getByText(expectedPrerequisites.title)).toBeVisible();
+      await expect(prerequisiteSummary.getByText(expectedPrerequisites.agreement)).toBeVisible();
       await expect(
-        collectionSummary.getByText(
-          'No success-fee collection path is recorded yet. Save one before moving this accepted case into negotiation or court.'
-        )
+        prerequisiteSummary.getByText(/Ready|Gati|Подготвено/, { exact: true })
       ).toBeVisible();
+      await expect(
+        prerequisiteSummary.getByText(expectedPrerequisites.collection_path)
+      ).toBeVisible();
+      await expect(
+        prerequisiteSummary.getByText(/Missing|Mungon|Недостасува/, { exact: true })
+      ).toBeVisible();
+
+      await expect(collectionSummary.getByText(expectedCollectionEmptyCopy)).toBeVisible();
     } finally {
       if (existingAgreement?.id) {
         await db

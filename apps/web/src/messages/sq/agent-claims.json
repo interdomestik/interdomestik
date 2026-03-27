@@ -17,6 +17,21 @@
           "assigned_to_you": "Caktuar te ju",
           "assigned": "I caktuar",
           "assigned_to_named": "Caktuar te {name}"
+        },
+        "assignment_filter": {
+          "all_staff": "Radha ime + pa përgjegjës",
+          "mine": "Caktuar te unë",
+          "all_branch": "Të gjitha rastet e degës"
+        },
+        "table": {
+          "claim": "Rasti",
+          "member": "Anëtari",
+          "status_stage": "Statusi + faza",
+          "updated": "Përditësuar",
+          "action": "Veprimi",
+          "no_claim_number": "Pa numër rasti",
+          "no_company": "Nuk ka kompani të dhënë",
+          "no_member_number": "Pa numër anëtarësie"
         }
       },
       "queue": "Radha Operative e Kërkesave",
@@ -73,7 +88,164 @@
         "documents": "Dokumentet",
         "no_documents": "Nuk ka dokumente të ngarkuara",
         "unknown_date": "Datë e panjohur",
-        "branch_manager_readonly_notice": "Menaxherët e degës mund të rishikojnë statusin e rastit dhe kontekstin e anëtarit këtu, por caktimi, mesazhet dhe veprimet mbi rastin mbeten vetëm për stafin në pilot."
+        "branch_manager_readonly_notice": "Menaxherët e degës mund të rishikojnë statusin e rastit dhe kontekstin e anëtarit këtu, por caktimi, mesazhet dhe veprimet mbi rastin mbeten vetëm për stafin në pilot.",
+        "staff_claim": {
+          "section_title": "Rasti",
+          "status": "Statusi",
+          "updated": "Përditësuar",
+          "submitted": "Dorëzuar"
+        },
+        "staff_member": {
+          "section_title": "Anëtari",
+          "membership_number": "Nr. anëtarësie"
+        },
+        "staff_matter_allowance": {
+          "section_title": "Kuota e rastit",
+          "used_this_year": "Përdorur këtë vit",
+          "remaining_this_year": "Mbetur këtë vit",
+          "plan_allowance": "Kuota e planit"
+        },
+        "staff_agent": {
+          "section_title": "Agjenti"
+        },
+        "staff_note": {
+          "section_title": "Shënimi i fundit i statusit",
+          "empty": "Nuk ka ende shënime publike të statusit."
+        }
+      },
+      "staff_actions": {
+        "title": "Veprimet e stafit",
+        "staff_only": "Vetëm për stafin",
+        "common": {
+          "pending": "Në pritje",
+          "ready": "Gati",
+          "missing": "Mungon",
+          "not_recorded": "Jo e regjistruar",
+          "yes": "Po",
+          "no": "Jo"
+        },
+        "success": {
+          "title": "Sukses",
+          "assignment_self": "Rasti u caktua te ju",
+          "assignment_named": "Rasti u caktua te {name}",
+          "assignment_updated": "Caktimi i rastit u përditësua",
+          "agreement_saved": "Marrëveshja e përshkallëzimit u ruajt",
+          "recovery_accepted": "Çështja e rikuperimit u pranua",
+          "recovery_declined": "Çështja e rikuperimit u refuzua",
+          "status_updated": "Statusi i rastit u përditësua",
+          "collection_saved": "Mbledhja e tarifës së suksesit u ruajt"
+        },
+        "error": {
+          "title": "Gabim"
+        },
+        "validation": {
+          "recovered_amount_positive": "Shuma e rikuperuar duhet të jetë numër pozitiv."
+        },
+        "commercial_scope": {
+          "title": "Kufizimi i fushës së lançimit"
+        },
+        "assignment": {
+          "title": "Caktimi",
+          "assign_claim": "Cakto rastin",
+          "save": "Ruaj caktimin",
+          "current_assignee": "Përgjegjësi aktual",
+          "out_of_scope": "{name} (jashtë fushës)",
+          "unassigned": "Pa përgjegjës",
+          "assigned_to_you": "Caktuar te ju",
+          "assigned_to_named": "Caktuar te {name}",
+          "assigned_to_colleague": "Caktuar te kolegu"
+        },
+        "recovery_decision": {
+          "title": "Vendimi i rikuperimit",
+          "description": "Stafi duhet ta pranojë ose refuzojë qartë çështjen e rikuperimit përpara se të fillojnë negociatat ose gjykata.",
+          "summary_status": "Statusi i vendimit",
+          "summary_decline_category": "Kategoria e refuzimit",
+          "summary_explanation": "Shpjegimi i vendimit",
+          "explanation_label": "Shpjegimi i vendimit",
+          "explanation_placeholder": "Regjistro arsyetimin vetëm për stafin pas pranimit ose refuzimit...",
+          "accept": "Prano çështjen e rikuperimit",
+          "decline_category_label": "Kategoria e refuzimit",
+          "decline_category_placeholder": "Zgjidh kategorinë e refuzimit",
+          "decline": "Refuzo çështjen e rikuperimit",
+          "decline_reasons": {
+            "guidance_only_scope": "Vetëm këshillim ose referim sipas fushës aktuale",
+            "insufficient_evidence": "Dëshmi të pamjaftueshme për rikuperim të drejtuar nga stafi",
+            "no_monetary_recovery_path": "Nuk ka rrugë të qartë për rikuperim monetar",
+            "counterparty_unidentified": "Pala tjetër ose siguruesi nuk mund të identifikohet",
+            "time_limit_risk": "Rreziku i afatit e bllokon rikuperimin e drejtuar nga stafi",
+            "conflict_or_integrity_concern": "Konflikt interesi ose shqetësim për integritetin"
+          }
+        },
+        "recovery_prerequisites": {
+          "title": "Parakushtet e rikuperimit të pranuar",
+          "description": "Rikuperimi i pranuar nuk mund të kalojë në negociim ose gjykatë derisa të jenë gati të dy parakushtet.",
+          "agreement": "Marrëveshja",
+          "collection_path": "Rruga e mbledhjes"
+        },
+        "escalation_agreement": {
+          "title": "Marrëveshja e përshkallëzimit",
+          "description": "Regjistro termat tregtarë këtu pasi të pranohet vendimi i rikuperimit. Kjo marrëveshje nuk e zëvendëson vendimin e qartë të rikuperimit më sipër.",
+          "accepted_next_state": "Gjendja tjetër e pranuar",
+          "accepted_next_state_placeholder": "Zgjidh gjendjen tjetër të pranuar",
+          "decision_reason": "Arsyeja e vendimit",
+          "decision_reason_placeholder": "Regjistro pse stafi e pranoi këtë rrugë përshkallëzimi...",
+          "fee": "Tarifa",
+          "fee_percentage": "Përqindja e tarifës",
+          "minimum_fee": "Tarifa minimale",
+          "minimum_fee_input": "Tarifa minimale (EUR)",
+          "legal_action_cap": "Kufiri për veprime ligjore",
+          "payment_authorization": "Autorizimi i pagesës",
+          "payment_authorization_placeholder": "Zgjidh gjendjen e autorizimit",
+          "terms_version": "Versioni i kushteve",
+          "signed": "Nënshkruar",
+          "save": "Ruaj marrëveshjen e përshkallëzimit",
+          "empty": "Nuk ka marrëveshje përshkallëzimi të ruajtur për këtë rast.",
+          "empty_requires_save": "Ruaje marrëveshjen e pranuar të përshkallëzimit përpara se ta kalosh këtë rast në negociim ose gjykatë.",
+          "payment_authorization_options": {
+            "pending": "Në pritje",
+            "authorized": "I autorizuar",
+            "revoked": "I revokuar"
+          }
+        },
+        "success_fee": {
+          "title": "Mbledhja e tarifës së suksesit",
+          "description": "Regjistro shumën e rikuperuar dhe lëri rregullat tregtare të zgjidhin fillimisht zbritjen kur lejohet, pastaj metodën e ruajtur të pagesës, pastaj faturën me afat 7-ditor.",
+          "recovered_amount": "Shuma e rikuperuar",
+          "success_fee": "Tarifa e suksesit",
+          "collection_method": "Mënyra e mbledhjes",
+          "stored_payment_method": "Metoda e ruajtur e pagesës",
+          "invoice_due": "Afati i faturës",
+          "resolved": "Zgjidhur",
+          "deduct_from_payout": "Të zbritet nga pagesa?",
+          "collection_path_placeholder": "Zgjidh rrugën e mbledhjes",
+          "save": "Ruaj mbledhjen e tarifës së suksesit",
+          "empty": "Nuk është regjistruar asnjë urdhër për mbledhjen e tarifës së suksesit për këtë rast.",
+          "empty_requires_save": "Nuk është regjistruar ende një rrugë për mbledhjen e tarifës së suksesit. Ruaje përpara se ta kalosh këtë rast të pranuar në negociim ose gjykatë.",
+          "locked_without_agreement": "Ruaje më parë marrëveshjen e përshkallëzimit për të zhbllokuar mbledhjen e tarifës së suksesit.",
+          "collection_method_options": {
+            "deduction": "Zbrit nga pagesa",
+            "payment_method_charge": "Ngarko metodën e ruajtur të pagesës",
+            "invoice": "Faturë rezervë"
+          },
+          "deduction_path_options": {
+            "allowed": "Po, zbritja lejohet ligjërisht",
+            "fallback": "Jo, përdor rendin rezervë"
+          }
+        },
+        "status_update": {
+          "title": "Përditëso statusin",
+          "select_status": "Zgjidh statusin",
+          "note_label": "Shënim statusi",
+          "visible_to_member": "I dukshëm për anëtarin",
+          "note_placeholder": "Arsyeja e ndryshimit të statusit...",
+          "requires_recovery_decision": "Prano çështjen e rikuperimit më sipër përpara se ta kalosh rastin në negociim ose gjykatë.",
+          "requires_escalation_agreement": "Ruaje marrëveshjen e pranuar të përshkallëzimit përpara se ta kalosh këtë rast në negociim ose gjykatë.",
+          "requires_collection_path": "Ruaje rrugën e mbledhjes së tarifës së suksesit përpara se ta kalosh këtë rast të pranuar në negociim ose gjykatë.",
+          "allowance_override_reason": "Arsyeja e tejkalimit të kuotës",
+          "allowance_override_description": "Nëse anëtari e ka shteruar kuotën vjetore të rasteve, regjistro këtu arsyen e brendshme të tejkalimit ose përmirëso mbulimin përpara se të fillojë rikuperimi i drejtuar nga stafi.",
+          "allowance_override_placeholder": "Shpjego pse rikuperimi duhet të fillojë pavarësisht kuotës së shteruar...",
+          "save": "Përditëso rastin"
+        }
       },
       "triage": {
         "title": "Veprimet e Triage",

@@ -1,6 +1,10 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildCommercialHandlingScopeSnapshot } from '@interdomestik/domain-claims/staff-claims/commercial-handling-scope';
+import enAgentClaims from '@/messages/en/agent-claims.json';
+import enClaimsTracking from '@/messages/en/claims-tracking.json';
+import sqAgentClaims from '@/messages/sq/agent-claims.json';
+import sqClaimsTracking from '@/messages/sq/claims-tracking.json';
 import { ClaimActionPanel } from './claim-action-panel';
 
 const routerMocks = vi.hoisted(() => ({
@@ -8,6 +12,7 @@ const routerMocks = vi.hoisted(() => ({
 }));
 
 const actionMocks = vi.hoisted(() => ({
+  locale: 'en',
   assignClaim: vi.fn().mockResolvedValue({ success: true }),
   saveRecoveryDecision: vi.fn().mockResolvedValue({ success: true }),
   saveClaimEscalationAgreement: vi.fn().mockResolvedValue({ success: true }),
@@ -27,6 +32,47 @@ vi.mock('next/navigation', () => ({
     refresh: routerMocks.refresh,
   }),
 }));
+
+vi.mock('next-intl', () => ({
+  useTranslations: (namespace?: string) => {
+    return (key: string, values?: Record<string, string | number>) => {
+      const locale = actionMocks.locale;
+      const messageCatalog =
+        locale === 'sq'
+          ? {
+              'agent-claims': sqAgentClaims['agent-claims'],
+              'claims-tracking': sqClaimsTracking['claims-tracking'],
+            }
+          : {
+              'agent-claims': enAgentClaims['agent-claims'],
+              'claims-tracking': enClaimsTracking['claims-tracking'],
+            };
+
+      const path = [...(namespace ? namespace.split('.') : []), ...key.split('.')];
+      const template = resolveMessage(messageCatalog, path) ?? key;
+
+      if (!values) return template;
+      return Object.entries(values).reduce(
+        (result, [name, value]) => result.replace(`{${name}}`, String(value)),
+        template
+      );
+    };
+  },
+}));
+
+function resolveMessage(source: Record<string, unknown>, path: string[]): string | undefined {
+  let current: unknown = source;
+
+  for (const segment of path) {
+    if (!current || typeof current !== 'object' || !(segment in current)) {
+      return undefined;
+    }
+
+    current = (current as Record<string, unknown>)[segment];
+  }
+
+  return typeof current === 'string' ? current : undefined;
+}
 
 vi.mock('@/actions/staff-claims.core', () => ({
   assignClaim: actionMocks.assignClaim,
@@ -57,6 +103,7 @@ vi.mock('@interdomestik/ui', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  actionMocks.locale = 'en';
   actionMocks.assignClaim.mockResolvedValue({ success: true });
   actionMocks.saveRecoveryDecision.mockResolvedValue({ success: true });
   actionMocks.saveClaimEscalationAgreement.mockResolvedValue({ success: true });
@@ -185,6 +232,20 @@ describe('ClaimActionPanel', () => {
     await waitFor(() => {
       expect(actionMocks.assignClaim).toHaveBeenCalledWith('claim-1', 'staff-other');
     });
+  });
+
+  it('localizes visible action-panel copy on non-English routes', () => {
+    actionMocks.locale = 'sq';
+
+    renderPanel();
+
+    expect(screen.getByText('Veprimet e stafit')).toBeInTheDocument();
+    expect(screen.getByText('Caktimi')).toBeInTheDocument();
+    expect(screen.getByLabelText('Cakto rastin')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ruaj caktimin' })).toBeInTheDocument();
+    expect(screen.getByText('Vendimi i rikuperimit')).toBeInTheDocument();
+    expect(screen.getByText('Prano çështjen e rikuperimit')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Shpjegimi i vendimit/)).toBeInTheDocument();
   });
 
   it('renders commercial timestamps in deterministic UTC text', () => {

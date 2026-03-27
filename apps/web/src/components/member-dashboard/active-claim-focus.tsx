@@ -49,13 +49,16 @@ export async function ActiveClaimFocus({
       return stageLabel;
     }
   })();
+  const showSeparateStatusLine =
+    localizedStatus.trim().toLocaleLowerCase(locale) !==
+    localizedStage.trim().toLocaleLowerCase(locale);
 
   return (
     <section data-testid="member-active-claim">
       <h2>{tDashboard('active_claim_title')}</h2>
       <p>{claimNumber ?? '—'}</p>
       <p>{localizedStage}</p>
-      <p>{localizedStatus}</p>
+      {showSeparateStatusLine ? <p>{localizedStatus}</p> : null}
       <p>
         {tDashboard('updated_label')}: {localizedUpdatedAt}
       </p>
