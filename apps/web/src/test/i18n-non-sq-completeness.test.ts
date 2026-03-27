@@ -14,7 +14,7 @@ describe('Non-SQ locale completeness', () => {
   ] as const;
 
   it('keeps shared common queue labels available in every pilot locale', () => {
-    for (const [locale, common] of locales) {
+    for (const [, common] of locales) {
       for (const key of requiredCommonKeys) {
         expect(common).toHaveProperty(key);
         expect(common[key]).toBeTruthy();

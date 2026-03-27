@@ -1,8 +1,8 @@
 function getOriginOrNull(): string | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof globalThis.window === 'undefined') return null;
 
   try {
-    return window.location.origin;
+    return globalThis.window.location.origin;
   } catch {
     return null;
   }
@@ -37,7 +37,7 @@ export function normalizeWhatsAppShareUrl(
 
     parsedShareUrl.searchParams.set(
       'text',
-      rawText.replace(/https?:\/\/[^\s]+/g, candidate =>
+      rawText.replaceAll(/https?:\/\/[^\s]+/g, candidate =>
         normalizePublicLink(candidate, currentOrigin)
       )
     );

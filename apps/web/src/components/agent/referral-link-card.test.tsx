@@ -1,6 +1,15 @@
 import { getAgentReferralLink } from '@/actions/referrals';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  MockButton,
+  MockCard,
+  MockCardContent,
+  MockCardHeader,
+  MockCardTitle,
+  MockInput,
+  MockSkeleton,
+} from '@/test/referral-card-test-mocks';
 
 import { ReferralLinkCard } from './referral-link-card';
 
@@ -14,35 +23,22 @@ vi.mock('@/lib/public-links', () => ({
 }));
 
 vi.mock('@interdomestik/ui/components/button', () => ({
-  Button: ({
-    children,
-    ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement> & { children: React.ReactNode }) => (
-    <button {...props}>{children}</button>
-  ),
+  Button: MockButton,
 }));
 
 vi.mock('@interdomestik/ui/components/card', () => ({
-  Card: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <div {...props}>{children}</div>
-  ),
-  CardContent: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <div {...props}>{children}</div>
-  ),
-  CardHeader: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <div {...props}>{children}</div>
-  ),
-  CardTitle: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-    <h2 {...props}>{children}</h2>
-  ),
+  Card: MockCard,
+  CardContent: MockCardContent,
+  CardHeader: MockCardHeader,
+  CardTitle: MockCardTitle,
 }));
 
 vi.mock('@interdomestik/ui/components/input', () => ({
-  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+  Input: MockInput,
 }));
 
 vi.mock('@interdomestik/ui/components/skeleton', () => ({
-  Skeleton: (props: React.HTMLAttributes<HTMLDivElement>) => <div {...props} />,
+  Skeleton: MockSkeleton,
 }));
 
 vi.mock('next-intl', () => ({
@@ -86,6 +82,8 @@ describe('ReferralLinkCard', () => {
         code: 'STEFAN-GMV1SU',
         link: 'http://localhost:3000?ref=STEFAN-GMV1SU',
       },
+      error: undefined,
+      fieldErrors: undefined,
     });
   });
 
