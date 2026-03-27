@@ -1,5 +1,17 @@
 {
   "admin": {
+    "overview_page": {
+      "title": "Admin Overview",
+      "description": "Monitor system health, claim volume, and branch load across the admin surface.",
+      "kpis_total_members": "Total Members",
+      "kpis_total_agents": "Total Agents",
+      "kpis_total_active_claims": "Total Active Claims",
+      "kpis_claims_updated_24h": "Claims Updated (24h)",
+      "claims_by_stage": "Claims by Stage",
+      "claims_by_branch": "Claims by Branch",
+      "no_active_claims": "No active claims",
+      "no_branch_accumulation": "No branch activity yet"
+    },
     "dashboard": {
       "title": "Admin Dashboard",
       "recent_activity": "Recent Activity",

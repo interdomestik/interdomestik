@@ -16,7 +16,43 @@
       "add_agent_success": "Agent added",
       "add_agent_success_desc": "User successfully promoted to agent.",
       "add_agent_error": "Error adding agent",
-      "unexpected_error": "An unexpected error occurred."
+      "unexpected_error": "An unexpected error occurred.",
+      "roles_panel": {
+        "title": "Roles",
+        "description": "Tenant-scoped roles for this user.",
+        "missing_tenant": "Missing tenant context. Reopen this profile from the tenant user list.",
+        "role_label": "Role",
+        "role_placeholder": "Select role",
+        "custom_role": "Custom…",
+        "custom_role_placeholder": "role_name",
+        "branch_label": "Branch",
+        "tenant_wide": "Tenant-wide",
+        "grant_role": "Grant role",
+        "new_branch_name": "New branch name",
+        "new_branch_code": "New branch code (optional)",
+        "create_branch": "Create branch",
+        "remove": "Remove",
+        "empty": "No roles assigned",
+        "table": {
+          "role": "Role",
+          "branch": "Branch",
+          "actions": "Actions"
+        },
+        "toasts": {
+          "tenant_required": "Tenant context is required to manage roles",
+          "role_required": "Role is required",
+          "branch_required": "Branch is required for this role. Please select a branch.",
+          "load_branches_error": "Failed to load branches",
+          "load_roles_error": "Failed to load roles",
+          "role_granted": "Role granted",
+          "grant_error": "Failed to grant role",
+          "role_revoked": "Role revoked",
+          "revoke_error": "Failed to revoke role",
+          "branch_name_required": "Branch name is required",
+          "branch_created": "Branch created",
+          "branch_create_error": "Failed to create branch"
+        }
+      }
     },
     "users_filters": {
       "search_placeholder": "Search by name or email",
@@ -47,6 +83,8 @@
       "headers": {
         "user": "User",
         "role": "Role",
+        "member_id": "Member ID",
+        "identity_id": "Member / Account ID",
         "assigned_agent": "Assigned Agent",
         "joined": "Joined"
       },
@@ -60,10 +98,16 @@
     "member_profile": {
       "actions": {
         "back": "Back to users",
-        "view_claim": "View claim"
+        "view_claim": "View claim",
+        "resend_welcome_email": "Resend Welcome Email",
+        "resend_welcome_email_sending": "Sending...",
+        "resend_welcome_email_success": "Welcome email sent successfully!",
+        "resend_welcome_email_error": "Failed to send email",
+        "unexpected_error": "An unexpected error occurred"
       },
       "sections": {
         "membership": "Membership",
+        "account": "Account",
         "agent": "Assigned agent",
         "preferences": "Notification preferences",
         "claims_overview": "Claims overview",
@@ -71,10 +115,13 @@
       },
       "labels": {
         "member_id": "Member ID",
+        "account_id": "Account ID",
         "joined": "Joined",
         "email_verified_yes": "Email verified",
         "email_verified_no": "Email not verified",
         "status": "Status",
+        "account_type": "Account type",
+        "role_scope": "Role scope",
         "plan": "Plan",
         "period_end": "Period end",
         "cancel_at_period_end": "Cancel at period end",
@@ -82,14 +129,17 @@
         "preferences_unset": "Preferences not set",
         "no_claims": "No claims yet",
         "unknown": "Unknown",
-        "not_set": "Not set"
+        "not_set": "Not set",
+        "not_applicable": "Not applicable"
       },
       "status": {
         "active": "Active",
         "past_due": "Past due",
         "paused": "Paused",
         "canceled": "Canceled",
-        "none": "Not subscribed"
+        "none": "Not subscribed",
+        "registered": "Registered member",
+        "operator": "Operational account"
       },
       "preferences": {
         "email_claims": "Email claim updates",

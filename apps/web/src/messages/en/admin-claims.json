@@ -196,6 +196,16 @@
           "unexpected_error": "An unexpected error occurred"
         }
       },
+      "status_modal": {
+        "title": "Update Claim Status",
+        "description": "Select the new status for this claim. This action will be logged.",
+        "placeholder": "Select new status...",
+        "cancel": "Cancel",
+        "confirm": "Confirm Update",
+        "success": "Status updated successfully",
+        "error": "Failed to update status",
+        "unexpected_error": "An unexpected error occurred"
+      },
       "evidence": {
         "title": "Evidence",
         "upload_button": "Upload",

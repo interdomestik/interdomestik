@@ -26,6 +26,7 @@ vi.mock('next-intl', () => ({
     const translations: Record<string, string> = {
       'headers.user': 'User',
       'headers.role': 'Role',
+      'headers.identity_id': 'Member / Account ID',
       'headers.assigned_agent': 'Assigned Agent',
       'headers.joined': 'Joined',
       view_profile: 'View Profile',
@@ -111,6 +112,7 @@ const mockUsers = [
     createdAt: new Date('2024-01-15'),
     unreadCount: 3,
     alertLink: '/admin/claims/claim-1?foo=bar',
+    memberNumber: 'MEM-2026-000001',
   },
   {
     id: 'user-2',
@@ -120,6 +122,7 @@ const mockUsers = [
     image: null,
     agentId: null,
     createdAt: new Date('2024-01-10'),
+    memberNumber: null,
   },
 ];
 
@@ -179,8 +182,16 @@ describe('UsersTable', () => {
 
     expect(screen.getByText('User')).toBeInTheDocument();
     expect(screen.getByText('Role')).toBeInTheDocument();
+    expect(screen.getByText('Member / Account ID')).toBeInTheDocument();
     expect(screen.getByText('Assigned Agent')).toBeInTheDocument();
     expect(screen.getByText('Joined')).toBeInTheDocument();
+  });
+
+  it('shows member numbers for membership-backed rows and account ids for operator rows', () => {
+    render(<UsersTable users={mockUsers} agents={mockAgents} />);
+
+    expect(screen.getByText('MEM-2026-000001')).toBeInTheDocument();
+    expect(screen.getByText('user-2')).toBeInTheDocument();
   });
 
   it('renders user names', () => {

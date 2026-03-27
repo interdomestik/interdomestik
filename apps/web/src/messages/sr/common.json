@@ -15,6 +15,7 @@
     "search": "Pretraga",
     "filter": "Filtriraj",
     "all": "Sve",
+    "no_results": "Nema rezultata.",
     "none": "Nijedno",
     "yes": "Da",
     "no": "Ne",
@@ -32,8 +33,13 @@
     "roles": {
       "admin": "Admin",
       "agent": "Zastupnik",
+      "member": "Član",
       "staff": "Osoblje",
-      "user": "Član"
+      "user": "Član",
+      "super_admin": "Glavni administrator",
+      "tenant_admin": "Administrator tenant-a",
+      "branch_manager": "Menadžer filijale",
+      "promoter": "Promoter mreže"
     },
     "errors": {
       "title": "Greška",

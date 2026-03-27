@@ -16,7 +16,43 @@
       "add_agent_success": "Agent je dodat",
       "add_agent_success_desc": "Korisnik je uspešno unapređen u agenta.",
       "add_agent_error": "Greška pri dodavanju agenta",
-      "unexpected_error": "Došlo je do neočekivane greške."
+      "unexpected_error": "Došlo je do neočekivane greške.",
+      "roles_panel": {
+        "title": "Uloge",
+        "description": "Uloge u okviru tenant-a za ovog korisnika.",
+        "missing_tenant": "Nedostaje tenant kontekst. Ponovo otvorite ovaj profil sa liste korisnika tenant-a.",
+        "role_label": "Uloga",
+        "role_placeholder": "Izaberi ulogu",
+        "custom_role": "Prilagođena…",
+        "custom_role_placeholder": "ime_uloge",
+        "branch_label": "Filijala",
+        "tenant_wide": "Na nivou tenant-a",
+        "grant_role": "Dodeli ulogu",
+        "new_branch_name": "Naziv nove filijale",
+        "new_branch_code": "Kod nove filijale (opciono)",
+        "create_branch": "Kreiraj filijalu",
+        "remove": "Ukloni",
+        "empty": "Nema dodeljenih uloga",
+        "table": {
+          "role": "Uloga",
+          "branch": "Filijala",
+          "actions": "Akcije"
+        },
+        "toasts": {
+          "tenant_required": "Tenant kontekst je potreban za upravljanje ulogama",
+          "role_required": "Uloga je obavezna",
+          "branch_required": "Filijala je obavezna za ovu ulogu. Izaberite filijalu.",
+          "load_branches_error": "Učitavanje filijala nije uspelo",
+          "load_roles_error": "Učitavanje uloga nije uspelo",
+          "role_granted": "Uloga je dodeljena",
+          "grant_error": "Dodela uloge nije uspela",
+          "role_revoked": "Uloga je uklonjena",
+          "revoke_error": "Uklanjanje uloge nije uspelo",
+          "branch_name_required": "Naziv filijale je obavezan",
+          "branch_created": "Filijala je kreirana",
+          "branch_create_error": "Kreiranje filijale nije uspelo"
+        }
+      }
     },
     "users_filters": {
       "search_placeholder": "Pretraži po imenu ili e-pošti",
@@ -47,6 +83,8 @@
       "headers": {
         "user": "Korisnik",
         "role": "Uloga",
+        "member_id": "ID člana",
+        "identity_id": "ID člana / naloga",
         "assigned_agent": "Dodeljeni agent",
         "joined": "Pridružen"
       },
@@ -60,10 +98,16 @@
     "member_profile": {
       "actions": {
         "back": "Nazad na korisnike",
-        "view_claim": "Prikaži zahtev"
+        "view_claim": "Prikaži zahtev",
+        "resend_welcome_email": "Pošalji ponovo imejl dobrodošlice",
+        "resend_welcome_email_sending": "Slanje u toku...",
+        "resend_welcome_email_success": "Imejl dobrodošlice je uspešno poslat!",
+        "resend_welcome_email_error": "Slanje imejla nije uspelo",
+        "unexpected_error": "Došlo je do neočekivane greške"
       },
       "sections": {
         "membership": "Članstvo",
+        "account": "Nalog",
         "agent": "Dodeljeni agent",
         "preferences": "Podešavanja obaveštenja",
         "claims_overview": "Pregled zahteva",
@@ -71,10 +115,13 @@
       },
       "labels": {
         "member_id": "ID člana",
+        "account_id": "ID naloga",
         "joined": "Pridružen",
         "email_verified_yes": "E-pošta potvrđena",
         "email_verified_no": "E-pošta nije potvrđena",
         "status": "Stanje",
+        "account_type": "Tip naloga",
+        "role_scope": "Opseg uloge",
         "plan": "Paket",
         "period_end": "Kraj perioda",
         "cancel_at_period_end": "Otkaži na kraju perioda",
@@ -82,14 +129,17 @@
         "preferences_unset": "Podešavanja nisu postavljena",
         "no_claims": "Još nema zahteva",
         "unknown": "Nepoznato",
-        "not_set": "Nije postavljeno"
+        "not_set": "Nije postavljeno",
+        "not_applicable": "Nije primenljivo"
       },
       "status": {
         "active": "Aktivan",
         "past_due": "U kašnjenju",
         "paused": "Pauziran",
         "canceled": "Otkazan",
-        "none": "Nije pretplaćen"
+        "none": "Nije pretplaćen",
+        "registered": "Registrovani član",
+        "operator": "Operativni nalog"
       },
       "preferences": {
         "email_claims": "E-pošta ažuriranja zahteva",

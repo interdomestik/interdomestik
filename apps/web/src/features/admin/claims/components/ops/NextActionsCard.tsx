@@ -19,14 +19,14 @@ import { NextActionPrimary } from './NextActionPrimary';
 import { NextActionSecondary } from './NextActionSecondary';
 import { OpsStatusUpdateModal } from './OpsStatusUpdateModal';
 
-interface NextActionsCardProps {
+type NextActionsCardProps = Readonly<{
   claim: ClaimOpsDetail;
   nextActions: NextActionsResult;
   locale: string;
   currentUserId: string;
   allStaff: { id: string; name: string | null; email: string }[];
   onAction?: (actionType: string) => void;
-}
+}>;
 
 export function NextActionsCard({
   claim,
@@ -54,6 +54,7 @@ export function NextActionsCard({
       if (!result.success) {
         toast.error(result.error || t('toast.failed'));
       } else {
+        globalThis.location.reload();
         toast.success(t('toast.completed'));
       }
     });
@@ -93,6 +94,7 @@ export function NextActionsCard({
         if (result && !result.success) {
           toast.error(result.error || t('toast.failed'));
         } else if (result && result.success) {
+          globalThis.location.reload();
           toast.success(t('toast.completed'));
         }
       } catch {
@@ -108,6 +110,7 @@ export function NextActionsCard({
       if (!result.success) {
         toast.error(result.error || t('toast.failed'));
       } else {
+        globalThis.location.reload();
         toast.success(t('toast.completed'));
       }
     });

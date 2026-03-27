@@ -19,7 +19,7 @@ const LOCALE_MAP: Record<string, string> = {
   en: 'en-US',
   sq: 'sq-AL',
   mk: 'mk-MK',
-  sr: 'sr-RS',
+  sr: 'sr-Latn-RS',
 };
 
 export function AdminPageHeader({
@@ -34,10 +34,9 @@ export function AdminPageHeader({
 
   const today = new Date();
   const formattedDate = new Intl.DateTimeFormat(intlLocale, {
-    weekday: 'long',
     year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   }).format(today);
 
   return (

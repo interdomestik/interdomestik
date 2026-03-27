@@ -9,9 +9,11 @@ export async function UserProfileHeader({
   member,
   membershipStatus,
   membershipBadgeClass,
+  isMembershipProfile,
 }: {
   member: {
     id: string;
+    memberNumber?: string | null;
     name: string | null;
     email: string;
     image: string | null;
@@ -21,6 +23,7 @@ export async function UserProfileHeader({
   };
   membershipStatus: string;
   membershipBadgeClass: string;
+  isMembershipProfile: boolean;
 }) {
   const t = await getTranslations('admin.member_profile');
   const tCommon = await getTranslations('common');
@@ -40,7 +43,7 @@ export async function UserProfileHeader({
               <h1 className="text-2xl font-semibold">{member.name || t('labels.unknown')}</h1>
               <Badge variant="outline">{getRoleLabel(tCommon, member.role)}</Badge>
               <Badge className={membershipBadgeClass} variant="outline">
-                {t(`status.${membershipStatus}`)}
+                {t(`status.${isMembershipProfile ? membershipStatus : 'operator'}`)}
               </Badge>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
@@ -59,8 +62,10 @@ export async function UserProfileHeader({
         </div>
         <div className="grid gap-2 text-sm text-muted-foreground">
           <div>
-            <span className="font-medium text-foreground">{t('labels.member_id')}:</span>{' '}
-            {member.id}
+            <span className="font-medium text-foreground">
+              {t(isMembershipProfile ? 'labels.member_id' : 'labels.account_id')}:
+            </span>{' '}
+            {member.memberNumber || member.id}
           </div>
           <div>
             <span className="font-medium text-foreground">{t('labels.joined')}:</span>{' '}

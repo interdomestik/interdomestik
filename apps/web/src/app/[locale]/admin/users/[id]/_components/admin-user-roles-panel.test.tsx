@@ -30,6 +30,10 @@ vi.mock('next/navigation', () => ({
   useParams: () => ({ locale: 'en' }),
 }));
 
+vi.mock('@/lib/roles-i18n', () => ({
+  getRoleLabel: vi.fn((_tCommon: unknown, role: string) => `role:${role}`),
+}));
+
 vi.mock('sonner', () => ({
   toast: {
     error: vi.fn(),
@@ -89,7 +93,7 @@ describe('AdminUserRolesPanel', () => {
       expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(1);
     });
 
-    const grantButton = screen.getByRole('button', { name: 'Grant role' });
+    const grantButton = screen.getByRole('button', { name: 'grant_role' });
     await waitFor(() => {
       expect(grantButton).toBeEnabled();
     });
@@ -102,17 +106,18 @@ describe('AdminUserRolesPanel', () => {
         role: 'member',
         branchId: undefined,
         locale: 'en',
+        allowLegacyTenantWide: false,
       });
       expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(2);
       expect(navigationMocks.refresh).toHaveBeenCalledTimes(1);
-      expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'remove' })).toBeInTheDocument();
     });
 
     rendered.unmount();
     render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
     await waitFor(() => {
       expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(3);
-      expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'remove' })).toBeInTheDocument();
     });
   });
 
@@ -129,7 +134,7 @@ describe('AdminUserRolesPanel', () => {
       <AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />
     );
 
-    const removeButton = await screen.findByRole('button', { name: 'Remove' });
+    const removeButton = await screen.findByRole('button', { name: 'remove' });
     fireEvent.click(removeButton);
 
     await waitFor(() => {
@@ -142,7 +147,7 @@ describe('AdminUserRolesPanel', () => {
       });
       expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(2);
       expect(navigationMocks.refresh).toHaveBeenCalledTimes(1);
-      expect(screen.getByText('No roles assigned')).toBeInTheDocument();
+      expect(screen.getByText('empty')).toBeInTheDocument();
     });
 
     rendered.unmount();
@@ -150,8 +155,8 @@ describe('AdminUserRolesPanel', () => {
 
     await waitFor(() => {
       expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(3);
-      expect(screen.getByText('No roles assigned')).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument();
+      expect(screen.getByText('empty')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'remove' })).not.toBeInTheDocument();
     });
   });
 
@@ -160,16 +165,14 @@ describe('AdminUserRolesPanel', () => {
 
     render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
 
-    expect(
-      screen.getByText('Missing tenant context. Reopen this profile from the tenant user list.')
-    ).toBeInTheDocument();
+    expect(screen.getByText('missing_tenant')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(rbacMocks.listBranches).not.toHaveBeenCalled();
       expect(rbacMocks.listUserRoles).not.toHaveBeenCalled();
     });
 
-    const grantButton = screen.getByRole('button', { name: 'Grant role' });
+    const grantButton = screen.getByRole('button', { name: 'grant_role' });
     expect(grantButton).toBeDisabled();
     fireEvent.click(grantButton);
 
@@ -189,12 +192,60 @@ describe('AdminUserRolesPanel', () => {
     fireEvent.click(screen.getByTestId('role-select-trigger'));
     fireEvent.click(screen.getByTestId('role-option-agent'));
 
-    const grantButton = screen.getByRole('button', { name: 'Grant role' });
+    const grantButton = screen.getByRole('button', { name: 'grant_role' });
     expect(grantButton).toBeDisabled();
     fireEvent.click(grantButton);
 
     await waitFor(() => {
       expect(rbacMocks.grantUserRole).not.toHaveBeenCalled();
+    });
+  });
+
+  it('allows restoring a legacy tenant-wide agent role without forcing branch selection', async () => {
+    rbacMocks.listUserRoles
+      .mockResolvedValueOnce({
+        success: true,
+        data: [{ id: 'legacy-agent', role: 'agent', branchId: null }],
+      })
+      .mockResolvedValueOnce({ success: true, data: [] })
+      .mockResolvedValueOnce({
+        success: true,
+        data: [{ id: 'legacy-agent-restored', role: 'agent', branchId: null }],
+      });
+
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
+
+    const removeButton = await screen.findByRole('button', { name: 'remove' });
+    fireEvent.click(removeButton);
+
+    await waitFor(() => {
+      expect(rbacMocks.revokeUserRole).toHaveBeenCalledWith({
+        tenantId: 'tenant_xk',
+        userId: 'user-1',
+        role: 'agent',
+        branchId: undefined,
+        locale: 'en',
+      });
+    });
+
+    fireEvent.click(screen.getByTestId('role-select-trigger'));
+    fireEvent.click(screen.getByTestId('role-option-agent'));
+
+    const grantButton = screen.getByRole('button', { name: 'grant_role' });
+    await waitFor(() => {
+      expect(grantButton).toBeEnabled();
+    });
+    fireEvent.click(grantButton);
+
+    await waitFor(() => {
+      expect(rbacMocks.grantUserRole).toHaveBeenCalledWith({
+        tenantId: 'tenant_xk',
+        userId: 'user-1',
+        role: 'agent',
+        branchId: undefined,
+        locale: 'en',
+        allowLegacyTenantWide: true,
+      });
     });
   });
 
@@ -209,5 +260,47 @@ describe('AdminUserRolesPanel', () => {
 
     // Contract: staff role must be grantable/revokable for P2.5.
     expect(screen.getByTestId('role-option-staff')).toBeInTheDocument();
+  });
+
+  it('renders tenant-wide label instead of an empty dash for null branch roles', async () => {
+    rbacMocks.listUserRoles.mockResolvedValueOnce({
+      success: true,
+      data: [{ id: 'role-1', role: 'agent', branchId: null }],
+    });
+
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('tenant_wide')).toBeInTheDocument();
+      expect(screen.queryByText('—')).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders localized role labels instead of raw role ids', async () => {
+    rbacMocks.listUserRoles.mockResolvedValueOnce({
+      success: true,
+      data: [{ id: 'role-1', role: 'agent', branchId: null }],
+    });
+
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('role:agent').length).toBeGreaterThan(0);
+      expect(screen.queryByText(/^agent$/)).not.toBeInTheDocument();
+    });
+  });
+
+  it('enables create branch only when a branch name is provided', async () => {
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
+
+    const createButton = screen.getByRole('button', { name: 'create_branch' });
+    expect(createButton).toBeDisabled();
+
+    const branchNameInput = screen.getAllByRole('textbox')[0];
+    fireEvent.change(branchNameInput, { target: { value: 'New Branch' } });
+
+    await waitFor(() => {
+      expect(createButton).toBeEnabled();
+    });
   });
 });

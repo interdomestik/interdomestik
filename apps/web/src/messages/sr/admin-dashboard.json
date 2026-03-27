@@ -1,5 +1,17 @@
 {
   "admin": {
+    "overview_page": {
+      "title": "Pregled administratora",
+      "description": "Prati stanje sistema, obim zahteva i opterećenje ogranaka na celoj administratorskoj površini.",
+      "kpis_total_members": "Ukupno članova",
+      "kpis_total_agents": "Ukupno agenata",
+      "kpis_total_active_claims": "Ukupno aktivnih zahteva",
+      "kpis_claims_updated_24h": "Ažurirani zahtevi (24h)",
+      "claims_by_stage": "Zahtevi po fazi",
+      "claims_by_branch": "Zahtevi po ogranku",
+      "no_active_claims": "Nema aktivnih zahteva",
+      "no_branch_accumulation": "Još nema aktivnosti po ograncima"
+    },
     "dashboard": {
       "title": "Admin kontrolna tabla",
       "recent_activity": "Nedavne aktivnosti",
