@@ -238,7 +238,7 @@
         "empty": "Nema zabeleženih aktivnosti."
       },
       "status_form": {
-        "placeholder": "Status",
+        "placeholder": "Odaberi status",
         "success": "Status je uspešno ažuriran",
         "error": "Ažuriranje statusa nije uspelo"
       },

@@ -74,7 +74,7 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
         const result = await getMemberReferralCardData();
 
         if (!result.success) {
-          setError(result.error);
+          setError(t('loadError'));
           return;
         }
 
@@ -140,7 +140,7 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">{error ?? t('loadError')}</p>
+          <p className="text-sm text-muted-foreground">{error}</p>
         </CardContent>
       </Card>
     );
