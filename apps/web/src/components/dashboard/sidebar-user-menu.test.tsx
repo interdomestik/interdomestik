@@ -41,7 +41,18 @@ vi.mock('@/lib/auth/logout', () => ({
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'sq',
-  useTranslations: () => (key: string) => key,
+  useTranslations: (namespace?: string) => (key: string) => {
+    if (namespace === 'common') {
+      const common: Record<string, string> = {
+        'roles.agent': 'Agjent',
+        'roles.member': 'Anëtar',
+      };
+
+      return common[key] ?? key;
+    }
+
+    return key;
+  },
 }));
 
 vi.mock('@interdomestik/ui', () => ({
@@ -133,7 +144,27 @@ describe('SidebarUserMenu', () => {
 
     render(<SidebarUserMenu />);
 
-    expect(screen.getByText('memberRole')).toBeInTheDocument();
+    expect(screen.getByText('Anëtar')).toBeInTheDocument();
     expect(screen.queryByText(/^member$/)).not.toBeInTheDocument();
+  });
+
+  it('localizes non-member role labels instead of showing raw backend roles', () => {
+    vi.mocked(authClient.useSession).mockReturnValue({
+      data: {
+        user: {
+          name: 'Agent User',
+          email: 'agent.ks.a1@interdomestik.com',
+          role: 'agent',
+          image: null,
+        },
+      },
+      isPending: false,
+      error: null,
+    } as unknown as ReturnType<typeof authClient.useSession>);
+
+    render(<SidebarUserMenu />);
+
+    expect(screen.getByText('Agjent')).toBeInTheDocument();
+    expect(screen.queryByText(/^agent$/)).not.toBeInTheDocument();
   });
 });

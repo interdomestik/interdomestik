@@ -1,5 +1,6 @@
 import { getAdminOverviewData } from '@/features/admin/overview/server/get-admin-overview-data';
 import { getSessionSafe } from '@/components/shell/session';
+import { localizeSeededBranchName } from '@/lib/localize-seeded-branch-name';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
@@ -105,7 +106,7 @@ export default async function AdminOverviewPage({
                 className="flex items-center justify-between text-sm"
                 data-testid="admin-overview-branch-row"
               >
-                <span>{item.branchName}</span>
+                <span>{localizeSeededBranchName(item.branchName, locale)}</span>
                 <span className="font-medium">{item.count}</span>
               </div>
             ))}

@@ -8,6 +8,13 @@ vi.mock('@/actions/member-referrals', () => ({
   getMemberReferralCardData: vi.fn(),
 }));
 
+vi.mock('@/lib/public-links', () => ({
+  normalizePublicLink: (link: string) =>
+    link.replace('http://localhost:3000', 'http://ks.127.0.0.1.nip.io:3000'),
+  normalizeWhatsAppShareUrl: (shareUrl: string) =>
+    shareUrl.replace('http%3A%2F%2Flocalhost%3A3000', 'http%3A%2F%2Fks.127.0.0.1.nip.io%3A3000'),
+}));
+
 vi.mock('@interdomestik/ui/components/button', () => ({
   Button: ({
     children,
@@ -95,8 +102,9 @@ describe('ReferralCard', () => {
     vi.mocked(getMemberReferralCardData).mockResolvedValue({
       success: true,
       data: {
-        link: 'https://example.test/ref/ABC123',
-        whatsappShareUrl: 'https://wa.me/?text=abc',
+        link: 'http://localhost:3000?ref=ABC123',
+        whatsappShareUrl:
+          'https://wa.me/?text=Join%20Asistenca%20with%20my%20referral%20link%20http%3A%2F%2Flocalhost%3A3000%3Fref%3DABC123',
         stats: {
           totalReferred: 3,
           pendingRewards: 10,
@@ -125,7 +133,9 @@ describe('ReferralCard', () => {
     render(<ReferralCard />);
 
     expect(await screen.findByText('Invite Friends & Earn')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('https://example.test/ref/ABC123')).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue('http://ks.127.0.0.1.nip.io:3000?ref=ABC123')
+    ).toBeInTheDocument();
     expect(screen.getByText('Friends Invited')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText(/25.00%/)).toBeInTheDocument();
@@ -139,9 +149,24 @@ describe('ReferralCard', () => {
     fireEvent.click(copyButton);
 
     await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('https://example.test/ref/ABC123');
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        'http://ks.127.0.0.1.nip.io:3000?ref=ABC123'
+      );
     });
     expect(toastSuccess).toHaveBeenCalledWith('Link copied!');
+  });
+
+  it('normalizes the shared referral URL before opening WhatsApp share', async () => {
+    render(<ReferralCard />);
+
+    const shareButton = await screen.findByRole('button', { name: 'Share referral link' });
+    fireEvent.click(shareButton);
+
+    expect(window.open).toHaveBeenCalledWith(
+      'https://wa.me/?text=Join%20Asistenca%20with%20my%20referral%20link%20http%3A%2F%2Fks.127.0.0.1.nip.io%3A3000%3Fref%3DABC123',
+      '_blank',
+      'noopener,noreferrer'
+    );
   });
 
   it('does not load member referral data for agent viewers on the member surface', () => {

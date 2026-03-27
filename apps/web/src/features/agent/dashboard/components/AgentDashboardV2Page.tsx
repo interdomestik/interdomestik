@@ -7,6 +7,7 @@ import { ReferralLinkCard } from '@/components/agent/referral-link-card';
 import { MatteAnchorCard } from '@/components/dashboard/matte-anchor-card';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
+import { localizeSeededBranchName } from '@/lib/localize-seeded-branch-name';
 import { db } from '@interdomestik/database/db';
 import {
   Button,
@@ -79,7 +80,7 @@ export async function AgentDashboardV2Page({
                 {t('dashboardV2.assignedBranch')}:
               </span>
               <span className="text-xs font-bold" data-testid="agent-branch-context">
-                {branch.name}
+                {localizeSeededBranchName(branch.name, locale)}
               </span>
             </div>
           )}
