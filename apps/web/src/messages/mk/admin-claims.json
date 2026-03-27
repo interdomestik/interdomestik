@@ -22,7 +22,8 @@
         "copy_canonical_link": "Копирај канонски системски линк",
         "claim_number_link": "Линк за број на барање",
         "canonical_url": "Канонски URL",
-        "copy_failed": "Неуспешно копирање на линк"
+        "copy_failed": "Неуспешно копирање на линк",
+        "copy_success": "{label} е копиран во таблата со исечоци"
       },
       "message_alert": "Нова порака ({count})",
       "table": {

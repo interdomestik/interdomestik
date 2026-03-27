@@ -75,7 +75,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
       return;
     }
 
-    toast.success(`${label} copied to clipboard`);
+    toast.success(tHeader('copy_success', { label }));
   };
 
   const domain = typeof window !== 'undefined' ? window.location.origin : '';

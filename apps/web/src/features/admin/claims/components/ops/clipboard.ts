@@ -6,8 +6,12 @@ export async function copyText(text: string): Promise<boolean> {
     navigator.clipboard?.writeText &&
     window.isSecureContext
   ) {
-    await navigator.clipboard.writeText(text);
-    return true;
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall back to a manual copy path on permission or runtime failures.
+    }
   }
 
   if (typeof document === 'undefined') {

@@ -199,7 +199,7 @@ function revalidateAdminEvidencePaths(claimId: string) {
 export async function generateAdminUploadUrl(
   claimId: string,
   fileName: string,
-  contentType: string,
+  _contentType: string,
   fileSize: number
 ): Promise<GenerateAdminUploadUrlResult> {
   const uploadContext = await resolveAdminUploadContext();

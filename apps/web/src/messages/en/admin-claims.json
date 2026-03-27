@@ -22,7 +22,8 @@
         "copy_canonical_link": "Copy canonical system link",
         "claim_number_link": "Claim number link",
         "canonical_url": "Canonical URL",
-        "copy_failed": "Failed to copy link"
+        "copy_failed": "Failed to copy link",
+        "copy_success": "{label} copied to clipboard"
       },
       "message_alert": "New message ({count})",
       "table": {

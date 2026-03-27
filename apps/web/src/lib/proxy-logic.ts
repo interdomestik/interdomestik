@@ -38,9 +38,17 @@ function getSessionCookieValue(request: NextRequest): string | null {
   return null;
 }
 
-function getActiveSessionCacheKey(request: NextRequest, sessionCookieValue: string): string {
+async function getActiveSessionCacheKey(
+  request: NextRequest,
+  sessionCookieValue: string
+): Promise<string> {
   const host = request.headers.get('host') ?? '';
-  return `${host}::${sessionCookieValue}`;
+  const encoder = new TextEncoder();
+  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(sessionCookieValue));
+  const sessionHash = Array.from(new Uint8Array(digest), value =>
+    value.toString(16).padStart(2, '0')
+  ).join('');
+  return `${host}::${sessionHash}`;
 }
 
 function pruneExpiredActiveSessions(now: number): void {
@@ -282,7 +290,7 @@ async function resolveProtectedRouteResponse(
     }
   }
 
-  const cacheKey = getActiveSessionCacheKey(context.request, sessionCookieValue);
+  const cacheKey = await getActiveSessionCacheKey(context.request, sessionCookieValue);
   if (hasRecentActiveSession(cacheKey)) {
     return null;
   }

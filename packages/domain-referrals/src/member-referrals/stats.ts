@@ -51,9 +51,8 @@ export async function getMemberReferralStatsCore(params: {
   }
 
   try {
-    const settingsResult = await getMemberReferralProgramSettingsCore({ tenantId });
-
-    const [referralCountRows, rewardRows] = await Promise.all([
+    const [settingsResult, referralCountRows, rewardRows] = await Promise.all([
+      getMemberReferralProgramSettingsCore({ tenantId }),
       safeReferralCountQuery(session.user.id, tenantId),
       safeRewardRowsQuery(session.user.id, tenantId),
     ]);
