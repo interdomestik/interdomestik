@@ -1,36 +1,17 @@
 'use server';
 
 import {
-  emitClaimAiRunRequestedService,
-  markClaimAiRunDispatchFailedService,
-} from '@/lib/ai/claim-workflows';
+  createSignedUploadUrl,
+  persistClaimDocumentAndQueueWorkflows,
+  revalidatePathForAllLocales,
+} from '@/features/claims/upload/server/shared-upload';
 import { auth } from '@/lib/auth';
-import { LOCALES } from '@/i18n/locales';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import { claimDocuments, claims, db } from '@interdomestik/database';
-import { queueClaimDocumentAiWorkflows } from '@interdomestik/domain-claims/claims/ai-workflows';
+import { claims, db } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { createClient } from '@supabase/supabase-js';
-import { randomUUID } from 'crypto';
 import { and, eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
-
-const SIGNED_UPLOAD_MAX_ATTEMPTS = 3;
-const SIGNED_UPLOAD_RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 250;
-const TRANSIENT_UPLOAD_ERROR_PATTERNS = [
-  /fetch failed/i,
-  /network/i,
-  /timed?\s*out/i,
-  /econnreset/i,
-  /ehostunreach/i,
-  /enotfound/i,
-  /socket hang up/i,
-  /temporar/i,
-  /service unavailable/i,
-  /too many requests/i,
-];
 const ALLOWED_ADMIN_UPLOAD_ROLES = new Set([
   'admin',
   'super_admin',
@@ -41,16 +22,6 @@ const ALLOWED_ADMIN_UPLOAD_ROLES = new Set([
 
 function isAdminUploadRole(role: string | null | undefined): boolean {
   return role ? ALLOWED_ADMIN_UPLOAD_ROLES.has(role) : false;
-}
-
-function shouldRetrySignedUpload(message: string): boolean {
-  return TRANSIENT_UPLOAD_ERROR_PATTERNS.some(pattern => pattern.test(message));
-}
-
-async function waitForSignedUploadRetry(attempt: number): Promise<void> {
-  if (SIGNED_UPLOAD_RETRY_DELAY_MS <= 0) return;
-  const delay = SIGNED_UPLOAD_RETRY_DELAY_MS * attempt;
-  await new Promise(resolve => setTimeout(resolve, delay));
 }
 
 type UploadContext =
@@ -117,77 +88,6 @@ async function resolveAdminUploadContext(): Promise<UploadContext> {
   }
 }
 
-async function enqueueDocumentAiWorkflowsBestEffort(input: {
-  claimId: string;
-  fileId: string;
-  originalName: string;
-  storagePath: string;
-  mimeType: string;
-  fileSize: number;
-  resolvedBucket: string;
-  category: 'evidence' | 'legal';
-  tenantId: string;
-  userId: string;
-}): Promise<void> {
-  const {
-    claimId,
-    fileId,
-    originalName,
-    storagePath,
-    mimeType,
-    fileSize,
-    resolvedBucket,
-    category,
-    tenantId,
-    userId,
-  } = input;
-
-  try {
-    const queuedRuns = await db.transaction(async tx =>
-      queueClaimDocumentAiWorkflows({
-        tx,
-        claimId,
-        tenantId,
-        userId,
-        files: [
-          {
-            documentId: fileId,
-            name: originalName,
-            path: storagePath,
-            type: mimeType,
-            size: fileSize,
-            bucket: resolvedBucket,
-            category,
-          },
-        ],
-      })
-    );
-
-    for (const queuedRun of queuedRuns) {
-      try {
-        await emitClaimAiRunRequestedService(queuedRun);
-      } catch (error) {
-        await markClaimAiRunDispatchFailedService({
-          runId: queuedRun.runId,
-          message: error instanceof Error ? error.message : 'Failed to dispatch claim AI run.',
-        });
-      }
-    }
-  } catch (queueError) {
-    console.error('[admin/claims] confirmAdminUpload AI queue failed after metadata persisted', {
-      claimId,
-      fileId,
-      message: queueError instanceof Error ? queueError.message : String(queueError),
-    });
-  }
-}
-
-function revalidatePathForAllLocales(path: string) {
-  for (const locale of LOCALES) {
-    revalidatePath(`/${locale}${path}`);
-  }
-}
-
 function revalidateAdminEvidencePaths(claimId: string) {
   revalidatePathForAllLocales('/admin/claims');
   revalidatePathForAllLocales(`/admin/claims/${claimId}`);
@@ -216,61 +116,14 @@ export async function generateAdminUploadUrl(
     return { success: false, error: 'Claim not found', status: 404 };
   }
 
-  if (fileSize > 50 * 1024 * 1024) {
-    return { success: false, error: 'File too large (max 50MB)', status: 413 };
-  }
-
-  const ext = fileName.split('.').pop() || 'bin';
-  const fileId = randomUUID();
-  const path = `pii/tenants/${tenantId}/claims/${claimId}/${fileId}.${ext}`;
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('Missing Supabase configuration');
-    return { success: false, error: 'Configuration error', status: 500 };
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-  try {
-    for (let attempt = 1; attempt <= SIGNED_UPLOAD_MAX_ATTEMPTS; attempt += 1) {
-      const { data, error } = await supabase.storage
-        .from(resolvedBucket)
-        .createSignedUploadUrl(path, { upsert: true });
-
-      if (!error && data?.signedUrl && data?.token) {
-        return {
-          success: true,
-          url: data.signedUrl,
-          path,
-          id: fileId,
-          token: data.token,
-          bucket: resolvedBucket,
-        };
-      }
-
-      const detail = error?.message ?? 'Unknown storage error';
-      const retryable = shouldRetrySignedUpload(detail);
-      const hasAttemptsLeft = attempt < SIGNED_UPLOAD_MAX_ATTEMPTS;
-
-      if (retryable && hasAttemptsLeft) {
-        await waitForSignedUploadRetry(attempt);
-        continue;
-      }
-
-      return { success: false, error: `Failed to generate upload URL: ${detail}`, status: 500 };
-    }
-
-    return {
-      success: false,
-      error: 'Failed to generate upload URL: Unknown storage error',
-      status: 500,
-    };
-  } catch (error) {
-    console.error('[admin/claims] generateAdminUploadUrl error', error);
-    return { success: false, error: 'Unexpected error', status: 500 };
-  }
+  return createSignedUploadUrl({
+    bucket: resolvedBucket,
+    claimId,
+    fileName,
+    fileSize,
+    logPrefix: '[admin/claims]',
+    tenantId,
+  });
 }
 
 export async function confirmAdminUpload({
@@ -306,30 +159,16 @@ export async function confirmAdminUpload({
       };
     }
 
-    await db.transaction(async tx => {
-      await tx.insert(claimDocuments).values({
-        id: fileId,
-        tenantId,
-        claimId,
-        name: originalName,
-        filePath: storagePath,
-        fileType: mimeType,
-        fileSize,
-        bucket: resolvedBucket,
-        category,
-        uploadedBy: session.user.id,
-      });
-    });
-
-    await enqueueDocumentAiWorkflowsBestEffort({
+    await persistClaimDocumentAndQueueWorkflows({
+      category,
       claimId,
       fileId,
-      originalName,
-      storagePath,
-      mimeType,
       fileSize,
+      logPrefix: '[admin/claims] confirmAdminUpload',
+      mimeType,
+      originalName,
       resolvedBucket,
-      category,
+      storagePath,
       tenantId,
       userId: session.user.id,
     });
