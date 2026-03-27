@@ -36,6 +36,7 @@ export function OpsStatusControl({
         if (!result.success) {
           toast.error(result.error || 'Failed to update status');
         } else {
+          window.location.reload();
           toast.success('Status updated successfully');
         }
       } catch (_error) {

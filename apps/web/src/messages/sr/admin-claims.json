@@ -1,61 +1,61 @@
 {
   "admin": {
     "claims_page": {
-      "title": "Управљање захтевима",
-      "description": "Прегледај и управљај свим захтевима корисника.",
+      "title": "Upravljanje zahtevima",
+      "description": "Pregledaj i upravljaj svim zahtevima korisnika.",
       "assignment": {
-        "label": "Додељено особље",
-        "placeholder": "Изабери особље",
-        "unassigned": "Недодељено",
-        "success_message": "Захтев је успешно додељен"
+        "label": "Dodeljeno osoblje",
+        "placeholder": "Izaberi osoblje",
+        "unassigned": "Nedodeljeno",
+        "success_message": "Zahtev je uspešno dodeljen"
       },
       "sections": {
-        "active": "Активни",
-        "draft": "Нацрти",
-        "resolved": "Решени"
+        "active": "Aktivni",
+        "draft": "Nacrti",
+        "resolved": "Rešeni"
       },
-      "member_number": "Број члана",
-      "copy_member_number": "Копирај број члана",
-      "copy_member_link": "Копирај линк члана",
-      "message_alert": "Нова порука ({count})",
+      "member_number": "Broj člana",
+      "copy_member_number": "Kopiraj broj člana",
+      "copy_member_link": "Kopiraj link člana",
+      "message_alert": "Nova poruka ({count})",
       "table": {
-        "title": "Наслов",
-        "amount": "Износ",
+        "title": "Naslov",
+        "amount": "Iznos",
         "headers": {
-          "complainant": "Подносилац",
-          "title": "Наслов",
-          "status": "Статус",
-          "amount": "Износ",
-          "date": "Датум",
-          "branch": "Филијала",
-          "assignee": "Додељено",
-          "updated": "Ажурирано",
-          "actions": "Отвори"
+          "complainant": "Podnosilac",
+          "title": "Naslov",
+          "status": "Stanje",
+          "amount": "Iznos",
+          "date": "Datum",
+          "branch": "Filijala",
+          "assignee": "Dodeljeno",
+          "updated": "Ažurirano",
+          "actions": "Otvori"
         },
         "groups": {
-          "submitted": "Поднети",
-          "verification": "Верификација",
-          "evaluation": "Евалуација",
-          "negotiation": "Преговори",
-          "court": "Судски",
-          "resolved": "Решени",
-          "rejected": "Одбијени",
-          "draft": "Нацрт",
-          "other": "Остали"
+          "submitted": "Podneti",
+          "verification": "Verifikacija",
+          "evaluation": "Evaluacija",
+          "negotiation": "Pregovori",
+          "court": "Sudski",
+          "resolved": "Rešeni",
+          "rejected": "Odbijeni",
+          "draft": "Nacrt",
+          "other": "Ostali"
         },
         "group_header": "{label} • {count} stavki",
         "row": {
-          "stage_line": "{stage} • {days} дана",
-          "owner_waiting": "Чека се {owner}",
-          "owner_assigned": "Додељено: {name} ({role})",
-          "owner_system": "Системска пауза",
-          "stuck": "Захтева пажњу",
+          "stage_line": "{stage} • {days} dana",
+          "owner_waiting": "Čeka se {owner}",
+          "owner_assigned": "Dodeljeno: {name} ({role})",
+          "owner_system": "Sistemska pauza",
+          "stuck": "Zahteva pažnju",
           "branch_type": "{branch} • Tip: {type}",
           "member": "{name} (e-pošta: {email})",
           "amount_unknown": "N/D",
           "metadata_condensed": "Član: {member} • Filijala: {branch}"
         },
-        "empty_state": "Нема оперативних захтева за овај филтер."
+        "empty_state": "Nema operativnih zahteva za ovaj filter."
       },
       "source": {
         "origin_label": "Poreklo",
@@ -63,7 +63,7 @@
         "agent": "Zastupnik",
         "member": "Član",
         "unknown": "Nepoznat",
-        "created": "Креирано",
+        "created": "Kreirano",
         "origin": {
           "portal": "Korisnički portal",
           "agent": "Zastupnik",
@@ -72,84 +72,85 @@
         }
       },
       "filters": {
-        "status_label": "Статус животног циклуса",
-        "assigned_label": "Додела",
-        "assigned_all": "Све",
-        "assigned_only": "Додељено",
-        "unassigned_only": "Недодељено",
-        "assigned_to_me": "Додељено мени"
+        "status_label": "Status životnog ciklusa",
+        "handler_label": "Odgovorni",
+        "assigned_label": "Dodela",
+        "assigned_all": "Sve",
+        "assigned_only": "Dodeljeno",
+        "unassigned_only": "Nedodeljeno",
+        "assigned_to_me": "Dodeljeno meni"
       },
       "lifecycle_tabs": {
-        "all": "Све",
-        "intake": "Пријем",
-        "verification": "Верификација",
-        "processing": "Обрада",
-        "negotiation": "Преговори",
-        "legal": "Правни",
-        "completed": "Завршени"
+        "all": "Sve",
+        "intake": "Prijem",
+        "verification": "Verifikacija",
+        "processing": "Obrada",
+        "negotiation": "Pregovori",
+        "legal": "Pravni",
+        "completed": "Završeni"
       },
       "indicators": {
-        "stuck": "Захтева пажњу",
-        "sla_breach": "Прекорачење SLA",
-        "cash_pending": "Плаћање у току",
-        "unassigned": "Недодељено",
-        "waiting_on_member": "Чека се члан",
-        "waiting_on_staff": "Чека се особље",
-        "waiting_on_system": "Обрада у току"
+        "stuck": "Zahteva pažnju",
+        "sla_breach": "Prekoračenje SLA",
+        "cash_pending": "Plaćanje u toku",
+        "unassigned": "Nedodeljeno",
+        "waiting_on_member": "Čeka se član",
+        "waiting_on_staff": "Čeka se osoblje",
+        "waiting_on_system": "Obrada u toku"
       },
       "operational_card": {
-        "view_claim": "Погледај захтев",
+        "view_claim": "Pogledaj zahtev",
         "directive": {
-          "staff_action_required": "Потребна акција особља",
-          "staff_action_with_name": "Акција особља — {name}",
-          "member_waiting": "Чека се члан",
-          "system_completed": "Завршено — без акције",
+          "staff_action_required": "Potrebna akcija osoblja",
+          "staff_action_with_name": "Akcija osoblja — {name}",
+          "member_waiting": "Čeka se član",
+          "system_completed": "Završeno — bez akcije",
           "unknown_status": "Status zahteva pregled"
         },
         "badge": {
-          "unassigned": "Додели одговорног"
+          "unassigned": "Dodeli odgovornog"
         }
       },
-      "pagination_info": "Страница {page} од {total} ({count} захтева)",
-      "access_denied": "Приступ одбијен. Немате дозволу за преглед захтева.",
+      "pagination_info": "Stranica {page} od {total} ({count} zahteva)",
+      "access_denied": "Pristup odbijen. Nemate dozvolu za pregled zahteva.",
       "ops_center": {
-        "title": "Оперативни центар",
-        "data_age": "Ажурирано пре {seconds}с",
+        "title": "Operativni centar",
+        "data_age": "Ažurirano pre {seconds}s",
         "kpi": {
-          "sla_breach": "SLA прекорачења",
-          "unassigned": "Недодељено",
-          "stuck": "Захтева пажњу",
-          "total_open": "Отворени захтеви",
-          "waiting_member": "Чека се члан",
-          "assigned_to_me": "Додељено мени"
+          "sla_breach": "SLA prekoračenja",
+          "unassigned": "Nedodeljeno",
+          "stuck": "Zahteva pažnju",
+          "total_open": "Otvoreni zahtevi",
+          "waiting_member": "Čeka se član",
+          "assigned_to_me": "Dodeljeno meni"
         },
         "queue": {
-          "all": "Све",
-          "needs_action": "Тражи акцију",
-          "sla_breach": "SLA ризик",
-          "unassigned": "Недодељено",
-          "stuck": "Заглављено",
-          "waiting_member": "Чека се члан",
-          "mine": "Моји",
+          "all": "Sve",
+          "needs_action": "Traži akciju",
+          "sla_breach": "SLA rizik",
+          "unassigned": "Nedodeljeno",
+          "stuck": "Zaglavljeno",
+          "waiting_member": "Čeka se član",
+          "mine": "Moji",
           "workload": "Opterećenje"
         },
         "prioritized_list": {
-          "title": "Највиши приоритет",
-          "load_more": "Учитај више",
-          "empty": "Нема захтева за овај филтер"
+          "title": "Najviši prioritet",
+          "load_more": "Učitaj više",
+          "empty": "Nema zahteva za ovaj filter"
         },
         "preview": {
-          "loading": "Учитавање...",
-          "open_full": "Отвори целе детаље"
+          "loading": "Učitavanje...",
+          "open_full": "Otvori cele detalje"
         },
-        "refresh": "Освежи"
+        "refresh": "Osveži"
       },
       "next_actions": {
         "title": "Sledeći korak",
         "secondary_label": "Takođe dostupno",
-        "stuck": "Заглављено",
-        "days": "дана",
-        "status": "Статус",
+        "stuck": "Zaglavljeno",
+        "days": "dana",
+        "status": "Stanje",
         "actions": {
           "assign": {
             "label": "Dodeli meni",
@@ -196,14 +197,24 @@
           "back_to_queue": "Nazad u red",
           "sla": "SLA rok",
           "breach": "Prekršaj",
-          "days": "дана",
-          "status": "Статус"
+          "days": "dana",
+          "status": "Stanje"
         },
         "toast": {
           "failed": "Akcija nije uspela",
           "completed": "Akcija završena",
           "unexpected_error": "Došlo je do neočekivane greške"
         }
+      },
+      "status_modal": {
+        "title": "Ažuriraj status zahteva",
+        "description": "Izaberi novi status za ovaj zahtev. Ova akcija će biti zabeležena.",
+        "placeholder": "Izaberi novi status...",
+        "cancel": "Otkaži",
+        "confirm": "Potvrdi ažuriranje",
+        "success": "Status je uspešno ažuriran",
+        "error": "Ažuriranje statusa nije uspelo",
+        "unexpected_error": "Došlo je do neočekivane greške"
       },
       "evidence": {
         "title": "Dokazi",

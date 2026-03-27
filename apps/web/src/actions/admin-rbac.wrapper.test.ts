@@ -112,6 +112,19 @@ describe('admin-rbac.core', () => {
       );
       expect(result).toEqual({ success: true, data: mockResult });
     });
+
+    it('returns domain branch-code conflicts without converting them to internal errors', async () => {
+      const params = { name: 'Branch 1', code: 'KS-A' };
+      mockCreateBranchCore.mockResolvedValue({
+        error: 'Branch with this code already exists',
+      });
+
+      const result = await createBranch(params);
+
+      expect(result).toEqual({
+        error: 'Branch with this code already exists',
+      });
+    });
   });
 
   describe('updateBranch', () => {
@@ -135,6 +148,26 @@ describe('admin-rbac.core', () => {
         })
       );
       expect(result).toEqual({ success: true, data: mockResult });
+    });
+
+    it('accepts seeded branch ids that are not UUIDs', async () => {
+      const params = {
+        branchId: 'ks_branch_a',
+        data: { name: 'Updated', isActive: true, code: 'KS-A-TMP' },
+      };
+      mockUpdateBranchCore.mockResolvedValue({ success: true });
+
+      const result = await updateBranch(params);
+
+      expect(mockUpdateBranchCore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          branchId: 'ks_branch_a',
+          name: 'Updated',
+          code: 'KS-A-TMP',
+          isActive: true,
+        })
+      );
+      expect(result).toEqual({ success: true });
     });
   });
 

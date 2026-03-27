@@ -43,6 +43,7 @@ export function OpsAssignmentControl({
         if (!result.success) {
           toast.error(result.error || tCommon('errors.generic'));
         } else {
+          window.location.reload();
           toast.success(tClaims('assignment.success_message'));
         }
       } catch (_error) {

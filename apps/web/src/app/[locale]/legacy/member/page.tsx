@@ -56,7 +56,11 @@ export default async function LegacyMemberPage({
 
   return (
     <section className="space-y-6" data-testid="legacy-member-dashboard">
-      <MemberHeader name={data.member.name} membershipNumber={data.member.membershipNumber} />
+      <MemberHeader
+        name={data.member.name}
+        membershipNumber={data.member.membershipNumber}
+        testId="member-header-legacy"
+      />
       {data.claims.length > 0 ? (
         <ClaimsOverviewList claims={data.claims} />
       ) : (

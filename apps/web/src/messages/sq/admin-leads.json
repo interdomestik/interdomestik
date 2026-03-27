@@ -66,7 +66,9 @@
         "note": "Shënim"
       },
       "dialogs": {
-        "needs_info_title": "Kërko Informacion Shtesë"
+        "needs_info_title": "Kërko Informacion Shtesë",
+        "needs_info_description": "Shto një shënim që përshkruan çfarë mungon para se ta dërgosh këtë kërkesë.",
+        "reject_description": "Shto një shënim që shpjegon pse po refuzohet ky verifikim pagese."
       },
       "placeholders": {
         "search": "Kërko (Emri, Email, ID)...",

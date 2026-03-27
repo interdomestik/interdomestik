@@ -8,7 +8,7 @@ import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/ses
 import { ADMIN_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { requireEffectivePortalAccessOrNotFound } from '@/server/auth/effective-portal-access';
 import { Separator, SidebarInset, SidebarProvider, SidebarTrigger } from '@interdomestik/ui';
-import { getMessages, setRequestLocale } from 'next-intl/server';
+import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
@@ -31,6 +31,8 @@ export default async function AdminLayout({
   await requireEffectivePortalAccessOrNotFound(sessionNonNull, ALLOWED_ROLES);
 
   setRequestLocale(locale);
+  const tSidebar = await getTranslations('admin.sidebar');
+  const tNav = await getTranslations('nav');
   const allMessages = await getMessages();
   const messages = {
     ...pickMessages(allMessages, BASE_NAMESPACES),
@@ -76,12 +78,12 @@ export default async function AdminLayout({
         <SidebarInset className="bg-mesh flex flex-col min-h-screen">
           <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md sticky top-0 z-30 px-6 transition-all">
             <div className="flex items-center gap-2">
-              <SidebarTrigger className="-ml-1" />
+              <SidebarTrigger className="-ml-1" title={tNav('toggleSidebar')} />
               <Separator orientation="vertical" className="mr-2 h-4" />
             </div>
             <div className="flex-1 flex items-center justify-between">
               <h1 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Admin Panel
+                {tSidebar('title')}
               </h1>
               <div className="flex items-center gap-3">
                 <PortalSurfaceIndicator role={role} />

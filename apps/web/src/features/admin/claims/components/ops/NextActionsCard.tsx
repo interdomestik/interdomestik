@@ -54,6 +54,7 @@ export function NextActionsCard({
       if (!result.success) {
         toast.error(result.error || t('toast.failed'));
       } else {
+        window.location.reload();
         toast.success(t('toast.completed'));
       }
     });
@@ -93,6 +94,7 @@ export function NextActionsCard({
         if (result && !result.success) {
           toast.error(result.error || t('toast.failed'));
         } else if (result && result.success) {
+          window.location.reload();
           toast.success(t('toast.completed'));
         }
       } catch {
@@ -108,6 +110,7 @@ export function NextActionsCard({
       if (!result.success) {
         toast.error(result.error || t('toast.failed'));
       } else {
+        window.location.reload();
         toast.success(t('toast.completed'));
       }
     });

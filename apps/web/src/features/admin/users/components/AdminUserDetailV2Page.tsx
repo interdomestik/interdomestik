@@ -22,6 +22,8 @@ const membershipStatusStyles: Record<string, string> = {
   paused: 'bg-slate-100 text-slate-700 border-slate-200',
   canceled: 'bg-rose-100 text-rose-700 border-rose-200',
   none: 'bg-muted text-muted-foreground border-transparent',
+  registered: 'bg-blue-100 text-blue-700 border-blue-200',
+  operator: 'bg-sky-100 text-sky-700 border-sky-200',
 };
 
 export async function AdminUserDetailV2Page({
@@ -49,7 +51,13 @@ export async function AdminUserDetailV2Page({
   }
 
   const { member, subscription, preferences, counts, recentClaims, membershipStatus } = result;
-  const membershipBadgeClass = membershipStatusStyles[membershipStatus];
+  const isMembershipProfile = Boolean(member.memberNumber || subscription);
+  const effectiveProfileStatus = !isMembershipProfile
+    ? 'operator'
+    : subscription
+      ? membershipStatus
+      : 'registered';
+  const membershipBadgeClass = membershipStatusStyles[effectiveProfileStatus];
 
   const backParams = new URLSearchParams();
   for (const [key, value] of Object.entries(searchParams ?? {})) {
@@ -82,8 +90,9 @@ export async function AdminUserDetailV2Page({
           ...member,
           emailVerified: member.emailVerified ? new Date() : null,
         }}
-        membershipStatus={membershipStatus}
+        membershipStatus={effectiveProfileStatus}
         membershipBadgeClass={membershipBadgeClass}
+        isMembershipProfile={isMembershipProfile}
       />
 
       <AdminUserRolesPanel userId={member.id} tenantId={tenantId} />
@@ -99,8 +108,10 @@ export async function AdminUserDetailV2Page({
                 }
               : null
           }
-          membershipStatus={membershipStatus}
+          membershipStatus={effectiveProfileStatus}
           membershipBadgeClass={membershipBadgeClass}
+          isMembershipProfile={isMembershipProfile}
+          role={member.role}
         />
         <AgentInfoCard agent={member.agent} />
         <PreferencesCard preferences={preferences ?? null} />

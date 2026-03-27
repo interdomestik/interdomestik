@@ -1,10 +1,18 @@
 import { auth } from '@/lib/auth';
+import { setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 
 import { AnalyticsDashboard } from './_components/AnalyticsDashboard';
 import { getAdminAnalyticsDataCore } from './_core';
 
-export default async function AdminAnalyticsPage() {
+export default async function AdminAnalyticsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   const session = await auth.api.getSession({
     headers: await import('next/headers').then(m => m.headers()),
   });

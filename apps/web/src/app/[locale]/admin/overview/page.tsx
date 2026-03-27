@@ -1,8 +1,7 @@
 import { getAdminOverviewData } from '@/features/admin/overview/server/get-admin-overview-data';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSessionSafe } from '@/components/shell/session';
 import { notFound } from 'next/navigation';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 export default async function AdminOverviewPage({
   params,
@@ -11,8 +10,9 @@ export default async function AdminOverviewPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations('admin.overview_page');
 
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSessionSafe('AdminOverviewPage');
   if (!session) return notFound();
   if (
     session.user.role !== 'admin' &&
@@ -30,8 +30,8 @@ export default async function AdminOverviewPage({
   return (
     <div data-testid="admin-page-ready" className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">Admin Overview</h1>
-        <p className="text-sm text-muted-foreground">System health and operational accumulation.</p>
+        <h1 className="text-2xl font-semibold">{t('title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('description')}</p>
       </header>
 
       <section
@@ -42,11 +42,15 @@ export default async function AdminOverviewPage({
           className="rounded-lg border bg-white p-4"
           data-testid="admin-overview-kpi-members"
         >
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Members</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            {t('kpis_total_members')}
+          </p>
           <p className="mt-2 text-3xl font-semibold">{overview.kpis.totalMembers}</p>
         </article>
         <article className="rounded-lg border bg-white p-4" data-testid="admin-overview-kpi-agents">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Agents</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            {t('kpis_total_agents')}
+          </p>
           <p className="mt-2 text-3xl font-semibold">{overview.kpis.totalAgents}</p>
         </article>
         <article
@@ -54,7 +58,7 @@ export default async function AdminOverviewPage({
           data-testid="admin-overview-kpi-active-claims"
         >
           <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            Total Active Claims
+            {t('kpis_total_active_claims')}
           </p>
           <p className="mt-2 text-3xl font-semibold">{overview.kpis.totalActiveClaims}</p>
         </article>
@@ -63,7 +67,7 @@ export default async function AdminOverviewPage({
           data-testid="admin-overview-kpi-updated-24h"
         >
           <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            Claims Updated (24h)
+            {t('kpis_claims_updated_24h')}
           </p>
           <p className="mt-2 text-3xl font-semibold">{overview.kpis.claimsUpdatedLast24h}</p>
         </article>
@@ -71,7 +75,7 @@ export default async function AdminOverviewPage({
 
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <article className="rounded-lg border bg-white p-4" data-testid="admin-overview-by-stage">
-          <h2 className="text-base font-semibold">Claims by Stage</h2>
+          <h2 className="text-base font-semibold">{t('claims_by_stage')}</h2>
           <div className="mt-3 space-y-2">
             {overview.claimsByStage.map(item => (
               <div
@@ -85,14 +89,14 @@ export default async function AdminOverviewPage({
             ))}
             {overview.claimsByStage.length === 0 ? (
               <p className="text-sm text-muted-foreground" data-testid="admin-overview-stage-empty">
-                No active claims
+                {t('no_active_claims')}
               </p>
             ) : null}
           </div>
         </article>
 
         <article className="rounded-lg border bg-white p-4" data-testid="admin-overview-by-branch">
-          <h2 className="text-base font-semibold">Claims by Branch</h2>
+          <h2 className="text-base font-semibold">{t('claims_by_branch')}</h2>
           <div className="mt-3 space-y-2">
             {overview.claimsByBranch.map(item => (
               <div
@@ -109,7 +113,7 @@ export default async function AdminOverviewPage({
                 className="text-sm text-muted-foreground"
                 data-testid="admin-overview-branch-empty"
               >
-                No branch accumulation
+                {t('no_branch_accumulation')}
               </p>
             ) : null}
           </div>

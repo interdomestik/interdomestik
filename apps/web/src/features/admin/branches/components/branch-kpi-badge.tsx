@@ -5,12 +5,10 @@ import { AlertCircle, Banknote, FileText } from 'lucide-react';
 interface BranchKpiBadgeProps {
   type: 'openClaims' | 'cashPending' | 'slaBreaches';
   count: number;
+  label: string;
 }
 
-export function BranchKpiBadge({ type, count }: BranchKpiBadgeProps) {
-  if (count === 0 && type !== 'openClaims') return null; // Hide zero counts except openClaims maybe? Or just grey them out.
-  // Requirement: "Show ... operational KPIs"
-
+export function BranchKpiBadge({ type, count, label }: BranchKpiBadgeProps) {
   const config = {
     openClaims: {
       icon: FileText,
@@ -33,7 +31,7 @@ export function BranchKpiBadge({ type, count }: BranchKpiBadgeProps) {
   const isZero = count === 0;
 
   return (
-    <div className="flex items-center gap-2" title={type}>
+    <div className="flex items-center gap-2" title={label} aria-label={label}>
       <Icon
         className={cn('h-4 w-4', isZero ? 'text-muted-foreground/50' : colorClass.split(' ').pop())}
       />
