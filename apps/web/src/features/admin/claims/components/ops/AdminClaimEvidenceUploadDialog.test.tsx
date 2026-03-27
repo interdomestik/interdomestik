@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { vi } from 'vitest';
 import { AdminClaimEvidenceUploadDialog } from './AdminClaimEvidenceUploadDialog';
+import { runSharedEvidenceUploadDialogTests } from '@/features/claims/components/shared-evidence-upload-dialog.test-helpers';
 
 const mocks = vi.hoisted(() => ({
   generateAdminUploadUrl: vi.fn(),
@@ -63,98 +63,27 @@ vi.mock('sonner', () => ({
   },
 }));
 
-describe('AdminClaimEvidenceUploadDialog', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.stubGlobal('fetch', mocks.fetch);
-    mocks.generateAdminUploadUrl.mockResolvedValue({
-      success: true,
-      bucket: 'claim-evidence',
-      path: 'pii/tenants/t1/claims/c1/file.pdf',
-      token: 'signed-token',
-      id: 'file-id',
-    });
-    mocks.uploadToSignedUrl.mockResolvedValue({ error: null });
-    mocks.confirmAdminUpload.mockResolvedValue({ success: true });
-    mocks.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ success: true }),
-    });
-  });
-
-  function openDialog() {
-    render(
-      <AdminClaimEvidenceUploadDialog
-        claimId="claim-1"
-        trigger={<button type="button">Open upload</button>}
-      />
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Open upload' }));
-  }
-
-  it('opens the native file picker when upload is clicked without a selected file', () => {
-    openDialog();
-
-    const fileInput = screen.getByLabelText('File');
-    const clickSpy = vi.spyOn(fileInput, 'click');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
-
-    expect(clickSpy).toHaveBeenCalledTimes(1);
-    expect(mocks.generateAdminUploadUrl).not.toHaveBeenCalled();
-  });
-
-  it('uploads the selected file and refreshes the route', async () => {
-    openDialog();
-
-    const file = new File(['dummy'], 'evidence.pdf', { type: 'application/pdf' });
-    fireEvent.change(screen.getByLabelText('File'), {
-      target: { files: [file] },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
-
-    await waitFor(() => {
-      expect(mocks.generateAdminUploadUrl).toHaveBeenCalledWith(
-        'claim-1',
-        'evidence.pdf',
-        'application/pdf',
-        file.size
-      );
-      expect(mocks.uploadToSignedUrl).toHaveBeenCalled();
-      expect(mocks.confirmAdminUpload).toHaveBeenCalledWith({
-        claimId: 'claim-1',
-        storagePath: 'pii/tenants/t1/claims/c1/file.pdf',
-        originalName: 'evidence.pdf',
-        mimeType: 'application/pdf',
-        fileSize: file.size,
-        fileId: 'file-id',
-        uploadedBucket: 'claim-evidence',
-        category: 'evidence',
-      });
-      expect(mocks.toastSuccess).toHaveBeenCalledWith('Evidence uploaded successfully');
-      expect(mocks.refresh).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  it('derives a mime type from the extension when the browser provides an empty file type', async () => {
-    openDialog();
-
-    const file = new File(['dummy'], 'evidence.docx', { type: '' });
-    fireEvent.change(screen.getByLabelText('File'), {
-      target: { files: [file] },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
-
-    await waitFor(() => {
-      expect(mocks.fetch).toHaveBeenCalledWith('/api/claims/evidence-upload', {
-        method: 'POST',
-        body: expect.any(FormData),
-      });
-      expect(mocks.generateAdminUploadUrl).not.toHaveBeenCalled();
-      expect(mocks.confirmAdminUpload).not.toHaveBeenCalled();
-    });
-    expect(mocks.refresh).toHaveBeenCalledTimes(1);
-  });
+runSharedEvidenceUploadDialogTests({
+  dialogName: 'AdminClaimEvidenceUploadDialog',
+  fileLabel: 'File',
+  openButtonLabel: 'Open upload',
+  renderDialog: () => (
+    <AdminClaimEvidenceUploadDialog
+      claimId="claim-1"
+      trigger={<button type="button">Open upload</button>}
+    />
+  ),
+  uploadMocks: {
+    confirmUpload: mocks.confirmAdminUpload,
+    fetch: mocks.fetch,
+    generateUploadUrl: mocks.generateAdminUploadUrl,
+    refresh: mocks.refresh,
+    toastError: mocks.toastError,
+    toastSuccess: mocks.toastSuccess,
+    uploadToSignedUrl: mocks.uploadToSignedUrl,
+  },
+  uploadSuccessText: 'Evidence uploaded successfully',
+  uploadTriggerLabel: 'Upload',
+  uploadUrlMockName: 'generateAdminUploadUrl',
+  confirmMockName: 'confirmAdminUpload',
 });

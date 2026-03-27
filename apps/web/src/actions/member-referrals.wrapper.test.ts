@@ -21,7 +21,7 @@ vi.mock('./member-referrals/context', () => ({
 vi.mock('./member-referrals/link', () => ({
   getMemberReferralLinkCore: vi.fn(async () => ({
     success: true,
-    data: { code: 'JANE-ABC123', link: 'http://x?ref=JANE-ABC123', whatsappShareUrl: 'wa' },
+    data: { code: 'JANE-ABC123', link: 'https://x?ref=JANE-ABC123', whatsappShareUrl: 'wa' },
   })),
 }));
 
@@ -111,7 +111,7 @@ describe('member-referrals action wrapper', () => {
     });
     expect(result).toEqual({
       success: true,
-      data: { code: 'JANE-ABC123', link: 'http://x?ref=JANE-ABC123', whatsappShareUrl: 'wa' },
+      data: { code: 'JANE-ABC123', link: 'https://x?ref=JANE-ABC123', whatsappShareUrl: 'wa' },
     });
   });
 
@@ -160,7 +160,7 @@ describe('member-referrals action wrapper', () => {
     expect(result).toEqual({
       success: true,
       data: {
-        link: 'http://x?ref=JANE-ABC123',
+        link: 'https://x?ref=JANE-ABC123',
         whatsappShareUrl: 'wa',
         stats: {
           totalReferred: 1,
