@@ -20,9 +20,14 @@ import {
   SelectValue,
 } from '@interdomestik/ui';
 import { Loader2, Upload } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import {
+  EVIDENCE_FILE_ACCEPT,
+  resolveStorageUploadContentType,
+  resolveUploadMimeType,
+} from '@/features/admin/claims/components/ops/file-upload-meta';
 
 interface ClaimEvidenceUploadDialogProps {
   claimId: string;
@@ -36,6 +41,8 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = pathname.split('/')[1] || 'en';
   const supabase = useMemo(() => {
     try {
       return createClient();
@@ -57,15 +64,44 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
       return;
     }
 
+    const resolvedMimeType = resolveUploadMimeType(file);
+    const storageContentType = resolveStorageUploadContentType(file);
+    const uploadFile =
+      storageContentType === resolvedMimeType
+        ? file
+        : new File([file], file.name, {
+            type: storageContentType,
+            lastModified: file.lastModified,
+          });
+
     setUploading(true);
     try {
+      if (resolvedMimeType !== storageContentType) {
+        const formData = new FormData();
+        formData.append('claimId', claimId);
+        formData.append('category', category);
+        formData.append('locale', locale);
+        formData.append('file', file);
+
+        const response = await fetch('/api/claims/evidence-upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+
+        if (!response.ok) {
+          throw new Error(body?.error || 'Failed to upload evidence');
+        }
+
+        toast.success('Evidence uploaded successfully');
+        setOpen(false);
+        setFile(null);
+        router.refresh();
+        return;
+      }
+
       // 1. Get Presigned URL
-      const genResult = await generateUploadUrl(
-        claimId,
-        file.name,
-        file.type || 'application/octet-stream',
-        file.size
-      );
+      const genResult = await generateUploadUrl(claimId, file.name, resolvedMimeType, file.size);
 
       if (!genResult.success) {
         throw new Error(genResult.error);
@@ -78,8 +114,8 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
       // 2. Upload to Storage using the same signed-upload flow as the claim wizard.
       const { error: uploadError } = await supabase.storage
         .from(genResult.bucket)
-        .uploadToSignedUrl(genResult.path, genResult.token, file, {
-          contentType: file.type || 'application/octet-stream',
+        .uploadToSignedUrl(genResult.path, genResult.token, uploadFile, {
+          contentType: storageContentType,
           upsert: true,
           cacheControl: '3600',
         });
@@ -94,7 +130,7 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
         claimId,
         storagePath: genResult.path,
         originalName: file.name,
-        mimeType: file.type || 'application/octet-stream',
+        mimeType: resolvedMimeType,
         fileSize: file.size,
         fileId: genResult.id,
         uploadedBucket: genResult.bucket,
@@ -149,7 +185,7 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
               ref={fileInputRef}
               id="file"
               type="file"
-              accept="application/pdf,image/jpeg,image/png,text/plain"
+              accept={EVIDENCE_FILE_ACCEPT}
               onChange={handleFileChange}
               disabled={uploading}
             />

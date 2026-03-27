@@ -1,13 +1,12 @@
 import { parseMemberNumber } from '@/features/admin/members/utils/memberNumber';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db.server';
+import { ADMIN_ALLOWED_ROLES } from '@/lib/rbac-portals';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { getMemberNumberResolverCore } from './_core';
 
 export const dynamic = 'force-dynamic';
-
-const ALLOWED_ROLES = ['tenant_admin', 'super_admin'];
 
 interface ResolverPageProps {
   params: Promise<{
@@ -28,7 +27,7 @@ export default async function MemberNumberResolverPage({ params }: ResolverPageP
     memberNumber,
     tenantId: session.user.tenantId,
     role: session.user.role,
-    allowedRoles: ALLOWED_ROLES,
+    allowedRoles: [...ADMIN_ALLOWED_ROLES],
     db,
     parseMemberNumber,
   });

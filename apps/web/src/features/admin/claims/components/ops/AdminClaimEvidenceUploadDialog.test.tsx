@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
   uploadToSignedUrl: vi.fn(),
+  fetch: vi.fn(),
 }));
 
 vi.mock('@/features/admin/claims/actions', () => ({
@@ -30,6 +31,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({
     refresh: mocks.refresh,
   }),
+  usePathname: () => '/mk/admin/claims/claim-1',
 }));
 
 vi.mock('next-intl', () => ({
@@ -64,6 +66,7 @@ vi.mock('sonner', () => ({
 describe('AdminClaimEvidenceUploadDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('fetch', mocks.fetch);
     mocks.generateAdminUploadUrl.mockResolvedValue({
       success: true,
       bucket: 'claim-evidence',
@@ -73,6 +76,10 @@ describe('AdminClaimEvidenceUploadDialog', () => {
     });
     mocks.uploadToSignedUrl.mockResolvedValue({ error: null });
     mocks.confirmAdminUpload.mockResolvedValue({ success: true });
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true }),
+    });
   });
 
   function openDialog() {
@@ -128,5 +135,26 @@ describe('AdminClaimEvidenceUploadDialog', () => {
       expect(mocks.toastSuccess).toHaveBeenCalledWith('Evidence uploaded successfully');
       expect(mocks.refresh).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('derives a mime type from the extension when the browser provides an empty file type', async () => {
+    openDialog();
+
+    const file = new File(['dummy'], 'evidence.docx', { type: '' });
+    fireEvent.change(screen.getByLabelText('File'), {
+      target: { files: [file] },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+    await waitFor(() => {
+      expect(mocks.fetch).toHaveBeenCalledWith('/api/claims/evidence-upload', {
+        method: 'POST',
+        body: expect.any(FormData),
+      });
+      expect(mocks.generateAdminUploadUrl).not.toHaveBeenCalled();
+      expect(mocks.confirmAdminUpload).not.toHaveBeenCalled();
+    });
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 });

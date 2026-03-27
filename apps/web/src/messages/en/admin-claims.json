@@ -21,7 +21,8 @@
         "copy_traceable_link": "Copy traceable number link",
         "copy_canonical_link": "Copy canonical system link",
         "claim_number_link": "Claim number link",
-        "canonical_url": "Canonical URL"
+        "canonical_url": "Canonical URL",
+        "copy_failed": "Failed to copy link"
       },
       "message_alert": "New message ({count})",
       "table": {

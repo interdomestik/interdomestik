@@ -24,7 +24,8 @@
         "copy_traceable_link": "Kopjo linkun e numrit gjurmues",
         "copy_canonical_link": "Kopjo linkun kanonik të sistemit",
         "claim_number_link": "Linku i numrit të kërkesës",
-        "canonical_url": "URL kanonike"
+        "canonical_url": "URL kanonike",
+        "copy_failed": "Kopjimi i linkut dështoi"
       },
       "message_alert": "Mesazh i ri ({count})",
       "table": {

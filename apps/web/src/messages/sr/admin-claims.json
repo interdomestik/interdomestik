@@ -21,7 +21,8 @@
         "copy_traceable_link": "Копирај линк праћеног броја",
         "copy_canonical_link": "Копирај канонски системски линк",
         "claim_number_link": "Линк броја захтева",
-        "canonical_url": "Канонски URL"
+        "canonical_url": "Канонски URL",
+        "copy_failed": "Копирање линка није успело"
       },
       "message_alert": "Нова порука ({count})",
       "table": {

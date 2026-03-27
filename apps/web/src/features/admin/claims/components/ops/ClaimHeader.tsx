@@ -20,6 +20,7 @@ import type { NextActionsResult } from '../../components/detail/getNextActions';
 import type { ClaimOpsDetail } from '../../types';
 import { ClaimOriginBadges } from '../shared/ClaimOriginBadges';
 import { InfoPill } from '../shared/InfoPill';
+import { copyText } from './clipboard';
 import { buildAdminUserProfileHref } from './claim-header-links';
 import { formatClaimCreatedDate } from './claim-header-date';
 
@@ -51,6 +52,12 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
   const searchParams = useSearchParams();
   const memberProfileHref = buildAdminUserProfileHref(claim.memberId, searchParams);
   const activeLocale = resolveRouteLocale(pathname, locale);
+  const claimResolverHref = claim.claimNumber
+    ? `/admin/claims/number/${claim.claimNumber}`
+    : `/admin/claims/${claim.id}`;
+  const memberResolverHref = claim.memberNumber
+    ? `/admin/members/number/${claim.memberNumber}`
+    : memberProfileHref;
 
   // Construct smart back URL: preserve filters/page, but drop poolAnchor to force refresh
   const createBackUrl = () => {
@@ -60,8 +67,14 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
     return queryString ? `/admin/claims?${queryString}` : '/admin/claims';
   };
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = async (text: string, label: string) => {
+    const copied = await copyText(text);
+
+    if (!copied) {
+      toast.error(tHeader('copy_failed'));
+      return;
+    }
+
     toast.success(`${label} copied to clipboard`);
   };
 
@@ -98,23 +111,30 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
 
           {/* Level 3: Current Claim (Active) */}
           <div className="flex items-center gap-1 group/claim">
-            <span className="font-mono font-medium text-foreground bg-slate-100 px-1.5 py-0.5 rounded text-xs border border-slate-200">
+            <Link
+              href={claimResolverHref}
+              className="font-mono font-medium text-foreground bg-slate-100 px-1.5 py-0.5 rounded text-xs border border-slate-200 hover:bg-slate-200 transition-colors"
+              title={tHeader('claim_number_link')}
+            >
               {claim.claimNumber ?? claim.code}
-            </span>
+            </Link>
 
-            {/* Copy Actions (Hover only) */}
-            <div className="opacity-0 group-hover/claim:opacity-100 transition-opacity flex items-center gap-1">
+            <div className="flex items-center gap-1">
               <button
+                type="button"
                 onClick={() => copyToClipboard(resolverUrl, tHeader('claim_number_link'))}
                 className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
                 title={tHeader('copy_traceable_link')}
+                aria-label={tHeader('copy_traceable_link')}
               >
                 <LinkIcon className="w-3 h-3" />
               </button>
               <button
+                type="button"
                 onClick={() => copyToClipboard(canonicalUrl, tHeader('canonical_url'))}
                 className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
                 title={tHeader('copy_canonical_link')}
+                aria-label={tHeader('copy_canonical_link')}
               >
                 <Copy className="w-3 h-3" />
               </button>
@@ -124,22 +144,26 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
           {/* Global Member Number Badge */}
           {claim.memberNumber && (
             <div className="flex items-center gap-1 group/member ml-2 border-l pl-2 border-slate-200">
-              <span
+              <Link
+                href={memberResolverHref}
                 className="font-mono font-medium text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded text-xs border border-amber-200"
                 title={tPage('member_number')}
               >
                 {claim.memberNumber}
-              </span>
+              </Link>
 
-              <div className="opacity-0 group-hover/member:opacity-100 transition-opacity flex items-center gap-1">
+              <div className="flex items-center gap-1">
                 <button
+                  type="button"
                   onClick={() => copyToClipboard(claim.memberNumber!, tPage('copy_member_number'))}
                   className="p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700"
                   title={tPage('copy_member_number')}
+                  aria-label={tPage('copy_member_number')}
                 >
                   <Copy className="w-3 h-3" />
                 </button>
                 <button
+                  type="button"
                   onClick={() =>
                     copyToClipboard(
                       `${domain}/${activeLocale}/admin/members/number/${claim.memberNumber}`,
@@ -148,6 +172,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                   }
                   className="p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700"
                   title={tPage('copy_member_link')}
+                  aria-label={tPage('copy_member_link')}
                 >
                   <LinkIcon className="w-3 h-3" />
                 </button>
