@@ -1,10 +1,10 @@
 import type { ReactElement } from 'react';
 
-export type MemberHeaderProps = {
+export type MemberHeaderProps = Readonly<{
   name: string;
   membershipNumber: string | null;
   testId?: string;
-};
+}>;
 
 export function MemberHeader({
   name,

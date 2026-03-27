@@ -36,8 +36,7 @@ export async function listUserRolesCore(params: {
     }
 
     const hasPrimaryRoleRow = explicitRoles.some(
-      row =>
-        row.role === legacyUser.role && (row.branchId ?? null) === (legacyUser.branchId ?? null)
+      row => row.role === legacyUser.role && row.branchId === (legacyUser.branchId ?? null)
     );
 
     if (hasPrimaryRoleRow) {

@@ -23,13 +23,13 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { updateStatus } from '../../actions/ops-actions';
 
-interface OpsStatusUpdateModalProps {
+type OpsStatusUpdateModalProps = Readonly<{
   claimId: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   allowedTransitions: ClaimStatus[];
   locale: string;
-}
+}>;
 
 export function OpsStatusUpdateModal({
   claimId,
@@ -51,7 +51,7 @@ export function OpsStatusUpdateModal({
       try {
         const result = await updateStatus(claimId, selectedStatus as ClaimStatus, locale);
         if (result.success) {
-          window.location.reload();
+          globalThis.location.reload();
           toast.success(tModal('success'));
           onOpenChange(false);
         } else {

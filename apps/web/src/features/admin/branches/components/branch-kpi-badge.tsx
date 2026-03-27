@@ -2,11 +2,11 @@ import { Badge } from '@interdomestik/ui/components/badge';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { AlertCircle, Banknote, FileText } from 'lucide-react';
 
-interface BranchKpiBadgeProps {
+type BranchKpiBadgeProps = Readonly<{
   type: 'openClaims' | 'cashPending' | 'slaBreaches';
   count: number;
   label: string;
-}
+}>;
 
 export function BranchKpiBadge({ type, count, label }: BranchKpiBadgeProps) {
   const config = {

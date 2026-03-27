@@ -13,12 +13,12 @@ import { useTransition } from 'react';
 import { toast } from 'sonner';
 import { assignOwner, unassignOwner } from '../../actions/ops-actions';
 
-interface OpsAssignmentControlProps {
+type OpsAssignmentControlProps = Readonly<{
   claimId: string;
   currentStaffId: string | null;
   staff: { id: string; name: string | null; email: string }[];
   locale: string;
-}
+}>;
 
 export function OpsAssignmentControl({
   claimId,
@@ -43,7 +43,7 @@ export function OpsAssignmentControl({
         if (!result.success) {
           toast.error(result.error || tCommon('errors.generic'));
         } else {
-          window.location.reload();
+          globalThis.location.reload();
           toast.success(tClaims('assignment.success_message'));
         }
       } catch (_error) {

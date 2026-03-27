@@ -5,11 +5,11 @@ import { redirect } from 'next/navigation';
 import { AnalyticsDashboard } from './_components/AnalyticsDashboard';
 import { getAdminAnalyticsDataCore } from './_core';
 
-export default async function AdminAnalyticsPage({
-  params,
-}: {
+type AdminAnalyticsPageProps = Readonly<{
   params: Promise<{ locale: string }>;
-}) {
+}>;
+
+export default async function AdminAnalyticsPage({ params }: AdminAnalyticsPageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 

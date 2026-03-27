@@ -56,9 +56,7 @@ export async function MembershipInfoCard({
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">
-            {t(isMembershipProfile ? 'labels.period_end' : 'labels.period_end')}
-          </span>
+          <span className="text-muted-foreground">{t('labels.period_end')}</span>
           <span className="font-medium text-foreground">
             {isMembershipProfile
               ? formatDate(subscription?.currentPeriodEnd ?? null, tCommon('none'))
