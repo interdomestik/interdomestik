@@ -210,6 +210,19 @@ fs.writeFileSync(process.argv[1], JSON.stringify(out, null, 2));
   validate_status_json_file "$role_dir/${role}.status.json"
 }
 
+is_role_contract_write_allowed_path() {
+  local path="$1"
+
+  case "$path" in
+    apps/web/next-env.d.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 read_manifest_value() {
   local run_root="$1"
   local key="$2"

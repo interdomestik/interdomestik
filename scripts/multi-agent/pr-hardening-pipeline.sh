@@ -425,11 +425,17 @@ enforce_role_contract_writes() {
     if [[ "$path" == "$RUN_ROOT_REL/"* ]]; then
       continue
     fi
+    if is_role_contract_write_allowed_path "$path"; then
+      continue
+    fi
     add_violation "$path"
   done <"$tracked_delta_file"
 
   while IFS= read -r path; do
     [[ -z "$path" ]] && continue
+    if is_role_contract_write_allowed_path "$path"; then
+      continue
+    fi
     if [[ "$path" == "apps/web/src/proxy.ts" ]]; then
       add_violation "$path"
       continue
