@@ -159,11 +159,6 @@
           "title": "Vendimi i rikuperimit",
           "description": "Stafi duhet ta pranojë ose refuzojë qartë çështjen e rikuperimit përpara se të fillojnë negociatat ose gjykata.",
           "summary_status": "Statusi i vendimit",
-          "status_labels": {
-            "pending": "Në pritje të vendimit të stafit",
-            "accepted": "Pranuar për rikuperim të udhëhequr nga stafi",
-            "declined": "Refuzuar për rikuperim të udhëhequr nga stafi"
-          },
           "summary_decline_category": "Kategoria e refuzimit",
           "summary_explanation": "Shpjegimi i vendimit",
           "explanation_label": "Shpjegimi i vendimit",

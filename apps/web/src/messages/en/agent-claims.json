@@ -159,11 +159,6 @@
           "title": "Recovery Decision",
           "description": "Staff must explicitly accept or decline the recovery matter before negotiation or court work can start.",
           "summary_status": "Decision status",
-          "status_labels": {
-            "pending": "Pending staff decision",
-            "accepted": "Accepted for staff-led recovery",
-            "declined": "Declined for staff-led recovery"
-          },
           "summary_decline_category": "Decline category",
           "summary_explanation": "Decision explanation",
           "explanation_label": "Decision explanation",

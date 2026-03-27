@@ -8,6 +8,9 @@ const hoisted = vi.hoisted(() => ({
       if (key === 'cta_benefits') {
         return locale === 'mk' ? '10 ПРИДОБИВКИ ОД ЧЛЕНСТВОТО' : '10 MEMBERSHIP BENEFITS';
       }
+      if (key === 'cta_incident') {
+        return locale === 'mk' ? 'СЕ СЛУЧИ НЕСРЕЌА – ШТО СЕГА?' : 'ACCIDENT? WHAT NOW?';
+      }
       return key;
     };
   }),
@@ -18,11 +21,15 @@ vi.mock('next-intl/server', () => ({
   setRequestLocale: hoisted.setRequestLocaleMock,
 }));
 
-import Page from './page';
+import BenefitsPage from './page';
+import IncidentGuidePage from '../incident-guide/page';
 
-describe('Member benefits page locale binding', () => {
-  it('reads dashboard CTA copy using the route locale', async () => {
-    const tree = await Page({
+describe('Member CTA pages locale binding', () => {
+  it.each([
+    [BenefitsPage, '10 ПРИДОБИВКИ ОД ЧЛЕНСТВОТО'],
+    [IncidentGuidePage, 'СЕ СЛУЧИ НЕСРЕЌА – ШТО СЕГА?'],
+  ])('reads dashboard CTA copy using the route locale', async (Component, expectedText) => {
+    const tree = await Component({
       params: Promise.resolve({ locale: 'mk' }),
     });
 
@@ -33,6 +40,6 @@ describe('Member benefits page locale binding', () => {
       locale: 'mk',
       namespace: 'dashboard.home_grid',
     });
-    expect(screen.getByText('10 ПРИДОБИВКИ ОД ЧЛЕНСТВОТО')).toBeInTheDocument();
+    expect(screen.getByText(expectedText)).toBeInTheDocument();
   });
 });

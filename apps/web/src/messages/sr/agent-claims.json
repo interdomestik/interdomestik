@@ -159,11 +159,6 @@
           "title": "Odluka o naplati",
           "description": "Osoblje mora jasno da prihvati ili odbije predmet naplate pre nego što počnu pregovori ili sudski postupak.",
           "summary_status": "Status odluke",
-          "status_labels": {
-            "pending": "Na čekanju odluke osoblja",
-            "accepted": "Prihvaćeno za naplatu koju vodi osoblje",
-            "declined": "Odbijeno za naplatu koju vodi osoblje"
-          },
           "summary_decline_category": "Kategorija odbijanja",
           "summary_explanation": "Obrazloženje odluke",
           "explanation_label": "Obrazloženje odluke",
