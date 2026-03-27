@@ -17,6 +17,12 @@
       "member_number": "Број члана",
       "copy_member_number": "Копирај број члана",
       "copy_member_link": "Копирај линк члана",
+      "header": {
+        "copy_traceable_link": "Копирај линк праћеног броја",
+        "copy_canonical_link": "Копирај канонски системски линк",
+        "claim_number_link": "Линк броја захтева",
+        "canonical_url": "Канонски URL"
+      },
       "message_alert": "Нова порука ({count})",
       "table": {
         "title": "Наслов",
@@ -208,8 +214,18 @@
       "evidence": {
         "title": "Dokazi",
         "upload_button": "Otpremi",
+        "dialog_title": "Otpremi dokaz",
+        "dialog_description": "Priložite fotografije ili dokumenta relevantna za ovaj zahtev.",
+        "document_type_label": "Tip dokumenta",
+        "document_type_placeholder": "Izaberi tip dokumenta",
+        "file_label": "Datoteka",
+        "upload_success": "Dokaz je uspešno otpremljen",
+        "upload_failed": "Otpremanje dokaza nije uspelo",
+        "uploading": "Otpremanje...",
         "no_docs": "Nema otpremljenih dokumenata.",
         "types": {
+          "evidence": "Dokaz",
+          "legal": "Pravni dokument",
           "image": "Slika",
           "audio": "Audio zapis",
           "document": "Dokument"
@@ -218,6 +234,17 @@
       "timeline": {
         "title": "Vremenska linija aktivnosti",
         "empty": "Nema zabeleženih aktivnosti."
+      },
+      "status_form": {
+        "placeholder": "Status",
+        "success": "Status je uspešno ažuriran",
+        "error": "Ažuriranje statusa nije uspelo"
+      },
+      "status_modal": {
+        "title": "Ažuriraj status zahteva",
+        "description": "Izaberite novi status za ovaj zahtev. Ova radnja će biti evidentirana.",
+        "placeholder": "Izaberi novi status...",
+        "confirm": "Potvrdi ažuriranje"
       },
       "detail": {
         "fields": {

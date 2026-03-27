@@ -1,6 +1,7 @@
 'use server';
 
 import {
+  getMemberReferralCardData as getMemberReferralCardDataCore,
   getMemberReferralLink as getMemberReferralLinkCore,
   getMemberReferralProgramPreview as getMemberReferralProgramPreviewCore,
   getMemberReferralProgramSettings as getMemberReferralProgramSettingsCore,
@@ -13,11 +14,13 @@ import {
 export type {
   ActionResult,
   MemberReferralAdminRewardRow,
+  MemberReferralCardData,
   MemberReferralLink,
   MemberReferralProgramSettings,
   MemberReferralStats,
 } from './member-referrals.core';
 
+export const getMemberReferralCardData = getMemberReferralCardDataCore;
 export const getMemberReferralProgramPreview = getMemberReferralProgramPreviewCore;
 export const getMemberReferralLink = getMemberReferralLinkCore;
 export const getMemberReferralProgramSettings = getMemberReferralProgramSettingsCore;

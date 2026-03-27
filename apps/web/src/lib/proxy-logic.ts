@@ -13,6 +13,9 @@ const SESSION_COOKIE_NAMES = [
   '__Secure-better-auth.session_token',
   '__Host-better-auth.session_token',
 ] as const;
+const ACTIVE_SESSION_CACHE_TTL_MS = 2000;
+const ACTIVE_SESSION_CACHE_MAX_ENTRIES = 100;
+const activeSessionCache = new Map<string, number>();
 
 function resolveTenantFromHost(
   host: string
@@ -33,6 +36,44 @@ function getSessionCookieValue(request: NextRequest): string | null {
     if (value) return value;
   }
   return null;
+}
+
+function getActiveSessionCacheKey(request: NextRequest, sessionCookieValue: string): string {
+  const host = request.headers.get('host') ?? '';
+  return `${host}::${sessionCookieValue}`;
+}
+
+function pruneExpiredActiveSessions(now: number): void {
+  for (const [key, expiresAt] of activeSessionCache.entries()) {
+    if (expiresAt <= now) {
+      activeSessionCache.delete(key);
+    }
+  }
+}
+
+function rememberActiveSession(cacheKey: string): void {
+  const now = Date.now();
+  pruneExpiredActiveSessions(now);
+
+  while (activeSessionCache.size >= ACTIVE_SESSION_CACHE_MAX_ENTRIES) {
+    const oldestKey = activeSessionCache.keys().next().value;
+    if (!oldestKey) break;
+    activeSessionCache.delete(oldestKey);
+  }
+
+  activeSessionCache.set(cacheKey, now + ACTIVE_SESSION_CACHE_TTL_MS);
+}
+
+function hasRecentActiveSession(cacheKey: string): boolean {
+  const expiresAt = activeSessionCache.get(cacheKey);
+  if (!expiresAt) return false;
+
+  if (expiresAt <= Date.now()) {
+    activeSessionCache.delete(cacheKey);
+    return false;
+  }
+
+  return true;
 }
 
 function safeDecodeURIComponent(value: string): string {
@@ -241,8 +282,14 @@ async function resolveProtectedRouteResponse(
     }
   }
 
+  const cacheKey = getActiveSessionCacheKey(context.request, sessionCookieValue);
+  if (hasRecentActiveSession(cacheKey)) {
+    return null;
+  }
+
   const firstIntrospection = await introspectSessionState(context.request);
   if (firstIntrospection.state === 'active') {
+    rememberActiveSession(cacheKey);
     return null;
   }
 
@@ -259,6 +306,7 @@ async function resolveProtectedRouteResponse(
 
   const retryIntrospection = await introspectSessionState(context.request);
   if (retryIntrospection.state === 'active') {
+    rememberActiveSession(cacheKey);
     return null;
   }
 

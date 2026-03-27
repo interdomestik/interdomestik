@@ -82,6 +82,33 @@ describe('member referral settings', () => {
     }
   });
 
+  it('returns safe defaults when the referral settings table is missing locally', async () => {
+    (db.query.memberReferralSettings.findFirst as any).mockRejectedValue({
+      cause: { code: '42P01' },
+      message: 'relation "member_referral_settings" does not exist',
+    });
+
+    const result = await getMemberReferralProgramSettingsCore({
+      tenantId: 'tenant-1',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({
+        tenantId: 'tenant-1',
+        enabled: false,
+        rewardType: 'fixed',
+        fixedRewardCents: 0,
+        percentRewardBps: null,
+        settlementMode: 'credit_only',
+        payoutThresholdCents: 0,
+        fraudReviewEnabled: false,
+        currencyCode: 'EUR',
+        qualifyingEventType: 'first_paid_membership',
+      });
+    }
+  });
+
   it('upserts a configurable fixed reward settings row', async () => {
     (db.insert as any).mockReturnValue({
       values: vi.fn(() => ({

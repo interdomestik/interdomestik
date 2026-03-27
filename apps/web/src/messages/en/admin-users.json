@@ -60,7 +60,12 @@
     "member_profile": {
       "actions": {
         "back": "Back to users",
-        "view_claim": "View claim"
+        "view_claim": "View claim",
+        "resend_welcome": "Resend Welcome Email",
+        "resend_welcome_loading": "Sending...",
+        "resend_welcome_success": "Welcome email sent successfully!",
+        "resend_welcome_failed": "Failed to send email",
+        "resend_welcome_unexpected": "An unexpected error occurred"
       },
       "sections": {
         "membership": "Membership",
@@ -104,6 +109,45 @@
         "open": "Open claims",
         "resolved": "Resolved",
         "rejected": "Rejected"
+      },
+      "roles_panel": {
+        "title": "Roles",
+        "description": "Tenant-scoped roles for this user.",
+        "missing_tenant_context": "Missing tenant context. Reopen this profile from the tenant user list.",
+        "tenant_wide": "Tenant-wide",
+        "fields": {
+          "role": "Role",
+          "branch": "Branch",
+          "select_role": "Select role",
+          "custom_role": "Custom…",
+          "role_name": "Role name",
+          "new_branch_name": "New branch name",
+          "new_branch_code": "New branch code (optional)"
+        },
+        "actions": {
+          "grant": "Grant role",
+          "remove": "Remove",
+          "create_branch": "Create branch"
+        },
+        "table": {
+          "empty": "No roles assigned",
+          "actions": "Actions"
+        },
+        "toast": {
+          "load_branches_failed": "Failed to load branches",
+          "load_roles_failed": "Failed to load roles",
+          "tenant_context_required_roles": "Tenant context is required to manage roles",
+          "tenant_context_required_branches": "Tenant context is required to manage branches",
+          "role_required": "Role is required",
+          "branch_required": "Branch is required for this role. Please select a branch.",
+          "role_granted": "Role granted",
+          "grant_failed": "Failed to grant role",
+          "role_revoked": "Role revoked",
+          "revoke_failed": "Failed to revoke role",
+          "branch_name_required": "Branch name is required",
+          "branch_created": "Branch created",
+          "branch_create_failed": "Failed to create branch"
+        }
       }
     }
   }

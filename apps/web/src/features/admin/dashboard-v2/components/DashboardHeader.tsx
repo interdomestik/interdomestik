@@ -4,14 +4,15 @@ import { Link } from '@/i18n/routing';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
 import { Plus, Shield, Users, Wallet } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 export function DashboardHeader({ tenantName, today }: { tenantName: string; today: Date }) {
   const t = useTranslations('admin.dashboard_v2.header');
   const tAdmin = useTranslations('admin.dashboard');
+  const locale = useLocale();
 
   // Format date using Intl
-  const formattedDate = new Intl.DateTimeFormat('mk-MK', {
+  const formattedDate = new Intl.DateTimeFormat(toIntlLocale(locale), {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -74,4 +75,17 @@ export function DashboardHeader({ tenantName, today }: { tenantName: string; tod
       </div>
     </div>
   );
+}
+
+function toIntlLocale(locale: string) {
+  switch (locale) {
+    case 'mk':
+      return 'mk-MK';
+    case 'sq':
+      return 'sq-AL';
+    case 'sr':
+      return 'sr-RS';
+    default:
+      return 'en-US';
+  }
 }

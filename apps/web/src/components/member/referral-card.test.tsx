@@ -1,17 +1,11 @@
-import {
-  getMemberReferralLink,
-  getMemberReferralProgramPreview,
-  getMemberReferralStats,
-} from '@/actions/member-referrals';
+import { getMemberReferralCardData } from '@/actions/member-referrals';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ReferralCard } from './referral-card';
 
 vi.mock('@/actions/member-referrals', () => ({
-  getMemberReferralLink: vi.fn(),
-  getMemberReferralProgramPreview: vi.fn(),
-  getMemberReferralStats: vi.fn(),
+  getMemberReferralCardData: vi.fn(),
 }));
 
 vi.mock('@interdomestik/ui/components/button', () => ({
@@ -98,38 +92,31 @@ describe('ReferralCard', () => {
     });
     window.open = vi.fn();
 
-    vi.mocked(getMemberReferralLink).mockResolvedValue({
+    vi.mocked(getMemberReferralCardData).mockResolvedValue({
       success: true,
       data: {
-        code: 'ABC123',
         link: 'https://example.test/ref/ABC123',
         whatsappShareUrl: 'https://wa.me/?text=abc',
-      },
-    });
-    vi.mocked(getMemberReferralStats).mockResolvedValue({
-      success: true,
-      data: {
-        totalReferred: 3,
-        pendingRewards: 10,
-        creditedRewards: 25,
-        payoutEligibleRewards: 25,
-        paidRewards: 5,
-        rewardsCurrency: 'EUR',
-      },
-    });
-    vi.mocked(getMemberReferralProgramPreview).mockResolvedValue({
-      success: true,
-      data: {
-        tenantId: 'tenant_ks',
-        enabled: true,
-        rewardType: 'percent',
-        fixedRewardCents: 0,
-        percentRewardBps: 2500,
-        settlementMode: 'credit_or_payout',
-        payoutThresholdCents: 10000,
-        fraudReviewEnabled: true,
-        currencyCode: 'EUR',
-        qualifyingEventType: 'first_paid_membership',
+        stats: {
+          totalReferred: 3,
+          pendingRewards: 10,
+          creditedRewards: 25,
+          payoutEligibleRewards: 25,
+          paidRewards: 5,
+          rewardsCurrency: 'EUR',
+        },
+        settings: {
+          tenantId: 'tenant_ks',
+          enabled: true,
+          rewardType: 'percent',
+          fixedRewardCents: 0,
+          percentRewardBps: 2500,
+          settlementMode: 'credit_or_payout',
+          payoutThresholdCents: 10000,
+          fraudReviewEnabled: true,
+          currencyCode: 'EUR',
+          qualifyingEventType: 'first_paid_membership',
+        },
       },
     });
   });
@@ -160,9 +147,7 @@ describe('ReferralCard', () => {
   it('does not load member referral data for agent viewers on the member surface', () => {
     render(<ReferralCard isAgent={true} />);
 
-    expect(getMemberReferralLink).not.toHaveBeenCalled();
-    expect(getMemberReferralStats).not.toHaveBeenCalled();
-    expect(getMemberReferralProgramPreview).not.toHaveBeenCalled();
+    expect(getMemberReferralCardData).not.toHaveBeenCalled();
     expect(screen.queryByText('Invite Friends & Earn')).not.toBeInTheDocument();
   });
 
@@ -172,8 +157,6 @@ describe('ReferralCard', () => {
     rerender(<ReferralCard isAgent={false} />);
 
     expect(await screen.findByText('Invite Friends & Earn')).toBeInTheDocument();
-    expect(getMemberReferralLink).toHaveBeenCalled();
-    expect(getMemberReferralStats).toHaveBeenCalled();
-    expect(getMemberReferralProgramPreview).toHaveBeenCalled();
+    expect(getMemberReferralCardData).toHaveBeenCalled();
   });
 });

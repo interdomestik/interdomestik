@@ -2,6 +2,7 @@ import { Link } from '@/i18n/routing';
 import type { ReactElement } from 'react';
 
 export type ActiveClaimFocusProps = {
+  title: string;
   claimNumber: string | null;
   status: string;
   stageLabel: string;
@@ -13,6 +14,7 @@ export type ActiveClaimFocusProps = {
 };
 
 export function ActiveClaimFocus({
+  title,
   claimNumber,
   status,
   stageLabel,
@@ -21,7 +23,7 @@ export function ActiveClaimFocus({
 }: ActiveClaimFocusProps): ReactElement {
   return (
     <section data-testid="member-active-claim">
-      <h2>Active claim</h2>
+      <h2>{title}</h2>
       <p>{claimNumber ?? '—'}</p>
       <p>{stageLabel}</p>
       <p>{status}</p>

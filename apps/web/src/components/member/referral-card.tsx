@@ -1,11 +1,9 @@
 'use client';
 
 import {
-  getMemberReferralLink,
-  getMemberReferralProgramPreview,
-  getMemberReferralStats,
+  getMemberReferralCardData,
+  type MemberReferralCardData,
   type MemberReferralProgramSettings,
-  type MemberReferralStats,
 } from '@/actions/member-referrals';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
@@ -18,13 +16,6 @@ import { toast } from 'sonner';
 
 interface ReferralCardProps {
   isAgent?: boolean;
-}
-
-interface ReferralCardData {
-  link: string;
-  whatsappShareUrl: string;
-  stats: MemberReferralStats;
-  settings: MemberReferralProgramSettings;
 }
 
 function formatCurrency(amount: number, currency: string) {
@@ -65,7 +56,7 @@ const SKELETON_CARD_IDS = ['friends', 'pending', 'credited', 'paid'] as const;
 
 export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>) {
   const t = useTranslations('dashboard.referral');
-  const [data, setData] = useState<ReferralCardData | null>(null);
+  const [data, setData] = useState<MemberReferralCardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,33 +71,14 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
 
     async function loadData() {
       try {
-        const [linkResult, statsResult, settingsResult] = await Promise.all([
-          getMemberReferralLink(),
-          getMemberReferralStats(),
-          getMemberReferralProgramPreview(),
-        ]);
+        const result = await getMemberReferralCardData();
 
-        if (!linkResult.success) {
-          setError(linkResult.error);
+        if (!result.success) {
+          setError(result.error);
           return;
         }
 
-        if (!statsResult.success) {
-          setError(statsResult.error);
-          return;
-        }
-
-        if (!settingsResult.success) {
-          setError(settingsResult.error);
-          return;
-        }
-
-        setData({
-          link: linkResult.data.link,
-          whatsappShareUrl: linkResult.data.whatsappShareUrl,
-          stats: statsResult.data,
-          settings: settingsResult.data,
-        });
+        setData(result.data);
       } catch (loadError) {
         console.error(loadError);
         setError(t('loadError'));

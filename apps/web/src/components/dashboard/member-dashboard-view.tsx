@@ -51,9 +51,11 @@ export type MemberDashboardViewProps = {
 };
 
 export async function MemberDashboardView({ data, locale }: MemberDashboardViewProps) {
-  const [t, tLanding] = await Promise.all([
+  const [t, tLanding, tClaimStatus, tClaimStage] = await Promise.all([
     getTranslations('dashboard'),
     getTranslations('dashboard.member_landing'),
+    getTranslations('claims.status'),
+    getTranslations('claims.stage'),
   ]);
   const { member, claims, activeClaimId, supportHref } = data;
   const activeClaim = claims.find(claim => claim.id === activeClaimId) ?? null;
@@ -123,10 +125,11 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
 
       {activeClaim ? (
         <ActiveClaimFocus
+          title={tLanding('active_claim_title')}
           claimNumber={activeClaim.claimNumber}
-          status={activeClaim.status}
-          stageLabel={activeClaim.stageLabel}
-          updatedAt={activeClaim.updatedAt}
+          status={tClaimStatus(activeClaim.status)}
+          stageLabel={tClaimStage(activeClaim.stageKey)}
+          updatedAt={formatMemberDashboardDate(activeClaim.updatedAt, locale)}
           nextMemberAction={
             activeClaim.requiresMemberAction ? activeClaim.nextMemberAction : undefined
           }
@@ -553,4 +556,29 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
       </section>
     </div>
   );
+}
+
+function formatMemberDashboardDate(value: string | null, locale: string) {
+  if (!value) return '—';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat(toIntlLocale(locale), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+}
+
+function toIntlLocale(locale: string) {
+  switch (locale) {
+    case 'mk':
+      return 'mk-MK';
+    case 'sq':
+      return 'sq-AL';
+    case 'sr':
+      return 'sr-RS';
+    default:
+      return 'en-US';
+  }
 }

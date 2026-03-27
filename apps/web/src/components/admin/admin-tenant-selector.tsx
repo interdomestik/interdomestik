@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@interdomestik/ui/components/select';
+import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 
 export type AdminTenantOption = {
@@ -26,6 +27,7 @@ export function AdminTenantSelector({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations('admin.tenant_selector');
 
   if (tenants.length === 0) return null;
 
@@ -42,7 +44,7 @@ export function AdminTenantSelector({
   return (
     <Select value={selectedTenantId ?? ''} onValueChange={handleTenantChange}>
       <SelectTrigger className="h-9 w-[220px]">
-        <SelectValue placeholder="Tenant" />
+        <SelectValue placeholder={t('placeholder')} />
       </SelectTrigger>
       <SelectContent>
         {tenants.map(t => (

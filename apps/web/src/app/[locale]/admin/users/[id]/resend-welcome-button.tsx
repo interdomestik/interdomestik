@@ -3,23 +3,25 @@
 import { resendWelcomeEmail } from '@/actions/thank-you-letter';
 import { Button } from '@interdomestik/ui/components/button';
 import { Mail } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
 export function ResendWelcomeEmailButton({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(false);
+  const t = useTranslations('admin.member_profile.actions');
 
   async function handleResend() {
     setLoading(true);
     try {
       const result = await resendWelcomeEmail(userId);
       if (result.success) {
-        toast.success('Welcome email sent successfully!');
+        toast.success(t('resend_welcome_success'));
       } else {
-        toast.error(result.error || 'Failed to send email');
+        toast.error(result.error || t('resend_welcome_failed'));
       }
     } catch (err) {
-      toast.error('An unexpected error occurred');
+      toast.error(t('resend_welcome_unexpected'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -29,7 +31,7 @@ export function ResendWelcomeEmailButton({ userId }: { userId: string }) {
   return (
     <Button variant="outline" size="sm" onClick={handleResend} disabled={loading}>
       <Mail className="mr-2 h-4 w-4" />
-      {loading ? 'Sending...' : 'Resend Welcome Email'}
+      {loading ? t('resend_welcome_loading') : t('resend_welcome')}
     </Button>
   );
 }

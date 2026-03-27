@@ -17,6 +17,7 @@ import {
   CardTitle,
 } from '@interdomestik/ui/components/card';
 import { AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -24,6 +25,8 @@ interface ErrorProps {
 }
 
 export default function BranchDashboardError({ error, reset }: ErrorProps) {
+  const t = useTranslations('admin.errors.branch_dashboard');
+
   useEffect(() => {
     // Report to Sentry with branch dashboard context
     Sentry.captureException(error, {
@@ -44,12 +47,12 @@ export default function BranchDashboardError({ error, reset }: ErrorProps) {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
             <AlertTriangle className="h-6 w-6 text-destructive" />
           </div>
-          <CardTitle>Something went wrong</CardTitle>
-          <CardDescription>An error occurred while loading the branch dashboard.</CardDescription>
+          <CardTitle>{t('title')}</CardTitle>
+          <CardDescription>{t('description')}</CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center">
           <Button onClick={reset} variant="outline">
-            Try again
+            {t('try_again')}
           </Button>
         </CardContent>
       </Card>

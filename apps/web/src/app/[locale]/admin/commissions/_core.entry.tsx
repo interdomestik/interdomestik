@@ -29,8 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@interdomestik/ui';
-import { format } from 'date-fns';
 import { Check, Clock, DollarSign } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition } from 'react';
 
 const EMPTY_REFERRAL_SETTINGS: MemberReferralProgramSettings = {
@@ -58,6 +58,8 @@ const REFERRAL_STATUS_TRANSITIONS: Record<
 };
 
 export default function AdminCommissionsPage() {
+  const t = useTranslations('admin.commissions_page');
+  const locale = useLocale();
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [summary, setSummary] = useState<CommissionSummary | null>(null);
   const [referralRewards, setReferralRewards] = useState<MemberReferralAdminRewardRow[]>([]);
@@ -142,22 +144,29 @@ export default function AdminCommissionsPage() {
   }
 
   const formatAmount = (amount: string, currency = 'EUR') => {
-    return new Intl.NumberFormat('de-DE', { style: 'currency', currency }).format(
+    return new Intl.NumberFormat(toIntlLocale(locale), { style: 'currency', currency }).format(
       Number.parseFloat(amount)
     );
   };
 
   const formatRewardAmount = (reward: MemberReferralAdminRewardRow) =>
-    new Intl.NumberFormat('de-DE', {
+    new Intl.NumberFormat(toIntlLocale(locale), {
       style: 'currency',
       currency: reward.currencyCode,
     }).format(reward.rewardCents / 100);
 
   const formatSettingsAmount = (amountCents: number) =>
-    new Intl.NumberFormat('de-DE', {
+    new Intl.NumberFormat(toIntlLocale(locale), {
       style: 'currency',
       currency: referralSettings.currencyCode || 'EUR',
     }).format(amountCents / 100);
+
+  const formatDate = (value: string | Date | null | undefined) => {
+    if (!value) return '-';
+    return new Intl.DateTimeFormat(toIntlLocale(locale), { dateStyle: 'medium' }).format(
+      typeof value === 'string' ? new Date(value) : value
+    );
+  };
 
   const availableReferralStatusOptions = (status: MemberReferralAdminRewardRow['status']) => {
     const nextStatuses = REFERRAL_STATUS_TRANSITIONS[status] ?? [];
@@ -167,10 +176,8 @@ export default function AdminCommissionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Commission Management</h1>
-        <p className="text-muted-foreground">
-          Review agent commissions, member referral rewards, and program settings
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+        <p className="text-muted-foreground">{t('description')}</p>
       </div>
 
       {summary ? (
@@ -179,43 +186,51 @@ export default function AdminCommissionsPage() {
             <CardContent className="pt-6">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-amber-500" />
-                <span className="text-sm text-muted-foreground">Pending</span>
+                <span className="text-sm text-muted-foreground">{t('summary.pending')}</span>
               </div>
               <p className="text-2xl font-bold">€{summary.totalPending.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">{summary.pendingCount} items</p>
+              <p className="text-xs text-muted-foreground">
+                {t('summary.items', { count: summary.pendingCount })}
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-blue-500" />
-                <span className="text-sm text-muted-foreground">Approved</span>
+                <span className="text-sm text-muted-foreground">{t('summary.approved')}</span>
               </div>
               <p className="text-2xl font-bold">€{summary.totalApproved.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">{summary.approvedCount} items</p>
+              <p className="text-xs text-muted-foreground">
+                {t('summary.items', { count: summary.approvedCount })}
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-emerald-500" />
-                <span className="text-sm text-muted-foreground">Paid</span>
+                <span className="text-sm text-muted-foreground">{t('summary.paid')}</span>
               </div>
               <p className="text-2xl font-bold">€{summary.totalPaid.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">{summary.paidCount} items</p>
+              <p className="text-xs text-muted-foreground">
+                {t('summary.items', { count: summary.paidCount })}
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-primary" />
-                <span className="text-sm text-muted-foreground">Total Owed</span>
+                <span className="text-sm text-muted-foreground">{t('summary.total_owed')}</span>
               </div>
               <p className="text-2xl font-bold">
                 €{(summary.totalPending + summary.totalApproved).toFixed(2)}
               </p>
               <p className="text-xs text-muted-foreground">
-                {summary.pendingCount + summary.approvedCount} items
+                {t('summary.items', {
+                  count: summary.pendingCount + summary.approvedCount,
+                })}
               </p>
             </CardContent>
           </Card>
@@ -224,15 +239,13 @@ export default function AdminCommissionsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Member Referral Program Settings</CardTitle>
+          <CardTitle>{t('settings.title')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-1">
-              <Label htmlFor="member-referrals-enabled">Enable member referral rewards</Label>
-              <p className="text-sm text-muted-foreground">
-                Allow members to earn rewards from the first paid membership they refer.
-              </p>
+              <Label htmlFor="member-referrals-enabled">{t('settings.enable_title')}</Label>
+              <p className="text-sm text-muted-foreground">{t('settings.enable_description')}</p>
             </div>
             <Checkbox
               id="member-referrals-enabled"
@@ -243,7 +256,7 @@ export default function AdminCommissionsPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="reward-type">Reward type</Label>
+              <Label htmlFor="reward-type">{t('settings.reward_type')}</Label>
               <Select
                 value={referralSettings.rewardType}
                 onValueChange={value =>
@@ -258,14 +271,14 @@ export default function AdminCommissionsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fixed">Fixed amount</SelectItem>
-                  <SelectItem value="percent">Percent of first payment</SelectItem>
+                  <SelectItem value="fixed">{t('reward_types.fixed')}</SelectItem>
+                  <SelectItem value="percent">{t('reward_types.percent')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="settlement-mode">Settlement mode</Label>
+              <Label htmlFor="settlement-mode">{t('settings.settlement_mode')}</Label>
               <Select
                 value={referralSettings.settlementMode}
                 onValueChange={value =>
@@ -280,15 +293,17 @@ export default function AdminCommissionsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="credit_only">Credit only</SelectItem>
-                  <SelectItem value="credit_or_payout">Credit or payout</SelectItem>
+                  <SelectItem value="credit_only">{t('settlement_modes.credit_only')}</SelectItem>
+                  <SelectItem value="credit_or_payout">
+                    {t('settlement_modes.credit_or_payout')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {referralSettings.rewardType === 'fixed' ? (
               <div className="space-y-2">
-                <Label htmlFor="fixed-reward-cents">Fixed reward (cents)</Label>
+                <Label htmlFor="fixed-reward-cents">{t('settings.fixed_reward')}</Label>
                 <Input
                   id="fixed-reward-cents"
                   type="number"
@@ -299,12 +314,14 @@ export default function AdminCommissionsPage() {
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  Current reward: {formatSettingsAmount(referralSettings.fixedRewardCents ?? 0)}
+                  {t('settings.current_reward', {
+                    amount: formatSettingsAmount(referralSettings.fixedRewardCents ?? 0),
+                  })}
                 </p>
               </div>
             ) : (
               <div className="space-y-2">
-                <Label htmlFor="percent-reward-bps">Percent reward (bps)</Label>
+                <Label htmlFor="percent-reward-bps">{t('settings.percent_reward')}</Label>
                 <Input
                   id="percent-reward-bps"
                   type="number"
@@ -316,13 +333,15 @@ export default function AdminCommissionsPage() {
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  Current reward: {((referralSettings.percentRewardBps ?? 0) / 100).toFixed(2)}%
+                  {t('settings.current_reward', {
+                    amount: `${((referralSettings.percentRewardBps ?? 0) / 100).toFixed(2)}%`,
+                  })}
                 </p>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="payout-threshold-cents">Payout threshold (cents)</Label>
+              <Label htmlFor="payout-threshold-cents">{t('settings.payout_threshold')}</Label>
               <Input
                 id="payout-threshold-cents"
                 type="number"
@@ -335,7 +354,7 @@ export default function AdminCommissionsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="currency-code">Currency code</Label>
+              <Label htmlFor="currency-code">{t('settings.currency_code')}</Label>
               <Input
                 id="currency-code"
                 maxLength={3}
@@ -347,7 +366,7 @@ export default function AdminCommissionsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="qualifying-event-type">Qualifying event</Label>
+              <Label htmlFor="qualifying-event-type">{t('settings.qualifying_event')}</Label>
               <Select
                 value={referralSettings.qualifyingEventType}
                 onValueChange={value =>
@@ -362,7 +381,9 @@ export default function AdminCommissionsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="first_paid_membership">First paid membership</SelectItem>
+                  <SelectItem value="first_paid_membership">
+                    {t('qualifying_event_types.first_paid_membership')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -370,9 +391,9 @@ export default function AdminCommissionsPage() {
 
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-1">
-              <Label htmlFor="fraud-review-enabled">Fraud review required</Label>
+              <Label htmlFor="fraud-review-enabled">{t('settings.fraud_review_title')}</Label>
               <p className="text-sm text-muted-foreground">
-                Keep new rewards pending until admin reviews and approves them.
+                {t('settings.fraud_review_description')}
               </p>
             </div>
             <Checkbox
@@ -386,7 +407,7 @@ export default function AdminCommissionsPage() {
 
           <div className="flex justify-end">
             <Button type="button" onClick={handleSaveReferralSettings} disabled={isPending}>
-              Save referral settings
+              {t('settings.save')}
             </Button>
           </div>
         </CardContent>
@@ -394,12 +415,12 @@ export default function AdminCommissionsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Member Referral Rewards</CardTitle>
+          <CardTitle>{t('rewards.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {referralRewards.length === 0 ? (
-              <p className="py-8 text-center text-muted-foreground">No referral rewards yet</p>
+              <p className="py-8 text-center text-muted-foreground">{t('rewards.empty')}</p>
             ) : (
               referralRewards.map(reward => (
                 <div
@@ -408,15 +429,20 @@ export default function AdminCommissionsPage() {
                 >
                   <div className="space-y-1">
                     <p className="font-medium">
-                      Reward {reward.id.slice(0, 8)} • {formatRewardAmount(reward)}
+                      {t('rewards.reward_label', {
+                        id: reward.id.slice(0, 8),
+                        amount: formatRewardAmount(reward),
+                      })}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Referrer {reward.referrerMemberId.slice(0, 8)} • Referred member{' '}
-                      {reward.referredMemberId.slice(0, 8)}
+                      {t('rewards.referrer_label', { id: reward.referrerMemberId.slice(0, 8) })} •{' '}
+                      {t('rewards.referred_member_label', {
+                        id: reward.referredMemberId.slice(0, 8),
+                      })}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {reward.qualifyingEventType.replaceAll('_', ' ')} •{' '}
-                      {reward.earnedAt ? format(new Date(reward.earnedAt), 'PPP') : '-'}
+                      {t(`qualifying_event_types.${reward.qualifyingEventType}`)} •{' '}
+                      {formatDate(reward.earnedAt)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -438,7 +464,7 @@ export default function AdminCommissionsPage() {
                       <SelectContent>
                         {availableReferralStatusOptions(reward.status).map(status => (
                           <SelectItem key={status} value={status}>
-                            {status}
+                            {t(`statuses.${status}`)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -453,23 +479,22 @@ export default function AdminCommissionsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Commissions</CardTitle>
+          <CardTitle>{t('commissions.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {commissions.length === 0 ? (
-              <p className="text-center py-8 text-muted-foreground">No commissions yet</p>
+              <p className="text-center py-8 text-muted-foreground">{t('commissions.empty')}</p>
             ) : (
               commissions.map(c => (
                 <div key={c.id} className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-1">
                     <p className="font-medium">{c.agentName}</p>
                     <p className="text-sm text-muted-foreground">
-                      {c.memberName || 'Unknown Member'} • {c.type.replace('_', ' ')}
+                      {c.memberName || t('commissions.unknown_member')} •{' '}
+                      {t(`commission_types.${c.type}`)}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {c.earnedAt ? format(new Date(c.earnedAt), 'PPP') : '-'}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{formatDate(c.earnedAt)}</p>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="font-semibold text-lg">{formatAmount(c.amount)}</span>
@@ -482,10 +507,10 @@ export default function AdminCommissionsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="paid">Paid</SelectItem>
-                        <SelectItem value="void">Void</SelectItem>
+                        <SelectItem value="pending">{t('statuses.pending')}</SelectItem>
+                        <SelectItem value="approved">{t('statuses.approved')}</SelectItem>
+                        <SelectItem value="paid">{t('statuses.paid')}</SelectItem>
+                        <SelectItem value="void">{t('statuses.void')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -497,4 +522,17 @@ export default function AdminCommissionsPage() {
       </Card>
     </div>
   );
+}
+
+function toIntlLocale(locale: string) {
+  switch (locale) {
+    case 'mk':
+      return 'mk-MK';
+    case 'sq':
+      return 'sq-AL';
+    case 'sr':
+      return 'sr-RS';
+    default:
+      return 'en-US';
+  }
 }

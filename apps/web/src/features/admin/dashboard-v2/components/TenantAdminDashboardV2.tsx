@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import type { DashboardV2Data } from '../server/getTenantAdminDashboardV2Data';
 import { BranchSnapshotPanel } from './BranchSnapshotPanel';
 import { DashboardHeader } from './DashboardHeader';
@@ -14,6 +15,8 @@ export function TenantAdminDashboardV2({
   data: DashboardV2Data;
   tenantName: string;
 }) {
+  const t = useTranslations('admin.dashboard_v2.footer');
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DashboardHeader tenantName={tenantName} today={new Date()} />
@@ -35,7 +38,7 @@ export function TenantAdminDashboardV2({
       />
 
       <div className="flex items-center justify-between text-xs text-muted-foreground mt-8 pt-4 border-t border-white/10">
-        <span>Data Freshness: Real-time</span>
+        <span>{t('data_freshness')}</span>
         <span className="font-mono opacity-50">v2.0.0-ops</span>
       </div>
     </div>

@@ -13,6 +13,23 @@
       "branches": "Branches",
       "leads": "Lead Verification",
       "settings": "Settings"
+    },
+    "errors": {
+      "admin": {
+        "title": "Admin Console Error",
+        "description": "An unexpected error occurred in the admin panel. The system layout is still active.",
+        "digest_label": "Error Digest:",
+        "unknown_digest": "Unknown",
+        "try_again": "Try again"
+      },
+      "branch_dashboard": {
+        "title": "Something went wrong",
+        "description": "An error occurred while loading the branch dashboard.",
+        "try_again": "Try again"
+      }
+    },
+    "tenant_selector": {
+      "placeholder": "Tenant"
     }
   }
 }

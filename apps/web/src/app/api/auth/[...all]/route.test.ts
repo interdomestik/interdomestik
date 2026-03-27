@@ -47,7 +47,9 @@ describe('GET /api/auth/[...all]', () => {
   });
 
   it('delegates to better-auth handler when not rate limited', async () => {
-    const req = new Request('http://localhost:3000/api/auth/session');
+    const req = new Request('http://app.example.test/api/auth/session', {
+      headers: { host: 'app.example.test' },
+    });
     const res = await GET(req);
 
     expect(res.status).toBe(200);
@@ -60,6 +62,18 @@ describe('GET /api/auth/[...all]', () => {
         productionSensitive: true,
       })
     );
+  });
+
+  it('bypasses auth rate limiting on loopback development hosts', async () => {
+    const req = new Request('http://localhost:3000/api/auth/session', {
+      headers: { host: 'mk.127.0.0.1.nip.io:3000' },
+    });
+
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    expect(hoisted.enforceRateLimit).not.toHaveBeenCalled();
+    expect(hoisted.handlerGET).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -104,7 +118,10 @@ describe('POST /api/auth/[...all]', () => {
   });
 
   it('does not log audit for other auth routes', async () => {
-    const req = new Request('http://localhost:3000/api/auth/sign-in', { method: 'POST' });
+    const req = new Request('http://app.example.test/api/auth/sign-in', {
+      method: 'POST',
+      headers: { host: 'app.example.test' },
+    });
 
     const res = await POST(req);
 
@@ -116,5 +133,18 @@ describe('POST /api/auth/[...all]', () => {
         productionSensitive: true,
       })
     );
+  });
+
+  it('bypasses auth rate limiting for loopback login posts in development', async () => {
+    const req = new Request('http://localhost:3000/api/auth/sign-in', {
+      method: 'POST',
+      headers: { host: 'ks.127.0.0.1.nip.io:3000' },
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(hoisted.enforceRateLimit).not.toHaveBeenCalled();
+    expect(hoisted.handlerPOST).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,0 +1,67 @@
+{
+  "admin": {
+    "commissions_page": {
+      "title": "Menaxhimi i komisioneve",
+      "description": "Shqyrtoni komisionet e agjentëve, shpërblimet e referimeve të anëtarëve dhe cilësimet e programit.",
+      "summary": {
+        "pending": "Në pritje",
+        "approved": "Të miratuara",
+        "paid": "Të paguara",
+        "total_owed": "Gjithsej për pagesë",
+        "items": "{count} artikuj"
+      },
+      "settings": {
+        "title": "Cilësimet e programit të referimeve të anëtarëve",
+        "enable_title": "Aktivizo shpërblimet e referimeve të anëtarëve",
+        "enable_description": "Lejo anëtarët të fitojnë shpërblime nga anëtarësia e parë me pagesë që referojnë.",
+        "reward_type": "Lloji i shpërblimit",
+        "settlement_mode": "Mënyra e shlyerjes",
+        "fixed_reward": "Shpërblim fiks (cent)",
+        "percent_reward": "Shpërblim përqindës (bps)",
+        "current_reward": "Shpërblimi aktual: {amount}",
+        "payout_threshold": "Pragu i pagesës (cent)",
+        "currency_code": "Kodi i valutës",
+        "qualifying_event": "Ngjarja kualifikuese",
+        "fraud_review_title": "Kërkohet rishikim i mashtrimit",
+        "fraud_review_description": "Mbaji shpërblimet e reja në pritje derisa administratori t'i shqyrtojë dhe miratojë.",
+        "save": "Ruaj cilësimet e referimeve"
+      },
+      "reward_types": {
+        "fixed": "Shumë fikse",
+        "percent": "Përqindja e pagesës së parë"
+      },
+      "settlement_modes": {
+        "credit_only": "Vetëm kredi",
+        "credit_or_payout": "Kredi ose pagesë"
+      },
+      "qualifying_event_types": {
+        "first_paid_membership": "Anëtarësia e parë me pagesë"
+      },
+      "rewards": {
+        "title": "Shpërblimet e referimeve të anëtarëve",
+        "empty": "Ende nuk ka shpërblime referimi",
+        "reward_label": "Shpërblimi {id} • {amount}",
+        "referrer_label": "Referuesi {id}",
+        "referred_member_label": "Anëtari i referuar {id}"
+      },
+      "commissions": {
+        "title": "Të gjitha komisionet",
+        "empty": "Ende nuk ka komisione",
+        "unknown_member": "Anëtar i panjohur"
+      },
+      "statuses": {
+        "pending": "Në pritje",
+        "approved": "Miratuar",
+        "credited": "Kredituar",
+        "paid": "Paguar",
+        "void": "Anuluar"
+      },
+      "commission_types": {
+        "signup_bonus": "bonus regjistrimi",
+        "membership_sale": "shitje anëtarësimi",
+        "referral_bonus": "bonus referimi",
+        "renewal_bonus": "bonus rinovimi"
+      }
+    }
+  }
+}

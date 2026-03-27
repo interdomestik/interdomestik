@@ -21,13 +21,97 @@ vi.mock('@/actions/admin-rbac', () => rbacMocks);
 
 const navigationState = vi.hoisted(() => ({
   tenantId: 'tenant_xk' as string | null,
+  locale: 'en',
 }));
+
+const translationFns = vi.hoisted(() => {
+  const mkValues = {
+    title: 'Улоги',
+    description: 'Улоги со опсег на tenant за овој корисник.',
+    missing_tenant_context:
+      'Недостасува tenant контекст. Повторно отворете го овој профил од листата на корисници за tenant-от.',
+    tenant_wide: 'На ниво на tenant',
+    'fields.role': 'Улога',
+    'fields.branch': 'Филијала',
+    'fields.select_role': 'Избери улога',
+    'fields.custom_role': 'Прилагодена…',
+    'fields.role_name': 'Име на улога',
+    'fields.new_branch_name': 'Име на нова филијала',
+    'fields.new_branch_code': 'Нова шифра на филијала (опционално)',
+    'actions.grant': 'Додели улога',
+    'actions.remove': 'Отстрани',
+    'actions.create_branch': 'Креирај филијала',
+    'table.empty': 'Нема доделени улоги',
+    'table.actions': 'Дејства',
+    'toast.load_branches_failed': 'Неуспешно вчитување филијали',
+    'toast.load_roles_failed': 'Неуспешно вчитување улоги',
+    'toast.tenant_context_required_roles': 'Потребен е tenant контекст за управување со улоги',
+    'toast.tenant_context_required_branches':
+      'Потребен е tenant контекст за управување со филијали',
+    'toast.role_required': 'Улогата е задолжителна',
+    'toast.branch_required': 'За оваа улога е задолжителна филијала. Изберете филијала.',
+    'toast.role_granted': 'Улогата е доделена',
+    'toast.grant_failed': 'Неуспешно доделување улога',
+    'toast.role_revoked': 'Улогата е отповикана',
+    'toast.revoke_failed': 'Неуспешно отповикување улога',
+    'toast.branch_name_required': 'Името на филијалата е задолжително',
+    'toast.branch_created': 'Филијалата е креирана',
+    'toast.branch_create_failed': 'Неуспешно креирање филијала',
+  } as const;
+
+  const enValues = {
+    title: 'Roles',
+    description: 'Tenant-scoped roles for this user.',
+    missing_tenant_context:
+      'Missing tenant context. Reopen this profile from the tenant user list.',
+    tenant_wide: 'Tenant-wide',
+    'fields.role': 'Role',
+    'fields.branch': 'Branch',
+    'fields.select_role': 'Select role',
+    'fields.custom_role': 'Custom…',
+    'fields.role_name': 'Role name',
+    'fields.new_branch_name': 'New branch name',
+    'fields.new_branch_code': 'New branch code (optional)',
+    'actions.grant': 'Grant role',
+    'actions.remove': 'Remove',
+    'actions.create_branch': 'Create branch',
+    'table.empty': 'No roles assigned',
+    'table.actions': 'Actions',
+    'toast.load_branches_failed': 'Failed to load branches',
+    'toast.load_roles_failed': 'Failed to load roles',
+    'toast.tenant_context_required_roles': 'Tenant context is required to manage roles',
+    'toast.tenant_context_required_branches': 'Tenant context is required to manage branches',
+    'toast.role_required': 'Role is required',
+    'toast.branch_required': 'Branch is required for this role. Please select a branch.',
+    'toast.role_granted': 'Role granted',
+    'toast.grant_failed': 'Failed to grant role',
+    'toast.role_revoked': 'Role revoked',
+    'toast.revoke_failed': 'Failed to revoke role',
+    'toast.branch_name_required': 'Branch name is required',
+    'toast.branch_created': 'Branch created',
+    'toast.branch_create_failed': 'Failed to create branch',
+  } as const;
+
+  return {
+    mk: (key: string) => mkValues[key as keyof typeof mkValues] ?? key,
+    en: (key: string) => enValues[key as keyof typeof enValues] ?? key,
+  };
+});
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     refresh: navigationMocks.refresh,
   }),
-  useParams: () => ({ locale: 'en' }),
+  useParams: () => ({ locale: navigationState.locale }),
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: (namespace?: string) => {
+    if (namespace !== 'admin.member_profile.roles_panel') {
+      return (key: string) => key;
+    }
+    return navigationState.locale === 'mk' ? translationFns.mk : translationFns.en;
+  },
 }));
 
 vi.mock('sonner', () => ({
@@ -40,6 +124,7 @@ vi.mock('sonner', () => ({
 describe('AdminUserRolesPanel', () => {
   beforeEach(() => {
     navigationState.tenantId = 'tenant_xk';
+    navigationState.locale = 'en';
     rbacMocks.listBranches.mockReset();
     rbacMocks.listUserRoles.mockReset();
     rbacMocks.grantUserRole.mockReset();
@@ -209,5 +294,21 @@ describe('AdminUserRolesPanel', () => {
 
     // Contract: staff role must be grantable/revokable for P2.5.
     expect(screen.getByTestId('role-option-staff')).toBeInTheDocument();
+  });
+
+  it('renders Macedonian labels on the mk admin user detail route', async () => {
+    navigationState.locale = 'mk';
+
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
+
+    await waitFor(() => {
+      expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(1);
+    });
+
+    expect(screen.getByText('Улоги')).toBeInTheDocument();
+    expect(screen.getAllByText('Улога').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Филијала').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Додели улога' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Дејства' })).toBeInTheDocument();
   });
 });

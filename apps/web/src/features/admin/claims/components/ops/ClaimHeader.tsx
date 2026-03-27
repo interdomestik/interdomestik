@@ -1,7 +1,5 @@
 'use client';
 
-import { format } from 'date-fns';
-import { enUS, sq } from 'date-fns/locale';
 import {
   Activity,
   AlertTriangle,
@@ -15,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 
 import type { NextActionsResult } from '../../components/detail/getNextActions';
@@ -23,12 +21,22 @@ import type { ClaimOpsDetail } from '../../types';
 import { ClaimOriginBadges } from '../shared/ClaimOriginBadges';
 import { InfoPill } from '../shared/InfoPill';
 import { buildAdminUserProfileHref } from './claim-header-links';
+import { formatClaimCreatedDate } from './claim-header-date';
 
 interface ClaimHeaderProps {
   claim: ClaimOpsDetail;
   nextActions: NextActionsResult;
   allStaff: { id: string; name: string | null; email: string }[];
   locale: string;
+}
+
+function resolveRouteLocale(pathname: string | null, fallbackLocale: string): string {
+  const routeLocale = pathname?.split('/')[1];
+  if (routeLocale && ['en', 'sq', 'mk', 'sr'].includes(routeLocale)) {
+    return routeLocale;
+  }
+
+  return fallbackLocale;
 }
 
 export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 'nextActions'>) {
@@ -38,8 +46,11 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
   const tLifecycle = useTranslations('admin.claims_page.lifecycle_tabs');
   const tFilters = useTranslations('admin.claims_page.filters');
   const tPage = useTranslations('admin.claims_page');
+  const tHeader = useTranslations('admin.claims_page.header');
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const memberProfileHref = buildAdminUserProfileHref(claim.memberId, searchParams);
+  const activeLocale = resolveRouteLocale(pathname, locale);
 
   // Construct smart back URL: preserve filters/page, but drop poolAnchor to force refresh
   const createBackUrl = () => {
@@ -55,9 +66,9 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
   };
 
   const domain = typeof window !== 'undefined' ? window.location.origin : '';
-  const canonicalUrl = `${domain}/${locale}/admin/claims/${claim.id}`;
+  const canonicalUrl = `${domain}/${activeLocale}/admin/claims/${claim.id}`;
   const resolverUrl = claim.claimNumber
-    ? `${domain}/${locale}/admin/claims/number/${claim.claimNumber}`
+    ? `${domain}/${activeLocale}/admin/claims/number/${claim.claimNumber}`
     : canonicalUrl;
 
   return (
@@ -94,16 +105,16 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
             {/* Copy Actions (Hover only) */}
             <div className="opacity-0 group-hover/claim:opacity-100 transition-opacity flex items-center gap-1">
               <button
-                onClick={() => copyToClipboard(resolverUrl, 'Claim Number Link')}
+                onClick={() => copyToClipboard(resolverUrl, tHeader('claim_number_link'))}
                 className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
-                title="Copy Traceable Number Link"
+                title={tHeader('copy_traceable_link')}
               >
                 <LinkIcon className="w-3 h-3" />
               </button>
               <button
-                onClick={() => copyToClipboard(canonicalUrl, 'Canonical URL')}
+                onClick={() => copyToClipboard(canonicalUrl, tHeader('canonical_url'))}
                 className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
-                title="Copy Canonical System Link"
+                title={tHeader('copy_canonical_link')}
               >
                 <Copy className="w-3 h-3" />
               </button>
@@ -131,7 +142,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                 <button
                   onClick={() =>
                     copyToClipboard(
-                      `${domain}/${locale}/admin/members/number/${claim.memberNumber}`,
+                      `${domain}/${activeLocale}/admin/members/number/${claim.memberNumber}`,
                       tPage('copy_member_link')
                     )
                   }
@@ -257,12 +268,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
               </div>
 
               <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium opacity-70 pl-0.5">
-                {tSource('created')}{' '}
-                {claim.createdAt
-                  ? format(new Date(claim.createdAt), 'MMMM d, yyyy', {
-                      locale: locale === 'sq' ? sq : enUS,
-                    })
-                  : ''}
+                {tSource('created')} {formatClaimCreatedDate(claim.createdAt, activeLocale)}
               </span>
             </div>
           </div>

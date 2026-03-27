@@ -306,6 +306,33 @@ describe('LoginForm', () => {
     Object.defineProperty(globalThis, 'location', { value: originalLocation });
   });
 
+  it('preserves the current login URL as the GitHub callback', async () => {
+    const originalLocation = globalThis.location;
+    mockSearchParams = new URLSearchParams('tenantId=tenant_ks&next=%2Fen%2Fmember%2Fclaims');
+    Object.defineProperty(globalThis, 'location', {
+      value: {
+        origin: 'http://localhost:3000',
+        href: 'http://localhost:3000/en/login?tenantId=tenant_ks&next=%2Fen%2Fmember%2Fclaims',
+      },
+      writable: true,
+    });
+
+    render(<LoginForm />);
+
+    fireEvent.click(screen.getByText('GitHub'));
+
+    await waitFor(() => {
+      expect(mockSignInSocial).toHaveBeenCalledWith({
+        provider: 'github',
+        callbackURL:
+          'http://localhost:3000/en/login?tenantId=tenant_ks&next=%2Fen%2Fmember%2Fclaims',
+        additionalData: { tenantId: 'tenant_ks' },
+      });
+    });
+
+    Object.defineProperty(globalThis, 'location', { value: originalLocation });
+  });
+
   it('has forgot password link', () => {
     render(<LoginForm />);
 
@@ -342,6 +369,34 @@ describe('LoginForm', () => {
 
     await waitFor(() => {
       expect(mockLocationAssign).toHaveBeenCalledWith('/en/pricing?plan=standard');
+    });
+  });
+
+  it('redirects to a safe next path after login when it matches the authenticated surface', async () => {
+    mockSearchParams = new URLSearchParams('next=%2Fen%2Fmember%2Fclaims');
+    mockSignInEmail.mockResolvedValue({ error: null });
+    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+
+    render(<LoginForm />);
+
+    fillAndSubmitCredentials();
+
+    await waitFor(() => {
+      expect(mockLocationAssign).toHaveBeenCalledWith('/en/member/claims');
+    });
+  });
+
+  it('falls back to the canonical route when next targets a different protected surface', async () => {
+    mockSearchParams = new URLSearchParams('next=%2Fen%2Fadmin%2Foverview');
+    mockSignInEmail.mockResolvedValue({ error: null });
+    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+
+    render(<LoginForm />);
+
+    fillAndSubmitCredentials();
+
+    await waitFor(() => {
+      expect(mockLocationAssign).toHaveBeenCalledWith('/en/member');
     });
   });
 });

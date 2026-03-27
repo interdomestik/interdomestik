@@ -33,6 +33,43 @@ type ResolvedAuthenticatedRole = {
   timedOut: boolean;
 };
 
+function getAllowedSurfacePrefix(role: string, locale: string): string | null {
+  if (role === 'agent') {
+    return `/${locale}/agent`;
+  }
+
+  if (role === 'staff') {
+    return `/${locale}/staff`;
+  }
+
+  if (isAdmin(role)) {
+    return `/${locale}/admin`;
+  }
+
+  if (role === 'member' || role === 'user') {
+    return `/${locale}/member`;
+  }
+
+  return null;
+}
+
+function resolveSafeNextPath(nextPath: string | null, role: string, locale: string): string | null {
+  if (!nextPath) {
+    return null;
+  }
+
+  if (!nextPath.startsWith('/') || nextPath.startsWith('//')) {
+    return null;
+  }
+
+  const allowedPrefix = getAllowedSurfacePrefix(role, locale);
+  if (!allowedPrefix) {
+    return null;
+  }
+
+  return nextPath === allowedPrefix || nextPath.startsWith(`${allowedPrefix}/`) ? nextPath : null;
+}
+
 async function resolveAuthenticatedRole(): Promise<ResolvedAuthenticatedRole> {
   for (let attempt = 0; attempt < SESSION_SYNC_RETRY_COUNT; attempt += 1) {
     const { data: session } = await authClient.getSession();
@@ -72,6 +109,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
   const pathname = usePathname();
   const tenantIdFromQuery = searchParams.get('tenantId') || undefined;
   const planIdFromQuery = searchParams.get('plan') || undefined;
+  const nextPathFromQuery = searchParams.get('next');
   const resolvedTenantId = tenantId ?? tenantIdFromQuery;
   const registerParams = new URLSearchParams();
   if (resolvedTenantId) {
@@ -169,6 +207,12 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
                 );
                 setError(`${t('error')} (Unsupported account role)`);
                 setLoading(false);
+                return;
+              }
+
+              const safeNextPath = resolveSafeNextPath(nextPathFromQuery, role, locale);
+              if (safeNextPath) {
+                globalThis.location.assign(safeNextPath);
                 return;
               }
 
@@ -286,7 +330,8 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
             onClick={async () => {
               await authClient.signIn.social({
                 provider: 'github',
-                callbackURL: `${window.location.origin}/${locale}/login`,
+                callbackURL:
+                  globalThis.location.href || `${window.location.origin}/${locale}/login`,
                 ...(resolvedTenantId ? { additionalData: { tenantId: resolvedTenantId } } : {}),
               });
             }}

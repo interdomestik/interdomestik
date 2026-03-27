@@ -60,7 +60,12 @@
     "member_profile": {
       "actions": {
         "back": "Kthehu te përdoruesit",
-        "view_claim": "Shiko kërkesën"
+        "view_claim": "Shiko kërkesën",
+        "resend_welcome": "Ridërgo emailin e mirëseardhjes",
+        "resend_welcome_loading": "Duke dërguar...",
+        "resend_welcome_success": "Emaili i mirëseardhjes u dërgua me sukses!",
+        "resend_welcome_failed": "Dështoi dërgimi i emailit",
+        "resend_welcome_unexpected": "Ndodhi një gabim i papritur"
       },
       "sections": {
         "membership": "Anëtarësimi",
@@ -104,6 +109,45 @@
         "open": "Kërkesa të hapura",
         "resolved": "Të zgjidhura",
         "rejected": "Të refuzuara"
+      },
+      "roles_panel": {
+        "title": "Rolet",
+        "description": "Rolet me fushëveprim tenant për këtë përdorues.",
+        "missing_tenant_context": "Mungon konteksti i tenant-it. Rihape këtë profil nga lista e përdoruesve të tenant-it.",
+        "tenant_wide": "Në nivel tenant-i",
+        "fields": {
+          "role": "Roli",
+          "branch": "Dega",
+          "select_role": "Zgjidh rolin",
+          "custom_role": "Me porosi…",
+          "role_name": "Emri i rolit",
+          "new_branch_name": "Emri i degës së re",
+          "new_branch_code": "Kodi i degës së re (opsionale)"
+        },
+        "actions": {
+          "grant": "Jep rolin",
+          "remove": "Hiqe",
+          "create_branch": "Krijo degë"
+        },
+        "table": {
+          "empty": "Nuk ka role të caktuara",
+          "actions": "Veprime"
+        },
+        "toast": {
+          "load_branches_failed": "Dështoi ngarkimi i degëve",
+          "load_roles_failed": "Dështoi ngarkimi i roleve",
+          "tenant_context_required_roles": "Konteksti i tenant-it kërkohet për të menaxhuar rolet",
+          "tenant_context_required_branches": "Konteksti i tenant-it kërkohet për të menaxhuar degët",
+          "role_required": "Roli është i detyrueshëm",
+          "branch_required": "Për këtë rol kërkohet një degë. Ju lutemi zgjidhni një degë.",
+          "role_granted": "Roli u dha",
+          "grant_failed": "Dështoi dhënia e rolit",
+          "role_revoked": "Roli u hoq",
+          "revoke_failed": "Dështoi heqja e rolit",
+          "branch_name_required": "Emri i degës është i detyrueshëm",
+          "branch_created": "Dega u krijua",
+          "branch_create_failed": "Dështoi krijimi i degës"
+        }
       }
     }
   }

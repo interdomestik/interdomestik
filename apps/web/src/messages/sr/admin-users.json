@@ -60,7 +60,12 @@
     "member_profile": {
       "actions": {
         "back": "Nazad na korisnike",
-        "view_claim": "Prikaži zahtev"
+        "view_claim": "Prikaži zahtev",
+        "resend_welcome": "Ponovo pošalji imejl dobrodošlice",
+        "resend_welcome_loading": "Slanje...",
+        "resend_welcome_success": "Imejl dobrodošlice je uspešno poslat!",
+        "resend_welcome_failed": "Slanje imejla nije uspelo",
+        "resend_welcome_unexpected": "Došlo je do neočekivane greške"
       },
       "sections": {
         "membership": "Članstvo",
@@ -104,6 +109,45 @@
         "open": "Otvoreni zahtevi",
         "resolved": "Rešeni",
         "rejected": "Odbijeni"
+      },
+      "roles_panel": {
+        "title": "Uloge",
+        "description": "Uloge sa opsegom tenant-a za ovog korisnika.",
+        "missing_tenant_context": "Nedostaje tenant kontekst. Ponovo otvorite ovaj profil iz liste korisnika tenant-a.",
+        "tenant_wide": "Na nivou tenant-a",
+        "fields": {
+          "role": "Uloga",
+          "branch": "Filijala",
+          "select_role": "Izaberi ulogu",
+          "custom_role": "Prilagođena…",
+          "role_name": "Naziv uloge",
+          "new_branch_name": "Naziv nove filijale",
+          "new_branch_code": "Nova šifra filijale (opciono)"
+        },
+        "actions": {
+          "grant": "Dodeli ulogu",
+          "remove": "Ukloni",
+          "create_branch": "Kreiraj filijalu"
+        },
+        "table": {
+          "empty": "Nema dodeljenih uloga",
+          "actions": "Radnje"
+        },
+        "toast": {
+          "load_branches_failed": "Učitavanje filijala nije uspelo",
+          "load_roles_failed": "Učitavanje uloga nije uspelo",
+          "tenant_context_required_roles": "Tenant kontekst je obavezan za upravljanje ulogama",
+          "tenant_context_required_branches": "Tenant kontekst je obavezan za upravljanje filijalama",
+          "role_required": "Uloga je obavezna",
+          "branch_required": "Za ovu ulogu je obavezna filijala. Izaberite filijalu.",
+          "role_granted": "Uloga je dodeljena",
+          "grant_failed": "Dodela uloge nije uspela",
+          "role_revoked": "Uloga je opozvana",
+          "revoke_failed": "Opoziv uloge nije uspeo",
+          "branch_name_required": "Naziv filijale je obavezan",
+          "branch_created": "Filijala je kreirana",
+          "branch_create_failed": "Kreiranje filijale nije uspelo"
+        }
       }
     }
   }

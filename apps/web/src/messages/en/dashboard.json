@@ -17,6 +17,7 @@
       "orientation_point_one": "If an incident happens, start a claim in a few quick steps.",
       "orientation_point_two": "Keep your documents ready and contact support whenever needed.",
       "orientation_cta": "See how it works",
+      "active_claim_title": "Active claim",
       "empty_title": "No claims yet",
       "empty_body": "When you submit your first claim, it will appear here.",
       "help_label": "Need help?",

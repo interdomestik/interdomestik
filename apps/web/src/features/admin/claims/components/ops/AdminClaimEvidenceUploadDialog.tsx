@@ -1,6 +1,6 @@
 'use client';
 
-import { confirmUpload, generateUploadUrl } from '@/features/member/claims/actions';
+import { confirmAdminUpload, generateAdminUploadUrl } from '@/features/admin/claims/actions';
 import { createClient } from '@interdomestik/database/client';
 import {
   Button,
@@ -20,21 +20,27 @@ import {
   SelectValue,
 } from '@interdomestik/ui';
 import { Loader2, Upload } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-interface ClaimEvidenceUploadDialogProps {
+interface AdminClaimEvidenceUploadDialogProps {
   claimId: string;
   trigger: React.ReactNode;
 }
 
-export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUploadDialogProps) {
+export function AdminClaimEvidenceUploadDialog({
+  claimId,
+  trigger,
+}: AdminClaimEvidenceUploadDialogProps) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState<'evidence' | 'legal'>('evidence');
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const t = useTranslations('admin.claims_page.evidence');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const supabase = useMemo(() => {
     try {
@@ -59,8 +65,7 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
 
     setUploading(true);
     try {
-      // 1. Get Presigned URL
-      const genResult = await generateUploadUrl(
+      const genResult = await generateAdminUploadUrl(
         claimId,
         file.name,
         file.type || 'application/octet-stream',
@@ -72,10 +77,9 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
       }
 
       if (!supabase) {
-        throw new Error('Storage client unavailable');
+        throw new Error(t('upload_failed'));
       }
 
-      // 2. Upload to Storage using the same signed-upload flow as the claim wizard.
       const { error: uploadError } = await supabase.storage
         .from(genResult.bucket)
         .uploadToSignedUrl(genResult.path, genResult.token, file, {
@@ -85,12 +89,10 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
         });
 
       if (uploadError) {
-        console.error('Storage upload failed', uploadError);
-        throw new Error(uploadError.message || 'Storage upload failed');
+        throw new Error(uploadError.message || t('upload_failed'));
       }
 
-      // 3. Confirm in DB
-      const confirmRes = await confirmUpload({
+      const confirmRes = await confirmAdminUpload({
         claimId,
         storagePath: genResult.path,
         originalName: file.name,
@@ -105,14 +107,13 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
         throw new Error(confirmRes.error);
       }
 
-      toast.success('Evidence uploaded successfully');
+      toast.success(t('upload_success'));
       setOpen(false);
       setFile(null);
       router.refresh();
-    } catch (err: unknown) {
-      console.error('Upload flow error:', err);
-      const message = err instanceof Error ? err.message : 'Failed to upload evidence';
-      toast.error(message);
+    } catch (error) {
+      console.error('[admin/claims] upload flow error', error);
+      toast.error(error instanceof Error ? error.message : t('upload_failed'));
     } finally {
       setUploading(false);
     }
@@ -123,31 +124,31 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Upload Evidence</DialogTitle>
-          <DialogDescription>Attach photos or documents relevant to this claim.</DialogDescription>
+          <DialogTitle>{t('dialog_title')}</DialogTitle>
+          <DialogDescription>{t('dialog_description')}</DialogDescription>
         </DialogHeader>
         <div className="grid w-full items-center gap-4">
           <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="document-category">Document Type</Label>
+            <Label htmlFor="admin-document-category">{t('document_type_label')}</Label>
             <Select
               value={category}
               onValueChange={value => setCategory(value as 'evidence' | 'legal')}
               disabled={uploading}
             >
-              <SelectTrigger id="document-category">
-                <SelectValue placeholder="Select document type" />
+              <SelectTrigger id="admin-document-category">
+                <SelectValue placeholder={t('document_type_placeholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="evidence">Evidence</SelectItem>
-                <SelectItem value="legal">Legal document</SelectItem>
+                <SelectItem value="evidence">{t('types.evidence')}</SelectItem>
+                <SelectItem value="legal">{t('types.legal')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="file">File</Label>
+            <Label htmlFor="admin-evidence-file">{t('file_label')}</Label>
             <Input
               ref={fileInputRef}
-              id="file"
+              id="admin-evidence-file"
               type="file"
               accept="application/pdf,image/jpeg,image/png,text/plain"
               onChange={handleFileChange}
@@ -159,11 +160,11 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
           <Button type="button" variant="default" onClick={handleUpload} disabled={uploading}>
             {uploading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('uploading')}
               </>
             ) : (
               <>
-                <Upload className="mr-2 h-4 w-4" /> Upload
+                <Upload className="mr-2 h-4 w-4" /> {t('upload_button')}
               </>
             )}
           </Button>
@@ -173,7 +174,7 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
             onClick={() => setOpen(false)}
             disabled={uploading}
           >
-            Cancel
+            {tCommon('cancel')}
           </Button>
         </DialogFooter>
       </DialogContent>

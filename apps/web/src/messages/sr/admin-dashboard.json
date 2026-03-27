@@ -26,6 +26,9 @@
         "agents": "Agenti",
         "verify_leads": "Verifikuj lidove"
       },
+      "footer": {
+        "data_freshness": "Svežina podataka: U realnom vremenu"
+      },
       "kpis": {
         "branches": "Ukupno filijala",
         "agents": "Aktivni agenti",
@@ -68,6 +71,24 @@
           "disqualified": "Diskvalifikovan",
           "expired": "Istekao"
         }
+      }
+    },
+    "dashboardOverview": {
+      "title": "Pregled admina",
+      "description": "Stanje sistema i operativna akumulacija.",
+      "kpis": {
+        "members": "Ukupno članova",
+        "agents": "Ukupno agenata",
+        "activeClaims": "Ukupno aktivnih zahteva",
+        "updated24h": "Ažurirani zahtevi (24h)"
+      },
+      "sections": {
+        "byStage": "Zahtevi po fazi",
+        "byBranch": "Zahtevi po filijali"
+      },
+      "empty": {
+        "noActiveClaims": "Nema aktivnih zahteva",
+        "noBranchAccumulation": "Nema akumulacije po filijali"
       }
     }
   }

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  getMemberReferralCardData,
   getMemberReferralLink,
   getMemberReferralProgramPreview,
   getMemberReferralProgramSettings,
@@ -133,6 +134,54 @@ describe('member-referrals action wrapper', () => {
         payoutEligibleRewards: 0,
         paidRewards: 3,
         rewardsCurrency: 'EUR',
+      },
+    });
+  });
+
+  it('collapses member referral card data into a single action context fetch', async () => {
+    const { getActionContext } = await import('./member-referrals/context');
+    const { getMemberReferralLinkCore } = await import('./member-referrals/link');
+    const { getMemberReferralStatsCore } = await import('./member-referrals/stats');
+    const { getMemberReferralProgramPreviewCore } =
+      await import('./member-referrals/settings.core');
+
+    const result = await getMemberReferralCardData();
+
+    expect(getActionContext).toHaveBeenCalledTimes(1);
+    expect(getMemberReferralLinkCore).toHaveBeenCalledWith({
+      session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+    });
+    expect(getMemberReferralStatsCore).toHaveBeenCalledWith({
+      session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+    });
+    expect(getMemberReferralProgramPreviewCore).toHaveBeenCalledWith({
+      session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+    });
+    expect(result).toEqual({
+      success: true,
+      data: {
+        link: 'http://x?ref=JANE-ABC123',
+        whatsappShareUrl: 'wa',
+        stats: {
+          totalReferred: 1,
+          pendingRewards: 2,
+          creditedRewards: 0,
+          payoutEligibleRewards: 0,
+          paidRewards: 3,
+          rewardsCurrency: 'EUR',
+        },
+        settings: {
+          tenantId: 'tenant_1',
+          enabled: true,
+          rewardType: 'fixed',
+          fixedRewardCents: 500,
+          percentRewardBps: null,
+          settlementMode: 'credit_only',
+          payoutThresholdCents: 10000,
+          fraudReviewEnabled: false,
+          currencyCode: 'EUR',
+          qualifyingEventType: 'first_paid_membership',
+        },
       },
     });
   });

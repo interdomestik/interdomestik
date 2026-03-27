@@ -1,9 +1,12 @@
 'use client';
 
+import { format } from 'date-fns';
+import { enUS, mk, sq, sr } from 'date-fns/locale';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { Shield } from 'lucide-react';
 import { useLocale } from 'next-intl';
+import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
 
 interface AdminPageHeaderProps {
@@ -14,13 +17,21 @@ interface AdminPageHeaderProps {
   className?: string;
 }
 
-// Map app locale codes to Intl.DateTimeFormat locale codes
-const LOCALE_MAP: Record<string, string> = {
-  en: 'en-US',
-  sq: 'sq-AL',
-  mk: 'mk-MK',
-  sr: 'sr-RS',
+const LOCALE_MAP = {
+  en: enUS,
+  sq,
+  mk,
+  sr,
 };
+
+function resolveRouteLocale(pathname: string | null, fallbackLocale: string): string {
+  const routeLocale = pathname?.split('/')[1];
+  if (routeLocale && routeLocale in LOCALE_MAP) {
+    return routeLocale;
+  }
+
+  return fallbackLocale;
+}
 
 export function AdminPageHeader({
   title,
@@ -30,15 +41,12 @@ export function AdminPageHeader({
   className,
 }: AdminPageHeaderProps) {
   const locale = useLocale();
-  const intlLocale = LOCALE_MAP[locale] ?? 'en-US';
+  const pathname = usePathname();
+  const dateLocale =
+    LOCALE_MAP[resolveRouteLocale(pathname, locale) as keyof typeof LOCALE_MAP] ?? enUS;
 
   const today = new Date();
-  const formattedDate = new Intl.DateTimeFormat(intlLocale, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(today);
+  const formattedDate = format(today, 'EEEE, MMMM d, yyyy', { locale: dateLocale });
 
   return (
     <div

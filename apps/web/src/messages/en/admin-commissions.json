@@ -1,0 +1,67 @@
+{
+  "admin": {
+    "commissions_page": {
+      "title": "Commission Management",
+      "description": "Review agent commissions, member referral rewards, and program settings.",
+      "summary": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "paid": "Paid",
+        "total_owed": "Total Owed",
+        "items": "{count} items"
+      },
+      "settings": {
+        "title": "Member Referral Program Settings",
+        "enable_title": "Enable member referral rewards",
+        "enable_description": "Allow members to earn rewards from the first paid membership they refer.",
+        "reward_type": "Reward type",
+        "settlement_mode": "Settlement mode",
+        "fixed_reward": "Fixed reward (cents)",
+        "percent_reward": "Percent reward (bps)",
+        "current_reward": "Current reward: {amount}",
+        "payout_threshold": "Payout threshold (cents)",
+        "currency_code": "Currency code",
+        "qualifying_event": "Qualifying event",
+        "fraud_review_title": "Fraud review required",
+        "fraud_review_description": "Keep new rewards pending until admin reviews and approves them.",
+        "save": "Save referral settings"
+      },
+      "reward_types": {
+        "fixed": "Fixed amount",
+        "percent": "Percent of first payment"
+      },
+      "settlement_modes": {
+        "credit_only": "Credit only",
+        "credit_or_payout": "Credit or payout"
+      },
+      "qualifying_event_types": {
+        "first_paid_membership": "First paid membership"
+      },
+      "rewards": {
+        "title": "Member Referral Rewards",
+        "empty": "No referral rewards yet",
+        "reward_label": "Reward {id} • {amount}",
+        "referrer_label": "Referrer {id}",
+        "referred_member_label": "Referred member {id}"
+      },
+      "commissions": {
+        "title": "All Commissions",
+        "empty": "No commissions yet",
+        "unknown_member": "Unknown Member"
+      },
+      "statuses": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "credited": "Credited",
+        "paid": "Paid",
+        "void": "Void"
+      },
+      "commission_types": {
+        "signup_bonus": "signup bonus",
+        "membership_sale": "membership sale",
+        "referral_bonus": "referral bonus",
+        "renewal_bonus": "renewal bonus"
+      }
+    }
+  }
+}

@@ -2,6 +2,7 @@ import { db } from '@interdomestik/database';
 import { memberReferralRewards, referrals } from '@interdomestik/database/schema';
 import { and, count, eq } from 'drizzle-orm';
 
+import { isMissingRelationError } from './errors';
 import { getMemberReferralProgramSettingsCore } from './settings';
 import type { ActionResult, MemberReferralSession, MemberReferralStats } from './types';
 
@@ -50,22 +51,11 @@ export async function getMemberReferralStatsCore(params: {
   }
 
   try {
-    const [settingsResult, referralCountRows, rewardRows] = await Promise.all([
-      getMemberReferralProgramSettingsCore({ tenantId }),
-      db
-        .select({ count: count() })
-        .from(referrals)
-        .where(and(eq(referrals.referrerId, session.user.id), eq(referrals.tenantId, tenantId))),
-      db.query.memberReferralRewards.findMany({
-        where: and(
-          eq(memberReferralRewards.referrerMemberId, session.user.id),
-          eq(memberReferralRewards.tenantId, tenantId)
-        ),
-        columns: {
-          status: true,
-          rewardCents: true,
-        },
-      }),
+    const settingsResult = await getMemberReferralProgramSettingsCore({ tenantId });
+
+    const [referralCountRows, rewardRows] = await Promise.all([
+      safeReferralCountQuery(session.user.id, tenantId),
+      safeRewardRowsQuery(session.user.id, tenantId),
     ]);
 
     if (!settingsResult.success) {
@@ -99,5 +89,41 @@ export async function getMemberReferralStatsCore(params: {
   } catch (error) {
     console.error('Error fetching member referral stats:', error);
     return { success: false, error: 'Failed to fetch referral stats' };
+  }
+}
+
+async function safeReferralCountQuery(userId: string, tenantId: string) {
+  try {
+    return await db
+      .select({ count: count() })
+      .from(referrals)
+      .where(and(eq(referrals.referrerId, userId), eq(referrals.tenantId, tenantId)));
+  } catch (error) {
+    if (isMissingRelationError(error)) {
+      return [{ count: 0 }];
+    }
+
+    throw error;
+  }
+}
+
+async function safeRewardRowsQuery(userId: string, tenantId: string) {
+  try {
+    return await db.query.memberReferralRewards.findMany({
+      where: and(
+        eq(memberReferralRewards.referrerMemberId, userId),
+        eq(memberReferralRewards.tenantId, tenantId)
+      ),
+      columns: {
+        status: true,
+        rewardCents: true,
+      },
+    });
+  } catch (error) {
+    if (isMissingRelationError(error)) {
+      return [];
+    }
+
+    throw error;
   }
 }

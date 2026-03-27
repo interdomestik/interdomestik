@@ -13,6 +13,23 @@
       "members": "Članovi",
       "agents": "Agenti",
       "staff": "Osoblje"
+    },
+    "errors": {
+      "admin": {
+        "title": "Greška u administratorskoj konzoli",
+        "description": "Došlo je do neočekivane greške u administratorskom panelu. Sistemski raspored je i dalje aktivan.",
+        "digest_label": "Sažetak greške:",
+        "unknown_digest": "Nepoznato",
+        "try_again": "Pokušaj ponovo"
+      },
+      "branch_dashboard": {
+        "title": "Nešto je pošlo po zlu",
+        "description": "Došlo je do greške pri učitavanju kontrolne table filijale.",
+        "try_again": "Pokušaj ponovo"
+      }
+    },
+    "tenant_selector": {
+      "placeholder": "Tenant"
     }
   }
 }
