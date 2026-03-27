@@ -36,7 +36,7 @@
       "member": "Član",
       "staff": "Osoblje",
       "user": "Član",
-      "super_admin": "Super administrator",
+      "super_admin": "Glavni administrator",
       "tenant_admin": "Administrator tenant-a",
       "branch_manager": "Menadžer filijale",
       "promoter": "Promoter mreže"

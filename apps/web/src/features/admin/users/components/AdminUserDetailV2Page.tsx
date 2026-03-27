@@ -26,17 +26,60 @@ const membershipStatusStyles: Record<string, string> = {
   operator: 'bg-sky-100 text-sky-700 border-sky-200',
 };
 
+type AdminUserDetailV2PageProps = Readonly<{
+  id: string;
+  locale: string;
+  searchParams: Record<string, string | string[] | undefined>;
+  tenantId: string | null;
+}>;
+
+function getEffectiveProfileStatus({
+  hasMemberNumber,
+  hasSubscription,
+  membershipStatus,
+}: Readonly<{
+  hasMemberNumber: boolean;
+  hasSubscription: boolean;
+  membershipStatus: string;
+}>): string {
+  if (!hasMemberNumber && !hasSubscription) {
+    return 'operator';
+  }
+
+  if (!hasSubscription) {
+    return 'registered';
+  }
+
+  return membershipStatus;
+}
+
+function buildAdminUsersBackHref(
+  searchParams: Record<string, string | string[] | undefined>
+): string {
+  const backParams = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        backParams.append(key, item);
+      }
+      continue;
+    }
+
+    backParams.set(key, value);
+  }
+
+  const backQuery = backParams.toString();
+  return backQuery ? `/admin/users?${backQuery}` : '/admin/users';
+}
+
 export async function AdminUserDetailV2Page({
   id,
   locale,
   searchParams,
   tenantId,
-}: {
-  id: string;
-  locale: string;
-  searchParams: Record<string, string | string[] | undefined>;
-  tenantId: string | null;
-}) {
+}: AdminUserDetailV2PageProps) {
   setRequestLocale(locale);
 
   const t = await getTranslations('admin.member_profile');
@@ -51,27 +94,18 @@ export async function AdminUserDetailV2Page({
   }
 
   const { member, subscription, preferences, counts, recentClaims, membershipStatus } = result;
-  const isMembershipProfile = Boolean(member.memberNumber || subscription);
-  const effectiveProfileStatus = !isMembershipProfile
-    ? 'operator'
-    : subscription
-      ? membershipStatus
-      : 'registered';
+  const hasMemberNumber = Boolean(member.memberNumber);
+  const hasSubscription = Boolean(subscription);
+  const isMembershipProfile = hasMemberNumber || hasSubscription;
+  const effectiveProfileStatus = getEffectiveProfileStatus({
+    hasMemberNumber,
+    hasSubscription,
+    membershipStatus,
+  });
   const membershipBadgeClass = membershipStatusStyles[effectiveProfileStatus];
 
-  const backParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(searchParams ?? {})) {
-    if (value === undefined) continue;
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        backParams.append(key, item);
-      }
-    } else {
-      backParams.set(key, value);
-    }
-  }
-  const backQuery = backParams.toString();
-  const backHref = backQuery ? `/admin/users?${backQuery}` : '/admin/users';
+  const backHref = buildAdminUsersBackHref(searchParams ?? {});
+  const backQuery = backHref.split('?')[1] ?? '';
 
   return (
     <div className="space-y-8">
