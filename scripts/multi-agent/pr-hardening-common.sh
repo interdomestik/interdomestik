@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+PR_HARDENING_COMMON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PR_HARDENING_ALLOWED_PATHS_FILE="$PR_HARDENING_COMMON_DIR/pr-hardening-allowed-paths.json"
+declare -a PR_HARDENING_ALLOWED_WRITE_PATHS=()
+PR_HARDENING_ALLOWED_WRITE_PATHS_LOADED=0
+
 iso_utc() {
   date -u +%Y-%m-%dT%H:%M:%SZ
 }
@@ -208,6 +213,34 @@ fs.writeFileSync(process.argv[1], JSON.stringify(out, null, 2));
 ' "$role_dir/${role}.status.json" "$role" "$status" "$first_failing_command" "$details"
 
   validate_status_json_file "$role_dir/${role}.status.json"
+}
+
+is_role_contract_write_allowed_path() {
+  local path="$1"
+  local allowed_path
+
+  if [[ "$PR_HARDENING_ALLOWED_WRITE_PATHS_LOADED" -eq 0 ]]; then
+    mapfile -t PR_HARDENING_ALLOWED_WRITE_PATHS < <(
+      node -e '
+const fs = require("node:fs");
+const data = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+if (!Array.isArray(data)) process.exit(2);
+for (const entry of data) {
+  if (typeof entry !== "string" || entry.trim().length === 0) process.exit(2);
+  process.stdout.write(`${entry}\n`);
+}
+' "$PR_HARDENING_ALLOWED_PATHS_FILE"
+    )
+    PR_HARDENING_ALLOWED_WRITE_PATHS_LOADED=1
+  fi
+
+  for allowed_path in "${PR_HARDENING_ALLOWED_WRITE_PATHS[@]}"; do
+    if [[ "$path" == "$allowed_path" ]]; then
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 read_manifest_value() {
