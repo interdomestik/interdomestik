@@ -357,6 +357,144 @@
         "member": "Član",
         "meta": "Kreirano / poslednje ažuriranje"
       }
+    },
+    "workspace": {
+      "title": "Pro radni prostor agenta",
+      "subtitle": "Napredni alati i kontrole za napredne korisnike.",
+      "switch_to_lite": "Prebaci na Lite",
+      "cards": {
+        "leads": {
+          "title": "Potencijalni klijenti (Pro)",
+          "headline": "Upravljaj svima",
+          "description": "Napredno filtriranje, grupne akcije i izvoz.",
+          "action_text": "Otvori potencijalne klijente"
+        },
+        "claims": {
+          "title": "Red zahteva",
+          "headline": "Obrada",
+          "description": "Detaljni alati za pregled i odlučivanje o zahtevima.",
+          "action_text": "Otvori red"
+        },
+        "reports": {
+          "title": "Izveštaji",
+          "headline": "Analitika",
+          "description": "Metrike učinka i izveštaji o provizijama.",
+          "action_text": "Uskoro"
+        }
+      }
+    },
+    "activity": {
+      "section_title": "Aktivnost člana"
+    },
+    "activity_feed": {
+      "empty": "Još nema zabeleženih aktivnosti.",
+      "unknown_time": "Nepoznato vreme",
+      "logged_by": "Zabeležio",
+      "anonymous_agent": "Zastupnik"
+    },
+    "activity_dialog": {
+      "trigger": "Zabeleži aktivnost",
+      "title": "Zabeleži aktivnost",
+      "description": "Zabeleži poziv, sastanak ili belešku za ovog {entityType}.",
+      "entity_type": {
+        "member": "člana",
+        "lead": "potencijalnog klijenta"
+      },
+      "fields": {
+        "type": {
+          "label": "Tip",
+          "placeholder": "Izaberi tip"
+        },
+        "subject": {
+          "label": "Naslov",
+          "placeholder": "npr. Uvodni poziv"
+        },
+        "description": {
+          "label": "Opis",
+          "placeholder": "Dodaj detalje..."
+        }
+      },
+      "types": {
+        "call": "Poziv",
+        "email": "E-pošta",
+        "meeting": "Sastanak",
+        "note": "Beleška",
+        "other": "Drugo"
+      },
+      "save": "Sačuvaj aktivnost",
+      "success": "Aktivnost je zabeležena"
+    },
+    "leads_pro": {
+      "back_to_members": "Nazad na članove",
+      "title": "Potencijalni klijenti",
+      "subtitle": "Upravljajte i pratite sve svoje potencijalne klijente.",
+      "search_placeholder": "Pretraži po imenu, e-pošti ili telefonu...",
+      "empty_title": "Nema pronađenih potencijalnih klijenata",
+      "empty_subtitle": "Prilagodite filtere ili upit za pretragu.",
+      "empty_label": "Nijedan potencijalni klijent ne odgovara filterima",
+      "details": "Detalji potencijalnog klijenta",
+      "tabs": {
+        "all": "Svi potencijalni klijenti",
+        "new": "Novi",
+        "in_progress": "U toku",
+        "clients": "Klijenti",
+        "lost": "Izgubljeni"
+      },
+      "columns": {
+        "lead": "Ime i e-pošta potencijalnog klijenta",
+        "status": "Stanje",
+        "details": "Telefon i filijala",
+        "meta": "Kreirano / poslednji kontakt"
+      },
+      "fields": {
+        "status": "Stanje",
+        "created": "Kreirano",
+        "updated": "Ažurirano",
+        "email": "E-pošta",
+        "phone": "Telefon",
+        "source": "Izvor",
+        "branch": "Filijala",
+        "notes": "Beleške",
+        "next_step": "Sledeći korak"
+      },
+      "statuses": {
+        "new": "Novi",
+        "contacted": "Kontaktirani",
+        "payment_pending": "Čeka uplatu",
+        "converted": "Konvertovan",
+        "lost": "Izgubljen",
+        "expired": "Istekao",
+        "none": "Nema"
+      },
+      "actions": {
+        "convert": "Konvertuj u klijenta",
+        "mark_contacted": "Označi kao kontaktiran",
+        "pay_cash": "Plati gotovinom",
+        "mark_lost": "Označi kao izgubljen"
+      },
+      "more_actions": "Još akcija",
+      "timeline": {
+        "title": "Vremenska linija",
+        "empty": "Još nema događaja",
+        "events": {
+          "created": {
+            "title": "Potencijalni klijent je kreiran",
+            "source_prefix": "Izvor:",
+            "unknown_source": "Nepoznat"
+          },
+          "converted": {
+            "title": "Konvertovan",
+            "description": "Potencijalni klijent je konvertovan u klijenta"
+          }
+        }
+      },
+      "toasts": {
+        "converted": "Potencijalni klijent je uspešno konvertovan",
+        "marked_contacted": "Potencijalni klijent je označen kao kontaktiran",
+        "payment_requested": "Plaćanje je zatraženo",
+        "marked_lost": "Potencijalni klijent je označen kao izgubljen",
+        "action_failed": "Akcija nije uspela"
+      }
     }
   }
 }

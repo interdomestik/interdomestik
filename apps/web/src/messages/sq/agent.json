@@ -211,6 +211,144 @@
         "won": "Fituar",
         "lost": "Humbur"
       }
+    },
+    "workspace": {
+      "title": "Hapësira Pro e Agjentit",
+      "subtitle": "Mjete të avancuara dhe kontrolle për përdoruesit e avancuar.",
+      "switch_to_lite": "Kalo në Lite",
+      "cards": {
+        "leads": {
+          "title": "Lead-et (Pro)",
+          "headline": "Menaxho të gjitha",
+          "description": "Filtrim i avancuar, veprime në grup dhe eksporte.",
+          "action_text": "Hap Lead-et"
+        },
+        "claims": {
+          "title": "Radha e kërkesave",
+          "headline": "Procesim",
+          "description": "Mjete të detajuara për shqyrtim dhe vendimmarrje mbi kërkesat.",
+          "action_text": "Hap Radhën"
+        },
+        "reports": {
+          "title": "Raportet",
+          "headline": "Analitikë",
+          "description": "Metrika të performancës dhe raporte komisionesh.",
+          "action_text": "Së shpejti"
+        }
+      }
+    },
+    "activity": {
+      "section_title": "Aktiviteti i anëtarit"
+    },
+    "activity_feed": {
+      "empty": "Nuk ka ende aktivitete të regjistruara.",
+      "unknown_time": "Koha e panjohur",
+      "logged_by": "Regjistruar nga",
+      "anonymous_agent": "Agjenti"
+    },
+    "activity_dialog": {
+      "trigger": "Regjistro aktivitet",
+      "title": "Regjistro aktivitet",
+      "description": "Regjistro një thirrje, takim ose shënim për këtë {entityType}.",
+      "entity_type": {
+        "member": "anëtar",
+        "lead": "potencial"
+      },
+      "fields": {
+        "type": {
+          "label": "Lloji",
+          "placeholder": "Zgjidh llojin"
+        },
+        "subject": {
+          "label": "Subjekti",
+          "placeholder": "p.sh. Telefonata hyrëse"
+        },
+        "description": {
+          "label": "Përshkrimi",
+          "placeholder": "Shto detaje..."
+        }
+      },
+      "types": {
+        "call": "Thirrje",
+        "email": "E-mail",
+        "meeting": "Takim",
+        "note": "Shënim",
+        "other": "Tjetër"
+      },
+      "save": "Ruaj aktivitetin",
+      "success": "Aktiviteti u regjistrua"
+    },
+    "leads_pro": {
+      "back_to_members": "Kthehu te anëtarët",
+      "title": "Lead-et",
+      "subtitle": "Menaxho dhe gjurmo të gjithë lead-et e tu.",
+      "search_placeholder": "Kërko lead sipas emrit, email-it ose telefonit...",
+      "empty_title": "Nuk u gjetën lead-e",
+      "empty_subtitle": "Ndrysho filtrat ose kërkimin tënd.",
+      "empty_label": "Asnjë lead nuk përputhet me filtrat",
+      "details": "Detajet e lead-it",
+      "tabs": {
+        "all": "Të gjithë lead-et",
+        "new": "Të reja",
+        "in_progress": "Në proces",
+        "clients": "Klientë",
+        "lost": "Humbur"
+      },
+      "columns": {
+        "lead": "Emri dhe email-i i lead-it",
+        "status": "Statusi",
+        "details": "Telefoni dhe dega",
+        "meta": "Krijuar / kontakti i fundit"
+      },
+      "fields": {
+        "status": "Statusi",
+        "created": "Krijuar",
+        "updated": "Përditësuar",
+        "email": "E-mail",
+        "phone": "Telefoni",
+        "source": "Burimi",
+        "branch": "Dega",
+        "notes": "Shënime",
+        "next_step": "Hapi tjetër"
+      },
+      "statuses": {
+        "new": "Të reja",
+        "contacted": "I kontaktuar",
+        "payment_pending": "Në pritje të pagesës",
+        "converted": "I konvertuar",
+        "lost": "I humbur",
+        "expired": "I skaduar",
+        "none": "Asnjë"
+      },
+      "actions": {
+        "convert": "Konverto në klient",
+        "mark_contacted": "Shëno si i kontaktuar",
+        "pay_cash": "Paguaj me para në dorë",
+        "mark_lost": "Shëno si i humbur"
+      },
+      "more_actions": "Më shumë veprime",
+      "timeline": {
+        "title": "Kronologjia",
+        "empty": "Ende nuk ka ngjarje",
+        "events": {
+          "created": {
+            "title": "Lead-i u krijua",
+            "source_prefix": "Burimi:",
+            "unknown_source": "I panjohur"
+          },
+          "converted": {
+            "title": "I konvertuar",
+            "description": "Lead-i u konvertua në klient"
+          }
+        }
+      },
+      "toasts": {
+        "converted": "Lead-i u konvertua me sukses",
+        "marked_contacted": "Lead-i u shënua si i kontaktuar",
+        "payment_requested": "Pagesa u kërkua",
+        "marked_lost": "Lead-i u shënua si i humbur",
+        "action_failed": "Veprimi dështoi"
+      }
     }
   }
 }

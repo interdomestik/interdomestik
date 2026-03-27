@@ -120,6 +120,7 @@ export const STAFF_NAMESPACES = [
   'agent',
   'agent-claims',
   'claims',
+  'claims-tracking',
   'messaging',
   'notifications',
 ] as const;

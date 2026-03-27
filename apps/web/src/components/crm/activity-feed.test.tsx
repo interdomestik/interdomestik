@@ -1,5 +1,19 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { vi } from 'vitest';
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    const translations: Record<string, string> = {
+      empty: 'Nuk ka ende aktivitete të regjistruara.',
+      unknown_time: 'Koha e panjohur',
+      logged_by: 'Regjistruar nga',
+      anonymous_agent: 'Agjenti',
+    };
+
+    return translations[key] || key;
+  },
+}));
 
 import { ActivityFeed } from './activity-feed';
 
@@ -22,6 +36,12 @@ describe('ActivityFeed', () => {
     );
 
     expect(screen.getByText('Broken timestamp')).toBeInTheDocument();
-    expect(screen.getByText('Unknown time')).toBeInTheDocument();
+    expect(screen.getByText('Koha e panjohur')).toBeInTheDocument();
+  });
+
+  it('localizes the empty state copy', () => {
+    render(<ActivityFeed activities={[]} />);
+
+    expect(screen.getByText('Nuk ka ende aktivitete të regjistruara.')).toBeInTheDocument();
   });
 });
