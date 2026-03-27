@@ -17,6 +17,14 @@
       "member_number": "Broj člana",
       "copy_member_number": "Kopiraj broj člana",
       "copy_member_link": "Kopiraj link člana",
+      "header": {
+        "copy_traceable_link": "Kopiraj link praćenog broja",
+        "copy_canonical_link": "Kopiraj kanonski sistemski link",
+        "claim_number_link": "Link broja zahteva",
+        "canonical_url": "Kanonski URL",
+        "copy_failed": "Kopiranje linka nije uspelo",
+        "copy_success": "{label} je kopiran u ostavu"
+      },
       "message_alert": "Nova poruka ({count})",
       "table": {
         "title": "Naslov",
@@ -219,8 +227,18 @@
       "evidence": {
         "title": "Dokazi",
         "upload_button": "Otpremi",
+        "dialog_title": "Otpremi dokaz",
+        "dialog_description": "Priložite fotografije ili dokumenta relevantna za ovaj zahtev.",
+        "document_type_label": "Tip dokumenta",
+        "document_type_placeholder": "Izaberi tip dokumenta",
+        "file_label": "Datoteka",
+        "upload_success": "Dokaz je uspešno otpremljen",
+        "upload_failed": "Otpremanje dokaza nije uspelo",
+        "uploading": "Otpremanje...",
         "no_docs": "Nema otpremljenih dokumenata.",
         "types": {
+          "evidence": "Dokaz",
+          "legal": "Pravni dokument",
           "image": "Slika",
           "audio": "Audio zapis",
           "document": "Dokument"
@@ -229,6 +247,11 @@
       "timeline": {
         "title": "Vremenska linija aktivnosti",
         "empty": "Nema zabeleženih aktivnosti."
+      },
+      "status_form": {
+        "placeholder": "Odaberi status",
+        "success": "Status je uspešno ažuriran",
+        "error": "Ažuriranje statusa nije uspelo"
       },
       "detail": {
         "fields": {

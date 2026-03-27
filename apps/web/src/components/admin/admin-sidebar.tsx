@@ -317,7 +317,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarFooter>
-      <SidebarRail title={tNav('toggleSidebar')} />
+      <SidebarRail title={tNav('toggleSidebar')} aria-label={tNav('toggleSidebar')} />
     </Sidebar>
   );
 }

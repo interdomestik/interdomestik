@@ -71,6 +71,25 @@ vi.mock('lucide-react', () => ({
   DollarSign: () => <span>Dollar</span>,
 }));
 
+vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
+  useTranslations: () => (key: string, values?: Record<string, string | number>) => {
+    const translations: Record<string, string> = {
+      title: 'Commission Management',
+      'settings.title': 'Member Referral Program Settings',
+      'settings.save': 'Save referral settings',
+      'rewards.title': 'Member Referral Rewards',
+      'rewards.reward_label': 'Reward {id} • {amount}',
+      'commissions.title': 'All Commissions',
+    };
+
+    return Object.entries(values ?? {}).reduce(
+      (result, [name, replacement]) => result.replace(`{${name}}`, String(replacement)),
+      translations[key] ?? key
+    );
+  },
+}));
+
 describe('Admin commissions page', () => {
   beforeEach(async () => {
     vi.clearAllMocks();

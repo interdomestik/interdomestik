@@ -13,6 +13,23 @@
       "branches": "Degët",
       "leads": "Verifikimi i Pagesave",
       "settings": "Cilësimet"
+    },
+    "errors": {
+      "admin": {
+        "title": "Gabim në konsolën e adminit",
+        "description": "Ndodhi një gabim i papritur në panelin e adminit. Struktura e sistemit mbetet aktive.",
+        "digest_label": "Përmbledhja e gabimit:",
+        "unknown_digest": "I panjohur",
+        "try_again": "Provo sërish"
+      },
+      "branch_dashboard": {
+        "title": "Diçka shkoi keq",
+        "description": "Ndodhi një gabim gjatë ngarkimit të panelit të degës.",
+        "try_again": "Provo sërish"
+      }
+    },
+    "tenant_selector": {
+      "placeholder": "Tenanti"
     }
   }
 }

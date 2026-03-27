@@ -38,6 +38,9 @@
         "agents": "Агенти",
         "verify_leads": "Потврди лидови"
       },
+      "footer": {
+        "data_freshness": "Свежина на податоците: Во реално време"
+      },
       "kpis": {
         "branches": "Вкупно филијали",
         "agents": "Активни агенти",
@@ -80,6 +83,24 @@
           "disqualified": "Дисквалификуван",
           "expired": "Истечен"
         }
+      }
+    },
+    "dashboardOverview": {
+      "title": "Админ преглед",
+      "description": "Системско здравје и оперативна акумулација.",
+      "kpis": {
+        "members": "Вкупно членови",
+        "agents": "Вкупно агенти",
+        "activeClaims": "Вкупно активни барања",
+        "updated24h": "Ажурирани барања (24ч)"
+      },
+      "sections": {
+        "byStage": "Барања по фаза",
+        "byBranch": "Барања по филијала"
+      },
+      "empty": {
+        "noActiveClaims": "Нема активни барања",
+        "noBranchAccumulation": "Нема акумулација по филијала"
       }
     }
   }

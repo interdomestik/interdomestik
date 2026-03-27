@@ -40,6 +40,8 @@ export function OpsStatusUpdateModal({
 }: OpsStatusUpdateModalProps) {
   const tStatus = useTranslations('claims.status');
   const tModal = useTranslations('admin.claims_page.status_modal');
+  const tStatusForm = useTranslations('admin.claims_page.status_form');
+  const tCommon = useTranslations('common');
 
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -51,14 +53,14 @@ export function OpsStatusUpdateModal({
       try {
         const result = await updateStatus(claimId, selectedStatus as ClaimStatus, locale);
         if (result.success) {
+          toast.success(tStatusForm('success'));
           globalThis.location.reload();
-          toast.success(tModal('success'));
           onOpenChange(false);
         } else {
-          toast.error(result.error || tModal('error'));
+          toast.error(result.error || tStatusForm('error'));
         }
       } catch {
-        toast.error(tModal('unexpected_error'));
+        toast.error(tCommon('errors.generic'));
       }
     });
   };

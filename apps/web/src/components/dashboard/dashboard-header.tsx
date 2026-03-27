@@ -29,7 +29,11 @@ export function DashboardHeader({
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-white/10 bg-background/60 px-4 transition-all backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center gap-2">
-        <SidebarTrigger className="-ml-1" title={t('toggleSidebar')} />
+        <SidebarTrigger
+          className="-ml-1"
+          title={t('toggleSidebar')}
+          aria-label={t('toggleSidebar')}
+        />
         <Separator orientation="vertical" className="mr-2 h-4" />
       </div>
 

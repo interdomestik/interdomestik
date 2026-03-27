@@ -10,6 +10,13 @@ import type {
   MemberReferralStats,
 } from './member-referrals/types';
 
+export type MemberReferralCardData = {
+  link: string;
+  whatsappShareUrl: string;
+  stats: MemberReferralStats;
+  settings: MemberReferralProgramSettings;
+};
+
 export type {
   ActionResult,
   MemberReferralAdminRewardRow,
@@ -37,6 +44,37 @@ const listRewardsFiltersSchema = z
     offset: z.number().int().min(0).optional(),
   })
   .strict();
+
+export async function getMemberReferralCardData(): Promise<ActionResult<MemberReferralCardData>> {
+  const { session } = await getActionContext();
+  const [linkResult, statsResult, settingsResult] = await Promise.all([
+    getMemberReferralLinkCore({ session }),
+    getMemberReferralStatsCore({ session }),
+    getMemberReferralProgramPreviewCore({ session }),
+  ]);
+
+  if (!linkResult.success) {
+    return linkResult;
+  }
+
+  if (!statsResult.success) {
+    return statsResult;
+  }
+
+  if (!settingsResult.success) {
+    return settingsResult;
+  }
+
+  return {
+    success: true,
+    data: {
+      link: linkResult.data.link,
+      whatsappShareUrl: linkResult.data.whatsappShareUrl,
+      stats: statsResult.data,
+      settings: settingsResult.data,
+    },
+  };
+}
 
 /**
  * Get or create a referral link for the current member.

@@ -3,6 +3,7 @@ import { memberReferralSettings } from '@interdomestik/database/schema';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
+import { isMissingRelationError } from './errors';
 import type {
   ActionResult,
   MemberReferralProgramSettings,
@@ -66,6 +67,12 @@ export async function getMemberReferralProgramSettingsCore(params: {
       ),
     };
   } catch (error) {
+    if (isMissingRelationError(error)) {
+      return {
+        success: true,
+        data: normalizeSettingsRow(params.tenantId, null),
+      };
+    }
     console.error('Error reading member referral settings:', error);
     return { success: false, error: 'Failed to read member referral settings' };
   }

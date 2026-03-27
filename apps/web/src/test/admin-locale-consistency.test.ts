@@ -10,9 +10,9 @@ import srCommon from '@/messages/sr/common.json';
 import { describe, expect, it } from 'vitest';
 
 describe('admin locale consistency', () => {
-  it('provides claim detail handler labels for mk and sr', () => {
-    expect(mkAdminClaims.admin.claims_page.filters.handler_label).toBeTruthy();
-    expect(srAdminClaims.admin.claims_page.filters.handler_label).toBeTruthy();
+  it('provides claim detail assignment labels for mk and sr', () => {
+    expect(mkAdminClaims.admin.claims_page.filters.assigned_label).toBeTruthy();
+    expect(srAdminClaims.admin.claims_page.filters.assigned_label).toBeTruthy();
   });
 
   it('provides no-results copy for mk and sr common bundles', () => {

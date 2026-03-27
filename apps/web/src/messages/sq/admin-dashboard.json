@@ -38,6 +38,9 @@
         "agents": "Agjentët",
         "verify_leads": "Verifiko Potencialët"
       },
+      "footer": {
+        "data_freshness": "Përditësimi i të dhënave: Në kohë reale"
+      },
       "kpis": {
         "branches": "Degët Totale",
         "agents": "Agjentët Aktivë",
@@ -80,6 +83,24 @@
           "disqualified": "Skualifikuar",
           "expired": "Skaduar"
         }
+      }
+    },
+    "dashboardOverview": {
+      "title": "Përmbledhja e Adminit",
+      "description": "Gjendja e sistemit dhe akumulimi operacional.",
+      "kpis": {
+        "members": "Anëtarët Totalë",
+        "agents": "Agjentët Totalë",
+        "activeClaims": "Dëmet Aktive Totale",
+        "updated24h": "Dëmet e Përditësuara (24h)"
+      },
+      "sections": {
+        "byStage": "Dëmet sipas Fazës",
+        "byBranch": "Dëmet sipas Degës"
+      },
+      "empty": {
+        "noActiveClaims": "Nuk ka dëme aktive",
+        "noBranchAccumulation": "Nuk ka akumulim sipas degës"
       }
     }
   }

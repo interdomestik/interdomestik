@@ -20,7 +20,7 @@ export default function AdminError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const t = useTranslations('common');
+  const t = useTranslations('admin.errors.admin');
 
   useEffect(() => {
     // Log the error to an error reporting service
@@ -34,21 +34,20 @@ export default function AdminError({
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
             <AlertTriangle className="h-6 w-6 text-destructive" />
           </div>
-          <CardTitle className="text-xl">Admin Console Error</CardTitle>
-          <CardDescription>
-            An unexpected error occurred in the admin panel. The system layout is still active.
-          </CardDescription>
+          <CardTitle className="text-xl">{t('title')}</CardTitle>
+          <CardDescription>{t('description')}</CardDescription>
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground">
           <p className="mb-2">
-            Error Digest: <span className="font-mono text-xs">{error.digest || 'Unknown'}</span>
+            {t('digest_label')}{' '}
+            <span className="font-mono text-xs">{error.digest || t('unknown_digest')}</span>
           </p>
           <p>{error.message}</p>
         </CardContent>
         <CardFooter className="flex justify-center">
           <Button onClick={() => reset()} variant="default" className="gap-2">
             <RefreshCcw className="h-4 w-4" />
-            {t('tryAgain')}
+            {t('try_again')}
           </Button>
         </CardFooter>
       </Card>

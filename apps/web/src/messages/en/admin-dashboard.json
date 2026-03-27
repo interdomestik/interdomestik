@@ -38,6 +38,9 @@
         "agents": "Agents",
         "verify_leads": "Verify Leads"
       },
+      "footer": {
+        "data_freshness": "Data Freshness: Real-time"
+      },
       "kpis": {
         "branches": "Total Branches",
         "agents": "Active Agents",
@@ -80,6 +83,24 @@
           "disqualified": "Disqualified",
           "expired": "Expired"
         }
+      }
+    },
+    "dashboardOverview": {
+      "title": "Admin Overview",
+      "description": "System health and operational accumulation.",
+      "kpis": {
+        "members": "Total Members",
+        "agents": "Total Agents",
+        "activeClaims": "Total Active Claims",
+        "updated24h": "Claims Updated (24h)"
+      },
+      "sections": {
+        "byStage": "Claims by Stage",
+        "byBranch": "Claims by Branch"
+      },
+      "empty": {
+        "noActiveClaims": "No active claims",
+        "noBranchAccumulation": "No branch accumulation"
       }
     }
   }
