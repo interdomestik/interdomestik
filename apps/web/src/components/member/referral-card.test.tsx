@@ -25,9 +25,12 @@ vi.mock('@/actions/referrals', () => ({
 
 vi.mock('@/lib/public-links', () => ({
   normalizePublicLink: (link: string) =>
-    link.replace('http://localhost:3000', 'http://pilot.127.0.0.1.nip.io:3000'),
+    link.replace('https://localhost:3000', 'https://pilot.127.0.0.1.nip.io:3000'),
   normalizeWhatsAppShareUrl: (shareUrl: string) =>
-    shareUrl.replace('http%3A%2F%2Flocalhost%3A3000', 'http%3A%2F%2Fpilot.127.0.0.1.nip.io%3A3000'),
+    shareUrl.replace(
+      'https%3A%2F%2Flocalhost%3A3000',
+      'https%3A%2F%2Fpilot.127.0.0.1.nip.io%3A3000'
+    ),
 }));
 
 vi.mock('@interdomestik/ui/components/button', () => ({
@@ -115,9 +118,9 @@ describe('ReferralCard', () => {
     vi.mocked(getMemberReferralCardData).mockResolvedValue({
       success: true,
       data: {
-        link: 'http://localhost:3000?ref=ABC123',
+        link: 'https://localhost:3000?ref=ABC123',
         whatsappShareUrl:
-          'https://wa.me/?text=Join%20Asistenca%20with%20my%20referral%20link%20http%3A%2F%2Flocalhost%3A3000%3Fref%3DABC123',
+          'https://wa.me/?text=Join%20Asistenca%20with%20my%20referral%20link%20https%3A%2F%2Flocalhost%3A3000%3Fref%3DABC123',
         stats: {
           totalReferred: 3,
           pendingRewards: 10,
@@ -145,7 +148,7 @@ describe('ReferralCard', () => {
       success: true,
       data: {
         code: 'STEFAN-GMV1SU',
-        link: 'http://localhost:3000?ref=STEFAN-GMV1SU',
+        link: 'https://localhost:3000?ref=STEFAN-GMV1SU',
       },
       error: undefined,
       fieldErrors: undefined,
@@ -157,7 +160,7 @@ describe('ReferralCard', () => {
 
     expect(await screen.findByText('Invite Friends & Earn')).toBeInTheDocument();
     expect(
-      screen.getByDisplayValue('http://pilot.127.0.0.1.nip.io:3000?ref=ABC123')
+      screen.getByDisplayValue('https://pilot.127.0.0.1.nip.io:3000?ref=ABC123')
     ).toBeInTheDocument();
     expect(screen.getByText('Friends Invited')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
@@ -173,7 +176,7 @@ describe('ReferralCard', () => {
 
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        'http://pilot.127.0.0.1.nip.io:3000?ref=ABC123'
+        'https://pilot.127.0.0.1.nip.io:3000?ref=ABC123'
       );
     });
     expect(toastSuccess).toHaveBeenCalledWith('Link copied!');
@@ -186,7 +189,7 @@ describe('ReferralCard', () => {
     fireEvent.click(shareButton);
 
     expect(window.open).toHaveBeenCalledWith(
-      'https://wa.me/?text=Join%20Asistenca%20with%20my%20referral%20link%20http%3A%2F%2Fpilot.127.0.0.1.nip.io%3A3000%3Fref%3DABC123',
+      'https://wa.me/?text=Join%20Asistenca%20with%20my%20referral%20link%20https%3A%2F%2Fpilot.127.0.0.1.nip.io%3A3000%3Fref%3DABC123',
       '_blank',
       'noopener,noreferrer'
     );
@@ -224,7 +227,7 @@ describe('ReferralCard', () => {
     render(<ReferralLinkCard />);
 
     expect(
-      await screen.findByDisplayValue('http://pilot.127.0.0.1.nip.io:3000?ref=STEFAN-GMV1SU')
+      await screen.findByDisplayValue('https://pilot.127.0.0.1.nip.io:3000?ref=STEFAN-GMV1SU')
     ).toBeInTheDocument();
   });
 
@@ -236,7 +239,7 @@ describe('ReferralCard', () => {
 
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        'http://pilot.127.0.0.1.nip.io:3000?ref=STEFAN-GMV1SU'
+        'https://pilot.127.0.0.1.nip.io:3000?ref=STEFAN-GMV1SU'
       );
     });
     expect(toastSuccess).toHaveBeenCalledWith('Link copied!');
