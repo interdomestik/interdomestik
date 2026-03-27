@@ -6,15 +6,43 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_DIR = path.resolve(__dirname, '..');
 const NEXT_DIR = path.join(APP_DIR, '.next');
-const MANIFEST_PATH = path.join(NEXT_DIR, 'build-manifest.json');
+const MANIFEST_CANDIDATES = [
+  path.join(NEXT_DIR, 'build-manifest.json'),
+  path.join(NEXT_DIR, 'fallback-build-manifest.json'),
+];
 
 // Budget Configuration
 // For App Router, 'rootMainFiles' represents the global client bundle (React, Next.js, Global Layout).
 const GLOBAL_BUDGET = { gzip: 250 * 1024, name: 'Global Initial JS (Baseline)' };
 
+async function findManifestPath() {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    for (const manifestPath of MANIFEST_CANDIDATES) {
+      try {
+        await fs.access(manifestPath);
+        return manifestPath;
+      } catch {
+        // Keep scanning candidates.
+      }
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  return null;
+}
+
 async function checkSize() {
   try {
-    const manifestContent = await fs.readFile(MANIFEST_PATH, 'utf-8');
+    const manifestPath = await findManifestPath();
+
+    if (!manifestPath) {
+      const error = new Error('Build manifest not found');
+      error.code = 'ENOENT';
+      throw error;
+    }
+
+    const manifestContent = await fs.readFile(manifestPath, 'utf-8');
     const manifest = JSON.parse(manifestContent);
     // const pages = manifest.pages; // Not reliable for App Router specific page client chunks without deeper parsing
 

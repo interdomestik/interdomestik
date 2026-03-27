@@ -212,6 +212,144 @@
         "won": "Won",
         "lost": "Lost"
       }
+    },
+    "workspace": {
+      "title": "Agent Pro Workspace",
+      "subtitle": "Advanced tools and controls for power users.",
+      "switch_to_lite": "Switch to Lite",
+      "cards": {
+        "leads": {
+          "title": "Leads (Pro)",
+          "headline": "Manage All",
+          "description": "Advanced filtering, bulk actions, and exports.",
+          "action_text": "Open Leads"
+        },
+        "claims": {
+          "title": "Claims Queue",
+          "headline": "Processing",
+          "description": "Detailed claim review and adjudication tools.",
+          "action_text": "Open Queue"
+        },
+        "reports": {
+          "title": "Reports",
+          "headline": "Analytics",
+          "description": "Performance metrics and commission reports.",
+          "action_text": "Coming Soon"
+        }
+      }
+    },
+    "activity": {
+      "section_title": "Member Activity"
+    },
+    "activity_feed": {
+      "empty": "No activities recorded yet.",
+      "unknown_time": "Unknown time",
+      "logged_by": "Logged by",
+      "anonymous_agent": "Agent"
+    },
+    "activity_dialog": {
+      "trigger": "Log Activity",
+      "title": "Log Activity",
+      "description": "Record a call, meeting, or note for this {entityType}.",
+      "entity_type": {
+        "member": "member",
+        "lead": "lead"
+      },
+      "fields": {
+        "type": {
+          "label": "Type",
+          "placeholder": "Select type"
+        },
+        "subject": {
+          "label": "Subject",
+          "placeholder": "e.g. Intro Call"
+        },
+        "description": {
+          "label": "Description",
+          "placeholder": "Add details..."
+        }
+      },
+      "types": {
+        "call": "Call",
+        "email": "Email",
+        "meeting": "Meeting",
+        "note": "Note",
+        "other": "Other"
+      },
+      "save": "Save Activity",
+      "success": "Activity logged"
+    },
+    "leads_pro": {
+      "back_to_members": "Back to members",
+      "title": "Leads",
+      "subtitle": "Manage and track all your leads.",
+      "search_placeholder": "Search leads by name, email, or phone...",
+      "empty_title": "No leads found",
+      "empty_subtitle": "Adjust your filters or search query.",
+      "empty_label": "No leads match your filters",
+      "details": "Lead Details",
+      "tabs": {
+        "all": "All Leads",
+        "new": "New",
+        "in_progress": "In Progress",
+        "clients": "Clients",
+        "lost": "Lost"
+      },
+      "columns": {
+        "lead": "Lead Name & Email",
+        "status": "Status",
+        "details": "Phone & Branch",
+        "meta": "Created / Last Touch"
+      },
+      "fields": {
+        "status": "Status",
+        "created": "Created",
+        "updated": "Updated",
+        "email": "Email",
+        "phone": "Phone",
+        "source": "Source",
+        "branch": "Branch",
+        "notes": "Notes",
+        "next_step": "Next Step"
+      },
+      "statuses": {
+        "new": "New",
+        "contacted": "Contacted",
+        "payment_pending": "Payment Pending",
+        "converted": "Converted",
+        "lost": "Lost",
+        "expired": "Expired",
+        "none": "None"
+      },
+      "actions": {
+        "convert": "Convert to Client",
+        "mark_contacted": "Mark Contacted",
+        "pay_cash": "Pay Cash",
+        "mark_lost": "Mark Lost"
+      },
+      "more_actions": "More Actions",
+      "timeline": {
+        "title": "Timeline",
+        "empty": "No events yet",
+        "events": {
+          "created": {
+            "title": "Lead Created",
+            "source_prefix": "Source:",
+            "unknown_source": "Unknown"
+          },
+          "converted": {
+            "title": "Converted",
+            "description": "Lead converted to client"
+          }
+        }
+      },
+      "toasts": {
+        "converted": "Lead converted successfully",
+        "marked_contacted": "Lead marked as contacted",
+        "payment_requested": "Payment requested",
+        "marked_lost": "Lead marked as lost",
+        "action_failed": "Action failed"
+      }
     }
   }
 }

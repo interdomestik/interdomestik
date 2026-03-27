@@ -5,13 +5,69 @@ import posthog from 'posthog-js';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
 import { useEffect, useRef } from 'react';
 
+interface PostHogRuntimeConfig {
+  enableAnalytics?: string;
+  hostname?: string;
+  nodeEnv?: string;
+  posthogHost?: string;
+  posthogKey?: string;
+}
+
+function isLocalObservationHost(hostname: string): boolean {
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '0.0.0.0' ||
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.127.0.0.1.nip.io')
+  );
+}
+
+export function shouldEnablePosthog({
+  enableAnalytics,
+  hostname,
+  nodeEnv,
+  posthogHost,
+  posthogKey,
+}: PostHogRuntimeConfig): boolean {
+  if (!posthogKey || !posthogHost) {
+    return false;
+  }
+
+  if (enableAnalytics === 'false' || nodeEnv === 'development' || nodeEnv === 'test') {
+    return false;
+  }
+
+  if (enableAnalytics === 'true') {
+    return true;
+  }
+
+  if (hostname && isLocalObservationHost(hostname)) {
+    return false;
+  }
+
+  return true;
+}
+
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   const { consent } = useCookieConsent();
   const isInitialized = useRef(false);
 
   useEffect(() => {
-    // Skip analytics in development to prevent console spam and API 404s
-    if (process.env.NODE_ENV === 'development') {
+    const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+    const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
+    const analyticsEnabled = shouldEnablePosthog({
+      enableAnalytics: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS,
+      hostname: globalThis.location?.hostname,
+      nodeEnv: process.env.NODE_ENV,
+      posthogHost,
+      posthogKey,
+    });
+
+    if (!analyticsEnabled) {
+      if (isInitialized.current) {
+        posthog.opt_out_capturing();
+      }
       return;
     }
 
@@ -23,13 +79,9 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Only initialize if the key is present (avoids errors in dev/test if missing)
-    if (
-      !isInitialized.current &&
-      process.env.NEXT_PUBLIC_POSTHOG_KEY &&
-      process.env.NEXT_PUBLIC_POSTHOG_HOST
-    ) {
-      posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
-        api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    if (!isInitialized.current && posthogKey && posthogHost) {
+      posthog.init(posthogKey, {
+        api_host: posthogHost,
         person_profiles: 'identified_only', // Recommended for privacy/billing
         capture_pageview: false, // We will manually handle this for better control in Next.js
       });

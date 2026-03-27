@@ -34,6 +34,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('next-intl', () => ({
+  useLocale: () => actionMocks.locale,
   useTranslations: (namespace?: string) => {
     return (key: string, values?: Record<string, string | number>) => {
       const locale = actionMocks.locale;

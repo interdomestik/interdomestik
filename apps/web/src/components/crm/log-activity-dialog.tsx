@@ -32,6 +32,7 @@ import { Textarea } from '@interdomestik/ui/components/textarea';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -48,6 +49,7 @@ interface LogActivityDialogProps {
 
 export function LogActivityDialog({ entityId, entityType = 'member' }: LogActivityDialogProps) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations('agent.activity_dialog');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -76,7 +78,7 @@ export function LogActivityDialog({ entityId, entityType = 'member' }: LogActivi
     if (result && 'error' in result) {
       toast.error(result.error);
     } else {
-      toast.success('Activity logged');
+      toast.success(t('success'));
       setOpen(false);
       form.reset();
     }
@@ -87,14 +89,14 @@ export function LogActivityDialog({ entityId, entityType = 'member' }: LogActivi
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus className="mr-2 h-4 w-4" />
-          Log Activity
+          {t('trigger')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Log Activity</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            Record a call, meeting, or note for this {entityType}.
+            {t('description', { entityType: t(`entity_type.${entityType}`) })}
           </DialogDescription>
         </DialogHeader>
 
@@ -106,19 +108,19 @@ export function LogActivityDialog({ entityId, entityType = 'member' }: LogActivi
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Type</FormLabel>
+                    <FormLabel>{t('fields.type.label')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
+                          <SelectValue placeholder={t('fields.type.placeholder')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="call">Call</SelectItem>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="meeting">Meeting</SelectItem>
-                        <SelectItem value="note">Note</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="call">{t('types.call')}</SelectItem>
+                        <SelectItem value="email">{t('types.email')}</SelectItem>
+                        <SelectItem value="meeting">{t('types.meeting')}</SelectItem>
+                        <SelectItem value="note">{t('types.note')}</SelectItem>
+                        <SelectItem value="other">{t('types.other')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -131,9 +133,9 @@ export function LogActivityDialog({ entityId, entityType = 'member' }: LogActivi
                 name="subject"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Subject</FormLabel>
+                    <FormLabel>{t('fields.subject.label')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Intro Call" {...field} />
+                      <Input placeholder={t('fields.subject.placeholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -146,9 +148,13 @@ export function LogActivityDialog({ entityId, entityType = 'member' }: LogActivi
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>{t('fields.description.label')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Add details..." className="resize-none" {...field} />
+                    <Textarea
+                      placeholder={t('fields.description.placeholder')}
+                      className="resize-none"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -157,7 +163,7 @@ export function LogActivityDialog({ entityId, entityType = 'member' }: LogActivi
 
             <DialogFooter>
               <Button type="submit" disabled={form.formState.isSubmitting}>
-                Save Activity
+                {t('save')}
               </Button>
             </DialogFooter>
           </form>

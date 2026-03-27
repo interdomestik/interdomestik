@@ -322,6 +322,8 @@ describe('StaffClaimsPage', () => {
     expect(screen.getByTestId('staff-claims-status-filter-verification')).toHaveTextContent(
       'Verifikim'
     );
+    expect(screen.getAllByText('Verifikim').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Verification')).not.toBeInTheDocument();
     expect(screen.getByText('Pa numër rasti')).toBeInTheDocument();
     expect(screen.getByText('Nuk ka kompani të dhënë')).toBeInTheDocument();
     expect(screen.getByText('Pa numër anëtarësie')).toBeInTheDocument();

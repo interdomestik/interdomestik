@@ -12,27 +12,58 @@ import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
 import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui';
 import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { convertLeadToClient, updateLeadStatus } from '../actions';
 
-// Pro columns
-const columns = [
-  { key: 'lead', header: 'Lead Name & Email' },
-  { key: 'status', header: 'Status' },
-  { key: 'details', header: 'Phone & Branch' },
-  { key: 'meta', header: 'Created / Last Touch' },
-];
-
-const TABS: OpsFilterTab[] = [
-  { id: 'all', label: 'All Leads' },
-  { id: 'new', label: 'New' },
-  { id: 'contacted', label: 'In Progress' },
-  { id: 'converted', label: 'Clients' },
-  { id: 'lost', label: 'Lost' },
-];
-
 export function AgentLeadsProPage({ leads }: { leads: any[] }) {
+  const t = useTranslations('agent.leads_pro');
+  const localizeLeadStatus = (status: string | null | undefined) => {
+    switch (status) {
+      case 'new':
+        return t('statuses.new');
+      case 'contacted':
+        return t('statuses.contacted');
+      case 'payment_pending':
+        return t('statuses.payment_pending');
+      case 'converted':
+        return t('statuses.converted');
+      case 'lost':
+        return t('statuses.lost');
+      case 'expired':
+        return t('statuses.expired');
+      default:
+        return t('statuses.none');
+    }
+  };
+  const localizeActionLabel = (actionId: string, fallbackLabel: string) => {
+    switch (actionId) {
+      case 'convert':
+        return t('actions.convert');
+      case 'mark_contacted':
+        return t('actions.mark_contacted');
+      case 'pay_cash':
+        return t('actions.pay_cash');
+      case 'mark_lost':
+        return t('actions.mark_lost');
+      default:
+        return fallbackLabel;
+    }
+  };
+  const columns = [
+    { key: 'lead', header: t('columns.lead') },
+    { key: 'status', header: t('columns.status') },
+    { key: 'details', header: t('columns.details') },
+    { key: 'meta', header: t('columns.meta') },
+  ];
+  const tabs: OpsFilterTab[] = [
+    { id: 'all', label: t('tabs.all') },
+    { id: 'new', label: t('tabs.new') },
+    { id: 'contacted', label: t('tabs.in_progress') },
+    { id: 'converted', label: t('tabs.clients') },
+    { id: 'lost', label: t('tabs.lost') },
+  ];
   const { selectedId, setSelectedId, clearSelectedId } = useOpsSelectionParam();
   const [isPending, startTransition] = useTransition();
   const [showSecondary, setShowSecondary] = useState(false);
@@ -66,19 +97,19 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
       try {
         if (id === 'convert') {
           await convertLeadToClient(selectedLead.id);
-          toast.success('Lead converted successfully');
+          toast.success(t('toasts.converted'));
         } else if (id === 'mark_contacted') {
           await updateLeadStatus(selectedLead.id, 'contacted');
-          toast.success('Lead marked as contacted');
-        } else if (id === 'mark_payment_pending') {
+          toast.success(t('toasts.marked_contacted'));
+        } else if (id === 'mark_payment_pending' || id === 'pay_cash') {
           await updateLeadStatus(selectedLead.id, 'payment_pending');
-          toast.success('Payment requested');
+          toast.success(t('toasts.payment_requested'));
         } else if (id === 'mark_lost') {
           await updateLeadStatus(selectedLead.id, 'lost');
-          toast.success('Lead marked as lost');
+          toast.success(t('toasts.marked_lost'));
         }
       } catch (e) {
-        toast.error('Action failed');
+        toast.error(t('toasts.action_failed'));
       }
     });
   };
@@ -89,6 +120,7 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
   // Map to OpsActionBar format (inject onClick and disabled state)
   const mapAction = (config: any) => ({
     ...config,
+    label: localizeActionLabel(config.id, config.label),
     onClick: () => handleAction(config.id),
     disabled: isPending || config.disabled,
   });
@@ -128,7 +160,7 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
           <span className="text-sm text-muted-foreground">{lead.email}</span>
         </div>,
         <div key="status">
-          <OpsStatusBadge {...toOpsStatus(lead.status)} />
+          <OpsStatusBadge {...toOpsStatus(lead.status)} label={localizeLeadStatus(lead.status)} />
         </div>,
         <div key="details" className="flex flex-col text-sm">
           <span>{lead.phone || '-'}</span>
@@ -140,7 +172,9 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
           <span>{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : '-'}</span>
           <span className="text-xs">
             {/* Abstracting "Last Touch" as updated at for now */}
-            {lead.updatedAt ? `Updated ${new Date(lead.updatedAt).toLocaleDateString()}` : ''}
+            {lead.updatedAt
+              ? `${t('fields.updated')} ${new Date(lead.updatedAt).toLocaleDateString()}`
+              : ''}
           </span>
         </div>,
       ],
@@ -160,40 +194,40 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
               size="icon"
               className="h-8 w-8"
               data-testid="agent-pro-back-button"
-              aria-label="Back to members"
+              aria-label={t('back_to_members')}
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="sr-only">Back to members</span>
+              <span className="sr-only">{t('back_to_members')}</span>
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
-            <p className="text-sm text-muted-foreground">Manage and track all your leads.</p>
+            <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+            <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
           </div>
         </div>
       </div>
 
       {/* Filters */}
       <OpsFiltersBar
-        tabs={TABS}
+        tabs={tabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Search leads by name, email, or phone..."
+        searchPlaceholder={t('search_placeholder')}
         searchInputTestId="leads-pro-search"
       />
 
       <div className="flex-1 overflow-hidden border rounded-lg bg-card">
         <OpsQueryState
           isEmpty={filteredLeads.length === 0}
-          emptyTitle="No leads found"
-          emptySubtitle="Adjust your filters or search query."
+          emptyTitle={t('empty_title')}
+          emptySubtitle={t('empty_subtitle')}
         >
           <OpsTable
             columns={columns}
             rows={tableRows}
-            emptyLabel="No leads match your filters"
+            emptyLabel={t('empty_label')}
             rowTestId="lead-row"
           />
         </OpsQueryState>
@@ -202,18 +236,21 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
       <OpsDrawer
         open={!!selectedId}
         onOpenChange={open => !open && handleCloseDrawer()}
-        title={selectedLead ? `${selectedLead.firstName} ${selectedLead.lastName}` : 'Lead Details'}
+        title={selectedLead ? `${selectedLead.firstName} ${selectedLead.lastName}` : t('details')}
       >
         {selectedLead && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Status</p>
-                <OpsStatusBadge {...toOpsStatus(selectedLead.status)} />
+                <p className="text-sm font-medium text-muted-foreground">{t('fields.status')}</p>
+                <OpsStatusBadge
+                  {...toOpsStatus(selectedLead.status)}
+                  label={localizeLeadStatus(selectedLead.status)}
+                />
               </div>
               <div className="text-right space-y-1">
                 {/* Reusing details view similar to OpsPage but can be expanded */}
-                <p className="text-sm font-medium text-muted-foreground">Created</p>
+                <p className="text-sm font-medium text-muted-foreground">{t('fields.created')}</p>
                 <span className="text-sm" data-testid="lead-created-at">
                   {selectedLead.createdAt
                     ? new Date(selectedLead.createdAt).toLocaleDateString()
@@ -224,19 +261,19 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
 
             <div className="grid grid-cols-2 gap-4 text-sm border-t pt-4">
               <div>
-                <span className="block text-muted-foreground">Email</span>
+                <span className="block text-muted-foreground">{t('fields.email')}</span>
                 <span className="font-medium">{selectedLead.email}</span>
               </div>
               <div>
-                <span className="block text-muted-foreground">Phone</span>
+                <span className="block text-muted-foreground">{t('fields.phone')}</span>
                 <span className="font-medium">{selectedLead.phone || '-'}</span>
               </div>
               <div>
-                <span className="block text-muted-foreground">Source</span>
+                <span className="block text-muted-foreground">{t('fields.source')}</span>
                 <span className="font-medium capitalize">{selectedLead.source || '-'}</span>
               </div>
               <div>
-                <span className="block text-muted-foreground">Branch</span>
+                <span className="block text-muted-foreground">{t('fields.branch')}</span>
                 <span className="font-medium">
                   {selectedLead.branch?.name || selectedLead.branchId || '-'}
                 </span>
@@ -245,7 +282,9 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
 
             {selectedLead.notes && (
               <div className="border-t pt-4">
-                <span className="block text-sm font-medium text-muted-foreground mb-2">Notes</span>
+                <span className="block text-sm font-medium text-muted-foreground mb-2">
+                  {t('fields.notes')}
+                </span>
                 <p className="text-sm bg-muted/50 p-3 rounded-md">{selectedLead.notes}</p>
               </div>
             )}
@@ -254,7 +293,7 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
             {primary && (
               <div className="border-t pt-4" data-testid="agent-lead-next-step">
                 <span className="block text-sm font-medium text-muted-foreground mb-3">
-                  Next Step
+                  {t('fields.next_step')}
                 </span>
                 <OpsActionBar
                   primary={!!primary ? mapAction(primary) : undefined}
@@ -270,7 +309,7 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
                   onClick={() => setShowSecondary(!showSecondary)}
                   className="flex items-center justify-between w-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  More Actions
+                  {t('more_actions')}
                   {showSecondary ? (
                     <ChevronUp className="h-4 w-4" />
                   ) : (
@@ -291,9 +330,29 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
 
             <div className="border-t pt-4">
               <OpsTimeline
-                title="Timeline"
-                events={toOpsTimelineEvents(selectedLead)}
-                emptyLabel="No events yet"
+                title={t('timeline.title')}
+                events={toOpsTimelineEvents(selectedLead).map(event => {
+                  if (event.id.endsWith('-created')) {
+                    return {
+                      ...event,
+                      title: t('timeline.events.created.title'),
+                      description: `${t('timeline.events.created.source_prefix')} ${
+                        selectedLead.source || t('timeline.events.created.unknown_source')
+                      }`,
+                    };
+                  }
+
+                  if (event.id.endsWith('-converted')) {
+                    return {
+                      ...event,
+                      title: t('timeline.events.converted.title'),
+                      description: t('timeline.events.converted.description'),
+                    };
+                  }
+
+                  return event;
+                })}
+                emptyLabel={t('timeline.empty')}
               />
             </div>
           </div>

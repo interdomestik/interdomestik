@@ -1,7 +1,10 @@
-import { useTranslations } from 'next-intl';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-export default function Page() {
-  const t = useTranslations('dashboard.home_grid');
+export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
+  const t = await getTranslations({ locale, namespace: 'dashboard.home_grid' });
 
   // Keep the member-facing guide separate from the internal operator playbook.
   return (
