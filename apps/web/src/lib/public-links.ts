@@ -1,5 +1,5 @@
 function getOriginOrNull(): string | null {
-  if (typeof globalThis.window === 'undefined') return null;
+  if (globalThis.window === undefined) return null;
 
   try {
     return globalThis.window.location.origin;

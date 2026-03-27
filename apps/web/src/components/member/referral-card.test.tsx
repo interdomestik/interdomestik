@@ -1,4 +1,5 @@
 import { getMemberReferralCardData } from '@/actions/member-referrals';
+import { getAgentReferralLink } from '@/actions/referrals';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -10,6 +11,7 @@ import {
   MockInput,
   MockSkeleton,
 } from '@/test/referral-card-test-mocks';
+import { ReferralLinkCard } from '@/components/agent/referral-link-card';
 
 import { ReferralCard } from './referral-card';
 
@@ -17,11 +19,15 @@ vi.mock('@/actions/member-referrals', () => ({
   getMemberReferralCardData: vi.fn(),
 }));
 
+vi.mock('@/actions/referrals', () => ({
+  getAgentReferralLink: vi.fn(),
+}));
+
 vi.mock('@/lib/public-links', () => ({
   normalizePublicLink: (link: string) =>
-    link.replace('http://localhost:3000', 'http://ks.127.0.0.1.nip.io:3000'),
+    link.replace('http://localhost:3000', 'http://pilot.127.0.0.1.nip.io:3000'),
   normalizeWhatsAppShareUrl: (shareUrl: string) =>
-    shareUrl.replace('http%3A%2F%2Flocalhost%3A3000', 'http%3A%2F%2Fks.127.0.0.1.nip.io%3A3000'),
+    shareUrl.replace('http%3A%2F%2Flocalhost%3A3000', 'http%3A%2F%2Fpilot.127.0.0.1.nip.io%3A3000'),
 }));
 
 vi.mock('@interdomestik/ui/components/button', () => ({
@@ -44,31 +50,42 @@ vi.mock('@interdomestik/ui/components/skeleton', () => ({
 }));
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string, values?: Record<string, string>) => {
-    const translations: Record<string, string> = {
-      title: 'Invite Friends & Earn',
-      description:
-        'Share your referral link and track the reward credit you earn from first paid memberships.',
-      friends: 'Friends Invited',
-      pending: 'Pending',
-      credited: 'Available Credit',
-      paid: 'Paid Out',
-      copied: 'Link copied!',
-      copyError: 'Failed to copy',
-      loadError: 'Failed to load referral details',
-      copyAction: 'Copy referral link',
-      shareAction: 'Share referral link',
-      rewardInfoCreditOnly:
-        'Members earn {reward} in account credit after the first paid membership activates.',
-      rewardInfoPayout:
-        'Members earn {reward} after the first paid membership activates. Payouts unlock once available credit reaches {threshold}.',
-      payoutEligible: 'Payout-ready balance: {amount}',
-      programDisabled: 'Member referral rewards are currently disabled for this tenant.',
+  useTranslations: (namespace?: string) => (key: string, values?: Record<string, string>) => {
+    const translationsByNamespace: Record<string, Record<string, string>> = {
+      'dashboard.referral': {
+        title: 'Invite Friends & Earn',
+        description:
+          'Share your referral link and track the reward credit you earn from first paid memberships.',
+        friends: 'Friends Invited',
+        pending: 'Pending',
+        credited: 'Available Credit',
+        paid: 'Paid Out',
+        copied: 'Link copied!',
+        copyError: 'Failed to copy',
+        loadError: 'Failed to load referral details',
+        copyAction: 'Copy referral link',
+        shareAction: 'Share referral link',
+        rewardInfoCreditOnly:
+          'Members earn {reward} in account credit after the first paid membership activates.',
+        rewardInfoPayout:
+          'Members earn {reward} after the first paid membership activates. Payouts unlock once available credit reaches {threshold}.',
+        payoutEligible: 'Payout-ready balance: {amount}',
+        programDisabled: 'Member referral rewards are currently disabled for this tenant.',
+      },
+      'agent.commissions.referralLink': {
+        title: 'Your referral link',
+        description: 'Share this link to earn commissions for new memberships.',
+        loadError: 'Failed to load referral link',
+        copied: 'Link copied!',
+        copyError: 'Failed to copy link',
+      },
     };
+
+    const template = translationsByNamespace[namespace ?? '']?.[key] ?? key;
 
     return Object.entries(values ?? {}).reduce(
       (result, [name, replacement]) => result.replace(`{${name}}`, replacement),
-      translations[key] ?? key
+      template
     );
   },
 }));
@@ -123,6 +140,16 @@ describe('ReferralCard', () => {
         },
       },
     });
+
+    vi.mocked(getAgentReferralLink).mockResolvedValue({
+      success: true,
+      data: {
+        code: 'STEFAN-GMV1SU',
+        link: 'http://localhost:3000?ref=STEFAN-GMV1SU',
+      },
+      error: undefined,
+      fieldErrors: undefined,
+    });
   });
 
   it('renders referral stats and dynamic reward summary', async () => {
@@ -130,7 +157,7 @@ describe('ReferralCard', () => {
 
     expect(await screen.findByText('Invite Friends & Earn')).toBeInTheDocument();
     expect(
-      screen.getByDisplayValue('http://ks.127.0.0.1.nip.io:3000?ref=ABC123')
+      screen.getByDisplayValue('http://pilot.127.0.0.1.nip.io:3000?ref=ABC123')
     ).toBeInTheDocument();
     expect(screen.getByText('Friends Invited')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
@@ -146,7 +173,7 @@ describe('ReferralCard', () => {
 
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        'http://ks.127.0.0.1.nip.io:3000?ref=ABC123'
+        'http://pilot.127.0.0.1.nip.io:3000?ref=ABC123'
       );
     });
     expect(toastSuccess).toHaveBeenCalledWith('Link copied!');
@@ -159,7 +186,7 @@ describe('ReferralCard', () => {
     fireEvent.click(shareButton);
 
     expect(window.open).toHaveBeenCalledWith(
-      'https://wa.me/?text=Join%20Asistenca%20with%20my%20referral%20link%20http%3A%2F%2Fks.127.0.0.1.nip.io%3A3000%3Fref%3DABC123',
+      'https://wa.me/?text=Join%20Asistenca%20with%20my%20referral%20link%20http%3A%2F%2Fpilot.127.0.0.1.nip.io%3A3000%3Fref%3DABC123',
       '_blank',
       'noopener,noreferrer'
     );
@@ -191,5 +218,28 @@ describe('ReferralCard', () => {
 
     expect(await screen.findAllByText('Failed to load referral details')).toHaveLength(2);
     expect(screen.queryByText('Failed to fetch referral stats')).not.toBeInTheDocument();
+  });
+
+  it('normalizes the displayed agent referral link to the live origin', async () => {
+    render(<ReferralLinkCard />);
+
+    expect(
+      await screen.findByDisplayValue('http://pilot.127.0.0.1.nip.io:3000?ref=STEFAN-GMV1SU')
+    ).toBeInTheDocument();
+  });
+
+  it('copies the normalized agent referral link instead of the localhost fallback', async () => {
+    render(<ReferralLinkCard />);
+
+    const copyButton = await screen.findByRole('button');
+    fireEvent.click(copyButton);
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        'http://pilot.127.0.0.1.nip.io:3000?ref=STEFAN-GMV1SU'
+      );
+    });
+    expect(toastSuccess).toHaveBeenCalledWith('Link copied!');
+    expect(toastError).not.toHaveBeenCalled();
   });
 });
