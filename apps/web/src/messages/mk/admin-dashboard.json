@@ -1,5 +1,17 @@
 {
   "admin": {
+    "overview_page": {
+      "title": "Админ преглед",
+      "description": "Следи го здравјето на системот, обемот на барања и оптоварувањето на филијалите низ админ површината.",
+      "kpis_total_members": "Вкупно членови",
+      "kpis_total_agents": "Вкупно агенти",
+      "kpis_total_active_claims": "Вкупно активни барања",
+      "kpis_claims_updated_24h": "Ажурирани барања (24ч)",
+      "claims_by_stage": "Барања по фаза",
+      "claims_by_branch": "Барања по филијала",
+      "no_active_claims": "Нема активни барања",
+      "no_branch_accumulation": "Сè уште нема активност по филијали"
+    },
     "dashboard": {
       "title": "Админ контролна табла",
       "recent_activity": "Скорешна активност",

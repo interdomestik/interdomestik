@@ -13,12 +13,12 @@ import { useTransition } from 'react';
 import { toast } from 'sonner';
 import { updateStatus } from '../../actions/ops-actions';
 
-interface OpsStatusControlProps {
+type OpsStatusControlProps = Readonly<{
   claimId: string;
   currentStatus: string;
   allowedTransitions: string[];
   locale: string;
-}
+}>;
 
 export function OpsStatusControl({
   claimId,
@@ -39,6 +39,7 @@ export function OpsStatusControl({
           toast.error(result.error || tAdmin('error'));
         } else {
           toast.success(tAdmin('success'));
+          globalThis.location.reload();
         }
       } catch (_error) {
         toast.error(tCommon('errors.generic'));

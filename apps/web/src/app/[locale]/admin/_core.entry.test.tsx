@@ -1,16 +1,21 @@
 import type { ReactNode } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   getMessagesMock: vi.fn(async () => ({
     common: { loading: 'Loading' },
-    admin: { title: 'Admin' },
+    admin: { title: 'Admin', sidebar: { title: 'Localized Admin Shell' } },
   })),
+  getTranslationsMock: vi.fn(
+    async () => (key: string) => ({ title: 'Localized Admin Shell' })[key] ?? key
+  ),
   setRequestLocaleMock: vi.fn(),
 }));
 
 vi.mock('next-intl/server', () => ({
   getMessages: hoisted.getMessagesMock,
+  getTranslations: hoisted.getTranslationsMock,
   setRequestLocale: hoisted.setRequestLocaleMock,
 }));
 
@@ -82,5 +87,14 @@ describe('AdminLayout i18n initialization', () => {
     expect(hoisted.setRequestLocaleMock.mock.invocationCallOrder[0]).toBeLessThan(
       hoisted.getMessagesMock.mock.invocationCallOrder[0]
     );
+  });
+
+  it('renders the localized admin shell title', async () => {
+    const view = await AdminLayout({
+      children: null,
+      params: Promise.resolve({ locale: 'mk' }),
+    });
+
+    expect(renderToStaticMarkup(view)).toContain('Localized Admin Shell');
   });
 });

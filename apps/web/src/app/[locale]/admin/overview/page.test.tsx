@@ -17,8 +17,7 @@ function getTranslationValue(source: unknown, key: string): string {
 }
 
 const hoisted = vi.hoisted(() => ({
-  headersMock: vi.fn(async () => new Headers()),
-  getSessionMock: vi.fn(async () => ({
+  getSessionSafeMock: vi.fn(async () => ({
     user: {
       role: 'admin',
       tenantId: 'tenant_mk',
@@ -37,16 +36,8 @@ const hoisted = vi.hoisted(() => ({
   setRequestLocaleMock: vi.fn(),
 }));
 
-vi.mock('next/headers', () => ({
-  headers: hoisted.headersMock,
-}));
-
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: hoisted.getSessionMock,
-    },
-  },
+vi.mock('@/components/shell/session', () => ({
+  getSessionSafe: hoisted.getSessionSafeMock,
 }));
 
 vi.mock('@/features/admin/overview/server/get-admin-overview-data', () => ({

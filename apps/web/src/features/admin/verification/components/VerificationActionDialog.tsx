@@ -2,6 +2,7 @@ import {
   Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -36,6 +37,11 @@ export function VerificationActionDialog({
           <DialogTitle>
             {pendingDecision === 'reject' ? t('actions.reject') : t('dialogs.needs_info_title')}
           </DialogTitle>
+          <DialogDescription>
+            {pendingDecision === 'reject'
+              ? t('dialogs.reject_description')
+              : t('dialogs.needs_info_description')}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-2 py-4">
           <Label>{t('labels.note')}</Label>

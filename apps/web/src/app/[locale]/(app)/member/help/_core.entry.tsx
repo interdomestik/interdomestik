@@ -8,11 +8,14 @@ import {
   CardTitle,
 } from '@interdomestik/ui/components/card';
 import { Mail, MessageSquare, Phone } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
-export default async function HelpPage() {
+export default async function HelpPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   const t = await getTranslations('help');
 
   return (

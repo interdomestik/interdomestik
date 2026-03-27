@@ -16,7 +16,43 @@
       "add_agent_success": "Agjenti u shtua",
       "add_agent_success_desc": "Përdoruesi u promovua me sukses në agjent.",
       "add_agent_error": "Gabim gjatë shtimit",
-      "unexpected_error": "Ndodhi një gabim i papritur."
+      "unexpected_error": "Ndodhi një gabim i papritur.",
+      "roles_panel": {
+        "title": "Rolet",
+        "description": "Rolet e kufizuara në tenant për këtë përdorues.",
+        "missing_tenant": "Mungon konteksti i tenant-it. Hapeni përsëri këtë profil nga lista e përdoruesve të tenant-it.",
+        "role_label": "Roli",
+        "role_placeholder": "Zgjidh rolin",
+        "custom_role": "I personalizuar…",
+        "custom_role_placeholder": "emri_i_rolit",
+        "branch_label": "Dega",
+        "tenant_wide": "Në nivel tenant-i",
+        "grant_role": "Jep rolin",
+        "new_branch_name": "Emri i degës së re",
+        "new_branch_code": "Kodi i degës së re (opsional)",
+        "create_branch": "Krijo degë",
+        "remove": "Hiqe",
+        "empty": "Nuk ka role të caktuara",
+        "table": {
+          "role": "Roli",
+          "branch": "Dega",
+          "actions": "Veprime"
+        },
+        "toasts": {
+          "tenant_required": "Konteksti i tenant-it kërkohet për menaxhimin e roleve",
+          "role_required": "Roli është i detyrueshëm",
+          "branch_required": "Kërkohet degë për këtë rol. Ju lutemi zgjidhni një degë.",
+          "load_branches_error": "Ngarkimi i degëve dështoi",
+          "load_roles_error": "Ngarkimi i roleve dështoi",
+          "role_granted": "Roli u dha",
+          "grant_error": "Dhënia e rolit dështoi",
+          "role_revoked": "Roli u hoq",
+          "revoke_error": "Heqja e rolit dështoi",
+          "branch_name_required": "Emri i degës është i detyrueshëm",
+          "branch_created": "Dega u krijua",
+          "branch_create_error": "Krijimi i degës dështoi"
+        }
+      }
     },
     "users_filters": {
       "search_placeholder": "Kërko sipas emrit ose email-it",
@@ -47,6 +83,8 @@
       "headers": {
         "user": "Përdoruesi",
         "role": "Roli",
+        "member_id": "ID i anëtarit",
+        "identity_id": "ID i anëtarit / llogarisë",
         "assigned_agent": "Agjenti i Caktuar",
         "joined": "Regjistruar"
       },
@@ -61,14 +99,15 @@
       "actions": {
         "back": "Kthehu te përdoruesit",
         "view_claim": "Shiko kërkesën",
-        "resend_welcome": "Ridërgo emailin e mirëseardhjes",
-        "resend_welcome_loading": "Duke dërguar...",
-        "resend_welcome_success": "Emaili i mirëseardhjes u dërgua me sukses!",
-        "resend_welcome_failed": "Dështoi dërgimi i emailit",
-        "resend_welcome_unexpected": "Ndodhi një gabim i papritur"
+        "resend_welcome_email": "Ridërgo emailin e mirëseardhjes",
+        "resend_welcome_email_sending": "Duke dërguar...",
+        "resend_welcome_email_success": "Emaili i mirëseardhjes u dërgua me sukses!",
+        "resend_welcome_email_error": "Dërgimi i emailit dështoi",
+        "unexpected_error": "Ndodhi një gabim i papritur"
       },
       "sections": {
         "membership": "Anëtarësimi",
+        "account": "Llogaria",
         "agent": "Agjenti i caktuar",
         "preferences": "Preferencat e njoftimeve",
         "claims_overview": "Përmbledhja e kërkesave për dëmshpërblim",
@@ -76,10 +115,13 @@
       },
       "labels": {
         "member_id": "ID i anëtarit",
+        "account_id": "ID e llogarisë",
         "joined": "Regjistruar",
         "email_verified_yes": "Email i verifikuar",
         "email_verified_no": "Email i paverifikuar",
         "status": "Statusi",
+        "account_type": "Lloji i llogarisë",
+        "role_scope": "Fusha e rolit",
         "plan": "Plani",
         "period_end": "Fundi i periudhës",
         "cancel_at_period_end": "Anulim në fund të periudhës",
@@ -87,14 +129,17 @@
         "preferences_unset": "Preferencat nuk janë vendosur",
         "no_claims": "Nuk ka ende kërkesa për dëmshpërblim",
         "unknown": "E panjohur",
-        "not_set": "Nuk është vendosur"
+        "not_set": "Nuk është vendosur",
+        "not_applicable": "Nuk zbatohet"
       },
       "status": {
         "active": "Aktive",
         "past_due": "Me vonesë",
         "paused": "Pezull",
         "canceled": "Anuluar",
-        "none": "Pa anëtarësim"
+        "none": "Pa anëtarësim",
+        "registered": "Anëtar i regjistruar",
+        "operator": "Llogari operative"
       },
       "preferences": {
         "email_claims": "Email përditësime të kërkesave",
@@ -109,45 +154,6 @@
         "open": "Kërkesa të hapura",
         "resolved": "Të zgjidhura",
         "rejected": "Të refuzuara"
-      },
-      "roles_panel": {
-        "title": "Rolet",
-        "description": "Rolet me fushëveprim tenant për këtë përdorues.",
-        "missing_tenant_context": "Mungon konteksti i tenant-it. Rihape këtë profil nga lista e përdoruesve të tenant-it.",
-        "tenant_wide": "Në nivel tenant-i",
-        "fields": {
-          "role": "Roli",
-          "branch": "Dega",
-          "select_role": "Zgjidh rolin",
-          "custom_role": "Me porosi…",
-          "role_name": "Emri i rolit",
-          "new_branch_name": "Emri i degës së re",
-          "new_branch_code": "Kodi i degës së re (opsionale)"
-        },
-        "actions": {
-          "grant": "Jep rolin",
-          "remove": "Hiqe",
-          "create_branch": "Krijo degë"
-        },
-        "table": {
-          "empty": "Nuk ka role të caktuara",
-          "actions": "Veprime"
-        },
-        "toast": {
-          "load_branches_failed": "Dështoi ngarkimi i degëve",
-          "load_roles_failed": "Dështoi ngarkimi i roleve",
-          "tenant_context_required_roles": "Konteksti i tenant-it kërkohet për të menaxhuar rolet",
-          "tenant_context_required_branches": "Konteksti i tenant-it kërkohet për të menaxhuar degët",
-          "role_required": "Roli është i detyrueshëm",
-          "branch_required": "Për këtë rol kërkohet një degë. Ju lutemi zgjidhni një degë.",
-          "role_granted": "Roli u dha",
-          "grant_failed": "Dështoi dhënia e rolit",
-          "role_revoked": "Roli u hoq",
-          "revoke_failed": "Dështoi heqja e rolit",
-          "branch_name_required": "Emri i degës është i detyrueshëm",
-          "branch_created": "Dega u krijua",
-          "branch_create_failed": "Dështoi krijimi i degës"
-        }
       }
     }
   }

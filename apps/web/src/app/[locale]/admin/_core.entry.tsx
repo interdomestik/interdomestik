@@ -31,8 +31,8 @@ export default async function AdminLayout({
   await requireEffectivePortalAccessOrNotFound(sessionNonNull, ALLOWED_ROLES);
 
   setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'admin.sidebar' });
-  const tNav = await getTranslations({ locale, namespace: 'nav' });
+  const tSidebar = await getTranslations('admin.sidebar');
+  const tNav = await getTranslations('nav');
   const allMessages = await getMessages();
   const messages = {
     ...pickMessages(allMessages, BASE_NAMESPACES),
@@ -87,7 +87,7 @@ export default async function AdminLayout({
             </div>
             <div className="flex-1 flex items-center justify-between">
               <h1 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                {t('title')}
+                {tSidebar('title')}
               </h1>
               <div className="flex items-center gap-3">
                 <PortalSurfaceIndicator role={role} />

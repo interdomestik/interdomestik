@@ -23,13 +23,13 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { updateStatus } from '../../actions/ops-actions';
 
-interface OpsStatusUpdateModalProps {
+type OpsStatusUpdateModalProps = Readonly<{
   claimId: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   allowedTransitions: ClaimStatus[];
   locale: string;
-}
+}>;
 
 export function OpsStatusUpdateModal({
   claimId,
@@ -38,8 +38,8 @@ export function OpsStatusUpdateModal({
   allowedTransitions,
   locale,
 }: OpsStatusUpdateModalProps) {
-  const t = useTranslations('claims.status');
-  const tAdmin = useTranslations('admin.claims_page.status_modal');
+  const tStatus = useTranslations('claims.status');
+  const tModal = useTranslations('admin.claims_page.status_modal');
   const tStatusForm = useTranslations('admin.claims_page.status_form');
   const tCommon = useTranslations('common');
 
@@ -54,6 +54,7 @@ export function OpsStatusUpdateModal({
         const result = await updateStatus(claimId, selectedStatus as ClaimStatus, locale);
         if (result.success) {
           toast.success(tStatusForm('success'));
+          globalThis.location.reload();
           onOpenChange(false);
         } else {
           toast.error(result.error || tStatusForm('error'));
@@ -68,19 +69,19 @@ export function OpsStatusUpdateModal({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{tAdmin('title')}</DialogTitle>
-          <DialogDescription>{tAdmin('description')}</DialogDescription>
+          <DialogTitle>{tModal('title')}</DialogTitle>
+          <DialogDescription>{tModal('description')}</DialogDescription>
         </DialogHeader>
 
         <div className="py-4">
           <Select onValueChange={setSelectedStatus}>
             <SelectTrigger>
-              <SelectValue placeholder={tAdmin('placeholder')} />
+              <SelectValue placeholder={tModal('placeholder')} />
             </SelectTrigger>
             <SelectContent>
               {allowedTransitions.map(status => (
                 <SelectItem key={status} value={status}>
-                  {t(status)}
+                  {tStatus(status)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -89,11 +90,11 @@ export function OpsStatusUpdateModal({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
-            {tCommon('cancel')}
+            {tModal('cancel')}
           </Button>
           <Button onClick={handleConfirm} disabled={!selectedStatus || isPending}>
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {tAdmin('confirm')}
+            {tModal('confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

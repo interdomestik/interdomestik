@@ -2,8 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
-  headersMock: vi.fn(async () => new Headers()),
-  getSessionMock: vi.fn(async () => ({
+  getSessionSafeMock: vi.fn(async () => ({
     user: {
       id: 'member-1',
       name: 'Member One',
@@ -37,10 +36,6 @@ const hoisted = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock('next/headers', () => ({
-  headers: hoisted.headersMock,
-}));
-
 vi.mock('next-intl/server', () => ({
   setRequestLocale: vi.fn(),
 }));
@@ -50,12 +45,8 @@ vi.mock('next/navigation', () => ({
   notFound: hoisted.notFoundMock,
 }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: hoisted.getSessionMock,
-    },
-  },
+vi.mock('@/components/shell/session', () => ({
+  getSessionSafe: hoisted.getSessionSafeMock,
 }));
 
 vi.mock('@/features/claims/tracking/server/getMemberClaimDetail', () => ({
@@ -80,6 +71,7 @@ describe('ClaimDetailsPage', () => {
     render(tree);
 
     expect(screen.getByTestId('member-claim-detail-ops-page')).toBeInTheDocument();
+    expect(hoisted.getSessionSafeMock).toHaveBeenCalledWith('MemberClaimDetailsPage');
     expect(hoisted.memberClaimDetailOpsPageMock).toHaveBeenCalledWith(
       expect.objectContaining({
         currentUser: {

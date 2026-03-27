@@ -29,6 +29,9 @@ export function BranchHealthCard({ branch, onEdit, onDelete }: BranchHealthCardP
   const t = useTranslations('admin.branches');
   // Compute risk profile on render (lightweight)
   const risk = analyzeBranchRisk(branch);
+  const openClaimsLabel = t('kpis.open_claims');
+  const cashPendingLabel = t('kpis.cash_pending');
+  const slaBreachesLabel = t('kpis.sla_breaches');
 
   return (
     <GlassCard
@@ -118,21 +121,33 @@ export function BranchHealthCard({ branch, onEdit, onDelete }: BranchHealthCardP
       <div className="px-5 py-4 grid grid-cols-3 gap-2">
         <div className="flex flex-col gap-1">
           <span className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider">
-            {t('kpis.open_claims')}
+            {openClaimsLabel}
           </span>
-          <BranchKpiBadge type="openClaims" count={branch.kpis.openClaims} />
+          <BranchKpiBadge
+            type="openClaims"
+            count={branch.kpis.openClaims}
+            label={openClaimsLabel}
+          />
         </div>
         <div className="flex flex-col gap-1">
           <span className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider">
-            {t('kpis.cash_pending')}
+            {cashPendingLabel}
           </span>
-          <BranchKpiBadge type="cashPending" count={branch.kpis.cashPending} />
+          <BranchKpiBadge
+            type="cashPending"
+            count={branch.kpis.cashPending}
+            label={cashPendingLabel}
+          />
         </div>
         <div className="flex flex-col gap-1">
           <span className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider">
-            {t('kpis.sla_breaches')}
+            {slaBreachesLabel}
           </span>
-          <BranchKpiBadge type="slaBreaches" count={branch.kpis.slaBreaches} />
+          <BranchKpiBadge
+            type="slaBreaches"
+            count={branch.kpis.slaBreaches}
+            label={slaBreachesLabel}
+          />
         </div>
       </div>
 

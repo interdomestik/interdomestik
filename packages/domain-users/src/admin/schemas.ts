@@ -13,7 +13,7 @@ export const createBranchSchema = z.object({
 });
 
 export const updateBranchSchema = z.object({
-  branchId: z.string().uuid(),
+  branchId: z.string().min(1, 'Branch ID is required'),
   name: z.string().min(1, 'Name is required').max(100),
   code: z
     .string()

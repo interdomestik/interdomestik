@@ -16,7 +16,43 @@
       "add_agent_success": "Агентот е додаден",
       "add_agent_success_desc": "Корисникот е успешно унапреден во агент.",
       "add_agent_error": "Грешка при додавање агент",
-      "unexpected_error": "Се случи неочекувана грешка."
+      "unexpected_error": "Се случи неочекувана грешка.",
+      "roles_panel": {
+        "title": "Улоги",
+        "description": "Улоги во рамки на tenant за овој корисник.",
+        "missing_tenant": "Недостасува tenant контекст. Отворете го повторно овој профил од листата на корисници на tenant-от.",
+        "role_label": "Улога",
+        "role_placeholder": "Избери улога",
+        "custom_role": "Прилагодена…",
+        "custom_role_placeholder": "име_на_улога",
+        "branch_label": "Филијала",
+        "tenant_wide": "На ниво на tenant",
+        "grant_role": "Додели улога",
+        "new_branch_name": "Име на нова филијала",
+        "new_branch_code": "Код на нова филијала (опционално)",
+        "create_branch": "Креирај филијала",
+        "remove": "Отстрани",
+        "empty": "Нема доделени улоги",
+        "table": {
+          "role": "Улога",
+          "branch": "Филијала",
+          "actions": "Акции"
+        },
+        "toasts": {
+          "tenant_required": "Потребен е tenant контекст за управување со улогите",
+          "role_required": "Улогата е задолжителна",
+          "branch_required": "Потребна е филијала за оваа улога. Изберете филијала.",
+          "load_branches_error": "Вчитувањето на филијалите не успеа",
+          "load_roles_error": "Вчитувањето на улогите не успеа",
+          "role_granted": "Улогата е доделена",
+          "grant_error": "Доделувањето на улогата не успеа",
+          "role_revoked": "Улогата е отстранета",
+          "revoke_error": "Отстранувањето на улогата не успеа",
+          "branch_name_required": "Името на филијалата е задолжително",
+          "branch_created": "Филијалата е креирана",
+          "branch_create_error": "Креирањето на филијалата не успеа"
+        }
+      }
     },
     "users_filters": {
       "search_placeholder": "Пребарај по име или е-пошта",
@@ -47,6 +83,8 @@
       "headers": {
         "user": "Корисник",
         "role": "Улога",
+        "member_id": "ID на член",
+        "identity_id": "ID на член / сметка",
         "assigned_agent": "Доделен агент",
         "joined": "Приклучен"
       },
@@ -61,14 +99,15 @@
       "actions": {
         "back": "Назад кон корисници",
         "view_claim": "Прегледај барање",
-        "resend_welcome": "Испрати повторно е-пошта за добредојде",
-        "resend_welcome_loading": "Се испраќа...",
-        "resend_welcome_success": "Е-поштата за добредојде е успешно испратена!",
-        "resend_welcome_failed": "Неуспешно испраќање е-пошта",
-        "resend_welcome_unexpected": "Се случи неочекувана грешка"
+        "resend_welcome_email": "Испрати повторно е-пошта за добредојде",
+        "resend_welcome_email_sending": "Се испраќа...",
+        "resend_welcome_email_success": "Е-поштата за добредојде е успешно испратена!",
+        "resend_welcome_email_error": "Испраќањето на е-поштата не успеа",
+        "unexpected_error": "Се случи неочекувана грешка"
       },
       "sections": {
         "membership": "Членство",
+        "account": "Сметка",
         "agent": "Доделен агент",
         "preferences": "Преференции за известувања",
         "claims_overview": "Преглед на барања",
@@ -76,10 +115,13 @@
       },
       "labels": {
         "member_id": "ID на член",
+        "account_id": "ID на сметка",
         "joined": "Приклучен",
         "email_verified_yes": "Е-пошта потврдена",
         "email_verified_no": "Е-пошта не е потврдена",
         "status": "Статус",
+        "account_type": "Тип на сметка",
+        "role_scope": "Опсег на улога",
         "plan": "План",
         "period_end": "Крај на период",
         "cancel_at_period_end": "Откажи на крај на периодот",
@@ -87,14 +129,17 @@
         "preferences_unset": "Преференциите не се поставени",
         "no_claims": "Сè уште нема барања",
         "unknown": "Непознато",
-        "not_set": "Не е поставено"
+        "not_set": "Не е поставено",
+        "not_applicable": "Не се применува"
       },
       "status": {
         "active": "Активно",
         "past_due": "Во доцнење",
         "paused": "Паузирано",
         "canceled": "Откажано",
-        "none": "Не е претплатен"
+        "none": "Не е претплатен",
+        "registered": "Регистриран член",
+        "operator": "Оперативна сметка"
       },
       "preferences": {
         "email_claims": "Е-пошта за ажурирања на барања",
@@ -109,45 +154,6 @@
         "open": "Отворени барања",
         "resolved": "Решени",
         "rejected": "Одбиени"
-      },
-      "roles_panel": {
-        "title": "Улоги",
-        "description": "Улоги со опсег на tenant за овој корисник.",
-        "missing_tenant_context": "Недостасува tenant контекст. Повторно отворете го овој профил од листата на корисници за tenant-от.",
-        "tenant_wide": "На ниво на tenant",
-        "fields": {
-          "role": "Улога",
-          "branch": "Филијала",
-          "select_role": "Избери улога",
-          "custom_role": "Прилагодена…",
-          "role_name": "Име на улога",
-          "new_branch_name": "Име на нова филијала",
-          "new_branch_code": "Нова шифра на филијала (опционално)"
-        },
-        "actions": {
-          "grant": "Додели улога",
-          "remove": "Отстрани",
-          "create_branch": "Креирај филијала"
-        },
-        "table": {
-          "empty": "Нема доделени улоги",
-          "actions": "Дејства"
-        },
-        "toast": {
-          "load_branches_failed": "Неуспешно вчитување филијали",
-          "load_roles_failed": "Неуспешно вчитување улоги",
-          "tenant_context_required_roles": "Потребен е tenant контекст за управување со улоги",
-          "tenant_context_required_branches": "Потребен е tenant контекст за управување со филијали",
-          "role_required": "Улогата е задолжителна",
-          "branch_required": "За оваа улога е задолжителна филијала. Изберете филијала.",
-          "role_granted": "Улогата е доделена",
-          "grant_failed": "Неуспешно доделување улога",
-          "role_revoked": "Улогата е отповикана",
-          "revoke_failed": "Неуспешно отповикување улога",
-          "branch_name_required": "Името на филијалата е задолжително",
-          "branch_created": "Филијалата е креирана",
-          "branch_create_failed": "Неуспешно креирање филијала"
-        }
       }
     }
   }

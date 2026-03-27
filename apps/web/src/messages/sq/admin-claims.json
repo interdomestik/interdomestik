@@ -211,6 +211,16 @@
           "unexpected_error": "Ndodhi një gabim i papritur"
         }
       },
+      "status_modal": {
+        "title": "Përditëso statusin e kërkesës",
+        "description": "Zgjidh statusin e ri për këtë kërkesë. Ky veprim do të regjistrohet.",
+        "placeholder": "Zgjidh statusin e ri...",
+        "cancel": "Anulo",
+        "confirm": "Konfirmo përditësimin",
+        "success": "Statusi u përditësua me sukses",
+        "error": "Përditësimi i statusit dështoi",
+        "unexpected_error": "Ndodhi një gabim i papritur"
+      },
       "evidence": {
         "title": "Evidenca",
         "upload_button": "Ngarko",

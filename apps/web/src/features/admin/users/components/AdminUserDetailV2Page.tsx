@@ -22,19 +22,64 @@ const membershipStatusStyles: Record<string, string> = {
   paused: 'bg-slate-100 text-slate-700 border-slate-200',
   canceled: 'bg-rose-100 text-rose-700 border-rose-200',
   none: 'bg-muted text-muted-foreground border-transparent',
+  registered: 'bg-blue-100 text-blue-700 border-blue-200',
+  operator: 'bg-sky-100 text-sky-700 border-sky-200',
 };
+
+type AdminUserDetailV2PageProps = Readonly<{
+  id: string;
+  locale: string;
+  searchParams: Record<string, string | string[] | undefined>;
+  tenantId: string | null;
+}>;
+
+function getEffectiveProfileStatus({
+  hasMemberNumber,
+  hasSubscription,
+  membershipStatus,
+}: Readonly<{
+  hasMemberNumber: boolean;
+  hasSubscription: boolean;
+  membershipStatus: string;
+}>): string {
+  if (!hasMemberNumber && !hasSubscription) {
+    return 'operator';
+  }
+
+  if (!hasSubscription) {
+    return 'registered';
+  }
+
+  return membershipStatus;
+}
+
+function buildAdminUsersBackHref(
+  searchParams: Record<string, string | string[] | undefined>
+): string {
+  const backParams = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        backParams.append(key, item);
+      }
+      continue;
+    }
+
+    backParams.set(key, value);
+  }
+
+  const backQuery = backParams.toString();
+  return backQuery ? `/admin/users?${backQuery}` : '/admin/users';
+}
 
 export async function AdminUserDetailV2Page({
   id,
   locale,
   searchParams,
   tenantId,
-}: {
-  id: string;
-  locale: string;
-  searchParams: Record<string, string | string[] | undefined>;
-  tenantId: string | null;
-}) {
+}: AdminUserDetailV2PageProps) {
   setRequestLocale(locale);
 
   const t = await getTranslations('admin.member_profile');
@@ -49,21 +94,18 @@ export async function AdminUserDetailV2Page({
   }
 
   const { member, subscription, preferences, counts, recentClaims, membershipStatus } = result;
-  const membershipBadgeClass = membershipStatusStyles[membershipStatus];
+  const hasMemberNumber = Boolean(member.memberNumber);
+  const hasSubscription = Boolean(subscription);
+  const isMembershipProfile = hasMemberNumber || hasSubscription;
+  const effectiveProfileStatus = getEffectiveProfileStatus({
+    hasMemberNumber,
+    hasSubscription,
+    membershipStatus,
+  });
+  const membershipBadgeClass = membershipStatusStyles[effectiveProfileStatus];
 
-  const backParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(searchParams ?? {})) {
-    if (value === undefined) continue;
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        backParams.append(key, item);
-      }
-    } else {
-      backParams.set(key, value);
-    }
-  }
-  const backQuery = backParams.toString();
-  const backHref = backQuery ? `/admin/users?${backQuery}` : '/admin/users';
+  const backHref = buildAdminUsersBackHref(searchParams ?? {});
+  const backQuery = backHref.split('?')[1] ?? '';
 
   return (
     <div className="space-y-8">
@@ -82,8 +124,9 @@ export async function AdminUserDetailV2Page({
           ...member,
           emailVerified: member.emailVerified ? new Date() : null,
         }}
-        membershipStatus={membershipStatus}
+        membershipStatus={effectiveProfileStatus}
         membershipBadgeClass={membershipBadgeClass}
+        isMembershipProfile={isMembershipProfile}
       />
 
       <AdminUserRolesPanel userId={member.id} tenantId={tenantId} />
@@ -99,8 +142,10 @@ export async function AdminUserDetailV2Page({
                 }
               : null
           }
-          membershipStatus={membershipStatus}
+          membershipStatus={effectiveProfileStatus}
           membershipBadgeClass={membershipBadgeClass}
+          isMembershipProfile={isMembershipProfile}
+          role={member.role}
         />
         <AgentInfoCard agent={member.agent} />
         <PreferencesCard preferences={preferences ?? null} />

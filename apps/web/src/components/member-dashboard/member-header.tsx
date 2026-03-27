@@ -1,14 +1,19 @@
 import type { ReactElement } from 'react';
 
-export type MemberHeaderProps = {
+export type MemberHeaderProps = Readonly<{
   name: string;
   membershipNumber: string | null;
-};
+  testId?: string;
+}>;
 
-export function MemberHeader({ name, membershipNumber }: MemberHeaderProps): ReactElement {
+export function MemberHeader({
+  name,
+  membershipNumber,
+  testId = 'member-header',
+}: MemberHeaderProps): ReactElement {
   return (
     <section
-      data-testid="member-header"
+      data-testid={testId}
       className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div>

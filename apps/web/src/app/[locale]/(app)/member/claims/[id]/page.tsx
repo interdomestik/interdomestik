@@ -1,5 +1,4 @@
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSessionSafe } from '@/components/shell/session';
 import { notFound, redirect } from 'next/navigation';
 import { getMemberClaimDetail } from '@/features/claims/tracking/server/getMemberClaimDetail';
 import { MemberClaimDetailOpsPage } from '@/features/member/claims/components/MemberClaimDetailOpsPage';
@@ -16,9 +15,7 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
   const { id, locale } = await params;
   setRequestLocale(locale);
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getSessionSafe('MemberClaimDetailsPage');
 
   if (!session) {
     redirect(`/${locale}/login?callbackUrl=/${locale}/member/claims/${id}`);

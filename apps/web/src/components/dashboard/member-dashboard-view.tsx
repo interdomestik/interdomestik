@@ -13,6 +13,7 @@ import { HomeGrid } from '@/components/member/HomeGrid';
 import { ReferralCard } from '@/components/member/referral-card';
 import { Link } from '@/i18n/routing';
 import { isAgent } from '@/lib/roles.core';
+import { resolveDateLocale } from '@/lib/utils/date';
 import { db, eq, subscriptions, user } from '@interdomestik/database';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import {
@@ -51,11 +52,9 @@ export type MemberDashboardViewProps = {
 };
 
 export async function MemberDashboardView({ data, locale }: MemberDashboardViewProps) {
-  const [t, tLanding, tClaimStatus, tClaimStage] = await Promise.all([
+  const [t, tLanding] = await Promise.all([
     getTranslations('dashboard'),
     getTranslations('dashboard.member_landing'),
-    getTranslations('claims.status'),
-    getTranslations('claims.stage'),
   ]);
   const { member, claims, activeClaimId, supportHref } = data;
   const activeClaim = claims.find(claim => claim.id === activeClaimId) ?? null;
@@ -87,12 +86,10 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
         <div className="p-4 rounded-full bg-red-100 text-red-600">
           <ShieldAlert className="w-12 h-12" />
         </div>
-        <h2 className="text-2xl font-bold">Account Configuration Error</h2>
-        <p className="text-muted-foreground">
-          We couldn't retrieve your profile details. Please contact support.
-        </p>
+        <h2 className="text-2xl font-bold">{tLanding('account_error_title')}</h2>
+        <p className="text-muted-foreground">{tLanding('account_error_body')}</p>
         <Button asChild variant="outline" className="rounded-xl">
-          <Link href="/member/help">Get Assistance</Link>
+          <Link href="/member/help">{tLanding('account_error_cta')}</Link>
         </Button>
       </div>
     );
@@ -100,11 +97,11 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
 
   const isActive = subscription?.status === 'active';
   const validThru = subscription?.currentPeriodEnd
-    ? new Date(subscription.currentPeriodEnd).toLocaleDateString(undefined, {
+    ? new Date(subscription.currentPeriodEnd).toLocaleDateString(resolveDateLocale(locale), {
         month: '2-digit',
         year: '2-digit',
       })
-    : 'N/A';
+    : tLanding('unavailable_short');
 
   return (
     <div className="space-y-10 pb-10" data-testid="member-dashboard-ready">
@@ -125,11 +122,12 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
 
       {activeClaim ? (
         <ActiveClaimFocus
-          title={tLanding('active_claim_title')}
           claimNumber={activeClaim.claimNumber}
-          status={tClaimStatus(activeClaim.status)}
-          stageLabel={tClaimStage(activeClaim.stageKey)}
-          updatedAt={formatMemberDashboardDate(activeClaim.updatedAt, locale)}
+          locale={locale}
+          status={activeClaim.status}
+          stageLabel={activeClaim.stageLabel}
+          stageKey={activeClaim.stageKey}
+          updatedAt={activeClaim.updatedAt}
           nextMemberAction={
             activeClaim.requiresMemberAction ? activeClaim.nextMemberAction : undefined
           }
@@ -556,29 +554,4 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
       </section>
     </div>
   );
-}
-
-function formatMemberDashboardDate(value: string | null, locale: string) {
-  if (!value) return '—';
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat(toIntlLocale(locale), {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
-}
-
-function toIntlLocale(locale: string) {
-  switch (locale) {
-    case 'mk':
-      return 'mk-MK';
-    case 'sq':
-      return 'sq-AL';
-    case 'sr':
-      return 'sr-RS';
-    default:
-      return 'en-US';
-  }
 }

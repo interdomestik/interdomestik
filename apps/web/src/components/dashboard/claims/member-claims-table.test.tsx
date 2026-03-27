@@ -17,6 +17,7 @@ vi.mock('next/navigation', () => ({
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
   useTranslations: () => (key: string) => {
     const translations: Record<string, string> = {
       'table.title': 'Title',
@@ -38,6 +39,8 @@ vi.mock('next-intl', () => ({
       previous: 'Previous',
       next: 'Next',
       'pagination.pageOf': 'Page {page} of {total}',
+      auto: 'Auto',
+      travel: 'Travel',
     };
     return translations[key] || key;
   },

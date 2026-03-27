@@ -1,6 +1,5 @@
 import { getAdminOverviewData } from '@/features/admin/overview/server/get-admin-overview-data';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSessionSafe } from '@/components/shell/session';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
@@ -14,7 +13,7 @@ export default async function AdminOverviewPage({
   const t = await getTranslations({ locale, namespace: 'admin.dashboardOverview' });
   const tClaimStage = await getTranslations({ locale, namespace: 'claims.stage' });
 
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSessionSafe('AdminOverviewPage');
   if (!session) return notFound();
   if (
     session.user.role !== 'admin' &&

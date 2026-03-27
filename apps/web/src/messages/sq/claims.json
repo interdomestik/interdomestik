@@ -155,6 +155,8 @@
       "claimAmount": "Shuma e Kërkesës për Dëmshpërblim",
       "category": "Kategoria",
       "evidence": "Dëshmi të bashkëngjitura",
+      "documentsEmpty": "Ende nuk ka dokumente të ngarkuara",
+      "viewDocument": "Shiko",
       "matterAllowance": {
         "title": "Kuota e rasteve",
         "used": "Përdorur këtë vit",

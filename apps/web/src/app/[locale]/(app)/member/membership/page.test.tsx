@@ -4,20 +4,15 @@ import { expectCoverageMatrix, getNamespacedTranslation } from '@/test/coverage-
 
 const hoisted = vi.hoisted(() => ({
   getDocumentsMock: vi.fn(async () => []),
-  getSessionMock: vi.fn(async () => ({
+  getSessionSafeMock: vi.fn(async () => ({
     user: {
       id: 'member-1',
       tenantId: 'tenant-ks',
     },
   })),
   getSubscriptionsMock: vi.fn(async () => []),
-  headersMock: vi.fn(async () => new Headers()),
   membershipOpsPageMock: vi.fn((_: unknown) => <div>membership-ops-page</div>),
   redirectMock: vi.fn(),
-}));
-
-vi.mock('next/headers', () => ({
-  headers: hoisted.headersMock,
 }));
 
 vi.mock('next-intl/server', () => ({
@@ -30,12 +25,8 @@ vi.mock('next/navigation', () => ({
   redirect: hoisted.redirectMock,
 }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: hoisted.getSessionMock,
-    },
-  },
+vi.mock('@/components/shell/session', () => ({
+  getSessionSafe: hoisted.getSessionSafeMock,
 }));
 
 vi.mock('./_core', () => ({
@@ -51,7 +42,9 @@ import MembershipPage from './page';
 
 describe('MembershipPage commercial coverage matrix', () => {
   it('renders the shared coverage matrix above member operations', async () => {
-    const tree = await MembershipPage();
+    const tree = await MembershipPage({
+      params: Promise.resolve({ locale: 'en' }),
+    });
 
     render(tree);
 
@@ -60,6 +53,7 @@ describe('MembershipPage commercial coverage matrix', () => {
       rowKey: 'coverageMatrix.rows.guidance.title',
       sectionTestId: 'membership-coverage-matrix',
     });
+    expect(hoisted.getSessionSafeMock).toHaveBeenCalledWith('MemberMembershipPage');
     expect(screen.getByText('membership-ops-page')).toBeInTheDocument();
   });
 });

@@ -72,21 +72,9 @@ export function UsersTable({
   const searchParams = useSearchParams();
   const tenantIdFromQuery = searchParams.get('tenantId');
 
-  const tenantIdFromCookie = () => {
-    if (typeof document === 'undefined') return null;
-    const match = document.cookie.match(/(?:^|;\s*)tenantId=([^;]+)/);
-    if (!match) return null;
-    try {
-      return decodeURIComponent(match[1]);
-    } catch {
-      return match[1];
-    }
-  };
-
   const withUsersListContext = (href: string) => {
     const listQueryString = searchParams.toString();
-    const fallbackTenantId = tenantIdFromQuery ?? tenantIdFromCookie();
-    if (!listQueryString && !fallbackTenantId) return href;
+    if (!listQueryString && !tenantIdFromQuery) return href;
 
     const [path, queryString] = href.split('?');
 
@@ -102,8 +90,8 @@ export function UsersTable({
       }
     }
 
-    if (fallbackTenantId && !merged.get('tenantId')) {
-      merged.set('tenantId', fallbackTenantId);
+    if (tenantIdFromQuery && !merged.get('tenantId')) {
+      merged.set('tenantId', tenantIdFromQuery);
     }
 
     const next = merged.toString();
@@ -111,6 +99,15 @@ export function UsersTable({
   };
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [assignedAgents, setAssignedAgents] = useState<Record<string, string>>({});
+
+  const getIdentityValue = (user: User) => {
+    if (user.memberNumber) {
+      return user.memberNumber;
+    }
+
+    const isOperatorAccount = user.role !== 'user' && user.role !== 'member';
+    return isOperatorAccount ? user.id : null;
+  };
 
   useEffect(() => {
     const nextAssignments: Record<string, string> = {};
@@ -150,7 +147,7 @@ export function UsersTable({
         <TableRow className="hover:bg-transparent border-white/10">
           <TableHead>{t('headers.user')}</TableHead>
           <TableHead>{t('headers.role')}</TableHead>
-          <TableHead>Member ID</TableHead>
+          <TableHead>{t('headers.identity_id')}</TableHead>
           <TableHead>{t('headers.assigned_agent')}</TableHead>
           <TableHead>{t('headers.joined')}</TableHead>
         </TableRow>
@@ -212,9 +209,9 @@ export function UsersTable({
               </Badge>
             </TableCell>
             <TableCell>
-              {user.memberNumber ? (
+              {getIdentityValue(user) ? (
                 <code className="text-xs font-mono bg-white/5 px-1.5 py-0.5 rounded text-muted-foreground">
-                  {user.memberNumber}
+                  {getIdentityValue(user)}
                 </code>
               ) : (
                 <span className="text-muted-foreground text-xs">-</span>

@@ -18,9 +18,42 @@ export async function listUserRolesCore(params: {
   const tenantId = resolveTenantId(session, params.tenantId);
 
   if (params.userId) {
-    return db.query.userRoles.findMany({
+    const explicitRoles = await db.query.userRoles.findMany({
       where: withTenant(tenantId, userRoles.tenantId, eq(userRoles.userId, params.userId)),
     });
+
+    const legacyUser = await db.query.user.findFirst({
+      where: withTenant(tenantId, user.tenantId, eq(user.id, params.userId)),
+      columns: {
+        id: true,
+        role: true,
+        branchId: true,
+      },
+    });
+
+    if (!legacyUser || !legacyUser.role || legacyUser.role === 'member') {
+      return explicitRoles;
+    }
+
+    const hasPrimaryRoleRow = explicitRoles.some(
+      row => row.role === legacyUser.role && row.branchId === (legacyUser.branchId ?? null)
+    );
+
+    if (hasPrimaryRoleRow) {
+      return explicitRoles;
+    }
+
+    const legacyPrimaryRole = [
+      {
+        id: `legacy-${legacyUser.id}-${legacyUser.role}-${legacyUser.branchId ?? 'tenant'}`,
+        tenantId,
+        userId: legacyUser.id,
+        role: legacyUser.role,
+        branchId: legacyUser.branchId ?? null,
+      },
+    ];
+
+    return [...legacyPrimaryRole, ...explicitRoles];
   }
 
   return db.query.userRoles.findMany({
@@ -35,6 +68,7 @@ export async function grantUserRoleCore(
     userId: string;
     role: string;
     branchId?: string | null;
+    allowLegacyTenantWide?: boolean;
   },
   deps: UserDomainDeps = {}
 ): Promise<ActionResult> {
@@ -58,7 +92,11 @@ export async function grantUserRoleCore(
 
   // Branch Scoping Rules
   if (isBranchRequiredRole(role)) {
-    if (!branchId) return { error: `Branch is required for role: ${role}` };
+    if (params.allowLegacyTenantWide && role === 'agent' && !branchId) {
+      branchId = null;
+    } else if (!branchId) {
+      return { error: `Branch is required for role: ${role}` };
+    }
   } else {
     // For non-branch roles (admin, staff), ensure branchId is null (unless we allow branch-staff later)
     // For now, clean it up to avoid confusion.

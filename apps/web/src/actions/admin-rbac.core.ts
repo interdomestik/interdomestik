@@ -107,7 +107,7 @@ export async function createBranch(
       );
 
       if ('error' in result) {
-        throw new Error(String(result.error));
+        return { error: String(result.error) };
       }
       return result;
     }
@@ -205,12 +205,14 @@ export async function grantUserRole({
   branchId,
   tenantId,
   locale,
+  allowLegacyTenantWide,
 }: {
   userId: string;
   role: string;
   branchId?: string;
   tenantId?: string;
   locale?: string;
+  allowLegacyTenantWide?: boolean;
 }): ActionResult<void> {
   return runAuthenticatedAction<void>(async ({ session }) => {
     const resolvedTenantId = resolveTenantForAdminAction(session, tenantId, session.user?.role);
@@ -219,7 +221,7 @@ export async function grantUserRole({
       ['admin', 'tenant_admin', 'super_admin'],
       { requestedTenantId: resolvedTenantId }
     );
-    if (isBranchRequiredRole(role) && !branchId) {
+    if (isBranchRequiredRole(role) && !branchId && !allowLegacyTenantWide) {
       return {
         success: false,
         error: `Branch is required for role: ${role}`,
@@ -232,6 +234,7 @@ export async function grantUserRole({
       userId,
       role,
       branchId,
+      allowLegacyTenantWide,
       tenantId: resolvedTenantId,
     });
 
