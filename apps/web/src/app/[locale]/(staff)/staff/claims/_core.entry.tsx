@@ -304,7 +304,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
               <div>
                 <ClaimStatusBadge status={claim.status} />
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {claim.status ? tStatus(claim.status) : '-'}
+                  {claim.stageLabel || (claim.status ? tStatus(claim.status) : '-')}
                 </div>
                 <div
                   className="mt-1 text-xs font-medium text-slate-700"
