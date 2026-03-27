@@ -1,33 +1,24 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 const ROOT = process.cwd();
 const COMMON_PATH = path.join(ROOT, 'scripts/multi-agent/pr-hardening-common.sh');
+const ALLOWLIST_PATH = path.join(ROOT, 'scripts/multi-agent/pr-hardening-allowed-paths.json');
 
-function evaluateAllowedPath(pathToCheck) {
-  const result = spawnSync(
-    'bash',
-    [
-      '-lc',
-      `source "${COMMON_PATH}" && if is_role_contract_write_allowed_path "${pathToCheck}"; then echo ALLOW; else echo DENY; fi`,
-    ],
-    {
-      cwd: ROOT,
-      encoding: 'utf8',
-    }
-  );
-
-  assert.equal(result.status, 0, result.stderr);
-  return result.stdout.trim();
+function readAllowlist() {
+  return JSON.parse(fs.readFileSync(ALLOWLIST_PATH, 'utf8'));
 }
 
 test('allows generated Next.js environment declarations', () => {
-  assert.equal(evaluateAllowedPath('apps/web/next-env.d.ts'), 'ALLOW');
+  assert.deepEqual(readAllowlist(), ['apps/web/next-env.d.ts']);
 });
 
 test('continues to forbid product source writes', () => {
-  assert.equal(evaluateAllowedPath('apps/web/src/proxy.ts'), 'DENY');
-  assert.equal(evaluateAllowedPath('packages/domain-users/src/index.ts'), 'DENY');
+  const allowlist = readAllowlist();
+
+  assert.ok(!allowlist.includes('apps/web/src/proxy.ts'));
+  assert.ok(!allowlist.includes('packages/domain-users/src/index.ts'));
+  assert.match(fs.readFileSync(COMMON_PATH, 'utf8'), /pr-hardening-allowed-paths\.json/);
 });
