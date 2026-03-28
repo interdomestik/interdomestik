@@ -4,7 +4,7 @@ Copied from `docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md` by pilot-entry run `pi
 
 - Pilot ID: `pilot-ks-v1-0-0-2026-03-28`
 - Created at: `2026-03-28T10:34:47.041Z`
-- Release gate report: `docs/release-gates/2026-03-28_production_dpl_2UES36YJpu2FNSHPNXznY9Jzhfgu.md`
+- Release gate report: `docs/release-gates/2026-03-28_production_dpl_J4UNp8nDnxaVBaDSUzSc6umoFSfF.md`
 - Release verdict: `GO`
 
 Populate the daily rows below during pilot operation. Keep the copied file path stable for this pilot ID.
@@ -31,15 +31,15 @@ Preferred flow:
 - Record observability evidence for every daily and weekly review window before the decision row so log sweep, KPI condition, and incident severity are linked directly into the decision artifact.
 - Do not edit this template directly; always work in your copied per-pilot evidence index file.
 
-| Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Release Report Path | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`pause`/`hotfix`/`stop`) |
-| --- | ----------------- | ----- | ------------------------------ | ------------------- | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |
-| 1   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 2   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 3   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 4   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 5   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 6   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 7   |                   |       |                                |                     |                      |                   |                                           |                                               |
+| Day | Date (YYYY-MM-DD) | Owner                   | Status (`green`/`amber`/`red`) | Release Report Path                                                          | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`pause`/`hotfix`/`stop`) |
+| --- | ----------------- | ----------------------- | ------------------------------ | ---------------------------------------------------------------------------- | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |
+| 1   | 2026-03-28        | Platform Pilot Operator | amber                          | docs/release-gates/2026-03-28_production_dpl_J4UNp8nDnxaVBaDSUzSc6umoFSfF.md | n/a                  | 1                 | sev3                                      | pause                                         |
+| 2   |                   |                         |                                |                                                                              |                      |                   |                                           |                                               |
+| 3   |                   |                         |                                |                                                                              |                      |                   |                                           |                                               |
+| 4   |                   |                         |                                |                                                                              |                      |                   |                                           |                                               |
+| 5   |                   |                         |                                |                                                                              |                      |                   |                                           |                                               |
+| 6   |                   |                         |                                |                                                                              |                      |                   |                                           |                                               |
+| 7   |                   |                         |                                |                                                                              |                      |                   |                                           |                                               |
 
 ## Bundle Path Convention
 
@@ -58,8 +58,9 @@ Record one structured observability row for each daily and weekly review window 
 - `KPI Condition` records whether the pilot KPI sheet remains within threshold, is on watch, or is in breach.
 - `Notes` can hold `n/a`, a ticket id, or a repo-relative evidence path.
 
-| Reference | Date (YYYY-MM-DD) | Owner | Log Sweep (`clear`/`expected-noise`/`action-required`) | Functional Errors (count) | Expected Auth Denies (count) | KPI Condition (`within-threshold`/`watch`/`breach`) | Incident Count | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Notes |
-| --------- | ----------------- | ----- | ------------------------------------------------------ | ------------------------- | ---------------------------- | --------------------------------------------------- | -------------- | ----------------------------------------- | ----- |
+| Reference | Date (YYYY-MM-DD) | Owner    | Log Sweep (`clear`/`expected-noise`/`action-required`) | Functional Errors (count) | Expected Auth Denies (count) | KPI Condition (`within-threshold`/`watch`/`breach`) | Incident Count | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| --------- | ----------------- | -------- | ------------------------------------------------------ | ------------------------- | ---------------------------- | --------------------------------------------------- | -------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| day-1     | 2026-03-28        | Admin KS | action-required                                        | 0                         | 0                            | watch                                               | 1              | sev3                                      | Initial v1.0.0 pilot-entry line required same-day repair: production auth 429 retries were removed on the corrected baseline, the P0.4 role-removal gate false failure was fixed and merged, PD05B boundary behavior stayed green on the corrected baseline, and the final production release gate passed on docs/release-gates/2026-03-28_production_dpl_J4UNp8nDnxaVBaDSUzSc6umoFSfF.md. Window does not qualify as clean-without-repair, so expansion remains no. |
 
 ## Decision Proof Log
 
@@ -76,5 +77,6 @@ For `PD07`, keep the canonical daily decision row here and write the executive r
 
 - `docs/pilot/PILOT_EXEC_REVIEW_<pilot-id>.md`
 
-| Review Type (`daily`/`weekly`) | Reference | Date (YYYY-MM-DD) | Owner | Decision (`continue`/`pause`/`hotfix`/`stop`) | Rollback Target (`pilot-ready-YYYYMMDD`/`n/a`) | Observability Ref | Resume Requires `pnpm pilot:check` | Resume Requires fresh `pnpm release:gate:prod -- --pilotId <pilot-id>` |
-| ------------------------------ | --------- | ----------------- | ----- | --------------------------------------------- | ---------------------------------------------- | ----------------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| Review Type (`daily`/`weekly`) | Reference | Date (YYYY-MM-DD) | Owner    | Decision (`continue`/`pause`/`hotfix`/`stop`) | Rollback Target (`pilot-ready-YYYYMMDD`/`n/a`) | Observability Ref | Resume Requires `pnpm pilot:check` | Resume Requires fresh `pnpm release:gate:prod -- --pilotId <pilot-id>` |
+| ------------------------------ | --------- | ----------------- | -------- | --------------------------------------------- | ---------------------------------------------- | ----------------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| daily                          | day-1     | 2026-03-28        | Admin KS | pause                                         | n/a                                            | day-1             | yes                                | no                                                                     |
