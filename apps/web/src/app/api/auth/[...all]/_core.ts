@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import {
   resolveTenantIdFromSources,
   TENANT_COOKIE_NAME,
@@ -33,12 +35,41 @@ export function getAuthRateLimitConfig(
     return { name: 'api/auth/sign-out', limit: 20, windowSeconds: 60 };
   }
 
+  if (pathname?.endsWith('/api/auth/sign-in/email')) {
+    return { name: 'api/auth/sign-in/email', limit: 8, windowSeconds: 60 };
+  }
+
   switch (method) {
     case 'GET':
       return { name: 'api/auth', limit: 10, windowSeconds: 60 };
     case 'POST':
       return { name: 'api/auth', limit: 5, windowSeconds: 60 };
   }
+}
+
+export function getAuthRateLimitKeySuffix(args: {
+  method: AuthMethod;
+  url: string;
+  headers: Headers;
+  body: unknown;
+}): string | null {
+  const { method, url, headers, body } = args;
+  if (method !== 'POST' || !isEmailPasswordSignInUrl(url)) {
+    return null;
+  }
+
+  const email = extractEmailFromSignInBody(body);
+  if (!email) {
+    return null;
+  }
+
+  const tenantId = resolveTenantIdForEmailSignIn(headers);
+  if (!tenantId) {
+    return null;
+  }
+
+  const digest = createHash('sha256').update(`${tenantId}|${email}`).digest('hex').slice(0, 20);
+  return `tenant:${tenantId}:email_hash:${digest}`;
 }
 
 export type PasswordResetAuditEvent = {

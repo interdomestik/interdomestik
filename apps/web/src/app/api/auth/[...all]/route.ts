@@ -7,6 +7,7 @@ import { toNextJsHandler } from 'better-auth/next-js';
 import {
   evaluateEmailSignInTenantGuard,
   getAuthRateLimitConfig,
+  getAuthRateLimitKeySuffix,
   isEmailPasswordSignInUrl,
   getPasswordResetAuditEventFromUrl,
   resolveTenantIdForPasswordResetAudit,
@@ -44,16 +45,47 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const emailPasswordSignIn = isEmailPasswordSignInUrl(req.url);
+
   if (!shouldBypassAuthRateLimit(req.headers)) {
+    const rateLimitConfig = getAuthRateLimitConfig('POST', req.url);
     const limited = await enforceRateLimit({
-      ...getAuthRateLimitConfig('POST', req.url),
+      ...rateLimitConfig,
       headers: req.headers,
       productionSensitive: true,
     });
     if (limited) return limited;
+
+    if (emailPasswordSignIn) {
+      let signInBody: unknown = null;
+      try {
+        signInBody = await req.clone().json();
+      } catch {
+        signInBody = null;
+      }
+
+      const identityKeySuffix = getAuthRateLimitKeySuffix({
+        method: 'POST',
+        url: req.url,
+        headers: req.headers,
+        body: signInBody,
+      });
+
+      if (identityKeySuffix) {
+        const identityLimited = await enforceRateLimit({
+          name: `${rateLimitConfig.name}:identity`,
+          limit: 5,
+          windowSeconds: rateLimitConfig.windowSeconds,
+          headers: req.headers,
+          keySuffix: identityKeySuffix,
+          productionSensitive: true,
+        });
+        if (identityLimited) return identityLimited;
+      }
+    }
   }
 
-  if (isEmailPasswordSignInUrl(req.url)) {
+  if (emailPasswordSignIn) {
     let signInBody: unknown = null;
     try {
       signInBody = await req.clone().json();

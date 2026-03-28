@@ -4,6 +4,7 @@ import {
   evaluateEmailSignInTenantGuard,
   extractEmailFromSignInBody,
   getAuthRateLimitConfig,
+  getAuthRateLimitKeySuffix,
   getPasswordResetAuditEventFromUrl,
   isEmailPasswordSignInUrl,
   resolveTenantIdForEmailSignIn,
@@ -70,10 +71,47 @@ describe('getAuthRateLimitConfig', () => {
     expect(
       getAuthRateLimitConfig('POST', 'https://interdomestik-web.vercel.app/api/auth/sign-in/email')
     ).toEqual({
-      name: 'api/auth',
-      limit: 5,
+      name: 'api/auth/sign-in/email',
+      limit: 8,
       windowSeconds: 60,
     });
+  });
+});
+
+describe('getAuthRateLimitKeySuffix', () => {
+  it('keys email sign-in rate limiting by tenant and normalized email', () => {
+    const headers = new Headers({ host: 'ks.localhost:3000' });
+
+    expect(
+      getAuthRateLimitKeySuffix({
+        method: 'POST',
+        url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
+        headers,
+        body: { email: '  STAFF.KS@interdomestik.com ' },
+      })
+    ).toBe('tenant:tenant_ks:email_hash:a3b3cdfa6ffbc6575b5f');
+  });
+
+  it('returns null for non-email auth routes', () => {
+    expect(
+      getAuthRateLimitKeySuffix({
+        method: 'POST',
+        url: 'https://interdomestik-web.vercel.app/api/auth/request-password-reset',
+        headers: new Headers({ host: 'ks.localhost:3000' }),
+        body: { email: 'staff.ks@interdomestik.com' },
+      })
+    ).toBeNull();
+  });
+
+  it('returns null when tenant cannot be resolved', () => {
+    expect(
+      getAuthRateLimitKeySuffix({
+        method: 'POST',
+        url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
+        headers: new Headers({ host: 'interdomestik-web.vercel.app' }),
+        body: { email: 'staff.ks@interdomestik.com' },
+      })
+    ).toBeNull();
   });
 });
 

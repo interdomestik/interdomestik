@@ -135,6 +135,43 @@ describe('POST /api/auth/[...all]', () => {
     );
   });
 
+  it('applies a dedicated identity bucket after the base sign-in rate limit passes', async () => {
+    hoisted.enforceRateLimit
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(new Response('limited', { status: 429 }));
+
+    const req = new Request('http://app.example.test/api/auth/sign-in/email', {
+      method: 'POST',
+      headers: {
+        host: 'ks.localhost:3000',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: '  ADMIN.KS@interdomestik.com ',
+        password: 'not-used-in-route-test',
+      }),
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(429);
+    expect(hoisted.enforceRateLimit).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        name: 'api/auth/sign-in/email',
+        productionSensitive: true,
+      })
+    );
+    expect(hoisted.enforceRateLimit).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        name: 'api/auth/sign-in/email:identity',
+        keySuffix: 'tenant:tenant_ks:email_hash:2985f89bf0896586e6ee',
+        productionSensitive: true,
+      })
+    );
+  });
+
   it('bypasses auth rate limiting for loopback login posts in development', async () => {
     const req = new Request('http://localhost:3000/api/auth/sign-in', {
       method: 'POST',
