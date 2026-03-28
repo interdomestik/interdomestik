@@ -1,11 +1,8 @@
-import { useTranslations } from 'next-intl';
+import { createMemberCtaPage } from '../_cta-handoff-page';
 
-export default function Page() {
-  const t = useTranslations('dashboard.home_grid');
-  return (
-    <div className="container py-8" data-testid="report-page-ready">
-      <h1 className="text-2xl font-bold mb-4">{t('cta_report')}</h1>
-      <p>Placeholder content.</p>
-    </div>
-  );
-}
+export default createMemberCtaPage({
+  namespace: 'dashboard.member_cta_pages.claim_report',
+  primaryHref: '/member/claims/new',
+  testId: 'report-page-ready',
+  titleKey: 'cta_report',
+});

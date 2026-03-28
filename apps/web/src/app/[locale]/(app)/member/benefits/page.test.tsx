@@ -21,6 +21,12 @@ vi.mock('next-intl/server', () => ({
   setRequestLocale: hoisted.setRequestLocaleMock,
 }));
 
+vi.mock('@/i18n/routing', () => ({
+  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
 import BenefitsPage from './page';
 import IncidentGuidePage from '../incident-guide/page';
 

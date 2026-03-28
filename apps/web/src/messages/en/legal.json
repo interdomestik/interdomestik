@@ -10,10 +10,28 @@
       }
     },
     "privacy": {
-      "title": "Privacy Policy"
+      "title": "Privacy Policy",
+      "intro": "Your privacy is important to us. Included in your membership is strict data protection.",
+      "sections": {
+        "handling": {
+          "title": "How we handle your data",
+          "body": "We collect only the information required to provide membership services, process claims, and comply with legal obligations. Access is restricted by role and tenant scope."
+        },
+        "rights": {
+          "title": "Your rights",
+          "body": "You can request access to your stored data, request correction, and request deletion where legally permitted."
+        },
+        "deletion": {
+          "title": "Deletion requests",
+          "body": "Authenticated users can submit a deletion request using the endpoint below with an optional JSON body.",
+          "followup": "Requests are logged as compliance events and reviewed by operations before irreversible deletion actions are performed."
+        }
+      }
     },
     "cookies": {
-      "title": "Cookie Policy"
+      "title": "Cookie Policy",
+      "intro": "We use essential cookies to keep the portal secure and functional. Optional analytics cookies are enabled only after explicit consent.",
+      "preference": "You can change your preference at any time by revisiting the cookie banner controls during your session."
     },
     "refund": {
       "title": "Refund Policy"
