@@ -1,34 +1,9 @@
 import enDashboard from '@/messages/en/dashboard.json';
 import mkDashboard from '@/messages/mk/dashboard.json';
+import { getJsonNamespaceValue, getJsonTranslationValue } from '@/test/i18n-json-test-utils';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-
-function getTranslationValue(source: unknown, key: string): string {
-  const value = key.split('.').reduce<unknown>((current, segment) => {
-    if (current && typeof current === 'object' && segment in current) {
-      return (current as Record<string, unknown>)[segment];
-    }
-
-    return undefined;
-  }, source);
-
-  return typeof value === 'string' ? value : key;
-}
-
-function getNamespaceValue(source: unknown, namespace?: string): unknown {
-  if (!namespace) {
-    return source;
-  }
-
-  return namespace.split('.').reduce<unknown>((current, segment) => {
-    if (current && typeof current === 'object' && segment in current) {
-      return (current as Record<string, unknown>)[segment];
-    }
-
-    return undefined;
-  }, source);
-}
 
 const hoisted = vi.hoisted(() => ({
   setRequestLocaleMock: vi.fn(),
@@ -39,9 +14,9 @@ vi.mock('next-intl/server', () => ({
     const locale = typeof options === 'string' ? 'en' : (options?.locale ?? 'en');
     const namespace = typeof options === 'string' ? options : options?.namespace;
     const messages = locale === 'mk' ? mkDashboard : enDashboard;
-    const scopedMessages = getNamespaceValue(messages, namespace);
+    const scopedMessages = getJsonNamespaceValue(messages, namespace);
 
-    return (key: string) => getTranslationValue(scopedMessages, key);
+    return (key: string) => getJsonTranslationValue(scopedMessages, key);
   },
   setRequestLocale: hoisted.setRequestLocaleMock,
 }));
@@ -72,7 +47,7 @@ describe('Member CTA handoff pages', () => {
 
     expect(hoisted.setRequestLocaleMock).toHaveBeenCalledWith('mk');
     expect(
-      screen.getByText(getTranslationValue(mkDashboard.dashboard.home_grid, titleKey))
+      screen.getByText(getJsonTranslationValue(mkDashboard.dashboard.home_grid, titleKey))
     ).toBeInTheDocument();
     expect(screen.queryByText('Placeholder content.')).not.toBeInTheDocument();
   });
@@ -120,20 +95,20 @@ describe('Member CTA handoff pages', () => {
       render(tree);
 
       expect(
-        screen.getByText(getTranslationValue(enDashboard.dashboard, descriptionKey))
+        screen.getByText(getJsonTranslationValue(enDashboard.dashboard, descriptionKey))
       ).toBeInTheDocument();
       expect(
-        screen.getByText(getTranslationValue(enDashboard.dashboard, boundaryKey))
+        screen.getByText(getJsonTranslationValue(enDashboard.dashboard, boundaryKey))
       ).toBeInTheDocument();
 
       const primaryLink = screen.getByRole('link', {
-        name: getTranslationValue(enDashboard.dashboard, primaryKey),
+        name: getJsonTranslationValue(enDashboard.dashboard, primaryKey),
       });
 
       expect(primaryLink).toHaveAttribute('href', primaryHref);
       expect(
         screen.getByRole('link', {
-          name: getTranslationValue(enDashboard.dashboard, 'member_cta_pages.shared.secondary'),
+          name: getJsonTranslationValue(enDashboard.dashboard, 'member_cta_pages.shared.secondary'),
         })
       ).toHaveAttribute('href', '/member/help');
     }

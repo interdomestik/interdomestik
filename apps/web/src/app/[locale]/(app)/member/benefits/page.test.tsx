@@ -22,7 +22,9 @@ vi.mock('next-intl/server', () => ({
 }));
 
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
+  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
 }));
 
 import BenefitsPage from './page';
