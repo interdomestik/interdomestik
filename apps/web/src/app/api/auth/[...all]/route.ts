@@ -14,6 +14,11 @@ import {
 } from './_core';
 
 const handler = toNextJsHandler(auth);
+const EMAIL_SIGN_IN_IDENTITY_RATE_LIMIT = {
+  name: 'api/auth/sign-in/email:identity',
+  limit: 5,
+  windowSeconds: 60,
+} as const;
 
 function isLocalLoopbackAuthHost(headers: Headers): boolean {
   const host = (headers.get('x-forwarded-host') ?? headers.get('host') ?? '').toLowerCase();
@@ -32,6 +37,22 @@ function shouldBypassAuthRateLimit(headers: Headers): boolean {
   return isLocalLoopbackAuthHost(headers);
 }
 
+async function parseJsonBody(req: Request): Promise<unknown> {
+  try {
+    return await req.clone().json();
+  } catch {
+    return null;
+  }
+}
+
+async function enforcePostAuthRateLimit(req: Request) {
+  return enforceRateLimit({
+    ...getAuthRateLimitConfig('POST', req.url),
+    headers: req.headers,
+    productionSensitive: true,
+  });
+}
+
 export async function GET(req: Request) {
   if (!shouldBypassAuthRateLimit(req.headers)) {
     const limited = await enforceRateLimit({
@@ -46,16 +67,10 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const emailPasswordSignIn = isEmailPasswordSignInUrl(req.url);
+  const signInBody = emailPasswordSignIn ? await parseJsonBody(req) : null;
 
   if (!shouldBypassAuthRateLimit(req.headers)) {
     if (emailPasswordSignIn) {
-      let signInBody: unknown = null;
-      try {
-        signInBody = await req.clone().json();
-      } catch {
-        signInBody = null;
-      }
-
       const identityKeySuffix = getAuthRateLimitKeySuffix({
         method: 'POST',
         url: req.url,
@@ -65,40 +80,23 @@ export async function POST(req: Request) {
 
       if (identityKeySuffix) {
         const identityLimited = await enforceRateLimit({
-          name: 'api/auth/sign-in/email:identity',
-          limit: 5,
-          windowSeconds: 60,
+          ...EMAIL_SIGN_IN_IDENTITY_RATE_LIMIT,
           headers: req.headers,
           keySuffix: identityKeySuffix,
           productionSensitive: true,
         });
         if (identityLimited) return identityLimited;
       } else {
-        const limited = await enforceRateLimit({
-          ...getAuthRateLimitConfig('POST', req.url),
-          headers: req.headers,
-          productionSensitive: true,
-        });
+        const limited = await enforcePostAuthRateLimit(req);
         if (limited) return limited;
       }
     } else {
-      const limited = await enforceRateLimit({
-        ...getAuthRateLimitConfig('POST', req.url),
-        headers: req.headers,
-        productionSensitive: true,
-      });
+      const limited = await enforcePostAuthRateLimit(req);
       if (limited) return limited;
     }
   }
 
   if (emailPasswordSignIn) {
-    let signInBody: unknown = null;
-    try {
-      signInBody = await req.clone().json();
-    } catch {
-      signInBody = null;
-    }
-
     const tenantGuard = await evaluateEmailSignInTenantGuard({
       url: req.url,
       headers: req.headers,

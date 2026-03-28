@@ -78,6 +78,20 @@ describe('GET /api/auth/[...all]', () => {
 });
 
 describe('POST /api/auth/[...all]', () => {
+  function buildEmailSignInRequest(options?: { host?: string; email?: string }) {
+    return new Request('http://app.example.test/api/auth/sign-in/email', {
+      method: 'POST',
+      headers: {
+        host: options?.host ?? 'ks.localhost:3000',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: options?.email ?? 'admin.ks@interdomestik.com',
+        password: 'not-used-in-route-test',
+      }),
+    });
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.enforceRateLimit.mockResolvedValue(null);
@@ -138,16 +152,8 @@ describe('POST /api/auth/[...all]', () => {
   it('applies only the dedicated identity bucket for email sign-in', async () => {
     hoisted.enforceRateLimit.mockResolvedValueOnce(new Response('limited', { status: 429 }));
 
-    const req = new Request('http://app.example.test/api/auth/sign-in/email', {
-      method: 'POST',
-      headers: {
-        host: 'ks.localhost:3000',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: '  ADMIN.KS@interdomestik.com ',
-        password: 'not-used-in-route-test',
-      }),
+    const req = buildEmailSignInRequest({
+      email: '  ADMIN.KS@interdomestik.com ',
     });
 
     const res = await POST(req);
@@ -166,17 +172,7 @@ describe('POST /api/auth/[...all]', () => {
   it('falls back to the generic sign-in bucket when email sign-in cannot be keyed safely', async () => {
     hoisted.enforceRateLimit.mockResolvedValueOnce(new Response('limited', { status: 429 }));
 
-    const req = new Request('http://app.example.test/api/auth/sign-in/email', {
-      method: 'POST',
-      headers: {
-        host: 'app.example.test',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: 'admin.ks@interdomestik.com',
-        password: 'not-used-in-route-test',
-      }),
-    });
+    const req = buildEmailSignInRequest({ host: 'app.example.test' });
 
     const res = await POST(req);
 
