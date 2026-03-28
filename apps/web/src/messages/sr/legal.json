@@ -10,10 +10,28 @@
       }
     },
     "privacy": {
-      "title": "Politika privatnosti"
+      "title": "Politika privatnosti",
+      "intro": "Vaša privatnost nam je važna. U vaše članstvo uključena je stroga zaštita podataka.",
+      "sections": {
+        "handling": {
+          "title": "Kako obrađujemo vaše podatke",
+          "body": "Prikupljamo samo informacije koje su potrebne za pružanje usluga članstva, obradu zahteva i ispunjavanje zakonskih obaveza. Pristup je ograničen po ulozi i opsegu tenant-a."
+        },
+        "rights": {
+          "title": "Vaša prava",
+          "body": "Možete zatražiti pristup sačuvanim podacima, ispravku i brisanje kada je to zakonski dozvoljeno."
+        },
+        "deletion": {
+          "title": "Zahtevi za brisanje",
+          "body": "Autentifikovani korisnici mogu podneti zahtev za brisanje koristeći donji endpoint uz opciono JSON telo.",
+          "followup": "Zahtevi se evidentiraju kao događaji usklađenosti i operacije ih pregledaju pre nego što se izvrše nepovratne radnje brisanja."
+        }
+      }
     },
     "cookies": {
-      "title": "Politika kolačića"
+      "title": "Politika kolačića",
+      "intro": "Koristimo neophodne kolačiće kako bismo portal održali bezbednim i funkcionalnim. Opciona analitička kolačića omogućavaju se tek nakon izričitog pristanka.",
+      "preference": "Svoju postavku možete promeniti u bilo kom trenutku ponovnim otvaranjem kontrola banera za kolačiće tokom sesije."
     },
     "refund": {
       "title": "Politika refundacije"

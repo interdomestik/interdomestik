@@ -109,6 +109,32 @@
       "cta_green_card": "GREEN CARD – Abroad (Diaspora)",
       "cta_benefits": "10 MEMBERSHIP BENEFITS"
     },
+    "member_cta_pages": {
+      "shared": {
+        "next_steps": "What to do next",
+        "secondary": "Contact support"
+      },
+      "claim_report": {
+        "description": "Use this page to start a new member claim. Share the basic facts first, then our team continues the case inside the existing claims workflow.",
+        "boundary": "This route starts claim intake only. It does not replace review, decision-making, or staff handling.",
+        "primary": "Start a new claim"
+      },
+      "green_card": {
+        "description": "Green Card and abroad support are handled through the diaspora member area, where the current travel guidance and contact paths already exist.",
+        "boundary": "This page points you to the active diaspora flow instead of maintaining a separate pilot-only surface.",
+        "primary": "Open diaspora support"
+      },
+      "benefits": {
+        "description": "Membership benefits, coverage context, and active commercial details are maintained in the membership area.",
+        "boundary": "This handoff page does not replace the live membership surface or contract terms.",
+        "primary": "Open membership benefits"
+      },
+      "incident_guide": {
+        "description": "If an incident just happened, start the member claim flow first so triage can begin and the team can guide you on documents and next steps.",
+        "boundary": "This page is a member handoff, not the internal operator playbook.",
+        "primary": "Open incident reporting"
+      }
+    },
     "protection_status": {
       "active": "Active Protection",
       "inactive": "No Active Protection"

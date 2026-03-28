@@ -109,6 +109,32 @@
       "cta_green_card": "GREEN CARD – Jashtë vendit (Diaspora)",
       "cta_benefits": "10 PËRFITIMET E ANËTARËSISË"
     },
+    "member_cta_pages": {
+      "shared": {
+        "next_steps": "Çfarë të bëni më pas",
+        "secondary": "Kontakto mbështetjen"
+      },
+      "claim_report": {
+        "description": "Përdore këtë faqe për të nisur një kërkesë të re të anëtarit. Së pari nda faktet bazë, pastaj ekipi e vazhdon rastin brenda rrjedhës ekzistuese të kërkesave.",
+        "boundary": "Kjo rrugë nis vetëm pranimin e kërkesës. Nuk e zëvendëson shqyrtimin, vendimmarrjen apo trajtimin nga stafi.",
+        "primary": "Nis një kërkesë të re"
+      },
+      "green_card": {
+        "description": "Mbështetja për Green Card dhe ndihma jashtë vendit trajtohen përmes zonës së diasporës për anëtarë, ku tashmë ekzistojnë udhëzimet aktuale të udhëtimit dhe rrugët e kontaktit.",
+        "boundary": "Kjo faqe të dërgon te rrjedha aktive e diasporës në vend që të mbajë një sipërfaqe të veçantë vetëm për pilotin.",
+        "primary": "Hap mbështetjen për diasporën"
+      },
+      "benefits": {
+        "description": "Përfitimet e anëtarësisë, konteksti i mbulimit dhe detajet aktive komerciale mirëmbahen në zonën e anëtarësisë.",
+        "boundary": "Kjo faqe orientuese nuk e zëvendëson sipërfaqen aktive të anëtarësisë apo kushtet kontraktuale.",
+        "primary": "Hap përfitimet e anëtarësisë"
+      },
+      "incident_guide": {
+        "description": "Nëse incidenti sapo ka ndodhur, nis së pari rrjedhën e kërkesës së anëtarit që triage të fillojë dhe ekipi të të udhëzojë për dokumentet dhe hapat e radhës.",
+        "boundary": "Kjo faqe është një orientim për anëtarin, jo udhëzuesi i brendshëm i operatorit.",
+        "primary": "Hap raportimin e incidentit"
+      }
+    },
     "protection_status": {
       "active": "Mbrojtje Aktive",
       "inactive": "Pa Mbrojtje Aktive"

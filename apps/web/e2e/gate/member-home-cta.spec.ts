@@ -11,7 +11,8 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     const clickCtaAndAssertNavigation = async (
       ctaTestId: string,
       urlPattern: RegExp,
-      readyMarker: string
+      readyMarker: string,
+      primaryHref: string
     ) => {
       const cta = page.getByTestId(ctaTestId).first();
       await cta.scrollIntoViewIfNeeded();
@@ -34,9 +35,12 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
         .isVisible({ timeout: 5_000 })
         .catch(() => false);
 
-      if (reachedTarget && markerVisible) return;
+      if (!reachedTarget || !markerVisible) {
+        await gotoApp(page, href!, testInfo, { marker: readyMarker });
+      }
 
-      await gotoApp(page, href!, testInfo, { marker: readyMarker });
+      await expect(page.getByText('Placeholder content.')).toHaveCount(0);
+      await expect(page.locator(`a[href*="${primaryHref}"]`).first()).toBeVisible();
     };
 
     // 1. Go to Member Home
@@ -52,7 +56,8 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await clickCtaAndAssertNavigation(
       'home-cta-incident',
       /\/incident-guide/,
-      'incident-guide-page-ready'
+      'incident-guide-page-ready',
+      '/member/claims/new'
     );
 
     // Back to home
@@ -63,7 +68,12 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
 
     // 3. Report CTA
-    await clickCtaAndAssertNavigation('home-cta-report', /\/claim-report/, 'report-page-ready');
+    await clickCtaAndAssertNavigation(
+      'home-cta-report',
+      /\/claim-report/,
+      'report-page-ready',
+      '/member/claims/new'
+    );
 
     // Back to home
     await gotoApp(page, routes.member(test.info()), testInfo, {
@@ -76,7 +86,8 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await clickCtaAndAssertNavigation(
       'home-cta-green-card',
       /\/green-card/,
-      'green-card-page-ready'
+      'green-card-page-ready',
+      '/member/diaspora'
     );
 
     // Back to home
@@ -87,6 +98,11 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
 
     // 5. Benefits CTA
-    await clickCtaAndAssertNavigation('home-cta-benefits', /\/benefits/, 'benefits-page-ready');
+    await clickCtaAndAssertNavigation(
+      'home-cta-benefits',
+      /\/benefits/,
+      'benefits-page-ready',
+      '/member/membership'
+    );
   });
 });

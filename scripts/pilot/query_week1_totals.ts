@@ -1,20 +1,29 @@
 import dotenv from 'dotenv';
+import { computePilotWeekRollup } from './pilot-rollup-core';
+
 dotenv.config({ path: '.env.local' });
 
-const PILOT_TENANT_ID = 'tenant_ks';
-const PILOT_START = new Date('2026-03-18T00:00:00.000Z');
-const PILOT_END = new Date('2026-03-25T00:00:00.000Z');
-
-function formatRatio(passed: number, total: number): string {
-  if (total === 0) {
-    return 'n/a';
+function readArg(name: string, fallback: string): string {
+  const flag = `--${name}`;
+  const index = process.argv.indexOf(flag);
+  if (index === -1) {
+    return fallback;
   }
 
-  return `${((passed / total) * 100).toFixed(1)}%`;
+  const value = process.argv[index + 1];
+  return value && !value.startsWith('--') ? value : fallback;
 }
 
 async function main() {
+  const pilotId = readArg('pilotId', 'pilot-ks-live-2026-03-18');
+  const tenantId = readArg('tenantId', 'tenant_ks');
+  const start = new Date(readArg('start', '2026-03-18'));
+  const end = new Date(readArg('end', '2026-03-25'));
+
   console.log('--- Week-1 SLA Rollup Aggregate Query ---');
+  console.log(`Pilot ID: ${pilotId}`);
+  console.log(`Tenant ID: ${tenantId}`);
+  console.log(`Window: ${start.toISOString()} -> ${end.toISOString()}`);
 
   const { db } = await import('@interdomestik/database');
 
@@ -25,81 +34,36 @@ async function main() {
     },
   });
 
-  const allClaims = pilotClaims.filter(
-    claim =>
-      claim.tenantId === PILOT_TENANT_ID &&
-      Boolean(claim.createdAt) &&
-      claim.createdAt! >= PILOT_START &&
-      claim.createdAt! < PILOT_END
-  );
+  const result = computePilotWeekRollup({
+    claims: pilotClaims,
+    end,
+    start,
+    tenantId,
+  });
 
   console.log(`\n--- [General Cohort Rollup] ---`);
-  console.log(`Total pilot claims in cohort: ${allClaims.length}`);
-
-  const submittedClaims = allClaims.filter(c => c.status !== 'draft');
-  console.log(`Submitted claims (SLA Denominator): ${submittedClaims.length}`);
-
-  const triageResults = submittedClaims.map(claim => {
-    const triageEvent = [...claim.stageHistory]
-      .filter(event => event.toStatus === 'verification' && Boolean(event.createdAt))
-      .sort((left, right) => left.createdAt!.getTime() - right.createdAt!.getTime())[0];
-
-    if (!claim.createdAt || !triageEvent?.createdAt) {
-      return { claimId: claim.id, withinSla: false, missingEvidence: true };
-    }
-
-    const elapsedHours = (triageEvent.createdAt.getTime() - claim.createdAt.getTime()) / 3_600_000;
-    return { claimId: claim.id, withinSla: elapsedHours <= 4, missingEvidence: false };
-  });
-
-  const triagedClaims = triageResults.filter(result => !result.missingEvidence);
-  const triagePassed = triagedClaims.filter(result => result.withinSla).length;
-  const triageBreaches = triagedClaims.length - triagePassed;
-
-  const updateResults = submittedClaims.map(claim => {
-    const triageEvent = [...claim.stageHistory]
-      .filter(event => event.toStatus === 'verification' && Boolean(event.createdAt))
-      .sort((left, right) => left.createdAt!.getTime() - right.createdAt!.getTime())[0];
-
-    const publicUpdate = [...claim.messages]
-      .filter(message => message.isInternal === false && Boolean(message.createdAt))
-      .sort((left, right) => left.createdAt!.getTime() - right.createdAt!.getTime())[0];
-
-    if (!triageEvent?.createdAt || !publicUpdate?.createdAt) {
-      return { claimId: claim.id, withinSla: false, missingEvidence: true };
-    }
-
-    const elapsedHours =
-      (publicUpdate.createdAt.getTime() - triageEvent.createdAt.getTime()) / 3_600_000;
-    return { claimId: claim.id, withinSla: elapsedHours <= 24, missingEvidence: false };
-  });
-
-  const updatedClaims = updateResults.filter(result => !result.missingEvidence);
-  const updatePassed = updatedClaims.filter(result => result.withinSla).length;
-  const updateBreaches = updatedClaims.length - updatePassed;
+  console.log(`Total pilot claims in cohort: ${result.totalClaims}`);
+  console.log(`Submitted claims (SLA Denominator): ${result.submittedClaims}`);
 
   console.log(`\n--- [SLA Performance] ---`);
-  console.log(`Triage Breaches found: ${triageBreaches}`);
-  console.log(`Public Update Breaches found: ${updateBreaches}`);
+  console.log(`Triage Breaches found: ${result.triage.breaches}`);
+  console.log(`Public Update Breaches found: ${result.publicUpdate.breaches}`);
 
   console.log(`\n--- [Weekly Ratios] ---`);
   console.log(
-    `Triage SLA: ${triagePassed} / ${triagedClaims.length} (${formatRatio(triagePassed, triagedClaims.length)})`
+    `Triage SLA: ${result.triage.numerator} / ${result.triage.denominator} (${result.triage.ratio})`
   );
   console.log(
-    `Update SLA: ${updatePassed} / ${updatedClaims.length} (${formatRatio(updatePassed, updatedClaims.length)})`
+    `Update SLA: ${result.publicUpdate.numerator} / ${result.publicUpdate.denominator} (${result.publicUpdate.ratio})`
   );
   console.log(
-    `Claims missing triage evidence: ${triageResults.filter(result => result.missingEvidence).length}`
+    `2 Operating-Day Progression: ${result.progression.numerator} / ${result.progression.denominator} (${result.progression.ratio})`
   );
-  console.log(
-    `Claims missing public update evidence: ${updateResults.filter(result => result.missingEvidence).length}`
-  );
+  console.log(`Claims missing triage evidence: ${result.triage.missingEvidence}`);
+  console.log(`Claims missing public update evidence: ${result.publicUpdate.missingEvidence}`);
 }
 
-try {
-  await main();
-} catch (error) {
+main().catch(error => {
   console.error(error);
   process.exit(1);
-}
+});
