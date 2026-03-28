@@ -224,15 +224,57 @@ async function runP02(browser, runCtx, deps) {
 }
 
 async function removeRoleFromTable(page, roleName) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < TIMEOUTS.marker) {
+    const targetRow = await findRoleRowByText(page, roleName);
+    if (targetRow) {
+      const removeButton = resolveRoleRowActionButton(targetRow);
+      const visible = await removeButton
+        .isVisible({ timeout: TIMEOUTS.quickMarker })
+        .catch(() => false);
+      const enabled = visible ? await removeButton.isEnabled().catch(() => false) : false;
+      if (visible && enabled) {
+        await removeButton.click();
+        await page.waitForTimeout(800);
+        return true;
+      }
+    }
+
+    await page.waitForTimeout(300);
+  }
+
+  return false;
+}
+
+async function findRoleRowByText(page, roleName) {
   const table = page.locator(SELECTORS.userRolesTable);
-  const rolePattern = new RegExp(String.raw`\b${roleName}\b`, 'i');
-  const matchingRows = table.locator('tr', { hasText: rolePattern });
-  const count = await matchingRows.count();
-  if (count === 0) return false;
-  const targetRow = matchingRows.first();
-  await targetRow.getByRole('button', { name: SELECTORS.removeRoleButtonName }).click();
-  await page.waitForTimeout(800);
-  return true;
+  const normalizedRoleName = String(roleName || '')
+    .trim()
+    .toLowerCase();
+  const rows = table.locator('tr');
+  const rowCount = await rows.count();
+
+  for (let index = 0; index < rowCount; index += 1) {
+    const row = rows.nth(index);
+    const text = String((await row.textContent().catch(() => '')) || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (text.toLowerCase().includes(normalizedRoleName)) {
+      return row;
+    }
+  }
+
+  return null;
+}
+
+function resolveRoleRowActionButton(row) {
+  const byRoleButton = row.getByRole?.('button', { name: SELECTORS.removeRoleButtonName });
+  if (byRoleButton?.first) {
+    return byRoleButton.first();
+  }
+  const genericButton = row.locator('button');
+  return genericButton?.first ? genericButton.first() : genericButton;
 }
 
 async function addRole(page, roleName) {
@@ -807,7 +849,9 @@ async function runP06(browser, runCtx, deps) {
 }
 
 module.exports = {
+  findRoleRowByText,
   isInfraNavigationFailure,
+  removeRoleFromTable,
   runCheckWithInfraRetry,
   resolveConfiguredRolePanelTarget,
   resolveTenantOverrideProbeUrl,
