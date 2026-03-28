@@ -25,13 +25,13 @@ Expansion or unbounded continuation requires an explicit executive review artifa
 The executive review must choose one and only one of these:
 
 - `pause`
-- `continue_bounded`
+- `repeat_with_fixes`
 - `expand`
 - `stop`
 
-## Minimum Evidence For `continue_bounded`
+## Minimum Evidence For `repeat_with_fixes`
 
-`continue_bounded` is allowed only if:
+`repeat_with_fixes` is allowed only if:
 
 1. the new pilot id has a complete canonical evidence trail
 2. no Sev1 incident exists
@@ -58,11 +58,11 @@ Any new `docs/pilot/PILOT_EXEC_REVIEW_<pilot-id>.md` used for this gate must ans
 2. Did the window stay clean without post-hoc repair?
 3. Did `2 Operating-Day Progression Rate` improve enough to change the recommendation?
 4. Did the Day 5 privacy / RBAC rerun pass on the corrected baseline?
-5. Why is bounded continuation or expansion justified now?
+5. Why is `repeat_with_fixes` or `expand` justified now?
 6. What exact stop date or end condition applies if the answer is not `expand`?
 
 ## Recommended Final Review Sentence
 
 Use a sentence with this structure in the new executive review:
 
-`The v1.0.0 pilot window is sufficient for <pause|bounded continuation|expansion> because <specific evidence>, and it remains bounded by <stop date or end condition>.`
+`The v1.0.0 pilot window is sufficient for <pause|repeat_with_fixes|expand> because <specific evidence>, and it remains bounded by <stop date or end condition>.`

@@ -45,7 +45,8 @@ Run:
 
 ```bash
 pnpm pilot:check
-pnpm e2e:gate
+# Optional: standalone re-run of the E2E gate if you intentionally need it:
+# pnpm e2e:gate
 ```
 
 Then perform a short browser verification pass across the canonical KS routes:

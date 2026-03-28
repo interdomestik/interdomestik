@@ -38,7 +38,7 @@ Pilot ID: `pilot-ks-v1-0-0-2026-03-28`
 ## Progression Focus
 
 - [ ] Review claims that stall after triage
-- [ ] Quantify `2 Operating-Day Progression`
+- [ ] Quantify `2 Operating-Day Progression Rate`
 - [ ] Carry progression into the executive closeout, not just triage/update SLA
 
 ## Privacy / RBAC Re-Proof

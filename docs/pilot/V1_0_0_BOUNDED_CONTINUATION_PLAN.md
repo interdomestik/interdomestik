@@ -30,7 +30,7 @@ Any continuation beyond the initial bounded pilot window must name:
 The first bounded continuation after `v1.0.0`, if any, should focus on:
 
 - clean evidence custody
-- improved `2 Operating-Day Progression`
+- improved `2 Operating-Day Progression Rate`
 - re-proved privacy/RBAC boundary behavior through `PD05B`
 
 ## What Continuation Must Not Mean
