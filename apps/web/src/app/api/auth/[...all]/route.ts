@@ -48,14 +48,6 @@ export async function POST(req: Request) {
   const emailPasswordSignIn = isEmailPasswordSignInUrl(req.url);
 
   if (!shouldBypassAuthRateLimit(req.headers)) {
-    const rateLimitConfig = getAuthRateLimitConfig('POST', req.url);
-    const limited = await enforceRateLimit({
-      ...rateLimitConfig,
-      headers: req.headers,
-      productionSensitive: true,
-    });
-    if (limited) return limited;
-
     if (emailPasswordSignIn) {
       let signInBody: unknown = null;
       try {
@@ -73,15 +65,29 @@ export async function POST(req: Request) {
 
       if (identityKeySuffix) {
         const identityLimited = await enforceRateLimit({
-          name: `${rateLimitConfig.name}:identity`,
+          name: 'api/auth/sign-in/email:identity',
           limit: 5,
-          windowSeconds: rateLimitConfig.windowSeconds,
+          windowSeconds: 60,
           headers: req.headers,
           keySuffix: identityKeySuffix,
           productionSensitive: true,
         });
         if (identityLimited) return identityLimited;
+      } else {
+        const limited = await enforceRateLimit({
+          ...getAuthRateLimitConfig('POST', req.url),
+          headers: req.headers,
+          productionSensitive: true,
+        });
+        if (limited) return limited;
       }
+    } else {
+      const limited = await enforceRateLimit({
+        ...getAuthRateLimitConfig('POST', req.url),
+        headers: req.headers,
+        productionSensitive: true,
+      });
+      if (limited) return limited;
     }
   }
 

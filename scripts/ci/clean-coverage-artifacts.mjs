@@ -12,7 +12,14 @@ function removeCoverageDir(relativePath) {
   });
 }
 
+function ensureCoverageTmpDir(relativePath) {
+  fs.mkdirSync(path.join(rootDir, relativePath, 'coverage', '.tmp'), {
+    recursive: true,
+  });
+}
+
 removeCoverageDir('apps/web');
+ensureCoverageTmpDir('apps/web');
 
 for (const entry of fs.readdirSync(path.join(rootDir, 'packages'), { withFileTypes: true })) {
   if (!entry.isDirectory() || !entry.name.startsWith('domain-')) {
@@ -20,4 +27,5 @@ for (const entry of fs.readdirSync(path.join(rootDir, 'packages'), { withFileTyp
   }
 
   removeCoverageDir(path.join('packages', entry.name));
+  ensureCoverageTmpDir(path.join('packages', entry.name));
 }

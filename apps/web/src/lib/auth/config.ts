@@ -14,5 +14,11 @@ export const authConfig = {
     ),
     window: 60, // 1 minute
     max: 100, // 100 requests per minute per IP
+    // Sign-in email POSTs are already protected by the app route limiter, which carries
+    // the pilot-safe tenant/account-aware policy. Disable better-auth's built-in
+    // special rule here to avoid double-throttling canonical operator logins.
+    customRules: {
+      '/sign-in/email': false,
+    },
   },
 } satisfies Partial<BetterAuthOptions>;

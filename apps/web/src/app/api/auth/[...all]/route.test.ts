@@ -135,10 +135,8 @@ describe('POST /api/auth/[...all]', () => {
     );
   });
 
-  it('applies a dedicated identity bucket after the base sign-in rate limit passes', async () => {
-    hoisted.enforceRateLimit
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(new Response('limited', { status: 429 }));
+  it('applies only the dedicated identity bucket for email sign-in', async () => {
+    hoisted.enforceRateLimit.mockResolvedValueOnce(new Response('limited', { status: 429 }));
 
     const req = new Request('http://app.example.test/api/auth/sign-in/email', {
       method: 'POST',
@@ -155,18 +153,38 @@ describe('POST /api/auth/[...all]', () => {
     const res = await POST(req);
 
     expect(res.status).toBe(429);
-    expect(hoisted.enforceRateLimit).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        name: 'api/auth/sign-in/email',
-        productionSensitive: true,
-      })
-    );
-    expect(hoisted.enforceRateLimit).toHaveBeenNthCalledWith(
-      2,
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledTimes(1);
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'api/auth/sign-in/email:identity',
         keySuffix: 'tenant:tenant_ks:email_hash:2985f89bf0896586e6ee',
+        productionSensitive: true,
+      })
+    );
+  });
+
+  it('falls back to the generic sign-in bucket when email sign-in cannot be keyed safely', async () => {
+    hoisted.enforceRateLimit.mockResolvedValueOnce(new Response('limited', { status: 429 }));
+
+    const req = new Request('http://app.example.test/api/auth/sign-in/email', {
+      method: 'POST',
+      headers: {
+        host: 'app.example.test',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: 'admin.ks@interdomestik.com',
+        password: 'not-used-in-route-test',
+      }),
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(429);
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledTimes(1);
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'api/auth/sign-in/email',
         productionSensitive: true,
       })
     );
