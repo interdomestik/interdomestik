@@ -14,12 +14,6 @@ import {
 } from './_core';
 
 const handler = toNextJsHandler(auth);
-const EMAIL_SIGN_IN_IDENTITY_RATE_LIMIT = {
-  name: 'api/auth/sign-in/email:identity',
-  limit: 5,
-  windowSeconds: 60,
-} as const;
-
 function isLocalLoopbackAuthHost(headers: Headers): boolean {
   const host = (headers.get('x-forwarded-host') ?? headers.get('host') ?? '').toLowerCase();
   const hostname = host.split(':')[0];
@@ -68,6 +62,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const emailPasswordSignIn = isEmailPasswordSignInUrl(req.url);
   const signInBody = emailPasswordSignIn ? await parseJsonBody(req) : null;
+  const postRateLimitConfig = getAuthRateLimitConfig('POST', req.url);
 
   if (!shouldBypassAuthRateLimit(req.headers)) {
     if (emailPasswordSignIn) {
@@ -80,7 +75,9 @@ export async function POST(req: Request) {
 
       if (identityKeySuffix) {
         const identityLimited = await enforceRateLimit({
-          ...EMAIL_SIGN_IN_IDENTITY_RATE_LIMIT,
+          name: `${postRateLimitConfig.name}:identity`,
+          limit: 5,
+          windowSeconds: postRateLimitConfig.windowSeconds,
           headers: req.headers,
           keySuffix: identityKeySuffix,
           productionSensitive: true,
