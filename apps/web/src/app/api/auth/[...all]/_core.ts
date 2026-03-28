@@ -41,6 +41,26 @@ export function getAuthRateLimitConfig(
   }
 }
 
+export function getAuthRateLimitKeySuffix(args: {
+  method: AuthMethod;
+  url: string;
+  headers: Headers;
+  body: unknown;
+}): string | null {
+  const { method, url, headers, body } = args;
+  if (method !== 'POST' || !isEmailPasswordSignInUrl(url)) {
+    return null;
+  }
+
+  const email = extractEmailFromSignInBody(body);
+  if (!email) {
+    return null;
+  }
+
+  const tenantId = resolveTenantIdForEmailSignIn(headers) ?? 'unknown-tenant';
+  return `tenant:${tenantId}:email:${email}`;
+}
+
 export type PasswordResetAuditEvent = {
   action: 'auth.password_reset_requested';
   entityType: 'auth';

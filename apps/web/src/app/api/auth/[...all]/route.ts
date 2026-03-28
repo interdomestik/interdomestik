@@ -7,6 +7,7 @@ import { toNextJsHandler } from 'better-auth/next-js';
 import {
   evaluateEmailSignInTenantGuard,
   getAuthRateLimitConfig,
+  getAuthRateLimitKeySuffix,
   isEmailPasswordSignInUrl,
   getPasswordResetAuditEventFromUrl,
   resolveTenantIdForPasswordResetAudit,
@@ -44,23 +45,32 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (!shouldBypassAuthRateLimit(req.headers)) {
-    const limited = await enforceRateLimit({
-      ...getAuthRateLimitConfig('POST', req.url),
-      headers: req.headers,
-      productionSensitive: true,
-    });
-    if (limited) return limited;
-  }
-
-  if (isEmailPasswordSignInUrl(req.url)) {
-    let signInBody: unknown = null;
+  const emailPasswordSignIn = isEmailPasswordSignInUrl(req.url);
+  let signInBody: unknown = null;
+  if (emailPasswordSignIn) {
     try {
       signInBody = await req.clone().json();
     } catch {
       signInBody = null;
     }
+  }
 
+  if (!shouldBypassAuthRateLimit(req.headers)) {
+    const limited = await enforceRateLimit({
+      ...getAuthRateLimitConfig('POST', req.url),
+      headers: req.headers,
+      keySuffix: getAuthRateLimitKeySuffix({
+        method: 'POST',
+        url: req.url,
+        headers: req.headers,
+        body: signInBody,
+      }),
+      productionSensitive: true,
+    });
+    if (limited) return limited;
+  }
+
+  if (emailPasswordSignIn) {
     const tenantGuard = await evaluateEmailSignInTenantGuard({
       url: req.url,
       headers: req.headers,

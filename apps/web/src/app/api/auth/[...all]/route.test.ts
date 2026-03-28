@@ -130,6 +130,34 @@ describe('POST /api/auth/[...all]', () => {
     expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'api/auth',
+        keySuffix: null,
+        productionSensitive: true,
+      })
+    );
+  });
+
+  it('keys email sign-in rate limiting by tenant and normalized email', async () => {
+    hoisted.enforceRateLimit.mockResolvedValue(new Response('limited', { status: 429 }));
+
+    const req = new Request('http://app.example.test/api/auth/sign-in/email', {
+      method: 'POST',
+      headers: {
+        host: 'ks.localhost:3000',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: '  ADMIN.KS@interdomestik.com ',
+        password: 'not-used-in-route-test',
+      }),
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(429);
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'api/auth',
+        keySuffix: 'tenant:tenant_ks:email:admin.ks@interdomestik.com',
         productionSensitive: true,
       })
     );
