@@ -1,31 +1,8 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { createMemberCtaPage } from '../_cta-handoff-page';
 
-import { MemberCtaHandoffPage } from '../_cta-handoff-page';
-
-export default async function Page({ params }: Readonly<{ params: Promise<{ locale: string }> }>) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-
-  const t = await getTranslations({ locale, namespace: 'dashboard.home_grid' });
-  const handoffT = await getTranslations({
-    locale,
-    namespace: 'dashboard.member_cta_pages.claim_report',
-  });
-  const sharedT = await getTranslations({
-    locale,
-    namespace: 'dashboard.member_cta_pages.shared',
-  });
-
-  return (
-    <MemberCtaHandoffPage
-      boundary={handoffT('boundary')}
-      description={handoffT('description')}
-      nextStepsLabel={sharedT('next_steps')}
-      primaryHref="/member/claims/new"
-      primaryLabel={handoffT('primary')}
-      secondaryLabel={sharedT('secondary')}
-      testId="report-page-ready"
-      title={t('cta_report')}
-    />
-  );
-}
+export default createMemberCtaPage({
+  namespace: 'dashboard.member_cta_pages.claim_report',
+  primaryHref: '/member/claims/new',
+  testId: 'report-page-ready',
+  titleKey: 'cta_report',
+});

@@ -1,6 +1,7 @@
 import { Link } from '@/i18n/routing';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { ArrowRight } from 'lucide-react';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 interface MemberCtaHandoffPageProps {
   title: string;
@@ -15,6 +16,21 @@ interface MemberCtaHandoffPageProps {
     | 'benefits-page-ready'
     | 'incident-guide-page-ready';
   nextStepsLabel: string;
+}
+
+interface MemberCtaPageConfig {
+  titleKey: 'cta_report' | 'cta_green_card' | 'cta_benefits' | 'cta_incident';
+  namespace:
+    | 'dashboard.member_cta_pages.claim_report'
+    | 'dashboard.member_cta_pages.green_card'
+    | 'dashboard.member_cta_pages.benefits'
+    | 'dashboard.member_cta_pages.incident_guide';
+  primaryHref: '/member/claims/new' | '/member/diaspora' | '/member/membership';
+  testId:
+    | 'report-page-ready'
+    | 'green-card-page-ready'
+    | 'benefits-page-ready'
+    | 'incident-guide-page-ready';
 }
 
 export function MemberCtaHandoffPage({
@@ -55,4 +71,34 @@ export function MemberCtaHandoffPage({
       </Card>
     </div>
   );
+}
+
+export function createMemberCtaPage(config: Readonly<MemberCtaPageConfig>) {
+  return async function Page({ params }: Readonly<{ params: Promise<{ locale: string }> }>) {
+    const { locale } = await params;
+    setRequestLocale(locale);
+
+    const dashboardT = await getTranslations({ locale, namespace: 'dashboard.home_grid' });
+    const handoffT = await getTranslations({
+      locale,
+      namespace: config.namespace,
+    });
+    const sharedT = await getTranslations({
+      locale,
+      namespace: 'dashboard.member_cta_pages.shared',
+    });
+
+    return (
+      <MemberCtaHandoffPage
+        boundary={handoffT('boundary')}
+        description={handoffT('description')}
+        nextStepsLabel={sharedT('next_steps')}
+        primaryHref={config.primaryHref}
+        primaryLabel={handoffT('primary')}
+        secondaryLabel={sharedT('secondary')}
+        testId={config.testId}
+        title={dashboardT(config.titleKey)}
+      />
+    );
+  };
 }
