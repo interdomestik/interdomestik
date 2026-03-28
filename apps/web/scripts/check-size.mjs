@@ -9,6 +9,8 @@ const NEXT_DIR = path.join(APP_DIR, '.next');
 const MANIFEST_CANDIDATES = [
   path.join(NEXT_DIR, 'build-manifest.json'),
   path.join(NEXT_DIR, 'fallback-build-manifest.json'),
+  path.join(NEXT_DIR, 'standalone', 'apps', 'web', '.next', 'build-manifest.json'),
+  path.join(NEXT_DIR, 'standalone', 'apps', 'web', '.next', 'fallback-build-manifest.json'),
 ];
 
 // Budget Configuration
@@ -16,11 +18,13 @@ const MANIFEST_CANDIDATES = [
 const GLOBAL_BUDGET = { gzip: 250 * 1024, name: 'Global Initial JS (Baseline)' };
 
 async function findManifestPath() {
-  for (let attempt = 0; attempt < 10; attempt += 1) {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
     for (const manifestPath of MANIFEST_CANDIDATES) {
       try {
-        await fs.access(manifestPath);
-        return manifestPath;
+        const stats = await fs.stat(manifestPath);
+        if (stats.size > 0) {
+          return manifestPath;
+        }
       } catch {
         // Keep scanning candidates.
       }
@@ -39,6 +43,7 @@ async function checkSize() {
     if (!manifestPath) {
       const error = new Error('Build manifest not found');
       error.code = 'ENOENT';
+      error.candidates = MANIFEST_CANDIDATES;
       throw error;
     }
 
@@ -91,7 +96,10 @@ async function checkSize() {
     }
   } catch (error) {
     if (error.code === 'ENOENT') {
-      console.error('❌ Build manifest not found. Run "pnpm build" first.');
+      console.error('❌ Build manifest not found. Tried these paths:');
+      for (const candidate of error.candidates ?? MANIFEST_CANDIDATES) {
+        console.error(`   - ${candidate}`);
+      }
       process.exit(1);
     }
     console.error('❌ Failed to check bundle size:', error);

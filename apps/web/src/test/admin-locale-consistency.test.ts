@@ -3,6 +3,7 @@ import mkAdminClaims from '@/messages/mk/admin-claims.json';
 import mkAdminCommon from '@/messages/mk/admin-common.json';
 import mkCommon from '@/messages/mk/common.json';
 import sqAdminCommon from '@/messages/sq/admin-common.json';
+import sqAdminBranches from '@/messages/sq/admin-branches.json';
 import srAdminBranches from '@/messages/sr/admin-branches.json';
 import srAdminClaims from '@/messages/sr/admin-claims.json';
 import srAdminCommon from '@/messages/sr/admin-common.json';
@@ -25,6 +26,12 @@ describe('admin locale consistency', () => {
     expect(srAdminBranches.admin.branches.sort.health_score_asc).toBeTruthy();
     expect(mkAdminBranches.admin.branches.health.watch).toBeTruthy();
     expect(srAdminBranches.admin.branches.health.watch).toBeTruthy();
+  });
+
+  it('provides localized branch pipeline status labels for canonical admin routes', () => {
+    expect(sqAdminBranches.admin.branches.pipeline.statuses.submitted).toBeTruthy();
+    expect(mkAdminBranches.admin.branches.pipeline.statuses.submitted).toBeTruthy();
+    expect(srAdminBranches.admin.branches.pipeline.statuses.submitted).toBeTruthy();
   });
 
   it('keeps the sidebar leads label aligned with payment verification', () => {

@@ -45,7 +45,7 @@ test('e2e gate scripts keep full and fast lanes distinct', () => {
 
   assert.equal(
     fastCheck,
-    'node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup && node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast'
+    'pnpm --filter @interdomestik/web run build:ci && node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup && node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast'
   );
   assert.notEqual(fullGate, fastGate);
   assert.notEqual(prGate, prGateFast);

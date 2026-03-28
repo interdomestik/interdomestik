@@ -32,6 +32,15 @@ export function ClaimsPipelinePanel({ pipeline }: ClaimsPipelinePanelProps) {
     return ORDER.indexOf(a.status) - ORDER.indexOf(b.status);
   });
 
+  const translatedStatuses = new Set([
+    'submitted',
+    'verification',
+    'evaluation',
+    'negotiation',
+    'court',
+    'resolved',
+  ]);
+
   return (
     <GlassCard className="h-full flex flex-col">
       <div className="p-4 border-b border-border/50">
@@ -42,7 +51,9 @@ export function ClaimsPipelinePanel({ pipeline }: ClaimsPipelinePanelProps) {
           {sorted.map(item => (
             <div key={item.status} className="flex items-center justify-between text-sm">
               <span className="capitalize text-muted-foreground">
-                {item.status.replace('_', ' ')}
+                {translatedStatuses.has(item.status)
+                  ? t(`statuses.${item.status}`)
+                  : item.status.replace('_', ' ')}
               </span>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-24 bg-muted rounded-full overflow-hidden">
