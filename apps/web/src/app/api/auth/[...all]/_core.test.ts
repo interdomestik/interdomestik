@@ -67,12 +67,12 @@ describe('getAuthRateLimitConfig', () => {
     });
   });
 
-  it('keeps the stricter default bucket for sign-in', () => {
+  it('uses a higher pilot-safe bucket for sign-in', () => {
     expect(
       getAuthRateLimitConfig('POST', 'https://interdomestik-web.vercel.app/api/auth/sign-in/email')
     ).toEqual({
       name: 'api/auth/sign-in/email',
-      limit: 8,
+      limit: 20,
       windowSeconds: 60,
     });
   });
