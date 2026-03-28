@@ -506,6 +506,77 @@ test('loginAs honors shared auth cooldown before posting another login request',
   assert.equal(requestCalls.length, 1);
 });
 
+test('loginAs applies a longer fallback cooldown for platform 429 responses without Retry-After', async () => {
+  const authState = createAuthState();
+  let nowMs = 0;
+  const sleepCalls = [];
+  let postCalls = 0;
+  const originalRandom = Math.random;
+  Math.random = () => 0;
+
+  const page = {
+    context: () => ({
+      clearCookies: async () => {},
+      addCookies: async () => {},
+      storageState: async () => ({
+        cookies: [
+          {
+            name: 'session',
+            value: 'fresh',
+            domain: 'interdomestik-web.vercel.app',
+            path: '/',
+          },
+        ],
+      }),
+    }),
+    request: {
+      post: async () => {
+        postCalls += 1;
+        if (postCalls === 1) {
+          return {
+            ok: () => false,
+            status: () => 429,
+            headers: () => ({ 'content-type': 'text/plain;charset=UTF-8' }),
+            text: async () => '{"message":"Too many requests. Please try again later."}',
+            url: () => 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
+          };
+        }
+        return {
+          ok: () => true,
+          status: () => 200,
+          headers: () => ({}),
+          text: async () => '',
+          url: () => 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
+        };
+      },
+    },
+    goto: async () => {},
+    waitForTimeout: async () => {},
+    on: () => {},
+    off: () => {},
+  };
+
+  try {
+    await loginAs(page, {
+      account: 'admin_ks',
+      credentials: { email: 'admin@example.com', password: createTestCredentialValue() },
+      baseUrl: RELEASE_GATE_BASE_URL,
+      locale: RELEASE_GATE_LOCALE,
+      authState,
+      nowFn: () => nowMs,
+      sleepFn: async delayMs => {
+        sleepCalls.push(delayMs);
+        nowMs += delayMs;
+      },
+    });
+  } finally {
+    Math.random = originalRandom;
+  }
+
+  assert.equal(postCalls, 2);
+  assert.deepEqual(sleepCalls, [15_100]);
+});
+
 test('isLegacyVercelLogsArgsUnsupported detects removed --environment flag support', () => {
   const unsupportedOutput = 'Error: unknown or unexpected option: --environment';
   assert.equal(isLegacyVercelLogsArgsUnsupported(unsupportedOutput), true);

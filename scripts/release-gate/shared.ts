@@ -98,6 +98,7 @@ function resolvePlaywright() {
 
 const LOGIN_MAX_ATTEMPTS_PER_ACCOUNT = 3;
 const LOGIN_FALLBACK_RETRY_DELAYS_SECONDS = [1, 3, 6];
+const PLATFORM_RATE_LIMIT_FALLBACK_SECONDS = 15;
 const LOGIN_JITTER_BOUNDS_MS = {
   min: 100,
   max: 350,
@@ -185,6 +186,25 @@ function compactFailureMessage(raw, maxLength = 420) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, maxLength);
+}
+
+async function detectPlatformRateLimitResponse(response) {
+  if (!response || response.status() !== 429) return false;
+
+  const headers = response.headers?.() || {};
+  const contentType = String(headers['content-type'] || '').toLowerCase();
+  if (contentType.includes('application/json')) {
+    return false;
+  }
+
+  try {
+    const body = String((await response.text?.()) || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return body.includes('Too many requests. Please try again later.');
+  } catch {
+    return contentType.includes('text/plain');
+  }
 }
 
 function isAuthExpiryResponse(response, origin) {
@@ -345,16 +365,15 @@ async function loginAs(page, params) {
 
       const status = response.status();
       const retryAfterSeconds = parseRetryAfterSeconds(response.headers()['retry-after']);
+      const platformRateLimit = await detectPlatformRateLimitResponse(response);
+      const fallbackRetryAfterSeconds = platformRateLimit
+        ? PLATFORM_RATE_LIMIT_FALLBACK_SECONDS
+        : LOGIN_FALLBACK_RETRY_DELAYS_SECONDS[
+            Math.min(attempt - 1, LOGIN_FALLBACK_RETRY_DELAYS_SECONDS.length - 1)
+          ];
       logLoginAttempt({ account, attempt, status, retryAfterSeconds });
       if (status === 429) {
-        noteAuthRateLimit(
-          authState,
-          retryAfterSeconds ??
-            LOGIN_FALLBACK_RETRY_DELAYS_SECONDS[
-              Math.min(attempt - 1, LOGIN_FALLBACK_RETRY_DELAYS_SECONDS.length - 1)
-            ],
-          nowFn()
-        );
+        noteAuthRateLimit(authState, retryAfterSeconds ?? fallbackRetryAfterSeconds, nowFn());
       }
 
       if (response.ok()) break;
@@ -371,7 +390,10 @@ async function loginAs(page, params) {
         break;
       }
 
-      const delay = computeRetryDelayMs({ attempt, retryAfterSeconds });
+      const delay = computeRetryDelayMs({
+        attempt,
+        retryAfterSeconds: retryAfterSeconds ?? fallbackRetryAfterSeconds,
+      });
       await sleepFn(delay.totalMs);
     }
 

@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       if (identityKeySuffix) {
         const identityLimited = await enforceRateLimit({
           name: `${postRateLimitConfig.name}:identity`,
-          limit: 5,
+          limit: 20,
           windowSeconds: postRateLimitConfig.windowSeconds,
           headers: req.headers,
           keySuffix: identityKeySuffix,

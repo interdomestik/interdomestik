@@ -163,6 +163,7 @@ describe('POST /api/auth/[...all]', () => {
     expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'api/auth/sign-in/email:identity',
+        limit: 20,
         keySuffix: 'tenant:tenant_ks:email_hash:2985f89bf0896586e6ee',
         productionSensitive: true,
       })
@@ -181,6 +182,7 @@ describe('POST /api/auth/[...all]', () => {
     expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'api/auth/sign-in/email',
+        limit: 20,
         productionSensitive: true,
       })
     );

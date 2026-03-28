@@ -36,7 +36,7 @@ export function getAuthRateLimitConfig(
   }
 
   if (pathname?.endsWith('/api/auth/sign-in/email')) {
-    return { name: 'api/auth/sign-in/email', limit: 8, windowSeconds: 60 };
+    return { name: 'api/auth/sign-in/email', limit: 20, windowSeconds: 60 };
   }
 
   switch (method) {
