@@ -10,36 +10,34 @@ interface ClaimsPipelinePanelProps {
   }[];
 }
 
+const CLAIMS_PIPELINE_ORDER = [
+  'draft',
+  'submitted',
+  'verification',
+  'evaluation',
+  'negotiation',
+  'court',
+  'in_review',
+  'resolved',
+  'paid',
+  'rejected',
+];
+
+const LOCALIZED_CLAIMS_PIPELINE_STATUSES = new Set([
+  'submitted',
+  'verification',
+  'evaluation',
+  'negotiation',
+  'court',
+  'resolved',
+]);
+
 export function ClaimsPipelinePanel({ pipeline }: ClaimsPipelinePanelProps) {
   const t = useTranslations('admin.branches.pipeline');
 
-  // Sort order or predefined buckets?
-  // Let's rely on server order or consistent client order.
-  const ORDER = [
-    'draft',
-    'submitted',
-    'verification',
-    'evaluation',
-    'negotiation',
-    'court',
-    'in_review',
-    'resolved',
-    'paid',
-    'rejected',
-  ];
-
   const sorted = [...pipeline].sort((a, b) => {
-    return ORDER.indexOf(a.status) - ORDER.indexOf(b.status);
+    return CLAIMS_PIPELINE_ORDER.indexOf(a.status) - CLAIMS_PIPELINE_ORDER.indexOf(b.status);
   });
-
-  const translatedStatuses = new Set([
-    'submitted',
-    'verification',
-    'evaluation',
-    'negotiation',
-    'court',
-    'resolved',
-  ]);
 
   return (
     <GlassCard className="h-full flex flex-col">
@@ -51,9 +49,9 @@ export function ClaimsPipelinePanel({ pipeline }: ClaimsPipelinePanelProps) {
           {sorted.map(item => (
             <div key={item.status} className="flex items-center justify-between text-sm">
               <span className="capitalize text-muted-foreground">
-                {translatedStatuses.has(item.status)
+                {LOCALIZED_CLAIMS_PIPELINE_STATUSES.has(item.status)
                   ? t(`statuses.${item.status}`)
-                  : item.status.replace('_', ' ')}
+                  : item.status.replaceAll('_', ' ')}
               </span>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-24 bg-muted rounded-full overflow-hidden">
