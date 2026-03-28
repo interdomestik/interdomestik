@@ -174,7 +174,15 @@
       },
       "pipeline": {
         "title": "Тек на штети",
-        "empty": "Нема активни штети во текот"
+        "empty": "Нема активни штети во текот",
+        "statuses": {
+          "submitted": "Поднесено",
+          "verification": "Верификација",
+          "evaluation": "Евалуација",
+          "negotiation": "Преговарање",
+          "court": "Суд",
+          "resolved": "Решено"
+        }
       },
       "agent_health": {
         "title": "Здравје на Агенти",

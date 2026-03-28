@@ -175,7 +175,15 @@
       },
       "pipeline": {
         "title": "Tok šteta",
-        "empty": "Nema aktivnih šteta u toku"
+        "empty": "Nema aktivnih šteta u toku",
+        "statuses": {
+          "submitted": "Podneto",
+          "verification": "Verifikacija",
+          "evaluation": "Procena",
+          "negotiation": "Pregovaranje",
+          "court": "Sud",
+          "resolved": "Rešeno"
+        }
       },
       "agent_health": {
         "title": "Zdravlje Agenata",

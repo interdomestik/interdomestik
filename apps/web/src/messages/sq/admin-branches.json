@@ -136,7 +136,15 @@
       },
       "pipeline": {
         "title": "Pipeline i Dëmeve",
-        "empty": "Nuk ka dëme aktive në pipeline"
+        "empty": "Nuk ka dëme aktive në pipeline",
+        "statuses": {
+          "submitted": "Dorëzuar",
+          "verification": "Verifikim",
+          "evaluation": "Vlerësim",
+          "negotiation": "Negociim",
+          "court": "Gjykatë",
+          "resolved": "Zgjidhur"
+        }
       },
       "agent_health": {
         "title": "Shëndeti i Agjentëve",

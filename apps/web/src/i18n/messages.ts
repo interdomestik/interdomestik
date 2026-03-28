@@ -142,6 +142,7 @@ export const ADMIN_NAMESPACES = [
   'agent-crm',
   'agent-members',
   'claims',
+  'claims-tracking',
   'messaging',
   'notifications',
 ] as const;
