@@ -53,12 +53,12 @@ If that evidence is missing, the day is `blocked` in working notes and must not 
 
 | Scenario Slice                 | Purpose                                               | Required Volume     | Status (`planned`/`running`/`done`/`missed`) | Notes                                                               |
 | ------------------------------ | ----------------------------------------------------- | ------------------- | -------------------------------------------- | ------------------------------------------------------------------- |
-| Standard claim intake          | establish day-scoped export denominator               | `1-3 claims`        | `planned`                                    | capture canonical claim ids and timestamps                          |
+| Standard claim intake          | establish day-scoped export denominator               | `1-3 claims`        | `running`                                    | `09:21 CEST snapshot is header-only; rerun export later in the day` |
 | Agent-assisted intake          | verify attribution holds under assisted entry         | `0-1 claim`         | `planned`                                    | optional if live traffic allows                                     |
 | Staff triage                   | prove first triage timing is measurable               | `1-2 claims`        | `planned`                                    | required for SLA proof                                              |
 | Public member update           | prove first public update timing is measurable        | `1 claim`           | `planned`                                    | required if a triaged claim exists early enough                     |
 | Branch-pressure sample         | observe KS release surface under real load            | `0-1 branch sample` | `planned`                                    | keep bounded                                                        |
-| Boundary/privacy spot-check    | execute `PD05B` route and isolation pass              | `1 pass`            | `planned`                                    | `/sq/member`, `/sq/agent`, `/sq/staff/claims`, `/sq/admin/overview` |
+| Boundary/privacy spot-check    | execute `PD05B` route and isolation pass              | `1 pass`            | `done`                                       | targeted rerun green on `2026-03-29 09:15 CEST`                     |
 | Communications/fallback sample | confirm public-update and fallback path remain usable | `1 sample`          | `planned`                                    | record only if used                                                 |
 
 ## Live Operator Roster
@@ -73,13 +73,13 @@ If that evidence is missing, the day is `blocked` in working notes and must not 
 
 ## Claims Created Today
 
-| Claim ID | Member / Household | Claim Type | Branch | Created At | Submitted At | Current Status | Assigned Agent | Assigned Staff | Evidence Ref |
-| -------- | ------------------ | ---------- | ------ | ---------- | ------------ | -------------- | -------------- | -------------- | ------------ |
-|          |                    |            |        |            |              |                |                |                |              |
-|          |                    |            |        |            |              |                |                |                |              |
-|          |                    |            |        |            |              |                |                |                |              |
-|          |                    |            |        |            |              |                |                |                |              |
-|          |                    |            |        |            |              |                |                |                |              |
+| Claim ID   | Member / Household | Claim Type | Branch | Created At | Submitted At | Current Status | Assigned Agent | Assigned Staff | Evidence Ref                         |
+| ---------- | ------------------ | ---------- | ------ | ---------- | ------------ | -------------- | -------------- | -------------- | ------------------------------------ |
+| `none yet` | `n/a`              | `n/a`      | `KS`   | `n/a`      | `n/a`        | `n/a`          | `n/a`          | `n/a`          | `day-2 export snapshot @ 09:21 CEST` |
+|            |                    |            |        |            |              |                |                |                |                                      |
+|            |                    |            |        |            |              |                |                |                |                                      |
+|            |                    |            |        |            |              |                |                |                |                                      |
+|            |                    |            |        |            |              |                |                |                |                                      |
 
 ## First-Triage SLA Proof
 
@@ -109,11 +109,11 @@ Target: first member-visible update within `24 operating hours` after triage.
 
 Use this section for anything that weakens proof, including late triage, late public updates, missing timeline rows, wrong branch attribution, or uncertainty in operating-hours math.
 
-| Claim ID | Mismatch Type | Severity (`sev3`/`sev2`/`sev1`) | Owner | Follow-Up | Resolved (`yes`/`no`) |
-| -------- | ------------- | ------------------------------- | ----- | --------- | --------------------- |
-|          |               |                                 |       |           |                       |
-|          |               |                                 |       |           |                       |
-|          |               |                                 |       |           |                       |
+| Claim ID         | Mismatch Type                      | Severity (`sev3`/`sev2`/`sev1`) | Owner                     | Follow-Up                                                                                                                 | Resolved (`yes`/`no`) |
+| ---------------- | ---------------------------------- | ------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `day-2 snapshot` | `header-only export at 09:21 CEST` | `sev3`                          | `Platform Pilot Operator` | `rerun export later in the operating day; do not write canonical day-2 evidence unless real claim + timeline rows appear` | `no`                  |
+|                  |                                    |                                 |                           |                                                                                                                           |                       |
+|                  |                                    |                                 |                           |                                                                                                                           |                       |
 
 ## Boundary And Privacy Spot-Checks
 
@@ -142,7 +142,7 @@ Use this section for anything that weakens proof, including late triage, late pu
 - Incident count: `0`
 - Highest severity: `none`
 - Incident refs: `none`
-- Notes: `PD05B rerun passed on HEAD 9737e86c. Targeted gate slice covered member/admin isolation, tenant isolation, branch isolation, internal-note filtering, aggregate-only group privacy, and tenant-attribution preservation. Expected legacy-route 404 fallback noise appeared during negative-path coverage, but the suite stayed green. Do not write canonical day-2 evidence until the claim-bearing export exists.`
+- Notes: `PD05B rerun passed on HEAD 9737e86c. Targeted gate slice covered member/admin isolation, tenant isolation, branch isolation, internal-note filtering, aggregate-only group privacy, and tenant-attribution preservation. Expected legacy-route 404 fallback noise appeared during negative-path coverage, but the suite stayed green. The 09:21 CEST day-2 export snapshot is header-only, so canonical day-2 evidence remains blocked pending a later rerun with real claim rows.`
 
 ## Gate Scorecard
 
@@ -150,9 +150,9 @@ Use this section for anything that weakens proof, including late triage, late pu
 | -------------------------- | ---------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | Release gate               | `pass`                 | `none`                                         | reuse corrected-baseline GO `docs/release-gates/2026-03-28_production_dpl_J4UNp8nDnxaVBaDSUzSc6umoFSfF.md` |
 | Security and boundary      | `pass`                 | `none`                                         | `PD05B` targeted rerun green                                                                               |
-| Operational behavior       | `pass`                 | `none`                                         | standalone artifact rebuilt on current HEAD and completed the targeted rerun cleanly                       |
+| Operational behavior       | `fail`                 | `sev3`                                         | current day export snapshot is header-only, so SLA evidence is not yet defensible                          |
 | Role workflow              | `pass`                 | `none`                                         | canonical member, agent, staff, and admin route coverage stayed green                                      |
-| Observability and evidence | `pass`                 | `none`                                         | privacy / RBAC proof captured; claim-bearing export still pending before day-close                         |
+| Observability and evidence | `fail`                 | `sev3`                                         | privacy / RBAC proof captured, but no claim-bearing export exists yet for day-2                            |
 
 ## End-Of-Day Decision
 
@@ -175,7 +175,7 @@ Use this section for anything that weakens proof, including late triage, late pu
 
 - Release report: `docs/release-gates/2026-03-28_production_dpl_J4UNp8nDnxaVBaDSUzSc6umoFSfF.md`
 - Copied evidence index: `docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-v1-0-0-continuation-2026-03-28.md`
-- Daily export or snapshot: `pending: docs/pilot/live-data/pilot-ks-v1-0-0-continuation-2026-03-28_day-2_claim-timeline-export.csv`
+- Daily export or snapshot: `docs/pilot/live-data/pilot-ks-v1-0-0-continuation-2026-03-28_day-2_claim-timeline-export.csv`
 - Query or script used for daily export: `docs/pilot/live-data/pilot-ks-v1-0-0-continuation-2026-03-28_day-2_claim-timeline-export.sql`
 - Observability reference (`day-<n>`/`week-<n>`): `pending canonical day-2 row`
 - Decision reference (`day-<n>`/`week-<n>`): `pending canonical day-2 row`
@@ -184,6 +184,6 @@ Use this section for anything that weakens proof, including late triage, late pu
 ## Summary Notes
 
 - What passed: `PD05B` rerun stayed green on the corrected continuation baseline for tenant isolation, branch isolation, internal-note filtering, aggregate-only privacy, and tenant-attribution preservation.
-- What failed: `nothing in the targeted rerun failed`
-- What needs follow-up tomorrow: `complete the claim-bearing day-2 export, then write canonical day-2 evidence if the export is defensible`
+- What failed: `the first day-2 export snapshot at 09:21 CEST is header-only, so there is still no claim-bearing SLA evidence for today`
+- What needs follow-up tomorrow: `if no real claims arrive by day close, keep day-2 out of the canonical evidence index and carry the blocked state into the next operating review`
 - Anything that could change go/no-go posture: `the continuation line still has no claim-bearing export or SLA numerator/denominator proof for Day 2`
