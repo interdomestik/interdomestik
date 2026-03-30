@@ -74,14 +74,22 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
         : { ...MEMBER_KS, tenant: 'tenant_ks' };
       await loginAs(page, memberUser, testInfo);
 
+      const primaryActions = page.getByTestId('member-primary-actions');
+      const activeClaim = page.getByTestId('member-active-claim');
+      const supportLink = page.getByTestId('member-support-link');
+
       await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
       await expect(page.getByTestId('portal-surface-indicator')).toBeVisible();
-      await expect(page.getByTestId('member-primary-actions').first()).toBeVisible();
-      await expect(page.getByTestId('member-active-claim').first()).toBeVisible();
+      await expect(primaryActions).toHaveCount(1);
+      await expect(primaryActions).toBeVisible();
+      await expect(activeClaim).toHaveCount(1);
+      await expect(activeClaim).toBeVisible();
       await expect(page.getByTestId('member-claims-list')).toHaveCount(0);
-      await expect(page.getByTestId('member-support-link').first()).toBeVisible();
+      await expect(supportLink).toHaveCount(1);
+      await expect(supportLink).toBeVisible();
 
-      const cta = page.getByTestId('member-start-claim-cta').first();
+      const cta = primaryActions.getByTestId('member-start-claim-cta');
+      await expect(cta).toHaveCount(1);
       await expect(cta).toHaveAttribute('href', routes.memberNewClaim(testInfo));
     });
 

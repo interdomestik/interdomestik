@@ -95,8 +95,9 @@ test('Pilot Ceremony: Closed Loop (Member -> Agent -> Staff -> Admin)', async ({
         marker: 'dashboard-page-ready',
       });
       await acceptCookieConsentIfVisible(memberPage);
-      await expect(memberPage.getByTestId('member-primary-actions').first()).toBeVisible();
-      await expect(memberPage.getByTestId('member-primary-actions').first()).toBeVisible();
+      const primaryActions = memberPage.getByTestId('member-primary-actions');
+      await expect(primaryActions).toHaveCount(1);
+      await expect(primaryActions).toBeVisible();
 
       let claimId: string | undefined;
 

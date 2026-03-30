@@ -487,7 +487,11 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   </a>
                   <div className="flex items-center gap-2 text-xs text-slate-400">
                     <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                    <span>{tLanding('available_now_avg_response', { seconds: '24h' })}</span>
+                    <span>
+                      {tLanding('available_now_avg_response', {
+                        seconds: tLanding('response_value'),
+                      })}
+                    </span>
                   </div>
                 </div>
                 <div className="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-6">

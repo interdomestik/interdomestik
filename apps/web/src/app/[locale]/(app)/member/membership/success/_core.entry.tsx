@@ -3,6 +3,7 @@ import { FunnelActivationTracker } from '@/components/analytics/funnel-trackers'
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { getSessionSafe } from '@/components/shell/session';
 import { isUiV2Enabled } from '@/lib/flags';
+import { getSupportContacts } from '@/lib/support-contacts';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { CheckCircle2, Phone, QrCode, Smartphone, Wallet } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
@@ -28,6 +29,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
   const { planId, priceId } = resolvedSearchParams;
   const uiV2Enabled = isUiV2Enabled();
   const tenantId = session.user.tenantId ?? null;
+  const supportContacts = getSupportContacts({ tenantId, locale });
 
   const t = await getTranslations({ locale, namespace: 'membership.success' });
 
@@ -118,11 +120,15 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
             <div className="space-y-4">
               <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
                 <p className="text-sm font-bold text-primary uppercase tracking-wider mb-1">
-                  24/7 Support
+                  {t('hotline_label')}
                 </p>
-                <p className="text-2xl font-black tracking-tighter text-foreground">
-                  +389 70 337 140
-                </p>
+                <a
+                  href={supportContacts.telHref}
+                  className="text-2xl font-black tracking-tighter text-foreground"
+                >
+                  {supportContacts.phoneDisplay}
+                </a>
+                <p className="mt-2 text-sm text-muted-foreground">{t('hotline_hint')}</p>
               </div>
               <CommercialDisclaimerNotice
                 sectionTestId="success-hotline-disclaimer"

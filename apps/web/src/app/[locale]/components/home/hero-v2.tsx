@@ -272,7 +272,7 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
                 <div className="mt-6 flex items-center justify-between gap-3 border-t border-white/10 pt-4">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-                      Vlera
+                      {t('v2.idPreview')}
                     </p>
                     <p className="mt-1 text-sm font-medium text-slate-200">
                       {t('v2.idMeta')}: ID-••••-24

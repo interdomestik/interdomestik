@@ -8,19 +8,19 @@ test.describe('Member Dashboard (Has Claims)', () => {
   }, testInfo) => {
     await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'dashboard-page-ready' });
 
+    const primaryActions = page.getByTestId('member-primary-actions');
+
     await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
     await expect(page.getByTestId('portal-surface-indicator')).toBeVisible();
     await expect(page.getByTestId('dashboard-heading')).toBeVisible();
-    await expect(page.getByTestId('member-primary-actions').first()).toBeVisible();
-    await expect(page.getByTestId('member-primary-actions').first()).toBeVisible();
+    await expect(primaryActions).toHaveCount(1);
+    await expect(primaryActions).toBeVisible();
     await expect(page.getByTestId('member-claims-list')).toHaveCount(0);
     await expect(page.getByTestId('member-support-link')).toBeVisible();
     await expect(page.getByTestId('member-active-claim')).toBeVisible();
 
-    const cta = page
-      .getByTestId('member-primary-actions')
-      .first()
-      .getByTestId('member-start-claim-cta');
+    const cta = primaryActions.getByTestId('member-start-claim-cta');
+    await expect(cta).toHaveCount(1);
     await expect(cta).toHaveAttribute('href', new RegExp(`${routes.memberNewClaim(testInfo)}$`));
   });
 });
