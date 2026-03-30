@@ -8,7 +8,9 @@ const hoisted = vi.hoisted(() => ({
   ascMock: vi.fn(),
   eqMock: vi.fn(),
   registerFormMock: vi.fn((_: unknown) => <div>register-form</div>),
-  resolveTenantIdFromRequestMock: vi.fn(async () => 'tenant_ks'),
+  resolveTenantIdFromRequestMock: vi.fn<(...args: unknown[]) => Promise<string | null>>(
+    async () => 'tenant_ks'
+  ),
   selectMock: vi.fn(),
   setRequestLocaleMock: vi.fn(),
   tenantSelectorMock: vi.fn((_: unknown) => <div>tenant-selector</div>),

@@ -41,7 +41,7 @@ vi.mock('@/lib/tenant/tenant-request', () => ({
 
 vi.mock('./_core', () => ({
   getLoginTenantBootstrapRedirect: vi.fn(() => null),
-  loadTenantOptions: (args: unknown) => hoisted.loadTenantOptionsMock(args),
+  loadTenantOptions: () => hoisted.loadTenantOptionsMock(),
 }));
 
 import LoginPage from './_core.entry';
