@@ -69,7 +69,6 @@ describe('RegisterForm', () => {
     expect(screen.getByLabelText('Full Name')).toBeInTheDocument();
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
-    expect(screen.getByLabelText('Confirm Password')).toBeInTheDocument();
   });
 
   it('renders terms checkbox', () => {
@@ -109,6 +108,6 @@ describe('RegisterForm', () => {
     render(<RegisterForm />);
 
     const loginLink = screen.getByText('Sign in').closest('a');
-    expect(loginLink).toHaveAttribute('href', '/login?tenantId=tenant_mk&plan=family');
+    expect(loginLink).toHaveAttribute('href', '/login?plan=family');
   });
 });

@@ -5,7 +5,7 @@ const hoisted = vi.hoisted(() => ({
   useSessionMock: vi.fn(),
   replaceMock: vi.fn(),
   resolveTenantFromHostMock: vi.fn(() => 'tenant_mk'),
-  heroV2Mock: vi.fn((_: unknown) => null),
+  heroSectionMock: vi.fn((_: unknown) => null),
   freeStartIntakeShellMock: vi.fn((_: unknown) => null),
   funnelLandingTrackerMock: vi.fn((_: unknown) => null),
 }));
@@ -26,12 +26,20 @@ vi.mock('@/lib/tenant/tenant-hosts', () => ({
   resolveTenantFromHost: hoisted.resolveTenantFromHostMock,
 }));
 
+vi.mock('@/i18n/routing', () => ({
+  Link: () => null,
+  redirect: vi.fn(),
+  usePathname: vi.fn(),
+  useRouter: vi.fn(),
+  getPathname: vi.fn(),
+}));
+
 vi.mock('@/components/analytics/funnel-trackers', () => ({
   FunnelLandingTracker: (props: unknown) => hoisted.funnelLandingTrackerMock(props),
 }));
 
-vi.mock('./hero-v2', () => ({
-  HeroV2: (props: unknown) => hoisted.heroV2Mock(props),
+vi.mock('./hero-section', () => ({
+  HeroSection: (props: unknown) => hoisted.heroSectionMock(props),
 }));
 
 vi.mock('./free-start-intake-shell', () => ({
@@ -74,9 +82,10 @@ describe('HomePageRuntime', () => {
         tenantId: 'tenant_mk',
         uiV2Enabled: true,
       });
-      expect(hoisted.heroV2Mock).toHaveBeenCalledWith({
+      expect(hoisted.heroSectionMock).toHaveBeenCalledWith({
         locale: 'sq',
-        startClaimHref: '#free-start-intake',
+        primaryHref: '/register',
+        secondaryHref: '#free-start-intake',
         tenantId: 'tenant_mk',
       });
       expect(hoisted.freeStartIntakeShellMock).toHaveBeenCalledWith({
@@ -102,9 +111,10 @@ describe('HomePageRuntime', () => {
     render(<HomePageRuntime locale="sq" uiV2Enabled={true} />);
 
     await waitFor(() => {
-      expect(hoisted.heroV2Mock).toHaveBeenCalledWith({
+      expect(hoisted.heroSectionMock).toHaveBeenCalledWith({
         locale: 'sq',
-        startClaimHref: '/member/claims/new',
+        primaryHref: '/member',
+        secondaryHref: '/member/claims/new',
         tenantId: 'tenant_ks',
       });
       expect(hoisted.freeStartIntakeShellMock).toHaveBeenCalledWith({

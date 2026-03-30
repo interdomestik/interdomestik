@@ -325,10 +325,7 @@ describe('LoginForm', () => {
     render(<LoginForm />);
 
     const registerLink = screen.getByText('Register');
-    expect(registerLink.closest('a')).toHaveAttribute(
-      'href',
-      '/register?tenantId=tenant_ks&plan=standard'
-    );
+    expect(registerLink.closest('a')).toHaveAttribute('href', '/register?plan=standard');
   });
 
   it('redirects members to selected plan flow after login when plan query is present', async () => {

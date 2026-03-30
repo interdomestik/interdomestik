@@ -74,9 +74,6 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
   const planIdFromQuery = searchParams.get('plan') || undefined;
   const resolvedTenantId = tenantId ?? tenantIdFromQuery;
   const registerParams = new URLSearchParams();
-  if (resolvedTenantId) {
-    registerParams.set('tenantId', resolvedTenantId);
-  }
   if (planIdFromQuery) {
     registerParams.set('plan', planIdFromQuery);
   }

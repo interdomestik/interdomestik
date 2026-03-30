@@ -1,204 +1,217 @@
 import { Link } from '@/i18n/routing';
-import { contactInfo } from '@/lib/contact';
+import { getSupportContacts } from '@/lib/support-contacts';
 import { Button } from '@interdomestik/ui';
 import { ArrowRight, CheckCircle2, Clock, Shield, ShieldCheck, Star, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { DigitalIDCard } from './digital-id-card';
 
-export function HeroSection() {
+type HeroSectionProps = {
+  locale?: string;
+  primaryHref?: string;
+  secondaryHref?: string;
+  tenantId?: string | null;
+};
+
+export function HeroSection({
+  locale,
+  primaryHref = '/register',
+  secondaryHref = '#free-start-intake',
+  tenantId,
+}: HeroSectionProps) {
   const t = useTranslations('hero');
-  const { phone, whatsapp } = contactInfo;
-  const telHref = phone ? `tel:${phone.replace(/\s+/g, '')}` : undefined;
+  const contacts = getSupportContacts({ locale, tenantId });
+  const whatsappHref = contacts.whatsappHref;
+  const title = t('title');
+  const titleHasQuestionBreak = title.includes('?');
+  const titleLead = titleHasQuestionBreak ? `${title.split('?').slice(0, -1).join('?')}?` : title;
+  const titleAccent = titleHasQuestionBreak ? (title.split('?').slice(-1)[0]?.trim() ?? '') : '';
 
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-white pt-20">
-      {/* Prime Background - Animated Mesh and Orbs */}
+    <section className="relative overflow-hidden bg-[#FAF9F6] pt-20 lg:min-h-[88vh]">
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-mesh opacity-40" />
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] animate-pulse-soft" />
-        <div
-          className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[120px] animate-pulse-soft"
-          style={{ animationDelay: '2s' }}
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,white_100%)] opacity-40" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#ffffff_0%,transparent_60%)] opacity-40" />
+        <div className="absolute top-[-10%] right-[-5%] h-[40rem] w-[40rem] rounded-full bg-[#1d4ed8]/[0.03] blur-[120px]" />
       </div>
 
-      <div className="container mx-auto px-4 relative z-10 py-16 lg:py-24 flex flex-col items-center text-center">
-        {/* Prime Status Badge */}
-        <div className="inline-flex items-center gap-3 px-6 py-2 rounded-2xl bg-slate-900 border border-white/10 text-white text-sm font-black mb-12 shadow-2xl hover:scale-105 transition-transform cursor-default">
-          <span className="text-emerald-400 font-bold uppercase tracking-wider">{t('badge')}</span>
-          <div className="w-px h-4 bg-white/20" />
-          <span className="opacity-90">€20 / VIT</span>
-          <div className="w-px h-4 bg-white/20" />
-          <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 fill-amber-300 text-amber-300" />
-            <span className="opacity-90">4.9</span>
-          </div>
-        </div>
+      <div className="container relative z-10 mx-auto px-4 py-12 lg:py-20">
+        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] lg:items-center">
+          <div className="animate-fade-in text-center lg:text-left">
+            <div className="mb-8 inline-flex items-center gap-3 rounded-full border border-slate-200/60 bg-white/50 px-5 py-2.5 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur-md sm:text-sm">
+              <span className="font-bold uppercase tracking-[0.15em] text-[#1d4ed8]">
+                {t('primaryMeta')}
+              </span>
+              <div className="h-3.5 w-px bg-slate-300/80" />
+              <div className="flex items-center gap-1.5">
+                <Star className="h-3.5 w-3.5 fill-slate-900 text-slate-900" />
+                <span className="font-bold text-slate-900">4.9</span>
+              </div>
+            </div>
 
-        {/* Prime Headline Lockup (Balanced Hierarchy) */}
-        <div className="max-w-7xl mb-12 animate-fade-in group">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold text-slate-900 tracking-tight leading-[1.1] mb-2">
-            {t('title').split('?').slice(0, -1).join('?') + '?'}
-          </h1>
-          <div className="text-6xl md:text-8xl lg:text-9xl font-display font-black uppercase tracking-wide mb-8 leading-[1] relative inline-block">
-            {/* Soft Glow Behind Text */}
-            <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full opacity-50 pointer-events-none" />
-
-            {/* Main Text with Premium Gradient */}
-            <span className="relative bg-gradient-to-r from-[#0F172A] via-[#2563EB] to-[#0F172A] bg-clip-text text-transparent drop-shadow-xl saturate-150 animate-gradient-x">
-              {t('title').split('?').slice(-1)[0]?.trim()}
-            </span>
-          </div>
-          <p className="text-lg md:text-xl lg:text-2xl text-slate-600 max-w-4xl mx-auto font-medium leading-[1.5] opacity-90">
-            {t('subtitle')}
-          </p>
-        </div>
-
-        {/* Action Center */}
-        <div className="flex flex-col items-center gap-10 w-full mb-16 animate-slide-up">
-          <div className="flex flex-col sm:flex-row gap-5 items-center justify-center w-full max-w-4xl">
-            <Link href="/register" className="w-full sm:w-auto">
-              <Button
-                size="xl"
-                className="w-full sm:w-auto h-20 px-10 text-xl font-black rounded-2xl shadow-2xl shadow-primary/30 cta-press group overflow-hidden relative"
-              >
-                <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform [transition-duration:2000ms] bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
-                <div className="flex flex-col items-center">
-                  <span className="flex items-center gap-2">
-                    {t('cta')}
-                    <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-1" />
-                  </span>
-                  <span className="text-[10px] uppercase tracking-[0.2em] opacity-70 mt-1 font-bold">
-                    AKTIVIM MENJËHERSHËM • €20/VIT
+            <div className="mb-10 group">
+              <h1 className="mb-2 text-4xl font-display font-bold leading-[1.05] tracking-[-0.04em] text-slate-950 sm:text-5xl lg:text-[4.25rem]">
+                {titleLead}
+              </h1>
+              {titleAccent ? (
+                <div className="relative mb-6 block">
+                  <span className="relative block text-[2.4rem] font-display font-black leading-[0.98] tracking-[-0.05em] text-[#1d3557] sm:text-[4rem] lg:text-[4.6rem]">
+                    {titleAccent}
                   </span>
                 </div>
-              </Button>
-            </Link>
+              ) : null}
+              <p className="mx-auto max-w-[34rem] text-balance text-[1.05rem] font-medium leading-[1.65] text-slate-500 sm:text-lg lg:mx-0 lg:text-[1.15rem]">
+                {t('subtitle')}
+              </p>
+            </div>
 
-            <div className="flex flex-wrap gap-4 justify-center w-full sm:w-auto">
-              {telHref && (
-                <a href={telHref} className="w-full sm:w-auto">
+            <div className="animate-slide-up">
+              <div className="mx-auto flex w-full max-w-xl flex-col gap-3 lg:mx-0">
+                <Link href={primaryHref} className="w-full">
                   <Button
-                    variant="outline"
                     size="xl"
-                    className="w-full sm:w-auto h-20 px-8 bg-white/50 backdrop-blur-sm rounded-2xl border-slate-200 text-slate-800 hover:bg-slate-50 interactive-press"
+                    className="group relative h-16 w-full overflow-hidden rounded-2xl border border-slate-900 bg-[#111827] px-8 text-lg font-bold text-white shadow-[0_20px_40px_-12px_rgba(15,23,42,0.25)] transition-all hover:shadow-[0_25px_50px_-12px_rgba(15,23,42,0.3)] sm:text-xl"
                   >
-                    <div className="flex flex-col items-start text-left">
-                      <span className="text-[10px] text-primary font-black uppercase tracking-wider mb-1">
-                        24/7 SUPPORT
-                      </span>
-                      <span className="text-lg font-black leading-none">{t('callNow')}</span>
-                    </div>
+                    <div className="absolute inset-x-0 top-0 h-[1px] bg-white/10" />
+                    <span className="flex items-center gap-2">
+                      {t('cta')}
+                      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                    </span>
                   </Button>
-                </a>
-              )}
-              {whatsapp && (
-                <a href={whatsapp} className="w-full sm:w-auto">
-                  <Button
-                    variant="outline"
-                    size="xl"
-                    className="w-full sm:w-auto h-20 px-8 bg-emerald-50/50 backdrop-blur-sm rounded-2xl border-emerald-100 text-emerald-950 hover:bg-emerald-50 transition-colors interactive-press"
-                  >
-                    <div className="flex flex-col items-start text-left">
-                      <span className="text-[10px] text-emerald-600 font-black uppercase tracking-wider mb-1">
-                        WHATSAPP
-                      </span>
-                      <span className="text-lg font-black leading-none italic">Expert Chat</span>
-                    </div>
-                  </Button>
-                </a>
-              )}
+                </Link>
+
+                <div className="grid w-full gap-3 sm:grid-cols-2">
+                  {secondaryHref ? (
+                    <Link href={secondaryHref} className="w-full">
+                      <Button
+                        variant="outline"
+                        size="xl"
+                        className="h-16 w-full rounded-2xl border border-slate-200 bg-white/60 px-6 text-slate-900 shadow-sm backdrop-blur-md hover:bg-white/80"
+                      >
+                        <div className="flex flex-col items-start text-left">
+                          <span className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-[#1d4ed8]">
+                            {t('urgentEyebrow')}
+                          </span>
+                          <span className="text-base font-bold leading-none">{t('callNow')}</span>
+                        </div>
+                      </Button>
+                    </Link>
+                  ) : null}
+                  {whatsappHref ? (
+                    <a href={whatsappHref} className="w-full">
+                      <Button
+                        variant="outline"
+                        size="xl"
+                        className="h-16 w-full rounded-2xl border border-slate-200 bg-white/40 px-6 text-slate-900 shadow-sm backdrop-blur-md hover:bg-white/60"
+                      >
+                        <div className="flex flex-col items-start text-left">
+                          <span className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-slate-400">
+                            WHATSAPP
+                          </span>
+                          <span className="text-base font-bold leading-none">
+                            {t('whatsappCta')}
+                          </span>
+                        </div>
+                      </Button>
+                    </a>
+                  ) : null}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-10 w-full animate-fade-in">
-            <div className="flex items-center gap-3 px-6 py-2.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-black shadow-sm">
-              <CheckCircle2 className="h-4 w-4" />
-              {t('digitalCardSticky')}
-            </div>
+          <div className="flex flex-col items-center gap-6 animate-fade-in lg:items-end">
+            <div className="w-full max-w-[27rem] rounded-[2.5rem] border border-white/80 bg-white/40 p-5 shadow-[0_32px_64px_-16px_rgba(15,23,42,0.06)] backdrop-blur-3xl">
+              <div className="mb-5 inline-flex items-center gap-2.5 px-2 text-xs font-semibold tracking-wide text-slate-500">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                {t('digitalCardSticky')}
+              </div>
 
-            {/* Visual Asset (Digital ID Card) */}
-            <div className="w-full max-w-md animate-slide-up transform hover:scale-[1.02] transition-transform duration-700">
-              <DigitalIDCard />
+              <div className="transition-transform duration-700 hover:scale-[1.02]">
+                <DigitalIDCard
+                  labels={{
+                    membership: t('cardMembership'),
+                    claimSupport: t('cardClaimSupport'),
+                    legalProtection: t('cardLegalProtection'),
+                    assistance247: t('cardMemberSupport'),
+                    memberName: t('cardMemberName'),
+                    validThru: t('cardValidThru'),
+                    activeMember: t('cardActiveMember'),
+                    protectionPaused: t('cardProtectionPaused'),
+                    addToAppleWallet: t('cardAppleWallet'),
+                    googlePayReady: t('cardGooglePay'),
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Trust Ecosystem */}
         <div
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl animate-slide-up"
+          className="mx-auto mt-14 grid w-full max-w-6xl grid-cols-1 gap-4 animate-slide-up md:grid-cols-3"
           style={{ animationDelay: '0.2s' }}
         >
-          {/* Trust Pill 1: Users */}
-          <div className="glass-card rounded-[2rem] p-6 flex items-center gap-5 hover-lift">
-            <div className="h-14 w-14 rounded-2xl brand-gradient flex items-center justify-center shadow-lg shadow-primary/20">
-              <Users className="h-7 w-7 text-white" />
+          <div className="flex items-center gap-4 rounded-3xl border border-white/60 bg-white/40 p-5 shadow-[0_16px_32px_-8px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-all hover:shadow-[0_24px_48px_-12px_rgba(15,23,42,0.1)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#111827] shadow-[0_12px_24px_-8px_rgba(15,23,42,0.3)]">
+              <Users className="h-5 w-5 text-white" />
             </div>
             <div className="text-left">
-              <div className="text-xl font-black text-slate-900 tracking-tight">
+              <div className="text-lg font-bold tracking-tight text-slate-900">
                 {t('activeMembersValue')}
               </div>
-              <div className="text-xs font-bold text-slate-900 uppercase tracking-widest leading-none mt-1">
+              <div className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 {t('activeMembersLabel')}
               </div>
             </div>
           </div>
 
-          {/* Trust Pill 2: Guarantee */}
-          <div className="glass-card rounded-[2rem] p-6 flex items-center gap-5 hover-lift">
-            <div className="h-14 w-14 rounded-2xl accent-gradient flex items-center justify-center shadow-lg shadow-accent/20">
-              <ShieldCheck className="h-7 w-7 text-white" />
+          <div className="flex items-center gap-4 rounded-3xl border border-white/60 bg-white/40 p-5 shadow-[0_16px_32px_-8px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-all hover:shadow-[0_24px_48px_-12px_rgba(15,23,42,0.1)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1d4ed8] shadow-[0_12px_24px_-8px_rgba(29,78,216,0.3)]">
+              <ShieldCheck className="h-5 w-5 text-white" />
             </div>
             <div className="text-left">
-              <div className="text-xl font-black text-slate-900 tracking-tight">
+              <div className="text-lg font-bold tracking-tight text-slate-900">
                 {t('legalProtectionValue')}
               </div>
-              <div className="text-xs font-bold text-slate-900 uppercase tracking-widest leading-none mt-1">
+              <div className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 {t('legalProtectionLabel')}
               </div>
             </div>
           </div>
 
-          {/* Trust Pill 3: Support */}
-          <div className="glass-card rounded-[2rem] p-6 flex items-center gap-5 hover-lift">
-            <div className="h-14 w-14 rounded-2xl brand-gradient-light border border-primary/20 flex items-center justify-center shadow-lg shadow-primary/5">
-              <Clock className="h-7 w-7 text-primary" />
+          <div className="flex items-center gap-4 rounded-3xl border border-white/60 bg-white/40 p-5 shadow-[0_16px_32px_-8px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-all hover:shadow-[0_24px_48px_-12px_rgba(15,23,42,0.1)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <Clock className="h-5 w-5 text-[#1d4ed8]" />
             </div>
             <div className="text-left">
-              <div className="text-xl font-black text-slate-900 tracking-tight">
+              <div className="text-lg font-bold tracking-tight text-slate-900">
                 {t('caseOpeningValue')}
               </div>
-              <div className="text-xs font-bold text-slate-900 uppercase tracking-widest leading-none mt-1">
+              <div className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 {t('caseOpeningLabel')}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Featured Logos/Text */}
         <div
-          className="mt-16 flex flex-wrap justify-center gap-8 items-center animate-fade-in"
+          className="mt-12 flex flex-wrap justify-center gap-8 animate-fade-in lg:justify-start"
           style={{ animationDelay: '0.4s' }}
         >
-          <span className="flex items-center gap-2 font-bold text-slate-900 tracking-tighter italic">
-            <Shield className="h-5 w-5" />
+          <span className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-widest text-slate-400">
+            <Shield className="h-4 w-4 text-slate-300" />
             {t('trustBadgeSecurity')}
           </span>
-          <span className="flex items-center gap-2 font-bold text-slate-900 tracking-tighter italic">
-            <Star className="h-5 w-5" />
+          <span className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-widest text-slate-400">
+            <Star className="h-4 w-4 text-slate-300" />
             {t('trustBadgeSupport')}
           </span>
-          <span className="flex items-center gap-2 font-bold text-slate-900 tracking-tighter italic">
-            <CheckCircle2 className="h-5 w-5" />
+          <span className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-widest text-slate-400">
+            <CheckCircle2 className="h-4 w-4 text-slate-300" />
             {t('trustBadgeService')}
           </span>
         </div>
       </div>
 
-      {/* Background Decorative Blur */}
-      <div className="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 translate-x-1/4 w-[400px] h-[400px] bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-[24rem] w-[24rem] translate-x-1/4 rounded-full bg-slate-400/[0.03] blur-[110px]" />
     </section>
   );
 }
