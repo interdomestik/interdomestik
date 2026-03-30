@@ -8,7 +8,9 @@ const hoisted = vi.hoisted(() => ({
   ascMock: vi.fn(),
   eqMock: vi.fn(),
   registerFormMock: vi.fn((_: unknown) => <div>register-form</div>),
-  resolveTenantIdFromRequestMock: vi.fn(async () => 'tenant_ks'),
+  resolveTenantIdFromRequestMock: vi.fn<(...args: unknown[]) => Promise<string | null>>(
+    async () => 'tenant_ks'
+  ),
   selectMock: vi.fn(),
   setRequestLocaleMock: vi.fn(),
   tenantSelectorMock: vi.fn((_: unknown) => <div>tenant-selector</div>),
@@ -56,6 +58,20 @@ vi.mock('drizzle-orm', () => ({
 import RegisterPage from './_core.entry';
 
 describe('RegisterPage commercial coverage matrix', () => {
+  it('renders tenant selector when tenant context is unresolved', async () => {
+    hoisted.resolveTenantIdFromRequestMock.mockResolvedValueOnce(null);
+
+    const tree = await RegisterPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({}),
+    });
+
+    render(tree);
+
+    expect(screen.getByText('tenant-selector')).toBeInTheDocument();
+    expect(screen.getByText('register-form')).toBeInTheDocument();
+  });
+
   it('renders the shared coverage matrix alongside the checkout form', async () => {
     const tree = await RegisterPage({
       params: Promise.resolve({ locale: 'en' }),

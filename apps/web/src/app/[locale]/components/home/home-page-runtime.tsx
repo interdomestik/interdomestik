@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getLocaleLandingCore } from '../../_core';
 import { getStartClaimHrefForSession } from '../../home-v2.core';
 import { FreeStartIntakeShell } from './free-start-intake-shell';
-import { HeroV2 } from './hero-v2';
+import { HeroSection } from './hero-section';
 
 type HomePageRuntimeProps = Readonly<{
   locale: string;
@@ -68,13 +68,19 @@ export function HomePageRuntime({ locale, uiV2Enabled }: HomePageRuntimeProps) {
     session: landingSession,
   });
   const startClaimHref = landingSession === null ? '#free-start-intake' : continueHref;
+  const primaryHref = landingSession === null ? '/register' : '/member';
 
   return (
     <>
       {shouldTrackLanding ? (
         <FunnelLandingTracker tenantId={tenantId} locale={locale} uiV2Enabled={uiV2Enabled} />
       ) : null}
-      <HeroV2 locale={locale} startClaimHref={startClaimHref} tenantId={tenantId} />
+      <HeroSection
+        locale={locale}
+        primaryHref={primaryHref}
+        secondaryHref={startClaimHref}
+        tenantId={tenantId}
+      />
       <FreeStartIntakeShell continueHref={continueHref} locale={locale} tenantId={tenantId} />
     </>
   );

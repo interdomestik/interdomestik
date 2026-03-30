@@ -27,9 +27,6 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
   const planIdFromQuery = searchParams.get('plan') || undefined;
   const resolvedTenantId = tenantId ?? tenantIdFromQuery;
   const loginParams = new URLSearchParams();
-  if (resolvedTenantId) {
-    loginParams.set('tenantId', resolvedTenantId);
-  }
   if (planIdFromQuery) {
     loginParams.set('plan', planIdFromQuery);
   }
@@ -37,7 +34,6 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -48,13 +44,6 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const name = formData.get('fullName') as string;
-    const passwordConfirm = formData.get('confirmPassword') as string;
-
-    if (password !== passwordConfirm) {
-      setError(t('errors.passwordsMismatch'));
-      setLoading(false);
-      return;
-    }
 
     if (!resolvedTenantId) {
       setError(t('errors.missingTenant'));
@@ -172,30 +161,7 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
               </button>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
-            <div className="relative">
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                required
-                autoComplete="new-password"
-                className="bg-background/50 pr-10"
-                suppressHydrationWarning
-                disabled={loading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                tabIndex={-1}
-              >
-                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
+
           <div className="flex items-start gap-2">
             <Checkbox id="terms" required className="mt-0.5" disabled={loading} />
             <Label

@@ -15,7 +15,11 @@ test.describe('Member Dashboard (Empty State)', () => {
     await expect(page.getByTestId('member-claims-list')).toHaveCount(0);
     await expect(page.getByTestId('member-active-claim')).toHaveCount(0);
 
-    const cta = page.getByTestId('member-primary-actions').getByTestId('member-start-claim-cta');
+    const primaryActions = page.getByTestId('member-primary-actions');
+    await expect(primaryActions).toHaveCount(1);
+
+    const cta = primaryActions.getByTestId('member-start-claim-cta');
+    await expect(cta).toHaveCount(1);
     await expect(cta).toBeVisible();
     await expect(cta).toHaveAttribute('href', new RegExp(`${routes.memberNewClaim(testInfo)}$`));
   });

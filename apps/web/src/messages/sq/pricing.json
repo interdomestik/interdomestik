@@ -24,32 +24,32 @@
       ]
     },
     "standard": {
-      "name": "Asistenca (Standard)",
+      "name": "Plani Asistenca",
       "price": "20 €",
       "monthlyPrice": "2 €",
       "period": "/vit",
-      "description": "Mbrojtje e plotë për individë",
+      "description": "Udhëzim dhe rikuperim i plotë për individë",
       "features": [
-        "Linja Emergjente 24/7",
-        "Konsulta Ligjore pa kufi",
-        "Qasje në Kalkulatorin e Dëmit",
-        "Udhëzues & Lista Kontrolli",
-        "50% Zbritje në Ndërmjetësim",
-        "Kompania Avanson Kostot"
+        "Linja emergjente 24/7",
+        "Konsulta ligjore pa kufi",
+        "Gjurmimi i rastit përmes aplikacionit IDA",
+        "Karta IDA për vërtetim të menjëhershëm",
+        "50% zbritje në ndërmjetësim",
+        "Kompania avancon kostot ligjore"
       ],
-      "popular": "Më e zgjedhura"
+      "popular": "Më i zgjedhuri"
     },
     "family": {
-      "name": "Asistenca+ (Familjar)",
+      "name": "Plani Familjar Asistenca+",
       "price": "35 €",
       "monthlyPrice": "4 €",
       "period": "/vit",
-      "description": "Mbrojtje për gjithë shtëpinë",
+      "description": "Anëtarësim premium për gjithë shtëpinë",
       "features": [
         "Gjithçka në Asistenca",
-        "Mbulon deri në 5 anëtarë",
-        "Karta Asistenca për të gjithë",
-        "Dashboard i përbashkët"
+        "Mbulon deri në 5 anëtarë të familjes",
+        "Akses i përbashkët përmes aplikacionit IDA",
+        "Karta IDA për të gjithë anëtarët"
       ]
     },
     "business": {
@@ -66,7 +66,7 @@
         "Trajnim për Punonjësit"
       ]
     },
-    "cta": "Bëhu Anëtar",
+    "cta": "Fillo Anëtarësimin",
     "loginRequired": "Kyçuni për të bërë upgrade",
     "scope": {
       "eyebrow": "Fusha e nisjes",
@@ -188,8 +188,8 @@
       "title": "Planet e Anëtarësisë - Interdomestik",
       "description": "Anëtarësi për rastet e automjeteve, pronës dhe lëndimeve me kufij të qartë për udhëzim dhe referim."
     },
-    "mainHeading1": "Zgjidhni mbrojtjen",
+    "mainHeading1": "Zgjidhni anëtarësimin",
     "mainHeading2": "që ju përshtatet.",
-    "joinSecurely": "Bashkohu me siguri"
+    "joinSecurely": "Fillo i sigurt"
   }
 }

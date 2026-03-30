@@ -3,6 +3,7 @@ import { FunnelActivationTracker } from '@/components/analytics/funnel-trackers'
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { getSessionSafe } from '@/components/shell/session';
 import { isUiV2Enabled } from '@/lib/flags';
+import { getSupportContacts } from '@/lib/support-contacts';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { CheckCircle2, Phone, QrCode, Smartphone, Wallet } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
@@ -28,6 +29,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
   const { planId, priceId } = resolvedSearchParams;
   const uiV2Enabled = isUiV2Enabled();
   const tenantId = session.user.tenantId ?? null;
+  const supportContacts = getSupportContacts({ tenantId, locale });
 
   const t = await getTranslations({ locale, namespace: 'membership.success' });
 
@@ -55,40 +57,6 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">
-        {/* Hotline Promo */}
-        <Card
-          data-testid="success-hotline"
-          className="border-primary shadow-xl overflow-hidden group hover:scale-[1.01] transition-transform duration-300"
-        >
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Phone className="w-5 h-5 text-primary" />
-              {t('hotline_label')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
-                <p className="text-sm font-bold text-primary uppercase tracking-wider mb-1">
-                  24/7 Support
-                </p>
-                <p className="text-2xl font-black tracking-tighter text-foreground">
-                  +389 70 337 140
-                </p>
-              </div>
-              <CommercialDisclaimerNotice
-                sectionTestId="success-hotline-disclaimer"
-                items={[
-                  {
-                    title: t('hotline_disclaimer.title'),
-                    body: t('hotline_disclaimer.body'),
-                  },
-                ]}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Digital Card Promo */}
         <Card
           data-testid="success-card"
@@ -133,6 +101,44 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
                 {t('cta_wallet')}
               </Button>
               <PwaInstallButton label={t('cta_install')} className="mt-3 font-bold" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Hotline Promo */}
+        <Card
+          data-testid="success-hotline"
+          className="border-primary shadow-xl overflow-hidden group hover:scale-[1.01] transition-transform duration-300"
+        >
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Phone className="w-5 h-5 text-primary" />
+              {t('hotline_label')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
+                <p className="text-sm font-bold text-primary uppercase tracking-wider mb-1">
+                  {t('hotline_label')}
+                </p>
+                <a
+                  href={supportContacts.telHref}
+                  className="text-2xl font-black tracking-tighter text-foreground"
+                >
+                  {supportContacts.phoneDisplay}
+                </a>
+                <p className="mt-2 text-sm text-muted-foreground">{t('hotline_hint')}</p>
+              </div>
+              <CommercialDisclaimerNotice
+                sectionTestId="success-hotline-disclaimer"
+                items={[
+                  {
+                    title: t('hotline_disclaimer.title'),
+                    body: t('hotline_disclaimer.body'),
+                  },
+                ]}
+              />
             </div>
           </CardContent>
         </Card>

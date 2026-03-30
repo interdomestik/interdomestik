@@ -134,7 +134,7 @@ export function MemberDashboardV2({ data, locale, tenantId }: MemberDashboardV2P
               <div className="absolute -left-16 top-6 h-40 w-40 rounded-full bg-cyan-300/30 blur-3xl" />
               <div className="absolute -right-16 top-16 h-36 w-36 rounded-full bg-emerald-300/30 blur-3xl" />
             </div>
-            <div data-testid="member-header" className="relative space-y-3">
+            <div data-testid="member-hero-header" className="relative space-y-3">
               <h1
                 className="text-[1.85rem] font-semibold leading-[1.08] tracking-tight text-white max-[375px]:text-[1.62rem] sm:text-[1.95rem] lg:text-3xl xl:text-4xl"
                 data-testid="dashboard-heading"

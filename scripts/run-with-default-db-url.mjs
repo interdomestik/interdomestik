@@ -11,11 +11,14 @@ if (!command) {
 const resolvedDbUrl =
   process.env.DATABASE_URL ??
   'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+const resolvedBetterAuthSecret =
+  process.env.BETTER_AUTH_SECRET ?? 'test-secret-for-local-dev-only-32chars-minimum';
 
 process.env.DATABASE_URL = resolvedDbUrl;
 process.env.DATABASE_URL_RLS = process.env.DATABASE_URL_RLS ?? resolvedDbUrl;
 process.env.E2E_DATABASE_URL = process.env.E2E_DATABASE_URL ?? resolvedDbUrl;
 process.env.E2E_DATABASE_URL_RLS = process.env.E2E_DATABASE_URL_RLS ?? process.env.DATABASE_URL_RLS;
+process.env.BETTER_AUTH_SECRET = resolvedBetterAuthSecret;
 
 const child = spawn(command, args, {
   stdio: 'inherit',

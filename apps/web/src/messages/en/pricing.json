@@ -28,14 +28,14 @@
       "price": "€20",
       "monthlyPrice": "€2",
       "period": "/year",
-      "description": "Complete protection for individuals",
+      "description": "Complete guidance & recovery for individuals",
       "features": [
-        "24/7 Emergency Hotline",
-        "Unlimited Legal Consultations",
-        "Damage Calculator Access",
-        "Expert Guides & Checklists",
-        "50% Mediation Fee Discount",
-        "Company Advances Costs"
+        "24/7 Emergency support line",
+        "Unlimited legal consultations",
+        "Case tracking via IDA App",
+        "Digital IDA Card for instant proof",
+        "50% mediation fee discount",
+        "Company advances legal costs"
       ],
       "popular": "Most Popular"
     },
@@ -44,12 +44,12 @@
       "price": "€35",
       "monthlyPrice": "€4",
       "period": "/year",
-      "description": "Protection for the whole household",
+      "description": "Premium membership for the whole household",
       "features": [
         "Everything in Asistenca",
         "Covers up to 5 family members",
-        "Asistenca Cards for all members",
-        "Shared Dashboard"
+        "Shared access via IDA App",
+        "Digital IDA Cards for household members"
       ]
     },
     "business": {
@@ -66,7 +66,7 @@
         "Employee Onboarding"
       ]
     },
-    "cta": "Join Now",
+    "cta": "Start Membership",
     "loginRequired": "Log in to upgrade",
     "scope": {
       "eyebrow": "Launch scope",
@@ -188,8 +188,8 @@
       "title": "Membership Plans - Interdomestik",
       "description": "Membership for vehicle, property, and injury claims with explicit guidance-only and referral boundaries."
     },
-    "mainHeading1": "Choose the protection",
-    "mainHeading2": "that suits you.",
-    "joinSecurely": "Join securely"
+    "mainHeading1": "Choose your",
+    "mainHeading2": "membership plan.",
+    "joinSecurely": "Start securely"
   }
 }

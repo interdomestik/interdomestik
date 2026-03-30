@@ -112,9 +112,6 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
   const nextPathFromQuery = searchParams.get('next');
   const resolvedTenantId = tenantId ?? tenantIdFromQuery;
   const registerParams = new URLSearchParams();
-  if (resolvedTenantId) {
-    registerParams.set('tenantId', resolvedTenantId);
-  }
   if (planIdFromQuery) {
     registerParams.set('plan', planIdFromQuery);
   }
@@ -331,7 +328,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
               await authClient.signIn.social({
                 provider: 'github',
                 callbackURL:
-                  globalThis.location.href || `${window.location.origin}/${locale}/login`,
+                  globalThis.location.href || `${globalThis.location.origin}/${locale}/login`,
                 ...(resolvedTenantId ? { additionalData: { tenantId: resolvedTenantId } } : {}),
               });
             }}

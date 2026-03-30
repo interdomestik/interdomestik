@@ -159,64 +159,67 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
               </div>
             ) : null}
 
-            <div className="mt-10 space-y-5">
-              <h1 className="mx-auto max-w-3xl text-4xl font-semibold leading-[1.02] tracking-[-0.05em] text-slate-950 max-[375px]:text-[2.2rem] md:text-[4.6rem]">
+            <div className="mt-10 space-y-6">
+              <h1 className="mx-auto max-w-4xl text-balance text-4xl font-semibold leading-[1.05] tracking-[-0.05em] text-slate-950 max-[375px]:text-[2.2rem] md:text-[4rem]">
                 {content.headline}
               </h1>
-              <p className="text-sm font-semibold uppercase tracking-[0.34em] text-blue-700">
-                {content.supportLabel}
-              </p>
-              <p className="mx-auto max-w-3xl text-[1.05rem] leading-8 text-slate-600 md:text-[1.24rem]">
+              <p className="mx-auto max-w-3xl text-balance text-[1.05rem] leading-8 text-slate-600 md:text-[1.24rem]">
                 {content.subtitle}
               </p>
             </div>
 
-            <div className="mt-10 grid w-full gap-3 md:grid-cols-3">
+            <div className="mt-12 flex w-full flex-col gap-3 md:flex-row md:items-stretch">
               <Link
                 data-testid="hero-v2-start-claim"
                 href={startClaimHref}
-                className="inline-flex min-h-20 items-center justify-between rounded-[1.4rem] bg-[linear-gradient(180deg,#0f6b96,#125c86)] px-6 py-5 text-left text-white shadow-[0_24px_54px_-30px_rgba(14,116,144,0.75)] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                className="group flex flex-1 items-center justify-between rounded-[1.4rem] bg-[linear-gradient(180deg,#0f6b96,#125c86)] px-8 py-5 text-left text-white shadow-[0_32px_64px_-24px_rgba(14,116,144,0.35)] transition duration-300 hover:brightness-105 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
               >
                 <span>
-                  <span className="block text-lg font-semibold">{content.primaryCtaLabel}</span>
-                  <span className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-100/85">
+                  <span className="block text-xl font-semibold md:text-2xl">
+                    {content.primaryCtaLabel}
+                  </span>
+                  <span className="mt-1.5 block text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-100/85">
                     {content.primaryCtaMeta}
                   </span>
                 </span>
-                <ArrowRight className="h-5 w-5 shrink-0" />
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10 transition group-hover:bg-white/20">
+                  <ArrowRight className="h-6 w-6" />
+                </span>
               </Link>
 
-              {telHref ? (
-                <a
-                  data-testid="hero-v2-help-call"
-                  href={telHref}
-                  className="inline-flex min-h-20 flex-col items-start justify-center rounded-[1.4rem] border border-white/90 bg-white/68 px-6 py-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition hover:bg-white/82 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                >
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700">
-                    {content.supportEyebrow}
-                  </span>
-                  <span className="mt-1 inline-flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-950">
-                    <PhoneCall className="h-5 w-5 text-slate-700" />
-                    {content.supportLabel}
-                  </span>
-                </a>
-              ) : null}
+              <div className="flex flex-col gap-3 min-[480px]:flex-row md:w-auto md:flex-col lg:flex-row">
+                {telHref ? (
+                  <a
+                    data-testid="hero-v2-help-call"
+                    href={telHref}
+                    className="inline-flex min-h-20 flex-col items-start justify-center rounded-[1.4rem] border border-white/90 bg-white/68 px-6 py-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition hover:bg-white/82 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                  >
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700">
+                      {content.supportEyebrow}
+                    </span>
+                    <span className="mt-1 inline-flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-950">
+                      <PhoneCall className="h-5 w-5 text-slate-700" />
+                      {content.supportLabel}
+                    </span>
+                  </a>
+                ) : null}
 
-              {whatsappHref ? (
-                <a
-                  data-testid="hero-v2-help-whatsapp"
-                  href={whatsappHref}
-                  className="inline-flex min-h-20 flex-col items-start justify-center rounded-[1.4rem] border border-emerald-100 bg-[linear-gradient(180deg,rgba(240,253,250,0.96),rgba(236,253,245,0.86))] px-6 py-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.94)] transition hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-                >
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">
-                    WhatsApp
-                  </span>
-                  <span className="mt-1 inline-flex items-center gap-2 text-2xl font-semibold italic tracking-tight text-slate-950">
-                    <MessageCircleMore className="h-5 w-5 text-emerald-700" />
-                    {content.whatsappLabel}
-                  </span>
-                </a>
-              ) : null}
+                {whatsappHref ? (
+                  <a
+                    data-testid="hero-v2-help-whatsapp"
+                    href={whatsappHref}
+                    className="inline-flex min-h-20 flex-col items-start justify-center rounded-[1.4rem] border border-emerald-100 bg-[linear-gradient(180deg,rgba(240,253,250,0.96),rgba(236,253,245,0.86))] px-6 py-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.94)] transition hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+                  >
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">
+                      WhatsApp
+                    </span>
+                    <span className="mt-1 inline-flex items-center gap-2 text-2xl font-semibold italic tracking-tight text-slate-950">
+                      <MessageCircleMore className="h-5 w-5 text-emerald-700" />
+                      {content.whatsappLabel}
+                    </span>
+                  </a>
+                ) : null}
+              </div>
             </div>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -271,7 +274,9 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
                     <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
                       {t('v2.idPreview')}
                     </p>
-                    <p className="mt-1 text-sm text-slate-200">{t('v2.idMeta')}: ID-••••-24</p>
+                    <p className="mt-1 text-sm font-medium text-slate-200">
+                      {t('v2.idMeta')}: ID-••••-24
+                    </p>
                   </div>
                   <Link
                     data-testid="hero-v2-digital-id-link"
