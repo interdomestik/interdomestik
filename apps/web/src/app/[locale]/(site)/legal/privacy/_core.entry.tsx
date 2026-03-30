@@ -25,31 +25,18 @@ export default async function PrivacyPage({ params }: PrivacyPageProps) {
     <div className="container py-20 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">{t('title')}</h1>
       <div className="prose dark:prose-invert">
-        <p>
-          Your privacy is important to us. Included in your membership is strict data protection.
-        </p>
-        <h2>How we handle your data</h2>
-        <p>
-          We collect only the information required to provide membership services, process claims,
-          and comply with legal obligations. Access is restricted by role and tenant scope.
-        </p>
+        <p>{t('intro')}</p>
+        <h2>{t('sections.handling.title')}</h2>
+        <p>{t('sections.handling.body')}</p>
 
-        <h2>Your rights</h2>
-        <p>
-          You can request access to your stored data, request correction, and request deletion where
-          legally permitted.
-        </p>
+        <h2>{t('sections.rights.title')}</h2>
+        <p>{t('sections.rights.body')}</p>
 
-        <h2>Deletion requests</h2>
-        <p>
-          Authenticated users can submit a deletion request using
-          <code> POST /api/privacy/data-deletion</code> with an optional JSON body:
-          <code>{` { "reason": "..." } `}</code>.
-        </p>
-        <p>
-          Requests are logged as compliance events and reviewed by operations before irreversible
-          deletion actions are performed.
-        </p>
+        <h2>{t('sections.deletion.title')}</h2>
+        <p>{t('sections.deletion.body')}</p>
+        <code>POST /api/privacy/data-deletion</code>
+        <code>{`{ "reason": "..." }`}</code>
+        <p>{t('sections.deletion.followup')}</p>
       </div>
     </div>
   );

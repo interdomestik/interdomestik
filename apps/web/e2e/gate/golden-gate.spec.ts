@@ -178,7 +178,7 @@ test.describe('Golden Gate: Critical Path', () => {
       }
       await performLocalLogin(page, USERS.SUPER_ADMIN, testInfo, 'admin');
 
-      await expect(page.getByRole('heading', { name: /Admin|Paneli/i }).first()).toBeVisible({
+      await expect(page.getByTestId('admin-page-ready')).toBeVisible({
         timeout: 20000,
       });
       await expect(page.locator('main')).toContainText(/[0-9]+/);
@@ -227,7 +227,9 @@ test.describe('Golden Gate: Critical Path', () => {
       await expect(page.locator('main')).toContainText(
         /Open Claims|Dëmet e Hapura|Kërkesat e Hapura|Отворени Штети/i
       );
-      await expect(page.locator('main')).toContainText(/Cash|Kesh|Кеш/i);
+      await expect(page.locator('main')).toContainText(
+        /Cash|Cash Pending|Kesh|Kesh në pritje|Кеш|Готовина во чекање/i
+      );
     });
 
     test('Risk signaling appears for seeded risky branch (KS-A with 20+ open claims)', async ({

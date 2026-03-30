@@ -5,6 +5,7 @@ import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Input } from '@interdomestik/ui/components/input';
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
+import { normalizePublicLink } from '@/lib/public-links';
 import { AlertCircle, Check, Copy, Link as LinkIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -36,13 +37,14 @@ export function ReferralLinkCard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const normalizedLink = normalizePublicLink(link);
 
   useEffect(() => {
     async function loadLink() {
       try {
         const result = await getAgentReferralLink();
         if (result.success) {
-          setLink(result.data.link);
+          setLink(normalizePublicLink(result.data.link));
         } else {
           setError(result.error);
         }
@@ -58,7 +60,7 @@ export function ReferralLinkCard() {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(normalizedLink);
       setIsCopied(true);
       toast.success(t('copied'));
       setTimeout(() => setIsCopied(false), 2000);
@@ -114,7 +116,7 @@ export function ReferralLinkCard() {
       <CardContent className="space-y-2">
         <div className="flex gap-2">
           <Input
-            value={link}
+            value={normalizedLink}
             readOnly
             className="font-mono text-sm bg-muted/50"
             onClick={e => e.currentTarget.select()}

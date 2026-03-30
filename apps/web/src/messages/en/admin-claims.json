@@ -17,6 +17,14 @@
       "member_number": "Member Number",
       "copy_member_number": "Copy Member Number",
       "copy_member_link": "Copy Member Link",
+      "header": {
+        "copy_traceable_link": "Copy traceable number link",
+        "copy_canonical_link": "Copy canonical system link",
+        "claim_number_link": "Claim number link",
+        "canonical_url": "Canonical URL",
+        "copy_failed": "Failed to copy link",
+        "copy_success": "{label} copied to clipboard"
+      },
       "message_alert": "New message ({count})",
       "table": {
         "title": "Title",
@@ -196,11 +204,31 @@
           "unexpected_error": "An unexpected error occurred"
         }
       },
+      "status_modal": {
+        "title": "Update Claim Status",
+        "description": "Select the new status for this claim. This action will be logged.",
+        "placeholder": "Select new status...",
+        "cancel": "Cancel",
+        "confirm": "Confirm Update",
+        "success": "Status updated successfully",
+        "error": "Failed to update status",
+        "unexpected_error": "An unexpected error occurred"
+      },
       "evidence": {
         "title": "Evidence",
         "upload_button": "Upload",
+        "dialog_title": "Upload evidence",
+        "dialog_description": "Attach photos or documents relevant to this claim.",
+        "document_type_label": "Document Type",
+        "document_type_placeholder": "Select document type",
+        "file_label": "File",
+        "upload_success": "Evidence uploaded successfully",
+        "upload_failed": "Failed to upload evidence",
+        "uploading": "Uploading...",
         "no_docs": "No documents uploaded.",
         "types": {
+          "evidence": "Evidence",
+          "legal": "Legal document",
           "image": "Image",
           "audio": "Audio",
           "document": "Document"
@@ -209,6 +237,17 @@
       "timeline": {
         "title": "Activity Timeline",
         "empty": "No activity recorded yet."
+      },
+      "status_form": {
+        "placeholder": "Status",
+        "success": "Status updated successfully",
+        "error": "Failed to update status"
+      },
+      "status_modal": {
+        "title": "Update Claim Status",
+        "description": "Select the new status for this claim. This action will be logged.",
+        "placeholder": "Select new status...",
+        "confirm": "Confirm Update"
       },
       "detail": {
         "fields": {

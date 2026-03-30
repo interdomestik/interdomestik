@@ -3,6 +3,7 @@
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { Link } from '@/i18n/routing';
 import { fetchClaims } from '@/lib/api/claims';
+import { formatPilotDate } from '@/lib/utils/date';
 import {
   Button,
   Card,
@@ -16,14 +17,16 @@ import {
 } from '@interdomestik/ui';
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Plus } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 
 const PER_PAGE = 10;
 
 export function MemberClaimsTable() {
   const searchParams = useSearchParams();
+  const locale = useLocale();
   const t = useTranslations('claims');
+  const tCategory = useTranslations('claims.category');
   const tCommon = useTranslations('common');
 
   const statusFilter = searchParams.get('status') || undefined;
@@ -52,6 +55,16 @@ export function MemberClaimsTable() {
     }
     const queryString = query.toString();
     return queryString ? `?${queryString}` : '';
+  };
+
+  const formatCategory = (category: string | null | undefined) => {
+    if (!category) return '-';
+
+    try {
+      return tCategory(category as never);
+    } catch {
+      return category;
+    }
   };
 
   if (isLoading) {
@@ -129,7 +142,7 @@ export function MemberClaimsTable() {
                   {claim.companyName}
                 </TableCell>
                 <TableCell className="capitalize text-sm text-muted-foreground">
-                  {claim.category}
+                  {formatCategory(claim.category)}
                 </TableCell>
                 <TableCell>
                   <ClaimStatusBadge status={claim.status} />
@@ -144,7 +157,7 @@ export function MemberClaimsTable() {
                   )}
                 </TableCell>
                 <TableCell className="text-right text-sm" suppressHydrationWarning>
-                  {claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : '-'}
+                  {formatPilotDate(claim.createdAt, locale, '-')}
                 </TableCell>
               </TableRow>
             ))}

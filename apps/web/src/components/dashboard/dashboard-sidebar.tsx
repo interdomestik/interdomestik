@@ -172,7 +172,7 @@ function DashboardSidebarInner({
       <SidebarFooter className="m-2 rounded-xl border border-white/70 bg-white/70 p-2 shadow-[0_14px_30px_-26px_rgba(15,23,42,0.7)] backdrop-blur-xl">
         <SidebarUserMenu user={user} />
       </SidebarFooter>
-      <SidebarRail title={t('toggleSidebar')} />
+      <SidebarRail title={t('toggleSidebar')} aria-label={t('toggleSidebar')} />
     </Sidebar>
   );
 }

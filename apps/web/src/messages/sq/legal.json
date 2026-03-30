@@ -10,10 +10,28 @@
       }
     },
     "privacy": {
-      "title": "Politika e Privatësisë"
+      "title": "Politika e Privatësisë",
+      "intro": "Privatësia juaj ka rëndësi për ne. Në anëtarësimin tuaj përfshihet mbrojtje e rreptë e të dhënave.",
+      "sections": {
+        "handling": {
+          "title": "Si i trajtojmë të dhënat tuaja",
+          "body": "Ne mbledhim vetëm informacionin që nevojitet për të ofruar shërbimet e anëtarësisë, për të trajtuar kërkesat dhe për të përmbushur detyrimet ligjore. Qasja kufizohet sipas rolit dhe fushës së tenant-it."
+        },
+        "rights": {
+          "title": "Të drejtat tuaja",
+          "body": "Mund të kërkoni qasje në të dhënat e ruajtura, korrigjim dhe fshirje kur kjo lejohet ligjërisht."
+        },
+        "deletion": {
+          "title": "Kërkesat për fshirje",
+          "body": "Përdoruesit e autentikuar mund të dërgojnë një kërkesë për fshirje duke përdorur endpoint-in më poshtë me një trup opsional JSON.",
+          "followup": "Kërkesat regjistrohen si ngjarje të përputhshmërisë dhe rishikohen nga operacionet para se të kryhen veprime të pakthyeshme të fshirjes."
+        }
+      }
     },
     "cookies": {
-      "title": "Politika e Cookie-ve"
+      "title": "Politika e Cookie-ve",
+      "intro": "Ne përdorim cookie thelbësore për ta mbajtur portalin të sigurt dhe funksional. Cookie-t opsionale të analitikës aktivizohen vetëm pas pëlqimit të qartë.",
+      "preference": "Mund ta ndryshoni preferencën tuaj në çdo kohë duke rihapur kontrollet e banerit të cookie-ve gjatë sesionit tuaj."
     },
     "refund": {
       "title": "Politika e Rimbursimit"

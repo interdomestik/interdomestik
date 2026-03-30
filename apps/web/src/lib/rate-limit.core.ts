@@ -11,6 +11,8 @@ type RateLimitOptions = {
   windowSeconds: number;
   /** Headers to derive client identity (IP) */
   headers: Headers;
+  /** Optional suffix to disambiguate identities that share one source IP. */
+  keySuffix?: string | null;
   /** Enforce fail-closed behavior on production-sensitive endpoints. */
   productionSensitive?: boolean;
 };
@@ -92,11 +94,21 @@ function getRatelimitInstance(limit: number, windowSeconds: number) {
   });
 }
 
+function buildRateLimitKey(name: string, headers: Headers, keySuffix?: string | null): string {
+  const ip = getClientIp(headers);
+  const normalizedSuffix = typeof keySuffix === 'string' ? keySuffix.trim() : '';
+  if (normalizedSuffix.length > 0) {
+    return `${name}:${normalizedSuffix}:ip:${ip}`;
+  }
+  return `${name}:${ip}`;
+}
+
 export async function enforceRateLimit({
   name,
   limit,
   windowSeconds,
   headers,
+  keySuffix,
   productionSensitive,
 }: RateLimitOptions) {
   // Skip rate limiting entirely for automated test runs (Playwright, CI, etc.)
@@ -126,8 +138,7 @@ export async function enforceRateLimit({
 
   try {
     const ratelimit = getRatelimitInstance(limit, windowSeconds);
-    const ip = getClientIp(headers);
-    const key = `${name}:${ip}`;
+    const key = buildRateLimitKey(name, headers, keySuffix);
 
     const result = await ratelimit.limit(key);
 
@@ -170,6 +181,7 @@ export async function enforceRateLimitForAction({
   limit,
   windowSeconds,
   headers,
+  keySuffix,
   productionSensitive,
 }: RateLimitOptions): Promise<RateLimitResult> {
   // Skip rate limiting entirely for automated test runs (Playwright, CI, etc.)
@@ -199,8 +211,7 @@ export async function enforceRateLimitForAction({
 
   try {
     const ratelimit = getRatelimitInstance(limit, windowSeconds);
-    const ip = getClientIp(headers);
-    const key = `${name}:${ip}`;
+    const key = buildRateLimitKey(name, headers, keySuffix);
     const result = await ratelimit.limit(key);
 
     if (result.success) return { limited: false };

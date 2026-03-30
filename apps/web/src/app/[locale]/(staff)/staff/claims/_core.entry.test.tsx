@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  locale: 'en',
   getSessionMock: vi.fn(async () => ({
     user: {
       id: 'manager-1',
@@ -48,30 +49,102 @@ vi.mock('@/components/dashboard/claims/claim-status-badge', () => ({
 }));
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn(async () => (key: string, values?: Record<string, string | number>) => {
-    const translations: Record<string, string> = {
-      'staff_queue.subtitle': 'What needs action today.',
-      'staff_queue.results_count': values?.count === 1 ? '1 claim' : `${values?.count} claims`,
-      'staff_queue.search_placeholder': 'Search claim, member, company, or number',
-      'staff_queue.search': 'Search',
-      'staff_queue.clear_search': 'Clear',
-      'staff_queue.assignment_filter_label': 'Assignment filter',
-      'staff_queue.status_filter_label': 'Status filter',
-      'staff_queue.all_actionable': 'All actionable',
-      'staff_queue.empty_filtered': 'No claims match the current filters',
-      'staff_queue.empty_default': 'No claims in queue',
-      'staff_queue.assignment_state.unassigned': 'Unassigned',
-      'staff_queue.assignment_state.assigned_to_you': 'Assigned to you',
-      'staff_queue.assignment_state.assigned': 'Assigned',
-    };
+  getTranslations: vi.fn(
+    async (namespace?: string) => (key: string, values?: Record<string, string | number>) => {
+      const locale = hoisted.locale;
 
-    if (key === 'staff_queue.assignment_state.assigned_to_named') {
-      return `Assigned to ${values?.name}`;
+      if (namespace === 'claims-tracking.status') {
+        const statusTranslations: Record<string, Record<string, string>> = {
+          en: {
+            submitted: 'Submitted',
+            verification: 'Verification',
+            evaluation: 'Evaluation',
+            negotiation: 'Negotiation',
+            court: 'Court',
+          },
+          sq: {
+            submitted: 'Dorëzuar',
+            verification: 'Verifikim',
+            evaluation: 'Vlerësim',
+            negotiation: 'Negociim',
+            court: 'Gjykatë',
+          },
+        };
+
+        return statusTranslations[locale]?.[key] ?? key;
+      }
+
+      const translationsByLocale: Record<string, Record<string, string>> = {
+        en: {
+          claims_queue: 'Claims Queue',
+          'staff_queue.subtitle': 'What needs action today.',
+          'staff_queue.results_count': values?.count === 1 ? '1 claim' : `${values?.count} claims`,
+          'staff_queue.search_placeholder': 'Search claim, member, company, or number',
+          'staff_queue.search': 'Search',
+          'staff_queue.clear_search': 'Clear',
+          'staff_queue.assignment_filter_label': 'Assignment filter',
+          'staff_queue.status_filter_label': 'Status filter',
+          'staff_queue.all_actionable': 'All actionable',
+          'staff_queue.empty_filtered': 'No claims match the current filters',
+          'staff_queue.empty_default': 'No claims in queue',
+          'staff_queue.assignment_state.unassigned': 'Unassigned',
+          'staff_queue.assignment_state.assigned_to_you': 'Assigned to you',
+          'staff_queue.assignment_state.assigned': 'Assigned',
+          'staff_queue.assignment_filter.all_staff': 'My queue + unassigned',
+          'staff_queue.assignment_filter.mine': 'Assigned to me',
+          'staff_queue.assignment_filter.unassigned': 'Unassigned',
+          'staff_queue.assignment_filter.all_branch': 'All branch claims',
+          'staff_queue.table.claim': 'Claim',
+          'staff_queue.table.member': 'Member',
+          'staff_queue.table.status_stage': 'Status + stage',
+          'staff_queue.table.updated': 'Updated',
+          'staff_queue.table.action': 'Action',
+          'staff_queue.table.no_claim_number': 'No claim number',
+          'staff_queue.table.no_company': 'No company provided',
+          'staff_queue.table.no_member_number': 'No member number',
+          'actions.open': 'Open',
+        },
+        sq: {
+          claims_queue: 'Radha Operative e Kërkesave',
+          'staff_queue.subtitle': 'Çfarë ka nevojë për veprim sot.',
+          'staff_queue.results_count': values?.count === 1 ? '1 rast' : `${values?.count} raste`,
+          'staff_queue.search_placeholder': 'Kërko rast, anëtar, kompani ose numër',
+          'staff_queue.search': 'Kërko',
+          'staff_queue.clear_search': 'Pastro',
+          'staff_queue.assignment_filter_label': 'Filtri i caktimit',
+          'staff_queue.status_filter_label': 'Filtri i statusit',
+          'staff_queue.all_actionable': 'Të gjitha rastet vepruese',
+          'staff_queue.empty_filtered': 'Asnjë rast nuk përputhet me filtrat aktualë',
+          'staff_queue.empty_default': 'Nuk ka raste në radhë',
+          'staff_queue.assignment_state.unassigned': 'Pa përgjegjës',
+          'staff_queue.assignment_state.assigned_to_you': 'Caktuar te ju',
+          'staff_queue.assignment_state.assigned': 'I caktuar',
+          'staff_queue.assignment_filter.all_staff': 'Radha ime + pa përgjegjës',
+          'staff_queue.assignment_filter.mine': 'Caktuar te unë',
+          'staff_queue.assignment_filter.unassigned': 'Pa përgjegjës',
+          'staff_queue.assignment_filter.all_branch': 'Të gjitha rastet e degës',
+          'staff_queue.table.claim': 'Rasti',
+          'staff_queue.table.member': 'Anëtari',
+          'staff_queue.table.status_stage': 'Statusi + faza',
+          'staff_queue.table.updated': 'Përditësuar',
+          'staff_queue.table.action': 'Veprimi',
+          'staff_queue.table.no_claim_number': 'Pa numër rasti',
+          'staff_queue.table.no_company': 'Nuk ka kompani të dhënë',
+          'staff_queue.table.no_member_number': 'Pa numër anëtarësie',
+          'actions.open': 'Hap',
+        },
+      };
+
+      if (key === 'staff_queue.assignment_state.assigned_to_named') {
+        return locale === 'sq' ? `Caktuar te ${values?.name}` : `Assigned to ${values?.name}`;
+      }
+
+      return translationsByLocale[locale]?.[key] || key;
     }
-
-    return translations[key] || key;
+  ),
+  setRequestLocale: vi.fn((locale: string) => {
+    hoisted.locale = locale;
   }),
-  setRequestLocale: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -84,6 +157,7 @@ import StaffClaimsPage from './_core.entry';
 
 describe('StaffClaimsPage', () => {
   beforeEach(() => {
+    hoisted.locale = 'en';
     hoisted.getSessionMock.mockClear();
     hoisted.getStaffClaimsListMock.mockClear();
     hoisted.getStaffClaimsListMock.mockResolvedValue([]);
@@ -211,5 +285,49 @@ describe('StaffClaimsPage', () => {
       'href',
       '/staff/claims?assigned=unassigned&search=Acme'
     );
+  });
+
+  it('renders localized queue copy on non-English staff routes', async () => {
+    hoisted.getStaffClaimsListMock.mockResolvedValueOnce([
+      {
+        id: 'claim-1',
+        claimNumber: null,
+        companyName: null,
+        title: 'Rast',
+        status: 'verification',
+        stageLabel: 'Verification',
+        updatedAt: '2026-03-01T00:00:00.000Z',
+        memberName: 'Anëtar',
+        memberNumber: null,
+        staffId: null,
+      },
+    ] as any);
+
+    const tree = await StaffClaimsPage({
+      params: Promise.resolve({ locale: 'sq' }),
+      searchParams: Promise.resolve({}),
+    });
+
+    render(tree);
+
+    expect(screen.getByTestId('page-title')).toHaveTextContent('Radha Operative e Kërkesave');
+    expect(screen.getByText('Rasti')).toBeInTheDocument();
+    expect(screen.getByText('Anëtari')).toBeInTheDocument();
+    expect(screen.getByText('Statusi + faza')).toBeInTheDocument();
+    expect(screen.getByText('Përditësuar')).toBeInTheDocument();
+    expect(screen.getByText('Veprimi')).toBeInTheDocument();
+    expect(screen.getByTestId('staff-claims-assigned-filter-unassigned')).toHaveTextContent(
+      'Pa përgjegjës'
+    );
+    expect(screen.getByTestId('staff-claims-status-filter-verification')).toHaveTextContent(
+      'Verifikim'
+    );
+    expect(screen.getAllByText('Verifikim').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Verification')).not.toBeInTheDocument();
+    expect(screen.getByText('Pa numër rasti')).toBeInTheDocument();
+    expect(screen.getByText('Nuk ka kompani të dhënë')).toBeInTheDocument();
+    expect(screen.getByText('Pa numër anëtarësie')).toBeInTheDocument();
+    expect(screen.getByTestId('staff-claim-assignment-state')).toHaveTextContent('Pa përgjegjës');
+    expect(screen.getByTestId('staff-claims-view')).toHaveTextContent('Hap');
   });
 });

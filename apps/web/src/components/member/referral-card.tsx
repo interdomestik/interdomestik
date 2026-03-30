@@ -1,16 +1,15 @@
 'use client';
 
 import {
-  getMemberReferralLink,
-  getMemberReferralProgramPreview,
-  getMemberReferralStats,
+  getMemberReferralCardData,
+  type MemberReferralCardData,
   type MemberReferralProgramSettings,
-  type MemberReferralStats,
 } from '@/actions/member-referrals';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Input } from '@interdomestik/ui/components/input';
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
+import { normalizePublicLink, normalizeWhatsAppShareUrl } from '@/lib/public-links';
 import { AlertCircle, Check, Copy, Gift, Share2, Wallet } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -18,13 +17,6 @@ import { toast } from 'sonner';
 
 interface ReferralCardProps {
   isAgent?: boolean;
-}
-
-interface ReferralCardData {
-  link: string;
-  whatsappShareUrl: string;
-  stats: MemberReferralStats;
-  settings: MemberReferralProgramSettings;
 }
 
 function formatCurrency(amount: number, currency: string) {
@@ -61,11 +53,19 @@ function getRewardSummary(
   });
 }
 
+function normalizeReferralCardData(data: MemberReferralCardData): MemberReferralCardData {
+  return {
+    ...data,
+    link: normalizePublicLink(data.link),
+    whatsappShareUrl: normalizeWhatsAppShareUrl(data.whatsappShareUrl),
+  };
+}
+
 const SKELETON_CARD_IDS = ['friends', 'pending', 'credited', 'paid'] as const;
 
 export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>) {
   const t = useTranslations('dashboard.referral');
-  const [data, setData] = useState<ReferralCardData | null>(null);
+  const [data, setData] = useState<MemberReferralCardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,33 +80,14 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
 
     async function loadData() {
       try {
-        const [linkResult, statsResult, settingsResult] = await Promise.all([
-          getMemberReferralLink(),
-          getMemberReferralStats(),
-          getMemberReferralProgramPreview(),
-        ]);
+        const result = await getMemberReferralCardData();
 
-        if (!linkResult.success) {
-          setError(linkResult.error);
+        if (!result.success) {
+          setError(t('loadError'));
           return;
         }
 
-        if (!statsResult.success) {
-          setError(statsResult.error);
-          return;
-        }
-
-        if (!settingsResult.success) {
-          setError(settingsResult.error);
-          return;
-        }
-
-        setData({
-          link: linkResult.data.link,
-          whatsappShareUrl: linkResult.data.whatsappShareUrl,
-          stats: statsResult.data,
-          settings: settingsResult.data,
-        });
+        setData(normalizeReferralCardData(result.data));
       } catch (loadError) {
         console.error(loadError);
         setError(t('loadError'));
@@ -126,7 +107,7 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
     if (!data?.link) return;
 
     try {
-      await navigator.clipboard.writeText(data.link);
+      await navigator.clipboard.writeText(normalizePublicLink(data.link));
       setIsCopied(true);
       toast.success(t('copied'));
       globalThis.setTimeout(() => setIsCopied(false), 2000);
@@ -137,7 +118,11 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
 
   const handleShare = () => {
     if (!data?.whatsappShareUrl) return;
-    globalThis.open(data.whatsappShareUrl, '_blank', 'noopener,noreferrer');
+    globalThis.open(
+      normalizeWhatsAppShareUrl(data.whatsappShareUrl),
+      '_blank',
+      'noopener,noreferrer'
+    );
   };
 
   if (isLoading) {
@@ -168,7 +153,7 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">{error ?? t('loadError')}</p>
+          <p className="text-sm text-muted-foreground">{error}</p>
         </CardContent>
       </Card>
     );

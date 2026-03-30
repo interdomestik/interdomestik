@@ -7,39 +7,93 @@ import { toNextJsHandler } from 'better-auth/next-js';
 import {
   evaluateEmailSignInTenantGuard,
   getAuthRateLimitConfig,
+  getAuthRateLimitKeySuffix,
   isEmailPasswordSignInUrl,
   getPasswordResetAuditEventFromUrl,
   resolveTenantIdForPasswordResetAudit,
 } from './_core';
 
 const handler = toNextJsHandler(auth);
+function isLocalLoopbackAuthHost(headers: Headers): boolean {
+  const host = (headers.get('x-forwarded-host') ?? headers.get('host') ?? '').toLowerCase();
+  const hostname = host.split(':')[0];
 
-export async function GET(req: Request) {
-  const limited = await enforceRateLimit({
-    ...getAuthRateLimitConfig('GET', req.url),
-    headers: req.headers,
-    productionSensitive: true,
-  });
-  if (limited) return limited;
-  return handler.GET(req as unknown as Parameters<typeof handler.GET>[0]);
+  return (
+    hostname === '127.0.0.1' || hostname === 'localhost' || hostname.endsWith('.127.0.0.1.nip.io')
+  );
 }
 
-export async function POST(req: Request) {
-  const limited = await enforceRateLimit({
+function shouldBypassAuthRateLimit(headers: Headers): boolean {
+  if (process.env.NODE_ENV === 'production') {
+    return false;
+  }
+
+  return isLocalLoopbackAuthHost(headers);
+}
+
+async function parseJsonBody(req: Request): Promise<unknown> {
+  try {
+    return await req.clone().json();
+  } catch {
+    return null;
+  }
+}
+
+async function enforcePostAuthRateLimit(req: Request) {
+  return enforceRateLimit({
     ...getAuthRateLimitConfig('POST', req.url),
     headers: req.headers,
     productionSensitive: true,
   });
-  if (limited) return limited;
+}
 
-  if (isEmailPasswordSignInUrl(req.url)) {
-    let signInBody: unknown = null;
-    try {
-      signInBody = await req.clone().json();
-    } catch {
-      signInBody = null;
+export async function GET(req: Request) {
+  if (!shouldBypassAuthRateLimit(req.headers)) {
+    const limited = await enforceRateLimit({
+      ...getAuthRateLimitConfig('GET', req.url),
+      headers: req.headers,
+      productionSensitive: true,
+    });
+    if (limited) return limited;
+  }
+  return handler.GET(req as unknown as Parameters<typeof handler.GET>[0]);
+}
+
+export async function POST(req: Request) {
+  const emailPasswordSignIn = isEmailPasswordSignInUrl(req.url);
+  const signInBody = emailPasswordSignIn ? await parseJsonBody(req) : null;
+  const postRateLimitConfig = getAuthRateLimitConfig('POST', req.url);
+
+  if (!shouldBypassAuthRateLimit(req.headers)) {
+    if (emailPasswordSignIn) {
+      const identityKeySuffix = getAuthRateLimitKeySuffix({
+        method: 'POST',
+        url: req.url,
+        headers: req.headers,
+        body: signInBody,
+      });
+
+      if (identityKeySuffix) {
+        const identityLimited = await enforceRateLimit({
+          name: `${postRateLimitConfig.name}:identity`,
+          limit: 20,
+          windowSeconds: postRateLimitConfig.windowSeconds,
+          headers: req.headers,
+          keySuffix: identityKeySuffix,
+          productionSensitive: true,
+        });
+        if (identityLimited) return identityLimited;
+      } else {
+        const limited = await enforcePostAuthRateLimit(req);
+        if (limited) return limited;
+      }
+    } else {
+      const limited = await enforcePostAuthRateLimit(req);
+      if (limited) return limited;
     }
+  }
 
+  if (emailPasswordSignIn) {
     const tenantGuard = await evaluateEmailSignInTenantGuard({
       url: req.url,
       headers: req.headers,

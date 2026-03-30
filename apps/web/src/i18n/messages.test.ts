@@ -30,6 +30,20 @@ describe('i18n shell namespace coverage', () => {
     expect(admin).toContain("'dashboard'");
   });
 
+  it('includes claims-tracking on staff shells that render claim detail status copy', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, 'messages.ts'), 'utf8');
+    const staff = getArrayBlock(source, 'STAFF_NAMESPACES');
+
+    expect(staff).toContain("'claims-tracking'");
+  });
+
+  it('includes claims-tracking on admin shells that render branch pipeline statuses', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, 'messages.ts'), 'utf8');
+    const admin = getArrayBlock(source, 'ADMIN_NAMESPACES');
+
+    expect(admin).toContain("'claims-tracking'");
+  });
+
   it('includes freeStart on the home shell loader', () => {
     const source = fs.readFileSync(path.resolve(__dirname, 'messages.ts'), 'utf8');
     const allNamespaces = getArrayBlock(source, 'MESSAGE_NAMESPACES');

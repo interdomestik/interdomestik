@@ -243,6 +243,31 @@ describe('proxy auth guard hardening', () => {
     expect(mockEmitAuthTelemetryEvent).not.toHaveBeenCalled();
   });
 
+  it('reuses a recent active session introspection result for the same protected session', async () => {
+    const signed = await signSessionToken(
+      'token-active-cache',
+      process.env.BETTER_AUTH_SECRET as string
+    );
+    const fetchSpy = mockSessionLookup({
+      session: {
+        id: 's1',
+        token: 'token-active-cache',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      },
+      user: { id: 'u1', role: 'member' },
+    });
+    const firstRequest = makeRequest('/sq/member', `better-auth.session_token=${signed}`);
+    const secondRequest = makeRequest('/sq/member/claims', `better-auth.session_token=${signed}`);
+
+    const firstResponse = await proxy(firstRequest);
+    const secondResponse = await proxy(secondRequest);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expectAllowedProtectedRoute(firstResponse);
+    expectAllowedProtectedRoute(secondResponse);
+    expect(mockEmitAuthTelemetryEvent).not.toHaveBeenCalled();
+  });
+
   it('retries inactive sessions once for flagged tenants', async () => {
     process.env.STAFF_AUTH_TOLERANT_TENANTS = 'tenant_ks';
     const signed = await signSessionToken(

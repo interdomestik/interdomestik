@@ -1,5 +1,17 @@
 {
   "admin": {
+    "overview_page": {
+      "title": "Përmbledhje e administratorit",
+      "description": "Monitoro shëndetin e sistemit, volumin e kërkesave dhe ngarkesën e degëve në të gjithë sipërfaqen admin.",
+      "kpis_total_members": "Anëtarët totalë",
+      "kpis_total_agents": "Agjentët totalë",
+      "kpis_total_active_claims": "Kërkesat aktive totale",
+      "kpis_claims_updated_24h": "Kërkesat e përditësuara (24h)",
+      "claims_by_stage": "Kërkesat sipas fazës",
+      "claims_by_branch": "Kërkesat sipas degës",
+      "no_active_claims": "Nuk ka kërkesa aktive",
+      "no_branch_accumulation": "Ende nuk ka aktivitet sipas degëve"
+    },
     "dashboard": {
       "title": "Paneli i Adminit",
       "recent_activity": "Aktiviteti i Fundit",
@@ -25,6 +37,9 @@
         "new_branch": "Degë e Re",
         "agents": "Agjentët",
         "verify_leads": "Verifiko Potencialët"
+      },
+      "footer": {
+        "data_freshness": "Përditësimi i të dhënave: Në kohë reale"
       },
       "kpis": {
         "branches": "Degët Totale",
@@ -68,6 +83,24 @@
           "disqualified": "Skualifikuar",
           "expired": "Skaduar"
         }
+      }
+    },
+    "dashboardOverview": {
+      "title": "Përmbledhja e Adminit",
+      "description": "Gjendja e sistemit dhe akumulimi operacional.",
+      "kpis": {
+        "members": "Anëtarët Totalë",
+        "agents": "Agjentët Totalë",
+        "activeClaims": "Dëmet Aktive Totale",
+        "updated24h": "Dëmet e Përditësuara (24h)"
+      },
+      "sections": {
+        "byStage": "Dëmet sipas Fazës",
+        "byBranch": "Dëmet sipas Degës"
+      },
+      "empty": {
+        "noActiveClaims": "Nuk ka dëme aktive",
+        "noBranchAccumulation": "Nuk ka akumulim sipas degës"
       }
     }
   }

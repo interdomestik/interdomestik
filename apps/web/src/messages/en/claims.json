@@ -155,6 +155,8 @@
       "claimAmount": "Claim Amount",
       "category": "Category",
       "evidence": "Attached Evidence",
+      "documentsEmpty": "No documents uploaded yet",
+      "viewDocument": "View",
       "matterAllowance": {
         "title": "Matter allowance",
         "used": "Used this year",

@@ -52,7 +52,7 @@
       "table_status": "Status filijale",
       "table_kpis": "KPI pokazatelji",
       "table_open_claims": "Otvorene Štete",
-      "table_cash_pending": "Keš na Čekanju",
+      "table_cash_pending": "Gotovina na čekanju",
       "table_sla_breaches": "SLA Prekršaji",
       "table_actions": "Akcije",
       "dashboard": {
@@ -65,7 +65,7 @@
         "stats_total_claims": "Ukupno zahteva",
         "stats_claims_this_month": "Ovaj mesec",
         "stats_open_claims": "Otvoreni Zahtevi",
-        "stats_cash_pending": "Keš na Čekanju",
+        "stats_cash_pending": "Gotovina na čekanju",
         "stats_sla_breaches": "SLA Prekršaji",
         "agents_title": "Agenti",
         "agents_description": "{count, plural, =0 {Nema agenata} =1 {1 agent} other {# agenata}} u ovoj filijali",
@@ -98,9 +98,14 @@
       "sort_label": "Sortiraj po",
       "sort_name_asc": "Ime (A-Ž)",
       "sort_open_claims_desc": "Otvorene štete (Više-Niže)",
-      "sort_cash_pending_desc": "Keš na čekanju (Više-Niže)",
+      "sort_cash_pending_desc": "Gotovina na čekanju (Više-Niže)",
       "sort_sla_breaches_desc": "SLA prekršaji (Više-Niže)",
+      "sort_health_score_asc": "Zdravlje (Najgore prvo)",
       "health": {
+        "healthy": "Zdravo stanje",
+        "watch": "Zahteva pažnju",
+        "urgent": "Hitno",
+        "inactive": "Neaktivno",
         "tooltip": {
           "healthy": {
             "title": "Operacije su pod kontrolom.",
@@ -169,8 +174,16 @@
         "cash_pending_desc": "{count} plaćanja čekaju verifikaciju"
       },
       "pipeline": {
-        "title": "Pipeline Šteta",
-        "empty": "Nema aktivnih šteta u pipeline-u"
+        "title": "Tok šteta",
+        "empty": "Nema aktivnih šteta u toku",
+        "statuses": {
+          "submitted": "Podneto",
+          "verification": "Verifikacija",
+          "evaluation": "Procena",
+          "negotiation": "Pregovaranje",
+          "court": "Sud",
+          "resolved": "Rešeno"
+        }
       },
       "agent_health": {
         "title": "Zdravlje Agenata",

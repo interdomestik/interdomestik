@@ -35,18 +35,24 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   const selectedRole = normalizeRole(roleParam);
 
-  const [usersResult, agentsResult, branchesResult] = await Promise.all([
+  const [usersResult, promotableUsersResult, agentsResult, branchesResult] = await Promise.all([
     getUsers({
       search,
       // Include 'member' role in the User tab so they are visible
       role: selectedRole === 'user' ? 'user,member' : selectedRole,
       assignment: selectedRole === 'user' ? assignment : undefined,
     }),
+    getUsers({
+      search,
+      role: 'user,member,staff',
+      assignment: undefined,
+    }),
     getAgents(),
     listBranches({ includeInactive: false }),
   ]);
 
   const users = usersResult.success ? (usersResult.data ?? []) : [];
+  const promotableUsers = promotableUsersResult.success ? (promotableUsersResult.data ?? []) : [];
   const agents = agentsResult.success ? (agentsResult.data ?? []) : [];
   const branches = branchesResult.success ? (branchesResult.data ?? []) : [];
 
@@ -72,12 +78,22 @@ export default async function AdminUsersPage({ searchParams }: Props) {
     console.error('Failed to load agents:', agentsResult.error);
   }
 
+  if (!promotableUsersResult.success) {
+    if (
+      promotableUsersResult.code === 'UNAUTHORIZED' ||
+      promotableUsersResult.code === 'FORBIDDEN' ||
+      promotableUsersResult.code?.startsWith('FORBIDDEN')
+    ) {
+      notFound();
+    }
+    console.error('Failed to load promotable users:', promotableUsersResult.error);
+  }
+
   const t = await getTranslations('admin.users_page');
-  const tSidebar = await getTranslations('admin.sidebar');
   const tFilters = await getTranslations('admin.users_filters');
 
   // Filter users eligible for promotion (exclude existing agents/admin roles).
-  const eligibleUsers = users.filter(u => isPromotableToAgentRole(u.role));
+  const eligibleUsers = promotableUsers.filter(u => isPromotableToAgentRole(u.role));
 
   const roleOptions = [
     { value: 'user', label: tFilters('roles.user') },
@@ -117,7 +133,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
     <div className="space-y-6" data-testid="admin-users-page">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{tSidebar('users')}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">{t('description')}</p>
         </div>
         <AddAgentDialog users={eligibleUsers} branches={branches} />

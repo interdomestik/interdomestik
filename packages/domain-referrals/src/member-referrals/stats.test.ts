@@ -108,4 +108,52 @@ describe('getMemberReferralStatsCore', () => {
     expect(referralCountFrom).toHaveBeenCalledTimes(1);
     expect(referralCountWhere).toHaveBeenCalledTimes(1);
   });
+
+  it('returns zero stats when local referral tables are missing', async () => {
+    const referralCountWhere = vi.fn().mockRejectedValue({
+      cause: { code: '42P01' },
+      message: 'relation "referrals" does not exist',
+    });
+    const referralCountFrom = vi.fn(() => ({ where: referralCountWhere }));
+    vi.mocked(db.select).mockReturnValue({
+      from: referralCountFrom,
+    } as never);
+    vi.mocked(db.query.memberReferralRewards.findMany).mockRejectedValue({
+      cause: { code: '42P01' },
+      message: 'relation "member_referral_rewards" does not exist',
+    } as never);
+
+    const { getMemberReferralProgramSettingsCore } = await import('./settings');
+    vi.mocked(getMemberReferralProgramSettingsCore).mockResolvedValue({
+      success: true,
+      data: {
+        tenantId: 'tenant-1',
+        enabled: false,
+        rewardType: 'fixed',
+        fixedRewardCents: 0,
+        percentRewardBps: null,
+        settlementMode: 'credit_only',
+        payoutThresholdCents: 0,
+        fraudReviewEnabled: false,
+        currencyCode: 'EUR',
+        qualifyingEventType: 'first_paid_membership',
+      },
+    } as never);
+
+    const result = await getMemberReferralStatsCore({
+      session: { user: { id: 'member-a', role: 'user', tenantId: 'tenant-1' } } as any,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({
+        totalReferred: 0,
+        pendingRewards: 0,
+        creditedRewards: 0,
+        payoutEligibleRewards: 0,
+        paidRewards: 0,
+        rewardsCurrency: 'EUR',
+      });
+    }
+  });
 });

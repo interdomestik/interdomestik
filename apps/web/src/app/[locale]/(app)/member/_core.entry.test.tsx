@@ -58,14 +58,14 @@ vi.mock('@/components/dashboard/legacy-banner', () => ({
 import DashboardLayout from './_core.entry';
 
 describe('MemberDashboard layout role handling', () => {
-  it('does not redirect agents away from the member surface', async () => {
+  it('redirects agents to their canonical surface instead of rendering member content', async () => {
     await expect(
       DashboardLayout({
         children: null,
         params: Promise.resolve({ locale: 'mk' }),
       })
-    ).resolves.toBeTruthy();
+    ).rejects.toThrowError('redirect:/mk/agent');
 
-    expect(hoisted.redirectMock).not.toHaveBeenCalled();
+    expect(hoisted.redirectMock).toHaveBeenCalledWith('/mk/agent');
   });
 });

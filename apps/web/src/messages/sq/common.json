@@ -38,6 +38,10 @@
       "agent": "Agjent",
       "member": "Anëtar",
       "staff": "Staf",
+      "super_admin": "Kryeadministrator",
+      "tenant_admin": "Administrator i tenant-it",
+      "branch_manager": "Menaxher i filialit",
+      "promoter": "Promotor",
       "user": "Anëtar"
     },
     "errors": {

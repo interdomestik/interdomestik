@@ -1,5 +1,6 @@
 'use client';
 
+import { AdminClaimEvidenceUploadDialog } from '@/features/admin/claims/components/ops/AdminClaimEvidenceUploadDialog';
 import { UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -13,10 +14,11 @@ interface EvidenceDoc {
 }
 
 interface EvidencePanelProps {
+  claimId: string;
   docs: EvidenceDoc[];
 }
 
-export function EvidencePanel({ docs }: EvidencePanelProps) {
+export function EvidencePanel({ claimId, docs }: EvidencePanelProps) {
   const t = useTranslations('admin.claims_page.evidence');
   const tCommon = useTranslations('common');
   const mappedDocs = docs.map(doc => ({
@@ -32,15 +34,20 @@ export function EvidencePanel({ docs }: EvidencePanelProps) {
       emptyLabel={t('no_docs')}
       viewLabel={tCommon('view')}
       headerActions={
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
-          title={t('upload_button')}
-          aria-label={t('upload_button')}
-        >
-          <UploadCloud className="w-4 h-4" />
-        </Button>
+        <AdminClaimEvidenceUploadDialog
+          claimId={claimId}
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              title={t('upload_button')}
+              aria-label={t('upload_button')}
+            >
+              <UploadCloud className="w-4 h-4" />
+            </Button>
+          }
+        />
       }
     />
   );

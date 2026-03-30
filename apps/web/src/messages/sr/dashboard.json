@@ -23,8 +23,15 @@
       "orientation_point_one": "Ako se desi incident, započnite zahtev u nekoliko brzih koraka.",
       "orientation_point_two": "Držite dokumenta spremna i kontaktirajte podršku kada god je potrebno.",
       "orientation_cta": "Pogledajte kako funkcioniše",
+      "active_claim_title": "Aktivan zahtev",
       "empty_title": "Još uvek nema zahteva",
       "empty_body": "Kada podnesete svoj prvi zahtev, on će se pojaviti ovde.",
+      "active_claim_title": "Aktivan zahtev",
+      "updated_label": "Ažurirano",
+      "account_error_title": "Greška u konfiguraciji naloga",
+      "account_error_body": "Nismo mogli da učitamo detalje vašeg profila. Obratite se podršci.",
+      "account_error_cta": "Zatraži pomoć",
+      "unavailable_short": "Nema",
       "help_label": "Potrebna vam je pomoć?",
       "more_services": "Više usluga",
       "diaspora_description": "Specijalizovana mreža podrške za članove širom Evrope i šire.",
@@ -127,6 +134,32 @@
       "cta_report": "PRIJAVI ŠTETU (60 sek)",
       "cta_green_card": "ZELENI KARTON – U inostranstvu (Dijaspora)",
       "cta_benefits": "10 PREDNOSTI ČLANSTVA"
+    },
+    "member_cta_pages": {
+      "shared": {
+        "next_steps": "Šta dalje uraditi",
+        "secondary": "Kontaktiraj podršku"
+      },
+      "claim_report": {
+        "description": "Koristite ovu stranicu da započnete novi zahtev člana. Najpre podelite osnovne činjenice, a zatim tim nastavlja slučaj u postojećem toku zahteva.",
+        "boundary": "Ova ruta pokreće samo prijem zahteva. Ne zamenjuje pregled, donošenje odluka ili obradu od strane osoblja.",
+        "primary": "Pokreni novi zahtev"
+      },
+      "green_card": {
+        "description": "Podrška za Zeleni karton i pomoć u inostranstvu obrađuju se kroz člansku zonu za dijasporu, gde već postoje aktuelna putna uputstva i kontakt putevi.",
+        "boundary": "Ova stranica vas upućuje na aktivni tok za dijasporu umesto da održava posebnu površinu samo za pilot.",
+        "primary": "Otvori podršku za dijasporu"
+      },
+      "benefits": {
+        "description": "Pogodnosti članstva, kontekst pokrića i aktivni komercijalni detalji održavaju se u zoni članstva.",
+        "boundary": "Ova stranica za usmeravanje ne zamenjuje aktivnu površinu članstva niti ugovorne uslove.",
+        "primary": "Otvori pogodnosti članstva"
+      },
+      "incident_guide": {
+        "description": "Ako se incident upravo dogodio, prvo pokrenite tok zahteva člana kako bi trijaža mogla da počne i tim vas uputi oko dokumenata i sledećih koraka.",
+        "boundary": "Ova stranica je usmeravanje za člana, a ne interni operatorov priručnik.",
+        "primary": "Otvori prijavu incidenta"
+      }
     },
     "protection_status": {
       "active": "Aktivno članstvo",

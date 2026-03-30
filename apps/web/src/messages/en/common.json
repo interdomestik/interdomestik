@@ -17,6 +17,8 @@
     "search": "Search",
     "filter": "Filter",
     "all": "All",
+    "unassigned": "Unassigned",
+    "no_results": "No results.",
     "none": "None",
     "yes": "Yes",
     "no": "No",
@@ -34,8 +36,13 @@
     "roles": {
       "admin": "Administrator",
       "agent": "Agent",
+      "member": "Member",
       "staff": "Staff",
-      "user": "Member"
+      "user": "Member",
+      "super_admin": "Super administrator",
+      "tenant_admin": "Tenant administrator",
+      "branch_manager": "Branch manager",
+      "promoter": "Promoter"
     },
     "errors": {
       "title": "Error",

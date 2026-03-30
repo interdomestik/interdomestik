@@ -47,7 +47,9 @@ describe('GET /api/auth/[...all]', () => {
   });
 
   it('delegates to better-auth handler when not rate limited', async () => {
-    const req = new Request('http://localhost:3000/api/auth/session');
+    const req = new Request('http://app.example.test/api/auth/session', {
+      headers: { host: 'app.example.test' },
+    });
     const res = await GET(req);
 
     expect(res.status).toBe(200);
@@ -61,9 +63,35 @@ describe('GET /api/auth/[...all]', () => {
       })
     );
   });
+
+  it('bypasses auth rate limiting on loopback development hosts', async () => {
+    const req = new Request('http://localhost:3000/api/auth/session', {
+      headers: { host: 'mk.127.0.0.1.nip.io:3000' },
+    });
+
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    expect(hoisted.enforceRateLimit).not.toHaveBeenCalled();
+    expect(hoisted.handlerGET).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('POST /api/auth/[...all]', () => {
+  function buildEmailSignInRequest(options?: { host?: string; email?: string }) {
+    return new Request('http://app.example.test/api/auth/sign-in/email', {
+      method: 'POST',
+      headers: {
+        host: options?.host ?? 'ks.localhost:3000',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: options?.email ?? 'admin.ks@interdomestik.com',
+        password: 'not-used-in-route-test',
+      }),
+    });
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.enforceRateLimit.mockResolvedValue(null);
@@ -104,7 +132,10 @@ describe('POST /api/auth/[...all]', () => {
   });
 
   it('does not log audit for other auth routes', async () => {
-    const req = new Request('http://localhost:3000/api/auth/sign-in', { method: 'POST' });
+    const req = new Request('http://app.example.test/api/auth/sign-in', {
+      method: 'POST',
+      headers: { host: 'app.example.test' },
+    });
 
     const res = await POST(req);
 
@@ -116,5 +147,57 @@ describe('POST /api/auth/[...all]', () => {
         productionSensitive: true,
       })
     );
+  });
+
+  it('applies only the dedicated identity bucket for email sign-in', async () => {
+    hoisted.enforceRateLimit.mockResolvedValueOnce(new Response('limited', { status: 429 }));
+
+    const req = buildEmailSignInRequest({
+      email: '  ADMIN.KS@interdomestik.com ',
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(429);
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledTimes(1);
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'api/auth/sign-in/email:identity',
+        limit: 20,
+        keySuffix: 'tenant:tenant_ks:email_hash:2985f89bf0896586e6ee',
+        productionSensitive: true,
+      })
+    );
+  });
+
+  it('falls back to the generic sign-in bucket when email sign-in cannot be keyed safely', async () => {
+    hoisted.enforceRateLimit.mockResolvedValueOnce(new Response('limited', { status: 429 }));
+
+    const req = buildEmailSignInRequest({ host: 'app.example.test' });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(429);
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledTimes(1);
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'api/auth/sign-in/email',
+        limit: 20,
+        productionSensitive: true,
+      })
+    );
+  });
+
+  it('bypasses auth rate limiting for loopback login posts in development', async () => {
+    const req = new Request('http://localhost:3000/api/auth/sign-in', {
+      method: 'POST',
+      headers: { host: 'ks.127.0.0.1.nip.io:3000' },
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(hoisted.enforceRateLimit).not.toHaveBeenCalled();
+    expect(hoisted.handlerPOST).toHaveBeenCalledTimes(1);
   });
 });

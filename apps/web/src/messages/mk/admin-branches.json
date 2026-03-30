@@ -53,7 +53,7 @@
       "table_status": "Статус",
       "table_kpis": "КПИ",
       "table_open_claims": "Отворени Штети",
-      "table_cash_pending": "Кеш во Чекање",
+      "table_cash_pending": "Готовина во чекање",
       "table_sla_breaches": "SLA Прекршувања",
       "table_actions": "Дејства",
       "view_dashboard": "Види Табла",
@@ -64,7 +64,7 @@
       "sort_label": "Сортирај според",
       "sort_name_asc": "Име (А-Ш)",
       "sort_open_claims_desc": "Отворени штети (Високо-Ниско)",
-      "sort_cash_pending_desc": "Кеш во чекање (Високо-Ниско)",
+      "sort_cash_pending_desc": "Готовина во чекање (Високо-Ниско)",
       "sort_sla_breaches_desc": "SLA Прекршувања (Високо-Ниско)",
       "dashboard": {
         "back_to_branches": "Назад кон филијали",
@@ -76,7 +76,7 @@
         "stats_total_claims": "Вкупно барања",
         "stats_claims_this_month": "Овој месец",
         "stats_open_claims": "Отворени Барања",
-        "stats_cash_pending": "Кеш Во Чекање",
+        "stats_cash_pending": "Готовина во чекање",
         "stats_sla_breaches": "SLA Прекршувања",
         "agents_title": "Агенти",
         "agents_description": "{count, plural, =0 {Нема агенти} =1 {1 агент} other {# агенти}} во оваа филијала",
@@ -100,7 +100,12 @@
       "create_success": "Филијалата е креирана",
       "create_success_description": "Филијалата {name} е успешно креирана.",
       "unexpected_error": "Се појави неочекувана грешка.",
+      "health_score": "Здравје {score}/100",
       "health": {
+        "healthy": "Здрава состојба",
+        "watch": "Бара внимание",
+        "urgent": "Итно",
+        "inactive": "Неактивна",
         "tooltip": {
           "healthy": {
             "title": "Операциите се под контрола.",
@@ -136,20 +141,19 @@
           }
         }
       },
-      "health_score": "Здравје {score}/100",
       "filters": {
         "needs_attention": "Бара Внимание"
       },
       "sort": {
         "name_asc": "Име (A–Z)",
         "open_claims_desc": "Отворени Штети",
-        "cash_pending_desc": "Кеш во Чекање",
+        "cash_pending_desc": "Готовина во чекање",
         "sla_breaches_desc": "SLA Прекршувања",
         "health_score_asc": "Здравје (Најлошо Прво)"
       },
       "kpis": {
         "open_claims": "Отворени Штети",
-        "cash_pending": "Кеш во Чекање",
+        "cash_pending": "Готовина во чекање",
         "sla_breaches": "SLA Прекршувања",
         "total_agents": "Вкупно Агенти",
         "total_members": "Вкупно Членови"
@@ -165,19 +169,27 @@
         "no_alerts": "Нема критични аларми",
         "sla_breach_title": "Ризик од SLA Прекршување",
         "sla_breach_desc": "{count} барања ја прекршиле SLA",
-        "cash_pending_title": "Кеш во Чекање за Авторизација",
+        "cash_pending_title": "Готовина во чекање за авторизација",
         "cash_pending_desc": "{count} плаќања чекаат верификација"
       },
       "pipeline": {
-        "title": "Pipeline на Штети",
-        "empty": "Нема активни штети во pipeline"
+        "title": "Тек на штети",
+        "empty": "Нема активни штети во текот",
+        "statuses": {
+          "submitted": "Поднесено",
+          "verification": "Верификација",
+          "evaluation": "Евалуација",
+          "negotiation": "Преговарање",
+          "court": "Суд",
+          "resolved": "Решено"
+        }
       },
       "agent_health": {
         "title": "Здравје на Агенти",
         "agent": "Агент",
         "score": "Резултат",
         "open": "Отворени",
-        "cash": "Кеш",
+        "cash": "Готовина",
         "sla": "SLA рок",
         "table_status": "Статус",
         "status": {

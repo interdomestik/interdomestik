@@ -16,10 +16,26 @@
           "unassigned": "Nedodeljeno",
           "assigned_to_you": "Dodeljeno vama",
           "assigned": "Dodeljeno",
-          "assigned_to_named": "Dodeljeno za {name}"
+          "assigned_to_named": "Dodeljeno {name}"
+        },
+        "assignment_filter": {
+          "all_staff": "Moj red + nedodeljeni",
+          "mine": "Dodeljeni meni",
+          "all_branch": "Svi zahtevi filijale"
+        },
+        "table": {
+          "claim": "Zahtev",
+          "member": "Član",
+          "status_stage": "Status + faza",
+          "updated": "Ažurirano",
+          "action": "Radnja",
+          "no_claim_number": "Nema broja zahteva",
+          "no_company": "Nije navedena kompanija",
+          "no_member_number": "Nema članskog broja"
         }
       },
       "queue": "Red zahteva",
+      "claims_queue": "Red zahteva",
       "manage_triage": "Upravljajte i trijaživajte sve podnete zahteve.",
       "table": {
         "claimant": "Podnosilac",
@@ -72,7 +88,164 @@
         "documents": "Dokumenti",
         "no_documents": "Nema otpremljenih dokumenata",
         "unknown_date": "Nepoznat datum",
-        "branch_manager_readonly_notice": "Menadžeri filijala ovde mogu da pregledaju status zahteva i kontekst člana, ali dodela, poruke i radnje nad zahtevom ostaju samo za osoblje u pilotu."
+        "branch_manager_readonly_notice": "Menadžeri filijala ovde mogu da pregledaju status zahteva i kontekst člana, ali dodela, poruke i radnje nad zahtevom ostaju samo za osoblje u pilotu.",
+        "staff_claim": {
+          "section_title": "Zahtev",
+          "status": "Stanje",
+          "updated": "Ažurirano",
+          "submitted": "Podneto"
+        },
+        "staff_member": {
+          "section_title": "Član",
+          "membership_number": "Članski broj"
+        },
+        "staff_matter_allowance": {
+          "section_title": "Kvota predmeta",
+          "used_this_year": "Iskorišćeno ove godine",
+          "remaining_this_year": "Preostalo ove godine",
+          "plan_allowance": "Kvota plana"
+        },
+        "staff_agent": {
+          "section_title": "Zastupnik"
+        },
+        "staff_note": {
+          "section_title": "Poslednja statusna beleška",
+          "empty": "Još nema javnih statusnih beleški."
+        }
+      },
+      "staff_actions": {
+        "title": "Radnje osoblja",
+        "staff_only": "Samo za osoblje",
+        "common": {
+          "pending": "Na čekanju",
+          "ready": "Spremno",
+          "missing": "Nedostaje",
+          "not_recorded": "Nije zabeleženo",
+          "yes": "Da",
+          "no": "Ne"
+        },
+        "success": {
+          "title": "Uspešno",
+          "assignment_self": "Zahtev je dodeljen vama",
+          "assignment_named": "Zahtev je dodeljen za {name}",
+          "assignment_updated": "Dodela zahteva je ažurirana",
+          "agreement_saved": "Sporazum o eskalaciji je sačuvan",
+          "recovery_accepted": "Predmet naplate je prihvaćen",
+          "recovery_declined": "Predmet naplate je odbijen",
+          "status_updated": "Status zahteva je ažuriran",
+          "collection_saved": "Naplata success fee je sačuvana"
+        },
+        "error": {
+          "title": "Greška"
+        },
+        "validation": {
+          "recovered_amount_positive": "Naplaćeni iznos mora biti pozitivan broj."
+        },
+        "commercial_scope": {
+          "title": "Ograničenje opsega za puštanje"
+        },
+        "assignment": {
+          "title": "Dodela",
+          "assign_claim": "Dodeli zahtev",
+          "save": "Sačuvaj dodelu",
+          "current_assignee": "Trenutno zaduženi",
+          "out_of_scope": "{name} (van opsega)",
+          "unassigned": "Nedodeljeno",
+          "assigned_to_you": "Dodeljeno vama",
+          "assigned_to_named": "Dodeljeno {name}",
+          "assigned_to_colleague": "Dodeljeno kolegi"
+        },
+        "recovery_decision": {
+          "title": "Odluka o naplati",
+          "description": "Osoblje mora jasno da prihvati ili odbije predmet naplate pre nego što počnu pregovori ili sudski postupak.",
+          "summary_status": "Status odluke",
+          "summary_decline_category": "Kategorija odbijanja",
+          "summary_explanation": "Obrazloženje odluke",
+          "explanation_label": "Obrazloženje odluke",
+          "explanation_placeholder": "Zabeležite obrazloženje samo za osoblje iza prihvatanja ili odbijanja...",
+          "accept": "Prihvati predmet naplate",
+          "decline_category_label": "Kategorija odbijanja",
+          "decline_category_placeholder": "Izaberi kategoriju odbijanja",
+          "decline": "Odbij predmet naplate",
+          "decline_reasons": {
+            "guidance_only_scope": "Samo savetovanje ili upućivanje prema trenutnom opsegu",
+            "insufficient_evidence": "Nedovoljno dokaza za naplatu koju vodi osoblje",
+            "no_monetary_recovery_path": "Ne postoji jasan put do novčane naplate",
+            "counterparty_unidentified": "Suprotna strana ili osiguravač ne mogu da se identifikuju",
+            "time_limit_risk": "Rizik od roka blokira naplatu koju vodi osoblje",
+            "conflict_or_integrity_concern": "Sukob interesa ili zabrinutost za integritet"
+          }
+        },
+        "recovery_prerequisites": {
+          "title": "Preduslovi za prihvaćenu naplatu",
+          "description": "Prihvaćena naplata ne može da pređe u pregovore ili sud dok oba preduslova ne budu spremna.",
+          "agreement": "Sporazum",
+          "collection_path": "Put naplate"
+        },
+        "escalation_agreement": {
+          "title": "Sporazum o eskalaciji",
+          "description": "Ovde zabeležite komercijalne uslove nakon što odluka o naplati bude prihvaćena. Ovaj sporazum ne zamenjuje izričitu odluku o naplati iznad.",
+          "accepted_next_state": "Prihvaćeno sledeće stanje",
+          "accepted_next_state_placeholder": "Izaberi prihvaćeno sledeće stanje",
+          "decision_reason": "Razlog odluke",
+          "decision_reason_placeholder": "Zabeležite zašto je osoblje prihvatilo ovaj put eskalacije...",
+          "fee": "Naknada",
+          "fee_percentage": "Procenat naknade",
+          "minimum_fee": "Minimalna naknada",
+          "minimum_fee_input": "Minimalna naknada (EUR)",
+          "legal_action_cap": "Granica za pravne radnje",
+          "payment_authorization": "Ovlašćenje za plaćanje",
+          "payment_authorization_placeholder": "Izaberi stanje ovlašćenja",
+          "terms_version": "Verzija uslova",
+          "signed": "Potpisano",
+          "save": "Sačuvaj sporazum o eskalaciji",
+          "empty": "Nema sačuvanog sporazuma o eskalaciji za ovaj zahtev.",
+          "empty_requires_save": "Sačuvajte prihvaćeni sporazum o eskalaciji pre nego što ovaj slučaj premestite u pregovore ili sud.",
+          "payment_authorization_options": {
+            "pending": "Na čekanju",
+            "authorized": "Ovlašćeno",
+            "revoked": "Povučeno"
+          }
+        },
+        "success_fee": {
+          "title": "Naplata success fee",
+          "description": "Zabeležite naplaćeni iznos i dozvolite da komercijalna pravila prvo razreše odbitak gde je dozvoljen, zatim sačuvani metod plaćanja, pa fakturu sa rokom od 7 dana.",
+          "recovered_amount": "Naplaćeni iznos",
+          "success_fee": "Naknada za uspeh",
+          "collection_method": "Metod naplate",
+          "stored_payment_method": "Sačuvani metod plaćanja",
+          "invoice_due": "Rok fakture",
+          "resolved": "Razrešeno",
+          "deduct_from_payout": "Odbiti od isplate?",
+          "collection_path_placeholder": "Izaberi put naplate",
+          "save": "Sačuvaj naplatu success fee",
+          "empty": "Nijedan nalog za naplatu success fee nije zabeležen za ovaj zahtev.",
+          "empty_requires_save": "Put naplate success fee još nije zabeležen. Sačuvajte ga pre nego što ovaj prihvaćeni slučaj premestite u pregovore ili sud.",
+          "locked_without_agreement": "Prvo sačuvajte sporazum o eskalaciji da biste otključali naplatu success fee.",
+          "collection_method_options": {
+            "deduction": "Odbij od isplate",
+            "payment_method_charge": "Naplatite sačuvani metod plaćanja",
+            "invoice": "Rezervna faktura"
+          },
+          "deduction_path_options": {
+            "allowed": "Da, odbitak je zakonski dozvoljen",
+            "fallback": "Ne, koristi rezervni redosled"
+          }
+        },
+        "status_update": {
+          "title": "Ažuriraj status",
+          "select_status": "Izaberi status",
+          "note_label": "Statusna beleška",
+          "visible_to_member": "Vidljivo članu",
+          "note_placeholder": "Razlog promene statusa...",
+          "requires_recovery_decision": "Prihvatite predmet naplate iznad pre nego što slučaj premestite u pregovore ili sud.",
+          "requires_escalation_agreement": "Sačuvajte prihvaćeni sporazum o eskalaciji pre nego što ovaj slučaj premestite u pregovore ili sud.",
+          "requires_collection_path": "Sačuvajte put naplate success fee pre nego što ovaj prihvaćeni slučaj premestite u pregovore ili sud.",
+          "allowance_override_reason": "Razlog za prekoračenje kvote",
+          "allowance_override_description": "Ako je član iscrpeo godišnju kvotu predmeta, ovde zabeležite interni razlog za prekoračenje ili unapredite pokriće pre nego što počne naplata koju vodi osoblje.",
+          "allowance_override_placeholder": "Objasnite zašto naplata treba da počne uprkos iscrpljenoj kvoti...",
+          "save": "Ažuriraj zahtev"
+        }
       },
       "triage": {
         "title": "Trijaža radnje",
@@ -81,8 +254,7 @@
         "verify": "Verifikuj info",
         "reject": "Odbij zahtev",
         "notice": "Promena statusa odmah ažurira korisnikovu vremensku liniju."
-      },
-      "claims_queue": "Red zahteva"
+      }
     }
   }
 }

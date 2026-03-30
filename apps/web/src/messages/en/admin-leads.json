@@ -66,7 +66,9 @@
         "note": "Note"
       },
       "dialogs": {
-        "needs_info_title": "Request Additional Info"
+        "needs_info_title": "Request Additional Info",
+        "needs_info_description": "Add a note describing what is missing before sending this request.",
+        "reject_description": "Add a note explaining why this payment verification is being rejected."
       },
       "placeholders": {
         "search": "Search (Name, Email, ID)...",

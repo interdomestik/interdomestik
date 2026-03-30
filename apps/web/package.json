@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "NEXT_PUBLIC_FORCE_NIPIO_REDIRECT=1 DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-test-secret-for-local-dev-only-32chars-minimum} next dev --turbo --hostname 127.0.0.1 --port 3000",
     "stamp:standalone": "node scripts/stamp-standalone.mjs",
-    "build": "next build && pnpm run stamp:standalone && pnpm check:size",
-    "build:ci": "next build && pnpm run stamp:standalone",
+    "build": "next build --webpack && pnpm run stamp:standalone && pnpm check:size",
+    "build:ci": "next build --webpack && pnpm run stamp:standalone",
     "check:size": "node scripts/check-size.mjs",
     "start": "next start",
     "start:ci": "next start",

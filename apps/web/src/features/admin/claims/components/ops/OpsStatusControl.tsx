@@ -13,12 +13,12 @@ import { useTransition } from 'react';
 import { toast } from 'sonner';
 import { updateStatus } from '../../actions/ops-actions';
 
-interface OpsStatusControlProps {
+type OpsStatusControlProps = Readonly<{
   claimId: string;
   currentStatus: string;
   allowedTransitions: string[];
   locale: string;
-}
+}>;
 
 export function OpsStatusControl({
   claimId,
@@ -27,6 +27,8 @@ export function OpsStatusControl({
   locale,
 }: OpsStatusControlProps) {
   const t = useTranslations('claims.status');
+  const tAdmin = useTranslations('admin.claims_page.status_form');
+  const tCommon = useTranslations('common');
   const [isPending, startTransition] = useTransition();
 
   const handleStatusChange = (newStatus: string) => {
@@ -34,12 +36,13 @@ export function OpsStatusControl({
       try {
         const result = await updateStatus(claimId, newStatus as ClaimStatus, locale);
         if (!result.success) {
-          toast.error(result.error || 'Failed to update status');
+          toast.error(result.error || tAdmin('error'));
         } else {
-          toast.success('Status updated successfully');
+          toast.success(tAdmin('success'));
+          globalThis.location.reload();
         }
       } catch (_error) {
-        toast.error('An unexpected error occurred');
+        toast.error(tCommon('errors.generic'));
       }
     });
   };
@@ -53,7 +56,7 @@ export function OpsStatusControl({
     <div className="flex items-center gap-2">
       <Select value={currentStatus} onValueChange={handleStatusChange} disabled={isPending}>
         <SelectTrigger className="w-[180px] h-9 text-xs capitalize">
-          <SelectValue placeholder="Status" />
+          <SelectValue placeholder={tAdmin('placeholder')} />
         </SelectTrigger>
         <SelectContent>
           {options.map(s => (

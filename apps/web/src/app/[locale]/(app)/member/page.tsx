@@ -1,12 +1,11 @@
 import { MemberDashboardV2 } from '@/components/dashboard/member-dashboard-v2';
 import { MemberDashboardView } from '@/components/dashboard/member-dashboard-view';
 import { MemberDashboardSkeleton } from '@/components/dashboard/member-dashboard-skeleton';
-import { auth } from '@/lib/auth';
+import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { isUiV2Enabled } from '@/lib/flags';
 import { ErrorBoundary } from '@interdomestik/ui';
 import { getMemberDashboardData } from '@interdomestik/domain-member';
 import { setRequestLocale } from 'next-intl/server';
-import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { getMemberDashboardCore } from './_core';
@@ -16,13 +15,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   setRequestLocale(locale);
   const uiV2Enabled = isUiV2Enabled();
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    redirect(`/${locale}/login`);
-  }
+  const session = requireSessionOrRedirect(await getSessionSafe('MemberDashboardPage'), locale);
 
   const result = getMemberDashboardCore({
     role: session.user.role,

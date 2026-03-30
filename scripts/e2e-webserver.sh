@@ -310,7 +310,8 @@ rebuild_standalone_once() {
 	echo "⚠️ Standalone artifact ${STAMP_STATUS_REASON} -> rebuilding with build:ci" >&2
 	echo "   stamp gitSha: ${STAMP_GIT_SHA:-<missing>}" >&2
 	echo "   current HEAD: ${CURRENT_GIT_SHA:-<missing>}" >&2
-	pnpm --filter @interdomestik/web run build:ci
+	rm -rf "${WEB_DIR}/.next"
+	env -u PLAYWRIGHT -u INTERDOMESTIK_AUTOMATED pnpm --filter @interdomestik/web run build:ci
 	link_standalone_static_assets
 	return 0
 }

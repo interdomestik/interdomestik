@@ -195,9 +195,7 @@ export function MessageThread({
                           {formatTime(message.createdAt)}
                           {message.readAt && isOwn && <span className="ml-1">✓</span>}
                           {isPending && (
-                            <span className="ml-1 italic text-[10px]">
-                              {t('sending', { defaultMessage: 'Sending...' })}
-                            </span>
+                            <span className="ml-1 italic text-[10px]">{t('sending')}</span>
                           )}
                         </span>
 
@@ -209,7 +207,7 @@ export function MessageThread({
                             onClick={() => onRetry?.(message)}
                           >
                             <RefreshCw className="h-3 w-3" />
-                            Retry
+                            {t('retry')}
                           </Button>
                         )}
                       </div>
@@ -217,7 +215,7 @@ export function MessageThread({
                       {isFailed && (
                         <span className="text-[10px] text-destructive flex items-center gap-1">
                           <AlertCircle className="h-3 w-3" />
-                          Failed to send
+                          {t('failedToSend')}
                         </span>
                       )}
                     </div>

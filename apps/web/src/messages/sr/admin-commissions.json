@@ -1,0 +1,67 @@
+{
+  "admin": {
+    "commissions_page": {
+      "title": "Upravljanje provizijama",
+      "description": "Pregledajte provizije agenata, nagrade za preporuke članova i podešavanja programa.",
+      "summary": {
+        "pending": "Na čekanju",
+        "approved": "Odobreno",
+        "paid": "Isplaćeno",
+        "total_owed": "Ukupno za isplatu",
+        "items": "{count} stavki"
+      },
+      "settings": {
+        "title": "Podešavanja programa preporuka članova",
+        "enable_title": "Omogući nagrade za preporuke članova",
+        "enable_description": "Dozvoli članovima da zarade nagrade od prvog plaćenog članstva koje preporuče.",
+        "reward_type": "Tip nagrade",
+        "settlement_mode": "Način poravnanja",
+        "fixed_reward": "Fiksna nagrada (centi)",
+        "percent_reward": "Procentualna nagrada (bps)",
+        "current_reward": "Trenutna nagrada: {amount}",
+        "payout_threshold": "Prag za isplatu (centi)",
+        "currency_code": "Kod valute",
+        "qualifying_event": "Kvalifikujući događaj",
+        "fraud_review_title": "Potrebna je provera prevare",
+        "fraud_review_description": "Neka nove nagrade ostanu na čekanju dok ih administrator ne pregleda i odobri.",
+        "save": "Sačuvaj podešavanja preporuka"
+      },
+      "reward_types": {
+        "fixed": "Fiksni iznos",
+        "percent": "Procenat prve uplate"
+      },
+      "settlement_modes": {
+        "credit_only": "Samo kredit",
+        "credit_or_payout": "Kredit ili isplata"
+      },
+      "qualifying_event_types": {
+        "first_paid_membership": "Prvo plaćeno članstvo"
+      },
+      "rewards": {
+        "title": "Nagrade za preporuke članova",
+        "empty": "Još nema nagrada za preporuke",
+        "reward_label": "Nagrada {id} • {amount}",
+        "referrer_label": "Preporučilac {id}",
+        "referred_member_label": "Preporučeni član {id}"
+      },
+      "commissions": {
+        "title": "Sve provizije",
+        "empty": "Još nema provizija",
+        "unknown_member": "Nepoznat član"
+      },
+      "statuses": {
+        "pending": "Na čekanju",
+        "approved": "Odobreno",
+        "credited": "Knjiženo",
+        "paid": "Isplaćeno",
+        "void": "Poništeno"
+      },
+      "commission_types": {
+        "signup_bonus": "bonus za registraciju",
+        "membership_sale": "prodaja članstva",
+        "referral_bonus": "bonus za preporuku",
+        "renewal_bonus": "bonus za obnovu"
+      }
+    }
+  }
+}

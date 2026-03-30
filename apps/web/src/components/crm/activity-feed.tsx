@@ -3,6 +3,7 @@
 import { Badge } from '@interdomestik/ui/components/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { Calendar, Mail, MessageSquare, Phone, StickyNote } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type Activity = {
   id: string;
@@ -20,10 +21,10 @@ interface ActivityFeedProps {
   readonly activities: Activity[];
 }
 
-function getRelativeOccurredAt(occurredAt: Date | string | null): string {
-  if (!occurredAt) return 'Unknown time';
+function getRelativeOccurredAt(occurredAt: Date | string | null, unknownTimeLabel: string): string {
+  if (!occurredAt) return unknownTimeLabel;
   const parsed = occurredAt instanceof Date ? occurredAt : new Date(occurredAt);
-  if (Number.isNaN(parsed.getTime())) return 'Unknown time';
+  if (Number.isNaN(parsed.getTime())) return unknownTimeLabel;
   return formatDistanceToNow(parsed, { addSuffix: true });
 }
 
@@ -58,11 +59,13 @@ const getActivityColor = (type: string) => {
 };
 
 export function ActivityFeed({ activities }: ActivityFeedProps) {
+  const t = useTranslations('agent.activity_feed');
+
   if (!activities || activities.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
         <MessageSquare className="mb-2 h-10 w-10 opacity-20" />
-        <p>No activities recorded yet.</p>
+        <p>{t('empty')}</p>
       </div>
     );
   }
@@ -98,7 +101,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
                   </Badge>
                 </div>
                 <time className="text-xs text-muted-foreground">
-                  {getRelativeOccurredAt(activity.occurredAt)}
+                  {getRelativeOccurredAt(activity.occurredAt, t('unknown_time'))}
                 </time>
               </div>
 
@@ -109,9 +112,9 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
               )}
 
               <div className="pt-1 text-xs text-muted-foreground">
-                Logged by{' '}
+                {t('logged_by')}{' '}
                 <span className="font-medium text-foreground">
-                  {activity.agent?.name || 'Agent'}
+                  {activity.agent?.name || t('anonymous_agent')}
                 </span>
               </div>
             </div>

@@ -141,7 +141,15 @@
       },
       "pipeline": {
         "title": "Claims Pipeline",
-        "empty": "No active claims in pipeline"
+        "empty": "No active claims in pipeline",
+        "statuses": {
+          "submitted": "Submitted",
+          "verification": "Verification",
+          "evaluation": "Evaluation",
+          "negotiation": "Negotiation",
+          "court": "Court",
+          "resolved": "Resolved"
+        }
       },
       "agent_health": {
         "title": "Agent Health",

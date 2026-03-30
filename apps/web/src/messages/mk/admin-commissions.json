@@ -1,0 +1,67 @@
+{
+  "admin": {
+    "commissions_page": {
+      "title": "Управување со провизии",
+      "description": "Прегледајте ги агентските провизии, наградите за членски препораки и поставките на програмата.",
+      "summary": {
+        "pending": "На чекање",
+        "approved": "Одобрени",
+        "paid": "Исплатени",
+        "total_owed": "Вкупно за исплата",
+        "items": "{count} ставки"
+      },
+      "settings": {
+        "title": "Поставки за програмата за членски препораки",
+        "enable_title": "Овозможи награди за членски препораки",
+        "enable_description": "Овозможете членовите да заработуваат награди од првото платено членство што ќе го препорачаат.",
+        "reward_type": "Тип на награда",
+        "settlement_mode": "Начин на порамнување",
+        "fixed_reward": "Фиксна награда (центи)",
+        "percent_reward": "Процентуална награда (bps)",
+        "current_reward": "Тековна награда: {amount}",
+        "payout_threshold": "Праг за исплата (центи)",
+        "currency_code": "Валутен код",
+        "qualifying_event": "Квалификациски настан",
+        "fraud_review_title": "Потребна е проверка за измама",
+        "fraud_review_description": "Новите награди нека останат на чекање додека администратор не ги прегледа и одобри.",
+        "save": "Зачувај ги поставките за препораки"
+      },
+      "reward_types": {
+        "fixed": "Фиксен износ",
+        "percent": "Процент од првата уплата"
+      },
+      "settlement_modes": {
+        "credit_only": "Само кредит",
+        "credit_or_payout": "Кредит или исплата"
+      },
+      "qualifying_event_types": {
+        "first_paid_membership": "Прво платено членство"
+      },
+      "rewards": {
+        "title": "Награди за членски препораки",
+        "empty": "Сè уште нема награди за препораки",
+        "reward_label": "Награда {id} • {amount}",
+        "referrer_label": "Препорачувач {id}",
+        "referred_member_label": "Препорачан член {id}"
+      },
+      "commissions": {
+        "title": "Сите провизии",
+        "empty": "Сè уште нема провизии",
+        "unknown_member": "Непознат член"
+      },
+      "statuses": {
+        "pending": "На чекање",
+        "approved": "Одобрено",
+        "credited": "Книжено",
+        "paid": "Исплатено",
+        "void": "Поништено"
+      },
+      "commission_types": {
+        "signup_bonus": "бонус за регистрација",
+        "membership_sale": "продажба на членство",
+        "referral_bonus": "бонус за препорака",
+        "renewal_bonus": "бонус за обновување"
+      }
+    }
+  }
+}

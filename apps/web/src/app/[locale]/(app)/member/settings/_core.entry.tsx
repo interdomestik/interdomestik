@@ -2,14 +2,13 @@ import { ChangePasswordForm } from '@/components/auth/change-password-form';
 import { CommercialBillingTerms } from '@/components/commercial/billing-terms';
 import { buildCommercialTermsProps } from '@/components/commercial/billing-terms-content';
 import { ProfileForm } from '@/components/auth/profile-form';
+import { getSessionSafe } from '@/components/shell/session';
 import { LanguageSettings } from '@/components/settings/language-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
 import { redirect } from '@/i18n/routing';
-import { auth } from '@/lib/auth';
 import { Separator } from '@interdomestik/ui/components/separator';
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
 import { getTranslations } from 'next-intl/server';
-import { headers } from 'next/headers';
 import { Suspense } from 'react';
 
 function SettingsSkeleton() {
@@ -26,9 +25,7 @@ interface SettingsPageProps {
 
 export default async function SettingsPage({ params }: SettingsPageProps) {
   const { locale } = await params;
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getSessionSafe('MemberSettingsPage');
 
   if (!session) {
     redirect({ href: '/login', locale });

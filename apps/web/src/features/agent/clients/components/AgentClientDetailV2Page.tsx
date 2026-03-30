@@ -36,6 +36,7 @@ export async function AgentClientDetailV2Page({ id, locale }: { id: string; loca
   const t = await getTranslations('agent-members.members.profile');
   const tCommon = await getTranslations('common');
   const tClaims = await getTranslations('claims');
+  const tAgent = await getTranslations('agent');
 
   const result = await getAgentClientProfileCore({
     memberId: id,
@@ -70,7 +71,7 @@ export async function AgentClientDetailV2Page({ id, locale }: { id: string; loca
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-3">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Member Activity</CardTitle>
+            <CardTitle>{tAgent('activity.section_title')}</CardTitle>
             <LogActivityDialog entityId={member.id} entityType="member" />
           </CardHeader>
           <CardContent>

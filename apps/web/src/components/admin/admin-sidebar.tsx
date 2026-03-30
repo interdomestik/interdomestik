@@ -3,6 +3,7 @@
 import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
+import { getRoleLabel } from '@/lib/roles-i18n';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,20 +54,28 @@ interface AdminSidebarProps {
   };
 }
 
+const PERSISTED_ADMIN_CONTEXT_PARAMS = new Set(['tenantId']);
+
 export function AdminSidebar({ className, user }: AdminSidebarProps) {
   const t = useTranslations('admin.sidebar');
   const tNav = useTranslations('nav');
+  const tCommon = useTranslations('common');
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
   const searchParams = useSearchParams();
+  const userRoleLabel = getRoleLabel(tCommon, user.role, user.role);
 
   const withAdminContext = (href: string) => {
-    const contextQueryString = searchParams.toString();
-    if (!contextQueryString) return href;
-
     const [path, queryString] = href.split('?');
-    const merged = new URLSearchParams(contextQueryString);
+    const merged = new URLSearchParams();
+
+    for (const [key, value] of searchParams.entries()) {
+      if (PERSISTED_ADMIN_CONTEXT_PARAMS.has(key)) {
+        merged.append(key, value);
+      }
+    }
+
     if (queryString) {
       const destinationParams = new URLSearchParams(queryString);
       const destinationKeys = new Set(Array.from(destinationParams.keys()));
@@ -243,7 +252,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
                 <span className="text-sm font-semibold truncate text-foreground">{user.name}</span>
                 <span className="text-xs text-muted-foreground truncate capitalize flex items-center gap-1">
                   <div className="h-1 w-1 rounded-full bg-green-500" />
-                  {user.role}
+                  {userRoleLabel}
                 </span>
               </div>
               <ChevronUp className="h-4 w-4 text-muted-foreground group-data-[state=collapsed]:hidden ml-auto" />
@@ -308,7 +317,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarFooter>
-      <SidebarRail />
+      <SidebarRail title={tNav('toggleSidebar')} aria-label={tNav('toggleSidebar')} />
     </Sidebar>
   );
 }

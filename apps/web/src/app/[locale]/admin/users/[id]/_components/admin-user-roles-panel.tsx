@@ -8,6 +8,7 @@ import {
   revokeUserRole,
 } from '@/actions/admin-rbac';
 import { OpsTable } from '@/components/ops';
+import { getRoleLabel } from '@/lib/roles-i18n';
 import {
   ROLE_AGENT,
   ROLE_BRANCH_MANAGER,
@@ -34,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@interdomestik/ui/components/select';
+import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -74,12 +76,15 @@ export function AdminUserRolesPanel({
 }) {
   const router = useRouter();
   const params = useParams<{ locale?: string | string[] }>();
+  const t = useTranslations('admin.users_page.roles_panel');
+  const tCommon = useTranslations('common');
   const hasTenantContext = Boolean(tenantId);
   const locale = Array.isArray(params?.locale) ? params.locale[0] : params?.locale;
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [roles, setRoles] = useState<UserRoleRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasLegacyTenantWideAgentRole, setHasLegacyTenantWideAgentRole] = useState(false);
 
   const [grantRole, setGrantRole] = useState<string>(ROLE_MEMBER);
   const [grantBranchId, setGrantBranchId] = useState<string>(TENANT_WIDE_BRANCH);
@@ -88,15 +93,22 @@ export function AdminUserRolesPanel({
   const [newBranchName, setNewBranchName] = useState('');
   const [newBranchCode, setNewBranchCode] = useState('');
   const [isGrantPending, setIsGrantPending] = useState(false);
+  const [isCreateBranchPending, setIsCreateBranchPending] = useState(false);
   const [pendingRevokeRowId, setPendingRevokeRowId] = useState<string | null>(null);
 
   const effectiveRoleValue = (grantRole === '__custom__' ? customRole : grantRole).trim();
+  const isLegacyTenantWideAgentGrant =
+    effectiveRoleValue === ROLE_AGENT &&
+    grantBranchId === TENANT_WIDE_BRANCH &&
+    hasLegacyTenantWideAgentRole;
   const isBranchMissingForRole =
-    isBranchRequiredRole(effectiveRoleValue) && grantBranchId === TENANT_WIDE_BRANCH;
+    isBranchRequiredRole(effectiveRoleValue) &&
+    grantBranchId === TENANT_WIDE_BRANCH &&
+    !isLegacyTenantWideAgentGrant;
 
   const branchOptions = useMemo(() => {
-    return [{ id: TENANT_WIDE_BRANCH, name: 'Tenant-wide', code: null }, ...branches];
-  }, [branches]);
+    return [{ id: TENANT_WIDE_BRANCH, name: t('tenant_wide'), code: null }, ...branches];
+  }, [branches, t]);
 
   const refresh = useCallback(async () => {
     if (!tenantId) {
@@ -116,19 +128,23 @@ export function AdminUserRolesPanel({
       if (branchesResult.success) {
         setBranches(branchesResult.data ?? []);
       } else {
-        toast.error('Failed to load branches');
+        toast.error(t('toasts.load_branches_error'));
         setBranches([]);
       }
 
       if (rolesResult.success) {
-        setRoles(rolesResult.data ?? []);
+        const nextRoles = rolesResult.data ?? [];
+        setRoles(nextRoles);
+        if (nextRoles.some(role => role.role === ROLE_AGENT && role.branchId === null)) {
+          setHasLegacyTenantWideAgentRole(true);
+        }
       } else {
-        toast.error('Failed to load roles');
+        toast.error(t('toasts.load_roles_error'));
         setRoles([]);
       }
     } catch (err) {
       console.error(err);
-      toast.error('Failed to load roles');
+      toast.error(t('toasts.load_roles_error'));
     } finally {
       setLoading(false);
     }
@@ -140,16 +156,16 @@ export function AdminUserRolesPanel({
 
   const handleGrant = async () => {
     if (!tenantId) {
-      toast.error('Tenant context is required to manage roles');
+      toast.error(t('toasts.tenant_required'));
       return;
     }
 
     if (!effectiveRoleValue) {
-      toast.error('Role is required');
+      toast.error(t('toasts.role_required'));
       return;
     }
     if (isBranchMissingForRole) {
-      toast.error('Branch is required for this role. Please select a branch.');
+      toast.error(t('toasts.branch_required'));
       return;
     }
 
@@ -161,6 +177,7 @@ export function AdminUserRolesPanel({
         role: effectiveRoleValue,
         branchId: grantBranchId === TENANT_WIDE_BRANCH ? undefined : grantBranchId,
         locale,
+        allowLegacyTenantWide: isLegacyTenantWideAgentGrant,
       });
 
       if ('error' in result) {
@@ -169,7 +186,7 @@ export function AdminUserRolesPanel({
         return;
       }
 
-      toast.success('Role granted');
+      toast.success(t('toasts.role_granted'));
       setCustomRole('');
       setGrantRole(ROLE_MEMBER);
       setGrantBranchId(TENANT_WIDE_BRANCH);
@@ -177,7 +194,7 @@ export function AdminUserRolesPanel({
       router.refresh();
     } catch (err) {
       console.error('Failed to grant role', err);
-      toast.error('Failed to grant role');
+      toast.error(t('toasts.grant_error'));
     } finally {
       setIsGrantPending(false);
     }
@@ -185,7 +202,7 @@ export function AdminUserRolesPanel({
 
   const handleRevoke = async (row: UserRoleRow) => {
     if (!tenantId) {
-      toast.error('Tenant context is required to manage roles');
+      toast.error(t('toasts.tenant_required'));
       return;
     }
 
@@ -205,12 +222,12 @@ export function AdminUserRolesPanel({
         return;
       }
 
-      toast.success('Role revoked');
+      toast.success(t('toasts.role_revoked'));
       await refresh();
       router.refresh();
     } catch (err) {
       console.error('Failed to revoke role', err);
-      toast.error('Failed to revoke role');
+      toast.error(t('toasts.revoke_error'));
     } finally {
       setPendingRevokeRowId(null);
     }
@@ -218,16 +235,17 @@ export function AdminUserRolesPanel({
 
   const handleCreateBranch = async () => {
     if (!tenantId) {
-      toast.error('Tenant context is required to manage branches');
+      toast.error(t('toasts.tenant_required'));
       return;
     }
 
     const name = newBranchName.trim();
     if (!name) {
-      toast.error('Branch name is required');
+      toast.error(t('toasts.branch_name_required'));
       return;
     }
 
+    setIsCreateBranchPending(true);
     try {
       const result = await createBranch({
         tenantId,
@@ -240,43 +258,43 @@ export function AdminUserRolesPanel({
         return;
       }
 
-      toast.success('Branch created');
+      toast.success(t('toasts.branch_created'));
       setNewBranchName('');
       setNewBranchCode('');
       await refresh();
     } catch (err) {
       console.error(err);
-      toast.error('Failed to create branch');
+      toast.error(t('toasts.branch_create_error'));
+    } finally {
+      setIsCreateBranchPending(false);
     }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Roles</CardTitle>
-        <CardDescription>Tenant-scoped roles for this user.</CardDescription>
+        <CardTitle>{t('title')}</CardTitle>
+        <CardDescription>{t('description')}</CardDescription>
         {!hasTenantContext ? (
-          <p className="text-sm text-destructive">
-            Missing tenant context. Reopen this profile from the tenant user list.
-          </p>
+          <p className="text-sm text-destructive">{t('missing_tenant')}</p>
         ) : null}
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 md:grid-cols-3">
           <div className="grid gap-2">
-            <Label>Role</Label>
+            <Label>{t('role_label')}</Label>
             <Select value={grantRole} onValueChange={setGrantRole}>
               <SelectTrigger data-testid="role-select-trigger" disabled={!hasTenantContext}>
-                <SelectValue placeholder="Select role" />
+                <SelectValue placeholder={t('role_placeholder')} />
               </SelectTrigger>
               <SelectContent data-testid="role-select-content">
                 {DEFAULT_ROLE_OPTIONS.map(r => (
                   <SelectItem key={r} value={r} data-testid={`role-option-${r}`}>
-                    {r}
+                    {getRoleLabel(tCommon, r, r)}
                   </SelectItem>
                 ))}
                 <SelectItem value="__custom__" data-testid="role-option-custom">
-                  Custom…
+                  {t('custom_role')}
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -284,21 +302,21 @@ export function AdminUserRolesPanel({
               <Input
                 value={customRole}
                 onChange={e => setCustomRole(e.target.value)}
-                placeholder="role_name"
+                placeholder={t('custom_role_placeholder')}
               />
             ) : null}
           </div>
 
           <div className="grid gap-2">
-            <Label>Branch</Label>
+            <Label>{t('branch_label')}</Label>
             <Select value={grantBranchId} onValueChange={setGrantBranchId}>
               <SelectTrigger data-testid="branch-select-trigger" disabled={!hasTenantContext}>
-                <SelectValue placeholder="Tenant-wide" />
+                <SelectValue placeholder={t('tenant_wide')} />
               </SelectTrigger>
               <SelectContent data-testid="branch-select-content">
                 {branchOptions.map(b => (
                   <SelectItem key={b.id} value={b.id} data-testid={`branch-option-${b.id}`}>
-                    {b.id === TENANT_WIDE_BRANCH ? 'Tenant-wide' : formatBranchName(b)}
+                    {b.id === TENANT_WIDE_BRANCH ? t('tenant_wide') : formatBranchName(b)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -318,18 +336,18 @@ export function AdminUserRolesPanel({
               }
               className="w-full"
             >
-              Grant role
+              {t('grant_role')}
             </Button>
           </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
           <div className="grid gap-2">
-            <Label>New branch name</Label>
+            <Label>{t('new_branch_name')}</Label>
             <Input value={newBranchName} onChange={e => setNewBranchName(e.target.value)} />
           </div>
           <div className="grid gap-2">
-            <Label>New branch code (optional)</Label>
+            <Label>{t('new_branch_code')}</Label>
             <Input value={newBranchCode} onChange={e => setNewBranchCode(e.target.value)} />
           </div>
           <div className="flex items-end">
@@ -337,9 +355,9 @@ export function AdminUserRolesPanel({
               type="button"
               variant="outline"
               onClick={handleCreateBranch}
-              disabled={!hasTenantContext || loading}
+              disabled={!hasTenantContext || isCreateBranchPending || !newBranchName.trim()}
             >
-              Create branch
+              {t('create_branch')}
             </Button>
           </div>
         </div>
@@ -347,8 +365,8 @@ export function AdminUserRolesPanel({
         <div data-testid="user-roles-table">
           <OpsTable
             columns={[
-              { key: 'role', header: 'Role' },
-              { key: 'branch', header: 'Branch' },
+              { key: 'role', header: t('table.role') },
+              { key: 'branch', header: t('table.branch') },
             ]}
             rows={roles.map(r => {
               const branch = r.branchId ? branches.find(b => b.id === r.branchId) : null;
@@ -356,9 +374,9 @@ export function AdminUserRolesPanel({
                 id: r.id,
                 cells: [
                   <span key="role" className="font-medium">
-                    {r.role}
+                    {getRoleLabel(tCommon, r.role, r.role)}
                   </span>,
-                  <span key="branch">{branch ? formatBranchName(branch) : '—'}</span>,
+                  <span key="branch">{branch ? formatBranchName(branch) : t('tenant_wide')}</span>,
                 ],
                 actions: (
                   <Button
@@ -368,14 +386,15 @@ export function AdminUserRolesPanel({
                     onClick={() => handleRevoke(r)}
                     disabled={!hasTenantContext || isGrantPending || pendingRevokeRowId !== null}
                   >
-                    Remove
+                    {t('remove')}
                   </Button>
                 ),
               };
             })}
             loading={loading}
-            emptyLabel="No roles assigned"
-            actionsHeader="Actions"
+            loadingLabel={tCommon('loading')}
+            emptyLabel={t('empty')}
+            actionsHeader={t('table.actions')}
           />
         </div>
       </CardContent>

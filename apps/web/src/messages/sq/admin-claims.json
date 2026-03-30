@@ -20,6 +20,14 @@
       "member_number": "Numri Unik i Anëtarit",
       "copy_member_number": "Kopjo Numrin e Anëtarit",
       "copy_member_link": "Kopjo Linkun e Anëtarit",
+      "header": {
+        "copy_traceable_link": "Kopjo linkun e numrit gjurmues",
+        "copy_canonical_link": "Kopjo linkun kanonik të sistemit",
+        "claim_number_link": "Linku i numrit të kërkesës",
+        "canonical_url": "URL kanonike",
+        "copy_failed": "Kopjimi i linkut dështoi",
+        "copy_success": "{label} u kopjua në kujtesën e fragmenteve"
+      },
       "message_alert": "Mesazh i ri ({count})",
       "table": {
         "title": "Rasti",
@@ -203,11 +211,31 @@
           "unexpected_error": "Ndodhi një gabim i papritur"
         }
       },
+      "status_modal": {
+        "title": "Përditëso statusin e kërkesës",
+        "description": "Zgjidh statusin e ri për këtë kërkesë. Ky veprim do të regjistrohet.",
+        "placeholder": "Zgjidh statusin e ri...",
+        "cancel": "Anulo",
+        "confirm": "Konfirmo përditësimin",
+        "success": "Statusi u përditësua me sukses",
+        "error": "Përditësimi i statusit dështoi",
+        "unexpected_error": "Ndodhi një gabim i papritur"
+      },
       "evidence": {
         "title": "Evidenca",
         "upload_button": "Ngarko",
+        "dialog_title": "Ngarko evidencë",
+        "dialog_description": "Bashkëngjit foto ose dokumente relevante për këtë kërkesë.",
+        "document_type_label": "Lloji i dokumentit",
+        "document_type_placeholder": "Zgjidh llojin e dokumentit",
+        "file_label": "Skedari",
+        "upload_success": "Evidenca u ngarkua me sukses",
+        "upload_failed": "Ngarkimi i evidencës dështoi",
+        "uploading": "Po ngarkohet...",
         "no_docs": "Nuk ka dokumente të ngarkuara.",
         "types": {
+          "evidence": "Evidencë",
+          "legal": "Dokument ligjor",
           "image": "Imazh",
           "audio": "Regjistrim audio",
           "document": "Dokument"
@@ -216,6 +244,17 @@
       "timeline": {
         "title": "Kronologjia",
         "empty": "Nuk ka aktivitet të regjistruar."
+      },
+      "status_form": {
+        "placeholder": "Statusi",
+        "success": "Statusi u përditësua me sukses",
+        "error": "Dështoi përditësimi i statusit"
+      },
+      "status_modal": {
+        "title": "Përditëso statusin e kërkesës",
+        "description": "Zgjidh statusin e ri për këtë kërkesë. Ky veprim do të regjistrohet.",
+        "placeholder": "Zgjidh statusin e ri...",
+        "confirm": "Konfirmo përditësimin"
       },
       "detail": {
         "fields": {

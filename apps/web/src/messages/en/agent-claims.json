@@ -17,6 +17,21 @@
           "assigned_to_you": "Assigned to you",
           "assigned": "Assigned",
           "assigned_to_named": "Assigned to {name}"
+        },
+        "assignment_filter": {
+          "all_staff": "My queue + unassigned",
+          "mine": "Assigned to me",
+          "all_branch": "All branch claims"
+        },
+        "table": {
+          "claim": "Claim",
+          "member": "Member",
+          "status_stage": "Status + stage",
+          "updated": "Updated",
+          "action": "Action",
+          "no_claim_number": "No claim number",
+          "no_company": "No company provided",
+          "no_member_number": "No member number"
         }
       },
       "queue": "Claims Queue",
@@ -73,7 +88,164 @@
         "documents": "Documents",
         "no_documents": "No documents uploaded",
         "unknown_date": "Unknown date",
-        "branch_manager_readonly_notice": "Branch managers can review claim status and member context here, but assignment, messaging, and claim actions remain staff-only in the pilot."
+        "branch_manager_readonly_notice": "Branch managers can review claim status and member context here, but assignment, messaging, and claim actions remain staff-only in the pilot.",
+        "staff_claim": {
+          "section_title": "Claim",
+          "status": "Status",
+          "updated": "Updated",
+          "submitted": "Submitted"
+        },
+        "staff_member": {
+          "section_title": "Member",
+          "membership_number": "Membership #"
+        },
+        "staff_matter_allowance": {
+          "section_title": "Matter allowance",
+          "used_this_year": "Used this year",
+          "remaining_this_year": "Remaining this year",
+          "plan_allowance": "Plan allowance"
+        },
+        "staff_agent": {
+          "section_title": "Agent"
+        },
+        "staff_note": {
+          "section_title": "Latest status note",
+          "empty": "No public status notes yet."
+        }
+      },
+      "staff_actions": {
+        "title": "Staff Actions",
+        "staff_only": "Staff only",
+        "common": {
+          "pending": "Pending",
+          "ready": "Ready",
+          "missing": "Missing",
+          "not_recorded": "Not recorded",
+          "yes": "Yes",
+          "no": "No"
+        },
+        "success": {
+          "title": "Success",
+          "assignment_self": "Claim assigned to you",
+          "assignment_named": "Claim assigned to {name}",
+          "assignment_updated": "Claim assignment updated",
+          "agreement_saved": "Escalation agreement saved",
+          "recovery_accepted": "Recovery matter accepted",
+          "recovery_declined": "Recovery matter declined",
+          "status_updated": "Claim status updated",
+          "collection_saved": "Success-fee collection saved"
+        },
+        "error": {
+          "title": "Error"
+        },
+        "validation": {
+          "recovered_amount_positive": "Recovered amount must be a positive number."
+        },
+        "commercial_scope": {
+          "title": "Launch scope restriction"
+        },
+        "assignment": {
+          "title": "Assignment",
+          "assign_claim": "Assign claim",
+          "save": "Save Assignment",
+          "current_assignee": "Current assignee",
+          "out_of_scope": "{name} (out of scope)",
+          "unassigned": "Unassigned",
+          "assigned_to_you": "Assigned to you",
+          "assigned_to_named": "Assigned to {name}",
+          "assigned_to_colleague": "Assigned to colleague"
+        },
+        "recovery_decision": {
+          "title": "Recovery Decision",
+          "description": "Staff must explicitly accept or decline the recovery matter before negotiation or court work can start.",
+          "summary_status": "Decision status",
+          "summary_decline_category": "Decline category",
+          "summary_explanation": "Decision explanation",
+          "explanation_label": "Decision explanation",
+          "explanation_placeholder": "Record the staff-only reasoning behind the acceptance or decline decision...",
+          "accept": "Accept Recovery Matter",
+          "decline_category_label": "Decline category",
+          "decline_category_placeholder": "Select decline category",
+          "decline": "Decline Recovery Matter",
+          "decline_reasons": {
+            "guidance_only_scope": "Guidance-only or referral-only under current scope",
+            "insufficient_evidence": "Insufficient evidence for staff-led recovery",
+            "no_monetary_recovery_path": "No clear monetary recovery path",
+            "counterparty_unidentified": "Counterparty or insurer cannot be identified",
+            "time_limit_risk": "Time-limit risk blocks staff-led recovery",
+            "conflict_or_integrity_concern": "Conflict of interest or integrity concern"
+          }
+        },
+        "recovery_prerequisites": {
+          "title": "Accepted recovery prerequisites",
+          "description": "Accepted recovery cannot move into negotiation or court until both prerequisites are ready.",
+          "agreement": "Agreement",
+          "collection_path": "Collection path"
+        },
+        "escalation_agreement": {
+          "title": "Escalation Agreement",
+          "description": "Record commercial terms here after the recovery decision is accepted. This agreement detail does not replace the explicit recovery decision above.",
+          "accepted_next_state": "Accepted next state",
+          "accepted_next_state_placeholder": "Select accepted next state",
+          "decision_reason": "Decision reason",
+          "decision_reason_placeholder": "Record why staff accepted this escalation path...",
+          "fee": "Fee",
+          "fee_percentage": "Fee percentage",
+          "minimum_fee": "Minimum fee",
+          "minimum_fee_input": "Minimum fee (EUR)",
+          "legal_action_cap": "Legal-action cap",
+          "payment_authorization": "Payment authorization",
+          "payment_authorization_placeholder": "Select authorization state",
+          "terms_version": "Terms version",
+          "signed": "Signed",
+          "save": "Save Escalation Agreement",
+          "empty": "No escalation agreement saved for this claim.",
+          "empty_requires_save": "Save the accepted escalation agreement before moving this case into negotiation or court.",
+          "payment_authorization_options": {
+            "pending": "Pending",
+            "authorized": "Authorized",
+            "revoked": "Revoked"
+          }
+        },
+        "success_fee": {
+          "title": "Success-Fee Collection",
+          "description": "Record the recovered amount and let the commercial rules resolve deduction first where allowed, then stored payment method, then invoice due within 7 days.",
+          "recovered_amount": "Recovered amount",
+          "success_fee": "Success fee",
+          "collection_method": "Collection method",
+          "stored_payment_method": "Stored payment method",
+          "invoice_due": "Invoice due",
+          "resolved": "Resolved",
+          "deduct_from_payout": "Deduct from payout?",
+          "collection_path_placeholder": "Select collection path",
+          "save": "Save Success-Fee Collection",
+          "empty": "No success-fee collection order has been recorded for this claim.",
+          "empty_requires_save": "No success-fee collection path is recorded yet. Save one before moving this accepted case into negotiation or court.",
+          "locked_without_agreement": "Save the escalation agreement first to unlock success-fee collection.",
+          "collection_method_options": {
+            "deduction": "Deduct from payout",
+            "payment_method_charge": "Charge stored payment method",
+            "invoice": "Invoice fallback"
+          },
+          "deduction_path_options": {
+            "allowed": "Yes, deduction is legally allowed",
+            "fallback": "No, use fallback order"
+          }
+        },
+        "status_update": {
+          "title": "Update Status",
+          "select_status": "Select status",
+          "note_label": "Status Note",
+          "visible_to_member": "Visible to member",
+          "note_placeholder": "Reason for status change...",
+          "requires_recovery_decision": "Accept the recovery matter above before moving the case into negotiation or court.",
+          "requires_escalation_agreement": "Save the accepted escalation agreement before moving this case into negotiation or court.",
+          "requires_collection_path": "Save the success-fee collection path before moving this accepted case into negotiation or court.",
+          "allowance_override_reason": "Allowance override reason",
+          "allowance_override_description": "If the member has exhausted annual matter allowance, record the internal override reason here or upgrade coverage before staff-led recovery begins.",
+          "allowance_override_placeholder": "Explain why recovery should begin despite exhausted allowance...",
+          "save": "Update Claim"
+        }
       },
       "triage": {
         "title": "Triage Actions",

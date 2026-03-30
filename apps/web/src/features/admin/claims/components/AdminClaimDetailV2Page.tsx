@@ -102,6 +102,7 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
         <div className="col-span-1 md:col-span-12 lg:col-span-3 flex flex-col gap-6 sticky top-24">
           {/* Use the new pure EvidencePanel with explicit mapping */}
           <EvidencePanel
+            claimId={data.id}
             docs={data.docs.map(d => ({
               id: d.id,
               url: d.url,

@@ -21,6 +21,7 @@ interface ClaimStatusFormProps {
 
 export function ClaimStatusForm({ claimId, currentStatus, locale }: ClaimStatusFormProps) {
   const t = useTranslations('claims.status');
+  const tClaimsPage = useTranslations('admin.claims_page.status_form');
   const [status, setStatus] = useState<ClaimStatus>(currentStatus as ClaimStatus);
   const [isPending, setIsPending] = useState(false);
 
@@ -34,9 +35,9 @@ export function ClaimStatusForm({ claimId, currentStatus, locale }: ClaimStatusF
     try {
       await updateClaimStatus(formData);
       setStatus(newStatus);
-      toast.success('Status updated successfully');
+      toast.success(tClaimsPage('success'));
     } catch (error) {
-      toast.error('Failed to update status');
+      toast.error(tClaimsPage('error'));
       console.error(error);
     } finally {
       setIsPending(false);
@@ -51,7 +52,7 @@ export function ClaimStatusForm({ claimId, currentStatus, locale }: ClaimStatusF
         disabled={isPending}
       >
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Status" />
+          <SelectValue placeholder={tClaimsPage('placeholder')} />
         </SelectTrigger>
         <SelectContent>
           {CLAIM_STATUSES.map(s => (
