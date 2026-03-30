@@ -283,7 +283,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
             onClick={async () => {
               await authClient.signIn.social({
                 provider: 'github',
-                callbackURL: `${window.location.origin}/${locale}/login`,
+                callbackURL: `${globalThis.location.origin}/${locale}/login`,
                 ...(resolvedTenantId ? { additionalData: { tenantId: resolvedTenantId } } : {}),
               });
             }}

@@ -1,9 +1,9 @@
 import type { ReactElement } from 'react';
 
-export type MemberHeaderProps = {
+export type MemberHeaderProps = Readonly<{
   name: string;
   membershipNumber: string | null;
-};
+}>;
 
 export function MemberHeader({ name, membershipNumber }: MemberHeaderProps): ReactElement {
   return (

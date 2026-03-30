@@ -5,12 +5,12 @@ import { ArrowRight, CheckCircle2, Clock, Shield, ShieldCheck, Star, Users } fro
 import { useTranslations } from 'next-intl';
 import { DigitalIDCard } from './digital-id-card';
 
-type HeroSectionProps = {
+type HeroSectionProps = Readonly<{
   locale?: string;
   primaryHref?: string;
   secondaryHref?: string;
   tenantId?: string | null;
-};
+}>;
 
 export function HeroSection({
   locale,

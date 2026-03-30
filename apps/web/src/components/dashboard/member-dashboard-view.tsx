@@ -50,6 +50,18 @@ export type MemberDashboardViewProps = {
   locale: string;
 };
 
+function getRoleRedirect(role: string | null | undefined): '/admin' | '/staff' | null {
+  if (role === 'admin' || role === 'super_admin' || role === 'tenant_admin') {
+    return '/admin';
+  }
+
+  if (role === 'staff' || role === 'branch_manager') {
+    return '/staff';
+  }
+
+  return null;
+}
+
 export async function MemberDashboardView({ data, locale }: MemberDashboardViewProps) {
   const [t, tLanding] = await Promise.all([
     getTranslations('dashboard'),
@@ -64,20 +76,13 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
     getCachedSubscription(member.id),
   ]);
 
-  if (
-    userDetails?.role === 'admin' ||
-    userDetails?.role === 'super_admin' ||
-    userDetails?.role === 'tenant_admin'
-  ) {
-    redirect('/admin');
+  const redirectPath = getRoleRedirect(userDetails?.role);
+  if (redirectPath) {
+    redirect(redirectPath);
   }
 
   // V3 Change: Agents are Members too. Do not redirect them.
   // if (userDetails?.role === 'agent') { redirect('/agent'); }
-
-  if (userDetails?.role === 'staff' || userDetails?.role === 'branch_manager') {
-    redirect('/staff');
-  }
 
   if (!userDetails) {
     return (

@@ -81,7 +81,7 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       await expect(page.getByTestId('member-claims-list')).toHaveCount(0);
       await expect(page.getByTestId('member-support-link').first()).toBeVisible();
 
-      const cta = page.getByTestId('member-start-claim-cta');
+      const cta = page.getByTestId('member-start-claim-cta').first();
       await expect(cta).toHaveAttribute('href', routes.memberNewClaim(testInfo));
     });
 
