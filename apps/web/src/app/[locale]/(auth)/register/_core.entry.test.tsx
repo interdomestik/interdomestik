@@ -56,6 +56,20 @@ vi.mock('drizzle-orm', () => ({
 import RegisterPage from './_core.entry';
 
 describe('RegisterPage commercial coverage matrix', () => {
+  it('renders tenant selector when tenant context is unresolved', async () => {
+    hoisted.resolveTenantIdFromRequestMock.mockResolvedValueOnce(null);
+
+    const tree = await RegisterPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({}),
+    });
+
+    render(tree);
+
+    expect(screen.getByText('tenant-selector')).toBeInTheDocument();
+    expect(screen.getByText('register-form')).toBeInTheDocument();
+  });
+
   it('renders the shared coverage matrix alongside the checkout form', async () => {
     const tree = await RegisterPage({
       params: Promise.resolve({ locale: 'en' }),

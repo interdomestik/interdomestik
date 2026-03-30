@@ -21,10 +21,16 @@ const translationMap: Record<string, string> = {
   'dashboard.member_landing.page_title': 'Панел за членови',
   'dashboard.member_landing.more_services': 'Повеќе услуги',
   'dashboard.member_landing.hero_greeting': 'Добредојде',
-  'dashboard.member_landing.hero_subtitle':
-    'Вашата мрежа за заштита е активна и ги следи сите системи.',
+  'dashboard.member_landing.hero_subtitle_active':
+    'Вашето членство е активно. Подготвени сме да помогнеме.',
+  'dashboard.member_landing.hero_subtitle_inactive': 'Вашето членство сè уште не е активно.',
   'dashboard.member_landing.status_label': 'Статус',
   'dashboard.member_landing.status_active': 'Активно',
+  'dashboard.member_landing.status_pending': 'Во чекање',
+  'dashboard.member_landing.response_label': 'Просечно време',
+  'dashboard.member_landing.response_value': '< 3 Мин',
+  'dashboard.member_landing.card_ready_label': 'Дигитална картичка',
+  'dashboard.member_landing.card_ready_value': 'Спремна',
   'dashboard.member_landing.protection_label': 'Заштита',
   'dashboard.member_landing.level_label': 'Ниво',
   'dashboard.member_landing.level_value': 'Премиум елит',
@@ -53,6 +59,25 @@ const translationMap: Record<string, string> = {
   'dashboard.member_landing.status_insight_title': 'Статусен увид',
   'dashboard.member_landing.status_insight_body':
     'Вашиот статус на заштита се следи во реално време од нашиот глобален оперативен центар.',
+  'dashboard.member_landing.support_panel_title': 'Подготвеност за поддршка',
+  'dashboard.member_landing.support_readiness_label': 'Подготвеност',
+  'dashboard.member_landing.support_readiness_active': 'Подготвено сега',
+  'dashboard.member_landing.support_readiness_pending': 'Во чекање',
+  'dashboard.member_landing.support_channel_label': 'Главен канал',
+  'dashboard.member_landing.support_channel_value': 'Телефон + WhatsApp',
+  'dashboard.member_landing.support_window_label': 'Покриеност',
+  'dashboard.member_landing.support_window_value': '24/7',
+  'dashboard.member_landing.support_highlights_title': 'Што вклучува поддршката',
+  'dashboard.member_landing.support_highlight_one': 'Тријажа на инцидент',
+  'dashboard.member_landing.support_highlight_two': 'Насоки за документи',
+  'dashboard.member_landing.support_highlight_three': 'Координација за патување',
+  'dashboard.member_landing.online_now': 'Онлајн сега',
+  'dashboard.member_landing.support_panel_cta': 'Отвори членска поддршка',
+  'dashboard.member_landing.support_phone_label': 'Телефон за поддршка',
+  'dashboard.member_landing.support_whatsapp_label': 'WhatsApp линија',
+  'dashboard.member_landing.support_whatsapp_value': 'Разговорот е достапен сега',
+  'dashboard.member_landing.command_center_body':
+    'Контактирајте го тимот за членска поддршка за итни инциденти и насоки за документи.',
   'dashboard.member_landing.review_security_parameters': 'Провери безбедносни параметри',
   'dashboard.protection_status.inactive': 'Нема активна заштита',
   'dashboard.categories.property_damage': 'Штета на имот',
@@ -166,14 +191,16 @@ describe('MemberDashboardView MK localization', () => {
     render(tree);
 
     expect(screen.getByText(/Добредојде/)).toBeInTheDocument();
-    expect(
-      screen.getByText('Вашата мрежа за заштита е активна и ги следи сите системи.')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Вашето членство сè уште не е активно.')).toBeInTheDocument();
     expect(screen.queryByText('Mirësevini,')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('Your global protection network is active and monitoring all systems.')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Your membership is not active yet.')).not.toBeInTheDocument();
     expect(screen.queryByText('Live Protection')).not.toBeInTheDocument();
     expect(screen.queryByText('Explore All')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('dashboard.member_landing.card_member_support')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('dashboard.member_landing.support_panel_title')
+    ).not.toBeInTheDocument();
   });
 });

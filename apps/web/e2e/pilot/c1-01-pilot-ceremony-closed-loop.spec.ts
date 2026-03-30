@@ -95,8 +95,8 @@ test('Pilot Ceremony: Closed Loop (Member -> Agent -> Staff -> Admin)', async ({
         marker: 'dashboard-page-ready',
       });
       await acceptCookieConsentIfVisible(memberPage);
-      await expect(memberPage.getByTestId('member-header')).toBeVisible();
-      await expect(memberPage.getByTestId('member-primary-actions')).toBeVisible();
+      await expect(memberPage.getByTestId('member-primary-actions').first()).toBeVisible();
+      await expect(memberPage.getByTestId('member-primary-actions').first()).toBeVisible();
 
       let claimId: string | undefined;
 
@@ -246,7 +246,7 @@ test('Pilot Ceremony: Closed Loop (Member -> Agent -> Staff -> Admin)', async ({
       const dashboardCta = agentPage.getByTestId('agent-member-dashboard-cta');
       if (await dashboardCta.isVisible()) {
         await dashboardCta.click();
-        await expect(agentPage.getByTestId('member-header')).toBeVisible();
+        await expect(agentPage.getByTestId('member-primary-actions').first()).toBeVisible();
       }
 
       report.stages.push({

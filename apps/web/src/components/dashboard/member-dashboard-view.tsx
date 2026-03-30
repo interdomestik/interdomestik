@@ -13,10 +13,10 @@ import { HomeGrid } from '@/components/member/HomeGrid';
 import { ReferralCard } from '@/components/member/referral-card';
 import { Link } from '@/i18n/routing';
 import { isAgent } from '@/lib/roles.core';
+import { getSupportContacts } from '@/lib/support-contacts';
 import { db, eq, subscriptions, user } from '@interdomestik/database';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import {
-  Activity,
   ArrowRight,
   FileText,
   Globe,
@@ -103,6 +103,11 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
         year: '2-digit',
       })
     : 'N/A';
+  const contacts = getSupportContacts({ tenantId: userDetails.tenantId ?? null, locale });
+  const supportStatusLabel = isActive ? tLanding('status_active') : tLanding('status_pending');
+  const heroSubtitle = isActive
+    ? tLanding('hero_subtitle_active')
+    : tLanding('hero_subtitle_inactive');
 
   return (
     <div className="space-y-10 pb-10" data-testid="member-dashboard-ready">
@@ -145,23 +150,14 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
         </div>
 
         {/* Adaptive Header Section */}
-        <div className="relative overflow-hidden rounded-[3rem] bg-slate-900/80 backdrop-blur-xl border border-white/20 p-8 sm:p-12 shadow-2xl">
-          {/* Animated Mesh Background */}
-          <div className="absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-mesh opacity-20" />
-            <div
-              className={`absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-[120px] opacity-20 animate-pulse-soft ${
-                isActive ? 'bg-emerald-500' : 'bg-red-500'
-              }`}
-            />
-          </div>
-
+        <div className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-sky-50/70 p-8 shadow-xl sm:p-10 dark:border-white/10 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-12">
-            {/* Welcome Lockup */}
             <div className="flex flex-col gap-8 max-w-xl">
               <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                  <div className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/80 px-4 py-1.5 text-sky-700 shadow-sm dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300">
+                  <div
+                    className={`flex h-2 w-2 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                  />
                   <span
                     className="text-[10px] font-black uppercase tracking-[0.2em]"
                     data-testid="dashboard-heading"
@@ -170,59 +166,55 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   </span>
                 </div>
 
-                <h1 className="text-4xl md:text-6xl font-display font-black tracking-tight text-white leading-tight">
+                <h1 className="text-4xl font-display font-black tracking-tight text-slate-950 md:text-6xl dark:text-white">
                   {tLanding('hero_greeting')},
                   <br />
-                  <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent italic">
+                  <span className="bg-gradient-to-r from-sky-600 to-blue-700 bg-clip-text text-transparent italic">
                     {userDetails.name.split(' ')[0]}
                   </span>
                 </h1>
-                <p className="text-lg text-slate-400 font-medium leading-relaxed">
-                  {tLanding('hero_subtitle')}
+                <p className="text-lg font-medium leading-relaxed text-slate-600 dark:text-slate-300">
+                  {heroSubtitle}
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-4">
-                <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md transition-all hover:bg-white/10">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/90 px-5 py-3 shadow-sm dark:border-white/10 dark:bg-white/5">
+                  <ShieldCheck className="w-5 h-5 text-emerald-500" />
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       {tLanding('status_label')}
                     </span>
-                    <span className="text-sm font-black text-white uppercase tracking-tighter">
-                      {tLanding('status_active')}
+                    <span className="text-sm font-black uppercase tracking-tighter text-slate-950 dark:text-white">
+                      {supportStatusLabel}
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md transition-all hover:bg-white/10">
-                  <ShieldAlert className="w-5 h-5 text-rose-400" />
+                <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/90 px-5 py-3 shadow-sm dark:border-white/10 dark:bg-white/5">
+                  <Headphones className="w-5 h-5 text-sky-600 dark:text-sky-400" />
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      {tLanding('protection_label')}
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {tLanding('response_label')}
                     </span>
-                    <span
-                      className="text-sm font-black text-white uppercase tracking-tighter"
-                      data-testid="protection-status"
-                    >
-                      {isActive ? t('protection_status.active') : t('protection_status.inactive')}
+                    <span className="text-sm font-black uppercase tracking-tighter text-slate-950 dark:text-white">
+                      {tLanding('response_value')}
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md transition-all hover:bg-white/10">
-                  <Zap className="w-5 h-5 text-amber-400" />
+                <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/90 px-5 py-3 shadow-sm dark:border-white/10 dark:bg-white/5">
+                  <Zap className="w-5 h-5 text-amber-500" />
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      {tLanding('level_label')}
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {tLanding('card_ready_label')}
                     </span>
-                    <span className="text-sm font-black text-white uppercase tracking-tighter italic font-display">
-                      {tLanding('level_value')}
+                    <span className="text-sm font-black uppercase tracking-tighter text-slate-950 dark:text-white">
+                      {tLanding('card_ready_value')}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Premium Digital ID Card */}
             <div className="flex-shrink-0 animate-in fade-in zoom-in-95 duration-1000 delay-300">
               <DigitalIDCard
                 name={userDetails.name}
@@ -246,16 +238,11 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
           </div>
         </div>
 
-        {/* Diaspora Ribbon - Modernized with Glass & Gradient */}
         <div className="relative group cursor-pointer" data-testid="diaspora-ribbon">
-          <div className="absolute -inset-1 bg-gradient-to-r from-primary/40 to-blue-600/40 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-100 transition duration-1000 group-hover:duration-300"></div>
-          <div className="relative bg-card/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-3xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-premium transition-all duration-500 hover:scale-[1.01] hover:border-primary/30">
+          <div className="relative rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm transition-all duration-300 hover:border-sky-200 dark:border-white/10 dark:bg-slate-950/60">
             <div className="flex items-center gap-5">
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg animate-pulse" />
-                <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white shadow-lg">
-                  <Globe className="w-7 h-7 animate-wiggle" />
-                </div>
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 dark:bg-sky-400/10 dark:text-sky-300">
+                <Globe className="w-7 h-7" />
               </div>
               <div className="space-y-1">
                 <h3 className="text-lg font-display font-bold text-foreground">
@@ -269,7 +256,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
             <Button
               asChild
               size="lg"
-              className="rounded-2xl px-8 group/btn shadow-lg shadow-primary/20 transition-all active:scale-95"
+              className="rounded-2xl px-8 group/btn shadow-sm transition-all active:scale-95"
               data-testid="diaspora-ribbon-cta"
             >
               <Link href="/member/diaspora" className="flex items-center gap-3">
@@ -331,61 +318,70 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
             </HomeGrid>
           </div>
 
-          {/* Live Intelligence Sidebar */}
-          <Card className="rounded-[2.5rem] border-slate-200/60 dark:border-white/5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl shadow-premium overflow-hidden border-none relative group">
+          <Card className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950/60">
             <CardHeader className="p-8 pb-4">
-              <CardTitle className="text-sm font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 flex items-center gap-2">
-                <Activity className="w-4 h-4 animate-pulse" />
-                {tLanding('live_protection_title')}
+              <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.2em] text-sky-700 dark:text-sky-300">
+                <Headphones className="w-4 h-4" />
+                {tLanding('support_panel_title')}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8 pt-0 space-y-8">
               <div className="space-y-6">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    <span>{tLanding('system_integrity')}</span>
-                    <span className={isActive ? 'text-emerald-500' : 'text-red-500'}>
-                      {isActive ? tLanding('integrity_optimal') : tLanding('integrity_low')}
+                    <span>{tLanding('support_readiness_label')}</span>
+                    <span className={isActive ? 'text-emerald-500' : 'text-amber-500'}>
+                      {isActive
+                        ? tLanding('support_readiness_active')
+                        : tLanding('support_readiness_pending')}
                     </span>
                   </div>
-                  <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-white/5 overflow-hidden">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/5">
                     <div
                       className={`h-full transition-all duration-1000 ${
-                        isActive ? 'bg-emerald-500' : 'bg-red-500'
+                        isActive ? 'bg-emerald-500' : 'bg-amber-500'
                       }`}
-                      style={{ width: isActive ? '100%' : '35%' }}
+                      style={{ width: isActive ? '100%' : '65%' }}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
-                      {tLanding('nodes')}
+                  <div className="rounded-3xl border border-slate-100 bg-slate-50 p-4 dark:border-white/5 dark:bg-white/5">
+                    <span className="mb-1 block text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                      {tLanding('support_channel_label')}
                     </span>
-                    <span className="text-xl font-display font-black">124</span>
+                    <span className="text-xl font-display font-black">
+                      {tLanding('support_channel_value')}
+                    </span>
                   </div>
-                  <div className="p-4 rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
-                      {tLanding('latency')}
+                  <div className="rounded-3xl border border-slate-100 bg-slate-50 p-4 dark:border-white/5 dark:bg-white/5">
+                    <span className="mb-1 block text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                      {tLanding('support_window_label')}
                     </span>
-                    <span className="text-xl font-display font-black">14ms</span>
+                    <span className="text-xl font-display font-black">
+                      {tLanding('support_window_value')}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  {tLanding('active_protection_nodes')}
+                  {tLanding('support_highlights_title')}
                 </h4>
                 <div className="space-y-3">
-                  {['Prishtina-HQ', 'Skopje-East', 'Zürich-Relay'].map(node => (
-                    <div key={node} className="flex items-center justify-between">
-                      <span className="text-xs font-bold">{node}</span>
+                  {[
+                    tLanding('support_highlight_one'),
+                    tLanding('support_highlight_two'),
+                    tLanding('support_highlight_three'),
+                  ].map(item => (
+                    <div key={item} className="flex items-center justify-between">
+                      <span className="text-xs font-bold">{item}</span>
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                         <span className="text-[10px] font-mono text-muted-foreground">
-                          {tLanding('online')}
+                          {tLanding('online_now')}
                         </span>
                       </div>
                     </div>
@@ -396,11 +392,11 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
               <Button
                 asChild
                 variant="outline"
-                className="w-full rounded-2xl border-blue-500/20 hover:bg-blue-500/5 hover:border-blue-500/40 transition-all font-bold group/pulse"
+                className="w-full rounded-2xl border-sky-200 font-bold transition-all hover:border-sky-300 hover:bg-sky-50 dark:border-sky-400/20 dark:hover:bg-sky-400/5"
               >
                 <Link href="/member/help" className="flex items-center justify-center gap-2">
-                  <span>{tLanding('get_help_support')}</span>
-                  <ArrowRight className="w-4 h-4 group-hover/pulse:translate-x-1 transition-transform" />
+                  <span>{tLanding('support_panel_cta')}</span>
+                  <ArrowRight className="w-4 h-4 transition-transform" />
                 </Link>
               </Button>
             </CardContent>
@@ -458,93 +454,75 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
           </div>
         </div>
 
-        {/* Bottom Layout - Hybrid Dashboard */}
         <div className="grid gap-8 lg:grid-cols-3">
-          <Card className="lg:col-span-2 shadow-premium border-none bg-slate-900 text-white overflow-hidden relative group rounded-[2rem]">
-            {/* Dynamic Background Grid */}
-            <div
-              className="absolute inset-0 opacity-[0.05] pointer-events-none"
-              style={{
-                backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
-                backgroundSize: '32px 32px',
-              }}
-            />
-
-            <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-1000 pointer-events-none">
-              <Activity className="w-48 h-48 text-blue-400" />
-            </div>
-
-            <CardHeader className="relative p-8 pb-4 border-b border-white/10">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-display font-black flex items-center gap-3">
-                  <div className="p-2 bg-blue-500 rounded-lg">
-                    <Phone className="w-5 h-5 text-white" />
+          <Card className="lg:col-span-2 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-slate-950 text-white shadow-lg dark:border-white/10">
+            <CardHeader className="relative border-b border-white/10 p-8 pb-4">
+              <div className="flex items-center justify-between gap-4">
+                <CardTitle className="flex items-center gap-3 text-lg font-display font-black">
+                  <div className="rounded-lg bg-sky-500 p-2">
+                    <Phone className="h-5 w-5 text-white" />
                   </div>
                   {tLanding('command_center_title')}
                 </CardTitle>
-                <div className="px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-[10px] font-black tracking-widest text-blue-400 animate-pulse">
+                <div className="rounded-full border border-sky-400/30 bg-sky-400/10 px-3 py-1 text-[10px] font-black tracking-widest text-sky-300">
                   {tLanding('priority_line_active')}
                 </div>
               </div>
             </CardHeader>
 
-            <div className="relative p-10 flex flex-col gap-10">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-12">
-                <div className="space-y-3 group/link">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400/80">
-                    {tLanding('country_north_macedonia')}
+            <div className="relative flex flex-col gap-8 p-8 sm:p-10">
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-6">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-300">
+                    {tLanding('support_phone_label')}
                   </div>
-                  <a
-                    href="tel:+38970337140"
-                    className="text-3xl font-display font-black block transition-all group-hover/link:translate-x-2"
-                  >
-                    +389 70 337 140
+                  <a href={contacts.telHref} className="block text-3xl font-display font-black">
+                    {contacts.phoneDisplay}
                   </a>
                   <div className="flex items-center gap-2 text-xs text-slate-400">
                     <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                    <span>{tLanding('available_now_avg_response', { seconds: '12s' })}</span>
+                    <span>{tLanding('available_now_avg_response', { seconds: '24h' })}</span>
                   </div>
                 </div>
-                <div className="space-y-3 group/link">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400/80">
-                    {tLanding('country_kosovo')}
+                <div className="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-6">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-300">
+                    {tLanding('support_whatsapp_label')}
                   </div>
                   <a
-                    href="tel:+38349900600"
-                    className="text-3xl font-display font-black block transition-all group-hover/link:translate-x-2"
+                    href={contacts.whatsappHref}
+                    className="block text-3xl font-display font-black"
                   >
-                    +383 49 900 600
+                    WhatsApp
                   </a>
                   <div className="flex items-center gap-2 text-xs text-slate-400">
                     <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                    <span>{tLanding('available_now_avg_response', { seconds: '15s' })}</span>
+                    <span>{tLanding('support_whatsapp_value')}</span>
                   </div>
                 </div>
               </div>
+              <p className="max-w-2xl text-sm leading-relaxed text-slate-300">
+                {tLanding('command_center_body')}
+              </p>
             </div>
           </Card>
 
           <div className="flex flex-col gap-8">
             <ReferralCard isAgent={isAgent(userDetails.role)} />
-            <Card className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-none p-8 shadow-2xl rounded-[2rem] relative overflow-hidden group">
-              <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000" />
+            <Card className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white p-8 shadow-sm dark:border-white/10 dark:bg-slate-950/60">
               <div className="relative space-y-5">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
-                    <LayoutDashboard className="w-6 h-6 text-white" />
+                  <div className="rounded-2xl bg-sky-50 p-3 dark:bg-sky-400/10">
+                    <LayoutDashboard className="w-6 h-6 text-sky-700 dark:text-sky-300" />
                   </div>
-                  <h3 className="text-lg font-display font-black">
+                  <h3 className="text-lg font-display font-black text-foreground">
                     {tLanding('status_insight_title')}
                   </h3>
                 </div>
-                <p className="text-sm text-blue-50 leading-relaxed font-medium">
+                <p className="text-sm font-medium leading-relaxed text-muted-foreground">
                   {tLanding('status_insight_body')}
                 </p>
-                <Button
-                  variant="secondary"
-                  className="w-full rounded-xl font-bold bg-white text-blue-600 hover:bg-blue-50"
-                >
-                  {tLanding('review_security_parameters')}
+                <Button variant="secondary" asChild className="w-full rounded-xl font-bold">
+                  <Link href="/member/help">{tLanding('review_security_parameters')}</Link>
                 </Button>
               </div>
             </Card>

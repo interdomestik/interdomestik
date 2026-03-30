@@ -76,11 +76,10 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
 
       await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
       await expect(page.getByTestId('portal-surface-indicator')).toBeVisible();
-      await expect(page.getByTestId('member-header')).toBeVisible();
-      await expect(page.getByTestId('member-primary-actions')).toBeVisible();
-      await expect(page.getByTestId('member-active-claim')).toBeVisible();
+      await expect(page.getByTestId('member-primary-actions').first()).toBeVisible();
+      await expect(page.getByTestId('member-active-claim').first()).toBeVisible();
       await expect(page.getByTestId('member-claims-list')).toHaveCount(0);
-      await expect(page.getByTestId('member-support-link')).toBeVisible();
+      await expect(page.getByTestId('member-support-link').first()).toBeVisible();
 
       const cta = page.getByTestId('member-start-claim-cta');
       await expect(cta).toHaveAttribute('href', routes.memberNewClaim(testInfo));

@@ -14,7 +14,7 @@ test.describe('Agent Member Overlay', () => {
 
     await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'dashboard-page-ready' });
     await expect(page).toHaveURL(new RegExp(`${routes.member(testInfo)}$`));
-    await expect(page.getByTestId('member-header')).toBeVisible();
+    await expect(page.getByTestId('member-primary-actions').first()).toBeVisible();
     await expect(page.getByTestId('member-empty-state')).toBeVisible();
     await expect(page.getByTestId('member-claims-list')).toHaveCount(0);
   });

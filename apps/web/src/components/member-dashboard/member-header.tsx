@@ -8,7 +8,7 @@ export type MemberHeaderProps = {
 export function MemberHeader({ name, membershipNumber }: MemberHeaderProps): ReactElement {
   return (
     <section
-      data-testid="member-header"
+      data-testid="member-profile-header"
       className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div>
