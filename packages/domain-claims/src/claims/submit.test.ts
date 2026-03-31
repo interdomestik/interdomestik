@@ -56,6 +56,15 @@ vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   getActiveSubscription: hoisted.getActiveSubscription,
 }));
 
+vi.mock('@interdomestik/database/tenant-security', () => ({
+  withTenant: vi.fn((tenantId: string, tenantColumn: unknown, condition?: unknown) => ({
+    __op: 'withTenant',
+    tenantId,
+    tenantColumn,
+    condition,
+  })),
+}));
+
 vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: hoisted.ensureTenantId,
 }));

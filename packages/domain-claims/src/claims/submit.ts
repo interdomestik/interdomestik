@@ -5,6 +5,7 @@ import {
   db,
   tenantSettings,
 } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
@@ -62,7 +63,7 @@ function resolveDefaultBranchId(value: unknown): string | null {
 
 async function resolveAgentBranchId(agentId: string, tenantId: string): Promise<string | null> {
   const agent = await db.query.user.findFirst({
-    where: (user, { and, eq }) => and(eq(user.id, agentId), eq(user.tenantId, tenantId)),
+    where: (user, { eq }) => withTenant(tenantId, user.tenantId, eq(user.id, agentId)),
     columns: { branchId: true },
   });
 
@@ -79,10 +80,10 @@ async function loadClaimAssignmentContext(
       ? null
       : await resolveAgentBranchId(subscription.agentId, tenantId);
   const defaultBranchSetting = await db.query.tenantSettings.findFirst({
-    where: and(
-      eq(tenantSettings.tenantId, tenantId),
-      eq(tenantSettings.category, 'rbac'),
-      eq(tenantSettings.key, 'default_branch_id')
+    where: withTenant(
+      tenantId,
+      tenantSettings.tenantId,
+      and(eq(tenantSettings.category, 'rbac'), eq(tenantSettings.key, 'default_branch_id'))
     ),
   });
 

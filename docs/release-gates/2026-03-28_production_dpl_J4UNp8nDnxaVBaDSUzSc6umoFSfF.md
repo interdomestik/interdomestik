@@ -12,7 +12,7 @@
 - Change summary:
 - Deterministic scripted release gate run
 - Scope: ALL (P0.1, P0.2, P0.3, P0.4, P0.6, P1.1, P1.2, P1.3, P1.5.1, G07, G08, G09, G10)
-- Generated at: 2026-03-28T23:31:33.957Z
+- Generated at: 2026-03-28T19:35:41.281Z
 
 ## Preconditions
 
@@ -88,7 +88,7 @@ Observed:
 - attempt=1 target_source=env-cross-tenant-probe
 - target_fallback_allowed=true
 - target=https://interdomestik-web.vercel.app/en/admin/users/golden_ks_a_member_1
-- pre-clean removed_existing_role_entries=0
+- pre-clean removed_existing_role_entries=1
 - added_role=promoter visible_in_roles_table=true
 
 ## P0.4 Admin Role Removal Works
@@ -204,7 +204,7 @@ Observed:
 Observed:
 
 - download response 200 observed=true
-- download response statuses: 200@https://interdomestik-web.vercel.app/api/documents/f46b6f18-e26b-40d2-905b-615d81876c67/download
+- download response statuses: 200@https://interdomestik-web.vercel.app/api/documents/11bbf1c3-338e-4149-9b2e-b386b0f815ba/download
 - inline/open action succeeded=true
 
 ## P1.3 Staff Claim Update Persistence (Status + Note)
@@ -222,7 +222,7 @@ Observed:
 - configured_staff_claim_reason=list-url
 - configured_staff_claim_pathname_family=/en/staff/claims
 - configured_staff_claim_rejected reason=list-url
-- fallback_search_elapsed_ms=35
+- fallback_search_elapsed_ms=38
 - fallback_link_count=20
 - fallback_detail_url=https://interdomestik-web.vercel.app/en/staff/claims/pack_ks_claim_ks_a_sla_2
 - claim_source=staff_claims_list_fallback
