@@ -1,4 +1,4 @@
-import { db, eq, user } from '@interdomestik/database';
+import { db, E2E_PASSWORD, E2E_USERS, eq, user } from '@interdomestik/database';
 import type { Page, TestInfo } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 
@@ -6,8 +6,6 @@ import { expect } from '../fixtures/auth.fixture';
 import { gotoApp } from '../utils/navigation';
 import { routes } from '../routes';
 
-const SUPER_ADMIN_EMAIL = 'super@interdomestik.com';
-const PASSWORD = 'GoldenPass123!';
 const COOKIE_CONSENT_STORAGE_KEY = 'interdomestik_cookie_consent_v1';
 const COOKIE_CONSENT_COOKIE_NAME = 'cookie_consent';
 const LOCAL_TEST_PROTOCOL = 'http:';
@@ -62,7 +60,7 @@ export async function loginAsSuperAdmin(page: Page, testInfo: TestInfo): Promise
 
   await page.context().clearCookies();
   const response = await page.request.post(`${origin}/api/auth/sign-in/email`, {
-    data: { email: SUPER_ADMIN_EMAIL, password: PASSWORD },
+    data: { email: E2E_USERS.SUPER_ADMIN.email, password: E2E_PASSWORD },
     headers: {
       Origin: origin,
       Referer: `${origin}/${locale}/login`,
