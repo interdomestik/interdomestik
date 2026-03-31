@@ -89,13 +89,15 @@ export async function MembershipInfoCard({
               : t('labels.tenant_review_confirmed')}
           </span>
         </div>
-        <TenantClassificationControls
-          userId={userId}
-          currentTenantId={currentTenantId ?? ''}
-          tenantClassificationPending={tenantClassificationPending}
-          canReassignTenant={canReassignTenant}
-          tenantOptions={tenantOptions}
-        />
+        {currentTenantId ? (
+          <TenantClassificationControls
+            userId={userId}
+            currentTenantId={currentTenantId}
+            tenantClassificationPending={tenantClassificationPending}
+            canReassignTenant={canReassignTenant}
+            tenantOptions={tenantOptions}
+          />
+        ) : null}
       </CardContent>
     </Card>
   );

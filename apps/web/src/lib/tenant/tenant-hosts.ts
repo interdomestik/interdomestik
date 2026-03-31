@@ -116,14 +116,14 @@ function isProductionLikeEnvironment(): boolean {
 export function resolveTenantIdFromSources(
   sources: TenantResolutionSources,
   options: TenantResolutionOptions = {}
-): TenantId | null {
-  return resolveTenantContextFromSources(sources, options)?.tenantId ?? null;
+): TenantId {
+  return resolveTenantContextFromSources(sources, options).tenantId;
 }
 
 export function resolveTenantContextFromSources(
   sources: TenantResolutionSources,
   options: TenantResolutionOptions = {}
-): TenantResolutionResult | null {
+): TenantResolutionResult {
   const hostTenant = resolveTenantFromHost(sources.host ?? '');
   if (hostTenant) return { tenantId: hostTenant, source: 'host' };
 

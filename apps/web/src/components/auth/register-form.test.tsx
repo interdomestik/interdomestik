@@ -121,7 +121,7 @@ describe('RegisterForm', () => {
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.submit(screen.getByRole('button', { name: 'Sign Up' }).closest('form')!);
 
-    await vi.waitFor(() => {
+    await vi.waitFor(() =>
       expect(authClient.signUp.email).toHaveBeenCalledWith(
         expect.objectContaining({
           email: 'john@example.com',
@@ -129,7 +129,7 @@ describe('RegisterForm', () => {
           tenantId: 'tenant_ks',
           tenantClassificationPending: true,
         })
-      );
-    });
+      )
+    );
   });
 });

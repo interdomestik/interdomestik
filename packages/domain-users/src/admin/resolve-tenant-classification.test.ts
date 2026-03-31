@@ -112,6 +112,12 @@ const mocks = vi.hoisted(() => {
     },
     eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
     and: vi.fn((...parts: unknown[]) => ({ op: 'and', parts })),
+    withTenant: vi.fn((tenantId: string, tenantColumn: unknown, filter: unknown) => ({
+      op: 'withTenant',
+      tenantId,
+      tenantColumn,
+      filter,
+    })),
     ensureTenantId: vi.fn((session: { user: { tenantId: string } }) => session.user.tenantId),
   };
 });
@@ -140,6 +146,10 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: mocks.ensureTenantId,
+}));
+
+vi.mock('@interdomestik/database/tenant-security', () => ({
+  withTenant: mocks.withTenant,
 }));
 
 vi.mock('./access', () => ({

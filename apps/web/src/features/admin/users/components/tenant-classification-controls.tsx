@@ -55,11 +55,18 @@ export function TenantClassificationControls({
   }
 
   const submitResolution = async (targetTenantId: string | null) => {
-    const result = await resolveTenantClassification({
-      userId,
-      currentTenantId,
-      nextTenantId: targetTenantId,
-    });
+    let result;
+    try {
+      result = await resolveTenantClassification({
+        userId,
+        currentTenantId,
+        nextTenantId: targetTenantId,
+      });
+    } catch (error) {
+      console.error('Failed to resolve tenant classification:', error);
+      toast.error(tCommon('errors.generic'));
+      return;
+    }
 
     if (!result.success) {
       toast.error(result.error || tCommon('errors.generic'));
@@ -81,25 +88,17 @@ export function TenantClassificationControls({
 
   const handleConfirm = () => {
     startTransition(async () => {
-      try {
-        await submitResolution(null);
-      } catch (_error) {
-        toast.error(tCommon('errors.generic'));
-      }
+      await submitResolution(null);
     });
   };
 
   const handleReassign = () => {
     startTransition(async () => {
-      try {
-        if (!selectedTenantId) {
-          toast.error(t('tenant_resolution.select_tenant_first'));
-          return;
-        }
-        await submitResolution(selectedTenantId);
-      } catch (_error) {
-        toast.error(tCommon('errors.generic'));
+      if (!selectedTenantId) {
+        toast.error(t('tenant_resolution.select_tenant_first'));
+        return;
       }
+      await submitResolution(selectedTenantId);
     });
   };
 

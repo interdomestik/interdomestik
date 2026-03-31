@@ -61,5 +61,8 @@ export async function resolveTenantClassificationCore(params: {
     },
   });
 
-  return result;
+  return {
+    success: true,
+    data,
+  };
 }

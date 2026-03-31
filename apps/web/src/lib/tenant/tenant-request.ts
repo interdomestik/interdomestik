@@ -28,14 +28,14 @@ function getRequestHost(h: Headers): string {
  */
 export async function resolveTenantIdFromRequest(
   options: ResolveTenantOptions = {}
-): Promise<TenantId | null> {
+): Promise<TenantId> {
   const context = await resolveTenantContextFromRequest(options);
-  return context?.tenantId ?? null;
+  return context.tenantId;
 }
 
 export async function resolveTenantContextFromRequest(
   options: ResolveTenantOptions = {}
-): Promise<TenantResolutionResult | null> {
+): Promise<TenantResolutionResult> {
   const h = await headers();
   const cookieStore = await cookies();
 

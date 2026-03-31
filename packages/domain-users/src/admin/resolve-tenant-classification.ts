@@ -19,6 +19,7 @@ import {
   userRoles,
   memberReferralRewards,
 } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ActionResult, UserSession } from '../types';
@@ -32,6 +33,12 @@ export type ResolveTenantClassificationResult = {
   tenantId: string;
   previousPending: boolean;
   tenantClassificationPending: boolean;
+  resolutionMode: TenantClassificationResolutionMode;
+};
+
+type TenantResolutionContext = {
+  currentTenantId: string;
+  nextTenantId: string;
   resolutionMode: TenantClassificationResolutionMode;
 };
 
@@ -58,67 +65,70 @@ async function hasTenantBoundRecords(params: {
     rewardRow,
   ] = await Promise.all([
     db.query.claims.findFirst({
-      where: and(eq(claims.userId, userId), eq(claims.tenantId, tenantId)),
+      where: withTenant(tenantId, claims.tenantId, eq(claims.userId, userId)),
       columns: { id: true },
     }),
     db.query.subscriptions.findFirst({
-      where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
+      where: withTenant(tenantId, subscriptions.tenantId, eq(subscriptions.userId, userId)),
       columns: { id: true },
     }),
     db.query.userNotificationPreferences.findFirst({
-      where: and(
-        eq(userNotificationPreferences.userId, userId),
-        eq(userNotificationPreferences.tenantId, tenantId)
+      where: withTenant(
+        tenantId,
+        userNotificationPreferences.tenantId,
+        eq(userNotificationPreferences.userId, userId)
       ),
       columns: { id: true },
     }),
     db.query.memberNotes.findFirst({
-      where: and(eq(memberNotes.memberId, userId), eq(memberNotes.tenantId, tenantId)),
+      where: withTenant(tenantId, memberNotes.tenantId, eq(memberNotes.memberId, userId)),
       columns: { id: true },
     }),
     db.query.agentClients.findFirst({
-      where: and(eq(agentClients.memberId, userId), eq(agentClients.tenantId, tenantId)),
+      where: withTenant(tenantId, agentClients.tenantId, eq(agentClients.memberId, userId)),
       columns: { id: true },
     }),
     db.query.pushSubscriptions.findFirst({
-      where: and(eq(pushSubscriptions.userId, userId), eq(pushSubscriptions.tenantId, tenantId)),
+      where: withTenant(tenantId, pushSubscriptions.tenantId, eq(pushSubscriptions.userId, userId)),
       columns: { id: true },
     }),
     db.query.membershipCards.findFirst({
-      where: and(eq(membershipCards.userId, userId), eq(membershipCards.tenantId, tenantId)),
+      where: withTenant(tenantId, membershipCards.tenantId, eq(membershipCards.userId, userId)),
       columns: { id: true },
     }),
     db.query.userRoles.findFirst({
-      where: and(eq(userRoles.userId, userId), eq(userRoles.tenantId, tenantId)),
+      where: withTenant(tenantId, userRoles.tenantId, eq(userRoles.userId, userId)),
       columns: { id: true },
     }),
     db.query.memberLeads.findFirst({
-      where: and(eq(memberLeads.convertedUserId, userId), eq(memberLeads.tenantId, tenantId)),
+      where: withTenant(tenantId, memberLeads.tenantId, eq(memberLeads.convertedUserId, userId)),
       columns: { id: true },
     }),
     db.query.emailCampaignLogs.findFirst({
-      where: and(eq(emailCampaignLogs.userId, userId), eq(emailCampaignLogs.tenantId, tenantId)),
+      where: withTenant(tenantId, emailCampaignLogs.tenantId, eq(emailCampaignLogs.userId, userId)),
       columns: { id: true },
     }),
     db.query.membershipFamilyMembers.findFirst({
-      where: and(
-        eq(membershipFamilyMembers.userId, userId),
-        eq(membershipFamilyMembers.tenantId, tenantId)
+      where: withTenant(
+        tenantId,
+        membershipFamilyMembers.tenantId,
+        eq(membershipFamilyMembers.userId, userId)
       ),
       columns: { id: true },
     }),
     db.query.notifications.findFirst({
-      where: and(eq(notifications.userId, userId), eq(notifications.tenantId, tenantId)),
+      where: withTenant(tenantId, notifications.tenantId, eq(notifications.userId, userId)),
       columns: { id: true },
     }),
     db.query.referrals.findFirst({
-      where: and(eq(referrals.referrerId, userId), eq(referrals.tenantId, tenantId)),
+      where: withTenant(tenantId, referrals.tenantId, eq(referrals.referrerId, userId)),
       columns: { id: true },
     }),
     db.query.memberReferralRewards.findFirst({
-      where: and(
-        eq(memberReferralRewards.referredMemberId, userId),
-        eq(memberReferralRewards.tenantId, tenantId)
+      where: withTenant(
+        tenantId,
+        memberReferralRewards.tenantId,
+        eq(memberReferralRewards.referredMemberId, userId)
       ),
       columns: { id: true },
     }),
@@ -142,69 +152,114 @@ async function hasTenantBoundRecords(params: {
   );
 }
 
-export async function resolveTenantClassificationCore(params: {
+async function validateResolutionInput(params: {
   session: UserSession | null;
   userId: string;
   currentTenantId: string;
   targetTenantId?: string | null;
-}): Promise<ActionResult<ResolveTenantClassificationResult>> {
-  const adminSession = await requireTenantAdminSession(params.session);
-  const sessionTenantId = ensureTenantId(adminSession);
-
-  if (!params.userId.trim()) {
-    return { error: 'User ID is required' };
-  }
-
-  const currentTenantId = params.currentTenantId.trim();
-  if (!currentTenantId) {
-    return { error: 'Current tenant is required' };
-  }
-
-  if (adminSession.user.role !== 'super_admin' && currentTenantId !== sessionTenantId) {
-    return { error: 'Unauthorized' };
-  }
-
-  let nextTenantId: string;
+}): Promise<ActionResult<TenantResolutionContext>> {
+  const { session, userId, currentTenantId, targetTenantId } = params;
   try {
-    nextTenantId = resolveTenantId(adminSession, params.targetTenantId ?? null);
+    const adminSession = await requireTenantAdminSession(session);
+    const sessionTenantId = ensureTenantId(adminSession);
+
+    if (!userId.trim()) {
+      return { error: 'User ID is required' };
+    }
+
+    const normalizedCurrentTenantId = currentTenantId.trim();
+    if (!normalizedCurrentTenantId) {
+      return { error: 'Current tenant is required' };
+    }
+
+    if (adminSession.user.role !== 'super_admin' && normalizedCurrentTenantId !== sessionTenantId) {
+      return { error: 'Unauthorized' };
+    }
+
+    const nextTenantId = resolveTenantId(adminSession, targetTenantId ?? null);
+
+    return {
+      success: true,
+      data: {
+        currentTenantId: normalizedCurrentTenantId,
+        nextTenantId,
+        resolutionMode: nextTenantId === normalizedCurrentTenantId ? 'confirm_current' : 'reassign',
+      },
+    };
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return { error: 'Unauthorized' };
     }
     throw error;
   }
+}
 
-  const resolutionMode: TenantClassificationResolutionMode =
-    nextTenantId === currentTenantId ? 'confirm_current' : 'reassign';
+async function getPendingUser(userId: string, currentTenantId: string) {
+  return db.query.user.findFirst({
+    where: withTenant(currentTenantId, user.tenantId, eq(user.id, userId)),
+    columns: {
+      id: true,
+      tenantId: true,
+      tenantClassificationPending: true,
+    },
+  });
+}
+
+async function validateReassignment(params: {
+  userId: string;
+  currentTenantId: string;
+  nextTenantId: string;
+}) {
+  const { userId, currentTenantId, nextTenantId } = params;
+  const targetTenant = await db.query.tenants.findFirst({
+    where: and(eq(tenants.id, nextTenantId), eq(tenants.isActive, true)),
+    columns: { id: true },
+  });
+
+  if (!targetTenant) {
+    return { error: 'Target tenant not found' } as const;
+  }
+
+  if (await hasTenantBoundRecords({ userId, tenantId: currentTenantId })) {
+    return {
+      error: 'Cannot reassign tenant classification while tenant-bound records exist',
+    } as const;
+  }
+
+  return { success: true } as const;
+}
+
+export async function resolveTenantClassificationCore(params: {
+  session: UserSession | null;
+  userId: string;
+  currentTenantId: string;
+  targetTenantId?: string | null;
+}): Promise<ActionResult<ResolveTenantClassificationResult>> {
+  const validation = await validateResolutionInput(params);
+  if ('error' in validation) {
+    return validation;
+  }
+
+  if (!validation.data) {
+    return { error: 'Failed to resolve tenant classification' };
+  }
+
+  const { currentTenantId, nextTenantId, resolutionMode } = validation.data;
 
   try {
-    const currentUser = await db.query.user.findFirst({
-      where: and(eq(user.id, params.userId), eq(user.tenantId, currentTenantId)),
-      columns: {
-        id: true,
-        tenantId: true,
-        tenantClassificationPending: true,
-      },
-    });
-
+    const currentUser = await getPendingUser(params.userId, currentTenantId);
     if (!currentUser) {
       return { error: 'User not found' };
     }
 
     if (resolutionMode === 'reassign') {
-      const targetTenant = await db.query.tenants.findFirst({
-        where: and(eq(tenants.id, nextTenantId), eq(tenants.isActive, true)),
-        columns: { id: true },
+      const reassignmentValidation = await validateReassignment({
+        userId: params.userId,
+        currentTenantId,
+        nextTenantId,
       });
-
-      if (!targetTenant) {
-        return { error: 'Target tenant not found' };
-      }
-
-      if (await hasTenantBoundRecords({ userId: params.userId, tenantId: currentTenantId })) {
-        return {
-          error: 'Cannot reassign tenant classification while tenant-bound records exist',
-        };
+      if ('error' in reassignmentValidation) {
+        return reassignmentValidation;
       }
     }
 
@@ -215,7 +270,7 @@ export async function resolveTenantClassificationCore(params: {
           tenantId: nextTenantId,
           tenantClassificationPending: false,
         })
-        .where(and(eq(user.id, params.userId), eq(user.tenantId, currentTenantId)));
+        .where(withTenant(currentTenantId, user.tenantId, eq(user.id, params.userId)));
     });
 
     return {

@@ -9,6 +9,9 @@ const SUPER_ADMIN_EMAIL = 'super@interdomestik.com';
 const PASSWORD = 'GoldenPass123!';
 const COOKIE_CONSENT_STORAGE_KEY = 'interdomestik_cookie_consent_v1';
 const COOKIE_CONSENT_COOKIE_NAME = 'cookie_consent';
+const LOCAL_TEST_PROTOCOL = 'http:';
+const LOCAL_TEST_HOST = 'mk.127.0.0.1.nip.io:3000';
+
 function isKsAdminProject(testInfo: TestInfo): boolean {
   return testInfo.project.name === 'ks-sq' || testInfo.project.name === 'smoke';
 }
@@ -47,7 +50,8 @@ async function resetPendingMember(memberId: string) {
 }
 
 async function loginAsSuperAdmin(page: Page, testInfo: TestInfo): Promise<void> {
-  const baseURL = testInfo.project.use.baseURL ?? 'http://mk.127.0.0.1.nip.io:3000/mk';
+  const fallbackBaseURL = `${LOCAL_TEST_PROTOCOL}//${LOCAL_TEST_HOST}/mk`;
+  const baseURL = testInfo.project.use.baseURL ?? fallbackBaseURL;
   const origin = new URL(baseURL.toString()).origin;
   const locale = routes.getLocale(testInfo);
 
@@ -75,15 +79,16 @@ async function dismissCookieBanner(page: Page): Promise<void> {
 }
 
 async function seedCookieConsent(page: Page, testInfo: TestInfo): Promise<void> {
-  const baseURL = testInfo.project.use.baseURL ?? 'http://mk.127.0.0.1.nip.io:3000/mk';
+  const fallbackBaseURL = `${LOCAL_TEST_PROTOCOL}//${LOCAL_TEST_HOST}/mk`;
+  const baseURL = testInfo.project.use.baseURL ?? fallbackBaseURL;
   const origin = new URL(baseURL.toString()).origin;
   const hostname = new URL(origin).hostname;
 
   await page.addInitScript(
     ({ key, value }) => {
-      window.localStorage.setItem(key, value);
+      globalThis.localStorage.setItem(key, value);
       document.cookie = 'cookie_consent=accepted; Path=/; SameSite=Lax';
-      window.dispatchEvent(
+      globalThis.dispatchEvent(
         new CustomEvent('interdomestik:cookie-consent-updated', {
           detail: { consent: value },
         })
