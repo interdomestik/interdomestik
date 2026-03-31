@@ -1,0 +1,10 @@
+id,tenant_id,branch_id,member_id,claim_created_at,submitted_at,current_status,claim_id,to_status,is_public,history_created_at
+cA9gOhZFPLYOKVzZ8Vsau,tenant_ks,,golden_ks_a_member_1,2026-03-31 06:36:18.897294,2026-03-31 06:36:18.897294,submitted,cA9gOhZFPLYOKVzZ8Vsau,submitted,t,2026-03-31 06:36:18.897294
+cA9gOhZFPLYOKVzZ8Vsau,tenant_ks,,golden_ks_a_member_1,2026-03-31 06:36:18.897294,2026-03-31 06:36:18.897294,submitted,cA9gOhZFPLYOKVzZ8Vsau,draft,t,2026-03-31 09:31:25.92
+cA9gOhZFPLYOKVzZ8Vsau,tenant_ks,,golden_ks_a_member_1,2026-03-31 06:36:18.897294,2026-03-31 06:36:18.897294,submitted,cA9gOhZFPLYOKVzZ8Vsau,submitted,t,2026-03-31 09:31:31.727
+cA9gOhZFPLYOKVzZ8Vsau,tenant_ks,,golden_ks_a_member_1,2026-03-31 06:36:18.897294,2026-03-31 06:36:18.897294,submitted,cA9gOhZFPLYOKVzZ8Vsau,draft,t,2026-03-31 09:33:11.665
+cA9gOhZFPLYOKVzZ8Vsau,tenant_ks,,golden_ks_a_member_1,2026-03-31 06:36:18.897294,2026-03-31 06:36:18.897294,submitted,cA9gOhZFPLYOKVzZ8Vsau,submitted,t,2026-03-31 09:33:20.648
+lPXonO6wV5xd_d2DLULp0,tenant_ks,,golden_ks_a_member_1,2026-03-31 13:56:10.830116,2026-03-31 13:56:10.830116,submitted,lPXonO6wV5xd_d2DLULp0,submitted,t,2026-03-31 13:56:10.830116
+pVPfeijORZ3iGoq29-MHr,tenant_ks,,golden_ks_a_member_1,2026-03-31 13:59:16.468464,2026-03-31 13:59:16.468464,submitted,pVPfeijORZ3iGoq29-MHr,submitted,t,2026-03-31 13:59:16.468464
+YsiT1kPldWd7Rd0QlWltB,tenant_ks,,golden_ks_a_member_2,2026-03-31 14:00:49.723295,2026-03-31 14:00:49.723295,verification,YsiT1kPldWd7Rd0QlWltB,submitted,t,2026-03-31 14:00:49.723295
+YsiT1kPldWd7Rd0QlWltB,tenant_ks,,golden_ks_a_member_2,2026-03-31 14:00:49.723295,2026-03-31 14:00:49.723295,verification,YsiT1kPldWd7Rd0QlWltB,verification,t,2026-03-31 14:05:50.651
