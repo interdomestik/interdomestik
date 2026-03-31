@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@interdomestik/database';
 import { getPaddle } from '@interdomestik/domain-membership-billing/paddle-server';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { cancelSubscription } from './subscription.core';
 
@@ -63,6 +63,7 @@ vi.mock('next/headers', () => ({
 }));
 
 describe('cancelSubscription', () => {
+  const fixedNow = new Date('2026-03-15T00:00:00.000Z');
   const mockPaddle = {
     subscriptions: {
       cancel: vi.fn(),
@@ -71,6 +72,8 @@ describe('cancelSubscription', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(fixedNow);
     (getPaddle as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockPaddle);
     (ensureTenantId as unknown as ReturnType<typeof vi.fn>).mockReturnValue('tenant_mk');
 
@@ -86,6 +89,10 @@ describe('cancelSubscription', () => {
     const mockSelectInnerJoin = vi.fn().mockReturnValue({ where: mockSelectWhere });
     const mockSelectFrom = vi.fn().mockReturnValue({ innerJoin: mockSelectInnerJoin });
     (db.select as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ from: mockSelectFrom });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should succeed if user owns subscription', async () => {

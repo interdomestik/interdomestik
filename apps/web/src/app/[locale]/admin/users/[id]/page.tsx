@@ -1,5 +1,9 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { AdminUserDetailV2Page } from '@/features/admin/users/components/AdminUserDetailV2Page';
 import { getSessionSafe } from '@/components/shell/session';
+import { getTenantClassificationOptions } from './tenant-classification';
 import { redirect } from 'next/navigation';
 import { resolveAdminTenantContext } from './tenant-context';
 
@@ -17,6 +21,19 @@ export default async function MemberProfilePage({
     redirect(`/${locale}/login`);
   }
   const tenantId = await resolveAdminTenantContext({ session, searchParams: sp });
+  const tenantClassificationOptions = await getTenantClassificationOptions({
+    session,
+    currentTenantId: tenantId,
+  });
 
-  return <AdminUserDetailV2Page id={id} locale={locale} searchParams={sp} tenantId={tenantId} />;
+  return (
+    <AdminUserDetailV2Page
+      id={id}
+      locale={locale}
+      searchParams={sp}
+      tenantId={tenantId}
+      actorRole={session.user?.role ?? null}
+      tenantClassificationOptions={tenantClassificationOptions}
+    />
+  );
 }

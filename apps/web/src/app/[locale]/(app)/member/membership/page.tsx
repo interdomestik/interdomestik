@@ -2,6 +2,7 @@ import { CoverageMatrix } from '@/components/commercial/coverage-matrix';
 import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matrix-content';
 import { getSessionSafe } from '@/components/shell/session';
 import { MembershipOpsPage } from '@/features/member/membership/components/MembershipOpsPage';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { getMemberDocumentsCore, getMemberSubscriptionsCore } from './_core';
@@ -15,13 +16,14 @@ export default async function MembershipPage({ params }: { params: Promise<{ loc
     redirect(`/${locale}/login`);
   }
 
+  const tenantId = ensureTenantId(session);
   const subscriptions = await getMemberSubscriptionsCore({
     userId: session.user.id,
-    tenantId: session.user.tenantId ?? null,
+    tenantId,
   });
   const documents = await getMemberDocumentsCore({
     userId: session.user.id,
-    tenantId: session.user.tenantId ?? null,
+    tenantId,
   });
 
   return (

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getMembershipActions,
   getSponsoredMembershipState,
@@ -10,6 +10,15 @@ const baseDate = new Date('2026-03-15T00:00:00.000Z');
 const dayMs = 24 * 60 * 60 * 1000;
 
 describe('Membership Adapter Policies', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(baseDate);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('getMembershipActions', () => {
     const mockT = (key: string) => key;
     type TestSubscription = NonNullable<Parameters<typeof getMembershipActions>[0]>;

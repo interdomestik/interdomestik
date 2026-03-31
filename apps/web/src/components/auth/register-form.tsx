@@ -18,7 +18,13 @@ import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
-export function RegisterForm({ tenantId }: { tenantId?: string }) {
+export function RegisterForm({
+  tenantId,
+  tenantClassificationPending = false,
+}: {
+  tenantId?: string;
+  tenantClassificationPending?: boolean;
+}) {
   const t = useTranslations('auth.register');
   const common = useTranslations('common');
   const router = useRouter();
@@ -58,6 +64,7 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
         name,
         callbackURL: loginHref,
         tenantId: resolvedTenantId,
+        tenantClassificationPending,
       };
 
       const { error: signUpError } = await authClient.signUp.email(signUpPayload);
@@ -85,7 +92,14 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
     await authClient.signIn.social({
       provider,
       callbackURL: `${window.location.origin}${loginHref}`,
-      ...(resolvedTenantId ? { additionalData: { tenantId: resolvedTenantId } } : {}),
+      ...(resolvedTenantId
+        ? {
+            additionalData: {
+              tenantId: resolvedTenantId,
+              tenantClassificationPending,
+            },
+          }
+        : {}),
     });
   };
 

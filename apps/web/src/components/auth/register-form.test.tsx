@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RegisterForm } from './register-form';
+import { authClient } from '@/lib/auth-client';
 
 let mockSearchParams = new URLSearchParams('');
 
@@ -109,5 +110,26 @@ describe('RegisterForm', () => {
 
     const loginLink = screen.getByText('Sign in').closest('a');
     expect(loginLink).toHaveAttribute('href', '/login?plan=family');
+  });
+
+  it('persists deferred tenant-classification flag during signup', async () => {
+    render(<RegisterForm tenantId="tenant_ks" tenantClassificationPending />);
+
+    fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'John Doe' } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'secret123' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.submit(screen.getByRole('button', { name: 'Sign Up' }).closest('form')!);
+
+    await vi.waitFor(() =>
+      expect(authClient.signUp.email).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'john@example.com',
+          name: 'John Doe',
+          tenantId: 'tenant_ks',
+          tenantClassificationPending: true,
+        })
+      )
+    );
   });
 });

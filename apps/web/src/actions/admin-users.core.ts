@@ -5,6 +5,8 @@ import { requireEffectivePortalAccessOrUnauthorized } from '@/server/auth/effect
 import { z } from 'zod';
 
 import { getUsersCore } from './admin-users/get-users';
+import { resolveTenantClassificationCore } from './admin-users/resolve-tenant-classification.core';
+import { updateUserAgentCore } from './admin-users/update-user-agent.core';
 
 const getUsersFiltersSchema = z
   .object({
@@ -13,8 +15,6 @@ const getUsersFiltersSchema = z
     assignment: z.enum(['assigned', 'unassigned']).optional(),
   })
   .strict();
-
-import { updateUserAgentCore } from './admin-users/update-user-agent.core';
 
 export async function updateUserAgent(userId: string, agentId: string | null): ActionResult<void> {
   return runAuthenticatedAction<void>(async ({ session }) => {
@@ -35,6 +35,31 @@ export async function updateUserAgent(userId: string, agentId: string | null): A
   });
 }
 
+export async function resolveTenantClassification(params: {
+  userId: string;
+  currentTenantId: string;
+  nextTenantId?: string | null;
+}): ActionResult<void> {
+  return runAuthenticatedAction<void>(async ({ session }) => {
+    await requireEffectivePortalAccessOrUnauthorized(
+      session,
+      ['admin', 'tenant_admin', 'super_admin'],
+      { requestedTenantId: params.currentTenantId }
+    );
+
+    const result = await resolveTenantClassificationCore({
+      session,
+      userId: params.userId,
+      currentTenantId: params.currentTenantId,
+      nextTenantId: params.nextTenantId ?? null,
+    });
+
+    if ('error' in result) {
+      throw new Error(String(result.error));
+    }
+  });
+}
+
 export async function getUsers(
   filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
 ): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
@@ -44,20 +69,15 @@ export async function getUsers(
       'tenant_admin',
       'super_admin',
     ]);
-    // Validate filters via Zod
-    const validation = getUsersFiltersSchema.safeParse(filters); // Changed from getUsersSchema to getUsersFiltersSchema
+    const validation = getUsersFiltersSchema.safeParse(filters);
     if (!validation.success) {
       throw new Error('Invalid filters');
     }
-    const safeFilters = validation.success ? validation.data : undefined;
-
-    // Pass session directly, types are compatible
-    const data = await getUsersCore({ session, filters: safeFilters });
+    const data = await getUsersCore({ session, filters: validation.data });
     return data;
   });
 }
 
-// Fetch available agents for dropdown
 export async function getAgents(): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
   return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(async ({ session }) => {
     await requireEffectivePortalAccessOrUnauthorized(session, [
@@ -65,8 +85,6 @@ export async function getAgents(): ActionResult<Awaited<ReturnType<typeof getUse
       'tenant_admin',
       'super_admin',
     ]);
-    // Agents are just users with role 'agent'
-    // We can reuse getUsersCore but filter by role
     const data = await getUsersCore({
       session,
       filters: { role: 'agent' },
@@ -82,7 +100,6 @@ export async function getStaff(): ActionResult<Awaited<ReturnType<typeof getUser
       'tenant_admin',
       'super_admin',
     ]);
-    // Include all roles that can be assigned as claim handlers
     const data = await getUsersCore({
       session,
       filters: { role: 'staff,tenant_admin,branch_manager' },

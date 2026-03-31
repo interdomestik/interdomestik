@@ -29,7 +29,13 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
   const { planId, priceId } = resolvedSearchParams;
   const uiV2Enabled = isUiV2Enabled();
   const tenantId = session.user.tenantId ?? null;
-  const supportContacts = getSupportContacts({ tenantId, locale });
+  const tenantClassificationPending =
+    (session.user as { tenantClassificationPending?: boolean | null })
+      .tenantClassificationPending === true;
+  const supportContacts = getSupportContacts({
+    tenantId: tenantClassificationPending ? null : tenantId,
+    locale,
+  });
 
   const t = await getTranslations({ locale, namespace: 'membership.success' });
 
@@ -54,6 +60,9 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
         </div>
         <h1 className="text-4xl font-extrabold tracking-tight mb-4">{t('title')}</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">{t('subtitle')}</p>
+        <p className="mt-4 mx-auto max-w-2xl rounded-2xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+          {t('classification_note')}
+        </p>
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">

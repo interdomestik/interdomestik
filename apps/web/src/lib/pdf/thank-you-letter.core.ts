@@ -64,6 +64,10 @@ export async function generateThankYouPDF(params: ThankYouLetterParams): Promise
     params.locale === 'sq'
       ? 'Faleminderit që zgjodhët Asistenca për mbrojtjen tuaj. Anëtarësimi juaj është aktiv.'
       : 'Thank you for choosing Asistenca for your protection. Your membership is now active.';
+  const classificationNote =
+    params.locale === 'sq'
+      ? 'ID-ja juaj e anëtarit është aktive tani. Shteti i trajtimit të rastit konfirmohet më vonë kur t’i shqyrtojmë të dhënat tuaja.'
+      : 'Your member ID is active now. Filing-country routing is confirmed later when we review your member details.';
 
   page.drawText(introText, {
     x: margin,
@@ -72,7 +76,18 @@ export async function generateThankYouPDF(params: ThankYouLetterParams): Promise
     font: font,
     color: rgb(0.3, 0.3, 0.3),
   });
-  yPosition -= 40;
+  yPosition -= 22;
+
+  page.drawText(classificationNote, {
+    x: margin,
+    y: yPosition,
+    size: 10,
+    font: font,
+    color: rgb(0.35, 0.35, 0.35),
+    maxWidth: width - margin * 2,
+    lineHeight: 14,
+  });
+  yPosition -= 48;
 
   // Digital Member Card Visual
   // Standard Credit Card Size: 85.6mm x 53.98mm -> ~243pt x 153pt

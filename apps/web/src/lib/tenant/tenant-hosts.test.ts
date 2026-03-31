@@ -17,6 +17,7 @@ describe('tenant-hosts', () => {
   const originalPilotHost = process.env.PILOT_HOST;
   const originalNodeEnv = process.env.NODE_ENV;
   const originalVercelEnv = process.env.VERCEL_ENV;
+  const originalDefaultPublicTenantId = process.env.DEFAULT_PUBLIC_TENANT_ID;
 
   afterEach(() => {
     mutableEnv.KS_HOST = originalKsHost;
@@ -25,6 +26,7 @@ describe('tenant-hosts', () => {
     mutableEnv.PILOT_HOST = originalPilotHost;
     mutableEnv.NODE_ENV = originalNodeEnv;
     mutableEnv.VERCEL_ENV = originalVercelEnv;
+    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = originalDefaultPublicTenantId;
   });
 
   it('resolves canonical local hosts', () => {
@@ -66,6 +68,16 @@ describe('tenant-hosts', () => {
   it('returns null for unknown hosts', () => {
     expect(resolveTenantFromHost('localhost')).toBeNull();
     expect(resolveTenantFromHost('example.com')).toBeNull();
+  });
+
+  it('falls back to the default public tenant on neutral hosts when no other context exists', () => {
+    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = 'tenant_ks';
+
+    expect(
+      resolveTenantIdFromSources({
+        host: '127.0.0.1:3000',
+      })
+    ).toBe('tenant_ks');
   });
 
   it('supports nip.io-style host fallback for AL', () => {
@@ -126,6 +138,7 @@ describe('tenant-hosts', () => {
   it('blocks query-only fallback in production-sensitive mode', () => {
     mutableEnv.NODE_ENV = 'production';
     delete mutableEnv.VERCEL_ENV;
+    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = 'tenant_ks';
 
     expect(
       resolveTenantIdFromSources(
@@ -135,7 +148,7 @@ describe('tenant-hosts', () => {
         },
         { productionSensitive: true }
       )
-    ).toBeNull();
+    ).toBe('tenant_ks');
   });
 
   it('retains query fallback behavior in non-production environments', () => {

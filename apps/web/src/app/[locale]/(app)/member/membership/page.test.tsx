@@ -3,6 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { expectCoverageMatrix, getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 
 const hoisted = vi.hoisted(() => ({
+  ensureTenantIdMock: vi.fn((session: { user: { tenantId?: string } }) => {
+    if (!session.user.tenantId) {
+      throw new Error('MissingTenantError');
+    }
+    return session.user.tenantId;
+  }),
   getDocumentsMock: vi.fn(async () => []),
   getSessionSafeMock: vi.fn(async () => ({
     user: {
@@ -27,6 +33,10 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: hoisted.getSessionSafeMock,
+}));
+
+vi.mock('@interdomestik/shared-auth', () => ({
+  ensureTenantId: hoisted.ensureTenantIdMock,
 }));
 
 vi.mock('./_core', () => ({
@@ -54,6 +64,20 @@ describe('MembershipPage commercial coverage matrix', () => {
       sectionTestId: 'membership-coverage-matrix',
     });
     expect(hoisted.getSessionSafeMock).toHaveBeenCalledWith('MemberMembershipPage');
+    expect(hoisted.ensureTenantIdMock).toHaveBeenCalledWith({
+      user: {
+        id: 'member-1',
+        tenantId: 'tenant-ks',
+      },
+    });
+    expect(hoisted.getSubscriptionsMock).toHaveBeenCalledWith({
+      userId: 'member-1',
+      tenantId: 'tenant-ks',
+    });
+    expect(hoisted.getDocumentsMock).toHaveBeenCalledWith({
+      userId: 'member-1',
+      tenantId: 'tenant-ks',
+    });
     expect(screen.getByText('membership-ops-page')).toBeInTheDocument();
   });
 });

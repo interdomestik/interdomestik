@@ -36,7 +36,7 @@ export default async function DashboardLayout({
   const role = sessionNonNull.user.role;
   const shellUser = toClientShellUser(sessionNonNull.user);
   const canonical = getCanonicalRouteForRole(role, locale);
-  if (canonical && role !== 'member' && role !== 'user') {
+  if (canonical && role !== 'member' && role !== 'user' && role !== 'agent') {
     redirect(canonical);
     return null;
   }

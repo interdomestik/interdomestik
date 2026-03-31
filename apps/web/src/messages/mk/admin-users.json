@@ -89,6 +89,7 @@
         "joined": "Приклучен"
       },
       "message_alert": "Нова порака ({count})",
+      "tenant_classification_pending": "Класификацијата на tenant е во тек",
       "select_agent": "Избери агент",
       "unassigned": "Недоделени",
       "no_users": "Нема пронајдени корисници",
@@ -130,7 +131,10 @@
         "no_claims": "Сè уште нема барања",
         "unknown": "Непознато",
         "not_set": "Не е поставено",
-        "not_applicable": "Не се применува"
+        "not_applicable": "Не се применува",
+        "tenant_review": "Преглед на tenant",
+        "tenant_review_pending": "Во тек е подоцнежен преглед на членските податоци",
+        "tenant_review_confirmed": "Потврдено според тековната tenant атрибуција"
       },
       "status": {
         "active": "Активно",
@@ -154,6 +158,19 @@
         "open": "Отворени барања",
         "resolved": "Решени",
         "rejected": "Одбиени"
+      },
+      "tenant_resolution": {
+        "title": "Реши ја класификацијата на tenant",
+        "description": "Потврди го тековниот tenant кога оваа сметка припаѓа тука. Прераспредели ја само кога сметката сè уште нема записи врзани за tenant.",
+        "confirm_current_tenant": "Потврди го тековниот tenant",
+        "confirmed": "Класификацијата на tenant веќе е потврдена.",
+        "confirmed_success": "Класификацијата на tenant е потврдена",
+        "reassign_label": "Премести ја оваа сметка во друг tenant",
+        "reassign_tenant": "Прераспредели tenant",
+        "reassigned_success": "Tenant-от е прераспределен",
+        "select_tenant_first": "Прво избери tenant",
+        "no_reassign_options": "Нема достапни активни цели за прераспределба.",
+        "reassign_locked": "Само super admin може да прераспредели член во друг tenant."
       }
     }
   }

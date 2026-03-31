@@ -22,6 +22,12 @@ describe('renderThankYouLetterEmail', () => {
     expect(result.html).toContain('Standard');
     expect(result.html).toContain('€20.00/year');
     expect(result.html).toContain('8,500+'); // Trust signal
+    expect(result.html).toContain(
+      'Your member ID is active now. Filing-country routing is confirmed later when we review your member details.'
+    );
+    expect(result.text).toContain(
+      'Your member ID is active now. Filing-country routing is confirmed later when we review your member details.'
+    );
   });
 
   it('generates correct translations for Albanian', () => {
@@ -30,6 +36,9 @@ describe('renderThankYouLetterEmail', () => {
     expect(result.html).toContain('John Doe');
     expect(result.html).toContain('Numri i Anëtarit');
     expect(result.html).toContain('M-12345678');
+    expect(result.html).toContain(
+      'ID-ja juaj e anëtarit është aktive tani. Shteti i trajtimit të rastit konfirmohet më vonë kur t’i shqyrtojmë të dhënat tuaja.'
+    );
   });
 
   it('includes QR code when provided', () => {

@@ -29,6 +29,8 @@ const TRANSLATIONS = {
     planLabel: 'Your Plan',
     validFromLabel: 'Member Since',
     validUntilLabel: 'Valid Until',
+    classificationNote:
+      'Your member ID is active now. Filing-country routing is confirmed later when we review your member details.',
     trustTitle: 'What You Get',
     trust1Value: '8,500+',
     trust1Label: 'Active Members Trust Us',
@@ -56,6 +58,8 @@ const TRANSLATIONS = {
     planLabel: 'Plani Juaj',
     validFromLabel: 'Anëtar Që Nga',
     validUntilLabel: 'Valid Deri Më',
+    classificationNote:
+      'ID-ja juaj e anëtarit është aktive tani. Shteti i trajtimit të rastit konfirmohet më vonë kur t’i shqyrtojmë të dhënat tuaja.',
     trustTitle: 'Çfarë Merrni',
     trust1Value: '8,500+',
     trust1Label: 'Anëtarë Aktivë Na Besojnë',
@@ -136,6 +140,9 @@ export function renderThankYouLetterEmail(params: ThankYouLetterParams) {
             </div>
           </div>
         </div>
+        <p style="margin:16px 0 0; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; font-size:13px; line-height:1.6; color:#475569;">
+          ${t.classificationNote}
+        </p>
       </div>
 
       <!-- Trust Ecosystem - 3 Pills -->
@@ -210,6 +217,8 @@ ${t.memberNumberLabel}: ${params.memberNumber}
 ${t.planLabel}: ${params.planName} (${params.planPrice}/${params.planInterval})
 ${t.validFromLabel}: ${params.memberSince}
 ${t.validUntilLabel}: ${params.expiresAt}
+
+${t.classificationNote}
 
 ${t.trustTitle}:
 • ${t.trust1Value} ${t.trust1Label}

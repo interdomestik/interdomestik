@@ -2,6 +2,7 @@ export * from './admin/access';
 export * from './admin/get-agents';
 export * from './admin/get-staff';
 export * from './admin/get-users';
+export * from './admin/resolve-tenant-classification';
 export * from './admin/update-user-agent';
 export * from './agent/get-users';
 export * from './types';

@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   updateUserAgentCore: vi.fn(),
+  resolveTenantClassificationCore: vi.fn(),
   getUsersCore: vi.fn(),
   getAgentsCore: vi.fn(),
   getStaffCore: vi.fn(),
@@ -13,6 +14,11 @@ vi.mock('./admin-users/update-user-agent.core', () => ({
 
 vi.mock('./admin-users/get-users', () => ({
   getUsersCore: (...args: unknown[]) => mocks.getUsersCore(...args),
+}));
+
+vi.mock('./admin-users/resolve-tenant-classification.core', () => ({
+  resolveTenantClassificationCore: (...args: unknown[]) =>
+    mocks.resolveTenantClassificationCore(...args),
 }));
 
 vi.mock('./admin-users/get-agents', () => ({
@@ -81,8 +87,33 @@ describe('admin-users action wrappers', () => {
     expect(result).toEqual({ success: true, data: [{ id: 'u1' }] });
   });
 
+  it('resolveTenantClassification delegates to core', async () => {
+    mocks.resolveTenantClassificationCore.mockResolvedValue({
+      success: true,
+      data: {
+        previousTenantId: 'tenant_ks',
+        tenantId: 'tenant_ks',
+        previousPending: true,
+        tenantClassificationPending: false,
+        resolutionMode: 'confirm_current',
+      },
+    });
+
+    const result = await actions.resolveTenantClassification({
+      userId: 'user-1',
+      currentTenantId: 'tenant_ks',
+    });
+
+    expect(mocks.resolveTenantClassificationCore).toHaveBeenCalledWith({
+      session: { user: { id: 'admin-1', role: 'admin', tenantId: 't1' } },
+      userId: 'user-1',
+      currentTenantId: 'tenant_ks',
+      nextTenantId: null,
+    });
+    expect(result).toEqual({ success: true });
+  });
+
   it('getAgents delegates to core', async () => {
-    // getAgents internally calls getUsersCore with role='agent'
     mocks.getUsersCore.mockResolvedValue([{ id: 'a1' }]);
 
     const result = await actions.getAgents();
@@ -95,7 +126,6 @@ describe('admin-users action wrappers', () => {
   });
 
   it('getStaff delegates to core', async () => {
-    // getStaff internally calls getUsersCore with all handler-capable roles
     mocks.getUsersCore.mockResolvedValue([{ id: 's1' }]);
 
     const result = await actions.getStaff();

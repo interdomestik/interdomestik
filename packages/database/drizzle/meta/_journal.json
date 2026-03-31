@@ -344,6 +344,27 @@
       "when": 1773772200000,
       "tag": "0048_enable_member_referral_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1774940906318,
+      "tag": "0049_amusing_manta",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1774945200000,
+      "tag": "0050_reconcile_push_subscriptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1774946400000,
+      "tag": "0051_enable_push_subscriptions_rls",
+      "breakpoints": true
     }
   ]
 }

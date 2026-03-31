@@ -10,6 +10,16 @@ vi.mock('./utils', () => ({
   formatDate: () => '2025-12-22',
 }));
 
+vi.mock('@/features/admin/users/components/tenant-classification-controls', () => ({
+  TenantClassificationControls: ({
+    userId,
+    currentTenantId,
+  }: {
+    userId: string;
+    currentTenantId: string;
+  }) => <div>{`tenant-controls:${userId}:${currentTenantId}`}</div>,
+}));
+
 describe('MembershipInfoCard', () => {
   it('renders subscription details', async () => {
     const mockSubscription = {
@@ -24,6 +34,11 @@ describe('MembershipInfoCard', () => {
       membershipBadgeClass: 'bg-green',
       isMembershipProfile: true,
       role: 'member',
+      currentTenantId: 'tenant_ks',
+      canReassignTenant: false,
+      tenantOptions: [],
+      userId: 'user-1',
+      tenantClassificationPending: false,
     });
 
     render(jsx);
@@ -40,6 +55,11 @@ describe('MembershipInfoCard', () => {
       membershipBadgeClass: 'bg-gray',
       isMembershipProfile: true,
       role: 'member',
+      currentTenantId: 'tenant_ks',
+      canReassignTenant: false,
+      tenantOptions: [],
+      userId: 'user-1',
+      tenantClassificationPending: false,
     });
 
     render(jsx);
@@ -54,6 +74,11 @@ describe('MembershipInfoCard', () => {
       membershipBadgeClass: 'bg-sky',
       isMembershipProfile: false,
       role: 'agent',
+      currentTenantId: 'tenant_ks',
+      canReassignTenant: false,
+      tenantOptions: [],
+      userId: 'user-1',
+      tenantClassificationPending: false,
     });
 
     render(jsx);
@@ -70,6 +95,11 @@ describe('MembershipInfoCard', () => {
       membershipBadgeClass: 'bg-blue',
       isMembershipProfile: true,
       role: 'agent',
+      currentTenantId: 'tenant_ks',
+      canReassignTenant: false,
+      tenantOptions: [],
+      userId: 'user-1',
+      tenantClassificationPending: false,
     });
 
     render(jsx);
@@ -77,5 +107,26 @@ describe('MembershipInfoCard', () => {
     expect(screen.getByText('sections.membership')).toBeInTheDocument();
     expect(screen.getByText('status.registered')).toBeInTheDocument();
     expect(screen.getByText('labels.not_set')).toBeInTheDocument();
+  });
+
+  it('renders tenant classification review state when pending', async () => {
+    const jsx = await MembershipInfoCard({
+      subscription: null,
+      membershipStatus: 'registered',
+      membershipBadgeClass: 'bg-blue',
+      isMembershipProfile: true,
+      role: 'member',
+      currentTenantId: 'tenant_ks',
+      canReassignTenant: false,
+      tenantOptions: [],
+      userId: 'user-1',
+      tenantClassificationPending: true,
+    });
+
+    render(jsx);
+
+    expect(screen.getByText('labels.tenant_review')).toBeInTheDocument();
+    expect(screen.getByText('labels.tenant_review_pending')).toBeInTheDocument();
+    expect(screen.getByText('tenant-controls:user-1:tenant_ks')).toBeInTheDocument();
   });
 });

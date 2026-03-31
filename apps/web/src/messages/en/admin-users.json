@@ -89,6 +89,7 @@
         "joined": "Joined"
       },
       "message_alert": "New message ({count})",
+      "tenant_classification_pending": "Tenant classification pending",
       "select_agent": "Select Agent",
       "unassigned": "Company-owned",
       "no_users": "No users found",
@@ -130,7 +131,10 @@
         "no_claims": "No claims yet",
         "unknown": "Unknown",
         "not_set": "Not set",
-        "not_applicable": "Not applicable"
+        "not_applicable": "Not applicable",
+        "tenant_review": "Tenant review",
+        "tenant_review_pending": "Pending later member-detail review",
+        "tenant_review_confirmed": "Confirmed by current tenant attribution"
       },
       "status": {
         "active": "Active",
@@ -154,6 +158,19 @@
         "open": "Open claims",
         "resolved": "Resolved",
         "rejected": "Rejected"
+      },
+      "tenant_resolution": {
+        "title": "Resolve tenant classification",
+        "description": "Confirm the current tenant when this account belongs here. Reassign only when the account still has no tenant-bound records.",
+        "confirm_current_tenant": "Confirm current tenant",
+        "confirmed": "Tenant classification already confirmed.",
+        "confirmed_success": "Tenant classification confirmed",
+        "reassign_label": "Move this account to another tenant",
+        "reassign_tenant": "Reassign tenant",
+        "reassigned_success": "Tenant reassigned",
+        "select_tenant_first": "Select a tenant first",
+        "no_reassign_options": "No active reassignment targets are available.",
+        "reassign_locked": "Only super admins can reassign a member to another tenant."
       }
     }
   }

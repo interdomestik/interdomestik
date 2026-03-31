@@ -5,8 +5,8 @@ import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matri
 import { SuccessFeeCalculator } from '@/components/commercial/success-fee-calculator';
 import { buildSuccessFeeCalculatorProps } from '@/components/commercial/success-fee-calculator-content';
 import { RegisterForm } from '@/components/auth/register-form';
-import { TenantSelector, type TenantOption } from '@/components/auth/tenant-selector';
-import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
+import { coerceTenantId } from '@/lib/tenant/tenant-hosts';
+import { resolveTenantContextFromRequest } from '@/lib/tenant/tenant-request';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 type Props = {
@@ -24,33 +24,14 @@ export default async function RegisterPage({ params, searchParams }: Props) {
   ]);
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const resolvedTenantId = await resolveTenantIdFromRequest({
+  const tenantContext = await resolveTenantContextFromRequest({
     tenantIdFromQuery: resolvedSearchParams?.tenantId ?? null,
   });
-
-  const [{ db }, { tenants }, drizzle] = await Promise.all([
-    import('@interdomestik/database/db'),
-    import('@interdomestik/database/schema'),
-    import('drizzle-orm'),
-  ]);
-
-  let tenantOptions: TenantOption[] = [];
-  if (!resolvedTenantId) {
-    try {
-      tenantOptions = await db
-        .select({ id: tenants.id, name: tenants.name, countryCode: tenants.countryCode })
-        .from(tenants)
-        .where(drizzle.eq(tenants.isActive, true))
-        .orderBy(drizzle.asc(tenants.name));
-    } catch (error) {
-      console.error('[RegisterPage] Failed to load tenant options:', error);
-      tenantOptions = [
-        { id: 'tenant_ks', name: 'Interdomestik (KS)', countryCode: 'XK' },
-        { id: 'tenant_mk', name: 'Interdomestik (MK)', countryCode: 'MK' },
-        { id: 'pilot-mk', name: 'Pilot Macedonia', countryCode: 'MK' },
-      ];
-    }
-  }
+  const fallbackPublicTenantId =
+    coerceTenantId(process.env.DEFAULT_PUBLIC_TENANT_ID) ?? 'tenant_ks';
+  const resolvedTenantId = tenantContext?.tenantId ?? fallbackPublicTenantId;
+  const tenantClassificationPending =
+    tenantContext === null || tenantContext.source === 'default_public';
 
   return (
     <div
@@ -59,8 +40,10 @@ export default async function RegisterPage({ params, searchParams }: Props) {
     >
       <div className="mx-auto grid w-full max-w-6xl items-start gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
         <div className="flex flex-col items-center gap-6">
-          {resolvedTenantId ? null : <TenantSelector tenants={tenantOptions} />}
-          <RegisterForm tenantId={resolvedTenantId ?? undefined} />
+          <RegisterForm
+            tenantId={resolvedTenantId}
+            tenantClassificationPending={tenantClassificationPending}
+          />
         </div>
 
         <div className="space-y-6">
