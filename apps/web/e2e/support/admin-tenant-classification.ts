@@ -82,7 +82,7 @@ export async function seedCookieConsent(page: Page, testInfo: TestInfo): Promise
       document.cookie = 'cookie_consent=accepted; Path=/; SameSite=Lax';
       globalThis.dispatchEvent(
         new CustomEvent('interdomestik:cookie-consent-updated', {
-          detail: { consent: value },
+          detail: value,
         })
       );
     },
@@ -100,6 +100,24 @@ export async function seedCookieConsent(page: Page, testInfo: TestInfo): Promise
   ]);
 }
 
+async function ensureCookieBannerDismissed(page: Page): Promise<void> {
+  const banner = page.getByTestId('cookie-consent-banner');
+  const bannerGone = await page
+    .waitForFunction(() => !document.querySelector('[data-testid="cookie-consent-banner"]'), {
+      timeout: 5_000,
+    })
+    .then(() => true)
+    .catch(() => false);
+
+  if (bannerGone || !(await banner.count())) return;
+
+  const acceptButton = page.getByTestId('cookie-consent-accept').first();
+  if (!(await acceptButton.isVisible().catch(() => false))) return;
+
+  await acceptButton.click();
+  await expect(banner).toHaveCount(0);
+}
+
 export async function confirmCurrentTenantClassification(params: {
   page: Page;
   testInfo: TestInfo;
@@ -111,6 +129,7 @@ export async function confirmCurrentTenantClassification(params: {
 
   await seedCookieConsent(page, testInfo);
   await gotoApp(page, detailPath, testInfo, { marker: 'body' });
+  await ensureCookieBannerDismissed(page);
 
   await expect(page.getByTestId('tenant-classification-controls')).toBeVisible();
   await expect(page.getByTestId('tenant-classification-confirm')).toBeVisible();
@@ -154,12 +173,10 @@ export async function reassignTenantClassification(params: {
   await loginAsSuperAdmin(page, testInfo);
   await seedCookieConsent(page, testInfo);
   await gotoApp(page, detailPath, testInfo, { marker: 'body' });
+  await ensureCookieBannerDismissed(page);
 
   if (dismissCookieBanner) {
-    const banner = page.getByTestId('cookie-consent-banner');
-    if (await banner.isVisible().catch(() => false)) {
-      await page.getByTestId('cookie-consent-accept').click();
-    }
+    await ensureCookieBannerDismissed(page);
   }
 
   await expect(page.getByTestId('tenant-classification-controls')).toBeVisible();
