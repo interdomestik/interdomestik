@@ -5,6 +5,7 @@ import {
   db,
   tenantSettings,
 } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
@@ -44,12 +45,29 @@ function resolveDefaultBranchId(value: unknown): string | null {
     return null;
   }
 
-  const normalizedValue = value as { branchId?: string } | string;
+  const normalizedValue = value as
+    | { branchId?: string; defaultBranchId?: string; id?: string; value?: string }
+    | string;
   if (typeof normalizedValue === 'string') {
     return normalizedValue;
   }
 
-  return normalizedValue.branchId ?? null;
+  return (
+    normalizedValue.branchId ??
+    normalizedValue.defaultBranchId ??
+    normalizedValue.id ??
+    normalizedValue.value ??
+    null
+  );
+}
+
+async function resolveAgentBranchId(agentId: string, tenantId: string): Promise<string | null> {
+  const agent = await db.query.user.findFirst({
+    where: (user, { eq }) => withTenant(tenantId, user.tenantId, eq(user.id, agentId)),
+    columns: { branchId: true },
+  });
+
+  return agent?.branchId ?? null;
 }
 
 async function loadClaimAssignmentContext(
@@ -57,17 +75,24 @@ async function loadClaimAssignmentContext(
   tenantId: string
 ): Promise<ClaimAssignmentContext> {
   const subscription = await getActiveSubscription(userId, tenantId);
+  const agentBranchId =
+    subscription?.branchId || !subscription?.agentId
+      ? null
+      : await resolveAgentBranchId(subscription.agentId, tenantId);
   const defaultBranchSetting = await db.query.tenantSettings.findFirst({
-    where: and(
-      eq(tenantSettings.tenantId, tenantId),
-      eq(tenantSettings.category, 'rbac'),
-      eq(tenantSettings.key, 'default_branch_id')
+    where: withTenant(
+      tenantId,
+      tenantSettings.tenantId,
+      and(eq(tenantSettings.category, 'rbac'), eq(tenantSettings.key, 'default_branch_id'))
     ),
   });
 
   return {
     subscription,
-    branchId: subscription?.branchId ?? resolveDefaultBranchId(defaultBranchSetting?.value),
+    branchId:
+      subscription?.branchId ??
+      agentBranchId ??
+      resolveDefaultBranchId(defaultBranchSetting?.value),
     agentId: subscription?.agentId ?? null,
   };
 }
