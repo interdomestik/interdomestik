@@ -118,22 +118,12 @@ async function ensureCookieBannerDismissed(page: Page): Promise<void> {
   await expect(banner).toHaveCount(0);
 }
 
-export async function confirmCurrentTenantClassification(params: {
+async function expectTenantClassificationPersisted(params: {
   page: Page;
-  testInfo: TestInfo;
   memberId: string;
   expectedTenantId: string;
 }) {
-  const { page, testInfo, memberId, expectedTenantId } = params;
-  const detailPath = `${routes.adminUsers(testInfo)}/${memberId}?tenantId=${expectedTenantId}`;
-
-  await seedCookieConsent(page, testInfo);
-  await gotoApp(page, detailPath, testInfo, { marker: 'body' });
-  await ensureCookieBannerDismissed(page);
-
-  await expect(page.getByTestId('tenant-classification-controls')).toBeVisible();
-  await expect(page.getByTestId('tenant-classification-confirm')).toBeVisible();
-  await page.getByTestId('tenant-classification-confirm').click();
+  const { page, memberId, expectedTenantId } = params;
 
   await expect(page.getByTestId('tenant-classification-confirmed')).toBeVisible({
     timeout: 15_000,
@@ -157,6 +147,25 @@ export async function confirmCurrentTenantClassification(params: {
       tenantClassificationPending: false,
       tenantId: expectedTenantId,
     });
+}
+
+export async function confirmCurrentTenantClassification(params: {
+  page: Page;
+  testInfo: TestInfo;
+  memberId: string;
+  expectedTenantId: string;
+}) {
+  const { page, testInfo, memberId, expectedTenantId } = params;
+  const detailPath = `${routes.adminUsers(testInfo)}/${memberId}?tenantId=${expectedTenantId}`;
+
+  await seedCookieConsent(page, testInfo);
+  await gotoApp(page, detailPath, testInfo, { marker: 'body' });
+  await ensureCookieBannerDismissed(page);
+
+  await expect(page.getByTestId('tenant-classification-controls')).toBeVisible();
+  await expect(page.getByTestId('tenant-classification-confirm')).toBeVisible();
+  await page.getByTestId('tenant-classification-confirm').click();
+  await expectTenantClassificationPersisted({ page, memberId, expectedTenantId });
 }
 
 export async function reassignTenantClassification(params: {
@@ -183,7 +192,10 @@ export async function reassignTenantClassification(params: {
   await expect(page.getByTestId('tenant-classification-reassign')).toBeVisible();
   await expect
     .poll(
-      async () => page.getByTestId('tenant-classification-controls').getAttribute('data-hydrated'),
+      async () =>
+        page
+          .getByTestId('tenant-classification-controls')
+          .evaluate(node => (node as HTMLElement).dataset.hydrated ?? null),
       { timeout: 15_000 }
     )
     .toBe('true');
@@ -191,29 +203,7 @@ export async function reassignTenantClassification(params: {
   await page.selectOption('[data-testid="tenant-classification-reassign-select"]', nextTenantId);
   await page.getByTestId('tenant-classification-reassign').scrollIntoViewIfNeeded();
   await page.getByTestId('tenant-classification-reassign').click({ force: true });
-
-  await expect(page.getByTestId('tenant-classification-confirmed')).toBeVisible({
-    timeout: 15_000,
-  });
-
-  await expect
-    .poll(async () => {
-      const refreshed = await db.query.user.findFirst({
-        where: eq(user.id, memberId),
-        columns: { tenantClassificationPending: true, tenantId: true },
-      });
-
-      return refreshed
-        ? {
-            tenantClassificationPending: refreshed.tenantClassificationPending,
-            tenantId: refreshed.tenantId,
-          }
-        : null;
-    })
-    .toEqual({
-      tenantClassificationPending: false,
-      tenantId: nextTenantId,
-    });
+  await expectTenantClassificationPersisted({ page, memberId, expectedTenantId: nextTenantId });
 
   await expect
     .poll(() => new URL(page.url()).searchParams.get('tenantId'), {
