@@ -89,6 +89,7 @@
         "joined": "Regjistruar"
       },
       "message_alert": "Mesazh i ri ({count})",
+      "tenant_classification_pending": "Klasifikimi i tenant-it në pritje",
       "select_agent": "Zgjidh Agjentin",
       "unassigned": "I Pacaktuar",
       "no_users": "Nuk u gjetën përdorues",
@@ -130,7 +131,10 @@
         "no_claims": "Nuk ka ende kërkesa për dëmshpërblim",
         "unknown": "E panjohur",
         "not_set": "Nuk është vendosur",
-        "not_applicable": "Nuk zbatohet"
+        "not_applicable": "Nuk zbatohet",
+        "tenant_review": "Rishikimi i tenant-it",
+        "tenant_review_pending": "Në pritje të shqyrtimit të mëvonshëm të të dhënave të anëtarit",
+        "tenant_review_confirmed": "Konfirmuar nga atribimi aktual i tenant-it"
       },
       "status": {
         "active": "Aktive",
@@ -154,6 +158,19 @@
         "open": "Kërkesa të hapura",
         "resolved": "Të zgjidhura",
         "rejected": "Të refuzuara"
+      },
+      "tenant_resolution": {
+        "title": "Zgjidh klasifikimin e tenant-it",
+        "description": "Konfirmo tenant-in aktual kur kjo llogari i përket këtij vendi. Ricaktoje vetëm kur llogaria ende nuk ka të dhëna të lidhura me tenant-in.",
+        "confirm_current_tenant": "Konfirmo tenant-in aktual",
+        "confirmed": "Klasifikimi i tenant-it tashmë është konfirmuar.",
+        "confirmed_success": "Klasifikimi i tenant-it u konfirmua",
+        "reassign_label": "Zhvendose këtë llogari në një tenant tjetër",
+        "reassign_tenant": "Ricakto tenant-in",
+        "reassigned_success": "Tenant-i u ricaktua",
+        "select_tenant_first": "Së pari zgjidh një tenant",
+        "no_reassign_options": "Nuk ka objektiva aktive për ricaktim.",
+        "reassign_locked": "Vetëm super administratorët mund ta ricaktojnë një anëtar në një tenant tjetër."
       }
     }
   }

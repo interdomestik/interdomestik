@@ -111,7 +111,7 @@ describe('getAuthRateLimitKeySuffix', () => {
         headers: new Headers({ host: 'interdomestik-web.vercel.app' }),
         body: { email: 'staff.ks@interdomestik.com' },
       })
-    ).toBeNull();
+    ).toBe('tenant:tenant_ks:email_hash:a3b3cdfa6ffbc6575b5f');
   });
 });
 
@@ -160,7 +160,7 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
     ).toBe('tenant_mk');
   });
 
-  it('returns null when tenant cannot be resolved', () => {
+  it('falls back to the default public tenant when host context is neutral', () => {
     const headers = new Headers({ host: 'interdomestik-web.vercel.app' });
 
     expect(
@@ -168,7 +168,7 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
         'https://interdomestik-web.vercel.app/api/auth/request-password-reset',
         headers
       )
-    ).toBeNull();
+    ).toBe('tenant_ks');
   });
 
   it('falls back to cookie/header when host is neutral in production', () => {
@@ -243,9 +243,9 @@ describe('resolveTenantIdForEmailSignIn', () => {
     expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_ks');
   });
 
-  it('does not use query fallback', () => {
+  it('falls back to the default public tenant when host context is neutral', () => {
     const headers = new Headers();
-    expect(resolveTenantIdForEmailSignIn(headers)).toBeNull();
+    expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_ks');
   });
 
   it('falls back to cookie/header in production when host is neutral', () => {
@@ -284,7 +284,7 @@ describe('extractEmailFromSignInBody', () => {
 });
 
 describe('evaluateEmailSignInTenantGuard', () => {
-  it('denies sign-in when tenant context is missing', async () => {
+  it('allows sign-in on a neutral host by using the default public tenant', async () => {
     const result = await evaluateEmailSignInTenantGuard({
       url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
       headers: new Headers(),
@@ -292,13 +292,7 @@ describe('evaluateEmailSignInTenantGuard', () => {
       lookupUserTenantByEmail: async () => 'tenant_ks',
     });
 
-    expect(result).toEqual({
-      decision: 'deny',
-      code: 'WRONG_TENANT_CONTEXT',
-      message: 'Wrong tenant context',
-      reason: 'missing_tenant_context',
-      resolvedTenantId: null,
-    });
+    expect(result).toEqual({ decision: 'allow' });
   });
 
   it('denies sign-in when user tenant and request tenant mismatch', async () => {

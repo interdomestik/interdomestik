@@ -18,6 +18,7 @@ describe('tenant-request', () => {
   const mutableEnv = process.env as Record<string, string | undefined>;
   const originalNodeEnv = process.env.NODE_ENV;
   const originalVercelEnv = process.env.VERCEL_ENV;
+  const originalDefaultPublicTenantId = process.env.DEFAULT_PUBLIC_TENANT_ID;
 
   beforeEach(() => {
     mocks.headers.mockReset();
@@ -27,6 +28,7 @@ describe('tenant-request', () => {
   afterEach(() => {
     mutableEnv.NODE_ENV = originalNodeEnv;
     mutableEnv.VERCEL_ENV = originalVercelEnv;
+    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = originalDefaultPublicTenantId;
   });
 
   it('Host wins over cookie/header/query', async () => {
@@ -91,18 +93,30 @@ describe('tenant-request', () => {
       })
     );
     mocks.cookieGet.mockReturnValue({ value: 'nope' });
+    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = 'tenant_ks';
 
-    await expect(resolveTenantIdFromRequest({ tenantIdFromQuery: 'nope' })).resolves.toBe(null);
+    await expect(resolveTenantIdFromRequest({ tenantIdFromQuery: 'nope' })).resolves.toBe(
+      'tenant_ks'
+    );
   });
 
   it('keeps non-sensitive fallback behavior in production mode by design', async () => {
     mutableEnv.NODE_ENV = 'production';
     delete mutableEnv.VERCEL_ENV;
+    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = 'tenant_ks';
     mocks.headers.mockResolvedValue(new Headers({ host: 'localhost:3000' }));
     mocks.cookieGet.mockReturnValue(undefined);
 
     await expect(resolveTenantIdFromRequest({ tenantIdFromQuery: 'tenant_ks' })).resolves.toBe(
       'tenant_ks'
     );
+  });
+
+  it('falls back to the default public tenant when host and stored context are neutral', async () => {
+    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = 'tenant_ks';
+    mocks.headers.mockResolvedValue(new Headers({ host: '127.0.0.1:3000' }));
+    mocks.cookieGet.mockReturnValue(undefined);
+
+    await expect(resolveTenantIdFromRequest()).resolves.toBe('tenant_ks');
   });
 });

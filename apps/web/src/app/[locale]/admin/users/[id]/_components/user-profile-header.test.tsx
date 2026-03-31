@@ -81,4 +81,20 @@ describe('UserProfileHeader', () => {
     expect(screen.getByText('status.registered')).toBeInTheDocument();
     expect(screen.queryByText('status.none')).not.toBeInTheDocument();
   });
+
+  it('renders a pending classification badge when tenant review is still required', async () => {
+    const jsx = await UserProfileHeader({
+      member: {
+        ...mockMember,
+        tenantClassificationPending: true,
+      },
+      membershipStatus: 'registered',
+      membershipBadgeClass: 'bg-blue',
+      isMembershipProfile: true,
+    });
+
+    render(jsx);
+
+    expect(screen.getByText('labels.tenant_review_pending')).toBeInTheDocument();
+  });
 });

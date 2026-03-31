@@ -130,6 +130,7 @@
     "success": {
       "title": "Mirë se vini në Interdomestik!",
       "subtitle": "Anëtarësimi juaj tani është aktiv. Ju jeni zyrtarisht pjesë e rrjetit tonë.",
+      "classification_note": "ID-ja juaj e anëtarit është aktive tani. Shteti i trajtimit të rastit konfirmohet më vonë kur t’i shqyrtojmë të dhënat tuaja.",
       "hotline_label": "Linja e Mbështetjes",
       "hotline_disclaimer": {
         "title": "Vetëm orientim dhe mbështetje",

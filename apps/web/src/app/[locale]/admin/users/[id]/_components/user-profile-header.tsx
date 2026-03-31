@@ -14,6 +14,7 @@ export async function UserProfileHeader({
   member: {
     id: string;
     memberNumber?: string | null;
+    tenantClassificationPending?: boolean;
     name: string | null;
     email: string;
     image: string | null;
@@ -45,6 +46,11 @@ export async function UserProfileHeader({
               <Badge className={membershipBadgeClass} variant="outline">
                 {t(`status.${isMembershipProfile ? membershipStatus : 'operator'}`)}
               </Badge>
+              {member.tenantClassificationPending && (
+                <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+                  {t('labels.tenant_review_pending')}
+                </Badge>
+              )}
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-2">

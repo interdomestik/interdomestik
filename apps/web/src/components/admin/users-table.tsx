@@ -44,6 +44,7 @@ interface User {
   unreadClaimId?: string | null;
   alertLink?: string | null;
   memberNumber?: string | null;
+  tenantClassificationPending?: boolean;
 }
 
 interface Agent {
@@ -174,6 +175,14 @@ export function UsersTable({
                   <span className="font-medium">{user.name}</span>
                   <span className="text-xs text-muted-foreground">{user.email}</span>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {user.tenantClassificationPending && (
+                      <Badge
+                        variant="outline"
+                        className="border-amber-200 bg-amber-50 text-amber-700"
+                      >
+                        {t('tenant_classification_pending')}
+                      </Badge>
+                    )}
                     <Button
                       asChild
                       size="sm"

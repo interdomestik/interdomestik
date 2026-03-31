@@ -35,6 +35,7 @@ vi.mock('next-intl', () => ({
       no_users: 'No users found',
       success_message: 'Agent updated successfully',
       message_alert: `${params?.count || 0} new message(s)`,
+      tenant_classification_pending: 'Tenant review pending',
       'roles.user': 'Member',
       'roles.agent': 'Agent',
       'roles.admin': 'Admin',
@@ -113,6 +114,7 @@ const mockUsers = [
     unreadCount: 3,
     alertLink: '/admin/claims/claim-1?foo=bar',
     memberNumber: 'MEM-2026-000001',
+    tenantClassificationPending: true,
   },
   {
     id: 'user-2',
@@ -192,6 +194,12 @@ describe('UsersTable', () => {
 
     expect(screen.getByText('MEM-2026-000001')).toBeInTheDocument();
     expect(screen.getByText('user-2')).toBeInTheDocument();
+  });
+
+  it('shows a tenant review badge for users pending later classification', () => {
+    render(<UsersTable users={mockUsers} agents={mockAgents} />);
+
+    expect(screen.getByText('Tenant review pending')).toBeInTheDocument();
   });
 
   it('renders user names', () => {

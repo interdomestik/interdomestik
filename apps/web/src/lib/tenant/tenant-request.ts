@@ -1,9 +1,10 @@
 import { cookies, headers } from 'next/headers';
 import {
-  resolveTenantIdFromSources,
+  resolveTenantContextFromSources,
   TENANT_COOKIE_NAME,
   TENANT_HEADER_NAME,
   type TenantId,
+  type TenantResolutionResult,
 } from './tenant-hosts';
 
 export type ResolveTenantOptions = {
@@ -28,10 +29,17 @@ function getRequestHost(h: Headers): string {
 export async function resolveTenantIdFromRequest(
   options: ResolveTenantOptions = {}
 ): Promise<TenantId | null> {
+  const context = await resolveTenantContextFromRequest(options);
+  return context?.tenantId ?? null;
+}
+
+export async function resolveTenantContextFromRequest(
+  options: ResolveTenantOptions = {}
+): Promise<TenantResolutionResult | null> {
   const h = await headers();
   const cookieStore = await cookies();
 
-  return resolveTenantIdFromSources({
+  return resolveTenantContextFromSources({
     host: getRequestHost(h),
     cookieTenantId: cookieStore.get(TENANT_COOKIE_NAME)?.value ?? null,
     headerTenantId: h.get(TENANT_HEADER_NAME),

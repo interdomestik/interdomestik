@@ -130,6 +130,7 @@
     "success": {
       "title": "Dobrodošli u Interdomestik!",
       "subtitle": "Vaša zaštita je sada aktivna. Zvanično ste deo našeg kluba.",
+      "classification_note": "Vaš članski ID je sada aktivan. Država za vođenje predmeta potvrđuje se kasnije kada pregledamo vaše članske podatke.",
       "hotline_label": "24/7 HITNA LINIJA",
       "hotline_disclaimer": {
         "title": "Samo usmeravanje i podrška",

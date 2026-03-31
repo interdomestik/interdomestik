@@ -1,4 +1,10 @@
 'use server';
-import { getAgents, getStaff, getUsers, updateUserAgent } from './admin-users.core';
+import {
+  getAgents,
+  getStaff,
+  getUsers,
+  resolveTenantClassification,
+  updateUserAgent,
+} from './admin-users.core';
 
-export { getAgents, getStaff, getUsers, updateUserAgent };
+export { getAgents, getStaff, getUsers, resolveTenantClassification, updateUserAgent };

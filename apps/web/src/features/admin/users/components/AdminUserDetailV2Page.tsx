@@ -13,6 +13,7 @@ import { RecentClaimsCard } from '@/app/[locale]/admin/users/[id]/_components/re
 import { UserProfileHeader } from '@/app/[locale]/admin/users/[id]/_components/user-profile-header';
 import { getAdminUserProfileCore } from '@/app/[locale]/admin/users/[id]/_core';
 import { ResendWelcomeEmailButton } from '@/app/[locale]/admin/users/[id]/resend-welcome-button';
+import { type AdminTenantOption } from '@/components/admin/admin-tenant-selector';
 
 const RECENT_CLAIMS_LIMIT = 6;
 
@@ -31,6 +32,8 @@ type AdminUserDetailV2PageProps = Readonly<{
   locale: string;
   searchParams: Record<string, string | string[] | undefined>;
   tenantId: string | null;
+  actorRole: string | null;
+  tenantClassificationOptions: AdminTenantOption[];
 }>;
 
 function getEffectiveProfileStatus({
@@ -79,6 +82,8 @@ export async function AdminUserDetailV2Page({
   locale,
   searchParams,
   tenantId,
+  actorRole,
+  tenantClassificationOptions,
 }: AdminUserDetailV2PageProps) {
   setRequestLocale(locale);
 
@@ -97,6 +102,7 @@ export async function AdminUserDetailV2Page({
   const hasMemberNumber = Boolean(member.memberNumber);
   const hasSubscription = Boolean(subscription);
   const isMembershipProfile = hasMemberNumber || hasSubscription;
+  const canReassignTenant = actorRole === 'super_admin' && tenantClassificationOptions.length > 0;
   const effectiveProfileStatus = getEffectiveProfileStatus({
     hasMemberNumber,
     hasSubscription,
@@ -145,7 +151,12 @@ export async function AdminUserDetailV2Page({
           membershipStatus={effectiveProfileStatus}
           membershipBadgeClass={membershipBadgeClass}
           isMembershipProfile={isMembershipProfile}
+          tenantClassificationPending={member.tenantClassificationPending === true}
           role={member.role}
+          currentTenantId={tenantId}
+          canReassignTenant={canReassignTenant}
+          tenantOptions={tenantClassificationOptions}
+          userId={member.id}
         />
         <AgentInfoCard agent={member.agent} />
         <PreferencesCard preferences={preferences ?? null} />

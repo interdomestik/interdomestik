@@ -21,6 +21,7 @@ export const user = pgTable(
     consentAt: timestamp('consent_at'),
     memberNumber: text('member_number'),
     memberNumberIssuedAt: timestamp('member_number_issued_at'),
+    tenantClassificationPending: boolean('tenant_classification_pending').notNull().default(false),
     createdAt: timestamp('createdAt').notNull(),
     updatedAt: timestamp('updatedAt').notNull(),
     agentId: text('agentId'), // Sales agent who referred this member (legacy mapping)

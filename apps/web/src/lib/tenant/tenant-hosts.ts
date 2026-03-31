@@ -14,6 +14,18 @@ export type TenantResolutionOptions = {
   productionSensitive?: boolean;
 };
 
+export type TenantResolutionSource = 'host' | 'cookie' | 'header' | 'query' | 'default_public';
+
+export type TenantResolutionResult = {
+  tenantId: TenantId;
+  source: TenantResolutionSource;
+};
+
+function resolveDefaultPublicTenantId(): TenantId {
+  const configured = coerceTenantId(process.env.DEFAULT_PUBLIC_TENANT_ID);
+  return configured ?? 'tenant_ks';
+}
+
 function normalizeHost(host: string): string {
   const raw = host.split(',')[0]?.trim() ?? '';
   const withoutPort = raw.replace(/:\d+$/, '');
@@ -105,24 +117,29 @@ export function resolveTenantIdFromSources(
   sources: TenantResolutionSources,
   options: TenantResolutionOptions = {}
 ): TenantId | null {
+  return resolveTenantContextFromSources(sources, options)?.tenantId ?? null;
+}
+
+export function resolveTenantContextFromSources(
+  sources: TenantResolutionSources,
+  options: TenantResolutionOptions = {}
+): TenantResolutionResult | null {
   const hostTenant = resolveTenantFromHost(sources.host ?? '');
-  if (hostTenant) return hostTenant;
+  if (hostTenant) return { tenantId: hostTenant, source: 'host' };
 
   const cookieTenant = coerceTenantId(sources.cookieTenantId);
-  if (cookieTenant) return cookieTenant;
+  if (cookieTenant) return { tenantId: cookieTenant, source: 'cookie' };
 
   const headerTenant = coerceTenantId(sources.headerTenantId);
-  if (headerTenant) return headerTenant;
+  if (headerTenant) return { tenantId: headerTenant, source: 'header' };
 
   const allowQueryFallback = !(options.productionSensitive && isProductionLikeEnvironment());
-  if (!allowQueryFallback) {
-    return null;
+  if (allowQueryFallback) {
+    const queryTenant = coerceTenantId(sources.queryTenantId);
+    if (queryTenant) return { tenantId: queryTenant, source: 'query' };
   }
 
-  const queryTenant = coerceTenantId(sources.queryTenantId);
-  if (queryTenant) return queryTenant;
-
-  return null;
+  return { tenantId: resolveDefaultPublicTenantId(), source: 'default_public' };
 }
 
 export function hasHostSessionTenantMismatch(

@@ -73,6 +73,7 @@ describe('MembershipSuccessPage hotline disclaimer', () => {
     expect(hoisted.getSessionSafeMock).toHaveBeenCalledWith('MemberMembershipSuccessPage');
     expect(screen.getByText('membership.success.hotline_disclaimer.title')).toBeInTheDocument();
     expect(screen.getByText('membership.success.hotline_disclaimer.body')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.classification_note')).toBeInTheDocument();
   });
 
   it('redirects to the localized login page when the success page opens without a session', async () => {

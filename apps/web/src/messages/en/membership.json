@@ -130,6 +130,7 @@
     "success": {
       "title": "Welcome to Interdomestik!",
       "subtitle": "Your membership is now active. You are officially part of our network.",
+      "classification_note": "Your member ID is active now. Filing-country routing is confirmed later when we review your member details.",
       "hotline_label": "Support Hotline",
       "hotline_disclaimer": {
         "title": "Routing and support only",

@@ -170,7 +170,7 @@ describe('POST /api/auth/[...all]', () => {
     );
   });
 
-  it('falls back to the generic sign-in bucket when email sign-in cannot be keyed safely', async () => {
+  it('uses the default public tenant to key neutral-host email sign-in traffic', async () => {
     hoisted.enforceRateLimit.mockResolvedValueOnce(new Response('limited', { status: 429 }));
 
     const req = buildEmailSignInRequest({ host: 'app.example.test' });
@@ -181,8 +181,9 @@ describe('POST /api/auth/[...all]', () => {
     expect(hoisted.enforceRateLimit).toHaveBeenCalledTimes(1);
     expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'api/auth/sign-in/email',
+        name: 'api/auth/sign-in/email:identity',
         limit: 20,
+        keySuffix: 'tenant:tenant_ks:email_hash:2985f89bf0896586e6ee',
         productionSensitive: true,
       })
     );

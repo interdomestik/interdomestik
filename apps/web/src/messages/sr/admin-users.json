@@ -89,6 +89,7 @@
         "joined": "Pridružen"
       },
       "message_alert": "Nova poruka ({count})",
+      "tenant_classification_pending": "Klasifikacija tenant-a je na čekanju",
       "select_agent": "Izaberi agenta",
       "unassigned": "Nedodeljeni",
       "no_users": "Nema pronađenih korisnika",
@@ -130,7 +131,10 @@
         "no_claims": "Još nema zahteva",
         "unknown": "Nepoznato",
         "not_set": "Nije postavljeno",
-        "not_applicable": "Nije primenljivo"
+        "not_applicable": "Nije primenljivo",
+        "tenant_review": "Pregled tenant-a",
+        "tenant_review_pending": "Čeka kasniji pregled članskih podataka",
+        "tenant_review_confirmed": "Potvrđeno trenutnom tenant atribucijom"
       },
       "status": {
         "active": "Aktivan",
@@ -154,6 +158,19 @@
         "open": "Otvoreni zahtevi",
         "resolved": "Rešeni",
         "rejected": "Odbijeni"
+      },
+      "tenant_resolution": {
+        "title": "Razreši klasifikaciju tenant-a",
+        "description": "Potvrdi trenutni tenant kada ovaj nalog pripada ovde. Preraspodeli ga samo kada nalog još nema zapise vezane za tenant.",
+        "confirm_current_tenant": "Potvrdi trenutni tenant",
+        "confirmed": "Klasifikacija tenant-a je već potvrđena.",
+        "confirmed_success": "Klasifikacija tenant-a je potvrđena",
+        "reassign_label": "Premesti ovaj nalog u drugi tenant",
+        "reassign_tenant": "Preraspodeli tenant",
+        "reassigned_success": "Tenant je preraspodeljen",
+        "select_tenant_first": "Prvo izaberi tenant",
+        "no_reassign_options": "Nema dostupnih aktivnih ciljeva za preraspodelu.",
+        "reassign_locked": "Samo super admin može da preraspodeli člana u drugi tenant."
       }
     }
   }

@@ -33,6 +33,11 @@ export const userSchemaConfig = {
       type: 'string',
       fieldName: 'memberNumber',
     },
+    tenantClassificationPending: {
+      type: 'boolean',
+      fieldName: 'tenantClassificationPending',
+      defaultValue: false,
+    },
     agentId: {
       type: 'string',
       fieldName: 'agentId',
