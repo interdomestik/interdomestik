@@ -15,6 +15,9 @@ const hoisted = vi.hoisted(() => {
         tenantSettings: {
           findFirst: vi.fn().mockResolvedValue(null),
         },
+        user: {
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
       },
       transaction,
     },
@@ -84,6 +87,12 @@ describe('submitClaimCore', () => {
         documentId: 'legacy-doc-1',
       },
     ]);
+    hoisted.db.query.tenantSettings.findFirst.mockResolvedValue(null);
+    hoisted.db.query.user.findFirst.mockResolvedValue(null);
+    hoisted.getActiveSubscription.mockResolvedValue({
+      branchId: 'branch-1',
+      agentId: 'agent-1',
+    });
   });
 
   it('queues claim AI workflows after persisting the submitted claim documents', async () => {
@@ -157,6 +166,49 @@ describe('submitClaimCore', () => {
       expect.objectContaining({
         runId: 'run-1',
         workflow: 'claim_intake_extract',
+      })
+    );
+  });
+
+  it('derives branchId from the assigned agent when subscription branchId is missing', async () => {
+    hoisted.getActiveSubscription.mockResolvedValue({
+      branchId: null,
+      agentId: 'agent-42',
+    });
+    hoisted.db.query.user.findFirst.mockResolvedValue({ branchId: 'ks-branch-a' });
+
+    await submitClaimCore({
+      session: {
+        user: {
+          id: 'member-1',
+          role: 'member',
+          tenantId: 'tenant-1',
+          email: 'member@example.com',
+        },
+      },
+      requestHeaders: new Headers(),
+      data: {
+        title: 'Flight delay claim',
+        description: 'My flight was delayed overnight and I incurred hotel costs.',
+        category: 'travel',
+        companyName: 'Airline Co',
+        claimAmount: '650.00',
+        currency: 'EUR',
+        incidentDate: '2026-02-15',
+        files: [],
+      },
+    });
+
+    expect(hoisted.db.query.user.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        columns: { branchId: true },
+      })
+    );
+    expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        branchId: 'ks-branch-a',
+        agentId: 'agent-42',
       })
     );
   });
