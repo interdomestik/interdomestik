@@ -37,7 +37,7 @@
     "@interdomestik/domain-ai": "workspace:*",
     "@interdomestik/domain-membership-billing": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "^0.45.2",
     "nanoid": "^5.1.7",
     "zod": "^4.2.1"
   },

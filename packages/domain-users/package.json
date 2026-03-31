@@ -30,7 +30,7 @@
   "dependencies": {
     "@interdomestik/database": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "^0.45.2",
     "nanoid": "^5.1.7",
     "slugify": "^1.6.8",
     "zod": "^3.23.8"
