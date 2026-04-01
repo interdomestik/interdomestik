@@ -14,7 +14,7 @@ import { nanoid } from 'nanoid';
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
 import { queueClaimDocumentAiWorkflows, type QueuedClaimAiRun } from './ai-workflows';
 import { buildClaimDocumentRows } from './documents';
-import type { ClaimsDeps, ClaimsSession } from './types';
+import type { ClaimStartHandoffContext, ClaimsDeps, ClaimsSession } from './types';
 
 // Custom error for validation failures (can be mapped to 400/403 by API routes)
 export class ClaimValidationError extends Error {
@@ -39,6 +39,26 @@ type ClaimAssignmentContext = {
   branchId: string | null;
   agentId: string | null;
 };
+
+const DIASPORA_HANDOFF_COUNTRIES = new Set(['DE', 'CH', 'AT', 'IT']);
+const DIASPORA_INCIDENT_LOCATIONS = new Set(['abroad']);
+
+function buildClaimStartPublicNote(
+  handoffContext: ClaimStartHandoffContext | null | undefined
+): string | null {
+  if (handoffContext?.source !== 'diaspora-green-card') {
+    return null;
+  }
+
+  if (
+    !DIASPORA_HANDOFF_COUNTRIES.has(handoffContext.country) ||
+    !DIASPORA_INCIDENT_LOCATIONS.has(handoffContext.incidentLocation)
+  ) {
+    return null;
+  }
+
+  return `Started from Diaspora / Green Card quickstart. Country: ${handoffContext.country}. Incident location: ${handoffContext.incidentLocation}.`;
+}
 
 function resolveDefaultBranchId(value: unknown): string | null {
   if (!value) {
@@ -104,10 +124,12 @@ async function persistSubmittedClaim(args: {
   changedByRole: string;
   branchId: string | null;
   agentId: string | null;
+  handoffContext?: ClaimStartHandoffContext | null;
   data: CreateClaimValues;
 }): Promise<QueuedClaimAiRun[]> {
   const { title, description, category, companyName, claimAmount, currency, incidentDate, files } =
     args.data;
+  const publicNote = buildClaimStartPublicNote(args.handoffContext);
   let queuedRuns: QueuedClaimAiRun[] = [];
 
   await db.transaction(async tx => {
@@ -134,7 +156,7 @@ async function persistSubmittedClaim(args: {
       toStatus: 'submitted',
       changedById: args.userId,
       changedByRole: args.changedByRole,
-      note: null,
+      note: publicNote,
       isPublic: true,
     });
 
@@ -257,10 +279,11 @@ export async function submitClaimCore(
     session: ClaimsSession | null;
     requestHeaders: Headers;
     data: CreateClaimValues;
+    handoffContext?: ClaimStartHandoffContext | null;
   },
   deps: ClaimsDeps = {}
 ) {
-  const { session, requestHeaders, data } = params;
+  const { session, requestHeaders, data, handoffContext } = params;
 
   if (!session) {
     throw new ClaimValidationError('Unauthorized', 'UNAUTHORIZED');
@@ -293,6 +316,7 @@ export async function submitClaimCore(
       changedByRole: session.user.role ?? 'member',
       branchId: assignment.branchId,
       agentId: assignment.agentId,
+      handoffContext,
       data: result.data,
     });
 

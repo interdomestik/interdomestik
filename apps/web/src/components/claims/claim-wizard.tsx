@@ -367,7 +367,7 @@ export function ClaimWizard({
     try {
       const submitKey = submitKeyRef.current ?? createClientRequestId();
       submitKeyRef.current = submitKey;
-      const result = await submitClaim(data, submitKey);
+      const result = await submitClaim(data, submitKey, handoffContext ?? undefined);
       if (result.success) {
         ClaimsEvents.submitted('success');
         const payload =

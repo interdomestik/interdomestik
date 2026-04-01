@@ -127,6 +127,39 @@ describe('actions/claims/submit', () => {
     });
   });
 
+  it('forwards diaspora handoff context to the domain submit path', async () => {
+    mockRateLimit.mockResolvedValueOnce({ limited: false });
+    (submitClaimCoreDomain as any).mockResolvedValueOnce({
+      success: true,
+      claimId: 'claim-1',
+    });
+
+    await submitClaimCore({
+      session: validSession as any,
+      requestHeaders: new Headers(),
+      handoffContext: {
+        source: 'diaspora-green-card',
+        country: 'IT',
+        incidentLocation: 'abroad',
+      },
+      data: {
+        ...validData,
+        category: 'travel',
+      } as any,
+    });
+
+    expect(submitClaimCoreDomain).toHaveBeenCalledWith(
+      expect.objectContaining({
+        handoffContext: {
+          source: 'diaspora-green-card',
+          country: 'IT',
+          incidentLocation: 'abroad',
+        },
+      }),
+      expect.any(Object)
+    );
+  });
+
   it('fails when rate limited', async () => {
     mockRateLimit.mockResolvedValueOnce({ limited: true });
 

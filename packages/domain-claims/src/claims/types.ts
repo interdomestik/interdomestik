@@ -1,5 +1,11 @@
 import type { QueuedClaimAiRun } from './ai-workflows';
 
+export type ClaimStartHandoffContext = {
+  source: 'diaspora-green-card';
+  country: 'DE' | 'CH' | 'AT' | 'IT';
+  incidentLocation: 'abroad';
+};
+
 export type ClaimsSession = {
   user: {
     id: string;
