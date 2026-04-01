@@ -4,6 +4,7 @@ import {
   ClaimValidationError,
   submitClaimCore as submitClaimCoreDomain,
 } from '@interdomestik/domain-claims/claims/submit';
+import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
 import type { CreateClaimValues } from '@interdomestik/domain-claims/validators/claims';
 
 import { logAuditEvent } from '@/lib/audit';
@@ -64,6 +65,7 @@ export async function submitClaimCore(params: {
   session: NonNullable<Session> | null;
   requestHeaders: Headers;
   data: CreateClaimValues;
+  handoffContext?: ClaimStartHandoffContext | null;
 }): Promise<SubmitClaimResult> {
   const { session, requestHeaders } = params;
 

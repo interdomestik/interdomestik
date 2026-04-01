@@ -118,6 +118,11 @@ describe('submitClaimCore', () => {
           },
         },
         requestHeaders: new Headers(),
+        handoffContext: {
+          source: 'diaspora-green-card',
+          country: 'IT',
+          incidentLocation: 'abroad',
+        },
         data: {
           title: 'Flight delay claim',
           description: 'My flight was delayed overnight and I incurred hotel costs.',
@@ -157,6 +162,7 @@ describe('submitClaimCore', () => {
         toStatus: 'submitted',
         changedById: 'member-1',
         changedByRole: 'member',
+        note: 'Started from Diaspora / Green Card quickstart. Country: IT. Incident location: abroad.',
         isPublic: true,
       })
     );
@@ -218,6 +224,37 @@ describe('submitClaimCore', () => {
       expect.objectContaining({
         branchId: 'ks-branch-a',
         agentId: 'agent-42',
+      })
+    );
+  });
+
+  it('keeps the initial stage history note private when no diaspora handoff exists', async () => {
+    await submitClaimCore({
+      session: {
+        user: {
+          id: 'member-1',
+          role: 'member',
+          tenantId: 'tenant-1',
+          email: 'member@example.com',
+        },
+      },
+      requestHeaders: new Headers(),
+      data: {
+        title: 'Flight delay claim',
+        description: 'My flight was delayed overnight and I incurred hotel costs.',
+        category: 'travel',
+        companyName: 'Airline Co',
+        claimAmount: '650.00',
+        currency: 'EUR',
+        incidentDate: '2026-02-15',
+        files: [],
+      },
+    });
+
+    expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        note: null,
       })
     );
   });

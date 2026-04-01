@@ -2,6 +2,7 @@
 
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { CreateClaimValues } from '@/lib/validators/claims';
+import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
 import { createClaimCore } from './claims/create';
 import { cancelClaimCore, updateDraftClaimCore } from './claims/draft';
 import { updateClaimStatusCore } from './claims/status';
@@ -38,7 +39,11 @@ import { runAuthenticatedAction } from '@/lib/safe-action';
 
 // ...
 
-export async function submitClaim(data: CreateClaimValues, idempotencyKey?: string) {
+export async function submitClaim(
+  data: CreateClaimValues,
+  idempotencyKey?: string,
+  handoffContext?: ClaimStartHandoffContext | null
+) {
   return runAuthenticatedAction(async ({ session, requestHeaders }) => {
     const limit = await enforceRateLimitForAction({
       name: 'action:submit-claim',
@@ -54,7 +59,7 @@ export async function submitClaim(data: CreateClaimValues, idempotencyKey?: stri
     }
 
     // submitClaimCore handles validation internally
-    return submitClaimCore({ session, requestHeaders, data, idempotencyKey });
+    return submitClaimCore({ session, requestHeaders, data, idempotencyKey, handoffContext });
   });
 }
 

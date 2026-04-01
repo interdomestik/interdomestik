@@ -1,6 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimWizard } from './claim-wizard';
+
+const hoisted = vi.hoisted(() => ({
+  submitClaimMock: vi.fn().mockResolvedValue({ success: true }),
+}));
 
 // Mock react-hook-form
 vi.mock('react-hook-form', () => {
@@ -15,9 +19,18 @@ vi.mock('react-hook-form', () => {
     ...actual,
     useForm: () => ({
       control: {},
-      handleSubmit: (fn: () => void) => (e: React.FormEvent) => {
+      handleSubmit: (fn: (values: Record<string, unknown>) => void) => (e: React.FormEvent) => {
         e?.preventDefault?.();
-        fn();
+        fn({
+          category: 'travel',
+          title: 'Flight delay claim',
+          companyName: 'Airline Co',
+          description: 'My flight was delayed overnight and I incurred hotel costs.',
+          claimAmount: '650.00',
+          currency: 'EUR',
+          incidentDate: '2026-02-15',
+          files: [],
+        });
       },
       trigger: vi.fn().mockResolvedValue(true),
       watch: mockWatch,
@@ -96,7 +109,7 @@ vi.mock('sonner', () => ({
 
 // Mock submitClaim action
 vi.mock('@/actions/claims.core', () => ({
-  submitClaim: vi.fn().mockResolvedValue({ success: true }),
+  submitClaim: hoisted.submitClaimMock,
 }));
 
 // Mock wizard step components
@@ -137,6 +150,7 @@ vi.mock('@interdomestik/ui/components/form', () => ({
 describe('ClaimWizard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.submitClaimMock.mockResolvedValue({ success: true });
   });
 
   it('renders the wizard with progress bar', () => {
@@ -196,5 +210,44 @@ describe('ClaimWizard', () => {
     expect(screen.getByText('Diaspora / Green Card quickstart')).toBeInTheDocument();
     expect(screen.getByText('Italy')).toBeInTheDocument();
     expect(screen.getByText('Abroad')).toBeInTheDocument();
+  });
+
+  it('forwards the normalized diaspora handoff context to submitClaim', async () => {
+    render(
+      <ClaimWizard
+        initialCategory="travel"
+        handoffContext={{
+          source: 'diaspora-green-card',
+          country: 'IT',
+          incidentLocation: 'abroad',
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('wizard-next'));
+    await waitFor(() => {
+      expect(screen.getByText(/Step 3 of 4/)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('wizard-next'));
+    await waitFor(() => {
+      expect(screen.getByText(/Step 4 of 4/)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('wizard-submit'));
+
+    await waitFor(() => {
+      expect(hoisted.submitClaimMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: 'travel',
+        }),
+        expect.any(String),
+        {
+          source: 'diaspora-green-card',
+          country: 'IT',
+          incidentLocation: 'abroad',
+        }
+      );
+    });
   });
 });
