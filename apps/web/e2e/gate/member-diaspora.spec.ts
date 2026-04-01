@@ -3,7 +3,7 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 test.describe('Diaspora Feature', () => {
-  test('Member can see Diaspora ribbon and navigate to Diaspora page', async ({
+  test('Member can open the diaspora quickstart and reach direct next actions', async ({
     authenticatedPage: page,
   }, testInfo) => {
     const memberDashboard = page.getByTestId('member-dashboard-ready').first();
@@ -38,20 +38,27 @@ test.describe('Diaspora Feature', () => {
     // 4. Assert we are on the Diaspora page
     await expect(page).toHaveURL(/\/member\/diaspora/);
     await expect(page.getByTestId('diaspora-page')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('diaspora-country-selector')).toBeVisible();
+    await expect(page.getByTestId('diaspora-selected-country')).toBeVisible();
+    await expect(
+      page.getByRole('link', {
+        name: /(Start travel claim|Започни патно барање|Nis kërkesën e udhëtimit|Pokreni zahtev za putovanje)/i,
+      })
+    ).toHaveAttribute('href', /\/member\/claims\/new\?category=travel/);
+    await expect(
+      page.getByRole('link', {
+        name: /(Contact support now|Контактирај поддршка сега|Kontakto mbështetjen tani|Kontaktiraj podršku sada)/i,
+      })
+    ).toHaveAttribute('href', /^tel:/);
 
-    // Check for the 3 cards content (using flexible text matching across languages)
-    await expect(
-      page.getByText(
-        /(Aksident jashtë vendit|Accident abroad|Несреќа во странство|Nezgoda u inostranstvu)/i
-      )
-    ).toBeVisible();
-    await expect(
-      page.getByText(/(Udhëtim \/ Avio|Travel \/ Flight|Патување \/ Авио|Putovanje \/ Avio)/i)
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        /(Familja në Kosovë|Family in Kosovo|Семејството во Косово|Porodica na Kosovu)/i
-      )
-    ).toBeVisible();
+    const italySelector = page.getByRole('link', {
+      name: /(Italy|Италија|Italia)/i,
+    });
+    await italySelector.click();
+
+    await expect(page).toHaveURL(/\/member\/diaspora\?country=IT/);
+    await expect(page.getByTestId('diaspora-selected-country')).toContainText(
+      /(Italy|Италија|Italia)/i
+    );
   });
 });

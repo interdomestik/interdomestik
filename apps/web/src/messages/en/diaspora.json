@@ -1,24 +1,46 @@
 {
   "diaspora": {
-    "title": "Diaspora Package",
-    "description": "Comprehensive solutions for your life between two countries.",
-    "cards": {
-      "green_card": {
-        "title": "Accident abroad (Green Card)",
-        "description": "Legal and technical assistance if you have an accident in Europe. We handle documentation and compensation."
-      },
-      "travel": {
-        "title": "Travel / Flight",
-        "description": "Compensation for flight delays, cancellations, or lost luggage. Protection during your journey."
-      },
-      "family": {
-        "title": "Family in Kosovo",
-        "description": "How to help from afar? Documents, guidance, and direct hotline for any home emergencies."
+    "eyebrow": "Green Card abroad",
+    "title": "Green Card abroad quickstart",
+    "description": "Choose the country where the accident happened. We show the first steps, emergency numbers, and the fastest path into support or claim start.",
+    "selector": {
+      "label": "Choose country",
+      "hint": "Use the country where the accident happened.",
+      "options": {
+        "DE": "Germany",
+        "CH": "Switzerland",
+        "AT": "Austria",
+        "IT": "Italy"
       }
     },
-    "cta": {
-      "title": "Ready to be protected?",
-      "button": "Become a member / Update membership"
+    "guidance": {
+      "countryDescription": "Country-specific Green Card accident guidance.",
+      "emergency": "Emergency numbers",
+      "police": "Police",
+      "ambulance": "Ambulance",
+      "fire": "Fire",
+      "general": "General emergency",
+      "rules": "Operational checks",
+      "firstSteps": "First steps",
+      "firstStepsHint": "Do these before you leave the scene whenever it is safe to do so.",
+      "policeRequired": "Police report required",
+      "policeNotRequired": "Police report usually not required",
+      "europeanFormAllowed": "European accident statement allowed",
+      "europeanFormNotAllowed": "European accident statement not allowed",
+      "notes": "Additional notes"
+    },
+    "actions": {
+      "title": "Next move",
+      "description": "Use direct support if you need help now, or start the travel claim so triage begins in the existing member flow.",
+      "support": "Contact support now",
+      "whatsapp": "Open WhatsApp support",
+      "claim": "Start travel claim"
+    },
+    "boundary": {
+      "title": "What this quickstart does",
+      "description": "This is the bounded member quickstart for accident-abroad handling.",
+      "pointOne": "It gives first guidance and routes you into the current support and claim flows.",
+      "pointTwo": "It does not replace staff review, legal evaluation, or country-specific insurer handling."
     }
   }
 }

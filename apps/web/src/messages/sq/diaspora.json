@@ -1,24 +1,46 @@
 {
   "diaspora": {
-    "title": "Paketa për Diasporën",
-    "description": "Zgjidhje gjithëpërfshirëse për jetën tuaj mes dy vendeve.",
-    "cards": {
-      "green_card": {
-        "title": "Aksident jashtë vendit (Green Card)",
-        "description": "Asistencë ligjore dhe teknike nëse pësoni aksident në Evropë. Ne merremi me dokumentacionin dhe dëmshpërblimin."
-      },
-      "travel": {
-        "title": "Udhëtim / Avio",
-        "description": "Kompensim për vonesa fluturimi, anulime ose bagazh të humbur. Mbrojtje gjatë rrugëtimit tuaj."
-      },
-      "family": {
-        "title": "Familja në Kosovë",
-        "description": "Si t'i ndihmoni nga larg? Dokumente, udhëzime dhe linjë direkte për çdo emergjencë shtëpiake."
+    "eyebrow": "Green Card jashtë vendit",
+    "title": "Udhëzues i shpejtë për Green Card jashtë vendit",
+    "description": "Zgjidhni shtetin ku ka ndodhur aksidenti. Do të shihni hapat e parë, numrat e urgjencës dhe rrugën më të shpejtë drejt mbështetjes ose hapjes së kërkesës.",
+    "selector": {
+      "label": "Zgjidh shtetin",
+      "hint": "Përdor shtetin ku ka ndodhur aksidenti.",
+      "options": {
+        "DE": "Gjermania",
+        "CH": "Zvicra",
+        "AT": "Austri",
+        "IT": "Italia"
       }
     },
-    "cta": {
-      "title": "Gati për t'u mbrojtur?",
-      "button": "Bëhu anëtar / Përditëso anëtarësinë"
+    "guidance": {
+      "countryDescription": "Udhëzime sipas shtetit për aksident me Green Card.",
+      "emergency": "Numrat e urgjencës",
+      "police": "Policia",
+      "ambulance": "Urgjenca",
+      "fire": "Zjarrfikësit",
+      "general": "Numri i përgjithshëm i urgjencës",
+      "rules": "Kontrolle operative",
+      "firstSteps": "Hapat e parë",
+      "firstStepsHint": "Bëjini këto para se të largoheni nga vendi i ngjarjes, sa herë që është e sigurt.",
+      "policeRequired": "Raporti policor kërkohet",
+      "policeNotRequired": "Raporti policor zakonisht nuk kërkohet",
+      "europeanFormAllowed": "Lejohet formulari evropian i aksidentit",
+      "europeanFormNotAllowed": "Formulari evropian i aksidentit nuk lejohet",
+      "notes": "Shënime shtesë"
+    },
+    "actions": {
+      "title": "Hapi i radhës",
+      "description": "Përdorni mbështetjen direkte nëse ju duhet ndihmë tani, ose nisni kërkesën e udhëtimit që triagimi të fillojë në rrjedhën ekzistuese të anëtarit.",
+      "support": "Kontakto mbështetjen tani",
+      "whatsapp": "Hap mbështetjen në WhatsApp",
+      "claim": "Nis kërkesën e udhëtimit"
+    },
+    "boundary": {
+      "title": "Çfarë bën ky udhëzues i shpejtë",
+      "description": "Ky është udhëzuesi i kufizuar për anëtarët për trajtimin e aksidenteve jashtë vendit.",
+      "pointOne": "Jep udhëzimet e para dhe ju fut në rrjedhat ekzistuese të mbështetjes dhe kërkesave.",
+      "pointTwo": "Nuk zëvendëson shqyrtimin nga stafi, vlerësimin ligjor ose trajtimin nga siguruesi sipas shtetit."
     }
   }
 }

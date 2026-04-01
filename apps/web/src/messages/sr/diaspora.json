@@ -1,24 +1,46 @@
 {
   "diaspora": {
-    "title": "Paket za Dijasporu",
-    "description": "Sveobuhvatna rešenja za vaš život između dve zemlje.",
-    "cards": {
-      "green_card": {
-        "title": "Nezgoda u inostranstvu (Zeleni Karton)",
-        "description": "Pravna i tehnička pomoć ako doživite nezgodu u Evropi. Mi se brinemo o dokumentaciji i odšteti."
-      },
-      "travel": {
-        "title": "Putovanje / Avio",
-        "description": "Kompenzacija za kašnjenje letova, otkazivanja ili izgubljen prtljag. Zaštita tokom vašeg putovanja."
-      },
-      "family": {
-        "title": "Porodica na Kosovu",
-        "description": "Kako pomoći iz daleka? Dokumenta, uputstva i direktna linija za bilo kakve kućne hitne slučajeve."
+    "eyebrow": "Zeleni karton u inostranstvu",
+    "title": "Brzi vodič za Zeleni karton u inostranstvu",
+    "description": "Izaberite državu u kojoj se desila nezgoda. Videćete prve korake, hitne brojeve i najbrži put do podrške ili pokretanja zahteva.",
+    "selector": {
+      "label": "Izaberite državu",
+      "hint": "Koristite državu u kojoj se desila nezgoda.",
+      "options": {
+        "DE": "Nemačka",
+        "CH": "Švajcarska",
+        "AT": "Austrija",
+        "IT": "Italija"
       }
     },
-    "cta": {
-      "title": "Spremni za zaštitu?",
-      "button": "Postanite član / Ažurirajte članstvo"
+    "guidance": {
+      "countryDescription": "Uputstva za nezgodu sa Zelenim kartonom po državi.",
+      "emergency": "Hitni brojevi",
+      "police": "Policija",
+      "ambulance": "Hitna pomoć",
+      "fire": "Vatrogasci",
+      "general": "Opšti hitni broj",
+      "rules": "Operativne provere",
+      "firstSteps": "Prvi koraci",
+      "firstStepsHint": "Uradite ovo pre nego što napustite mesto događaja, kad god je bezbedno.",
+      "policeRequired": "Policijski zapisnik je potreban",
+      "policeNotRequired": "Policijski zapisnik obično nije potreban",
+      "europeanFormAllowed": "Evropski izveštaj o nezgodi je dozvoljen",
+      "europeanFormNotAllowed": "Evropski izveštaj o nezgodi nije dozvoljen",
+      "notes": "Dodatne napomene"
+    },
+    "actions": {
+      "title": "Sledeći korak",
+      "description": "Koristite direktnu podršku ako vam je pomoć potrebna odmah, ili pokrenite zahtev za putovanje kako bi trijaža počela u postojećem članskom toku.",
+      "support": "Kontaktiraj podršku sada",
+      "whatsapp": "Otvori WhatsApp podršku",
+      "claim": "Pokreni zahtev za putovanje"
+    },
+    "boundary": {
+      "title": "Šta radi ovaj brzi vodič",
+      "description": "Ovo je ograničeni članski brzi vodič za obradu nezgode u inostranstvu.",
+      "pointOne": "Daje prve smernice i uvodi vas u postojeće tokove podrške i zahteva.",
+      "pointTwo": "Ne zamenjuje pregled osoblja, pravnu procenu ili obradu osiguravača po državi."
     }
   }
 }
