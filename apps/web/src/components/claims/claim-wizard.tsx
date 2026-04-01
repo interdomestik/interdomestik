@@ -43,6 +43,11 @@ type CommercialFlowPayload = {
 type ClaimWizardProps = {
   initialCategory?: string;
   tenantId?: string | null;
+  handoffContext?: {
+    source: 'diaspora-green-card';
+    country: 'DE' | 'CH' | 'AT' | 'IT';
+    incidentLocation: 'abroad';
+  } | null;
 };
 
 const STEP_NAMES = ['category', 'details', 'evidence', 'review'];
@@ -101,12 +106,13 @@ function getCommercialFlowFromResult(payload: unknown): CommercialFlowPayload | 
   };
 }
 
-export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
+export function ClaimWizard({ initialCategory, tenantId, handoffContext }: ClaimWizardProps) {
   const router = useRouter();
   const t = useTranslations('claims.wizard');
   const tDisclaimer = useTranslations('claims.disclaimer');
   const tSuccess = useTranslations('claims.success');
   const tCommon = useTranslations('common');
+  const tDiaspora = useTranslations('diaspora');
   const locale = useLocale();
   const uiV2Enabled = isUiV2Enabled();
   const contacts = getSupportContacts({ locale });
@@ -303,6 +309,9 @@ export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
         : t('continue_review')
     : tCommon('next');
   const submitLabel = uiV2Enabled ? t('submit_label') : t('submitClaim');
+  const handoffCountryLabel = handoffContext
+    ? tDiaspora(`selector.options.${handoffContext.country}`)
+    : null;
 
   if (createdClaimId) {
     return (
@@ -400,6 +409,34 @@ export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
           onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-8 rounded-2xl border border-slate-200/70 bg-white/85 p-4 shadow-[0_24px_52px_-42px_rgba(15,23,42,0.85)] sm:p-6"
         >
+          {handoffContext ? (
+            <div
+              data-testid="claim-wizard-handoff"
+              className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-950"
+            >
+              <p className="font-semibold">{t('handoff.title')}</p>
+              <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <dt className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-700">
+                    {t('handoff.sourceLabel')}
+                  </dt>
+                  <dd>{t('handoff.sourceValue')}</dd>
+                </div>
+                <div className="space-y-1">
+                  <dt className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-700">
+                    {t('handoff.countryLabel')}
+                  </dt>
+                  <dd>{handoffCountryLabel}</dd>
+                </div>
+                <div className="space-y-1">
+                  <dt className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-700">
+                    {t('handoff.incidentLocationLabel')}
+                  </dt>
+                  <dd>{t('handoff.incidentLocationValue')}</dd>
+                </div>
+              </dl>
+            </div>
+          ) : null}
           <div className="min-h-[400px]">
             {currentStep === 0 && <WizardStepCategory />}
             {currentStep === 1 && <WizardStepDetails />}

@@ -36,6 +36,17 @@ function resolveCountryCode(rawCountry: string | undefined): SupportedQuickstart
   return parsed.data as SupportedQuickstartCountry;
 }
 
+function buildClaimStartHref(selectedCountry: SupportedQuickstartCountry): string {
+  const params = new URLSearchParams({
+    category: 'travel',
+    source: 'diaspora-green-card',
+    country: selectedCountry,
+    incidentLocation: 'abroad',
+  });
+
+  return `/member/claims/new?${params.toString()}`;
+}
+
 type Props = {
   params: Promise<{ locale: string }>;
   searchParams?: Promise<{ country?: string }>;
@@ -248,7 +259,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
                 variant="secondary"
                 className="w-full justify-between rounded-2xl"
               >
-                <Link href="/member/claims/new?category=travel">
+                <Link href={buildClaimStartHref(selectedCountry)}>
                   <span>{t('actions.claim')}</span>
                   <ArrowRight className="h-4 w-4" />
                 </Link>

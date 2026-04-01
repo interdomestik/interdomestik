@@ -109,6 +109,14 @@
         "title": "Ke nevojë për ndihmë?",
         "call_60s": "Merr ndihmë tani (60 sek)",
         "whatsapp": "Ndihmë në WhatsApp"
+      },
+      "handoff": {
+        "title": "Konteksti i kërkesës jashtë vendit",
+        "sourceLabel": "Burimi",
+        "sourceValue": "Diaspora / udhëzuesi i shpejtë Green Card",
+        "countryLabel": "Shteti i zgjedhur",
+        "incidentLocationLabel": "Vendndodhja e incidentit",
+        "incidentLocationValue": "Jashtë vendit"
       }
     },
     "disclaimer": {

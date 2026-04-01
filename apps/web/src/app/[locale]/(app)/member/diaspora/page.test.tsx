@@ -80,7 +80,7 @@ describe('DiasporaPage', () => {
     );
     expect(screen.getByRole('link', { name: 'Start travel claim' })).toHaveAttribute(
       'href',
-      '/member/claims/new?category=travel'
+      '/member/claims/new?category=travel&source=diaspora-green-card&country=DE&incidentLocation=abroad'
     );
   });
 
@@ -95,5 +95,9 @@ describe('DiasporaPage', () => {
     expect(screen.getByTestId('diaspora-selected-country')).toHaveTextContent('Italy');
     expect(screen.getByText('113')).toBeInTheDocument();
     expect(screen.getByText('115')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Start travel claim' })).toHaveAttribute(
+      'href',
+      '/member/claims/new?category=travel&source=diaspora-green-card&country=IT&incidentLocation=abroad'
+    );
   });
 });

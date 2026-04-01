@@ -65,6 +65,13 @@ vi.mock('next-intl', () => ({
       step2: 'Details',
       step3: 'Evidence',
       step4: 'Review',
+      'handoff.title': 'Abroad claim context',
+      'handoff.sourceLabel': 'Source',
+      'handoff.sourceValue': 'Diaspora / Green Card quickstart',
+      'handoff.countryLabel': 'Selected country',
+      'handoff.incidentLocationLabel': 'Incident location',
+      'handoff.incidentLocationValue': 'Abroad',
+      'selector.options.IT': 'Italy',
       progress: 'Step {current} of {total}',
       submitClaim: 'Submit Claim',
       back: 'Back',
@@ -171,5 +178,23 @@ describe('ClaimWizard', () => {
     render(<ClaimWizard />);
 
     expect(screen.getByText('Category')).toBeInTheDocument();
+  });
+
+  it('renders preserved diaspora abroad context when handoff data is provided', () => {
+    render(
+      <ClaimWizard
+        handoffContext={{
+          source: 'diaspora-green-card',
+          country: 'IT',
+          incidentLocation: 'abroad',
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('claim-wizard-handoff')).toBeInTheDocument();
+    expect(screen.getByText('Abroad claim context')).toBeInTheDocument();
+    expect(screen.getByText('Diaspora / Green Card quickstart')).toBeInTheDocument();
+    expect(screen.getByText('Italy')).toBeInTheDocument();
+    expect(screen.getByText('Abroad')).toBeInTheDocument();
   });
 });

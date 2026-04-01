@@ -125,10 +125,6 @@ async function expectTenantClassificationPersisted(params: {
 }) {
   const { page, memberId, expectedTenantId } = params;
 
-  await expect(page.getByTestId('tenant-classification-confirmed')).toBeVisible({
-    timeout: 15_000,
-  });
-
   await expect
     .poll(async () => {
       const refreshed = await db.query.user.findFirst({
@@ -147,6 +143,11 @@ async function expectTenantClassificationPersisted(params: {
       tenantClassificationPending: false,
       tenantId: expectedTenantId,
     });
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('tenant-classification-confirmed')).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 export async function confirmCurrentTenantClassification(params: {

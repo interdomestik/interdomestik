@@ -224,7 +224,11 @@ describe('Admin commissions page', () => {
     render(<AdminCommissionsPage />);
 
     expect(await screen.findByText('Commission Management')).toBeInTheDocument();
-    expect(screen.queryByText('Renewal')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByLabelText('settings.percent_reward')).toHaveValue(500);
+      expect(screen.queryByLabelText('settings.fixed_reward')).toBeNull();
+      expect(screen.queryByText('Renewal')).not.toBeInTheDocument();
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Save referral settings' }));
 

@@ -88,7 +88,7 @@ export default withSentryConfig(withAxiom(finalConfig), {
 
   // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
   // This can increase your server load as well as your Sentry bill.
-  tunnelRoute: '/monitoring',
+  tunnelRoute: '/api/monitoring',
 
   // Hides source maps from visitors
   hideSourceMaps: true,

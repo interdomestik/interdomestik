@@ -60,5 +60,23 @@ test.describe('Diaspora Feature', () => {
     await expect(page.getByTestId('diaspora-selected-country')).toContainText(
       /(Italy|Италија|Italia)/i
     );
+
+    const claimStartLink = page.getByRole('link', {
+      name: /(Start travel claim|Започни патно барање|Nis kërkesën e udhëtimit|Pokreni zahtev za putovanje)/i,
+    });
+    await expect(claimStartLink).toHaveAttribute(
+      'href',
+      /\/member\/claims\/new\?category=travel&source=diaspora-green-card&country=IT&incidentLocation=abroad/
+    );
+
+    await Promise.all([
+      page.waitForURL(
+        /\/member\/claims\/new\?category=travel&source=diaspora-green-card&country=IT&incidentLocation=abroad/
+      ),
+      claimStartLink.click(),
+    ]);
+
+    await expect(page.getByTestId('claim-wizard-handoff')).toBeVisible();
+    await expect(page.getByTestId('claim-wizard-handoff')).toContainText(/(Italy|Италија|Italia)/i);
   });
 });
