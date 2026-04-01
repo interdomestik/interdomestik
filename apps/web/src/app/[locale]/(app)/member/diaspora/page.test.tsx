@@ -3,63 +3,33 @@ import { describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   setRequestLocaleMock: vi.fn(),
-  getTranslationsMock: vi.fn(async ({ locale }: { locale: string }) => {
-    const messages =
-      locale === 'mk'
-        ? {
-            title: 'Green Card abroad quickstart',
-            description:
-              'Choose the country where the accident happened and follow the first steps.',
-            selector: {
-              label: 'Choose country',
-              hint: 'Use the country where the accident happened.',
-              options: {
-                DE: 'Germany',
-                CH: 'Switzerland',
-                AT: 'Austria',
-                IT: 'Italy',
-              },
-            },
-            guidance: {
-              emergency: 'Emergency numbers',
-              firstSteps: 'First steps',
-              policeRequired: 'Police report required',
-              policeNotRequired: 'Police report usually not required',
-              europeanFormAllowed: 'European accident statement allowed',
-              notes: 'Additional notes',
-            },
-            actions: {
-              support: 'Contact support now',
-              claim: 'Start travel claim',
-            },
-          }
-        : {
-            title: 'Green Card abroad quickstart',
-            description:
-              'Choose the country where the accident happened and follow the first steps.',
-            selector: {
-              label: 'Choose country',
-              hint: 'Use the country where the accident happened.',
-              options: {
-                DE: 'Germany',
-                CH: 'Switzerland',
-                AT: 'Austria',
-                IT: 'Italy',
-              },
-            },
-            guidance: {
-              emergency: 'Emergency numbers',
-              firstSteps: 'First steps',
-              policeRequired: 'Police report required',
-              policeNotRequired: 'Police report usually not required',
-              europeanFormAllowed: 'European accident statement allowed',
-              notes: 'Additional notes',
-            },
-            actions: {
-              support: 'Contact support now',
-              claim: 'Start travel claim',
-            },
-          };
+  getTranslationsMock: vi.fn(async (_options?: { locale: string }) => {
+    const messages = {
+      title: 'Green Card abroad quickstart',
+      description: 'Choose the country where the accident happened and follow the first steps.',
+      selector: {
+        label: 'Choose country',
+        hint: 'Use the country where the accident happened.',
+        options: {
+          DE: 'Germany',
+          CH: 'Switzerland',
+          AT: 'Austria',
+          IT: 'Italy',
+        },
+      },
+      guidance: {
+        emergency: 'Emergency numbers',
+        firstSteps: 'First steps',
+        policeRequired: 'Police report required',
+        policeNotRequired: 'Police report usually not required',
+        europeanFormAllowed: 'European accident statement allowed',
+        notes: 'Additional notes',
+      },
+      actions: {
+        support: 'Contact support now',
+        claim: 'Start travel claim',
+      },
+    };
 
     return (key: string) =>
       key.split('.').reduce((value: unknown, part: string) => {
