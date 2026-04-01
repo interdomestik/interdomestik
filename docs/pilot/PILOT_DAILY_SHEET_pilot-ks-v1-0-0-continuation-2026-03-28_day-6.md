@@ -144,13 +144,6 @@ Use this section for anything that weakens proof, including late triage, late pu
 
 ## End-Of-Day Decision
 
-- Final color (`green`/`amber`/`red`/`blocked`):
-- Final decision (`continue`/`pause`/`hotfix`/`stop`):
-- Branch manager recommendation:
-- Admin decision:
-- Resume requires `pnpm pilot:check` (`yes`/`no`):
-- Resume requires fresh `pnpm release:gate:prod -- --pilotId <pilot-id>` (`yes`/`no`):
-- Rollback tag (`pilot-ready-YYYYMMDD`/`n/a`):
 - Final color (`green`/`amber`/`red`/`blocked`): `green`
 - Final decision (`continue`/`pause`/`hotfix`/`stop`): `continue`
 - Branch manager recommendation: `continue the bounded line and carry this April 1 day as a clean corrected-baseline proof point`
