@@ -228,7 +228,7 @@ describe('submitClaimCore', () => {
     );
   });
 
-  it('keeps the initial stage history note private when no diaspora handoff exists', async () => {
+  it('does not add a diaspora public note when no handoff context is provided', async () => {
     await submitClaimCore({
       session: {
         user: {

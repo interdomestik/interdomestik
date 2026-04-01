@@ -40,10 +40,20 @@ type ClaimAssignmentContext = {
   agentId: string | null;
 };
 
+const DIASPORA_HANDOFF_COUNTRIES = new Set(['DE', 'CH', 'AT', 'IT']);
+const DIASPORA_INCIDENT_LOCATIONS = new Set(['abroad']);
+
 function buildClaimStartPublicNote(
   handoffContext: ClaimStartHandoffContext | null | undefined
 ): string | null {
   if (!handoffContext || handoffContext.source !== 'diaspora-green-card') {
+    return null;
+  }
+
+  if (
+    !DIASPORA_HANDOFF_COUNTRIES.has(handoffContext.country) ||
+    !DIASPORA_INCIDENT_LOCATIONS.has(handoffContext.incidentLocation)
+  ) {
     return null;
   }
 
