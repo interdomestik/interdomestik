@@ -46,7 +46,7 @@ const DIASPORA_INCIDENT_LOCATIONS = new Set(['abroad']);
 function buildClaimStartPublicNote(
   handoffContext: ClaimStartHandoffContext | null | undefined
 ): string | null {
-  if (!handoffContext || handoffContext.source !== 'diaspora-green-card') {
+  if (handoffContext?.source !== 'diaspora-green-card') {
     return null;
   }
 
