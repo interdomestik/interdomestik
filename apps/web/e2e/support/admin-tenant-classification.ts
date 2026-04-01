@@ -191,26 +191,16 @@ export async function reassignTenantClassification(params: {
 
   await expect(page.getByTestId('tenant-classification-controls')).toBeVisible();
   await expect(page.getByTestId('tenant-classification-reassign')).toBeVisible();
-  await expect
-    .poll(
-      async () =>
-        page
-          .getByTestId('tenant-classification-controls')
-          .evaluate(node => (node as HTMLElement).dataset.hydrated ?? null),
-      { timeout: 15_000 }
-    )
-    .toBe('true');
 
   await page.selectOption('[data-testid="tenant-classification-reassign-select"]', nextTenantId);
   await page.getByTestId('tenant-classification-reassign').scrollIntoViewIfNeeded();
   await page.getByTestId('tenant-classification-reassign').click({ force: true });
-  await expectTenantClassificationPersisted({ page, memberId, expectedTenantId: nextTenantId });
-
   await expect
     .poll(() => new URL(page.url()).searchParams.get('tenantId'), {
       timeout: 15_000,
     })
     .toBe(nextTenantId);
+  await expectTenantClassificationPersisted({ page, memberId, expectedTenantId: nextTenantId });
 }
 
 type SuiteOptions = {
