@@ -164,7 +164,7 @@ Use this section for anything that weakens proof, including late triage, late pu
 - Release report: `docs/release-gates/2026-03-28_production_dpl_J4UNp8nDnxaVBaDSUzSc6umoFSfF.md`
 - Copied evidence index: `docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-v1-0-0-continuation-2026-03-28.md`
 - Daily export or snapshot: `docs/pilot/live-data/pilot-ks-v1-0-0-continuation-2026-03-28_day-6_claim-timeline-export.csv`
-- Query or script used for daily export: `docs/pilot/live-data/pilot-ks-v1-0-0-continuation-2026-03-28_day-6_claim-timeline-export.sql`
+- Query or script used for daily export: `docs/pilot/live-data/pilot-claim-timeline-export.template.sql` with `tenant_id=tenant_ks`, `export_window_start=2026-04-01 00:00:00`, `export_window_end=2026-04-02 00:00:00`
 - Observability reference (`day-<n>`/`week-<n>`): `day-6`
 - Decision reference (`day-<n>`/`week-<n>`): `day-6`
 - Other repo-backed evidence: `docs/pilot/live-data/pilot-ks-v1-0-0-continuation-2026-03-28_day-6_claim-proof.md; tsx rollup snapshot for 2026-04-01 -> 2026-04-02`
