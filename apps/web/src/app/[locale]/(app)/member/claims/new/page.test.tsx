@@ -41,7 +41,8 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/components/claims/claim-wizard', () => ({
-  ClaimWizard: (props: unknown) => hoisted.claimWizardMock(props),
+  ClaimWizard: (props: Parameters<typeof hoisted.claimWizardMock>[0]) =>
+    hoisted.claimWizardMock(props),
 }));
 
 vi.mock('@/components/shell/session', () => ({
@@ -73,7 +74,6 @@ describe('NewClaimPage diaspora claim handoff', () => {
   it('parses diaspora handoff params into normalized claim-start context', () => {
     expect(
       resolveClaimStartHandoff({
-        category: 'travel',
         source: 'diaspora-green-card',
         country: 'IT',
         incidentLocation: 'abroad',
