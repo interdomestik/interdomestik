@@ -109,6 +109,14 @@
         "title": "Need help?",
         "call_60s": "Get help now (60-sec call)",
         "whatsapp": "WhatsApp support"
+      },
+      "handoff": {
+        "title": "Abroad claim context",
+        "sourceLabel": "Source",
+        "sourceValue": "Diaspora / Green Card quickstart",
+        "countryLabel": "Selected country",
+        "incidentLocationLabel": "Incident location",
+        "incidentLocationValue": "Abroad"
       }
     },
     "disclaimer": {

@@ -109,6 +109,14 @@
         "title": "Treba vam pomoć?",
         "call_60s": "Zatraži pomoć sada (60 sek)",
         "whatsapp": "WhatsApp podrška"
+      },
+      "handoff": {
+        "title": "Kontekst zahteva u inostranstvu",
+        "sourceLabel": "Izvor",
+        "sourceValue": "Dijaspora / brzi vodič za Zeleni karton",
+        "countryLabel": "Izabrana država",
+        "incidentLocationLabel": "Lokacija nezgode",
+        "incidentLocationValue": "U inostranstvu"
       }
     },
     "disclaimer": {

@@ -74,12 +74,13 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
         : { ...MEMBER_KS, tenant: 'tenant_ks' };
       await loginAs(page, memberUser, testInfo);
 
-      const primaryActions = page.getByTestId('member-primary-actions');
-      const activeClaim = page.getByTestId('member-active-claim');
-      const supportLink = page.getByTestId('member-support-link');
-
-      await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
+      const dashboardReady = page.getByTestId('dashboard-page-ready');
+      await expect(dashboardReady).toBeVisible();
       await expect(page.getByTestId('portal-surface-indicator')).toBeVisible();
+      const primaryActions = dashboardReady.getByTestId('member-primary-actions');
+      const activeClaim = dashboardReady.getByTestId('member-active-claim');
+      const supportLink = dashboardReady.getByTestId('member-support-link');
+
       await expect(primaryActions).toHaveCount(1);
       await expect(primaryActions).toBeVisible();
       await expect(activeClaim).toHaveCount(1);

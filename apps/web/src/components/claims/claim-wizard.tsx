@@ -43,7 +43,16 @@ type CommercialFlowPayload = {
 type ClaimWizardProps = {
   initialCategory?: string;
   tenantId?: string | null;
+  handoffContext?: {
+    source: 'diaspora-green-card';
+    country: 'DE' | 'CH' | 'AT' | 'IT';
+    incidentLocation: 'abroad';
+  } | null;
 };
+
+type ClaimWizardReadonlyProps = Readonly<ClaimWizardProps>;
+
+type ClaimWizardHandoffContext = NonNullable<ClaimWizardProps['handoffContext']>;
 
 const STEP_NAMES = ['category', 'details', 'evidence', 'review'];
 
@@ -101,12 +110,169 @@ function getCommercialFlowFromResult(payload: unknown): CommercialFlowPayload | 
   };
 }
 
-export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
+function getNextStepLabel(params: {
+  currentStep: number;
+  uiV2Enabled: boolean;
+  t: ReturnType<typeof useTranslations>;
+  tCommon: ReturnType<typeof useTranslations>;
+}): string {
+  const { currentStep, uiV2Enabled, t, tCommon } = params;
+
+  if (!uiV2Enabled) {
+    return tCommon('next');
+  }
+
+  if (currentStep === 0) {
+    return t('continue_details');
+  }
+
+  if (currentStep === 1) {
+    return t('continue_upload');
+  }
+
+  return t('continue_review');
+}
+
+function ClaimCreatedSuccess(
+  props: Readonly<{
+    claimId: string;
+    locale: string;
+    contacts: ReturnType<typeof getSupportContacts>;
+    tSuccess: ReturnType<typeof useTranslations>;
+  }>
+): React.JSX.Element {
+  const { claimId, locale, contacts, tSuccess } = props;
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-8">
+      <div
+        data-testid="claim-created-success"
+        className="space-y-4 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-cyan-50 p-6 text-emerald-950 shadow-[0_22px_46px_-34px_rgba(5,150,105,0.9)]"
+      >
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/80 bg-white/70 px-3 py-1 text-xs font-semibold text-emerald-800">
+          <Sparkles className="h-3.5 w-3.5" />
+          {tSuccess('title')}
+        </div>
+        <h2 className="text-2xl font-semibold tracking-tight">{tSuccess('title')}</h2>
+        <p data-testid="claim-created-id">
+          {tSuccess('case_id')}: <span className="font-mono font-semibold">{claimId}</span>
+        </p>
+        <ul
+          data-testid="claim-created-next-steps"
+          className="list-disc space-y-1 pl-5 text-sm leading-6"
+        >
+          <li>{tSuccess('next_step_1')}</li>
+          <li>{tSuccess('next_step_2')}</li>
+        </ul>
+        <div className="flex flex-wrap gap-2">
+          <a
+            data-testid="claim-created-help-call"
+            href={contacts.telHref}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-white/80 px-4 py-2 text-sm font-medium text-emerald-900 transition hover:bg-white"
+          >
+            <PhoneCall className="h-4 w-4" />
+            {tSuccess('help_call')}
+          </a>
+          {contacts.whatsappHref ? (
+            <a
+              data-testid="claim-created-help-whatsapp"
+              href={contacts.whatsappHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-300 bg-white/80 px-4 py-2 text-sm font-medium text-emerald-900 transition hover:bg-white"
+            >
+              {tSuccess('help_whatsapp')}
+            </a>
+          ) : null}
+        </div>
+        <a
+          data-testid="claim-created-go-to-claim"
+          href={`/${locale}/member/claims/${claimId}`}
+          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+        >
+          {tSuccess('go_to_claim')}
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function ClaimWizardHandoffSummary(
+  props: Readonly<{
+    handoffContext: ClaimWizardHandoffContext;
+    handoffCountryLabel: string;
+    t: ReturnType<typeof useTranslations>;
+  }>
+): React.JSX.Element {
+  const { handoffContext, handoffCountryLabel, t } = props;
+
+  return (
+    <div
+      data-testid="claim-wizard-handoff"
+      className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-950"
+      data-source={handoffContext.source}
+      data-incident-location={handoffContext.incidentLocation}
+    >
+      <p className="font-semibold">{t('handoff.title')}</p>
+      <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+        <div className="space-y-1">
+          <dt className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-700">
+            {t('handoff.sourceLabel')}
+          </dt>
+          <dd>{t('handoff.sourceValue')}</dd>
+        </div>
+        <div className="space-y-1">
+          <dt className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-700">
+            {t('handoff.countryLabel')}
+          </dt>
+          <dd>{handoffCountryLabel}</dd>
+        </div>
+        <div className="space-y-1">
+          <dt className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-700">
+            {t('handoff.incidentLocationLabel')}
+          </dt>
+          <dd>{t('handoff.incidentLocationValue')}</dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
+
+function ClaimWizardStepContent(
+  props: Readonly<{ currentStep: number }>
+): React.JSX.Element | null {
+  const { currentStep } = props;
+
+  if (currentStep === 0) {
+    return <WizardStepCategory />;
+  }
+
+  if (currentStep === 1) {
+    return <WizardStepDetails />;
+  }
+
+  if (currentStep === 2) {
+    return <WizardStepEvidence />;
+  }
+
+  if (currentStep === 3) {
+    return <WizardReview />;
+  }
+
+  return null;
+}
+
+export function ClaimWizard({
+  initialCategory,
+  tenantId,
+  handoffContext,
+}: ClaimWizardReadonlyProps) {
   const router = useRouter();
   const t = useTranslations('claims.wizard');
   const tDisclaimer = useTranslations('claims.disclaimer');
   const tSuccess = useTranslations('claims.success');
   const tCommon = useTranslations('common');
+  const tDiaspora = useTranslations('diaspora');
   const locale = useLocale();
   const uiV2Enabled = isUiV2Enabled();
   const contacts = getSupportContacts({ locale });
@@ -295,67 +461,20 @@ export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
     current: currentStep + 1,
     total: steps.length,
   });
-  const nextStepLabel = uiV2Enabled
-    ? currentStep === 0
-      ? t('continue_details')
-      : currentStep === 1
-        ? t('continue_upload')
-        : t('continue_review')
-    : tCommon('next');
+  const nextStepLabel = getNextStepLabel({ currentStep, uiV2Enabled, t, tCommon });
   const submitLabel = uiV2Enabled ? t('submit_label') : t('submitClaim');
+  const handoffCountryLabel = handoffContext
+    ? tDiaspora(`selector.options.${handoffContext.country}`)
+    : null;
 
   if (createdClaimId) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-8">
-        <div
-          data-testid="claim-created-success"
-          className="space-y-4 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-cyan-50 p-6 text-emerald-950 shadow-[0_22px_46px_-34px_rgba(5,150,105,0.9)]"
-        >
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/80 bg-white/70 px-3 py-1 text-xs font-semibold text-emerald-800">
-            <Sparkles className="h-3.5 w-3.5" />
-            {tSuccess('title')}
-          </div>
-          <h2 className="text-2xl font-semibold tracking-tight">{tSuccess('title')}</h2>
-          <p data-testid="claim-created-id">
-            {tSuccess('case_id')}: <span className="font-mono font-semibold">{createdClaimId}</span>
-          </p>
-          <ul
-            data-testid="claim-created-next-steps"
-            className="list-disc space-y-1 pl-5 text-sm leading-6"
-          >
-            <li>{tSuccess('next_step_1')}</li>
-            <li>{tSuccess('next_step_2')}</li>
-          </ul>
-          <div className="flex flex-wrap gap-2">
-            <a
-              data-testid="claim-created-help-call"
-              href={contacts.telHref}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-white/80 px-4 py-2 text-sm font-medium text-emerald-900 transition hover:bg-white"
-            >
-              <PhoneCall className="h-4 w-4" />
-              {tSuccess('help_call')}
-            </a>
-            {contacts.whatsappHref ? (
-              <a
-                data-testid="claim-created-help-whatsapp"
-                href={contacts.whatsappHref}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-300 bg-white/80 px-4 py-2 text-sm font-medium text-emerald-900 transition hover:bg-white"
-              >
-                {tSuccess('help_whatsapp')}
-              </a>
-            ) : null}
-          </div>
-          <a
-            data-testid="claim-created-go-to-claim"
-            href={`/${locale}/member/claims/${createdClaimId}`}
-            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-          >
-            {tSuccess('go_to_claim')}
-          </a>
-        </div>
-      </div>
+      <ClaimCreatedSuccess
+        claimId={createdClaimId}
+        locale={locale}
+        contacts={contacts}
+        tSuccess={tSuccess}
+      />
     );
   }
 
@@ -400,11 +519,15 @@ export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
           onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-8 rounded-2xl border border-slate-200/70 bg-white/85 p-4 shadow-[0_24px_52px_-42px_rgba(15,23,42,0.85)] sm:p-6"
         >
+          {handoffContext && handoffCountryLabel ? (
+            <ClaimWizardHandoffSummary
+              handoffContext={handoffContext}
+              handoffCountryLabel={handoffCountryLabel}
+              t={t}
+            />
+          ) : null}
           <div className="min-h-[400px]">
-            {currentStep === 0 && <WizardStepCategory />}
-            {currentStep === 1 && <WizardStepDetails />}
-            {currentStep === 2 && <WizardStepEvidence />}
-            {currentStep === 3 && <WizardReview />}
+            <ClaimWizardStepContent currentStep={currentStep} />
           </div>
 
           <div className="flex justify-between pt-4 border-t">

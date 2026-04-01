@@ -9,6 +9,41 @@ import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+const DIASPORA_CLAIM_SOURCES = ['diaspora-green-card'] as const;
+const DIASPORA_CLAIM_COUNTRIES = ['DE', 'CH', 'AT', 'IT'] as const;
+const DIASPORA_INCIDENT_LOCATIONS = ['abroad'] as const;
+
+export type ClaimStartHandoffContext = {
+  source: (typeof DIASPORA_CLAIM_SOURCES)[number];
+  country: (typeof DIASPORA_CLAIM_COUNTRIES)[number];
+  incidentLocation: (typeof DIASPORA_INCIDENT_LOCATIONS)[number];
+};
+
+export function resolveClaimStartHandoff(query: {
+  source?: string;
+  country?: string;
+  incidentLocation?: string;
+}): ClaimStartHandoffContext | null {
+  if (
+    !query.source ||
+    !query.country ||
+    !query.incidentLocation ||
+    !DIASPORA_CLAIM_SOURCES.includes(query.source as ClaimStartHandoffContext['source']) ||
+    !DIASPORA_CLAIM_COUNTRIES.includes(query.country as ClaimStartHandoffContext['country']) ||
+    !DIASPORA_INCIDENT_LOCATIONS.includes(
+      query.incidentLocation as ClaimStartHandoffContext['incidentLocation']
+    )
+  ) {
+    return null;
+  }
+
+  return {
+    source: query.source as ClaimStartHandoffContext['source'],
+    country: query.country as ClaimStartHandoffContext['country'],
+    incidentLocation: query.incidentLocation as ClaimStartHandoffContext['incidentLocation'],
+  };
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `New Claim | Interdomestik`,
@@ -17,7 +52,12 @@ export async function generateMetadata(): Promise<Metadata> {
 
 type Props = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{
+    category?: string;
+    source?: string;
+    country?: string;
+    incidentLocation?: string;
+  }>;
 };
 
 export default async function NewClaimPage({ params, searchParams }: Props) {
@@ -25,6 +65,7 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
   const t = await getTranslations('claims');
   const query = await searchParams;
   const preselectedCategory = query.category;
+  const handoffContext = resolveClaimStartHandoff(query);
 
   const session = await getSessionSafe('MemberNewClaimPage');
 
@@ -67,7 +108,11 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
         </div>
       </div>
       <div className="flex-1 p-6">
-        <ClaimWizard initialCategory={preselectedCategory} tenantId={tenantId} />
+        <ClaimWizard
+          initialCategory={preselectedCategory}
+          tenantId={tenantId}
+          handoffContext={handoffContext}
+        />
       </div>
     </div>
   );

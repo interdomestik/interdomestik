@@ -109,6 +109,14 @@
         "title": "Ви треба помош?",
         "call_60s": "Побарај помош сега (60 сек)",
         "whatsapp": "WhatsApp поддршка"
+      },
+      "handoff": {
+        "title": "Контекст за барање во странство",
+        "sourceLabel": "Извор",
+        "sourceValue": "Дијаспора / брз водич за Зелен картон",
+        "countryLabel": "Избрана држава",
+        "incidentLocationLabel": "Локација на настанот",
+        "incidentLocationValue": "Во странство"
       }
     },
     "disclaimer": {
