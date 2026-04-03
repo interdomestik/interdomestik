@@ -5,6 +5,7 @@ import {
   db,
   eq,
   serviceUsage,
+  sql,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -52,6 +53,7 @@ type UpdateClaimStatusParams = {
 };
 type CurrentClaimRecord = {
   category: string;
+  staffId: string | null;
   status: ClaimStatus | null;
   userId: string;
 };
@@ -243,6 +245,7 @@ async function handleStaffLedRecoveryStatusChange(
     },
     claimId,
     currentStatus: currentClaim.status,
+    currentStaffId: currentClaim.staffId,
     deps,
     isPublicChange,
     note,
@@ -262,6 +265,7 @@ type ClaimsTransaction = {
 async function persistClaimStatusChange(params: {
   claimId: string;
   currentStatus: ClaimStatus | null;
+  currentStaffId: string | null;
   isPublicChange: boolean;
   note?: string;
   session: ClaimsSession;
@@ -269,12 +273,35 @@ async function persistClaimStatusChange(params: {
   tenantId: string;
   tx: ClaimsTransaction;
 }) {
-  const { claimId, currentStatus, isPublicChange, note, session, status, tenantId, tx } = params;
+  const {
+    claimId,
+    currentStatus,
+    currentStaffId,
+    isPublicChange,
+    note,
+    session,
+    status,
+    tenantId,
+    tx,
+  } = params;
 
-  if (currentStatus !== status) {
+  const shouldAutoAssign = currentStaffId == null;
+
+  if (currentStatus !== status || shouldAutoAssign) {
+    const now = new Date();
     await tx
       .update(claims)
-      .set({ status, updatedAt: new Date() })
+      .set({
+        status,
+        updatedAt: now,
+        ...(shouldAutoAssign
+          ? {
+              staffId: sql`coalesce(${claims.staffId}, ${session.user.id})`,
+              assignedAt: sql`coalesce(${claims.assignedAt}, ${now})`,
+              assignedById: sql`coalesce(${claims.assignedById}, ${session.user.id})`,
+            }
+          : {}),
+      })
       .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
   }
 
@@ -344,6 +371,7 @@ async function finalizeClaimStatusChange(params: {
   beforePersist?: (tx: ClaimsTransaction) => Promise<void>;
   claimId: string;
   currentStatus: ClaimStatus | null;
+  currentStaffId: string | null;
   deps: ClaimsDeps;
   isPublicChange: boolean;
   note?: string;
@@ -362,6 +390,7 @@ async function finalizeClaimStatusChange(params: {
     await persistClaimStatusChange({
       claimId: rest.claimId,
       currentStatus: rest.currentStatus,
+      currentStaffId: rest.currentStaffId,
       isPublicChange: rest.isPublicChange,
       note: rest.note,
       session: rest.session,
@@ -401,7 +430,12 @@ export async function updateClaimStatusCore(
 
   try {
     const [currentClaim] = await db
-      .select({ category: claims.category, status: claims.status, userId: claims.userId })
+      .select({
+        category: claims.category,
+        status: claims.status,
+        userId: claims.userId,
+        staffId: claims.staffId,
+      })
       .from(claims)
       .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)))
       .limit(1);
@@ -460,6 +494,7 @@ export async function updateClaimStatusCore(
         },
         claimId,
         currentStatus: currentClaim.status,
+        currentStaffId: currentClaim.staffId,
         deps,
         isPublicChange,
         note: publicDeclineNote,
@@ -473,6 +508,7 @@ export async function updateClaimStatusCore(
     return finalizeClaimStatusChange({
       claimId,
       currentStatus: currentClaim.status,
+      currentStaffId: currentClaim.staffId,
       deps,
       isPublicChange,
       note: trimmedNote,

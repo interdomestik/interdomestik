@@ -2162,6 +2162,39 @@ test('recordPilotDailyEvidence trims valid dates before writing the copied evide
   });
 });
 
+test('recordPilotDailyEvidence fails if the copied daily row is not actually persisted', () => {
+  withTempDir('pilot-daily-evidence-persist-check-', tempDir => {
+    const fixture = createPilotEntryFixture(tempDir, { dayCount: 2 });
+    const originalWriteFileSync = fs.writeFileSync;
+
+    fs.writeFileSync = function patchedWriteFileSync(targetPath, content, ...rest) {
+      if (String(targetPath) === fixture.copiedIndexPath) {
+        const damagedContent = String(content)
+          .split('\n')
+          .map(line => (line.startsWith('| 1 | ') ? '| 1 |  |  |  |  |  |  |  |  |' : line))
+          .join('\n');
+        return originalWriteFileSync.call(fs, targetPath, damagedContent, ...rest);
+      }
+
+      return originalWriteFileSync.call(fs, targetPath, content, ...rest);
+    };
+
+    try {
+      assert.throws(
+        () =>
+          recordPilotDailyEvidence({
+            rootDir: tempDir,
+            ...buildDailyEvidenceArgs(),
+            pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+          }),
+        /daily evidence row for day 1 was not persisted in copied pilot evidence index/
+      );
+    } finally {
+      fs.writeFileSync = originalWriteFileSync;
+    }
+  });
+});
+
 test('recordPilotDailyEvidence can override report and bundle paths while preserving the pointer index as a separate layer', () => {
   withTempDir('pilot-daily-evidence-override-', tempDir => {
     const fixture = setupPilotArtifactFixture(tempDir, {

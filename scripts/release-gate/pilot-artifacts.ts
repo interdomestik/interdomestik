@@ -70,11 +70,7 @@ const CANONICAL_OBSERVABILITY_LOG_SWEEP_RESULTS = new Set([
   'expected-noise',
   'action-required',
 ]);
-const CANONICAL_OBSERVABILITY_KPI_CONDITIONS = new Set([
-  'within-threshold',
-  'watch',
-  'breach',
-]);
+const CANONICAL_OBSERVABILITY_KPI_CONDITIONS = new Set(['within-threshold', 'watch', 'breach']);
 const CANONICAL_DECISION_PROOF_HEADERS = [
   'Review Type (`daily`/`weekly`)',
   'Reference',
@@ -388,7 +384,11 @@ function mapObservabilityHeaderToField(header) {
     return 'expectedAuthDenyCount';
   }
   if (normalized === 'kpi condition') return 'kpiCondition';
-  if (normalized === 'incident count' || normalized === 'incidents' || normalized === 'incidents count') {
+  if (
+    normalized === 'incident count' ||
+    normalized === 'incidents' ||
+    normalized === 'incidents count'
+  ) {
     return 'incidentCount';
   }
   if (normalized === 'highest sev' || normalized === 'highest severity') return 'highestSeverity';
@@ -531,6 +531,36 @@ function buildCanonicalDailyEvidenceTable(existingRows, totalDays) {
   }
 
   return tableLines;
+}
+
+function assertPersistedDailyEvidenceRow(evidenceIndexPath, expectedRow) {
+  const reparsedTable = parseDailyEvidenceTable(fs.readFileSync(evidenceIndexPath, 'utf8'));
+  const persistedRow = reparsedTable.rows.find(
+    row => Number.parseInt(String(row.day || ''), 10) === expectedRow.day
+  );
+
+  const requiredFields = [
+    'date',
+    'owner',
+    'status',
+    'reportPath',
+    'bundlePath',
+    'incidentCount',
+    'highestSeverity',
+    'decision',
+  ];
+
+  const persistedMatches = persistedRow
+    ? requiredFields.every(
+        field => String(persistedRow[field] || '') === String(expectedRow[field] || '')
+      )
+    : false;
+
+  if (!persistedMatches) {
+    throw new Error(
+      `daily evidence row for day ${expectedRow.day} was not persisted in copied pilot evidence index`
+    );
+  }
 }
 
 function serializeObservabilityEvidenceRow(row) {
@@ -1249,6 +1279,7 @@ function recordPilotDailyEvidence(args) {
     ...nextTableLines
   );
   fs.writeFileSync(evidenceIndexPath, `${nextLines.join('\n').trimEnd()}\n`, 'utf8');
+  assertPersistedDailyEvidenceRow(evidenceIndexPath, nextRow);
 
   return {
     evidenceIndexPath,
