@@ -258,15 +258,7 @@ function createSession(options: {
 }
 
 function mockRecoverySelects(options?: {
-  agreement?: Array<
-    {
-      id?: string;
-      status: string;
-      userId: string;
-      category: string;
-      staffId?: string | null;
-    } & Partial<MockRecoveryAgreement>
-  >;
+  agreement?: Array<MockRecoveryAgreement>;
   claim?: Array<{
     id: string;
     status: string;
