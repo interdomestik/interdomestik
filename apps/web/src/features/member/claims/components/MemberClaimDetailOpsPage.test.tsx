@@ -237,23 +237,38 @@ describe('MemberClaimDetailOpsPage', () => {
   it('scrolls to the existing messaging panel when the header send message action is used', async () => {
     const user = userEvent.setup();
     const scrollIntoView = vi.fn();
+    const originalScrollIntoView = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      'scrollIntoView'
+    );
 
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
       value: scrollIntoView,
     });
 
-    renderPage({
-      id: 'claim-7',
-      title: 'Message Claim',
-      description: 'Claim details',
-      amount: '120',
-    });
+    try {
+      renderPage({
+        id: 'claim-7',
+        title: 'Message Claim',
+        description: 'Claim details',
+        amount: '120',
+      });
 
-    await user.click(screen.getByRole('button', { name: 'Send message' }));
+      await user.click(screen.getByRole('button', { name: 'Send message' }));
 
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
-    expect(screen.getByTestId('member-claim-detail-messaging')).toHaveFocus();
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+      expect(screen.getByTestId('member-claim-detail-messaging')).toHaveFocus();
+    } finally {
+      if (originalScrollIntoView) {
+        Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', originalScrollIntoView);
+      } else {
+        Reflect.deleteProperty(
+          HTMLElement.prototype as unknown as Record<string, unknown>,
+          'scrollIntoView'
+        );
+      }
+    }
   });
 
   it('shows a member-safe recovery decision summary when staff accept the matter', () => {

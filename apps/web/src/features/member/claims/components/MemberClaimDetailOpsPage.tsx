@@ -124,37 +124,34 @@ export function MemberClaimDetailOpsPage({
             <OpsStatusBadge {...toOpsStatus(claim.status)} label={localizedStatusLabel} />
           </div>
         </div>
-        <OpsActionBar
-          secondary={secondaryActions}
-          children={
-            <div className="flex gap-2 w-full justify-end">
-              {uploadAction ? (
-                <ClaimEvidenceUploadDialog
-                  claimId={claim.id}
-                  trigger={
-                    <Button size="sm">
-                      <Upload className="w-4 h-4 mr-2" /> {uploadAction.label}
-                    </Button>
-                  }
-                />
-              ) : null}
-              {secondaryActions.map(action => (
-                <Button
-                  key={action.id ?? action.label}
-                  variant={action.variant ?? 'outline'}
-                  onClick={action.onClick}
-                  disabled={action.disabled}
-                  title={action.disabledReason}
-                  data-testid={action.testId}
-                  size="sm"
-                >
-                  {action.icon}
-                  {action.label}
-                </Button>
-              ))}
-            </div>
-          }
-        />
+        <OpsActionBar>
+          <div className="flex gap-2 w-full justify-end">
+            {uploadAction ? (
+              <ClaimEvidenceUploadDialog
+                claimId={claim.id}
+                trigger={
+                  <Button size="sm">
+                    <Upload className="w-4 h-4 mr-2" /> {uploadAction.label}
+                  </Button>
+                }
+              />
+            ) : null}
+            {secondaryActions.map(action => (
+              <Button
+                key={action.id ?? action.label}
+                variant={action.variant ?? 'outline'}
+                onClick={action.onClick}
+                disabled={action.disabled}
+                title={action.disabledReason}
+                data-testid={action.testId}
+                size="sm"
+              >
+                {action.icon}
+                {action.label}
+              </Button>
+            ))}
+          </div>
+        </OpsActionBar>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
