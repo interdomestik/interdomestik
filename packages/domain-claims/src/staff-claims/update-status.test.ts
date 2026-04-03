@@ -494,11 +494,29 @@ describe('staff updateClaimStatusCore', () => {
     expect(mocks.txUpdateSet).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'verification',
-        staffId: 'staff-1',
-        assignedAt: expect.any(Date),
-        assignedById: 'staff-1',
+        staffId: expect.objectContaining({ op: 'sql' }),
+        assignedAt: expect.objectContaining({ op: 'sql' }),
+        assignedById: expect.objectContaining({ op: 'sql' }),
         updatedAt: expect.any(Date),
       })
+    );
+    expect(mocks.sql).toHaveBeenNthCalledWith(
+      1,
+      expect.any(Array),
+      mocks.claims.staffId,
+      'staff-1'
+    );
+    expect(mocks.sql).toHaveBeenNthCalledWith(
+      2,
+      expect.any(Array),
+      mocks.claims.assignedAt,
+      expect.any(Date)
+    );
+    expect(mocks.sql).toHaveBeenNthCalledWith(
+      3,
+      expect.any(Array),
+      mocks.claims.assignedById,
+      'staff-1'
     );
   });
 

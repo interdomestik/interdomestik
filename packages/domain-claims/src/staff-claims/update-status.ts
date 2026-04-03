@@ -5,6 +5,7 @@ import {
   db,
   eq,
   serviceUsage,
+  sql,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -295,9 +296,9 @@ async function persistClaimStatusChange(params: {
         updatedAt: now,
         ...(shouldAutoAssign
           ? {
-              staffId: session.user.id,
-              assignedAt: now,
-              assignedById: session.user.id,
+              staffId: sql`coalesce(${claims.staffId}, ${session.user.id})`,
+              assignedAt: sql`coalesce(${claims.assignedAt}, ${now})`,
+              assignedById: sql`coalesce(${claims.assignedById}, ${session.user.id})`,
             }
           : {}),
       })
