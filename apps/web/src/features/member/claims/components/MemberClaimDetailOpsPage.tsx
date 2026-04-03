@@ -20,6 +20,7 @@ import { formatPilotDateTime } from '@/lib/utils/date';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { Upload } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRef } from 'react';
 import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
 
 type SerializedClaimTrackingDocument = Omit<ClaimTrackingDocument, 'createdAt'> & {
@@ -63,6 +64,7 @@ export function MemberClaimDetailOpsPage({
   claim,
   currentUser,
 }: Readonly<MemberClaimDetailOpsPageProps>) {
+  const messagingSectionRef = useRef<HTMLElement | null>(null);
   const locale = useLocale();
   const t = useTranslations('claims');
   const tTrackingStatus = useTranslations('claims-tracking.status');
@@ -92,6 +94,12 @@ export function MemberClaimDetailOpsPage({
   const { secondary } = getClaimActions(claim, t);
 
   const handleAction = (id: string) => {
+    if (id === 'message') {
+      messagingSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      messagingSectionRef.current?.focus();
+      return;
+    }
+
     // 10C: Safe wiring
     console.log('[Claim Action]', id, claim.id);
   };
@@ -101,7 +109,8 @@ export function MemberClaimDetailOpsPage({
     onClick: () => handleAction(config.id),
   });
 
-  const secondaryActions = secondary.map(mapAction);
+  const uploadAction = secondary.find(action => action.id === 'upload');
+  const secondaryActions = secondary.filter(action => action.id !== 'upload').map(mapAction);
   const showSlaCard = claim.slaPhase === 'incomplete' || claim.slaPhase === 'running';
 
   return (
@@ -115,7 +124,37 @@ export function MemberClaimDetailOpsPage({
             <OpsStatusBadge {...toOpsStatus(claim.status)} label={localizedStatusLabel} />
           </div>
         </div>
-        <OpsActionBar secondary={secondaryActions} />
+        <OpsActionBar
+          secondary={secondaryActions}
+          children={
+            <div className="flex gap-2 w-full justify-end">
+              {uploadAction ? (
+                <ClaimEvidenceUploadDialog
+                  claimId={claim.id}
+                  trigger={
+                    <Button size="sm">
+                      <Upload className="w-4 h-4 mr-2" /> {uploadAction.label}
+                    </Button>
+                  }
+                />
+              ) : null}
+              {secondaryActions.map(action => (
+                <Button
+                  key={action.id ?? action.label}
+                  variant={action.variant ?? 'outline'}
+                  onClick={action.onClick}
+                  disabled={action.disabled}
+                  title={action.disabledReason}
+                  data-testid={action.testId}
+                  size="sm"
+                >
+                  {action.icon}
+                  {action.label}
+                </Button>
+              ))}
+            </div>
+          }
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -226,7 +265,11 @@ export function MemberClaimDetailOpsPage({
             }
           />
 
-          <section data-testid="member-claim-detail-messaging">
+          <section
+            ref={messagingSectionRef}
+            data-testid="member-claim-detail-messaging"
+            tabIndex={-1}
+          >
             <MessagingPanel claimId={claim.id} currentUser={currentUser} allowInternal={false} />
           </section>
         </div>

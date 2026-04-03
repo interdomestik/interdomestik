@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { MemberClaimDetailOpsPage } from './MemberClaimDetailOpsPage';
 
@@ -21,10 +22,22 @@ const hoisted = vi.hoisted(() => ({
       />
     )
   ),
+  claimEvidenceUploadDialogMock: vi.fn(
+    ({ claimId, trigger }: { claimId: string; trigger: React.ReactNode }) => (
+      <div data-testid="claim-evidence-upload-dialog" data-claim-id={claimId}>
+        {trigger}
+      </div>
+    )
+  ),
 }));
 
 vi.mock('@/components/messaging/messaging-panel', () => ({
   MessagingPanel: (props: unknown) => hoisted.messagingPanelMock(props as never),
+}));
+
+vi.mock('./ClaimEvidenceUploadDialog', () => ({
+  ClaimEvidenceUploadDialog: (props: unknown) =>
+    hoisted.claimEvidenceUploadDialogMock(props as never),
 }));
 
 vi.mock('next-intl', () => ({
@@ -60,6 +73,7 @@ vi.mock('next-intl', () => ({
           'timeline.title': 'Timeline',
           'timeline.empty': 'No updates yet',
           'claimsPro.actions.uploadEvidence': 'Upload evidence',
+          'claimsPro.actions.sendMessage': 'Send message',
           'table.amount': 'Amount',
         };
 
@@ -200,6 +214,46 @@ describe('MemberClaimDetailOpsPage', () => {
         }),
       })
     );
+  });
+
+  it('wires both member upload evidence triggers through the shared upload dialog', () => {
+    renderPage({
+      id: 'claim-6',
+      title: 'Upload Claim',
+      description: 'Claim details',
+      amount: '120',
+    });
+
+    expect(screen.getAllByTestId('claim-evidence-upload-dialog')).toHaveLength(2);
+    expect(hoisted.claimEvidenceUploadDialogMock).toHaveBeenCalledTimes(2);
+    expect(hoisted.claimEvidenceUploadDialogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claimId: 'claim-6',
+        trigger: expect.anything(),
+      })
+    );
+  });
+
+  it('scrolls to the existing messaging panel when the header send message action is used', async () => {
+    const user = userEvent.setup();
+    const scrollIntoView = vi.fn();
+
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    });
+
+    renderPage({
+      id: 'claim-7',
+      title: 'Message Claim',
+      description: 'Claim details',
+      amount: '120',
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Send message' }));
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+    expect(screen.getByTestId('member-claim-detail-messaging')).toHaveFocus();
   });
 
   it('shows a member-safe recovery decision summary when staff accept the matter', () => {
