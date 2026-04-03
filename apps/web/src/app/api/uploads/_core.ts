@@ -2,6 +2,7 @@ import { and, claims, createAdminClient, db, eq } from '@interdomestik/database'
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
+import { DEFAULT_EVIDENCE_BUCKET } from '@/lib/storage/evidence-bucket';
 
 type Session = {
   user: {
@@ -18,7 +19,7 @@ export const ALLOWED_MIME_TYPES = [
   'text/plain',
 ] as const;
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
-export const DEFAULT_BUCKET = 'claim-evidence';
+export const DEFAULT_BUCKET = DEFAULT_EVIDENCE_BUCKET;
 export const DEFAULT_CLASSIFICATION = 'pii' as const;
 
 export const uploadRequestSchema = z.object({
