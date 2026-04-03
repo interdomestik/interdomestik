@@ -257,7 +257,7 @@ describe('POST /api/uploads', () => {
     expect(hoisted.createSignedUploadUrl).toHaveBeenCalled();
   });
 
-  it('returns 500 when bucket is missing in production', async () => {
+  it('falls back to the default bucket when production env leaves it unset', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET', '');
 
@@ -277,8 +277,8 @@ describe('POST /api/uploads', () => {
     const res = await POST(req);
     const data = await res.json();
 
-    expect(res.status).toBe(500);
-    expect(data).toEqual({ error: 'Supabase evidence bucket is not configured' });
-    expect(hoisted.storageFrom).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(data.upload.bucket).toBe('claim-evidence');
+    expect(hoisted.storageFrom).toHaveBeenCalledWith('claim-evidence');
   });
 });
