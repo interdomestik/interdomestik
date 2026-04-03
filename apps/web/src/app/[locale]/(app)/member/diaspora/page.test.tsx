@@ -40,6 +40,13 @@ const hoisted = vi.hoisted(() => ({
         return (value as Record<string, unknown>)[part];
       }, messages) ?? key;
   }),
+  getSupportContactsMock: vi.fn(() => ({
+    phoneE164: '+38349900600',
+    phoneDisplay: '+38349900600',
+    telHref: 'tel:+38349900600',
+    whatsappE164: '+38349900600',
+    whatsappHref: 'https://wa.me/38349900600',
+  })),
 }));
 
 vi.mock('next-intl/server', () => ({
@@ -55,6 +62,10 @@ vi.mock('@/i18n/routing', () => ({
   ),
 }));
 
+vi.mock('@/lib/support-contacts', () => ({
+  getSupportContacts: hoisted.getSupportContactsMock,
+}));
+
 import DiasporaPage from './page';
 
 describe('DiasporaPage', () => {
@@ -67,6 +78,7 @@ describe('DiasporaPage', () => {
     render(tree);
 
     expect(hoisted.setRequestLocaleMock).toHaveBeenCalledWith('en');
+    expect(hoisted.getSupportContactsMock).toHaveBeenCalledWith({ locale: 'en' });
     expect(
       screen.getByRole('heading', { name: 'Green Card abroad quickstart' })
     ).toBeInTheDocument();
