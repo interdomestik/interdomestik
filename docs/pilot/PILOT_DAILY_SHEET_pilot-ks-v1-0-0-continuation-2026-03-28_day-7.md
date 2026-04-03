@@ -43,14 +43,14 @@ If any of those facts stop being true or the day is intentionally supplemented l
 
 ## Scenario Mix
 
-| Scenario Slice                 | Purpose                                               | Required Volume | Status (`planned`/`running`/`done`/`missed`) | Notes                                                                                                  |
-| ------------------------------ | ----------------------------------------------------- | --------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Standard claim intake          | establish the April 3 cohort                          | `2 claims`      | `done`                                       | `IKv79I2B_Xb9Wi-y8J952 and KX79DKGLiAL17yRhvF2_w created on the neutral-host production flow`          |
-| Staff triage                   | prove first triage timing is measurable               | `2 claims`      | `done`                                       | `both current day-window claims moved from submitted to verification`                                  |
-| Public member update           | prove first public update timing is measurable        | `2 claims`      | `done`                                       | `both current day-window claims now have public claim_messages rows`                                   |
-| Assignment persistence sample  | observe whether staff assignment persists cleanly     | `2 samples`     | `done`                                       | `IKv79I2B_Xb9Wi-y8J952 saved assignment to golden_ks_staff; KX79DKGLiAL17yRhvF2_w remained unassigned` |
-| Boundary/privacy spot-check    | rely on corrected-baseline proof unless contradicted  | `prior proof`   | `done`                                       | `no contrary privacy / RBAC signal observed during the April 3 slice`                                  |
-| Communications/fallback sample | confirm corrected production email path stays healthy | `2 samples`     | `watch`                                      | `no fresh contrary signal observed in the claim flow itself; separate runtime log check still advised` |
+| Scenario Slice                 | Purpose                                               | Required Volume | Status (`planned`/`running`/`done`/`missed`) | Notes                                                                                                                           |
+| ------------------------------ | ----------------------------------------------------- | --------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Standard claim intake          | establish the April 3 cohort                          | `2 claims`      | `done`                                       | `IKv79I2B_Xb9Wi-y8J952 and KX79DKGLiAL17yRhvF2_w created on the neutral-host production flow`                                   |
+| Staff triage                   | prove first triage timing is measurable               | `2 claims`      | `done`                                       | `both current day-window claims moved from submitted to verification`                                                           |
+| Public member update           | prove first public update timing is measurable        | `2 claims`      | `done`                                       | `both current day-window claims now have public claim_messages rows`                                                            |
+| Assignment persistence sample  | observe whether staff assignment persists cleanly     | `2 samples`     | `done`                                       | `both current day-window claims now persist staff_id = golden_ks_staff after corrected deploy dpl_GX2PAMF7CEoZoZivC1d7NZrAkNT4` |
+| Boundary/privacy spot-check    | rely on corrected-baseline proof unless contradicted  | `prior proof`   | `done`                                       | `no contrary privacy / RBAC signal observed during the April 3 slice`                                                           |
+| Communications/fallback sample | confirm corrected production email path stays healthy | `2 samples`     | `watch`                                      | `no fresh contrary signal observed in the claim flow itself; separate runtime log check still advised`                          |
 
 ## Live Operator Roster
 
@@ -67,7 +67,7 @@ If any of those facts stop being true or the day is intentionally supplemented l
 | Claim ID                | Member / Household | Claim Type | Branch        | Created At                       | Submitted At                     | Current Status | Assigned Agent                      | Assigned Staff                  | Evidence Ref                                                                        |
 | ----------------------- | ------------------ | ---------- | ------------- | -------------------------------- | -------------------------------- | -------------- | ----------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------- |
 | `IKv79I2B_Xb9Wi-y8J952` | `KS A-Member 1`    | `vehicle`  | `ks_branch_a` | `2026-04-03 13:39:28.444000 UTC` | `2026-04-03 13:39:28.444000 UTC` | `verification` | `golden_ks_agent_a1 / Blerim Hoxha` | `golden_ks_staff / Drita Gashi` | `docs/pilot/live-data/pilot-ks-v1-0-0-continuation-2026-03-28_day-7_claim-proof.md` |
-| `KX79DKGLiAL17yRhvF2_w` | `KS A-Member 1`    | `vehicle`  | `ks_branch_a` | `2026-04-03 13:40:25.109000 UTC` | `2026-04-03 13:40:25.109000 UTC` | `verification` | `golden_ks_agent_a1 / Blerim Hoxha` | `unassigned in persisted row`   | `docs/pilot/live-data/pilot-ks-v1-0-0-continuation-2026-03-28_day-7_claim-proof.md` |
+| `KX79DKGLiAL17yRhvF2_w` | `KS A-Member 1`    | `vehicle`  | `ks_branch_a` | `2026-04-03 13:40:25.109000 UTC` | `2026-04-03 13:40:25.109000 UTC` | `verification` | `golden_ks_agent_a1 / Blerim Hoxha` | `golden_ks_staff / Drita Gashi` | `docs/pilot/live-data/pilot-ks-v1-0-0-continuation-2026-03-28_day-7_claim-proof.md` |
 
 ## First-Triage SLA Proof
 
@@ -91,9 +91,9 @@ Target: first member-visible update within `24 operating hours` after triage.
 
 Use this section for anything that weakens proof, including late triage, late public updates, missing timeline rows, wrong branch attribution, or operational inconsistencies that do not yet break the current ratios.
 
-| Claim ID                | Mismatch Type                    | Severity (`sev3`/`sev2`/`sev1`) | Owner                     | Follow-Up                                                     | Resolved (`yes`/`no`) |
-| ----------------------- | -------------------------------- | ------------------------------- | ------------------------- | ------------------------------------------------------------- | --------------------- |
-| `KX79DKGLiAL17yRhvF2_w` | `staff assignment remained null` | `sev3`                          | `Platform Pilot Operator` | `re-check assignment persistence before any canonical freeze` | `no`                  |
+| Claim ID | Mismatch Type | Severity (`sev3`/`sev2`/`sev1`) | Owner | Follow-Up | Resolved (`yes`/`no`) |
+| -------- | ------------- | ------------------------------- | ----- | --------- | --------------------- |
+| `none`   | `none`        | `n/a`                           | `n/a` | `n/a`     | `yes`                 |
 
 ## Boundary And Privacy Spot-Checks
 
@@ -115,37 +115,37 @@ Use this section for anything that weakens proof, including late triage, late pu
 
 ## Observability Notes
 
-- Log sweep result (`clear`/`expected-noise`/`action-required`): `watch`
+- Log sweep result (`clear`/`expected-noise`/`action-required`): `clear`
 - Functional errors count: `0`
 - Expected auth denies count: `0`
 - KPI condition (`within-threshold`/`watch`/`breach`): `within-threshold`
-- Incident count: `1`
-- Highest severity: `sev3`
-- Incident refs: `assignment persistence mismatch on KX79DKGLiAL17yRhvF2_w`
-- Notes: `Current April 3 rollup is triage 2 / 2 (100.0%), update 2 / 2 (100.0%), progression 2 / 2 (100.0%), with 0 missing-evidence counts. The only fresh mismatch is one claim that remained verification + publicly updated while still unassigned in the persisted claim row.`
+- Incident count: `0`
+- Highest severity: `none`
+- Incident refs: `none`
+- Notes: `Current April 3 rollup is triage 2 / 2 (100.0%), update 2 / 2 (100.0%), progression 2 / 2 (100.0%), with 0 missing-evidence counts. The earlier assignment persistence mismatch was corrected before freeze on deploy dpl_GX2PAMF7CEoZoZivC1d7NZrAkNT4.`
 
 ## Gate Scorecard
 
-| Gate                       | Result (`pass`/`fail`) | Highest severity (`none`/`sev3`/`sev2`/`sev1`) | Notes                                                                                                         |
-| -------------------------- | ---------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Release gate               | `pass`                 | `none`                                         | `reuse corrected-baseline GO release report from 2026-03-28`                                                  |
-| Security and boundary      | `pass`                 | `none`                                         | `latest explicit PD05B corrected-baseline proof remains green`                                                |
-| Operational behavior       | `pass`                 | `sev3`                                         | `April 3 live claims again persisted with tenant_ks and branch_id = ks_branch_a; one claim stayed unassigned` |
-| Role workflow              | `pass`                 | `sev3`                                         | `both claims reached verification and public update; one assignment persistence mismatch remains`             |
-| Observability and evidence | `pass`                 | `sev3`                                         | `current April 3 window has complete claim, stage-history, and public-message proof for both claims`          |
+| Gate                       | Result (`pass`/`fail`) | Highest severity (`none`/`sev3`/`sev2`/`sev1`) | Notes                                                                                                            |
+| -------------------------- | ---------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Release gate               | `pass`                 | `none`                                         | `reuse corrected-baseline GO release report from 2026-03-28`                                                     |
+| Security and boundary      | `pass`                 | `none`                                         | `latest explicit PD05B corrected-baseline proof remains green`                                                   |
+| Operational behavior       | `pass`                 | `none`                                         | `April 3 live claims again persisted with tenant_ks, branch_id = ks_branch_a, and assigned staff on both claims` |
+| Role workflow              | `pass`                 | `none`                                         | `both claims reached verification, public update, and persisted assignment cleanly before freeze`                |
+| Observability and evidence | `pass`                 | `none`                                         | `current April 3 window has complete claim, stage-history, public-message, and assignment proof for both claims` |
 
-## Current Recommendation (Pre-Freeze)
+## End-Of-Day Decision
 
-- Current color (`green`/`amber`/`red`/`blocked`): `amber`
+- Current color (`green`/`amber`/`red`/`blocked`): `green`
 - Current recommendation (`continue`/`pause`/`hotfix`/`stop`): `continue`
-- Freeze status: `not frozen yet`
-- Reason not frozen yet: `the current slice is strong on SLA and progression, but one assignment-persistence mismatch should be explicitly carried into the day-close review`
+- Freeze status: `frozen`
+- Resume requires fresh `pnpm pilot:check`: `no`
+- Rollback target if resume is needed later: `n/a`
 
 ## Required Follow-Up
 
 | Owner                     | Deadline                       | Action                                                                                                           |
 | ------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| `Platform Pilot Operator` | `before day-7 freeze`          | `decide whether the unassigned-yet-progressed claim is acceptable as Sev3 watch or should be corrected first`    |
 | `Platform Pilot Operator` | `next continuation review`     | `check whether the second consecutive 2 / 2 progression day is enough to materially weaken the known risk story` |
 | `Platform Pilot Operator` | `before any expand discussion` | `accumulate more than one corrected-baseline good day and complete the remaining exec-review evidence chain`     |
 
@@ -160,6 +160,10 @@ Use this section for anything that weakens proof, including late triage, late pu
 ## Summary Notes
 
 - What passed: `April 3 now has two real KS claims in the day window, both fully measured with verification-stage history and public member messages, and the live rollup is 2 / 2 across triage, update, and progression`
-- What failed: `KX79DKGLiAL17yRhvF2_w remained unassigned in the persisted claim row even after verification and a public update`
-- What needs follow-up later today: `decide whether to freeze this slice as-is with an explicit Sev3 watch or correct the assignment mismatch first`
-- Anything that could change go/no-go posture: `a second strong corrected-baseline day materially helps the progression story, but the canonical day-7 posture depends on the remaining assignment-persistence judgment`
+- What failed: `nothing remains open in the frozen April 3 slice`
+- What needs follow-up later today: `nothing further for day 7; any new DB activity is day 8+ only`
+- Anything that could change go/no-go posture: `a second strong corrected-baseline day materially helps the progression story, but broader expand evidence still requires more than this single frozen day`
+
+## Day-Close Note
+
+Day 7 is now canonically frozen. The earlier assignment-persistence mismatch on `KX79DKGLiAL17yRhvF2_w` was corrected on production before freeze, verified in the day-7 proof snapshot, and is not carried forward as an open day-7 incident.

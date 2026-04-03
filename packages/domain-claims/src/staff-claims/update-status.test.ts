@@ -113,8 +113,11 @@ const mocks = vi.hoisted(() => {
       branchId: 'claims.branch_id',
       category: 'claims.category',
       staffId: 'claims.staff_id',
+      assignedAt: 'claims.assigned_at',
+      assignedById: 'claims.assigned_by_id',
       status: 'claims.status',
       updatedAt: 'claims.updated_at',
+      userId: 'claims.user_id',
     },
     claimEscalationAgreements: {
       claimId: 'claim_escalation_agreements.claim_id',
@@ -255,8 +258,22 @@ function createSession(options: {
 }
 
 function mockRecoverySelects(options?: {
-  agreement?: Array<MockRecoveryAgreement>;
-  claim?: Array<{ id: string; status: string; userId: string; category: string }>;
+  agreement?: Array<
+    {
+      id?: string;
+      status: string;
+      userId: string;
+      category: string;
+      staffId?: string | null;
+    } & Partial<MockRecoveryAgreement>
+  >;
+  claim?: Array<{
+    id: string;
+    status: string;
+    userId: string;
+    category: string;
+    staffId?: string | null;
+  }>;
   existingClaimUsage?: Array<{ id: string }>;
   matterCount?: Array<{ count: number }>;
   plan?: Array<typeof STANDARD_PLAN>;
@@ -274,7 +291,13 @@ function mockRecoverySelects(options?: {
   }
   mocks.claimSelectChain.limit.mockResolvedValue(
     options?.claim ?? [
-      { id: 'claim-1', status: 'evaluation', userId: 'member-1', category: 'vehicle' },
+      {
+        id: 'claim-1',
+        status: 'evaluation',
+        userId: 'member-1',
+        category: 'vehicle',
+        staffId: null,
+      },
     ]
   );
   mocks.agreementSelectChain.limit.mockResolvedValue(
@@ -452,6 +475,37 @@ describe('staff updateClaimStatusCore', () => {
         claimId: 'claim-1',
         fromStatus: 'evaluation',
         toStatus: 'negotiation',
+      })
+    );
+  });
+
+  it('auto-assigns the acting staff member when an unassigned claim is triaged', async () => {
+    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      {
+        id: 'claim-1',
+        status: 'submitted',
+        userId: 'member-1',
+        category: 'vehicle',
+        staffId: null,
+      },
+    ]);
+
+    const result = await updateClaimStatusCore({
+      claimId: 'claim-1',
+      newStatus: 'verification',
+      note: 'Initial staff triage',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'verification',
+        staffId: 'staff-1',
+        assignedAt: expect.any(Date),
+        assignedById: 'staff-1',
+        updatedAt: expect.any(Date),
       })
     );
   });

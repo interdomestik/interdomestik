@@ -13,8 +13,9 @@ Scope: `intra-day corrected-baseline proof`
 - `claim_stage_history` contains a public `submitted -> verification` row for `KX79DKGLiAL17yRhvF2_w` at `2026-04-03 13:42:24.696 UTC` with note `Day 7 triage note KX79DKGLiAL17yRhvF2_w`.
 - `claim_messages` contains a public member-visible row for `IKv79I2B_Xb9Wi-y8J952` at `2026-04-03 13:45:09.828 UTC`.
 - `claim_messages` contains a public member-visible row for `KX79DKGLiAL17yRhvF2_w` at `2026-04-03 13:43:42.053 UTC`.
-- `IKv79I2B_Xb9Wi-y8J952` persisted with `staff_id = golden_ks_staff`.
-- `KX79DKGLiAL17yRhvF2_w` remained `staff_id = null` even though verification and public update both persisted.
+- Corrected production deploy `dpl_GX2PAMF7CEoZoZivC1d7NZrAkNT4` is now live on the neutral-host path used for the Day 7 slice.
+- `IKv79I2B_Xb9Wi-y8J952` persisted with `staff_id = golden_ks_staff`, `assigned_at = 2026-04-03 13:44:32.147 UTC`, and `assigned_by_id = golden_ks_staff`.
+- `KX79DKGLiAL17yRhvF2_w` now also persists with `staff_id = golden_ks_staff`, `assigned_at = 2026-04-03 13:46:25.262 UTC`, and `assigned_by_id = golden_ks_staff`.
 
 ## Live timing proof
 
@@ -37,4 +38,4 @@ From `pnpm exec tsx scripts/pilot/query_week1_totals.ts --pilotId pilot-ks-v1-0-
 
 ## Current conclusion
 
-This April 3 snapshot proves a second strong corrected-baseline day for the continuation line. It should remain working-note evidence until day-close review because one claim (`KX79DKGLiAL17yRhvF2_w`) still shows an assignment-persistence mismatch.
+This April 3 snapshot proves a second strong corrected-baseline day for the continuation line. The earlier assignment-persistence mismatch is corrected on production before freeze, so Day 7 is suitable for canonical freeze as `green / continue`.
