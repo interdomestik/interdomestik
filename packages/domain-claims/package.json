@@ -12,6 +12,7 @@
     "./claims/create": "./src/claims/create.ts",
     "./claims/commercial-launch-scope": "./src/claims/commercial-launch-scope.ts",
     "./claims/submit": "./src/claims/submit.ts",
+    "./claims/diaspora-origin": "./src/claims/diaspora-origin.ts",
     "./claims/status": "./src/claims/status.ts",
     "./claims/draft": "./src/claims/draft.ts",
     "./agent-claims/assign": "./src/agent-claims/assign.ts",

@@ -16,6 +16,12 @@ const hoisted = vi.hoisted(() => {
     where: vi.fn(),
   };
 
+  const historyQuery = {
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn(),
+  };
+
   return {
     dbSelect: vi.fn(),
     mapClaimsToOperationalRows: vi.fn(),
@@ -30,6 +36,7 @@ const hoisted = vi.hoisted(() => {
     aliasedTable: vi.fn((_table: unknown, alias: string) => ({ __alias: alias })),
     mainQuery,
     countQuery,
+    historyQuery,
   };
 });
 
@@ -54,6 +61,16 @@ vi.mock('@interdomestik/database/schema', () => ({
     category: 'claims.category',
     currency: 'claims.currency',
     claimNumber: 'claims.claimNumber',
+    origin: 'claims.origin',
+    originRefId: 'claims.originRefId',
+    statusUpdatedAt: 'claims.statusUpdatedAt',
+  },
+  claimStageHistory: {
+    claimId: 'claimStageHistory.claimId',
+    tenantId: 'claimStageHistory.tenantId',
+    note: 'claimStageHistory.note',
+    createdAt: 'claimStageHistory.createdAt',
+    id: 'claimStageHistory.id',
   },
   user: {
     id: 'user.id',
@@ -90,9 +107,11 @@ import { getAdminClaimsV2 } from './getAdminClaimsV2';
 
 function mockQueryResults(rawRows: unknown[], totalCount: number) {
   hoisted.mainQuery.offset.mockResolvedValue(rawRows);
+  hoisted.historyQuery.orderBy.mockResolvedValue([]);
   hoisted.countQuery.where.mockResolvedValue([{ totalCount }]);
   hoisted.dbSelect
     .mockImplementationOnce(() => hoisted.mainQuery)
+    .mockImplementationOnce(() => hoisted.historyQuery)
     .mockImplementationOnce(() => hoisted.countQuery);
 }
 
@@ -125,7 +144,7 @@ describe('getAdminClaimsV2', () => {
   });
 
   it('uses deterministic ordering: updatedAt desc then id desc', async () => {
-    mockQueryResults([], 0);
+    mockQueryResults([{ claim: { id: 'claim-1' } }], 1);
 
     await getAdminClaimsV2({
       tenantId: 'tenant-A',
@@ -134,17 +153,15 @@ describe('getAdminClaimsV2', () => {
       branchId: null,
     });
 
-    expect(hoisted.mainQuery.orderBy).toHaveBeenCalledWith(
-      'desc:claims.updatedAt',
-      'desc:claims.id'
-    );
+    expect(hoisted.desc).toHaveBeenCalledWith('claims.updatedAt');
+    expect(hoisted.desc).toHaveBeenCalledWith('claims.id');
   });
 
   it('returns deterministic results for same filters', async () => {
     const mappedRows = [{ id: 'c2' }, { id: 'c1' }];
     hoisted.mapClaimsToOperationalRows.mockReturnValue(mappedRows);
 
-    mockQueryResults([{ id: 'raw-1' }], 2);
+    mockQueryResults([{ claim: { id: 'raw-1' } }], 2);
     const first = await getAdminClaimsV2(
       { tenantId: 'tenant-A', userId: 'u1', role: 'admin', branchId: null },
       { lifecycleStage: 'intake', search: 'alpha', page: 1 }
@@ -152,7 +169,7 @@ describe('getAdminClaimsV2', () => {
 
     const firstOrderByArgs = hoisted.mainQuery.orderBy.mock.calls[0];
 
-    mockQueryResults([{ id: 'raw-1' }], 2);
+    mockQueryResults([{ claim: { id: 'raw-1' } }], 2);
     const second = await getAdminClaimsV2(
       { tenantId: 'tenant-A', userId: 'u1', role: 'admin', branchId: null },
       { lifecycleStage: 'intake', search: 'alpha', page: 1 }
@@ -163,6 +180,42 @@ describe('getAdminClaimsV2', () => {
     expect(first.rows).toEqual(second.rows);
     expect(first.pagination).toEqual(second.pagination);
     expect(firstOrderByArgs).toEqual(secondOrderByArgs);
+  });
+
+  it('forwards diaspora provenance into the operational mapper input when history carries the canonical note', async () => {
+    hoisted.mainQuery.offset.mockResolvedValue([
+      {
+        claim: { id: 'claim-1' },
+      },
+    ]);
+    hoisted.historyQuery.orderBy.mockResolvedValue([
+      {
+        claimId: 'claim-1',
+        note: 'Started from Diaspora / Green Card quickstart. Country: DE. Incident location: abroad.',
+      },
+    ]);
+    hoisted.countQuery.where.mockResolvedValue([{ totalCount: 1 }]);
+    hoisted.dbSelect
+      .mockImplementationOnce(() => hoisted.mainQuery)
+      .mockImplementationOnce(() => hoisted.historyQuery)
+      .mockImplementationOnce(() => hoisted.countQuery);
+
+    await getAdminClaimsV2({
+      tenantId: 'tenant-A',
+      userId: 'u1',
+      role: 'admin',
+      branchId: null,
+    });
+
+    expect(hoisted.mapClaimsToOperationalRows).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          claim: expect.objectContaining({
+            diasporaCountry: 'DE',
+          }),
+        }),
+      ])
+    );
   });
 
   it('handles unknown filter values safely as fail-closed no-op', async () => {

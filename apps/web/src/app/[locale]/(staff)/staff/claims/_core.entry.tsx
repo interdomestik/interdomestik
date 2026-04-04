@@ -292,6 +292,14 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                 <div className="text-xs text-muted-foreground">
                   {claim.companyName || tClaims('staff_queue.table.no_company')}
                 </div>
+                {claim.isDiasporaOrigin ? (
+                  <div
+                    className="mt-1 inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800"
+                    data-testid="staff-claim-origin-badge"
+                  >
+                    {tClaims('staff_queue.origin_badge')}
+                  </div>
+                ) : null}
               </div>
               <div>
                 <div className="font-medium text-slate-900">{claim.memberName || '-'}</div>

@@ -48,6 +48,8 @@ export interface ClaimOperationalRow {
   originType: ClaimOriginType;
   originRefId: string | null;
   originDisplayName: string | null; // e.g., Agent Name or Integration ID
+  isDiasporaOrigin?: boolean;
+  diasporaCountry?: string | null;
   category: string | null;
   status: ClaimStatus;
 }

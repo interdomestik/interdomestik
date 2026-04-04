@@ -30,6 +30,8 @@ const hoisted = vi.hoisted(() => {
     branchCode: 'KS-A',
     claimAmount: null,
     status: 'submitted',
+    isDiasporaOrigin: false,
+    diasporaCountry: null,
   }));
 
   return {
@@ -109,6 +111,14 @@ vi.mock('@interdomestik/database', () => ({
     filePath: 'claimDocuments.filePath',
     bucket: 'claimDocuments.bucket',
   },
+  claimStageHistory: {
+    id: 'claimStageHistory.id',
+    claimId: 'claimStageHistory.claimId',
+    tenantId: 'claimStageHistory.tenantId',
+    note: 'claimStageHistory.note',
+    createdAt: 'claimStageHistory.createdAt',
+  },
+  desc: vi.fn((field: unknown) => `desc:${String(field)}`),
   user: {
     id: 'user.id',
     name: 'user.name',
@@ -176,9 +186,20 @@ function mockSelectChains() {
     where: docsWhere,
   };
 
-  hoisted.dbSelect.mockImplementationOnce(() => userQuery).mockImplementationOnce(() => docsQuery);
+  const noteLimit = vi.fn().mockResolvedValue([]);
+  const noteOrderBy = vi.fn().mockReturnValue({ limit: noteLimit });
+  const noteWhere = vi.fn().mockReturnValue({ orderBy: noteOrderBy });
+  const noteQuery = {
+    from: vi.fn().mockReturnThis(),
+    where: noteWhere,
+  };
 
-  return { docsWhere };
+  hoisted.dbSelect
+    .mockImplementationOnce(() => userQuery)
+    .mockImplementationOnce(() => docsQuery)
+    .mockImplementationOnce(() => noteQuery);
+
+  return { docsWhere, noteWhere };
 }
 
 describe('getOpsClaimDetail', () => {
@@ -228,7 +249,7 @@ describe('getOpsClaimDetail', () => {
   });
 
   it('applies tenant predicate on claim document reads', async () => {
-    const { docsWhere } = mockSelectChains();
+    const { docsWhere, noteWhere } = mockSelectChains();
 
     const result = await getOpsClaimDetail('claim-1');
 
@@ -236,6 +257,9 @@ describe('getOpsClaimDetail', () => {
     expect(docsWhere).toHaveBeenCalledTimes(1);
     expect(String(docsWhere.mock.calls[0]?.[0] ?? '')).toContain(
       'eq:claimDocuments.tenantId:tenant_ks'
+    );
+    expect(String(noteWhere.mock.calls[0]?.[0] ?? '')).toContain(
+      'eq:claimStageHistory.tenantId:tenant_ks'
     );
   });
 

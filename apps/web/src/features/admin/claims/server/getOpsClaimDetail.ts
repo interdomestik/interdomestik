@@ -2,13 +2,16 @@ import { auth } from '@/lib/auth';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import {
   and,
+  claimStageHistory,
   claimDocuments,
   claims,
   createAdminClient,
+  desc,
   eq,
   user,
   withTenantContext,
 } from '@interdomestik/database';
+import { parseDiasporaOriginFromPublicNote } from '@interdomestik/domain-claims';
 import { ClaimStatus } from '@interdomestik/database/constants';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
@@ -41,7 +44,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
   const tenantId = hostTenantId;
 
   // 1-2. Read claim detail under tenant DB context (RLS where configured) + explicit tenant predicates.
-  const { claim, userData, agentData, rawDocs } = await withTenantContext(
+  const { claim, userData, agentData, rawDocs, diasporaOrigin } = await withTenantContext(
     {
       tenantId,
       role: session.user?.role ?? undefined,
@@ -81,6 +84,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
             filePath: string | null;
             bucket: string | null;
           }>,
+          diasporaOrigin: null as ReturnType<typeof parseDiasporaOriginFromPublicNote>,
         };
       }
 
@@ -113,7 +117,24 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
         .from(claimDocuments)
         .where(and(eq(claimDocuments.claimId, claimId), eq(claimDocuments.tenantId, tenantId)));
 
-      return { claim, userData: userData ?? null, agentData, rawDocs };
+      const [diasporaNote] = await tx
+        .select({
+          note: claimStageHistory.note,
+        })
+        .from(claimStageHistory)
+        .where(
+          and(eq(claimStageHistory.claimId, claimId), eq(claimStageHistory.tenantId, tenantId))
+        )
+        .orderBy(desc(claimStageHistory.createdAt), desc(claimStageHistory.id))
+        .limit(1);
+
+      return {
+        claim,
+        userData: userData ?? null,
+        agentData,
+        rawDocs,
+        diasporaOrigin: parseDiasporaOriginFromPublicNote(diasporaNote?.note),
+      };
     }
   );
 
@@ -153,6 +174,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
       statusUpdatedAt: claim.statusUpdatedAt,
       origin: claim.origin,
       originRefId: claim.originRefId,
+      diasporaCountry: diasporaOrigin?.country ?? null,
     },
     claimant: userData
       ? {

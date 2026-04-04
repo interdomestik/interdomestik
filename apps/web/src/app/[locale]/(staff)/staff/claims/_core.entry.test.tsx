@@ -102,6 +102,7 @@ vi.mock('next-intl/server', () => ({
           'staff_queue.table.no_claim_number': 'No claim number',
           'staff_queue.table.no_company': 'No company provided',
           'staff_queue.table.no_member_number': 'No member number',
+          'staff_queue.origin_badge': 'Diaspora / Green Card',
           'actions.open': 'Open',
         },
         sq: {
@@ -131,6 +132,7 @@ vi.mock('next-intl/server', () => ({
           'staff_queue.table.no_claim_number': 'Pa numër rasti',
           'staff_queue.table.no_company': 'Nuk ka kompani të dhënë',
           'staff_queue.table.no_member_number': 'Pa numër anëtarësie',
+          'staff_queue.origin_badge': 'Diaspora / Green Card',
           'actions.open': 'Hap',
         },
       };
@@ -209,6 +211,8 @@ describe('StaffClaimsPage', () => {
         memberName: 'Member One',
         memberNumber: 'M-001',
         staffId: 'staff-1',
+        isDiasporaOrigin: true,
+        diasporaCountry: 'DE',
       },
       {
         id: 'claim-open',
@@ -248,6 +252,7 @@ describe('StaffClaimsPage', () => {
     expect(
       screen.getAllByTestId('staff-claim-assignment-state').map(node => node.textContent)
     ).toEqual(['Assigned to you', 'Unassigned', 'Assigned to Agim Ramadani']);
+    expect(screen.getByText('Diaspora / Green Card')).toBeInTheDocument();
     expect(screen.getByTestId('staff-claims-results-count')).toHaveTextContent('3 claims');
   });
 

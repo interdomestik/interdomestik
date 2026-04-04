@@ -32,7 +32,8 @@
           "no_claim_number": "No claim number",
           "no_company": "No company provided",
           "no_member_number": "No member number"
-        }
+        },
+        "origin_badge": "Diaspora / Green Card"
       },
       "queue": "Claims Queue",
       "claims_queue": "Claims Queue",

@@ -267,6 +267,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                   originType={claim.originType}
                   originDisplayName={claim.originDisplayName}
                   branchCode={claim.branchCode}
+                  diasporaCountry={claim.diasporaCountry}
                   variant="detail"
                 />
 

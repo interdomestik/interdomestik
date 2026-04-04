@@ -8,9 +8,15 @@ const mocks = vi.hoisted(() => {
     orderBy: vi.fn(),
     limit: vi.fn(),
   };
+  const historyChain = {
+    from: vi.fn(),
+    where: vi.fn(),
+    orderBy: vi.fn(),
+  };
 
   return {
     claimChain,
+    historyChain,
     db: { select: vi.fn() },
     claims: {
       id: 'claims.id',
@@ -23,6 +29,13 @@ const mocks = vi.hoisted(() => {
       title: 'claims.title',
       updatedAt: 'claims.updated_at',
       userId: 'claims.user_id',
+    },
+    claimStageHistory: {
+      id: 'claim_stage_history.id',
+      tenantId: 'claim_stage_history.tenant_id',
+      claimId: 'claim_stage_history.claim_id',
+      note: 'claim_stage_history.note',
+      createdAt: 'claim_stage_history.created_at',
     },
     user: {
       id: 'user.id',
@@ -50,6 +63,7 @@ const mocks = vi.hoisted(() => {
 vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
   claims: mocks.claims,
+  claimStageHistory: mocks.claimStageHistory,
   user: mocks.user,
   eq: mocks.eq,
   and: mocks.and,
@@ -94,7 +108,7 @@ describe('getStaffClaimsList', () => {
   beforeEach(() => {
     mocks.and.mockClear();
     mocks.db.select.mockReset();
-    mocks.db.select.mockReturnValueOnce(mocks.claimChain);
+    mocks.db.select.mockReturnValueOnce(mocks.claimChain).mockReturnValueOnce(mocks.historyChain);
     mocks.desc.mockClear();
     mocks.eq.mockClear();
     mocks.ilike.mockClear();
@@ -106,6 +120,9 @@ describe('getStaffClaimsList', () => {
     mocks.claimChain.leftJoin.mockReturnValue(mocks.claimChain);
     mocks.claimChain.where.mockReturnValue(mocks.claimChain);
     mocks.claimChain.orderBy.mockReturnValue(mocks.claimChain);
+    mocks.historyChain.from.mockReturnValue(mocks.historyChain);
+    mocks.historyChain.where.mockReturnValue(mocks.historyChain);
+    mocks.historyChain.orderBy.mockResolvedValue([]);
   });
 
   it('returns all branch claims for branch managers when branchId exists', async () => {
@@ -131,8 +148,9 @@ describe('getStaffClaimsList', () => {
       viewerRole: 'branch_manager',
     });
 
-    expect(mocks.withTenant).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenant).toHaveBeenCalledWith(
+    expect(mocks.withTenant).toHaveBeenCalledTimes(2);
+    expect(mocks.withTenant).toHaveBeenNthCalledWith(
+      1,
       'tenant-ks',
       mocks.claims.tenantId,
       expect.objectContaining({
@@ -146,6 +164,7 @@ describe('getStaffClaimsList', () => {
     expect(result).toHaveLength(1);
     expect(result[0].claimNumber).toBe('KS-0001');
     expect(result[0].memberNumber).toBe('M-0001');
+    expect(result[0].isDiasporaOrigin).toBe(false);
   });
 
   it('falls back to own and unassigned claims when branch manager branch context is missing', async () => {
@@ -189,6 +208,7 @@ describe('getStaffClaimsList', () => {
 
     expect(result.assigneeName).toBe('Drita Gashi');
     expect(result.assigneeEmail).toBe('drita@example.com');
+    expect(result.isDiasporaOrigin).toBe(false);
   });
 
   it('limits the default staff queue to assigned-to-me and unassigned claims even when branchId exists', async () => {
