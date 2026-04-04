@@ -10,10 +10,24 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
-    if (key === 'all') return 'All';
-    if (key === 'search') return 'Search';
-    return key; // Fallback to key for `sections.*`
+  useTranslations: (namespace?: string) => (key: string) => {
+    if (namespace === 'common') {
+      if (key === 'all') return 'All';
+      if (key === 'search') return 'Search';
+    }
+
+    const adminClaimsKeys: Record<string, string> = {
+      'sections.active': 'Active',
+      'sections.draft': 'Draft',
+      'sections.resolved': 'Closed',
+      'filters.unassigned_only': 'Unassigned',
+      'filters.assigned_to_me': 'Assigned to me',
+      'filters.origin_label': 'Origin',
+      'filters.origin_all': 'All origins',
+      'filters.origin_diaspora': 'Diaspora / Green Card',
+    };
+
+    return adminClaimsKeys[key] ?? key;
   },
 }));
 
@@ -30,8 +44,8 @@ vi.mock('@/components/ui/glass-card', () => ({
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-describe.skip('AdminClaimsFilters', () => {
-  const mockRouter = { push: vi.fn() };
+describe('AdminClaimsFilters', () => {
+  const mockRouter = { replace: vi.fn() };
   // Helper to create mocked params
   const createMockParams = (qs = '') => new URLSearchParams(qs);
 
@@ -51,34 +65,29 @@ describe.skip('AdminClaimsFilters', () => {
   it('renders V2 business group tabs', () => {
     render(<AdminClaimsFilters />);
 
-    expect(screen.getByText('sections.active')).toBeInTheDocument();
-    expect(screen.getByText('sections.draft')).toBeInTheDocument();
-    expect(screen.getByText('sections.resolved')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Draft')).toBeInTheDocument();
+    expect(screen.getByText('Closed')).toBeInTheDocument();
     expect(screen.getAllByText('All').length).toBeGreaterThan(0);
   });
 
-  it('updates url on status change', () => {
+  it('renders diaspora filter controls and updates the url when selected', () => {
     render(<AdminClaimsFilters />);
 
-    const draftTab = screen.getByText('sections.draft');
-    fireEvent.click(draftTab);
+    const diasporaButton = screen.getByTestId('diaspora-filter-diaspora');
+    fireEvent.click(diasporaButton);
 
-    expect(mockRouter.push).toHaveBeenCalledWith(expect.stringContaining('status=draft'));
+    expect(mockRouter.replace).toHaveBeenCalledWith(expect.stringContaining('diaspora=diaspora'), {
+      scroll: false,
+    });
   });
 
   it('removes status param when clicking All', () => {
     (useSearchParams as any).mockReturnValue(createMockParams('status=active'));
     render(<AdminClaimsFilters />);
 
-    // Get the status 'All' tab (last one in the status group)
     const statusAllTab = screen.getByTestId('claims-tab-all');
-    fireEvent.click(statusAllTab);
-
-    // Should push URL without status param
-    // The previous implementation constructs a string, if 'all' removes status, it might be just '?' or similar.
-    // Let's assert it DOES NOT contain 'status=all' or 'status=active'
-    const pushCall = mockRouter.push.mock.calls[0][0];
-    expect(pushCall).not.toContain('status=');
+    expect(statusAllTab).toHaveAttribute('href', '?view=list');
   });
 
   it('updates url on search', () => {
@@ -87,6 +96,8 @@ describe.skip('AdminClaimsFilters', () => {
     const input = screen.getByPlaceholderText('Search...');
     fireEvent.change(input, { target: { value: 'query' } });
 
-    expect(mockRouter.push).toHaveBeenCalledWith(expect.stringContaining('search=query'));
+    expect(mockRouter.replace).toHaveBeenCalledWith(expect.stringContaining('search=query'), {
+      scroll: false,
+    });
   });
 });

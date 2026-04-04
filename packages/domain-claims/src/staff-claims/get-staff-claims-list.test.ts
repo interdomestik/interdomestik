@@ -13,10 +13,15 @@ const mocks = vi.hoisted(() => {
     where: vi.fn(),
     orderBy: vi.fn(),
   };
+  const diasporaClaimsChain = {
+    from: vi.fn(),
+    where: vi.fn(),
+  };
 
   return {
     claimChain,
     historyChain,
+    diasporaClaimsChain,
     db: { select: vi.fn() },
     claims: {
       id: 'claims.id',
@@ -123,6 +128,8 @@ describe('getStaffClaimsList', () => {
     mocks.historyChain.from.mockReturnValue(mocks.historyChain);
     mocks.historyChain.where.mockReturnValue(mocks.historyChain);
     mocks.historyChain.orderBy.mockResolvedValue([]);
+    mocks.diasporaClaimsChain.from.mockReturnValue(mocks.diasporaClaimsChain);
+    mocks.diasporaClaimsChain.where.mockResolvedValue([]);
   });
 
   it('returns all branch claims for branch managers when branchId exists', async () => {
@@ -248,6 +255,58 @@ describe('getStaffClaimsList', () => {
 
     expect(result.isDiasporaOrigin).toBe(true);
     expect(result.diasporaCountry).toBe('IT');
+  });
+
+  it('returns only diaspora-origin claims when the diaspora filter is selected', async () => {
+    mocks.db.select
+      .mockReset()
+      .mockReturnValueOnce(mocks.diasporaClaimsChain)
+      .mockReturnValueOnce(mocks.claimChain)
+      .mockReturnValueOnce(mocks.historyChain);
+    mocks.diasporaClaimsChain.where.mockResolvedValue([{ claimId: 'claim-1' }]);
+    mocks.claimChain.limit.mockResolvedValue([
+      {
+        id: 'claim-1',
+        claimNumber: 'KS-0001',
+        companyName: 'Acme',
+        title: 'Diaspora',
+        status: 'verification',
+        staffId: null,
+        updatedAt: new Date('2026-01-01T00:00:00Z'),
+        memberName: 'Member One',
+        memberNumber: 'M-0001',
+      },
+      {
+        id: 'claim-2',
+        claimNumber: 'KS-0002',
+        companyName: 'Acme',
+        title: 'Non Diaspora',
+        status: 'submitted',
+        staffId: null,
+        updatedAt: new Date('2026-01-01T00:00:00Z'),
+        memberName: 'Member Two',
+        memberNumber: 'M-0002',
+      },
+    ]);
+    mocks.historyChain.orderBy.mockResolvedValue([
+      {
+        claimId: 'claim-1',
+        note: 'Started from Diaspora / Green Card quickstart. Country: DE. Incident location: abroad.',
+      },
+    ]);
+
+    const result = await getStaffClaimsList({
+      staffId: 'staff-1',
+      tenantId: 'tenant-ks',
+      branchId: 'branch-1',
+      limit: 20,
+      viewerRole: 'branch_manager',
+      diasporaOrigin: 'diaspora',
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe('claim-1');
+    expect(result[0]?.isDiasporaOrigin).toBe(true);
   });
 
   it('limits the default staff queue to assigned-to-me and unassigned claims even when branchId exists', async () => {

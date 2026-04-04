@@ -21,11 +21,16 @@ const hoisted = vi.hoisted(() => {
     where: vi.fn().mockReturnThis(),
     orderBy: vi.fn(),
   };
+  const diasporaClaimsQuery = {
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn(),
+  };
 
   return {
     dbSelect: vi.fn(),
     mapClaimsToOperationalRows: vi.fn(),
     getAdminClaimStats: vi.fn(),
+    listDiasporaOriginClaimIds: vi.fn(),
     and: vi.fn((...args: unknown[]) => ({ type: 'and', args })),
     eq: vi.fn((a: unknown, b: unknown) => `eq:${String(a)}:${String(b)}`),
     desc: vi.fn((field: unknown) => `desc:${String(field)}`),
@@ -37,6 +42,7 @@ const hoisted = vi.hoisted(() => {
     mainQuery,
     countQuery,
     historyQuery,
+    diasporaClaimsQuery,
   };
 });
 
@@ -99,6 +105,16 @@ vi.mock('../mappers', () => ({
   mapClaimsToOperationalRows: hoisted.mapClaimsToOperationalRows,
 }));
 
+vi.mock('@interdomestik/domain-claims', () => ({
+  parseDiasporaOriginFromPublicNote: (note: string | null | undefined) =>
+    note?.includes('Started from Diaspora / Green Card quickstart.')
+      ? { source: 'diaspora-green-card', country: note.includes('Country: DE') ? 'DE' : null }
+      : null,
+  listDiasporaOriginClaimIds: hoisted.listDiasporaOriginClaimIds,
+  matchesDiasporaOriginFilter: (filter: string, isDiasporaOrigin: boolean) =>
+    filter !== 'diaspora' || isDiasporaOrigin === true,
+}));
+
 vi.mock('./getAdminClaimStats', () => ({
   getAdminClaimStats: hoisted.getAdminClaimStats,
 }));
@@ -127,6 +143,8 @@ describe('getAdminClaimsV2', () => {
       legal: 0,
       completed: 0,
     });
+    hoisted.listDiasporaOriginClaimIds.mockResolvedValue([]);
+    hoisted.diasporaClaimsQuery.where.mockResolvedValue([]);
   });
 
   it('applies tenant predicate at query boundary for list reads', async () => {
@@ -231,5 +249,81 @@ describe('getAdminClaimsV2', () => {
     const andCallArgs = hoisted.and.mock.calls[0] ?? [];
     expect(andCallArgs).toEqual(['eq:claims.tenantId:tenant-A']);
     expect(hoisted.inArray).not.toHaveBeenCalled();
+  });
+
+  it('applies diaspora-origin claim id scoping when the diaspora filter is selected', async () => {
+    hoisted.mainQuery.offset.mockResolvedValue([
+      {
+        claim: {
+          id: 'claim-1',
+          claimNumber: 'KS-0001',
+          userId: 'member-1',
+          title: 'Diaspora claim',
+          status: 'submitted',
+          createdAt: new Date('2026-01-01T00:00:00Z'),
+          updatedAt: new Date('2026-01-02T00:00:00Z'),
+          assignedAt: null,
+          category: null,
+          currency: null,
+          origin: 'portal',
+          originRefId: null,
+          statusUpdatedAt: null,
+        },
+        claimant: { name: 'Member One', email: 'member1@example.com' },
+        staff: { name: null, email: null },
+        branch: { id: 'branch-1', code: 'KS', name: 'Kosovo' },
+      },
+      {
+        claim: {
+          id: 'claim-2',
+          claimNumber: 'KS-0002',
+          userId: 'member-2',
+          title: 'Non diaspora claim',
+          status: 'submitted',
+          createdAt: new Date('2026-01-01T00:00:00Z'),
+          updatedAt: new Date('2026-01-02T00:00:00Z'),
+          assignedAt: null,
+          category: null,
+          currency: null,
+          origin: 'portal',
+          originRefId: null,
+          statusUpdatedAt: null,
+        },
+        claimant: { name: 'Member Two', email: 'member2@example.com' },
+        staff: { name: null, email: null },
+        branch: { id: 'branch-1', code: 'KS', name: 'Kosovo' },
+      },
+    ]);
+    hoisted.listDiasporaOriginClaimIds.mockResolvedValue(['claim-1']);
+    hoisted.historyQuery.orderBy.mockResolvedValue([
+      {
+        claimId: 'claim-1',
+        note: 'Started from Diaspora / Green Card quickstart. Country: DE. Incident location: abroad.',
+      },
+    ]);
+    hoisted.countQuery.where.mockResolvedValue([{ totalCount: 1 }]);
+    hoisted.mapClaimsToOperationalRows.mockImplementation(rows =>
+      rows.map((row: any) => ({
+        id: row.claim.id,
+        diasporaCountry: row.claim.diasporaCountry ?? null,
+      }))
+    );
+    hoisted.dbSelect
+      .mockImplementationOnce(() => hoisted.mainQuery)
+      .mockImplementationOnce(() => hoisted.historyQuery)
+      .mockImplementationOnce(() => hoisted.countQuery);
+
+    await getAdminClaimsV2(
+      {
+        tenantId: 'tenant-A',
+        userId: 'u1',
+        role: 'admin',
+        branchId: null,
+      },
+      { diasporaOrigin: 'diaspora' as any }
+    );
+
+    expect(hoisted.listDiasporaOriginClaimIds).toHaveBeenCalledWith({ tenantId: 'tenant-A' });
+    expect(hoisted.inArray).toHaveBeenCalledWith('claims.id', ['claim-1']);
   });
 });

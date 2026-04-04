@@ -6,6 +6,7 @@ import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
+import { parseAdminDiasporaOriginFilter } from '../lib/diaspora-origin-filter';
 import { canViewAdminClaims, getAdminClaimsV2, resolveClaimsVisibility } from '../server';
 import type { LifecycleStage } from '../types';
 import { ClaimsLifecycleTabs } from './ClaimsLifecycleTabs';
@@ -46,8 +47,16 @@ export default async function AdminClaimsV2Page({ searchParams }: AdminClaimsV2P
   const search = sp(params, 'search');
   const status = sp(params, 'status');
   const assigned = sp(params, 'assigned');
+  const diasporaOrigin = parseAdminDiasporaOriginFilter(sp(params, 'diaspora'));
 
-  const data = await getAdminClaimsV2(context, { page, lifecycleStage, search, status, assigned });
+  const data = await getAdminClaimsV2(context, {
+    page,
+    lifecycleStage,
+    search,
+    status,
+    assigned,
+    diasporaOrigin,
+  });
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500" data-testid="admin-claims-v2-ready">

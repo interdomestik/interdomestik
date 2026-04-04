@@ -9,6 +9,7 @@
         "clear_search": "Clear",
         "assignment_filter_label": "Assignment filter",
         "status_filter_label": "Status filter",
+        "diaspora_filter_label": "Origin filter",
         "all_actionable": "All actionable",
         "empty_filtered": "No claims match the current filters",
         "empty_default": "No claims in queue",
@@ -22,6 +23,10 @@
           "all_staff": "My queue + unassigned",
           "mine": "Assigned to me",
           "all_branch": "All branch claims"
+        },
+        "diaspora_filter": {
+          "all": "All origins",
+          "diaspora": "Diaspora / Green Card"
         },
         "table": {
           "claim": "Claim",

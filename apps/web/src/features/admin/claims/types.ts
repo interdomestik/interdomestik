@@ -1,5 +1,6 @@
 // v2.0.2-admin-claims-ops — Admin Claims Operational Center
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import type { DiasporaOriginFilter } from '@interdomestik/domain-claims';
 
 // Re-export from policy for convenience
 export type { WaitingOn } from '@/features/claims/policy';
@@ -90,6 +91,7 @@ export interface AdminClaimsV2Filters {
   search?: string;
   status?: string;
   assigned?: string;
+  diasporaOrigin?: DiasporaOriginFilter;
 }
 
 /**

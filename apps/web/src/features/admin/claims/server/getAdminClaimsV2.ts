@@ -1,6 +1,10 @@
 // v2.0.2-admin-claims-ops — Main V2 List Loader
 import { db } from '@interdomestik/database';
-import { parseDiasporaOriginFromPublicNote } from '@interdomestik/domain-claims';
+import {
+  listDiasporaOriginClaimIds,
+  matchesDiasporaOriginFilter,
+  parseDiasporaOriginFromPublicNote,
+} from '@interdomestik/domain-claims';
 import { branches, claimStageHistory, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { aliasedTable, and, count, desc, eq, ilike, inArray, or, SQL } from 'drizzle-orm';
@@ -79,7 +83,28 @@ export async function getAdminClaimsV2(
   const offset = (page - 1) * perPage;
 
   try {
+    let diasporaClaimIds: string[] | null = null;
+    if (filters.diasporaOrigin === 'diaspora') {
+      diasporaClaimIds = await listDiasporaOriginClaimIds({ tenantId: context.tenantId });
+      if (diasporaClaimIds.length === 0) {
+        const stats = await getAdminClaimStats(context);
+        return {
+          rows: [],
+          stats,
+          pagination: {
+            page,
+            perPage,
+            totalCount: 0,
+            totalPages: 0,
+          },
+        };
+      }
+    }
+
     const conditions = buildConditions(context, filters);
+    if (diasporaClaimIds !== null) {
+      conditions.push(inArray(claims.id, diasporaClaimIds));
+    }
     const staff = aliasedTable(user, 'staff');
 
     // Main data query
@@ -156,13 +181,20 @@ export async function getAdminClaimsV2(
       }
     }
 
-    const enrichedRows = rawRows.map(row => ({
-      ...row,
-      claim: {
-        ...row.claim,
-        diasporaCountry: diasporaOriginsByClaimId.get(row.claim.id)?.country ?? null,
-      },
-    }));
+    const enrichedRows = rawRows
+      .map(row => ({
+        ...row,
+        claim: {
+          ...row.claim,
+          diasporaCountry: diasporaOriginsByClaimId.get(row.claim.id)?.country ?? null,
+        },
+      }))
+      .filter(row =>
+        matchesDiasporaOriginFilter(
+          filters.diasporaOrigin ?? 'all',
+          row.claim.diasporaCountry != null
+        )
+      );
 
     // Map to operational rows
     const rows = mapClaimsToOperationalRows(enrichedRows as RawClaimRow[]);
