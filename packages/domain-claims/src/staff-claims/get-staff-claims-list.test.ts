@@ -211,6 +211,45 @@ describe('getStaffClaimsList', () => {
     expect(result.isDiasporaOrigin).toBe(false);
   });
 
+  it('maps diaspora origin fields when the latest canonical note exists', async () => {
+    mocks.claimChain.limit.mockResolvedValue([
+      {
+        id: 'claim-1',
+        claimNumber: 'KS-0001',
+        companyName: 'Acme',
+        title: 'Claim',
+        status: 'verification',
+        staffId: 'staff-2',
+        assigneeName: 'Drita Gashi',
+        assigneeEmail: 'drita@example.com',
+        updatedAt: new Date('2026-01-01T00:00:00Z'),
+        memberName: 'Member One',
+        memberNumber: 'M-0001',
+      },
+    ]);
+    mocks.historyChain.orderBy.mockResolvedValue([
+      {
+        claimId: 'claim-1',
+        note: 'Started from Diaspora / Green Card quickstart. Country: IT. Incident location: abroad.',
+      },
+      {
+        claimId: 'claim-1',
+        note: 'Older note that should not replace the latest diaspora provenance.',
+      },
+    ]);
+
+    const [result] = await getStaffClaimsList({
+      staffId: 'staff-1',
+      tenantId: 'tenant-ks',
+      branchId: 'branch-1',
+      limit: 20,
+      viewerRole: 'branch_manager',
+    });
+
+    expect(result.isDiasporaOrigin).toBe(true);
+    expect(result.diasporaCountry).toBe('IT');
+  });
+
   it('limits the default staff queue to assigned-to-me and unassigned claims even when branchId exists', async () => {
     mocks.claimChain.limit.mockResolvedValue([]);
 

@@ -104,7 +104,7 @@ export function mapClaimToOperationalRow(row: RawClaimRow): ClaimOperationalRow 
     originType: (claim.origin as ClaimOriginType) ?? 'portal',
     originRefId: claim.originRefId ?? null,
     originDisplayName: agent?.name ?? null, // Default display for agent origin
-    isDiasporaOrigin: claim.diasporaCountry !== null,
+    isDiasporaOrigin: claim.diasporaCountry != null,
     diasporaCountry: claim.diasporaCountry,
     category: claim.category,
     status,

@@ -143,44 +143,38 @@ export async function getStaffClaimsList(params: {
     .limit(limit);
 
   const claimIds = rows.map(row => row.id);
-  const diasporaOriginsByClaimId =
-    claimIds.length === 0
-      ? new Map<string, ReturnType<typeof parseDiasporaOriginFromPublicNote>>()
-      : new Map(
-          (
-            await db
-              .select({
-                claimId: claimStageHistory.claimId,
-                note: claimStageHistory.note,
-                createdAt: claimStageHistory.createdAt,
-              })
-              .from(claimStageHistory)
-              .where(
-                withTenant(
-                  tenantId,
-                  claimStageHistory.tenantId,
-                  inArray(claimStageHistory.claimId, claimIds)
-                )
-              )
-              .orderBy(desc(claimStageHistory.createdAt), desc(claimStageHistory.id))
-          )
-            .map(row => ({
-              claimId: row.claimId,
-              origin: parseDiasporaOriginFromPublicNote(row.note),
-            }))
-            .filter(
-              (
-                row
-              ): row is {
-                claimId: string;
-                origin: NonNullable<ReturnType<typeof parseDiasporaOriginFromPublicNote>>;
-              } => row.origin !== null
-            )
-            .filter(
-              (row, index, items) => items.findIndex(item => item.claimId === row.claimId) === index
-            )
-            .map(row => [row.claimId, row.origin] as const)
-        );
+  const diasporaOriginsByClaimId = new Map<
+    string,
+    NonNullable<ReturnType<typeof parseDiasporaOriginFromPublicNote>>
+  >();
+
+  if (claimIds.length > 0) {
+    const historyRows = await db
+      .select({
+        claimId: claimStageHistory.claimId,
+        note: claimStageHistory.note,
+      })
+      .from(claimStageHistory)
+      .where(
+        withTenant(
+          tenantId,
+          claimStageHistory.tenantId,
+          inArray(claimStageHistory.claimId, claimIds)
+        )
+      )
+      .orderBy(desc(claimStageHistory.createdAt), desc(claimStageHistory.id));
+
+    for (const historyRow of historyRows) {
+      if (diasporaOriginsByClaimId.has(historyRow.claimId)) {
+        continue;
+      }
+
+      const diasporaOrigin = parseDiasporaOriginFromPublicNote(historyRow.note);
+      if (diasporaOrigin !== null) {
+        diasporaOriginsByClaimId.set(historyRow.claimId, diasporaOrigin);
+      }
+    }
+  }
 
   return rows.map(row => {
     const diasporaOrigin = diasporaOriginsByClaimId.get(row.id) ?? null;
