@@ -27,6 +27,14 @@ vi.mock('resend', () => ({
 
 describe('email delivery fallback', () => {
   const originalEnv = { ...process.env };
+  const managedEnvKeys = [
+    'INTERDOMESTIK_AUTOMATED',
+    'PLAYWRIGHT',
+    'SMTP_HOST',
+    'SMTP_PORT',
+    'RESEND_API_KEY',
+    'RESEND_FROM_EMAIL',
+  ] as const;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -45,7 +53,14 @@ describe('email delivery fallback', () => {
   });
 
   afterEach(() => {
-    process.env = { ...originalEnv };
+    for (const key of managedEnvKeys) {
+      const originalValue = originalEnv[key];
+      if (originalValue === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = originalValue;
+      }
+    }
   });
 
   it('falls back to Resend when SMTP transport fails', async () => {

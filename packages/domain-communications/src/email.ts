@@ -62,10 +62,14 @@ function getEmailClient() {
   }
 
   // Priority 2: Resend (Production / Preview)
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('Resend API key not configured. Emails will be skipped.');
+    return null;
+  }
+
   const resend = getResendClient();
   if (resend) return { type: 'resend', client: resend };
 
-  console.warn('Resend API key not configured. Emails will be skipped.');
   return null;
 }
 
