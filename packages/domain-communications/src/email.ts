@@ -25,6 +25,22 @@ import {
 let resendClient: Resend | null = null;
 let smtpTransporter: nodemailer.Transporter | null = null;
 
+function getResendClient() {
+  if (resendClient) return resendClient;
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  try {
+    resendClient = new Resend(apiKey);
+    return resendClient;
+  } catch (error) {
+    console.warn('Failed to initialize Resend client:', error);
+    return null;
+  }
+}
+
 function getEmailClient() {
   // Priority 0: Automated Testing (Mock)
   // Always return null to force mock path in sendEmail
@@ -46,21 +62,15 @@ function getEmailClient() {
   }
 
   // Priority 2: Resend (Production / Preview)
-  if (resendClient) return { type: 'resend', client: resendClient };
-
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
+  if (!process.env.RESEND_API_KEY) {
     console.warn('Resend API key not configured. Emails will be skipped.');
     return null;
   }
 
-  try {
-    resendClient = new Resend(apiKey);
-    return { type: 'resend', client: resendClient };
-  } catch (error) {
-    console.warn('Failed to initialize Resend client:', error);
-    return null;
-  }
+  const resend = getResendClient();
+  if (resend) return { type: 'resend', client: resend };
+
+  return null;
 }
 
 function getSenderAddress() {
@@ -73,6 +83,33 @@ function getSenderAddress() {
 }
 
 export type EmailResult = { success: true; id: string } | { success: false; error: string };
+
+async function sendViaResend(
+  client: Resend,
+  to: string,
+  template: { subject: string; html: string; text: string },
+  options: { attachments?: { filename: string; content: Buffer | string }[] } = {}
+): Promise<EmailResult> {
+  const response = await client.emails.send({
+    from: getSenderAddress(),
+    to,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
+    attachments: options.attachments,
+  });
+
+  if (response.error) {
+    console.error('Resend error:', response.error);
+    return { success: false, error: response.error.message };
+  }
+
+  if (!response.data?.id) {
+    return { success: false, error: 'No email ID returned from Resend' };
+  }
+
+  return { success: true, id: response.data.id };
+}
 
 export async function sendEmail(
   to: string,
@@ -91,37 +128,27 @@ export async function sendEmail(
 
   try {
     if (provider.type === 'smtp') {
-      const info = await (provider.client as nodemailer.Transporter).sendMail({
-        from: getSenderAddress(),
-        to,
-        subject: template.subject,
-        html: template.html,
-        text: template.text,
-        attachments: options.attachments,
-      });
-      console.log(`[SMTP] Email sent to ${to}: ${info.messageId}`);
-      return { success: true, id: info.messageId };
+      try {
+        const info = await (provider.client as nodemailer.Transporter).sendMail({
+          from: getSenderAddress(),
+          to,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+          attachments: options.attachments,
+        });
+        console.log(`[SMTP] Email sent to ${to}: ${info.messageId}`);
+        return { success: true, id: info.messageId };
+      } catch (smtpError) {
+        const resend = getResendClient();
+        if (!resend) throw smtpError;
+
+        console.warn('SMTP delivery failed, falling back to Resend:', smtpError);
+        return sendViaResend(resend, to, template, options);
+      }
     } else {
       const client = provider.client as Resend;
-      const response = await client.emails.send({
-        from: getSenderAddress(),
-        to,
-        subject: template.subject,
-        html: template.html,
-        text: template.text,
-        attachments: options.attachments,
-      });
-
-      if (response.error) {
-        console.error('Resend error:', response.error);
-        return { success: false, error: response.error.message };
-      }
-
-      if (!response.data?.id) {
-        return { success: false, error: 'No email ID returned from Resend' };
-      }
-
-      return { success: true, id: response.data.id };
+      return sendViaResend(client, to, template, options);
     }
   } catch (error) {
     console.error('Failed to send email:', error);
