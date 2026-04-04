@@ -19,6 +19,7 @@ function mockRawRow(overrides: Partial<RawClaimRow['claim']>): RawClaimRow {
       statusUpdatedAt: null,
       origin: 'portal',
       originRefId: null,
+      diasporaCountry: null,
       claimNumber: 'CLM-TEST',
       userId: 'user-1',
       ...overrides,
@@ -77,5 +78,17 @@ describe('mapClaimToOperationalRow', () => {
       })
     );
     expect(rowB.daysInStage).toBe(5);
+  });
+
+  it('preserves diaspora origin recognition for operational claim surfaces', () => {
+    const row = mapClaimToOperationalRow(
+      mockRawRow({
+        diasporaCountry: 'CH',
+        origin: 'portal',
+      } as Partial<RawClaimRow['claim']>)
+    );
+
+    expect(row.isDiasporaOrigin).toBe(true);
+    expect(row.diasporaCountry).toBe('CH');
   });
 });

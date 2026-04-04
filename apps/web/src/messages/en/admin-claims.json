@@ -72,6 +72,8 @@
         "member": "Member",
         "unknown": "Unknown",
         "created": "Created",
+        "diaspora_badge": "Diaspora / Green Card",
+        "diaspora_badge_country": "Diaspora / Green Card ({country})",
         "origin": {
           "portal": "Portal",
           "agent": "Agent",

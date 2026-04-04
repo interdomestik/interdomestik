@@ -10,6 +10,7 @@ import { Link, useRouter } from '@/i18n/routing';
 import type { ClaimOperationalRow } from '../types';
 import { ClaimIdentity } from './ClaimIdentity';
 import { ClaimMetadata } from './ClaimMetadata';
+import { ClaimOriginBadges } from './shared/ClaimOriginBadges';
 import { OwnerDirective } from './OwnerDirective';
 import { StateSpine } from './StateSpine';
 
@@ -53,6 +54,14 @@ export function ClaimsOperationalList({ claims, loading, error }: ClaimsOperatio
           isUnassigned={claim.isUnassigned}
           status={claim.status}
         />
+        <div className="flex items-center gap-2">
+          <ClaimOriginBadges
+            originType={claim.originType}
+            originDisplayName={claim.originDisplayName}
+            branchCode={claim.branchCode}
+            diasporaCountry={claim.diasporaCountry}
+          />
+        </div>
         <ClaimIdentity code={claim.code} title={claim.title} memberNumber={claim.memberNumber} />
         <ClaimMetadata
           memberName={claim.memberName}

@@ -32,7 +32,8 @@
           "no_claim_number": "Nema broja zahteva",
           "no_company": "Nije navedena kompanija",
           "no_member_number": "Nema članskog broja"
-        }
+        },
+        "origin_badge": "Dijaspora / Zeleni karton"
       },
       "queue": "Red zahteva",
       "claims_queue": "Red zahteva",

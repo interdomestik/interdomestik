@@ -75,6 +75,8 @@
         "member": "Anëtari",
         "unknown": "I panjohur",
         "created": "Krijuar më",
+        "diaspora_badge": "Diaspora / Kartoni i Gjelbër",
+        "diaspora_badge_country": "Diaspora / Kartoni i Gjelbër ({country})",
         "origin": {
           "portal": "Portali",
           "agent": "Agjent",

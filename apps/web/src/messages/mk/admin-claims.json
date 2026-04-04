@@ -72,6 +72,8 @@
         "member": "Член",
         "unknown": "Непознат",
         "created": "Креирано",
+        "diaspora_badge": "Дијаспора / Зелен картон",
+        "diaspora_badge_country": "Дијаспора / Зелен картон ({country})",
         "origin": {
           "portal": "Портал",
           "agent": "Агент",

@@ -32,7 +32,8 @@
           "no_claim_number": "Pa numër rasti",
           "no_company": "Nuk ka kompani të dhënë",
           "no_member_number": "Pa numër anëtarësie"
-        }
+        },
+        "origin_badge": "Diaspora / Kartoni i Gjelbër"
       },
       "queue": "Radha Operative e Kërkesave",
       "claims_queue": "Radha Operative e Kërkesave",

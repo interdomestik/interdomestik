@@ -1,7 +1,18 @@
-import { and, claims, db, desc, eq, ilike, inArray, user } from '@interdomestik/database';
+import {
+  and,
+  claimStageHistory,
+  claims,
+  db,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  user,
+} from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { aliasedTable, isNull, or, type SQL } from 'drizzle-orm';
 import { ACTIONABLE_CLAIM_STATUSES } from '../claims/constants';
+import { parseDiasporaOriginFromPublicNote } from '../claims/diaspora-origin';
 
 export type StaffClaimsAssignmentFilter = 'all' | 'mine' | 'unassigned';
 
@@ -18,6 +29,8 @@ export type StaffClaimsListItem = {
   updatedAt: string | null;
   memberName?: string;
   memberNumber?: string | null;
+  isDiasporaOrigin: boolean;
+  diasporaCountry: string | null;
 };
 
 function formatStageLabel(status: string | null | undefined) {
@@ -129,18 +142,58 @@ export async function getStaffClaimsList(params: {
     .orderBy(desc(claims.updatedAt), desc(claims.id))
     .limit(limit);
 
-  return rows.map(row => ({
-    id: row.id,
-    claimNumber: row.claimNumber,
-    companyName: row.companyName,
-    title: row.title,
-    status: row.status,
-    staffId: row.staffId ?? null,
-    assigneeName: row.assigneeName ?? null,
-    assigneeEmail: row.assigneeEmail ?? null,
-    stageLabel: formatStageLabel(row.status),
-    updatedAt: normalizeDate(row.updatedAt),
-    memberName: row.memberName ?? undefined,
-    memberNumber: row.memberNumber ?? null,
-  }));
+  const claimIds = rows.map(row => row.id);
+  const diasporaOriginsByClaimId = new Map<
+    string,
+    NonNullable<ReturnType<typeof parseDiasporaOriginFromPublicNote>>
+  >();
+
+  if (claimIds.length > 0) {
+    const historyRows = await db
+      .select({
+        claimId: claimStageHistory.claimId,
+        note: claimStageHistory.note,
+      })
+      .from(claimStageHistory)
+      .where(
+        withTenant(
+          tenantId,
+          claimStageHistory.tenantId,
+          inArray(claimStageHistory.claimId, claimIds)
+        )
+      )
+      .orderBy(desc(claimStageHistory.createdAt), desc(claimStageHistory.id));
+
+    for (const historyRow of historyRows) {
+      if (diasporaOriginsByClaimId.has(historyRow.claimId)) {
+        continue;
+      }
+
+      const diasporaOrigin = parseDiasporaOriginFromPublicNote(historyRow.note);
+      if (diasporaOrigin !== null) {
+        diasporaOriginsByClaimId.set(historyRow.claimId, diasporaOrigin);
+      }
+    }
+  }
+
+  return rows.map(row => {
+    const diasporaOrigin = diasporaOriginsByClaimId.get(row.id) ?? null;
+
+    return {
+      id: row.id,
+      claimNumber: row.claimNumber,
+      companyName: row.companyName,
+      title: row.title,
+      status: row.status,
+      staffId: row.staffId ?? null,
+      assigneeName: row.assigneeName ?? null,
+      assigneeEmail: row.assigneeEmail ?? null,
+      stageLabel: formatStageLabel(row.status),
+      updatedAt: normalizeDate(row.updatedAt),
+      memberName: row.memberName ?? undefined,
+      memberNumber: row.memberNumber ?? null,
+      isDiasporaOrigin: diasporaOrigin !== null,
+      diasporaCountry: diasporaOrigin?.country ?? null,
+    };
+  });
 }

@@ -72,6 +72,8 @@
         "member": "Član",
         "unknown": "Nepoznat",
         "created": "Kreirano",
+        "diaspora_badge": "Dijaspora / Zeleni karton",
+        "diaspora_badge_country": "Dijaspora / Zeleni karton ({country})",
         "origin": {
           "portal": "Korisnički portal",
           "agent": "Zastupnik",

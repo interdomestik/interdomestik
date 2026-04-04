@@ -1,6 +1,7 @@
 // v2.0.2-admin-claims-ops — Main V2 List Loader
 import { db } from '@interdomestik/database';
-import { branches, claims, user } from '@interdomestik/database/schema';
+import { parseDiasporaOriginFromPublicNote } from '@interdomestik/domain-claims';
+import { branches, claimStageHistory, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { aliasedTable, and, count, desc, eq, ilike, inArray, or, SQL } from 'drizzle-orm';
 
@@ -95,6 +96,9 @@ export async function getAdminClaimsV2(
           assignedAt: claims.assignedAt,
           category: claims.category,
           currency: claims.currency,
+          origin: claims.origin,
+          originRefId: claims.originRefId,
+          statusUpdatedAt: claims.statusUpdatedAt,
         },
         claimant: {
           name: user.name,
@@ -119,8 +123,49 @@ export async function getAdminClaimsV2(
       .limit(perPage)
       .offset(offset);
 
+    const claimIds = rawRows.map(row => row.claim.id);
+    const diasporaOriginsByClaimId = new Map<
+      string,
+      NonNullable<ReturnType<typeof parseDiasporaOriginFromPublicNote>>
+    >();
+
+    if (claimIds.length > 0) {
+      const historyRows = await db
+        .select({
+          claimId: claimStageHistory.claimId,
+          note: claimStageHistory.note,
+        })
+        .from(claimStageHistory)
+        .where(
+          and(
+            eq(claimStageHistory.tenantId, context.tenantId),
+            inArray(claimStageHistory.claimId, claimIds)
+          )
+        )
+        .orderBy(desc(claimStageHistory.createdAt), desc(claimStageHistory.id));
+
+      for (const historyRow of historyRows) {
+        if (diasporaOriginsByClaimId.has(historyRow.claimId)) {
+          continue;
+        }
+
+        const diasporaOrigin = parseDiasporaOriginFromPublicNote(historyRow.note);
+        if (diasporaOrigin !== null) {
+          diasporaOriginsByClaimId.set(historyRow.claimId, diasporaOrigin);
+        }
+      }
+    }
+
+    const enrichedRows = rawRows.map(row => ({
+      ...row,
+      claim: {
+        ...row.claim,
+        diasporaCountry: diasporaOriginsByClaimId.get(row.claim.id)?.country ?? null,
+      },
+    }));
+
     // Map to operational rows
-    const rows = mapClaimsToOperationalRows(rawRows as RawClaimRow[]);
+    const rows = mapClaimsToOperationalRows(enrichedRows as RawClaimRow[]);
 
     // Get stats (separate query for all lifecycle counts)
     const stats = await getAdminClaimStats(context);

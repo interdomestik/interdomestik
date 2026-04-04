@@ -7,6 +7,7 @@ interface ClaimOriginBadgesProps {
   originType: ClaimOriginType;
   originDisplayName: string | null;
   branchCode: string | null;
+  diasporaCountry?: string | null;
   className?: string;
   variant?: 'list' | 'detail';
 }
@@ -15,6 +16,7 @@ export function ClaimOriginBadges({
   originType,
   originDisplayName,
   branchCode,
+  diasporaCountry,
   className,
   variant: _variant = 'list',
 }: ClaimOriginBadgesProps) {
@@ -82,6 +84,18 @@ export function ClaimOriginBadges({
             title={originDisplayName}
           >
             {originDisplayName}
+          </span>
+        </>
+      )}
+
+      {diasporaCountry && (
+        <>
+          <div className={cn('w-[1px] h-3 self-center', config.separator)} />
+          <span
+            className="px-1.5 py-0.5 text-[10px] font-medium max-w-[160px] truncate"
+            title={t('diaspora_badge_country', { country: diasporaCountry })}
+          >
+            {t('diaspora_badge_country', { country: diasporaCountry })}
           </span>
         </>
       )}
