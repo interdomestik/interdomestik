@@ -14,8 +14,7 @@ import { aliasedTable, isNull, or, type SQL } from 'drizzle-orm';
 import { ACTIONABLE_CLAIM_STATUSES } from '../claims/constants';
 import { parseDiasporaOriginFromPublicNote } from '../claims/diaspora-origin';
 import {
-  listDiasporaOriginClaimIds,
-  matchesDiasporaOriginFilter,
+  buildDiasporaOriginClaimIdsSubquery,
   type DiasporaOriginFilter,
 } from '../claims/diaspora-origin-filter';
 
@@ -126,12 +125,7 @@ export async function getStaffClaimsList(params: {
   }
 
   if (diasporaOrigin === 'diaspora') {
-    const diasporaClaimIds = await listDiasporaOriginClaimIds({ tenantId });
-    if (diasporaClaimIds.length === 0) {
-      return [];
-    }
-
-    conditions.push(inArray(claims.id, diasporaClaimIds));
+    conditions.push(inArray(claims.id, buildDiasporaOriginClaimIdsSubquery(tenantId)));
   }
 
   const scopedWhere = withTenant(tenantId, claims.tenantId, and(...conditions));
@@ -192,26 +186,24 @@ export async function getStaffClaimsList(params: {
     }
   }
 
-  return rows
-    .map(row => {
-      const diasporaOriginData = diasporaOriginsByClaimId.get(row.id) ?? null;
+  return rows.map(row => {
+    const diasporaOriginData = diasporaOriginsByClaimId.get(row.id) ?? null;
 
-      return {
-        id: row.id,
-        claimNumber: row.claimNumber,
-        companyName: row.companyName,
-        title: row.title,
-        status: row.status,
-        staffId: row.staffId ?? null,
-        assigneeName: row.assigneeName ?? null,
-        assigneeEmail: row.assigneeEmail ?? null,
-        stageLabel: formatStageLabel(row.status),
-        updatedAt: normalizeDate(row.updatedAt),
-        memberName: row.memberName ?? undefined,
-        memberNumber: row.memberNumber ?? null,
-        isDiasporaOrigin: diasporaOriginData !== null,
-        diasporaCountry: diasporaOriginData?.country ?? null,
-      };
-    })
-    .filter(row => matchesDiasporaOriginFilter(diasporaOrigin, row.isDiasporaOrigin));
+    return {
+      id: row.id,
+      claimNumber: row.claimNumber,
+      companyName: row.companyName,
+      title: row.title,
+      status: row.status,
+      staffId: row.staffId ?? null,
+      assigneeName: row.assigneeName ?? null,
+      assigneeEmail: row.assigneeEmail ?? null,
+      stageLabel: formatStageLabel(row.status),
+      updatedAt: normalizeDate(row.updatedAt),
+      memberName: row.memberName ?? undefined,
+      memberNumber: row.memberNumber ?? null,
+      isDiasporaOrigin: diasporaOriginData !== null,
+      diasporaCountry: diasporaOriginData?.country ?? null,
+    };
+  });
 }

@@ -191,6 +191,9 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
             <input type="hidden" name="assigned" value={currentAssignment} />
           )}
           {currentStatus && <input type="hidden" name="status" value={currentStatus} />}
+          {currentDiasporaOrigin !== 'all' && (
+            <input type="hidden" name="diaspora" value={currentDiasporaOrigin} />
+          )}
           <Input
             name="search"
             defaultValue={currentSearch}

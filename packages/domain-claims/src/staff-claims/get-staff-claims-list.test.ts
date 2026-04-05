@@ -75,6 +75,7 @@ vi.mock('@interdomestik/database', () => ({
   desc: mocks.desc,
   ilike: mocks.ilike,
   inArray: mocks.inArray,
+  or: mocks.or,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
@@ -129,7 +130,7 @@ describe('getStaffClaimsList', () => {
     mocks.historyChain.where.mockReturnValue(mocks.historyChain);
     mocks.historyChain.orderBy.mockResolvedValue([]);
     mocks.diasporaClaimsChain.from.mockReturnValue(mocks.diasporaClaimsChain);
-    mocks.diasporaClaimsChain.where.mockResolvedValue([]);
+    mocks.diasporaClaimsChain.where.mockReturnValue('diaspora-subquery');
   });
 
   it('returns all branch claims for branch managers when branchId exists', async () => {
@@ -257,13 +258,12 @@ describe('getStaffClaimsList', () => {
     expect(result.diasporaCountry).toBe('IT');
   });
 
-  it('returns only diaspora-origin claims when the diaspora filter is selected', async () => {
+  it('applies the diaspora subquery at the query boundary when the diaspora filter is selected', async () => {
     mocks.db.select
       .mockReset()
       .mockReturnValueOnce(mocks.diasporaClaimsChain)
       .mockReturnValueOnce(mocks.claimChain)
       .mockReturnValueOnce(mocks.historyChain);
-    mocks.diasporaClaimsChain.where.mockResolvedValue([{ claimId: 'claim-1' }]);
     mocks.claimChain.limit.mockResolvedValue([
       {
         id: 'claim-1',
@@ -304,8 +304,7 @@ describe('getStaffClaimsList', () => {
       diasporaOrigin: 'diaspora',
     });
 
-    expect(result).toHaveLength(1);
-    expect(result[0]?.id).toBe('claim-1');
+    expect(mocks.inArray).toHaveBeenCalledWith('claims.id', 'diaspora-subquery');
     expect(result[0]?.isDiasporaOrigin).toBe(true);
   });
 

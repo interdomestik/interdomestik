@@ -21,16 +21,11 @@ const hoisted = vi.hoisted(() => {
     where: vi.fn().mockReturnThis(),
     orderBy: vi.fn(),
   };
-  const diasporaClaimsQuery = {
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn(),
-  };
-
   return {
     dbSelect: vi.fn(),
     mapClaimsToOperationalRows: vi.fn(),
     getAdminClaimStats: vi.fn(),
-    listDiasporaOriginClaimIds: vi.fn(),
+    buildDiasporaOriginClaimIdsSubquery: vi.fn(),
     and: vi.fn((...args: unknown[]) => ({ type: 'and', args })),
     eq: vi.fn((a: unknown, b: unknown) => `eq:${String(a)}:${String(b)}`),
     desc: vi.fn((field: unknown) => `desc:${String(field)}`),
@@ -42,7 +37,6 @@ const hoisted = vi.hoisted(() => {
     mainQuery,
     countQuery,
     historyQuery,
-    diasporaClaimsQuery,
   };
 });
 
@@ -110,9 +104,7 @@ vi.mock('@interdomestik/domain-claims', () => ({
     note?.includes('Started from Diaspora / Green Card quickstart.')
       ? { source: 'diaspora-green-card', country: note.includes('Country: DE') ? 'DE' : null }
       : null,
-  listDiasporaOriginClaimIds: hoisted.listDiasporaOriginClaimIds,
-  matchesDiasporaOriginFilter: (filter: string, isDiasporaOrigin: boolean) =>
-    filter !== 'diaspora' || isDiasporaOrigin === true,
+  buildDiasporaOriginClaimIdsSubquery: hoisted.buildDiasporaOriginClaimIdsSubquery,
 }));
 
 vi.mock('./getAdminClaimStats', () => ({
@@ -143,8 +135,7 @@ describe('getAdminClaimsV2', () => {
       legal: 0,
       completed: 0,
     });
-    hoisted.listDiasporaOriginClaimIds.mockResolvedValue([]);
-    hoisted.diasporaClaimsQuery.where.mockResolvedValue([]);
+    hoisted.buildDiasporaOriginClaimIdsSubquery.mockReturnValue('diaspora-subquery');
   });
 
   it('applies tenant predicate at query boundary for list reads', async () => {
@@ -251,7 +242,7 @@ describe('getAdminClaimsV2', () => {
     expect(hoisted.inArray).not.toHaveBeenCalled();
   });
 
-  it('applies diaspora-origin claim id scoping when the diaspora filter is selected', async () => {
+  it('applies a shared diaspora-origin subquery when the diaspora filter is selected', async () => {
     hoisted.mainQuery.offset.mockResolvedValue([
       {
         claim: {
@@ -294,7 +285,6 @@ describe('getAdminClaimsV2', () => {
         branch: { id: 'branch-1', code: 'KS', name: 'Kosovo' },
       },
     ]);
-    hoisted.listDiasporaOriginClaimIds.mockResolvedValue(['claim-1']);
     hoisted.historyQuery.orderBy.mockResolvedValue([
       {
         claimId: 'claim-1',
@@ -323,7 +313,7 @@ describe('getAdminClaimsV2', () => {
       { diasporaOrigin: 'diaspora' as any }
     );
 
-    expect(hoisted.listDiasporaOriginClaimIds).toHaveBeenCalledWith({ tenantId: 'tenant-A' });
-    expect(hoisted.inArray).toHaveBeenCalledWith('claims.id', ['claim-1']);
+    expect(hoisted.buildDiasporaOriginClaimIdsSubquery).toHaveBeenCalledWith('tenant-A');
+    expect(hoisted.inArray).toHaveBeenCalledWith('claims.id', 'diaspora-subquery');
   });
 });

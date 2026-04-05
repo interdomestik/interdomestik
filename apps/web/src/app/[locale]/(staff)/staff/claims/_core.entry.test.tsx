@@ -322,6 +322,7 @@ describe('StaffClaimsPage', () => {
       'href',
       '/staff/claims'
     );
+    expect(screen.getByDisplayValue('diaspora')).toHaveAttribute('name', 'diaspora');
   });
 
   it('renders localized queue copy on non-English staff routes', async () => {

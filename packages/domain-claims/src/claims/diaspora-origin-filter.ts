@@ -1,9 +1,13 @@
-import { and, claimStageHistory, db, eq, ilike, inArray } from '@interdomestik/database';
+import { and, claimStageHistory, db, eq, inArray, or } from '@interdomestik/database';
+import type { SQL } from 'drizzle-orm';
 
 export type DiasporaOriginFilter = 'all' | 'diaspora';
 
 export const DIASPORA_ORIGIN_NOTE_PREFIX = 'Started from Diaspora / Green Card quickstart.';
-export const DIASPORA_ORIGIN_NOTE_PATTERN = `${DIASPORA_ORIGIN_NOTE_PREFIX}%`;
+export const DIASPORA_ORIGIN_COUNTRIES = ['DE', 'CH', 'AT', 'IT'] as const;
+export const DIASPORA_ORIGIN_NOTES = DIASPORA_ORIGIN_COUNTRIES.map(
+  country => `${DIASPORA_ORIGIN_NOTE_PREFIX} Country: ${country}. Incident location: abroad.`
+);
 
 export function parseDiasporaOriginFilter(value: string | null | undefined): DiasporaOriginFilter {
   return value === 'diaspora' ? 'diaspora' : 'all';
@@ -16,6 +20,26 @@ export function matchesDiasporaOriginFilter(
   return filter !== 'diaspora' || isDiasporaOrigin === true;
 }
 
+export function buildDiasporaOriginNoteCondition(
+  noteColumn: typeof claimStageHistory.note
+): SQL<unknown> {
+  return or(...DIASPORA_ORIGIN_NOTES.map(note => eq(noteColumn, note)))!;
+}
+
+export function buildDiasporaOriginClaimIdsSubquery(tenantId: string) {
+  return db
+    .select({
+      claimId: claimStageHistory.claimId,
+    })
+    .from(claimStageHistory)
+    .where(
+      and(
+        eq(claimStageHistory.tenantId, tenantId),
+        buildDiasporaOriginNoteCondition(claimStageHistory.note)
+      )
+    );
+}
+
 export async function listDiasporaOriginClaimIds(params: {
   tenantId: string;
   claimIds?: string[];
@@ -23,7 +47,7 @@ export async function listDiasporaOriginClaimIds(params: {
   const { tenantId, claimIds } = params;
   const conditions = [
     eq(claimStageHistory.tenantId, tenantId),
-    ilike(claimStageHistory.note, DIASPORA_ORIGIN_NOTE_PATTERN),
+    buildDiasporaOriginNoteCondition(claimStageHistory.note),
   ];
 
   if (claimIds && claimIds.length > 0) {
