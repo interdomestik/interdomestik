@@ -9,6 +9,7 @@
         "clear_search": "Pastro",
         "assignment_filter_label": "Filtri i caktimit",
         "status_filter_label": "Filtri i statusit",
+        "diaspora_filter_label": "Filtri i origjinës",
         "all_actionable": "Të gjitha rastet vepruese",
         "empty_filtered": "Asnjë rast nuk përputhet me filtrat aktualë",
         "empty_default": "Nuk ka raste në radhë",
@@ -22,6 +23,10 @@
           "all_staff": "Radha ime + pa përgjegjës",
           "mine": "Caktuar te unë",
           "all_branch": "Të gjitha rastet e degës"
+        },
+        "diaspora_filter": {
+          "all": "Të gjitha origjinat",
+          "diaspora": "Diaspora / Kartoni i Gjelbër"
         },
         "table": {
           "claim": "Rasti",

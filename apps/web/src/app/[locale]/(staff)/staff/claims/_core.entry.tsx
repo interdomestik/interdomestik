@@ -1,7 +1,12 @@
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { Link } from '@/i18n/routing';
-import { ACTIONABLE_CLAIM_STATUSES, getStaffClaimsList } from '@interdomestik/domain-claims';
+import {
+  ACTIONABLE_CLAIM_STATUSES,
+  getStaffClaimsList,
+  parseDiasporaOriginFilter,
+  type DiasporaOriginFilter,
+} from '@interdomestik/domain-claims';
 import { Button, Input } from '@interdomestik/ui';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -49,8 +54,13 @@ function parseSearchTerm(value: SearchParamValue) {
   return normalized || undefined;
 }
 
+function parseDiasporaFilter(value: SearchParamValue): DiasporaOriginFilter {
+  return parseDiasporaOriginFilter(getSingleParam(value));
+}
+
 function buildStaffClaimsHref(args: {
   assigned: StaffAssignmentFilter;
+  diasporaOrigin: DiasporaOriginFilter;
   search?: string;
   status?: (typeof ACTIONABLE_CLAIM_STATUSES)[number];
 }) {
@@ -62,6 +72,10 @@ function buildStaffClaimsHref(args: {
 
   if (args.status) {
     params.set('status', args.status);
+  }
+
+  if (args.diasporaOrigin !== 'all') {
+    params.set('diaspora', args.diasporaOrigin);
   }
 
   if (args.search) {
@@ -108,6 +122,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
   const resolvedSearchParams = await searchParams;
   const currentStatus = parseStaffStatusFilter(resolvedSearchParams.status);
   const currentSearch = parseSearchTerm(resolvedSearchParams.search);
+  const currentDiasporaOrigin = parseDiasporaFilter(resolvedSearchParams.diaspora);
   const currentAssignment = parseStaffAssignmentFilter(
     resolvedSearchParams.assigned,
     session.user.role
@@ -116,6 +131,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
   const claims = await getStaffClaimsList({
     assignment: currentAssignment,
     branchId: session.user.branchId ?? null,
+    diasporaOrigin: currentDiasporaOrigin,
     staffId: session.user.id,
     limit: 20,
     search: currentSearch,
@@ -141,7 +157,11 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
             label: tClaims('staff_queue.assignment_state.unassigned'),
           },
         ];
-  const hasActiveFilters = !!currentSearch || !!currentStatus || currentAssignment !== 'all';
+  const hasActiveFilters =
+    !!currentSearch ||
+    !!currentStatus ||
+    currentAssignment !== 'all' ||
+    currentDiasporaOrigin !== 'all';
 
   return (
     <div className="space-y-6" data-testid="staff-page-ready">
@@ -171,6 +191,9 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
             <input type="hidden" name="assigned" value={currentAssignment} />
           )}
           {currentStatus && <input type="hidden" name="status" value={currentStatus} />}
+          {currentDiasporaOrigin !== 'all' && (
+            <input type="hidden" name="diaspora" value={currentDiasporaOrigin} />
+          )}
           <Input
             name="search"
             defaultValue={currentSearch}
@@ -186,6 +209,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                 <Link
                   href={buildStaffClaimsHref({
                     assigned: currentAssignment,
+                    diasporaOrigin: currentDiasporaOrigin,
                     status: currentStatus,
                   })}
                   prefetch={false}
@@ -214,6 +238,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                   <Link
                     href={buildStaffClaimsHref({
                       assigned: option.value,
+                      diasporaOrigin: currentDiasporaOrigin,
                       search: currentSearch,
                       status: currentStatus,
                     })}
@@ -237,6 +262,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
               <Link
                 href={buildStaffClaimsHref({
                   assigned: currentAssignment,
+                  diasporaOrigin: currentDiasporaOrigin,
                   search: currentSearch,
                 })}
                 prefetch={false}
@@ -252,6 +278,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                   <Link
                     href={buildStaffClaimsHref({
                       assigned: currentAssignment,
+                      diasporaOrigin: currentDiasporaOrigin,
                       search: currentSearch,
                       status,
                     })}
@@ -263,6 +290,50 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                 </Button>
               );
             })}
+          </div>
+        </div>
+
+        <div className="mt-3 space-y-2" data-testid="staff-claims-diaspora-filters">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {tClaims('staff_queue.diaspora_filter_label')}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              asChild
+              size="sm"
+              variant={currentDiasporaOrigin === 'all' ? 'default' : 'outline'}
+            >
+              <Link
+                href={buildStaffClaimsHref({
+                  assigned: currentAssignment,
+                  diasporaOrigin: 'all',
+                  search: currentSearch,
+                  status: currentStatus,
+                })}
+                prefetch={false}
+                data-testid="staff-claims-diaspora-filter-all"
+              >
+                {tClaims('staff_queue.diaspora_filter.all')}
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="sm"
+              variant={currentDiasporaOrigin === 'diaspora' ? 'default' : 'outline'}
+            >
+              <Link
+                href={buildStaffClaimsHref({
+                  assigned: currentAssignment,
+                  diasporaOrigin: 'diaspora',
+                  search: currentSearch,
+                  status: currentStatus,
+                })}
+                prefetch={false}
+                data-testid="staff-claims-diaspora-filter-diaspora"
+              >
+                {tClaims('staff_queue.diaspora_filter.diaspora')}
+              </Link>
+            </Button>
           </div>
         </div>
       </section>

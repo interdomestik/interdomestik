@@ -1,6 +1,9 @@
 // v2.0.2-admin-claims-ops — Main V2 List Loader
 import { db } from '@interdomestik/database';
-import { parseDiasporaOriginFromPublicNote } from '@interdomestik/domain-claims';
+import {
+  buildDiasporaOriginClaimIdsSubquery,
+  parseDiasporaOriginFromPublicNote,
+} from '@interdomestik/domain-claims';
 import { branches, claimStageHistory, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { aliasedTable, and, count, desc, eq, ilike, inArray, or, SQL } from 'drizzle-orm';
@@ -80,6 +83,9 @@ export async function getAdminClaimsV2(
 
   try {
     const conditions = buildConditions(context, filters);
+    if (filters.diasporaOrigin === 'diaspora') {
+      conditions.push(inArray(claims.id, buildDiasporaOriginClaimIdsSubquery(context.tenantId)));
+    }
     const staff = aliasedTable(user, 'staff');
 
     // Main data query

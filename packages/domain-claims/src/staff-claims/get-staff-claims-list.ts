@@ -13,6 +13,10 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { aliasedTable, isNull, or, type SQL } from 'drizzle-orm';
 import { ACTIONABLE_CLAIM_STATUSES } from '../claims/constants';
 import { parseDiasporaOriginFromPublicNote } from '../claims/diaspora-origin';
+import {
+  buildDiasporaOriginClaimIdsSubquery,
+  type DiasporaOriginFilter,
+} from '../claims/diaspora-origin-filter';
 
 export type StaffClaimsAssignmentFilter = 'all' | 'mine' | 'unassigned';
 
@@ -71,6 +75,7 @@ export async function getStaffClaimsList(params: {
   tenantId: string;
   branchId?: string | null;
   assignment?: StaffClaimsAssignmentFilter;
+  diasporaOrigin?: DiasporaOriginFilter;
   limit: number;
   search?: string;
   status?: string;
@@ -81,6 +86,7 @@ export async function getStaffClaimsList(params: {
     tenantId,
     branchId,
     assignment = 'all',
+    diasporaOrigin = 'all',
     limit,
     search,
     status,
@@ -116,6 +122,10 @@ export async function getStaffClaimsList(params: {
     if (searchCondition) {
       conditions.push(searchCondition);
     }
+  }
+
+  if (diasporaOrigin === 'diaspora') {
+    conditions.push(inArray(claims.id, buildDiasporaOriginClaimIdsSubquery(tenantId)));
   }
 
   const scopedWhere = withTenant(tenantId, claims.tenantId, and(...conditions));
@@ -177,7 +187,7 @@ export async function getStaffClaimsList(params: {
   }
 
   return rows.map(row => {
-    const diasporaOrigin = diasporaOriginsByClaimId.get(row.id) ?? null;
+    const diasporaOriginData = diasporaOriginsByClaimId.get(row.id) ?? null;
 
     return {
       id: row.id,
@@ -192,8 +202,8 @@ export async function getStaffClaimsList(params: {
       updatedAt: normalizeDate(row.updatedAt),
       memberName: row.memberName ?? undefined,
       memberNumber: row.memberNumber ?? null,
-      isDiasporaOrigin: diasporaOrigin !== null,
-      diasporaCountry: diasporaOrigin?.country ?? null,
+      isDiasporaOrigin: diasporaOriginData !== null,
+      diasporaCountry: diasporaOriginData?.country ?? null,
     };
   });
 }

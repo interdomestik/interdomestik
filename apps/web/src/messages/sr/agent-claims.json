@@ -9,6 +9,7 @@
         "clear_search": "Obriši",
         "assignment_filter_label": "Filter dodele",
         "status_filter_label": "Filter statusa",
+        "diaspora_filter_label": "Filter porekla",
         "all_actionable": "Svi aktivni zahtevi",
         "empty_filtered": "Nijedan zahtev ne odgovara trenutnim filterima",
         "empty_default": "Nema zahteva u redu",
@@ -22,6 +23,10 @@
           "all_staff": "Moj red + nedodeljeni",
           "mine": "Dodeljeni meni",
           "all_branch": "Svi zahtevi filijale"
+        },
+        "diaspora_filter": {
+          "all": "Sva porekla",
+          "diaspora": "Dijaspora / Zeleni karton"
         },
         "table": {
           "claim": "Zahtev",

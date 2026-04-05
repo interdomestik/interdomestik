@@ -88,7 +88,10 @@
         "assigned_all": "Сите",
         "assigned_only": "Назначени",
         "unassigned_only": "Неназначени",
-        "assigned_to_me": "Назначени на мене"
+        "assigned_to_me": "Назначени на мене",
+        "origin_label": "Потекло",
+        "origin_all": "Сите потекла",
+        "origin_diaspora": "Дијаспора / Зелен картон"
       },
       "lifecycle_tabs": {
         "all": "Сите",

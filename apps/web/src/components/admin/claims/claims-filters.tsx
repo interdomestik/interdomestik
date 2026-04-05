@@ -4,6 +4,28 @@ import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { OpsFiltersBar } from '@/components/ops';
+import { parseAdminDiasporaOriginFilter } from '@/features/admin/claims/lib/diaspora-origin-filter';
+
+function buildClaimsListUrl(
+  currentParams: URLSearchParams,
+  updates: Record<string, string | null>
+): string {
+  const params = new URLSearchParams(currentParams.toString());
+
+  params.delete('page');
+
+  Object.entries(updates).forEach(([key, value]) => {
+    if (value && value !== 'all') {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+  });
+
+  params.set('view', 'list');
+
+  return `?${params.toString()}`;
+}
 
 export function AdminClaimsFilters() {
   const router = useRouter();
@@ -16,6 +38,7 @@ export function AdminClaimsFilters() {
   const currentSearch = searchParams.get('search') || '';
   const currentStatus = searchParams.get('status') || 'all';
   const currentAssignment = searchParams.get('assigned') || 'all';
+  const currentDiasporaOrigin = parseAdminDiasporaOriginFilter(searchParams.get('diaspora'));
 
   // V2 Status Tabs
   const statusOptions = [
@@ -30,44 +53,17 @@ export function AdminClaimsFilters() {
     { value: 'unassigned', label: tAdmin('filters.unassigned_only') }, // Ensure translation key exists or use fallback
     { value: 'me', label: tAdmin('filters.assigned_to_me') },
   ];
+  const diasporaOptions = [
+    { value: 'all', label: tAdmin('filters.origin_all') },
+    { value: 'diaspora', label: tAdmin('filters.origin_diaspora') },
+  ];
 
   const buildHref = (updates: Record<string, string | null>) => {
-    const params = new URLSearchParams(searchParams.toString());
-
-    params.delete('page'); // Reset pagination on filter change
-
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value && value !== 'all') {
-        params.set(key, value);
-      } else {
-        params.delete(key);
-      }
-    });
-
-    // Always enforce view=list for URL stability (prevents accidental ops fallback)
-    params.set('view', 'list');
-
-    return `?${params.toString()}`;
+    return buildClaimsListUrl(searchParams, updates);
   };
 
   const updateFilters = (updates: Record<string, string | null>) => {
-    // Start from existing params (handles string|string[] implicitly via URLSearchParams)
-    const params = new URLSearchParams(searchParams.toString());
-
-    params.delete('page'); // Reset pagination on filter change
-
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value && value !== 'all') {
-        params.set(key, value);
-      } else {
-        params.delete(key);
-      }
-    });
-
-    // Always enforce view=list for URL stability (prevents accidental ops fallback)
-    params.set('view', 'list');
-
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    router.replace(`${pathname}${buildClaimsListUrl(searchParams, updates)}`, { scroll: false });
   };
 
   return (
@@ -99,28 +95,56 @@ export function AdminClaimsFilters() {
         searchPlaceholder={`${tCommon('search')}...`}
         searchInputTestId="claims-search-input"
         rightActions={
-          <div className="flex bg-black/20 p-1 rounded-lg border border-white/5">
-            {assignmentOptions.map(option => {
-              const isActive = currentAssignment === option.value;
-              return (
-                <button
-                  key={option.value}
-                  onClick={() => updateFilters({ assigned: option.value })}
-                  type="button"
-                  aria-pressed={isActive}
-                  data-state={isActive ? 'on' : 'off'}
-                  data-testid={`assigned-filter-${option.value}`}
-                  className={[
-                    'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
-                    isActive
-                      ? 'bg-background shadow-sm text-foreground ring-1 ring-white/10'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-white/5',
-                  ].join(' ')}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex bg-black/20 p-1 rounded-lg border border-white/5">
+              {assignmentOptions.map(option => {
+                const isActive = currentAssignment === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    onClick={() => updateFilters({ assigned: option.value })}
+                    type="button"
+                    aria-pressed={isActive}
+                    data-state={isActive ? 'on' : 'off'}
+                    data-testid={`assigned-filter-${option.value}`}
+                    className={[
+                      'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
+                      isActive
+                        ? 'bg-background shadow-sm text-foreground ring-1 ring-white/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-white/5',
+                    ].join(' ')}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div
+              className="flex bg-black/20 p-1 rounded-lg border border-white/5"
+              aria-label={tAdmin('filters.origin_label')}
+            >
+              {diasporaOptions.map(option => {
+                const isActive = currentDiasporaOrigin === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    onClick={() => updateFilters({ diaspora: option.value })}
+                    type="button"
+                    aria-pressed={isActive}
+                    data-state={isActive ? 'on' : 'off'}
+                    data-testid={`diaspora-filter-${option.value}`}
+                    className={[
+                      'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
+                      isActive
+                        ? 'bg-background shadow-sm text-foreground ring-1 ring-white/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-white/5',
+                    ].join(' ')}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         }
         className="rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm"

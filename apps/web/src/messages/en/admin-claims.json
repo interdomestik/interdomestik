@@ -87,7 +87,10 @@
         "assigned_all": "All",
         "assigned_only": "Assigned",
         "unassigned_only": "Unassigned",
-        "assigned_to_me": "Assigned to me"
+        "assigned_to_me": "Assigned to me",
+        "origin_label": "Origin",
+        "origin_all": "All origins",
+        "origin_diaspora": "Diaspora / Green Card"
       },
       "lifecycle_tabs": {
         "all": "All",

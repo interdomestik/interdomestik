@@ -40,6 +40,7 @@ vi.mock('@/components/shell/session', () => ({
 vi.mock('@interdomestik/domain-claims', () => ({
   ACTIONABLE_CLAIM_STATUSES: ['submitted', 'verification', 'evaluation', 'negotiation', 'court'],
   getStaffClaimsList: hoisted.getStaffClaimsListMock,
+  parseDiasporaOriginFilter: (value?: string | null) => (value === 'diaspora' ? 'diaspora' : 'all'),
 }));
 
 vi.mock('@/components/dashboard/claims/claim-status-badge', () => ({
@@ -84,6 +85,7 @@ vi.mock('next-intl/server', () => ({
           'staff_queue.clear_search': 'Clear',
           'staff_queue.assignment_filter_label': 'Assignment filter',
           'staff_queue.status_filter_label': 'Status filter',
+          'staff_queue.diaspora_filter_label': 'Origin filter',
           'staff_queue.all_actionable': 'All actionable',
           'staff_queue.empty_filtered': 'No claims match the current filters',
           'staff_queue.empty_default': 'No claims in queue',
@@ -94,6 +96,8 @@ vi.mock('next-intl/server', () => ({
           'staff_queue.assignment_filter.mine': 'Assigned to me',
           'staff_queue.assignment_filter.unassigned': 'Unassigned',
           'staff_queue.assignment_filter.all_branch': 'All branch claims',
+          'staff_queue.diaspora_filter.all': 'All origins',
+          'staff_queue.diaspora_filter.diaspora': 'Diaspora / Green Card',
           'staff_queue.table.claim': 'Claim',
           'staff_queue.table.member': 'Member',
           'staff_queue.table.status_stage': 'Status + stage',
@@ -114,6 +118,7 @@ vi.mock('next-intl/server', () => ({
           'staff_queue.clear_search': 'Pastro',
           'staff_queue.assignment_filter_label': 'Filtri i caktimit',
           'staff_queue.status_filter_label': 'Filtri i statusit',
+          'staff_queue.diaspora_filter_label': 'Filtri i origjinës',
           'staff_queue.all_actionable': 'Të gjitha rastet vepruese',
           'staff_queue.empty_filtered': 'Asnjë rast nuk përputhet me filtrat aktualë',
           'staff_queue.empty_default': 'Nuk ka raste në radhë',
@@ -124,6 +129,8 @@ vi.mock('next-intl/server', () => ({
           'staff_queue.assignment_filter.mine': 'Caktuar te unë',
           'staff_queue.assignment_filter.unassigned': 'Pa përgjegjës',
           'staff_queue.assignment_filter.all_branch': 'Të gjitha rastet e degës',
+          'staff_queue.diaspora_filter.all': 'Të gjitha origjinat',
+          'staff_queue.diaspora_filter.diaspora': 'Diaspora / Green Card',
           'staff_queue.table.claim': 'Rasti',
           'staff_queue.table.member': 'Anëtari',
           'staff_queue.table.status_stage': 'Statusi + faza',
@@ -180,6 +187,7 @@ describe('StaffClaimsPage', () => {
     expect(hoisted.getStaffClaimsListMock).toHaveBeenCalledWith({
       assignment: 'unassigned',
       branchId: 'branch-1',
+      diasporaOrigin: 'all',
       limit: 20,
       search: 'Acme',
       staffId: 'manager-1',
@@ -252,7 +260,9 @@ describe('StaffClaimsPage', () => {
     expect(
       screen.getAllByTestId('staff-claim-assignment-state').map(node => node.textContent)
     ).toEqual(['Assigned to you', 'Unassigned', 'Assigned to Agim Ramadani']);
-    expect(screen.getByText('Diaspora / Green Card')).toBeInTheDocument();
+    expect(screen.getByTestId('staff-claim-origin-badge')).toHaveTextContent(
+      'Diaspora / Green Card'
+    );
     expect(screen.getByTestId('staff-claims-results-count')).toHaveTextContent('3 claims');
   });
 
@@ -290,6 +300,29 @@ describe('StaffClaimsPage', () => {
       'href',
       '/staff/claims?assigned=unassigned&search=Acme'
     );
+  });
+
+  it('passes and renders the diaspora filter state in staff queue links', async () => {
+    const tree = await StaffClaimsPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({
+        diaspora: 'diaspora',
+      }),
+    });
+
+    render(tree);
+
+    expect(hoisted.getStaffClaimsListMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        diasporaOrigin: 'diaspora',
+      })
+    );
+    expect(screen.getByTestId('staff-claims-diaspora-filters')).toHaveTextContent('Origin filter');
+    expect(screen.getByTestId('staff-claims-diaspora-filter-all')).toHaveAttribute(
+      'href',
+      '/staff/claims'
+    );
+    expect(screen.getByDisplayValue('diaspora')).toHaveAttribute('name', 'diaspora');
   });
 
   it('renders localized queue copy on non-English staff routes', async () => {

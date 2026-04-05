@@ -6,6 +6,7 @@ export * from './claims/types';
 export * from './claims/constants';
 export * from './claims/ai-workflows';
 export * from './claims/diaspora-origin';
+export * from './claims/diaspora-origin-filter';
 export type { ClaimStatus } from './staff-claims/types';
 export * from './validators/claims';
 

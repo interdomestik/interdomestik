@@ -88,7 +88,10 @@
         "assigned_all": "Sve",
         "assigned_only": "Dodeljeno",
         "unassigned_only": "Nedodeljeno",
-        "assigned_to_me": "Dodeljeno meni"
+        "assigned_to_me": "Dodeljeno meni",
+        "origin_label": "Poreklo",
+        "origin_all": "Sva porekla",
+        "origin_diaspora": "Dijaspora / Zeleni karton"
       },
       "lifecycle_tabs": {
         "all": "Sve",

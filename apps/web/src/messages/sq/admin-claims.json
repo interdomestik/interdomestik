@@ -91,7 +91,10 @@
         "assigned_only": "Të caktuara",
         "unassigned_only": "Të pacaktuara",
         "assigned_to_me": "Të caktuara për mua",
-        "handler_label": "Përpunon"
+        "handler_label": "Përpunon",
+        "origin_label": "Origjina",
+        "origin_all": "Të gjitha origjinat",
+        "origin_diaspora": "Diaspora / Kartoni i Gjelbër"
       },
       "lifecycle_tabs": {
         "all": "Të gjitha",
