@@ -113,6 +113,9 @@ vi.mock('./getAdminClaimStats', () => ({
 
 import { getAdminClaimsV2 } from './getAdminClaimsV2';
 
+const DIASPORA_NOTE_DE =
+  'Started from Diaspora / Green Card quickstart. Country: DE. Incident location: abroad.';
+
 function mockQueryResults(rawRows: unknown[], totalCount: number) {
   hoisted.mainQuery.offset.mockResolvedValue(rawRows);
   hoisted.historyQuery.orderBy.mockResolvedValue([]);
@@ -121,6 +124,36 @@ function mockQueryResults(rawRows: unknown[], totalCount: number) {
     .mockImplementationOnce(() => hoisted.mainQuery)
     .mockImplementationOnce(() => hoisted.historyQuery)
     .mockImplementationOnce(() => hoisted.countQuery);
+}
+
+function createAdminRawRow(args: {
+  id: string;
+  claimNumber: string;
+  userId: string;
+  title: string;
+  claimantName: string;
+  claimantEmail: string;
+}) {
+  return {
+    claim: {
+      id: args.id,
+      claimNumber: args.claimNumber,
+      userId: args.userId,
+      title: args.title,
+      status: 'submitted',
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+      updatedAt: new Date('2026-01-02T00:00:00Z'),
+      assignedAt: null,
+      category: null,
+      currency: null,
+      origin: 'portal',
+      originRefId: null,
+      statusUpdatedAt: null,
+    },
+    claimant: { name: args.claimantName, email: args.claimantEmail },
+    staff: { name: null, email: null },
+    branch: { id: 'branch-1', code: 'KS', name: 'Kosovo' },
+  };
 }
 
 describe('getAdminClaimsV2', () => {
@@ -200,7 +233,7 @@ describe('getAdminClaimsV2', () => {
     hoisted.historyQuery.orderBy.mockResolvedValue([
       {
         claimId: 'claim-1',
-        note: 'Started from Diaspora / Green Card quickstart. Country: DE. Incident location: abroad.',
+        note: DIASPORA_NOTE_DE,
       },
     ]);
     hoisted.countQuery.where.mockResolvedValue([{ totalCount: 1 }]);
@@ -244,51 +277,27 @@ describe('getAdminClaimsV2', () => {
 
   it('applies a shared diaspora-origin subquery when the diaspora filter is selected', async () => {
     hoisted.mainQuery.offset.mockResolvedValue([
-      {
-        claim: {
-          id: 'claim-1',
-          claimNumber: 'KS-0001',
-          userId: 'member-1',
-          title: 'Diaspora claim',
-          status: 'submitted',
-          createdAt: new Date('2026-01-01T00:00:00Z'),
-          updatedAt: new Date('2026-01-02T00:00:00Z'),
-          assignedAt: null,
-          category: null,
-          currency: null,
-          origin: 'portal',
-          originRefId: null,
-          statusUpdatedAt: null,
-        },
-        claimant: { name: 'Member One', email: 'member1@example.com' },
-        staff: { name: null, email: null },
-        branch: { id: 'branch-1', code: 'KS', name: 'Kosovo' },
-      },
-      {
-        claim: {
-          id: 'claim-2',
-          claimNumber: 'KS-0002',
-          userId: 'member-2',
-          title: 'Non diaspora claim',
-          status: 'submitted',
-          createdAt: new Date('2026-01-01T00:00:00Z'),
-          updatedAt: new Date('2026-01-02T00:00:00Z'),
-          assignedAt: null,
-          category: null,
-          currency: null,
-          origin: 'portal',
-          originRefId: null,
-          statusUpdatedAt: null,
-        },
-        claimant: { name: 'Member Two', email: 'member2@example.com' },
-        staff: { name: null, email: null },
-        branch: { id: 'branch-1', code: 'KS', name: 'Kosovo' },
-      },
+      createAdminRawRow({
+        id: 'claim-1',
+        claimNumber: 'KS-0001',
+        userId: 'member-1',
+        title: 'Diaspora claim',
+        claimantName: 'Member One',
+        claimantEmail: 'member1@example.com',
+      }),
+      createAdminRawRow({
+        id: 'claim-2',
+        claimNumber: 'KS-0002',
+        userId: 'member-2',
+        title: 'Non diaspora claim',
+        claimantName: 'Member Two',
+        claimantEmail: 'member2@example.com',
+      }),
     ]);
     hoisted.historyQuery.orderBy.mockResolvedValue([
       {
         claimId: 'claim-1',
-        note: 'Started from Diaspora / Green Card quickstart. Country: DE. Incident location: abroad.',
+        note: DIASPORA_NOTE_DE,
       },
     ]);
     hoisted.countQuery.where.mockResolvedValue([{ totalCount: 1 }]);
