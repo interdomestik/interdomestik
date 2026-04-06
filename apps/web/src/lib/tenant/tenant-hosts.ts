@@ -1,4 +1,5 @@
 export type TenantId = 'tenant_mk' | 'tenant_ks' | 'tenant_al' | 'pilot-mk';
+export type TenantLocale = 'sq' | 'en' | 'sr' | 'mk';
 
 export const TENANT_COOKIE_NAME = 'tenantId';
 export const TENANT_HEADER_NAME = 'x-tenant-id';
@@ -21,7 +22,7 @@ export type TenantResolutionResult = {
   source: TenantResolutionSource;
 };
 
-function resolveDefaultPublicTenantId(): TenantId {
+export function resolveDefaultPublicTenantId(): TenantId {
   const configured = coerceTenantId(process.env.DEFAULT_PUBLIC_TENANT_ID);
   return configured ?? 'tenant_ks';
 }
@@ -76,6 +77,33 @@ function hostsForTenant(tenantId: TenantId): string[] {
   return [...canonical, ...local, ...envHosts].filter(Boolean);
 }
 
+function canonicalHostForTenant(tenantId: TenantId): string {
+  return tenantId === 'tenant_mk'
+    ? 'mk.interdomestik.com'
+    : tenantId === 'tenant_ks'
+      ? 'ks.interdomestik.com'
+      : tenantId === 'tenant_al'
+        ? 'al.interdomestik.com'
+        : 'pilot.interdomestik.com';
+}
+
+function localHostForTenant(tenantId: TenantId): string {
+  return tenantId === 'tenant_mk'
+    ? 'mk.localhost'
+    : tenantId === 'tenant_ks'
+      ? 'ks.localhost'
+      : tenantId === 'tenant_al'
+        ? 'al.localhost'
+        : 'pilot.localhost';
+}
+
+function envHostForTenant(tenantId: TenantId): string | null {
+  if (tenantId === 'tenant_mk') return process.env.MK_HOST ?? null;
+  if (tenantId === 'tenant_ks') return process.env.KS_HOST ?? null;
+  if (tenantId === 'tenant_al') return process.env.AL_HOST ?? null;
+  return process.env.PILOT_HOST ?? null;
+}
+
 export function resolveTenantFromHost(host: string): TenantId | null {
   const normalized = normalizeHost(host);
   const normalizedWithPort = normalizeHostWithPort(host);
@@ -107,6 +135,27 @@ export function isTenantHost(host: string): boolean {
 export function coerceTenantId(value: string | null | undefined): TenantId | null {
   if (!value) return null;
   return isTenantId(value) ? value : null;
+}
+
+export function preferredLocaleForTenant(tenantId: TenantId): TenantLocale {
+  if (tenantId === 'tenant_mk') return 'mk';
+  if (tenantId === 'pilot-mk') return 'en';
+  return 'sq';
+}
+
+export function preferredHostForTenant(tenantId: TenantId): string {
+  const envHost = envHostForTenant(tenantId);
+  if (envHost) return envHost;
+  return isProductionLikeEnvironment()
+    ? canonicalHostForTenant(tenantId)
+    : localHostForTenant(tenantId);
+}
+
+export function resolveTenantAppOrigin(tenantId: TenantId): string {
+  const host = preferredHostForTenant(tenantId);
+  const useHttp =
+    host.includes('localhost') || host.includes('127.0.0.1') || host.includes('.nip.io');
+  return `${useHttp ? 'http' : 'https'}://${host}`;
 }
 
 function isProductionLikeEnvironment(): boolean {

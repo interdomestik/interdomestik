@@ -54,8 +54,11 @@ describe('context utils', () => {
       expect(result).toBe('br_agent');
     });
 
-    it('should return undefined if agentId is provided but agent has no branchId', async () => {
+    it('should fallback to default branch when agentId is provided but agent has no branchId', async () => {
       (db.query.user.findFirst as any).mockImplementation(mockDbResponse({ branchId: null }));
+      (db.query.tenantSettings.findFirst as any).mockImplementation(
+        mockDbResponse({ value: { branchId: 'br_default' } })
+      );
 
       const result = await resolveBranchId({
         customData: { agentId: 'ag_1' },
@@ -63,7 +66,7 @@ describe('context utils', () => {
         db: db as any,
       });
 
-      expect(result).toBeUndefined();
+      expect(result).toBe('br_default');
     });
 
     it('should fallback to default branch setting if no agentId', async () => {

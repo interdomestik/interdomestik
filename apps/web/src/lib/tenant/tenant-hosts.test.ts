@@ -4,6 +4,8 @@ import {
   coerceTenantId,
   hasHostSessionTenantMismatch,
   isTenantHost,
+  preferredLocaleForTenant,
+  resolveTenantAppOrigin,
   resolveTenantFromHost,
   resolveTenantIdFromSources,
   type TenantId,
@@ -105,6 +107,26 @@ describe('tenant-hosts', () => {
     expect(isTenantHost('pilot.localhost')).toBe(true);
     expect(isTenantHost('localhost')).toBe(false);
     expect(ks).toBe('tenant_ks');
+  });
+
+  it('prefers tenant env host when resolving app origin', () => {
+    mutableEnv.KS_HOST = 'ks.dev.example:3333';
+    expect(resolveTenantAppOrigin('tenant_ks')).toBe('https://ks.dev.example:3333');
+  });
+
+  it('uses local tenant hosts in non-production when no env host exists', () => {
+    delete mutableEnv.MK_HOST;
+    mutableEnv.NODE_ENV = 'development';
+    delete mutableEnv.VERCEL_ENV;
+
+    expect(resolveTenantAppOrigin('tenant_mk')).toBe('http://mk.localhost');
+  });
+
+  it('returns tenant-preferred locales for onboarding flows', () => {
+    expect(preferredLocaleForTenant('tenant_ks')).toBe('sq');
+    expect(preferredLocaleForTenant('tenant_al')).toBe('sq');
+    expect(preferredLocaleForTenant('tenant_mk')).toBe('mk');
+    expect(preferredLocaleForTenant('pilot-mk')).toBe('en');
   });
 
   it('uses host as canonical source when other tenant hints conflict', () => {

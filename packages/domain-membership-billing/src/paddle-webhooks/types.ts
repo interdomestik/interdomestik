@@ -37,7 +37,13 @@ export type SendThankYouLetter = (params: {
   locale?: 'en' | 'sq';
 }) => unknown;
 
+export type RequestPasswordResetOnboarding = (params: {
+  email: string;
+  tenantId: string;
+}) => Promise<void> | void;
+
 export type PaddleWebhookDeps = {
   sendPaymentFailedEmail?: SendPaymentFailedEmail;
   sendThankYouLetter?: SendThankYouLetter;
+  requestPasswordResetOnboarding?: RequestPasswordResetOnboarding;
 };
