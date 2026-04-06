@@ -65,9 +65,9 @@ function getRoleRedirect(role: string | null | undefined): '/admin' | '/staff' |
 
 function AccountErrorState({
   tLanding,
-}: {
+}: Readonly<{
   tLanding: Awaited<ReturnType<typeof getTranslations>>;
-}) {
+}>) {
   return (
     <div className="flex flex-col items-center justify-center p-12 text-center space-y-4">
       <div className="p-4 rounded-full bg-red-100 text-red-600">
@@ -82,7 +82,9 @@ function AccountErrorState({
   );
 }
 
-function ActivationPanel({ tLanding }: { tLanding: Awaited<ReturnType<typeof getTranslations>> }) {
+function ActivationPanel({
+  tLanding,
+}: Readonly<{ tLanding: Awaited<ReturnType<typeof getTranslations>> }>) {
   return (
     <section
       data-testid="member-activation-panel"

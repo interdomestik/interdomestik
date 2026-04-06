@@ -1,6 +1,5 @@
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { BusinessLeadForm } from '@/components/pricing/business-lead-form';
-import { generateLocaleStaticParams } from '@/app/_locale-static-params';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';

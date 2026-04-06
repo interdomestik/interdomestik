@@ -103,6 +103,24 @@ describe('submitBusinessMembershipLeadCore', () => {
     );
   });
 
+  it('ignores malformed referer values instead of failing the action', async () => {
+    const result = await submitBusinessMembershipLeadCore({
+      requestHeaders: new Headers({
+        referer: 'not-a-valid-url',
+      }),
+      data: validInput,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: {
+        leadId: 'lead_123',
+      },
+    });
+    expect(mockCreateLead.mock.calls[0]?.[1]?.notes).toContain('"landingPage":"not-a-valid-url"');
+    expect(mockCreateLead.mock.calls[0]?.[1]?.notes).toContain('"utmSource":null');
+  });
+
   it('rejects invalid payloads with field issues', async () => {
     const result = await submitBusinessMembershipLeadCore({
       requestHeaders: new Headers(),

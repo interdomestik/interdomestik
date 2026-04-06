@@ -23,7 +23,7 @@ function createIdempotencyKey() {
   return `business-lead-${Date.now()}`;
 }
 
-export function BusinessLeadForm({ locale }: { locale: string }) {
+export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
   const t = useTranslations('pricing.businessLead.form');
   const [serverState, formAction, pending] = useActionState(
     submitBusinessMembershipLead,
@@ -57,7 +57,7 @@ export function BusinessLeadForm({ locale }: { locale: string }) {
     }
   }, [serverState, t]);
 
-  const fieldErrors = !serverState?.success ? (serverState?.issues ?? {}) : {};
+  const fieldErrors = serverState?.success ? {} : (serverState?.issues ?? {});
 
   return (
     <section

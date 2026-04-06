@@ -15,7 +15,7 @@ const submitBusinessMembershipLeadSchema = z.object({
   firstName: z.string().trim().min(1, 'First name is required'),
   lastName: z.string().trim().min(1, 'Last name is required'),
   companyName: z.string().trim().min(1, 'Company name is required'),
-  email: z.email('Enter a valid business email'),
+  email: z.string().trim().email('Enter a valid business email'),
   phone: z.string().trim().min(5, 'Phone number is required'),
   teamSize: z.string().trim().min(1, 'Team size is required'),
   notes: z.string().trim().max(2000, 'Notes are too long').optional(),
@@ -48,7 +48,15 @@ function serializeLeadNotes(args: {
   referer: string | null;
 }): string {
   const referer = args.referer;
-  const refererUrl = referer ? new URL(referer) : null;
+  let refererUrl: URL | null = null;
+
+  if (referer) {
+    try {
+      refererUrl = new URL(referer);
+    } catch {
+      refererUrl = null;
+    }
+  }
 
   return JSON.stringify({
     source: 'business_membership_public',
@@ -166,12 +174,12 @@ export async function submitBusinessMembershipLead(
     idempotencyKey: readOptionalString(formData.get('_idempotencyKey')),
     requestHeaders,
     data: {
-      firstName: String(formData.get('firstName') ?? ''),
-      lastName: String(formData.get('lastName') ?? ''),
-      companyName: String(formData.get('companyName') ?? ''),
-      email: String(formData.get('email') ?? ''),
-      phone: String(formData.get('phone') ?? ''),
-      teamSize: String(formData.get('teamSize') ?? ''),
+      firstName: readOptionalString(formData.get('firstName')) ?? '',
+      lastName: readOptionalString(formData.get('lastName')) ?? '',
+      companyName: readOptionalString(formData.get('companyName')) ?? '',
+      email: readOptionalString(formData.get('email')) ?? '',
+      phone: readOptionalString(formData.get('phone')) ?? '',
+      teamSize: readOptionalString(formData.get('teamSize')) ?? '',
       notes: readOptionalString(formData.get('notes')),
       locale: readOptionalString(formData.get('locale')),
     },
