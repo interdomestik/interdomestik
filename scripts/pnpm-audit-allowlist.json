@@ -1,3 +1,15 @@
 {
-  "allowlist": ["GHSA-3966-f6p6-2qr9", "GHSA-j965-2qgj-vjmq", "1112810"]
+  "allowlist": [
+    "GHSA-3966-f6p6-2qr9",
+    "GHSA-j965-2qgj-vjmq",
+    "1112810",
+    {
+      "id": "1116008",
+      "path": "apps__web>better-auth>vitest>vite"
+    },
+    {
+      "id": "1116011",
+      "path": "apps__web>better-auth>vitest>vite"
+    }
+  ]
 }
