@@ -190,6 +190,19 @@
     },
     "mainHeading1": "Choose your",
     "mainHeading2": "membership plan.",
-    "joinSecurely": "Start securely"
+    "joinSecurely": "Start securely",
+    "preCheckout": {
+      "planSummary": "Plan summary",
+      "responsePromise": "Priority triage target: under 24 business hours",
+      "continue": "Continue to checkout",
+      "cancel": "Not now"
+    },
+    "businessLead": {
+      "title": "Talk to our business team",
+      "subtitle": "Business memberships are set up with a short assisted intake so we can match the right protection scope before activation.",
+      "callCta": "Call business intake",
+      "whatsappCta": "Open WhatsApp",
+      "note": "We will confirm fleet, property, and team setup before we activate the business package."
+    }
   }
 }

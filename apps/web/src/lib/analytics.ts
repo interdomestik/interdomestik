@@ -76,6 +76,10 @@ function trackCommercialFunnelEvent(
   eventName:
     | 'free_start_completed'
     | 'membership_started'
+    | 'pricing_page_viewed'
+    | 'pricing_plan_cta_clicked'
+    | 'pricing_precheckout_viewed'
+    | 'membership_checkout_opened'
     | 'escalation_requested'
     | 'escalation_declined',
   context: FunnelContext,
@@ -89,6 +93,14 @@ export const CommercialFunnelEvents = {
     trackCommercialFunnelEvent('free_start_completed', context, properties),
   membershipStarted: (context: FunnelContext, properties?: FunnelProperties) =>
     trackCommercialFunnelEvent('membership_started', context, properties),
+  pricingPageViewed: (context: FunnelContext, properties?: FunnelProperties) =>
+    trackCommercialFunnelEvent('pricing_page_viewed', context, properties),
+  pricingPlanCtaClicked: (context: FunnelContext, properties?: FunnelProperties) =>
+    trackCommercialFunnelEvent('pricing_plan_cta_clicked', context, properties),
+  pricingPrecheckoutViewed: (context: FunnelContext, properties?: FunnelProperties) =>
+    trackCommercialFunnelEvent('pricing_precheckout_viewed', context, properties),
+  membershipCheckoutOpened: (context: FunnelContext, properties?: FunnelProperties) =>
+    trackCommercialFunnelEvent('membership_checkout_opened', context, properties),
   escalationRequested: (context: FunnelContext, properties?: FunnelProperties) =>
     trackCommercialFunnelEvent('escalation_requested', context, properties),
   escalationDeclined: (context: FunnelContext, properties?: FunnelProperties) =>

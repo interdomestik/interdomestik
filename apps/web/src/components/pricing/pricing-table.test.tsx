@@ -1,12 +1,16 @@
 import { PADDLE_PRICES } from '@/config/paddle';
 import * as paddleLib from '@interdomestik/domain-membership-billing/paddle';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PricingTable } from './pricing-table';
 
 // Mock dependencies
-import { MouseEventHandler, ReactNode } from 'react';
+import { cloneElement, isValidElement, MouseEventHandler, ReactElement, ReactNode } from 'react';
 const mockRouterPush = vi.fn();
+const { mockToastError } = vi.hoisted(() => ({
+  mockToastError: vi.fn(),
+}));
+let mockLocale = 'en';
 
 // Mock dependencies
 vi.mock('@interdomestik/ui', () => ({
@@ -25,15 +29,22 @@ vi.mock('@interdomestik/ui', () => ({
     children,
     onClick,
     disabled,
+    asChild,
+    ...props
   }: {
     children: ReactNode;
     onClick?: MouseEventHandler;
     disabled?: boolean;
-  }) => (
-    <button onClick={onClick} disabled={disabled}>
-      {children}
-    </button>
-  ),
+    asChild?: boolean;
+    [key: string]: unknown;
+  }) =>
+    asChild && isValidElement(children) ? (
+      cloneElement(children as ReactElement, props)
+    ) : (
+      <button onClick={onClick} disabled={disabled} {...props}>
+        {children}
+      </button>
+    ),
 }));
 
 vi.mock('lucide-react', () => ({
@@ -45,8 +56,10 @@ vi.mock('lucide-react', () => ({
 }));
 
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  Link: ({ children, href, ...props }: { children: ReactNode; href: string }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
   redirect: vi.fn(),
   usePathname: () => '/',
@@ -56,7 +69,13 @@ vi.mock('@/i18n/routing', () => ({
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
-  useLocale: () => 'en',
+  useLocale: () => mockLocale,
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: mockToastError,
+  },
 }));
 
 describe('PricingTable', () => {
@@ -71,6 +90,8 @@ describe('PricingTable', () => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
     mockRouterPush.mockReset();
+    mockToastError.mockReset();
+    mockLocale = 'en';
     process.env.NEXT_PUBLIC_PILOT_MODE = originalPilotMode;
     window.history.replaceState({}, '', '/pricing');
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(
@@ -102,8 +123,6 @@ describe('PricingTable', () => {
   });
 
   it('initiates checkout on button click', async () => {
-    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
-
     render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
 
     // Find the Join Now button for standard plan (now at index 0)
@@ -118,19 +137,107 @@ describe('PricingTable', () => {
           customData: { userId: 'user-123' },
           settings: expect.objectContaining({
             successUrl: expect.stringContaining('/en/member/membership/success'),
+            locale: 'en',
           }),
         })
       );
     });
+  });
 
-    consoleLog.mockRestore();
+  it('opens a self-serve confirmation for anonymous standard plan instead of linking to register', async () => {
+    render(<PricingTable billingTestMode={false} />);
+
+    const standardCta = screen.getByTestId('plan-cta-standard');
+    expect(standardCta.tagName).toBe('BUTTON');
+
+    fireEvent.click(standardCta);
+
+    const confirmation = screen.getByTestId('pricing-precheckout-confirmation');
+    expect(confirmation).toBeInTheDocument();
+    expect(within(confirmation).getByText('joinSecurely')).toBeInTheDocument();
+    expect(within(confirmation).getByText('standard.name')).toBeInTheDocument();
+    expect(within(confirmation).getByText('€20')).toBeInTheDocument();
+    expect(within(confirmation).getByText('preCheckout.responsePromise')).toBeInTheDocument();
+    expect(within(confirmation).getByText('disclaimers.eyebrow')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'cta' })).not.toHaveAttribute(
+      'href',
+      '/register?plan=standard'
+    );
+  });
+
+  it('opens a self-serve confirmation for anonymous family plan instead of linking to register', async () => {
+    render(<PricingTable billingTestMode={false} />);
+
+    fireEvent.click(screen.getByTestId('plan-cta-family'));
+
+    const confirmation = screen.getByTestId('pricing-precheckout-confirmation');
+    expect(confirmation).toBeInTheDocument();
+    expect(within(confirmation).getByText('family.name')).toBeInTheDocument();
+    expect(within(confirmation).getByText('€35')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'cta' })).not.toHaveAttribute(
+      'href',
+      '/register?plan=family'
+    );
+  });
+
+  it('routes anonymous business users to the assisted business entry path', () => {
+    render(<PricingTable billingTestMode={false} />);
+
+    const businessCta = screen.getByTestId('plan-cta-business');
+
+    expect(businessCta.tagName).toBe('A');
+    expect(businessCta).toHaveAttribute('href', '/business-membership');
+  });
+
+  it('keeps mobile-safe touch targets and safe-area spacing on pricing conversion actions', () => {
+    render(<PricingTable billingTestMode={false} />);
+
+    expect(screen.getByTestId('pricing-table-root').className).toContain(
+      'pb-[max(1.5rem,env(safe-area-inset-bottom))]'
+    );
+    expect(screen.getByTestId('plan-cta-standard').className).toContain('min-h-[44px]');
+    expect(screen.getByTestId('plan-cta-standard').className).toContain('touch-manipulation');
+
+    fireEvent.click(screen.getByTestId('plan-cta-standard'));
+
+    expect(screen.getByTestId('precheckout-continue-cta').className).toContain('min-h-[44px]');
+    expect(screen.getByTestId('precheckout-cancel-cta').className).toContain('min-h-[44px]');
+  });
+
+  it('moves focus to the pre-checkout confirmation when it opens', async () => {
+    render(<PricingTable billingTestMode={false} />);
+
+    fireEvent.click(screen.getByTestId('plan-cta-standard'));
+
+    const confirmation = await screen.findByTestId('pricing-precheckout-confirmation');
+
+    await waitFor(() => {
+      expect(confirmation).toHaveFocus();
+    });
+  });
+
+  it('passes the active locale into Paddle checkout settings', async () => {
+    mockLocale = 'de';
+
+    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+
+    fireEvent.click(screen.getAllByText('cta')[0]);
+
+    await waitFor(() => {
+      expect(mockPaddle.Checkout.open).toHaveBeenCalledWith(
+        expect.objectContaining({
+          settings: expect.objectContaining({
+            locale: 'de',
+            successUrl: expect.stringContaining('/de/member/membership/success'),
+          }),
+        })
+      );
+    });
   });
 
   it('handles paddle initialization failure gracefully', async () => {
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
-    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
 
@@ -138,14 +245,12 @@ describe('PricingTable', () => {
     fireEvent.click(joinButtons[0]);
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith(
+      expect(mockToastError).toHaveBeenCalledWith(
         'Payment system unavailable. Please check configuration.'
       );
     });
 
-    alertMock.mockRestore();
     consoleError.mockRestore();
-    consoleLog.mockRestore();
   });
 
   it('blocks checkout when pilot mode freeze is enabled', async () => {
@@ -192,7 +297,6 @@ describe('PricingTable', () => {
     vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', '');
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
 
-    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     vi.useFakeTimers();
@@ -209,10 +313,9 @@ describe('PricingTable', () => {
         `/member/membership/success?priceId=${PADDLE_PRICES.standard.yearly}&planId=standard`
       );
 
-      expect(alertMock).not.toHaveBeenCalled();
+      expect(mockToastError).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
-      alertMock.mockRestore();
       consoleWarn.mockRestore();
     }
   });
@@ -222,7 +325,6 @@ describe('PricingTable', () => {
     vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', 'test_***');
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
 
-    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     vi.useFakeTimers();
@@ -238,20 +340,18 @@ describe('PricingTable', () => {
       expect(mockRouterPush).toHaveBeenCalledWith(
         `/member/membership/success?priceId=${PADDLE_PRICES.standard.yearly}&planId=standard`
       );
-      expect(alertMock).not.toHaveBeenCalled();
+      expect(mockToastError).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
-      alertMock.mockRestore();
       consoleWarn.mockRestore();
     }
   });
 
-  it('keeps payment unavailable alert in development when a token exists but Paddle init fails', async () => {
+  it('shows a toast in development when a token exists but Paddle init fails', async () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', 'test_valid_token_1234567890');
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
 
-    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -261,14 +361,13 @@ describe('PricingTable', () => {
     fireEvent.click(joinButtons[0]);
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith(
+      expect(mockToastError).toHaveBeenCalledWith(
         'Payment system unavailable. Please check configuration.'
       );
     });
 
     expect(mockRouterPush).not.toHaveBeenCalled();
 
-    alertMock.mockRestore();
     consoleWarn.mockRestore();
     consoleError.mockRestore();
   });
