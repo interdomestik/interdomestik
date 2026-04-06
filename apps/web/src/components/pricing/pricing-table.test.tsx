@@ -144,7 +144,7 @@ describe('PricingTable', () => {
     });
   });
 
-  it('opens a self-serve confirmation for anonymous standard plan instead of linking to register', async () => {
+  it('opens a self-serve confirmation for anonymous standard plan before continuing to register', async () => {
     render(<PricingTable billingTestMode={false} />);
 
     const standardCta = screen.getByTestId('plan-cta-standard');
@@ -159,13 +159,14 @@ describe('PricingTable', () => {
     expect(within(confirmation).getByText('€20')).toBeInTheDocument();
     expect(within(confirmation).getByText('preCheckout.responsePromise')).toBeInTheDocument();
     expect(within(confirmation).getByText('disclaimers.eyebrow')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'cta' })).not.toHaveAttribute(
-      'href',
-      '/register?plan=standard'
-    );
+
+    fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
+
+    expect(mockRouterPush).toHaveBeenCalledWith('/register?plan=standard');
+    expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
   });
 
-  it('opens a self-serve confirmation for anonymous family plan instead of linking to register', async () => {
+  it('opens a self-serve confirmation for anonymous family plan before continuing to register', async () => {
     render(<PricingTable billingTestMode={false} />);
 
     fireEvent.click(screen.getByTestId('plan-cta-family'));
@@ -174,10 +175,11 @@ describe('PricingTable', () => {
     expect(confirmation).toBeInTheDocument();
     expect(within(confirmation).getByText('family.name')).toBeInTheDocument();
     expect(within(confirmation).getByText('€35')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'cta' })).not.toHaveAttribute(
-      'href',
-      '/register?plan=family'
-    );
+
+    fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
+
+    expect(mockRouterPush).toHaveBeenCalledWith('/register?plan=family');
+    expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
   });
 
   it('routes anonymous business users to the assisted business entry path', () => {

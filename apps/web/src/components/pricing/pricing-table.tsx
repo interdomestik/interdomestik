@@ -179,21 +179,20 @@ export function PricingTable({
   const handleAction = async (planId: string, priceId: string) => {
     if (process.env.NEXT_PUBLIC_PILOT_MODE === 'true') return;
 
-    CommercialFunnelEvents.membershipCheckoutOpened(
-      {
-        tenantId: null,
-        variant: 'hero_v1',
-        locale,
-      },
-      {
-        plan_id: planId,
-        flow_entry: userId ? 'logged_in_member' : 'anonymous_public',
-      }
-    );
-
     setLoading(priceId);
     try {
       if (isBillingTestMode || shouldUseDevCheckoutFallback) {
+        CommercialFunnelEvents.membershipCheckoutOpened(
+          {
+            tenantId: null,
+            variant: 'hero_v1',
+            locale,
+          },
+          {
+            plan_id: planId,
+            flow_entry: userId ? 'logged_in_member' : 'anonymous_public',
+          }
+        );
         if (shouldUseDevCheckoutFallback) {
           console.warn(
             'Paddle client token missing in development, falling back to simulated checkout.'
@@ -208,6 +207,18 @@ export function PricingTable({
       if (paddle) {
         // Check for referral cookie
         const agentId = getCookie('agent_ref');
+
+        CommercialFunnelEvents.membershipCheckoutOpened(
+          {
+            tenantId: null,
+            variant: 'hero_v1',
+            locale,
+          },
+          {
+            plan_id: planId,
+            flow_entry: userId ? 'logged_in_member' : 'anonymous_public',
+          }
+        );
 
         paddle.Checkout.open({
           items: [{ priceId, quantity: 1 }],
@@ -417,7 +428,13 @@ export function PricingTable({
               data-testid="precheckout-continue-cta"
               className="min-h-[44px] touch-manipulation rounded-2xl px-6"
               disabled={loading === preCheckoutPlan.priceId}
-              onClick={() => handleAction(preCheckoutPlan.id, preCheckoutPlan.priceId)}
+              onClick={() => {
+                if (!userId) {
+                  router.push(`/register?plan=${preCheckoutPlan.id}`);
+                  return;
+                }
+                handleAction(preCheckoutPlan.id, preCheckoutPlan.priceId);
+              }}
             >
               {loading === preCheckoutPlan.priceId ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />

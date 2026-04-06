@@ -223,9 +223,6 @@ describe('MemberDashboardView MK localization', () => {
       'href',
       '/member/membership'
     );
-    expect(screen.getByRole('link', { name: 'Види планови' })).toHaveAttribute(
-      'href',
-      '/mk/pricing'
-    );
+    expect(screen.getByRole('link', { name: 'Види планови' })).toHaveAttribute('href', '/pricing');
   });
 });

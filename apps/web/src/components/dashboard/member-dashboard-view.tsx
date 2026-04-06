@@ -167,7 +167,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                 <Link href="/member/membership">{tLanding('activation_primary_cta')}</Link>
               </Button>
               <Button asChild variant="outline" className="rounded-2xl">
-                <Link href={`/${locale}/pricing`}>{tLanding('activation_secondary_cta')}</Link>
+                <Link href="/pricing">{tLanding('activation_secondary_cta')}</Link>
               </Button>
             </div>
           </div>

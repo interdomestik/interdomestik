@@ -11,6 +11,7 @@ vi.mock('./_core.entry', () => ({
     </main>
   ),
   generateMetadata: vi.fn(),
+  generateStaticParams: vi.fn(),
   generateViewport: vi.fn(),
 }));
 
