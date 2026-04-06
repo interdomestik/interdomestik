@@ -67,7 +67,14 @@ export async function resolveSubscriptionContext(sub: any) {
     columns: { tenantId: true, email: true, name: true, memberNumber: true },
   });
 
-  const tenantId = existingSub?.tenantId ?? customData?.tenantId ?? userRecord?.tenantId;
+  const canonicalTenantId = existingSub?.tenantId ?? userRecord?.tenantId;
+  const tenantId = canonicalTenantId ?? customData?.tenantId;
+
+  if (canonicalTenantId && customData?.tenantId && customData.tenantId !== canonicalTenantId) {
+    console.warn(
+      `[Webhook] Ignoring mismatched customData.tenantId for subscription ${sub.id} userId=${userId}; canonical tenant=${canonicalTenantId} customData tenant=${customData.tenantId}`
+    );
+  }
 
   if (!tenantId) {
     console.warn(

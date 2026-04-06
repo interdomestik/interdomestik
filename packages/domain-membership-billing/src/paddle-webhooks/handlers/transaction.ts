@@ -19,7 +19,15 @@ export async function handleTransactionCompleted(
   const subscriptionId = tx.subscriptionId || tx.subscription_id;
   const customerId = tx.customerId || tx.customer_id;
   const customerEmail = tx.customerEmail || tx.customer_email;
-  let tenantId = tenantIdFromCustomData ?? null;
+  let tenantId: string | null = null;
+
+  if (subscriptionId) {
+    const subscription = await db.query.subscriptions.findFirst({
+      where: (subs, { eq }) => eq(subs.id, subscriptionId),
+      columns: { tenantId: true },
+    });
+    tenantId = subscription?.tenantId ?? null;
+  }
 
   if (userId) {
     const user = await db.query.user.findFirst({
@@ -28,6 +36,8 @@ export async function handleTransactionCompleted(
     });
     tenantId = user?.tenantId ?? tenantId;
   }
+
+  tenantId ??= tenantIdFromCustomData ?? null;
 
   if (deps.logAuditEvent && tenantId) {
     await deps.logAuditEvent({

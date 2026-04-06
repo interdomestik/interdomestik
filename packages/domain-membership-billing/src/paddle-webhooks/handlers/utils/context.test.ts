@@ -163,6 +163,30 @@ describe('context utils', () => {
       );
     });
 
+    it('should prefer canonical tenant over mismatched customData tenant', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const sub = { id: 's_existing', customData: { userId: 'u_1', tenantId: 'tenant_bad' } };
+
+      (db.query.subscriptions.findFirst as any).mockImplementation(
+        mockDbResponse({ tenantId: 'tenant_real', userId: 'u_1' })
+      );
+      (db.query.user.findFirst as any).mockImplementation(
+        mockDbResponse({ tenantId: 'tenant_real', email: 'member@example.com' })
+      );
+      (db.query.tenantSettings.findFirst as any).mockImplementation(
+        mockDbResponse({ value: { branchId: 'br_def' } })
+      );
+
+      const result = await resolveSubscriptionContext(sub);
+
+      expect(result?.tenantId).toBe('tenant_real');
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Ignoring mismatched customData.tenantId')
+      );
+
+      warnSpy.mockRestore();
+    });
+
     it('should return null if tenant cannot be resolved', async () => {
       const sub = { id: 's_bad', customData: { userId: 'u_1' } };
       (db.query.subscriptions.findFirst as any).mockImplementation(mockDbResponse(undefined));
