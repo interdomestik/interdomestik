@@ -5,10 +5,12 @@ import { mapPaddleStatus, type InternalSubscriptionStatus } from '../subscriptio
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../types';
 import { resolveSubscriptionContext } from './utils/context';
 import { handleNewSubscriptionExtras } from './utils/extras';
+import { reconcileCheckoutUser } from './utils/reconcile-checkout-user';
 
 export async function handleSubscriptionChanged(
   params: { eventType: string; data: unknown },
-  deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter'> & PaddleWebhookAuditDeps = {}
+  deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter' | 'requestPasswordResetOnboarding'> &
+    PaddleWebhookAuditDeps = {}
 ) {
   const parseResult = subscriptionEventDataSchema.safeParse(params.data);
   if (!parseResult.success) {
@@ -18,7 +20,10 @@ export async function handleSubscriptionChanged(
   const sub = parseResult.data;
 
   // 1. Resolve Context (User, Tenant, Branch)
-  const context = await resolveSubscriptionContext(sub);
+  let context = await resolveSubscriptionContext(sub);
+  if (!context && params.eventType === 'subscription.created') {
+    context = await reconcileCheckoutUser(sub, deps);
+  }
   if (!context) return;
 
   const { userId, tenantId, branchId, customData, userRecord } = context;

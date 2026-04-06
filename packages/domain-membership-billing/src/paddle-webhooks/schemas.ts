@@ -47,6 +47,8 @@ export const subscriptionEventDataSchema = z
   .object({
     id: z.string(),
     status: z.string(),
+    transactionId: z.string().optional().nullable(),
+    transaction_id: z.string().optional().nullable(),
     customerId: z.string().optional(),
     customer_id: z.string().optional(), // Paddle sometimes uses underscore
 

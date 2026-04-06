@@ -13,7 +13,9 @@ export async function resolveBranchId(args: {
       where: (u, { and, eq }) => and(eq(u.id, customData.agentId!), eq(u.tenantId, tenantId)),
       columns: { branchId: true },
     });
-    return agent?.branchId || undefined;
+    if (agent?.branchId) {
+      return agent.branchId;
+    }
   }
 
   // 2. Fallback to Tenant Default Branch

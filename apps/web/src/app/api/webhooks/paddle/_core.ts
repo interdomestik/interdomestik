@@ -1,6 +1,12 @@
 import { sendThankYouLetterCore } from '@/actions/thank-you-letter/send';
 import { logAuditEvent } from '@/lib/audit';
+import { auth } from '@/lib/auth';
 import { sendPaymentFailedEmail } from '@/lib/email';
+import {
+  coerceTenantId,
+  preferredLocaleForTenant,
+  resolveTenantAppOrigin,
+} from '@/lib/tenant/tenant-hosts';
 import { db } from '@interdomestik/database';
 import type { BillingEntity } from '@interdomestik/domain-membership-billing/paddle-server';
 import {
@@ -81,6 +87,25 @@ function resolveProviderTransactionId(params: {
     normalizeText(payload.transactionId) ||
     normalizeText(payload.transaction_id)
   );
+}
+
+export function buildTenantPasswordResetRedirectUrl(tenantId: string): string {
+  const normalizedTenantId = coerceTenantId(tenantId) ?? 'tenant_ks';
+  const origin = resolveTenantAppOrigin(normalizedTenantId);
+  const locale = preferredLocaleForTenant(normalizedTenantId);
+  return new URL(`/${locale}/reset-password`, origin).toString();
+}
+
+export async function requestPasswordResetOnboarding(params: {
+  email: string;
+  tenantId: string;
+}): Promise<void> {
+  await auth.api.requestPasswordReset({
+    body: {
+      email: params.email,
+      redirectTo: buildTenantPasswordResetRedirectUrl(params.tenantId),
+    },
+  });
 }
 
 async function resolveWebhookTenantId(data: unknown): Promise<string | null> {
@@ -260,6 +285,7 @@ export async function handlePaddleWebhookCore(args: {
       {
         sendPaymentFailedEmail,
         sendThankYouLetter: sendThankYouLetterCore,
+        requestPasswordResetOnboarding,
         logAuditEvent,
       }
     );
