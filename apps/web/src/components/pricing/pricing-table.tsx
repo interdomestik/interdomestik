@@ -63,7 +63,7 @@ function getCheckoutAttribution(search: string) {
 
   const normalize = (key: string) => {
     const value = params.get(key)?.trim();
-    return value ? value : undefined;
+    return value || undefined;
   };
 
   return {
@@ -229,7 +229,6 @@ export function PricingTable({
   };
 
   const openPaddleCheckout = async (args: { planId: string; priceId: string }) => {
-    console.log('🏷️ Opening Paddle checkout with Price ID:', args.priceId);
     const paddle = await getPaddleInstance();
 
     if (!paddle) {
@@ -253,13 +252,13 @@ export function PricingTable({
         userId,
         agentId: agentId ? String(agentId) : undefined,
         tenantId,
-        search: window.location.search,
+        search: globalThis.location.search,
       }),
       settings: {
         displayMode: 'overlay',
         theme: 'light',
         locale: getPaddleLocale(locale),
-        successUrl: `${window.location.origin}/${locale}/member/membership/success`,
+        successUrl: `${globalThis.location.origin}/${locale}/member/membership/success`,
       },
     });
   };

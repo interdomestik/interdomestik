@@ -163,7 +163,7 @@ describe('PricingTable', () => {
 
   it('preserves agent and marketing attribution in checkout customData when available', async () => {
     mockGetCookie.mockReturnValue('agent-42');
-    window.history.replaceState(
+    globalThis.history.replaceState(
       {},
       '',
       '/pricing?utm_source=google&utm_medium=cpc&utm_campaign=funnel&utm_content=hero'
