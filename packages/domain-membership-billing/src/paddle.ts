@@ -17,7 +17,9 @@ export async function getPaddleInstance() {
       environment: process.env.NEXT_PUBLIC_PADDLE_ENV === 'production' ? 'production' : 'sandbox',
       token: clientToken,
       eventCallback: (data: unknown) => {
-        console.log('Paddle Event:', data);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Paddle Event:', data);
+        }
       },
     });
 

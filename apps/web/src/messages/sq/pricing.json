@@ -190,6 +190,19 @@
     },
     "mainHeading1": "Zgjidhni anëtarësimin",
     "mainHeading2": "që ju përshtatet.",
-    "joinSecurely": "Fillo i sigurt"
+    "joinSecurely": "Fillo i sigurt",
+    "preCheckout": {
+      "planSummary": "Përmbledhja e planit",
+      "responsePromise": "Objektivi i triagimit prioritar: nën 24 orë pune",
+      "continue": "Vazhdo te pagesa",
+      "cancel": "Jo tani"
+    },
+    "businessLead": {
+      "title": "Flisni me ekipin tonë për biznes",
+      "subtitle": "Anëtarësimet për biznes aktivizohen përmes një hyrjeje të shkurtër të asistuar që të përshtatim mbrojtjen para aktivizimit.",
+      "callCta": "Telefono ekipin e biznesit",
+      "whatsappCta": "Hap WhatsApp",
+      "note": "Ne do të konfirmojmë flotën, pronat dhe ekipin para se ta aktivizojmë paketën e biznesit."
+    }
   }
 }

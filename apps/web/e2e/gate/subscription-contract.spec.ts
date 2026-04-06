@@ -12,7 +12,9 @@ test.describe('Subscription Contract Verification', () => {
     await expect(page.getByTestId('plan-cta-standard')).toBeVisible();
   });
 
-  test('Logged out Join Now redirects to register', async ({ browser }, testInfo) => {
+  test('Logged out Join Now confirms plan, then redirects to register', async ({
+    browser,
+  }, testInfo) => {
     // Use a fresh context without storageState
     const context = await browser.newContext({ storageState: undefined });
     const page = await context.newPage();
@@ -24,12 +26,14 @@ test.describe('Subscription Contract Verification', () => {
     const cta = page.getByTestId('plan-cta-standard');
     await expect(cta).toBeVisible();
     await expect(cta).toBeEnabled();
-    await expect(cta).toHaveAttribute('href', /.*register.*/);
     await cta.scrollIntoViewIfNeeded();
+    await cta.click();
+    await expect(page.getByTestId('pricing-precheckout-confirmation')).toBeVisible();
+    const continueCta = page.getByTestId('precheckout-continue-cta');
 
     await Promise.all([
       page.waitForURL(/.*\/register\?plan=standard/, { timeout: 15000 }),
-      cta.click(),
+      continueCta.click(),
     ]);
 
     await expect(page.getByTestId('registration-page-ready')).toBeVisible({ timeout: 15000 });

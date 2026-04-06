@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LayoutTemplate,
   Settings,
+  ShieldCheck,
   Upload,
   UserPlus,
   Users,
@@ -55,6 +56,11 @@ export function buildDashboardNavigationModel(params: {
           title: t('documents'),
           href: '/member/documents',
           icon: FolderOpen,
+        },
+        {
+          title: t('membershipSection'),
+          href: '/member/membership',
+          icon: ShieldCheck,
         },
         {
           title: t('newClaim'),

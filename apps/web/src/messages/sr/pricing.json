@@ -190,6 +190,19 @@
     },
     "mainHeading1": "Izaberite zaštitu",
     "mainHeading2": "koja vam odgovara.",
-    "joinSecurely": "Pridružite se bezbedno"
+    "joinSecurely": "Pridružite se bezbedno",
+    "preCheckout": {
+      "planSummary": "Pregled plana",
+      "responsePromise": "Cilj prioritetne trijaže: ispod 24 radna sata",
+      "continue": "Nastavi na naplatu",
+      "cancel": "Ne sada"
+    },
+    "businessLead": {
+      "title": "Razgovarajte sa našim poslovnim timom",
+      "subtitle": "Poslovna članstva se aktiviraju kroz kratak asistirani prijem kako bismo uskladili pravi opseg zaštite pre aktivacije.",
+      "callCta": "Pozovite poslovni prijem",
+      "whatsappCta": "Otvori WhatsApp",
+      "note": "Potvrdićemo vozila, imovinu i postavku tima pre nego što aktiviramo poslovni paket."
+    }
   }
 }

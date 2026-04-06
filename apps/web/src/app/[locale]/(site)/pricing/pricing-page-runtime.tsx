@@ -1,7 +1,10 @@
 'use client';
 
 import { PricingTable } from '@/components/pricing/pricing-table';
+import { CommercialFunnelEvents } from '@/lib/analytics';
 import { authClient } from '@/lib/auth-client';
+import { useLocale } from 'next-intl';
+import { useEffect } from 'react';
 
 type PricingPageRuntimeProps = Readonly<{
   billingTestMode: boolean;
@@ -10,6 +13,20 @@ type PricingPageRuntimeProps = Readonly<{
 export function PricingPageRuntime({ billingTestMode }: PricingPageRuntimeProps) {
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
+  const locale = useLocale();
+
+  useEffect(() => {
+    CommercialFunnelEvents.pricingPageViewed(
+      {
+        tenantId: null,
+        variant: 'hero_v1',
+        locale,
+      },
+      {
+        flow_entry: user?.id ? 'logged_in_member' : 'anonymous_public',
+      }
+    );
+  }, [locale, user?.id]);
 
   return (
     <PricingTable

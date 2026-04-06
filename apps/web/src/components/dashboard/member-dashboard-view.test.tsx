@@ -24,6 +24,11 @@ const translationMap: Record<string, string> = {
   'dashboard.member_landing.hero_subtitle_active':
     'Вашето членство е активно. Подготвени сме да помогнеме.',
   'dashboard.member_landing.hero_subtitle_inactive': 'Вашето членство сè уште не е активно.',
+  'dashboard.member_landing.activation_title': 'Активирај го членството',
+  'dashboard.member_landing.activation_body':
+    'Завршете го вашиот план за да пристапите до приоритетна поддршка и нови барања.',
+  'dashboard.member_landing.activation_primary_cta': 'Отвори членство',
+  'dashboard.member_landing.activation_secondary_cta': 'Види планови',
   'dashboard.member_landing.status_label': 'Статус',
   'dashboard.member_landing.status_active': 'Активно',
   'dashboard.member_landing.status_pending': 'Во чекање',
@@ -202,5 +207,22 @@ describe('MemberDashboardView MK localization', () => {
     expect(
       screen.queryByText('dashboard.member_landing.support_panel_title')
     ).not.toBeInTheDocument();
+  });
+
+  it('surfaces activation CTAs before claim-centric actions for unpaid members', async () => {
+    const tree = await MemberDashboardView({
+      data: makeData(),
+      locale: 'mk',
+    });
+
+    render(tree);
+
+    expect(screen.getByTestId('member-activation-panel')).toBeInTheDocument();
+    expect(screen.getByText('Активирај го членството')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Отвори членство' })).toHaveAttribute(
+      'href',
+      '/member/membership'
+    );
+    expect(screen.getByRole('link', { name: 'Види планови' })).toHaveAttribute('href', '/pricing');
   });
 });

@@ -133,4 +133,24 @@ describe('useDashboardNavigation', () => {
       expect(adminDashboard?.getAttribute('data-href')).toBe('/admin/overview');
     });
   });
+
+  it('includes membership in canonical member navigation', async () => {
+    mockUseSession.mockReturnValue({
+      data: { user: { role: 'member' } },
+      isPending: false,
+      error: null,
+    } as unknown as ReturnType<typeof authClient.useSession>);
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      const items = screen.getAllByTestId('nav-item');
+      const membershipItem = items.find(
+        item => item.getAttribute('data-title') === 'membershipSection'
+      );
+
+      expect(membershipItem).toBeTruthy();
+      expect(membershipItem?.getAttribute('data-href')).toBe('/member/membership');
+    });
+  });
 });

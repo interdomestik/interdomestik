@@ -242,6 +242,92 @@ describe('analytics', () => {
       });
     });
 
+    it('tracks pricing CTA clicks with funnel metadata', () => {
+      CommercialFunnelEvents.pricingPlanCtaClicked(
+        {
+          tenantId: null,
+          variant: 'hero_v1',
+          locale: 'sq',
+        },
+        {
+          plan_id: 'family',
+          flow_entry: 'anonymous_public',
+        }
+      );
+
+      expect(posthog.capture).toHaveBeenCalledWith('pricing_plan_cta_clicked', {
+        tenant_id: 'tenant_unknown',
+        variant: 'hero_v1',
+        locale: 'sq',
+        plan_id: 'family',
+        flow_entry: 'anonymous_public',
+      });
+    });
+
+    it('tracks pricing page views with funnel metadata', () => {
+      CommercialFunnelEvents.pricingPageViewed(
+        {
+          tenantId: null,
+          variant: 'hero_v1',
+          locale: 'sq',
+        },
+        {
+          flow_entry: 'anonymous_public',
+        }
+      );
+
+      expect(posthog.capture).toHaveBeenCalledWith('pricing_page_viewed', {
+        tenant_id: 'tenant_unknown',
+        variant: 'hero_v1',
+        locale: 'sq',
+        flow_entry: 'anonymous_public',
+      });
+    });
+
+    it('tracks precheckout views with plan metadata', () => {
+      CommercialFunnelEvents.pricingPrecheckoutViewed(
+        {
+          tenantId: 'tenant_ks',
+          variant: 'hero_v1',
+          locale: 'en',
+        },
+        {
+          plan_id: 'standard',
+          flow_entry: 'anonymous_public',
+        }
+      );
+
+      expect(posthog.capture).toHaveBeenCalledWith('pricing_precheckout_viewed', {
+        tenant_id: 'tenant_ks',
+        variant: 'hero_v1',
+        locale: 'en',
+        plan_id: 'standard',
+        flow_entry: 'anonymous_public',
+      });
+    });
+
+    it('tracks checkout open with plan metadata', () => {
+      CommercialFunnelEvents.membershipCheckoutOpened(
+        {
+          tenantId: 'tenant_ks',
+          variant: 'hero_v1',
+          locale: 'en',
+        },
+        {
+          plan_id: 'standard',
+          flow_entry: 'logged_in_member',
+        }
+      );
+
+      expect(posthog.capture).toHaveBeenCalledWith('membership_checkout_opened', {
+        tenant_id: 'tenant_ks',
+        variant: 'hero_v1',
+        locale: 'en',
+        plan_id: 'standard',
+        flow_entry: 'logged_in_member',
+      });
+    });
+
     it('tracks escalation requested for launch-scope matters', () => {
       CommercialFunnelEvents.escalationRequested(
         {

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   useSessionMock: vi.fn(),
   pricingTableMock: vi.fn((_: unknown) => null),
+  pricingPageViewedMock: vi.fn(),
 }));
 
 vi.mock('@/lib/auth-client', () => ({
@@ -14,6 +15,16 @@ vi.mock('@/lib/auth-client', () => ({
 
 vi.mock('@/components/pricing/pricing-table', () => ({
   PricingTable: (props: unknown) => hoisted.pricingTableMock(props),
+}));
+
+vi.mock('@/lib/analytics', () => ({
+  CommercialFunnelEvents: {
+    pricingPageViewed: (...args: [unknown, unknown?]) => hoisted.pricingPageViewedMock(...args),
+  },
+}));
+
+vi.mock('next-intl', () => ({
+  useLocale: () => 'sq',
 }));
 
 import { PricingPageRuntime } from './pricing-page-runtime';
@@ -39,6 +50,17 @@ describe('PricingPageRuntime', () => {
         userId: undefined,
       });
     });
+
+    expect(hoisted.pricingPageViewedMock).toHaveBeenCalledWith(
+      {
+        tenantId: null,
+        variant: 'hero_v1',
+        locale: 'sq',
+      },
+      {
+        flow_entry: 'anonymous_public',
+      }
+    );
   });
 
   it('passes resolved member session details through to the pricing table', async () => {
@@ -62,5 +84,16 @@ describe('PricingPageRuntime', () => {
         userId: 'user-1',
       });
     });
+
+    expect(hoisted.pricingPageViewedMock).toHaveBeenCalledWith(
+      {
+        tenantId: null,
+        variant: 'hero_v1',
+        locale: 'sq',
+      },
+      {
+        flow_entry: 'logged_in_member',
+      }
+    );
   });
 });
