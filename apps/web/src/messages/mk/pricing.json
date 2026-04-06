@@ -222,11 +222,11 @@
           "notes": "За што ви треба помош?"
         },
         "placeholders": {
-          "firstName": "Arben",
-          "lastName": "Lila",
-          "companyName": "Interdomestik Fleet",
-          "email": "ops@company.com",
-          "phone": "+383 44 111 222",
+          "firstName": "Внесете име",
+          "lastName": "Внесете презиме",
+          "companyName": "Внесете име на компанија",
+          "email": "Внесете бизнис е-пошта",
+          "phone": "Внесете телефонски број",
           "teamSize": "Изберете големина на тим",
           "notes": "Возила, имот, покритие за вработени, локации или што било друго што треба да го знаеме."
         },

@@ -222,11 +222,11 @@
           "notes": "Për çfarë keni nevojë për ndihmë?"
         },
         "placeholders": {
-          "firstName": "Arben",
-          "lastName": "Lila",
-          "companyName": "Interdomestik Fleet",
-          "email": "ops@kompania.com",
-          "phone": "+383 44 111 222",
+          "firstName": "Shkruani emrin",
+          "lastName": "Shkruani mbiemrin",
+          "companyName": "Shkruani emrin e kompanisë",
+          "email": "Shkruani email-in e biznesit",
+          "phone": "Shkruani numrin e telefonit",
           "teamSize": "Zgjidh madhësinë e ekipit",
           "notes": "Flotë, prona, mbulim për staf, lokacione ose çdo gjë tjetër që duhet ta dimë."
         },
