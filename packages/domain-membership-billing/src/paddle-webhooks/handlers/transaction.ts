@@ -15,29 +15,52 @@ export async function handleTransactionCompleted(
 
   const customData = tx.customData || tx.custom_data;
   const userId = customData?.userId;
+  const tenantIdFromCustomData = customData?.tenantId;
   const subscriptionId = tx.subscriptionId || tx.subscription_id;
+  const customerId = tx.customerId || tx.customer_id;
+  const customerEmail = tx.customerEmail || tx.customer_email;
+  let tenantId: string | null = null;
 
-  if (userId && subscriptionId) {
-    // Resolve Tenant for Audit Log
+  if (subscriptionId) {
+    const subscription = await db.query.subscriptions.findFirst({
+      where: (subs, { eq }) => eq(subs.id, subscriptionId),
+      columns: { tenantId: true },
+    });
+    tenantId = subscription?.tenantId ?? null;
+  }
+
+  if (userId) {
     const user = await db.query.user.findFirst({
       where: (t, { eq }) => eq(t.id, userId),
       columns: { tenantId: true },
     });
+    tenantId = user?.tenantId ?? tenantId;
+  }
 
-    if (deps.logAuditEvent && user?.tenantId) {
-      await deps.logAuditEvent({
-        actorRole: 'system',
-        action: 'payment.processed',
-        entityType: 'transaction',
-        entityId: tx.id,
-        tenantId: user.tenantId,
-        metadata: {
-          subscriptionId,
-          status: tx.status,
-          currency: tx.details?.totals?.currencyCode,
-          amount: tx.details?.totals?.total,
-        },
-      });
-    }
+  tenantId ??= tenantIdFromCustomData ?? null;
+
+  if (deps.logAuditEvent && tenantId) {
+    await deps.logAuditEvent({
+      actorRole: 'system',
+      action: 'payment.processed',
+      entityType: 'transaction',
+      entityId: tx.id,
+      tenantId,
+      metadata: {
+        subscriptionId,
+        status: tx.status,
+        currency: tx.details?.totals?.currencyCode,
+        amount: tx.details?.totals?.total,
+        acquisitionSource: customData?.acquisitionSource,
+        agentId: customData?.agentId,
+        customerEmail,
+        customerId,
+        userId: userId ?? null,
+        utmSource: customData?.utmSource,
+        utmMedium: customData?.utmMedium,
+        utmCampaign: customData?.utmCampaign,
+        utmContent: customData?.utmContent,
+      },
+    });
   }
 }

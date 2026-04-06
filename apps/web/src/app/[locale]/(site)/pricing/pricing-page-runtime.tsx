@@ -8,9 +8,10 @@ import { useEffect } from 'react';
 
 type PricingPageRuntimeProps = Readonly<{
   billingTestMode: boolean;
+  billingTenantId?: string | null;
 }>;
 
-export function PricingPageRuntime({ billingTestMode }: PricingPageRuntimeProps) {
+export function PricingPageRuntime({ billingTestMode, billingTenantId }: PricingPageRuntimeProps) {
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
   const locale = useLocale();
@@ -33,6 +34,7 @@ export function PricingPageRuntime({ billingTestMode }: PricingPageRuntimeProps)
       billingTestMode={billingTestMode}
       email={user?.email}
       isSessionPending={isPending}
+      tenantId={billingTenantId}
       userId={user?.id}
     />
   );

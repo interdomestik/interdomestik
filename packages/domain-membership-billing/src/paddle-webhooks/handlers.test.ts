@@ -114,5 +114,71 @@ describe('Paddle Webhook Handlers', () => {
         })
       );
     });
+
+    it('uses customData tenant and attribution metadata for anonymous transactions', async () => {
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
+
+      const payload = {
+        id: 'tx_anon',
+        status: 'completed',
+        subscriptionId: 'sub_anon',
+        customerId: 'ctm_123',
+        customerEmail: 'buyer@example.com',
+        customData: {
+          tenantId: 'tenant_mk',
+          acquisitionSource: 'self_serve_web',
+          agentId: 'agent_9',
+          utmSource: 'google',
+          utmCampaign: 'diaspora',
+        },
+        details: { totals: { total: '3500', currencyCode: 'EUR' } },
+      };
+
+      await handleTransactionCompleted({ data: payload }, { logAuditEvent });
+
+      expect(logAuditEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'payment.processed',
+          entityId: 'tx_anon',
+          tenantId: 'tenant_mk',
+          metadata: expect.objectContaining({
+            acquisitionSource: 'self_serve_web',
+            agentId: 'agent_9',
+            customerEmail: 'buyer@example.com',
+            customerId: 'ctm_123',
+            subscriptionId: 'sub_anon',
+            utmSource: 'google',
+            utmCampaign: 'diaspora',
+          }),
+        })
+      );
+      expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('prefers persisted subscription tenant over client-provided tenant metadata', async () => {
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
+        tenantId: 'tenant_real',
+      });
+
+      const payload = {
+        id: 'tx_existing',
+        status: 'completed',
+        subscriptionId: 'sub_existing',
+        customData: {
+          tenantId: 'tenant_bad',
+          acquisitionSource: 'self_serve_web',
+        },
+        details: { totals: { total: '2000', currencyCode: 'EUR' } },
+      };
+
+      await handleTransactionCompleted({ data: payload }, { logAuditEvent });
+
+      expect(logAuditEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'tenant_real',
+        })
+      );
+      expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
+    });
   });
 });

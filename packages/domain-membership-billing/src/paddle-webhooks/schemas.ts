@@ -5,6 +5,12 @@ const customDataSchema = z
   .object({
     userId: z.string().optional(),
     agentId: z.string().optional(),
+    tenantId: z.string().optional(),
+    acquisitionSource: z.string().optional(),
+    utmSource: z.string().optional(),
+    utmMedium: z.string().optional(),
+    utmCampaign: z.string().optional(),
+    utmContent: z.string().optional(),
   })
   .passthrough(); // NOSONAR
 
@@ -65,6 +71,10 @@ export const transactionEventDataSchema = z
   .object({
     id: z.string(),
     status: z.string(),
+    customerId: z.string().optional().nullable(),
+    customer_id: z.string().optional().nullable(),
+    customerEmail: z.string().email().optional().nullable(),
+    customer_email: z.string().email().optional().nullable(),
 
     subscriptionId: z.string().optional().nullable(),
     subscription_id: z.string().optional().nullable(),

@@ -39,26 +39,42 @@ export async function resolveBranchId(args: {
 
 export async function resolveSubscriptionContext(sub: any) {
   const customData = (sub.customData || sub.custom_data) as
-    | { userId?: string; agentId?: string }
+    | {
+        userId?: string;
+        agentId?: string;
+        tenantId?: string;
+        acquisitionSource?: string;
+        utmSource?: string;
+        utmMedium?: string;
+        utmCampaign?: string;
+        utmContent?: string;
+      }
     | undefined;
-  const userId = customData?.userId;
+
+  const existingSub = await db.query.subscriptions.findFirst({
+    where: (subs, { eq }) => eq(subs.id, sub.id),
+    columns: { tenantId: true, userId: true },
+  });
+  const userId = customData?.userId ?? existingSub?.userId;
 
   if (!userId) {
     console.warn(`[Webhook] No userId found in customData for subscription ${sub.id}`);
     return null;
   }
 
-  const existingSub = await db.query.subscriptions.findFirst({
-    where: (subs, { eq }) => eq(subs.id, sub.id),
-    columns: { tenantId: true },
-  });
-
   const userRecord = await db.query.user.findFirst({
     where: (users, { eq }) => eq(users.id, userId),
     columns: { tenantId: true, email: true, name: true, memberNumber: true },
   });
 
-  const tenantId = existingSub?.tenantId ?? userRecord?.tenantId;
+  const canonicalTenantId = existingSub?.tenantId ?? userRecord?.tenantId;
+  const tenantId = canonicalTenantId ?? customData?.tenantId;
+
+  if (canonicalTenantId && customData?.tenantId && customData.tenantId !== canonicalTenantId) {
+    console.warn(
+      `[Webhook] Ignoring mismatched customData.tenantId for subscription ${sub.id} userId=${userId}; canonical tenant=${canonicalTenantId} customData tenant=${customData.tenantId}`
+    );
+  }
 
   if (!tenantId) {
     console.warn(

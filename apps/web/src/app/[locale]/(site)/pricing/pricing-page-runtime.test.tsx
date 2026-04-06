@@ -40,13 +40,14 @@ describe('PricingPageRuntime', () => {
       isPending: true,
     });
 
-    render(<PricingPageRuntime billingTestMode={false} />);
+    render(<PricingPageRuntime billingTenantId="tenant_ks" billingTestMode={false} />);
 
     await waitFor(() => {
       expect(hoisted.pricingTableMock).toHaveBeenCalledWith({
         billingTestMode: false,
         email: undefined,
         isSessionPending: true,
+        tenantId: 'tenant_ks',
         userId: undefined,
       });
     });
@@ -74,13 +75,14 @@ describe('PricingPageRuntime', () => {
       isPending: false,
     });
 
-    render(<PricingPageRuntime billingTestMode />);
+    render(<PricingPageRuntime billingTenantId="tenant_mk" billingTestMode />);
 
     await waitFor(() => {
       expect(hoisted.pricingTableMock).toHaveBeenCalledWith({
         billingTestMode: true,
         email: 'member@example.com',
         isSessionPending: false,
+        tenantId: 'tenant_mk',
         userId: 'user-1',
       });
     });
