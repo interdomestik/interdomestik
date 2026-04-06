@@ -198,14 +198,16 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
           <Button asChild size="lg" className="min-h-[44px] rounded-2xl px-6 font-bold">
             <Link href={`/${locale}/member`}>{t('cta_open_dashboard')}</Link>
           </Button>
-          <Button
-            asChild
-            size="lg"
-            variant="outline"
-            className="min-h-[44px] rounded-2xl px-6 font-bold"
-          >
-            <Link href={`/${locale}/member/claims/new`}>{t('cta_start_claim')}</Link>
-          </Button>
+          {!activationPending ? (
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="min-h-[44px] rounded-2xl px-6 font-bold"
+            >
+              <Link href={`/${locale}/member/claims/new`}>{t('cta_start_claim')}</Link>
+            </Button>
+          ) : null}
         </div>
         <p className="mt-4 text-center text-sm text-muted-foreground">{t('cta_helper')}</p>
       </div>
