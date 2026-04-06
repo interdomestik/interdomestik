@@ -18,6 +18,7 @@ describe('paddle webhook onboarding helpers', () => {
   const mutableEnv = process.env as Record<string, string | undefined>;
   const originalKsHost = process.env.KS_HOST;
   const originalMkHost = process.env.MK_HOST;
+  const originalDefaultPublicTenantId = process.env.DEFAULT_PUBLIC_TENANT_ID;
   const originalNodeEnv = process.env.NODE_ENV;
   const originalVercelEnv = process.env.VERCEL_ENV;
 
@@ -25,6 +26,7 @@ describe('paddle webhook onboarding helpers', () => {
     vi.clearAllMocks();
     mutableEnv.KS_HOST = originalKsHost;
     mutableEnv.MK_HOST = originalMkHost;
+    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = originalDefaultPublicTenantId;
     mutableEnv.NODE_ENV = originalNodeEnv;
     mutableEnv.VERCEL_ENV = originalVercelEnv;
   });
@@ -36,6 +38,15 @@ describe('paddle webhook onboarding helpers', () => {
 
     expect(buildTenantPasswordResetRedirectUrl('tenant_mk')).toBe(
       'http://mk.localhost/mk/reset-password'
+    );
+  });
+
+  it('falls back to the configured default public tenant for invalid tenant IDs', () => {
+    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = 'tenant_al';
+    mutableEnv.AL_HOST = 'al.example.test';
+
+    expect(buildTenantPasswordResetRedirectUrl('not-a-tenant')).toBe(
+      'https://al.example.test/sq/reset-password'
     );
   });
 

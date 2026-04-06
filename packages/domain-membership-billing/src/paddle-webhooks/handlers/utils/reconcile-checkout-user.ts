@@ -34,6 +34,17 @@ type ReconcileCheckoutUserDeps = {
   requestPasswordResetOnboarding?: RequestPasswordResetOnboarding;
 };
 
+type ReconciledUserRecord = {
+  id: string;
+  tenantId: string;
+  branchId: string | null;
+  email: string;
+  name: string | null;
+  role: string;
+  memberNumber: string | null;
+  agentId?: string | null;
+};
+
 function normalizeText(value: string | null | undefined): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
@@ -50,6 +61,38 @@ function toCustomData(
 ): CheckoutCustomData | undefined {
   if (!value && !fallback) return undefined;
   return { ...fallback, ...value };
+}
+
+function shouldPromoteRole(role: string | null | undefined): boolean {
+  return !role || role === 'user' || role === 'member';
+}
+
+function isUniqueViolation(error: unknown): error is { code: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string' &&
+    (error as { code: string }).code === '23505'
+  );
+}
+
+async function findUserByEmail(email: string): Promise<ReconciledUserRecord | null> {
+  return (
+    (await db.query.user.findFirst({
+      where: (users, { eq }) => eq(users.email, email),
+      columns: {
+        id: true,
+        tenantId: true,
+        branchId: true,
+        email: true,
+        name: true,
+        role: true,
+        memberNumber: true,
+        agentId: true,
+      },
+    })) ?? null
+  );
 }
 
 export async function reconcileCheckoutUser(
@@ -94,19 +137,7 @@ export async function reconcileCheckoutUser(
     return null;
   }
 
-  const existingUser = await db.query.user.findFirst({
-    where: (users, { eq }) => eq(users.email, customerEmail),
-    columns: {
-      id: true,
-      tenantId: true,
-      branchId: true,
-      email: true,
-      name: true,
-      role: true,
-      memberNumber: true,
-      agentId: true,
-    },
-  });
+  let existingUser = await findUserByEmail(customerEmail);
 
   if (existingUser && existingUser.tenantId !== tenantId) {
     console.warn(
@@ -123,30 +154,43 @@ export async function reconcileCheckoutUser(
 
   if (!existingUser) {
     const newUserId = nanoid();
-    await db.transaction(async tx => {
-      await tx.insert(userTable).values({
-        id: newUserId,
-        tenantId,
-        branchId,
-        name: emailDisplayName(customerEmail),
-        email: customerEmail,
-        emailVerified: false,
-        role: 'member',
-        agentId: mergedCustomData?.agentId,
-        createdAt: now,
-        updatedAt: now,
-        createdBy: 'self',
-        assistedByAgentId: mergedCustomData?.agentId,
+    try {
+      await db.transaction(async tx => {
+        await tx.insert(userTable).values({
+          id: newUserId,
+          tenantId,
+          branchId,
+          name: emailDisplayName(customerEmail),
+          email: customerEmail,
+          emailVerified: false,
+          role: 'member',
+          agentId: mergedCustomData?.agentId,
+          createdAt: now,
+          updatedAt: now,
+          createdBy: 'self',
+          assistedByAgentId: mergedCustomData?.agentId,
+        });
+
+        await generateMemberNumber(tx, {
+          userId: newUserId,
+          joinedAt: now,
+        });
       });
 
-      await generateMemberNumber(tx, {
-        userId: newUserId,
-        joinedAt: now,
-      });
-    });
+      shouldRequestOnboarding = true;
+      userId = newUserId;
+    } catch (error) {
+      if (!isUniqueViolation(error)) {
+        throw error;
+      }
 
-    shouldRequestOnboarding = true;
-    userId = newUserId;
+      existingUser = await findUserByEmail(customerEmail);
+      if (!existingUser || existingUser.tenantId !== tenantId) {
+        throw error;
+      }
+
+      userId = existingUser.id;
+    }
   }
 
   const credentialAccount = userId
@@ -161,11 +205,12 @@ export async function reconcileCheckoutUser(
     existingUser &&
     (!credentialAccount || existingUser.role !== 'member' || !existingUser.memberNumber)
   ) {
+    const nextRole = shouldPromoteRole(existingUser.role) ? 'member' : existingUser.role;
     await db.transaction(async tx => {
       await tx
         .update(userTable)
         .set({
-          role: 'member',
+          role: nextRole,
           branchId: existingUser.branchId ?? branchId ?? null,
           agentId: existingUser.agentId ?? mergedCustomData?.agentId ?? null,
           assistedByAgentId: mergedCustomData?.agentId ?? null,

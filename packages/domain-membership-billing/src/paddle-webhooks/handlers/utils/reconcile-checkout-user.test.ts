@@ -22,6 +22,7 @@ const hoisted = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   db: hoisted.db,
+  eq: vi.fn((left, right) => ({ left, right })),
   user: { id: 'user.id' },
 }));
 
@@ -274,5 +275,137 @@ describe('reconcileCheckoutUser', () => {
     );
 
     errorSpy.mockRestore();
+  });
+
+  it('reuses a raced same-tenant user when insert hits a unique violation', async () => {
+    const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
+
+    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+      payload: {
+        data: {
+          customerEmail: 'race@example.com',
+          customData: {
+            tenantId: 'tenant_mk',
+          },
+        },
+      },
+    });
+    hoisted.db.query.user.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: 'user_race',
+        tenantId: 'tenant_mk',
+        branchId: 'branch-mk-main',
+        email: 'race@example.com',
+        name: 'Race Winner',
+        memberNumber: 'MEM-2026-000777',
+        role: 'member',
+        agentId: null,
+      })
+      .mockResolvedValueOnce({
+        id: 'user_race',
+        tenantId: 'tenant_mk',
+        branchId: 'branch-mk-main',
+        email: 'race@example.com',
+        name: 'Race Winner',
+        memberNumber: 'MEM-2026-000777',
+        role: 'member',
+      });
+    hoisted.db.query.account.findFirst.mockResolvedValue({
+      id: 'acct_credential',
+      providerId: 'credential',
+    });
+    hoisted.db.query.tenantSettings.findFirst.mockResolvedValue({
+      value: { branchId: 'branch-mk-main' },
+    });
+    hoisted.insertedUserValues.mockRejectedValueOnce(uniqueViolation);
+
+    const result = await reconcileCheckoutUser(
+      {
+        id: 'sub_race',
+        transactionId: 'txn_race',
+        customData: {
+          tenantId: 'tenant_mk',
+        },
+      },
+      { requestPasswordResetOnboarding }
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        userId: 'user_race',
+        tenantId: 'tenant_mk',
+      })
+    );
+    expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
+    expect(hoisted.generateMemberNumber).not.toHaveBeenCalled();
+  });
+
+  it('preserves elevated roles while still backfilling member state', async () => {
+    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+      payload: {
+        data: {
+          customerEmail: 'admin@example.com',
+          customData: {
+            tenantId: 'tenant_ks',
+            agentId: 'agent_1',
+          },
+        },
+      },
+    });
+    hoisted.db.query.user.findFirst
+      .mockResolvedValueOnce({
+        id: 'user_admin',
+        tenantId: 'tenant_ks',
+        branchId: null,
+        email: 'admin@example.com',
+        name: 'Admin User',
+        memberNumber: null,
+        role: 'admin',
+        agentId: null,
+      })
+      .mockResolvedValueOnce({
+        id: 'user_admin',
+        tenantId: 'tenant_ks',
+        branchId: 'branch-ks-main',
+        email: 'admin@example.com',
+        name: 'Admin User',
+        memberNumber: 'MEM-2026-000555',
+        role: 'admin',
+      });
+    hoisted.db.query.account.findFirst.mockResolvedValue({
+      id: 'acct_credential',
+      providerId: 'credential',
+    });
+    hoisted.db.query.tenantSettings.findFirst.mockResolvedValue({
+      value: { branchId: 'branch-ks-main' },
+    });
+
+    await reconcileCheckoutUser(
+      {
+        id: 'sub_admin',
+        transactionId: 'txn_admin',
+        customData: {
+          tenantId: 'tenant_ks',
+          agentId: 'agent_1',
+        },
+      },
+      { requestPasswordResetOnboarding }
+    );
+
+    expect(hoisted.tx.update).toHaveBeenCalled();
+    expect(hoisted.updatedUserValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: 'admin',
+        branchId: 'branch-ks-main',
+        agentId: 'agent_1',
+        assistedByAgentId: 'agent_1',
+      })
+    );
+    expect(hoisted.generateMemberNumber).toHaveBeenCalledWith(hoisted.tx, {
+      userId: 'user_admin',
+      joinedAt: expect.any(Date),
+    });
+    expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
   });
 });

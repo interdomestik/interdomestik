@@ -22,7 +22,7 @@ export type TenantResolutionResult = {
   source: TenantResolutionSource;
 };
 
-function resolveDefaultPublicTenantId(): TenantId {
+export function resolveDefaultPublicTenantId(): TenantId {
   const configured = coerceTenantId(process.env.DEFAULT_PUBLIC_TENANT_ID);
   return configured ?? 'tenant_ks';
 }

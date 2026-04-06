@@ -5,6 +5,7 @@ import { sendPaymentFailedEmail } from '@/lib/email';
 import {
   coerceTenantId,
   preferredLocaleForTenant,
+  resolveDefaultPublicTenantId,
   resolveTenantAppOrigin,
 } from '@/lib/tenant/tenant-hosts';
 import { db } from '@interdomestik/database';
@@ -90,7 +91,7 @@ function resolveProviderTransactionId(params: {
 }
 
 export function buildTenantPasswordResetRedirectUrl(tenantId: string): string {
-  const normalizedTenantId = coerceTenantId(tenantId) ?? 'tenant_ks';
+  const normalizedTenantId = coerceTenantId(tenantId) ?? resolveDefaultPublicTenantId();
   const origin = resolveTenantAppOrigin(normalizedTenantId);
   const locale = preferredLocaleForTenant(normalizedTenantId);
   return new URL(`/${locale}/reset-password`, origin).toString();
