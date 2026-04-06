@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 type PricingTableProps = Readonly<{
   userId?: string;
   email?: string;
+  tenantId?: string | null;
   billingTestMode?: boolean;
   isSessionPending?: boolean;
 }>;
@@ -57,16 +58,46 @@ function trackMembershipCheckoutOpened(args: { locale: string; planId: string; u
   );
 }
 
-function buildCheckoutCustomData(args: { userId?: string; agentId?: string }) {
+function getCheckoutAttribution(search: string) {
+  const params = new URLSearchParams(search);
+
+  const normalize = (key: string) => {
+    const value = params.get(key)?.trim();
+    return value ? value : undefined;
+  };
+
   return {
+    utmSource: normalize('utm_source'),
+    utmMedium: normalize('utm_medium'),
+    utmCampaign: normalize('utm_campaign'),
+    utmContent: normalize('utm_content'),
+  };
+}
+
+function buildCheckoutCustomData(args: {
+  userId?: string;
+  agentId?: string;
+  tenantId?: string | null;
+  search?: string;
+}) {
+  const attribution = getCheckoutAttribution(args.search ?? '');
+
+  return {
+    acquisitionSource: 'self_serve_web',
     ...(args.userId ? { userId: args.userId } : {}),
     ...(args.agentId ? { agentId: args.agentId } : {}),
+    ...(args.tenantId ? { tenantId: args.tenantId } : {}),
+    ...(attribution.utmSource ? { utmSource: attribution.utmSource } : {}),
+    ...(attribution.utmMedium ? { utmMedium: attribution.utmMedium } : {}),
+    ...(attribution.utmCampaign ? { utmCampaign: attribution.utmCampaign } : {}),
+    ...(attribution.utmContent ? { utmContent: attribution.utmContent } : {}),
   };
 }
 
 export function PricingTable({
   userId,
   email,
+  tenantId,
   billingTestMode,
   isSessionPending = false,
 }: PricingTableProps) {
@@ -221,6 +252,8 @@ export function PricingTable({
       customData: buildCheckoutCustomData({
         userId,
         agentId: agentId ? String(agentId) : undefined,
+        tenantId,
+        search: window.location.search,
       }),
       settings: {
         displayMode: 'overlay',

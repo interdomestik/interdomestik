@@ -7,8 +7,9 @@ import { PricingTable } from './pricing-table';
 // Mock dependencies
 import { cloneElement, isValidElement, MouseEventHandler, ReactElement, ReactNode } from 'react';
 const mockRouterPush = vi.fn();
-const { mockToastError } = vi.hoisted(() => ({
+const { mockToastError, mockGetCookie } = vi.hoisted(() => ({
   mockToastError: vi.fn(),
+  mockGetCookie: vi.fn(),
 }));
 let mockLocale = 'en';
 
@@ -78,6 +79,10 @@ vi.mock('sonner', () => ({
   },
 }));
 
+vi.mock('cookies-next', () => ({
+  getCookie: mockGetCookie,
+}));
+
 describe('PricingTable', () => {
   const mockPaddle = {
     Checkout: {
@@ -91,6 +96,7 @@ describe('PricingTable', () => {
     vi.unstubAllEnvs();
     mockRouterPush.mockReset();
     mockToastError.mockReset();
+    mockGetCookie.mockReset();
     mockLocale = 'en';
     process.env.NEXT_PUBLIC_PILOT_MODE = originalPilotMode;
     window.history.replaceState({}, '', '/pricing');
@@ -123,7 +129,14 @@ describe('PricingTable', () => {
   });
 
   it('initiates checkout on button click', async () => {
-    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+    render(
+      <PricingTable
+        userId="user-123"
+        email="test@example.com"
+        billingTestMode={false}
+        tenantId="tenant_ks"
+      />
+    );
 
     // Find the Join Now button for standard plan (now at index 0)
     const joinButtons = screen.getAllByText('cta');
@@ -134,10 +147,50 @@ describe('PricingTable', () => {
         expect.objectContaining({
           items: expect.arrayContaining([{ priceId: PADDLE_PRICES.standard.yearly, quantity: 1 }]),
           customer: { email: 'test@example.com' },
-          customData: { userId: 'user-123' },
+          customData: {
+            acquisitionSource: 'self_serve_web',
+            tenantId: 'tenant_ks',
+            userId: 'user-123',
+          },
           settings: expect.objectContaining({
             successUrl: expect.stringContaining('/en/member/membership/success'),
             locale: 'en',
+          }),
+        })
+      );
+    });
+  });
+
+  it('preserves agent and marketing attribution in checkout customData when available', async () => {
+    mockGetCookie.mockReturnValue('agent-42');
+    window.history.replaceState(
+      {},
+      '',
+      '/pricing?utm_source=google&utm_medium=cpc&utm_campaign=funnel&utm_content=hero'
+    );
+
+    render(
+      <PricingTable
+        userId="user-123"
+        email="test@example.com"
+        billingTestMode={false}
+        tenantId="tenant_mk"
+      />
+    );
+
+    fireEvent.click(screen.getAllByText('cta')[0]);
+
+    await waitFor(() => {
+      expect(mockPaddle.Checkout.open).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customData: expect.objectContaining({
+            acquisitionSource: 'self_serve_web',
+            agentId: 'agent-42',
+            tenantId: 'tenant_mk',
+            utmSource: 'google',
+            utmMedium: 'cpc',
+            utmCampaign: 'funnel',
+            utmContent: 'hero',
           }),
         })
       );

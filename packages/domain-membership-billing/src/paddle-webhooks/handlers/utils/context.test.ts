@@ -109,7 +109,7 @@ describe('context utils', () => {
       const sub = { id: 's_1', customData: { userId: 'u_1' } };
 
       (db.query.subscriptions.findFirst as any).mockImplementation(
-        mockDbResponse({ tenantId: 'tn_ex' })
+        mockDbResponse({ tenantId: 'tn_ex', userId: 'u_1' })
       );
       (db.query.user.findFirst as any).mockImplementation(mockDbResponse({ email: 'e@mail.com' }));
       (db.query.tenantSettings.findFirst as any).mockImplementation(
@@ -138,6 +138,29 @@ describe('context utils', () => {
 
       const result = await resolveSubscriptionContext(sub);
       expect(result?.tenantId).toBe('tn_usr');
+    });
+
+    it('should reuse existing subscription user when customData omits userId', async () => {
+      const sub = { id: 's_existing', customData: { tenantId: 'tenant_mk', agentId: 'ag_1' } };
+
+      (db.query.subscriptions.findFirst as any).mockImplementation(
+        mockDbResponse({ tenantId: 'tenant_mk', userId: 'user_existing' })
+      );
+      (db.query.user.findFirst as any).mockImplementation(
+        mockDbResponse({ tenantId: 'tenant_mk', email: 'member@example.com' })
+      );
+      (db.query.tenantSettings.findFirst as any).mockImplementation(
+        mockDbResponse({ value: { branchId: 'br_agent' } })
+      );
+
+      const result = await resolveSubscriptionContext(sub);
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          userId: 'user_existing',
+          tenantId: 'tenant_mk',
+        })
+      );
     });
 
     it('should return null if tenant cannot be resolved', async () => {

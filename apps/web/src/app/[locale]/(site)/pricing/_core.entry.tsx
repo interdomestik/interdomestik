@@ -8,6 +8,10 @@ import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tr
 import { SuccessFeeCalculator } from '@/components/commercial/success-fee-calculator';
 import { buildSuccessFeeCalculatorProps } from '@/components/commercial/success-fee-calculator-content';
 import { generateLocaleStaticParams } from '@/app/_locale-static-params';
+import {
+  resolveBillingEntityFromPathSegment,
+  resolveBillingTenantIdForEntity,
+} from '@interdomestik/domain-membership-billing/paddle-server';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { PricingPageRuntime } from './pricing-page-runtime';
@@ -34,6 +38,10 @@ export default async function PricingPage({ params }: PricingPageProps) {
   ]);
 
   const billingTestMode = process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
+  const billingEntity = resolveBillingEntityFromPathSegment(
+    process.env.PADDLE_DEFAULT_BILLING_ENTITY
+  );
+  const billingTenantId = billingEntity ? resolveBillingTenantIdForEntity(billingEntity) : null;
 
   return (
     <div
@@ -66,7 +74,7 @@ export default async function PricingPage({ params }: PricingPageProps) {
         ]}
       />
 
-      <PricingPageRuntime billingTestMode={billingTestMode} />
+      <PricingPageRuntime billingTenantId={billingTenantId} billingTestMode={billingTestMode} />
 
       <div className="mt-16">
         <SuccessFeeCalculator
