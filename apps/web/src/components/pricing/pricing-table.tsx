@@ -43,6 +43,27 @@ function getPlanColorClass(color: string) {
   return 'bg-indigo-50 text-indigo-600';
 }
 
+function trackMembershipCheckoutOpened(args: { locale: string; planId: string; userId?: string }) {
+  CommercialFunnelEvents.membershipCheckoutOpened(
+    {
+      tenantId: null,
+      variant: 'hero_v1',
+      locale: args.locale,
+    },
+    {
+      plan_id: args.planId,
+      flow_entry: args.userId ? 'logged_in_member' : 'anonymous_public',
+    }
+  );
+}
+
+function buildCheckoutCustomData(args: { userId?: string; agentId?: string }) {
+  return {
+    ...(args.userId ? { userId: args.userId } : {}),
+    ...(args.agentId ? { agentId: args.agentId } : {}),
+  };
+}
+
 export function PricingTable({
   userId,
   email,
@@ -176,23 +197,51 @@ export function PricingTable({
     router.push(`/member/membership/success?${params.toString()}`);
   };
 
+  const openPaddleCheckout = async (args: { planId: string; priceId: string }) => {
+    console.log('🏷️ Opening Paddle checkout with Price ID:', args.priceId);
+    const paddle = await getPaddleInstance();
+
+    if (!paddle) {
+      console.error('Paddle not initialized');
+      toast.error('Payment system unavailable. Please check configuration.');
+      return;
+    }
+
+    const agentId = getCookie('agent_ref');
+
+    trackMembershipCheckoutOpened({
+      locale,
+      planId: args.planId,
+      userId,
+    });
+
+    paddle.Checkout.open({
+      items: [{ priceId: args.priceId, quantity: 1 }],
+      customer: email ? { email } : undefined,
+      customData: buildCheckoutCustomData({
+        userId,
+        agentId: agentId ? String(agentId) : undefined,
+      }),
+      settings: {
+        displayMode: 'overlay',
+        theme: 'light',
+        locale: getPaddleLocale(locale),
+        successUrl: `${window.location.origin}/${locale}/member/membership/success`,
+      },
+    });
+  };
+
   const handleAction = async (planId: string, priceId: string) => {
     if (process.env.NEXT_PUBLIC_PILOT_MODE === 'true') return;
 
     setLoading(priceId);
     try {
       if (isBillingTestMode || shouldUseDevCheckoutFallback) {
-        CommercialFunnelEvents.membershipCheckoutOpened(
-          {
-            tenantId: null,
-            variant: 'hero_v1',
-            locale,
-          },
-          {
-            plan_id: planId,
-            flow_entry: userId ? 'logged_in_member' : 'anonymous_public',
-          }
-        );
+        trackMembershipCheckoutOpened({
+          locale,
+          planId,
+          userId,
+        });
         if (shouldUseDevCheckoutFallback) {
           console.warn(
             'Paddle client token missing in development, falling back to simulated checkout.'
@@ -202,42 +251,7 @@ export function PricingTable({
         return;
       }
 
-      console.log('🏷️ Opening Paddle checkout with Price ID:', priceId);
-      const paddle = await getPaddleInstance();
-      if (paddle) {
-        // Check for referral cookie
-        const agentId = getCookie('agent_ref');
-
-        CommercialFunnelEvents.membershipCheckoutOpened(
-          {
-            tenantId: null,
-            variant: 'hero_v1',
-            locale,
-          },
-          {
-            plan_id: planId,
-            flow_entry: userId ? 'logged_in_member' : 'anonymous_public',
-          }
-        );
-
-        paddle.Checkout.open({
-          items: [{ priceId, quantity: 1 }],
-          customer: email ? { email } : undefined,
-          customData: {
-            ...(userId ? { userId } : {}),
-            ...(agentId ? { agentId: String(agentId) } : {}),
-          },
-          settings: {
-            displayMode: 'overlay',
-            theme: 'light',
-            locale: getPaddleLocale(locale),
-            successUrl: `${window.location.origin}/${locale}/member/membership/success`,
-          },
-        });
-      } else {
-        console.error('Paddle not initialized');
-        toast.error('Payment system unavailable. Please check configuration.');
-      }
+      await openPaddleCheckout({ planId, priceId });
     } catch (error) {
       console.error('Checkout error:', error);
     } finally {

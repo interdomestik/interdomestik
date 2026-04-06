@@ -145,12 +145,10 @@ describe('useDashboardNavigation', () => {
 
     await waitFor(() => {
       const items = screen.getAllByTestId('nav-item');
-      const membershipItem = items.find(
-        item => item.getAttribute('data-title') === 'membershipSection'
-      );
+      const membershipItem = items.find(item => item.dataset.title === 'membershipSection');
 
       expect(membershipItem).toBeTruthy();
-      expect(membershipItem?.getAttribute('data-href')).toBe('/member/membership');
+      expect(membershipItem?.dataset.href).toBe('/member/membership');
     });
   });
 });

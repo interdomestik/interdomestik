@@ -63,6 +63,55 @@ function getRoleRedirect(role: string | null | undefined): '/admin' | '/staff' |
   return null;
 }
 
+function AccountErrorState({
+  tLanding,
+}: Readonly<{
+  tLanding: Awaited<ReturnType<typeof getTranslations>>;
+}>) {
+  return (
+    <div className="flex flex-col items-center justify-center p-12 text-center space-y-4">
+      <div className="p-4 rounded-full bg-red-100 text-red-600">
+        <ShieldAlert className="w-12 h-12" />
+      </div>
+      <h2 className="text-2xl font-bold">{tLanding('account_error_title')}</h2>
+      <p className="text-muted-foreground">{tLanding('account_error_body')}</p>
+      <Button asChild variant="outline" className="rounded-xl">
+        <Link href="/member/help">{tLanding('account_error_cta')}</Link>
+      </Button>
+    </div>
+  );
+}
+
+function ActivationPanel({
+  tLanding,
+}: Readonly<{ tLanding: Awaited<ReturnType<typeof getTranslations>> }>) {
+  return (
+    <section
+      data-testid="member-activation-panel"
+      className="rounded-[2rem] border border-amber-200 bg-amber-50/80 p-6 shadow-sm"
+    >
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-2">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-800">
+            {tLanding('activation_title')}
+          </p>
+          <p className="max-w-2xl text-sm font-medium leading-6 text-slate-700">
+            {tLanding('activation_body')}
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button asChild className="rounded-2xl">
+            <Link href="/member/membership">{tLanding('activation_primary_cta')}</Link>
+          </Button>
+          <Button asChild variant="outline" className="rounded-2xl">
+            <Link href="/pricing">{tLanding('activation_secondary_cta')}</Link>
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export async function MemberDashboardView({ data, locale }: MemberDashboardViewProps) {
   const [t, tLanding] = await Promise.all([
     getTranslations('dashboard'),
@@ -86,21 +135,12 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
   // if (userDetails?.role === 'agent') { redirect('/agent'); }
 
   if (!userDetails) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12 text-center space-y-4">
-        <div className="p-4 rounded-full bg-red-100 text-red-600">
-          <ShieldAlert className="w-12 h-12" />
-        </div>
-        <h2 className="text-2xl font-bold">{tLanding('account_error_title')}</h2>
-        <p className="text-muted-foreground">{tLanding('account_error_body')}</p>
-        <Button asChild variant="outline" className="rounded-xl">
-          <Link href="/member/help">{tLanding('account_error_cta')}</Link>
-        </Button>
-      </div>
-    );
+    return <AccountErrorState tLanding={tLanding} />;
   }
 
   const isActive = subscription?.status === 'active';
+  const hasNoClaims = claims.length === 0;
+  const shouldShowActivationPanel = !isActive;
   const validThru = subscription?.currentPeriodEnd
     ? new Date(subscription.currentPeriodEnd).toLocaleDateString(resolveDateLocale(locale), {
         month: '2-digit',
@@ -117,7 +157,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
     <div className="space-y-10 pb-10" data-testid="member-dashboard-ready">
       <MemberHeader name={member.name} membershipNumber={member.membershipNumber} />
       <PrimaryActions locale={locale} />
-      {claims.length === 0 ? (
+      {hasNoClaims ? (
         <section data-testid="member-orientation-card" className="rounded-2xl border p-5 space-y-4">
           <h2 className="text-lg font-semibold">{tLanding('orientation_title')}</h2>
           <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
@@ -144,35 +184,11 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
         />
       ) : null}
 
-      {claims.length === 0 ? <MemberEmptyState locale={locale} /> : null}
+      {hasNoClaims ? <MemberEmptyState locale={locale} /> : null}
 
       <SupportLink href={supportHref} />
 
-      {!isActive ? (
-        <section
-          data-testid="member-activation-panel"
-          className="rounded-[2rem] border border-amber-200 bg-amber-50/80 p-6 shadow-sm"
-        >
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-2">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-800">
-                {tLanding('activation_title')}
-              </p>
-              <p className="max-w-2xl text-sm font-medium leading-6 text-slate-700">
-                {tLanding('activation_body')}
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button asChild className="rounded-2xl">
-                <Link href="/member/membership">{tLanding('activation_primary_cta')}</Link>
-              </Button>
-              <Button asChild variant="outline" className="rounded-2xl">
-                <Link href="/pricing">{tLanding('activation_secondary_cta')}</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      ) : null}
+      {shouldShowActivationPanel ? <ActivationPanel tLanding={tLanding} /> : null}
 
       <section className="space-y-6">
         <div className="flex items-center justify-between px-1">

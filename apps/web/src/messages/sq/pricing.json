@@ -202,7 +202,42 @@
       "subtitle": "Anëtarësimet për biznes aktivizohen përmes një hyrjeje të shkurtër të asistuar që të përshtatim mbrojtjen para aktivizimit.",
       "callCta": "Telefono ekipin e biznesit",
       "whatsappCta": "Hap WhatsApp",
-      "note": "Ne do të konfirmojmë flotën, pronat dhe ekipin para se ta aktivizojmë paketën e biznesit."
+      "note": "Ne do të konfirmojmë flotën, pronat dhe ekipin para se ta aktivizojmë paketën e biznesit.",
+      "form": {
+        "title": "Kërko konfigurim të asistuar",
+        "subtitle": "Na dërgoni bazat dhe ekipi ynë do t'ju kontaktojë me konfigurimin e duhur të anëtarësimit për biznes.",
+        "successTitle": "Kërkesa për biznes u pranua",
+        "successBody": "Kemi marrë kërkesën tuaj dhe do t'ju kontaktojmë për të konfirmuar konfigurimin e duhur të mbrojtjes.",
+        "successToast": "Kërkesa për biznes u pranua",
+        "privacyNote": "Duke dërguar këtë hyrje, ju lejoni Interdomestik t'ju kontaktojë për konfigurimin e anëtarësimit për biznes.",
+        "submit": "Dërgo kërkesën",
+        "submitPending": "Po dërgohet kërkesa",
+        "fields": {
+          "firstName": "Emri",
+          "lastName": "Mbiemri",
+          "companyName": "Emri i kompanisë",
+          "email": "Email i biznesit",
+          "phone": "Numri i telefonit",
+          "teamSize": "Madhësia e ekipit",
+          "notes": "Për çfarë keni nevojë për ndihmë?"
+        },
+        "placeholders": {
+          "firstName": "Shkruani emrin",
+          "lastName": "Shkruani mbiemrin",
+          "companyName": "Shkruani emrin e kompanisë",
+          "email": "Shkruani email-in e biznesit",
+          "phone": "Shkruani numrin e telefonit",
+          "teamSize": "Zgjidh madhësinë e ekipit",
+          "notes": "Flotë, prona, mbulim për staf, lokacione ose çdo gjë tjetër që duhet ta dimë."
+        },
+        "teamSizeOptions": {
+          "1-10": "1-10 persona",
+          "11-25": "11-25 persona",
+          "26-50": "26-50 persona",
+          "51-100": "51-100 persona",
+          "100+": "100+ persona"
+        }
+      }
     }
   }
 }
