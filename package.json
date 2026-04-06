@@ -182,12 +182,12 @@
     "@commitlint/config-conventional": "^20.5.0",
     "@playwright/mcp": "^0.0.69",
     "@release-it/conventional-changelog": "^10.0.6",
-    "@supabase/supabase-js": "^2.100.0",
+    "@supabase/supabase-js": "^2.101.1",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.19.3",
     "@upstash/context7-mcp": "^2.1.6",
     "bcryptjs": "^3.0.3",
-    "dotenv": "^17.3.1",
+    "dotenv": "^17.4.1",
     "glob": "^13.0.6",
     "gzip-size": "^7.0.0",
     "hono": "^4.12.9",
@@ -196,7 +196,7 @@
     "jsonwebtoken": "^9.0.3",
     "knip": "^5.87.0",
     "lint-staged": "^16.4.0",
-    "postgres": "^3.4.8",
+    "postgres": "^3.4.9",
     "prettier": "^3.8.1",
     "react-devtools": "^7.0.1",
     "release-it": "^19.2.4",
@@ -249,7 +249,7 @@
     }
   },
   "dependencies": {
-    "checkly": "^7.7.0",
-    "drizzle-orm": "^0.45.1"
+    "checkly": "^7.8.0",
+    "drizzle-orm": "^0.45.2"
   }
 }
