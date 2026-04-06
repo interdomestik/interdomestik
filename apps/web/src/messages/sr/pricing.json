@@ -202,7 +202,42 @@
       "subtitle": "Poslovna članstva se aktiviraju kroz kratak asistirani prijem kako bismo uskladili pravi opseg zaštite pre aktivacije.",
       "callCta": "Pozovite poslovni prijem",
       "whatsappCta": "Otvori WhatsApp",
-      "note": "Potvrdićemo vozila, imovinu i postavku tima pre nego što aktiviramo poslovni paket."
+      "note": "Potvrdićemo vozila, imovinu i postavku tima pre nego što aktiviramo poslovni paket.",
+      "form": {
+        "title": "Zatražite asistirano postavljanje",
+        "subtitle": "Pošaljite osnovne podatke i naš tim će vam se javiti sa pravim opsegom poslovnog članstva.",
+        "successTitle": "Poslovni prijem je primljen",
+        "successBody": "Primili smo vaš zahtev i javićemo vam se da potvrdimo pravi poslovni paket zaštite.",
+        "successToast": "Poslovni prijem je primljen",
+        "privacyNote": "Slanjem ovog prijema dozvoljavate Interdomestiku da vas kontaktira u vezi sa postavljanjem poslovnog članstva.",
+        "submit": "Pošalji poslovni prijem",
+        "submitPending": "Prijem se šalje",
+        "fields": {
+          "firstName": "Ime",
+          "lastName": "Prezime",
+          "companyName": "Naziv kompanije",
+          "email": "Poslovni email",
+          "phone": "Broj telefona",
+          "teamSize": "Veličina tima",
+          "notes": "Za šta vam je potrebna pomoć?"
+        },
+        "placeholders": {
+          "firstName": "Arben",
+          "lastName": "Lila",
+          "companyName": "Interdomestik Fleet",
+          "email": "ops@company.com",
+          "phone": "+383 44 111 222",
+          "teamSize": "Izaberite veličinu tima",
+          "notes": "Vozila, imovina, pokriće za zaposlene, lokacije ili bilo šta drugo što treba da znamo."
+        },
+        "teamSizeOptions": {
+          "1-10": "1-10 ljudi",
+          "11-25": "11-25 ljudi",
+          "26-50": "26-50 ljudi",
+          "51-100": "51-100 ljudi",
+          "100+": "100+ ljudi"
+        }
+      }
     }
   }
 }

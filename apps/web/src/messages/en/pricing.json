@@ -202,7 +202,42 @@
       "subtitle": "Business memberships are set up with a short assisted intake so we can match the right protection scope before activation.",
       "callCta": "Call business intake",
       "whatsappCta": "Open WhatsApp",
-      "note": "We will confirm fleet, property, and team setup before we activate the business package."
+      "note": "We will confirm fleet, property, and team setup before we activate the business package.",
+      "form": {
+        "title": "Request assisted setup",
+        "subtitle": "Share the essentials and our team will follow up with the right business membership scope.",
+        "successTitle": "Business intake received",
+        "successBody": "We have your request and will follow up to confirm the right business protection setup.",
+        "successToast": "Business intake received",
+        "privacyNote": "By submitting this intake, you allow Interdomestik to contact you about business membership setup.",
+        "submit": "Send business intake",
+        "submitPending": "Sending intake",
+        "fields": {
+          "firstName": "First name",
+          "lastName": "Last name",
+          "companyName": "Company name",
+          "email": "Business email",
+          "phone": "Phone number",
+          "teamSize": "Team size",
+          "notes": "What do you need help with?"
+        },
+        "placeholders": {
+          "firstName": "Arben",
+          "lastName": "Lila",
+          "companyName": "Interdomestik Fleet",
+          "email": "ops@company.com",
+          "phone": "+383 44 111 222",
+          "teamSize": "Select your team size",
+          "notes": "Fleet, property, staff coverage, locations, or anything else we should know."
+        },
+        "teamSizeOptions": {
+          "1-10": "1-10 people",
+          "11-25": "11-25 people",
+          "26-50": "26-50 people",
+          "51-100": "51-100 people",
+          "100+": "100+ people"
+        }
+      }
     }
   }
 }

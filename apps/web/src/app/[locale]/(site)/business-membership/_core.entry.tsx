@@ -1,4 +1,5 @@
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
+import { BusinessLeadForm } from '@/components/pricing/business-lead-form';
 import { generateLocaleStaticParams } from '@/app/_locale-static-params';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { getTranslations } from 'next-intl/server';
@@ -51,6 +52,8 @@ export default async function BusinessMembershipPage({ params }: BusinessMembers
 
         <p className="mt-6 text-sm font-semibold text-slate-500">{t('businessLead.note')}</p>
 
+        <BusinessLeadForm locale={locale} />
+
         <div className="mt-8">
           <CommercialDisclaimerNotice
             eyebrow={t('disclaimers.eyebrow')}
@@ -68,4 +71,4 @@ export default async function BusinessMembershipPage({ params }: BusinessMembers
 }
 
 export { generateViewport } from '@/app/_segment-exports';
-export const generateStaticParams = generateLocaleStaticParams;
+export { generateLocaleStaticParams as generateStaticParams } from '@/app/_locale-static-params';
