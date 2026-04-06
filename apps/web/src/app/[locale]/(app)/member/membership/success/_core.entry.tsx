@@ -13,7 +13,12 @@ import { MockActivationTrigger } from '@/components/billing/mock-activation-trig
 
 interface SuccessPageProps {
   params: Promise<{ locale: string }>;
-  searchParams?: Promise<{ test?: string; planId?: string; priceId?: string }>;
+  searchParams?: Promise<{
+    test?: string;
+    planId?: string;
+    priceId?: string;
+    activation?: string;
+  }>;
 }
 
 export default async function MembershipSuccessPage({ params, searchParams }: SuccessPageProps) {
@@ -26,6 +31,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
 
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const isTest = resolvedSearchParams.test === 'true';
+  const activationPending = resolvedSearchParams.activation === 'pending';
   const { planId, priceId } = resolvedSearchParams;
   const uiV2Enabled = isUiV2Enabled();
   const tenantId = session.user.tenantId ?? null;
@@ -40,7 +46,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
   const t = await getTranslations({ locale, namespace: 'membership.success' });
 
   return (
-    <div className="container max-w-4xl py-12 px-4" data-testid="success-page-ready">
+    <div className="container min-h-svh max-w-4xl px-4 py-12" data-testid="success-page-ready">
       {/* 
           🧪 BILLING TEST MODE TRIGGER
           If we are in test mode and have plan info, trigger the activation 
@@ -63,7 +69,24 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
         <p className="mt-4 mx-auto max-w-2xl rounded-2xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
           {t('classification_note')}
         </p>
+        <p className="mt-3 mx-auto max-w-2xl text-sm font-medium text-muted-foreground">
+          {t('onboarding_note')}
+        </p>
       </div>
+
+      {activationPending ? (
+        <div
+          data-testid="success-activation-pending"
+          className="mb-8 rounded-[1.75rem] border border-amber-200 bg-amber-50/80 px-5 py-4 text-left shadow-sm"
+        >
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-800">
+            {t('activation_pending_title')}
+          </p>
+          <p className="mt-2 text-sm font-medium leading-6 text-slate-700">
+            {t('activation_pending_body')}
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid gap-8 md:grid-cols-2">
         {/* Digital Card Promo */}
@@ -170,15 +193,23 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
         </div>
       </div>
 
-      <div className="mt-12 text-center">
-        <Button
-          asChild
-          size="lg"
-          variant="ghost"
-          className="text-muted-foreground hover:text-primary"
-        >
-          <Link href={`/${locale}/member`}>{t('cta_dashboard')}</Link>
-        </Button>
+      <div className="mt-12 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Button asChild size="lg" className="min-h-[44px] rounded-2xl px-6 font-bold">
+            <Link href={`/${locale}/member`}>{t('cta_open_dashboard')}</Link>
+          </Button>
+          {!activationPending ? (
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="min-h-[44px] rounded-2xl px-6 font-bold"
+            >
+              <Link href={`/${locale}/member/claims/new`}>{t('cta_start_claim')}</Link>
+            </Button>
+          ) : null}
+        </div>
+        <p className="mt-4 text-center text-sm text-muted-foreground">{t('cta_helper')}</p>
       </div>
     </div>
   );

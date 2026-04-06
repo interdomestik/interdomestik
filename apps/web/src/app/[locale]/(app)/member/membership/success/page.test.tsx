@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 
@@ -45,14 +45,41 @@ vi.mock('@/components/pwa/install-button', () => ({
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ children, href = '#' }: { children: ReactNode; href?: string }) => (
-    <a href={href}>{children}</a>
+  default: ({
+    children,
+    href = '#',
+    className,
+  }: {
+    children: ReactNode;
+    href?: string;
+    className?: string;
+  }) => (
+    <a href={href} className={className}>
+      {children}
+    </a>
   ),
 }));
 
 vi.mock('@interdomestik/ui', () => ({
   Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
-  Button: ({ children }: { children: ReactNode }) => <button>{children}</button>,
+  Button: ({
+    children,
+    className,
+    asChild,
+  }: {
+    children: ReactNode;
+    className?: string;
+    asChild?: boolean;
+  }) => {
+    if (asChild && isValidElement(children)) {
+      const child = children as ReactElement<{ className?: string }>;
+      return cloneElement(child, {
+        className: [child.props.className, className].filter(Boolean).join(' '),
+      });
+    }
+
+    return <button className={className}>{children}</button>;
+  },
   Card: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   CardContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   CardHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -74,6 +101,24 @@ describe('MembershipSuccessPage hotline disclaimer', () => {
     expect(screen.getByText('membership.success.hotline_disclaimer.title')).toBeInTheDocument();
     expect(screen.getByText('membership.success.hotline_disclaimer.body')).toBeInTheDocument();
     expect(screen.getByText('membership.success.classification_note')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.onboarding_note')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.cta_open_dashboard')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.cta_start_claim')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.cta_helper')).toBeInTheDocument();
+  });
+
+  it('shows an activation-in-progress state when checkout succeeded before activation completed', async () => {
+    const tree = await MembershipSuccessPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({ activation: 'pending' }),
+    });
+
+    render(tree);
+
+    expect(screen.getByText('membership.success.activation_pending_title')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.activation_pending_body')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.cta_open_dashboard')).toBeInTheDocument();
+    expect(screen.queryByText('membership.success.cta_start_claim')).not.toBeInTheDocument();
   });
 
   it('redirects to the localized login page when the success page opens without a session', async () => {
@@ -90,5 +135,37 @@ describe('MembershipSuccessPage hotline disclaimer', () => {
     ).rejects.toThrow('redirect:/mk/login');
 
     expect(hoisted.redirectMock).toHaveBeenCalledWith('/mk/login');
+  });
+
+  it('keeps the primary mobile actions at accessible touch-target size', async () => {
+    const tree = await MembershipSuccessPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({}),
+    });
+
+    render(tree);
+
+    const openDashboard = screen.getByRole('link', {
+      name: 'membership.success.cta_open_dashboard',
+    });
+    const startClaim = screen.getByRole('link', {
+      name: 'membership.success.cta_start_claim',
+    });
+
+    expect(openDashboard.className).toContain('min-h-[44px]');
+    expect(startClaim.className).toContain('min-h-[44px]');
+  });
+
+  it('hides the start-claim CTA while activation is still pending', async () => {
+    const tree = await MembershipSuccessPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({ activation: 'pending' }),
+    });
+
+    render(tree);
+
+    expect(
+      screen.queryByRole('link', { name: 'membership.success.cta_start_claim' })
+    ).not.toBeInTheDocument();
   });
 });

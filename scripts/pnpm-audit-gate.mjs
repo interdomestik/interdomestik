@@ -15,6 +15,35 @@ if (!raw) {
 }
 
 const allowed = new Set();
+const allowedPathRules = [];
+
+function normalizeAllowlistEntry(entry) {
+  if (typeof entry === 'string' || typeof entry === 'number') {
+    return { id: String(entry), paths: [] };
+  }
+
+  if (!entry || typeof entry !== 'object') {
+    return null;
+  }
+
+  const id = entry.id ?? entry.ghsaId;
+  if (!id) {
+    return null;
+  }
+
+  const paths = Array.isArray(entry.paths)
+    ? entry.paths.map(pathEntry => String(pathEntry))
+    : Array.isArray(entry.path)
+      ? entry.path.map(pathEntry => String(pathEntry))
+      : entry.path
+        ? [String(entry.path)]
+        : [];
+
+  return {
+    id: String(id),
+    paths,
+  };
+}
 
 function loadAllowlistFile(filePath) {
   try {
@@ -27,10 +56,10 @@ function loadAllowlistFile(filePath) {
     }
     const parsed = JSON.parse(rawAllowlist);
     if (Array.isArray(parsed)) {
-      return parsed.map(entry => String(entry));
+      return parsed.map(normalizeAllowlistEntry).filter(Boolean);
     }
     if (Array.isArray(parsed.allowlist)) {
-      return parsed.allowlist.map(entry => String(entry));
+      return parsed.allowlist.map(normalizeAllowlistEntry).filter(Boolean);
     }
     return [];
   } catch {
@@ -39,7 +68,12 @@ function loadAllowlistFile(filePath) {
 }
 
 const repoAllowlistPath = path.resolve(process.cwd(), 'scripts', 'pnpm-audit-allowlist.json');
-loadAllowlistFile(repoAllowlistPath).forEach(id => allowed.add(id));
+loadAllowlistFile(repoAllowlistPath).forEach(entry => {
+  allowed.add(entry.id);
+  if (entry.paths.length > 0) {
+    allowedPathRules.push(entry);
+  }
+});
 
 if (allowlist.length > 0) {
   allowlist.forEach(entry => {
@@ -47,7 +81,12 @@ if (allowlist.length > 0) {
       return;
     }
     if (fs.existsSync(entry)) {
-      loadAllowlistFile(entry).forEach(id => allowed.add(id));
+      loadAllowlistFile(entry).forEach(loadedEntry => {
+        allowed.add(loadedEntry.id);
+        if (loadedEntry.paths.length > 0) {
+          allowedPathRules.push(loadedEntry);
+        }
+      });
       return;
     }
     allowed.add(String(entry));
@@ -98,6 +137,27 @@ try {
 
 const blocked = [];
 
+function isAllowedByPath(id, advisory) {
+  const matchingRules = allowedPathRules.filter(rule => rule.id === id && rule.paths.length > 0);
+
+  if (matchingRules.length === 0) {
+    return false;
+  }
+
+  const findings = Array.isArray(advisory.findings) ? advisory.findings : [];
+  const observedPaths = findings.flatMap(finding =>
+    Array.isArray(finding.paths) ? finding.paths.map(pathEntry => String(pathEntry)) : []
+  );
+
+  if (observedPaths.length === 0) {
+    return false;
+  }
+
+  return observedPaths.every(observedPath =>
+    matchingRules.some(rule => rule.paths.includes(observedPath))
+  );
+}
+
 for (const advisory of advisories.values()) {
   const id = String(advisory.ghsaId || advisory.id);
   const severity = advisory.severity;
@@ -107,6 +167,10 @@ for (const advisory of advisories.values()) {
   }
 
   if (allowed.has(id)) {
+    continue;
+  }
+
+  if (isAllowedByPath(id, advisory)) {
     continue;
   }
 
