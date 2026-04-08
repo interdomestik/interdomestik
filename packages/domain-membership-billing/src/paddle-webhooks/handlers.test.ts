@@ -309,6 +309,88 @@ describe('Paddle Webhook Handlers', () => {
   });
 
   describe('handleSubscriptionPastDue', () => {
+    it('sends the payment failed email on the first dunning attempt', async () => {
+      const sendPaymentFailedEmail = vi.fn().mockResolvedValue(undefined);
+
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
+      hoisted.db.query.user.findFirst.mockResolvedValue({
+        id: 'user_123',
+        email: 'test@example.com',
+        name: 'Member',
+        tenantId: 'tenant_abc',
+      });
+
+      await handleSubscriptionPastDue(
+        {
+          data: {
+            id: 'sub_paddle_456',
+            status: 'past_due',
+            customData: { userId: 'user_123' },
+            items: [
+              {
+                price: {
+                  id: 'pri_123',
+                  description: 'Asistenca',
+                  unitPrice: { amount: '1000', currencyCode: 'USD' },
+                },
+              },
+            ],
+            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+          },
+        },
+        { sendPaymentFailedEmail }
+      );
+
+      expect(sendPaymentFailedEmail).toHaveBeenCalledWith(
+        'test@example.com',
+        expect.objectContaining({
+          memberName: 'Member',
+          planName: 'Asistenca',
+          gracePeriodDays: 14,
+        })
+      );
+    });
+
+    it('does not resend the payment failed email after the first dunning attempt', async () => {
+      const sendPaymentFailedEmail = vi.fn().mockResolvedValue(undefined);
+
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce({
+        id: 'sub_existing',
+        tenantId: 'tenant_abc',
+        userId: 'user_123',
+        dunningAttemptCount: 1,
+      });
+      hoisted.db.query.user.findFirst.mockResolvedValue({
+        id: 'user_123',
+        email: 'test@example.com',
+        name: 'Member',
+        tenantId: 'tenant_abc',
+      });
+
+      await handleSubscriptionPastDue(
+        {
+          data: {
+            id: 'sub_paddle_456',
+            status: 'past_due',
+            customData: { userId: 'user_123' },
+            items: [
+              {
+                price: {
+                  id: 'pri_123',
+                  description: 'Asistenca',
+                  unitPrice: { amount: '1000', currencyCode: 'USD' },
+                },
+              },
+            ],
+            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+          },
+        },
+        { sendPaymentFailedEmail }
+      );
+
+      expect(sendPaymentFailedEmail).not.toHaveBeenCalled();
+    });
+
     it('retries as an update when a raced insert hits a unique constraint', async () => {
       const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
       const mockWhere = vi.fn().mockResolvedValue(undefined);

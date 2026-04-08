@@ -3,7 +3,11 @@ import { authClient } from '@/lib/auth-client';
 import * as paddleLib from '@interdomestik/domain-membership-billing/paddle';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PricingTable } from './pricing-table';
+import {
+  PricingTable,
+  shouldOpenSelfServePrecheckout,
+  shouldRenderBusinessMembershipLink,
+} from './pricing-table';
 
 // Mock dependencies
 import { cloneElement, isValidElement, MouseEventHandler, ReactElement, ReactNode } from 'react';
@@ -133,6 +137,30 @@ describe('PricingTable', () => {
       expect(screen.getByTestId('plan-card-family')).toHaveAttribute('data-selected-plan', '1');
     });
     expect(screen.getByTestId('plan-card-standard')).toHaveAttribute('data-selected-plan', '0');
+  });
+
+  it('derives anonymous pricing CTA routing decisions from plan type and session state', () => {
+    expect(shouldOpenSelfServePrecheckout({ userId: undefined, planId: 'standard' })).toBe(true);
+    expect(shouldOpenSelfServePrecheckout({ userId: undefined, planId: 'family' })).toBe(true);
+    expect(shouldOpenSelfServePrecheckout({ userId: undefined, planId: 'business' })).toBe(false);
+    expect(shouldOpenSelfServePrecheckout({ userId: 'user-123', planId: 'standard' })).toBe(false);
+
+    expect(
+      shouldRenderBusinessMembershipLink({
+        userId: undefined,
+        planId: 'business',
+        isPilotMode: false,
+        isSessionPending: false,
+      })
+    ).toBe(true);
+    expect(
+      shouldRenderBusinessMembershipLink({
+        userId: 'user-123',
+        planId: 'business',
+        isPilotMode: false,
+        isSessionPending: false,
+      })
+    ).toBe(false);
   });
 
   it('renders plans correctly', () => {

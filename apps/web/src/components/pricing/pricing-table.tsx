@@ -23,6 +23,44 @@ type PricingTableProps = Readonly<{
 
 const PLAN_IDS = ['standard', 'family', 'business'] as const;
 const SELF_SERVE_PLAN_IDS = ['standard', 'family'] as const;
+type PlanId = (typeof PLAN_IDS)[number];
+type SelfServePlanId = (typeof SELF_SERVE_PLAN_IDS)[number];
+type PricingPlan = {
+  id: PlanId;
+  priceId: string;
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  features: string[];
+  popular: boolean;
+  icon: typeof ShieldCheck;
+  color: string;
+};
+
+function isSelfServePlanId(planId: PlanId): planId is SelfServePlanId {
+  return SELF_SERVE_PLAN_IDS.includes(planId as SelfServePlanId);
+}
+
+export function shouldOpenSelfServePrecheckout(args: { userId?: string; planId: PlanId }): boolean {
+  return !args.userId && isSelfServePlanId(args.planId);
+}
+
+export function shouldRenderBusinessMembershipLink(args: {
+  userId?: string;
+  planId: PlanId;
+  isPilotMode: boolean;
+  isSessionPending: boolean;
+}): boolean {
+  return !args.userId && args.planId === 'business' && !args.isPilotMode && !args.isSessionPending;
+}
+
+function findPlanById<TPlan extends { id: string }>(
+  plans: readonly TPlan[],
+  planId: string | null
+): TPlan | null {
+  return planId ? (plans.find(plan => plan.id === planId) ?? null) : null;
+}
 
 function getPaddleLocale(locale: string) {
   const normalizedLocale = locale.toLowerCase();
@@ -122,7 +160,7 @@ export function PricingTable({
   const otpSectionRef = useRef<HTMLElement | null>(null);
   const isPilotMode = process.env.NEXT_PUBLIC_PILOT_MODE === 'true';
 
-  const PLANS = [
+  const PLANS: PricingPlan[] = [
     {
       id: 'standard',
       priceId: PADDLE_PRICES.standard.yearly,
@@ -328,10 +366,8 @@ export function PricingTable({
     }
   };
 
-  const otpPlan = otpPlanId ? (PLANS.find(plan => plan.id === otpPlanId) ?? null) : null;
-  const localCheckoutUnavailablePlan = localCheckoutUnavailablePlanId
-    ? (PLANS.find(plan => plan.id === localCheckoutUnavailablePlanId) ?? null)
-    : null;
+  const otpPlan = findPlanById(PLANS, otpPlanId);
+  const localCheckoutUnavailablePlan = findPlanById(PLANS, localCheckoutUnavailablePlanId);
   const sendOtpForPlan = async () => {
     if (!otpPlan || !otpEmail.trim()) {
       setOtpError(t('otpStep.errors.missingEmail'));
@@ -407,7 +443,58 @@ export function PricingTable({
     }
   };
 
-  const preCheckoutPlan = PLANS.find(plan => plan.id === preCheckoutPlanId) ?? null;
+  const preCheckoutPlan = findPlanById(PLANS, preCheckoutPlanId);
+  const resetOtpStepState = () => {
+    setOtpCode('');
+    setOtpError(null);
+    setOtpSuccess(null);
+  };
+
+  const openOtpStepForPlan = (planId: PlanId) => {
+    setPreCheckoutPlanId(null);
+    setOtpPlanId(planId);
+    resetOtpStepState();
+  };
+
+  const closeOtpStep = () => {
+    setOtpPlanId(null);
+    resetOtpStepState();
+  };
+
+  const handlePreCheckoutContinue = () => {
+    if (!preCheckoutPlan) {
+      return;
+    }
+
+    if (!userId) {
+      openOtpStepForPlan(preCheckoutPlan.id);
+      return;
+    }
+
+    void handleAction(preCheckoutPlan.id, preCheckoutPlan.priceId);
+  };
+
+  const handlePlanCtaClick = (plan: (typeof PLANS)[number]) => {
+    CommercialFunnelEvents.pricingPlanCtaClicked(
+      {
+        tenantId: null,
+        variant: 'hero_v1',
+        locale,
+      },
+      {
+        plan_id: plan.id,
+        flow_entry: userId ? 'logged_in_member' : 'anonymous_public',
+        plan_type: isSelfServePlanId(plan.id) ? 'self_serve' : 'assisted',
+      }
+    );
+
+    if (shouldOpenSelfServePrecheckout({ userId, planId: plan.id })) {
+      setPreCheckoutPlanId(plan.id);
+      return;
+    }
+
+    void handleAction(plan.id, plan.priceId);
+  };
 
   return (
     <div
@@ -492,38 +579,22 @@ export function PricingTable({
               }`}
               variant={plan.popular ? 'default' : 'outline'}
               disabled={isPilotMode || isSessionPending || loading === plan.priceId}
-              asChild={!userId && plan.id === 'business' && !isPilotMode && !isSessionPending}
+              asChild={shouldRenderBusinessMembershipLink({
+                userId,
+                planId: plan.id,
+                isPilotMode,
+                isSessionPending,
+              })}
               onClick={
-                !isPilotMode && !isSessionPending
-                  ? () => {
-                      CommercialFunnelEvents.pricingPlanCtaClicked(
-                        {
-                          tenantId: null,
-                          variant: 'hero_v1',
-                          locale,
-                        },
-                        {
-                          plan_id: plan.id,
-                          flow_entry: userId ? 'logged_in_member' : 'anonymous_public',
-                          plan_type: SELF_SERVE_PLAN_IDS.includes(plan.id as 'standard' | 'family')
-                            ? 'self_serve'
-                            : 'assisted',
-                        }
-                      );
-
-                      if (
-                        !userId &&
-                        SELF_SERVE_PLAN_IDS.includes(plan.id as 'standard' | 'family')
-                      ) {
-                        setPreCheckoutPlanId(plan.id);
-                        return;
-                      }
-                      handleAction(plan.id, plan.priceId);
-                    }
-                  : undefined
+                !isPilotMode && !isSessionPending ? () => handlePlanCtaClick(plan) : undefined
               }
             >
-              {!userId && plan.id === 'business' && !isPilotMode && !isSessionPending ? (
+              {shouldRenderBusinessMembershipLink({
+                userId,
+                planId: plan.id,
+                isPilotMode,
+                isSessionPending,
+              }) ? (
                 <Link href="/business-membership">{t('cta')}</Link>
               ) : (
                 <>
@@ -604,17 +675,7 @@ export function PricingTable({
               data-testid="precheckout-continue-cta"
               className="min-h-[44px] touch-manipulation rounded-2xl px-6"
               disabled={loading === preCheckoutPlan.priceId}
-              onClick={() => {
-                if (!userId) {
-                  setPreCheckoutPlanId(null);
-                  setOtpPlanId(preCheckoutPlan.id);
-                  setOtpCode('');
-                  setOtpError(null);
-                  setOtpSuccess(null);
-                  return;
-                }
-                handleAction(preCheckoutPlan.id, preCheckoutPlan.priceId);
-              }}
+              onClick={handlePreCheckoutContinue}
             >
               {loading === preCheckoutPlan.priceId ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -682,12 +743,7 @@ export function PricingTable({
                 type="button"
                 variant="outline"
                 className="min-h-[44px] touch-manipulation rounded-2xl px-6"
-                onClick={() => {
-                  setOtpPlanId(null);
-                  setOtpCode('');
-                  setOtpError(null);
-                  setOtpSuccess(null);
-                }}
+                onClick={closeOtpStep}
               >
                 {t('otpStep.back')}
               </Button>
