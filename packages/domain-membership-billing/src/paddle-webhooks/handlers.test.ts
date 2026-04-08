@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { handleSubscriptionPastDue } from './handlers/dunning';
 import { handleSubscriptionChanged } from './handlers/subscriptions';
 import { handleTransactionCompleted } from './handlers/transaction';
 
@@ -14,6 +15,7 @@ const hoisted = vi.hoisted(() => ({
     },
     transaction: vi.fn(),
     insert: vi.fn(() => ({ values: vi.fn(() => ({ onConflictDoUpdate: vi.fn() })) })),
+    update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) })),
   },
   subscriptions: { id: 'id_col' },
   user: { id: 'user.id' },
@@ -27,6 +29,7 @@ const hoisted = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   db: hoisted.db,
+  eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   subscriptions: hoisted.subscriptions,
   user: hoisted.user,
 }));
@@ -46,6 +49,14 @@ describe('Paddle Webhook Handlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.tx));
+    hoisted.db.insert.mockImplementation(() => ({
+      values: vi.fn().mockResolvedValue(undefined),
+    }));
+    hoisted.db.update.mockImplementation(() => ({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    }));
     hoisted.tx.insert.mockImplementation(() => ({
       values: hoisted.insertedUserValues,
     }));
@@ -172,6 +183,262 @@ describe('Paddle Webhook Handlers', () => {
       expect(hoisted.db.transaction).toHaveBeenCalledTimes(1);
       expect(hoisted.db.insert).toHaveBeenCalled();
     });
+
+    it('throws when a valid subscription event cannot resolve tenant context', async () => {
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
+      hoisted.db.query.user.findFirst.mockResolvedValue(undefined);
+
+      await expect(
+        handleSubscriptionChanged(
+          {
+            eventType: 'subscription.created',
+            data: {
+              id: 'sub_missing_tenant',
+              status: 'active',
+              customData: { userId: 'user_without_tenant' },
+              items: [
+                {
+                  price: { id: 'pri_123', unitPrice: { amount: '2000', currencyCode: 'EUR' } },
+                },
+              ],
+              currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
+            },
+          },
+          { logAuditEvent }
+        )
+      ).rejects.toThrow('Unable to resolve subscription context');
+
+      expect(hoisted.db.insert).not.toHaveBeenCalled();
+      expect(logAuditEvent).not.toHaveBeenCalled();
+    });
+
+    it('updates an existing user-scoped subscription row instead of inserting a second row', async () => {
+      const mockWhere = vi.fn().mockResolvedValue(undefined);
+      const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+      hoisted.db.update.mockReturnValue({ set: mockSet });
+
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+        id: 'mock_sub_existing',
+        tenantId: 'tenant_abc',
+        userId: 'user_123',
+      });
+      hoisted.db.query.user.findFirst.mockResolvedValue({
+        id: 'user_123',
+        email: 'test@example.com',
+        tenantId: 'tenant_abc',
+      });
+
+      await handleSubscriptionChanged(
+        {
+          eventType: 'subscription.updated',
+          data: {
+            id: 'sub_paddle_456',
+            status: 'active',
+            customData: { userId: 'user_123' },
+            items: [
+              {
+                price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
+              },
+            ],
+            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+          },
+        },
+        { logAuditEvent }
+      );
+
+      expect(hoisted.db.insert).not.toHaveBeenCalled();
+      expect(hoisted.db.update).toHaveBeenCalled();
+      expect(mockSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providerSubscriptionId: 'sub_paddle_456',
+        })
+      );
+      expect(mockWhere).toHaveBeenCalled();
+    });
+
+    it('retries as an update when a raced insert hits a unique constraint', async () => {
+      const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
+      const mockWhere = vi.fn().mockResolvedValue(undefined);
+      const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+
+      hoisted.db.update.mockReturnValue({ set: mockSet });
+      hoisted.db.insert.mockReturnValue({
+        values: vi.fn().mockRejectedValue(uniqueViolation),
+      });
+      hoisted.db.query.subscriptions.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          id: 'mock_sub_existing',
+          tenantId: 'tenant_abc',
+          userId: 'user_123',
+        });
+      hoisted.db.query.user.findFirst.mockResolvedValue({
+        id: 'user_123',
+        email: 'test@example.com',
+        tenantId: 'tenant_abc',
+      });
+
+      await handleSubscriptionChanged(
+        {
+          eventType: 'subscription.updated',
+          data: {
+            id: 'sub_paddle_456',
+            status: 'active',
+            customData: { userId: 'user_123' },
+            items: [
+              {
+                price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
+              },
+            ],
+            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+          },
+        },
+        { logAuditEvent }
+      );
+
+      expect(hoisted.db.insert).toHaveBeenCalled();
+      expect(mockSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providerSubscriptionId: 'sub_paddle_456',
+        })
+      );
+      expect(mockWhere).toHaveBeenCalled();
+    });
+  });
+
+  describe('handleSubscriptionPastDue', () => {
+    it('sends the payment failed email on the first dunning attempt', async () => {
+      const sendPaymentFailedEmail = vi.fn().mockResolvedValue(undefined);
+
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
+      hoisted.db.query.user.findFirst.mockResolvedValue({
+        id: 'user_123',
+        email: 'test@example.com',
+        name: 'Member',
+        tenantId: 'tenant_abc',
+      });
+
+      await handleSubscriptionPastDue(
+        {
+          data: {
+            id: 'sub_paddle_456',
+            status: 'past_due',
+            customData: { userId: 'user_123' },
+            items: [
+              {
+                price: {
+                  id: 'pri_123',
+                  description: 'Asistenca',
+                  unitPrice: { amount: '1000', currencyCode: 'USD' },
+                },
+              },
+            ],
+            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+          },
+        },
+        { sendPaymentFailedEmail }
+      );
+
+      expect(sendPaymentFailedEmail).toHaveBeenCalledWith(
+        'test@example.com',
+        expect.objectContaining({
+          memberName: 'Member',
+          planName: 'Asistenca',
+          gracePeriodDays: 14,
+        })
+      );
+    });
+
+    it('does not resend the payment failed email after the first dunning attempt', async () => {
+      const sendPaymentFailedEmail = vi.fn().mockResolvedValue(undefined);
+
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce({
+        id: 'sub_existing',
+        tenantId: 'tenant_abc',
+        userId: 'user_123',
+        dunningAttemptCount: 1,
+      });
+      hoisted.db.query.user.findFirst.mockResolvedValue({
+        id: 'user_123',
+        email: 'test@example.com',
+        name: 'Member',
+        tenantId: 'tenant_abc',
+      });
+
+      await handleSubscriptionPastDue(
+        {
+          data: {
+            id: 'sub_paddle_456',
+            status: 'past_due',
+            customData: { userId: 'user_123' },
+            items: [
+              {
+                price: {
+                  id: 'pri_123',
+                  description: 'Asistenca',
+                  unitPrice: { amount: '1000', currencyCode: 'USD' },
+                },
+              },
+            ],
+            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+          },
+        },
+        { sendPaymentFailedEmail }
+      );
+
+      expect(sendPaymentFailedEmail).not.toHaveBeenCalled();
+    });
+
+    it('retries as an update when a raced insert hits a unique constraint', async () => {
+      const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
+      const mockWhere = vi.fn().mockResolvedValue(undefined);
+      const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+
+      hoisted.db.update.mockReturnValue({ set: mockSet });
+      hoisted.db.insert.mockReturnValue({
+        values: vi.fn().mockRejectedValue(uniqueViolation),
+      });
+      hoisted.db.query.subscriptions.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          id: 'mock_sub_existing',
+          tenantId: 'tenant_abc',
+          userId: 'user_123',
+          dunningAttemptCount: 0,
+        });
+      hoisted.db.query.user.findFirst.mockResolvedValue({
+        id: 'user_123',
+        email: 'test@example.com',
+        name: 'Member',
+        tenantId: 'tenant_abc',
+      });
+
+      await handleSubscriptionPastDue({
+        data: {
+          id: 'sub_paddle_456',
+          status: 'past_due',
+          customData: { userId: 'user_123' },
+          items: [
+            {
+              price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
+            },
+          ],
+          currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+        },
+      });
+
+      expect(hoisted.db.insert).toHaveBeenCalled();
+      expect(mockSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providerSubscriptionId: 'sub_paddle_456',
+          status: 'past_due',
+        })
+      );
+      expect(mockWhere).toHaveBeenCalled();
+    });
   });
 
   describe('handleTransactionCompleted', () => {
@@ -265,6 +532,68 @@ describe('Paddle Webhook Handlers', () => {
         })
       );
       expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('resolves transaction tenant from provider subscription id lookups', async () => {
+      hoisted.db.query.subscriptions.findFirst.mockImplementationOnce(
+        async (args: {
+          where?: (
+            subs: Record<string, string>,
+            operators: {
+              eq: (left: unknown, right: unknown) => unknown;
+              or: (...clauses: unknown[]) => unknown;
+            }
+          ) => unknown;
+        }) => {
+          const whereNode = args.where?.(
+            {
+              id: 'subscriptions.id',
+              providerSubscriptionId: 'subscriptions.provider_subscription_id',
+            },
+            {
+              eq: (left, right) => ({ op: 'eq', left, right }),
+              or: (...clauses) => ({ op: 'or', clauses }),
+            }
+          ) as
+            | {
+                op?: string;
+                clauses?: Array<{ op?: string; left?: unknown; right?: unknown }>;
+              }
+            | undefined;
+
+          expect(whereNode).toEqual({
+            op: 'or',
+            clauses: [
+              { op: 'eq', left: 'subscriptions.id', right: 'sub_provider_456' },
+              {
+                op: 'eq',
+                left: 'subscriptions.provider_subscription_id',
+                right: 'sub_provider_456',
+              },
+            ],
+          });
+
+          return { tenantId: 'tenant_real' };
+        }
+      );
+
+      await handleTransactionCompleted(
+        {
+          data: {
+            id: 'tx_provider_lookup',
+            status: 'completed',
+            subscriptionId: 'sub_provider_456',
+            details: { totals: { total: '2000', currencyCode: 'EUR' } },
+          },
+        },
+        { logAuditEvent }
+      );
+
+      expect(logAuditEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'tenant_real',
+        })
+      );
     });
   });
 });

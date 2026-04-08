@@ -31,9 +31,16 @@ describe('Membership Adapter Policies', () => {
       ...overrides,
     });
 
-    it('should return empty actions when subscription is undefined', () => {
+    it('should return a primary recovery action when subscription is undefined', () => {
       const result = getMembershipActions(undefined, mockT);
-      expect(result).toEqual({ secondary: [] });
+      expect(result.primary).toEqual(
+        expect.objectContaining({
+          id: 'complete_membership',
+          label: 'ops.complete_membership',
+          variant: 'default',
+        })
+      );
+      expect(result.secondary).toEqual([]);
     });
 
     describe('past_due status - should show update payment primary', () => {

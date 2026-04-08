@@ -4,6 +4,7 @@ import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-d
 import { PADDLE_PRICES } from '@/config/paddle';
 import { Link, useRouter } from '@/i18n/routing';
 import { CommercialFunnelEvents } from '@/lib/analytics';
+import { authClient } from '@/lib/auth-client';
 import { getPaddleInstance } from '@interdomestik/domain-membership-billing/paddle';
 import { Badge, Button } from '@interdomestik/ui';
 import { getCookie } from 'cookies-next';
@@ -22,6 +23,44 @@ type PricingTableProps = Readonly<{
 
 const PLAN_IDS = ['standard', 'family', 'business'] as const;
 const SELF_SERVE_PLAN_IDS = ['standard', 'family'] as const;
+type PlanId = (typeof PLAN_IDS)[number];
+type SelfServePlanId = (typeof SELF_SERVE_PLAN_IDS)[number];
+type PricingPlan = {
+  id: PlanId;
+  priceId: string;
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  features: string[];
+  popular: boolean;
+  icon: typeof ShieldCheck;
+  color: string;
+};
+
+function isSelfServePlanId(planId: PlanId): planId is SelfServePlanId {
+  return SELF_SERVE_PLAN_IDS.includes(planId as SelfServePlanId);
+}
+
+export function shouldOpenSelfServePrecheckout(args: { userId?: string; planId: PlanId }): boolean {
+  return !args.userId && isSelfServePlanId(args.planId);
+}
+
+export function shouldRenderBusinessMembershipLink(args: {
+  userId?: string;
+  planId: PlanId;
+  isPilotMode: boolean;
+  isSessionPending: boolean;
+}): boolean {
+  return !args.userId && args.planId === 'business' && !args.isPilotMode && !args.isSessionPending;
+}
+
+function findPlanById<TPlan extends { id: string }>(
+  plans: readonly TPlan[],
+  planId: string | null
+): TPlan | null {
+  return planId ? (plans.find(plan => plan.id === planId) ?? null) : null;
+}
 
 function getPaddleLocale(locale: string) {
   const normalizedLocale = locale.toLowerCase();
@@ -107,10 +146,21 @@ export function PricingTable({
   const [loading, setLoading] = useState<string | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [preCheckoutPlanId, setPreCheckoutPlanId] = useState<string | null>(null);
+  const [otpPlanId, setOtpPlanId] = useState<string | null>(null);
+  const [otpEmail, setOtpEmail] = useState(email ?? '');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpSuccess, setOtpSuccess] = useState<string | null>(null);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [localCheckoutUnavailablePlanId, setLocalCheckoutUnavailablePlanId] = useState<
+    string | null
+  >(null);
   const preCheckoutSectionRef = useRef<HTMLElement | null>(null);
+  const otpSectionRef = useRef<HTMLElement | null>(null);
   const isPilotMode = process.env.NEXT_PUBLIC_PILOT_MODE === 'true';
 
-  const PLANS = [
+  const PLANS: PricingPlan[] = [
     {
       id: 'standard',
       priceId: PADDLE_PRICES.standard.yearly,
@@ -213,6 +263,12 @@ export function PricingTable({
     preCheckoutSectionRef.current.focus();
   }, [preCheckoutPlanId]);
 
+  useEffect(() => {
+    if (!otpPlanId || !otpSectionRef.current) return;
+
+    otpSectionRef.current.focus();
+  }, [otpPlanId]);
+
   const redirectToSimulatedSuccess = async (
     planId: string,
     priceId: string,
@@ -228,7 +284,12 @@ export function PricingTable({
     router.push(`/member/membership/success?${params.toString()}`);
   };
 
-  const openPaddleCheckout = async (args: { planId: string; priceId: string }) => {
+  const openPaddleCheckout = async (args: {
+    planId: string;
+    priceId: string;
+    checkoutEmail?: string;
+    checkoutUserId?: string;
+  }) => {
     const paddle = await getPaddleInstance();
 
     if (!paddle) {
@@ -242,14 +303,15 @@ export function PricingTable({
     trackMembershipCheckoutOpened({
       locale,
       planId: args.planId,
-      userId,
+      userId: args.checkoutUserId ?? userId,
     });
 
     paddle.Checkout.open({
       items: [{ priceId: args.priceId, quantity: 1 }],
-      customer: email ? { email } : undefined,
+      customer:
+        (args.checkoutEmail ?? email) ? { email: args.checkoutEmail ?? email ?? '' } : undefined,
       customData: buildCheckoutCustomData({
-        userId,
+        userId: args.checkoutUserId ?? userId,
         agentId: agentId ? String(agentId) : undefined,
         tenantId,
         search: globalThis.location.search,
@@ -263,27 +325,40 @@ export function PricingTable({
     });
   };
 
-  const handleAction = async (planId: string, priceId: string) => {
+  const handleAction = async (
+    planId: string,
+    priceId: string,
+    checkoutOverrides?: { email?: string; userId?: string }
+  ) => {
     if (process.env.NEXT_PUBLIC_PILOT_MODE === 'true') return;
 
     setLoading(priceId);
+    setLocalCheckoutUnavailablePlanId(null);
     try {
-      if (isBillingTestMode || shouldUseDevCheckoutFallback) {
+      if (isBillingTestMode) {
         trackMembershipCheckoutOpened({
           locale,
           planId,
-          userId,
+          userId: checkoutOverrides?.userId ?? userId,
         });
-        if (shouldUseDevCheckoutFallback) {
-          console.warn(
-            'Paddle client token missing in development, falling back to simulated checkout.'
-          );
-        }
-        await redirectToSimulatedSuccess(planId, priceId, isBillingTestMode);
+        await redirectToSimulatedSuccess(planId, priceId, true);
         return;
       }
 
-      await openPaddleCheckout({ planId, priceId });
+      if (shouldUseDevCheckoutFallback) {
+        console.warn(
+          'Paddle client token missing in development, checkout is unavailable locally.'
+        );
+        setLocalCheckoutUnavailablePlanId(planId);
+        return;
+      }
+
+      await openPaddleCheckout({
+        planId,
+        priceId,
+        checkoutEmail: checkoutOverrides?.email,
+        checkoutUserId: checkoutOverrides?.userId,
+      });
     } catch (error) {
       console.error('Checkout error:', error);
     } finally {
@@ -291,7 +366,135 @@ export function PricingTable({
     }
   };
 
-  const preCheckoutPlan = PLANS.find(plan => plan.id === preCheckoutPlanId) ?? null;
+  const otpPlan = findPlanById(PLANS, otpPlanId);
+  const localCheckoutUnavailablePlan = findPlanById(PLANS, localCheckoutUnavailablePlanId);
+  const sendOtpForPlan = async () => {
+    if (!otpPlan || !otpEmail.trim()) {
+      setOtpError(t('otpStep.errors.missingEmail'));
+      return;
+    }
+
+    setOtpSending(true);
+    setOtpError(null);
+    setOtpSuccess(null);
+
+    try {
+      const { error } = await authClient.emailOtp.sendVerificationOtp({
+        email: otpEmail.trim().toLowerCase(),
+        type: 'sign-in',
+      });
+
+      if (error) {
+        setOtpError(error.message || t('otpStep.errors.sendFailed'));
+        return;
+      }
+
+      setOtpSuccess(t('otpStep.sendSuccess'));
+    } catch {
+      setOtpError(t('otpStep.errors.sendFailed'));
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const verifyOtpForPlan = async () => {
+    if (!otpPlan) {
+      return;
+    }
+
+    if (!otpEmail.trim()) {
+      setOtpError(t('otpStep.errors.missingEmail'));
+      return;
+    }
+
+    if (!otpCode.trim()) {
+      setOtpError(t('otpStep.errors.missingCode'));
+      return;
+    }
+
+    setOtpVerifying(true);
+    setOtpError(null);
+
+    try {
+      const result = await authClient.signIn.emailOtp({
+        email: otpEmail.trim().toLowerCase(),
+        otp: otpCode.trim(),
+        ...(tenantId
+          ? {
+              tenantClassificationPending: true,
+              tenantId,
+            }
+          : {}),
+      });
+
+      if (result.error) {
+        setOtpError(result.error.message || t('otpStep.errors.invalidCode'));
+        return;
+      }
+
+      await handleAction(otpPlan.id, otpPlan.priceId, {
+        email: otpEmail.trim().toLowerCase(),
+        userId: result.data?.user?.id,
+      });
+    } catch {
+      setOtpError(t('otpStep.errors.invalidCode'));
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
+
+  const preCheckoutPlan = findPlanById(PLANS, preCheckoutPlanId);
+  const resetOtpStepState = () => {
+    setOtpCode('');
+    setOtpError(null);
+    setOtpSuccess(null);
+  };
+
+  const openOtpStepForPlan = (planId: PlanId) => {
+    setPreCheckoutPlanId(null);
+    setOtpPlanId(planId);
+    resetOtpStepState();
+  };
+
+  const closeOtpStep = () => {
+    setOtpPlanId(null);
+    resetOtpStepState();
+  };
+
+  const handlePreCheckoutContinue = () => {
+    if (!preCheckoutPlan) {
+      return;
+    }
+
+    if (!userId) {
+      openOtpStepForPlan(preCheckoutPlan.id);
+      return;
+    }
+
+    void handleAction(preCheckoutPlan.id, preCheckoutPlan.priceId);
+  };
+
+  const handlePlanCtaClick = (plan: (typeof PLANS)[number]) => {
+    CommercialFunnelEvents.pricingPlanCtaClicked(
+      {
+        tenantId: null,
+        variant: 'hero_v1',
+        locale,
+      },
+      {
+        plan_id: plan.id,
+        flow_entry: userId ? 'logged_in_member' : 'anonymous_public',
+        plan_type: isSelfServePlanId(plan.id) ? 'self_serve' : 'assisted',
+      }
+    );
+
+    if (shouldOpenSelfServePrecheckout({ userId, planId: plan.id })) {
+      setPreCheckoutPlanId(plan.id);
+      return;
+    }
+
+    void handleAction(plan.id, plan.priceId);
+  };
 
   return (
     <div
@@ -376,38 +579,22 @@ export function PricingTable({
               }`}
               variant={plan.popular ? 'default' : 'outline'}
               disabled={isPilotMode || isSessionPending || loading === plan.priceId}
-              asChild={!userId && plan.id === 'business' && !isPilotMode && !isSessionPending}
+              asChild={shouldRenderBusinessMembershipLink({
+                userId,
+                planId: plan.id,
+                isPilotMode,
+                isSessionPending,
+              })}
               onClick={
-                !isPilotMode && !isSessionPending
-                  ? () => {
-                      CommercialFunnelEvents.pricingPlanCtaClicked(
-                        {
-                          tenantId: null,
-                          variant: 'hero_v1',
-                          locale,
-                        },
-                        {
-                          plan_id: plan.id,
-                          flow_entry: userId ? 'logged_in_member' : 'anonymous_public',
-                          plan_type: SELF_SERVE_PLAN_IDS.includes(plan.id as 'standard' | 'family')
-                            ? 'self_serve'
-                            : 'assisted',
-                        }
-                      );
-
-                      if (
-                        !userId &&
-                        SELF_SERVE_PLAN_IDS.includes(plan.id as 'standard' | 'family')
-                      ) {
-                        setPreCheckoutPlanId(plan.id);
-                        return;
-                      }
-                      handleAction(plan.id, plan.priceId);
-                    }
-                  : undefined
+                !isPilotMode && !isSessionPending ? () => handlePlanCtaClick(plan) : undefined
               }
             >
-              {!userId && plan.id === 'business' && !isPilotMode && !isSessionPending ? (
+              {shouldRenderBusinessMembershipLink({
+                userId,
+                planId: plan.id,
+                isPilotMode,
+                isSessionPending,
+              }) ? (
                 <Link href="/business-membership">{t('cta')}</Link>
               ) : (
                 <>
@@ -421,6 +608,20 @@ export function PricingTable({
           </div>
         ))}
       </div>
+
+      {localCheckoutUnavailablePlan ? (
+        <section
+          data-testid="pricing-local-checkout-unavailable"
+          className="mx-auto max-w-4xl rounded-[2rem] border border-amber-200 bg-amber-50/80 p-6 shadow-sm"
+        >
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-800">
+            {t('localCheckout.title')}
+          </p>
+          <p className="mt-3 text-sm font-medium leading-6 text-slate-700">
+            {t('localCheckout.body', { planName: localCheckoutUnavailablePlan.name })}
+          </p>
+        </section>
+      ) : null}
 
       {preCheckoutPlan ? (
         <section
@@ -474,13 +675,7 @@ export function PricingTable({
               data-testid="precheckout-continue-cta"
               className="min-h-[44px] touch-manipulation rounded-2xl px-6"
               disabled={loading === preCheckoutPlan.priceId}
-              onClick={() => {
-                if (!userId) {
-                  router.push(`/register?plan=${preCheckoutPlan.id}`);
-                  return;
-                }
-                handleAction(preCheckoutPlan.id, preCheckoutPlan.priceId);
-              }}
+              onClick={handlePreCheckoutContinue}
             >
               {loading === preCheckoutPlan.priceId ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -496,6 +691,93 @@ export function PricingTable({
             >
               {t('preCheckout.cancel')}
             </Button>
+          </div>
+        </section>
+      ) : null}
+
+      {otpPlan ? (
+        <section
+          ref={otpSectionRef}
+          tabIndex={-1}
+          data-testid="pricing-otp-step"
+          className="mx-auto max-w-3xl rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl"
+        >
+          <div className="space-y-2">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-700">
+              {t('joinSecurely')}
+            </p>
+            <h2 className="text-3xl font-black tracking-tight text-slate-950">
+              {t('otpStep.title')}
+            </h2>
+            <p className="text-base font-medium text-slate-600">
+              {t('otpStep.subtitle', { planName: otpPlan.name })}
+            </p>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            <label className="block space-y-2">
+              <span className="text-sm font-bold text-slate-700">{t('otpStep.emailLabel')}</span>
+              <input
+                data-testid="pricing-otp-email-input"
+                type="email"
+                value={otpEmail}
+                onChange={event => setOtpEmail(event.target.value)}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base"
+                placeholder={t('otpStep.emailPlaceholder')}
+                autoComplete="email"
+              />
+            </label>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                data-testid="pricing-otp-send-cta"
+                className="min-h-[44px] touch-manipulation rounded-2xl px-6"
+                disabled={otpSending}
+                onClick={sendOtpForPlan}
+              >
+                {otpSending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                {t('otpStep.send')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-[44px] touch-manipulation rounded-2xl px-6"
+                onClick={closeOtpStep}
+              >
+                {t('otpStep.back')}
+              </Button>
+            </div>
+
+            <label className="block space-y-2">
+              <span className="text-sm font-bold text-slate-700">{t('otpStep.codeLabel')}</span>
+              <input
+                data-testid="pricing-otp-code-input"
+                type="text"
+                value={otpCode}
+                onChange={event => setOtpCode(event.target.value)}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base tracking-[0.3em]"
+                placeholder={t('otpStep.codePlaceholder')}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+              />
+            </label>
+
+            <Button
+              type="button"
+              data-testid="pricing-otp-verify-cta"
+              className="min-h-[44px] touch-manipulation rounded-2xl px-6"
+              disabled={otpVerifying}
+              onClick={verifyOtpForPlan}
+            >
+              {otpVerifying ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+              {t('otpStep.verify')}
+            </Button>
+
+            {otpError ? <p className="text-sm font-medium text-red-600">{otpError}</p> : null}
+            {otpSuccess ? (
+              <p className="text-sm font-medium text-emerald-700">{otpSuccess}</p>
+            ) : null}
           </div>
         </section>
       ) : null}

@@ -29,6 +29,7 @@ const mockDbResponse = (returnValue: any) => {
         {
           and: (...a: any[]) => a,
           eq: (a: any, b: any) => [a, b],
+          or: (...a: any[]) => a,
         }
       );
     }

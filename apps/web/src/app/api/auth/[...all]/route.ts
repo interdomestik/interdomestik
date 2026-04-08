@@ -8,7 +8,7 @@ import {
   evaluateEmailSignInTenantGuard,
   getAuthRateLimitConfig,
   getAuthRateLimitKeySuffix,
-  isEmailPasswordSignInUrl,
+  isEmailSignInUrl,
   getPasswordResetAuditEventFromUrl,
   resolveTenantIdForPasswordResetAudit,
 } from './_core';
@@ -60,12 +60,12 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const emailPasswordSignIn = isEmailPasswordSignInUrl(req.url);
-  const signInBody = emailPasswordSignIn ? await parseJsonBody(req) : null;
+  const emailSignIn = isEmailSignInUrl(req.url);
+  const signInBody = emailSignIn ? await parseJsonBody(req) : null;
   const postRateLimitConfig = getAuthRateLimitConfig('POST', req.url);
 
   if (!shouldBypassAuthRateLimit(req.headers)) {
-    if (emailPasswordSignIn) {
+    if (emailSignIn) {
       const identityKeySuffix = getAuthRateLimitKeySuffix({
         method: 'POST',
         url: req.url,
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
     }
   }
 
-  if (emailPasswordSignIn) {
+  if (emailSignIn) {
     const tenantGuard = await evaluateEmailSignInTenantGuard({
       url: req.url,
       headers: req.headers,
@@ -116,11 +116,12 @@ export async function POST(req: Request) {
     if (tenantGuard?.decision === 'deny') {
       if (tenantGuard.reason === 'tenant_mismatch') {
         try {
+          const route = new URL(req.url).pathname;
           await logAuditEvent({
             action: 'auth.signin_denied_wrong_tenant',
             entityType: 'auth',
             tenantId: tenantGuard.resolvedTenantId,
-            metadata: { route: '/api/auth/sign-in/email', reason: tenantGuard.reason },
+            metadata: { route, reason: tenantGuard.reason },
             headers: req.headers,
           });
         } catch {

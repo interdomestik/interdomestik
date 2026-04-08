@@ -4,8 +4,9 @@ import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-d
 import { getSessionSafe } from '@/components/shell/session';
 import { isUiV2Enabled } from '@/lib/flags';
 import { getSupportContacts } from '@/lib/support-contacts';
+import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
-import { CheckCircle2, Phone, QrCode, Smartphone, Wallet } from 'lucide-react';
+import { CheckCircle2, Phone, QrCode, Wallet } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -21,6 +22,21 @@ interface SuccessPageProps {
   }>;
 }
 
+export function resolveSuccessTopNoteKey(args: {
+  membershipActive: boolean;
+  tenantClassificationPending: boolean;
+}): 'classification_note' | 'active_note' | 'pending_note' {
+  if (!args.membershipActive) {
+    return 'pending_note';
+  }
+
+  if (args.tenantClassificationPending) {
+    return 'classification_note';
+  }
+
+  return 'active_note';
+}
+
 export default async function MembershipSuccessPage({ params, searchParams }: SuccessPageProps) {
   const { locale } = await params;
   const session = await getSessionSafe('MemberMembershipSuccessPage');
@@ -31,19 +47,34 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
 
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const isTest = resolvedSearchParams.test === 'true';
-  const activationPending = resolvedSearchParams.activation === 'pending';
   const { planId, priceId } = resolvedSearchParams;
   const uiV2Enabled = isUiV2Enabled();
   const tenantId = session.user.tenantId ?? null;
   const tenantClassificationPending =
     (session.user as { tenantClassificationPending?: boolean | null })
       .tenantClassificationPending === true;
+  const activeSubscription = tenantId
+    ? await getActiveSubscription(session.user.id, tenantId)
+    : null;
+  const membershipActive = Boolean(activeSubscription);
   const supportContacts = getSupportContacts({
     tenantId: tenantClassificationPending ? null : tenantId,
     locale,
   });
 
   const t = await getTranslations({ locale, namespace: 'membership.success' });
+  const activationPending = !membershipActive;
+  const subtitle = membershipActive ? t('subtitle') : t('pending_subtitle');
+  const statusLabel = membershipActive ? t('status_active') : t('status_pending');
+  const topNote = t(resolveSuccessTopNoteKey({ membershipActive, tenantClassificationPending }));
+  const helperText = membershipActive ? t('cta_helper') : t('cta_helper_pending');
+  const refreshParams = new URLSearchParams();
+  if (resolvedSearchParams.test === 'true') refreshParams.set('test', 'true');
+  if (planId) refreshParams.set('planId', planId);
+  if (priceId) refreshParams.set('priceId', priceId);
+  refreshParams.set('activation', 'pending');
+  refreshParams.set('check', Date.now().toString());
+  const refreshHref = `/${locale}/member/membership/success?${refreshParams.toString()}`;
 
   return (
     <div className="container min-h-svh max-w-4xl px-4 py-12" data-testid="success-page-ready">
@@ -65,9 +96,9 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
           <CheckCircle2 className="w-10 h-10 text-green-600" />
         </div>
         <h1 className="text-4xl font-extrabold tracking-tight mb-4">{t('title')}</h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">{t('subtitle')}</p>
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">{subtitle}</p>
         <p className="mt-4 mx-auto max-w-2xl rounded-2xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-          {t('classification_note')}
+          {topNote}
         </p>
         <p className="mt-3 mx-auto max-w-2xl text-sm font-medium text-muted-foreground">
           {t('onboarding_note')}
@@ -97,7 +128,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
           <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center justify-between">
               {t('card_label')}
-              <Badge variant="secondary">Active</Badge>
+              <Badge variant={membershipActive ? 'secondary' : 'outline'}>{statusLabel}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -198,7 +229,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
           <Button asChild size="lg" className="min-h-[44px] rounded-2xl px-6 font-bold">
             <Link href={`/${locale}/member`}>{t('cta_open_dashboard')}</Link>
           </Button>
-          {!activationPending ? (
+          {membershipActive ? (
             <Button
               asChild
               size="lg"
@@ -207,9 +238,18 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
             >
               <Link href={`/${locale}/member/claims/new`}>{t('cta_start_claim')}</Link>
             </Button>
-          ) : null}
+          ) : (
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="min-h-[44px] rounded-2xl px-6 font-bold"
+            >
+              <Link href={refreshHref}>{t('cta_refresh_status')}</Link>
+            </Button>
+          )}
         </div>
-        <p className="mt-4 text-center text-sm text-muted-foreground">{t('cta_helper')}</p>
+        <p className="mt-4 text-center text-sm text-muted-foreground">{helperText}</p>
       </div>
     </div>
   );

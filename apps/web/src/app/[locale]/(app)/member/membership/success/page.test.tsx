@@ -4,12 +4,28 @@ import { describe, expect, it, vi } from 'vitest';
 import { getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 
 const hoisted = vi.hoisted(() => ({
-  getSessionSafeMock: vi.fn(async () => ({
+  getSessionSafeMock: vi.fn<
+    () => Promise<{
+      user: {
+        id: string;
+        name: string;
+        tenantId: string | null;
+        tenantClassificationPending?: boolean | null;
+      };
+    } | null>
+  >(async () => ({
     user: {
       id: 'member-1',
       name: 'Test Member',
       tenantId: 'tenant-ks',
     },
+  })),
+  getActiveSubscriptionMock: vi.fn<
+    () => Promise<{ id: string; status: string; planId: string } | null>
+  >(async () => ({
+    id: 'sub-1',
+    status: 'active',
+    planId: 'standard',
   })),
   redirectMock: vi.fn(),
 }));
@@ -26,6 +42,10 @@ vi.mock('next-intl/server', () => ({
 
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: hoisted.getSessionSafeMock,
+}));
+
+vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
+  getActiveSubscription: hoisted.getActiveSubscriptionMock,
 }));
 
 vi.mock('@/lib/flags', () => ({
@@ -87,8 +107,30 @@ vi.mock('@interdomestik/ui', () => ({
 }));
 
 import MembershipSuccessPage from './page';
+import { resolveSuccessTopNoteKey } from './_core.entry';
 
 describe('MembershipSuccessPage hotline disclaimer', () => {
+  it('resolves the top-note translation key from membership state', () => {
+    expect(
+      resolveSuccessTopNoteKey({
+        membershipActive: true,
+        tenantClassificationPending: true,
+      })
+    ).toBe('classification_note');
+    expect(
+      resolveSuccessTopNoteKey({
+        membershipActive: true,
+        tenantClassificationPending: false,
+      })
+    ).toBe('active_note');
+    expect(
+      resolveSuccessTopNoteKey({
+        membershipActive: false,
+        tenantClassificationPending: false,
+      })
+    ).toBe('pending_note');
+  });
+
   it('renders hotline routing-only clarification on the post-checkout success surface', async () => {
     const tree = await MembershipSuccessPage({
       params: Promise.resolve({ locale: 'en' }),
@@ -100,14 +142,34 @@ describe('MembershipSuccessPage hotline disclaimer', () => {
     expect(hoisted.getSessionSafeMock).toHaveBeenCalledWith('MemberMembershipSuccessPage');
     expect(screen.getByText('membership.success.hotline_disclaimer.title')).toBeInTheDocument();
     expect(screen.getByText('membership.success.hotline_disclaimer.body')).toBeInTheDocument();
-    expect(screen.getByText('membership.success.classification_note')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.active_note')).toBeInTheDocument();
     expect(screen.getByText('membership.success.onboarding_note')).toBeInTheDocument();
     expect(screen.getByText('membership.success.cta_open_dashboard')).toBeInTheDocument();
     expect(screen.getByText('membership.success.cta_start_claim')).toBeInTheDocument();
     expect(screen.getByText('membership.success.cta_helper')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.status_active')).toBeInTheDocument();
   });
 
-  it('shows an activation-in-progress state when checkout succeeded before activation completed', async () => {
+  it('shows an activation-in-progress state when no active subscription exists yet', async () => {
+    hoisted.getActiveSubscriptionMock.mockResolvedValueOnce(null);
+
+    const tree = await MembershipSuccessPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({}),
+    });
+
+    render(tree);
+
+    expect(screen.getByText('membership.success.pending_subtitle')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.activation_pending_title')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.activation_pending_body')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.cta_open_dashboard')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.cta_refresh_status')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.status_pending')).toBeInTheDocument();
+    expect(screen.queryByText('membership.success.cta_start_claim')).not.toBeInTheDocument();
+  });
+
+  it('uses real active membership truth even if the URL still says activation is pending', async () => {
     const tree = await MembershipSuccessPage({
       params: Promise.resolve({ locale: 'en' }),
       searchParams: Promise.resolve({ activation: 'pending' }),
@@ -115,10 +177,33 @@ describe('MembershipSuccessPage hotline disclaimer', () => {
 
     render(tree);
 
-    expect(screen.getByText('membership.success.activation_pending_title')).toBeInTheDocument();
-    expect(screen.getByText('membership.success.activation_pending_body')).toBeInTheDocument();
-    expect(screen.getByText('membership.success.cta_open_dashboard')).toBeInTheDocument();
-    expect(screen.queryByText('membership.success.cta_start_claim')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('membership.success.activation_pending_title')
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('membership.success.status_active')).toBeInTheDocument();
+    expect(screen.getByText('membership.success.cta_start_claim')).toBeInTheDocument();
+    expect(screen.queryByText('membership.success.cta_refresh_status')).not.toBeInTheDocument();
+  });
+
+  it('keeps the tenant-classification note for active members that are still pending classification', async () => {
+    hoisted.getSessionSafeMock.mockResolvedValueOnce({
+      user: {
+        id: 'member-1',
+        name: 'Test Member',
+        tenantId: 'tenant-ks',
+        tenantClassificationPending: true,
+      },
+    });
+
+    const tree = await MembershipSuccessPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({}),
+    });
+
+    render(tree);
+
+    expect(screen.getByText('membership.success.classification_note')).toBeInTheDocument();
+    expect(screen.queryByText('membership.success.active_note')).not.toBeInTheDocument();
   });
 
   it('redirects to the localized login page when the success page opens without a session', async () => {
@@ -157,6 +242,8 @@ describe('MembershipSuccessPage hotline disclaimer', () => {
   });
 
   it('hides the start-claim CTA while activation is still pending', async () => {
+    hoisted.getActiveSubscriptionMock.mockResolvedValueOnce(null);
+
     const tree = await MembershipSuccessPage({
       params: Promise.resolve({ locale: 'en' }),
       searchParams: Promise.resolve({ activation: 'pending' }),

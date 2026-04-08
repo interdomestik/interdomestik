@@ -1,4 +1,5 @@
-import { db, subscriptions } from '@interdomestik/database';
+import { db, eq, subscriptions } from '@interdomestik/database';
+import { findSubscriptionByProviderReference } from '../../subscription';
 import { subscriptionEventDataSchema } from '../schemas';
 import { mapPaddleStatus, type InternalSubscriptionStatus } from '../subscription-status';
 
@@ -24,7 +25,9 @@ export async function handleSubscriptionChanged(
   if (!context && params.eventType === 'subscription.created') {
     context = await reconcileCheckoutUser(sub, deps);
   }
-  if (!context) return;
+  if (!context) {
+    throw new Error(`Unable to resolve subscription context for ${sub.id}`);
+  }
 
   const { userId, tenantId, branchId, customData, userRecord } = context;
 
@@ -32,7 +35,7 @@ export async function handleSubscriptionChanged(
   const mappedStatus = mapPaddleStatus(sub.status);
 
   // 2. Upsert Subscription
-  await upsertSubscription({
+  const storedSubscriptionId = await upsertSubscription({
     sub,
     tenantId,
     userId,
@@ -66,6 +69,7 @@ export async function handleSubscriptionChanged(
   // 4. Extras (Commission + Email) for new subscriptions
   if (params.eventType === 'subscription.created') {
     await handleNewSubscriptionExtras({
+      internalSubscriptionId: storedSubscriptionId,
       sub,
       userId,
       tenantId,
@@ -88,25 +92,70 @@ async function upsertSubscription(args: {
 }) {
   const { sub, tenantId, userId, agentId, branchId, mappedStatus, priceId } = args;
   const values = mapToSubscriptionValues(sub, mappedStatus, priceId);
+  const existingSubscription = await findExistingSubscription(sub.id, userId);
 
-  await db
-    .insert(subscriptions)
-    .values({
-      id: sub.id,
+  if (existingSubscription) {
+    await updateSubscription(existingSubscription.id, {
       tenantId,
       userId,
       agentId,
       branchId,
+      providerSubscriptionId: sub.id,
       ...values,
-    })
-    .onConflictDoUpdate({
-      target: subscriptions.id,
-      set: {
-        ...values,
-        agentId,
-        branchId,
-      },
     });
+
+    return existingSubscription.id;
+  }
+
+  const insertValues = {
+    id: sub.id,
+    tenantId,
+    userId,
+    agentId,
+    branchId,
+    providerSubscriptionId: sub.id,
+    ...values,
+  };
+
+  try {
+    await db.insert(subscriptions).values(insertValues);
+  } catch (error) {
+    if (!isUniqueViolation(error)) {
+      throw error;
+    }
+
+    const racedSubscription = await findExistingSubscription(sub.id, userId);
+    if (!racedSubscription) {
+      throw error;
+    }
+
+    await updateSubscription(racedSubscription.id, {
+      tenantId,
+      userId,
+      agentId,
+      branchId,
+      providerSubscriptionId: sub.id,
+      ...values,
+    });
+
+    return racedSubscription.id;
+  }
+
+  return sub.id as string;
+}
+
+async function findExistingSubscription(subId: string, userId: string) {
+  return (
+    (await findSubscriptionByProviderReference(subId)) ??
+    (await db.query.subscriptions.findFirst({
+      where: (subs, { eq }) => eq(subs.userId, userId),
+      columns: { id: true, tenantId: true, userId: true },
+    }))
+  );
+}
+
+async function updateSubscription(subscriptionId: string, values: Record<string, unknown>) {
+  await db.update(subscriptions).set(values).where(eq(subscriptions.id, subscriptionId));
 }
 
 function mapToSubscriptionValues(
@@ -146,4 +195,14 @@ function mapToSubscriptionValues(
 
 function parseDate(dateStr: string | undefined | null): Date | null {
   return dateStr ? new Date(dateStr) : null;
+}
+
+function isUniqueViolation(error: unknown): error is { code: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string' &&
+    (error as { code: string }).code === '23505'
+  );
 }

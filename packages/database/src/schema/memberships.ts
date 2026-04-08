@@ -54,6 +54,7 @@ export const subscriptions = pgTable(
     planId: text('plan_id').notNull(),
     planKey: text('plan_key').references(() => membershipPlans.id),
     provider: text('provider').default('paddle'),
+    providerSubscriptionId: text('provider_subscription_id'),
     providerCustomerId: text('provider_customer_id'),
     currentPeriodStart: timestamp('current_period_start'),
     currentPeriodEnd: timestamp('current_period_end'),
@@ -80,6 +81,7 @@ export const subscriptions = pgTable(
     index('idx_memberships_branch').on(table.branchId),
     index('idx_memberships_agent').on(table.agentId),
     uniqueIndex('idx_subscriptions_user').on(table.userId),
+    uniqueIndex('idx_subscriptions_provider_subscription').on(table.providerSubscriptionId),
     uniqueIndex('subscriptions_tenant_id_id_uq').on(table.tenantId, table.id),
   ]
 );

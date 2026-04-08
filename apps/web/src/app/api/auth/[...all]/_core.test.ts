@@ -6,7 +6,7 @@ import {
   getAuthRateLimitConfig,
   getAuthRateLimitKeySuffix,
   getPasswordResetAuditEventFromUrl,
-  isEmailPasswordSignInUrl,
+  isEmailSignInUrl,
   resolveTenantIdForEmailSignIn,
   resolveTenantIdForPasswordResetAudit,
 } from './_core';
@@ -76,6 +76,19 @@ describe('getAuthRateLimitConfig', () => {
       windowSeconds: 60,
     });
   });
+
+  it('uses the same dedicated bucket for email OTP sign-in', () => {
+    expect(
+      getAuthRateLimitConfig(
+        'POST',
+        'https://interdomestik-web.vercel.app/api/auth/sign-in/email-otp'
+      )
+    ).toEqual({
+      name: 'api/auth/sign-in/email',
+      limit: 20,
+      windowSeconds: 60,
+    });
+  });
 });
 
 describe('getAuthRateLimitKeySuffix', () => {
@@ -110,6 +123,19 @@ describe('getAuthRateLimitKeySuffix', () => {
         url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
         headers: new Headers({ host: 'interdomestik-web.vercel.app' }),
         body: { email: 'staff.ks@interdomestik.com' },
+      })
+    ).toBe('tenant:tenant_ks:email_hash:a3b3cdfa6ffbc6575b5f');
+  });
+
+  it('keys email OTP sign-in rate limiting by tenant and normalized email', () => {
+    const headers = new Headers({ host: 'ks.localhost:3000' });
+
+    expect(
+      getAuthRateLimitKeySuffix({
+        method: 'POST',
+        url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email-otp',
+        headers,
+        body: { email: '  STAFF.KS@interdomestik.com ' },
       })
     ).toBe('tenant:tenant_ks:email_hash:a3b3cdfa6ffbc6575b5f');
   });
@@ -206,18 +232,16 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
   });
 });
 
-describe('isEmailPasswordSignInUrl', () => {
+describe('isEmailSignInUrl', () => {
   it('returns true for email sign-in route', () => {
-    expect(
-      isEmailPasswordSignInUrl('https://interdomestik-web.vercel.app/api/auth/sign-in/email')
-    ).toBe(true);
+    expect(isEmailSignInUrl('https://interdomestik-web.vercel.app/api/auth/sign-in/email')).toBe(
+      true
+    );
   });
 
   it('returns false for non sign-in routes', () => {
     expect(
-      isEmailPasswordSignInUrl(
-        'https://interdomestik-web.vercel.app/api/auth/request-password-reset'
-      )
+      isEmailSignInUrl('https://interdomestik-web.vercel.app/api/auth/request-password-reset')
     ).toBe(false);
   });
 });
@@ -298,6 +322,23 @@ describe('evaluateEmailSignInTenantGuard', () => {
   it('denies sign-in when user tenant and request tenant mismatch', async () => {
     const result = await evaluateEmailSignInTenantGuard({
       url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
+      headers: new Headers({ 'x-tenant-id': 'tenant_mk' }),
+      body: { email: 'admin.ks@interdomestik.com' },
+      lookupUserTenantByEmail: async () => 'tenant_ks',
+    });
+
+    expect(result).toEqual({
+      decision: 'deny',
+      code: 'WRONG_TENANT_CONTEXT',
+      message: 'Wrong tenant context',
+      reason: 'tenant_mismatch',
+      resolvedTenantId: 'tenant_mk',
+    });
+  });
+
+  it('denies email OTP sign-in when user tenant and request tenant mismatch', async () => {
+    const result = await evaluateEmailSignInTenantGuard({
+      url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email-otp',
       headers: new Headers({ 'x-tenant-id': 'tenant_mk' }),
       body: { email: 'admin.ks@interdomestik.com' },
       lookupUserTenantByEmail: async () => 'tenant_ks',

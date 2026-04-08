@@ -1,5 +1,6 @@
 import { compare, hash } from 'bcryptjs';
-import { sendPasswordResetEmail } from '../email';
+import { emailOTP } from 'better-auth/plugins/email-otp';
+import { sendPasswordResetEmail, sendSignInOtpEmail } from '../email';
 
 export const authProviders = {
   emailAndPassword: {
@@ -17,6 +18,21 @@ export const authProviders = {
       await sendPasswordResetEmail(user.email, url);
     },
   },
+  plugins: [
+    emailOTP({
+      sendVerificationOTP: async ({ email, otp, type }) => {
+        if (type !== 'sign-in') {
+          return;
+        }
+
+        const emailResult = await sendSignInOtpEmail(email, otp);
+        if (!emailResult.success) {
+          throw new Error(emailResult.error || 'Failed to send sign-in OTP email.');
+        }
+      },
+      disableSignUp: false,
+    }),
+  ],
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID!,

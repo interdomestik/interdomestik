@@ -293,6 +293,24 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
   return sendEmail(to, renderPasswordResetEmail({ resetUrl }));
 }
 
+export async function sendSignInOtpEmail(to: string, otp: string): Promise<EmailResult> {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  return sendEmail(to, {
+    subject: 'Your Interdomestik sign-in code',
+    html: `
+      <div style="font-family: sans-serif; padding: 20px; color: #0f172a;">
+        <h2 style="margin: 0 0 16px;">Your sign-in code</h2>
+        <p style="margin: 0 0 16px;">Use this code to continue your Interdomestik membership checkout.</p>
+        <div style="font-size: 32px; font-weight: 700; letter-spacing: 0.24em; margin: 24px 0; color: #0f172a;">
+          ${otp}
+        </div>
+        <p style="margin: 16px 0 0; color: #475569;">This code expires in a few minutes. If you did not request it, you can ignore this email.</p>
+      </div>
+    `,
+    text: `Use this Interdomestik sign-in code to continue your membership checkout: ${otp}`,
+  });
+}
+
 // ============================================================================
 // PHASE 5: ENGAGEMENT & RETENTION EMAILS
 // ============================================================================

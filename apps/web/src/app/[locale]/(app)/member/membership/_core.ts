@@ -18,7 +18,7 @@ export async function getMembershipPageModelCore(args: {
   now?: Date;
 }): Promise<MembershipPageModel> {
   const subscriptionResult = args.tenantId
-    ? await db.query.subscriptions.findFirst({
+    ? await db.query.subscriptions.findMany({
         where: and(
           eq(subscriptions.userId, args.userId),
           eq(subscriptions.tenantId, args.tenantId)
@@ -26,10 +26,11 @@ export async function getMembershipPageModelCore(args: {
         with: {
           plan: true,
         },
+        orderBy: (subscriptionTable, { desc }) => [desc(subscriptionTable.createdAt)],
       })
     : null;
 
-  const subscription = (subscriptionResult ?? null) as SubscriptionRecord | null;
+  const subscription = subscriptionResult?.[0] ?? null;
 
   return {
     subscription,

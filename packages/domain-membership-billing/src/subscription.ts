@@ -35,6 +35,31 @@ export async function hasActiveMembership(
   return false;
 }
 
+export async function findSubscriptionByProviderReference(reference: string | null | undefined) {
+  const normalizedReference = reference?.trim();
+  if (!normalizedReference) {
+    return null;
+  }
+
+  return db.query.subscriptions.findFirst({
+    where: (subs, { eq: eqFn, or: orFn }) =>
+      orFn(
+        eqFn(subs.id, normalizedReference),
+        eqFn(subs.providerSubscriptionId, normalizedReference)
+      ),
+  });
+}
+
+export function resolveProviderSubscriptionHandle(subscription: {
+  id: string;
+  providerSubscriptionId?: string | null;
+}) {
+  const providerSubscriptionId = subscription.providerSubscriptionId?.trim();
+  return providerSubscriptionId && providerSubscriptionId.length > 0
+    ? providerSubscriptionId
+    : subscription.id;
+}
+
 export async function getActiveSubscription(userId: string, tenantId: string) {
   if (!tenantId) {
     throw new Error('tenantId is required for membership lookup');
