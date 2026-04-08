@@ -67,7 +67,7 @@ describe('HeroV2', () => {
     expect(cta).toBeInTheDocument();
     expect(cta).toHaveTextContent('Fillo anëtarësimin');
     expect(cta).toHaveAttribute('href', '#free-start-intake');
-    expect(screen.getByTestId('hero-v2-invite-chip')).toHaveAttribute('href', '/register');
+    expect(screen.getByTestId('hero-v2-invite-chip')).toHaveAttribute('href', '/pricing');
     expect(screen.getByTestId('hero-v2-digital-id-link')).toHaveAttribute('href', '/member');
   });
 

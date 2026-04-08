@@ -1,5 +1,6 @@
 import { Link } from '@/i18n/routing';
 import { contactInfo } from '@/lib/contact';
+import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
 import { Mail, MapPin, MessageCircle, Phone, Shield, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -147,7 +148,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/register"
+                  href={PUBLIC_MEMBERSHIP_ENTRY_HREF}
                   className="text-slate-300 hover:text-white transition-colors font-bold"
                 >
                   {t('joinClub')}

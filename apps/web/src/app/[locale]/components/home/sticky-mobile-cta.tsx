@@ -1,6 +1,7 @@
 'use client';
 
 import { Link } from '@/i18n/routing';
+import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
 import { Button } from '@interdomestik/ui';
 import { ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -41,7 +42,7 @@ export function StickyPrimeCTA() {
               </span>
             </div>
           </div>
-          <Link href="/register">
+          <Link href={PUBLIC_MEMBERSHIP_ENTRY_HREF}>
             <Button
               size="lg"
               className="h-12 px-6 font-black rounded-xl brand-gradient text-white shadow-lg shadow-primary/20 group relative overflow-hidden"
@@ -78,7 +79,7 @@ export function StickyPrimeCTA() {
               </div>
             </div>
 
-            <Link href="/register">
+            <Link href={PUBLIC_MEMBERSHIP_ENTRY_HREF}>
               <Button
                 size="lg"
                 className="h-12 px-6 font-black rounded-2xl brand-gradient text-white shadow-xl shadow-primary/20 group border-0"

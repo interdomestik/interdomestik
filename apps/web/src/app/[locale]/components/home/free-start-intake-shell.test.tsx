@@ -158,7 +158,7 @@ const CATEGORY_EVIDENCE_EXPECTATIONS = [
   },
 ] as const;
 
-function renderFreeStart(locale: LocaleId, continueHref = '/register') {
+function renderFreeStart(locale: LocaleId, continueHref = '/pricing') {
   hoisted.currentLocale = locale;
   return render(
     <FreeStartIntakeShell continueHref={continueHref} locale={locale} tenantId="tenant_public" />
@@ -210,7 +210,7 @@ describe('FreeStartIntakeShell', () => {
       screen.getByRole('link', {
         name: enFreeStartMessages.freeStart.completion.cta.membership.high,
       })
-    ).toHaveAttribute('href', '/register');
+    ).toHaveAttribute('href', '/pricing');
     expect(hoisted.submitFreeStartIntakeMock).toHaveBeenCalledWith(
       {
         category: 'property',
@@ -294,7 +294,7 @@ describe('FreeStartIntakeShell', () => {
       screen.getByRole('link', {
         name: sqFreeStartMessages.freeStart.completion.cta.membership.high,
       })
-    ).toHaveAttribute('href', '/register');
+    ).toHaveAttribute('href', '/pricing');
   });
 
   it('returns a medium-confidence result when the intake needs document review before escalation', async () => {
@@ -317,7 +317,7 @@ describe('FreeStartIntakeShell', () => {
       screen.getByRole('link', {
         name: enFreeStartMessages.freeStart.completion.cta.membership.medium,
       })
-    ).toHaveAttribute('href', '/register');
+    ).toHaveAttribute('href', '/pricing');
   });
 
   it('returns a low-confidence result and routes the user to the hotline when the matter looks guidance-only', async () => {

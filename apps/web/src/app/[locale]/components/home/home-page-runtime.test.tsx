@@ -84,12 +84,12 @@ describe('HomePageRuntime', () => {
       });
       expect(hoisted.heroSectionMock).toHaveBeenCalledWith({
         locale: 'sq',
-        primaryHref: '/register',
+        primaryHref: '/pricing',
         secondaryHref: '#free-start-intake',
         tenantId: 'tenant_mk',
       });
       expect(hoisted.freeStartIntakeShellMock).toHaveBeenCalledWith({
-        continueHref: '/register',
+        continueHref: '/pricing',
         locale: 'sq',
         tenantId: 'tenant_mk',
       });

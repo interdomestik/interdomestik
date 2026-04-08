@@ -9,6 +9,7 @@ import {
   getValidatedLocaleFromPathname,
   stripLocalePrefixFromCanonicalRoute,
 } from '@/lib/canonical-routes';
+import { getPublicMembershipEntryHref } from '@/lib/public-membership-entry';
 import { isAdmin } from '@/lib/roles.core';
 import {
   Button,
@@ -111,12 +112,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
   const planIdFromQuery = searchParams.get('plan') || undefined;
   const nextPathFromQuery = searchParams.get('next');
   const resolvedTenantId = tenantId ?? tenantIdFromQuery;
-  const registerParams = new URLSearchParams();
-  if (planIdFromQuery) {
-    registerParams.set('plan', planIdFromQuery);
-  }
-  const registerHref =
-    registerParams.size > 0 ? `/register?${registerParams.toString()}` : '/register';
+  const signupHref = getPublicMembershipEntryHref(planIdFromQuery);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
@@ -340,7 +336,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
           <p className="text-center text-sm text-[hsl(var(--muted-500))]">
             {t('noAccount')}{' '}
             <Link
-              href={registerHref}
+              href={signupHref}
               className="text-[hsl(var(--primary))] hover:underline font-medium"
             >
               {t('registerLink')}

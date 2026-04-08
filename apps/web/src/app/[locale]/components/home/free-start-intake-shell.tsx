@@ -10,6 +10,7 @@ import {
   type FreeStartIssueId as IssueId,
   type FreeStartOutcomeId as OutcomeId,
 } from '@/lib/free-start-contract';
+import { isPublicMembershipEntryHref } from '@/lib/public-membership-entry';
 import { getSupportContacts } from '@/lib/support-contacts';
 import {
   ArrowLeft,
@@ -175,7 +176,7 @@ function getContinueLabel(t: FreeStartCopy, continueHref: string): string {
 }
 
 function getContinueRouteKey(continueHref: string): ContinueRouteKey {
-  if (continueHref === '/register') {
+  if (isPublicMembershipEntryHref(continueHref)) {
     return 'membership';
   }
 

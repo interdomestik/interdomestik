@@ -82,6 +82,10 @@ describe('Footer', () => {
       );
       expect(screen.getByText(messages.safetyNet.chips[0])).toBeInTheDocument();
       expect(screen.getByText(messages.safetyNet.chips[2])).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: messages.joinClub })).toHaveAttribute(
+        'href',
+        '/pricing'
+      );
     }
   );
 });
