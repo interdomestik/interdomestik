@@ -3,6 +3,7 @@ import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
 import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tree-content';
 import { CoverageMatrix, type CoverageMatrixProps } from '@/components/commercial/coverage-matrix';
 import { Link } from '@/i18n/routing';
+import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
 import { Button } from '@interdomestik/ui';
 import {
   ArrowRight,
@@ -57,7 +58,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
             </h1>
             <p className="text-xl text-slate-500 leading-relaxed mb-8">{t('hero.subtitle')}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/register">
+              <Link href={PUBLIC_MEMBERSHIP_ENTRY_HREF}>
                 <Button size="xl" className="h-14 px-10 font-bold shadow-lg shadow-primary/30">
                   {t('cta.primary')}
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -254,7 +255,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
           <h2 className="text-3xl md:text-4xl font-display font-black mb-4">{t('cta.title')}</h2>
           <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">{t('cta.subtitle')}</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
+            <Link href={PUBLIC_MEMBERSHIP_ENTRY_HREF}>
               <Button
                 size="xl"
                 className="h-14 px-10 bg-white text-primary hover:bg-white/90 font-bold shadow-xl"

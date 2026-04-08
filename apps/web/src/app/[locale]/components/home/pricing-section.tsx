@@ -5,6 +5,7 @@ import { buildCommercialTermsProps } from '@/components/commercial/billing-terms
 import { SuccessFeeCalculator } from '@/components/commercial/success-fee-calculator';
 import { buildSuccessFeeCalculatorProps } from '@/components/commercial/success-fee-calculator-content';
 import { Link } from '@/i18n/routing';
+import { getPublicMembershipEntryHref } from '@/lib/public-membership-entry';
 import { Button } from '@interdomestik/ui';
 import { Building2, Check, ShieldCheck, Users } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -172,7 +173,7 @@ export function PricingSection() {
               <div className="relative z-10 w-full">
                 <Link
                   data-testid={`pricing-plan-link-${plan.id}`}
-                  href={`/register?plan=${plan.id}`}
+                  href={getPublicMembershipEntryHref(plan.id)}
                 >
                   <Button
                     size="xl"

@@ -26,15 +26,15 @@ vi.mock('@interdomestik/ui', () => ({
 }));
 
 describe('PricingSection', () => {
-  it('wires each plan CTA to register with plan continuity query', () => {
+  it('wires each plan CTA to pricing with plan continuity query', () => {
     render(<PricingSection />);
 
     const ctas = screen.getAllByText('pricing.cta');
     const hrefs = ctas.map(cta => cta.closest('a')?.getAttribute('href'));
 
-    expect(hrefs).toContain('/register?plan=standard');
-    expect(hrefs).toContain('/register?plan=family');
-    expect(hrefs).toContain('/register?plan=business');
+    expect(hrefs).toContain('/pricing?plan=standard');
+    expect(hrefs).toContain('/pricing?plan=family');
+    expect(hrefs).toContain('/pricing?plan=business');
     expect(screen.queryByText('pricing.monthly')).toBeNull();
     expect(screen.queryByText('pricing.yearly')).toBeNull();
     expectSuccessFeeCalculator({ sectionTestId: 'home-pricing-success-fee-calculator' });

@@ -2,6 +2,7 @@
 
 import { FunnelLandingTracker } from '@/components/analytics/funnel-trackers';
 import { authClient } from '@/lib/auth-client';
+import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -68,7 +69,7 @@ export function HomePageRuntime({ locale, uiV2Enabled }: HomePageRuntimeProps) {
     session: landingSession,
   });
   const startClaimHref = landingSession === null ? '#free-start-intake' : continueHref;
-  const primaryHref = landingSession === null ? '/register' : '/member';
+  const primaryHref = landingSession === null ? PUBLIC_MEMBERSHIP_ENTRY_HREF : '/member';
 
   return (
     <>

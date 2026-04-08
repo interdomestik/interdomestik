@@ -2,6 +2,7 @@ import {
   getCanonicalRouteForRole,
   stripLocalePrefixFromCanonicalRoute,
 } from '@/lib/canonical-routes';
+import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
 
 type LandingSession = {
   userId?: string;
@@ -15,7 +16,7 @@ export function getStartClaimHrefForSession(params: {
   const { locale, session } = params;
 
   if (!session?.userId) {
-    return '/register';
+    return PUBLIC_MEMBERSHIP_ENTRY_HREF;
   }
 
   if (session.role === 'member' || session.role === 'user') {
@@ -23,5 +24,5 @@ export function getStartClaimHrefForSession(params: {
   }
 
   const canonical = getCanonicalRouteForRole(session.role ?? null, locale);
-  return stripLocalePrefixFromCanonicalRoute(canonical, locale) ?? '/register';
+  return stripLocalePrefixFromCanonicalRoute(canonical, locale) ?? PUBLIC_MEMBERSHIP_ENTRY_HREF;
 }

@@ -14,7 +14,7 @@ type HeroSectionProps = Readonly<{
 
 export function HeroSection({
   locale,
-  primaryHref = '/register',
+  primaryHref = '/pricing',
   secondaryHref = '#free-start-intake',
   tenantId,
 }: HeroSectionProps) {
