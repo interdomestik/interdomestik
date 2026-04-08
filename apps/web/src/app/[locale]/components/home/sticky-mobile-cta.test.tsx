@@ -22,12 +22,13 @@ vi.mock('@/i18n/routing', () => ({
 describe('StickyPrimeCTA', () => {
   it('routes both sticky membership CTAs into pricing once visible', () => {
     render(<StickyPrimeCTA />);
+    const globalWindow = globalThis as Window & typeof globalThis;
 
-    Object.defineProperty(window, 'scrollY', {
+    Object.defineProperty(globalWindow, 'scrollY', {
       configurable: true,
       value: 700,
     });
-    fireEvent.scroll(window);
+    fireEvent.scroll(globalWindow);
 
     const links = screen.getAllByRole('link', { name: enHeroMessages.hero.cta });
     expect(links).toHaveLength(2);

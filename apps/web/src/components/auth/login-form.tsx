@@ -112,7 +112,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
   const planIdFromQuery = searchParams.get('plan') || undefined;
   const nextPathFromQuery = searchParams.get('next');
   const resolvedTenantId = tenantId ?? tenantIdFromQuery;
-  const registerHref = getPublicMembershipEntryHref(planIdFromQuery);
+  const signupHref = getPublicMembershipEntryHref(planIdFromQuery);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
@@ -336,7 +336,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
           <p className="text-center text-sm text-[hsl(var(--muted-500))]">
             {t('noAccount')}{' '}
             <Link
-              href={registerHref}
+              href={signupHref}
               className="text-[hsl(var(--primary))] hover:underline font-medium"
             >
               {t('registerLink')}
