@@ -175,7 +175,7 @@ function getContinueLabel(t: FreeStartCopy, continueHref: string): string {
 }
 
 function getContinueRouteKey(continueHref: string): ContinueRouteKey {
-  if (continueHref === '/register') {
+  if (continueHref === '/pricing' || continueHref.startsWith('/pricing?')) {
     return 'membership';
   }
 

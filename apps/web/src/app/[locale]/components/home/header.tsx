@@ -2,6 +2,7 @@
 
 import { Link } from '@/i18n/routing';
 import { contactInfo } from '@/lib/contact';
+import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
 import { Button } from '@interdomestik/ui';
 import { Menu, MessageCircle, Phone, Shield, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -82,7 +83,7 @@ export function Header() {
                 {t('login')}
               </Button>
             </Link>
-            <Link href="/register">
+            <Link href={PUBLIC_MEMBERSHIP_ENTRY_HREF}>
               <Button size="sm" className="font-bold shadow-md shadow-primary/20">
                 {t('register')}
               </Button>
@@ -136,7 +137,7 @@ export function Header() {
                   {t('login')}
                 </Button>
               </Link>
-              <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
+              <Link href={PUBLIC_MEMBERSHIP_ENTRY_HREF} onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full font-bold shadow-md shadow-primary/20">
                   {t('register')}
                 </Button>

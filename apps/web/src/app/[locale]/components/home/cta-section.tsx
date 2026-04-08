@@ -1,5 +1,6 @@
 import { Link } from '@/i18n/routing';
 import { contactInfo } from '@/lib/contact';
+import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
 import { Button } from '@interdomestik/ui';
 import { ArrowRight, MessageCircle, Phone } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -23,7 +24,7 @@ export function CTASection() {
           {t('ctaSubtitle')}
         </p>
         <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-          <Link href="/register" className="w-full sm:w-auto">
+          <Link href={PUBLIC_MEMBERSHIP_ENTRY_HREF} className="w-full sm:w-auto">
             <Button
               size="xl"
               className="w-full sm:w-auto h-16 px-12 text-lg font-bold shadow-2xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"

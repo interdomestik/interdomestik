@@ -344,7 +344,7 @@ describe('LoginForm', () => {
     render(<LoginForm />);
 
     const registerLink = screen.getByText('Register');
-    expect(registerLink.closest('a')).toHaveAttribute('href', '/register');
+    expect(registerLink.closest('a')).toHaveAttribute('href', '/pricing');
   });
 
   it('preserves selected plan in register link continuity', () => {
@@ -352,7 +352,7 @@ describe('LoginForm', () => {
     render(<LoginForm />);
 
     const registerLink = screen.getByText('Register');
-    expect(registerLink.closest('a')).toHaveAttribute('href', '/register?plan=standard');
+    expect(registerLink.closest('a')).toHaveAttribute('href', '/pricing?plan=standard');
   });
 
   it('redirects members to selected plan flow after login when plan query is present', async () => {

@@ -41,7 +41,7 @@ describe('HeroSection', () => {
     render(
       <HeroSection
         locale="sq"
-        primaryHref="/register"
+        primaryHref="/pricing"
         secondaryHref="#free-start-intake"
         tenantId="tenant_ks"
       />
@@ -57,7 +57,7 @@ describe('HeroSection', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Fillo anëtarësimin/i })).toHaveAttribute(
       'href',
-      '/register'
+      '/pricing'
     );
     expect(screen.getByRole('link', { name: /Nise për 60 sekonda/i })).toHaveAttribute(
       'href',

@@ -41,7 +41,9 @@ vi.mock('next-intl/server', () => ({
 }));
 
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
+  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
 }));
 
 async function renderServicesPage(locale: 'en' | 'sq') {
@@ -113,5 +115,11 @@ describe('ServicesPage', () => {
     expect(
       screen.getAllByText(sqServicesPage.servicesPage.categories.legal.services[1].description)
     ).not.toHaveLength(0);
+    expect(
+      screen.getAllByRole('link', { name: sqServicesPage.servicesPage.cta.primary })
+    ).not.toHaveLength(0);
+    expect(
+      screen.getAllByRole('link', { name: sqServicesPage.servicesPage.cta.primary })[0]
+    ).toHaveAttribute('href', '/pricing');
   });
 });

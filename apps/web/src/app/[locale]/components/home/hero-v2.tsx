@@ -1,6 +1,10 @@
 'use client';
 
 import { Link } from '@/i18n/routing';
+import {
+  PUBLIC_MEMBERSHIP_ENTRY_HREF,
+  isPublicMembershipEntryHref,
+} from '@/lib/public-membership-entry';
 import { ArrowRight, MessageCircleMore, PhoneCall, ShieldCheck, Sparkles } from 'lucide-react';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { useTranslations } from 'next-intl';
@@ -26,7 +30,7 @@ type HeroV2Content = {
 };
 
 function isPublicMembershipEntry(startClaimHref: string): boolean {
-  return startClaimHref === '#free-start-intake' || startClaimHref === '/register';
+  return startClaimHref === '#free-start-intake' || isPublicMembershipEntryHref(startClaimHref);
 }
 
 function getMembershipPriceChip(params: { ctaLabel: string; subtitle: string }): string {
@@ -225,7 +229,7 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
                 data-testid="hero-v2-invite-chip"
-                href="/register"
+                href={PUBLIC_MEMBERSHIP_ENTRY_HREF}
                 className="inline-flex min-h-10 items-center rounded-full border border-emerald-200/90 bg-[linear-gradient(180deg,rgba(236,253,245,0.98),rgba(220,252,231,0.9))] px-5 py-2 text-sm font-semibold text-emerald-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
               >
                 {content.inviteLabel}
