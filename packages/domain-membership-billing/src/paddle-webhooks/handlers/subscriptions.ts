@@ -1,4 +1,5 @@
-import { db, subscriptions } from '@interdomestik/database';
+import { db, eq, subscriptions } from '@interdomestik/database';
+import { findSubscriptionByProviderReference } from '../../subscription';
 import { subscriptionEventDataSchema } from '../schemas';
 import { mapPaddleStatus, type InternalSubscriptionStatus } from '../subscription-status';
 
@@ -24,7 +25,9 @@ export async function handleSubscriptionChanged(
   if (!context && params.eventType === 'subscription.created') {
     context = await reconcileCheckoutUser(sub, deps);
   }
-  if (!context) return;
+  if (!context) {
+    throw new Error(`Unable to resolve subscription context for ${sub.id}`);
+  }
 
   const { userId, tenantId, branchId, customData, userRecord } = context;
 
@@ -32,7 +35,7 @@ export async function handleSubscriptionChanged(
   const mappedStatus = mapPaddleStatus(sub.status);
 
   // 2. Upsert Subscription
-  await upsertSubscription({
+  const storedSubscriptionId = await upsertSubscription({
     sub,
     tenantId,
     userId,
@@ -66,6 +69,7 @@ export async function handleSubscriptionChanged(
   // 4. Extras (Commission + Email) for new subscriptions
   if (params.eventType === 'subscription.created') {
     await handleNewSubscriptionExtras({
+      internalSubscriptionId: storedSubscriptionId,
       sub,
       userId,
       tenantId,
@@ -88,25 +92,40 @@ async function upsertSubscription(args: {
 }) {
   const { sub, tenantId, userId, agentId, branchId, mappedStatus, priceId } = args;
   const values = mapToSubscriptionValues(sub, mappedStatus, priceId);
+  const existingSubscription =
+    (await findSubscriptionByProviderReference(sub.id)) ??
+    (await db.query.subscriptions.findFirst({
+      where: (subs, { eq }) => eq(subs.userId, userId),
+      columns: { id: true, tenantId: true, userId: true },
+    }));
 
-  await db
-    .insert(subscriptions)
-    .values({
-      id: sub.id,
-      tenantId,
-      userId,
-      agentId,
-      branchId,
-      ...values,
-    })
-    .onConflictDoUpdate({
-      target: subscriptions.id,
-      set: {
-        ...values,
+  if (existingSubscription) {
+    await db
+      .update(subscriptions)
+      .set({
+        tenantId,
+        userId,
         agentId,
         branchId,
-      },
-    });
+        providerSubscriptionId: sub.id,
+        ...values,
+      })
+      .where(eq(subscriptions.id, existingSubscription.id));
+
+    return existingSubscription.id;
+  }
+
+  await db.insert(subscriptions).values({
+    id: sub.id,
+    tenantId,
+    userId,
+    agentId,
+    branchId,
+    providerSubscriptionId: sub.id,
+    ...values,
+  });
+
+  return sub.id as string;
 }
 
 function mapToSubscriptionValues(

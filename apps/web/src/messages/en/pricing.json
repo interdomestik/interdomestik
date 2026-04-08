@@ -197,6 +197,28 @@
       "continue": "Continue to checkout",
       "cancel": "Not now"
     },
+    "localCheckout": {
+      "title": "Local checkout is not configured",
+      "body": "{planName} cannot open real payment in this local environment yet. Add a Paddle client token to test checkout locally."
+    },
+    "otpStep": {
+      "title": "Continue with email",
+      "subtitle": "Enter your email to receive a sign-in code for {planName}.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "name@example.com",
+      "send": "Send sign-in code",
+      "sendSuccess": "We sent a sign-in code to your email.",
+      "codeLabel": "Code",
+      "codePlaceholder": "123456",
+      "verify": "Verify and continue",
+      "back": "Back",
+      "errors": {
+        "missingEmail": "Enter your email to continue.",
+        "sendFailed": "Unable to send sign-in code.",
+        "missingCode": "Enter the code we sent to continue.",
+        "invalidCode": "Invalid sign-in code."
+      }
+    },
     "businessLead": {
       "title": "Talk to our business team",
       "subtitle": "Business memberships are set up with a short assisted intake so we can match the right protection scope before activation.",

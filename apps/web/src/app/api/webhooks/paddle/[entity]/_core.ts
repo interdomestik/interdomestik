@@ -8,6 +8,7 @@ import {
   parsePaddleWebhookBody,
   verifyPaddleWebhook,
 } from '@interdomestik/domain-membership-billing/paddle-webhooks';
+import { findSubscriptionByProviderReference } from '@interdomestik/domain-membership-billing/subscription';
 
 import type { Paddle } from '@paddle/paddle-node-sdk';
 
@@ -67,10 +68,7 @@ async function resolveTenantIdFromWebhookData(data: unknown): Promise<string | n
     const subscriptionId = payload.id || payload.subscriptionId || payload.subscription_id;
     if (!subscriptionId) return null;
 
-    const subscription = await db.query.subscriptions.findFirst({
-      where: (subs, { eq }) => eq(subs.id, subscriptionId),
-      columns: { tenantId: true },
-    });
+    const subscription = await findSubscriptionByProviderReference(subscriptionId);
 
     return subscription?.tenantId ?? null;
   } catch {

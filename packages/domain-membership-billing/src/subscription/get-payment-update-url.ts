@@ -1,6 +1,7 @@
 import { and, db, eq, subscriptions } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { getPaddle } from '../paddle-server';
+import { resolveProviderSubscriptionHandle } from '../subscription';
 
 import type { PaymentUpdateUrlResult, SubscriptionSession } from './types';
 
@@ -24,9 +25,10 @@ export async function getPaymentUpdateUrlCore(params: {
   }
 
   try {
+    const providerSubscriptionId = resolveProviderSubscriptionHandle(sub);
     const paddle = getPaddle({ tenantId });
     const transaction =
-      await paddle.subscriptions.getPaymentMethodChangeTransaction(subscriptionId);
+      await paddle.subscriptions.getPaymentMethodChangeTransaction(providerSubscriptionId);
 
     if (transaction?.checkout?.url) {
       return { url: transaction.checkout.url, error: undefined };

@@ -15,7 +15,8 @@ import { Link } from '@/i18n/routing';
 import { isAgent } from '@/lib/roles.core';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { resolveDateLocale } from '@/lib/utils/date';
-import { db, eq, subscriptions, user } from '@interdomestik/database';
+import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
+import { and, db, eq, subscriptions, user } from '@interdomestik/database';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import {
   ArrowRight,
@@ -40,9 +41,10 @@ const getCachedUser = cache(async (userId: string) => {
   });
 });
 
-const getCachedSubscription = cache(async (userId: string) => {
-  return db.query.subscriptions.findFirst({
-    where: eq(subscriptions.userId, userId),
+const getCachedTenantSubscriptions = cache(async (userId: string, tenantId: string) => {
+  return db.query.subscriptions.findMany({
+    where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
+    orderBy: (subscriptionTable, { desc }) => [desc(subscriptionTable.createdAt)],
   });
 });
 
@@ -121,10 +123,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
   const activeClaim = claims.find(claim => claim.id === activeClaimId) ?? null;
   const orientationHref = '/member/help';
 
-  const [userDetails, subscription] = await Promise.all([
-    getCachedUser(member.id),
-    getCachedSubscription(member.id),
-  ]);
+  const userDetails = await getCachedUser(member.id);
 
   const redirectPath = getRoleRedirect(userDetails?.role);
   if (redirectPath) {
@@ -138,7 +137,14 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
     return <AccountErrorState tLanding={tLanding} />;
   }
 
-  const isActive = subscription?.status === 'active';
+  const tenantId = userDetails.tenantId ?? null;
+  const [claimEligibleSubscription, tenantSubscriptions] = await Promise.all([
+    tenantId ? getActiveSubscription(member.id, tenantId) : Promise.resolve(null),
+    tenantId ? getCachedTenantSubscriptions(member.id, tenantId) : Promise.resolve([]),
+  ]);
+
+  const subscription = claimEligibleSubscription ?? tenantSubscriptions[0] ?? null;
+  const isActive = Boolean(claimEligibleSubscription);
   const hasNoClaims = claims.length === 0;
   const shouldShowActivationPanel = !isActive;
   const validThru = subscription?.currentPeriodEnd

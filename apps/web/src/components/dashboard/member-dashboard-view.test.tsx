@@ -4,16 +4,16 @@ import type { ReactNode } from 'react';
 import type { MemberDashboardData } from '@interdomestik/domain-member';
 
 const hoisted = vi.hoisted(() => ({
+  andMock: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   userFindFirstMock: vi.fn(async () => ({
     id: 'member-1',
     name: 'Stefan Dimitrioski',
     role: 'member',
     memberNumber: 'ID-MEMBER',
+    tenantId: 'tenant-ks',
   })),
-  subscriptionFindFirstMock: vi.fn(async () => ({
-    status: 'inactive',
-    currentPeriodEnd: null,
-  })),
+  subscriptionFindManyMock: vi.fn(async (): Promise<Array<Record<string, unknown>>> => []),
+  getActiveSubscriptionMock: vi.fn(async (): Promise<Record<string, unknown> | null> => null),
   redirectMock: vi.fn(),
 }));
 
@@ -113,19 +113,27 @@ vi.mock('next-intl/server', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  and: hoisted.andMock,
   db: {
     query: {
       user: {
         findFirst: hoisted.userFindFirstMock,
       },
       subscriptions: {
-        findFirst: hoisted.subscriptionFindFirstMock,
+        findMany: hoisted.subscriptionFindManyMock,
       },
     },
   },
   eq: vi.fn(),
-  subscriptions: {},
+  subscriptions: {
+    userId: 'subscriptions.user_id',
+    tenantId: 'subscriptions.tenant_id',
+  },
   user: {},
+}));
+
+vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
+  getActiveSubscription: hoisted.getActiveSubscriptionMock,
 }));
 
 vi.mock('@/components/member-dashboard', () => ({
@@ -225,4 +233,43 @@ describe('MemberDashboardView MK localization', () => {
     );
     expect(screen.getByRole('link', { name: 'Види планови' })).toHaveAttribute('href', '/pricing');
   });
+
+  it.each([
+    {
+      description: 'trialing memberships',
+      activeSubscription: {
+        id: 'sub-trialing',
+        status: 'trialing',
+        currentPeriodEnd: new Date('2026-04-30T00:00:00Z'),
+      },
+    },
+    {
+      description: 'past_due memberships still inside grace',
+      activeSubscription: {
+        id: 'sub-grace',
+        status: 'past_due',
+        currentPeriodEnd: new Date('2026-04-30T00:00:00Z'),
+        gracePeriodEndsAt: new Date('2099-04-05T00:00:00Z'),
+      },
+    },
+  ])(
+    'does not show activation panel for claim-eligible $description',
+    async ({ activeSubscription }) => {
+      hoisted.getActiveSubscriptionMock.mockResolvedValueOnce(activeSubscription);
+      hoisted.subscriptionFindManyMock.mockResolvedValueOnce([activeSubscription]);
+
+      const tree = await MemberDashboardView({
+        data: makeData(),
+        locale: 'mk',
+      });
+
+      render(tree);
+
+      expect(screen.queryByTestId('member-activation-panel')).not.toBeInTheDocument();
+      expect(
+        screen.getByText('Вашето членство е активно. Подготвени сме да помогнеме.')
+      ).toBeInTheDocument();
+      expect(screen.getAllByText('Активно').length).toBeGreaterThan(0);
+    }
+  );
 });

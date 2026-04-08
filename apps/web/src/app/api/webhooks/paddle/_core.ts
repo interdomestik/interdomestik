@@ -10,6 +10,7 @@ import {
 } from '@/lib/tenant/tenant-hosts';
 import { db } from '@interdomestik/database';
 import type { BillingEntity } from '@interdomestik/domain-membership-billing/paddle-server';
+import { findSubscriptionByProviderReference } from '@interdomestik/domain-membership-billing/subscription';
 import {
   handlePaddleEvent,
   insertWebhookEvent,
@@ -125,10 +126,7 @@ async function resolveWebhookTenantId(data: unknown): Promise<string | null> {
   const subscriptionId = payload.id || payload.subscriptionId || payload.subscription_id;
   if (!subscriptionId) return null;
 
-  const subscription = await db.query.subscriptions.findFirst({
-    where: (subs, { eq }) => eq(subs.id, subscriptionId),
-    columns: { tenantId: true },
-  });
+  const subscription = await findSubscriptionByProviderReference(subscriptionId);
   return subscription?.tenantId ?? null;
 }
 

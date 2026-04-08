@@ -197,6 +197,28 @@
       "continue": "Vazhdo te pagesa",
       "cancel": "Jo tani"
     },
+    "localCheckout": {
+      "title": "Pagesa lokale nuk është e konfiguruar",
+      "body": "{planName} nuk mund të hapë pagesë reale në këtë mjedis lokal. Shtoni një Paddle client token për ta testuar pagesën lokalisht."
+    },
+    "otpStep": {
+      "title": "Vazhdo me email",
+      "subtitle": "Shkruani email-in tuaj për të marrë kodin e hyrjes për {planName}.",
+      "emailLabel": "Adresa e email-it",
+      "emailPlaceholder": "emri@example.com",
+      "send": "Dërgo kodin e hyrjes",
+      "sendSuccess": "Ju dërguam një kod hyrjeje në email.",
+      "codeLabel": "Kodi",
+      "codePlaceholder": "Shkruani kodin 6-shifror",
+      "verify": "Verifiko dhe vazhdo",
+      "back": "Kthehu",
+      "errors": {
+        "missingEmail": "Shkruani email-in për të vazhduar.",
+        "sendFailed": "Nuk u dërgua kodi i hyrjes.",
+        "missingCode": "Shkruani kodin që ju dërguam për të vazhduar.",
+        "invalidCode": "Kodi i hyrjes nuk është i vlefshëm."
+      }
+    },
     "businessLead": {
       "title": "Flisni me ekipin tonë për biznes",
       "subtitle": "Anëtarësimet për biznes aktivizohen përmes një hyrjeje të shkurtër të asistuar që të përshtatim mbrojtjen para aktivizimit.",

@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database';
+import { findSubscriptionByProviderReference } from '../../subscription';
 import { transactionEventDataSchema } from '../schemas';
 import type { PaddleWebhookAuditDeps } from '../types';
 
@@ -22,10 +23,7 @@ export async function handleTransactionCompleted(
   let tenantId: string | null = null;
 
   if (subscriptionId) {
-    const subscription = await db.query.subscriptions.findFirst({
-      where: (subs, { eq }) => eq(subs.id, subscriptionId),
-      columns: { tenantId: true },
-    });
+    const subscription = await findSubscriptionByProviderReference(subscriptionId);
     tenantId = subscription?.tenantId ?? null;
   }
 

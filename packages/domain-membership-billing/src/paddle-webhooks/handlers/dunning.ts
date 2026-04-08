@@ -1,4 +1,5 @@
-import { db, subscriptions } from '@interdomestik/database';
+import { db, eq, subscriptions } from '@interdomestik/database';
+import { findSubscriptionByProviderReference } from '../../subscription';
 
 import { subscriptionEventDataSchema } from '../schemas';
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../types';
@@ -42,9 +43,11 @@ export async function handleSubscriptionPastDue(
   }
 
   // Get existing subscription to increment counters
-  const existingSub = await db.query.subscriptions.findFirst({
-    where: (subs, { eq }) => eq(subs.id, sub.id),
-  });
+  const existingSub =
+    (await findSubscriptionByProviderReference(sub.id)) ??
+    (await db.query.subscriptions.findFirst({
+      where: (subs, { eq }) => eq(subs.userId, userId),
+    }));
 
   const now = new Date();
   const gracePeriodDays = 14;
@@ -53,46 +56,40 @@ export async function handleSubscriptionPastDue(
   const newDunningCount = (existingSub?.dunningAttemptCount || 0) + 1;
   const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
 
-  await db
-    .insert(subscriptions)
-    .values({
+  const values = {
+    tenantId: userRecord.tenantId,
+    userId,
+    status: 'past_due' as const,
+    planId: priceId,
+    providerSubscriptionId: sub.id,
+    providerCustomerId: sub.customerId || sub.customer_id,
+    pastDueAt: existingSub?.pastDueAt || now,
+    gracePeriodEndsAt: existingSub?.gracePeriodEndsAt || gracePeriodEnd,
+    dunningAttemptCount: newDunningCount,
+    lastDunningAt: now,
+    currentPeriodStart:
+      sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at
+        ? new Date(
+            sub.currentBillingPeriod?.startsAt || (sub.current_billing_period?.starts_at as string)
+          )
+        : null,
+    currentPeriodEnd:
+      sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at
+        ? new Date(
+            sub.currentBillingPeriod?.endsAt || (sub.current_billing_period?.ends_at as string)
+          )
+        : null,
+    updatedAt: now,
+  };
+
+  if (existingSub) {
+    await db.update(subscriptions).set(values).where(eq(subscriptions.id, existingSub.id));
+  } else {
+    await db.insert(subscriptions).values({
       id: sub.id,
-      tenantId: userRecord.tenantId,
-      userId,
-      status: 'past_due',
-      planId: priceId,
-      providerCustomerId: sub.customerId || sub.customer_id,
-      pastDueAt: existingSub?.pastDueAt || now,
-      gracePeriodEndsAt: existingSub?.gracePeriodEndsAt || gracePeriodEnd,
-      dunningAttemptCount: newDunningCount,
-      lastDunningAt: now,
-      currentPeriodStart:
-        sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at
-          ? new Date(
-              sub.currentBillingPeriod?.startsAt ||
-                (sub.current_billing_period?.starts_at as string)
-            )
-          : null,
-      currentPeriodEnd:
-        sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at
-          ? new Date(
-              sub.currentBillingPeriod?.endsAt || (sub.current_billing_period?.ends_at as string)
-            )
-          : null,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: subscriptions.id,
-      set: {
-        status: 'past_due',
-        planId: priceId,
-        pastDueAt: existingSub?.pastDueAt || now,
-        gracePeriodEndsAt: existingSub?.gracePeriodEndsAt || gracePeriodEnd,
-        dunningAttemptCount: newDunningCount,
-        lastDunningAt: now,
-        updatedAt: now,
-      },
+      ...values,
     });
+  }
 
   console.log(
     `[Webhook] 🚨 DUNNING: Subscription ${sub.id} is past_due (attempt ${newDunningCount})`

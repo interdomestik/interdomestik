@@ -49,6 +49,12 @@ vi.mock('@/components/shell/session', () => ({
   getSessionSafe: hoisted.getSessionSafeMock,
 }));
 
+vi.mock('@/i18n/routing', () => ({
+  Link: ({ children, href = '#' }: { children: React.ReactNode; href?: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   hasActiveMembership: hoisted.hasActiveMembershipMock,
 }));
@@ -59,12 +65,6 @@ vi.mock('@interdomestik/shared-auth', () => ({
 
 vi.mock('@interdomestik/ui', () => ({
   Button: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
-}));
-
-vi.mock('next/link', () => ({
-  default: ({ children, href = '#' }: { children: React.ReactNode; href?: string }) => (
-    <a href={href}>{children}</a>
-  ),
 }));
 
 import NewClaimPage from './page';

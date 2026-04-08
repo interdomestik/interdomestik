@@ -88,6 +88,12 @@
     "ops": {
       "title": "Subscriptions",
       "empty_list": "No subscriptions",
+      "no_membership_title": "Finish your membership",
+      "no_membership_body": "You do not have an active paid membership yet. Choose a plan to continue into checkout and unlock claim access.",
+      "membership_not_active_title": "Protection is not active yet",
+      "membership_not_active_body": "This membership is not active yet. Complete checkout to restore protection and claim access.",
+      "complete_membership": "Complete membership",
+      "choose_plan": "Choose a plan",
       "select_subscription": "Select a subscription",
       "back_to_list": "Back to list"
     },
@@ -130,10 +136,15 @@
     "success": {
       "title": "Welcome to Interdomestik!",
       "subtitle": "Your membership is now active. You are officially part of our network.",
+      "pending_subtitle": "Your payment was received. Membership activation is still in progress.",
+      "active_note": "Your membership is active in the member portal and claim access is ready.",
+      "pending_note": "We are still finalizing activation. Open your dashboard now and refresh this page once membership status catches up.",
       "classification_note": "Your member ID is active now. Filing-country routing is confirmed later when we review your member details.",
       "onboarding_note": "We will complete account onboarding with a sign-in link first. If needed, you can set a password afterward.",
       "activation_pending_title": "Activation in progress",
       "activation_pending_body": "Your payment was received and we are finalizing account activation. You can open your dashboard now, and claim access will appear as soon as activation completes.",
+      "status_active": "Active",
+      "status_pending": "Pending",
       "hotline_label": "Support Hotline",
       "hotline_disclaimer": {
         "title": "Routing and support only",
@@ -149,7 +160,9 @@
       "cta_dashboard": "Go to Dashboard",
       "cta_open_dashboard": "Open dashboard",
       "cta_start_claim": "Start a claim",
+      "cta_refresh_status": "Refresh membership status",
       "cta_helper": "Open your dashboard to review membership status, or start a claim as soon as activation is complete.",
+      "cta_helper_pending": "Open your dashboard now, then refresh this page to check whether activation has completed.",
       "benefits_title": "Getting Started",
       "benefits_1": "Access legal consultations anytime",
       "benefits_2": "Calculate damages in 60 seconds",

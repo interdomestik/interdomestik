@@ -62,15 +62,17 @@ describe('handleSubscriptionChanged tenant guardrail', () => {
   it('does not write when tenant cannot be resolved (no defaults)', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    await handleSubscriptionChanged({
-      eventType: 'subscription.created',
-      data: {
-        id: 'sub-1',
-        status: 'active',
-        items: [{ price: { id: 'price-1', unitPrice: { amount: '2000', currencyCode: 'EUR' } } }],
-        customData: { userId: 'user-1' },
-      },
-    });
+    await expect(
+      handleSubscriptionChanged({
+        eventType: 'subscription.created',
+        data: {
+          id: 'sub-1',
+          status: 'active',
+          items: [{ price: { id: 'price-1', unitPrice: { amount: '2000', currencyCode: 'EUR' } } }],
+          customData: { userId: 'user-1' },
+        },
+      })
+    ).rejects.toThrow('Unable to resolve subscription context for sub-1');
 
     expect(warn).toHaveBeenCalled();
     expect(mocks.insertValues).not.toHaveBeenCalled();

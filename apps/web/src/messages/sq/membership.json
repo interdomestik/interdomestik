@@ -88,6 +88,12 @@
     "ops": {
       "title": "Abonimet",
       "empty_list": "Nuk ka abonime",
+      "no_membership_title": "Përfundo anëtarësinë",
+      "no_membership_body": "Ende nuk keni një anëtarësi të paguar aktive. Zgjidhni një plan për të vazhduar në checkout dhe për të zhbllokuar qasjen te rastet.",
+      "membership_not_active_title": "Mbrojtja nuk është ende aktive",
+      "membership_not_active_body": "Kjo anëtarësi nuk është ende aktive. Përfundoni checkout-in për të rikthyer mbrojtjen dhe qasjen te rastet.",
+      "complete_membership": "Përfundo anëtarësinë",
+      "choose_plan": "Zgjidh një plan",
       "select_subscription": "Zgjidhni një abonim",
       "back_to_list": "Kthehu te lista"
     },
@@ -130,10 +136,15 @@
     "success": {
       "title": "Mirë se vini në Interdomestik!",
       "subtitle": "Anëtarësimi juaj tani është aktiv. Ju jeni zyrtarisht pjesë e rrjetit tonë.",
+      "pending_subtitle": "Pagesa juaj u pranua. Aktivizimi i anëtarësisë është ende në proces.",
+      "active_note": "Anëtarësia juaj është aktive në portalin e anëtarit dhe qasja te rastet është gati.",
+      "pending_note": "Ne ende po përfundojmë aktivizimin. Hapni dashboard-in tani dhe rifreskoni këtë faqe sapo statusi i anëtarësisë të përditësohet.",
       "classification_note": "ID-ja juaj e anëtarit është aktive tani. Shteti i trajtimit të rastit konfirmohet më vonë kur t’i shqyrtojmë të dhënat tuaja.",
       "onboarding_note": "Onboarding-un e llogarisë do ta përfundojmë fillimisht me një link hyrjeje. Nëse duhet, fjalëkalimin mund ta caktoni më pas.",
       "activation_pending_title": "Aktivizimi është në proces",
       "activation_pending_body": "Pagesa juaj u pranua dhe po përfundojmë aktivizimin e llogarisë. Mund ta hapni dashboard-in tani, ndërsa qasja për hapjen e rastit shfaqet sapo të përfundojë aktivizimi.",
+      "status_active": "Aktive",
+      "status_pending": "Në pritje",
       "hotline_label": "Linja e Mbështetjes",
       "hotline_disclaimer": {
         "title": "Vetëm orientim dhe mbështetje",
@@ -150,7 +161,9 @@
       "cta_dashboard": "Shko në Dashboard",
       "cta_open_dashboard": "Hap dashboard-in",
       "cta_start_claim": "Hap një rast",
+      "cta_refresh_status": "Rifresko statusin e anëtarësisë",
       "cta_helper": "Hap dashboard-in për të parë statusin e anëtarësimit, ose nis rastin sapo të përfundojë aktivizimi.",
+      "cta_helper_pending": "Hapni dashboard-in tani, pastaj rifreskoni këtë faqe për të kontrolluar nëse aktivizimi ka përfunduar.",
       "benefits_title": "Filloni tani",
       "benefits_1": "Konsulta ligjore në çdo kohë",
       "benefits_2": "Kalkulimi i dëmit në 60 sekonda",

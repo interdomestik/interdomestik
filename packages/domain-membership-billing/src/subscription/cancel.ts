@@ -10,6 +10,7 @@ import {
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { getPaddle } from '../paddle-server';
 import { buildCancellationTermsSummary } from './cancellation-policy';
+import { resolveProviderSubscriptionHandle } from '../subscription';
 
 import type { CancelSubscriptionResult, SubscriptionDeps, SubscriptionSession } from './types';
 
@@ -37,6 +38,7 @@ export async function cancelSubscriptionCore(
   }
 
   try {
+    const providerSubscriptionId = resolveProviderSubscriptionHandle(sub);
     const acceptedEscalationRows = await db
       .select({ acceptedAt: claimEscalationAgreements.acceptedAt })
       .from(claimEscalationAgreements)
@@ -63,7 +65,7 @@ export async function cancelSubscriptionCore(
     });
 
     const paddle = getPaddle({ tenantId });
-    await paddle.subscriptions.cancel(subscriptionId, {
+    await paddle.subscriptions.cancel(providerSubscriptionId, {
       effectiveFrom: 'next_billing_period',
     });
 

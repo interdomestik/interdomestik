@@ -1,4 +1,5 @@
 import { PADDLE_PRICES } from '@/config/paddle';
+import { authClient } from '@/lib/auth-client';
 import * as paddleLib from '@interdomestik/domain-membership-billing/paddle';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -83,6 +84,17 @@ vi.mock('cookies-next', () => ({
   getCookie: mockGetCookie,
 }));
 
+vi.mock('@/lib/auth-client', () => ({
+  authClient: {
+    emailOtp: {
+      sendVerificationOtp: vi.fn(),
+    },
+    signIn: {
+      emailOtp: vi.fn(),
+    },
+  },
+}));
+
 describe('PricingTable', () => {
   const mockPaddle = {
     Checkout: {
@@ -98,6 +110,14 @@ describe('PricingTable', () => {
     mockToastError.mockReset();
     mockGetCookie.mockReset();
     mockLocale = 'en';
+    vi.mocked(authClient.emailOtp.sendVerificationOtp).mockResolvedValue({
+      data: { success: true },
+      error: null,
+    } as never);
+    vi.mocked(authClient.signIn.emailOtp).mockResolvedValue({
+      data: { token: 'session-token', user: { id: 'otp-user-1' } },
+      error: null,
+    } as never);
     process.env.NEXT_PUBLIC_PILOT_MODE = originalPilotMode;
     window.history.replaceState({}, '', '/pricing');
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(
@@ -197,7 +217,7 @@ describe('PricingTable', () => {
     });
   });
 
-  it('opens a self-serve confirmation for anonymous standard plan before continuing to register', async () => {
+  it('opens a self-serve confirmation for anonymous standard plan before continuing to email OTP onboarding', async () => {
     render(<PricingTable billingTestMode={false} />);
 
     const standardCta = screen.getByTestId('plan-cta-standard');
@@ -215,11 +235,14 @@ describe('PricingTable', () => {
 
     fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
 
-    expect(mockRouterPush).toHaveBeenCalledWith('/register?plan=standard');
+    expect(screen.getByTestId('pricing-otp-step')).toBeInTheDocument();
+    expect(screen.getByTestId('pricing-otp-email-input')).toBeInTheDocument();
+    expect(screen.getByTestId('pricing-otp-send-cta')).toBeInTheDocument();
+    expect(mockRouterPush).not.toHaveBeenCalled();
     expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
   });
 
-  it('opens a self-serve confirmation for anonymous family plan before continuing to register', async () => {
+  it('opens a self-serve confirmation for anonymous family plan before continuing to email OTP onboarding', async () => {
     render(<PricingTable billingTestMode={false} />);
 
     fireEvent.click(screen.getByTestId('plan-cta-family'));
@@ -231,8 +254,70 @@ describe('PricingTable', () => {
 
     fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
 
-    expect(mockRouterPush).toHaveBeenCalledWith('/register?plan=family');
+    expect(screen.getByTestId('pricing-otp-step')).toBeInTheDocument();
+    expect(mockRouterPush).not.toHaveBeenCalled();
     expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
+  });
+
+  it('sends an email OTP for anonymous self-serve onboarding', async () => {
+    render(<PricingTable billingTestMode={false} />);
+
+    fireEvent.click(screen.getByTestId('plan-cta-standard'));
+    fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
+
+    fireEvent.change(screen.getByTestId('pricing-otp-email-input'), {
+      target: { value: 'member@example.com' },
+    });
+    fireEvent.click(screen.getByTestId('pricing-otp-send-cta'));
+
+    await waitFor(() => {
+      expect(authClient.emailOtp.sendVerificationOtp).toHaveBeenCalledWith({
+        email: 'member@example.com',
+        type: 'sign-in',
+      });
+    });
+
+    expect(screen.getByText('otpStep.sendSuccess')).toBeInTheDocument();
+  });
+
+  it('verifies the OTP with default acquisition tenant fields and continues into checkout for the selected plan', async () => {
+    render(<PricingTable billingTestMode={false} tenantId="tenant_ks" />);
+
+    fireEvent.click(screen.getByTestId('plan-cta-standard'));
+    fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
+
+    fireEvent.change(screen.getByTestId('pricing-otp-email-input'), {
+      target: { value: 'member@example.com' },
+    });
+    fireEvent.change(screen.getByTestId('pricing-otp-code-input'), {
+      target: { value: '123456' },
+    });
+    fireEvent.click(screen.getByTestId('pricing-otp-verify-cta'));
+
+    await waitFor(() => {
+      expect(authClient.signIn.emailOtp).toHaveBeenCalledWith({
+        email: 'member@example.com',
+        otp: '123456',
+        tenantClassificationPending: true,
+        tenantId: 'tenant_ks',
+      });
+    });
+
+    await waitFor(() => {
+      expect(mockPaddle.Checkout.open).toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: expect.arrayContaining([{ priceId: PADDLE_PRICES.standard.yearly, quantity: 1 }]),
+          customer: { email: 'member@example.com' },
+          customData: expect.objectContaining({
+            acquisitionSource: 'self_serve_web',
+            tenantId: 'tenant_ks',
+            userId: 'otp-user-1',
+          }),
+        })
+      );
+    });
+
+    expect(mockRouterPush).not.toHaveBeenCalled();
   });
 
   it('routes anonymous business users to the assisted business entry path', () => {
@@ -347,57 +432,55 @@ describe('PricingTable', () => {
     expect(joinButtons[0]).toBeDisabled();
   });
 
-  it('falls back to simulated checkout in development when client token is missing', async () => {
+  it('shows an explicit local checkout warning instead of simulated success when client token is missing', async () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', '');
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
 
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    vi.useFakeTimers();
-
     try {
       render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
 
       const joinButtons = screen.getAllByText('cta');
       fireEvent.click(joinButtons[0]);
 
-      await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(screen.getByTestId('pricing-local-checkout-unavailable')).toBeInTheDocument();
+        expect(screen.getByText('localCheckout.title')).toBeInTheDocument();
+        expect(screen.getByText('localCheckout.body')).toBeInTheDocument();
+      });
 
-      expect(mockRouterPush).toHaveBeenCalledWith(
-        `/member/membership/success?priceId=${PADDLE_PRICES.standard.yearly}&planId=standard`
+      expect(mockRouterPush).not.toHaveBeenCalled();
+      expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
+      expect(consoleWarn).toHaveBeenCalledWith(
+        'Paddle client token missing in development, checkout is unavailable locally.'
       );
-
-      expect(mockToastError).not.toHaveBeenCalled();
     } finally {
-      vi.useRealTimers();
       consoleWarn.mockRestore();
     }
   });
 
-  it('treats placeholder Paddle tokens as missing in development fallback mode', async () => {
+  it('treats placeholder Paddle tokens as missing and shows the explicit local warning', async () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', 'test_***');
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
 
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    vi.useFakeTimers();
-
     try {
       render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
 
       const joinButtons = screen.getAllByText('cta');
       fireEvent.click(joinButtons[0]);
 
-      await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(screen.getByTestId('pricing-local-checkout-unavailable')).toBeInTheDocument();
+      });
 
-      expect(mockRouterPush).toHaveBeenCalledWith(
-        `/member/membership/success?priceId=${PADDLE_PRICES.standard.yearly}&planId=standard`
-      );
-      expect(mockToastError).not.toHaveBeenCalled();
+      expect(mockRouterPush).not.toHaveBeenCalled();
+      expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
     } finally {
-      vi.useRealTimers();
       consoleWarn.mockRestore();
     }
   });

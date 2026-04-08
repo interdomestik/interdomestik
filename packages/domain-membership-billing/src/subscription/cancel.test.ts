@@ -226,4 +226,35 @@ describe('cancelSubscriptionCore', () => {
     expect(result.error).toContain('access denied');
     expect(logAuditEvent).not.toHaveBeenCalled();
   });
+
+  it('uses the stored provider subscription id when present', async () => {
+    const session: SubscriptionSession = {
+      user: { id: 'user_123' },
+    };
+
+    mockCancellationContext();
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
+      id: 'mock_sub_internal',
+      providerSubscriptionId: 'sub_paddle_123',
+      userId: 'user_123',
+      tenantId: 'tenant_abc',
+      createdAt: new Date('2026-03-01T00:00:00.000Z'),
+      currentPeriodEnd: new Date('2027-03-01T00:00:00.000Z'),
+      cancelAtPeriodEnd: false,
+    });
+
+    await cancelSubscriptionCore(
+      {
+        session,
+        subscriptionId: 'mock_sub_internal',
+        now: new Date('2026-03-12T00:00:00.000Z'),
+      },
+      { logAuditEvent }
+    );
+
+    expect(hoisted.paddle.subscriptions.cancel).toHaveBeenCalledWith(
+      'sub_paddle_123',
+      expect.anything()
+    );
+  });
 });

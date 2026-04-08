@@ -113,9 +113,18 @@ export function toOpsTimelineEvents(sub: SubscriptionLike | undefined): OpsTimel
 
 export function getMembershipActions(
   sub: SubscriptionLike | undefined,
-  _t: (key: string) => string
+  t: (key: string) => string
 ): { primary?: OpsActionConfig; secondary: OpsActionConfig[] } {
-  if (!sub) return { secondary: [] };
+  if (!sub) {
+    return {
+      primary: {
+        id: 'complete_membership',
+        label: t('ops.complete_membership'),
+        variant: 'default',
+      },
+      secondary: [],
+    };
+  }
 
   const secondary: OpsActionConfig[] = [];
   let primary: OpsActionConfig | undefined;
@@ -124,6 +133,7 @@ export function getMembershipActions(
   const currentPeriodEnd = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
   const isPastDue = sub.status === 'past_due';
   const isActive = sub.status === 'active';
+  const isTrialing = sub.status === 'trialing';
   const daysToRenewal = currentPeriodEnd
     ? Math.ceil((currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
     : 999;
@@ -141,6 +151,12 @@ export function getMembershipActions(
     primary = {
       id: 'renew',
       label: 'Renew',
+      variant: 'default',
+    };
+  } else if (!isActive && !isTrialing) {
+    primary = {
+      id: 'complete_membership',
+      label: t('ops.complete_membership'),
       variant: 'default',
     };
   }

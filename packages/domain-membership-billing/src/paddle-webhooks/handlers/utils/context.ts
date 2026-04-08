@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database';
+import { findSubscriptionByProviderReference } from '../../../subscription';
 
 export async function resolveBranchId(args: {
   customData: { agentId?: string } | undefined;
@@ -53,10 +54,7 @@ export async function resolveSubscriptionContext(sub: any) {
       }
     | undefined;
 
-  const existingSub = await db.query.subscriptions.findFirst({
-    where: (subs, { eq }) => eq(subs.id, sub.id),
-    columns: { tenantId: true, userId: true },
-  });
+  const existingSub = await findSubscriptionByProviderReference(sub.id);
   const userId = customData?.userId ?? existingSub?.userId;
 
   if (!userId) {

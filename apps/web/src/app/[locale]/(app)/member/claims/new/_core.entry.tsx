@@ -6,7 +6,7 @@ import { Button } from '@interdomestik/ui';
 import { ShieldAlert } from 'lucide-react';
 import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import Link from 'next/link';
+import { Link } from '@/i18n/routing';
 import { redirect } from 'next/navigation';
 
 const DIASPORA_CLAIM_SOURCES = ['diaspora-green-card'] as const;

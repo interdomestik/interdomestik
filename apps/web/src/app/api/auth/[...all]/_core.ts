@@ -9,6 +9,8 @@ import {
 
 export type AuthMethod = 'GET' | 'POST';
 
+const EMAIL_SIGN_IN_PATH_SUFFIXES = ['/api/auth/sign-in/email', '/api/auth/sign-in/email-otp'];
+
 function getAuthPathname(url: string): string | null {
   try {
     return new URL(url).pathname;
@@ -35,7 +37,7 @@ export function getAuthRateLimitConfig(
     return { name: 'api/auth/sign-out', limit: 20, windowSeconds: 60 };
   }
 
-  if (pathname?.endsWith('/api/auth/sign-in/email')) {
+  if (pathname && EMAIL_SIGN_IN_PATH_SUFFIXES.some(suffix => pathname.endsWith(suffix))) {
     return { name: 'api/auth/sign-in/email', limit: 20, windowSeconds: 60 };
   }
 
@@ -134,7 +136,8 @@ export function resolveTenantIdForPasswordResetAudit(
 
 export function isEmailPasswordSignInUrl(url: string): boolean {
   try {
-    return new URL(url).pathname.endsWith('/api/auth/sign-in/email');
+    const pathname = new URL(url).pathname;
+    return EMAIL_SIGN_IN_PATH_SUFFIXES.some(suffix => pathname.endsWith(suffix));
   } catch {
     return false;
   }

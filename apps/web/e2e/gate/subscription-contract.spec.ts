@@ -12,7 +12,7 @@ test.describe('Subscription Contract Verification', () => {
     await expect(page.getByTestId('plan-cta-standard')).toBeVisible();
   });
 
-  test('Logged out Join Now confirms plan, then redirects to register', async ({
+  test('Logged out Join Now confirms plan, then shows the email OTP step', async ({
     browser,
   }, testInfo) => {
     // Use a fresh context without storageState
@@ -31,12 +31,11 @@ test.describe('Subscription Contract Verification', () => {
     await expect(page.getByTestId('pricing-precheckout-confirmation')).toBeVisible();
     const continueCta = page.getByTestId('precheckout-continue-cta');
 
-    await Promise.all([
-      page.waitForURL(/.*\/register\?plan=standard/, { timeout: 15000 }),
-      continueCta.click(),
-    ]);
+    await continueCta.click();
 
-    await expect(page.getByTestId('registration-page-ready')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('pricing-otp-step')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('pricing-otp-email-input')).toBeVisible();
+    await expect(page.getByTestId('pricing-otp-code-input')).toBeVisible();
 
     await context.close();
   });

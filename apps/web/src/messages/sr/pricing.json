@@ -197,6 +197,28 @@
       "continue": "Nastavi na naplatu",
       "cancel": "Ne sada"
     },
+    "localCheckout": {
+      "title": "Lokalna naplata nije podešena",
+      "body": "{planName} još ne može da otvori stvarno plaćanje u ovom lokalnom okruženju. Dodajte Paddle client token da biste lokalno testirali naplatu."
+    },
+    "otpStep": {
+      "title": "Nastavi putem emaila",
+      "subtitle": "Unesite svoj email da biste dobili kod za prijavu za {planName}.",
+      "emailLabel": "Adresa e-pošte",
+      "emailPlaceholder": "ime@example.com",
+      "send": "Pošalji kod za prijavu",
+      "sendSuccess": "Poslali smo kod za prijavu na vaš email.",
+      "codeLabel": "Kod",
+      "codePlaceholder": "Unesite šestocifreni kod",
+      "verify": "Potvrdi i nastavi",
+      "back": "Nazad",
+      "errors": {
+        "missingEmail": "Unesite email da biste nastavili.",
+        "sendFailed": "Nije moguće poslati kod za prijavu.",
+        "missingCode": "Unesite kod koji smo vam poslali da biste nastavili.",
+        "invalidCode": "Kod za prijavu nije važeći."
+      }
+    },
     "businessLead": {
       "title": "Razgovarajte sa našim poslovnim timom",
       "subtitle": "Poslovna članstva se aktiviraju kroz kratak asistirani prijem kako bismo uskladili pravi opseg zaštite pre aktivacije.",

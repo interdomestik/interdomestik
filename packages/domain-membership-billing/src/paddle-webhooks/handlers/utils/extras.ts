@@ -16,6 +16,7 @@ export const redactEmail = (email?: string | null) => {
 };
 
 async function processCommissions(args: {
+  internalSubscriptionId?: string;
   sub: any;
   userId: string;
   tenantId: string;
@@ -23,7 +24,8 @@ async function processCommissions(args: {
   priceId: string;
   deps: PaddleWebhookAuditDeps;
 }) {
-  const { sub, userId, tenantId, customData, priceId, deps } = args;
+  const { internalSubscriptionId, sub, userId, tenantId, customData, priceId, deps } = args;
+  const resolvedSubscriptionId = internalSubscriptionId ?? sub.id;
   const agentId = customData?.agentId;
   const transactionTotal = Number.parseFloat(sub.items?.[0]?.price?.unitPrice?.amount || '0') / 100;
 
@@ -39,7 +41,7 @@ async function processCommissions(args: {
   const commissionResult = await createCommissionCore({
     agentId,
     memberId: userId,
-    subscriptionId: sub.id,
+    subscriptionId: resolvedSubscriptionId,
     type: 'new_membership',
     amount: commissionAmount,
     currency: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
@@ -62,7 +64,7 @@ async function processCommissions(args: {
       metadata: {
         agentId,
         memberId: userId,
-        subscriptionId: sub.id,
+        subscriptionId: resolvedSubscriptionId,
         amount: commissionAmount,
         currency: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
         source: 'paddle_webhook',
@@ -75,13 +77,15 @@ async function processCommissions(args: {
 }
 
 async function processMemberReferralRewards(args: {
+  internalSubscriptionId?: string;
   sub: any;
   userId: string;
   tenantId: string;
   customData: { agentId?: string } | undefined;
   deps: PaddleWebhookAuditDeps;
 }) {
-  const { sub, userId, tenantId, customData, deps } = args;
+  const { internalSubscriptionId, sub, userId, tenantId, customData, deps } = args;
+  const resolvedSubscriptionId = internalSubscriptionId ?? sub.id;
 
   if (customData?.agentId) return;
 
@@ -95,7 +99,7 @@ async function processMemberReferralRewards(args: {
   const rewardResult = await createMemberReferralRewardCore({
     tenantId,
     referralId: referralRow?.id ?? null,
-    subscriptionId: sub.id,
+    subscriptionId: resolvedSubscriptionId,
     qualifyingEventId: sub.id,
     qualifyingEventType: 'first_paid_membership',
     paymentAmountCents: Number.parseInt(sub.items?.[0]?.price?.unitPrice?.amount || '0', 10),
@@ -114,7 +118,7 @@ async function processMemberReferralRewards(args: {
       tenantId,
       metadata: {
         memberId: userId,
-        subscriptionId: sub.id,
+        subscriptionId: resolvedSubscriptionId,
         rewardCents: rewardResult.data.rewardCents,
         currency: rewardResult.data.currencyCode,
         source: 'paddle_webhook',
@@ -124,6 +128,7 @@ async function processMemberReferralRewards(args: {
 }
 
 async function processRenewalCommissions(args: {
+  internalSubscriptionId?: string;
   sub: any;
   userId: string;
   tenantId: string;
@@ -136,7 +141,8 @@ async function processRenewalCommissions(args: {
   };
   deps: PaddleWebhookAuditDeps;
 }) {
-  const { sub, userId, tenantId, priceId, ownership, deps } = args;
+  const { internalSubscriptionId, sub, userId, tenantId, priceId, ownership, deps } = args;
+  const resolvedSubscriptionId = internalSubscriptionId ?? sub.id;
   const transactionTotal = Number.parseFloat(sub.items?.[0]?.price?.unitPrice?.amount || '0') / 100;
   if (transactionTotal <= 0) return;
 
@@ -145,7 +151,7 @@ async function processRenewalCommissions(args: {
   const commissionResult = await createRenewalCommissionCore({
     tenantId,
     memberId: userId,
-    subscriptionId: sub.id,
+    subscriptionId: resolvedSubscriptionId,
     priceId,
     transactionTotal,
     currency: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
@@ -164,7 +170,7 @@ async function processRenewalCommissions(args: {
       tenantId,
       metadata: {
         memberId: userId,
-        subscriptionId: sub.id,
+        subscriptionId: resolvedSubscriptionId,
         source: 'paddle_webhook',
         type: 'renewal',
       },
@@ -185,7 +191,7 @@ async function processRenewalCommissions(args: {
       tenantId,
       metadata: {
         memberId: userId,
-        subscriptionId: sub.id,
+        subscriptionId: resolvedSubscriptionId,
         source: 'paddle_webhook',
         noCommissionReason: commissionResult.data.noCommissionReason,
         ownershipDiagnostics: commissionResult.data.ownershipDiagnostics,
@@ -230,6 +236,7 @@ async function processThankYouLetter(args: {
 }
 
 export async function handleNewSubscriptionExtras(args: {
+  internalSubscriptionId?: string;
   sub: any;
   userId: string;
   tenantId: string;
@@ -244,6 +251,7 @@ export async function handleNewSubscriptionExtras(args: {
 }
 
 export async function handleRenewalSubscriptionExtras(args: {
+  internalSubscriptionId?: string;
   sub: any;
   userId: string;
   tenantId: string;

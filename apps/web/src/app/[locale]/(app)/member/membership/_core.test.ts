@@ -231,15 +231,15 @@ describe('membership core', () => {
       gracePeriodEndsAt: null,
     };
 
-    hoisted.findSubscriptionFirst.mockImplementation(async (queryArg: { where?: unknown }) => {
+    hoisted.findSubscriptionMany.mockImplementation(async (queryArg: { where?: unknown }) => {
       const scope = extractScope(queryArg.where);
       if (
         scope.userId === storedSubscription.userId &&
         scope.tenantId === storedSubscription.tenantId
       ) {
-        return storedSubscription;
+        return [storedSubscription];
       }
-      return null;
+      return [];
     });
 
     const model = await getMembershipPageModelCore({
@@ -255,5 +255,59 @@ describe('membership core', () => {
       isGraceExpired: false,
       daysRemaining: 0,
     });
+  });
+
+  it('selects the newest tenant-scoped subscription for the membership page model', async () => {
+    const newestSubscription = {
+      id: 'sub-new',
+      userId: 'member-1',
+      tenantId: 'tenant-ks',
+      status: 'active',
+      createdAt: new Date('2025-02-01T00:00:00Z'),
+      currentPeriodEnd: null,
+      gracePeriodEndsAt: null,
+      plan: null,
+    };
+
+    hoisted.findSubscriptionMany.mockResolvedValue([
+      newestSubscription,
+      {
+        ...newestSubscription,
+        id: 'sub-old',
+        status: 'canceled',
+        createdAt: new Date('2025-01-01T00:00:00Z'),
+      },
+    ]);
+
+    const model = await getMembershipPageModelCore({
+      userId: 'member-1',
+      tenantId: 'tenant-ks',
+      now: new Date('2025-02-10T00:00:00Z'),
+    });
+
+    expect(hoisted.findSubscriptionMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          op: 'and',
+          args: expect.arrayContaining([
+            expect.objectContaining({
+              op: 'eq',
+              left: 'subscriptions.user_id',
+              right: 'member-1',
+            }),
+            expect.objectContaining({
+              op: 'eq',
+              left: 'subscriptions.tenant_id',
+              right: 'tenant-ks',
+            }),
+          ]),
+        }),
+        with: {
+          plan: true,
+        },
+        orderBy: expect.any(Function),
+      })
+    );
+    expect(model.subscription?.id).toBe('sub-new');
   });
 });

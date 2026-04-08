@@ -8,11 +8,16 @@ const actionMocks = vi.hoisted(() => ({
   activateSponsoredMembership: vi.fn(),
   cancelSubscription: vi.fn(),
   getPaymentUpdateUrl: vi.fn(),
+  getMembershipActions: vi.fn(),
 }));
 
 const selectionMocks = vi.hoisted(() => ({
   selectedId: null as string | null,
   setSelectedId: vi.fn(),
+}));
+
+const routerMocks = vi.hoisted(() => ({
+  push: vi.fn(),
 }));
 
 vi.mock('@/components/ops', () => ({
@@ -39,18 +44,7 @@ vi.mock('@/components/ops', () => ({
 }));
 
 vi.mock('@/components/ops/adapters/membership', () => ({
-  getMembershipActions: () => ({
-    primary: {
-      id: 'update_payment',
-      label: 'Update payment',
-    },
-    secondary: [
-      {
-        id: 'cancel',
-        label: 'Cancel membership',
-      },
-    ],
-  }),
+  getMembershipActions: actionMocks.getMembershipActions,
   getSponsoredMembershipState: (subscription?: {
     status?: string | null;
     planId?: string | null;
@@ -108,6 +102,9 @@ vi.mock('@/i18n/routing', () => ({
       {children}
     </a>
   ),
+  useRouter: () => ({
+    push: routerMocks.push,
+  }),
 }));
 
 vi.mock('sonner', () => ({
@@ -132,6 +129,18 @@ describe('MembershipOpsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     selectionMocks.selectedId = null;
+    actionMocks.getMembershipActions.mockReturnValue({
+      primary: {
+        id: 'update_payment',
+        label: 'Update payment',
+      },
+      secondary: [
+        {
+          id: 'cancel',
+          label: 'Cancel membership',
+        },
+      ],
+    });
   });
 
   afterEach(() => {
@@ -148,6 +157,15 @@ describe('MembershipOpsPage', () => {
     expect(screen.getByText('scope.guidance.title')).toBeInTheDocument();
     expect(screen.getByText('scope.outOfScope.title')).toBeInTheDocument();
     expect(screen.getByText('scope.boundary.title')).toBeInTheDocument();
+  });
+
+  it('shows a choose-plan acquisition CTA when the member has no subscriptions', () => {
+    render(<MembershipOpsPage subscriptions={[]} documents={[]} />);
+
+    const link = screen.getByRole('link', { name: 'ops.choose_plan' });
+    expect(link).toHaveAttribute('href', '/pricing');
+    expect(screen.getByText('ops.no_membership_title')).toBeInTheDocument();
+    expect(screen.getByText('ops.no_membership_body')).toBeInTheDocument();
   });
 
   it('routes cancellation through the canonical subscription action', async () => {
@@ -195,6 +213,60 @@ describe('MembershipOpsPage', () => {
 
   it('does not leak confirm stubs between tests', () => {
     expect(globalThis.confirm).toBe(originalConfirm);
+  });
+
+  it('routes incomplete memberships back into pricing with the current plan', () => {
+    selectionMocks.selectedId = 'sub-1';
+    actionMocks.getMembershipActions.mockReturnValue({
+      primary: {
+        id: 'complete_membership',
+        label: 'Complete membership',
+      },
+      secondary: [],
+    });
+
+    render(
+      <MembershipOpsPage
+        subscriptions={[
+          {
+            id: 'sub-1',
+            status: 'canceled',
+            planId: 'standard',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            currentPeriodEnd: null,
+            plan: { name: 'Standard' },
+          } as never,
+        ]}
+        documents={[]}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Complete membership' }));
+
+    expect(routerMocks.push).toHaveBeenCalledWith('/pricing?plan=standard');
+  });
+
+  it('keeps active members on payment-management actions instead of acquisition', () => {
+    selectionMocks.selectedId = 'sub-1';
+
+    render(
+      <MembershipOpsPage
+        subscriptions={[
+          {
+            id: 'sub-1',
+            status: 'active',
+            planId: 'plan-family',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            currentPeriodEnd: '2027-03-01T00:00:00.000Z',
+            plan: { name: 'Family' },
+          } as never,
+        ]}
+        documents={[]}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Update payment' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Complete membership' })).not.toBeInTheDocument();
   });
 
   it('activates paused sponsored memberships from the member ops view', async () => {
