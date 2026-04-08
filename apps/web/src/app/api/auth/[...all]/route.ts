@@ -8,7 +8,7 @@ import {
   evaluateEmailSignInTenantGuard,
   getAuthRateLimitConfig,
   getAuthRateLimitKeySuffix,
-  isEmailPasswordSignInUrl,
+  isEmailSignInUrl,
   getPasswordResetAuditEventFromUrl,
   resolveTenantIdForPasswordResetAudit,
 } from './_core';
@@ -60,7 +60,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const emailSignIn = isEmailPasswordSignInUrl(req.url);
+  const emailSignIn = isEmailSignInUrl(req.url);
   const signInBody = emailSignIn ? await parseJsonBody(req) : null;
   const postRateLimitConfig = getAuthRateLimitConfig('POST', req.url);
 

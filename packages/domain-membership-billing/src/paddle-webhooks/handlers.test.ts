@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { handleSubscriptionPastDue } from './handlers/dunning';
 import { handleSubscriptionChanged } from './handlers/subscriptions';
 import { handleTransactionCompleted } from './handlers/transaction';
 
@@ -48,6 +49,14 @@ describe('Paddle Webhook Handlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.tx));
+    hoisted.db.insert.mockImplementation(() => ({
+      values: vi.fn().mockResolvedValue(undefined),
+    }));
+    hoisted.db.update.mockImplementation(() => ({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    }));
     hoisted.tx.insert.mockImplementation(() => ({
       values: hoisted.insertedUserValues,
     }));
@@ -242,6 +251,108 @@ describe('Paddle Webhook Handlers', () => {
       expect(mockSet).toHaveBeenCalledWith(
         expect.objectContaining({
           providerSubscriptionId: 'sub_paddle_456',
+        })
+      );
+      expect(mockWhere).toHaveBeenCalled();
+    });
+
+    it('retries as an update when a raced insert hits a unique constraint', async () => {
+      const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
+      const mockWhere = vi.fn().mockResolvedValue(undefined);
+      const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+
+      hoisted.db.update.mockReturnValue({ set: mockSet });
+      hoisted.db.insert.mockReturnValue({
+        values: vi.fn().mockRejectedValue(uniqueViolation),
+      });
+      hoisted.db.query.subscriptions.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          id: 'mock_sub_existing',
+          tenantId: 'tenant_abc',
+          userId: 'user_123',
+        });
+      hoisted.db.query.user.findFirst.mockResolvedValue({
+        id: 'user_123',
+        email: 'test@example.com',
+        tenantId: 'tenant_abc',
+      });
+
+      await handleSubscriptionChanged(
+        {
+          eventType: 'subscription.updated',
+          data: {
+            id: 'sub_paddle_456',
+            status: 'active',
+            customData: { userId: 'user_123' },
+            items: [
+              {
+                price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
+              },
+            ],
+            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+          },
+        },
+        { logAuditEvent }
+      );
+
+      expect(hoisted.db.insert).toHaveBeenCalled();
+      expect(mockSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providerSubscriptionId: 'sub_paddle_456',
+        })
+      );
+      expect(mockWhere).toHaveBeenCalled();
+    });
+  });
+
+  describe('handleSubscriptionPastDue', () => {
+    it('retries as an update when a raced insert hits a unique constraint', async () => {
+      const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
+      const mockWhere = vi.fn().mockResolvedValue(undefined);
+      const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+
+      hoisted.db.update.mockReturnValue({ set: mockSet });
+      hoisted.db.insert.mockReturnValue({
+        values: vi.fn().mockRejectedValue(uniqueViolation),
+      });
+      hoisted.db.query.subscriptions.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          id: 'mock_sub_existing',
+          tenantId: 'tenant_abc',
+          userId: 'user_123',
+          dunningAttemptCount: 0,
+        });
+      hoisted.db.query.user.findFirst.mockResolvedValue({
+        id: 'user_123',
+        email: 'test@example.com',
+        name: 'Member',
+        tenantId: 'tenant_abc',
+      });
+
+      await handleSubscriptionPastDue({
+        data: {
+          id: 'sub_paddle_456',
+          status: 'past_due',
+          customData: { userId: 'user_123' },
+          items: [
+            {
+              price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
+            },
+          ],
+          currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+        },
+      });
+
+      expect(hoisted.db.insert).toHaveBeenCalled();
+      expect(mockSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providerSubscriptionId: 'sub_paddle_456',
+          status: 'past_due',
         })
       );
       expect(mockWhere).toHaveBeenCalled();

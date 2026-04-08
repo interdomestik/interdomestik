@@ -320,6 +320,21 @@ describe('PricingTable', () => {
     expect(mockRouterPush).not.toHaveBeenCalled();
   });
 
+  it('shows the missing email error when OTP verification is attempted without an email', async () => {
+    render(<PricingTable billingTestMode={false} />);
+
+    fireEvent.click(screen.getByTestId('plan-cta-standard'));
+    fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
+    fireEvent.change(screen.getByTestId('pricing-otp-code-input'), {
+      target: { value: '123456' },
+    });
+
+    fireEvent.click(screen.getByTestId('pricing-otp-verify-cta'));
+
+    expect(screen.getByText('otpStep.errors.missingEmail')).toBeInTheDocument();
+    expect(authClient.signIn.emailOtp).not.toHaveBeenCalled();
+  });
+
   it('routes anonymous business users to the assisted business entry path', () => {
     render(<PricingTable billingTestMode={false} />);
 

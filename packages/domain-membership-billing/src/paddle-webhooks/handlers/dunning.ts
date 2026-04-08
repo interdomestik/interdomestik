@@ -85,10 +85,28 @@ export async function handleSubscriptionPastDue(
   if (existingSub) {
     await db.update(subscriptions).set(values).where(eq(subscriptions.id, existingSub.id));
   } else {
-    await db.insert(subscriptions).values({
-      id: sub.id,
-      ...values,
-    });
+    try {
+      await db.insert(subscriptions).values({
+        id: sub.id,
+        ...values,
+      });
+    } catch (error) {
+      if (!isUniqueViolation(error)) {
+        throw error;
+      }
+
+      const racedSubscription =
+        (await findSubscriptionByProviderReference(sub.id)) ??
+        (await db.query.subscriptions.findFirst({
+          where: (subs, { eq }) => eq(subs.userId, userId),
+        }));
+
+      if (!racedSubscription) {
+        throw error;
+      }
+
+      await db.update(subscriptions).set(values).where(eq(subscriptions.id, racedSubscription.id));
+    }
   }
 
   console.log(
@@ -129,4 +147,14 @@ export async function handleSubscriptionPastDue(
       console.error('[Webhook] Failed to send dunning email:', emailError);
     }
   }
+}
+
+function isUniqueViolation(error: unknown): error is { code: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string' &&
+    (error as { code: string }).code === '23505'
+  );
 }

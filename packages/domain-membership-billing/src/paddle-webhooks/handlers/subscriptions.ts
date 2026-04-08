@@ -92,30 +92,22 @@ async function upsertSubscription(args: {
 }) {
   const { sub, tenantId, userId, agentId, branchId, mappedStatus, priceId } = args;
   const values = mapToSubscriptionValues(sub, mappedStatus, priceId);
-  const existingSubscription =
-    (await findSubscriptionByProviderReference(sub.id)) ??
-    (await db.query.subscriptions.findFirst({
-      where: (subs, { eq }) => eq(subs.userId, userId),
-      columns: { id: true, tenantId: true, userId: true },
-    }));
+  const existingSubscription = await findExistingSubscription(sub.id, userId);
 
   if (existingSubscription) {
-    await db
-      .update(subscriptions)
-      .set({
-        tenantId,
-        userId,
-        agentId,
-        branchId,
-        providerSubscriptionId: sub.id,
-        ...values,
-      })
-      .where(eq(subscriptions.id, existingSubscription.id));
+    await updateSubscription(existingSubscription.id, {
+      tenantId,
+      userId,
+      agentId,
+      branchId,
+      providerSubscriptionId: sub.id,
+      ...values,
+    });
 
     return existingSubscription.id;
   }
 
-  await db.insert(subscriptions).values({
+  const insertValues = {
     id: sub.id,
     tenantId,
     userId,
@@ -123,9 +115,47 @@ async function upsertSubscription(args: {
     branchId,
     providerSubscriptionId: sub.id,
     ...values,
-  });
+  };
+
+  try {
+    await db.insert(subscriptions).values(insertValues);
+  } catch (error) {
+    if (!isUniqueViolation(error)) {
+      throw error;
+    }
+
+    const racedSubscription = await findExistingSubscription(sub.id, userId);
+    if (!racedSubscription) {
+      throw error;
+    }
+
+    await updateSubscription(racedSubscription.id, {
+      tenantId,
+      userId,
+      agentId,
+      branchId,
+      providerSubscriptionId: sub.id,
+      ...values,
+    });
+
+    return racedSubscription.id;
+  }
 
   return sub.id as string;
+}
+
+async function findExistingSubscription(subId: string, userId: string) {
+  return (
+    (await findSubscriptionByProviderReference(subId)) ??
+    (await db.query.subscriptions.findFirst({
+      where: (subs, { eq }) => eq(subs.userId, userId),
+      columns: { id: true, tenantId: true, userId: true },
+    }))
+  );
+}
+
+async function updateSubscription(subscriptionId: string, values: Record<string, unknown>) {
+  await db.update(subscriptions).set(values).where(eq(subscriptions.id, subscriptionId));
 }
 
 function mapToSubscriptionValues(
@@ -165,4 +195,14 @@ function mapToSubscriptionValues(
 
 function parseDate(dateStr: string | undefined | null): Date | null {
   return dateStr ? new Date(dateStr) : null;
+}
+
+function isUniqueViolation(error: unknown): error is { code: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string' &&
+    (error as { code: string }).code === '23505'
+  );
 }

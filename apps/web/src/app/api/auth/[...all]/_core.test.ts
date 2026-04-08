@@ -6,7 +6,7 @@ import {
   getAuthRateLimitConfig,
   getAuthRateLimitKeySuffix,
   getPasswordResetAuditEventFromUrl,
-  isEmailPasswordSignInUrl,
+  isEmailSignInUrl,
   resolveTenantIdForEmailSignIn,
   resolveTenantIdForPasswordResetAudit,
 } from './_core';
@@ -232,18 +232,16 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
   });
 });
 
-describe('isEmailPasswordSignInUrl', () => {
+describe('isEmailSignInUrl', () => {
   it('returns true for email sign-in route', () => {
-    expect(
-      isEmailPasswordSignInUrl('https://interdomestik-web.vercel.app/api/auth/sign-in/email')
-    ).toBe(true);
+    expect(isEmailSignInUrl('https://interdomestik-web.vercel.app/api/auth/sign-in/email')).toBe(
+      true
+    );
   });
 
   it('returns false for non sign-in routes', () => {
     expect(
-      isEmailPasswordSignInUrl(
-        'https://interdomestik-web.vercel.app/api/auth/request-password-reset'
-      )
+      isEmailSignInUrl('https://interdomestik-web.vercel.app/api/auth/request-password-reset')
     ).toBe(false);
   });
 });

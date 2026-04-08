@@ -26,7 +26,10 @@ export const authProviders = {
           return;
         }
 
-        await sendSignInOtpEmail(email, otp);
+        const emailResult = await sendSignInOtpEmail(email, otp);
+        if (!emailResult.success) {
+          throw new Error(emailResult.error || 'Failed to send sign-in OTP email.');
+        }
       },
       disableSignUp: false,
     }),

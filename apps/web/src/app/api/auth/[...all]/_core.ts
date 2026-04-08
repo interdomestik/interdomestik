@@ -56,7 +56,7 @@ export function getAuthRateLimitKeySuffix(args: {
   body: unknown;
 }): string | null {
   const { method, url, headers, body } = args;
-  if (method !== 'POST' || !isEmailPasswordSignInUrl(url)) {
+  if (method !== 'POST' || !isEmailSignInUrl(url)) {
     return null;
   }
 
@@ -134,7 +134,7 @@ export function resolveTenantIdForPasswordResetAudit(
   );
 }
 
-export function isEmailPasswordSignInUrl(url: string): boolean {
+export function isEmailSignInUrl(url: string): boolean {
   try {
     const pathname = new URL(url).pathname;
     return EMAIL_SIGN_IN_PATH_SUFFIXES.some(suffix => pathname.endsWith(suffix));
@@ -169,7 +169,7 @@ export async function evaluateEmailSignInTenantGuard(args: {
   lookupUserTenantByEmail: (email: string) => Promise<TenantId | null>;
 }): Promise<SignInTenantGuardResult | null> {
   const { url, headers, body, lookupUserTenantByEmail } = args;
-  if (!isEmailPasswordSignInUrl(url)) return null;
+  if (!isEmailSignInUrl(url)) return null;
 
   const resolvedTenantId = resolveTenantIdForEmailSignIn(headers);
   if (!resolvedTenantId) {

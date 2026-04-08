@@ -362,7 +362,16 @@ export function PricingTable({
   };
 
   const verifyOtpForPlan = async () => {
-    if (!otpPlan || !otpEmail.trim() || !otpCode.trim()) {
+    if (!otpPlan) {
+      return;
+    }
+
+    if (!otpEmail.trim()) {
+      setOtpError(t('otpStep.errors.missingEmail'));
+      return;
+    }
+
+    if (!otpCode.trim()) {
       setOtpError(t('otpStep.errors.missingCode'));
       return;
     }
