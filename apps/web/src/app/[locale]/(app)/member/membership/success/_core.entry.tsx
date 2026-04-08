@@ -22,6 +22,21 @@ interface SuccessPageProps {
   }>;
 }
 
+export function resolveSuccessTopNoteKey(args: {
+  membershipActive: boolean;
+  tenantClassificationPending: boolean;
+}): 'classification_note' | 'active_note' | 'pending_note' {
+  if (!args.membershipActive) {
+    return 'pending_note';
+  }
+
+  if (args.tenantClassificationPending) {
+    return 'classification_note';
+  }
+
+  return 'active_note';
+}
+
 export default async function MembershipSuccessPage({ params, searchParams }: SuccessPageProps) {
   const { locale } = await params;
   const session = await getSessionSafe('MemberMembershipSuccessPage');
@@ -51,11 +66,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
   const activationPending = !membershipActive;
   const subtitle = membershipActive ? t('subtitle') : t('pending_subtitle');
   const statusLabel = membershipActive ? t('status_active') : t('status_pending');
-  const topNote = membershipActive
-    ? tenantClassificationPending
-      ? t('classification_note')
-      : t('active_note')
-    : t('pending_note');
+  const topNote = t(resolveSuccessTopNoteKey({ membershipActive, tenantClassificationPending }));
   const helperText = membershipActive ? t('cta_helper') : t('cta_helper_pending');
   const refreshParams = new URLSearchParams();
   if (resolvedSearchParams.test === 'true') refreshParams.set('test', 'true');

@@ -1,7 +1,6 @@
 import { compare, hash } from 'bcryptjs';
 import { emailOTP } from 'better-auth/plugins/email-otp';
-import { sendPasswordResetEmail } from '../email';
-import { sendSignInOtpEmail } from '../email';
+import { sendPasswordResetEmail, sendSignInOtpEmail } from '../email';
 
 export const authProviders = {
   emailAndPassword: {

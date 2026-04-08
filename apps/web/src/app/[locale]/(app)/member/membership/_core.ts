@@ -30,7 +30,7 @@ export async function getMembershipPageModelCore(args: {
       })
     : null;
 
-  const subscription = (subscriptionResult?.[0] ?? null) as SubscriptionRecord | null;
+  const subscription = subscriptionResult?.[0] ?? null;
 
   return {
     subscription,

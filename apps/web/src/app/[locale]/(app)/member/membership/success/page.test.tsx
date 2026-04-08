@@ -107,8 +107,30 @@ vi.mock('@interdomestik/ui', () => ({
 }));
 
 import MembershipSuccessPage from './page';
+import { resolveSuccessTopNoteKey } from './_core.entry';
 
 describe('MembershipSuccessPage hotline disclaimer', () => {
+  it('resolves the top-note translation key from membership state', () => {
+    expect(
+      resolveSuccessTopNoteKey({
+        membershipActive: true,
+        tenantClassificationPending: true,
+      })
+    ).toBe('classification_note');
+    expect(
+      resolveSuccessTopNoteKey({
+        membershipActive: true,
+        tenantClassificationPending: false,
+      })
+    ).toBe('active_note');
+    expect(
+      resolveSuccessTopNoteKey({
+        membershipActive: false,
+        tenantClassificationPending: false,
+      })
+    ).toBe('pending_note');
+  });
+
   it('renders hotline routing-only clarification on the post-checkout success surface', async () => {
     const tree = await MembershipSuccessPage({
       params: Promise.resolve({ locale: 'en' }),
