@@ -179,7 +179,10 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
           return 'ui-v2-success';
         }
 
-        if (pathname.endsWith('/member/claims') && (await claimListLink.isVisible().catch(() => false))) {
+        if (
+          pathname.endsWith('/member/claims') &&
+          (await claimListLink.isVisible().catch(() => false))
+        ) {
           return 'claims-list';
         }
 
@@ -190,7 +193,11 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       const postSubmitState = await resolvePostSubmitState();
 
       if (postSubmitState === 'ui-v2-success') {
-        await expect(page).toHaveURL(/\/member\/claims\/new(?:\?.*)?$/, { timeout: 30000 });
+        await expect
+          .poll(() => new URL(page.url()).pathname.endsWith('/member/claims/new'), {
+            timeout: 30000,
+          })
+          .toBe(true);
 
         const createdClaimLink = page.getByTestId('claim-created-go-to-claim').first();
         const createdClaimHref = await createdClaimLink.getAttribute('href');
@@ -203,15 +210,18 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
         await createdClaimLink.click();
 
         await expect
-          .poll(() => {
-            const pathname = new URL(page.url()).pathname;
-            const claimSegments = pathname.split('/').filter(Boolean);
-            return (
-              claimSegments.length >= 4 &&
-              claimSegments[claimSegments.length - 2] === 'claims' &&
-              claimSegments[claimSegments.length - 1] !== 'new'
-            );
-          }, { timeout: 30000 })
+          .poll(
+            () => {
+              const pathname = new URL(page.url()).pathname;
+              const claimSegments = pathname.split('/').filter(Boolean);
+              return (
+                claimSegments.length >= 4 &&
+                claimSegments[claimSegments.length - 2] === 'claims' &&
+                claimSegments[claimSegments.length - 1] !== 'new'
+              );
+            },
+            { timeout: 30000 }
+          )
           .toBe(true);
         await expect(page.getByRole('heading', { name: CLAIM_TITLE })).toBeVisible({
           timeout: 10000,
