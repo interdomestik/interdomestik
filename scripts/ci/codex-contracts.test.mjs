@@ -43,6 +43,8 @@ test('Codex PR review workflow uses the official action with a repo-owned review
   assert.match(workflow, /pull_request:/);
   assert.match(workflow, /types:\s*\[opened,\s*synchronize,\s*reopened\]/);
   assert.match(workflow, /permissions:\s*\n\s*contents:\s*read\s*\n\s*pull-requests:\s*write/);
+  assert.match(workflow, /name:\s*Assert OPENAI_API_KEY is configured/);
+  assert.match(workflow, /OPENAI_API_KEY secret is not configured for Codex Review/);
   assert.match(workflow, /uses:\s*openai\/codex-action@v1/);
   assert.match(workflow, /prompt-file:\s*\.github\/codex\/prompts\/review\.md/);
   assert.match(workflow, /safety-strategy:\s*drop-sudo/);

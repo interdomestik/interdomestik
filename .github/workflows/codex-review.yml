@@ -28,6 +28,15 @@ jobs:
             ${{ github.event.pull_request.base.ref }} \
             +refs/pull/${{ github.event.pull_request.number }}/head
 
+      - name: Assert OPENAI_API_KEY is configured
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [[ -z "${OPENAI_API_KEY}" ]]; then
+            echo "OPENAI_API_KEY secret is not configured for Codex Review." >&2
+            exit 1
+          fi
+
       - name: Run Codex
         id: run_codex
         uses: openai/codex-action@v1
