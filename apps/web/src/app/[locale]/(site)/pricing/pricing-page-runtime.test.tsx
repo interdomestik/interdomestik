@@ -29,6 +29,18 @@ vi.mock('next-intl', () => ({
 
 import { PricingPageRuntime } from './pricing-page-runtime';
 
+const checkoutConfig = {
+  entity: 'ks',
+  tenantId: 'tenant_ks',
+  environment: 'sandbox',
+  clientToken: 'test_client_token_ks',
+  priceIds: {
+    standardYear: 'pri_standard_year',
+    familyYear: 'pri_family_year',
+    businessYear: 'pri_business_year',
+  },
+} as const;
+
 describe('PricingPageRuntime', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,11 +52,18 @@ describe('PricingPageRuntime', () => {
       isPending: true,
     });
 
-    render(<PricingPageRuntime billingTenantId="tenant_ks" billingTestMode={false} />);
+    render(
+      <PricingPageRuntime
+        billingTenantId="tenant_ks"
+        billingTestMode={false}
+        checkoutConfig={checkoutConfig}
+      />
+    );
 
     await waitFor(() => {
       expect(hoisted.pricingTableMock).toHaveBeenCalledWith({
         billingTestMode: false,
+        checkoutConfig,
         email: undefined,
         isSessionPending: true,
         tenantId: 'tenant_ks',
@@ -75,11 +94,18 @@ describe('PricingPageRuntime', () => {
       isPending: false,
     });
 
-    render(<PricingPageRuntime billingTenantId="tenant_mk" billingTestMode />);
+    render(
+      <PricingPageRuntime
+        billingTenantId="tenant_mk"
+        billingTestMode
+        checkoutConfig={checkoutConfig}
+      />
+    );
 
     await waitFor(() => {
       expect(hoisted.pricingTableMock).toHaveBeenCalledWith({
         billingTestMode: true,
+        checkoutConfig,
         email: 'member@example.com',
         isSessionPending: false,
         tenantId: 'tenant_mk',

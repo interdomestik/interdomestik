@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, like, sql } from 'drizzle-orm';
 
 import { db } from './db';
 import { claimCounters } from './schema/claim-counters';
@@ -82,14 +82,28 @@ export async function generateClaimNumber(
   // 3) Year semantics (historical accuracy)
   const year = createdAt.getFullYear();
 
+  // 3b) Seed from existing numbered claims when the counter table is missing or stale.
+  const claimNumberPrefix = `CLM-${tenant.code.toUpperCase()}-${year}-`;
+  const [latestExistingClaim] = await tx
+    .select({ claimNumber: claims.claimNumber })
+    .from(claims)
+    .where(and(eq(claims.tenantId, tenantId), like(claims.claimNumber, `${claimNumberPrefix}%`)))
+    .orderBy(desc(claims.claimNumber))
+    .limit(1);
+
+  const existingMaxSequence = latestExistingClaim?.claimNumber
+    ? (parseClaimNumber(latestExistingClaim.claimNumber)?.sequence ?? 0)
+    : 0;
+  const nextSeedSequence = existingMaxSequence + 1;
+
   // 4) Atomic counter increment (UPSERT)
   const [counter] = await tx
     .insert(claimCounters)
-    .values({ tenantId, year, lastNumber: 1 })
+    .values({ tenantId, year, lastNumber: nextSeedSequence })
     .onConflictDoUpdate({
       target: [claimCounters.tenantId, claimCounters.year],
       set: {
-        lastNumber: sql`${claimCounters.lastNumber} + 1`,
+        lastNumber: sql`GREATEST(${claimCounters.lastNumber}, ${existingMaxSequence}) + 1`,
         updatedAt: new Date(),
       },
     })

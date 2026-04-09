@@ -229,6 +229,32 @@ CURRENT_GIT_SHA=""
 STAMP_GIT_SHA=""
 STAMP_STATUS_REASON=""
 
+discover_standalone_server() {
+	local candidate=""
+
+	if [[ -f "${STANDALONE_SERVER}" ]]; then
+		printf '%s' "${STANDALONE_SERVER}"
+		return 0
+	fi
+
+	if [[ -f "${FALLBACK_STANDALONE_SERVER}" ]]; then
+		printf '%s' "${FALLBACK_STANDALONE_SERVER}"
+		return 0
+	fi
+
+	if [[ -d "${WEB_DIR}/.next/standalone" ]]; then
+		candidate="$(
+			find "${WEB_DIR}/.next/standalone" -path '*/apps/web/server.js' -print -quit 2>/dev/null || true
+		)"
+		if [[ -n "${candidate}" ]]; then
+			printf '%s' "${candidate}"
+			return 0
+		fi
+	fi
+
+	return 1
+}
+
 link_standalone_static_assets() {
 	if [[ ! -d "${BUILD_STATIC_DIR}" ]]; then
 		return 0
@@ -238,6 +264,13 @@ link_standalone_static_assets() {
 	ln -sfn "${BUILD_STATIC_DIR}" "${STANDALONE_STATIC_DIR}"
 	mkdir -p "$(dirname "${STANDALONE_APP_STATIC_DIR}")"
 	ln -sfn "${BUILD_STATIC_DIR}" "${STANDALONE_APP_STATIC_DIR}"
+
+	local mirroredAppDir=""
+	while IFS= read -r mirroredAppDir; do
+		[[ -z "${mirroredAppDir}" ]] && continue
+		mkdir -p "${mirroredAppDir}/.next"
+		ln -sfn "${BUILD_STATIC_DIR}" "${mirroredAppDir}/.next/static"
+	done < <(find "${WEB_DIR}/.next/standalone" -path '*/apps/web' -type d -print 2>/dev/null || true)
 }
 
 should_autorebuild() {
@@ -342,12 +375,9 @@ fi
 
 link_standalone_static_assets
 
-if [[ -f "${STANDALONE_SERVER}" ]]; then
-	exec node "${STANDALONE_SERVER}"
-fi
-
-if [[ -f "${FALLBACK_STANDALONE_SERVER}" ]]; then
-	exec node "${FALLBACK_STANDALONE_SERVER}"
+RESOLVED_STANDALONE_SERVER="$(discover_standalone_server || true)"
+if [[ -n "${RESOLVED_STANDALONE_SERVER}" ]]; then
+	exec node "${RESOLVED_STANDALONE_SERVER}"
 fi
 
 echo "❌ Missing standalone server artifact. Tried:" >&2

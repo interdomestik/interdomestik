@@ -136,12 +136,13 @@ function getNextStepLabel(params: {
 function ClaimCreatedSuccess(
   props: Readonly<{
     claimId: string;
+    claimNumber: string;
     locale: string;
     contacts: ReturnType<typeof getSupportContacts>;
     tSuccess: ReturnType<typeof useTranslations>;
   }>
 ): React.JSX.Element {
-  const { claimId, locale, contacts, tSuccess } = props;
+  const { claimId, claimNumber, locale, contacts, tSuccess } = props;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -155,7 +156,7 @@ function ClaimCreatedSuccess(
         </div>
         <h2 className="text-2xl font-semibold tracking-tight">{tSuccess('title')}</h2>
         <p data-testid="claim-created-id">
-          {tSuccess('case_id')}: <span className="font-mono font-semibold">{claimId}</span>
+          {tSuccess('case_id')}: <span className="font-mono font-semibold">{claimNumber}</span>
         </p>
         <ul
           data-testid="claim-created-next-steps"
@@ -290,6 +291,7 @@ export function ClaimWizard({
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [inlineError, setInlineError] = React.useState<string | null>(null);
   const [createdClaimId, setCreatedClaimId] = React.useState<string | null>(null);
+  const [createdClaimNumber, setCreatedClaimNumber] = React.useState<string | null>(null);
   const submitKeyRef = React.useRef<string | null>(null);
 
   const form = useForm({
@@ -380,6 +382,12 @@ export function ClaimWizard({
               ? (payload as { claimId: string }).claimId
               : null
             : null;
+        const claimNumber =
+          payload && typeof payload === 'object' && 'claimNumber' in payload
+            ? typeof (payload as { claimNumber?: unknown }).claimNumber === 'string'
+              ? (payload as { claimNumber: string }).claimNumber
+              : null
+            : null;
         const commercialFlow = getCommercialFlowFromResult(payload);
         const normalizedClaimId = claimId ?? 'unknown-claim-id';
         const normalizedCategory =
@@ -433,11 +441,13 @@ export function ClaimWizard({
         if (uiV2Enabled) {
           if (claimId) {
             setCreatedClaimId(claimId);
+            setCreatedClaimNumber(claimNumber ?? claimId);
           } else {
             console.error('[Wizard] Claim submission succeeded but no claimId was returned', {
               payload,
             });
             setCreatedClaimId('unknown-claim-id');
+            setCreatedClaimNumber('unknown-claim-id');
           }
           return;
         }
@@ -467,10 +477,11 @@ export function ClaimWizard({
     ? tDiaspora(`selector.options.${handoffContext.country}`)
     : null;
 
-  if (createdClaimId) {
+  if (createdClaimId && createdClaimNumber) {
     return (
       <ClaimCreatedSuccess
         claimId={createdClaimId}
+        claimNumber={createdClaimNumber}
         locale={locale}
         contacts={contacts}
         tSuccess={tSuccess}

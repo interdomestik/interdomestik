@@ -349,6 +349,7 @@ describe('Claim Actions', () => {
       expect(result).toEqual({
         success: true,
         claimId: 'test-id',
+        claimNumber: 'CLM-MK-2026-000001',
         commercialFlow: {
           escalationRequest: {
             claimCategory: 'consumer',

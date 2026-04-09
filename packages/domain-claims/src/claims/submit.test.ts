@@ -35,6 +35,7 @@ const hoisted = vi.hoisted(() => {
         documentId: 'legacy-doc-1',
       },
     ]),
+    generateClaimNumber: vi.fn().mockResolvedValue('CLM-T1-2026-000001'),
     txInsert,
     txInsertValues,
   };
@@ -78,6 +79,10 @@ vi.mock('nanoid', () => ({
   nanoid: hoisted.nanoid,
 }));
 
+vi.mock('@interdomestik/database/claim-number', () => ({
+  generateClaimNumber: hoisted.generateClaimNumber,
+}));
+
 vi.mock('./ai-workflows', () => ({
   queueClaimDocumentAiWorkflows: hoisted.queueClaimDocumentAiWorkflows,
 }));
@@ -96,6 +101,7 @@ describe('submitClaimCore', () => {
         documentId: 'legacy-doc-1',
       },
     ]);
+    hoisted.generateClaimNumber.mockResolvedValue('CLM-T1-2026-000001');
     hoisted.db.query.tenantSettings.findFirst.mockResolvedValue(null);
     hoisted.db.query.user.findFirst.mockResolvedValue(null);
     hoisted.getActiveSubscription.mockResolvedValue({
@@ -150,7 +156,18 @@ describe('submitClaimCore', () => {
       }
     );
 
-    expect(result).toEqual({ success: true, claimId: 'claim-1' });
+    expect(result).toEqual({
+      success: true,
+      claimId: 'claim-1',
+      claimNumber: 'CLM-T1-2026-000001',
+    });
+    expect(hoisted.generateClaimNumber).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        claimId: 'claim-1',
+        tenantId: 'tenant-1',
+      })
+    );
     expect(hoisted.txInsert).toHaveBeenNthCalledWith(1, { __name: 'claim' });
     expect(hoisted.txInsert).toHaveBeenNthCalledWith(2, { __name: 'claim_stage_history' });
     expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(

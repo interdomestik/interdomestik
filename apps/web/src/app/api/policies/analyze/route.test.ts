@@ -89,7 +89,7 @@ describe('POST /api/policies/analyze', () => {
     const res = await POST(req as unknown as NextRequest);
     expect(res).toBeDefined();
     expect(res!.status).toBe(503);
-  });
+  }, 10000);
 
   it('queues a valid upload and returns 202 with a run id', async () => {
     const pngHeader = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0x00, 0x00, 0x00]);

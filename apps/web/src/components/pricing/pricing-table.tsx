@@ -1,11 +1,11 @@
 'use client';
 
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
-import { PADDLE_PRICES } from '@/config/paddle';
 import { Link, useRouter } from '@/i18n/routing';
 import { CommercialFunnelEvents } from '@/lib/analytics';
 import { authClient } from '@/lib/auth-client';
 import { getPaddleInstance } from '@interdomestik/domain-membership-billing/paddle';
+import type { PublicBillingCheckoutConfig } from '@interdomestik/domain-membership-billing/paddle-server';
 import { Badge, Button } from '@interdomestik/ui';
 import { getCookie } from 'cookies-next';
 import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
@@ -19,6 +19,7 @@ type PricingTableProps = Readonly<{
   tenantId?: string | null;
   billingTestMode?: boolean;
   isSessionPending?: boolean;
+  checkoutConfig?: PublicBillingCheckoutConfig | null;
 }>;
 
 const PLAN_IDS = ['standard', 'family', 'business'] as const;
@@ -27,7 +28,7 @@ type PlanId = (typeof PLAN_IDS)[number];
 type SelfServePlanId = (typeof SELF_SERVE_PLAN_IDS)[number];
 type PricingPlan = {
   id: PlanId;
-  priceId: string;
+  priceId: string | null;
   name: string;
   price: string;
   period: string;
@@ -47,12 +48,11 @@ export function shouldOpenSelfServePrecheckout(args: { userId?: string; planId: 
 }
 
 export function shouldRenderBusinessMembershipLink(args: {
-  userId?: string;
   planId: PlanId;
   isPilotMode: boolean;
   isSessionPending: boolean;
 }): boolean {
-  return !args.userId && args.planId === 'business' && !args.isPilotMode && !args.isSessionPending;
+  return args.planId === 'business' && !args.isPilotMode && !args.isSessionPending;
 }
 
 function findPlanById<TPlan extends { id: string }>(
@@ -61,6 +61,11 @@ function findPlanById<TPlan extends { id: string }>(
 ): TPlan | null {
   return planId ? (plans.find(plan => plan.id === planId) ?? null) : null;
 }
+
+const FALLBACK_CHECKOUT_PRICE_IDS = {
+  standardYear: 'pri_standard_year',
+  familyYear: 'pri_family_year',
+} as const;
 
 function getPaddleLocale(locale: string) {
   const normalizedLocale = locale.toLowerCase();
@@ -139,6 +144,7 @@ export function PricingTable({
   tenantId,
   billingTestMode,
   isSessionPending = false,
+  checkoutConfig,
 }: PricingTableProps) {
   const t = useTranslations('pricing');
   const locale = useLocale();
@@ -159,11 +165,16 @@ export function PricingTable({
   const preCheckoutSectionRef = useRef<HTMLElement | null>(null);
   const otpSectionRef = useRef<HTMLElement | null>(null);
   const isPilotMode = process.env.NEXT_PUBLIC_PILOT_MODE === 'true';
+  const resolvedPriceIds = {
+    standardYear: checkoutConfig?.priceIds.standardYear ?? FALLBACK_CHECKOUT_PRICE_IDS.standardYear,
+    familyYear: checkoutConfig?.priceIds.familyYear ?? FALLBACK_CHECKOUT_PRICE_IDS.familyYear,
+    businessYear: checkoutConfig?.priceIds.businessYear ?? null,
+  } as const;
 
   const PLANS: PricingPlan[] = [
     {
       id: 'standard',
-      priceId: PADDLE_PRICES.standard.yearly,
+      priceId: resolvedPriceIds.standardYear,
       name: t('standard.name'),
       price: '€20',
       period: t('standard.period'),
@@ -182,7 +193,7 @@ export function PricingTable({
     },
     {
       id: 'family',
-      priceId: PADDLE_PRICES.family.yearly,
+      priceId: resolvedPriceIds.familyYear,
       name: t('family.name'),
       price: '€35',
       period: t('family.period'),
@@ -199,7 +210,7 @@ export function PricingTable({
     },
     {
       id: 'business',
-      priceId: PADDLE_PRICES.business.yearly,
+      priceId: resolvedPriceIds.businessYear,
       name: t('business.name'),
       price: '€95',
       period: t('business.period'),
@@ -218,7 +229,7 @@ export function PricingTable({
   ];
 
   const isBillingTestMode = billingTestMode ?? process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
-  const paddleClientToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim() ?? '';
+  const paddleClientToken = checkoutConfig?.clientToken.trim() ?? '';
   const normalizedPaddleClientToken = paddleClientToken.toLowerCase();
   const hasPaddleClientToken =
     paddleClientToken.length > 0 &&
@@ -290,7 +301,16 @@ export function PricingTable({
     checkoutEmail?: string;
     checkoutUserId?: string;
   }) => {
-    const paddle = await getPaddleInstance();
+    if (!checkoutConfig) {
+      console.error('Paddle checkout configuration missing');
+      toast.error('Payment system unavailable. Please check configuration.');
+      return;
+    }
+
+    const paddle = await getPaddleInstance({
+      clientToken: checkoutConfig.clientToken,
+      environment: checkoutConfig.environment,
+    });
 
     if (!paddle) {
       console.error('Paddle not initialized');
@@ -313,7 +333,7 @@ export function PricingTable({
       customData: buildCheckoutCustomData({
         userId: args.checkoutUserId ?? userId,
         agentId: agentId ? String(agentId) : undefined,
-        tenantId,
+        tenantId: tenantId ?? checkoutConfig.tenantId,
         search: globalThis.location.search,
       }),
       settings: {
@@ -402,6 +422,11 @@ export function PricingTable({
       return;
     }
 
+    if (!otpPlan.priceId) {
+      setOtpError(t('otpStep.errors.invalidCode'));
+      return;
+    }
+
     if (!otpEmail.trim()) {
       setOtpError(t('otpStep.errors.missingEmail'));
       return;
@@ -466,6 +491,10 @@ export function PricingTable({
       return;
     }
 
+    if (!preCheckoutPlan.priceId) {
+      return;
+    }
+
     if (!userId) {
       openOtpStepForPlan(preCheckoutPlan.id);
       return;
@@ -490,6 +519,10 @@ export function PricingTable({
 
     if (shouldOpenSelfServePrecheckout({ userId, planId: plan.id })) {
       setPreCheckoutPlanId(plan.id);
+      return;
+    }
+
+    if (!plan.priceId) {
       return;
     }
 
@@ -578,19 +611,29 @@ export function PricingTable({
                   : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200'
               }`}
               variant={plan.popular ? 'default' : 'outline'}
-              disabled={isPilotMode || isSessionPending || loading === plan.priceId}
+              disabled={
+                isPilotMode ||
+                isSessionPending ||
+                (plan.priceId !== null && loading === plan.priceId)
+              }
               asChild={shouldRenderBusinessMembershipLink({
-                userId,
                 planId: plan.id,
                 isPilotMode,
                 isSessionPending,
               })}
               onClick={
-                !isPilotMode && !isSessionPending ? () => handlePlanCtaClick(plan) : undefined
+                !isPilotMode &&
+                !isSessionPending &&
+                !shouldRenderBusinessMembershipLink({
+                  planId: plan.id,
+                  isPilotMode,
+                  isSessionPending,
+                })
+                  ? () => handlePlanCtaClick(plan)
+                  : undefined
               }
             >
               {shouldRenderBusinessMembershipLink({
-                userId,
                 planId: plan.id,
                 isPilotMode,
                 isSessionPending,

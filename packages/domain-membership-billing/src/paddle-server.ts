@@ -6,10 +6,22 @@ export type BillingEntity = 'ks' | 'mk' | 'al';
 const LEGACY_PADDLE_API_KEY_ENV = 'PADDLE_API_KEY';
 const LEGACY_PADDLE_WEBHOOK_SECRET_ENV = 'PADDLE_WEBHOOK_SECRET_KEY';
 const DEFAULT_BILLING_ENTITY_ENV = 'PADDLE_DEFAULT_BILLING_ENTITY';
+const PUBLIC_BILLING_ENTITY_ENV = 'NEXT_PUBLIC_PADDLE_BILLING_ENTITY';
+const LEGACY_PUBLIC_PADDLE_CLIENT_TOKEN_ENV = 'NEXT_PUBLIC_PADDLE_CLIENT_TOKEN';
+const LEGACY_PUBLIC_STANDARD_PRICE_ENV = 'NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR';
+const LEGACY_PUBLIC_FAMILY_PRICE_ENV = 'NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR';
+const LEGACY_PUBLIC_BUSINESS_PRICE_ENV = 'NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_YEAR';
 
 type BillingEntityEnvVars = {
   apiKey: string;
   webhookSecret: string;
+};
+
+type PublicBillingEntityEnvVars = {
+  clientToken: string;
+  standardYearPriceId: string;
+  familyYearPriceId: string;
+  businessYearPriceId: string;
 };
 
 type ResolveBillingEntityConfigOptions = {
@@ -30,6 +42,18 @@ export type BillingEntityConfig = {
   apiKeyEnvVar: string;
   webhookSecretEnvVar: string;
   source: 'entity' | 'legacy-fallback';
+};
+
+export type PublicBillingCheckoutConfig = {
+  entity: BillingEntity;
+  tenantId: BillingTenantId;
+  environment: 'sandbox' | 'production';
+  clientToken: string;
+  priceIds: {
+    standardYear: string;
+    familyYear: string;
+    businessYear: string | null;
+  };
 };
 
 const BILLING_ENTITY_BY_TENANT: Record<BillingTenantId, BillingEntity> = {
@@ -59,6 +83,27 @@ const BILLING_ENTITY_ENV_VARS: Record<BillingEntity, BillingEntityEnvVars> = {
   },
 };
 
+const PUBLIC_BILLING_ENTITY_ENV_VARS: Record<BillingEntity, PublicBillingEntityEnvVars> = {
+  ks: {
+    clientToken: 'NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_KS',
+    standardYearPriceId: 'NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR_KS',
+    familyYearPriceId: 'NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR_KS',
+    businessYearPriceId: 'NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_YEAR_KS',
+  },
+  mk: {
+    clientToken: 'NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_MK',
+    standardYearPriceId: 'NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR_MK',
+    familyYearPriceId: 'NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR_MK',
+    businessYearPriceId: 'NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_YEAR_MK',
+  },
+  al: {
+    clientToken: 'NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_AL',
+    standardYearPriceId: 'NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR_AL',
+    familyYearPriceId: 'NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR_AL',
+    businessYearPriceId: 'NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_YEAR_AL',
+  },
+};
+
 const BILLING_ENTITIES: readonly BillingEntity[] = ['ks', 'mk', 'al'];
 const BILLING_TENANTS: readonly BillingTenantId[] = ['tenant_ks', 'tenant_mk', 'tenant_al'];
 
@@ -84,9 +129,7 @@ function isBillingTenantId(value: string): value is BillingTenantId {
 
 function isProductionLikeBillingMode(): boolean {
   return (
-    process.env.NODE_ENV === 'production' ||
-    process.env.VERCEL_ENV === 'production' ||
-    process.env.NEXT_PUBLIC_PADDLE_ENV === 'production'
+    process.env.VERCEL_ENV === 'production' || process.env.NEXT_PUBLIC_PADDLE_ENV === 'production'
   );
 }
 
@@ -107,6 +150,10 @@ function resolvePaddleEnvironment(): Environment {
     return Environment.production;
   }
   throw new Error(`NEXT_PUBLIC_PADDLE_ENV must be "sandbox" or "production", received "${value}".`);
+}
+
+function resolvePublicPaddleEnvironment(): 'sandbox' | 'production' {
+  return resolvePaddleEnvironment() === Environment.production ? 'production' : 'sandbox';
 }
 
 export function resolveBillingEntityFromPathSegment(
@@ -189,6 +236,108 @@ export function assertBillingEntityEnvConfigured(
   for (const entity of BILLING_ENTITIES) {
     resolveBillingEntityConfig(entity, options);
   }
+}
+
+function resolveConfiguredPublicBillingEntity(): BillingEntity | null {
+  return resolveBillingEntityFromPathSegment(getOptionalEnv(PUBLIC_BILLING_ENTITY_ENV));
+}
+
+function resolveConfiguredDefaultBillingEntity(): BillingEntity | null {
+  return resolveBillingEntityFromPathSegment(getOptionalEnv(DEFAULT_BILLING_ENTITY_ENV));
+}
+
+function resolvePublicCheckoutValue(primaryEnvVar: string, fallbackEnvVar?: string): string | null {
+  const primaryValue = getOptionalEnv(primaryEnvVar);
+  if (primaryValue) {
+    return primaryValue;
+  }
+
+  if (!fallbackEnvVar || isProductionLikeBillingMode()) {
+    return null;
+  }
+
+  return getOptionalEnv(fallbackEnvVar) ?? null;
+}
+
+function resolvePublicCheckoutEntity(): BillingEntity {
+  const publicEntity = resolveConfiguredPublicBillingEntity();
+  const defaultEntity = resolveConfiguredDefaultBillingEntity();
+
+  if (isProductionLikeBillingMode()) {
+    assertPublicBillingEntityAlignment();
+  }
+
+  return publicEntity ?? defaultEntity ?? 'ks';
+}
+
+export function assertPublicBillingEntityAlignment(): void {
+  const publicEntity = resolveConfiguredPublicBillingEntity();
+  const defaultEntity = resolveConfiguredDefaultBillingEntity();
+
+  if (!isProductionLikeBillingMode()) {
+    return;
+  }
+
+  if (!publicEntity || !defaultEntity || publicEntity !== defaultEntity) {
+    throw new Error(
+      'Public Paddle billing entity must match PADDLE_DEFAULT_BILLING_ENTITY in production-like mode.'
+    );
+  }
+}
+
+export function getPublicBillingCheckoutConfig(): PublicBillingCheckoutConfig {
+  const entity = resolvePublicCheckoutEntity();
+  const publicEnvVars = PUBLIC_BILLING_ENTITY_ENV_VARS[entity];
+  const clientToken = resolvePublicCheckoutValue(
+    publicEnvVars.clientToken,
+    LEGACY_PUBLIC_PADDLE_CLIENT_TOKEN_ENV
+  );
+  const standardYear = resolvePublicCheckoutValue(
+    publicEnvVars.standardYearPriceId,
+    LEGACY_PUBLIC_STANDARD_PRICE_ENV
+  );
+  const familyYear = resolvePublicCheckoutValue(
+    publicEnvVars.familyYearPriceId,
+    LEGACY_PUBLIC_FAMILY_PRICE_ENV
+  );
+  const businessYear = resolvePublicCheckoutValue(
+    publicEnvVars.businessYearPriceId,
+    LEGACY_PUBLIC_BUSINESS_PRICE_ENV
+  );
+
+  const missingEnv: string[] = [];
+  if (!clientToken) {
+    missingEnv.push(publicEnvVars.clientToken);
+  }
+  if (!standardYear) {
+    missingEnv.push(publicEnvVars.standardYearPriceId);
+  }
+  if (!familyYear) {
+    missingEnv.push(publicEnvVars.familyYearPriceId);
+  }
+  if (missingEnv.length > 0) {
+    throw new Error(
+      `Missing public Paddle checkout configuration for entity ${entity}. Missing env: ${missingEnv.join(', ')}`
+    );
+  }
+
+  if (standardYear === familyYear) {
+    throw new Error(
+      'Public self-serve Paddle price ids must be distinct for the resolved billing entity.'
+    );
+  }
+
+  return {
+    entity,
+    tenantId: resolveBillingTenantIdForEntity(entity),
+    environment: resolvePublicPaddleEnvironment(),
+    clientToken: clientToken as string,
+    priceIds: {
+      standardYear: standardYear as string,
+      familyYear: familyYear as string,
+      businessYear,
+    },
+  };
 }
 
 function resolveRequestedBillingEntity(options: GetPaddleOptions): BillingEntity {

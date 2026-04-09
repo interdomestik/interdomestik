@@ -169,9 +169,57 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
         // Wizard may have auto-submitted on some versions
       }
 
-      // 5. Verify Redirect/Success
-      await expect(page).toHaveURL(/\/member\/claims(?:\?.*)?$/, { timeout: 30000 });
-      await expect(page.getByText(CLAIM_TITLE)).toBeVisible({ timeout: 10000 });
+      // 5. Verify whichever post-submit contract is active for this environment
+      const successCard = page.getByTestId('claim-created-success').first();
+      const claimListLink = page.getByRole('link', { name: CLAIM_TITLE }).first();
+      const resolvePostSubmitState = async () => {
+        const pathname = new URL(page.url()).pathname;
+
+        if (await successCard.isVisible().catch(() => false)) {
+          return 'ui-v2-success';
+        }
+
+        if (pathname.endsWith('/member/claims') && (await claimListLink.isVisible().catch(() => false))) {
+          return 'claims-list';
+        }
+
+        return 'pending';
+      };
+
+      await expect.poll(resolvePostSubmitState, { timeout: 30000 }).not.toBe('pending');
+      const postSubmitState = await resolvePostSubmitState();
+
+      if (postSubmitState === 'ui-v2-success') {
+        await expect(page).toHaveURL(/\/member\/claims\/new(?:\?.*)?$/, { timeout: 30000 });
+
+        const createdClaimLink = page.getByTestId('claim-created-go-to-claim').first();
+        const createdClaimHref = await createdClaimLink.getAttribute('href');
+        expect(createdClaimHref).toBeTruthy();
+        const createdClaimPath = new URL(createdClaimHref!, 'http://localhost').pathname;
+        const createdClaimSegments = createdClaimPath.split('/').filter(Boolean);
+        expect(createdClaimSegments[createdClaimSegments.length - 2]).toBe('claims');
+        expect(createdClaimSegments[createdClaimSegments.length - 1]).not.toBe('new');
+
+        await createdClaimLink.click();
+
+        await expect
+          .poll(() => {
+            const pathname = new URL(page.url()).pathname;
+            const claimSegments = pathname.split('/').filter(Boolean);
+            return (
+              claimSegments.length >= 4 &&
+              claimSegments[claimSegments.length - 2] === 'claims' &&
+              claimSegments[claimSegments.length - 1] !== 'new'
+            );
+          }, { timeout: 30000 })
+          .toBe(true);
+        await expect(page.getByRole('heading', { name: CLAIM_TITLE })).toBeVisible({
+          timeout: 10000,
+        });
+      } else {
+        await expect(page).toHaveURL(/\/member\/claims(?:\?.*)?$/, { timeout: 30000 });
+        await expect(claimListLink).toBeVisible({ timeout: 10000 });
+      }
     });
   });
 
