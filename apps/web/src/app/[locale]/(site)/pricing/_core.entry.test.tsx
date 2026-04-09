@@ -111,7 +111,7 @@ describe('PricingPage server shell', () => {
   });
 
   it('keeps rendering the pricing shell during local sandbox builds when checkout config is unavailable', async () => {
-    process.env.NODE_ENV = 'production';
+    vi.stubEnv('NODE_ENV', 'production');
     process.env.NEXT_PUBLIC_PADDLE_ENV = 'sandbox';
     delete process.env.VERCEL_ENV;
 
