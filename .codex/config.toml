@@ -5,6 +5,22 @@ sandbox_mode = "workspace-write"
 run_with_default_db_url_script = "scripts/run-with-default-db-url.mjs"
 evidence_root = "/tmp/pilot-evidence"
 
+[mcp_servers.openai_docs]
+url = "https://developers.openai.com/mcp"
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp"]
+
+[mcp_servers.interdomestik_qa]
+command = "node"
+args = ["packages/qa/dist/index.js"]
+cwd = "."
+
 [roles.scribe]
 config = ".codex/agents/scribe.toml"
 enabled = true
