@@ -33,7 +33,9 @@ test('qa tool surface exposes the Phase C verification contract', () => {
 
   assert.match(
     listToolsSource,
-    /Run the full Phase C verification contract \(pr:verify, security:guard, e2e:gate\)/
+    new RegExp(
+      String.raw`Run the full Phase C verification contract \(pr:verify, security:guard, e2e:gate\)`
+    )
   );
   assert.match(healthSource, /pnpm pr:verify/);
   assert.match(healthSource, /pnpm security:guard/);

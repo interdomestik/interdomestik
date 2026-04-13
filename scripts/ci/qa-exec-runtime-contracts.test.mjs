@@ -23,10 +23,7 @@ function runModuleExpression(modulePath, expression) {
 }
 
 test('runSecurityGuard returns structured content with command metadata', () => {
-  const result = runModuleExpression(
-    'packages/qa/src/tools/tests.ts',
-    'mod.runSecurityGuard()'
-  );
+  const result = runModuleExpression('packages/qa/src/tools/tests.ts', 'mod.runSecurityGuard()');
 
   assert.equal(result.isError, false);
   assert.equal(result.structuredContent.tool, 'security_guard');
@@ -40,7 +37,7 @@ test('runSecurityGuard returns structured content with command metadata', () => 
 test('execAsync classifies failed check:fast output by the active stage marker', () => {
   const result = runModuleExpression(
     'packages/qa/src/utils/exec.ts',
-    `mod.classifyVerificationFailure('pnpm check:fast', ['> interdomestik@0.1.0 e2e:state:setup /repo', 'boom'].join('\\n'))`
+    String.raw`mod.classifyVerificationFailure('pnpm check:fast', ['> interdomestik@0.1.0 e2e:state:setup /repo', 'boom'].join('\n'))`
   );
 
   assert.equal(result.failedStage, 'e2e_state_setup');
@@ -48,15 +45,11 @@ test('execAsync classifies failed check:fast output by the active stage marker',
 });
 
 test('execAsync truncates oversized stdout without failing the command', () => {
-  const nodeCommand = `${JSON.stringify(process.execPath)} -e ${JSON.stringify(
-    "process.stdout.write('x'.repeat(20000))"
-  )}`;
-
   const result = runModuleExpression(
     'packages/qa/src/utils/exec.ts',
-    `mod.execAsync(${JSON.stringify(nodeCommand)}, { cwd: ${JSON.stringify(
-      repoRoot
-    )}, maxOutputBytes: 1024 })`
+    `mod.execAsync({ file: ${JSON.stringify(process.execPath)}, args: ['-e', ${JSON.stringify(
+      "process.stdout.write('x'.repeat(20000))"
+    )}] }, { cwd: ${JSON.stringify(repoRoot)}, maxOutputBytes: 1024 })`
   );
 
   assert.equal(result.exitCode, 0);

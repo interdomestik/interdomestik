@@ -1,50 +1,37 @@
-import { execAsync, type ExecResult } from '../utils/exec.js';
+import { coerceExecResult, execAsync, type ExecCommand } from '../utils/exec.js';
 import { REPO_ROOT } from '../utils/paths.js';
-import { buildCommandStructuredContent, buildHealthToolResult } from '../utils/tool-results.js';
+import {
+  buildCommandStructuredContent,
+  buildHealthToolResult,
+  type QACommandStructuredContent,
+} from '../utils/tool-results.js';
 
 type HealthCheckConfig = {
-  command: string;
+  command: ExecCommand;
   label: string;
   tool: string;
 };
 
 const HEALTH_CHECKS: HealthCheckConfig[] = [
   {
-    command: 'pnpm pr:verify',
+    command: { args: ['pr:verify'], display: 'pnpm pr:verify', file: 'pnpm' },
     label: 'PR Verify',
     tool: 'pr_verify',
   },
   {
-    command: 'pnpm security:guard',
+    command: { args: ['security:guard'], display: 'pnpm security:guard', file: 'pnpm' },
     label: 'Security Guard',
     tool: 'security_guard',
   },
   {
-    command: 'pnpm e2e:gate',
+    command: { args: ['e2e:gate'], display: 'pnpm e2e:gate', file: 'pnpm' },
     label: 'E2E Gate',
     tool: 'e2e_gate',
   },
 ];
 
-function coerceExecResult(error: any, fallbackCommand: string): ExecResult {
-  return {
-    command: error?.command ?? fallbackCommand,
-    cwd: error?.cwd ?? REPO_ROOT,
-    durationMs: error?.durationMs ?? 0,
-    exitCode: error?.exitCode ?? error?.code ?? null,
-    failedStage: error?.failedStage ?? null,
-    failureCategory: error?.failureCategory ?? null,
-    signal: error?.signal ?? null,
-    stderr: (error?.stderr || '').trim(),
-    stderrTruncated: error?.stderrTruncated ?? false,
-    stdout: (error?.stdout || '').trim(),
-    stdoutTruncated: error?.stdoutTruncated ?? false,
-    timedOut: error?.timedOut ?? false,
-  };
-}
-
 export async function checkHealth() {
-  const checks = [];
+  const checks: QACommandStructuredContent[] = [];
 
   for (const check of HEALTH_CHECKS) {
     try {
@@ -56,7 +43,7 @@ export async function checkHealth() {
           check.tool,
           check.label,
           'fail',
-          coerceExecResult(error, check.command)
+          coerceExecResult(error, check.command, REPO_ROOT)
         )
       );
     }

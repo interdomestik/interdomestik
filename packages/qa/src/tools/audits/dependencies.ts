@@ -17,9 +17,11 @@ export async function auditDependencies() {
     };
   }
 
-  await execAsync('git branch --show-current', { cwd: REPO_ROOT }).catch(() => ({
-    stdout: 'unknown',
-  }));
+  await execAsync({ args: ['branch', '--show-current'], file: 'git' }, { cwd: REPO_ROOT }).catch(
+    () => ({
+      stdout: 'unknown',
+    })
+  );
   const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
   const checks: string[] = [];
   if (pkg.workspaces) checks.push('✅ Workspaces configured');

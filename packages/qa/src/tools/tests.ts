@@ -1,7 +1,7 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { execAsync, type ExecResult } from '../utils/exec.js';
+import { coerceExecResult, execAsync, type ExecCommand, type ExecResult } from '../utils/exec.js';
 import { REPO_ROOT, WEB_APP } from '../utils/paths.js';
-import { buildCommandStructuredContent, buildCommandToolResult } from '../utils/tool-results.js';
+import { buildCommandToolResult } from '../utils/tool-results.js';
 
 type OrchestratorArgs = {
   suite?: string;
@@ -9,7 +9,7 @@ type OrchestratorArgs = {
 };
 
 type ToolCommandConfig = {
-  command: string;
+  command: ExecCommand;
   cwd: string;
   label: string;
   tool: string;
@@ -22,23 +22,6 @@ type TestResult = {
   output: string;
   status: 'pass' | 'fail';
 };
-
-function coerceExecResult(error: any, fallbackCommand: string, fallbackCwd: string): ExecResult {
-  return {
-    command: error?.command ?? fallbackCommand,
-    cwd: error?.cwd ?? fallbackCwd,
-    durationMs: error?.durationMs ?? 0,
-    exitCode: error?.exitCode ?? error?.code ?? null,
-    failedStage: error?.failedStage ?? null,
-    failureCategory: error?.failureCategory ?? null,
-    signal: error?.signal ?? null,
-    stderr: (error?.stderr || '').trim(),
-    stderrTruncated: error?.stderrTruncated ?? false,
-    stdout: (error?.stdout || '').trim(),
-    stdoutTruncated: error?.stdoutTruncated ?? false,
-    timedOut: error?.timedOut ?? false,
-  };
-}
 
 function formatSummary(results: TestResult[]) {
   const passed = results.filter(result => result.status === 'pass').length;
@@ -98,75 +81,104 @@ async function runCommand(config: ToolCommandConfig): Promise<TestResult> {
 function getToolConfig(tool: string): ToolCommandConfig {
   const configs: Record<string, ToolCommandConfig> = {
     build_ci: {
-      command:
-        'node scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web run build:ci',
+      command: {
+        args: [
+          'scripts/run-with-default-db-url.mjs',
+          'pnpm',
+          '--filter',
+          '@interdomestik/web',
+          'run',
+          'build:ci',
+        ],
+        display:
+          'node scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web run build:ci',
+        file: 'node',
+      },
       cwd: REPO_ROOT,
       label: 'Build CI',
       tool: 'build_ci',
     },
     check_fast: {
-      command: 'pnpm check:fast',
+      command: { args: ['check:fast'], display: 'pnpm check:fast', file: 'pnpm' },
       cwd: REPO_ROOT,
       label: 'Check Fast',
       tool: 'check_fast',
     },
     e2e_gate: {
-      command: 'pnpm e2e:gate',
+      command: { args: ['e2e:gate'], display: 'pnpm e2e:gate', file: 'pnpm' },
       cwd: REPO_ROOT,
       label: 'E2E Gate',
       tool: 'e2e_gate',
     },
     e2e_gate_pr_fast: {
-      command: 'node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast',
+      command: {
+        args: ['scripts/run-with-default-db-url.mjs', 'pnpm', 'e2e:gate:pr:fast'],
+        display: 'node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast',
+        file: 'node',
+      },
       cwd: REPO_ROOT,
       label: 'E2E Gate PR Fast',
       tool: 'e2e_gate_pr_fast',
     },
     e2e_state_setup: {
-      command: 'node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup',
+      command: {
+        args: ['scripts/run-with-default-db-url.mjs', 'pnpm', 'e2e:state:setup'],
+        display: 'node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup',
+        file: 'node',
+      },
       cwd: REPO_ROOT,
       label: 'E2E State Setup',
       tool: 'e2e_state_setup',
     },
     pr_verify: {
-      command: 'pnpm pr:verify',
+      command: { args: ['pr:verify'], display: 'pnpm pr:verify', file: 'pnpm' },
       cwd: REPO_ROOT,
       label: 'PR Verify',
       tool: 'pr_verify',
     },
     pr_verify_hosts: {
-      command: 'pnpm pr:verify:hosts',
+      command: { args: ['pr:verify:hosts'], display: 'pnpm pr:verify:hosts', file: 'pnpm' },
       cwd: REPO_ROOT,
       label: 'PR Verify Hosts',
       tool: 'pr_verify_hosts',
     },
     run_coverage: {
-      command: 'pnpm test:unit -- --coverage',
+      command: {
+        args: ['test:unit', '--', '--coverage'],
+        display: 'pnpm test:unit -- --coverage',
+        file: 'pnpm',
+      },
       cwd: WEB_APP,
       label: 'Coverage',
       tool: 'run_coverage',
     },
     run_e2e_tests: {
-      command: 'pnpm test:e2e',
+      command: { args: ['test:e2e'], display: 'pnpm test:e2e', file: 'pnpm' },
       cwd: WEB_APP,
       label: 'E2E Tests',
       tool: 'run_e2e_tests',
     },
     run_unit_tests: {
-      command: 'pnpm test:unit',
+      command: { args: ['test:unit'], display: 'pnpm test:unit', file: 'pnpm' },
       cwd: WEB_APP,
       label: 'Unit Tests',
       tool: 'run_unit_tests',
     },
     security_guard: {
-      command: 'pnpm security:guard',
+      command: { args: ['security:guard'], display: 'pnpm security:guard', file: 'pnpm' },
       cwd: REPO_ROOT,
       label: 'Security Guard',
       tool: 'security_guard',
     },
   };
 
-  return configs[tool];
+  const config = configs[tool];
+
+  if (!config) {
+    throw new Error(`Unknown tool config: ${tool}`);
+  }
+
+  return config;
 }
 
 function getOrchestratorConfigs(suite: string): ToolCommandConfig[] | null {
@@ -179,7 +191,11 @@ function getOrchestratorConfigs(suite: string): ToolCommandConfig[] | null {
   if (suite === 'smoke') {
     return [
       {
-        command: 'pnpm --filter @interdomestik/web test:e2e -- --grep smoke',
+        command: {
+          args: ['--filter', '@interdomestik/web', 'test:e2e', '--', '--grep', 'smoke'],
+          display: 'pnpm --filter @interdomestik/web test:e2e -- --grep smoke',
+          file: 'pnpm',
+        },
         cwd: REPO_ROOT,
         label: 'E2E Smoke Tests',
         tool: 'smoke',

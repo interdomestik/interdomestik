@@ -20,6 +20,12 @@ export type ExecOptions = {
   timeoutMs?: number;
 };
 
+export type ExecCommand = {
+  args?: string[];
+  display?: string;
+  file: string;
+};
+
 export type ExecResult = {
   command: string;
   cwd: string;
@@ -52,6 +58,11 @@ type FailurePattern = {
   commandPattern: RegExp;
   fallbackStage: string;
   stages: StageDefinition[];
+};
+
+type ExecErrorLike = Partial<ExecResult> & {
+  code?: unknown;
+  command?: string;
 };
 
 const FAILURE_PATTERNS: FailurePattern[] = [
@@ -180,6 +191,60 @@ function normalizeFailureCategory(stage: string | null): FailureCategory | null 
   return STAGE_CATEGORY_MAP[stage] ?? 'unknown';
 }
 
+function formatCommandPart(part: string) {
+  return /\s|["'`$\\]/.test(part) ? JSON.stringify(part) : part;
+}
+
+export function formatExecCommand(command: ExecCommand) {
+  if (command.display) {
+    return command.display;
+  }
+
+  return [command.file, ...(command.args ?? [])].map(formatCommandPart).join(' ');
+}
+
+export function coerceExitCode(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === 'string') {
+    const trimmedValue = value.trim();
+
+    if (!trimmedValue) {
+      return null;
+    }
+
+    const parsedValue = Number(trimmedValue);
+    return Number.isFinite(parsedValue) ? parsedValue : null;
+  }
+
+  return null;
+}
+
+export function coerceExecResult(
+  error: unknown,
+  fallbackCommand: ExecCommand,
+  fallbackCwd: string
+): ExecResult {
+  const execError = (error ?? {}) as ExecErrorLike;
+
+  return {
+    command: execError.command ?? formatExecCommand(fallbackCommand),
+    cwd: execError.cwd ?? fallbackCwd,
+    durationMs: execError.durationMs ?? 0,
+    exitCode: coerceExitCode(execError.exitCode ?? execError.code),
+    failedStage: execError.failedStage ?? null,
+    failureCategory: execError.failureCategory ?? null,
+    signal: execError.signal ?? null,
+    stderr: (execError.stderr || '').trim(),
+    stderrTruncated: execError.stderrTruncated ?? false,
+    stdout: (execError.stdout || '').trim(),
+    stdoutTruncated: execError.stdoutTruncated ?? false,
+    timedOut: execError.timedOut ?? false,
+  };
+}
+
 export function classifyVerificationFailure(command: string, output: string) {
   const pattern = FAILURE_PATTERNS.find(candidate => candidate.commandPattern.test(command));
 
@@ -207,7 +272,7 @@ export function classifyVerificationFailure(command: string, output: string) {
   };
 }
 
-export async function execAsync(command: string, options: ExecOptions): Promise<ExecResult> {
+export async function execAsync(command: ExecCommand, options: ExecOptions): Promise<ExecResult> {
   const {
     cwd,
     env,
@@ -215,15 +280,15 @@ export async function execAsync(command: string, options: ExecOptions): Promise<
     timeoutMs = DEFAULT_TIMEOUT_MS,
   } = options;
   const startedAt = Date.now();
+  const commandDisplay = formatExecCommand(command);
 
   return new Promise((resolve, reject) => {
-    const child = spawn(command, {
+    const child = spawn(command.file, command.args ?? [], {
       cwd,
       env: {
         ...process.env,
         ...env,
       },
-      shell: true,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
@@ -232,6 +297,44 @@ export async function execAsync(command: string, options: ExecOptions): Promise<
     let timedOut = false;
     let timeoutHandle: NodeJS.Timeout | undefined;
     let killHandle: NodeJS.Timeout | undefined;
+    let settled = false;
+
+    const clearHandles = () => {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      if (killHandle) clearTimeout(killHandle);
+    };
+
+    const buildResult = (exitCode: number | null, signal: NodeJS.Signals | null): ExecResult => ({
+      command: commandDisplay,
+      cwd,
+      durationMs: Date.now() - startedAt,
+      exitCode,
+      failedStage: null,
+      failureCategory: null,
+      signal,
+      stderr: stderrState.text.trim(),
+      stderrTruncated: stderrState.truncated,
+      stdout: stdoutState.text.trim(),
+      stdoutTruncated: stdoutState.truncated,
+      timedOut,
+    });
+
+    const rejectWithResult = (result: ExecResult, error?: Error) => {
+      const combinedOutput = [result.stdout, result.stderr].filter(Boolean).join('\n');
+      const classification = classifyVerificationFailure(commandDisplay, combinedOutput);
+      const baseError =
+        error ??
+        new Error(
+          `Command failed with exit code ${result.exitCode ?? 'null'}${timedOut ? ' (timeout)' : ''}`
+        );
+
+      reject(
+        Object.assign(baseError, {
+          ...result,
+          ...classification,
+        })
+      );
+    };
 
     child.stdout.on('data', chunk => {
       stdoutState = appendOutput(stdoutState, chunk.toString(), maxOutputBytes);
@@ -242,9 +345,13 @@ export async function execAsync(command: string, options: ExecOptions): Promise<
     });
 
     child.on('error', error => {
-      if (timeoutHandle) clearTimeout(timeoutHandle);
-      if (killHandle) clearTimeout(killHandle);
-      reject(error);
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      clearHandles();
+      rejectWithResult(buildResult(null, null), error);
     });
 
     if (timeoutMs > 0) {
@@ -256,40 +363,19 @@ export async function execAsync(command: string, options: ExecOptions): Promise<
     }
 
     child.on('close', (exitCode, signal) => {
-      if (timeoutHandle) clearTimeout(timeoutHandle);
-      if (killHandle) clearTimeout(killHandle);
+      if (settled) {
+        return;
+      }
 
-      const result: ExecResult = {
-        command,
-        cwd,
-        durationMs: Date.now() - startedAt,
-        exitCode,
-        failedStage: null,
-        failureCategory: null,
-        signal,
-        stderr: stderrState.text.trim(),
-        stderrTruncated: stderrState.truncated,
-        stdout: stdoutState.text.trim(),
-        stdoutTruncated: stdoutState.truncated,
-        timedOut,
-      };
-
+      settled = true;
+      clearHandles();
+      const result = buildResult(exitCode, signal);
       if (exitCode === 0 && !timedOut) {
         resolve(result);
         return;
       }
 
-      const combinedOutput = [result.stdout, result.stderr].filter(Boolean).join('\n');
-      const classification = classifyVerificationFailure(command, combinedOutput);
-      const failure = Object.assign(
-        new Error(
-          `Command failed with exit code ${exitCode ?? 'null'}${timedOut ? ' (timeout)' : ''}`
-        ),
-        result,
-        classification
-      );
-
-      reject(failure);
+      rejectWithResult(result);
     });
   });
 }
