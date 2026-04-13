@@ -1,12 +1,12 @@
 import { ClaimWizard } from '@/components/claims/claim-wizard';
 import { getSessionSafe } from '@/components/shell/session';
+import { Link } from '@/i18n/routing';
 import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { Button } from '@interdomestik/ui';
 import { ShieldAlert } from 'lucide-react';
 import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { Link } from '@/i18n/routing';
 import { redirect } from 'next/navigation';
 
 const DIASPORA_CLAIM_SOURCES = ['diaspora-green-card'] as const;

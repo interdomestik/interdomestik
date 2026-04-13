@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth';
+import { Link } from '@/i18n/routing';
 import {
   Button,
   Card,
@@ -11,7 +12,6 @@ import {
 import { AlertTriangle, CheckCircle, Shield } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { GracePeriodBanner } from '@/app/[locale]/(app)/member/membership/components/grace-period-banner';
@@ -31,13 +31,17 @@ type TranslationFn = (
   formats?: Record<string, unknown>
 ) => string;
 
-export async function MembershipV2Page() {
+interface MembershipV2PageProps {
+  locale: string;
+}
+
+export async function MembershipV2Page({ locale }: MembershipV2PageProps) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session) {
-    redirect('/login');
+    redirect(`/${locale}/login`);
   }
 
   const t = (await getTranslations('membership')) as TranslationFn;

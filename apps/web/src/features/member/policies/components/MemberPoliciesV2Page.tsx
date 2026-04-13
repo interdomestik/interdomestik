@@ -18,13 +18,17 @@ import { auth } from '@/lib/auth';
 import { getPoliciesWithSignedUrlsCore } from '@/app/[locale]/(app)/member/policies/_core';
 import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
 
-export async function MemberPoliciesV2Page() {
+interface MemberPoliciesV2PageProps {
+  locale: string;
+}
+
+export async function MemberPoliciesV2Page({ locale }: MemberPoliciesV2PageProps) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session?.user) {
-    redirect('/login');
+    redirect(`/${locale}/login`);
   }
 
   const tenantId = ensureTenantId(session);
