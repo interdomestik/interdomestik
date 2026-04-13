@@ -32,7 +32,7 @@ describe('authProviders email OTP plugin', () => {
     const providers = buildAuthProviders({
       GITHUB_CLIENT_ID: '',
       GITHUB_CLIENT_SECRET: '',
-    } as NodeJS.ProcessEnv);
+    });
 
     expect(providers).not.toHaveProperty('socialProviders.github');
   });

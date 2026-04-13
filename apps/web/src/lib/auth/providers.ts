@@ -3,7 +3,12 @@ import { emailOTP } from 'better-auth/plugins/email-otp';
 import { sendPasswordResetEmail, sendSignInOtpEmail } from '../email';
 import { getGitHubSocialProvider } from './social-providers';
 
-export function buildAuthProviders(env: NodeJS.ProcessEnv = process.env) {
+type GitHubOAuthEnv = {
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+};
+
+export function buildAuthProviders(env: GitHubOAuthEnv = process.env as GitHubOAuthEnv) {
   const githubProvider = getGitHubSocialProvider({
     GITHUB_CLIENT_ID: env.GITHUB_CLIENT_ID,
     GITHUB_CLIENT_SECRET: env.GITHUB_CLIENT_SECRET,
