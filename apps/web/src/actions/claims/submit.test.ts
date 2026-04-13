@@ -60,6 +60,7 @@ describe('actions/claims/submit', () => {
     (submitClaimCoreDomain as any).mockResolvedValueOnce({
       success: true,
       claimId: 'claim-1',
+      claimNumber: 'CLM-T1-2026-000001',
     });
 
     const result = await submitClaimCore({
@@ -72,6 +73,7 @@ describe('actions/claims/submit', () => {
     expect(result).toEqual({
       success: true,
       claimId: 'claim-1',
+      claimNumber: 'CLM-T1-2026-000001',
       commercialFlow: {
         escalationRequest: {
           claimCategory: 'transport',
@@ -100,6 +102,7 @@ describe('actions/claims/submit', () => {
     (submitClaimCoreDomain as any).mockResolvedValueOnce({
       success: true,
       claimId: 'claim-1',
+      claimNumber: 'CLM-T1-2026-000001',
     });
 
     const result = await submitClaimCore({
@@ -114,6 +117,7 @@ describe('actions/claims/submit', () => {
     expect(result).toEqual({
       success: true,
       claimId: 'claim-1',
+      claimNumber: 'CLM-T1-2026-000001',
       commercialFlow: {
         escalationRequest: {
           claimCategory: 'vehicle',
@@ -132,6 +136,7 @@ describe('actions/claims/submit', () => {
     (submitClaimCoreDomain as any).mockResolvedValueOnce({
       success: true,
       claimId: 'claim-1',
+      claimNumber: 'CLM-T1-2026-000001',
     });
 
     await submitClaimCore({

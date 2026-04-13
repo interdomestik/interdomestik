@@ -1,8 +1,10 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   assertBillingEntityEnvConfigured,
+  assertPublicBillingEntityAlignment,
   getPaddle,
   getPaddleForEntity,
+  getPublicBillingCheckoutConfig,
   resetPaddleClientCacheForTests,
   resolveBillingEntityConfig,
   resolveBillingEntityFromPathSegment,
@@ -30,6 +32,23 @@ function clearBillingEnv(): void {
   unsetEnv('PADDLE_WEBHOOK_SECRET_KEY_MK');
   unsetEnv('PADDLE_WEBHOOK_SECRET_KEY_AL');
   unsetEnv('PADDLE_DEFAULT_BILLING_ENTITY');
+  unsetEnv('NEXT_PUBLIC_PADDLE_BILLING_ENTITY');
+  unsetEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN');
+  unsetEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_KS');
+  unsetEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_MK');
+  unsetEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_AL');
+  unsetEnv('NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR');
+  unsetEnv('NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR_KS');
+  unsetEnv('NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR_MK');
+  unsetEnv('NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR_AL');
+  unsetEnv('NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR');
+  unsetEnv('NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR_KS');
+  unsetEnv('NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR_MK');
+  unsetEnv('NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR_AL');
+  unsetEnv('NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_YEAR');
+  unsetEnv('NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_YEAR_KS');
+  unsetEnv('NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_YEAR_MK');
+  unsetEnv('NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_YEAR_AL');
   unsetEnv('NEXT_PUBLIC_PADDLE_ENV');
   unsetEnv('VERCEL_ENV');
   unsetEnv('NODE_ENV');
@@ -65,7 +84,7 @@ describe('paddle-server billing entity mapping', () => {
   });
 
   it('throws in production-like mode when required entity env config is missing with strict message', () => {
-    setEnv('NODE_ENV', 'production');
+    setEnv('VERCEL_ENV', 'production');
     setEnv('PADDLE_API_KEY_MK', 'pdl_api_mk');
     setEnv('PADDLE_WEBHOOK_SECRET_KEY_MK', 'whsec_mk');
     setEnv('PADDLE_API_KEY_AL', 'pdl_api_al');
@@ -110,6 +129,55 @@ describe('paddle-server billing entity mapping', () => {
     expect(config.source).toBe('legacy-fallback');
     expect(config.apiKeyEnvVar).toBe('PADDLE_API_KEY');
     expect(config.webhookSecretEnvVar).toBe('PADDLE_WEBHOOK_SECRET_KEY');
+  });
+
+  it('resolves public checkout config from the same default billing entity in production-like mode', () => {
+    setEnv('VERCEL_ENV', 'production');
+    setEnv('PADDLE_DEFAULT_BILLING_ENTITY', 'ks');
+    setEnv('NEXT_PUBLIC_PADDLE_BILLING_ENTITY', 'ks');
+    setEnv('NEXT_PUBLIC_PADDLE_ENV', 'sandbox');
+    setEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_KS', 'test_client_token_ks');
+    setEnv('NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR_KS', 'pri_standard_ks');
+    setEnv('NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR_KS', 'pri_family_ks');
+
+    const config = getPublicBillingCheckoutConfig();
+
+    expect(config).toEqual(
+      expect.objectContaining({
+        entity: 'ks',
+        tenantId: 'tenant_ks',
+        environment: 'sandbox',
+        clientToken: 'test_client_token_ks',
+        priceIds: expect.objectContaining({
+          standardYear: 'pri_standard_ks',
+          familyYear: 'pri_family_ks',
+        }),
+      })
+    );
+  });
+
+  it('rejects public checkout config when the public entity drifts from the server default entity', () => {
+    setEnv('VERCEL_ENV', 'production');
+    setEnv('PADDLE_DEFAULT_BILLING_ENTITY', 'ks');
+    setEnv('NEXT_PUBLIC_PADDLE_BILLING_ENTITY', 'mk');
+
+    expect(() => assertPublicBillingEntityAlignment()).toThrow(
+      'Public Paddle billing entity must match PADDLE_DEFAULT_BILLING_ENTITY in production-like mode.'
+    );
+  });
+
+  it('rejects duplicate self-serve public price ids in production-like mode', () => {
+    setEnv('VERCEL_ENV', 'production');
+    setEnv('PADDLE_DEFAULT_BILLING_ENTITY', 'ks');
+    setEnv('NEXT_PUBLIC_PADDLE_BILLING_ENTITY', 'ks');
+    setEnv('NEXT_PUBLIC_PADDLE_ENV', 'sandbox');
+    setEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_KS', 'test_client_token_ks');
+    setEnv('NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR_KS', 'pri_duplicate');
+    setEnv('NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR_KS', 'pri_duplicate');
+
+    expect(() => getPublicBillingCheckoutConfig()).toThrow(
+      'Public self-serve Paddle price ids must be distinct for the resolved billing entity.'
+    );
   });
 
   it('reuses cached paddle client until credentials change', () => {

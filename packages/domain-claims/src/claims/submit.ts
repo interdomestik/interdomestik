@@ -5,6 +5,7 @@ import {
   db,
   tenantSettings,
 } from '@interdomestik/database';
+import { generateClaimNumber } from '@interdomestik/database/claim-number';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -121,16 +122,18 @@ async function persistSubmittedClaim(args: {
   claimId: string;
   tenantId: string;
   userId: string;
+  createdAt: Date;
   changedByRole: string;
   branchId: string | null;
   agentId: string | null;
   handoffContext?: ClaimStartHandoffContext | null;
   data: CreateClaimValues;
-}): Promise<QueuedClaimAiRun[]> {
+}): Promise<{ claimNumber: string; queuedRuns: QueuedClaimAiRun[] }> {
   const { title, description, category, companyName, claimAmount, currency, incidentDate, files } =
     args.data;
   const publicNote = buildClaimStartPublicNote(args.handoffContext);
   let queuedRuns: QueuedClaimAiRun[] = [];
+  let claimNumber = '';
 
   await db.transaction(async tx => {
     await tx.insert(claims).values({
@@ -146,6 +149,15 @@ async function persistSubmittedClaim(args: {
       claimAmount: claimAmount || undefined,
       currency: currency || 'EUR',
       status: 'submitted',
+      claimNumber: null,
+      createdAt: args.createdAt,
+      updatedAt: args.createdAt,
+    });
+
+    claimNumber = await generateClaimNumber(tx, {
+      tenantId: args.tenantId,
+      claimId: args.claimId,
+      createdAt: args.createdAt,
     });
 
     await tx.insert(claimStageHistory).values({
@@ -199,7 +211,10 @@ async function persistSubmittedClaim(args: {
     });
   });
 
-  return queuedRuns;
+  return {
+    claimNumber,
+    queuedRuns,
+  };
 }
 
 async function logClaimSubmittedAudit(args: {
@@ -306,19 +321,24 @@ export async function submitClaimCore(
   validateClaimFiles(result.data.files, session, tenantId);
 
   const claimId = nanoid();
+  const createdAt = new Date();
   let queuedRuns: QueuedClaimAiRun[];
+  let claimNumber = '';
 
   try {
-    queuedRuns = await persistSubmittedClaim({
+    const persistedClaim = await persistSubmittedClaim({
       claimId,
       tenantId,
       userId: session.user.id,
+      createdAt,
       changedByRole: session.user.role ?? 'member',
       branchId: assignment.branchId,
       agentId: assignment.agentId,
       handoffContext,
       data: result.data,
     });
+    queuedRuns = persistedClaim.queuedRuns;
+    claimNumber = persistedClaim.claimNumber;
 
     await logClaimSubmittedAudit({
       deps,
@@ -341,7 +361,7 @@ export async function submitClaimCore(
     await deps.revalidatePath('/member/claims');
   }
 
-  return { success: true, claimId };
+  return { success: true, claimId, claimNumber };
 }
 
 function validateClaimFiles(

@@ -1,4 +1,3 @@
-import { PADDLE_PRICES } from '@/config/paddle';
 import { authClient } from '@/lib/auth-client';
 import * as paddleLib from '@interdomestik/domain-membership-billing/paddle';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -17,6 +16,17 @@ const { mockToastError, mockGetCookie } = vi.hoisted(() => ({
   mockGetCookie: vi.fn(),
 }));
 let mockLocale = 'en';
+const checkoutConfig = {
+  entity: 'ks',
+  tenantId: 'tenant_ks',
+  environment: 'sandbox',
+  clientToken: 'test_client_token_ks',
+  priceIds: {
+    standardYear: 'pri_standard_year',
+    familyYear: 'pri_family_year',
+    businessYear: 'pri_business_year',
+  },
+} as const;
 
 // Mock dependencies
 vi.mock('@interdomestik/ui', () => ({
@@ -131,7 +141,14 @@ describe('PricingTable', () => {
 
   it('marks the query-selected plan card for continuity after hydration', async () => {
     window.history.replaceState({}, '', '/pricing?plan=family');
-    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+    render(
+      <PricingTable
+        userId="user-123"
+        email="test@example.com"
+        billingTestMode={false}
+        checkoutConfig={checkoutConfig}
+      />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('plan-card-family')).toHaveAttribute('data-selected-plan', '1');
@@ -147,7 +164,6 @@ describe('PricingTable', () => {
 
     expect(
       shouldRenderBusinessMembershipLink({
-        userId: undefined,
         planId: 'business',
         isPilotMode: false,
         isSessionPending: false,
@@ -155,8 +171,7 @@ describe('PricingTable', () => {
     ).toBe(true);
     expect(
       shouldRenderBusinessMembershipLink({
-        userId: 'user-123',
-        planId: 'business',
+        planId: 'standard',
         isPilotMode: false,
         isSessionPending: false,
       })
@@ -164,7 +179,14 @@ describe('PricingTable', () => {
   });
 
   it('renders plans correctly', () => {
-    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+    render(
+      <PricingTable
+        userId="user-123"
+        email="test@example.com"
+        billingTestMode={false}
+        checkoutConfig={checkoutConfig}
+      />
+    );
 
     expect(screen.queryByText('basic.name')).toBeNull();
     expect(screen.queryByText('monthly')).toBeNull();
@@ -182,6 +204,7 @@ describe('PricingTable', () => {
         userId="user-123"
         email="test@example.com"
         billingTestMode={false}
+        checkoutConfig={checkoutConfig}
         tenantId="tenant_ks"
       />
     );
@@ -193,13 +216,15 @@ describe('PricingTable', () => {
     await waitFor(() => {
       expect(mockPaddle.Checkout.open).toHaveBeenCalledWith(
         expect.objectContaining({
-          items: expect.arrayContaining([{ priceId: PADDLE_PRICES.standard.yearly, quantity: 1 }]),
+          items: expect.arrayContaining([
+            { priceId: checkoutConfig.priceIds.standardYear, quantity: 1 },
+          ]),
           customer: { email: 'test@example.com' },
-          customData: {
+          customData: expect.objectContaining({
             acquisitionSource: 'self_serve_web',
             tenantId: 'tenant_ks',
             userId: 'user-123',
-          },
+          }),
           settings: expect.objectContaining({
             successUrl: expect.stringContaining('/en/member/membership/success'),
             locale: 'en',
@@ -222,6 +247,7 @@ describe('PricingTable', () => {
         userId="user-123"
         email="test@example.com"
         billingTestMode={false}
+        checkoutConfig={checkoutConfig}
         tenantId="tenant_mk"
       />
     );
@@ -246,7 +272,7 @@ describe('PricingTable', () => {
   });
 
   it('opens a self-serve confirmation for anonymous standard plan before continuing to email OTP onboarding', async () => {
-    render(<PricingTable billingTestMode={false} />);
+    render(<PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} />);
 
     const standardCta = screen.getByTestId('plan-cta-standard');
     expect(standardCta.tagName).toBe('BUTTON');
@@ -271,7 +297,7 @@ describe('PricingTable', () => {
   });
 
   it('opens a self-serve confirmation for anonymous family plan before continuing to email OTP onboarding', async () => {
-    render(<PricingTable billingTestMode={false} />);
+    render(<PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} />);
 
     fireEvent.click(screen.getByTestId('plan-cta-family'));
 
@@ -288,7 +314,7 @@ describe('PricingTable', () => {
   });
 
   it('sends an email OTP for anonymous self-serve onboarding', async () => {
-    render(<PricingTable billingTestMode={false} />);
+    render(<PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} />);
 
     fireEvent.click(screen.getByTestId('plan-cta-standard'));
     fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
@@ -309,7 +335,9 @@ describe('PricingTable', () => {
   });
 
   it('verifies the OTP with default acquisition tenant fields and continues into checkout for the selected plan', async () => {
-    render(<PricingTable billingTestMode={false} tenantId="tenant_ks" />);
+    render(
+      <PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} tenantId="tenant_ks" />
+    );
 
     fireEvent.click(screen.getByTestId('plan-cta-standard'));
     fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
@@ -334,7 +362,9 @@ describe('PricingTable', () => {
     await waitFor(() => {
       expect(mockPaddle.Checkout.open).toHaveBeenCalledWith(
         expect.objectContaining({
-          items: expect.arrayContaining([{ priceId: PADDLE_PRICES.standard.yearly, quantity: 1 }]),
+          items: expect.arrayContaining([
+            { priceId: checkoutConfig.priceIds.standardYear, quantity: 1 },
+          ]),
           customer: { email: 'member@example.com' },
           customData: expect.objectContaining({
             acquisitionSource: 'self_serve_web',
@@ -349,7 +379,7 @@ describe('PricingTable', () => {
   });
 
   it('shows the missing email error when OTP verification is attempted without an email', async () => {
-    render(<PricingTable billingTestMode={false} />);
+    render(<PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} />);
 
     fireEvent.click(screen.getByTestId('plan-cta-standard'));
     fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
@@ -364,7 +394,26 @@ describe('PricingTable', () => {
   });
 
   it('routes anonymous business users to the assisted business entry path', () => {
-    render(<PricingTable billingTestMode={false} />);
+    render(<PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} />);
+
+    const businessCta = screen.getByTestId('plan-cta-business');
+
+    expect(businessCta.tagName).toBe('A');
+    expect(businessCta).toHaveAttribute('href', '/business-membership');
+  });
+
+  it('keeps the business plan on the assisted path for logged-in users', () => {
+    render(
+      <PricingTable
+        userId="user-123"
+        email="test@example.com"
+        billingTestMode={false}
+        checkoutConfig={{
+          ...checkoutConfig,
+          priceIds: { ...checkoutConfig.priceIds, businessYear: null },
+        }}
+      />
+    );
 
     const businessCta = screen.getByTestId('plan-cta-business');
 
@@ -373,7 +422,7 @@ describe('PricingTable', () => {
   });
 
   it('keeps mobile-safe touch targets and safe-area spacing on pricing conversion actions', () => {
-    render(<PricingTable billingTestMode={false} />);
+    render(<PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} />);
 
     expect(screen.getByTestId('pricing-table-root').className).toContain(
       'pb-[max(1.5rem,env(safe-area-inset-bottom))]'
@@ -388,7 +437,7 @@ describe('PricingTable', () => {
   });
 
   it('moves focus to the pre-checkout confirmation when it opens', async () => {
-    render(<PricingTable billingTestMode={false} />);
+    render(<PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} />);
 
     fireEvent.click(screen.getByTestId('plan-cta-standard'));
 
@@ -402,7 +451,14 @@ describe('PricingTable', () => {
   it('passes the active locale into Paddle checkout settings', async () => {
     mockLocale = 'de';
 
-    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+    render(
+      <PricingTable
+        userId="user-123"
+        email="test@example.com"
+        billingTestMode={false}
+        checkoutConfig={checkoutConfig}
+      />
+    );
 
     fireEvent.click(screen.getAllByText('cta')[0]);
 
@@ -422,7 +478,14 @@ describe('PricingTable', () => {
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+    render(
+      <PricingTable
+        userId="user-123"
+        email="test@example.com"
+        billingTestMode={false}
+        checkoutConfig={checkoutConfig}
+      />
+    );
 
     const joinButtons = screen.getAllByText('cta');
     fireEvent.click(joinButtons[0]);
@@ -439,7 +502,14 @@ describe('PricingTable', () => {
   it('blocks checkout when pilot mode freeze is enabled', async () => {
     process.env.NEXT_PUBLIC_PILOT_MODE = 'true';
 
-    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+    render(
+      <PricingTable
+        userId="user-123"
+        email="test@example.com"
+        billingTestMode={false}
+        checkoutConfig={checkoutConfig}
+      />
+    );
 
     const joinButtons = screen.getAllByText('cta');
     fireEvent.click(joinButtons[0]);
@@ -453,7 +523,14 @@ describe('PricingTable', () => {
     vi.useFakeTimers();
 
     try {
-      render(<PricingTable userId="user-123" email="test@example.com" billingTestMode />);
+      render(
+        <PricingTable
+          userId="user-123"
+          email="test@example.com"
+          billingTestMode
+          checkoutConfig={checkoutConfig}
+        />
+      );
 
       const joinButtons = screen.getAllByText('cta');
       fireEvent.click(joinButtons[0]);
@@ -461,7 +538,7 @@ describe('PricingTable', () => {
       await vi.runAllTimersAsync();
 
       expect(mockRouterPush).toHaveBeenCalledWith(
-        `/member/membership/success?test=true&priceId=${PADDLE_PRICES.standard.yearly}&planId=standard`
+        `/member/membership/success?test=true&priceId=${checkoutConfig.priceIds.standardYear}&planId=standard`
       );
     } finally {
       vi.useRealTimers();
@@ -469,7 +546,9 @@ describe('PricingTable', () => {
   });
 
   it('keeps plan CTAs disabled while session state is still resolving', () => {
-    render(<PricingTable billingTestMode={false} isSessionPending />);
+    render(
+      <PricingTable billingTestMode={false} isSessionPending checkoutConfig={checkoutConfig} />
+    );
 
     const joinButtons = screen.getAllByText('cta');
     expect(joinButtons[0]).toBeDisabled();
@@ -477,13 +556,19 @@ describe('PricingTable', () => {
 
   it('shows an explicit local checkout warning instead of simulated success when client token is missing', async () => {
     vi.stubEnv('NODE_ENV', 'development');
-    vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', '');
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
 
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     try {
-      render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+      render(
+        <PricingTable
+          userId="user-123"
+          email="test@example.com"
+          billingTestMode={false}
+          checkoutConfig={{ ...checkoutConfig, clientToken: '' }}
+        />
+      );
 
       const joinButtons = screen.getAllByText('cta');
       fireEvent.click(joinButtons[0]);
@@ -506,13 +591,19 @@ describe('PricingTable', () => {
 
   it('treats placeholder Paddle tokens as missing and shows the explicit local warning', async () => {
     vi.stubEnv('NODE_ENV', 'development');
-    vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', 'test_***');
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
 
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     try {
-      render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+      render(
+        <PricingTable
+          userId="user-123"
+          email="test@example.com"
+          billingTestMode={false}
+          checkoutConfig={{ ...checkoutConfig, clientToken: 'test_***' }}
+        />
+      );
 
       const joinButtons = screen.getAllByText('cta');
       fireEvent.click(joinButtons[0]);
@@ -530,13 +621,19 @@ describe('PricingTable', () => {
 
   it('shows a toast in development when a token exists but Paddle init fails', async () => {
     vi.stubEnv('NODE_ENV', 'development');
-    vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', 'test_valid_token_1234567890');
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
 
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+    render(
+      <PricingTable
+        userId="user-123"
+        email="test@example.com"
+        billingTestMode={false}
+        checkoutConfig={checkoutConfig}
+      />
+    );
 
     const joinButtons = screen.getAllByText('cta');
     fireEvent.click(joinButtons[0]);
