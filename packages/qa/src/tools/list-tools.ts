@@ -1,91 +1,80 @@
+const EMPTY_INPUT_SCHEMA = { type: 'object', properties: {} };
+
+const TEST_SUITE_DESCRIPTION =
+  'unit | e2e | smoke | pr_verify | security_guard | e2e_gate | build_ci | check_fast | ' +
+  'e2e_state_setup | e2e_gate_pr_fast | pr_verify_hosts | full';
+
+const TEST_ORCHESTRATOR_INPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    suite: {
+      type: 'string',
+      description: TEST_SUITE_DESCRIPTION,
+    },
+    useHyperExecute: { type: 'boolean', description: 'Not supported; runs locally' },
+  },
+};
+
+function createNoArgTool(name: string, description: string) {
+  return {
+    name,
+    description,
+    inputSchema: EMPTY_INPUT_SCHEMA,
+  };
+}
+
+const phaseCVerificationTools = [
+  createNoArgTool(
+    'check_health',
+    'Run the full Phase C verification contract (pr:verify, security:guard, e2e:gate)'
+  ),
+  createNoArgTool('pr_verify', 'Run pnpm pr:verify for the repo verification contract'),
+  createNoArgTool('security_guard', 'Run pnpm security:guard for the repo security contract'),
+  createNoArgTool('e2e_gate', 'Run pnpm e2e:gate for the repo end-to-end gate contract'),
+  createNoArgTool(
+    'build_ci',
+    'Run the CI-grade web build command used by the repo verification flow'
+  ),
+  createNoArgTool(
+    'check_fast',
+    'Run pnpm check:fast for the repo build and fast-gate verification path'
+  ),
+  createNoArgTool('e2e_state_setup', 'Run the deterministic E2E auth state setup flow only'),
+  createNoArgTool(
+    'e2e_gate_pr_fast',
+    'Run the fast PR-oriented E2E gate without the full PR verify contract'
+  ),
+  createNoArgTool(
+    'pr_verify_hosts',
+    'Run the host-routed PR verification variant for deterministic local verification'
+  ),
+];
+
 export const tools = [
-  {
-    name: 'audit_auth',
-    description: 'Verify Better Auth configuration (files, env, proxy)',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'audit_env',
-    description: 'Verify Environment Variables for Interdomestik',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'audit_navigation',
-    description: 'Verify Navigation & Layout Structure (i18n, layouts)',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'audit_dependencies',
-    description: 'Verify Critical Dependencies & Package Configuration',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'dependency_audit',
-    description: 'Alias for audit_dependencies',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'audit_supabase',
-    description: 'Verify Supabase Environment & Connectivity (env vars only)',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'run_unit_tests',
-    description: 'Run unit tests for the web application using Vitest',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'run_coverage',
-    description: 'Run unit tests with coverage for the web application',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'run_e2e_tests',
-    description: 'Run E2E tests for the web application using Playwright',
-    inputSchema: { type: 'object', properties: {} },
-  },
+  createNoArgTool('audit_auth', 'Verify Better Auth configuration (files, env, proxy)'),
+  createNoArgTool('audit_env', 'Verify Environment Variables for Interdomestik'),
+  createNoArgTool('audit_navigation', 'Verify Navigation & Layout Structure (i18n, layouts)'),
+  createNoArgTool('audit_dependencies', 'Verify Critical Dependencies & Package Configuration'),
+  createNoArgTool('dependency_audit', 'Alias for audit_dependencies'),
+  createNoArgTool('audit_supabase', 'Verify Supabase Environment & Connectivity (env vars only)'),
+  createNoArgTool('run_unit_tests', 'Run unit tests for the web application using Vitest'),
+  createNoArgTool('run_coverage', 'Run unit tests with coverage for the web application'),
+  createNoArgTool('run_e2e_tests', 'Run E2E tests for the web application using Playwright'),
   {
     name: 'tests_orchestrator',
-    description: 'Run project test suites (unit/e2e/smoke)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        suite: { type: 'string', description: 'unit | e2e | smoke | full' },
-        useHyperExecute: { type: 'boolean', description: 'Not supported; runs locally' },
-      },
-    },
+    description:
+      'Run project verification suites (unit/e2e/smoke/pr_verify/security_guard/e2e_gate/build_ci/check_fast/e2e_state_setup/e2e_gate_pr_fast/pr_verify_hosts/full)',
+    inputSchema: TEST_ORCHESTRATOR_INPUT_SCHEMA,
   },
   {
     name: 'test_runner',
     description: 'Alias for tests_orchestrator',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        suite: { type: 'string', description: 'unit | e2e | smoke | full' },
-        useHyperExecute: { type: 'boolean', description: 'Not supported; runs locally' },
-      },
-    },
+    inputSchema: TEST_ORCHESTRATOR_INPUT_SCHEMA,
   },
-  {
-    name: 'audit_accessibility',
-    description: 'Verify Accessibility Testing Setup',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'audit_csp',
-    description: 'Verify Content Security Policy',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'audit_performance',
-    description: 'Verify Performance Optimization Config',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'check_health',
-    description: 'Run type-check and lint across workspace',
-    inputSchema: { type: 'object', properties: {} },
-  },
+  createNoArgTool('audit_accessibility', 'Verify Accessibility Testing Setup'),
+  createNoArgTool('audit_csp', 'Verify Content Security Policy'),
+  createNoArgTool('audit_performance', 'Verify Performance Optimization Config'),
+  ...phaseCVerificationTools,
   {
     name: 'project_map',
     description: 'Generate a map of the project structure',
