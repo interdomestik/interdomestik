@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createSharePackCore, getSharePackCore, type SharePackServices } from './_core';
 
+const TEST_AUDIT_SOURCE = 'share-pack-test-client';
+
 describe('Share Pack API Core', () => {
   const mockServices: SharePackServices = {
     createSharePack: vi.fn(),
@@ -21,7 +23,7 @@ describe('Share Pack API Core', () => {
         tenantId: 'tenant1',
         userId: 'user1',
         documentIds: ['d1', 'd2'],
-        ipAddress: '1.2.3.4',
+        ipAddress: TEST_AUDIT_SOURCE,
         userAgent: 'test-agent',
         services: mockServices,
       });
@@ -61,7 +63,7 @@ describe('Share Pack API Core', () => {
 
       const result = await getSharePackCore({
         token: 'token1',
-        ipAddress: '1.2.3.4',
+        ipAddress: TEST_AUDIT_SOURCE,
         userAgent: 'test-agent',
         services: mockServices,
       });

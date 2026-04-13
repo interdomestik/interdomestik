@@ -24,7 +24,12 @@ function toBase64Url(bytes: Uint8Array): string {
     binary += String.fromCharCode(value);
   }
 
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  let encoded = btoa(binary).replaceAll('+', '-').replaceAll('/', '_');
+  while (encoded.endsWith('=')) {
+    encoded = encoded.slice(0, -1);
+  }
+
+  return encoded;
 }
 
 async function signSessionToken(token: string, secret: string): Promise<string> {
