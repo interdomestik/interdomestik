@@ -11,6 +11,20 @@ function readText(relativePath) {
   return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
 
+function listToolsDeclaresTool(source, toolName) {
+  return (
+    source.includes(`name: '${toolName}'`) ||
+    source.includes(`createNoArgTool('${toolName}'`) ||
+    source.includes(`'${toolName}',`)
+  );
+}
+
+function testsSourceDeclaresSuite(source, suiteName, toolName = suiteName) {
+  return (
+    source.includes(`${suiteName}: ['${toolName}']`) || source.includes(`suite === '${suiteName}'`)
+  );
+}
+
 test('qa tool surface exposes the Phase C verification contract', () => {
   const listToolsSource = readText('packages/qa/src/tools/list-tools.ts');
   const routerSource = readText('packages/qa/src/tool-router.ts');
@@ -27,7 +41,7 @@ test('qa tool surface exposes the Phase C verification contract', () => {
     'e2e_gate_pr_fast',
     'pr_verify_hosts',
   ]) {
-    assert.ok(listToolsSource.includes(`name: '${toolName}'`));
+    assert.ok(listToolsDeclaresTool(listToolsSource, toolName));
     assert.ok(routerSource.includes(`${toolName}: () =>`));
   }
 
@@ -40,14 +54,14 @@ test('qa tool surface exposes the Phase C verification contract', () => {
   assert.match(healthSource, /pnpm security:guard/);
   assert.match(healthSource, /pnpm e2e:gate/);
 
-  assert.match(testsSource, /suite === 'pr_verify'/);
-  assert.match(testsSource, /suite === 'security_guard'/);
-  assert.match(testsSource, /suite === 'e2e_gate'/);
-  assert.match(testsSource, /suite === 'build_ci'/);
-  assert.match(testsSource, /suite === 'check_fast'/);
-  assert.match(testsSource, /suite === 'e2e_state_setup'/);
-  assert.match(testsSource, /suite === 'e2e_gate_pr_fast'/);
-  assert.match(testsSource, /suite === 'pr_verify_hosts'/);
+  assert.ok(testsSourceDeclaresSuite(testsSource, 'pr_verify'));
+  assert.ok(testsSourceDeclaresSuite(testsSource, 'security_guard'));
+  assert.ok(testsSourceDeclaresSuite(testsSource, 'e2e_gate'));
+  assert.ok(testsSourceDeclaresSuite(testsSource, 'build_ci'));
+  assert.ok(testsSourceDeclaresSuite(testsSource, 'check_fast'));
+  assert.ok(testsSourceDeclaresSuite(testsSource, 'e2e_state_setup'));
+  assert.ok(testsSourceDeclaresSuite(testsSource, 'e2e_gate_pr_fast'));
+  assert.ok(testsSourceDeclaresSuite(testsSource, 'pr_verify_hosts'));
 });
 
 test('qa tool router and list expose the same contract-oriented orchestration tools', () => {
@@ -66,7 +80,7 @@ test('qa tool router and list expose the same contract-oriented orchestration to
     'e2e_gate_pr_fast',
     'pr_verify_hosts',
   ]) {
-    assert.ok(listToolsSource.includes(`name: '${toolName}'`));
+    assert.ok(listToolsDeclaresTool(listToolsSource, toolName));
     assert.ok(routerSource.includes(`${toolName}:`));
   }
 });

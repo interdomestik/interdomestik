@@ -23,6 +23,141 @@ type TestResult = {
   status: 'pass' | 'fail';
 };
 
+function createPnpmCommand(display: string, ...args: string[]): ExecCommand {
+  return { args, display, file: 'pnpm' };
+}
+
+function createNodeCommand(display: string, ...args: string[]): ExecCommand {
+  return { args, display, file: 'node' };
+}
+
+function createToolConfig(
+  tool: string,
+  label: string,
+  cwd: string,
+  command: ExecCommand
+): ToolCommandConfig {
+  return { command, cwd, label, tool };
+}
+
+const TOOL_CONFIGS = {
+  build_ci: createToolConfig(
+    'build_ci',
+    'Build CI',
+    REPO_ROOT,
+    createNodeCommand(
+      'node scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web run build:ci',
+      'scripts/run-with-default-db-url.mjs',
+      'pnpm',
+      '--filter',
+      '@interdomestik/web',
+      'run',
+      'build:ci'
+    )
+  ),
+  check_fast: createToolConfig(
+    'check_fast',
+    'Check Fast',
+    REPO_ROOT,
+    createPnpmCommand('pnpm check:fast', 'check:fast')
+  ),
+  e2e_gate: createToolConfig(
+    'e2e_gate',
+    'E2E Gate',
+    REPO_ROOT,
+    createPnpmCommand('pnpm e2e:gate', 'e2e:gate')
+  ),
+  e2e_gate_pr_fast: createToolConfig(
+    'e2e_gate_pr_fast',
+    'E2E Gate PR Fast',
+    REPO_ROOT,
+    createNodeCommand(
+      'node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast',
+      'scripts/run-with-default-db-url.mjs',
+      'pnpm',
+      'e2e:gate:pr:fast'
+    )
+  ),
+  e2e_state_setup: createToolConfig(
+    'e2e_state_setup',
+    'E2E State Setup',
+    REPO_ROOT,
+    createNodeCommand(
+      'node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup',
+      'scripts/run-with-default-db-url.mjs',
+      'pnpm',
+      'e2e:state:setup'
+    )
+  ),
+  pr_verify: createToolConfig(
+    'pr_verify',
+    'PR Verify',
+    REPO_ROOT,
+    createPnpmCommand('pnpm pr:verify', 'pr:verify')
+  ),
+  pr_verify_hosts: createToolConfig(
+    'pr_verify_hosts',
+    'PR Verify Hosts',
+    REPO_ROOT,
+    createPnpmCommand('pnpm pr:verify:hosts', 'pr:verify:hosts')
+  ),
+  run_coverage: createToolConfig(
+    'run_coverage',
+    'Coverage',
+    WEB_APP,
+    createPnpmCommand('pnpm test:unit -- --coverage', 'test:unit', '--', '--coverage')
+  ),
+  run_e2e_tests: createToolConfig(
+    'run_e2e_tests',
+    'E2E Tests',
+    WEB_APP,
+    createPnpmCommand('pnpm test:e2e', 'test:e2e')
+  ),
+  run_unit_tests: createToolConfig(
+    'run_unit_tests',
+    'Unit Tests',
+    WEB_APP,
+    createPnpmCommand('pnpm test:unit', 'test:unit')
+  ),
+  security_guard: createToolConfig(
+    'security_guard',
+    'Security Guard',
+    REPO_ROOT,
+    createPnpmCommand('pnpm security:guard', 'security:guard')
+  ),
+  smoke: createToolConfig(
+    'smoke',
+    'E2E Smoke Tests',
+    REPO_ROOT,
+    createPnpmCommand(
+      'pnpm --filter @interdomestik/web test:e2e -- --grep smoke',
+      '--filter',
+      '@interdomestik/web',
+      'test:e2e',
+      '--',
+      '--grep',
+      'smoke'
+    )
+  ),
+} satisfies Record<string, ToolCommandConfig>;
+
+type ToolConfigName = keyof typeof TOOL_CONFIGS;
+
+const SUITE_TO_TOOL_CONFIGS: Record<string, ToolConfigName[]> = {
+  build_ci: ['build_ci'],
+  check_fast: ['check_fast'],
+  e2e: ['run_e2e_tests'],
+  e2e_gate: ['e2e_gate'],
+  e2e_gate_pr_fast: ['e2e_gate_pr_fast'],
+  e2e_state_setup: ['e2e_state_setup'],
+  full: ['pr_verify', 'security_guard', 'e2e_gate'],
+  pr_verify: ['pr_verify'],
+  pr_verify_hosts: ['pr_verify_hosts'],
+  security_guard: ['security_guard'],
+  smoke: ['smoke'],
+  unit: ['run_unit_tests'],
+};
+
 function formatSummary(results: TestResult[]) {
   const passed = results.filter(result => result.status === 'pass').length;
   const failed = results.filter(result => result.status === 'fail').length;
@@ -79,100 +214,7 @@ async function runCommand(config: ToolCommandConfig): Promise<TestResult> {
 }
 
 function getToolConfig(tool: string): ToolCommandConfig {
-  const configs: Record<string, ToolCommandConfig> = {
-    build_ci: {
-      command: {
-        args: [
-          'scripts/run-with-default-db-url.mjs',
-          'pnpm',
-          '--filter',
-          '@interdomestik/web',
-          'run',
-          'build:ci',
-        ],
-        display:
-          'node scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web run build:ci',
-        file: 'node',
-      },
-      cwd: REPO_ROOT,
-      label: 'Build CI',
-      tool: 'build_ci',
-    },
-    check_fast: {
-      command: { args: ['check:fast'], display: 'pnpm check:fast', file: 'pnpm' },
-      cwd: REPO_ROOT,
-      label: 'Check Fast',
-      tool: 'check_fast',
-    },
-    e2e_gate: {
-      command: { args: ['e2e:gate'], display: 'pnpm e2e:gate', file: 'pnpm' },
-      cwd: REPO_ROOT,
-      label: 'E2E Gate',
-      tool: 'e2e_gate',
-    },
-    e2e_gate_pr_fast: {
-      command: {
-        args: ['scripts/run-with-default-db-url.mjs', 'pnpm', 'e2e:gate:pr:fast'],
-        display: 'node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast',
-        file: 'node',
-      },
-      cwd: REPO_ROOT,
-      label: 'E2E Gate PR Fast',
-      tool: 'e2e_gate_pr_fast',
-    },
-    e2e_state_setup: {
-      command: {
-        args: ['scripts/run-with-default-db-url.mjs', 'pnpm', 'e2e:state:setup'],
-        display: 'node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup',
-        file: 'node',
-      },
-      cwd: REPO_ROOT,
-      label: 'E2E State Setup',
-      tool: 'e2e_state_setup',
-    },
-    pr_verify: {
-      command: { args: ['pr:verify'], display: 'pnpm pr:verify', file: 'pnpm' },
-      cwd: REPO_ROOT,
-      label: 'PR Verify',
-      tool: 'pr_verify',
-    },
-    pr_verify_hosts: {
-      command: { args: ['pr:verify:hosts'], display: 'pnpm pr:verify:hosts', file: 'pnpm' },
-      cwd: REPO_ROOT,
-      label: 'PR Verify Hosts',
-      tool: 'pr_verify_hosts',
-    },
-    run_coverage: {
-      command: {
-        args: ['test:unit', '--', '--coverage'],
-        display: 'pnpm test:unit -- --coverage',
-        file: 'pnpm',
-      },
-      cwd: WEB_APP,
-      label: 'Coverage',
-      tool: 'run_coverage',
-    },
-    run_e2e_tests: {
-      command: { args: ['test:e2e'], display: 'pnpm test:e2e', file: 'pnpm' },
-      cwd: WEB_APP,
-      label: 'E2E Tests',
-      tool: 'run_e2e_tests',
-    },
-    run_unit_tests: {
-      command: { args: ['test:unit'], display: 'pnpm test:unit', file: 'pnpm' },
-      cwd: WEB_APP,
-      label: 'Unit Tests',
-      tool: 'run_unit_tests',
-    },
-    security_guard: {
-      command: { args: ['security:guard'], display: 'pnpm security:guard', file: 'pnpm' },
-      cwd: REPO_ROOT,
-      label: 'Security Guard',
-      tool: 'security_guard',
-    },
-  };
-
-  const config = configs[tool];
+  const config = TOOL_CONFIGS[tool as ToolConfigName];
 
   if (!config) {
     throw new Error(`Unknown tool config: ${tool}`);
@@ -182,55 +224,8 @@ function getToolConfig(tool: string): ToolCommandConfig {
 }
 
 function getOrchestratorConfigs(suite: string): ToolCommandConfig[] | null {
-  if (suite === 'unit') {
-    return [getToolConfig('run_unit_tests')];
-  }
-  if (suite === 'e2e') {
-    return [getToolConfig('run_e2e_tests')];
-  }
-  if (suite === 'smoke') {
-    return [
-      {
-        command: {
-          args: ['--filter', '@interdomestik/web', 'test:e2e', '--', '--grep', 'smoke'],
-          display: 'pnpm --filter @interdomestik/web test:e2e -- --grep smoke',
-          file: 'pnpm',
-        },
-        cwd: REPO_ROOT,
-        label: 'E2E Smoke Tests',
-        tool: 'smoke',
-      },
-    ];
-  }
-  if (suite === 'pr_verify') {
-    return [getToolConfig('pr_verify')];
-  }
-  if (suite === 'security_guard') {
-    return [getToolConfig('security_guard')];
-  }
-  if (suite === 'e2e_gate') {
-    return [getToolConfig('e2e_gate')];
-  }
-  if (suite === 'build_ci') {
-    return [getToolConfig('build_ci')];
-  }
-  if (suite === 'check_fast') {
-    return [getToolConfig('check_fast')];
-  }
-  if (suite === 'e2e_state_setup') {
-    return [getToolConfig('e2e_state_setup')];
-  }
-  if (suite === 'e2e_gate_pr_fast') {
-    return [getToolConfig('e2e_gate_pr_fast')];
-  }
-  if (suite === 'pr_verify_hosts') {
-    return [getToolConfig('pr_verify_hosts')];
-  }
-  if (suite === 'full') {
-    return [getToolConfig('pr_verify'), getToolConfig('security_guard'), getToolConfig('e2e_gate')];
-  }
-
-  return null;
+  const toolNames = SUITE_TO_TOOL_CONFIGS[suite];
+  return toolNames ? toolNames.map(tool => getToolConfig(tool)) : null;
 }
 
 export async function runUnitTests() {
