@@ -336,11 +336,7 @@ describe('PricingTable', () => {
 
   it('verifies the OTP with default acquisition tenant fields and continues into checkout for the selected plan', async () => {
     render(
-      <PricingTable
-        billingTestMode={false}
-        checkoutConfig={checkoutConfig}
-        tenantId="tenant_ks"
-      />
+      <PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} tenantId="tenant_ks" />
     );
 
     fireEvent.click(screen.getByTestId('plan-cta-standard'));
@@ -412,7 +408,10 @@ describe('PricingTable', () => {
         userId="user-123"
         email="test@example.com"
         billingTestMode={false}
-        checkoutConfig={{ ...checkoutConfig, priceIds: { ...checkoutConfig.priceIds, businessYear: null } }}
+        checkoutConfig={{
+          ...checkoutConfig,
+          priceIds: { ...checkoutConfig.priceIds, businessYear: null },
+        }}
       />
     );
 
@@ -548,11 +547,7 @@ describe('PricingTable', () => {
 
   it('keeps plan CTAs disabled while session state is still resolving', () => {
     render(
-      <PricingTable
-        billingTestMode={false}
-        isSessionPending
-        checkoutConfig={checkoutConfig}
-      />
+      <PricingTable billingTestMode={false} isSessionPending checkoutConfig={checkoutConfig} />
     );
 
     const joinButtons = screen.getAllByText('cta');

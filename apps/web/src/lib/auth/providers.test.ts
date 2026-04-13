@@ -15,7 +15,7 @@ vi.mock('../email', () => ({
   sendSignInOtpEmail: mocks.sendSignInOtpEmail,
 }));
 
-import { authProviders } from './providers';
+import { authProviders, buildAuthProviders } from './providers';
 
 describe('authProviders email OTP plugin', () => {
   const otpPlugin = mocks.emailOTP.mock.calls[0]?.[0] as {
@@ -26,6 +26,15 @@ describe('authProviders email OTP plugin', () => {
     expect(authProviders.plugins).toHaveLength(1);
     expect(mocks.emailOTP).toHaveBeenCalledTimes(1);
     expect(otpPlugin).toBeDefined();
+  });
+
+  it('omits the GitHub social provider when OAuth credentials are absent', () => {
+    const providers = buildAuthProviders({
+      GITHUB_CLIENT_ID: '',
+      GITHUB_CLIENT_SECRET: '',
+    });
+
+    expect(providers).not.toHaveProperty('socialProviders.github');
   });
 
   beforeEach(() => {

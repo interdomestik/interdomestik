@@ -151,6 +151,12 @@ describe('LoginForm', () => {
     expect(screen.getByText('Sign In')).toBeInTheDocument();
     expect(screen.getByText('Forgot password?')).toBeInTheDocument();
     expect(screen.getByText('Register')).toBeInTheDocument();
+    expect(screen.queryByText('GitHub')).not.toBeInTheDocument();
+  });
+
+  it('renders GitHub OAuth entry when enabled', () => {
+    render(<LoginForm githubOAuthEnabled />);
+
     expect(screen.getByText('GitHub')).toBeInTheDocument();
   });
 
@@ -291,7 +297,7 @@ describe('LoginForm', () => {
       writable: true,
     });
 
-    render(<LoginForm />);
+    render(<LoginForm githubOAuthEnabled />);
 
     const githubButton = screen.getByText('GitHub');
     fireEvent.click(githubButton);
@@ -317,7 +323,7 @@ describe('LoginForm', () => {
       writable: true,
     });
 
-    render(<LoginForm />);
+    render(<LoginForm githubOAuthEnabled />);
 
     fireEvent.click(screen.getByText('GitHub'));
 

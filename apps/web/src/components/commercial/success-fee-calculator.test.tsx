@@ -2,7 +2,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { SuccessFeeCalculator } from './success-fee-calculator';
-import { buildSuccessFeeCalculatorTestProps } from '@/test/success-fee-calculator-test-utils';
+import {
+  buildSuccessFeeCalculatorTestProps,
+  getSuccessFeeCalculatorMessage,
+} from '@/test/success-fee-calculator-test-utils';
+import { buildSuccessFeeCalculatorProps } from './success-fee-calculator-content';
 
 const props = buildSuccessFeeCalculatorTestProps();
 
@@ -26,6 +30,18 @@ describe('SuccessFeeCalculator', () => {
 
     expect(screen.getByTestId('success-fee-current-fee')).toHaveTextContent('EUR 25');
     expect(screen.getByTestId('success-fee-minimum-applies')).toHaveTextContent('Yes');
+  });
+
+  it('renders grouped euro amounts deterministically for Albanian locale examples', () => {
+    const sqProps = buildSuccessFeeCalculatorProps(
+      getSuccessFeeCalculatorMessage,
+      'test-success-fee-calculator',
+      'sq'
+    );
+
+    render(<SuccessFeeCalculator {...sqProps} />);
+
+    expect(screen.getByText('15% x EUR 1.000 = EUR 150')).toBeInTheDocument();
   });
 
   it('returns null when no plans are provided', () => {

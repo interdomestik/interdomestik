@@ -25,3 +25,16 @@ export function checkFileContains(
   }
   return { check: null, issue: `⚠️ ${description} not found in ${path.basename(filePath)}` };
 }
+
+export function findRootEnvFile(repoRoot: string): string | null {
+  const candidates = ['.env.local', '.env.development.local', '.env'];
+
+  for (const candidate of candidates) {
+    const candidatePath = path.join(repoRoot, candidate);
+    if (fs.existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+
+  return null;
+}

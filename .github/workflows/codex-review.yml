@@ -1,0 +1,87 @@
+name: Codex Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: codex-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  codex:
+    if: github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      final_message: ${{ steps.run_codex.outputs.final-message }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+
+      - name: Pre-fetch base and head refs
+        run: |
+          git fetch --no-tags origin \
+            ${{ github.event.pull_request.base.ref }} \
+            +refs/pull/${{ github.event.pull_request.number }}/head
+
+      - name: Check OPENAI_API_KEY availability
+        id: openai_key
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [[ -z "${OPENAI_API_KEY}" ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip Codex review when OPENAI_API_KEY is unavailable
+        if: steps.openai_key.outputs.configured != 'true'
+        run: |
+          echo "Skipping Codex review because OPENAI_API_KEY is not configured." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run Codex
+        id: run_codex
+        if: steps.openai_key.outputs.configured == 'true'
+        uses: openai/codex-action@c25d10f3f498316d4b2496cc4c6dd58057a7b031 # v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .github/codex/prompts/review.md
+          output-file: codex-output.md
+          safety-strategy: drop-sudo
+          sandbox: workspace-write
+
+      - name: Upload Codex review artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v6
+        with:
+          name: codex-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: codex-output.md
+          if-no-files-found: ignore
+          retention-days: 14
+
+  post-feedback:
+    runs-on: ubuntu-latest
+    needs: codex
+    if: needs.codex.outputs.final_message != ''
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post Codex feedback
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: process.env.CODEX_FINAL_MESSAGE,
+            });
+        env:
+          CODEX_FINAL_MESSAGE: ${{ needs.codex.outputs.final_message }}

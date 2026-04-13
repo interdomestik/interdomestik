@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { REPO_ROOT, WEB_APP } from '../../utils/paths.js';
-import { checkFileContains, checkFileExists } from './utils.js';
+import { checkFileContains, checkFileExists, findRootEnvFile } from './utils.js';
 
 export async function auditCsp() {
   const proxyPath = path.join(WEB_APP, 'src/proxy.ts');
@@ -57,19 +57,17 @@ function checkProxy(checks: string[], issues: string[]) {
 }
 
 function checkEnvVars(checks: string[], issues: string[]) {
-  const envPath = path.join(REPO_ROOT, '.env');
-  if (!fs.existsSync(envPath)) {
-    issues.push('❌ .env file missing in root');
+  const envPath = findRootEnvFile(REPO_ROOT);
+  if (!envPath || !fs.existsSync(envPath)) {
+    issues.push(
+      '❌ No supported env file found in root (.env.local, .env.development.local, .env)'
+    );
     return;
   }
 
   const secretCheck = checkFileContains(envPath, 'BETTER_AUTH_SECRET', 'BETTER_AUTH_SECRET');
   if (secretCheck.check) checks.push(secretCheck.check);
   if (secretCheck.issue) issues.push(secretCheck.issue);
-
-  const githubCheck = checkFileContains(envPath, 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_ID');
-  if (githubCheck.check) checks.push(githubCheck.check);
-  if (githubCheck.issue) issues.push(githubCheck.issue);
 }
 
 export async function auditAuth() {

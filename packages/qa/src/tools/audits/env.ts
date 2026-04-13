@@ -1,6 +1,6 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import { REPO_ROOT } from '../../utils/paths.js';
+import { findRootEnvFile } from './utils.js';
 
 export async function auditEnv() {
   const requiredVars = [
@@ -13,10 +13,17 @@ export async function auditEnv() {
 
   const missing: string[] = [];
   const present: string[] = [];
-  const envPath = path.join(REPO_ROOT, '.env');
+  const envPath = findRootEnvFile(REPO_ROOT);
 
-  if (!fs.existsSync(envPath)) {
-    return { content: [{ type: 'text', text: '❌ CRITICAL: No .env file found in root!' }] };
+  if (!envPath || !fs.existsSync(envPath)) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: '❌ CRITICAL: No supported env file found in root (.env.local, .env.development.local, .env)!',
+        },
+      ],
+    };
   }
 
   const envContent = fs.readFileSync(envPath, 'utf-8');
