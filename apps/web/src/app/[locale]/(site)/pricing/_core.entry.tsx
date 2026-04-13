@@ -9,6 +9,8 @@ import { SuccessFeeCalculator } from '@/components/commercial/success-fee-calcul
 import { buildSuccessFeeCalculatorProps } from '@/components/commercial/success-fee-calculator-content';
 import { generateLocaleStaticParams } from '@/app/_locale-static-params';
 import {
+  getPublicBillingCheckoutConfig,
+  type PublicBillingCheckoutConfig,
   resolveBillingEntityFromPathSegment,
   resolveBillingTenantIdForEntity,
 } from '@interdomestik/domain-membership-billing/paddle-server';
@@ -42,6 +44,23 @@ export default async function PricingPage({ params }: PricingPageProps) {
     process.env.PADDLE_DEFAULT_BILLING_ENTITY
   );
   const billingTenantId = billingEntity ? resolveBillingTenantIdForEntity(billingEntity) : null;
+  let checkoutConfig: PublicBillingCheckoutConfig | null = null;
+
+  if (!billingTestMode) {
+    try {
+      checkoutConfig = getPublicBillingCheckoutConfig();
+    } catch (error) {
+      if (
+        process.env.VERCEL_ENV !== 'production' &&
+        process.env.NEXT_PUBLIC_PADDLE_ENV !== 'production'
+      ) {
+        console.warn('Public Paddle checkout config unavailable for pricing page:', error);
+      } else {
+        throw error;
+      }
+    }
+  }
+  const resolvedBillingTenantId = checkoutConfig?.tenantId ?? billingTenantId;
 
   return (
     <div
@@ -74,7 +93,11 @@ export default async function PricingPage({ params }: PricingPageProps) {
         ]}
       />
 
-      <PricingPageRuntime billingTenantId={billingTenantId} billingTestMode={billingTestMode} />
+      <PricingPageRuntime
+        billingTenantId={resolvedBillingTenantId}
+        billingTestMode={billingTestMode}
+        checkoutConfig={checkoutConfig}
+      />
 
       <div className="mt-16">
         <SuccessFeeCalculator

@@ -245,14 +245,18 @@ describe('ClaimWizard UI V2', () => {
     expect(screen.getByTestId('claims-wizard-disclaimer')).toBeInTheDocument();
   });
 
-  it('shows claim-created success state with claim id on final submit', async () => {
+  it('shows claim-created success state with the human claim number on final submit', async () => {
     mockTrigger.mockResolvedValue(true);
-    mockSubmitClaim.mockResolvedValue({ success: true, claimId: 'CLM-TEST-123' });
+    mockSubmitClaim.mockResolvedValue({
+      success: true,
+      claimId: 'v_j-vY7lHgTBeYsWwW8Wl',
+      claimNumber: 'CLM-XK-2026-000123',
+    });
 
     const success = await submitClaimAndWaitForSuccess();
     expect(success).toBeVisible();
     expect(success).toHaveTextContent('Case created');
-    expect(success).toHaveTextContent('CLM-TEST-123');
+    expect(success).toHaveTextContent('CLM-XK-2026-000123');
     expect(screen.getByTestId('claim-created-id')).toHaveTextContent('Case ID');
     expect(screen.getByTestId('claim-created-next-steps')).toBeInTheDocument();
     expect(screen.getByTestId('claim-created-help-call')).toHaveAttribute(
@@ -265,16 +269,16 @@ describe('ClaimWizard UI V2', () => {
     );
     expect(screen.getByTestId('claim-created-go-to-claim')).toHaveAttribute(
       'href',
-      '/sq/member/claims/CLM-TEST-123'
+      '/sq/member/claims/v_j-vY7lHgTBeYsWwW8Wl'
     );
     expect(mockPush).not.toHaveBeenCalled();
     expect(mockResolveFunnelVariant).toHaveBeenCalledWith(true);
     expect(mockFunnelFirstClaimSubmitted).toHaveBeenCalledWith(HERO_V2_CONTEXT, {
-      claim_id: 'CLM-TEST-123',
+      claim_id: 'v_j-vY7lHgTBeYsWwW8Wl',
     });
     expectCommercialFlowAnalytics({
       claimCategory: 'vehicle',
-      claimId: 'CLM-TEST-123',
+      claimId: 'v_j-vY7lHgTBeYsWwW8Wl',
       decisionReason: 'launch_scope_supported',
       escalationDecision: 'requested',
     });

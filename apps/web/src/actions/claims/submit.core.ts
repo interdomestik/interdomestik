@@ -40,6 +40,7 @@ export type SubmitClaimResult =
   | {
       success: true;
       claimId: string;
+      claimNumber: string;
       commercialFlow: SubmitClaimCommercialFlow;
     }
   | { success: false; error: string; code?: string };
@@ -111,6 +112,7 @@ export async function submitClaimCore(params: {
           return {
             success: true,
             claimId: result.claimId,
+            claimNumber: result.claimNumber,
             commercialFlow: resolveCommercialFlow(params.data.category),
           };
         }
