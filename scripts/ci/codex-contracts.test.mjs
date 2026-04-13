@@ -50,13 +50,17 @@ test('Codex PR review workflow uses the official action with a repo-owned review
 
   assert.match(workflow, /pull_request:/);
   assert.match(workflow, /types:\s*\[opened,\s*synchronize,\s*reopened\]/);
-  assert.match(workflow, /permissions:\s*\n\s*contents:\s*read\s*\n\s*pull-requests:\s*write/);
+  assert.ok(
+    workflow.includes(
+      ['    permissions:', '      contents: read', '      pull-requests: write'].join('\n')
+    )
+  );
   assert.match(workflow, /name:\s*Check OPENAI_API_KEY availability/);
   assert.match(workflow, /configured=true/);
   assert.match(workflow, /configured=false/);
   assert.match(workflow, /if:\s*steps\.openai_key\.outputs\.configured == 'true'/);
   assert.match(workflow, /Skipping Codex review because OPENAI_API_KEY is not configured/);
-  assert.match(workflow, /uses:\s*openai\/codex-action@v1/);
+  assert.match(workflow, /uses:\s*openai\/codex-action@c25d10f3f498316d4b2496cc4c6dd58057a7b031/);
   assert.match(workflow, /prompt-file:\s*\.github\/codex\/prompts\/review\.md/);
   assert.match(workflow, /safety-strategy:\s*drop-sudo/);
   assert.match(workflow, /sandbox:\s*workspace-write/);
