@@ -331,7 +331,7 @@ describe('PricingTable', () => {
       });
     });
 
-    expect(screen.getByText('otpStep.sendSuccess')).toBeInTheDocument();
+    expect(await screen.findByText('otpStep.sendSuccess')).toBeInTheDocument();
   });
 
   it('verifies the OTP with default acquisition tenant fields and continues into checkout for the selected plan', async () => {
