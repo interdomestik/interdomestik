@@ -47,13 +47,14 @@ export const tools = [
   {
     name: 'tests_orchestrator',
     description:
-      'Run project verification suites (unit/e2e/smoke/pr_verify/security_guard/e2e_gate/full)',
+      'Run project verification suites (unit/e2e/smoke/pr_verify/security_guard/e2e_gate/build_ci/check_fast/e2e_state_setup/e2e_gate_pr_fast/pr_verify_hosts/full)',
     inputSchema: {
       type: 'object',
       properties: {
         suite: {
           type: 'string',
-          description: 'unit | e2e | smoke | pr_verify | security_guard | e2e_gate | full',
+          description:
+            'unit | e2e | smoke | pr_verify | security_guard | e2e_gate | build_ci | check_fast | e2e_state_setup | e2e_gate_pr_fast | pr_verify_hosts | full',
         },
         useHyperExecute: { type: 'boolean', description: 'Not supported; runs locally' },
       },
@@ -67,7 +68,8 @@ export const tools = [
       properties: {
         suite: {
           type: 'string',
-          description: 'unit | e2e | smoke | pr_verify | security_guard | e2e_gate | full',
+          description:
+            'unit | e2e | smoke | pr_verify | security_guard | e2e_gate | build_ci | check_fast | e2e_state_setup | e2e_gate_pr_fast | pr_verify_hosts | full',
         },
         useHyperExecute: { type: 'boolean', description: 'Not supported; runs locally' },
       },
@@ -106,6 +108,31 @@ export const tools = [
   {
     name: 'e2e_gate',
     description: 'Run pnpm e2e:gate for the repo end-to-end gate contract',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'build_ci',
+    description: 'Run the CI-grade web build command used by the repo verification flow',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'check_fast',
+    description: 'Run pnpm check:fast for the repo build and fast-gate verification path',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'e2e_state_setup',
+    description: 'Run the deterministic E2E auth state setup flow only',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'e2e_gate_pr_fast',
+    description: 'Run the fast PR-oriented E2E gate without the full PR verify contract',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'pr_verify_hosts',
+    description: 'Run the host-routed PR verification variant for deterministic local verification',
     inputSchema: { type: 'object', properties: {} },
   },
   {

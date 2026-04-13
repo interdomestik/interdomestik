@@ -1,31 +1,53 @@
-import { execAsync } from '../utils/exec.js';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { execAsync, type ExecResult } from '../utils/exec.js';
 import { REPO_ROOT, WEB_APP } from '../utils/paths.js';
+import { buildCommandStructuredContent, buildCommandToolResult } from '../utils/tool-results.js';
 
 type OrchestratorArgs = {
   suite?: string;
   useHyperExecute?: boolean;
 };
 
-type TestResult = {
-  name: string;
-  status: 'pass' | 'fail';
-  output: string;
+type ToolCommandConfig = {
+  command: string;
+  cwd: string;
+  label: string;
+  tool: string;
 };
 
-type ToolResponse = {
-  content: Array<{
-    type: 'text';
-    text: string;
-  }>;
+type TestResult = {
+  durationMs: number;
+  failedStage: string | null;
+  name: string;
+  output: string;
+  status: 'pass' | 'fail';
 };
+
+function coerceExecResult(error: any, fallbackCommand: string, fallbackCwd: string): ExecResult {
+  return {
+    command: error?.command ?? fallbackCommand,
+    cwd: error?.cwd ?? fallbackCwd,
+    durationMs: error?.durationMs ?? 0,
+    exitCode: error?.exitCode ?? error?.code ?? null,
+    failedStage: error?.failedStage ?? null,
+    failureCategory: error?.failureCategory ?? null,
+    signal: error?.signal ?? null,
+    stderr: (error?.stderr || '').trim(),
+    stderrTruncated: error?.stderrTruncated ?? false,
+    stdout: (error?.stdout || '').trim(),
+    stdoutTruncated: error?.stdoutTruncated ?? false,
+    timedOut: error?.timedOut ?? false,
+  };
+}
 
 function formatSummary(results: TestResult[]) {
-  const passed = results.filter(r => r.status === 'pass').length;
-  const failed = results.filter(r => r.status === 'fail').length;
+  const passed = results.filter(result => result.status === 'pass').length;
+  const failed = results.filter(result => result.status === 'fail').length;
 
   const lines = results.map(result => {
     const icon = result.status === 'pass' ? '✅' : '❌';
-    return `${icon} ${result.name}`;
+    const stageSuffix = result.failedStage ? ` [${result.failedStage}]` : '';
+    return `${icon} ${result.name}${stageSuffix} (${result.durationMs}ms)`;
   });
 
   return [
@@ -38,101 +60,205 @@ function formatSummary(results: TestResult[]) {
   ].join('\n');
 }
 
-async function runCommand(name: string, command: string, cwd: string): Promise<TestResult> {
-  try {
-    const { stdout, stderr } = await execAsync(command, { cwd });
-    const errOutput = stderr ? `\n${stderr}` : '';
-    return {
-      name,
-      status: 'pass',
-      output: `${stdout}${errOutput}`.trim(),
-    };
-  } catch (error: any) {
-    const errOutput = error.stderr ? `\n${error.stderr}` : '';
-    return {
-      name,
-      status: 'fail',
-      output: `${error.stdout || ''}${errOutput}`.trim(),
-    };
-  }
-}
+function toTestResult(name: string, result: ExecResult, status: 'pass' | 'fail'): TestResult {
+  const output = [result.stdout, result.stderr].filter(Boolean).join('\n');
 
-function formatToolResponse(prefix: string, stdout: string, stderr: string): ToolResponse {
-  const sections = [prefix, '', stdout, stderr].filter(Boolean);
   return {
-    content: [
-      {
-        type: 'text',
-        text: sections.join('\n'),
-      },
-    ],
+    durationMs: result.durationMs,
+    failedStage: result.failedStage,
+    name,
+    output: output || '(no output)',
+    status,
   };
 }
 
-function formatToolError(prefix: string, error: any): ToolResponse {
-  const output = error.stdout || '';
-  const errOutput = error.stderr || '';
-
-  return {
-    content: [
-      {
-        type: 'text',
-        text: `${prefix}\n\nError: ${error.message}\n\nOutput: ${output}\n${errOutput}`,
-      },
-    ],
-  };
+async function executeToolCommand(config: ToolCommandConfig): Promise<CallToolResult> {
+  try {
+    const result = await execAsync(config.command, { cwd: config.cwd });
+    return buildCommandToolResult(config.tool, config.label, 'pass', result);
+  } catch (error: any) {
+    return buildCommandToolResult(
+      config.tool,
+      config.label,
+      'fail',
+      coerceExecResult(error, config.command, config.cwd)
+    );
+  }
 }
 
-async function runVerificationTool(command: string, successPrefix: string, failurePrefix: string) {
+async function runCommand(config: ToolCommandConfig): Promise<TestResult> {
   try {
-    const { stdout, stderr } = await execAsync(command, { cwd: REPO_ROOT });
-    return formatToolResponse(successPrefix, stdout, stderr);
+    const result = await execAsync(config.command, { cwd: config.cwd });
+    return toTestResult(config.label, result, 'pass');
   } catch (error: any) {
-    return formatToolError(failurePrefix, error);
+    return toTestResult(config.label, coerceExecResult(error, config.command, config.cwd), 'fail');
   }
+}
+
+function getToolConfig(tool: string): ToolCommandConfig {
+  const configs: Record<string, ToolCommandConfig> = {
+    build_ci: {
+      command:
+        'node scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web run build:ci',
+      cwd: REPO_ROOT,
+      label: 'Build CI',
+      tool: 'build_ci',
+    },
+    check_fast: {
+      command: 'pnpm check:fast',
+      cwd: REPO_ROOT,
+      label: 'Check Fast',
+      tool: 'check_fast',
+    },
+    e2e_gate: {
+      command: 'pnpm e2e:gate',
+      cwd: REPO_ROOT,
+      label: 'E2E Gate',
+      tool: 'e2e_gate',
+    },
+    e2e_gate_pr_fast: {
+      command: 'node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast',
+      cwd: REPO_ROOT,
+      label: 'E2E Gate PR Fast',
+      tool: 'e2e_gate_pr_fast',
+    },
+    e2e_state_setup: {
+      command: 'node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup',
+      cwd: REPO_ROOT,
+      label: 'E2E State Setup',
+      tool: 'e2e_state_setup',
+    },
+    pr_verify: {
+      command: 'pnpm pr:verify',
+      cwd: REPO_ROOT,
+      label: 'PR Verify',
+      tool: 'pr_verify',
+    },
+    pr_verify_hosts: {
+      command: 'pnpm pr:verify:hosts',
+      cwd: REPO_ROOT,
+      label: 'PR Verify Hosts',
+      tool: 'pr_verify_hosts',
+    },
+    run_coverage: {
+      command: 'pnpm test:unit -- --coverage',
+      cwd: WEB_APP,
+      label: 'Coverage',
+      tool: 'run_coverage',
+    },
+    run_e2e_tests: {
+      command: 'pnpm test:e2e',
+      cwd: WEB_APP,
+      label: 'E2E Tests',
+      tool: 'run_e2e_tests',
+    },
+    run_unit_tests: {
+      command: 'pnpm test:unit',
+      cwd: WEB_APP,
+      label: 'Unit Tests',
+      tool: 'run_unit_tests',
+    },
+    security_guard: {
+      command: 'pnpm security:guard',
+      cwd: REPO_ROOT,
+      label: 'Security Guard',
+      tool: 'security_guard',
+    },
+  };
+
+  return configs[tool];
+}
+
+function getOrchestratorConfigs(suite: string): ToolCommandConfig[] | null {
+  if (suite === 'unit') {
+    return [getToolConfig('run_unit_tests')];
+  }
+  if (suite === 'e2e') {
+    return [getToolConfig('run_e2e_tests')];
+  }
+  if (suite === 'smoke') {
+    return [
+      {
+        command: 'pnpm --filter @interdomestik/web test:e2e -- --grep smoke',
+        cwd: REPO_ROOT,
+        label: 'E2E Smoke Tests',
+        tool: 'smoke',
+      },
+    ];
+  }
+  if (suite === 'pr_verify') {
+    return [getToolConfig('pr_verify')];
+  }
+  if (suite === 'security_guard') {
+    return [getToolConfig('security_guard')];
+  }
+  if (suite === 'e2e_gate') {
+    return [getToolConfig('e2e_gate')];
+  }
+  if (suite === 'build_ci') {
+    return [getToolConfig('build_ci')];
+  }
+  if (suite === 'check_fast') {
+    return [getToolConfig('check_fast')];
+  }
+  if (suite === 'e2e_state_setup') {
+    return [getToolConfig('e2e_state_setup')];
+  }
+  if (suite === 'e2e_gate_pr_fast') {
+    return [getToolConfig('e2e_gate_pr_fast')];
+  }
+  if (suite === 'pr_verify_hosts') {
+    return [getToolConfig('pr_verify_hosts')];
+  }
+  if (suite === 'full') {
+    return [getToolConfig('pr_verify'), getToolConfig('security_guard'), getToolConfig('e2e_gate')];
+  }
+
+  return null;
 }
 
 export async function runUnitTests() {
-  try {
-    const { stdout, stderr } = await execAsync('pnpm test:unit', { cwd: WEB_APP });
-    return formatToolResponse('✅ UNIT TESTS PASSED', stdout, stderr);
-  } catch (error: any) {
-    return formatToolError('❌ UNIT TESTS FAILED', error);
-  }
+  return executeToolCommand(getToolConfig('run_unit_tests'));
 }
 
 export async function runE2ETests() {
-  try {
-    const { stdout, stderr } = await execAsync('pnpm test:e2e', { cwd: WEB_APP });
-    return formatToolResponse('✅ E2E TESTS PASSED', stdout, stderr);
-  } catch (error: any) {
-    return formatToolError('❌ E2E TESTS FAILED', error);
-  }
+  return executeToolCommand(getToolConfig('run_e2e_tests'));
 }
 
 export async function runCoverage() {
-  try {
-    const { stdout, stderr } = await execAsync('pnpm test:unit -- --coverage', { cwd: WEB_APP });
-    return formatToolResponse('✅ COVERAGE RUN PASSED', stdout, stderr);
-  } catch (error: any) {
-    return formatToolError('❌ COVERAGE RUN FAILED', error);
-  }
+  return executeToolCommand(getToolConfig('run_coverage'));
 }
 
 export async function runPrVerify() {
-  return runVerificationTool('pnpm pr:verify', '✅ PR VERIFY PASSED', '❌ PR VERIFY FAILED');
+  return executeToolCommand(getToolConfig('pr_verify'));
 }
 
 export async function runSecurityGuard() {
-  return runVerificationTool(
-    'pnpm security:guard',
-    '✅ SECURITY GUARD PASSED',
-    '❌ SECURITY GUARD FAILED'
-  );
+  return executeToolCommand(getToolConfig('security_guard'));
 }
 
 export async function runE2EGate() {
-  return runVerificationTool('pnpm e2e:gate', '✅ E2E GATE PASSED', '❌ E2E GATE FAILED');
+  return executeToolCommand(getToolConfig('e2e_gate'));
+}
+
+export async function runBuildCi() {
+  return executeToolCommand(getToolConfig('build_ci'));
+}
+
+export async function runCheckFast() {
+  return executeToolCommand(getToolConfig('check_fast'));
+}
+
+export async function runE2EStateSetup() {
+  return executeToolCommand(getToolConfig('e2e_state_setup'));
+}
+
+export async function runE2EGatePrFast() {
+  return executeToolCommand(getToolConfig('e2e_gate_pr_fast'));
+}
+
+export async function runPrVerifyHosts() {
+  return executeToolCommand(getToolConfig('pr_verify_hosts'));
 }
 
 export async function runTestsOrchestrator(args: OrchestratorArgs = {}) {
@@ -141,57 +267,44 @@ export async function runTestsOrchestrator(args: OrchestratorArgs = {}) {
 
   if (args.useHyperExecute) {
     results.push({
+      durationMs: 0,
+      failedStage: null,
       name: 'HyperExecute',
-      status: 'fail',
       output: 'HyperExecute is not configured for this repo. Running local tests instead.',
+      status: 'fail',
     });
   }
 
-  const commands: Array<{ name: string; command: string; cwd: string }> = [];
+  const commands = getOrchestratorConfigs(suite);
 
-  if (suite === 'unit') {
-    commands.push({ name: 'Unit Tests', command: 'pnpm test', cwd: REPO_ROOT });
-  } else if (suite === 'e2e') {
-    commands.push({ name: 'E2E Tests', command: 'pnpm test:e2e', cwd: REPO_ROOT });
-  } else if (suite === 'smoke') {
-    commands.push({
-      name: 'E2E Smoke Tests',
-      command: 'pnpm --filter @interdomestik/web test:e2e -- --grep smoke',
-      cwd: REPO_ROOT,
-    });
-  } else if (suite === 'pr_verify') {
-    commands.push({ name: 'PR Verify', command: 'pnpm pr:verify', cwd: REPO_ROOT });
-  } else if (suite === 'security_guard') {
-    commands.push({ name: 'Security Guard', command: 'pnpm security:guard', cwd: REPO_ROOT });
-  } else if (suite === 'e2e_gate') {
-    commands.push({ name: 'E2E Gate', command: 'pnpm e2e:gate', cwd: REPO_ROOT });
-  } else if (suite === 'full') {
-    commands.push(
-      { name: 'PR Verify', command: 'pnpm pr:verify', cwd: REPO_ROOT },
-      { name: 'Security Guard', command: 'pnpm security:guard', cwd: REPO_ROOT },
-      { name: 'E2E Gate', command: 'pnpm e2e:gate', cwd: REPO_ROOT }
-    );
-  } else {
+  if (!commands) {
     return {
       content: [
         {
           type: 'text',
-          text: `❌ Unknown suite "${suite}". Use: unit | e2e | smoke | pr_verify | security_guard | e2e_gate | full.`,
+          text:
+            `❌ Unknown suite "${suite}". Use: unit | e2e | smoke | pr_verify | security_guard | ` +
+            'e2e_gate | build_ci | check_fast | e2e_state_setup | e2e_gate_pr_fast | ' +
+            'pr_verify_hosts | full.',
         },
       ],
-    };
+      isError: true,
+      structuredContent: {
+        failedStage: null,
+        status: 'fail',
+        suite,
+        tool: 'tests_orchestrator',
+      },
+    } satisfies CallToolResult;
   }
 
   for (const command of commands) {
-    results.push(await runCommand(command.name, command.command, command.cwd));
+    results.push(await runCommand(command));
   }
 
   const summary = formatSummary(results);
   const details = results
-    .map(
-      result =>
-        `\n\n${result.name} (${result.status.toUpperCase()}):\n${result.output || '(no output)'}`
-    )
+    .map(result => `\n\n${result.name} (${result.status.toUpperCase()}):\n${result.output}`)
     .join('');
 
   return {
@@ -201,5 +314,20 @@ export async function runTestsOrchestrator(args: OrchestratorArgs = {}) {
         text: `${summary}${details}`,
       },
     ],
-  };
+    isError: results.some(result => result.status === 'fail'),
+    structuredContent: {
+      failedStages: results
+        .filter(result => result.status === 'fail' && result.failedStage)
+        .map(result => result.failedStage),
+      results: results.map(result => ({
+        durationMs: result.durationMs,
+        failedStage: result.failedStage,
+        name: result.name,
+        status: result.status,
+      })),
+      status: results.some(result => result.status === 'fail') ? 'fail' : 'pass',
+      suite,
+      tool: 'tests_orchestrator',
+    },
+  } satisfies CallToolResult;
 }

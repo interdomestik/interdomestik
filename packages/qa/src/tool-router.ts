@@ -11,10 +11,15 @@ import {
 import { codeSearch, gitDiff, gitStatus, projectMap, readFiles } from './tools/repo.js';
 import { checkHealth } from './tools/health.js';
 import {
+  runBuildCi,
   runCoverage,
   runE2EGate,
+  runE2EGatePrFast,
+  runE2EStateSetup,
   runE2ETests,
+  runCheckFast,
   runPrVerify,
+  runPrVerifyHosts,
   runSecurityGuard,
   runTestsOrchestrator,
   runUnitTests,
@@ -43,6 +48,11 @@ const handlers: Record<string, Handler> = {
   pr_verify: () => runPrVerify(),
   security_guard: () => runSecurityGuard(),
   e2e_gate: () => runE2EGate(),
+  build_ci: () => runBuildCi(),
+  check_fast: () => runCheckFast(),
+  e2e_state_setup: () => runE2EStateSetup(),
+  e2e_gate_pr_fast: () => runE2EGatePrFast(),
+  pr_verify_hosts: () => runPrVerifyHosts(),
   run_unit_tests: () => runUnitTests(),
   run_coverage: () => runCoverage(),
   run_e2e_tests: () => runE2ETests(),
