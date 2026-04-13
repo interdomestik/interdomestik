@@ -237,7 +237,7 @@ link_static_dir() {
 }
 
 resolve_standalone_server() {
-	local discoveredServer=""
+	local discovered_server=""
 
 	if [[ -f "${LEGACY_STANDALONE_SERVER}" ]]; then
 		printf '%s' "${LEGACY_STANDALONE_SERVER}"
@@ -251,12 +251,12 @@ resolve_standalone_server() {
 
 	[[ ! -d "${STANDALONE_ROOT}" ]] && return 1
 
-	discoveredServer="$(
+	discovered_server="$(
 		find "${STANDALONE_ROOT}" -path '*/node_modules/*' -prune -o -type f -name server.js -print | sort | head -n 1
 	)"
-	[[ -n "${discoveredServer}" ]] || return 1
+	[[ -n "${discovered_server}" ]] || return 1
 
-	printf '%s' "${discoveredServer}"
+	printf '%s' "${discovered_server}"
 }
 
 resolve_standalone_app_root() {

@@ -23,7 +23,7 @@ test('e2e launchers resolve standalone server artifacts dynamically for worktree
   );
   assert.match(webServerScript, /dynamic find under \$\{STANDALONE_ROOT\}/);
   assert.match(webServerScript, /\[\[ ! -d "\$\{STANDALONE_ROOT\}" \]\] && return 1/);
-  assert.match(webServerScript, /\[\[ -n "\$\{discoveredServer\}" \]\] \|\| return 1/);
+  assert.match(webServerScript, /\[\[ -n "\$\{discovered_server\}" \]\] \|\| return 1/);
 
   assert.match(gateScript, /resolve_standalone_server\(\)/);
   assert.match(
@@ -31,5 +31,6 @@ test('e2e launchers resolve standalone server artifacts dynamically for worktree
     /find "\$\{STANDALONE_ROOT\}" -path '\*\/node_modules\/\*' -prune -o -type f -name server\.js -print/
   );
   assert.match(gateScript, /\[\[ ! -d "\$\{STANDALONE_ROOT\}" \]\] && return 1/);
-  assert.match(gateScript, /\[\[ -n "\$\{discoveredServer\}" \]\] \|\| return 1/);
+  assert.match(gateScript, /\[\[ -n "\$\{discovered_server\}" \]\] \|\| return 1/);
+  assert.match(gateScript, /if ! resolve_standalone_server >\/dev\/null; then/);
 });
