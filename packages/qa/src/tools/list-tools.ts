@@ -46,11 +46,15 @@ export const tools = [
   },
   {
     name: 'tests_orchestrator',
-    description: 'Run project test suites (unit/e2e/smoke)',
+    description:
+      'Run project verification suites (unit/e2e/smoke/pr_verify/security_guard/e2e_gate/full)',
     inputSchema: {
       type: 'object',
       properties: {
-        suite: { type: 'string', description: 'unit | e2e | smoke | full' },
+        suite: {
+          type: 'string',
+          description: 'unit | e2e | smoke | pr_verify | security_guard | e2e_gate | full',
+        },
         useHyperExecute: { type: 'boolean', description: 'Not supported; runs locally' },
       },
     },
@@ -61,7 +65,10 @@ export const tools = [
     inputSchema: {
       type: 'object',
       properties: {
-        suite: { type: 'string', description: 'unit | e2e | smoke | full' },
+        suite: {
+          type: 'string',
+          description: 'unit | e2e | smoke | pr_verify | security_guard | e2e_gate | full',
+        },
         useHyperExecute: { type: 'boolean', description: 'Not supported; runs locally' },
       },
     },
@@ -83,7 +90,22 @@ export const tools = [
   },
   {
     name: 'check_health',
-    description: 'Run type-check and lint across workspace',
+    description: 'Run the full Phase C verification contract (pr:verify, security:guard, e2e:gate)',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'pr_verify',
+    description: 'Run pnpm pr:verify for the repo verification contract',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'security_guard',
+    description: 'Run pnpm security:guard for the repo security contract',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'e2e_gate',
+    description: 'Run pnpm e2e:gate for the repo end-to-end gate contract',
     inputSchema: { type: 'object', properties: {} },
   },
   {

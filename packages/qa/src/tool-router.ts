@@ -10,7 +10,15 @@ import {
 } from './tools/audits.js';
 import { codeSearch, gitDiff, gitStatus, projectMap, readFiles } from './tools/repo.js';
 import { checkHealth } from './tools/health.js';
-import { runCoverage, runE2ETests, runTestsOrchestrator, runUnitTests } from './tools/tests.js';
+import {
+  runCoverage,
+  runE2EGate,
+  runE2ETests,
+  runPrVerify,
+  runSecurityGuard,
+  runTestsOrchestrator,
+  runUnitTests,
+} from './tools/tests.js';
 import { queryDb } from './tools/db.js';
 import { getPaddleResource } from './tools/paddle.js';
 
@@ -32,6 +40,9 @@ const handlers: Record<string, Handler> = {
   audit_auth: () => auditAuth(),
   audit_env: () => auditEnv(),
   check_health: () => checkHealth(),
+  pr_verify: () => runPrVerify(),
+  security_guard: () => runSecurityGuard(),
+  e2e_gate: () => runE2EGate(),
   run_unit_tests: () => runUnitTests(),
   run_coverage: () => runCoverage(),
   run_e2e_tests: () => runE2ETests(),
