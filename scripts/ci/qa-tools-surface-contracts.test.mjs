@@ -27,14 +27,13 @@ test('qa tool surface exposes the Phase C verification contract', () => {
     'e2e_gate_pr_fast',
     'pr_verify_hosts',
   ]) {
-    assert.match(listToolsSource, new RegExp(`name: '${toolName}'`));
-    assert.match(routerSource, new RegExp(`${toolName}: \\(\\) =>`));
+    assert.ok(listToolsSource.includes(`name: '${toolName}'`));
+    assert.ok(routerSource.includes(`${toolName}: () =>`));
   }
 
-  assert.match(
-    listToolsSource,
-    new RegExp(
-      String.raw`Run the full Phase C verification contract \(pr:verify, security:guard, e2e:gate\)`
+  assert.ok(
+    listToolsSource.includes(
+      'Run the full Phase C verification contract (pr:verify, security:guard, e2e:gate)'
     )
   );
   assert.match(healthSource, /pnpm pr:verify/);
@@ -67,7 +66,7 @@ test('qa tool router and list expose the same contract-oriented orchestration to
     'e2e_gate_pr_fast',
     'pr_verify_hosts',
   ]) {
-    assert.match(listToolsSource, new RegExp(`name: '${toolName}'`));
-    assert.match(routerSource, new RegExp(`${toolName}:`));
+    assert.ok(listToolsSource.includes(`name: '${toolName}'`));
+    assert.ok(routerSource.includes(`${toolName}:`));
   }
 });
