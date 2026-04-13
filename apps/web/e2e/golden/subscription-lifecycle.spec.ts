@@ -11,14 +11,25 @@ async function fillPersisted(page: Page, selector: string, value: string) {
     await input.fill(value);
 
     if ((await input.inputValue()) === value) {
-      return input;
+      return;
     }
 
     await page.waitForTimeout(250);
   }
 
   await expect(input).toHaveValue(value);
-  return input;
+}
+
+function resolveTenantId(projectName: string) {
+  if (projectName.includes('pilot')) {
+    return 'pilot-mk';
+  }
+
+  if (projectName.includes('mk')) {
+    return 'tenant_mk';
+  }
+
+  return 'tenant_ks';
 }
 
 /**
@@ -28,30 +39,26 @@ async function fillPersisted(page: Page, selector: string, value: string) {
  */
 test.describe('Golden Flow: Subscription Lifecycle', () => {
   test('New user can register and subscribe to standard plan', async ({ page }, testInfo) => {
-    const projectKey = testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    const projectKey = testInfo.project.name.replaceAll(/[^a-z0-9]+/gi, '-').toLowerCase();
     const unique = `${projectKey}-${Date.now().toString(36)}-${testInfo.retry}`;
     const email = `sub-e2e-${unique}@example.com`;
     const password = 'TestPassword123!';
     const fullName = `Sub E2E ${unique}`;
-    const tenantId = testInfo.project.name.includes('pilot')
-      ? 'pilot-mk'
-      : testInfo.project.name.includes('mk')
-        ? 'tenant_mk'
-        : 'tenant_ks';
+    const tenantId = resolveTenantId(testInfo.project.name);
 
     // 1. Register
     await gotoApp(page, `${routes.register(testInfo)}?tenantId=${tenantId}`, testInfo, {
       marker: 'registration-page-ready',
     });
 
-    const fullNameInput = await fillPersisted(page, 'input[name="fullName"]', fullName);
-    const emailInput = await fillPersisted(page, 'input[name="email"]', email);
-    const passwordInput = await fillPersisted(page, 'input[name="password"]', password);
-    const confirmPasswordInput = await fillPersisted(
-      page,
-      'input[name="confirmPassword"]',
-      password
-    );
+    await fillPersisted(page, 'input[name="fullName"]', fullName);
+    await fillPersisted(page, 'input[name="email"]', email);
+    await fillPersisted(page, 'input[name="password"]', password);
+    await fillPersisted(page, 'input[name="confirmPassword"]', password);
+    const fullNameInput = page.locator('input[name="fullName"]');
+    const emailInput = page.locator('input[name="email"]');
+    const passwordInput = page.locator('input[name="password"]');
+    const confirmPasswordInput = page.locator('input[name="confirmPassword"]');
     await expect(fullNameInput).toHaveValue(fullName);
     await expect(emailInput).toHaveValue(email);
     await expect(passwordInput).toHaveValue(password);
