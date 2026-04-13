@@ -28,17 +28,25 @@ jobs:
             ${{ github.event.pull_request.base.ref }} \
             +refs/pull/${{ github.event.pull_request.number }}/head
 
-      - name: Assert OPENAI_API_KEY is configured
+      - name: Check OPENAI_API_KEY availability
+        id: openai_key
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           if [[ -z "${OPENAI_API_KEY}" ]]; then
-            echo "OPENAI_API_KEY secret is not configured for Codex Review." >&2
-            exit 1
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Skip Codex review when OPENAI_API_KEY is unavailable
+        if: steps.openai_key.outputs.configured != 'true'
+        run: |
+          echo "Skipping Codex review because OPENAI_API_KEY is not configured." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run Codex
         id: run_codex
+        if: steps.openai_key.outputs.configured == 'true'
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
