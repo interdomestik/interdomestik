@@ -78,8 +78,14 @@ describe('RegisterForm', () => {
     expect(screen.getByText('I agree to the Terms of Service')).toBeInTheDocument();
   });
 
-  it('renders GitHub OAuth button', () => {
+  it('does not render GitHub OAuth button by default', () => {
     render(<RegisterForm />);
+
+    expect(screen.queryByText('GitHub')).not.toBeInTheDocument();
+  });
+
+  it('renders GitHub OAuth button when enabled', () => {
+    render(<RegisterForm githubOAuthEnabled />);
 
     expect(screen.getByText('GitHub')).toBeInTheDocument();
   });
@@ -98,8 +104,8 @@ describe('RegisterForm', () => {
     expect(screen.getByText('Sign Up')).toBeInTheDocument();
   });
 
-  it('shows "or" divider for social login', () => {
-    render(<RegisterForm />);
+  it('shows "or" divider for social login when GitHub OAuth is enabled', () => {
+    render(<RegisterForm githubOAuthEnabled />);
 
     expect(screen.getByText('or')).toBeInTheDocument();
   });

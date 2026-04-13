@@ -23,7 +23,15 @@ test('project-scoped Codex config registers the repo MCP servers Interdomestik d
   assert.match(configToml, /command = "npx"/);
   assert.match(configToml, /@upstash\/context7-mcp/);
   assert.match(configToml, /@playwright\/mcp/);
-  assert.match(configToml, /packages\/qa\/dist\/index\.js/);
+  assert.match(configToml, /--user-data-dir/);
+  assert.match(configToml, /\/tmp\/pilot-evidence\/playwright-mcp-profile/);
+  assert.match(configToml, /--output-dir/);
+  assert.match(configToml, /\/tmp\/pilot-evidence\/playwright-mcp-output/);
+  assert.match(configToml, /command = "pnpm"/);
+  assert.match(configToml, /"exec"/);
+  assert.match(configToml, /"tsx"/);
+  assert.match(configToml, /packages\/qa\/src\/index\.ts/);
+  assert.doesNotMatch(configToml, /packages\/qa\/dist\/index\.js/);
 });
 
 test('mcp setup verifies Codex project config as well as local QA server prerequisites', () => {

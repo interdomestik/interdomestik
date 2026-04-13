@@ -2,12 +2,15 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import dotenv from 'dotenv';
-import path from 'node:path';
 import { tools } from './tools/list-tools.js';
 import { handleToolCall } from './tool-router.js';
 import { REPO_ROOT } from './utils/paths.js';
+import { findRootEnvFile } from './tools/audits/utils.js';
 
-dotenv.config({ path: path.join(REPO_ROOT, '.env'), quiet: true });
+const envFile = findRootEnvFile(REPO_ROOT);
+if (envFile) {
+  dotenv.config({ path: envFile, quiet: true });
+}
 
 // Server name defaults to interdomestik-qa; override with MCP_SERVER_NAME if needed.
 const serverName = process.env.MCP_SERVER_NAME || 'interdomestik-qa';

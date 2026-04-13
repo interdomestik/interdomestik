@@ -5,6 +5,7 @@ import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matri
 import { SuccessFeeCalculator } from '@/components/commercial/success-fee-calculator';
 import { buildSuccessFeeCalculatorProps } from '@/components/commercial/success-fee-calculator-content';
 import { RegisterForm } from '@/components/auth/register-form';
+import { hasGitHubOAuthCredentials } from '@/lib/auth/social-providers';
 import { coerceTenantId } from '@/lib/tenant/tenant-hosts';
 import { resolveTenantContextFromRequest } from '@/lib/tenant/tenant-request';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -41,6 +42,7 @@ export default async function RegisterPage({ params, searchParams }: Props) {
       <div className="mx-auto grid w-full max-w-6xl items-start gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
         <div className="flex flex-col items-center gap-6">
           <RegisterForm
+            githubOAuthEnabled={hasGitHubOAuthCredentials()}
             tenantId={resolvedTenantId}
             tenantClassificationPending={tenantClassificationPending}
           />

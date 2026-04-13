@@ -2,6 +2,7 @@ import { LoginForm } from '@/components/auth/login-form';
 import { getSessionSafe } from '@/components/shell/session';
 import { TenantSelector, type TenantOption } from '@/components/auth/tenant-selector';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
+import { hasGitHubOAuthCredentials } from '@/lib/auth/social-providers';
 import { coerceTenantId } from '@/lib/tenant/tenant-hosts';
 import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
 import { setRequestLocale } from 'next-intl/server';
@@ -62,7 +63,10 @@ export default async function LoginPage({ params, searchParams }: Props) {
       {resolvedTenantId ? null : (
         <TenantSelector tenants={tenantOptions} title="Choose your country" />
       )}
-      <LoginForm tenantId={resolvedTenantId ?? undefined} />
+      <LoginForm
+        githubOAuthEnabled={hasGitHubOAuthCredentials()}
+        tenantId={resolvedTenantId ?? undefined}
+      />
     </main>
   );
 }

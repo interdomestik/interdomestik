@@ -103,7 +103,13 @@ function emitPostLoginFailureTelemetry(
   });
 }
 
-export function LoginForm({ tenantId }: { tenantId?: string }) {
+export function LoginForm({
+  githubOAuthEnabled = false,
+  tenantId,
+}: {
+  githubOAuthEnabled?: boolean;
+  tenantId?: string;
+}) {
   const t = useTranslations('auth.login');
   const common = useTranslations('common');
   const searchParams = useSearchParams();
@@ -307,31 +313,35 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
             </Button>
           </div>
 
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-border/50" />
-            <span className="text-xs uppercase text-muted-foreground/70 tracking-wider">
-              {common('or')}
-            </span>
-            <div className="flex-1 h-px bg-border/50" />
-          </div>
+          {githubOAuthEnabled ? (
+            <>
+              <div className="flex items-center gap-4 my-6">
+                <div className="flex-1 h-px bg-border/50" />
+                <span className="text-xs uppercase text-muted-foreground/70 tracking-wider">
+                  {common('or')}
+                </span>
+                <div className="flex-1 h-px bg-border/50" />
+              </div>
 
-          <Button
-            variant="outline"
-            type="button"
-            className="w-full bg-background/50"
-            disabled={loading}
-            onClick={async () => {
-              await authClient.signIn.social({
-                provider: 'github',
-                callbackURL:
-                  globalThis.location.href || `${globalThis.location.origin}/${locale}/login`,
-                ...(resolvedTenantId ? { additionalData: { tenantId: resolvedTenantId } } : {}),
-              });
-            }}
-          >
-            <Code className="mr-2 h-4 w-4" />
-            GitHub
-          </Button>
+              <Button
+                variant="outline"
+                type="button"
+                className="w-full bg-background/50"
+                disabled={loading}
+                onClick={async () => {
+                  await authClient.signIn.social({
+                    provider: 'github',
+                    callbackURL:
+                      globalThis.location.href || `${globalThis.location.origin}/${locale}/login`,
+                    ...(resolvedTenantId ? { additionalData: { tenantId: resolvedTenantId } } : {}),
+                  });
+                }}
+              >
+                <Code className="mr-2 h-4 w-4" />
+                GitHub
+              </Button>
+            </>
+          ) : null}
 
           <p className="text-center text-sm text-[hsl(var(--muted-500))]">
             {t('noAccount')}{' '}

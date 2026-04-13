@@ -30,7 +30,7 @@ CODEX_CONFIG="$PROJECT_ROOT/.codex/config.toml"
 GEMINI_CONFIG="$HOME/.config/google/gemini/mcp.json"
 ALL_CONFIGURED=true
 
-if [ ! -f "$CODEX_CONFIG" ]; then
+if [[ ! -f "$CODEX_CONFIG" ]]; then
     echo -e "${RED}❌ Codex config not found at $CODEX_CONFIG${NC}"
     exit 1
 fi
@@ -45,7 +45,7 @@ for server in "${CODEX_SERVERS[@]}"; do
     fi
 done
 
-if [ -f "$GEMINI_CONFIG" ]; then
+if [[ -f "$GEMINI_CONFIG" ]]; then
     GEMINI_SERVERS=("context7" "playwright")
     for server in "${GEMINI_SERVERS[@]}"; do
         if grep -q "\"$server\"" "$GEMINI_CONFIG"; then

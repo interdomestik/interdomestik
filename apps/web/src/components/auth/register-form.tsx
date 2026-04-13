@@ -19,9 +19,11 @@ import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
 export function RegisterForm({
+  githubOAuthEnabled = false,
   tenantId,
   tenantClassificationPending = false,
 }: {
+  githubOAuthEnabled?: boolean;
   tenantId?: string;
   tenantClassificationPending?: boolean;
 }) {
@@ -199,24 +201,28 @@ export function RegisterForm({
             </Button>
           </div>
 
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-border/50" />
-            <span className="text-xs uppercase text-muted-foreground/70 tracking-wider">
-              {common('or')}
-            </span>
-            <div className="flex-1 h-px bg-border/50" />
-          </div>
+          {githubOAuthEnabled ? (
+            <>
+              <div className="flex items-center gap-4 my-6">
+                <div className="flex-1 h-px bg-border/50" />
+                <span className="text-xs uppercase text-muted-foreground/70 tracking-wider">
+                  {common('or')}
+                </span>
+                <div className="flex-1 h-px bg-border/50" />
+              </div>
 
-          <Button
-            variant="outline"
-            type="button"
-            className="w-full bg-background/50"
-            disabled={loading}
-            onClick={() => handleSocialSignIn('github')}
-          >
-            <Code className="mr-2 h-4 w-4" />
-            GitHub
-          </Button>
+              <Button
+                variant="outline"
+                type="button"
+                className="w-full bg-background/50"
+                disabled={loading}
+                onClick={() => handleSocialSignIn('github')}
+              >
+                <Code className="mr-2 h-4 w-4" />
+                GitHub
+              </Button>
+            </>
+          ) : null}
 
           <p className="text-center text-sm text-[hsl(var(--muted-500))] mt-4">
             {t('hasAccount')}{' '}

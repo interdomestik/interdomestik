@@ -217,11 +217,12 @@ echo "  BETTER_AUTH_TRUSTED_ORIGINS=${BETTER_AUTH_TRUSTED_ORIGINS}"
 echo "  HOSTNAME=${HOSTNAME}"
 echo "  PORT=${PORT}"
 
-STANDALONE_SERVER="${WEB_DIR}/.next/standalone/apps/web/server.js"
-FALLBACK_STANDALONE_SERVER="${WEB_DIR}/.next/standalone/server.js"
+STANDALONE_ROOT="${WEB_DIR}/.next/standalone"
+LEGACY_STANDALONE_SERVER="${STANDALONE_ROOT}/apps/web/server.js"
+FALLBACK_STANDALONE_SERVER="${STANDALONE_ROOT}/server.js"
 STANDALONE_STAMP_FILE="${WEB_DIR}/.next/standalone/.build-stamp.json"
 STANDALONE_STATIC_DIR="${WEB_DIR}/.next/standalone/.next/static"
-STANDALONE_APP_STATIC_DIR="${WEB_DIR}/.next/standalone/apps/web/.next/static"
+LEGACY_STANDALONE_APP_STATIC_DIR="${STANDALONE_ROOT}/apps/web/.next/static"
 BUILD_STATIC_DIR="${WEB_DIR}/.next/static"
 STANDALONE_AUTOREBUILD="${STANDALONE_AUTOREBUILD:-true}"
 DID_STANDALONE_REBUILD=0
@@ -229,15 +230,46 @@ CURRENT_GIT_SHA=""
 STAMP_GIT_SHA=""
 STAMP_STATUS_REASON=""
 
+link_static_dir() {
+	local targetDir="$1"
+	mkdir -p "$(dirname "${targetDir}")"
+	ln -sfn "${BUILD_STATIC_DIR}" "${targetDir}"
+}
+
+resolve_standalone_server() {
+	if [[ -f "${LEGACY_STANDALONE_SERVER}" ]]; then
+		printf '%s' "${LEGACY_STANDALONE_SERVER}"
+		return 0
+	fi
+
+	if [[ -f "${FALLBACK_STANDALONE_SERVER}" ]]; then
+		printf '%s' "${FALLBACK_STANDALONE_SERVER}"
+		return 0
+	fi
+
+	find "${STANDALONE_ROOT}" -path '*/node_modules/*' -prune -o -type f -name server.js -print | sort | head -n 1
+}
+
+resolve_standalone_app_root() {
+	local standaloneServer
+	standaloneServer="$(resolve_standalone_server)"
+	[[ -n "${standaloneServer}" ]] || return 1
+	dirname "${standaloneServer}"
+}
+
 link_standalone_static_assets() {
 	if [[ ! -d "${BUILD_STATIC_DIR}" ]]; then
 		return 0
 	fi
 
-	mkdir -p "$(dirname "${STANDALONE_STATIC_DIR}")"
-	ln -sfn "${BUILD_STATIC_DIR}" "${STANDALONE_STATIC_DIR}"
-	mkdir -p "$(dirname "${STANDALONE_APP_STATIC_DIR}")"
-	ln -sfn "${BUILD_STATIC_DIR}" "${STANDALONE_APP_STATIC_DIR}"
+	link_static_dir "${STANDALONE_STATIC_DIR}"
+	link_static_dir "${LEGACY_STANDALONE_APP_STATIC_DIR}"
+
+	local standaloneAppRoot
+	standaloneAppRoot="$(resolve_standalone_app_root || true)"
+	if [[ -n "${standaloneAppRoot}" ]]; then
+		link_static_dir "${standaloneAppRoot}/.next/static"
+	fi
 }
 
 should_autorebuild() {
@@ -342,22 +374,19 @@ fi
 
 link_standalone_static_assets
 
-if [[ -f "${STANDALONE_SERVER}" ]]; then
+if STANDALONE_SERVER="$(resolve_standalone_server)"; then
 	exec node "${STANDALONE_SERVER}"
 fi
 
-if [[ -f "${FALLBACK_STANDALONE_SERVER}" ]]; then
-	exec node "${FALLBACK_STANDALONE_SERVER}"
-fi
-
 echo "❌ Missing standalone server artifact. Tried:" >&2
-echo "   - ${STANDALONE_SERVER}" >&2
+echo "   - ${LEGACY_STANDALONE_SERVER}" >&2
 echo "   - ${FALLBACK_STANDALONE_SERVER}" >&2
+echo "   - dynamic find under ${STANDALONE_ROOT}" >&2
 echo "   Run: pnpm --filter @interdomestik/web run build:ci" >&2
 echo "   Debug: listing apps/web/.next" >&2
 ls -la "${WEB_DIR}/.next" || true
 echo "   Debug: listing apps/web/.next/standalone" >&2
 ls -la "${WEB_DIR}/.next/standalone" || true
-echo "   Debug: find server.js under apps/web/.next (maxdepth 4)" >&2
-find "${WEB_DIR}/.next" -maxdepth 4 -name server.js -print || true
+echo "   Debug: find server.js under apps/web/.next/standalone" >&2
+find "${STANDALONE_ROOT}" -path '*/node_modules/*' -prune -o -type f -name server.js -print || true
 exit 1

@@ -20,8 +20,25 @@ if [ -z "${DATABASE_URL:-}" ]; then
 fi
 
 # Build the web app if the standalone server artifact is missing.
-STANDALONE_SERVER="${ROOT_DIR}/apps/web/.next/standalone/apps/web/server.js"
-if [ ! -f "${STANDALONE_SERVER}" ]; then
+STANDALONE_ROOT="${ROOT_DIR}/apps/web/.next/standalone"
+LEGACY_STANDALONE_SERVER="${STANDALONE_ROOT}/apps/web/server.js"
+FALLBACK_STANDALONE_SERVER="${STANDALONE_ROOT}/server.js"
+
+resolve_standalone_server() {
+  if [ -f "${LEGACY_STANDALONE_SERVER}" ]; then
+    printf '%s' "${LEGACY_STANDALONE_SERVER}"
+    return 0
+  fi
+
+  if [ -f "${FALLBACK_STANDALONE_SERVER}" ]; then
+    printf '%s' "${FALLBACK_STANDALONE_SERVER}"
+    return 0
+  fi
+
+  find "${STANDALONE_ROOT}" -path '*/node_modules/*' -prune -o -type f -name server.js -print | sort | head -n 1
+}
+
+if [ -z "$(resolve_standalone_server)" ]; then
   echo "🏗️  [E2E Gate] Missing standalone server; building @interdomestik/web..."
   pnpm --filter @interdomestik/web build
 fi

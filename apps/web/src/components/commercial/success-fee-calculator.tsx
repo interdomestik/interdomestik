@@ -12,10 +12,18 @@ import {
   type SuccessFeeWorkedExample,
 } from './success-fee-calculator-content';
 
+function getDeterministicNumberFormatLocale(locale: string) {
+  return locale.toLowerCase().startsWith('en') ? 'en-US' : 'de-DE';
+}
+
 function formatEuro(locale: string, amount: number) {
   const maximumFractionDigits = Number.isInteger(amount) ? 0 : 2;
 
-  return `EUR ${new Intl.NumberFormat(locale, { maximumFractionDigits }).format(amount)}`;
+  // Browser and Node ICU support differ for some app locales (for example `sq`),
+  // so this widget uses deterministic formatting to avoid hydration mismatches.
+  return `EUR ${new Intl.NumberFormat(getDeterministicNumberFormatLocale(locale), {
+    maximumFractionDigits,
+  }).format(amount)}`;
 }
 
 function parseRecoveryAmount(input: string) {

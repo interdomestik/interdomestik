@@ -14,11 +14,18 @@ args = ["-y", "@upstash/context7-mcp"]
 
 [mcp_servers.playwright]
 command = "npx"
-args = ["-y", "@playwright/mcp"]
+args = [
+  "-y",
+  "@playwright/mcp",
+  "--user-data-dir",
+  "/tmp/pilot-evidence/playwright-mcp-profile",
+  "--output-dir",
+  "/tmp/pilot-evidence/playwright-mcp-output",
+]
 
 [mcp_servers.interdomestik_qa]
-command = "node"
-args = ["packages/qa/dist/index.js"]
+command = "pnpm"
+args = ["exec", "tsx", "packages/qa/src/index.ts"]
 cwd = "."
 
 [roles.scribe]
