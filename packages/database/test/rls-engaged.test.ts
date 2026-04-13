@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 import type { TestContext } from 'node:test';
 
@@ -22,7 +23,7 @@ type DbModule = typeof import('../src/db');
 type TenantModule = typeof import('../src/tenant');
 
 function uniqueId(prefix: string): string {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return `${prefix}_${Date.now()}_${randomUUID().slice(0, 8)}`;
 }
 
 function quoteIdentifier(identifier: string): string {

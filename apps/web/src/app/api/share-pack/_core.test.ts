@@ -21,7 +21,6 @@ describe('Share Pack API Core', () => {
         tenantId: 'tenant1',
         userId: 'user1',
         documentIds: ['d1', 'd2'],
-        ipAddress: '1.2.3.4',
         userAgent: 'test-agent',
         services: mockServices,
       });
@@ -61,7 +60,6 @@ describe('Share Pack API Core', () => {
 
       const result = await getSharePackCore({
         token: 'token1',
-        ipAddress: '1.2.3.4',
         userAgent: 'test-agent',
         services: mockServices,
       });

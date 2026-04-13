@@ -133,6 +133,8 @@ const mockAgents = [
   { id: 'agent-2', name: 'Agent Johnson' },
 ];
 
+const TEST_URL_ORIGIN = 'https://test.local';
+
 describe('UsersTable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -146,7 +148,7 @@ describe('UsersTable', () => {
 
     const profileHref = profileLinks[0].getAttribute('href');
     expect(profileHref).toBeTruthy();
-    const profileUrl = new URL(profileHref!, 'http://test.local');
+    const profileUrl = new URL(profileHref!, TEST_URL_ORIGIN);
     expect(profileUrl.pathname).toBe('/admin/users/user-1');
 
     // Full query string preserved
@@ -162,7 +164,7 @@ describe('UsersTable', () => {
     const alertLink = screen.getByRole('link', { name: '3 new message(s)' });
     const alertHref = alertLink.getAttribute('href');
     expect(alertHref).toBeTruthy();
-    const alertUrl = new URL(alertHref!, 'http://test.local');
+    const alertUrl = new URL(alertHref!, TEST_URL_ORIGIN);
     expect(alertUrl.pathname).toBe('/admin/claims/claim-1');
 
     // Destination query params preserved

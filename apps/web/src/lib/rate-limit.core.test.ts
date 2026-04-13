@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { enforceRateLimit, enforceRateLimitForAction } from './rate-limit.core';
 
+const TEST_REAL_IP = 'test-real-ip';
+
 // Mock dependencies
 const mockLimit = vi.fn();
 vi.mock('@upstash/ratelimit', () => {
@@ -157,12 +159,12 @@ describe('rate-limit.core', () => {
 
     it('should resolve IP from x-real-ip if forwarded-for is missing', async () => {
       const headers = new Headers();
-      headers.set('x-real-ip', '10.0.0.1');
+      headers.set('x-real-ip', TEST_REAL_IP);
       mockLimit.mockResolvedValue({ success: true });
 
       await enforceRateLimit({ name: 'test', limit: 10, windowSeconds: 60, headers });
 
-      expect(mockLimit).toHaveBeenCalledWith(expect.stringContaining('10.0.0.1'));
+      expect(mockLimit).toHaveBeenCalledWith(expect.stringContaining(TEST_REAL_IP));
     });
   });
 
