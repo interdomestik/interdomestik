@@ -5,19 +5,23 @@ import { gotoApp } from '../utils/navigation';
 
 async function fillPersisted(page: Page, selector: string, value: string) {
   const input = page.locator(selector);
+  let persisted = false;
 
   for (let attempt = 0; attempt < 3; attempt++) {
     await input.fill('');
     await input.fill(value);
 
-    if ((await input.inputValue()) === value) {
-      return;
+    persisted = (await input.inputValue()) === value;
+    if (persisted) {
+      break;
     }
 
     await page.waitForTimeout(250);
   }
 
-  await expect(input).toHaveValue(value);
+  if (!persisted) {
+    await expect(input).toHaveValue(value);
+  }
 }
 
 function resolveTenantId(projectName: string) {
