@@ -16,8 +16,10 @@ const mockResetPassword = vi.mocked(authClient.resetPassword);
 const mockPush = vi.fn();
 vi.mock('@/i18n/routing', () => ({
   useRouter: () => ({ push: mockPush }),
-  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  Link: ({ children, href, ...props }: React.ComponentProps<'a'> & { href: string }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -59,6 +61,10 @@ describe('ResetPasswordForm', () => {
     // Find the title - there might be multiple elements
     const titles = screen.getAllByText('Reset Password');
     expect(titles.length).toBeGreaterThan(0);
+    expect(screen.getByRole('form', { name: 'Reset password form' })).toHaveAttribute(
+      'data-hydrated',
+      'true'
+    );
     expect(screen.getByLabelText('New Password')).toBeInTheDocument();
     expect(screen.getByLabelText('Confirm New Password')).toBeInTheDocument();
   });
@@ -89,7 +95,7 @@ describe('ResetPasswordForm', () => {
     }
 
     await waitFor(() => {
-      expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent('Passwords do not match');
       expect(mockResetPassword).not.toHaveBeenCalled();
     });
   });

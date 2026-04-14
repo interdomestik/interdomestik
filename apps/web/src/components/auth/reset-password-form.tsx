@@ -25,6 +25,11 @@ export function ResetPasswordForm() {
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   if (!token) {
     return (
@@ -86,9 +91,18 @@ export function ResetPasswordForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form className="space-y-4" onSubmit={onSubmit}>
+        <form
+          className="space-y-4"
+          onSubmit={onSubmit}
+          aria-label="Reset password form"
+          data-hydrated={isHydrated ? 'true' : 'false'}
+        >
           {error && (
-            <div className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md">
+            <div
+              className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md"
+              role="alert"
+              aria-live="polite"
+            >
               {error}
             </div>
           )}

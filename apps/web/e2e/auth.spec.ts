@@ -139,38 +139,14 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Register Page', () => {
-    test('should display registration form if available', async ({ browser }, testInfo) => {
+    test('should redirect /register to the pricing entry', async ({ browser }, testInfo) => {
       await withAnonymousPage(browser, testInfo, async page => {
-        await gotoApp(page, routes.register(testInfo), testInfo);
-        await page.waitForLoadState('domcontentloaded');
+        await gotoApp(page, routes.register(testInfo), testInfo, {
+          marker: 'pricing-page-ready',
+        });
 
-        // Check if register page exists (might redirect to login)
-        const currentUrl = page.url();
-
-        if (currentUrl.includes('register')) {
-          // Wait for form to potentially load
-          await page.waitForSelector('form', { state: 'visible', timeout: 5000 }).catch(() => {});
-
-          if (await page.locator('form').isVisible()) {
-            await expect(page.locator('input[name="email"], input[type="email"]')).toBeVisible();
-            await expect(
-              page.locator('input[name="password"], input[type="password"]').first()
-            ).toBeVisible();
-            await expect(page.locator('button[type="submit"]')).toBeVisible();
-          }
-        }
-      });
-    });
-
-    test('should have terms and conditions checkbox if required', async ({ browser }, testInfo) => {
-      await withAnonymousPage(browser, testInfo, async page => {
-        await gotoApp(page, routes.register(testInfo), testInfo);
-
-        const termsCheckbox = page.locator('input[type="checkbox"]');
-
-        if (await termsCheckbox.isVisible()) {
-          await expect(termsCheckbox).toBeVisible();
-        }
+        await expect(page).toHaveURL(new RegExp(`${routes.publicMembershipEntry(testInfo)}$`));
+        await expect(page.getByTestId('pricing-table-root')).toBeVisible();
       });
     });
   });

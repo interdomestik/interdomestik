@@ -6,16 +6,12 @@ import { routes } from './routes';
 import { withAnonymousPage } from './utils/anonymous-context';
 import { gotoApp } from './utils/navigation';
 
-function localizedPath(testInfo: Parameters<typeof routes.getLocale>[0], pathname: string) {
-  return `/${routes.getLocale(testInfo)}${pathname}`;
-}
-
 test.describe('Post-E2 Public Entry Coverage', () => {
   test('covers the business membership entry page and server-side validation path', async ({
     browser,
   }, testInfo) => {
     await withAnonymousPage(browser, testInfo, async page => {
-      await gotoApp(page, localizedPath(testInfo, '/business-membership'), testInfo, {
+      await gotoApp(page, routes.businessMembership(testInfo), testInfo, {
         marker: 'business-membership-page-ready',
       });
 
@@ -39,13 +35,18 @@ test.describe('Post-E2 Public Entry Coverage', () => {
       await gotoApp(page, routes.login(testInfo), testInfo);
 
       await page.locator('a[href*="forgot-password"]').click();
-      await page.waitForURL(/\/forgot-password$/);
+      await page.waitForURL(new RegExp(`${routes.forgotPassword(testInfo)}$`));
 
       await page.locator('input[name="email"], input[type="email"]').fill(resetEmail);
       await page.locator('button[type="submit"]').click();
 
-      await expect(page.getByText('Check your email')).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Return to login' })).toBeVisible();
+      await expect(page.getByTestId('forgot-password-success')).toBeVisible();
+      await expect(page.getByTestId('forgot-password-success-title')).toBeVisible();
+      await expect(page.getByTestId('forgot-password-success-body')).toBeVisible();
+      await expect(page.getByTestId('forgot-password-return-to-login')).toHaveAttribute(
+        'href',
+        routes.login(testInfo)
+      );
     });
   });
 
@@ -56,18 +57,24 @@ test.describe('Post-E2 Public Entry Coverage', () => {
       await gotoApp(
         page,
         {
-          pathname: localizedPath(testInfo, '/reset-password'),
+          pathname: routes.resetPassword(testInfo),
           search: '?token=test-token',
         },
         testInfo
       );
 
       await expect(page.getByRole('heading', { name: 'Reset Password' })).toBeVisible();
+      await expect(page.getByRole('form', { name: 'Reset password form' })).toHaveAttribute(
+        'data-hydrated',
+        'true'
+      );
       await page.locator('input[name="password"]').fill('password-one');
       await page.locator('input[name="confirmPassword"]').fill('password-two');
       await page.locator('button[type="submit"]').click();
 
-      await expect(page.getByText('Passwords do not match')).toBeVisible();
+      await expect(
+        page.getByRole('form', { name: 'Reset password form' }).locator('[role="alert"]')
+      ).toHaveText('Passwords do not match');
     });
   });
 });
