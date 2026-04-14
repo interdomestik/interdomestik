@@ -2,23 +2,23 @@ import { db } from '@interdomestik/database/db';
 import { user } from '@interdomestik/database/schema';
 import { eq } from 'drizzle-orm';
 import { expect, test } from './fixtures/auth.fixture';
-import { getProjectUrlInfo } from './fixtures/auth.project';
+import { getProjectUrlInfo, getTenantFromTestInfo, type Tenant } from './fixtures/auth.project';
 import { routes } from './routes';
+import { withAnonymousPage } from './utils/anonymous-context';
 import { gotoApp } from './utils/navigation';
 
 // Enable full trace for this test suite
 test.use({ trace: 'on' });
 
-function resolveTenantId(projectName: string) {
-  if (projectName.includes('pilot')) {
-    return 'pilot-mk';
+function resolveTenantId(tenant: Tenant) {
+  switch (tenant) {
+    case 'pilot':
+      return 'pilot-mk';
+    case 'mk':
+      return 'tenant_mk';
+    default:
+      return 'tenant_ks';
   }
-
-  if (projectName.includes('mk')) {
-    return 'tenant_mk';
-  }
-
-  return 'tenant_ks';
 }
 
 async function registerMemberViaAuthApi(args: {
@@ -136,9 +136,10 @@ test.describe('Member Number Hardening @quarantine', () => {
   });
 
   test('should assign member number immediately upon registration (Production Grade)', async ({
+    browser,
     page,
   }, testInfo) => {
-    const tenantId = resolveTenantId(testInfo.project.name);
+    const tenantId = resolveTenantId(getTenantFromTestInfo(testInfo));
     const info = getProjectUrlInfo(testInfo, null);
     const projectHeaders = (testInfo.project.use.extraHTTPHeaders || {}) as Record<string, string>;
 
@@ -147,16 +148,18 @@ test.describe('Member Number Hardening @quarantine', () => {
     const memberName = 'Test ProdMember';
 
     console.log('Creating member through public auth sign-up API...');
-    const response = await registerMemberViaAuthApi({
-      page,
-      baseURL: info.origin,
-      tenantId,
-      email,
-      password,
-      name: memberName,
-      locale: info.locale,
-      projectHeaders,
-    });
+    const response = await withAnonymousPage(browser, testInfo, anonymousPage =>
+      registerMemberViaAuthApi({
+        page: anonymousPage,
+        baseURL: info.origin,
+        tenantId,
+        email,
+        password,
+        name: memberName,
+        locale: info.locale,
+        projectHeaders,
+      })
+    );
     console.log(`Registration API Success: ${response.status()} ${response.url()}`);
 
     // 3. Verify DB State (The Real Truth)
@@ -208,9 +211,10 @@ test.describe('Member Number Hardening @quarantine', () => {
   });
 
   test('should self-heal missing member number on login with correct year', async ({
+    browser,
     page,
   }, testInfo) => {
-    const tenantId = resolveTenantId(testInfo.project.name);
+    const tenantId = resolveTenantId(getTenantFromTestInfo(testInfo));
     const info = getProjectUrlInfo(testInfo, null);
     const projectHeaders = (testInfo.project.use.extraHTTPHeaders || {}) as Record<string, string>;
 
@@ -218,16 +222,18 @@ test.describe('Member Number Hardening @quarantine', () => {
     const pastDate = new Date(`${lastYear}-06-15T12:00:00Z`); // Specific date in past year
     const email = `heal-${Date.now()}@example.com`;
     const password = 'Password123!';
-    await registerMemberViaAuthApi({
-      page,
-      baseURL: info.origin,
-      tenantId,
-      email,
-      password,
-      name: 'Heal Member',
-      locale: info.locale,
-      projectHeaders,
-    });
+    await withAnonymousPage(browser, testInfo, anonymousPage =>
+      registerMemberViaAuthApi({
+        page: anonymousPage,
+        baseURL: info.origin,
+        tenantId,
+        email,
+        password,
+        name: 'Heal Member',
+        locale: info.locale,
+        projectHeaders,
+      })
+    );
 
     // Simulating "broken state": remove memberNumber and backdate createdAt
     await db
