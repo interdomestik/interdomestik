@@ -8,7 +8,7 @@ const DEFAULT_READY_TEST_IDS = [
   'staff-page-ready',
   'admin-page-ready',
   'auth-ready',
-  'registration-page-ready',
+  'pricing-page-ready',
 ];
 
 type WaitOptions = {

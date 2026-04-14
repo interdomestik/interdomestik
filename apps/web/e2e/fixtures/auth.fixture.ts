@@ -308,17 +308,12 @@ async function ensureAuthenticated(
   // Navigate using gotoApp (handles locale)
   await gotoApp(page, targetPath, testInfo, { marker: 'body' });
 
-  // Check if we bounced to login (auth-ready or registration-page-ready visible OR url contains /login)
+  // Check if we bounced to login (auth-ready visible or url contains /login)
   // We purposefully include a URL check for speed/robustness on slow renderers.
   const isLoginPage =
     (await Promise.race([
       page
         .getByTestId('auth-ready')
-        .waitFor({ timeout: 3000 })
-        .then(() => true)
-        .catch(() => false),
-      page
-        .getByTestId('registration-page-ready')
         .waitFor({ timeout: 3000 })
         .then(() => true)
         .catch(() => false),
