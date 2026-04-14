@@ -100,6 +100,7 @@ export function ResetPasswordForm() {
           {error && (
             <div
               className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md"
+              id="reset-password-form-error"
               role="alert"
               aria-live="polite"
             >

@@ -95,7 +95,9 @@ describe('ResetPasswordForm', () => {
     }
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Passwords do not match');
+      expect(document.querySelector('#reset-password-form-error')).toHaveTextContent(
+        'Passwords do not match'
+      );
       expect(mockResetPassword).not.toHaveBeenCalled();
     });
   });

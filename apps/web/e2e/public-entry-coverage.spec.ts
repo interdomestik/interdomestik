@@ -73,7 +73,9 @@ test.describe('Post-E2 Public Entry Coverage', () => {
       await page.locator('button[type="submit"]').click();
 
       await expect(
-        page.getByRole('form', { name: 'Reset password form' }).locator('[role="alert"]')
+        page
+          .getByRole('form', { name: 'Reset password form' })
+          .locator('#reset-password-form-error')
       ).toHaveText('Passwords do not match');
     });
   });

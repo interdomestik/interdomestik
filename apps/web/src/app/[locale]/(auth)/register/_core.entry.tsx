@@ -11,18 +11,17 @@ export default async function RegisterPage({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const destination = new URLSearchParams();
+  const [pricingPath, pricingQuery = ''] = getPublicMembershipEntryHref(
+    resolvedSearchParams?.plan ?? null
+  ).split('?');
+  const destination = new URLSearchParams(pricingQuery);
+
   if (resolvedSearchParams?.tenantId) {
     destination.set('tenantId', resolvedSearchParams.tenantId);
   }
 
-  const pricingHref = getPublicMembershipEntryHref(resolvedSearchParams?.plan ?? null);
-  const pricingUrl = new URL(`/${locale}${pricingHref}`, 'http://interdomestik.local');
-  for (const [key, value] of destination.entries()) {
-    pricingUrl.searchParams.set(key, value);
-  }
-
-  redirect(`${pricingUrl.pathname}${pricingUrl.search}`);
+  const query = destination.toString();
+  redirect(`/${locale}${pricingPath}${query ? `?${query}` : ''}`);
 }
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
