@@ -7,10 +7,7 @@ export async function withAnonymousPage<T>(
 ): Promise<T> {
   const context = await browser.newContext({
     storageState: undefined,
-    baseURL:
-      typeof testInfo.project.use.baseURL === 'string'
-        ? testInfo.project.use.baseURL
-        : testInfo.project.use.baseURL?.toString(),
+    baseURL: testInfo.project.use.baseURL,
     extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
   });
   const page = await context.newPage();
