@@ -72,6 +72,7 @@ export const routes = {
   stats: (l?: Locale | string | TestInfo) => withLocale('/stats', l || 'en'),
   partners: (l?: Locale | string | TestInfo) => withLocale('/partners', l || 'en'),
   pricing: (l?: Locale | string | TestInfo) => withLocale('/pricing', l || 'en'),
+  publicMembershipEntry: (l?: Locale | string | TestInfo) => withLocale('/pricing', l || 'en'),
   login: (l?: Locale | string | TestInfo) => withLocale('/login', l || 'en'),
   register: (l?: Locale | string | TestInfo) => withLocale('/register', l || 'en'),
   member: (l?: Locale | string | TestInfo) => withLocale('/member', l || 'en'),
