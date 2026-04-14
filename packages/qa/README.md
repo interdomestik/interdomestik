@@ -115,7 +115,7 @@ Supported `tests_orchestrator` suites:
 - `git_status` - Get git status
 - `git_diff` - Get git diff
 - `code_search` - Search the codebase
-- `query_db` - Execute read-only SQL against local Postgres
+- `query_db` - Execute SQL against local Postgres
 - `get_paddle_resource` - Fetch Paddle resources such as subscriptions, customers, products, or prices
 
 ## Structured Results
@@ -155,7 +155,7 @@ Relevant variables depend on the tool you call, but common local expectations in
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-Some auth-related audits intentionally treat GitHub OAuth credentials as optional when that provider is not configured for the local environment.
+These audits do not require GitHub OAuth credentials.
 
 ## Development Notes
 
