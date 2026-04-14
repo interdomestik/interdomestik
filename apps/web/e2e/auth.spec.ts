@@ -148,7 +148,7 @@ test.describe('Authentication', () => {
         const currentUrl = page.url();
 
         if (currentUrl.includes('register')) {
-          // Wait for form to potentialy load
+          // Wait for form to potentially load
           await page.waitForSelector('form', { state: 'visible', timeout: 5000 }).catch(() => {});
 
           if (await page.locator('form').isVisible()) {
