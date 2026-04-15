@@ -68,6 +68,7 @@ test('coverage gate script fails when aggregate line coverage drops below the co
 
 test('coverage scripts and canonical PR verification wire the blocking repository floor', () => {
   assert.match(packageJson.scripts['test:coverage'], /scripts\/ci\/clean-coverage-artifacts\.mjs/);
+  assert.match(packageJson.scripts['test:coverage'], /pnpm --filter @interdomestik\/web exec vitest run --coverage --pool=threads/);
   assert.match(packageJson.scripts['test:coverage'], /--coverage\.reporter=json-summary/);
   assert.equal(
     packageJson.scripts['coverage:gate'],
