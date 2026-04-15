@@ -24,8 +24,10 @@ vi.mock('next-intl', () => ({
 
 // Mock routing
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  Link: ({ children, href, ...props }: React.ComponentProps<'a'> & { href: string }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -81,9 +83,17 @@ describe('ForgotPasswordForm', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Check your email')).toBeInTheDocument();
-      expect(screen.getByText(/If an account exists for that email/)).toBeInTheDocument();
-      expect(screen.getByText('Return to login')).toBeInTheDocument();
+      expect(screen.getByTestId('forgot-password-success')).toBeInTheDocument();
+      expect(screen.getByTestId('forgot-password-success-title')).toHaveTextContent(
+        'Check your email'
+      );
+      expect(screen.getByTestId('forgot-password-success-body')).toHaveTextContent(
+        /If an account exists for that email/
+      );
+      expect(screen.getByTestId('forgot-password-return-to-login')).toHaveAttribute(
+        'href',
+        '/login'
+      );
     });
   });
 
@@ -123,7 +133,7 @@ describe('ForgotPasswordForm', () => {
 
     // The loading state is very brief, so we check that the success state appears
     await waitFor(() => {
-      expect(screen.getByText('Check your email')).toBeInTheDocument();
+      expect(screen.getByTestId('forgot-password-success')).toBeInTheDocument();
     });
   });
 });

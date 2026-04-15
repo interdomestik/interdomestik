@@ -22,12 +22,23 @@ function resolveGitSha() {
   return envSha?.trim() || 'unknown';
 }
 
+function normalizeBillingTestMode(value) {
+  return value?.trim() === '1' ? '1' : '0';
+}
+
 const gitSha = resolveGitSha();
-const stamp = { gitSha, builtAt: new Date().toISOString() };
+const billingTestMode = normalizeBillingTestMode(process.env.NEXT_PUBLIC_BILLING_TEST_MODE);
+const stamp = {
+  gitSha,
+  builtAt: new Date().toISOString(),
+  publicEnv: {
+    NEXT_PUBLIC_BILLING_TEST_MODE: billingTestMode,
+  },
+};
 const outDir = path.resolve('.next/standalone');
 const outFile = path.join(outDir, '.build-stamp.json');
 
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(outFile, `${JSON.stringify(stamp, null, 2)}\n`);
 
-console.log(`[build-stamp] ${outFile} (${gitSha})`);
+console.log(`[build-stamp] ${outFile} (${gitSha}, billingTestMode=${billingTestMode})`);

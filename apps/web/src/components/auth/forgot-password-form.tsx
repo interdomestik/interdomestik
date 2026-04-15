@@ -58,19 +58,32 @@ export function ForgotPasswordForm() {
 
   if (success) {
     return (
-      <Card className="w-full max-w-md animate-fade-in shadow-xl border-none ring-1 ring-white/10 bg-white/5 backdrop-blur-lg">
+      <Card
+        className="w-full max-w-md animate-fade-in shadow-xl border-none ring-1 ring-white/10 bg-white/5 backdrop-blur-lg"
+        data-testid="forgot-password-success"
+      >
         <CardHeader className="text-center space-y-1">
           <div className="mx-auto w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mb-4">
             <Mail className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">Check your email</CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardTitle
+            className="text-2xl font-bold tracking-tight"
+            data-testid="forgot-password-success-title"
+          >
+            Check your email
+          </CardTitle>
+          <CardDescription
+            className="text-muted-foreground"
+            data-testid="forgot-password-success-body"
+          >
             If an account exists for that email, we've sent instructions to reset your password.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center">
           <Button asChild variant="link" className="text-primary">
-            <Link href="/login">Return to login</Link>
+            <Link href="/login" data-testid="forgot-password-return-to-login">
+              Return to login
+            </Link>
           </Button>
         </CardContent>
       </Card>

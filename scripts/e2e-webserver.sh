@@ -228,6 +228,8 @@ STANDALONE_AUTOREBUILD="${STANDALONE_AUTOREBUILD:-true}"
 DID_STANDALONE_REBUILD=0
 CURRENT_GIT_SHA=""
 STAMP_GIT_SHA=""
+CURRENT_BILLING_TEST_MODE=""
+STAMP_BILLING_TEST_MODE=""
 STAMP_STATUS_REASON=""
 
 link_static_dir() {
@@ -294,10 +296,22 @@ should_autorebuild() {
 	esac
 }
 
+normalize_billing_test_mode() {
+	local value="${1:-}"
+	if [[ "${value}" == "1" ]]; then
+		printf '%s' "1"
+		return 0
+	fi
+
+	printf '%s' "0"
+}
+
 refresh_stamp_status() {
 	STAMP_STATUS_REASON=""
 	STAMP_GIT_SHA=""
+	STAMP_BILLING_TEST_MODE=""
 	CURRENT_GIT_SHA="$(resolve_current_git_sha)"
+	CURRENT_BILLING_TEST_MODE="$(normalize_billing_test_mode "${NEXT_PUBLIC_BILLING_TEST_MODE:-}")"
 
 	if [[ ! -f "${STANDALONE_STAMP_FILE}" ]]; then
 		STAMP_STATUS_REASON="missing-stamp"
@@ -313,8 +327,22 @@ refresh_stamp_status() {
 		return 1
 	fi
 
+	STAMP_BILLING_TEST_MODE="$(
+		node -e "const fs=require('node:fs');const stamp=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(stamp.publicEnv?.NEXT_PUBLIC_BILLING_TEST_MODE ?? '');" "${STANDALONE_STAMP_FILE}" 2>/dev/null || true
+	)"
+
+	if [[ -z "${STAMP_BILLING_TEST_MODE}" ]]; then
+		STAMP_STATUS_REASON="stale-stamp-env"
+		return 1
+	fi
+
 	if [[ "${CURRENT_GIT_SHA}" != "unknown" && "${STAMP_GIT_SHA}" != "unknown" && "${CURRENT_GIT_SHA}" != "${STAMP_GIT_SHA}" ]]; then
 		STAMP_STATUS_REASON="stale-stamp"
+		return 1
+	fi
+
+	if [[ "${CURRENT_BILLING_TEST_MODE}" != "${STAMP_BILLING_TEST_MODE}" ]]; then
+		STAMP_STATUS_REASON="stale-stamp-env"
 		return 1
 	fi
 
@@ -351,6 +379,8 @@ rebuild_standalone_once() {
 	echo "⚠️ Standalone artifact ${STAMP_STATUS_REASON} -> rebuilding with build:ci" >&2
 	echo "   stamp gitSha: ${STAMP_GIT_SHA:-<missing>}" >&2
 	echo "   current HEAD: ${CURRENT_GIT_SHA:-<missing>}" >&2
+	echo "   stamp billingTestMode: ${STAMP_BILLING_TEST_MODE:-<missing>}" >&2
+	echo "   requested billingTestMode: ${CURRENT_BILLING_TEST_MODE:-<missing>}" >&2
 	rm -rf "${WEB_DIR}/.next"
 	env -u PLAYWRIGHT -u INTERDOMESTIK_AUTOMATED pnpm --filter @interdomestik/web run build:ci
 	link_standalone_static_assets
@@ -364,6 +394,8 @@ if ! refresh_stamp_status; then
 			echo "   reason: ${STAMP_STATUS_REASON}" >&2
 			echo "   stamp gitSha: ${STAMP_GIT_SHA:-<missing>}" >&2
 			echo "   current HEAD: ${CURRENT_GIT_SHA:-<missing>}" >&2
+			echo "   stamp billingTestMode: ${STAMP_BILLING_TEST_MODE:-<missing>}" >&2
+			echo "   requested billingTestMode: ${CURRENT_BILLING_TEST_MODE:-<missing>}" >&2
 			echo "   Try: pnpm --filter @interdomestik/web run build:ci" >&2
 			exit 1
 		fi
@@ -375,6 +407,8 @@ if ! refresh_stamp_status; then
 		fi
 		echo "   stamp gitSha: ${STAMP_GIT_SHA:-<missing>}" >&2
 		echo "   current HEAD: ${CURRENT_GIT_SHA:-<missing>}" >&2
+		echo "   stamp billingTestMode: ${STAMP_BILLING_TEST_MODE:-<missing>}" >&2
+		echo "   requested billingTestMode: ${CURRENT_BILLING_TEST_MODE:-<missing>}" >&2
 		echo "   Rebuild with: pnpm --filter @interdomestik/web run build:ci" >&2
 		echo "   Override: STANDALONE_AUTOREBUILD=true to auto-rebuild once" >&2
 		exit 1
