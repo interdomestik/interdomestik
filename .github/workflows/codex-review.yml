@@ -25,11 +25,16 @@ jobs:
           fetch-depth: 0
 
       - name: Pre-fetch base and head refs
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
+          git check-ref-format --branch "${BASE_REF}"
+          git check-ref-format --branch "${HEAD_REF}"
           git fetch --no-tags origin \
-            +refs/heads/${{ github.event.pull_request.base.ref }}:refs/remotes/origin/${{ github.event.pull_request.base.ref }} \
-            +refs/heads/${{ github.event.pull_request.head.ref }}:refs/remotes/origin/${{ github.event.pull_request.head.ref }}
-          git checkout -B "${{ github.event.pull_request.head.ref }}" "origin/${{ github.event.pull_request.head.ref }}"
+            "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}" \
+            "+refs/heads/${HEAD_REF}:refs/remotes/origin/${HEAD_REF}"
+          git checkout -B "${HEAD_REF}" "origin/${HEAD_REF}"
 
       - name: Check OPENAI_API_KEY availability
         id: openai_key
