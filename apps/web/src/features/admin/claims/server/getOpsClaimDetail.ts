@@ -40,8 +40,8 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
   }
   const requestHost = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
   const hostTenantId = resolveTenantFromHost(requestHost);
-  if (!hostTenantId || hostTenantId !== sessionTenantId) return { kind: 'not_found' };
-  const tenantId = hostTenantId;
+  if (hostTenantId && hostTenantId !== sessionTenantId) return { kind: 'not_found' };
+  const tenantId = hostTenantId ?? sessionTenantId;
 
   // 1-2. Read claim detail under tenant DB context (RLS where configured) + explicit tenant predicates.
   const { claim, userData, agentData, rawDocs, diasporaOrigin } = await withTenantContext(
