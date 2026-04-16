@@ -1,6 +1,7 @@
 import { db, eq } from '@interdomestik/database';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import {
+  agentClients,
   memberLeads,
   membershipCards,
   subscriptions,
@@ -20,11 +21,21 @@ function isLeadAlreadyConverted(lead: LeadConversionState): boolean {
   return lead.convertedUserId != null || lead.status === 'converted';
 }
 
+function resolveLeadConversionPlanId(planId?: string): string {
+  const normalizedPlanId = planId?.trim();
+  if (!normalizedPlanId || normalizedPlanId === 'monthly_std') {
+    return 'standard';
+  }
+
+  return normalizedPlanId;
+}
+
 export async function convertLeadToMember(
   ctx: { tenantId: string },
   args: { leadId: string; planId?: string }
 ): Promise<ConvertLeadResult | null> {
-  const { leadId, planId = 'monthly_std' } = args;
+  const { leadId } = args;
+  const planId = resolveLeadConversionPlanId(args.planId);
 
   const lead = await db.query.memberLeads.findFirst({
     where: (l, { eq, and }) => and(eq(l.id, leadId), eq(l.tenantId, ctx.tenantId)),
@@ -61,21 +72,34 @@ export async function convertLeadToMember(
     await tx.insert(subscriptions).values({
       id: subscriptionId,
       tenantId: ctx.tenantId,
-      userId: userId,
+      userId,
       status: 'active',
-      planId: planId,
+      planId,
       agentId: lead.agentId,
       branchId: lead.branchId,
       createdAt: now,
+      updatedAt: now,
     });
+
+    if (lead.agentId) {
+      await tx.insert(agentClients).values({
+        id: nanoid(),
+        tenantId: ctx.tenantId,
+        agentId: lead.agentId,
+        memberId: userId,
+        status: 'active',
+        joinedAt: now,
+        createdAt: now,
+      });
+    }
 
     // D. Issue Membership Card
     const cardNumber = `MEM-${nanoid(8).toUpperCase()}`;
     await tx.insert(membershipCards).values({
       id: `card_${nanoid()}`,
       tenantId: ctx.tenantId,
-      userId: userId,
-      subscriptionId: subscriptionId,
+      userId,
+      subscriptionId,
       status: 'active',
       cardNumber,
       qrCodeToken: nanoid(32),

@@ -12,8 +12,14 @@ import {
 // Mock dependencies
 vi.mock('@interdomestik/database', () => ({
   db: {
+    insert: vi.fn(() => ({
+      values: vi.fn(),
+    })),
     query: {
       agentSettings: {
+        findFirst: vi.fn(),
+      },
+      agentClients: {
         findFirst: vi.fn(),
       },
       referrals: {
@@ -21,6 +27,10 @@ vi.mock('@interdomestik/database', () => ({
       },
     },
   },
+}));
+
+vi.mock('nanoid', () => ({
+  nanoid: vi.fn(() => 'agent-client-id'),
 }));
 
 vi.mock('../../../../../domain-referrals/src', () => ({
@@ -80,6 +90,10 @@ describe('extras', () => {
       vi.clearAllMocks();
       // Default success mocks
       (db.query.agentSettings.findFirst as any).mockResolvedValue(null);
+      (db.query.agentClients.findFirst as any).mockResolvedValue(null);
+      (db.insert as any).mockReturnValue({
+        values: vi.fn().mockResolvedValue(undefined),
+      });
       (createCommissionCore as any).mockResolvedValue({ success: true, data: { id: 'comm_1' } });
       (db.query.referrals.findFirst as any).mockResolvedValue(null);
       (createMemberReferralRewardCore as any).mockResolvedValue({
@@ -114,6 +128,8 @@ describe('extras', () => {
           action: 'commission.created',
         })
       );
+      expect(db.query.agentClients.findFirst).toHaveBeenCalled();
+      expect(db.insert).toHaveBeenCalled();
     });
 
     it('should use custom commission rates if found', async () => {
@@ -151,6 +167,25 @@ describe('extras', () => {
       });
 
       expect(createCommissionCore).not.toHaveBeenCalled();
+      expect(db.query.agentClients.findFirst).not.toHaveBeenCalled();
+      expect(db.insert).not.toHaveBeenCalled();
+    });
+
+    it('does not create a duplicate agent-client binding when one already exists', async () => {
+      (db.query.agentClients.findFirst as any).mockResolvedValue({ id: 'existing-binding' });
+
+      await handleNewSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: { agentId: 'agent_1' },
+        priceId: 'price_1',
+        userRecord: mockUserRecord,
+        deps: mockDeps,
+      });
+
+      expect(db.query.agentClients.findFirst).toHaveBeenCalled();
+      expect(db.insert).not.toHaveBeenCalled();
     });
 
     it('creates a member referral reward for a first paid subscription without an agent commission', async () => {

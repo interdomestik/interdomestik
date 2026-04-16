@@ -1,6 +1,7 @@
 import { db } from '@interdomestik/database';
-import { referrals } from '@interdomestik/database/schema';
+import { agentClients, referrals } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
 import { createCommissionCore } from '../../../commissions/create';
 import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
@@ -127,6 +128,38 @@ async function processMemberReferralRewards(args: {
   }
 }
 
+async function ensureAgentClientBinding(args: {
+  tenantId: string;
+  userId: string;
+  customData: { agentId?: string } | undefined;
+}) {
+  const agentId = args.customData?.agentId?.trim();
+  if (!agentId) return;
+
+  const existingBinding = await db.query.agentClients.findFirst({
+    where: (bindings, { and, eq }) =>
+      and(
+        eq(bindings.tenantId, args.tenantId),
+        eq(bindings.agentId, agentId),
+        eq(bindings.memberId, args.userId)
+      ),
+    columns: { id: true },
+  });
+
+  if (existingBinding) return;
+
+  const now = new Date();
+  await db.insert(agentClients).values({
+    id: nanoid(),
+    tenantId: args.tenantId,
+    agentId,
+    memberId: args.userId,
+    status: 'active',
+    joinedAt: now,
+    createdAt: now,
+  });
+}
+
 async function processRenewalCommissions(args: {
   internalSubscriptionId?: string;
   sub: any;
@@ -246,6 +279,7 @@ export async function handleNewSubscriptionExtras(args: {
   deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter'> & PaddleWebhookAuditDeps;
 }) {
   await processCommissions(args);
+  await ensureAgentClientBinding(args);
   await processMemberReferralRewards(args);
   await processThankYouLetter(args);
 }

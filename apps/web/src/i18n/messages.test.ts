@@ -1,6 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('./routing', () => ({
+  routing: {
+    defaultLocale: 'en',
+  },
+}));
+
+import { loadMessagesForNamespaces } from './messages';
 
 function getArrayBlock(source: string, arrayName: string): string {
   const startToken = `export const ${arrayName} = [`;
@@ -51,5 +59,19 @@ describe('i18n shell namespace coverage', () => {
 
     expect(allNamespaces).toContain("'freeStart'");
     expect(home).toContain("'freeStart'");
+  });
+
+  it('can load only the namespaces a standalone route needs', async () => {
+    const messages = await loadMessagesForNamespaces('mk', ['claims-tracking']);
+
+    expect(messages).toHaveProperty('claims-tracking');
+    expect(messages['claims-tracking']).toMatchObject({
+      tracking: {
+        public: {
+          title: expect.any(String),
+        },
+      },
+    });
+    expect(messages).not.toHaveProperty('about');
   });
 });

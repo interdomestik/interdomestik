@@ -1,7 +1,7 @@
 import { PublicTrackingCard } from '@/features/claims/tracking/components/PublicTrackingCard';
+import { loadMessagesForNamespaces } from '@/i18n/messages';
 import { getPublicClaimStatus } from '@/features/claims/tracking/server/getPublicClaimStatus';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { getTrackingViewCore } from './_core';
 
@@ -48,7 +48,7 @@ export default async function PublicTrackingPage({ params, searchParams }: PageP
   }
 
   const data = result.data;
-  const messages = await getMessages({ locale });
+  const messages = await loadMessagesForNamespaces(locale, ['claims-tracking']);
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>

@@ -9,6 +9,7 @@ const hoisted = vi.hoisted(() => ({
     query: {
       user: { findFirst: vi.fn() },
       account: { findFirst: vi.fn() },
+      agentClients: { findFirst: vi.fn() },
       subscriptions: { findFirst: vi.fn() },
       tenantSettings: { findFirst: vi.fn() },
       webhookEvents: { findFirst: vi.fn() },
@@ -52,6 +53,7 @@ describe('Paddle Webhook Handlers', () => {
     hoisted.db.insert.mockImplementation(() => ({
       values: vi.fn().mockResolvedValue(undefined),
     }));
+    hoisted.db.query.agentClients.findFirst.mockResolvedValue(null);
     hoisted.db.update.mockImplementation(() => ({
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue(undefined),
