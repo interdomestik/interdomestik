@@ -33,6 +33,12 @@ select
   is_public,
   history_created_at
 from claim_history
-where history_created_at >= timestamp :'export_window_start'
+where (
+  claim_created_at >= timestamp :'export_window_start'
+  and claim_created_at < timestamp :'export_window_end'
+)
+or (
+  history_created_at >= timestamp :'export_window_start'
   and history_created_at < timestamp :'export_window_end'
+)
 order by claim_created_at asc, history_created_at asc;
