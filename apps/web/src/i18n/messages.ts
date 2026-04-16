@@ -153,60 +153,63 @@ type LoadAllMessagesOptions = {
   strict?: boolean;
 };
 
-export async function loadAllMessages(locale: string, options: LoadAllMessagesOptions = {}) {
+async function loadNamespaceMessages(
+  locale: string,
+  namespace: MessageNamespace,
+  options: LoadAllMessagesOptions = {}
+) {
   const strict = options.strict === true;
-  const modules = await Promise.all(
-    MESSAGE_NAMESPACES.map(async namespace => {
+  try {
+    const mod = await import(`../messages/${locale}/${namespace}.json`);
+    let messages = mod.default;
+
+    if (locale !== routing.defaultLocale) {
       try {
-        const mod = await import(`../messages/${locale}/${namespace}.json`);
-        let messages = mod.default;
-
-        if (locale !== routing.defaultLocale) {
-          try {
-            const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
-            messages = mergeMessages(fallback.default, messages);
-          } catch {
-            if (strict) {
-              throw new Error(
-                `[i18n] Missing fallback messages file for locale=${routing.defaultLocale} namespace=${namespace}`
-              );
-            }
-
-            // Fallback might fail if the file doesn't exist, just use what we have.
-          }
-        }
-
-        // Special handling for split admin files to merge them under 'admin' key
-        if (namespace.startsWith('admin-')) {
-          // If the file content isn't wrapped in 'admin', wrap it?
-          // Actually, the easiest way is to NOT wrap them in the file, but wrap them here.
-          // BUT, to maintain backward compatibility with current structure which wraps in "admin":
-          // The current plan implies the new files will contain { "admin": { "sidebar": ... } }
-          // If so, simple merge works.
-          // Let's assume the new files will mirror the structure: { "admin": { "sub-section": ... } }
-          return messages;
-        }
-
-        return messages;
+        const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
+        messages = mergeMessages(fallback.default, messages);
       } catch {
         if (strict) {
           throw new Error(
-            `[i18n] Missing messages file for locale=${locale} namespace=${namespace}`
+            `[i18n] Missing fallback messages file for locale=${routing.defaultLocale} namespace=${namespace}`
           );
         }
 
-        try {
-          // Try loading fallback locale if main failed entirely
-          const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
-          return fallback.default;
-        } catch {
-          return {};
-        }
+        // Fallback might fail if the file doesn't exist, just use what we have.
       }
-    })
+    }
+
+    return messages;
+  } catch {
+    if (strict) {
+      throw new Error(`[i18n] Missing messages file for locale=${locale} namespace=${namespace}`);
+    }
+
+    try {
+      const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
+      return fallback.default;
+    } catch {
+      return {};
+    }
+  }
+}
+
+export async function loadMessagesForNamespaces(
+  locale: string,
+  namespaces: readonly MessageNamespace[],
+  options: LoadAllMessagesOptions = {}
+) {
+  const modules = await Promise.all(
+    namespaces.map(namespace => loadNamespaceMessages(locale, namespace, options))
   );
 
-  // Use deep merge for the final object accumulation to ensure 'admin' keys from different files merge correctly
+  return modules.reduce((acc, curr) => mergeMessages(acc, curr), {});
+}
+
+export async function loadAllMessages(locale: string, options: LoadAllMessagesOptions = {}) {
+  const modules = await Promise.all(
+    MESSAGE_NAMESPACES.map(namespace => loadNamespaceMessages(locale, namespace, options))
+  );
+
   return modules.reduce((acc, curr) => mergeMessages(acc, curr), {});
 }
 // Force reload

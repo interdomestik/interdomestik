@@ -9,6 +9,7 @@ const hoisted = vi.hoisted(() => ({
     query: {
       user: { findFirst: vi.fn() },
       account: { findFirst: vi.fn() },
+      agentClients: { findFirst: vi.fn() },
       subscriptions: { findFirst: vi.fn() },
       tenantSettings: { findFirst: vi.fn() },
       webhookEvents: { findFirst: vi.fn() },
@@ -52,6 +53,7 @@ describe('Paddle Webhook Handlers', () => {
     hoisted.db.insert.mockImplementation(() => ({
       values: vi.fn().mockResolvedValue(undefined),
     }));
+    hoisted.db.query.agentClients.findFirst.mockResolvedValue(null);
     hoisted.db.update.mockImplementation(() => ({
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue(undefined),
@@ -60,7 +62,9 @@ describe('Paddle Webhook Handlers', () => {
     hoisted.tx.insert.mockImplementation(() => ({
       values: hoisted.insertedUserValues,
     }));
-    hoisted.insertedUserValues.mockResolvedValue(undefined);
+    hoisted.insertedUserValues.mockReturnValue({
+      onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+    });
     hoisted.tx.update.mockImplementation(() => ({
       set: hoisted.updatedUserValues,
     }));
@@ -180,7 +184,7 @@ describe('Paddle Webhook Handlers', () => {
         email: 'buyer@example.com',
         tenantId: 'tenant_mk',
       });
-      expect(hoisted.db.transaction).toHaveBeenCalledTimes(1);
+      expect(hoisted.db.transaction).toHaveBeenCalledTimes(2);
       expect(hoisted.db.insert).toHaveBeenCalled();
     });
 
