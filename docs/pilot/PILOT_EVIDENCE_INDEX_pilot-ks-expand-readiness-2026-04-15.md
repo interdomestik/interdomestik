@@ -86,4 +86,4 @@ For `PD07`, keep the canonical daily decision row here and write the executive r
 | daily | day-1 | 2026-04-16 | Platform Pilot Operator | continue | n/a | day-1 | no | no |
 | daily | day-2 | 2026-04-17 | Platform Pilot Operator | continue | n/a | day-2 | no | no |
 | daily | day-3 | 2026-04-20 | Platform Pilot Operator | continue | n/a | day-3 | no | no |
-| weekly | week-1 | 2026-04-22 | Platform Pilot Operator | pause | n/a | week-1 | yes | no |
+| weekly | week-1 | 2026-04-22 | Platform Pilot Operator | continue | n/a | week-1 | no | no |

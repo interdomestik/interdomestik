@@ -5,7 +5,7 @@ Use this rollup after Day 7 or at bounded closeout. It is the canonical week-lev
 ## Header
 
 - Pilot ID: `pilot-ks-expand-readiness-2026-04-15`
-- Date (`YYYY-MM-DD`): `2026-04-20`
+- Date (`YYYY-MM-DD`): `2026-04-22`
 - Owner: `Platform Pilot Operator`
 - Scope: `tenant_ks expand readiness`
 
