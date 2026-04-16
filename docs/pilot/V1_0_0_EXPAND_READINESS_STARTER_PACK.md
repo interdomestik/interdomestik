@@ -23,7 +23,7 @@ Use it together with:
 Set these before you create the new line:
 
 ```bash
-export PILOT_ID="pilot-ks-v1-0-0-continuation-<YYYY-MM-DD>"
+export PILOT_ID="pilot-ks-expand-readiness-<YYYY-MM-DD>"
 export PILOT_DATE="<YYYY-MM-DD>"
 export PILOT_OWNER="<owner>"
 export PILOT_TENANT_ID="tenant_ks"
@@ -54,6 +54,8 @@ cp docs/pilot/live-data/pilot-claim-timeline-export.template.sql "docs/pilot/liv
 ```
 
 Repeat the daily-sheet and SQL copy step for each operating day.
+
+These copied files are the start of canonical evidence custody for the line. Missing day-0 artifacts are a stop condition, not a post-hoc cleanup task.
 
 ## Canonical Entry Commands
 

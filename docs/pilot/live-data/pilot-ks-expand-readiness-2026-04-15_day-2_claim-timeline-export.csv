@@ -1,0 +1,2 @@
+id,tenant_id,branch_id,member_id,claim_created_at,submitted_at,current_status,claim_id,to_status,is_public,history_created_at
+5f4b5f88-abcd-4123-8c43-080c54157bc2,tenant_ks,branch_ks,member_live_x1,2026-04-16T08:30:00Z,2026-04-16T08:35:00Z,evaluation,5f4b5f88-abcd-4123-8c43-080c54157bc2,evaluation,true,2026-04-17T11:00:00Z

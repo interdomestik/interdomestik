@@ -33,6 +33,17 @@ The first bounded continuation after `v1.0.0`, if any, should focus on:
 - improved `2 Operating-Day Progression Rate`
 - re-proved privacy/RBAC boundary behavior through `PD05B`
 
+## Continue Boundary
+
+Continue from one operating day to the next only if all of these stay true:
+
+- the latest observability state is still `clear` or `expected-noise`
+- no Sev1 exists
+- no unresolved Sev2 older than one operating day exists
+- no privacy, tenant, or branch boundary breach exists
+- the prior operating day already has its live sheet, SQL or CSV export, and evidence, observability, and decision rows recorded on the same day
+- no post-hoc repair is being used to recreate missing custody artifacts
+
 ## What Continuation Must Not Mean
 
 - not tenant expansion

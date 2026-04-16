@@ -33,13 +33,12 @@ Preferred flow:
 
 | Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Release Report Path | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`pause`/`hotfix`/`stop`) |
 | --- | ----------------- | ----- | ------------------------------ | ------------------- | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |
-| 1   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 2   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 3   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 4   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 5   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 6   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 7   |                   |       |                                |                     |                      |                   |                                           |                                               |
+| 1 | 2026-04-16 | Platform Pilot Operator | green | docs/release-gates/2026-04-15_production_dpl_3TpgxBv2mYmeHVrt25PWRCoGE1t1.md | docs/pilot/live-data/pilot-ks-expand-readiness-2026-04-15_day-1_claim-timeline-export.csv | 0 | none | continue |
+| 2 | 2026-04-17 | Platform Pilot Operator | green | docs/release-gates/2026-04-15_production_dpl_3TpgxBv2mYmeHVrt25PWRCoGE1t1.md | docs/pilot/live-data/pilot-ks-expand-readiness-2026-04-15_day-2_claim-timeline-export.csv | 0 | none | continue |
+| 3 | 2026-04-20 | Platform Pilot Operator | green | docs/release-gates/2026-04-15_production_dpl_3TpgxBv2mYmeHVrt25PWRCoGE1t1.md | docs/pilot/live-data/pilot-ks-expand-readiness-2026-04-15_day-3_claim-timeline-export.csv | 0 | none | continue |
+| 4 |  |  |  |  |  |  |  |  |
+| 5 |  |  |  |  |  |  |  |  |
+| 6 |  |  |  |  |  |  |  |  |
 
 ## Bundle Path Convention
 
@@ -59,7 +58,12 @@ Record one structured observability row for each daily and weekly review window 
 - `Notes` can hold `n/a`, a ticket id, or a repo-relative evidence path.
 
 | Reference | Date (YYYY-MM-DD) | Owner | Log Sweep (`clear`/`expected-noise`/`action-required`) | Functional Errors (count) | Expected Auth Denies (count) | KPI Condition (`within-threshold`/`watch`/`breach`) | Incident Count | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Notes |
-| --------- | ----------------- | ----- | ------------------------------------------------------ | ------------------------- | ---------------------------- | --------------------------------------------------- | -------------- | ----------------------------------------- | ----- |
+| --------- | ----------------- | ----- | ---------------------------------------------------- | ------------------------- | ------------------------------ | ------------------------------------------------- | -------------- | ----------------------------------------- | ----- |
+| entry-base | 2026-04-15 | Platform Pilot Operator | clear | 0 | 0 | watch | 0 | none | entry baseline recorded; PD01 pre-open support green; live window opens 2026-04-16 |
+| day-1 | 2026-04-16 | Platform Pilot Operator | clear | 0 | 0 | watch | 0 | none | PD01 live-day custody restored with same-day CSV |
+| day-2 | 2026-04-17 | Platform Pilot Operator | clear | 0 | 0 | watch | 0 | none | PD02 progression verified |
+| day-3 | 2026-04-20 | Platform Pilot Operator | clear | 0 | 0 | watch | 0 | none | PD03 progression verified |
+| week-1 | 2026-04-22 | Platform Pilot Operator | clear | 0 | 0 | watch | 0 | none | PD05B passed on corrected baseline |
 
 ## Decision Proof Log
 
@@ -77,4 +81,9 @@ For `PD07`, keep the canonical daily decision row here and write the executive r
 - `docs/pilot/PILOT_EXEC_REVIEW_<pilot-id>.md`
 
 | Review Type (`daily`/`weekly`) | Reference | Date (YYYY-MM-DD) | Owner | Decision (`continue`/`pause`/`hotfix`/`stop`) | Rollback Target (`pilot-ready-YYYYMMDD`/`n/a`) | Observability Ref | Resume Requires `pnpm pilot:check` | Resume Requires fresh `pnpm release:gate:prod -- --pilotId <pilot-id>` |
-| ------------------------------ | --------- | ----------------- | ----- | --------------------------------------------- | ---------------------------------------------- | ----------------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| ------------------------------- | --------- | ----------------- | ----- | ---------------------------------------------- | ----------------------------------------------- | ----------------- | ------------------------------------ | --------------------------------------------------------------- |
+| daily | entry-base | 2026-04-15 | Platform Pilot Operator | continue | n/a | entry-base | no | no |
+| daily | day-1 | 2026-04-16 | Platform Pilot Operator | continue | n/a | day-1 | no | no |
+| daily | day-2 | 2026-04-17 | Platform Pilot Operator | continue | n/a | day-2 | no | no |
+| daily | day-3 | 2026-04-20 | Platform Pilot Operator | continue | n/a | day-3 | no | no |
+| weekly | week-1 | 2026-04-22 | Platform Pilot Operator | pause | n/a | week-1 | yes | no |
