@@ -92,7 +92,9 @@ describe('extras', () => {
       vi.clearAllMocks();
       // Default success mocks
       (db.query.agentSettings.findFirst as any).mockResolvedValue(null);
-      (db.transaction as any).mockImplementation(async callback => callback(tx));
+      (db.transaction as any).mockImplementation(
+        async (callback: (trx: typeof tx) => Promise<unknown> | unknown) => callback(tx)
+      );
       tx.insert.mockImplementation(() => ({
         values: insertValues,
       }));
