@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const tableRefs = vi.hoisted(() => ({
   memberLeads: { table: 'memberLeads', id: 'memberLeads.id' },
@@ -87,6 +87,10 @@ function createTransactionHarness() {
 }
 
 describe('convertLeadToMember', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     mocks.db.query.memberLeads.findFirst.mockReset();
     mocks.db.transaction.mockReset();
@@ -211,8 +215,6 @@ describe('convertLeadToMember', () => {
         },
       }),
     ]);
-
-    vi.useRealTimers();
   });
 
   it('does not create an agent binding when the lead has no agent', async () => {
@@ -255,7 +257,5 @@ describe('convertLeadToMember', () => {
       branchId: 'branch-1',
       updatedAt: now,
     });
-
-    vi.useRealTimers();
   });
 });
