@@ -1,4 +1,4 @@
-import { db, eq } from '@interdomestik/database';
+import { and, db, eq } from '@interdomestik/database';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import {
   agentClients,
@@ -82,15 +82,29 @@ export async function convertLeadToMember(
     });
 
     if (lead.agentId) {
-      await tx.insert(agentClients).values({
-        id: nanoid(),
-        tenantId: ctx.tenantId,
-        agentId: lead.agentId,
-        memberId: userId,
-        status: 'active',
-        joinedAt: now,
-        createdAt: now,
-      });
+      await tx
+        .update(agentClients)
+        .set({ status: 'inactive' })
+        .where(and(eq(agentClients.tenantId, ctx.tenantId), eq(agentClients.memberId, userId)));
+
+      await tx
+        .insert(agentClients)
+        .values({
+          id: nanoid(),
+          tenantId: ctx.tenantId,
+          agentId: lead.agentId,
+          memberId: userId,
+          status: 'active',
+          joinedAt: now,
+          createdAt: now,
+        })
+        .onConflictDoUpdate({
+          target: [agentClients.tenantId, agentClients.agentId, agentClients.memberId],
+          set: {
+            status: 'active',
+            joinedAt: now,
+          },
+        });
     }
 
     // D. Issue Membership Card

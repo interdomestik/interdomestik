@@ -136,27 +136,31 @@ async function ensureAgentClientBinding(args: {
   const agentId = args.customData?.agentId?.trim();
   if (!agentId) return;
 
-  const existingBinding = await db.query.agentClients.findFirst({
-    where: (bindings, { and, eq }) =>
-      and(
-        eq(bindings.tenantId, args.tenantId),
-        eq(bindings.agentId, agentId),
-        eq(bindings.memberId, args.userId)
-      ),
-    columns: { id: true },
-  });
-
-  if (existingBinding) return;
-
   const now = new Date();
-  await db.insert(agentClients).values({
-    id: nanoid(),
-    tenantId: args.tenantId,
-    agentId,
-    memberId: args.userId,
-    status: 'active',
-    joinedAt: now,
-    createdAt: now,
+  await db.transaction(async tx => {
+    await tx
+      .update(agentClients)
+      .set({ status: 'inactive' })
+      .where(and(eq(agentClients.tenantId, args.tenantId), eq(agentClients.memberId, args.userId)));
+
+    await tx
+      .insert(agentClients)
+      .values({
+        id: nanoid(),
+        tenantId: args.tenantId,
+        agentId,
+        memberId: args.userId,
+        status: 'active',
+        joinedAt: now,
+        createdAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [agentClients.tenantId, agentClients.agentId, agentClients.memberId],
+        set: {
+          status: 'active',
+          joinedAt: now,
+        },
+      });
   });
 }
 

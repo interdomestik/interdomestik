@@ -62,7 +62,9 @@ describe('Paddle Webhook Handlers', () => {
     hoisted.tx.insert.mockImplementation(() => ({
       values: hoisted.insertedUserValues,
     }));
-    hoisted.insertedUserValues.mockResolvedValue(undefined);
+    hoisted.insertedUserValues.mockReturnValue({
+      onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+    });
     hoisted.tx.update.mockImplementation(() => ({
       set: hoisted.updatedUserValues,
     }));
@@ -182,7 +184,7 @@ describe('Paddle Webhook Handlers', () => {
         email: 'buyer@example.com',
         tenantId: 'tenant_mk',
       });
-      expect(hoisted.db.transaction).toHaveBeenCalledTimes(1);
+      expect(hoisted.db.transaction).toHaveBeenCalledTimes(2);
       expect(hoisted.db.insert).toHaveBeenCalled();
     });
 

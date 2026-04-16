@@ -45,16 +45,27 @@ type InsertRecord = {
   table: unknown;
   values: Record<string, unknown>;
 };
+type ConflictRecord = {
+  payload: Record<string, unknown>;
+  table: unknown;
+  values: Record<string, unknown>;
+};
 
 function createTransactionHarness() {
   const insertRecords: InsertRecord[] = [];
+  const conflictRecords: ConflictRecord[] = [];
   const updateCalls: Array<{ table: unknown; values?: Record<string, unknown>; where?: unknown }> =
     [];
 
   const tx = {
     insert: vi.fn((table: unknown) => ({
-      values: vi.fn(async (values: Record<string, unknown>) => {
+      values: vi.fn((values: Record<string, unknown>) => {
         insertRecords.push({ table, values });
+        return {
+          onConflictDoUpdate: vi.fn(async (payload: Record<string, unknown>) => {
+            conflictRecords.push({ table, values, payload });
+          }),
+        };
       }),
     })),
     update: vi.fn((table: unknown) => ({
@@ -72,7 +83,7 @@ function createTransactionHarness() {
     })),
   };
 
-  return { insertRecords, tx, updateCalls };
+  return { conflictRecords, insertRecords, tx, updateCalls };
 }
 
 describe('convertLeadToMember', () => {
@@ -133,7 +144,7 @@ describe('convertLeadToMember', () => {
       .mockReturnValueOnce('card-num')
       .mockReturnValueOnce('card-qr');
 
-    const { insertRecords, tx, updateCalls } = createTransactionHarness();
+    const { conflictRecords, insertRecords, tx, updateCalls } = createTransactionHarness();
     mocks.db.transaction.mockImplementation(async callback => callback(tx));
 
     const result = await convertLeadToMember({ tenantId: 'tenant-1' }, { leadId: 'lead-1' });
@@ -171,8 +182,26 @@ describe('convertLeadToMember', () => {
       joinedAt: now,
       createdAt: now,
     });
+    expect(conflictRecords).toEqual([
+      expect.objectContaining({
+        table: tableRefs.agentClients,
+        payload: expect.objectContaining({
+          set: expect.objectContaining({
+            status: 'active',
+            joinedAt: now,
+          }),
+          target: expect.any(Array),
+        }),
+      }),
+    ]);
 
     expect(updateCalls).toEqual([
+      expect.objectContaining({
+        table: tableRefs.agentClients,
+        values: {
+          status: 'inactive',
+        },
+      }),
       expect.objectContaining({
         table: tableRefs.memberLeads,
         values: {

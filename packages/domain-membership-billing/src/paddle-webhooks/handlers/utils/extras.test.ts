@@ -12,14 +12,9 @@ import {
 // Mock dependencies
 vi.mock('@interdomestik/database', () => ({
   db: {
-    insert: vi.fn(() => ({
-      values: vi.fn(),
-    })),
+    transaction: vi.fn(),
     query: {
       agentSettings: {
-        findFirst: vi.fn(),
-      },
-      agentClients: {
         findFirst: vi.fn(),
       },
       referrals: {
@@ -85,15 +80,32 @@ describe('extras', () => {
       name: 'Test Member',
       memberNumber: 'M-123',
     };
+    const tx = {
+      insert: vi.fn(),
+      update: vi.fn(),
+    };
+    const insertValues = vi.fn();
+    const onConflictDoUpdate = vi.fn();
+    const updateWhere = vi.fn();
 
     beforeEach(() => {
       vi.clearAllMocks();
       // Default success mocks
       (db.query.agentSettings.findFirst as any).mockResolvedValue(null);
-      (db.query.agentClients.findFirst as any).mockResolvedValue(null);
-      (db.insert as any).mockReturnValue({
-        values: vi.fn().mockResolvedValue(undefined),
+      (db.transaction as any).mockImplementation(async callback => callback(tx));
+      tx.insert.mockImplementation(() => ({
+        values: insertValues,
+      }));
+      insertValues.mockReturnValue({
+        onConflictDoUpdate,
       });
+      onConflictDoUpdate.mockResolvedValue(undefined);
+      tx.update.mockImplementation(() => ({
+        set: vi.fn().mockReturnValue({
+          where: updateWhere,
+        }),
+      }));
+      updateWhere.mockResolvedValue(undefined);
       (createCommissionCore as any).mockResolvedValue({ success: true, data: { id: 'comm_1' } });
       (db.query.referrals.findFirst as any).mockResolvedValue(null);
       (createMemberReferralRewardCore as any).mockResolvedValue({
@@ -128,8 +140,9 @@ describe('extras', () => {
           action: 'commission.created',
         })
       );
-      expect(db.query.agentClients.findFirst).toHaveBeenCalled();
-      expect(db.insert).toHaveBeenCalled();
+      expect(db.transaction).toHaveBeenCalled();
+      expect(tx.update).toHaveBeenCalled();
+      expect(tx.insert).toHaveBeenCalled();
     });
 
     it('should use custom commission rates if found', async () => {
@@ -167,13 +180,10 @@ describe('extras', () => {
       });
 
       expect(createCommissionCore).not.toHaveBeenCalled();
-      expect(db.query.agentClients.findFirst).not.toHaveBeenCalled();
-      expect(db.insert).not.toHaveBeenCalled();
+      expect(db.transaction).not.toHaveBeenCalled();
     });
 
-    it('does not create a duplicate agent-client binding when one already exists', async () => {
-      (db.query.agentClients.findFirst as any).mockResolvedValue({ id: 'existing-binding' });
-
+    it('deactivates prior agent bindings before reactivating the requested agent-client link', async () => {
       await handleNewSubscriptionExtras({
         sub: mockSub,
         userId: 'user_1',
@@ -184,8 +194,19 @@ describe('extras', () => {
         deps: mockDeps,
       });
 
-      expect(db.query.agentClients.findFirst).toHaveBeenCalled();
-      expect(db.insert).not.toHaveBeenCalled();
+      expect(db.transaction).toHaveBeenCalled();
+      expect(tx.update).toHaveBeenCalled();
+      expect(updateWhere).toHaveBeenCalled();
+      expect(tx.insert).toHaveBeenCalled();
+      expect(onConflictDoUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: expect.any(Array),
+          set: expect.objectContaining({
+            status: 'active',
+            joinedAt: expect.any(Date),
+          }),
+        })
+      );
     });
 
     it('creates a member referral reward for a first paid subscription without an agent commission', async () => {
