@@ -86,7 +86,7 @@ importers:
         version: 7.0.0
       hono:
         specifier: ^4.12.7
-        version: 4.12.12
+        version: 4.12.14
       husky:
         specifier: ^8.0.0
         version: 8.0.3
@@ -245,7 +245,7 @@ importers:
         version: 2.0.1
       inngest:
         specifier: ^3.52.6
-        version: 3.52.6(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))(express@5.2.1)(hono@4.12.12)(next@16.2.3(@opentelemetry/api@1.9.1)(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(typescript@5.9.3)(zod@4.2.1)
+        version: 3.52.6(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))(express@5.2.1)(hono@4.12.14)(next@16.2.3(@opentelemetry/api@1.9.1)(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(typescript@5.9.3)(zod@4.2.1)
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3
@@ -585,7 +585,7 @@ importers:
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(@upstash/redis@1.37.0)(kysely@0.28.14)(pg@8.20.0)(postgres@3.4.9)
       inngest:
         specifier: ^3.52.6
-        version: 3.52.6(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))(express@5.2.1)(hono@4.12.12)(next@16.2.3(@opentelemetry/api@1.9.1)(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(typescript@5.9.3)(zod@4.2.1)
+        version: 3.52.6(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))(express@5.2.1)(hono@4.12.14)(next@16.2.3(@opentelemetry/api@1.9.1)(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(typescript@5.9.3)(zod@4.2.1)
       nanoid:
         specifier: ^5.1.7
         version: 5.1.7
@@ -5991,8 +5991,8 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-  baseline-browser-mapping@2.10.18:
-    resolution: {integrity: sha512-VSnGQAOLtP5mib/DPyg2/t+Tlv65NTBz83BJBJvmLVHHuKJVaDOBvJJykiT5TR++em5nfAySPccDZDa4oSrn8A==}
+  baseline-browser-mapping@2.10.19:
+    resolution: {integrity: sha512-qCkNLi2sfBOn8XhZQ0FXsT1Ki/Yo5P90hrkRamVFRS7/KV9hpfA4HkoWNU152+8w0zPjnxo5psx5NL3PSGgv5g==}
     engines: {node: '>=6.0.0'}
     hasBin: true
 
@@ -6220,6 +6220,9 @@ packages:
 
   caniuse-lite@1.0.30001787:
     resolution: {integrity: sha512-mNcrMN9KeI68u7muanUpEejSLghOKlVhRqS/Za2IeyGllJ9I9otGpR9g3nsw7n4W378TE/LyIteA0+/FOZm4Kg==}
+
+  caniuse-lite@1.0.30001788:
+    resolution: {integrity: sha512-6q8HFp+lOQtcf7wBK+uEenxymVWkGKkjFpCvw5W25cmMwEDU45p1xQFBQv8JDlMMry7eNxyBaR+qxgmTUZkIRQ==}
 
   canonicalize@1.0.8:
     resolution: {integrity: sha512-0CNTVCLZggSh7bc5VkX5WWPWO+cyZbNd07IHIsSXLia/eAq+r836hgk+8BKoEh7949Mda87VUOitx5OddVj64A==}
@@ -6923,8 +6926,8 @@ packages:
   electron-to-chromium@1.5.302:
     resolution: {integrity: sha512-sM6HAN2LyK82IyPBpznDRqlTQAtuSaO+ShzFiWTvoMJLHyZ+Y39r8VMfHzwbU8MVBzQ4Wdn85+wlZl2TLGIlwg==}
 
-  electron-to-chromium@1.5.335:
-    resolution: {integrity: sha512-q9n5T4BR4Xwa2cwbrwcsDJtHD/enpQ5S1xF1IAtdqf5AAgqDFmR/aakqH3ChFdqd/QXJhS3rnnXFtexU7rax6Q==}
+  electron-to-chromium@1.5.338:
+    resolution: {integrity: sha512-KVQQ3xko9/coDX3qXLUEEbqkKT8L+1DyAovrtu0Khtrt9wjSZ+7CZV4GVzxFy9Oe1NbrIU1oVXCwHJruIA1PNg==}
 
   electron@40.8.5:
     resolution: {integrity: sha512-pgTY/VPQKaiU4sTjfU96iyxCXrFm4htVPCMRT4b7q9ijNTRgtLmLvcmzp2G4e7xDrq9p7OLHSmu1rBKFf6Y1/A==}
@@ -7688,6 +7691,10 @@ packages:
 
   hono@4.12.12:
     resolution: {integrity: sha512-p1JfQMKaceuCbpJKAPKVqyqviZdS0eUxH9v82oWo1kb9xjQ5wA6iP3FNVAPDFlz5/p7d45lO+BpSk1tuSZMF4Q==}
+    engines: {node: '>=16.9.0'}
+
+  hono@4.12.14:
+    resolution: {integrity: sha512-am5zfg3yu6sqn5yjKBNqhnTX7Cv+m00ox+7jbaKkrLMRJ4rAdldd1xPd/JzbBWspqaQv6RSTrgFN95EsfhC+7w==}
     engines: {node: '>=16.9.0'}
 
   hosted-git-info@8.1.0:
@@ -16740,7 +16747,7 @@ snapshots:
 
   baseline-browser-mapping@2.10.17: {}
 
-  baseline-browser-mapping@2.10.18: {}
+  baseline-browser-mapping@2.10.19: {}
 
   basic-ftp@5.2.2: {}
 
@@ -16875,9 +16882,9 @@ snapshots:
 
   browserslist@4.28.2:
     dependencies:
-      baseline-browser-mapping: 2.10.18
-      caniuse-lite: 1.0.30001787
-      electron-to-chromium: 1.5.335
+      baseline-browser-mapping: 2.10.19
+      caniuse-lite: 1.0.30001788
+      electron-to-chromium: 1.5.338
       node-releases: 2.0.37
       update-browserslist-db: 1.2.3(browserslist@4.28.2)
 
@@ -16965,6 +16972,8 @@ snapshots:
   caniuse-lite@1.0.30001775: {}
 
   caniuse-lite@1.0.30001787: {}
+
+  caniuse-lite@1.0.30001788: {}
 
   canonicalize@1.0.8: {}
 
@@ -17589,7 +17598,7 @@ snapshots:
 
   electron-to-chromium@1.5.302: {}
 
-  electron-to-chromium@1.5.335: {}
+  electron-to-chromium@1.5.338: {}
 
   electron@40.8.5:
     dependencies:
@@ -18820,6 +18829,8 @@ snapshots:
 
   hono@4.12.12: {}
 
+  hono@4.12.14: {}
+
   hosted-git-info@8.1.0:
     dependencies:
       lru-cache: 10.4.3
@@ -18978,7 +18989,7 @@ snapshots:
 
   ini@4.1.1: {}
 
-  inngest@3.52.6(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))(express@5.2.1)(hono@4.12.12)(next@16.2.3(@opentelemetry/api@1.9.1)(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(typescript@5.9.3)(zod@4.2.1):
+  inngest@3.52.6(@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1))(express@5.2.1)(hono@4.12.14)(next@16.2.3(@opentelemetry/api@1.9.1)(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(typescript@5.9.3)(zod@4.2.1):
     dependencies:
       '@bufbuild/protobuf': 2.10.2
       '@inngest/ai': 0.1.7
@@ -19008,7 +19019,7 @@ snapshots:
       zod: 4.2.1
     optionalDependencies:
       express: 5.2.1
-      hono: 4.12.12
+      hono: 4.12.14
       next: 16.2.3(@babel/core@7.28.5)(@opentelemetry/api@1.9.1)(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       typescript: 5.9.3
     transitivePeerDependencies:
