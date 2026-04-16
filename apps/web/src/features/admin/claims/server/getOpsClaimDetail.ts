@@ -27,6 +27,36 @@ type ClaimWithRelations = typeof claims.$inferSelect & {
   // agent: manually fetched
 };
 
+const NEUTRAL_DEPLOYMENT_HOSTS = new Set(['interdomestik-web.vercel.app']);
+
+function normalizeRequestHost(host: string): string {
+  const raw = host.split(',')[0]?.trim() ?? '';
+  return raw.replace(/:\d+$/, '').toLowerCase().replace(/\.$/, '');
+}
+
+function configuredNeutralHosts(): Set<string> {
+  const hosts = new Set(NEUTRAL_DEPLOYMENT_HOSTS);
+
+  for (const candidate of [process.env.NEXT_PUBLIC_APP_URL, process.env.BETTER_AUTH_URL]) {
+    if (!candidate) continue;
+    try {
+      hosts.add(new URL(candidate).host.toLowerCase().replace(/\.$/, ''));
+    } catch {
+      // Ignore malformed env and keep the fallback allowlist deterministic.
+    }
+  }
+
+  if (process.env.VERCEL_URL) {
+    hosts.add(process.env.VERCEL_URL.toLowerCase().replace(/\.$/, ''));
+  }
+
+  return hosts;
+}
+
+function isNeutralDeploymentHost(host: string): boolean {
+  return configuredNeutralHosts().has(normalizeRequestHost(host));
+}
+
 export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetailResult> {
   // 0. Resolve tenant context from trusted host + session and fail closed.
   const requestHeaders = await headers();
@@ -40,8 +70,9 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
   }
   const requestHost = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
   const hostTenantId = resolveTenantFromHost(requestHost);
-  if (!hostTenantId || hostTenantId !== sessionTenantId) return { kind: 'not_found' };
-  const tenantId = hostTenantId;
+  if (hostTenantId && hostTenantId !== sessionTenantId) return { kind: 'not_found' };
+  if (!hostTenantId && !isNeutralDeploymentHost(requestHost)) return { kind: 'not_found' };
+  const tenantId = hostTenantId ?? sessionTenantId;
 
   // 1-2. Read claim detail under tenant DB context (RLS where configured) + explicit tenant predicates.
   const { claim, userData, agentData, rawDocs, diasporaOrigin } = await withTenantContext(

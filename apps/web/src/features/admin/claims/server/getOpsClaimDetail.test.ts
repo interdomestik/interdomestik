@@ -226,6 +226,32 @@ describe('getOpsClaimDetail', () => {
     );
   });
 
+  it('falls back to session tenant when the deployment host is generic', async () => {
+    hoisted.headersFn.mockResolvedValueOnce(
+      new Headers([['host', 'interdomestik-web.vercel.app']])
+    );
+    mockSelectChains();
+
+    const result = await getOpsClaimDetail('claim-1');
+
+    expect(result.kind).toBe('ok');
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toMatchObject({
+      tenantId: 'tenant_ks',
+      role: 'admin',
+    });
+  });
+
+  it('returns not_found when host is unknown and not allowlisted', async () => {
+    hoisted.headersFn.mockResolvedValueOnce(new Headers([['host', 'example.test']]));
+
+    const result = await getOpsClaimDetail('claim-1');
+
+    expect(result).toEqual({ kind: 'not_found' });
+    expect(hoisted.claimsFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+  });
+
   it('returns not_found when host tenant and session tenant mismatch', async () => {
     hoisted.headersFn.mockResolvedValueOnce(new Headers([['host', 'mk.localhost:3000']]));
 

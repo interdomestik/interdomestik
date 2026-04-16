@@ -37,6 +37,25 @@ The following rules are non-negotiable for all agents (human or AI):
 - **`@interdomestik/shared-auth`** is the provider-agnostic boundary.
 - This is an intentional transition; agents must not collapse or bypass this layering.
 
+## MCP-First Tooling
+
+- Prefer repo-scoped MCP tools over shell-only fallbacks when equivalent capability exists.
+- Confirm repo MCP wiring from `.codex/config.toml` before relying on repo-specific MCP servers.
+- Use `interdomestik_qa` first for repo inspection, file reads, code search, project mapping, and relevant audits.
+- Use Playwright MCP first for browser validation and watched flows. Do not switch to raw Playwright scripts or browser fallbacks unless Playwright MCP is actually blocked.
+- If an MCP tool is blocked or unavailable, report the exact blocker and exact error before considering any fallback path.
+- Use `context7` for current framework guidance, especially Next.js behavior that could have changed.
+- Use `openai_docs` only when OpenAI products or API documentation are directly relevant to the task.
+- Treat `apps/web/src/proxy.ts` as read-only unless a change is explicitly requested and justified.
+
+## Conditional Subagent Policy
+
+- Use subagents only when the user explicitly asks for delegation, parallel work, or subagents, and only when the current runtime policy allows it.
+- Keep the main agent on the critical path. Delegate independent sidecar work such as focused codebase exploration, isolated implementation slices, or non-blocking verification.
+- Do not delegate tightly coupled blocking work by default if the next local action depends on the result.
+- When using subagents, define clear ownership for each delegated task and avoid overlapping write scopes.
+- After delegated work completes, summarize which subagents were used, what each handled, and any follow-up required in the main thread.
+
 ## Development Commands
 
 ### Root Level Commands
