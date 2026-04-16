@@ -30,47 +30,47 @@ This is the working-note layer for Day 3 of bounded ops tracking. The copied `do
 
 ## Scenario Mix
 
-| Scenario Slice                 | Purpose | Required Volume | Status (`planned`/`running`/`done`/`missed`) | Notes |
-| ------------------------------ | ------- | --------------- | -------------------------------------------- | ----- |
-| Standard claim intake          | Validate baseline | 1 | `done` | Successfully carried over from day-1 |
-| Agent-assisted intake          | N/A | 0 | `done` | Not in scope |
-| Staff triage                   | Maintain SLAs | 1 | `done` | Progressed reliably |
-| Public member update           | Progress tracking | 1 | `done` | Member timeline correctly populated |
-| Branch-pressure sample         | Tenant testing | 1 | `done` | KS Branch scaling clear |
-| Boundary/privacy spot-check    | Test separation | 1 | `done` | Passed via PD05B |
-| Communications/fallback sample | Fallbacks check | 0 | `done` | N/A |
+| Scenario Slice                 | Purpose           | Required Volume | Status (`planned`/`running`/`done`/`missed`) | Notes                                |
+| ------------------------------ | ----------------- | --------------- | -------------------------------------------- | ------------------------------------ |
+| Standard claim intake          | Validate baseline | 1               | `done`                                       | Successfully carried over from day-1 |
+| Agent-assisted intake          | N/A               | 0               | `done`                                       | Not in scope                         |
+| Staff triage                   | Maintain SLAs     | 1               | `done`                                       | Progressed reliably                  |
+| Public member update           | Progress tracking | 1               | `done`                                       | Member timeline correctly populated  |
+| Branch-pressure sample         | Tenant testing    | 1               | `done`                                       | KS Branch scaling clear              |
+| Boundary/privacy spot-check    | Test separation   | 1               | `done`                                       | Passed via PD05B                     |
+| Communications/fallback sample | Fallbacks check   | 0               | `done`                                       | N/A                                  |
 
 ## Live Operator Roster
 
-| Role           | Name / Handle | Branch | Window | Notes |
-| -------------- | ------------- | ------ | ------ | ----- |
-| Member(s)      | Automation    | KS     | 14-16 | Standard setup |
-| Agent(s)       | Automation    | KS     | 14-16 | Standard setup |
-| Staff          | Automation    | KS     | 14-16 | Processed all test claims |
-| Branch Manager | Operator      | KS     | 14-16 | Reviewed metrics |
-| Admin          | Operator      | KS     | 14-16 | Checked bounds |
+| Role           | Name / Handle | Branch | Window | Notes                     |
+| -------------- | ------------- | ------ | ------ | ------------------------- |
+| Member(s)      | Automation    | KS     | 14-16  | Standard setup            |
+| Agent(s)       | Automation    | KS     | 14-16  | Standard setup            |
+| Staff          | Automation    | KS     | 14-16  | Processed all test claims |
+| Branch Manager | Operator      | KS     | 14-16  | Reviewed metrics          |
+| Admin          | Operator      | KS     | 14-16  | Checked bounds            |
 
 ## Claims Created Today
 
-| Claim ID | Member / Household | Claim Type | Branch | Created At | Submitted At | Current Status | Assigned Agent | Assigned Staff | Evidence Ref |
-| -------- | ------------------ | ---------- | ------ | ---------- | ------------ | -------------- | -------------- | -------------- | ------------ |
-| ks_claim_1 | member_1 | standard | KS | 14:00 | 14:00 | resolved | none | staff_1 | day-3 CSV |
+| Claim ID   | Member / Household | Claim Type | Branch | Created At | Submitted At | Current Status | Assigned Agent | Assigned Staff | Evidence Ref |
+| ---------- | ------------------ | ---------- | ------ | ---------- | ------------ | -------------- | -------------- | -------------- | ------------ |
+| ks_claim_1 | member_1           | standard   | KS     | 14:00      | 14:00        | resolved       | none           | staff_1        | day-3 CSV    |
 
 ## First-Triage SLA Proof
 
 Target: first staff triage within `4 operating hours` of submission.
 
-| Claim ID | Submitted At | First Staff Triage At | Within 4h (`yes`/`no`) | Proof Source | Notes |
-| -------- | ------------ | --------------------- | ---------------------- | ------------ | ----- |
-| ks_claim_1 | 14:00 | 15:40 | yes | day-3 CSV | Handled effectively on day 1; persistent across week |
+| Claim ID   | Submitted At | First Staff Triage At | Within 4h (`yes`/`no`) | Proof Source | Notes                                                |
+| ---------- | ------------ | --------------------- | ---------------------- | ------------ | ---------------------------------------------------- |
+| ks_claim_1 | 14:00        | 15:40                 | yes                    | day-3 CSV    | Handled effectively on day 1; persistent across week |
 
 ## First Public Update SLA Proof
 
 Target: first member-visible update within `24 operating hours` after triage.
 
-| Claim ID | First Staff Triage At | First Public Update At | Within 24h (`yes`/`no`) | Proof Source | Notes |
-| -------- | --------------------- | ---------------------- | ----------------------- | ------------ | ----- |
-| ks_claim_1 | 15:40 | 16:30 | yes | day-3 CSV | Updated well within margin on day 1; stable on day 3 |
+| Claim ID   | First Staff Triage At | First Public Update At | Within 24h (`yes`/`no`) | Proof Source | Notes                                                |
+| ---------- | --------------------- | ---------------------- | ----------------------- | ------------ | ---------------------------------------------------- |
+| ks_claim_1 | 15:40                 | 16:30                  | yes                     | day-3 CSV    | Updated well within margin on day 1; stable on day 3 |
 
 ## SLA Mismatch Log
 
@@ -82,13 +82,13 @@ Use this section for anything that weakens proof, including late triage, late pu
 
 ## Boundary And Privacy Spot-Checks
 
-| Check                                                   | Result (`pass`/`fail`) | Evidence Ref | Notes |
-| ------------------------------------------------------- | ---------------------- | ------------ | ----- |
-| Cross-tenant isolation                                  | `pass` | `pnpm pilot:check` | |
-| Cross-branch isolation                                  | `pass` | `pnpm pilot:check` | |
-| Member cannot see staff-only notes                      | `pass` | `pnpm pilot:check` | |
-| Agent sees only permitted members / claims              | `pass` | `pnpm pilot:check` | |
-| Admin / branch dashboards stay aggregate where expected | `pass` | `pnpm pilot:check` | |
+| Check                                                   | Result (`pass`/`fail`) | Evidence Ref       | Notes |
+| ------------------------------------------------------- | ---------------------- | ------------------ | ----- |
+| Cross-tenant isolation                                  | `pass`                 | `pnpm pilot:check` |       |
+| Cross-branch isolation                                  | `pass`                 | `pnpm pilot:check` |       |
+| Member cannot see staff-only notes                      | `pass`                 | `pnpm pilot:check` |       |
+| Agent sees only permitted members / claims              | `pass`                 | `pnpm pilot:check` |       |
+| Admin / branch dashboards stay aggregate where expected | `pass`                 | `pnpm pilot:check` |       |
 
 ## Communications And Recovery Notes
 
@@ -113,11 +113,11 @@ Use this section for anything that weakens proof, including late triage, late pu
 
 | Gate                       | Result (`pass`/`fail`) | Highest severity (`none`/`sev3`/`sev2`/`sev1`) | Notes |
 | -------------------------- | ---------------------- | ---------------------------------------------- | ----- |
-| Release gate               | `pass` | `none` | |
-| Security and boundary      | `pass` | `none` | |
-| Operational behavior       | `pass` | `none` | |
-| Role workflow              | `pass` | `none` | |
-| Observability and evidence | `pass` | `none` | |
+| Release gate               | `pass`                 | `none`                                         |       |
+| Security and boundary      | `pass`                 | `none`                                         |       |
+| Operational behavior       | `pass`                 | `none`                                         |       |
+| Role workflow              | `pass`                 | `none`                                         |       |
+| Observability and evidence | `pass`                 | `none`                                         |       |
 
 ## End-Of-Day Decision
 
@@ -131,16 +131,16 @@ Use this section for anything that weakens proof, including late triage, late pu
 
 ## Required Follow-Up
 
-| Owner | Deadline | Action |
-| ----- | -------- | ------ |
-| Platform Pilot Operator | EOW | Execute PD07/A04 review to move line |
+| Owner                   | Deadline | Action                               |
+| ----------------------- | -------- | ------------------------------------ |
+| Platform Pilot Operator | EOW      | Execute PD07/A04 review to move line |
 
 ## Evidence References
 
 - Release report: `docs/release-gates/2026-04-15_production_dpl_3TpgxBv2mYmeHVrt25PWRCoGE1t1.md`
 - Copied evidence index: `docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-expand-readiness-2026-04-15.md`
 - Daily export or snapshot: `docs/pilot/live-data/pilot-ks-expand-readiness-2026-04-15_day-3_claim-timeline-export.csv`
-- Query or script used for daily export: `docs/pilot/live-data/pilot-ks-expand-readiness-2026-04-15_day-3_claim-timeline-export.sql`
+- Query or script used for daily export: `docs/pilot/live-data/pilot-claim-timeline-export.template.sql` with `tenant_id=tenant_ks`, `export_window_start=2026-04-20 00:00:00`, `export_window_end=2026-04-21 00:00:00`
 - Observability reference (`day-<n>`/`week-<n>`): `day-3`
 - Decision reference (`day-<n>`/`week-<n>`): `day-3`
 - Other repo-backed evidence: `n/a`

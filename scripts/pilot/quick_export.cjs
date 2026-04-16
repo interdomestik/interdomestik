@@ -58,7 +58,10 @@ async function run() {
     }
     
     // Now run the export script
-    const sqlFile = path.resolve(__dirname, '../../docs/pilot/live-data/pilot-ks-expand-readiness-2026-04-15_day-1_claim-timeline-export.sql');
+    const sqlFile = path.resolve(
+      __dirname,
+      '../../docs/pilot/live-data/pilot-claim-timeline-export.template.sql'
+    );
     let query = fs.readFileSync(sqlFile, 'utf8');
     
     // replace bind vars

@@ -45,47 +45,47 @@ If that evidence is missing, the day is `blocked` in working notes and must not 
 
 ## Scenario Mix
 
-| Scenario Slice                 | Purpose                                                             | Required Volume | Status (`planned`/`running`/`done`/`missed`) | Notes |
-| ------------------------------ | ------------------------------------------------------------------- | --------------- | -------------------------------------------- | ----- |
-| Standard claim intake          | establish the first live bounded-line denominator                   | `1-3 claims`    | `planned`                                    | `window opens on 2026-04-16` |
-| Agent-assisted intake          | verify branch and attribution hold under assisted entry             | `0-1 claim`     | `planned`                                    | `window opens on 2026-04-16` |
-| Staff triage                   | prove first triage timing is measurable from the canonical export   | `1-2 claims`    | `planned`                                    | `window opens on 2026-04-16` |
-| Public member update           | prove first member-visible update timing is measurable              | `1 claim`       | `planned`                                    | `window opens on 2026-04-16` |
-| Branch-pressure sample         | keep the line narrow; do not widen beyond bounded KS proof          | `0`             | `planned`                                    | `not part of day-1 live entry` |
-| Boundary/privacy spot-check    | reuse the 2026-04-15 release-gate boundary baseline until live data exists | `release gate` | `done`                                       | `release gate GO on dpl_3TpgxBv2mYmeHVrt25PWRCoGE1t1` |
-| Communications/fallback sample | confirm the fallback path is named before live intake begins        | `1 review`      | `done`                                       | `no live message sample before 2026-04-16` |
+| Scenario Slice                 | Purpose                                                                    | Required Volume | Status (`planned`/`running`/`done`/`missed`) | Notes                                                 |
+| ------------------------------ | -------------------------------------------------------------------------- | --------------- | -------------------------------------------- | ----------------------------------------------------- |
+| Standard claim intake          | establish the first live bounded-line denominator                          | `1-3 claims`    | `planned`                                    | `window opens on 2026-04-16`                          |
+| Agent-assisted intake          | verify branch and attribution hold under assisted entry                    | `0-1 claim`     | `planned`                                    | `window opens on 2026-04-16`                          |
+| Staff triage                   | prove first triage timing is measurable from the canonical export          | `1-2 claims`    | `planned`                                    | `window opens on 2026-04-16`                          |
+| Public member update           | prove first member-visible update timing is measurable                     | `1 claim`       | `planned`                                    | `window opens on 2026-04-16`                          |
+| Branch-pressure sample         | keep the line narrow; do not widen beyond bounded KS proof                 | `0`             | `planned`                                    | `not part of day-1 live entry`                        |
+| Boundary/privacy spot-check    | reuse the 2026-04-15 release-gate boundary baseline until live data exists | `release gate`  | `done`                                       | `release gate GO on dpl_3TpgxBv2mYmeHVrt25PWRCoGE1t1` |
+| Communications/fallback sample | confirm the fallback path is named before live intake begins               | `1 review`      | `done`                                       | `no live message sample before 2026-04-16`            |
 
 ## Live Operator Roster
 
-| Role           | Name / Handle             | Branch | Window                     | Notes |
-| -------------- | ------------------------- | ------ | -------------------------- | ----- |
-| Member(s)      | `tbd same-day live cohort` | `KS`   | `2026-04-16 operating day` | `do not invent claims before the window opens` |
-| Agent(s)       | `tbd same-day operator`    | `KS`   | `2026-04-16 operating day` | `bounded line remains single-tenant KS only` |
+| Role           | Name / Handle              | Branch | Window                     | Notes                                             |
+| -------------- | -------------------------- | ------ | -------------------------- | ------------------------------------------------- |
+| Member(s)      | `tbd same-day live cohort` | `KS`   | `2026-04-16 operating day` | `do not invent claims before the window opens`    |
+| Agent(s)       | `tbd same-day operator`    | `KS`   | `2026-04-16 operating day` | `bounded line remains single-tenant KS only`      |
 | Staff          | `tbd same-day operator`    | `KS`   | `2026-04-16 operating day` | `first triage proof must come from same-day data` |
-| Branch Manager | `n/a on day-0 entry`       | `KS`   | `n/a`                      | `not needed for the entry baseline` |
-| Admin          | `Admin KS`                | `KS`   | `2026-04-16 operating day` | `decision custody remains explicit` |
+| Branch Manager | `n/a on day-0 entry`       | `KS`   | `n/a`                      | `not needed for the entry baseline`               |
+| Admin          | `Admin KS`                 | `KS`   | `2026-04-16 operating day` | `decision custody remains explicit`               |
 
 ## Claims Created Today
 
-| Claim ID | Member / Household | Claim Type | Branch | Created At | Submitted At | Current Status | Assigned Agent | Assigned Staff | Evidence Ref |
-| -------- | ------------------ | ---------- | ------ | ---------- | ------------ | -------------- | -------------- | -------------- | ------------ |
-| `5f4b5f88-abcd-4123-8c43-080c54157bc2` | `member_live_x1` | `vehicle` | `branch_ks` | `2026-04-16T08:30:00Z` | `2026-04-16T08:35:00Z` | `verification` | `unassigned` | `staff_ks_1` | `docs/pilot/live-data/pilot-ks-expand-readiness-2026-04-15_day-1_claim-timeline-export.csv` |
+| Claim ID                               | Member / Household | Claim Type | Branch      | Created At             | Submitted At           | Current Status | Assigned Agent | Assigned Staff | Evidence Ref                                                                                |
+| -------------------------------------- | ------------------ | ---------- | ----------- | ---------------------- | ---------------------- | -------------- | -------------- | -------------- | ------------------------------------------------------------------------------------------- |
+| `5f4b5f88-abcd-4123-8c43-080c54157bc2` | `member_live_x1`   | `vehicle`  | `branch_ks` | `2026-04-16T08:30:00Z` | `2026-04-16T08:35:00Z` | `verification` | `unassigned`   | `staff_ks_1`   | `docs/pilot/live-data/pilot-ks-expand-readiness-2026-04-15_day-1_claim-timeline-export.csv` |
 
 ## First-Triage SLA Proof
 
 Target: first staff triage within `4 operating hours` of submission.
 
-| Claim ID | Submitted At | First Staff Triage At | Within 4h (`yes`/`no`) | Proof Source | Notes |
-| -------- | ------------ | --------------------- | ---------------------- | ------------ | ----- |
-| `5f4b5f88-abcd-4123-8c43-080c54157bc2` | `2026-04-16T08:35:00Z` | `2026-04-16T10:15:00Z` | `yes` | `CSV export` | `triage completed in 1h 40m` |
+| Claim ID                               | Submitted At           | First Staff Triage At  | Within 4h (`yes`/`no`) | Proof Source | Notes                        |
+| -------------------------------------- | ---------------------- | ---------------------- | ---------------------- | ------------ | ---------------------------- |
+| `5f4b5f88-abcd-4123-8c43-080c54157bc2` | `2026-04-16T08:35:00Z` | `2026-04-16T10:15:00Z` | `yes`                  | `CSV export` | `triage completed in 1h 40m` |
 
 ## First Public Update SLA Proof
 
 Target: first member-visible update within `24 operating hours` after triage.
 
-| Claim ID | First Staff Triage At | First Public Update At | Within 24h (`yes`/`no`) | Proof Source | Notes |
-| -------- | --------------------- | ---------------------- | ----------------------- | ------------ | ----- |
-| `5f4b5f88-abcd-4123-8c43-080c54157bc2` | `2026-04-16T10:15:00Z` | `2026-04-16T10:15:00Z` | `yes` | `CSV export` | `public update occurred with triage` |
+| Claim ID                               | First Staff Triage At  | First Public Update At | Within 24h (`yes`/`no`) | Proof Source | Notes                                |
+| -------------------------------------- | ---------------------- | ---------------------- | ----------------------- | ------------ | ------------------------------------ |
+| `5f4b5f88-abcd-4123-8c43-080c54157bc2` | `2026-04-16T10:15:00Z` | `2026-04-16T10:15:00Z` | `yes`                   | `CSV export` | `public update occurred with triage` |
 
 ## SLA Mismatch Log
 
@@ -93,17 +93,17 @@ Use this section for anything that weakens proof, including late triage, late pu
 
 | Claim ID | Mismatch Type | Severity (`sev3`/`sev2`/`sev1`) | Owner | Follow-Up | Resolved (`yes`/`no`) |
 | -------- | ------------- | ------------------------------- | ----- | --------- | --------------------- |
-| `none` | `none` | `none` | `n/a` | `n/a` | `yes` |
+| `none`   | `none`        | `none`                          | `n/a` | `n/a`     | `yes`                 |
 
 ## Boundary And Privacy Spot-Checks
 
-| Check                                                   | Result (`pass`/`fail`) | Evidence Ref | Notes |
-| ------------------------------------------------------- | ---------------------- | ------------ | ----- |
-| Cross-tenant isolation                                  | `pass`                 | `2026-04-15 release gate` | `P0.2 passed on the fresh entry report` |
+| Check                                                   | Result (`pass`/`fail`) | Evidence Ref              | Notes                                                    |
+| ------------------------------------------------------- | ---------------------- | ------------------------- | -------------------------------------------------------- |
+| Cross-tenant isolation                                  | `pass`                 | `2026-04-15 release gate` | `P0.2 passed on the fresh entry report`                  |
 | Cross-branch isolation                                  | `pass`                 | `2026-04-15 release gate` | `no live contrary signal exists before the window opens` |
-| Member cannot see staff-only notes                      | `pass`                 | `2026-04-15 release gate` | `boundary baseline remains green at entry` |
+| Member cannot see staff-only notes                      | `pass`                 | `2026-04-15 release gate` | `boundary baseline remains green at entry`               |
 | Agent sees only permitted members / claims              | `pass`                 | `2026-04-15 release gate` | `no live contrary signal exists before the window opens` |
-| Admin / branch dashboards stay aggregate where expected | `pass`                 | `2026-04-15 release gate` | `aggregate-only boundary held during entry baseline` |
+| Admin / branch dashboards stay aggregate where expected | `pass`                 | `2026-04-15 release gate` | `aggregate-only boundary held during entry baseline`     |
 
 ## Communications And Recovery Notes
 
@@ -126,13 +126,13 @@ Use this section for anything that weakens proof, including late triage, late pu
 
 ## Gate Scorecard
 
-| Gate                       | Result (`pass`/`fail`) | Highest severity (`none`/`sev3`/`sev2`/`sev1`) | Notes |
-| -------------------------- | ---------------------- | ---------------------------------------------- | ----- |
+| Gate                       | Result (`pass`/`fail`) | Highest severity (`none`/`sev3`/`sev2`/`sev1`) | Notes                                                                                              |
+| -------------------------- | ---------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | Release gate               | `pass`                 | `none`                                         | `GO report exists at docs/release-gates/2026-04-15_production_dpl_3TpgxBv2mYmeHVrt25PWRCoGE1t1.md` |
-| Security and boundary      | `pass`                 | `none`                                         | `entry baseline remained green on P0.1, P0.2, P0.3, P0.4, P0.6, G08, G09, and G10` |
-| Operational behavior       | `pass`                 | `none`                                         | `live claim denominator exists for 2026-04-16` |
-| Role workflow              | `pass`                 | `none`                                         | `entry baseline remained green across member, agent, staff, office-agent, and admin surfaces` |
-| Observability and evidence | `pass`                 | `none`                                         | `CSV export exists on 2026-04-16` |
+| Security and boundary      | `pass`                 | `none`                                         | `entry baseline remained green on P0.1, P0.2, P0.3, P0.4, P0.6, G08, G09, and G10`                 |
+| Operational behavior       | `pass`                 | `none`                                         | `live claim denominator exists for 2026-04-16`                                                     |
+| Role workflow              | `pass`                 | `none`                                         | `entry baseline remained green across member, agent, staff, office-agent, and admin surfaces`      |
+| Observability and evidence | `pass`                 | `none`                                         | `CSV export exists on 2026-04-16`                                                                  |
 
 ## End-Of-Day Decision
 
@@ -146,10 +146,10 @@ Use this section for anything that weakens proof, including late triage, late pu
 
 ## Required Follow-Up
 
-| Owner | Deadline | Action |
-| ----- | -------- | ------ |
+| Owner                     | Deadline                          | Action                                                                                                                                                                                         |
+| ------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Platform Pilot Operator` | `2026-04-16 end of operating day` | `export docs/pilot/live-data/pilot-ks-expand-readiness-2026-04-15_day-1_claim-timeline-export.csv from the canonical live DB and replace this blocked sheet state with same-day live evidence` |
-| `Admin KS` | `2026-04-16 end of operating day` | `confirm that the first live day still respects the bounded line and does not widen into A03 or A04 judgment` |
+| `Admin KS`                | `2026-04-16 end of operating day` | `confirm that the first live day still respects the bounded line and does not widen into A03 or A04 judgment`                                                                                  |
 
 ## Evidence References
 
@@ -158,7 +158,7 @@ Use this section for anything that weakens proof, including late triage, late pu
 - Scenario sheet: `docs/pilot/scenarios/PD01-release-gate-green-baseline.md`
 - Ranked operator path: `pnpm pilot:flow` on `2026-04-15` -> exit `0`
 - Daily export or snapshot: `docs/pilot/live-data/pilot-ks-expand-readiness-2026-04-15_day-1_claim-timeline-export.csv`
-- Query or script used for daily export: `docs/pilot/live-data/pilot-ks-expand-readiness-2026-04-15_day-1_claim-timeline-export.sql`
+- Query or script used for daily export: `docs/pilot/live-data/pilot-claim-timeline-export.template.sql` with `tenant_id=tenant_ks`, `export_window_start=2026-04-16 00:00:00`, `export_window_end=2026-04-17 00:00:00`
 - Observability reference (`day-<n>`/`week-<n>`): `day-1`
 - Decision reference (`day-<n>`/`week-<n>`): `day-1`
 - Other repo-backed evidence: `docs/pilot-evidence/index.csv`; `pilot-ready-20260415`
