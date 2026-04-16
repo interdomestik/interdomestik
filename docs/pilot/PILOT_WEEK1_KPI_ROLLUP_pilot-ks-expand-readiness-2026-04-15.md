@@ -15,7 +15,7 @@ Use this rollup after Day 7 or at bounded closeout. It is the canonical week-lev
 - Go/no-go thresholds: `docs/pilot/PILOT_GO_NO_GO.md`
 - Copied evidence index: `docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-expand-readiness-2026-04-15.md`
 - Day 3 daily sheet: `docs/pilot/PILOT_DAILY_SHEET_pilot-ks-expand-readiness-2026-04-15_day-3.md`
-- Canonical executive review: `pending`
+- Canonical executive review: `docs/pilot/PILOT_EXEC_REVIEW_pilot-ks-expand-readiness-2026-04-15.md`
 - Canonical daily exports: `docs/pilot/live-data/pilot-ks-expand-readiness-2026-04-15_day-1_claim-timeline-export.csv`, `day-2`, `day-3`
 - Rollup command used: `pnpm exec tsx scripts/pilot/query_week1_totals.ts`
 
@@ -48,7 +48,7 @@ Use this rollup after Day 7 or at bounded closeout. It is the canonical week-lev
 | Sev1/Sev2 age                      | `none or <24h`  | `0 incidents` | `met`                                            |
 | `pnpm e2e:gate` pass posture       | `green`         | `green`       | `met`                                            |
 | `pnpm security:guard` pass posture | `green`         | `green`       | `met`                                            |
-| Executive review custody           | `present`       | `pending`     | `supported`                                      |
+| Executive review custody           | `present`       | `present`     | `met`                                            |
 
 ## KPI Coverage Status
 
@@ -76,7 +76,7 @@ Use this rollup after Day 7 or at bounded closeout. It is the canonical week-lev
 | Privacy / RBAC rerun is green                                        | `met`                                       | `PD05B pass` |
 | Triage and public update SLA remain within threshold                 | `met`                                       | `CSV proofs` |
 | `2 Operating-Day Progression Rate` is no longer the known weak point | `met`                                       | `day-3 CSV outputs` |
-| New executive review states why `expand` is justified now            | `supported`                                 | `Pending review generation` |
+| New executive review states why `expand` is justified now            | `met`                                       | `Recorded execution decision` |
 
 ## Closeout Judgment
 
