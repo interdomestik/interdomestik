@@ -2,9 +2,7 @@
 
 This file is the working-note layer for the first live operating day of `pilot-ks-expand-readiness-2026-04-15`.
 
-The copied `docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-expand-readiness-2026-04-15.md` file already contains the canonical entry baseline recorded on `2026-04-15`. That row reflects clean day-0 entry and rollback-tag custody. This live sheet is for the first operating day on `2026-04-16`.
-
-Because the operating window has not opened yet, the day-1 CSV export does not exist and this live sheet remains `blocked` until same-day live evidence is captured on `2026-04-16` in Europe/Berlin.
+The copied `docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-expand-readiness-2026-04-15.md` file already contains the canonical entry baseline recorded on `2026-04-15`. That row reflects clean day-0 entry and rollback-tag custody. This live sheet records the first operating day on `2026-04-16`, including the same-day CSV export checked into the repo.
 
 ## Live-Day Rule
 
@@ -146,10 +144,10 @@ Use this section for anything that weakens proof, including late triage, late pu
 
 ## Required Follow-Up
 
-| Owner                     | Deadline                          | Action                                                                                                                                                                                         |
-| ------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Platform Pilot Operator` | `2026-04-16 end of operating day` | `export docs/pilot/live-data/pilot-ks-expand-readiness-2026-04-15_day-1_claim-timeline-export.csv from the canonical live DB and replace this blocked sheet state with same-day live evidence` |
-| `Admin KS`                | `2026-04-16 end of operating day` | `confirm that the first live day still respects the bounded line and does not widen into A03 or A04 judgment`                                                                                  |
+| Owner                     | Deadline                            | Action                                                                                                                |
+| ------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `Platform Pilot Operator` | `2026-04-17 start of operating day` | `carry the same claim through day-2 progression without widening the bounded line or rewriting day-1 custody`         |
+| `Admin KS`                | `2026-04-17 start of operating day` | `confirm that day-2 remains a bounded progression proof and does not collapse executive review into daily operations` |
 
 ## Evidence References
 
