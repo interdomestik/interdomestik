@@ -17,7 +17,7 @@ test('m4 gatekeeper force-cleans stale Supabase containers before retrying supab
   assert.match(gatekeeperScript, /cleanup_stale_supabase_containers\(\)/);
   assert.match(gatekeeperScript, /docker ps -a --format '\{\{\.Names\}\}'/);
   assert.match(gatekeeperScript, /grep '\^supabase_\.\*_interdomestik\$'/);
-  assert.match(gatekeeperScript, /xargs -r docker rm -f/);
+  assert.match(gatekeeperScript, /xargs docker rm -f/);
   assert.match(
     gatekeeperScript,
     /supabase stop --project-id interdomestik[\s\S]*supabase stop[\s\S]*cleanup_stale_supabase_containers[\s\S]*supabase start/

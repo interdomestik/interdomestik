@@ -133,7 +133,7 @@ cleanup_stale_supabase_containers() {
   fi
 
   echo "🧹 [Gatekeeper] Removing stale Supabase containers that may still hold host ports..."
-  echo "${stale_supabase_containers}" | xargs -r docker rm -f >/dev/null 2>&1 || true
+  echo "${stale_supabase_containers}" | xargs docker rm -f >/dev/null 2>&1 || true
 }
 
 # 0. Kill stale processes
