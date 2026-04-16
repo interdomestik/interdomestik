@@ -122,6 +122,20 @@ cleanup_stale_playwright_processes() {
   done
 }
 
+cleanup_stale_supabase_containers() {
+  local stale_supabase_containers
+  stale_supabase_containers="$(
+    docker ps -a --format '{{.Names}}' | grep '^supabase_.*_interdomestik$' || true
+  )"
+
+  if [[ -z "${stale_supabase_containers}" ]]; then
+    return 0
+  fi
+
+  echo "🧹 [Gatekeeper] Removing stale Supabase containers that may still hold host ports..."
+  echo "${stale_supabase_containers}" | xargs -r docker rm -f >/dev/null 2>&1 || true
+}
+
 # 0. Kill stale processes
 cleanup_stale_playwright_processes
 
@@ -171,6 +185,7 @@ NODE
     echo "   Attempting to stop Supabase project 'interdomestik' and retry..."
     pnpm --filter @interdomestik/database exec supabase stop --project-id interdomestik >/dev/null 2>&1 || true
     pnpm --filter @interdomestik/database exec supabase stop >/dev/null 2>&1 || true
+    cleanup_stale_supabase_containers
     pnpm --filter @interdomestik/database exec supabase start
   fi
 }
