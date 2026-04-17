@@ -3,6 +3,7 @@ export * from './commissions/admin/bulk-approve';
 export * from './commissions/admin/get-all';
 export * from './commissions/admin/summary';
 export * from './commissions/admin/update-status';
+export * from './annual-membership';
 export * from './commissions/create';
 export * from './commissions/create-renewal';
 export * from './commissions/get-my';

@@ -37,6 +37,7 @@ vi.mock('@interdomestik/database/schema', () => tableRefs);
 
 vi.mock('nanoid', () => ({
   nanoid: mocks.nanoid,
+  customAlphabet: vi.fn(() => () => 'REFCODE01'),
 }));
 
 import { convertLeadToMember } from './convert';
@@ -125,6 +126,7 @@ describe('convertLeadToMember', () => {
 
   it('defaults lead conversion to the standard annual plan and creates agent binding', async () => {
     const now = new Date('2026-04-16T09:00:00.000Z');
+    const expectedPeriodEnd = new Date('2027-04-16T09:00:00.000Z');
     vi.useFakeTimers();
     vi.setSystemTime(now);
 
@@ -170,6 +172,8 @@ describe('convertLeadToMember', () => {
       planId: 'standard',
       agentId: 'agent-1',
       branchId: 'branch-1',
+      currentPeriodStart: now,
+      currentPeriodEnd: expectedPeriodEnd,
       createdAt: now,
       updatedAt: now,
     });
@@ -219,6 +223,7 @@ describe('convertLeadToMember', () => {
 
   it('does not create an agent binding when the lead has no agent', async () => {
     const now = new Date('2026-04-16T10:00:00.000Z');
+    const expectedPeriodEnd = new Date('2027-04-16T10:00:00.000Z');
     vi.useFakeTimers();
     vi.setSystemTime(now);
 
@@ -255,6 +260,8 @@ describe('convertLeadToMember', () => {
     expect(subscriptionInsert).toMatchObject({
       planId: 'family',
       branchId: 'branch-1',
+      currentPeriodStart: now,
+      currentPeriodEnd: expectedPeriodEnd,
       updatedAt: now,
     });
   });

@@ -2,6 +2,7 @@
 
 import { auth } from '@/lib/auth';
 import { db, subscriptions } from '@interdomestik/database';
+import { createActiveAnnualMembershipState } from '@interdomestik/domain-membership-billing/annual-membership';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
@@ -24,6 +25,7 @@ export async function mockActivateSubscription(planId: string, priceId: string) 
   }
 
   const tenantId = ensureTenantId(session);
+  const activeAnnualMembershipState = createActiveAnnualMembershipState(new Date());
 
   // Create or update mock subscription
   await db
@@ -33,17 +35,13 @@ export async function mockActivateSubscription(planId: string, priceId: string) 
       userId: session.user.id,
       tenantId,
       planId,
-      status: 'active',
-      currentPeriodStart: new Date(),
-      currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+      ...activeAnnualMembershipState,
     })
     .onConflictDoUpdate({
       target: [subscriptions.userId],
       set: {
-        status: 'active',
         planId,
-        currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        ...activeAnnualMembershipState,
       },
     });
 
