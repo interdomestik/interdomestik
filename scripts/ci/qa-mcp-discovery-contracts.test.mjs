@@ -8,7 +8,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
 
 async function listToolsViaMcp() {
-  const child = spawn('bash', ['scripts/start-repo-qa.sh'], {
+  const child = spawn('/bin/bash', ['scripts/start-repo-qa.sh'], {
     cwd: rootDir,
     detached: true,
     stdio: ['pipe', 'pipe', 'inherit'],

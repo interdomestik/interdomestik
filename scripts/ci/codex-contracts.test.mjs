@@ -27,7 +27,7 @@ test('project-scoped Codex config registers the repo MCP servers Interdomestik d
   assert.match(configToml, /\/tmp\/pilot-evidence\/playwright-mcp-profile/);
   assert.match(configToml, /--output-dir/);
   assert.match(configToml, /\/tmp\/pilot-evidence\/playwright-mcp-output/);
-  assert.match(configToml, /command = "bash"/);
+  assert.match(configToml, /command = "\/bin\/bash"/);
   assert.match(configToml, /scripts\/start-repo-qa\.sh/);
   assert.doesNotMatch(configToml, /packages\/qa\/src\/index\.ts/);
   assert.doesNotMatch(configToml, /packages\/qa\/dist\/index\.js/);

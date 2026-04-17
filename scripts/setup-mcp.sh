@@ -74,7 +74,7 @@ if (!projectRoot) {
   throw new Error('PROJECT_ROOT is required');
 }
 
-const child = spawn('bash', ['scripts/start-repo-qa.sh'], {
+const child = spawn('/bin/bash', ['scripts/start-repo-qa.sh'], {
   cwd: projectRoot,
   detached: true,
   stdio: ['pipe', 'pipe', 'inherit'],
