@@ -39,6 +39,7 @@ vi.mock('@interdomestik/database/member-number', () => ({
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('new-id'),
+  customAlphabet: vi.fn(() => () => 'REFCODE01'),
 }));
 
 describe('registerMemberCore', () => {

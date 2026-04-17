@@ -1,5 +1,6 @@
 import { sendMemberWelcomeEmail } from '@/lib/email';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
+import { createActiveAnnualMembershipState } from '@interdomestik/domain-membership-billing/annual-membership';
 import {
   account,
   agentClients,
@@ -101,16 +102,7 @@ export async function registerMemberCore(
               currentPeriodStart: null,
               currentPeriodEnd: null,
             }
-          : (() => {
-              const expiry = new Date();
-              expiry.setFullYear(expiry.getFullYear() + 1);
-
-              return {
-                status: 'active' as const,
-                currentPeriodStart: now,
-                currentPeriodEnd: expiry,
-              };
-            })();
+          : createActiveAnnualMembershipState(now);
 
       await tx.insert(subscriptions).values({
         id: nanoid(),

@@ -4,6 +4,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { getSponsoredMembershipState } from '@/components/ops/adapters/membership';
 import { revalidatePath } from 'next/cache';
 import { and, db, eq, subscriptions } from '@interdomestik/database';
+import { createActiveAnnualMembershipState } from '@interdomestik/domain-membership-billing/annual-membership';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { cancelSubscriptionCore } from './subscription/cancel';
 import { getActionContext } from './subscription/context';
@@ -61,15 +62,12 @@ export async function activateSponsoredMembership(subscriptionId: string) {
   }
 
   const currentPeriodStart = new Date();
-  const currentPeriodEnd = new Date(currentPeriodStart);
-  currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
+  const activeAnnualMembershipState = createActiveAnnualMembershipState(currentPeriodStart);
 
   await db
     .update(subscriptions)
     .set({
-      status: 'active',
-      currentPeriodStart,
-      currentPeriodEnd,
+      ...activeAnnualMembershipState,
       updatedAt: currentPeriodStart,
     })
     .where(eq(subscriptions.id, subscriptionId));
