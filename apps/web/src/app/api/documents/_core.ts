@@ -1,6 +1,6 @@
 import { ApiErrorCode } from '@/core-contracts';
 import { claimDocuments, claims, documents } from '@interdomestik/database/schema';
-import { ensureTenantId, isStaffOrHigher } from '@interdomestik/shared-auth';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
 // Define DB Interface (minimal part of Drizzle we use)
@@ -23,6 +23,7 @@ export interface DocumentAccessDeps {
 type SessionDTO = {
   user: {
     id: string;
+    branchId?: string | null;
     role?: string | null;
     tenantId?: string | null;
   };
@@ -53,6 +54,24 @@ type AuditContext = {
   metadata: Record<string, unknown>;
 };
 
+function isFullTenantClaimsRole(role: string | null | undefined): boolean {
+  return role === 'admin' || role === 'tenant_admin' || role === 'super_admin';
+}
+
+function hasScopedStaffClaimAccess(args: {
+  branchId?: string | null;
+  claim: { branchId?: string | null; staffId?: string | null; userId: string | null };
+  userId: string;
+}): boolean {
+  const branchId = args.branchId ?? null;
+
+  if (branchId !== null) {
+    return args.claim.branchId === branchId;
+  }
+
+  return args.claim.staffId === args.userId || args.claim.staffId == null;
+}
+
 export function safeFilename(value: string) {
   return value.replaceAll(/[\r\n"]/g, '_');
 }
@@ -76,7 +95,7 @@ export async function getDocumentAccessCore(args: {
 
   if (polyDoc) {
     const userRole = (session.user.role as string | undefined) ?? undefined;
-    const isPrivileged = isStaffOrHigher(userRole);
+    const isPrivileged = userRole === 'staff' || isFullTenantClaimsRole(userRole);
     const isUploader = polyDoc.uploadedBy === session.user.id;
 
     if (!isPrivileged && !isUploader) {
@@ -118,6 +137,8 @@ export async function getDocumentAccessCore(args: {
     .select({
       doc: claimDocuments,
       claimOwnerId: claims.userId,
+      claimBranchId: claims.branchId,
+      claimStaffId: claims.staffId,
     })
     .from(claimDocuments)
     .leftJoin(claims, eq(claimDocuments.claimId, claims.id))
@@ -129,11 +150,22 @@ export async function getDocumentAccessCore(args: {
 
   const doc = row.doc as unknown as DocumentRow;
   const userRole = (session.user.role as string | undefined) ?? undefined;
-  const isPrivileged = isStaffOrHigher(userRole);
+  const isPrivileged = isFullTenantClaimsRole(userRole);
+  const isScopedStaff =
+    userRole === 'staff' &&
+    hasScopedStaffClaimAccess({
+      branchId: session.user.branchId ?? null,
+      claim: {
+        branchId: row.claimBranchId ?? null,
+        staffId: row.claimStaffId ?? null,
+        userId: row.claimOwnerId ?? null,
+      },
+      userId: session.user.id,
+    });
   const isClaimOwner = row.claimOwnerId === session.user.id;
   const isUploader = doc.uploadedBy === session.user.id;
 
-  if (!isPrivileged && !isClaimOwner && !isUploader) {
+  if (!isPrivileged && !isScopedStaff && !isClaimOwner && !isUploader) {
     return { ok: false, code: 'FORBIDDEN', message: 'Forbidden' };
   }
 

@@ -8,7 +8,6 @@ import {
   sql,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import type { ActionResult, ClaimStatus, RecoveryDeclineReasonCode } from './types';
 
@@ -30,7 +29,11 @@ import {
   getRecoveryDeclineMemberDescription,
 } from './recovery-decision';
 import { upsertRecoveryDecisionRecord } from './save-recovery-decision';
-import { buildScopedStaffClaimWhere } from './scope';
+import {
+  buildScopedStaffClaimWhere,
+  resolveScopedStaffClaimAccess,
+  STAFF_SCOPE_ACCESS_DENIED_ERROR,
+} from './scope';
 
 const STAFF_LED_RECOVERY_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
 const RECOVERY_DECISION_REQUIRED_ERROR =
@@ -287,14 +290,16 @@ async function persistClaimStatusChange(params: {
   } = params;
 
   const shouldAutoAssign = currentStaffId == null;
+  const statusChanged = currentStatus !== status;
 
-  if (currentStatus !== status || shouldAutoAssign) {
+  if (statusChanged || shouldAutoAssign) {
     const now = new Date();
     await tx
       .update(claims)
       .set({
         status,
         updatedAt: now,
+        ...(statusChanged ? { statusUpdatedAt: now } : {}),
         ...(shouldAutoAssign
           ? {
               staffId: sql`coalesce(${claims.staffId}, ${session.user.id})`,
@@ -424,8 +429,8 @@ export async function updateClaimStatusCore(
   }
   const status = parsed.data.status as ClaimStatus; // NOSONAR
 
-  const tenantId = ensureTenantId(session);
-  const branchId = session.user.branchId ?? null;
+  const scopeArgs = resolveScopedStaffClaimAccess({ claimId, session });
+  const tenantId = scopeArgs.tenantId;
   const trimmedNote = note?.trim() || undefined;
   const trimmedAllowanceOverrideReason = params.allowanceOverrideReason?.trim() || undefined;
   const trimmedDecisionExplanation = params.decisionExplanation?.trim() || undefined;
@@ -439,18 +444,11 @@ export async function updateClaimStatusCore(
         staffId: claims.staffId,
       })
       .from(claims)
-      .where(
-        buildScopedStaffClaimWhere({
-          branchId,
-          claimId,
-          tenantId,
-          userId: session.user.id,
-        })
-      )
+      .where(buildScopedStaffClaimWhere(scopeArgs))
       .limit(1);
 
     if (!currentClaim) {
-      return { success: false, error: 'Claim not found or access denied' };
+      return { success: false, error: STAFF_SCOPE_ACCESS_DENIED_ERROR };
     }
 
     if (currentClaim.status === status && !trimmedNote) {

@@ -1,10 +1,13 @@
 import { claimEscalationAgreements, claims, db, eq } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { z } from 'zod';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
-import { buildScopedStaffClaimWhere } from './scope';
+import {
+  buildScopedStaffClaimWhere,
+  resolveScopedStaffClaimAccess,
+  STAFF_SCOPE_ACCESS_DENIED_ERROR,
+} from './scope';
 import type { ActionResult, RecoveryDecisionSnapshot, SaveRecoveryDecisionInput } from './types';
 import { RECOVERY_DECLINE_REASON_CODES, RECOVERY_DECISION_TYPES } from './types';
 import { buildRecoveryDecisionSnapshot } from './recovery-decision';
@@ -124,8 +127,11 @@ export async function saveRecoveryDecisionCore(
     };
   }
 
-  const tenantId = ensureTenantId(session);
-  const branchId = session.user.branchId ?? null;
+  const scopeArgs = resolveScopedStaffClaimAccess({
+    claimId: parsed.data.claimId,
+    session,
+  });
+  const tenantId = scopeArgs.tenantId;
 
   try {
     const result = await db.transaction(async tx => {
@@ -134,20 +140,13 @@ export async function saveRecoveryDecisionCore(
           id: claims.id,
         })
         .from(claims)
-        .where(
-          buildScopedStaffClaimWhere({
-            branchId,
-            claimId: parsed.data.claimId,
-            tenantId,
-            userId: session.user.id,
-          })
-        )
+        .where(buildScopedStaffClaimWhere(scopeArgs))
         .limit(1);
 
       if (!claim) {
         return {
           success: false,
-          error: 'Claim not found or access denied',
+          error: STAFF_SCOPE_ACCESS_DENIED_ERROR,
         } as ActionResult<RecoveryDecisionSnapshot>;
       }
 
