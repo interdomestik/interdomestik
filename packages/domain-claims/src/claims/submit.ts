@@ -98,10 +98,10 @@ async function loadClaimAssignmentContext(
   tenantId: string
 ): Promise<ClaimAssignmentContext> {
   const subscription = await getActiveSubscription(userId, tenantId);
-  const agentBranchId =
-    subscription?.branchId || !subscription?.agentId
-      ? null
-      : await resolveAgentBranchId(subscription.agentId, tenantId);
+  let agentBranchId: string | null = null;
+  if (!subscription?.branchId && subscription?.agentId) {
+    agentBranchId = await resolveAgentBranchId(subscription.agentId, tenantId);
+  }
   const defaultBranchSetting = await db.query.tenantSettings.findFirst({
     where: withTenant(
       tenantId,
@@ -114,13 +114,14 @@ async function loadClaimAssignmentContext(
   const agentAttributionSource = agentId ? 'subscription' : 'none';
   const subscriptionBranchId = subscription?.branchId ?? null;
   const branchId = subscriptionBranchId ?? agentBranchId ?? defaultBranchId ?? null;
-  const branchResolutionSource = subscriptionBranchId
-    ? 'subscription'
-    : agentBranchId
-      ? 'agent'
-      : defaultBranchId
-        ? 'tenant_default'
-        : 'none';
+  let branchResolutionSource: ClaimAssignmentContext['branchResolutionSource'] = 'none';
+  if (subscriptionBranchId) {
+    branchResolutionSource = 'subscription';
+  } else if (agentBranchId) {
+    branchResolutionSource = 'agent';
+  } else if (defaultBranchId) {
+    branchResolutionSource = 'tenant_default';
+  }
 
   return {
     subscription,

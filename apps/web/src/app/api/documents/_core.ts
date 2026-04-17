@@ -58,6 +58,10 @@ function isFullTenantClaimsRole(role: string | null | undefined): boolean {
   return role === 'admin' || role === 'tenant_admin' || role === 'super_admin';
 }
 
+function isScopedClaimReaderRole(role: string | null | undefined): boolean {
+  return role === 'staff' || role === 'branch_manager';
+}
+
 function hasScopedClaimReadAccess(args: {
   branchId?: string | null;
   claim: { branchId?: string | null; staffId?: string | null; userId: string | null };
@@ -81,6 +85,150 @@ export function safeFilename(value: string) {
   return value.replaceAll(/[\r\n"]/g, '_');
 }
 
+function getFinalDisposition(disposition?: 'inline' | 'attachment'): 'inline' | 'attachment' {
+  return disposition === 'inline' ? 'inline' : 'attachment';
+}
+
+function getDocumentAction(disposition: 'inline' | 'attachment', mode: DocumentAccessMode): string {
+  if (mode === 'signed_url') {
+    return 'document.signed_url_issued';
+  }
+
+  return disposition === 'inline' ? 'document.view' : 'document.download';
+}
+
+function buildPolymorphicDocument(polyDoc: {
+  id: string;
+  storagePath: string;
+  uploadedBy: string | null;
+  fileName: string | null;
+  mimeType: string | null;
+  fileSize: number | null;
+}): DocumentRow {
+  return {
+    id: polyDoc.id,
+    claimId: null,
+    bucket: 'claim-evidence',
+    filePath: polyDoc.storagePath,
+    uploadedBy: polyDoc.uploadedBy,
+    name: polyDoc.fileName,
+    fileType: polyDoc.mimeType,
+    fileSize: polyDoc.fileSize,
+  };
+}
+
+function buildDocumentAudit(args: {
+  actorRole: string | null | undefined;
+  disposition: 'inline' | 'attachment';
+  document: DocumentRow;
+  documentId: string;
+  mode: DocumentAccessMode;
+}): AuditContext {
+  const { actorRole, disposition, document, documentId, mode } = args;
+  const metadata =
+    mode === 'signed_url'
+      ? {
+          claimId: document.claimId,
+          bucket: document.bucket,
+          filePath: document.filePath,
+          expiresInSeconds: 300,
+        }
+      : {
+          claimId: document.claimId,
+          bucket: document.bucket,
+          filePath: document.filePath,
+          fileType: document.fileType,
+          fileSize: document.fileSize,
+          disposition,
+        };
+
+  return {
+    action: getDocumentAction(disposition, mode),
+    entityType: 'claim_document',
+    entityId: documentId,
+    actorRole: actorRole ?? null,
+    metadata,
+  };
+}
+
+async function canReadPolymorphicClaimDocument(args: {
+  db: any;
+  polyDoc: { entityId: string; entityType: string; uploadedBy: string | null };
+  session: SessionDTO;
+  tenantId: string;
+  userRole: string | undefined;
+}): Promise<boolean> {
+  const { db, polyDoc, session, tenantId, userRole } = args;
+
+  if (isFullTenantClaimsRole(userRole)) {
+    return true;
+  }
+
+  if (polyDoc.uploadedBy === session.user.id) {
+    return true;
+  }
+
+  if (!isScopedClaimReaderRole(userRole) || polyDoc.entityType !== 'claim') {
+    return false;
+  }
+
+  const [claimRow] = await db
+    .select({
+      claimOwnerId: claims.userId,
+      claimBranchId: claims.branchId,
+      claimStaffId: claims.staffId,
+    })
+    .from(claims)
+    .where(and(eq(claims.id, polyDoc.entityId), eq(claims.tenantId, tenantId)));
+
+  if (!claimRow) {
+    return false;
+  }
+
+  return hasScopedClaimReadAccess({
+    branchId: session.user.branchId ?? null,
+    claim: {
+      branchId: claimRow.claimBranchId ?? null,
+      staffId: claimRow.claimStaffId ?? null,
+      userId: claimRow.claimOwnerId ?? null,
+    },
+    role: userRole,
+    userId: session.user.id,
+  });
+}
+
+function canReadLegacyClaimDocument(args: {
+  claim: { branchId: string | null; ownerId: string | null; staffId: string | null };
+  document: DocumentRow;
+  session: SessionDTO;
+  userRole: string | undefined;
+}): boolean {
+  const { claim, document, session, userRole } = args;
+
+  if (isFullTenantClaimsRole(userRole)) {
+    return true;
+  }
+
+  if (document.uploadedBy === session.user.id || claim.ownerId === session.user.id) {
+    return true;
+  }
+
+  if (!isScopedClaimReaderRole(userRole)) {
+    return false;
+  }
+
+  return hasScopedClaimReadAccess({
+    branchId: session.user.branchId ?? null,
+    claim: {
+      branchId: claim.branchId,
+      staffId: claim.staffId,
+      userId: claim.ownerId,
+    },
+    role: userRole,
+    userId: session.user.id,
+  });
+}
+
 export async function getDocumentAccessCore(args: {
   session: SessionDTO;
   documentId: string;
@@ -91,6 +239,8 @@ export async function getDocumentAccessCore(args: {
   const { session, documentId, mode, disposition, deps } = args;
   const tenantId = ensureTenantId(session);
   const { db } = deps;
+  const userRole = (session.user.role as string | undefined) ?? undefined;
+  const finalDisposition = getFinalDisposition(disposition);
 
   // 1. Try Polymorphic Documents Table
   const [polyDoc] = await db
@@ -99,67 +249,30 @@ export async function getDocumentAccessCore(args: {
     .where(and(eq(documents.id, documentId), eq(documents.tenantId, tenantId)));
 
   if (polyDoc) {
-    const userRole = (session.user.role as string | undefined) ?? undefined;
-    const isPrivileged = isFullTenantClaimsRole(userRole);
-    const isScopedClaimReader = userRole === 'staff' || userRole === 'branch_manager';
-    const isUploader = polyDoc.uploadedBy === session.user.id;
-    let isScopedClaimDocReader = false;
+    const canRead = await canReadPolymorphicClaimDocument({
+      db,
+      polyDoc,
+      session,
+      tenantId,
+      userRole,
+    });
 
-    if (isScopedClaimReader && polyDoc.entityType === 'claim') {
-      const [claimRow] = await db
-        .select({
-          claimOwnerId: claims.userId,
-          claimBranchId: claims.branchId,
-          claimStaffId: claims.staffId,
-        })
-        .from(claims)
-        .where(and(eq(claims.id, polyDoc.entityId), eq(claims.tenantId, tenantId)));
-
-      if (claimRow) {
-        isScopedClaimDocReader = hasScopedClaimReadAccess({
-          branchId: session.user.branchId ?? null,
-          claim: {
-            branchId: claimRow.claimBranchId ?? null,
-            staffId: claimRow.claimStaffId ?? null,
-            userId: claimRow.claimOwnerId ?? null,
-          },
-          role: userRole,
-          userId: session.user.id,
-        });
-      }
-    }
-
-    if (!isPrivileged && !isScopedClaimDocReader && !isUploader) {
+    if (!canRead) {
       return { ok: false, code: 'FORBIDDEN', message: 'Forbidden' };
     }
 
-    const finalDisposition = disposition === 'inline' ? 'inline' : 'attachment';
+    const document = buildPolymorphicDocument(polyDoc);
 
     return {
       ok: true,
-      document: {
-        id: polyDoc.id,
-        claimId: null,
-        bucket: 'claim-evidence',
-        filePath: polyDoc.storagePath,
-        uploadedBy: polyDoc.uploadedBy,
-        name: polyDoc.fileName,
-        fileType: polyDoc.mimeType,
-        fileSize: polyDoc.fileSize,
-      },
-      audit: {
-        action: finalDisposition === 'inline' ? 'document.view' : 'document.download',
-        entityType: 'claim_document',
-        entityId: documentId,
-        actorRole: userRole ?? null,
-        metadata: {
-          bucket: 'claim-evidence',
-          filePath: polyDoc.storagePath,
-          fileType: polyDoc.mimeType,
-          fileSize: polyDoc.fileSize,
-          disposition: finalDisposition,
-        },
-      },
+      document,
+      audit: buildDocumentAudit({
+        actorRole: userRole,
+        disposition: finalDisposition,
+        document,
+        documentId,
+        mode,
+      }),
     };
   }
 
@@ -180,64 +293,31 @@ export async function getDocumentAccessCore(args: {
   }
 
   const doc = row.doc as unknown as DocumentRow;
-  const userRole = (session.user.role as string | undefined) ?? undefined;
-  const isPrivileged = isFullTenantClaimsRole(userRole);
-  const isScopedStaff =
-    (userRole === 'staff' || userRole === 'branch_manager') &&
-    hasScopedClaimReadAccess({
-      branchId: session.user.branchId ?? null,
-      claim: {
-        branchId: row.claimBranchId ?? null,
-        staffId: row.claimStaffId ?? null,
-        userId: row.claimOwnerId ?? null,
-      },
-      role: userRole,
-      userId: session.user.id,
-    });
-  const isClaimOwner = row.claimOwnerId === session.user.id;
-  const isUploader = doc.uploadedBy === session.user.id;
+  const canRead = canReadLegacyClaimDocument({
+    claim: {
+      branchId: row.claimBranchId ?? null,
+      ownerId: row.claimOwnerId ?? null,
+      staffId: row.claimStaffId ?? null,
+    },
+    document: doc,
+    session,
+    userRole,
+  });
 
-  if (!isPrivileged && !isScopedStaff && !isClaimOwner && !isUploader) {
+  if (!canRead) {
     return { ok: false, code: 'FORBIDDEN', message: 'Forbidden' };
   }
 
-  if (mode === 'signed_url') {
-    return {
-      ok: true,
-      document: doc,
-      audit: {
-        action: 'document.signed_url_issued',
-        entityType: 'claim_document',
-        entityId: documentId,
-        actorRole: userRole ?? null,
-        metadata: {
-          claimId: doc.claimId,
-          bucket: doc.bucket,
-          filePath: doc.filePath,
-          expiresInSeconds: 300,
-        },
-      },
-    };
-  }
-
-  const finalDisposition = disposition === 'inline' ? 'inline' : 'attachment';
   return {
     ok: true,
     document: doc,
-    audit: {
-      action: finalDisposition === 'inline' ? 'document.view' : 'document.download',
-      entityType: 'claim_document',
-      entityId: documentId,
-      actorRole: userRole ?? null,
-      metadata: {
-        claimId: doc.claimId,
-        bucket: doc.bucket,
-        filePath: doc.filePath,
-        fileType: doc.fileType,
-        fileSize: doc.fileSize,
-        disposition: finalDisposition,
-      },
-    },
+    audit: buildDocumentAudit({
+      actorRole: userRole,
+      disposition: finalDisposition,
+      document: doc,
+      documentId,
+      mode,
+    }),
   };
 }
 

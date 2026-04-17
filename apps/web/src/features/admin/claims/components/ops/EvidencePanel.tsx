@@ -14,9 +14,9 @@ interface EvidenceDoc {
 }
 
 interface EvidencePanelProps {
-  claimId: string;
-  docs: EvidenceDoc[];
-  readOnly?: boolean;
+  readonly claimId: string;
+  readonly docs: EvidenceDoc[];
+  readonly readOnly?: boolean;
 }
 
 export function EvidencePanel({ claimId, docs, readOnly = false }: EvidencePanelProps) {
