@@ -63,7 +63,11 @@ function buildStaffScopedClaimFilter(args: {
   userId: string;
 }) {
   if (args.role === 'branch_manager') {
-    return eq(claims.branchId, args.branchId as string);
+    if (args.branchId === null) {
+      throw new Error('branch_manager claim filters require a branchId');
+    }
+
+    return eq(claims.branchId, args.branchId);
   }
 
   if (args.branchId !== null) {

@@ -173,6 +173,59 @@ describe('getDocumentAccessCore', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('records signed-url audit metadata for polymorphic documents', async () => {
+    mockDb.select
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([
+            {
+              id: 'doc1',
+              entityType: 'claim',
+              entityId: 'claim-1',
+              storagePath: 'path',
+              uploadedBy: 'other',
+              fileName: 'evidence.pdf',
+              mimeType: 'application/pdf',
+              fileSize: 123,
+              tenantId: 't1',
+            },
+          ]),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([
+            {
+              claimOwnerId: 'member-1',
+              claimBranchId: 'branch-a',
+              claimStaffId: 'staff-2',
+            },
+          ]),
+        }),
+      });
+
+    const result = await getDocumentAccessCore({
+      session: {
+        user: { id: 'manager-1', role: 'branch_manager', tenantId: 't1', branchId: 'branch-a' },
+      } as never,
+      documentId: 'doc1',
+      mode: 'signed_url',
+      deps: mockDeps,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      audit: {
+        action: 'document.signed_url_issued',
+        metadata: {
+          bucket: 'claim-evidence',
+          expiresInSeconds: 300,
+          filePath: 'path',
+        },
+      },
+    });
+  });
+
   it('allows branch manager access to legacy claim documents in their branch', async () => {
     mockDb.select
       .mockReturnValueOnce({

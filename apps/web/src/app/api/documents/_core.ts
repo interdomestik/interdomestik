@@ -271,7 +271,7 @@ export async function getDocumentAccessCore(args: {
         disposition: finalDisposition,
         document,
         documentId,
-        mode: 'download',
+        mode,
       }),
     };
   }
