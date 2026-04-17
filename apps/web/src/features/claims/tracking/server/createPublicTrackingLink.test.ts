@@ -44,6 +44,7 @@ vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   isNull: vi.fn((value: unknown) => ({ op: 'isNull', value })),
+  or: vi.fn((...args: unknown[]) => ({ op: 'or', args })),
 }));
 
 vi.mock('../utils', () => ({
@@ -96,7 +97,7 @@ describe('createPublicTrackingLink', () => {
     process.env.NEXT_PUBLIC_SITE_URL = originalSiteUrl;
   });
 
-  it('revokes only active tokens in the caller tenant before inserting a new token', async () => {
+  it('revokes active same-tenant tokens and legacy null-tenant tokens before inserting a new token', async () => {
     hoisted.claimFindFirst.mockResolvedValueOnce({
       id: 'claim-1',
       tenantId: 'tenant-ks',
@@ -127,9 +128,18 @@ describe('createPublicTrackingLink', () => {
           right: 'claim-1',
         },
         {
-          op: 'eq',
-          left: 'claimTrackingTokens.tenantId',
-          right: 'tenant-ks',
+          op: 'or',
+          args: [
+            {
+              op: 'eq',
+              left: 'claimTrackingTokens.tenantId',
+              right: 'tenant-ks',
+            },
+            {
+              op: 'isNull',
+              value: 'claimTrackingTokens.tenantId',
+            },
+          ],
         },
         {
           op: 'isNull',

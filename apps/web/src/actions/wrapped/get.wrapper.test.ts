@@ -40,7 +40,9 @@ describe('getWrappedStatsCore', () => {
       getWrappedStatsCore({
         session: { user: { id: 'u1', name: 'John', tenantId: null } } as any,
       })
-    ).rejects.toThrow();
+    ).rejects.toThrow('Session missing tenantId. Data integrity issue.');
+    expect(db.query.subscriptions.findFirst).not.toHaveBeenCalled();
+    expect(db.query.claims.findMany).not.toHaveBeenCalled();
   });
 
   it('should return null if no subscription', async () => {
