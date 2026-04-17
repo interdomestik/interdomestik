@@ -5,7 +5,7 @@ const hoisted = vi.hoisted(() => ({
   ensureTenantId: vi.fn(),
   resolveEvidenceBucketName: vi.fn(),
   resolveTenantFromHost: vi.fn(),
-  findClaimFirst: vi.fn(),
+  findAccessibleAdminUploadClaim: vi.fn(),
   upload: vi.fn(),
   createAdminClient: vi.fn(),
   confirmAdminUpload: vi.fn(),
@@ -28,18 +28,6 @@ vi.mock('@/lib/tenant/tenant-hosts', () => ({
   resolveTenantFromHost: hoisted.resolveTenantFromHost,
 }));
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      claims: {
-        findFirst: hoisted.findClaimFirst,
-      },
-    },
-  },
-  claims: {
-    id: 'claims.id',
-    tenantId: 'claims.tenantId',
-    userId: 'claims.userId',
-  },
   createAdminClient: hoisted.createAdminClient,
 }));
 vi.mock('drizzle-orm', () => ({
@@ -52,11 +40,30 @@ vi.mock('@/features/admin/claims/actions', () => ({
 vi.mock('@/features/member/claims/actions', () => ({
   confirmUpload: hoisted.confirmUpload,
 }));
+vi.mock('@/features/claims/upload/server/access', () => ({
+  findAccessibleAdminUploadClaim: hoisted.findAccessibleAdminUploadClaim,
+}));
 vi.mock('@sentry/nextjs', () => ({
   captureMessage: hoisted.captureMessage,
 }));
 
 import { POST } from './route';
+
+function createEvidenceUploadRequest(): Request {
+  const form = new FormData();
+  form.set('claimId', 'claim-1');
+  form.set('category', 'evidence');
+  form.set('locale', 'mk');
+  form.set('file', new File(['test'], 'evidence.pdf', { type: 'application/pdf' }));
+
+  return {
+    headers: new Headers({
+      host: 'tenant.example.test',
+      'x-forwarded-host': 'tenant.example.test',
+    }),
+    formData: vi.fn().mockResolvedValue(form),
+  } as unknown as Request;
+}
 
 describe('POST /api/claims/evidence-upload', () => {
   beforeEach(() => {
@@ -67,11 +74,9 @@ describe('POST /api/claims/evidence-upload', () => {
     hoisted.ensureTenantId.mockReturnValue('tenant-1');
     hoisted.resolveEvidenceBucketName.mockReturnValue('claim-evidence');
     hoisted.resolveTenantFromHost.mockReturnValue('tenant-1');
-    hoisted.findClaimFirst.mockResolvedValue({
-      id: 'claim-1',
+    hoisted.findAccessibleAdminUploadClaim.mockResolvedValue({
       branchId: 'branch-1',
       staffId: 'staff-1',
-      userId: 'member-1',
     });
     hoisted.upload.mockResolvedValue({ error: null });
     hoisted.createAdminClient.mockReturnValue({
@@ -86,27 +91,9 @@ describe('POST /api/claims/evidence-upload', () => {
   });
 
   it('denies staff uploads outside branch or assignment scope before storage upload', async () => {
-    hoisted.findClaimFirst.mockResolvedValueOnce({
-      id: 'claim-1',
-      branchId: 'branch-2',
-      staffId: 'staff-9',
-      userId: 'member-1',
-    });
+    hoisted.findAccessibleAdminUploadClaim.mockResolvedValueOnce(null);
 
-    const form = new FormData();
-    form.set('claimId', 'claim-1');
-    form.set('category', 'evidence');
-    form.set('locale', 'mk');
-    form.set('file', new File(['test'], 'evidence.pdf', { type: 'application/pdf' }));
-    const request = {
-      headers: new Headers({
-        host: 'tenant.example.test',
-        'x-forwarded-host': 'tenant.example.test',
-      }),
-      formData: vi.fn().mockResolvedValue(form),
-    } as unknown as Request;
-
-    const response = await POST(request);
+    const response = await POST(createEvidenceUploadRequest());
     const data = await response.json();
 
     expect(response.status).toBe(404);
@@ -122,20 +109,7 @@ describe('POST /api/claims/evidence-upload', () => {
       status: 500,
     });
 
-    const form = new FormData();
-    form.set('claimId', 'claim-1');
-    form.set('category', 'evidence');
-    form.set('locale', 'mk');
-    form.set('file', new File(['test'], 'evidence.pdf', { type: 'application/pdf' }));
-    const request = {
-      headers: new Headers({
-        host: 'tenant.example.test',
-        'x-forwarded-host': 'tenant.example.test',
-      }),
-      formData: vi.fn().mockResolvedValue(form),
-    } as unknown as Request;
-
-    const response = await POST(request);
+    const response = await POST(createEvidenceUploadRequest());
     const data = await response.json();
 
     expect(response.status).toBe(500);

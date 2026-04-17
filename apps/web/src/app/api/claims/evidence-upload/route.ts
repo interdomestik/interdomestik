@@ -3,7 +3,7 @@ import {
   resolveStorageUploadContentType,
   resolveUploadMimeType,
 } from '@/features/admin/claims/components/ops/file-upload-meta';
-import { canAccessClaimFromAdminUploadSurface } from '@/features/claims/upload/server/access';
+import { findAccessibleAdminUploadClaim } from '@/features/claims/upload/server/access';
 import { confirmUpload } from '@/features/member/claims/actions';
 import { LOCALES } from '@/i18n/locales';
 import { auth } from '@/lib/auth';
@@ -40,31 +40,26 @@ async function validateClaimAccess(params: {
   const { claimId, role, tenantId, host, userId } = params;
   const isAdminSurface = isAdminUploadRole(role) && resolveTenantFromHost(host) === tenantId;
 
+  if (isAdminSurface) {
+    const claim = await findAccessibleAdminUploadClaim({
+      branchId: params.branchId ?? null,
+      claimId,
+      role,
+      tenantId,
+      userId,
+    });
+
+    return claim ? { success: true, isAdminSurface } : { success: false, status: 404 };
+  }
+
   const claim = await db.query.claims.findFirst({
-    where: isAdminSurface
-      ? and(eq(claims.id, claimId), eq(claims.tenantId, tenantId))
-      : and(eq(claims.id, claimId), eq(claims.tenantId, tenantId), eq(claims.userId, userId)),
+    where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId), eq(claims.userId, userId)),
     columns: {
       id: true,
-      branchId: true,
-      staffId: true,
-      userId: true,
     },
   });
 
   if (!claim) {
-    return { success: false, status: 404 };
-  }
-
-  if (
-    isAdminSurface &&
-    !canAccessClaimFromAdminUploadSurface({
-      branchId: params.branchId ?? null,
-      claim,
-      role,
-      userId,
-    })
-  ) {
     return { success: false, status: 404 };
   }
 

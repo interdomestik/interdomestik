@@ -1,6 +1,6 @@
 'use server';
 
-import { canAccessClaimFromAdminUploadSurface } from '@/features/claims/upload/server/access';
+import { findAccessibleAdminUploadClaim } from '@/features/claims/upload/server/access';
 import {
   createSignedUploadUrl,
   persistClaimDocumentAndQueueWorkflows,
@@ -9,9 +9,7 @@ import {
 import { auth } from '@/lib/auth';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import { claims, db } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { and, eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 const ALLOWED_ADMIN_UPLOAD_ROLES = new Set([
   'admin',
@@ -109,24 +107,15 @@ export async function generateAdminUploadUrl(
   }
 
   const { tenantId, resolvedBucket } = uploadContext;
-  const claim = await db.query.claims.findFirst({
-    where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
-    columns: {
-      id: true,
-      branchId: true,
-      staffId: true,
-    },
+  const claim = await findAccessibleAdminUploadClaim({
+    branchId: uploadContext.session.user.branchId ?? null,
+    claimId,
+    role: uploadContext.session.user.role ?? null,
+    tenantId,
+    userId: uploadContext.session.user.id,
   });
 
-  if (
-    !claim ||
-    !canAccessClaimFromAdminUploadSurface({
-      branchId: uploadContext.session.user.branchId ?? null,
-      claim,
-      role: uploadContext.session.user.role ?? null,
-      userId: uploadContext.session.user.id,
-    })
-  ) {
+  if (!claim) {
     return { success: false, error: 'Claim not found', status: 404 };
   }
 
@@ -156,24 +145,15 @@ export async function confirmAdminUpload({
   }
 
   const { session, tenantId, resolvedBucket } = uploadContext;
-  const claim = await db.query.claims.findFirst({
-    where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
-    columns: {
-      id: true,
-      branchId: true,
-      staffId: true,
-    },
+  const claim = await findAccessibleAdminUploadClaim({
+    branchId: session.user.branchId ?? null,
+    claimId,
+    role: session.user.role ?? null,
+    tenantId,
+    userId: session.user.id,
   });
 
-  if (
-    !claim ||
-    !canAccessClaimFromAdminUploadSurface({
-      branchId: session.user.branchId ?? null,
-      claim,
-      role: session.user.role ?? null,
-      userId: session.user.id,
-    })
-  ) {
+  if (!claim) {
     return { success: false, error: 'Claim not found', status: 404 };
   }
 
