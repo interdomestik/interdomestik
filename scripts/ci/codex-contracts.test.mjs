@@ -48,8 +48,8 @@ test('mcp setup verifies Codex project config as well as local QA server prerequ
 test('Codex PR review workflow uses the official action with a repo-owned review prompt', () => {
   const workflow = readText('.github/workflows/codex-review.yml');
 
-  assert.match(workflow, /pull_request:/);
-  assert.match(workflow, /types:\s*\[opened,\s*synchronize,\s*reopened\]/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.doesNotMatch(workflow, /pull_request:/);
   assert.ok(
     workflow.includes(
       ['    permissions:', '      contents: read', '      pull-requests: write'].join('\n')

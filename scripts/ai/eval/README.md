@@ -30,4 +30,4 @@ The suite reports:
 
 - The suite is deterministic and does not call network models.
 - Policy extraction currently evaluates through a normalization shim because the live policy analyzer still emits a UI-oriented shape instead of the strict `policyExtractSchema` contract.
-- The GitHub `ai-eval` CI job is PR-only and non-blocking. It runs only when AI-related files change.
+- The fixture suite is available for manual and local validation, but it no longer runs automatically on every PR.
