@@ -3,6 +3,12 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import type { Session } from '../types';
+import {
+  hasAgentClaimAccess,
+  hasScopedClaimsReadAccess,
+  isFullTenantClaimsRole,
+  isScopedClaimsReadRole,
+} from './access';
 import { normalizeSelectedMessages } from './normalize';
 import type { MessageWithSender, SelectedMessageRow } from './types';
 
@@ -25,6 +31,10 @@ export async function getMessagesForClaimCore(params: {
     const userId = session.user.id;
     const userRole = session.user.role || 'user';
     const tenantId = ensureTenantId(session);
+    const isScopedStaff = isScopedClaimsReadRole(userRole);
+    const isPrivilegedStaff = isFullTenantClaimsRole(userRole);
+    const isStaff = isScopedStaff || isPrivilegedStaff;
+    const isAgent = userRole === 'agent';
 
     const claim = await db.query.claims.findFirst({
       where: (claimsTable, { eq }) =>
@@ -35,29 +45,30 @@ export async function getMessagesForClaimCore(params: {
       return { success: false, error: 'Claim not found' };
     }
 
-    const isStaff =
-      userRole === 'staff' ||
-      userRole === 'admin' ||
-      userRole === 'tenant_admin' ||
-      userRole === 'super_admin';
-    const isAgent = userRole === 'agent';
-
-    if (!isStaff && !isAgent && claim.userId !== userId) {
+    if (isPrivilegedStaff) {
+      // Full-tenant roles can read any in-tenant claim messages.
+    } else if (
+      isScopedStaff &&
+      !hasScopedClaimsReadAccess({
+        branchId: session.user.branchId ?? null,
+        claim,
+        role: userRole,
+        userId,
+      })
+    ) {
+      return { success: false, error: 'Access denied' };
+    } else if (!isStaff && !isAgent && claim.userId !== userId) {
       return { success: false, error: 'Access denied' };
     }
 
     if (isAgent) {
-      const linkedClient = await db.query.agentClients.findFirst({
-        where: (table, { and, eq }) =>
-          and(
-            eq(table.tenantId, tenantId),
-            eq(table.agentId, userId),
-            eq(table.memberId, claim.userId),
-            eq(table.status, 'active')
-          ),
+      const canAccess = await hasAgentClaimAccess({
+        agentId: userId,
+        memberId: claim.userId,
+        tenantId,
       });
 
-      if (!linkedClient) {
+      if (!canAccess) {
         return { success: false, error: 'Access denied' };
       }
     }

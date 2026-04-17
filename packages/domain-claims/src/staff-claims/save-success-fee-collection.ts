@@ -11,7 +11,6 @@ import {
   calculateSuccessFeeAmount,
   resolveSuccessFeeCollectionPlan,
 } from '@interdomestik/domain-membership-billing/success-fees/policy';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { z } from 'zod';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
@@ -23,6 +22,11 @@ import type {
 } from './types';
 import { buildCommercialAgreementSnapshot } from './accepted-recovery-prerequisites';
 import { buildCommercialHandlingScopeFailure } from './commercial-handling-scope';
+import {
+  buildScopedStaffClaimWhere,
+  resolveScopedStaffClaimAccess,
+  STAFF_SCOPE_ACCESS_DENIED_ERROR,
+} from './scope';
 
 const saveSuccessFeeCollectionSchema = z.object({
   claimId: z.string().trim().min(1, 'Claim ID is required'),
@@ -93,7 +97,11 @@ export async function saveSuccessFeeCollectionCore(
     };
   }
 
-  const tenantId = ensureTenantId(session);
+  const scopeArgs = resolveScopedStaffClaimAccess({
+    claimId: parsed.data.claimId,
+    session,
+  });
+  const tenantId = scopeArgs.tenantId;
   const now = params.now ?? new Date();
 
   try {
@@ -106,11 +114,11 @@ export async function saveSuccessFeeCollectionCore(
           userId: claims.userId,
         })
         .from(claims)
-        .where(withTenant(tenantId, claims.tenantId, and(eq(claims.id, parsed.data.claimId))))
+        .where(buildScopedStaffClaimWhere(scopeArgs))
         .limit(1);
 
       if (!claim) {
-        return { success: false, error: 'Claim not found' };
+        return { success: false, error: STAFF_SCOPE_ACCESS_DENIED_ERROR };
       }
 
       const commercialScopeFailure = buildCommercialHandlingScopeFailure({

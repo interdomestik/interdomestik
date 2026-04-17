@@ -30,6 +30,7 @@ interface MessagingPanelProps {
   readonly allowInternal?: boolean;
   readonly initialMessages?: MessageWithSender[];
   readonly fetchOnMount?: boolean;
+  readonly readOnly?: boolean;
 }
 
 export function MessagingPanel({
@@ -39,6 +40,7 @@ export function MessagingPanel({
   allowInternal = false,
   initialMessages = [],
   fetchOnMount = true,
+  readOnly = false,
 }: MessagingPanelProps) {
   const t = useTranslations('messaging');
   const [messages, setMessages] = useState<MessageWithSender[]>(initialMessages);
@@ -191,11 +193,13 @@ export function MessagingPanel({
           />
         )}
 
-        <MessageInput
-          allowInternal={allowInternal}
-          isAgent={isAgent}
-          onSendMessage={handleSendMessage}
-        />
+        {!readOnly ? (
+          <MessageInput
+            allowInternal={allowInternal}
+            isAgent={isAgent}
+            onSendMessage={handleSendMessage}
+          />
+        ) : null}
       </CardContent>
     </Card>
   );

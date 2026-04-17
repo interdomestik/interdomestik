@@ -15,12 +15,16 @@ import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
+import { canViewAdminClaims, resolveClaimsVisibility } from '../server';
 
 export async function AdminClaimDetailV2Page({ id, locale }: { id: string; locale: string }) {
   setRequestLocale(locale);
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return notFound();
+  const visibility = await resolveClaimsVisibility(session);
+  if (!visibility || !canViewAdminClaims(visibility)) return notFound();
+  if (visibility.role === 'branch_manager' && !visibility.branchId) return notFound();
 
   let tenantId: string;
   try {
@@ -79,6 +83,7 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
               role: session.user.role || 'admin',
             }}
             isAgent={true}
+            readOnly={visibility.role === 'branch_manager'}
           />
 
           {/* 3. Timeline (Audit Trail) */}
@@ -103,6 +108,7 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
           {/* Use the new pure EvidencePanel with explicit mapping */}
           <EvidencePanel
             claimId={data.id}
+            readOnly={visibility.role === 'branch_manager'}
             docs={data.docs.map(d => ({
               id: d.id,
               url: d.url,

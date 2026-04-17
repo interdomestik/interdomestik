@@ -36,6 +36,7 @@ const hoisted = vi.hoisted(() => {
       },
     ]),
     generateClaimNumber: vi.fn().mockResolvedValue('CLM-T1-2026-000001'),
+    logAuditEvent: vi.fn().mockResolvedValue(undefined),
     txInsert,
     txInsertValues,
   };
@@ -272,6 +273,47 @@ describe('submitClaimCore', () => {
       2,
       expect.objectContaining({
         note: null,
+      })
+    );
+  });
+
+  it('records claim attribution metadata in the submission audit event', async () => {
+    await submitClaimCore(
+      {
+        session: {
+          user: {
+            id: 'member-1',
+            role: 'member',
+            tenantId: 'tenant-1',
+            email: 'member@example.com',
+          },
+        },
+        requestHeaders: new Headers(),
+        data: {
+          title: 'Flight delay claim',
+          description: 'My flight was delayed overnight and I incurred hotel costs.',
+          category: 'travel',
+          companyName: 'Airline Co',
+          claimAmount: '650.00',
+          currency: 'EUR',
+          incidentDate: '2026-02-15',
+          files: [],
+        },
+      },
+      {
+        logAuditEvent: hoisted.logAuditEvent,
+      }
+    );
+
+    expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'claim.submitted',
+        metadata: expect.objectContaining({
+          agentId: 'agent-1',
+          agentAttributionSource: 'subscription',
+          branchId: 'branch-1',
+          branchResolutionSource: 'subscription',
+        }),
       })
     );
   });

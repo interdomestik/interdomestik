@@ -1,4 +1,5 @@
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
+import { buildStaffClaimReadScope } from '@interdomestik/domain-claims/staff-claims/scope';
 import { claimDocuments, claimStageHistory, claims, db, eq, user } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { and, desc, isNotNull } from 'drizzle-orm';
@@ -38,11 +39,20 @@ export type LatestPublicStatusNote = {
 };
 
 export async function getStaffClaimDetailsCore(args: {
+  branchId?: string | null;
   claimId: string;
+  staffId: string;
   tenantId: string;
 }): Promise<StaffClaimDetailsResult> {
   const claim = await db.query.claims.findFirst({
-    where: and(eq(claims.id, args.claimId), eq(claims.tenantId, args.tenantId)),
+    where: and(
+      eq(claims.tenantId, args.tenantId),
+      buildStaffClaimReadScope({
+        branchId: args.branchId ?? null,
+        claimId: args.claimId,
+        userId: args.staffId,
+      })
+    ),
     with: {
       user: true,
     },

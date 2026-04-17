@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => {
     claims: {
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
+      branchId: 'claims.branch_id',
       category: 'claims.category',
       claimNumber: 'claims.claim_number',
       status: 'claims.status',
@@ -125,6 +126,7 @@ function createClaimRow(overrides: Record<string, unknown> = {}) {
 
 describe('getStaffClaimDetail', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mocks.db.select.mockReset();
     mocks.db.select.mockReturnValueOnce(mocks.claimChain).mockReturnValueOnce(mocks.agentChain);
     mocks.getMatterAllowanceVisibility.mockResolvedValue(null);
@@ -302,5 +304,33 @@ describe('getStaffClaimDetail', () => {
     });
 
     expect(result).toBeNull();
+  });
+
+  it('scopes unbranched staff detail reads to assigned-or-unassigned claims', async () => {
+    mocks.claimChain.limit.mockResolvedValue([]);
+
+    const result = await getStaffClaimDetail({
+      staffId: 'staff-9',
+      tenantId: 'tenant-mk',
+      claimId: 'claim-9',
+    });
+
+    expect(result).toBeNull();
+    expect(mocks.eq).toHaveBeenCalledWith('claims.staff_id', 'staff-9');
+  });
+
+  it('scopes branch detail reads to the caller branch before returning data', async () => {
+    mocks.claimChain.limit.mockResolvedValue([]);
+
+    const result = await getStaffClaimDetail({
+      branchId: 'branch-2',
+      staffId: 'staff-9',
+      tenantId: 'tenant-mk',
+      claimId: 'claim-9',
+    });
+
+    expect(result).toBeNull();
+    expect(mocks.eq).toHaveBeenCalledWith('claims.branch_id', 'branch-2');
+    expect(mocks.getMatterAllowanceVisibility).not.toHaveBeenCalled();
   });
 });

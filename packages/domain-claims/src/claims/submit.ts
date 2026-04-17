@@ -39,6 +39,8 @@ type ClaimAssignmentContext = {
   subscription: Awaited<ReturnType<typeof getActiveSubscription>>;
   branchId: string | null;
   agentId: string | null;
+  agentAttributionSource: 'subscription' | 'none';
+  branchResolutionSource: 'subscription' | 'agent' | 'tenant_default' | 'none';
 };
 
 const DIASPORA_HANDOFF_COUNTRIES = new Set(['DE', 'CH', 'AT', 'IT']);
@@ -107,14 +109,25 @@ async function loadClaimAssignmentContext(
       and(eq(tenantSettings.category, 'rbac'), eq(tenantSettings.key, 'default_branch_id'))
     ),
   });
+  const defaultBranchId = resolveDefaultBranchId(defaultBranchSetting?.value);
+  const agentId = subscription?.agentId ?? null;
+  const agentAttributionSource = agentId ? 'subscription' : 'none';
+  const subscriptionBranchId = subscription?.branchId ?? null;
+  const branchId = subscriptionBranchId ?? agentBranchId ?? defaultBranchId ?? null;
+  const branchResolutionSource = subscriptionBranchId
+    ? 'subscription'
+    : agentBranchId
+      ? 'agent'
+      : defaultBranchId
+        ? 'tenant_default'
+        : 'none';
 
   return {
     subscription,
-    branchId:
-      subscription?.branchId ??
-      agentBranchId ??
-      resolveDefaultBranchId(defaultBranchSetting?.value),
-    agentId: subscription?.agentId ?? null,
+    branchId,
+    agentId,
+    agentAttributionSource,
+    branchResolutionSource,
   };
 }
 
@@ -224,6 +237,10 @@ async function logClaimSubmittedAudit(args: {
   requestHeaders: Headers;
   claimId: string;
   data: CreateClaimValues;
+  assignment: Pick<
+    ClaimAssignmentContext,
+    'agentAttributionSource' | 'agentId' | 'branchId' | 'branchResolutionSource'
+  >;
 }) {
   if (!args.deps.logAuditEvent) {
     return;
@@ -242,6 +259,10 @@ async function logClaimSubmittedAudit(args: {
       companyName: args.data.companyName,
       claimAmount: args.data.claimAmount || null,
       documents: args.data.files?.length || 0,
+      agentId: args.assignment.agentId,
+      agentAttributionSource: args.assignment.agentAttributionSource,
+      branchId: args.assignment.branchId,
+      branchResolutionSource: args.assignment.branchResolutionSource,
     },
     headers: args.requestHeaders,
   });
@@ -347,6 +368,7 @@ export async function submitClaimCore(
       requestHeaders,
       claimId,
       data: result.data,
+      assignment,
     });
   } catch (error) {
     console.error('Failed to create claim:', error);

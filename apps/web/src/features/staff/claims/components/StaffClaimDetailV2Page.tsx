@@ -39,8 +39,14 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
   }
 
   const [result, commercialDetail, assignmentOptions] = await Promise.all([
-    getStaffClaimDetailsCore({ claimId: id, tenantId: session.user.tenantId }),
+    getStaffClaimDetailsCore({
+      branchId: session.user.branchId ?? null,
+      claimId: id,
+      staffId: session.user.id,
+      tenantId: session.user.tenantId,
+    }),
     getStaffClaimDetail({
+      branchId: session.user.branchId ?? null,
       claimId: id,
       staffId: session.user.id,
       tenantId: session.user.tenantId,

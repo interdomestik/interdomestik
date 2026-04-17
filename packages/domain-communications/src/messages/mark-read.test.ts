@@ -15,6 +15,12 @@ vi.mock('@interdomestik/database', () => ({
     update: mocks.update,
     select: mocks.select,
   },
+  agentClients: {
+    memberId: 'agentClients.memberId',
+    tenantId: 'agentClients.tenantId',
+    agentId: 'agentClients.agentId',
+    status: 'agentClients.status',
+  },
   claimMessages: {
     id: 'claimMessages.id',
     claimId: 'claimMessages.claimId',
@@ -23,6 +29,8 @@ vi.mock('@interdomestik/database', () => ({
   },
   claims: {
     id: 'claims.id',
+    branchId: 'claims.branchId',
+    staffId: 'claims.staffId',
     tenantId: 'claims.tenantId',
     userId: 'claims.userId',
   },
@@ -37,6 +45,7 @@ vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args) => ({ operator: 'and', args })),
   inArray: vi.fn((col, vals) => ({ operator: 'inArray', col, vals })),
   isNull: vi.fn(col => ({ operator: 'isNull', col })),
+  or: vi.fn((...args) => ({ operator: 'or', args })),
 }));
 
 describe('markMessagesAsReadCore', () => {
@@ -49,25 +58,43 @@ describe('markMessagesAsReadCore', () => {
     mocks.from.mockReturnValue({ where: mocks.where }); // Note: where is reused for select too
   });
 
-  it('marks messages as read for staff without ownership check', async () => {
+  it('includes a scoped claim filter for staff reads', async () => {
     await markMessagesAsReadCore({
       session: {
-        user: { id: 'staff-1', role: 'staff', tenantId: 't1' },
+        user: { id: 'staff-1', role: 'staff', tenantId: 't1', branchId: 'branch-1' },
       } as any,
       messageIds: ['msg-1'],
     });
 
-    // Verify update called
     expect(mocks.update).toHaveBeenCalled();
-    // Verify WHERE clause does NOT contain subquery (accessCondition is undefined)
-    const whereCall = mocks.where.mock.calls[0][0];
-    expect(whereCall.operator).toBe('and');
-    // baseCondition components: eq(tenantId), inArray(id), isNull(readAt)
-    // Access condition is undefined, so 'and(baseCopy, undefined)' -> 'and(baseCopy)'
-    // Actually `and(base, undefined)` behavior depends on ORM mock but logic is:
-    // const accessCondition = isStaff ? undefined : ...
-    // where(and(base, accessCondition))
-    // If accessCondition is undefined, it's just base.
+    expect(mocks.select).toHaveBeenCalledTimes(1);
+    expect(mocks.where).toHaveBeenCalledTimes(2);
+
+    const whereCall = mocks.where.mock.calls[1][0];
+    const accessCondition = whereCall.args[1];
+    expect(accessCondition.operator).toBe('inArray');
+    expect(accessCondition.col).toBe('claimMessages.claimId');
+  });
+
+  it('includes a linked-client claim filter for agent reads', async () => {
+    await markMessagesAsReadCore({
+      session: {
+        user: { id: 'agent-1', role: 'agent', tenantId: 't1' },
+      } as any,
+      messageIds: ['msg-1'],
+    });
+
+    expect(mocks.update).toHaveBeenCalled();
+    expect(mocks.select).toHaveBeenCalledTimes(2);
+    expect(mocks.where).toHaveBeenCalledTimes(3);
+    expect(mocks.from.mock.calls[0][0]).toMatchObject({
+      memberId: 'agentClients.memberId',
+      tenantId: 'agentClients.tenantId',
+    });
+    expect(mocks.from.mock.calls[1][0]).toMatchObject({
+      id: 'claims.id',
+      userId: 'claims.userId',
+    });
   });
 
   it('includes ownership check for members', async () => {
@@ -92,5 +119,18 @@ describe('markMessagesAsReadCore', () => {
     expect(accessCondition.col).toBe('claimMessages.claimId');
     // Ensure subquery was constructed
     expect(mocks.select).toHaveBeenCalled();
+  });
+
+  it('uses a branch-scoped claim filter for branch manager reads', async () => {
+    await markMessagesAsReadCore({
+      session: {
+        user: { id: 'manager-1', role: 'branch_manager', tenantId: 't1', branchId: 'branch-1' },
+      } as any,
+      messageIds: ['msg-1'],
+    });
+
+    expect(mocks.update).toHaveBeenCalled();
+    expect(mocks.select).toHaveBeenCalledTimes(1);
+    expect(mocks.where).toHaveBeenCalledTimes(2);
   });
 });

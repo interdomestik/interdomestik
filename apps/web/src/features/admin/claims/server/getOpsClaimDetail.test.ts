@@ -82,6 +82,7 @@ vi.mock('@interdomestik/database', () => ({
   claims: {
     id: 'claims.id',
     tenantId: 'claims.tenantId',
+    branchId: 'claims.branchId',
     title: 'claims.title',
     status: 'claims.status',
     createdAt: 'claims.createdAt',
@@ -272,6 +273,40 @@ describe('getOpsClaimDetail', () => {
     expect(result).toEqual({ kind: 'not_found' });
     expect(hoisted.claimsFindFirst).not.toHaveBeenCalled();
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+  });
+
+  it('returns not_found when the caller lacks admin claims visibility', async () => {
+    hoisted.getSession.mockResolvedValueOnce({
+      user: {
+        id: 'member-1',
+        tenantId: 'tenant_ks',
+        role: 'member',
+      },
+    });
+
+    const result = await getOpsClaimDetail('claim-1');
+
+    expect(result).toEqual({ kind: 'not_found' });
+    expect(hoisted.claimsFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+  });
+
+  it('applies branch scope for branch managers before loading claim detail', async () => {
+    hoisted.getSession.mockResolvedValueOnce({
+      user: {
+        id: 'manager-1',
+        tenantId: 'tenant_ks',
+        role: 'branch_manager',
+        branchId: 'branch-2',
+      },
+    });
+    hoisted.claimsFindFirst.mockResolvedValueOnce(undefined);
+
+    const result = await getOpsClaimDetail('claim-1');
+
+    expect(result).toEqual({ kind: 'not_found' });
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(hoisted.eq).toHaveBeenCalledWith('claims.branchId', 'branch-2');
   });
 
   it('applies tenant predicate on claim document reads', async () => {

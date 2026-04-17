@@ -44,6 +44,10 @@ vi.mock('drizzle-orm', () => ({
   isNotNull: vi.fn((x: unknown) => ({ isNotNull: x })),
 }));
 
+vi.mock('@interdomestik/domain-claims/staff-claims/scope', () => ({
+  buildStaffClaimReadScope: vi.fn(() => ({ scope: true })),
+}));
+
 import { getStaffClaimDetailsCore } from './_core';
 
 function createSelectChain(result: unknown, resolveAt: 'where' | 'orderBy') {
@@ -65,7 +69,11 @@ describe('getStaffClaimDetailsCore', () => {
   it('returns not_found when claim does not exist', async () => {
     hoisted.claimsFindFirst.mockResolvedValue(null);
 
-    const result = await getStaffClaimDetailsCore({ claimId: 'c1', tenantId: 'tenant_mk' });
+    const result = await getStaffClaimDetailsCore({
+      claimId: 'c1',
+      staffId: 'staff-1',
+      tenantId: 'tenant_mk',
+    });
 
     expect(result).toEqual({ kind: 'not_found' });
   });
@@ -104,7 +112,11 @@ describe('getStaffClaimDetailsCore', () => {
       .mockReturnValueOnce(createSelectChain(docsResult, 'where'))
       .mockReturnValueOnce(createSelectChain(historyResult, 'orderBy'));
 
-    const result = await getStaffClaimDetailsCore({ claimId: 'c1', tenantId: 'tenant_mk' });
+    const result = await getStaffClaimDetailsCore({
+      claimId: 'c1',
+      staffId: 'staff-1',
+      tenantId: 'tenant_mk',
+    });
 
     expect(result.kind).toBe('ok');
     if (result.kind !== 'ok') return;

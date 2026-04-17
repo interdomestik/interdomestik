@@ -1,8 +1,9 @@
-import { claimMessages, claims, db } from '@interdomestik/database';
+import { claimMessages, db } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 
 import type { Session } from '../types';
+import { buildAccessibleClaimIdsSubquery, isFullTenantClaimsRole } from './access';
 
 /**
  * Mark messages as read.
@@ -25,7 +26,7 @@ export async function markMessagesAsReadCore(params: {
 
     const tenantId = ensureTenantId(session);
     const userRole = session.user.role || 'user';
-    const isStaff = userRole === 'staff' || userRole === 'admin';
+    const isPrivilegedStaff = isFullTenantClaimsRole(userRole);
 
     // Base condition: Message must be in tenant, have the ID, and be unread.
     const baseCondition = and(
@@ -34,21 +35,16 @@ export async function markMessagesAsReadCore(params: {
       isNull(claimMessages.readAt)
     );
 
-    // Access condition:
-    // - Staff: No extra restriction (can read all messages in tenant).
-    // - Member: Message must belong to a claim owned by the user.
-    //   AND (implicitly) usually shouldn't mark own messages as read?
-    //   But "read status" is just a flag. If I mark my own message read, it's weird but not a security breach like IDOR.
-    //   Preventing marking *others'* messages in *other* claims is the key.
-    //   So restricting to claims owned by users is sufficient to prevent IDOR on other users' data.
-    const accessCondition = isStaff
+    const accessCondition = isPrivilegedStaff
       ? undefined
       : inArray(
           claimMessages.claimId,
-          db
-            .select({ id: claims.id })
-            .from(claims)
-            .where(and(eq(claims.tenantId, tenantId), eq(claims.userId, session.user.id)))
+          buildAccessibleClaimIdsSubquery({
+            branchId: session.user.branchId ?? null,
+            role: userRole,
+            tenantId,
+            userId: session.user.id,
+          })
         );
 
     await db

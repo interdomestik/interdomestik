@@ -1,4 +1,5 @@
 export type SessionUser = {
+  branchId?: string | null;
   id: string;
   role?: string | null;
   name?: string | null;

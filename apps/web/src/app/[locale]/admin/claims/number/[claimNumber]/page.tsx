@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth';
+import { canViewAdminClaims, resolveClaimsVisibility } from '@/features/admin/claims/server';
 import { db } from '@/lib/db.server';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { Metadata } from 'next';
@@ -29,6 +30,13 @@ export default async function ClaimNumberResolverPage({ params }: Props) {
 
   if (!session) {
     redirect(`/${locale}/login`);
+  }
+  const visibility = await resolveClaimsVisibility(session);
+  if (!visibility || !canViewAdminClaims(visibility)) {
+    notFound();
+  }
+  if (visibility.role === 'branch_manager' && !visibility.branchId) {
+    notFound();
   }
 
   const tenantId = ensureTenantId(session);

@@ -16,6 +16,7 @@ export { updateClaimStatusCore as updateAgentClaimStatusCore } from './agent-cla
 export * from './claims/list';
 export { updateClaimStatusCore } from './claims/status';
 export { assignClaimCore as assignStaffClaimCore } from './staff-claims/assign';
+export { buildScopedStaffClaimWhere, buildStaffClaimReadScope } from './staff-claims/scope';
 export { getStaffClaimsList } from './staff-claims/get-staff-claims-list';
 export { getStaffClaimDetail } from './staff-claims/get-staff-claim-detail';
 export {

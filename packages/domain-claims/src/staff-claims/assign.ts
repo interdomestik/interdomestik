@@ -1,10 +1,11 @@
 import { and, claims, db, eq, user as userTable } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { isNull, or } from 'drizzle-orm';
+import { isNull } from 'drizzle-orm';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import { assignClaimSchema } from '../validators/claims';
+import { buildScopedStaffClaimWhere, buildStaffClaimReadScope } from './scope';
 import type { ActionResult } from './types';
 
 type StaffUser = ClaimsSession['user'] & { branchId?: string | null };
@@ -18,17 +19,6 @@ function buildAssignmentGuard(previousStaffId: string | null) {
   return previousStaffId ? eq(claims.staffId, previousStaffId) : isNull(claims.staffId);
 }
 
-function buildReadScope(args: { branchId: string | null; claimId: string; userId: string }) {
-  if (args.branchId == null) {
-    return and(
-      eq(claims.id, args.claimId),
-      or(eq(claims.staffId, args.userId), isNull(claims.staffId))
-    );
-  }
-
-  return and(eq(claims.id, args.claimId), eq(claims.branchId, args.branchId));
-}
-
 async function getScopedClaim(args: {
   branchId: string | null;
   claimId: string;
@@ -38,7 +28,7 @@ async function getScopedClaim(args: {
   const [existingClaim] = await db
     .select({ id: claims.id, staffId: claims.staffId, branchId: claims.branchId })
     .from(claims)
-    .where(withTenant(args.tenantId, claims.tenantId, buildReadScope(args)))
+    .where(buildScopedStaffClaimWhere(args))
     .limit(1);
 
   return existingClaim;
@@ -132,7 +122,7 @@ export async function assignClaimCore(
     const scopedWhere = withTenant(
       tenantId,
       claims.tenantId,
-      buildReadScope({ branchId, claimId, userId: user.id })
+      buildStaffClaimReadScope({ branchId, claimId, userId: user.id })
     );
     const updatedClaims = await db
       .update(claims)
