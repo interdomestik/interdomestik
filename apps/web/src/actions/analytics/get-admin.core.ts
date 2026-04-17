@@ -50,9 +50,13 @@ export async function getAdminAnalyticsCore(params: {
       .from(subscriptions)
       .innerJoin(
         membershipPlans,
-        or(
-          eq(subscriptions.planId, membershipPlans.id),
-          eq(subscriptions.planId, membershipPlans.paddlePriceId)
+        and(
+          eq(subscriptions.tenantId, membershipPlans.tenantId),
+          or(
+            eq(subscriptions.planKey, membershipPlans.id),
+            eq(subscriptions.planId, membershipPlans.id),
+            eq(subscriptions.planId, membershipPlans.paddlePriceId)
+          )
         )
       )
       .where(and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, tenantId)));

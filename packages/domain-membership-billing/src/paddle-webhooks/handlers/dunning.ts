@@ -26,6 +26,7 @@ type PastDueValues = {
   userId: string;
   status: 'past_due';
   planId: string;
+  planKey?: string;
   providerSubscriptionId: string;
   providerCustomerId: string | null | undefined;
   pastDueAt: Date;

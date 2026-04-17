@@ -1,10 +1,29 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const hoisted = vi.hoisted(() => ({
+  db: {
+    query: {
+      membershipPlans: {
+        findFirst: vi.fn(),
+      },
+    },
+  },
+}));
+
+vi.mock('@interdomestik/database', () => ({
+  db: hoisted.db,
+}));
 
 import {
   createActiveAnnualMembershipFulfillment,
   createActiveAnnualMembershipState,
   createCanonicalMembershipPlanState,
+  resolveCanonicalMembershipPlanState,
 } from './annual-membership';
+
+beforeEach(() => {
+  hoisted.db.query.membershipPlans.findFirst.mockReset();
+});
 
 describe('createActiveAnnualMembershipState', () => {
   it('builds an active annual membership term from a single baseline timestamp', () => {
@@ -34,6 +53,22 @@ describe('createCanonicalMembershipPlanState', () => {
       planId: 'standard',
       planKey: 'tenant-standard-plan',
     });
+  });
+});
+
+describe('resolveCanonicalMembershipPlanState', () => {
+  it('falls back to an explicit unknown plan id when the incoming value is blank', async () => {
+    await expect(
+      resolveCanonicalMembershipPlanState({
+        tenantId: 'tenant-mk',
+        planId: '   ',
+      })
+    ).resolves.toEqual({
+      planId: 'unknown',
+      planKey: null,
+    });
+
+    expect(hoisted.db.query.membershipPlans.findFirst).not.toHaveBeenCalled();
   });
 });
 

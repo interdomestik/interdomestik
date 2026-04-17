@@ -26,7 +26,7 @@ export async function resolveCanonicalMembershipPlanState(params: {
   const rawPlanId = params.planId.trim();
   if (!rawPlanId) {
     return {
-      planId: params.planId,
+      planId: 'unknown',
       planKey: null,
     };
   }

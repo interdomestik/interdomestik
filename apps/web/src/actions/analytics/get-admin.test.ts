@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { and, eq, or } from 'drizzle-orm';
 
 import type { Session } from './context';
 import { getAdminAnalyticsCore } from './get-admin';
@@ -24,14 +25,26 @@ vi.mock('@interdomestik/database', () => {
         from: vi.fn(() => queryBuilder),
       })),
     },
-    membershipPlans: { price: 'membershipPlans.price' },
-    subscriptions: {
-      id: 'subscriptions.id',
-      tenantId: 'subscriptions.tenantId',
-      createdAt: 'subscriptions.createdAt',
-    },
   };
 });
+
+vi.mock('@interdomestik/database/schema', () => ({
+  subscriptions: {
+    id: 'subscriptions.id',
+    planId: 'subscriptions.planId',
+    planKey: 'subscriptions.planKey',
+    tenantId: 'subscriptions.tenantId',
+    status: 'subscriptions.status',
+    createdAt: 'subscriptions.createdAt',
+  },
+  membershipPlans: {
+    id: 'membershipPlans.id',
+    paddlePriceId: 'membershipPlans.paddlePriceId',
+    tenantId: 'membershipPlans.tenantId',
+    price: 'membershipPlans.price',
+    interval: 'membershipPlans.interval',
+  },
+}));
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
@@ -92,5 +105,11 @@ describe('actions/analytics getAdminAnalyticsCore', () => {
     });
 
     expect(result.success).toBe(true);
+    expect(eq).toHaveBeenCalledWith('subscriptions.planKey', 'membershipPlans.id');
+    expect(eq).toHaveBeenCalledWith('subscriptions.planId', 'membershipPlans.id');
+    expect(eq).toHaveBeenCalledWith('subscriptions.planId', 'membershipPlans.paddlePriceId');
+    expect(eq).toHaveBeenCalledWith('subscriptions.tenantId', 'membershipPlans.tenantId');
+    expect(or).toHaveBeenCalled();
+    expect(and).toHaveBeenCalled();
   });
 });
