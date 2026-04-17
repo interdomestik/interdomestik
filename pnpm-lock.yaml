@@ -571,9 +571,6 @@ importers:
       '@interdomestik/shared-auth':
         specifier: workspace:*
         version: link:../shared-auth
-      '@opentelemetry/api':
-        specifier: 1.9.1
-        version: 1.9.1
       '@types/nodemailer':
         specifier: ^8.0.0
         version: 8.0.0
