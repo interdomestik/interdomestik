@@ -24,8 +24,8 @@ args = [
 ]
 
 [mcp_servers.interdomestik_qa]
-command = "pnpm"
-args = ["exec", "tsx", "packages/qa/src/index.ts"]
+command = "/bin/bash"
+args = ["scripts/start-repo-qa.sh"]
 cwd = "."
 
 [roles.scribe]
