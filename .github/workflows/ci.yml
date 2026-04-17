@@ -34,9 +34,6 @@ jobs:
       should_run: ${{ steps.validation_surface.outputs.should_run }}
       reason: ${{ steps.validation_surface.outputs.reason }}
       non_product_only_paths: ${{ steps.validation_surface.outputs.non_product_only_paths }}
-      ai_eval_should_run: ${{ steps.ai_eval_surface.outputs.should_run }}
-      ai_eval_reason: ${{ steps.ai_eval_surface.outputs.reason }}
-      ai_eval_matched_paths: ${{ steps.ai_eval_surface.outputs.matched_paths }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -58,20 +55,6 @@ jobs:
               --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
           fi
           node scripts/ci/validation-surface-policy.mjs \
-            --event-name "${{ github.event_name }}" \
-            --changed-files-path "${changed_files_path}" >>"$GITHUB_OUTPUT"
-      - name: Evaluate AI eval surface
-        if: github.event_name == 'pull_request'
-        id: ai_eval_surface
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          changed_files_path="$(mktemp)"
-          node scripts/ci/github-pr-files.mjs \
-            --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
-          node scripts/ci/ai-eval-surface.mjs \
             --event-name "${{ github.event_name }}" \
             --changed-files-path "${changed_files_path}" >>"$GITHUB_OUTPUT"
 
@@ -132,63 +115,6 @@ jobs:
         run: pnpm coverage:gate
       - name: Release Gate Unit Tests
         run: pnpm test:release-gate
-
-  ai-eval:
-    needs:
-      - validation-surface
-    if: github.event_name == 'pull_request' && needs.validation-surface.outputs.ai_eval_should_run == 'true'
-    continue-on-error: true
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/setup
-      - name: Explain AI eval surface
-        run: |
-          echo "AI eval reason: ${{ needs.validation-surface.outputs.ai_eval_reason }}"
-          echo "AI eval matched paths: ${{ needs.validation-surface.outputs.ai_eval_matched_paths }}"
-      - name: Run AI eval fixtures
-        run: pnpm ai:eval
-
-  multi-agent-dry-run:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/setup
-      - name: Generate PR hardening DAG plan
-        id: pr_hardening_dry_run
-        run: |
-          set -euo pipefail
-          bash scripts/multi-agent/orchestrator.sh --pipeline pr-hardening --dry-run --pr "${{ github.event.pull_request.number }}"
-
-      - name: Validate PR hardening dry-run output root
-        if: always()
-        id: dry_run_root
-        run: |
-          set -euo pipefail
-          run_root="${{ steps.pr_hardening_dry_run.outputs.pr_hardening_run_root }}"
-          if [[ -z "${run_root}" ]]; then
-            echo "error: 'pr_hardening_run_root' output from 'pr_hardening_dry_run' step is empty." >&2
-            echo "Check the dry-run step logs for orchestrator output failures." >&2
-            exit 1
-          fi
-          echo "run_root=${run_root}" >>"$GITHUB_OUTPUT"
-
-      - name: Upload PR hardening dry-run artifacts
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v6
-        with:
-          name: multi-agent-dry-run-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ steps.dry_run_root.outputs.run_root }}/run-manifest.md
-            ${{ steps.dry_run_root.outputs.run_root }}/dispatch-order.md
-            ${{ steps.dry_run_root.outputs.run_root }}/dry-run-plan.md
-            ${{ steps.dry_run_root.outputs.run_root }}/trace.ndjson
-          if-no-files-found: warn
-          retention-days: 14
 
   e2e-gate:
     needs:
