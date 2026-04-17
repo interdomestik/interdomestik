@@ -32,6 +32,7 @@
   "dependencies": {
     "@interdomestik/database": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
+    "@opentelemetry/api": "1.9.1",
     "@types/nodemailer": "^8.0.0",
     "@types/web-push": "^3.6.4",
     "date-fns": "^4.1.0",
