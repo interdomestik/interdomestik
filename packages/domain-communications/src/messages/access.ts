@@ -50,6 +50,29 @@ export function hasScopedClaimsReadAccess(args: {
   });
 }
 
+function buildForbiddenClaimIdsSubquery(tenantId: string) {
+  return db
+    .select({ id: claims.id })
+    .from(claims)
+    .where(and(eq(claims.tenantId, tenantId), eq(claims.id, '__forbidden__')));
+}
+
+function buildStaffScopedClaimFilter(args: {
+  branchId: string | null;
+  role: 'staff' | 'branch_manager';
+  userId: string;
+}) {
+  if (args.role === 'branch_manager') {
+    return eq(claims.branchId, args.branchId as string);
+  }
+
+  if (args.branchId !== null) {
+    return eq(claims.branchId, args.branchId);
+  }
+
+  return or(eq(claims.staffId, args.userId), isNull(claims.staffId));
+}
+
 export async function hasAgentClaimAccess(args: {
   agentId: string;
   memberId: string;
@@ -78,18 +101,14 @@ export function buildAccessibleClaimIdsSubquery(args: {
 
   if (args.role === 'staff' || args.role === 'branch_manager') {
     if (args.role === 'branch_manager' && branchId === null) {
-      return db
-        .select({ id: claims.id })
-        .from(claims)
-        .where(and(eq(claims.tenantId, args.tenantId), eq(claims.id, '__forbidden__')));
+      return buildForbiddenClaimIdsSubquery(args.tenantId);
     }
 
-    const scope =
-      args.role === 'branch_manager'
-        ? eq(claims.branchId, branchId as string)
-        : branchId !== null
-          ? eq(claims.branchId, branchId)
-          : or(eq(claims.staffId, args.userId), isNull(claims.staffId));
+    const scope = buildStaffScopedClaimFilter({
+      branchId,
+      role: args.role,
+      userId: args.userId,
+    });
 
     return db
       .select({ id: claims.id })

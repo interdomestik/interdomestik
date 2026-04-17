@@ -193,13 +193,13 @@ export function MessagingPanel({
           />
         )}
 
-        {!readOnly ? (
+        {readOnly ? null : (
           <MessageInput
             allowInternal={allowInternal}
             isAgent={isAgent}
             onSendMessage={handleSendMessage}
           />
-        ) : null}
+        )}
       </CardContent>
     </Card>
   );
