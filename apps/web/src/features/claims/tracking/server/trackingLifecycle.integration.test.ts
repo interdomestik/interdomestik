@@ -1,93 +1,130 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type ClaimRow = {
+  id: string;
+  tenantId: string;
+  status: string;
+  updatedAt: Date;
+};
+
+type TokenRow = {
+  claimId: string;
+  tenantId: string | null;
+  tokenHash: string;
+  expiresAt: Date;
+  revokedAt: Date | null;
+};
+
+type QueryRow = ClaimRow | TokenRow;
+
+type WhereClause =
+  | {
+      op: 'and' | 'or';
+      args: WhereClause[];
+    }
+  | {
+      op: 'eq' | 'gt';
+      left: unknown;
+      right: unknown;
+    }
+  | {
+      op: 'isNull';
+      value: unknown;
+    }
+  | null
+  | undefined;
+
+type ColumnMap = Record<string, boolean>;
+
+function resolveField(value: unknown, row: QueryRow): unknown {
+  switch (value) {
+    case 'claims.id':
+    case 'claimTrackingTokens.claimId':
+      return 'claimId' in row ? row.claimId : row.id;
+    case 'claims.tenantId':
+    case 'claimTrackingTokens.tenantId':
+      return row.tenantId;
+    case 'claims.status':
+      return 'status' in row ? row.status : value;
+    case 'claims.updatedAt':
+      return 'updatedAt' in row ? row.updatedAt : value;
+    case 'claimTrackingTokens.tokenHash':
+      return 'tokenHash' in row ? row.tokenHash : value;
+    case 'claimTrackingTokens.expiresAt':
+      return 'expiresAt' in row ? row.expiresAt : value;
+    case 'claimTrackingTokens.revokedAt':
+      return 'revokedAt' in row ? row.revokedAt : value;
+    default:
+      return value;
+  }
+}
+
+function matches(where: WhereClause, row: QueryRow): boolean {
+  if (!where) {
+    return true;
+  }
+
+  switch (where.op) {
+    case 'and':
+      return where.args.every(clause => matches(clause, row));
+    case 'or':
+      return where.args.some(clause => matches(clause, row));
+    case 'eq':
+      return resolveField(where.left, row) === where.right;
+    case 'gt': {
+      const left = resolveField(where.left, row);
+      const right = where.right;
+
+      if (left instanceof Date && right instanceof Date) {
+        return left.getTime() > right.getTime();
+      }
+
+      return Number(left) > Number(right);
+    }
+    case 'isNull':
+      return resolveField(where.value, row) == null;
+    default:
+      return false;
+  }
+}
+
+function pickColumns<T extends Record<string, unknown>>(row: T, columns?: ColumnMap) {
+  if (!columns) {
+    return { ...row };
+  }
+
+  const entries = Object.entries(columns)
+    .filter(([, enabled]) => enabled)
+    .map(([key]) => [key, row[key]]);
+
+  return Object.fromEntries(entries);
+}
+
+function findClaim(
+  claims: ClaimRow[],
+  args: { where?: WhereClause; columns?: ColumnMap }
+): Record<string, unknown> | null {
+  const claim = claims.find(row => matches(args.where, row));
+  return claim ? pickColumns(claim, args.columns) : null;
+}
+
+function findToken(tokens: TokenRow[], args: { where?: WhereClause }) {
+  const token = tokens.find(row => matches(args.where, row));
+  return token ? { ...token } : null;
+}
+
 const hoisted = vi.hoisted(() => {
   const store = {
-    claims: [] as Array<{
-      id: string;
-      tenantId: string;
-      status: string;
-      updatedAt: Date;
-    }>,
-    tokens: [] as Array<{
-      claimId: string;
-      tenantId: string | null;
-      tokenHash: string;
-      expiresAt: Date;
-      revokedAt: Date | null;
-    }>,
+    claims: [] as ClaimRow[],
+    tokens: [] as TokenRow[],
     generatedTokens: [] as string[],
   };
-
-  function resolveField(value: unknown, row: Record<string, unknown>) {
-    switch (value) {
-      case 'claims.id':
-      case 'claimTrackingTokens.claimId':
-        return row.claimId ?? row.id;
-      case 'claims.tenantId':
-      case 'claimTrackingTokens.tenantId':
-        return row.tenantId;
-      case 'claims.status':
-        return row.status;
-      case 'claims.updatedAt':
-        return row.updatedAt;
-      case 'claimTrackingTokens.tokenHash':
-        return row.tokenHash;
-      case 'claimTrackingTokens.expiresAt':
-        return row.expiresAt;
-      case 'claimTrackingTokens.revokedAt':
-        return row.revokedAt;
-      default:
-        return value;
-    }
-  }
-
-  function matches(where: any, row: Record<string, unknown>): boolean {
-    if (!where) return true;
-
-    switch (where.op) {
-      case 'and':
-        return where.args.every((clause: any) => matches(clause, row));
-      case 'or':
-        return where.args.some((clause: any) => matches(clause, row));
-      case 'eq':
-        return resolveField(where.left, row) === where.right;
-      case 'gt': {
-        const left = resolveField(where.left, row);
-        const right = where.right;
-
-        if (left instanceof Date && right instanceof Date) {
-          return left.getTime() > right.getTime();
-        }
-
-        return Number(left) > Number(right);
-      }
-      case 'isNull':
-        return resolveField(where.value, row) == null;
-      default:
-        return false;
-    }
-  }
-
-  function pickColumns<T extends Record<string, unknown>>(
-    row: T,
-    columns?: Record<string, boolean>
-  ) {
-    if (!columns) {
-      return { ...row };
-    }
-
-    const entries = Object.entries(columns)
-      .filter(([, enabled]) => enabled)
-      .map(([key]) => [key, row[key]]);
-
-    return Object.fromEntries(entries);
-  }
 
   const updateWhere = vi.fn(async (where: unknown) => {
     const revokedAt = new Date('2026-04-17T10:00:00.000Z');
 
     for (const token of store.tokens) {
-      if (matches(where, token as unknown as Record<string, unknown>)) {
+      if (matches(where as WhereClause, token)) {
         token.revokedAt = revokedAt;
       }
     }
@@ -106,94 +143,14 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     query: {
       claims: {
-        findFirst: vi.fn(async (args: { where?: unknown; columns?: Record<string, boolean> }) => {
-          const claim = hoisted.store.claims.find(row =>
-            hoisted.updateWhere.getMockImplementation()
-              ? ((): boolean => {
-                  const matches = (where: any, item: Record<string, unknown>): boolean => {
-                    if (!where) return true;
-                    switch (where.op) {
-                      case 'and':
-                        return where.args.every((clause: any) => matches(clause, item));
-                      case 'or':
-                        return where.args.some((clause: any) => matches(clause, item));
-                      case 'eq': {
-                        const left =
-                          where.left === 'claims.id'
-                            ? item.id
-                            : where.left === 'claims.tenantId'
-                              ? item.tenantId
-                              : where.left;
-                        return left === where.right;
-                      }
-                      default:
-                        return false;
-                    }
-                  };
-
-                  return matches(args.where, row as unknown as Record<string, unknown>);
-                })()
-              : false
-          );
-
-          if (!claim) {
-            return null;
-          }
-
-          if (!args.columns) {
-            return { ...claim };
-          }
-
-          return Object.fromEntries(
-            Object.entries(args.columns)
-              .filter(([, enabled]) => enabled)
-              .map(([key]) => [key, claim[key as keyof typeof claim]])
-          );
-        }),
+        findFirst: vi.fn(async (args: { where?: WhereClause; columns?: ColumnMap }) =>
+          findClaim(hoisted.store.claims, args)
+        ),
       },
       claimTrackingTokens: {
-        findFirst: vi.fn(async (args: { where?: unknown }) => {
-          const matches = (where: any, item: Record<string, unknown>): boolean => {
-            if (!where) return true;
-            switch (where.op) {
-              case 'and':
-                return where.args.every((clause: any) => matches(clause, item));
-              case 'or':
-                return where.args.some((clause: any) => matches(clause, item));
-              case 'eq': {
-                const left =
-                  where.left === 'claimTrackingTokens.claimId'
-                    ? item.claimId
-                    : where.left === 'claimTrackingTokens.tenantId'
-                      ? item.tenantId
-                      : where.left === 'claimTrackingTokens.tokenHash'
-                        ? item.tokenHash
-                        : where.left;
-                return left === where.right;
-              }
-              case 'gt':
-                return (
-                  (where.left === 'claimTrackingTokens.expiresAt' ? item.expiresAt : where.left) >
-                  where.right
-                );
-              case 'isNull':
-                return (
-                  (where.value === 'claimTrackingTokens.revokedAt'
-                    ? item.revokedAt
-                    : where.value === 'claimTrackingTokens.tenantId'
-                      ? item.tenantId
-                      : where.value) == null
-                );
-              default:
-                return false;
-            }
-          };
-
-          const token = hoisted.store.tokens.find(row =>
-            matches(args.where, row as unknown as Record<string, unknown>)
-          );
-          return token ? { ...token } : null;
-        }),
+        findFirst: vi.fn(async (args: { where?: WhereClause }) =>
+          findToken(hoisted.store.tokens, args)
+        ),
       },
     },
     update: vi.fn(() => ({
