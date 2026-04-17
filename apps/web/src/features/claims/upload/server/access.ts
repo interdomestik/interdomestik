@@ -34,7 +34,7 @@ export function canAccessClaimFromAdminUploadSurface(args: {
   }
 
   if (branchId !== null) {
-    return claim.branchId === branchId;
+    return claim.branchId === branchId || claim.staffId === userId;
   }
 
   return claim.staffId === userId || claim.staffId == null;

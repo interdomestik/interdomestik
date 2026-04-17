@@ -95,6 +95,25 @@ describe('admin claim evidence upload actions', () => {
     expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
+  it('allows assigned staff even when the claim branch differs', async () => {
+    hoisted.authGetSession.mockResolvedValueOnce({
+      user: { id: 'staff-2', tenantId: 'tenant-1', role: 'staff', branchId: 'branch-2' },
+    });
+    hoisted.findAccessibleAdminUploadClaim.mockResolvedValueOnce({
+      branchId: 'branch-1',
+      staffId: 'staff-2',
+    });
+
+    await expect(
+      generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)
+    ).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        id: 'file-id',
+      })
+    );
+  });
+
   it('denies confirm for branch managers outside claim branch scope', async () => {
     hoisted.authGetSession.mockResolvedValueOnce({
       user: {
