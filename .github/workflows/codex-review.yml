@@ -98,10 +98,17 @@ jobs:
         with:
           github-token: ${{ github.token }}
           script: |
+            const rawPrNumber = (process.env.PR_NUMBER ?? '').trim();
+            const prNumber = Number.parseInt(rawPrNumber, 10);
+
+            if (!Number.isInteger(prNumber) || prNumber <= 0 || String(prNumber) !== rawPrNumber) {
+              throw new Error(`Invalid PR_NUMBER input: "${rawPrNumber}"`);
+            }
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: Number(process.env.PR_NUMBER),
+              issue_number: prNumber,
               body: process.env.CODEX_FINAL_MESSAGE,
             });
         env:
