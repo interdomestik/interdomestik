@@ -22,9 +22,13 @@ vi.mock('@interdomestik/database/db', () => ({
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
-  user: { id: 'user.id' },
-  subscriptions: { userId: 'subscriptions.userId', createdAt: 'subscriptions.createdAt' },
-  userNotificationPreferences: { userId: 'prefs.userId' },
+  user: { id: 'user.id', tenantId: 'user.tenantId' },
+  subscriptions: {
+    userId: 'subscriptions.userId',
+    tenantId: 'subscriptions.tenantId',
+    createdAt: 'subscriptions.createdAt',
+  },
+  userNotificationPreferences: { userId: 'prefs.userId', tenantId: 'prefs.tenantId' },
   agentClients: {
     tenantId: 'agentClients.tenantId',
     agentId: 'agentClients.agentId',
@@ -33,12 +37,14 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
   claims: {
     id: 'claims.id',
+    tenantId: 'claims.tenantId',
     userId: 'claims.userId',
     status: 'claims.status',
     createdAt: 'claims.createdAt',
   },
   memberActivities: {
     memberId: 'memberActivities.memberId',
+    tenantId: 'memberActivities.tenantId',
     occurredAt: 'memberActivities.occurredAt',
   },
 }));
@@ -67,6 +73,16 @@ function createSelectChain(result: unknown) {
 }
 
 describe('getAgentClientProfileCore', () => {
+  it('returns forbidden when viewer tenant context is missing', async () => {
+    const res = await getAgentClientProfileCore({
+      memberId: 'm1',
+      viewer: { id: 'agent-1', role: 'agent', tenantId: null },
+    });
+
+    expect(res).toEqual({ kind: 'forbidden' });
+    expect(hoisted.userFindFirst).not.toHaveBeenCalled();
+  });
+
   it('returns not_found when member does not exist', async () => {
     hoisted.userFindFirst.mockResolvedValue(null);
 

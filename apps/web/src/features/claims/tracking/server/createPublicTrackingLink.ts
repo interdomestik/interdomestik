@@ -59,7 +59,11 @@ export async function createPublicTrackingLink(
         .update(claimTrackingTokens)
         .set({ revokedAt: new Date() })
         .where(
-          and(eq(claimTrackingTokens.claimId, claimId), isNull(claimTrackingTokens.revokedAt))
+          and(
+            eq(claimTrackingTokens.claimId, claimId),
+            eq(claimTrackingTokens.tenantId, tenantId),
+            isNull(claimTrackingTokens.revokedAt)
+          )
         );
 
       // 4. Store Hash

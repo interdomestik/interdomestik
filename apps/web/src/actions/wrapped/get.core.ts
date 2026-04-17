@@ -1,7 +1,8 @@
 import { claims, db, subscriptions } from '@interdomestik/database';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { differenceInDays } from 'date-fns';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import type { Session } from './context';
 
@@ -13,9 +14,10 @@ export async function getWrappedStatsCore(params: { session: Session | null }) {
   }
 
   const userId = session.user.id;
+  const tenantId = ensureTenantId(session);
 
   const subscription = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.userId, userId),
+    where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
   });
 
   if (!subscription?.createdAt) {
@@ -25,7 +27,7 @@ export async function getWrappedStatsCore(params: { session: Session | null }) {
   const daysProtected = differenceInDays(new Date(), subscription.createdAt);
 
   const userClaims = await db.query.claims.findMany({
-    where: eq(claims.userId, userId),
+    where: and(eq(claims.userId, userId), eq(claims.tenantId, tenantId)),
   });
 
   const resolvedCount = userClaims.filter(c => c.status === 'resolved').length;

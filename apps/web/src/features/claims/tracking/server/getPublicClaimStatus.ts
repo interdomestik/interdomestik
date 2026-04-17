@@ -54,7 +54,7 @@ export async function getPublicClaimStatus(token: string): Promise<PublicClaimSt
 
       // 3. Fetch Claim Status (Minimal)
       const claim = await db.query.claims.findFirst({
-        where: eq(claims.id, record.claimId),
+        where: and(eq(claims.id, record.claimId), eq(claims.tenantId, record.tenantId)),
         columns: {
           id: true,
           status: true,
