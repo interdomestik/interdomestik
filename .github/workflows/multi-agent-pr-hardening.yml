@@ -43,6 +43,7 @@ jobs:
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}
+      PR_NUMBER_INPUT: ${{ inputs.pr_number }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -70,8 +71,8 @@ jobs:
         run: |
           set -euo pipefail
           cmd=(bash scripts/multi-agent/orchestrator.sh --pipeline pr-hardening --no-auto-remediate --agent-timeout-seconds 1200)
-          if [[ -n "${{ inputs.pr_number }}" ]]; then
-            cmd+=(--pr "${{ inputs.pr_number }}")
+          if [[ -n "${PR_NUMBER_INPUT}" ]]; then
+            cmd+=(--pr "${PR_NUMBER_INPUT}")
           fi
           "${cmd[@]}"
 
