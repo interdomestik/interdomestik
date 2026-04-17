@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => ({
   findTenantSetting: vi.fn<() => Promise<Record<string, unknown> | null>>(() =>
     Promise.resolve(null)
   ),
+  findMembershipPlan: vi.fn<() => Promise<Record<string, unknown> | null>>(() =>
+    Promise.resolve(null)
+  ),
   findReferral: vi.fn<() => Promise<Record<string, unknown> | null>>(() => Promise.resolve(null)),
   createMemberReferralReward: vi.fn(() =>
     Promise.resolve({
@@ -30,6 +33,9 @@ vi.mock('@interdomestik/database', () => ({
       },
       tenantSettings: {
         findFirst: () => mocks.findTenantSetting(),
+      },
+      membershipPlans: {
+        findFirst: () => mocks.findMembershipPlan(),
       },
       referrals: {
         findFirst: () => mocks.findReferral(),
@@ -55,6 +61,7 @@ describe('handleSubscriptionChanged tenant guardrail', () => {
     mocks.findSubscription.mockClear();
     mocks.findUser.mockClear();
     mocks.findTenantSetting.mockClear();
+    mocks.findMembershipPlan.mockClear();
     mocks.findReferral.mockClear();
     mocks.createMemberReferralReward.mockClear();
   });

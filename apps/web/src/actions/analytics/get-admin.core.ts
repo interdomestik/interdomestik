@@ -1,6 +1,6 @@
 import { db } from '@interdomestik/database';
 import { membershipPlans, subscriptions } from '@interdomestik/database/schema';
-import { and, eq, gte, sql } from 'drizzle-orm';
+import { and, eq, gte, or, sql } from 'drizzle-orm';
 
 import { isStaffOrAdmin } from '@/lib/roles.core';
 
@@ -48,7 +48,17 @@ export async function getAdminAnalyticsCore(params: {
         createdAt: subscriptions.createdAt,
       })
       .from(subscriptions)
-      .innerJoin(membershipPlans, eq(subscriptions.planId, membershipPlans.paddlePriceId))
+      .innerJoin(
+        membershipPlans,
+        and(
+          eq(subscriptions.tenantId, membershipPlans.tenantId),
+          or(
+            eq(subscriptions.planKey, membershipPlans.id),
+            eq(subscriptions.planId, membershipPlans.id),
+            eq(subscriptions.planId, membershipPlans.paddlePriceId)
+          )
+        )
+      )
       .where(and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, tenantId)));
 
     let mrr = 0;

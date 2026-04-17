@@ -10,6 +10,7 @@ const hoisted = vi.hoisted(() => ({
       user: { findFirst: vi.fn() },
       account: { findFirst: vi.fn() },
       agentClients: { findFirst: vi.fn() },
+      membershipPlans: { findFirst: vi.fn() },
       subscriptions: { findFirst: vi.fn() },
       tenantSettings: { findFirst: vi.fn() },
       webhookEvents: { findFirst: vi.fn() },
@@ -54,6 +55,7 @@ describe('Paddle Webhook Handlers', () => {
       values: vi.fn().mockResolvedValue(undefined),
     }));
     hoisted.db.query.agentClients.findFirst.mockResolvedValue(null);
+    hoisted.db.query.membershipPlans.findFirst.mockResolvedValue(null);
     hoisted.db.update.mockImplementation(() => ({
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue(undefined),
@@ -260,6 +262,53 @@ describe('Paddle Webhook Handlers', () => {
       expect(mockWhere).toHaveBeenCalled();
     });
 
+    it('stores the canonical annual plan id instead of the Paddle price id', async () => {
+      const insertedValues = vi.fn().mockResolvedValue(undefined);
+
+      hoisted.db.insert.mockReturnValue({
+        values: insertedValues,
+      });
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
+      hoisted.db.query.user.findFirst.mockResolvedValue({
+        id: 'user_123',
+        email: 'test@example.com',
+        tenantId: 'tenant_mk',
+      });
+      hoisted.db.query.membershipPlans.findFirst.mockResolvedValue({
+        id: 'mk-standard-plan',
+        tier: 'standard',
+      });
+
+      await handleSubscriptionChanged(
+        {
+          eventType: 'subscription.updated',
+          data: {
+            id: 'sub_paddle_annual',
+            status: 'active',
+            customData: { userId: 'user_123' },
+            items: [
+              {
+                price: {
+                  id: 'pri_standard_year_mk',
+                  unitPrice: { amount: '2000', currencyCode: 'EUR' },
+                },
+              },
+            ],
+            currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
+          },
+        },
+        { logAuditEvent }
+      );
+
+      expect(hoisted.db.query.membershipPlans.findFirst).toHaveBeenCalled();
+      expect(insertedValues).toHaveBeenCalledWith(
+        expect.objectContaining({
+          planId: 'standard',
+          planKey: 'mk-standard-plan',
+        })
+      );
+    });
+
     it('retries as an update when a raced insert hits a unique constraint', async () => {
       const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
       const mockWhere = vi.fn().mockResolvedValue(undefined);
@@ -442,6 +491,50 @@ describe('Paddle Webhook Handlers', () => {
         })
       );
       expect(mockWhere).toHaveBeenCalled();
+    });
+
+    it('normalizes past-due subscriptions to the canonical annual plan id', async () => {
+      const insertedValues = vi.fn().mockResolvedValue(undefined);
+
+      hoisted.db.insert.mockReturnValue({
+        values: insertedValues,
+      });
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
+      hoisted.db.query.user.findFirst.mockResolvedValue({
+        id: 'user_123',
+        email: 'test@example.com',
+        name: 'Member',
+        tenantId: 'tenant_mk',
+      });
+      hoisted.db.query.membershipPlans.findFirst.mockResolvedValue({
+        id: 'mk-family-plan',
+        tier: 'family',
+      });
+
+      await handleSubscriptionPastDue({
+        data: {
+          id: 'sub_paddle_annual',
+          status: 'past_due',
+          customData: { userId: 'user_123' },
+          items: [
+            {
+              price: {
+                id: 'pri_family_year_mk',
+                description: 'Asistenca Family',
+                unitPrice: { amount: '3000', currencyCode: 'EUR' },
+              },
+            },
+          ],
+          currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
+        },
+      });
+
+      expect(insertedValues).toHaveBeenCalledWith(
+        expect.objectContaining({
+          planId: 'family',
+          planKey: 'mk-family-plan',
+        })
+      );
     });
   });
 

@@ -1,5 +1,9 @@
 import { db, eq, subscriptions } from '@interdomestik/database';
 import { findSubscriptionByProviderReference } from '../../subscription';
+import {
+  createCanonicalMembershipPlanState,
+  resolveCanonicalMembershipPlanState,
+} from '../../annual-membership';
 import { subscriptionEventDataSchema } from '../schemas';
 import { mapPaddleStatus, type InternalSubscriptionStatus } from '../subscription-status';
 
@@ -32,6 +36,10 @@ export async function handleSubscriptionChanged(
   const { userId, tenantId, branchId, customData, userRecord } = context;
 
   const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
+  const canonicalPlanState = await resolveCanonicalMembershipPlanState({
+    tenantId,
+    planId: priceId,
+  });
   const mappedStatus = mapPaddleStatus(sub.status);
 
   // 2. Upsert Subscription
@@ -42,7 +50,7 @@ export async function handleSubscriptionChanged(
     agentId: customData?.agentId,
     branchId,
     mappedStatus,
-    priceId,
+    planState: canonicalPlanState,
   });
 
   // 3. Audit Log
@@ -88,10 +96,13 @@ async function upsertSubscription(args: {
   agentId?: string;
   branchId?: string;
   mappedStatus: InternalSubscriptionStatus;
-  priceId: string;
+  planState: {
+    planId: string;
+    planKey: string | null;
+  };
 }) {
-  const { sub, tenantId, userId, agentId, branchId, mappedStatus, priceId } = args;
-  const values = mapToSubscriptionValues(sub, mappedStatus, priceId);
+  const { sub, tenantId, userId, agentId, branchId, mappedStatus, planState } = args;
+  const values = mapToSubscriptionValues(sub, mappedStatus, planState);
   const existingSubscription = await findExistingSubscription(sub.id, userId);
 
   if (existingSubscription) {
@@ -161,7 +172,10 @@ async function updateSubscription(subscriptionId: string, values: Record<string,
 function mapToSubscriptionValues(
   sub: any,
   mappedStatus: InternalSubscriptionStatus,
-  priceId: string
+  planState: {
+    planId: string;
+    planKey: string | null;
+  }
 ) {
   const currentStartsAt =
     sub.currentBillingPeriod?.startsAt || (sub.current_billing_period?.starts_at as string);
@@ -170,7 +184,7 @@ function mapToSubscriptionValues(
 
   const baseValues = {
     status: mappedStatus,
-    planId: priceId,
+    ...createCanonicalMembershipPlanState(planState.planId, planState.planKey),
     providerCustomerId: (sub.customerId || sub.customer_id) as string | null,
     currentPeriodStart: parseDate(currentStartsAt),
     currentPeriodEnd: parseDate(currentEndsAt),
