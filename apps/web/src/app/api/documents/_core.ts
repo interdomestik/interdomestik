@@ -58,12 +58,17 @@ function isFullTenantClaimsRole(role: string | null | undefined): boolean {
   return role === 'admin' || role === 'tenant_admin' || role === 'super_admin';
 }
 
-function hasScopedStaffClaimAccess(args: {
+function hasScopedClaimReadAccess(args: {
   branchId?: string | null;
   claim: { branchId?: string | null; staffId?: string | null; userId: string | null };
+  role: string | null | undefined;
   userId: string;
 }): boolean {
   const branchId = args.branchId ?? null;
+
+  if (args.role === 'branch_manager') {
+    return branchId !== null && args.claim.branchId === branchId;
+  }
 
   if (branchId !== null) {
     return args.claim.branchId === branchId;
@@ -95,10 +100,36 @@ export async function getDocumentAccessCore(args: {
 
   if (polyDoc) {
     const userRole = (session.user.role as string | undefined) ?? undefined;
-    const isPrivileged = userRole === 'staff' || isFullTenantClaimsRole(userRole);
+    const isPrivileged = isFullTenantClaimsRole(userRole);
+    const isScopedClaimReader = userRole === 'staff' || userRole === 'branch_manager';
     const isUploader = polyDoc.uploadedBy === session.user.id;
+    let isScopedClaimDocReader = false;
 
-    if (!isPrivileged && !isUploader) {
+    if (isScopedClaimReader && polyDoc.entityType === 'claim') {
+      const [claimRow] = await db
+        .select({
+          claimOwnerId: claims.userId,
+          claimBranchId: claims.branchId,
+          claimStaffId: claims.staffId,
+        })
+        .from(claims)
+        .where(and(eq(claims.id, polyDoc.entityId), eq(claims.tenantId, tenantId)));
+
+      if (claimRow) {
+        isScopedClaimDocReader = hasScopedClaimReadAccess({
+          branchId: session.user.branchId ?? null,
+          claim: {
+            branchId: claimRow.claimBranchId ?? null,
+            staffId: claimRow.claimStaffId ?? null,
+            userId: claimRow.claimOwnerId ?? null,
+          },
+          role: userRole,
+          userId: session.user.id,
+        });
+      }
+    }
+
+    if (!isPrivileged && !isScopedClaimDocReader && !isUploader) {
       return { ok: false, code: 'FORBIDDEN', message: 'Forbidden' };
     }
 
@@ -152,14 +183,15 @@ export async function getDocumentAccessCore(args: {
   const userRole = (session.user.role as string | undefined) ?? undefined;
   const isPrivileged = isFullTenantClaimsRole(userRole);
   const isScopedStaff =
-    userRole === 'staff' &&
-    hasScopedStaffClaimAccess({
+    (userRole === 'staff' || userRole === 'branch_manager') &&
+    hasScopedClaimReadAccess({
       branchId: session.user.branchId ?? null,
       claim: {
         branchId: row.claimBranchId ?? null,
         staffId: row.claimStaffId ?? null,
         userId: row.claimOwnerId ?? null,
       },
+      role: userRole,
       userId: session.user.id,
     });
   const isClaimOwner = row.claimOwnerId === session.user.id;

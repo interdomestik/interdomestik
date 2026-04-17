@@ -120,4 +120,17 @@ describe('markMessagesAsReadCore', () => {
     // Ensure subquery was constructed
     expect(mocks.select).toHaveBeenCalled();
   });
+
+  it('uses a branch-scoped claim filter for branch manager reads', async () => {
+    await markMessagesAsReadCore({
+      session: {
+        user: { id: 'manager-1', role: 'branch_manager', tenantId: 't1', branchId: 'branch-1' },
+      } as any,
+      messageIds: ['msg-1'],
+    });
+
+    expect(mocks.update).toHaveBeenCalled();
+    expect(mocks.select).toHaveBeenCalledTimes(1);
+    expect(mocks.where).toHaveBeenCalledTimes(2);
+  });
 });

@@ -190,4 +190,34 @@ describe('sendMessageDbCore', () => {
     expect(mocks.insertValues).not.toHaveBeenCalled();
     expect(mocks.logAuditEvent).not.toHaveBeenCalled();
   });
+
+  it('denies branch manager messages even for in-branch claims', async () => {
+    mocks.claimsFindFirst.mockResolvedValue({
+      id: 'claim_1',
+      userId: 'member_1',
+      title: 'My Claim',
+      branchId: 'branch-a',
+      staffId: 'staff-2',
+    });
+
+    const result = await sendMessageDbCore({
+      session: {
+        user: {
+          id: 'manager-1',
+          role: 'branch_manager',
+          name: 'Branch manager',
+          tenantId: 'tenant_mk',
+          branchId: 'branch-a',
+        },
+      } as NonNullable<Session>,
+      requestHeaders: new Headers(),
+      claimId: 'claim_1',
+      content: 'Hello',
+      isInternal: false,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Access denied' });
+    expect(mocks.insertValues).not.toHaveBeenCalled();
+    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+  });
 });

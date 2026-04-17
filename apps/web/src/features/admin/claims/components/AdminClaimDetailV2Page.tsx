@@ -83,6 +83,7 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
               role: session.user.role || 'admin',
             }}
             isAgent={true}
+            readOnly={visibility.role === 'branch_manager'}
           />
 
           {/* 3. Timeline (Audit Trail) */}
@@ -107,6 +108,7 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
           {/* Use the new pure EvidencePanel with explicit mapping */}
           <EvidencePanel
             claimId={data.id}
+            readOnly={visibility.role === 'branch_manager'}
             docs={data.docs.map(d => ({
               id: d.id,
               url: d.url,

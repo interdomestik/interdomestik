@@ -8,9 +8,14 @@ type ClaimAccessRecord = {
 };
 
 const FULL_TENANT_ROLES = new Set(['admin', 'tenant_admin', 'super_admin']);
+const SCOPED_CLAIMS_READ_ROLES = new Set(['staff', 'branch_manager']);
 
 export function isFullTenantClaimsRole(role: string | null | undefined): boolean {
   return role ? FULL_TENANT_ROLES.has(role) : false;
+}
+
+export function isScopedClaimsReadRole(role: string | null | undefined): boolean {
+  return role ? SCOPED_CLAIMS_READ_ROLES.has(role) : false;
 }
 
 export function hasScopedStaffClaimAccess(args: {
@@ -25,6 +30,24 @@ export function hasScopedStaffClaimAccess(args: {
   }
 
   return args.claim.staffId === args.userId || args.claim.staffId == null;
+}
+
+export function hasScopedClaimsReadAccess(args: {
+  branchId?: string | null;
+  claim: ClaimAccessRecord;
+  role: string | null | undefined;
+  userId: string;
+}): boolean {
+  if (args.role === 'branch_manager') {
+    const branchId = args.branchId ?? null;
+    return branchId !== null && args.claim.branchId === branchId;
+  }
+
+  return hasScopedStaffClaimAccess({
+    branchId: args.branchId,
+    claim: args.claim,
+    userId: args.userId,
+  });
 }
 
 export async function hasAgentClaimAccess(args: {
@@ -53,11 +76,20 @@ export function buildAccessibleClaimIdsSubquery(args: {
 }) {
   const branchId = args.branchId ?? null;
 
-  if (args.role === 'staff') {
+  if (args.role === 'staff' || args.role === 'branch_manager') {
+    if (args.role === 'branch_manager' && branchId === null) {
+      return db
+        .select({ id: claims.id })
+        .from(claims)
+        .where(and(eq(claims.tenantId, args.tenantId), eq(claims.id, '__forbidden__')));
+    }
+
     const scope =
-      branchId !== null
-        ? eq(claims.branchId, branchId)
-        : or(eq(claims.staffId, args.userId), isNull(claims.staffId));
+      args.role === 'branch_manager'
+        ? eq(claims.branchId, branchId as string)
+        : branchId !== null
+          ? eq(claims.branchId, branchId)
+          : or(eq(claims.staffId, args.userId), isNull(claims.staffId));
 
     return db
       .select({ id: claims.id })

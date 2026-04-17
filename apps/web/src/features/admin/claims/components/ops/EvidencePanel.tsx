@@ -16,9 +16,10 @@ interface EvidenceDoc {
 interface EvidencePanelProps {
   claimId: string;
   docs: EvidenceDoc[];
+  readOnly?: boolean;
 }
 
-export function EvidencePanel({ claimId, docs }: EvidencePanelProps) {
+export function EvidencePanel({ claimId, docs, readOnly = false }: EvidencePanelProps) {
   const t = useTranslations('admin.claims_page.evidence');
   const tCommon = useTranslations('common');
   const mappedDocs = docs.map(doc => ({
@@ -34,20 +35,22 @@ export function EvidencePanel({ claimId, docs }: EvidencePanelProps) {
       emptyLabel={t('no_docs')}
       viewLabel={tCommon('view')}
       headerActions={
-        <AdminClaimEvidenceUploadDialog
-          claimId={claimId}
-          trigger={
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              title={t('upload_button')}
-              aria-label={t('upload_button')}
-            >
-              <UploadCloud className="w-4 h-4" />
-            </Button>
-          }
-        />
+        readOnly ? null : (
+          <AdminClaimEvidenceUploadDialog
+            claimId={claimId}
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                title={t('upload_button')}
+                aria-label={t('upload_button')}
+              >
+                <UploadCloud className="w-4 h-4" />
+              </Button>
+            }
+          />
+        )
       }
     />
   );

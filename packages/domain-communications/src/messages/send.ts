@@ -46,6 +46,7 @@ export async function sendMessageDbCore(params: {
     const tenantId = ensureTenantId(session);
     const trimmed = content.trim();
     const isScopedStaff = userRole === 'staff';
+    const isBranchManager = userRole === 'branch_manager';
     const isPrivilegedStaff = isFullTenantClaimsRole(userRole);
     const isStaff = isScopedStaff || isPrivilegedStaff;
     const isAgent = userRole === 'agent';
@@ -65,6 +66,10 @@ export async function sendMessageDbCore(params: {
 
     if (!claim) {
       return { success: false, error: 'Claim not found' };
+    }
+
+    if (isBranchManager) {
+      return { success: false, error: 'Access denied' };
     }
 
     if (isPrivilegedStaff) {

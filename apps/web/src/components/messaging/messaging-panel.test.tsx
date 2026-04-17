@@ -229,4 +229,19 @@ describe('MessagingPanel', () => {
     const buttons = screen.getAllByRole('button');
     expect(buttons.length).toBeGreaterThan(0);
   });
+
+  it('hides the message input when readOnly is enabled', async () => {
+    render(
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'branch_manager' }}
+        readOnly
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-thread')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('message-input')).not.toBeInTheDocument();
+  });
 });

@@ -3,7 +3,12 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import type { Session } from '../types';
-import { hasAgentClaimAccess, hasScopedStaffClaimAccess, isFullTenantClaimsRole } from './access';
+import {
+  hasAgentClaimAccess,
+  hasScopedClaimsReadAccess,
+  isFullTenantClaimsRole,
+  isScopedClaimsReadRole,
+} from './access';
 import { normalizeSelectedMessages } from './normalize';
 import type { MessageWithSender, SelectedMessageRow } from './types';
 
@@ -26,7 +31,7 @@ export async function getMessagesForClaimCore(params: {
     const userId = session.user.id;
     const userRole = session.user.role || 'user';
     const tenantId = ensureTenantId(session);
-    const isScopedStaff = userRole === 'staff';
+    const isScopedStaff = isScopedClaimsReadRole(userRole);
     const isPrivilegedStaff = isFullTenantClaimsRole(userRole);
     const isStaff = isScopedStaff || isPrivilegedStaff;
     const isAgent = userRole === 'agent';
@@ -44,9 +49,10 @@ export async function getMessagesForClaimCore(params: {
       // Full-tenant roles can read any in-tenant claim messages.
     } else if (
       isScopedStaff &&
-      !hasScopedStaffClaimAccess({
+      !hasScopedClaimsReadAccess({
         branchId: session.user.branchId ?? null,
         claim,
+        role: userRole,
         userId,
       })
     ) {

@@ -124,4 +124,28 @@ describe('getMessagesForClaimCore', () => {
     expect(result).toEqual({ success: false, error: 'Access denied' });
     expect(mocks.selectChain.orderBy).not.toHaveBeenCalled();
   });
+
+  it('allows branch manager reads for claims in their branch', async () => {
+    mocks.findFirst.mockResolvedValue({
+      id: 'claim-1',
+      userId: 'member-1',
+      branchId: 'branch-a',
+      staffId: 'staff-2',
+    });
+
+    const result = await getMessagesForClaimCore({
+      session: {
+        user: {
+          id: 'manager-1',
+          role: 'branch_manager',
+          tenantId: 'tenant-1',
+          branchId: 'branch-a',
+        },
+      } as never,
+      claimId: 'claim-1',
+    });
+
+    expect(result).toEqual({ success: true, messages: [] });
+    expect(mocks.selectChain.orderBy).toHaveBeenCalled();
+  });
 });
