@@ -3,10 +3,12 @@ import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/ses
 import { ClaimEvidenceUploadDialog } from '@/features/member/claims/components/ClaimEvidenceUploadDialog';
 import { Link } from '@/i18n/routing';
 import { claimDocuments, claims, db, desc, eq } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Button } from '@interdomestik/ui/components/button';
 import { getTranslations } from 'next-intl/server';
+import { and } from 'drizzle-orm';
 
 type DocumentRow = {
   id: string;
@@ -20,6 +22,7 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
   const { locale } = await params;
   const session = await getSessionSafe('MemberDocumentsPage');
   const sessionNonNull = requireSessionOrRedirect(session, locale);
+  const tenantId = ensureTenantId(sessionNonNull);
 
   const tDocs = await getTranslations('documents');
 
@@ -29,7 +32,7 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
       title: claims.title,
     })
     .from(claims)
-    .where(eq(claims.userId, sessionNonNull.user.id))
+    .where(and(eq(claims.userId, sessionNonNull.user.id), eq(claims.tenantId, tenantId)))
     .orderBy(desc(claims.createdAt));
 
   const documents = await db
@@ -42,7 +45,13 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
     })
     .from(claimDocuments)
     .leftJoin(claims, eq(claimDocuments.claimId, claims.id))
-    .where(eq(claims.userId, sessionNonNull.user.id))
+    .where(
+      and(
+        eq(claims.userId, sessionNonNull.user.id),
+        eq(claims.tenantId, tenantId),
+        eq(claimDocuments.tenantId, tenantId)
+      )
+    )
     .orderBy(desc(claimDocuments.createdAt));
 
   const documentsByClaim = documents.reduce<Record<string, DocumentRow[]>>((acc, doc) => {

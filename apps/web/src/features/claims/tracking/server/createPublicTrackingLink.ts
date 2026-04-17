@@ -2,7 +2,7 @@ import { db } from '@interdomestik/database';
 import { claims, claimTrackingTokens } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import crypto from 'crypto';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, or } from 'drizzle-orm';
 import { buildClaimVisibilityWhere } from '../utils';
 
 // Helper to get base URL
@@ -59,7 +59,11 @@ export async function createPublicTrackingLink(
         .update(claimTrackingTokens)
         .set({ revokedAt: new Date() })
         .where(
-          and(eq(claimTrackingTokens.claimId, claimId), isNull(claimTrackingTokens.revokedAt))
+          and(
+            eq(claimTrackingTokens.claimId, claimId),
+            or(eq(claimTrackingTokens.tenantId, tenantId), isNull(claimTrackingTokens.tenantId)),
+            isNull(claimTrackingTokens.revokedAt)
+          )
         );
 
       // 4. Store Hash
