@@ -116,4 +116,16 @@ describe('getPublicClaimStatus', () => {
       })
     );
   });
+
+  it('returns null without querying claims when the token tenant is missing', async () => {
+    hoisted.tokenFindFirst.mockResolvedValueOnce({
+      claimId: 'claim-legacy',
+      tenantId: null,
+    });
+
+    const result = await getPublicClaimStatus('public-token');
+
+    expect(result).toBeNull();
+    expect(hoisted.claimFindFirst).not.toHaveBeenCalled();
+  });
 });
