@@ -54,17 +54,19 @@ export type MemberClaimDetailsResult =
 export async function getMemberClaimDetailsCore(args: {
   claimId: string;
   viewerUserId: string;
+  viewerTenantId: string;
 }): Promise<MemberClaimDetailsResult> {
-  const { claimId, viewerUserId } = args;
+  const { claimId, viewerTenantId, viewerUserId } = args;
 
   const claim = (await db.query.claims.findFirst({
-    where: eq(claims.id, claimId),
+    where: and(eq(claims.id, claimId), eq(claims.tenantId, viewerTenantId)),
     with: { user: true },
   })) as ClaimWithUser | null | undefined;
 
   if (!claim) return { kind: 'not_found' };
   if (claim.userId !== viewerUserId) return { kind: 'not_found' };
-  if (!claim.tenantId) return { kind: 'not_found' };
+  const tenantId = claim.tenantId;
+  if (!tenantId) return { kind: 'not_found' };
 
   const documents = await db
     .select({
@@ -75,7 +77,7 @@ export async function getMemberClaimDetailsCore(args: {
       createdAt: claimDocuments.createdAt,
     })
     .from(claimDocuments)
-    .where(and(eq(claimDocuments.claimId, claimId), eq(claimDocuments.tenantId, claim.tenantId)));
+    .where(and(eq(claimDocuments.claimId, claimId), eq(claimDocuments.tenantId, tenantId)));
 
   const publicStageHistoryRows = await db
     .select({
@@ -86,7 +88,7 @@ export async function getMemberClaimDetailsCore(args: {
     .where(
       and(
         eq(claimStageHistory.claimId, claimId),
-        eq(claimStageHistory.tenantId, claim.tenantId),
+        eq(claimStageHistory.tenantId, tenantId),
         eq(claimStageHistory.isPublic, true)
       )
     )

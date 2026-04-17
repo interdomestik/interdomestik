@@ -1,45 +1,45 @@
 import { expect, test } from '../fixtures/auth.fixture';
+import { getTenantFromTestInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 test.describe('Security & Isolation Smoke Tests', () => {
   // Test 1: Cross-Tenant Isolation
-  // Requirement: A user from Tenant A (KS) cannot access resources from Tenant B (MK).
-  test('Cross-Tenant Access Denial (KS -> MK)', async ({
+  // Requirement: KS and MK members cannot query each other's seeded claim numbers.
+  test('Cross-Tenant Access Denial (member claim search is bidirectional)', async ({
     authenticatedPage: _authenticatedPage,
     request,
-  }) => {
-    // 1. Login as KS Member (done by fixture)
-    // 2. Try to access a known MK resource ID via API (simulating direct attack)
-    // Product rule: "You don't see what you don't own".
+  }, testInfo) => {
+    const actorTenant = getTenantFromTestInfo(testInfo);
 
-    const MK_CLAIM_NUMBER = 'CLM-MK-2024-001';
+    if (actorTenant === 'pilot') {
+      test.skip(true, 'This smoke check only applies to KS/MK seeded tenants.');
+    }
 
-    // API Check - Try to search for an MK claim as a KS user
-    const response = await request.get(`/api/claims?number=${MK_CLAIM_NUMBER}`);
+    const targetClaimNumber = actorTenant === 'mk' ? 'CLM-XK-2026-800001' : 'CLM-MK-2026-000001';
+    const targetTenant = actorTenant === 'mk' ? 'KS' : 'MK';
+
+    const response = await request.get(`/api/claims?number=${targetClaimNumber}`);
     const status = response.status();
     const data = await response.json().catch(() => ({}));
 
-    // SECURITY ASSERTION: The MK claim must NEVER be visible to a KS user.
+    // SECURITY ASSERTION: The opposite tenant's claim must NEVER be visible.
     // Valid responses:
     // - 200 with empty/filtered list (claim is not visible) - PREFERRED
     // - 401/403/404/500 - any error is also valid isolation
-    // INVALID: 200 with the MK claim in the response
+    // INVALID: 200 with the target claim in the response
 
     if (status === 200) {
-      // If 200, verify the response does NOT contain the MK claim
       const list = data.claims || data.data || [];
       const hasMKClaim =
         Array.isArray(list) &&
-        list.some((c: { claimNumber?: string }) => c.claimNumber === MK_CLAIM_NUMBER);
+        list.some((c: { claimNumber?: string }) => c.claimNumber === targetClaimNumber);
 
-      expect(hasMKClaim, `Security Breach: KS user retrieved MK claim ${MK_CLAIM_NUMBER}`).toBe(
-        false
-      );
-      // 200 with empty/filtered results is VALID security behavior (tenant isolation works)
+      expect(
+        hasMKClaim,
+        `Security Breach: ${actorTenant.toUpperCase()} member retrieved ${targetTenant} claim ${targetClaimNumber}`
+      ).toBe(false);
     } else {
-      // Any non-200 response is valid - the key is the user cannot see MK data
-      // This handles 401 (unauthenticated), 403 (forbidden), 404 (not found), 500 (error)
       expect(status, `Unexpected success status ${status}`).not.toBe(200);
     }
   });

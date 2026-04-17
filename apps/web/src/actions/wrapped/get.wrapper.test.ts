@@ -14,8 +14,8 @@ vi.mock('@interdomestik/database', () => {
         },
       },
     },
-    subscriptions: { userId: 's_userId' },
-    claims: { userId: 'c_userId' },
+    subscriptions: { userId: 's_userId', tenantId: 's_tenantId' },
+    claims: { userId: 'c_userId', tenantId: 'c_tenantId' },
   };
 });
 
@@ -25,7 +25,7 @@ vi.mock('@interdomestik/database/constants', () => ({
 }));
 
 describe('getWrappedStatsCore', () => {
-  const mockSession = { user: { id: 'u1', name: 'John' } };
+  const mockSession = { user: { id: 'u1', name: 'John', tenantId: 'tenant_ks' } };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -33,6 +33,16 @@ describe('getWrappedStatsCore', () => {
 
   it('should throw Error if no session', async () => {
     await expect(getWrappedStatsCore({ session: null })).rejects.toThrow('Unauthorized');
+  });
+
+  it('should throw when tenant context is missing', async () => {
+    await expect(
+      getWrappedStatsCore({
+        session: { user: { id: 'u1', name: 'John', tenantId: null } } as any,
+      })
+    ).rejects.toThrow('Session missing tenantId. Data integrity issue.');
+    expect(db.query.subscriptions.findFirst).not.toHaveBeenCalled();
+    expect(db.query.claims.findMany).not.toHaveBeenCalled();
   });
 
   it('should return null if no subscription', async () => {

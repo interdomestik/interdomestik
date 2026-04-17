@@ -105,7 +105,11 @@ describe('getMemberClaimDetailsCore', () => {
   it('returns not_found when claim missing', async () => {
     hoisted.findClaimFirst.mockResolvedValueOnce(null);
 
-    const result = await getMemberClaimDetailsCore({ claimId: 'c1', viewerUserId: 'u1' });
+    const result = await getMemberClaimDetailsCore({
+      claimId: 'c1',
+      viewerUserId: 'u1',
+      viewerTenantId: 'tenant_mk',
+    });
     expect(result).toEqual({ kind: 'not_found' });
   });
 
@@ -116,14 +120,22 @@ describe('getMemberClaimDetailsCore', () => {
       tenantId: 'tenant_mk',
     });
 
-    const result = await getMemberClaimDetailsCore({ claimId: 'c1', viewerUserId: 'u1' });
+    const result = await getMemberClaimDetailsCore({
+      claimId: 'c1',
+      viewerUserId: 'u1',
+      viewerTenantId: 'tenant_mk',
+    });
     expect(result).toEqual({ kind: 'not_found' });
   });
 
   it('returns not_found when claim tenant is missing', async () => {
     hoisted.findClaimFirst.mockResolvedValueOnce({ id: 'c1', userId: 'u1', tenantId: null });
 
-    const result = await getMemberClaimDetailsCore({ claimId: 'c1', viewerUserId: 'u1' });
+    const result = await getMemberClaimDetailsCore({
+      claimId: 'c1',
+      viewerUserId: 'u1',
+      viewerTenantId: 'tenant_mk',
+    });
     expect(result).toEqual({ kind: 'not_found' });
   });
 
@@ -158,7 +170,11 @@ describe('getMemberClaimDetailsCore', () => {
       .mockReturnValueOnce(makeSimpleSelectChain(docs))
       .mockReturnValueOnce(makeSelectChain(history));
 
-    const result = await getMemberClaimDetailsCore({ claimId: 'c1', viewerUserId: 'u1' });
+    const result = await getMemberClaimDetailsCore({
+      claimId: 'c1',
+      viewerUserId: 'u1',
+      viewerTenantId: 'tenant_mk',
+    });
 
     expect(result.kind).toBe('ok');
     if (result.kind !== 'ok') return;

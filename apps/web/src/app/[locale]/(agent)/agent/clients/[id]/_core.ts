@@ -53,26 +53,25 @@ export async function getAgentClientProfileCore(args: {
   viewer: { id: string; role?: string | null; tenantId?: string | null };
 }): Promise<AgentClientProfileResult> {
   const { memberId, viewer } = args;
+  const tenantId = viewer.tenantId ?? null;
 
-  const member = await fetchMember(memberId);
+  if (!tenantId) {
+    return { kind: 'forbidden' };
+  }
+
+  const member = await fetchMember(memberId, tenantId);
 
   if (!member) {
     return { kind: 'not_found' };
   }
 
   if (viewer.role === 'agent') {
-    // Tenant scoping is required for agent authorization checks.
-    // This loader is shared across multiple entry points (clients + members detail).
-    if (!viewer.tenantId) {
-      return { kind: 'forbidden' };
-    }
-
     const assignments = await db
       .select()
       .from(agentClients)
       .where(
         and(
-          eq(agentClients.tenantId, viewer.tenantId),
+          eq(agentClients.tenantId, tenantId),
           eq(agentClients.agentId, viewer.id),
           eq(agentClients.memberId, member.id),
           eq(agentClients.status, 'active')
@@ -88,7 +87,7 @@ export async function getAgentClientProfileCore(args: {
       try {
         assignment = await getAgentMemberDetail({
           agentId: viewer.id,
-          tenantId: viewer.tenantId,
+          tenantId,
           memberId: member.id,
         });
       } catch {
@@ -105,16 +104,19 @@ export async function getAgentClientProfileCore(args: {
 
   const [subscription, preferences, claimCounts, recentClaims, activities] = await Promise.all([
     db.query.subscriptions.findFirst({
-      where: eq(subscriptions.userId, member.id),
+      where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, tenantId)),
       orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
     }),
     db.query.userNotificationPreferences.findFirst({
-      where: eq(userNotificationPreferences.userId, member.id),
+      where: and(
+        eq(userNotificationPreferences.userId, member.id),
+        eq(userNotificationPreferences.tenantId, tenantId)
+      ),
     }),
     db
       .select({ status: claims.status, total: count() })
       .from(claims)
-      .where(eq(claims.userId, member.id))
+      .where(and(eq(claims.userId, member.id), eq(claims.tenantId, tenantId)))
       .groupBy(claims.status),
     db
       .select({
@@ -122,11 +124,11 @@ export async function getAgentClientProfileCore(args: {
         status: claims.status,
       })
       .from(claims)
-      .where(eq(claims.userId, member.id))
+      .where(and(eq(claims.userId, member.id), eq(claims.tenantId, tenantId)))
       .orderBy(desc(claims.createdAt))
       .limit(RECENT_CLAIMS_LIMIT),
     db.query.memberActivities.findMany({
-      where: eq(memberActivities.memberId, member.id),
+      where: and(eq(memberActivities.memberId, member.id), eq(memberActivities.tenantId, tenantId)),
       orderBy: [desc(memberActivities.occurredAt)],
       with: {
         agent: {
@@ -172,9 +174,9 @@ export async function getAgentClientProfileCore(args: {
   };
 }
 
-async function fetchMember(memberId: string) {
+async function fetchMember(memberId: string, tenantId: string) {
   return db.query.user.findFirst({
-    where: eq(userTable.id, memberId),
+    where: and(eq(userTable.id, memberId), eq(userTable.tenantId, tenantId)),
     with: {
       agent: {
         columns: {
