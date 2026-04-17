@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createTrackingDrizzleMock, trackingSchemaMock } from './tracking-test-mocks';
+
 const hoisted = vi.hoisted(() => ({
   tokenFindFirst: vi.fn(),
   claimFindFirst: vi.fn(),
@@ -26,22 +28,17 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('@interdomestik/database/schema', () => ({
   claims: {
-    id: 'claims.id',
-    tenantId: 'claims.tenantId',
+    id: trackingSchemaMock.claims.id,
+    tenantId: trackingSchemaMock.claims.tenantId,
   },
   claimTrackingTokens: {
-    tokenHash: 'claimTrackingTokens.tokenHash',
-    expiresAt: 'claimTrackingTokens.expiresAt',
-    revokedAt: 'claimTrackingTokens.revokedAt',
+    tokenHash: trackingSchemaMock.claimTrackingTokens.tokenHash,
+    expiresAt: trackingSchemaMock.claimTrackingTokens.expiresAt,
+    revokedAt: trackingSchemaMock.claimTrackingTokens.revokedAt,
   },
 }));
 
-vi.mock('drizzle-orm', () => ({
-  and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
-  eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-  gt: vi.fn((left: unknown, right: unknown) => ({ op: 'gt', left, right })),
-  isNull: vi.fn((value: unknown) => ({ op: 'isNull', value })),
-}));
+vi.mock('drizzle-orm', () => createTrackingDrizzleMock());
 
 vi.mock('@sentry/nextjs', () => ({
   withServerActionInstrumentation: hoisted.withServerActionInstrumentation,

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createTrackingDrizzleMock, trackingSchemaMock } from './tracking-test-mocks';
+
 type ClaimRow = {
   id: string;
   tenantId: string;
@@ -170,29 +172,9 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
-vi.mock('@interdomestik/database/schema', () => ({
-  claims: {
-    id: 'claims.id',
-    tenantId: 'claims.tenantId',
-    status: 'claims.status',
-    updatedAt: 'claims.updatedAt',
-  },
-  claimTrackingTokens: {
-    claimId: 'claimTrackingTokens.claimId',
-    tenantId: 'claimTrackingTokens.tenantId',
-    tokenHash: 'claimTrackingTokens.tokenHash',
-    expiresAt: 'claimTrackingTokens.expiresAt',
-    revokedAt: 'claimTrackingTokens.revokedAt',
-  },
-}));
+vi.mock('@interdomestik/database/schema', () => trackingSchemaMock);
 
-vi.mock('drizzle-orm', () => ({
-  and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
-  eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-  gt: vi.fn((left: unknown, right: unknown) => ({ op: 'gt', left, right })),
-  isNull: vi.fn((value: unknown) => ({ op: 'isNull', value })),
-  or: vi.fn((...args: unknown[]) => ({ op: 'or', args })),
-}));
+vi.mock('drizzle-orm', () => createTrackingDrizzleMock());
 
 vi.mock('../utils', () => ({
   buildClaimVisibilityWhere: vi.fn(({ tenantId }: { tenantId: string }) => ({
