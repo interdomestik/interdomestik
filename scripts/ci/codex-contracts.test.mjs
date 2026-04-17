@@ -27,10 +27,9 @@ test('project-scoped Codex config registers the repo MCP servers Interdomestik d
   assert.match(configToml, /\/tmp\/pilot-evidence\/playwright-mcp-profile/);
   assert.match(configToml, /--output-dir/);
   assert.match(configToml, /\/tmp\/pilot-evidence\/playwright-mcp-output/);
-  assert.match(configToml, /command = "pnpm"/);
-  assert.match(configToml, /"exec"/);
-  assert.match(configToml, /"tsx"/);
-  assert.match(configToml, /packages\/qa\/src\/index\.ts/);
+  assert.match(configToml, /command = "bash"/);
+  assert.match(configToml, /scripts\/start-repo-qa\.sh/);
+  assert.doesNotMatch(configToml, /packages\/qa\/src\/index\.ts/);
   assert.doesNotMatch(configToml, /packages\/qa\/dist\/index\.js/);
 });
 
@@ -42,14 +41,15 @@ test('mcp setup verifies Codex project config as well as local QA server prerequ
   assert.match(setupScript, /context7/);
   assert.match(setupScript, /playwright/);
   assert.match(setupScript, /interdomestik_qa/);
-  assert.match(setupScript, /dist\/tools\/list-tools\.js/);
+  assert.match(setupScript, /scripts\/start-repo-qa\.sh/);
+  assert.match(setupScript, /tools\/list/);
 });
 
 test('Codex PR review workflow uses the official action with a repo-owned review prompt', () => {
   const workflow = readText('.github/workflows/codex-review.yml');
 
-  assert.match(workflow, /pull_request:/);
-  assert.match(workflow, /types:\s*\[opened,\s*synchronize,\s*reopened\]/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.doesNotMatch(workflow, /pull_request:/);
   assert.ok(
     workflow.includes(
       ['    permissions:', '      contents: read', '      pull-requests: write'].join('\n')

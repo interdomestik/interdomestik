@@ -1,16 +1,27 @@
 name: Codex Review
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull request number to review'
+        required: true
+        type: string
+      base_ref:
+        description: 'Base branch for the review'
+        required: true
+        type: string
+      head_ref:
+        description: 'Head branch for the review'
+        required: true
+        type: string
 
 concurrency:
-  group: codex-review-${{ github.event.pull_request.number }}
+  group: codex-review-${{ inputs.pr_number }}
   cancel-in-progress: true
 
 jobs:
   codex:
-    if: github.event.pull_request.head.repo.fork == false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -21,13 +32,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ inputs.head_ref }}
           fetch-depth: 0
 
       - name: Pre-fetch base and head refs
         env:
-          BASE_REF: ${{ github.event.pull_request.base.ref }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_REF: ${{ inputs.base_ref }}
+          HEAD_REF: ${{ inputs.head_ref }}
         run: |
           git check-ref-format --branch "${BASE_REF}"
           git check-ref-format --branch "${HEAD_REF}"
@@ -90,8 +101,9 @@ jobs:
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
+              issue_number: Number(process.env.PR_NUMBER),
               body: process.env.CODEX_FINAL_MESSAGE,
             });
         env:
           CODEX_FINAL_MESSAGE: ${{ needs.codex.outputs.final_message }}
+          PR_NUMBER: ${{ inputs.pr_number }}

@@ -91,33 +91,16 @@ test('CI PR path keeps only RLS coverage while PR E2E owns the full browser gate
   assert.equal(findStep(prE2eJob.steps, 'E2E Smoke Suite (KS+MK)'), undefined);
 });
 
-test('CI includes a PR-only non-blocking AI eval lane keyed off AI file changes', () => {
+test('CI no longer materializes optional AI-eval and multi-agent dry-run lanes on the default PR path', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const validationSurfaceJob = ciWorkflow.jobs['validation-surface'];
-  const aiEvalJob = ciWorkflow.jobs['ai-eval'];
 
-  assert.equal(
-    validationSurfaceJob.outputs.ai_eval_should_run,
-    '${{ steps.ai_eval_surface.outputs.should_run }}'
-  );
-  assert.equal(validationSurfaceJob.outputs.ai_eval_reason, '${{ steps.ai_eval_surface.outputs.reason }}');
-  assert.equal(
-    validationSurfaceJob.outputs.ai_eval_matched_paths,
-    '${{ steps.ai_eval_surface.outputs.matched_paths }}'
-  );
-  assert.ok(findStep(validationSurfaceJob.steps, 'Evaluate AI eval surface'));
-
-  assert.ok(aiEvalJob);
-  assert.deepEqual(normalizeNeeds(aiEvalJob.needs), ['validation-surface']);
-  assert.equal(
-    aiEvalJob.if,
-    "github.event_name == 'pull_request' && needs.validation-surface.outputs.ai_eval_should_run == 'true'"
-  );
-  assert.equal(aiEvalJob['continue-on-error'], true);
-  assert.ok(findStep(aiEvalJob.steps, 'Explain AI eval surface'));
-  const runStep = findStep(aiEvalJob.steps, 'Run AI eval fixtures');
-  assert.ok(runStep);
-  assert.equal(runStep.run, 'pnpm ai:eval');
+  assert.equal(validationSurfaceJob.outputs.ai_eval_should_run, undefined);
+  assert.equal(validationSurfaceJob.outputs.ai_eval_reason, undefined);
+  assert.equal(validationSurfaceJob.outputs.ai_eval_matched_paths, undefined);
+  assert.equal(findStep(validationSurfaceJob.steps, 'Evaluate AI eval surface'), undefined);
+  assert.equal(ciWorkflow.jobs['ai-eval'], undefined);
+  assert.equal(ciWorkflow.jobs['multi-agent-dry-run'], undefined);
 });
 
 test('CI unit lane runs the blocking repository coverage gate', () => {
@@ -137,12 +120,7 @@ test('Secret Scan is the sole blocking gitleaks surface for PR and mainline whil
   const secretScanWorkflow = readWorkflow('.github/workflows/secret-scan.yml');
   const securityWorkflow = readWorkflow('.github/workflows/security.yml');
 
-  assert.deepEqual(secretScanWorkflow.on.push.branches, [
-    'main',
-    'master',
-    'rc/**',
-    'release/**',
-  ]);
+  assert.deepEqual(secretScanWorkflow.on.push.branches, ['main', 'master', 'rc/**', 'release/**']);
   assert.deepEqual(secretScanWorkflow.on.pull_request.branches, ['**']);
   assert.deepEqual(secretScanWorkflow.on.schedule, [{ cron: '0 6 * * 1' }]);
 
@@ -297,6 +275,16 @@ test('Required pilot gate wrapper fails or passes based on preflight and runner 
   assert.equal(pilotGateJob['runs-on'], 'ubuntu-latest');
   assert.equal(pilotGateJob.services, undefined);
   assert.ok(findStep(steps, 'Enforce pilot gate preflight/result contract'));
+});
+
+test('Optional multi-agent PR hardening is no longer part of the default pull_request workflow path', () => {
+  const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
+  const multiAgentWorkflow = readWorkflow('.github/workflows/multi-agent-pr-hardening.yml');
+
+  assert.equal(pilotGateWorkflow.jobs['multi-agent-policy'], undefined);
+  assert.equal(pilotGateWorkflow.jobs['multi-agent-pr-hardening'], undefined);
+  assert.ok(multiAgentWorkflow.jobs['multi-agent-pr-hardening']);
+  assert.ok(multiAgentWorkflow.on.workflow_dispatch);
 });
 
 test('CI audit job runs the scripts/ci contract suite', () => {
