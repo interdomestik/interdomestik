@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Wrapper to start repo-qa-server with correct MCP_REPO_ROOT
-set -e
+# Wrapper to start the repo-local Interdomestik QA MCP server with a stable repo root.
+set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export MCP_REPO_ROOT="$REPO_ROOT"
+cd "$REPO_ROOT"
 
-# Execute the server
-exec node /Users/arbenlila/development/mcp-toolkit/servers/repo-qa-server/src/index.mjs
+exec pnpm exec tsx packages/qa/src/index.ts
