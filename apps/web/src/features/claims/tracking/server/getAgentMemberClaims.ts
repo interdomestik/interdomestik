@@ -1,5 +1,5 @@
 import { db } from '@interdomestik/database';
-import { claims, user } from '@interdomestik/database/schema';
+import { agentClients, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { and, desc, eq, inArray, ne } from 'drizzle-orm';
 import 'server-only';
@@ -42,18 +42,52 @@ export async function getAgentMemberClaims(session: any): Promise<AgentMemberCla
         // allowing broader roles for flexibility if they visit the page.
       }
 
-      // 2. Fetch Members assigned to this agent
-      // We need to know which members this agent manages.
-      // Logic: User.agentId == session.userId
+      const [membersByUserAgent, activeAgentClientRows] = await Promise.all([
+        db.query.user.findMany({
+          where: and(eq(user.tenantId, tenantId), eq(user.agentId, userId)),
+          columns: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        }),
+        db
+          .select({ memberId: agentClients.memberId })
+          .from(agentClients)
+          .where(
+            and(
+              eq(agentClients.tenantId, tenantId),
+              eq(agentClients.agentId, userId),
+              eq(agentClients.status, 'active')
+            )
+          ),
+      ]);
 
-      const members = await db.query.user.findMany({
-        where: and(eq(user.tenantId, tenantId), eq(user.agentId, userId)),
-        columns: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      });
+      const memberById = new Map<string, { id: string; name: string; email: string }>();
+      for (const member of membersByUserAgent) {
+        memberById.set(member.id, member);
+      }
+
+      const memberIdsFromAgentClients = activeAgentClientRows
+        .map(row => row.memberId)
+        .filter(memberId => typeof memberId === 'string' && !memberById.has(memberId));
+
+      if (memberIdsFromAgentClients.length > 0) {
+        const additionalMembers = await db.query.user.findMany({
+          where: and(eq(user.tenantId, tenantId), inArray(user.id, memberIdsFromAgentClients)),
+          columns: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        });
+
+        for (const member of additionalMembers) {
+          memberById.set(member.id, member);
+        }
+      }
+
+      const members = Array.from(memberById.values());
 
       if (members.length === 0) {
         return [];

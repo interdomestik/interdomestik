@@ -1,5 +1,6 @@
 'use server';
 
+import { findAccessibleAdminUploadClaim } from '@/features/claims/upload/server/access';
 import {
   createSignedUploadUrl,
   persistClaimDocumentAndQueueWorkflows,
@@ -8,9 +9,7 @@ import {
 import { auth } from '@/lib/auth';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import { claims, db } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { and, eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 const ALLOWED_ADMIN_UPLOAD_ROLES = new Set([
   'admin',
@@ -108,8 +107,12 @@ export async function generateAdminUploadUrl(
   }
 
   const { tenantId, resolvedBucket } = uploadContext;
-  const claim = await db.query.claims.findFirst({
-    where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
+  const claim = await findAccessibleAdminUploadClaim({
+    branchId: uploadContext.session.user.branchId ?? null,
+    claimId,
+    role: uploadContext.session.user.role ?? null,
+    tenantId,
+    userId: uploadContext.session.user.id,
   });
 
   if (!claim) {
@@ -142,8 +145,12 @@ export async function confirmAdminUpload({
   }
 
   const { session, tenantId, resolvedBucket } = uploadContext;
-  const claim = await db.query.claims.findFirst({
-    where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
+  const claim = await findAccessibleAdminUploadClaim({
+    branchId: session.user.branchId ?? null,
+    claimId,
+    role: session.user.role ?? null,
+    tenantId,
+    userId: session.user.id,
   });
 
   if (!claim) {

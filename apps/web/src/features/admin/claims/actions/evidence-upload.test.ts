@@ -1,24 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const hoisted = vi.hoisted(() => {
-  const and = vi.fn((...args: unknown[]) => ({ op: 'and', args }));
-  const eq = vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right }));
-
-  return {
-    authGetSession: vi.fn(),
-    headers: vi.fn(),
-    ensureTenantId: vi.fn(),
-    resolveTenantFromHost: vi.fn(),
-    resolveEvidenceBucketName: vi.fn(),
-    findClaimFirst: vi.fn(),
-    revalidatePath: vi.fn(),
-    insertValues: vi.fn(),
-    insert: vi.fn(),
-    transaction: vi.fn(),
-    and,
-    eq,
-  };
-});
+const hoisted = vi.hoisted(() => ({
+  authGetSession: vi.fn(),
+  headers: vi.fn(),
+  ensureTenantId: vi.fn(),
+  resolveTenantFromHost: vi.fn(),
+  resolveEvidenceBucketName: vi.fn(),
+  findAccessibleAdminUploadClaim: vi.fn(),
+  revalidatePath: vi.fn(),
+  createSignedUploadUrl: vi.fn(),
+  persistClaimDocumentAndQueueWorkflows: vi.fn(),
+}));
 
 vi.mock('@/lib/auth', () => ({
   auth: { api: { getSession: hoisted.authGetSession } },
@@ -31,25 +23,13 @@ vi.mock('@/lib/tenant/tenant-hosts', () => ({
 vi.mock('@/lib/storage/evidence-bucket', () => ({
   resolveEvidenceBucketName: hoisted.resolveEvidenceBucketName,
 }));
-vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: { claims: { findFirst: hoisted.findClaimFirst } },
-    insert: hoisted.insert,
-    transaction: hoisted.transaction,
-  },
-  claims: { id: 'claims.id', tenantId: 'claims.tenant_id' },
-}));
-vi.mock('drizzle-orm', () => ({ and: hoisted.and, eq: hoisted.eq }));
 vi.mock('next/cache', () => ({ revalidatePath: hoisted.revalidatePath }));
+vi.mock('@/features/claims/upload/server/access', () => ({
+  findAccessibleAdminUploadClaim: hoisted.findAccessibleAdminUploadClaim,
+}));
 vi.mock('@/features/claims/upload/server/shared-upload', () => ({
-  createSignedUploadUrl: vi.fn().mockResolvedValue({
-    success: true,
-    bucket: 'claim-evidence',
-    path: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
-    token: 'upload-token',
-    id: 'file-id',
-  }),
-  persistClaimDocumentAndQueueWorkflows: vi.fn().mockResolvedValue(undefined),
+  createSignedUploadUrl: hoisted.createSignedUploadUrl,
+  persistClaimDocumentAndQueueWorkflows: hoisted.persistClaimDocumentAndQueueWorkflows,
   revalidatePathForAllLocales: (path: string) => hoisted.revalidatePath(`/mk${path}`),
 }));
 
@@ -70,11 +50,18 @@ describe('admin claim evidence upload actions', () => {
     hoisted.ensureTenantId.mockReturnValue('tenant-1');
     hoisted.resolveTenantFromHost.mockReturnValue('tenant-1');
     hoisted.resolveEvidenceBucketName.mockReturnValue('claim-evidence');
-    hoisted.findClaimFirst.mockResolvedValue({ id: 'claim-1' });
-    hoisted.insert.mockReturnValue({ values: hoisted.insertValues });
-    hoisted.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) =>
-      callback({ insert: hoisted.insert })
-    );
+    hoisted.findAccessibleAdminUploadClaim.mockResolvedValue({
+      branchId: 'branch-1',
+      staffId: 'staff-1',
+    });
+    hoisted.createSignedUploadUrl.mockResolvedValue({
+      success: true,
+      bucket: 'claim-evidence',
+      path: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
+      token: 'upload-token',
+      id: 'file-id',
+    });
+    hoisted.persistClaimDocumentAndQueueWorkflows.mockResolvedValue(undefined);
   });
 
   it('rejects upload URL issuance when the admin host tenant drifts', async () => {
@@ -93,6 +80,64 @@ describe('admin claim evidence upload actions', () => {
     await expect(
       generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)
     ).resolves.toEqual({ success: false, error: 'Unauthorized', status: 401 });
+  });
+
+  it('denies upload URL issuance for staff outside claim scope', async () => {
+    hoisted.authGetSession.mockResolvedValueOnce({
+      user: { id: 'staff-2', tenantId: 'tenant-1', role: 'staff', branchId: 'branch-2' },
+    });
+    hoisted.findAccessibleAdminUploadClaim.mockResolvedValueOnce(null);
+
+    await expect(
+      generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)
+    ).resolves.toEqual({ success: false, error: 'Claim not found', status: 404 });
+
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
+  });
+
+  it('allows assigned staff even when the claim branch differs', async () => {
+    hoisted.authGetSession.mockResolvedValueOnce({
+      user: { id: 'staff-2', tenantId: 'tenant-1', role: 'staff', branchId: 'branch-2' },
+    });
+    hoisted.findAccessibleAdminUploadClaim.mockResolvedValueOnce({
+      branchId: 'branch-1',
+      staffId: 'staff-2',
+    });
+
+    await expect(
+      generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)
+    ).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        id: 'file-id',
+      })
+    );
+  });
+
+  it('denies confirm for branch managers outside claim branch scope', async () => {
+    hoisted.authGetSession.mockResolvedValueOnce({
+      user: {
+        id: 'branch-manager-1',
+        tenantId: 'tenant-1',
+        role: 'branch_manager',
+        branchId: 'branch-2',
+      },
+    });
+    hoisted.findAccessibleAdminUploadClaim.mockResolvedValueOnce(null);
+
+    await expect(
+      confirmAdminUpload({
+        claimId: 'claim-1',
+        storagePath: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
+        originalName: 'evidence.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 1024,
+        fileId: 'file-id',
+        uploadedBucket: 'claim-evidence',
+      })
+    ).resolves.toEqual({ success: false, error: 'Claim not found', status: 404 });
+
+    expect(hoisted.persistClaimDocumentAndQueueWorkflows).not.toHaveBeenCalled();
   });
 
   it('revalidates admin and staff claim surfaces after confirming upload metadata', async () => {
