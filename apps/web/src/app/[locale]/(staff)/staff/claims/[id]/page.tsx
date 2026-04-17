@@ -61,12 +61,16 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     return notFound();
   }
 
-  const [detail, latestStatusNote, assignmentOptions, initialMessagesResult] = await Promise.all([
-    getStaffClaimDetail({
-      claimId: id,
-      staffId: session.user.id,
-      tenantId: session.user.tenantId,
-    }),
+  const detail = await getStaffClaimDetail({
+    branchId: session.user.branchId ?? null,
+    claimId: id,
+    staffId: session.user.id,
+    tenantId: session.user.tenantId,
+  });
+
+  if (!detail) return notFound();
+
+  const [latestStatusNote, assignmentOptions, initialMessagesResult] = await Promise.all([
     getLatestPublicStatusNoteCore({
       claimId: id,
       tenantId: session.user.tenantId,
@@ -84,8 +88,6 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
         })
       : Promise.resolve({ success: true as const, messages: [] }),
   ]);
-
-  if (!detail) return notFound();
 
   const currentAssigneeLabel =
     assignmentOptions.find(option => option.id === detail.claim.staffId)?.label ?? null;

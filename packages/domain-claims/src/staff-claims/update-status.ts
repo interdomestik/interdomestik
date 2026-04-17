@@ -30,6 +30,7 @@ import {
   getRecoveryDeclineMemberDescription,
 } from './recovery-decision';
 import { upsertRecoveryDecisionRecord } from './save-recovery-decision';
+import { buildScopedStaffClaimWhere } from './scope';
 
 const STAFF_LED_RECOVERY_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
 const RECOVERY_DECISION_REQUIRED_ERROR =
@@ -424,6 +425,7 @@ export async function updateClaimStatusCore(
   const status = parsed.data.status as ClaimStatus; // NOSONAR
 
   const tenantId = ensureTenantId(session);
+  const branchId = session.user.branchId ?? null;
   const trimmedNote = note?.trim() || undefined;
   const trimmedAllowanceOverrideReason = params.allowanceOverrideReason?.trim() || undefined;
   const trimmedDecisionExplanation = params.decisionExplanation?.trim() || undefined;
@@ -437,11 +439,18 @@ export async function updateClaimStatusCore(
         staffId: claims.staffId,
       })
       .from(claims)
-      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)))
+      .where(
+        buildScopedStaffClaimWhere({
+          branchId,
+          claimId,
+          tenantId,
+          userId: session.user.id,
+        })
+      )
       .limit(1);
 
     if (!currentClaim) {
-      return { success: false, error: 'Claim not found' };
+      return { success: false, error: 'Claim not found or access denied' };
     }
 
     if (currentClaim.status === status && !trimmedNote) {

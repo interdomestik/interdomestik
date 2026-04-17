@@ -16,6 +16,7 @@ import { ClaimStatus } from '@interdomestik/database/constants';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
 import { mapClaimToOperationalRow, RawClaimRow } from '../mappers/mapClaimToOperationalRow';
+import { canViewAdminClaims, resolveClaimsVisibility } from './claimVisibility';
 import { ClaimOpsDetail } from '../types';
 
 export type OpsClaimDetailResult = { kind: 'not_found' } | { kind: 'ok'; data: ClaimOpsDetail };
@@ -68,6 +69,9 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
   } catch {
     return { kind: 'not_found' };
   }
+  const visibility = await resolveClaimsVisibility(session);
+  if (!visibility || !canViewAdminClaims(visibility)) return { kind: 'not_found' };
+  if (visibility.role === 'branch_manager' && !visibility.branchId) return { kind: 'not_found' };
   const requestHost = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
   const hostTenantId = resolveTenantFromHost(requestHost);
   if (hostTenantId && hostTenantId !== sessionTenantId) return { kind: 'not_found' };
@@ -82,7 +86,13 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
     },
     async tx => {
       const claim = (await tx.query.claims.findFirst({
-        where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
+        where: and(
+          eq(claims.id, claimId),
+          eq(claims.tenantId, tenantId),
+          visibility.role === 'branch_manager' && visibility.branchId
+            ? eq(claims.branchId, visibility.branchId)
+            : undefined
+        ),
         with: {
           staff: {
             columns: {

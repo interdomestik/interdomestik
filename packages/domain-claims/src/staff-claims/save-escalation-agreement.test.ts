@@ -226,6 +226,33 @@ describe('saveClaimEscalationAgreementCore', () => {
     });
   });
 
+  it('denies saving escalation agreements for claims outside the acting staff scope', async () => {
+    mocks.txSelect
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([]);
+    mocks.agreementSelectChain.limit.mockResolvedValue([]);
+
+    const result = await saveClaimEscalationAgreementCore({
+      claimId: 'claim-1',
+      decisionNextStatus: 'negotiation',
+      decisionReason: 'Member accepted commercial terms for negotiation.',
+      feePercentage: 15,
+      legalActionCapPercentage: 25,
+      minimumFee: 25,
+      paymentAuthorizationState: 'authorized',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      termsVersion: '2026-03-v1',
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Claim not found or access denied',
+    });
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expect(mocks.txInsert).not.toHaveBeenCalled();
+  });
+
   it('records a commercial audit event when staff save recovery terms', async () => {
     const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 

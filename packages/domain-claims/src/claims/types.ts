@@ -8,6 +8,7 @@ export type ClaimStartHandoffContext = {
 
 export type ClaimsSession = {
   user: {
+    branchId?: string | null;
     id: string;
     role?: string | null;
     tenantId?: string | null;

@@ -155,4 +155,24 @@ describe('saveRecoveryDecisionCore', () => {
       staffLabel: 'Accepted for staff-led recovery',
     });
   });
+
+  it('denies saving recovery decisions for claims outside the acting staff scope', async () => {
+    mocks.txSelect
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([]);
+
+    const result = await saveRecoveryDecisionCore({
+      claimId: 'claim-1',
+      decisionType: 'accepted',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Claim not found or access denied',
+    });
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expect(mocks.txInsert).not.toHaveBeenCalled();
+  });
 });

@@ -254,6 +254,20 @@ describe('saveSuccessFeeCollectionCore', () => {
     expect(mocks.txUpdate).not.toHaveBeenCalled();
   });
 
+  it('denies saving success-fee collection for claims outside the acting staff scope', async () => {
+    mockSaveSelects({
+      claim: [],
+    });
+
+    const result = await runSaveSuccessFeeCollection();
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Claim not found or access denied',
+    });
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
+  });
+
   it('rejects accepted cases whose agreement snapshot is still incomplete', async () => {
     mockSaveSelects({
       agreement: [

@@ -1,4 +1,4 @@
-import { and, claimEscalationAgreements, claims, db, eq, user } from '@interdomestik/database';
+import { claimEscalationAgreements, claims, db, eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import {
   buildAcceptedRecoveryPrerequisitesSnapshot,
@@ -8,6 +8,7 @@ import {
 import { buildCommercialHandlingScopeSnapshot } from './commercial-handling-scope';
 import { getMatterAllowanceVisibilityForUser } from './matter-allowance';
 import { buildRecoveryDecisionSnapshot } from './recovery-decision';
+import { buildScopedStaffClaimWhere } from './scope';
 import type {
   AcceptedRecoveryPrerequisitesSnapshot,
   ClaimEscalationAgreementSnapshot,
@@ -58,11 +59,12 @@ function normalizeDate(value: Date | string | null | undefined) {
 }
 
 export async function getStaffClaimDetail(params: {
+  branchId?: string | null;
   staffId: string;
   tenantId: string;
   claimId: string;
 }): Promise<StaffClaimDetail | null> {
-  const { tenantId, claimId } = params;
+  const { branchId = null, tenantId, claimId } = params;
 
   const rows = await db
     .select({
@@ -102,7 +104,14 @@ export async function getStaffClaimDetail(params: {
     .from(claims)
     .leftJoin(user, eq(claims.userId, user.id))
     .leftJoin(claimEscalationAgreements, eq(claims.id, claimEscalationAgreements.claimId))
-    .where(withTenant(tenantId, claims.tenantId, and(eq(claims.id, claimId))))
+    .where(
+      buildScopedStaffClaimWhere({
+        branchId,
+        claimId,
+        tenantId,
+        userId: params.staffId,
+      })
+    )
     .limit(1);
 
   const row = rows[0];

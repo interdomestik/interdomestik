@@ -520,6 +520,24 @@ describe('staff updateClaimStatusCore', () => {
     );
   });
 
+  it('denies status changes for claims outside the acting staff scope', async () => {
+    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([]);
+
+    const result = await updateClaimStatusCore({
+      claimId: 'claim-1',
+      newStatus: 'verification',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Claim not found or access denied',
+    });
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expect(mocks.txInsert).not.toHaveBeenCalled();
+  });
+
   it('blocks recovery status transition after staff accept the recovery decision when agreement terms are still missing', async () => {
     mockRecoverySelects({
       agreement: [
