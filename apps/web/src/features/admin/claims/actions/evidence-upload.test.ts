@@ -15,6 +15,8 @@ const hoisted = vi.hoisted(() => {
     insertValues: vi.fn(),
     insert: vi.fn(),
     transaction: vi.fn(),
+    createSignedUploadUrl: vi.fn(),
+    persistClaimDocumentAndQueueWorkflows: vi.fn(),
     and,
     eq,
   };
@@ -42,14 +44,8 @@ vi.mock('@interdomestik/database', () => ({
 vi.mock('drizzle-orm', () => ({ and: hoisted.and, eq: hoisted.eq }));
 vi.mock('next/cache', () => ({ revalidatePath: hoisted.revalidatePath }));
 vi.mock('@/features/claims/upload/server/shared-upload', () => ({
-  createSignedUploadUrl: vi.fn().mockResolvedValue({
-    success: true,
-    bucket: 'claim-evidence',
-    path: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
-    token: 'upload-token',
-    id: 'file-id',
-  }),
-  persistClaimDocumentAndQueueWorkflows: vi.fn().mockResolvedValue(undefined),
+  createSignedUploadUrl: hoisted.createSignedUploadUrl,
+  persistClaimDocumentAndQueueWorkflows: hoisted.persistClaimDocumentAndQueueWorkflows,
   revalidatePathForAllLocales: (path: string) => hoisted.revalidatePath(`/mk${path}`),
 }));
 
@@ -70,11 +66,23 @@ describe('admin claim evidence upload actions', () => {
     hoisted.ensureTenantId.mockReturnValue('tenant-1');
     hoisted.resolveTenantFromHost.mockReturnValue('tenant-1');
     hoisted.resolveEvidenceBucketName.mockReturnValue('claim-evidence');
-    hoisted.findClaimFirst.mockResolvedValue({ id: 'claim-1' });
+    hoisted.findClaimFirst.mockResolvedValue({
+      id: 'claim-1',
+      branchId: 'branch-1',
+      staffId: 'staff-1',
+    });
     hoisted.insert.mockReturnValue({ values: hoisted.insertValues });
     hoisted.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) =>
       callback({ insert: hoisted.insert })
     );
+    hoisted.createSignedUploadUrl.mockResolvedValue({
+      success: true,
+      bucket: 'claim-evidence',
+      path: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
+      token: 'upload-token',
+      id: 'file-id',
+    });
+    hoisted.persistClaimDocumentAndQueueWorkflows.mockResolvedValue(undefined);
   });
 
   it('rejects upload URL issuance when the admin host tenant drifts', async () => {
@@ -93,6 +101,53 @@ describe('admin claim evidence upload actions', () => {
     await expect(
       generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)
     ).resolves.toEqual({ success: false, error: 'Unauthorized', status: 401 });
+  });
+
+  it('denies upload URL issuance for staff outside claim scope', async () => {
+    hoisted.authGetSession.mockResolvedValueOnce({
+      user: { id: 'staff-2', tenantId: 'tenant-1', role: 'staff', branchId: 'branch-2' },
+    });
+    hoisted.findClaimFirst.mockResolvedValueOnce({
+      id: 'claim-1',
+      branchId: 'branch-1',
+      staffId: 'staff-1',
+    });
+
+    await expect(
+      generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)
+    ).resolves.toEqual({ success: false, error: 'Claim not found', status: 404 });
+
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
+  });
+
+  it('denies confirm for branch managers outside claim branch scope', async () => {
+    hoisted.authGetSession.mockResolvedValueOnce({
+      user: {
+        id: 'branch-manager-1',
+        tenantId: 'tenant-1',
+        role: 'branch_manager',
+        branchId: 'branch-2',
+      },
+    });
+    hoisted.findClaimFirst.mockResolvedValueOnce({
+      id: 'claim-1',
+      branchId: 'branch-1',
+      staffId: 'staff-1',
+    });
+
+    await expect(
+      confirmAdminUpload({
+        claimId: 'claim-1',
+        storagePath: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
+        originalName: 'evidence.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 1024,
+        fileId: 'file-id',
+        uploadedBucket: 'claim-evidence',
+      })
+    ).resolves.toEqual({ success: false, error: 'Claim not found', status: 404 });
+
+    expect(hoisted.persistClaimDocumentAndQueueWorkflows).not.toHaveBeenCalled();
   });
 
   it('revalidates admin and staff claim surfaces after confirming upload metadata', async () => {

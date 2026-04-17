@@ -3,6 +3,7 @@ import {
   resolveStorageUploadContentType,
   resolveUploadMimeType,
 } from '@/features/admin/claims/components/ops/file-upload-meta';
+import { canAccessClaimFromAdminUploadSurface } from '@/features/claims/upload/server/access';
 import { confirmUpload } from '@/features/member/claims/actions';
 import { LOCALES } from '@/i18n/locales';
 import { auth } from '@/lib/auth';
@@ -10,6 +11,7 @@ import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import { claims, createAdminClient, db } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
+import * as Sentry from '@sentry/nextjs';
 import { randomUUID } from 'crypto';
 import { and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -28,6 +30,7 @@ function isAdminUploadRole(role: string | null | undefined): boolean {
 }
 
 async function validateClaimAccess(params: {
+  branchId?: string | null;
   claimId: string;
   role: string | null | undefined;
   tenantId: string;
@@ -43,10 +46,25 @@ async function validateClaimAccess(params: {
       : and(eq(claims.id, claimId), eq(claims.tenantId, tenantId), eq(claims.userId, userId)),
     columns: {
       id: true,
+      branchId: true,
+      staffId: true,
+      userId: true,
     },
   });
 
   if (!claim) {
+    return { success: false, status: 404 };
+  }
+
+  if (
+    isAdminSurface &&
+    !canAccessClaimFromAdminUploadSurface({
+      branchId: params.branchId ?? null,
+      claim,
+      role,
+      userId,
+    })
+  ) {
     return { success: false, status: 404 };
   }
 
@@ -104,6 +122,7 @@ export async function POST(request: Request) {
   const role = session.user.role ?? null;
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '';
   const claimAccess = await validateClaimAccess({
+    branchId: session.user.branchId ?? null,
     claimId,
     role,
     tenantId,
@@ -162,6 +181,21 @@ export async function POST(request: Request) {
       });
 
   if (!confirmResult.success) {
+    Sentry.captureMessage('claim.evidence_upload.confirm_failed_after_storage_upload', {
+      level: 'warning',
+      extra: {
+        claimId,
+        tenantId,
+        userId: session.user.id,
+        role,
+        fileId,
+        bucket,
+        storagePath,
+        category,
+        confirmStatus: confirmResult.status,
+        confirmError: confirmResult.error,
+      },
+    });
     return NextResponse.json({ error: confirmResult.error }, { status: confirmResult.status });
   }
 

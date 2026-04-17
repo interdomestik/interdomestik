@@ -1,5 +1,6 @@
 'use server';
 
+import { canAccessClaimFromAdminUploadSurface } from '@/features/claims/upload/server/access';
 import {
   createSignedUploadUrl,
   persistClaimDocumentAndQueueWorkflows,
@@ -110,9 +111,22 @@ export async function generateAdminUploadUrl(
   const { tenantId, resolvedBucket } = uploadContext;
   const claim = await db.query.claims.findFirst({
     where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
+    columns: {
+      id: true,
+      branchId: true,
+      staffId: true,
+    },
   });
 
-  if (!claim) {
+  if (
+    !claim ||
+    !canAccessClaimFromAdminUploadSurface({
+      branchId: uploadContext.session.user.branchId ?? null,
+      claim,
+      role: uploadContext.session.user.role ?? null,
+      userId: uploadContext.session.user.id,
+    })
+  ) {
     return { success: false, error: 'Claim not found', status: 404 };
   }
 
@@ -144,9 +158,22 @@ export async function confirmAdminUpload({
   const { session, tenantId, resolvedBucket } = uploadContext;
   const claim = await db.query.claims.findFirst({
     where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
+    columns: {
+      id: true,
+      branchId: true,
+      staffId: true,
+    },
   });
 
-  if (!claim) {
+  if (
+    !claim ||
+    !canAccessClaimFromAdminUploadSurface({
+      branchId: session.user.branchId ?? null,
+      claim,
+      role: session.user.role ?? null,
+      userId: session.user.id,
+    })
+  ) {
     return { success: false, error: 'Claim not found', status: 404 };
   }
 
