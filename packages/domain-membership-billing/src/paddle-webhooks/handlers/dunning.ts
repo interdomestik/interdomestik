@@ -1,5 +1,9 @@
 import { db, eq, subscriptions } from '@interdomestik/database';
 import { findSubscriptionByProviderReference } from '../../subscription';
+import {
+  createCanonicalMembershipPlanState,
+  resolveCanonicalMembershipPlanState,
+} from '../../annual-membership';
 
 import { subscriptionEventDataSchema } from '../schemas';
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../types';
@@ -65,12 +69,18 @@ export async function handleSubscriptionPastDue(
   }
 
   const existingSub = await findExistingPastDueSubscription(sub.id, userId);
+  const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
+  const canonicalPlanState = await resolveCanonicalMembershipPlanState({
+    tenantId: userRecord.tenantId,
+    planId: priceId,
+  });
   const pastDueState = buildPastDueState({
     sub,
     userId,
     userRecord,
     existingSub,
     now: new Date(),
+    planState: canonicalPlanState,
   });
 
   await persistPastDueSubscription({
@@ -145,10 +155,13 @@ function buildPastDueState(args: {
   userRecord: PastDueUserRecord;
   existingSub: ExistingSubscriptionRecord;
   now: Date;
+  planState: {
+    planId: string;
+    planKey: string | null;
+  };
 }): { values: PastDueValues; gracePeriodEnd: Date; newDunningCount: number } {
   const gracePeriodEnd = args.existingSub?.gracePeriodEndsAt ?? calculateGracePeriodEnd(args.now);
   const newDunningCount = (args.existingSub?.dunningAttemptCount ?? 0) + 1;
-  const priceId = args.sub.items?.[0]?.price?.id || args.sub.items?.[0]?.priceId || 'unknown';
 
   return {
     gracePeriodEnd,
@@ -157,7 +170,7 @@ function buildPastDueState(args: {
       tenantId: args.userRecord.tenantId,
       userId: args.userId,
       status: 'past_due',
-      planId: priceId,
+      ...createCanonicalMembershipPlanState(args.planState.planId, args.planState.planKey),
       providerSubscriptionId: args.sub.id,
       providerCustomerId: args.sub.customerId || args.sub.customer_id,
       pastDueAt: args.existingSub?.pastDueAt ?? args.now,

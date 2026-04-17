@@ -1,6 +1,10 @@
 import { sendMemberWelcomeEmail } from '@/lib/email';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
-import { createActiveAnnualMembershipState } from '@interdomestik/domain-membership-billing/annual-membership';
+import {
+  createActiveAnnualMembershipFulfillment,
+  createCanonicalMembershipPlanState,
+  resolveCanonicalMembershipPlanState,
+} from '@interdomestik/domain-membership-billing';
 import {
   account,
   agentClients,
@@ -46,6 +50,10 @@ export async function registerMemberCore(
   const data = validated.data;
   const userId = nanoid();
   const membershipMode = options.membershipMode ?? 'direct';
+  const canonicalPlanState = await resolveCanonicalMembershipPlanState({
+    tenantId,
+    planId: data.planId,
+  });
 
   try {
     await withTransactionRetry(async tx => {
@@ -96,13 +104,21 @@ export async function registerMemberCore(
       const subscriptionValues =
         membershipMode === 'sponsored'
           ? {
+              ...createCanonicalMembershipPlanState(
+                canonicalPlanState.planId,
+                canonicalPlanState.planKey
+              ),
               status: 'paused' as const,
               provider: 'group_sponsor',
               acquisitionSource: 'group_roster_import',
               currentPeriodStart: null,
               currentPeriodEnd: null,
             }
-          : createActiveAnnualMembershipState(now);
+          : createActiveAnnualMembershipFulfillment(
+              canonicalPlanState.planId,
+              now,
+              canonicalPlanState.planKey
+            );
 
       await tx.insert(subscriptions).values({
         id: nanoid(),
@@ -110,7 +126,6 @@ export async function registerMemberCore(
         branchId: agentBranchId,
         agentId: agent.id,
         userId,
-        planId: data.planId,
         ...subscriptionValues,
         createdAt: now,
         updatedAt: now,

@@ -6,6 +6,10 @@ const mocks = vi.hoisted(() => ({
     memberNumber: 'MEM-2026-000001',
     isNew: true,
   }),
+  findMembershipPlan: vi.fn().mockResolvedValue({
+    id: 'tenant-standard-plan',
+    tier: 'standard',
+  }),
   withTransactionRetry: vi.fn(),
   emailExecute: vi.fn(),
 }));
@@ -18,6 +22,16 @@ vi.mock('@interdomestik/shared-utils/circuit-breaker', () => ({
   circuitBreakers: {
     email: {
       execute: mocks.emailExecute,
+    },
+  },
+}));
+
+vi.mock('@interdomestik/database', () => ({
+  db: {
+    query: {
+      membershipPlans: {
+        findFirst: mocks.findMembershipPlan,
+      },
     },
   },
 }));
@@ -51,6 +65,10 @@ describe('registerMemberCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     insertValues.length = 0;
+    mocks.findMembershipPlan.mockResolvedValue({
+      id: 'tenant-standard-plan',
+      tier: 'standard',
+    });
     mocks.withTransactionRetry.mockImplementation(async callback => {
       const tx = {
         insert: vi.fn().mockReturnThis(),
@@ -87,6 +105,7 @@ describe('registerMemberCore', () => {
       expect.objectContaining({
         status: 'active',
         planId: 'standard',
+        planKey: 'tenant-standard-plan',
       })
     );
   });

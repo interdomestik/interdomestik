@@ -37,6 +37,7 @@ vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
   and: vi.fn(),
   gte: vi.fn(),
+  or: vi.fn(),
   sql: vi.fn(),
   desc: vi.fn(),
   relations: vi.fn(),

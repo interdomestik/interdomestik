@@ -1,6 +1,9 @@
 import { and, db, eq } from '@interdomestik/database';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
-import { createActiveAnnualMembershipState } from '@interdomestik/domain-membership-billing/annual-membership';
+import {
+  createActiveAnnualMembershipFulfillment,
+  resolveCanonicalMembershipPlanState,
+} from '@interdomestik/domain-membership-billing';
 import {
   agentClients,
   memberLeads,
@@ -47,7 +50,15 @@ export async function convertLeadToMember(
 
   const userId = `usr_${nanoid()}`;
   const now = new Date();
-  const annualMembershipState = createActiveAnnualMembershipState(now);
+  const canonicalPlanState = await resolveCanonicalMembershipPlanState({
+    tenantId: ctx.tenantId,
+    planId,
+  });
+  const annualMembershipState = createActiveAnnualMembershipFulfillment(
+    canonicalPlanState.planId,
+    now,
+    canonicalPlanState.planKey
+  );
 
   return await db.transaction(async tx => {
     // A. Insert User with role='member'
@@ -75,7 +86,6 @@ export async function convertLeadToMember(
       id: subscriptionId,
       tenantId: ctx.tenantId,
       userId,
-      planId,
       agentId: lead.agentId,
       branchId: lead.branchId,
       ...annualMembershipState,

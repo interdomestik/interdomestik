@@ -16,6 +16,9 @@ const mocks = vi.hoisted(() => ({
       memberLeads: {
         findFirst: vi.fn(),
       },
+      membershipPlans: {
+        findFirst: vi.fn(),
+      },
     },
     transaction: vi.fn(),
   },
@@ -94,6 +97,7 @@ describe('convertLeadToMember', () => {
 
   beforeEach(() => {
     mocks.db.query.memberLeads.findFirst.mockReset();
+    mocks.db.query.membershipPlans.findFirst.mockReset();
     mocks.db.transaction.mockReset();
     mocks.generateMemberNumber.mockReset();
     mocks.nanoid.mockReset();
@@ -112,6 +116,10 @@ describe('convertLeadToMember', () => {
       email: 'arben@example.com',
       status: 'new',
       convertedUserId: 'usr_existing',
+    });
+    mocks.db.query.membershipPlans.findFirst.mockResolvedValue({
+      id: 'tenant-standard-plan',
+      tier: 'standard',
     });
 
     mocks.db.transaction.mockImplementation(async () => {
@@ -140,6 +148,10 @@ describe('convertLeadToMember', () => {
       email: 'arben@example.com',
       status: 'new',
       convertedUserId: null,
+    });
+    mocks.db.query.membershipPlans.findFirst.mockResolvedValue({
+      id: 'tenant-standard-plan',
+      tier: 'standard',
     });
     mocks.generateMemberNumber.mockResolvedValue({ memberNumber: 'M-1001' });
     mocks.nanoid
@@ -170,6 +182,7 @@ describe('convertLeadToMember', () => {
       userId: 'usr_user-seed',
       status: 'active',
       planId: 'standard',
+      planKey: 'tenant-standard-plan',
       agentId: 'agent-1',
       branchId: 'branch-1',
       currentPeriodStart: now,
@@ -238,6 +251,10 @@ describe('convertLeadToMember', () => {
       status: 'new',
       convertedUserId: null,
     });
+    mocks.db.query.membershipPlans.findFirst.mockResolvedValue({
+      id: 'tenant-family-plan',
+      tier: 'family',
+    });
     mocks.generateMemberNumber.mockResolvedValue({ memberNumber: 'M-1002' });
     mocks.nanoid
       .mockReturnValueOnce('user-seed')
@@ -259,6 +276,7 @@ describe('convertLeadToMember', () => {
     )?.values;
     expect(subscriptionInsert).toMatchObject({
       planId: 'family',
+      planKey: 'tenant-family-plan',
       branchId: 'branch-1',
       currentPeriodStart: now,
       currentPeriodEnd: expectedPeriodEnd,
