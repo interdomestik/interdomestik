@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   insertValues: vi.fn((_vals?: unknown) => ({ onConflictDoUpdate: vi.fn(async () => undefined) })),
-  selectResults: [] as unknown[],
+  selectResults: [] as unknown[][],
   findSubscription: vi.fn<() => Promise<Record<string, unknown> | null>>(() =>
     Promise.resolve(null)
   ),

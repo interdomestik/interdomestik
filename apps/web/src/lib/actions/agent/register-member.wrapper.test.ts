@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
     memberNumber: 'MEM-2026-000001',
     isNew: true,
   }),
-  selectResults: [] as unknown[],
+  selectResults: [] as unknown[][],
   withTransactionRetry: vi.fn(),
   emailExecute: vi.fn(),
 }));
