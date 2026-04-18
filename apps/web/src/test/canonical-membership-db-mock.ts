@@ -11,16 +11,28 @@ export const CANONICAL_MEMBERSHIP_PLAN_COLUMNS = {
   isActive: 'membership_plans.is_active',
 } as const;
 
+function createQueuedLimit(selectResults: QueuedSelectResults) {
+  return vi.fn(async () => selectResults.shift() ?? []);
+}
+
+function createQueuedWhere(selectResults: QueuedSelectResults) {
+  return vi.fn(() => ({
+    orderBy: vi.fn(() => ({
+      limit: createQueuedLimit(selectResults),
+    })),
+    limit: createQueuedLimit(selectResults),
+  }));
+}
+
+function createQueuedFrom(selectResults: QueuedSelectResults) {
+  return vi.fn(() => ({
+    where: createQueuedWhere(selectResults),
+  }));
+}
+
 export function createQueuedSelectMock(selectResults: QueuedSelectResults) {
   return vi.fn(() => ({
-    from: vi.fn(() => ({
-      where: vi.fn(() => ({
-        orderBy: vi.fn(() => ({
-          limit: vi.fn(async () => selectResults.shift() ?? []),
-        })),
-        limit: vi.fn(async () => selectResults.shift() ?? []),
-      })),
-    })),
+    from: createQueuedFrom(selectResults),
   }));
 }
 
