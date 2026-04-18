@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   insertValues: vi.fn((_vals?: unknown) => ({ onConflictDoUpdate: vi.fn(async () => undefined) })),
+  selectResults: [] as unknown[],
   findSubscription: vi.fn<() => Promise<Record<string, unknown> | null>>(() =>
     Promise.resolve(null)
   ),
@@ -22,8 +23,29 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  and: vi.fn((...conditions: unknown[]) => ({ kind: 'and', conditions })),
+  asc: vi.fn((value: unknown) => ({ kind: 'asc', value })),
+  eq: vi.fn((column: unknown, value: unknown) => ({ kind: 'eq', column, value })),
+  membershipPlans: {
+    id: 'membership_plans.id',
+    tenantId: 'membership_plans.tenant_id',
+    tier: 'membership_plans.tier',
+    paddlePriceId: 'membership_plans.paddle_price_id',
+    interval: 'membership_plans.interval',
+    isActive: 'membership_plans.is_active',
+  },
   subscriptions: { id: 'id' },
   db: {
+    select: () => ({
+      from: () => ({
+        where: () => ({
+          orderBy: () => ({
+            limit: async () => (mocks.selectResults.shift() as unknown[] | undefined) ?? [],
+          }),
+          limit: async () => (mocks.selectResults.shift() as unknown[] | undefined) ?? [],
+        }),
+      }),
+    }),
     query: {
       subscriptions: {
         findFirst: () => mocks.findSubscription(),
@@ -58,6 +80,7 @@ import { handleSubscriptionChanged } from '@interdomestik/domain-membership-bill
 describe('handleSubscriptionChanged tenant guardrail', () => {
   beforeEach(() => {
     mocks.insertValues.mockClear();
+    mocks.selectResults.length = 0;
     mocks.findSubscription.mockClear();
     mocks.findUser.mockClear();
     mocks.findTenantSetting.mockClear();
