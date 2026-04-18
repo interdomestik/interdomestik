@@ -8,6 +8,25 @@ const tableRefs = vi.hoisted(() => ({
   agentClients: { table: 'agentClients' },
 }));
 
+function createQueuedLimit(selectResults: unknown[][]) {
+  return vi.fn(async () => selectResults.shift() ?? []);
+}
+
+function createQueuedWhere(selectResults: unknown[][]) {
+  return vi.fn(() => ({
+    orderBy: vi.fn(() => ({
+      limit: createQueuedLimit(selectResults),
+    })),
+    limit: createQueuedLimit(selectResults),
+  }));
+}
+
+function createQueuedFrom(selectResults: unknown[][]) {
+  return vi.fn(() => ({
+    where: createQueuedWhere(selectResults),
+  }));
+}
+
 const mocks = vi.hoisted(() => ({
   eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
   and: vi.fn((...clauses) => ({ clauses, op: 'and' })),
@@ -23,14 +42,7 @@ const mocks = vi.hoisted(() => ({
       },
     },
     select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => ({
-          orderBy: vi.fn(() => ({
-            limit: vi.fn(async () => mocks.selectResults.shift() ?? []),
-          })),
-          limit: vi.fn(async () => mocks.selectResults.shift() ?? []),
-        })),
-      })),
+      from: createQueuedFrom(mocks.selectResults),
     })),
     transaction: vi.fn(),
   },
