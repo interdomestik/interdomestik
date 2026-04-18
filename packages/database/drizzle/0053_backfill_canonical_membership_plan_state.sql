@@ -22,7 +22,21 @@ WITH ranked_plan_matches AS (
      s."plan_key" = mp."id"
      OR s."plan_id" = mp."id"
      OR s."plan_id" = mp."paddle_price_id"
-     OR s."plan_id" = mp."tier"::text
+     OR (
+       s."plan_id" = mp."tier"::text
+       AND mp."interval" = 'year'
+       AND mp."is_active" = true
+       AND EXISTS (
+         SELECT 1
+         FROM "membership_plans" mp2
+         WHERE mp2."tenant_id" = mp."tenant_id"
+           AND mp2."tier" = mp."tier"
+           AND mp2."interval" = 'year'
+           AND mp2."is_active" = true
+         GROUP BY mp2."tenant_id", mp2."tier"
+         HAVING COUNT(*) = 1
+       )
+     )
    )
 )
 UPDATE "subscriptions" s

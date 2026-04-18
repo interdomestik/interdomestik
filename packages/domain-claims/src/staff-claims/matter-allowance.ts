@@ -24,7 +24,6 @@ export type MatterAllowanceSubscriptionContext = {
   currentPeriodEnd: NormalizableDate;
   currentPeriodStart: NormalizableDate;
   planId: string | null | undefined;
-  planKey: string | null | undefined;
   subscriptionId: string;
 };
 
@@ -134,7 +133,6 @@ export async function getMatterAllowanceSubscriptionContextForUser(params: {
       currentPeriodEnd: subscriptions.currentPeriodEnd,
       currentPeriodStart: subscriptions.currentPeriodStart,
       planId: subscriptions.planId,
-      planKey: subscriptions.planKey,
     })
     .from(subscriptions)
     .where(
@@ -151,7 +149,6 @@ export async function getMatterAllowanceSubscriptionContextForUser(params: {
     currentPeriodEnd: subscription.currentPeriodEnd,
     currentPeriodStart: subscription.currentPeriodStart,
     planId: subscription.planId,
-    planKey: subscription.planKey,
   };
 }
 

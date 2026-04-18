@@ -48,7 +48,7 @@ export async function getAdminAnalyticsCore(params: {
         createdAt: subscriptions.createdAt,
       })
       .from(subscriptions)
-      .innerJoin(
+      .leftJoin(
         membershipPlans,
         and(
           eq(subscriptions.tenantId, membershipPlans.tenantId),
@@ -72,13 +72,18 @@ export async function getAdminAnalyticsCore(params: {
       .from(subscriptions)
       .where(eq(subscriptions.tenantId, tenantId));
 
+    const activeSubsCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(subscriptions)
+      .where(and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, tenantId)));
+
     const canceledSubsCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(subscriptions)
       .where(and(eq(subscriptions.status, 'canceled'), eq(subscriptions.tenantId, tenantId)));
 
     const totalMembers = Number(allSubsCount[0]?.count || 0);
-    const activeMembers = activeSubs.length;
+    const activeMembers = Number(activeSubsCount[0]?.count || 0);
     const canceledMembers = Number(canceledSubsCount[0]?.count || 0);
     const churnRate = totalMembers > 0 ? (canceledMembers / totalMembers) * 100 : 0;
 

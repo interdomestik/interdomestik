@@ -1,17 +1,28 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  and: vi.fn((...conditions) => ({ op: 'and', conditions })),
+  asc: vi.fn(column => ({ op: 'asc', column })),
   db: {
-    query: {
-      membershipPlans: {
-        findFirst: vi.fn(),
-      },
-    },
+    select: vi.fn(),
+  },
+  eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
+  membershipPlans: {
+    id: 'membership_plans.id',
+    interval: 'membership_plans.interval',
+    isActive: 'membership_plans.is_active',
+    paddlePriceId: 'membership_plans.paddle_price_id',
+    tenantId: 'membership_plans.tenant_id',
+    tier: 'membership_plans.tier',
   },
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  and: hoisted.and,
+  asc: hoisted.asc,
   db: hoisted.db,
+  eq: hoisted.eq,
+  membershipPlans: hoisted.membershipPlans,
 }));
 
 import {
@@ -22,7 +33,10 @@ import {
 } from './annual-membership';
 
 beforeEach(() => {
-  hoisted.db.query.membershipPlans.findFirst.mockReset();
+  hoisted.and.mockClear();
+  hoisted.asc.mockClear();
+  hoisted.db.select.mockReset();
+  hoisted.eq.mockClear();
 });
 
 describe('createActiveAnnualMembershipState', () => {
@@ -68,33 +82,97 @@ describe('resolveCanonicalMembershipPlanState', () => {
       planKey: null,
     });
 
-    expect(hoisted.db.query.membershipPlans.findFirst).not.toHaveBeenCalled();
+    expect(hoisted.db.select).not.toHaveBeenCalled();
   });
 
-  it('does not compare non-tier provider ids against the membership tier enum', async () => {
-    hoisted.db.query.membershipPlans.findFirst.mockResolvedValue(undefined);
+  it('checks id and provider ids before attempting the canonical annual tier match', async () => {
+    const selectChain = {
+      from: vi.fn(),
+      where: vi.fn(),
+      orderBy: vi.fn(),
+      limit: vi.fn(),
+    };
 
-    await resolveCanonicalMembershipPlanState({
-      tenantId: 'tenant-mk',
-      planId: 'pri_standard_year',
+    selectChain.from.mockReturnValue(selectChain);
+    selectChain.where.mockReturnValue(selectChain);
+    selectChain.orderBy.mockReturnValue(selectChain);
+    selectChain.limit
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 'tenant-standard-plan', tier: 'standard' }]);
+
+    hoisted.db.select.mockReturnValue(selectChain);
+
+    await expect(
+      resolveCanonicalMembershipPlanState({
+        tenantId: 'tenant-mk',
+        planId: 'standard',
+      })
+    ).resolves.toEqual({
+      planId: 'standard',
+      planKey: 'tenant-standard-plan',
     });
 
-    const [query] = hoisted.db.query.membershipPlans.findFirst.mock.calls[0] ?? [];
-    const eq = vi.fn((left, right) => ({ left, right }));
-    const or = vi.fn((...conditions) => conditions);
-    const and = vi.fn((...conditions) => conditions);
+    expect(hoisted.db.select).toHaveBeenCalledTimes(3);
+    expect(selectChain.orderBy).toHaveBeenCalledTimes(1);
+  });
 
-    query.where(
-      {
-        id: 'membership_plans.id',
-        paddlePriceId: 'membership_plans.paddle_price_id',
-        tenantId: 'membership_plans.tenant_id',
-        tier: 'membership_plans.tier',
-      },
-      { and, eq, or }
-    );
+  it('does not attempt a tier lookup for non-tier provider ids', async () => {
+    const selectChain = {
+      from: vi.fn(),
+      where: vi.fn(),
+      orderBy: vi.fn(),
+      limit: vi.fn(),
+    };
 
-    expect(eq).not.toHaveBeenCalledWith('membership_plans.tier', 'pri_standard_year');
+    selectChain.from.mockReturnValue(selectChain);
+    selectChain.where.mockReturnValue(selectChain);
+    selectChain.orderBy.mockReturnValue(selectChain);
+    selectChain.limit.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+    hoisted.db.select.mockReturnValue(selectChain);
+
+    await expect(
+      resolveCanonicalMembershipPlanState({
+        tenantId: 'tenant-mk',
+        planId: 'pri_standard_year',
+      })
+    ).resolves.toEqual({
+      planId: 'pri_standard_year',
+      planKey: null,
+    });
+
+    expect(hoisted.db.select).toHaveBeenCalledTimes(2);
+    expect(selectChain.orderBy).not.toHaveBeenCalled();
+  });
+
+  it('returns the exact plan row when the incoming value already is a membership plan id', async () => {
+    const selectChain = {
+      from: vi.fn(),
+      where: vi.fn(),
+      orderBy: vi.fn(),
+      limit: vi.fn(),
+    };
+
+    selectChain.from.mockReturnValue(selectChain);
+    selectChain.where.mockReturnValue(selectChain);
+    selectChain.orderBy.mockReturnValue(selectChain);
+    selectChain.limit.mockResolvedValueOnce([{ id: 'tenant-family-plan', tier: 'family' }]);
+
+    hoisted.db.select.mockReturnValue(selectChain);
+
+    await expect(
+      resolveCanonicalMembershipPlanState({
+        tenantId: 'tenant-mk',
+        planId: 'tenant-family-plan',
+      })
+    ).resolves.toEqual({
+      planId: 'family',
+      planKey: 'tenant-family-plan',
+    });
+
+    expect(hoisted.db.select).toHaveBeenCalledTimes(1);
+    expect(selectChain.orderBy).not.toHaveBeenCalled();
   });
 });
 

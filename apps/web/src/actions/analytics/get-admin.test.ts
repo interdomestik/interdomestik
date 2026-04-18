@@ -7,7 +7,7 @@ import { getAdminAnalyticsCore } from './get-admin';
 // Mock database
 vi.mock('@interdomestik/database', () => {
   const queryBuilder = {
-    innerJoin: vi.fn(() => ({
+    leftJoin: vi.fn(() => ({
       where: vi.fn().mockResolvedValue([]),
     })),
     where: vi.fn(() => ({
