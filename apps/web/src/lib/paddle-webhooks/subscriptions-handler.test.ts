@@ -22,54 +22,42 @@ const mocks = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  and: vi.fn((...conditions: unknown[]) => ({ kind: 'and', conditions })),
-  asc: vi.fn((value: unknown) => ({ kind: 'asc', value })),
-  eq: vi.fn((column: unknown, value: unknown) => ({ kind: 'eq', column, value })),
-  membershipPlans: {
-    id: 'membership_plans.id',
-    tenantId: 'membership_plans.tenant_id',
-    tier: 'membership_plans.tier',
-    paddlePriceId: 'membership_plans.paddle_price_id',
-    interval: 'membership_plans.interval',
-    isActive: 'membership_plans.is_active',
-  },
-  subscriptions: { id: 'id' },
-  db: {
-    select: () => ({
-      from: () => ({
-        where: () => ({
-          orderBy: () => ({
-            limit: async () => (mocks.selectResults.shift() as unknown[] | undefined) ?? [],
-          }),
-          limit: async () => (mocks.selectResults.shift() as unknown[] | undefined) ?? [],
-        }),
+vi.mock('@interdomestik/database', async () => {
+  const helper = await import('@/test/canonical-membership-db-mock');
+
+  return {
+    and: vi.fn((...conditions: unknown[]) => ({ kind: 'and', conditions })),
+    asc: vi.fn((value: unknown) => ({ kind: 'asc', value })),
+    eq: vi.fn((column: unknown, value: unknown) => ({ kind: 'eq', column, value })),
+    membershipPlans: helper.CANONICAL_MEMBERSHIP_PLAN_COLUMNS,
+    subscriptions: { id: 'id' },
+    db: {
+      select: helper.createQueuedSelectMock(mocks.selectResults),
+      query: {
+        subscriptions: {
+          findFirst: () => mocks.findSubscription(),
+        },
+        user: {
+          findFirst: () => mocks.findUser(),
+        },
+        tenantSettings: {
+          findFirst: () => mocks.findTenantSetting(),
+        },
+        membershipPlans: {
+          findFirst: () => mocks.findMembershipPlan(),
+        },
+        referrals: {
+          findFirst: () => mocks.findReferral(),
+        },
+      },
+      insert: () => ({
+        values: (vals: unknown) => {
+          return mocks.insertValues(vals) as unknown as { onConflictDoUpdate: () => Promise<void> };
+        },
       }),
-    }),
-    query: {
-      subscriptions: {
-        findFirst: () => mocks.findSubscription(),
-      },
-      user: {
-        findFirst: () => mocks.findUser(),
-      },
-      tenantSettings: {
-        findFirst: () => mocks.findTenantSetting(),
-      },
-      membershipPlans: {
-        findFirst: () => mocks.findMembershipPlan(),
-      },
-      referrals: {
-        findFirst: () => mocks.findReferral(),
-      },
     },
-    insert: () => ({
-      values: (vals: unknown) => {
-        return mocks.insertValues(vals) as unknown as { onConflictDoUpdate: () => Promise<void> };
-      },
-    }),
-  },
-}));
+  };
+});
 
 vi.mock('@interdomestik/domain-referrals/member-referrals/rewards', () => ({
   createMemberReferralRewardCore: mocks.createMemberReferralReward,

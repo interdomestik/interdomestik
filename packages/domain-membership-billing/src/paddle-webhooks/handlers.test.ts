@@ -16,11 +16,34 @@ const hoisted = vi.hoisted(() => ({
       webhookEvents: { findFirst: vi.fn() },
     },
     transaction: vi.fn(),
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          orderBy: vi.fn(() => ({
+            limit: vi.fn(
+              async () => (hoisted.selectResults.shift() as unknown[] | undefined) ?? []
+            ),
+          })),
+          limit: vi.fn(async () => (hoisted.selectResults.shift() as unknown[] | undefined) ?? []),
+        })),
+      })),
+    })),
     insert: vi.fn(() => ({ values: vi.fn(() => ({ onConflictDoUpdate: vi.fn() })) })),
     update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) })),
   },
+  selectResults: [] as unknown[],
+  and: vi.fn((...conditions: unknown[]) => ({ op: 'and', conditions })),
+  asc: vi.fn((value: unknown) => ({ op: 'asc', value })),
   subscriptions: { id: 'id_col' },
   user: { id: 'user.id' },
+  membershipPlans: {
+    id: 'membership_plans.id',
+    tenantId: 'membership_plans.tenant_id',
+    tier: 'membership_plans.tier',
+    paddlePriceId: 'membership_plans.paddle_price_id',
+    interval: 'membership_plans.interval',
+    isActive: 'membership_plans.is_active',
+  },
   tx: {
     insert: vi.fn(),
     update: vi.fn(),
@@ -30,8 +53,11 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  and: hoisted.and,
+  asc: hoisted.asc,
   db: hoisted.db,
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
+  membershipPlans: hoisted.membershipPlans,
   subscriptions: hoisted.subscriptions,
   user: hoisted.user,
 }));
@@ -50,6 +76,7 @@ describe('Paddle Webhook Handlers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.selectResults.length = 0;
     hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.tx));
     hoisted.db.insert.mockImplementation(() => ({
       values: vi.fn().mockResolvedValue(undefined),
@@ -274,10 +301,7 @@ describe('Paddle Webhook Handlers', () => {
         email: 'test@example.com',
         tenantId: 'tenant_mk',
       });
-      hoisted.db.query.membershipPlans.findFirst.mockResolvedValue({
-        id: 'mk-standard-plan',
-        tier: 'standard',
-      });
+      hoisted.selectResults.push([], [{ id: 'mk-standard-plan', tier: 'standard' }]);
 
       await handleSubscriptionChanged(
         {
@@ -300,7 +324,6 @@ describe('Paddle Webhook Handlers', () => {
         { logAuditEvent }
       );
 
-      expect(hoisted.db.query.membershipPlans.findFirst).toHaveBeenCalled();
       expect(insertedValues).toHaveBeenCalledWith(
         expect.objectContaining({
           planId: 'standard',
@@ -506,10 +529,7 @@ describe('Paddle Webhook Handlers', () => {
         name: 'Member',
         tenantId: 'tenant_mk',
       });
-      hoisted.db.query.membershipPlans.findFirst.mockResolvedValue({
-        id: 'mk-family-plan',
-        tier: 'family',
-      });
+      hoisted.selectResults.push([], [{ id: 'mk-family-plan', tier: 'family' }]);
 
       await handleSubscriptionPastDue({
         data: {

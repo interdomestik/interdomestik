@@ -23,31 +23,19 @@ vi.mock('@interdomestik/shared-utils/circuit-breaker', () => ({
   },
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  and: vi.fn((...conditions: unknown[]) => ({ kind: 'and', conditions })),
-  asc: vi.fn((value: unknown) => ({ kind: 'asc', value })),
-  eq: vi.fn((column: unknown, value: unknown) => ({ kind: 'eq', column, value })),
-  membershipPlans: {
-    id: 'membership_plans.id',
-    tenantId: 'membership_plans.tenant_id',
-    tier: 'membership_plans.tier',
-    paddlePriceId: 'membership_plans.paddle_price_id',
-    interval: 'membership_plans.interval',
-    isActive: 'membership_plans.is_active',
-  },
-  db: {
-    select: () => ({
-      from: () => ({
-        where: () => ({
-          orderBy: () => ({
-            limit: async () => (mocks.selectResults.shift() as unknown[] | undefined) ?? [],
-          }),
-          limit: async () => (mocks.selectResults.shift() as unknown[] | undefined) ?? [],
-        }),
-      }),
-    }),
-  },
-}));
+vi.mock('@interdomestik/database', async () => {
+  const helper = await import('@/test/canonical-membership-db-mock');
+
+  return {
+    and: vi.fn((...conditions: unknown[]) => ({ kind: 'and', conditions })),
+    asc: vi.fn((value: unknown) => ({ kind: 'asc', value })),
+    eq: vi.fn((column: unknown, value: unknown) => ({ kind: 'eq', column, value })),
+    membershipPlans: helper.CANONICAL_MEMBERSHIP_PLAN_COLUMNS,
+    db: {
+      select: helper.createQueuedSelectMock(mocks.selectResults),
+    },
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   user: {},
