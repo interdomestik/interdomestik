@@ -1,26 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createQueuedFrom } from '../../../../scripts/tests/queued-select-mock';
 import { handleSubscriptionPastDue } from './handlers/dunning';
 import { handleSubscriptionChanged } from './handlers/subscriptions';
 import { handleTransactionCompleted } from './handlers/transaction';
-
-function createQueuedLimit(selectResults: unknown[][]) {
-  return vi.fn(async () => selectResults.shift() ?? []);
-}
-
-function createQueuedWhere(selectResults: unknown[][]) {
-  return vi.fn(() => ({
-    orderBy: vi.fn(() => ({
-      limit: createQueuedLimit(selectResults),
-    })),
-    limit: createQueuedLimit(selectResults),
-  }));
-}
-
-function createQueuedFrom(selectResults: unknown[][]) {
-  return vi.fn(() => ({
-    where: createQueuedWhere(selectResults),
-  }));
-}
 
 // Mock dependencies
 const hoisted = vi.hoisted(() => ({
@@ -35,9 +17,7 @@ const hoisted = vi.hoisted(() => ({
       webhookEvents: { findFirst: vi.fn() },
     },
     transaction: vi.fn(),
-    select: vi.fn(() => ({
-      from: createQueuedFrom(hoisted.selectResults),
-    })),
+    select: vi.fn(),
     insert: vi.fn(() => ({ values: vi.fn(() => ({ onConflictDoUpdate: vi.fn() })) })),
     update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) })),
   },
@@ -87,6 +67,9 @@ describe('Paddle Webhook Handlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.selectResults.length = 0;
+    hoisted.db.select.mockImplementation(() => ({
+      from: createQueuedFrom(hoisted.selectResults),
+    }));
     hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.tx));
     hoisted.db.insert.mockImplementation(() => ({
       values: vi.fn().mockResolvedValue(undefined),

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createQueuedFrom } from '../../../scripts/tests/queued-select-mock';
 
 const tableRefs = vi.hoisted(() => ({
   memberLeads: { table: 'memberLeads', id: 'memberLeads.id' },
@@ -7,25 +8,6 @@ const tableRefs = vi.hoisted(() => ({
   user: { table: 'user' },
   agentClients: { table: 'agentClients' },
 }));
-
-function createQueuedLimit(selectResults: unknown[][]) {
-  return vi.fn(async () => selectResults.shift() ?? []);
-}
-
-function createQueuedWhere(selectResults: unknown[][]) {
-  return vi.fn(() => ({
-    orderBy: vi.fn(() => ({
-      limit: createQueuedLimit(selectResults),
-    })),
-    limit: createQueuedLimit(selectResults),
-  }));
-}
-
-function createQueuedFrom(selectResults: unknown[][]) {
-  return vi.fn(() => ({
-    where: createQueuedWhere(selectResults),
-  }));
-}
 
 const mocks = vi.hoisted(() => ({
   eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
@@ -41,9 +23,7 @@ const mocks = vi.hoisted(() => ({
         findFirst: vi.fn(),
       },
     },
-    select: vi.fn(() => ({
-      from: createQueuedFrom(mocks.selectResults),
-    })),
+    select: vi.fn(),
     transaction: vi.fn(),
   },
   membershipPlans: {
@@ -133,12 +113,16 @@ describe('convertLeadToMember', () => {
     mocks.db.query.memberLeads.findFirst.mockReset();
     mocks.db.query.membershipPlans.findFirst.mockReset();
     mocks.db.transaction.mockReset();
+    mocks.db.select.mockReset();
     mocks.generateMemberNumber.mockReset();
     mocks.nanoid.mockReset();
     mocks.eq.mockClear();
     mocks.and.mockClear();
     mocks.asc.mockClear();
     mocks.selectResults.length = 0;
+    mocks.db.select.mockImplementation(() => ({
+      from: createQueuedFrom(mocks.selectResults),
+    }));
   });
 
   it('returns null and does not convert when convertedUserId already exists', async () => {
