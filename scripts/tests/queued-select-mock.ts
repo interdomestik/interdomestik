@@ -1,20 +1,20 @@
-import { vi } from 'vitest';
+type MockFn = <T extends (...args: never[]) => unknown>(impl: T) => unknown;
 
-export function createQueuedLimit(selectResults: unknown[][]) {
-  return vi.fn(async () => selectResults.shift() ?? []);
+export function createQueuedLimit(mockFn: MockFn, selectResults: unknown[][]) {
+  return mockFn(async () => selectResults.shift() ?? []);
 }
 
-export function createQueuedWhere(selectResults: unknown[][]) {
-  return vi.fn(() => ({
-    orderBy: vi.fn(() => ({
-      limit: createQueuedLimit(selectResults),
+export function createQueuedWhere(mockFn: MockFn, selectResults: unknown[][]) {
+  return mockFn(() => ({
+    orderBy: mockFn(() => ({
+      limit: createQueuedLimit(mockFn, selectResults),
     })),
-    limit: createQueuedLimit(selectResults),
+    limit: createQueuedLimit(mockFn, selectResults),
   }));
 }
 
-export function createQueuedFrom(selectResults: unknown[][]) {
-  return vi.fn(() => ({
-    where: createQueuedWhere(selectResults),
+export function createQueuedFrom(mockFn: MockFn, selectResults: unknown[][]) {
+  return mockFn(() => ({
+    where: createQueuedWhere(mockFn, selectResults),
   }));
 }

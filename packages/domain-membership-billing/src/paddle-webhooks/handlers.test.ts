@@ -68,7 +68,7 @@ describe('Paddle Webhook Handlers', () => {
     vi.clearAllMocks();
     hoisted.selectResults.length = 0;
     hoisted.db.select.mockImplementation(() => ({
-      from: createQueuedFrom(hoisted.selectResults),
+      from: createQueuedFrom(vi.fn, hoisted.selectResults),
     }));
     hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.tx));
     hoisted.db.insert.mockImplementation(() => ({

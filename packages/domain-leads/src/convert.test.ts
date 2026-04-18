@@ -121,7 +121,7 @@ describe('convertLeadToMember', () => {
     mocks.asc.mockClear();
     mocks.selectResults.length = 0;
     mocks.db.select.mockImplementation(() => ({
-      from: createQueuedFrom(mocks.selectResults),
+      from: createQueuedFrom(vi.fn, mocks.selectResults),
     }));
   });
 
