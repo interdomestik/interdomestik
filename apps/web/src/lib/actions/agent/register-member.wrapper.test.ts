@@ -6,10 +6,7 @@ const mocks = vi.hoisted(() => ({
     memberNumber: 'MEM-2026-000001',
     isNew: true,
   }),
-  findMembershipPlan: vi.fn().mockResolvedValue({
-    id: 'tenant-standard-plan',
-    tier: 'standard',
-  }),
+  selectResults: [] as unknown[][],
   withTransactionRetry: vi.fn(),
   emailExecute: vi.fn(),
 }));
@@ -26,15 +23,19 @@ vi.mock('@interdomestik/shared-utils/circuit-breaker', () => ({
   },
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      membershipPlans: {
-        findFirst: mocks.findMembershipPlan,
-      },
+vi.mock('@interdomestik/database', async () => {
+  const helper = await import('@/test/canonical-membership-db-mock');
+
+  return {
+    and: vi.fn((...conditions: unknown[]) => ({ kind: 'and', conditions })),
+    asc: vi.fn((value: unknown) => ({ kind: 'asc', value })),
+    eq: vi.fn((column: unknown, value: unknown) => ({ kind: 'eq', column, value })),
+    membershipPlans: helper.CANONICAL_MEMBERSHIP_PLAN_COLUMNS,
+    db: {
+      select: helper.createQueuedSelectMock(mocks.selectResults),
     },
-  },
-}));
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   user: {},
@@ -65,10 +66,8 @@ describe('registerMemberCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     insertValues.length = 0;
-    mocks.findMembershipPlan.mockResolvedValue({
-      id: 'tenant-standard-plan',
-      tier: 'standard',
-    });
+    mocks.selectResults.length = 0;
+    mocks.selectResults.push([], [], [{ id: 'tenant-standard-plan', tier: 'standard' }]);
     mocks.withTransactionRetry.mockImplementation(async callback => {
       const tx = {
         insert: vi.fn().mockReturnThis(),

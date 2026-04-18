@@ -4,7 +4,6 @@ const mocks = vi.hoisted(() => ({
   getActionContext: vi.fn(),
   revalidatePath: vi.fn(),
   findSubscriptionFirst: vi.fn(),
-  findMembershipPlan: vi.fn(),
   update: vi.fn(),
   set: vi.fn(),
   where: vi.fn(),
@@ -27,9 +26,6 @@ vi.mock('@interdomestik/database', () => ({
       subscriptions: {
         findFirst: mocks.findSubscriptionFirst,
       },
-      membershipPlans: {
-        findFirst: mocks.findMembershipPlan,
-      },
     },
     update: mocks.update,
   },
@@ -46,10 +42,6 @@ import { activateSponsoredMembership } from './subscription.core';
 describe('subscription.core activateSponsoredMembership', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.findMembershipPlan.mockResolvedValue({
-      id: 'tenant-standard-plan',
-      tier: 'standard',
-    });
     mocks.update.mockReturnValue({
       set: mocks.set.mockReturnValue({
         where: mocks.where.mockResolvedValue(undefined),
@@ -80,6 +72,7 @@ describe('subscription.core activateSponsoredMembership', () => {
       tenantId: 'tenant-1',
       status: 'paused',
       planId: 'standard',
+      planKey: 'tenant-standard-plan',
       provider: 'group_sponsor',
       acquisitionSource: 'group_roster_import',
     });

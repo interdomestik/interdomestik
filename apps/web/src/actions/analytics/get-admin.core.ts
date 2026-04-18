@@ -1,6 +1,6 @@
 import { db } from '@interdomestik/database';
 import { membershipPlans, subscriptions } from '@interdomestik/database/schema';
-import { and, eq, gte, or, sql } from 'drizzle-orm';
+import { and, eq, gte, sql } from 'drizzle-orm';
 
 import { isStaffOrAdmin } from '@/lib/roles.core';
 
@@ -48,15 +48,11 @@ export async function getAdminAnalyticsCore(params: {
         createdAt: subscriptions.createdAt,
       })
       .from(subscriptions)
-      .innerJoin(
+      .leftJoin(
         membershipPlans,
         and(
           eq(subscriptions.tenantId, membershipPlans.tenantId),
-          or(
-            eq(subscriptions.planKey, membershipPlans.id),
-            eq(subscriptions.planId, membershipPlans.id),
-            eq(subscriptions.planId, membershipPlans.paddlePriceId)
-          )
+          eq(subscriptions.planKey, membershipPlans.id)
         )
       )
       .where(and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, tenantId)));
@@ -76,13 +72,18 @@ export async function getAdminAnalyticsCore(params: {
       .from(subscriptions)
       .where(eq(subscriptions.tenantId, tenantId));
 
+    const activeSubsCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(subscriptions)
+      .where(and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, tenantId)));
+
     const canceledSubsCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(subscriptions)
       .where(and(eq(subscriptions.status, 'canceled'), eq(subscriptions.tenantId, tenantId)));
 
     const totalMembers = Number(allSubsCount[0]?.count || 0);
-    const activeMembers = activeSubs.length;
+    const activeMembers = Number(activeSubsCount[0]?.count || 0);
     const canceledMembers = Number(canceledSubsCount[0]?.count || 0);
     const churnRate = totalMembers > 0 ? (canceledMembers / totalMembers) * 100 : 0;
 

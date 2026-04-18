@@ -13,6 +13,8 @@ export async function seedWorkloadMemberships(
 
   const PLAN_MK = `${WORKLOAD_PREFIX}mk_plan`;
   const PLAN_KS = `${WORKLOAD_PREFIX}ks_plan`;
+  const PLAN_STANDARD_TIER = 'standard';
+  const PLAN_FAMILY_TIER = 'family';
 
   await db
     .insert(schema.membershipPlans)
@@ -49,7 +51,8 @@ export async function seedWorkloadMemberships(
 
     if (isActive || isPastDue || isCanceled) {
       const status = isActive ? 'active' : isPastDue ? 'past_due' : 'canceled';
-      const planId = member.tenantId === TENANTS.MK ? PLAN_MK : PLAN_KS;
+      const planKey = member.tenantId === TENANTS.MK ? PLAN_MK : PLAN_KS;
+      const planId = member.tenantId === TENANTS.MK ? PLAN_STANDARD_TIER : PLAN_FAMILY_TIER;
       const subId = `${WORKLOAD_PREFIX}sub_${member.id}`;
 
       subscriptions.push({
@@ -57,6 +60,7 @@ export async function seedWorkloadMemberships(
         userId: member.id,
         tenantId: member.tenantId,
         planId,
+        planKey,
         status,
         currentPeriodStart: at(-30 * 24 * 60 * 60 * 1000),
         currentPeriodEnd: at(30 * 24 * 60 * 60 * 1000),

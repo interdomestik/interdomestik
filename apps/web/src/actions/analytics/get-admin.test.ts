@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import type { Session } from './context';
 import { getAdminAnalyticsCore } from './get-admin';
@@ -7,7 +7,7 @@ import { getAdminAnalyticsCore } from './get-admin';
 // Mock database
 vi.mock('@interdomestik/database', () => {
   const queryBuilder = {
-    innerJoin: vi.fn(() => ({
+    leftJoin: vi.fn(() => ({
       where: vi.fn().mockResolvedValue([]),
     })),
     where: vi.fn(() => ({
@@ -39,7 +39,6 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
   membershipPlans: {
     id: 'membershipPlans.id',
-    paddlePriceId: 'membershipPlans.paddlePriceId',
     tenantId: 'membershipPlans.tenantId',
     price: 'membershipPlans.price',
     interval: 'membershipPlans.interval',
@@ -50,7 +49,6 @@ vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
   and: vi.fn(),
   gte: vi.fn(),
-  or: vi.fn(),
   sql: vi.fn(),
   desc: vi.fn(),
   relations: vi.fn(),
@@ -106,10 +104,7 @@ describe('actions/analytics getAdminAnalyticsCore', () => {
 
     expect(result.success).toBe(true);
     expect(eq).toHaveBeenCalledWith('subscriptions.planKey', 'membershipPlans.id');
-    expect(eq).toHaveBeenCalledWith('subscriptions.planId', 'membershipPlans.id');
-    expect(eq).toHaveBeenCalledWith('subscriptions.planId', 'membershipPlans.paddlePriceId');
     expect(eq).toHaveBeenCalledWith('subscriptions.tenantId', 'membershipPlans.tenantId');
-    expect(or).toHaveBeenCalled();
     expect(and).toHaveBeenCalled();
   });
 });

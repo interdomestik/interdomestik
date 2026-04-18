@@ -14,6 +14,10 @@ export async function seedSubscriptionsAndCommissions(config: SeedConfig) {
     MK: 'full_mk_plan_std',
     KS: 'full_ks_plan_std',
   };
+  const PLAN_TIERS = {
+    MK: 'standard',
+    KS: 'standard',
+  } as const;
 
   await db
     .insert(schema.membershipPlans)
@@ -51,7 +55,8 @@ export async function seedSubscriptionsAndCommissions(config: SeedConfig) {
 
   for (const tenant of [TENANTS.MK, TENANTS.KS]) {
     const tenantPrefix = tenant === TENANTS.MK ? 'mk' : 'ks';
-    const planId = tenant === TENANTS.MK ? PLANS.MK : PLANS.KS;
+    const planKey = tenant === TENANTS.MK ? PLANS.MK : PLANS.KS;
+    const canonicalPlanId = tenant === TENANTS.MK ? PLAN_TIERS.MK : PLAN_TIERS.KS;
 
     for (const cfg of SUBS_CONFIG) {
       // Determine ID (must match users.ts)
@@ -86,14 +91,21 @@ export async function seedSubscriptionsAndCommissions(config: SeedConfig) {
           userId: memberId,
           tenantId: tenant,
           status: cfg.status as any,
-          planId: planId,
+          planId: canonicalPlanId,
+          planKey,
           agentId: agentId,
           currentPeriodStart: at(),
           currentPeriodEnd: at(365 * 24 * 60 * 60 * 1000),
         })
         .onConflictDoUpdate({
           target: schema.subscriptions.id,
-          set: { status: cfg.status as any },
+          set: {
+            status: cfg.status as any,
+            planId: canonicalPlanId,
+            planKey,
+            currentPeriodStart: at(),
+            currentPeriodEnd: at(365 * 24 * 60 * 60 * 1000),
+          },
         });
 
       // Membership Card

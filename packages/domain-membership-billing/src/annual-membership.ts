@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { and, asc, db, eq, membershipPlans } from '@interdomestik/database';
 
 export function createActiveAnnualMembershipState(now: Date): {
   status: 'active';
@@ -30,26 +30,74 @@ export async function resolveCanonicalMembershipPlanState(params: {
       planKey: null,
     };
   }
+  const canonicalTier =
+    rawPlanId === 'standard' || rawPlanId === 'family' || rawPlanId === 'business'
+      ? rawPlanId
+      : null;
+  const [planById] = await db
+    .select({
+      id: membershipPlans.id,
+      tier: membershipPlans.tier,
+    })
+    .from(membershipPlans)
+    .where(and(eq(membershipPlans.tenantId, params.tenantId), eq(membershipPlans.id, rawPlanId)))
+    .limit(1);
 
-  const plan = await db.query.membershipPlans.findFirst({
-    where: (membershipPlans, { and, eq, or }) =>
+  if (planById) {
+    return {
+      planId: planById.tier,
+      planKey: planById.id,
+    };
+  }
+
+  const [planByProviderId] = await db
+    .select({
+      id: membershipPlans.id,
+      tier: membershipPlans.tier,
+    })
+    .from(membershipPlans)
+    .where(
       and(
         eq(membershipPlans.tenantId, params.tenantId),
-        or(
-          eq(membershipPlans.id, rawPlanId),
-          eq(membershipPlans.paddlePriceId, rawPlanId),
-          eq(membershipPlans.tier, rawPlanId as 'standard' | 'family')
-        )
-      ),
-    columns: {
-      id: true,
-      tier: true,
-    },
-  });
+        eq(membershipPlans.paddlePriceId, rawPlanId)
+      )
+    )
+    .limit(1);
+
+  if (planByProviderId) {
+    return {
+      planId: planByProviderId.tier,
+      planKey: planByProviderId.id,
+    };
+  }
+
+  if (!canonicalTier) {
+    return {
+      planId: rawPlanId,
+      planKey: null,
+    };
+  }
+
+  const [planByTier] = await db
+    .select({
+      id: membershipPlans.id,
+      tier: membershipPlans.tier,
+    })
+    .from(membershipPlans)
+    .where(
+      and(
+        eq(membershipPlans.tenantId, params.tenantId),
+        eq(membershipPlans.tier, canonicalTier),
+        eq(membershipPlans.interval, 'year'),
+        eq(membershipPlans.isActive, true)
+      )
+    )
+    .orderBy(asc(membershipPlans.id))
+    .limit(1);
 
   return {
-    planId: plan?.tier ?? rawPlanId,
-    planKey: plan?.id ?? null,
+    planId: planByTier?.tier ?? rawPlanId,
+    planKey: planByTier?.id ?? null,
   };
 }
 

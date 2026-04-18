@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createQueuedFrom } from '../../../scripts/tests/queued-select-mock';
 
 const tableRefs = vi.hoisted(() => ({
   memberLeads: { table: 'memberLeads', id: 'memberLeads.id' },
@@ -11,6 +12,8 @@ const tableRefs = vi.hoisted(() => ({
 const mocks = vi.hoisted(() => ({
   eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
   and: vi.fn((...clauses) => ({ clauses, op: 'and' })),
+  asc: vi.fn(value => ({ op: 'asc', value })),
+  selectResults: [] as unknown[][],
   db: {
     query: {
       memberLeads: {
@@ -20,7 +23,16 @@ const mocks = vi.hoisted(() => ({
         findFirst: vi.fn(),
       },
     },
+    select: vi.fn(),
     transaction: vi.fn(),
+  },
+  membershipPlans: {
+    id: 'membership_plans.id',
+    tenantId: 'membership_plans.tenant_id',
+    tier: 'membership_plans.tier',
+    paddlePriceId: 'membership_plans.paddle_price_id',
+    interval: 'membership_plans.interval',
+    isActive: 'membership_plans.is_active',
   },
   generateMemberNumber: vi.fn(),
   nanoid: vi.fn(),
@@ -28,8 +40,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
+  asc: mocks.asc,
   db: mocks.db,
   eq: mocks.eq,
+  membershipPlans: mocks.membershipPlans,
 }));
 
 vi.mock('@interdomestik/database/member-number', () => ({
@@ -99,10 +113,16 @@ describe('convertLeadToMember', () => {
     mocks.db.query.memberLeads.findFirst.mockReset();
     mocks.db.query.membershipPlans.findFirst.mockReset();
     mocks.db.transaction.mockReset();
+    mocks.db.select.mockReset();
     mocks.generateMemberNumber.mockReset();
     mocks.nanoid.mockReset();
     mocks.eq.mockClear();
     mocks.and.mockClear();
+    mocks.asc.mockClear();
+    mocks.selectResults.length = 0;
+    mocks.db.select.mockImplementation(() => ({
+      from: createQueuedFrom(vi.fn, mocks.selectResults),
+    }));
   });
 
   it('returns null and does not convert when convertedUserId already exists', async () => {
@@ -117,10 +137,7 @@ describe('convertLeadToMember', () => {
       status: 'new',
       convertedUserId: 'usr_existing',
     });
-    mocks.db.query.membershipPlans.findFirst.mockResolvedValue({
-      id: 'tenant-standard-plan',
-      tier: 'standard',
-    });
+    mocks.selectResults.push([], [], [{ id: 'tenant-standard-plan', tier: 'standard' }]);
 
     mocks.db.transaction.mockImplementation(async () => {
       throw new Error('transaction should not run');
@@ -149,10 +166,7 @@ describe('convertLeadToMember', () => {
       status: 'new',
       convertedUserId: null,
     });
-    mocks.db.query.membershipPlans.findFirst.mockResolvedValue({
-      id: 'tenant-standard-plan',
-      tier: 'standard',
-    });
+    mocks.selectResults.push([], [], [{ id: 'tenant-standard-plan', tier: 'standard' }]);
     mocks.generateMemberNumber.mockResolvedValue({ memberNumber: 'M-1001' });
     mocks.nanoid
       .mockReturnValueOnce('user-seed')
@@ -251,10 +265,7 @@ describe('convertLeadToMember', () => {
       status: 'new',
       convertedUserId: null,
     });
-    mocks.db.query.membershipPlans.findFirst.mockResolvedValue({
-      id: 'tenant-family-plan',
-      tier: 'family',
-    });
+    mocks.selectResults.push([], [], [{ id: 'tenant-family-plan', tier: 'family' }]);
     mocks.generateMemberNumber.mockResolvedValue({ memberNumber: 'M-1002' });
     mocks.nanoid
       .mockReturnValueOnce('user-seed')
