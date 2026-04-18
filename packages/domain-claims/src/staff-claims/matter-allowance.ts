@@ -1,13 +1,4 @@
-import {
-  and,
-  db,
-  eq,
-  membershipPlans,
-  or,
-  serviceUsage,
-  sql,
-  subscriptions,
-} from '@interdomestik/database';
+import { and, db, eq, serviceUsage, sql, subscriptions } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 export const FAMILY_MATTER_ALLOWANCE = 5;
@@ -70,31 +61,8 @@ export function buildMatterAllowanceWindow(params: {
   return { end: fallbackEnd, start: fallbackStart };
 }
 
-async function resolveMatterAllowance(params: {
-  tenantId: string;
-  planId: string | null | undefined;
-  planKey: string | null | undefined;
-}) {
-  const planKeyCondition = params.planKey ? eq(membershipPlans.id, params.planKey) : undefined;
-  const planIdCondition = params.planId
-    ? or(eq(membershipPlans.id, params.planId), eq(membershipPlans.paddlePriceId, params.planId))
-    : undefined;
-  const lookupCondition =
-    planKeyCondition && planIdCondition
-      ? or(planKeyCondition, planIdCondition)
-      : (planKeyCondition ?? planIdCondition);
-
-  if (!lookupCondition) {
-    return STANDARD_MATTER_ALLOWANCE;
-  }
-
-  const [plan] = await db
-    .select({ tier: membershipPlans.tier })
-    .from(membershipPlans)
-    .where(withTenant(params.tenantId, membershipPlans.tenantId, lookupCondition))
-    .limit(1);
-
-  if (plan?.tier === 'family' || plan?.tier === 'business') {
+function resolveMatterAllowance(planId: string | null | undefined) {
+  if (planId === 'family' || planId === 'business') {
     return FAMILY_MATTER_ALLOWANCE;
   }
 
@@ -199,11 +167,7 @@ export async function getMatterAllowanceContextForSubscription(params: {
     currentPeriodStart: subscription.currentPeriodStart,
     now: params.now ?? new Date(),
   });
-  const allowanceTotal = await resolveMatterAllowance({
-    tenantId: params.tenantId,
-    planId: subscription.planId,
-    planKey: subscription.planKey,
-  });
+  const allowanceTotal = resolveMatterAllowance(subscription.planId);
   const consumedCount = await countRecoveryMatterUsageInWindow({
     end: allowanceWindow.end,
     start: allowanceWindow.start,

@@ -70,6 +70,32 @@ describe('resolveCanonicalMembershipPlanState', () => {
 
     expect(hoisted.db.query.membershipPlans.findFirst).not.toHaveBeenCalled();
   });
+
+  it('does not compare non-tier provider ids against the membership tier enum', async () => {
+    hoisted.db.query.membershipPlans.findFirst.mockResolvedValue(undefined);
+
+    await resolveCanonicalMembershipPlanState({
+      tenantId: 'tenant-mk',
+      planId: 'pri_standard_year',
+    });
+
+    const [query] = hoisted.db.query.membershipPlans.findFirst.mock.calls[0] ?? [];
+    const eq = vi.fn((left, right) => ({ left, right }));
+    const or = vi.fn((...conditions) => conditions);
+    const and = vi.fn((...conditions) => conditions);
+
+    query.where(
+      {
+        id: 'membership_plans.id',
+        paddlePriceId: 'membership_plans.paddle_price_id',
+        tenantId: 'membership_plans.tenant_id',
+        tier: 'membership_plans.tier',
+      },
+      { and, eq, or }
+    );
+
+    expect(eq).not.toHaveBeenCalledWith('membership_plans.tier', 'pri_standard_year');
+  });
 });
 
 describe('createActiveAnnualMembershipFulfillment', () => {

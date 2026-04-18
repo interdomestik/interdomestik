@@ -30,17 +30,24 @@ export async function resolveCanonicalMembershipPlanState(params: {
       planKey: null,
     };
   }
+  const canonicalTier =
+    rawPlanId === 'standard' || rawPlanId === 'family' || rawPlanId === 'business'
+      ? rawPlanId
+      : null;
 
   const plan = await db.query.membershipPlans.findFirst({
-    where: (membershipPlans, { and, eq, or }) =>
-      and(
-        eq(membershipPlans.tenantId, params.tenantId),
-        or(
-          eq(membershipPlans.id, rawPlanId),
-          eq(membershipPlans.paddlePriceId, rawPlanId),
-          eq(membershipPlans.tier, rawPlanId as 'standard' | 'family')
-        )
-      ),
+    where: (membershipPlans, { and, eq, or }) => {
+      const planConditions = [
+        eq(membershipPlans.id, rawPlanId),
+        eq(membershipPlans.paddlePriceId, rawPlanId),
+      ];
+
+      if (canonicalTier) {
+        planConditions.push(eq(membershipPlans.tier, canonicalTier));
+      }
+
+      return and(eq(membershipPlans.tenantId, params.tenantId), or(...planConditions));
+    },
     columns: {
       id: true,
       tier: true,

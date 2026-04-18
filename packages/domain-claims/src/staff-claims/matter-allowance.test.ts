@@ -12,7 +12,6 @@ const NOW = new Date('2026-03-14T12:00:00.000Z');
 
 const mocks = vi.hoisted(() => {
   const subscriptionSelectChain = createSelectChain();
-  const membershipPlanSelectChain = createSelectChain();
   const serviceUsageCountSelectChain = createSelectChain();
 
   return {
@@ -26,12 +25,6 @@ const mocks = vi.hoisted(() => {
       currentPeriodStart: 'subscriptions.current_period_start',
       currentPeriodEnd: 'subscriptions.current_period_end',
     },
-    membershipPlans: {
-      id: 'membership_plans.id',
-      tenantId: 'membership_plans.tenant_id',
-      paddlePriceId: 'membership_plans.paddle_price_id',
-      tier: 'membership_plans.tier',
-    },
     serviceUsage: {
       id: 'service_usage.id',
       tenantId: 'service_usage.tenant_id',
@@ -40,11 +33,9 @@ const mocks = vi.hoisted(() => {
       usedAt: 'service_usage.used_at',
     },
     subscriptionSelectChain,
-    membershipPlanSelectChain,
     serviceUsageCountSelectChain,
     and: vi.fn((...conditions) => ({ op: 'and', conditions })),
     eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
-    or: vi.fn((...conditions) => ({ op: 'or', conditions })),
     sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
       op: 'sql',
       strings: [...strings],
@@ -58,8 +49,6 @@ vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
   db: mocks.db,
   eq: mocks.eq,
-  membershipPlans: mocks.membershipPlans,
-  or: mocks.or,
   serviceUsage: mocks.serviceUsage,
   sql: mocks.sql,
   subscriptions: mocks.subscriptions,
@@ -78,8 +67,6 @@ describe('getMatterAllowanceVisibilityForUser', () => {
 
     mocks.subscriptionSelectChain.from.mockReturnValue(mocks.subscriptionSelectChain);
     mocks.subscriptionSelectChain.where.mockReturnValue(mocks.subscriptionSelectChain);
-    mocks.membershipPlanSelectChain.from.mockReturnValue(mocks.membershipPlanSelectChain);
-    mocks.membershipPlanSelectChain.where.mockReturnValue(mocks.membershipPlanSelectChain);
     mocks.serviceUsageCountSelectChain.from.mockReturnValue(mocks.serviceUsageCountSelectChain);
     mocks.serviceUsageCountSelectChain.where.mockReturnValue(mocks.serviceUsageCountSelectChain);
   });
@@ -87,19 +74,17 @@ describe('getMatterAllowanceVisibilityForUser', () => {
   it('returns zero consumed and the full remaining annual allowance when no usage exists yet', async () => {
     mocks.db.select
       .mockReturnValueOnce(mocks.subscriptionSelectChain)
-      .mockReturnValueOnce(mocks.membershipPlanSelectChain)
       .mockReturnValueOnce(mocks.serviceUsageCountSelectChain);
 
     mocks.subscriptionSelectChain.limit.mockResolvedValue([
       {
         id: 'sub-1',
-        planId: 'plan-standard',
-        planKey: null,
+        planId: 'standard',
+        planKey: 'tenant-standard-plan',
         currentPeriodStart: new Date('2026-01-01T00:00:00.000Z'),
         currentPeriodEnd: null,
       },
     ]);
-    mocks.membershipPlanSelectChain.limit.mockResolvedValue([{ tier: 'standard' }]);
     mocks.serviceUsageCountSelectChain.limit.mockResolvedValue([{ count: 0 }]);
 
     const result = await getMatterAllowanceVisibilityForUser({
@@ -125,19 +110,17 @@ describe('getMatterAllowanceVisibilityForUser', () => {
   it('uses the family allowance semantics and clamps remaining allowance at zero', async () => {
     mocks.db.select
       .mockReturnValueOnce(mocks.subscriptionSelectChain)
-      .mockReturnValueOnce(mocks.membershipPlanSelectChain)
       .mockReturnValueOnce(mocks.serviceUsageCountSelectChain);
 
     mocks.subscriptionSelectChain.limit.mockResolvedValue([
       {
         id: 'sub-2',
-        planId: 'pri_family_123',
-        planKey: null,
+        planId: 'family',
+        planKey: 'tenant-family-plan',
         currentPeriodStart: null,
         currentPeriodEnd: new Date('2026-12-31T23:59:59.000Z'),
       },
     ]);
-    mocks.membershipPlanSelectChain.limit.mockResolvedValue([{ tier: 'family' }]);
     mocks.serviceUsageCountSelectChain.limit.mockResolvedValue([{ count: 7 }]);
 
     const result = await getMatterAllowanceVisibilityForUser({

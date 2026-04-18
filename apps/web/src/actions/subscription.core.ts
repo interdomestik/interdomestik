@@ -4,10 +4,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { getSponsoredMembershipState } from '@/components/ops/adapters/membership';
 import { revalidatePath } from 'next/cache';
 import { and, db, eq, subscriptions } from '@interdomestik/database';
-import {
-  createActiveAnnualMembershipFulfillment,
-  resolveCanonicalMembershipPlanState,
-} from '@interdomestik/domain-membership-billing';
+import { createActiveAnnualMembershipFulfillment } from '@interdomestik/domain-membership-billing';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { cancelSubscriptionCore } from './subscription/cancel';
 import { getActionContext } from './subscription/context';
@@ -65,20 +62,10 @@ export async function activateSponsoredMembership(subscriptionId: string) {
   }
 
   const currentPeriodStart = new Date();
-  const canonicalPlanState =
-    subscription.planKey != null
-      ? {
-          planId: subscription.planId,
-          planKey: subscription.planKey,
-        }
-      : await resolveCanonicalMembershipPlanState({
-          tenantId,
-          planId: subscription.planId,
-        });
   const activeAnnualMembershipState = createActiveAnnualMembershipFulfillment(
-    canonicalPlanState.planId,
+    subscription.planId,
     currentPeriodStart,
-    canonicalPlanState.planKey
+    subscription.planKey
   );
 
   await db

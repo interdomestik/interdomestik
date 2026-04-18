@@ -738,6 +738,7 @@ export async function seedGolden(config: SeedConfig) {
   const PLAN_MK = 'golden_mk_plan_basic';
   const PLAN_KS = 'golden_ks_plan_basic';
   const PLAN_PILOT = 'golden_pilot_plan_basic';
+  const PLAN_STANDARD_TIER = 'standard';
 
   await db
     .insert(schema.membershipPlans)
@@ -816,11 +817,22 @@ export async function seedGolden(config: SeedConfig) {
         userId: goldenId(s.user),
         tenantId: s.tenant,
         status: 'active',
-        planId: s.plan,
+        planId: PLAN_STANDARD_TIER,
+        planKey: s.plan,
         agentId: goldenId(s.agent),
         currentPeriodStart: at(),
+        currentPeriodEnd: at(365 * 24 * 60 * 60 * 1000),
       })
-      .onConflictDoUpdate({ target: schema.subscriptions.id, set: { status: 'active' } });
+      .onConflictDoUpdate({
+        target: schema.subscriptions.id,
+        set: {
+          status: 'active',
+          planId: PLAN_STANDARD_TIER,
+          planKey: s.plan,
+          currentPeriodStart: at(),
+          currentPeriodEnd: at(365 * 24 * 60 * 60 * 1000),
+        },
+      });
 
     const membershipCardIdentifiers = buildSeededMembershipCardIdentifiers(s.id, s.tenant);
 

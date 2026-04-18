@@ -67,18 +67,15 @@ const READY_ACCEPTED_RECOVERY_RECORD: MockRecoveryAgreement = {
 const STANDARD_SUBSCRIPTION = {
   id: 'sub-1',
   planId: 'standard',
-  planKey: null,
+  planKey: 'tenant-standard-plan',
   currentPeriodStart: new Date('2026-01-01T00:00:00Z'),
   currentPeriodEnd: new Date('2026-12-31T23:59:59Z'),
 };
-
-const STANDARD_PLAN = { tier: 'standard' };
 
 const mocks = vi.hoisted(() => {
   const claimSelectChain = createSelectChain();
   const agreementSelectChain = createSelectChain();
   const subscriptionSelectChain = createSelectChain();
-  const membershipPlanSelectChain = createSelectChain();
   const serviceUsageExistsSelectChain = createSelectChain();
   const serviceUsageCountSelectChain = createSelectChain();
   const txSelectChain = createSelectChain();
@@ -152,12 +149,6 @@ const mocks = vi.hoisted(() => {
       currentPeriodStart: 'subscriptions.current_period_start',
       currentPeriodEnd: 'subscriptions.current_period_end',
     },
-    membershipPlans: {
-      id: 'membership_plans.id',
-      tenantId: 'membership_plans.tenant_id',
-      paddlePriceId: 'membership_plans.paddle_price_id',
-      tier: 'membership_plans.tier',
-    },
     serviceUsage: {
       id: 'service_usage.id',
       tenantId: 'service_usage.tenant_id',
@@ -185,7 +176,6 @@ const mocks = vi.hoisted(() => {
       })),
     },
     eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
-    or: vi.fn((...conditions) => ({ op: 'or', conditions })),
     sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
       op: 'sql',
       strings: [...strings],
@@ -196,7 +186,6 @@ const mocks = vi.hoisted(() => {
     claimSelectChain,
     agreementSelectChain,
     subscriptionSelectChain,
-    membershipPlanSelectChain,
     serviceUsageExistsSelectChain,
     serviceUsageCountSelectChain,
     txInsert,
@@ -217,8 +206,6 @@ vi.mock('@interdomestik/database', () => ({
   claims: mocks.claims,
   db: mocks.db,
   eq: mocks.eq,
-  membershipPlans: mocks.membershipPlans,
-  or: mocks.or,
   serviceUsage: mocks.serviceUsage,
   sql: mocks.sql,
   subscriptions: mocks.subscriptions,
@@ -268,7 +255,6 @@ function mockRecoverySelects(options?: {
   }>;
   existingClaimUsage?: Array<{ id: string }>;
   matterCount?: Array<{ count: number }>;
-  plan?: Array<typeof STANDARD_PLAN>;
   subscription?: Array<typeof STANDARD_SUBSCRIPTION>;
 }) {
   mocks.db.select
@@ -277,9 +263,7 @@ function mockRecoverySelects(options?: {
     .mockReturnValueOnce(mocks.subscriptionSelectChain)
     .mockReturnValueOnce(mocks.serviceUsageExistsSelectChain);
   if ((options?.existingClaimUsage?.length ?? 0) === 0) {
-    mocks.db.select
-      .mockReturnValueOnce(mocks.membershipPlanSelectChain)
-      .mockReturnValueOnce(mocks.serviceUsageCountSelectChain);
+    mocks.db.select.mockReturnValueOnce(mocks.serviceUsageCountSelectChain);
   }
   mocks.claimSelectChain.limit.mockResolvedValue(
     options?.claim ?? [
@@ -299,7 +283,6 @@ function mockRecoverySelects(options?: {
     options?.subscription ?? [STANDARD_SUBSCRIPTION]
   );
   if ((options?.existingClaimUsage?.length ?? 0) === 0) {
-    mocks.membershipPlanSelectChain.limit.mockResolvedValue(options?.plan ?? [STANDARD_PLAN]);
     mocks.serviceUsageCountSelectChain.limit.mockResolvedValue(
       options?.matterCount ?? [{ count: 0 }]
     );
@@ -343,8 +326,6 @@ describe('staff updateClaimStatusCore', () => {
     mocks.agreementSelectChain.where.mockReturnValue(mocks.agreementSelectChain);
     mocks.subscriptionSelectChain.from.mockReturnValue(mocks.subscriptionSelectChain);
     mocks.subscriptionSelectChain.where.mockReturnValue(mocks.subscriptionSelectChain);
-    mocks.membershipPlanSelectChain.from.mockReturnValue(mocks.membershipPlanSelectChain);
-    mocks.membershipPlanSelectChain.where.mockReturnValue(mocks.membershipPlanSelectChain);
     mocks.serviceUsageExistsSelectChain.from.mockReturnValue(mocks.serviceUsageExistsSelectChain);
     mocks.serviceUsageExistsSelectChain.where.mockReturnValue(mocks.serviceUsageExistsSelectChain);
     mocks.serviceUsageCountSelectChain.from.mockReturnValue(mocks.serviceUsageCountSelectChain);
@@ -571,7 +552,6 @@ describe('staff updateClaimStatusCore', () => {
     const result = await runNegotiationUpdate();
 
     expect(result).toEqual({ success: true, error: undefined });
-    expect(mocks.membershipPlanSelectChain.limit).not.toHaveBeenCalled();
     expect(mocks.serviceUsageCountSelectChain.limit).not.toHaveBeenCalled();
     expect(mocks.txInsertOnConflictDoNothing).not.toHaveBeenCalled();
   });
@@ -639,25 +619,6 @@ describe('staff updateClaimStatusCore', () => {
         }),
       })
     );
-  });
-
-  it('uses the membership plan lookup when the subscription stores a Paddle price id', async () => {
-    mockRecoverySelects({
-      matterCount: [{ count: 2 }],
-      plan: [{ tier: 'family' }],
-      subscription: [
-        {
-          ...STANDARD_SUBSCRIPTION,
-          planId: 'pri_01HK37S5T9XQ2Y8Z4W6N0VJ3AB',
-          planKey: null,
-        },
-      ],
-    });
-
-    const result = await runNegotiationUpdate();
-
-    expect(result).toEqual({ success: true, error: undefined });
-    expect(mocks.txInsert).toHaveBeenCalledWith(mocks.serviceUsage);
   });
 
   it('treats a conflicting recovery usage insert as an already consumed matter', async () => {
