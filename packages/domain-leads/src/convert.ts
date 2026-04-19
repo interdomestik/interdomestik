@@ -2,6 +2,7 @@ import { and, db, eq } from '@interdomestik/database';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import {
   createActiveAnnualMembershipFulfillment,
+  createAgentAssistedOwnershipAttribution,
   resolveCanonicalMembershipPlanState,
 } from '@interdomestik/domain-membership-billing';
 import {
@@ -69,6 +70,7 @@ export async function convertLeadToMember(
       name: `${lead.firstName} ${lead.lastName}`,
       role: 'member',
       emailVerified: true,
+      ...(lead.agentId ? createAgentAssistedOwnershipAttribution(lead.agentId) : {}),
       createdAt: now,
       updatedAt: now,
       branchId: lead.branchId,

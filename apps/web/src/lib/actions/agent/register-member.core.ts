@@ -2,6 +2,7 @@ import { sendMemberWelcomeEmail } from '@/lib/email';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import {
   createActiveAnnualMembershipFulfillment,
+  createAgentAssistedOwnershipAttribution,
   createCanonicalMembershipPlanState,
   resolveCanonicalMembershipPlanState,
 } from '@interdomestik/domain-membership-billing';
@@ -54,6 +55,7 @@ export async function registerMemberCore(
     tenantId,
     planId: data.planId,
   });
+  const attribution = createAgentAssistedOwnershipAttribution(agent.id);
 
   try {
     await withTransactionRetry(async tx => {
@@ -69,7 +71,7 @@ export async function registerMemberCore(
         email: data.email,
         emailVerified: false,
         role: 'member', // Critical change: was 'user'
-        agentId: agent.id,
+        ...attribution,
         createdAt: now,
         updatedAt: now,
       });

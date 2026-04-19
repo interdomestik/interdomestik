@@ -1,6 +1,7 @@
 import { db, eq, user as userTable } from '@interdomestik/database';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import { nanoid } from 'nanoid';
+import { createSelfServeOwnershipAttribution } from '../../../ownership-attribution';
 import type { RequestPasswordResetOnboarding } from '../../types';
 import { resolveBranchId } from './context';
 
@@ -42,6 +43,8 @@ type ReconciledUserRecord = {
   name: string | null;
   role: string;
   memberNumber: string | null;
+  createdBy?: string | null;
+  assistedByAgentId?: string | null;
   agentId?: string | null;
 };
 
@@ -155,6 +158,7 @@ export async function reconcileCheckoutUser(
   if (!existingUser) {
     const newUserId = nanoid();
     try {
+      const ownershipAttribution = createSelfServeOwnershipAttribution(mergedCustomData?.agentId);
       await db.transaction(async tx => {
         await tx.insert(userTable).values({
           id: newUserId,
@@ -164,11 +168,9 @@ export async function reconcileCheckoutUser(
           email: customerEmail,
           emailVerified: false,
           role: 'member',
-          agentId: mergedCustomData?.agentId,
+          ...ownershipAttribution,
           createdAt: now,
           updatedAt: now,
-          createdBy: 'self',
-          assistedByAgentId: mergedCustomData?.agentId,
         });
 
         await generateMemberNumber(tx, {
@@ -206,14 +208,16 @@ export async function reconcileCheckoutUser(
     (!credentialAccount || existingUser.role !== 'member' || !existingUser.memberNumber)
   ) {
     const nextRole = shouldPromoteRole(existingUser.role) ? 'member' : existingUser.role;
+    const ownershipAttribution = createSelfServeOwnershipAttribution(mergedCustomData?.agentId);
     await db.transaction(async tx => {
       await tx
         .update(userTable)
         .set({
           role: nextRole,
           branchId: existingUser.branchId ?? branchId ?? null,
-          agentId: existingUser.agentId ?? mergedCustomData?.agentId ?? null,
-          assistedByAgentId: mergedCustomData?.agentId ?? null,
+          agentId: existingUser.agentId ?? ownershipAttribution.agentId,
+          assistedByAgentId: ownershipAttribution.assistedByAgentId,
+          createdBy: existingUser.createdBy ?? ownershipAttribution.createdBy,
           updatedAt: now,
         })
         .where(eq(userTable.id, existingUser.id));

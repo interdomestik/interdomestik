@@ -102,6 +102,14 @@ describe('registerMemberCore', () => {
     );
     expect(insertValues).toContainEqual(
       expect.objectContaining({
+        role: 'member',
+        agentId: 'agent1',
+        createdBy: 'agent',
+        assistedByAgentId: 'agent1',
+      })
+    );
+    expect(insertValues).toContainEqual(
+      expect.objectContaining({
         status: 'active',
         planId: 'standard',
         planKey: 'tenant-standard-plan',

@@ -108,6 +108,14 @@ describe('reconcileCheckoutUser', () => {
 
     expect(hoisted.db.transaction).toHaveBeenCalledTimes(1);
     expect(hoisted.tx.insert).toHaveBeenCalled();
+    expect(hoisted.insertedUserValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: 'member',
+        agentId: 'agent_9',
+        createdBy: 'self',
+        assistedByAgentId: 'agent_9',
+      })
+    );
     expect(hoisted.generateMemberNumber).toHaveBeenCalledWith(hoisted.tx, {
       userId: 'user_new',
       joinedAt: expect.any(Date),
@@ -363,6 +371,7 @@ describe('reconcileCheckoutUser', () => {
         memberNumber: null,
         role: 'admin',
         agentId: null,
+        createdBy: 'admin',
       })
       .mockResolvedValueOnce({
         id: 'user_admin',
@@ -400,6 +409,7 @@ describe('reconcileCheckoutUser', () => {
         branchId: 'branch-ks-main',
         agentId: 'agent_1',
         assistedByAgentId: 'agent_1',
+        createdBy: 'admin',
       })
     );
     expect(hoisted.generateMemberNumber).toHaveBeenCalledWith(hoisted.tx, {
