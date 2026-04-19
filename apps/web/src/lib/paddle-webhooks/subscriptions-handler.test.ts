@@ -121,6 +121,6 @@ describe('handleSubscriptionChanged tenant guardrail', () => {
     const inserted = mocks.insertValues.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
     expect(inserted?.tenantId).toBe('tenant_mk');
     expect(inserted?.branchId).toBe('branch-mk-bitola-main');
-    expect(inserted?.agentId).toBeUndefined();
+    expect(inserted?.agentId).toBeNull();
   });
 });
