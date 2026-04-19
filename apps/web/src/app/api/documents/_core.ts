@@ -82,7 +82,7 @@ function hasScopedClaimReadAccess(args: {
 }
 
 export function safeFilename(value: string) {
-  return value.replaceAll(/[\r\n"]/g, '_');
+  return value.split('\r').join('_').split('\n').join('_').split('"').join('_');
 }
 
 function getFinalDisposition(disposition?: 'inline' | 'attachment'): 'inline' | 'attachment' {
