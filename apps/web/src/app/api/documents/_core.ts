@@ -1,5 +1,5 @@
 import { ApiErrorCode } from '@/core-contracts';
-import { claimDocuments, claims, documents } from '@interdomestik/database/schema';
+import { claimDocuments, claims, documents, policies } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
@@ -151,50 +151,79 @@ function buildDocumentAudit(args: {
   };
 }
 
-async function canReadPolymorphicClaimDocument(args: {
+async function canReadPolymorphicDocument(args: {
   db: any;
-  polyDoc: { entityId: string; entityType: string; uploadedBy: string | null };
+  polyDoc: { id: string; entityId: string; entityType: string; uploadedBy: string | null };
   session: SessionDTO;
   tenantId: string;
   userRole: string | undefined;
 }): Promise<boolean> {
   const { db, polyDoc, session, tenantId, userRole } = args;
 
+  // 1. Full Tenant Roles always have access
   if (isFullTenantClaimsRole(userRole)) {
     return true;
   }
 
+  // 2. Uploader always has access to their own upload
   if (polyDoc.uploadedBy === session.user.id) {
     return true;
   }
 
-  if (!isScopedClaimReaderRole(userRole) || polyDoc.entityType !== 'claim') {
-    return false;
+  // 3. Member Access to their own User/Member profile documents
+  if (polyDoc.entityType === 'member' || polyDoc.entityType === 'user') {
+    return polyDoc.entityId === session.user.id;
   }
 
-  const [claimRow] = await db
-    .select({
-      claimOwnerId: claims.userId,
-      claimBranchId: claims.branchId,
-      claimStaffId: claims.staffId,
-    })
-    .from(claims)
-    .where(and(eq(claims.id, polyDoc.entityId), eq(claims.tenantId, tenantId)));
+  // 4. Claim Document Access
+  if (polyDoc.entityType === 'claim') {
+    const [claimRow] = await db
+      .select({
+        claimOwnerId: claims.userId,
+        claimBranchId: claims.branchId,
+        claimStaffId: claims.staffId,
+      })
+      .from(claims)
+      .where(and(eq(claims.id, polyDoc.entityId), eq(claims.tenantId, tenantId)));
 
-  if (!claimRow) {
-    return false;
+    if (!claimRow) return false;
+
+    // Member can read any document attached to their own claim
+    if (claimRow.claimOwnerId === session.user.id) {
+      return true;
+    }
+
+    // Staff/Branch Manager access via scoped permissions
+    if (isScopedClaimReaderRole(userRole)) {
+      return hasScopedClaimReadAccess({
+        branchId: session.user.branchId ?? null,
+        claim: {
+          branchId: claimRow.claimBranchId ?? null,
+          staffId: claimRow.claimStaffId ?? null,
+          userId: claimRow.claimOwnerId ?? null,
+        },
+        role: userRole,
+        userId: session.user.id,
+      });
+    }
   }
 
-  return hasScopedClaimReadAccess({
-    branchId: session.user.branchId ?? null,
-    claim: {
-      branchId: claimRow.claimBranchId ?? null,
-      staffId: claimRow.claimStaffId ?? null,
-      userId: claimRow.claimOwnerId ?? null,
-    },
-    role: userRole,
-    userId: session.user.id,
-  });
+  // 5. Policy Document Access
+  if (polyDoc.entityType === 'policy') {
+    const [policyRow] = await db
+      .select({ policyOwnerId: policies.userId })
+      .from(policies)
+      .where(and(eq(policies.id, polyDoc.entityId), eq(policies.tenantId, tenantId)));
+
+    if (!policyRow) return false;
+
+    return policyRow.policyOwnerId === session.user.id;
+  }
+
+  // 6. Thread / Communication Access (Future-proofing)
+  // Logic for threads would go here, currently returning false to fail-closed.
+
+  return false;
 }
 
 function canReadLegacyClaimDocument(args: {
@@ -249,7 +278,7 @@ export async function getDocumentAccessCore(args: {
     .where(and(eq(documents.id, documentId), eq(documents.tenantId, tenantId)));
 
   if (polyDoc) {
-    const canRead = await canReadPolymorphicClaimDocument({
+    const canRead = await canReadPolymorphicDocument({
       db,
       polyDoc,
       session,
@@ -315,7 +344,7 @@ export async function getDocumentAccessCore(args: {
       actorRole: userRole,
       disposition: finalDisposition,
       document: doc,
-      documentId,
+      documentId: mode === 'download' ? documentId : doc.id,
       mode,
     }),
   };
