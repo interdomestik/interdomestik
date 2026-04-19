@@ -96,6 +96,8 @@ async function findUserByEmail(email: string): Promise<ReconciledUserRecord | nu
         role: true,
         memberNumber: true,
         agentId: true,
+        createdBy: true,
+        assistedByAgentId: true,
       },
     })) ?? null
   );

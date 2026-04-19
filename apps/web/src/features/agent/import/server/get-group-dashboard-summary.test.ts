@@ -9,6 +9,7 @@ function sortStrings(values: string[]): string[] {
 describe('getGroupDashboardSummaryCore', () => {
   const mockDb = {
     groupBy: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
     from: vi.fn().mockReturnThis(),
     where: vi.fn(),
@@ -18,6 +19,7 @@ describe('getGroupDashboardSummaryCore', () => {
 
   beforeEach(() => {
     mockDb.groupBy.mockClear();
+    mockDb.innerJoin.mockClear();
     mockDb.select.mockClear();
     mockDb.from.mockClear();
     mockDb.where.mockReset();
@@ -26,19 +28,14 @@ describe('getGroupDashboardSummaryCore', () => {
   it('aggregates activation, usage, and SLA-safe case metrics for an office portfolio', async () => {
     mockDb.where
       .mockImplementationOnce(async () => [
-        { memberId: 'member-1' },
-        { memberId: 'member-2' },
-        { memberId: 'member-3' },
-      ])
-      .mockImplementationOnce(async () => [
         { id: 'sub-1', userId: 'member-1' },
         { id: 'sub-2', userId: 'member-2' },
         { id: 'sub-3', userId: 'member-3' },
       ])
       .mockImplementationOnce(async () => [
-        { subscriptionId: 'sub-1' },
-        { subscriptionId: 'sub-1' },
-        { subscriptionId: 'sub-3' },
+        { memberId: 'member-1' },
+        { memberId: 'member-1' },
+        { memberId: 'member-3' },
       ])
       .mockImplementationOnce(() => mockDb)
       .mockImplementationOnce(async () => [{ count: '2' }]);
@@ -84,10 +81,10 @@ describe('getGroupDashboardSummaryCore', () => {
     expect(summary).not.toHaveProperty('memberIds');
     expect(summary).not.toHaveProperty('notes');
 
-    expect(mockDb.from).toHaveBeenCalledWith(agentClients);
     expect(mockDb.from).toHaveBeenCalledWith(subscriptions);
     expect(mockDb.from).toHaveBeenCalledWith(serviceUsage);
     expect(mockDb.from).toHaveBeenCalledWith(claims);
+    expect(mockDb.innerJoin).toHaveBeenCalledWith(agentClients, expect.anything());
     expect(mockDb.groupBy).toHaveBeenCalledWith(claims.status);
   });
 
@@ -123,12 +120,11 @@ describe('getGroupDashboardSummaryCore', () => {
 
   it('uses active member assignments even when subscription ownership is stale', async () => {
     mockDb.where
-      .mockImplementationOnce(async () => [{ memberId: 'member-1' }, { memberId: 'member-2' }])
       .mockImplementationOnce(async () => [
         { id: 'sub-1', userId: 'member-1' },
         { id: 'sub-2', userId: 'member-2' },
       ])
-      .mockImplementationOnce(async () => [{ subscriptionId: 'sub-2' }])
+      .mockImplementationOnce(async () => [{ memberId: 'member-2' }])
       .mockImplementationOnce(() => mockDb)
       .mockImplementationOnce(async () => [{ count: '1' }]);
     mockDb.groupBy.mockResolvedValueOnce([{ count: '2', status: 'submitted' }]);

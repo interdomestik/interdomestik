@@ -1,4 +1,4 @@
-import { and, db, eq } from '@interdomestik/database';
+import { db, eq } from '@interdomestik/database';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import {
   createActiveAnnualMembershipFulfillment,

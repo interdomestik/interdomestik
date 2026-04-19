@@ -7,12 +7,7 @@ import {
   resolveCanonicalMembershipPlanState,
   syncActiveAgentClientBinding,
 } from '@interdomestik/domain-membership-billing';
-import {
-  account,
-  agentClients,
-  subscriptions,
-  user as userTable,
-} from '@interdomestik/database/schema';
+import { account, subscriptions, user as userTable } from '@interdomestik/database/schema';
 import { circuitBreakers } from '@interdomestik/shared-utils/circuit-breaker';
 import { withTransactionRetry } from '@interdomestik/shared-utils/resilience';
 import { hash } from 'bcryptjs';

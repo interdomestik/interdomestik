@@ -425,6 +425,51 @@ describe('Paddle Webhook Handlers', () => {
         })
       );
     });
+
+    it('clears subscription ownership when the reconciled user is company-owned', async () => {
+      const insertedValues = vi.fn().mockResolvedValue(undefined);
+
+      hoisted.db.insert.mockReturnValue({
+        values: insertedValues,
+      });
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
+      hoisted.db.query.user.findFirst
+        .mockResolvedValueOnce({
+          tenantId: 'tenant_abc',
+          email: 'test@example.com',
+          name: 'Test User',
+          memberNumber: 'MEM-2026-000001',
+          agentId: null,
+        })
+        .mockResolvedValueOnce({
+          branchId: 'branch_abc',
+        });
+
+      await handleSubscriptionChanged(
+        {
+          eventType: 'subscription.updated',
+          data: {
+            id: 'sub_company_owner',
+            status: 'active',
+            customData: { userId: 'user_123', agentId: 'agent_stale' },
+            items: [
+              {
+                price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
+              },
+            ],
+            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+          },
+        },
+        { logAuditEvent }
+      );
+
+      expect(insertedValues).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user_123',
+          agentId: null,
+        })
+      );
+    });
   });
 
   describe('handleSubscriptionPastDue', () => {

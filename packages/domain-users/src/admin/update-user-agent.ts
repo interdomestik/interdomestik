@@ -1,4 +1,4 @@
-import { agentClients, db, eq, subscriptions, user } from '@interdomestik/database';
+import { db, eq, subscriptions, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { syncActiveAgentClientBinding } from '@interdomestik/domain-membership-billing';
 import { and } from 'drizzle-orm';

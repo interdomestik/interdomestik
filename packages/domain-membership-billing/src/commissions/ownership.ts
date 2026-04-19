@@ -21,6 +21,12 @@ export interface ResolveCommissionOwnershipInput {
   agentClientAgentIds?: Array<string | null | undefined>;
 }
 
+type NormalizedOwnershipSignals = {
+  subscriptionAgentId: string | null | undefined;
+  userAgentId: string | null | undefined;
+  agentClientAgentIds: string[] | null;
+};
+
 function normalizeAgentIds(
   agentIds: Array<string | null | undefined> | undefined
 ): string[] | null {
@@ -44,96 +50,158 @@ function normalizeAgentId(agentId: string | null | undefined): string | null | u
   return normalized.length > 0 ? normalized : null;
 }
 
+function normalizeOwnershipSignals(
+  input: ResolveCommissionOwnershipInput
+): NormalizedOwnershipSignals {
+  return {
+    subscriptionAgentId: normalizeAgentId(input.subscriptionAgentId),
+    userAgentId: normalizeAgentId(input.userAgentId),
+    agentClientAgentIds: normalizeAgentIds(input.agentClientAgentIds),
+  };
+}
+
+function buildMissingOwnershipResult(): CommissionOwnershipResolution {
+  return {
+    ownerType: 'unresolved',
+    agentId: null,
+    resolvedFrom: null,
+    diagnostics: [
+      {
+        source: 'subscription.agentId',
+        expectedAgentId: null,
+        actualAgentId: null,
+      },
+    ],
+  };
+}
+
+function buildConflictingAssignmentsResult(
+  agentClientAgentIds: string[]
+): CommissionOwnershipResolution {
+  return {
+    ownerType: 'unresolved',
+    agentId: null,
+    resolvedFrom: 'agent_clients',
+    diagnostics: [
+      {
+        source: 'agent_clients',
+        expectedAgentId: null,
+        actualAgentIds: agentClientAgentIds,
+      },
+    ],
+  };
+}
+
+function resolveCanonicalSource(
+  signals: NormalizedOwnershipSignals
+): CommissionOwnershipSource | null {
+  if (signals.agentClientAgentIds !== null) {
+    return 'agent_clients';
+  }
+
+  if (signals.userAgentId !== undefined) {
+    return 'user.agentId';
+  }
+
+  if (signals.subscriptionAgentId !== undefined) {
+    return 'subscription.agentId';
+  }
+
+  return null;
+}
+
+function resolveCanonicalAgentId(
+  resolvedFrom: CommissionOwnershipSource,
+  signals: NormalizedOwnershipSignals
+): string | null {
+  if (resolvedFrom === 'agent_clients') {
+    return signals.agentClientAgentIds?.[0] ?? null;
+  }
+
+  if (resolvedFrom === 'user.agentId') {
+    return signals.userAgentId ?? null;
+  }
+
+  return signals.subscriptionAgentId ?? null;
+}
+
+function addScalarDiagnostic(
+  diagnostics: CommissionOwnershipDriftDiagnostic[],
+  source: Extract<CommissionOwnershipSource, 'subscription.agentId' | 'user.agentId'>,
+  expectedAgentId: string | null,
+  actualAgentId: string | null | undefined
+) {
+  if (actualAgentId === undefined || actualAgentId === expectedAgentId) {
+    return;
+  }
+
+  diagnostics.push({
+    source,
+    expectedAgentId,
+    actualAgentId,
+  });
+}
+
+function agentClientsMatchCanonical(expectedAgentId: string | null, agentClientAgentIds: string[]) {
+  if (expectedAgentId === null) {
+    return agentClientAgentIds.length === 0;
+  }
+
+  return agentClientAgentIds.length === 1 && agentClientAgentIds[0] === expectedAgentId;
+}
+
+function addAgentClientDiagnostic(
+  diagnostics: CommissionOwnershipDriftDiagnostic[],
+  expectedAgentId: string | null,
+  agentClientAgentIds: string[] | null
+) {
+  if (
+    agentClientAgentIds === null ||
+    agentClientsMatchCanonical(expectedAgentId, agentClientAgentIds)
+  ) {
+    return;
+  }
+
+  diagnostics.push({
+    source: 'agent_clients',
+    expectedAgentId,
+    actualAgentIds: agentClientAgentIds,
+  });
+}
+
 export function resolveCommissionOwnership(
   input: ResolveCommissionOwnershipInput
 ): CommissionOwnershipResolution {
-  const subscriptionAgentId = normalizeAgentId(input.subscriptionAgentId);
-  const userAgentId = normalizeAgentId(input.userAgentId);
-  const agentClientAgentIds = normalizeAgentIds(input.agentClientAgentIds);
+  const signals = normalizeOwnershipSignals(input);
 
-  if (agentClientAgentIds && agentClientAgentIds.length > 1) {
-    return {
-      ownerType: 'unresolved',
-      agentId: null,
-      resolvedFrom: 'agent_clients',
-      diagnostics: [
-        {
-          source: 'agent_clients',
-          expectedAgentId: null,
-          actualAgentIds: agentClientAgentIds,
-        },
-      ],
-    };
+  if (signals.agentClientAgentIds && signals.agentClientAgentIds.length > 1) {
+    return buildConflictingAssignmentsResult(signals.agentClientAgentIds);
   }
 
-  const resolvedFrom =
-    agentClientAgentIds !== null
-      ? 'agent_clients'
-      : userAgentId !== undefined
-        ? 'user.agentId'
-        : subscriptionAgentId !== undefined
-          ? 'subscription.agentId'
-          : null;
+  const resolvedFrom = resolveCanonicalSource(signals);
 
   if (!resolvedFrom) {
-    return {
-      ownerType: 'unresolved',
-      agentId: null,
-      resolvedFrom: null,
-      diagnostics: [
-        {
-          source: 'subscription.agentId',
-          expectedAgentId: null,
-          actualAgentId: null,
-        },
-      ],
-    };
+    return buildMissingOwnershipResult();
   }
 
-  const resolvedAgentId =
-    resolvedFrom === 'agent_clients'
-      ? (agentClientAgentIds?.[0] ?? null)
-      : resolvedFrom === 'user.agentId'
-        ? (userAgentId ?? null)
-        : (subscriptionAgentId ?? null);
+  const resolvedAgentId = resolveCanonicalAgentId(resolvedFrom, signals);
   const diagnostics: CommissionOwnershipDriftDiagnostic[] = [];
 
-  if (resolvedFrom !== 'subscription.agentId' && subscriptionAgentId !== undefined) {
-    if (subscriptionAgentId !== resolvedAgentId) {
-      diagnostics.push({
-        source: 'subscription.agentId',
-        expectedAgentId: resolvedAgentId,
-        actualAgentId: subscriptionAgentId,
-      });
-    }
+  if (resolvedFrom !== 'subscription.agentId') {
+    addScalarDiagnostic(
+      diagnostics,
+      'subscription.agentId',
+      resolvedAgentId,
+      signals.subscriptionAgentId
+    );
   }
 
-  if (
-    resolvedFrom !== 'user.agentId' &&
-    userAgentId !== undefined &&
-    userAgentId !== resolvedAgentId
-  ) {
-    diagnostics.push({
-      source: 'user.agentId',
-      expectedAgentId: resolvedAgentId,
-      actualAgentId: userAgentId,
-    });
+  if (resolvedFrom !== 'user.agentId') {
+    addScalarDiagnostic(diagnostics, 'user.agentId', resolvedAgentId, signals.userAgentId);
   }
 
-  if (resolvedFrom !== 'agent_clients' && agentClientAgentIds !== null) {
-    const matchesCanonical =
-      (resolvedAgentId === null && agentClientAgentIds.length === 0) ||
-      (resolvedAgentId !== null &&
-        agentClientAgentIds.length === 1 &&
-        agentClientAgentIds[0] === resolvedAgentId);
-
-    if (!matchesCanonical) {
-      diagnostics.push({
-        source: 'agent_clients',
-        expectedAgentId: resolvedAgentId,
-        actualAgentIds: agentClientAgentIds,
-      });
-    }
+  if (resolvedFrom !== 'agent_clients') {
+    addAgentClientDiagnostic(diagnostics, resolvedAgentId, signals.agentClientAgentIds);
   }
 
   return {

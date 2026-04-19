@@ -48,7 +48,7 @@ export async function handleSubscriptionChanged(
     sub,
     tenantId,
     userId,
-    agentId: resolvedAgentId ?? undefined,
+    agentId: resolvedAgentId,
     branchId,
     mappedStatus,
     planState: canonicalPlanState,
@@ -94,7 +94,7 @@ async function upsertSubscription(args: {
   sub: any;
   tenantId: string;
   userId: string;
-  agentId?: string;
+  agentId?: string | null;
   branchId?: string;
   mappedStatus: InternalSubscriptionStatus;
   planState: {
@@ -181,7 +181,7 @@ function normalizeAgentId(agentId: string | null | undefined): string | null {
 
 function resolveSubscriptionAgentId(args: {
   userRecord?: { agentId?: string | null } | null;
-  customData?: { agentId?: string } | undefined;
+  customData?: { agentId?: string };
 }) {
   if (args.userRecord) {
     return normalizeAgentId(args.userRecord.agentId);
