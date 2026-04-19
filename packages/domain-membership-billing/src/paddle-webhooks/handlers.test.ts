@@ -43,6 +43,11 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  agentClients: {
+    tenantId: 'agent_clients.tenant_id',
+    memberId: 'agent_clients.member_id',
+    agentId: 'agent_clients.agent_id',
+  },
   and: hoisted.and,
   asc: hoisted.asc,
   db: hoisted.db,
@@ -374,6 +379,51 @@ describe('Paddle Webhook Handlers', () => {
         })
       );
       expect(mockWhere).toHaveBeenCalled();
+    });
+
+    it('prefers the reconciled user agent over webhook customData when persisting subscription ownership', async () => {
+      const insertedValues = vi.fn().mockResolvedValue(undefined);
+
+      hoisted.db.insert.mockReturnValue({
+        values: insertedValues,
+      });
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
+      hoisted.db.query.user.findFirst
+        .mockResolvedValueOnce({
+          tenantId: 'tenant_abc',
+          email: 'test@example.com',
+          name: 'Test User',
+          memberNumber: 'MEM-2026-000001',
+          agentId: 'agent_user',
+        })
+        .mockResolvedValueOnce({
+          branchId: 'branch_abc',
+        });
+
+      await handleSubscriptionChanged(
+        {
+          eventType: 'subscription.updated',
+          data: {
+            id: 'sub_agent_owner',
+            status: 'active',
+            customData: { userId: 'user_123', agentId: 'agent_stale' },
+            items: [
+              {
+                price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
+              },
+            ],
+            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+          },
+        },
+        { logAuditEvent }
+      );
+
+      expect(insertedValues).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user_123',
+          agentId: 'agent_user',
+        })
+      );
     });
   });
 

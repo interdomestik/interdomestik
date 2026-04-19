@@ -1,7 +1,10 @@
 import { db, eq, user as userTable } from '@interdomestik/database';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import { nanoid } from 'nanoid';
-import { createSelfServeOwnershipAttribution } from '../../../ownership-attribution';
+import {
+  createSelfServeOwnershipAttribution,
+  syncActiveAgentClientBinding,
+} from '../../../ownership-attribution';
 import type { RequestPasswordResetOnboarding } from '../../types';
 import { resolveBranchId } from './context';
 
@@ -177,6 +180,13 @@ export async function reconcileCheckoutUser(
           userId: newUserId,
           joinedAt: now,
         });
+
+        await syncActiveAgentClientBinding(tx, {
+          tenantId,
+          memberId: newUserId,
+          agentId: ownershipAttribution.agentId,
+          now,
+        });
       });
 
       shouldRequestOnboarding = true;
@@ -209,13 +219,14 @@ export async function reconcileCheckoutUser(
   ) {
     const nextRole = shouldPromoteRole(existingUser.role) ? 'member' : existingUser.role;
     const ownershipAttribution = createSelfServeOwnershipAttribution(mergedCustomData?.agentId);
+    const nextAgentId = existingUser.agentId ?? ownershipAttribution.agentId;
     await db.transaction(async tx => {
       await tx
         .update(userTable)
         .set({
           role: nextRole,
           branchId: existingUser.branchId ?? branchId ?? null,
-          agentId: existingUser.agentId ?? ownershipAttribution.agentId,
+          agentId: nextAgentId,
           assistedByAgentId: ownershipAttribution.assistedByAgentId,
           createdBy: existingUser.createdBy ?? ownershipAttribution.createdBy,
           updatedAt: now,
@@ -228,6 +239,13 @@ export async function reconcileCheckoutUser(
           joinedAt: now,
         });
       }
+
+      await syncActiveAgentClientBinding(tx, {
+        tenantId,
+        memberId: existingUser.id,
+        agentId: nextAgentId,
+        now,
+      });
     });
 
     shouldRequestOnboarding = !credentialAccount;
@@ -243,6 +261,7 @@ export async function reconcileCheckoutUser(
       name: true,
       role: true,
       memberNumber: true,
+      agentId: true,
     },
   });
 
