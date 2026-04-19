@@ -2,15 +2,12 @@ import { sendMemberWelcomeEmail } from '@/lib/email';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import {
   createActiveAnnualMembershipFulfillment,
+  createAgentAssistedOwnershipAttribution,
   createCanonicalMembershipPlanState,
   resolveCanonicalMembershipPlanState,
+  syncActiveAgentClientBinding,
 } from '@interdomestik/domain-membership-billing';
-import {
-  account,
-  agentClients,
-  subscriptions,
-  user as userTable,
-} from '@interdomestik/database/schema';
+import { account, subscriptions, user as userTable } from '@interdomestik/database/schema';
 import { circuitBreakers } from '@interdomestik/shared-utils/circuit-breaker';
 import { withTransactionRetry } from '@interdomestik/shared-utils/resilience';
 import { hash } from 'bcryptjs';
@@ -54,6 +51,7 @@ export async function registerMemberCore(
     tenantId,
     planId: data.planId,
   });
+  const attribution = createAgentAssistedOwnershipAttribution(agent.id);
 
   try {
     await withTransactionRetry(async tx => {
@@ -69,7 +67,7 @@ export async function registerMemberCore(
         email: data.email,
         emailVerified: false,
         role: 'member', // Critical change: was 'user'
-        agentId: agent.id,
+        ...attribution,
         createdAt: now,
         updatedAt: now,
       });
@@ -91,14 +89,12 @@ export async function registerMemberCore(
         joinedAt: now,
       });
 
-      await tx.insert(agentClients).values({
-        id: nanoid(),
+      await syncActiveAgentClientBinding(tx, {
         tenantId,
-        agentId: agent.id,
         memberId: userId,
-        status: 'active',
-        joinedAt: now,
-        createdAt: now,
+        agentId: agent.id,
+        now,
+        idFactory: () => nanoid(),
       });
 
       const subscriptionValues =

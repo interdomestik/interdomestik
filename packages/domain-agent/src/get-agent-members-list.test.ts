@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => {
       memberId: 'agent_clients.member_id',
       agentId: 'agent_clients.agent_id',
       tenantId: 'agent_clients.tenant_id',
+      status: 'agent_clients.status',
       joinedAt: 'agent_clients.joined_at',
     },
     claims: {
@@ -166,6 +167,7 @@ describe('getAgentMembersList', () => {
 
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.agentId, 'agent-4');
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.tenantId, 'tenant-4');
+    expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.status, 'active');
     expect(mocks.eq).toHaveBeenCalledWith(mocks.user.role, 'member');
     expect(mocks.asc).toHaveBeenCalledWith(mocks.agentClients.memberId);
   });

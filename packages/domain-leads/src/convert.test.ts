@@ -39,6 +39,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  agentClients: tableRefs.agentClients,
   and: mocks.and,
   asc: mocks.asc,
   db: mocks.db,
@@ -190,6 +191,12 @@ describe('convertLeadToMember', () => {
     const subscriptionInsert = insertRecords.find(
       record => record.table === tableRefs.subscriptions
     )?.values;
+    const userInsert = insertRecords.find(record => record.table === tableRefs.user)?.values;
+    expect(userInsert).toMatchObject({
+      agentId: 'agent-1',
+      createdBy: 'agent',
+      assistedByAgentId: 'agent-1',
+    });
     expect(subscriptionInsert).toMatchObject({
       id: 'sub_subscription-seed',
       tenantId: 'tenant-1',

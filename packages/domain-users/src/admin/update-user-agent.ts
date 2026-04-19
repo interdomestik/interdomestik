@@ -1,5 +1,6 @@
-import { agentClients, db, eq, subscriptions, user } from '@interdomestik/database';
+import { db, eq, subscriptions, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { syncActiveAgentClientBinding } from '@interdomestik/domain-membership-billing';
 import { and } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
@@ -35,27 +36,12 @@ export async function updateUserAgentCore(params: {
           )
         );
 
-      await tx
-        .update(agentClients)
-        .set({ status: 'inactive' })
-        .where(withTenant(tenantId, agentClients.tenantId, eq(agentClients.memberId, userId)));
-
-      if (agentId) {
-        await tx
-          .insert(agentClients)
-          .values({
-            id: randomUUID(),
-            tenantId,
-            agentId,
-            memberId: userId,
-            status: 'active',
-            joinedAt: new Date(),
-          })
-          .onConflictDoUpdate({
-            target: [agentClients.tenantId, agentClients.agentId, agentClients.memberId],
-            set: { status: 'active', joinedAt: new Date() },
-          });
-      }
+      await syncActiveAgentClientBinding(tx, {
+        tenantId,
+        memberId: userId,
+        agentId,
+        idFactory: () => randomUUID(),
+      });
     });
 
     return { success: true };

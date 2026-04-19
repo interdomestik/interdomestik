@@ -8,6 +8,7 @@ export * from './commissions/create';
 export * from './commissions/create-renewal';
 export * from './commissions/get-my';
 export * from './commissions/ownership';
+export * from './ownership-attribution';
 export * from './commissions/summary';
 export * from './commissions/types';
 export * from './paddle';

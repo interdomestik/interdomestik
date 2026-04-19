@@ -64,7 +64,7 @@ export async function resolveSubscriptionContext(sub: any) {
 
   const userRecord = await db.query.user.findFirst({
     where: (users, { eq }) => eq(users.id, userId),
-    columns: { tenantId: true, email: true, name: true, memberNumber: true },
+    columns: { tenantId: true, email: true, name: true, memberNumber: true, agentId: true },
   });
 
   const canonicalTenantId = existingSub?.tenantId ?? userRecord?.tenantId;

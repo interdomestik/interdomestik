@@ -1,7 +1,8 @@
 export type CommissionOwnershipOwnerType = 'agent' | 'company' | 'unresolved';
+export type CommissionOwnershipSource = 'subscription.agentId' | 'user.agentId' | 'agent_clients';
 
 export interface CommissionOwnershipDriftDiagnostic {
-  source: 'subscription.agentId' | 'user.agentId' | 'agent_clients';
+  source: CommissionOwnershipSource;
   expectedAgentId: string | null;
   actualAgentId?: string | null;
   actualAgentIds?: string[];
@@ -10,6 +11,7 @@ export interface CommissionOwnershipDriftDiagnostic {
 export interface CommissionOwnershipResolution {
   ownerType: CommissionOwnershipOwnerType;
   agentId: string | null;
+  resolvedFrom: CommissionOwnershipSource | null;
   diagnostics: CommissionOwnershipDriftDiagnostic[];
 }
 
@@ -18,6 +20,12 @@ export interface ResolveCommissionOwnershipInput {
   userAgentId?: string | null;
   agentClientAgentIds?: Array<string | null | undefined>;
 }
+
+type NormalizedOwnershipSignals = {
+  subscriptionAgentId: string | null | undefined;
+  userAgentId: string | null | undefined;
+  agentClientAgentIds: string[] | null;
+};
 
 function normalizeAgentIds(
   agentIds: Array<string | null | undefined> | undefined
@@ -29,51 +37,177 @@ function normalizeAgentIds(
   return [...new Set(agentIds.filter((agentId): agentId is string => Boolean(agentId)))];
 }
 
+function normalizeAgentId(agentId: string | null | undefined): string | null | undefined {
+  if (agentId === undefined) {
+    return undefined;
+  }
+
+  if (agentId === null) {
+    return null;
+  }
+
+  const normalized = agentId.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeOwnershipSignals(
+  input: ResolveCommissionOwnershipInput
+): NormalizedOwnershipSignals {
+  return {
+    subscriptionAgentId: normalizeAgentId(input.subscriptionAgentId),
+    userAgentId: normalizeAgentId(input.userAgentId),
+    agentClientAgentIds: normalizeAgentIds(input.agentClientAgentIds),
+  };
+}
+
+function buildMissingOwnershipResult(): CommissionOwnershipResolution {
+  return {
+    ownerType: 'unresolved',
+    agentId: null,
+    resolvedFrom: null,
+    diagnostics: [
+      {
+        source: 'subscription.agentId',
+        expectedAgentId: null,
+        actualAgentId: null,
+      },
+    ],
+  };
+}
+
+function buildConflictingAssignmentsResult(
+  agentClientAgentIds: string[]
+): CommissionOwnershipResolution {
+  return {
+    ownerType: 'unresolved',
+    agentId: null,
+    resolvedFrom: 'agent_clients',
+    diagnostics: [
+      {
+        source: 'agent_clients',
+        expectedAgentId: null,
+        actualAgentIds: agentClientAgentIds,
+      },
+    ],
+  };
+}
+
+function resolveCanonicalSource(
+  signals: NormalizedOwnershipSignals
+): CommissionOwnershipSource | null {
+  if (signals.agentClientAgentIds !== null) {
+    return 'agent_clients';
+  }
+
+  if (signals.userAgentId !== undefined) {
+    return 'user.agentId';
+  }
+
+  if (signals.subscriptionAgentId !== undefined) {
+    return 'subscription.agentId';
+  }
+
+  return null;
+}
+
+function resolveCanonicalAgentId(
+  resolvedFrom: CommissionOwnershipSource,
+  signals: NormalizedOwnershipSignals
+): string | null {
+  if (resolvedFrom === 'agent_clients') {
+    return signals.agentClientAgentIds?.[0] ?? null;
+  }
+
+  if (resolvedFrom === 'user.agentId') {
+    return signals.userAgentId ?? null;
+  }
+
+  return signals.subscriptionAgentId ?? null;
+}
+
+function addScalarDiagnostic(
+  diagnostics: CommissionOwnershipDriftDiagnostic[],
+  source: Extract<CommissionOwnershipSource, 'subscription.agentId' | 'user.agentId'>,
+  expectedAgentId: string | null,
+  actualAgentId: string | null | undefined
+) {
+  if (actualAgentId === undefined || actualAgentId === expectedAgentId) {
+    return;
+  }
+
+  diagnostics.push({
+    source,
+    expectedAgentId,
+    actualAgentId,
+  });
+}
+
+function agentClientsMatchCanonical(expectedAgentId: string | null, agentClientAgentIds: string[]) {
+  if (expectedAgentId === null) {
+    return agentClientAgentIds.length === 0;
+  }
+
+  return agentClientAgentIds.length === 1 && agentClientAgentIds[0] === expectedAgentId;
+}
+
+function addAgentClientDiagnostic(
+  diagnostics: CommissionOwnershipDriftDiagnostic[],
+  expectedAgentId: string | null,
+  agentClientAgentIds: string[] | null
+) {
+  if (
+    agentClientAgentIds === null ||
+    agentClientsMatchCanonical(expectedAgentId, agentClientAgentIds)
+  ) {
+    return;
+  }
+
+  diagnostics.push({
+    source: 'agent_clients',
+    expectedAgentId,
+    actualAgentIds: agentClientAgentIds,
+  });
+}
+
 export function resolveCommissionOwnership(
   input: ResolveCommissionOwnershipInput
 ): CommissionOwnershipResolution {
-  if (input.subscriptionAgentId === undefined) {
-    return {
-      ownerType: 'unresolved',
-      agentId: null,
-      diagnostics: [
-        {
-          source: 'subscription.agentId',
-          expectedAgentId: null,
-          actualAgentId: null,
-        },
-      ],
-    };
+  const signals = normalizeOwnershipSignals(input);
+
+  if (signals.agentClientAgentIds && signals.agentClientAgentIds.length > 1) {
+    return buildConflictingAssignmentsResult(signals.agentClientAgentIds);
   }
 
-  const resolvedAgentId = input.subscriptionAgentId;
+  const resolvedFrom = resolveCanonicalSource(signals);
+
+  if (!resolvedFrom) {
+    return buildMissingOwnershipResult();
+  }
+
+  const resolvedAgentId = resolveCanonicalAgentId(resolvedFrom, signals);
   const diagnostics: CommissionOwnershipDriftDiagnostic[] = [];
 
-  if (input.userAgentId !== undefined && input.userAgentId !== resolvedAgentId) {
-    diagnostics.push({
-      source: 'user.agentId',
-      expectedAgentId: resolvedAgentId,
-      actualAgentId: input.userAgentId,
-    });
+  if (resolvedFrom !== 'subscription.agentId') {
+    addScalarDiagnostic(
+      diagnostics,
+      'subscription.agentId',
+      resolvedAgentId,
+      signals.subscriptionAgentId
+    );
   }
 
-  const agentClientAgentIds = normalizeAgentIds(input.agentClientAgentIds);
-  if (
-    agentClientAgentIds &&
-    ((resolvedAgentId === null && agentClientAgentIds.length > 0) ||
-      (resolvedAgentId !== null &&
-        (agentClientAgentIds.length !== 1 || agentClientAgentIds[0] !== resolvedAgentId)))
-  ) {
-    diagnostics.push({
-      source: 'agent_clients',
-      expectedAgentId: resolvedAgentId,
-      actualAgentIds: agentClientAgentIds,
-    });
+  if (resolvedFrom !== 'user.agentId') {
+    addScalarDiagnostic(diagnostics, 'user.agentId', resolvedAgentId, signals.userAgentId);
+  }
+
+  if (resolvedFrom !== 'agent_clients') {
+    addAgentClientDiagnostic(diagnostics, resolvedAgentId, signals.agentClientAgentIds);
   }
 
   return {
     ownerType: resolvedAgentId === null ? 'company' : 'agent',
     agentId: resolvedAgentId,
+    resolvedFrom,
     diagnostics,
   };
 }

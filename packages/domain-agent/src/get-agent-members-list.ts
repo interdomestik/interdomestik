@@ -71,6 +71,7 @@ export async function getAgentMembersList(params: {
       and(
         eq(agentClients.agentId, agentId),
         eq(agentClients.tenantId, tenantId),
+        eq(agentClients.status, 'active'),
         eq(user.role, 'member'),
         ...(searchFilter ? [searchFilter] : [])
       )

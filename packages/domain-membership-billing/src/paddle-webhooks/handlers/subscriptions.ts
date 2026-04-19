@@ -34,6 +34,7 @@ export async function handleSubscriptionChanged(
   }
 
   const { userId, tenantId, branchId, customData, userRecord } = context;
+  const resolvedAgentId = resolveSubscriptionAgentId({ userRecord, customData });
 
   const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
   const canonicalPlanState = await resolveCanonicalMembershipPlanState({
@@ -47,7 +48,7 @@ export async function handleSubscriptionChanged(
     sub,
     tenantId,
     userId,
-    agentId: customData?.agentId,
+    agentId: resolvedAgentId,
     branchId,
     mappedStatus,
     planState: canonicalPlanState,
@@ -93,7 +94,7 @@ async function upsertSubscription(args: {
   sub: any;
   tenantId: string;
   userId: string;
-  agentId?: string;
+  agentId?: string | null;
   branchId?: string;
   mappedStatus: InternalSubscriptionStatus;
   planState: {
@@ -167,6 +168,26 @@ async function findExistingSubscription(subId: string, userId: string) {
 
 async function updateSubscription(subscriptionId: string, values: Record<string, unknown>) {
   await db.update(subscriptions).set(values).where(eq(subscriptions.id, subscriptionId));
+}
+
+function normalizeAgentId(agentId: string | null | undefined): string | null {
+  if (typeof agentId !== 'string') {
+    return null;
+  }
+
+  const normalized = agentId.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function resolveSubscriptionAgentId(args: {
+  userRecord?: { agentId?: string | null } | null;
+  customData?: { agentId?: string };
+}) {
+  if (args.userRecord) {
+    return normalizeAgentId(args.userRecord.agentId);
+  }
+
+  return normalizeAgentId(args.customData?.agentId);
 }
 
 function mapToSubscriptionValues(

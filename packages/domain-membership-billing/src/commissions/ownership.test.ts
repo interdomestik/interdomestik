@@ -9,36 +9,32 @@ describe('resolveCommissionOwnership', () => {
       agentClientAgentIds: ['agent-legacy'],
     });
 
-    expect(result.ownerType).toBe('unresolved');
-    expect(result.agentId).toBeNull();
-    expect(result.diagnostics).toEqual([
-      {
-        source: 'subscription.agentId',
-        expectedAgentId: null,
-        actualAgentId: null,
-      },
-    ]);
+    expect(result.ownerType).toBe('agent');
+    expect(result.agentId).toBe('agent-legacy');
+    expect(result.resolvedFrom).toBe('agent_clients');
+    expect(result.diagnostics).toEqual([]);
   });
 
-  it('keeps subscriptions.agentId as the canonical owner and reports drift diagnostics', () => {
+  it('prefers agent_clients as the canonical owner and reports drift on older sources', () => {
     const result = resolveCommissionOwnership({
       subscriptionAgentId: 'agent-canonical',
       userAgentId: 'agent-legacy',
-      agentClientAgentIds: ['agent-legacy', 'agent-shadow'],
+      agentClientAgentIds: ['agent-current'],
     });
 
     expect(result.ownerType).toBe('agent');
-    expect(result.agentId).toBe('agent-canonical');
+    expect(result.agentId).toBe('agent-current');
+    expect(result.resolvedFrom).toBe('agent_clients');
     expect(result.diagnostics).toEqual([
       {
-        source: 'user.agentId',
-        expectedAgentId: 'agent-canonical',
-        actualAgentId: 'agent-legacy',
+        source: 'subscription.agentId',
+        expectedAgentId: 'agent-current',
+        actualAgentId: 'agent-canonical',
       },
       {
-        source: 'agent_clients',
-        expectedAgentId: 'agent-canonical',
-        actualAgentIds: ['agent-legacy', 'agent-shadow'],
+        source: 'user.agentId',
+        expectedAgentId: 'agent-current',
+        actualAgentId: 'agent-legacy',
       },
     ]);
   });
@@ -52,28 +48,44 @@ describe('resolveCommissionOwnership', () => {
 
     expect(result.ownerType).toBe('agent');
     expect(result.agentId).toBe('agent-canonical');
+    expect(result.resolvedFrom).toBe('agent_clients');
     expect(result.diagnostics).toEqual([]);
   });
 
-  it('treats a null subscription owner as company-owned', () => {
+  it('treats an empty active binding set as company-owned even when older sources are stale', () => {
     const result = resolveCommissionOwnership({
       subscriptionAgentId: null,
       userAgentId: 'agent-legacy',
-      agentClientAgentIds: ['agent-legacy'],
+      agentClientAgentIds: [],
     });
 
     expect(result.ownerType).toBe('company');
     expect(result.agentId).toBeNull();
+    expect(result.resolvedFrom).toBe('agent_clients');
     expect(result.diagnostics).toEqual([
       {
         source: 'user.agentId',
         expectedAgentId: null,
         actualAgentId: 'agent-legacy',
       },
+    ]);
+  });
+
+  it('returns unresolved when multiple active agent bindings disagree', () => {
+    const result = resolveCommissionOwnership({
+      subscriptionAgentId: 'agent-canonical',
+      userAgentId: 'agent-canonical',
+      agentClientAgentIds: ['agent-a', 'agent-b'],
+    });
+
+    expect(result.ownerType).toBe('unresolved');
+    expect(result.agentId).toBeNull();
+    expect(result.resolvedFrom).toBe('agent_clients');
+    expect(result.diagnostics).toEqual([
       {
         source: 'agent_clients',
         expectedAgentId: null,
-        actualAgentIds: ['agent-legacy'],
+        actualAgentIds: ['agent-a', 'agent-b'],
       },
     ]);
   });

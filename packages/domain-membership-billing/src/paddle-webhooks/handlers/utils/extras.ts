@@ -1,11 +1,11 @@
 import { db } from '@interdomestik/database';
-import { agentClients, referrals } from '@interdomestik/database/schema';
+import { referrals } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
 import { createCommissionCore } from '../../../commissions/create';
 import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
 import { calculateCommission } from '../../../commissions/types';
+import { syncActiveAgentClientBinding } from '../../../ownership-attribution';
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../../types';
 
 export const redactEmail = (email?: string | null) => {
@@ -138,29 +138,12 @@ async function ensureAgentClientBinding(args: {
 
   const now = new Date();
   await db.transaction(async tx => {
-    await tx
-      .update(agentClients)
-      .set({ status: 'inactive' })
-      .where(and(eq(agentClients.tenantId, args.tenantId), eq(agentClients.memberId, args.userId)));
-
-    await tx
-      .insert(agentClients)
-      .values({
-        id: nanoid(),
-        tenantId: args.tenantId,
-        agentId,
-        memberId: args.userId,
-        status: 'active',
-        joinedAt: now,
-        createdAt: now,
-      })
-      .onConflictDoUpdate({
-        target: [agentClients.tenantId, agentClients.agentId, agentClients.memberId],
-        set: {
-          status: 'active',
-          joinedAt: now,
-        },
-      });
+    await syncActiveAgentClientBinding(tx, {
+      tenantId: args.tenantId,
+      memberId: args.userId,
+      agentId,
+      now,
+    });
   });
 }
 

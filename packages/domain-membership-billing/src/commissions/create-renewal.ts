@@ -63,10 +63,10 @@ export async function createRenewalCommissionCore(data: {
     const customRates = agentSettings?.commissionRates as Record<string, number> | undefined;
     const amount = calculateCommission('renewal', data.transactionTotal, customRates);
     const ownershipResolvedFrom = [
-      'subscription.agentId',
+      ownership.resolvedFrom,
       ...ownership.diagnostics
         .map(diagnostic => diagnostic.source)
-        .filter(source => source !== 'subscription.agentId'),
+        .filter(source => source !== ownership.resolvedFrom),
     ];
 
     const commissionResult = await createCommissionCore({

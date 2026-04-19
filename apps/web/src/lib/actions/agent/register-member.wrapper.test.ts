@@ -27,6 +27,11 @@ vi.mock('@interdomestik/database', async () => {
   const helper = await import('@/test/canonical-membership-db-mock');
 
   return {
+    agentClients: {
+      tenantId: 'agent_clients.tenant_id',
+      memberId: 'agent_clients.member_id',
+      agentId: 'agent_clients.agent_id',
+    },
     and: vi.fn((...conditions: unknown[]) => ({ kind: 'and', conditions })),
     asc: vi.fn((value: unknown) => ({ kind: 'asc', value })),
     eq: vi.fn((column: unknown, value: unknown) => ({ kind: 'eq', column, value })),
@@ -70,11 +75,19 @@ describe('registerMemberCore', () => {
     mocks.selectResults.push([], [], [{ id: 'tenant-standard-plan', tier: 'standard' }]);
     mocks.withTransactionRetry.mockImplementation(async callback => {
       const tx = {
-        insert: vi.fn().mockReturnThis(),
-        values: vi.fn().mockImplementation(async (value: unknown) => {
-          insertValues.push(value);
-          return true;
-        }),
+        insert: vi.fn().mockImplementation(() => ({
+          values: vi.fn().mockImplementation((value: unknown) => {
+            insertValues.push(value);
+            return {
+              onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+            };
+          }),
+        })),
+        update: vi.fn().mockImplementation(() => ({
+          set: vi.fn().mockImplementation(() => ({
+            where: vi.fn().mockResolvedValue(undefined),
+          })),
+        })),
       };
       return await callback(tx);
     });
@@ -98,6 +111,14 @@ describe('registerMemberCore', () => {
       expect.objectContaining({
         userId: 'new-id',
         joinedAt: expect.any(Date),
+      })
+    );
+    expect(insertValues).toContainEqual(
+      expect.objectContaining({
+        role: 'member',
+        agentId: 'agent1',
+        createdBy: 'agent',
+        assistedByAgentId: 'agent1',
       })
     );
     expect(insertValues).toContainEqual(

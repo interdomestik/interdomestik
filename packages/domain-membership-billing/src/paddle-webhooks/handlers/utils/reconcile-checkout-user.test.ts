@@ -21,6 +21,12 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  agentClients: {
+    tenantId: 'agent_clients.tenant_id',
+    memberId: 'agent_clients.member_id',
+    agentId: 'agent_clients.agent_id',
+  },
+  and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
   db: hoisted.db,
   eq: vi.fn((left, right) => ({ left, right })),
   user: { id: 'user.id' },
@@ -41,6 +47,17 @@ describe('reconcileCheckoutUser', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.db.query.user.findFirst.mockReset();
+    hoisted.db.query.account.findFirst.mockReset();
+    hoisted.db.query.webhookEvents.findFirst.mockReset();
+    hoisted.db.query.tenantSettings.findFirst.mockReset();
+    hoisted.db.transaction.mockReset();
+    hoisted.tx.insert.mockReset();
+    hoisted.tx.update.mockReset();
+    hoisted.insertedUserValues.mockReset();
+    hoisted.updatedUserValues.mockReset();
+    hoisted.generateMemberNumber.mockReset();
+    hoisted.nanoid.mockReset();
 
     hoisted.nanoid.mockReturnValue('user_new');
     hoisted.generateMemberNumber.mockResolvedValue({
@@ -53,7 +70,9 @@ describe('reconcileCheckoutUser', () => {
     hoisted.tx.insert.mockImplementation(() => ({
       values: hoisted.insertedUserValues,
     }));
-    hoisted.insertedUserValues.mockResolvedValue(undefined);
+    hoisted.insertedUserValues.mockReturnValue({
+      onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+    });
 
     hoisted.tx.update.mockImplementation(() => ({
       set: hoisted.updatedUserValues,
@@ -108,6 +127,21 @@ describe('reconcileCheckoutUser', () => {
 
     expect(hoisted.db.transaction).toHaveBeenCalledTimes(1);
     expect(hoisted.tx.insert).toHaveBeenCalled();
+    expect(hoisted.insertedUserValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: 'member',
+        agentId: 'agent_9',
+        createdBy: 'self',
+        assistedByAgentId: 'agent_9',
+      })
+    );
+    expect(hoisted.insertedUserValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        memberId: 'user_new',
+        agentId: 'agent_9',
+        status: 'active',
+      })
+    );
     expect(hoisted.generateMemberNumber).toHaveBeenCalledWith(hoisted.tx, {
       userId: 'user_new',
       joinedAt: expect.any(Date),
@@ -363,6 +397,7 @@ describe('reconcileCheckoutUser', () => {
         memberNumber: null,
         role: 'admin',
         agentId: null,
+        createdBy: 'admin',
       })
       .mockResolvedValueOnce({
         id: 'user_admin',
@@ -400,12 +435,20 @@ describe('reconcileCheckoutUser', () => {
         branchId: 'branch-ks-main',
         agentId: 'agent_1',
         assistedByAgentId: 'agent_1',
+        createdBy: 'admin',
       })
     );
     expect(hoisted.generateMemberNumber).toHaveBeenCalledWith(hoisted.tx, {
       userId: 'user_admin',
       joinedAt: expect.any(Date),
     });
+    expect(hoisted.insertedUserValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        memberId: 'user_admin',
+        agentId: 'agent_1',
+        status: 'active',
+      })
+    );
     expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
   });
 });

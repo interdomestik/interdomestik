@@ -2,8 +2,8 @@ import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis
 import { deriveClaimSlaPhase } from '@/features/claims/policy/slaPolicy';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { db } from '@interdomestik/database/db';
-import { claims, serviceUsage, subscriptions } from '@interdomestik/database/schema';
-import { and, count, eq, inArray } from 'drizzle-orm';
+import { agentClients, claims, serviceUsage, subscriptions } from '@interdomestik/database/schema';
+import { and, count, eq } from 'drizzle-orm';
 
 export type GroupDashboardSummary = {
   activatedMembersCount: number;
@@ -21,6 +21,7 @@ export type GroupDashboardSummary = {
 export interface GroupDashboardSummaryServices {
   db: {
     groupBy?: any;
+    innerJoin?: any;
     select: any;
   };
 }
@@ -51,49 +52,61 @@ export async function getGroupDashboardSummaryCore(
 ): Promise<GroupDashboardSummary> {
   const { agentId, tenantId } = params;
   const { db } = services;
+  const assignmentScope = and(
+    eq(agentClients.tenantId, tenantId),
+    eq(agentClients.agentId, agentId),
+    eq(agentClients.status, 'active')
+  );
 
-  const activeSubscriptions: Array<{ id: string }> = await db
-    .select({ id: subscriptions.id })
+  const activeSubscriptions: Array<{ id: string; userId: string | null }> = await db
+    .select({ id: subscriptions.id, userId: subscriptions.userId })
     .from(subscriptions)
+    .innerJoin(agentClients, eq(agentClients.memberId, subscriptions.userId))
     .where(
-      and(
-        eq(subscriptions.tenantId, tenantId),
-        eq(subscriptions.agentId, agentId),
-        eq(subscriptions.status, 'active')
-      )
+      and(eq(subscriptions.tenantId, tenantId), eq(subscriptions.status, 'active'), assignmentScope)
     );
 
   if (activeSubscriptions.length === 0) {
     return emptySummary();
   }
 
-  const subscriptionIds = activeSubscriptions.map(subscription => subscription.id);
+  const activeMemberIds = new Set(
+    activeSubscriptions
+      .map(subscription => subscription.userId)
+      .filter((userId): userId is string => typeof userId === 'string')
+  );
 
-  const usageRows: Array<{ subscriptionId: string | null }> = await db
-    .select({ subscriptionId: serviceUsage.subscriptionId })
+  const usageRows: Array<{ memberId: string | null }> = await db
+    .select({ memberId: subscriptions.userId })
     .from(serviceUsage)
+    .innerJoin(subscriptions, eq(subscriptions.id, serviceUsage.subscriptionId))
+    .innerJoin(agentClients, eq(agentClients.memberId, subscriptions.userId))
     .where(
       and(
         eq(serviceUsage.tenantId, tenantId),
-        inArray(serviceUsage.subscriptionId, subscriptionIds)
+        eq(subscriptions.tenantId, tenantId),
+        eq(subscriptions.status, 'active'),
+        assignmentScope
       )
     );
 
   const openClaimStatusCounts: OpenClaimStatusCountRow[] = await db
     .select({ count: count(), status: claims.status })
     .from(claims)
-    .where(and(eq(claims.tenantId, tenantId), eq(claims.agentId, agentId), getOpenClaimsFilter()))
+    .innerJoin(agentClients, eq(agentClients.memberId, claims.userId))
+    .where(and(eq(claims.tenantId, tenantId), assignmentScope, getOpenClaimsFilter()))
     .groupBy(claims.status);
 
   const [slaBreaches] = await db
     .select({ count: count() })
     .from(claims)
-    .where(and(eq(claims.tenantId, tenantId), eq(claims.agentId, agentId), getSlaBreachesFilter()));
+    .innerJoin(agentClients, eq(agentClients.memberId, claims.userId))
+    .where(and(eq(claims.tenantId, tenantId), assignmentScope, getSlaBreachesFilter()));
 
-  const usedSubscriptionIds = new Set(
+  const usedMemberIds = new Set(
     usageRows
-      .map(row => row.subscriptionId)
-      .filter((subscriptionId): subscriptionId is string => typeof subscriptionId === 'string')
+      .map(row => row.memberId)
+      .filter((memberId): memberId is string => typeof memberId === 'string')
   );
 
   const sla = openClaimStatusCounts.reduce(
@@ -115,8 +128,8 @@ export async function getGroupDashboardSummaryCore(
     }
   );
 
-  const activatedMembersCount = activeSubscriptions.length;
-  const membersUsingBenefitsCount = usedSubscriptionIds.size;
+  const activatedMembersCount = activeMemberIds.size;
+  const membersUsingBenefitsCount = usedMemberIds.size;
   const openClaimsCount = openClaimStatusCounts.reduce(
     (total, claimGroup) => total + Number(claimGroup.count),
     0

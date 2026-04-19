@@ -40,6 +40,7 @@ describe('createRenewalCommissionCore', () => {
     (resolveCommissionOwnership as any).mockReturnValue({
       ownerType: 'agent',
       agentId: 'agent-current',
+      resolvedFrom: 'agent_clients',
       diagnostics: [
         {
           source: 'user.agentId',
@@ -85,7 +86,7 @@ describe('createRenewalCommissionCore', () => {
           saleOwnerType: 'agent',
           saleOwnerId: 'agent-current',
           originalSellerAgentId: 'agent-original',
-          ownershipResolvedFrom: ['subscription.agentId', 'user.agentId'],
+          ownershipResolvedFrom: ['agent_clients', 'user.agentId'],
         }),
       })
     );
@@ -104,6 +105,7 @@ describe('createRenewalCommissionCore', () => {
     (resolveCommissionOwnership as any).mockReturnValue({
       ownerType: 'company',
       agentId: null,
+      resolvedFrom: 'agent_clients',
       diagnostics: [],
     });
 
@@ -139,6 +141,7 @@ describe('createRenewalCommissionCore', () => {
     (resolveCommissionOwnership as any).mockReturnValue({
       ownerType: 'agent',
       agentId: 'agent-current',
+      resolvedFrom: 'agent_clients',
       diagnostics: [],
     });
     (createCommissionCore as any).mockResolvedValue({
@@ -172,15 +175,14 @@ describe('createRenewalCommissionCore', () => {
     const { createCommissionCore } = await import('./create');
 
     (resolveCommissionOwnership as any).mockReturnValue({
-      ownerType: 'unresolved',
-      agentId: null,
-      diagnostics: [
-        {
-          source: 'subscription.agentId',
-          expectedAgentId: null,
-          actualAgentId: null,
-        },
-      ],
+      ownerType: 'agent',
+      agentId: 'agent-current',
+      resolvedFrom: 'agent_clients',
+      diagnostics: [],
+    });
+    (createCommissionCore as any).mockResolvedValue({
+      success: true,
+      data: { id: 'comm-renewal-fallback' },
     });
 
     const result = await createRenewalCommissionCore({
@@ -204,18 +206,17 @@ describe('createRenewalCommissionCore', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data).toEqual({
-        kind: 'no-op',
-        noCommissionReason: 'unresolved',
-        ownerType: 'unresolved',
-        ownershipDiagnostics: [
-          {
-            source: 'subscription.agentId',
-            expectedAgentId: null,
-            actualAgentId: null,
-          },
-        ],
+        kind: 'created',
+        id: 'comm-renewal-fallback',
       });
     }
-    expect(createCommissionCore).not.toHaveBeenCalled();
+    expect(createCommissionCore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentId: 'agent-current',
+        metadata: expect.objectContaining({
+          ownershipResolvedFrom: ['agent_clients'],
+        }),
+      })
+    );
   });
 });
