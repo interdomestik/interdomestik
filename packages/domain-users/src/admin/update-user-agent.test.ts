@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => {
     values: vi.fn(),
     onConflictDoUpdate: vi.fn(),
   };
+  const syncActiveAgentClientBinding = vi.fn();
   const tx = {
     update: vi.fn(),
     insert: vi.fn(),
@@ -51,6 +52,7 @@ const mocks = vi.hoisted(() => {
     subscriptionsUpdateChain,
     agentClientsUpdateChain,
     insertChain,
+    syncActiveAgentClientBinding,
     eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
     and: vi.fn((...parts) => ({ op: 'and', parts })),
     withTenant: vi.fn((tenantId, tenantColumn, filter) => ({
@@ -81,6 +83,10 @@ vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: mocks.ensureTenantId,
 }));
 
+vi.mock('@interdomestik/domain-membership-billing', () => ({
+  syncActiveAgentClientBinding: mocks.syncActiveAgentClientBinding,
+}));
+
 vi.mock('./access', () => ({
   requireTenantAdminSession: mocks.requireTenantAdminSession,
 }));
@@ -107,6 +113,7 @@ describe('updateUserAgentCore', () => {
     mocks.agentClientsUpdateChain.where.mockResolvedValue(undefined);
     mocks.insertChain.values.mockReturnValue(mocks.insertChain);
     mocks.insertChain.onConflictDoUpdate.mockResolvedValue(undefined);
+    mocks.syncActiveAgentClientBinding.mockResolvedValue(undefined);
     mocks.tx.update.mockImplementation(table => {
       if (table === mocks.user) return mocks.userUpdateChain;
       if (table === mocks.subscriptions) return mocks.subscriptionsUpdateChain;
@@ -131,16 +138,14 @@ describe('updateUserAgentCore', () => {
       throw new Error(`Expected success result, received error: ${result.error}`);
     }
     expect(result.success).toBe(true);
-    expect(mocks.tx.update).toHaveBeenCalledTimes(3);
-    expect(mocks.tx.insert).toHaveBeenCalledTimes(1);
+    expect(mocks.tx.update).toHaveBeenCalledTimes(2);
+    expect(mocks.tx.insert).not.toHaveBeenCalled();
 
     expect(mocks.tx.update).toHaveBeenNthCalledWith(1, mocks.user);
     expect(mocks.tx.update).toHaveBeenNthCalledWith(2, mocks.subscriptions);
-    expect(mocks.tx.update).toHaveBeenNthCalledWith(3, mocks.agentClients);
 
     expect(mocks.userUpdateChain.set).toHaveBeenCalledWith({ agentId: 'agent-2' });
     expect(mocks.subscriptionsUpdateChain.set).toHaveBeenCalledWith({ agentId: 'agent-2' });
-    expect(mocks.agentClientsUpdateChain.set).toHaveBeenCalledWith({ status: 'inactive' });
 
     expect(mocks.withTenant).toHaveBeenCalledWith(
       'tenant_ks',
@@ -172,14 +177,16 @@ describe('updateUserAgentCore', () => {
       })
     );
 
-    expect(mocks.insertChain.values).toHaveBeenCalledWith(
+    expect(mocks.syncActiveAgentClientBinding).toHaveBeenCalledWith(
+      mocks.tx,
       expect.objectContaining({
         tenantId: 'tenant_ks',
         agentId: 'agent-2',
         memberId: 'member-1',
-        status: 'active',
+        idFactory: expect.any(Function),
       })
     );
+    expect(mocks.syncActiveAgentClientBinding.mock.calls[0]?.[1]?.idFactory?.()).toBe('uuid-1');
   });
 
   it('moves the member to company-owned when clearing the agent', async () => {
@@ -197,7 +204,7 @@ describe('updateUserAgentCore', () => {
     }
     expect(result.success).toBe(true);
     expect(mocks.tx.insert).not.toHaveBeenCalled();
-    expect(mocks.tx.update).toHaveBeenCalledTimes(3);
+    expect(mocks.tx.update).toHaveBeenCalledTimes(2);
     expect(mocks.subscriptionsUpdateChain.set).toHaveBeenCalledWith({ agentId: null });
     expect(mocks.subscriptionsUpdateChain.where).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -219,6 +226,15 @@ describe('updateUserAgentCore', () => {
             },
           ],
         }),
+      })
+    );
+    expect(mocks.syncActiveAgentClientBinding).toHaveBeenCalledWith(
+      mocks.tx,
+      expect.objectContaining({
+        tenantId: 'tenant_ks',
+        memberId: 'member-1',
+        agentId: null,
+        idFactory: expect.any(Function),
       })
     );
   });

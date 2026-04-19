@@ -5,6 +5,7 @@ import {
   createAgentAssistedOwnershipAttribution,
   createCanonicalMembershipPlanState,
   resolveCanonicalMembershipPlanState,
+  syncActiveAgentClientBinding,
 } from '@interdomestik/domain-membership-billing';
 import {
   account,
@@ -93,14 +94,12 @@ export async function registerMemberCore(
         joinedAt: now,
       });
 
-      await tx.insert(agentClients).values({
-        id: nanoid(),
+      await syncActiveAgentClientBinding(tx, {
         tenantId,
-        agentId: agent.id,
         memberId: userId,
-        status: 'active',
-        joinedAt: now,
-        createdAt: now,
+        agentId: agent.id,
+        now,
+        idFactory: () => nanoid(),
       });
 
       const subscriptionValues =

@@ -11,6 +11,11 @@ import {
 
 // Mock dependencies
 vi.mock('@interdomestik/database', () => ({
+  agentClients: {
+    tenantId: 'agentClients.tenantId',
+    memberId: 'agentClients.memberId',
+    agentId: 'agentClients.agentId',
+  },
   db: {
     transaction: vi.fn(),
     query: {
@@ -22,6 +27,8 @@ vi.mock('@interdomestik/database', () => ({
       },
     },
   },
+  and: vi.fn((...parts) => ({ op: 'and', parts })),
+  eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
 }));
 
 vi.mock('nanoid', () => ({

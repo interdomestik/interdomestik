@@ -39,6 +39,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  agentClients: tableRefs.agentClients,
   and: mocks.and,
   asc: mocks.asc,
   db: mocks.db,

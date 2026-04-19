@@ -761,6 +761,9 @@ importers:
       '@interdomestik/database':
         specifier: workspace:*
         version: link:../database
+      '@interdomestik/domain-membership-billing':
+        specifier: workspace:*
+        version: link:../domain-membership-billing
       '@interdomestik/shared-auth':
         specifier: workspace:*
         version: link:../shared-auth

@@ -4,9 +4,9 @@ import {
   createActiveAnnualMembershipFulfillment,
   createAgentAssistedOwnershipAttribution,
   resolveCanonicalMembershipPlanState,
+  syncActiveAgentClientBinding,
 } from '@interdomestik/domain-membership-billing';
 import {
-  agentClients,
   memberLeads,
   membershipCards,
   subscriptions,
@@ -95,31 +95,12 @@ export async function convertLeadToMember(
       updatedAt: now,
     });
 
-    if (lead.agentId) {
-      await tx
-        .update(agentClients)
-        .set({ status: 'inactive' })
-        .where(and(eq(agentClients.tenantId, ctx.tenantId), eq(agentClients.memberId, userId)));
-
-      await tx
-        .insert(agentClients)
-        .values({
-          id: nanoid(),
-          tenantId: ctx.tenantId,
-          agentId: lead.agentId,
-          memberId: userId,
-          status: 'active',
-          joinedAt: now,
-          createdAt: now,
-        })
-        .onConflictDoUpdate({
-          target: [agentClients.tenantId, agentClients.agentId, agentClients.memberId],
-          set: {
-            status: 'active',
-            joinedAt: now,
-          },
-        });
-    }
+    await syncActiveAgentClientBinding(tx, {
+      tenantId: ctx.tenantId,
+      memberId: userId,
+      agentId: lead.agentId,
+      now,
+    });
 
     // D. Issue Membership Card
     const cardNumber = `MEM-${nanoid(8).toUpperCase()}`;
