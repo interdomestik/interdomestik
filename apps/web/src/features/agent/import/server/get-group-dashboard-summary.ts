@@ -2,7 +2,7 @@ import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis
 import { deriveClaimSlaPhase } from '@/features/claims/policy/slaPolicy';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { db } from '@interdomestik/database/db';
-import { claims, serviceUsage, subscriptions } from '@interdomestik/database/schema';
+import { agentClients, claims, serviceUsage, subscriptions } from '@interdomestik/database/schema';
 import { and, count, eq, inArray } from 'drizzle-orm';
 
 export type GroupDashboardSummary = {
@@ -52,14 +52,31 @@ export async function getGroupDashboardSummaryCore(
   const { agentId, tenantId } = params;
   const { db } = services;
 
-  const activeSubscriptions: Array<{ id: string }> = await db
-    .select({ id: subscriptions.id })
+  const activeAssignments: Array<{ memberId: string }> = await db
+    .select({ memberId: agentClients.memberId })
+    .from(agentClients)
+    .where(
+      and(
+        eq(agentClients.tenantId, tenantId),
+        eq(agentClients.agentId, agentId),
+        eq(agentClients.status, 'active')
+      )
+    );
+
+  if (activeAssignments.length === 0) {
+    return emptySummary();
+  }
+
+  const assignedMemberIds = [...new Set(activeAssignments.map(assignment => assignment.memberId))];
+
+  const activeSubscriptions: Array<{ id: string; userId: string | null }> = await db
+    .select({ id: subscriptions.id, userId: subscriptions.userId })
     .from(subscriptions)
     .where(
       and(
         eq(subscriptions.tenantId, tenantId),
-        eq(subscriptions.agentId, agentId),
-        eq(subscriptions.status, 'active')
+        eq(subscriptions.status, 'active'),
+        inArray(subscriptions.userId, assignedMemberIds)
       )
     );
 
@@ -68,6 +85,14 @@ export async function getGroupDashboardSummaryCore(
   }
 
   const subscriptionIds = activeSubscriptions.map(subscription => subscription.id);
+  const subscriptionMemberById = new Map(
+    activeSubscriptions
+      .filter(
+        (subscription): subscription is { id: string; userId: string } =>
+          typeof subscription.userId === 'string'
+      )
+      .map(subscription => [subscription.id, subscription.userId])
+  );
 
   const usageRows: Array<{ subscriptionId: string | null }> = await db
     .select({ subscriptionId: serviceUsage.subscriptionId })
@@ -82,18 +107,33 @@ export async function getGroupDashboardSummaryCore(
   const openClaimStatusCounts: OpenClaimStatusCountRow[] = await db
     .select({ count: count(), status: claims.status })
     .from(claims)
-    .where(and(eq(claims.tenantId, tenantId), eq(claims.agentId, agentId), getOpenClaimsFilter()))
+    .where(
+      and(
+        eq(claims.tenantId, tenantId),
+        inArray(claims.userId, assignedMemberIds),
+        getOpenClaimsFilter()
+      )
+    )
     .groupBy(claims.status);
 
   const [slaBreaches] = await db
     .select({ count: count() })
     .from(claims)
-    .where(and(eq(claims.tenantId, tenantId), eq(claims.agentId, agentId), getSlaBreachesFilter()));
+    .where(
+      and(
+        eq(claims.tenantId, tenantId),
+        inArray(claims.userId, assignedMemberIds),
+        getSlaBreachesFilter()
+      )
+    );
 
-  const usedSubscriptionIds = new Set(
+  const usedMemberIds = new Set(
     usageRows
       .map(row => row.subscriptionId)
-      .filter((subscriptionId): subscriptionId is string => typeof subscriptionId === 'string')
+      .map(subscriptionId =>
+        typeof subscriptionId === 'string' ? subscriptionMemberById.get(subscriptionId) : null
+      )
+      .filter((memberId): memberId is string => typeof memberId === 'string')
   );
 
   const sla = openClaimStatusCounts.reduce(
@@ -115,8 +155,8 @@ export async function getGroupDashboardSummaryCore(
     }
   );
 
-  const activatedMembersCount = activeSubscriptions.length;
-  const membersUsingBenefitsCount = usedSubscriptionIds.size;
+  const activatedMembersCount = assignedMemberIds.length;
+  const membersUsingBenefitsCount = usedMemberIds.size;
   const openClaimsCount = openClaimStatusCounts.reduce(
     (total, claimGroup) => total + Number(claimGroup.count),
     0
