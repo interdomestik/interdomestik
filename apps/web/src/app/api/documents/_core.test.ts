@@ -64,8 +64,12 @@ function setupMocks(poly: any[] = [], legacy: any[] = []) {
   mockDb.select.mockReturnValueOnce(createSelectMock(legacy, true));
 }
 
-async function execAccess(session: any, docId: string) {
-  return getDocumentAccessCore({ session, documentId: docId, mode: 'download', deps: mockDeps });
+async function execAccess(
+  session: any,
+  docId: string,
+  mode: 'download' | 'signed_url' = 'download'
+) {
+  return getDocumentAccessCore({ session, documentId: docId, mode, deps: mockDeps });
 }
 
 describe('getDocumentAccessCore Hardening', () => {
@@ -86,6 +90,31 @@ describe('getDocumentAccessCore Hardening', () => {
     it('allows access to documents in own claim', async () => {
       setupMocks([polymorphicDocs.claim], [branchScopedClaimRow]);
       expect((await execAccess(memberSession, 'doc1')).ok).toBe(true);
+    });
+
+    it('returns signed-url audit metadata for claim documents', async () => {
+      setupMocks([polymorphicDocs.claim], [branchScopedClaimRow]);
+
+      expect(await execAccess(memberSession, 'doc1', 'signed_url')).toEqual({
+        ok: true,
+        document: expect.objectContaining({
+          id: 'doc1',
+          bucket: 'claim-evidence',
+          filePath: 'path',
+        }),
+        audit: {
+          action: 'document.signed_url_issued',
+          entityType: 'claim_document',
+          entityId: 'doc1',
+          actorRole: 'member',
+          metadata: {
+            claimId: null,
+            bucket: 'claim-evidence',
+            filePath: 'path',
+            expiresInSeconds: 300,
+          },
+        },
+      });
     });
 
     it('denies access to other member claim', async () => {

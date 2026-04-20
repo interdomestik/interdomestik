@@ -344,7 +344,7 @@ export async function getDocumentAccessCore(args: {
       actorRole: userRole,
       disposition: finalDisposition,
       document: doc,
-      documentId: mode === 'download' ? documentId : doc.id,
+      documentId,
       mode,
     }),
   };
