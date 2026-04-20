@@ -12,6 +12,9 @@ const hoisted = vi.hoisted(() => {
   return {
     db: {
       query: {
+        agentClients: {
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
         tenantSettings: {
           findFirst: vi.fn().mockResolvedValue(null),
         },
@@ -43,6 +46,12 @@ const hoisted = vi.hoisted(() => {
 });
 
 vi.mock('@interdomestik/database', () => ({
+  agentClients: {
+    tenantId: 'agent_clients.tenant_id',
+    memberId: 'agent_clients.member_id',
+    agentId: 'agent_clients.agent_id',
+    status: 'agent_clients.status',
+  },
   claimDocuments: { __name: 'claim_documents' },
   claimStageHistory: { __name: 'claim_stage_history' },
   claims: { __name: 'claim' },
@@ -103,6 +112,7 @@ describe('submitClaimCore', () => {
       },
     ]);
     hoisted.generateClaimNumber.mockResolvedValue('CLM-T1-2026-000001');
+    hoisted.db.query.agentClients.findFirst.mockResolvedValue(null);
     hoisted.db.query.tenantSettings.findFirst.mockResolvedValue(null);
     hoisted.db.query.user.findFirst.mockResolvedValue(null);
     hoisted.getActiveSubscription.mockResolvedValue({
@@ -313,6 +323,63 @@ describe('submitClaimCore', () => {
           agentAttributionSource: 'subscription',
           branchId: 'branch-1',
           branchResolutionSource: 'subscription',
+        }),
+      })
+    );
+  });
+
+  it('prefers active agent_clients ownership over stale subscription ownership for claim assignment', async () => {
+    hoisted.getActiveSubscription.mockResolvedValue({
+      branchId: null,
+      agentId: 'agent-stale',
+    });
+    hoisted.db.query.agentClients.findFirst.mockResolvedValue({
+      agentId: 'agent-canonical',
+    });
+    hoisted.db.query.user.findFirst.mockResolvedValue({ branchId: 'branch-canonical' });
+
+    await submitClaimCore(
+      {
+        session: {
+          user: {
+            id: 'member-1',
+            role: 'member',
+            tenantId: 'tenant-1',
+            email: 'member@example.com',
+          },
+        },
+        requestHeaders: new Headers(),
+        data: {
+          title: 'Flight delay claim',
+          description: 'My flight was delayed overnight and I incurred hotel costs.',
+          category: 'travel',
+          companyName: 'Airline Co',
+          claimAmount: '650.00',
+          currency: 'EUR',
+          incidentDate: '2026-02-15',
+          files: [],
+        },
+      },
+      {
+        logAuditEvent: hoisted.logAuditEvent,
+      }
+    );
+
+    expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        branchId: 'branch-canonical',
+        agentId: 'agent-canonical',
+      })
+    );
+    expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'claim.submitted',
+        metadata: expect.objectContaining({
+          agentId: 'agent-canonical',
+          agentAttributionSource: 'agent_clients',
+          branchId: 'branch-canonical',
+          branchResolutionSource: 'agent',
         }),
       })
     );

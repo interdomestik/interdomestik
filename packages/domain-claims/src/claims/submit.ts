@@ -1,4 +1,5 @@
 import {
+  agentClients,
   claimDocuments,
   claimStageHistory,
   claims,
@@ -39,7 +40,7 @@ type ClaimAssignmentContext = {
   subscription: Awaited<ReturnType<typeof getActiveSubscription>>;
   branchId: string | null;
   agentId: string | null;
-  agentAttributionSource: 'subscription' | 'none';
+  agentAttributionSource: 'agent_clients' | 'subscription' | 'none';
   branchResolutionSource: 'subscription' | 'agent' | 'tenant_default' | 'none';
 };
 
@@ -98,9 +99,18 @@ async function loadClaimAssignmentContext(
   tenantId: string
 ): Promise<ClaimAssignmentContext> {
   const subscription = await getActiveSubscription(userId, tenantId);
+  const activeAssignment = await db.query.agentClients.findFirst({
+    where: withTenant(
+      tenantId,
+      agentClients.tenantId,
+      and(eq(agentClients.memberId, userId), eq(agentClients.status, 'active'))
+    ),
+    columns: { agentId: true },
+  });
+  const agentId = activeAssignment?.agentId ?? subscription?.agentId ?? null;
   let agentBranchId: string | null = null;
-  if (!subscription?.branchId && subscription?.agentId) {
-    agentBranchId = await resolveAgentBranchId(subscription.agentId, tenantId);
+  if (!subscription?.branchId && agentId) {
+    agentBranchId = await resolveAgentBranchId(agentId, tenantId);
   }
   const defaultBranchSetting = await db.query.tenantSettings.findFirst({
     where: withTenant(
@@ -110,8 +120,11 @@ async function loadClaimAssignmentContext(
     ),
   });
   const defaultBranchId = resolveDefaultBranchId(defaultBranchSetting?.value);
-  const agentId = subscription?.agentId ?? null;
-  const agentAttributionSource = agentId ? 'subscription' : 'none';
+  const agentAttributionSource = activeAssignment?.agentId
+    ? 'agent_clients'
+    : agentId
+      ? 'subscription'
+      : 'none';
   const subscriptionBranchId = subscription?.branchId ?? null;
   const branchId = subscriptionBranchId ?? agentBranchId ?? defaultBranchId ?? null;
   let branchResolutionSource: ClaimAssignmentContext['branchResolutionSource'] = 'none';

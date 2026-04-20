@@ -8,6 +8,13 @@ import { calculateCommission } from '../../../commissions/types';
 import { syncActiveAgentClientBinding } from '../../../ownership-attribution';
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../../types';
 
+type WebhookUserRecord = {
+  agentId?: string | null;
+  email?: string | null;
+  name?: string | null;
+  memberNumber?: string | null;
+};
+
 export const redactEmail = (email?: string | null) => {
   if (!email) return 'unknown';
   const [local, domain] = email.split('@');
@@ -16,18 +23,37 @@ export const redactEmail = (email?: string | null) => {
   return `${maskedLocal}@${domain}`;
 };
 
+function normalizeAgentId(agentId: string | null | undefined): string | null {
+  if (typeof agentId !== 'string') return null;
+  const normalized = agentId.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function resolveCanonicalOwnerAgentId(args: {
+  userRecord?: WebhookUserRecord | null;
+  customData?: { agentId?: string } | undefined;
+}) {
+  if (args.userRecord && 'agentId' in args.userRecord) {
+    return normalizeAgentId(args.userRecord.agentId);
+  }
+
+  return normalizeAgentId(args.customData?.agentId);
+}
+
 async function processCommissions(args: {
   internalSubscriptionId?: string;
   sub: any;
   userId: string;
   tenantId: string;
   customData: { agentId?: string } | undefined;
+  userRecord?: WebhookUserRecord | null;
   priceId: string;
   deps: PaddleWebhookAuditDeps;
 }) {
-  const { internalSubscriptionId, sub, userId, tenantId, customData, priceId, deps } = args;
+  const { internalSubscriptionId, sub, userId, tenantId, customData, userRecord, priceId, deps } =
+    args;
   const resolvedSubscriptionId = internalSubscriptionId ?? sub.id;
-  const agentId = customData?.agentId;
+  const agentId = resolveCanonicalOwnerAgentId({ userRecord, customData });
   const transactionTotal = Number.parseFloat(sub.items?.[0]?.price?.unitPrice?.amount || '0') / 100;
 
   if (!agentId || transactionTotal <= 0) return;
@@ -83,12 +109,13 @@ async function processMemberReferralRewards(args: {
   userId: string;
   tenantId: string;
   customData: { agentId?: string } | undefined;
+  userRecord?: WebhookUserRecord | null;
   deps: PaddleWebhookAuditDeps;
 }) {
-  const { internalSubscriptionId, sub, userId, tenantId, customData, deps } = args;
+  const { internalSubscriptionId, sub, userId, tenantId, customData, userRecord, deps } = args;
   const resolvedSubscriptionId = internalSubscriptionId ?? sub.id;
 
-  if (customData?.agentId) return;
+  if (resolveCanonicalOwnerAgentId({ userRecord, customData })) return;
 
   const referralRow = await db.query.referrals.findFirst({
     where: and(eq(referrals.tenantId, tenantId), eq(referrals.referredId, userId)),
@@ -132,8 +159,9 @@ async function ensureAgentClientBinding(args: {
   tenantId: string;
   userId: string;
   customData: { agentId?: string } | undefined;
+  userRecord?: WebhookUserRecord | null;
 }) {
-  const agentId = args.customData?.agentId?.trim();
+  const agentId = resolveCanonicalOwnerAgentId(args);
   if (!agentId) return;
 
   const now = new Date();
@@ -262,7 +290,7 @@ export async function handleNewSubscriptionExtras(args: {
   tenantId: string;
   customData: { agentId?: string } | undefined;
   priceId: string;
-  userRecord: any;
+  userRecord: WebhookUserRecord | null;
   deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter'> & PaddleWebhookAuditDeps;
 }) {
   await processCommissions(args);

@@ -679,6 +679,67 @@ describe('Paddle Webhook Handlers', () => {
       expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
     });
 
+    it('prefers persisted subscription ownership over stale transaction customData agent attribution', async () => {
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
+        tenantId: 'tenant_real',
+        agentId: 'agent_canonical',
+      });
+
+      const payload = {
+        id: 'tx_existing_owner',
+        status: 'completed',
+        subscriptionId: 'sub_existing_owner',
+        customData: {
+          tenantId: 'tenant_bad',
+          agentId: 'agent_stale',
+        },
+        details: { totals: { total: '2000', currencyCode: 'EUR' } },
+      };
+
+      await handleTransactionCompleted({ data: payload }, { logAuditEvent });
+
+      expect(logAuditEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'tenant_real',
+          metadata: expect.objectContaining({
+            agentId: 'agent_canonical',
+          }),
+        })
+      );
+      expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('uses canonical user ownership for transaction audit metadata when no subscription owner exists', async () => {
+      hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
+      hoisted.db.query.user.findFirst.mockResolvedValue({
+        tenantId: 'tenant_abc',
+        agentId: null,
+      });
+
+      const payload = {
+        id: 'tx_user_owned',
+        status: 'completed',
+        customData: {
+          userId: 'user_123',
+          tenantId: 'tenant_abc',
+          agentId: 'agent_stale',
+        },
+        details: { totals: { total: '1000', currencyCode: 'USD' } },
+      };
+
+      await handleTransactionCompleted({ data: payload }, { logAuditEvent });
+
+      expect(logAuditEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'tenant_abc',
+          metadata: expect.objectContaining({
+            agentId: null,
+            userId: 'user_123',
+          }),
+        })
+      );
+    });
+
     it('prefers persisted subscription tenant over client-provided tenant metadata', async () => {
       hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
         tenantId: 'tenant_real',

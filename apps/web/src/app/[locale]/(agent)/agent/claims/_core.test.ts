@@ -60,8 +60,8 @@ describe('getAgentClaimsCore', () => {
       { id: 'c2', userId: 'm1', title: 'Claim 2', status: 'evaluation', createdAt: new Date() },
     ];
 
+    mockParams.mocks.selectWhere.mockResolvedValue([{ memberId: 'm1' }, { memberId: 'm2' }]);
     mockParams.db.query.user.findMany.mockResolvedValue(mockMembers);
-    mockParams.mocks.selectWhere.mockResolvedValue([]);
     mockParams.db.query.claims.findMany.mockResolvedValue(mockClaims);
 
     const result = await getAgentClaimsCore(mockParams);
@@ -75,9 +75,9 @@ describe('getAgentClaimsCore', () => {
 
   it('includes claims for members linked via active agent_clients relation', async () => {
     const mockParams = createMockParams();
-    mockParams.db.query.user.findMany
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ id: 'm3', name: 'Member 3', email: 'm3@test.com' }]);
+    mockParams.db.query.user.findMany.mockResolvedValue([
+      { id: 'm3', name: 'Member 3', email: 'm3@test.com' },
+    ]);
     mockParams.mocks.selectWhere.mockResolvedValue([{ memberId: 'm3' }]);
     mockParams.db.query.claims.findMany.mockResolvedValue([
       { id: 'c3', userId: 'm3', title: 'Claim 3', status: 'submitted', createdAt: new Date() },
@@ -94,17 +94,15 @@ describe('getAgentClaimsCore', () => {
         }),
       ]);
     }
-    expect(mockParams.db.query.user.findMany).toHaveBeenCalledTimes(2);
+    expect(mockParams.db.query.user.findMany).toHaveBeenCalledTimes(1);
   });
 
-  it('does not duplicate members present in both direct and agent_clients sources', async () => {
+  it('deduplicates repeated member ids from active agent_clients rows', async () => {
     const mockParams = createMockParams();
     const overlappingMember = { id: 'm4', name: 'Member 4', email: 'm4@test.com' };
 
-    mockParams.db.query.user.findMany
-      .mockResolvedValueOnce([overlappingMember])
-      .mockResolvedValueOnce([overlappingMember]);
-    mockParams.mocks.selectWhere.mockResolvedValue([{ memberId: 'm4' }]);
+    mockParams.db.query.user.findMany.mockResolvedValue([overlappingMember]);
+    mockParams.mocks.selectWhere.mockResolvedValue([{ memberId: 'm4' }, { memberId: 'm4' }]);
     mockParams.db.query.claims.findMany.mockResolvedValue([
       { id: 'c4', userId: 'm4', title: 'Claim 4', status: 'submitted', createdAt: new Date() },
     ]);
@@ -120,6 +118,27 @@ describe('getAgentClaimsCore', () => {
       ]);
     }
     expect(mockParams.db.query.user.findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not include members from stale user.agentId linkage when no active agent_clients row exists', async () => {
+    const mockParams = createMockParams();
+    mockParams.mocks.selectWhere.mockResolvedValue([]);
+    mockParams.db.query.claims.findMany.mockResolvedValue([
+      {
+        id: 'c-stale',
+        userId: 'm-stale',
+        title: 'Stale Claim',
+        status: 'submitted',
+        createdAt: new Date(),
+      },
+    ]);
+
+    const result = await getAgentClaimsCore(mockParams);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data).toEqual([]);
+    }
   });
 });
 
