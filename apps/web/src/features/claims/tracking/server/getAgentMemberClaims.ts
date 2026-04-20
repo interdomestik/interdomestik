@@ -53,8 +53,8 @@ export async function getAgentMemberClaims(session: any): Promise<AgentMemberCla
           )
         );
 
-      const memberIds = Array.from(
-        new Set(
+      const memberIds: string[] = Array.from(
+        new Set<string>(
           activeAgentClientRows
             .map(row => row.memberId)
             .filter((memberId): memberId is string => typeof memberId === 'string')
@@ -78,7 +78,9 @@ export async function getAgentMemberClaims(session: any): Promise<AgentMemberCla
         return [];
       }
 
-      const resolvedMemberIds = members.map(m => m.id);
+      const resolvedMemberIds: string[] = members
+        .map(m => m.id)
+        .filter((memberId): memberId is string => typeof memberId === 'string');
 
       // 3. Fetch Claims for these members (excluding drafts per Phase 2.3 PRD)
       const visibilityCondition = buildClaimVisibilityWhere({

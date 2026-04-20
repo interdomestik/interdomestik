@@ -68,8 +68,12 @@ export async function getAgentClaimsCore(params: {
         )
       );
 
-    const memberIds = Array.from(
-      new Set(activeAgentClientRows.map((row: { memberId: string }) => row.memberId))
+    const memberIds: string[] = Array.from(
+      new Set<string>(
+        activeAgentClientRows
+          .map((row: { memberId: unknown }) => row.memberId)
+          .filter((memberId: unknown): memberId is string => typeof memberId === 'string')
+      )
     );
 
     if (memberIds.length === 0) {
@@ -89,7 +93,9 @@ export async function getAgentClaimsCore(params: {
       return { ok: true, data: [] };
     }
 
-    const resolvedMemberIds = members.map((m: Record<string, unknown>) => m.id as string);
+    const resolvedMemberIds: string[] = members
+      .map((m: Record<string, unknown>) => m.id)
+      .filter((memberId: unknown): memberId is string => typeof memberId === 'string');
 
     // 3. Fetch Claims for these members (excluding drafts)
     // We use a simplified visibility logic here for the core.

@@ -34,7 +34,11 @@ export async function handleSubscriptionChanged(
   }
 
   const { userId, tenantId, branchId, customData, userRecord } = context;
-  const resolvedAgentId = resolveSubscriptionAgentId({ userRecord, customData });
+  const canonicalUserRecord = userRecord ?? null;
+  const resolvedAgentId = resolveSubscriptionAgentId({
+    userRecord: canonicalUserRecord,
+    customData,
+  });
 
   const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
   const canonicalPlanState = await resolveCanonicalMembershipPlanState({
@@ -84,7 +88,7 @@ export async function handleSubscriptionChanged(
       tenantId,
       customData,
       priceId,
-      userRecord,
+      userRecord: canonicalUserRecord,
       deps,
     });
   }
