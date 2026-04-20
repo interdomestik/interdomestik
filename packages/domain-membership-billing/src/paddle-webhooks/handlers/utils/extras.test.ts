@@ -177,6 +177,58 @@ describe('extras', () => {
       );
     });
 
+    it('prefers the canonical user owner over stale webhook agent attribution', async () => {
+      await handleNewSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: { agentId: 'agent_stale' },
+        priceId: 'price_1',
+        userRecord: {
+          ...mockUserRecord,
+          agentId: 'agent_canonical',
+        },
+        deps: mockDeps,
+      });
+
+      expect(createCommissionCore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          agentId: 'agent_canonical',
+        })
+      );
+      expect(db.transaction).toHaveBeenCalled();
+      expect(tx.insert).toHaveBeenCalled();
+      expect(insertValues).toHaveBeenCalledWith(
+        expect.objectContaining({
+          agentId: 'agent_canonical',
+        })
+      );
+    });
+
+    it('treats company-owned canonical users as company-owned even when webhook customData is stale', async () => {
+      await handleNewSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: { agentId: 'agent_stale' },
+        priceId: 'price_1',
+        userRecord: {
+          ...mockUserRecord,
+          agentId: null,
+        },
+        deps: mockDeps,
+      });
+
+      expect(createCommissionCore).not.toHaveBeenCalled();
+      expect(db.transaction).not.toHaveBeenCalled();
+      expect(createMemberReferralRewardCore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'tenant_1',
+          subscriptionId: 'sub_123',
+        })
+      );
+    });
+
     it('should skip commission if no agentId', async () => {
       await handleNewSubscriptionExtras({
         sub: mockSub,
