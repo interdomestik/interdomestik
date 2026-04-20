@@ -70,6 +70,9 @@ vi.mock('@interdomestik/database', () => ({
           status: 'active',
         }),
       },
+      agentClients: {
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
       tenantSettings: {
         findFirst: vi.fn().mockResolvedValue(null),
       },
@@ -101,6 +104,11 @@ vi.mock('@interdomestik/database', () => ({
     tenantId: { name: 'tenantId' },
     branchId: { name: 'branchId' },
     agentId: { name: 'agentId' },
+  },
+  agentClients: {
+    tenantId: { name: 'tenantId' },
+    memberId: { name: 'memberId' },
+    status: { name: 'status' },
   },
   claims: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   claimStageHistory: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
