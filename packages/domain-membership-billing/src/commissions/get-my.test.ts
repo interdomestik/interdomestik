@@ -4,25 +4,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getMyCommissionsCore } from './get-my';
 
-const commissionsQuery = {
-  from: vi.fn().mockReturnThis(),
-  where: vi.fn().mockReturnThis(),
-  orderBy: vi.fn().mockResolvedValue([
-    {
-      id: 'comm-1',
-      agentId: 'agent-1',
-      memberId: 'member-1',
-      subscriptionId: 'sub-1',
-      type: 'renewal',
-      status: 'pending',
-      amount: '12.50',
-      currency: 'EUR',
-      earnedAt: new Date('2026-01-01T00:00:00.000Z'),
-      paidAt: null,
-      metadata: {},
-    },
-  ]),
-};
+const hoisted = vi.hoisted(() => ({
+  commissionsQuery: {
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockResolvedValue([
+      {
+        id: 'comm-1',
+        agentId: 'agent-1',
+        memberId: 'member-1',
+        subscriptionId: 'sub-1',
+        type: 'renewal',
+        status: 'pending',
+        amount: '12.50',
+        currency: 'EUR',
+        earnedAt: new Date('2026-01-01T00:00:00.000Z'),
+        paidAt: null,
+        metadata: {},
+      },
+    ]),
+  },
+}));
 
 vi.mock('@interdomestik/database', () => ({
   db: {
@@ -31,7 +33,7 @@ vi.mock('@interdomestik/database', () => ({
         findFirst: vi.fn(),
       },
     },
-    select: vi.fn(() => commissionsQuery),
+    select: vi.fn(() => hoisted.commissionsQuery),
   },
 }));
 
@@ -69,9 +71,9 @@ vi.mock('drizzle-orm', () => ({
 describe('getMyCommissionsCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    commissionsQuery.from.mockReturnThis();
-    commissionsQuery.where.mockReturnThis();
-    commissionsQuery.orderBy.mockResolvedValue([
+    hoisted.commissionsQuery.from.mockReturnThis();
+    hoisted.commissionsQuery.where.mockReturnThis();
+    hoisted.commissionsQuery.orderBy.mockResolvedValue([
       {
         id: 'comm-1',
         agentId: 'agent-1',
@@ -109,7 +111,7 @@ describe('getMyCommissionsCore', () => {
 
     expect(result.success).toBe(true);
     expect(ensureTenantId).toHaveBeenCalled();
-    expect(commissionsQuery.where).toHaveBeenCalledWith({
+    expect(hoisted.commissionsQuery.where).toHaveBeenCalledWith({
       op: 'and',
       clauses: [
         { op: 'eq', left: 'agentCommissions.agentId', right: 'agent-1' },

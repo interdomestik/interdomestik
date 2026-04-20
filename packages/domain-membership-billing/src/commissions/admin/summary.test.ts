@@ -1,18 +1,19 @@
-import { db } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getGlobalCommissionSummaryCore } from './summary';
 
-const queryChain = {
-  from: vi.fn().mockReturnThis(),
-  where: vi.fn().mockReturnThis(),
-  groupBy: vi.fn().mockResolvedValue([]),
-};
+const hoisted = vi.hoisted(() => ({
+  queryChain: {
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    groupBy: vi.fn().mockResolvedValue([]),
+  },
+}));
 
 vi.mock('@interdomestik/database', () => ({
   db: {
-    select: vi.fn(() => queryChain),
+    select: vi.fn(() => hoisted.queryChain),
   },
 }));
 
@@ -36,9 +37,9 @@ vi.mock('drizzle-orm', () => ({
 describe('getGlobalCommissionSummaryCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    queryChain.from.mockReturnThis();
-    queryChain.where.mockReturnThis();
-    queryChain.groupBy.mockResolvedValue([]);
+    hoisted.queryChain.from.mockReturnThis();
+    hoisted.queryChain.where.mockReturnThis();
+    hoisted.queryChain.groupBy.mockResolvedValue([]);
   });
 
   it('scopes admin commission summaries to the session tenant', async () => {
@@ -49,7 +50,7 @@ describe('getGlobalCommissionSummaryCore', () => {
     });
 
     expect(ensureTenantId).toHaveBeenCalled();
-    expect(queryChain.where).toHaveBeenCalledWith({
+    expect(hoisted.queryChain.where).toHaveBeenCalledWith({
       op: 'eq',
       left: 'agentCommissions.tenantId',
       right: 'tenant-1',
