@@ -1,6 +1,7 @@
 import { db } from '@interdomestik/database';
 import { agentCommissions } from '@interdomestik/database/schema';
-import { eq, sql } from 'drizzle-orm';
+import { ensureTenantId } from '@interdomestik/shared-auth';
+import { and, eq, sql } from 'drizzle-orm';
 
 import type { ActionResult, CommissionSession, CommissionSummary } from './types';
 
@@ -16,6 +17,8 @@ export async function getMyCommissionSummaryCore(params: {
   }
 
   try {
+    const tenantId = ensureTenantId(session);
+
     const rows = await db
       .select({
         status: agentCommissions.status,
@@ -23,7 +26,9 @@ export async function getMyCommissionSummaryCore(params: {
         count: sql<number>`COUNT(*)`,
       })
       .from(agentCommissions)
-      .where(eq(agentCommissions.agentId, session.user.id))
+      .where(
+        and(eq(agentCommissions.agentId, session.user.id), eq(agentCommissions.tenantId, tenantId))
+      )
       .groupBy(agentCommissions.status);
 
     const summary: CommissionSummary = {

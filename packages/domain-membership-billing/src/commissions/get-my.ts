@@ -1,6 +1,7 @@
 import { db } from '@interdomestik/database';
 import { agentCommissions, user as userTable } from '@interdomestik/database/schema';
-import { desc, eq } from 'drizzle-orm';
+import { ensureTenantId } from '@interdomestik/shared-auth';
+import { and, desc, eq } from 'drizzle-orm';
 
 import type {
   ActionResult,
@@ -22,6 +23,8 @@ export async function getMyCommissionsCore(params: {
   }
 
   try {
+    const tenantId = ensureTenantId(session);
+
     const rows = await db
       .select({
         id: agentCommissions.id,
@@ -37,14 +40,18 @@ export async function getMyCommissionsCore(params: {
         metadata: agentCommissions.metadata,
       })
       .from(agentCommissions)
-      .where(eq(agentCommissions.agentId, session.user.id))
+      .where(
+        and(eq(agentCommissions.agentId, session.user.id), eq(agentCommissions.tenantId, tenantId))
+      )
       .orderBy(desc(agentCommissions.earnedAt));
 
     // Enrich with names
     const commissions: Commission[] = await Promise.all(
       rows.map(async row => {
         const member = row.memberId
-          ? await db.query.user.findFirst({ where: eq(userTable.id, row.memberId) })
+          ? await db.query.user.findFirst({
+              where: and(eq(userTable.id, row.memberId), eq(userTable.tenantId, tenantId)),
+            })
           : null;
         return {
           ...row,
