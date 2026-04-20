@@ -1,4 +1,10 @@
 {
+  "identity": {
+    "repo": "interdomestik-crystal-home",
+    "root": ".",
+    "rootResolution": "git rev-parse --show-toplevel",
+    "ownedMcpServers": ["interdomestik_qa"]
+  },
   "repoContext": {
     "allowList": ["apps/**", "packages/**", "supabase/**"],
     "excludePatterns": ["**/node_modules/**", "**/.next/**", "**/dist/**", "**/.turbo/**"]
@@ -15,6 +21,9 @@
   },
   "e2e": {
     "baseUrl": "http://localhost:3000",
+    "artifactRoot": "apps/web/test-results",
+    "mcpProfile": "/tmp/interdomestik-pilot-evidence/playwright-mcp-profile",
+    "mcpOutput": "/tmp/interdomestik-pilot-evidence/playwright-mcp-output",
     "defaultLocale": "sq",
     "locales": ["sq", "en"],
     "localePrefix": "always"
