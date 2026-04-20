@@ -41,6 +41,12 @@ type DocumentRow = {
 };
 
 type DocumentAccessMode = 'signed_url' | 'download';
+type PolymorphicDocumentRow = {
+  id: string;
+  entityId: string;
+  entityType: string;
+  uploadedBy: string | null;
+};
 
 export type DocumentAccessResult =
   | { ok: true; document: DocumentRow; audit: AuditContext }
@@ -59,15 +65,23 @@ function isFullTenantClaimsRole(role: string | null | undefined): boolean {
 }
 
 function isScopedClaimReaderRole(role: string | null | undefined): boolean {
-  return role === 'staff' || role === 'branch_manager';
+  return role === 'staff' || role === 'branch_manager' || role === 'agent';
 }
 
 function hasScopedClaimReadAccess(args: {
   branchId?: string | null;
-  claim: { branchId?: string | null; staffId?: string | null; userId: string | null };
+  claim: {
+    branchId?: string | null;
+    staffId?: string | null;
+    userId: string | null;
+    agentId?: string | null;
+  };
   role: string | null | undefined;
   userId: string;
 }): boolean {
+  if (args.role === 'agent') {
+    return args.claim.agentId === args.userId;
+  }
   const branchId = args.branchId ?? null;
 
   if (args.role === 'branch_manager') {
@@ -153,7 +167,7 @@ function buildDocumentAudit(args: {
 
 async function canReadPolymorphicDocument(args: {
   db: any;
-  polyDoc: { id: string; entityId: string; entityType: string; uploadedBy: string | null };
+  polyDoc: PolymorphicDocumentRow;
   session: SessionDTO;
   tenantId: string;
   userRole: string | undefined;
@@ -165,8 +179,11 @@ async function canReadPolymorphicDocument(args: {
     return true;
   }
 
-  // 2. Uploader always has access to their own upload
-  if (polyDoc.uploadedBy === session.user.id) {
+  // 2. Uploader access, except agents must still be assigned to claim documents.
+  if (
+    polyDoc.uploadedBy === session.user.id &&
+    !(userRole === 'agent' && polyDoc.entityType === 'claim')
+  ) {
     return true;
   }
 
@@ -177,35 +194,7 @@ async function canReadPolymorphicDocument(args: {
 
   // 4. Claim Document Access
   if (polyDoc.entityType === 'claim') {
-    const [claimRow] = await db
-      .select({
-        claimOwnerId: claims.userId,
-        claimBranchId: claims.branchId,
-        claimStaffId: claims.staffId,
-      })
-      .from(claims)
-      .where(and(eq(claims.id, polyDoc.entityId), eq(claims.tenantId, tenantId)));
-
-    if (!claimRow) return false;
-
-    // Member can read any document attached to their own claim
-    if (claimRow.claimOwnerId === session.user.id) {
-      return true;
-    }
-
-    // Staff/Branch Manager access via scoped permissions
-    if (isScopedClaimReaderRole(userRole)) {
-      return hasScopedClaimReadAccess({
-        branchId: session.user.branchId ?? null,
-        claim: {
-          branchId: claimRow.claimBranchId ?? null,
-          staffId: claimRow.claimStaffId ?? null,
-          userId: claimRow.claimOwnerId ?? null,
-        },
-        role: userRole,
-        userId: session.user.id,
-      });
-    }
+    return canReadPolymorphicClaimDocument(args);
   }
 
   // 5. Policy Document Access
@@ -226,8 +215,55 @@ async function canReadPolymorphicDocument(args: {
   return false;
 }
 
+async function canReadPolymorphicClaimDocument(args: {
+  db: any;
+  polyDoc: PolymorphicDocumentRow;
+  session: SessionDTO;
+  tenantId: string;
+  userRole: string | undefined;
+}): Promise<boolean> {
+  const { db, polyDoc, session, tenantId, userRole } = args;
+  const [claimRow] = await db
+    .select({
+      claimOwnerId: claims.userId,
+      claimBranchId: claims.branchId,
+      claimStaffId: claims.staffId,
+      claimAgentId: claims.agentId,
+    })
+    .from(claims)
+    .where(and(eq(claims.id, polyDoc.entityId), eq(claims.tenantId, tenantId)));
+
+  if (!claimRow) return false;
+
+  // Member can read any document attached to their own claim.
+  if (userRole !== 'agent' && claimRow.claimOwnerId === session.user.id) {
+    return true;
+  }
+
+  if (!isScopedClaimReaderRole(userRole)) {
+    return false;
+  }
+
+  return hasScopedClaimReadAccess({
+    branchId: session.user.branchId ?? null,
+    claim: {
+      branchId: claimRow.claimBranchId ?? null,
+      staffId: claimRow.claimStaffId ?? null,
+      userId: claimRow.claimOwnerId ?? null,
+      agentId: claimRow.claimAgentId ?? null,
+    },
+    role: userRole,
+    userId: session.user.id,
+  });
+}
+
 function canReadLegacyClaimDocument(args: {
-  claim: { branchId: string | null; ownerId: string | null; staffId: string | null };
+  claim: {
+    branchId: string | null;
+    ownerId: string | null;
+    staffId: string | null;
+    agentId: string | null;
+  };
   document: DocumentRow;
   session: SessionDTO;
   userRole: string | undefined;
@@ -238,7 +274,10 @@ function canReadLegacyClaimDocument(args: {
     return true;
   }
 
-  if (document.uploadedBy === session.user.id || claim.ownerId === session.user.id) {
+  if (
+    userRole !== 'agent' &&
+    (document.uploadedBy === session.user.id || claim.ownerId === session.user.id)
+  ) {
     return true;
   }
 
@@ -252,6 +291,7 @@ function canReadLegacyClaimDocument(args: {
       branchId: claim.branchId,
       staffId: claim.staffId,
       userId: claim.ownerId,
+      agentId: claim.agentId,
     },
     role: userRole,
     userId: session.user.id,
@@ -312,6 +352,7 @@ export async function getDocumentAccessCore(args: {
       claimOwnerId: claims.userId,
       claimBranchId: claims.branchId,
       claimStaffId: claims.staffId,
+      claimAgentId: claims.agentId,
     })
     .from(claimDocuments)
     .leftJoin(claims, eq(claimDocuments.claimId, claims.id))
@@ -327,6 +368,7 @@ export async function getDocumentAccessCore(args: {
       branchId: row.claimBranchId ?? null,
       ownerId: row.claimOwnerId ?? null,
       staffId: row.claimStaffId ?? null,
+      agentId: row.claimAgentId ?? null,
     },
     document: doc,
     session,

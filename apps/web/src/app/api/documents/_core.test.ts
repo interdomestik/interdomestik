@@ -10,11 +10,13 @@ const otherMemberSession = { user: { id: 'member-2', role: 'member', tenantId: '
 const branchManagerSession = {
   user: { id: 'manager-1', role: 'branch_manager', tenantId: 't1', branchId: 'branch-a' },
 };
+const agentSession = { user: { id: 'agent-1', role: 'agent', tenantId: 't1' } };
 
 const branchScopedClaimRow = {
   claimOwnerId: 'member-1',
   claimBranchId: 'branch-a',
   claimStaffId: 'staff-2',
+  claimAgentId: null,
 };
 
 const polymorphicDocs = {
@@ -123,6 +125,26 @@ describe('getDocumentAccessCore Hardening', () => {
       expect(res).toEqual({ ok: false, code: 'FORBIDDEN', message: 'Forbidden' });
     });
 
+    it('allows assigned agent access to claim document', async () => {
+      setupMocks([polymorphicDocs.claim], [{ ...branchScopedClaimRow, claimAgentId: 'agent-1' }]);
+      expect((await execAccess(agentSession, 'doc1')).ok).toBe(true);
+    });
+
+    it('denies unassigned agent access to claim document', async () => {
+      setupMocks([polymorphicDocs.claim], [{ ...branchScopedClaimRow, claimAgentId: 'agent-2' }]);
+      const res = await execAccess(agentSession, 'doc1');
+      expect(res).toEqual({ ok: false, code: 'FORBIDDEN', message: 'Forbidden' });
+    });
+
+    it('denies unassigned agent access to claim document they uploaded', async () => {
+      setupMocks(
+        [{ ...polymorphicDocs.claim, uploadedBy: 'agent-1' }],
+        [{ ...branchScopedClaimRow, claimAgentId: 'agent-2' }]
+      );
+      const res = await execAccess(agentSession, 'doc1');
+      expect(res).toEqual({ ok: false, code: 'FORBIDDEN', message: 'Forbidden' });
+    });
+
     it('allows access to own policy document', async () => {
       setupMocks([polymorphicDocs.policy], [{ policyOwnerId: 'member-1' }]);
       expect((await execAccess(memberSession, 'doc-policy')).ok).toBe(true);
@@ -150,6 +172,38 @@ describe('getDocumentAccessCore Hardening', () => {
     it('allows claim owner access to legacy docs', async () => {
       setupMocks([], [{ doc: legacyDoc, ...branchScopedClaimRow }]);
       expect((await execAccess(memberSession, 'doc1')).ok).toBe(true);
+    });
+
+    it('allows assigned agent access to legacy docs', async () => {
+      setupMocks([], [{ doc: legacyDoc, ...branchScopedClaimRow, claimAgentId: 'agent-1' }]);
+      expect((await execAccess(agentSession, 'doc1')).ok).toBe(true);
+    });
+
+    it('denies unassigned agent access to legacy docs', async () => {
+      setupMocks([], [{ doc: legacyDoc, ...branchScopedClaimRow, claimAgentId: 'agent-2' }]);
+      expect(await execAccess(agentSession, 'doc1')).toEqual({
+        ok: false,
+        code: 'FORBIDDEN',
+        message: 'Forbidden',
+      });
+    });
+
+    it('denies unassigned agent access to legacy docs they uploaded', async () => {
+      setupMocks(
+        [],
+        [
+          {
+            doc: { ...legacyDoc, uploadedBy: 'agent-1' },
+            ...branchScopedClaimRow,
+            claimAgentId: 'agent-2',
+          },
+        ]
+      );
+      expect(await execAccess(agentSession, 'doc1')).toEqual({
+        ok: false,
+        code: 'FORBIDDEN',
+        message: 'Forbidden',
+      });
     });
   });
 

@@ -188,6 +188,59 @@ describe('POST /api/uploads', () => {
     expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
+  it('returns 403 when agent is not assigned to the claim', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'agent-1', role: 'agent', tenantId: 'tenant_mk' },
+    });
+    hoisted.findClaimFirst.mockResolvedValue({
+      id: 'claim-1',
+      userId: 'user-OTHER',
+      agentId: 'agent-OTHER',
+    });
+
+    const req = new Request('http://localhost:3000/api/uploads', {
+      method: 'POST',
+      body: JSON.stringify({
+        fileName: 'file.pdf',
+        fileType: 'application/pdf',
+        fileSize: 100,
+        claimId: 'claim-1',
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
+  });
+
+  it('returns 200 when agent is assigned to the claim', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET', 'claim-evidence');
+
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'agent-1', role: 'agent', tenantId: 'tenant_mk' },
+    });
+    hoisted.findClaimFirst.mockResolvedValue({
+      id: 'claim-1',
+      userId: 'user-OTHER',
+      agentId: 'agent-1',
+    });
+
+    const req = new Request('http://localhost:3000/api/uploads', {
+      method: 'POST',
+      body: JSON.stringify({
+        fileName: 'file.pdf',
+        fileType: 'application/pdf',
+        fileSize: 100,
+        claimId: 'claim-1',
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(hoisted.createSignedUploadUrl).toHaveBeenCalled();
+  });
+
   it('returns 200 with signed upload details', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET', 'claim-evidence');

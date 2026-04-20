@@ -88,6 +88,7 @@ export async function createSignedUploadCore(args: {
       columns: {
         id: true,
         userId: true,
+        agentId: true,
       },
     });
 
@@ -95,7 +96,12 @@ export async function createSignedUploadCore(args: {
       return { ok: false, status: 404, error: 'Claim not found' };
     }
 
-    if (claim.userId !== session.user.id) {
+    const role = session.user.role;
+
+    const canUpload =
+      claim.userId === session.user.id || (role === 'agent' && claim.agentId === session.user.id);
+
+    if (!canUpload) {
       return { ok: false, status: 403, error: 'Forbidden' };
     }
   }

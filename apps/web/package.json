@@ -12,7 +12,7 @@
     "start:ci": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
-    "test:unit": "vitest run",
+    "test:unit": "node scripts/vitest-unit.mjs",
     "test:e2e": "playwright test",
     "e2e:gate": "NEXT_PUBLIC_BILLING_TEST_MODE=1 pnpm run build:ci && NEXT_PUBLIC_BILLING_TEST_MODE=1 playwright test --project=gate-ks-sq --project=gate-mk-mk --workers=1",
     "e2e:gate:pr": "NEXT_PUBLIC_BILLING_TEST_MODE=1 pnpm run build:ci && NEXT_PUBLIC_BILLING_TEST_MODE=1 playwright test --project=gate-ks-sq --project=gate-mk-contract --workers=1",
