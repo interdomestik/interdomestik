@@ -45,6 +45,7 @@ export type CommissionSession = {
     role: string;
     name?: string | null;
     email: string;
+    tenantId?: string | null;
   };
 };
 
