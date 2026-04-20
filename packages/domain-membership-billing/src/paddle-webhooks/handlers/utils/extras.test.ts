@@ -142,6 +142,12 @@ describe('extras', () => {
           agentId: 'agent_1',
           amount: 4, // 20% of 20.00 EUR default
           memberId: 'user_1',
+          metadata: expect.objectContaining({
+            saleOwnerType: 'agent',
+            saleOwnerId: 'agent_1',
+            originalSellerAgentId: 'agent_1',
+            ownershipResolvedFrom: ['checkout.customData.agentId'],
+          }),
         })
       );
       expect(mockDeps.logAuditEvent).toHaveBeenCalledWith(
