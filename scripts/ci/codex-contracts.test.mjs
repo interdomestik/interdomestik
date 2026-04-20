@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
+const interdomestikEvidenceRoot = '/tmp/interdomestik-pilot-evidence';
 
 function readText(relativePath) {
   return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
@@ -23,11 +24,12 @@ test('project-scoped Codex config registers the repo MCP servers Interdomestik d
   assert.match(configToml, /command = "npx"/);
   assert.match(configToml, /@upstash\/context7-mcp/);
   assert.match(configToml, /@playwright\/mcp/);
-  assert.match(configToml, /evidence_root = "\/tmp\/interdomestik-pilot-evidence"/);
+  assert.match(configToml, new RegExp(`evidence_root = "${interdomestikEvidenceRoot}"`));
+  assert.doesNotMatch(configToml, /\/tmp\/pilot-evidence\/playwright-mcp/);
   assert.match(configToml, /--user-data-dir/);
-  assert.match(configToml, /\/tmp\/interdomestik-pilot-evidence\/playwright-mcp-profile/);
+  assert.match(configToml, new RegExp(`${interdomestikEvidenceRoot}/playwright-mcp-profile`));
   assert.match(configToml, /--output-dir/);
-  assert.match(configToml, /\/tmp\/interdomestik-pilot-evidence\/playwright-mcp-output/);
+  assert.match(configToml, new RegExp(`${interdomestikEvidenceRoot}/playwright-mcp-output`));
   assert.match(configToml, /command = "\/bin\/bash"/);
   assert.match(configToml, /scripts\/start-repo-qa\.sh/);
   assert.doesNotMatch(configToml, /packages\/qa\/src\/index\.ts/);
