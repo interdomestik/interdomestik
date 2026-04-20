@@ -23,6 +23,7 @@ test('project-scoped Codex config registers the repo MCP servers Interdomestik d
   assert.match(configToml, /command = "npx"/);
   assert.match(configToml, /@upstash\/context7-mcp/);
   assert.match(configToml, /@playwright\/mcp/);
+  assert.match(configToml, /evidence_root = "\/tmp\/interdomestik-pilot-evidence"/);
   assert.match(configToml, /--user-data-dir/);
   assert.match(configToml, /\/tmp\/interdomestik-pilot-evidence\/playwright-mcp-profile/);
   assert.match(configToml, /--output-dir/);

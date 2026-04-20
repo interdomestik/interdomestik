@@ -4,7 +4,8 @@ Interdomestik and NurseConnect must run as separate systems. Do not share MCP se
 
 ## Interdomestik Ownership
 
-- Repository root: `/Users/arbenlila/development/interdomestik-crystal-home`
+- Repository root: the active Interdomestik checkout root, verified with `git rev-parse --show-toplevel`
+- Example local checkout: `/Users/arbenlila/development/interdomestik-crystal-home`
 - Default web dev port: `3000`
 - Local app URL: `http://localhost:3000`
 - Repo MCP config: `.codex/config.toml`
@@ -22,4 +23,4 @@ Interdomestik and NurseConnect must run as separate systems. Do not share MCP se
 
 ## Failure Signal
 
-If a Codex session in this repo writes NurseConnect paths or talks to a NurseConnect-only tool, restart the session from `/Users/arbenlila/development/interdomestik-crystal-home` and verify `.codex/config.toml` is loaded.
+If a Codex session in this repo writes NurseConnect paths or talks to a NurseConnect-only tool, restart the session from the Interdomestik repository root, confirm the active checkout with `pwd` or `git rev-parse --show-toplevel`, and verify `.codex/config.toml` is loaded.

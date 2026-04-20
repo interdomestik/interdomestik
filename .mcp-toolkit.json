@@ -1,8 +1,8 @@
 {
   "identity": {
     "repo": "interdomestik-crystal-home",
-    "root": "/Users/arbenlila/development/interdomestik-crystal-home",
-    "devPort": 3000,
+    "root": ".",
+    "rootResolution": "git rev-parse --show-toplevel",
     "ownedMcpServers": ["interdomestik_qa"]
   },
   "repoContext": {
