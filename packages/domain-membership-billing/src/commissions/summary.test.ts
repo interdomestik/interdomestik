@@ -1,6 +1,7 @@
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getGlobalCommissionSummaryCore } from './admin/summary';
 import { getMyCommissionSummaryCore } from './summary';
 
 const hoisted = vi.hoisted(() => ({
@@ -58,6 +59,30 @@ describe('getMyCommissionSummaryCore', () => {
         { op: 'eq', left: 'agentCommissions.agentId', right: 'agent-1' },
         { op: 'eq', left: 'agentCommissions.tenantId', right: 'tenant-1' },
       ],
+    });
+  });
+});
+
+describe('getGlobalCommissionSummaryCore', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.queryChain.from.mockReturnThis();
+    hoisted.queryChain.where.mockReturnThis();
+    hoisted.queryChain.groupBy.mockResolvedValue([]);
+  });
+
+  it('scopes admin commission summaries to the session tenant', async () => {
+    await getGlobalCommissionSummaryCore({
+      session: {
+        user: { id: 'admin-1', role: 'admin', email: 'admin@example.com', tenantId: 'tenant-1' },
+      },
+    });
+
+    expect(ensureTenantId).toHaveBeenCalled();
+    expect(hoisted.queryChain.where).toHaveBeenCalledWith({
+      op: 'eq',
+      left: 'agentCommissions.tenantId',
+      right: 'tenant-1',
     });
   });
 });

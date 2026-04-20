@@ -4,27 +4,30 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getMyCommissionsCore } from './get-my';
 
-const hoisted = vi.hoisted(() => ({
-  commissionsQuery: {
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    orderBy: vi.fn().mockResolvedValue([
-      {
-        id: 'comm-1',
-        agentId: 'agent-1',
-        memberId: 'member-1',
-        subscriptionId: 'sub-1',
-        type: 'renewal',
-        status: 'pending',
-        amount: '12.50',
-        currency: 'EUR',
-        earnedAt: new Date('2026-01-01T00:00:00.000Z'),
-        paidAt: null,
-        metadata: {},
-      },
-    ]),
-  },
-}));
+const hoisted = vi.hoisted(() => {
+  const commissionRow = {
+    id: 'comm-1',
+    agentId: 'agent-1',
+    memberId: 'member-1',
+    subscriptionId: 'sub-1',
+    type: 'renewal',
+    status: 'pending',
+    amount: '12.50',
+    currency: 'EUR',
+    earnedAt: new Date('2026-01-01T00:00:00.000Z'),
+    paidAt: null,
+    metadata: {},
+  };
+
+  return {
+    commissionRow,
+    commissionsQuery: {
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn(),
+    },
+  };
+});
 
 vi.mock('@interdomestik/database', () => ({
   db: {
@@ -40,17 +43,8 @@ vi.mock('@interdomestik/database', () => ({
 vi.mock('@interdomestik/database/schema', () => ({
   agentCommissions: {
     agentId: 'agentCommissions.agentId',
-    amount: 'agentCommissions.amount',
-    currency: 'agentCommissions.currency',
     earnedAt: 'agentCommissions.earnedAt',
-    id: 'agentCommissions.id',
-    memberId: 'agentCommissions.memberId',
-    metadata: 'agentCommissions.metadata',
-    paidAt: 'agentCommissions.paidAt',
-    status: 'agentCommissions.status',
-    subscriptionId: 'agentCommissions.subscriptionId',
     tenantId: 'agentCommissions.tenantId',
-    type: 'agentCommissions.type',
   },
   user: {
     id: 'user.id',
@@ -73,21 +67,7 @@ describe('getMyCommissionsCore', () => {
     vi.clearAllMocks();
     hoisted.commissionsQuery.from.mockReturnThis();
     hoisted.commissionsQuery.where.mockReturnThis();
-    hoisted.commissionsQuery.orderBy.mockResolvedValue([
-      {
-        id: 'comm-1',
-        agentId: 'agent-1',
-        memberId: 'member-1',
-        subscriptionId: 'sub-1',
-        type: 'renewal',
-        status: 'pending',
-        amount: '12.50',
-        currency: 'EUR',
-        earnedAt: new Date('2026-01-01T00:00:00.000Z'),
-        paidAt: null,
-        metadata: {},
-      },
-    ]);
+    hoisted.commissionsQuery.orderBy.mockResolvedValue([hoisted.commissionRow]);
     (db.query.user.findFirst as any).mockResolvedValue({
       id: 'member-1',
       name: 'Member One',
