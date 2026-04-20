@@ -15,6 +15,8 @@ type WebhookUserRecord = {
   memberNumber?: string | null;
 };
 
+type NewMembershipOwnershipSource = 'user.agentId' | 'checkout.customData.agentId';
+
 export const redactEmail = (email?: string | null) => {
   if (!email) return 'unknown';
   const [local, domain] = email.split('@');
@@ -29,15 +31,29 @@ function normalizeAgentId(agentId: string | null | undefined): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
-function resolveCanonicalOwnerAgentId(args: {
+function resolveNewMembershipOwnership(args: {
   userRecord?: WebhookUserRecord | null;
   customData?: { agentId?: string } | undefined;
 }) {
   if (args.userRecord && 'agentId' in args.userRecord) {
-    return normalizeAgentId(args.userRecord.agentId);
+    const agentId = normalizeAgentId(args.userRecord.agentId);
+    return {
+      agentId,
+      resolvedFrom: agentId ? ('user.agentId' as const) : null,
+    };
   }
 
-  return normalizeAgentId(args.customData?.agentId);
+  const agentId = normalizeAgentId(args.customData?.agentId);
+  return {
+    agentId,
+    resolvedFrom: agentId ? ('checkout.customData.agentId' as const) : null,
+  };
+}
+
+function toOwnershipResolvedFrom(
+  source: NewMembershipOwnershipSource | null
+): NewMembershipOwnershipSource[] {
+  return source ? [source] : [];
 }
 
 async function processCommissions(args: {
@@ -53,7 +69,8 @@ async function processCommissions(args: {
   const { internalSubscriptionId, sub, userId, tenantId, customData, userRecord, priceId, deps } =
     args;
   const resolvedSubscriptionId = internalSubscriptionId ?? sub.id;
-  const agentId = resolveCanonicalOwnerAgentId({ userRecord, customData });
+  const ownership = resolveNewMembershipOwnership({ userRecord, customData });
+  const agentId = ownership.agentId;
   const transactionTotal = Number.parseFloat(sub.items?.[0]?.price?.unitPrice?.amount || '0') / 100;
 
   if (!agentId || transactionTotal <= 0) return;
@@ -78,6 +95,11 @@ async function processCommissions(args: {
       transactionTotal,
       source: 'paddle_webhook',
       customRates: !!customRates,
+      saleOwnerType: 'agent',
+      saleOwnerId: agentId,
+      originalSellerAgentId: agentId,
+      ownershipResolvedFrom: toOwnershipResolvedFrom(ownership.resolvedFrom),
+      ownershipDiagnostics: [],
     },
   });
 
@@ -95,6 +117,10 @@ async function processCommissions(args: {
         amount: commissionAmount,
         currency: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
         source: 'paddle_webhook',
+        saleOwnerType: 'agent',
+        saleOwnerId: agentId,
+        originalSellerAgentId: agentId,
+        ownershipResolvedFrom: toOwnershipResolvedFrom(ownership.resolvedFrom),
       },
     });
   }
@@ -115,7 +141,7 @@ async function processMemberReferralRewards(args: {
   const { internalSubscriptionId, sub, userId, tenantId, customData, userRecord, deps } = args;
   const resolvedSubscriptionId = internalSubscriptionId ?? sub.id;
 
-  if (resolveCanonicalOwnerAgentId({ userRecord, customData })) return;
+  if (resolveNewMembershipOwnership({ userRecord, customData }).agentId) return;
 
   const referralRow = await db.query.referrals.findFirst({
     where: and(eq(referrals.tenantId, tenantId), eq(referrals.referredId, userId)),
@@ -161,7 +187,7 @@ async function ensureAgentClientBinding(args: {
   customData: { agentId?: string } | undefined;
   userRecord?: WebhookUserRecord | null;
 }) {
-  const agentId = resolveCanonicalOwnerAgentId(args);
+  const agentId = resolveNewMembershipOwnership(args).agentId;
   if (!agentId) return;
 
   const now = new Date();
