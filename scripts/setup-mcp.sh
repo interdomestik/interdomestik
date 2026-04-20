@@ -63,6 +63,15 @@ if [ "$ALL_CONFIGURED" = false ]; then
     exit 1
 fi
 
+# 2b. Verify Codex sees the project-scoped MCP config and the repo QA server answers tools/list.
+if command -v codex >/dev/null 2>&1; then
+    echo -e "\n${YELLOW}🩺 Running Codex MCP preflight...${NC}"
+    cd "$PROJECT_ROOT"
+    pnpm mcp:preflight
+else
+    echo -e "\n${YELLOW}⚠️  Skipping Codex MCP preflight because codex CLI is not on PATH${NC}"
+fi
+
 # 3. Test QA MCP discovery
 echo -e "\n${YELLOW}🧪 Testing QA MCP discovery...${NC}"
 cd "$PROJECT_ROOT"

@@ -38,6 +38,7 @@ test('project-scoped Codex config registers the repo MCP servers Interdomestik d
 
 test('mcp setup verifies Codex project config as well as local QA server prerequisites', () => {
   const setupScript = readText('scripts/setup-mcp.sh');
+  const packageJson = JSON.parse(readText('package.json'));
 
   assert.match(setupScript, /\.codex\/config\.toml/);
   assert.match(setupScript, /openai_docs/);
@@ -46,6 +47,32 @@ test('mcp setup verifies Codex project config as well as local QA server prerequ
   assert.match(setupScript, /interdomestik_qa/);
   assert.match(setupScript, /scripts\/start-repo-qa\.sh/);
   assert.match(setupScript, /tools\/list/);
+  assert.equal(packageJson.scripts['mcp:preflight'], 'node scripts/codex-mcp-preflight.mjs');
+  assert.match(setupScript, /command -v codex/);
+  assert.match(setupScript, /\bpnpm mcp:preflight\b/);
+  assert.match(setupScript, /Skipping Codex MCP preflight/);
+});
+
+test('Codex MCP preflight checks CLI registration and live repo QA tool discovery', () => {
+  const preflight = readText('scripts/codex-mcp-preflight.mjs');
+  const discoveryContract = readText('scripts/ci/qa-mcp-discovery-contracts.test.mjs');
+
+  assert.match(preflight, /codex/);
+  assert.match(preflight, /mcp/);
+  assert.match(preflight, /list/);
+  assert.match(preflight, /--json/);
+  assert.match(preflight, /Array\.isArray\(servers\)/);
+  assert.match(preflight, /typeof server\.name !== 'string'/);
+  assert.match(preflight, /interdomestik_qa/);
+  assert.match(preflight, /scripts\/start-repo-qa\.sh/);
+  assert.match(preflight, /qa-mcp-discovery-contracts\.test\.mjs/);
+  assert.match(discoveryContract, /tools\/list/);
+  assert.match(discoveryContract, /project_map/);
+  assert.match(discoveryContract, /read_files/);
+  assert.match(discoveryContract, /code_search/);
+  assert.match(preflight, /try\s*{\s*await main\(\);/);
+  assert.match(preflight, /unexpected preflight error/);
+  assert.match(preflight, /restart Codex/i);
 });
 
 test('Codex PR review workflow uses the official action with a repo-owned review prompt', () => {
