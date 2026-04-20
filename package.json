@@ -30,6 +30,7 @@
     "seed:e2e:local": "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres pnpm seed:e2e",
     "seed:assert-e2e": "pnpm --filter @interdomestik/database seed:assert-e2e",
     "mcp:setup": "./scripts/setup-mcp.sh",
+    "mcp:preflight": "node scripts/codex-mcp-preflight.mjs",
     "mcp:audit": "pnpm --filter @interdomestik/qa run-all-audits",
     "mcp:test": "pnpm mcp:audit && pnpm test",
     "qa": "pnpm --filter @interdomestik/qa check",
