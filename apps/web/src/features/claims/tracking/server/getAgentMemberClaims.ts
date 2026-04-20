@@ -42,58 +42,43 @@ export async function getAgentMemberClaims(session: any): Promise<AgentMemberCla
         // allowing broader roles for flexibility if they visit the page.
       }
 
-      const [membersByUserAgent, activeAgentClientRows] = await Promise.all([
-        db.query.user.findMany({
-          where: and(eq(user.tenantId, tenantId), eq(user.agentId, userId)),
-          columns: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        }),
-        db
-          .select({ memberId: agentClients.memberId })
-          .from(agentClients)
-          .where(
-            and(
-              eq(agentClients.tenantId, tenantId),
-              eq(agentClients.agentId, userId),
-              eq(agentClients.status, 'active')
-            )
-          ),
-      ]);
+      const activeAgentClientRows = await db
+        .select({ memberId: agentClients.memberId })
+        .from(agentClients)
+        .where(
+          and(
+            eq(agentClients.tenantId, tenantId),
+            eq(agentClients.agentId, userId),
+            eq(agentClients.status, 'active')
+          )
+        );
 
-      const memberById = new Map<string, { id: string; name: string; email: string }>();
-      for (const member of membersByUserAgent) {
-        memberById.set(member.id, member);
+      const memberIds = Array.from(
+        new Set(
+          activeAgentClientRows
+            .map(row => row.memberId)
+            .filter((memberId): memberId is string => typeof memberId === 'string')
+        )
+      );
+
+      if (memberIds.length === 0) {
+        return [];
       }
 
-      const memberIdsFromAgentClients = activeAgentClientRows
-        .map(row => row.memberId)
-        .filter(memberId => typeof memberId === 'string' && !memberById.has(memberId));
-
-      if (memberIdsFromAgentClients.length > 0) {
-        const additionalMembers = await db.query.user.findMany({
-          where: and(eq(user.tenantId, tenantId), inArray(user.id, memberIdsFromAgentClients)),
-          columns: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        });
-
-        for (const member of additionalMembers) {
-          memberById.set(member.id, member);
-        }
-      }
-
-      const members = Array.from(memberById.values());
+      const members = await db.query.user.findMany({
+        where: and(eq(user.tenantId, tenantId), inArray(user.id, memberIds)),
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      });
 
       if (members.length === 0) {
         return [];
       }
 
-      const memberIds = members.map(m => m.id);
+      const resolvedMemberIds = members.map(m => m.id);
 
       // 3. Fetch Claims for these members (excluding drafts per Phase 2.3 PRD)
       const visibilityCondition = buildClaimVisibilityWhere({
@@ -101,13 +86,13 @@ export async function getAgentMemberClaims(session: any): Promise<AgentMemberCla
         userId,
         role,
         branchId: access.branchId,
-        agentMemberIds: memberIds,
+        agentMemberIds: resolvedMemberIds,
       });
 
       const memberClaims = await db.query.claims.findMany({
         where: and(
           visibilityCondition,
-          inArray(claims.userId, memberIds), // Optimization redundant but safe
+          inArray(claims.userId, resolvedMemberIds), // Optimization redundant but safe
           ne(claims.status, 'draft') // PRD: Agents must not see draft claims
         ),
         orderBy: desc(claims.updatedAt),

@@ -56,64 +56,46 @@ export async function getAgentClaimsCore(params: {
   }
 
   try {
-    // 2. Resolve members via both canonical assignment sources:
-    // a) user.agentId linkage, b) active agent_clients linkage.
-    const [membersByUserAgent, activeAgentClientRows] = await Promise.all([
-      db.query.user.findMany({
-        where: and(eq(user.tenantId, tenantId), eq(user.agentId, userId)),
-        columns: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      }),
-      db
-        .select({ memberId: agentClients.memberId })
-        .from(agentClients)
-        .where(
-          and(
-            eq(agentClients.tenantId, tenantId),
-            eq(agentClients.agentId, userId),
-            eq(agentClients.status, 'active')
-          )
-        ),
-    ]);
+    // 2. Resolve members only through active canonical ownership.
+    const activeAgentClientRows = await db
+      .select({ memberId: agentClients.memberId })
+      .from(agentClients)
+      .where(
+        and(
+          eq(agentClients.tenantId, tenantId),
+          eq(agentClients.agentId, userId),
+          eq(agentClients.status, 'active')
+        )
+      );
 
-    const memberById = new Map<string, { id: string; name: string | null; email: string | null }>();
-    for (const m of membersByUserAgent) {
-      memberById.set(m.id as string, m);
+    const memberIds = Array.from(
+      new Set(activeAgentClientRows.map((row: { memberId: string }) => row.memberId))
+    );
+
+    if (memberIds.length === 0) {
+      return { ok: true, data: [] };
     }
 
-    const memberIdsFromAgentClients = activeAgentClientRows
-      .map((row: { memberId: string }) => row.memberId)
-      .filter((id: string) => !memberById.has(id));
+    const members = await db.query.user.findMany({
+      where: and(eq(user.tenantId, tenantId), inArray(user.id, memberIds)),
+      columns: {
+        id: true,
+        name: true,
+        email: true,
+      },
+    });
 
-    if (memberIdsFromAgentClients.length > 0) {
-      const additionalMembers = await db.query.user.findMany({
-        where: and(eq(user.tenantId, tenantId), inArray(user.id, memberIdsFromAgentClients)),
-        columns: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      });
-      for (const m of additionalMembers) {
-        memberById.set(m.id as string, m);
-      }
-    }
-
-    const members = Array.from(memberById.values());
     if (members.length === 0) {
       return { ok: true, data: [] };
     }
 
-    const memberIds = members.map((m: Record<string, unknown>) => m.id as string);
+    const resolvedMemberIds = members.map((m: Record<string, unknown>) => m.id as string);
 
     // 3. Fetch Claims for these members (excluding drafts)
     // We use a simplified visibility logic here for the core.
     const memberClaims = await db.query.claims.findMany({
       where: and(
-        buildAgentClaimsWhere({ tenantId, memberIds, branchId }),
+        buildAgentClaimsWhere({ tenantId, memberIds: resolvedMemberIds, branchId }),
         ne(claims.status, 'draft')
       ),
       orderBy: desc(claims.updatedAt),

@@ -82,7 +82,7 @@ describe('getAgentMemberClaims', () => {
       branchId: 'branch-1',
     });
     hoisted.buildClaimVisibilityWhere.mockReturnValue({ op: 'visibility' });
-    hoisted.findManyUsers.mockResolvedValueOnce([]).mockResolvedValueOnce([
+    hoisted.findManyUsers.mockResolvedValue([
       {
         id: 'member-2',
         name: 'Member Two',
@@ -132,5 +132,34 @@ describe('getAgentMemberClaims', () => {
       branchId: 'branch-1',
       agentMemberIds: ['member-2'],
     });
+    expect(hoisted.findManyUsers).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not include members from stale user.agentId linkage when there is no active agent_clients row', async () => {
+    hoisted.findManyUsers.mockResolvedValue([
+      {
+        id: 'member-stale',
+        name: 'Stale Member',
+        email: 'stale@example.com',
+      },
+    ]);
+    hoisted.selectWhere.mockResolvedValue([]);
+    hoisted.findManyClaims.mockResolvedValue([
+      {
+        id: 'claim-stale',
+        title: 'Claim Stale',
+        status: 'submitted',
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-02T00:00:00.000Z'),
+        userId: 'member-stale',
+      },
+    ]);
+
+    const result = await getAgentMemberClaims({
+      user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
+    });
+
+    expect(result).toEqual([]);
+    expect(hoisted.findManyUsers).not.toHaveBeenCalled();
   });
 });
