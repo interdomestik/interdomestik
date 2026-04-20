@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
-const interdomestikEvidenceRoot = '/tmp/interdomestik-pilot-evidence';
+const interdomestikEvidenceRoot = ['', 'tmp', 'interdomestik-pilot-evidence'].join('/');
 
 function readText(relativePath) {
   return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
