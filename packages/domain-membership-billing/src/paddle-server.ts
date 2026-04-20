@@ -11,6 +11,7 @@ const LEGACY_PUBLIC_PADDLE_CLIENT_TOKEN_ENV = 'NEXT_PUBLIC_PADDLE_CLIENT_TOKEN';
 const LEGACY_PUBLIC_STANDARD_PRICE_ENV = 'NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR';
 const LEGACY_PUBLIC_FAMILY_PRICE_ENV = 'NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR';
 const LEGACY_PUBLIC_BUSINESS_PRICE_ENV = 'NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_YEAR';
+const PUBLIC_DUPLICATE_YEARLY_PRICE_ID_ALLOWED_ENTITIES = new Set<BillingEntity>(['ks']);
 
 type BillingEntityEnvVars = {
   apiKey: string;
@@ -270,6 +271,10 @@ function resolvePublicCheckoutEntity(): BillingEntity {
   return publicEntity ?? defaultEntity ?? 'ks';
 }
 
+function canShareSelfServeYearlyPriceIds(entity: BillingEntity): boolean {
+  return PUBLIC_DUPLICATE_YEARLY_PRICE_ID_ALLOWED_ENTITIES.has(entity);
+}
+
 export function assertPublicBillingEntityAlignment(): void {
   const publicEntity = resolveConfiguredPublicBillingEntity();
   const defaultEntity = resolveConfiguredDefaultBillingEntity();
@@ -321,7 +326,7 @@ export function getPublicBillingCheckoutConfig(): PublicBillingCheckoutConfig {
     );
   }
 
-  if (standardYear === familyYear) {
+  if (standardYear === familyYear && !canShareSelfServeYearlyPriceIds(entity)) {
     throw new Error(
       'Public self-serve Paddle price ids must be distinct for the resolved billing entity.'
     );
