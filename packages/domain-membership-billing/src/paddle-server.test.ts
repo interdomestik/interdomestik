@@ -166,7 +166,7 @@ describe('paddle-server billing entity mapping', () => {
     );
   });
 
-  it('rejects duplicate self-serve public price ids in production-like mode', () => {
+  it('allows duplicate self-serve public price ids for the KS pilot entity', () => {
     setEnv('VERCEL_ENV', 'production');
     setEnv('PADDLE_DEFAULT_BILLING_ENTITY', 'ks');
     setEnv('NEXT_PUBLIC_PADDLE_BILLING_ENTITY', 'ks');
@@ -174,6 +174,25 @@ describe('paddle-server billing entity mapping', () => {
     setEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_KS', 'test_client_token_ks');
     setEnv('NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR_KS', 'pri_duplicate');
     setEnv('NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR_KS', 'pri_duplicate');
+
+    expect(getPublicBillingCheckoutConfig()).toEqual(
+      expect.objectContaining({
+        priceIds: expect.objectContaining({
+          standardYear: 'pri_duplicate',
+          familyYear: 'pri_duplicate',
+        }),
+      })
+    );
+  });
+
+  it('rejects duplicate self-serve public price ids for non-pilot entities', () => {
+    setEnv('VERCEL_ENV', 'production');
+    setEnv('PADDLE_DEFAULT_BILLING_ENTITY', 'mk');
+    setEnv('NEXT_PUBLIC_PADDLE_BILLING_ENTITY', 'mk');
+    setEnv('NEXT_PUBLIC_PADDLE_ENV', 'sandbox');
+    setEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_MK', 'test_client_token_mk');
+    setEnv('NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR_MK', 'pri_duplicate');
+    setEnv('NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR_MK', 'pri_duplicate');
 
     expect(() => getPublicBillingCheckoutConfig()).toThrow(
       'Public self-serve Paddle price ids must be distinct for the resolved billing entity.'
