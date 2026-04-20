@@ -3,7 +3,7 @@ approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
 run_with_default_db_url_script = "scripts/run-with-default-db-url.mjs"
-evidence_root = "/tmp/pilot-evidence"
+evidence_root = "/tmp/interdomestik-pilot-evidence"
 
 [mcp_servers.openai_docs]
 url = "https://developers.openai.com/mcp"
@@ -18,9 +18,9 @@ args = [
   "-y",
   "@playwright/mcp",
   "--user-data-dir",
-  "/tmp/pilot-evidence/playwright-mcp-profile",
+  "/tmp/interdomestik-pilot-evidence/playwright-mcp-profile",
   "--output-dir",
-  "/tmp/pilot-evidence/playwright-mcp-output",
+  "/tmp/interdomestik-pilot-evidence/playwright-mcp-output",
 ]
 
 [mcp_servers.interdomestik_qa]
