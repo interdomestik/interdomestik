@@ -54,7 +54,6 @@ vi.mock('@interdomestik/domain-membership-billing', () => ({
     graceExpired: 0,
     scheduledCancel: 1,
     canceled: 1,
-    paused: 0,
     none: 0,
     accessActive: 4,
   })),

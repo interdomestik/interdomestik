@@ -8,6 +8,7 @@ import {
 import {
   getMembershipLifecycleBucket,
   type MembershipLifecycleBucket,
+  type MembershipLifecycleInput,
 } from '@interdomestik/domain-membership-billing';
 import { and, count, desc, eq } from 'drizzle-orm';
 
@@ -43,7 +44,7 @@ export function computeAdminUserClaimCounts(
 }
 
 export function getAdminUserMembershipStatus(
-  subscription: SubscriptionLifecycleInput,
+  subscription: MembershipLifecycleInput,
   now?: Date
 ): AdminUserMembershipStatus {
   return getMembershipLifecycleBucket({ subscription, now });
@@ -136,15 +137,6 @@ export async function getAdminUserProfileCore(args: {
 type MemberWithAgent = NonNullable<Awaited<ReturnType<typeof getMemberWithAgent>>>;
 
 type SubscriptionRow = NonNullable<Awaited<ReturnType<typeof db.query.subscriptions.findFirst>>>;
-
-type SubscriptionLifecycleInput =
-  | {
-      status?: string | null;
-      cancelAtPeriodEnd?: boolean | null;
-      gracePeriodEndsAt?: Date | null;
-    }
-  | null
-  | undefined;
 
 type PreferencesRow = NonNullable<
   Awaited<ReturnType<typeof db.query.userNotificationPreferences.findFirst>>

@@ -21,7 +21,7 @@ export async function fetchKpis(tenantId: string) {
     .from(user)
     .where(and(eq(user.tenantId, tenantId), eq(user.role, 'agent')));
 
-  // 3. Member Count (users with role='user' or 'member')
+  // 3. Member Count (access-active subscriptions)
   const lifecycleCounts = await getTenantMembershipLifecycleCounts({ tenantId });
 
   // 4. Open Claims

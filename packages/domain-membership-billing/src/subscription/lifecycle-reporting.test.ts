@@ -8,14 +8,20 @@ const hoisted = vi.hoisted(() => ({
     cancelAtPeriodEnd: 'subscriptions.cancel_at_period_end',
     gracePeriodEndsAt: 'subscriptions.grace_period_ends_at',
   },
-  rows: [] as Array<{
-    status: string | null;
-    cancelAtPeriodEnd: boolean | null;
-    gracePeriodEndsAt: Date | null;
+  aggregateRows: [] as Array<{
+    total: number;
+    active: number;
+    trialing: number;
+    activeInGrace: number;
+    graceExpired: number;
+    scheduledCancel: number;
+    canceled: number;
+    accessActive: number;
   }>,
   where: vi.fn(),
   from: vi.fn(),
   select: vi.fn(),
+  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -23,6 +29,7 @@ vi.mock('@interdomestik/database', () => ({
     select: hoisted.select,
   },
   eq: hoisted.eq,
+  sql: hoisted.sql,
   subscriptions: hoisted.subscriptions,
 }));
 
@@ -36,8 +43,8 @@ import {
 describe('membership lifecycle reporting', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    hoisted.rows.length = 0;
-    hoisted.where.mockResolvedValue(hoisted.rows);
+    hoisted.aggregateRows.length = 0;
+    hoisted.where.mockResolvedValue(hoisted.aggregateRows);
     hoisted.from.mockReturnValue({ where: hoisted.where });
     hoisted.select.mockReturnValue({ from: hoisted.from });
   });
@@ -112,11 +119,17 @@ describe('membership lifecycle reporting', () => {
     });
   });
 
-  it('loads tenant subscriptions through the shared reporting query', async () => {
-    hoisted.rows.push(
-      { status: 'active', cancelAtPeriodEnd: false, gracePeriodEndsAt: null },
-      { status: 'past_due', cancelAtPeriodEnd: false, gracePeriodEndsAt: null }
-    );
+  it('loads tenant lifecycle counts through an aggregate reporting query', async () => {
+    hoisted.aggregateRows.push({
+      total: 2,
+      active: 1,
+      trialing: 0,
+      activeInGrace: 0,
+      graceExpired: 1,
+      scheduledCancel: 0,
+      canceled: 0,
+      accessActive: 1,
+    });
 
     const counts = await getTenantMembershipLifecycleCounts({
       tenantId: 'tenant_ks',
@@ -124,6 +137,13 @@ describe('membership lifecycle reporting', () => {
     });
 
     expect(hoisted.eq).toHaveBeenCalledWith('subscriptions.tenant_id', 'tenant_ks');
+    expect(hoisted.select).toHaveBeenCalledWith(
+      expect.objectContaining({
+        activeInGrace: expect.anything(),
+        scheduledCancel: expect.anything(),
+        accessActive: expect.anything(),
+      })
+    );
     expect(counts.accessActive).toBe(1);
     expect(counts.graceExpired).toBe(1);
   });

@@ -1,4 +1,4 @@
-import { db, eq, subscriptions } from '@interdomestik/database';
+import { db, eq, sql, subscriptions } from '@interdomestik/database';
 
 export type MembershipLifecycleStatus =
   | 'active'
@@ -130,14 +130,30 @@ export async function getTenantMembershipLifecycleCounts(args: {
   tenantId: string;
   now?: Date;
 }): Promise<MembershipLifecycleCounts> {
-  const rows = await db
+  const now = args.now ?? new Date();
+  const [row] = await db
     .select({
-      status: subscriptions.status,
-      cancelAtPeriodEnd: subscriptions.cancelAtPeriodEnd,
-      gracePeriodEndsAt: subscriptions.gracePeriodEndsAt,
+      total: sql<number>`COUNT(*)::int`,
+      active: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} = 'active' AND COALESCE(${subscriptions.cancelAtPeriodEnd}, false) = false THEN 1 ELSE 0 END), 0)::int`,
+      trialing: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} = 'trialing' AND COALESCE(${subscriptions.cancelAtPeriodEnd}, false) = false THEN 1 ELSE 0 END), 0)::int`,
+      activeInGrace: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} = 'past_due' AND ${subscriptions.gracePeriodEndsAt} IS NOT NULL AND ${subscriptions.gracePeriodEndsAt} > ${now} THEN 1 ELSE 0 END), 0)::int`,
+      graceExpired: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} = 'past_due' AND (${subscriptions.gracePeriodEndsAt} IS NULL OR ${subscriptions.gracePeriodEndsAt} <= ${now}) THEN 1 ELSE 0 END), 0)::int`,
+      scheduledCancel: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} IN ('active', 'trialing') AND COALESCE(${subscriptions.cancelAtPeriodEnd}, false) = true THEN 1 ELSE 0 END), 0)::int`,
+      canceled: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} IN ('canceled', 'paused', 'expired') THEN 1 ELSE 0 END), 0)::int`,
+      accessActive: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} IN ('active', 'trialing') OR (${subscriptions.status} = 'past_due' AND ${subscriptions.gracePeriodEndsAt} IS NOT NULL AND ${subscriptions.gracePeriodEndsAt} > ${now}) THEN 1 ELSE 0 END), 0)::int`,
     })
     .from(subscriptions)
     .where(eq(subscriptions.tenantId, args.tenantId));
 
-  return summarizeMembershipLifecycle(rows, args.now);
+  return {
+    total: Number(row?.total ?? 0),
+    active: Number(row?.active ?? 0),
+    trialing: Number(row?.trialing ?? 0),
+    activeInGrace: Number(row?.activeInGrace ?? 0),
+    graceExpired: Number(row?.graceExpired ?? 0),
+    scheduledCancel: Number(row?.scheduledCancel ?? 0),
+    canceled: Number(row?.canceled ?? 0),
+    none: 0,
+    accessActive: Number(row?.accessActive ?? 0),
+  };
 }

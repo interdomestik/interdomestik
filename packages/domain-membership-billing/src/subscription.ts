@@ -7,10 +7,11 @@ import {
 
 /**
  * Checks if a user has an active membership that grants access to benefits.
- * Allowed statuses:
- * - 'active'
- * - 'trialing'
- * - 'past_due' (ONLY if still within grace period)
+ * Access-active lifecycle buckets:
+ * - active
+ * - trialing
+ * - active_in_grace
+ * - scheduled_cancel
  *
  * @param userId - The user ID to check
  * @param tenantId - Required tenant ID for multi-tenant isolation
