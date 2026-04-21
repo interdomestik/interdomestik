@@ -13,6 +13,10 @@ import { computeHealthScore, computeSeverity } from '@/features/admin/branches/u
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
 import { db } from '@interdomestik/database/db';
 import { claims, user } from '@interdomestik/database/schema';
+import {
+  guardBranchStatsScope,
+  type ControlResult,
+} from '@interdomestik/domain-membership-billing';
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
 
 /**
@@ -47,8 +51,14 @@ export async function getBranchById(
 export async function getBranchStats(
   branchId: string,
   tenantId: string,
-  isActive: boolean
-): Promise<BranchStats> {
+  isActive: boolean,
+  branchTenantId?: string | null
+): Promise<ControlResult<BranchStats>> {
+  const scopeGuard = guardBranchStatsScope({ branchId, tenantId, branchTenantId });
+  if (!scopeGuard.ok) {
+    return scopeGuard;
+  }
+
   const [agentCount, memberCount, openClaimsCount, cashPendingCount, slaBreachesCount] =
     await Promise.all([
       // Count agents in branch
@@ -100,15 +110,18 @@ export async function getBranchStats(
   };
 
   return {
-    ...stats,
-    healthScore: computeHealthScore({
+    ok: true,
+    value: {
       ...stats,
-      isActive,
-    }),
-    severity: computeSeverity({
-      ...stats,
-      isActive,
-    }),
+      healthScore: computeHealthScore({
+        ...stats,
+        isActive,
+      }),
+      severity: computeSeverity({
+        ...stats,
+        isActive,
+      }),
+    },
   };
 }
 

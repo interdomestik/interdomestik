@@ -47,7 +47,9 @@
       "commissions": {
         "title": "Сите провизии",
         "empty": "Сè уште нема провизии",
-        "unknown_member": "Непознат член"
+        "unknown_member": "Непознат член",
+        "bulk_approve": "Групно одобри",
+        "action_failed": "Дејството за провизија не успеа"
       },
       "statuses": {
         "pending": "На чекање",
@@ -57,6 +59,10 @@
         "void": "Поништено"
       },
       "commission_types": {
+        "new_membership": "ново членство",
+        "renewal": "обновување",
+        "upgrade": "надградба",
+        "b2b": "бизнис членство",
         "signup_bonus": "бонус за регистрација",
         "membership_sale": "продажба на членство",
         "referral_bonus": "бонус за препорака",

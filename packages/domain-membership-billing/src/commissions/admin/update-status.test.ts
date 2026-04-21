@@ -1,5 +1,6 @@
 import { db } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { preflightCommissionPayability } from './payability';
 import { updateCommissionStatusCore } from './update-status';
 
 // Mock dependencies
@@ -33,6 +34,20 @@ vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: vi.fn(() => 'tenant-1'),
 }));
 
+vi.mock('./payability', () => ({
+  preflightCommissionPayability: vi.fn(() =>
+    Promise.resolve({
+      ok: true,
+      value: [
+        {
+          id: 'c1',
+          status: 'pending',
+        },
+      ],
+    })
+  ),
+}));
+
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
   and: vi.fn(),
@@ -41,6 +56,21 @@ vi.mock('drizzle-orm', () => ({
 describe('updateCommissionStatusCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(preflightCommissionPayability).mockResolvedValue({
+      ok: true,
+      value: [
+        {
+          id: 'c1',
+          status: 'pending',
+          memberId: 'member-1',
+          subscriptionStatus: 'active',
+          subscriptionAgentId: 'agent-1',
+          userAgentId: 'agent-1',
+          cancelAtPeriodEnd: false,
+          gracePeriodEndsAt: null,
+        },
+      ],
+    });
   });
 
   const mockAdminSession = {
@@ -106,5 +136,36 @@ describe('updateCommissionStatusCore', () => {
 
     expect(result.success).toBe(true);
     expect(db.update).toHaveBeenCalled();
+  });
+
+  it('blocks payable transitions when enterprise controls return a violation', async () => {
+    vi.mocked(preflightCommissionPayability).mockResolvedValueOnce({
+      ok: false,
+      violation: {
+        control: 'finance',
+        code: 'FINANCE_PAYABILITY_BLOCKED',
+        detail: 'Commission is not payable under enterprise controls: c1',
+        recoverable: false,
+        entityIds: ['c1'],
+      },
+    });
+
+    (db.select as any).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockReturnValue([{ id: 'c1', agentId: 'agent-1', status: 'pending' }]),
+        }),
+      }),
+    });
+
+    const result = await updateCommissionStatusCore({
+      session: mockAdminSession as any,
+      commissionId: 'c1',
+      newStatus: 'approved',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.violation?.entityIds).toEqual(['c1']);
+    expect(db.update).not.toHaveBeenCalled();
   });
 });

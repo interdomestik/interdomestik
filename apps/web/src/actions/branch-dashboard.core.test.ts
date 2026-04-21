@@ -128,11 +128,31 @@ describe('Branch Dashboard Core', () => {
       const { getBranchStats } = await import('./branch-dashboard.core');
       const result = await getBranchStats('branch-1', 'tenant-1', true);
 
-      expect(result.totalAgents).toBe(0);
-      expect(result.totalMembers).toBe(0);
-      expect(result.openClaims).toBe(0);
-      expect(result.cashPending).toBe(0);
-      expect(result.slaBreaches).toBe(0);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.totalAgents).toBe(0);
+        expect(result.value.totalMembers).toBe(0);
+        expect(result.value.openClaims).toBe(0);
+        expect(result.value.cashPending).toBe(0);
+        expect(result.value.slaBreaches).toBe(0);
+      }
+    });
+
+    it('returns a branch control violation before aggregate reads when branchId is missing', async () => {
+      const mockSelect = vi.fn();
+      mockDb.select = mockSelect;
+
+      const { getBranchStats } = await import('./branch-dashboard.core');
+      const result = await getBranchStats('', 'tenant-1', true);
+
+      expect(result).toEqual({
+        ok: false,
+        violation: expect.objectContaining({
+          control: 'branch',
+          code: 'BRANCH_ID_MISSING',
+        }),
+      });
+      expect(mockSelect).not.toHaveBeenCalled();
     });
   });
 

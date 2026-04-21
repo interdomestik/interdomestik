@@ -29,6 +29,7 @@
     "./commissions/create": "./src/commissions/create.ts",
     "./commissions/get-my": "./src/commissions/get-my.ts",
     "./commissions/summary": "./src/commissions/summary.ts",
+    "./enterprise-controls": "./src/enterprise-controls.ts",
     "./commissions/admin/access": "./src/commissions/admin/access.ts",
     "./commissions/admin/get-all": "./src/commissions/admin/get-all.ts",
     "./commissions/admin/update-status": "./src/commissions/admin/update-status.ts",

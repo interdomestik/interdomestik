@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { ControlViolation } from '../enterprise-controls';
 
 export const commissionStatusSchema = z.enum(['pending', 'approved', 'paid', 'void']);
 export const commissionTypeSchema = z.enum(['new_membership', 'renewal', 'upgrade', 'b2b']);
@@ -37,6 +38,7 @@ export interface ActionResult<T = void> {
   success: boolean;
   data?: T;
   error?: string;
+  violation?: ControlViolation;
 }
 
 export type CommissionSession = {

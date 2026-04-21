@@ -47,7 +47,9 @@
       "commissions": {
         "title": "Të gjitha komisionet",
         "empty": "Ende nuk ka komisione",
-        "unknown_member": "Anëtar i panjohur"
+        "unknown_member": "Anëtar i panjohur",
+        "bulk_approve": "Mirato në grup",
+        "action_failed": "Veprimi i komisionit dështoi"
       },
       "statuses": {
         "pending": "Në pritje",
@@ -57,6 +59,10 @@
         "void": "Anuluar"
       },
       "commission_types": {
+        "new_membership": "anëtarësim i ri",
+        "renewal": "rinovim",
+        "upgrade": "përmirësim",
+        "b2b": "anëtarësim biznesi",
         "signup_bonus": "bonus regjistrimi",
         "membership_sale": "shitje anëtarësimi",
         "referral_bonus": "bonus referimi",

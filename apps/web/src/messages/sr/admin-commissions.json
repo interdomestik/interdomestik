@@ -47,7 +47,9 @@
       "commissions": {
         "title": "Sve provizije",
         "empty": "Još nema provizija",
-        "unknown_member": "Nepoznat član"
+        "unknown_member": "Nepoznat član",
+        "bulk_approve": "Grupno odobri",
+        "action_failed": "Radnja provizije nije uspela"
       },
       "statuses": {
         "pending": "Na čekanju",
@@ -57,6 +59,10 @@
         "void": "Poništeno"
       },
       "commission_types": {
+        "new_membership": "novo članstvo",
+        "renewal": "obnova",
+        "upgrade": "nadogradnja",
+        "b2b": "poslovno članstvo",
         "signup_bonus": "bonus za registraciju",
         "membership_sale": "prodaja članstva",
         "referral_bonus": "bonus za preporuku",
