@@ -8,10 +8,11 @@
  */
 
 import type { BranchAgentRow, BranchMetadata, BranchStats } from '@/actions/branch-dashboard.types';
+import { getBranchCashPendingCount } from '@/features/admin/branches/server/branch-cash-metrics';
 import { computeHealthScore, computeSeverity } from '@/features/admin/branches/utils/branch-risk';
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
 import { db } from '@interdomestik/database/db';
-import { claims, leadPaymentAttempts, memberLeads, user } from '@interdomestik/database/schema';
+import { claims, user } from '@interdomestik/database/schema';
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
 
 /**
@@ -78,19 +79,8 @@ export async function getBranchStats(
           and(eq(claims.branchId, branchId), eq(claims.tenantId, tenantId), getOpenClaimsFilter())
         ),
 
-      // Cash Pending: lead payments waiting verification in this branch
-      db
-        .select({ count: count() })
-        .from(leadPaymentAttempts)
-        .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
-        .where(
-          and(
-            eq(leadPaymentAttempts.tenantId, tenantId),
-            eq(leadPaymentAttempts.method, 'cash'),
-            eq(leadPaymentAttempts.status, 'pending'),
-            eq(memberLeads.branchId, branchId)
-          )
-        ),
+      // Cash Pending: unresolved cash verification load in this branch.
+      getBranchCashPendingCount({ tenantId, branchId }),
 
       // SLA Breaches: submitted > 30 days (Shared Definition)
       db
@@ -105,7 +95,7 @@ export async function getBranchStats(
     totalAgents: agentCount[0]?.count ?? 0,
     totalMembers: memberCount[0]?.count ?? 0,
     openClaims: openClaimsCount[0]?.count ?? 0,
-    cashPending: cashPendingCount[0]?.count ?? 0,
+    cashPending: cashPendingCount,
     slaBreaches: slaBreachesCount[0]?.count ?? 0,
   };
 

@@ -1,18 +1,12 @@
 import { getActionContext } from '@/actions/admin-users/context';
+import {
+  getBranchCashPendingByAgent,
+  getBranchCashPendingCount,
+} from '@/features/admin/branches/server/branch-cash-metrics';
 import { HealthProfile, computeHealthScore } from '@/features/admin/health/health-model';
-import {
-  getCashPendingFilter,
-  getOpenClaimsFilter,
-  getSlaBreachesFilter,
-} from '@/features/admin/kpis/kpi-definitions';
+import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
 import { db } from '@interdomestik/database/db';
-import {
-  branches,
-  claims,
-  leadPaymentAttempts,
-  memberLeads,
-  user,
-} from '@interdomestik/database/schema';
+import { branches, claims, user } from '@interdomestik/database/schema';
 import { ROLES, scopeFilter } from '@interdomestik/shared-auth';
 import * as Sentry from '@sentry/nextjs';
 import { and, count, eq, inArray, or } from 'drizzle-orm';
@@ -128,18 +122,8 @@ export async function getBranchDashboardV2Data(
               )
             ),
 
-          // 2. KPI: Cash Pending
-          db
-            .select({ count: count() })
-            .from(leadPaymentAttempts)
-            .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
-            .where(
-              and(
-                eq(leadPaymentAttempts.tenantId, tenantId),
-                getCashPendingFilter(),
-                eq(memberLeads.branchId, resolvedBranchId)
-              )
-            ),
+          // 2. KPI: unresolved cash verification load for this branch.
+          getBranchCashPendingCount({ tenantId, branchId: resolvedBranchId }),
 
           // 3. KPI: SLA Breaches
           db
@@ -202,7 +186,7 @@ export async function getBranchDashboardV2Data(
         // Compute Branch Health
         const kpis = {
           openClaims: openClaimsCount[0]?.count ?? 0,
-          cashPending: cashPendingCount[0]?.count ?? 0,
+          cashPending: cashPendingCount,
           slaBreaches: slaBreachesCount[0]?.count ?? 0,
           isActive: branchResult.isActive,
           totalAgents: totalAgentsCount[0]?.count ?? 0,
@@ -257,10 +241,13 @@ export async function getBranchDashboardV2Data(
 // Helper: Agent Metrics derivation
 async function getAgentMetrics(branchId: string, tenantId: string) {
   // 1. Get agents in branch
-  const agents = await db.query.user.findMany({
-    where: and(eq(user.branchId, branchId), eq(user.tenantId, tenantId), eq(user.role, 'agent')),
-    columns: { id: true, name: true },
-  });
+  const [agents, cashPendingByAgent] = await Promise.all([
+    db.query.user.findMany({
+      where: and(eq(user.branchId, branchId), eq(user.tenantId, tenantId), eq(user.role, 'agent')),
+      columns: { id: true, name: true },
+    }),
+    getBranchCashPendingByAgent({ tenantId, branchId }),
+  ]);
 
   if (agents.length === 0) return [];
 
@@ -271,7 +258,7 @@ async function getAgentMetrics(branchId: string, tenantId: string) {
 
   return Promise.all(
     agents.map(async agent => {
-      const [openClaims, cashPendingItems, slaBreaches] = await Promise.all([
+      const [openClaims, slaBreaches] = await Promise.all([
         // Open Claims linked to agent (via claim.agentId)
         db
           .select({ count: count() })
@@ -279,21 +266,6 @@ async function getAgentMetrics(branchId: string, tenantId: string) {
           .where(
             and(eq(claims.agentId, agent.id), eq(claims.tenantId, tenantId), getOpenClaimsFilter())
           ),
-
-        // Cash Pending linked to agent (no direct link on payment, via led -> member -> agent or lead -> agent)
-        // Using leadPaymentAttempts -> memberLeads -> agent_id check?
-        // Currently memberLeads doesn't store agent_id directly usually, but let's check schema.
-        // Actually, usually leads are assigned. Let's assume memberLeads has agent_id if defined,
-        // OR we link via user (agentClients).
-        // To keep it simple and consistent with "kpi-definitions":
-        // "cashPending = count of leadPaymentAttempts pending cash for leads in this branch created by this agent"
-        // Schema check: memberLeads has 'creator_id' or similar? Or we join `user` (agent)?
-        // The prompt says "leads with agentId where branchId == current branch".
-        // Does `memberLeads` have `agentId`? If not, valid derivation is hard.
-        // Let's assume 0 for now if column missing, BUT `getBranchAgents` used subquery on `claims`.
-        // `activeClaimCount` in `getBranchAgents` was `WHERE claims.agent_id = ${user.id}`.
-
-        Promise.resolve([{ count: 0 }]), // Placeholder for cash (optimization)
 
         // SLA Breaches linked to agent
         db
@@ -308,7 +280,7 @@ async function getAgentMetrics(branchId: string, tenantId: string) {
         id: agent.id,
         name: agent.name,
         openClaims: openClaims[0]?.count ?? 0,
-        cashPending: cashPendingItems[0]?.count ?? 0,
+        cashPending: cashPendingByAgent.get(agent.id) ?? 0,
         slaBreaches: slaBreaches[0]?.count ?? 0,
       };
     })

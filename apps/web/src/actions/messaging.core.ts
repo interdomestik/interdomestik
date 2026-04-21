@@ -30,6 +30,12 @@ export type ActionResult<T = void> = {
   data?: T;
 };
 
+type GetMessagesResult = {
+  success: boolean;
+  messages?: MessageWithSender[];
+  error?: string;
+};
+
 function toMessageData(message: MessageWithSender, currentUserId: string): MessageData {
   return {
     id: message.id,
@@ -49,7 +55,7 @@ function toMessageData(message: MessageWithSender, currentUserId: string): Messa
  */
 export async function getClaimMessages(claimId: string): Promise<ActionResult<MessageData[]>> {
   const { session } = await getActionContext();
-  const result = await getMessagesForClaimCore({ session, claimId });
+  const result: GetMessagesResult = await getMessagesForClaimCore({ session, claimId });
 
   if (!result.success) {
     return { success: false, error: result.error };
