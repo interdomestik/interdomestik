@@ -131,16 +131,17 @@ export async function getTenantMembershipLifecycleCounts(args: {
   now?: Date;
 }): Promise<MembershipLifecycleCounts> {
   const now = args.now ?? new Date();
+  const nowTimestamp = now.toISOString();
   const [row] = await db
     .select({
       total: sql<number>`COUNT(*)::int`,
       active: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} = 'active' AND COALESCE(${subscriptions.cancelAtPeriodEnd}, false) = false THEN 1 ELSE 0 END), 0)::int`,
       trialing: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} = 'trialing' AND COALESCE(${subscriptions.cancelAtPeriodEnd}, false) = false THEN 1 ELSE 0 END), 0)::int`,
-      activeInGrace: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} = 'past_due' AND ${subscriptions.gracePeriodEndsAt} IS NOT NULL AND ${subscriptions.gracePeriodEndsAt} > ${now} THEN 1 ELSE 0 END), 0)::int`,
-      graceExpired: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} = 'past_due' AND (${subscriptions.gracePeriodEndsAt} IS NULL OR ${subscriptions.gracePeriodEndsAt} <= ${now}) THEN 1 ELSE 0 END), 0)::int`,
+      activeInGrace: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} = 'past_due' AND ${subscriptions.gracePeriodEndsAt} IS NOT NULL AND ${subscriptions.gracePeriodEndsAt} > ${nowTimestamp}::timestamp THEN 1 ELSE 0 END), 0)::int`,
+      graceExpired: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} = 'past_due' AND (${subscriptions.gracePeriodEndsAt} IS NULL OR ${subscriptions.gracePeriodEndsAt} <= ${nowTimestamp}::timestamp) THEN 1 ELSE 0 END), 0)::int`,
       scheduledCancel: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} IN ('active', 'trialing') AND COALESCE(${subscriptions.cancelAtPeriodEnd}, false) = true THEN 1 ELSE 0 END), 0)::int`,
       canceled: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} IN ('canceled', 'paused', 'expired') THEN 1 ELSE 0 END), 0)::int`,
-      accessActive: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} IN ('active', 'trialing') OR (${subscriptions.status} = 'past_due' AND ${subscriptions.gracePeriodEndsAt} IS NOT NULL AND ${subscriptions.gracePeriodEndsAt} > ${now}) THEN 1 ELSE 0 END), 0)::int`,
+      accessActive: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} IN ('active', 'trialing') OR (${subscriptions.status} = 'past_due' AND ${subscriptions.gracePeriodEndsAt} IS NOT NULL AND ${subscriptions.gracePeriodEndsAt} > ${nowTimestamp}::timestamp) THEN 1 ELSE 0 END), 0)::int`,
     })
     .from(subscriptions)
     .where(eq(subscriptions.tenantId, args.tenantId));
