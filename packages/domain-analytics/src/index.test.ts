@@ -49,6 +49,7 @@ vi.mock('@interdomestik/database/schema', () => ({
     agentId: 'agent_commissions.agent_id',
     amount: 'agent_commissions.amount',
     status: 'agent_commissions.status',
+    tenantId: 'agent_commissions.tenant_id',
   },
   branches: {
     tenantId: 'branches.tenant_id',
@@ -145,6 +146,7 @@ describe('domain analytics', () => {
       claimsPending: 7,
       totalCommissionPaid: 1234.5,
     });
+    expect(mocks.eq).toHaveBeenCalledWith('agent_commissions.tenant_id', 'tenant-1');
   });
 
   it('aggregates global super-admin KPIs across tenants, branches, users, and claims', async () => {

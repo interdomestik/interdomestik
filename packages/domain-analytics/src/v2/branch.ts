@@ -38,7 +38,14 @@ export async function getBranchKPIs(tenantId: string, branchId: string): Promise
       .select({ total: sum(agentCommissions.amount) })
       .from(agentCommissions)
       .innerJoin(user, eq(agentCommissions.agentId, user.id))
-      .where(and(eq(user.branchId, branchId), eq(agentCommissions.status, 'paid'))),
+      .where(
+        and(
+          eq(agentCommissions.tenantId, tenantId),
+          eq(user.tenantId, tenantId),
+          eq(user.branchId, branchId),
+          eq(agentCommissions.status, 'paid')
+        )
+      ),
   ]);
 
   return {

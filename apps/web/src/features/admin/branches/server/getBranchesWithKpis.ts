@@ -1,16 +1,13 @@
 'use server';
 
-import {
-  getCashPendingFilter,
-  getOpenClaimsFilter,
-  getSlaBreachesFilter,
-} from '@/features/admin/kpis/kpi-definitions';
+import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
 import { runAuthenticatedAction, type ActionResult } from '@/lib/safe-action';
 import { db } from '@interdomestik/database/db';
-import { branches, claims, leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
+import { branches, claims } from '@interdomestik/database/schema';
 import { ROLES } from '@interdomestik/shared-auth';
 import * as Sentry from '@sentry/nextjs';
 import { and, count, eq } from 'drizzle-orm';
+import { getBranchCashPendingByBranch } from './branch-cash-metrics';
 
 export interface BranchWithKpis {
   id: string;
@@ -87,22 +84,12 @@ export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
           .where(and(eq(claims.tenantId, tenantId), getSlaBreachesFilter()))
           .groupBy(claims.branchId);
 
-        // 5. Aggregate Cash Pending by Branch
-        const cashPendingRaw = await db
-          .select({
-            branchId: memberLeads.branchId,
-            count: count(),
-          })
-          .from(leadPaymentAttempts)
-          .leftJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
-          .where(and(eq(leadPaymentAttempts.tenantId, tenantId), getCashPendingFilter()))
-          .groupBy(memberLeads.branchId);
+        // 5. Aggregate unresolved cash verification load by branch
+        const cashPendingMap = await getBranchCashPendingByBranch(tenantId);
 
         // 6. Merge Metrics
         const openClaimsMap = new Map(openClaimsRaw.map(r => [r.branchId, r.count]));
         const slaBreachesMap = new Map(slaBreachesRaw.map(r => [r.branchId, r.count]));
-        const cashPendingMap = new Map(cashPendingRaw.map(r => [r.branchId, r.count]));
-
         return tenantBranches.map(branch => ({
           ...branch,
           kpis: {

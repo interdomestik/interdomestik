@@ -52,6 +52,7 @@ vi.mock('@interdomestik/database/schema', () => ({
   memberLeads: {
     id: 'memberLeads.id',
     branchId: 'memberLeads.branchId',
+    tenantId: 'memberLeads.tenantId',
   },
 }));
 
