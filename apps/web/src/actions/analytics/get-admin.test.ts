@@ -45,6 +45,20 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
 }));
 
+vi.mock('@interdomestik/domain-membership-billing', () => ({
+  getTenantMembershipLifecycleCounts: vi.fn(async () => ({
+    total: 5,
+    active: 1,
+    trialing: 1,
+    activeInGrace: 1,
+    graceExpired: 0,
+    scheduledCancel: 1,
+    canceled: 1,
+    none: 0,
+    accessActive: 4,
+  })),
+}));
+
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
   and: vi.fn(),
@@ -103,6 +117,11 @@ describe('actions/analytics getAdminAnalyticsCore', () => {
     });
 
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.totalMembers).toBe(5);
+      expect(result.data.activeMembers).toBe(4);
+      expect(result.data.churnRate).toBe(20);
+    }
     expect(eq).toHaveBeenCalledWith('subscriptions.planKey', 'membershipPlans.id');
     expect(eq).toHaveBeenCalledWith('subscriptions.tenantId', 'membershipPlans.tenantId');
     expect(and).toHaveBeenCalled();

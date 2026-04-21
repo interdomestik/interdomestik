@@ -5,6 +5,11 @@ import {
   userNotificationPreferences,
   user as userTable,
 } from '@interdomestik/database/schema';
+import {
+  getMembershipLifecycleBucket,
+  type MembershipLifecycleBucket,
+  type MembershipLifecycleInput,
+} from '@interdomestik/domain-membership-billing';
 import { and, count, desc, eq } from 'drizzle-orm';
 
 export type AdminUserClaimCounts = {
@@ -14,7 +19,7 @@ export type AdminUserClaimCounts = {
   rejected: number;
 };
 
-export type AdminUserMembershipStatus = 'active' | 'past_due' | 'paused' | 'canceled' | 'none';
+export type AdminUserMembershipStatus = MembershipLifecycleBucket;
 
 export function computeAdminUserClaimCounts(
   rows: Array<{ status: string | null; total: unknown }>
@@ -39,13 +44,10 @@ export function computeAdminUserClaimCounts(
 }
 
 export function getAdminUserMembershipStatus(
-  rawStatus: string | null | undefined
+  subscription: MembershipLifecycleInput,
+  now?: Date
 ): AdminUserMembershipStatus {
-  if (rawStatus === 'active') return 'active';
-  if (rawStatus === 'past_due') return 'past_due';
-  if (rawStatus === 'paused') return 'paused';
-  if (rawStatus === 'canceled') return 'canceled';
-  return 'none';
+  return getMembershipLifecycleBucket({ subscription, now });
 }
 
 export type AdminUserProfileOk = {
@@ -119,7 +121,7 @@ export async function getAdminUserProfileCore(args: {
   ]);
 
   const counts = computeAdminUserClaimCounts(claimCounts);
-  const membershipStatus = getAdminUserMembershipStatus(subscription?.status);
+  const membershipStatus = getAdminUserMembershipStatus(subscription);
 
   return {
     kind: 'ok',

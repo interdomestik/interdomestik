@@ -46,6 +46,65 @@ describe('MembershipInfoCard', () => {
     expect(screen.getByText('sections.membership')).toBeInTheDocument();
     expect(screen.getByText('Premium Plan')).toBeInTheDocument();
     expect(screen.getByText('status.active')).toBeInTheDocument();
+    expect(screen.getByTestId('membership-lifecycle-status')).toHaveTextContent('status.active');
+  });
+
+  it('renders grace-period lifecycle context for admin reporting', async () => {
+    const jsx = await MembershipInfoCard({
+      subscription: {
+        planId: 'Premium Plan',
+        currentPeriodEnd: new Date('2026-12-22T00:00:00.000Z'),
+        cancelAtPeriodEnd: false,
+        gracePeriodEndsAt: new Date('2026-04-23T00:00:00.000Z'),
+      },
+      membershipStatus: 'active_in_grace',
+      membershipBadgeClass: 'bg-amber',
+      isMembershipProfile: true,
+      role: 'member',
+      currentTenantId: 'tenant_ks',
+      canReassignTenant: false,
+      tenantOptions: [],
+      userId: 'user-1',
+      tenantClassificationPending: false,
+    });
+
+    render(jsx);
+
+    expect(screen.getByTestId('membership-lifecycle-status')).toHaveTextContent(
+      'status.active_in_grace'
+    );
+    expect(screen.getByTestId('membership-lifecycle-status-detail')).toHaveTextContent(
+      'status_context.active_in_grace'
+    );
+  });
+
+  it('renders scheduled-cancel lifecycle context for admin reporting', async () => {
+    const jsx = await MembershipInfoCard({
+      subscription: {
+        planId: 'Premium Plan',
+        currentPeriodEnd: new Date('2026-12-22T00:00:00.000Z'),
+        cancelAtPeriodEnd: true,
+        gracePeriodEndsAt: null,
+      },
+      membershipStatus: 'scheduled_cancel',
+      membershipBadgeClass: 'bg-blue',
+      isMembershipProfile: true,
+      role: 'member',
+      currentTenantId: 'tenant_ks',
+      canReassignTenant: false,
+      tenantOptions: [],
+      userId: 'user-1',
+      tenantClassificationPending: false,
+    });
+
+    render(jsx);
+
+    expect(screen.getByTestId('membership-lifecycle-status')).toHaveTextContent(
+      'status.scheduled_cancel'
+    );
+    expect(screen.getByTestId('membership-lifecycle-status-detail')).toHaveTextContent(
+      'status_context.scheduled_cancel'
+    );
   });
 
   it('renders empty state when no subscription', async () => {

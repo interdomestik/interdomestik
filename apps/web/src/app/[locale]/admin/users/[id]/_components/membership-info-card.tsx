@@ -22,6 +22,7 @@ export async function MembershipInfoCard({
     planId: string;
     currentPeriodEnd: Date | null;
     cancelAtPeriodEnd: boolean;
+    gracePeriodEndsAt?: Date | null;
   } | null;
   membershipStatus: string;
   membershipBadgeClass: string;
@@ -41,6 +42,17 @@ export async function MembershipInfoCard({
     cancellationStatus = subscription.cancelAtPeriodEnd ? tCommon('yes') : tCommon('no');
   }
 
+  const lifecycleDetail =
+    subscription && isMembershipProfile
+      ? getLifecycleDetail({
+          status: membershipStatus,
+          periodEnd: subscription.currentPeriodEnd,
+          gracePeriodEndsAt: subscription.gracePeriodEndsAt ?? null,
+          fallback: tCommon('none'),
+          formatMessage: (key, date) => t(`status_context.${key}`, { date }),
+        })
+      : null;
+
   return (
     <Card>
       <CardHeader>
@@ -53,9 +65,25 @@ export async function MembershipInfoCard({
           <span className="text-muted-foreground">
             {t(isMembershipProfile ? 'labels.status' : 'labels.account_type')}
           </span>
-          <Badge className={membershipBadgeClass} variant="outline">
-            {t(`status.${isMembershipProfile ? membershipStatus : 'operator'}`)}
-          </Badge>
+          <div className="flex flex-col items-end gap-1 text-right">
+            <Badge
+              className={membershipBadgeClass}
+              variant="outline"
+              data-testid="membership-lifecycle-status"
+              data-lifecycle-status={isMembershipProfile ? membershipStatus : 'operator'}
+              title={lifecycleDetail ?? undefined}
+            >
+              {t(`status.${isMembershipProfile ? membershipStatus : 'operator'}`)}
+            </Badge>
+            {lifecycleDetail ? (
+              <span
+                className="max-w-[12rem] text-xs text-muted-foreground"
+                data-testid="membership-lifecycle-status-detail"
+              >
+                {lifecycleDetail}
+              </span>
+            ) : null}
+          </div>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">
@@ -101,4 +129,22 @@ export async function MembershipInfoCard({
       </CardContent>
     </Card>
   );
+}
+
+function getLifecycleDetail(args: {
+  status: string;
+  periodEnd: Date | null;
+  gracePeriodEndsAt: Date | null;
+  fallback: string;
+  formatMessage: (key: 'active_in_grace' | 'scheduled_cancel', date: string) => string;
+}): string | null {
+  if (args.status === 'active_in_grace') {
+    return args.formatMessage('active_in_grace', formatDate(args.gracePeriodEndsAt, args.fallback));
+  }
+
+  if (args.status === 'scheduled_cancel') {
+    return args.formatMessage('scheduled_cancel', formatDate(args.periodEnd, args.fallback));
+  }
+
+  return null;
 }

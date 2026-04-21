@@ -25,6 +25,7 @@ export * from './success-fees/policy';
 export * from './subscription';
 export * from './subscription/cancel';
 export * from './subscription/get-payment-update-url';
+export * from './subscription/lifecycle-reporting';
 export type {
   SubscriptionSession,
   PaymentUpdateUrlResult,

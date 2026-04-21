@@ -138,12 +138,18 @@
       },
       "status": {
         "active": "Active",
-        "past_due": "Past due",
-        "paused": "Paused",
+        "active_in_grace": "Active in grace",
+        "grace_expired": "Grace expired",
+        "scheduled_cancel": "Scheduled to cancel",
+        "trialing": "Trialing",
         "canceled": "Canceled",
         "none": "Not subscribed",
         "registered": "Registered member",
         "operator": "Operational account"
+      },
+      "status_context": {
+        "active_in_grace": "Grace ends {date}",
+        "scheduled_cancel": "Access ends {date}"
       },
       "preferences": {
         "email_claims": "Email claim updates",
