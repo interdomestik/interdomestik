@@ -1,3 +1,4 @@
+import type { Page, TestInfo } from '@playwright/test';
 import { db, leadPaymentAttempts } from '@interdomestik/database';
 import { memberLeads } from '@interdomestik/database/schema/leads';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -45,7 +46,7 @@ async function resetWatchedAttempts() {
   await setAttemptStatus(RESOLVED_ATTEMPT_ID, 'pending');
 }
 
-async function watchStep(page: import('@playwright/test').Page, label: string) {
+async function watchStep(page: Page, label: string) {
   if (WATCH_DELAY_MS <= 0) return;
 
   console.log(`[PC04 Watch] ${label}`);
@@ -70,16 +71,54 @@ async function watchStep(page: import('@playwright/test').Page, label: string) {
   await page.waitForTimeout(WATCH_DELAY_MS);
 }
 
-async function expectBranchCashCard(
-  page: import('@playwright/test').Page,
-  branchCode: string,
-  expectedCount: number
-) {
+async function openBranchList(page: Page, testInfo: TestInfo, label: string) {
+  await watchStep(page, label);
+  await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'page-ready' });
+}
+
+async function openBranchDashboard(page: Page, testInfo: TestInfo, label: string) {
+  await watchStep(page, label);
+  await gotoApp(page, routes.adminBranchDetail(KS_BRANCH_A, testInfo), testInfo, {
+    marker: 'branch-dashboard-title',
+  });
+}
+
+async function expectBranchCashCard(page: Page, branchCode: string, expectedCount: number) {
   const branchCard = page.getByTestId(`branch-card-${branchCode}`);
   await expect(branchCard).toBeVisible();
   await expect(branchCard.getByLabel(/Pagesa cash në pritje|Cash Pending/i)).toContainText(
     String(expectedCount)
   );
+}
+
+async function expectOpenCashState({
+  branchId = KS_BRANCH_A,
+  count,
+  includes,
+  excludes,
+}: {
+  branchId?: string;
+  count: number;
+  includes?: string;
+  excludes?: string;
+}) {
+  const openCashAttempts = await listOpenCashForBranch(branchId);
+  const ids = openCashAttempts.map(row => row.id);
+
+  if (includes) expect(ids).toContain(includes);
+  if (excludes) expect(ids).not.toContain(excludes);
+  expect(openCashAttempts).toHaveLength(count);
+}
+
+async function expectDashboardAndAgentCash(page: Page, expectedCount: number) {
+  await expect(page.getByTestId('branch-dashboard-title')).toBeVisible();
+  await expect(page.locator('main')).toContainText(
+    new RegExp(`Pagesa cash në pritje[\\s\\S]*${expectedCount}`, 'i')
+  );
+
+  const agentRow = page.getByRole('row', { name: new RegExp(KS_AGENT_A1_NAME, 'i') });
+  await expect(agentRow).toBeVisible();
+  await expect(agentRow).toContainText(String(expectedCount));
 }
 
 test.describe('PC04 branch cash truth', () => {
@@ -94,13 +133,10 @@ test.describe('PC04 branch cash truth', () => {
 
     await resetWatchedAttempts();
 
-    const branchACashAttempts = await listOpenCashForBranch(KS_BRANCH_A);
-    const branchBCashAttempts = await listOpenCashForBranch(KS_BRANCH_B);
-    expect(branchACashAttempts).toHaveLength(3);
-    expect(branchBCashAttempts).toHaveLength(1);
+    await expectOpenCashState({ branchId: KS_BRANCH_A, count: 3 });
+    await expectOpenCashState({ branchId: KS_BRANCH_B, count: 1 });
 
-    await watchStep(page, 'Open admin branch list');
-    await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'page-ready' });
+    await openBranchList(page, testInfo, 'Open admin branch list');
 
     await watchStep(page, 'KS-A shows three pending cash attempts');
     await expectBranchCashCard(page, 'KS-A', 3);
@@ -117,29 +153,16 @@ test.describe('PC04 branch cash truth', () => {
     await setAttemptStatus(NEEDS_INFO_ATTEMPT_ID, 'needs_info');
 
     try {
-      const openCashAttempts = await listOpenCashForBranch();
-      expect(openCashAttempts.map(row => row.id)).toContain(NEEDS_INFO_ATTEMPT_ID);
-      expect(openCashAttempts).toHaveLength(3);
+      await expectOpenCashState({ count: 3, includes: NEEDS_INFO_ATTEMPT_ID });
 
-      await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'page-ready' });
+      await openBranchList(page, testInfo, 'Open admin branch list with needs_info attempt');
+      await expectBranchCashCard(page, 'KS-A', 3);
 
-      const branchCard = page.getByTestId('branch-card-KS-A');
-      await expect(branchCard).toBeVisible();
-      await expect(branchCard.getByLabel(/Pagesa cash në pritje|Cash Pending/i)).toContainText('3');
-
-      await watchStep(page, 'Open KS-A branch dashboard');
-      await gotoApp(page, routes.adminBranchDetail(KS_BRANCH_A, testInfo), testInfo, {
-        marker: 'branch-dashboard-title',
-      });
+      await openBranchDashboard(page, testInfo, 'Open KS-A branch dashboard');
 
       await watchStep(page, 'Dashboard KPI includes pending plus needs_info attempts');
-      await expect(page.getByTestId('branch-dashboard-title')).toBeVisible();
-      await expect(page.locator('main')).toContainText(/Pagesa cash në pritje[\s\S]*3/i);
-
       await watchStep(page, 'Agent health row inherits the durable cash count');
-      const agentRow = page.getByRole('row', { name: new RegExp(KS_AGENT_A1_NAME, 'i') });
-      await expect(agentRow).toBeVisible();
-      await expect(agentRow).toContainText('3');
+      await expectDashboardAndAgentCash(page, 3);
     } finally {
       await resetWatchedAttempts();
     }
@@ -153,28 +176,21 @@ test.describe('PC04 branch cash truth', () => {
     await setAttemptStatus(RESOLVED_ATTEMPT_ID, 'succeeded');
 
     try {
-      const openCashAttempts = await listOpenCashForBranch();
-      expect(openCashAttempts.map(row => row.id)).not.toContain(RESOLVED_ATTEMPT_ID);
-      expect(openCashAttempts).toHaveLength(2);
+      await expectOpenCashState({ count: 2, excludes: RESOLVED_ATTEMPT_ID });
 
-      await watchStep(page, 'Open branch list after one cash attempt is resolved');
-      await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'page-ready' });
+      await openBranchList(page, testInfo, 'Open branch list after one cash attempt is resolved');
 
       await watchStep(page, 'KS-A cash pressure drops to two');
       await expectBranchCashCard(page, 'KS-A', 2);
 
-      await watchStep(page, 'Open KS-A dashboard with resolved attempt excluded');
-      await gotoApp(page, routes.adminBranchDetail(KS_BRANCH_A, testInfo), testInfo, {
-        marker: 'branch-dashboard-title',
-      });
-
-      await expect(page.getByTestId('branch-dashboard-title')).toBeVisible();
-      await expect(page.locator('main')).toContainText(/Pagesa cash në pritje[\s\S]*2/i);
+      await openBranchDashboard(
+        page,
+        testInfo,
+        'Open KS-A dashboard with resolved attempt excluded'
+      );
 
       await watchStep(page, 'Agent row also drops to two');
-      const agentRow = page.getByRole('row', { name: new RegExp(KS_AGENT_A1_NAME, 'i') });
-      await expect(agentRow).toBeVisible();
-      await expect(agentRow).toContainText('2');
+      await expectDashboardAndAgentCash(page, 2);
     } finally {
       await resetWatchedAttempts();
     }

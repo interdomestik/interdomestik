@@ -9,14 +9,17 @@ interface BranchCashScope {
   branchId: string;
 }
 
-function getBranchCashTruthFilter(scope: BranchCashScope) {
+function getTenantCashTruthFilter(tenantId: string) {
   return and(
-    eq(leadPaymentAttempts.tenantId, scope.tenantId),
-    eq(memberLeads.tenantId, scope.tenantId),
-    eq(memberLeads.branchId, scope.branchId),
+    eq(leadPaymentAttempts.tenantId, tenantId),
+    eq(memberLeads.tenantId, tenantId),
     eq(leadPaymentAttempts.method, 'cash'),
     inArray(leadPaymentAttempts.status, [...BRANCH_CASH_OPEN_STATUSES])
   );
+}
+
+function getBranchCashTruthFilter(scope: BranchCashScope) {
+  return and(getTenantCashTruthFilter(scope.tenantId), eq(memberLeads.branchId, scope.branchId));
 }
 
 export async function getBranchCashPendingCount(scope: BranchCashScope): Promise<number> {
@@ -37,14 +40,7 @@ export async function getBranchCashPendingByBranch(tenantId: string): Promise<Ma
     })
     .from(leadPaymentAttempts)
     .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
-    .where(
-      and(
-        eq(leadPaymentAttempts.tenantId, tenantId),
-        eq(memberLeads.tenantId, tenantId),
-        eq(leadPaymentAttempts.method, 'cash'),
-        inArray(leadPaymentAttempts.status, [...BRANCH_CASH_OPEN_STATUSES])
-      )
-    )
+    .where(getTenantCashTruthFilter(tenantId))
     .groupBy(memberLeads.branchId);
 
   return new Map(rows.map(row => [row.branchId, row.count]));
