@@ -52,23 +52,29 @@ async function watchStep(page: Page, label: string) {
   if (WATCH_DELAY_MS <= 0) return;
 
   console.log(`[PC05 Watch] ${label}`);
-  await page.evaluate(text => {
+  await page.evaluate(message => {
     const id = 'pc05-watch-step';
-    document.getElementById(id)?.remove();
+    const marker = document.getElementById(id) ?? document.createElement('output');
 
-    const marker = document.createElement('div');
     marker.id = id;
-    marker.textContent = text;
-    marker.style.position = 'fixed';
-    marker.style.inset = '16px auto auto 16px';
-    marker.style.zIndex = '2147483647';
-    marker.style.padding = '10px 12px';
-    marker.style.borderRadius = '8px';
-    marker.style.background = '#111827';
-    marker.style.color = '#f9fafb';
-    marker.style.font = '600 14px/1.3 system-ui, sans-serif';
-    marker.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
-    document.body.appendChild(marker);
+    marker.setAttribute('aria-live', 'polite');
+    marker.textContent = `PC05 lifecycle: ${message}`;
+    marker.style.cssText = [
+      'position:fixed',
+      'left:16px',
+      'top:16px',
+      'z-index:2147483647',
+      'max-width:min(520px,calc(100vw - 32px))',
+      'padding:10px 12px',
+      'border:1px solid #1d4ed8',
+      'border-radius:6px',
+      'background:#eff6ff',
+      'color:#1e3a8a',
+      'font:600 14px/1.35 system-ui,sans-serif',
+      'box-shadow:0 8px 24px rgba(30,58,138,0.18)',
+    ].join(';');
+
+    if (!marker.isConnected) document.body.appendChild(marker);
   }, label);
   await page.waitForTimeout(WATCH_DELAY_MS);
 }

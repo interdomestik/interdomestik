@@ -43,7 +43,7 @@ export function getMembershipLifecycleBucket(args: {
 
 export function deriveMembershipStatus(
   subscription: NonNullable<MembershipLifecycleInput>,
-  now: Date
+  now: Date = new Date()
 ): MembershipLifecycleStatus {
   const status = subscription.status;
   if (status === 'canceled' || status === 'paused' || status === 'expired') return 'canceled';
