@@ -19,8 +19,10 @@ const RECENT_CLAIMS_LIMIT = 6;
 
 const membershipStatusStyles: Record<string, string> = {
   active: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  past_due: 'bg-amber-100 text-amber-700 border-amber-200',
-  paused: 'bg-slate-100 text-slate-700 border-slate-200',
+  active_in_grace: 'bg-amber-100 text-amber-700 border-amber-200',
+  grace_expired: 'bg-rose-100 text-rose-700 border-rose-200',
+  scheduled_cancel: 'bg-blue-100 text-blue-700 border-blue-200',
+  trialing: 'bg-indigo-100 text-indigo-700 border-indigo-200',
   canceled: 'bg-rose-100 text-rose-700 border-rose-200',
   none: 'bg-muted text-muted-foreground border-transparent',
   registered: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -145,6 +147,7 @@ export async function AdminUserDetailV2Page({
                   planId: subscription.planId ?? 'none',
                   currentPeriodEnd: subscription.currentPeriodEnd,
                   cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? false,
+                  gracePeriodEndsAt: subscription.gracePeriodEndsAt,
                 }
               : null
           }

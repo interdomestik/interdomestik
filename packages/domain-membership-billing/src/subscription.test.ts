@@ -70,6 +70,22 @@ describe('subscription claim eligibility', () => {
     await expect(getActiveSubscription('member-1', 'tenant_ks')).resolves.toEqual(subscription);
   });
 
+  it('treats scheduled cancellation as active membership until the provider closes the term', async () => {
+    const subscription = {
+      id: 'sub_scheduled_cancel',
+      status: 'active',
+      tenantId: 'tenant_ks',
+      userId: 'member-1',
+      cancelAtPeriodEnd: true,
+      gracePeriodEndsAt: null,
+    };
+
+    hoisted.findSubscriptionFirst.mockResolvedValue(subscription);
+
+    await expect(hasActiveMembership('member-1', 'tenant_ks')).resolves.toBe(true);
+    await expect(getActiveSubscription('member-1', 'tenant_ks')).resolves.toEqual(subscription);
+  });
+
   it('rejects past_due subscriptions after grace expires', async () => {
     hoisted.findSubscriptionFirst.mockResolvedValue({
       id: 'sub_expired',

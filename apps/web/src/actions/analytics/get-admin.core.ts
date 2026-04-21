@@ -1,5 +1,6 @@
 import { db } from '@interdomestik/database';
 import { membershipPlans, subscriptions } from '@interdomestik/database/schema';
+import { getTenantMembershipLifecycleCounts } from '@interdomestik/domain-membership-billing';
 import { and, eq, gte, sql } from 'drizzle-orm';
 
 import { isStaffOrAdmin } from '@/lib/roles.core';
@@ -67,24 +68,10 @@ export async function getAdminAnalyticsCore(params: {
       }
     }
 
-    const allSubsCount = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(subscriptions)
-      .where(eq(subscriptions.tenantId, tenantId));
-
-    const activeSubsCount = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(subscriptions)
-      .where(and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, tenantId)));
-
-    const canceledSubsCount = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(subscriptions)
-      .where(and(eq(subscriptions.status, 'canceled'), eq(subscriptions.tenantId, tenantId)));
-
-    const totalMembers = Number(allSubsCount[0]?.count || 0);
-    const activeMembers = Number(activeSubsCount[0]?.count || 0);
-    const canceledMembers = Number(canceledSubsCount[0]?.count || 0);
+    const lifecycleCounts = await getTenantMembershipLifecycleCounts({ tenantId });
+    const totalMembers = lifecycleCounts.total;
+    const activeMembers = lifecycleCounts.accessActive;
+    const canceledMembers = lifecycleCounts.canceled;
     const churnRate = totalMembers > 0 ? (canceledMembers / totalMembers) * 100 : 0;
 
     const lookbackDate = new Date();

@@ -138,12 +138,18 @@
       },
       "status": {
         "active": "Активно",
-        "past_due": "Во доцнење",
-        "paused": "Паузирано",
+        "active_in_grace": "Активно во грејс период",
+        "grace_expired": "Грејс периодот истече",
+        "scheduled_cancel": "Закажано за откажување",
+        "trialing": "Пробен период",
         "canceled": "Откажано",
         "none": "Не е претплатен",
         "registered": "Регистриран член",
         "operator": "Оперативна сметка"
+      },
+      "status_context": {
+        "active_in_grace": "Грејс периодот завршува на {date}",
+        "scheduled_cancel": "Пристапот завршува на {date}"
       },
       "preferences": {
         "email_claims": "Е-пошта за ажурирања на барања",

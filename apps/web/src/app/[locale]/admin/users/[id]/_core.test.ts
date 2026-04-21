@@ -18,12 +18,29 @@ describe('admin user profile core', () => {
     expect(counts).toEqual({ total: 10, open: 7, resolved: 2, rejected: 1 });
   });
 
-  it('getAdminUserMembershipStatus normalizes unknown to none', () => {
-    expect(getAdminUserMembershipStatus('active')).toBe('active');
-    expect(getAdminUserMembershipStatus('past_due')).toBe('past_due');
-    expect(getAdminUserMembershipStatus('paused')).toBe('paused');
-    expect(getAdminUserMembershipStatus('canceled')).toBe('canceled');
-    expect(getAdminUserMembershipStatus('something_else')).toBe('none');
+  it('getAdminUserMembershipStatus normalizes subscription lifecycle buckets', () => {
+    const now = new Date('2026-04-21T00:00:00.000Z');
+
+    expect(getAdminUserMembershipStatus({ status: 'active' }, now)).toBe('active');
+    expect(
+      getAdminUserMembershipStatus(
+        { status: 'past_due', gracePeriodEndsAt: new Date('2026-04-22T00:00:00.000Z') },
+        now
+      )
+    ).toBe('active_in_grace');
+    expect(
+      getAdminUserMembershipStatus(
+        { status: 'past_due', gracePeriodEndsAt: new Date('2026-04-20T00:00:00.000Z') },
+        now
+      )
+    ).toBe('grace_expired');
+    expect(getAdminUserMembershipStatus({ status: 'active', cancelAtPeriodEnd: true }, now)).toBe(
+      'scheduled_cancel'
+    );
+    expect(getAdminUserMembershipStatus({ status: 'trialing' }, now)).toBe('trialing');
+    expect(getAdminUserMembershipStatus({ status: 'paused' }, now)).toBe('canceled');
+    expect(getAdminUserMembershipStatus({ status: 'canceled' }, now)).toBe('canceled');
+    expect(getAdminUserMembershipStatus({ status: 'something_else' }, now)).toBe('canceled');
     expect(getAdminUserMembershipStatus(null)).toBe('none');
     expect(getAdminUserMembershipStatus(undefined)).toBe('none');
   });

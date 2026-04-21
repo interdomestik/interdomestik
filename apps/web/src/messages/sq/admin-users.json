@@ -138,12 +138,18 @@
       },
       "status": {
         "active": "Aktive",
-        "past_due": "Me vonesë",
-        "paused": "Pezull",
+        "active_in_grace": "Aktive në periudhë faljeje",
+        "grace_expired": "Periudha e faljes ka skaduar",
+        "scheduled_cancel": "E planifikuar për anulim",
+        "trialing": "Në provë",
         "canceled": "Anuluar",
         "none": "Pa anëtarësim",
         "registered": "Anëtar i regjistruar",
         "operator": "Llogari operative"
+      },
+      "status_context": {
+        "active_in_grace": "Periudha e faljes përfundon më {date}",
+        "scheduled_cancel": "Qasja përfundon më {date}"
       },
       "preferences": {
         "email_claims": "Email përditësime të kërkesave",

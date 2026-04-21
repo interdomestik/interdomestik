@@ -1,5 +1,10 @@
 import { and, db, eq, subscriptions } from '@interdomestik/database';
 
+import {
+  getMembershipLifecycleBucket,
+  membershipLifecycleGrantsAccess,
+} from './subscription/lifecycle-reporting';
+
 /**
  * Checks if a user has an active membership that grants access to benefits.
  * Allowed statuses:
@@ -23,16 +28,7 @@ export async function hasActiveMembership(
 
   if (!sub) return false;
 
-  if (sub.status === 'active' || sub.status === 'trialing') {
-    return true;
-  }
-
-  if (sub.status === 'past_due' && sub.gracePeriodEndsAt) {
-    // Check if grace period is still valid
-    return new Date() < sub.gracePeriodEndsAt;
-  }
-
-  return false;
+  return membershipLifecycleGrantsAccess(getMembershipLifecycleBucket({ subscription: sub }));
 }
 
 export async function findSubscriptionByProviderReference(reference: string | null | undefined) {
@@ -70,14 +66,8 @@ export async function getActiveSubscription(userId: string, tenantId: string) {
 
   if (!sub) return null;
 
-  const isActive =
-    sub.status === 'active' ||
-    sub.status === 'trialing' ||
-    (sub.status === 'past_due' && sub.gracePeriodEndsAt
-      ? new Date() < sub.gracePeriodEndsAt
-      : false);
-
-  if (!isActive) return null;
+  const bucket = getMembershipLifecycleBucket({ subscription: sub });
+  if (!membershipLifecycleGrantsAccess(bucket)) return null;
 
   return sub;
 }

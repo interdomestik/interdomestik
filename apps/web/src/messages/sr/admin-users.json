@@ -138,12 +138,18 @@
       },
       "status": {
         "active": "Aktivan",
-        "past_due": "U kašnjenju",
-        "paused": "Pauziran",
+        "active_in_grace": "Aktivan u grejs periodu",
+        "grace_expired": "Grejs period je istekao",
+        "scheduled_cancel": "Zakazano za otkazivanje",
+        "trialing": "Probni period",
         "canceled": "Otkazan",
         "none": "Nije pretplaćen",
         "registered": "Registrovani član",
         "operator": "Operativni nalog"
+      },
+      "status_context": {
+        "active_in_grace": "Grejs period se završava {date}",
+        "scheduled_cancel": "Pristup se završava {date}"
       },
       "preferences": {
         "email_claims": "E-pošta ažuriranja zahteva",

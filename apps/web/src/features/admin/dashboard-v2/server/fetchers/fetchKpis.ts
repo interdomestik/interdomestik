@@ -5,7 +5,8 @@ import {
 } from '@/features/admin/kpis/kpi-definitions';
 import { db } from '@interdomestik/database';
 import { branches, claims, leadPaymentAttempts, user } from '@interdomestik/database/schema';
-import { and, count, eq, inArray } from 'drizzle-orm';
+import { getTenantMembershipLifecycleCounts } from '@interdomestik/domain-membership-billing';
+import { and, count, eq } from 'drizzle-orm';
 
 export async function fetchKpis(tenantId: string) {
   // 1. Branch Count
@@ -21,10 +22,7 @@ export async function fetchKpis(tenantId: string) {
     .where(and(eq(user.tenantId, tenantId), eq(user.role, 'agent')));
 
   // 3. Member Count (users with role='user' or 'member')
-  const [membersData] = await db
-    .select({ count: count() })
-    .from(user)
-    .where(and(eq(user.tenantId, tenantId), inArray(user.role, ['user', 'member'])));
+  const lifecycleCounts = await getTenantMembershipLifecycleCounts({ tenantId });
 
   // 4. Open Claims
   const [openClaimsData] = await db
@@ -47,7 +45,7 @@ export async function fetchKpis(tenantId: string) {
   return {
     branches: branchesData?.count ?? 0,
     agents: agentsData?.count ?? 0,
-    members: membersData?.count ?? 0,
+    members: lifecycleCounts.accessActive,
     claimsOpen: openClaimsData?.count ?? 0,
     cashPending: cashPendingData?.count ?? 0,
     slaBreaches: slaBreachesData?.count ?? 0,

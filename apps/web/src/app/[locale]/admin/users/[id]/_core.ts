@@ -5,6 +5,10 @@ import {
   userNotificationPreferences,
   user as userTable,
 } from '@interdomestik/database/schema';
+import {
+  getMembershipLifecycleBucket,
+  type MembershipLifecycleBucket,
+} from '@interdomestik/domain-membership-billing';
 import { and, count, desc, eq } from 'drizzle-orm';
 
 export type AdminUserClaimCounts = {
@@ -14,7 +18,7 @@ export type AdminUserClaimCounts = {
   rejected: number;
 };
 
-export type AdminUserMembershipStatus = 'active' | 'past_due' | 'paused' | 'canceled' | 'none';
+export type AdminUserMembershipStatus = MembershipLifecycleBucket;
 
 export function computeAdminUserClaimCounts(
   rows: Array<{ status: string | null; total: unknown }>
@@ -39,13 +43,10 @@ export function computeAdminUserClaimCounts(
 }
 
 export function getAdminUserMembershipStatus(
-  rawStatus: string | null | undefined
+  subscription: SubscriptionLifecycleInput,
+  now?: Date
 ): AdminUserMembershipStatus {
-  if (rawStatus === 'active') return 'active';
-  if (rawStatus === 'past_due') return 'past_due';
-  if (rawStatus === 'paused') return 'paused';
-  if (rawStatus === 'canceled') return 'canceled';
-  return 'none';
+  return getMembershipLifecycleBucket({ subscription, now });
 }
 
 export type AdminUserProfileOk = {
@@ -119,7 +120,7 @@ export async function getAdminUserProfileCore(args: {
   ]);
 
   const counts = computeAdminUserClaimCounts(claimCounts);
-  const membershipStatus = getAdminUserMembershipStatus(subscription?.status);
+  const membershipStatus = getAdminUserMembershipStatus(subscription);
 
   return {
     kind: 'ok',
@@ -135,6 +136,15 @@ export async function getAdminUserProfileCore(args: {
 type MemberWithAgent = NonNullable<Awaited<ReturnType<typeof getMemberWithAgent>>>;
 
 type SubscriptionRow = NonNullable<Awaited<ReturnType<typeof db.query.subscriptions.findFirst>>>;
+
+type SubscriptionLifecycleInput =
+  | {
+      status?: string | null;
+      cancelAtPeriodEnd?: boolean | null;
+      gracePeriodEndsAt?: Date | null;
+    }
+  | null
+  | undefined;
 
 type PreferencesRow = NonNullable<
   Awaited<ReturnType<typeof db.query.userNotificationPreferences.findFirst>>
