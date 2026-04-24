@@ -71,7 +71,7 @@
     "e2e:gate:mk": "E2E_DATABASE_URL=${E2E_DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} E2E_DATABASE_URL_RLS=${E2E_DATABASE_URL_RLS:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} NEXT_PUBLIC_BILLING_TEST_MODE=1 ./scripts/m4-gatekeeper.sh && E2E_DATABASE_URL=${E2E_DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} E2E_DATABASE_URL_RLS=${E2E_DATABASE_URL_RLS:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} NEXT_PUBLIC_BILLING_TEST_MODE=1 pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=gate-mk-mk --max-failures=1 --trace=retain-on-failure --reporter=line",
     "e2e:gate:ks:fast": "E2E_DATABASE_URL=${E2E_DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} E2E_DATABASE_URL_RLS=${E2E_DATABASE_URL_RLS:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} NEXT_PUBLIC_BILLING_TEST_MODE=1 ./scripts/m4-gatekeeper.sh && E2E_DATABASE_URL=${E2E_DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} E2E_DATABASE_URL_RLS=${E2E_DATABASE_URL_RLS:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} NEXT_PUBLIC_BILLING_TEST_MODE=1 PW_FAST_GATES=1 pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=gate-ks-sq --max-failures=1 --trace=retain-on-failure --reporter=line",
     "e2e:gate:mk:fast": "E2E_DATABASE_URL=${E2E_DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} E2E_DATABASE_URL_RLS=${E2E_DATABASE_URL_RLS:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} NEXT_PUBLIC_BILLING_TEST_MODE=1 ./scripts/m4-gatekeeper.sh && E2E_DATABASE_URL=${E2E_DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} E2E_DATABASE_URL_RLS=${E2E_DATABASE_URL_RLS:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} NEXT_PUBLIC_BILLING_TEST_MODE=1 PW_FAST_GATES=1 pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=gate-mk-mk --max-failures=1 --trace=retain-on-failure --reporter=line",
-    "check:fast": "node scripts/run-with-default-db-url.mjs bash -lc 'cd \"$PWD\" && NEXT_PUBLIC_BILLING_TEST_MODE=1 pnpm --filter @interdomestik/web run build:ci' && node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup && node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast",
+    "check:fast": "node scripts/run-with-default-db-url.mjs bash -c 'cd \"$PWD\" && NEXT_PUBLIC_BILLING_TEST_MODE=1 pnpm --filter @interdomestik/web run build:ci' && node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup && node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast",
     "check:static": "pnpm format:check && pnpm lint && pnpm type-check",
     "check:all": "pnpm format:check && pnpm lint && pnpm type-check && pnpm i18n:check && pnpm i18n:purity:check && pnpm check:entrypoints:strict && pnpm test:unit:domains && pnpm test",
     "check": "pnpm check:fast && pnpm build",
@@ -149,6 +149,7 @@
     "multiagent:benchmark:weekly": "bash scripts/multi-agent/weekly-benchmark.sh",
     "multiagent:metrics": "node scripts/multi-agent/metrics-lane.mjs",
     "multiagent:verify-fix": "bash scripts/multi-agent/verification-agent.sh",
+    "verify-slice": "bash scripts/multi-agent/verify-slice.sh",
     "memory:validate": "node scripts/plan-conformance/memory-validate.mjs",
     "memory:index": "node scripts/plan-conformance/memory-index.mjs",
     "memory:candidate:capture": "node scripts/plan-conformance/memory-candidate-capture.mjs",
@@ -185,7 +186,7 @@
     "@release-it/conventional-changelog": "^10.0.6",
     "@supabase/supabase-js": "^2.104.1",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^22.19.3",
+    "@types/node": "^24.12.2",
     "@upstash/context7-mcp": "^2.1.8",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
@@ -206,7 +207,7 @@
     "typescript": "^5.9.3"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=24 <25"
   },
   "packageManager": "pnpm@10.28.2",
   "pnpm": {

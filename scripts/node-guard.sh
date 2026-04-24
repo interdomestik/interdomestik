@@ -5,7 +5,9 @@ if [[ "${SKIP_NODE_GUARD:-}" == "1" ]]; then
   exit 0
 fi
 
-REQUIRED_MAJOR="20"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd -P)"
+REQUIRED_MAJOR="$(tr -d '[:space:]' < "${ROOT_DIR}/.nvmrc")"
 NODE_VERSION="$(node -v 2>/dev/null || true)"
 
 if [[ -z "${NODE_VERSION}" ]]; then

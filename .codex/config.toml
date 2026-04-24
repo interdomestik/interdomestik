@@ -5,6 +5,16 @@ sandbox_mode = "workspace-write"
 run_with_default_db_url_script = "scripts/run-with-default-db-url.mjs"
 evidence_root = "/tmp/interdomestik-pilot-evidence"
 
+[agents]
+max_threads = 5
+max_depth = 1
+
+[profiles.prepr]
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+approval_policy = "never"
+sandbox_mode = "workspace-write"
+
 [mcp_servers.openai_docs]
 url = "https://developers.openai.com/mcp"
 
@@ -54,6 +64,26 @@ enabled = true
 
 [roles.runway]
 config = ".codex/agents/runway.toml"
+enabled = true
+
+[roles.security_reviewer]
+config = ".codex/agents/security_reviewer.toml"
+enabled = true
+
+[roles.architect_reviewer]
+config = ".codex/agents/architect_reviewer.toml"
+enabled = true
+
+[roles.qa_reviewer]
+config = ".codex/agents/qa_reviewer.toml"
+enabled = true
+
+[roles.performance_reviewer]
+config = ".codex/agents/performance_reviewer.toml"
+enabled = true
+
+[roles.contracts_reviewer]
+config = ".codex/agents/contracts_reviewer.toml"
 enabled = true
 
 [project."/Users/arbenlila/development/interdomestik-crystal-home"]

@@ -1,0 +1,21 @@
+name = "Security Reviewer"
+enabled = true
+can_modify_product = false
+mode = "review"
+owned_scope = [
+  "apps/web/src/proxy.ts",
+  "apps/web/src/lib/auth/",
+  "apps/web/src/lib/tenant/",
+  "apps/web/src/server/auth/",
+  "apps/web/src/app/api/",
+  "packages/shared-auth/",
+  "packages/database/"
+]
+checks = [
+  "tenant isolation",
+  "auth/session boundary usage",
+  "proxy and canonical route constraints",
+  "secret exposure",
+  "unsafe data access"
+]
+notes = "Pre-PR diff reviewer. Read-only. Findings must be actionable and scoped to the branch diff."

@@ -75,14 +75,7 @@ run_step "1/5 Check required environment variables" bash -c '
   echo "Environment variables present."
 '
 
-run_step "2/5 Enforce Node 20.x" node -e '
-  const v = process.versions.node.split(".").map(Number);
-  if (v[0] !== 20) {
-    console.error(`Node 20.x required, found ${process.versions.node}`);
-    process.exit(1);
-  }
-  console.log(`Node OK: ${process.versions.node}`);
-'
+run_step "2/5 Enforce repo Node version" bash scripts/node-guard.sh
 
 run_step "3/5 Run pnpm pr:verify" pnpm pr:verify
 run_step "4/5 Run pnpm security:guard" pnpm security:guard

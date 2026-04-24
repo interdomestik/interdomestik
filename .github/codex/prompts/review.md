@@ -14,8 +14,12 @@ Phase C constraints are mandatory:
 
 Review expectations:
 
+- Review only the PR diff and directly impacted execution paths.
+- Return only actionable findings.
+- Classify findings as `MUST_FIX`, `SHOULD_FIX`, or `NICE_TO_HAVE`.
 - Findings first, ordered by severity.
 - Cite concrete files and lines when possible.
 - Call out missing verification when a change should have unit, integration, security, or E2E coverage.
 - Be strict about cross-tenant leakage, auth/session bypasses, and route/access-control regressions.
 - If there are no material findings, say so plainly and mention any residual testing risk.
+- End with exactly one verdict: `READY FOR PR`, `READY FOR PR AFTER MUST-FIX ITEMS`, or `NOT READY FOR PR`.
