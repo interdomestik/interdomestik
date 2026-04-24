@@ -69,6 +69,7 @@ export async function updateMemberReferralProgramSettingsCore(params: {
     limit: 10,
     windowSeconds: 60,
     headers: params.requestHeaders ?? new Headers(),
+    productionSensitive: true,
   });
   if (limit.limited) {
     return { success: false as const, error: 'Too many requests. Please wait a moment.' };

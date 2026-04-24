@@ -1,5 +1,7 @@
+import { isProductionDeployment } from '@/lib/runtime-environment';
 import { db } from '@interdomestik/database/db';
 import * as schema from '@interdomestik/database/schema';
+import { createHash } from 'crypto';
 import { and, eq, gt, inArray, isNull } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
@@ -10,12 +12,28 @@ const TOKEN_EXPIRY_MS = parseInt(
   10
 );
 
-const JWT_SECRET =
-  process.env.SHARE_PACK_SECRET ?? process.env.BETTER_AUTH_SECRET ?? 'fallback-secret-dev-only';
+const DEVELOPMENT_SHARE_PACK_SECRET = `dev-share-pack-${nanoid(32)}`;
 
 export interface SharePackPayload {
   packId: string;
   tenantId: string;
+}
+
+export function resolveSharePackSecret(): string {
+  const secret = process.env.SHARE_PACK_SECRET ?? process.env.BETTER_AUTH_SECRET;
+  if (secret?.trim()) {
+    return secret;
+  }
+
+  if (isProductionDeployment()) {
+    throw new Error('SHARE_PACK_SECRET or BETTER_AUTH_SECRET is required for share-pack tokens');
+  }
+
+  return DEVELOPMENT_SHARE_PACK_SECRET;
+}
+
+export function hashShareTokenForAudit(shareToken: string): string {
+  return `sha256:${createHash('sha256').update(shareToken).digest('hex')}`;
 }
 
 /**
@@ -26,7 +44,7 @@ export function generateShareToken(params: { packId: string; tenantId: string })
 
   return jwt.sign(
     { packId, tenantId },
-    JWT_SECRET,
+    resolveSharePackSecret(),
     { expiresIn: '24h' } // Enforces exp claim
   );
 }
@@ -36,8 +54,10 @@ export function generateShareToken(params: { packId: string; tenantId: string })
  * @returns payload if valid, null if invalid/expired
  */
 export function verifyShareToken(token: string): SharePackPayload | null {
+  const secret = resolveSharePackSecret();
+
   try {
-    return jwt.verify(token, JWT_SECRET) as SharePackPayload;
+    return jwt.verify(token, secret) as SharePackPayload;
   } catch {
     return null; // jwt.verify throws on invalid signature or expiration
   }
@@ -55,6 +75,7 @@ export async function logAuditEvent(params: {
   userAgent?: string;
 }): Promise<void> {
   const { tenantId, ids, accessedBy, shareToken, ipAddress, userAgent } = params;
+  const hashedShareToken = hashShareTokenForAudit(shareToken);
 
   // Log access for each document in the pack
   for (const documentId of ids) {
@@ -67,7 +88,7 @@ export async function logAuditEvent(params: {
       accessedAt: new Date(),
       ipAddress: ipAddress ?? null,
       userAgent: userAgent ?? null,
-      shareToken: shareToken,
+      shareToken: hashedShareToken,
     });
   }
 }

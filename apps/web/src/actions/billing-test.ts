@@ -1,6 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
+import { isBillingTestActivationEnabled } from '@/lib/runtime-environment';
 import { db, subscriptions } from '@interdomestik/database';
 import {
   createActiveAnnualMembershipFulfillment,
@@ -12,10 +13,10 @@ import { headers } from 'next/headers';
 
 /**
  * DEVELOPMENT/E2E ONLY: Mock subscription activation.
- * Only works if NEXT_PUBLIC_BILLING_TEST_MODE=1 is set in environment.
+ * Only works in automated/dev runtimes with explicit billing-test enablement.
  */
 export async function mockActivateSubscription(planId: string, priceId: string) {
-  if (process.env.NEXT_PUBLIC_BILLING_TEST_MODE !== '1') {
+  if (!isBillingTestActivationEnabled()) {
     throw new Error('Unauthorized: Billing test mode not enabled');
   }
 

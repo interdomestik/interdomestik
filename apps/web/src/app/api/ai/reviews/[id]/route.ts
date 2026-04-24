@@ -20,6 +20,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     limit: 15,
     windowSeconds: 60,
     headers: request.headers,
+    productionSensitive: true,
   });
   if (limited) return limited;
 

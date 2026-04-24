@@ -58,6 +58,7 @@ export async function updateCommissionStatus(
       limit: 20,
       windowSeconds: 60,
       headers: requestHeaders,
+      productionSensitive: true,
     });
     if (limit.limited) {
       return { success: false, error: 'Too many requests. Please wait a moment.' };
@@ -102,6 +103,7 @@ export async function bulkApproveCommissions(
       limit: 5,
       windowSeconds: 60,
       headers: requestHeaders,
+      productionSensitive: true,
     });
     if (limit.limited) {
       return { success: false, error: 'Too many requests. Please wait a moment.' };

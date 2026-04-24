@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       limit: 5,
       windowSeconds: 60,
       headers: headersList,
+      productionSensitive: true,
     });
     if (limit) return limit;
 

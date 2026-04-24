@@ -40,6 +40,7 @@ export async function submitFreeStartIntakeCore(params: {
           limit: 10,
           windowSeconds: 600,
           headers: params.requestHeaders,
+          productionSensitive: true,
         });
 
         if (limit.limited) {

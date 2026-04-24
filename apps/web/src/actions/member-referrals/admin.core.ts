@@ -76,6 +76,7 @@ export async function updateMemberReferralRewardStatusAdminCore(params: {
     limit: 20,
     windowSeconds: 60,
     headers: params.requestHeaders ?? new Headers(),
+    productionSensitive: true,
   });
   if (limit.limited) {
     return { success: false as const, error: 'Too many requests. Please wait a moment.' };

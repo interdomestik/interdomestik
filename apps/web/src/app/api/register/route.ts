@@ -1,10 +1,12 @@
 import { registerMemberCore } from '@/lib/actions/agent/register-member';
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { ROLE_AGENT } from '@/lib/roles.core';
 import {
   hasHostSessionTenantMismatch,
   TENANT_COOKIE_NAME,
   TENANT_HEADER_NAME,
+  coerceTenantId,
   resolveTenantFromHost,
   resolveTenantIdFromSources,
 } from '@/lib/tenant/tenant-hosts';
@@ -13,6 +15,10 @@ import { registerUserApiCore } from './_core';
 
 function getRequestHost(req: NextRequest): string {
   return req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '';
+}
+
+function isAuthorizedRegisterActor(user: { role?: string | null } | null | undefined): boolean {
+  return user?.role === ROLE_AGENT;
 }
 
 function resolveTenantIdFromRequest(
@@ -47,10 +53,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  if (!isAuthorizedRegisterActor(session.user)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const body = await req.json();
     const hostTenantId = resolveTenantFromHost(getRequestHost(req));
-    const sessionTenantId = (session.user as { tenantId?: string | null }).tenantId;
+    const sessionTenantId = coerceTenantId((session.user as { tenantId?: string | null }).tenantId);
+    const actorBranchId = (session.user as { branchId?: string | null }).branchId ?? null;
 
     if (hasHostSessionTenantMismatch(hostTenantId, sessionTenantId)) {
       return NextResponse.json(
@@ -65,6 +76,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing tenant context' }, { status: 400 });
     }
 
+    if (!sessionTenantId || sessionTenantId !== tenantId) {
+      return NextResponse.json(
+        { code: 'WRONG_TENANT_CONTEXT', message: 'Wrong tenant context' },
+        { status: 401 }
+      );
+    }
+
     const result = await registerUserApiCore(
       {
         body,
@@ -73,7 +91,7 @@ export async function POST(req: NextRequest) {
       },
       {
         registerMemberFn: (actor, tenantId, formData) =>
-          registerMemberCore(actor, tenantId, null, formData),
+          registerMemberCore(actor, tenantId, actorBranchId, formData),
       }
     );
 

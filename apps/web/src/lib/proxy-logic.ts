@@ -1,5 +1,6 @@
 import { routing } from '@/i18n/routing';
 import { isStaffAuthTolerantTenant } from '@/lib/feature-flags';
+import { isE2EDiagnosticsEnabled } from '@/lib/runtime-environment';
 import { emitAuthTelemetryEvent } from '@/lib/telemetry';
 import {
   resolveTenantFromHost as resolveTenantFromCanonicalHost,
@@ -305,7 +306,7 @@ async function resolveProtectedRouteResponse(
     if (firstIntrospection.throttled) {
       emitThrottledSessionTelemetry(context);
     }
-    return null;
+    return redirectProtectedRouteToLogin(context, 'inactive_session');
   }
 
   if (!canUseTolerance) {
@@ -322,7 +323,7 @@ async function resolveProtectedRouteResponse(
     if (retryIntrospection.throttled) {
       emitThrottledSessionTelemetry(context);
     }
-    return null;
+    return redirectProtectedRouteToLogin(context, 'inactive_session');
   }
 
   return redirectProtectedRouteToLogin(context, 'inactive_session');
@@ -392,9 +393,10 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   // 3. Tenant Resolution
   const response = NextResponse.next();
 
-  // Attach Debug Headers
-  response.headers.set('x-e2e-tenant', tenant ?? 'none');
-  response.headers.set('x-e2e-host', host);
+  if (isE2EDiagnosticsEnabled()) {
+    response.headers.set('x-e2e-tenant', tenant ?? 'none');
+    response.headers.set('x-e2e-host', host);
+  }
 
   if (tenant) {
     response.cookies.set(TENANT_COOKIE_NAME, tenant);

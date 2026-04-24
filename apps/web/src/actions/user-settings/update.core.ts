@@ -19,6 +19,7 @@ export async function updateNotificationPreferencesCore(params: {
     limit: 5,
     windowSeconds: 60,
     headers: params.requestHeaders,
+    productionSensitive: true,
   });
 
   if (rateLimited) {

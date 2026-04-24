@@ -49,6 +49,8 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P14` Member Experience Guidance is now complete after completed `P13`. This tranche promotes the first narrow Program D experience slice: `P14-MD01` adds guided next-action cards to the canonical member dashboard so active claim state, document organization, membership readiness, and support handoff are visible before members need to search. `P14` stayed limited to the `/member` dashboard experience layer and did not reopen `apps/web/src/proxy.ts`, canonical routes, auth layering, tenancy, database schema, billing, or broad design-system scope.
 
+`P15` Production Professionalism Hardening is now active after completed `P14`. This tranche promotes the 2026-04-24 senior-staff repository review findings into the canonical execution queue. `P15` is a blocker-removal tranche, not a redesign or modernization tranche: first close the P0 registration authorization and protected-route fail-open findings, then close the P1 token, upload-confirmation, activity-read, and production-runtime hardening gaps, then restore red E2E contract proof and full launch-gate evidence. `P15` does not authorize canonical route renames, auth-layer collapse, tenancy architecture refactors, Stripe reintroduction, or broad portal redesign; `apps/web/src/proxy.ts` remains the sole routing and access-control authority and is only in scope for the explicit fail-closed guard fix.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
@@ -146,6 +148,12 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 91. Keep `P13-N01` complete as the canonical critical lifecycle notification slice so missing claim-pack and claim-handling lifecycle events are dispatched through the existing email, push, and in-app infrastructure with verified-recipient guards.
 92. Keep `P14` complete as the canonical post-`P13` Member Experience Guidance tranche, limited to the member dashboard experience layer and not a broad portal redesign.
 93. Keep `P14-MD01` complete as the canonical member-dashboard next-action guidance slice so members can see claim, document, membership, and support readiness from existing dashboard data.
+94. Land `P15` as the canonical post-`P14` Production Professionalism Hardening tranche so launch-blocking authorization, tenant-safety, production-runtime, and release-gate gaps found on 2026-04-24 are closed before pilot launch is treated as professionally ready.
+95. Land `P15-G01` as the registration authorization guard slice so `/api/register` cannot create member, subscription, or agent-attribution state unless the caller has an explicit agent role accepted by the canonical agent-registration contract.
+96. Land `P15-G02` as the protected-route fail-closed proxy slice so `/member`, `/agent`, `/staff`, and `/admin` requests do not pass through when session introspection is unknown, throttled, or errored.
+97. Land `P15-S01` as the production runtime and bearer-token hardening slice so debug/test surfaces, predictable signing fallback, public test activation flags, RLS fallback, rate-limit fail-open behavior, and E2E diagnostic headers cannot weaken production posture.
+98. Land `P15-S02` as the claim-upload and activity-read correctness slice so upload confirmations are bound to server-issued storage intent and member activity reads enforce tenant plus role or assignment scope independent of RLS.
+99. Land `P15-QA01` as the professionalism proof slice so E2E contract checks, launch-gate commands, lint policy, docs/env drift, and release evidence return to a green, current, auditable state before a fresh production-professionalism review.
 
 ## Status Command
 
@@ -205,6 +213,8 @@ pnpm plan:proof
 `P13` v1.0.0 Funnel Completion is now complete after completed `P12`. `P13-FC01` is complete as the ClaimPack domain generator slice, `P13-FC02` is complete as the public Free Start integration slice, and `P13-N01` is complete as the critical lifecycle notification wiring slice. The tranche closed the minimum viable v1.0.0 gap by turning the existing Free Start shell into a real generated pack and keeping users informed through existing notification infrastructure, without changing proxy, auth, tenancy, canonical routes, schema, Stripe posture, or request-path AI boundaries.
 
 `P14` Member Experience Guidance is now complete after completed `P13`. `P14-MD01` is complete as the member-dashboard next-action guidance slice, adding a localized member guidance panel for no-claim, active-claim, document, membership, and support states using existing dashboard data and without changing proxy, auth, tenancy, canonical routes, schema, billing, or the broader design system.
+
+`P15` Production Professionalism Hardening is now the active post-`P14` tranche. `P15-G01` is now complete as the `/api/register` authorization guard slice: the route only allows an explicit agent session and preserves the agent branch when dispatching to the assisted-registration core. `P15-G02` is now complete as the protected-route fail-closed proxy slice: unknown, throttled, or errored session introspection no longer passes protected canonical routes through. `P15-S01` is now complete as the production runtime and bearer-token hardening slice: debug/test surfaces, share-pack signing, billing test activation, production RLS fallback, rate-limit production posture, and E2E diagnostics now fail closed or require explicit local E2E enablement. `P15-S02` and `P15-QA01` then close upload, tenant-read, E2E-contract, docs-drift, and release-proof gaps from the 2026-04-24 senior-staff review.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -268,6 +278,10 @@ These documents can recommend or constrain work, but they do not define the live
 - `PC06` is complete as the enterprise-safe controls and lifecycle edge-case hardening slice in PR `#493`.
 - `P13` has now completed the minimum viable Program B plus critical notification path in the live program and tracker as the post-`P12` v1.0.0 Funnel Completion tranche, while broader Program D, E, and F recommendations remain planning input until a later promotion or design-gate decision explicitly makes them the live queue.
 - `P14` has now completed the first narrow Program D member-experience slice as the post-`P13` Member Experience Guidance tranche, limited to localized member-dashboard next-action guidance and not a broad dashboard redesign.
+- `P15` has now been promoted from the 2026-04-24 senior-staff production-professionalism review as the active blocker-removal tranche before pilot launch can be treated as a professional Go.
+- `P15-G01` is now complete as the registration authorization guard slice, closing the review finding that allowed non-agent sessions to reach the assisted member-registration path.
+- `P15-G02` is now complete as the protected-route fail-closed proxy slice, closing the review finding that allowed protected canonical routes to pass through when session introspection returned unknown.
+- `P15-S01` is now complete as the production runtime and bearer-token hardening slice, closing the predictable share-pack signing fallback and production-runtime test-affordance findings while preserving explicit local E2E diagnostics.
 - `P1C` has now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` and is now the active post-infrastructure tranche.
 - `C01` through `C06` have now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the committed commercial-contract publication queue.
 - `C01` is complete as the coverage-matrix publication slice.

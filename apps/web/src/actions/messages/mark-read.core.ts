@@ -20,6 +20,7 @@ export async function markMessagesAsReadCore(params: {
       limit: 60, // 60 requests per minute
       windowSeconds: 60,
       headers: params.requestHeaders,
+      productionSensitive: true,
     });
     if (rateLimit) {
       return { success: false, error: 'Too many requests' };

@@ -39,6 +39,7 @@ export async function adminUpdateSettingsCore(params: {
     limit: 10,
     windowSeconds: 60,
     headers,
+    productionSensitive: true,
   });
 
   if (limit.limited) {

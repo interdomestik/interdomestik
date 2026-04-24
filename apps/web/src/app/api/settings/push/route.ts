@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     limit: 20,
     windowSeconds: 60,
     headers: request.headers,
+    productionSensitive: true,
   });
   if (limited) return limited;
 
@@ -64,6 +65,7 @@ export async function DELETE(request: Request) {
     limit: 30,
     windowSeconds: 60,
     headers: request.headers,
+    productionSensitive: true,
   });
   if (limited) return limited;
 

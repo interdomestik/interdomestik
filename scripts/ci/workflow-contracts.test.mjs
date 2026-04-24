@@ -218,6 +218,7 @@ test('Pilot gate heavy runner depends on preflight before Postgres, setup, build
 
   assert.ok(needs.includes('pilot-gate-preflight'));
   assert.equal(pilotGateJob.if, "needs.pilot-gate-preflight.outputs.should_run == 'true'");
+  assert.equal(pilotGateJob.env.DATABASE_URL_RLS, pilotGateJob.env.DATABASE_URL);
   assert.ok(setupIndex >= 0);
   assert.ok(manualSonarIndex >= 0);
   assert.ok(prepareDbIndex >= 0);

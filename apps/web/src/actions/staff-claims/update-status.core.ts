@@ -37,6 +37,7 @@ export async function updateClaimStatusCore(params: {
       limit: 20,
       windowSeconds: 60,
       headers: requestHeaders || new Headers(), // Use passed headers or fallback
+      productionSensitive: true,
     });
     if (limit.limited) {
       return { success: false, error: 'Too many requests. Please wait a moment.' };

@@ -172,6 +172,7 @@ jobs:
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
       BETTER_AUTH_URL: http://127.0.0.1:3000
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+      DATABASE_URL_RLS: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM || secrets.TURBO_TEAM }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}

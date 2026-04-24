@@ -23,6 +23,7 @@ export async function createClaim(prevState: unknown, formData: FormData) {
       limit: 5,
       windowSeconds: 600, // 10 minutes
       headers: requestHeaders,
+      productionSensitive: true,
     });
 
     if (limit.limited) {
@@ -50,6 +51,7 @@ export async function submitClaim(
       limit: 5,
       windowSeconds: 600,
       headers: requestHeaders,
+      productionSensitive: true,
     });
 
     if (limit.limited) {
@@ -70,6 +72,7 @@ export async function updateDraftClaim(claimId: string, data: CreateClaimValues)
       limit: 50,
       windowSeconds: 600,
       headers: requestHeaders,
+      productionSensitive: true,
     });
     if (limit.limited) return { success: false, error: 'Too many requests' };
     return updateDraftClaimCore({ session, requestHeaders, claimId, data });
@@ -83,6 +86,7 @@ export async function cancelClaim(claimId: string) {
       limit: 10,
       windowSeconds: 600,
       headers: requestHeaders,
+      productionSensitive: true,
     });
     if (limit.limited) return { success: false, error: 'Too many requests' };
     return cancelClaimCore({ session, requestHeaders, claimId });
@@ -96,6 +100,7 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
       limit: 100,
       windowSeconds: 600,
       headers: requestHeaders,
+      productionSensitive: true,
     });
     if (limit.limited) return { success: false, error: 'Too many requests' };
     return updateClaimStatusCore({ session, requestHeaders, claimId, newStatus });
