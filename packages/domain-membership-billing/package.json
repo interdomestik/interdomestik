@@ -45,10 +45,10 @@
     "@interdomestik/database": "workspace:*",
     "@interdomestik/domain-referrals": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
-    "@paddle/paddle-js": "^1.6.2",
-    "@paddle/paddle-node-sdk": "^3.7.0",
+    "@paddle/paddle-js": "^1.6.4",
+    "@paddle/paddle-node-sdk": "^3.8.0",
     "drizzle-orm": "^0.45.2",
-    "nanoid": "^5.1.7",
+    "nanoid": "^5.1.9",
     "zod": "^4.2.1"
   },
   "devDependencies": {
