@@ -11,6 +11,7 @@ export * from './commissions/ownership';
 export * from './ownership-attribution';
 export * from './commissions/summary';
 export * from './commissions/types';
+export * from './enterprise-controls';
 export * from './paddle';
 export * from './paddle-server';
 export * from './paddle-webhooks';

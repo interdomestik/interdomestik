@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  bulkApproveCommissions,
   getAllCommissions,
   getGlobalCommissionSummary,
   updateCommissionStatus,
@@ -57,12 +58,30 @@ const REFERRAL_STATUS_TRANSITIONS: Record<
   void: [],
 };
 
+function removeCommissionId(ids: string[], id: string) {
+  return ids.filter(selectedId => selectedId !== id);
+}
+
+function updateCommissionSelection(ids: string[], id: string, checked: boolean) {
+  return checked ? [...new Set([...ids, id])] : removeCommissionId(ids, id);
+}
+
+function createCommissionRemovalUpdater(id: string) {
+  return (current: string[]) => removeCommissionId(current, id);
+}
+
+function createCommissionSelectionUpdater(id: string, checked: boolean) {
+  return (current: string[]) => updateCommissionSelection(current, id, checked);
+}
+
 export default function AdminCommissionsPage() {
   const t = useTranslations('admin.commissions_page');
   const locale = useLocale();
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [summary, setSummary] = useState<CommissionSummary | null>(null);
   const [referralRewards, setReferralRewards] = useState<MemberReferralAdminRewardRow[]>([]);
+  const [selectedCommissionIds, setSelectedCommissionIds] = useState<string[]>([]);
+  const [commissionActionError, setCommissionActionError] = useState<string | null>(null);
   const [referralSettings, setReferralSettings] =
     useState<MemberReferralProgramSettings>(EMPTY_REFERRAL_SETTINGS);
   const [isPending, startTransition] = useTransition();
@@ -72,27 +91,61 @@ export default function AdminCommissionsPage() {
   }, []);
 
   async function loadData() {
-    const [commResult, sumResult, settingsResult, rewardsResult] = await Promise.all([
+    const [commSettled, sumSettled, settingsSettled, rewardsSettled] = await Promise.allSettled([
       getAllCommissions(),
       getGlobalCommissionSummary(),
       getMemberReferralProgramSettings(),
       listMemberReferralRewards({ limit: 50 }),
     ]);
-    if (commResult.success && commResult.data) setCommissions(commResult.data);
-    if (sumResult.success && sumResult.data) setSummary(sumResult.data);
-    if (settingsResult.success && settingsResult.data) {
+
+    const commResult =
+      commSettled.status === 'fulfilled'
+        ? commSettled.value
+        : { success: false as const, error: t('commissions.action_failed') };
+    const sumResult = sumSettled.status === 'fulfilled' ? sumSettled.value : null;
+    const settingsResult = settingsSettled.status === 'fulfilled' ? settingsSettled.value : null;
+    const rewardsResult = rewardsSettled.status === 'fulfilled' ? rewardsSettled.value : null;
+
+    if (commResult.success && commResult.data) {
+      setCommissions(commResult.data);
+    } else if (!commResult.success) {
+      setCommissionActionError(commResult.error ?? t('commissions.action_failed'));
+    }
+    if (sumResult?.success && sumResult.data) setSummary(sumResult.data);
+    if (settingsResult?.success && settingsResult.data) {
       setReferralSettings(settingsResult.data);
     }
-    if (rewardsResult.success && rewardsResult.data) {
+    if (rewardsResult?.success && rewardsResult.data) {
       setReferralRewards(rewardsResult.data);
     }
   }
 
   function handleStatusChange(id: string, newStatus: CommissionStatus) {
     startTransition(async () => {
+      setCommissionActionError(null);
       const result = await updateCommissionStatus(id, newStatus);
       if (result.success) {
+        setSelectedCommissionIds(createCommissionRemovalUpdater(id));
         await loadData();
+      } else {
+        setCommissionActionError(result.error ?? t('commissions.action_failed'));
+      }
+    });
+  }
+
+  function handleCommissionSelection(id: string, checked: boolean) {
+    setSelectedCommissionIds(createCommissionSelectionUpdater(id, checked));
+  }
+
+  function handleBulkApprove() {
+    startTransition(async () => {
+      setCommissionActionError(null);
+      const result = await bulkApproveCommissions(selectedCommissionIds);
+      if (result.success) {
+        setSelectedCommissionIds([]);
+        await loadData();
+      } else {
+        setCommissionActionError(result.error ?? t('commissions.action_failed'));
       }
     });
   }
@@ -479,22 +532,53 @@ export default function AdminCommissionsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('commissions.title')}</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle>{t('commissions.title')}</CardTitle>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending || selectedCommissionIds.length === 0}
+              onClick={handleBulkApprove}
+              data-testid="bulk-approve-commissions"
+            >
+              {t('commissions.bulk_approve')}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
+            {commissionActionError ? (
+              <div
+                className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                data-testid="commission-control-violation"
+              >
+                {commissionActionError}
+              </div>
+            ) : null}
             {commissions.length === 0 ? (
               <p className="text-center py-8 text-muted-foreground">{t('commissions.empty')}</p>
             ) : (
               commissions.map(c => (
-                <div key={c.id} className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-1">
-                    <p className="font-medium">{c.agentName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {c.memberName || t('commissions.unknown_member')} •{' '}
-                      {t(`commission_types.${c.type}`)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{formatDate(c.earnedAt)}</p>
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between rounded-lg border p-4"
+                  data-testid={`commission-row-${c.id}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={selectedCommissionIds.includes(c.id)}
+                      onCheckedChange={checked => handleCommissionSelection(c.id, Boolean(checked))}
+                      disabled={isPending || c.status !== 'pending'}
+                      data-testid={`commission-select-${c.id}`}
+                    />
+                    <div className="space-y-1">
+                      <p className="font-medium">{c.agentName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {c.memberName || t('commissions.unknown_member')} •{' '}
+                        {t(`commission_types.${c.type}`)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{formatDate(c.earnedAt)}</p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="font-semibold text-lg">{formatAmount(c.amount)}</span>

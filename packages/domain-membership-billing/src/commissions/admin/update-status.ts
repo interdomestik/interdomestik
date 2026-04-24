@@ -4,7 +4,9 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
 import type { ActionResult, CommissionSession, CommissionStatus } from '../types';
+import { formatControlViolation } from '../../enterprise-controls';
 import { ensureAdminOrStaff } from './access';
+import { preflightCommissionPayability } from './payability';
 
 /**
  * Valid status transitions:
@@ -54,6 +56,20 @@ export async function updateCommissionStatusCore(params: {
 
     if (!commission) {
       return { success: false, error: 'Commission not found' };
+    }
+
+    if (newStatus === 'approved' || newStatus === 'paid') {
+      const preflight = await preflightCommissionPayability({
+        tenantId,
+        ids: [commissionId],
+      });
+      if (!preflight.ok) {
+        return {
+          success: false,
+          error: formatControlViolation(preflight.violation),
+          violation: preflight.violation,
+        };
+      }
     }
 
     // NO SELF-APPROVAL: Agent cannot approve or pay their own commission

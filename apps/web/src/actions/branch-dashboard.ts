@@ -10,6 +10,7 @@ import * as Sentry from '@sentry/nextjs';
 import { getBranchAgents, getBranchById, getBranchStats } from '@/actions/branch-dashboard.core';
 import type { BranchDashboardDTO } from '@/actions/branch-dashboard.types';
 import type { ActionResult } from '@/types/actions';
+import { formatControlViolation } from '@interdomestik/domain-membership-billing';
 import { ROLES, scopeFilter } from '@interdomestik/shared-auth';
 
 import { getActionContext } from './admin-users/context';
@@ -71,15 +72,22 @@ export async function getBranchDashboard(
     }
 
     const [stats, agents] = await Promise.all([
-      getBranchStats(branchId, tenantId, branch.isActive),
+      getBranchStats(branchId, tenantId, branch.isActive, branch.tenantId),
       getBranchAgents(branchId, tenantId),
     ]);
+
+    if (!stats.ok) {
+      return {
+        success: false,
+        error: formatControlViolation(stats.violation),
+      };
+    }
 
     return {
       success: true,
       data: {
         branch,
-        stats,
+        stats: stats.value,
         agents,
       },
     };

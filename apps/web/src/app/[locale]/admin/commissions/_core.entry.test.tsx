@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminCommissionsPage from './_core.entry';
 
 vi.mock('@/actions/commissions.admin', () => ({
+  bulkApproveCommissions: vi.fn(),
   getAllCommissions: vi.fn(),
   getGlobalCommissionSummary: vi.fn(),
   updateCommissionStatus: vi.fn(),
@@ -81,6 +82,8 @@ vi.mock('next-intl', () => ({
       'rewards.title': 'Member Referral Rewards',
       'rewards.reward_label': 'Reward {id} • {amount}',
       'commissions.title': 'All Commissions',
+      'commissions.bulk_approve': 'Bulk approve',
+      'commissions.action_failed': 'Commission action failed',
     };
 
     return Object.entries(values ?? {}).reduce(
@@ -127,6 +130,10 @@ describe('Admin commissions page', () => {
         approvedCount: 1,
         paidCount: 1,
       },
+    });
+    vi.mocked(commissionsAdmin.bulkApproveCommissions).mockResolvedValue({
+      success: true,
+      data: { count: 1 },
     });
 
     const memberReferrals = await import('@/actions/member-referrals');
@@ -185,6 +192,33 @@ describe('Admin commissions page', () => {
       expect(screen.getByDisplayValue('750')).toBeInTheDocument();
       expect(screen.getByText(/Reward reward-1/i)).toBeInTheDocument();
       expect(screen.getByText('All Commissions')).toBeInTheDocument();
+    });
+  });
+
+  it('shows a deterministic enterprise-control violation when bulk approval is blocked', async () => {
+    const commissionsAdmin = await import('@/actions/commissions.admin');
+    vi.mocked(commissionsAdmin.bulkApproveCommissions).mockResolvedValueOnce({
+      success: false,
+      error:
+        'FINANCE_BATCH_PAYABILITY_BLOCKED: One or more commissions are not payable under enterprise controls: commission-1',
+      violation: {
+        control: 'finance',
+        code: 'FINANCE_BATCH_PAYABILITY_BLOCKED',
+        detail: 'One or more commissions are not payable under enterprise controls: commission-1',
+        recoverable: false,
+        entityIds: ['commission-1'],
+      },
+    });
+
+    render(<AdminCommissionsPage />);
+
+    expect(await screen.findByTestId('commission-select-commission-1')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('commission-select-commission-1'));
+    fireEvent.click(screen.getByTestId('bulk-approve-commissions'));
+
+    await waitFor(() => {
+      expect(commissionsAdmin.bulkApproveCommissions).toHaveBeenCalledWith(['commission-1']);
+      expect(screen.getByTestId('commission-control-violation')).toHaveTextContent('commission-1');
     });
   });
 

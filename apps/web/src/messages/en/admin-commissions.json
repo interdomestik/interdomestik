@@ -47,7 +47,9 @@
       "commissions": {
         "title": "All Commissions",
         "empty": "No commissions yet",
-        "unknown_member": "Unknown Member"
+        "unknown_member": "Unknown Member",
+        "bulk_approve": "Bulk approve",
+        "action_failed": "Commission action failed"
       },
       "statuses": {
         "pending": "Pending",
@@ -57,6 +59,10 @@
         "void": "Void"
       },
       "commission_types": {
+        "new_membership": "new membership",
+        "renewal": "renewal",
+        "upgrade": "upgrade",
+        "b2b": "business membership",
         "signup_bonus": "signup bonus",
         "membership_sale": "membership sale",
         "referral_bonus": "referral bonus",

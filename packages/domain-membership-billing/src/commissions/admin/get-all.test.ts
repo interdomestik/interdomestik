@@ -106,4 +106,14 @@ describe('getAllCommissionsCore', () => {
       expect(result.data?.[0].agentName).toBe('Agent One');
     }
   });
+
+  it('fetches commissions for tenant admin', async () => {
+    const result = await getAllCommissionsCore({
+      session: {
+        user: { id: 'tenant-admin-1', role: 'tenant_admin', tenantId: 'tenant-1' },
+      } as any,
+    });
+
+    expect(result.success).toBe(true);
+  });
 });
