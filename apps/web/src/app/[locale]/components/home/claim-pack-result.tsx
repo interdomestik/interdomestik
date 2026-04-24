@@ -52,7 +52,31 @@ function confidenceColor(level: ClaimPack['confidence']['level']) {
   }
 }
 
-function ConfidenceSection({ confidence }: { confidence: ClaimPack['confidence'] }) {
+function evidenceIcon(item: ClaimPack['evidenceChecklist']['items'][number]) {
+  if (item.likelyAvailable) {
+    return <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />;
+  }
+
+  if (item.required) {
+    return <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />;
+  }
+
+  return <Circle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />;
+}
+
+function evidenceTextClass(item: ClaimPack['evidenceChecklist']['items'][number]) {
+  if (item.likelyAvailable) {
+    return 'text-slate-200';
+  }
+
+  if (item.required) {
+    return 'text-amber-100 font-medium';
+  }
+
+  return 'text-slate-400';
+}
+
+function ConfidenceSection({ confidence }: Readonly<{ confidence: ClaimPack['confidence'] }>) {
   const colors = confidenceColor(confidence.level);
 
   return (
@@ -98,7 +122,7 @@ function ConfidenceSection({ confidence }: { confidence: ClaimPack['confidence']
 // Evidence checklist
 // ---------------------------------------------------------------------------
 
-function EvidenceSection({ checklist }: { checklist: ClaimPack['evidenceChecklist'] }) {
+function EvidenceSection({ checklist }: Readonly<{ checklist: ClaimPack['evidenceChecklist'] }>) {
   return (
     <div
       data-testid="claim-pack-evidence"
@@ -115,23 +139,9 @@ function EvidenceSection({ checklist }: { checklist: ClaimPack['evidenceChecklis
       <ul className="space-y-2">
         {checklist.items.map(item => (
           <li key={item.id} className="flex items-start gap-3 text-sm leading-6">
-            {item.likelyAvailable ? (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
-            ) : item.required ? (
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
-            ) : (
-              <Circle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-            )}
+            {evidenceIcon(item)}
             <div>
-              <span
-                className={
-                  item.likelyAvailable
-                    ? 'text-slate-200'
-                    : item.required
-                      ? 'text-amber-100 font-medium'
-                      : 'text-slate-400'
-                }
-              >
+              <span className={evidenceTextClass(item)}>
                 {item.name}
                 {item.required && !item.likelyAvailable && (
                   <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-widest text-amber-300">
@@ -152,7 +162,7 @@ function EvidenceSection({ checklist }: { checklist: ClaimPack['evidenceChecklis
 // Letter preview
 // ---------------------------------------------------------------------------
 
-function LetterSection({ letter }: { letter: ClaimPack['letter'] }) {
+function LetterSection({ letter }: Readonly<{ letter: ClaimPack['letter'] }>) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -223,7 +233,7 @@ function LetterSection({ letter }: { letter: ClaimPack['letter'] }) {
 // Timeline
 // ---------------------------------------------------------------------------
 
-function TimelineSection({ timeline }: { timeline: ClaimPack['timeline'] }) {
+function TimelineSection({ timeline }: Readonly<{ timeline: ClaimPack['timeline'] }>) {
   return (
     <div
       data-testid="claim-pack-timeline"
@@ -259,11 +269,11 @@ function NextStepSection({
   ctaHref,
   ctaLabel,
   step,
-}: {
+}: Readonly<{
   ctaHref?: string;
   ctaLabel?: string;
   step: ClaimPack['recommendedNextStep'];
-}) {
+}>) {
   const colors = confidenceColor(step.level);
   const resolvedCtaHref = ctaHref ?? step.ctaHref;
   const resolvedCtaLabel = ctaLabel ?? step.ctaLabel;
@@ -290,13 +300,13 @@ function NextStepSection({
 // Root component
 // ---------------------------------------------------------------------------
 
-export type ClaimPackResultProps = {
+export type ClaimPackResultProps = Readonly<{
   ctaHref?: string;
   ctaLabel?: string;
   pack: ClaimPack;
-};
+}>;
 
-export function ClaimPackResult({ ctaHref, ctaLabel, pack }: ClaimPackResultProps) {
+export function ClaimPackResult({ ctaHref, ctaLabel, pack }: Readonly<ClaimPackResultProps>) {
   return (
     <div data-testid="claim-pack-result" className="space-y-4">
       <ConfidenceSection confidence={pack.confidence} />
