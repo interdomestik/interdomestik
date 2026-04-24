@@ -30,6 +30,10 @@ const mocks = vi.hoisted(() => {
 
   return {
     db: {
+      query: {
+        claims: { findFirst: vi.fn() },
+        user: { findFirst: vi.fn() },
+      },
       transaction,
     },
     logAuditEvent: vi.fn(),
@@ -104,6 +108,12 @@ function createSession(options: {
 describe('saveRecoveryDecisionCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.db.query.claims.findFirst.mockResolvedValue({
+      id: 'claim-1',
+      title: 'Vehicle claim',
+      userId: 'member-1',
+    });
+    mocks.db.query.user.findFirst.mockResolvedValue({ email: 'member@example.com' });
     mocks.txSelect.mockReset();
     mocks.claimSelectChain.from.mockReturnValue(mocks.claimSelectChain);
     mocks.claimSelectChain.where.mockReturnValue(mocks.claimSelectChain);
@@ -154,6 +164,57 @@ describe('saveRecoveryDecisionCore', () => {
       explanation: 'Clear insurer path and viable monetary recovery.',
       staffLabel: 'Accepted for staff-led recovery',
     });
+  });
+
+  it('sends recovery-decision notifications with tenant context after a successful save', async () => {
+    const notifyRecoveryDecision = vi.fn().mockResolvedValue({ success: true });
+    mocks.txSelect
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1' }]);
+    mocks.agreementSelectChain.limit.mockResolvedValue([]);
+
+    const result = await saveRecoveryDecisionCore(
+      {
+        claimId: 'claim-1',
+        decisionType: 'accepted',
+        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      },
+      { notifyRecoveryDecision }
+    );
+
+    expect(result.success).toBe(true);
+    await vi.waitFor(() =>
+      expect(notifyRecoveryDecision).toHaveBeenCalledWith(
+        'member-1',
+        'member@example.com',
+        { id: 'claim-1', title: 'Vehicle claim', userId: 'member-1' },
+        'accepted',
+        { tenantId: 'tenant-1' }
+      )
+    );
+  });
+
+  it('does not report failure when post-commit notification lookup fails', async () => {
+    const notifyRecoveryDecision = vi.fn();
+    mocks.db.query.claims.findFirst.mockRejectedValueOnce(new Error('temporary lookup failure'));
+    mocks.txSelect
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1' }]);
+    mocks.agreementSelectChain.limit.mockResolvedValue([]);
+
+    const result = await saveRecoveryDecisionCore(
+      {
+        claimId: 'claim-1',
+        decisionType: 'accepted',
+        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      },
+      { notifyRecoveryDecision }
+    );
+
+    expect(result.success).toBe(true);
+    await vi.waitFor(() => expect(notifyRecoveryDecision).not.toHaveBeenCalled());
   });
 
   it('denies saving recovery decisions for claims outside the acting staff scope', async () => {

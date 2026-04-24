@@ -4,6 +4,7 @@ const hoisted = vi.hoisted(() => ({
   domainUpdateStatus: vi.fn(),
   enforceRateLimitForAction: vi.fn(),
   logAuditEvent: vi.fn(),
+  notifyStatusChanged: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
@@ -17,6 +18,10 @@ vi.mock('@/lib/audit', () => ({
 
 vi.mock('@/lib/rate-limit', () => ({
   enforceRateLimitForAction: hoisted.enforceRateLimitForAction,
+}));
+
+vi.mock('@/lib/notifications', () => ({
+  notifyStatusChanged: hoisted.notifyStatusChanged,
 }));
 
 vi.mock('next/cache', () => ({
@@ -54,7 +59,7 @@ describe('staff update-status.core audit wiring', () => {
         claimId: 'claim-1',
         requestHeaders,
       }),
-      { logAuditEvent: hoisted.logAuditEvent }
+      { logAuditEvent: hoisted.logAuditEvent, notifyStatusChanged: hoisted.notifyStatusChanged }
     );
   });
 

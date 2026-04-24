@@ -182,6 +182,50 @@ export async function saveRecoveryDecisionCore(
       });
     }
 
+    const notifyRecoveryDecision = deps.notifyRecoveryDecision;
+
+    if (result.success && result.data && notifyRecoveryDecision) {
+      void (async () => {
+        try {
+          const claim = await db.query.claims.findFirst({
+            where: (claimsTable, { eq }) =>
+              withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, parsed.data.claimId)),
+            columns: {
+              id: true,
+              title: true,
+              userId: true,
+            },
+          });
+
+          if (!claim?.userId) {
+            return;
+          }
+
+          const member = await db.query.user.findFirst({
+            where: (userTable, { eq }) =>
+              withTenant(tenantId, userTable.tenantId, eq(userTable.id, claim.userId)),
+            columns: {
+              email: true,
+            },
+          });
+
+          if (member?.email) {
+            await notifyRecoveryDecision(
+              claim.userId,
+              member.email,
+              claim,
+              parsed.data.decisionType,
+              {
+                tenantId,
+              }
+            );
+          }
+        } catch (err) {
+          console.error('Failed to send recovery decision notification:', err);
+        }
+      })();
+    }
+
     return result;
   } catch (error) {
     console.error('Failed to save recovery decision:', error);

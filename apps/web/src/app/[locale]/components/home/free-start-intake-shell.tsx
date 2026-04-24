@@ -1,7 +1,9 @@
 'use client';
 
+import { generateClaimPackAction } from '@/actions/claim-pack.core';
 import { submitFreeStartIntake } from '@/actions/free-start.core';
 import { Link } from '@/i18n/routing';
+import type { ClaimPack } from '@interdomestik/domain-claims/claim-pack';
 import { CommercialFunnelEvents, resolveFunnelVariant } from '@/lib/analytics';
 import {
   FREE_START_ISSUES_BY_CATEGORY,
@@ -22,7 +24,13 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import dynamic from 'next/dynamic';
 import { useRef, useState } from 'react';
+
+const ClaimPackResultLazy = dynamic(
+  () => import('./claim-pack-result').then(mod => ({ default: mod.ClaimPackResult })),
+  { ssr: false, loading: () => <div className="animate-pulse h-32 rounded-2xl bg-slate-800" /> }
+);
 
 type FreeStartIntakeShellProps = Readonly<{
   continueHref: string;
@@ -772,6 +780,7 @@ export function FreeStartIntakeShell({
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
   const [draft, setDraft] = useState<DraftState>(EMPTY_DRAFT);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [claimPack, setClaimPack] = useState<ClaimPack | null>(null);
   const submissionKeyRef = useRef<string | null>(null);
 
   const issueIds = getIssueIds(selectedCategory);
@@ -877,6 +886,25 @@ export function FreeStartIntakeShell({
     );
     submissionKeyRef.current = null;
     setValidationError(null);
+
+    // Generate the full claim pack for display
+    try {
+      const packResult = await generateClaimPackAction({
+        claimType: selectedCategory,
+        answers: {
+          incidentDate: draft.incidentDate,
+          description: draft.summary,
+          counterpartyName: draft.counterparty,
+        },
+        locale,
+      });
+      if (packResult.success) {
+        setClaimPack(packResult.data);
+      }
+    } catch {
+      // Pack generation is non-blocking — proceed to complete even if it fails
+    }
+
     setStep('complete');
   };
 
@@ -960,15 +988,34 @@ export function FreeStartIntakeShell({
           </div>
 
           <aside className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-            <FreeStartSidebar
-              confidenceLevel={confidenceLevel}
-              contacts={contacts}
-              continueHref={continueHref}
-              continueLabel={continueLabel}
-              selectedCategory={selectedCategory}
-              step={step}
-              t={t}
-            />
+            {step === 'complete' && claimPack ? (
+              <>
+                <div data-testid="free-start-complete" className="space-y-2">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {t('completion.badge')}
+                  </div>
+                  <h3 className="text-2xl font-semibold text-white">{t('completion.heading')}</h3>
+                  <p className="text-sm leading-6 text-slate-300">{t('completion.body')}</p>
+                </div>
+                {/* Dynamic import to keep main bundle lean */}
+                <ClaimPackResultLazy
+                  ctaHref={continueHref}
+                  ctaLabel={continueLabel}
+                  pack={claimPack}
+                />
+              </>
+            ) : (
+              <FreeStartSidebar
+                confidenceLevel={confidenceLevel}
+                contacts={contacts}
+                continueHref={continueHref}
+                continueLabel={continueLabel}
+                selectedCategory={selectedCategory}
+                step={step}
+                t={t}
+              />
+            )}
           </aside>
         </div>
       </div>

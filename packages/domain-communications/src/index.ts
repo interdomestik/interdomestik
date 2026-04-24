@@ -10,9 +10,16 @@ export { getNotificationsCore } from './notifications/get';
 export { markAllAsReadCore, markAsReadCore } from './notifications/mark-read';
 export {
   notifyClaimAssigned,
+  notifyClaimPackGenerated,
   notifyClaimSubmitted,
+  notifyDocumentRequested,
+  notifyMembershipRenewal,
   notifyNewMessage,
+  notifyPaymentVerificationUpdate,
+  notifyRecoveryDecision,
+  notifySlaWarning,
   notifyStatusChanged,
+  notifyTriageComplete,
   sendNotification,
 } from './notifications/notify';
 

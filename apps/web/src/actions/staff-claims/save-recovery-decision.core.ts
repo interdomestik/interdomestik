@@ -2,6 +2,7 @@ import { saveStaffRecoveryDecisionCore as saveRecoveryDecisionCoreDomain } from 
 
 import { logAuditEvent } from '@/lib/audit';
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
+import { notifyRecoveryDecision } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
@@ -42,7 +43,8 @@ export async function saveRecoveryDecisionCore(
     tenantId: params.session?.user?.tenantId ?? null,
     idempotencyKey: params.idempotencyKey,
     requestFingerprint,
-    execute: () => saveRecoveryDecisionCoreDomain(params, { logAuditEvent }),
+    execute: () =>
+      saveRecoveryDecisionCoreDomain(params, { logAuditEvent, notifyRecoveryDecision }),
   });
 
   if (result.success) {
