@@ -30,11 +30,14 @@ Options:
 
 Default behavior writes the reviewer plan and prompts only; no gates are run.
 USAGE
+  return 0
 }
 
 fail() {
-  printf '[verify-slice] FAIL: %s\n' "$1" >&2
+  local message="$1"
+  printf '[verify-slice] FAIL: %s\n' "$message" >&2
   exit 1
+  return 1
 }
 
 while [[ $# -gt 0 ]]; do
@@ -193,6 +196,7 @@ See \`$CHANGED_FILES\`.
 
 See \`$DIFF_STAT\`.
 EOF
+  return 0
 }
 
 write_reviewer_prompt() {
@@ -231,6 +235,7 @@ End with exactly one verdict:
 
 If there are no material findings, say that plainly and list residual test risk.
 EOF
+  return 0
 }
 
 write_orchestration_prompt() {
@@ -257,6 +262,7 @@ Conditional signals:
 - accessibility_touched: \`$accessibility_touched\`
 - boundary_touched: \`$boundary_touched\`
 EOF
+  return 0
 }
 
 run_gate() {
@@ -265,6 +271,7 @@ run_gate() {
   local log_file="$RUN_ROOT/evidence/gates/${label}.log"
   printf '[verify-slice] running %s\n' "$label"
   run_redacted "$log_file" bash -c "cd '$ROOT_DIR' && $command"
+  return 0
 }
 
 run_slice_format_check() {
@@ -317,6 +324,9 @@ for reviewer in "${reviewers[@]}"; do
       ;;
     contracts_reviewer)
       write_reviewer_prompt "contracts_reviewer" "Contracts Reviewer" "Find API, schema, type, config, i18n, script, workflow, and environment contract drift introduced by this slice."
+      ;;
+    *)
+      fail "unknown reviewer selected: $reviewer"
       ;;
   esac
 done
