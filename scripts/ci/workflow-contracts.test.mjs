@@ -34,6 +34,20 @@ function normalizeNeeds(needs) {
   return [];
 }
 
+const RELEASE_GATE_ENV_VARS = [
+  'RELEASE_GATE_MEMBER_EMAIL',
+  'RELEASE_GATE_MEMBER_PASSWORD',
+  'RELEASE_GATE_AGENT_EMAIL',
+  'RELEASE_GATE_AGENT_PASSWORD',
+  'RELEASE_GATE_OFFICE_AGENT_EMAIL',
+  'RELEASE_GATE_STAFF_EMAIL',
+  'RELEASE_GATE_STAFF_PASSWORD',
+  'RELEASE_GATE_ADMIN_KS_EMAIL',
+  'RELEASE_GATE_ADMIN_KS_PASSWORD',
+  'RELEASE_GATE_ADMIN_MK_EMAIL',
+  'RELEASE_GATE_ADMIN_MK_PASSWORD',
+];
+
 test('CI PR path keeps only RLS coverage while PR E2E owns the full browser gate lane', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
@@ -295,6 +309,8 @@ test('CI audit job runs the scripts/ci contract suite', () => {
 
   assert.ok(auditRunStep);
   assert.match(auditRunStep.run, /\bpnpm test:ci:contracts\b/);
+  assert.match(auditRunStep.run, /\bpnpm check:e2e-contracts\b/);
+  assert.match(auditRunStep.run, /\bpnpm lint:production-warnings\b/);
 });
 
 test('Composite CI setup action uses Node 24-compatible hosted actions', () => {
@@ -305,20 +321,47 @@ test('Composite CI setup action uses Node 24-compatible hosted actions', () => {
   assert.equal(findStep(steps, 'Playwright Browser Cache').uses, 'actions/cache@v5');
 });
 
+test('V3 onboarding and env docs describe Paddle-only runtime and deploy proof secrets', () => {
+  const readRepoText = relativePath => fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
+  const readme = readRepoText('README.md');
+  const architecture = readRepoText('docs/ARCHITECTURE.md');
+  const envExample = readRepoText('.env.example');
+
+  assert.match(readme, /V3 pilot billing uses Paddle only/);
+  assert.match(architecture, /environment-scoped deploy webhook secrets/);
+  assert.match(envExample, /CLAIM_UPLOAD_INTENT_SECRET/);
+  assert.match(envExample, /SUPABASE_PRODUCTION_PROJECT_REF/);
+  assert.match(envExample, /INTERDOMESTIK_STAGING_DEPLOY_WEBHOOK_URL/);
+  assert.match(envExample, /INTERDOMESTIK_STAGING_DEPLOY_TOKEN/);
+  assert.match(envExample, /INTERDOMESTIK_PRODUCTION_DEPLOY_WEBHOOK_URL/);
+  assert.match(envExample, /INTERDOMESTIK_PRODUCTION_DEPLOY_TOKEN/);
+  assert.doesNotMatch(
+    envExample,
+    /NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET/
+  );
+});
+
 test('CD builds distinct staging and production artifacts with explicit Supabase environment separation', () => {
+  const cdWorkflowSource = fs.readFileSync(path.join(rootDir, '.github/workflows/cd.yml'), 'utf8');
   const cdWorkflow = readWorkflow('.github/workflows/cd.yml');
   const buildStagingJob = cdWorkflow.jobs['build-staging'];
   const buildProductionJob = cdWorkflow.jobs['build-production'];
   const deployStagingJob = cdWorkflow.jobs['deploy-staging'];
+  const e2eStagingJob = cdWorkflow.jobs['e2e-staging'];
   const deployProductionJob = cdWorkflow.jobs['deploy-production'];
+  const verifyProductionJob = cdWorkflow.jobs['verify-production'];
 
   assert.equal(cdWorkflow.jobs['build-push'], undefined);
+  assert.doesNotMatch(cdWorkflowSource, /Actual deployment command here/);
+  assert.doesNotMatch(cdWorkflowSource, /pnpm test:e2e:smoke/);
+  assert.doesNotMatch(cdWorkflowSource, /Example: ssh/);
 
   assert.ok(buildStagingJob);
   assert.equal(buildStagingJob.environment.name, 'staging');
   assert.equal(buildStagingJob.outputs.image_tag, '${{ steps.meta.outputs.version }}');
   const buildStagingStep = findStep(buildStagingJob.steps, 'Build and push Docker image');
   assert.ok(buildStagingStep);
+  assert.match(buildStagingStep.with['build-args'], /COMMIT_SHA=\$\{\{\s*github\.sha\s*\}\}/);
   assert.match(buildStagingStep.with['build-args'], /INTERDOMESTIK_DEPLOY_ENV=staging/);
   assert.match(
     buildStagingStep.with['build-args'],
@@ -343,6 +386,7 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.equal(buildProductionJob.outputs.image_tag, '${{ steps.meta.outputs.version }}');
   const buildProductionStep = findStep(buildProductionJob.steps, 'Build and push Docker image');
   assert.ok(buildProductionStep);
+  assert.match(buildProductionStep.with['build-args'], /COMMIT_SHA=\$\{\{\s*github\.sha\s*\}\}/);
   assert.match(buildProductionStep.with['build-args'], /INTERDOMESTIK_DEPLOY_ENV=production/);
   assert.match(
     buildProductionStep.with['build-args'],
@@ -362,5 +406,112 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   );
 
   assert.deepEqual(normalizeNeeds(deployStagingJob.needs), ['build-staging']);
+  assert.equal(
+    deployStagingJob.env.DEPLOY_WEBHOOK_URL,
+    '${{ secrets.INTERDOMESTIK_STAGING_DEPLOY_WEBHOOK_URL }}'
+  );
+  assert.equal(
+    deployStagingJob.env.DEPLOY_WEBHOOK_TOKEN,
+    '${{ secrets.INTERDOMESTIK_STAGING_DEPLOY_TOKEN }}'
+  );
+  assert.equal(deployStagingJob.env.EXPECTED_COMMIT_SHA, '${{ github.sha }}');
+  const triggerStagingDeployStep = findStep(deployStagingJob.steps, 'Trigger Staging Deploy');
+  assert.ok(triggerStagingDeployStep);
+  assert.match(triggerStagingDeployStep.run, /INTERDOMESTIK_STAGING_DEPLOY_WEBHOOK_URL/);
+  assert.match(triggerStagingDeployStep.run, /INTERDOMESTIK_STAGING_DEPLOY_TOKEN/);
+  assert.match(triggerStagingDeployStep.run, /authorization: Bearer/);
+  assert.match(triggerStagingDeployStep.run, /curl --silent --show-error/);
+  assert.match(triggerStagingDeployStep.run, /http_status/);
+  assert.match(triggerStagingDeployStep.run, /needs\.build-staging\.outputs\.image_tag/);
+  const stagingHealthIndex = findStepIndex(deployStagingJob.steps, 'Wait for Staging Health');
+  const stagingProvenanceIndex = findStepIndex(
+    deployStagingJob.steps,
+    'Verify Staging Build Provenance'
+  );
+  assert.ok(stagingHealthIndex >= 0);
+  assert.ok(stagingProvenanceIndex > stagingHealthIndex);
+  const stagingProvenanceStep = deployStagingJob.steps[stagingProvenanceIndex];
+  assert.match(stagingProvenanceStep.run, /build\?\.commitSha/);
+  assert.match(stagingProvenanceStep.run, /EXPECTED_COMMIT_SHA/);
+
+  assert.deepEqual(normalizeNeeds(e2eStagingJob.needs), ['deploy-staging']);
+  assert.equal(e2eStagingJob.env.RELEASE_GATE_EXPECTED_SHA, '${{ github.sha }}');
+  for (const envName of RELEASE_GATE_ENV_VARS) {
+    assert.match(e2eStagingJob.env[envName], new RegExp(String.raw`secrets\.${envName}`));
+  }
+  const stagingSetupStep = e2eStagingJob.steps.find(
+    step => step?.uses === './.github/actions/setup'
+  );
+  assert.equal(stagingSetupStep.with['install-playwright'], 'true');
+  const stagingGateStep = findStep(e2eStagingJob.steps, 'Run Staging Release Gate');
+  assert.ok(stagingGateStep);
+  assert.match(stagingGateStep.run, /release:gate:raw/);
+  assert.match(stagingGateStep.run, /--envName staging/);
+  assert.match(stagingGateStep.run, /--suite p0/);
+  const stagingArtifactsStep = findStep(
+    e2eStagingJob.steps,
+    'Upload staging verification artifacts'
+  );
+  assert.ok(stagingArtifactsStep);
+  assert.equal(stagingArtifactsStep['continue-on-error'], undefined);
+  assert.equal(stagingArtifactsStep.with['if-no-files-found'], 'error');
+
   assert.deepEqual(normalizeNeeds(deployProductionJob.needs), ['build-production']);
+  assert.equal(
+    deployProductionJob.env.DEPLOY_WEBHOOK_URL,
+    '${{ secrets.INTERDOMESTIK_PRODUCTION_DEPLOY_WEBHOOK_URL }}'
+  );
+  assert.equal(
+    deployProductionJob.env.DEPLOY_WEBHOOK_TOKEN,
+    '${{ secrets.INTERDOMESTIK_PRODUCTION_DEPLOY_TOKEN }}'
+  );
+  const triggerProductionDeployStep = findStep(
+    deployProductionJob.steps,
+    'Trigger Production Deploy'
+  );
+  assert.ok(triggerProductionDeployStep);
+  assert.match(triggerProductionDeployStep.run, /INTERDOMESTIK_PRODUCTION_DEPLOY_WEBHOOK_URL/);
+  assert.match(triggerProductionDeployStep.run, /INTERDOMESTIK_PRODUCTION_DEPLOY_TOKEN/);
+  assert.match(triggerProductionDeployStep.run, /authorization: Bearer/);
+  assert.match(triggerProductionDeployStep.run, /curl --silent --show-error/);
+  assert.match(triggerProductionDeployStep.run, /http_status/);
+  assert.match(triggerProductionDeployStep.run, /needs\.build-production\.outputs\.image_tag/);
+
+  assert.deepEqual(normalizeNeeds(verifyProductionJob.needs), ['deploy-production']);
+  assert.equal(verifyProductionJob.env.EXPECTED_COMMIT_SHA, '${{ github.sha }}');
+  assert.equal(verifyProductionJob.env.RELEASE_GATE_EXPECTED_SHA, '${{ github.sha }}');
+  for (const envName of RELEASE_GATE_ENV_VARS) {
+    assert.match(verifyProductionJob.env[envName], new RegExp(String.raw`secrets\.${envName}`));
+  }
+  const productionSetupStep = verifyProductionJob.steps.find(
+    step => step?.uses === './.github/actions/setup'
+  );
+  assert.equal(productionSetupStep.with['install-playwright'], 'true');
+  const productionHealthIndex = findStepIndex(verifyProductionJob.steps, 'Health Check');
+  const productionProvenanceIndex = findStepIndex(
+    verifyProductionJob.steps,
+    'Verify Production Build Provenance'
+  );
+  const productionGateIndex = findStepIndex(
+    verifyProductionJob.steps,
+    'Run Production Release Gate'
+  );
+  assert.ok(productionHealthIndex >= 0);
+  assert.ok(productionProvenanceIndex > productionHealthIndex);
+  assert.ok(productionGateIndex > productionProvenanceIndex);
+  const productionProvenanceStep = verifyProductionJob.steps[productionProvenanceIndex];
+  assert.match(productionProvenanceStep.run, /build\?\.commitSha/);
+  assert.match(productionProvenanceStep.run, /EXPECTED_COMMIT_SHA/);
+  const productionGateStep = findStep(verifyProductionJob.steps, 'Run Production Release Gate');
+  assert.ok(productionGateStep);
+  assert.match(productionGateStep.run, /release:gate:raw/);
+  assert.match(productionGateStep.run, /--envName production/);
+  assert.match(productionGateStep.run, /--suite all/);
+  const productionArtifactsStep = findStep(
+    verifyProductionJob.steps,
+    'Upload production verification artifacts'
+  );
+  assert.equal(productionArtifactsStep['continue-on-error'], undefined);
+  assert.match(productionArtifactsStep.with.path, /release-gates/);
+  assert.equal(productionArtifactsStep.with['if-no-files-found'], 'error');
 });

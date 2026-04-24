@@ -100,6 +100,9 @@ Runs on every PR to `main` or release branches.
 
 ## 5. Deployment Strategy
 
-- **Environment:** Vercel (Frontend/Edge) + Supabase (Database).
-- **CI/CD:** GitHub Actions.
-- **Pilot Phase:** "Phase C" means manual promotion to production after automatic E2E gates pass.
+- **Runtime:** Next.js web artifact + Supabase PostgreSQL.
+- **Artifact Promotion:** GitHub Actions builds distinct GHCR Docker images for staging and production.
+- **Environment Separation:** CD injects `INTERDOMESTIK_DEPLOY_ENV` and `SUPABASE_PRODUCTION_PROJECT_REF` so non-production builds cannot silently target the production Supabase project.
+- **Deployment Hooks:** Staging and production promotion require environment-scoped deploy webhook secrets and fail closed when they are absent.
+- **Post-Deploy Proof:** Staging runs a P0 release gate before production build; production runs health, Sentry Seer when configured, and the full release gate before artifacts are retained.
+- **Pilot Phase:** Phase C means production promotion is only acceptable after automatic gates and repo-backed release evidence pass.

@@ -8,6 +8,8 @@ import {
 } from './auth.actions';
 
 describe('auth fixture probe reduction', () => {
+  const kosovoLocale = 'sq';
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -27,10 +29,10 @@ describe('auth fixture probe reduction', () => {
 
     emitSessionProbeSkippedAfterReadyTelemetry({
       tenant: 'ks',
-      locale: 'sq',
+      locale: kosovoLocale,
       role: 'staff',
       origin: 'https://ks.127.0.0.1.nip.io:3000',
-      pathname: '/sq/staff/claims/pack_ks_claim_123',
+      pathname: `/${kosovoLocale}/staff/claims/pack_ks_claim_123`,
     });
 
     expect(infoSpy).toHaveBeenCalledOnce();
@@ -52,7 +54,7 @@ describe('auth fixture probe reduction', () => {
       event_type: 'auth_telemetry',
       event_name: 'session_probe_skipped_after_ready',
       tenant: 'ks',
-      locale: 'sq',
+      locale: kosovoLocale,
       surface: 'staff',
       host_class: 'nipio',
       reason: 'ready_probe_skipped',
@@ -78,8 +80,8 @@ describe('auth fixture probe reduction', () => {
   });
 
   it('normalizes pathname families', () => {
-    expect(normalizePathnameFamily('/sq/login')).toBe('/login');
-    expect(normalizePathnameFamily('/sq/staff/claims')).toBe('/staff/claims');
-    expect(normalizePathnameFamily('/sq/admin/users/123')).toBe('/admin/users');
+    expect(normalizePathnameFamily(`/${kosovoLocale}/login`)).toBe('/login');
+    expect(normalizePathnameFamily(`/${kosovoLocale}/staff/claims`)).toBe('/staff/claims');
+    expect(normalizePathnameFamily(`/${kosovoLocale}/admin/users/123`)).toBe('/admin/users');
   });
 });

@@ -60,6 +60,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
+            COMMIT_SHA=${{ github.sha }}
             INTERDOMESTIK_DEPLOY_ENV=staging
             NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -72,25 +73,154 @@ jobs:
     environment:
       name: staging
       url: https://staging.interdomestik.com
+    env:
+      BASE_URL: https://staging.interdomestik.com
+      DEPLOY_WEBHOOK_URL: ${{ secrets.INTERDOMESTIK_STAGING_DEPLOY_WEBHOOK_URL }}
+      DEPLOY_WEBHOOK_TOKEN: ${{ secrets.INTERDOMESTIK_STAGING_DEPLOY_TOKEN }}
+      EXPECTED_COMMIT_SHA: ${{ github.sha }}
     steps:
-      - name: Deploy to Staging
+      - name: Trigger Staging Deploy
+        shell: bash
         run: |
-          echo "🚀 Deploying image ${{ needs.build-staging.outputs.image_tag }} to Staging..."
-          # Example: ssh user@staging "docker pull ... && docker compose up -d"
-          # or: kubectl set image deployment/web web=...
+          set -euo pipefail
+
+          missing=()
+          [[ -n "${DEPLOY_WEBHOOK_URL:-}" ]] || missing+=("INTERDOMESTIK_STAGING_DEPLOY_WEBHOOK_URL")
+          [[ -n "${DEPLOY_WEBHOOK_TOKEN:-}" ]] || missing+=("INTERDOMESTIK_STAGING_DEPLOY_TOKEN")
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing staging deploy secret(s): ${missing[*]}."
+            exit 1
+          fi
+
+          payload_file="$(mktemp)"
+          response_file="$(mktemp)"
+          trap 'rm -f "${payload_file}" "${response_file}"' EXIT
+
+          printf '{"environment":"%s","image":"%s","image_tag":"%s","sha":"%s"}' \
+            "staging" \
+            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" \
+            "${{ needs.build-staging.outputs.image_tag }}" \
+            "${{ github.sha }}" > "${payload_file}"
+
+          curl_exit=0
+          http_status="$(
+            curl --silent --show-error --output "${response_file}" --write-out '%{http_code}' \
+              --retry 3 --retry-delay 5 \
+              -H 'content-type: application/json' \
+              -H "authorization: Bearer ${DEPLOY_WEBHOOK_TOKEN}" \
+              --data-binary @"${payload_file}" \
+              "${DEPLOY_WEBHOOK_URL}"
+          )" || curl_exit=$?
+
+          if (( curl_exit != 0 )); then
+            echo "::error::Failed to trigger staging deploy webhook."
+            if [[ -s "${response_file}" ]]; then
+              cat "${response_file}"
+            fi
+            exit "${curl_exit}"
+          fi
+
+          if [[ ! "${http_status}" =~ ^2[0-9][0-9]$ ]]; then
+            echo "::error::Staging deploy webhook returned HTTP ${http_status}."
+            cat "${response_file}"
+            exit 1
+          fi
+
+      - name: Wait for Staging Health
+        shell: bash
+        run: |
+          set -euo pipefail
+          max_attempts=30
+          sleep_seconds=5
+
+          for attempt in $(seq 1 "${max_attempts}"); do
+            echo "Attempt ${attempt}/${max_attempts}: checking ${BASE_URL}/api/health..."
+
+            if curl -fsS "${BASE_URL}/api/health"; then
+              echo "Staging health check succeeded."
+              exit 0
+            fi
+
+            if [[ "${attempt}" -lt "${max_attempts}" ]]; then
+              sleep "${sleep_seconds}"
+            fi
+          done
+
+          echo "::error::Staging health check failed after ${max_attempts} attempts."
+          exit 1
+
+      - name: Verify Staging Build Provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --input-type=module -e '
+            const expected = process.env.EXPECTED_COMMIT_SHA;
+            const baseUrl = process.env.BASE_URL;
+            if (!expected || !baseUrl) {
+              throw new Error("EXPECTED_COMMIT_SHA and BASE_URL are required");
+            }
+
+            const res = await fetch(new URL("/api/health", baseUrl));
+            if (!res.ok) {
+              throw new Error(`Health endpoint returned ${res.status}`);
+            }
+
+            const health = await res.json();
+            const actual = health?.build?.commitSha;
+            if (actual !== expected) {
+              throw new Error(`Deployed build provenance mismatch: expected ${expected}, got ${actual || "missing"}`);
+            }
+
+            console.log(`Deployed build provenance verified: ${actual}`);
+          '
 
   e2e-staging:
     needs: deploy-staging
     runs-on: [self-hosted, interdomestik-linux]
+    env:
+      BASE_URL: https://staging.interdomestik.com
+      EVIDENCE_DIR: tmp/cd-evidence/${{ github.run_id }}/staging
+      RELEASE_GATE_EXPECTED_SHA: ${{ github.sha }}
+      RELEASE_GATE_MEMBER_EMAIL: ${{ secrets.RELEASE_GATE_MEMBER_EMAIL }}
+      RELEASE_GATE_MEMBER_PASSWORD: ${{ secrets.RELEASE_GATE_MEMBER_PASSWORD }}
+      RELEASE_GATE_AGENT_EMAIL: ${{ secrets.RELEASE_GATE_AGENT_EMAIL }}
+      RELEASE_GATE_AGENT_PASSWORD: ${{ secrets.RELEASE_GATE_AGENT_PASSWORD }}
+      RELEASE_GATE_OFFICE_AGENT_EMAIL: ${{ secrets.RELEASE_GATE_OFFICE_AGENT_EMAIL }}
+      RELEASE_GATE_STAFF_EMAIL: ${{ secrets.RELEASE_GATE_STAFF_EMAIL }}
+      RELEASE_GATE_STAFF_PASSWORD: ${{ secrets.RELEASE_GATE_STAFF_PASSWORD }}
+      RELEASE_GATE_ADMIN_KS_EMAIL: ${{ secrets.RELEASE_GATE_ADMIN_KS_EMAIL }}
+      RELEASE_GATE_ADMIN_KS_PASSWORD: ${{ secrets.RELEASE_GATE_ADMIN_KS_PASSWORD }}
+      RELEASE_GATE_ADMIN_MK_EMAIL: ${{ secrets.RELEASE_GATE_ADMIN_MK_EMAIL }}
+      RELEASE_GATE_ADMIN_MK_PASSWORD: ${{ secrets.RELEASE_GATE_ADMIN_MK_PASSWORD }}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
       - uses: ./.github/actions/setup
-      - name: Run Smoke Tests against Staging
-        env:
-          BASE_URL: https://staging.interdomestik.com
+        with:
+          install-playwright: 'true'
+
+      - name: Run Staging Release Gate
+        shell: bash
         run: |
-          echo "🧪 Running smoke tests against $BASE_URL..."
-          # pnpm test:e2e:smoke
+          set -euo pipefail
+          mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/release-gates"
+          pnpm -s release:gate:raw \
+            --envName staging \
+            --suite p0 \
+            --baseUrl "${BASE_URL}" \
+            --outDir "${EVIDENCE_DIR}/release-gates" \
+            2>&1 | tee "${EVIDENCE_DIR}/logs/release-gate-staging.log"
+
+      - name: Upload staging verification artifacts
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: staging-verification-${{ github.run_id }}
+          path: ${{ env.EVIDENCE_DIR }}/**
+          if-no-files-found: error
+          retention-days: 14
 
   build-production:
     needs: e2e-staging
@@ -140,6 +270,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
+            COMMIT_SHA=${{ github.sha }}
             INTERDOMESTIK_DEPLOY_ENV=production
             NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -152,11 +283,58 @@ jobs:
     environment:
       name: production
       url: https://app.interdomestik.com
+    env:
+      BASE_URL: https://app.interdomestik.com
+      DEPLOY_WEBHOOK_URL: ${{ secrets.INTERDOMESTIK_PRODUCTION_DEPLOY_WEBHOOK_URL }}
+      DEPLOY_WEBHOOK_TOKEN: ${{ secrets.INTERDOMESTIK_PRODUCTION_DEPLOY_TOKEN }}
     steps:
-      - name: Deploy to Production
+      - name: Trigger Production Deploy
+        shell: bash
         run: |
-          echo "🚀 Deploying image ${{ needs.build-production.outputs.image_tag }} to Production..."
-          # Actual deployment command here
+          set -euo pipefail
+
+          missing=()
+          [[ -n "${DEPLOY_WEBHOOK_URL:-}" ]] || missing+=("INTERDOMESTIK_PRODUCTION_DEPLOY_WEBHOOK_URL")
+          [[ -n "${DEPLOY_WEBHOOK_TOKEN:-}" ]] || missing+=("INTERDOMESTIK_PRODUCTION_DEPLOY_TOKEN")
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing production deploy secret(s): ${missing[*]}."
+            exit 1
+          fi
+
+          payload_file="$(mktemp)"
+          response_file="$(mktemp)"
+          trap 'rm -f "${payload_file}" "${response_file}"' EXIT
+
+          printf '{"environment":"%s","image":"%s","image_tag":"%s","sha":"%s"}' \
+            "production" \
+            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" \
+            "${{ needs.build-production.outputs.image_tag }}" \
+            "${{ github.sha }}" > "${payload_file}"
+
+          curl_exit=0
+          http_status="$(
+            curl --silent --show-error --output "${response_file}" --write-out '%{http_code}' \
+              --retry 3 --retry-delay 5 \
+              -H 'content-type: application/json' \
+              -H "authorization: Bearer ${DEPLOY_WEBHOOK_TOKEN}" \
+              --data-binary @"${payload_file}" \
+              "${DEPLOY_WEBHOOK_URL}"
+          )" || curl_exit=$?
+
+          if (( curl_exit != 0 )); then
+            echo "::error::Failed to trigger production deploy webhook."
+            if [[ -s "${response_file}" ]]; then
+              cat "${response_file}"
+            fi
+            exit "${curl_exit}"
+          fi
+
+          if [[ ! "${http_status}" =~ ^2[0-9][0-9]$ ]]; then
+            echo "::error::Production deploy webhook returned HTTP ${http_status}."
+            cat "${response_file}"
+            exit 1
+          fi
 
   verify-production:
     needs: deploy-production
@@ -165,6 +343,19 @@ jobs:
     env:
       BASE_URL: https://app.interdomestik.com
       EVIDENCE_DIR: tmp/cd-evidence/${{ github.run_id }}
+      EXPECTED_COMMIT_SHA: ${{ github.sha }}
+      RELEASE_GATE_EXPECTED_SHA: ${{ github.sha }}
+      RELEASE_GATE_MEMBER_EMAIL: ${{ secrets.RELEASE_GATE_MEMBER_EMAIL }}
+      RELEASE_GATE_MEMBER_PASSWORD: ${{ secrets.RELEASE_GATE_MEMBER_PASSWORD }}
+      RELEASE_GATE_AGENT_EMAIL: ${{ secrets.RELEASE_GATE_AGENT_EMAIL }}
+      RELEASE_GATE_AGENT_PASSWORD: ${{ secrets.RELEASE_GATE_AGENT_PASSWORD }}
+      RELEASE_GATE_OFFICE_AGENT_EMAIL: ${{ secrets.RELEASE_GATE_OFFICE_AGENT_EMAIL }}
+      RELEASE_GATE_STAFF_EMAIL: ${{ secrets.RELEASE_GATE_STAFF_EMAIL }}
+      RELEASE_GATE_STAFF_PASSWORD: ${{ secrets.RELEASE_GATE_STAFF_PASSWORD }}
+      RELEASE_GATE_ADMIN_KS_EMAIL: ${{ secrets.RELEASE_GATE_ADMIN_KS_EMAIL }}
+      RELEASE_GATE_ADMIN_KS_PASSWORD: ${{ secrets.RELEASE_GATE_ADMIN_KS_PASSWORD }}
+      RELEASE_GATE_ADMIN_MK_EMAIL: ${{ secrets.RELEASE_GATE_ADMIN_MK_EMAIL }}
+      RELEASE_GATE_ADMIN_MK_PASSWORD: ${{ secrets.RELEASE_GATE_ADMIN_MK_PASSWORD }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       SENTRY_ORG: ${{ vars.SENTRY_ORG || secrets.SENTRY_ORG }}
       SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT || secrets.SENTRY_PROJECT }}
@@ -173,10 +364,9 @@ jobs:
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: ./.github/actions/setup
         with:
-          node-version-file: '.nvmrc'
-          package-manager-cache: false
+          install-playwright: 'true'
 
       - name: Validate optional Sentry Seer configuration
         shell: bash
@@ -209,6 +399,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/notes" "${EVIDENCE_DIR}/release-gates"
           max_attempts=30
           sleep_seconds=5
 
@@ -229,6 +420,44 @@ jobs:
           echo "❌ Health check failed after ${max_attempts} attempts."
           exit 1
 
+      - name: Verify Production Build Provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --input-type=module -e '
+            const expected = process.env.EXPECTED_COMMIT_SHA;
+            const baseUrl = process.env.BASE_URL;
+            if (!expected || !baseUrl) {
+              throw new Error("EXPECTED_COMMIT_SHA and BASE_URL are required");
+            }
+
+            const res = await fetch(new URL("/api/health", baseUrl));
+            if (!res.ok) {
+              throw new Error(`Health endpoint returned ${res.status}`);
+            }
+
+            const health = await res.json();
+            const actual = health?.build?.commitSha;
+            if (actual !== expected) {
+              throw new Error(`Deployed build provenance mismatch: expected ${expected}, got ${actual || "missing"}`);
+            }
+
+            console.log(`Deployed build provenance verified: ${actual}`);
+          '
+
+      - name: Run Production Release Gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/release-gates"
+          pnpm -s release:gate:raw \
+            --envName production \
+            --suite all \
+            --baseUrl "${BASE_URL}" \
+            --outDir "${EVIDENCE_DIR}/release-gates" \
+            2>&1 | tee "${EVIDENCE_DIR}/logs/release-gate-production.log"
+
       - name: Close Sentry Seer sweep window
         if: always() && env.SENTRY_SEER_ENABLED == 'true'
         continue-on-error: true
@@ -239,12 +468,12 @@ jobs:
 
       - name: Upload production verification artifacts
         if: always()
-        continue-on-error: true
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: production-verification-${{ github.run_id }}
           path: |
             ${{ env.EVIDENCE_DIR }}/logs/*
             ${{ env.EVIDENCE_DIR }}/notes/*
-          if-no-files-found: warn
+            ${{ env.EVIDENCE_DIR }}/release-gates/*
+          if-no-files-found: error
           retention-days: 14

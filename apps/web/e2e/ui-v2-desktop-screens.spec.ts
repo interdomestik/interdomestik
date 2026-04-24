@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { expect, test } from '@playwright/test';
+import { gotoApp } from './utils/navigation';
 
 const OUTPUT_DIR = path.resolve(__dirname, '../../../tmp/pilot-evidence/day17-desktop/screens');
 
@@ -44,19 +45,19 @@ async function waitForStyledUI(
   await page.waitForTimeout(400);
 }
 
-test('capture deterministic desktop screenshots for UI_V2 audit', async ({ page }) => {
+test('capture deterministic desktop screenshots for UI_V2 audit', async ({ page }, testInfo) => {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   const failed: string[] = [];
   page.on('requestfailed', request => failed.push(request.url()));
 
-  await page.goto('/sq', { waitUntil: 'domcontentloaded' });
+  await gotoApp(page, '/', testInfo, { marker: 'hero-v2-digital-id-preview' });
   await waitForStyledUI(page, '[data-testid="hero-v2-digital-id-preview"]', 'rounded');
   await page.screenshot({
     path: path.join(OUTPUT_DIR, 'day17-hero-1440x900.png'),
   });
 
-  await page.goto('/sq/member', { waitUntil: 'domcontentloaded' });
-  await page.waitForURL(/\/sq\/member(?:\?.*)?$/, { timeout: 15000 });
+  await gotoApp(page, '/member', testInfo, { marker: 'member-hero' });
+  await page.waitForURL(/\/member(?:\?.*)?$/, { timeout: 15000 });
   await waitForStyledUI(page, '[data-testid="member-hero"]', 'hero-gradient');
   await page.screenshot({
     path: path.join(OUTPUT_DIR, 'day17-member-top-1440x900.png'),

@@ -24,7 +24,7 @@ test.describe('E2E Invariants', () => {
     }
 
     // Navigate to a few pages and verify origin stays stable
-    const paths = ['/en', '/sq', '/en/login'];
+    const paths = ['/', '/login', '/member'];
     for (const path of paths) {
       await gotoApp(page, path, testInfo);
       const currentOrigin = new URL(page.url()).origin;

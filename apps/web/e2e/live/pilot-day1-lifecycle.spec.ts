@@ -1,5 +1,12 @@
 import { test, type Page } from '@playwright/test';
 
+const LOGIN_LOCALE = 'en';
+const STAFF_LOCALE = 'sq';
+
+function localizedUrl(baseUrl: string, locale: string, pathname: string): string {
+  return `${baseUrl}/${locale}${pathname}`;
+}
+
 async function loginAsStaff(page: Page, baseUrl: string): Promise<void> {
   const password = process.env.PILOT_STAFF_PASSWORD;
   if (!password) {
@@ -11,7 +18,7 @@ async function loginAsStaff(page: Page, baseUrl: string): Promise<void> {
     data: { email: 'staff.ks.extra@interdomestik.com', password },
     headers: {
       Origin: baseUrl,
-      Referer: `${baseUrl}/en/login`,
+      Referer: localizedUrl(baseUrl, LOGIN_LOCALE, '/login'),
       'x-forwarded-host': process.env.PILOT_HOST_HEADER || 'ks.localhost:3000',
     },
   });
@@ -23,7 +30,7 @@ async function loginAsStaff(page: Page, baseUrl: string): Promise<void> {
 }
 
 async function openClaimsQueue(page: Page, baseUrl: string): Promise<void> {
-  const claimsUrl = `${baseUrl}/sq/staff/claims`;
+  const claimsUrl = localizedUrl(baseUrl, STAFF_LOCALE, '/staff/claims');
   await page.goto(claimsUrl, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(4000);
 

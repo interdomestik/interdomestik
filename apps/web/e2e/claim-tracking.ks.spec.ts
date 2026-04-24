@@ -10,8 +10,6 @@
 import { expect, test } from './fixtures/auth.fixture';
 import { gotoApp } from './utils/navigation';
 
-// Deterministic data from seed-golden.ts
-const DEFAULT_LOCALE = 'sq';
 const TOKENS = {
   PUBLIC_DEMO: 'demo-ks-track-token-001',
 };
@@ -41,7 +39,7 @@ test.describe('Claim Tracking KS', () => {
   }, testInfo) => {
     // Using the standard KS member from fixtures (member.ks.a1@interdomestik.com)
     // Navigate to member claims page
-    await gotoApp(page, `/${DEFAULT_LOCALE}/member/claims`, testInfo);
+    await gotoApp(page, '/member/claims', testInfo);
     await page.waitForLoadState('domcontentloaded');
 
     // Verify we're on the claims page
@@ -55,7 +53,7 @@ test.describe('Claim Tracking KS', () => {
   test('Agent can access claims workspace', async ({ agentPage: page }, testInfo) => {
     // Using the standard KS agent from fixtures (agent.ks.a1@interdomestik.com)
     // Navigate to agent workspace claims
-    await gotoApp(page, `/${DEFAULT_LOCALE}/agent/workspace/claims`, testInfo);
+    await gotoApp(page, '/agent/workspace/claims', testInfo);
     await page.waitForLoadState('domcontentloaded');
 
     // Verify we're on the claims workspace

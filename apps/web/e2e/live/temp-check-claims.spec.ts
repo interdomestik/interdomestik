@@ -2,6 +2,12 @@ import { test } from '@playwright/test';
 
 const STAFF_EMAIL = process.env.PILOT_STAFF_EMAIL || process.env.RELEASE_GATE_STAFF_EMAIL;
 const STAFF_PASSWORD = process.env.PILOT_STAFF_PASSWORD || process.env.RELEASE_GATE_STAFF_PASSWORD;
+const LOGIN_LOCALE = 'en';
+const STAFF_LOCALE = 'sq';
+
+function localizedUrl(baseUrl: string, locale: string, pathname: string): string {
+  return `${baseUrl}/${locale}${pathname}`;
+}
 
 test('Verify Production Claims on Staff Dashboard', async ({ page }, testInfo) => {
   test.setTimeout(60000);
@@ -14,7 +20,7 @@ test('Verify Production Claims on Staff Dashboard', async ({ page }, testInfo) =
   test.skip(!STAFF_EMAIL || !STAFF_PASSWORD, 'Missing staff credentials for live verification.');
 
   const BASE_URL = process.env.PILOT_URL || 'https://interdomestik-web.vercel.app';
-  const URL = `${BASE_URL}/sq/staff/claims`;
+  const URL = localizedUrl(BASE_URL, STAFF_LOCALE, '/staff/claims');
   console.log('[Verify] Attempting API Login...');
 
   const loginUrl = `${BASE_URL}/api/auth/sign-in/email`;
@@ -22,7 +28,7 @@ test('Verify Production Claims on Staff Dashboard', async ({ page }, testInfo) =
     data: { email: STAFF_EMAIL, password: STAFF_PASSWORD },
     headers: {
       Origin: BASE_URL,
-      Referer: `${BASE_URL}/en/login`,
+      Referer: localizedUrl(BASE_URL, LOGIN_LOCALE, '/login'),
       'x-forwarded-host': 'ks.interdomestik.com',
     },
   });

@@ -5,6 +5,11 @@ const BASE_URL = process.env.PILOT_URL || 'https://interdomestik-web.vercel.app'
 const MEMBER_EMAIL = process.env.PILOT_MEMBER_EMAIL || process.env.RELEASE_GATE_MEMBER_EMAIL;
 const MEMBER_PASSWORD =
   process.env.PILOT_MEMBER_PASSWORD || process.env.RELEASE_GATE_MEMBER_PASSWORD;
+const PILOT_LOCALE = 'en';
+
+function localizedUrl(pathname: string): string {
+  return `${BASE_URL}/${PILOT_LOCALE}${pathname}`;
+}
 
 test.describe('Live Pilot Day 1 Driver (Multi-Claim)', () => {
   test('Submit 3 Standard Claims', async ({ page }) => {
@@ -30,7 +35,7 @@ test.describe('Live Pilot Day 1 Driver (Multi-Claim)', () => {
       data: { email: MEMBER_EMAIL, password: MEMBER_PASSWORD },
       headers: {
         Origin: BASE_URL,
-        Referer: `${BASE_URL}/en/login`,
+        Referer: localizedUrl('/login'),
         'x-forwarded-host': process.env.PILOT_HOST_HEADER || 'ks.localhost:3000',
       },
     });
@@ -46,7 +51,7 @@ test.describe('Live Pilot Day 1 Driver (Multi-Claim)', () => {
       console.log(`[Driver] Starting Claim ${i} of 3...`);
 
       // 2. Navigate to New Claim Wizard
-      const newClaimURL = `${BASE_URL}/en/member/claims/new`;
+      const newClaimURL = localizedUrl('/member/claims/new');
       await page.goto(newClaimURL, { waitUntil: 'domcontentloaded' });
 
       // Sanity check: if we got redirected to /login, the session did not carry
@@ -87,7 +92,7 @@ test.describe('Live Pilot Day 1 Driver (Multi-Claim)', () => {
       await submitButton.click({ force: true });
 
       // 7. Verify Redirection to List
-      await page.waitForURL(`${BASE_URL}/en/member/claims`, { timeout: 20000 });
+      await page.waitForURL(localizedUrl('/member/claims'), { timeout: 20000 });
       console.log(`✅ Claim ${i} Created Successfully: "${claimTitle}"`);
 
       // Short delay between submissions

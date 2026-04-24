@@ -10,9 +10,10 @@ const COOKIE_CONSENT_STORAGE_KEY = 'interdomestik_cookie_consent_v1';
 const COOKIE_CONSENT_COOKIE_NAME = 'cookie_consent';
 const LOCAL_TEST_PROTOCOL = 'http:';
 const LOCAL_TEST_HOST = 'mk.127.0.0.1.nip.io:3000';
+const LOCAL_TEST_LOCALE = 'mk';
 
 function baseOrigin(testInfo: TestInfo): string {
-  const fallbackBaseURL = `${LOCAL_TEST_PROTOCOL}//${LOCAL_TEST_HOST}/mk`;
+  const fallbackBaseURL = `${LOCAL_TEST_PROTOCOL}//${LOCAL_TEST_HOST}/${LOCAL_TEST_LOCALE}`;
   const baseURL = testInfo.project.use.baseURL ?? fallbackBaseURL;
   return new URL(baseURL.toString()).origin;
 }

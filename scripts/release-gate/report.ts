@@ -100,7 +100,7 @@ function writeReleaseGateReport(input) {
     `- Deployment ID: ${sanitizeReportText(input.deploymentId || 'unknown')}`,
     `- Deployment URL: ${sanitizeReportText(input.deploymentUrl || 'unknown')}`,
     `- Deployment provenance: ${sanitizeReportText(input.deploymentSource || 'unknown')}`,
-    '- Commit SHA: not available',
+    `- Commit SHA: ${sanitizeReportText(input.commitSha || 'not available')}`,
     '- Deployer: release-gate runner',
     '- Change summary:',
     '- Deterministic scripted release gate run',

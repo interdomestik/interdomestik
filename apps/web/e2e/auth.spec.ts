@@ -186,7 +186,7 @@ test.describe('Authentication', () => {
         await page.waitForTimeout(1000);
 
         // Should still be in Albanian locale
-        expect(page.url()).toContain('/sq/');
+        expect(new URL(page.url()).pathname.split('/')[1]).toBe('sq');
       });
     });
 
@@ -195,7 +195,7 @@ test.describe('Authentication', () => {
         await gotoApp(page, routes.login('en'), testInfo);
 
         // Check page is in English locale
-        expect(page.url()).toContain('/en/');
+        expect(new URL(page.url()).pathname.split('/')[1]).toBe('en');
       });
     });
 
@@ -204,7 +204,7 @@ test.describe('Authentication', () => {
         await gotoApp(page, routes.login('sq'), testInfo);
 
         // Check page is in Albanian locale
-        expect(page.url()).toContain('/sq/');
+        expect(new URL(page.url()).pathname.split('/')[1]).toBe('sq');
       });
     });
   });

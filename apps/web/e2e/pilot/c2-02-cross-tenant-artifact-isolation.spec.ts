@@ -15,12 +15,19 @@ import { expect, test } from '../fixtures/auth.fixture';
 import { createSignedUploadCore } from '@/app/api/uploads/_core';
 
 const ACTOR_HOST = process.env.C2_ACTOR_HOST ?? process.env.MK_HOST ?? 'mk.127.0.0.1.nip.io:3000';
-const ACTOR_LOGIN_PATH = process.env.C2_ACTOR_LOGIN_PATH ?? '/mk/login';
-const ACTOR_ADMIN_OVERVIEW_PATH = process.env.C2_ACTOR_ADMIN_OVERVIEW_PATH ?? '/mk/admin/overview';
-const ACTOR_ADMIN_CLAIMS_PREFIX = process.env.C2_ACTOR_ADMIN_CLAIMS_PREFIX ?? '/mk/admin/claims';
+const ACTOR_LOCALE = process.env.C2_ACTOR_LOCALE ?? 'mk';
+const ACTOR_LOGIN_PATH = process.env.C2_ACTOR_LOGIN_PATH ?? localePath('/login');
+const ACTOR_ADMIN_OVERVIEW_PATH =
+  process.env.C2_ACTOR_ADMIN_OVERVIEW_PATH ?? localePath('/admin/overview');
+const ACTOR_ADMIN_CLAIMS_PREFIX =
+  process.env.C2_ACTOR_ADMIN_CLAIMS_PREFIX ?? localePath('/admin/claims');
 const ACTOR_ADMIN_EMAIL = process.env.C2_ACTOR_EMAIL ?? E2E_USERS.MK_ADMIN.email;
 const ACTOR_ADMIN_TENANT_ID = process.env.C2_ACTOR_TENANT_ID ?? E2E_USERS.MK_ADMIN.tenantId;
 const TARGET_TENANT_ID = process.env.C2_TARGET_TENANT_ID ?? E2E_USERS.KS_MEMBER.tenantId;
+
+function localePath(pathname: string): string {
+  return `/${ACTOR_LOCALE}${pathname}`;
+}
 
 type SessionUser = {
   id: string;

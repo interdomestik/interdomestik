@@ -99,7 +99,7 @@ test.describe('Settings Page', () => {
         await authenticatedPage.waitForURL(/\/sq\//);
 
         // Should be on Albanian settings page
-        expect(authenticatedPage.url()).toContain('/sq/');
+        expect(new URL(authenticatedPage.url()).pathname.split('/')[1]).toBe('sq');
       }
     });
   });

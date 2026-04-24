@@ -5,6 +5,11 @@ import { gotoApp } from '../utils/navigation';
 const PILOT_TENANT_ID = 'pilot-mk';
 const PILOT_HOST = 'pilot.127.0.0.1.nip.io:3000';
 const KS_HOST = 'ks.127.0.0.1.nip.io:3000';
+const PILOT_LOCALE = 'en';
+
+function pilotPath(pathname: string): string {
+  return `/${PILOT_LOCALE}${pathname}`;
+}
 
 test.describe('C1 Pilot: Staff claim triage', () => {
   test('member submits claim, pilot staff sees it and self-assigns, KS host remains isolated', async ({
@@ -45,7 +50,7 @@ test.describe('C1 Pilot: Staff claim triage', () => {
     const memberName = `Pilot Member C104 ${timestamp}`;
     const claimTitle = `Pilot Staff Claim ${timestamp}`;
 
-    await gotoApp(agentPage, '/en/agent/clients/new', testInfo, { marker: 'dashboard-page-ready' });
+    await gotoApp(agentPage, '/agent/clients/new', testInfo, { marker: 'dashboard-page-ready' });
     await expect(agentPage.getByTestId('agent-register-member-form')).toBeVisible();
 
     await agentPage.getByTestId('agent-register-member-full-name').fill(memberName);
@@ -81,19 +86,19 @@ test.describe('C1 Pilot: Staff claim triage', () => {
     }
 
     const memberContext = await browser.newContext({
-      baseURL: `http://${PILOT_HOST}/en`,
+      baseURL: `http://${PILOT_HOST}/${PILOT_LOCALE}`,
       extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
       locale: 'en-US',
     });
     const memberPage = await memberContext.newPage();
 
-    await memberPage.goto('/en/login');
+    await memberPage.goto(pilotPath('/login'));
     await memberPage.getByTestId('login-email').fill(memberEmail);
     await memberPage.getByTestId('login-password').fill(E2E_PASSWORD);
     await memberPage.getByTestId('login-submit').click();
 
     await expect(memberPage).toHaveURL(/\/(?:en\/)?member$/);
-    await gotoApp(memberPage, '/en/member/claims/new', testInfo);
+    await gotoApp(memberPage, '/member/claims/new', testInfo);
     await memberPage.getByTestId('category-vehicle').click();
     await memberPage.getByTestId('wizard-next').click();
 
@@ -136,23 +141,23 @@ test.describe('C1 Pilot: Staff claim triage', () => {
     expect(createdClaim.staffId).toBeNull();
 
     const staffContext = await browser.newContext({
-      baseURL: `http://${PILOT_HOST}/en`,
+      baseURL: `http://${PILOT_HOST}/${PILOT_LOCALE}`,
       extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
       locale: 'en-US',
     });
     const staffPage = await staffContext.newPage();
 
-    await staffPage.goto('/en/login');
+    await staffPage.goto(pilotPath('/login'));
     await staffPage.getByTestId('login-email').fill('staff.pilot@interdomestik.com');
     await staffPage.getByTestId('login-password').fill(E2E_PASSWORD);
     await staffPage.getByTestId('login-submit').click();
 
     await expect(staffPage).toHaveURL(/\/(?:en\/)?staff(?:\/claims)?$/);
-    await gotoApp(staffPage, '/en/staff/claims', testInfo, { marker: 'staff-page-ready' });
+    await gotoApp(staffPage, '/staff/claims', testInfo, { marker: 'staff-page-ready' });
 
     const reviewLink = staffPage.locator(`a[href$="/staff/claims/${createdClaim.id}"]`);
     await expect(reviewLink).toBeVisible();
-    await gotoApp(staffPage, `/en/staff/claims/${createdClaim.id}`, testInfo);
+    await gotoApp(staffPage, `/staff/claims/${createdClaim.id}`, testInfo);
     await expect(staffPage).toHaveURL(new RegExp(`/staff/claims/${createdClaim.id}$`));
     await expect(staffPage.getByTestId('staff-claim-detail-ready')).toBeVisible();
     await staffPage.getByTestId('staff-assign-claim-button').click();
@@ -171,14 +176,14 @@ test.describe('C1 Pilot: Staff claim triage', () => {
       .toBe(seededPilotStaff.id);
 
     const ksContext = await browser.newContext({
-      baseURL: `http://${KS_HOST}/en`,
+      baseURL: `http://${KS_HOST}/${PILOT_LOCALE}`,
       extraHTTPHeaders: { 'x-forwarded-host': KS_HOST },
       locale: 'en-US',
       storageState: await staffContext.storageState(),
     });
     const ksPage = await ksContext.newPage();
 
-    await ksPage.goto('/en/staff/claims', { waitUntil: 'domcontentloaded' });
+    await ksPage.goto(pilotPath('/staff/claims'), { waitUntil: 'domcontentloaded' });
     await expect(ksPage).not.toHaveURL(/\/(?:en\/)?staff\/claims$/);
     await expect(ksPage).toHaveURL(/\/(?:en\/)?login/);
 
