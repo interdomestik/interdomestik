@@ -11,6 +11,7 @@ const hoisted = vi.hoisted(() => {
     resolveEvidenceBucketName: vi.fn(),
     findClaimFirst: vi.fn(),
     createSignedUploadUrl: vi.fn(),
+    listStorageObjects: vi.fn(),
     storageFrom: vi.fn(),
     insertValues: vi.fn(),
     insert: vi.fn(),
@@ -88,7 +89,47 @@ vi.mock('next/cache', () => ({
   revalidatePath: hoisted.revalidatePath,
 }));
 
+import { createClaimUploadIntentToken } from '@/features/claims/upload/server/shared-upload';
 import { confirmUpload, generateUploadUrl } from './actions';
+
+function createUploadIntent(
+  overrides: Partial<{
+    actorId: string;
+    bucket: string;
+    claimId: string;
+    fileId: string;
+    fileSize: number;
+    mimeType: string;
+    storagePath: string;
+    tenantId: string;
+  }> = {}
+) {
+  return createClaimUploadIntentToken({
+    actorId: 'member-1',
+    bucket: 'claim-evidence',
+    claimId: 'claim-1',
+    fileId: 'uuid-1',
+    fileSize: 1024,
+    mimeType: 'application/pdf',
+    storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
+    tenantId: 'tenant-1',
+    ...overrides,
+  });
+}
+
+function createConfirmUploadParams(overrides: Partial<Parameters<typeof confirmUpload>[0]> = {}) {
+  return {
+    claimId: 'claim-1',
+    storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
+    originalName: 'evidence.pdf',
+    mimeType: 'application/pdf',
+    fileSize: 1024,
+    fileId: 'uuid-1',
+    uploadIntentToken: createUploadIntent(),
+    uploadedBucket: 'claim-evidence',
+    ...overrides,
+  };
+}
 
 describe('member claim upload actions', () => {
   beforeEach(() => {
@@ -103,9 +144,19 @@ describe('member claim upload actions', () => {
     hoisted.findClaimFirst.mockResolvedValue({ id: 'claim-1', userId: 'member-1' });
     hoisted.storageFrom.mockReturnValue({
       createSignedUploadUrl: hoisted.createSignedUploadUrl,
+      list: hoisted.listStorageObjects,
     });
     hoisted.createSignedUploadUrl.mockResolvedValue({
       data: { signedUrl: 'https://signed.example.com/upload', token: 'upload-token-1' },
+      error: null,
+    });
+    hoisted.listStorageObjects.mockResolvedValue({
+      data: [
+        {
+          name: 'uuid-1.pdf',
+          metadata: { size: 1024, mimetype: 'application/pdf' },
+        },
+      ],
       error: null,
     });
     hoisted.insert.mockReturnValue({
@@ -128,6 +179,7 @@ describe('member claim upload actions', () => {
 
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://supabase.example.com');
     vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
+    vi.stubEnv('BETTER_AUTH_SECRET', 'upload-intent-test-secret-32-chars-minimum');
   });
 
   it('creates an upload URL for claims owned by the member', async () => {
@@ -140,6 +192,13 @@ describe('member claim upload actions', () => {
       })
     );
     expect(hoisted.createSignedUploadUrl).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects invalid signed upload file sizes before storage URL creation', async () => {
+    const result = await generateUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 0);
+
+    expect(result).toEqual({ success: false, error: 'Invalid file size', status: 400 });
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
   it('retries transient signed upload URL failures before succeeding', async () => {
@@ -216,15 +275,7 @@ describe('member claim upload actions', () => {
   it('denies confirmUpload when claim is not owned by the member', async () => {
     hoisted.findClaimFirst.mockResolvedValue(null);
 
-    const result = await confirmUpload({
-      claimId: 'claim-1',
-      storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
-      originalName: 'evidence.pdf',
-      mimeType: 'application/pdf',
-      fileSize: 1024,
-      fileId: 'uuid-1',
-      uploadedBucket: 'claim-evidence',
-    });
+    const result = await confirmUpload(createConfirmUploadParams());
 
     expect(result).toEqual({ success: false, error: 'Claim not found', status: 404 });
     expect(hoisted.insert).not.toHaveBeenCalled();
@@ -238,17 +289,61 @@ describe('member claim upload actions', () => {
     });
   });
 
-  it('queues a legal-document ai run after confirming the upload metadata', async () => {
-    const result = await confirmUpload({
-      claimId: 'claim-1',
-      storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
-      originalName: 'demand-letter.pdf',
-      mimeType: 'application/pdf',
-      fileSize: 1024,
-      fileId: 'uuid-1',
-      uploadedBucket: 'claim-evidence',
-      category: 'legal',
+  it('rejects forged upload metadata before persisting the document', async () => {
+    const result = await confirmUpload(
+      createConfirmUploadParams({
+        storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-2.pdf',
+        fileId: 'uuid-2',
+      })
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Upload confirmation expired. Please retry upload.',
+      status: 409,
     });
+    expect(hoisted.insert).not.toHaveBeenCalled();
+  });
+
+  it('rejects upload intent tokens with extra segments before storage verification', async () => {
+    const result = await confirmUpload(
+      createConfirmUploadParams({ uploadIntentToken: `${createUploadIntent()}.extra` })
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Upload confirmation expired. Please retry upload.',
+      status: 409,
+    });
+    expect(hoisted.listStorageObjects).not.toHaveBeenCalled();
+    expect(hoisted.insert).not.toHaveBeenCalled();
+  });
+
+  it('rejects confirmation when the uploaded object metadata does not match the intent', async () => {
+    hoisted.listStorageObjects.mockResolvedValueOnce({
+      data: [
+        {
+          name: 'uuid-1.pdf',
+          metadata: { size: 2048, mimetype: 'application/pdf' },
+        },
+      ],
+      error: null,
+    });
+
+    const result = await confirmUpload(createConfirmUploadParams());
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Uploaded file metadata mismatch. Please retry upload.',
+      status: 409,
+    });
+    expect(hoisted.insert).not.toHaveBeenCalled();
+  });
+
+  it('queues a legal-document ai run after confirming the upload metadata', async () => {
+    const result = await confirmUpload(
+      createConfirmUploadParams({ originalName: 'demand-letter.pdf', category: 'legal' })
+    );
 
     expect(result).toEqual({ success: true });
     expect(hoisted.transaction).toHaveBeenCalledTimes(2);
@@ -286,16 +381,7 @@ describe('member claim upload actions', () => {
   it('keeps the upload persisted when ai queueing fails after metadata is saved', async () => {
     hoisted.queueClaimDocumentAiWorkflows.mockRejectedValueOnce(new Error('ai queue unavailable'));
 
-    const result = await confirmUpload({
-      claimId: 'claim-1',
-      storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
-      originalName: 'evidence.pdf',
-      mimeType: 'application/pdf',
-      fileSize: 1024,
-      fileId: 'uuid-1',
-      uploadedBucket: 'claim-evidence',
-      category: 'evidence',
-    });
+    const result = await confirmUpload(createConfirmUploadParams({ category: 'evidence' }));
 
     expect(result).toEqual({ success: true });
     expect(hoisted.insert).toHaveBeenCalledWith('claim_documents');

@@ -3,6 +3,10 @@ import {
   resolveStorageUploadContentType,
   resolveUploadMimeType,
 } from '@/features/admin/claims/components/ops/file-upload-meta';
+import {
+  createClaimUploadIntentToken,
+  sanitizeClaimUploadExtension,
+} from '@/features/claims/upload/server/shared-upload';
 import { findAccessibleAdminUploadClaim } from '@/features/claims/upload/server/access';
 import { confirmUpload } from '@/features/member/claims/actions';
 import { LOCALES } from '@/i18n/locales';
@@ -25,6 +29,22 @@ const ADMIN_UPLOAD_ROLES = new Set([
 ]);
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
+type UploadCategory = 'evidence' | 'legal';
+type EvidenceUploadForm = {
+  category: UploadCategory;
+  claimId: string;
+  file: File;
+};
+
+type ResponseResult<T> = { success: true; data: T } | { success: false; response: NextResponse };
+type ClaimAccess =
+  | { success: true; isAdminSurface: boolean }
+  | { success: false; status: 401 | 404 };
+
+function jsonError(error: string, status: number): NextResponse {
+  return NextResponse.json({ error }, { status });
+}
+
 function isAdminUploadRole(role: string | null | undefined): boolean {
   return role ? ADMIN_UPLOAD_ROLES.has(role) : false;
 }
@@ -36,7 +56,7 @@ async function validateClaimAccess(params: {
   tenantId: string;
   host: string;
   userId: string;
-}): Promise<{ success: true; isAdminSurface: boolean } | { success: false; status: 401 | 404 }> {
+}): Promise<ClaimAccess> {
   const { claimId, role, tenantId, host, userId } = params;
   const isAdminSurface = isAdminUploadRole(role) && resolveTenantFromHost(host) === tenantId;
 
@@ -66,15 +86,12 @@ async function validateClaimAccess(params: {
   return { success: true, isAdminSurface };
 }
 
-export async function POST(request: Request) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function parseEvidenceUploadForm(
+  request: Request
+): Promise<ResponseResult<EvidenceUploadForm>> {
   const formData = await request.formData().catch(() => null);
   if (!formData) {
-    return NextResponse.json({ error: 'Invalid form payload' }, { status: 400 });
+    return { success: false, response: jsonError('Invalid form payload', 400) };
   }
 
   const claimId = formData.get('claimId');
@@ -89,31 +106,166 @@ export async function POST(request: Request) {
     !LOCALES.includes(locale as (typeof LOCALES)[number]) ||
     !(file instanceof File)
   ) {
-    return NextResponse.json({ error: 'Invalid form payload' }, { status: 400 });
+    return { success: false, response: jsonError('Invalid form payload', 400) };
+  }
+
+  if (file.size <= 0) {
+    return { success: false, response: jsonError('Invalid form payload', 400) };
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    return NextResponse.json({ error: 'File too large (max 50MB)' }, { status: 413 });
+    return { success: false, response: jsonError('File too large (max 50MB)', 413) };
   }
 
-  let tenantId: string;
+  return { success: true, data: { category, claimId, file } };
+}
+
+function resolveTenantId(
+  session: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>
+): ResponseResult<string> {
   try {
-    tenantId = ensureTenantId(session);
+    return { success: true, data: ensureTenantId(session) };
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return { success: false, response: jsonError('Unauthorized', 401) };
   }
+}
 
-  let bucket: string;
+function resolveEvidenceBucket(): ResponseResult<string> {
   try {
-    bucket = resolveEvidenceBucketName();
+    return { success: true, data: resolveEvidenceBucketName() };
   } catch (error) {
     const message =
       error instanceof Error
         ? error.message
         : 'Invalid storage configuration for tenant evidence bucket';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return { success: false, response: jsonError(message, 500) };
+  }
+}
+
+function createUploadIntent(params: {
+  bucket: string;
+  claimId: string;
+  file: File;
+  fileId: string;
+  resolvedMimeType: string;
+  storageContentType: string;
+  storagePath: string;
+  tenantId: string;
+  userId: string;
+}): ResponseResult<string> {
+  try {
+    return {
+      success: true,
+      data: createClaimUploadIntentToken({
+        actorId: params.userId,
+        bucket: params.bucket,
+        claimId: params.claimId,
+        fileId: params.fileId,
+        fileSize: params.file.size,
+        mimeType: params.resolvedMimeType,
+        storageContentType: params.storageContentType,
+        storagePath: params.storagePath,
+        tenantId: params.tenantId,
+      }),
+    };
+  } catch (error) {
+    console.error('[claims/evidence-upload] Upload intent configuration error', {
+      message: error instanceof Error ? error.message : 'Upload intent configuration error',
+      nodeEnv: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV,
+    });
+    return { success: false, response: jsonError('Upload configuration error', 500) };
+  }
+}
+
+async function uploadEvidenceObject(params: {
+  bucket: string;
+  file: File;
+  storageContentType: string;
+  storagePath: string;
+}): Promise<NextResponse | null> {
+  const buffer = Buffer.from(await params.file.arrayBuffer());
+
+  const { error: uploadError } = await createAdminClient()
+    .storage.from(params.bucket)
+    .upload(params.storagePath, buffer, {
+      contentType: params.storageContentType,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    return jsonError(uploadError.message || 'Failed to upload evidence', 500);
   }
 
+  return null;
+}
+
+async function confirmEvidenceUpload(params: {
+  bucket: string;
+  category: UploadCategory;
+  claimAccess: { isAdminSurface: boolean };
+  claimId: string;
+  file: File;
+  fileId: string;
+  resolvedMimeType: string;
+  storageContentType: string;
+  storagePath: string;
+  uploadIntentToken: string;
+}) {
+  const confirmation = {
+    claimId: params.claimId,
+    storagePath: params.storagePath,
+    originalName: params.file.name,
+    mimeType: params.resolvedMimeType,
+    fileSize: params.file.size,
+    fileId: params.fileId,
+    uploadIntentToken: params.uploadIntentToken,
+    storageContentType: params.storageContentType,
+    uploadedBucket: params.bucket,
+    category: params.category,
+  };
+
+  return params.claimAccess.isAdminSurface
+    ? confirmAdminUpload(confirmation)
+    : confirmUpload(confirmation);
+}
+
+function captureConfirmFailure(params: {
+  bucket: string;
+  category: UploadCategory;
+  claimId: string;
+  confirmError: string;
+  confirmStatus: number;
+  fileId: string;
+  role: string | null;
+  storagePath: string;
+  tenantId: string;
+  userId: string;
+}) {
+  Sentry.captureMessage('claim.evidence_upload.confirm_failed_after_storage_upload', {
+    level: 'warning',
+    extra: params,
+  });
+}
+
+export async function POST(request: Request) {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) {
+    return jsonError('Unauthorized', 401);
+  }
+
+  const form = await parseEvidenceUploadForm(request);
+  if (!form.success) return form.response;
+
+  const tenant = resolveTenantId(session);
+  if (!tenant.success) return tenant.response;
+
+  const evidenceBucket = resolveEvidenceBucket();
+  if (!evidenceBucket.success) return evidenceBucket.response;
+
+  const { category, claimId, file } = form.data;
+  const tenantId = tenant.data;
+  const bucket = evidenceBucket.data;
   const role = session.user.role ?? null;
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '';
   const claimAccess = await validateClaimAccess({
@@ -126,72 +278,61 @@ export async function POST(request: Request) {
   });
 
   if (!claimAccess.success) {
-    return NextResponse.json(
-      { error: claimAccess.status === 404 ? 'Claim not found' : 'Unauthorized' },
-      { status: claimAccess.status }
+    return jsonError(
+      claimAccess.status === 404 ? 'Claim not found' : 'Unauthorized',
+      claimAccess.status
     );
   }
 
   const resolvedMimeType = resolveUploadMimeType(file);
   const storageContentType = resolveStorageUploadContentType(file);
-  const extension = file.name.split('.').pop() || 'bin';
   const fileId = randomUUID();
+  const extension = sanitizeClaimUploadExtension(file.name);
   const storagePath = `pii/tenants/${tenantId}/claims/${claimId}/${fileId}.${extension}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const uploadIntent = createUploadIntent({
+    bucket,
+    claimId,
+    file,
+    fileId,
+    resolvedMimeType,
+    storageContentType,
+    storagePath,
+    tenantId,
+    userId: session.user.id,
+  });
 
-  const { error: uploadError } = await createAdminClient()
-    .storage.from(bucket)
-    .upload(storagePath, buffer, {
-      contentType: storageContentType,
-      upsert: true,
-    });
+  if (!uploadIntent.success) return uploadIntent.response;
 
-  if (uploadError) {
-    return NextResponse.json(
-      { error: uploadError.message || 'Failed to upload evidence' },
-      { status: 500 }
-    );
-  }
+  const uploadError = await uploadEvidenceObject({ bucket, file, storageContentType, storagePath });
+  if (uploadError) return uploadError;
 
-  const confirmResult = claimAccess.isAdminSurface
-    ? await confirmAdminUpload({
-        claimId,
-        storagePath,
-        originalName: file.name,
-        mimeType: resolvedMimeType,
-        fileSize: file.size,
-        fileId,
-        uploadedBucket: bucket,
-        category,
-      })
-    : await confirmUpload({
-        claimId,
-        storagePath,
-        originalName: file.name,
-        mimeType: resolvedMimeType,
-        fileSize: file.size,
-        fileId,
-        uploadedBucket: bucket,
-        category,
-      });
+  const confirmResult = await confirmEvidenceUpload({
+    bucket,
+    category,
+    claimAccess,
+    claimId,
+    file,
+    fileId,
+    resolvedMimeType,
+    storageContentType,
+    storagePath,
+    uploadIntentToken: uploadIntent.data,
+  });
 
   if (!confirmResult.success) {
-    Sentry.captureMessage('claim.evidence_upload.confirm_failed_after_storage_upload', {
-      level: 'warning',
-      extra: {
-        claimId,
-        tenantId,
-        userId: session.user.id,
-        role,
-        fileId,
-        bucket,
-        storagePath,
-        category,
-        confirmStatus: confirmResult.status,
-        confirmError: confirmResult.error,
-      },
+    captureConfirmFailure({
+      bucket,
+      category,
+      claimId,
+      confirmError: confirmResult.error,
+      confirmStatus: confirmResult.status,
+      fileId,
+      role,
+      storagePath,
+      tenantId,
+      userId: session.user.id,
     });
-    return NextResponse.json({ error: confirmResult.error }, { status: confirmResult.status });
+    return jsonError(confirmResult.error, confirmResult.status);
   }
 
   return NextResponse.json({ success: true, fileId, storagePath });

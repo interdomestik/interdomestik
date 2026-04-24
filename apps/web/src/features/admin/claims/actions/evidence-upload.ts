@@ -5,6 +5,7 @@ import {
   createSignedUploadUrl,
   persistClaimDocumentAndQueueWorkflows,
   revalidatePathForAllLocales,
+  validateConfirmedClaimUpload,
 } from '@/features/claims/upload/server/shared-upload';
 import { auth } from '@/lib/auth';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
@@ -33,8 +34,16 @@ type UploadContext =
   | { success: false; error: string; status: 401 | 500 };
 
 export type GenerateAdminUploadUrlResult =
-  | { success: true; url: string; path: string; id: string; token: string; bucket: string }
-  | { success: false; error: string; status: 401 | 404 | 413 | 500 };
+  | {
+      success: true;
+      url: string;
+      path: string;
+      id: string;
+      token: string;
+      bucket: string;
+      intentToken: string;
+    }
+  | { success: false; error: string; status: 400 | 401 | 404 | 413 | 500 };
 
 export type ConfirmAdminUploadResult =
   | { success: true }
@@ -47,6 +56,8 @@ export type ConfirmAdminUploadParams = {
   mimeType: string;
   fileSize: number;
   fileId: string;
+  uploadIntentToken: string;
+  storageContentType?: string;
   uploadedBucket?: string;
   category?: 'evidence' | 'legal';
 };
@@ -98,7 +109,7 @@ function revalidateAdminEvidencePaths(claimId: string) {
 export async function generateAdminUploadUrl(
   claimId: string,
   fileName: string,
-  _contentType: string,
+  contentType: string,
   fileSize: number
 ): Promise<GenerateAdminUploadUrlResult> {
   const uploadContext = await resolveAdminUploadContext();
@@ -120,25 +131,30 @@ export async function generateAdminUploadUrl(
   }
 
   return createSignedUploadUrl({
+    actorId: uploadContext.session.user.id,
     bucket: resolvedBucket,
     claimId,
     fileName,
     fileSize,
     logPrefix: '[admin/claims]',
+    mimeType: contentType,
     tenantId,
   });
 }
 
-export async function confirmAdminUpload({
-  claimId,
-  storagePath,
-  originalName,
-  mimeType,
-  fileSize,
-  fileId,
-  uploadedBucket,
-  category = 'evidence',
-}: ConfirmAdminUploadParams): Promise<ConfirmAdminUploadResult> {
+export async function confirmAdminUpload(
+  params: ConfirmAdminUploadParams
+): Promise<ConfirmAdminUploadResult> {
+  const {
+    claimId,
+    storagePath,
+    originalName,
+    mimeType,
+    fileSize,
+    fileId,
+    uploadedBucket,
+    category = 'evidence',
+  } = params;
   const uploadContext = await resolveAdminUploadContext();
   if (!uploadContext.success) {
     return uploadContext;
@@ -164,6 +180,18 @@ export async function confirmAdminUpload({
         error: 'Upload bucket mismatch detected. Please retry upload.',
         status: 409,
       };
+    }
+
+    const validatedUpload = await validateConfirmedClaimUpload({
+      actorId: session.user.id,
+      bucket: resolvedBucket,
+      confirmation: params,
+      logPrefix: '[admin/claims] confirmAdminUpload',
+      tenantId,
+    });
+
+    if (!validatedUpload.success) {
+      return validatedUpload;
     }
 
     await persistClaimDocumentAndQueueWorkflows({

@@ -5,6 +5,7 @@ import {
   createSignedUploadUrl,
   persistClaimDocumentAndQueueWorkflows,
   revalidatePathForAllLocales,
+  validateConfirmedClaimUpload,
 } from '@/features/claims/upload/server/shared-upload';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { claims, db } from '@interdomestik/database';
@@ -13,13 +14,21 @@ import { and, eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 
 export type GenerateUploadUrlResult =
-  | { success: true; url: string; path: string; id: string; token: string; bucket: string }
-  | { success: false; error: string; status: 401 | 404 | 413 | 500 };
+  | {
+      success: true;
+      url: string;
+      path: string;
+      id: string;
+      token: string;
+      bucket: string;
+      intentToken: string;
+    }
+  | { success: false; error: string; status: 400 | 401 | 404 | 413 | 500 };
 
 export async function generateUploadUrl(
   claimId: string,
   fileName: string,
-  _contentType: string,
+  contentType: string,
   fileSize: number
 ): Promise<GenerateUploadUrlResult> {
   const session = await auth.api.getSession({
@@ -58,11 +67,13 @@ export async function generateUploadUrl(
   }
 
   return createSignedUploadUrl({
+    actorId: session.user.id,
     bucket: evidenceBucket,
     claimId,
     fileName,
     fileSize,
     logPrefix: '[member/claims]',
+    mimeType: contentType,
     tenantId,
   });
 }
@@ -78,6 +89,8 @@ export type ConfirmUploadParams = {
   mimeType: string;
   fileSize: number;
   fileId: string;
+  uploadIntentToken: string;
+  storageContentType?: string;
   uploadedBucket?: string;
   category?: 'evidence' | 'legal';
 };
@@ -118,16 +131,17 @@ async function resolveConfirmUploadContext(): Promise<ConfirmUploadContext> {
   }
 }
 
-export async function confirmUpload({
-  claimId,
-  storagePath,
-  originalName,
-  mimeType,
-  fileSize,
-  fileId,
-  uploadedBucket,
-  category = 'evidence',
-}: ConfirmUploadParams): Promise<ConfirmUploadResult> {
+export async function confirmUpload(params: ConfirmUploadParams): Promise<ConfirmUploadResult> {
+  const {
+    claimId,
+    storagePath,
+    originalName,
+    mimeType,
+    fileSize,
+    fileId,
+    uploadedBucket,
+    category = 'evidence',
+  } = params;
   const uploadContext = await resolveConfirmUploadContext();
   if (!uploadContext.success) {
     return uploadContext;
@@ -158,6 +172,18 @@ export async function confirmUpload({
         error: 'Upload bucket mismatch detected. Please retry upload.',
         status: 409,
       };
+    }
+
+    const validatedUpload = await validateConfirmedClaimUpload({
+      actorId: session.user.id,
+      bucket: resolvedBucket,
+      confirmation: params,
+      logPrefix: '[member/claims] confirmUpload',
+      tenantId,
+    });
+
+    if (!validatedUpload.success) {
+      return validatedUpload;
     }
 
     await persistClaimDocumentAndQueueWorkflows({
