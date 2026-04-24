@@ -6,7 +6,6 @@ import { expect, test } from '@playwright/test';
 import path from 'path';
 import { gotoApp } from './utils/navigation';
 
-const DEFAULT_LOCALE = 'sq';
 const ADMIN_MK_STATE = path.join(__dirname, '.auth', 'mk', 'admin.json');
 
 test.describe('Ops Center Dashboard (Phase 2.7) ', () => {
@@ -15,7 +14,7 @@ test.describe('Ops Center Dashboard (Phase 2.7) ', () => {
 
   test.beforeEach(async ({ page }, testInfo) => {
     // Navigate directly to the Ops Center
-    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims?view=ops`, testInfo, {
+    await gotoApp(page, '/admin/claims?view=ops', testInfo, {
       marker: 'ops-center-page',
     });
 
@@ -59,7 +58,7 @@ test.describe('Ops Center Dashboard (Phase 2.7) ', () => {
 
   test('3. Refresh button resets page', async ({ page }, testInfo) => {
     // Navigate to a sub-state (page 2)
-    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims?view=ops&page=2`, testInfo, {
+    await gotoApp(page, '/admin/claims?view=ops&page=2', testInfo, {
       marker: 'ops-center-page',
     });
     await expect(page).toHaveURL(/page=2/);

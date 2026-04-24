@@ -1074,6 +1074,11 @@ async function main() {
       deploymentId: runCtx.deployment.deploymentId,
       deploymentUrl: runCtx.deployment.deploymentUrl,
       deploymentSource: runCtx.deployment.source,
+      commitSha:
+        process.env.RELEASE_GATE_EXPECTED_SHA ||
+        process.env.COMMIT_SHA ||
+        process.env.GITHUB_SHA ||
+        'not available',
       generatedAt,
       executedChecks: selected,
       checks: normalizedChecks,

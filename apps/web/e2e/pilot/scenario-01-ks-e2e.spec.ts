@@ -5,8 +5,13 @@ import { gotoApp } from '../utils/navigation';
 
 const MK_ACTOR_HOST =
   process.env.C2_ACTOR_HOST ?? process.env.MK_HOST ?? 'mk.127.0.0.1.nip.io:3000';
-const MK_LOGIN_PATH = process.env.C2_ACTOR_LOGIN_PATH ?? '/mk/login';
-const MK_ADMIN_CLAIMS_PREFIX = process.env.C2_ACTOR_ADMIN_CLAIMS_PREFIX ?? '/mk/admin/claims';
+const MK_ACTOR_LOCALE = process.env.C2_ACTOR_LOCALE ?? 'mk';
+const MK_LOGIN_PATH = process.env.C2_ACTOR_LOGIN_PATH ?? mkPath('/login');
+const MK_ADMIN_CLAIMS_PREFIX = process.env.C2_ACTOR_ADMIN_CLAIMS_PREFIX ?? mkPath('/admin/claims');
+
+function mkPath(pathname: string): string {
+  return `/${MK_ACTOR_LOCALE}${pathname}`;
+}
 
 function claimIdFromMemberSuccessPath(href: string): string {
   const trimmed = href.trim().split('?')[0];

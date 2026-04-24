@@ -151,4 +151,4 @@ Tenant is determined by the **Host**. In local/CI environments, we use `nip.io` 
 
 - `pnpm e2e:gate` - Fast critical path tests.
 - `pnpm e2e:regression` - Full E2E suite.
-- `scripts/check-e2e-locales.sh` - CI guard to prevent hardcoded locale regressions.
+- `scripts/check-e2e-locales.sh` - wrapper for the canonical enforced E2E contract guard.

@@ -3,7 +3,6 @@ import { gotoApp } from './utils/navigation';
 
 // Credentials from e2e seed (golden baseline)
 const PASSWORD = 'GoldenPass123!';
-const DEFAULT_LOCALE = 'sq';
 const USERS = {
   super: { email: 'super@interdomestik.com', tenant: 'tenant_mk' },
   mk_admin: { email: 'admin.mk@interdomestik.com', tenant: 'tenant_mk' },
@@ -33,8 +32,7 @@ async function loginAs(
     throw new Error(`API login failed for ${user.email}: ${res.status()} ${await res.text()}`);
   }
 
-  const locale = DEFAULT_LOCALE;
-  let targetPath = `/${locale}`;
+  let targetPath = '';
   if (user.email.includes('admin') || user.email.includes('super')) targetPath += '/admin';
   else if (user.email.includes('agent')) targetPath += '/agent';
   else if (user.email.includes('staff')) targetPath += '/staff';
@@ -49,7 +47,7 @@ test.describe.skip('Full System Seed Smoke Tests ', () => {
     await loginAs(page, USERS.super, testInfo);
 
     await expect(page).toHaveURL(/\/admin/);
-    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/branches`, testInfo);
+    await gotoApp(page, '/admin/branches', testInfo);
     await expect(page.getByText('MK-A', { exact: true })).toBeVisible();
     await expect(page.getByText('MK-B', { exact: true })).toBeVisible();
     await expect(page.getByText('KS-A')).not.toBeVisible();
@@ -60,7 +58,7 @@ test.describe.skip('Full System Seed Smoke Tests ', () => {
     await loginAs(page, USERS.mk_admin, testInfo);
 
     await expect(page).toHaveURL(/\/admin/);
-    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/users?role=admin,staff`, testInfo);
+    await gotoApp(page, '/admin/users?role=admin,staff', testInfo);
     await expect(page.getByText('staff.mk@interdomestik.com')).toBeVisible();
     await expect(page.getByText('staff.ks@interdomestik.com')).not.toBeVisible();
   });
@@ -69,7 +67,7 @@ test.describe.skip('Full System Seed Smoke Tests ', () => {
   test('MK Staff sees MK Claims but not KS Claims', async ({ page }, testInfo) => {
     await loginAs(page, USERS.mk_staff, testInfo);
 
-    await gotoApp(page, `/${DEFAULT_LOCALE}/staff/claims`, testInfo);
+    await gotoApp(page, '/staff/claims', testInfo);
     await expect(page.getByText('Rear ended in Skopje (Baseline)')).toBeVisible(); // MK Claim
     await expect(page.getByText('KS-A SUBMITTED Claim 1')).not.toBeVisible(); // KS Claim
   });
@@ -78,7 +76,7 @@ test.describe.skip('Full System Seed Smoke Tests ', () => {
   test('MK Agent sees seeded Balkan lead', async ({ page }, testInfo) => {
     await loginAs(page, USERS.mk_agent_balkan, testInfo);
 
-    await gotoApp(page, `/${DEFAULT_LOCALE}/agent/leads`, testInfo);
+    await gotoApp(page, '/agent/leads', testInfo);
     const row = page.getByRole('row').filter({ hasText: 'lead.balkan@example.com' });
     await expect(row).toBeVisible();
     await expect(row).toContainText('Pending');

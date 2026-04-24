@@ -13,9 +13,6 @@ const E2E_GLOBS = [
   '!apps/web/e2e/**/test-results/**',
 ];
 
-// Start strict where it matters most (fixtures/helpers). Expand scope as you migrate specs.
-const ENFORCED_PREFIXES = ['apps/web/e2e/fixtures/', 'apps/web/e2e/routes.ts'];
-
 // Narrow strict targets for production smoke compliance.
 const STRICT_TARGETS = new Set([
   'apps/web/e2e/production.spec.ts',
@@ -28,34 +25,41 @@ const ALLOWLIST_PATHS = new Set([
   'apps/web/e2e/gate/tenant-resolution.spec.ts',
 ]);
 
-const rules = [
+const localeRules = [
   {
     id: 'no-default-locale-constant',
     description: 'Ban DEFAULT_LOCALE in E2E code (locale must come from project baseURL).',
     pattern: /\bDEFAULT_LOCALE\b/g,
   },
   {
-    id: 'no-networkidle',
-    description: 'Ban waitForLoadState(\'networkidle\') (use page-ready marker).',
-    pattern: /waitForLoadState\(\s*['"]networkidle['"]\s*\)/g,
-  },
-  {
     id: 'no-hardcoded-locale-prefix',
     description:
-      'Ban hardcoded locale prefixes like "/sq"/"/mk"/"/en" in E2E helpers (use routes/fixtures helpers).',
-    pattern: /['"]\/(sq|mk|en)(\/|['"])/g,
+      'Ban hardcoded locale prefixes like "/sq"/"/mk"/"/en" in E2E paths (use routes/gotoApp helpers).',
+    pattern: /(?:['"`](?:https?:\/\/[^'"`/\r\n]+)?|\$\{[^}\r\n]+\})\/(sq|mk|en)(\/|['"`?#])/g,
   },
 ];
 
-function shouldEnforceOnFile(relPath) {
-  if (ALLOWLIST_PATHS.has(relPath)) return false;
+const readinessRules = [
+  {
+    id: 'no-networkidle',
+    description: "Ban waitForLoadState('networkidle') (use page-ready marker).",
+    pattern: /waitForLoadState\(\s*['"]networkidle['"]\s*\)/g,
+  },
+];
+
+function isStrictTarget(relPath) {
   if (STRICT_TARGETS.has(relPath)) return true;
-  for (const target of STRICT_TARGETS) {
-    if (target.endsWith('/**') && relPath.startsWith(target.slice(0, -3))) {
-      return true;
-    }
-  }
-  return ENFORCED_PREFIXES.some(prefix => relPath.startsWith(prefix));
+  return Array.from(STRICT_TARGETS).some(
+    target => target.endsWith('/**') && relPath.startsWith(target.slice(0, -3))
+  );
+}
+
+function shouldEnforceLocaleOnFile(relPath) {
+  return !ALLOWLIST_PATHS.has(relPath);
+}
+
+function shouldEnforceReadinessOnFile(relPath) {
+  return isStrictTarget(relPath);
 }
 
 function formatHit(relPath, line, col, ruleId, excerpt) {
@@ -88,9 +92,7 @@ function enforceProductionSpecStrictness(relPath, content) {
   }
 
   if (content.match(/(['"`])\/(sq|mk|en)\//g)) {
-    violations.push(
-      `${relPath}: hardcoded locale-prefixed path detected; use routes.*(testInfo).`
-    );
+    violations.push(`${relPath}: hardcoded locale-prefixed path detected; use routes.*(testInfo).`);
   }
 
   return violations;
@@ -102,15 +104,20 @@ async function main() {
   const violations = [];
 
   for (const relPath of files) {
-    if (!shouldEnforceOnFile(relPath)) continue;
-
     const absPath = path.join(repoRoot, relPath);
     const content = await readFile(absPath, 'utf8');
 
-    const strictViolations = enforceProductionSpecStrictness(relPath, content);
-    violations.push(...strictViolations);
+    if (isStrictTarget(relPath)) {
+      const strictViolations = enforceProductionSpecStrictness(relPath, content);
+      violations.push(...strictViolations);
+    }
 
-    for (const rule of rules) {
+    const activeRules = [
+      ...(shouldEnforceLocaleOnFile(relPath) ? localeRules : []),
+      ...(shouldEnforceReadinessOnFile(relPath) ? readinessRules : []),
+    ];
+
+    for (const rule of activeRules) {
       rule.pattern.lastIndex = 0;
       let match;
       while ((match = rule.pattern.exec(content))) {

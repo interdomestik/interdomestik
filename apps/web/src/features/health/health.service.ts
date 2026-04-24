@@ -4,6 +4,10 @@ import { user } from '@interdomestik/database/schema/auth';
 export interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: string;
+  build: {
+    commitSha: string;
+    deployEnv: string;
+  };
   services: {
     database: ServiceHealth;
     redis?: ServiceHealth;
@@ -26,6 +30,18 @@ export interface ServiceHealth {
 }
 
 const startTime = Date.now();
+
+function resolveBuildMetadata(): HealthCheckResult['build'] {
+  return {
+    commitSha:
+      process.env.COMMIT_SHA ||
+      process.env.GITHUB_SHA ||
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      process.env.SOURCE_COMMIT ||
+      'unknown',
+    deployEnv: process.env.INTERDOMESTIK_DEPLOY_ENV || process.env.VERCEL_ENV || 'unknown',
+  };
+}
 
 async function checkDatabaseHealth(): Promise<ServiceHealth> {
   try {
@@ -100,6 +116,7 @@ export async function performHealthCheck(): Promise<HealthCheckResult> {
   return {
     status: overallStatus,
     timestamp: new Date().toISOString(),
+    build: resolveBuildMetadata(),
     services,
     metrics: {
       uptime: Date.now() - startTime,

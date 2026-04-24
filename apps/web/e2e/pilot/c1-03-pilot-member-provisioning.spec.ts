@@ -5,6 +5,11 @@ import { gotoApp } from '../utils/navigation';
 const PILOT_TENANT_ID = 'pilot-mk';
 const PILOT_HOST = 'pilot.127.0.0.1.nip.io:3000';
 const KS_HOST = 'ks.127.0.0.1.nip.io:3000';
+const PILOT_LOCALE = 'en';
+
+function pilotPath(pathname: string): string {
+  return `/${PILOT_LOCALE}${pathname}`;
+}
 
 test.describe('C1 Pilot: Agent Member Provisioning', () => {
   test('agent creates member with inherited tenant+branch and member stays isolated from KS host', async ({
@@ -25,7 +30,7 @@ test.describe('C1 Pilot: Agent Member Provisioning', () => {
     const memberEmail = `member.mk.pilot.${timestamp}@interdomestik.com`;
     const memberName = `Pilot Member ${timestamp}`;
 
-    await gotoApp(agentPage, '/en/agent/clients/new', testInfo, { marker: 'dashboard-page-ready' });
+    await gotoApp(agentPage, '/agent/clients/new', testInfo, { marker: 'dashboard-page-ready' });
     await expect(agentPage.getByTestId('agent-register-member-form')).toBeVisible();
 
     await agentPage.getByTestId('agent-register-member-full-name').fill(memberName);
@@ -80,13 +85,13 @@ test.describe('C1 Pilot: Agent Member Provisioning', () => {
     expect(createdSubscription.status).toBe('active');
 
     const memberContext = await browser.newContext({
-      baseURL: `http://${PILOT_HOST}/en`,
+      baseURL: `http://${PILOT_HOST}/${PILOT_LOCALE}`,
       extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
       locale: 'en-US',
     });
     const memberPage = await memberContext.newPage();
 
-    await memberPage.goto('/en/login');
+    await memberPage.goto(pilotPath('/login'));
     await memberPage.getByTestId('login-email').fill(memberEmail);
     await memberPage.getByTestId('login-password').fill(E2E_PASSWORD);
     await memberPage.getByTestId('login-submit').click();
@@ -95,14 +100,14 @@ test.describe('C1 Pilot: Agent Member Provisioning', () => {
     await expect(memberPage.getByTestId('member-dashboard-ready')).toBeVisible();
 
     const ksContext = await browser.newContext({
-      baseURL: `http://${KS_HOST}/en`,
+      baseURL: `http://${KS_HOST}/${PILOT_LOCALE}`,
       extraHTTPHeaders: { 'x-forwarded-host': KS_HOST },
       locale: 'en-US',
       storageState: await memberContext.storageState(),
     });
     const ksPage = await ksContext.newPage();
 
-    await ksPage.goto('/en/member', { waitUntil: 'domcontentloaded' });
+    await ksPage.goto(pilotPath('/member'), { waitUntil: 'domcontentloaded' });
     await expect(ksPage).not.toHaveURL(/\/(?:en\/)?member$/);
     await expect(ksPage).toHaveURL(/\/(?:en\/)?login/);
 

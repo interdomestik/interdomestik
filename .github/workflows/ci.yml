@@ -67,6 +67,8 @@ jobs:
         run: |
           node scripts/check-env-ci.mjs
           pnpm test:ci:contracts
+          pnpm check:e2e-contracts
+          pnpm lint:production-warnings
           pnpm track:audit
           pnpm plan:audit
           pnpm purity:audit

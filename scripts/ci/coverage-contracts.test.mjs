@@ -9,7 +9,9 @@ import packageJson from '../../package.json' with { type: 'json' };
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
-const coverageGateModuleUrl = pathToFileURL(path.join(rootDir, 'scripts/ci/coverage-gate.mjs')).href;
+const coverageGateModuleUrl = pathToFileURL(
+  path.join(rootDir, 'scripts/ci/coverage-gate.mjs')
+).href;
 
 function writeCoverageSummary(rootPath, relativePath, covered, total) {
   const summaryPath = path.join(rootPath, relativePath, 'coverage', 'coverage-summary.json');
@@ -68,11 +70,16 @@ test('coverage gate script fails when aggregate line coverage drops below the co
 
 test('coverage scripts and canonical PR verification wire the blocking repository floor', () => {
   assert.match(packageJson.scripts['test:coverage'], /scripts\/ci\/clean-coverage-artifacts\.mjs/);
-  assert.match(packageJson.scripts['test:coverage'], /pnpm --filter @interdomestik\/web exec vitest run --coverage --pool=threads/);
+  assert.match(
+    packageJson.scripts['test:coverage'],
+    /pnpm --filter @interdomestik\/web exec vitest run --coverage --pool=threads/
+  );
   assert.match(packageJson.scripts['test:coverage'], /--coverage\.reporter=json-summary/);
   assert.equal(
     packageJson.scripts['coverage:gate'],
     'pnpm test:coverage && node scripts/ci/coverage-gate.mjs --min-lines 60'
   );
   assert.match(packageJson.scripts['pr:verify'], /\bpnpm coverage:gate\b/);
+  assert.match(packageJson.scripts['pr:verify'], /\bpnpm check:e2e-contracts\b/);
+  assert.match(packageJson.scripts['pr:verify'], /\bpnpm lint:production-warnings\b/);
 });

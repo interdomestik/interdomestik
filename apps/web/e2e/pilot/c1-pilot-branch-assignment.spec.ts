@@ -4,6 +4,11 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 const PILOT_TENANT_ID = 'pilot-mk';
+const PILOT_LOCALE = 'en';
+
+function pilotPath(pathname: string): string {
+  return `/${PILOT_LOCALE}${pathname}`;
+}
 
 test.describe('C1 Pilot: Branch + Agent Assignment', () => {
   // Use unique names to avoid conflicts if test reruns without full reset
@@ -39,7 +44,7 @@ test.describe('C1 Pilot: Branch + Agent Assignment', () => {
     // 2. Assign Agent to Branch
     const agentId = 'golden_pilot_mk_agent_2';
     console.log(`[Test] Assigning agent ${agentId} to branch ${branchName}`);
-    await gotoApp(adminPage, `/en/admin/users/${agentId}`, testInfo, { marker: 'body' });
+    await gotoApp(adminPage, `/admin/users/${agentId}`, testInfo, { marker: 'body' });
 
     // Wait for data to load
     await adminPage.waitForSelector('text=Roles');
@@ -111,17 +116,17 @@ test.describe('C1 Pilot: Branch + Agent Assignment', () => {
     });
     const agentPage = await agentContext.newPage();
 
-    await agentPage.goto('/en/login');
+    await agentPage.goto(pilotPath('/login'));
     await agentPage.getByTestId('login-email').fill(E2E_USERS.PILOT_MK_AGENT_2.email);
     await agentPage.getByTestId('login-password').fill(E2E_PASSWORD);
     await agentPage.getByTestId('login-submit').click();
 
     // Explicitly navigate to dashboard root, bypassing canonical redirect to /members
-    await agentPage.waitForURL(/\/en\/agent/); // Wait for login redirect first
-    await agentPage.goto('/en/agent');
+    await agentPage.waitForURL(new RegExp(`/${PILOT_LOCALE}/agent`)); // Wait for login redirect first
+    await agentPage.goto(pilotPath('/agent'));
 
     // Wait for navigation to agent dashboard
-    await expect(agentPage).toHaveURL(/\/en\/agent$/); // Exact match
+    await expect(agentPage).toHaveURL(new RegExp(`/${PILOT_LOCALE}/agent$`)); // Exact match
     console.log(`[Test] Agent logged in successfully. URL: ${agentPage.url()}`);
 
     // Verify they see the branch name in their context (using the data-testid I added)

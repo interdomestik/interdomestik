@@ -50,7 +50,7 @@ test.describe('C1 Pilot: Staff to member status loop', () => {
     const claimTitle = `Pilot Status Loop Claim ${timestamp}`;
     const statusNote = `C1-05 status note ${timestamp}`;
 
-    await gotoApp(agentPage, '/en/agent/clients/new', testInfo, { marker: 'dashboard-page-ready' });
+    await gotoApp(agentPage, '/agent/clients/new', testInfo, { marker: 'dashboard-page-ready' });
     await expect(agentPage.getByTestId('agent-register-member-form')).toBeVisible();
 
     await agentPage.getByTestId('agent-register-member-full-name').fill(memberName);
@@ -96,7 +96,7 @@ test.describe('C1 Pilot: Staff to member status loop', () => {
       });
       const memberPage = await memberContext.newPage();
 
-      await gotoApp(memberPage, '/en/login', testInfo, { marker: 'body' });
+      await gotoApp(memberPage, '/login', testInfo, { marker: 'body' });
       await memberPage.getByTestId('login-email').fill(memberEmail);
       await memberPage.getByTestId('login-password').fill(E2E_PASSWORD);
       await memberPage.getByTestId('login-submit').click();
@@ -156,7 +156,7 @@ test.describe('C1 Pilot: Staff to member status loop', () => {
       });
       const staffPage = await staffContext.newPage();
 
-      await gotoApp(staffPage, '/en/login', testInfo, { marker: 'body' });
+      await gotoApp(staffPage, '/login', testInfo, { marker: 'body' });
       await staffPage.getByTestId('login-email').fill('staff.pilot@interdomestik.com');
       await staffPage.getByTestId('login-password').fill(E2E_PASSWORD);
       await staffPage.getByTestId('login-submit').click();

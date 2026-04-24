@@ -1698,6 +1698,7 @@ test('writeReleaseGateReport includes the G07 to G10 RC sections', () => {
       deploymentId: 'dpl_test123',
       deploymentUrl: 'https://interdomestik-web-g07.vercel.app',
       deploymentSource: 'unit-test',
+      commitSha: 'abc123',
       generatedAt: new Date('2026-03-15T12:00:00.000Z'),
       executedChecks: ['P0.1', 'G07', 'G08', 'G09', 'G10'],
       checks: [
@@ -1749,6 +1750,7 @@ test('writeReleaseGateReport includes the G07 to G10 RC sections', () => {
     });
 
     const report = fs.readFileSync(result.reportPath, 'utf8');
+    assert.match(report, /Commit SHA: abc123/);
     assert.match(report, /Office agent: \[REDACTED_EMAIL\]/);
     assert.match(report, /## G07 Commercial Promise Surfaces/);
     assert.match(report, /## G08 Free Start And Group Privacy Boundaries/);

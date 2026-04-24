@@ -78,7 +78,8 @@ This design is deliberate and supports future authentication flexibility without
 3. **Set up environment variables**
    ```bash
    cp .env.example .env.local
-   # Populate .env.local with credentials (SUPABASE_URL, PADDLE_KEYS, etc.)
+   # Populate .env.local with Supabase, Better Auth, Paddle, Sentry, and tenant host values.
+   # V3 pilot billing uses Paddle only; do not add Stripe runtime credentials.
    ```
 
 ### Development Boot
@@ -123,7 +124,16 @@ Before pushing _any_ code, run the verifier:
 pnpm pr:verify
 ```
 
-_Runs: Format check, Lint, Type-check, and Web Smoke Tests._
+_Runs: memory precheck, release-gate unit coverage, E2E contract checks, production lint-warning baseline, DB/RLS checks, i18n checks, coverage gate, fast checks, and Web Smoke Tests._
+
+For pilot-launch release proof, also run:
+
+```bash
+pnpm check:e2e-contracts
+pnpm lint:production-warnings
+pnpm security:guard
+pnpm e2e:gate
+```
 
 ### Security
 
@@ -138,6 +148,10 @@ pnpm security:guard
 - **Unit Tests**: `pnpm test` (Web) or `pnpm test:unit:domains` (Domains)
 - **E2E Gate**: `pnpm e2e:gate` (Strict quality gate)
 - **Clarity Markers**: used in E2E tests to verify V3 surface readiness.
+
+## 🚢 Release Readiness
+
+The GitHub CD workflow builds separate staging and production Docker artifacts with explicit Supabase environment separation. Promotion is fail-closed: staging and production deploy jobs require environment-scoped deploy webhook secrets, then run health checks and release-gate evidence capture before production verification artifacts are retained.
 
 ## 🌍 Internationalization
 
