@@ -47,6 +47,8 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P13` v1.0.0 Funnel Completion is now complete after completed `P12`. This tranche delivered the minimum viable v1.0.0 path from the 2026-04-24 evaluation: the existing public Free Start shell now produces a real generated claim-pack product, confidence scoring now runs through a reusable deterministic domain engine with factor breakdown, and critical lifecycle notification wiring now covers claim-pack generation and claim handling. `P13` stayed an experience-layer tranche on top of the completed commercial and operations foundations; it did not reopen `apps/web/src/proxy.ts`, canonical routes, auth layering, tenancy, database schema, Stripe, request-path AI, or broad portal redesign.
 
+`P14` Member Experience Guidance is now complete after completed `P13`. This tranche promotes the first narrow Program D experience slice: `P14-MD01` adds guided next-action cards to the canonical member dashboard so active claim state, document organization, membership readiness, and support handoff are visible before members need to search. `P14` stayed limited to the `/member` dashboard experience layer and did not reopen `apps/web/src/proxy.ts`, canonical routes, auth layering, tenancy, database schema, billing, or broad design-system scope.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
@@ -142,6 +144,8 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 89. Keep `P13-FC01` complete as the canonical ClaimPack domain generator slice so the existing Free Start shell produces a real pack with intake facts, evidence checklist, complaint or notice letter, timeline, recommended next step, and generation timestamp.
 90. Keep `P13-FC02` complete as the canonical public Free Start integration slice so the generated ClaimPack appears on the existing public Free Start surface without moving the flow behind member-only routes.
 91. Keep `P13-N01` complete as the canonical critical lifecycle notification slice so missing claim-pack and claim-handling lifecycle events are dispatched through the existing email, push, and in-app infrastructure with verified-recipient guards.
+92. Keep `P14` complete as the canonical post-`P13` Member Experience Guidance tranche, limited to the member dashboard experience layer and not a broad portal redesign.
+93. Keep `P14-MD01` complete as the canonical member-dashboard next-action guidance slice so members can see claim, document, membership, and support readiness from existing dashboard data.
 
 ## Status Command
 
@@ -199,6 +203,8 @@ pnpm plan:proof
 `P12` Program C Business-Model Integrity Hardening is now complete after completed `P11`. `PC01` through `PC06` closed the canonical membership fulfillment, ownership and attribution, commission and referral finance, branch cash truth, membership lifecycle reporting, and enterprise-safe controls lines without widening into routing, auth, tenancy, portal redesign, or modernization work.
 
 `P13` v1.0.0 Funnel Completion is now complete after completed `P12`. `P13-FC01` is complete as the ClaimPack domain generator slice, `P13-FC02` is complete as the public Free Start integration slice, and `P13-N01` is complete as the critical lifecycle notification wiring slice. The tranche closed the minimum viable v1.0.0 gap by turning the existing Free Start shell into a real generated pack and keeping users informed through existing notification infrastructure, without changing proxy, auth, tenancy, canonical routes, schema, Stripe posture, or request-path AI boundaries.
+
+`P14` Member Experience Guidance is now complete after completed `P13`. `P14-MD01` is complete as the member-dashboard next-action guidance slice, adding a localized member guidance panel for no-claim, active-claim, document, membership, and support states using existing dashboard data and without changing proxy, auth, tenancy, canonical routes, schema, billing, or the broader design system.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -261,6 +267,7 @@ These documents can recommend or constrain work, but they do not define the live
 - `PC05` is complete as the membership lifecycle and reporting-truth slice in PR `#492`.
 - `PC06` is complete as the enterprise-safe controls and lifecycle edge-case hardening slice in PR `#493`.
 - `P13` has now completed the minimum viable Program B plus critical notification path in the live program and tracker as the post-`P12` v1.0.0 Funnel Completion tranche, while broader Program D, E, and F recommendations remain planning input until a later promotion or design-gate decision explicitly makes them the live queue.
+- `P14` has now completed the first narrow Program D member-experience slice as the post-`P13` Member Experience Guidance tranche, limited to localized member-dashboard next-action guidance and not a broad dashboard redesign.
 - `P1C` has now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` and is now the active post-infrastructure tranche.
 - `C01` through `C06` have now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the committed commercial-contract publication queue.
 - `C01` is complete as the coverage-matrix publication slice.
