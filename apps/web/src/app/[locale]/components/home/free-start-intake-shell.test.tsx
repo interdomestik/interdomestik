@@ -335,6 +335,17 @@ describe('FreeStartIntakeShell', () => {
       '/member/claims/new'
     );
     expect(screen.getByText(/not legal advice/i)).toBeInTheDocument();
+
+    const writeTextMock = vi.fn().mockRejectedValue(new Error('clipboard denied'));
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: writeTextMock },
+    });
+
+    await user.click(screen.getByRole('button', { name: /copy/i }));
+
+    expect(writeTextMock).toHaveBeenCalledWith('Draft property damage letter');
+    expect(await screen.findByText(/unable to copy automatically/i)).toBeInTheDocument();
   });
 
   it.each(CATEGORY_EVIDENCE_EXPECTATIONS)(

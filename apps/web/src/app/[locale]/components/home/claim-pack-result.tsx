@@ -78,25 +78,6 @@ function evidenceTextClass(item: ClaimPack['evidenceChecklist']['items'][number]
   return 'text-slate-400';
 }
 
-function fallbackCopyText(text: string) {
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.setAttribute('readonly', '');
-  textarea.style.position = 'fixed';
-  textarea.style.top = '0';
-  textarea.style.left = '0';
-  textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
-
-  try {
-    return document.execCommand('copy');
-  } finally {
-    document.body.removeChild(textarea);
-  }
-}
-
 function ConfidenceSection({ confidence }: Readonly<{ confidence: ClaimPack['confidence'] }>) {
   const colors = confidenceColor(confidence.level);
 
@@ -191,23 +172,16 @@ function LetterSection({ letter }: Readonly<{ letter: ClaimPack['letter'] }>) {
     setCopyError(null);
 
     try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(letter.body);
-      } else if (!fallbackCopyText(letter.body)) {
-        throw new Error('Copy command was unsuccessful.');
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API is unavailable.');
       }
 
+      await navigator.clipboard.writeText(letter.body);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      if (fallbackCopyText(letter.body)) {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        return;
-      }
-
       setCopied(false);
-      setCopyError('Unable to copy the letter. Select the text and copy it manually.');
+      setCopyError('Unable to copy automatically. Select the letter text and copy it manually.');
     }
   }, [letter.body]);
 
