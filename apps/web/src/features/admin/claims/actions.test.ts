@@ -35,6 +35,7 @@ describe('admin claim action exports', () => {
       mimeType: 'application/pdf',
       fileSize: 42,
       fileId: 'file-1',
+      uploadIntentToken: 'upload-intent-token',
     };
 
     expect(uploadResult.status).toBe(401);

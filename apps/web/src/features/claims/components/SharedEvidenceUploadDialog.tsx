@@ -35,6 +35,7 @@ type UploadUrlSuccess = {
   bucket: string;
   path: string;
   token: string;
+  intentToken: string;
   id: string;
 };
 
@@ -66,6 +67,8 @@ type ConfirmUploadFn = (params: {
   mimeType: string;
   fileSize: number;
   fileId: string;
+  uploadIntentToken: string;
+  storageContentType?: string;
   uploadedBucket: string;
   category: EvidenceCategory;
 }) => Promise<ConfirmUploadSuccess | ConfirmUploadFailure>;
@@ -202,6 +205,8 @@ export function SharedEvidenceUploadDialog({
       mimeType: resolvedMimeType,
       fileSize: selectedFile.size,
       fileId: uploadUrlResult.id,
+      uploadIntentToken: uploadUrlResult.intentToken,
+      storageContentType,
       uploadedBucket: uploadUrlResult.bucket,
       category: selectedCategory,
     });

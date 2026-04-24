@@ -45,6 +45,7 @@ export function runSharedEvidenceUploadDialogTests({
         bucket: 'claim-evidence',
         path: 'pii/tenants/t1/claims/c1/file.pdf',
         token: 'signed-token',
+        intentToken: 'upload-intent-token',
         id: 'file-id',
       });
       uploadMocks.uploadToSignedUrl.mockResolvedValue({ error: null });
@@ -97,6 +98,8 @@ export function runSharedEvidenceUploadDialogTests({
           mimeType: 'application/pdf',
           fileSize: file.size,
           fileId: 'file-id',
+          uploadIntentToken: 'upload-intent-token',
+          storageContentType: 'application/pdf',
           uploadedBucket: 'claim-evidence',
           category: 'evidence',
         });

@@ -10,6 +10,7 @@ const hoisted = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   createSignedUploadUrl: vi.fn(),
   persistClaimDocumentAndQueueWorkflows: vi.fn(),
+  validateConfirmedClaimUpload: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -31,6 +32,7 @@ vi.mock('@/features/claims/upload/server/shared-upload', () => ({
   createSignedUploadUrl: hoisted.createSignedUploadUrl,
   persistClaimDocumentAndQueueWorkflows: hoisted.persistClaimDocumentAndQueueWorkflows,
   revalidatePathForAllLocales: (path: string) => hoisted.revalidatePath(`/mk${path}`),
+  validateConfirmedClaimUpload: hoisted.validateConfirmedClaimUpload,
 }));
 
 import { confirmAdminUpload, generateAdminUploadUrl } from './evidence-upload';
@@ -59,9 +61,11 @@ describe('admin claim evidence upload actions', () => {
       bucket: 'claim-evidence',
       path: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
       token: 'upload-token',
+      intentToken: 'upload-intent-token',
       id: 'file-id',
     });
     hoisted.persistClaimDocumentAndQueueWorkflows.mockResolvedValue(undefined);
+    hoisted.validateConfirmedClaimUpload.mockResolvedValue({ success: true });
   });
 
   it('rejects upload URL issuance when the admin host tenant drifts', async () => {
@@ -133,6 +137,7 @@ describe('admin claim evidence upload actions', () => {
         mimeType: 'application/pdf',
         fileSize: 1024,
         fileId: 'file-id',
+        uploadIntentToken: 'upload-intent-token',
         uploadedBucket: 'claim-evidence',
       })
     ).resolves.toEqual({ success: false, error: 'Claim not found', status: 404 });
@@ -149,6 +154,7 @@ describe('admin claim evidence upload actions', () => {
         mimeType: 'application/pdf',
         fileSize: 1024,
         fileId: 'file-id',
+        uploadIntentToken: 'upload-intent-token',
         uploadedBucket: 'claim-evidence',
       })
     ).resolves.toEqual({ success: true });
@@ -156,5 +162,32 @@ describe('admin claim evidence upload actions', () => {
     expect(hoisted.revalidatePath).toHaveBeenCalledWith('/mk/admin/claims');
     expect(hoisted.revalidatePath).toHaveBeenCalledWith('/mk/admin/claims/claim-1');
     expect(hoisted.revalidatePath).toHaveBeenCalledWith('/mk/staff/claims/claim-1');
+  });
+
+  it('rejects forged upload metadata before persistence', async () => {
+    hoisted.validateConfirmedClaimUpload.mockResolvedValueOnce({
+      success: false,
+      error: 'Uploaded file metadata mismatch. Please retry upload.',
+      status: 409,
+    });
+
+    await expect(
+      confirmAdminUpload({
+        claimId: 'claim-1',
+        storagePath: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
+        originalName: 'evidence.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 1024,
+        fileId: 'file-id',
+        uploadIntentToken: 'upload-intent-token',
+        uploadedBucket: 'claim-evidence',
+      })
+    ).resolves.toEqual({
+      success: false,
+      error: 'Uploaded file metadata mismatch. Please retry upload.',
+      status: 409,
+    });
+
+    expect(hoisted.persistClaimDocumentAndQueueWorkflows).not.toHaveBeenCalled();
   });
 });

@@ -10,6 +10,8 @@ const hoisted = vi.hoisted(() => ({
   createAdminClient: vi.fn(),
   confirmAdminUpload: vi.fn(),
   confirmUpload: vi.fn(),
+  createClaimUploadIntentToken: vi.fn(),
+  sanitizeClaimUploadExtension: vi.fn(),
   captureMessage: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
@@ -43,18 +45,24 @@ vi.mock('@/features/member/claims/actions', () => ({
 vi.mock('@/features/claims/upload/server/access', () => ({
   findAccessibleAdminUploadClaim: hoisted.findAccessibleAdminUploadClaim,
 }));
+vi.mock('@/features/claims/upload/server/shared-upload', () => ({
+  createClaimUploadIntentToken: hoisted.createClaimUploadIntentToken,
+  sanitizeClaimUploadExtension: hoisted.sanitizeClaimUploadExtension,
+}));
 vi.mock('@sentry/nextjs', () => ({
   captureMessage: hoisted.captureMessage,
 }));
 
 import { POST } from './route';
 
-function createEvidenceUploadRequest(): Request {
+function createEvidenceUploadRequest(
+  file = new File(['test'], 'evidence.pdf', { type: 'application/pdf' })
+): Request {
   const form = new FormData();
   form.set('claimId', 'claim-1');
   form.set('category', 'evidence');
   form.set('locale', 'mk');
-  form.set('file', new File(['test'], 'evidence.pdf', { type: 'application/pdf' }));
+  form.set('file', file);
 
   return {
     headers: new Headers({
@@ -88,6 +96,8 @@ describe('POST /api/claims/evidence-upload', () => {
     });
     hoisted.confirmAdminUpload.mockResolvedValue({ success: true });
     hoisted.confirmUpload.mockResolvedValue({ success: true });
+    hoisted.createClaimUploadIntentToken.mockReturnValue('upload-intent-token');
+    hoisted.sanitizeClaimUploadExtension.mockReturnValue('pdf');
   });
 
   it('denies staff uploads outside branch or assignment scope before storage upload', async () => {
@@ -120,5 +130,71 @@ describe('POST /api/claims/evidence-upload', () => {
         level: 'warning',
       })
     );
+  });
+
+  it('passes a server-issued upload intent token into metadata confirmation', async () => {
+    const response = await POST(createEvidenceUploadRequest());
+
+    expect(response.status).toBe(200);
+    expect(hoisted.createClaimUploadIntentToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'staff-1',
+        bucket: 'claim-evidence',
+        claimId: 'claim-1',
+        fileSize: 4,
+        mimeType: 'application/pdf',
+        storageContentType: 'application/pdf',
+        tenantId: 'tenant-1',
+      })
+    );
+    expect(hoisted.confirmAdminUpload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storageContentType: 'application/pdf',
+        uploadIntentToken: 'upload-intent-token',
+      })
+    );
+  });
+
+  it('rejects zero-byte files before storage upload', async () => {
+    const response = await POST(
+      createEvidenceUploadRequest(new File([], 'empty.pdf', { type: 'application/pdf' }))
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data).toEqual({ error: 'Invalid form payload' });
+    expect(hoisted.createClaimUploadIntentToken).not.toHaveBeenCalled();
+    expect(hoisted.upload).not.toHaveBeenCalled();
+  });
+
+  it('sanitizes direct-upload extensions before storage upload', async () => {
+    hoisted.sanitizeClaimUploadExtension.mockReturnValueOnce('bin');
+
+    const response = await POST(
+      createEvidenceUploadRequest(
+        new File(['test'], 'evidence.pdf/..', { type: 'application/pdf' })
+      )
+    );
+
+    expect(response.status).toBe(200);
+    expect(hoisted.upload).toHaveBeenCalledWith(
+      expect.stringMatching(/^pii\/tenants\/tenant-1\/claims\/claim-1\/[^/]+\.bin$/),
+      expect.any(Buffer),
+      expect.objectContaining({ contentType: 'application/pdf' })
+    );
+  });
+
+  it('fails upload intent configuration before storage upload', async () => {
+    hoisted.createClaimUploadIntentToken.mockImplementationOnce(() => {
+      throw new Error('missing secret');
+    });
+
+    const response = await POST(createEvidenceUploadRequest());
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data).toEqual({ error: 'Upload configuration error' });
+    expect(hoisted.upload).not.toHaveBeenCalled();
+    expect(hoisted.confirmAdminUpload).not.toHaveBeenCalled();
   });
 });
