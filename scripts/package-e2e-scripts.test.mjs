@@ -45,7 +45,7 @@ test('e2e gate scripts keep full and fast lanes distinct', () => {
 
   assert.equal(
     fastCheck,
-    'node scripts/run-with-default-db-url.mjs bash -lc \'cd "$PWD" && NEXT_PUBLIC_BILLING_TEST_MODE=1 pnpm --filter @interdomestik/web run build:ci\' && node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup && node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast'
+    'node scripts/run-with-default-db-url.mjs bash -c \'cd "$PWD" && NEXT_PUBLIC_BILLING_TEST_MODE=1 pnpm --filter @interdomestik/web run build:ci\' && node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup && node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast'
   );
   assert.notEqual(fullGate, fastGate);
   assert.notEqual(prGate, prGateFast);
@@ -89,13 +89,22 @@ test('pilot readiness commands keep local verification and production proof dist
   const releaseGateProd = packageJson.scripts['release:gate:prod'];
   const releaseGateProdRaw = packageJson.scripts['release:gate:prod:raw'];
   const commands5 = readFileSync(new URL('../docs/pilot/COMMANDS_5.md', import.meta.url), 'utf8');
-  const pilotVerifyScript = readFileSync(new URL('../scripts/pilot-verify.sh', import.meta.url), 'utf8');
+  const pilotVerifyScript = readFileSync(
+    new URL('../scripts/pilot-verify.sh', import.meta.url),
+    'utf8'
+  );
   const pilotEntryCriteria = readFileSync(
     new URL('../docs/pilot-entry-criteria.md', import.meta.url),
     'utf8'
   );
-  const pilotRunbook = readFileSync(new URL('../docs/pilot/PILOT_RUNBOOK.md', import.meta.url), 'utf8');
-  const pilotGoNoGo = readFileSync(new URL('../docs/pilot/PILOT_GO_NO_GO.md', import.meta.url), 'utf8');
+  const pilotRunbook = readFileSync(
+    new URL('../docs/pilot/PILOT_RUNBOOK.md', import.meta.url),
+    'utf8'
+  );
+  const pilotGoNoGo = readFileSync(
+    new URL('../docs/pilot/PILOT_GO_NO_GO.md', import.meta.url),
+    'utf8'
+  );
   const pilotEvidenceTemplate = readFileSync(
     new URL('../docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md', import.meta.url),
     'utf8'
@@ -107,11 +116,11 @@ test('pilot readiness commands keep local verification and production proof dist
     pilotFlow,
     'node scripts/run-with-dotenv.mjs bash scripts/pilot-verify.sh --print-ranked-flow'
   );
+  assert.equal(releaseGateProd, 'node scripts/run-with-dotenv.mjs pnpm -s release:gate:prod:raw');
   assert.equal(
-    releaseGateProd,
-    'node scripts/run-with-dotenv.mjs pnpm -s release:gate:prod:raw'
+    releaseGateProdRaw,
+    'tsx scripts/release-gate/run.ts --envName production --suite all'
   );
-  assert.equal(releaseGateProdRaw, 'tsx scripts/release-gate/run.ts --envName production --suite all');
   assert.equal(pilotDecisionRecord, 'tsx scripts/pilot-decision-proof.ts');
   assert.equal(pilotEvidenceRecord, 'tsx scripts/pilot-daily-evidence.ts');
   assert.equal(pilotObservabilityRecord, 'tsx scripts/pilot-observability-evidence.ts');
@@ -147,18 +156,12 @@ test('pilot readiness commands keep local verification and production proof dist
     pilotRunbook,
     /The repo now has one canonical ranked operator flow for pilot entry and daily pilot operation\./
   );
-  assert.match(
-    pilotRunbook,
-    /Start with `pnpm pilot:flow` or `docs\/pilot\/COMMANDS_5\.md`\./
-  );
+  assert.match(pilotRunbook, /Start with `pnpm pilot:flow` or `docs\/pilot\/COMMANDS_5\.md`\./);
   assert.match(pilotRunbook, /## Readiness Command Authority/);
   assert.match(pilotRunbook, /`pnpm pilot:check`/);
   assert.match(pilotRunbook, /`pnpm release:gate:prod -- --pilotId <pilot-id>`/);
   assert.match(pilotRunbook, /`pnpm pilot:evidence:record -- --pilotId <pilot-id>`/);
-  assert.match(
-    pilotRunbook,
-    /`pnpm pilot:observability:record -- --pilotId <pilot-id>`/
-  );
+  assert.match(pilotRunbook, /`pnpm pilot:observability:record -- --pilotId <pilot-id>`/);
   assert.match(pilotRunbook, /`pnpm pilot:decision:record -- --pilotId <pilot-id>`/);
   assert.match(pilotRunbook, /`pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`/);
   assert.match(pilotRunbook, /`pnpm pilot:cadence:check -- --pilotId <pilot-id>`/);
@@ -175,7 +178,10 @@ test('pilot readiness commands keep local verification and production proof dist
     /`\.\/scripts\/pilot-verify\.sh`\s+-\s+Shell-native implementation of `pnpm pilot:check`\./s
   );
   assert.match(commands5, /## Ranked Pilot-Entry Flow/);
-  assert.match(commands5, /Use `pnpm pilot:flow` to print this ranked operator path from the repo\./);
+  assert.match(
+    commands5,
+    /Use `pnpm pilot:flow` to print this ranked operator path from the repo\./
+  );
   assert.match(commands5, /## 1\. Pre-Launch Readiness/);
   assert.match(commands5, /## 2\. Production Gate Proof And Pilot-Entry Artifacts/);
   assert.match(commands5, /## 3\. Launch-Day And Daily Operating Row/);
@@ -240,7 +246,10 @@ test('database package keeps a dedicated critical-table RLS verification in the 
 
 test('billing surfaces no longer expose Stripe configuration contracts', () => {
   const apiKeysScript = readFileSync(new URL('../scripts/api-keys.sh', import.meta.url), 'utf8');
-  const startTaskScript = readFileSync(new URL('../scripts/start-10x-task.sh', import.meta.url), 'utf8');
+  const startTaskScript = readFileSync(
+    new URL('../scripts/start-10x-task.sh', import.meta.url),
+    'utf8'
+  );
   const securitySetupScript = readFileSync(
     new URL('../scripts/security-setup.sh', import.meta.url),
     'utf8'

@@ -1,5 +1,5 @@
 
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 
 # Allow build-time override of public Supabase env (critical for Docker networking
 # and browser-side client initialization).
@@ -19,7 +19,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Enable corepack for pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 
 # Copy text files first
 COPY . .

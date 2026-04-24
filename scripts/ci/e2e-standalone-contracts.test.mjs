@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -42,4 +44,69 @@ test('e2e launchers resolve standalone server artifacts dynamically for worktree
   assert.match(stampScript, /NEXT_PUBLIC_BILLING_TEST_MODE/);
   assert.match(stampScript, /publicEnv/);
   assert.match(stampScript, /billingTestMode=/);
+  assert.match(stampScript, /syncClientReferenceManifests/);
+  assert.match(stampScript, /standalone client reference manifests synced=/);
+  assert.match(stampScript, /aliasRouteGroupClientReferenceManifests/);
+  assert.match(stampScript, /_client-reference-manifest\.js/);
+});
+
+test('standalone stamp copies and aliases route-group client reference manifests', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'standalone-stamp-'));
+  const stampScript = path.join(rootDir, 'apps/web/scripts/stamp-standalone.mjs');
+  const routeGroupManifest = path.join(
+    tempDir,
+    '.next/server/app/[locale]/(agent)/agent/claims/page_client-reference-manifest.js'
+  );
+  const publicManifest = path.join(
+    tempDir,
+    '.next/server/app/[locale]/agent/claims/page_client-reference-manifest.js'
+  );
+  const standaloneRoots = [
+    path.join(tempDir, '.next/standalone/apps/web/.next/server/app'),
+    path.join(tempDir, '.next/standalone/.next/server/app'),
+  ];
+
+  fs.mkdirSync(path.dirname(routeGroupManifest), { recursive: true });
+  fs.writeFileSync(routeGroupManifest, 'globalThis.__fixture = true;\n');
+  for (const standaloneRoot of standaloneRoots) {
+    fs.mkdirSync(standaloneRoot, { recursive: true });
+  }
+
+  const output = execFileSync(process.execPath, [stampScript], {
+    cwd: tempDir,
+    env: {
+      ...process.env,
+      COMMIT_SHA: 'fixture-sha',
+      NEXT_PUBLIC_BILLING_TEST_MODE: '1',
+    },
+    encoding: 'utf8',
+  });
+
+  assert.equal(fs.readFileSync(publicManifest, 'utf8'), 'globalThis.__fixture = true;\n');
+  for (const standaloneRoot of standaloneRoots) {
+    assert.equal(
+      fs.readFileSync(
+        path.join(
+          standaloneRoot,
+          '[locale]/(agent)/agent/claims/page_client-reference-manifest.js'
+        ),
+        'utf8'
+      ),
+      'globalThis.__fixture = true;\n'
+    );
+    assert.equal(
+      fs.readFileSync(
+        path.join(standaloneRoot, '[locale]/agent/claims/page_client-reference-manifest.js'),
+        'utf8'
+      ),
+      'globalThis.__fixture = true;\n'
+    );
+  }
+
+  assert.match(output, /standalone client reference manifests synced=2/);
+  assert.match(output, /route-group client reference manifest aliases=3/);
+  assert.match(
+    fs.readFileSync(path.join(tempDir, '.next/standalone/.build-stamp.json'), 'utf8'),
+    /"NEXT_PUBLIC_BILLING_TEST_MODE": "1"/
+  );
 });

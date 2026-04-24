@@ -76,10 +76,10 @@ EOF
 run_guard "25.5.0" 0 1
 assert_fail "wrong major fails" test "${RUN_STATUS}" -eq 0
 assert_contains "wrong major message" "${RUN_OUTPUT}" "Unsupported Node.js version"
-assert_contains "expected version message" "${RUN_OUTPUT}" "Expected: v20.x"
+assert_contains "expected version message" "${RUN_OUTPUT}" "Expected: v24.x"
 
 # 2) Correct major should pass
-run_guard "20.19.4" 0 1
+run_guard "24.15.0" 0 1
 assert_success "correct major passes" test "${RUN_STATUS}" -eq 0
 
 # 3) Skip flag bypasses
