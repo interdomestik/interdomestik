@@ -21,7 +21,7 @@
     "@interdomestik/domain-membership-billing": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
     "drizzle-orm": "^0.45.2",
-    "nanoid": "^5.1.7",
+    "nanoid": "^5.1.9",
     "zod": "^4.2.1"
   },
   "devDependencies": {

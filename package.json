@@ -183,7 +183,7 @@
     "@commitlint/config-conventional": "^20.5.0",
     "@playwright/mcp": "^0.0.70",
     "@release-it/conventional-changelog": "^10.0.6",
-    "@supabase/supabase-js": "^2.103.0",
+    "@supabase/supabase-js": "^2.104.1",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.19.3",
     "@upstash/context7-mcp": "^2.1.8",
@@ -254,7 +254,7 @@
     }
   },
   "dependencies": {
-    "checkly": "^7.11.0",
+    "checkly": "^7.12.0",
     "drizzle-orm": "^0.45.2"
   }
 }
