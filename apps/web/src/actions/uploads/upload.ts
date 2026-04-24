@@ -37,6 +37,7 @@ export async function uploadVoiceNote(formData: FormData): Promise<UploadResult>
     limit: 5,
     windowSeconds: 600,
     headers: await headers(),
+    productionSensitive: true,
   });
 
   if (rateLimit.limited) {

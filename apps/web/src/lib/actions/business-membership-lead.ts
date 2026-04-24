@@ -90,6 +90,7 @@ export async function submitBusinessMembershipLeadCore(params: {
           windowSeconds: 600,
           headers: params.requestHeaders,
           keySuffix: params.data.email,
+          productionSensitive: true,
         });
 
         if (limit.limited) {

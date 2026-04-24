@@ -38,6 +38,11 @@ function createQueryClient(databaseUrl: string, label: 'admin' | 'rls'): postgre
 }
 
 const adminDatabaseUrl = process.env.DATABASE_URL!;
+
+if (isProduction && !process.env.DATABASE_URL_RLS) {
+  throw new Error('DATABASE_URL_RLS is required in production; refusing admin database fallback');
+}
+
 const rlsDatabaseUrl = process.env.DATABASE_URL_RLS ?? adminDatabaseUrl;
 
 const adminQueryClient =

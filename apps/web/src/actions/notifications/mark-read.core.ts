@@ -18,6 +18,7 @@ export async function markAsReadCore(params: {
       limit: 60,
       windowSeconds: 60,
       headers: params.requestHeaders,
+      productionSensitive: true,
     });
     if (rateLimit) {
       throw new Error('Too many requests');

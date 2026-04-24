@@ -94,6 +94,7 @@ export async function submitClaimCore(params: {
           limit: 1,
           windowSeconds: 10,
           headers: requestHeaders,
+          productionSensitive: true,
         });
         if (limit.limited) {
           return { success: false, error: 'Too many requests. Please wait a moment.' };

@@ -15,6 +15,7 @@ export async function createClaimCore(params: {
     limit: 5,
     windowSeconds: 600, // 5 claims per 10 minutes
     headers: params.requestHeaders,
+    productionSensitive: true,
   });
 
   if (rateLimit) {

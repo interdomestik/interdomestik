@@ -35,6 +35,7 @@ export async function sendMessageDbCore(params: {
     limit: 10,
     windowSeconds: 60, // 10 messages per minute
     headers: params.requestHeaders,
+    productionSensitive: true,
   });
 
   if (rateLimit) {

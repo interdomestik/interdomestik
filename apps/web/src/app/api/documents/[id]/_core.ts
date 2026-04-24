@@ -22,6 +22,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     limit: 60,
     windowSeconds: 60,
     headers: _request.headers,
+    productionSensitive: true,
   });
   if (limited) return limited;
 

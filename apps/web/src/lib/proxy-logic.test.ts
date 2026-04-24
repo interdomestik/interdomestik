@@ -92,6 +92,9 @@ describe('proxy auth guard hardening', () => {
   beforeEach(() => {
     process.env.BETTER_AUTH_SECRET = 'proxy-guard-test-secret-which-is-long-enough-123456';
     process.env.STAFF_AUTH_TOLERANT_TENANTS = '';
+    process.env.INTERDOMESTIK_LOCAL_E2E = '1';
+    process.env.INTERDOMESTIK_E2E_DIAGNOSTICS = '1';
+    process.env.PLAYWRIGHT = '1';
     mockEmitAuthTelemetryEvent.mockReset();
   });
 
@@ -99,6 +102,9 @@ describe('proxy auth guard hardening', () => {
     vi.restoreAllMocks();
     process.env.BETTER_AUTH_SECRET = ORIGINAL_SECRET;
     delete process.env.STAFF_AUTH_TOLERANT_TENANTS;
+    delete process.env.INTERDOMESTIK_LOCAL_E2E;
+    delete process.env.INTERDOMESTIK_E2E_DIAGNOSTICS;
+    delete process.env.PLAYWRIGHT;
   });
 
   it('emits bounce telemetry when a protected route has no session cookie', async () => {
@@ -146,7 +152,7 @@ describe('proxy auth guard hardening', () => {
     });
   });
 
-  it('keeps protected routes open when session introspection returns a transient non-ok response', async () => {
+  it('redirects protected routes when session introspection returns a transient non-ok response', async () => {
     const signed = await signSessionToken(
       'token-transient',
       process.env.BETTER_AUTH_SECRET as string
@@ -160,10 +166,16 @@ describe('proxy auth guard hardening', () => {
     const response = await proxy(request);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expectAllowedProtectedRoute(response);
+    expectRedirectToLogin(response);
     expectProtectedRouteTelemetry({
       eventName: 'session_introspection_throttled',
       reason: 'throttled',
+      surface: 'staff',
+      pathname: '/sq/staff/claims/golden_ks_a_claim_17',
+    });
+    expectProtectedRouteTelemetry({
+      eventName: 'protected_route_bounce_to_login',
+      reason: 'inactive_session',
       surface: 'staff',
       pathname: '/sq/staff/claims/golden_ks_a_claim_17',
     });
@@ -189,7 +201,7 @@ describe('proxy auth guard hardening', () => {
     });
   });
 
-  it('keeps protected routes open when session introspection returns a rate-limit client error', async () => {
+  it('redirects protected routes when session introspection returns a rate-limit client error', async () => {
     const signed = await signSessionToken(
       'token-rate-limit',
       process.env.BETTER_AUTH_SECRET as string
@@ -200,16 +212,22 @@ describe('proxy auth guard hardening', () => {
     const response = await proxy(request);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expectAllowedProtectedRoute(response);
+    expectRedirectToLogin(response);
     expectProtectedRouteTelemetry({
       eventName: 'session_introspection_throttled',
       reason: 'throttled',
       surface: 'member',
       pathname: '/sq/member/documents',
     });
+    expectProtectedRouteTelemetry({
+      eventName: 'protected_route_bounce_to_login',
+      reason: 'inactive_session',
+      surface: 'member',
+      pathname: '/sq/member/documents',
+    });
   });
 
-  it('keeps protected routes open when session introspection throws a transient transport error', async () => {
+  it('redirects protected routes when session introspection throws a transient transport error', async () => {
     const signed = await signSessionToken(
       'token-network',
       process.env.BETTER_AUTH_SECRET as string
@@ -220,10 +238,16 @@ describe('proxy auth guard hardening', () => {
     const response = await proxy(request);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expectAllowedProtectedRoute(response);
+    expectRedirectToLogin(response);
     expectProtectedRouteTelemetry({
       eventName: 'session_introspection_throttled',
       reason: 'throttled',
+      surface: 'member',
+      pathname: '/sq/member/documents',
+    });
+    expectProtectedRouteTelemetry({
+      eventName: 'protected_route_bounce_to_login',
+      reason: 'inactive_session',
       surface: 'member',
       pathname: '/sq/member/documents',
     });
@@ -351,7 +375,7 @@ describe('proxy auth guard hardening', () => {
     );
   });
 
-  it('allows flagged tenants when the retry returns unknown', async () => {
+  it('redirects flagged tenants when the retry returns unknown', async () => {
     process.env.STAFF_AUTH_TOLERANT_TENANTS = 'tenant_ks';
     const signed = await signSessionToken(
       'token-flagged-unknown',
@@ -376,7 +400,7 @@ describe('proxy auth guard hardening', () => {
     const response = await proxy(request);
 
     expect(fetchSpy).toHaveBeenCalledTimes(2);
-    expect(response.status).toBe(200);
+    expectRedirectToLogin(response);
     expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: 'session_introspection_throttled',
@@ -387,6 +411,12 @@ describe('proxy auth guard hardening', () => {
         pathname: '/sq/member',
       })
     );
+    expectProtectedRouteTelemetry({
+      eventName: 'protected_route_bounce_to_login',
+      reason: 'inactive_session',
+      surface: 'member',
+      pathname: '/sq/member',
+    });
   });
 
   it('falls back to current inactive behavior when the auth secret is absent', async () => {

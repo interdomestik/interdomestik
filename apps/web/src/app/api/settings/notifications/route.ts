@@ -14,6 +14,7 @@ export async function GET(request: Request) {
     limit: 30,
     windowSeconds: 60,
     headers: request.headers,
+    productionSensitive: true,
   });
   if (limited) return limited;
 
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
     limit: 15,
     windowSeconds: 60,
     headers: request.headers,
+    productionSensitive: true,
   });
   if (limited) return limited;
 

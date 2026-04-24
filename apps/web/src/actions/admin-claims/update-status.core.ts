@@ -49,6 +49,7 @@ export async function updateClaimStatusCore(params: {
       limit: 20, // Higher limit for admins
       windowSeconds: 60,
       headers: requestHeaders,
+      productionSensitive: true,
     });
     if (limit.limited) {
       throw new Error('Too many requests. Please wait a moment.');

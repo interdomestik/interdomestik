@@ -10,6 +10,7 @@ export async function GET(request: Request) {
     limit: 10,
     windowSeconds: 60,
     headers: request.headers,
+    productionSensitive: true,
   });
   if (limited) return limited;
 

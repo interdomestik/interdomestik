@@ -1,6 +1,11 @@
+import { isE2EDiagnosticsEnabled, isProductionDeployment } from '@/lib/runtime-environment';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
+  if (isProductionDeployment() && !isE2EDiagnosticsEnabled()) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   return NextResponse.json({
     NODE_ENV: process.env.NODE_ENV,
     CI: process.env.CI,
