@@ -11,7 +11,11 @@ vi.mock('@interdomestik/database', () => ({
     }),
     query: {
       user: {
-        findFirst: vi.fn().mockResolvedValue({ tenantId: 'tenant_mk' }),
+        findFirst: vi.fn().mockResolvedValue({
+          email: 'verified@example.com',
+          emailVerified: true,
+          tenantId: 'tenant_mk',
+        }),
       },
     },
   },

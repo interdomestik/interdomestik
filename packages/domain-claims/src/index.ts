@@ -1,3 +1,4 @@
+export * from './claim-pack';
 export * from './claims/create';
 export * from './claims/documents';
 export * from './claims/draft';

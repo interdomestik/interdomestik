@@ -39,13 +39,21 @@ export type ClaimsDeps = {
     email: string,
     claim: { id: string; title: string },
     oldStatus: string,
-    newStatus: string
+    newStatus: string,
+    options?: { tenantId?: string | null }
   ) => unknown;
   notifyClaimAssigned?: (
     agentId: string,
     email: string,
     claim: { id: string; title: string },
     agentName: string
+  ) => unknown;
+  notifyRecoveryDecision?: (
+    userId: string,
+    email: string,
+    claim: { id: string; title: string },
+    decisionType: 'accepted' | 'declined',
+    options?: { tenantId?: string | null }
   ) => unknown;
   dispatchClaimAiRun?: (queuedRun: QueuedClaimAiRun) => Promise<void> | void;
   markClaimAiRunDispatchFailed?: (args: { runId: string; message: string }) => Promise<void> | void;

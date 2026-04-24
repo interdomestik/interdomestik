@@ -59,6 +59,7 @@ type CurrentClaimRecord = {
   category: string;
   staffId: string | null;
   status: ClaimStatus | null;
+  title: string;
   userId: string;
 };
 type RecoveryStatusChangeParams = {
@@ -250,6 +251,8 @@ async function handleStaffLedRecoveryStatusChange(
     claimId,
     currentStatus: currentClaim.status,
     currentStaffId: currentClaim.staffId,
+    currentTitle: currentClaim.title,
+    currentUserId: currentClaim.userId,
     deps,
     isPublicChange,
     note,
@@ -372,12 +375,58 @@ async function logClaimStatusAudit(params: {
   });
 }
 
+function scheduleStatusChangeNotification(params: {
+  claimId: string;
+  claimTitle: string;
+  deps: ClaimsDeps;
+  newStatus: ClaimStatus;
+  oldStatus: ClaimStatus | null;
+  tenantId: string;
+  userId: string;
+}) {
+  const { claimId, claimTitle, deps, newStatus, oldStatus, tenantId, userId } = params;
+  const notifyStatusChanged = deps.notifyStatusChanged;
+
+  if (!notifyStatusChanged || !oldStatus || oldStatus === newStatus) {
+    return;
+  }
+
+  void (async () => {
+    try {
+      const member = await db.query.user.findFirst({
+        where: (userTable, { eq }) =>
+          withTenant(tenantId, userTable.tenantId, eq(userTable.id, userId)),
+        columns: {
+          email: true,
+        },
+      });
+
+      if (!member?.email) {
+        return;
+      }
+
+      await notifyStatusChanged(
+        userId,
+        member.email,
+        { id: claimId, title: claimTitle },
+        oldStatus,
+        newStatus,
+        { tenantId }
+      );
+    } catch (error) {
+      console.error('Failed to send status change notification:', error);
+    }
+  })();
+}
+
 async function finalizeClaimStatusChange(params: {
   auditMetadata?: Record<string, boolean | string | undefined>;
   beforePersist?: (tx: ClaimsTransaction) => Promise<void>;
   claimId: string;
   currentStatus: ClaimStatus | null;
   currentStaffId: string | null;
+  currentTitle: string;
+  currentUserId: string;
   deps: ClaimsDeps;
   isPublicChange: boolean;
   note?: string;
@@ -407,6 +456,18 @@ async function finalizeClaimStatusChange(params: {
   });
 
   await logClaimStatusAudit(rest);
+
+  if (rest.isPublicChange) {
+    scheduleStatusChangeNotification({
+      claimId: rest.claimId,
+      claimTitle: rest.currentTitle,
+      deps: rest.deps,
+      newStatus: rest.status,
+      oldStatus: rest.currentStatus,
+      tenantId: rest.tenantId,
+      userId: rest.currentUserId,
+    });
+  }
 
   return { success: true };
 }
@@ -440,6 +501,7 @@ export async function updateClaimStatusCore(
       .select({
         category: claims.category,
         status: claims.status,
+        title: claims.title,
         userId: claims.userId,
         staffId: claims.staffId,
       })
@@ -502,6 +564,8 @@ export async function updateClaimStatusCore(
         claimId,
         currentStatus: currentClaim.status,
         currentStaffId: currentClaim.staffId,
+        currentTitle: currentClaim.title,
+        currentUserId: currentClaim.userId,
         deps,
         isPublicChange,
         note: publicDeclineNote,
@@ -516,6 +580,8 @@ export async function updateClaimStatusCore(
       claimId,
       currentStatus: currentClaim.status,
       currentStaffId: currentClaim.staffId,
+      currentTitle: currentClaim.title,
+      currentUserId: currentClaim.userId,
       deps,
       isPublicChange,
       note: trimmedNote,

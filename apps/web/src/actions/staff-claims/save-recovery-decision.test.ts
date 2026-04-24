@@ -3,6 +3,7 @@ import * as nextCache from 'next/cache';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { logAuditEvent } from '@/lib/audit';
+import { notifyRecoveryDecision } from '@/lib/notifications';
 import { saveRecoveryDecisionCore } from './save-recovery-decision.core';
 
 const mockRunCommercialActionWithIdempotency = vi.fn();
@@ -13,6 +14,10 @@ vi.mock('@interdomestik/domain-claims', () => ({
 
 vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
+}));
+
+vi.mock('@/lib/notifications', () => ({
+  notifyRecoveryDecision: vi.fn(),
 }));
 
 vi.mock('@/lib/commercial-action-idempotency', () => ({
@@ -95,7 +100,7 @@ describe('saveRecoveryDecisionCore', () => {
       explanation: 'Not enough evidence for staff-led recovery.',
       requestHeaders,
     });
-    expect(domainDeps).toEqual({ logAuditEvent });
+    expect(domainDeps).toEqual({ logAuditEvent, notifyRecoveryDecision });
     expect(revalidatePathSpy.mock.calls.map(([path]) => path)).toEqual(REVALIDATED_LOCALE_PATHS);
     expect(revalidatePathSpy).toHaveBeenCalledTimes(REVALIDATED_LOCALE_PATHS.length);
   });

@@ -99,6 +99,11 @@ const mocks = vi.hoisted(() => {
 
   return {
     db: {
+      query: {
+        user: {
+          findFirst: vi.fn().mockResolvedValue({ email: 'member@example.com' }),
+        },
+      },
       select: vi.fn(),
       transaction,
     },
@@ -251,6 +256,7 @@ function mockRecoverySelects(options?: {
     status: string;
     userId: string;
     category: string;
+    title?: string;
     staffId?: string | null;
   }>;
   existingClaimUsage?: Array<{ id: string }>;
@@ -272,6 +278,7 @@ function mockRecoverySelects(options?: {
         status: 'evaluation',
         userId: 'member-1',
         category: 'vehicle',
+        title: 'Vehicle claim',
         staffId: null,
       },
     ]
@@ -320,6 +327,7 @@ describe('staff updateClaimStatusCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.db.select.mockReset();
+    mocks.db.query.user.findFirst.mockResolvedValue({ email: 'member@example.com' });
     mocks.claimSelectChain.from.mockReturnValue(mocks.claimSelectChain);
     mocks.claimSelectChain.where.mockReturnValue(mocks.claimSelectChain);
     mocks.agreementSelectChain.from.mockReturnValue(mocks.agreementSelectChain);
@@ -460,6 +468,7 @@ describe('staff updateClaimStatusCore', () => {
         status: 'submitted',
         userId: 'member-1',
         category: 'vehicle',
+        title: 'Vehicle claim',
         staffId: null,
       },
     ]);
@@ -498,6 +507,42 @@ describe('staff updateClaimStatusCore', () => {
       expect.any(Array),
       mocks.claims.assignedById,
       'staff-1'
+    );
+  });
+
+  it('sends a tenant-scoped notification for public staff status changes', async () => {
+    const notifyStatusChanged = vi.fn().mockResolvedValue({ success: true });
+    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      {
+        id: 'claim-1',
+        status: 'submitted',
+        userId: 'member-1',
+        category: 'vehicle',
+        title: 'Vehicle claim',
+        staffId: 'staff-1',
+      },
+    ]);
+
+    const result = await updateClaimStatusCore(
+      {
+        claimId: 'claim-1',
+        newStatus: 'verification',
+        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      },
+      { notifyStatusChanged }
+    );
+
+    expect(result).toEqual({ success: true, error: undefined });
+    await vi.waitFor(() =>
+      expect(notifyStatusChanged).toHaveBeenCalledWith(
+        'member-1',
+        'member@example.com',
+        { id: 'claim-1', title: 'Vehicle claim' },
+        'submitted',
+        'verification',
+        { tenantId: 'tenant-1' }
+      )
     );
   });
 
