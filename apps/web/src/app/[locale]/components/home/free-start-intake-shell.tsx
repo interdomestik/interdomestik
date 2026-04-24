@@ -886,26 +886,26 @@ export function FreeStartIntakeShell({
     );
     submissionKeyRef.current = null;
     setValidationError(null);
+    setStep('complete');
 
     // Generate the full claim pack for display
-    try {
-      const packResult = await generateClaimPackAction({
-        claimType: selectedCategory,
-        answers: {
-          incidentDate: draft.incidentDate,
-          description: draft.summary,
-          counterpartyName: draft.counterparty,
-        },
-        locale,
+    void generateClaimPackAction({
+      claimType: selectedCategory,
+      answers: {
+        incidentDate: draft.incidentDate,
+        description: draft.summary,
+        counterpartyName: draft.counterparty,
+      },
+      locale,
+    })
+      .then(packResult => {
+        if (packResult.success) {
+          setClaimPack(packResult.data);
+        }
+      })
+      .catch(() => {
+        // Pack generation is non-blocking — proceed to complete even if it fails
       });
-      if (packResult.success) {
-        setClaimPack(packResult.data);
-      }
-    } catch {
-      // Pack generation is non-blocking — proceed to complete even if it fails
-    }
-
-    setStep('complete');
   };
 
   const setDraftField: SetDraftField = (field, value) => {

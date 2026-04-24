@@ -45,7 +45,7 @@ function queryUserById(userId: string, tenantId?: string | null) {
   return db.query.user.findFirst({
     where: (users, { eq }) =>
       tenantId ? withTenant(tenantId, users.tenantId, eq(users.id, userId)) : eq(users.id, userId),
-    columns: { emailVerified: true, tenantId: true },
+    columns: { email: true, emailVerified: true, tenantId: true },
   });
 }
 
@@ -53,15 +53,15 @@ function sendVerifiedEmail(
   userId: string,
   tenantId: string | null | undefined,
   label: string,
-  dispatch: () => Promise<unknown>
+  dispatch: (verifiedEmail: string) => Promise<unknown>
 ) {
   queryUserById(userId, tenantId)
     .then(userRecord => {
-      if (!userRecord?.emailVerified) {
+      if (!userRecord?.email || !userRecord.emailVerified) {
         return;
       }
 
-      return dispatch();
+      return dispatch(userRecord.email);
     })
     .catch(error => console.error(`Failed to send ${label} email:`, error));
 }
@@ -143,7 +143,7 @@ export async function sendNotification(
  */
 export async function notifyClaimSubmitted(
   userId: string,
-  userEmail: string,
+  _userEmail: string,
   claim: { id: string; title: string; category: string }
 ) {
   const result = await sendNotification(
@@ -161,8 +161,8 @@ export async function notifyClaimSubmitted(
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, null, 'claim submitted', () =>
-      sendClaimSubmittedEmail(userEmail, claim)
+    sendVerifiedEmail(userId, null, 'claim submitted', verifiedEmail =>
+      sendClaimSubmittedEmail(verifiedEmail, claim)
     );
   }
 
@@ -174,7 +174,7 @@ export async function notifyClaimSubmitted(
  */
 export async function notifyClaimAssigned(
   agentId: string,
-  agentEmail: string,
+  _agentEmail: string,
   claim: { id: string; title: string },
   agentName: string
 ) {
@@ -193,8 +193,8 @@ export async function notifyClaimAssigned(
   );
 
   if (result.success) {
-    sendVerifiedEmail(agentId, null, 'claim assigned', () =>
-      sendClaimAssignedEmail(agentEmail, claim, agentName)
+    sendVerifiedEmail(agentId, null, 'claim assigned', verifiedEmail =>
+      sendClaimAssignedEmail(verifiedEmail, claim, agentName)
     );
   }
 
@@ -206,7 +206,7 @@ export async function notifyClaimAssigned(
  */
 export async function notifyStatusChanged(
   userId: string,
-  userEmail: string,
+  _userEmail: string,
   claim: { id: string; title: string },
   oldStatus: string,
   newStatus: string,
@@ -237,8 +237,8 @@ export async function notifyStatusChanged(
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, deps?.tenantId, 'status change', () =>
-      sendStatusChangedEmail(userEmail, claim, oldStatus, newStatus)
+    sendVerifiedEmail(userId, deps?.tenantId, 'status change', verifiedEmail =>
+      sendStatusChangedEmail(verifiedEmail, claim, oldStatus, newStatus)
     );
 
     push(userId, 'claim_updates', {
@@ -256,7 +256,7 @@ export async function notifyStatusChanged(
  */
 export async function notifyNewMessage(
   recipientId: string,
-  recipientEmail: string,
+  _recipientEmail: string,
   claim: { id: string; title: string },
   senderName: string,
   messagePreview: string,
@@ -282,12 +282,13 @@ export async function notifyNewMessage(
     {
       title: 'New Message',
       actionUrl: `/dashboard/claims/${claim.id}`,
+      tenantId: deps?.tenantId,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(recipientId, deps?.tenantId, 'new message', () =>
-      sendNewMessageEmail(recipientEmail, claim, senderName, messagePreview)
+    sendVerifiedEmail(recipientId, deps?.tenantId, 'new message', verifiedEmail =>
+      sendNewMessageEmail(verifiedEmail, claim, senderName, messagePreview)
     );
 
     push(recipientId, 'messages', {
@@ -305,7 +306,7 @@ export async function notifyNewMessage(
  */
 export async function notifyPaymentVerificationUpdate(
   agentId: string,
-  agentEmail: string,
+  _agentEmail: string,
   props: {
     leadName: string;
     amount: number;
@@ -330,8 +331,8 @@ export async function notifyPaymentVerificationUpdate(
   );
 
   if (result.success) {
-    sendVerifiedEmail(agentId, null, 'payment verification', () =>
-      sendPaymentVerificationEmail(agentEmail, props)
+    sendVerifiedEmail(agentId, null, 'payment verification', verifiedEmail =>
+      sendPaymentVerificationEmail(verifiedEmail, props)
     );
   }
 
@@ -365,7 +366,7 @@ export async function notifyClaimPackGenerated(
 
 export async function notifyRecoveryDecision(
   userId: string,
-  userEmail: string,
+  _userEmail: string,
   claim: { id: string; title: string },
   decisionType: 'accepted' | 'declined',
   options?: NotificationChannelOptions
@@ -394,8 +395,8 @@ export async function notifyRecoveryDecision(
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, options?.tenantId, 'recovery decision', () =>
-      sendLifecycleEmail(userEmail, {
+    sendVerifiedEmail(userId, options?.tenantId, 'recovery decision', verifiedEmail =>
+      sendLifecycleEmail(verifiedEmail, {
         title,
         intro,
         actionUrl,
@@ -409,7 +410,7 @@ export async function notifyRecoveryDecision(
 
 export async function notifyDocumentRequested(
   userId: string,
-  userEmail: string,
+  _userEmail: string,
   claim: { id: string; title: string },
   requestSummary: string,
   options?: NotificationChannelOptions
@@ -431,8 +432,8 @@ export async function notifyDocumentRequested(
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, options?.tenantId, 'document request', () =>
-      sendLifecycleEmail(userEmail, {
+    sendVerifiedEmail(userId, options?.tenantId, 'document request', verifiedEmail =>
+      sendLifecycleEmail(verifiedEmail, {
         title: 'Documents requested',
         intro: `Staff requested more documents for ${claim.title}.`,
         details: [requestSummary],
@@ -447,7 +448,7 @@ export async function notifyDocumentRequested(
 
 export async function notifyTriageComplete(
   userId: string,
-  userEmail: string,
+  _userEmail: string,
   claim: { id: string; title: string },
   options?: NotificationChannelOptions
 ) {
@@ -467,8 +468,8 @@ export async function notifyTriageComplete(
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, options?.tenantId, 'triage complete', () =>
-      sendLifecycleEmail(userEmail, {
+    sendVerifiedEmail(userId, options?.tenantId, 'triage complete', verifiedEmail =>
+      sendLifecycleEmail(verifiedEmail, {
         title: 'Triage complete',
         intro: `Staff triage is complete for ${claim.title}.`,
         actionUrl,
@@ -502,7 +503,7 @@ export async function notifySlaWarning(
 
 export async function notifyMembershipRenewal(
   userId: string,
-  userEmail: string,
+  _userEmail: string,
   renewalDate: string,
   options?: NotificationChannelOptions
 ) {
@@ -521,8 +522,8 @@ export async function notifyMembershipRenewal(
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, options?.tenantId, 'membership renewal', () =>
-      sendLifecycleEmail(userEmail, {
+    sendVerifiedEmail(userId, options?.tenantId, 'membership renewal', verifiedEmail =>
+      sendLifecycleEmail(verifiedEmail, {
         title: 'Membership renewal reminder',
         intro: `Your Asistenca membership is scheduled to renew on ${renewalDate}.`,
         actionUrl,

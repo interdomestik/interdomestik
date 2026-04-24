@@ -20,6 +20,7 @@ const PH = {
   date: '[DATE]',
   referenceNumber: '[REFERENCE_NUMBER]',
   responseDeadline: '[RESPONSE_DEADLINE]',
+  claimedAmount: '[CLAIMED_AMOUNT]',
 } as const;
 
 const ALL_PLACEHOLDERS = Object.values(PH);
@@ -38,7 +39,7 @@ function vehicleLetter(answers: IntakeAnswers, locale: string): LetterData {
   const description = answers.description || 'the incident described below';
   const amount = answers.estimatedAmount
     ? `${(answers.estimatedAmount / 100).toFixed(2)} ${answers.currency || 'EUR'}`
-    : '[CLAIMED_AMOUNT]';
+    : PH.claimedAmount;
 
   if (locale === 'sq') {
     return {
@@ -161,7 +162,7 @@ function propertyLetter(answers: IntakeAnswers, locale: string): LetterData {
   const description = answers.description || 'the damage described below';
   const amount = answers.estimatedAmount
     ? `${(answers.estimatedAmount / 100).toFixed(2)} ${answers.currency || 'EUR'}`
-    : '[CLAIMED_AMOUNT]';
+    : PH.claimedAmount;
 
   if (locale === 'sq') {
     return {
@@ -283,7 +284,7 @@ function injuryLetter(answers: IntakeAnswers, locale: string): LetterData {
   const description = answers.description || 'the injury described below';
   const amount = answers.estimatedAmount
     ? `${(answers.estimatedAmount / 100).toFixed(2)} ${answers.currency || 'EUR'}`
-    : '[CLAIMED_AMOUNT]';
+    : PH.claimedAmount;
 
   if (locale === 'sq') {
     return {

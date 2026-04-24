@@ -47,7 +47,11 @@ describe('sendNotification', () => {
   it('rejects when tenant does not match user tenant', async () => {
     mocks.findFirst.mockImplementationOnce(({ where }: { where: Function }) => {
       where({ id: 'user.id', tenantId: 'user.tenant_id' }, { eq: vi.fn(() => ({ eq: true })) });
-      return Promise.resolve({ emailVerified: true, tenantId: 'tenant-2' });
+      return Promise.resolve({
+        email: 'verified@example.com',
+        emailVerified: true,
+        tenantId: 'tenant-2',
+      });
     });
 
     const result = await sendNotification(
@@ -67,7 +71,11 @@ describe('sendNotification', () => {
   });
 
   it('persists an in-app notification when the recipient email is not verified', async () => {
-    mocks.findFirst.mockResolvedValueOnce({ emailVerified: false, tenantId: 'tenant-1' });
+    mocks.findFirst.mockResolvedValueOnce({
+      email: 'unverified@example.com',
+      emailVerified: false,
+      tenantId: 'tenant-1',
+    });
 
     const result = await sendNotification('user-1', 'new_message', { claimId: 'claim-1' });
 
@@ -83,7 +91,11 @@ describe('sendNotification', () => {
   it('dispatches a recovery decision notification through tenant-scoped in-app and verified-email guards', async () => {
     mocks.findFirst.mockImplementation(({ where }: { where: Function }) => {
       where({ id: 'user.id', tenantId: 'user.tenant_id' }, { eq: vi.fn(() => ({ eq: true })) });
-      return Promise.resolve({ emailVerified: true, tenantId: 'tenant-1' });
+      return Promise.resolve({
+        email: 'verified@example.com',
+        emailVerified: true,
+        tenantId: 'tenant-1',
+      });
     });
 
     const result = await notifyRecoveryDecision(
@@ -107,6 +119,11 @@ describe('sendNotification', () => {
         actionUrl: '/member/claims/claim-1',
       })
     );
-    await vi.waitFor(() => expect(sendEmail).toHaveBeenCalled());
+    await vi.waitFor(() =>
+      expect(sendEmail).toHaveBeenCalledWith(
+        'verified@example.com',
+        expect.objectContaining({ subject: 'Recovery accepted' })
+      )
+    );
   });
 });

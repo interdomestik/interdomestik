@@ -46,6 +46,7 @@ describe('generateLetter', () => {
       };
       const result = generateLetter('vehicle', noAmount, 'en');
       expect(result.body).toContain('[CLAIMED_AMOUNT]');
+      expect(result.placeholders).toContain('[CLAIMED_AMOUNT]');
     });
   });
 

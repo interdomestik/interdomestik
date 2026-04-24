@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 
+import { Link } from '@/i18n/routing';
+
 // ---------------------------------------------------------------------------
 // Confidence badge
 // ---------------------------------------------------------------------------
@@ -74,6 +76,25 @@ function evidenceTextClass(item: ClaimPack['evidenceChecklist']['items'][number]
   }
 
   return 'text-slate-400';
+}
+
+function fallbackCopyText(text: string) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '0';
+  textarea.style.left = '0';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  try {
+    return document.execCommand('copy');
+  } finally {
+    document.body.removeChild(textarea);
+  }
 }
 
 function ConfidenceSection({ confidence }: Readonly<{ confidence: ClaimPack['confidence'] }>) {
@@ -164,11 +185,30 @@ function EvidenceSection({ checklist }: Readonly<{ checklist: ClaimPack['evidenc
 
 function LetterSection({ letter }: Readonly<{ letter: ClaimPack['letter'] }>) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
   const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(letter.body);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopyError(null);
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(letter.body);
+      } else if (!fallbackCopyText(letter.body)) {
+        throw new Error('Copy command was unsuccessful.');
+      }
+
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      if (fallbackCopyText(letter.body)) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        return;
+      }
+
+      setCopied(false);
+      setCopyError('Unable to copy the letter. Select the text and copy it manually.');
+    }
   }, [letter.body]);
 
   const handleDownload = useCallback(() => {
@@ -221,6 +261,7 @@ function LetterSection({ letter }: Readonly<{ letter: ClaimPack['letter'] }>) {
           </span>
         </p>
       )}
+      {copyError && <p className="text-xs text-rose-200">{copyError}</p>}
 
       <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-2xl border border-slate-800 bg-slate-900/50 p-4 text-xs leading-6 text-slate-200 font-mono scrollbar-thin scrollbar-thumb-slate-700">
         {letter.body}
@@ -285,13 +326,13 @@ function NextStepSection({
     >
       <h3 className="text-lg font-semibold text-white">{step.title}</h3>
       <p className="text-sm leading-6 text-slate-200">{step.description}</p>
-      <a
+      <Link
         href={resolvedCtaHref}
         className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
       >
         {resolvedCtaLabel}
         <ArrowRight className="h-4 w-4" />
-      </a>
+      </Link>
     </div>
   );
 }

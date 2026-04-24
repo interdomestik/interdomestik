@@ -18,6 +18,8 @@ import { sendPushToUser } from '@/lib/push';
 
 export type { NotificationEvent } from '@interdomestik/domain-communications/notifications';
 
+type TenantNotificationOptions = { tenantId?: string | null };
+
 export function sendNotification(
   userId: string,
   event: NotificationEvent,
@@ -67,10 +69,12 @@ export function notifyNewMessage(
   recipientEmail: string,
   claim: { id: string; title: string },
   senderName: string,
-  messagePreview: string
+  messagePreview: string,
+  options?: TenantNotificationOptions
 ) {
   return notifyNewMessageDomain(recipientId, recipientEmail, claim, senderName, messagePreview, {
     sendPushToUser,
+    tenantId: options?.tenantId,
   });
 }
 
@@ -111,17 +115,19 @@ export function notifyDocumentRequested(
   userId: string,
   userEmail: string,
   claim: { id: string; title: string },
-  requestSummary: string
+  requestSummary: string,
+  options?: TenantNotificationOptions
 ) {
-  return notifyDocumentRequestedDomain(userId, userEmail, claim, requestSummary);
+  return notifyDocumentRequestedDomain(userId, userEmail, claim, requestSummary, options);
 }
 
 export function notifyTriageComplete(
   userId: string,
   userEmail: string,
-  claim: { id: string; title: string }
+  claim: { id: string; title: string },
+  options?: TenantNotificationOptions
 ) {
-  return notifyTriageCompleteDomain(userId, userEmail, claim);
+  return notifyTriageCompleteDomain(userId, userEmail, claim, options);
 }
 
 export function notifySlaWarning(
@@ -132,6 +138,11 @@ export function notifySlaWarning(
   return notifySlaWarningDomain(staffUserId, claim, warning);
 }
 
-export function notifyMembershipRenewal(userId: string, userEmail: string, renewalDate: string) {
-  return notifyMembershipRenewalDomain(userId, userEmail, renewalDate);
+export function notifyMembershipRenewal(
+  userId: string,
+  userEmail: string,
+  renewalDate: string,
+  options?: TenantNotificationOptions
+) {
+  return notifyMembershipRenewalDomain(userId, userEmail, renewalDate, options);
 }
