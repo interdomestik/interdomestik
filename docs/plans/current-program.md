@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-04-16
+last_reviewed: 2026-04-24
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -43,7 +43,7 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P11` Bounded Production Operations And Expansion Proof is now complete after completed `P10`, promoting Program A into the repo-canonical execution line and closing `A01` through `A04` with repo-backed KPI, privacy / RBAC, and executive-decision custody.
 
-`P12` Program C Business-Model Integrity Hardening is now active as the next committed tranche after completed `P11`. Repo naming uses `P12` and `PC01` through `PC06` to avoid colliding with the already-completed `P1C` Commercial Contract Foundations tranche. `PC01` is the membership-fulfillment canonicalization line, `PC02` is the agent ownership and attribution unification line, `PC03` is the commission and referral finance hardening line, `PC04` is the branch operations and cash-truth line, `PC05` is the membership lifecycle and reporting-truth line, and `PC06` is the enterprise-safe controls and edge-case hardening line. `P12` is a domain-integrity tranche, not a portal redesign, not a route or auth or tenancy refactor tranche, and not a modernization tranche; it is explicitly limited to business-model truth beneath the existing member, agent, staff, admin, branch, and tenant surfaces.
+`P12` Program C Business-Model Integrity Hardening is now complete after completed `P11`. Repo naming uses `P12` and `PC01` through `PC06` to avoid colliding with the already-completed `P1C` Commercial Contract Foundations tranche. `PC01` completed the membership-fulfillment canonicalization line, `PC02` completed the agent ownership and attribution unification line across PRs `#479`, `#481`, and `#486`, `PC03` completed the commission and referral finance hardening line in PR `#488`, `PC04` completed the branch operations and cash-truth line in PR `#491`, `PC05` completed the membership lifecycle and reporting-truth line in PR `#492`, and `PC06` completed the enterprise-safe controls and edge-case hardening line in PR `#493`. `P12` remained a domain-integrity tranche, not a portal redesign, not a route or auth or tenancy refactor tranche, and not a modernization tranche; it was explicitly limited to business-model truth beneath the existing member, agent, staff, admin, branch, and tenant surfaces.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -129,13 +129,13 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 78. Keep `SP02` complete as the canonical `PD02` rollback-and-resume baseline so rollback tag discipline, resume inspection, and decision-proof continuity stay proven for the same pilot id, including the stale local rollback-tag correction after `main` advanced.
 79. Keep `SP03` through `SP06` complete as the canonical middle rehearsal slices so closed-loop role flow, SLA or matter pressure, privacy or RBAC stress, and communications or incident handling each keep one explicit day instead of being blended into one vague pilot week.
 80. Keep `SP07` complete as the canonical executive-review slice so the 7-day rehearsal ends with one fixed recommendation artifact that links KPI condition, incident evidence, branch-manager input, and admin decision custody.
-81. Land `P12` as the canonical Program C business-model integrity tranche after completed `P11`, without reopening routing, auth, tenancy, or broad modernization scope.
+81. Keep `P12` complete as the canonical Program C business-model integrity tranche after completed `P11`, without reopening routing, auth, tenancy, or broad modernization scope.
 82. Keep `PC01` complete as the canonical membership-fulfillment slice so all paid-member paths produce the same durable annual-membership state, annual membership is the only runtime-critical commercial shape left, and member-facing success copy matches back-office truth.
-83. Land `PC02` as the canonical ownership-and-attribution slice so subscription, user, and agent-client surfaces converge on one durable ownership graph for operations, renewals, and reporting.
-84. Land `PC03` as the canonical commission-and-referral finance slice so tenant-safe commission reads and actions align to canonical ownership and auditable payout rules.
-85. Land `PC04` as the canonical branch operating-truth slice so branch dashboards no longer depend on placeholder or stale financial signals.
-86. Land `PC05` as the canonical lifecycle-and-reporting slice so renewal, churn, grace-period, conversion, and liability reporting reconcile to one durable membership truth.
-87. Land `PC06` as the canonical enterprise-safe control slice so edge cases that can silently distort ownership, membership, branch, or finance state are explicitly hardened before later workflow or modernization tranches.
+83. Keep `PC02` complete as the canonical ownership-and-attribution slice so subscription, user, and agent-client surfaces converge on one durable ownership graph for operations, renewals, and reporting.
+84. Keep `PC03` complete as the canonical commission-and-referral finance slice so tenant-safe commission reads and actions align to canonical ownership and auditable payout rules.
+85. Keep `PC04` complete as the canonical branch operating-truth slice so branch dashboards no longer depend on placeholder or stale financial signals.
+86. Keep `PC05` complete as the canonical lifecycle-and-reporting slice so renewal, churn, grace-period, conversion, and liability reporting reconcile to one durable membership truth.
+87. Keep `PC06` complete as the canonical enterprise-safe control slice so edge cases that can silently distort ownership, membership, branch, or finance state are explicitly hardened before later workflow or modernization tranches.
 
 ## Status Command
 
@@ -190,6 +190,8 @@ pnpm plan:proof
 
 `P11` Bounded Production Operations And Expansion Proof is now complete after completed `P10`. It promoted Program A into the repo-canonical line as a narrow production-proof tranche. `A01` is complete as the fresh production release gate on merged `main`, `A02` is complete as the fresh bounded operating line on a new pilot or cohort id, `A03` is complete as the repo-backed KPI and progression proof plus corrected-baseline privacy / RBAC rerun line, and `A04` is complete as the explicit executive decision artifact line for `pause`, `repeat_with_fixes`, `expand`, or `stop`. Supporting pilot and roadmap documents constrain this tranche, but they do not convert it into broader portal cleanup or modernization work. The `A02` line used `pilot-ks-expand-readiness-2026-04-15` as the canonical fresh id, bounded the operating window to `2026-04-16` through `2026-04-22` in Europe/Berlin, and was operationally entered on `2026-04-15` with the starter-pack scaffold, copied evidence index, pointer row, rollback tag `pilot-ready-20260415`, first live-day sheet, first daily SQL scaffold, and same-day evidence, observability, and decision rows all recorded in repo-backed custody with no post-hoc repair expectation. Because the first live operating day did not begin until `2026-04-16`, the first live CSV remained explicitly blocked pending same-day capture on `2026-04-16`; `A03` is now complete following same-day capture, KPI rollup generation, and PD05B rerun, and `A04` is now complete with the recorded executive decision to expand.
 
+`P12` Program C Business-Model Integrity Hardening is now complete after completed `P11`. `PC01` through `PC06` closed the canonical membership fulfillment, ownership and attribution, commission and referral finance, branch cash truth, membership lifecycle reporting, and enterprise-safe controls lines without widening into routing, auth, tenancy, portal redesign, or modernization work. The next repo-canonical move is not another `PC` implementation slice; it is a promotion or design-gate decision for the next tranche, with Program B remaining planning input until explicitly promoted into the live queue.
+
 ## Do Not Reopen The Convergence Boundary
 
 - broad domain extraction campaigns
@@ -242,10 +244,15 @@ These documents can recommend or constrain work, but they do not define the live
 - `A01` through `A04` have now been copied into the live program and tracker from those same supporting pilot and roadmap inputs as the bounded production-operations and expansion-proof queue.
 - `A01` is now complete as of 2026-04-15. Fresh local verification in the recovered session confirmed `node -v` = `v20.20.0` plus green `pnpm -s plan:status`, `pnpm -s plan:audit`, `pnpm -s track:audit`, `pnpm pr:verify`, `pnpm security:guard`, and `pnpm e2e:gate`; the first `e2e:gate` stop was a sandbox-only Docker socket denial, not a repo regression.
 - `A02` operational entry is now complete as of 2026-04-15 around the fresh pilot id `pilot-ks-expand-readiness-2026-04-15`, with one bounded KS operating window from 2026-04-16 through 2026-04-22 in Europe/Berlin, a hard stop at the earliest stop criterion in `docs/pilot/V1_0_0_BOUNDED_CONTINUATION_PLAN.md`, and day-0 custody limited to the starter-pack scaffold, copied evidence index, pointer row, rollback tag, daily live sheets, daily SQL or CSV exports, and same-day evidence, observability, and decision rows. The 2026-04-15 entry baseline is recorded in repo-backed custody, the first live-day sheet and SQL scaffold are present for 2026-04-16, and the first live CSV is explicitly blocked until same-day capture on 2026-04-16 rather than repaired later. `A03` KPI and `PD05B` proof are now complete with the 2-day progression rate derived from the week-1 rollout. `A04` executive decision work is now complete with the canonical artifact formalizing the expansion sequence recorded on 2026-04-16.
-- `P12` has now been copied into the live program and tracker as the canonical post-`P11` Program C tranche following the already-recorded code-grounded recommendation to promote business-model integrity work before Program B workflow completion or Program D modernization.
-- `PC01` through `PC06` have now been copied into the live program and tracker as the committed Program C hardening queue.
-- `PC01` is now complete as the membership-fulfillment canonicalization slice.
-- `PC02` is now the next active `P12` queue item as the ownership-and-attribution unification slice.
+- `P12` has now been copied into the live program and tracker as the canonical post-`P11` Program C tranche following the already-recorded code-grounded recommendation to promote business-model integrity work before Program B workflow completion or Program D modernization, and is now complete.
+- `PC01` through `PC06` have now been copied into the live program and tracker as the completed Program C hardening queue.
+- `PC01` is complete as the membership-fulfillment canonicalization slice.
+- `PC02` is complete as the ownership-and-attribution unification slice across PRs `#479`, `#481`, and `#486`.
+- `PC03` is complete as the commission-and-referral finance hardening slice in PR `#488`.
+- `PC04` is complete as the branch operations and cash-truth slice in PR `#491`.
+- `PC05` is complete as the membership lifecycle and reporting-truth slice in PR `#492`.
+- `PC06` is complete as the enterprise-safe controls and lifecycle edge-case hardening slice in PR `#493`.
+- Program B remains planning input until a later promotion or design-gate decision explicitly makes it the live queue.
 - `P1C` has now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` and is now the active post-infrastructure tranche.
 - `C01` through `C06` have now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the committed commercial-contract publication queue.
 - `C01` is complete as the coverage-matrix publication slice.
