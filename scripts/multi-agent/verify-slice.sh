@@ -301,11 +301,25 @@ fs.writeFileSync(process.argv[2], `${supported.join("\n")}${supported.length ? "
 }
 
 write_manifest
-write_reviewer_prompt "security_reviewer" "Security Reviewer" "Find auth/session, tenant isolation, proxy/routing authority, API exposure, secret, and sensitive-data regressions introduced by this slice."
-write_reviewer_prompt "architect_reviewer" "Architecture Reviewer" "Find Phase C architectural drift, domain-boundary violations, route/access-control bypasses, overbroad refactors, and scope creep introduced by this slice."
-write_reviewer_prompt "qa_reviewer" "QA Reviewer" "Find missing or weak tests, E2E gate risks, broken clarity markers, regression paths, and deterministic verification gaps introduced by this slice."
-write_reviewer_prompt "performance_reviewer" "Performance Reviewer" "Find query, hot path, unbounded work, cache, rendering, and bundle-cost regressions introduced by this slice."
-write_reviewer_prompt "contracts_reviewer" "Contracts Reviewer" "Find API, schema, type, config, i18n, script, workflow, and environment contract drift introduced by this slice."
+for reviewer in "${reviewers[@]}"; do
+  case "$reviewer" in
+    security_reviewer)
+      write_reviewer_prompt "security_reviewer" "Security Reviewer" "Find auth/session, tenant isolation, proxy/routing authority, API exposure, secret, and sensitive-data regressions introduced by this slice."
+      ;;
+    architect_reviewer)
+      write_reviewer_prompt "architect_reviewer" "Architecture Reviewer" "Find Phase C architectural drift, domain-boundary violations, route/access-control bypasses, overbroad refactors, and scope creep introduced by this slice."
+      ;;
+    qa_reviewer)
+      write_reviewer_prompt "qa_reviewer" "QA Reviewer" "Find missing or weak tests, E2E gate risks, broken clarity markers, regression paths, and deterministic verification gaps introduced by this slice."
+      ;;
+    performance_reviewer)
+      write_reviewer_prompt "performance_reviewer" "Performance Reviewer" "Find query, hot path, unbounded work, cache, rendering, and bundle-cost regressions introduced by this slice."
+      ;;
+    contracts_reviewer)
+      write_reviewer_prompt "contracts_reviewer" "Contracts Reviewer" "Find API, schema, type, config, i18n, script, workflow, and environment contract drift introduced by this slice."
+      ;;
+  esac
+done
 write_orchestration_prompt
 
 {
