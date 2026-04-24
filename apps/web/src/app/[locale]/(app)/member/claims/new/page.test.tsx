@@ -127,6 +127,7 @@ describe('NewClaimPage diaspora claim handoff', () => {
         incidentLocation: 'abroad',
       },
     });
+    expect(screen.getByTestId('new-claim-page-ready')).toBeInTheDocument();
     expect(screen.getByTestId('claim-wizard-props')).toBeInTheDocument();
   });
 
@@ -140,6 +141,7 @@ describe('NewClaimPage diaspora claim handoff', () => {
 
     render(tree);
 
+    expect(screen.getByTestId('new-claim-page-ready')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'gate.view_plans' })).toHaveAttribute(
       'href',
       '/en/pricing'

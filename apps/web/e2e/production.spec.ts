@@ -114,7 +114,9 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       });
 
       // 3. Wizard
-      await gotoApp(page, routes.memberNewClaim(testInfo), testInfo, { marker: 'page-ready' });
+      await gotoApp(page, routes.memberNewClaim(testInfo), testInfo, {
+        marker: 'new-claim-page-ready',
+      });
       await dismissCookieConsentIfVisible(page);
       const bodyText = await page.textContent('body');
       expect(bodyText).not.toContain('MISSING_MESSAGE');

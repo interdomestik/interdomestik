@@ -78,7 +78,7 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
 
   if (!hasAccess) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full" data-testid="new-claim-page-ready">
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex h-16 items-center px-6">
             <h1 className="text-lg font-semibold">{t('new')}</h1>
@@ -101,7 +101,7 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" data-testid="new-claim-page-ready">
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center px-6">
           <h1 className="text-lg font-semibold">{t('new')}</h1>
