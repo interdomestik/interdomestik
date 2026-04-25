@@ -1,3 +1,4 @@
+import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import {
   createSharePack,
   getSharePack,
@@ -27,11 +28,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const tenant = resolveTenantBoundary(session);
+    if (!tenant.success) {
+      return tenant.response;
+    }
+
     const body = (await request.json()) as any;
     const ids = body['document' + 'Ids'] as Array<string>;
 
     const result = await createSharePackCore({
-      tenantId: session.user.tenantId,
+      tenantId: tenant.tenantId,
       userId: session.user.id,
       ['document' + 'Ids']: ids,
       ipAddress: request.headers.get('x-forwarded-for') ?? undefined,
