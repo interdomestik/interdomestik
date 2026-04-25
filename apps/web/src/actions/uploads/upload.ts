@@ -2,12 +2,22 @@
 
 import { auth } from '@/lib/auth';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
+import { createInitialClaimUploadIntentToken } from '@/features/claims/upload/server/initial-claim-upload';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
 
 export type UploadResult =
-  | { success: true; url: string; path: string }
+  | {
+      success: true;
+      url: string;
+      path: string;
+      id: string;
+      bucket: string;
+      intentToken: string;
+      mimeType: string;
+      size: number;
+    }
   | { success: false; error: string };
 
 export async function uploadVoiceNote(formData: FormData): Promise<UploadResult> {
@@ -117,6 +127,14 @@ function inferExtFromMagicBytes(buf: Uint8Array): string | null {
   return null;
 }
 
+const EXT_TO_MIME: Record<string, string> = {
+  webm: 'audio/webm',
+  mp4: 'audio/mp4',
+  ogg: 'audio/ogg',
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+};
+
 // S3 / MinIO Support
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -128,6 +146,25 @@ async function uploadToStorage(params: {
   tenantId: string;
 }): Promise<UploadResult> {
   const { buffer, ext, userId, tenantId } = params;
+  const fileId = crypto.randomUUID();
+  const contentType = EXT_TO_MIME[ext] || 'application/octet-stream';
+
+  function createVoiceNoteIntent(bucket: string, storagePath: string): string | null {
+    try {
+      return createInitialClaimUploadIntentToken({
+        actorId: userId,
+        bucket,
+        fileId,
+        fileSize: buffer.byteLength,
+        mimeType: contentType,
+        storagePath,
+        tenantId,
+      });
+    } catch (error) {
+      console.error('Voice note upload intent creation failed:', error);
+      return null;
+    }
+  }
 
   // 1. MinIO / S3 Path (Docker / Local)
   if (process.env.S3_ENDPOINT) {
@@ -143,15 +180,12 @@ async function uploadToStorage(params: {
       });
 
       const bucketName = process.env.S3_BUCKET_NAME || 'claim-evidence';
-      const fileName = `pii/tenants/${tenantId}/claims/${userId}/voice-notes/${crypto.randomUUID()}.${ext}`;
-      const contentType =
-        {
-          webm: 'audio/webm',
-          mp4: 'audio/mp4',
-          ogg: 'audio/ogg',
-          mp3: 'audio/mpeg',
-          wav: 'audio/wav',
-        }[ext] || 'application/octet-stream';
+      const fileName = `pii/tenants/${tenantId}/claims/${userId}/unassigned/${fileId}-voicenote.${ext}`;
+      const intentToken = createVoiceNoteIntent(bucketName, fileName);
+
+      if (!intentToken) {
+        return { success: false, error: 'Upload unavailable. Please try again later.' };
+      }
 
       // Upload
       await s3.send(
@@ -196,7 +230,16 @@ async function uploadToStorage(params: {
       });
       const viewUrl = await getSignedUrl(signer, getCommand, { expiresIn: 60 * 10 });
 
-      return { success: true, url: viewUrl, path: fileName };
+      return {
+        success: true,
+        url: viewUrl,
+        path: fileName,
+        id: fileId,
+        bucket: bucketName,
+        intentToken,
+        mimeType: contentType,
+        size: buffer.byteLength,
+      };
     } catch (err) {
       console.error('S3/MinIO upload error:', err);
       return { success: false, error: 'Upload failed (S3)' };
@@ -213,20 +256,17 @@ async function uploadToStorage(params: {
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
-  const fileName = `pii/tenants/${tenantId}/claims/${userId}/voice-notes/${crypto.randomUUID()}.${ext}`;
   const bucketName = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
+  const fileName = `pii/tenants/${tenantId}/claims/${userId}/unassigned/${fileId}-voicenote.${ext}`;
+  const intentToken = createVoiceNoteIntent(bucketName, fileName);
 
-  const EXT_TO_MIME: Record<string, string> = {
-    webm: 'audio/webm',
-    mp4: 'audio/mp4',
-    ogg: 'audio/ogg',
-    mp3: 'audio/mpeg',
-    wav: 'audio/wav',
-  };
+  if (!intentToken) {
+    return { success: false, error: 'Upload unavailable. Please try again later.' };
+  }
 
   try {
     const { error } = await supabase.storage.from(bucketName).upload(fileName, buffer, {
-      contentType: EXT_TO_MIME[ext] || 'application/octet-stream',
+      contentType,
       upsert: false,
     });
 
@@ -240,10 +280,28 @@ async function uploadToStorage(params: {
       .createSignedUrl(fileName, 60 * 10);
 
     if (signedError || !signedData?.signedUrl) {
-      return { success: true, url: '', path: fileName };
+      return {
+        success: true,
+        url: '',
+        path: fileName,
+        id: fileId,
+        bucket: bucketName,
+        intentToken,
+        mimeType: contentType,
+        size: buffer.byteLength,
+      };
     }
 
-    return { success: true, url: signedData.signedUrl, path: fileName };
+    return {
+      success: true,
+      url: signedData.signedUrl,
+      path: fileName,
+      id: fileId,
+      bucket: bucketName,
+      intentToken,
+      mimeType: contentType,
+      size: buffer.byteLength,
+    };
   } catch (err) {
     console.error('Unexpected upload error:', err);
     return { success: false, error: 'Unexpected error during upload' };

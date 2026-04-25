@@ -353,7 +353,7 @@ export async function submitClaimCore(
   }
 
   // Security: Validate ALL files before creating ANY database records
-  validateClaimFiles(result.data.files, session, tenantId);
+  await validateClaimFiles(result.data.files, session, tenantId, deps);
 
   const claimId = nanoid();
   const createdAt = new Date();
@@ -400,54 +400,124 @@ export async function submitClaimCore(
   return { success: true, claimId, claimNumber };
 }
 
-function validateClaimFiles(
+async function validateClaimFiles(
   files: CreateClaimValues['files'],
   session: ClaimsSession,
-  tenantId: string
-) {
+  tenantId: string,
+  deps: ClaimsDeps
+): Promise<void> {
   if (!files?.length) return;
 
-  const expectedPrefix = `pii/tenants/${tenantId}/claims/${session.user.id}/`;
-  const expectedBucket = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB - aligned with upload API
-  const ALLOWED_TYPES = new Set([
-    'application/pdf',
-    'text/plain',
-    'image/jpeg',
-    'image/png',
-    'image/webp',
-    'image/jpg',
-    'audio/webm',
-    'audio/mp4',
-    'audio/ogg',
-    'audio/mpeg',
-    'audio/m4a',
-  ]);
+  const context = getClaimFileValidationContext(session, tenantId);
+  const validateSubmittedClaimFile = requireSubmittedClaimFileValidator(deps);
 
   for (const file of files) {
-    if (file.bucket !== expectedBucket) {
-      throw new ClaimValidationError(
-        'Invalid file bucket. Evidence must be stored in the designated claim evidence bucket.',
-        'INVALID_BUCKET'
-      );
+    validateClaimFileMetadata(file, context);
+    await validateClaimFileObject(file, context, validateSubmittedClaimFile);
+  }
+}
+
+type ClaimEvidenceFile = NonNullable<CreateClaimValues['files']>[number];
+type SubmittedClaimFileValidator = NonNullable<ClaimsDeps['validateSubmittedClaimFile']>;
+
+type ClaimFileValidationContext = {
+  actorId: string;
+  expectedBucket: string;
+  expectedPrefix: string;
+  tenantId: string;
+};
+
+const CLAIM_FILE_MAX_SIZE = 10 * 1024 * 1024;
+const ALLOWED_CLAIM_FILE_TYPES = new Set([
+  'application/pdf',
+  'text/plain',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/jpg',
+  'audio/webm',
+  'audio/mp4',
+  'audio/ogg',
+  'audio/mpeg',
+  'audio/m4a',
+  'audio/wav',
+]);
+
+function getClaimFileValidationContext(
+  session: ClaimsSession,
+  tenantId: string
+): ClaimFileValidationContext {
+  return {
+    actorId: session.user.id,
+    expectedBucket: process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence',
+    expectedPrefix: `pii/tenants/${tenantId}/claims/${session.user.id}/`,
+    tenantId,
+  };
+}
+
+function requireSubmittedClaimFileValidator(deps: ClaimsDeps): SubmittedClaimFileValidator {
+  if (!deps.validateSubmittedClaimFile) {
+    throw new Error('Submitted claim file validation is not configured.');
+  }
+
+  return deps.validateSubmittedClaimFile;
+}
+
+function validateClaimFileMetadata(
+  file: ClaimEvidenceFile,
+  context: ClaimFileValidationContext
+): void {
+  if (file.bucket !== context.expectedBucket) {
+    throw new ClaimValidationError(
+      'Invalid file bucket. Evidence must be stored in the designated claim evidence bucket.',
+      'INVALID_BUCKET'
+    );
+  }
+  if (!file.path.startsWith(context.expectedPrefix)) {
+    throw new ClaimValidationError(
+      'Invalid file path detected. Evidence must be uploaded by the claimant.',
+      'INVALID_PATH'
+    );
+  }
+  if (file.size > CLAIM_FILE_MAX_SIZE) {
+    throw new ClaimValidationError(
+      `File too large: ${file.name}. Max size is 10MB.`,
+      'INVALID_SIZE'
+    );
+  }
+  if (!ALLOWED_CLAIM_FILE_TYPES.has(file.type)) {
+    throw new ClaimValidationError(
+      `Unsupported file type: ${file.type}. Allowed: PDF, TXT, Images, Audio.`,
+      'INVALID_TYPE'
+    );
+  }
+  if (!file.uploadIntentToken) {
+    throw new ClaimValidationError(
+      'Upload confirmation expired. Please retry upload.',
+      'INVALID_PATH'
+    );
+  }
+}
+
+async function validateClaimFileObject(
+  file: ClaimEvidenceFile,
+  context: ClaimFileValidationContext,
+  validateSubmittedClaimFile: SubmittedClaimFileValidator
+): Promise<void> {
+  try {
+    await validateSubmittedClaimFile({
+      actorId: context.actorId,
+      file,
+      tenantId: context.tenantId,
+    });
+  } catch (error) {
+    if (error instanceof ClaimValidationError) {
+      throw error;
     }
-    if (!file.path.startsWith(expectedPrefix)) {
-      throw new ClaimValidationError(
-        'Invalid file path detected. Evidence must be uploaded by the claimant.',
-        'INVALID_PATH'
-      );
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      throw new ClaimValidationError(
-        `File too large: ${file.name}. Max size is 10MB.`,
-        'INVALID_SIZE'
-      );
-    }
-    if (!ALLOWED_TYPES.has(file.type)) {
-      throw new ClaimValidationError(
-        `Unsupported file type: ${file.type}. Allowed: PDF, TXT, Images, Audio.`,
-        'INVALID_TYPE'
-      );
-    }
+
+    throw new ClaimValidationError(
+      error instanceof Error ? error.message : 'Uploaded file could not be verified.',
+      'INVALID_PATH'
+    );
   }
 }

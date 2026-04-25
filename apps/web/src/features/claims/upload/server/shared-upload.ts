@@ -266,7 +266,7 @@ function getObjectMetadataValue(metadata: Record<string, unknown>, keys: string[
   return undefined;
 }
 
-async function validateStoredObject(params: {
+export async function validateStoredObject(params: {
   bucket: string;
   fileSize: number;
   logPrefix: string;

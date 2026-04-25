@@ -86,6 +86,8 @@ export async function gotoApp(
       const message = e instanceof Error ? e.message : String(e);
       const isRetryable =
         message.includes('net::ERR_ABORTED') ||
+        message.includes('net::ERR_NETWORK_CHANGED') ||
+        message.includes('net::ERR_INTERNET_DISCONNECTED') ||
         message.includes('net::ERR_CONNECTION_RESET') ||
         message.includes('net::ERR_CONNECTION_REFUSED');
 

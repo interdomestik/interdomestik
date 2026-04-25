@@ -3,6 +3,7 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { DEFAULT_EVIDENCE_BUCKET } from '@/lib/storage/evidence-bucket';
+import { createInitialClaimUploadIntentToken } from '@/features/claims/upload/server/initial-claim-upload';
 
 type Session = {
   user: {
@@ -38,11 +39,13 @@ type UploadOk = {
   status: 200;
   body: {
     upload: {
+      id: string;
       path: string;
       token: string;
       signedUrl: string;
       bucket: string;
       expiresIn: number;
+      intentToken?: string;
     };
     classification: string;
     maxFileSize: number;
@@ -62,6 +65,10 @@ type UploadErr = {
 };
 
 export type UploadResult = UploadOk | UploadErr;
+
+type InitialUploadIntentResult =
+  | { ok: true; intentToken: string }
+  | { ok: false; result: UploadErr };
 
 export async function createSignedUploadCore(args: {
   session: Session;
@@ -111,6 +118,23 @@ export async function createSignedUploadCore(args: {
   const classification = DEFAULT_CLASSIFICATION;
   const path = `${classification}/tenants/${tenantId}/claims/${session.user.id}/${claimId ?? 'unassigned'}/${evidenceId}-${safeName}`;
 
+  let intentToken: string | undefined;
+  if (!claimId) {
+    const intent = createUnassignedUploadIntentToken({
+      actorId: session.user.id,
+      bucket,
+      fileId: evidenceId,
+      fileSize,
+      fileType,
+      path,
+      tenantId,
+    });
+    if (!intent.ok) {
+      return intent.result;
+    }
+    intentToken = intent.intentToken;
+  }
+
   const adminClient = createAdminClient();
   const { data, error } = await adminClient.storage.from(bucket).createSignedUploadUrl(path, {
     upsert: true,
@@ -133,15 +157,58 @@ export async function createSignedUploadCore(args: {
     status: 200,
     body: {
       upload: {
+        id: evidenceId,
         path,
         token: data.token,
         signedUrl: data.signedUrl,
         bucket,
         expiresIn: 300,
+        ...(intentToken ? { intentToken } : {}),
       },
       classification,
       maxFileSize: MAX_FILE_SIZE_BYTES,
       allowedMimeTypes: ALLOWED_MIME_TYPES,
     },
   };
+}
+
+function createUnassignedUploadIntentToken(args: {
+  actorId: string;
+  bucket: string;
+  fileId: string;
+  fileSize: number;
+  fileType: string;
+  path: string;
+  tenantId: string;
+}): InitialUploadIntentResult {
+  const { actorId, bucket, fileId, fileSize, fileType, path, tenantId } = args;
+
+  try {
+    return {
+      ok: true,
+      intentToken: createInitialClaimUploadIntentToken({
+        actorId,
+        bucket,
+        fileId,
+        fileSize,
+        mimeType: fileType,
+        storagePath: path,
+        tenantId,
+      }),
+    };
+  } catch (error) {
+    console.error('[api/uploads] Upload intent creation failed', {
+      bucket,
+      path,
+      fileType,
+      fileSize,
+      claimId: null,
+      error: error instanceof Error ? error.message : 'unknown',
+    });
+
+    return {
+      ok: false,
+      result: { ok: false, status: 500, error: 'Failed to create signed upload URL' },
+    };
+  }
 }

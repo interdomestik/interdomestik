@@ -191,14 +191,15 @@ export function WizardStepDetails() {
                   // Add to files array so backend processes it
                   const currentFiles = form.getValues('files') || [];
                   const newFile = {
-                    id: crypto.randomUUID(),
+                    id: result.id,
                     name: 'Voice Note',
-                    path: result.path, // Storage path
-                    type: blob.type, // audio/webm or audio/mp4
-                    size: blob.size,
-                    bucket: 'claim-evidence',
+                    path: result.path,
+                    type: result.mimeType,
+                    size: result.size,
+                    bucket: result.bucket,
                     classification: 'pii',
                     category: 'evidence' as const,
+                    uploadIntentToken: result.intentToken,
                   };
 
                   form.setValue('files', [...currentFiles, newFile]);

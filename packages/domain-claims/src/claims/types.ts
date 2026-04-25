@@ -1,4 +1,5 @@
 import type { QueuedClaimAiRun } from './ai-workflows';
+import type { EvidenceFile } from '../validators/claims';
 
 export type ClaimStartHandoffContext = {
   source: 'diaspora-green-card';
@@ -28,6 +29,11 @@ export type ClaimsAuditEvent = {
 };
 
 export type ClaimsDeps = {
+  validateSubmittedClaimFile?: (args: {
+    actorId: string;
+    file: EvidenceFile;
+    tenantId: string;
+  }) => Promise<void> | void;
   logAuditEvent?: (event: ClaimsAuditEvent) => Promise<void> | void;
   notifyClaimSubmitted?: (
     userId: string,
