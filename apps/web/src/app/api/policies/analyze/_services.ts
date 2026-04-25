@@ -170,8 +170,8 @@ export async function queuePolicyAnalysisService(
       entityType: 'policy',
       entityId: policyId,
       requestedBy: data.userId,
-      model: 'gpt-5.4',
-      modelSnapshot: 'gpt-5.4',
+      model: 'gpt-5.5',
+      modelSnapshot: 'gpt-5.5',
       promptVersion: 'policy_extract_v1',
       inputHash: buildPolicyInputHash(data),
       requestJson: {

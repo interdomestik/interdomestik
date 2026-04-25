@@ -8,7 +8,7 @@ const hoisted = vi.hoisted(() => {
 
   return {
     getDefaultModelForWorkflow: vi.fn((workflow: string) =>
-      workflow === 'legal_doc_extract' ? 'gpt-5.4' : 'gpt-5-mini'
+      workflow === 'legal_doc_extract' ? 'gpt-5.5' : 'gpt-5-mini'
     ),
     nanoid: vi.fn().mockReturnValueOnce('run-1').mockReturnValueOnce('run-2'),
     txInsert,
@@ -138,7 +138,7 @@ describe('queueClaimDocumentAiWorkflows', () => {
           id: 'run-2',
           workflow: 'legal_doc_extract',
           documentId: 'legacy-doc-2',
-          model: 'gpt-5.4',
+          model: 'gpt-5.5',
           promptVersion: 'legal_doc_extract_v1',
           requestJson: expect.objectContaining({
             category: 'legal',
