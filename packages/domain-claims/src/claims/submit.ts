@@ -353,7 +353,7 @@ export async function submitClaimCore(
   }
 
   // Security: Validate ALL files before creating ANY database records
-  validateClaimFiles(result.data.files, session, tenantId);
+  await validateClaimFiles(result.data.files, session, tenantId, deps);
 
   const claimId = nanoid();
   const createdAt = new Date();
@@ -400,11 +400,12 @@ export async function submitClaimCore(
   return { success: true, claimId, claimNumber };
 }
 
-function validateClaimFiles(
+async function validateClaimFiles(
   files: CreateClaimValues['files'],
   session: ClaimsSession,
-  tenantId: string
-) {
+  tenantId: string,
+  deps: ClaimsDeps
+): Promise<void> {
   if (!files?.length) return;
 
   const expectedPrefix = `pii/tenants/${tenantId}/claims/${session.user.id}/`;
@@ -422,6 +423,7 @@ function validateClaimFiles(
     'audio/ogg',
     'audio/mpeg',
     'audio/m4a',
+    'audio/wav',
   ]);
 
   for (const file of files) {
@@ -447,6 +449,37 @@ function validateClaimFiles(
       throw new ClaimValidationError(
         `Unsupported file type: ${file.type}. Allowed: PDF, TXT, Images, Audio.`,
         'INVALID_TYPE'
+      );
+    }
+
+    if (!file.uploadIntentToken) {
+      throw new ClaimValidationError(
+        'Upload confirmation expired. Please retry upload.',
+        'INVALID_PATH'
+      );
+    }
+
+    if (!deps.validateSubmittedClaimFile) {
+      throw new ClaimValidationError(
+        'Upload confirmation is required before submitting evidence.',
+        'INVALID_PATH'
+      );
+    }
+
+    try {
+      await deps.validateSubmittedClaimFile({
+        actorId: session.user.id,
+        file,
+        tenantId,
+      });
+    } catch (error) {
+      if (error instanceof ClaimValidationError) {
+        throw error;
+      }
+
+      throw new ClaimValidationError(
+        error instanceof Error ? error.message : 'Uploaded file could not be verified.',
+        'INVALID_PATH'
       );
     }
   }

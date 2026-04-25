@@ -36,6 +36,10 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
 }));
 
+vi.mock('@/features/claims/upload/server/initial-claim-upload', () => ({
+  validateInitialClaimEvidenceUpload: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe('actions/claims/submit', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -95,6 +99,12 @@ describe('actions/claims/submit', () => {
       })
     );
     expect(mockRateLimit).toHaveBeenCalled();
+    expect(submitClaimCoreDomain).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        validateSubmittedClaimFile: expect.any(Function),
+      })
+    );
   });
 
   it('returns validated commercial escalation metadata for launch-scope claims', async () => {

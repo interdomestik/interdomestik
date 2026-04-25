@@ -38,6 +38,8 @@ vi.mock('next/headers', () => ({
 describe('uploadVoiceNote', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('CLAIM_UPLOAD_INTENT_SECRET', 'test-upload-intent-secret-value-123456');
+    vi.stubEnv('S3_ENDPOINT', '');
     hoisted.getSession.mockResolvedValue({
       user: { id: 'user-1', tenantId: 'tenant_mk' },
     });
@@ -68,6 +70,16 @@ describe('uploadVoiceNote', () => {
     const result = await uploadVoiceNote(formData);
 
     expect(result.success).toBe(true);
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        bucket: 'claim-evidence',
+        id: expect.any(String),
+        intentToken: expect.any(String),
+        mimeType: 'audio/mpeg',
+        size: bytes.length,
+      })
+    );
     // Verify that the upload function ignored 'text/html' and forced 'audio/mpeg'
     expect(hoisted.upload).toHaveBeenCalledWith(
       expect.stringContaining('.mp3'),
@@ -103,6 +115,39 @@ describe('uploadVoiceNote', () => {
       expect.objectContaining({ success: true, path: expect.stringContaining('.mp4') })
     );
     expect(hoisted.upload).toHaveBeenCalled();
+  });
+
+  it('stores voice notes on the initial claim upload intent path', async () => {
+    const bytes = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]);
+    const file = {
+      name: 'voice.webm',
+      type: 'audio/webm',
+      size: bytes.length,
+      arrayBuffer: async () => bytes.buffer,
+    } as File;
+    const formData = {
+      get: (key: string) => (key === 'file' ? file : null),
+    } as FormData;
+
+    const result = await uploadVoiceNote(formData);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        bucket: 'claim-evidence',
+        intentToken: expect.any(String),
+        mimeType: 'audio/webm',
+      })
+    );
+    expect(hoisted.upload).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /^pii\/tenants\/tenant_mk\/claims\/user-1\/unassigned\/.+-voicenote\.webm$/
+      ),
+      expect.anything(),
+      expect.objectContaining({
+        contentType: 'audio/webm',
+      })
+    );
   });
 
   it('returns service unavailable when rate limiting is offline', async () => {

@@ -46,6 +46,7 @@ vi.mock('@interdomestik/database', () => ({
 describe('POST /api/uploads', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('CLAIM_UPLOAD_INTENT_SECRET', 'test-upload-intent-secret-value-123456');
     hoisted.enforceRateLimit.mockResolvedValue(null);
     hoisted.storageFrom.mockReturnValue({
       createSignedUploadUrl: hoisted.createSignedUploadUrl,
@@ -266,9 +267,11 @@ describe('POST /api/uploads', () => {
     expect(data).toEqual(
       expect.objectContaining({
         upload: expect.objectContaining({
+          id: 'evidence-123',
           token: 'tok-1',
           signedUrl: 'https://signed.example.com/upload',
           expiresIn: 300,
+          intentToken: expect.any(String),
         }),
         classification: 'pii',
       })
@@ -285,6 +288,31 @@ describe('POST /api/uploads', () => {
     );
     expect(hoisted.storageFrom).toHaveBeenCalledWith('claim-evidence');
     expect(hoisted.createSignedUploadUrl).toHaveBeenCalled();
+  });
+
+  it('does not issue a signed storage URL when upload intent signing is unavailable', async () => {
+    vi.stubEnv('CLAIM_UPLOAD_INTENT_SECRET', '');
+    vi.stubEnv('BETTER_AUTH_SECRET', '');
+
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
+
+    const req = new Request('http://localhost:3000/api/uploads', {
+      method: 'POST',
+      body: JSON.stringify({
+        fileName: 'file.pdf',
+        fileType: 'application/pdf',
+        fileSize: 100,
+      }),
+    });
+
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data).toEqual({ error: 'Failed to create signed upload URL' });
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
   it('allows text files for claim evidence uploads', async () => {

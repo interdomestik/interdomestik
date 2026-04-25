@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const MAX_CLAIM_EVIDENCE_FILES = 10;
+
 export const evidenceFileSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -9,6 +11,7 @@ export const evidenceFileSchema = z.object({
   bucket: z.string(),
   classification: z.string().default('pii'),
   category: z.enum(['evidence', 'legal']).default('evidence'),
+  uploadIntentToken: z.string().min(1).optional(),
 });
 
 export const claimCategorySchema = z.object({
@@ -31,7 +34,10 @@ export const claimDetailsSchema = z.object({
 });
 
 export const claimEvidenceSchema = z.object({
-  files: z.array(evidenceFileSchema).default([]),
+  files: z
+    .array(evidenceFileSchema)
+    .max(MAX_CLAIM_EVIDENCE_FILES, `You can attach up to ${MAX_CLAIM_EVIDENCE_FILES} files.`)
+    .default([]),
 });
 
 // Merged schema for final submission

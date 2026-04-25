@@ -98,6 +98,7 @@ vi.mock('./ai-workflows', () => ({
 }));
 
 import { submitClaimCore } from './submit';
+import { MAX_CLAIM_EVIDENCE_FILES } from '../validators/claims';
 
 describe('submitClaimCore', () => {
   beforeEach(() => {
@@ -123,6 +124,7 @@ describe('submitClaimCore', () => {
 
   it('queues claim AI workflows after persisting the submitted claim documents', async () => {
     const dispatchClaimAiRun = vi.fn().mockResolvedValue(undefined);
+    const validateSubmittedClaimFile = vi.fn().mockResolvedValue(undefined);
 
     const result = await submitClaimCore(
       {
@@ -158,12 +160,14 @@ describe('submitClaimCore', () => {
               bucket: 'claim-evidence',
               classification: 'pii',
               category: 'evidence',
+              uploadIntentToken: 'server-issued-upload-intent',
             },
           ],
         },
       },
       {
         dispatchClaimAiRun,
+        validateSubmittedClaimFile,
       }
     );
 
@@ -211,6 +215,156 @@ describe('submitClaimCore', () => {
         workflow: 'claim_intake_extract',
       })
     );
+    expect(validateSubmittedClaimFile).toHaveBeenCalledWith({
+      actorId: 'member-1',
+      tenantId: 'tenant-1',
+      file: expect.objectContaining({
+        id: 'upload-1',
+        path: 'pii/tenants/tenant-1/claims/member-1/unassigned/upload-1-evidence.pdf',
+        uploadIntentToken: 'server-issued-upload-intent',
+      }),
+    });
+  });
+
+  it('rejects submitted evidence without a server-issued upload intent before creating records', async () => {
+    await expect(
+      submitClaimCore({
+        session: {
+          user: {
+            id: 'member-1',
+            role: 'member',
+            tenantId: 'tenant-1',
+            email: 'member@example.com',
+          },
+        },
+        requestHeaders: new Headers(),
+        data: {
+          title: 'Flight delay claim',
+          description: 'My flight was delayed overnight and I incurred hotel costs.',
+          category: 'travel',
+          companyName: 'Airline Co',
+          claimAmount: '650.00',
+          currency: 'EUR',
+          incidentDate: '2026-02-15',
+          files: [
+            {
+              id: 'upload-1',
+              name: 'evidence.pdf',
+              path: 'pii/tenants/tenant-1/claims/member-1/unassigned/upload-1-evidence.pdf',
+              type: 'application/pdf',
+              size: 1024,
+              bucket: 'claim-evidence',
+              classification: 'pii',
+              category: 'evidence',
+            },
+          ],
+        },
+      })
+    ).rejects.toMatchObject({
+      code: 'INVALID_PATH',
+      message: 'Upload confirmation expired. Please retry upload.',
+    });
+
+    expect(hoisted.txInsert).not.toHaveBeenCalled();
+  });
+
+  it('rejects submitted evidence when object validation fails before creating records', async () => {
+    const validateSubmittedClaimFile = vi
+      .fn()
+      .mockRejectedValue(new Error('Uploaded file was not found. Please retry upload.'));
+
+    await expect(
+      submitClaimCore(
+        {
+          session: {
+            user: {
+              id: 'member-1',
+              role: 'member',
+              tenantId: 'tenant-1',
+              email: 'member@example.com',
+            },
+          },
+          requestHeaders: new Headers(),
+          data: {
+            title: 'Flight delay claim',
+            description: 'My flight was delayed overnight and I incurred hotel costs.',
+            category: 'travel',
+            companyName: 'Airline Co',
+            claimAmount: '650.00',
+            currency: 'EUR',
+            incidentDate: '2026-02-15',
+            files: [
+              {
+                id: 'upload-1',
+                name: 'evidence.pdf',
+                path: 'pii/tenants/tenant-1/claims/member-1/unassigned/upload-1-evidence.pdf',
+                type: 'application/pdf',
+                size: 1024,
+                bucket: 'claim-evidence',
+                classification: 'pii',
+                category: 'evidence',
+                uploadIntentToken: 'server-issued-upload-intent',
+              },
+            ],
+          },
+        },
+        {
+          validateSubmittedClaimFile,
+        }
+      )
+    ).rejects.toThrow('Uploaded file was not found. Please retry upload.');
+
+    expect(validateSubmittedClaimFile).toHaveBeenCalledOnce();
+    expect(hoisted.txInsert).not.toHaveBeenCalled();
+  });
+
+  it('rejects too many evidence files before validating objects or creating records', async () => {
+    const validateSubmittedClaimFile = vi.fn().mockResolvedValue(undefined);
+    const files = Array.from({ length: MAX_CLAIM_EVIDENCE_FILES + 1 }, (_, index) => ({
+      id: `upload-${index}`,
+      name: `evidence-${index}.pdf`,
+      path: `pii/tenants/tenant-1/claims/member-1/unassigned/upload-${index}-evidence.pdf`,
+      type: 'application/pdf',
+      size: 1024,
+      bucket: 'claim-evidence',
+      classification: 'pii',
+      category: 'evidence' as const,
+      uploadIntentToken: 'server-issued-upload-intent',
+    }));
+
+    await expect(
+      submitClaimCore(
+        {
+          session: {
+            user: {
+              id: 'member-1',
+              role: 'member',
+              tenantId: 'tenant-1',
+              email: 'member@example.com',
+            },
+          },
+          requestHeaders: new Headers(),
+          data: {
+            title: 'Flight delay claim',
+            description: 'My flight was delayed overnight and I incurred hotel costs.',
+            category: 'travel',
+            companyName: 'Airline Co',
+            claimAmount: '650.00',
+            currency: 'EUR',
+            incidentDate: '2026-02-15',
+            files,
+          },
+        },
+        {
+          validateSubmittedClaimFile,
+        }
+      )
+    ).rejects.toMatchObject({
+      code: 'INVALID_PAYLOAD',
+    });
+
+    expect(validateSubmittedClaimFile).not.toHaveBeenCalled();
+    expect(hoisted.txInsert).not.toHaveBeenCalled();
   });
 
   it('derives branchId from the assigned agent when subscription branchId is missing', async () => {

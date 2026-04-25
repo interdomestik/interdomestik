@@ -32,6 +32,7 @@
     "validation": {
       "mime": "Lejohen vetëm PDF, JPG ose PNG.",
       "size": "Skedarët duhet të jenë 10MB ose më pak.",
+      "count": "Mund të bashkëngjitni deri në {count} skedarë.",
       "prepare": "Dështoi përgatitja e ngarkimit. Provo sërish.",
       "upload": "Ngarkimi dështoi. Provo sërish."
     },

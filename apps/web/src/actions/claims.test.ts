@@ -16,6 +16,7 @@ const mockDbInsert = vi.fn().mockReturnValue({
 const mockDbUpdate = vi.fn();
 const mockHasActiveMembership = vi.fn();
 const mockGetActiveSubscription = vi.fn();
+const mockValidateInitialClaimEvidenceUpload = vi.hoisted(() => vi.fn());
 
 type MockResolvedOnce = {
   mockResolvedValueOnce: (value: unknown) => unknown;
@@ -165,9 +166,14 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/features/claims/upload/server/initial-claim-upload', () => ({
+  validateInitialClaimEvidenceUpload: mockValidateInitialClaimEvidenceUpload,
+}));
+
 describe('Claim Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockValidateInitialClaimEvidenceUpload.mockResolvedValue(undefined);
     mockHasActiveMembership.mockResolvedValue(true);
     mockGetActiveSubscription.mockResolvedValue({
       id: 'sub-def',
@@ -323,6 +329,7 @@ describe('Claim Actions', () => {
           bucket: 'claim-evidence',
           classification: 'pii',
           category: 'evidence',
+          uploadIntentToken: 'server-issued-upload-intent',
         },
       ],
     };
@@ -590,6 +597,7 @@ describe('Claim Actions', () => {
             bucket: 'claim-evidence',
             classification: 'public',
             category: 'evidence',
+            uploadIntentToken: 'server-issued-upload-intent',
           },
         ],
       };
