@@ -1,8 +1,8 @@
 import type { AiModel, AiModelProfile, AiWorkflow } from './types';
 
 export const AI_MODEL_PROFILES = {
-  'gpt-5.4': {
-    model: 'gpt-5.4',
+  'gpt-5.5': {
+    model: 'gpt-5.5',
     tier: 'advanced',
     defaultFor: ['policy_extract', 'legal_doc_extract'],
     useCase: 'Ambiguous extraction and reviewed document reasoning.',
@@ -36,9 +36,9 @@ export const AI_MODEL_PROFILES = {
 } as const satisfies Record<AiModel, AiModelProfile>;
 
 export const DEFAULT_MODEL_BY_WORKFLOW = {
-  policy_extract: 'gpt-5.4',
+  policy_extract: 'gpt-5.5',
   claim_intake_extract: 'gpt-5-mini',
-  legal_doc_extract: 'gpt-5.4',
+  legal_doc_extract: 'gpt-5.5',
   claim_summary: 'gpt-5-mini',
 } as const satisfies Record<AiWorkflow, AiModel>;
 

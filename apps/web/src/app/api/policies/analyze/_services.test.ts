@@ -185,8 +185,8 @@ describe('queuePolicyAnalysisService', () => {
         entityType: 'policy',
         entityId: 'policy-1',
         requestedBy: 'user-1',
-        model: 'gpt-5.4',
-        modelSnapshot: 'gpt-5.4',
+        model: 'gpt-5.5',
+        modelSnapshot: 'gpt-5.5',
         promptVersion: 'policy_extract_v1',
         requestJson: {
           fileName: 'file.pdf',
