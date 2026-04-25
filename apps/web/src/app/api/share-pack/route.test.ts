@@ -44,12 +44,13 @@ function sharePackRequest(body?: unknown): SharePackPostRequest {
 }
 
 function session(user?: { id?: string; tenantId?: string | null }) {
+  const baseUser = {
+    id: 'user-1',
+    tenantId: 'tenant-1',
+  };
+
   return {
-    user: {
-      id: 'user-1',
-      tenantId: 'tenant-1',
-      ...(user ?? {}),
-    },
+    user: user ? { ...baseUser, ...user } : baseUser,
   };
 }
 
