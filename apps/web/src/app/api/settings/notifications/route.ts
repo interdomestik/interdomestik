@@ -1,3 +1,4 @@
+import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { NextResponse } from 'next/server';
@@ -25,9 +26,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const tenant = resolveTenantBoundary(session);
+    if (!tenant.success) {
+      return tenant.response;
+    }
+
     const preferences = await getNotificationPreferencesCore({
       userId: session.user.id,
-      tenantId: session.user.tenantId,
+      tenantId: tenant.tenantId,
     });
     return NextResponse.json(preferences);
   } catch (error) {
@@ -53,6 +59,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const tenant = resolveTenantBoundary(session);
+    if (!tenant.success) {
+      return tenant.response;
+    }
+
     let body: NotificationPreferences;
 
     try {
@@ -63,7 +74,7 @@ export async function POST(request: Request) {
 
     await upsertNotificationPreferencesCore({
       userId: session.user.id,
-      tenantId: session.user.tenantId,
+      tenantId: tenant.tenantId,
       preferences: body,
     });
 

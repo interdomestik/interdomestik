@@ -1,3 +1,4 @@
+import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { getAiRun } from '@interdomestik/domain-ai';
@@ -20,13 +21,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const session = await auth.api.getSession({ headers: request.headers });
 
-  if (!session) {
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const tenant = resolveTenantBoundary(session);
+  if (!tenant.success) {
+    return tenant.response;
   }
 
   const { id } = await params;
   const run = await getAiRun({
-    tenantId: session.user.tenantId,
+    tenantId: tenant.tenantId,
     runId: id,
   });
 

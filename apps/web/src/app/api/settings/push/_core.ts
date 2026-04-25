@@ -20,11 +20,84 @@ type Audit = {
   metadata?: Record<string, unknown>;
 };
 
+type CoreSuccessResult = {
+  status: 200;
+  body: { success: true };
+  audit?: Audit;
+};
+
+type CoreErrorResult = {
+  status: 400 | 409;
+  body: { error: string };
+};
+
+type CoreResult = CoreSuccessResult | CoreErrorResult;
+
+const PUSH_ENDPOINT_CONFLICT_ERROR = 'Push subscription endpoint already registered';
+
+function pushEndpointConflict(): CoreErrorResult {
+  return { status: 409, body: { error: PUSH_ENDPOINT_CONFLICT_ERROR } };
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && (error as { code?: unknown }).code === '23505'
+  );
+}
+
+function isOwnedSubscription(
+  subscription: { tenantId: string; userId: string },
+  tenantId: string,
+  userId: string
+): boolean {
+  return subscription.tenantId === tenantId && subscription.userId === userId;
+}
+
+async function findPushSubscriptionByEndpoint(endpoint: string) {
+  const [existing] = await db
+    .select()
+    .from(pushSubscriptions)
+    .where(eq(pushSubscriptions.endpoint, endpoint))
+    .limit(1);
+
+  return existing;
+}
+
+async function updatePushSubscription(args: {
+  endpoint: string;
+  tenantId: string;
+  userId: string;
+  p256dh: string;
+  authKey: string;
+  userAgent?: string;
+}) {
+  const { endpoint, tenantId, userId, p256dh, authKey, userAgent } = args;
+
+  await db
+    .update(pushSubscriptions)
+    .set({
+      tenantId,
+      userId,
+      endpoint,
+      p256dh,
+      auth: authKey,
+      userAgent,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(pushSubscriptions.endpoint, endpoint),
+        eq(pushSubscriptions.tenantId, tenantId),
+        eq(pushSubscriptions.userId, userId)
+      )
+    );
+}
+
 export async function upsertPushSubscriptionCore(args: {
   userId: string;
   tenantId?: string | null;
   body: PushSubscriptionBody;
-}): Promise<{ status: 200 | 400; body: { success?: true; error?: string }; audit?: Audit }> {
+}): Promise<CoreResult> {
   const { userId, tenantId, body } = args;
   if (!tenantId) {
     return { status: 400, body: { error: 'Missing tenantId' } };
@@ -39,44 +112,48 @@ export async function upsertPushSubscriptionCore(args: {
 
   const { endpoint, keys, userAgent } = validation.data;
   const { p256dh, auth: authKey } = keys;
+  const updateArgs = {
+    endpoint,
+    tenantId: resolvedTenantId,
+    userId,
+    p256dh,
+    authKey,
+    userAgent,
+  };
 
-  const [existing] = await db
-    .select()
-    .from(pushSubscriptions)
-    .where(eq(pushSubscriptions.endpoint, endpoint))
-    .limit(1);
+  const existing = await findPushSubscriptionByEndpoint(endpoint);
 
   if (existing) {
-    await db
-      .update(pushSubscriptions)
-      .set({
+    if (!isOwnedSubscription(existing, resolvedTenantId, userId)) {
+      return pushEndpointConflict();
+    }
+
+    await updatePushSubscription(updateArgs);
+  } else {
+    try {
+      await db.insert(pushSubscriptions).values({
+        id: nanoid(),
         tenantId: resolvedTenantId,
         userId,
         endpoint,
         p256dh,
         auth: authKey,
         userAgent,
+        createdAt: new Date(),
         updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(pushSubscriptions.endpoint, endpoint),
-          eq(pushSubscriptions.tenantId, resolvedTenantId),
-          eq(pushSubscriptions.userId, userId)
-        )
-      );
-  } else {
-    await db.insert(pushSubscriptions).values({
-      id: nanoid(),
-      tenantId: resolvedTenantId,
-      userId,
-      endpoint,
-      p256dh,
-      auth: authKey,
-      userAgent,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+      });
+    } catch (error) {
+      if (!isUniqueViolation(error)) {
+        throw error;
+      }
+
+      const racedExisting = await findPushSubscriptionByEndpoint(endpoint);
+      if (!racedExisting || !isOwnedSubscription(racedExisting, resolvedTenantId, userId)) {
+        return pushEndpointConflict();
+      }
+
+      await updatePushSubscription(updateArgs);
+    }
   }
 
   return {

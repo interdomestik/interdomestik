@@ -7,7 +7,7 @@ export const AI_WORKFLOWS = [
 
 export type AiWorkflow = (typeof AI_WORKFLOWS)[number];
 
-export const AI_MODELS = ['gpt-5.4', 'gpt-5-mini', 'gpt-5-nano', 'gpt-5.4-pro'] as const;
+export const AI_MODELS = ['gpt-5.5', 'gpt-5-mini', 'gpt-5-nano', 'gpt-5.4-pro'] as const;
 
 export type AiModel = (typeof AI_MODELS)[number];
 

@@ -23,6 +23,10 @@ vi.mock('@interdomestik/domain-ai', () => ({
   getAiRun: hoisted.getAiRun,
 }));
 
+function runRequest(): Request {
+  return new Request('http://localhost:3000/api/ai/runs/run-1');
+}
+
 describe('GET /api/ai/runs/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -32,11 +36,22 @@ describe('GET /api/ai/runs/[id]', () => {
   it('returns 401 when unauthenticated', async () => {
     hoisted.getSession.mockResolvedValue(null);
 
-    const request = new Request('http://localhost:3000/api/ai/runs/run-1');
-    const response = await GET(request, { params: Promise.resolve({ id: 'run-1' }) });
+    const response = await GET(runRequest(), { params: Promise.resolve({ id: 'run-1' }) });
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({ error: 'Unauthorized' });
+  });
+
+  it('returns 401 when the session is missing tenant identity', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'member-1', role: 'member', tenantId: null },
+    });
+
+    const response = await GET(runRequest(), { params: Promise.resolve({ id: 'run-1' }) });
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: 'Missing tenant identity' });
+    expect(hoisted.getAiRun).not.toHaveBeenCalled();
   });
 
   it('returns 403 when a member requests another users run', async () => {
@@ -62,8 +77,7 @@ describe('GET /api/ai/runs/[id]', () => {
       completedAt: null,
     });
 
-    const request = new Request('http://localhost:3000/api/ai/runs/run-1');
-    const response = await GET(request, { params: Promise.resolve({ id: 'run-1' }) });
+    const response = await GET(runRequest(), { params: Promise.resolve({ id: 'run-1' }) });
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({ error: 'Forbidden' });
@@ -95,8 +109,7 @@ describe('GET /api/ai/runs/[id]', () => {
       completedAt: '2026-03-08T12:02:00.000Z',
     });
 
-    const request = new Request('http://localhost:3000/api/ai/runs/run-1');
-    const response = await GET(request, { params: Promise.resolve({ id: 'run-1' }) });
+    const response = await GET(runRequest(), { params: Promise.resolve({ id: 'run-1' }) });
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
@@ -126,8 +139,7 @@ describe('GET /api/ai/runs/[id]', () => {
       })
     );
 
-    const request = new Request('http://localhost:3000/api/ai/runs/run-1');
-    const response = await GET(request, { params: Promise.resolve({ id: 'run-1' }) });
+    const response = await GET(runRequest(), { params: Promise.resolve({ id: 'run-1' }) });
 
     expect(response.status).toBe(429);
     await expect(response.json()).resolves.toEqual({ error: 'Too many requests' });
