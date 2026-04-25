@@ -100,6 +100,57 @@ vi.mock('./ai-workflows', () => ({
 import { submitClaimCore } from './submit';
 import { MAX_CLAIM_EVIDENCE_FILES } from '../validators/claims';
 
+type SubmitClaimArgs = Parameters<typeof submitClaimCore>[0];
+type SubmitClaimFile = NonNullable<SubmitClaimArgs['data']['files']>[number];
+
+function buildEvidenceFile(overrides: Partial<SubmitClaimFile> = {}): SubmitClaimFile {
+  return {
+    id: 'upload-1',
+    name: 'evidence.pdf',
+    path: 'pii/tenants/tenant-1/claims/member-1/unassigned/upload-1-evidence.pdf',
+    type: 'application/pdf',
+    size: 1024,
+    bucket: 'claim-evidence',
+    classification: 'pii',
+    category: 'evidence',
+    uploadIntentToken: 'server-issued-upload-intent',
+    ...overrides,
+  };
+}
+
+function buildClaimData(files: SubmitClaimFile[] = [buildEvidenceFile()]): SubmitClaimArgs['data'] {
+  return {
+    title: 'Flight delay claim',
+    description: 'My flight was delayed overnight and I incurred hotel costs.',
+    category: 'travel',
+    companyName: 'Airline Co',
+    claimAmount: '650.00',
+    currency: 'EUR',
+    incidentDate: '2026-02-15',
+    files,
+  };
+}
+
+function buildSubmitArgs(
+  overrides: Partial<Pick<SubmitClaimArgs, 'handoffContext'>> & { files?: SubmitClaimFile[] } = {
+    handoffContext: undefined,
+  }
+): SubmitClaimArgs {
+  return {
+    session: {
+      user: {
+        id: 'member-1',
+        role: 'member',
+        tenantId: 'tenant-1',
+        email: 'member@example.com',
+      },
+    },
+    requestHeaders: new Headers(),
+    handoffContext: overrides.handoffContext,
+    data: buildClaimData(overrides.files),
+  };
+}
+
 describe('submitClaimCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -127,44 +178,13 @@ describe('submitClaimCore', () => {
     const validateSubmittedClaimFile = vi.fn().mockResolvedValue(undefined);
 
     const result = await submitClaimCore(
-      {
-        session: {
-          user: {
-            id: 'member-1',
-            role: 'member',
-            tenantId: 'tenant-1',
-            email: 'member@example.com',
-          },
-        },
-        requestHeaders: new Headers(),
+      buildSubmitArgs({
         handoffContext: {
           source: 'diaspora-green-card',
           country: 'IT',
           incidentLocation: 'abroad',
         },
-        data: {
-          title: 'Flight delay claim',
-          description: 'My flight was delayed overnight and I incurred hotel costs.',
-          category: 'travel',
-          companyName: 'Airline Co',
-          claimAmount: '650.00',
-          currency: 'EUR',
-          incidentDate: '2026-02-15',
-          files: [
-            {
-              id: 'upload-1',
-              name: 'evidence.pdf',
-              path: 'pii/tenants/tenant-1/claims/member-1/unassigned/upload-1-evidence.pdf',
-              type: 'application/pdf',
-              size: 1024,
-              bucket: 'claim-evidence',
-              classification: 'pii',
-              category: 'evidence',
-              uploadIntentToken: 'server-issued-upload-intent',
-            },
-          ],
-        },
-      },
+      }),
       {
         dispatchClaimAiRun,
         validateSubmittedClaimFile,
@@ -228,38 +248,11 @@ describe('submitClaimCore', () => {
 
   it('rejects submitted evidence without a server-issued upload intent before creating records', async () => {
     await expect(
-      submitClaimCore({
-        session: {
-          user: {
-            id: 'member-1',
-            role: 'member',
-            tenantId: 'tenant-1',
-            email: 'member@example.com',
-          },
-        },
-        requestHeaders: new Headers(),
-        data: {
-          title: 'Flight delay claim',
-          description: 'My flight was delayed overnight and I incurred hotel costs.',
-          category: 'travel',
-          companyName: 'Airline Co',
-          claimAmount: '650.00',
-          currency: 'EUR',
-          incidentDate: '2026-02-15',
-          files: [
-            {
-              id: 'upload-1',
-              name: 'evidence.pdf',
-              path: 'pii/tenants/tenant-1/claims/member-1/unassigned/upload-1-evidence.pdf',
-              type: 'application/pdf',
-              size: 1024,
-              bucket: 'claim-evidence',
-              classification: 'pii',
-              category: 'evidence',
-            },
-          ],
-        },
-      })
+      submitClaimCore(
+        buildSubmitArgs({
+          files: [buildEvidenceFile({ uploadIntentToken: undefined })],
+        })
+      )
     ).rejects.toMatchObject({
       code: 'INVALID_PATH',
       message: 'Upload confirmation expired. Please retry upload.',
@@ -274,44 +267,9 @@ describe('submitClaimCore', () => {
       .mockRejectedValue(new Error('Uploaded file was not found. Please retry upload.'));
 
     await expect(
-      submitClaimCore(
-        {
-          session: {
-            user: {
-              id: 'member-1',
-              role: 'member',
-              tenantId: 'tenant-1',
-              email: 'member@example.com',
-            },
-          },
-          requestHeaders: new Headers(),
-          data: {
-            title: 'Flight delay claim',
-            description: 'My flight was delayed overnight and I incurred hotel costs.',
-            category: 'travel',
-            companyName: 'Airline Co',
-            claimAmount: '650.00',
-            currency: 'EUR',
-            incidentDate: '2026-02-15',
-            files: [
-              {
-                id: 'upload-1',
-                name: 'evidence.pdf',
-                path: 'pii/tenants/tenant-1/claims/member-1/unassigned/upload-1-evidence.pdf',
-                type: 'application/pdf',
-                size: 1024,
-                bucket: 'claim-evidence',
-                classification: 'pii',
-                category: 'evidence',
-                uploadIntentToken: 'server-issued-upload-intent',
-              },
-            ],
-          },
-        },
-        {
-          validateSubmittedClaimFile,
-        }
-      )
+      submitClaimCore(buildSubmitArgs(), {
+        validateSubmittedClaimFile,
+      })
     ).rejects.toThrow('Uploaded file was not found. Please retry upload.');
 
     expect(validateSubmittedClaimFile).toHaveBeenCalledOnce();

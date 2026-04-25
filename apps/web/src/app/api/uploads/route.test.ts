@@ -43,6 +43,38 @@ vi.mock('@interdomestik/database', () => ({
   }),
 }));
 
+type UploadRequestPayload = {
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  claimId?: string;
+};
+
+function mockUploadUserSession(
+  overrides: Partial<{ id: string; role: string; tenantId: string }> = {}
+) {
+  hoisted.getSession.mockResolvedValue({
+    user: {
+      id: 'user-1',
+      role: 'user',
+      tenantId: 'tenant_mk',
+      ...overrides,
+    },
+  });
+}
+
+function buildUploadRequest(overrides: Partial<UploadRequestPayload> = {}): Request {
+  return new Request('http://localhost:3000/api/uploads', {
+    method: 'POST',
+    body: JSON.stringify({
+      fileName: 'file.pdf',
+      fileType: 'application/pdf',
+      fileSize: 100,
+      ...overrides,
+    }),
+  });
+}
+
 describe('POST /api/uploads', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -294,20 +326,9 @@ describe('POST /api/uploads', () => {
     vi.stubEnv('CLAIM_UPLOAD_INTENT_SECRET', '');
     vi.stubEnv('BETTER_AUTH_SECRET', '');
 
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
-    });
+    mockUploadUserSession();
 
-    const req = new Request('http://localhost:3000/api/uploads', {
-      method: 'POST',
-      body: JSON.stringify({
-        fileName: 'file.pdf',
-        fileType: 'application/pdf',
-        fileSize: 100,
-      }),
-    });
-
-    const res = await POST(req);
+    const res = await POST(buildUploadRequest());
     const data = await res.json();
 
     expect(res.status).toBe(500);
@@ -342,20 +363,9 @@ describe('POST /api/uploads', () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET', '');
 
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
-    });
+    mockUploadUserSession();
 
-    const req = new Request('http://localhost:3000/api/uploads', {
-      method: 'POST',
-      body: JSON.stringify({
-        fileName: 'file.pdf',
-        fileType: 'application/pdf',
-        fileSize: 100,
-      }),
-    });
-
-    const res = await POST(req);
+    const res = await POST(buildUploadRequest());
     const data = await res.json();
 
     expect(res.status).toBe(200);
