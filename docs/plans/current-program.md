@@ -53,7 +53,7 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P16` Production Professionalism Re-Review is now complete after completed `P15`. This tranche re-checked the completed hardening line before pilot launch, preserved a repo-backed Go/No-Go artifact, and named missed non-blocking issues without widening scope into proxy, routing, auth, tenancy, Stripe, or broad portal redesign work. `P16-PR01` verified the original five findings are closed, inspected adjacent registration, upload, share-pack, document, AI, settings, and activity paths, recorded residual non-blocking risks, and merged through PR `#512` with local required gates, SonarCloud, PR finalizer, and remote checks green.
 
-`P17` Production Professionalism Maturity is now active after completed `P16`. This tranche addresses the remaining non-blocking issues that kept the bounded-pilot score below 9/10 without reopening proxy, routing, auth layering, tenancy architecture, Stripe, or broad portal redesign. `P17-PR01` is the first slice: it migrates the legacy claim-wizard upload path onto server-issued upload intents plus storage-object validation before claim evidence is persisted.
+`P17` Production Professionalism Maturity is now active after completed `P16`. This tranche addresses the remaining non-blocking issues that kept the bounded-pilot score below 9/10 without reopening proxy, routing, auth layering, tenancy architecture, Stripe, or broad portal redesign. `P17-PR01` is now complete through PR `#514`: the legacy claim-wizard upload path uses server-issued upload intents plus storage-object validation before claim evidence is persisted, and it merged with local required gates, SonarCloud, PR finalizer, full E2E, Pilot Gate, and remote checks green.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -290,7 +290,7 @@ These documents can recommend or constrain work, but they do not define the live
 - `P16` is now complete as the post-`P15` production-professionalism re-review tranche.
 - `P16-PR01` is now complete in PR `#512` as the repo-backed professionalism re-review and pilot Go/No-Go evidence slice.
 - `P17` has now been copied into the live program and tracker as the post-`P16` professionalism-maturity tranche.
-- `P17-PR01` is active as the legacy claim-wizard upload hardening slice.
+- `P17-PR01` is now complete in PR `#514` as the legacy claim-wizard upload hardening slice.
 - `P1C` has now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` and is now the active post-infrastructure tranche.
 - `C01` through `C06` have now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the committed commercial-contract publication queue.
 - `C01` is complete as the coverage-matrix publication slice.
