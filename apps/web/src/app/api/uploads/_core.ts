@@ -66,6 +66,10 @@ type UploadErr = {
 
 export type UploadResult = UploadOk | UploadErr;
 
+type InitialUploadIntentResult =
+  | { ok: true; intentToken: string }
+  | { ok: false; result: UploadErr };
+
 export async function createSignedUploadCore(args: {
   session: Session;
   input: UploadRequest;
@@ -116,27 +120,19 @@ export async function createSignedUploadCore(args: {
 
   let intentToken: string | undefined;
   if (!claimId) {
-    try {
-      intentToken = createInitialClaimUploadIntentToken({
-        actorId: session.user.id,
-        bucket,
-        fileId: evidenceId,
-        fileSize,
-        mimeType: fileType,
-        storagePath: path,
-        tenantId,
-      });
-    } catch (error) {
-      console.error('[api/uploads] Upload intent creation failed', {
-        bucket,
-        path,
-        fileType,
-        fileSize,
-        claimId: null,
-        error: error instanceof Error ? error.message : 'unknown',
-      });
-      return { ok: false, status: 500, error: 'Failed to create signed upload URL' };
+    const intent = createUnassignedUploadIntentToken({
+      actorId: session.user.id,
+      bucket,
+      fileId: evidenceId,
+      fileSize,
+      fileType,
+      path,
+      tenantId,
+    });
+    if (!intent.ok) {
+      return intent.result;
     }
+    intentToken = intent.intentToken;
   }
 
   const adminClient = createAdminClient();
@@ -174,4 +170,45 @@ export async function createSignedUploadCore(args: {
       allowedMimeTypes: ALLOWED_MIME_TYPES,
     },
   };
+}
+
+function createUnassignedUploadIntentToken(args: {
+  actorId: string;
+  bucket: string;
+  fileId: string;
+  fileSize: number;
+  fileType: string;
+  path: string;
+  tenantId: string;
+}): InitialUploadIntentResult {
+  const { actorId, bucket, fileId, fileSize, fileType, path, tenantId } = args;
+
+  try {
+    return {
+      ok: true,
+      intentToken: createInitialClaimUploadIntentToken({
+        actorId,
+        bucket,
+        fileId,
+        fileSize,
+        mimeType: fileType,
+        storagePath: path,
+        tenantId,
+      }),
+    };
+  } catch (error) {
+    console.error('[api/uploads] Upload intent creation failed', {
+      bucket,
+      path,
+      fileType,
+      fileSize,
+      claimId: null,
+      error: error instanceof Error ? error.message : 'unknown',
+    });
+
+    return {
+      ok: false,
+      result: { ok: false, status: 500, error: 'Failed to create signed upload URL' },
+    };
+  }
 }
