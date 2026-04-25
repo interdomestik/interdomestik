@@ -21,6 +21,8 @@ import { notifyClaimSubmitted } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
+import { validateInitialClaimEvidenceUpload } from '@/features/claims/upload/server/initial-claim-upload';
+import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import type { Session } from './context';
 
 type CommercialEscalationDecision = 'requested' | 'declined';
@@ -108,6 +110,13 @@ export async function submitClaimCore(params: {
           markClaimAiRunDispatchFailed: markClaimAiRunDispatchFailedService,
           notifyClaimSubmitted,
           revalidatePath,
+          validateSubmittedClaimFile: ({ actorId, file, tenantId }) =>
+            validateInitialClaimEvidenceUpload({
+              actorId,
+              expectedBucket: resolveEvidenceBucketName(),
+              file,
+              tenantId,
+            }),
         });
         if (result.success && typeof result.claimId === 'string') {
           return {

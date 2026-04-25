@@ -32,6 +32,7 @@
     "validation": {
       "mime": "Only PDF, JPG, or PNG files are allowed.",
       "size": "Files must be 10MB or smaller.",
+      "count": "You can attach up to {count} files.",
       "prepare": "Failed to prepare upload. Please try again.",
       "upload": "Upload failed. Please try again."
     },

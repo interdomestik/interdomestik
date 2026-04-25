@@ -1,6 +1,10 @@
 'use client';
 
-import type { CreateClaimValues, EvidenceFile } from '@/lib/validators/claims';
+import {
+  MAX_CLAIM_EVIDENCE_FILES,
+  type CreateClaimValues,
+  type EvidenceFile,
+} from '@/lib/validators/claims';
 import { createClient } from '@interdomestik/database/client';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
@@ -74,7 +78,21 @@ export function WizardStepEvidence() {
     setError(null);
     setIsUploading(true);
 
-    for (const file of selectedFiles) {
+    const currentFiles = form.getValues('files') ?? [];
+    const remainingSlots = MAX_CLAIM_EVIDENCE_FILES - currentFiles.length;
+
+    if (remainingSlots <= 0) {
+      setError(t('validation.count', { count: MAX_CLAIM_EVIDENCE_FILES }));
+      setIsUploading(false);
+      event.target.value = '';
+      return;
+    }
+
+    if (selectedFiles.length > remainingSlots) {
+      setError(t('validation.count', { count: MAX_CLAIM_EVIDENCE_FILES }));
+    }
+
+    for (const file of selectedFiles.slice(0, remainingSlots)) {
       if (!ALLOWED_MIME_TYPES.includes(file.type)) {
         setError(t('validation.mime'));
         continue;
@@ -102,7 +120,7 @@ export function WizardStepEvidence() {
       }
 
       const payload = (await response.json()) as {
-        upload: { path: string; token: string; bucket: string };
+        upload: { id: string; path: string; token: string; bucket: string; intentToken: string };
         classification?: string;
       };
       const upload = payload.upload;
@@ -127,7 +145,7 @@ export function WizardStepEvidence() {
       }
 
       const evidenceFile: EvidenceFile = {
-        id: upload.path,
+        id: upload.id,
         name: file.name,
         path: upload.path,
         type: file.type || 'application/octet-stream',
@@ -135,10 +153,11 @@ export function WizardStepEvidence() {
         bucket: upload.bucket,
         classification: payload.classification || 'pii',
         category: 'evidence',
+        uploadIntentToken: upload.intentToken,
       };
 
-      const currentFiles = form.getValues('files') ?? [];
-      form.setValue('files', [...currentFiles, evidenceFile], {
+      const latestFiles = form.getValues('files') ?? [];
+      form.setValue('files', [...latestFiles, evidenceFile], {
         shouldDirty: true,
         shouldValidate: true,
       });

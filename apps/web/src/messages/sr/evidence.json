@@ -32,6 +32,7 @@
     "validation": {
       "mime": "Dozvoljeni su samo PDF, JPG ili PNG fajlovi.",
       "size": "Fajlovi moraju biti 10MB ili manji.",
+      "count": "Možete priložiti najviše {count} fajlova.",
       "prepare": "Priprema otpremanja nije uspela. Pokušajte ponovo.",
       "upload": "Otpremanje nije uspelo. Pokušajte ponovo."
     },
