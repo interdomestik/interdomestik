@@ -6,7 +6,7 @@ This re-review inspected the merged `P15` hardening line after PRs `#508`, `#510
 
 No new launch blocker was found for the bounded pilot. One important non-blocking issue remains: the older claim-wizard evidence upload path still relies on client-submitted evidence metadata during final claim submission rather than the newer server-issued upload-intent confirmation model. It is tenant/user-prefix constrained, but it can persist non-existent or metadata-spoofed evidence and create downstream AI/document workflow noise.
 
-Final pilot readiness posture: **Go for bounded pilot after this review slice's required gates and PR checks are green; not a broad-production Go.**
+Final pilot readiness posture: **Go for bounded pilot now that this review slice's required gates and PR checks are green; not a broad-production Go.**
 
 ## What looks professional
 
@@ -83,6 +83,6 @@ The repo is no longer blocked by the original five findings, and the verificatio
 
 ## Go / No-Go
 
-**Go for bounded pilot** once this `P16-PR01` slice's required gates and PR checks are green.
+**Go for bounded pilot** now that this `P16-PR01` slice's required gates and PR checks are green.
 
 **No-Go for broad production expansion** until the legacy claim-wizard upload path is migrated to the same server-bound upload-intent confirmation model as the claim-detail upload path.
