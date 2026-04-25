@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-04-24
+last_reviewed: 2026-04-25
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -50,6 +50,8 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 `P14` Member Experience Guidance is now complete after completed `P13`. This tranche promotes the first narrow Program D experience slice: `P14-MD01` adds guided next-action cards to the canonical member dashboard so active claim state, document organization, membership readiness, and support handoff are visible before members need to search. `P14` stayed limited to the `/member` dashboard experience layer and did not reopen `apps/web/src/proxy.ts`, canonical routes, auth layering, tenancy, database schema, billing, or broad design-system scope.
 
 `P15` Production Professionalism Hardening is now complete after completed `P14`. This tranche promoted the 2026-04-24 senior-staff repository review findings into the canonical execution queue. `P15` was a blocker-removal tranche, not a redesign or modernization tranche: the P0 registration authorization and protected-route fail-open findings are complete, the P1 token, upload-confirmation, activity-read, and production-runtime hardening gaps are complete, and `P15-QA01` landed in PR `#510` to restore E2E contract proof, docs/env drift proof, and full launch-gate evidence. `P15` did not authorize canonical route renames, auth-layer collapse, tenancy architecture refactors, Stripe reintroduction, or broad portal redesign; `apps/web/src/proxy.ts` remains the sole routing and access-control authority.
+
+`P16` Production Professionalism Re-Review is now active after completed `P15`. This tranche exists to re-check the completed hardening line before pilot launch, preserve a repo-backed Go/No-Go artifact, and name any missed issues without widening scope into proxy, routing, auth, tenancy, Stripe, or broad portal redesign work. `P16-PR01` is the first slice: it verifies the original five findings are closed, inspects adjacent registration, upload, share-pack, document, AI, settings, and activity paths, records residual non-blocking risks, and runs the required deterministic review gates before the pilot decision is treated as inspectable.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -283,6 +285,8 @@ These documents can recommend or constrain work, but they do not define the live
 - `P15-G02` is now complete as the protected-route fail-closed proxy slice, closing the review finding that allowed protected canonical routes to pass through when session introspection returned unknown.
 - `P15-S01` is now complete as the production runtime and bearer-token hardening slice, closing the predictable share-pack signing fallback and production-runtime test-affordance findings while preserving explicit local E2E diagnostics.
 - `P15-QA01` is now complete in PR `#510`, closing the E2E-contract, docs-drift, release-proof, Sonar, Copilot, finalizer, and pilot-gate evidence gaps.
+- `P16` has now been copied into the live program and tracker as the post-`P15` production-professionalism re-review tranche.
+- `P16-PR01` is active as the repo-backed professionalism re-review and pilot Go/No-Go evidence slice.
 - `P1C` has now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` and is now the active post-infrastructure tranche.
 - `C01` through `C06` have now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the committed commercial-contract publication queue.
 - `C01` is complete as the coverage-matrix publication slice.
