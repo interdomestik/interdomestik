@@ -1,4 +1,5 @@
 import { getVerificationRequestDetails } from '@/features/admin/verification/server/verification.core';
+import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import { auth } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import { getVerificationApiCore } from './_core';
@@ -7,8 +8,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const session = await auth.api.getSession({ headers: request.headers });
 
-  if (!session) {
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const tenant = resolveTenantBoundary(session);
+  if (!tenant.success) {
+    return tenant.response;
   }
 
   const result = await getVerificationApiCore(
@@ -17,7 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       user: {
         id: session.user.id,
         role: session.user.role,
-        tenantId: session.user.tenantId,
+        tenantId: tenant.tenantId,
         branchId: session.user.branchId,
       },
     },
