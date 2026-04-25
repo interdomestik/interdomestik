@@ -1,7 +1,7 @@
 import { getVerificationRequestDetails } from '@/features/admin/verification/server/verification.core';
+import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import { auth } from '@/lib/auth';
 import { NextResponse } from 'next/server';
-import { resolveTenantBoundary } from '../../tenant-boundary';
 import { getVerificationApiCore } from './_core';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
