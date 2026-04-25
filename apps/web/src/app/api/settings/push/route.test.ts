@@ -80,6 +80,11 @@ const validPushBody = {
   userAgent: 'UA',
 };
 
+const validDeleteBody = { endpoint: validPushBody.endpoint };
+const sameEndpointOwner = { tenantId: 'tenant_mk', userId: 'user-123' };
+const endpointConflict = { error: 'Push subscription endpoint already registered' };
+const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
+
 function authenticatedSession(tenantId: string | null = 'tenant_mk') {
   return { user: { id: 'user-123', tenantId } };
 }
@@ -91,11 +96,56 @@ function postRequest(body: unknown = validPushBody): Request {
   });
 }
 
-function deleteRequest(body: unknown = { endpoint: validPushBody.endpoint }): Request {
+function deleteRequest(body: unknown = validDeleteBody): Request {
   return new Request('http://localhost:3000/api/settings/push', {
     method: 'DELETE',
     body: typeof body === 'string' ? body : JSON.stringify(body),
   });
+}
+
+function subscriptionFor(owner = sameEndpointOwner) {
+  return {
+    id: 'sub-1',
+    endpoint: validPushBody.endpoint,
+    ...owner,
+  };
+}
+
+async function expectJsonResponse(
+  response: Response,
+  status: number,
+  body: Record<string, unknown>
+) {
+  expect(response.status).toBe(status);
+  expect(await response.json()).toEqual(body);
+}
+
+function expectNoPushWriteOrAudit() {
+  expect(mockInsertChain.values).not.toHaveBeenCalled();
+  expect(mockUpdateChain.set).not.toHaveBeenCalled();
+  expect(hoistedMocks.logAuditEvent).not.toHaveBeenCalled();
+}
+
+function expectValidPushUpdate() {
+  expect(mockUpdateChain.set).toHaveBeenCalledWith(
+    expect.objectContaining({
+      ...sameEndpointOwner,
+      endpoint: validPushBody.endpoint,
+      p256dh: 'p256',
+      auth: 'auth',
+      userAgent: 'UA',
+      updatedAt: expect.any(Date),
+    })
+  );
+}
+
+function mockExistingSubscription(owner = sameEndpointOwner) {
+  mockSelectChain.limit.mockResolvedValue([subscriptionFor(owner)]);
+}
+
+function mockRacedInsertSubscription(owner = sameEndpointOwner) {
+  mockSelectChain.limit.mockResolvedValueOnce([]).mockResolvedValueOnce([subscriptionFor(owner)]);
+  mockInsertChain.values.mockRejectedValueOnce(uniqueViolation);
 }
 
 describe('POST /api/settings/push', () => {
@@ -113,44 +163,31 @@ describe('POST /api/settings/push', () => {
     hoistedMocks.getSession.mockResolvedValue(null);
 
     const response = await POST(postRequest());
-    const data = await response.json();
-
-    expect(response.status).toBe(401);
-    expect(data).toEqual({ error: 'Unauthorized' });
+    await expectJsonResponse(response, 401, { error: 'Unauthorized' });
   });
 
   it('returns 401 when tenant identity is missing', async () => {
     hoistedMocks.getSession.mockResolvedValue(authenticatedSession(null));
 
     const response = await POST(postRequest());
-    const data = await response.json();
 
-    expect(response.status).toBe(401);
-    expect(data).toEqual({ error: 'Missing tenant identity' });
+    await expectJsonResponse(response, 401, { error: 'Missing tenant identity' });
     expect(mockSelectChain.from).not.toHaveBeenCalled();
-    expect(mockInsertChain.values).not.toHaveBeenCalled();
-    expect(mockUpdateChain.set).not.toHaveBeenCalled();
-    expect(hoistedMocks.logAuditEvent).not.toHaveBeenCalled();
+    expectNoPushWriteOrAudit();
   });
 
   it('returns 400 on invalid JSON', async () => {
     hoistedMocks.getSession.mockResolvedValue(authenticatedSession());
 
     const response = await POST(postRequest('invalid json'));
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Invalid JSON' });
+    await expectJsonResponse(response, 400, { error: 'Invalid JSON' });
   });
 
   it('returns 400 on missing fields', async () => {
     hoistedMocks.getSession.mockResolvedValue(authenticatedSession());
 
     const response = await POST(postRequest({ endpoint: '' }));
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Invalid subscription data' });
+    await expectJsonResponse(response, 400, { error: 'Invalid subscription data' });
   });
 
   it('creates a new subscription when none exists', async () => {
@@ -158,15 +195,12 @@ describe('POST /api/settings/push', () => {
     mockSelectChain.limit.mockResolvedValue([]);
 
     const response = await POST(postRequest());
-    const data = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(data).toEqual({ success: true });
+    await expectJsonResponse(response, 200, { success: true });
     expect(mockInsertChain.values).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'test-id-123',
-        tenantId: 'tenant_mk',
-        userId: 'user-123',
+        ...sameEndpointOwner,
         endpoint: validPushBody.endpoint,
         p256dh: 'p256',
         auth: 'auth',
@@ -177,31 +211,11 @@ describe('POST /api/settings/push', () => {
 
   it('updates subscription when it exists', async () => {
     hoistedMocks.getSession.mockResolvedValue(authenticatedSession());
-    mockSelectChain.limit.mockResolvedValue([
-      {
-        id: 'sub-1',
-        endpoint: validPushBody.endpoint,
-        tenantId: 'tenant_mk',
-        userId: 'user-123',
-      },
-    ]);
+    mockExistingSubscription();
 
     const response = await POST(postRequest());
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data).toEqual({ success: true });
-    expect(mockUpdateChain.set).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tenantId: 'tenant_mk',
-        userId: 'user-123',
-        endpoint: validPushBody.endpoint,
-        p256dh: 'p256',
-        auth: 'auth',
-        userAgent: 'UA',
-        updatedAt: expect.any(Date),
-      })
-    );
+    await expectJsonResponse(response, 200, { success: true });
+    expectValidPushUpdate();
   });
 
   it.each([
@@ -209,42 +223,21 @@ describe('POST /api/settings/push', () => {
     ['the same user in another tenant', { tenantId: 'tenant_other', userId: 'user-123' }],
   ])('returns 409 when the endpoint belongs to %s', async (_caseName, owner) => {
     hoistedMocks.getSession.mockResolvedValue(authenticatedSession());
-    mockSelectChain.limit.mockResolvedValue([
-      {
-        id: 'sub-1',
-        endpoint: validPushBody.endpoint,
-        ...owner,
-      },
-    ]);
+    mockExistingSubscription(owner);
 
     const response = await POST(postRequest());
-    const data = await response.json();
 
-    expect(response.status).toBe(409);
-    expect(data).toEqual({ error: 'Push subscription endpoint already registered' });
-    expect(mockUpdateChain.set).not.toHaveBeenCalled();
-    expect(mockInsertChain.values).not.toHaveBeenCalled();
-    expect(hoistedMocks.logAuditEvent).not.toHaveBeenCalled();
+    await expectJsonResponse(response, 409, endpointConflict);
+    expectNoPushWriteOrAudit();
   });
 
   it('returns 409 when a raced insert finds another endpoint owner', async () => {
-    const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
     hoistedMocks.getSession.mockResolvedValue(authenticatedSession());
-    mockSelectChain.limit.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        id: 'sub-1',
-        endpoint: validPushBody.endpoint,
-        tenantId: 'tenant_other',
-        userId: 'other-user',
-      },
-    ]);
-    mockInsertChain.values.mockRejectedValueOnce(uniqueViolation);
+    mockRacedInsertSubscription({ tenantId: 'tenant_other', userId: 'other-user' });
 
     const response = await POST(postRequest());
-    const data = await response.json();
 
-    expect(response.status).toBe(409);
-    expect(data).toEqual({ error: 'Push subscription endpoint already registered' });
+    await expectJsonResponse(response, 409, endpointConflict);
     expect(mockInsertChain.values).toHaveBeenCalledTimes(1);
     expect(mockSelectChain.limit).toHaveBeenCalledTimes(2);
     expect(mockUpdateChain.set).not.toHaveBeenCalled();
@@ -252,35 +245,13 @@ describe('POST /api/settings/push', () => {
   });
 
   it('updates when a raced insert finds the same endpoint owner', async () => {
-    const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
     hoistedMocks.getSession.mockResolvedValue(authenticatedSession());
-    mockSelectChain.limit.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        id: 'sub-1',
-        endpoint: validPushBody.endpoint,
-        tenantId: 'tenant_mk',
-        userId: 'user-123',
-      },
-    ]);
-    mockInsertChain.values.mockRejectedValueOnce(uniqueViolation);
+    mockRacedInsertSubscription();
 
     const response = await POST(postRequest());
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data).toEqual({ success: true });
+    await expectJsonResponse(response, 200, { success: true });
     expect(mockInsertChain.values).toHaveBeenCalledTimes(1);
-    expect(mockUpdateChain.set).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tenantId: 'tenant_mk',
-        userId: 'user-123',
-        endpoint: validPushBody.endpoint,
-        p256dh: 'p256',
-        auth: 'auth',
-        userAgent: 'UA',
-        updatedAt: expect.any(Date),
-      })
-    );
+    expectValidPushUpdate();
   });
 });
 
@@ -294,20 +265,15 @@ describe('DELETE /api/settings/push', () => {
     hoistedMocks.getSession.mockResolvedValue(null);
 
     const response = await DELETE(deleteRequest());
-    const data = await response.json();
-
-    expect(response.status).toBe(401);
-    expect(data).toEqual({ error: 'Unauthorized' });
+    await expectJsonResponse(response, 401, { error: 'Unauthorized' });
   });
 
   it('returns 401 when tenant identity is missing', async () => {
     hoistedMocks.getSession.mockResolvedValue(authenticatedSession(null));
 
     const response = await DELETE(deleteRequest());
-    const data = await response.json();
 
-    expect(response.status).toBe(401);
-    expect(data).toEqual({ error: 'Missing tenant identity' });
+    await expectJsonResponse(response, 401, { error: 'Missing tenant identity' });
     expect(mockDeleteChain.where).not.toHaveBeenCalled();
     expect(hoistedMocks.logAuditEvent).not.toHaveBeenCalled();
   });
@@ -316,36 +282,28 @@ describe('DELETE /api/settings/push', () => {
     hoistedMocks.getSession.mockResolvedValue(authenticatedSession());
 
     const response = await DELETE(deleteRequest('invalid json'));
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Invalid JSON' });
+    await expectJsonResponse(response, 400, { error: 'Invalid JSON' });
   });
 
   it('returns 400 when endpoint is missing', async () => {
     hoistedMocks.getSession.mockResolvedValue(authenticatedSession());
 
     const response = await DELETE(deleteRequest({}));
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Invalid subscription' });
+    await expectJsonResponse(response, 400, { error: 'Invalid subscription' });
   });
 
   it('deletes subscription by endpoint', async () => {
     hoistedMocks.getSession.mockResolvedValue(authenticatedSession());
 
     const response = await DELETE(deleteRequest());
-    const data = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(data).toEqual({ success: true });
+    await expectJsonResponse(response, 200, { success: true });
     expect(mockDeleteChain.where).toHaveBeenCalledWith({
       type: 'and',
       conditions: [
         { type: 'eq', field: 'endpoint', value: validPushBody.endpoint },
-        { type: 'eq', field: 'tenant_id', value: 'tenant_mk' },
-        { type: 'eq', field: 'user_id', value: 'user-123' },
+        { type: 'eq', field: 'tenant_id', value: sameEndpointOwner.tenantId },
+        { type: 'eq', field: 'user_id', value: sameEndpointOwner.userId },
       ],
     });
   });

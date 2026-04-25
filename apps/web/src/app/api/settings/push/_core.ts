@@ -26,6 +26,12 @@ type CoreResult = {
   audit?: Audit;
 };
 
+const PUSH_ENDPOINT_CONFLICT_ERROR = 'Push subscription endpoint already registered';
+
+function pushEndpointConflict(): CoreResult {
+  return { status: 409, body: { error: PUSH_ENDPOINT_CONFLICT_ERROR } };
+}
+
 function isUniqueViolation(error: unknown): boolean {
   return (
     typeof error === 'object' && error !== null && (error as { code?: unknown }).code === '23505'
@@ -99,22 +105,23 @@ export async function upsertPushSubscriptionCore(args: {
 
   const { endpoint, keys, userAgent } = validation.data;
   const { p256dh, auth: authKey } = keys;
+  const updateArgs = {
+    endpoint,
+    tenantId: resolvedTenantId,
+    userId,
+    p256dh,
+    authKey,
+    userAgent,
+  };
 
   const existing = await findPushSubscriptionByEndpoint(endpoint);
 
   if (existing) {
     if (!isOwnedSubscription(existing, resolvedTenantId, userId)) {
-      return { status: 409, body: { error: 'Push subscription endpoint already registered' } };
+      return pushEndpointConflict();
     }
 
-    await updatePushSubscription({
-      endpoint,
-      tenantId: resolvedTenantId,
-      userId,
-      p256dh,
-      authKey,
-      userAgent,
-    });
+    await updatePushSubscription(updateArgs);
   } else {
     try {
       await db.insert(pushSubscriptions).values({
@@ -135,17 +142,10 @@ export async function upsertPushSubscriptionCore(args: {
 
       const racedExisting = await findPushSubscriptionByEndpoint(endpoint);
       if (!racedExisting || !isOwnedSubscription(racedExisting, resolvedTenantId, userId)) {
-        return { status: 409, body: { error: 'Push subscription endpoint already registered' } };
+        return pushEndpointConflict();
       }
 
-      await updatePushSubscription({
-        endpoint,
-        tenantId: resolvedTenantId,
-        userId,
-        p256dh,
-        authKey,
-        userAgent,
-      });
+      await updatePushSubscription(updateArgs);
     }
   }
 
