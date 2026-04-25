@@ -1,3 +1,4 @@
+import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import { logAuditEvent } from '@/lib/audit';
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
@@ -26,6 +27,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const tenant = resolveTenantBoundary(session);
+    if (!tenant.success) {
+      return tenant.response;
+    }
+
     let body: PushSubscriptionBody;
     try {
       body = await request.json();
@@ -35,7 +41,7 @@ export async function POST(request: Request) {
 
     const result = await upsertPushSubscriptionCore({
       userId: session.user.id,
-      tenantId: (session.user as { tenantId?: string | null }).tenantId,
+      tenantId: tenant.tenantId,
       body,
     });
     if (result.status !== 200) {
@@ -76,6 +82,11 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const tenant = resolveTenantBoundary(session);
+    if (!tenant.success) {
+      return tenant.response;
+    }
+
     let body: { endpoint?: string };
     try {
       body = await request.json();
@@ -87,7 +98,7 @@ export async function DELETE(request: Request) {
 
     const result = await deletePushSubscriptionCore({
       userId: session.user.id,
-      tenantId: (session.user as { tenantId?: string | null }).tenantId,
+      tenantId: tenant.tenantId,
       endpoint: endpoint ?? '',
     });
     if (result.status !== 200) {
