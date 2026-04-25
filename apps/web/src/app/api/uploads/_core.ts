@@ -45,7 +45,7 @@ type UploadOk = {
       signedUrl: string;
       bucket: string;
       expiresIn: number;
-      intentToken: string;
+      intentToken?: string;
     };
     classification: string;
     maxFileSize: number;
@@ -114,27 +114,29 @@ export async function createSignedUploadCore(args: {
   const classification = DEFAULT_CLASSIFICATION;
   const path = `${classification}/tenants/${tenantId}/claims/${session.user.id}/${claimId ?? 'unassigned'}/${evidenceId}-${safeName}`;
 
-  let intentToken: string;
-  try {
-    intentToken = createInitialClaimUploadIntentToken({
-      actorId: session.user.id,
-      bucket,
-      fileId: evidenceId,
-      fileSize,
-      mimeType: fileType,
-      storagePath: path,
-      tenantId,
-    });
-  } catch (error) {
-    console.error('[api/uploads] Upload intent creation failed', {
-      bucket,
-      path,
-      fileType,
-      fileSize,
-      claimId: claimId ?? null,
-      error: error instanceof Error ? error.message : 'unknown',
-    });
-    return { ok: false, status: 500, error: 'Failed to create signed upload URL' };
+  let intentToken: string | undefined;
+  if (!claimId) {
+    try {
+      intentToken = createInitialClaimUploadIntentToken({
+        actorId: session.user.id,
+        bucket,
+        fileId: evidenceId,
+        fileSize,
+        mimeType: fileType,
+        storagePath: path,
+        tenantId,
+      });
+    } catch (error) {
+      console.error('[api/uploads] Upload intent creation failed', {
+        bucket,
+        path,
+        fileType,
+        fileSize,
+        claimId: null,
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      return { ok: false, status: 500, error: 'Failed to create signed upload URL' };
+    }
   }
 
   const adminClient = createAdminClient();
@@ -165,7 +167,7 @@ export async function createSignedUploadCore(args: {
         signedUrl: data.signedUrl,
         bucket,
         expiresIn: 300,
-        intentToken,
+        ...(intentToken ? { intentToken } : {}),
       },
       classification,
       maxFileSize: MAX_FILE_SIZE_BYTES,

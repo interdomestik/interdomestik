@@ -132,9 +132,7 @@ function buildClaimData(files: SubmitClaimFile[] = [buildEvidenceFile()]): Submi
 }
 
 function buildSubmitArgs(
-  overrides: Partial<Pick<SubmitClaimArgs, 'handoffContext'>> & { files?: SubmitClaimFile[] } = {
-    handoffContext: undefined,
-  }
+  overrides: Partial<Pick<SubmitClaimArgs, 'handoffContext'>> & { files?: SubmitClaimFile[] } = {}
 ): SubmitClaimArgs {
   return {
     session: {
@@ -247,17 +245,21 @@ describe('submitClaimCore', () => {
   });
 
   it('rejects submitted evidence without a server-issued upload intent before creating records', async () => {
+    const validateSubmittedClaimFile = vi.fn().mockResolvedValue(undefined);
+
     await expect(
       submitClaimCore(
         buildSubmitArgs({
           files: [buildEvidenceFile({ uploadIntentToken: undefined })],
-        })
+        }),
+        { validateSubmittedClaimFile }
       )
     ).rejects.toMatchObject({
       code: 'INVALID_PATH',
       message: 'Upload confirmation expired. Please retry upload.',
     });
 
+    expect(validateSubmittedClaimFile).not.toHaveBeenCalled();
     expect(hoisted.txInsert).not.toHaveBeenCalled();
   });
 
@@ -273,6 +275,14 @@ describe('submitClaimCore', () => {
     ).rejects.toThrow('Uploaded file was not found. Please retry upload.');
 
     expect(validateSubmittedClaimFile).toHaveBeenCalledOnce();
+    expect(hoisted.txInsert).not.toHaveBeenCalled();
+  });
+
+  it('fails as server misconfiguration when evidence validation is not wired', async () => {
+    await expect(submitClaimCore(buildSubmitArgs())).rejects.toThrow(
+      'Submitted claim file validation is not configured.'
+    );
+
     expect(hoisted.txInsert).not.toHaveBeenCalled();
   });
 

@@ -1,5 +1,5 @@
 import type { EvidenceFile } from '@interdomestik/domain-claims/validators/claims';
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { validateStoredObject } from './shared-upload';
 

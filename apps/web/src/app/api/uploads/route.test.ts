@@ -303,11 +303,11 @@ describe('POST /api/uploads', () => {
           token: 'tok-1',
           signedUrl: 'https://signed.example.com/upload',
           expiresIn: 300,
-          intentToken: expect.any(String),
         }),
         classification: 'pii',
       })
     );
+    expect(data.upload).not.toHaveProperty('intentToken');
 
     expect(data.upload.path).toContain(
       '/tenants/tenant_mk/claims/user-1/claim-1/evidence-123-My_File.pdf'
@@ -370,6 +370,7 @@ describe('POST /api/uploads', () => {
 
     expect(res.status).toBe(200);
     expect(data.upload.bucket).toBe('claim-evidence');
+    expect(data.upload.intentToken).toEqual(expect.any(String));
     expect(hoisted.storageFrom).toHaveBeenCalledWith('claim-evidence');
   });
 });
