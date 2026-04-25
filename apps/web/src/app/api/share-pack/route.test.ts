@@ -29,9 +29,9 @@ vi.mock('next/headers', () => ({
 
 type SharePackPostRequest = Parameters<typeof POST>[0];
 
-function sharePackRequest(
-  body: unknown = { documentIds: ['doc-1', 'doc-2'] }
-): SharePackPostRequest {
+const defaultSharePackBody = { documentIds: ['doc-1', 'doc-2'] };
+
+function sharePackRequest(body?: unknown): SharePackPostRequest {
   return new Request('http://localhost:3000/api/share-pack', {
     method: 'POST',
     headers: {
@@ -39,16 +39,16 @@ function sharePackRequest(
       'user-agent': 'vitest-agent',
       'x-forwarded-for': '127.0.0.1',
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(body ?? defaultSharePackBody),
   }) as SharePackPostRequest;
 }
 
-function session(user: { id?: string; tenantId?: string | null } = {}) {
+function session(user?: { id?: string; tenantId?: string | null }) {
   return {
     user: {
       id: 'user-1',
       tenantId: 'tenant-1',
-      ...user,
+      ...(user ?? {}),
     },
   };
 }
