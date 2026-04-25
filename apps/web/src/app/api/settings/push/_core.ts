@@ -20,15 +20,22 @@ type Audit = {
   metadata?: Record<string, unknown>;
 };
 
-type CoreResult = {
-  status: 200 | 400 | 409;
-  body: { success?: true; error?: string };
+type CoreSuccessResult = {
+  status: 200;
+  body: { success: true };
   audit?: Audit;
 };
 
+type CoreErrorResult = {
+  status: 400 | 409;
+  body: { error: string };
+};
+
+type CoreResult = CoreSuccessResult | CoreErrorResult;
+
 const PUSH_ENDPOINT_CONFLICT_ERROR = 'Push subscription endpoint already registered';
 
-function pushEndpointConflict(): CoreResult {
+function pushEndpointConflict(): CoreErrorResult {
   return { status: 409, body: { error: PUSH_ENDPOINT_CONFLICT_ERROR } };
 }
 
