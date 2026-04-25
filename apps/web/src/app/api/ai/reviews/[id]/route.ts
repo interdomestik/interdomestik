@@ -1,3 +1,4 @@
+import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { isStaffOrHigher } from '@interdomestik/shared-auth';
@@ -26,8 +27,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const session = await auth.api.getSession({ headers: request.headers });
 
-  if (!session) {
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const tenant = resolveTenantBoundary(session);
+  if (!tenant.success) {
+    return tenant.response;
   }
 
   if (!isPrivilegedRole(session.user.role)) {
@@ -46,7 +52,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const result = await submitAiReview({
     runId: id,
-    tenantId: session.user.tenantId,
+    tenantId: tenant.tenantId,
     reviewerId: session.user.id,
     reviewerRole: session.user.role,
     action: body.action,

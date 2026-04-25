@@ -23,6 +23,14 @@ vi.mock('./_core', () => ({
   submitAiReview: hoisted.submitAiReview,
 }));
 
+function approveReviewRequest(): Request {
+  return new Request('http://localhost:3000/api/ai/reviews/run-1', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'approve' }),
+  });
+}
+
 describe('POST /api/ai/reviews/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -32,15 +40,26 @@ describe('POST /api/ai/reviews/[id]', () => {
   it('returns 401 when unauthenticated', async () => {
     hoisted.getSession.mockResolvedValue(null);
 
-    const request = new Request('http://localhost:3000/api/ai/reviews/run-1', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action: 'approve' }),
+    const response = await POST(approveReviewRequest(), {
+      params: Promise.resolve({ id: 'run-1' }),
     });
-    const response = await POST(request, { params: Promise.resolve({ id: 'run-1' }) });
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({ error: 'Unauthorized' });
+  });
+
+  it('returns 401 when the session is missing tenant identity', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'staff-1', role: 'staff', tenantId: undefined },
+    });
+
+    const response = await POST(approveReviewRequest(), {
+      params: Promise.resolve({ id: 'run-1' }),
+    });
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: 'Missing tenant identity' });
+    expect(hoisted.submitAiReview).not.toHaveBeenCalled();
   });
 
   it('returns 403 when caller is not privileged', async () => {
@@ -48,12 +67,9 @@ describe('POST /api/ai/reviews/[id]', () => {
       user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' },
     });
 
-    const request = new Request('http://localhost:3000/api/ai/reviews/run-1', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action: 'approve' }),
+    const response = await POST(approveReviewRequest(), {
+      params: Promise.resolve({ id: 'run-1' }),
     });
-    const response = await POST(request, { params: Promise.resolve({ id: 'run-1' }) });
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({ error: 'Forbidden' });
@@ -120,12 +136,9 @@ describe('POST /api/ai/reviews/[id]', () => {
       })
     );
 
-    const request = new Request('http://localhost:3000/api/ai/reviews/run-1', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action: 'approve' }),
+    const response = await POST(approveReviewRequest(), {
+      params: Promise.resolve({ id: 'run-1' }),
     });
-    const response = await POST(request, { params: Promise.resolve({ id: 'run-1' }) });
 
     expect(response.status).toBe(429);
     await expect(response.json()).resolves.toEqual({ error: 'Too many requests' });

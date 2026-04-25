@@ -75,6 +75,32 @@ vi.mock('next/headers', () => ({
   headers: hoistedMocks.headers,
 }));
 
+const samplePreferences = {
+  emailClaimUpdates: true,
+  emailMarketing: false,
+  emailNewsletter: true,
+  pushClaimUpdates: true,
+  pushMessages: true,
+  inAppAll: true,
+};
+
+function notificationPostRequest(body = samplePreferences): Request {
+  return new Request('http://localhost:3000/api/settings/notifications', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+async function expectMissingTenantIdentity(response: Response): Promise<void> {
+  const data = await response.json();
+
+  expect(response.status).toBe(401);
+  expect(data).toEqual({ error: 'Missing tenant identity' });
+  expect(mockSelectChain.from).not.toHaveBeenCalled();
+  expect(mockInsertChain.values).not.toHaveBeenCalled();
+  expect(mockUpdateChain.set).not.toHaveBeenCalled();
+}
+
 describe('GET /api/settings/notifications', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -92,6 +118,15 @@ describe('GET /api/settings/notifications', () => {
 
     expect(response.status).toBe(401);
     expect(data).toEqual({ error: 'Unauthorized' });
+  });
+
+  it('should return 401 if the session is missing tenant identity', async () => {
+    hoistedMocks.getSession.mockResolvedValue({
+      user: { id: 'user-123', tenantId: null },
+    });
+
+    const request = new Request('http://localhost:3000/api/settings/notifications');
+    await expectMissingTenantIdentity(await GET(request));
   });
 
   it('should return default preferences if none exist', async () => {
@@ -178,23 +213,19 @@ describe('POST /api/settings/notifications', () => {
   it('should return 401 if user is not authenticated', async () => {
     hoistedMocks.getSession.mockResolvedValue(null);
 
-    const request = new Request('http://localhost:3000/api/settings/notifications', {
-      method: 'POST',
-      body: JSON.stringify({
-        emailClaimUpdates: true,
-        emailMarketing: false,
-        emailNewsletter: true,
-        pushClaimUpdates: true,
-        pushMessages: true,
-        inAppAll: true,
-      }),
-    });
-
-    const response = await POST(request);
+    const response = await POST(notificationPostRequest());
     const data = await response.json();
 
     expect(response.status).toBe(401);
     expect(data).toEqual({ error: 'Unauthorized' });
+  });
+
+  it('should return 401 if the session is missing tenant identity', async () => {
+    hoistedMocks.getSession.mockResolvedValue({
+      user: { id: 'user-123', tenantId: undefined },
+    });
+
+    await expectMissingTenantIdentity(await POST(notificationPostRequest()));
   });
 
   it('should create new preferences if none exist', async () => {
