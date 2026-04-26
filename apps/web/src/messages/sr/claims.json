@@ -165,6 +165,12 @@
       "evidence": "Priloženi Dokazi",
       "documentsEmpty": "Još nema otpremljenih dokumenata",
       "viewDocument": "Otvori",
+      "progress": {
+        "title": "Pregled napretka",
+        "currentState": "Trenutno stanje",
+        "latestUpdate": "Poslednje ažuriranje",
+        "nextAction": "Očekivani sledeći korak"
+      },
       "matterAllowance": {
         "title": "Kvota predmeta",
         "used": "Iskorišćeno ove godine",

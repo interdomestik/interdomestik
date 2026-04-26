@@ -15,6 +15,14 @@ export interface ClaimRecoveryDecisionDto {
   description: string | null;
 }
 
+export interface ClaimProgressSummaryDto {
+  currentStatusLabelKey: string;
+  latestUpdateAt: Date;
+  latestUpdateLabelKey: string;
+  latestUpdateNote: string | null;
+  nextStepKey: string;
+}
+
 export interface ClaimTrackingDetailDto {
   id: string;
   publicId?: string; // For public link if exists
@@ -34,6 +42,7 @@ export interface ClaimTrackingDetailDto {
 
   // Context
   canShare: boolean; // If allowed to generate public link
+  progressSummary: ClaimProgressSummaryDto;
   matterAllowance?: ClaimMatterAllowanceDto | null;
   recoveryDecision?: ClaimRecoveryDecisionDto | null;
 }

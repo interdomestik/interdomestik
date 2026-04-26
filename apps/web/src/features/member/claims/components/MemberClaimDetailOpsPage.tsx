@@ -11,6 +11,7 @@ import {
 } from '@/components/ops/adapters/claims';
 import type {
   ClaimMatterAllowanceDto,
+  ClaimProgressSummaryDto,
   ClaimRecoveryDecisionDto,
   ClaimTrackingDetailDto,
   ClaimTrackingDocument,
@@ -38,14 +39,25 @@ type SerializedClaimMatterAllowance = Omit<ClaimMatterAllowanceDto, 'windowStart
 
 type SerializedClaimRecoveryDecision = ClaimRecoveryDecisionDto;
 
+type SerializedClaimProgressSummary = Omit<ClaimProgressSummaryDto, 'latestUpdateAt'> & {
+  latestUpdateAt: ClaimProgressSummaryDto['latestUpdateAt'] | string;
+};
+
 type MemberClaimDetailOpsClaim = Omit<
   ClaimTrackingDetailDto,
-  'createdAt' | 'updatedAt' | 'documents' | 'timeline' | 'matterAllowance' | 'recoveryDecision'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'documents'
+  | 'timeline'
+  | 'matterAllowance'
+  | 'recoveryDecision'
+  | 'progressSummary'
 > & {
   createdAt: ClaimTrackingDetailDto['createdAt'] | string;
   updatedAt: ClaimTrackingDetailDto['updatedAt'] | string | null;
   documents: SerializedClaimTrackingDocument[];
   timeline: SerializedClaimTimelineEvent[];
+  progressSummary: SerializedClaimProgressSummary;
   matterAllowance?: SerializedClaimMatterAllowance | null;
   recoveryDecision?: SerializedClaimRecoveryDecision | null;
 };
@@ -68,17 +80,24 @@ export function MemberClaimDetailOpsPage({
   const locale = useLocale();
   const t = useTranslations('claims');
   const tTrackingStatus = useTranslations('claims-tracking.status');
+  const tTrackingNextStep = useTranslations('claims-tracking.status.next_step');
   const tSla = useTranslations('claims-tracking.tracking.sla');
   const tClaimStatus = useTranslations('claims.status');
+
+  const translateTrackingStatus = (labelKey: string) => {
+    if (!labelKey.startsWith('claims-tracking.status.')) {
+      return labelKey;
+    }
+
+    return tTrackingStatus(labelKey.replace('claims-tracking.status.', ''));
+  };
 
   // Transform events and translate titles
   const opsEvents = toOpsTimelineEvents(claim.timeline).map(e => ({
     ...e,
     // claim.timeline labelKey is a fully qualified key (e.g. "claims-tracking.status.evaluation").
     // Translating it within the "claims" namespace causes missing-message errors in production.
-    title: e.title.startsWith('claims-tracking.status.')
-      ? tTrackingStatus(e.title.replace('claims-tracking.status.', ''))
-      : e.title,
+    title: translateTrackingStatus(e.title),
   }));
 
   const opsDocuments = toOpsDocuments(claim.documents);
@@ -112,6 +131,18 @@ export function MemberClaimDetailOpsPage({
   const uploadAction = secondary.find(action => action.id === 'upload');
   const secondaryActions = secondary.filter(action => action.id !== 'upload').map(mapAction);
   const showSlaCard = claim.slaPhase === 'incomplete' || claim.slaPhase === 'running';
+  const latestUpdateDate = formatPilotDateTime(
+    claim.progressSummary.latestUpdateAt,
+    locale,
+    String(claim.progressSummary.latestUpdateAt)
+  );
+  const nextStepLabel = claim.progressSummary.nextStepKey.startsWith(
+    'claims-tracking.status.next_step.'
+  )
+    ? tTrackingNextStep(
+        claim.progressSummary.nextStepKey.replace('claims-tracking.status.next_step.', '')
+      )
+    : claim.progressSummary.nextStepKey;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-8">
@@ -157,6 +188,54 @@ export function MemberClaimDetailOpsPage({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
+          <Card data-testid="member-claim-progress-summary">
+            <CardHeader>
+              <CardTitle>{t('detail.progress.title')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <span className="text-xs uppercase text-muted-foreground">
+                    {t('detail.progress.currentState')}
+                  </span>
+                  <p className="mt-1 font-semibold" data-testid="member-claim-current-state">
+                    {translateTrackingStatus(claim.progressSummary.currentStatusLabelKey)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs uppercase text-muted-foreground">
+                    {t('detail.progress.latestUpdate')}
+                  </span>
+                  <p className="mt-1 font-semibold" data-testid="member-claim-latest-update">
+                    {translateTrackingStatus(claim.progressSummary.latestUpdateLabelKey)}
+                  </p>
+                  <p
+                    className="mt-1 text-xs text-muted-foreground"
+                    data-testid="member-claim-latest-update-date"
+                  >
+                    {latestUpdateDate}
+                  </p>
+                  {claim.progressSummary.latestUpdateNote ? (
+                    <p className="mt-2 text-sm" data-testid="member-claim-latest-update-note">
+                      {claim.progressSummary.latestUpdateNote}
+                    </p>
+                  ) : null}
+                </div>
+                <div>
+                  <span className="text-xs uppercase text-muted-foreground">
+                    {t('detail.progress.nextAction')}
+                  </span>
+                  <p
+                    className="mt-1 text-sm leading-6"
+                    data-testid="member-claim-expected-next-action"
+                  >
+                    {nextStepLabel}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {showSlaCard ? (
             <Card>
               <CardHeader>

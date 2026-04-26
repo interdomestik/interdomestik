@@ -165,6 +165,12 @@
       "evidence": "Приложени докази",
       "documentsEmpty": "Сè уште нема прикачени документи",
       "viewDocument": "Отвори",
+      "progress": {
+        "title": "Преглед на напредокот",
+        "currentState": "Тековна состојба",
+        "latestUpdate": "Последно ажурирање",
+        "nextAction": "Очекуван следен чекор"
+      },
       "matterAllowance": {
         "title": "Квота за случаи",
         "used": "Искористено оваа година",
