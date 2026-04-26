@@ -47,11 +47,15 @@ function buildProgressSummary(args: {
   const currentStatusLabelKey = `claims-tracking.status.${args.status}`;
   const latestUpdate = args.timeline[0];
 
+  if (!latestUpdate) {
+    throw new Error('buildProgressSummary requires a non-empty timeline');
+  }
+
   return {
     currentStatusLabelKey,
-    latestUpdateAt: latestUpdate?.date ?? new Date(),
-    latestUpdateLabelKey: latestUpdate?.labelKey ?? currentStatusLabelKey,
-    latestUpdateNote: latestUpdate?.note ?? null,
+    latestUpdateAt: latestUpdate.date,
+    latestUpdateLabelKey: latestUpdate.labelKey,
+    latestUpdateNote: latestUpdate.note,
     nextStepKey: `claims-tracking.status.next_step.${args.status}`,
   };
 }
