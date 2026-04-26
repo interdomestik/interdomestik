@@ -1,7 +1,8 @@
 import { LeaderboardCard } from '@/components/agent/leaderboard-card';
 import { PipelineChart } from '@/components/agent/pipeline-chart';
 import { auth } from '@/lib/auth'; // server-side auth
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { ensureTenantId } from '@interdomestik/shared-auth';
+import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
@@ -13,6 +14,7 @@ export default async function CRMPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('agent');
+  const format = await getFormatter();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -22,8 +24,9 @@ export default async function CRMPage({
   }
 
   const agentId = session.user.id;
+  const tenantId = ensureTenantId(session);
 
-  const stats = await getAgentCrmStatsCore({ agentId });
+  const stats = await getAgentCrmStatsCore({ agentId, tenantId });
 
   return (
     <div className="space-y-6">
@@ -46,7 +49,9 @@ export default async function CRMPage({
         </div>
         <div className="p-6 bg-white rounded-lg border shadow-sm">
           <div className="text-sm font-medium text-muted-foreground">{t('commissions.title')}</div>
-          <div className="text-2xl font-bold">€ {stats.paidCommissionTotal.toFixed(2)}</div>
+          <div className="text-2xl font-bold">
+            {format.number(stats.paidCommissionTotal, { style: 'currency', currency: 'EUR' })}
+          </div>
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
