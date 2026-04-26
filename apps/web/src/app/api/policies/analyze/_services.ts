@@ -9,10 +9,13 @@ import { db } from '@/lib/db.server';
 import { inngest } from '@/lib/inngest/client';
 import { createAdminClient } from '@interdomestik/database';
 import { aiRuns, documentExtractions, documents, policies } from '@interdomestik/database/schema';
+import { getResponsesWorkflowConfig } from '@interdomestik/domain-ai/models';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 const POLICIES_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || 'policies';
+const POLICY_EXTRACT_WORKFLOW = 'policy_extract' as const;
+const POLICY_EXTRACT_CONFIG = getResponsesWorkflowConfig(POLICY_EXTRACT_WORKFLOW);
 
 function buildPolicyInputHash(args: {
   fileUrl: string;
@@ -164,21 +167,22 @@ export async function queuePolicyAnalysisService(
     await tx.insert(aiRuns).values({
       id: runId,
       tenantId: data.tenantId,
-      workflow: 'policy_extract',
+      workflow: POLICY_EXTRACT_WORKFLOW,
       status: 'queued',
       documentId,
       entityType: 'policy',
       entityId: policyId,
       requestedBy: data.userId,
-      model: 'gpt-5.5',
-      modelSnapshot: 'gpt-5.5',
-      promptVersion: 'policy_extract_v1',
+      model: POLICY_EXTRACT_CONFIG.model,
+      modelSnapshot: POLICY_EXTRACT_CONFIG.model,
+      promptVersion: POLICY_EXTRACT_CONFIG.promptVersion,
       inputHash: buildPolicyInputHash(data),
       requestJson: {
         fileUrl: data.fileUrl,
         fileName: data.fileName,
         mimeType: data.mimeType,
         fileSize: data.fileSize,
+        promptCacheKey: POLICY_EXTRACT_CONFIG.promptCacheKey,
       },
       reviewStatus: 'pending',
       createdAt: now,
@@ -254,7 +258,7 @@ export async function processPolicyAnalysisRunService(args: {
     .where(
       and(
         eq(aiRuns.id, runId),
-        eq(aiRuns.workflow, 'policy_extract'),
+        eq(aiRuns.workflow, POLICY_EXTRACT_WORKFLOW),
         eq(aiRuns.entityType, 'policy')
       )
     );
@@ -344,8 +348,8 @@ export async function processPolicyAnalysisRunService(args: {
           documentId,
           entityType: 'policy',
           entityId: policyId,
-          workflow: 'policy_extract',
-          schemaVersion: 'policy_extract_v1',
+          workflow: POLICY_EXTRACT_WORKFLOW,
+          schemaVersion: POLICY_EXTRACT_CONFIG.promptVersion,
           extractedJson: analysis,
           warnings: [],
           sourceRunId: runId,

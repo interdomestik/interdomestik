@@ -14,6 +14,8 @@ export type AiModel = (typeof AI_MODELS)[number];
 export type AiModelTier = 'routing' | 'standard' | 'advanced' | 'escalation';
 
 export type AiReasoningLevel = 'light' | 'balanced' | 'deep';
+export type AiReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh';
+export type AiTextVerbosity = 'low' | 'medium' | 'high';
 
 export interface AiModelProfile {
   model: AiModel;
@@ -21,5 +23,23 @@ export interface AiModelProfile {
   defaultFor: readonly AiWorkflow[];
   useCase: string;
   reasoningLevel: AiReasoningLevel;
+  textVerbosity: AiTextVerbosity;
   maxOutputTokens: number;
+}
+
+export interface AiResponsesModelConfig {
+  model: AiModel;
+  reasoning: {
+    effort: AiReasoningEffort;
+  };
+  text: {
+    verbosity: AiTextVerbosity;
+  };
+  maxOutputTokens: number;
+}
+
+export interface AiResponsesWorkflowConfig extends AiResponsesModelConfig {
+  workflow: AiWorkflow;
+  promptVersion: string;
+  promptCacheKey: string;
 }
