@@ -25,6 +25,13 @@ const hoisted = vi.hoisted(() => ({
     canShare: false,
     documents: [],
     timeline: [],
+    progressSummary: {
+      currentStatusLabelKey: 'claims-tracking.status.evaluation',
+      latestUpdateAt: new Date('2026-03-14T11:00:00.000Z'),
+      latestUpdateLabelKey: 'claims-tracking.status.evaluation',
+      latestUpdateNote: null,
+      nextStepKey: 'claims-tracking.status.next_step.evaluation',
+    },
     matterAllowance: null,
   })),
   memberClaimDetailOpsPageMock: vi.fn((props: unknown) => (

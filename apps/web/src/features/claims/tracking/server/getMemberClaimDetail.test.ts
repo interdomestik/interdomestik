@@ -243,6 +243,59 @@ describe('getMemberClaimDetail', () => {
     );
   });
 
+  it('derives member progress summary from the latest public timeline event', async () => {
+    const latestUpdate = new Date('2026-04-15T12:30:00.000Z');
+
+    hoisted.claimFindFirst.mockResolvedValueOnce({
+      id: 'claim_progress',
+      title: 'Delayed flight',
+      status: 'evaluation',
+      createdAt: new Date('2026-04-14T09:00:00.000Z'),
+      updatedAt: latestUpdate,
+      description: 'Compensation review',
+      claimAmount: 250,
+      currency: 'EUR',
+      documents: [],
+    });
+    hoisted.timelineRows.mockResolvedValueOnce([
+      {
+        id: 'history_latest',
+        createdAt: latestUpdate,
+        fromStatus: 'verification',
+        toStatus: 'evaluation',
+        note: 'We reviewed the boarding pass and moved the case to evaluation.',
+        isPublic: true,
+      },
+      {
+        id: 'history_previous',
+        createdAt: new Date('2026-04-14T09:00:00.000Z'),
+        fromStatus: null,
+        toStatus: 'submitted',
+        note: 'Claim received.',
+        isPublic: true,
+      },
+    ]);
+
+    const result = await getMemberClaimDetail(
+      {
+        user: {
+          id: 'member-1',
+          role: 'member',
+          tenantId: 'tenant-1',
+        },
+      },
+      'claim_progress'
+    );
+
+    expect(result?.progressSummary).toEqual({
+      currentStatusLabelKey: 'claims-tracking.status.evaluation',
+      latestUpdateAt: latestUpdate,
+      latestUpdateLabelKey: 'claims-tracking.status.evaluation',
+      latestUpdateNote: 'We reviewed the boarding pass and moved the case to evaluation.',
+      nextStepKey: 'claims-tracking.status.next_step.evaluation',
+    });
+  });
+
   it('maps annual matter allowance visibility onto the member claim detail dto', async () => {
     hoisted.claimFindFirst.mockResolvedValueOnce({
       id: 'claim_2',

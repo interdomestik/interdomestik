@@ -48,6 +48,10 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
       ...e,
       date: e.date.toISOString(),
     })),
+    progressSummary: {
+      ...claim.progressSummary,
+      latestUpdateAt: claim.progressSummary.latestUpdateAt.toISOString(),
+    },
   };
 
   return (

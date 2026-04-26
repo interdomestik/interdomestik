@@ -16,7 +16,12 @@ import {
 import * as Sentry from '@sentry/nextjs';
 import { and, desc, eq } from 'drizzle-orm';
 import 'server-only';
-import type { ClaimTimelineEvent, ClaimTrackingDetailDto, ClaimTrackingDocument } from '../types';
+import type {
+  ClaimProgressSummaryDto,
+  ClaimTimelineEvent,
+  ClaimTrackingDetailDto,
+  ClaimTrackingDocument,
+} from '../types';
 import { buildClaimVisibilityWhere } from '../utils';
 
 function buildFallbackTimelineEvent(args: {
@@ -32,6 +37,26 @@ function buildFallbackTimelineEvent(args: {
     labelKey: `claims-tracking.status.${args.status}`,
     note: null,
     isPublic: true,
+  };
+}
+
+function buildProgressSummary(args: {
+  status: ClaimStatus;
+  timeline: ClaimTimelineEvent[];
+}): ClaimProgressSummaryDto {
+  const currentStatusLabelKey = `claims-tracking.status.${args.status}`;
+  const latestUpdate = args.timeline[0];
+
+  if (!latestUpdate) {
+    throw new Error('buildProgressSummary requires a non-empty timeline');
+  }
+
+  return {
+    currentStatusLabelKey,
+    latestUpdateAt: latestUpdate.date,
+    latestUpdateLabelKey: latestUpdate.labelKey,
+    latestUpdateNote: latestUpdate.note,
+    nextStepKey: `claims-tracking.status.next_step.${args.status}`,
   };
 }
 
@@ -185,6 +210,10 @@ export async function getMemberClaimDetail(
         documents,
         timeline,
         canShare: true, // TODO: Logic for enabling share button
+        progressSummary: buildProgressSummary({
+          status: claimStatus,
+          timeline,
+        }),
         matterAllowance,
         recoveryDecision,
       };

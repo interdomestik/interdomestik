@@ -46,7 +46,17 @@ vi.mock('next-intl', () => ({
     if (namespace === 'claims-tracking.status') {
       return (key: string) => {
         if (key === 'evaluation') return 'Evaluation';
+        if (key === 'verification') return 'Verification';
         return `claims-tracking.status.${key}`;
+      };
+    }
+    if (namespace === 'claims-tracking.status.next_step') {
+      return (key: string) => {
+        const translations: Record<string, string> = {
+          evaluation: 'Our experts are evaluating the damages and liability.',
+          verification: 'We are verifying the provided documents and evidence.',
+        };
+        return translations[key] || `claims-tracking.status.next_step.${key}`;
       };
     }
     if (namespace === 'claims-tracking.tracking.sla') {
@@ -74,6 +84,10 @@ vi.mock('next-intl', () => ({
           'timeline.empty': 'No updates yet',
           'claimsPro.actions.uploadEvidence': 'Upload evidence',
           'claimsPro.actions.sendMessage': 'Send message',
+          'detail.progress.title': 'Progress summary',
+          'detail.progress.currentState': 'Current state',
+          'detail.progress.latestUpdate': 'Latest update',
+          'detail.progress.nextAction': 'Expected next action',
           'table.amount': 'Amount',
         };
 
@@ -121,6 +135,13 @@ function buildClaim(now: Date, overrides: Partial<TestClaim> = {}): TestClaim {
     canShare: false,
     documents: [],
     timeline: [],
+    progressSummary: {
+      currentStatusLabelKey: 'claims-tracking.status.evaluation',
+      latestUpdateAt: now,
+      latestUpdateLabelKey: 'claims-tracking.status.evaluation',
+      latestUpdateNote: null,
+      nextStepKey: 'claims-tracking.status.next_step.evaluation',
+    },
     ...overrides,
   };
 }
@@ -168,6 +189,30 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(
       screen.getByText('Waiting for your information before the SLA starts.')
     ).toBeInTheDocument();
+  });
+
+  it('shows current state, latest public update, and expected next action', () => {
+    renderPage({
+      progressSummary: {
+        currentStatusLabelKey: 'claims-tracking.status.verification',
+        latestUpdateAt: '2026-04-15T12:30:00.000Z',
+        latestUpdateLabelKey: 'claims-tracking.status.evaluation',
+        latestUpdateNote: 'We reviewed your boarding pass and moved the case forward.',
+        nextStepKey: 'claims-tracking.status.next_step.evaluation',
+      },
+    });
+
+    expect(screen.getByTestId('member-claim-progress-summary')).toBeInTheDocument();
+    expect(screen.getByText('Progress summary')).toBeInTheDocument();
+    expect(screen.getByText('Current state')).toBeInTheDocument();
+    expect(screen.getByTestId('member-claim-current-state')).toHaveTextContent('Verification');
+    expect(screen.getByTestId('member-claim-latest-update')).toHaveTextContent('Evaluation');
+    expect(screen.getByTestId('member-claim-latest-update-note')).toHaveTextContent(
+      'We reviewed your boarding pass and moved the case forward.'
+    );
+    expect(screen.getByTestId('member-claim-expected-next-action')).toHaveTextContent(
+      'Our experts are evaluating the damages and liability.'
+    );
   });
 
   it('shows annual matter usage and remaining allowance when the snapshot is available', () => {

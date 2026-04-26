@@ -165,6 +165,12 @@
       "evidence": "Dëshmi të bashkëngjitura",
       "documentsEmpty": "Ende nuk ka dokumente të ngarkuara",
       "viewDocument": "Shiko",
+      "progress": {
+        "title": "Përmbledhje e progresit",
+        "currentState": "Gjendja aktuale",
+        "latestUpdate": "Përditësimi i fundit",
+        "nextAction": "Hapi i pritshëm vijues"
+      },
       "matterAllowance": {
         "title": "Kuota e rasteve",
         "used": "Përdorur këtë vit",

@@ -165,6 +165,12 @@
       "evidence": "Attached Evidence",
       "documentsEmpty": "No documents uploaded yet",
       "viewDocument": "View",
+      "progress": {
+        "title": "Progress summary",
+        "currentState": "Current state",
+        "latestUpdate": "Latest update",
+        "nextAction": "Expected next action"
+      },
       "matterAllowance": {
         "title": "Matter allowance",
         "used": "Used this year",
