@@ -239,6 +239,13 @@ describe('getMemberClaimDetail', () => {
         id: 'claim_1',
         status: 'verification',
         slaPhase: 'incomplete',
+        memberTrustSummary: {
+          state: 'member_action_required',
+          titleKey: 'claims-tracking.tracking.assurance.title',
+          bodyKey: 'claims-tracking.tracking.assurance.body.member_action_required',
+          stateLabelKey: 'claims-tracking.tracking.assurance.state.member_action_required',
+          supportHref: '/member/help',
+        },
       })
     );
   });

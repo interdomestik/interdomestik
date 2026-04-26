@@ -1,5 +1,6 @@
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { ClaimSlaPhase } from '../policy';
+import type { ClaimMemberTrustSummaryDto } from './memberTrustSummary';
 
 export interface ClaimMatterAllowanceDto {
   allowanceTotal: number;
@@ -43,6 +44,7 @@ export interface ClaimTrackingDetailDto {
   // Context
   canShare: boolean; // If allowed to generate public link
   progressSummary: ClaimProgressSummaryDto;
+  memberTrustSummary: ClaimMemberTrustSummaryDto;
   matterAllowance?: ClaimMatterAllowanceDto | null;
   recoveryDecision?: ClaimRecoveryDecisionDto | null;
 }

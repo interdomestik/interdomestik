@@ -23,6 +23,13 @@ const hoisted = vi.hoisted(() => ({
     amount: '120',
     currency: 'EUR',
     canShare: false,
+    memberTrustSummary: {
+      state: 'active_handling',
+      titleKey: 'claims-tracking.tracking.assurance.title',
+      bodyKey: 'claims-tracking.tracking.assurance.body.active_handling',
+      stateLabelKey: 'claims-tracking.tracking.assurance.state.active_handling',
+      supportHref: '/member/help',
+    },
     documents: [],
     timeline: [],
     progressSummary: {

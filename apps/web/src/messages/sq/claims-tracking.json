@@ -25,6 +25,25 @@
         "title": "Statusi i SLA-së",
         "running": "Afati i përgjigjes po ecën.",
         "incomplete": "Po presim informacionin tuaj para se të nisë SLA-ja."
+      },
+      "assurance": {
+        "title": "Siguria e trajtimit",
+        "stateLabel": "Gjendja e SLA-së",
+        "latestUpdateLabel": "Përditësimi i fundit publik",
+        "supportLabel": "Keni nevojë për ndihmë?",
+        "supportCta": "Kontakto mbështetjen",
+        "state": {
+          "member_action_required": "Në pritje të veprimit tuaj",
+          "active_handling": "Afati i përgjigjes është aktiv",
+          "completed": "Rezultati final është publikuar",
+          "outside_operational_sla": "Nuk ka afat aktiv përgjigjeje"
+        },
+        "body": {
+          "member_action_required": "Na duhet informacioni juaj para se afati i përgjigjes të vazhdojë. Ngarkoni provat e kërkuara ose kontaktoni mbështetjen nëse jeni të bllokuar.",
+          "active_handling": "Kërkesa juaj është në një fazë aktive trajtimi. Afati i përgjigjes është aktiv dhe përditësimet publike shfaqen këtu ndërsa ekipi e çon rastin përpara.",
+          "completed": "Kjo kërkesë ka një rezultat final. Shikoni kohështrirjen për atë që ndodhi ose kontaktoni mbështetjen nëse keni nevojë për ndihmë me rezultatin.",
+          "outside_operational_sla": "Kjo fazë nuk ka afat aktiv operacional përgjigjeje. Kohështrirja ende tregon përditësime publike që mund të ndahen në mënyrë të sigurt."
+        }
       }
     },
     "status": {

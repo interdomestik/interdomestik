@@ -1,5 +1,6 @@
 import { ensureClaimsAccess } from '@/server/domains/claims/guards';
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
+import { buildMemberClaimTrustSummary } from '@/features/claims/tracking/memberTrustSummary';
 import {
   getMatterAllowanceVisibilityForUser,
   buildRecoveryDecisionSnapshot,
@@ -196,11 +197,12 @@ export async function getMemberClaimDetail(
         })
       );
 
+      const slaPhase = deriveClaimSlaPhase(claimStatus);
       const dto: ClaimTrackingDetailDto = {
         id: claim.id,
         title: claim.title,
         status: claimStatus,
-        slaPhase: deriveClaimSlaPhase(claimStatus),
+        slaPhase,
         statusLabelKey: `claims-tracking.status.${claimStatus}`,
         createdAt: claim.createdAt ?? new Date(),
         updatedAt: claim.updatedAt,
@@ -213,6 +215,10 @@ export async function getMemberClaimDetail(
         progressSummary: buildProgressSummary({
           status: claimStatus,
           timeline,
+        }),
+        memberTrustSummary: buildMemberClaimTrustSummary({
+          status: claimStatus,
+          slaPhase,
         }),
         matterAllowance,
         recoveryDecision,
