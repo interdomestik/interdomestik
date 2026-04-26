@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   dbSelect: vi.fn(),
@@ -11,9 +11,18 @@ vi.mock('@interdomestik/database/db', () => ({
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
-  crmLeads: { agentId: 'crmLeads.agentId', stage: 'crmLeads.stage' },
-  crmDeals: { agentId: 'crmDeals.agentId', stage: 'crmDeals.stage' },
+  crmLeads: {
+    tenantId: 'crmLeads.tenantId',
+    agentId: 'crmLeads.agentId',
+    stage: 'crmLeads.stage',
+  },
+  crmDeals: {
+    tenantId: 'crmDeals.tenantId',
+    agentId: 'crmDeals.agentId',
+    stage: 'crmDeals.stage',
+  },
   agentCommissions: {
+    tenantId: 'agentCommissions.tenantId',
     agentId: 'agentCommissions.agentId',
     status: 'agentCommissions.status',
     amount: 'agentCommissions.amount',
@@ -37,6 +46,10 @@ function createSelectChain(result: unknown) {
 }
 
 describe('getAgentCrmStatsCore', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('returns numeric defaults when aggregates are null', async () => {
     hoisted.dbSelect
       .mockReturnValueOnce(createSelectChain([{ count: 0 }]))
@@ -44,7 +57,7 @@ describe('getAgentCrmStatsCore', () => {
       .mockReturnValueOnce(createSelectChain([{ count: 0 }]))
       .mockReturnValueOnce(createSelectChain([{ total: null }]));
 
-    const stats = await getAgentCrmStatsCore({ agentId: 'agent-1' });
+    const stats = await getAgentCrmStatsCore({ agentId: 'agent-1', tenantId: 'tenant-1' });
 
     expect(stats).toEqual({
       newLeadsCount: 0,
@@ -61,7 +74,7 @@ describe('getAgentCrmStatsCore', () => {
       .mockReturnValueOnce(createSelectChain([{ count: '2' }]))
       .mockReturnValueOnce(createSelectChain([{ total: '123.45' }]));
 
-    const stats = await getAgentCrmStatsCore({ agentId: 'agent-1' });
+    const stats = await getAgentCrmStatsCore({ agentId: 'agent-1', tenantId: 'tenant-1' });
 
     expect(stats).toEqual({
       newLeadsCount: 3,
@@ -73,5 +86,48 @@ describe('getAgentCrmStatsCore', () => {
     expect(typeof stats.contactedLeadsCount).toBe('number');
     expect(typeof stats.closedWonDealsCount).toBe('number');
     expect(typeof stats.paidCommissionTotal).toBe('number');
+  });
+
+  it('filters every tenant-bearing CRM aggregate by tenant and agent', async () => {
+    const chains = [
+      createSelectChain([{ count: 1 }]),
+      createSelectChain([{ count: 2 }]),
+      createSelectChain([{ count: 3 }]),
+      createSelectChain([{ total: '4.50' }]),
+    ];
+    for (const chain of chains) {
+      hoisted.dbSelect.mockReturnValueOnce(chain);
+    }
+
+    await getAgentCrmStatsCore({ agentId: 'agent-1', tenantId: 'tenant-1' });
+
+    expect(chains[0].where).toHaveBeenCalledWith({
+      and: [
+        { eq: ['crmLeads.tenantId', 'tenant-1'] },
+        { eq: ['crmLeads.agentId', 'agent-1'] },
+        { eq: ['crmLeads.stage', 'new'] },
+      ],
+    });
+    expect(chains[1].where).toHaveBeenCalledWith({
+      and: [
+        { eq: ['crmLeads.tenantId', 'tenant-1'] },
+        { eq: ['crmLeads.agentId', 'agent-1'] },
+        { eq: ['crmLeads.stage', 'contacted'] },
+      ],
+    });
+    expect(chains[2].where).toHaveBeenCalledWith({
+      and: [
+        { eq: ['crmDeals.tenantId', 'tenant-1'] },
+        { eq: ['crmDeals.agentId', 'agent-1'] },
+        { eq: ['crmDeals.stage', 'closed_won'] },
+      ],
+    });
+    expect(chains[3].where).toHaveBeenCalledWith({
+      and: [
+        { eq: ['agentCommissions.tenantId', 'tenant-1'] },
+        { eq: ['agentCommissions.agentId', 'agent-1'] },
+        { eq: ['agentCommissions.status', 'paid'] },
+      ],
+    });
   });
 });

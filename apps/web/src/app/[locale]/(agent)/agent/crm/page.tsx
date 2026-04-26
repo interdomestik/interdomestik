@@ -1,6 +1,7 @@
 import { LeaderboardCard } from '@/components/agent/leaderboard-card';
 import { PipelineChart } from '@/components/agent/pipeline-chart';
 import { auth } from '@/lib/auth'; // server-side auth
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -22,8 +23,9 @@ export default async function CRMPage({
   }
 
   const agentId = session.user.id;
+  const tenantId = ensureTenantId(session);
 
-  const stats = await getAgentCrmStatsCore({ agentId });
+  const stats = await getAgentCrmStatsCore({ agentId, tenantId });
 
   return (
     <div className="space-y-6">

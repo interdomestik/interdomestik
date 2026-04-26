@@ -13,22 +13,29 @@ export type AgentLeadDetailsResult =
 
 export async function getAgentLeadDetailsCore(args: {
   leadId: string;
+  tenantId: string;
   viewerAgentId: string;
 }): Promise<AgentLeadDetailsResult> {
   const lead = await db.query.crmLeads.findFirst({
-    where: eq(crmLeads.id, args.leadId),
+    where: and(
+      eq(crmLeads.id, args.leadId),
+      eq(crmLeads.tenantId, args.tenantId),
+      eq(crmLeads.agentId, args.viewerAgentId)
+    ),
   });
 
   if (!lead) return { kind: 'not_found' };
 
-  if (lead.agentId !== args.viewerAgentId) {
-    return { kind: 'redirect', href: '/agent/leads' };
-  }
-
   const deals = await db
     .select()
     .from(crmDeals)
-    .where(and(eq(crmDeals.leadId, args.leadId), eq(crmDeals.agentId, args.viewerAgentId)));
+    .where(
+      and(
+        eq(crmDeals.tenantId, args.tenantId),
+        eq(crmDeals.leadId, args.leadId),
+        eq(crmDeals.agentId, args.viewerAgentId)
+      )
+    );
 
   return { kind: 'ok', lead, deals };
 }

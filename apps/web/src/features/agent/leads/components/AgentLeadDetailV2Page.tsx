@@ -4,6 +4,7 @@ import { LogActivityDialog } from '@/components/crm/log-activity-dialog';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
@@ -19,13 +20,18 @@ export async function AgentLeadDetailV2Page({ id }: { id: string }) {
     redirect('/auth/login');
   }
 
-  const [leadResult, activities] = await Promise.all([
-    getAgentLeadDetailsCore({ leadId: id, viewerAgentId: session.user.id }),
-    getLeadActivities(id),
-  ]);
+  const tenantId = ensureTenantId(session);
+
+  const leadResult = await getAgentLeadDetailsCore({
+    leadId: id,
+    tenantId,
+    viewerAgentId: session.user.id,
+  });
 
   if (leadResult.kind === 'not_found') notFound();
   if (leadResult.kind === 'redirect') redirect(leadResult.href);
+
+  const activities = await getLeadActivities(id);
 
   const lead = leadResult.lead;
   const deals = leadResult.deals;
