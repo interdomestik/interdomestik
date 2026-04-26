@@ -61,7 +61,14 @@ export async function updateLeadStatus(leadId: string, stage: string) {
     return { error: 'Unauthorized' };
   }
 
-  const result = await updateLeadStatusCore(session.user.id, leadId, stage);
+  let tenantId: string;
+  try {
+    tenantId = ensureTenantId(session);
+  } catch {
+    return { error: 'Missing tenantId' };
+  }
+
+  const result = await updateLeadStatusCore(session.user.id, tenantId, leadId, stage);
   if ('error' in result) {
     return result;
   }
@@ -78,7 +85,14 @@ export async function logActivity(leadId: string, type: string, summary: string)
     return { error: 'Unauthorized' };
   }
 
-  const result = await logActivityCore(session.user.id, leadId, type, summary);
+  let tenantId: string;
+  try {
+    tenantId = ensureTenantId(session);
+  } catch {
+    return { error: 'Missing tenantId' };
+  }
+
+  const result = await logActivityCore(session.user.id, tenantId, leadId, type, summary);
   if ('error' in result) {
     return result;
   }

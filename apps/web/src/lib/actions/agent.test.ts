@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database/db';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { redirect } from 'next/navigation';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createLead, logActivity, registerMember, updateLeadStatus } from './agent';
@@ -7,6 +8,11 @@ import { getAgentSession } from './agent/context';
 const IMPORT_AGENT_SESSION = {
   user: { id: 'agent1', name: 'Agent', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
 } as const;
+
+const dbMock = db as unknown as {
+  where: ReturnType<typeof vi.fn>;
+  values: ReturnType<typeof vi.fn>;
+};
 
 function makeCredential(label: string) {
   return ['member', label, 'access'].join('-');
@@ -36,6 +42,29 @@ function createRowsFormData(rows: unknown[]) {
   return formData;
 }
 
+function scopedLeadPredicate(leadId = 'lead1', tenantId = 'tenant_mk', agentId = 'agent1') {
+  return expect.objectContaining({
+    op: 'and',
+    args: expect.arrayContaining([
+      expect.objectContaining({
+        op: 'eq',
+        left: expect.objectContaining({ name: 'id' }),
+        right: leadId,
+      }),
+      expect.objectContaining({
+        op: 'eq',
+        left: expect.objectContaining({ name: 'tenantId' }),
+        right: tenantId,
+      }),
+      expect.objectContaining({
+        op: 'eq',
+        left: expect.objectContaining({ name: 'agentId' }),
+        right: agentId,
+      }),
+    ]),
+  });
+}
+
 vi.mock('./agent/context', () => ({
   getAgentSession: vi.fn(),
 }));
@@ -46,6 +75,16 @@ vi.mock('./agent/register-member', () => ({
 
 vi.mock('./agent/import-members.core', () => ({
   importMembersCore: vi.fn(),
+}));
+
+vi.mock('@interdomestik/shared-auth', () => ({
+  ensureTenantId: vi.fn((session: { user?: { tenantId?: string | null } } | null) => {
+    const tenantId = session?.user?.tenantId;
+    if (!tenantId) {
+      throw new Error('Missing tenantId');
+    }
+    return tenantId;
+  }),
 }));
 
 vi.mock('@interdomestik/database/db', () => ({
@@ -66,6 +105,11 @@ vi.mock('@interdomestik/database/db', () => ({
 vi.mock('@interdomestik/database/schema', () => ({
   crmLeads: { id: { name: 'id' }, agentId: { name: 'agentId' }, tenantId: { name: 'tenantId' } },
   crmActivities: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
+}));
+
+vi.mock('drizzle-orm', () => ({
+  and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
+  eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
 }));
 
 vi.mock('next/cache', () => ({
@@ -141,45 +185,87 @@ describe('agent actions', () => {
   describe('updateLeadStatus', () => {
     it('should update status if owned by agent', async () => {
       (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { id: 'agent1', role: 'agent' },
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
       });
       (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'lead1',
         agentId: 'agent1',
+        tenantId: 'tenant_mk',
       });
 
       const result = await updateLeadStatus('lead1', 'contacted');
       expect(result).toEqual({ success: true });
+      expect(ensureTenantId).toHaveBeenCalledWith({
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
+      });
+      expect(db.query.crmLeads.findFirst).toHaveBeenCalledWith({
+        where: scopedLeadPredicate(),
+      });
       expect(db.update).toHaveBeenCalled();
+      expect(dbMock.where).toHaveBeenCalledWith(scopedLeadPredicate());
     });
 
     it('should fail if not owner', async () => {
       (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { id: 'agent1', role: 'agent' },
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
       });
-      (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: 'lead1',
-        agentId: 'agent2',
-      });
+      (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
       const result = await updateLeadStatus('lead1', 'contacted');
       expect(result).toEqual({ error: 'Not found' });
+      expect(db.update).not.toHaveBeenCalled();
+    });
+
+    it('should reject missing tenant identity before updating status', async () => {
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: 'agent1', role: 'agent', tenantId: null },
+      });
+
+      const result = await updateLeadStatus('lead1', 'contacted');
+      expect(result).toEqual({ error: 'Missing tenantId' });
+      expect(db.query.crmLeads.findFirst).not.toHaveBeenCalled();
+      expect(db.update).not.toHaveBeenCalled();
     });
   });
 
   describe('logActivity', () => {
     it('should log activity', async () => {
       (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { id: 'agent1', role: 'agent' },
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
       });
       (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'lead1',
         agentId: 'agent1',
+        tenantId: 'tenant_mk',
       });
 
       const result = await logActivity('lead1', 'call', 'Called user');
       expect(result).toEqual({ success: true });
+      expect(ensureTenantId).toHaveBeenCalledWith({
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
+      });
+      expect(db.query.crmLeads.findFirst).toHaveBeenCalledWith({
+        where: scopedLeadPredicate(),
+      });
       expect(db.insert).toHaveBeenCalled();
+      expect(dbMock.values).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'tenant_mk',
+          leadId: 'lead1',
+          agentId: 'agent1',
+        })
+      );
+    });
+
+    it('should reject missing tenant identity before logging activity', async () => {
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: 'agent1', role: 'agent', tenantId: undefined },
+      });
+
+      const result = await logActivity('lead1', 'call', 'Called user');
+      expect(result).toEqual({ error: 'Missing tenantId' });
+      expect(db.query.crmLeads.findFirst).not.toHaveBeenCalled();
+      expect(db.insert).not.toHaveBeenCalled();
     });
   });
 
