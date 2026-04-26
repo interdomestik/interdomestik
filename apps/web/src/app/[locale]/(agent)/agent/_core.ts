@@ -46,10 +46,10 @@ export async function getAgentDashboardLiteCore(
  * V2: Logic for the Pro/V2 Agent Dashboard (using CRM schema).
  */
 export async function getAgentDashboardV2StatsCore(
-  params: { agentId: string },
+  params: { agentId: string; tenantId: string },
   services: AgentDashboardServices
 ) {
-  const { agentId } = params;
+  const { agentId, tenantId } = params;
   const { db } = services;
 
   const STAGE_NEW: LeadStage = 'new';
@@ -58,27 +58,51 @@ export async function getAgentDashboardV2StatsCore(
   const [newLeads] = await db
     .select({ count: count() })
     .from(crmLeads)
-    .where(and(eq(crmLeads.agentId, agentId), eq(crmLeads.stage, STAGE_NEW)));
+    .where(
+      and(
+        eq(crmLeads.tenantId, tenantId),
+        eq(crmLeads.agentId, agentId),
+        eq(crmLeads.stage, STAGE_NEW)
+      )
+    );
 
   const [contactedLeads] = await db
     .select({ count: count() })
     .from(crmLeads)
-    .where(and(eq(crmLeads.agentId, agentId), eq(crmLeads.stage, STAGE_CONTACTED)));
+    .where(
+      and(
+        eq(crmLeads.tenantId, tenantId),
+        eq(crmLeads.agentId, agentId),
+        eq(crmLeads.stage, STAGE_CONTACTED)
+      )
+    );
 
   const [wonDeals] = await db
     .select({ count: count() })
     .from(crmDeals)
-    .where(and(eq(crmDeals.agentId, agentId), eq(crmDeals.stage, 'closed_won')));
+    .where(
+      and(
+        eq(crmDeals.tenantId, tenantId),
+        eq(crmDeals.agentId, agentId),
+        eq(crmDeals.stage, 'closed_won')
+      )
+    );
 
   const [totalCommission] = await db
     .select({ total: sql<number>`COALESCE(sum(${agentCommissions.amount}), 0)` })
     .from(agentCommissions)
-    .where(and(eq(agentCommissions.agentId, agentId), eq(agentCommissions.status, 'paid')));
+    .where(
+      and(
+        eq(agentCommissions.tenantId, tenantId),
+        eq(agentCommissions.agentId, agentId),
+        eq(agentCommissions.status, 'paid')
+      )
+    );
 
   const [clientCount] = await db
     .select({ count: count() })
     .from(subscriptions)
-    .where(eq(subscriptions.referredByAgentId, agentId));
+    .where(and(eq(subscriptions.tenantId, tenantId), eq(subscriptions.referredByAgentId, agentId)));
 
   return {
     newLeads: Number(newLeads?.count ?? 0),
