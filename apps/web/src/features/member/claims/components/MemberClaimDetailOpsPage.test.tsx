@@ -40,6 +40,12 @@ vi.mock('./ClaimEvidenceUploadDialog', () => ({
     hoisted.claimEvidenceUploadDialogMock(props as never),
 }));
 
+vi.mock('@/i18n/routing', () => ({
+  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
 vi.mock('next-intl', () => ({
   useLocale: () => 'en',
   useTranslations: (namespace?: string) => {
@@ -59,14 +65,26 @@ vi.mock('next-intl', () => ({
         return translations[key] || `claims-tracking.status.next_step.${key}`;
       };
     }
-    if (namespace === 'claims-tracking.tracking.sla') {
+    if (namespace === 'claims-tracking.tracking.assurance') {
       return (key: string) => {
         const translations: Record<string, string> = {
-          title: 'SLA Status',
-          running: 'Response timer is running.',
-          incomplete: 'Waiting for your information before the SLA starts.',
+          title: 'Handling assurance',
+          stateLabel: 'SLA state',
+          latestUpdateLabel: 'Latest public update',
+          supportLabel: 'Need help?',
+          supportCta: 'Contact support',
+          'state.member_action_required': 'Waiting for your action',
+          'state.active_handling': 'Response timer active',
+          'state.completed': 'Final outcome published',
+          'state.outside_operational_sla': 'No active response timer',
+          'body.member_action_required':
+            'We need your information before the response timer can continue.',
+          'body.active_handling': 'Your claim is in an active handling stage.',
+          'body.completed': 'This claim has a final outcome.',
+          'body.outside_operational_sla':
+            'This stage does not have an active operational response timer.',
         };
-        return translations[key] || `claims-tracking.tracking.sla.${key}`;
+        return translations[key] || `claims-tracking.tracking.assurance.${key}`;
       };
     }
     if (namespace === 'claims') {
@@ -133,6 +151,13 @@ function buildClaim(now: Date, overrides: Partial<TestClaim> = {}): TestClaim {
     amount: '0',
     currency: 'EUR',
     canShare: false,
+    memberTrustSummary: {
+      state: 'active_handling',
+      titleKey: 'claims-tracking.tracking.assurance.title',
+      bodyKey: 'claims-tracking.tracking.assurance.body.active_handling',
+      stateLabelKey: 'claims-tracking.tracking.assurance.state.active_handling',
+      supportHref: '/member/help',
+    },
     documents: [],
     timeline: [],
     progressSummary: {
@@ -175,7 +200,7 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(screen.getAllByText('Evaluation').length).toBeGreaterThan(0);
   });
 
-  it('shows the member-facing SLA phase when the claim is waiting on member information', () => {
+  it('shows member trust and SLA clarity when the claim is waiting on member information', () => {
     renderPage({
       id: 'claim-2',
       title: 'Verification Claim',
@@ -183,12 +208,47 @@ describe('MemberClaimDetailOpsPage', () => {
       slaPhase: 'incomplete',
       statusLabelKey: 'claims-tracking.status.verification',
       description: 'Need more documents',
+      memberTrustSummary: {
+        state: 'member_action_required',
+        titleKey: 'claims-tracking.tracking.assurance.title',
+        bodyKey: 'claims-tracking.tracking.assurance.body.member_action_required',
+        stateLabelKey: 'claims-tracking.tracking.assurance.state.member_action_required',
+        supportHref: '/member/help',
+      },
     });
 
-    expect(screen.getByText('SLA Status')).toBeInTheDocument();
-    expect(
-      screen.getByText('Waiting for your information before the SLA starts.')
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('member-claim-trust-sla-panel')).toBeInTheDocument();
+    expect(screen.getByText('Handling assurance')).toBeInTheDocument();
+    expect(screen.getByTestId('member-claim-trust-sla-state')).toHaveTextContent(
+      'Waiting for your action'
+    );
+    expect(screen.getByTestId('member-claim-trust-sla-body')).toHaveTextContent(
+      'We need your information before the response timer can continue.'
+    );
+    expect(screen.getByRole('link', { name: /Contact support/ })).toHaveAttribute(
+      'href',
+      '/member/help'
+    );
+  });
+
+  it('shows active handling assurance with the latest public update date', () => {
+    renderPage({
+      progressSummary: {
+        currentStatusLabelKey: 'claims-tracking.status.evaluation',
+        latestUpdateAt: '2026-04-15T12:30:00.000Z',
+        latestUpdateLabelKey: 'claims-tracking.status.evaluation',
+        latestUpdateNote: null,
+        nextStepKey: 'claims-tracking.status.next_step.evaluation',
+      },
+    });
+
+    expect(screen.getByTestId('member-claim-trust-sla-state')).toHaveTextContent(
+      'Response timer active'
+    );
+    expect(screen.getByTestId('member-claim-trust-sla-latest')).toBeInTheDocument();
+    expect(screen.getByTestId('member-claim-trust-sla-body')).toHaveTextContent(
+      'Your claim is in an active handling stage.'
+    );
   });
 
   it('shows current state, latest public update, and expected next action', () => {

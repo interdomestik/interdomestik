@@ -25,6 +25,25 @@
         "title": "SLA Status",
         "running": "Response timer is running.",
         "incomplete": "Waiting for your information before the SLA starts."
+      },
+      "assurance": {
+        "title": "Handling assurance",
+        "stateLabel": "SLA state",
+        "latestUpdateLabel": "Latest public update",
+        "supportLabel": "Need help?",
+        "supportCta": "Contact support",
+        "state": {
+          "member_action_required": "Waiting for your action",
+          "active_handling": "Response timer active",
+          "completed": "Final outcome published",
+          "outside_operational_sla": "No active response timer"
+        },
+        "body": {
+          "member_action_required": "We need your information before the response timer can continue. Upload the requested evidence or contact support if you are blocked.",
+          "active_handling": "Your claim is in an active handling stage. The response timer is active and public updates appear here as the team moves the case forward.",
+          "completed": "This claim has a final outcome. Review the timeline for what happened or contact support if you need help with the result.",
+          "outside_operational_sla": "This stage does not have an active operational response timer. The timeline still shows public updates that are safe to share."
+        }
       }
     },
     "status": {

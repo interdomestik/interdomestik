@@ -17,9 +17,10 @@ import type {
   ClaimTrackingDocument,
   ClaimTimelineEvent,
 } from '@/features/claims/tracking/types';
+import { Link } from '@/i18n/routing';
 import { formatPilotDateTime } from '@/lib/utils/date';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
-import { Upload } from 'lucide-react';
+import { LifeBuoy, Upload } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef } from 'react';
 import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
@@ -81,7 +82,7 @@ export function MemberClaimDetailOpsPage({
   const t = useTranslations('claims');
   const tTrackingStatus = useTranslations('claims-tracking.status');
   const tTrackingNextStep = useTranslations('claims-tracking.status.next_step');
-  const tSla = useTranslations('claims-tracking.tracking.sla');
+  const tAssurance = useTranslations('claims-tracking.tracking.assurance');
   const tClaimStatus = useTranslations('claims.status');
 
   const translateTrackingStatus = (labelKey: string) => {
@@ -90,6 +91,14 @@ export function MemberClaimDetailOpsPage({
     }
 
     return tTrackingStatus(labelKey.replace('claims-tracking.status.', ''));
+  };
+
+  const translateAssurance = (labelKey: string) => {
+    if (!labelKey.startsWith('claims-tracking.tracking.assurance.')) {
+      return labelKey;
+    }
+
+    return tAssurance(labelKey.replace('claims-tracking.tracking.assurance.', ''));
   };
 
   // Transform events and translate titles
@@ -130,7 +139,6 @@ export function MemberClaimDetailOpsPage({
 
   const uploadAction = secondary.find(action => action.id === 'upload');
   const secondaryActions = secondary.filter(action => action.id !== 'upload').map(mapAction);
-  const showSlaCard = claim.slaPhase === 'incomplete' || claim.slaPhase === 'running';
   const latestUpdateDate = formatPilotDateTime(
     claim.progressSummary.latestUpdateAt,
     locale,
@@ -236,16 +244,48 @@ export function MemberClaimDetailOpsPage({
             </CardContent>
           </Card>
 
-          {showSlaCard ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>{tSla('title')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{tSla(claim.slaPhase)}</p>
-              </CardContent>
-            </Card>
-          ) : null}
+          <Card data-testid="member-claim-trust-sla-panel">
+            <CardHeader>
+              <CardTitle>{translateAssurance(claim.memberTrustSummary.titleKey)}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <span className="text-xs uppercase text-muted-foreground">
+                    {tAssurance('stateLabel')}
+                  </span>
+                  <p className="mt-1 font-semibold" data-testid="member-claim-trust-sla-state">
+                    {translateAssurance(claim.memberTrustSummary.stateLabelKey)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs uppercase text-muted-foreground">
+                    {tAssurance('latestUpdateLabel')}
+                  </span>
+                  <p className="mt-1 font-semibold" data-testid="member-claim-trust-sla-latest">
+                    {latestUpdateDate}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs uppercase text-muted-foreground">
+                    {tAssurance('supportLabel')}
+                  </span>
+                  <Button className="mt-2 w-full justify-start" size="sm" variant="outline" asChild>
+                    <Link href={claim.memberTrustSummary.supportHref}>
+                      <LifeBuoy className="mr-2 h-4 w-4" />
+                      {tAssurance('supportCta')}
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+              <p
+                className="mt-4 text-sm text-muted-foreground"
+                data-testid="member-claim-trust-sla-body"
+              >
+                {translateAssurance(claim.memberTrustSummary.bodyKey)}
+              </p>
+            </CardContent>
+          </Card>
 
           {claim.recoveryDecision ? (
             <Card data-testid="member-claim-recovery-decision">

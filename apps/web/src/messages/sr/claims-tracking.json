@@ -25,6 +25,25 @@
         "title": "SLA status",
         "running": "Rok za odgovor je aktivan.",
         "incomplete": "Čekamo vaše informacije pre nego što SLA počne."
+      },
+      "assurance": {
+        "title": "Sigurnost obrade",
+        "stateLabel": "SLA stanje",
+        "latestUpdateLabel": "Poslednje javno ažuriranje",
+        "supportLabel": "Treba vam pomoć?",
+        "supportCta": "Kontaktiraj podršku",
+        "state": {
+          "member_action_required": "Čeka se vaša radnja",
+          "active_handling": "Rok za odgovor je aktivan",
+          "completed": "Konačan ishod je objavljen",
+          "outside_operational_sla": "Nema aktivnog roka za odgovor"
+        },
+        "body": {
+          "member_action_required": "Potrebne su nam vaše informacije pre nego što rok za odgovor može da se nastavi. Otpremite tražene dokaze ili kontaktirajte podršku ako ste blokirani.",
+          "active_handling": "Vaš zahtev je u aktivnoj fazi obrade. Rok za odgovor je aktivan, a javna ažuriranja se ovde prikazuju dok tim pomera slučaj napred.",
+          "completed": "Ovaj zahtev ima konačan ishod. Pogledajte vremensku liniju za ono što se dogodilo ili kontaktirajte podršku ako vam treba pomoć oko rezultata.",
+          "outside_operational_sla": "Ova faza nema aktivan operativni rok za odgovor. Vremenska linija i dalje prikazuje javna ažuriranja koja su bezbedna za deljenje."
+        }
       }
     },
     "status": {
