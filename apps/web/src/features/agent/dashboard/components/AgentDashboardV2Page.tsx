@@ -50,7 +50,7 @@ export async function AgentDashboardV2Page({
     session.user.branchId
       ? db.query.branches.findFirst({
           where: (fields, { and, eq }) =>
-            and(eq(fields.id, session.user.branchId!), eq(fields.tenantId, tenantId)),
+            and(eq(fields.id, session.user.branchId), eq(fields.tenantId, tenantId)),
           columns: { name: true },
         })
       : null,
