@@ -448,3 +448,5 @@ NEVER use grep for project-wide searches (slow, ignores .gitignore). ALWAYS use 
 - Use `jq` for JSON instead of regex
 
 <!-- END FAST-TOOLS PROMPT v1 | codex-mastery -->
+
+Note: The fast-tools guidance above applies to the `grep` shell command / CLI for repository searches. It does not prohibit tool-specific flags such as Playwright's `--grep`.
