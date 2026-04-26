@@ -7,9 +7,20 @@ const hoisted = vi.hoisted(() => {
   }));
 
   return {
-    getDefaultModelForWorkflow: vi.fn((workflow: string) =>
-      workflow === 'legal_doc_extract' ? 'gpt-5.5' : 'gpt-5-mini'
-    ),
+    getResponsesWorkflowConfig: vi.fn((workflow: string) => ({
+      workflow,
+      model: workflow === 'legal_doc_extract' ? 'gpt-5.5' : 'gpt-5-mini',
+      promptVersion:
+        workflow === 'legal_doc_extract' ? 'legal_doc_extract_v1' : 'claim_intake_extract_v1',
+      promptCacheKey: `interdomestik:${workflow}`,
+      reasoning: {
+        effort: workflow === 'legal_doc_extract' ? 'high' : 'medium',
+      },
+      text: {
+        verbosity: 'low',
+      },
+      maxOutputTokens: workflow === 'legal_doc_extract' ? 4_000 : 2_000,
+    })),
     nanoid: vi.fn().mockReturnValueOnce('run-1').mockReturnValueOnce('run-2'),
     txInsert,
     txInsertValues,
@@ -22,7 +33,7 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('@interdomestik/domain-ai/models', () => ({
-  getDefaultModelForWorkflow: hoisted.getDefaultModelForWorkflow,
+  getResponsesWorkflowConfig: hoisted.getResponsesWorkflowConfig,
 }));
 
 vi.mock('nanoid', () => ({
@@ -129,6 +140,7 @@ describe('queueClaimDocumentAiWorkflows', () => {
           requestJson: expect.objectContaining({
             category: 'evidence',
             bucket: 'claim-evidence',
+            promptCacheKey: 'interdomestik:claim_intake_extract',
             claimSnapshot: expect.objectContaining({
               incidentDate: '2026-02-15',
             }),
@@ -142,6 +154,7 @@ describe('queueClaimDocumentAiWorkflows', () => {
           promptVersion: 'legal_doc_extract_v1',
           requestJson: expect.objectContaining({
             category: 'legal',
+            promptCacheKey: 'interdomestik:legal_doc_extract',
           }),
         }),
       ])

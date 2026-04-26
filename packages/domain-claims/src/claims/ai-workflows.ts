@@ -1,11 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { aiRuns, documents } from '@interdomestik/database';
-import {
-  CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION,
-  LEGAL_DOC_EXTRACT_SCHEMA_VERSION,
-} from '@interdomestik/domain-ai';
-import { getDefaultModelForWorkflow } from '@interdomestik/domain-ai/models';
+import { getResponsesWorkflowConfig } from '@interdomestik/domain-ai/models';
 import { nanoid } from 'nanoid';
 
 export type ClaimAiWorkflow = 'claim_intake_extract' | 'legal_doc_extract';
@@ -53,12 +49,6 @@ function resolveWorkflow(category: ClaimAiDocumentCategory): ClaimAiWorkflow {
   return category === 'legal' ? 'legal_doc_extract' : 'claim_intake_extract';
 }
 
-function resolvePromptVersion(workflow: ClaimAiWorkflow) {
-  return workflow === 'legal_doc_extract'
-    ? LEGAL_DOC_EXTRACT_SCHEMA_VERSION
-    : CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION;
-}
-
 function buildInputHash(args: {
   workflow: ClaimAiWorkflow;
   claimId: string;
@@ -88,7 +78,7 @@ export async function queueClaimDocumentAiWorkflows(args: {
     const workflow = resolveWorkflow(category);
     const documentId = file.documentId ?? nanoid();
     const runId = nanoid();
-    const model = getDefaultModelForWorkflow(workflow);
+    const config = getResponsesWorkflowConfig(workflow);
 
     return {
       runId,
@@ -96,8 +86,9 @@ export async function queueClaimDocumentAiWorkflows(args: {
       claimId: args.claimId,
       documentId,
       category,
-      model,
-      promptVersion: resolvePromptVersion(workflow),
+      model: config.model,
+      promptVersion: config.promptVersion,
+      promptCacheKey: config.promptCacheKey,
       file,
       inputHash: buildInputHash({
         workflow,
@@ -151,6 +142,7 @@ export async function queueClaimDocumentAiWorkflows(args: {
         storagePath: queuedRun.file.path,
         bucket: queuedRun.file.bucket,
         category: queuedRun.category,
+        promptCacheKey: queuedRun.promptCacheKey,
         claimSnapshot: args.claimSnapshot ?? null,
       },
       reviewStatus: 'pending',

@@ -193,6 +193,7 @@ describe('queuePolicyAnalysisService', () => {
           fileSize: 2048,
           fileUrl: 'pii/tenants/tenant-1/policies/user-1/file.pdf',
           mimeType: 'application/pdf',
+          promptCacheKey: 'interdomestik:policy_extract:gpt-5.5:policy_extract_v1',
         },
         reviewStatus: 'pending',
         createdAt: expect.any(Date),

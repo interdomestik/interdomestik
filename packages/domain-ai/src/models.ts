@@ -1,4 +1,16 @@
-import type { AiModel, AiModelProfile, AiWorkflow } from './types';
+import type {
+  AiModel,
+  AiModelProfile,
+  AiReasoningEffort,
+  AiReasoningLevel,
+  AiResponsesModelConfig,
+  AiResponsesWorkflowConfig,
+  AiWorkflow,
+} from './types';
+import { CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION } from './schemas/claim-intake-extract';
+import { CLAIM_SUMMARY_SCHEMA_VERSION } from './schemas/claim-summary';
+import { LEGAL_DOC_EXTRACT_SCHEMA_VERSION } from './schemas/legal-doc-extract';
+import { POLICY_EXTRACT_SCHEMA_VERSION } from './schemas/policy-extract';
 
 export const AI_MODEL_PROFILES = {
   'gpt-5.5': {
@@ -7,6 +19,7 @@ export const AI_MODEL_PROFILES = {
     defaultFor: ['policy_extract', 'legal_doc_extract'],
     useCase: 'Ambiguous extraction and reviewed document reasoning.',
     reasoningLevel: 'deep',
+    textVerbosity: 'low',
     maxOutputTokens: 4_000,
   },
   'gpt-5-mini': {
@@ -15,6 +28,7 @@ export const AI_MODEL_PROFILES = {
     defaultFor: ['claim_intake_extract', 'claim_summary'],
     useCase: 'Stable extraction and operational summaries.',
     reasoningLevel: 'balanced',
+    textVerbosity: 'low',
     maxOutputTokens: 2_000,
   },
   'gpt-5-nano': {
@@ -23,6 +37,7 @@ export const AI_MODEL_PROFILES = {
     defaultFor: [],
     useCase: 'Routing, classification, and cheap control-plane decisions.',
     reasoningLevel: 'light',
+    textVerbosity: 'low',
     maxOutputTokens: 512,
   },
   'gpt-5.4-pro': {
@@ -31,6 +46,7 @@ export const AI_MODEL_PROFILES = {
     defaultFor: [],
     useCase: 'Manual escalation paths only, never the default.',
     reasoningLevel: 'deep',
+    textVerbosity: 'medium',
     maxOutputTokens: 8_000,
   },
 } as const satisfies Record<AiModel, AiModelProfile>;
@@ -42,10 +58,60 @@ export const DEFAULT_MODEL_BY_WORKFLOW = {
   claim_summary: 'gpt-5-mini',
 } as const satisfies Record<AiWorkflow, AiModel>;
 
+export const DEFAULT_PROMPT_VERSION_BY_WORKFLOW = {
+  policy_extract: POLICY_EXTRACT_SCHEMA_VERSION,
+  claim_intake_extract: CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION,
+  legal_doc_extract: LEGAL_DOC_EXTRACT_SCHEMA_VERSION,
+  claim_summary: CLAIM_SUMMARY_SCHEMA_VERSION,
+} as const satisfies Record<AiWorkflow, string>;
+
 export function getAiModelProfile(model: AiModel): AiModelProfile {
   return AI_MODEL_PROFILES[model];
 }
 
 export function getDefaultModelForWorkflow(workflow: AiWorkflow): AiModel {
   return DEFAULT_MODEL_BY_WORKFLOW[workflow];
+}
+
+export function getDefaultPromptVersionForWorkflow(workflow: AiWorkflow): string {
+  return DEFAULT_PROMPT_VERSION_BY_WORKFLOW[workflow];
+}
+
+export function getReasoningEffortForLevel(level: AiReasoningLevel): AiReasoningEffort {
+  if (level === 'light') return 'low';
+  if (level === 'balanced') return 'medium';
+  return 'high';
+}
+
+export function getResponsesModelConfig(model: AiModel): AiResponsesModelConfig {
+  const profile = getAiModelProfile(model);
+
+  return {
+    model: profile.model,
+    reasoning: {
+      effort: getReasoningEffortForLevel(profile.reasoningLevel),
+    },
+    text: {
+      verbosity: profile.textVerbosity,
+    },
+    maxOutputTokens: profile.maxOutputTokens,
+  };
+}
+
+export function getPromptCacheKeyForWorkflow(workflow: AiWorkflow): string {
+  const model = getDefaultModelForWorkflow(workflow);
+  const promptVersion = getDefaultPromptVersionForWorkflow(workflow);
+
+  return `interdomestik:${workflow}:${model}:${promptVersion}`;
+}
+
+export function getResponsesWorkflowConfig(workflow: AiWorkflow): AiResponsesWorkflowConfig {
+  const model = getDefaultModelForWorkflow(workflow);
+
+  return {
+    workflow,
+    promptVersion: getDefaultPromptVersionForWorkflow(workflow),
+    promptCacheKey: getPromptCacheKeyForWorkflow(workflow),
+    ...getResponsesModelConfig(model),
+  };
 }
