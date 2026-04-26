@@ -9,6 +9,7 @@ import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { localizeSeededBranchName } from '@/lib/localize-seeded-branch-name';
 import { db } from '@interdomestik/database/db';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import {
   Button,
   Card,
@@ -42,12 +43,14 @@ export async function AgentDashboardV2Page({
   }
 
   const agentId = session.user.id;
+  const tenantId = ensureTenantId(session);
 
   const [stats, branch] = await Promise.all([
-    getAgentDashboardV2StatsCore({ agentId }, { db }),
+    getAgentDashboardV2StatsCore({ agentId, tenantId }, { db }),
     session.user.branchId
       ? db.query.branches.findFirst({
-          where: (fields, { eq }) => eq(fields.id, session.user.branchId!),
+          where: (fields, { and, eq }) =>
+            and(eq(fields.id, session.user.branchId!), eq(fields.tenantId, tenantId)),
           columns: { name: true },
         })
       : null,
