@@ -10,6 +10,9 @@ const hoisted = vi.hoisted(() => ({
   ),
   getTranslationsMock: vi.fn(async () => (key: string) => key),
   setRequestLocaleMock: vi.fn(),
+  getFormatterMock: vi.fn(async () => ({
+    number: vi.fn((val: number) => String(val)),
+  })),
   ensureTenantIdMock: vi.fn(() => 'tenant-1'),
   getAgentCrmStatsCoreMock: vi.fn(),
 }));
@@ -25,6 +28,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-intl/server', () => ({
   getTranslations: hoisted.getTranslationsMock,
   setRequestLocale: hoisted.setRequestLocaleMock,
+  getFormatter: hoisted.getFormatterMock,
 }));
 
 vi.mock('@/lib/auth', () => ({

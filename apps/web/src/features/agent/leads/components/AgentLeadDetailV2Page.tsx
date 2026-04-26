@@ -29,7 +29,6 @@ export async function AgentLeadDetailV2Page({ id }: { id: string }) {
   });
 
   if (leadResult.kind === 'not_found') notFound();
-  if (leadResult.kind === 'redirect') redirect(leadResult.href);
 
   const activities = await getLeadActivities(id);
 

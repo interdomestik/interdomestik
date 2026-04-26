@@ -113,14 +113,14 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
     expect(hoisted.getLeadActivitiesMock).toHaveBeenCalledWith('lead-1');
   });
 
-  it('does not load activities when the lead detail core redirects', async () => {
+  it('does not load activities when the lead detail core returns not_found', async () => {
     hoisted.getAgentLeadDetailsCoreMock.mockResolvedValueOnce({
-      kind: 'redirect',
-      href: '/agent/leads',
+      kind: 'not_found',
     });
 
-    await expect(AgentLeadDetailV2Page({ id: 'lead-1' })).rejects.toThrow('redirect:/agent/leads');
+    await expect(AgentLeadDetailV2Page({ id: 'lead-1' })).rejects.toThrow('not-found');
 
+    expect(hoisted.notFoundMock).toHaveBeenCalled();
     expect(hoisted.getLeadActivitiesMock).not.toHaveBeenCalled();
   });
 });

@@ -16,6 +16,12 @@ vi.mock('@interdomestik/database/db', () => ({
   },
 }));
 
+vi.mock('@interdomestik/database/tenant-security', () => ({
+  withTenant: vi.fn((tenantId: unknown, col: unknown, conds?: unknown) => ({
+    withTenant: [tenantId, col, conds],
+  })),
+}));
+
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ and: args })),
   eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
@@ -53,7 +59,7 @@ describe('getAgentLeadDetailsCore', () => {
     expect(result).toEqual({ kind: 'not_found' });
   });
 
-  it('returns not_found when lead is not owned by viewer agent', async () => {
+  it('returns not_found when no lead matches the tenant and viewer agent scope', async () => {
     hoisted.findLeadFirst.mockResolvedValueOnce(null);
 
     const result = await getAgentLeadDetailsCore({
@@ -100,18 +106,18 @@ describe('getAgentLeadDetailsCore', () => {
 
     expect(hoisted.findLeadFirst).toHaveBeenCalledWith({
       where: {
-        and: [
-          { eq: ['crmLeads.id', 'l1'] },
-          { eq: ['crmLeads.tenantId', 'tenant-1'] },
-          { eq: ['crmLeads.agentId', 'a1'] },
+        withTenant: [
+          'tenant-1',
+          'crmLeads.tenantId',
+          { and: [{ eq: ['crmLeads.id', 'l1'] }, { eq: ['crmLeads.agentId', 'a1'] }] },
         ],
       },
     });
     expect(where).toHaveBeenCalledWith({
-      and: [
-        { eq: ['crmDeals.tenantId', 'tenant-1'] },
-        { eq: ['crmDeals.leadId', 'l1'] },
-        { eq: ['crmDeals.agentId', 'a1'] },
+      withTenant: [
+        'tenant-1',
+        'crmDeals.tenantId',
+        { and: [{ eq: ['crmDeals.leadId', 'l1'] }, { eq: ['crmDeals.agentId', 'a1'] }] },
       ],
     });
   });

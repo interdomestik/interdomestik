@@ -32,16 +32,28 @@ vi.mock('@interdomestik/database/schema', () => ({
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ and: args })),
   eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
+  inArray: vi.fn((col: unknown, vals: unknown) => ({ inArray: [col, vals] })),
   count: vi.fn(() => ({ kind: 'count' })),
   sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({ sql: { strings, values } }),
 }));
 
 import { getAgentCrmStatsCore } from './_core';
 
+/** Terminal at .where() – for crmDeals and agentCommissions queries */
 function createSelectChain(result: unknown) {
   return {
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockResolvedValue(result),
+  };
+}
+
+/** Terminal at .groupBy() – for the combined crmLeads count query */
+function createGroupByChain(result: unknown) {
+  const afterWhere = { groupBy: vi.fn().mockResolvedValue(result) };
+  return {
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnValue(afterWhere),
+    afterWhere,
   };
 }
 
@@ -52,8 +64,7 @@ describe('getAgentCrmStatsCore', () => {
 
   it('returns numeric defaults when aggregates are null', async () => {
     hoisted.dbSelect
-      .mockReturnValueOnce(createSelectChain([{ count: 0 }]))
-      .mockReturnValueOnce(createSelectChain([{ count: 0 }]))
+      .mockReturnValueOnce(createGroupByChain([]))
       .mockReturnValueOnce(createSelectChain([{ count: 0 }]))
       .mockReturnValueOnce(createSelectChain([{ total: null }]));
 
@@ -69,8 +80,12 @@ describe('getAgentCrmStatsCore', () => {
 
   it('maps counts and totals to a stable numeric DTO', async () => {
     hoisted.dbSelect
-      .mockReturnValueOnce(createSelectChain([{ count: '3' }]))
-      .mockReturnValueOnce(createSelectChain([{ count: '7' }]))
+      .mockReturnValueOnce(
+        createGroupByChain([
+          { stage: 'new', count: '3' },
+          { stage: 'contacted', count: '7' },
+        ])
+      )
       .mockReturnValueOnce(createSelectChain([{ count: '2' }]))
       .mockReturnValueOnce(createSelectChain([{ total: '123.45' }]));
 
@@ -89,40 +104,41 @@ describe('getAgentCrmStatsCore', () => {
   });
 
   it('filters every tenant-bearing CRM aggregate by tenant and agent', async () => {
-    const chains = [
-      createSelectChain([{ count: 1 }]),
-      createSelectChain([{ count: 2 }]),
-      createSelectChain([{ count: 3 }]),
-      createSelectChain([{ total: '4.50' }]),
-    ];
-    for (const chain of chains) {
-      hoisted.dbSelect.mockReturnValueOnce(chain);
-    }
+    const leadChain = createGroupByChain([
+      { stage: 'new', count: 1 },
+      { stage: 'contacted', count: 2 },
+    ]);
+    const dealsChain = createSelectChain([{ count: 3 }]);
+    const commissionChain = createSelectChain([{ total: '4.50' }]);
+
+    hoisted.dbSelect
+      .mockReturnValueOnce(leadChain)
+      .mockReturnValueOnce(dealsChain)
+      .mockReturnValueOnce(commissionChain);
 
     await getAgentCrmStatsCore({ agentId: 'agent-1', tenantId: 'tenant-1' });
 
-    expect(chains[0].where).toHaveBeenCalledWith({
+    // crmLeads: combined new+contacted query uses inArray and groupBy
+    expect(leadChain.where).toHaveBeenCalledWith({
       and: [
         { eq: ['crmLeads.tenantId', 'tenant-1'] },
         { eq: ['crmLeads.agentId', 'agent-1'] },
-        { eq: ['crmLeads.stage', 'new'] },
+        { inArray: ['crmLeads.stage', ['new', 'contacted']] },
       ],
     });
-    expect(chains[1].where).toHaveBeenCalledWith({
-      and: [
-        { eq: ['crmLeads.tenantId', 'tenant-1'] },
-        { eq: ['crmLeads.agentId', 'agent-1'] },
-        { eq: ['crmLeads.stage', 'contacted'] },
-      ],
-    });
-    expect(chains[2].where).toHaveBeenCalledWith({
+    expect(leadChain.afterWhere.groupBy).toHaveBeenCalledWith('crmLeads.stage');
+
+    // crmDeals: unchanged single-stage filter
+    expect(dealsChain.where).toHaveBeenCalledWith({
       and: [
         { eq: ['crmDeals.tenantId', 'tenant-1'] },
         { eq: ['crmDeals.agentId', 'agent-1'] },
         { eq: ['crmDeals.stage', 'closed_won'] },
       ],
     });
-    expect(chains[3].where).toHaveBeenCalledWith({
+
+    // agentCommissions: unchanged
+    expect(commissionChain.where).toHaveBeenCalledWith({
       and: [
         { eq: ['agentCommissions.tenantId', 'tenant-1'] },
         { eq: ['agentCommissions.agentId', 'agent-1'] },
