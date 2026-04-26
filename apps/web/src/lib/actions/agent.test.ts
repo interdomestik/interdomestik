@@ -42,6 +42,29 @@ function createRowsFormData(rows: unknown[]) {
   return formData;
 }
 
+function scopedLeadPredicate(leadId = 'lead1', tenantId = 'tenant_mk', agentId = 'agent1') {
+  return expect.objectContaining({
+    op: 'and',
+    args: expect.arrayContaining([
+      expect.objectContaining({
+        op: 'eq',
+        left: expect.objectContaining({ name: 'id' }),
+        right: leadId,
+      }),
+      expect.objectContaining({
+        op: 'eq',
+        left: expect.objectContaining({ name: 'tenantId' }),
+        right: tenantId,
+      }),
+      expect.objectContaining({
+        op: 'eq',
+        left: expect.objectContaining({ name: 'agentId' }),
+        right: agentId,
+      }),
+    ]),
+  });
+}
+
 vi.mock('./agent/context', () => ({
   getAgentSession: vi.fn(),
 }));
@@ -176,50 +199,10 @@ describe('agent actions', () => {
         user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
       });
       expect(db.query.crmLeads.findFirst).toHaveBeenCalledWith({
-        where: expect.objectContaining({
-          op: 'and',
-          args: expect.arrayContaining([
-            expect.objectContaining({
-              op: 'eq',
-              left: expect.objectContaining({ name: 'id' }),
-              right: 'lead1',
-            }),
-            expect.objectContaining({
-              op: 'eq',
-              left: expect.objectContaining({ name: 'tenantId' }),
-              right: 'tenant_mk',
-            }),
-            expect.objectContaining({
-              op: 'eq',
-              left: expect.objectContaining({ name: 'agentId' }),
-              right: 'agent1',
-            }),
-          ]),
-        }),
+        where: scopedLeadPredicate(),
       });
       expect(db.update).toHaveBeenCalled();
-      expect(dbMock.where).toHaveBeenCalledWith(
-        expect.objectContaining({
-          op: 'and',
-          args: expect.arrayContaining([
-            expect.objectContaining({
-              op: 'eq',
-              left: expect.objectContaining({ name: 'id' }),
-              right: 'lead1',
-            }),
-            expect.objectContaining({
-              op: 'eq',
-              left: expect.objectContaining({ name: 'tenantId' }),
-              right: 'tenant_mk',
-            }),
-            expect.objectContaining({
-              op: 'eq',
-              left: expect.objectContaining({ name: 'agentId' }),
-              right: 'agent1',
-            }),
-          ]),
-        })
-      );
+      expect(dbMock.where).toHaveBeenCalledWith(scopedLeadPredicate());
     });
 
     it('should fail if not owner', async () => {
@@ -262,26 +245,7 @@ describe('agent actions', () => {
         user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
       });
       expect(db.query.crmLeads.findFirst).toHaveBeenCalledWith({
-        where: expect.objectContaining({
-          op: 'and',
-          args: expect.arrayContaining([
-            expect.objectContaining({
-              op: 'eq',
-              left: expect.objectContaining({ name: 'id' }),
-              right: 'lead1',
-            }),
-            expect.objectContaining({
-              op: 'eq',
-              left: expect.objectContaining({ name: 'tenantId' }),
-              right: 'tenant_mk',
-            }),
-            expect.objectContaining({
-              op: 'eq',
-              left: expect.objectContaining({ name: 'agentId' }),
-              right: 'agent1',
-            }),
-          ]),
-        }),
+        where: scopedLeadPredicate(),
       });
       expect(db.insert).toHaveBeenCalled();
       expect(dbMock.values).toHaveBeenCalledWith(
