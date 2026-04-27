@@ -63,6 +63,8 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P21` v1.0.0 Live Surface Revalidation is now complete after completed `P20`. `P21-QA01` completed through PR `#556`: the live-entry confidence gate now verifies launch-critical public, member, agent, CRM, staff, admin, tenant-host, role-boundary, unified-agent, and Paddle-production posture surfaces before any post-v1.0.0 product expansion is promoted. `P21` stayed a verification and hardening tranche only; it did not authorize product behavior expansion, `apps/web/src/proxy.ts` changes, canonical route renames, auth or tenancy refactors, schema changes, Stripe reintroduction, product analytics expansion, broad CRM redesign, or agent-workspace redesign.
 
+`P22` Production Go-Live Operations is now active after completed `P21`. `P22-GO01` is the operational go/no-go slice that must prove the real production deployment identity, tenant-host mapping, production environment posture, Paddle production posture, database backup and rollback path, observability, alerting, and launch-critical production smoke surfaces before live traffic is opened. `P22` is an operations-readiness tranche only; it does not authorize product behavior expansion, UI/UX redesign, CRM redesign, agent-workspace redesign, `apps/web/src/proxy.ts` changes, canonical route renames, auth or tenancy refactors, schema changes, Stripe reintroduction, or product analytics expansion.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
@@ -185,6 +187,8 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 116. Keep `P20-RG01` complete as the v1.0.0 release declaration and manifest-version authority reconciliation slice.
 117. Land `P21` as the canonical post-`P20` v1.0.0 live-surface revalidation tranche before any post-v1 product expansion is promoted.
 118. Promote `P21-QA01` as the v1.0.0 live-entry confidence slice for launch-critical dashboard, tenant-host, role-boundary, unified-agent, and Paddle production-posture verification.
+119. Land `P22` as the canonical post-`P21` Production Go-Live Operations tranche before live traffic is opened.
+120. Promote `P22-GO01` as the production go-live readiness and smoke slice for deployment identity, tenant-host mapping, environment posture, Paddle production posture, backup and rollback readiness, observability, alerting, and launch-critical production smoke proof.
 
 ## Status Command
 
@@ -254,6 +258,8 @@ pnpm plan:proof
 `P20` v1.0.0 Release Declaration And Version Authority is complete after `P19`. `P20-DG01` is complete through PR `#551` as the promotion design gate that recorded completed readiness and hardening evidence while identifying the remaining release-governance gap: the live program and package manifests still carried `v0.1.0` / `0.1.0` authority. `P20-RG01` is complete through PR `#553` as the bounded implementation slice that declares `v1.0.0` release authority, reconciles workspace release-version manifests to `1.0.0`, and records the evidence basis without product behavior, proxy, route, auth, tenancy, schema, Stripe, analytics, broad CRM, or agent-workspace redesign scope.
 
 `P21` v1.0.0 Live Surface Revalidation is complete after `P20`. `P21-QA01` uses `docs/plans/2026-04-27-p21-qa01-v1-live-surface-revalidation.md` as the scenario authority and validates the serving behavior of launch-critical public and dashboard surfaces, host-to-tenant resolution, anonymous protected-route redirects, unified agent/member context switching, and production Paddle warning suppression before broader live operation or post-v1 product work proceeds.
+
+`P22` Production Go-Live Operations is active after `P21`. `P22-GO01` uses `docs/plans/2026-04-27-p22-go01-production-go-live-readiness.md` as the operational go/no-go authority and requires production deployment identity, environment and secret posture, DNS and tenant-host resolution, Paddle production posture, database backup and rollback proof, observability and alert proof, launch-critical production smoke evidence, and an explicit go/no-go decision before live traffic is opened.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -336,6 +342,7 @@ These documents can recommend or constrain work, but they do not define the live
 - `P19` has now been copied into the live program and tracker as the post-`P18` Agent CRM Readiness And Boundary Hardening tranche, `P19-DG01` is complete as the design-gate slice that promoted `P19-CRM01 Agent CRM Tenant-Scoped Read Contracts`, `P19-CRM01` is complete through PR `#542`, `P19-DG02` is complete as the design-gate slice that promoted `P19-CRM02 Agent Dashboard CRM KPI Tenant Read Contracts`, `P19-CRM02` is complete through PR `#545`, `P19-DG03` is complete through PR `#547` as the design-gate slice that promoted `P19-CRM03 Agent CRM Mutation Tenant-Boundary Contracts`, and `P19-CRM03` is complete through PR `#549`, closing the bounded CRM readiness and tenant-boundary hardening line before any broad CRM or agent-workspace redesign is authorized.
 - `P20` has now been copied into the live program and tracker as the post-`P19` v1.0.0 Release Declaration And Version Authority tranche, `P20-DG01` is complete through PR `#551` as the design-gate slice that promoted `P20-RG01 v1.0.0 Release Declaration And Version Authority`, and `P20-RG01` is complete through PR `#553` as the release declaration and manifest-version authority reconciliation slice.
 - `P21` has now been copied into the live program and tracker as the post-`P20` v1.0.0 Live Surface Revalidation tranche, with `P21-QA01` active as the live-entry confidence slice that must pass before product/backlog expansion is promoted.
+- `P22` has now been copied into the live program and tracker as the post-`P21` Production Go-Live Operations tranche, with `P22-GO01` active as the operational go/no-go slice before live traffic is opened.
 - `P1C` has now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` and is now the active post-infrastructure tranche.
 - `C01` through `C06` have now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the committed commercial-contract publication queue.
 - `C01` is complete as the coverage-matrix publication slice.
