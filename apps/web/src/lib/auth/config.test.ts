@@ -20,6 +20,7 @@ describe('authConfig', () => {
   it('does not fall back to localhost for production auth base URL', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('BETTER_AUTH_URL', '');
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', '');
     vi.resetModules();
 
     const { authConfig: productionAuthConfig } = await import('./config');
