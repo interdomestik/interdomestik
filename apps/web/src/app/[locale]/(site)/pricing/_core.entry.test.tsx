@@ -88,6 +88,9 @@ describe('PricingPage server shell', () => {
       rowKey: 'coverageMatrix.rows.vehicle.title',
       sectionTestId: 'pricing-coverage-matrix',
     });
+    expect(screen.queryByTestId('register-success-fee-calculator')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('register-billing-terms')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('register-coverage-matrix')).not.toBeInTheDocument();
     expect(screen.getByTestId('pricing-commercial-disclaimers')).toBeInTheDocument();
     expectSuccessFeeCalculator({ sectionTestId: 'pricing-success-fee-calculator' });
     expectCommercialTerms({ sectionTestId: 'pricing-billing-terms' });
@@ -108,6 +111,26 @@ describe('PricingPage server shell', () => {
     });
     expect(hoisted.headersMock).not.toHaveBeenCalled();
     expect(hoisted.getSessionMock).not.toHaveBeenCalled();
+  });
+
+  it('exposes register commercial promise markers when reached from the register entry', async () => {
+    const tree = await PricingPage({
+      params: Promise.resolve({ locale: 'sq' }),
+      searchParams: Promise.resolve({ entry: 'register' }),
+    });
+
+    render(tree);
+
+    expectSuccessFeeCalculator({ sectionTestId: 'pricing-success-fee-calculator' });
+    expectCommercialTerms({ sectionTestId: 'pricing-billing-terms' });
+    expectCoverageMatrix({
+      columnKey: 'coverageMatrix.columns.included',
+      rowKey: 'coverageMatrix.rows.vehicle.title',
+      sectionTestId: 'pricing-coverage-matrix',
+    });
+    expect(screen.getByTestId('register-success-fee-calculator')).toBeVisible();
+    expect(screen.getByTestId('register-billing-terms')).toBeVisible();
+    expect(screen.getByTestId('register-coverage-matrix')).toBeVisible();
   });
 
   it('keeps rendering the pricing shell during local sandbox builds when checkout config is unavailable', async () => {

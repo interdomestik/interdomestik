@@ -20,6 +20,7 @@ import { PricingPageRuntime } from './pricing-page-runtime';
 
 type PricingPageProps = Readonly<{
   params: Promise<{ locale: string }>;
+  searchParams?: Promise<{ entry?: string }>;
 }>;
 
 export async function generateMetadata({ params }: PricingPageProps): Promise<Metadata> {
@@ -31,8 +32,10 @@ export async function generateMetadata({ params }: PricingPageProps): Promise<Me
   };
 }
 
-export default async function PricingPage({ params }: PricingPageProps) {
+export default async function PricingPage({ params, searchParams }: PricingPageProps) {
   const { locale } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const isRegisterEntry = resolvedSearchParams?.entry === 'register';
   const [t, coverageMatrix, commercialTerms] = await Promise.all([
     getTranslations({ locale, namespace: 'pricing' }),
     getTranslations({ locale, namespace: 'coverageMatrix' }),
@@ -100,19 +103,27 @@ export default async function PricingPage({ params }: PricingPageProps) {
       />
 
       <div className="mt-16">
-        <SuccessFeeCalculator
-          {...buildSuccessFeeCalculatorProps(t, 'pricing-success-fee-calculator', locale)}
-        />
+        <div data-testid={isRegisterEntry ? 'register-success-fee-calculator' : undefined}>
+          <SuccessFeeCalculator
+            {...buildSuccessFeeCalculatorProps(t, 'pricing-success-fee-calculator', locale)}
+          />
+        </div>
       </div>
 
       <div className="mt-16">
-        <CommercialBillingTerms
-          {...buildCommercialTermsProps(commercialTerms, 'pricing-billing-terms')}
-        />
+        <div data-testid={isRegisterEntry ? 'register-billing-terms' : undefined}>
+          <CommercialBillingTerms
+            {...buildCommercialTermsProps(commercialTerms, 'pricing-billing-terms')}
+          />
+        </div>
       </div>
 
       <div className="mt-16">
-        <CoverageMatrix {...buildCoverageMatrixProps(coverageMatrix, 'pricing-coverage-matrix')} />
+        <div data-testid={isRegisterEntry ? 'register-coverage-matrix' : undefined}>
+          <CoverageMatrix
+            {...buildCoverageMatrixProps(coverageMatrix, 'pricing-coverage-matrix')}
+          />
+        </div>
       </div>
 
       <div className="mt-16">
