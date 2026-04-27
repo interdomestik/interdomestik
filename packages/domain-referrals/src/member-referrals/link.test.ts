@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMemberReferralLinkCore } from './link';
 
 const mocks = vi.hoisted(() => ({
@@ -40,6 +40,10 @@ describe('getMemberReferralLinkCore', () => {
     vi.clearAllMocks();
     mocks.update.mockReturnValue({ set: mocks.set });
     mocks.set.mockReturnValue({ where: mocks.where });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('returns existing code if present', async () => {
@@ -86,6 +90,22 @@ describe('getMemberReferralLinkCore', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toBe('Missing tenant context');
+    }
+  });
+
+  it('does not fall back to localhost for production referral links', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', '');
+    mocks.findFirst.mockResolvedValue({ referralCode: 'EXISTING-123', name: 'John Doe' });
+
+    const result = await getMemberReferralLinkCore({
+      session: { user: { id: 'u1', name: 'John Doe', role: 'user', tenantId: 'tenant_1' } } as any,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.link).toBe('https://www.interdomestik.com?ref=EXISTING-123');
+      expect(result.data.whatsappShareUrl).not.toContain('localhost');
     }
   });
 });

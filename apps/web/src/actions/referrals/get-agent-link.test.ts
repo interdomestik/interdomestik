@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Session } from './context';
 import { getAgentReferralLinkCore } from './get-agent-link';
@@ -32,6 +32,10 @@ vi.mock('drizzle-orm', () => ({
 describe('actions/referrals getAgentReferralLinkCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('denies access for non-agent roles', async () => {
@@ -73,6 +77,22 @@ describe('actions/referrals getAgentReferralLinkCore', () => {
     if (result.success) {
       expect(result.data.code).toBe('EXISTING-CODE');
       expect(result.data.link).toContain('ref=EXISTING-CODE');
+    }
+  });
+
+  it('does not fall back to localhost for production referral links', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', '');
+
+    const result = await getAgentReferralLinkCore({
+      session: {
+        user: { id: 'agent-1', role: 'agent', name: 'Agent Smith', tenantId: 'tenant_mk' },
+      } as unknown as NonNullable<Session>,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.link).toBe('https://www.interdomestik.com?ref=EXISTING-CODE');
     }
   });
 });
