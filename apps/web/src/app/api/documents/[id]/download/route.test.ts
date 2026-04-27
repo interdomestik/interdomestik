@@ -227,4 +227,35 @@ describe('GET /api/documents/[id]/download', () => {
       })
     );
   });
+
+  it('streams files with non-ASCII names without creating invalid response headers', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
+    mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      {
+        doc: {
+          id: 'doc-1',
+          claimId: 'claim-1',
+          bucket: 'bucket',
+          filePath: 'path/file.pdf',
+          uploadedBy: 'someone-else',
+          name: 'IHÇK SHKURT 2026.pdf',
+          fileType: 'application/pdf',
+          fileSize: 123,
+        },
+        claimOwnerId: 'user-1',
+      },
+    ]);
+
+    const request = new Request(
+      'http://localhost:3000/api/documents/doc-1/download?disposition=inline'
+    );
+    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Disposition')).toBe(
+      'inline; filename="IHCK SHKURT 2026.pdf"; filename*=UTF-8\'\'IHC%CC%A7K%20SHKURT%202026.pdf'
+    );
+  });
 });

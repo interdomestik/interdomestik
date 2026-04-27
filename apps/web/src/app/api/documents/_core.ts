@@ -96,7 +96,36 @@ function hasScopedClaimReadAccess(args: {
 }
 
 export function safeFilename(value: string) {
-  return value.split('\r').join('_').split('\n').join('_').split('"').join('_');
+  const normalized = value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+  const ascii = normalized
+    .split('\r')
+    .join('_')
+    .split('\n')
+    .join('_')
+    .split('"')
+    .join('_')
+    .split('\\')
+    .join('_')
+    .replace(/[^\x20-\x7E]/g, '_')
+    .trim();
+
+  return ascii || 'document';
+}
+
+export function encodeContentDispositionFilename(value: string) {
+  return encodeURIComponent(value)
+    .replace(/['()]/g, character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`)
+    .replace(/\*/g, '%2A');
+}
+
+export function buildContentDispositionHeader(args: {
+  disposition: 'inline' | 'attachment';
+  filename: string;
+}) {
+  const fallbackFilename = safeFilename(args.filename || 'document');
+  const encodedFilename = encodeContentDispositionFilename(args.filename || 'document');
+
+  return `${args.disposition}; filename="${fallbackFilename}"; filename*=UTF-8''${encodedFilename}`;
 }
 
 function getFinalDisposition(disposition?: 'inline' | 'attachment'): 'inline' | 'attachment' {
