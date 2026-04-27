@@ -17,6 +17,10 @@ test('turbo build forwards production Supabase separation env', () => {
     turboConfig.globalEnv.includes('NEXT_PUBLIC_UI_V2'),
     'turbo globalEnv must include NEXT_PUBLIC_UI_V2 for production landing builds'
   );
+  assert.ok(
+    turboConfig.globalEnv.includes('NEXT_PUBLIC_APP_URL'),
+    'turbo globalEnv must include NEXT_PUBLIC_APP_URL for production email links'
+  );
 });
 
 test('turbo build forwards production Paddle entity env', () => {

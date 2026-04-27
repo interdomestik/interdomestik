@@ -3,6 +3,8 @@
   "ui": "stream",
   "globalEnv": [
     "DATABASE_URL",
+    "DATABASE_URL_RLS",
+    "NEXT_PUBLIC_APP_URL",
     "NEXT_PUBLIC_SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     "NEXT_PUBLIC_UI_V2",
@@ -22,7 +24,14 @@
     "PADDLE_API_KEY_*",
     "PADDLE_WEBHOOK_SECRET_KEY",
     "PADDLE_WEBHOOK_SECRET_KEY_*",
-    "NEXT_PUBLIC_PADDLE_PRICE_*"
+    "NEXT_PUBLIC_PADDLE_PRICE_*",
+
+    "RESEND_API_KEY",
+    "RESEND_FROM_EMAIL",
+    "RESEND_FROM",
+
+    "UPSTASH_REDIS_REST_TOKEN",
+    "UPSTASH_REDIS_REST_URL"
   ],
   "globalDependencies": ["**/.env.*local"],
   "globalPassThroughEnv": ["DB_MAX_CONNECTIONS"],
