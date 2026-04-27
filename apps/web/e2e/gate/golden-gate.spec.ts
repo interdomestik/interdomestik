@@ -269,7 +269,7 @@ test.describe('Golden Gate: Critical Path', () => {
 
       // Switch to Draft Tab
       const draftTab = tabs.getByTestId('claims-tab-draft').first();
-      await draftTab.click({ force: true });
+      await draftTab.click({ force: true, noWaitAfter: true });
 
       // Split assertions for better debuggability
       await expect(page).toHaveURL(/status=draft/, { timeout: 10000 });
