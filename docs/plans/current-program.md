@@ -65,6 +65,8 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P22` Production Go-Live Operations is now active after completed `P21`. `P22-GO01` is the operational go/no-go slice that must prove the real production deployment identity, tenant-host mapping, production environment posture, Paddle production posture, database backup and rollback path, observability, alerting, and launch-critical production smoke surfaces before live traffic is opened. `P22` is an operations-readiness tranche only; it does not authorize product behavior expansion, UI/UX redesign, CRM redesign, agent-workspace redesign, `apps/web/src/proxy.ts` changes, canonical route renames, auth or tenancy refactors, schema changes, Stripe reintroduction, or product analytics expansion.
 
+The first `P22-GO01` execution pass is recorded in `docs/plans/2026-04-27-p22-go01-production-readiness-execution.md` with a `NO-GO` decision. The reachable Vercel production alias produced partial smoke evidence, but canonical DNS and tenant hosts do not resolve, deployed commit identity is unproven, the current CD workflow remains queued, release gate `G07` fails on the register commercial promise surface, and backup/rollback plus launch-owner evidence is still missing. Live traffic remains blocked.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
