@@ -65,7 +65,7 @@
     "drizzle-orm": "^0.45.2",
     "framer-motion": "^12.37.0",
     "import-in-the-middle": "^2.0.1",
-    "inngest": "^3.52.6",
+    "inngest": "^3.54.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.577.0",
     "nanoid": "^5.1.9",
