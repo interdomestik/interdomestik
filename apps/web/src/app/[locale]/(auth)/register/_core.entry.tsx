@@ -15,6 +15,7 @@ export default async function RegisterPage({ params, searchParams }: Props) {
     resolvedSearchParams?.plan ?? null
   ).split('?');
   const destination = new URLSearchParams(pricingQuery);
+  destination.set('entry', 'register');
 
   if (resolvedSearchParams?.tenantId) {
     destination.set('tenantId', resolvedSearchParams.tenantId);

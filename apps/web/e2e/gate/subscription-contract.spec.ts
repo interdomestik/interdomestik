@@ -61,8 +61,10 @@ test.describe('Subscription Contract Verification', () => {
     const billingSignal = page.getByTestId('pricing-page');
     await expect(billingSignal).toHaveAttribute('data-billing-test-mode', '1');
 
-    // Click CTA
-    await page.getByTestId('plan-cta-standard').click();
+    // Wait for session hydration so the CTA click is not swallowed while disabled.
+    const standardCta = page.getByTestId('plan-cta-standard');
+    await expect(standardCta).toBeEnabled();
+    await standardCta.click();
 
     // In Billing Test Mode, it should redirect to success
     await expect(page).toHaveURL(/.*\/member\/membership\/success\?test=true/, {

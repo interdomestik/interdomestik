@@ -32,10 +32,10 @@ describe('RegisterPage redirect', () => {
         params: Promise.resolve({ locale: 'en' }),
         searchParams: Promise.resolve({}),
       })
-    ).rejects.toThrow('redirect:/en/pricing');
+    ).rejects.toThrow('redirect:/en/pricing?entry=register');
 
     expect(hoisted.setRequestLocaleMock).toHaveBeenCalledWith('en');
-    expect(hoisted.redirectMock).toHaveBeenCalledWith('/en/pricing');
+    expect(hoisted.redirectMock).toHaveBeenCalledWith('/en/pricing?entry=register');
     expect(hoisted.registerFormMock).not.toHaveBeenCalled();
   });
 
@@ -49,10 +49,10 @@ describe('RegisterPage redirect', () => {
         params: Promise.resolve({ locale: 'mk' }),
         searchParams: Promise.resolve({ tenantId: 'tenant_mk', plan: 'standard' }),
       })
-    ).rejects.toThrow('redirect:/mk/pricing?plan=standard&tenantId=tenant_mk');
+    ).rejects.toThrow('redirect:/mk/pricing?plan=standard&entry=register&tenantId=tenant_mk');
 
     expect(hoisted.redirectMock).toHaveBeenCalledWith(
-      '/mk/pricing?plan=standard&tenantId=tenant_mk'
+      '/mk/pricing?plan=standard&entry=register&tenantId=tenant_mk'
     );
   });
 });
