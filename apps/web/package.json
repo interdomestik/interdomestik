@@ -1,6 +1,6 @@
 {
   "name": "@interdomestik/web",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "NEXT_PUBLIC_FORCE_NIPIO_REDIRECT=1 DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-test-secret-for-local-dev-only-32chars-minimum} next dev --turbo --hostname 127.0.0.1 --port 3000",
