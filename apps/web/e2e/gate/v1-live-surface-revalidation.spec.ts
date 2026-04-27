@@ -43,8 +43,8 @@ test.describe('P21-QA01 v1.0.0 live surface revalidation', () => {
       expect(pricingResponse?.status(), 'pricing should serve without a server error').toBeLessThan(
         500
       );
-      await expect(page.getByTestId('pricing-page')).toBeVisible();
-      await expect(page.getByTestId('pricing-page')).not.toContainText(/Stripe/i);
+      await expect(page.getByTestId('pricing-page-ready')).toBeVisible();
+      await expect(page.locator('body')).not.toContainText(/Stripe/i);
 
       const servicesResponse = await gotoApp(
         page,

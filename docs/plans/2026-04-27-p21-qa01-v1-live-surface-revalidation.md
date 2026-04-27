@@ -1,6 +1,6 @@
 # P21-QA01 v1.0.0 Live Surface Revalidation
 
-**Status:** proposed design slice  
+**Status:** in progress
 **Date:** 2026-04-27  
 **Purpose:** final live-entry confidence pull before post-v1 product expansion
 
