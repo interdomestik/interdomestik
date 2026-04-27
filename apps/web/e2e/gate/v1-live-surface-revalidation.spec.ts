@@ -13,23 +13,56 @@ function projectOrigin(testInfo: TestInfo): string {
 
 function normalizeHost(rawHost: string | undefined, fallback: string): string {
   const value = rawHost?.trim() || fallback;
-  return value.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return new URL(value).host;
+  }
+  return value.split('/')[0] ?? fallback;
 }
 
 test.describe('P21-QA01 v1.0.0 live surface revalidation', () => {
-  test('public launch entry surfaces serve without server errors', async ({ page }, testInfo) => {
-    await gotoApp(page, routes.home(testInfo), testInfo, { marker: 'landing-page-ready' });
-    await expect(page.getByTestId('landing-page-ready')).toBeVisible();
-
-    await gotoApp(page, routes.pricing(testInfo), testInfo, { marker: 'pricing-page-ready' });
-    await expect(page.getByTestId('pricing-page')).toBeVisible();
-    await expect(page.getByTestId('pricing-page')).not.toContainText(/Stripe/i);
-
-    await gotoApp(page, `/${routes.getLocale(testInfo)}/services`, testInfo, {
-      marker: 'services-commercial-disclaimers',
+  test('public launch entry surfaces serve without server errors', async ({
+    browser,
+  }, testInfo) => {
+    const context = await browser.newContext({
+      baseURL: testInfo.project.use.baseURL,
+      extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
+      storageState: { cookies: [], origins: [] },
     });
-    await expect(page.getByTestId('services-coverage-matrix')).toBeVisible();
-    await expect(page.getByTestId('services-scope-tree')).toBeVisible();
+    const page = await context.newPage();
+
+    try {
+      const homeResponse = await gotoApp(page, routes.home(testInfo), testInfo, {
+        marker: 'landing-page-ready',
+      });
+      expect(homeResponse?.status(), 'home should serve without a server error').toBeLessThan(500);
+      await expect(page.getByTestId('landing-page-ready')).toBeVisible();
+
+      const pricingResponse = await gotoApp(page, routes.pricing(testInfo), testInfo, {
+        marker: 'pricing-page-ready',
+      });
+      expect(pricingResponse?.status(), 'pricing should serve without a server error').toBeLessThan(
+        500
+      );
+      await expect(page.getByTestId('pricing-page')).toBeVisible();
+      await expect(page.getByTestId('pricing-page')).not.toContainText(/Stripe/i);
+
+      const servicesResponse = await gotoApp(
+        page,
+        `/${routes.getLocale(testInfo)}/services`,
+        testInfo,
+        {
+          marker: 'services-commercial-disclaimers',
+        }
+      );
+      expect(
+        servicesResponse?.status(),
+        'services should serve without a server error'
+      ).toBeLessThan(500);
+      await expect(page.getByTestId('services-coverage-matrix')).toBeVisible();
+      await expect(page.getByTestId('services-scope-tree')).toBeVisible();
+    } finally {
+      await context.close();
+    }
   });
 
   test('pilot host resolves to pilot-mk and sets the tenant cookie', async ({
@@ -137,7 +170,9 @@ test.describe('P21-QA01 v1.0.0 live surface revalidation', () => {
     await expect(page).toHaveURL(new RegExp(`${routes.member(testInfo)}$`));
     await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
 
-    await page.getByTestId('member-start-claim-cta').first().click();
+    const memberStartClaimCta = page.getByTestId('member-start-claim-cta').first();
+    await expect(memberStartClaimCta).toBeVisible();
+    await memberStartClaimCta.click({ force: true });
     await expect(page).toHaveURL(new RegExp(`${routes.memberNewClaim(testInfo)}$`));
     await expect(page.getByTestId('new-claim-page-ready')).toBeVisible();
 
