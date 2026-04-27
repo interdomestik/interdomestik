@@ -619,6 +619,48 @@ describe('PricingTable', () => {
     }
   });
 
+  it('suppresses the local checkout warning in production Paddle mode', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_PADDLE_ENV', 'production');
+    vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
+
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      render(
+        <PricingTable
+          userId="user-123"
+          email="test@example.com"
+          billingTestMode={false}
+          checkoutConfig={{ ...checkoutConfig, clientToken: '' }}
+        />
+      );
+
+      fireEvent.click(screen.getAllByText('cta')[0]);
+
+      await waitFor(() => {
+        expect(paddleLib.getPaddleInstance).toHaveBeenCalledWith({
+          clientToken: '',
+          environment: checkoutConfig.environment,
+        });
+      });
+
+      expect(screen.queryByTestId('pricing-local-checkout-unavailable')).not.toBeInTheDocument();
+      expect(consoleWarn).not.toHaveBeenCalledWith(
+        'Paddle client token missing in development, checkout is unavailable locally.'
+      );
+      expect(mockToastError).toHaveBeenCalledWith(
+        'Payment system unavailable. Please check configuration.'
+      );
+      expect(mockRouterPush).not.toHaveBeenCalled();
+      expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
+    } finally {
+      consoleWarn.mockRestore();
+      consoleError.mockRestore();
+    }
+  });
+
   it('shows a toast in development when a token exists but Paddle init fails', async () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);

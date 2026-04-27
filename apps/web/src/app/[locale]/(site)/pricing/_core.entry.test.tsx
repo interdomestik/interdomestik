@@ -139,4 +139,27 @@ describe('PricingPage server shell', () => {
 
     warnSpy.mockRestore();
   });
+
+  it('fails closed in production Paddle mode when public checkout config is unavailable', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_PADDLE_ENV', 'production');
+    delete process.env.VERCEL_ENV;
+
+    const checkoutConfigError = new Error('missing public production checkout config');
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    hoisted.getPublicBillingCheckoutConfigMock.mockImplementationOnce(() => {
+      throw checkoutConfigError;
+    });
+
+    await expect(
+      PricingPage({
+        params: Promise.resolve({ locale: 'sq' }),
+      })
+    ).rejects.toThrow(checkoutConfigError);
+
+    expect(hoisted.pricingPageRuntimeMock).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
 });
