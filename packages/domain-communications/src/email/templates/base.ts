@@ -1,8 +1,17 @@
 import type { EmailTemplate, TemplateOptions } from './types';
 
+const PRODUCTION_APP_URL = 'https://www.interdomestik.com';
+
+function resolveDefaultAppUrl() {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.BETTER_AUTH_URL ||
+    (process.env.NODE_ENV === 'production' ? PRODUCTION_APP_URL : 'http://localhost:3000')
+  );
+}
+
 export const DEFAULT_APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Interdomestik';
-export const DEFAULT_APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000';
+export const DEFAULT_APP_URL = resolveDefaultAppUrl();
 
 function escapeHtml(value: string) {
   return value

@@ -2,7 +2,11 @@ import { BetterAuthOptions } from 'better-auth';
 import { getTrustedOrigins } from './utils';
 
 export const authConfig = {
-  baseURL: process.env.BETTER_AUTH_URL || 'http://127.0.0.1.nip.io:3000',
+  baseURL:
+    process.env.BETTER_AUTH_URL ||
+    (process.env.NODE_ENV === 'production'
+      ? 'https://www.interdomestik.com'
+      : 'http://127.0.0.1.nip.io:3000'),
   trustedOrigins: getTrustedOrigins(),
   rateLimit: {
     // Contract: Rate limiting must be disabled for deterministic automated runs (Playwright/CI),

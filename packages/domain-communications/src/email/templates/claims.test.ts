@@ -26,4 +26,24 @@ describe('claim email templates', () => {
     expect(template.text).not.toContain('localhost');
     expect(template.html).not.toContain('localhost');
   });
+
+  it('does not fall back to localhost for production claim detail links', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', '');
+    vi.stubEnv('BETTER_AUTH_URL', '');
+    vi.resetModules();
+
+    const { renderClaimSubmittedEmail } = await import('./claims');
+
+    const template = renderClaimSubmittedEmail({
+      claimId: 'claim-1',
+      claimTitle: 'Vehicle claim',
+      category: 'Vehicle',
+    });
+
+    expect(template.text).toContain(
+      'View claim: https://www.interdomestik.com/member/claims/claim-1'
+    );
+    expect(template.html).not.toContain('localhost');
+  });
 });
