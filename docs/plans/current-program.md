@@ -67,6 +67,8 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 The first `P22-GO01` execution pass is recorded in `docs/plans/2026-04-27-p22-go01-production-readiness-execution.md` with a `NO-GO` decision. After the production Git deployment of PR `#568` at merge commit `c7e038d97de52586deb8c1c8807bf867cad75088`, the fresh `P22-GO01` release-gate rerun against `https://www.interdomestik.com` passed all scripted checks on Vercel deployment `dpl_AtRyCJu5RV4sHmw9w9DtXQEZAgiw`; canonical evidence is preserved in `docs/release-gates/2026-04-28_production_dpl_AtRyCJu5RV4sHmw9w9DtXQEZAgiw.md`. Production health then confirmed deployment `dpl_DSrbEwyPNhuUUAy4QrQvEmkAVfXx` running commit `ad9dd21d0eba8f58b8a18fe5d3ee747b7cbc4e73`, and `docs/plans/2026-04-28-p22-go04-launch-operations-acceptance.md` records the final non-scripted operations acceptance with a `GO` decision.
 
+`P23` Live Product Responsiveness is now active after completed `P22`. `P23-PERF01` is complete through PR `#572`: the existing authenticated member and admin shells now expose shared route-transition feedback, route-level loading skeletons cover member and admin navigation, fast and cancelled navigation edge cases are handled, and E2E gate selectors were hardened against transient duplicate transition DOM. `P23-PERF01` did not change `apps/web/src/proxy.ts`, canonical routes, auth layering, tenancy architecture, database schema, Stripe posture, CRM scope, agent-workspace scope, product analytics, README, AGENTS, or architecture docs. Remaining P23 work requires later bounded slice promotion from repo-canonical evidence rather than broad UI/UX redesign.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
@@ -194,6 +196,8 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 121. Keep `P22-GO02` complete as the narrow `/register` G07 commercial-promise blocker fix before rerunning production readiness.
 122. Keep `P22-GO03` complete as the narrow member-claim SLA status copy fix that cleared the final production `G09` release-gate blocker.
 123. Keep `P22-GO04` complete as the launch operations acceptance record that closes backup/recovery point, rollback owner and procedure, alert/on-call owner, incident decision owner, launch window, and final go/no-go authority.
+124. Land `P23` as the canonical post-`P22` Live Product Responsiveness tranche without broad UI/UX redesign, CRM redesign, agent-workspace redesign, proxy changes, canonical route renames, auth or tenancy refactors, schema changes, Stripe reintroduction, or product analytics expansion.
+125. Keep `P23-PERF01` complete as the portal navigation responsiveness slice so existing member and admin authenticated surfaces provide deterministic route-transition feedback and loading skeletons while preserving canonical route, tenant, and access-control contracts.
 
 ## Status Command
 
