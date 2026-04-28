@@ -7,6 +7,8 @@
         "search_placeholder": "Пребарај барање, член, компанија или број",
         "search": "Барај",
         "clear_search": "Исчисти",
+        "pending_search": "Се пребаруваат барањата...",
+        "pending_filter": "Се ажурираат филтрите...",
         "assignment_filter_label": "Филтер за доделување",
         "status_filter_label": "Филтер за статус",
         "diaspora_filter_label": "Филтер за потекло",

@@ -7,9 +7,11 @@ import {
   parseDiasporaOriginFilter,
   type DiasporaOriginFilter,
 } from '@interdomestik/domain-claims';
-import { Button, Input } from '@interdomestik/ui';
+import { Button } from '@interdomestik/ui';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+
+import { StaffClaimsControls } from './staff-claims-controls';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -18,8 +20,7 @@ type Props = {
 
 type SearchParamValue = string | string[] | undefined;
 
-const STAFF_ASSIGNMENT_FILTERS = ['all', 'mine', 'unassigned'] as const;
-type StaffAssignmentFilter = (typeof STAFF_ASSIGNMENT_FILTERS)[number];
+type StaffAssignmentFilter = 'all' | 'mine' | 'unassigned';
 
 function getSingleParam(value: SearchParamValue) {
   return Array.isArray(value) ? value[0] : value;
@@ -162,6 +163,82 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
     !!currentStatus ||
     currentAssignment !== 'all' ||
     currentDiasporaOrigin !== 'all';
+  const hiddenFields = [
+    ...(currentAssignment !== 'all' ? [{ name: 'assigned', value: currentAssignment }] : []),
+    ...(currentStatus ? [{ name: 'status', value: currentStatus }] : []),
+    ...(currentDiasporaOrigin !== 'all'
+      ? [{ name: 'diaspora', value: currentDiasporaOrigin }]
+      : []),
+  ];
+  const clearSearchHref = currentSearch
+    ? buildStaffClaimsHref({
+        assigned: currentAssignment,
+        diasporaOrigin: currentDiasporaOrigin,
+        status: currentStatus,
+      })
+    : undefined;
+  const assignmentFilterOptions = assignmentOptions.map(option => ({
+    ...option,
+    href: buildStaffClaimsHref({
+      assigned: option.value,
+      diasporaOrigin: currentDiasporaOrigin,
+      search: currentSearch,
+      status: currentStatus,
+    }),
+    isActive: currentAssignment === option.value,
+    testId: `staff-claims-assigned-filter-${option.value}`,
+  }));
+  const statusFilterOptions = [
+    {
+      href: buildStaffClaimsHref({
+        assigned: currentAssignment,
+        diasporaOrigin: currentDiasporaOrigin,
+        search: currentSearch,
+      }),
+      isActive: !currentStatus,
+      label: tClaims('staff_queue.all_actionable'),
+      testId: 'staff-claims-status-filter-all',
+      value: 'all',
+    },
+    ...ACTIONABLE_CLAIM_STATUSES.map(status => ({
+      href: buildStaffClaimsHref({
+        assigned: currentAssignment,
+        diasporaOrigin: currentDiasporaOrigin,
+        search: currentSearch,
+        status,
+      }),
+      isActive: currentStatus === status,
+      label: tStatus(status),
+      testId: `staff-claims-status-filter-${status}`,
+      value: status,
+    })),
+  ];
+  const diasporaFilterOptions = [
+    {
+      href: buildStaffClaimsHref({
+        assigned: currentAssignment,
+        diasporaOrigin: 'all',
+        search: currentSearch,
+        status: currentStatus,
+      }),
+      isActive: currentDiasporaOrigin === 'all',
+      label: tClaims('staff_queue.diaspora_filter.all'),
+      testId: 'staff-claims-diaspora-filter-all',
+      value: 'all',
+    },
+    {
+      href: buildStaffClaimsHref({
+        assigned: currentAssignment,
+        diasporaOrigin: 'diaspora',
+        search: currentSearch,
+        status: currentStatus,
+      }),
+      isActive: currentDiasporaOrigin === 'diaspora',
+      label: tClaims('staff_queue.diaspora_filter.diaspora'),
+      testId: 'staff-claims-diaspora-filter-diaspora',
+      value: 'diaspora',
+    },
+  ];
 
   return (
     <div className="space-y-6" data-testid="staff-page-ready">
@@ -179,164 +256,23 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
         </p>
       </div>
 
-      <section
-        className="rounded-lg border bg-white p-4 shadow-sm"
-        data-testid="staff-claims-filters"
-      >
-        <form
-          action={`/${locale}/staff/claims`}
-          className="flex flex-col gap-3 md:flex-row md:items-center"
-        >
-          {currentAssignment !== 'all' && (
-            <input type="hidden" name="assigned" value={currentAssignment} />
-          )}
-          {currentStatus && <input type="hidden" name="status" value={currentStatus} />}
-          {currentDiasporaOrigin !== 'all' && (
-            <input type="hidden" name="diaspora" value={currentDiasporaOrigin} />
-          )}
-          <Input
-            name="search"
-            defaultValue={currentSearch}
-            placeholder={tClaims('staff_queue.search_placeholder')}
-            data-testid="staff-claims-search-input"
-          />
-          <div className="flex items-center gap-2">
-            <Button type="submit" data-testid="staff-claims-search-submit">
-              {tClaims('staff_queue.search')}
-            </Button>
-            {currentSearch && (
-              <Button asChild type="button" variant="ghost">
-                <Link
-                  href={buildStaffClaimsHref({
-                    assigned: currentAssignment,
-                    diasporaOrigin: currentDiasporaOrigin,
-                    status: currentStatus,
-                  })}
-                  prefetch={false}
-                >
-                  {tClaims('staff_queue.clear_search')}
-                </Link>
-              </Button>
-            )}
-          </div>
-        </form>
-
-        <div className="mt-4 space-y-2" data-testid="staff-claims-assignment-filters">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {tClaims('staff_queue.assignment_filter_label')}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {assignmentOptions.map(option => {
-              const isActive = currentAssignment === option.value;
-              return (
-                <Button
-                  asChild
-                  key={option.value}
-                  size="sm"
-                  variant={isActive ? 'default' : 'outline'}
-                >
-                  <Link
-                    href={buildStaffClaimsHref({
-                      assigned: option.value,
-                      diasporaOrigin: currentDiasporaOrigin,
-                      search: currentSearch,
-                      status: currentStatus,
-                    })}
-                    prefetch={false}
-                    data-testid={`staff-claims-assigned-filter-${option.value}`}
-                  >
-                    {option.label}
-                  </Link>
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="mt-3 space-y-2" data-testid="staff-claims-status-filters">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {tClaims('staff_queue.status_filter_label')}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild size="sm" variant={currentStatus ? 'outline' : 'default'}>
-              <Link
-                href={buildStaffClaimsHref({
-                  assigned: currentAssignment,
-                  diasporaOrigin: currentDiasporaOrigin,
-                  search: currentSearch,
-                })}
-                prefetch={false}
-                data-testid="staff-claims-status-filter-all"
-              >
-                {tClaims('staff_queue.all_actionable')}
-              </Link>
-            </Button>
-            {ACTIONABLE_CLAIM_STATUSES.map(status => {
-              const isActive = currentStatus === status;
-              return (
-                <Button asChild key={status} size="sm" variant={isActive ? 'default' : 'outline'}>
-                  <Link
-                    href={buildStaffClaimsHref({
-                      assigned: currentAssignment,
-                      diasporaOrigin: currentDiasporaOrigin,
-                      search: currentSearch,
-                      status,
-                    })}
-                    prefetch={false}
-                    data-testid={`staff-claims-status-filter-${status}`}
-                  >
-                    {tStatus(status)}
-                  </Link>
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="mt-3 space-y-2" data-testid="staff-claims-diaspora-filters">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {tClaims('staff_queue.diaspora_filter_label')}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              asChild
-              size="sm"
-              variant={currentDiasporaOrigin === 'all' ? 'default' : 'outline'}
-            >
-              <Link
-                href={buildStaffClaimsHref({
-                  assigned: currentAssignment,
-                  diasporaOrigin: 'all',
-                  search: currentSearch,
-                  status: currentStatus,
-                })}
-                prefetch={false}
-                data-testid="staff-claims-diaspora-filter-all"
-              >
-                {tClaims('staff_queue.diaspora_filter.all')}
-              </Link>
-            </Button>
-            <Button
-              asChild
-              size="sm"
-              variant={currentDiasporaOrigin === 'diaspora' ? 'default' : 'outline'}
-            >
-              <Link
-                href={buildStaffClaimsHref({
-                  assigned: currentAssignment,
-                  diasporaOrigin: 'diaspora',
-                  search: currentSearch,
-                  status: currentStatus,
-                })}
-                prefetch={false}
-                data-testid="staff-claims-diaspora-filter-diaspora"
-              >
-                {tClaims('staff_queue.diaspora_filter.diaspora')}
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+      <StaffClaimsControls
+        assignmentFilterLabel={tClaims('staff_queue.assignment_filter_label')}
+        assignmentOptions={assignmentFilterOptions}
+        clearSearchHref={clearSearchHref}
+        clearSearchLabel={tClaims('staff_queue.clear_search')}
+        currentSearch={currentSearch}
+        diasporaFilterLabel={tClaims('staff_queue.diaspora_filter_label')}
+        diasporaOptions={diasporaFilterOptions}
+        formAction={`/${locale}/staff/claims`}
+        hiddenFields={hiddenFields}
+        pendingFilterLabel={tClaims('staff_queue.pending_filter')}
+        pendingSearchLabel={tClaims('staff_queue.pending_search')}
+        searchLabel={tClaims('staff_queue.search')}
+        searchPlaceholder={tClaims('staff_queue.search_placeholder')}
+        statusFilterLabel={tClaims('staff_queue.status_filter_label')}
+        statusOptions={statusFilterOptions}
+      />
 
       <div className="rounded-lg border bg-white shadow-sm" data-testid="staff-claims-queue">
         <div className="grid grid-cols-1 gap-4 border-b px-4 py-3 text-sm font-medium text-muted-foreground md:grid-cols-5">
