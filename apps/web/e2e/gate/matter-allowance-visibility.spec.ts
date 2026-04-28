@@ -14,22 +14,36 @@ test.describe('Matter allowance visibility', () => {
       marker: 'member-claim-matter-allowance',
     });
 
-    await expect(memberPage.getByTestId('member-claim-matter-allowance')).toBeVisible();
-    await expect(memberPage.getByTestId('member-claim-matter-allowance-used')).toHaveText('0');
-    await expect(memberPage.getByTestId('member-claim-matter-allowance-remaining')).toHaveText('2');
-    await expect(memberPage.getByTestId('member-claim-matter-allowance-total')).toHaveText('2');
+    const memberMatterAllowance = memberPage
+      .locator('[data-testid="member-claim-matter-allowance"]:visible')
+      .last();
+    await expect(memberMatterAllowance).toBeVisible();
+    await expect(
+      memberMatterAllowance.getByTestId('member-claim-matter-allowance-used')
+    ).toHaveText('0');
+    await expect(
+      memberMatterAllowance.getByTestId('member-claim-matter-allowance-remaining')
+    ).toHaveText('2');
+    await expect(
+      memberMatterAllowance.getByTestId('member-claim-matter-allowance-total')
+    ).toHaveText('2');
 
     await gotoApp(staffPage, routes.staffClaimDetail(claimId, testInfo), testInfo, {
       marker: 'staff-claim-detail-matter-allowance',
     });
 
-    await expect(staffPage.getByTestId('staff-claim-detail-matter-allowance')).toBeVisible();
-    await expect(staffPage.getByTestId('staff-claim-detail-matter-allowance-used')).toHaveText('0');
-    await expect(staffPage.getByTestId('staff-claim-detail-matter-allowance-remaining')).toHaveText(
-      '2'
-    );
-    await expect(staffPage.getByTestId('staff-claim-detail-matter-allowance-total')).toHaveText(
-      '2'
-    );
+    const staffMatterAllowance = staffPage
+      .locator('[data-testid="staff-claim-detail-matter-allowance"]:visible')
+      .last();
+    await expect(staffMatterAllowance).toBeVisible();
+    await expect(
+      staffMatterAllowance.getByTestId('staff-claim-detail-matter-allowance-used')
+    ).toHaveText('0');
+    await expect(
+      staffMatterAllowance.getByTestId('staff-claim-detail-matter-allowance-remaining')
+    ).toHaveText('2');
+    await expect(
+      staffMatterAllowance.getByTestId('staff-claim-detail-matter-allowance-total')
+    ).toHaveText('2');
   });
 });

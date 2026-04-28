@@ -49,7 +49,8 @@ export function AdminClaimsFilters() {
   const [pendingKind, setPendingKindState] = useState<PendingKind | null>(null);
   const pendingKindRef = useRef<PendingKind | null>(null);
   const [searchValue, setSearchValue] = useState(currentSearch);
-  const [, startTransition] = useTransition();
+  const [isTransitionPending, startTransition] = useTransition();
+  const isNavigationPending = Boolean(pendingKind || isTransitionPending);
 
   const setPendingKind = useCallback((nextPendingKind: PendingKind | null) => {
     pendingKindRef.current = nextPendingKind;
@@ -69,8 +70,8 @@ export function AdminClaimsFilters() {
       return undefined;
     }
 
-    const timeout = window.setTimeout(() => setPendingKind(null), PENDING_FEEDBACK_TIMEOUT_MS);
-    return () => window.clearTimeout(timeout);
+    const timeout = globalThis.setTimeout(() => setPendingKind(null), PENDING_FEEDBACK_TIMEOUT_MS);
+    return () => globalThis.clearTimeout(timeout);
   }, [pendingKind, setPendingKind]);
 
   // V2 Status Tabs
@@ -133,7 +134,7 @@ export function AdminClaimsFilters() {
   return (
     <div
       data-testid="admin-claims-filter-region"
-      aria-busy={pendingKind ? 'true' : 'false'}
+      aria-busy={isNavigationPending ? 'true' : 'false'}
       className="space-y-2"
     >
       {/* Audit Contract Satisfaction: Hidden aliases for legacy static analysis */}
@@ -175,14 +176,14 @@ export function AdminClaimsFilters() {
         onSearchChange={updateSearch}
         searchPlaceholder={`${tCommon('search')}...`}
         searchInputTestId="claims-search-input"
-        isPending={Boolean(pendingKind)}
+        isPending={isNavigationPending}
         searchDisabled={pendingKind === 'filter'}
         rightActions={
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex bg-black/20 p-1 rounded-lg border border-white/5">
               {assignmentOptions.map(option => {
                 const isActive = currentAssignment === option.value;
-                const isInert = Boolean(pendingKind) || isActive;
+                const isInert = isNavigationPending || isActive;
                 return (
                   <button
                     key={option.value}
@@ -211,7 +212,7 @@ export function AdminClaimsFilters() {
             >
               {diasporaOptions.map(option => {
                 const isActive = currentDiasporaOrigin === option.value;
-                const isInert = Boolean(pendingKind) || isActive;
+                const isInert = isNavigationPending || isActive;
                 return (
                   <button
                     key={option.value}
