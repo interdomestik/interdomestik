@@ -82,6 +82,7 @@ export function MemberClaimDetailOpsPage({
   const t = useTranslations('claims');
   const tTrackingStatus = useTranslations('claims-tracking.status');
   const tTrackingNextStep = useTranslations('claims-tracking.status.next_step');
+  const tTrackingSla = useTranslations('claims-tracking.tracking.sla');
   const tAssurance = useTranslations('claims-tracking.tracking.assurance');
   const tClaimStatus = useTranslations('claims.status');
 
@@ -151,6 +152,7 @@ export function MemberClaimDetailOpsPage({
         claim.progressSummary.nextStepKey.replace('claims-tracking.status.next_step.', '')
       )
     : claim.progressSummary.nextStepKey;
+  const hasMemberSlaStatus = claim.slaPhase === 'incomplete' || claim.slaPhase === 'running';
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-8">
@@ -243,6 +245,19 @@ export function MemberClaimDetailOpsPage({
               </div>
             </CardContent>
           </Card>
+
+          {hasMemberSlaStatus ? (
+            <Card data-testid="member-claim-sla-status">
+              <CardHeader>
+                <CardTitle>{tTrackingSla('title')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm font-medium" data-testid="member-claim-sla-status-phase">
+                  {tTrackingSla(claim.slaPhase)}
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card data-testid="member-claim-trust-sla-panel">
             <CardHeader>
