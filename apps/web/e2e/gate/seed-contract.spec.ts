@@ -1,8 +1,13 @@
+import type { Page } from '@playwright/test';
+
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 test.describe('Seed Contract Verification', () => {
+  const branchCard = (page: Page, code: string) =>
+    page.getByTestId('branches-screen').getByTestId(`branch-card-${code}`);
+
   test('Tenant KS has required branch codes', async ({ adminPage: page }, testInfo) => {
     if (!testInfo.project.name.includes('ks')) {
       testInfo.annotations.push({
@@ -16,7 +21,7 @@ test.describe('Seed Contract Verification', () => {
 
     const requiredBranches = ['KS-A', 'KS-B', 'KS-C'];
     for (const code of requiredBranches) {
-      await expect(page.getByTestId(`branch-card-${code}`)).toBeVisible();
+      await expect(branchCard(page, code).first()).toBeVisible();
     }
   });
 
@@ -33,7 +38,7 @@ test.describe('Seed Contract Verification', () => {
 
     const requiredBranches = ['MK-A', 'MK-B', 'MK-E'];
     for (const code of requiredBranches) {
-      await expect(page.getByTestId(`branch-card-${code}`)).toBeVisible();
+      await expect(branchCard(page, code).first()).toBeVisible();
     }
   });
 
@@ -50,7 +55,7 @@ test.describe('Seed Contract Verification', () => {
 
     const mkBranches = ['MK-A', 'MK-B', 'MK-E'];
     for (const code of mkBranches) {
-      await expect(page.getByTestId(`branch-card-${code}`)).not.toBeVisible();
+      await expect(branchCard(page, code)).toHaveCount(0);
     }
   });
 
@@ -67,7 +72,7 @@ test.describe('Seed Contract Verification', () => {
 
     const ksBranches = ['KS-A', 'KS-B', 'KS-C'];
     for (const code of ksBranches) {
-      await expect(page.getByTestId(`branch-card-${code}`)).not.toBeVisible();
+      await expect(branchCard(page, code)).toHaveCount(0);
     }
   });
 });

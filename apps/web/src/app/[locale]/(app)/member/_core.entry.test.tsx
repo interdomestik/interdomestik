@@ -33,6 +33,10 @@ vi.mock('@/components/shell/session', () => ({
   requireSessionOrRedirect: hoisted.requireSessionOrRedirectMock,
 }));
 
+vi.mock('@/components/shell/navigation-feedback', () => ({
+  NavigationFeedback: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 vi.mock('@/i18n/messages', () => ({
   APP_NAMESPACES: [],
   pickMessages: hoisted.pickMessagesMock,

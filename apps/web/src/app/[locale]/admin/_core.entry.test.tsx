@@ -47,7 +47,12 @@ vi.mock('@/components/shell/authenticated-shell', () => ({
     children: ReactNode;
     locale: string;
     messages: Record<string, unknown>;
+    enableNavigationFeedback?: boolean;
   }) => children,
+}));
+
+vi.mock('@/components/shell/navigation-feedback', () => ({
+  NavigationFeedback: ({ children }: { children: ReactNode }) => children,
 }));
 
 vi.mock('@/components/admin/admin-sidebar', () => ({

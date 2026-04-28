@@ -8,10 +8,23 @@ test.describe('Member Documents Upload Entry', () => {
     await gotoApp(page, '/member/documents', testInfo, { marker: 'member-documents-page-ready' });
 
     const claimCards = page.locator('[data-testid^="member-documents-claim-"]');
+    const emptyState = page.getByTestId('member-documents-create-claim');
+
+    await expect
+      .poll(
+        async () => {
+          const cardCount = await claimCards.count();
+          if (cardCount > 0) return true;
+          return emptyState.isVisible();
+        },
+        { timeout: 10000 }
+      )
+      .toBe(true);
+
     const cardCount = await claimCards.count();
 
     if (cardCount === 0) {
-      await expect(page.getByTestId('member-documents-create-claim')).toBeVisible();
+      await expect(emptyState).toBeVisible();
       return;
     }
 
