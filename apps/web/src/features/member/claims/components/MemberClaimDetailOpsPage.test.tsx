@@ -65,6 +65,16 @@ vi.mock('next-intl', () => ({
         return translations[key] || `claims-tracking.status.next_step.${key}`;
       };
     }
+    if (namespace === 'claims-tracking.tracking.sla') {
+      return (key: string) => {
+        const translations: Record<string, string> = {
+          title: 'SLA Status',
+          running: 'Response timer is running.',
+          incomplete: 'Waiting for your information before the SLA starts.',
+        };
+        return translations[key] || `claims-tracking.tracking.sla.${key}`;
+      };
+    }
     if (namespace === 'claims-tracking.tracking.assurance') {
       return (key: string) => {
         const translations: Record<string, string> = {
@@ -218,6 +228,11 @@ describe('MemberClaimDetailOpsPage', () => {
     });
 
     expect(screen.getByTestId('member-claim-trust-sla-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('member-claim-sla-status')).toBeInTheDocument();
+    expect(screen.getByText('SLA Status')).toBeInTheDocument();
+    expect(screen.getByTestId('member-claim-sla-status-phase')).toHaveTextContent(
+      'Waiting for your information before the SLA starts.'
+    );
     expect(screen.getByText('Handling assurance')).toBeInTheDocument();
     expect(screen.getByTestId('member-claim-trust-sla-state')).toHaveTextContent(
       'Waiting for your action'
@@ -244,6 +259,10 @@ describe('MemberClaimDetailOpsPage', () => {
 
     expect(screen.getByTestId('member-claim-trust-sla-state')).toHaveTextContent(
       'Response timer active'
+    );
+    expect(screen.getByText('SLA Status')).toBeInTheDocument();
+    expect(screen.getByTestId('member-claim-sla-status-phase')).toHaveTextContent(
+      'Response timer is running.'
     );
     expect(screen.getByTestId('member-claim-trust-sla-latest')).toBeInTheDocument();
     expect(screen.getByTestId('member-claim-trust-sla-body')).toHaveTextContent(
@@ -294,6 +313,7 @@ describe('MemberClaimDetailOpsPage', () => {
     });
 
     expect(screen.getByText('Matter allowance')).toBeInTheDocument();
+    expect(screen.queryByTestId('member-claim-sla-status')).not.toBeInTheDocument();
     expect(screen.getByText('Used this year')).toBeInTheDocument();
     expect(screen.getByText('Remaining this year')).toBeInTheDocument();
     expect(screen.getByText('Plan allowance')).toBeInTheDocument();
