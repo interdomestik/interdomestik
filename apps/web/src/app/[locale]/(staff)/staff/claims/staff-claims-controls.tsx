@@ -89,7 +89,8 @@ export function StaffClaimsControls({
       params.set(field.name, field.value);
     }
 
-    const search = String(formData.get('search') ?? '').trim();
+    const rawSearch = formData.get('search');
+    const search = typeof rawSearch === 'string' ? rawSearch.trim() : '';
     if (search) {
       params.set('search', search);
     }

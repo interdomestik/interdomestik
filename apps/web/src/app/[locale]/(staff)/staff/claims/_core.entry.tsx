@@ -163,13 +163,16 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
     !!currentStatus ||
     currentAssignment !== 'all' ||
     currentDiasporaOrigin !== 'all';
-  const hiddenFields = [
-    ...(currentAssignment !== 'all' ? [{ name: 'assigned', value: currentAssignment }] : []),
-    ...(currentStatus ? [{ name: 'status', value: currentStatus }] : []),
-    ...(currentDiasporaOrigin !== 'all'
-      ? [{ name: 'diaspora', value: currentDiasporaOrigin }]
-      : []),
-  ];
+  const hiddenFields: Array<{ name: string; value: string }> = [];
+  if (currentAssignment === 'mine' || currentAssignment === 'unassigned') {
+    hiddenFields.push({ name: 'assigned', value: currentAssignment });
+  }
+  if (currentStatus) {
+    hiddenFields.push({ name: 'status', value: currentStatus });
+  }
+  if (currentDiasporaOrigin === 'diaspora') {
+    hiddenFields.push({ name: 'diaspora', value: currentDiasporaOrigin });
+  }
   const clearSearchHref = currentSearch
     ? buildStaffClaimsHref({
         assigned: currentAssignment,
