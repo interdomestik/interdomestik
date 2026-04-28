@@ -7,6 +7,8 @@
         "search_placeholder": "Kërko rast, anëtar, kompani ose numër",
         "search": "Kërko",
         "clear_search": "Pastro",
+        "pending_search": "Duke kërkuar rastet...",
+        "pending_filter": "Duke përditësuar filtrat...",
         "assignment_filter_label": "Filtri i caktimit",
         "status_filter_label": "Filtri i statusit",
         "diaspora_filter_label": "Filtri i origjinës",

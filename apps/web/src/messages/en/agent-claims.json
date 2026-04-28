@@ -7,6 +7,8 @@
         "search_placeholder": "Search claim, member, company, or number",
         "search": "Search",
         "clear_search": "Clear",
+        "pending_search": "Searching claims...",
+        "pending_filter": "Updating filters...",
         "assignment_filter_label": "Assignment filter",
         "status_filter_label": "Status filter",
         "diaspora_filter_label": "Origin filter",

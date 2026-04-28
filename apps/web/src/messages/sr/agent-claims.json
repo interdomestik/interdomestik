@@ -7,6 +7,8 @@
         "search_placeholder": "Pretraži zahtev, člana, kompaniju ili broj",
         "search": "Pretraži",
         "clear_search": "Obriši",
+        "pending_search": "Pretraživanje zahteva...",
+        "pending_filter": "Ažuriranje filtera...",
         "assignment_filter_label": "Filter dodele",
         "status_filter_label": "Filter statusa",
         "diaspora_filter_label": "Filter porekla",

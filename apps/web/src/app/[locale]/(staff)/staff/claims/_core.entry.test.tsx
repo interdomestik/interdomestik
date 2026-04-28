@@ -30,6 +30,9 @@ vi.mock('@/i18n/routing', () => ({
       {children}
     </a>
   ),
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
 }));
 
 vi.mock('@/components/shell/session', () => ({
@@ -83,6 +86,8 @@ vi.mock('next-intl/server', () => ({
           'staff_queue.search_placeholder': 'Search claim, member, company, or number',
           'staff_queue.search': 'Search',
           'staff_queue.clear_search': 'Clear',
+          'staff_queue.pending_filter': 'Updating filters...',
+          'staff_queue.pending_search': 'Searching claims...',
           'staff_queue.assignment_filter_label': 'Assignment filter',
           'staff_queue.status_filter_label': 'Status filter',
           'staff_queue.diaspora_filter_label': 'Origin filter',
@@ -116,6 +121,8 @@ vi.mock('next-intl/server', () => ({
           'staff_queue.search_placeholder': 'Kërko rast, anëtar, kompani ose numër',
           'staff_queue.search': 'Kërko',
           'staff_queue.clear_search': 'Pastro',
+          'staff_queue.pending_filter': 'Duke përditësuar filtrat...',
+          'staff_queue.pending_search': 'Duke kërkuar rastet...',
           'staff_queue.assignment_filter_label': 'Filtri i caktimit',
           'staff_queue.status_filter_label': 'Filtri i statusit',
           'staff_queue.diaspora_filter_label': 'Filtri i origjinës',
