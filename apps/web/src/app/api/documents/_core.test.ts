@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DocumentAccessDeps, getDocumentAccessCore } from './_core';
+import {
+  buildContentDispositionHeader,
+  DocumentAccessDeps,
+  getDocumentAccessCore,
+  safeFilename,
+} from './_core';
 
 const mockDb = { select: vi.fn() } as any;
 const mockStorage = { createSignedUrl: vi.fn(), download: vi.fn() };
@@ -76,6 +81,17 @@ async function execAccess(
 
 describe('getDocumentAccessCore Hardening', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  describe('content disposition filename safety', () => {
+    it('uses a byte-safe fallback filename while preserving UTF-8 filename metadata', () => {
+      const filename = 'IHÇK SHKURT 2026.pdf';
+
+      expect(safeFilename(filename)).toBe('IHCK SHKURT 2026.pdf');
+      expect(buildContentDispositionHeader({ disposition: 'inline', filename })).toBe(
+        'inline; filename="IHCK SHKURT 2026.pdf"; filename*=UTF-8\'\'IHC%CC%A7K%20SHKURT%202026.pdf'
+      );
+    });
+  });
 
   describe('Polymorphic Documents', () => {
     it('allows access to own profile document', async () => {
