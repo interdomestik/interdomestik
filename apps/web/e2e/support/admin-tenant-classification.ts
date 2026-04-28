@@ -119,6 +119,10 @@ async function ensureCookieBannerDismissed(page: Page): Promise<void> {
   await expect(banner).toHaveCount(0);
 }
 
+function dashboardReady(page: Page) {
+  return page.getByTestId('dashboard-page-ready').first();
+}
+
 async function expectTenantClassificationPersisted(params: {
   page: Page;
   memberId: string;
@@ -146,7 +150,7 @@ async function expectTenantClassificationPersisted(params: {
     });
 
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('tenant-classification-confirmed')).toBeVisible({
+  await expect(dashboardReady(page).getByTestId('tenant-classification-confirmed')).toBeVisible({
     timeout: 15_000,
   });
 }
@@ -164,9 +168,10 @@ export async function confirmCurrentTenantClassification(params: {
   await gotoApp(page, detailPath, testInfo, { marker: 'body' });
   await ensureCookieBannerDismissed(page);
 
-  await expect(page.getByTestId('tenant-classification-controls')).toBeVisible();
-  await expect(page.getByTestId('tenant-classification-confirm')).toBeVisible();
-  await page.getByTestId('tenant-classification-confirm').click();
+  const ready = dashboardReady(page);
+  await expect(ready.getByTestId('tenant-classification-controls')).toBeVisible();
+  await expect(ready.getByTestId('tenant-classification-confirm')).toBeVisible();
+  await ready.getByTestId('tenant-classification-confirm').click();
   await expectTenantClassificationPersisted({ page, memberId, expectedTenantId });
 }
 
@@ -190,12 +195,13 @@ export async function reassignTenantClassification(params: {
     await ensureCookieBannerDismissed(page);
   }
 
-  await expect(page.getByTestId('tenant-classification-controls')).toBeVisible();
-  await expect(page.getByTestId('tenant-classification-reassign')).toBeVisible();
+  const ready = dashboardReady(page);
+  await expect(ready.getByTestId('tenant-classification-controls')).toBeVisible();
+  await expect(ready.getByTestId('tenant-classification-reassign')).toBeVisible();
 
-  await page.selectOption('[data-testid="tenant-classification-reassign-select"]', nextTenantId);
-  await page.getByTestId('tenant-classification-reassign').scrollIntoViewIfNeeded();
-  await page.getByTestId('tenant-classification-reassign').click({ force: true });
+  await ready.getByTestId('tenant-classification-reassign-select').selectOption(nextTenantId);
+  await ready.getByTestId('tenant-classification-reassign').scrollIntoViewIfNeeded();
+  await ready.getByTestId('tenant-classification-reassign').click({ force: true });
   await expect
     .poll(() => new URL(page.url()).searchParams.get('tenantId'), {
       timeout: 15_000,

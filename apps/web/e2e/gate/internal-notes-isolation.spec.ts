@@ -33,7 +33,8 @@ test.describe('Internal Notes Isolation', () => {
         marker: 'ops-timeline',
       });
 
-      await expect(memberPage.getByTestId('ops-timeline')).toBeVisible({
+      const ready = memberPage.getByTestId('dashboard-page-ready').first();
+      await expect(ready.getByTestId('ops-timeline')).toBeVisible({
         timeout: 10_000,
       });
       await expect(memberPage.getByText(internalHistoryNote)).toHaveCount(0);

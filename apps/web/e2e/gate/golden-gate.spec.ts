@@ -194,7 +194,7 @@ test.describe('Golden Gate: Critical Path', () => {
       await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'branches-screen' });
 
       // 1. Verify at least one branch card is present
-      const cards = page.locator('[data-testid^="branch-card-"]');
+      const cards = page.getByTestId('branches-screen').locator('[data-testid^="branch-card-"]');
       await expect(cards.first()).toBeVisible();
       expect(await cards.count()).toBeGreaterThan(0);
 
@@ -247,7 +247,10 @@ test.describe('Golden Gate: Critical Path', () => {
       await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'branches-screen' });
 
       // Find the KS-A branch card
-      const ksBranchACard = page.getByTestId('branch-card-KS-A');
+      const ksBranchACard = page
+        .getByTestId('branches-screen')
+        .getByTestId('branch-card-KS-A')
+        .first();
       await expect(ksBranchACard).toBeVisible();
       await expect(ksBranchACard).toContainText(/Urgjent|Urgent/i);
     });
