@@ -96,7 +96,32 @@ function hasScopedClaimReadAccess(args: {
 }
 
 export function safeFilename(value: string) {
-  return value.split('\r').join('_').split('\n').join('_').split('"').join('_');
+  const ascii = value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\r\n"\\]|[^\x20-\x7E]/g, '_')
+    .trim();
+
+  return ascii || 'document';
+}
+
+const RFC_5987_EXTRA_CHARS = /['()*]/g;
+
+export function encodeContentDispositionFilename(value: string) {
+  return encodeURIComponent(value).replace(
+    RFC_5987_EXTRA_CHARS,
+    character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+}
+
+export function buildContentDispositionHeader(args: {
+  disposition: 'inline' | 'attachment';
+  filename: string;
+}) {
+  const fallbackFilename = safeFilename(args.filename || 'document');
+  const encodedFilename = encodeContentDispositionFilename(args.filename || 'document');
+
+  return `${args.disposition}; filename="${fallbackFilename}"; filename*=UTF-8''${encodedFilename}`;
 }
 
 function getFinalDisposition(disposition?: 'inline' | 'attachment'): 'inline' | 'attachment' {

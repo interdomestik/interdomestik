@@ -6,7 +6,11 @@ import { enforceRateLimit } from '@/lib/rate-limit';
 import { createAdminClient } from '@interdomestik/database';
 import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
-import { downloadStorageFileCore, getDocumentAccessCore, safeFilename } from '../../_core';
+import {
+  buildContentDispositionHeader,
+  downloadStorageFileCore,
+  getDocumentAccessCore,
+} from '../../_core';
 
 // Service Adapter
 const storageService = {
@@ -117,8 +121,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Failed to download document' }, { status: 500 });
   }
 
-  const filename = safeFilename(access.document.name || 'document');
-  const encoded = encodeURIComponent(filename);
+  const filename = access.document.name || 'document';
 
   let body: BodyInit;
   if (typeof (file.data as any)?.stream === 'function') {
@@ -134,7 +137,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     status: 200,
     headers: {
       'Content-Type': access.document.fileType || 'application/octet-stream',
-      'Content-Disposition': `${disposition}; filename="${filename}"; filename*=UTF-8''${encoded}`,
+      'Content-Disposition': buildContentDispositionHeader({ disposition, filename }),
       'Cache-Control': 'private, no-store',
     },
   });
