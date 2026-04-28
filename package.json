@@ -181,14 +181,14 @@
     "check:golden": "pnpm --filter @interdomestik/web test:e2e:phase5"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.5.0",
+    "@commitlint/cli": "^20.5.2",
     "@commitlint/config-conventional": "^20.5.0",
-    "@playwright/mcp": "^0.0.70",
+    "@playwright/mcp": "^0.0.71",
     "@release-it/conventional-changelog": "^10.0.6",
     "@supabase/supabase-js": "^2.105.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.12.2",
-    "@upstash/context7-mcp": "^2.1.8",
+    "@upstash/context7-mcp": "^2.2.1",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "glob": "^13.0.6",
