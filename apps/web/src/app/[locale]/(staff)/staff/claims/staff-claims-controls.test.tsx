@@ -117,6 +117,7 @@ describe('StaffClaimsControls', () => {
       '/staff/claims?assigned=unassigned&status=verification&diaspora=diaspora&search=Claim+42'
     );
     expect(screen.getByTestId('staff-claims-pending')).toHaveTextContent('Searching claims...');
+    expect(screen.getByTestId('staff-claims-search-submit')).toBeDisabled();
   });
 
   it('omits blank search without dropping other active filters', () => {
@@ -141,6 +142,10 @@ describe('StaffClaimsControls', () => {
       '/staff/claims?assigned=unassigned&diaspora=diaspora&search=Acme'
     );
     expect(screen.getByTestId('staff-claims-pending')).toHaveTextContent('Updating filters...');
+    expect(screen.getByTestId('staff-claims-assigned-filter-all')).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('keeps active filter links inert to avoid redundant pending states', () => {
@@ -150,5 +155,17 @@ describe('StaffClaimsControls', () => {
 
     expect(routerPushMock).not.toHaveBeenCalled();
     expect(screen.queryByTestId('staff-claims-pending')).not.toBeInTheDocument();
+  });
+
+  it('blocks overlapping primary navigations while a filter transition is pending', () => {
+    renderControls();
+
+    fireEvent.click(screen.getByTestId('staff-claims-status-filter-all'));
+    fireEvent.click(screen.getByTestId('staff-claims-assigned-filter-all'));
+
+    expect(routerPushMock).toHaveBeenCalledTimes(1);
+    expect(routerPushMock).toHaveBeenCalledWith(
+      '/staff/claims?assigned=unassigned&diaspora=diaspora&search=Acme'
+    );
   });
 });

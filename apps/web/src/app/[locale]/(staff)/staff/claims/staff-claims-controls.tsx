@@ -100,7 +100,8 @@ export function StaffClaimsControls({
   }
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
-    if (event.defaultPrevented) {
+    if (event.defaultPrevented || pendingKind) {
+      event.preventDefault();
       return;
     }
 
@@ -109,7 +110,7 @@ export function StaffClaimsControls({
   }
 
   function startFilterPending(event: MouseEvent<HTMLAnchorElement>, option: FilterOption) {
-    if (option.isActive && isPrimaryNavigationClick(event)) {
+    if ((pendingKind || option.isActive) && isPrimaryNavigationClick(event)) {
       event.preventDefault();
       return;
     }
@@ -123,24 +124,29 @@ export function StaffClaimsControls({
   }
 
   function renderFilterOptions(options: FilterOption[]) {
-    return options.map(option => (
-      <Button
-        asChild
-        key={option.value}
-        size="sm"
-        variant={option.isActive ? 'default' : 'outline'}
-      >
-        <Link
-          href={option.href}
-          aria-disabled={pendingKind || option.isActive ? 'true' : undefined}
-          onClick={event => startFilterPending(event, option)}
-          prefetch={false}
-          data-testid={option.testId}
+    return options.map(option => {
+      const isDisabled = Boolean(pendingKind || option.isActive);
+
+      return (
+        <Button
+          asChild
+          key={option.value}
+          size="sm"
+          variant={option.isActive ? 'default' : 'outline'}
         >
-          {option.label}
-        </Link>
-      </Button>
-    ));
+          <Link
+            href={option.href}
+            aria-disabled={isDisabled ? 'true' : undefined}
+            onClick={event => startFilterPending(event, option)}
+            prefetch={false}
+            data-testid={option.testId}
+            tabIndex={isDisabled ? -1 : undefined}
+          >
+            {option.label}
+          </Link>
+        </Button>
+      );
+    });
   }
 
   const pendingLabel = pendingKind === 'search' ? pendingSearchLabel : pendingFilterLabel;
@@ -168,7 +174,7 @@ export function StaffClaimsControls({
         />
         <div className="flex items-center gap-2">
           <Button
-            aria-disabled={pendingKind === 'search'}
+            disabled={Boolean(pendingKind)}
             type="submit"
             data-testid="staff-claims-search-submit"
           >
@@ -178,8 +184,14 @@ export function StaffClaimsControls({
             <Button asChild type="button" variant="ghost">
               <Link
                 href={clearSearchHref}
+                aria-disabled={pendingKind ? 'true' : undefined}
                 onClick={event => {
                   if (event.defaultPrevented || !isPrimaryNavigationClick(event)) {
+                    return;
+                  }
+
+                  if (pendingKind) {
+                    event.preventDefault();
                     return;
                   }
 
@@ -187,6 +199,7 @@ export function StaffClaimsControls({
                   navigateTo(clearSearchHref, 'filter');
                 }}
                 prefetch={false}
+                tabIndex={pendingKind ? -1 : undefined}
               >
                 {clearSearchLabel}
               </Link>
