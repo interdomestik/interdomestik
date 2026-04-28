@@ -46,15 +46,15 @@ export function AdminClaimsFilters() {
   const currentDiasporaOrigin = parseAdminDiasporaOriginFilter(searchParams.get('diaspora'));
   const currentParamsString = searchParams.toString();
 
-  const [pendingKind, setPendingKindState] = useState<PendingKind | null>(null);
+  const [pendingKind, setPendingKind] = useState<PendingKind | null>(null);
   const pendingKindRef = useRef<PendingKind | null>(null);
   const [searchValue, setSearchValue] = useState(currentSearch);
   const [isTransitionPending, startTransition] = useTransition();
   const isNavigationPending = Boolean(pendingKind || isTransitionPending);
 
-  const setPendingKind = useCallback((nextPendingKind: PendingKind | null) => {
+  const updatePendingKind = useCallback((nextPendingKind: PendingKind | null) => {
     pendingKindRef.current = nextPendingKind;
-    setPendingKindState(nextPendingKind);
+    setPendingKind(nextPendingKind);
   }, []);
 
   useEffect(() => {
@@ -62,17 +62,20 @@ export function AdminClaimsFilters() {
   }, [currentSearch]);
 
   useEffect(() => {
-    setPendingKind(null);
-  }, [currentParamsString, setPendingKind]);
+    updatePendingKind(null);
+  }, [currentParamsString, updatePendingKind]);
 
   useEffect(() => {
     if (!pendingKind) {
       return undefined;
     }
 
-    const timeout = globalThis.setTimeout(() => setPendingKind(null), PENDING_FEEDBACK_TIMEOUT_MS);
+    const timeout = globalThis.setTimeout(
+      () => updatePendingKind(null),
+      PENDING_FEEDBACK_TIMEOUT_MS
+    );
     return () => globalThis.clearTimeout(timeout);
-  }, [pendingKind, setPendingKind]);
+  }, [pendingKind, updatePendingKind]);
 
   // V2 Status Tabs
   const statusOptions = [
@@ -101,7 +104,7 @@ export function AdminClaimsFilters() {
       return;
     }
 
-    setPendingKind(nextPendingKind);
+    updatePendingKind(nextPendingKind);
 
     startTransition(() => {
       router.replace(`${pathname}${buildClaimsListUrl(searchParams, updates)}`, { scroll: false });
@@ -122,7 +125,7 @@ export function AdminClaimsFilters() {
       return;
     }
 
-    setPendingKind('search');
+    updatePendingKind('search');
 
     startTransition(() => {
       router.replace(`${pathname}${nextUrl}`, {
