@@ -91,7 +91,9 @@
         "assigned_to_me": "Назначени на мене",
         "origin_label": "Потекло",
         "origin_all": "Сите потекла",
-        "origin_diaspora": "Дијаспора / Зелен картон"
+        "origin_diaspora": "Дијаспора / Зелен картон",
+        "pending_filter": "Се ажурираат филтрите...",
+        "pending_search": "Се ажурира пребарувањето..."
       },
       "lifecycle_tabs": {
         "all": "Сите",

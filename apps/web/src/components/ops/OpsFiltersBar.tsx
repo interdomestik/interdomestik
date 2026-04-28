@@ -3,7 +3,7 @@
 import { Button, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import { OPS_TEST_IDS } from './testids';
 
 export type OpsFilterTab = {
@@ -24,6 +24,12 @@ interface OpsFiltersBarProps {
   searchInputTestId?: string;
   rightActions?: ReactNode;
   className?: string;
+  isPending?: boolean;
+  searchDisabled?: boolean;
+}
+
+function isPrimaryNavigationClick(event: MouseEvent<HTMLElement>) {
+  return event.button === 0 && !event.metaKey && !event.altKey && !event.ctrlKey && !event.shiftKey;
 }
 
 export function OpsFiltersBar({
@@ -36,6 +42,8 @@ export function OpsFiltersBar({
   searchInputTestId,
   rightActions,
   className,
+  isPending = false,
+  searchDisabled = false,
 }: Readonly<OpsFiltersBarProps>) {
   const containerClasses = [
     'flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg border border-white/5 bg-card/30 backdrop-blur-sm',
@@ -47,12 +55,14 @@ export function OpsFiltersBar({
   return (
     <div className={containerClasses} data-testid={OPS_TEST_IDS.FILTERS.BAR}>
       <div className="flex gap-2">
-        {tabs.map(tab =>
-          tab.href ? (
+        {tabs.map(tab => {
+          const isActive = tab.id === activeTab;
+
+          return tab.href ? (
             <Button
               key={tab.id}
               asChild
-              variant={tab.id === activeTab ? 'default' : 'outline'}
+              variant={isActive ? 'default' : 'outline'}
               size="sm"
               className="gap-2"
             >
@@ -61,6 +71,21 @@ export function OpsFiltersBar({
                 scroll={false}
                 prefetch={false}
                 data-testid={tab.testId ?? OPS_TEST_IDS.FILTERS.TAB(tab.id)}
+                aria-disabled={isPending || isActive || undefined}
+                tabIndex={isPending || isActive ? -1 : undefined}
+                onClick={event => {
+                  if (!isPrimaryNavigationClick(event)) {
+                    return;
+                  }
+
+                  event.preventDefault();
+
+                  if (isPending || isActive) {
+                    return;
+                  }
+
+                  onTabChange(tab.id);
+                }}
               >
                 {tab.icon}
                 {tab.label}
@@ -69,11 +94,17 @@ export function OpsFiltersBar({
           ) : (
             <Button
               key={tab.id}
-              variant={tab.id === activeTab ? 'default' : 'outline'}
+              variant={isActive ? 'default' : 'outline'}
               size="sm"
               type="button"
+              disabled={isPending}
               onClick={event => {
                 event.preventDefault();
+
+                if (isPending) {
+                  return;
+                }
+
                 onTabChange(tab.id);
               }}
               className="gap-2"
@@ -82,8 +113,8 @@ export function OpsFiltersBar({
               {tab.icon}
               {tab.label}
             </Button>
-          )
-        )}
+          );
+        })}
       </div>
       <div className="flex w-full sm:w-auto items-center gap-3">
         <div className="relative w-full sm:w-auto sm:min-w-[280px]">
@@ -93,6 +124,7 @@ export function OpsFiltersBar({
             placeholder={searchPlaceholder}
             value={searchQuery}
             onChange={event => onSearchChange(event.target.value)}
+            disabled={searchDisabled}
             className="pl-9 bg-background/50"
             data-testid={searchInputTestId ?? OPS_TEST_IDS.FILTERS.SEARCH}
             aria-label={searchPlaceholder}

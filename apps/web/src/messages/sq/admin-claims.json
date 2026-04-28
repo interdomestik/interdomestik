@@ -94,7 +94,9 @@
         "handler_label": "Përpunon",
         "origin_label": "Origjina",
         "origin_all": "Të gjitha origjinat",
-        "origin_diaspora": "Diaspora / Kartoni i Gjelbër"
+        "origin_diaspora": "Diaspora / Kartoni i Gjelbër",
+        "pending_filter": "Duke përditësuar filtrat...",
+        "pending_search": "Duke përditësuar kërkimin..."
       },
       "lifecycle_tabs": {
         "all": "Të gjitha",

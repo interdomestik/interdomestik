@@ -2,9 +2,14 @@
 
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 
 import { OpsFiltersBar } from '@/components/ops';
 import { parseAdminDiasporaOriginFilter } from '@/features/admin/claims/lib/diaspora-origin-filter';
+
+const PENDING_FEEDBACK_TIMEOUT_MS = 10_000;
+
+type PendingKind = 'filter' | 'search';
 
 function buildClaimsListUrl(
   currentParams: URLSearchParams,
@@ -39,6 +44,34 @@ export function AdminClaimsFilters() {
   const currentStatus = searchParams.get('status') || 'all';
   const currentAssignment = searchParams.get('assigned') || 'all';
   const currentDiasporaOrigin = parseAdminDiasporaOriginFilter(searchParams.get('diaspora'));
+  const currentParamsString = searchParams.toString();
+
+  const [pendingKind, setPendingKindState] = useState<PendingKind | null>(null);
+  const pendingKindRef = useRef<PendingKind | null>(null);
+  const [searchValue, setSearchValue] = useState(currentSearch);
+  const [, startTransition] = useTransition();
+
+  const setPendingKind = useCallback((nextPendingKind: PendingKind | null) => {
+    pendingKindRef.current = nextPendingKind;
+    setPendingKindState(nextPendingKind);
+  }, []);
+
+  useEffect(() => {
+    setSearchValue(currentSearch);
+  }, [currentSearch]);
+
+  useEffect(() => {
+    setPendingKind(null);
+  }, [currentParamsString, setPendingKind]);
+
+  useEffect(() => {
+    if (!pendingKind) {
+      return undefined;
+    }
+
+    const timeout = window.setTimeout(() => setPendingKind(null), PENDING_FEEDBACK_TIMEOUT_MS);
+    return () => window.clearTimeout(timeout);
+  }, [pendingKind, setPendingKind]);
 
   // V2 Status Tabs
   const statusOptions = [
@@ -62,12 +95,40 @@ export function AdminClaimsFilters() {
     return buildClaimsListUrl(searchParams, updates);
   };
 
-  const updateFilters = (updates: Record<string, string | null>) => {
-    router.replace(`${pathname}${buildClaimsListUrl(searchParams, updates)}`, { scroll: false });
+  const updateFilters = (updates: Record<string, string | null>, nextPendingKind: PendingKind) => {
+    if (pendingKindRef.current) {
+      return;
+    }
+
+    setPendingKind(nextPendingKind);
+
+    startTransition(() => {
+      router.replace(`${pathname}${buildClaimsListUrl(searchParams, updates)}`, { scroll: false });
+    });
+  };
+
+  const updateSearch = (query: string) => {
+    setSearchValue(query);
+
+    if (pendingKindRef.current === 'filter') {
+      return;
+    }
+
+    setPendingKind('search');
+
+    startTransition(() => {
+      router.replace(`${pathname}${buildClaimsListUrl(searchParams, { search: query || null })}`, {
+        scroll: false,
+      });
+    });
   };
 
   return (
-    <div>
+    <div
+      data-testid="admin-claims-filter-region"
+      aria-busy={pendingKind ? 'true' : 'false'}
+      className="space-y-2"
+    >
       {/* Audit Contract Satisfaction: Hidden aliases for legacy static analysis */}
       <div
         data-testid="admin-claims-filters"
@@ -81,6 +142,19 @@ export function AdminClaimsFilters() {
         ))}
       </div>
 
+      {pendingKind ? (
+        <div
+          data-testid="admin-claims-pending"
+          role="status"
+          aria-live="polite"
+          className="text-xs font-medium text-muted-foreground"
+        >
+          {pendingKind === 'search'
+            ? tAdmin('filters.pending_search')
+            : tAdmin('filters.pending_filter')}
+        </div>
+      ) : null}
+
       <OpsFiltersBar
         tabs={statusOptions.map(option => ({
           id: option.value,
@@ -89,22 +163,27 @@ export function AdminClaimsFilters() {
           href: buildHref({ status: option.value }),
         }))}
         activeTab={currentStatus}
-        onTabChange={tabId => updateFilters({ status: tabId })}
-        searchQuery={currentSearch}
-        onSearchChange={query => updateFilters({ search: query || null })}
+        onTabChange={tabId => updateFilters({ status: tabId }, 'filter')}
+        searchQuery={searchValue}
+        onSearchChange={updateSearch}
         searchPlaceholder={`${tCommon('search')}...`}
         searchInputTestId="claims-search-input"
+        isPending={Boolean(pendingKind)}
+        searchDisabled={pendingKind === 'filter'}
         rightActions={
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex bg-black/20 p-1 rounded-lg border border-white/5">
               {assignmentOptions.map(option => {
                 const isActive = currentAssignment === option.value;
+                const isInert = Boolean(pendingKind) || isActive;
                 return (
                   <button
                     key={option.value}
-                    onClick={() => updateFilters({ assigned: option.value })}
+                    onClick={() => updateFilters({ assigned: option.value }, 'filter')}
                     type="button"
                     aria-pressed={isActive}
+                    aria-disabled={isInert}
+                    disabled={isInert}
                     data-state={isActive ? 'on' : 'off'}
                     data-testid={`assigned-filter-${option.value}`}
                     className={[
@@ -125,12 +204,15 @@ export function AdminClaimsFilters() {
             >
               {diasporaOptions.map(option => {
                 const isActive = currentDiasporaOrigin === option.value;
+                const isInert = Boolean(pendingKind) || isActive;
                 return (
                   <button
                     key={option.value}
-                    onClick={() => updateFilters({ diaspora: option.value })}
+                    onClick={() => updateFilters({ diaspora: option.value }, 'filter')}
                     type="button"
                     aria-pressed={isActive}
+                    aria-disabled={isInert}
+                    disabled={isInert}
                     data-state={isActive ? 'on' : 'off'}
                     data-testid={`diaspora-filter-${option.value}`}
                     className={[
