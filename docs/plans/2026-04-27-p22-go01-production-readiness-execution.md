@@ -1,7 +1,7 @@
 # P22-GO01 Production Readiness Execution Evidence
 
-**Status:** release-gate-go-after-rerun
-**Date:** 2026-04-27
+**Status:** first-pass-no-go; release-gate-go-after-rerun
+**Dates:** first pass 2026-04-27; production rerun 2026-04-28
 **Decision:** first pass was `NO-GO`; 2026-04-28 scripted production release gate is `GO`
 
 ## Scope
