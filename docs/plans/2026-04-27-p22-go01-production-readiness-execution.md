@@ -1,8 +1,8 @@
 # P22-GO01 Production Readiness Execution Evidence
 
-**Status:** no-go
-**Date:** 2026-04-27
-**Decision:** live traffic remains blocked
+**Status:** first-pass-no-go; release-gate-go-after-rerun
+**Dates:** first pass 2026-04-27; production rerun 2026-04-28
+**Decision:** first pass was `NO-GO`; 2026-04-28 scripted production release gate is `GO`
 
 ## Scope
 
@@ -200,5 +200,50 @@ Live traffic must remain closed because:
 
 ## Final Decision
 
-**NO-GO.** P22-GO01 remains `in_progress`. The reachable Vercel alias has useful fallback smoke
-evidence, but the production go-live checklist is not satisfied and live traffic must not open.
+**First pass NO-GO.** The reachable Vercel alias had useful fallback smoke evidence, but the
+production go-live checklist was not satisfied and live traffic could not open from this pass.
+
+## 2026-04-28 Rerun After Production Git Deployment
+
+PR `#568` fixed the remaining production `G09` member SLA copy blocker and merged to `main` at
+`c7e038d97de52586deb8c1c8807bf867cad75088`. Vercel production deployment
+`dpl_AtRyCJu5RV4sHmw9w9DtXQEZAgiw` went ready for `https://www.interdomestik.com`.
+
+Command:
+
+```bash
+pnpm release:gate:prod -- --baseUrl https://www.interdomestik.com --outDir tmp/p22-go01-after-pr568/release-gates
+```
+
+Canonical report:
+
+```text
+docs/release-gates/2026-04-28_production_dpl_AtRyCJu5RV4sHmw9w9DtXQEZAgiw.md
+```
+
+Results:
+
+- `P0.1`: PASS
+- `P0.2`: PASS
+- `P0.3`: PASS
+- `P0.4`: PASS
+- `P0.6`: PASS
+- `P1.1`: PASS
+- `P1.2`: PASS
+- `P1.3`: PASS
+- `P1.5.1`: PASS
+- `G07`: PASS
+- `G08`: PASS
+- `G09`: PASS
+- `G10`: PASS
+
+Scripted release-gate verdict:
+
+```text
+GO
+```
+
+Operational note: the scripted release gate proves the production smoke and release-gate contract
+on the live host. Any non-scripted launch-day ownership evidence, including backup/recovery point,
+rollback owner, alert owner, and incident decision owner, must still be held as launch-operations
+evidence or explicitly accepted with written launch-risk ownership before live traffic is opened.
