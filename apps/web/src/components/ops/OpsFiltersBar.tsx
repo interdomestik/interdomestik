@@ -97,11 +97,11 @@ export function OpsFiltersBar({
               variant={isActive ? 'default' : 'outline'}
               size="sm"
               type="button"
-              disabled={isPending}
+              disabled={isPending || isActive}
               onClick={event => {
                 event.preventDefault();
 
-                if (isPending) {
+                if (isPending || isActive) {
                   return;
                 }
 

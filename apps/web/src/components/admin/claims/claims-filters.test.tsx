@@ -137,6 +137,18 @@ describe('AdminClaimsFilters', () => {
     expect(input).toHaveValue('query');
   });
 
+  it('does not show pending feedback when search would keep the same url', () => {
+    vi.mocked(useSearchParams).mockReturnValue(createMockParams('search=query&view=list'));
+    render(<AdminClaimsFilters />);
+
+    const input = screen.getByPlaceholderText('Search...');
+    fireEvent.change(input, { target: { value: 'query' } });
+
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('admin-claims-pending')).not.toBeInTheDocument();
+    expect(screen.getByTestId('admin-claims-filter-region')).toHaveAttribute('aria-busy', 'false');
+  });
+
   it('routes status tabs through the pending contract and keeps the active tab inert', () => {
     vi.mocked(useSearchParams).mockReturnValue(createMockParams('status=active'));
     render(<AdminClaimsFilters />);

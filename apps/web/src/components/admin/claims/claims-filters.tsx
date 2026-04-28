@@ -114,10 +114,17 @@ export function AdminClaimsFilters() {
       return;
     }
 
+    const nextUrl = buildClaimsListUrl(searchParams, { search: query || null });
+    const currentUrl = currentParamsString ? `?${currentParamsString}` : '';
+
+    if (nextUrl === currentUrl) {
+      return;
+    }
+
     setPendingKind('search');
 
     startTransition(() => {
-      router.replace(`${pathname}${buildClaimsListUrl(searchParams, { search: query || null })}`, {
+      router.replace(`${pathname}${nextUrl}`, {
         scroll: false,
       });
     });
