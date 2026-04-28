@@ -96,26 +96,22 @@ function hasScopedClaimReadAccess(args: {
 }
 
 export function safeFilename(value: string) {
-  const normalized = value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
-  const ascii = normalized
-    .split('\r')
-    .join('_')
-    .split('\n')
-    .join('_')
-    .split('"')
-    .join('_')
-    .split('\\')
-    .join('_')
-    .replace(/[^\x20-\x7E]/g, '_')
+  const ascii = value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\r\n"\\]|[^\x20-\x7E]/g, '_')
     .trim();
 
   return ascii || 'document';
 }
 
+const RFC_5987_EXTRA_CHARS = /['()*]/g;
+
 export function encodeContentDispositionFilename(value: string) {
-  return encodeURIComponent(value)
-    .replace(/['()]/g, character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`)
-    .replace(/\*/g, '%2A');
+  return encodeURIComponent(value).replace(
+    RFC_5987_EXTRA_CHARS,
+    character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`
+  );
 }
 
 export function buildContentDispositionHeader(args: {
