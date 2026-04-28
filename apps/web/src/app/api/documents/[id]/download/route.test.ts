@@ -201,7 +201,7 @@ describe('GET /api/documents/[id]/download', () => {
           bucket: 'bucket',
           filePath: 'path/file.pdf',
           uploadedBy: 'someone-else',
-          name: 'file.pdf',
+          name: 'IHÇK SHKURT 2026.pdf',
           fileType: 'application/pdf',
           fileSize: 123,
         },
@@ -216,7 +216,9 @@ describe('GET /api/documents/[id]/download', () => {
 
     expect(response.status).toBe(200);
     const contentDisposition = response.headers.get('Content-Disposition');
-    expect(contentDisposition).toContain('inline');
+    expect(contentDisposition).toBe(
+      'inline; filename="IHCK SHKURT 2026.pdf"; filename*=UTF-8\'\'IHC%CC%A7K%20SHKURT%202026.pdf'
+    );
 
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({

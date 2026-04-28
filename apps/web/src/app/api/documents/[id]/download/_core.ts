@@ -4,7 +4,11 @@ import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { createAdminClient } from '@interdomestik/database';
 
-import { downloadStorageFileCore, getDocumentAccessCore, safeFilename } from '../../_core';
+import {
+  buildContentDispositionHeader,
+  downloadStorageFileCore,
+  getDocumentAccessCore,
+} from '../../_core';
 
 const storageService = {
   createSignedUrl: async (_bucket: string, _path: string, _expiresIn: number) => ({}),
@@ -121,8 +125,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return Response.json({ error: 'Failed to download document' }, { status: 500 });
   }
 
-  const filename = safeFilename(access.document.name || 'document');
-  const encoded = encodeURIComponent(filename);
+  const filename = access.document.name || 'document';
 
   const body = 'stream' in file.data ? file.data.stream() : file.data;
 
@@ -130,7 +133,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     status: 200,
     headers: {
       'Content-Type': access.document.fileType || 'application/octet-stream',
-      'Content-Disposition': `${disposition}; filename="${filename}"; filename*=UTF-8''${encoded}`,
+      'Content-Disposition': buildContentDispositionHeader({ disposition, filename }),
       'Cache-Control': 'private, no-store',
     },
   });
