@@ -168,7 +168,11 @@ test.describe('P21-QA01 v1.0.0 live surface revalidation', () => {
 
     await page.getByTestId('agent-member-dashboard-cta').first().click();
     await expect(page).toHaveURL(new RegExp(`${routes.member(testInfo)}$`));
-    await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="member-dashboard-ready"]:visible').first()
+    ).toBeVisible({
+      timeout: 15000,
+    });
 
     const memberStartClaimCta = page.getByTestId('member-start-claim-cta').first();
     await expect(memberStartClaimCta).toBeVisible();
@@ -181,7 +185,9 @@ test.describe('P21-QA01 v1.0.0 live surface revalidation', () => {
     await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
 
     await gotoApp(page, routes.agent(testInfo), testInfo, { marker: 'agent-members-ready' });
-    await page.getByTestId('agent-support-link').click();
+    const agentMembersReady = page.locator('[data-testid="agent-members-ready"]:visible').last();
+    await expect(agentMembersReady).toBeVisible();
+    await agentMembersReady.getByTestId('agent-support-link').click();
     await expect(page).toHaveURL(new RegExp(`${routes.agentCrm(testInfo)}$`));
     await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
   });

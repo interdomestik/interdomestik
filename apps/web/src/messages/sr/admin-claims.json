@@ -91,7 +91,9 @@
         "assigned_to_me": "Dodeljeno meni",
         "origin_label": "Poreklo",
         "origin_all": "Sva porekla",
-        "origin_diaspora": "Dijaspora / Zeleni karton"
+        "origin_diaspora": "Dijaspora / Zeleni karton",
+        "pending_filter": "Ažuriranje filtera...",
+        "pending_search": "Ažuriranje pretrage..."
       },
       "lifecycle_tabs": {
         "all": "Sve",

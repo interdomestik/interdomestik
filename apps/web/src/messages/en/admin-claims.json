@@ -90,7 +90,9 @@
         "assigned_to_me": "Assigned to me",
         "origin_label": "Origin",
         "origin_all": "All origins",
-        "origin_diaspora": "Diaspora / Green Card"
+        "origin_diaspora": "Diaspora / Green Card",
+        "pending_filter": "Updating filters...",
+        "pending_search": "Updating search..."
       },
       "lifecycle_tabs": {
         "all": "All",

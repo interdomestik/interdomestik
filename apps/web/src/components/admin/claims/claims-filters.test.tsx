@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import type { ComponentProps, PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminClaimsFilters } from './claims-filters';
 
@@ -25,6 +26,8 @@ vi.mock('next-intl', () => ({
       'filters.origin_label': 'Origin',
       'filters.origin_all': 'All origins',
       'filters.origin_diaspora': 'Diaspora / Green Card',
+      'filters.pending_filter': 'Updating filters...',
+      'filters.pending_search': 'Updating search...',
     };
 
     return adminClaimsKeys[key] ?? key;
@@ -33,13 +36,20 @@ vi.mock('next-intl', () => ({
 
 // Mock UI components
 vi.mock('@interdomestik/ui', () => ({
-  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
-  Badge: ({ children, ...props }: any) => <span {...props}>{children}</span>,
-  Input: (props: any) => <input {...props} />,
+  Button: ({
+    children,
+    ...props
+  }: PropsWithChildren<ComponentProps<'button'> & { asChild?: boolean }>) => (
+    <button {...props}>{children}</button>
+  ),
+  Badge: ({ children, ...props }: PropsWithChildren<ComponentProps<'span'>>) => (
+    <span {...props}>{children}</span>
+  ),
+  Input: (props: ComponentProps<'input'>) => <input {...props} />,
   // GlassCard is just a div in test
 }));
 vi.mock('@/components/ui/glass-card', () => ({
-  GlassCard: ({ children }: any) => <div>{children}</div>,
+  GlassCard: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -47,13 +57,14 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 describe('AdminClaimsFilters', () => {
   const mockRouter = { replace: vi.fn() };
   // Helper to create mocked params
-  const createMockParams = (qs = '') => new URLSearchParams(qs);
+  const createMockParams = (qs = '') =>
+    new URLSearchParams(qs) as unknown as ReturnType<typeof useSearchParams>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useRouter as any).mockReturnValue(mockRouter);
-    (usePathname as any).mockReturnValue('/admin/claims');
-    (useSearchParams as any).mockReturnValue(createMockParams());
+    vi.mocked(useRouter).mockReturnValue(mockRouter as unknown as ReturnType<typeof useRouter>);
+    vi.mocked(usePathname).mockReturnValue('/admin/claims');
+    vi.mocked(useSearchParams).mockReturnValue(createMockParams());
   });
 
   it('renders search input', () => {
@@ -83,7 +94,7 @@ describe('AdminClaimsFilters', () => {
   });
 
   it('removes status param when clicking All', () => {
-    (useSearchParams as any).mockReturnValue(createMockParams('status=active'));
+    vi.mocked(useSearchParams).mockReturnValue(createMockParams('status=active'));
     render(<AdminClaimsFilters />);
 
     const statusAllTab = screen.getByTestId('claims-tab-all');
@@ -99,5 +110,76 @@ describe('AdminClaimsFilters', () => {
     expect(mockRouter.replace).toHaveBeenCalledWith(expect.stringContaining('search=query'), {
       scroll: false,
     });
+  });
+
+  it('shows deterministic pending feedback when search updates the url', () => {
+    render(<AdminClaimsFilters />);
+
+    const input = screen.getByPlaceholderText('Search...');
+    fireEvent.change(input, { target: { value: 'query' } });
+
+    expect(screen.getByTestId('admin-claims-filter-region')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByTestId('admin-claims-pending')).toHaveTextContent('Updating search...');
+    expect(input).toHaveValue('query');
+  });
+
+  it('keeps replacing the latest search query while search feedback is pending', () => {
+    render(<AdminClaimsFilters />);
+
+    const input = screen.getByPlaceholderText('Search...');
+    fireEvent.change(input, { target: { value: 'q' } });
+    fireEvent.change(input, { target: { value: 'query' } });
+
+    expect(mockRouter.replace).toHaveBeenCalledTimes(2);
+    expect(mockRouter.replace).toHaveBeenLastCalledWith('/admin/claims?search=query&view=list', {
+      scroll: false,
+    });
+    expect(input).toHaveValue('query');
+  });
+
+  it('does not show pending feedback when search would keep the same url', () => {
+    vi.mocked(useSearchParams).mockReturnValue(createMockParams('search=query&view=list'));
+    render(<AdminClaimsFilters />);
+
+    const input = screen.getByPlaceholderText('Search...');
+    fireEvent.change(input, { target: { value: 'query' } });
+
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('admin-claims-pending')).not.toBeInTheDocument();
+    expect(screen.getByTestId('admin-claims-filter-region')).toHaveAttribute('aria-busy', 'false');
+  });
+
+  it('routes status tabs through the pending contract and keeps the active tab inert', () => {
+    vi.mocked(useSearchParams).mockReturnValue(createMockParams('status=active'));
+    render(<AdminClaimsFilters />);
+
+    fireEvent.click(screen.getByTestId('claims-tab-active'));
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('claims-tab-draft'));
+    expect(mockRouter.replace).toHaveBeenCalledWith('/admin/claims?status=draft&view=list', {
+      scroll: false,
+    });
+    expect(screen.getByTestId('admin-claims-pending')).toHaveTextContent('Updating filters...');
+  });
+
+  it('blocks overlapping filter navigation while a filter update is pending', () => {
+    render(<AdminClaimsFilters />);
+
+    fireEvent.click(screen.getByTestId('assigned-filter-unassigned'));
+    fireEvent.click(screen.getByTestId('diaspora-filter-diaspora'));
+
+    expect(mockRouter.replace).toHaveBeenCalledTimes(1);
+    expect(mockRouter.replace).toHaveBeenCalledWith('/admin/claims?assigned=unassigned&view=list', {
+      scroll: false,
+    });
+  });
+
+  it('makes search inert while a filter update is pending', () => {
+    render(<AdminClaimsFilters />);
+
+    fireEvent.click(screen.getByTestId('assigned-filter-unassigned'));
+
+    expect(screen.getByPlaceholderText('Search...')).toBeDisabled();
   });
 });
