@@ -1,11 +1,29 @@
 // v2.0.0-ops — Admin Claims lifecycle hardening
-import { type ClaimsListV2Row } from '@/server/domains/claims/types';
+import type { ClaimsListV2Dto } from '@/server/domains/claims/types';
 import { render, screen } from '@testing-library/react';
+import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+
+type MockLinkProps = {
+  children: ReactNode;
+  href: string;
+};
+
+type MockChildrenProps = {
+  children?: ReactNode;
+};
+
+type MockButtonProps = ComponentPropsWithoutRef<'button'> & {
+  asChild?: boolean;
+  variant?: string;
+  size?: string;
+};
+
+type MockTranslationParams = Record<string, string | number>;
 
 // Mock routing to avoid next-intl module resolution issues
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: any) => <a href={href}>{children}</a>,
+  Link: ({ children, href }: MockLinkProps) => <a href={href}>{children}</a>,
   useRouter: vi.fn(() => ({ push: vi.fn() })),
 }));
 
@@ -13,21 +31,37 @@ import { ClaimsList } from './claims-list';
 
 // Mock child components
 vi.mock('@interdomestik/ui', () => ({
-  Badge: ({ children, className }: any) => (
+  Badge: ({ children, className }: ComponentPropsWithoutRef<'div'>) => (
     <div data-testid="badge" className={className}>
       {children}
     </div>
   ),
-  Button: ({ children, asChild, ...props }: any) => (
-    <button {...props}>{asChild ? children : children}</button>
+  Button: ({
+    children,
+    asChild: _asChild,
+    variant: _variant,
+    size: _size,
+    ...props
+  }: MockButtonProps) => <button {...props}>{children}</button>,
+  Card: ({ children, className }: ComponentPropsWithoutRef<'div'>) => (
+    <div className={className}>{children}</div>
   ),
-  Card: ({ children, className }: any) => <div className={className}>{children}</div>,
-  Table: ({ children }: any) => <table>{children}</table>,
-  TableBody: ({ children }: any) => <tbody>{children}</tbody>,
-  TableCell: ({ children, className }: any) => <td className={className}>{children}</td>,
-  TableHead: ({ children }: any) => <th>{children}</th>,
-  TableHeader: ({ children }: any) => <thead>{children}</thead>,
-  TableRow: ({ children, className }: any) => <tr className={className}>{children}</tr>,
+  Table: ({ children }: MockChildrenProps) => <table>{children}</table>,
+  TableBody: ({ children }: MockChildrenProps) => <tbody>{children}</tbody>,
+  TableCell: ({ children, className, ...props }: ComponentPropsWithoutRef<'td'>) => (
+    <td className={className} {...props}>
+      {children}
+    </td>
+  ),
+  TableHead: ({ children, ...props }: ComponentPropsWithoutRef<'th'>) => (
+    <th {...props}>{children}</th>
+  ),
+  TableHeader: ({ children }: MockChildrenProps) => <thead>{children}</thead>,
+  TableRow: ({ children, className, ...props }: ComponentPropsWithoutRef<'tr'>) => (
+    <tr className={className} {...props}>
+      {children}
+    </tr>
+  ),
 }));
 
 // Mock icons
@@ -38,7 +72,7 @@ vi.mock('lucide-react', () => ({
 
 // Mock translations
 vi.mock('next-intl', () => ({
-  useTranslations: (_namespace: string) => (key: string, params?: any) => {
+  useTranslations: (_namespace: string) => (key: string, params?: MockTranslationParams) => {
     // Return key for simple assertions, or interpolated string for params
     if (params) {
       if (key === 'group_header') return `${params.label} • ${params.count}`;
@@ -95,12 +129,14 @@ vi.mock('next-intl', () => ({
 }));
 
 describe('ClaimsList', () => {
-  const mockData = {
+  const mockData: ClaimsListV2Dto = {
     rows: [
       {
         id: '1',
+        claimNumber: 'CLM-1',
         title: 'Claim 1',
         status: 'submitted',
+        statusLabelKey: 'submitted',
         amount: '1000.00',
         currency: 'EUR',
         currentStage: 'submitted',
@@ -120,7 +156,7 @@ describe('ClaimsList', () => {
         staffEmail: 'staff@example.com',
         assignedAt: new Date('2024-01-01T12:00:00Z'),
       },
-    ] as ClaimsListV2Row[],
+    ],
     pagination: {
       page: 1,
       totalPages: 5,
@@ -131,7 +167,6 @@ describe('ClaimsList', () => {
       active: 10,
       draft: 2,
       closed: 5,
-      total: 17,
     },
   };
 
