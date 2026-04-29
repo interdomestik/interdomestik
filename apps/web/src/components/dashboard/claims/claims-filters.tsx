@@ -7,11 +7,35 @@ import { badgeVariants, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useTransition } from 'react';
 
 const PENDING_FEEDBACK_TIMEOUT_MS = 10_000;
 
 type PendingKind = 'filter' | 'search';
+
+type FilterUiState = {
+  pendingKind: PendingKind | null;
+  searchValue: string;
+};
+
+type FilterUiAction =
+  | { type: 'pending-changed'; pendingKind: PendingKind | null }
+  | { type: 'search-edited'; searchValue: string };
+
+function filterUiReducer(state: FilterUiState, action: FilterUiAction): FilterUiState {
+  switch (action.type) {
+    case 'pending-changed':
+      if (state.pendingKind === action.pendingKind) {
+        return state;
+      }
+      return { ...state, pendingKind: action.pendingKind };
+    case 'search-edited':
+      if (state.searchValue === action.searchValue) {
+        return state;
+      }
+      return { ...state, searchValue: action.searchValue };
+  }
+}
 
 function buildMemberClaimsUrl(
   currentParams: URLSearchParams,
@@ -44,19 +68,22 @@ export function ClaimsFilters() {
   const currentSearch = searchParams.get('search') || '';
   const currentParamsString = searchParams.toString();
 
-  const [pendingKind, setPendingKind] = useState<PendingKind | null>(null);
+  const [filterUi, dispatchFilterUi] = useReducer(filterUiReducer, {
+    pendingKind: null,
+    searchValue: currentSearch,
+  });
   const pendingKindRef = useRef<PendingKind | null>(null);
-  const [searchValue, setSearchValue] = useState(currentSearch);
   const [isTransitionPending, startTransition] = useTransition();
+  const { pendingKind, searchValue } = filterUi;
   const isNavigationPending = Boolean(pendingKind || isTransitionPending);
 
   const updatePendingKind = useCallback((nextPendingKind: PendingKind | null) => {
     pendingKindRef.current = nextPendingKind;
-    setPendingKind(nextPendingKind);
+    dispatchFilterUi({ type: 'pending-changed', pendingKind: nextPendingKind });
   }, []);
 
   useEffect(() => {
-    setSearchValue(currentSearch);
+    dispatchFilterUi({ type: 'search-edited', searchValue: currentSearch });
   }, [currentSearch]);
 
   useEffect(() => {
@@ -100,7 +127,7 @@ export function ClaimsFilters() {
   };
 
   const handleSearch = (value: string) => {
-    setSearchValue(value);
+    dispatchFilterUi({ type: 'search-edited', searchValue: value });
 
     if (pendingKindRef.current === 'filter') {
       return;
