@@ -34,7 +34,15 @@
     "UPSTASH_REDIS_REST_URL"
   ],
   "globalDependencies": ["**/.env.*local"],
-  "globalPassThroughEnv": ["DB_MAX_CONNECTIONS"],
+  "globalPassThroughEnv": [
+    "DB_MAX_CONNECTIONS",
+    "SENTRY_AUTH_TOKEN",
+    "SENTRY_ORG",
+    "SENTRY_PROJECT",
+    "SENTRY_VERCEL_LOG_DRAIN_URL",
+    "SENTRY_OTLP_TRACES_URL",
+    "SENTRY_PUBLIC_KEY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
