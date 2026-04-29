@@ -15,7 +15,7 @@ import { TERMINAL_STATUSES } from '../types';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type OpsActionResponse =
-  | { success: true; message?: string; data?: any }
+  | { success: true; message?: string; data?: unknown }
   | { success: false; error: string };
 
 export type MutationIntent = 'assign' | 'status_change' | 'poke' | 'sla_ack';

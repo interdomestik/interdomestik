@@ -1,4 +1,4 @@
-import { ensureClaimsAccess } from '@/server/domains/claims/guards';
+import { ensureClaimsAccess, type ClaimsSession } from '@/server/domains/claims/guards';
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
 import { buildMemberClaimTrustSummary } from '@/features/claims/tracking/memberTrustSummary';
 import {
@@ -62,7 +62,7 @@ function buildProgressSummary(args: {
 }
 
 export async function getMemberClaimDetail(
-  session: any,
+  session: ClaimsSession | null,
   claimId: string
 ): Promise<ClaimTrackingDetailDto | null> {
   return Sentry.withServerActionInstrumentation(

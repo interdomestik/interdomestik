@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database';
+import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import { claims, claimTrackingTokens } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import crypto from 'crypto';
@@ -8,6 +9,10 @@ import type { PublicClaimStatusDto } from '../types';
 
 // TODO: Replace with proper proxy-level or Redis rate limiter
 const RATE_LIMIT_CACHE = new Map<string, { count: number; lastReset: number }>();
+
+function isPublicClaimStatus(status: string | null): status is PublicClaimStatusDto['status'] {
+  return CLAIM_STATUSES.includes(status as PublicClaimStatusDto['status']);
+}
 
 export function checkRateLimit(identifier: string): boolean {
   const now = Date.now();
@@ -68,13 +73,15 @@ export async function getPublicClaimStatus(token: string): Promise<PublicClaimSt
 
       if (!claim) return null;
 
+      const status = isPublicClaimStatus(claim.status) ? claim.status : 'draft';
+
       // 4. Return DTO (No PII)
       return {
         claimId: claim.id,
-        status: (claim.status || 'draft') as any, // Cast to any or explicit type to match DTO
-        statusLabelKey: `claims-tracking.status.${claim.status || 'draft'}`,
+        status,
+        statusLabelKey: `claims-tracking.status.${status}`,
         lastUpdatedAt: claim.updatedAt ?? new Date(),
-        nextStepKey: `claims-tracking.status.next_step.${claim.status}`,
+        nextStepKey: `claims-tracking.status.next_step.${status}`,
       };
     }
   );

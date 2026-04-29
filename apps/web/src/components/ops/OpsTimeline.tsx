@@ -64,13 +64,34 @@ export function OpsTimeline({
   );
 }
 
-export function toOpsTimelineEvents(events: any[]): OpsTimelineEvent[] {
+export function toOpsTimelineEvents(events: unknown[]): OpsTimelineEvent[] {
   if (!Array.isArray(events)) return [];
-  return events.map(e => ({
-    id: e.id,
-    title: e.title || e.action || 'Event',
-    description: e.description || e.note,
-    date: e.createdAt || e.date,
-    actorName: e.actorName || e.performedBy,
-  }));
+  return events.flatMap(rawEvent => {
+    const e = rawEvent as {
+      id?: string;
+      title?: string;
+      action?: string;
+      description?: string;
+      note?: string;
+      createdAt?: string;
+      date?: string;
+      actorName?: string;
+      performedBy?: string;
+    };
+    const date = e.createdAt || e.date;
+
+    if (!e.id || !date) {
+      return [];
+    }
+
+    return [
+      {
+        id: e.id ?? '',
+        title: e.title || e.action || 'Event',
+        description: e.description || e.note,
+        date,
+        actorName: e.actorName || e.performedBy,
+      },
+    ];
+  });
 }

@@ -294,8 +294,8 @@ export function ClaimWizard({
   const [createdClaimNumber, setCreatedClaimNumber] = React.useState<string | null>(null);
   const submitKeyRef = React.useRef<string | null>(null);
 
-  const form = useForm({
-    resolver: zodResolver(createClaimSchema),
+  const form = useForm<CreateClaimValues>({
+    resolver: zodResolver<CreateClaimValues>(createClaimSchema),
     defaultValues: {
       category: initialCategory || '',
       currency: 'EUR',
@@ -340,7 +340,7 @@ export function ClaimWizard({
     console.log('[Wizard] Attempting next step from:', currentStep);
     const validator = STEP_VALIDATION[currentStep];
     try {
-      if (!validator || (await validator(form as any))) {
+      if (!validator || (await validator(form))) {
         console.log('[Wizard] Validation passed');
         setInlineError(null);
         ClaimsEvents.stepCompleted(currentStep, STEP_NAMES[currentStep]);
@@ -364,7 +364,7 @@ export function ClaimWizard({
     setCurrentStep(prev => Math.max(prev - 1, 0));
   };
 
-  async function onSubmit(data: any) {
+  async function onSubmit(data: CreateClaimValues) {
     setIsSubmitting(true);
     try {
       const submitKey = submitKeyRef.current ?? createClientRequestId();
@@ -525,7 +525,7 @@ export function ClaimWizard({
         <Progress value={progress} className="h-2.5 rounded-full bg-slate-100" />
       </div>
 
-      <Form {...(form as any)}>
+      <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-8 rounded-2xl border border-slate-200/70 bg-white/85 p-4 shadow-[0_24px_52px_-42px_rgba(15,23,42,0.85)] sm:p-6"

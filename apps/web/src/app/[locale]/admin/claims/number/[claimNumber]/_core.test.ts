@@ -15,7 +15,7 @@ describe('getClaimNumberResolverCore', () => {
     const result = await getClaimNumberResolverCore({
       claimNumber: 'CLM-KS-2024-000001',
       tenantId: 't1',
-      db: mockDb,
+      db: mockDb as never,
     });
     expect(result.claimId).toBe('c123');
   });
@@ -24,7 +24,7 @@ describe('getClaimNumberResolverCore', () => {
     const result = await getClaimNumberResolverCore({
       claimNumber: 'INVALID',
       tenantId: 't1',
-      db: mockDb,
+      db: mockDb as never,
     });
     expect(result.claimId).toBeNull();
   });
@@ -34,7 +34,7 @@ describe('getClaimNumberResolverCore', () => {
     const result = await getClaimNumberResolverCore({
       claimNumber: 'CLM-2024-999',
       tenantId: 't1',
-      db: mockDb,
+      db: mockDb as never,
     });
     expect(result.claimId).toBeNull();
   });

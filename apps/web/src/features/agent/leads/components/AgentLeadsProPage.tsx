@@ -7,7 +7,12 @@ import { OpsQueryState } from '@/components/ops/OpsQueryState';
 import { OpsStatusBadge } from '@/components/ops/OpsStatusBadge';
 import { OpsTable } from '@/components/ops/OpsTable';
 import { OpsTimeline } from '@/components/ops/OpsTimeline';
-import { getLeadActions, toOpsStatus, toOpsTimelineEvents } from '@/components/ops/adapters/leads';
+import {
+  getLeadActions,
+  toOpsStatus,
+  toOpsTimelineEvents,
+  type OpsActionConfig,
+} from '@/components/ops/adapters/leads';
 import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
 import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui';
@@ -17,7 +22,22 @@ import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { convertLeadToClient, updateLeadStatus } from '../actions';
 
-export function AgentLeadsProPage({ leads }: { leads: any[] }) {
+type AgentLeadPro = {
+  id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  source?: string | null;
+  status?: string | null;
+  branchId?: string | null;
+  branch?: { name?: string | null } | null;
+  notes?: string | null;
+  createdAt?: string | Date | null;
+  updatedAt?: string | Date | null;
+};
+
+export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>) {
   const t = useTranslations('agent.leads_pro');
   const localizeLeadStatus = (status: string | null | undefined) => {
     switch (status) {
@@ -118,7 +138,7 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
   const { primary, secondary } = getLeadActions(selectedLead);
 
   // Map to OpsActionBar format (inject onClick and disabled state)
-  const mapAction = (config: any) => ({
+  const mapAction = (config: OpsActionConfig) => ({
     ...config,
     label: localizeActionLabel(config.id, config.label),
     onClick: () => handleAction(config.id),
@@ -129,7 +149,7 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
   const filteredLeads = leads.filter(lead => {
     // 1. Tab Filter
     if (activeTab === 'new' && lead.status !== 'new') return false;
-    if (activeTab === 'contacted' && !['contacted', 'payment_pending'].includes(lead.status))
+    if (activeTab === 'contacted' && !['contacted', 'payment_pending'].includes(lead.status ?? ''))
       return false;
     if (activeTab === 'converted' && lead.status !== 'converted') return false;
     if (activeTab === 'lost' && lead.status !== 'lost') return false;

@@ -11,7 +11,7 @@ describe('actions/notifications markAsReadCore', () => {
   it('throws validation error for empty notificationId', async () => {
     await expect(
       markAsReadCore({
-        session: { user: { id: 'u1' } } as any,
+        session: { user: { id: 'u1' } } as never,
         notificationId: '',
         requestHeaders: new Headers(),
       })
@@ -20,7 +20,7 @@ describe('actions/notifications markAsReadCore', () => {
 
   it('calls domain function for valid notificationId', async () => {
     const result = await markAsReadCore({
-      session: { user: { id: 'u1' } } as any,
+      session: { user: { id: 'u1' } } as never,
       notificationId: 'notif-123',
       requestHeaders: new Headers(),
     });

@@ -19,7 +19,7 @@ describe('Agent Workspace Leads Query Contracts', () => {
 
       await getAgentWorkspaceLeadsCore({
         tenantId: 't1',
-        db: mockDb,
+        db: mockDb as never,
       });
 
       // Contract: Must apply a where clause for filtering

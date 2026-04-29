@@ -28,7 +28,7 @@ export function ClaimsListRow({ row }: ClaimsListRowProps) {
     // next-intl throws or returns key if missing.
     // We assume keys match from backend enum.
     try {
-      return tStatus(key as any);
+      return tStatus(key as never);
     } catch {
       return key;
     }
@@ -36,7 +36,7 @@ export function ClaimsListRow({ row }: ClaimsListRowProps) {
 
   const getStageLabel = (key: string) => {
     try {
-      return tStage(key as any);
+      return tStage(key as never);
     } catch {
       // Fallback to status label if stage logic fails or key missing
       return getStatusLabel(key);
@@ -46,7 +46,7 @@ export function ClaimsListRow({ row }: ClaimsListRowProps) {
   const getCategoryLabel = (key: string | null) => {
     if (!key) return tCommon('none');
     try {
-      return tCategory(key as any);
+      return tCategory(key as never);
     } catch {
       return key;
     }
@@ -64,8 +64,8 @@ export function ClaimsListRow({ row }: ClaimsListRowProps) {
 
   // Owner Logic
   const ownerRole = row.currentOwnerRole ?? 'system';
-  const ownerLabel = tOwner(ownerRole as any);
-  const ownerLabelGenitive = tOwnerGenitive(ownerRole as any);
+  const ownerLabel = tOwner(ownerRole as never);
+  const ownerLabelGenitive = tOwnerGenitive(ownerRole as never);
   const assignedLabel = row.staffName || row.staffEmail;
 
   let ownerLine = tTable('row.owner_system');

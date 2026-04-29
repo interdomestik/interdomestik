@@ -6,9 +6,12 @@ import {
   safeFilename,
 } from './_core';
 
-const mockDb = { select: vi.fn() } as any;
+const mockDb = { select: vi.fn() };
 const mockStorage = { createSignedUrl: vi.fn(), download: vi.fn() };
-const mockDeps: DocumentAccessDeps = { db: mockDb, storage: mockStorage };
+const mockDeps: DocumentAccessDeps = {
+  db: mockDb as unknown as DocumentAccessDeps['db'],
+  storage: mockStorage,
+};
 
 const memberSession = { user: { id: 'member-1', role: 'member', tenantId: 't1' } };
 const otherMemberSession = { user: { id: 'member-2', role: 'member', tenantId: 't1' } };
@@ -59,20 +62,25 @@ const legacyDoc = {
   uploadedBy: 'other-user',
 };
 
-function createSelectMock(result: any[], isLegacy = false) {
-  const chain: any = { where: vi.fn().mockResolvedValue(result) };
+type SelectMockChain = {
+  where: ReturnType<typeof vi.fn>;
+  leftJoin?: ReturnType<typeof vi.fn>;
+};
+
+function createSelectMock(result: unknown[], isLegacy = false) {
+  const chain: SelectMockChain = { where: vi.fn().mockResolvedValue(result) };
   if (isLegacy) chain.leftJoin = vi.fn().mockReturnValue(chain);
   return { from: vi.fn().mockReturnValue(chain) };
 }
 
-function setupMocks(poly: any[] = [], legacy: any[] = []) {
+function setupMocks(poly: unknown[] = [], legacy: unknown[] = []) {
   mockDb.select.mockReset();
   mockDb.select.mockReturnValueOnce(createSelectMock(poly));
   mockDb.select.mockReturnValueOnce(createSelectMock(legacy, true));
 }
 
 async function execAccess(
-  session: any,
+  session: Parameters<typeof getDocumentAccessCore>[0]['session'],
   docId: string,
   mode: 'download' | 'signed_url' = 'download'
 ) {

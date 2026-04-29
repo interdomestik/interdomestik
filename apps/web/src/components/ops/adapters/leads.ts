@@ -3,6 +3,20 @@ import { toOpsBadgeVariant } from './status';
 
 export type OpsActionConfig = Omit<OpsAction, 'onClick'> & { id: string };
 
+type OpsDocumentInput = {
+  id?: string;
+  fileName?: string | null;
+  name?: string | null;
+  createdAt?: string | Date | null;
+};
+
+type LeadOpsInput = {
+  id?: string;
+  status?: string | null;
+  source?: string | null;
+  createdAt?: string | Date | null;
+};
+
 export function toOpsStatus(status: string | null | undefined) {
   const safeStatus = status || 'none';
   // Simple mapping, can be expanded
@@ -12,18 +26,18 @@ export function toOpsStatus(status: string | null | undefined) {
   };
 }
 
-export function toOpsDocuments(docs: any[] | undefined): OpsDocument[] {
+export function toOpsDocuments(docs: OpsDocumentInput[] | undefined): OpsDocument[] {
   // Placeholder for now as leads might not have docs yet
   if (!docs || !Array.isArray(docs)) return [];
-  return docs.map((d: any) => ({
-    id: d.id,
+  return docs.map(d => ({
+    id: d.id ?? '',
     name: d.fileName || 'Document',
     url: '#',
-    uploadedAt: d.createdAt,
+    uploadedAt: d.createdAt ?? undefined,
   }));
 }
 
-export function toOpsTimelineEvents(lead: any | undefined): OpsTimelineEvent[] {
+export function toOpsTimelineEvents(lead: LeadOpsInput | undefined): OpsTimelineEvent[] {
   if (!lead) return [];
   const events: OpsTimelineEvent[] = [];
 
@@ -53,7 +67,7 @@ export function toOpsTimelineEvents(lead: any | undefined): OpsTimelineEvent[] {
   return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-export function getLeadActions(lead: any | undefined): {
+export function getLeadActions(lead: LeadOpsInput | undefined): {
   primary?: OpsActionConfig;
   secondary: OpsActionConfig[];
 } {
@@ -85,7 +99,7 @@ export function getLeadActions(lead: any | undefined): {
   }
 
   // Secondary: Advance to Payment/Qualified
-  if (!isConverted && ['new', 'contacted'].includes(lead.status)) {
+  if (!isConverted && ['new', 'contacted'].includes(lead.status ?? '')) {
     secondary.push({
       id: 'pay_cash',
       label: 'Pay Cash',

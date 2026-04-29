@@ -1,5 +1,8 @@
 import { user } from '@interdomestik/database/schema';
+import type * as DatabaseModule from '@interdomestik/database';
 import { and, eq } from 'drizzle-orm';
+
+type DatabaseClient = typeof DatabaseModule.db;
 
 export interface MemberNumberResolverResult {
   ok: boolean;
@@ -16,8 +19,8 @@ export async function getMemberNumberResolverCore(params: {
   tenantId: string;
   role: string;
   allowedRoles: string[];
-  db: any;
-  parseMemberNumber: (num: string) => any;
+  db: DatabaseClient;
+  parseMemberNumber: (num: string) => unknown;
 }): Promise<MemberNumberResolverResult> {
   const { memberNumber, tenantId, role, allowedRoles, db, parseMemberNumber } = params;
 

@@ -34,7 +34,7 @@ export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
           ROLES.tenant_admin,
           ROLES.staff, // Staff needs visibility into branch health
         ];
-        if (!allowedRoles.includes(session.user.role as any)) {
+        if (!allowedRoles.includes(session.user.role as never)) {
           throw new Error('Unauthorized');
         }
 

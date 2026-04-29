@@ -106,7 +106,7 @@ export function NextActionsCard({
   const handleStatusDirectUpdate = (status: string) => {
     startTransition(async () => {
       onAction?.('update_status_direct');
-      const result = await updateStatus(claim.id, status as any, locale);
+      const result = await updateStatus(claim.id, status as never, locale);
       if (!result.success) {
         toast.error(result.error || t('toast.failed'));
       } else {

@@ -1,5 +1,8 @@
 import { isValidClaimNumber } from '@interdomestik/database/claim-number';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import type * as DatabaseModule from '@interdomestik/database';
+
+type DatabaseClient = typeof DatabaseModule.db;
 
 export interface ClaimNumberResolverResult {
   claimId: string | null;
@@ -12,7 +15,7 @@ export interface ClaimNumberResolverResult {
 export async function getClaimNumberResolverCore(params: {
   claimNumber: string;
   tenantId: string;
-  db: any;
+  db: DatabaseClient;
 }): Promise<ClaimNumberResolverResult> {
   const { claimNumber, tenantId, db } = params;
   const normalizedNumber = decodeURIComponent(claimNumber).trim().toUpperCase();
@@ -24,8 +27,7 @@ export async function getClaimNumberResolverCore(params: {
 
   // 2. Lookup Claim
   const claim = await db.query.claims.findFirst({
-    where: (c: Record<string, unknown>, { eq }: any) =>
-      withTenant(tenantId, c.tenantId as string, eq(c.claimNumber, normalizedNumber)),
+    where: (c, { eq }) => withTenant(tenantId, c.tenantId, eq(c.claimNumber, normalizedNumber)),
     columns: {
       id: true,
     },

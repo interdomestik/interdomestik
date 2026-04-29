@@ -10,7 +10,7 @@ describe('getAgentLeadsCore', () => {
     },
   };
 
-  const services = { db: mockDb as any };
+  const services = { db: mockDb as never };
 
   it('fetches leads with branch relation for a tenant', async () => {
     const mockData = [{ id: 'l1', branch: { name: 'Branch A' } }];

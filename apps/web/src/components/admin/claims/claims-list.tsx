@@ -46,10 +46,10 @@ export function ClaimsList({ data }: ClaimsListProps) {
 
   // Handle "Other" statuses not in the ordered list
   const statusSet = new Set(STATUS_ORDER);
-  const otherRows = rows.filter(row => !statusSet.has(row.status as any));
+  const otherRows = rows.filter(row => !statusSet.has(row.status as never));
   if (otherRows.length > 0) {
     groups.push({
-      status: 'other' as any,
+      status: 'other' as never,
       rows: otherRows,
     });
   }

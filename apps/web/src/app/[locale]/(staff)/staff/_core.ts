@@ -1,6 +1,9 @@
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { claims } from '@interdomestik/database/schema';
+import type * as DatabaseModule from '@interdomestik/database';
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
+
+type DatabaseClient = typeof DatabaseModule.db;
 
 export interface StaffDashboardDTO {
   stats: {
@@ -37,7 +40,7 @@ export async function getStaffDashboardCore(params: {
   tenantId: string;
   userId: string;
   role: string;
-  db: any;
+  db: DatabaseClient;
 }): Promise<StaffDashboardResult> {
   const { tenantId, role, db } = params;
 

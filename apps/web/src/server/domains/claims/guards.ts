@@ -18,6 +18,7 @@ export interface ClaimsSession {
     id: string;
     role?: string | null;
     branchId?: string | null;
+    tenantId?: string | null;
   };
 }
 

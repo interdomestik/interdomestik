@@ -47,7 +47,7 @@ function buildConditions(context: ClaimsVisibilityContext, filters: AdminClaimsV
   if (lifecycleStage) {
     const statuses = LIFECYCLE_STATUS_MAP[lifecycleStage];
     if (Array.isArray(statuses) && statuses.length > 0) {
-      conditions.push(inArray(claims.status, statuses as any));
+      conditions.push(inArray(claims.status, statuses as never));
     }
   }
 

@@ -104,7 +104,9 @@ describe('GET /api/verification/[id]', () => {
     expect(hoisted.getVerificationRequestDetails).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant-1',
-        userId: 'staff-1',
+        session: expect.objectContaining({
+          user: expect.objectContaining({ id: 'staff-1' }),
+        }),
         userRole: 'staff',
         scope: expect.objectContaining({ branchId: 'branch-1' }),
       }),
@@ -125,7 +127,9 @@ describe('GET /api/verification/[id]', () => {
     expect(hoisted.getVerificationRequestDetails).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant-1',
-        userId: 'staff-1',
+        session: expect.objectContaining({
+          user: expect.objectContaining({ id: 'staff-1' }),
+        }),
         userRole: 'staff',
         scope: expect.objectContaining({ branchId: 'branch-1' }),
       }),

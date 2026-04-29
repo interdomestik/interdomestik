@@ -1,22 +1,20 @@
 import { ApiErrorCode } from '@/core-contracts';
+import type * as DatabaseModule from '@interdomestik/database';
 import { claimDocuments, claims, documents, policies } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
-// Define DB Interface (minimal part of Drizzle we use)
-export interface DB {
-  select: (args?: any) => any;
-}
+type DatabaseClient = typeof DatabaseModule.db;
 
 export interface DocumentAccessDeps {
-  db: any; // Injected Drizzle DB instance
+  db: DatabaseClient;
   storage: {
     createSignedUrl: (
       bucket: string,
       path: string,
       expiresIn: number
-    ) => Promise<{ signedUrl?: string; error?: any }>;
-    download: (bucket: string, path: string) => Promise<{ data?: Blob; error?: any }>;
+    ) => Promise<{ signedUrl?: string; error?: unknown }>;
+    download: (bucket: string, path: string) => Promise<{ data?: Blob; error?: unknown }>;
   };
 }
 
@@ -191,7 +189,7 @@ function buildDocumentAudit(args: {
 }
 
 async function canReadPolymorphicDocument(args: {
-  db: any;
+  db: DatabaseClient;
   polyDoc: PolymorphicDocumentRow;
   session: SessionDTO;
   tenantId: string;
@@ -241,7 +239,7 @@ async function canReadPolymorphicDocument(args: {
 }
 
 async function canReadPolymorphicClaimDocument(args: {
-  db: any;
+  db: DatabaseClient;
   polyDoc: PolymorphicDocumentRow;
   session: SessionDTO;
   tenantId: string;
@@ -387,7 +385,7 @@ export async function getDocumentAccessCore(args: {
     return { ok: false, code: 'NOT_FOUND', message: 'Document not found' };
   }
 
-  const doc = row.doc as unknown as DocumentRow;
+  const doc = row.doc as never as DocumentRow;
   const canRead = canReadLegacyClaimDocument({
     claim: {
       branchId: row.claimBranchId ?? null,

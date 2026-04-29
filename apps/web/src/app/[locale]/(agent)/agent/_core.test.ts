@@ -62,7 +62,7 @@ describe('agent dashboard core', () => {
     where: vi.fn(),
   };
 
-  const services: AgentDashboardServices = { db: mockDb };
+  const services: AgentDashboardServices = { db: mockDb as never };
 
   beforeEach(() => {
     vi.clearAllMocks();

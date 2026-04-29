@@ -7,6 +7,24 @@ import { getClaimsListV2 } from '@/server/domains/claims';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 
+function isUnauthorizedClaimsError(err: unknown): boolean {
+  const errorLike =
+    typeof err === 'object' && err !== null
+      ? (err as { name?: unknown; message?: unknown; code?: unknown })
+      : {};
+  const name = typeof errorLike.name === 'string' ? errorLike.name : undefined;
+  const msg = typeof errorLike.message === 'string' ? errorLike.message : undefined;
+  const code = typeof errorLike.code === 'string' ? errorLike.code : undefined;
+
+  return (
+    name === 'UnauthorizedError' ||
+    name === 'AccessDeniedError' ||
+    msg === 'Unauthorized' ||
+    code === 'UNAUTHORIZED' ||
+    code === 'FORBIDDEN'
+  );
+}
+
 export default async function AdminClaimsPage({
   searchParams,
 }: {
@@ -23,10 +41,10 @@ export default async function AdminClaimsPage({
   const normalizedStatus = statusParam === 'all' ? undefined : statusParam;
   const statusFilter =
     normalizedStatus && ['active', 'draft', 'closed'].includes(normalizedStatus)
-      ? (normalizedStatus as any)
+      ? (normalizedStatus as never)
       : undefined;
   const statuses =
-    normalizedStatus && !statusFilter ? (normalizedStatus.split(',') as any[]) : undefined;
+    normalizedStatus && !statusFilter ? (normalizedStatus.split(',') as never[]) : undefined;
   const assignmentParam = params?.assigned as string | undefined;
   const search = params?.search as string | undefined;
 
@@ -36,22 +54,12 @@ export default async function AdminClaimsPage({
       page,
       statusFilter,
       statuses,
-      assignment: assignmentParam as any,
+      assignment: assignmentParam as never,
       search,
     });
-  } catch (err: any) {
-    const name = err?.name;
-    const msg = err?.message;
-    const code = err?.code;
-
+  } catch (err: unknown) {
     // Widen checks to catch any flavor of unauthorized
-    if (
-      name === 'UnauthorizedError' ||
-      name === 'AccessDeniedError' ||
-      msg === 'Unauthorized' ||
-      code === 'UNAUTHORIZED' ||
-      code === 'FORBIDDEN'
-    ) {
+    if (isUnauthorizedClaimsError(err)) {
       const { notFound } = await import('next/navigation');
       notFound();
     }

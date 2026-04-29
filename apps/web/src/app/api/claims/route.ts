@@ -1,10 +1,19 @@
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { getClaimsListV2 } from '@/server/domains/claims';
+import type { ClaimStatusFilter } from '@/server/domains/claims/types';
 import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+
+const CLAIM_STATUS_FILTERS = ['active', 'draft', 'closed'] as const;
+
+function parseStatusFilter(status: string | null): ClaimStatusFilter {
+  return CLAIM_STATUS_FILTERS.includes(status as Exclude<ClaimStatusFilter, undefined>)
+    ? (status as ClaimStatusFilter)
+    : undefined;
+}
 
 export async function GET(request: Request) {
   const limited = await enforceRateLimit({
@@ -26,7 +35,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const page = Number(searchParams.get('page')) || 1;
-  const status = searchParams.get('status') || undefined;
+  const status = parseStatusFilter(searchParams.get('status'));
   const search = searchParams.get('search') || undefined;
 
   // Context extracted in domain function
@@ -36,7 +45,7 @@ export async function GET(request: Request) {
     const result = await getClaimsListV2(session, {
       page,
       perPage: 10,
-      statusFilter: status as any, // Cast or validate
+      statusFilter: status,
       search,
     });
 
@@ -53,12 +62,13 @@ export async function GET(request: Request) {
       totalPages: result.pagination.totalPages,
       totals: result.totals,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Claims V2 API Error:', error);
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Internal Server Error',
+        error: message,
       },
       { status: 500 }
     );

@@ -67,7 +67,7 @@ export function VerificationTable({
     return (
       <OpsStatusBadge
         variant={toOpsBadgeVariant(req.status)}
-        label={t(`status.${req.status}` as any)}
+        label={t(`status.${req.status}` as never)}
       />
     );
   };

@@ -50,7 +50,7 @@ describe('Agent Workspace Claims Query Contracts', () => {
       await getAgentWorkspaceClaimsCore({
         tenantId: 't1',
         userId: 'a1',
-        db: mockDb,
+        db: mockDb as never,
       });
 
       // Assert that findMany was called with a where clause (Contract: must filter)
@@ -111,7 +111,7 @@ describe('Agent Workspace Claims Query Contracts', () => {
       const result = await getAgentWorkspaceClaimsCore({
         tenantId: 't1',
         userId: 'a1',
-        db: mockDb,
+        db: mockDb as never,
         selectedClaimId: 'target-1',
       });
 
@@ -165,7 +165,7 @@ describe('Agent Workspace Claims Query Contracts', () => {
       const result = await getAgentWorkspaceClaimsCore({
         tenantId: 't1',
         userId: 'a1',
-        db: mockDb,
+        db: mockDb as never,
         selectedClaimId: 'target-older',
       });
 
@@ -202,7 +202,7 @@ describe('Agent Workspace Claims Query Contracts', () => {
       const result = await getAgentWorkspaceClaimsCore({
         tenantId: 't1',
         userId: 'a1',
-        db: mockDb,
+        db: mockDb as never,
         selectedClaimId: 'target-2',
       });
 
@@ -219,7 +219,7 @@ describe('Agent Workspace Claims Query Contracts', () => {
       const result = await getAgentWorkspaceClaimsCore({
         tenantId: 't1',
         userId: 'a1',
-        db: mockDb,
+        db: mockDb as never,
       });
 
       expect(result.claims).toEqual([]);

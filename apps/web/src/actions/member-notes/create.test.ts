@@ -47,7 +47,7 @@ describe('createMemberNoteCore', () => {
 
   it('denies access for member role', async () => {
     const result = await createMemberNoteCore({
-      session: mockMemberSession as any,
+      session: mockMemberSession as never,
       data: {
         memberId: 'target-member',
         content: 'Should fail',
@@ -60,7 +60,7 @@ describe('createMemberNoteCore', () => {
 
   it('sanitizes content and creates note for admin', async () => {
     const result = await createMemberNoteCore({
-      session: mockAdminSession as any,
+      session: mockAdminSession as never,
       data: {
         memberId: 'target-member',
         content: '<script>alert()</script>Valid Content',

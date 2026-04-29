@@ -1,5 +1,8 @@
 import { memberLeads } from '@interdomestik/database/schema';
+import type * as DatabaseModule from '@interdomestik/database';
 import { eq } from 'drizzle-orm';
+
+type DatabaseClient = typeof DatabaseModule.db;
 
 export interface AgentLeadDTO {
   id: string;
@@ -24,30 +27,42 @@ export function buildAgentWorkspaceLeadsWhere(params: { tenantId: string }) {
   return eq(memberLeads.tenantId, params.tenantId);
 }
 
+function getBranchName(branch: unknown): string | null {
+  if (!branch || typeof branch !== 'object' || !('name' in branch)) {
+    return null;
+  }
+
+  return typeof branch.name === 'string' ? branch.name : null;
+}
+
 /**
  * Pure core logic for the Agent Workspace Leads Page.
  * Fetches leads for the agent's tenant.
  */
 export async function getAgentWorkspaceLeadsCore(params: {
   tenantId: string;
-  db: any;
+  db: DatabaseClient;
 }): Promise<AgentWorkspaceLeadsResult> {
   const { tenantId, db } = params;
 
   const leadsData = await db.query.memberLeads.findMany({
     where: buildAgentWorkspaceLeadsWhere({ tenantId }),
-    orderBy: (leads: any, { desc }: any) => [desc(leads.createdAt)],
+    orderBy: (leads, { desc }) => [desc(leads.createdAt)],
     with: {
       branch: true,
     },
   });
 
   return {
-    leads: leadsData.map((l: Record<string, unknown>) => ({
-      ...l,
-      createdAt: l.createdAt instanceof Date ? l.createdAt : new Date(l.createdAt as string),
-      updatedAt: l.updatedAt instanceof Date ? l.updatedAt : new Date(l.updatedAt as string),
-      branch: (l.branch as any) ? { name: (l.branch as any).name } : null,
-    })) as AgentLeadDTO[],
+    leads: leadsData.map((l: Record<string, unknown>) => {
+      const branchName = getBranchName(l.branch);
+
+      return {
+        ...l,
+        createdAt: l.createdAt instanceof Date ? l.createdAt : new Date(l.createdAt as string),
+        updatedAt: l.updatedAt instanceof Date ? l.updatedAt : new Date(l.updatedAt as string),
+        branch: branchName ? { name: branchName } : null,
+      };
+    }) as AgentLeadDTO[],
   };
 }

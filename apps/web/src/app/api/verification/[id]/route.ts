@@ -1,6 +1,7 @@
 import { getVerificationRequestDetails } from '@/features/admin/verification/server/verification.core';
 import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import { auth } from '@/lib/auth';
+import type { ProtectedActionContext } from '@/lib/safe-action';
 import { NextResponse } from 'next/server';
 import { getVerificationApiCore } from './_core';
 
@@ -17,6 +18,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return tenant.response;
   }
 
+  const protectedContext: ProtectedActionContext = {
+    session,
+    tenantId: tenant.tenantId,
+    requestHeaders: request.headers,
+    userRole: session.user.role,
+    scope: {
+      branchId: session.user.branchId || null,
+      actorAgentId: null,
+      attributedAgentId: null,
+    },
+  };
+
   const result = await getVerificationApiCore(
     {
       id,
@@ -28,7 +41,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       },
     },
     {
-      getVerificationDetailsFn: getVerificationRequestDetails,
+      getVerificationDetailsFn: (_ctx, attemptId) =>
+        getVerificationRequestDetails(protectedContext, attemptId),
     }
   );
 

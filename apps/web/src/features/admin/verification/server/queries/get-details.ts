@@ -3,7 +3,13 @@ import { db } from '@interdomestik/database';
 import { auditLog, branches, documents, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
 import { aliasedTable, and, desc, eq } from 'drizzle-orm';
-import { CashVerificationDetailsDTO, VerificationTimelineEvent } from '../types';
+import {
+  CashVerificationDetailsDTO,
+  CashVerificationRequestDTO,
+  VerificationTimelineEvent,
+} from '../types';
+
+type VerificationDetailsRow = Omit<CashVerificationRequestDTO, 'documentId' | 'documentPath'>;
 
 // 2. Query: Get Details with Timeline
 export async function getVerificationRequestDetails(
@@ -52,7 +58,7 @@ export async function getVerificationRequestDetails(
     .innerJoin(branches, eq(memberLeads.branchId, branches.id))
     .innerJoin(user, eq(memberLeads.agentId, user.id))
     .leftJoin(verifier, eq(leadPaymentAttempts.verifiedBy, verifier.id))
-    .where(and(...conditions))) as any[];
+    .where(and(...conditions))) as VerificationDetailsRow[];
 
   if (!row) return null;
 
@@ -115,7 +121,10 @@ export async function getVerificationRequestDetails(
 
   // 3. Actions
   logs.forEach(l => {
-    const meta = l.metadata as any;
+    const meta =
+      typeof l.metadata === 'object' && l.metadata !== null
+        ? (l.metadata as { note?: unknown })
+        : {};
     let title = l.action;
     if (l.action.includes('APPROVE')) title = 'Approved';
     if (l.action.includes('REJECT')) title = 'Rejected';
@@ -126,7 +135,7 @@ export async function getVerificationRequestDetails(
       id: `log-${l.id}`,
       type: 'action',
       title,
-      description: meta?.note || undefined,
+      description: typeof meta.note === 'string' ? meta.note : undefined,
       date: l.createdAt!,
       actorName: l.actorName || 'Unknown',
     });

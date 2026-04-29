@@ -20,14 +20,14 @@ describe('getAgentTierCore', () => {
   it('returns the configured tier when present', async () => {
     findFirst.mockResolvedValue({ tier: 'pro' });
 
-    await expect(getAgentTierCore({ agentId: 'agent-1' }, services as any)).resolves.toBe('pro');
+    await expect(getAgentTierCore({ agentId: 'agent-1' }, services as never)).resolves.toBe('pro');
     expect(findFirst).toHaveBeenCalledOnce();
   });
 
   it('falls back to standard when no settings exist', async () => {
     findFirst.mockResolvedValue(undefined);
 
-    await expect(getAgentTierCore({ agentId: 'agent-1' }, services as any)).resolves.toBe(
+    await expect(getAgentTierCore({ agentId: 'agent-1' }, services as never)).resolves.toBe(
       'standard'
     );
   });

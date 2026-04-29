@@ -15,6 +15,21 @@ const services = {
   logAuditEvent,
 };
 
+const idsKey = 'documentIds' as const;
+
+function getDocumentIds(body: unknown): string[] | null {
+  if (!body || typeof body !== 'object' || !(idsKey in body)) {
+    return null;
+  }
+
+  const ids = body[idsKey];
+  if (!Array.isArray(ids) || !ids.every(id => typeof id === 'string')) {
+    return null;
+  }
+
+  return ids;
+}
+
 /**
  * POST /api/share-pack - Create a share pack link
  */
@@ -33,17 +48,19 @@ export async function POST(request: NextRequest) {
       return tenant.response;
     }
 
-    const body = (await request.json()) as any;
-    const ids = body['document' + 'Ids'] as Array<string>;
+    const ids = getDocumentIds(await request.json());
+    if (!ids) {
+      return NextResponse.json({ error: 'IDs required' }, { status: 400 });
+    }
 
     const result = await createSharePackCore({
       tenantId: tenant.tenantId,
       userId: session.user.id,
-      ['document' + 'Ids']: ids,
+      [idsKey]: ids,
       ipAddress: request.headers.get('x-forwarded-for') ?? undefined,
       userAgent: request.headers.get('user-agent') ?? undefined,
       services,
-    } as any);
+    });
 
     if (!result.ok) {
       const status = result.error === 'Invalid IDs' ? 403 : 400;

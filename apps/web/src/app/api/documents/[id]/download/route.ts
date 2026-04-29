@@ -91,7 +91,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     actorId: session.user.id,
     actorRole: access.audit.actorRole,
     tenantId,
-    action: access.audit.action as any,
+    action: access.audit.action,
     entityType: access.audit.entityType,
     entityId: access.audit.entityId,
     metadata: access.audit.metadata,
@@ -123,15 +123,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const filename = access.document.name || 'document';
 
-  let body: BodyInit;
-  if (typeof (file.data as any)?.stream === 'function') {
-    body = (file.data as any).stream();
-  } else if (typeof (file.data as any)?.arrayBuffer === 'function') {
-    const buffer = await (file.data as any).arrayBuffer();
-    body = new Uint8Array(buffer);
-  } else {
-    body = file.data as any;
-  }
+  const body: BodyInit = file.data;
 
   return new Response(body, {
     status: 200,

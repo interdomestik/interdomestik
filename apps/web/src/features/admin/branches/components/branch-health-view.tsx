@@ -116,7 +116,7 @@ export function BranchHealthView({ initialBranches }: BranchHealthViewProps) {
     }
   };
 
-  const handleUpdate = (updatedBranch: any) => {
+  const handleUpdate = (updatedBranch: BranchWithKpis) => {
     // Correctly reconstruct BranchWithKpis maintaining kpis
     setBranches(prev =>
       prev.map(b => (b.id === updatedBranch.id ? { ...b, ...updatedBranch } : b))
