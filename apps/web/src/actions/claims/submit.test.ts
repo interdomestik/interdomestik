@@ -3,6 +3,9 @@ import { submitClaimCore } from './submit.core';
 import { submitClaimCore as submitClaimCoreDomain } from '@interdomestik/domain-claims/claims/submit';
 
 const mockRunCommercialActionWithIdempotency = vi.fn();
+type SubmitClaimParams = Parameters<typeof submitClaimCore>[0];
+type SubmitClaimSession = NonNullable<SubmitClaimParams['session']>;
+type SubmitClaimData = SubmitClaimParams['data'];
 
 // Mock domain logic
 vi.mock('@interdomestik/domain-claims/claims/submit', () => ({
@@ -18,7 +21,7 @@ vi.mock('@interdomestik/domain-claims/claims/submit', () => ({
 // Mock rate limiter
 const mockRateLimit = vi.fn();
 vi.mock('@/lib/rate-limit', () => ({
-  enforceRateLimitForAction: (...args: any[]) => mockRateLimit(...args),
+  enforceRateLimitForAction: (...args: unknown[]) => mockRateLimit(...args),
 }));
 
 vi.mock('@/lib/commercial-action-idempotency', () => ({
@@ -46,22 +49,47 @@ describe('actions/claims/submit', () => {
     mockRunCommercialActionWithIdempotency.mockImplementation(async ({ execute }) => execute());
   });
 
-  const validData = {
+  const mockSubmitClaimCoreDomain = vi.mocked(submitClaimCoreDomain);
+
+  const validData: SubmitClaimData = {
     category: 'transport',
     title: 'Damaged Goods',
     companyName: 'Transport Co',
     description: 'Received damaged goods during shipment',
+    currency: 'EUR',
     files: [],
   };
 
-  const validSession = {
-    user: { id: 'user-1', role: 'member', tenantId: 'tenant-1' },
-    excludes: () => false,
+  const validSession: SubmitClaimSession = {
+    session: {
+      id: 'session-1',
+      userId: 'user-1',
+      token: 'session-token',
+      expiresAt: new Date('2026-05-01T00:00:00.000Z'),
+      createdAt: new Date('2026-04-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-01T00:00:00.000Z'),
+    },
+    user: {
+      id: 'user-1',
+      name: 'Member User',
+      email: 'member@example.com',
+      emailVerified: true,
+      image: null,
+      createdAt: new Date('2026-04-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-01T00:00:00.000Z'),
+      role: 'member',
+      tenantId: 'tenant-1',
+      branchId: 'branch-1',
+      memberNumber: 'MBR-T1-000001',
+      tenantClassificationPending: false,
+      agentId: 'agent-1',
+      referralCode: 'REF-1',
+    },
   };
 
   it('succeeds when rate limit allows', async () => {
     mockRateLimit.mockResolvedValueOnce({ limited: false });
-    (submitClaimCoreDomain as any).mockResolvedValueOnce({
+    mockSubmitClaimCoreDomain.mockResolvedValueOnce({
       success: true,
       claimId: 'claim-1',
       claimNumber: 'CLM-T1-2026-000001',
@@ -69,9 +97,9 @@ describe('actions/claims/submit', () => {
 
     const result = await submitClaimCore({
       idempotencyKey: 'claim-submit-1',
-      session: validSession as any,
+      session: validSession,
       requestHeaders: new Headers(),
-      data: validData as any,
+      data: validData,
     });
 
     expect(result).toEqual({
@@ -109,19 +137,19 @@ describe('actions/claims/submit', () => {
 
   it('returns validated commercial escalation metadata for launch-scope claims', async () => {
     mockRateLimit.mockResolvedValueOnce({ limited: false });
-    (submitClaimCoreDomain as any).mockResolvedValueOnce({
+    mockSubmitClaimCoreDomain.mockResolvedValueOnce({
       success: true,
       claimId: 'claim-1',
       claimNumber: 'CLM-T1-2026-000001',
     });
 
     const result = await submitClaimCore({
-      session: validSession as any,
+      session: validSession,
       requestHeaders: new Headers(),
       data: {
         ...validData,
         category: 'vehicle',
-      } as any,
+      },
     });
 
     expect(result).toEqual({
@@ -143,14 +171,14 @@ describe('actions/claims/submit', () => {
 
   it('forwards diaspora handoff context to the domain submit path', async () => {
     mockRateLimit.mockResolvedValueOnce({ limited: false });
-    (submitClaimCoreDomain as any).mockResolvedValueOnce({
+    mockSubmitClaimCoreDomain.mockResolvedValueOnce({
       success: true,
       claimId: 'claim-1',
       claimNumber: 'CLM-T1-2026-000001',
     });
 
     await submitClaimCore({
-      session: validSession as any,
+      session: validSession,
       requestHeaders: new Headers(),
       handoffContext: {
         source: 'diaspora-green-card',
@@ -160,7 +188,7 @@ describe('actions/claims/submit', () => {
       data: {
         ...validData,
         category: 'travel',
-      } as any,
+      },
     });
 
     expect(submitClaimCoreDomain).toHaveBeenCalledWith(
@@ -179,9 +207,9 @@ describe('actions/claims/submit', () => {
     mockRateLimit.mockResolvedValueOnce({ limited: true });
 
     const result = await submitClaimCore({
-      session: validSession as any,
+      session: validSession,
       requestHeaders: new Headers(),
-      data: validData as any,
+      data: validData,
     });
 
     expect(result.success).toBe(false);
@@ -194,14 +222,14 @@ describe('actions/claims/submit', () => {
     mockRateLimit.mockResolvedValueOnce({ limited: false });
     // Import the mocked module to mock implementation
     const domain = await import('@interdomestik/domain-claims/claims/submit');
-    (domain.submitClaimCore as any).mockRejectedValueOnce(
+    vi.mocked(domain.submitClaimCore).mockRejectedValueOnce(
       new domain.ClaimValidationError('Invalid input')
     );
 
     const result = await submitClaimCore({
-      session: validSession as any,
+      session: validSession,
       requestHeaders: new Headers(),
-      data: validData as any,
+      data: validData,
     });
 
     expect(result).toEqual({ success: false, error: 'Invalid input', code: undefined });
