@@ -202,6 +202,8 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 127. Complete `P23-DG02` as the post-`P23-PERF02` design gate that ranks remaining responsiveness candidates and promotes `P23-PERF03 Admin Claims Filter Responsiveness` as the next bounded implementation slice on existing admin claims surfaces.
 128. Keep `P23-PERF03` complete as the admin claims filter responsiveness slice so existing admin claims search and filter transitions expose deterministic local pending feedback while preserving the canonical admin claims route, query contract, and access-control boundaries.
 129. Complete `P23-DG03` as the post-`P23-PERF03` design gate that ranks remaining responsiveness candidates and promotes `P23-PERF04 Member Claims Filter Responsiveness` as the next bounded implementation slice on the existing canonical member claims surface.
+130. Keep `P23-PERF04` complete as the member claims filter responsiveness slice so existing member claims search, status, and pagination transitions expose deterministic local pending feedback while preserving the canonical member claims route, query contract, table DTO, and access-control boundaries.
+131. Complete `P23-DG04` as the post-`P23-PERF04` design gate that ranks remaining responsiveness candidates and promotes `P23-PERF05 Admin Users Filter Responsiveness` as the next bounded implementation slice on the existing canonical admin users surface.
 
 ## Status Command
 
