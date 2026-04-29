@@ -46,11 +46,14 @@ function buildMemberClaimsUrl(
   params.delete('page');
 
   Object.entries(updates).forEach(([key, value]) => {
-    if (value && value !== 'all') {
-      params.set(key, value);
-    } else {
+    const shouldDelete = value === null || value === '' || (key === 'status' && value === 'all');
+
+    if (shouldDelete) {
       params.delete(key);
+      return;
     }
+
+    params.set(key, value);
   });
 
   const query = params.toString();

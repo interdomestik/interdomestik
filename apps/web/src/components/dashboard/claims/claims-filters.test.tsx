@@ -95,6 +95,18 @@ describe('ClaimsFilters', () => {
     expect(screen.getByTestId('member-claims-pending')).toHaveTextContent('Processing...');
   });
 
+  it('keeps a literal all search term instead of treating it as a status sentinel', () => {
+    render(<ClaimsFilters />);
+
+    fireEvent.change(screen.getByTestId('member-claims-search-input'), {
+      target: { value: 'all' },
+    });
+
+    expect(hoisted.push).toHaveBeenCalledWith('/member/claims?search=all', {
+      scroll: false,
+    });
+  });
+
   it('does not show pending feedback for a same-query search change', () => {
     hoisted.searchParams = new URLSearchParams('search=claim+42');
 
