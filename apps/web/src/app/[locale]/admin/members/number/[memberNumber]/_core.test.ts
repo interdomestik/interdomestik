@@ -19,7 +19,7 @@ describe('getMemberNumberResolverCore', () => {
       tenantId: 't1',
       role: 'tenant_admin',
       allowedRoles: ['tenant_admin'],
-      db: mockDb,
+      db: mockDb as never,
       parseMemberNumber: mockParse,
     });
     expect(result.ok).toBe(true);
@@ -32,7 +32,7 @@ describe('getMemberNumberResolverCore', () => {
       tenantId: 't1',
       role: 'agent',
       allowedRoles: ['tenant_admin'],
-      db: mockDb,
+      db: mockDb as never,
       parseMemberNumber: mockParse,
     });
     expect(result.ok).toBe(false);
@@ -46,7 +46,7 @@ describe('getMemberNumberResolverCore', () => {
       tenantId: 't1',
       role: 'tenant_admin',
       allowedRoles: ['tenant_admin'],
-      db: mockDb,
+      db: mockDb as never,
       parseMemberNumber: mockParse,
     });
     expect(result.ok).toBe(false);

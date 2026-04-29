@@ -67,12 +67,30 @@ export function OpsDocumentsPanel({
   );
 }
 
-export function toOpsDocuments(docs: any[]): OpsDocument[] {
+export function toOpsDocuments(docs: unknown[]): OpsDocument[] {
   if (!Array.isArray(docs)) return [];
-  return docs.map(d => ({
-    id: d.id,
-    name: d.name || d.fileName || 'Document',
-    url: d.url || d.path,
-    uploadedAt: d.createdAt || d.uploadedAt,
-  }));
+  return docs.flatMap(rawDoc => {
+    const d = rawDoc as {
+      id?: string;
+      name?: string;
+      fileName?: string;
+      url?: string;
+      path?: string;
+      createdAt?: string;
+      uploadedAt?: string;
+    };
+
+    if (!d.id) {
+      return [];
+    }
+
+    return [
+      {
+        id: d.id,
+        name: d.name || d.fileName || 'Document',
+        url: d.url || d.path,
+        uploadedAt: d.createdAt || d.uploadedAt,
+      },
+    ];
+  });
 }

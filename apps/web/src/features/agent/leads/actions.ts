@@ -10,6 +10,26 @@ import { headers } from 'next/headers';
 
 type LeadScope = 'tenant' | 'agent';
 type LeadScopeCondition = SQL<unknown>;
+type LeadStatus = typeof memberLeads.$inferInsert.status;
+
+const LEAD_STATUSES = [
+  'new',
+  'contacted',
+  'payment_pending',
+  'paid',
+  'converted',
+  'lost',
+  'disqualified',
+  'expired',
+] as const satisfies readonly LeadStatus[];
+
+function assertLeadStatus(status: string): LeadStatus {
+  if ((LEAD_STATUSES as readonly string[]).includes(status)) {
+    return status as LeadStatus;
+  }
+
+  throw new Error('Invalid lead status');
+}
 
 async function resolveLeadAccess(params: {
   leadId: string;
@@ -54,7 +74,7 @@ async function resolveLeadAccess(params: {
 
 async function updateLeadStatusCore(params: {
   leadId: string;
-  status: string;
+  status: LeadStatus;
   tenantId: string;
   scopedWhere: LeadScopeCondition;
 }) {
@@ -76,7 +96,7 @@ async function updateLeadStatusCore(params: {
     await db
       .update(memberLeads)
       .set({
-        status: status as any,
+        status,
         updatedAt: new Date(),
       })
       .where(scopedWhere);
@@ -92,7 +112,7 @@ async function updateLeadStatusCore(params: {
  */
 export async function updateLeadStatus(leadId: string, status: string) {
   const { tenantId, scopedWhere } = await resolveLeadAccess({ leadId, scope: 'tenant' });
-  return updateLeadStatusCore({ leadId, status, tenantId, scopedWhere });
+  return updateLeadStatusCore({ leadId, status: assertLeadStatus(status), tenantId, scopedWhere });
 }
 
 /**

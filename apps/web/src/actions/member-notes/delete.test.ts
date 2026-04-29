@@ -48,6 +48,16 @@ describe('deleteMemberNoteCore', () => {
     vi.clearAllMocks();
   });
 
+  function mockExistingNote(authorId: string): void {
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          limit: vi.fn(() => [{ id: 'note-1', authorId, tenantId: 'tenant-1', memberId: 'm1' }]),
+        })),
+      })),
+    } as never);
+  }
+
   const mockAdminSession = {
     user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' },
   };
@@ -57,21 +67,10 @@ describe('deleteMemberNoteCore', () => {
   };
 
   it('allows author to delete their own note', async () => {
-    // Mock existing note owned by staff-1
-    (db.select as any).mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue([
-              { id: 'note-1', authorId: 'staff-1', tenantId: 'tenant-1', memberId: 'm1' },
-            ]),
-        }),
-      }),
-    });
+    mockExistingNote('staff-1');
 
     const result = await deleteMemberNoteCore({
-      session: mockStaffSession as any,
+      session: mockStaffSession as never,
       noteId: 'note-1',
     });
 
@@ -80,21 +79,10 @@ describe('deleteMemberNoteCore', () => {
   });
 
   it("prevents staff from deleting another staff member's note", async () => {
-    // Mock existing note owned by other-staff
-    (db.select as any).mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue([
-              { id: 'note-1', authorId: 'other-staff', tenantId: 'tenant-1', memberId: 'm1' },
-            ]),
-        }),
-      }),
-    });
+    mockExistingNote('other-staff');
 
     const result = await deleteMemberNoteCore({
-      session: mockStaffSession as any,
+      session: mockStaffSession as never,
       noteId: 'note-1',
     });
 
@@ -103,21 +91,10 @@ describe('deleteMemberNoteCore', () => {
   });
 
   it('allows admin to delete any note', async () => {
-    // Mock existing note owned by staff-1
-    (db.select as any).mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue([
-              { id: 'note-1', authorId: 'staff-1', tenantId: 'tenant-1', memberId: 'm1' },
-            ]),
-        }),
-      }),
-    });
+    mockExistingNote('staff-1');
 
     const result = await deleteMemberNoteCore({
-      session: mockAdminSession as any,
+      session: mockAdminSession as never,
       noteId: 'note-1',
     });
 

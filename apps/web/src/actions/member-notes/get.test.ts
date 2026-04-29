@@ -64,7 +64,7 @@ describe('getMemberNotesCore', () => {
 
   it('prevents cross-tenant access via checks', async () => {
     // Check that we call where with tenantId
-    (db.select as any).mockReturnValue({
+    vi.mocked(db.select).mockReturnValue({
       from: vi.fn().mockReturnValue({
         leftJoin: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -72,10 +72,10 @@ describe('getMemberNotesCore', () => {
           }),
         }),
       }),
-    });
+    } as never);
 
     const result = await getMemberNotesCore({
-      session: mockAdminSession as any,
+      session: mockAdminSession as never,
       memberId: 'some-member',
     });
 

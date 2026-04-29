@@ -151,7 +151,7 @@ export function AgentClaimsTable({
         <OpsStatusBadge
           key="status"
           variant={toOpsBadgeVariant(claim.status)}
-          label={t(`status.${claim.status}` as any)}
+          label={t(`status.${claim.status}` as never)}
         />,
         <span
           key="amount"

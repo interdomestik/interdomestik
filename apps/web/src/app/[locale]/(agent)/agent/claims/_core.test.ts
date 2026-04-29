@@ -30,7 +30,7 @@ describe('getAgentClaimsCore', () => {
 
   it('returns forbidden for non-agent role', async () => {
     const mockParams = createMockParams();
-    const result = await getAgentClaimsCore({ ...mockParams, role: 'member' });
+    const result = await getAgentClaimsCore({ ...mockParams, role: 'member' } as never);
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.code).toBe('FORBIDDEN');
@@ -42,7 +42,7 @@ describe('getAgentClaimsCore', () => {
     mockParams.db.query.user.findMany.mockResolvedValue([]);
     mockParams.mocks.selectWhere.mockResolvedValue([]);
 
-    const result = await getAgentClaimsCore(mockParams);
+    const result = await getAgentClaimsCore(mockParams as never);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data).toEqual([]);
@@ -64,7 +64,7 @@ describe('getAgentClaimsCore', () => {
     mockParams.db.query.user.findMany.mockResolvedValue(mockMembers);
     mockParams.db.query.claims.findMany.mockResolvedValue(mockClaims);
 
-    const result = await getAgentClaimsCore(mockParams);
+    const result = await getAgentClaimsCore(mockParams as never);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.length).toBe(1); // Only member 1 has claims
@@ -83,7 +83,7 @@ describe('getAgentClaimsCore', () => {
       { id: 'c3', userId: 'm3', title: 'Claim 3', status: 'submitted', createdAt: new Date() },
     ]);
 
-    const result = await getAgentClaimsCore(mockParams);
+    const result = await getAgentClaimsCore(mockParams as never);
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -107,7 +107,7 @@ describe('getAgentClaimsCore', () => {
       { id: 'c4', userId: 'm4', title: 'Claim 4', status: 'submitted', createdAt: new Date() },
     ]);
 
-    const result = await getAgentClaimsCore(mockParams);
+    const result = await getAgentClaimsCore(mockParams as never);
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -133,7 +133,7 @@ describe('getAgentClaimsCore', () => {
       },
     ]);
 
-    const result = await getAgentClaimsCore(mockParams);
+    const result = await getAgentClaimsCore(mockParams as never);
 
     expect(result.ok).toBe(true);
     if (result.ok) {

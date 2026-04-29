@@ -146,7 +146,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
                 <div className="mt-8 relative z-10">
                   <div className="text-xs opacity-50 mb-1">{t('card_id_prefix')}</div>
                   <div className="text-lg font-mono tracking-widest">
-                    {(session.user as any).memberNumber ||
+                    {(session.user as { memberNumber?: string | null }).memberNumber ||
                       `ID-${session.user.id.slice(0, 8).toUpperCase()}`}
                   </div>
                 </div>
@@ -218,7 +218,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
               <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center">
                 <span className="text-primary font-bold">{i}</span>
               </div>
-              <p className="text-sm font-medium leading-relaxed">{t(`benefits_${i}` as any)}</p>
+              <p className="text-sm font-medium leading-relaxed">{t(`benefits_${i}` as never)}</p>
             </div>
           ))}
         </div>

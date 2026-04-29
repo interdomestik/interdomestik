@@ -1,11 +1,12 @@
+import type * as DatabaseModule from '@interdomestik/database';
+
+type DatabaseClient = typeof DatabaseModule.db;
+type MemberLeadRow = Awaited<
+  ReturnType<DatabaseClient['query']['memberLeads']['findMany']>
+>[number];
+
 export interface AgentLeadsServices {
-  db: {
-    query: {
-      memberLeads: {
-        findMany: (args: any) => Promise<any[]>;
-      };
-    };
-  };
+  db: DatabaseClient;
 }
 
 /**
@@ -18,7 +19,7 @@ export async function getAgentLeadsCore(
     agentId?: string; // Optional: can be used for further isolation if needed
   },
   services: AgentLeadsServices
-): Promise<any[]> {
+): Promise<MemberLeadRow[]> {
   const { tenantId } = params;
   const { db } = services;
 
@@ -26,8 +27,8 @@ export async function getAgentLeadsCore(
   // Note: Original route ONLY filtered by tenantId, not agentId.
   // We keep this behavior but allow agentId for future refinement.
   return db.query.memberLeads.findMany({
-    where: (leads: any, { eq }: any) => eq(leads.tenantId, tenantId),
-    orderBy: (leads: any, { desc }: any) => [desc(leads.createdAt)],
+    where: (leads, { eq }) => eq(leads.tenantId, tenantId),
+    orderBy: (leads, { desc }) => [desc(leads.createdAt)],
     with: {
       branch: true,
     },

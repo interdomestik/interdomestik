@@ -2,6 +2,12 @@ import { db } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { computeSuccessRate, getAdminAnalyticsDataCore, normalizeTotalsRow } from './_core';
 
+type AnalyticsDbMock = {
+  then: {
+    mockImplementationOnce: (implementation: unknown) => AnalyticsDbMock['then'];
+  };
+};
+
 vi.mock('@interdomestik/database', () => {
   const mockDbResult = {
     then: vi.fn(),
@@ -25,7 +31,7 @@ vi.mock('@interdomestik/database', () => {
       userId: 'userId',
       tenantId: 'tenantId',
     },
-    sql: (strings: any, ..._values: any[]) => strings[0],
+    sql: (strings: TemplateStringsArray, ..._values: unknown[]) => strings[0],
   };
 });
 
@@ -52,11 +58,18 @@ describe('admin analytics _core', () => {
 
   describe('getAdminAnalyticsDataCore', () => {
     it('fetches data successfully', async () => {
-      (db as any).then
-        .mockImplementationOnce((cb: any) => cb([{ sum: 1000, avg: 500, count: 2 }]))
-        .mockImplementationOnce((cb: any) => cb([{ status: 'resolved', count: 1 }]))
-        .mockImplementationOnce((cb: any) => cb([{ category: 'test', count: 2 }]))
-        .mockImplementationOnce((cb: any) => cb([{ count: 1 }]));
+      (db as unknown as AnalyticsDbMock).then
+        .mockImplementationOnce(
+          (cb: (rows: { sum: number; avg: number; count: number }[]) => unknown) =>
+            cb([{ sum: 1000, avg: 500, count: 2 }])
+        )
+        .mockImplementationOnce((cb: (rows: { status: string; count: number }[]) => unknown) =>
+          cb([{ status: 'resolved', count: 1 }])
+        )
+        .mockImplementationOnce((cb: (rows: { category: string; count: number }[]) => unknown) =>
+          cb([{ category: 'test', count: 2 }])
+        )
+        .mockImplementationOnce((cb: (rows: { count: number }[]) => unknown) => cb([{ count: 1 }]));
 
       const result = await getAdminAnalyticsDataCore({ user: { tenantId: 'tenant-1' } });
       expect(result.totals.count).toBe(2);

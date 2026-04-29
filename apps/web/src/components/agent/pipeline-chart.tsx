@@ -4,15 +4,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@inte
 import { useTranslations } from 'next-intl';
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-type PipelineChartProps = {
+type PipelineChartProps = Readonly<{
   data: {
     newLeads: number;
     contactedLeads: number;
     wonDeals: number;
   };
+}>;
+
+type TooltipPayload = {
+  payload: { name: string };
+  value: number;
 };
 
-function CustomTooltip({ active, payload }: any) {
+function CustomTooltip({
+  active,
+  payload,
+}: Readonly<{ active?: boolean; payload?: TooltipPayload[] }>) {
   if (active && payload?.length) {
     return (
       <div className="rounded-lg border bg-background p-2 shadow-sm">

@@ -255,7 +255,7 @@ describe('StaffClaimsPage', () => {
         assigneeName: 'Agim Ramadani',
         assigneeEmail: 'agim@example.com',
       },
-    ] as any);
+    ] as never);
 
     const tree = await StaffClaimsPage({
       params: Promise.resolve({ locale: 'en' }),
@@ -346,7 +346,7 @@ describe('StaffClaimsPage', () => {
         memberNumber: null,
         staffId: null,
       },
-    ] as any);
+    ] as never);
 
     const tree = await StaffClaimsPage({
       params: Promise.resolve({ locale: 'sq' }),

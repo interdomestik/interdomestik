@@ -1,5 +1,8 @@
 import { agentClients, claims, user } from '@interdomestik/database/schema';
+import type * as DatabaseModule from '@interdomestik/database';
 import { and, desc, eq, inArray, ne } from 'drizzle-orm';
+
+type DatabaseClient = typeof DatabaseModule.db;
 
 export interface AgentMemberClaimsDTO {
   memberId: string;
@@ -45,7 +48,7 @@ export async function getAgentClaimsCore(params: {
   userId: string;
   role: string;
   branchId?: string | null;
-  db: any;
+  db: DatabaseClient;
 }): Promise<AgentClaimsResult> {
   const { tenantId, userId, role, branchId, db } = params;
 

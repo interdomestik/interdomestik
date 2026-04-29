@@ -63,6 +63,28 @@ describe('updateMemberNoteCore', () => {
     vi.clearAllMocks();
   });
 
+  function mockCurrentNote(authorId: string): void {
+    vi.mocked(db.select).mockReturnValueOnce({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          limit: vi.fn(() => [{ id: 'note-1', authorId, tenantId: 'tenant-1', memberId: 'm1' }]),
+        })),
+      })),
+    } as never);
+  }
+
+  function mockUpdatedNote(content: string): void {
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn(() => ({
+        leftJoin: vi.fn(() => ({
+          where: vi.fn(() => ({
+            limit: vi.fn(() => [{ id: 'note-1', content }]),
+          })),
+        })),
+      })),
+    } as never);
+  }
+
   const mockAdminSession = {
     user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' },
   };
@@ -72,32 +94,11 @@ describe('updateMemberNoteCore', () => {
   };
 
   it('allows author to update their own note', async () => {
-    // Mock existing note owned by staff-1
-    (db.select as any).mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue([
-              { id: 'note-1', authorId: 'staff-1', tenantId: 'tenant-1', memberId: 'm1' },
-            ]),
-        }),
-      }),
-    });
-
-    // Mock return of updated note
-    (db.select as any).mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        leftJoin: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue([{ id: 'note-1', content: 'Updated' }]),
-          }),
-        }),
-      }),
-    });
+    mockCurrentNote('staff-1');
+    mockUpdatedNote('Updated');
 
     const result = await updateMemberNoteCore({
-      session: mockStaffSession as any,
+      session: mockStaffSession as never,
       data: { id: 'note-1', content: 'Updated' },
     });
 
@@ -106,21 +107,10 @@ describe('updateMemberNoteCore', () => {
   });
 
   it("prevents staff from updating another staff member's note", async () => {
-    // Mock existing note owned by other-staff
-    (db.select as any).mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue([
-              { id: 'note-1', authorId: 'other-staff', tenantId: 'tenant-1', memberId: 'm1' },
-            ]),
-        }),
-      }),
-    });
+    mockCurrentNote('other-staff');
 
     const result = await updateMemberNoteCore({
-      session: mockStaffSession as any,
+      session: mockStaffSession as never,
       data: { id: 'note-1', content: 'Updated' },
     });
 
@@ -129,31 +119,11 @@ describe('updateMemberNoteCore', () => {
   });
 
   it('allows admin to update any note', async () => {
-    // Mock existing note owned by staff-1
-    (db.select as any).mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue([
-              { id: 'note-1', authorId: 'staff-1', tenantId: 'tenant-1', memberId: 'm1' },
-            ]),
-        }),
-      }),
-    });
-    // Mock return of updated note
-    (db.select as any).mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        leftJoin: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue([{ id: 'note-1', content: 'Updated by Admin' }]),
-          }),
-        }),
-      }),
-    });
+    mockCurrentNote('staff-1');
+    mockUpdatedNote('Updated by Admin');
 
     const result = await updateMemberNoteCore({
-      session: mockAdminSession as any,
+      session: mockAdminSession as never,
       data: { id: 'note-1', content: 'Updated by Admin' },
     });
 

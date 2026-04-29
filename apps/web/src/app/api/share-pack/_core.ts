@@ -87,8 +87,8 @@ export async function createSharePackCore(params: {
         validUntil: result.expiresAt.toISOString(),
       },
     };
-  } catch (error: any) {
-    if (error.message === 'Invalid IDs') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Invalid IDs') {
       return { ok: false, error: 'Invalid IDs' };
     }
     throw error;

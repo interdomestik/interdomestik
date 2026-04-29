@@ -7,12 +7,13 @@ import {
   memberLeads,
   subscriptions,
 } from '@interdomestik/database/schema';
+import type * as DatabaseModule from '@interdomestik/database';
 import { and, count, eq, inArray, not, sql } from 'drizzle-orm';
 
+type DatabaseClient = typeof DatabaseModule.db;
+
 export interface AgentDashboardServices {
-  db: {
-    select: any;
-  };
+  db: DatabaseClient;
 }
 
 /**

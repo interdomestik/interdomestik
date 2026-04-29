@@ -38,7 +38,7 @@ describe('getWrappedStatsCore', () => {
   it('should throw when tenant context is missing', async () => {
     await expect(
       getWrappedStatsCore({
-        session: { user: { id: 'u1', name: 'John', tenantId: null } } as any,
+        session: { user: { id: 'u1', name: 'John', tenantId: null } } as never,
       })
     ).rejects.toThrow('Session missing tenantId. Data integrity issue.');
     expect(db.query.subscriptions.findFirst).not.toHaveBeenCalled();
@@ -46,8 +46,8 @@ describe('getWrappedStatsCore', () => {
   });
 
   it('should return null if no subscription', async () => {
-    (db.query.subscriptions.findFirst as any).mockResolvedValue(null);
-    const result = await getWrappedStatsCore({ session: mockSession as any });
+    vi.mocked(db.query.subscriptions.findFirst).mockResolvedValue(null as never);
+    const result = await getWrappedStatsCore({ session: mockSession as never });
     expect(result).toBeNull();
   });
 
@@ -55,17 +55,17 @@ describe('getWrappedStatsCore', () => {
     const createdAt = new Date();
     createdAt.setFullYear(createdAt.getFullYear() - 1); // 1 year ago
 
-    (db.query.subscriptions.findFirst as any).mockResolvedValue({
+    vi.mocked(db.query.subscriptions.findFirst).mockResolvedValue({
       planId: 'silver',
       createdAt: createdAt,
-    });
+    } as never);
 
-    (db.query.claims.findMany as any).mockResolvedValue([
+    vi.mocked(db.query.claims.findMany).mockResolvedValue([
       { status: 'resolved', claimAmount: '1000' },
       { status: 'pending', claimAmount: '500' },
-    ]);
+    ] as never);
 
-    const result = await getWrappedStatsCore({ session: mockSession as any });
+    const result = await getWrappedStatsCore({ session: mockSession as never });
 
     expect(result).not.toBeNull();
     if (result) {

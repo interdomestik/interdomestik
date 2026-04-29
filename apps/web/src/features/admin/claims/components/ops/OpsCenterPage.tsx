@@ -86,16 +86,18 @@ export default async function OpsCenterPage({ searchParams }: OpsCenterPageProps
         </GlassCard>
       </div>
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('OpsCenterPage Crashed:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
     return (
       <div
         className="p-8 text-red-500 bg-red-500/10 rounded-lg border border-red-500/20"
         data-testid="error-boundary"
       >
         <h1 className="text-xl font-bold">Ops Center Crashed</h1>
-        <pre className="mt-2 text-xs overflow-auto">{error.message}</pre>
-        <pre className="mt-1 text-xs opacity-50 text-muted-foreground">{error.stack}</pre>
+        <pre className="mt-2 text-xs overflow-auto">{message}</pre>
+        <pre className="mt-1 text-xs opacity-50 text-muted-foreground">{stack}</pre>
       </div>
     );
   }

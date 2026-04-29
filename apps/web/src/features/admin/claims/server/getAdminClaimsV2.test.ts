@@ -302,7 +302,7 @@ describe('getAdminClaimsV2', () => {
     ]);
     hoisted.countQuery.where.mockResolvedValue([{ totalCount: 1 }]);
     hoisted.mapClaimsToOperationalRows.mockImplementation(rows =>
-      rows.map((row: any) => ({
+      rows.map((row: { claim: { id: string; diasporaCountry?: string | null } }) => ({
         id: row.claim.id,
         diasporaCountry: row.claim.diasporaCountry ?? null,
       }))
@@ -319,7 +319,7 @@ describe('getAdminClaimsV2', () => {
         role: 'admin',
         branchId: null,
       },
-      { diasporaOrigin: 'diaspora' as any }
+      { diasporaOrigin: 'diaspora' as never }
     );
 
     expect(hoisted.buildDiasporaOriginClaimIdsSubquery).toHaveBeenCalledWith('tenant-A');

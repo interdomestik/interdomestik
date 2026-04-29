@@ -30,8 +30,10 @@ export default async function AdminAnalyticsPage({ params }: AdminAnalyticsPageP
   let data;
   try {
     data = await getAdminAnalyticsDataCore({ user: { tenantId: session.user.tenantId } });
-  } catch (err: any) {
-    if (err?.name === 'UnauthorizedError' || err?.message === 'Unauthorized') {
+  } catch (err: unknown) {
+    const name = err instanceof Error ? err.name : undefined;
+    const message = err instanceof Error ? err.message : undefined;
+    if (name === 'UnauthorizedError' || message === 'Unauthorized') {
       const { notFound } = await import('next/navigation');
       notFound();
     }

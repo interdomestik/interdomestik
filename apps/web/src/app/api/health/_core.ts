@@ -1,13 +1,16 @@
 export type HealthResult = {
-  status: 'healthy' | 'unhealthy';
+  status: 'healthy' | 'unhealthy' | 'degraded';
   timestamp: string;
-  data?: any;
+  data?: unknown;
   error?: string;
   statusCode: number;
 };
 
 export interface HealthServices {
-  performHealthCheckFn: () => Promise<any>;
+  performHealthCheckFn: () => Promise<{
+    status: 'healthy' | 'unhealthy' | 'degraded';
+    timestamp?: string;
+  }>;
 }
 
 /**

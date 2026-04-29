@@ -19,16 +19,12 @@ export type GroupDashboardSummary = {
 };
 
 export interface GroupDashboardSummaryServices {
-  db: {
-    groupBy?: any;
-    innerJoin?: any;
-    select: any;
-  };
+  db: typeof db;
 }
 
 type OpenClaimStatusCountRow = {
   count: number | string;
-  status: ClaimStatus;
+  status: ClaimStatus | null;
 };
 
 function emptySummary(): GroupDashboardSummary {
@@ -112,7 +108,7 @@ export async function getGroupDashboardSummaryCore(
   const sla = openClaimStatusCounts.reduce(
     (totals, claimGroup) => {
       const claimCount = Number(claimGroup.count);
-      const phase = deriveClaimSlaPhase(claimGroup.status);
+      const phase = deriveClaimSlaPhase(claimGroup.status ?? 'draft');
 
       if (phase === 'running') totals.runningCount += claimCount;
       if (phase === 'incomplete') totals.incompleteCount += claimCount;

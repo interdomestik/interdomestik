@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DashboardHeader } from './dashboard-header';
 
@@ -32,12 +33,14 @@ vi.mock('@interdomestik/ui', () => ({
     </button>
   ),
   Separator: () => <div data-testid="separator" />,
-  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
-  Dialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DialogTitle: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  Input: (props: any) => <input {...props} />,
+  Button: ({ children, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button {...props}>{children}</button>
+  ),
+  Dialog: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DialogContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DialogHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DialogTitle: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Input: (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
 describe('DashboardHeader', () => {

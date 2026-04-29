@@ -22,7 +22,7 @@ describe('Staff Dashboard Query Contracts', () => {
     };
 
     it('returns forbidden for non-staff roles', async () => {
-      const result = await getStaffDashboardCore({ ...mockParams, role: 'member' });
+      const result = await getStaffDashboardCore({ ...mockParams, role: 'member' } as never);
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.code).toBe('FORBIDDEN');
@@ -30,7 +30,7 @@ describe('Staff Dashboard Query Contracts', () => {
     });
 
     it('asserts tenant isolation in all aggregate queries', async () => {
-      await getStaffDashboardCore(mockParams);
+      await getStaffDashboardCore(mockParams as never);
 
       // select() should be called 4 times for stats (total, new, inProgress, completed)
       expect(mockParams.db.select).toHaveBeenCalledTimes(4);
@@ -40,7 +40,7 @@ describe('Staff Dashboard Query Contracts', () => {
     });
 
     it('asserts tenant isolation for recent claims query', async () => {
-      await getStaffDashboardCore(mockParams);
+      await getStaffDashboardCore(mockParams as never);
 
       expect(mockParams.db.query.claims.findMany).toHaveBeenCalledWith(
         expect.objectContaining({

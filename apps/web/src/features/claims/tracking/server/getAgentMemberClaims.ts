@@ -3,7 +3,7 @@ import { agentClients, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { and, desc, eq, inArray, ne } from 'drizzle-orm';
 import 'server-only';
-import { ensureClaimsAccess } from '../../../../server/domains/claims/guards';
+import { ensureClaimsAccess, type ClaimsSession } from '../../../../server/domains/claims/guards';
 import { buildClaimVisibilityWhere } from '../utils';
 
 export interface AgentMemberClaimsDto {
@@ -20,7 +20,9 @@ export interface AgentMemberClaimsDto {
   }[];
 }
 
-export async function getAgentMemberClaims(session: any): Promise<AgentMemberClaimsDto[]> {
+export async function getAgentMemberClaims(
+  session: ClaimsSession | null
+): Promise<AgentMemberClaimsDto[]> {
   return Sentry.withServerActionInstrumentation(
     'claims.tracking.agent',
     { recordResponse: true },

@@ -2,7 +2,7 @@ export type OpsTelemetryEvent = {
   surface: 'verification' | 'claims' | 'membership' | 'leads' | 'unknown';
   action: 'view' | 'select' | 'approve' | 'reject' | 'needs_info' | 'filter' | 'search';
   entityId?: string;
-  meta?: Record<string, any>;
+  meta?: Record<string, unknown>;
 };
 
 const IS_DEBUG = process.env.NEXT_PUBLIC_OPS_TELEMETRY === '1';

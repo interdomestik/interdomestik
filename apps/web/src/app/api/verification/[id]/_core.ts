@@ -1,11 +1,22 @@
 export type VerificationResult =
-  | { kind: 'ok'; data: any }
+  | { kind: 'ok'; data: unknown }
   | { kind: 'unauthorized' }
   | { kind: 'forbidden' }
   | { kind: 'notFound' };
 
+export type VerificationContext = {
+  tenantId: string;
+  userId: string;
+  userRole: string;
+  scope: {
+    branchId: string | null;
+    actorAgentId: string | null;
+    attributedAgentId: string | null;
+  };
+};
+
 export interface VerificationServices {
-  getVerificationDetailsFn: (ctx: any, id: string) => Promise<any>;
+  getVerificationDetailsFn: (ctx: VerificationContext, id: string) => Promise<unknown>;
 }
 
 /**

@@ -48,7 +48,7 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     insert: () => ({ values: mockDbInsert }),
     update: () => ({ set: () => ({ where: mockDbUpdate }) }),
-    transaction: async (fn: (tx: any) => Promise<void>) => {
+    transaction: async (fn: (tx: unknown) => Promise<void>) => {
       return fn({
         insert: () => ({
           values: mockDbInsert,
@@ -134,7 +134,7 @@ vi.mock('@interdomestik/database', () => ({
   },
   and: vi.fn(),
   eq: vi.fn(),
-  sql: (_strings: TemplateStringsArray, ..._values: any[]) => 'sql-mock',
+  sql: (_strings: TemplateStringsArray, ..._values: unknown[]) => 'sql-mock',
 }));
 
 // Mock nanoid
@@ -252,7 +252,7 @@ describe('Claim Actions', () => {
       });
 
       const tenantSettingsFindFirst = db.query.tenantSettings
-        .findFirst as unknown as MockResolvedOnce;
+        .findFirst as never as MockResolvedOnce;
 
       tenantSettingsFindFirst.mockResolvedValueOnce({
         value: { branchId: 'branch-mk-skopje-center' },

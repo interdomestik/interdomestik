@@ -26,9 +26,9 @@ describe('claims draft.core', () => {
   });
 
   it('should call domain updateDraftClaimCore', async () => {
-    const data = { category: 'test' } as any;
+    const data = { category: 'test' } as never;
     const params = {
-      session: mockSession as any,
+      session: mockSession as never,
       requestHeaders: mockHeaders,
       claimId: 'c1',
       data,
@@ -43,7 +43,7 @@ describe('claims draft.core', () => {
   });
 
   it('should call domain cancelClaimCore', async () => {
-    const params = { session: mockSession as any, requestHeaders: mockHeaders, claimId: 'c1' };
+    const params = { session: mockSession as never, requestHeaders: mockHeaders, claimId: 'c1' };
 
     await cancelClaimCore(params);
 

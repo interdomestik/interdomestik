@@ -74,7 +74,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   await logAuditEvent({
     actorId: session.user.id,
     actorRole: access.audit.actorRole,
-    action: access.audit.action as any,
+    action: access.audit.action,
     entityType: access.audit.entityType,
     entityId: access.audit.entityId,
     metadata: access.audit.metadata,

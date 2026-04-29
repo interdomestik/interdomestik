@@ -15,7 +15,7 @@ describe('getGroupDashboardSummaryCore', () => {
     where: vi.fn(),
   };
 
-  const services = { db: mockDb as any };
+  const services = { db: mockDb as never };
 
   beforeEach(() => {
     mockDb.groupBy.mockClear();

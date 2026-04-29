@@ -13,9 +13,9 @@ export type RegisterRequestDTO = z.infer<typeof registerSchema>;
 
 export interface RegisterResult {
   ok: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
-  details?: any;
+  details?: unknown;
   status: number;
 }
 
@@ -24,7 +24,7 @@ export interface RegisterServices {
     actor: { id: string; name: string | null },
     tenantId: string,
     formData: FormData
-  ) => Promise<any>;
+  ) => Promise<unknown>;
 }
 
 /**

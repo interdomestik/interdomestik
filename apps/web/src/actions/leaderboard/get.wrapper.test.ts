@@ -2,40 +2,39 @@ import { db } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAgentLeaderboardCore } from './get.core';
 
+type LeaderboardRow = { agentId: string; totalEarned: string; dealCount: number };
+type LeaderboardSelectChain = {
+  from: () => {
+    where: () => {
+      groupBy: () => {
+        orderBy: () => {
+          limit: { mockReturnValue: (value: Promise<LeaderboardRow[]>) => unknown };
+        };
+      };
+    };
+  };
+};
+
 // Mock DB
 vi.mock('@interdomestik/database', () => {
   const mockQueryUser = {
     findFirst: vi.fn(),
   };
 
-  const resultObj = {
-    then: (cb: any) => Promise.resolve(cb([])),
-    catch: vi.fn(),
-  };
+  const limit = vi.fn().mockReturnValue(Promise.resolve([]));
+  const orderBy = vi.fn().mockReturnValue({ limit });
+  const groupBy = vi.fn().mockReturnValue({ orderBy });
+  const where = vi.fn().mockReturnValue({ groupBy });
+  const from = vi.fn().mockReturnValue({ where });
 
   return {
     db: {
       select: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            groupBy: vi.fn().mockReturnValue({
-              orderBy: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue(resultObj),
-                ...resultObj,
-              }),
-              ...resultObj,
-            }),
-            ...resultObj,
-          }),
-          ...resultObj,
-        }),
-        ...resultObj,
+        from,
       }),
       query: {
         user: mockQueryUser,
       },
-      // Fallback for direct calls if any
-      then: resultObj.then,
     },
     agentCommissions: {
       agentId: 'ac_agentId',
@@ -84,23 +83,24 @@ describe('getAgentLeaderboardCore', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (db.query.user.findFirst as any).mockResolvedValue({ name: 'Agent Name', image: 'u_image' });
+    vi.mocked(db.query.user.findFirst).mockResolvedValue({
+      name: 'Agent Name',
+      image: 'u_image',
+    } as never);
   });
 
   it('should query db with correct filters for week', async () => {
     const mockDbResult = [{ agentId: 'a1', totalEarned: '100', dealCount: 5 }];
     // The chain ends with .limit() which returns our resultObj.
     // We need to override the then for this specific call.
-    (db.select() as any)
+    (db.select() as unknown as LeaderboardSelectChain)
       .from()
       .where()
       .groupBy()
       .orderBy()
-      .limit.mockReturnValue({
-        then: (cb: any) => Promise.resolve(cb(mockDbResult)),
-      });
+      .limit.mockReturnValue(Promise.resolve(mockDbResult));
 
-    const result = await getAgentLeaderboardCore({ session: mockSession as any, period: 'week' });
+    const result = await getAgentLeaderboardCore({ session: mockSession as never, period: 'week' });
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -111,16 +111,14 @@ describe('getAgentLeaderboardCore', () => {
   });
 
   it('should handle db errors', async () => {
-    (db.select() as any)
+    (db.select() as unknown as LeaderboardSelectChain)
       .from()
       .where()
       .groupBy()
       .orderBy()
-      .limit.mockReturnValue({
-        then: (cb: any, errCb: any) => Promise.reject(new Error('DB Fail')).catch(errCb),
-      });
+      .limit.mockReturnValue(Promise.reject(new Error('DB Fail')));
 
-    const result = await getAgentLeaderboardCore({ session: mockSession as any, period: 'week' });
+    const result = await getAgentLeaderboardCore({ session: mockSession as never, period: 'week' });
     expect(result).toEqual({ success: false, error: 'Failed to fetch leaderboard' });
   });
 });

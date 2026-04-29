@@ -1,5 +1,8 @@
 import { agentClients, claimMessages, claims, user } from '@interdomestik/database/schema';
+import type * as DatabaseModule from '@interdomestik/database';
 import { and, count, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
+
+type DatabaseClient = typeof DatabaseModule.db;
 
 export interface AgentProClaimDTO {
   id: string;
@@ -120,7 +123,7 @@ async function getClaimByIdInWorkspaceScope(params: {
   assignedMemberIds: string[];
   branchId?: string | null;
   claimId: string;
-  db: any;
+  db: DatabaseClient;
 }): Promise<AgentProClaimDTO | null> {
   const { tenantId, claimId, assignedMemberIds, branchId, db } = params;
 
@@ -162,7 +165,7 @@ function buildUnreadMessagesWhere(params: { userId: string; claimIds: string[] }
 export async function getAgentWorkspaceClaimsCore(params: {
   tenantId: string;
   userId: string;
-  db: any;
+  db: DatabaseClient;
   selectedClaimId?: string;
 }): Promise<AgentWorkspaceClaimsResult> {
   const { tenantId, userId, db, selectedClaimId } = params;
@@ -282,7 +285,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
     selectedClaim.lastMessage = snippetMap.get(selectedClaim.id) || null;
   }
 
-  const mappedClaims: AgentProClaimDTO[] = claimsData.map((c: any) => {
+  const mappedClaims: AgentProClaimDTO[] = claimsData.map(c => {
     const dto = mapToAgentProClaim(c as ClaimRow);
     dto.unreadCount = unreadMap.get(dto.id) || 0;
     dto.lastMessage = snippetMap.get(dto.id) || null;

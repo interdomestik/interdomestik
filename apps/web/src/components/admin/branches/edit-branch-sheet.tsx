@@ -28,22 +28,28 @@ const formSchema = z.object({
 
 type FormDetail = z.infer<typeof formSchema>;
 
-interface EditBranchSheetProps {
-  branch: {
-    id: string;
-    name: string;
-    code: string | null;
-    isActive: boolean;
-    tenantId?: string;
-    slug?: string;
-  };
+type EditableBranch = {
+  id: string;
+  name: string;
+  code: string | null;
+  isActive: boolean;
+  tenantId?: string;
+  slug?: string;
+};
+
+type EditBranchSheetProps<TBranch extends EditableBranch> = Readonly<{
+  branch: TBranch;
   isOpen: boolean;
   onClose: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onUpdate: (updatedBranch: any) => void;
-}
+  onUpdate: (updatedBranch: TBranch) => void;
+}>;
 
-export function EditBranchSheet({ branch, isOpen, onClose, onUpdate }: EditBranchSheetProps) {
+export function EditBranchSheet<TBranch extends EditableBranch>({
+  branch,
+  isOpen,
+  onClose,
+  onUpdate,
+}: EditBranchSheetProps<TBranch>) {
   const t = useTranslations('admin.branches');
   const [isPending, setIsPending] = useState(false);
 
@@ -55,7 +61,7 @@ export function EditBranchSheet({ branch, isOpen, onClose, onUpdate }: EditBranc
     watch,
     formState: { errors },
   } = useForm<FormDetail>({
-    resolver: zodResolver(formSchema as any),
+    resolver: zodResolver(formSchema as never),
     defaultValues: {
       name: branch.name,
       code: branch.code || '',
@@ -88,7 +94,7 @@ export function EditBranchSheet({ branch, isOpen, onClose, onUpdate }: EditBranc
 
       if ('success' in result && result.success) {
         toast.success(t('updateSuccess'));
-        onUpdate({ ...branch, ...data });
+        onUpdate({ ...branch, ...data } as TBranch);
         onClose();
       } else {
         toast.error('error' in result ? result.error : t('updateError'));
