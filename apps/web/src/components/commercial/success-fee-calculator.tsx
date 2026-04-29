@@ -8,7 +8,6 @@ import {
   calculateSuccessFeeQuote,
   type SuccessFeeCalculatorProps,
   type SuccessFeePlanKey,
-  type SuccessFeePlanOption,
   type SuccessFeeWorkedExample,
 } from './success-fee-calculator-content';
 
@@ -36,11 +35,7 @@ function parseRecoveryAmount(input: string) {
   return amount;
 }
 
-function getWorkedExampleFormula(
-  locale: string,
-  example: SuccessFeeWorkedExample,
-  plan: SuccessFeePlanOption
-) {
+function getWorkedExampleFormula(locale: string, example: SuccessFeeWorkedExample) {
   const quote = calculateSuccessFeeQuote(example.planKey, example.recoveryAmount, {
     legalActionCap: example.legalActionCap,
   });
@@ -257,7 +252,7 @@ export function SuccessFeeCalculator({
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm leading-6 text-slate-700">
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-black text-slate-900">
-                    {getWorkedExampleFormula(locale, example, plan)}
+                    {getWorkedExampleFormula(locale, example)}
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <span>{breakdownLabels.recoveryAmount}</span>

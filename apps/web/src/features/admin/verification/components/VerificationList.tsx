@@ -130,8 +130,6 @@ export function VerificationList({
         <Tabs defaultValue={initialParams.view} onValueChange={handleTabChange} className="w-full">
           {/* Filters & Tabs List */}
           <VerificationFilters
-            view={initialParams.view}
-            onViewChange={handleTabChange}
             searchQuery={initialParams.query}
             onSearchChange={handleSearch}
             branchFilter={branchFilter}

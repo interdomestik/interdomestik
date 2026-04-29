@@ -80,8 +80,7 @@ export function VerificationOpsCenterClient({
     const needsInfo = requests.filter(r => r.status === 'needs_info').length;
     const resubmitted = requests.filter(r => r.isResubmission && r.status === 'pending').length;
     const approved = requests.filter(r => r.status === 'succeeded').length;
-    const totalValue = requests.reduce((sum, r) => sum + r.amount, 0);
-    return { pending, needsInfo, resubmitted, approved, totalValue };
+    return { pending, needsInfo, resubmitted, approved };
   }, [requests]);
 
   const handleVerify = async (
@@ -145,7 +144,6 @@ export function VerificationOpsCenterClient({
           needsInfo={kpis.needsInfo}
           resubmitted={kpis.resubmitted}
           approved={kpis.approved}
-          totalValue={kpis.totalValue}
         />
       )}
 

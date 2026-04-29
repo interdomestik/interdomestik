@@ -1,6 +1,3 @@
-import { Card, CardContent } from '@interdomestik/ui';
-import { ShieldCheck, Globe, Zap, HeartPulse, FileText, Headphones } from 'lucide-react';
-
 export function MemberDashboardSkeleton() {
   return (
     <div className="space-y-10 pb-10 animate-pulse">
