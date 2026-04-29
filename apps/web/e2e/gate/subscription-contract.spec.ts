@@ -2,6 +2,15 @@ import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
+type PaddleTestGlobal = {
+  Paddle: {
+    Initialize: () => void;
+    Checkout: {
+      open: () => never;
+    };
+  };
+};
+
 test.describe('Subscription Contract Verification', () => {
   test('Pricing page loads and displays plans', async ({ page }, testInfo) => {
     // 1. Navigate to pricing
@@ -44,11 +53,9 @@ test.describe('Subscription Contract Verification', () => {
     authenticatedPage: page,
   }, testInfo) => {
     await page.addInitScript(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).Paddle = {
+      (window as unknown as PaddleTestGlobal).Paddle = {
         Initialize: () => {},
         Checkout: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           open: () => {
             throw new Error('Paddle.Checkout.open called in billing test mode');
           },

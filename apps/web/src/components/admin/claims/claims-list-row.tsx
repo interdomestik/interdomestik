@@ -7,10 +7,9 @@ import { useTranslations } from 'next-intl';
 
 interface ClaimsListRowProps {
   row: ClaimsListV2Row;
-  showEmphasis: boolean;
 }
 
-export function ClaimsListRow({ row, showEmphasis }: ClaimsListRowProps) {
+export function ClaimsListRow({ row }: ClaimsListRowProps) {
   const tTable = useTranslations('admin.claims_page.table');
   const tStatus = useTranslations('claims.status');
   const tStage = useTranslations('claims.stage');

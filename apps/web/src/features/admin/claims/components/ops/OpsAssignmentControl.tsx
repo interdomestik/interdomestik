@@ -46,7 +46,7 @@ export function OpsAssignmentControl({
           globalThis.location.reload();
           toast.success(tClaims('assignment.success_message'));
         }
-      } catch (_error) {
+      } catch {
         toast.error(tCommon('errors.generic'));
       }
     });

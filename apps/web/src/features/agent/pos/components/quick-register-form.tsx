@@ -26,7 +26,7 @@ const formSchema = z.object({
   email: z.string().email('Invalid email').optional().or(z.literal('')),
 });
 
-export function QuickRegisterForm({ agentId }: { agentId: string }) {
+export function QuickRegisterForm(_props: { agentId: string }) {
   const [successData, setSuccessData] = useState<{ memberId: string; phone: string } | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -49,7 +49,7 @@ export function QuickRegisterForm({ agentId }: { agentId: string }) {
       } else {
         toast.error(result.error || 'Registration failed');
       }
-    } catch (error) {
+    } catch {
       toast.error('Registration failed');
     }
   }

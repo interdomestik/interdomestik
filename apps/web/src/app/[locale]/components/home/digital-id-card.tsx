@@ -24,7 +24,6 @@ interface DigitalIDCardProps {
 
 export function DigitalIDCard({
   name = 'ESTIR RAMA',
-  memberNumber = 'PRT-0492-X',
   validThru = '12/25',
   isActive = true,
   labels = {

@@ -1,5 +1,5 @@
 import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
-import { createAdminClient, db, inArray } from '@interdomestik/database';
+import { createAdminClient, db } from '@interdomestik/database';
 import { documentExtractions, policies } from '@interdomestik/database/schema';
 import { desc } from 'drizzle-orm';
 
