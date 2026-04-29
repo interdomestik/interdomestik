@@ -9,7 +9,6 @@ interface VerificationKpisProps {
   needsInfo: number;
   resubmitted: number;
   approved: number;
-  totalValue: number;
 }
 
 export function VerificationKpis({
@@ -17,7 +16,6 @@ export function VerificationKpis({
   needsInfo,
   resubmitted,
   approved,
-  totalValue,
 }: VerificationKpisProps) {
   const t = useTranslations('admin.leads.kpis');
 

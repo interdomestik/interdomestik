@@ -41,7 +41,7 @@ export function OpsStatusControl({
           toast.success(tAdmin('success'));
           globalThis.location.reload();
         }
-      } catch (_error) {
+      } catch {
         toast.error(tCommon('errors.generic'));
       }
     });

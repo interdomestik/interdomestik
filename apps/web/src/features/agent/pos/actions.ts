@@ -1,9 +1,6 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database/db';
-import { user } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { z } from 'zod';
 
@@ -28,7 +25,7 @@ export async function registerMemberPOS(input: z.infer<typeof schema>) {
     return { success: false, error: 'Invalid input' };
   }
 
-  const { fullName, plateNumber, phoneNumber, email } = parsed.data;
+  const { fullName, plateNumber, phoneNumber } = parsed.data;
 
   // Logic:
   // 1. Create User (if not exists)

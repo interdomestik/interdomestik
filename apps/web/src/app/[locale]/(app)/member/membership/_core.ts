@@ -1,4 +1,5 @@
-import { and, db, eq, subscriptions } from '@interdomestik/database';
+import { and, db, eq, membershipPlans, subscriptions } from '@interdomestik/database';
+import type { InferSelectModel } from 'drizzle-orm';
 
 export type MembershipDunningState = {
   isPastDue: boolean;
@@ -98,17 +99,9 @@ export function isGracePeriodExpired(args: { endDate: Date | null; now?: Date })
   return now.getTime() > endDate.getTime();
 }
 
-function getSubscriptionWithPlanQuery() {
-  return db.query.subscriptions.findFirst({
-    with: {
-      plan: true,
-    },
-  });
-}
-
-export type SubscriptionRecord = NonNullable<
-  Awaited<ReturnType<typeof getSubscriptionWithPlanQuery>>
->;
+export type SubscriptionRecord = InferSelectModel<typeof subscriptions> & {
+  plan: InferSelectModel<typeof membershipPlans> | null;
+};
 
 type SubscriptionDunningInput =
   | {

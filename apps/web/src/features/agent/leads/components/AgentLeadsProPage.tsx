@@ -108,7 +108,7 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
           await updateLeadStatus(selectedLead.id, 'lost');
           toast.success(t('toasts.marked_lost'));
         }
-      } catch (e) {
+      } catch {
         toast.error(t('toasts.action_failed'));
       }
     });

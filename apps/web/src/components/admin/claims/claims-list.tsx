@@ -69,9 +69,7 @@ export function ClaimsList({ data }: ClaimsListProps) {
       </TableRow>
     );
 
-    const claimRows = group.rows.map(row => (
-      <ClaimsListRow key={row.id} row={row} showEmphasis={true} />
-    ));
+    const claimRows = group.rows.map(row => <ClaimsListRow key={row.id} row={row} />);
 
     return [headerRow, ...claimRows];
   });

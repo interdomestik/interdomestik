@@ -12,8 +12,6 @@ import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface VerificationFiltersProps {
-  view?: string;
-  onViewChange?: (view: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   branchFilter: string;
@@ -22,8 +20,6 @@ interface VerificationFiltersProps {
 }
 
 export function VerificationFilters({
-  view,
-  onViewChange,
   searchQuery,
   onSearchChange,
   branchFilter,
