@@ -1,7 +1,7 @@
 'use client';
 
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
-import { Link } from '@/i18n/routing';
+import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { fetchClaims } from '@/lib/api/claims';
 import { formatPilotDate } from '@/lib/utils/date';
 import {
@@ -19,11 +19,20 @@ import { useQuery } from '@tanstack/react-query';
 import { FileText, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
+import type { MouseEvent } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 const PER_PAGE = 10;
+const PENDING_FEEDBACK_TIMEOUT_MS = 10_000;
+
+function isPrimaryNavigationClick(event: MouseEvent<HTMLAnchorElement>) {
+  return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+}
 
 export function MemberClaimsTable() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations('claims');
   const tCategory = useTranslations('claims.category');
@@ -32,6 +41,23 @@ export function MemberClaimsTable() {
   const statusFilter = searchParams.get('status') || undefined;
   const searchQuery = searchParams.get('search') || undefined;
   const page = Math.max(1, Number(searchParams.get('page') || 1));
+  const currentParamsString = searchParams.toString();
+  const [pendingPage, setPendingPage] = useState<number | null>(null);
+  const [isTransitionPending, startTransition] = useTransition();
+  const isPageNavigationPending = pendingPage !== null || isTransitionPending;
+
+  useEffect(() => {
+    setPendingPage(null);
+  }, [currentParamsString]);
+
+  useEffect(() => {
+    if (pendingPage === null) {
+      return undefined;
+    }
+
+    const timeout = globalThis.setTimeout(() => setPendingPage(null), PENDING_FEEDBACK_TIMEOUT_MS);
+    return () => globalThis.clearTimeout(timeout);
+  }, [pendingPage]);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['claims', 'member', { statusFilter, searchQuery, page }],
@@ -55,6 +81,35 @@ export function MemberClaimsTable() {
     }
     const queryString = query.toString();
     return queryString ? `?${queryString}` : '';
+  };
+
+  const startPageNavigation = (event: MouseEvent<HTMLAnchorElement>, targetPage: number) => {
+    const totalPages = data?.totalPages ?? 1;
+    const isPageInert =
+      isPageNavigationPending || targetPage === page || targetPage < 1 || targetPage > totalPages;
+
+    if ((isPageInert || event.defaultPrevented) && isPrimaryNavigationClick(event)) {
+      event.preventDefault();
+      return;
+    }
+
+    if (!isPrimaryNavigationClick(event)) {
+      return;
+    }
+
+    const nextUrl = buildPageLink(targetPage);
+    const currentUrl = currentParamsString ? `?${currentParamsString}` : '';
+
+    if (nextUrl === currentUrl) {
+      event.preventDefault();
+      return;
+    }
+
+    event.preventDefault();
+    setPendingPage(targetPage);
+    startTransition(() => {
+      router.push(`${pathname}${nextUrl}`, { scroll: false });
+    });
   };
 
   const formatCategory = (category: string | null | undefined) => {
@@ -113,7 +168,11 @@ export function MemberClaimsTable() {
   }
 
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4"
+      data-testid="member-claims-table-region"
+      aria-busy={isPageNavigationPending ? 'true' : 'false'}
+    >
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -172,18 +231,58 @@ export function MemberClaimsTable() {
         </p>
         {data.totalPages > 1 && (
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm" disabled={page <= 1}>
-              <Link href={buildPageLink(page - 1)}>{tCommon('previous')}</Link>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              disabled={isPageNavigationPending || page <= 1}
+            >
+              <Link
+                href={buildPageLink(page - 1)}
+                aria-disabled={isPageNavigationPending || page <= 1 ? 'true' : undefined}
+                data-testid="member-claims-page-previous"
+                onClick={event => startPageNavigation(event, page - 1)}
+                prefetch={false}
+                tabIndex={isPageNavigationPending || page <= 1 ? -1 : undefined}
+              >
+                {tCommon('previous')}
+              </Link>
             </Button>
             <span className="text-sm text-muted-foreground">
               {tCommon('pagination.pageOf', { page, total: data.totalPages })}
             </span>
-            <Button asChild variant="outline" size="sm" disabled={page >= data.totalPages}>
-              <Link href={buildPageLink(page + 1)}>{tCommon('next')}</Link>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              disabled={isPageNavigationPending || page >= data.totalPages}
+            >
+              <Link
+                href={buildPageLink(page + 1)}
+                aria-disabled={
+                  isPageNavigationPending || page >= data.totalPages ? 'true' : undefined
+                }
+                data-testid="member-claims-page-next"
+                onClick={event => startPageNavigation(event, page + 1)}
+                prefetch={false}
+                tabIndex={isPageNavigationPending || page >= data.totalPages ? -1 : undefined}
+              >
+                {tCommon('next')}
+              </Link>
             </Button>
           </div>
         )}
       </div>
+      {pendingPage !== null ? (
+        <div
+          data-testid="member-claims-pagination-pending"
+          role="status"
+          aria-live="polite"
+          className="text-xs font-medium text-muted-foreground"
+        >
+          {tCommon('processing')}
+        </div>
+      ) : null}
     </div>
   );
 }

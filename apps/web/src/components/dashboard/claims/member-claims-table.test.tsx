@@ -1,6 +1,12 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { AnchorHTMLAttributes } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemberClaimsTable } from './member-claims-table';
+
+const hoisted = vi.hoisted(() => ({
+  push: vi.fn(),
+  searchParams: new URLSearchParams(),
+}));
 
 // Mock react-query
 vi.mock('@tanstack/react-query', () => ({
@@ -12,7 +18,7 @@ const mockUseQuery = vi.mocked(useQuery);
 
 // Mock search params
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => hoisted.searchParams,
 }));
 
 // Mock next-intl
@@ -34,6 +40,7 @@ vi.mock('next-intl', () => ({
       claim: 'claim',
       claimsPlural: 'claims',
       loading: 'Loading...',
+      processing: 'Processing...',
       'errors.generic': 'An error occurred',
       tryAgain: 'Try Again',
       previous: 'Previous',
@@ -48,9 +55,24 @@ vi.mock('next-intl', () => ({
 
 // Mock routing
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  Link: ({
+    children,
+    href,
+    prefetch: _prefetch,
+    ...props
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & {
+    children: React.ReactNode;
+    href: string;
+    prefetch?: boolean;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
+  usePathname: () => '/member/claims',
+  useRouter: () => ({
+    push: hoisted.push,
+  }),
 }));
 
 // Mock ClaimStatusBadge
@@ -89,6 +111,7 @@ const mockClaims = [
 describe('MemberClaimsTable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.searchParams = new URLSearchParams();
   });
 
   it('renders loading state', () => {
@@ -178,5 +201,48 @@ describe('MemberClaimsTable', () => {
       expect(screen.getByText('Flight Delay')).toBeInTheDocument();
       expect(screen.getByText('Lufthansa')).toBeInTheDocument();
     });
+  });
+
+  it('shows deterministic pending feedback when pagination changes page', async () => {
+    mockUseQuery.mockReturnValue({
+      data: { claims: mockClaims, totalPages: 3 },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useQuery>);
+
+    render(<MemberClaimsTable />);
+
+    fireEvent.click(screen.getByTestId('member-claims-page-next'));
+
+    expect(hoisted.push).toHaveBeenCalledWith('/member/claims?page=2', { scroll: false });
+    expect(screen.getByTestId('member-claims-table-region')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByTestId('member-claims-pagination-pending')).toHaveTextContent(
+      'Processing...'
+    );
+  });
+
+  it('keeps current and pending pagination controls inert', async () => {
+    hoisted.searchParams = new URLSearchParams('page=2&search=claim');
+    mockUseQuery.mockReturnValue({
+      data: { claims: mockClaims, totalPages: 3 },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useQuery>);
+
+    render(<MemberClaimsTable />);
+
+    fireEvent.click(screen.getByTestId('member-claims-page-next'));
+    fireEvent.click(screen.getByTestId('member-claims-page-previous'));
+
+    expect(hoisted.push).toHaveBeenCalledTimes(1);
+    expect(hoisted.push).toHaveBeenCalledWith('/member/claims?page=3&search=claim', {
+      scroll: false,
+    });
+    expect(screen.getByTestId('member-claims-page-previous')).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });
