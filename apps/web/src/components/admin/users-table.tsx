@@ -269,5 +269,5 @@ export function UsersTable({
     return tableContent;
   }
 
-  return <GlassCard className="overflow-hidden p-0">{tableContent}</GlassCard>;
+  return <GlassCard className="overflow-x-auto p-0">{tableContent}</GlassCard>;
 }

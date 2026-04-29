@@ -1,11 +1,10 @@
 import { listBranches } from '@/actions/admin-rbac.core';
 import { getAgents, getUsers } from '@/actions/admin-users';
 import { AddAgentDialog } from '@/components/admin/add-agent-dialog';
+import { AdminUsersRoleTabs } from '@/components/admin/admin-users-role-tabs';
 import { isPromotableToAgentRole } from '@/components/admin/promotable-roles';
 import { UsersFilters } from '@/components/admin/users-filters';
 import { UsersSections } from '@/components/admin/users-sections';
-import { Link } from '@/i18n/routing';
-import { Button } from '@interdomestik/ui/components/button';
 import { getTranslations } from 'next-intl/server';
 
 import { notFound } from 'next/navigation';
@@ -95,15 +94,6 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   // Filter users eligible for promotion (exclude existing agents/admin roles).
   const eligibleUsers = promotableUsers.filter(u => isPromotableToAgentRole(u.role));
 
-  const roleOptions = [
-    { value: 'user', label: tFilters('roles.user') },
-    { value: 'agent', label: tFilters('roles.agent') },
-    {
-      value: 'admin,staff',
-      label: `${tFilters('roles.staff')} / ${tFilters('roles.admin')}`,
-    },
-  ];
-
   const buildRoleHref = (role: string) => {
     const nextParams = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
@@ -129,38 +119,29 @@ export default async function AdminUsersPage({ searchParams }: Props) {
     return query ? `/admin/users?${query}` : '/admin/users';
   };
 
+  const roleOptions = [
+    { value: 'user', label: tFilters('roles.user'), href: buildRoleHref('user') },
+    { value: 'agent', label: tFilters('roles.agent'), href: buildRoleHref('agent') },
+    {
+      value: 'admin,staff',
+      label: `${tFilters('roles.staff')} / ${tFilters('roles.admin')}`,
+      href: buildRoleHref('admin,staff'),
+    },
+  ];
+
   return (
-    <div className="space-y-6" data-testid="admin-users-page">
-      <div className="flex items-center justify-between">
+    <div
+      className="w-full max-w-[calc(100vw-3rem)] min-w-0 space-y-6 sm:max-w-full"
+      data-testid="admin-users-page"
+    >
+      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">{t('description')}</p>
         </div>
         <AddAgentDialog users={eligibleUsers} branches={branches} />
       </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="inline-flex items-center rounded-lg bg-muted/60 p-1">
-          {roleOptions.map(option => {
-            const isActive = selectedRole === option.value;
-            return (
-              <Button
-                key={option.value}
-                asChild={!isActive}
-                disabled={isActive}
-                size="sm"
-                variant={isActive ? 'default' : 'ghost'}
-                className="rounded-md"
-              >
-                {isActive ? (
-                  option.label
-                ) : (
-                  <Link href={buildRoleHref(option.value)}>{option.label}</Link>
-                )}
-              </Button>
-            );
-          })}
-        </div>
-      </div>
+      <AdminUsersRoleTabs selectedRole={selectedRole} options={roleOptions} />
       <UsersFilters hideRole hideAssignment={selectedRole !== 'user'} />
       <UsersSections users={users} agents={agents} />
     </div>
