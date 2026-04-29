@@ -27,6 +27,7 @@ command = "npx"
 args = [
   "-y",
   "@playwright/mcp",
+  "--sandbox",
   "--user-data-dir",
   "/tmp/interdomestik-pilot-evidence/playwright-mcp-profile",
   "--output-dir",
