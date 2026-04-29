@@ -26,18 +26,16 @@ vi.mock('@/components/admin/add-agent-dialog', () => ({
   },
 }));
 
+vi.mock('@/components/admin/admin-users-role-tabs', () => ({
+  AdminUsersRoleTabs: () => <div data-testid="admin-users-role-tabs" />,
+}));
+
 vi.mock('@/components/admin/users-filters', () => ({
   UsersFilters: () => <div data-testid="users-filters" />,
 }));
 
 vi.mock('@/components/admin/users-sections', () => ({
   UsersSections: () => <div data-testid="users-sections" />,
-}));
-
-vi.mock('@/i18n/routing', () => ({
-  Link: ({ href, children }: { href: string; children: React.ReactNode }) => (
-    <a href={href}>{children}</a>
-  ),
 }));
 
 vi.mock('@interdomestik/ui/components/button', () => ({
