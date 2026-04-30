@@ -48,7 +48,7 @@ const RELEASE_GATE_ENV_VARS = [
   'RELEASE_GATE_ADMIN_MK_PASSWORD',
 ];
 
-test('CI PR path keeps only RLS coverage while PR E2E owns the full browser gate lane', () => {
+test('CI PR path keeps only RLS coverage while PR E2E owns the PR browser gate lane', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
 
@@ -92,9 +92,9 @@ test('CI PR path keeps only RLS coverage while PR E2E owns the full browser gate
   const prStrictGuardStep = findStep(prE2eJob.steps, 'Strict Rule Guards (golden/gate)');
   assert.ok(prStrictGuardStep);
 
-  const fullGateStep = findStep(prE2eJob.steps, 'Run Full E2E Gate');
+  const fullGateStep = findStep(prE2eJob.steps, 'Run PR E2E Gate');
   assert.ok(fullGateStep);
-  assert.equal(fullGateStep.run, 'pnpm e2e:gate');
+  assert.equal(fullGateStep.run, 'pnpm e2e:gate:pr');
   assert.deepEqual(fullGateStep.env, {
     E2E_DATABASE_URL: '${{ env.DATABASE_URL }}',
     E2E_DATABASE_URL_RLS: '${{ env.DATABASE_URL }}',
