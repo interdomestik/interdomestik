@@ -286,6 +286,7 @@ test('Required pilot gate wrapper fails or passes based on preflight and runner 
   const needs = normalizeNeeds(pilotGateJob.needs);
   assert.ok(needs.includes('pilot-gate-preflight'));
   assert.ok(needs.includes('pilot-gate-runner'));
+  assert.equal(pilotGateJob.name, 'pilot-gate');
   assert.equal(pilotGateJob.if, 'always()');
   assert.equal(pilotGateJob['runs-on'], 'ubuntu-latest');
   assert.equal(pilotGateJob.services, undefined);

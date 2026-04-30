@@ -23,7 +23,7 @@ EOF
 required_checks=(
   "CI"
   "e2e-gate"
-  "pr:verify + pilot:check"
+  "pilot-gate"
   "pnpm-audit"
   "gitleaks"
 )
@@ -43,8 +43,8 @@ resolve_matching_checks() {
 
   if [[ "${check_name}" == "CI" ]]; then
     echo "${checks}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("(^|.*/\\s*)(audit|static|unit|e2e-gate)$"))]'
-  elif [[ "${check_name}" == "pr:verify + pilot:check" ]]; then
-    echo "${checks}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("(^|.*/\\s*)pr:verify\\s*\\+\\s*pilot:check\\s*$"))]'
+  elif [[ "${check_name}" == "pilot-gate" ]]; then
+    echo "${checks}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("(^|.*/\\s*)pilot-gate\\s*$"))]'
   elif [[ "${check_name}" == "pnpm-audit" ]]; then
     echo "${checks}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("(^|.*/\\s*)pnpm-audit$"))]'
   elif [[ "${check_name}" == "gitleaks" ]]; then

@@ -40,5 +40,5 @@
 
 - [ ] All GitHub review threads resolved.
 - [ ] Copilot or bot findings were either fixed or explicitly closed with technical reasoning.
-- [ ] Required checks green (`CI / static`, `CI / unit`, `CI / audit`, `CI / e2e-gate`, `Pilot Gate / pr:verify + pilot:check`, `Security / pnpm-audit`, `Security / gitleaks`).
+- [ ] Required checks green (`CI / static`, `CI / unit`, `CI / audit`, `CI / e2e-gate`, `Pilot Gate / pilot-gate`, `Security / pnpm-audit`, `Security / gitleaks`).
 - [ ] Evidence artifact paths are present and complete.
