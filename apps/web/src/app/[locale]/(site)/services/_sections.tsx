@@ -3,7 +3,7 @@ import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
 import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tree-content';
 import { CoverageMatrix, type CoverageMatrixProps } from '@/components/commercial/coverage-matrix';
 import { Link } from '@/i18n/routing';
-import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
+import { PUBLIC_FREE_START_ENTRY_HREF } from '@/lib/public-membership-entry';
 import { Button } from '@interdomestik/ui';
 import {
   ArrowRight,
@@ -58,7 +58,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
             </h1>
             <p className="text-xl text-slate-500 leading-relaxed mb-8">{t('hero.subtitle')}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href={PUBLIC_MEMBERSHIP_ENTRY_HREF}>
+              <Link href={PUBLIC_FREE_START_ENTRY_HREF}>
                 <Button size="xl" className="h-14 px-10 font-bold shadow-lg shadow-primary/30">
                   {t('cta.primary')}
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -100,7 +100,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
       <section className="py-16 lg:py-24">
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-display font-black text-slate-900 mb-4 tracking-tight">
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-slate-900 mb-4 tracking-tight">
               {t('categories.consultation.title')}
             </h2>
             <p className="text-lg text-slate-500">{t('categories.consultation.subtitle')}</p>
@@ -138,7 +138,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
       <section className="py-16 lg:py-24 bg-slate-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-display font-black text-slate-900 mb-4 tracking-tight">
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-slate-900 mb-4 tracking-tight">
               {t('categories.expertise.title')}
             </h2>
             <p className="text-lg text-slate-500">{t('categories.expertise.subtitle')}</p>
@@ -170,7 +170,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
                       {t(`categories.expertise.services.${i}.badge`)}
                     </span>
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 mb-4">
+                  <h3 className="text-xl font-bold text-slate-900 mb-4">
                     {t(`categories.expertise.services.${i}.title`)}
                   </h3>
                   <p className="text-slate-500 leading-relaxed">
@@ -187,7 +187,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
       <section className="py-16 lg:py-24 bg-slate-900 text-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-display font-black mb-4 tracking-tight">
+            <h2 className="text-3xl md:text-4xl font-display font-bold mb-4 tracking-tight">
               {t('categories.legal.title')}
             </h2>
             <p className="text-lg text-slate-400">{t('categories.legal.subtitle')}</p>
@@ -208,7 +208,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
                       {t(`categories.legal.services.${i}.badge`)}
                     </span>
                   </div>
-                  <h3 className="text-2xl font-black mb-4">
+                  <h3 className="text-xl font-bold mb-4">
                     {t(`categories.legal.services.${i}.title`)}
                   </h3>
                   <p className="text-slate-400 leading-relaxed">
@@ -225,7 +225,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
       <section className="py-16 lg:py-24">
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-display font-black text-slate-900 mb-4 tracking-tight">
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-slate-900 mb-4 tracking-tight">
               {t('experts.title')}
             </h2>
             <p className="text-lg text-slate-500">{t('experts.subtitle')}</p>
@@ -255,7 +255,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
           <h2 className="text-3xl md:text-4xl font-display font-black mb-4">{t('cta.title')}</h2>
           <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">{t('cta.subtitle')}</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href={PUBLIC_MEMBERSHIP_ENTRY_HREF}>
+            <Link href={PUBLIC_FREE_START_ENTRY_HREF}>
               <Button
                 size="xl"
                 className="h-14 px-10 bg-white text-primary hover:bg-white/90 font-bold shadow-xl"

@@ -27,12 +27,12 @@ vi.mock('@/lib/contact', () => ({
 }));
 
 describe('CTASection', () => {
-  it('routes the public membership CTA into pricing', () => {
+  it('routes the public primary CTA to Free Start', () => {
     render(<CTASection />);
 
-    expect(screen.getByRole('link', { name: enHeroMessages.hero.cta })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: enHeroMessages.hero.callNow })).toHaveAttribute(
       'href',
-      '/pricing'
+      '#free-start-intake'
     );
   });
 });

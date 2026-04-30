@@ -120,6 +120,6 @@ describe('ServicesPage', () => {
     ).not.toHaveLength(0);
     expect(
       screen.getAllByRole('link', { name: sqServicesPage.servicesPage.cta.primary })[0]
-    ).toHaveAttribute('href', '/pricing');
+    ).toHaveAttribute('href', '/#free-start-intake');
   });
 });

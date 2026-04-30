@@ -20,7 +20,7 @@ vi.mock('@/i18n/routing', () => ({
 }));
 
 describe('StickyPrimeCTA', () => {
-  it('routes both sticky membership CTAs into pricing once visible', () => {
+  it('routes both sticky primary CTAs to Free Start with mobile safe-area padding once visible', () => {
     render(<StickyPrimeCTA />);
     const globalWindow = globalThis as Window & typeof globalThis;
 
@@ -30,9 +30,12 @@ describe('StickyPrimeCTA', () => {
     });
     fireEvent.scroll(globalWindow);
 
-    const links = screen.getAllByRole('link', { name: enHeroMessages.hero.cta });
+    const links = screen.getAllByRole('link', { name: enHeroMessages.hero.callNow });
     expect(links).toHaveLength(2);
-    expect(links[0]).toHaveAttribute('href', '/pricing');
-    expect(links[1]).toHaveAttribute('href', '/pricing');
+    expect(links[0]).toHaveAttribute('href', '#free-start-intake');
+    expect(links[1]).toHaveAttribute('href', '#free-start-intake');
+    expect(links[0].closest('.fixed')).toHaveClass(
+      'pb-[calc(0.75rem+env(safe-area-inset-bottom))]'
+    );
   });
 });

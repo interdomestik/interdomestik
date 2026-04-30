@@ -2,7 +2,7 @@
 
 import { Link } from '@/i18n/routing';
 import { contactInfo } from '@/lib/contact';
-import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
+import { PUBLIC_FREE_START_ANCHOR_HREF } from '@/lib/public-membership-entry';
 import { Button } from '@interdomestik/ui';
 import { Menu, MessageCircle, Phone, Shield, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -10,6 +10,7 @@ import { useState } from 'react';
 
 export function Header() {
   const t = useTranslations('nav');
+  const hero = useTranslations('hero');
   const common = useTranslations('common');
   const { phone, whatsapp } = contactInfo;
   const telHref = phone ? `tel:${phone.replace(/\s+/g, '')}` : undefined;
@@ -83,9 +84,9 @@ export function Header() {
                 {t('login')}
               </Button>
             </Link>
-            <Link href={PUBLIC_MEMBERSHIP_ENTRY_HREF}>
+            <Link href={PUBLIC_FREE_START_ANCHOR_HREF}>
               <Button size="sm" className="font-bold shadow-md shadow-primary/20">
-                {t('register')}
+                {hero('callNow')}
               </Button>
             </Link>
           </div>
@@ -95,7 +96,7 @@ export function Header() {
             {telHref && (
               <a
                 href={telHref}
-                className="flex items-center justify-center h-10 w-10 rounded-xl bg-green-500 text-white shadow-md"
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-500 text-white shadow-md"
               >
                 <Phone className="h-5 w-5" />
                 <span className="sr-only">{phone}</span>
@@ -103,7 +104,7 @@ export function Header() {
             )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="flex items-center justify-center h-10 w-10 rounded-xl bg-slate-100 text-slate-800"
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-800"
               aria-label={t('toggleMenu')}
               aria-expanded={mobileMenuOpen}
             >
@@ -137,9 +138,9 @@ export function Header() {
                   {t('login')}
                 </Button>
               </Link>
-              <Link href={PUBLIC_MEMBERSHIP_ENTRY_HREF} onClick={() => setMobileMenuOpen(false)}>
+              <Link href={PUBLIC_FREE_START_ANCHOR_HREF} onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full font-bold shadow-md shadow-primary/20">
-                  {t('register')}
+                  {hero('callNow')}
                 </Button>
               </Link>
             </div>

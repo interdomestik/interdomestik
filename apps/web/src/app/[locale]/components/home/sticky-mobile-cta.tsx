@@ -1,7 +1,7 @@
 'use client';
 
 import { Link } from '@/i18n/routing';
-import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
+import { PUBLIC_FREE_START_ANCHOR_HREF } from '@/lib/public-membership-entry';
 import { Button } from '@interdomestik/ui';
 import { ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -26,7 +26,7 @@ export function StickyPrimeCTA() {
   return (
     <>
       {/* Mobile Sticky Bar - Full Width */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-white/80 backdrop-blur-2xl border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:hidden animate-slide-up">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] backdrop-blur-2xl border-t border-slate-200 md:hidden animate-slide-up">
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-0.5">
@@ -42,14 +42,14 @@ export function StickyPrimeCTA() {
               </span>
             </div>
           </div>
-          <Link href={PUBLIC_MEMBERSHIP_ENTRY_HREF}>
+          <Link href={PUBLIC_FREE_START_ANCHOR_HREF}>
             <Button
               size="lg"
               className="h-12 px-6 font-black rounded-xl brand-gradient text-white shadow-lg shadow-primary/20 group relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-shimmer" />
               <span className="relative z-10 flex items-center">
-                {t('cta')}
+                {t('callNow')}
                 <ArrowRight className="ml-1.5 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </span>
             </Button>
@@ -79,12 +79,12 @@ export function StickyPrimeCTA() {
               </div>
             </div>
 
-            <Link href={PUBLIC_MEMBERSHIP_ENTRY_HREF}>
+            <Link href={PUBLIC_FREE_START_ANCHOR_HREF}>
               <Button
                 size="lg"
                 className="h-12 px-6 font-black rounded-2xl brand-gradient text-white shadow-xl shadow-primary/20 group border-0"
               >
-                {t('cta')}
+                {t('callNow')}
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>

@@ -1,4 +1,6 @@
 export const PUBLIC_MEMBERSHIP_ENTRY_HREF = '/pricing';
+export const PUBLIC_FREE_START_ANCHOR_HREF = '#free-start-intake';
+export const PUBLIC_FREE_START_ENTRY_HREF = `/${PUBLIC_FREE_START_ANCHOR_HREF}`;
 
 export function getPublicMembershipEntryHref(planId?: string | null): string {
   if (!planId) {

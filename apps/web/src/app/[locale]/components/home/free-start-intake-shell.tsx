@@ -20,12 +20,13 @@ import {
   Car,
   CheckCircle2,
   Home,
+  Loader2,
   PhoneCall,
   Stethoscope,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const ClaimPackResultLazy = dynamic(
   () => import('./claim-pack-result').then(mod => ({ default: mod.ClaimPackResult })),
@@ -287,6 +288,7 @@ type FreeStartMainPanelProps = Readonly<{
   onBackToDetails: () => void;
   onCategorySelect: (category: CategoryId) => void;
   onFinishIntake: () => void;
+  isFinishingIntake: boolean;
   onMoveToDetails: () => void;
   onMoveToPreview: () => void;
 }>;
@@ -304,6 +306,7 @@ function FreeStartMainPanel({
   onBackToDetails,
   onCategorySelect,
   onFinishIntake,
+  isFinishingIntake,
   onMoveToDetails,
   onMoveToPreview,
 }: FreeStartMainPanelProps) {
@@ -541,11 +544,14 @@ function FreeStartMainPanel({
           </button>
           <button
             type="button"
+            disabled={isFinishingIntake}
+            aria-busy={isFinishingIntake}
             onClick={onFinishIntake}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-emerald-400"
           >
+            {isFinishingIntake ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {t('preview.finish')}
-            <ArrowRight className="h-4 w-4" />
+            {isFinishingIntake ? null : <ArrowRight className="h-4 w-4" />}
           </button>
         </div>
       ) : null}
@@ -780,8 +786,10 @@ export function FreeStartIntakeShell({
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
   const [draft, setDraft] = useState<DraftState>(EMPTY_DRAFT);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [isFinishingIntake, setIsFinishingIntake] = useState(false);
   const [claimPack, setClaimPack] = useState<ClaimPack | null>(null);
   const submissionKeyRef = useRef<string | null>(null);
+  const validationErrorRef = useRef<HTMLParagraphElement | null>(null);
 
   const issueIds = getIssueIds(selectedCategory);
   const continueLabel = getContinueLabel(t, continueHref);
@@ -790,6 +798,12 @@ export function FreeStartIntakeShell({
   const progressSteps = ['choose', 'details', 'preview'] as const;
   const selectedIssueLabel = getSelectedIssueLabel(t, selectedCategory, draft.issueType);
   const selectedOutcomeLabel = getSelectedOutcomeLabel(t, draft.desiredOutcome);
+
+  useEffect(() => {
+    if (validationError) {
+      validationErrorRef.current?.focus();
+    }
+  }, [validationError]);
 
   const handleCategorySelect = (category: CategoryId) => {
     setSelectedCategory(category);
@@ -825,6 +839,10 @@ export function FreeStartIntakeShell({
   };
 
   const finishIntake = async () => {
+    if (isFinishingIntake) {
+      return;
+    }
+
     if (selectedCategory === null) {
       setValidationError(t('validation.chooseCategory'));
       setStep('category');
@@ -845,6 +863,7 @@ export function FreeStartIntakeShell({
     let result: Awaited<ReturnType<typeof submitFreeStartIntake>>;
     const submissionKey = submissionKeyRef.current ?? crypto.randomUUID();
     submissionKeyRef.current = submissionKey;
+    setIsFinishingIntake(true);
     try {
       result = await submitFreeStartIntake(
         {
@@ -861,11 +880,13 @@ export function FreeStartIntakeShell({
       submissionKeyRef.current = null;
       console.error('[FreeStart] Failed to submit intake', error);
       setValidationError(tCommon('errors.retry'));
+      setIsFinishingIntake(false);
       return;
     }
 
     if (!result.success) {
       submissionKeyRef.current = null;
+      setIsFinishingIntake(false);
       setValidationError(
         result.code === 'INVALID_PAYLOAD' ? t('validation.completeIntake') : tCommon('errors.retry')
       );
@@ -886,6 +907,7 @@ export function FreeStartIntakeShell({
     );
     submissionKeyRef.current = null;
     setValidationError(null);
+    setIsFinishingIntake(false);
     setStep('complete');
 
     // Generate the full claim pack for display
@@ -959,7 +981,10 @@ export function FreeStartIntakeShell({
           </div>
           {validationError ? (
             <p
+              ref={validationErrorRef}
               data-testid="free-start-validation-error"
+              role="alert"
+              tabIndex={-1}
               className="rounded-2xl border border-rose-400/40 bg-rose-400/10 px-4 py-3 text-sm font-medium text-rose-100"
             >
               {validationError}
@@ -982,6 +1007,7 @@ export function FreeStartIntakeShell({
               onBackToDetails={handleBackToDetails}
               onCategorySelect={handleCategorySelect}
               onFinishIntake={finishIntake}
+              isFinishingIntake={isFinishingIntake}
               onMoveToDetails={moveToDetails}
               onMoveToPreview={moveToPreview}
             />

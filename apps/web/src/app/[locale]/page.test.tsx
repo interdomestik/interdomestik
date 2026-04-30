@@ -54,6 +54,7 @@ vi.mock('@/lib/flags', () => ({
 
 vi.mock('./components/home/cta-section', () => ({ CTASection: () => null }));
 vi.mock('./components/home/footer', () => ({ Footer: () => null }));
+vi.mock('./components/home/free-start-intake-shell', () => ({ FreeStartIntakeShell: () => null }));
 vi.mock('./components/home/header', () => ({ Header: () => null }));
 vi.mock('./components/home/hero-section', () => ({ HeroSection: () => null }));
 vi.mock('./components/home/hero-v2', () => ({ HeroV2: () => null }));
