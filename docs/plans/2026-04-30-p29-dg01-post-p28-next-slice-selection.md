@@ -82,3 +82,17 @@ Promote exactly one bounded implementation slice:
 - `pnpm security:guard`
 - `pnpm e2e:gate`
 - Remote PR checks, SonarCloud, Copilot, and PR finalizer green before merge.
+
+## Implementation Closeout
+
+`P29-QA01` is implemented as a bounded repo QA MCP tooling slice. The existing `project_map`, `git_status`, `git_status_compact`, and `git_branch_info` helpers now expose resolved repo-root identity in structured output where applicable, and status/branch text output starts with `repoRoot` plus `repoRootSource` before branch, head, upstream, ahead/behind, or dirty-state details. PR verification also fixed the existing Pilot Gate Sonar decision path: the preflight waits longer for SonarCloud Automatic Analysis, uses the `continue-on-error` step outcome for fallback decisions, and skips invalid manual fallback when SonarCloud Automatic Analysis owns PR analysis.
+
+Focused proof:
+
+- `node --test scripts/ci/qa-mcp-discovery-contracts.test.mjs`
+- `node --test scripts/ci/codex-contracts.test.mjs`
+- `node --test scripts/ci/workflow-contracts.test.mjs`
+- `pnpm --filter @interdomestik/qa build`
+- `pnpm mcp:preflight`
+
+The implementation preserves existing tool names and avoids product-code, proxy, route, auth, tenancy, schema, Stripe, CRM, workspace, analytics, README, AGENTS, and architecture-doc changes.

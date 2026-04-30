@@ -43,5 +43,10 @@ const resolvedEnvRoot = envRoot && isRepoRoot(envRoot) ? envRoot : null;
 const resolvedRelativeRoot = isRepoRoot(relativeRoot) ? relativeRoot : null;
 
 export const REPO_ROOT = resolvedEnvRoot ?? resolvedRelativeRoot ?? cwdRoot;
+export const REPO_ROOT_SOURCE = resolvedEnvRoot
+  ? 'MCP_REPO_ROOT'
+  : resolvedRelativeRoot
+    ? 'module-relative'
+    : 'cwd-search';
 
 export const WEB_APP = path.join(REPO_ROOT, 'apps/web');

@@ -237,9 +237,13 @@ test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a l
   assert.ok(findStep(preflightSteps, 'Validate required gate secrets'));
   assert.ok(awaitSonarStep);
   assert.equal(awaitSonarStep['continue-on-error'], true);
-  assert.equal(awaitSonarStep.env.SONAR_CHECK_MAX_RETRIES, '6');
+  assert.equal(awaitSonarStep.env.SONAR_CHECK_MAX_RETRIES, '36');
   assert.equal(awaitSonarStep.env.SONAR_CHECK_RETRY_DELAY_SECONDS, '10');
   assert.ok(sonarStrategyStep);
+  assert.match(sonarStrategyStep.run, /steps\.await_sonar_check\.outcome/);
+  assert.doesNotMatch(sonarStrategyStep.run, /steps\.await_sonar_check\.conclusion/);
+  assert.match(sonarStrategyStep.run, /sonarcloud\.io/);
+  assert.match(sonarStrategyStep.run, /manual fallback is skipped/);
   assert.equal(
     preflightSteps.some(step => step?.uses === './.github/actions/setup'),
     false

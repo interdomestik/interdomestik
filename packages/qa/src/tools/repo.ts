@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execAsync } from '../utils/exec.js';
-import { REPO_ROOT } from '../utils/paths.js';
+import { REPO_ROOT, REPO_ROOT_SOURCE } from '../utils/paths.js';
 
 type TextToolResult = {
   content: Array<{ type: 'text'; text: string }>;
@@ -115,6 +115,13 @@ function pathMatchesPrefix(filePath: string, prefix: string) {
   return normalizedPath === normalizedPrefix || normalizedPath.startsWith(`${normalizedPrefix}/`);
 }
 
+function repoIdentityFields() {
+  return {
+    repoRoot: REPO_ROOT,
+    repoRootSource: REPO_ROOT_SOURCE,
+  };
+}
+
 export async function projectMap(args?: { maxDepth?: number }) {
   const maxDepth = args?.maxDepth || 3;
   let stdout = '';
@@ -139,6 +146,7 @@ export async function projectMap(args?: { maxDepth?: number }) {
     structuredContent: {
       depth: maxDepth,
       entries: sortedOutput ? sortedOutput.split('\n').length : 0,
+      ...repoIdentityFields(),
       tool: 'project_map',
     },
   };
@@ -234,7 +242,19 @@ export async function readFileRange(args: {
 
 export async function gitStatus() {
   const { stdout } = await execAsync({ args: ['status'], file: 'git' }, { cwd: REPO_ROOT });
-  return { content: [{ type: 'text', text: stdout }] };
+  return {
+    content: [
+      {
+        type: 'text',
+        text: [`repoRoot: ${REPO_ROOT}`, `repoRootSource: ${REPO_ROOT_SOURCE}`, stdout].join('\n'),
+      },
+    ],
+    structuredContent: {
+      status: 'ok',
+      ...repoIdentityFields(),
+      tool: 'git_status',
+    },
+  };
 }
 
 export async function gitStatusCompact() {
@@ -245,9 +265,20 @@ export async function gitStatusCompact() {
   const lines = stdout.split('\n').filter(Boolean);
 
   return {
-    content: [{ type: 'text', text: stdout || '## clean' }],
+    content: [
+      {
+        type: 'text',
+        text: [
+          `repoRoot: ${REPO_ROOT}`,
+          `repoRootSource: ${REPO_ROOT_SOURCE}`,
+          stdout || '## clean',
+        ].join('\n'),
+      },
+    ],
     structuredContent: {
       changedCount: Math.max(0, lines.length - 1),
+      isClean: lines.length <= 1,
+      ...repoIdentityFields(),
       status: 'ok',
       tool: 'git_status_compact',
     },
@@ -304,6 +335,8 @@ export async function gitBranchInfo(): Promise<TextToolResult> {
       {
         type: 'text',
         text: [
+          `repoRoot: ${REPO_ROOT}`,
+          `repoRootSource: ${REPO_ROOT_SOURCE}`,
           `branch: ${current || '(detached)'}`,
           `head: ${head}`,
           `upstream: ${upstream || '(none)'}`,
@@ -316,7 +349,9 @@ export async function gitBranchInfo(): Promise<TextToolResult> {
       ahead,
       behind,
       branch: current || null,
+      isDetached: !current,
       head,
+      ...repoIdentityFields(),
       status: 'ok',
       tool: 'git_branch_info',
       upstream,

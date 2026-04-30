@@ -190,16 +190,34 @@ test('repo QA MCP repo helpers return structured results for faster agent inspec
     assert.equal(outOfBoundsResult.structuredContent.status, 'out_of_bounds');
     assert.equal(outOfBoundsResult.structuredContent.linesRead, 0);
 
+    const projectMapResult = await client.callTool('project_map', { maxDepth: 1 });
+    assert.equal(projectMapResult.structuredContent.tool, 'project_map');
+    assert.equal(projectMapResult.structuredContent.repoRoot, rootDir);
+    assert.equal(projectMapResult.structuredContent.repoRootSource, 'MCP_REPO_ROOT');
+
     const branchResult = await client.callTool('git_branch_info');
     assert.equal(branchResult.structuredContent.tool, 'git_branch_info');
+    assert.equal(branchResult.structuredContent.repoRoot, rootDir);
+    assert.equal(branchResult.structuredContent.repoRootSource, 'MCP_REPO_ROOT');
     assert.ok(branchResult.structuredContent.head);
+    assert.ok(branchResult.content[0].text.includes(`repoRoot: ${rootDir}`));
+    assert.match(branchResult.content[0].text, /repoRootSource: MCP_REPO_ROOT/);
+
+    const statusResult = await client.callTool('git_status_compact');
+    assert.equal(statusResult.structuredContent.tool, 'git_status_compact');
+    assert.equal(statusResult.structuredContent.repoRoot, rootDir);
+    assert.equal(statusResult.structuredContent.repoRootSource, 'MCP_REPO_ROOT');
+    assert.equal(typeof statusResult.structuredContent.changedCount, 'number');
+    assert.equal(typeof statusResult.structuredContent.isClean, 'boolean');
+    assert.ok(statusResult.content[0].text.includes(`repoRoot: ${rootDir}`));
+    assert.match(statusResult.content[0].text, /repoRootSource: MCP_REPO_ROOT/);
 
     const changedResult = await client.callTool('changed_files');
     assert.equal(changedResult.structuredContent.tool, 'changed_files');
     assert.ok(Array.isArray(changedResult.structuredContent.files));
 
     const scopeResult = await client.callTool('scope_audit', {
-      allowedPaths: ['docs/plans', 'packages/qa', 'scripts/ci'],
+      allowedPaths: ['.github/workflows', 'docs/plans', 'packages/qa', 'scripts/ci'],
     });
     assert.equal(scopeResult.structuredContent.tool, 'scope_audit');
     assert.equal(scopeResult.structuredContent.status, 'pass');
