@@ -3,6 +3,7 @@ import { FunnelActivationTracker } from '@/components/analytics/funnel-trackers'
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { getSessionSafe } from '@/components/shell/session';
 import { isUiV2Enabled } from '@/lib/flags';
+import { isBillingTestActivationEnabled } from '@/lib/runtime-environment';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
@@ -48,6 +49,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const isTest = resolvedSearchParams.test === 'true';
   const { planId, priceId } = resolvedSearchParams;
+  const canTriggerBillingTestActivation = isTest && isBillingTestActivationEnabled();
   const uiV2Enabled = isUiV2Enabled();
   const tenantId = session.user.tenantId ?? null;
   const tenantClassificationPending =
@@ -80,10 +82,12 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
     <div className="container min-h-svh max-w-4xl px-4 py-12" data-testid="success-page-ready">
       {/* 
           🧪 BILLING TEST MODE TRIGGER
-          If we are in test mode and have plan info, trigger the activation 
-          on the client side to avoid revalidatePath-during-render errors.
+          If the billing-test runtime guard allows activation and plan info is present,
+          trigger activation on the client side to avoid revalidatePath-during-render errors.
       */}
-      {isTest && planId && priceId && <MockActivationTrigger planId={planId} priceId={priceId} />}
+      {canTriggerBillingTestActivation && planId && priceId && (
+        <MockActivationTrigger planId={planId} priceId={priceId} />
+      )}
       <FunnelActivationTracker
         tenantId={tenantId}
         locale={locale}
