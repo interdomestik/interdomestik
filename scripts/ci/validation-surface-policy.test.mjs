@@ -66,10 +66,25 @@ const DECISION_SCENARIOS = [
     ]),
   ],
   [
+    'PR finalizer and template changes skip heavy validation',
+    'pull_request',
+    ['scripts/pr-finalizer.sh', '.github/pull_request_template.md'],
+    decision(false, 'non_product_only_pr', [
+      'scripts/pr-finalizer.sh',
+      '.github/pull_request_template.md',
+    ]),
+  ],
+  [
     'runtime-sensitive product changes still run heavy validation',
     'pull_request',
     ['apps/web/src/features/member/home.tsx', 'docs/plans/current-program.md'],
     decision(true, 'runtime_sensitive_surface', ['docs/plans/current-program.md']),
+  ],
+  [
+    'product changes alongside PR finalizer still run heavy validation',
+    'pull_request',
+    ['apps/web/src/features/member/home.tsx', 'scripts/pr-finalizer.sh'],
+    decision(true, 'runtime_sensitive_surface', ['scripts/pr-finalizer.sh']),
   ],
   [
     'product changes alongside CI orchestration still run heavy validation',
