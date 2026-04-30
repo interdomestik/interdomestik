@@ -8,7 +8,18 @@ import {
   auditPerformance,
   auditSupabase,
 } from './tools/audits.js';
-import { codeSearch, gitDiff, gitStatus, projectMap, readFiles } from './tools/repo.js';
+import {
+  changedFiles,
+  codeSearch,
+  gitBranchInfo,
+  gitDiff,
+  gitStatus,
+  gitStatusCompact,
+  projectMap,
+  readFileRange,
+  readFiles,
+  scopeAudit,
+} from './tools/repo.js';
 import { checkHealth } from './tools/health.js';
 import {
   runBuildCi,
@@ -32,8 +43,13 @@ type Handler = (args: any) => Promise<any>;
 const handlers: Record<string, Handler> = {
   project_map: args => projectMap(args),
   read_files: args => readFiles(args),
+  read_file_range: args => readFileRange(args),
   git_status: () => gitStatus(),
+  git_status_compact: () => gitStatusCompact(),
+  git_branch_info: () => gitBranchInfo(),
   git_diff: args => gitDiff(args),
+  changed_files: args => changedFiles(args),
+  scope_audit: args => scopeAudit(args),
   code_search: args => codeSearch(args),
   audit_dependencies: () => auditDependencies(),
   dependency_audit: () => auditDependencies(),
