@@ -1,6 +1,4 @@
-import { defineConfig } from 'checkly';
-
-export default defineConfig({
+export default {
   projectName: 'Interdomestik Monitor',
   logicalId: 'interdomestik-monitor',
   repoUrl: 'https://github.com/interdomestik/interdomestik',
@@ -16,4 +14,4 @@ export default defineConfig({
   cli: {
     runLocation: 'eu-central-1',
   },
-});
+};
