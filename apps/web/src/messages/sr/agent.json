@@ -233,6 +233,21 @@
     "leads_page": {
       "title": "Upravljanje potencijalnim klijentima",
       "subtitle": "Upravljajte i konvertujte svoje potencijalne članove.",
+      "backToLeads": "Nazad na potencijalne klijente",
+      "detailTitleFallback": "Detalji potencijalnog klijenta",
+      "sourceLabel": "Izvor",
+      "emptyValue": "Nije navedeno",
+      "detail": {
+        "contactInformation": "Kontakt informacije",
+        "type": "Tip",
+        "email": "E-pošta",
+        "phone": "Telefon",
+        "company": "Kompanija"
+      },
+      "types": {
+        "individual": "Fizičko lice",
+        "business": "Biznis"
+      },
       "table": {
         "name": "Ime",
         "stage": "Faza",
@@ -245,9 +260,26 @@
         "contacted": "Kontaktirani",
         "qualified": "Kvalifikovani",
         "proposal": "Ponuda",
+        "negotiation": "Pregovori",
         "won": "Dobijeni",
-        "lost": "Izgubljeni"
-      }
+        "lost": "Izgubljeni",
+        "unknown": "Nepoznata faza"
+      },
+      "actions": {
+        "createDealUnavailable": "Kreiranje dogovora nije dostupno"
+      },
+      "deals": {
+        "title": "Dogovori",
+        "empty": "Još nema kreiranih dogovora.",
+        "membershipPlan": "Plan članstva"
+      },
+      "dealStatuses": {
+        "open": "Otvoren",
+        "won": "Dobijen",
+        "lost": "Izgubljen",
+        "unknown": "Nepoznato"
+      },
+      "activityHistory": "Istorija aktivnosti"
     },
     "commissions": {
       "title": "Provizije",
