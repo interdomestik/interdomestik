@@ -204,14 +204,46 @@
       }
     },
     "leads_page": {
+      "backToLeads": "Back to Leads",
+      "detailTitleFallback": "Lead Details",
+      "sourceLabel": "Source",
+      "emptyValue": "Not provided",
+      "detail": {
+        "contactInformation": "Contact Information",
+        "type": "Type",
+        "email": "Email",
+        "phone": "Phone",
+        "company": "Company"
+      },
+      "types": {
+        "individual": "Individual",
+        "business": "Business"
+      },
       "stages": {
         "new": "New",
         "contacted": "Contacted",
         "qualified": "Qualified",
         "proposal": "Proposal",
+        "negotiation": "Negotiation",
         "won": "Won",
-        "lost": "Lost"
-      }
+        "lost": "Lost",
+        "unknown": "Unknown stage"
+      },
+      "actions": {
+        "createDealUnavailable": "Deal creation unavailable"
+      },
+      "deals": {
+        "title": "Deals",
+        "empty": "No deals created yet.",
+        "membershipPlan": "Membership Plan"
+      },
+      "dealStatuses": {
+        "open": "Open",
+        "won": "Won",
+        "lost": "Lost",
+        "unknown": "Unknown"
+      },
+      "activityHistory": "Activity History"
     },
     "workspace": {
       "title": "Agent Pro Workspace",

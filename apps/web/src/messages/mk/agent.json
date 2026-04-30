@@ -230,6 +230,21 @@
     "leads_page": {
       "title": "Lead Management",
       "subtitle": "Manage and convert your potential members.",
+      "backToLeads": "Назад кон потенцијални клиенти",
+      "detailTitleFallback": "Детали за потенцијален клиент",
+      "sourceLabel": "Извор",
+      "emptyValue": "Не е наведено",
+      "detail": {
+        "contactInformation": "Контакт информации",
+        "type": "Тип",
+        "email": "Е-пошта",
+        "phone": "Телефон",
+        "company": "Компанија"
+      },
+      "types": {
+        "individual": "Физичко лице",
+        "business": "Бизнис"
+      },
       "table": {
         "name": "Name",
         "stage": "Stage",
@@ -242,9 +257,26 @@
         "contacted": "Контактиран",
         "qualified": "Квалификуван",
         "proposal": "Понуда",
+        "negotiation": "Преговори",
         "won": "Добиен",
-        "lost": "Изгубен"
-      }
+        "lost": "Изгубен",
+        "unknown": "Непозната фаза"
+      },
+      "actions": {
+        "createDealUnavailable": "Креирањето договор не е достапно"
+      },
+      "deals": {
+        "title": "Договори",
+        "empty": "Сè уште нема креирани договори.",
+        "membershipPlan": "План за членство"
+      },
+      "dealStatuses": {
+        "open": "Отворен",
+        "won": "Добиен",
+        "lost": "Изгубен",
+        "unknown": "Непознато"
+      },
+      "activityHistory": "Историја на активности"
     },
     "commissions": {
       "title": "Провизии",

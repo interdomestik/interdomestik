@@ -203,14 +203,46 @@
       }
     },
     "leads_page": {
+      "backToLeads": "Kthehu te lead-et",
+      "detailTitleFallback": "Detajet e lead-it",
+      "sourceLabel": "Burimi",
+      "emptyValue": "Nuk është dhënë",
+      "detail": {
+        "contactInformation": "Informacioni i kontaktit",
+        "type": "Lloji",
+        "email": "E-mail",
+        "phone": "Telefoni",
+        "company": "Kompania"
+      },
+      "types": {
+        "individual": "Individ",
+        "business": "Biznes"
+      },
       "stages": {
         "new": "I/E Re",
         "contacted": "Kontakuar",
         "qualified": "Kualifikuar",
         "proposal": "Propozim",
+        "negotiation": "Negocim",
         "won": "Fituar",
-        "lost": "Humbur"
-      }
+        "lost": "Humbur",
+        "unknown": "Fazë e panjohur"
+      },
+      "actions": {
+        "createDealUnavailable": "Krijimi i marrëveshjes nuk është i disponueshëm"
+      },
+      "deals": {
+        "title": "Marrëveshjet",
+        "empty": "Ende nuk është krijuar asnjë marrëveshje.",
+        "membershipPlan": "Plani i anëtarësimit"
+      },
+      "dealStatuses": {
+        "open": "E hapur",
+        "won": "Fituar",
+        "lost": "Humbur",
+        "unknown": "E panjohur"
+      },
+      "activityHistory": "Historiku i aktivitetit"
     },
     "workspace": {
       "title": "Hapësira Pro e Agjentit",
