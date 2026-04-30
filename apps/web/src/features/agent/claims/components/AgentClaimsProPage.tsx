@@ -17,7 +17,7 @@ import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui';
 import { ArrowLeft } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { getSelectedClaimId } from './claim-selection';
+import { getClaimSelectionCloseHref, getSelectedClaimId } from './claim-selection';
 
 // Define minimal Claim type for Pro table
 export type AgentProClaim = {
@@ -90,18 +90,18 @@ export function AgentClaimsProPage({
   const handleSelect = (id: string) => {
     setViewMode('details'); // Reset view on new selection
     const params = new URLSearchParams(searchParams);
+    params.delete('claimId');
     params.set('selected', id);
     router.replace(`?${params.toString()}`);
   };
 
   const handleClose = () => {
-    if (!searchParams.has('selected')) {
+    const nextHref = getClaimSelectionCloseHref(searchParams);
+    if (!nextHref) {
       return;
     }
 
-    const params = new URLSearchParams(searchParams);
-    params.delete('selected');
-    router.replace(`?${params.toString()}`);
+    router.replace(nextHref);
   };
 
   // Local Filter State

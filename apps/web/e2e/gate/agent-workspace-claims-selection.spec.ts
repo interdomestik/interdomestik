@@ -331,6 +331,11 @@ test.describe('Agent Workspace Claims claimId selection', () => {
       await waitForSelectedClaimReady(page, accessibleClaimId);
       await expect(page.getByTestId('action-message')).toBeVisible();
 
+      await page.keyboard.press('Escape');
+      await expect(page.getByTestId('ops-drawer')).not.toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId('workspace-selected-claim-id')).toHaveCount(0);
+      await expect(page).not.toHaveURL(/claimId=/);
+
       const inaccessibleClaimId = 'e2e-not-accessible-claim-id';
 
       const inaccessiblePath = `${routes.agentWorkspaceClaims(
