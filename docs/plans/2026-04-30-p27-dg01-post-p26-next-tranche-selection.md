@@ -4,7 +4,7 @@
 
 - Date: 2026-04-30
 - Slice: `P27-DG01`
-- Status: Planned
+- Status: Complete
 - Owner: `platform + product + design + qa`
 - Purpose: select the next bounded implementation slice after completed `P26` without widening into broad CRM, agent-workspace, analytics, routing, auth, tenancy, schema, Stripe, README, AGENTS, or architecture-doc work.
 
