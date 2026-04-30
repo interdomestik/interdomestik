@@ -27,7 +27,7 @@ This is a design-gate and tracker-reconciliation slice only. It does not authori
 
 ## Selection Judgment
 
-`P25-UX01` consumed the only implementation slice promoted by `P25-DG01`. The live production validation did not identify a concrete public-entry defect that requires a same-tranche follow-up implementation. The service CTA Copilot fix is live, the restored localized service strings render, the Free Start path works, and the Vercel preview-skip configuration prevents repeated preview builds while leaving production deploys available.
+`P25-UX01` consumed the only implementation slice promoted by `P25-DG01`. The live production validation did not identify a concrete public-entry defect that requires a same-tranche follow-up implementation. The corrected localized service call CTA copy and href are live, the restored localized service strings render, the Free Start path works, and the Vercel preview-skip configuration prevents repeated preview builds while leaving production deploys available.
 
 The remaining candidates are either strategic product lanes that prior gates explicitly deferred, or observations that need a separate bounded evidence gate before implementation. The current repo-canonical evidence therefore supports closing the active P25 implementation line rather than promoting another implementation slice immediately.
 
