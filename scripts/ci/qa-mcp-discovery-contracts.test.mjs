@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
 
-async function listToolsViaMcp() {
+async function createMcpClient() {
   const child = spawn('/bin/bash', ['scripts/start-repo-qa.sh'], {
     cwd: rootDir,
     detached: true,
@@ -16,70 +16,80 @@ async function listToolsViaMcp() {
   });
 
   let stdout = '';
+  let nextId = 1;
+  const pending = new Map();
 
-  try {
+  child.stdout.on('data', chunk => {
+    stdout += chunk.toString();
+    const lines = stdout.split('\n');
+    stdout = lines.pop() ?? '';
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+
+      let message;
+      try {
+        message = JSON.parse(line);
+      } catch {
+        continue;
+      }
+
+      const pendingRequest = pending.get(message.id);
+      if (!pendingRequest) continue;
+
+      clearTimeout(pendingRequest.timeout);
+      pending.delete(message.id);
+      pendingRequest.resolve(message);
+    }
+  });
+
+  child.on('exit', code => {
+    for (const [id, pendingRequest] of pending.entries()) {
+      clearTimeout(pendingRequest.timeout);
+      pending.delete(id);
+      pendingRequest.reject(
+        new Error(
+          `QA MCP server exited before ${pendingRequest.label} completed (code=${code ?? 'null'})`
+        )
+      );
+    }
+  });
+
+  async function request(method, params = {}) {
+    const id = nextId;
+    nextId += 1;
+    const label =
+      method === 'tools/call' && typeof params.name === 'string'
+        ? `${method}:${params.name}`
+        : method;
+
     const response = await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('Timed out waiting for tools/list response'));
+        pending.delete(id);
+        reject(new Error(`Timed out waiting for MCP response ${id} (${label})`));
       }, 10000);
 
-      child.stdout.on('data', chunk => {
-        stdout += chunk.toString();
-
-        for (const line of stdout.split('\n')) {
-          if (!line.trim()) continue;
-
-          let message;
-          try {
-            message = JSON.parse(line);
-          } catch {
-            continue;
-          }
-
-          if (message.id === 2) {
-            clearTimeout(timeout);
-            resolve(message);
-            return;
-          }
-        }
-      });
-
-      child.on('exit', code => {
-        clearTimeout(timeout);
-        reject(new Error(`QA MCP server exited before tools/list completed (code=${code ?? 'null'})`));
+      pending.set(id, {
+        label,
+        reject,
+        resolve,
+        timeout,
       });
 
       child.stdin.write(
         JSON.stringify({
           jsonrpc: '2.0',
-          id: 1,
-          method: 'initialize',
-          params: {
-            protocolVersion: '2024-11-05',
-            capabilities: {},
-            clientInfo: { name: 'qa-mcp-contract', version: '1.0.0' },
-          },
-        }) + '\n'
-      );
-      child.stdin.write(
-        JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'notifications/initialized',
-          params: {},
-        }) + '\n'
-      );
-      child.stdin.write(
-        JSON.stringify({
-          jsonrpc: '2.0',
-          id: 2,
-          method: 'tools/list',
-          params: {},
+          id,
+          method,
+          params,
         }) + '\n'
       );
     });
 
-    return response.result.tools.map(tool => tool.name);
-  } finally {
+    return response;
+  }
+
+  async function close() {
     if (child.pid && child.exitCode === null && !child.killed) {
       await new Promise(resolve => {
         const forceKillTimer = setTimeout(() => {
@@ -104,6 +114,39 @@ async function listToolsViaMcp() {
       });
     }
   }
+
+  await request('initialize', {
+    protocolVersion: '2024-11-05',
+    capabilities: {},
+    clientInfo: { name: 'qa-mcp-contract', version: '1.0.0' },
+  });
+  child.stdin.write(
+    JSON.stringify({
+      jsonrpc: '2.0',
+      method: 'notifications/initialized',
+      params: {},
+    }) + '\n'
+  );
+
+  return {
+    callTool: (name, args = {}) =>
+      request('tools/call', {
+        arguments: args,
+        name,
+      }).then(response => response.result),
+    close,
+    listTools: () => request('tools/list').then(response => response.result.tools),
+  };
+}
+
+async function listToolsViaMcp() {
+  const client = await createMcpClient();
+
+  try {
+    return (await client.listTools()).map(tool => tool.name);
+  } finally {
+    await client.close();
+  }
 }
 
 test('repo QA MCP launcher exposes the expected live tool surface over stdio', async () => {
@@ -112,12 +155,55 @@ test('repo QA MCP launcher exposes the expected live tool surface over stdio', a
   for (const toolName of [
     'project_map',
     'read_files',
+    'read_file_range',
     'code_search',
+    'git_status_compact',
+    'git_branch_info',
+    'changed_files',
+    'scope_audit',
     'check_health',
     'pr_verify',
     'security_guard',
     'e2e_gate',
   ]) {
     assert.ok(toolNames.includes(toolName), `expected live QA tool ${toolName}`);
+  }
+});
+
+test('repo QA MCP repo helpers return structured results for faster agent inspection', async () => {
+  const client = await createMcpClient();
+
+  try {
+    const rangeResult = await client.callTool('read_file_range', {
+      endLine: 12,
+      file: 'packages/qa/src/tools/repo.ts',
+      startLine: 1,
+    });
+    assert.equal(rangeResult.structuredContent.tool, 'read_file_range');
+    assert.equal(rangeResult.structuredContent.status, 'ok');
+    assert.match(rangeResult.content[0].text, /packages\/qa\/src\/tools\/repo\.ts:1-12/);
+
+    const outOfBoundsResult = await client.callTool('read_file_range', {
+      file: 'packages/qa/src/tools/repo.ts',
+      startLine: 100000,
+    });
+    assert.equal(outOfBoundsResult.structuredContent.status, 'out_of_bounds');
+    assert.equal(outOfBoundsResult.structuredContent.linesRead, 0);
+
+    const branchResult = await client.callTool('git_branch_info');
+    assert.equal(branchResult.structuredContent.tool, 'git_branch_info');
+    assert.ok(branchResult.structuredContent.head);
+
+    const changedResult = await client.callTool('changed_files');
+    assert.equal(changedResult.structuredContent.tool, 'changed_files');
+    assert.ok(Array.isArray(changedResult.structuredContent.files));
+
+    const scopeResult = await client.callTool('scope_audit', {
+      allowedPaths: ['docs/plans', 'packages/qa', 'scripts/ci'],
+    });
+    assert.equal(scopeResult.structuredContent.tool, 'scope_audit');
+    assert.equal(scopeResult.structuredContent.status, 'pass');
+  } finally {
+    await client.close();
   }
 });

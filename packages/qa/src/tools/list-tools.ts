@@ -15,6 +15,52 @@ const TEST_ORCHESTRATOR_INPUT_SCHEMA = {
   },
 };
 
+const CHANGED_FILES_INPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    staged: { type: 'boolean', description: 'Show staged changes only' },
+  },
+};
+
+const CODE_SEARCH_INPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    after: { type: 'number', description: 'Trailing context lines per match' },
+    before: { type: 'number', description: 'Leading context lines per match' },
+    filePattern: { type: 'string', description: 'Optional ripgrep glob pattern' },
+    maxResults: { type: 'number', description: 'Maximum matches per searched file' },
+    query: { type: 'string' },
+  },
+  required: ['query'],
+};
+
+const READ_FILE_RANGE_INPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    context: { type: 'number', description: 'Extra lines before and after the requested range' },
+    endLine: { type: 'number', description: 'End line, 1-based' },
+    file: { type: 'string', description: 'Repository-relative file path' },
+    startLine: { type: 'number', description: 'Start line, 1-based' },
+  },
+  required: ['file'],
+};
+
+const SCOPE_AUDIT_INPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    allowedPaths: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'Optional repository-relative path prefixes that changed files must stay within',
+    },
+    forbiddenPaths: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'Optional repository-relative path prefixes that must not be changed',
+    },
+  },
+};
+
 function createNoArgTool(name: string, description: string) {
   return {
     name,
@@ -93,9 +139,24 @@ export const tools = [
     },
   },
   {
+    name: 'read_file_range',
+    description: 'Read a numbered repository file range with optional surrounding context',
+    inputSchema: READ_FILE_RANGE_INPUT_SCHEMA,
+  },
+  {
     name: 'git_status',
     description: 'Get git status of the repository',
     inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'git_status_compact',
+    description: 'Get compact branch and changed-file status for the repository',
+    inputSchema: EMPTY_INPUT_SCHEMA,
+  },
+  {
+    name: 'git_branch_info',
+    description: 'Get current branch, head SHA, upstream, ahead count, and behind count',
+    inputSchema: EMPTY_INPUT_SCHEMA,
   },
   {
     name: 'git_diff',
@@ -106,16 +167,19 @@ export const tools = [
     },
   },
   {
+    name: 'changed_files',
+    description: 'List changed files from git status or staged diff using structured output',
+    inputSchema: CHANGED_FILES_INPUT_SCHEMA,
+  },
+  {
+    name: 'scope_audit',
+    description: 'Audit changed files against allowed and forbidden repository path prefixes',
+    inputSchema: SCOPE_AUDIT_INPUT_SCHEMA,
+  },
+  {
     name: 'code_search',
-    description: 'Search for text in code files',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        query: { type: 'string' },
-        filePattern: { type: 'string', description: 'Optional glob pattern' },
-      },
-      required: ['query'],
-    },
+    description: 'Search code with ripgrep first and git-grep fallback',
+    inputSchema: CODE_SEARCH_INPUT_SCHEMA,
   },
   {
     name: 'query_db',
