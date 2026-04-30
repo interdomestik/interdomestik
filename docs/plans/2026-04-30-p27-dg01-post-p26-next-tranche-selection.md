@@ -87,3 +87,16 @@ Promote exactly one bounded implementation slice:
 - `pnpm security:guard`
 - `pnpm e2e:gate`
 - Remote PR checks, SonarCloud, Copilot, and PR finalizer green before merge.
+
+## Implementation Closeout
+
+`P27-AGENT01` is implemented through PR `#608`. The existing `/agent/workspace/claims` client close path now clears both `selected` and `claimId` selection aliases, preserves unrelated query parameters, and keeps the existing direct-link, row-selection, tenant/agent read, locale, message persistence, and inaccessible-claim behavior intact.
+
+Focused proof:
+
+- `pnpm --filter @interdomestik/web test:unit --run src/features/agent/claims/components/claim-selection.test.ts`
+- `pnpm --filter @interdomestik/web test:e2e -- e2e/gate/agent-workspace-claims-selection.spec.ts --project=chromium`
+- `git diff --check`
+- `pnpm verify-slice -- --static`
+
+No further implementation slice is promoted by this design-gate document. Additional agent workspace, CRM, productization, analytics, observability, proxy, route, auth, tenancy, schema, Stripe, README, AGENTS, or architecture-doc work remains unpromoted until a future repo-canonical design gate identifies a concrete bounded slice.
