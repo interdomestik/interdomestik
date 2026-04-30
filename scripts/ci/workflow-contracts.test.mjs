@@ -180,6 +180,34 @@ test('Heavy PR workflows always materialize on PRs and delegate docs-only skippi
   assert.ok(findStep(pilotGatePreflightJob.steps, 'Skip pilot gate for non-product-only changes'));
 });
 
+test('Nightly E2E runs on an available hosted runner while preserving full strict coverage', () => {
+  const nightlyWorkflow = readWorkflow('.github/workflows/e2e-nightly.yml');
+  const nightlyJob = nightlyWorkflow.jobs.e2e;
+
+  assert.equal(nightlyJob['runs-on'], 'ubuntu-latest');
+  assert.deepEqual(nightlyWorkflow.on.schedule, [{ cron: '10 2 * * *' }]);
+  assert.deepEqual(nightlyJob.strategy.matrix, {
+    shardIndex: [1, 2, 3],
+    shardTotal: [3],
+  });
+  assert.equal(
+    nightlyJob.env.DATABASE_URL_RLS,
+    "${{ secrets.E2E_DATABASE_URL_RLS || secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}"
+  );
+  assert.equal(
+    nightlyJob.env.E2E_DATABASE_URL_RLS,
+    "${{ secrets.E2E_DATABASE_URL_RLS || secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}"
+  );
+  assert.ok(findStep(nightlyJob.steps, 'Generate Playwright Gate Auth State (KS+MK)'));
+  assert.ok(findStep(nightlyJob.steps, 'E2E Gate (KS+MK)'));
+  assert.match(
+    findStep(nightlyJob.steps, 'E2E Subscription Lifecycle (KS+MK)').run,
+    /e2e\/golden\/subscription-entry\.spec\.ts/
+  );
+  assert.ok(findStep(nightlyJob.steps, 'E2E Phase 5 Deterministic Batch'));
+  assert.ok(findStep(nightlyJob.steps, 'E2E Smoke'));
+});
+
 test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a lightweight preflight job', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const pilotGatePreflightJob = pilotGateWorkflow.jobs['pilot-gate-preflight'];
