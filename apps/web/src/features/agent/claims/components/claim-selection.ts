@@ -7,3 +7,16 @@ export function getSelectedClaimId(searchParams: URLSearchParams): string | null
 
   return null;
 }
+
+export function getClaimSelectionCloseHref(searchParams: URLSearchParams): string | null {
+  if (!searchParams.has('selected') && !searchParams.has('claimId')) {
+    return null;
+  }
+
+  const nextParams = new URLSearchParams(searchParams);
+  nextParams.delete('selected');
+  nextParams.delete('claimId');
+
+  const nextQuery = nextParams.toString();
+  return nextQuery ? `?${nextQuery}` : '?';
+}
