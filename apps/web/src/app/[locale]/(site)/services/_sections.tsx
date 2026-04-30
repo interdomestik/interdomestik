@@ -29,12 +29,13 @@ type TFn = (key: string) => string;
 
 type ServicesPageSectionsProps = {
   t: TFn;
+  ctaPrimaryLabel: string;
   contact: ServicesPageContactModel;
   coverageMatrix: CoverageMatrixProps;
 };
 
 export function ServicesPageSections(props: ServicesPageSectionsProps) {
-  const { t, contact, coverageMatrix } = props;
+  const { t, ctaPrimaryLabel, contact, coverageMatrix } = props;
 
   // Service icons mapping
   const consultationIcons = [Scale, ScrollText, HeartPulse, Calculator, BadgeCheck, MapPin];
@@ -60,7 +61,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href={PUBLIC_FREE_START_ENTRY_HREF}>
                 <Button size="xl" className="h-14 px-10 font-bold shadow-lg shadow-primary/30">
-                  {t('cta.primary')}
+                  {ctaPrimaryLabel}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
@@ -260,7 +261,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
                 size="xl"
                 className="h-14 px-10 bg-white text-primary hover:bg-white/90 font-bold shadow-xl"
               >
-                {t('cta.primary')}
+                {ctaPrimaryLabel}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
