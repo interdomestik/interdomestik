@@ -63,6 +63,12 @@ vi.mock('@/components/pricing/pricing-table', () => ({
   PricingTable: ({ children }: { children?: ReactNode }) => children ?? null,
 }));
 
+vi.mock('@/i18n/routing', () => ({
+  Link: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
 import PricingPage from './_core.entry';
 
 describe('PricingPage server shell', () => {
@@ -95,6 +101,10 @@ describe('PricingPage server shell', () => {
     expectSuccessFeeCalculator({ sectionTestId: 'pricing-success-fee-calculator' });
     expectCommercialTerms({ sectionTestId: 'pricing-billing-terms' });
     expect(screen.getByText('pricing.disclaimers.freeStart.title')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'hero.callNow' })).toHaveAttribute(
+      'href',
+      '/#free-start-intake'
+    );
     expect(screen.getByText('pricing.disclaimers.hotline.title')).toBeInTheDocument();
     expectCommercialTerms({ sectionTestId: 'pricing-billing-terms' });
     expect(screen.getByText('pricing.scope.title')).toBeInTheDocument();

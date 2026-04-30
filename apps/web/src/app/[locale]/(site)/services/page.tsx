@@ -24,12 +24,14 @@ export async function generateMetadata({ params }: ServicesPageProps): Promise<M
 export default async function ServicesPage({ params }: ServicesPageProps) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'servicesPage' });
+  const hero = await getTranslations({ locale, namespace: 'hero' });
   const coverageMatrix = await getTranslations({ locale, namespace: 'coverageMatrix' });
   const contact = getServicesPageContactModel(contactInfo);
 
   return (
     <ServicesPageSections
       t={t}
+      ctaPrimaryLabel={hero('callNow')}
       contact={contact}
       coverageMatrix={buildCoverageMatrixProps(coverageMatrix, 'services-coverage-matrix')}
     />

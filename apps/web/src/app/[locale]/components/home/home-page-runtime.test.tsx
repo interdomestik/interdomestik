@@ -84,8 +84,8 @@ describe('HomePageRuntime', () => {
       });
       expect(hoisted.heroSectionMock).toHaveBeenCalledWith({
         locale: 'sq',
-        primaryHref: '/pricing',
-        secondaryHref: '#free-start-intake',
+        primaryHref: '#free-start-intake',
+        secondaryHref: undefined,
         tenantId: 'tenant_mk',
       });
       expect(hoisted.freeStartIntakeShellMock).toHaveBeenCalledWith({

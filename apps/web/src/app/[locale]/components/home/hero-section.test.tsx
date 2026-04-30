@@ -37,15 +37,8 @@ vi.mock('@/lib/support-contacts', () => ({
 }));
 
 describe('HeroSection', () => {
-  it('keeps the old hero structure while prioritizing membership, 60-second intake, and WhatsApp', () => {
-    render(
-      <HeroSection
-        locale="sq"
-        primaryHref="/pricing"
-        secondaryHref="#free-start-intake"
-        tenantId="tenant_ks"
-      />
-    );
+  it('keeps the old hero structure while prioritizing the 60-second intake and WhatsApp', () => {
+    render(<HeroSection locale="sq" tenantId="tenant_ks" />);
 
     expect(
       screen.getByRole('heading', { name: /Nuk jeni vetëm pas një aksidenti/i })
@@ -55,14 +48,11 @@ describe('HeroSection', () => {
         /Anëtarësimi juaj vjetor zhbllokon udhëzime nga ekspertët dhe mbështetje prioritare për dëmet/i
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Fillo anëtarësimin/i })).toHaveAttribute(
-      'href',
-      '/pricing'
-    );
     expect(screen.getByRole('link', { name: /Nise për 60 sekonda/i })).toHaveAttribute(
       'href',
       '#free-start-intake'
     );
+    expect(screen.queryByRole('link', { name: /Fillo anëtarësimin/i })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Mbështetje në WhatsApp/i })).toHaveAttribute(
       'href',
       'https://wa.me/38349900600'

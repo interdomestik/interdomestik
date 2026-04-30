@@ -2,7 +2,7 @@
 
 import { FunnelLandingTracker } from '@/components/analytics/funnel-trackers';
 import { authClient } from '@/lib/auth-client';
-import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
+import { PUBLIC_FREE_START_ANCHOR_HREF } from '@/lib/public-membership-entry';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -68,8 +68,9 @@ export function HomePageRuntime({ locale, uiV2Enabled }: HomePageRuntimeProps) {
     locale,
     session: landingSession,
   });
-  const startClaimHref = landingSession === null ? '#free-start-intake' : continueHref;
-  const primaryHref = landingSession === null ? PUBLIC_MEMBERSHIP_ENTRY_HREF : '/member';
+  const startClaimHref = landingSession === null ? PUBLIC_FREE_START_ANCHOR_HREF : continueHref;
+  const primaryHref = landingSession === null ? PUBLIC_FREE_START_ANCHOR_HREF : '/member';
+  const secondaryHref = landingSession === null ? undefined : startClaimHref;
 
   return (
     <>
@@ -79,7 +80,7 @@ export function HomePageRuntime({ locale, uiV2Enabled }: HomePageRuntimeProps) {
       <HeroSection
         locale={locale}
         primaryHref={primaryHref}
-        secondaryHref={startClaimHref}
+        secondaryHref={secondaryHref}
         tenantId={tenantId}
       />
       <FreeStartIntakeShell continueHref={continueHref} locale={locale} tenantId={tenantId} />

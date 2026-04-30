@@ -1,4 +1,5 @@
 import { BASE_NAMESPACES, HOME_NAMESPACES, pickMessages } from '@/i18n/messages';
+import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { isUiV2Enabled } from '@/lib/flags';
@@ -8,6 +9,7 @@ import dynamic from 'next/dynamic';
 // Avoid barrel files for heavy landing page components to improve tree-shaking
 import { CTASection } from './components/home/cta-section';
 import { Footer } from './components/home/footer';
+import { FreeStartIntakeShell } from './components/home/free-start-intake-shell';
 import { Header } from './components/home/header';
 import { HeroSection } from './components/home/hero-section';
 import { HomePageRuntime } from './components/home/home-page-runtime';
@@ -68,6 +70,7 @@ export default async function HomePage({ params }: Props) {
         ) : (
           <>
             <HeroSection />
+            <FreeStartIntakeShell continueHref={PUBLIC_MEMBERSHIP_ENTRY_HREF} locale={locale} />
             <TrustStrip />
             <VoiceClaimSection />
             <MemberBenefitsSection />

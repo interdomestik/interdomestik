@@ -8,12 +8,15 @@ import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tr
 import { SuccessFeeCalculator } from '@/components/commercial/success-fee-calculator';
 import { buildSuccessFeeCalculatorProps } from '@/components/commercial/success-fee-calculator-content';
 import { generateLocaleStaticParams } from '@/app/_locale-static-params';
+import { Link } from '@/i18n/routing';
+import { PUBLIC_FREE_START_ENTRY_HREF } from '@/lib/public-membership-entry';
 import {
   getPublicBillingCheckoutConfig,
   type PublicBillingCheckoutConfig,
   resolveBillingEntityFromPathSegment,
   resolveBillingTenantIdForEntity,
 } from '@interdomestik/domain-membership-billing/paddle-server';
+import { Button } from '@interdomestik/ui';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { PricingPageRuntime } from './pricing-page-runtime';
@@ -36,8 +39,9 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
   const { locale } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const isRegisterEntry = resolvedSearchParams?.entry === 'register';
-  const [t, coverageMatrix, commercialTerms] = await Promise.all([
+  const [t, hero, coverageMatrix, commercialTerms] = await Promise.all([
     getTranslations({ locale, namespace: 'pricing' }),
+    getTranslations({ locale, namespace: 'hero' }),
     getTranslations({ locale, namespace: 'coverageMatrix' }),
     getTranslations({ locale, namespace: 'commercialTerms' }),
   ]);
@@ -79,6 +83,13 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
       <div className="text-center mb-12 max-w-2xl mx-auto">
         <h1 className="text-4xl font-bold tracking-tight mb-4">{t('title')}</h1>
         <p className="text-xl text-muted-foreground">{t('subtitle')}</p>
+        <div className="mt-6 flex justify-center">
+          <Link href={PUBLIC_FREE_START_ENTRY_HREF}>
+            <Button size="lg" className="min-h-11 px-6 font-semibold">
+              {hero('callNow')}
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <CommercialDisclaimerNotice

@@ -104,7 +104,7 @@ function getFreeStartMessage(locale: LocaleId, key: string): string {
   return getTranslationValue(localeMessages[locale].freeStart, key);
 }
 
-async function completeFreeStartIntake(
+async function moveToFreeStartPreview(
   user: ReturnType<typeof userEvent.setup>,
   locale: LocaleId,
   options: CompleteIntakeOptions = {}
@@ -143,6 +143,14 @@ async function completeFreeStartIntake(
   await user.click(
     screen.getByRole('button', { name: getFreeStartMessage(locale, 'details.continue') })
   );
+}
+
+async function completeFreeStartIntake(
+  user: ReturnType<typeof userEvent.setup>,
+  locale: LocaleId,
+  options: CompleteIntakeOptions = {}
+) {
+  await moveToFreeStartPreview(user, locale, options);
   await user.click(
     screen.getByRole('button', { name: getFreeStartMessage(locale, 'preview.finish') })
   );
@@ -343,6 +351,64 @@ describe('FreeStartIntakeShell', () => {
         intake_issue: 'water_damage',
       })
     );
+  });
+
+  it('focuses the validation alert when the intake cannot continue', async () => {
+    const user = userEvent.setup();
+
+    renderFreeStart('en');
+
+    await user.click(
+      screen.getByRole('button', { name: getFreeStartMessage('en', 'choose.continue') })
+    );
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(enFreeStartMessages.freeStart.validation.chooseCategory);
+    expect(alert).toHaveFocus();
+  });
+
+  it('keeps the finish button inert while the intake submit is pending', async () => {
+    const user = userEvent.setup();
+    let resolveSubmit!: (value: {
+      success: true;
+      data: {
+        claimCategory: 'property';
+        desiredOutcome: 'repair';
+        intakeIssue: 'water_damage';
+      };
+    }) => void;
+    hoisted.submitFreeStartIntakeMock.mockReturnValue(
+      new Promise(resolve => {
+        resolveSubmit = resolve;
+      })
+    );
+
+    renderFreeStart('en');
+
+    await moveToFreeStartPreview(user, 'en');
+
+    const finishButton = screen.getByRole('button', {
+      name: getFreeStartMessage('en', 'preview.finish'),
+    });
+    await user.click(finishButton);
+
+    expect(finishButton).toBeDisabled();
+    expect(finishButton).toHaveAttribute('aria-busy', 'true');
+
+    await user.click(finishButton);
+
+    expect(hoisted.submitFreeStartIntakeMock).toHaveBeenCalledTimes(1);
+
+    resolveSubmit({
+      success: true,
+      data: {
+        claimCategory: 'property',
+        desiredOutcome: 'repair',
+        intakeIssue: 'water_damage',
+      },
+    });
+
+    expect(await screen.findByTestId('free-start-complete')).toBeInTheDocument();
   });
 
   it('renders the generated claim pack when the pack action succeeds', async () => {

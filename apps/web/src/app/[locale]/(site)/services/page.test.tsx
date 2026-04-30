@@ -1,6 +1,8 @@
 import enCoverageMatrix from '@/messages/en/coverageMatrix.json';
+import enHero from '@/messages/en/hero.json';
 import enServicesPage from '@/messages/en/servicesPage.json';
 import sqCoverageMatrix from '@/messages/sq/coverageMatrix.json';
+import sqHero from '@/messages/sq/hero.json';
 import sqServicesPage from '@/messages/sq/servicesPage.json';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -26,6 +28,7 @@ vi.mock('next-intl/server', () => ({
       locale === 'sq' ? sqServicesPage.servicesPage : enServicesPage.servicesPage;
     const coverageMatrixMessages =
       locale === 'sq' ? sqCoverageMatrix.coverageMatrix : enCoverageMatrix.coverageMatrix;
+    const heroMessages = locale === 'sq' ? sqHero.hero : enHero.hero;
 
     switch (namespace) {
       case 'servicesPage':
@@ -34,6 +37,8 @@ vi.mock('next-intl/server', () => ({
         return (key: string) => getTranslationValue(servicesPageMessages.meta, key);
       case 'coverageMatrix':
         return (key: string) => getTranslationValue(coverageMatrixMessages, key);
+      case 'hero':
+        return (key: string) => getTranslationValue(heroMessages, key);
       default:
         return (key: string) => key;
     }
@@ -115,11 +120,10 @@ describe('ServicesPage', () => {
     expect(
       screen.getAllByText(sqServicesPage.servicesPage.categories.legal.services[1].description)
     ).not.toHaveLength(0);
-    expect(
-      screen.getAllByRole('link', { name: sqServicesPage.servicesPage.cta.primary })
-    ).not.toHaveLength(0);
-    expect(
-      screen.getAllByRole('link', { name: sqServicesPage.servicesPage.cta.primary })[0]
-    ).toHaveAttribute('href', '/pricing');
+    expect(screen.getAllByRole('link', { name: sqHero.hero.callNow })).not.toHaveLength(0);
+    expect(screen.getAllByRole('link', { name: sqHero.hero.callNow })[0]).toHaveAttribute(
+      'href',
+      '/#free-start-intake'
+    );
   });
 });

@@ -1,4 +1,5 @@
 import { Link } from '@/i18n/routing';
+import { PUBLIC_FREE_START_ANCHOR_HREF } from '@/lib/public-membership-entry';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { Button } from '@interdomestik/ui';
 import { ArrowRight, CheckCircle2, Clock, Shield, ShieldCheck, Star, Users } from 'lucide-react';
@@ -14,8 +15,8 @@ type HeroSectionProps = Readonly<{
 
 export function HeroSection({
   locale,
-  primaryHref = '/pricing',
-  secondaryHref = '#free-start-intake',
+  primaryHref = PUBLIC_FREE_START_ANCHOR_HREF,
+  secondaryHref,
   tenantId,
 }: HeroSectionProps) {
   const t = useTranslations('hero');
@@ -25,6 +26,9 @@ export function HeroSection({
   const titleHasQuestionBreak = title.includes('?');
   const titleLead = titleHasQuestionBreak ? `${title.split('?').slice(0, -1).join('?')}?` : title;
   const titleAccent = titleHasQuestionBreak ? (title.split('?').slice(-1)[0]?.trim() ?? '') : '';
+  const primaryLabel = primaryHref.includes(PUBLIC_FREE_START_ANCHOR_HREF)
+    ? t('callNow')
+    : t('cta');
 
   return (
     <section className="relative overflow-hidden bg-[#FAF9F6] pt-20 lg:min-h-[88vh]">
@@ -72,7 +76,7 @@ export function HeroSection({
                   >
                     <div className="absolute inset-x-0 top-0 h-[1px] bg-white/10" />
                     <span className="flex items-center gap-2">
-                      {t('cta')}
+                      {primaryLabel}
                       <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                     </span>
                   </Button>
