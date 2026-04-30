@@ -294,7 +294,7 @@ jobs:
           retention-days: 14
 
   pilot-gate:
-    name: pr:verify + pilot:check
+    name: pilot-gate
     if: always()
     needs:
       - pilot-gate-preflight
