@@ -217,7 +217,7 @@ test('repo QA MCP repo helpers return structured results for faster agent inspec
     assert.ok(Array.isArray(changedResult.structuredContent.files));
 
     const scopeResult = await client.callTool('scope_audit', {
-      allowedPaths: ['.github/workflows', 'docs/plans', 'packages/qa', 'scripts/ci'],
+      forbiddenPaths: ['__qa_mcp_contract_forbidden_path__'],
     });
     assert.equal(scopeResult.structuredContent.tool, 'scope_audit');
     assert.equal(scopeResult.structuredContent.status, 'pass');
