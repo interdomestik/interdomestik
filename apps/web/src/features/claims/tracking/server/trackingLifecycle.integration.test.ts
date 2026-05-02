@@ -219,14 +219,14 @@ describe('tracking link lifecycle', () => {
         claimId: 'claim-1',
         tenantId: 'tenant-ks',
         tokenHash: 'hash:old-live-token',
-        expiresAt: new Date('2026-05-01T00:00:00.000Z'),
+        expiresAt: new Date('2099-05-01T00:00:00.000Z'),
         revokedAt: null,
       },
       {
         claimId: 'claim-1',
         tenantId: null,
         tokenHash: 'hash:legacy-null-tenant-token',
-        expiresAt: new Date('2026-05-01T00:00:00.000Z'),
+        expiresAt: new Date('2099-05-01T00:00:00.000Z'),
         revokedAt: null,
       },
     ];

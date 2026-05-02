@@ -203,12 +203,12 @@
     "member": {
       "home": {
         "hero": {
-          "title": "Zaštićeni ste uz Interdomestik",
-          "subtitle": "Brza podrška, vođenje korak po korak i privatnost.",
+          "title": "Vaš dosije. Pravi koraci. Pratite slučaj do zatvaranja.",
+          "subtitle": "Kada se dogodi nezgoda, nemojte improvizovati: otvorite slučaj, otpremite dokaze i pratite status. Vodimo vas korak po korak.",
           "trust": {
-            "private": "Privatnost po difoltu",
-            "support247": "Linija podrške 24/7",
-            "guided": "Vođenje od prvog kontakta"
+            "private": "Vaš slučaj dobija jedinstven broj",
+            "support247": "Dokumenti se čuvaju u organizovanom dosijeu",
+            "guided": "Sledeći korak je uvek jasan"
           }
         },
         "cta": {
@@ -267,6 +267,16 @@
           "privacy": "Podaci o članstvu i slučajevima obrađuju se bezbedno.",
           "security": "Hitno? Koristite poziv od 60 sekundi za vođenu podršku.",
           "contact": "Kontakt podrška"
+        },
+        "micro": {
+          "upload_success": "Sačuvano u vašem dosijeu. Ništa nije izgubljeno.",
+          "submit_success": "Slučaj je prihvaćen. Možete ga pratiti sa kontrolne table.",
+          "submit_missing": "Nije obavezno, ali jača vaš slučaj.",
+          "error_safe": "Radnja nije mogla da se završi. Vaši podaci su bezbedni. Pokušajte ponovo."
+        },
+        "promise": {
+          "title": "Naše obećanje",
+          "body": "Pomažemo vam da razumete problem, dokumentujete slučaj i jasno pratite proces. Ne obećavamo pobedu. Obećavamo organizaciju, transparentnost i vođenje da ne ostanete sami."
         }
       }
     },

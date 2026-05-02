@@ -201,12 +201,12 @@
     "member": {
       "home": {
         "hero": {
-          "title": "You are protected with Interdomestik",
-          "subtitle": "Fast support, step-by-step guidance, and private handling.",
+          "title": "Your case file. The right steps. Track the case until closure.",
+          "subtitle": "When an accident happens, do not improvise: open the case, upload evidence, and track status. We guide you step by step.",
           "trust": {
-            "private": "Private by default",
-            "support247": "24/7 support line",
-            "guided": "Guided from first contact"
+            "private": "Each case gets a unique ID",
+            "support247": "Documents stay in an organized case file",
+            "guided": "The next step is always clear"
           }
         },
         "cta": {
@@ -265,6 +265,16 @@
           "privacy": "Your membership data and case details are handled securely.",
           "security": "Need urgent help? Use the 60-second call for guided assistance.",
           "contact": "Contact support"
+        },
+        "micro": {
+          "upload_success": "Saved to your case file. Nothing is lost.",
+          "submit_success": "Case accepted. You can track it from the dashboard.",
+          "submit_missing": "Not required, but it strengthens your case.",
+          "error_safe": "Action could not be completed. Your data is safe. Try again."
+        },
+        "promise": {
+          "title": "Our Promise",
+          "body": "We help you understand the problem, document the case, and follow the process clearly. We don't promise victory. We promise organization, transparency, and guidance so you are never alone."
         }
       }
     },

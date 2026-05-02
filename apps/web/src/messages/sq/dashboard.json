@@ -201,12 +201,12 @@
     "member": {
       "home": {
         "hero": {
-          "title": "Je i mbrojtur me Interdomestik",
-          "subtitle": "Ndihmë e shpejtë, udhëzim hap-pas-hapi, privatësi e garantuar.",
+          "title": "Dosja jote. Hapat e saktë. Ndiq rastin deri në mbyllje.",
+          "subtitle": "Kur ndodh aksidenti, mos improvizo: hap rastin, ngarko provat, ndiq statusin. Ne të udhëzojmë hap pas hapi.",
           "trust": {
-            "private": "Privatësi e garantuar",
-            "support247": "Linjë ndihme 24/7",
-            "guided": "Udhëzim nga kontakti i parë"
+            "private": "Rasti yt merr numër unik",
+            "support247": "Dokumentet ruhen në një dosje të organizuar",
+            "guided": "Hapi i radhës shfaqet qartë"
           }
         },
         "cta": {
@@ -265,6 +265,16 @@
           "privacy": "Të dhënat e anëtarësisë dhe rastit trajtohen në mënyrë të sigurt.",
           "security": "Për urgjencë përdor thirrjen 60 sek për ndihmë të udhëzuar.",
           "contact": "Kontakto mbështetjen"
+        },
+        "micro": {
+          "upload_success": "U ruajt në dosjen tuaj. Asgjë s'humbet.",
+          "submit_success": "Rasti u pranua. Mund ta ndiqni nga paneli.",
+          "submit_missing": "S'është i detyrueshëm, por e forcon dosjen.",
+          "error_safe": "Nuk u krye veprimi. Të dhënat tuaja janë të sigurta. Provoni përsëri."
+        },
+        "promise": {
+          "title": "Premtimi ynë",
+          "body": "Ne ju ndihmojmë ta kuptoni problemin, ta dokumentoni rastin dhe ta ndiqni procesin qartë. Nuk premtojmë fitore. Premtojmë organizim, transparencë dhe udhëzim që të mos mbeteni vetëm."
         }
       }
     },
