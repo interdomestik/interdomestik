@@ -34,6 +34,8 @@
       "contactPreference": "Kontakti i preferuar",
       "claim": "Rasti i lidhur",
       "noClaim": "Pa rast të lidhur",
+      "claimContextTitle": "Rasti i lidhur",
+      "claimContextStatus": "Statusi: {status}",
       "submit": "Dërgo kërkesën për mbështetje",
       "created": "Kërkesa juaj u dërgua në radhën e mbështetjes së stafit.",
       "error": "Nuk mund ta dërgonim kërkesën. Provoni përsëri me një temë të shkurtër dhe mjaft detaje.",

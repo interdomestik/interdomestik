@@ -34,6 +34,8 @@
       "contactPreference": "Željeni kontakt",
       "claim": "Povezani predmet",
       "noClaim": "Bez povezanog predmeta",
+      "claimContextTitle": "Povezani predmet",
+      "claimContextStatus": "Stanje: {status}",
       "submit": "Pošalji zahtev za podršku",
       "created": "Vaš zahtev je poslat u red za podršku osoblja.",
       "error": "Nismo mogli da pošaljemo zahtev. Pokušajte ponovo sa kratkim naslovom i dovoljno detalja.",

@@ -12,10 +12,11 @@ export interface ClaimMemberTrustSummaryDto {
   titleKey: string;
   bodyKey: string;
   stateLabelKey: string;
-  supportHref: '/member/help';
+  supportHref: string;
 }
 
 interface BuildMemberTrustSummaryInput {
+  claimId?: string | null;
   status: ClaimStatus;
   slaPhase: ClaimSlaPhase;
 }
@@ -46,6 +47,8 @@ export function buildMemberClaimTrustSummary(
     titleKey: 'claims-tracking.tracking.assurance.title',
     bodyKey: `claims-tracking.tracking.assurance.body.${state}`,
     stateLabelKey: `claims-tracking.tracking.assurance.state.${state}`,
-    supportHref: '/member/help',
+    supportHref: args.claimId
+      ? `/member/help?claimId=${encodeURIComponent(args.claimId)}`
+      : '/member/help',
   };
 }

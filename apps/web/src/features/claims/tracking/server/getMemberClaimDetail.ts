@@ -217,6 +217,7 @@ export async function getMemberClaimDetail(
           timeline,
         }),
         memberTrustSummary: buildMemberClaimTrustSummary({
+          claimId: claim.id,
           status: claimStatus,
           slaPhase,
         }),

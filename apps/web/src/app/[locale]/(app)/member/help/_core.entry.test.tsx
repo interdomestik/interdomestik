@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => {
   };
 
   return {
+    and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
     createMemberSupportHandoff: vi.fn(),
     desc: vi.fn(column => ({ column, op: 'desc' })),
     eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
@@ -44,6 +45,7 @@ vi.mock('@/i18n/routing', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  and: mocks.and,
   claims: {
     claimNumber: 'claims.claim_number',
     createdAt: 'claims.created_at',
@@ -109,10 +111,10 @@ vi.mock('next/navigation', () => ({
 
 import HelpPage from './_core.entry';
 
-async function renderPage(support?: string) {
+async function renderPage(searchParams: Record<string, string> = {}) {
   const tree = await HelpPage({
     params: Promise.resolve({ locale: 'en' }),
-    searchParams: Promise.resolve(support ? { support } : {}),
+    searchParams: Promise.resolve(searchParams),
   });
   render(tree);
 }
@@ -132,15 +134,19 @@ describe('member help support handoff form', () => {
     mocks.selectChain.from.mockReturnValue(mocks.selectChain);
     mocks.selectChain.where.mockReturnValue(mocks.selectChain);
     mocks.selectChain.orderBy.mockReturnValue(mocks.selectChain);
-    mocks.selectChain.limit.mockResolvedValue([
-      {
-        claimNumber: 'CLM-1',
-        createdAt: new Date('2026-05-01T00:00:00.000Z'),
-        id: 'claim-1',
-        status: 'submitted',
-        title: 'Claim one',
-      },
-    ]);
+    mocks.selectChain.limit.mockImplementation(async (limit: number) =>
+      limit === 1
+        ? []
+        : [
+            {
+              claimNumber: 'CLM-1',
+              createdAt: new Date('2026-05-01T00:00:00.000Z'),
+              id: 'claim-1',
+              status: 'submitted',
+              title: 'Claim one',
+            },
+          ]
+    );
   });
 
   it('renders a member-created support handoff form without ownership inputs', async () => {
@@ -156,9 +162,55 @@ describe('member help support handoff form', () => {
   });
 
   it('shows the created acknowledgement after server action redirect', async () => {
-    await renderPage('created');
+    await renderPage({ support: 'created' });
 
     expect(screen.getByTestId('member-support-handoff-created')).toBeVisible();
+  });
+
+  it('preselects and displays a valid claim from the claimId search param', async () => {
+    await renderPage({ claimId: 'claim-1' });
+
+    expect(screen.getByTestId('member-support-handoff-claim-context')).toBeVisible();
+    expect(screen.getByTestId('member-support-handoff-claim-title')).toHaveTextContent('CLM-1');
+    expect(screen.getByTestId('member-support-handoff-claim-status')).toHaveTextContent(
+      'request.claimContextStatus'
+    );
+    expect(screen.getByTestId('member-support-handoff-claim')).toHaveValue('claim-1');
+  });
+
+  it('includes and preselects a valid owned claim outside the initial claim options', async () => {
+    mocks.selectChain.limit
+      .mockResolvedValueOnce([
+        {
+          claimNumber: 'CLM-1',
+          createdAt: new Date('2026-05-01T00:00:00.000Z'),
+          id: 'claim-1',
+          status: 'submitted',
+          title: 'Claim one',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          claimNumber: 'CLM-OLD',
+          createdAt: new Date('2026-04-01T00:00:00.000Z'),
+          id: 'claim-old',
+          status: 'accepted',
+          title: 'Older claim',
+        },
+      ]);
+
+    await renderPage({ claimId: 'claim-old' });
+
+    expect(screen.getByTestId('member-support-handoff-claim-context')).toHaveTextContent('CLM-OLD');
+    expect(screen.getByTestId('member-support-handoff-claim')).toHaveValue('claim-old');
+    expect(screen.getByTestId('member-support-handoff-claim')).toHaveTextContent('CLM-OLD');
+  });
+
+  it('ignores an inaccessible claimId search param before submission', async () => {
+    await renderPage({ claimId: 'claim-other-member' });
+
+    expect(screen.queryByTestId('member-support-handoff-claim-context')).not.toBeInTheDocument();
+    expect(screen.getByTestId('member-support-handoff-claim')).toHaveValue('');
   });
 
   it('redirects non-member sessions to their canonical portal before rendering the form', async () => {
