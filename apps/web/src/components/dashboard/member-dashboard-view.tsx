@@ -293,7 +293,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
   ]);
   const { member, claims, activeClaimId, supportHref } = data;
   const activeClaim = claims.find(claim => claim.id === activeClaimId) ?? null;
-  const orientationHref = '/member/help';
+  const orientationHref = supportHref;
 
   const userDetails = await getCachedUser(member.id);
 
@@ -628,7 +628,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                 variant="outline"
                 className="w-full rounded-2xl border-sky-200 font-bold transition-all hover:border-sky-300 hover:bg-sky-50 dark:border-sky-400/20 dark:hover:bg-sky-400/5"
               >
-                <Link href="/member/help" className="flex items-center justify-center gap-2">
+                <Link href={supportHref} className="flex items-center justify-center gap-2">
                   <span>{tLanding('support_panel_cta')}</span>
                   <ArrowRight className="w-4 h-4 transition-transform" />
                 </Link>
@@ -760,7 +760,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                   {tLanding('status_insight_body')}
                 </p>
                 <Button variant="secondary" asChild className="w-full rounded-xl font-bold">
-                  <Link href="/member/help">{tLanding('review_security_parameters')}</Link>
+                  <Link href={supportHref}>{tLanding('review_security_parameters')}</Link>
                 </Button>
               </div>
             </Card>
