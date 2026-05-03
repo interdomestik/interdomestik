@@ -164,13 +164,13 @@ export function MemberDashboardV2({ data, locale, tenantId }: MemberDashboardV2P
                 data-testid="member-hero-trust-row"
               >
                 <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 backdrop-blur">
-                  {t('hero.trust.private')}
+                  {t('hero.trust.caseNumber')}
                 </span>
                 <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 backdrop-blur">
-                  {t('hero.trust.support247')}
+                  {t('hero.trust.organizedFile')}
                 </span>
                 <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 backdrop-blur">
-                  {t('hero.trust.guided')}
+                  {t('hero.trust.nextStep')}
                 </span>
               </div>
             </div>
