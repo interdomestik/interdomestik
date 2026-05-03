@@ -81,6 +81,7 @@ export const routes = {
   resetPassword: (l?: Locale | string | TestInfo) => withLocale('/reset-password', l || 'en'),
   member: (l?: Locale | string | TestInfo) => withLocale('/member', l || 'en'),
   memberClaims: (l?: Locale | string | TestInfo) => withLocale('/member/claims', l || 'en'),
+  memberHelp: (l?: Locale | string | TestInfo) => withLocale('/member/help', l || 'en'),
   memberNewClaim: (l?: Locale | string | TestInfo) => withLocale('/member/claims/new', l || 'en'),
   memberSettings: (l?: Locale | string | TestInfo) => withLocale('/member/settings', l || 'en'),
   memberMembership: (l?: Locale | string | TestInfo) => withLocale('/member/membership', l || 'en'),
@@ -89,6 +90,8 @@ export const routes = {
     withLocale(`/member/claims/${encodeURIComponent(claimId)}`, l || 'en'),
   staff: (l?: Locale | string | TestInfo) => withLocale('/staff/claims', l || 'en'),
   staffClaims: (l?: Locale | string | TestInfo) => withLocale('/staff/claims', l || 'en'),
+  staffSupportHandoffs: (l?: Locale | string | TestInfo) =>
+    withLocale('/staff/support-handoffs', l || 'en'),
   staffClaimDetail: (claimId: string, l?: Locale | string | TestInfo) =>
     withLocale(`/staff/claims/${encodeURIComponent(claimId)}`, l || 'en'),
   admin: (l?: Locale | string | TestInfo) => withLocale('/admin/overview', l || 'en'),

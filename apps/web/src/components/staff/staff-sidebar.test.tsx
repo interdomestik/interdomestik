@@ -70,6 +70,7 @@ vi.mock('@interdomestik/ui/components/avatar', () => ({
 vi.mock('lucide-react', () => ({
   ChevronUp: () => <span />,
   FileText: () => <span />,
+  Inbox: () => <span />,
   LogOut: () => <span />,
   Shield: () => <span />,
 }));
@@ -94,6 +95,7 @@ describe('StaffSidebar', () => {
 
     const hrefs = screen.getAllByRole('link').map(link => link.getAttribute('href'));
     expect(hrefs).toContain('/staff/claims');
+    expect(hrefs).toContain('/staff/support-handoffs');
     expect(hrefs).not.toContain('/staff');
   });
 

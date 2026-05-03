@@ -10,6 +10,24 @@
       "whatsapp": "WhatsApp",
       "chatWithUs": "Chat with us"
     },
+    "request": {
+      "title": "Ask staff for help",
+      "description": "Send a support request to the staff receiving queue. We attach your member context and optional claim link server-side.",
+      "subject": "What do you need help with?",
+      "message": "Details",
+      "contactPreference": "Preferred contact",
+      "claim": "Related claim",
+      "noClaim": "No related claim",
+      "submit": "Send support request",
+      "created": "Your request was sent to the staff support queue.",
+      "error": "We could not send the request. Try again with a short subject and enough detail.",
+      "contact": {
+        "staff_reply": "Staff reply",
+        "phone": "Phone",
+        "email": "Email",
+        "whatsapp": "WhatsApp"
+      }
+    },
     "faq": {
       "title": "Common Questions",
       "q1": {

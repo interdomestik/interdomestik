@@ -30,6 +30,7 @@ export const E2E_USERS = {
     name: 'Elena Petrovska',
     dbRole: 'staff',
     tenantId: 'tenant_mk',
+    branchId: 'mk_branch_a',
   },
   MK_BRANCH_MANAGER: {
     email: 'bm.mk.a@interdomestik.com',
@@ -50,6 +51,7 @@ export const E2E_USERS = {
     name: 'Aleksandar Stojanovski',
     dbRole: 'member',
     tenantId: 'tenant_mk',
+    branchId: 'mk_branch_a',
   },
 
   // PILOT C1 (MK)
@@ -97,6 +99,7 @@ export const E2E_USERS = {
     name: 'Drita Gashi',
     dbRole: 'staff',
     tenantId: 'tenant_ks',
+    branchId: 'ks_branch_a',
   },
   KS_AGENT: {
     email: 'agent.ks.a1@interdomestik.com',

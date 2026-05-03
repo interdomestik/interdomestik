@@ -42,6 +42,78 @@
         },
         "origin_badge": "Diaspora / Green Card"
       },
+      "support_handoffs": {
+        "nav": "Support handoffs",
+        "title": "Support handoffs",
+        "subtitle": "Member support requests ready for staff receiving.",
+        "branch_manager_readonly": "Branch managers can monitor support handoffs, but accept, reassign, and close actions remain staff-only.",
+        "empty": "No support handoffs match the current filters.",
+        "status": {
+          "open": "Open",
+          "accepted": "Accepted",
+          "closed": "Closed"
+        },
+        "urgency": {
+          "critical": "Critical",
+          "high": "High",
+          "normal": "Normal",
+          "low": "Low"
+        },
+        "trust_risk": {
+          "high": "High trust risk",
+          "medium": "Medium trust risk",
+          "low": "Low trust risk",
+          "informational": "Informational"
+        },
+        "filters": {
+          "search": "Search",
+          "search_placeholder": "Search request, member, claim, or number",
+          "assignment": {
+            "label": "Assignment",
+            "all_staff": "My queue + unassigned",
+            "all_branch": "All branch handoffs",
+            "mine": "Assigned to me",
+            "unassigned": "Unassigned"
+          },
+          "status": {
+            "label": "Status",
+            "all": "All statuses"
+          },
+          "urgency": {
+            "label": "Urgency",
+            "all": "All urgency"
+          },
+          "claim": {
+            "label": "Claim link",
+            "all": "All",
+            "linked": "Linked to claim",
+            "unlinked": "No claim"
+          }
+        },
+        "table": {
+          "request": "Request",
+          "member": "Member",
+          "relationship": "Relationship",
+          "risk": "Risk",
+          "owner": "Owner",
+          "actions": "Actions",
+          "claim_link": "Open linked claim",
+          "no_claim": "No linked claim",
+          "no_member_number": "No member number",
+          "no_branch": "No branch",
+          "no_plan": "No plan",
+          "no_agent": "No agent",
+          "unassigned": "Unassigned"
+        },
+        "actions": {
+          "accept": "Accept",
+          "reassign": "Reassign",
+          "close": "Close",
+          "readonly": "Read-only",
+          "reassign_reason": "Reason for reassignment",
+          "close_reason": "Resolution reason"
+        }
+      },
       "queue": "Claims Queue",
       "claims_queue": "Claims Queue",
       "manage_triage": "Manage and triage all submitted claims.",

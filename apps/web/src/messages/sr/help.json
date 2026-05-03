@@ -25,6 +25,24 @@
       "title": "Pravni resursi",
       "consumerRights": "Vodič za prava potrošača",
       "consumerRightsDesc": "Saznajte svoja prava prema važećim zakonima o zaštiti potrošača."
+    },
+    "request": {
+      "title": "Zatraži pomoć osoblja",
+      "description": "Pošaljite zahtev za podršku u red osoblja. Kontekst člana i opcionu vezu sa predmetom dodajemo na serveru.",
+      "subject": "Za šta vam treba pomoć?",
+      "message": "Detalji",
+      "contactPreference": "Željeni kontakt",
+      "claim": "Povezani predmet",
+      "noClaim": "Bez povezanog predmeta",
+      "submit": "Pošalji zahtev za podršku",
+      "created": "Vaš zahtev je poslat u red za podršku osoblja.",
+      "error": "Nismo mogli da pošaljemo zahtev. Pokušajte ponovo sa kratkim naslovom i dovoljno detalja.",
+      "contact": {
+        "staff_reply": "Odgovor osoblja",
+        "phone": "Telefon",
+        "email": "E-pošta",
+        "whatsapp": "Vatsap"
+      }
     }
   }
 }
