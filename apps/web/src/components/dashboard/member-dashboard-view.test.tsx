@@ -410,6 +410,32 @@ describe('MemberDashboardView MK localization', () => {
     );
   });
 
+  it('keeps dashboard support CTAs aligned with the canonical support handoff', async () => {
+    mockActiveMembership();
+    const supportHref = '/member/help/tenant-support';
+
+    const tree = await MemberDashboardView({
+      data: makeData({ supportHref }),
+      locale: 'mk',
+    });
+
+    render(tree);
+
+    expect(screen.getByRole('link', { name: 'Контактирај поддршка' })).toHaveAttribute(
+      'href',
+      supportHref
+    );
+    expect(screen.getByRole('link', { name: 'support' })).toHaveAttribute('href', supportHref);
+    expect(screen.getByRole('link', { name: 'Отвори членска поддршка' })).toHaveAttribute(
+      'href',
+      supportHref
+    );
+    expect(screen.getByRole('link', { name: 'Провери безбедносни параметри' })).toHaveAttribute(
+      'href',
+      supportHref
+    );
+  });
+
   it('uses the member action CTA when the active claim requires member input', async () => {
     mockActiveMembership();
 
