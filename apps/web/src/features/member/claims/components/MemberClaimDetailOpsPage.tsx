@@ -286,7 +286,10 @@ export function MemberClaimDetailOpsPage({
                     {tAssurance('supportLabel')}
                   </span>
                   <Button className="mt-2 w-full justify-start" size="sm" variant="outline" asChild>
-                    <Link href={claim.memberTrustSummary.supportHref}>
+                    <Link
+                      href={claim.memberTrustSummary.supportHref}
+                      data-testid="member-claim-trust-sla-support-link"
+                    >
                       <LifeBuoy className="mr-2 h-4 w-4" />
                       {tAssurance('supportCta')}
                     </Link>

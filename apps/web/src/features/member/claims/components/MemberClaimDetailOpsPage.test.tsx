@@ -41,8 +41,10 @@ vi.mock('./ClaimEvidenceUploadDialog', () => ({
 }));
 
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  Link: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+    <a href={href?.toString()} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -248,6 +250,13 @@ describe('MemberClaimDetailOpsPage', () => {
 
   it('shows active handling assurance with the latest public update date', () => {
     renderPage({
+      memberTrustSummary: {
+        state: 'active_handling',
+        titleKey: 'claims-tracking.tracking.assurance.title',
+        bodyKey: 'claims-tracking.tracking.assurance.body.active_handling',
+        stateLabelKey: 'claims-tracking.tracking.assurance.state.active_handling',
+        supportHref: '/member/help?claimId=claim-1',
+      },
       progressSummary: {
         currentStatusLabelKey: 'claims-tracking.status.evaluation',
         latestUpdateAt: '2026-04-15T12:30:00.000Z',
@@ -267,6 +276,10 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(screen.getByTestId('member-claim-trust-sla-latest')).toBeInTheDocument();
     expect(screen.getByTestId('member-claim-trust-sla-body')).toHaveTextContent(
       'Your claim is in an active handling stage.'
+    );
+    expect(screen.getByTestId('member-claim-trust-sla-support-link')).toHaveAttribute(
+      'href',
+      '/member/help?claimId=claim-1'
     );
   });
 

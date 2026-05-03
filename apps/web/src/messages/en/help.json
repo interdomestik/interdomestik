@@ -18,6 +18,8 @@
       "contactPreference": "Preferred contact",
       "claim": "Related claim",
       "noClaim": "No related claim",
+      "claimContextTitle": "Related claim",
+      "claimContextStatus": "Status: {status}",
       "submit": "Send support request",
       "created": "Your request was sent to the staff support queue.",
       "error": "We could not send the request. Try again with a short subject and enough detail.",

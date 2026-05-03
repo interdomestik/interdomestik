@@ -21,6 +21,7 @@ describe('buildMemberClaimTrustSummary', () => {
   it('marks active SLA stages as active handling', () => {
     expect(
       buildMemberClaimTrustSummary({
+        claimId: 'claim-123',
         status: 'evaluation',
         slaPhase: 'running',
       })
@@ -29,8 +30,17 @@ describe('buildMemberClaimTrustSummary', () => {
       titleKey: 'claims-tracking.tracking.assurance.title',
       bodyKey: 'claims-tracking.tracking.assurance.body.active_handling',
       stateLabelKey: 'claims-tracking.tracking.assurance.state.active_handling',
-      supportHref: '/member/help',
+      supportHref: '/member/help?claimId=claim-123',
     });
+  });
+
+  it('keeps the generic help route when no claim id is supplied', () => {
+    expect(
+      buildMemberClaimTrustSummary({
+        status: 'evaluation',
+        slaPhase: 'running',
+      }).supportHref
+    ).toBe('/member/help');
   });
 
   it('marks terminal outcomes as completed', () => {

@@ -2,7 +2,7 @@ import { createMemberSupportHandoff } from '@/actions/support-handoffs/create';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { Link } from '@/i18n/routing';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
-import { claims, db, desc, eq } from '@interdomestik/database';
+import { and, claims, db, desc, eq } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { Button } from '@interdomestik/ui/components/button';
 import {
@@ -27,19 +27,55 @@ function getSingleParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-async function getMemberClaimOptions(args: { memberId: string; tenantId: string }) {
-  return db
+type MemberClaimOption = {
+  id: string;
+  claimNumber: string | null;
+  title: string | null;
+  status: string | null;
+  createdAt: Date | null;
+};
+
+const memberClaimOptionSelection = {
+  id: claims.id,
+  claimNumber: claims.claimNumber,
+  title: claims.title,
+  status: claims.status,
+  createdAt: claims.createdAt,
+};
+
+async function getMemberClaimOptions(args: {
+  memberId: string;
+  tenantId: string;
+  requestedClaimId?: string | null;
+}): Promise<MemberClaimOption[]> {
+  const recentClaims = await db
     .select({
-      id: claims.id,
-      claimNumber: claims.claimNumber,
-      title: claims.title,
-      status: claims.status,
-      createdAt: claims.createdAt,
+      ...memberClaimOptionSelection,
     })
     .from(claims)
     .where(withTenant(args.tenantId, claims.tenantId, eq(claims.userId, args.memberId)))
     .orderBy(desc(claims.createdAt))
     .limit(10);
+
+  if (!args.requestedClaimId || recentClaims.some(claim => claim.id === args.requestedClaimId)) {
+    return recentClaims;
+  }
+
+  const requestedClaims = await db
+    .select({
+      ...memberClaimOptionSelection,
+    })
+    .from(claims)
+    .where(
+      withTenant(
+        args.tenantId,
+        claims.tenantId,
+        and(eq(claims.userId, args.memberId), eq(claims.id, args.requestedClaimId))
+      )
+    )
+    .limit(1);
+
+  return requestedClaims.length > 0 ? [...recentClaims, requestedClaims[0]] : recentClaims;
 }
 
 export default async function HelpPage({ params, searchParams }: Props) {
@@ -51,14 +87,20 @@ export default async function HelpPage({ params, searchParams }: Props) {
   if (session.user.role !== 'member' && session.user.role !== 'user') {
     redirect(getCanonicalRouteForRole(session.user.role, locale) ?? `/${locale}/member`);
   }
+  const resolvedSearchParams = await searchParams;
+  const status = getSingleParam(resolvedSearchParams.support);
+  const requestedClaimId = getSingleParam(resolvedSearchParams.claimId);
   const claimOptions =
     session.user.tenantId && session.user.id
       ? await getMemberClaimOptions({
           memberId: session.user.id,
+          requestedClaimId,
           tenantId: session.user.tenantId,
         })
       : [];
-  const status = getSingleParam((await searchParams).support);
+  const selectedClaim = requestedClaimId
+    ? (claimOptions.find(claim => claim.id === requestedClaimId) ?? null)
+    : null;
 
   return (
     <div
@@ -126,6 +168,30 @@ export default async function HelpPage({ params, searchParams }: Props) {
                 {t('request.error')}
               </div>
             ) : null}
+            {selectedClaim ? (
+              <div
+                className="mb-4 rounded-md border border-sky-200 bg-sky-50 px-3 py-3 text-sm text-sky-950"
+                data-testid="member-support-handoff-claim-context"
+              >
+                <div className="text-xs font-medium uppercase text-sky-700">
+                  {t('request.claimContextTitle')}
+                </div>
+                <div
+                  className="mt-1 font-semibold"
+                  data-testid="member-support-handoff-claim-title"
+                >
+                  {selectedClaim.claimNumber || selectedClaim.title || selectedClaim.id}
+                </div>
+                <div
+                  className="mt-1 text-xs text-sky-800"
+                  data-testid="member-support-handoff-claim-status"
+                >
+                  {t('request.claimContextStatus', {
+                    status: selectedClaim.status ?? 'unknown',
+                  })}
+                </div>
+              </div>
+            ) : null}
             <form
               action={createMemberSupportHandoff}
               className="space-y-4"
@@ -184,7 +250,7 @@ export default async function HelpPage({ params, searchParams }: Props) {
                     id="support-claim"
                     name="claimId"
                     className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    defaultValue=""
+                    defaultValue={selectedClaim?.id ?? ''}
                     data-testid="member-support-handoff-claim"
                   >
                     <option value="">{t('request.noClaim')}</option>
