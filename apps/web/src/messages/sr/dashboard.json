@@ -206,9 +206,9 @@
           "title": "Vaš dosije. Pravi koraci. Pratite slučaj do zatvaranja.",
           "subtitle": "Kada se dogodi nezgoda, nemojte improvizovati: otvorite slučaj, otpremite dokaze i pratite status. Vodimo vas korak po korak.",
           "trust": {
-            "private": "Vaš slučaj dobija jedinstven broj",
-            "support247": "Dokumenti se čuvaju u organizovanom dosijeu",
-            "guided": "Sledeći korak je uvek jasan"
+            "caseNumber": "Vaš slučaj dobija jedinstven broj",
+            "organizedFile": "Dokumenti se čuvaju u organizovanom dosijeu",
+            "nextStep": "Sledeći korak je uvek jasan"
           }
         },
         "cta": {

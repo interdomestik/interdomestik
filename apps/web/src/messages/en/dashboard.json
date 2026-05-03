@@ -204,9 +204,9 @@
           "title": "Your case file. The right steps. Track the case until closure.",
           "subtitle": "When an accident happens, do not improvise: open the case, upload evidence, and track status. We guide you step by step.",
           "trust": {
-            "private": "Each case gets a unique ID",
-            "support247": "Documents stay in an organized case file",
-            "guided": "The next step is always clear"
+            "caseNumber": "Each case gets a unique ID",
+            "organizedFile": "Documents stay in an organized case file",
+            "nextStep": "The next step is always clear"
           }
         },
         "cta": {
