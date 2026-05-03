@@ -119,6 +119,8 @@ async function createMcpClient() {
     protocolVersion: '2024-11-05',
     capabilities: {},
     clientInfo: { name: 'qa-mcp-contract', version: '1.0.0' },
+  }).then(response => {
+    assert.equal(response.result?.serverInfo?.name, 'interdomestik_qa');
   });
   child.stdin.write(
     JSON.stringify({

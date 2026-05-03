@@ -6,6 +6,7 @@
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export MCP_REPO_ROOT="$REPO_ROOT"
+export MCP_SERVER_NAME="interdomestik_qa"
 cd "$REPO_ROOT"
 
 exec "$REPO_ROOT/node_modules/.bin/tsx" packages/qa/src/index.ts
