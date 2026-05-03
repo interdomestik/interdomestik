@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimWizard } from './claim-wizard';
 
@@ -72,7 +73,7 @@ vi.mock('next-intl', () => ({
       continue_review: 'Continue -> Review',
       submit_label: 'Submit case',
       required_fields: 'Please complete required fields',
-      submit_success: 'Case submitted successfully.',
+      submit_success: 'Case submitted and saved. You can track it from the dashboard.',
       submit_failed: 'Submission failed. Please try again.',
       submit_unexpected: 'An unexpected error occurred.',
       submitClaim: 'Submit Claim',
@@ -272,6 +273,10 @@ describe('ClaimWizard UI V2', () => {
       '/sq/member/claims/v_j-vY7lHgTBeYsWwW8Wl'
     );
     expect(mockPush).not.toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith(
+      'Case submitted and saved. You can track it from the dashboard.'
+    );
+    expect(toast.success).not.toHaveBeenCalledWith(expect.stringContaining('accepted'));
     expect(mockResolveFunnelVariant).toHaveBeenCalledWith(true);
     expect(mockFunnelFirstClaimSubmitted).toHaveBeenCalledWith(HERO_V2_CONTEXT, {
       claim_id: 'v_j-vY7lHgTBeYsWwW8Wl',

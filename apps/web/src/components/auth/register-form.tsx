@@ -199,6 +199,9 @@ export function RegisterForm({
                 t('submit')
               )}
             </Button>
+            <p className="mt-2 text-center text-xs leading-5 text-muted-foreground">
+              {t('submitMicro')}
+            </p>
           </div>
 
           {githubOAuthEnabled ? (

@@ -101,9 +101,9 @@
       "continue_review": "Continue -> Review",
       "submit_label": "Submit case",
       "required_fields": "Please complete required fields",
-      "submit_success": "Case submitted successfully.",
-      "submit_failed": "Submission failed. Please try again.",
-      "submit_unexpected": "An unexpected error occurred.",
+      "submit_success": "Case submitted and saved. You can track it from the dashboard.",
+      "submit_failed": "Submission could not be completed. Please try again or contact support.",
+      "submit_unexpected": "Something unexpected happened. Please try once more or contact support.",
       "submitClaim": "Submit Claim",
       "help": {
         "title": "Need help?",

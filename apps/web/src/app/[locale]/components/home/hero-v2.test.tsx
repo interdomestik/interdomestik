@@ -58,14 +58,14 @@ function renderHero(locale: 'sq' | 'en', startClaimHref: string) {
 }
 
 describe('HeroV2', () => {
-  it('renders membership-first public CTA when the landing page is in signed-out mode', () => {
+  it('renders protection-first public CTA when the landing page is in signed-out mode', () => {
     const href = '#free-start-intake';
 
     renderHero('sq', href);
 
     const cta = screen.getByTestId('hero-v2-start-claim');
     expect(cta).toBeInTheDocument();
-    expect(cta).toHaveTextContent('Fillo anëtarësimin');
+    expect(cta).toHaveTextContent('Fillo mbrojtjen');
     expect(cta).toHaveAttribute('href', '#free-start-intake');
     expect(screen.getByTestId('hero-v2-invite-chip')).toHaveAttribute('href', '/pricing');
     expect(screen.getByTestId('hero-v2-digital-id-link')).toHaveAttribute('href', '/member');
