@@ -1,16 +1,16 @@
-# P28 Commercial UX North Star Alignment
+# P30 Commercial UX North Star Alignment
 
 ## Status
 
-Promoted on 2026-05-02 as the next bounded product-experience tranche after completed `P27`.
+Completed through PR `#613` as the next bounded product-experience tranche after completed `P29`.
 
 ## Input
 
 The commercial and UI/UX review identified that the platform already has strong building blocks: Claim Pack, Coverage Matrix, claim timeline, human fallback, commercial disclaimers, and dashboard trust cues. The remaining gap is mostly message consistency: the member experience should explain the value in concrete terms a potential member recognizes immediately.
 
-## Promoted Slice
+## Completed Slice
 
-`P28-MEM01 Member North Star Copy Alignment`
+`P30-MEM01 Member North Star Copy Alignment`
 
 This slice is limited to existing localized member-dashboard copy. It aligns the dashboard hero and trust cues around:
 

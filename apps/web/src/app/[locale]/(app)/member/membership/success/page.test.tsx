@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 
 const hoisted = vi.hoisted(() => ({
@@ -27,6 +27,8 @@ const hoisted = vi.hoisted(() => ({
     status: 'active',
     planId: 'standard',
   })),
+  isBillingTestActivationEnabledMock: vi.fn(() => false),
+  mockActivationTriggerMock: vi.fn((_props: { planId: string; priceId: string }) => null),
   redirectMock: vi.fn(),
 }));
 
@@ -52,12 +54,16 @@ vi.mock('@/lib/flags', () => ({
   isUiV2Enabled: () => false,
 }));
 
+vi.mock('@/lib/runtime-environment', () => ({
+  isBillingTestActivationEnabled: hoisted.isBillingTestActivationEnabledMock,
+}));
+
 vi.mock('@/components/analytics/funnel-trackers', () => ({
   FunnelActivationTracker: () => null,
 }));
 
 vi.mock('@/components/billing/mock-activation-trigger', () => ({
-  MockActivationTrigger: () => null,
+  MockActivationTrigger: hoisted.mockActivationTriggerMock,
 }));
 
 vi.mock('@/components/pwa/install-button', () => ({
@@ -109,7 +115,12 @@ vi.mock('@interdomestik/ui', () => ({
 import MembershipSuccessPage from './page';
 import { resolveSuccessTopNoteKey } from './_core.entry';
 
-describe('MembershipSuccessPage hotline disclaimer', () => {
+describe('MembershipSuccessPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.isBillingTestActivationEnabledMock.mockReturnValue(false);
+  });
+
   it('resolves the top-note translation key from membership state', () => {
     expect(
       resolveSuccessTopNoteKey({
@@ -254,5 +265,42 @@ describe('MembershipSuccessPage hotline disclaimer', () => {
     expect(
       screen.queryByRole('link', { name: 'membership.success.cta_start_claim' })
     ).not.toBeInTheDocument();
+  });
+
+  it('does not mount billing test activation from URL params when the runtime guard is disabled', async () => {
+    const tree = await MembershipSuccessPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({
+        test: 'true',
+        planId: 'standard',
+        priceId: 'price-standard',
+      }),
+    });
+
+    render(tree);
+
+    expect(hoisted.isBillingTestActivationEnabledMock).toHaveBeenCalled();
+    expect(hoisted.mockActivationTriggerMock).not.toHaveBeenCalled();
+  });
+
+  it('mounts billing test activation only when test params and the runtime guard allow it', async () => {
+    hoisted.isBillingTestActivationEnabledMock.mockReturnValueOnce(true);
+
+    const tree = await MembershipSuccessPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({
+        test: 'true',
+        planId: 'standard',
+        priceId: 'price-standard',
+      }),
+    });
+
+    render(tree);
+
+    expect(hoisted.mockActivationTriggerMock).toHaveBeenCalledTimes(1);
+    expect(hoisted.mockActivationTriggerMock.mock.calls[0]?.[0]).toMatchObject({
+      planId: 'standard',
+      priceId: 'price-standard',
+    });
   });
 });

@@ -42,6 +42,19 @@ const relativeRoot = path.resolve(__dirname, '../../../..');
 const resolvedEnvRoot = envRoot && isRepoRoot(envRoot) ? envRoot : null;
 const resolvedRelativeRoot = isRepoRoot(relativeRoot) ? relativeRoot : null;
 
+function resolveRepoRootSource(): 'MCP_REPO_ROOT' | 'module-relative' | 'cwd-search' {
+  if (resolvedEnvRoot) {
+    return 'MCP_REPO_ROOT';
+  }
+
+  if (resolvedRelativeRoot) {
+    return 'module-relative';
+  }
+
+  return 'cwd-search';
+}
+
 export const REPO_ROOT = resolvedEnvRoot ?? resolvedRelativeRoot ?? cwdRoot;
+export const REPO_ROOT_SOURCE = resolveRepoRootSource();
 
 export const WEB_APP = path.join(REPO_ROOT, 'apps/web');

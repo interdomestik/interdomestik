@@ -64,8 +64,14 @@ async function performLocalLogin(
 
   // Determine target route using project-aware routes helper
   const targetPath = routes[target](testInfo);
+  const markerByTarget = {
+    admin: 'admin-page-ready',
+    staff: 'staff-page-ready',
+    agent: 'dashboard-page-ready',
+    member: 'dashboard-page-ready',
+  } as const;
 
-  await gotoApp(page, targetPath, testInfo, { marker: 'dashboard-page-ready' });
+  await gotoApp(page, targetPath, testInfo, { marker: markerByTarget[target] });
 }
 
 function isMkProject(testInfo: import('@playwright/test').TestInfo): boolean {
