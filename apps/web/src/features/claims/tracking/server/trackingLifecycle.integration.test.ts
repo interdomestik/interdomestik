@@ -206,6 +206,9 @@ import { getPublicClaimStatus } from './getPublicClaimStatus';
 
 describe('tracking link lifecycle', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-17T09:00:00.000Z'));
+
     hoisted.store.claims = [
       {
         id: 'claim-1',
@@ -235,6 +238,7 @@ describe('tracking link lifecycle', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllEnvs();
   });
 
