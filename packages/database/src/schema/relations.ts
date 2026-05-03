@@ -4,7 +4,7 @@ import { relations } from 'drizzle-orm';
 import { agentClients, agentCommissions, agentSettings } from './agents';
 import { user } from './auth';
 import { claimDocuments, claimMessages, claims, claimStageHistory } from './claims';
-import { crmActivities, crmDeals, crmLeads, memberActivities } from './crm';
+import { crmActivities, crmDeals, crmLeads, memberActivities, supportHandoffs } from './crm';
 import { membershipFamilyMembers, membershipPlans, subscriptions } from './memberships';
 import { auditLog, memberNotes } from './notes';
 import { emailCampaignLogs, notifications } from './notifications';
@@ -38,6 +38,10 @@ export const userRelations = relations(user, ({ many, one }) => ({
   crmActivities: many(crmActivities),
   memberActivities: many(memberActivities, { relationName: 'agent_member_activities' }),
   memberActivityHistory: many(memberActivities, { relationName: 'member_activity_history' }),
+  supportHandoffs: many(supportHandoffs, { relationName: 'support_handoffs_member' }),
+  assignedSupportHandoffs: many(supportHandoffs, {
+    relationName: 'support_handoffs_staff',
+  }),
   crmDeals: many(crmDeals),
   referralsSent: many(referrals, { relationName: 'referrer' }),
   referralsReceived: many(referrals, { relationName: 'referred' }),
@@ -82,6 +86,7 @@ export const claimsRelations = relations(claims, ({ one, many }) => ({
   documents: many(claimDocuments),
   messages: many(claimMessages),
   stageHistory: many(claimStageHistory),
+  supportHandoffs: many(supportHandoffs),
 }));
 
 export const claimDocumentsRelations = relations(claimDocuments, ({ one }) => ({
@@ -244,6 +249,22 @@ export const memberActivitiesRelations = relations(memberActivities, ({ one }) =
     references: [user.id],
     relationName: 'member_activity_history',
   }),
+}));
+
+export const supportHandoffsRelations = relations(supportHandoffs, ({ one }) => ({
+  tenant: one(tenants, { fields: [supportHandoffs.tenantId], references: [tenants.id] }),
+  member: one(user, {
+    fields: [supportHandoffs.memberId],
+    references: [user.id],
+    relationName: 'support_handoffs_member',
+  }),
+  staff: one(user, {
+    fields: [supportHandoffs.staffId],
+    references: [user.id],
+    relationName: 'support_handoffs_staff',
+  }),
+  branch: one(branches, { fields: [supportHandoffs.branchId], references: [branches.id] }),
+  claim: one(claims, { fields: [supportHandoffs.claimId], references: [claims.id] }),
 }));
 
 // Phase 5: Notifications relations

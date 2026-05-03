@@ -25,6 +25,24 @@
       "title": "Burime Ligjore",
       "consumerRights": "Udhëzuesi i të Drejtave të Konsumatorit",
       "consumerRightsDesc": "Mësoni rreth të drejtave tuaja sipas ligjeve aktuale të mbrojtjes së konsumatorit."
+    },
+    "request": {
+      "title": "Kërko ndihmë nga stafi",
+      "description": "Dërgo një kërkesë mbështetjeje në radhën e stafit. Kontekstin e anëtarit dhe lidhjen opsionale me rastin i bashkojmë në server.",
+      "subject": "Për çfarë ju duhet ndihmë?",
+      "message": "Detajet",
+      "contactPreference": "Kontakti i preferuar",
+      "claim": "Rasti i lidhur",
+      "noClaim": "Pa rast të lidhur",
+      "submit": "Dërgo kërkesën për mbështetje",
+      "created": "Kërkesa juaj u dërgua në radhën e mbështetjes së stafit.",
+      "error": "Nuk mund ta dërgonim kërkesën. Provoni përsëri me një temë të shkurtër dhe mjaft detaje.",
+      "contact": {
+        "staff_reply": "Përgjigje nga stafi",
+        "phone": "Telefon",
+        "email": "Postë elektronike",
+        "whatsapp": "Uatsap"
+      }
     }
   }
 }

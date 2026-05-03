@@ -262,6 +262,78 @@
         "verify": "Verifikuj info",
         "reject": "Odbij zahtev",
         "notice": "Promena statusa odmah ažurira korisnikovu vremensku liniju."
+      },
+      "support_handoffs": {
+        "nav": "Primopredaje podrške",
+        "title": "Primopredaje podrške",
+        "subtitle": "Zahtevi članova za podršku spremni za prijem kod osoblja.",
+        "branch_manager_readonly": "Menadžeri filijala mogu da prate primopredaje podrške, ali prihvatanje, preraspodela i zatvaranje ostaju samo za osoblje.",
+        "empty": "Nijedna primopredaja podrške ne odgovara trenutnim filterima.",
+        "status": {
+          "open": "Otvoreno",
+          "accepted": "Prihvaćeno",
+          "closed": "Zatvoreno"
+        },
+        "urgency": {
+          "critical": "Kritično",
+          "high": "Visoko",
+          "normal": "Normalno",
+          "low": "Nisko"
+        },
+        "trust_risk": {
+          "high": "Visok rizik poverenja",
+          "medium": "Srednji rizik poverenja",
+          "low": "Nizak rizik poverenja",
+          "informational": "Informativno"
+        },
+        "filters": {
+          "search": "Pretraži",
+          "search_placeholder": "Pretraži zahtev, člana, predmet ili broj",
+          "assignment": {
+            "label": "Dodela",
+            "all_staff": "Moj red i nedodeljeno",
+            "all_branch": "Sve primopredaje filijale",
+            "mine": "Dodeljeno meni",
+            "unassigned": "Nedodeljeno"
+          },
+          "status": {
+            "label": "Stanje",
+            "all": "Svi statusi"
+          },
+          "urgency": {
+            "label": "Hitnost",
+            "all": "Sve hitnosti"
+          },
+          "claim": {
+            "label": "Veza sa predmetom",
+            "all": "Sve",
+            "linked": "Povezano sa predmetom",
+            "unlinked": "Bez predmeta"
+          }
+        },
+        "table": {
+          "request": "Zahtev",
+          "member": "Član",
+          "relationship": "Odnos",
+          "risk": "Rizik",
+          "owner": "Odgovorni",
+          "actions": "Radnje",
+          "claim_link": "Otvori povezani predmet",
+          "no_claim": "Nema povezanog predmeta",
+          "no_member_number": "Nema broja člana",
+          "no_branch": "Nema filijale",
+          "no_plan": "Nema plana",
+          "no_agent": "Nema agenta",
+          "unassigned": "Nedodeljeno"
+        },
+        "actions": {
+          "accept": "Prihvati",
+          "reassign": "Preraspodeli",
+          "close": "Zatvori",
+          "readonly": "Samo za čitanje",
+          "reassign_reason": "Razlog preraspodele",
+          "close_reason": "Razlog rešenja"
+        }
       }
     }
   }

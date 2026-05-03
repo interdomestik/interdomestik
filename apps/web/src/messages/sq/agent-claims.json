@@ -262,6 +262,78 @@
         "verify": "Verifiko Informacionin",
         "reject": "Refuzo Kërkesën",
         "notice": "Ndryshimi i statusit përditëson menjëherë kohështrirjen e përdoruesit."
+      },
+      "support_handoffs": {
+        "nav": "Dorëzime mbështetjeje",
+        "title": "Dorëzime mbështetjeje",
+        "subtitle": "Kërkesat e anëtarëve për mbështetje gati për pranimin nga stafi.",
+        "branch_manager_readonly": "Menaxherët e degëve mund të monitorojnë dorëzimet e mbështetjes, por pranimi, ricaktimi dhe mbyllja mbeten vetëm për stafin.",
+        "empty": "Asnjë dorëzim mbështetjeje nuk përputhet me filtrat aktualë.",
+        "status": {
+          "open": "Hapur",
+          "accepted": "Pranuar",
+          "closed": "Mbyllur"
+        },
+        "urgency": {
+          "critical": "Kritike",
+          "high": "E lartë",
+          "normal": "Normale",
+          "low": "E ulët"
+        },
+        "trust_risk": {
+          "high": "Rrezik i lartë besimi",
+          "medium": "Rrezik mesatar besimi",
+          "low": "Rrezik i ulët besimi",
+          "informational": "Informuese"
+        },
+        "filters": {
+          "search": "Kërko",
+          "search_placeholder": "Kërko kërkesën, anëtarin, rastin ose numrin",
+          "assignment": {
+            "label": "Caktimi",
+            "all_staff": "Radha ime dhe të pacaktuarat",
+            "all_branch": "Të gjitha dorëzimet e degës",
+            "mine": "Caktuar mua",
+            "unassigned": "Të pacaktuara"
+          },
+          "status": {
+            "label": "Statusi",
+            "all": "Të gjitha statuset"
+          },
+          "urgency": {
+            "label": "Urgjenca",
+            "all": "Të gjitha urgjencat"
+          },
+          "claim": {
+            "label": "Lidhja me rastin",
+            "all": "Të gjitha",
+            "linked": "Lidhur me rast",
+            "unlinked": "Pa rast"
+          }
+        },
+        "table": {
+          "request": "Kërkesa",
+          "member": "Anëtari",
+          "relationship": "Marrëdhënia",
+          "risk": "Rreziku",
+          "owner": "Përgjegjësi",
+          "actions": "Veprimet",
+          "claim_link": "Hap rastin e lidhur",
+          "no_claim": "Pa rast të lidhur",
+          "no_member_number": "Pa numër anëtari",
+          "no_branch": "Pa degë",
+          "no_plan": "Pa plan",
+          "no_agent": "Pa agjent",
+          "unassigned": "E pacaktuar"
+        },
+        "actions": {
+          "accept": "Prano",
+          "reassign": "Ricakto",
+          "close": "Mbyll",
+          "readonly": "Vetëm lexim",
+          "reassign_reason": "Arsyeja e ricaktimit",
+          "close_reason": "Arsyeja e zgjidhjes"
+        }
       }
     }
   }

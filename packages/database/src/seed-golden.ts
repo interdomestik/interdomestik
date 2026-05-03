@@ -306,6 +306,7 @@ export async function seedGolden(config: SeedConfig) {
       email: E2E_USERS.MK_STAFF.email,
       role: E2E_USERS.MK_STAFF.dbRole,
       tenantId: TENANTS.MK,
+      branchId: E2E_USERS.MK_STAFF.branchId,
     },
     {
       id: goldenId('mk_staff_2'),
@@ -469,6 +470,7 @@ export async function seedGolden(config: SeedConfig) {
       email: E2E_USERS.MK_MEMBER.email,
       role: 'member',
       tenantId: TENANTS.MK,
+      branchId: E2E_USERS.MK_MEMBER.branchId,
       memberNumber: 'MEM-2026-000001',
       memberNumberIssuedAt: at(),
     },
@@ -486,6 +488,7 @@ export async function seedGolden(config: SeedConfig) {
       email: E2E_USERS.KS_STAFF.email,
       role: E2E_USERS.KS_STAFF.dbRole,
       tenantId: TENANTS.KS,
+      branchId: E2E_USERS.KS_STAFF.branchId,
     },
     {
       id: goldenId('ks_staff_2'),
@@ -777,6 +780,7 @@ export async function seedGolden(config: SeedConfig) {
       tenant: TENANTS.MK,
       plan: PLAN_MK,
       agent: 'mk_agent_a1',
+      branch: 'mk_branch_a',
     },
     // Target KS Members for "Members total" > 0
     {
@@ -785,6 +789,7 @@ export async function seedGolden(config: SeedConfig) {
       tenant: TENANTS.KS,
       plan: PLAN_KS,
       agent: 'ks_agent_a1',
+      branch: 'ks_branch_a',
     },
     {
       id: goldenId('sub_ks_a_2'),
@@ -792,6 +797,7 @@ export async function seedGolden(config: SeedConfig) {
       tenant: TENANTS.KS,
       plan: PLAN_KS,
       agent: 'ks_agent_a1',
+      branch: 'ks_branch_a',
     },
     {
       id: goldenId('sub_ks_b_1'),
@@ -799,6 +805,7 @@ export async function seedGolden(config: SeedConfig) {
       tenant: TENANTS.KS,
       plan: PLAN_KS,
       agent: 'ks_b_agent_1',
+      branch: 'ks_branch_b',
     },
     {
       id: goldenId('sub_pilot_prishtina_1'),
@@ -806,6 +813,7 @@ export async function seedGolden(config: SeedConfig) {
       tenant: TENANTS.PILOT,
       plan: PLAN_PILOT,
       agent: 'pilot_mk_agent',
+      branch: 'pilot_branch_prishtina_central',
     },
   ];
 
@@ -820,6 +828,7 @@ export async function seedGolden(config: SeedConfig) {
         planId: PLAN_STANDARD_TIER,
         planKey: s.plan,
         agentId: goldenId(s.agent),
+        branchId: s.branch,
         currentPeriodStart: at(),
         currentPeriodEnd: at(365 * 24 * 60 * 60 * 1000),
       })
@@ -829,6 +838,7 @@ export async function seedGolden(config: SeedConfig) {
           status: 'active',
           planId: PLAN_STANDARD_TIER,
           planKey: s.plan,
+          branchId: s.branch,
           currentPeriodStart: at(),
           currentPeriodEnd: at(365 * 24 * 60 * 60 * 1000),
         },

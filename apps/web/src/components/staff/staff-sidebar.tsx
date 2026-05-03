@@ -20,7 +20,7 @@ import {
   SidebarMenuItem,
 } from '@interdomestik/ui';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
-import { ChevronUp, FileText, LogOut, Shield } from 'lucide-react';
+import { ChevronUp, FileText, Inbox, LogOut, Shield } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 type StaffSidebarUser = Readonly<{
@@ -35,7 +35,14 @@ function StaffSidebarInner({ user }: Readonly<{ user: StaffSidebarUser | null | 
   const tNav = useTranslations('nav');
   const tClaims = useTranslations('agent-claims.claims');
 
-  const navItems = [{ title: tClaims('claims_queue'), href: '/staff/claims', icon: FileText }];
+  const navItems = [
+    { title: tClaims('claims_queue'), href: '/staff/claims', icon: FileText },
+    {
+      title: tClaims('support_handoffs.nav'),
+      href: '/staff/support-handoffs',
+      icon: Inbox,
+    },
+  ];
 
   const handleSignOut = async () => {
     await signOutAndRedirectToLogin({

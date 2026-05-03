@@ -33,3 +33,4 @@ export {
 export { saveRecoveryDecisionCore as saveStaffRecoveryDecisionCore } from './staff-claims/save-recovery-decision';
 export { saveClaimEscalationAgreementCore as saveStaffClaimEscalationAgreementCore } from './staff-claims/save-escalation-agreement';
 export { updateClaimStatusCore as updateStaffClaimStatusCore } from './staff-claims/update-status';
+export * from './support-handoffs';

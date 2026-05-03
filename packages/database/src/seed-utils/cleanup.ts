@@ -35,6 +35,11 @@ export async function cleanupByPrefixes(
   const allClaimIds = claimIdsToDelete.map(c => c.id);
 
   if (allClaimIds.length > 0) {
+    if (dbSchema.supportHandoffs) {
+      await db
+        .delete(dbSchema.supportHandoffs)
+        .where(inArray(dbSchema.supportHandoffs.claimId, allClaimIds));
+    }
     if (dbSchema.claimEscalationAgreements) {
       await db
         .delete(dbSchema.claimEscalationAgreements)
@@ -148,6 +153,20 @@ export async function cleanupByPrefixes(
   if (allUserIds.length > 0) {
     console.log(`  Found ${allUserIds.length} users to clean up. removing dependencies...`);
 
+    if (dbSchema.supportHandoffs) {
+      await db
+        .delete(dbSchema.supportHandoffs)
+        .where(
+          or(
+            inArray(dbSchema.supportHandoffs.memberId, allUserIds),
+            inArray(dbSchema.supportHandoffs.staffId, allUserIds),
+            inArray(dbSchema.supportHandoffs.acceptedById, allUserIds),
+            inArray(dbSchema.supportHandoffs.reassignedById, allUserIds),
+            inArray(dbSchema.supportHandoffs.closedById, allUserIds)
+          )
+        );
+    }
+
     // Helper for batching if needed, but for seeds 100-200 is fine in one IN clause usually.
     // 1. Identify and Clean up Claims linked to these users.
     // We must delete claims where these users appear as claimant (userId) OR staff/assigner,
@@ -164,6 +183,11 @@ export async function cleanupByPrefixes(
 
     const cIds = userClaimIds.map(c => c.id);
     if (cIds.length > 0) {
+      if (dbSchema.supportHandoffs) {
+        await db
+          .delete(dbSchema.supportHandoffs)
+          .where(inArray(dbSchema.supportHandoffs.claimId, cIds));
+      }
       if (dbSchema.claimEscalationAgreements) {
         await db
           .delete(dbSchema.claimEscalationAgreements)

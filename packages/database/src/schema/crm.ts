@@ -1,6 +1,8 @@
 import { index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
+import { claims } from './claims';
+import { branches } from './rbac';
 import { tenants } from './tenants';
 
 export const crmLeads = pgTable('crm_leads', {
@@ -101,6 +103,68 @@ export const memberActivities = pgTable(
       table.tenantId,
       table.agentId,
       table.occurredAt
+    ),
+  ]
+);
+
+export const supportHandoffs = pgTable(
+  'support_handoffs',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => user.id),
+    branchId: text('branch_id').references(() => branches.id),
+    claimId: text('claim_id').references(() => claims.id),
+    source: text('source').notNull().default('member_help'),
+    subject: text('subject').notNull(),
+    message: text('message').notNull(),
+    contactPreference: text('contact_preference').notNull().default('staff_reply'),
+    status: text('status').notNull().default('open'),
+    urgency: text('urgency').notNull(),
+    trustRisk: text('trust_risk').notNull(),
+    staffId: text('staff_id').references(() => user.id),
+    acceptedAt: timestamp('accepted_at'),
+    acceptedById: text('accepted_by_id').references(() => user.id),
+    reassignedAt: timestamp('reassigned_at'),
+    reassignedById: text('reassigned_by_id').references(() => user.id),
+    reassignReason: text('reassign_reason'),
+    closedAt: timestamp('closed_at'),
+    closedById: text('closed_by_id').references(() => user.id),
+    closeReason: text('close_reason'),
+    lifecycleVersion: integer('lifecycle_version').notNull().default(0),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  table => [
+    index('support_handoffs_tenant_status_created_idx').on(
+      table.tenantId,
+      table.status,
+      table.createdAt
+    ),
+    index('support_handoffs_tenant_branch_status_created_idx').on(
+      table.tenantId,
+      table.branchId,
+      table.status,
+      table.createdAt
+    ),
+    index('support_handoffs_tenant_staff_status_created_idx').on(
+      table.tenantId,
+      table.staffId,
+      table.status,
+      table.createdAt
+    ),
+    index('support_handoffs_tenant_claim_idx').on(table.tenantId, table.claimId),
+    index('support_handoffs_tenant_member_created_idx').on(
+      table.tenantId,
+      table.memberId,
+      table.createdAt
     ),
   ]
 );

@@ -1,0 +1,176 @@
+import { render, screen } from '@testing-library/react';
+import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => {
+  const selectChain = {
+    from: vi.fn(),
+    limit: vi.fn(),
+    orderBy: vi.fn(),
+    where: vi.fn(),
+  };
+
+  return {
+    createMemberSupportHandoff: vi.fn(),
+    desc: vi.fn(column => ({ column, op: 'desc' })),
+    eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
+    getSessionSafe: vi.fn(),
+    redirect: vi.fn((href: string) => {
+      throw new Error(`redirect:${href}`);
+    }),
+    requireSessionOrRedirect: vi.fn(session => session),
+    select: vi.fn(() => selectChain),
+    selectChain,
+    setRequestLocale: vi.fn(),
+    withTenant: vi.fn((_tenantId, _column, condition) => ({ condition, scoped: true })),
+  };
+});
+
+vi.mock('@/actions/support-handoffs/create', () => ({
+  createMemberSupportHandoff: mocks.createMemberSupportHandoff,
+}));
+
+vi.mock('@/components/shell/session', () => ({
+  getSessionSafe: mocks.getSessionSafe,
+  requireSessionOrRedirect: mocks.requireSessionOrRedirect,
+}));
+
+vi.mock('@/i18n/routing', () => ({
+  Link: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+    <a href={href?.toString()} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
+vi.mock('@interdomestik/database', () => ({
+  claims: {
+    claimNumber: 'claims.claim_number',
+    createdAt: 'claims.created_at',
+    id: 'claims.id',
+    status: 'claims.status',
+    tenantId: 'claims.tenant_id',
+    title: 'claims.title',
+    userId: 'claims.user_id',
+  },
+  db: {
+    select: mocks.select,
+  },
+  desc: mocks.desc,
+  eq: mocks.eq,
+}));
+
+vi.mock('@interdomestik/database/tenant-security', () => ({
+  withTenant: mocks.withTenant,
+}));
+
+vi.mock('@interdomestik/ui/components/button', () => ({
+  Button: ({
+    asChild,
+    children,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    asChild?: boolean;
+  }) => (asChild ? <>{children}</> : <button {...props}>{children}</button>),
+}));
+
+vi.mock('@interdomestik/ui/components/card', () => ({
+  Card: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+    <section {...props}>{children}</section>
+  ),
+  CardContent: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+    <div {...props}>{children}</div>
+  ),
+  CardDescription: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
+    <p {...props}>{children}</p>
+  ),
+  CardHeader: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+    <header {...props}>{children}</header>
+  ),
+  CardTitle: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h2 {...props}>{children}</h2>
+  ),
+}));
+
+vi.mock('lucide-react', () => ({
+  Mail: () => <span aria-hidden="true" />,
+  MessageSquare: () => <span aria-hidden="true" />,
+  Phone: () => <span aria-hidden="true" />,
+}));
+
+vi.mock('next-intl/server', () => ({
+  getTranslations: vi.fn(async () => (key: string) => key),
+  setRequestLocale: mocks.setRequestLocale,
+}));
+
+vi.mock('next/navigation', () => ({
+  redirect: mocks.redirect,
+}));
+
+import HelpPage from './_core.entry';
+
+async function renderPage(support?: string) {
+  const tree = await HelpPage({
+    params: Promise.resolve({ locale: 'en' }),
+    searchParams: Promise.resolve(support ? { support } : {}),
+  });
+  render(tree);
+}
+
+describe('member help support handoff form', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getSessionSafe.mockResolvedValue({
+      user: {
+        id: 'member-1',
+        role: 'member',
+        tenantId: 'tenant-1',
+      },
+    });
+    mocks.requireSessionOrRedirect.mockImplementation(session => session);
+    mocks.select.mockReturnValue(mocks.selectChain);
+    mocks.selectChain.from.mockReturnValue(mocks.selectChain);
+    mocks.selectChain.where.mockReturnValue(mocks.selectChain);
+    mocks.selectChain.orderBy.mockReturnValue(mocks.selectChain);
+    mocks.selectChain.limit.mockResolvedValue([
+      {
+        claimNumber: 'CLM-1',
+        createdAt: new Date('2026-05-01T00:00:00.000Z'),
+        id: 'claim-1',
+        status: 'submitted',
+        title: 'Claim one',
+      },
+    ]);
+  });
+
+  it('renders a member-created support handoff form without ownership inputs', async () => {
+    await renderPage();
+
+    expect(screen.getByTestId('member-page-ready')).toBeVisible();
+    expect(screen.getByTestId('member-support-handoff-form')).toBeVisible();
+    expect(screen.getByTestId('member-support-handoff-subject')).toHaveAttribute('name', 'subject');
+    expect(screen.getByTestId('member-support-handoff-message')).toHaveAttribute('name', 'message');
+    expect(screen.getByTestId('member-support-handoff-claim')).toHaveTextContent('CLM-1');
+    expect(screen.queryByDisplayValue('tenant-1')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('member-1')).not.toBeInTheDocument();
+  });
+
+  it('shows the created acknowledgement after server action redirect', async () => {
+    await renderPage('created');
+
+    expect(screen.getByTestId('member-support-handoff-created')).toBeVisible();
+  });
+
+  it('redirects non-member sessions to their canonical portal before rendering the form', async () => {
+    mocks.getSessionSafe.mockResolvedValue({
+      user: {
+        id: 'agent-1',
+        role: 'agent',
+        tenantId: 'tenant-1',
+      },
+    });
+
+    await expect(renderPage()).rejects.toThrow('redirect:/en/agent');
+    expect(mocks.select).not.toHaveBeenCalled();
+  });
+});
