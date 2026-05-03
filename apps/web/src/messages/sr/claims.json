@@ -101,9 +101,9 @@
       "continue_review": "Nastavi -> Pregled",
       "submit_label": "Podnesi slučaj",
       "required_fields": "Popunite obavezna polja",
-      "submit_success": "Slučaj je uspešno podnet.",
-      "submit_failed": "Podnošenje nije uspelo. Pokušajte ponovo.",
-      "submit_unexpected": "Došlo je do neočekivane greške.",
+      "submit_success": "Slučaj je podnet i sačuvan. Možete ga pratiti sa kontrolne table.",
+      "submit_failed": "Podnošenje nije moglo da se završi. Pokušajte ponovo ili kontaktirajte podršku.",
+      "submit_unexpected": "Dogodilo se nešto neočekivano. Pokušajte još jednom ili kontaktirajte podršku.",
       "submitClaim": "Podnesi Zahtev",
       "help": {
         "title": "Treba vam pomoć?",

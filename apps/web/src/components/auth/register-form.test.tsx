@@ -29,6 +29,7 @@ vi.mock('next-intl', () => ({
       confirmPassword: 'Confirm Password',
       terms: 'I agree to the Terms of Service',
       submit: 'Sign Up',
+      submitMicro: 'Your account keeps cases, documents, and history safe. No spam.',
       hasAccount: 'Already have an account?',
       loginLink: 'Sign in',
       loading: 'Loading...',
@@ -102,6 +103,9 @@ describe('RegisterForm', () => {
     render(<RegisterForm />);
 
     expect(screen.getByText('Sign Up')).toBeInTheDocument();
+    expect(
+      screen.getByText('Your account keeps cases, documents, and history safe. No spam.')
+    ).toBeInTheDocument();
   });
 
   it('shows "or" divider for social login when GitHub OAuth is enabled', () => {

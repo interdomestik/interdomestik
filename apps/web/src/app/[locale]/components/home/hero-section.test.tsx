@@ -37,16 +37,14 @@ vi.mock('@/lib/support-contacts', () => ({
 }));
 
 describe('HeroSection', () => {
-  it('keeps the old hero structure while prioritizing the 60-second intake and WhatsApp', () => {
+  it('keeps the hero structure while prioritizing the 60-second intake and WhatsApp', () => {
     render(<HeroSection locale="sq" tenantId="tenant_ks" />);
 
     expect(
-      screen.getByRole('heading', { name: /Nuk jeni vetëm pas një aksidenti/i })
+      screen.getByRole('heading', { name: /Asistencë e organizuar për dëme/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        /Anëtarësimi juaj vjetor zhbllokon udhëzime nga ekspertët dhe mbështetje prioritare për dëmet/i
-      )
+      screen.getByText(/Anëtarësimi juaj vjetor zhbllokon menaxhim hap-pas-hapi të rastit/i)
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Nise për 60 sekonda/i })).toHaveAttribute(
       'href',
