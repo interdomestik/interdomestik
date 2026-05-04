@@ -1,7 +1,7 @@
 # Deployment Workflow
 
-Interdomestik uses a main-gated CD workflow. The legacy `production` branch workflow is
-retired as of 2026-05-04 and must not be used for releases.
+Interdomestik uses a main-gated continuous deployment (CD) workflow. The legacy
+`production` branch workflow is retired as of 2026-05-04 and must not be used for releases.
 
 ## Branches
 
@@ -13,7 +13,9 @@ retired as of 2026-05-04 and must not be used for releases.
 
 Production deploys are driven by [.github/workflows/cd.yml](../.github/workflows/cd.yml).
 The workflow builds and verifies staging first, then builds, deploys, and verifies production
-from the same `main` commit SHA.
+from the same commit SHA. The workflow also accepts `v*` tag pushes; because tag ancestry is
+not enforced in the workflow, operators must create release tags only from commits already
+reachable from `main`.
 
 Do not create release PRs from `main` to `production`. Do not push release changes to a
 `production` branch. The remote `production` branch was a legacy release-control mechanism and
@@ -35,7 +37,7 @@ is no longer part of the deployment contract.
 Configure release controls on `main`, not on a legacy `production` branch:
 
 - Require pull request review before merging.
-- Require required status checks before merging.
+- Require status checks to pass before merging.
 - Require the mandatory verification gates listed above.
 - Restrict direct pushes according to repository policy.
 - Keep GitHub environment approvals and secrets attached to the `staging` and `production`
