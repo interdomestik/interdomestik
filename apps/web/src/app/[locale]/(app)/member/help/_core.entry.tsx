@@ -90,6 +90,7 @@ export default async function HelpPage({ params, searchParams }: Props) {
   const resolvedSearchParams = await searchParams;
   const status = getSingleParam(resolvedSearchParams.support);
   const requestedClaimId = getSingleParam(resolvedSearchParams.claimId);
+  const sourceHint = getSingleParam(resolvedSearchParams.source);
   const claimOptions =
     session.user.tenantId && session.user.id
       ? await getMemberClaimOptions({
@@ -101,6 +102,8 @@ export default async function HelpPage({ params, searchParams }: Props) {
   const selectedClaim = requestedClaimId
     ? (claimOptions.find(claim => claim.id === requestedClaimId) ?? null)
     : null;
+  const sourceClaimId =
+    sourceHint === 'member_claim_detail' && selectedClaim ? selectedClaim.id : null;
 
   return (
     <div
@@ -198,6 +201,14 @@ export default async function HelpPage({ params, searchParams }: Props) {
               data-testid="member-support-handoff-form"
             >
               <input type="hidden" name="locale" value={locale} />
+              <input
+                type="hidden"
+                name="source"
+                value={sourceClaimId ? 'member_claim_detail' : 'member_help'}
+              />
+              {sourceClaimId ? (
+                <input type="hidden" name="sourceClaimId" value={sourceClaimId} />
+              ) : null}
               <div className="space-y-2">
                 <label htmlFor="support-subject" className="text-sm font-medium">
                   {t('request.subject')}

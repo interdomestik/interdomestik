@@ -113,13 +113,17 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
         .first();
       await expect(supportLink).toBeVisible();
       await expect(supportLink).toHaveAttribute('href', new RegExp(`claimId=${claimId}`));
+      await expect(supportLink).toHaveAttribute('href', /source=member_claim_detail/);
       const supportHref = await supportLink.getAttribute('href');
       expect(supportHref).toBeTruthy();
       await gotoApp(memberPage, supportHref!, testInfo, {
         marker: 'member-support-handoff-form',
       });
       await expect(memberPage).toHaveURL(
-        url => url.pathname.endsWith('/member/help') && url.searchParams.get('claimId') === claimId,
+        url =>
+          url.pathname.endsWith('/member/help') &&
+          url.searchParams.get('claimId') === claimId &&
+          url.searchParams.get('source') === 'member_claim_detail',
         { timeout: 15000 }
       );
 
@@ -145,14 +149,14 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
           async () => {
             const handoff = await db.query.supportHandoffs.findFirst({
               where: eq(supportHandoffs.subject, subject),
-              columns: { claimId: true, id: true },
+              columns: { claimId: true, id: true, source: true },
             });
 
-            return handoff?.claimId ?? null;
+            return handoff?.claimId === claimId ? handoff.source : null;
           },
           { timeout: 15000, intervals: [250, 500, 1000] }
         )
-        .toBe(claimId);
+        .toBe('member_claim_detail');
 
       await loginAs('staff');
       await gotoApp(
@@ -173,6 +177,9 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
         /Phone callback|Телефон|telefon/i
       );
       await expect(row.getByTestId('staff-support-handoff-full-message')).toContainText(message);
+      await expect(row.getByTestId('staff-support-handoff-source')).toContainText(
+        /Claim detail page|detajeve|detalja|детали/i
+      );
       await expect(row.getByTestId('staff-support-handoff-lifecycle-created')).toBeVisible();
     } finally {
       await cleanupHandoffBySubject(subject);

@@ -7,12 +7,14 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and } from 'drizzle-orm';
 
 import { deriveSupportHandoffSignals } from './derivation';
-import type {
-  CreateSupportHandoffInput,
-  SupportHandoffActionResult,
-  SupportHandoffContactPreference,
-  SupportHandoffDeps,
-  SupportHandoffSession,
+import {
+  SUPPORT_HANDOFF_SOURCES,
+  type CreateSupportHandoffInput,
+  type SupportHandoffActionResult,
+  type SupportHandoffContactPreference,
+  type SupportHandoffDeps,
+  type SupportHandoffSession,
+  type SupportHandoffSource,
 } from './types';
 
 const MAX_SUBJECT_LENGTH = 120;
@@ -23,6 +25,7 @@ const CONTACT_PREFERENCES = new Set<SupportHandoffContactPreference>([
   'email',
   'whatsapp',
 ]);
+const SUPPORT_HANDOFF_SOURCE_VALUES = new Set<SupportHandoffSource>(SUPPORT_HANDOFF_SOURCES);
 const FORBIDDEN_OWNERSHIP_FIELDS = [
   'tenantId',
   'memberId',
@@ -57,6 +60,31 @@ function normalizeContactPreference(value: unknown): SupportHandoffContactPrefer
     CONTACT_PREFERENCES.has(value as SupportHandoffContactPreference)
     ? (value as SupportHandoffContactPreference)
     : 'staff_reply';
+}
+
+function normalizeSourceHint(value: unknown): SupportHandoffSource | null {
+  return typeof value === 'string' &&
+    SUPPORT_HANDOFF_SOURCE_VALUES.has(value as SupportHandoffSource)
+    ? (value as SupportHandoffSource)
+    : null;
+}
+
+function deriveSource(args: {
+  claimContext: ClaimContext | null;
+  sourceClaimId: unknown;
+  sourceHint: unknown;
+}): SupportHandoffSource {
+  const sourceHint = normalizeSourceHint(args.sourceHint);
+  const sourceClaimId = normalizeText(
+    typeof args.sourceClaimId === 'string' ? args.sourceClaimId : undefined,
+    160
+  );
+
+  if (sourceHint === 'member_claim_detail' && sourceClaimId === args.claimContext?.id) {
+    return 'member_claim_detail';
+  }
+
+  return 'member_help';
 }
 
 function hasForbiddenOwnershipFields(input: Record<string, unknown>) {
@@ -158,6 +186,11 @@ export async function createMemberSupportHandoffCore(
     return { success: false, error: 'Branch is required for support routing' };
   }
   const signals = deriveSupportHandoffSignals({ claim: claimContext });
+  const source = deriveSource({
+    claimContext,
+    sourceClaimId: params.input.sourceClaimId,
+    sourceHint: params.input.source,
+  });
   const handoffId = `support_handoff_${randomUUID()}`;
   const now = new Date();
 
@@ -167,7 +200,7 @@ export async function createMemberSupportHandoffCore(
     memberId,
     branchId,
     claimId: claimContext?.id ?? null,
-    source: 'member_help',
+    source,
     subject,
     message,
     contactPreference,
@@ -188,7 +221,7 @@ export async function createMemberSupportHandoffCore(
       entityId: handoffId,
       metadata: {
         claimId: claimContext?.id ?? null,
-        source: 'member_help',
+        source,
         urgency: signals.urgency,
         trustRisk: signals.trustRisk,
       },

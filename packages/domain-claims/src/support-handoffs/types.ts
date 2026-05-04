@@ -11,6 +11,9 @@ export type SupportHandoffTrustRisk = (typeof SUPPORT_HANDOFF_TRUST_RISKS)[numbe
 
 export type SupportHandoffContactPreference = 'staff_reply' | 'phone' | 'email' | 'whatsapp';
 
+export const SUPPORT_HANDOFF_SOURCES = ['member_help', 'member_claim_detail'] as const;
+export type SupportHandoffSource = (typeof SUPPORT_HANDOFF_SOURCES)[number];
+
 export type SupportHandoffActionResult<T = void> =
   | { success: true; data: T; error?: undefined }
   | { success: false; error: string; data?: undefined };
@@ -23,6 +26,8 @@ export type CreateSupportHandoffInput = {
   message: string;
   contactPreference?: SupportHandoffContactPreference;
   claimId?: string | null;
+  source?: string | null;
+  sourceClaimId?: string | null;
 };
 
 export type SupportHandoffLifecycleInput = {
