@@ -1,4 +1,5 @@
 import { claims, db, eq, supportHandoffs } from '@interdomestik/database';
+import type { Page, TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
@@ -6,6 +7,26 @@ import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
 
 async function cleanupHandoffBySubject(subject: string): Promise<void> {
   await db.delete(supportHandoffs).where(eq(supportHandoffs.subject, subject));
+}
+
+async function submitMemberHelpHandoff(args: {
+  memberPage: Page;
+  message: string;
+  subject: string;
+  testInfo: TestInfo;
+}) {
+  await gotoApp(args.memberPage, routes.memberHelp(args.testInfo), args.testInfo, {
+    marker: 'member-page-ready',
+  });
+  await expect(args.memberPage.getByTestId('member-support-handoff-form')).toBeVisible();
+
+  await args.memberPage.getByTestId('member-support-handoff-subject').fill(args.subject);
+  await args.memberPage.getByTestId('member-support-handoff-message').fill(args.message);
+  await args.memberPage.getByTestId('member-support-handoff-submit').click();
+
+  await expect(args.memberPage).toHaveURL(/\/member\/help\?support=created$/, {
+    timeout: 15000,
+  });
 }
 
 test.describe('CRM01 staff support handoff receiving queue', () => {
@@ -18,19 +39,11 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
     await cleanupHandoffBySubject(subject);
 
     try {
-      await gotoApp(memberPage, routes.memberHelp(testInfo), testInfo, {
-        marker: 'member-page-ready',
-      });
-      await expect(memberPage.getByTestId('member-support-handoff-form')).toBeVisible();
-
-      await memberPage.getByTestId('member-support-handoff-subject').fill(subject);
-      await memberPage
-        .getByTestId('member-support-handoff-message')
-        .fill('Please route this support handoff to the staff receiving queue.');
-      await memberPage.getByTestId('member-support-handoff-submit').click();
-
-      await expect(memberPage).toHaveURL(/\/member\/help\?support=created$/, {
-        timeout: 15000,
+      await submitMemberHelpHandoff({
+        memberPage,
+        message: 'Please route this support handoff to the staff receiving queue.',
+        subject,
+        testInfo,
       });
       await expect(memberPage.getByTestId('member-support-handoff-created')).toBeVisible();
 
@@ -261,17 +274,11 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
     await cleanupHandoffBySubject(subject);
 
     try {
-      await gotoApp(memberPage, routes.memberHelp(testInfo), testInfo, {
-        marker: 'member-page-ready',
-      });
-      await expect(memberPage.getByTestId('member-support-handoff-form')).toBeVisible();
-      await memberPage.getByTestId('member-support-handoff-subject').fill(subject);
-      await memberPage
-        .getByTestId('member-support-handoff-message')
-        .fill('Public response E2E handoff with enough detail for staff follow-up.');
-      await memberPage.getByTestId('member-support-handoff-submit').click();
-      await expect(memberPage).toHaveURL(/\/member\/help\?support=created$/, {
-        timeout: 15000,
+      await submitMemberHelpHandoff({
+        memberPage,
+        message: 'Public response E2E handoff with enough detail for staff follow-up.',
+        subject,
+        testInfo,
       });
 
       await gotoApp(
