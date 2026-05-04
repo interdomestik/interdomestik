@@ -1,47 +1,42 @@
 # Deployment Workflow
 
-We use a **Production Branch Workflow** to ensure strict control over releases.
+Interdomestik uses a main-gated CD workflow. The legacy `production` branch workflow is
+retired as of 2026-05-04 and must not be used for releases.
 
 ## Branches
 
-| Branch       | Environment | Build Trigger | Purpose                                               |
-| :----------- | :---------- | :------------ | :---------------------------------------------------- |
-| `main`       | Preview     | On Push/PR    | Daily development. **Does not deploy to production.** |
-| `production` | Production  | On Merge      | Stable releases. Locked branch.                       |
+| Branch | Environment               | Build Trigger                  | Purpose                                                      |
+| :----- | :------------------------ | :----------------------------- | :----------------------------------------------------------- |
+| `main` | Staging and production CD | Push to `main`, plus `v*` tags | Canonical release source after PR review and required gates. |
 
-## 🚀 How to Deploy to Production (Release Checklist)
+## Production Release Policy
 
-We strictly use **Pull Requests** to deploy to production. Do not push directly.
+Production deploys are driven by [.github/workflows/cd.yml](../.github/workflows/cd.yml).
+The workflow builds and verifies staging first, then builds, deploys, and verifies production
+from the same `main` commit SHA.
 
-1.  **Verify `main` is Stable**
-    - [ ] CI Checks (`e2e:gate`, `lint`, `type-check`) are GREEN on `main`.
-    - [ ] Manual QA passed on the Preview environment.
+Do not create release PRs from `main` to `production`. Do not push release changes to a
+`production` branch. The remote `production` branch was a legacy release-control mechanism and
+is no longer part of the deployment contract.
 
-2.  **Create Release PR**
-    - [ ] Open a PR: `main` ➡️ `production`.
-    - [ ] Title: `release: vX.Y.Z` (or `release: <date> - <feature>`).
-    - [ ] Review the "Files Changed" tab to confirm exactly what is going live.
+## Release Checklist
 
-3.  **Merge & Monitor**
-    - [ ] **Squash and Merge** (or Rebase) the PR.
-    - [ ] Monitor the **Vercel Production Deployment** in the Vercel Dashboard.
-    - [ ] Verify the live site: [https://interdomestik.com](https://interdomestik.com) (or your prod domain).
+1. Verify the candidate PR passes the required gates before merge:
+   - `pnpm pr:verify`
+   - `pnpm security:guard`
+   - `pnpm e2e:gate`
+2. Merge the reviewed PR into `main`.
+3. Monitor the `CD` workflow for the `main` SHA.
+4. Confirm staging verification passes before production promotion.
+5. Confirm production verification artifacts are uploaded by the workflow.
 
-## 🛡️ Recommended Configurations
+## Required Controls
 
-### GitHub Branch Protection (Critical)
+Configure release controls on `main`, not on a legacy `production` branch:
 
-Configure these settings for the `production` branch in GitHub:
-
-- [x] **Require pull request before merging**
-- [x] **Require status checks to pass before merging** (Select `e2e:gate`, `Verel`, etc.)
-- [x] **Require linear history** (Optional, keeps history clean)
-- [x] **Include administrators** (Enforce rules on everyone)
-
-### Vercel Project Settings
-
-Ensure these are set in Vercel to prevent accidental builds:
-
-- **Settings > Environments > Production > Branch Tracking**: `production`
-- **Settings > Git > Ignore Build Command**: _(Leave Empty)_
-- **Settings > Build & Development > Build Command**: `pnpm turbo build --filter=@interdomestik/web`
+- Require pull request review before merging.
+- Require required status checks before merging.
+- Require the mandatory verification gates listed above.
+- Restrict direct pushes according to repository policy.
+- Keep GitHub environment approvals and secrets attached to the `staging` and `production`
+  environments used by the CD workflow.
