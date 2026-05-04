@@ -63,13 +63,18 @@ if [ "$ALL_CONFIGURED" = false ]; then
     exit 1
 fi
 
-# 2b. Verify Codex sees the project-scoped MCP config and the repo QA server answers tools/list.
+# 2b. Generate the user-scoped Codex MCP registration with this machine's absolute repo path,
+# then verify Codex sees the project-scoped MCP config and the repo QA server answers tools/list.
 if command -v codex >/dev/null 2>&1; then
+    echo -e "\n${YELLOW}🧭 Generating local Codex MCP config...${NC}"
+    cd "$PROJECT_ROOT"
+    pnpm mcp:local-config
+
     echo -e "\n${YELLOW}🩺 Running Codex MCP preflight...${NC}"
     cd "$PROJECT_ROOT"
     pnpm mcp:preflight
 else
-    echo -e "\n${YELLOW}⚠️  Skipping Codex MCP preflight because codex CLI is not on PATH${NC}"
+    echo -e "\n${YELLOW}⚠️  Skipping Codex local config and preflight because codex CLI is not on PATH${NC}"
 fi
 
 # 3. Test QA MCP discovery
