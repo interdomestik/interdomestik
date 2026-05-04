@@ -36,13 +36,23 @@ const mocks = vi.hoisted(() => ({
     userId: 'subscriptions.user_id',
   },
   supportHandoffs: {
+    acceptedAt: 'support_handoffs.accepted_at',
+    acceptedById: 'support_handoffs.accepted_by_id',
     branchId: 'support_handoffs.branch_id',
     claimId: 'support_handoffs.claim_id',
+    closedAt: 'support_handoffs.closed_at',
+    closedById: 'support_handoffs.closed_by_id',
+    closeReason: 'support_handoffs.close_reason',
+    contactPreference: 'support_handoffs.contact_preference',
     createdAt: 'support_handoffs.created_at',
     id: 'support_handoffs.id',
     lifecycleVersion: 'support_handoffs.lifecycle_version',
     memberId: 'support_handoffs.member_id',
     message: 'support_handoffs.message',
+    reassignedAt: 'support_handoffs.reassigned_at',
+    reassignedById: 'support_handoffs.reassigned_by_id',
+    reassignReason: 'support_handoffs.reassign_reason',
+    source: 'support_handoffs.source',
     staffId: 'support_handoffs.staff_id',
     status: 'support_handoffs.status',
     subject: 'support_handoffs.subject',
@@ -86,7 +96,7 @@ vi.mock('drizzle-orm', () => ({
   isNull: mocks.isNull,
 }));
 
-import { buildStaffSupportHandoffQueueScope } from './queue';
+import { buildStaffSupportHandoffQueueScope, getStaffSupportHandoffDetail } from './queue';
 
 type QueueScopeArgs = Parameters<typeof buildStaffSupportHandoffQueueScope>[0];
 
@@ -100,6 +110,17 @@ function buildScope(overrides: Partial<QueueScopeArgs> = {}) {
     viewerRole: 'staff',
   };
   return buildStaffSupportHandoffQueueScope({ ...base, ...overrides });
+}
+
+function mockSelectRows(rows: unknown[]) {
+  const query = {
+    from: vi.fn().mockReturnThis(),
+    leftJoin: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue(rows),
+    where: vi.fn().mockReturnThis(),
+  };
+  mocks.db.select.mockReturnValue(query);
+  return query;
 }
 
 describe('buildStaffSupportHandoffQueueScope', () => {
@@ -163,5 +184,92 @@ describe('buildStaffSupportHandoffQueueScope', () => {
 
     expect(mocks.isNull).toHaveBeenCalledWith('support_handoffs.staff_id');
     expect(mocks.isNull).toHaveBeenCalledWith('support_handoffs.claim_id');
+  });
+});
+
+describe('getStaffSupportHandoffDetail', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns scoped detail fields with normalized lifecycle timestamps and actor names', async () => {
+    const query = mockSelectRows([
+      {
+        acceptedAt: new Date('2026-05-04T08:30:00.000Z'),
+        acceptedByName: 'Staff One',
+        closedAt: null,
+        closedByName: null,
+        closeReason: null,
+        contactPreference: 'phone',
+        reassignedAt: '2026-05-04T10:00:00.000Z',
+        reassignedByName: 'Staff Two',
+        reassignReason: 'Specialist needed',
+        source: 'member_help',
+      },
+    ]);
+
+    const detail = await getStaffSupportHandoffDetail({
+      branchId: 'branch-1',
+      handoffId: 'handoff-1',
+      staffId: 'staff-1',
+      tenantId: 'tenant-1',
+      viewerRole: 'staff',
+    });
+
+    expect(mocks.db.select).toHaveBeenCalledWith(
+      expect.objectContaining({
+        acceptedAt: 'support_handoffs.accepted_at',
+        acceptedByName: expect.any(String),
+        closedAt: 'support_handoffs.closed_at',
+        closedByName: expect.any(String),
+        contactPreference: 'support_handoffs.contact_preference',
+        source: 'support_handoffs.source',
+      })
+    );
+    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.id', 'handoff-1');
+    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.branch_id', 'branch-1');
+    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.staff_id', 'staff-1');
+    expect(query.limit).toHaveBeenCalledWith(1);
+    expect(detail).toEqual({
+      acceptedAt: '2026-05-04T08:30:00.000Z',
+      acceptedByName: 'Staff One',
+      closedAt: null,
+      closedByName: null,
+      closeReason: null,
+      contactPreference: 'phone',
+      reassignedAt: '2026-05-04T10:00:00.000Z',
+      reassignedByName: 'Staff Two',
+      reassignReason: 'Specialist needed',
+      source: 'member_help',
+    });
+  });
+
+  it('lets branch managers fetch branch-scoped detail without staff fallback filtering', async () => {
+    mockSelectRows([]);
+
+    await getStaffSupportHandoffDetail({
+      branchId: 'branch-1',
+      handoffId: 'handoff-1',
+      staffId: 'manager-1',
+      tenantId: 'tenant-1',
+      viewerRole: 'branch_manager',
+    });
+
+    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.branch_id', 'branch-1');
+    expect(mocks.eq).not.toHaveBeenCalledWith('support_handoffs.staff_id', 'manager-1');
+  });
+
+  it('returns null when the handoff is not visible in scope', async () => {
+    mockSelectRows([]);
+
+    await expect(
+      getStaffSupportHandoffDetail({
+        branchId: 'branch-1',
+        handoffId: 'missing',
+        staffId: 'staff-1',
+        tenantId: 'tenant-1',
+        viewerRole: 'staff',
+      })
+    ).resolves.toBeNull();
   });
 });

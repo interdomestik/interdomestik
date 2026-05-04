@@ -13,7 +13,7 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
     authenticatedPage: memberPage,
     staffPage,
   }, testInfo) => {
-    const subject = `E2E CRM01 support handoff ${Date.now()}`;
+    const subject = `E2E CRM01 support handoff ${testInfo.project.name} ${Date.now()}`;
 
     await cleanupHandoffBySubject(subject);
 
@@ -97,7 +97,9 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       columns: { claimNumber: true, id: true, title: true },
     });
     const claimLabel = claim?.claimNumber || claim?.title || claimId;
-    const subject = `E2E CRM02 claim handoff ${Date.now()}`;
+    const subject = `E2E CRM02 claim handoff ${testInfo.project.name} ${Date.now()}`;
+    const message =
+      'Please help with this claim from the claim detail page. I need a phone callback with full context visible to staff.';
 
     await cleanupHandoffBySubject(subject);
 
@@ -128,9 +130,10 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       await expect(memberPage.getByTestId('member-support-handoff-claim')).toHaveValue(claimId);
 
       await memberPage.getByTestId('member-support-handoff-subject').fill(subject);
+      await memberPage.getByTestId('member-support-handoff-message').fill(message);
       await memberPage
-        .getByTestId('member-support-handoff-message')
-        .fill('Please help with this claim from the claim detail page.');
+        .getByTestId('member-support-handoff-contact-preference')
+        .selectOption('phone');
       await memberPage.getByTestId('member-support-handoff-submit').click();
 
       await expect(memberPage).toHaveURL(/\/member\/help\?support=created$/, {
@@ -162,6 +165,15 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       const row = memberPage.getByTestId('staff-support-handoffs-row').filter({ hasText: subject });
       await expect(row).toBeVisible({ timeout: 15000 });
       await expect(row.getByTestId('staff-support-handoff-claim-link')).toContainText(claimLabel);
+      await row.getByTestId('staff-support-handoff-detail-toggle').click();
+      await expect(row.getByTestId('staff-support-handoff-detail-panel')).toBeVisible({
+        timeout: 15000,
+      });
+      await expect(row.getByTestId('staff-support-handoff-contact-preference')).toContainText(
+        /Phone callback|Телефон|telefon/i
+      );
+      await expect(row.getByTestId('staff-support-handoff-full-message')).toContainText(message);
+      await expect(row.getByTestId('staff-support-handoff-lifecycle-created')).toBeVisible();
     } finally {
       await cleanupHandoffBySubject(subject);
     }

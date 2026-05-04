@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   findManyStaff: vi.fn(),
   getQueue: vi.fn(),
   getSessionSafe: vi.fn(),
+  getSupportHandoffDetail: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error('notFound');
   }),
@@ -21,6 +22,10 @@ vi.mock('@/actions/support-handoffs/lifecycle', () => ({
   acceptSupportHandoff: mocks.acceptSupportHandoff,
   closeSupportHandoff: mocks.closeSupportHandoff,
   reassignSupportHandoff: mocks.reassignSupportHandoff,
+}));
+
+vi.mock('@/actions/support-handoffs/detail', () => ({
+  getSupportHandoffDetail: mocks.getSupportHandoffDetail,
 }));
 
 vi.mock('@/components/shell/session', () => ({
@@ -143,6 +148,18 @@ describe('StaffSupportHandoffsPage', () => {
     mocks.getSessionSafe.mockResolvedValue(session('staff'));
     mocks.requireSessionOrRedirect.mockImplementation(currentSession => currentSession);
     mocks.getQueue.mockResolvedValue([queueItem]);
+    mocks.getSupportHandoffDetail.mockResolvedValue({
+      acceptedAt: null,
+      acceptedByName: null,
+      closedAt: null,
+      closedByName: null,
+      closeReason: null,
+      contactPreference: 'phone',
+      reassignedAt: null,
+      reassignedByName: null,
+      reassignReason: null,
+      source: 'member_help',
+    });
     mocks.findStaffBranch.mockResolvedValue({ branchId: 'branch-1' });
     mocks.findManyStaff.mockResolvedValue([
       { email: 'staff@example.com', id: 'staff-1', name: 'Staff One', role: 'staff' },
@@ -159,6 +176,29 @@ describe('StaffSupportHandoffsPage', () => {
     expect(screen.getByTestId('staff-support-handoff-accept-form')).toBeVisible();
     expect(screen.getByDisplayValue('4')).toHaveAttribute('name', 'expectedVersion');
     expect(screen.queryByTestId('staff-support-handoff-readonly')).not.toBeInTheDocument();
+  });
+
+  it('loads and renders detail context on demand for staff', async () => {
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+
+    await waitFor(() => {
+      expect(mocks.getSupportHandoffDetail).toHaveBeenCalledWith('handoff-1');
+    });
+    expect(await screen.findByTestId('staff-support-handoff-detail-panel')).toBeVisible();
+    expect(screen.getByTestId('staff-support-handoff-contact-preference')).toHaveTextContent(
+      'detail.contact_preference_phone'
+    );
+    expect(screen.getByTestId('staff-support-handoff-source')).toHaveTextContent(
+      'detail.source_member_help'
+    );
+    expect(screen.getByTestId('staff-support-handoff-full-message')).toHaveTextContent(
+      'The member needs staff support.'
+    );
+    expect(screen.getByTestId('staff-support-handoff-lifecycle-created')).toHaveTextContent(
+      'detail.lifecycle_created'
+    );
   });
 
   it('shows reassignment only for accepted handoffs owned by the current staff member', async () => {
@@ -200,6 +240,7 @@ describe('StaffSupportHandoffsPage', () => {
 
     expect(screen.getByTestId('staff-support-handoffs-readonly-notice')).toBeVisible();
     expect(screen.getByTestId('staff-support-handoff-readonly')).toBeVisible();
+    expect(screen.getByTestId('staff-support-handoff-detail-toggle')).toBeVisible();
     expect(screen.queryByTestId('staff-support-handoff-accept-form')).not.toBeInTheDocument();
     expect(mocks.getQueue).toHaveBeenCalledWith(
       expect.objectContaining({

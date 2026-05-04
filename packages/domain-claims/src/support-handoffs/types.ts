@@ -34,6 +34,23 @@ export type SupportHandoffQueueAssignmentFilter = 'all' | 'mine' | 'unassigned';
 export type SupportHandoffQueueStatusFilter = SupportHandoffStatus | 'all';
 export type SupportHandoffQueueOwnerFilter = SupportHandoffQueueAssignmentFilter;
 
+export type SupportHandoffDetailFields = {
+  contactPreference: SupportHandoffContactPreference;
+  source: string;
+  acceptedAt: string | null;
+  acceptedByName: string | null;
+  reassignedAt: string | null;
+  reassignedByName: string | null;
+  reassignReason: string | null;
+  closedAt: string | null;
+  closedByName: string | null;
+  closeReason: string | null;
+};
+
+export type SupportHandoffQueueItemWithDetail = SupportHandoffQueueItem & {
+  detail: SupportHandoffDetailFields;
+};
+
 export type SupportHandoffQueueItem = {
   id: string;
   subject: string;

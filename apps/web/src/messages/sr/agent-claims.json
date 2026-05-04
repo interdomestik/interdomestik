@@ -333,6 +333,29 @@
           "readonly": "Samo za čitanje",
           "reassign_reason": "Razlog preraspodele",
           "close_reason": "Razlog rešenja"
+        },
+        "detail": {
+          "expand": "Prikaži detalje",
+          "collapse": "Sakrij detalje",
+          "loading": "Detalji se učitavaju...",
+          "unavailable": "Detalji nisu dostupni za ovu primopredaju.",
+          "full_message": "Cela poruka",
+          "source": "Izvor",
+          "source_member_help": "Stranica pomoći za članove",
+          "source_claim_detail": "Stranica detalja predmeta",
+          "source_unknown": "Nepoznat izvor",
+          "contact_preference": "Željeni kontakt",
+          "contact_preference_staff_reply": "Odgovor preko platforme",
+          "contact_preference_phone": "Zatražen je telefonski poziv",
+          "contact_preference_email": "Zatražen je odgovor e-poštom",
+          "contact_preference_whatsapp": "Zatražen je odgovor preko WhatsApp-a",
+          "lifecycle": "Životni ciklus",
+          "lifecycle_created": "Kreirano",
+          "lifecycle_accepted": "Prihvaćeno",
+          "lifecycle_reassigned": "Preraspodeljeno",
+          "lifecycle_closed": "Zatvoreno",
+          "lifecycle_pending": "Na čekanju",
+          "lifecycle_reason": "Razlog"
         }
       }
     }
