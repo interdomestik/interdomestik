@@ -59,6 +59,20 @@ access-control, and tenant-isolation authority.
    the existing optional claim relationship.
 10. The implementation must stay on the existing `/member/help` route and preserve the
     `member-page-ready` clarity marker.
+11. The advisory query must use an explicit active-status allowlist, equivalent to
+    `IN ('open', 'accepted')`, rather than `status != 'closed'`.
+12. The advisory function signature must stay narrow and member-only:
+    `getMemberActiveHandoffAdvisory({ tenantId, memberId, claimId? })`. It must not accept
+    `staffId`, `branchId`, `viewerRole`, `assignment`, or other staff-queue parameters.
+13. The member-facing DTO must be a named type separate from `SupportHandoffQueueItem` so reviewers
+    can audit the member-safe boundary directly.
+14. Advisory rendering should be extracted into a co-located member-help server component rather
+    than inlining fetch and branch logic into `_core.entry.tsx`.
+15. Advisory copy must be localized through the existing help namespace for every supported member
+    help locale.
+16. A composite advisory index on `(tenant_id, member_id, status)` is not authorized by this gate
+    because index DDL still changes schema/migration state in this repo. If CRM05 evidence shows a
+    page-load performance issue, a later gate may promote that index as a focused optimization.
 
 ## Approved P32-CRM05 Implementation Design
 
@@ -83,19 +97,31 @@ Add a focused member advisory read contract, preferably in
 `packages/domain-claims/src/support-handoffs/advisory.ts`, exported through the existing
 support-handoff package boundary.
 
-The contract should accept:
+The contract function should be named around `getMemberActiveHandoffAdvisory` and accept only:
 
 - `tenantId`
 - `memberId`
-- optional server-validated `selectedClaimId`
-- small `limit`, defaulting to the minimum needed for display, such as `3`
+- optional server-validated `claimId`
 
-The contract should return a small DTO shaped around:
+It must not accept staff or queue parameters such as `staffId`, `branchId`, `viewerRole`,
+`assignment`, `status`, `urgency`, or `claimLink`.
 
-- `scope`: `claim` when a same-claim active handoff exists, otherwise `member`
-- `activeCount`
-- `primary`: first active handoff by newest `createdAt`, with `id`, `status`, `createdAt`,
-  `updatedAt`, `source`, and optional linked-claim label/status
+The member-facing type should be explicit and separate from staff queue DTOs:
+
+```ts
+export type MemberActiveHandoffSummary = {
+  scope: 'claim' | 'member';
+  activeCount: number;
+  primaryStatus: 'open' | 'accepted';
+  createdAt: string;
+  updatedAt: string;
+  sourceLabel: string;
+  linkedClaim: {
+    label: string;
+    status: string | null;
+  } | null;
+};
+```
 
 Implementation detail may vary, but the DTO must remain member-safe and must not import or expose
 staff queue/detail DTOs.
@@ -104,10 +130,39 @@ staff queue/detail DTOs.
 
 - Always filter by `support_handoffs.tenant_id = tenantId`.
 - Always filter by `support_handoffs.member_id = memberId`.
-- Always filter active statuses to `open` and `accepted`.
+- Always filter active statuses to `open` and `accepted` with an explicit `IN` condition, such as
+  Drizzle `inArray(supportHandoffs.status, ['open', 'accepted'])`.
 - Prefer same-claim active handoffs when `selectedClaimId` is present.
 - Exclude `closed` handoffs from advisory matches.
 - Join claims only for member-safe claim label/status fields and only within the same tenant.
+- Prefer a lightweight query pattern: count active rows for `activeCount`, then fetch at most one
+  primary same-claim active row when `claimId` is present. The implementation must not fetch every
+  active handoff only to compute a count.
+- Do not add a new support-handoff index in CRM05. The possible
+  `(tenant_id, member_id, status)` index is recorded as a deferred optimization pending explicit
+  schema/index authorization.
+
+### Rendering Contract
+
+- Add a co-located server component such as
+  `apps/web/src/app/[locale]/(app)/member/help/_advisory-banner.tsx`.
+- Keep `_core.entry.tsx` responsible for session, selected claim validation, existing layout, and
+  form wiring.
+- Keep the advisory component responsible for fetching the advisory summary and rendering exactly
+  three branches: claim-specific advisory, generic member-level advisory, and no rendered advisory.
+- The advisory must include a localized timestamp derived from `createdAt` or `updatedAt` so the
+  member can see when the active support request was opened or last updated.
+
+### Copy Contract
+
+Add localized help namespace keys for all rendered advisory copy in `en`, `mk`, `sq`, and `sr`.
+The keys should cover:
+
+- claim-specific active handoff copy
+- generic member-level active handoff copy with `{count}`
+- status and timestamp metadata, with localized date formatting
+
+The no-advisory branch should render no visible banner and should be covered by tests as absence.
 
 ### Likely Files Touched After Approval
 
@@ -117,6 +172,8 @@ staff queue/detail DTOs.
 - `packages/domain-claims/src/support-handoffs/index.ts`
 - `apps/web/src/app/[locale]/(app)/member/help/_core.entry.tsx`
 - `apps/web/src/app/[locale]/(app)/member/help/_core.entry.test.tsx`
+- `apps/web/src/app/[locale]/(app)/member/help/_advisory-banner.tsx`
+- `apps/web/src/app/[locale]/(app)/member/help/_advisory-banner.test.tsx`
 - `apps/web/src/messages/en/member-help.json`
 - `apps/web/src/messages/mk/member-help.json`
 - `apps/web/src/messages/sq/member-help.json`
@@ -133,6 +190,8 @@ staff queue/detail DTOs.
 - Adding staff reply, notes, notifications, follow-up workflows, or new staff detail routes.
 - Adding schema, migrations, Relationship persistence, abstract Matter persistence, or stored
   TrustSignal.
+- Adding the possible `(tenant_id, member_id, status)` support-handoff index without a later
+  schema/index authorization gate.
 - Changing proxy, canonical routes, auth, tenancy architecture, branch-manager mutation authority,
   staff lifecycle semantics, Stripe, README, AGENTS, or architecture docs.
 
@@ -140,10 +199,19 @@ staff queue/detail DTOs.
 
 - Active means `open` or `accepted`; `closed` handoffs do not trigger advisory copy.
 - Advisory reads are tenant/member scoped and do not leak other members' handoffs.
+- The advisory read contract has a narrow member-only signature and a named
+  `MemberActiveHandoffSummary` type.
+- Active status filtering uses an explicit `open` / `accepted` allowlist, not `status != 'closed'`.
 - Same-claim active handoffs produce claim-context advisory copy when the selected claim is
   server-validated.
 - Other active member handoffs produce only generic member-level advisory copy.
 - Advisory data stays member-safe and excludes staff-only detail.
+- Field-exclusion tests prove the advisory response does not contain staff-only fields such as
+  `staffId`, `staffName`, `message`, `closeReason`, `reassignReason`, `acceptedByName`,
+  `closedByName`, or `reassignedByName`.
+- Advisory rendering is isolated in a co-located component and localized in every member-help
+  locale.
+- Claim-specific advisory copy includes a localized timestamp.
 - The `/member/help` form remains submittable in every advisory state.
 - Support-handoff creation, source normalization, branch routing, urgency/trust-risk derivation,
   staff lifecycle, and branch-manager read-only behavior remain unchanged.
@@ -154,10 +222,16 @@ staff queue/detail DTOs.
 ### Verification Standard For P32-CRM05
 
 - Focused domain tests for tenant/member scoping, active-status filtering, closed exclusion,
-  selected-claim priority, and member-level fallback.
+  selected-claim priority, member-level fallback, narrow-signature behavior, explicit field
+  exclusion, and the count-plus-primary-query behavior where practical.
 - Focused member help tests for claim-context advisory, generic advisory, closed/no-advisory state,
   inaccessible selected-claim behavior, and non-blocking form submission.
 - Focused i18n checks for all changed member-help locale files.
+- Focused advisory-banner component tests for claim-specific, generic member-level, and no-advisory
+  branches.
+- E2E proof for member-side advisory behavior when deterministic: create a handoff, revisit
+  `/member/help` for generic advisory, revisit `/member/help?claimId=<linked-claim>` for
+  claim-specific advisory, and submit again to prove the advisory is non-blocking.
 - `git diff --check`
 - Focused unit/component coverage for touched files.
 - `pnpm verify-slice -- --static`
@@ -173,14 +247,14 @@ staff queue/detail DTOs.
 Local verification is completed on branch `codex/p32-dg06-open-handoff-advisory-design` on
 2026-05-04.
 
-| Command                         | Result                                                                                                                                                                                   |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `git diff --check`              | Pass.                                                                                                                                                                                    |
-| `pnpm plan:status`              | Pass.                                                                                                                                                                                    |
-| `pnpm plan:audit`               | Pass.                                                                                                                                                                                    |
-| `pnpm track:audit`              | Pass.                                                                                                                                                                                    |
-| `pnpm docs:verify`              | Pass.                                                                                                                                                                                    |
-| `pnpm verify-slice -- --static` | Pass. Run root: `tmp/multi-agent/verify-slice/verify-slice-20260504T110147Z-d238d3`; selected reviewers: `security_reviewer`, `architect_reviewer`, `qa_reviewer`, `contracts_reviewer`. |
+| Command                         | Result                                                                                                                                                                                           |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `git diff --check`              | Pass.                                                                                                                                                                                            |
+| `pnpm plan:status`              | Pass.                                                                                                                                                                                            |
+| `pnpm plan:audit`               | Pass.                                                                                                                                                                                            |
+| `pnpm track:audit`              | Pass.                                                                                                                                                                                            |
+| `pnpm docs:verify`              | Pass.                                                                                                                                                                                            |
+| `pnpm verify-slice -- --static` | Pass after review-feedback updates. Run root: `tmp/multi-agent/verify-slice/verify-slice-20260504T111432Z-739981`; selected reviewers: `security_reviewer`, `architect_reviewer`, `qa_reviewer`. |
 
 Scope audit must stay inside `docs/plans/`; `apps/web/src/proxy.ts`, canonical routes,
 auth/tenancy code, schema files, Stripe surfaces, README, AGENTS, and architecture docs must not be
