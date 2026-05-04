@@ -30,6 +30,15 @@
         "whatsapp": "WhatsApp"
       }
     },
+    "advisory": {
+      "claimSpecific": "You already have an active support request for this claim. You can still submit a new one.",
+      "claimSpecificMeta": "Status: {status} · Submitted {date}",
+      "genericActive": "You have {count, plural, one {# active support request} other {# active support requests}}. You can still submit a new one.",
+      "status": {
+        "accepted": "accepted",
+        "open": "open"
+      }
+    },
     "faq": {
       "title": "Common Questions",
       "q1": {

@@ -45,6 +45,15 @@
         "email": "Postë elektronike",
         "whatsapp": "Uatsap"
       }
+    },
+    "advisory": {
+      "claimSpecific": "Tashmë keni një kërkesë aktive mbështetjeje për këtë rast. Mund të dërgoni ende një të re.",
+      "claimSpecificMeta": "Statusi: {status} · Dërguar më {date}",
+      "genericActive": "Keni {count, plural, one {# kërkesë aktive mbështetjeje} other {# kërkesa aktive mbështetjeje}}. Mund të dërgoni ende një të re.",
+      "status": {
+        "accepted": "e pranuar",
+        "open": "e hapur"
+      }
     }
   }
 }

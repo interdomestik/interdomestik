@@ -3,6 +3,9 @@ import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 export const SUPPORT_HANDOFF_STATUSES = ['open', 'accepted', 'closed'] as const;
 export type SupportHandoffStatus = (typeof SUPPORT_HANDOFF_STATUSES)[number];
 
+export const ACTIVE_HANDOFF_STATUSES = ['open', 'accepted'] as const;
+export type ActiveHandoffStatus = (typeof ACTIVE_HANDOFF_STATUSES)[number];
+
 export const SUPPORT_HANDOFF_URGENCIES = ['critical', 'high', 'normal', 'low'] as const;
 export type SupportHandoffUrgency = (typeof SUPPORT_HANDOFF_URGENCIES)[number];
 
@@ -50,6 +53,24 @@ export type SupportHandoffDetailFields = {
   closedAt: string | null;
   closedByName: string | null;
   closeReason: string | null;
+};
+
+export type MemberActiveHandoffAdvisory = {
+  /** Total count of open + accepted handoffs for this member. */
+  activeCount: number;
+  /** The primary handoff detail when a same-claim match exists. */
+  claimMatch: {
+    status: ActiveHandoffStatus;
+    createdAt: string;
+    updatedAt: string;
+    /** Source identifier for UI localization, not presentation copy. */
+    sourceLabel: string;
+  } | null;
+  /** Linked claim label from the matching handoff, if any. */
+  linkedClaim: {
+    label: string;
+    status: string | null;
+  } | null;
 };
 
 export type SupportHandoffQueueItemWithDetail = SupportHandoffQueueItem & {

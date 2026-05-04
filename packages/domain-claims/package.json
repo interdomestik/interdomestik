@@ -28,6 +28,7 @@
     "./staff-claims/update-status": "./src/staff-claims/update-status.ts",
     "./staff-claims/types": "./src/staff-claims/types.ts",
     "./support-handoffs": "./src/support-handoffs/index.ts",
+    "./support-handoffs/advisory": "./src/support-handoffs/advisory.ts",
     "./support-handoffs/create": "./src/support-handoffs/create.ts",
     "./support-handoffs/lifecycle": "./src/support-handoffs/lifecycle.ts",
     "./support-handoffs/queue": "./src/support-handoffs/queue.ts",
