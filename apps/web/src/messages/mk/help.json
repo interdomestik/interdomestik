@@ -46,6 +46,10 @@
         "whatsapp": "Ватсап"
       }
     },
+    "publicResponse": {
+      "title": "Ажурирање од персоналот",
+      "updatedAt": "Ажурирано {date}"
+    },
     "advisory": {
       "claimSpecific": "Веќе имате активно барање за поддршка за овој случај. Сè уште можете да испратите ново.",
       "claimSpecificMeta": "Статус: {status} · Испратено {date}",

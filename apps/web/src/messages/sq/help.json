@@ -46,6 +46,10 @@
         "whatsapp": "Uatsap"
       }
     },
+    "publicResponse": {
+      "title": "Përditësim nga stafi",
+      "updatedAt": "Përditësuar {date}"
+    },
     "advisory": {
       "claimSpecific": "Tashmë keni një kërkesë aktive mbështetjeje për këtë rast. Mund të dërgoni ende një të re.",
       "claimSpecificMeta": "Statusi: {status} · Dërguar më {date}",

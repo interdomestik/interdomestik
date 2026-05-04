@@ -1,9 +1,11 @@
 'use client';
 
 import { getSupportHandoffDetail } from '@/actions/support-handoffs/detail';
+import { updateSupportHandoffPublicResponse } from '@/actions/support-handoffs/response';
+import { MAX_PUBLIC_RESPONSE_LENGTH } from '@interdomestik/domain-claims/support-handoffs/types';
 import type {
   SupportHandoffContactPreference,
-  SupportHandoffDetailFields,
+  SupportHandoffStaffDetail,
 } from '@interdomestik/domain-claims/support-handoffs/types';
 import { Button } from '@interdomestik/ui';
 import { ChevronDown, ChevronUp, Mail, MessageSquare, Phone, Smartphone } from 'lucide-react';
@@ -26,6 +28,13 @@ type DetailLabels = Readonly<{
   lifecycleReassigned: string;
   lifecycleReason: string;
   loading: string;
+  publicResponseEmpty: string;
+  publicResponseLabel: string;
+  publicResponsePlaceholder: string;
+  publicResponseReadonly: string;
+  publicResponseSubmit: string;
+  publicResponseTitle: string;
+  publicResponseUpdate: string;
   source: string;
   sourceClaimDetail: string;
   sourceMemberHelp: string;
@@ -34,6 +43,7 @@ type DetailLabels = Readonly<{
 }>;
 
 type Props = Readonly<{
+  canRespond: boolean;
   createdAt: string;
   handoffId: string;
   labels: DetailLabels;
@@ -51,7 +61,7 @@ type TimelineStep = {
 
 type LifecycleTimelineProps = Readonly<{
   createdAt: string;
-  detail: SupportHandoffDetailFields;
+  detail: SupportHandoffStaffDetail;
   labels: DetailLabels;
   locale: string;
 }>;
@@ -164,6 +174,7 @@ function StaffHandoffLifecycleTimeline({
 }
 
 export function SupportHandoffDetailPanel({
+  canRespond,
   createdAt,
   handoffId,
   labels,
@@ -171,7 +182,7 @@ export function SupportHandoffDetailPanel({
   message,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const [detail, setDetail] = useState<SupportHandoffDetailFields | null>(null);
+  const [detail, setDetail] = useState<SupportHandoffStaffDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -264,6 +275,77 @@ export function SupportHandoffDetailPanel({
                 labels={labels}
                 locale={locale}
               />
+
+              <div
+                className="rounded-md border border-slate-200 bg-white p-3"
+                data-testid="staff-support-handoff-public-response-section"
+              >
+                <div className="text-xs font-semibold uppercase text-slate-500">
+                  {labels.publicResponseTitle}
+                </div>
+                {detail.publicResponse.publicResponse ? (
+                  <p
+                    className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800"
+                    data-testid="staff-support-handoff-public-response-existing"
+                  >
+                    {detail.publicResponse.publicResponse}
+                  </p>
+                ) : (
+                  <p
+                    className="mt-2 text-sm text-muted-foreground"
+                    data-testid="staff-support-handoff-public-response-empty"
+                  >
+                    {labels.publicResponseEmpty}
+                  </p>
+                )}
+
+                {canRespond ? (
+                  <form
+                    action={updateSupportHandoffPublicResponse}
+                    className="mt-3 space-y-3"
+                    data-testid="staff-support-handoff-public-response-form"
+                  >
+                    <input type="hidden" name="handoffId" value={handoffId} />
+                    <input
+                      type="hidden"
+                      name="expectedVersion"
+                      value={detail.publicResponse.publicResponseVersion}
+                    />
+                    <label
+                      htmlFor={`public-response-${handoffId}`}
+                      className="block text-xs font-medium text-slate-700"
+                    >
+                      {labels.publicResponseLabel}
+                    </label>
+                    <textarea
+                      id={`public-response-${handoffId}`}
+                      name="publicResponse"
+                      required
+                      maxLength={MAX_PUBLIC_RESPONSE_LENGTH}
+                      defaultValue={detail.publicResponse.publicResponse ?? ''}
+                      placeholder={labels.publicResponsePlaceholder}
+                      className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm leading-6"
+                      data-testid="staff-support-handoff-public-response-input"
+                    />
+                    <Button
+                      type="submit"
+                      size="sm"
+                      data-testid="staff-support-handoff-public-response-submit"
+                    >
+                      {detail.publicResponse.publicResponse
+                        ? labels.publicResponseUpdate
+                        : labels.publicResponseSubmit}
+                    </Button>
+                  </form>
+                ) : (
+                  <p
+                    className="mt-3 text-xs text-muted-foreground"
+                    data-testid="staff-support-handoff-public-response-readonly"
+                  >
+                    {labels.publicResponseReadonly}
+                  </p>
+                )}
+              </div>
             </div>
           ) : null}
         </div>

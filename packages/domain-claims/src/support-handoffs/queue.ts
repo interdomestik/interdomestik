@@ -17,9 +17,9 @@ import { aliasedTable, isNotNull, isNull, type SQL } from 'drizzle-orm';
 
 import type {
   SupportHandoffContactPreference,
-  SupportHandoffDetailFields,
   SupportHandoffQueueAssignmentFilter,
   SupportHandoffQueueItem,
+  SupportHandoffStaffDetail,
   SupportHandoffStatus,
   SupportHandoffTrustRisk,
   SupportHandoffUrgency,
@@ -155,6 +155,7 @@ export async function getStaffSupportHandoffQueue(params: {
       urgency: supportHandoffs.urgency,
       trustRisk: supportHandoffs.trustRisk,
       lifecycleVersion: supportHandoffs.lifecycleVersion,
+      publicResponseAt: supportHandoffs.publicResponseAt,
       createdAt: supportHandoffs.createdAt,
       updatedAt: supportHandoffs.updatedAt,
       staffId: supportHandoffs.staffId,
@@ -228,6 +229,7 @@ export async function getStaffSupportHandoffQueue(params: {
     urgency: row.urgency as SupportHandoffUrgency,
     trustRisk: row.trustRisk as SupportHandoffTrustRisk,
     lifecycleVersion: row.lifecycleVersion,
+    publicResponseAt: normalizeNullableDate(row.publicResponseAt),
     createdAt: normalizeDate(row.createdAt),
     updatedAt: normalizeDate(row.updatedAt),
     staffId: row.staffId ?? null,
@@ -261,7 +263,7 @@ export async function getStaffSupportHandoffDetail(params: {
   staffId: string;
   tenantId: string;
   viewerRole?: string | null;
-}): Promise<SupportHandoffDetailFields | null> {
+}): Promise<SupportHandoffStaffDetail | null> {
   const acceptedByUser = aliasedTable(user, 'support_handoff_accepted_by');
   const reassignedByUser = aliasedTable(user, 'support_handoff_reassigned_by');
   const closedByUser = aliasedTable(user, 'support_handoff_closed_by');
@@ -291,6 +293,9 @@ export async function getStaffSupportHandoffDetail(params: {
       closedAt: supportHandoffs.closedAt,
       closedByName: closedByUser.name,
       closeReason: supportHandoffs.closeReason,
+      publicResponse: supportHandoffs.publicResponse,
+      publicResponseAt: supportHandoffs.publicResponseAt,
+      publicResponseVersion: supportHandoffs.publicResponseVersion,
     })
     .from(supportHandoffs)
     .leftJoin(
@@ -333,5 +338,10 @@ export async function getStaffSupportHandoffDetail(params: {
     closedAt: normalizeNullableDate(row.closedAt),
     closedByName: row.closedByName ?? null,
     closeReason: row.closeReason ?? null,
+    publicResponse: {
+      publicResponse: row.publicResponse ?? null,
+      publicResponseAt: normalizeNullableDate(row.publicResponseAt),
+      publicResponseVersion: row.publicResponseVersion ?? 0,
+    },
   };
 }

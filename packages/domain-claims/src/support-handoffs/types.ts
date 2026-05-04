@@ -24,6 +24,8 @@ export type SupportHandoffActionResult<T = void> =
 export type SupportHandoffSession = ClaimsSession;
 export type SupportHandoffDeps = Pick<ClaimsDeps, 'logAuditEvent'>;
 
+export const MAX_PUBLIC_RESPONSE_LENGTH = 1_000;
+
 export type CreateSupportHandoffInput = {
   subject: string;
   message: string;
@@ -36,6 +38,12 @@ export type CreateSupportHandoffInput = {
 export type SupportHandoffLifecycleInput = {
   handoffId: string;
   expectedVersion?: number;
+};
+
+export type UpdateSupportHandoffPublicResponseInput = {
+  handoffId: string;
+  expectedVersion?: number;
+  response: string;
 };
 
 export type SupportHandoffQueueAssignmentFilter = 'all' | 'mine' | 'unassigned';
@@ -53,6 +61,16 @@ export type SupportHandoffDetailFields = {
   closedAt: string | null;
   closedByName: string | null;
   closeReason: string | null;
+};
+
+export type StaffPublicResponseFields = {
+  publicResponse: string | null;
+  publicResponseAt: string | null;
+  publicResponseVersion: number;
+};
+
+export type SupportHandoffStaffDetail = SupportHandoffDetailFields & {
+  publicResponse: StaffPublicResponseFields;
 };
 
 export type MemberActiveHandoffAdvisory = {
@@ -73,8 +91,15 @@ export type MemberActiveHandoffAdvisory = {
   } | null;
 };
 
+export type MemberSupportHandoffPublicResponse = {
+  /** The latest staff-authored response text, or null if none sent. */
+  publicResponse: string | null;
+  /** ISO timestamp of when the response was last sent or updated. */
+  publicResponseAt: string | null;
+};
+
 export type SupportHandoffQueueItemWithDetail = SupportHandoffQueueItem & {
-  detail: SupportHandoffDetailFields;
+  detail: SupportHandoffStaffDetail;
 };
 
 export type SupportHandoffQueueItem = {
@@ -85,6 +110,7 @@ export type SupportHandoffQueueItem = {
   urgency: SupportHandoffUrgency;
   trustRisk: SupportHandoffTrustRisk;
   lifecycleVersion: number;
+  publicResponseAt: string | null;
   createdAt: string;
   updatedAt: string;
   staffId: string | null;

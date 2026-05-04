@@ -17,6 +17,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 
 import { AdvisoryBanner } from './_advisory-banner';
+import { PublicResponseBanner } from './_public-response-banner';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
@@ -198,11 +199,18 @@ export default async function HelpPage({ params, searchParams }: Props) {
               </div>
             ) : null}
             {session.user.tenantId && session.user.id ? (
-              <AdvisoryBanner
-                memberId={session.user.id}
-                selectedClaim={selectedClaim}
-                tenantId={session.user.tenantId}
-              />
+              <>
+                <PublicResponseBanner
+                  memberId={session.user.id}
+                  selectedClaim={selectedClaim}
+                  tenantId={session.user.tenantId}
+                />
+                <AdvisoryBanner
+                  memberId={session.user.id}
+                  selectedClaim={selectedClaim}
+                  tenantId={session.user.tenantId}
+                />
+              </>
             ) : null}
             <form
               action={createMemberSupportHandoff}

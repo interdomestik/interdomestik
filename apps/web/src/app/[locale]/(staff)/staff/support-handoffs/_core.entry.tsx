@@ -18,6 +18,7 @@ import type {
   SupportHandoffUrgency,
 } from '@interdomestik/domain-claims/support-handoffs/types';
 import { Button } from '@interdomestik/ui';
+import { MessageSquareText } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
@@ -281,6 +282,13 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
     lifecycleReassigned: t('detail.lifecycle_reassigned'),
     lifecycleReason: t('detail.lifecycle_reason'),
     loading: t('detail.loading'),
+    publicResponseEmpty: t('detail.public_response_empty'),
+    publicResponseLabel: t('detail.public_response_label'),
+    publicResponsePlaceholder: t('detail.public_response_placeholder'),
+    publicResponseReadonly: t('detail.public_response_readonly'),
+    publicResponseSubmit: t('detail.public_response_submit'),
+    publicResponseTitle: t('detail.public_response_title'),
+    publicResponseUpdate: t('detail.public_response_update'),
     source: t('detail.source'),
     sourceClaimDetail: t('detail.source_claim_detail'),
     sourceMemberHelp: t('detail.source_member_help'),
@@ -404,6 +412,15 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
                 <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                   {handoff.message}
                 </div>
+                {handoff.publicResponseAt ? (
+                  <div
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-900"
+                    data-testid="staff-support-handoff-public-response-badge"
+                  >
+                    <MessageSquareText className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>{t('table.public_response_sent')}</span>
+                  </div>
+                ) : null}
                 {handoff.claim ? (
                   <Button asChild variant="link" size="sm" className="h-auto px-0 py-1 text-xs">
                     <Link
@@ -542,6 +559,11 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
                 ) : null}
               </div>
               <SupportHandoffDetailPanel
+                canRespond={
+                  staffSession.user.role === 'staff' &&
+                  handoff.status === 'accepted' &&
+                  handoff.staffId === staffSession.user.id
+                }
                 createdAt={handoff.createdAt}
                 handoffId={handoff.id}
                 labels={detailLabels}

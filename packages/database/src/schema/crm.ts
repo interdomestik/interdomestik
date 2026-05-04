@@ -1,4 +1,5 @@
-import { index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { check, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
 import { claims } from './claims';
@@ -136,6 +137,10 @@ export const supportHandoffs = pgTable(
     closedById: text('closed_by_id').references(() => user.id),
     closeReason: text('close_reason'),
     lifecycleVersion: integer('lifecycle_version').notNull().default(0),
+    publicResponse: text('public_response'),
+    publicResponseAt: timestamp('public_response_at'),
+    publicResponseById: text('public_response_by_id').references(() => user.id),
+    publicResponseVersion: integer('public_response_version').notNull().default(0),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -165,6 +170,10 @@ export const supportHandoffs = pgTable(
       table.tenantId,
       table.memberId,
       table.createdAt
+    ),
+    check(
+      'support_handoffs_public_response_length_check',
+      sql`${table.publicResponse} is null or char_length(${table.publicResponse}) <= 1000`
     ),
   ]
 );

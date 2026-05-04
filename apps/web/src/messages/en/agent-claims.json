@@ -103,6 +103,7 @@
           "no_branch": "No branch",
           "no_plan": "No plan",
           "no_agent": "No agent",
+          "public_response_sent": "Staff update sent",
           "unassigned": "Unassigned"
         },
         "actions": {
@@ -134,7 +135,14 @@
           "lifecycle_reassigned": "Reassigned",
           "lifecycle_closed": "Closed",
           "lifecycle_pending": "Pending",
-          "lifecycle_reason": "Reason"
+          "lifecycle_reason": "Reason",
+          "public_response_title": "Staff update to member",
+          "public_response_empty": "No staff update has been sent to the member yet.",
+          "public_response_label": "Public response",
+          "public_response_placeholder": "Write a concise update the member can see...",
+          "public_response_readonly": "Only the assigned staff owner can send or update the member-visible response.",
+          "public_response_submit": "Send response",
+          "public_response_update": "Update response"
         }
       },
       "queue": "Claims Queue",
