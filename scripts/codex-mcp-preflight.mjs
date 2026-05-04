@@ -8,6 +8,20 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '..');
 const requiredCodexServers = ['openai_docs', 'context7', 'playwright', 'interdomestik_qa'];
+const requiredRepoQaTools = [
+  'project_map',
+  'read_files',
+  'read_file_range',
+  'code_search',
+  'git_status_compact',
+  'git_branch_info',
+  'changed_files',
+  'scope_audit',
+  'check_health',
+  'pr_verify',
+  'security_guard',
+  'e2e_gate',
+];
 
 function fail(message, details) {
   console.error(`Codex MCP preflight failed: ${message}`);
@@ -100,6 +114,15 @@ async function readCodexMcpServers() {
   }
 }
 
+async function readCodexMcpServer(serverName) {
+  try {
+    const { stdout } = await runProcess('codex', ['mcp', 'get', serverName, '--json']);
+    return JSON.parse(stdout);
+  } catch (error) {
+    fail(`codex mcp get ${serverName} --json failed.`, formatError(error));
+  }
+}
+
 function verifyConfigToml() {
   const configPath = path.join(rootDir, '.codex/config.toml');
   if (!fs.existsSync(configPath)) {
@@ -116,9 +139,25 @@ function verifyConfigToml() {
   if (!configToml.includes('args = ["scripts/start-repo-qa.sh"]')) {
     fail('interdomestik_qa must launch through scripts/start-repo-qa.sh');
   }
+
+  if (!configToml.includes('cwd = "."')) {
+    fail('project interdomestik_qa config must keep portable cwd = "."');
+  }
+
+  if (configToml.includes(`cwd = "${rootDir}"`)) {
+    fail(
+      'project interdomestik_qa config must not hard-code this machine path; run pnpm mcp:setup to generate the local user config instead.'
+    );
+  }
+
+  for (const toolName of requiredRepoQaTools) {
+    if (!configToml.includes(`"${toolName}"`)) {
+      fail(`interdomestik_qa enabled_tools must include ${toolName}`);
+    }
+  }
 }
 
-function verifyCodexCliServers(servers) {
+function verifyCodexCliServers(servers, qaServerDetails) {
   if (!Array.isArray(servers)) {
     fail('Codex MCP server list must be an array.', JSON.stringify(servers, null, 2));
   }
@@ -142,11 +181,38 @@ function verifyCodexCliServers(servers) {
   if (qaServer.transport?.command !== '/bin/bash') {
     fail('interdomestik_qa must launch with /bin/bash.', JSON.stringify(qaServer, null, 2));
   }
-  if (!qaServer.transport?.args?.includes('scripts/start-repo-qa.sh')) {
+  const qaArgs = qaServer.transport?.args ?? [];
+  const expectedRelativeLauncher = 'scripts/start-repo-qa.sh';
+  const expectedAbsoluteLauncher = path.join(rootDir, expectedRelativeLauncher);
+  if (!qaArgs.includes(expectedRelativeLauncher) && !qaArgs.includes(expectedAbsoluteLauncher)) {
     fail(
       'interdomestik_qa must use scripts/start-repo-qa.sh in Codex MCP registration.',
       JSON.stringify(qaServer, null, 2)
     );
+  }
+
+  const qaCwd = qaServer.transport?.cwd;
+  if (qaCwd !== '.' && qaCwd !== rootDir) {
+    fail(
+      `interdomestik_qa cwd must be portable "." or this repo root: ${rootDir}`,
+      JSON.stringify(qaServer, null, 2)
+    );
+  }
+
+  if (!Array.isArray(qaServerDetails.enabled_tools)) {
+    fail(
+      'interdomestik_qa must expose an enabled_tools allowlist.',
+      JSON.stringify(qaServerDetails, null, 2)
+    );
+  }
+
+  for (const toolName of requiredRepoQaTools) {
+    if (!qaServerDetails.enabled_tools.includes(toolName)) {
+      fail(
+        `interdomestik_qa enabled_tools must include ${toolName}.`,
+        JSON.stringify(qaServerDetails, null, 2)
+      );
+    }
   }
 }
 
@@ -167,7 +233,8 @@ async function verifyRepoQaLiveTools() {
 async function main() {
   verifyConfigToml();
   const codexServers = await readCodexMcpServers();
-  verifyCodexCliServers(codexServers);
+  const repoQaServer = await readCodexMcpServer('interdomestik_qa');
+  verifyCodexCliServers(codexServers, repoQaServer);
   await verifyRepoQaLiveTools();
 
   console.log('Codex MCP preflight passed.');

@@ -32,6 +32,16 @@ test('project-scoped Codex config registers the repo MCP servers Interdomestik d
   assert.match(configToml, new RegExp(`${interdomestikEvidenceRoot}/playwright-mcp-output`));
   assert.match(configToml, /command = "\/bin\/bash"/);
   assert.match(configToml, /scripts\/start-repo-qa\.sh/);
+  assert.match(configToml, /cwd = "\."/);
+  assert.match(configToml, /enabled_tools = \[/);
+  assert.match(configToml, /project_map/);
+  assert.match(configToml, /read_file_range/);
+  assert.match(configToml, /git_status_compact/);
+  assert.match(configToml, /security_guard/);
+  assert.doesNotMatch(
+    configToml,
+    new RegExp(`cwd = "${rootDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`)
+  );
   assert.doesNotMatch(configToml, /packages\/qa\/src\/index\.ts/);
   assert.doesNotMatch(configToml, /packages\/qa\/dist\/index\.js/);
 });
@@ -46,11 +56,28 @@ test('mcp setup verifies Codex project config as well as local QA server prerequ
   assert.match(setupScript, /playwright/);
   assert.match(setupScript, /interdomestik_qa/);
   assert.match(setupScript, /scripts\/start-repo-qa\.sh/);
+  assert.match(setupScript, /mcp:local-config/);
   assert.match(setupScript, /tools\/list/);
+  assert.equal(
+    packageJson.scripts['mcp:local-config'],
+    'node scripts/configure-codex-local-mcp.mjs'
+  );
   assert.equal(packageJson.scripts['mcp:preflight'], 'node scripts/codex-mcp-preflight.mjs');
   assert.match(setupScript, /command -v codex/);
   assert.match(setupScript, /\bpnpm mcp:preflight\b/);
-  assert.match(setupScript, /Skipping Codex MCP preflight/);
+  assert.match(setupScript, /Skipping Codex local config and preflight/);
+});
+
+test('Codex local MCP generator writes machine-specific user config without changing project config', () => {
+  const localConfigGenerator = readText('scripts/configure-codex-local-mcp.mjs');
+
+  assert.match(localConfigGenerator, /CODEX_HOME/);
+  assert.match(localConfigGenerator, /config\.toml/);
+  assert.match(localConfigGenerator, /mcp_servers\.\$\{serverName\}/);
+  assert.match(localConfigGenerator, /scripts\/start-repo-qa\.sh/);
+  assert.match(localConfigGenerator, /cwd = \$\{tomlString\(rootDir\)\}/);
+  assert.match(localConfigGenerator, /enabled_tools = \[/);
+  assert.match(localConfigGenerator, /replaceTomlTable/);
 });
 
 test('Codex MCP preflight checks CLI registration and live repo QA tool discovery', () => {
@@ -61,10 +88,14 @@ test('Codex MCP preflight checks CLI registration and live repo QA tool discover
   assert.match(preflight, /mcp/);
   assert.match(preflight, /list/);
   assert.match(preflight, /--json/);
+  assert.match(preflight, /mcp', 'get', serverName, '--json/);
   assert.match(preflight, /Array\.isArray\(servers\)/);
   assert.match(preflight, /typeof server\.name !== 'string'/);
   assert.match(preflight, /interdomestik_qa/);
   assert.match(preflight, /scripts\/start-repo-qa\.sh/);
+  assert.match(preflight, /enabled_tools/);
+  assert.match(preflight, /cwd = "\."/);
+  assert.match(preflight, /must not hard-code this machine path/);
   assert.match(preflight, /qa-mcp-discovery-contracts\.test\.mjs/);
   assert.match(discoveryContract, /tools\/list/);
   assert.match(discoveryContract, /project_map/);
