@@ -1,4 +1,5 @@
 import { claims, db, eq, supportHandoffs } from '@interdomestik/database';
+import type { Page, TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
@@ -6,6 +7,26 @@ import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
 
 async function cleanupHandoffBySubject(subject: string): Promise<void> {
   await db.delete(supportHandoffs).where(eq(supportHandoffs.subject, subject));
+}
+
+async function submitMemberHelpHandoff(args: {
+  memberPage: Page;
+  message: string;
+  subject: string;
+  testInfo: TestInfo;
+}) {
+  await gotoApp(args.memberPage, routes.memberHelp(args.testInfo), args.testInfo, {
+    marker: 'member-page-ready',
+  });
+  await expect(args.memberPage.getByTestId('member-support-handoff-form')).toBeVisible();
+
+  await args.memberPage.getByTestId('member-support-handoff-subject').fill(args.subject);
+  await args.memberPage.getByTestId('member-support-handoff-message').fill(args.message);
+  await args.memberPage.getByTestId('member-support-handoff-submit').click();
+
+  await expect(args.memberPage).toHaveURL(/\/member\/help\?support=created$/, {
+    timeout: 15000,
+  });
 }
 
 test.describe('CRM01 staff support handoff receiving queue', () => {
@@ -18,19 +39,11 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
     await cleanupHandoffBySubject(subject);
 
     try {
-      await gotoApp(memberPage, routes.memberHelp(testInfo), testInfo, {
-        marker: 'member-page-ready',
-      });
-      await expect(memberPage.getByTestId('member-support-handoff-form')).toBeVisible();
-
-      await memberPage.getByTestId('member-support-handoff-subject').fill(subject);
-      await memberPage
-        .getByTestId('member-support-handoff-message')
-        .fill('Please route this support handoff to the staff receiving queue.');
-      await memberPage.getByTestId('member-support-handoff-submit').click();
-
-      await expect(memberPage).toHaveURL(/\/member\/help\?support=created$/, {
-        timeout: 15000,
+      await submitMemberHelpHandoff({
+        memberPage,
+        message: 'Please route this support handoff to the staff receiving queue.',
+        subject,
+        testInfo,
       });
       await expect(memberPage.getByTestId('member-support-handoff-created')).toBeVisible();
 
@@ -246,6 +259,199 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
     } finally {
       await cleanupHandoffBySubject(subject);
       await cleanupHandoffBySubject(secondSubject);
+    }
+  });
+
+  test('staff can send a public response that is visible to the member until close', async ({
+    authenticatedPage: memberPage,
+    branchManagerPage,
+    staffPage,
+  }, testInfo) => {
+    const subject = `E2E CRM06 public response ${testInfo.project.name} ${Date.now()}`;
+    const firstResponse = `CRM06 member-visible update ${Date.now()}`;
+    const updatedResponse = `${firstResponse} updated`;
+
+    await cleanupHandoffBySubject(subject);
+
+    try {
+      await submitMemberHelpHandoff({
+        memberPage,
+        message: 'Public response E2E handoff with enough detail for staff follow-up.',
+        subject,
+        testInfo,
+      });
+
+      await gotoApp(
+        staffPage,
+        `${routes.staffSupportHandoffs(testInfo)}?search=${encodeURIComponent(subject)}`,
+        testInfo,
+        { marker: 'staff-page-ready' }
+      );
+      const row = staffPage.getByTestId('staff-support-handoffs-row').filter({ hasText: subject });
+      await expect(row).toBeVisible({ timeout: 15000 });
+      await row.getByTestId('staff-support-handoff-accept').click();
+
+      await expect
+        .poll(
+          async () => {
+            const handoff = await db.query.supportHandoffs.findFirst({
+              where: eq(supportHandoffs.subject, subject),
+              columns: { status: true },
+            });
+
+            return handoff?.status ?? null;
+          },
+          { timeout: 15000, intervals: [250, 500, 1000] }
+        )
+        .toBe('accepted');
+
+      await gotoApp(
+        staffPage,
+        `${routes.staffSupportHandoffs(testInfo)}?status=accepted&search=${encodeURIComponent(subject)}`,
+        testInfo,
+        { marker: 'staff-page-ready' }
+      );
+      const acceptedRow = staffPage
+        .getByTestId('staff-support-handoffs-row')
+        .filter({ hasText: subject });
+      await acceptedRow.getByTestId('staff-support-handoff-detail-toggle').click();
+      await expect(
+        acceptedRow.getByTestId('staff-support-handoff-public-response-form')
+      ).toBeVisible({ timeout: 15000 });
+      await acceptedRow
+        .getByTestId('staff-support-handoff-public-response-input')
+        .fill(firstResponse);
+      await acceptedRow.getByTestId('staff-support-handoff-public-response-submit').click();
+
+      await expect
+        .poll(
+          async () => {
+            const handoff = await db.query.supportHandoffs.findFirst({
+              where: eq(supportHandoffs.subject, subject),
+              columns: {
+                publicResponse: true,
+                publicResponseAt: true,
+                publicResponseVersion: true,
+                status: true,
+              },
+            });
+
+            return handoff?.publicResponse === firstResponse && handoff.publicResponseAt
+              ? handoff.publicResponseVersion
+              : null;
+          },
+          { timeout: 15000, intervals: [250, 500, 1000] }
+        )
+        .toBe(1);
+
+      await gotoApp(memberPage, routes.memberHelp(testInfo), testInfo, {
+        marker: 'member-page-ready',
+      });
+      await expect(memberPage.getByTestId('member-support-handoff-public-response')).toContainText(
+        firstResponse,
+        { timeout: 15000 }
+      );
+
+      await gotoApp(
+        staffPage,
+        `${routes.staffSupportHandoffs(testInfo)}?status=accepted&search=${encodeURIComponent(subject)}`,
+        testInfo,
+        { marker: 'staff-page-ready' }
+      );
+      const updateRow = staffPage
+        .getByTestId('staff-support-handoffs-row')
+        .filter({ hasText: subject });
+      await expect(
+        updateRow.getByTestId('staff-support-handoff-public-response-badge')
+      ).toBeVisible({
+        timeout: 15000,
+      });
+      await updateRow.getByTestId('staff-support-handoff-detail-toggle').click();
+      await expect(
+        updateRow.getByTestId('staff-support-handoff-public-response-input')
+      ).toHaveValue(firstResponse, { timeout: 15000 });
+      await updateRow
+        .getByTestId('staff-support-handoff-public-response-input')
+        .fill(updatedResponse);
+      await updateRow.getByTestId('staff-support-handoff-public-response-submit').click();
+
+      await expect
+        .poll(
+          async () => {
+            const handoff = await db.query.supportHandoffs.findFirst({
+              where: eq(supportHandoffs.subject, subject),
+              columns: { publicResponse: true, publicResponseVersion: true },
+            });
+
+            return handoff?.publicResponse === updatedResponse
+              ? handoff.publicResponseVersion
+              : null;
+          },
+          { timeout: 15000, intervals: [250, 500, 1000] }
+        )
+        .toBe(2);
+
+      await gotoApp(memberPage, routes.memberHelp(testInfo), testInfo, {
+        marker: 'member-page-ready',
+      });
+      await expect(memberPage.getByTestId('member-support-handoff-public-response')).toContainText(
+        updatedResponse,
+        { timeout: 15000 }
+      );
+
+      await gotoApp(
+        branchManagerPage,
+        `${routes.staffSupportHandoffs(testInfo)}?status=accepted&search=${encodeURIComponent(subject)}`,
+        testInfo,
+        { marker: 'staff-page-ready' }
+      );
+      const managerRow = branchManagerPage
+        .getByTestId('staff-support-handoffs-row')
+        .filter({ hasText: subject });
+      await expect(managerRow).toBeVisible({ timeout: 15000 });
+      await managerRow.getByTestId('staff-support-handoff-detail-toggle').click();
+      await expect(
+        managerRow.getByTestId('staff-support-handoff-public-response-existing')
+      ).toContainText(updatedResponse, { timeout: 15000 });
+      await expect(
+        managerRow.getByTestId('staff-support-handoff-public-response-form')
+      ).toHaveCount(0);
+      await expect(
+        managerRow.getByTestId('staff-support-handoff-public-response-readonly')
+      ).toBeVisible();
+
+      await gotoApp(
+        staffPage,
+        `${routes.staffSupportHandoffs(testInfo)}?status=accepted&search=${encodeURIComponent(subject)}`,
+        testInfo,
+        { marker: 'staff-page-ready' }
+      );
+      const closeRow = staffPage
+        .getByTestId('staff-support-handoffs-row')
+        .filter({ hasText: subject });
+      await closeRow.getByTestId('staff-support-handoff-close-reason').fill('Resolved in E2E');
+      await closeRow.getByTestId('staff-support-handoff-close').click();
+
+      await expect
+        .poll(
+          async () => {
+            const handoff = await db.query.supportHandoffs.findFirst({
+              where: eq(supportHandoffs.subject, subject),
+              columns: { status: true },
+            });
+
+            return handoff?.status ?? null;
+          },
+          { timeout: 15000, intervals: [250, 500, 1000] }
+        )
+        .toBe('closed');
+
+      await gotoApp(memberPage, routes.memberHelp(testInfo), testInfo, {
+        marker: 'member-page-ready',
+      });
+      await expect(memberPage.getByTestId('member-support-handoff-public-response')).toHaveCount(0);
+    } finally {
+      await cleanupHandoffBySubject(subject);
     }
   });
 });

@@ -324,6 +324,7 @@
           "no_branch": "Pa degë",
           "no_plan": "Pa plan",
           "no_agent": "Pa agjent",
+          "public_response_sent": "Përditësim nga stafi u dërgua",
           "unassigned": "E pacaktuar"
         },
         "actions": {
@@ -355,7 +356,14 @@
           "lifecycle_reassigned": "Ricaktuar",
           "lifecycle_closed": "Mbyllur",
           "lifecycle_pending": "Në pritje",
-          "lifecycle_reason": "Arsyeja"
+          "lifecycle_reason": "Arsyeja",
+          "public_response_title": "Përditësim nga stafi për anëtarin",
+          "public_response_empty": "Ende nuk është dërguar asnjë përditësim nga stafi për anëtarin.",
+          "public_response_label": "Përgjigje publike",
+          "public_response_placeholder": "Shkruani një përditësim të shkurtër që anëtari mund ta shohë...",
+          "public_response_readonly": "Vetëm stafi përgjegjës i caktuar mund të dërgojë ose përditësojë përgjigjen e dukshme për anëtarin.",
+          "public_response_submit": "Dërgo përgjigjen",
+          "public_response_update": "Përditëso përgjigjen"
         }
       }
     }

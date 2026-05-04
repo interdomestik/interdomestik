@@ -324,6 +324,7 @@
           "no_branch": "Нема филијала",
           "no_plan": "Нема план",
           "no_agent": "Нема агент",
+          "public_response_sent": "Ажурирање од персоналот е испратено",
           "unassigned": "Недоделено"
         },
         "actions": {
@@ -355,7 +356,14 @@
           "lifecycle_reassigned": "Прераспределено",
           "lifecycle_closed": "Затворено",
           "lifecycle_pending": "Во тек",
-          "lifecycle_reason": "Причина"
+          "lifecycle_reason": "Причина",
+          "public_response_title": "Ажурирање од персоналот за членот",
+          "public_response_empty": "Сè уште не е испратено ажурирање од персоналот до членот.",
+          "public_response_label": "Јавен одговор",
+          "public_response_placeholder": "Напишете кратко ажурирање што членот може да го види...",
+          "public_response_readonly": "Само доделениот одговорен член на персоналот може да испрати или ажурира одговор видлив за членот.",
+          "public_response_submit": "Испрати одговор",
+          "public_response_update": "Ажурирај одговор"
         }
       }
     }

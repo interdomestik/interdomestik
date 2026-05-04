@@ -46,6 +46,10 @@
         "whatsapp": "Vatsap"
       }
     },
+    "publicResponse": {
+      "title": "Ažuriranje osoblja",
+      "updatedAt": "Ažurirano {date}"
+    },
     "advisory": {
       "claimSpecific": "Već imate aktivan zahtev za podršku za ovaj predmet. I dalje možete poslati novi.",
       "claimSpecificMeta": "Stanje: {status} · Poslato {date}",

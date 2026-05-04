@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   reassignSupportHandoff: vi.fn(),
   requireSessionOrRedirect: vi.fn(session => session),
   setRequestLocale: vi.fn(),
+  updateSupportHandoffPublicResponse: vi.fn(),
 }));
 
 vi.mock('@/actions/support-handoffs/lifecycle', () => ({
@@ -26,6 +27,10 @@ vi.mock('@/actions/support-handoffs/lifecycle', () => ({
 
 vi.mock('@/actions/support-handoffs/detail', () => ({
   getSupportHandoffDetail: mocks.getSupportHandoffDetail,
+}));
+
+vi.mock('@/actions/support-handoffs/response', () => ({
+  updateSupportHandoffPublicResponse: mocks.updateSupportHandoffPublicResponse,
 }));
 
 vi.mock('@/components/shell/session', () => ({
@@ -108,6 +113,7 @@ const queueItem = {
     name: 'Member One',
   },
   message: 'The member needs staff support.',
+  publicResponseAt: null,
   relationship: {
     agentName: 'Agent One',
     branchName: 'Prishtina',
@@ -155,6 +161,11 @@ describe('StaffSupportHandoffsPage', () => {
       closedByName: null,
       closeReason: null,
       contactPreference: 'phone',
+      publicResponse: {
+        publicResponse: null,
+        publicResponseAt: null,
+        publicResponseVersion: 0,
+      },
       reassignedAt: null,
       reassignedByName: null,
       reassignReason: null,
@@ -165,6 +176,7 @@ describe('StaffSupportHandoffsPage', () => {
       { email: 'staff@example.com', id: 'staff-1', name: 'Staff One', role: 'staff' },
       { email: 'staff2@example.com', id: 'staff-2', name: 'Staff Two', role: 'staff' },
     ]);
+    mocks.updateSupportHandoffPublicResponse.mockResolvedValue(undefined);
   });
 
   it('renders the staff receiving queue with optimistic accept controls', async () => {
@@ -209,6 +221,11 @@ describe('StaffSupportHandoffsPage', () => {
       closedByName: null,
       closeReason: null,
       contactPreference: 'staff_reply',
+      publicResponse: {
+        publicResponse: null,
+        publicResponseAt: null,
+        publicResponseVersion: 0,
+      },
       reassignedAt: null,
       reassignedByName: null,
       reassignReason: null,
@@ -238,6 +255,124 @@ describe('StaffSupportHandoffsPage', () => {
 
     expect(screen.getByTestId('staff-support-handoff-reassign-form')).toBeVisible();
     expect(screen.getByTestId('staff-support-handoff-close-form')).toBeVisible();
+  });
+
+  it('shows a public response badge when a member-visible update exists', async () => {
+    mocks.getQueue.mockResolvedValueOnce([
+      {
+        ...queueItem,
+        publicResponseAt: '2026-05-04T11:00:00.000Z',
+      },
+    ]);
+
+    await renderPage();
+
+    expect(screen.getByTestId('staff-support-handoff-public-response-badge')).toHaveTextContent(
+      'table.public_response_sent'
+    );
+  });
+
+  it('renders the public response form for the assigned staff owner on accepted handoffs', async () => {
+    mocks.getQueue.mockResolvedValueOnce([
+      {
+        ...queueItem,
+        staffId: 'staff-1',
+        staffName: 'Staff One',
+        status: 'accepted',
+      },
+    ]);
+    mocks.getSupportHandoffDetail.mockResolvedValueOnce({
+      acceptedAt: '2026-05-04T08:30:00.000Z',
+      acceptedByName: 'Staff One',
+      closedAt: null,
+      closedByName: null,
+      closeReason: null,
+      contactPreference: 'phone',
+      publicResponse: {
+        publicResponse: 'Existing member-visible update',
+        publicResponseAt: '2026-05-04T11:00:00.000Z',
+        publicResponseVersion: 3,
+      },
+      reassignedAt: null,
+      reassignedByName: null,
+      reassignReason: null,
+      source: 'member_help',
+    });
+
+    await renderPage();
+    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+
+    expect(await screen.findByTestId('staff-support-handoff-public-response-form')).toBeVisible();
+    expect(screen.getByTestId('staff-support-handoff-public-response-input')).toHaveValue(
+      'Existing member-visible update'
+    );
+    expect(screen.getByDisplayValue('3')).toHaveAttribute('name', 'expectedVersion');
+    expect(screen.getByTestId('staff-support-handoff-public-response-submit')).toHaveTextContent(
+      'detail.public_response_update'
+    );
+  });
+
+  it('refreshes public response detail after the assigned staff owner submits an update', async () => {
+    mocks.getQueue.mockResolvedValueOnce([
+      {
+        ...queueItem,
+        staffId: 'staff-1',
+        staffName: 'Staff One',
+        status: 'accepted',
+      },
+    ]);
+    mocks.getSupportHandoffDetail
+      .mockResolvedValueOnce({
+        acceptedAt: '2026-05-04T08:30:00.000Z',
+        acceptedByName: 'Staff One',
+        closedAt: null,
+        closedByName: null,
+        closeReason: null,
+        contactPreference: 'phone',
+        publicResponse: {
+          publicResponse: 'Existing member-visible update',
+          publicResponseAt: '2026-05-04T11:00:00.000Z',
+          publicResponseVersion: 3,
+        },
+        reassignedAt: null,
+        reassignedByName: null,
+        reassignReason: null,
+        source: 'member_help',
+      })
+      .mockResolvedValueOnce({
+        acceptedAt: '2026-05-04T08:30:00.000Z',
+        acceptedByName: 'Staff One',
+        closedAt: null,
+        closedByName: null,
+        closeReason: null,
+        contactPreference: 'phone',
+        publicResponse: {
+          publicResponse: 'Updated member-visible response',
+          publicResponseAt: '2026-05-04T12:00:00.000Z',
+          publicResponseVersion: 4,
+        },
+        reassignedAt: null,
+        reassignedByName: null,
+        reassignReason: null,
+        source: 'member_help',
+      });
+
+    await renderPage();
+    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+
+    const input = await screen.findByTestId('staff-support-handoff-public-response-input');
+    fireEvent.change(input, { target: { value: 'Updated member-visible response' } });
+    fireEvent.submit(screen.getByTestId('staff-support-handoff-public-response-form'));
+
+    await waitFor(() => {
+      expect(mocks.updateSupportHandoffPublicResponse).toHaveBeenCalled();
+      expect(mocks.getSupportHandoffDetail).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.getByTestId('staff-support-handoff-public-response-input')).toHaveValue(
+      'Updated member-visible response'
+    );
+    const refreshedForm = screen.getByTestId('staff-support-handoff-public-response-form');
+    expect(refreshedForm.querySelector('input[name="expectedVersion"]')).toHaveValue('4');
   });
 
   it('hides reassignment for accepted handoffs owned by another staff member', async () => {

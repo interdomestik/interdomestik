@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => {
     eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
     getSessionSafe: vi.fn(),
     advisoryBanner: vi.fn(),
+    publicResponseBanner: vi.fn(),
     redirect: vi.fn((href: string) => {
       throw new Error(`redirect:${href}`);
     }),
@@ -111,6 +112,22 @@ vi.mock('./_advisory-banner', () => ({
   },
 }));
 
+vi.mock('./_public-response-banner', () => ({
+  PublicResponseBanner: (props: {
+    memberId: string;
+    selectedClaim: { id: string } | null;
+    tenantId: string;
+  }) => {
+    mocks.publicResponseBanner(props);
+    return (
+      <div
+        data-selected-claim={props.selectedClaim?.id ?? ''}
+        data-testid="mock-member-support-handoff-public-response"
+      />
+    );
+  },
+}));
+
 vi.mock('lucide-react', () => ({
   Mail: () => <span aria-hidden="true" />,
   MessageSquare: () => <span aria-hidden="true" />,
@@ -175,6 +192,11 @@ describe('member help support handoff form', () => {
       selectedClaim: null,
       tenantId: 'tenant-1',
     });
+    expect(mocks.publicResponseBanner).toHaveBeenCalledWith({
+      memberId: 'member-1',
+      selectedClaim: null,
+      tenantId: 'tenant-1',
+    });
     expect(screen.getByTestId('member-support-handoff-form')).toBeVisible();
     expect(screen.getByTestId('member-support-handoff-subject')).toHaveAttribute('name', 'subject');
     expect(screen.getByTestId('member-support-handoff-message')).toHaveAttribute('name', 'message');
@@ -201,17 +223,22 @@ describe('member help support handoff form', () => {
     expect(screen.getByTestId('member-support-handoff-claim')).toHaveValue('claim-1');
   });
 
-  it('places the advisory after claim context without changing selected claim state', async () => {
+  it('places the public response and advisory after claim context without changing selected claim state', async () => {
     await renderPage({ claimId: 'claim-1' });
 
     const claimContext = screen.getByTestId('member-support-handoff-claim-context');
+    const publicResponse = screen.getByTestId('mock-member-support-handoff-public-response');
     const advisory = screen.getByTestId('mock-member-support-handoff-advisory');
     const form = screen.getByTestId('member-support-handoff-form');
 
+    expect(publicResponse).toHaveAttribute('data-selected-claim', 'claim-1');
     expect(advisory).toHaveAttribute('data-selected-claim', 'claim-1');
     expect(screen.getByTestId('member-support-handoff-claim')).toHaveValue('claim-1');
     expect(
-      claimContext.compareDocumentPosition(advisory) & Node.DOCUMENT_POSITION_FOLLOWING
+      claimContext.compareDocumentPosition(publicResponse) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      publicResponse.compareDocumentPosition(advisory) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(advisory.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });

@@ -386,6 +386,13 @@
       "when": 1777821824466,
       "tag": "0054_support_handoffs",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1777912216455,
+      "tag": "0055_brown_deathstrike",
+      "breakpoints": true
     }
   ]
 }

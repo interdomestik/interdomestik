@@ -324,6 +324,7 @@
           "no_branch": "Nema filijale",
           "no_plan": "Nema plana",
           "no_agent": "Nema agenta",
+          "public_response_sent": "Ažuriranje osoblja je poslato",
           "unassigned": "Nedodeljeno"
         },
         "actions": {
@@ -355,7 +356,14 @@
           "lifecycle_reassigned": "Preraspodeljeno",
           "lifecycle_closed": "Zatvoreno",
           "lifecycle_pending": "Na čekanju",
-          "lifecycle_reason": "Razlog"
+          "lifecycle_reason": "Razlog",
+          "public_response_title": "Ažuriranje osoblja za člana",
+          "public_response_empty": "Članu još nije poslato ažuriranje osoblja.",
+          "public_response_label": "Javni odgovor",
+          "public_response_placeholder": "Napišite kratak odgovor koji član može da vidi...",
+          "public_response_readonly": "Samo dodeljeni odgovorni član osoblja može da pošalje ili ažurira odgovor vidljiv članu.",
+          "public_response_submit": "Pošalji odgovor",
+          "public_response_update": "Ažuriraj odgovor"
         }
       }
     }
