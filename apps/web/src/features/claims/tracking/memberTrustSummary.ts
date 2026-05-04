@@ -48,7 +48,7 @@ export function buildMemberClaimTrustSummary(
     bodyKey: `claims-tracking.tracking.assurance.body.${state}`,
     stateLabelKey: `claims-tracking.tracking.assurance.state.${state}`,
     supportHref: args.claimId
-      ? `/member/help?claimId=${encodeURIComponent(args.claimId)}`
+      ? `/member/help?claimId=${encodeURIComponent(args.claimId)}&source=member_claim_detail`
       : '/member/help',
   };
 }

@@ -88,6 +88,16 @@ function memberSession(overrides: Partial<SupportHandoffSession['user']> = {}) {
   } as SupportHandoffSession;
 }
 
+const ownedClaimContext = {
+  branchId: 'branch-claim',
+  createdAt: new Date('2026-05-01T00:00:00.000Z'),
+  id: 'claim-1',
+  staffId: null,
+  status: 'submitted',
+  statusUpdatedAt: new Date('2026-05-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-05-01T00:00:00.000Z'),
+} as const;
+
 describe('createMemberSupportHandoffCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -148,18 +158,81 @@ describe('createMemberSupportHandoffCore', () => {
     expect(mocks.db.insert).not.toHaveBeenCalled();
   });
 
-  it('persists a governed handoff with server-derived ownership and risk signals', async () => {
-    mocks.selectChain.limit.mockResolvedValueOnce([
+  it.each([
+    ['no source hint and no claim', {}, false, 'member_help'],
+    ['no source hint and an owned claim', { claimId: 'claim-1' }, true, 'member_help'],
+    [
+      'a valid claim-detail hint and an owned claim',
+      { claimId: 'claim-1', source: 'member_claim_detail', sourceClaimId: 'claim-1' },
+      true,
+      'member_claim_detail',
+    ],
+    [
+      'a valid claim-detail hint without a claim',
+      { source: 'member_claim_detail' },
+      false,
+      'member_help',
+    ],
+    [
+      'a valid claim-detail hint without a source claim marker',
+      { claimId: 'claim-1', source: 'member_claim_detail' },
+      true,
+      'member_help',
+    ],
+    [
+      'a claim-detail hint for a different claim',
+      { claimId: 'claim-1', source: 'member_claim_detail', sourceClaimId: 'claim-2' },
+      true,
+      'member_help',
+    ],
+    [
+      'a forged source hint and an owned claim',
+      { claimId: 'claim-1', source: 'admin_override', sourceClaimId: 'claim-1' },
+      true,
+      'member_help',
+    ],
+    [
+      'a null source hint and an owned claim',
+      { claimId: 'claim-1', source: null },
+      true,
+      'member_help',
+    ],
+  ])('derives source as %s', async (_name, sourceInput, hasOwnedClaim, expectedSource) => {
+    if (hasOwnedClaim) {
+      mocks.selectChain.limit.mockResolvedValueOnce([ownedClaimContext]);
+    }
+
+    const result = await createMemberSupportHandoffCore(
       {
-        branchId: 'branch-claim',
-        createdAt: new Date('2026-05-01T00:00:00.000Z'),
-        id: 'claim-1',
-        staffId: null,
-        status: 'submitted',
-        statusUpdatedAt: new Date('2026-05-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-05-01T00:00:00.000Z'),
+        input: {
+          message: 'Please help me understand the next support step.',
+          subject: 'Source tracking',
+          ...sourceInput,
+        },
+        session: memberSession(),
       },
-    ]);
+      { logAuditEvent: mocks.logAuditEvent }
+    );
+
+    expect(result.success).toBe(true);
+    expect(mocks.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claimId: hasOwnedClaim ? 'claim-1' : null,
+        source: expectedSource,
+      })
+    );
+    expect(mocks.logAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          claimId: hasOwnedClaim ? 'claim-1' : null,
+          source: expectedSource,
+        }),
+      })
+    );
+  });
+
+  it('persists a governed handoff with server-derived ownership and risk signals', async () => {
+    mocks.selectChain.limit.mockResolvedValueOnce([ownedClaimContext]);
 
     const result = await createMemberSupportHandoffCore(
       {
@@ -198,6 +271,9 @@ describe('createMemberSupportHandoffCore', () => {
         action: 'support_handoff.created',
         actorId: 'member-1',
         entityId: 'support_handoff_handoff-uuid',
+        metadata: expect.objectContaining({
+          source: 'member_help',
+        }),
       })
     );
   });

@@ -244,7 +244,7 @@ describe('getMemberClaimDetail', () => {
           titleKey: 'claims-tracking.tracking.assurance.title',
           bodyKey: 'claims-tracking.tracking.assurance.body.member_action_required',
           stateLabelKey: 'claims-tracking.tracking.assurance.state.member_action_required',
-          supportHref: '/member/help?claimId=claim_1',
+          supportHref: '/member/help?claimId=claim_1&source=member_claim_detail',
         },
       })
     );

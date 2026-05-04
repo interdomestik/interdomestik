@@ -157,6 +157,7 @@ describe('member help support handoff form', () => {
     expect(screen.getByTestId('member-support-handoff-subject')).toHaveAttribute('name', 'subject');
     expect(screen.getByTestId('member-support-handoff-message')).toHaveAttribute('name', 'message');
     expect(screen.getByTestId('member-support-handoff-claim')).toHaveTextContent('CLM-1');
+    expect(document.querySelector('input[name="source"]')).toHaveValue('member_help');
     expect(screen.queryByDisplayValue('tenant-1')).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue('member-1')).not.toBeInTheDocument();
   });
@@ -176,6 +177,14 @@ describe('member help support handoff form', () => {
       'request.claimContextStatus'
     );
     expect(screen.getByTestId('member-support-handoff-claim')).toHaveValue('claim-1');
+  });
+
+  it('passes through a claim-detail source hint from the search params', async () => {
+    await renderPage({ claimId: 'claim-1', source: 'member_claim_detail' });
+
+    expect(screen.getByTestId('member-support-handoff-claim')).toHaveValue('claim-1');
+    expect(document.querySelector('input[name="source"]')).toHaveValue('member_claim_detail');
+    expect(document.querySelector('input[name="sourceClaimId"]')).toHaveValue('claim-1');
   });
 
   it('includes and preselects a valid owned claim outside the initial claim options', async () => {
@@ -207,10 +216,12 @@ describe('member help support handoff form', () => {
   });
 
   it('ignores an inaccessible claimId search param before submission', async () => {
-    await renderPage({ claimId: 'claim-other-member' });
+    await renderPage({ claimId: 'claim-other-member', source: 'member_claim_detail' });
 
     expect(screen.queryByTestId('member-support-handoff-claim-context')).not.toBeInTheDocument();
     expect(screen.getByTestId('member-support-handoff-claim')).toHaveValue('');
+    expect(document.querySelector('input[name="source"]')).toHaveValue('member_help');
+    expect(document.querySelector('input[name="sourceClaimId"]')).not.toBeInTheDocument();
   });
 
   it('redirects non-member sessions to their canonical portal before rendering the form', async () => {

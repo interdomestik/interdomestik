@@ -201,6 +201,29 @@ describe('StaffSupportHandoffsPage', () => {
     );
   });
 
+  it('renders claim-detail source labels in the expanded detail panel', async () => {
+    mocks.getSupportHandoffDetail.mockResolvedValueOnce({
+      acceptedAt: null,
+      acceptedByName: null,
+      closedAt: null,
+      closedByName: null,
+      closeReason: null,
+      contactPreference: 'staff_reply',
+      reassignedAt: null,
+      reassignedByName: null,
+      reassignReason: null,
+      source: 'member_claim_detail',
+    });
+
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+
+    expect(await screen.findByTestId('staff-support-handoff-source')).toHaveTextContent(
+      'detail.source_claim_detail'
+    );
+  });
+
   it('shows reassignment only for accepted handoffs owned by the current staff member', async () => {
     mocks.getQueue.mockResolvedValueOnce([
       {

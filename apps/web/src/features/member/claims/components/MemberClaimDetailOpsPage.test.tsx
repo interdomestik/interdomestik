@@ -255,7 +255,7 @@ describe('MemberClaimDetailOpsPage', () => {
         titleKey: 'claims-tracking.tracking.assurance.title',
         bodyKey: 'claims-tracking.tracking.assurance.body.active_handling',
         stateLabelKey: 'claims-tracking.tracking.assurance.state.active_handling',
-        supportHref: '/member/help?claimId=claim-1',
+        supportHref: '/member/help?claimId=claim-1&source=member_claim_detail',
       },
       progressSummary: {
         currentStatusLabelKey: 'claims-tracking.status.evaluation',
@@ -279,7 +279,7 @@ describe('MemberClaimDetailOpsPage', () => {
     );
     expect(screen.getByTestId('member-claim-trust-sla-support-link')).toHaveAttribute(
       'href',
-      '/member/help?claimId=claim-1'
+      '/member/help?claimId=claim-1&source=member_claim_detail'
     );
   });
 

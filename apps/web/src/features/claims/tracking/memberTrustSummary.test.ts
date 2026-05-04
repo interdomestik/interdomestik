@@ -30,7 +30,7 @@ describe('buildMemberClaimTrustSummary', () => {
       titleKey: 'claims-tracking.tracking.assurance.title',
       bodyKey: 'claims-tracking.tracking.assurance.body.active_handling',
       stateLabelKey: 'claims-tracking.tracking.assurance.state.active_handling',
-      supportHref: '/member/help?claimId=claim-123',
+      supportHref: '/member/help?claimId=claim-123&source=member_claim_detail',
     });
   });
 
