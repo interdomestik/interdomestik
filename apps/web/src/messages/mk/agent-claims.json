@@ -333,6 +333,29 @@
           "readonly": "Само читање",
           "reassign_reason": "Причина за прераспределба",
           "close_reason": "Причина за решавање"
+        },
+        "detail": {
+          "expand": "Прикажи детали",
+          "collapse": "Сокриј детали",
+          "loading": "Деталите се вчитуваат...",
+          "unavailable": "Деталите не се достапни за овој пренос.",
+          "full_message": "Цела порака",
+          "source": "Извор",
+          "source_member_help": "Страница за помош на членови",
+          "source_claim_detail": "Страница со детали за случај",
+          "source_unknown": "Непознат извор",
+          "contact_preference": "Предност за контакт",
+          "contact_preference_staff_reply": "Одговор преку платформата",
+          "contact_preference_phone": "Побаран е телефонски повик",
+          "contact_preference_email": "Побаран е одговор преку е-пошта",
+          "contact_preference_whatsapp": "Побаран е одговор преку WhatsApp",
+          "lifecycle": "Животен циклус",
+          "lifecycle_created": "Создадено",
+          "lifecycle_accepted": "Прифатено",
+          "lifecycle_reassigned": "Прераспределено",
+          "lifecycle_closed": "Затворено",
+          "lifecycle_pending": "Во тек",
+          "lifecycle_reason": "Причина"
         }
       }
     }

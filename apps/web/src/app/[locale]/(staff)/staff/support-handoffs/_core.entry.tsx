@@ -21,6 +21,8 @@ import { Button } from '@interdomestik/ui';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
+import { SupportHandoffDetailPanel } from './support-handoff-detail-panel';
+
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
 type Props = {
@@ -262,6 +264,29 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
   if (currentStatus !== 'open') hiddenFields.push({ name: 'status', value: currentStatus });
   if (currentUrgency !== 'all') hiddenFields.push({ name: 'urgency', value: currentUrgency });
   if (currentClaim !== 'all') hiddenFields.push({ name: 'claim', value: currentClaim });
+  const detailLabels = {
+    collapse: t('detail.collapse'),
+    contactPreference: t('detail.contact_preference'),
+    contactPreferenceEmail: t('detail.contact_preference_email'),
+    contactPreferencePhone: t('detail.contact_preference_phone'),
+    contactPreferenceStaffReply: t('detail.contact_preference_staff_reply'),
+    contactPreferenceWhatsapp: t('detail.contact_preference_whatsapp'),
+    expand: t('detail.expand'),
+    fullMessage: t('detail.full_message'),
+    lifecycle: t('detail.lifecycle'),
+    lifecycleAccepted: t('detail.lifecycle_accepted'),
+    lifecycleClosed: t('detail.lifecycle_closed'),
+    lifecycleCreated: t('detail.lifecycle_created'),
+    lifecyclePending: t('detail.lifecycle_pending'),
+    lifecycleReassigned: t('detail.lifecycle_reassigned'),
+    lifecycleReason: t('detail.lifecycle_reason'),
+    loading: t('detail.loading'),
+    source: t('detail.source'),
+    sourceClaimDetail: t('detail.source_claim_detail'),
+    sourceMemberHelp: t('detail.source_member_help'),
+    sourceUnknown: t('detail.source_unknown'),
+    unavailable: t('detail.unavailable'),
+  };
 
   return (
     <div className="space-y-6" data-testid="staff-page-ready">
@@ -516,6 +541,13 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
                   </span>
                 ) : null}
               </div>
+              <SupportHandoffDetailPanel
+                createdAt={handoff.createdAt}
+                handoffId={handoff.id}
+                labels={detailLabels}
+                locale={locale}
+                message={handoff.message}
+              />
             </div>
           ))}
           {queue.length === 0 ? (

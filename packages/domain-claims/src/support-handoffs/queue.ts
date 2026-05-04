@@ -16,6 +16,8 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { aliasedTable, isNotNull, isNull, type SQL } from 'drizzle-orm';
 
 import type {
+  SupportHandoffContactPreference,
+  SupportHandoffDetailFields,
   SupportHandoffQueueAssignmentFilter,
   SupportHandoffQueueItem,
   SupportHandoffStatus,
@@ -29,6 +31,21 @@ function normalizeDate(value: Date | string | null | undefined) {
   if (!value) return new Date(0).toISOString();
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? new Date(0).toISOString() : date.toISOString();
+}
+
+function normalizeNullableDate(value: Date | string | null | undefined) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function normalizeContactPreference(
+  value: string | null | undefined
+): SupportHandoffContactPreference {
+  if (value === 'phone' || value === 'email' || value === 'whatsapp' || value === 'staff_reply') {
+    return value;
+  }
+  return 'staff_reply';
 }
 
 function normalizeSearch(value: string | null | undefined) {
@@ -47,6 +64,14 @@ function buildSearchCondition(term: string) {
     ilike(claims.claimNumber, pattern),
     ilike(claims.title, pattern)
   );
+}
+
+function buildOwnOrUnassignedStaffScope(staffId: string): SQL<unknown> {
+  const scope = or(eq(supportHandoffs.staffId, staffId), isNull(supportHandoffs.staffId));
+  if (!scope) {
+    throw new Error('Expected own-or-unassigned support handoff scope');
+  }
+  return scope;
 }
 
 export function buildStaffSupportHandoffQueueScope(args: {
@@ -83,13 +108,7 @@ export function buildStaffSupportHandoffQueueScope(args: {
   } else if (args.assignment === 'unassigned') {
     conditions.push(isNull(supportHandoffs.staffId));
   } else if (shouldUseOwnOrUnassignedFallback) {
-    const ownOrUnassigned = or(
-      eq(supportHandoffs.staffId, args.staffId),
-      isNull(supportHandoffs.staffId)
-    );
-    if (ownOrUnassigned) {
-      conditions.push(ownOrUnassigned);
-    }
+    conditions.push(buildOwnOrUnassignedStaffScope(args.staffId));
   }
 
   if (args.claimLink === 'linked') {
@@ -234,4 +253,85 @@ export async function getStaffSupportHandoffQueue(params: {
       agentName: row.agentName ?? null,
     },
   }));
+}
+
+export async function getStaffSupportHandoffDetail(params: {
+  branchId?: string | null;
+  handoffId: string;
+  staffId: string;
+  tenantId: string;
+  viewerRole?: string | null;
+}): Promise<SupportHandoffDetailFields | null> {
+  const acceptedByUser = aliasedTable(user, 'support_handoff_accepted_by');
+  const reassignedByUser = aliasedTable(user, 'support_handoff_reassigned_by');
+  const closedByUser = aliasedTable(user, 'support_handoff_closed_by');
+  const conditions: SQL<unknown>[] = [eq(supportHandoffs.id, params.handoffId)];
+
+  if (params.branchId != null) {
+    conditions.push(eq(supportHandoffs.branchId, params.branchId));
+  }
+
+  const shouldUseOwnOrUnassignedFallback =
+    params.viewerRole !== 'branch_manager' ||
+    (params.viewerRole === 'branch_manager' && params.branchId == null);
+
+  if (shouldUseOwnOrUnassignedFallback) {
+    conditions.push(buildOwnOrUnassignedStaffScope(params.staffId));
+  }
+
+  const rows = await db
+    .select({
+      contactPreference: supportHandoffs.contactPreference,
+      source: supportHandoffs.source,
+      acceptedAt: supportHandoffs.acceptedAt,
+      acceptedByName: acceptedByUser.name,
+      reassignedAt: supportHandoffs.reassignedAt,
+      reassignedByName: reassignedByUser.name,
+      reassignReason: supportHandoffs.reassignReason,
+      closedAt: supportHandoffs.closedAt,
+      closedByName: closedByUser.name,
+      closeReason: supportHandoffs.closeReason,
+    })
+    .from(supportHandoffs)
+    .leftJoin(
+      acceptedByUser,
+      and(
+        eq(supportHandoffs.acceptedById, acceptedByUser.id),
+        eq(acceptedByUser.tenantId, params.tenantId)
+      )
+    )
+    .leftJoin(
+      reassignedByUser,
+      and(
+        eq(supportHandoffs.reassignedById, reassignedByUser.id),
+        eq(reassignedByUser.tenantId, params.tenantId)
+      )
+    )
+    .leftJoin(
+      closedByUser,
+      and(
+        eq(supportHandoffs.closedById, closedByUser.id),
+        eq(closedByUser.tenantId, params.tenantId)
+      )
+    )
+    .where(withTenant(params.tenantId, supportHandoffs.tenantId, and(...conditions)))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
+
+  return {
+    contactPreference: normalizeContactPreference(row.contactPreference),
+    source: row.source,
+    acceptedAt: normalizeNullableDate(row.acceptedAt),
+    acceptedByName: row.acceptedByName ?? null,
+    reassignedAt: normalizeNullableDate(row.reassignedAt),
+    reassignedByName: row.reassignedByName ?? null,
+    reassignReason: row.reassignReason ?? null,
+    closedAt: normalizeNullableDate(row.closedAt),
+    closedByName: row.closedByName ?? null,
+    closeReason: row.closeReason ?? null,
+  };
 }

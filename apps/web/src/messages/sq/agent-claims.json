@@ -333,6 +333,29 @@
           "readonly": "Vetëm lexim",
           "reassign_reason": "Arsyeja e ricaktimit",
           "close_reason": "Arsyeja e zgjidhjes"
+        },
+        "detail": {
+          "expand": "Shiko detajet",
+          "collapse": "Fshih detajet",
+          "loading": "Detajet po ngarkohen...",
+          "unavailable": "Detajet nuk janë të disponueshme për këtë dorëzim.",
+          "full_message": "Mesazhi i plotë",
+          "source": "Burimi",
+          "source_member_help": "Faqja e ndihmës për anëtarë",
+          "source_claim_detail": "Faqja e detajeve të rastit",
+          "source_unknown": "Burim i panjohur",
+          "contact_preference": "Preferenca e kontaktit",
+          "contact_preference_staff_reply": "Përgjigje në platformë",
+          "contact_preference_phone": "Kërkohet telefonatë",
+          "contact_preference_email": "Kërkohet përgjigje me email",
+          "contact_preference_whatsapp": "Kërkohet përgjigje në WhatsApp",
+          "lifecycle": "Cikli",
+          "lifecycle_created": "Krijuar",
+          "lifecycle_accepted": "Pranuar",
+          "lifecycle_reassigned": "Ricaktuar",
+          "lifecycle_closed": "Mbyllur",
+          "lifecycle_pending": "Në pritje",
+          "lifecycle_reason": "Arsyeja"
         }
       }
     }
