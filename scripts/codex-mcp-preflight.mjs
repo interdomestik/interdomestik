@@ -157,7 +157,7 @@ function verifyConfigToml() {
   }
 }
 
-function verifyCodexCliServers(servers, qaServerDetails) {
+function verifyRequiredCodexCliServers(servers) {
   if (!Array.isArray(servers)) {
     fail('Codex MCP server list must be an array.', JSON.stringify(servers, null, 2));
   }
@@ -174,7 +174,10 @@ function verifyCodexCliServers(servers, qaServerDetails) {
     }
   }
 
-  const qaServer = byName.get('interdomestik_qa');
+  return byName;
+}
+
+function verifyRepoQaTransport(qaServer) {
   if (qaServer.transport?.type !== 'stdio') {
     fail('interdomestik_qa must be a stdio MCP server.', JSON.stringify(qaServer, null, 2));
   }
@@ -198,7 +201,9 @@ function verifyCodexCliServers(servers, qaServerDetails) {
       JSON.stringify(qaServer, null, 2)
     );
   }
+}
 
+function verifyRepoQaEnabledTools(qaServerDetails) {
   if (!Array.isArray(qaServerDetails.enabled_tools)) {
     fail(
       'interdomestik_qa must expose an enabled_tools allowlist.',
@@ -214,6 +219,12 @@ function verifyCodexCliServers(servers, qaServerDetails) {
       );
     }
   }
+}
+
+function verifyCodexCliServers(servers, qaServerDetails) {
+  const byName = verifyRequiredCodexCliServers(servers);
+  verifyRepoQaTransport(byName.get('interdomestik_qa'));
+  verifyRepoQaEnabledTools(qaServerDetails);
 }
 
 async function verifyRepoQaLiveTools() {

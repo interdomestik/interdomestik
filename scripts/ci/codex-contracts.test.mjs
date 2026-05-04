@@ -38,10 +38,7 @@ test('project-scoped Codex config registers the repo MCP servers Interdomestik d
   assert.match(configToml, /read_file_range/);
   assert.match(configToml, /git_status_compact/);
   assert.match(configToml, /security_guard/);
-  assert.doesNotMatch(
-    configToml,
-    new RegExp(`cwd = "${rootDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`)
-  );
+  assert.equal(configToml.includes(`cwd = "${rootDir}"`), false);
   assert.doesNotMatch(configToml, /packages\/qa\/src\/index\.ts/);
   assert.doesNotMatch(configToml, /packages\/qa\/dist\/index\.js/);
 });

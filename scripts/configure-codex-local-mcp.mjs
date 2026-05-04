@@ -50,7 +50,7 @@ function replaceTomlTable(input, tableName, replacement) {
   const startIndex = lines.findIndex(line => line.trim() === tableHeader);
 
   if (startIndex === -1) {
-    const trimmed = input.replace(/\s*$/, '');
+    const trimmed = input.trimEnd();
     return `${trimmed}${trimmed ? '\n\n' : ''}${replacement}\n`;
   }
 
@@ -69,7 +69,7 @@ function replaceTomlTable(input, tableName, replacement) {
   }
 
   const nextLines = [...lines.slice(0, startIndex), replacement, ...lines.slice(endIndex)];
-  return `${nextLines.join('\n').replace(/\s*$/, '')}\n`;
+  return `${nextLines.join('\n').trimEnd()}\n`;
 }
 
 fs.mkdirSync(codexHome, { recursive: true });
