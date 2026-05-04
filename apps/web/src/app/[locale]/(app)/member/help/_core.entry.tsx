@@ -16,6 +16,8 @@ import { Mail, MessageSquare, Phone } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 
+import { AdvisoryBanner } from './_advisory-banner';
+
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
 type Props = {
@@ -194,6 +196,13 @@ export default async function HelpPage({ params, searchParams }: Props) {
                   })}
                 </div>
               </div>
+            ) : null}
+            {session.user.tenantId && session.user.id ? (
+              <AdvisoryBanner
+                memberId={session.user.id}
+                selectedClaim={selectedClaim}
+                tenantId={session.user.tenantId}
+              />
             ) : null}
             <form
               action={createMemberSupportHandoff}

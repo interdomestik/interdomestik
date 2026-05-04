@@ -185,4 +185,67 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       await cleanupHandoffBySubject(subject);
     }
   });
+
+  test('member help advisory is visible and remains non-blocking for a second handoff', async ({
+    authenticatedPage: memberPage,
+  }, testInfo) => {
+    const { claimId } = await resolveSeededClaimContext(testInfo);
+    const subject = `E2E CRM05 advisory ${testInfo.project.name} ${Date.now()}`;
+    const secondSubject = `${subject} second`;
+    const claimHelpPath = `${routes.memberHelp(testInfo)}?claimId=${encodeURIComponent(claimId)}`;
+
+    await cleanupHandoffBySubject(subject);
+    await cleanupHandoffBySubject(secondSubject);
+
+    try {
+      await gotoApp(memberPage, claimHelpPath, testInfo, {
+        marker: 'member-page-ready',
+      });
+      await expect(memberPage.getByTestId('member-support-handoff-form')).toBeVisible();
+      await expect(memberPage.getByTestId('member-support-handoff-claim')).toHaveValue(claimId);
+
+      await memberPage.getByTestId('member-support-handoff-subject').fill(subject);
+      await memberPage
+        .getByTestId('member-support-handoff-message')
+        .fill('First advisory test handoff with enough detail for submission.');
+      await memberPage.getByTestId('member-support-handoff-submit').click();
+
+      await expect(memberPage).toHaveURL(/\/member\/help\?support=created$/, {
+        timeout: 15000,
+      });
+      await expect(memberPage.getByTestId('member-support-handoff-created')).toBeVisible();
+      await expect(memberPage.getByTestId('member-support-handoff-advisory-generic')).toBeVisible({
+        timeout: 15000,
+      });
+
+      await gotoApp(memberPage, routes.memberHelp(testInfo), testInfo, {
+        marker: 'member-page-ready',
+      });
+      await expect(memberPage.getByTestId('member-support-handoff-advisory-generic')).toBeVisible({
+        timeout: 15000,
+      });
+
+      await gotoApp(memberPage, claimHelpPath, testInfo, {
+        marker: 'member-page-ready',
+      });
+      await expect(memberPage.getByTestId('member-support-handoff-advisory-claim')).toBeVisible({
+        timeout: 15000,
+      });
+      await expect(memberPage.getByTestId('member-support-handoff-claim')).toHaveValue(claimId);
+
+      await memberPage.getByTestId('member-support-handoff-subject').fill(secondSubject);
+      await memberPage
+        .getByTestId('member-support-handoff-message')
+        .fill('Second advisory test handoff proving the advisory remains non-blocking.');
+      await memberPage.getByTestId('member-support-handoff-submit').click();
+
+      await expect(memberPage).toHaveURL(/\/member\/help\?support=created$/, {
+        timeout: 15000,
+      });
+      await expect(memberPage.getByTestId('member-support-handoff-created')).toBeVisible();
+    } finally {
+      await cleanupHandoffBySubject(subject);
+      await cleanupHandoffBySubject(secondSubject);
+    }
+  });
 });

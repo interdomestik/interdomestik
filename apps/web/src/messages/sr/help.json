@@ -45,6 +45,15 @@
         "email": "E-pošta",
         "whatsapp": "Vatsap"
       }
+    },
+    "advisory": {
+      "claimSpecific": "Već imate aktivan zahtev za podršku za ovaj predmet. I dalje možete poslati novi.",
+      "claimSpecificMeta": "Stanje: {status} · Poslato {date}",
+      "genericActive": "Imate {count, plural, one {# aktivan zahtev za podršku} other {# aktivna zahteva za podršku}}. I dalje možete poslati novi.",
+      "status": {
+        "accepted": "prihvaćen",
+        "open": "otvoren"
+      }
     }
   }
 }

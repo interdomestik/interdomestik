@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => {
     desc: vi.fn(column => ({ column, op: 'desc' })),
     eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
     getSessionSafe: vi.fn(),
+    advisoryBanner: vi.fn(),
     redirect: vi.fn((href: string) => {
       throw new Error(`redirect:${href}`);
     }),
@@ -94,6 +95,22 @@ vi.mock('@interdomestik/ui/components/card', () => ({
   ),
 }));
 
+vi.mock('./_advisory-banner', () => ({
+  AdvisoryBanner: (props: {
+    memberId: string;
+    selectedClaim: { id: string } | null;
+    tenantId: string;
+  }) => {
+    mocks.advisoryBanner(props);
+    return (
+      <div
+        data-selected-claim={props.selectedClaim?.id ?? ''}
+        data-testid="mock-member-support-handoff-advisory"
+      />
+    );
+  },
+}));
+
 vi.mock('lucide-react', () => ({
   Mail: () => <span aria-hidden="true" />,
   MessageSquare: () => <span aria-hidden="true" />,
@@ -153,6 +170,11 @@ describe('member help support handoff form', () => {
     await renderPage();
 
     expect(screen.getByTestId('member-page-ready')).toBeVisible();
+    expect(mocks.advisoryBanner).toHaveBeenCalledWith({
+      memberId: 'member-1',
+      selectedClaim: null,
+      tenantId: 'tenant-1',
+    });
     expect(screen.getByTestId('member-support-handoff-form')).toBeVisible();
     expect(screen.getByTestId('member-support-handoff-subject')).toHaveAttribute('name', 'subject');
     expect(screen.getByTestId('member-support-handoff-message')).toHaveAttribute('name', 'message');
@@ -177,6 +199,21 @@ describe('member help support handoff form', () => {
       'request.claimContextStatus'
     );
     expect(screen.getByTestId('member-support-handoff-claim')).toHaveValue('claim-1');
+  });
+
+  it('places the advisory after claim context without changing selected claim state', async () => {
+    await renderPage({ claimId: 'claim-1' });
+
+    const claimContext = screen.getByTestId('member-support-handoff-claim-context');
+    const advisory = screen.getByTestId('mock-member-support-handoff-advisory');
+    const form = screen.getByTestId('member-support-handoff-form');
+
+    expect(advisory).toHaveAttribute('data-selected-claim', 'claim-1');
+    expect(screen.getByTestId('member-support-handoff-claim')).toHaveValue('claim-1');
+    expect(
+      claimContext.compareDocumentPosition(advisory) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(advisory.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('passes through a claim-detail source hint from the search params', async () => {
