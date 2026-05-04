@@ -6,8 +6,7 @@
 - Slice: `P32-DG06`
 - Status: Complete
 - Owner: `platform + product + qa`
-- Purpose: review and lock the implementation design for `P32-CRM05 Duplicate Open-Handoff
-Advisory Guard` before product-code work starts.
+- Purpose: review and lock the implementation design for CRM05 before product-code work starts.
 
 ## Scope Boundary
 
