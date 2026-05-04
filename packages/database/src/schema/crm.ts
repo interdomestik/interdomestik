@@ -171,6 +171,9 @@ export const supportHandoffs = pgTable(
       table.memberId,
       table.createdAt
     ),
+    index('support_handoffs_tenant_member_status_response_idx')
+      .on(table.tenantId, table.memberId, table.status, table.publicResponseAt)
+      .where(sql`${table.publicResponse} is not null`),
     check(
       'support_handoffs_public_response_length_check',
       sql`${table.publicResponse} is null or char_length(${table.publicResponse}) <= 1000`

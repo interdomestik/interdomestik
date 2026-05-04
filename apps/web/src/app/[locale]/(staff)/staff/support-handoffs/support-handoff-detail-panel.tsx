@@ -185,6 +185,7 @@ export function SupportHandoffDetailPanel({
   const [detail, setDetail] = useState<SupportHandoffStaffDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isResponsePending, startResponseTransition] = useTransition();
 
   function toggleDetail() {
     if (isOpen) {
@@ -197,6 +198,19 @@ export function SupportHandoffDetailPanel({
     if (detail) return;
 
     startTransition(async () => {
+      const result = await getSupportHandoffDetail(handoffId);
+      if (!result) {
+        setError(labels.unavailable);
+        return;
+      }
+      setDetail(result);
+    });
+  }
+
+  function submitPublicResponse(formData: FormData) {
+    setError(null);
+    startResponseTransition(async () => {
+      await updateSupportHandoffPublicResponse(formData);
       const result = await getSupportHandoffDetail(handoffId);
       if (!result) {
         setError(labels.unavailable);
@@ -301,7 +315,8 @@ export function SupportHandoffDetailPanel({
 
                 {canRespond ? (
                   <form
-                    action={updateSupportHandoffPublicResponse}
+                    key={detail.publicResponse.publicResponseVersion}
+                    action={submitPublicResponse}
                     className="mt-3 space-y-3"
                     data-testid="staff-support-handoff-public-response-form"
                   >
@@ -330,6 +345,7 @@ export function SupportHandoffDetailPanel({
                     <Button
                       type="submit"
                       size="sm"
+                      disabled={isResponsePending}
                       data-testid="staff-support-handoff-public-response-submit"
                     >
                       {detail.publicResponse.publicResponse
