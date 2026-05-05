@@ -2,6 +2,7 @@
 
 import {
   submitSupportHandoffMemberReply,
+  submitSupportHandoffMemberReplyAndRedirect,
   type MemberReplyActionState,
 } from '@/actions/support-handoffs/reply';
 import { MAX_MEMBER_REPLY_LENGTH } from '@interdomestik/domain-claims/support-handoffs/types';
@@ -18,12 +19,15 @@ type MemberReplyFormProps = Readonly<{
     error: string;
     label: string;
     placeholder: string;
+    required: string;
     stale: string;
     submit: string;
     submitting: string;
     success: string;
     tooLong: string;
   };
+  locale: string;
+  permalink: string;
 }>;
 
 function resolveMemberReplyError(
@@ -42,7 +46,11 @@ function resolveMemberReplyError(
     return labels.alreadyReplied;
   }
 
-  if (state.code === 'VALIDATION') {
+  if (state.code === 'VALIDATION_REQUIRED') {
+    return labels.required;
+  }
+
+  if (state.code === 'VALIDATION_TOO_LONG') {
     return labels.tooLong;
   }
 
@@ -63,6 +71,8 @@ export function MemberReplyForm({
   expectedPublicResponseVersion,
   handoffId,
   labels,
+  locale,
+  permalink,
 }: MemberReplyFormProps) {
   const router = useRouter();
   const [state, setState] = useState<MemberReplyActionState>({ success: false });
@@ -98,6 +108,8 @@ export function MemberReplyForm({
       <div
         className="mt-3 inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-white/70 px-2.5 py-1.5 text-xs font-medium text-emerald-800"
         data-testid="member-reply-success"
+        role="status"
+        aria-live="polite"
       >
         <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <span>{labels.success}</span>
@@ -106,13 +118,20 @@ export function MemberReplyForm({
   }
 
   return (
-    <form className="mt-3 space-y-2" data-testid="member-reply-form" onSubmit={handleSubmit}>
+    <form
+      action={submitSupportHandoffMemberReplyAndRedirect}
+      className="mt-3 space-y-2"
+      data-testid="member-reply-form"
+      onSubmit={handleSubmit}
+    >
       <input type="hidden" name="handoffId" value={handoffId} />
       <input
         type="hidden"
         name="expectedPublicResponseVersion"
         value={expectedPublicResponseVersion}
       />
+      <input type="hidden" name="locale" value={locale} />
+      <input type="hidden" name="returnTo" value={permalink} />
       <label htmlFor={`member-reply-${handoffId}`} className="block text-xs font-medium">
         {labels.label}
       </label>
@@ -136,7 +155,11 @@ export function MemberReplyForm({
         {pending ? labels.submitting : labels.submit}
       </Button>
       {error ? (
-        <p className="text-xs font-medium text-red-700" data-testid="member-reply-error">
+        <p
+          className="text-xs font-medium text-red-700"
+          data-testid="member-reply-error"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}

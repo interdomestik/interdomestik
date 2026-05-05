@@ -48,6 +48,7 @@
       "error": "We could not send your reply. Try again.",
       "stale": "This support update changed. Please review the latest update before replying.",
       "alreadyReplied": "You already replied to this update.",
+      "required": "Reply is required.",
       "tooLong": "Reply must be 1,000 characters or fewer."
     },
     "advisory": {

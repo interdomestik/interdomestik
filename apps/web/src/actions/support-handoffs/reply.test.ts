@@ -70,8 +70,23 @@ describe('submitSupportHandoffMemberReply server action', () => {
     );
 
     expect(result).toEqual({
-      code: 'VALIDATION',
-      error: 'Member reply is required and must be 1,000 characters or fewer.',
+      code: 'VALIDATION_TOO_LONG',
+      error: 'Member reply must be 1,000 characters or fewer.',
+      success: false,
+    });
+    expect(mocks.getActionContext).not.toHaveBeenCalled();
+    expect(mocks.submitSupportHandoffMemberReplyCore).not.toHaveBeenCalled();
+  });
+
+  it('rejects blank replies before reaching the domain core', async () => {
+    const result = await submitSupportHandoffMemberReply(
+      { success: false },
+      formData({ memberReply: '   ' })
+    );
+
+    expect(result).toEqual({
+      code: 'VALIDATION_REQUIRED',
+      error: 'Member reply is required.',
       success: false,
     });
     expect(mocks.getActionContext).not.toHaveBeenCalled();

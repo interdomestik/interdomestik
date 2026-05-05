@@ -66,12 +66,15 @@ export async function PublicResponseBanner({
         error: t('memberReply.error'),
         label: t('memberReply.label'),
         placeholder: t('memberReply.placeholder'),
+        required: t('memberReply.required'),
         stale: t('memberReply.stale'),
         submit: t('memberReply.submit'),
         submitting: t('memberReply.submitting'),
         success: t('memberReply.sent'),
         tooLong: t('memberReply.tooLong'),
       }}
+      locale={locale}
+      permalink={acknowledgementPermalink}
     />
   ) : null;
 

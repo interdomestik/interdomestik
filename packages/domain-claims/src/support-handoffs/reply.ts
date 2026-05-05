@@ -22,6 +22,8 @@ const STALE_RESPONSE_ERROR =
 const REPLY_UNAVAILABLE_ERROR = 'Unable to reply to this response.';
 const NOT_ACKNOWLEDGED_ERROR = 'Please acknowledge this response before replying.';
 const ALREADY_REPLIED_ERROR = 'You already replied to this response.';
+const MEMBER_REPLY_REQUIRED_ERROR = 'Member reply is required.';
+const MEMBER_REPLY_TOO_LONG_ERROR = 'Member reply must be 1,000 characters or fewer.';
 
 function failure(
   error: string,
@@ -31,7 +33,7 @@ function failure(
 }
 
 function normalizeReplyText(value: string | null | undefined) {
-  return value?.trim().slice(0, MAX_MEMBER_REPLY_LENGTH) ?? '';
+  return value?.trim() ?? '';
 }
 
 export async function submitSupportHandoffMemberReplyCore(
@@ -56,7 +58,11 @@ export async function submitSupportHandoffMemberReplyCore(
   }
 
   if (!memberReply) {
-    return failure(REPLY_UNAVAILABLE_ERROR, 'UNAUTHORIZED');
+    return failure(MEMBER_REPLY_REQUIRED_ERROR, 'VALIDATION');
+  }
+
+  if (memberReply.length > MAX_MEMBER_REPLY_LENGTH) {
+    return failure(MEMBER_REPLY_TOO_LONG_ERROR, 'VALIDATION');
   }
 
   const now = new Date();

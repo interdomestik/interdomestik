@@ -64,6 +64,7 @@
       "error": "Nuk mundëm ta dërgojmë përgjigjen tuaj. Provoni përsëri.",
       "stale": "Ky përditësim i mbështetjes ndryshoi. Ju lutemi rishikoni përditësimin më të fundit para se të përgjigjeni.",
       "alreadyReplied": "Ju tashmë iu përgjigjët këtij përditësimi.",
+      "required": "Përgjigjja është e detyrueshme.",
       "tooLong": "Përgjigjja duhet të ketë 1.000 karaktere ose më pak."
     },
     "advisory": {

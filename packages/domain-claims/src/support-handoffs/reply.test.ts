@@ -160,7 +160,7 @@ describe('support handoff member reply', () => {
       {
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
-        replyText: ` ${'a'.repeat(MAX_MEMBER_REPLY_LENGTH + 50)} `,
+        replyText: '  This resolves my request.  ',
         session: memberSession(),
       },
       { logAuditEvent: mocks.logAuditEvent }
@@ -176,7 +176,7 @@ describe('support handoff member reply', () => {
     });
     expect(mocks.updateSet).toHaveBeenCalledWith(
       expect.objectContaining({
-        memberReply: 'a'.repeat(MAX_MEMBER_REPLY_LENGTH),
+        memberReply: 'This resolves my request.',
         memberReplyResponseVersion: 2,
       })
     );
@@ -212,6 +212,35 @@ describe('support handoff member reply', () => {
         },
       })
     );
+  });
+
+  it('rejects blank and overlong direct-domain replies as validation failures', async () => {
+    await expect(
+      submitSupportHandoffMemberReplyCore({
+        expectedPublicResponseVersion: 2,
+        handoffId: 'handoff-1',
+        replyText: '   ',
+        session: memberSession(),
+      })
+    ).resolves.toEqual({
+      code: 'VALIDATION',
+      error: 'Member reply is required.',
+      success: false,
+    });
+
+    await expect(
+      submitSupportHandoffMemberReplyCore({
+        expectedPublicResponseVersion: 2,
+        handoffId: 'handoff-1',
+        replyText: 'a'.repeat(MAX_MEMBER_REPLY_LENGTH + 1),
+        session: memberSession(),
+      })
+    ).resolves.toEqual({
+      code: 'VALIDATION',
+      error: 'Member reply must be 1,000 characters or fewer.',
+      success: false,
+    });
+    expect(mocks.db.update).not.toHaveBeenCalled();
   });
 
   it('returns already-replied when the update fallback finds a same-cycle reply', async () => {

@@ -64,6 +64,7 @@
       "error": "Nismo mogli da pošaljemo vaš odgovor. Pokušajte ponovo.",
       "stale": "Ovo ažuriranje podrške se promenilo. Pregledajte najnovije ažuriranje pre odgovora.",
       "alreadyReplied": "Već ste odgovorili na ovo ažuriranje.",
+      "required": "Odgovor je obavezan.",
       "tooLong": "Odgovor mora imati 1.000 znakova ili manje."
     },
     "advisory": {

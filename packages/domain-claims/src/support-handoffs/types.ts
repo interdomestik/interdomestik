@@ -82,6 +82,7 @@ export type SubmitSupportHandoffMemberReplyErrorCode =
   | 'NO_RESPONSE'
   | 'NOT_ACKNOWLEDGED'
   | 'STALE_VERSION'
+  | 'VALIDATION'
   | 'UNAUTHORIZED';
 
 export type SubmitSupportHandoffMemberReplyResult = {
