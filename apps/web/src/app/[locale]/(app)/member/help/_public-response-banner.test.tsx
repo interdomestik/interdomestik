@@ -18,13 +18,19 @@ vi.mock('lucide-react', () => ({
 vi.mock('./_public-response-acknowledgement-form', () => ({
   PublicResponseAcknowledgementForm: (props: {
     acknowledgedAt: string | null;
+    acknowledgedAtLabel: string | null;
     expectedPublicResponseVersion: number;
     handoffId: string;
+    locale: string;
+    permalink: string;
   }) => (
     <div
       data-testid="mock-public-response-acknowledgement"
       data-acknowledged-at={props.acknowledgedAt ?? ''}
+      data-acknowledged-at-label={props.acknowledgedAtLabel ?? ''}
       data-handoff-id={props.handoffId}
+      data-locale={props.locale}
+      data-permalink={props.permalink}
       data-version={props.expectedPublicResponseVersion}
     />
   ),
@@ -101,7 +107,42 @@ describe('PublicResponseBanner', () => {
       'data-version',
       '2'
     );
+    expect(screen.getByTestId('mock-public-response-acknowledgement')).toHaveAttribute(
+      'data-permalink',
+      '/en/member/help?handoffId=handoff-1'
+    );
     expect(screen.queryByText('staff-1')).not.toBeInTheDocument();
+  });
+
+  it('passes a server-formatted acknowledgement label into the client form', async () => {
+    mocks.getMemberLatestPublicResponse.mockResolvedValueOnce({
+      handoffId: 'handoff-1',
+      publicResponse: 'Acknowledged response.',
+      publicResponseAt: '2026-05-04T11:00:00.000Z',
+      publicResponseAcknowledged: true,
+      publicResponseAcknowledgedAt: '2026-05-04T12:00:00.000Z',
+      publicResponseAcknowledgedVersion: 2,
+      publicResponseVersion: 2,
+    });
+
+    render(
+      await PublicResponseBanner({
+        handoffId: 'handoff-1',
+        locale: 'sq',
+        memberId: 'member-1',
+        selectedClaim: null,
+        tenantId: 'tenant-1',
+      })
+    );
+
+    expect(mocks.dateTime).toHaveBeenCalledWith(new Date('2026-05-04T12:00:00.000Z'), {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+    expect(screen.getByTestId('mock-public-response-acknowledgement')).toHaveAttribute(
+      'data-acknowledged-at-label',
+      'Acknowledged May 4, 2026, 1:00 PM'
+    );
   });
 
   it('renders nothing when no active handoff has a public response', async () => {

@@ -46,6 +46,13 @@ export async function PublicResponseBanner({
     dateStyle: 'medium',
     timeStyle: 'short',
   });
+  const acknowledgedAt = response.publicResponseAcknowledgedAt
+    ? format.dateTime(new Date(response.publicResponseAcknowledgedAt), {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
+    : null;
+  const acknowledgementPermalink = `/${locale}/member/help?handoffId=${encodeURIComponent(response.handoffId)}`;
 
   return (
     <div
@@ -71,6 +78,9 @@ export async function PublicResponseBanner({
         </div>
         <PublicResponseAcknowledgementForm
           acknowledgedAt={response.publicResponseAcknowledgedAt}
+          acknowledgedAtLabel={
+            acknowledgedAt ? t('publicResponse.acknowledgedAt', { date: acknowledgedAt }) : null
+          }
           expectedPublicResponseVersion={response.publicResponseVersion}
           handoffId={response.handoffId}
           labels={{
@@ -81,6 +91,7 @@ export async function PublicResponseBanner({
             stale: t('publicResponse.acknowledgementStale'),
           }}
           locale={locale}
+          permalink={acknowledgementPermalink}
         />
       </div>
     </div>
