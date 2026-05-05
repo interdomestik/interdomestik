@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.105.0",
+    "@supabase/supabase-js": "^2.105.3",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.9"
   },
@@ -47,7 +47,7 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
-    "nanoid": "^5.1.9",
+    "nanoid": "^5.1.11",
     "supabase": "^2.95.5",
     "tsx": "^4.21.0",
     "typescript": "^5.8.0"
