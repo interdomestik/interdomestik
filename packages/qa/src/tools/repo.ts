@@ -124,11 +124,22 @@ function repoIdentityFields() {
 }
 
 function formatCodeSearchOutput(stdout: string) {
-  return stdout.slice(0, MAX_CODE_SEARCH_OUTPUT_CHARS);
+  if (stdout.length <= MAX_CODE_SEARCH_OUTPUT_CHARS) {
+    return stdout;
+  }
+
+  const cappedOutput = stdout.slice(0, MAX_CODE_SEARCH_OUTPUT_CHARS);
+  const lastLineBreak = cappedOutput.lastIndexOf('\n');
+
+  return lastLineBreak > 0 ? cappedOutput.slice(0, lastLineBreak) : cappedOutput;
+}
+
+function codeSearchOutputLines(stdout: string) {
+  return formatCodeSearchOutput(stdout).split('\n');
 }
 
 function codeSearchMatches(stdout: string) {
-  return formatCodeSearchOutput(stdout).split('\n').filter(Boolean);
+  return codeSearchOutputLines(stdout).filter(Boolean);
 }
 
 export async function projectMap(args?: { maxDepth?: number }) {
@@ -489,6 +500,7 @@ export async function codeSearch(args: {
         filePattern: filePattern || null,
         matches: codeSearchMatches(stdout),
         matchesTruncated: stdoutTruncated || stdout.length > MAX_CODE_SEARCH_OUTPUT_CHARS,
+        outputLines: codeSearchOutputLines(stdout),
         stdoutTruncated,
         status: 'ok',
         tool: 'code_search',
@@ -519,6 +531,7 @@ export async function codeSearch(args: {
           filePattern: filePattern || null,
           matches: codeSearchMatches(stdout),
           matchesTruncated: stdoutTruncated || stdout.length > MAX_CODE_SEARCH_OUTPUT_CHARS,
+          outputLines: codeSearchOutputLines(stdout),
           stdoutTruncated,
           status: 'ok',
           tool: 'code_search',
