@@ -293,8 +293,12 @@ export async function getStaffSupportHandoffDetail(params: {
       closedAt: supportHandoffs.closedAt,
       closedByName: closedByUser.name,
       closeReason: supportHandoffs.closeReason,
+      memberId: supportHandoffs.memberId,
       publicResponse: supportHandoffs.publicResponse,
       publicResponseAt: supportHandoffs.publicResponseAt,
+      publicResponseAcknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
+      publicResponseAcknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
+      publicResponseAcknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
       publicResponseVersion: supportHandoffs.publicResponseVersion,
     })
     .from(supportHandoffs)
@@ -342,6 +346,15 @@ export async function getStaffSupportHandoffDetail(params: {
       publicResponse: row.publicResponse ?? null,
       publicResponseAt: normalizeNullableDate(row.publicResponseAt),
       publicResponseVersion: row.publicResponseVersion ?? 0,
+      publicResponseAcknowledged:
+        row.publicResponseAcknowledgedById === row.memberId &&
+        row.publicResponseAcknowledgedVersion === (row.publicResponseVersion ?? 0),
+      publicResponseAcknowledgedAt:
+        row.publicResponseAcknowledgedById === row.memberId &&
+        row.publicResponseAcknowledgedVersion === (row.publicResponseVersion ?? 0)
+          ? normalizeNullableDate(row.publicResponseAcknowledgedAt)
+          : null,
+      publicResponseAcknowledgedVersion: row.publicResponseAcknowledgedVersion ?? null,
     },
   };
 }

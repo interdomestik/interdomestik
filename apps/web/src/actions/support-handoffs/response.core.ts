@@ -5,12 +5,14 @@ import { notifySupportHandoffPublicResponse } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
-
-const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
-type Locale = (typeof LOCALES)[number];
+import {
+  eachSupportHandoffActionLocale,
+  resolveSupportHandoffActionLocale,
+  type SupportHandoffActionLocale,
+} from './request-locale';
 
 const SUPPORT_HANDOFF_PUBLIC_RESPONSE_NOTIFICATION_COPY: Record<
-  Locale,
+  SupportHandoffActionLocale,
   { content: string; title: string }
 > = {
   en: {
@@ -31,36 +33,8 @@ const SUPPORT_HANDOFF_PUBLIC_RESPONSE_NOTIFICATION_COPY: Record<
   },
 };
 
-function isLocale(value: string | undefined): value is Locale {
-  return LOCALES.includes(value as Locale);
-}
-
-function resolveRequestLocale(requestHeaders?: Headers): Locale {
-  const referer = requestHeaders?.get('referer');
-  if (referer) {
-    try {
-      const [, locale] = new URL(referer).pathname.split('/');
-      if (isLocale(locale)) {
-        return locale;
-      }
-    } catch {
-      // Fall through to Accept-Language.
-    }
-  }
-
-  const acceptLanguage = requestHeaders?.get('accept-language') ?? '';
-  const requestedLocale = acceptLanguage
-    .split(',')
-    .map(value => value.trim().split(';')[0]?.split('-')[0])
-    .find(isLocale);
-
-  return requestedLocale ?? 'sq';
-}
-
 function revalidatePathForAllLocales(path: string) {
-  for (const locale of LOCALES) {
-    revalidatePath(`/${locale}${path}`);
-  }
+  eachSupportHandoffActionLocale(locale => revalidatePath(`/${locale}${path}`));
 }
 
 function revalidateSupportHandoffPaths() {
@@ -82,7 +56,7 @@ export async function updateSupportHandoffPublicResponseCore(params: {
 
   if (result.success) {
     try {
-      const locale = resolveRequestLocale(params.requestHeaders);
+      const locale = resolveSupportHandoffActionLocale(params.requestHeaders);
       const notificationCopy = SUPPORT_HANDOFF_PUBLIC_RESPONSE_NOTIFICATION_COPY[locale];
       const notificationResult = await notifySupportHandoffPublicResponse(
         result.data.memberId,

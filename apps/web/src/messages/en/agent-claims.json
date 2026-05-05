@@ -138,6 +138,8 @@
           "lifecycle_reason": "Reason",
           "public_response_title": "Staff update to member",
           "public_response_empty": "No staff update has been sent to the member yet.",
+          "public_response_acknowledged_at": "Member acknowledged {date}",
+          "public_response_awaiting_acknowledgement": "Awaiting member acknowledgement",
           "public_response_label": "Public response",
           "public_response_placeholder": "Write a concise update the member can see...",
           "public_response_readonly": "Only the assigned staff owner can send or update the member-visible response.",

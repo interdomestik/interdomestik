@@ -1,4 +1,5 @@
 export * from './create';
+export * from './acknowledgement';
 export * from './advisory';
 export * from './derivation';
 export * from './lifecycle';

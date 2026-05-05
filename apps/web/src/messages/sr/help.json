@@ -48,7 +48,12 @@
     },
     "publicResponse": {
       "title": "Ažuriranje osoblja",
-      "updatedAt": "Ažurirano {date}"
+      "updatedAt": "Ažurirano {date}",
+      "acknowledge": "Potvrdi ažuriranje",
+      "acknowledging": "Potvrđivanje...",
+      "acknowledgedAt": "Potvrđeno {date}",
+      "acknowledgementError": "Nismo mogli da potvrdimo ovo ažuriranje. Pokušajte ponovo.",
+      "acknowledgementStale": "Tim za podršku je upravo ažurirao ovaj odgovor. Pregledajte najnovije ažuriranje."
     },
     "advisory": {
       "claimSpecific": "Već imate aktivan zahtev za podršku za ovaj predmet. I dalje možete poslati novi.",

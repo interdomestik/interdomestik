@@ -8,7 +8,16 @@ import type {
   SupportHandoffStaffDetail,
 } from '@interdomestik/domain-claims/support-handoffs/types';
 import { Button } from '@interdomestik/ui';
-import { ChevronDown, ChevronUp, Mail, MessageSquare, Phone, Smartphone } from 'lucide-react';
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock3,
+  Mail,
+  MessageSquare,
+  Phone,
+  Smartphone,
+} from 'lucide-react';
 import { useState, useTransition } from 'react';
 
 type DetailLabels = Readonly<{
@@ -29,6 +38,8 @@ type DetailLabels = Readonly<{
   lifecycleReason: string;
   loading: string;
   publicResponseEmpty: string;
+  publicResponseAcknowledgedAt: string;
+  publicResponseAwaitingAcknowledgement: string;
   publicResponseLabel: string;
   publicResponsePlaceholder: string;
   publicResponseReadonly: string;
@@ -101,6 +112,7 @@ function formatDateTime(value: string | null, locale: string, pendingLabel: stri
   if (Number.isNaN(date.getTime())) return pendingLabel;
   return date.toLocaleString(locale, {
     dateStyle: 'medium',
+    timeZone: 'UTC',
     timeStyle: 'short',
   });
 }
@@ -169,6 +181,48 @@ function StaffHandoffLifecycleTimeline({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function PublicResponseAcknowledgementStatus({
+  labels,
+  locale,
+  publicResponse,
+}: Readonly<{
+  labels: DetailLabels;
+  locale: string;
+  publicResponse: SupportHandoffStaffDetail['publicResponse'];
+}>) {
+  if (!publicResponse.publicResponse) {
+    return null;
+  }
+
+  if (!publicResponse.publicResponseAcknowledged) {
+    return (
+      <div
+        className="mt-3 inline-flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-900"
+        data-testid="staff-support-handoff-public-response-awaiting-acknowledgement"
+      >
+        <Clock3 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        <span>{labels.publicResponseAwaitingAcknowledgement}</span>
+      </div>
+    );
+  }
+
+  const acknowledgedAt = formatDateTime(
+    publicResponse.publicResponseAcknowledgedAt,
+    locale,
+    labels.lifecyclePending
+  );
+
+  return (
+    <div
+      className="mt-3 inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-800"
+      data-testid="staff-support-handoff-public-response-acknowledged"
+    >
+      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      <span>{labels.publicResponseAcknowledgedAt.replace('{date}', acknowledgedAt)}</span>
     </div>
   );
 }
@@ -312,6 +366,11 @@ export function SupportHandoffDetailPanel({
                     {labels.publicResponseEmpty}
                   </p>
                 )}
+                <PublicResponseAcknowledgementStatus
+                  labels={labels}
+                  locale={locale}
+                  publicResponse={detail.publicResponse}
+                />
 
                 {canRespond ? (
                   <form

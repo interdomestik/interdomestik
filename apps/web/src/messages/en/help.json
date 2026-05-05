@@ -32,7 +32,12 @@
     },
     "publicResponse": {
       "title": "Staff update",
-      "updatedAt": "Updated {date}"
+      "updatedAt": "Updated {date}",
+      "acknowledge": "Acknowledge update",
+      "acknowledging": "Acknowledging...",
+      "acknowledgedAt": "Acknowledged {date}",
+      "acknowledgementError": "We could not acknowledge this update. Try again.",
+      "acknowledgementStale": "The support team just updated this response. Please review the latest update."
     },
     "advisory": {
       "claimSpecific": "You already have an active support request for this claim. You can still submit a new one.",

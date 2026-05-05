@@ -151,8 +151,13 @@ async function getLatestPublicResponseForScope(args: {
 
   const rows = await db
     .select({
+      handoffId: supportHandoffs.id,
       publicResponse: supportHandoffs.publicResponse,
       publicResponseAt: supportHandoffs.publicResponseAt,
+      publicResponseAcknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
+      publicResponseAcknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
+      publicResponseAcknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
+      publicResponseVersion: supportHandoffs.publicResponseVersion,
     })
     .from(supportHandoffs)
     .where(withTenant(args.tenantId, supportHandoffs.tenantId, and(...conditions)))
@@ -165,8 +170,19 @@ async function getLatestPublicResponseForScope(args: {
   }
 
   return {
+    handoffId: row.handoffId,
     publicResponse: row.publicResponse,
     publicResponseAt: normalizeNullableDate(row.publicResponseAt),
+    publicResponseVersion: row.publicResponseVersion ?? 0,
+    publicResponseAcknowledged:
+      row.publicResponseAcknowledgedById === args.memberId &&
+      row.publicResponseAcknowledgedVersion === (row.publicResponseVersion ?? 0),
+    publicResponseAcknowledgedAt:
+      row.publicResponseAcknowledgedById === args.memberId &&
+      row.publicResponseAcknowledgedVersion === (row.publicResponseVersion ?? 0)
+        ? normalizeNullableDate(row.publicResponseAcknowledgedAt)
+        : null,
+    publicResponseAcknowledgedVersion: row.publicResponseAcknowledgedVersion ?? null,
   };
 }
 

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   dateTime: vi.fn(() => 'May 4, 2026, 1:00 PM'),
   getMemberLatestPublicResponse: vi.fn(),
+  routerRefresh: vi.fn(),
 }));
 
 vi.mock('@interdomestik/domain-claims/support-handoffs/response', () => ({
@@ -12,6 +13,21 @@ vi.mock('@interdomestik/domain-claims/support-handoffs/response', () => ({
 
 vi.mock('lucide-react', () => ({
   MessageSquareText: () => <span aria-hidden="true" />,
+}));
+
+vi.mock('./_public-response-acknowledgement-form', () => ({
+  PublicResponseAcknowledgementForm: (props: {
+    acknowledgedAt: string | null;
+    expectedPublicResponseVersion: number;
+    handoffId: string;
+  }) => (
+    <div
+      data-testid="mock-public-response-acknowledgement"
+      data-acknowledged-at={props.acknowledgedAt ?? ''}
+      data-handoff-id={props.handoffId}
+      data-version={props.expectedPublicResponseVersion}
+    />
+  ),
 }));
 
 vi.mock('next-intl/server', () => ({
@@ -25,7 +41,16 @@ vi.mock('next-intl/server', () => ({
     if (key === 'publicResponse.updatedAt') {
       return `Updated ${values?.date}`;
     }
+    if (key === 'publicResponse.acknowledgedAt') {
+      return `Acknowledged ${values?.date}`;
+    }
     return key;
+  }),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    refresh: mocks.routerRefresh,
   }),
 }));
 
@@ -34,13 +59,19 @@ import { PublicResponseBanner } from './_public-response-banner';
 describe('PublicResponseBanner', () => {
   it('renders the latest public response with a localized timestamp', async () => {
     mocks.getMemberLatestPublicResponse.mockResolvedValueOnce({
+      handoffId: 'handoff-1',
       publicResponse: 'We are reviewing your request.\nWe will update you soon.',
       publicResponseAt: '2026-05-04T11:00:00.000Z',
+      publicResponseAcknowledged: false,
+      publicResponseAcknowledgedAt: null,
+      publicResponseAcknowledgedVersion: null,
+      publicResponseVersion: 2,
     });
 
     render(
       await PublicResponseBanner({
         handoffId: 'handoff-1',
+        locale: 'en',
         memberId: 'member-1',
         selectedClaim: { id: 'claim-1' },
         tenantId: 'tenant-1',
@@ -66,6 +97,10 @@ describe('PublicResponseBanner', () => {
     expect(screen.getByTestId('member-support-handoff-public-response-updated')).toHaveTextContent(
       'Updated May 4, 2026, 1:00 PM'
     );
+    expect(screen.getByTestId('mock-public-response-acknowledgement')).toHaveAttribute(
+      'data-version',
+      '2'
+    );
     expect(screen.queryByText('staff-1')).not.toBeInTheDocument();
   });
 
@@ -73,6 +108,7 @@ describe('PublicResponseBanner', () => {
     mocks.getMemberLatestPublicResponse.mockResolvedValueOnce(null);
 
     const ui = await PublicResponseBanner({
+      locale: 'en',
       memberId: 'member-1',
       selectedClaim: null,
       tenantId: 'tenant-1',
@@ -86,6 +122,7 @@ describe('PublicResponseBanner', () => {
     mocks.getMemberLatestPublicResponse.mockRejectedValueOnce(new Error('database unavailable'));
 
     const ui = await PublicResponseBanner({
+      locale: 'en',
       memberId: 'member-1',
       selectedClaim: null,
       tenantId: 'tenant-1',

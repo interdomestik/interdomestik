@@ -359,6 +359,8 @@
           "lifecycle_reason": "Причина",
           "public_response_title": "Ажурирање од персоналот за членот",
           "public_response_empty": "Сè уште не е испратено ажурирање од персоналот до членот.",
+          "public_response_acknowledged_at": "Членот потврди {date}",
+          "public_response_awaiting_acknowledgement": "Се чека потврда од членот",
           "public_response_label": "Јавен одговор",
           "public_response_placeholder": "Напишете кратко ажурирање што членот може да го види...",
           "public_response_readonly": "Само доделениот одговорен член на персоналот може да испрати или ажурира одговор видлив за членот.",

@@ -310,6 +310,48 @@ describe('StaffSupportHandoffsPage', () => {
     expect(screen.getByTestId('staff-support-handoff-public-response-submit')).toHaveTextContent(
       'detail.public_response_update'
     );
+    expect(
+      screen.getByTestId('staff-support-handoff-public-response-awaiting-acknowledgement')
+    ).toHaveTextContent('detail.public_response_awaiting_acknowledgement');
+  });
+
+  it('renders read-only acknowledgement status for the current public response', async () => {
+    mocks.getQueue.mockResolvedValueOnce([
+      {
+        ...queueItem,
+        publicResponseAt: '2026-05-04T11:00:00.000Z',
+        staffId: 'staff-1',
+        staffName: 'Staff One',
+        status: 'accepted',
+      },
+    ]);
+    mocks.getSupportHandoffDetail.mockResolvedValueOnce({
+      acceptedAt: '2026-05-04T08:30:00.000Z',
+      acceptedByName: 'Staff One',
+      closedAt: null,
+      closedByName: null,
+      closeReason: null,
+      contactPreference: 'phone',
+      publicResponse: {
+        publicResponse: 'Existing member-visible update',
+        publicResponseAt: '2026-05-04T11:00:00.000Z',
+        publicResponseAcknowledged: true,
+        publicResponseAcknowledgedAt: '2026-05-04T11:05:00.000Z',
+        publicResponseAcknowledgedVersion: 3,
+        publicResponseVersion: 3,
+      },
+      reassignedAt: null,
+      reassignedByName: null,
+      reassignReason: null,
+      source: 'member_help',
+    });
+
+    await renderPage();
+    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+
+    expect(
+      await screen.findByTestId('staff-support-handoff-public-response-acknowledged')
+    ).toHaveTextContent('detail.public_response_acknowledged_at');
   });
 
   it('refreshes public response detail after the assigned staff owner submits an update', async () => {
