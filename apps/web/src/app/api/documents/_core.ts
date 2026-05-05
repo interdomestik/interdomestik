@@ -52,7 +52,7 @@ export type DocumentAccessResult =
 
 type AuditContext = {
   action: string;
-  entityType: 'claim_document';
+  entityType: 'claim_document' | 'policy_document';
   entityId: string;
   actorRole: string | null;
   metadata: Record<string, unknown>;
@@ -136,6 +136,7 @@ function getDocumentAction(disposition: 'inline' | 'attachment', mode: DocumentA
 
 function buildPolymorphicDocument(polyDoc: {
   id: string;
+  entityType: string;
   storagePath: string;
   uploadedBy: string | null;
   fileName: string | null;
@@ -145,7 +146,7 @@ function buildPolymorphicDocument(polyDoc: {
   return {
     id: polyDoc.id,
     claimId: null,
-    bucket: 'claim-evidence',
+    bucket: getPolymorphicDocumentBucket(polyDoc.entityType),
     filePath: polyDoc.storagePath,
     uploadedBy: polyDoc.uploadedBy,
     name: polyDoc.fileName,
@@ -154,14 +155,38 @@ function buildPolymorphicDocument(polyDoc: {
   };
 }
 
+function getPolymorphicDocumentBucket(entityType: string): string {
+  if (entityType === 'policy') {
+    return process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || 'policies';
+  }
+
+  return process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
+}
+
+function getPolymorphicDocumentAuditEntityType(entityType: string): AuditContext['entityType'] {
+  if (entityType === 'policy') {
+    return 'policy_document';
+  }
+
+  return 'claim_document';
+}
+
 function buildDocumentAudit(args: {
   actorRole: string | null | undefined;
   disposition: 'inline' | 'attachment';
   document: DocumentRow;
   documentId: string;
+  entityType?: AuditContext['entityType'];
   mode: DocumentAccessMode;
 }): AuditContext {
-  const { actorRole, disposition, document, documentId, mode } = args;
+  const {
+    actorRole,
+    disposition,
+    document,
+    documentId,
+    entityType = 'claim_document',
+    mode,
+  } = args;
   const metadata =
     mode === 'signed_url'
       ? {
@@ -181,7 +206,7 @@ function buildDocumentAudit(args: {
 
   return {
     action: getDocumentAction(disposition, mode),
-    entityType: 'claim_document',
+    entityType,
     entityId: documentId,
     actorRole: actorRole ?? null,
     metadata,
@@ -202,10 +227,12 @@ async function canReadPolymorphicDocument(args: {
     return true;
   }
 
-  // 2. Uploader access, except agents must still be assigned to claim documents.
+  // 2. Uploader access, except agents must still be assigned to claim documents and
+  // policy documents must pass the policy-owner check below.
   if (
     polyDoc.uploadedBy === session.user.id &&
-    !(userRole === 'agent' && polyDoc.entityType === 'claim')
+    !(userRole === 'agent' && polyDoc.entityType === 'claim') &&
+    polyDoc.entityType !== 'policy'
   ) {
     return true;
   }
@@ -363,6 +390,7 @@ export async function getDocumentAccessCore(args: {
         disposition: finalDisposition,
         document,
         documentId,
+        entityType: getPolymorphicDocumentAuditEntityType(polyDoc.entityType),
         mode,
       }),
     };

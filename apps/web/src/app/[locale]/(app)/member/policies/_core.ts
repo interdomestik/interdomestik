@@ -1,14 +1,19 @@
 import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
-import { createAdminClient, db } from '@interdomestik/database';
-import { documentExtractions, policies } from '@interdomestik/database/schema';
+import { db } from '@interdomestik/database';
+import { documentExtractions, documents, policies } from '@interdomestik/database/schema';
 import { desc } from 'drizzle-orm';
 
 type PolicyRow = typeof policies.$inferSelect;
 
-export type PolicyWithSignedUrl = {
+export type PolicyWithDocumentLink = {
   policy: PolicyRow;
   resolvedAnalysis: PolicyAnalysis | null;
-  fileHref: string;
+  documentDownloadHref: string;
+};
+
+type PolicyDocumentLink = {
+  id: string;
+  entityId: string;
 };
 
 function resolvePolicyAnalysis(
@@ -26,10 +31,10 @@ function resolvePolicyAnalysis(
   return value as PolicyAnalysis;
 }
 
-export async function getPoliciesWithSignedUrlsCore(args: {
+export async function getPoliciesWithDocumentLinksCore(args: {
   tenantId: string;
   userId: string;
-}): Promise<PolicyWithSignedUrl[]> {
+}): Promise<PolicyWithDocumentLink[]> {
   const { tenantId, userId } = args;
   const userPolicies = await db.query.policies.findMany({
     where: (policiesTable, { and, eq }) =>
@@ -41,15 +46,14 @@ export async function getPoliciesWithSignedUrlsCore(args: {
     return [];
   }
 
+  const policyIds = userPolicies.map(policy => policy.id);
+
   const extractions = await db.query.documentExtractions.findMany({
     where: (extractionsTable, { and, eq, inArray: whereInArray }) =>
       and(
         eq(extractionsTable.tenantId, tenantId),
         eq(extractionsTable.entityType, 'policy'),
-        whereInArray(
-          extractionsTable.entityId,
-          userPolicies.map(policy => policy.id)
-        )
+        whereInArray(extractionsTable.entityId, policyIds)
       ),
     orderBy: [desc(documentExtractions.createdAt)],
   });
@@ -66,27 +70,39 @@ export async function getPoliciesWithSignedUrlsCore(args: {
     }
   }
 
-  const adminClient = createAdminClient();
-  const policiesBucket = process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || 'policies';
+  const policyDocuments = (await db.query.documents.findMany({
+    columns: {
+      id: true,
+      entityId: true,
+    },
+    where: (documentsTable, { and, eq, inArray: whereInArray, isNull }) =>
+      and(
+        eq(documentsTable.tenantId, tenantId),
+        eq(documentsTable.entityType, 'policy'),
+        whereInArray(documentsTable.entityId, policyIds),
+        isNull(documentsTable.deletedAt)
+      ),
+    orderBy: [desc(documents.uploadedAt)],
+  })) as PolicyDocumentLink[];
 
-  return Promise.all(
-    userPolicies.map(async policy => {
-      const resolvedAnalysis =
-        latestExtractionByPolicyId.get(policy.id) ?? resolvePolicyAnalysis(policy.analysisJson);
-      const storedUrl = policy.fileUrl || '';
-      if (!storedUrl) {
-        return { policy, resolvedAnalysis, fileHref: '' };
-      }
+  const latestDocumentByPolicyId = new Map<string, PolicyDocumentLink>();
+  for (const document of policyDocuments) {
+    if (!latestDocumentByPolicyId.has(document.entityId)) {
+      latestDocumentByPolicyId.set(document.entityId, document);
+    }
+  }
 
-      if (storedUrl.startsWith('http://') || storedUrl.startsWith('https://')) {
-        return { policy, resolvedAnalysis, fileHref: storedUrl };
-      }
+  return userPolicies.map(policy => {
+    const resolvedAnalysis =
+      latestExtractionByPolicyId.get(policy.id) ?? resolvePolicyAnalysis(policy.analysisJson);
+    const document = latestDocumentByPolicyId.get(policy.id);
 
-      const { data, error } = await adminClient.storage
-        .from(policiesBucket)
-        .createSignedUrl(storedUrl, 300);
-
-      return { policy, resolvedAnalysis, fileHref: error ? '' : (data?.signedUrl ?? '') };
-    })
-  );
+    return {
+      policy,
+      resolvedAnalysis,
+      documentDownloadHref: document
+        ? `/api/documents/${encodeURIComponent(document.id)}/download?disposition=inline`
+        : '',
+    };
+  });
 }
