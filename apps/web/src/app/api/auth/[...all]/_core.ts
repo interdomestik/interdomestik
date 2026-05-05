@@ -130,7 +130,7 @@ export function resolveTenantIdForPasswordResetAudit(
       headerTenantId: headers.get(TENANT_HEADER_NAME),
       queryTenantId,
     },
-    { productionSensitive: true }
+    { productionSensitive: true, allowLoopbackFallback: true }
   );
 }
 
@@ -150,7 +150,7 @@ export function resolveTenantIdForEmailSignIn(headers: Headers): TenantId | null
       cookieTenantId: parseCookieValue(headers.get('cookie'), TENANT_COOKIE_NAME),
       headerTenantId: headers.get(TENANT_HEADER_NAME),
     },
-    { productionSensitive: true }
+    { productionSensitive: true, allowLoopbackFallback: true }
   );
 }
 

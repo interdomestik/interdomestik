@@ -17,6 +17,9 @@ vi.mock('@/lib/telemetry', () => ({
 import { proxy } from './proxy-logic';
 
 const ORIGINAL_SECRET = process.env.BETTER_AUTH_SECRET;
+const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
+const ORIGINAL_VERCEL_ENV = process.env.VERCEL_ENV;
+const mutableEnv = process.env as Record<string, string | undefined>;
 
 function toBase64Url(bytes: Uint8Array): string {
   let binary = '';
@@ -45,19 +48,37 @@ async function signSessionToken(token: string, secret: string): Promise<string> 
   return `${token}.${toBase64Url(new Uint8Array(signature))}`;
 }
 
-function makeRequest(pathname: string, cookieHeader?: string): NextRequest {
-  const headers = new Headers({ host: 'ks.localhost:3000' });
+function makeRequest(
+  pathname: string,
+  cookieHeader?: string,
+  init?: { protocol?: 'http:' | 'https:'; headers?: HeadersInit }
+): NextRequest {
+  const protocol = init?.protocol ?? 'http:';
+  const headers = new Headers({ host: 'ks.localhost:3000', ...init?.headers });
   if (cookieHeader) headers.set('cookie', cookieHeader);
-  return new NextRequest(`http://ks.localhost:3000${pathname}`, { headers });
+  return new NextRequest(`${protocol}//ks.localhost:3000${pathname}`, { headers });
 }
 
 function mockSessionLookup(payload: unknown, status = 200) {
-  return vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-    new Response(JSON.stringify(payload), {
-      status,
-      headers: { 'content-type': 'application/json' },
-    })
-  );
+  return vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse(payload, status));
+}
+
+function jsonResponse(payload: unknown, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+function activeSessionPayload(token: string): unknown {
+  return {
+    session: {
+      id: 's1',
+      token,
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    },
+    user: { id: 'u1', role: 'member' },
+  };
 }
 
 function expectRedirectToLogin(response: Response): void {
@@ -88,6 +109,24 @@ function expectAllowedProtectedRoute(response: Response): void {
   expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
 }
 
+function expectBaseSecurityHeaders(response: Response): string {
+  const csp = response.headers.get('content-security-policy');
+
+  expect(csp).toContain("default-src 'self'");
+  expect(csp).toContain("frame-ancestors 'none'");
+  expect(response.headers.get('x-frame-options')).toBe('DENY');
+  expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+  expect(response.headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin');
+  expect(response.headers.get('permissions-policy')).toContain('camera=()');
+  return csp ?? '';
+}
+
+function expectCompatibleSecurityHeaders(response: Response): void {
+  const csp = expectBaseSecurityHeaders(response);
+
+  expect(csp).toContain("script-src 'self' 'unsafe-inline'");
+}
+
 describe('proxy auth guard hardening', () => {
   beforeEach(() => {
     process.env.BETTER_AUTH_SECRET = 'proxy-guard-test-secret-which-is-long-enough-123456';
@@ -105,6 +144,8 @@ describe('proxy auth guard hardening', () => {
     delete process.env.INTERDOMESTIK_LOCAL_E2E;
     delete process.env.INTERDOMESTIK_E2E_DIAGNOSTICS;
     delete process.env.PLAYWRIGHT;
+    mutableEnv.NODE_ENV = ORIGINAL_NODE_ENV;
+    mutableEnv.VERCEL_ENV = ORIGINAL_VERCEL_ENV;
   });
 
   it('emits bounce telemetry when a protected route has no session cookie', async () => {
@@ -113,6 +154,7 @@ describe('proxy auth guard hardening', () => {
     const response = await proxy(request);
 
     expectRedirectToLogin(response);
+    expectCompatibleSecurityHeaders(response);
     expectProtectedRouteTelemetry({
       eventName: 'protected_route_bounce_to_login',
       reason: 'missing_cookie',
@@ -255,20 +297,14 @@ describe('proxy auth guard hardening', () => {
 
   it('allows protected routes only when signed cookie and introspected session are valid', async () => {
     const signed = await signSessionToken('token-xyz', process.env.BETTER_AUTH_SECRET as string);
-    const fetchSpy = mockSessionLookup({
-      session: {
-        id: 's1',
-        token: 'token-xyz',
-        expiresAt: new Date(Date.now() + 60_000).toISOString(),
-      },
-      user: { id: 'u1', role: 'member' },
-    });
+    const fetchSpy = mockSessionLookup(activeSessionPayload('token-xyz'));
     const request = makeRequest('/sq/member', `better-auth.session_token=${signed}`);
 
     const response = await proxy(request);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expectAllowedProtectedRoute(response);
+    expectCompatibleSecurityHeaders(response);
     expect(mockEmitAuthTelemetryEvent).not.toHaveBeenCalled();
   });
 
@@ -277,14 +313,7 @@ describe('proxy auth guard hardening', () => {
       'token-active-cache',
       process.env.BETTER_AUTH_SECRET as string
     );
-    const fetchSpy = mockSessionLookup({
-      session: {
-        id: 's1',
-        token: 'token-active-cache',
-        expiresAt: new Date(Date.now() + 60_000).toISOString(),
-      },
-      user: { id: 'u1', role: 'member' },
-    });
+    const fetchSpy = mockSessionLookup(activeSessionPayload('token-active-cache'));
     const firstRequest = makeRequest('/sq/member', `better-auth.session_token=${signed}`);
     const secondRequest = makeRequest('/sq/member/claims', `better-auth.session_token=${signed}`);
 
@@ -294,7 +323,70 @@ describe('proxy auth guard hardening', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expectAllowedProtectedRoute(firstResponse);
     expectAllowedProtectedRoute(secondResponse);
+    expectCompatibleSecurityHeaders(firstResponse);
+    expectCompatibleSecurityHeaders(secondResponse);
     expect(mockEmitAuthTelemetryEvent).not.toHaveBeenCalled();
+  });
+
+  it('uses a client-compatible CSP for public static routes', async () => {
+    const request = makeRequest('/sq');
+
+    const response = await proxy(request);
+
+    expect(response.status).toBe(200);
+    expectCompatibleSecurityHeaders(response);
+  });
+
+  it('sets the tenant cookie with hardened defaults on allowed responses', async () => {
+    const signed = await signSessionToken(
+      'token-cookie-hardening',
+      process.env.BETTER_AUTH_SECRET as string
+    );
+    mockSessionLookup({
+      session: {
+        id: 's1',
+        token: 'token-cookie-hardening',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      },
+      user: { id: 'u1', role: 'member' },
+    });
+    const request = makeRequest('/sq/member', `better-auth.session_token=${signed}`);
+
+    const response = await proxy(request);
+    const setCookie = response.headers.get('set-cookie');
+
+    expect(response.status).toBe(200);
+    expect(setCookie).toContain('tenantId=tenant_ks');
+    expect(setCookie).toContain('HttpOnly');
+    expect(setCookie).toContain('SameSite=lax');
+    expect(setCookie).toContain('Path=/');
+    expect(setCookie).toContain('Max-Age=2592000');
+  });
+
+  it('sets Secure on the tenant cookie in production deployments', async () => {
+    mutableEnv.NODE_ENV = 'production';
+    const request = makeRequest('/sq/pricing', undefined, {
+      protocol: 'https:',
+    });
+
+    const response = await proxy(request);
+
+    expect(response.headers.get('set-cookie')).toContain('Secure');
+    expect(response.headers.get('strict-transport-security')).toBe(
+      'max-age=15552000; includeSubDomains'
+    );
+  });
+
+  it('does not emit HTTPS-only headers on local HTTP production builds', async () => {
+    mutableEnv.NODE_ENV = 'production';
+    const request = makeRequest('/sq/pricing');
+
+    const response = await proxy(request);
+
+    expect(response.headers.get('content-security-policy')).not.toContain(
+      'upgrade-insecure-requests'
+    );
+    expect(response.headers.get('strict-transport-security')).toBeNull();
   });
 
   it('retries inactive sessions once for flagged tenants', async () => {
@@ -305,28 +397,8 @@ describe('proxy auth guard hardening', () => {
     );
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ session: null }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        })
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            session: {
-              id: 's1',
-              token: 'token-flagged',
-              expiresAt: new Date(Date.now() + 60_000).toISOString(),
-            },
-            user: { id: 'u1', role: 'member' },
-          }),
-          {
-            status: 200,
-            headers: { 'content-type': 'application/json' },
-          }
-        )
-      );
+      .mockResolvedValueOnce(jsonResponse({ session: null }))
+      .mockResolvedValueOnce(jsonResponse(activeSessionPayload('token-flagged')));
     const request = makeRequest('/sq/member', `better-auth.session_token=${signed}`);
 
     const response = await proxy(request);
@@ -344,18 +416,8 @@ describe('proxy auth guard hardening', () => {
     );
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ session: null }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        })
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ session: null }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        })
-      );
+      .mockResolvedValueOnce(jsonResponse({ session: null }))
+      .mockResolvedValueOnce(jsonResponse({ session: null }));
     const request = makeRequest('/sq/member', `better-auth.session_token=${signed}`);
 
     const response = await proxy(request);
@@ -383,18 +445,8 @@ describe('proxy auth guard hardening', () => {
     );
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ session: null }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        })
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ error: 'too many requests' }), {
-          status: 429,
-          headers: { 'content-type': 'application/json' },
-        })
-      );
+      .mockResolvedValueOnce(jsonResponse({ session: null }))
+      .mockResolvedValueOnce(jsonResponse({ error: 'too many requests' }, 429));
     const request = makeRequest('/sq/member', `better-auth.session_token=${signed}`);
 
     const response = await proxy(request);

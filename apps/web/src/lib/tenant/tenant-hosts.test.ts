@@ -140,9 +140,10 @@ describe('tenant-hosts', () => {
     ).toBe('tenant_ks');
   });
 
-  it('uses cookie/header fallback in production-sensitive mode when host is neutral', () => {
+  it('ignores cookie/header/query fallback in production-sensitive mode when host is neutral', () => {
     mutableEnv.NODE_ENV = 'production';
     delete mutableEnv.VERCEL_ENV;
+    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = 'tenant_ks';
 
     expect(
       resolveTenantIdFromSources(
@@ -154,7 +155,54 @@ describe('tenant-hosts', () => {
         },
         { productionSensitive: true }
       )
+    ).toBe('tenant_ks');
+  });
+
+  it('requires explicit opt-out for user-controlled fallback in production-like environments', () => {
+    mutableEnv.NODE_ENV = 'production';
+    delete mutableEnv.VERCEL_ENV;
+
+    expect(
+      resolveTenantIdFromSources(
+        {
+          host: 'localhost:3000',
+          cookieTenantId: 'tenant_mk',
+          headerTenantId: 'tenant_ks',
+          queryTenantId: 'tenant_ks',
+        },
+        { productionSensitive: false }
+      )
     ).toBe('tenant_mk');
+  });
+
+  it('allows explicit loopback fallback for production-built release gates', () => {
+    mutableEnv.NODE_ENV = 'production';
+    delete mutableEnv.VERCEL_ENV;
+
+    expect(
+      resolveTenantIdFromSources(
+        {
+          host: '127.0.0.1:3000',
+          headerTenantId: 'tenant_mk',
+        },
+        { productionSensitive: true, allowLoopbackFallback: true }
+      )
+    ).toBe('tenant_mk');
+  });
+
+  it('uses production-sensitive tenant resolution by default', () => {
+    mutableEnv.NODE_ENV = 'production';
+    delete mutableEnv.VERCEL_ENV;
+    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = 'tenant_ks';
+
+    expect(
+      resolveTenantIdFromSources({
+        host: 'localhost:3000',
+        cookieTenantId: 'tenant_mk',
+        headerTenantId: 'tenant_mk',
+        queryTenantId: 'tenant_mk',
+      })
+    ).toBe('tenant_ks');
   });
 
   it('blocks query-only fallback in production-sensitive mode', () => {

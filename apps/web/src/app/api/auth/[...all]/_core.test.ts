@@ -197,7 +197,7 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
     ).toBe('tenant_ks');
   });
 
-  it('falls back to cookie/header when host is neutral in production', () => {
+  it('ignores cookie/header/query fallback hints when host is neutral in production', () => {
     MUTABLE_ENV.NODE_ENV = 'production';
     delete MUTABLE_ENV.VERCEL_ENV;
     const headers = new Headers({
@@ -209,6 +209,22 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
     expect(
       resolveTenantIdForPasswordResetAudit(
         'https://interdomestik-web.vercel.app/api/auth/request-password-reset?tenantId=tenant_mk',
+        headers
+      )
+    ).toBe('tenant_ks');
+  });
+
+  it('allows loopback release-gate tenant hints in production builds', () => {
+    MUTABLE_ENV.NODE_ENV = 'production';
+    delete MUTABLE_ENV.VERCEL_ENV;
+    const headers = new Headers({
+      host: '127.0.0.1:3000',
+      'x-tenant-id': 'tenant_mk',
+    });
+
+    expect(
+      resolveTenantIdForPasswordResetAudit(
+        'http://127.0.0.1:3000/api/auth/request-password-reset',
         headers
       )
     ).toBe('tenant_mk');
@@ -272,13 +288,23 @@ describe('resolveTenantIdForEmailSignIn', () => {
     expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_ks');
   });
 
-  it('falls back to cookie/header in production when host is neutral', () => {
+  it('ignores cookie/header fallback hints when host is neutral in production', () => {
     MUTABLE_ENV.NODE_ENV = 'production';
     delete MUTABLE_ENV.VERCEL_ENV;
     const headers = new Headers({
-      host: 'localhost:3000',
+      host: 'interdomestik-web.vercel.app',
       cookie: 'tenantId=tenant_mk',
       'x-tenant-id': 'tenant_ks',
+    });
+    expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_ks');
+  });
+
+  it('allows loopback release-gate tenant hints in production builds', () => {
+    MUTABLE_ENV.NODE_ENV = 'production';
+    delete MUTABLE_ENV.VERCEL_ENV;
+    const headers = new Headers({
+      host: '127.0.0.1:3000',
+      'x-tenant-id': 'tenant_mk',
     });
     expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_mk');
   });

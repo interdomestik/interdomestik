@@ -1,6 +1,6 @@
 import { routing } from '@/i18n/routing';
 import { isStaffAuthTolerantTenant } from '@/lib/feature-flags';
-import { isE2EDiagnosticsEnabled } from '@/lib/runtime-environment';
+import { isE2EDiagnosticsEnabled, isProductionDeployment } from '@/lib/runtime-environment';
 import { emitAuthTelemetryEvent } from '@/lib/telemetry';
 import {
   resolveTenantFromHost as resolveTenantFromCanonicalHost,
@@ -16,7 +16,83 @@ const SESSION_COOKIE_NAMES = [
 ] as const;
 const ACTIVE_SESSION_CACHE_TTL_MS = 2000;
 const ACTIVE_SESSION_CACHE_MAX_ENTRIES = 100;
+const TENANT_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 const activeSessionCache = new Map<string, number>();
+
+type SecurityHeaders = {
+  responseHeaders: Headers;
+};
+
+function isHttpsRequest(request: NextRequest): boolean {
+  return (
+    request.nextUrl.protocol === 'https:' ||
+    request.headers.get('x-forwarded-proto')?.toLowerCase() === 'https'
+  );
+}
+
+function compactHeader(value: string): string {
+  return value.replace(/\s{2,}/g, ' ').trim();
+}
+
+function buildContentSecurityPolicy(request: NextRequest): string {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const directives = [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com https://cdn.paddle.com https://*.paddle.com ${isDevelopment ? "'unsafe-eval'" : ''}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://*.supabase.co https://www.facebook.com",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co https://*.posthog.com https://*.sentry.io https://*.ingest.sentry.io https://api.paddle.com https://*.paddle.com https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://graph.facebook.com",
+    "frame-src 'self' https://*.paddle.com https://buy.paddle.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    isProductionDeployment() && isHttpsRequest(request) ? 'upgrade-insecure-requests' : '',
+  ].filter(Boolean);
+
+  return compactHeader(directives.join('; '));
+}
+
+function createSecurityHeaders(request: NextRequest): SecurityHeaders {
+  const csp = buildContentSecurityPolicy(request);
+  const responseHeaders = new Headers();
+
+  responseHeaders.set('Content-Security-Policy', csp);
+  responseHeaders.set('X-Frame-Options', 'DENY');
+  responseHeaders.set('X-Content-Type-Options', 'nosniff');
+  responseHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  responseHeaders.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+
+  if (isProductionDeployment() && isHttpsRequest(request)) {
+    responseHeaders.set('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+  }
+
+  return { responseHeaders };
+}
+
+function applyResponseHardening(
+  response: NextResponse,
+  request: NextRequest,
+  tenant: string | null,
+  securityHeaders: SecurityHeaders
+): NextResponse {
+  for (const [name, value] of securityHeaders.responseHeaders.entries()) {
+    response.headers.set(name, value);
+  }
+
+  if (tenant) {
+    response.cookies.set(TENANT_COOKIE_NAME, tenant, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isHttpsRequest(request),
+      maxAge: TENANT_COOKIE_MAX_AGE_SECONDS,
+      path: '/',
+    });
+  }
+
+  return response;
+}
 
 function resolveTenantFromHost(
   host: string
@@ -359,6 +435,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   const topLevel = isLocale ? segments[2] : segments[1];
   const locale = isLocale ? possibleLocale : 'sq';
   const surface = getTelemetrySurface(topLevel);
+  const securityHeaders = createSecurityHeaders(request);
 
   const isProtected = PROTECTED_TOP_LEVEL.has(topLevel);
   const sessionCookieValue = isProtected ? getSessionCookieValue(request) : null;
@@ -372,7 +449,12 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   };
 
   if (isProtected && !sessionCookieValue) {
-    return redirectProtectedRouteToLogin(protectedRouteContext, 'missing_cookie');
+    return applyResponseHardening(
+      redirectProtectedRouteToLogin(protectedRouteContext, 'missing_cookie'),
+      request,
+      tenant,
+      securityHeaders
+    );
   }
 
   if (isProtected && sessionCookieValue) {
@@ -386,7 +468,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
       canUseTolerance
     );
     if (guardResponse) {
-      return guardResponse;
+      return applyResponseHardening(guardResponse, request, tenant, securityHeaders);
     }
   }
 
@@ -398,13 +480,5 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     response.headers.set('x-e2e-host', host);
   }
 
-  if (tenant) {
-    response.cookies.set(TENANT_COOKIE_NAME, tenant);
-  }
-
-  // CSP Config could go here, but for "Pure Logic" we might skip heavy headers initially.
-  // Adding minimal security headers.
-  response.headers.set('X-Frame-Options', 'DENY');
-
-  return response;
+  return applyResponseHardening(response, request, tenant, securityHeaders);
 }
