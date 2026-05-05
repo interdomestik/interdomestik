@@ -4,32 +4,30 @@ const hoisted = vi.hoisted(() => {
   const and = vi.fn((...args: unknown[]) => ({ op: 'and', args }));
   const eq = vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right }));
   const inArray = vi.fn((left: unknown, right: unknown[]) => ({ op: 'inArray', left, right }));
+  const isNull = vi.fn((value: unknown) => ({ op: 'isNull', value }));
   const desc = vi.fn((value: unknown) => ({ op: 'desc', value }));
 
   return {
     and,
-    createSignedUrl: vi.fn(),
     desc,
     eq,
     findDocumentExtractionsMany: vi.fn(),
+    findDocumentsMany: vi.fn(),
     findPoliciesMany: vi.fn(),
     inArray,
+    isNull,
   };
 });
 
 vi.mock('@interdomestik/database', () => ({
   and: hoisted.and,
-  createAdminClient: () => ({
-    storage: {
-      from: () => ({
-        createSignedUrl: hoisted.createSignedUrl,
-      }),
-    },
-  }),
   db: {
     query: {
       documentExtractions: {
         findMany: hoisted.findDocumentExtractionsMany,
+      },
+      documents: {
+        findMany: hoisted.findDocumentsMany,
       },
       policies: {
         findMany: hoisted.findPoliciesMany,
@@ -44,6 +42,9 @@ vi.mock('@interdomestik/database/schema', () => ({
   documentExtractions: {
     createdAt: 'document_extractions.created_at',
   },
+  documents: {
+    uploadedAt: 'documents.uploaded_at',
+  },
   policies: {
     createdAt: 'policies.created_at',
   },
@@ -53,20 +54,17 @@ vi.mock('drizzle-orm', () => ({
   desc: hoisted.desc,
 }));
 
-import { getPoliciesWithSignedUrlsCore } from './_core';
+import { getPoliciesWithDocumentLinksCore } from './_core';
 
-describe('getPoliciesWithSignedUrlsCore', () => {
+describe('getPoliciesWithDocumentLinksCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.findPoliciesMany.mockResolvedValue([]);
     hoisted.findDocumentExtractionsMany.mockResolvedValue([]);
-    hoisted.createSignedUrl.mockResolvedValue({
-      data: { signedUrl: 'https://signed.example/policy.pdf' },
-      error: null,
-    });
+    hoisted.findDocumentsMany.mockResolvedValue([]);
   });
 
-  it('prefers the latest extraction over legacy analysisJson', async () => {
+  it('uses the latest tenant-scoped policy document link and latest extraction', async () => {
     hoisted.findPoliciesMany.mockResolvedValue([
       {
         id: 'policy-1',
@@ -91,28 +89,33 @@ describe('getPoliciesWithSignedUrlsCore', () => {
         createdAt: new Date('2026-03-08T10:01:00.000Z'),
       },
     ]);
+    hoisted.findDocumentsMany.mockResolvedValue([
+      { id: 'doc-new', entityId: 'policy-1' },
+      { id: 'doc-old', entityId: 'policy-1' },
+    ]);
 
-    const result = await getPoliciesWithSignedUrlsCore({
+    const result = await getPoliciesWithDocumentLinksCore({
       tenantId: 'tenant-1',
       userId: 'user-1',
     });
 
     expect(result).toEqual([
       expect.objectContaining({
-        fileHref: 'https://signed.example/policy.pdf',
+        documentDownloadHref: '/api/documents/doc-new/download?disposition=inline',
         resolvedAnalysis: {
           summary: 'fresh extraction',
           coverageAmount: '900',
         },
       }),
     ]);
-    expect(hoisted.createSignedUrl).toHaveBeenCalledWith(
-      'pii/tenants/tenant-1/policies/user-1/policy.pdf',
-      300
+    expect(hoisted.findDocumentsMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [expect.objectContaining({ op: 'desc', value: 'documents.uploaded_at' })],
+      })
     );
   });
 
-  it('falls back to legacy analysisJson when no extraction exists', async () => {
+  it('keeps legacy raw policy URLs disabled when no document row exists', async () => {
     hoisted.findPoliciesMany.mockResolvedValue([
       {
         id: 'policy-1',
@@ -126,20 +129,68 @@ describe('getPoliciesWithSignedUrlsCore', () => {
       },
     ]);
 
-    const result = await getPoliciesWithSignedUrlsCore({
+    const result = await getPoliciesWithDocumentLinksCore({
       tenantId: 'tenant-1',
       userId: 'user-1',
     });
 
     expect(result).toEqual([
       expect.objectContaining({
-        fileHref: 'https://cdn.example/policy.pdf',
+        documentDownloadHref: '',
         resolvedAnalysis: {
           summary: 'legacy summary',
           coverageAmount: '500',
         },
       }),
     ]);
-    expect(hoisted.createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it('does not surface a cross-tenant document row for an otherwise matching policy id', async () => {
+    hoisted.findPoliciesMany.mockResolvedValue([
+      {
+        id: 'policy-1',
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        provider: 'Legacy Carrier',
+        policyNumber: 'POL-123',
+        analysisJson: {},
+        fileUrl: 'pii/tenants/tenant-1/policies/user-1/policy.pdf',
+        createdAt: new Date('2026-03-08T10:00:00.000Z'),
+      },
+    ]);
+    hoisted.findDocumentsMany.mockImplementationOnce(async options => {
+      const filter = options.where(
+        {
+          tenantId: 'documents.tenant_id',
+          entityType: 'documents.entity_type',
+          entityId: 'documents.entity_id',
+          deletedAt: 'documents.deleted_at',
+        },
+        {
+          and: hoisted.and,
+          eq: hoisted.eq,
+          inArray: hoisted.inArray,
+          isNull: hoisted.isNull,
+        }
+      );
+
+      expect(filter).toEqual(
+        expect.objectContaining({
+          op: 'and',
+          args: expect.arrayContaining([
+            { op: 'eq', left: 'documents.tenant_id', right: 'tenant-1' },
+          ]),
+        })
+      );
+
+      return [];
+    });
+
+    const result = await getPoliciesWithDocumentLinksCore({
+      tenantId: 'tenant-1',
+      userId: 'user-1',
+    });
+
+    expect(result).toEqual([expect.objectContaining({ documentDownloadHref: '' })]);
   });
 });

@@ -15,7 +15,7 @@ import {
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 
-import { getPoliciesWithSignedUrlsCore } from '@/app/[locale]/(app)/member/policies/_core';
+import { getPoliciesWithDocumentLinksCore } from '@/app/[locale]/(app)/member/policies/_core';
 import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
 
 interface MemberPoliciesV2PageProps {
@@ -32,7 +32,7 @@ export async function MemberPoliciesV2Page({ locale }: MemberPoliciesV2PageProps
   }
 
   const tenantId = ensureTenantId(session);
-  const policiesWithUrls = await getPoliciesWithSignedUrlsCore({
+  const policiesWithDocumentLinks = await getPoliciesWithDocumentLinksCore({
     tenantId,
     userId: session.user.id,
   });
@@ -54,7 +54,7 @@ export async function MemberPoliciesV2Page({ locale }: MemberPoliciesV2PageProps
         </Link>
       </div>
 
-      {policiesWithUrls.length === 0 ? (
+      {policiesWithDocumentLinks.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
           <div className="bg-primary/10 p-4 rounded-full mb-4">
             <Shield className="h-8 w-8 text-primary" />
@@ -70,7 +70,7 @@ export async function MemberPoliciesV2Page({ locale }: MemberPoliciesV2PageProps
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {policiesWithUrls.map(({ policy, fileHref, resolvedAnalysis }) => {
+          {policiesWithDocumentLinks.map(({ policy, documentDownloadHref, resolvedAnalysis }) => {
             const analysis = resolvedAnalysis as PolicyAnalysis | null;
             return (
               <Card key={policy.id} className="overflow-hidden hover:shadow-md transition-shadow">
@@ -130,11 +130,11 @@ export async function MemberPoliciesV2Page({ locale }: MemberPoliciesV2PageProps
                   )}
 
                   <div className="pt-4 flex gap-2">
-                    {fileHref ? (
+                    {documentDownloadHref ? (
                       <Button variant="outline" className="w-full text-xs" asChild>
-                        <Link href={fileHref} target="_blank">
+                        <a href={documentDownloadHref} target="_blank" rel="noreferrer">
                           View PDF
-                        </Link>
+                        </a>
                       </Button>
                     ) : (
                       <Button variant="outline" className="w-full text-xs" disabled>

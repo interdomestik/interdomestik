@@ -174,6 +174,36 @@ describe('getDocumentAccessCore Hardening', () => {
       expect((await execAccess(memberSession, 'doc-policy')).ok).toBe(true);
     });
 
+    it('uses the policy storage bucket for policy documents', async () => {
+      setupMocks([polymorphicDocs.policy], [{ policyOwnerId: 'member-1' }]);
+
+      await expect(execAccess(memberSession, 'doc-policy')).resolves.toEqual(
+        expect.objectContaining({
+          ok: true,
+          audit: expect.objectContaining({
+            entityType: 'policy_document',
+          }),
+          document: expect.objectContaining({
+            bucket: 'policies',
+            filePath: 'path/to/policy',
+          }),
+        })
+      );
+    });
+
+    it('denies policy document access to uploader when the policy belongs to another member', async () => {
+      setupMocks(
+        [{ ...polymorphicDocs.policy, uploadedBy: 'member-1' }],
+        [{ policyOwnerId: 'member-2' }]
+      );
+
+      await expect(execAccess(memberSession, 'doc-policy')).resolves.toEqual({
+        ok: false,
+        code: 'FORBIDDEN',
+        message: 'Forbidden',
+      });
+    });
+
     it('denies access if tenant mismatches', async () => {
       setupMocks([], []);
       const session = { user: { ...memberSession.user, tenantId: 'wrong' } };
