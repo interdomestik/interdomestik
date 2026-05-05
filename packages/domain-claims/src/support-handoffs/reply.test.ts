@@ -11,80 +11,75 @@ const mocks = vi.hoisted(() => {
   const selectLimit = vi.fn();
   const selectWhere = vi.fn();
   const selectFrom = vi.fn();
-  const supportHandoffColumns = [
-    ['id', 'id'],
-    ['memberId', 'member_id'],
-    ['memberReply', 'member_reply'],
-    ['memberReplyAt', 'member_reply_at'],
-    ['memberReplyResponseVersion', 'member_reply_response_version'],
-    ['publicResponse', 'public_response'],
-    ['publicResponseAcknowledgedAt', 'public_response_acknowledged_at'],
-    ['publicResponseAcknowledgedById', 'public_response_acknowledged_by_id'],
-    ['publicResponseAcknowledgedVersion', 'public_response_acknowledged_version'],
-    ['publicResponseVersion', 'public_response_version'],
-    ['status', 'status'],
-    ['tenantId', 'tenant_id'],
-    ['updatedAt', 'updated_at'],
-  ];
+  const column = (name: string) => `support_handoffs.${name}`;
 
   return {
-    and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
-    db: {
-      select: vi.fn(() => ({ from: selectFrom })),
-      update: vi.fn(() => ({ set: updateSet })),
-    },
-    ensureTenantId: vi.fn(() => 'tenant-1'),
-    eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
-    inArray: vi.fn((left, right) => ({ left, op: 'inArray', right })),
-    isNotNull: vi.fn(column => ({ column, op: 'isNotNull' })),
+    and: vi.fn((...conditions) => ({ conditions, predicate: 'and' })),
+    db: Object.fromEntries([
+      ['select', vi.fn(() => ({ from: selectFrom }))],
+      ['update', vi.fn(() => ({ set: updateSet }))],
+    ]),
+    ensureTenantId: vi.fn().mockReturnValue('tenant-1'),
+    eq: vi.fn((left, right) => ({ left, predicate: 'eq', right })),
+    inArray: vi.fn((left, right) => ({ left, predicate: 'inArray', right })),
+    isNotNull: vi.fn(columnName => ({ column: columnName, predicate: 'isNotNull' })),
     logAuditEvent: vi.fn(),
     selectFrom,
     selectLimit,
     selectWhere,
-    sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
-      op: 'sql',
-      strings,
-      values,
-    })),
-    supportHandoffs: Object.fromEntries(
-      supportHandoffColumns.map(([key, column]) => [key, `support_handoffs.${column}`])
-    ),
+    sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
+    supportHandoffs: {
+      id: column('id'),
+      memberId: column('member_id'),
+      memberReply: column('member_reply'),
+      memberReplyAt: column('member_reply_at'),
+      memberReplyResponseVersion: column('member_reply_response_version'),
+      publicResponse: column('public_response'),
+      publicResponseAcknowledgedAt: column('public_response_acknowledged_at'),
+      publicResponseAcknowledgedById: column('public_response_acknowledged_by_id'),
+      publicResponseAcknowledgedVersion: column('public_response_acknowledged_version'),
+      publicResponseVersion: column('public_response_version'),
+      status: column('status'),
+      tenantId: column('tenant_id'),
+      updatedAt: column('updated_at'),
+    },
     updateReturning,
     updateSet,
     updateWhere,
-    withTenant: vi.fn((_tenantId, _column, condition) => ({ condition, scoped: true })),
+    withTenant: vi.fn((_tenantId, _tenantColumn, condition) => ({ condition, tenantScoped: true })),
   };
 });
 
-vi.mock('@interdomestik/database', () => ({
-  and: mocks.and,
-  db: mocks.db,
-  eq: mocks.eq,
-  sql: mocks.sql,
-  supportHandoffs: mocks.supportHandoffs,
-}));
+function databaseExports() {
+  return {
+    and: mocks.and,
+    db: mocks.db,
+    eq: mocks.eq,
+    sql: mocks.sql,
+    supportHandoffs: mocks.supportHandoffs,
+  };
+}
 
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
-}));
+function tenantSecurityExports() {
+  return { withTenant: mocks.withTenant };
+}
 
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: mocks.ensureTenantId,
-}));
+function sharedAuthExports() {
+  return { ensureTenantId: mocks.ensureTenantId };
+}
 
-vi.mock('drizzle-orm', () => ({
-  inArray: mocks.inArray,
-  isNotNull: mocks.isNotNull,
-}));
+function drizzleExports() {
+  return { inArray: mocks.inArray, isNotNull: mocks.isNotNull };
+}
+
+vi.mock('@interdomestik/database', databaseExports);
+vi.mock('@interdomestik/database/tenant-security', tenantSecurityExports);
+vi.mock('@interdomestik/shared-auth', sharedAuthExports);
+vi.mock('drizzle-orm', drizzleExports);
 
 function memberSession(overrides: Partial<SupportHandoffSession['user']> = {}) {
   return {
-    user: {
-      id: 'member-1',
-      role: 'member',
-      tenantId: 'tenant-1',
-      ...overrides,
-    },
+    user: Object.assign({ id: 'member-1', role: 'member', tenantId: 'tenant-1' }, overrides),
   } as SupportHandoffSession;
 }
 
