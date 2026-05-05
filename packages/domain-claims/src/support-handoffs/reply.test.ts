@@ -6,11 +6,26 @@ import { ACTIVE_HANDOFF_STATUSES, MAX_MEMBER_REPLY_LENGTH } from './types';
 
 const mocks = vi.hoisted(() => {
   const updateReturning = vi.fn();
-  const updateWhere = vi.fn(() => ({ returning: updateReturning }));
-  const updateSet = vi.fn(() => ({ where: updateWhere }));
+  const updateWhere = vi.fn();
+  const updateSet = vi.fn();
   const selectLimit = vi.fn();
-  const selectWhere = vi.fn(() => ({ limit: selectLimit }));
-  const selectFrom = vi.fn(() => ({ where: selectWhere }));
+  const selectWhere = vi.fn();
+  const selectFrom = vi.fn();
+  const supportHandoffColumns = [
+    ['id', 'id'],
+    ['memberId', 'member_id'],
+    ['memberReply', 'member_reply'],
+    ['memberReplyAt', 'member_reply_at'],
+    ['memberReplyResponseVersion', 'member_reply_response_version'],
+    ['publicResponse', 'public_response'],
+    ['publicResponseAcknowledgedAt', 'public_response_acknowledged_at'],
+    ['publicResponseAcknowledgedById', 'public_response_acknowledged_by_id'],
+    ['publicResponseAcknowledgedVersion', 'public_response_acknowledged_version'],
+    ['publicResponseVersion', 'public_response_version'],
+    ['status', 'status'],
+    ['tenantId', 'tenant_id'],
+    ['updatedAt', 'updated_at'],
+  ];
 
   return {
     and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
@@ -31,21 +46,9 @@ const mocks = vi.hoisted(() => {
       strings,
       values,
     })),
-    supportHandoffs: {
-      id: 'support_handoffs.id',
-      memberId: 'support_handoffs.member_id',
-      memberReply: 'support_handoffs.member_reply',
-      memberReplyAt: 'support_handoffs.member_reply_at',
-      memberReplyResponseVersion: 'support_handoffs.member_reply_response_version',
-      publicResponse: 'support_handoffs.public_response',
-      publicResponseAcknowledgedAt: 'support_handoffs.public_response_acknowledged_at',
-      publicResponseAcknowledgedById: 'support_handoffs.public_response_acknowledged_by_id',
-      publicResponseAcknowledgedVersion: 'support_handoffs.public_response_acknowledged_version',
-      publicResponseVersion: 'support_handoffs.public_response_version',
-      status: 'support_handoffs.status',
-      tenantId: 'support_handoffs.tenant_id',
-      updatedAt: 'support_handoffs.updated_at',
-    },
+    supportHandoffs: Object.fromEntries(
+      supportHandoffColumns.map(([key, column]) => [key, `support_handoffs.${column}`])
+    ),
     updateReturning,
     updateSet,
     updateWhere,
@@ -105,6 +108,10 @@ function fallbackRow(overrides = {}) {
     status: 'accepted',
     ...overrides,
   };
+}
+
+function findSqlCallWithValue(value: unknown) {
+  return mocks.sql.mock.calls.find(call => call.slice(1).includes(value));
 }
 
 describe('support handoff member reply', () => {
@@ -189,6 +196,9 @@ describe('support handoff member reply', () => {
     expect(mocks.isNotNull).toHaveBeenCalledWith(
       'support_handoffs.public_response_acknowledged_at'
     );
+    const idempotencyGuard = findSqlCallWithValue('support_handoffs.member_reply_response_version');
+    expect(idempotencyGuard?.[0].join('')).toContain('is distinct from');
+    expect(idempotencyGuard).toContain(2);
     expect(mocks.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'support_handoff.member_reply_submitted',

@@ -1,8 +1,12 @@
 import { and, db, eq, sql, supportHandoffs } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { inArray, isNotNull } from 'drizzle-orm';
 
+import {
+  isCurrentResponseAcknowledged,
+  normalizeNullableDate,
+  requireSupportHandoffMemberSession,
+} from './member-response-state';
 import type {
   AcknowledgeSupportHandoffPublicResponseErrorCode,
   AcknowledgeSupportHandoffPublicResponseInput,
@@ -17,46 +21,11 @@ const STALE_RESPONSE_ERROR =
   'The support team updated this response. Please review the latest update.';
 const ACKNOWLEDGEMENT_UNAVAILABLE_ERROR = 'Unable to acknowledge this response.';
 
-function normalizeNullableDate(value: Date | string | null | undefined) {
-  if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
 function failure(
   error: string,
   code: AcknowledgeSupportHandoffPublicResponseErrorCode
 ): SupportHandoffActionResult<AcknowledgeSupportHandoffPublicResponseResult> {
   return { success: false, error, code };
-}
-
-function requireMemberSession(session: SupportHandoffSession | null) {
-  if (session?.user?.role !== 'member' && session?.user?.role !== 'user') {
-    return null;
-  }
-
-  let tenantId: string;
-  try {
-    tenantId = ensureTenantId(session);
-  } catch {
-    return null;
-  }
-
-  return { tenantId, user: session.user };
-}
-
-function isCurrentResponseAcknowledged(args: {
-  acknowledgedAt: Date | string | null;
-  acknowledgedById: string | null;
-  acknowledgedVersion: number | null;
-  memberId: string;
-  publicResponseVersion: number;
-}) {
-  return (
-    args.acknowledgedById === args.memberId &&
-    args.acknowledgedVersion === args.publicResponseVersion &&
-    normalizeNullableDate(args.acknowledgedAt) != null
-  );
 }
 
 export async function acknowledgeSupportHandoffPublicResponseCore(
@@ -66,7 +35,7 @@ export async function acknowledgeSupportHandoffPublicResponseCore(
   },
   deps: SupportHandoffDeps = {}
 ): Promise<SupportHandoffActionResult<AcknowledgeSupportHandoffPublicResponseResult>> {
-  const memberSession = requireMemberSession(params.session);
+  const memberSession = requireSupportHandoffMemberSession(params.session);
   if (!memberSession) {
     return failure('Unauthorized', 'UNAUTHORIZED');
   }

@@ -515,6 +515,7 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
     const subject = `E2E CRM06 public response ${testInfo.project.name} ${Date.now()}`;
     const firstResponse = `CRM06 member-visible update ${Date.now()}`;
     const memberReply = `CRM09 member reply ${Date.now()}`;
+    const secondMemberReply = `CRM09 second-cycle member reply ${Date.now()}`;
     const updatedResponse = `${firstResponse} updated`;
     const memberHelpRoute = routes.memberHelp(testInfo);
     let handoffId: string | null = null;
@@ -639,6 +640,18 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       });
       await acknowledgeVisibleMemberPublicResponse(memberPage, updatedResponse);
       await expectPublicResponseAcknowledgedVersion(subject, 2);
+      await submitVisibleMemberReply(memberPage, secondMemberReply);
+      await expectMemberReplyVersion(subject, secondMemberReply, 2);
+
+      const secondReplyRow = await openAcceptedSupportHandoffRow(staffPage, subject, testInfo);
+      await secondReplyRow.getByTestId('staff-support-handoff-detail-toggle').click();
+      await expect(secondReplyRow.getByTestId('handoff-member-reply')).toContainText(
+        secondMemberReply,
+        { timeout: 15000 }
+      );
+      await expect(
+        secondReplyRow.getByTestId('staff-support-handoff-member-reply-warning')
+      ).toBeVisible({ timeout: 15000 });
 
       await gotoApp(
         branchManagerPage,

@@ -8,7 +8,7 @@ import {
 import { Button } from '@interdomestik/ui';
 import { CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { type FormEvent, type ReactNode, useEffect, useState, useTransition } from 'react';
+import { type FormEvent, type ReactNode, useEffect, useRef, useState, useTransition } from 'react';
 
 type PublicResponseAcknowledgementFormProps = Readonly<{
   acknowledgedAt: string | null;
@@ -60,10 +60,12 @@ export function PublicResponseAcknowledgementForm({
   const [optimisticAcknowledgedLabel, setOptimisticAcknowledgedLabel] = useState<string | null>(
     null
   );
+  const replyRegionRef = useRef<HTMLDivElement>(null);
   const initialState: PublicResponseAcknowledgementActionState = acknowledgedAt
     ? { acknowledgedAt, acknowledgedAtLabel: acknowledgedAtLabel ?? undefined, success: true }
     : { success: false };
   const [state, setState] = useState<PublicResponseAcknowledgementActionState>(initialState);
+  const [focusReplyAfterAcknowledgement, setFocusReplyAfterAcknowledgement] = useState(false);
   const [pending, startTransition] = useTransition();
   const currentAcknowledgedLabel = state.success
     ? state.acknowledgedAtLabel || acknowledgedAtLabel || optimisticAcknowledgedLabel
@@ -80,6 +82,7 @@ export function PublicResponseAcknowledgementForm({
         .then(result => {
           setState(result);
           if (result.success) {
+            setFocusReplyAfterAcknowledgement(true);
             router.refresh();
           }
         })
@@ -101,6 +104,13 @@ export function PublicResponseAcknowledgementForm({
       setOptimisticAcknowledgedLabel(null);
     }
   }, [state.code, state.error, state.success]);
+
+  useEffect(() => {
+    if (focusReplyAfterAcknowledgement && state.success && memberReplySlot) {
+      replyRegionRef.current?.focus();
+      setFocusReplyAfterAcknowledgement(false);
+    }
+  }, [focusReplyAfterAcknowledgement, memberReplySlot, state.success]);
 
   return (
     <div className="pt-1" aria-live="polite">
@@ -139,7 +149,16 @@ export function PublicResponseAcknowledgementForm({
           </Button>
         </form>
       )}
-      {state.success && memberReplySlot ? memberReplySlot : null}
+      {state.success && memberReplySlot ? (
+        <div
+          ref={replyRegionRef}
+          tabIndex={-1}
+          className="focus:outline-none"
+          data-testid="member-reply-focus-region"
+        >
+          {memberReplySlot}
+        </div>
+      ) : null}
       {error ? (
         <p
           className="mt-2 text-xs font-medium text-red-700"

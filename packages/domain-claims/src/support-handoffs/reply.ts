@@ -1,8 +1,12 @@
 import { and, db, eq, sql, supportHandoffs } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { inArray, isNotNull } from 'drizzle-orm';
 
+import {
+  isCurrentResponseAcknowledged,
+  normalizeNullableDate,
+  requireSupportHandoffMemberSession,
+} from './member-response-state';
 import type {
   SubmitSupportHandoffMemberReplyErrorCode,
   SubmitSupportHandoffMemberReplyInput,
@@ -19,12 +23,6 @@ const REPLY_UNAVAILABLE_ERROR = 'Unable to reply to this response.';
 const NOT_ACKNOWLEDGED_ERROR = 'Please acknowledge this response before replying.';
 const ALREADY_REPLIED_ERROR = 'You already replied to this response.';
 
-function normalizeNullableDate(value: Date | string | null | undefined) {
-  if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
 function failure(
   error: string,
   code: SubmitSupportHandoffMemberReplyErrorCode
@@ -36,35 +34,6 @@ function normalizeReplyText(value: string | null | undefined) {
   return value?.trim().slice(0, MAX_MEMBER_REPLY_LENGTH) ?? '';
 }
 
-function requireMemberSession(session: SupportHandoffSession | null) {
-  if (session?.user?.role !== 'member' && session?.user?.role !== 'user') {
-    return null;
-  }
-
-  let tenantId: string;
-  try {
-    tenantId = ensureTenantId(session);
-  } catch {
-    return null;
-  }
-
-  return { tenantId, user: session.user };
-}
-
-function isCurrentResponseAcknowledged(args: {
-  acknowledgedAt: Date | string | null;
-  acknowledgedById: string | null;
-  acknowledgedVersion: number | null;
-  memberId: string;
-  publicResponseVersion: number;
-}) {
-  return (
-    args.acknowledgedById === args.memberId &&
-    args.acknowledgedVersion === args.publicResponseVersion &&
-    normalizeNullableDate(args.acknowledgedAt) != null
-  );
-}
-
 export async function submitSupportHandoffMemberReplyCore(
   params: SubmitSupportHandoffMemberReplyInput & {
     requestHeaders?: Headers;
@@ -72,7 +41,7 @@ export async function submitSupportHandoffMemberReplyCore(
   },
   deps: SupportHandoffDeps = {}
 ): Promise<SupportHandoffActionResult<SubmitSupportHandoffMemberReplyResult>> {
-  const memberSession = requireMemberSession(params.session);
+  const memberSession = requireSupportHandoffMemberSession(params.session);
   if (!memberSession) {
     return failure('Unauthorized', 'UNAUTHORIZED');
   }
