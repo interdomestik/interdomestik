@@ -21,6 +21,7 @@ const DEFAULT_SCOPE_FORBIDDEN_PATHS = [
   'docs/architecture',
   'docs/architecture.md',
 ];
+const MAX_CODE_SEARCH_OUTPUT_CHARS = 10_000;
 
 function resolveRepoPath(file: string) {
   const resolvedPath = path.resolve(REPO_ROOT, file);
@@ -120,6 +121,14 @@ function repoIdentityFields() {
     repoRoot: REPO_ROOT,
     repoRootSource: REPO_ROOT_SOURCE,
   };
+}
+
+function formatCodeSearchOutput(stdout: string) {
+  return stdout.slice(0, MAX_CODE_SEARCH_OUTPUT_CHARS);
+}
+
+function codeSearchMatches(stdout: string) {
+  return formatCodeSearchOutput(stdout).split('\n').filter(Boolean);
 }
 
 export async function projectMap(args?: { maxDepth?: number }) {
@@ -463,15 +472,24 @@ export async function codeSearch(args: {
   rgArgs.push(query);
 
   try {
-    const { stdout } = await execAsync({ args: rgArgs, file: 'rg' }, { cwd: REPO_ROOT });
+    const { stdout, stdoutTruncated } = await execAsync(
+      { args: rgArgs, file: 'rg' },
+      { cwd: REPO_ROOT }
+    );
     if (!stdout) return { content: [{ type: 'text', text: 'No matches found.' }] };
     return {
       content: [
-        { type: 'text', text: `SEARCH RESULTS for "${query}":\n\n${stdout.slice(0, 10000)}` },
+        {
+          type: 'text',
+          text: `SEARCH RESULTS for "${query}":\n\n${formatCodeSearchOutput(stdout)}`,
+        },
       ],
       structuredContent: {
         engine: 'rg',
         filePattern: filePattern || null,
+        matches: codeSearchMatches(stdout),
+        matchesTruncated: stdoutTruncated || stdout.length > MAX_CODE_SEARCH_OUTPUT_CHARS,
+        stdoutTruncated,
         status: 'ok',
         tool: 'code_search',
       },
@@ -481,19 +499,27 @@ export async function codeSearch(args: {
 
     try {
       const gitGrepArgs = ['grep', '-n', '-I', query, '--', filePattern || '.'];
-      const { stdout } = await execAsync({ args: gitGrepArgs, file: 'git' }, { cwd: REPO_ROOT });
+      const { stdout, stdoutTruncated } = await execAsync(
+        { args: gitGrepArgs, file: 'git' },
+        { cwd: REPO_ROOT }
+      );
       if (!stdout) return { content: [{ type: 'text', text: 'No matches found.' }] };
 
       return {
         content: [
           {
             type: 'text',
-            text: `SEARCH RESULTS for "${query}" (git grep fallback):\n\n${stdout.slice(0, 10000)}`,
+            text: `SEARCH RESULTS for "${query}" (git grep fallback):\n\n${formatCodeSearchOutput(
+              stdout
+            )}`,
           },
         ],
         structuredContent: {
           engine: 'git grep',
           filePattern: filePattern || null,
+          matches: codeSearchMatches(stdout),
+          matchesTruncated: stdoutTruncated || stdout.length > MAX_CODE_SEARCH_OUTPUT_CHARS,
+          stdoutTruncated,
           status: 'ok',
           tool: 'code_search',
         },
