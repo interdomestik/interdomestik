@@ -39,6 +39,17 @@
       "acknowledgementError": "We could not acknowledge this update. Try again.",
       "acknowledgementStale": "The support team just updated this response. Please review the latest update."
     },
+    "memberReply": {
+      "label": "Reply to staff",
+      "placeholder": "Let staff know whether this resolves your request or what you still need...",
+      "submit": "Send reply",
+      "submitting": "Sending...",
+      "sent": "Reply sent",
+      "error": "We could not send your reply. Try again.",
+      "stale": "This support update changed. Please review the latest update before replying.",
+      "alreadyReplied": "You already replied to this update.",
+      "tooLong": "Reply must be 1,000 characters or fewer."
+    },
     "advisory": {
       "claimSpecific": "You already have an active support request for this claim. You can still submit a new one.",
       "claimSpecificMeta": "Status: {status} · Submitted {date}",

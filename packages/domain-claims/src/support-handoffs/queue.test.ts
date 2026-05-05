@@ -48,6 +48,9 @@ const mocks = vi.hoisted(() => ({
     id: 'support_handoffs.id',
     lifecycleVersion: 'support_handoffs.lifecycle_version',
     memberId: 'support_handoffs.member_id',
+    memberReply: 'support_handoffs.member_reply',
+    memberReplyAt: 'support_handoffs.member_reply_at',
+    memberReplyResponseVersion: 'support_handoffs.member_reply_response_version',
     message: 'support_handoffs.message',
     publicResponse: 'support_handoffs.public_response',
     publicResponseAt: 'support_handoffs.public_response_at',
@@ -208,6 +211,9 @@ describe('getStaffSupportHandoffDetail', () => {
         closeReason: null,
         contactPreference: 'phone',
         memberId: 'member-1',
+        memberReply: 'This resolves my request.',
+        memberReplyAt: new Date('2026-05-04T11:10:00.000Z'),
+        memberReplyResponseVersion: 2,
         publicResponse: 'We are checking this.',
         publicResponseAt: new Date('2026-05-04T11:00:00.000Z'),
         publicResponseAcknowledgedAt: new Date('2026-05-04T11:05:00.000Z'),
@@ -242,6 +248,9 @@ describe('getStaffSupportHandoffDetail', () => {
         publicResponseAcknowledgedById: 'support_handoffs.public_response_acknowledged_by_id',
         publicResponseAcknowledgedVersion: 'support_handoffs.public_response_acknowledged_version',
         publicResponseVersion: 'support_handoffs.public_response_version',
+        memberReply: 'support_handoffs.member_reply',
+        memberReplyAt: 'support_handoffs.member_reply_at',
+        memberReplyResponseVersion: 'support_handoffs.member_reply_response_version',
         source: 'support_handoffs.source',
       })
     );
@@ -256,6 +265,11 @@ describe('getStaffSupportHandoffDetail', () => {
       closedByName: null,
       closeReason: null,
       contactPreference: 'phone',
+      memberReply: {
+        memberReply: 'This resolves my request.',
+        memberReplyAt: '2026-05-04T11:10:00.000Z',
+        memberReplyResponseVersion: 2,
+      },
       publicResponse: {
         publicResponse: 'We are checking this.',
         publicResponseAt: '2026-05-04T11:00:00.000Z',

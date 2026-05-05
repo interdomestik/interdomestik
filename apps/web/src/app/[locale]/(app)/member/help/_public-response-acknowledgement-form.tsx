@@ -8,7 +8,7 @@ import {
 import { Button } from '@interdomestik/ui';
 import { CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { type FormEvent, useEffect, useState, useTransition } from 'react';
+import { type FormEvent, type ReactNode, useEffect, useState, useTransition } from 'react';
 
 type PublicResponseAcknowledgementFormProps = Readonly<{
   acknowledgedAt: string | null;
@@ -23,6 +23,7 @@ type PublicResponseAcknowledgementFormProps = Readonly<{
     stale: string;
   };
   locale: string;
+  memberReplySlot?: ReactNode;
   permalink: string;
 }>;
 
@@ -52,6 +53,7 @@ export function PublicResponseAcknowledgementForm({
   handoffId,
   labels,
   locale,
+  memberReplySlot,
   permalink,
 }: PublicResponseAcknowledgementFormProps) {
   const router = useRouter();
@@ -137,6 +139,7 @@ export function PublicResponseAcknowledgementForm({
           </Button>
         </form>
       )}
+      {state.success && memberReplySlot ? memberReplySlot : null}
       {error ? (
         <p
           className="mt-2 text-xs font-medium text-red-700"

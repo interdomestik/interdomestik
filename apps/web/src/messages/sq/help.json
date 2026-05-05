@@ -55,6 +55,17 @@
       "acknowledgementError": "Nuk mundëm ta konfirmojmë këtë përditësim. Provoni përsëri.",
       "acknowledgementStale": "Ekipi i mbështetjes sapo e përditësoi këtë përgjigje. Ju lutemi rishikoni përditësimin më të fundit."
     },
+    "memberReply": {
+      "label": "Përgjigju stafit",
+      "placeholder": "Tregojini stafit nëse kjo e zgjidh kërkesën tuaj ose çfarë ju duhet ende...",
+      "submit": "Dërgo përgjigjen",
+      "submitting": "Duke dërguar...",
+      "sent": "Përgjigjja u dërgua",
+      "error": "Nuk mundëm ta dërgojmë përgjigjen tuaj. Provoni përsëri.",
+      "stale": "Ky përditësim i mbështetjes ndryshoi. Ju lutemi rishikoni përditësimin më të fundit para se të përgjigjeni.",
+      "alreadyReplied": "Ju tashmë iu përgjigjët këtij përditësimi.",
+      "tooLong": "Përgjigjja duhet të ketë 1.000 karaktere ose më pak."
+    },
     "advisory": {
       "claimSpecific": "Tashmë keni një kërkesë aktive mbështetjeje për këtë rast. Mund të dërgoni ende një të re.",
       "claimSpecificMeta": "Statusi: {status} · Dërguar më {date}",

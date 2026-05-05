@@ -2,6 +2,7 @@ import { getMemberLatestPublicResponse } from '@interdomestik/domain-claims/supp
 import { MessageSquareText } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
 
+import { MemberReplyForm } from './_member-reply-form';
 import { PublicResponseAcknowledgementForm } from './_public-response-acknowledgement-form';
 
 type SelectedClaim = {
@@ -53,6 +54,26 @@ export async function PublicResponseBanner({
       })
     : null;
   const acknowledgementPermalink = `/${locale}/member/help?handoffId=${encodeURIComponent(response.handoffId)}`;
+  const hasCurrentCycleReply =
+    response.memberReplyResponseVersion === response.publicResponseVersion &&
+    !!response.memberReply;
+  const memberReplySlot = !hasCurrentCycleReply ? (
+    <MemberReplyForm
+      expectedPublicResponseVersion={response.publicResponseVersion}
+      handoffId={response.handoffId}
+      labels={{
+        alreadyReplied: t('memberReply.alreadyReplied'),
+        error: t('memberReply.error'),
+        label: t('memberReply.label'),
+        placeholder: t('memberReply.placeholder'),
+        stale: t('memberReply.stale'),
+        submit: t('memberReply.submit'),
+        submitting: t('memberReply.submitting'),
+        success: t('memberReply.sent'),
+        tooLong: t('memberReply.tooLong'),
+      }}
+    />
+  ) : null;
 
   return (
     <div
@@ -91,8 +112,17 @@ export async function PublicResponseBanner({
             stale: t('publicResponse.acknowledgementStale'),
           }}
           locale={locale}
+          memberReplySlot={memberReplySlot}
           permalink={acknowledgementPermalink}
         />
+        {hasCurrentCycleReply ? (
+          <div
+            className="mt-3 inline-flex items-center rounded-md border border-emerald-200 bg-white/70 px-2.5 py-1.5 text-xs font-medium text-emerald-800"
+            data-testid="member-reply-success"
+          >
+            {t('memberReply.sent')}
+          </div>
+        ) : null}
       </div>
     </div>
   );

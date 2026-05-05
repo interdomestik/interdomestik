@@ -39,6 +39,9 @@ const mocks = vi.hoisted(() => {
       claimId: 'support_handoffs.claim_id',
       id: 'support_handoffs.id',
       memberId: 'support_handoffs.member_id',
+      memberReply: 'support_handoffs.member_reply',
+      memberReplyAt: 'support_handoffs.member_reply_at',
+      memberReplyResponseVersion: 'support_handoffs.member_reply_response_version',
       publicResponse: 'support_handoffs.public_response',
       publicResponseAt: 'support_handoffs.public_response_at',
       publicResponseAcknowledgedAt: 'support_handoffs.public_response_acknowledged_at',
@@ -232,6 +235,9 @@ describe('support handoff public response', () => {
         publicResponseAcknowledgedById: null,
         publicResponseAcknowledgedVersion: null,
         publicResponseVersion: 2,
+        memberReply: null,
+        memberReplyAt: null,
+        memberReplyResponseVersion: null,
       },
     ]);
 
@@ -249,6 +255,9 @@ describe('support handoff public response', () => {
       publicResponseAcknowledgedAt: null,
       publicResponseAcknowledgedVersion: null,
       publicResponseVersion: 2,
+      memberReply: null,
+      memberReplyAt: null,
+      memberReplyResponseVersion: null,
     });
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.member_id', 'member-1');
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.claim_id', 'claim-1');
@@ -262,6 +271,9 @@ describe('support handoff public response', () => {
       'publicResponseAcknowledged',
       'publicResponseAcknowledgedAt',
       'publicResponseAcknowledgedVersion',
+      'memberReply',
+      'memberReplyAt',
+      'memberReplyResponseVersion',
     ]);
   });
 
@@ -275,6 +287,9 @@ describe('support handoff public response', () => {
         publicResponseAcknowledgedById: 'member-1',
         publicResponseAcknowledgedVersion: 3,
         publicResponseVersion: 3,
+        memberReply: 'Thanks, that resolves it.',
+        memberReplyAt: new Date('2026-05-04T11:07:00.000Z'),
+        memberReplyResponseVersion: 3,
       },
     ]);
 
@@ -293,6 +308,9 @@ describe('support handoff public response', () => {
       publicResponseAcknowledgedAt: '2026-05-04T11:05:00.000Z',
       publicResponseAcknowledgedVersion: 3,
       publicResponseVersion: 3,
+      memberReply: 'Thanks, that resolves it.',
+      memberReplyAt: '2026-05-04T11:07:00.000Z',
+      memberReplyResponseVersion: 3,
     });
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.id', 'handoff-1');
     expect(mocks.eq).not.toHaveBeenCalledWith('support_handoffs.claim_id', 'claim-1');
@@ -309,6 +327,9 @@ describe('support handoff public response', () => {
         publicResponseAcknowledgedById: 'member-1',
         publicResponseAcknowledgedVersion: 2,
         publicResponseVersion: 3,
+        memberReply: 'Earlier-cycle reply',
+        memberReplyAt: new Date('2026-05-04T10:06:00.000Z'),
+        memberReplyResponseVersion: 2,
       },
     ]);
 
@@ -326,6 +347,9 @@ describe('support handoff public response', () => {
       publicResponseAcknowledgedAt: null,
       publicResponseAcknowledgedVersion: 2,
       publicResponseVersion: 3,
+      memberReply: 'Earlier-cycle reply',
+      memberReplyAt: '2026-05-04T10:06:00.000Z',
+      memberReplyResponseVersion: 2,
     });
     expect(mocks.selectLimit).toHaveBeenCalledTimes(2);
   });

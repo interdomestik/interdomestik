@@ -300,6 +300,9 @@ export async function getStaffSupportHandoffDetail(params: {
       publicResponseAcknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
       publicResponseAcknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
       publicResponseVersion: supportHandoffs.publicResponseVersion,
+      memberReply: supportHandoffs.memberReply,
+      memberReplyAt: supportHandoffs.memberReplyAt,
+      memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
     })
     .from(supportHandoffs)
     .leftJoin(
@@ -355,6 +358,11 @@ export async function getStaffSupportHandoffDetail(params: {
           ? normalizeNullableDate(row.publicResponseAcknowledgedAt)
           : null,
       publicResponseAcknowledgedVersion: row.publicResponseAcknowledgedVersion ?? null,
+    },
+    memberReply: {
+      memberReply: row.memberReply ?? null,
+      memberReplyAt: normalizeNullableDate(row.memberReplyAt),
+      memberReplyResponseVersion: row.memberReplyResponseVersion ?? null,
     },
   };
 }

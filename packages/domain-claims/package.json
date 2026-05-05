@@ -33,6 +33,7 @@
     "./support-handoffs/create": "./src/support-handoffs/create.ts",
     "./support-handoffs/lifecycle": "./src/support-handoffs/lifecycle.ts",
     "./support-handoffs/queue": "./src/support-handoffs/queue.ts",
+    "./support-handoffs/reply": "./src/support-handoffs/reply.ts",
     "./support-handoffs/response": "./src/support-handoffs/response.ts",
     "./support-handoffs/types": "./src/support-handoffs/types.ts",
     "./admin-claims/update-status": "./src/admin-claims/update-status.ts",

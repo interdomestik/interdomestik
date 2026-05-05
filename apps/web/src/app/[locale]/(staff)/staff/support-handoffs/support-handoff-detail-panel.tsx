@@ -37,6 +37,10 @@ type DetailLabels = Readonly<{
   lifecycleReassigned: string;
   lifecycleReason: string;
   loading: string;
+  memberReplyAt: string;
+  memberReplyEmpty: string;
+  memberReplyTitle: string;
+  memberReplyWarning: string;
   publicResponseEmpty: string;
   publicResponseAcknowledgedAt: string;
   publicResponseAwaitingAcknowledgement: string;
@@ -115,6 +119,17 @@ function formatDateTime(value: string | null, locale: string, pendingLabel: stri
     timeZone: 'UTC',
     timeStyle: 'short',
   });
+}
+
+function getCurrentCycleMemberReply(detail: SupportHandoffStaffDetail) {
+  if (
+    detail.memberReply.memberReply &&
+    detail.memberReply.memberReplyResponseVersion === detail.publicResponse.publicResponseVersion
+  ) {
+    return detail.memberReply;
+  }
+
+  return null;
 }
 
 function StaffHandoffLifecycleTimeline({
@@ -371,6 +386,36 @@ export function SupportHandoffDetailPanel({
                   locale={locale}
                   publicResponse={detail.publicResponse}
                 />
+                {getCurrentCycleMemberReply(detail) ? (
+                  <div
+                    className="mt-3 rounded-md border border-sky-200 bg-sky-50 p-3"
+                    data-testid="handoff-member-reply"
+                  >
+                    <div className="text-xs font-semibold uppercase text-sky-700">
+                      {labels.memberReplyTitle}
+                    </div>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">
+                      {getCurrentCycleMemberReply(detail)?.memberReply}
+                    </p>
+                    <div className="mt-2 text-xs text-sky-800">
+                      {labels.memberReplyAt.replace(
+                        '{date}',
+                        formatDateTime(
+                          getCurrentCycleMemberReply(detail)?.memberReplyAt ?? null,
+                          locale,
+                          labels.lifecyclePending
+                        )
+                      )}
+                    </div>
+                  </div>
+                ) : detail.publicResponse.publicResponse ? (
+                  <p
+                    className="mt-3 text-xs text-muted-foreground"
+                    data-testid="handoff-member-reply-empty"
+                  >
+                    {labels.memberReplyEmpty}
+                  </p>
+                ) : null}
 
                 {canRespond ? (
                   <form
@@ -401,6 +446,14 @@ export function SupportHandoffDetailPanel({
                       className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm leading-6"
                       data-testid="staff-support-handoff-public-response-input"
                     />
+                    {getCurrentCycleMemberReply(detail) ? (
+                      <p
+                        className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900"
+                        data-testid="staff-support-handoff-member-reply-warning"
+                      >
+                        {labels.memberReplyWarning}
+                      </p>
+                    ) : null}
                     <Button
                       type="submit"
                       size="sm"

@@ -224,20 +224,54 @@ async function expectPublicResponseAcknowledgedVersion(
     .toBe(version);
 }
 
+async function expectMemberReplyVersion(
+  subject: string,
+  reply: string,
+  version: number
+): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const handoff = await db.query.supportHandoffs.findFirst({
+          where: eq(supportHandoffs.subject, subject),
+          columns: {
+            memberReply: true,
+            memberReplyAt: true,
+            memberReplyResponseVersion: true,
+          },
+        });
+
+        return handoff?.memberReply === reply && handoff.memberReplyAt
+          ? handoff.memberReplyResponseVersion
+          : null;
+      },
+      { timeout: 15000, intervals: [250, 500, 1000] }
+    )
+    .toBe(version);
+}
+
 async function acknowledgeVisibleMemberPublicResponse(
   memberPage: Page,
   response: string
 ): Promise<void> {
+  const responseBanner = memberPage
+    .getByTestId('member-support-handoff-public-response')
+    .filter({ hasText: response })
+    .first();
+  await expect(responseBanner).toBeVisible({ timeout: 15000 });
+  await responseBanner.getByTestId('member-support-handoff-public-response-ack-submit').click();
   await expect(
-    memberPage
-      .getByTestId('member-support-handoff-public-response')
-      .filter({ hasText: response })
-      .first()
+    responseBanner.getByTestId('member-support-handoff-public-response-acknowledged')
   ).toBeVisible({ timeout: 15000 });
-  await memberPage.getByTestId('member-support-handoff-public-response-ack-submit').click();
-  await expect(
-    memberPage.getByTestId('member-support-handoff-public-response-acknowledged')
-  ).toBeVisible({ timeout: 15000 });
+}
+
+async function submitVisibleMemberReply(memberPage: Page, reply: string): Promise<void> {
+  const responseBanner = memberPage.getByTestId('member-support-handoff-public-response').first();
+  await expect(responseBanner.getByTestId('member-reply-form')).toBeVisible({ timeout: 15000 });
+  await responseBanner.getByTestId('member-reply-input').fill(reply);
+  await responseBanner.getByTestId('member-reply-submit').click();
+  await expect(responseBanner.getByTestId('member-reply-success')).toBeVisible({ timeout: 15000 });
+  await expect(responseBanner.getByTestId('member-reply-form')).toHaveCount(0);
 }
 
 test.describe('CRM01 staff support handoff receiving queue', () => {
@@ -480,6 +514,7 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
   }, testInfo) => {
     const subject = `E2E CRM06 public response ${testInfo.project.name} ${Date.now()}`;
     const firstResponse = `CRM06 member-visible update ${Date.now()}`;
+    const memberReply = `CRM09 member reply ${Date.now()}`;
     const updatedResponse = `${firstResponse} updated`;
     const memberHelpRoute = routes.memberHelp(testInfo);
     let handoffId: string | null = null;
@@ -560,6 +595,8 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       });
       await acknowledgeVisibleMemberPublicResponse(memberPage, firstResponse);
       await expectPublicResponseAcknowledgedVersion(subject, 1);
+      await submitVisibleMemberReply(memberPage, memberReply);
+      await expectMemberReplyVersion(subject, memberReply, 1);
 
       const updateRow = await openAcceptedSupportHandoffRow(staffPage, subject, testInfo);
       await expect(
@@ -574,6 +611,12 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       await expect(
         updateRow.getByTestId('staff-support-handoff-public-response-acknowledged')
       ).toBeVisible({ timeout: 15000 });
+      await expect(updateRow.getByTestId('handoff-member-reply')).toContainText(memberReply, {
+        timeout: 15000,
+      });
+      await expect(updateRow.getByTestId('staff-support-handoff-member-reply-warning')).toBeVisible(
+        { timeout: 15000 }
+      );
       await updateRow
         .getByTestId('staff-support-handoff-public-response-input')
         .fill(updatedResponse);

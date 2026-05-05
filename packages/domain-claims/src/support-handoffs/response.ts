@@ -158,6 +158,9 @@ async function getLatestPublicResponseForScope(args: {
       publicResponseAcknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
       publicResponseAcknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
       publicResponseVersion: supportHandoffs.publicResponseVersion,
+      memberReply: supportHandoffs.memberReply,
+      memberReplyAt: supportHandoffs.memberReplyAt,
+      memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
     })
     .from(supportHandoffs)
     .where(withTenant(args.tenantId, supportHandoffs.tenantId, and(...conditions)))
@@ -183,6 +186,9 @@ async function getLatestPublicResponseForScope(args: {
         ? normalizeNullableDate(row.publicResponseAcknowledgedAt)
         : null,
     publicResponseAcknowledgedVersion: row.publicResponseAcknowledgedVersion ?? null,
+    memberReply: row.memberReply ?? null,
+    memberReplyAt: normalizeNullableDate(row.memberReplyAt),
+    memberReplyResponseVersion: row.memberReplyResponseVersion ?? null,
   };
 }
 
