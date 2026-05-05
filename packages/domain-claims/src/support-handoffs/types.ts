@@ -25,6 +25,7 @@ export type SupportHandoffSession = ClaimsSession;
 export type SupportHandoffDeps = Pick<ClaimsDeps, 'logAuditEvent'>;
 
 export const MAX_PUBLIC_RESPONSE_LENGTH = 1_000;
+export const MAX_MEMBER_REPLY_LENGTH = 1_000;
 
 export type CreateSupportHandoffInput = {
   subject: string;
@@ -69,6 +70,27 @@ export type AcknowledgeSupportHandoffPublicResponseResult = {
   publicResponseAcknowledgedVersion: number;
 };
 
+export type SubmitSupportHandoffMemberReplyInput = {
+  expectedPublicResponseVersion: number;
+  handoffId: string;
+  replyText: string;
+};
+
+export type SubmitSupportHandoffMemberReplyErrorCode =
+  | 'ALREADY_REPLIED'
+  | 'CLOSED'
+  | 'NO_RESPONSE'
+  | 'NOT_ACKNOWLEDGED'
+  | 'STALE_VERSION'
+  | 'VALIDATION'
+  | 'UNAUTHORIZED';
+
+export type SubmitSupportHandoffMemberReplyResult = {
+  handoffId: string;
+  memberReplyAt: string;
+  memberReplyResponseVersion: number;
+};
+
 export type SupportHandoffQueueAssignmentFilter = 'all' | 'mine' | 'unassigned';
 export type SupportHandoffQueueStatusFilter = SupportHandoffStatus | 'all';
 export type SupportHandoffQueueOwnerFilter = SupportHandoffQueueAssignmentFilter;
@@ -95,7 +117,14 @@ export type StaffPublicResponseFields = {
   publicResponseAcknowledgedVersion: number | null;
 };
 
+export type MemberReplyFields = {
+  memberReply: string | null;
+  memberReplyAt: string | null;
+  memberReplyResponseVersion: number | null;
+};
+
 export type SupportHandoffStaffDetail = SupportHandoffDetailFields & {
+  memberReply: MemberReplyFields;
   publicResponse: StaffPublicResponseFields;
 };
 
@@ -132,6 +161,12 @@ export type MemberSupportHandoffPublicResponse = {
   publicResponseAcknowledgedAt: string | null;
   /** The last acknowledged public-response version, or null if none. */
   publicResponseAcknowledgedVersion: number | null;
+  /** The latest member follow-up text, scoped to the scalar handoff reply fields. */
+  memberReply: string | null;
+  /** ISO timestamp for the latest member reply, or null. */
+  memberReplyAt: string | null;
+  /** Public-response version that the latest member reply belongs to, or null. */
+  memberReplyResponseVersion: number | null;
 };
 
 export type CloseSupportHandoffResult = {

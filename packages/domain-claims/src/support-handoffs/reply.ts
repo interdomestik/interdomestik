@@ -8,33 +8,41 @@ import {
   requireSupportHandoffMemberSession,
 } from './member-response-state';
 import type {
-  AcknowledgeSupportHandoffPublicResponseErrorCode,
-  AcknowledgeSupportHandoffPublicResponseInput,
-  AcknowledgeSupportHandoffPublicResponseResult,
+  SubmitSupportHandoffMemberReplyErrorCode,
+  SubmitSupportHandoffMemberReplyInput,
+  SubmitSupportHandoffMemberReplyResult,
   SupportHandoffActionResult,
   SupportHandoffDeps,
   SupportHandoffSession,
 } from './types';
-import { ACTIVE_HANDOFF_STATUSES } from './types';
+import { ACTIVE_HANDOFF_STATUSES, MAX_MEMBER_REPLY_LENGTH } from './types';
 
 const STALE_RESPONSE_ERROR =
   'The support team updated this response. Please review the latest update.';
-const ACKNOWLEDGEMENT_UNAVAILABLE_ERROR = 'Unable to acknowledge this response.';
+const REPLY_UNAVAILABLE_ERROR = 'Unable to reply to this response.';
+const NOT_ACKNOWLEDGED_ERROR = 'Please acknowledge this response before replying.';
+const ALREADY_REPLIED_ERROR = 'You already replied to this response.';
+const MEMBER_REPLY_REQUIRED_ERROR = 'Member reply is required.';
+const MEMBER_REPLY_TOO_LONG_ERROR = 'Member reply must be 1,000 characters or fewer.';
 
 function failure(
   error: string,
-  code: AcknowledgeSupportHandoffPublicResponseErrorCode
-): SupportHandoffActionResult<AcknowledgeSupportHandoffPublicResponseResult> {
+  code: SubmitSupportHandoffMemberReplyErrorCode
+): SupportHandoffActionResult<SubmitSupportHandoffMemberReplyResult> {
   return { success: false, error, code };
 }
 
-export async function acknowledgeSupportHandoffPublicResponseCore(
-  params: AcknowledgeSupportHandoffPublicResponseInput & {
+function normalizeReplyText(value: string | null | undefined) {
+  return value?.trim() ?? '';
+}
+
+export async function submitSupportHandoffMemberReplyCore(
+  params: SubmitSupportHandoffMemberReplyInput & {
     requestHeaders?: Headers;
     session: SupportHandoffSession | null;
   },
   deps: SupportHandoffDeps = {}
-): Promise<SupportHandoffActionResult<AcknowledgeSupportHandoffPublicResponseResult>> {
+): Promise<SupportHandoffActionResult<SubmitSupportHandoffMemberReplyResult>> {
   const memberSession = requireSupportHandoffMemberSession(params.session);
   if (!memberSession) {
     return failure('Unauthorized', 'UNAUTHORIZED');
@@ -44,14 +52,26 @@ export async function acknowledgeSupportHandoffPublicResponseCore(
   const expectedVersion = Number.isFinite(params.expectedPublicResponseVersion)
     ? params.expectedPublicResponseVersion
     : -1;
-  const now = new Date();
+  const memberReply = normalizeReplyText(params.replyText);
+  if (expectedVersion <= 0) {
+    return failure(REPLY_UNAVAILABLE_ERROR, 'NO_RESPONSE');
+  }
 
+  if (!memberReply) {
+    return failure(MEMBER_REPLY_REQUIRED_ERROR, 'VALIDATION');
+  }
+
+  if (memberReply.length > MAX_MEMBER_REPLY_LENGTH) {
+    return failure(MEMBER_REPLY_TOO_LONG_ERROR, 'VALIDATION');
+  }
+
+  const now = new Date();
   const updated = await db
     .update(supportHandoffs)
     .set({
-      publicResponseAcknowledgedAt: now,
-      publicResponseAcknowledgedById: memberId,
-      publicResponseAcknowledgedVersion: expectedVersion,
+      memberReply,
+      memberReplyAt: now,
+      memberReplyResponseVersion: expectedVersion,
       updatedAt: now,
     })
     .where(
@@ -64,14 +84,17 @@ export async function acknowledgeSupportHandoffPublicResponseCore(
           inArray(supportHandoffs.status, ACTIVE_HANDOFF_STATUSES),
           isNotNull(supportHandoffs.publicResponse),
           eq(supportHandoffs.publicResponseVersion, expectedVersion),
-          sql`(${supportHandoffs.publicResponseAcknowledgedVersion} is distinct from ${expectedVersion} or ${supportHandoffs.publicResponseAcknowledgedById} is distinct from ${memberId} or ${supportHandoffs.publicResponseAcknowledgedAt} is null)`
+          eq(supportHandoffs.publicResponseAcknowledgedById, memberId),
+          eq(supportHandoffs.publicResponseAcknowledgedVersion, expectedVersion),
+          isNotNull(supportHandoffs.publicResponseAcknowledgedAt),
+          sql`${supportHandoffs.memberReplyResponseVersion} is distinct from ${expectedVersion}`
         )
       )
     )
     .returning({
-      acknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
       handoffId: supportHandoffs.id,
-      publicResponseAcknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
+      memberReplyAt: supportHandoffs.memberReplyAt,
+      memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
     });
 
   const row = updated[0];
@@ -81,11 +104,15 @@ export async function acknowledgeSupportHandoffPublicResponseCore(
         actorId: memberId,
         actorRole: memberSession.user.role,
         tenantId: memberSession.tenantId,
-        action: 'support_handoff.public_response_acknowledged',
+        action: 'support_handoff.member_reply_submitted',
         entityType: 'support_handoff',
         entityId: params.handoffId,
         metadata: {
-          publicResponseVersion: expectedVersion,
+          handoffId: params.handoffId,
+          tenantId: memberSession.tenantId,
+          memberId,
+          replyResponseVersion: expectedVersion,
+          replyAt: normalizeNullableDate(row.memberReplyAt) ?? now.toISOString(),
         },
         headers: params.requestHeaders,
       });
@@ -94,9 +121,9 @@ export async function acknowledgeSupportHandoffPublicResponseCore(
     return {
       success: true,
       data: {
-        acknowledgedAt: normalizeNullableDate(row.acknowledgedAt) ?? now.toISOString(),
         handoffId: row.handoffId,
-        publicResponseAcknowledgedVersion: row.publicResponseAcknowledgedVersion ?? expectedVersion,
+        memberReplyAt: normalizeNullableDate(row.memberReplyAt) ?? now.toISOString(),
+        memberReplyResponseVersion: row.memberReplyResponseVersion ?? expectedVersion,
       },
     };
   }
@@ -106,6 +133,7 @@ export async function acknowledgeSupportHandoffPublicResponseCore(
       acknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
       acknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
       acknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
+      memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
       publicResponse: supportHandoffs.publicResponse,
       publicResponseVersion: supportHandoffs.publicResponseVersion,
       status: supportHandoffs.status,
@@ -122,7 +150,7 @@ export async function acknowledgeSupportHandoffPublicResponseCore(
 
   const current = existing[0];
   if (!current) {
-    return failure(ACKNOWLEDGEMENT_UNAVAILABLE_ERROR, 'UNAUTHORIZED');
+    return failure(REPLY_UNAVAILABLE_ERROR, 'UNAUTHORIZED');
   }
 
   if (
@@ -131,16 +159,20 @@ export async function acknowledgeSupportHandoffPublicResponseCore(
     return failure('This support request is closed.', 'CLOSED');
   }
 
-  if (!current.publicResponse) {
-    return failure(ACKNOWLEDGEMENT_UNAVAILABLE_ERROR, 'UNAUTHORIZED');
+  if (!current.publicResponse || (current.publicResponseVersion ?? 0) <= 0) {
+    return failure(REPLY_UNAVAILABLE_ERROR, 'NO_RESPONSE');
   }
 
   if (current.publicResponseVersion !== expectedVersion) {
     return failure(STALE_RESPONSE_ERROR, 'STALE_VERSION');
   }
 
+  if (current.memberReplyResponseVersion === expectedVersion) {
+    return failure(ALREADY_REPLIED_ERROR, 'ALREADY_REPLIED');
+  }
+
   if (
-    isCurrentResponseAcknowledged({
+    !isCurrentResponseAcknowledged({
       acknowledgedAt: current.acknowledgedAt,
       acknowledgedById: current.acknowledgedById,
       acknowledgedVersion: current.acknowledgedVersion,
@@ -148,14 +180,7 @@ export async function acknowledgeSupportHandoffPublicResponseCore(
       publicResponseVersion: expectedVersion,
     })
   ) {
-    return {
-      success: true,
-      data: {
-        acknowledgedAt: normalizeNullableDate(current.acknowledgedAt) ?? now.toISOString(),
-        handoffId: params.handoffId,
-        publicResponseAcknowledgedVersion: expectedVersion,
-      },
-    };
+    return failure(NOT_ACKNOWLEDGED_ERROR, 'NOT_ACKNOWLEDGED');
   }
 
   return failure(STALE_RESPONSE_ERROR, 'STALE_VERSION');

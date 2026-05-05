@@ -161,6 +161,11 @@ describe('StaffSupportHandoffsPage', () => {
       closedByName: null,
       closeReason: null,
       contactPreference: 'phone',
+      memberReply: {
+        memberReply: null,
+        memberReplyAt: null,
+        memberReplyResponseVersion: null,
+      },
       publicResponse: {
         publicResponse: null,
         publicResponseAt: null,
@@ -221,6 +226,11 @@ describe('StaffSupportHandoffsPage', () => {
       closedByName: null,
       closeReason: null,
       contactPreference: 'staff_reply',
+      memberReply: {
+        memberReply: null,
+        memberReplyAt: null,
+        memberReplyResponseVersion: null,
+      },
       publicResponse: {
         publicResponse: null,
         publicResponseAt: null,
@@ -288,6 +298,11 @@ describe('StaffSupportHandoffsPage', () => {
       closedByName: null,
       closeReason: null,
       contactPreference: 'phone',
+      memberReply: {
+        memberReply: null,
+        memberReplyAt: null,
+        memberReplyResponseVersion: null,
+      },
       publicResponse: {
         publicResponse: 'Existing member-visible update',
         publicResponseAt: '2026-05-04T11:00:00.000Z',
@@ -332,6 +347,11 @@ describe('StaffSupportHandoffsPage', () => {
       closedByName: null,
       closeReason: null,
       contactPreference: 'phone',
+      memberReply: {
+        memberReply: null,
+        memberReplyAt: null,
+        memberReplyResponseVersion: null,
+      },
       publicResponse: {
         publicResponse: 'Existing member-visible update',
         publicResponseAt: '2026-05-04T11:00:00.000Z',
@@ -354,6 +374,54 @@ describe('StaffSupportHandoffsPage', () => {
     ).toHaveTextContent('detail.public_response_acknowledged_at');
   });
 
+  it('shows current-cycle member reply and warns staff before sending another response', async () => {
+    mocks.getQueue.mockResolvedValueOnce([
+      {
+        ...queueItem,
+        publicResponseAt: '2026-05-04T11:00:00.000Z',
+        staffId: 'staff-1',
+        staffName: 'Staff One',
+        status: 'accepted',
+      },
+    ]);
+    mocks.getSupportHandoffDetail.mockResolvedValueOnce({
+      acceptedAt: '2026-05-04T08:30:00.000Z',
+      acceptedByName: 'Staff One',
+      closedAt: null,
+      closedByName: null,
+      closeReason: null,
+      contactPreference: 'phone',
+      memberReply: {
+        memberReply: 'This resolves my request.',
+        memberReplyAt: '2026-05-04T11:10:00.000Z',
+        memberReplyResponseVersion: 3,
+      },
+      publicResponse: {
+        publicResponse: 'Existing member-visible update',
+        publicResponseAt: '2026-05-04T11:00:00.000Z',
+        publicResponseAcknowledged: true,
+        publicResponseAcknowledgedAt: '2026-05-04T11:05:00.000Z',
+        publicResponseAcknowledgedVersion: 3,
+        publicResponseVersion: 3,
+      },
+      reassignedAt: null,
+      reassignedByName: null,
+      reassignReason: null,
+      source: 'member_help',
+    });
+
+    await renderPage();
+    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+
+    expect(await screen.findByTestId('handoff-member-reply')).toHaveTextContent(
+      'This resolves my request.'
+    );
+    expect(screen.getByTestId('handoff-member-reply')).toHaveTextContent('detail.member_reply_at');
+    expect(screen.getByTestId('staff-support-handoff-member-reply-warning')).toHaveTextContent(
+      'detail.member_reply_warning'
+    );
+  });
+
   it('refreshes public response detail after the assigned staff owner submits an update', async () => {
     mocks.getQueue.mockResolvedValueOnce([
       {
@@ -371,6 +439,11 @@ describe('StaffSupportHandoffsPage', () => {
         closedByName: null,
         closeReason: null,
         contactPreference: 'phone',
+        memberReply: {
+          memberReply: null,
+          memberReplyAt: null,
+          memberReplyResponseVersion: null,
+        },
         publicResponse: {
           publicResponse: 'Existing member-visible update',
           publicResponseAt: '2026-05-04T11:00:00.000Z',
@@ -388,6 +461,11 @@ describe('StaffSupportHandoffsPage', () => {
         closedByName: null,
         closeReason: null,
         contactPreference: 'phone',
+        memberReply: {
+          memberReply: null,
+          memberReplyAt: null,
+          memberReplyResponseVersion: null,
+        },
         publicResponse: {
           publicResponse: 'Updated member-visible response',
           publicResponseAt: '2026-05-04T12:00:00.000Z',

@@ -55,6 +55,18 @@
       "acknowledgementError": "Nismo mogli da potvrdimo ovo ažuriranje. Pokušajte ponovo.",
       "acknowledgementStale": "Tim za podršku je upravo ažurirao ovaj odgovor. Pregledajte najnovije ažuriranje."
     },
+    "memberReply": {
+      "label": "Odgovor osoblju",
+      "placeholder": "Recite osoblju da li ovo rešava vaš zahtev ili šta vam još treba...",
+      "submit": "Pošalji odgovor",
+      "submitting": "Slanje...",
+      "sent": "Odgovor je poslat",
+      "error": "Nismo mogli da pošaljemo vaš odgovor. Pokušajte ponovo.",
+      "stale": "Ovo ažuriranje podrške se promenilo. Pregledajte najnovije ažuriranje pre odgovora.",
+      "alreadyReplied": "Već ste odgovorili na ovo ažuriranje.",
+      "required": "Odgovor je obavezan.",
+      "tooLong": "Odgovor mora imati 1.000 znakova ili manje."
+    },
     "advisory": {
       "claimSpecific": "Već imate aktivan zahtev za podršku za ovaj predmet. I dalje možete poslati novi.",
       "claimSpecificMeta": "Stanje: {status} · Poslato {date}",

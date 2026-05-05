@@ -146,6 +146,9 @@ export const supportHandoffs = pgTable(
       () => user.id
     ),
     publicResponseAcknowledgedVersion: integer('public_response_acknowledged_version'),
+    memberReply: text('member_reply'),
+    memberReplyAt: timestamp('member_reply_at'),
+    memberReplyResponseVersion: integer('member_reply_response_version'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -182,6 +185,10 @@ export const supportHandoffs = pgTable(
     check(
       'support_handoffs_public_response_length_check',
       sql`${table.publicResponse} is null or char_length(${table.publicResponse}) <= 1000`
+    ),
+    check(
+      'support_handoffs_member_reply_length_check',
+      sql`${table.memberReply} is null or char_length(${table.memberReply}) <= 1000`
     ),
   ]
 );

@@ -3,6 +3,7 @@ export * from './acknowledgement';
 export * from './advisory';
 export * from './derivation';
 export * from './lifecycle';
+export * from './reply';
 export * from './response';
 export * from './queue';
 export * from './types';
