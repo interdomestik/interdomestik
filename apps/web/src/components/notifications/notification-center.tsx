@@ -156,6 +156,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
           variant="ghost"
           size="icon"
           className="relative h-9 w-9 rounded-full transition-colors hover:bg-accent/50"
+          data-testid="notification-center-trigger"
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
@@ -207,6 +208,7 @@ function NotificationItem({
 
   return (
     <div
+      data-testid={`notification-item-${notification.type}`}
       className={cn(
         'relative flex gap-3 p-4 transition-all duration-200 hover:bg-accent/30 list-none border-b last:border-0',
         !isRead && 'bg-primary/5 border-l-2 border-primary'
@@ -247,10 +249,11 @@ function NotificationItem({
             <Link
               href={notification.actionUrl}
               onClick={() => {
-                if (!isRead) onMarkAsRead(notification.id);
-                onClose();
+                if (!isRead) void onMarkAsRead(notification.id);
+                window.setTimeout(onClose, 0);
               }}
               className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline"
+              data-testid="notification-action"
             >
               View <ExternalLink className="h-2 w-2" />
             </Link>

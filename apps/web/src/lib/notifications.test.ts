@@ -7,7 +7,9 @@ vi.stubEnv('NOVU_API_KEY', 'test-api-key');
 vi.mock('@interdomestik/database', () => ({
   db: {
     insert: vi.fn().mockReturnValue({
-      values: vi.fn().mockResolvedValue({}),
+      values: vi.fn().mockReturnValue({
+        onConflictDoNothing: vi.fn().mockResolvedValue({}),
+      }),
     }),
     query: {
       user: {
@@ -36,6 +38,7 @@ import {
   notifyClaimAssigned,
   notifyClaimSubmitted,
   notifyNewMessage,
+  notifySupportHandoffPublicResponse,
   notifyStatusChanged,
   sendNotification,
 } from './notifications';
@@ -127,6 +130,18 @@ describe('Notifications Service', () => {
         { id: 'claim-1', title: 'My Claim' },
         'Agent Smith',
         'Hello...'
+      );
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('notifySupportHandoffPublicResponse', () => {
+    it('should send an in-app support handoff public response notification', async () => {
+      const result = await notifySupportHandoffPublicResponse(
+        'member-1',
+        { id: 'handoff-1', publicResponseVersion: 2 },
+        { tenantId: 'tenant_mk' }
       );
 
       expect(result.success).toBe(true);

@@ -9,6 +9,7 @@ import type {
   SupportHandoffDeps,
   SupportHandoffSession,
   UpdateSupportHandoffPublicResponseInput,
+  UpdateSupportHandoffPublicResponseResult,
 } from './types';
 import { ACTIVE_HANDOFF_STATUSES, MAX_PUBLIC_RESPONSE_LENGTH } from './types';
 
@@ -54,7 +55,7 @@ export async function updateSupportHandoffPublicResponseCore(
     session: SupportHandoffSession | null;
   },
   deps: SupportHandoffDeps = {}
-): Promise<SupportHandoffActionResult<{ publicResponseVersion: number }>> {
+): Promise<SupportHandoffActionResult<UpdateSupportHandoffPublicResponseResult>> {
   const staffSession = requireStaffSession(params.session);
   if (!staffSession) {
     return { success: false, error: 'Unauthorized' };
@@ -89,7 +90,12 @@ export async function updateSupportHandoffPublicResponseCore(
         )
       )
     )
-    .returning({ publicResponseVersion: supportHandoffs.publicResponseVersion });
+    .returning({
+      handoffId: supportHandoffs.id,
+      memberId: supportHandoffs.memberId,
+      publicResponseVersion: supportHandoffs.publicResponseVersion,
+      tenantId: supportHandoffs.tenantId,
+    });
 
   const row = updated[0];
   if (!row) {
@@ -112,11 +118,20 @@ export async function updateSupportHandoffPublicResponseCore(
     });
   }
 
-  return { success: true, data: { publicResponseVersion: row.publicResponseVersion } };
+  return {
+    success: true,
+    data: {
+      handoffId: row.handoffId,
+      memberId: row.memberId,
+      publicResponseVersion: row.publicResponseVersion,
+      tenantId: row.tenantId,
+    },
+  };
 }
 
 async function getLatestPublicResponseForScope(args: {
   claimId?: string | null;
+  handoffId?: string | null;
   memberId: string;
   tenantId: string;
 }): Promise<MemberSupportHandoffPublicResponse | null> {
@@ -125,6 +140,10 @@ async function getLatestPublicResponseForScope(args: {
     inArray(supportHandoffs.status, ACTIVE_HANDOFF_STATUSES),
     isNotNull(supportHandoffs.publicResponse),
   ];
+
+  if (args.handoffId) {
+    conditions.push(eq(supportHandoffs.id, args.handoffId));
+  }
 
   if (args.claimId) {
     conditions.push(eq(supportHandoffs.claimId, args.claimId));
@@ -153,9 +172,18 @@ async function getLatestPublicResponseForScope(args: {
 
 export async function getMemberLatestPublicResponse(args: {
   claimId?: string | null;
+  handoffId?: string | null;
   memberId: string;
   tenantId: string;
 }): Promise<MemberSupportHandoffPublicResponse | null> {
+  if (args.handoffId) {
+    return getLatestPublicResponseForScope({
+      handoffId: args.handoffId,
+      memberId: args.memberId,
+      tenantId: args.tenantId,
+    });
+  }
+
   if (args.claimId) {
     const claimResponse = await getLatestPublicResponseForScope(args);
     if (claimResponse) {

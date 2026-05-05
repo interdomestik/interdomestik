@@ -40,6 +40,7 @@ describe('PublicResponseBanner', () => {
 
     render(
       await PublicResponseBanner({
+        handoffId: 'handoff-1',
         memberId: 'member-1',
         selectedClaim: { id: 'claim-1' },
         tenantId: 'tenant-1',
@@ -48,6 +49,7 @@ describe('PublicResponseBanner', () => {
 
     expect(mocks.getMemberLatestPublicResponse).toHaveBeenCalledWith({
       claimId: 'claim-1',
+      handoffId: 'handoff-1',
       memberId: 'member-1',
       tenantId: 'tenant-1',
     });

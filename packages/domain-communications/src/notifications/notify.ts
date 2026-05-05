@@ -1,6 +1,7 @@
 import { db } from '@interdomestik/database';
 import { notifications } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { and, eq, like } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import {
   sendEmail,
@@ -29,7 +30,8 @@ export type NotificationEvent =
   | 'sla_warning'
   | 'sla_breached'
   | 'membership_renewal'
-  | 'payment_verification_update';
+  | 'payment_verification_update'
+  | 'support_handoff_public_response';
 
 type NotificationDeps = {
   sendPushToUser?: typeof sendPushToUser;
@@ -90,6 +92,18 @@ function sendLifecycleEmail(
   );
 }
 
+function resolveNotificationContent(
+  event: NotificationEvent,
+  payload: Record<string, string | number | boolean>,
+  override?: string
+) {
+  if (override) {
+    return override;
+  }
+
+  return payload.claimTitle ? `Update on: ${payload.claimTitle}` : `New update: ${event}`;
+}
+
 /**
  * Send a notification (In-app DB + Email is handled in notify functions)
  */
@@ -99,6 +113,8 @@ export async function sendNotification(
   payload: Record<string, string | number | boolean>,
   options?: {
     actionUrl?: string;
+    content?: string;
+    notificationId?: string;
     title?: string;
     tenantId?: string | null;
   }
@@ -116,12 +132,10 @@ export async function sendNotification(
     }
 
     const title = options?.title ?? event.replaceAll('_', ' ').toUpperCase();
-    const content = payload.claimTitle
-      ? `Update on: ${payload.claimTitle}`
-      : `New update: ${event}`;
+    const content = resolveNotificationContent(event, payload, options?.content);
 
-    await db.insert(notifications).values({
-      id: `ntf_${nanoid()}`,
+    const insertNotification = db.insert(notifications).values({
+      id: options?.notificationId ?? `ntf_${nanoid()}`,
       tenantId: resolvedTenantId,
       userId,
       type: event,
@@ -131,9 +145,75 @@ export async function sendNotification(
       isRead: false,
     });
 
+    if (options?.notificationId) {
+      await insertNotification.onConflictDoNothing({ target: notifications.id });
+    } else {
+      await insertNotification;
+    }
+
     return { success: true };
   } catch (error) {
     console.error(`Failed to create in-app notification [${event}]:`, error);
+    return { success: false, error: 'Database error' };
+  }
+}
+
+/**
+ * Notify a member that staff sent or updated the latest public support handoff response.
+ *
+ * This is intentionally in-app only for P32-CRM07; email, push, acknowledgements,
+ * and support-handoff-specific unread semantics remain out of scope.
+ */
+export async function notifySupportHandoffPublicResponse(
+  memberId: string,
+  handoff: { id: string; publicResponseVersion: number },
+  options: {
+    actionUrl?: string;
+    content?: string;
+    tenantId: string;
+    title?: string;
+  }
+) {
+  return sendNotification(
+    memberId,
+    'support_handoff_public_response',
+    {
+      handoffId: handoff.id,
+      publicResponseVersion: handoff.publicResponseVersion,
+    },
+    {
+      actionUrl: options.actionUrl ?? '/member/help',
+      content: options.content ?? 'A staff update is available on your support request.',
+      notificationId: `ntf_support_handoff_${options.tenantId}_${handoff.id}_${handoff.publicResponseVersion}`,
+      tenantId: options.tenantId,
+      title: options.title ?? 'Staff update available',
+    }
+  );
+}
+
+export async function clearSupportHandoffPublicResponseNotifications(
+  memberId: string,
+  handoff: { id: string },
+  options: { tenantId: string }
+) {
+  try {
+    await db
+      .delete(notifications)
+      .where(
+        withTenant(
+          options.tenantId,
+          notifications.tenantId,
+          and(
+            eq(notifications.userId, memberId),
+            eq(notifications.type, 'support_handoff_public_response'),
+            like(notifications.id, `ntf_support_handoff_${options.tenantId}_${handoff.id}_%`)
+          )
+        )
+      );
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to clear support handoff public response notifications:', error);
     return { success: false, error: 'Database error' };
   }
 }

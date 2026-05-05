@@ -3,6 +3,7 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type {
+  CloseSupportHandoffResult,
   SupportHandoffActionResult,
   SupportHandoffDeps,
   SupportHandoffLifecycleInput,
@@ -200,7 +201,7 @@ export async function closeSupportHandoffCore(
     session: SupportHandoffSession | null;
   },
   deps: SupportHandoffDeps = {}
-): Promise<SupportHandoffActionResult<{ lifecycleVersion: number }>> {
+): Promise<SupportHandoffActionResult<CloseSupportHandoffResult>> {
   const staffSession = requireStaffSession(params.session);
   if (!staffSession) {
     return { success: false, error: 'Unauthorized' };
@@ -235,7 +236,12 @@ export async function closeSupportHandoffCore(
         )
       )
     )
-    .returning({ lifecycleVersion: supportHandoffs.lifecycleVersion });
+    .returning({
+      handoffId: supportHandoffs.id,
+      lifecycleVersion: supportHandoffs.lifecycleVersion,
+      memberId: supportHandoffs.memberId,
+      tenantId: supportHandoffs.tenantId,
+    });
 
   const row = updated[0];
   if (!row) {
@@ -255,5 +261,13 @@ export async function closeSupportHandoffCore(
     });
   }
 
-  return { success: true, data: { lifecycleVersion: row.lifecycleVersion } };
+  return {
+    success: true,
+    data: {
+      handoffId: row.handoffId,
+      lifecycleVersion: row.lifecycleVersion,
+      memberId: row.memberId,
+      tenantId: row.tenantId,
+    },
+  };
 }

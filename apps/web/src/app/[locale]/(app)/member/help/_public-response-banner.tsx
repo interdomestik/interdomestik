@@ -7,12 +7,14 @@ type SelectedClaim = {
 } | null;
 
 type PublicResponseBannerProps = {
+  handoffId?: string | null;
   memberId: string;
   selectedClaim: SelectedClaim;
   tenantId: string;
 };
 
 export async function PublicResponseBanner({
+  handoffId,
   memberId,
   selectedClaim,
   tenantId,
@@ -21,6 +23,7 @@ export async function PublicResponseBanner({
   try {
     response = await getMemberLatestPublicResponse({
       claimId: selectedClaim?.id ?? null,
+      handoffId: handoffId ?? null,
       memberId,
       tenantId,
     });

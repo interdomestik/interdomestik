@@ -92,6 +92,7 @@ export default async function HelpPage({ params, searchParams }: Props) {
   }
   const resolvedSearchParams = await searchParams;
   const status = getSingleParam(resolvedSearchParams.support);
+  const requestedHandoffId = getSingleParam(resolvedSearchParams.handoffId);
   const requestedClaimId = getSingleParam(resolvedSearchParams.claimId);
   const sourceHint = getSingleParam(resolvedSearchParams.source);
   const claimOptions =
@@ -201,6 +202,7 @@ export default async function HelpPage({ params, searchParams }: Props) {
             {session.user.tenantId && session.user.id ? (
               <>
                 <PublicResponseBanner
+                  handoffId={requestedHandoffId ?? null}
                   memberId={session.user.id}
                   selectedClaim={selectedClaim}
                   tenantId={session.user.tenantId}

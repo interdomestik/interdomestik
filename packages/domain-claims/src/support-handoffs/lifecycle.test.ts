@@ -37,6 +37,7 @@ const mocks = vi.hoisted(() => {
       closeReason: 'support_handoffs.close_reason',
       id: 'support_handoffs.id',
       lifecycleVersion: 'support_handoffs.lifecycle_version',
+      memberId: 'support_handoffs.member_id',
       staffId: 'support_handoffs.staff_id',
       status: 'support_handoffs.status',
       tenantId: 'support_handoffs.tenant_id',
@@ -91,7 +92,14 @@ describe('support handoff lifecycle', () => {
     mocks.db.update.mockReturnValue({ set: mocks.updateSet });
     mocks.updateSet.mockReturnValue({ where: mocks.updateWhere });
     mocks.updateWhere.mockReturnValue({ returning: mocks.updateReturning });
-    mocks.updateReturning.mockResolvedValue([{ lifecycleVersion: 2 }]);
+    mocks.updateReturning.mockResolvedValue([
+      {
+        handoffId: 'handoff-1',
+        lifecycleVersion: 2,
+        memberId: 'member-1',
+        tenantId: 'tenant-1',
+      },
+    ]);
   });
 
   it('accepts only open handoffs at the expected lifecycle version', async () => {
@@ -210,7 +218,15 @@ describe('support handoff lifecycle', () => {
       session: staffSession(),
     });
 
-    expect(result).toEqual({ data: { lifecycleVersion: 2 }, success: true });
+    expect(result).toEqual({
+      data: {
+        handoffId: 'handoff-1',
+        lifecycleVersion: 2,
+        memberId: 'member-1',
+        tenantId: 'tenant-1',
+      },
+      success: true,
+    });
     expect(mocks.updateSet).toHaveBeenCalledWith(
       expect.objectContaining({
         closeReason: 'Resolved by phone',

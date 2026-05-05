@@ -46,6 +46,13 @@ export type UpdateSupportHandoffPublicResponseInput = {
   response: string;
 };
 
+export type UpdateSupportHandoffPublicResponseResult = {
+  handoffId: string;
+  memberId: string;
+  publicResponseVersion: number;
+  tenantId: string;
+};
+
 export type SupportHandoffQueueAssignmentFilter = 'all' | 'mine' | 'unassigned';
 export type SupportHandoffQueueStatusFilter = SupportHandoffStatus | 'all';
 export type SupportHandoffQueueOwnerFilter = SupportHandoffQueueAssignmentFilter;
@@ -96,6 +103,13 @@ export type MemberSupportHandoffPublicResponse = {
   publicResponse: string | null;
   /** ISO timestamp of when the response was last sent or updated. */
   publicResponseAt: string | null;
+};
+
+export type CloseSupportHandoffResult = {
+  handoffId: string;
+  lifecycleVersion: number;
+  memberId: string;
+  tenantId: string;
 };
 
 export type SupportHandoffQueueItemWithDetail = SupportHandoffQueueItem & {
