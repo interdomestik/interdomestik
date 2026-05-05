@@ -2,15 +2,17 @@
 
 import {
   acknowledgeSupportHandoffPublicResponse,
+  acknowledgeSupportHandoffPublicResponseAndRedirect,
   type PublicResponseAcknowledgementActionState,
 } from '@/actions/support-handoffs/acknowledgement';
 import { Button } from '@interdomestik/ui';
 import { CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useActionState, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useState, useTransition } from 'react';
 
 type PublicResponseAcknowledgementFormProps = Readonly<{
   acknowledgedAt: string | null;
+  acknowledgedAtLabel: string | null;
   expectedPublicResponseVersion: number;
   handoffId: string;
   labels: {
@@ -21,22 +23,8 @@ type PublicResponseAcknowledgementFormProps = Readonly<{
     stale: string;
   };
   locale: string;
+  permalink: string;
 }>;
-
-function formatDateTime(value: string, locale: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: 'medium',
-    timeZone: 'UTC',
-    timeStyle: 'short',
-  }).format(date);
-}
-
-function formatAcknowledgedAt(template: string, value: string, locale: string) {
-  const formatted = formatDateTime(value, locale);
-  return formatted ? template.replace('{date}', formatted) : template.replace('{date}', value);
-}
 
 function resolveAcknowledgementError(
   state: PublicResponseAcknowledgementActionState,
@@ -59,24 +47,46 @@ function shouldRefreshAfterFailure(code: PublicResponseAcknowledgementActionStat
 
 export function PublicResponseAcknowledgementForm({
   acknowledgedAt,
+  acknowledgedAtLabel,
   expectedPublicResponseVersion,
   handoffId,
   labels,
   locale,
+  permalink,
 }: PublicResponseAcknowledgementFormProps) {
   const router = useRouter();
-  const [optimisticAcknowledgedAt, setOptimisticAcknowledgedAt] = useState<string | null>(null);
-  const initialState: PublicResponseAcknowledgementActionState = acknowledgedAt
-    ? { acknowledgedAt, success: true }
-    : { success: false };
-  const [state, formAction, pending] = useActionState(
-    acknowledgeSupportHandoffPublicResponse,
-    initialState
+  const [optimisticAcknowledgedLabel, setOptimisticAcknowledgedLabel] = useState<string | null>(
+    null
   );
-  const currentAcknowledgedAt = state.success
-    ? state.acknowledgedAt
-    : optimisticAcknowledgedAt || acknowledgedAt;
+  const initialState: PublicResponseAcknowledgementActionState = acknowledgedAt
+    ? { acknowledgedAt, acknowledgedAtLabel: acknowledgedAtLabel ?? undefined, success: true }
+    : { success: false };
+  const [state, setState] = useState<PublicResponseAcknowledgementActionState>(initialState);
+  const [pending, startTransition] = useTransition();
+  const currentAcknowledgedLabel = state.success
+    ? state.acknowledgedAtLabel || acknowledgedAtLabel || optimisticAcknowledgedLabel
+    : optimisticAcknowledgedLabel || acknowledgedAtLabel;
   const error = resolveAcknowledgementError(state, labels);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    setOptimisticAcknowledgedLabel(labels.acknowledging);
+    setState({ success: false });
+    startTransition(() => {
+      void acknowledgeSupportHandoffPublicResponse({ success: false }, formData)
+        .then(result => {
+          setState(result);
+          if (result.success) {
+            router.refresh();
+          }
+        })
+        .catch(() => {
+          setOptimisticAcknowledgedLabel(null);
+          setState({ error: labels.error, success: false });
+        });
+    });
+  }
 
   useEffect(() => {
     if (shouldRefreshAfterFailure(state.code)) {
@@ -86,25 +96,25 @@ export function PublicResponseAcknowledgementForm({
 
   useEffect(() => {
     if (!state.success && (state.error || state.code)) {
-      setOptimisticAcknowledgedAt(null);
+      setOptimisticAcknowledgedLabel(null);
     }
   }, [state.code, state.error, state.success]);
 
   return (
     <div className="pt-1" aria-live="polite">
-      {currentAcknowledgedAt ? (
+      {currentAcknowledgedLabel ? (
         <div
           className="inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-white/70 px-2.5 py-1.5 text-xs font-medium text-emerald-800"
           data-testid="member-support-handoff-public-response-acknowledged"
         >
           <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span>{formatAcknowledgedAt(labels.acknowledgedAt, currentAcknowledgedAt, locale)}</span>
+          <span>{currentAcknowledgedLabel}</span>
         </div>
       ) : (
         <form
-          action={formAction}
+          action={acknowledgeSupportHandoffPublicResponseAndRedirect}
           data-testid="member-support-handoff-public-response-ack-form"
-          onSubmit={() => setOptimisticAcknowledgedAt(new Date().toISOString())}
+          onSubmit={handleSubmit}
         >
           <input type="hidden" name="handoffId" value={handoffId} />
           <input
@@ -112,6 +122,9 @@ export function PublicResponseAcknowledgementForm({
             name="expectedPublicResponseVersion"
             value={expectedPublicResponseVersion}
           />
+          <input type="hidden" name="acknowledgedAtLabelTemplate" value={labels.acknowledgedAt} />
+          <input type="hidden" name="locale" value={locale} />
+          <input type="hidden" name="returnTo" value={permalink} />
           <Button
             type="submit"
             size="sm"
