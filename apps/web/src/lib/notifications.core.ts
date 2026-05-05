@@ -1,4 +1,5 @@
 import {
+  clearSupportHandoffPublicResponseNotifications as clearSupportHandoffPublicResponseNotificationsDomain,
   notifyClaimAssigned as notifyClaimAssignedDomain,
   notifyClaimPackGenerated as notifyClaimPackGeneratedDomain,
   notifyClaimSubmitted as notifyClaimSubmittedDomain,
@@ -9,6 +10,7 @@ import {
   notifyRecoveryDecision as notifyRecoveryDecisionDomain,
   notifySlaWarning as notifySlaWarningDomain,
   notifyStatusChanged as notifyStatusChangedDomain,
+  notifySupportHandoffPublicResponse as notifySupportHandoffPublicResponseDomain,
   notifyTriageComplete as notifyTriageCompleteDomain,
   sendNotification as sendNotificationDomain,
 } from '@interdomestik/domain-communications/notifications';
@@ -99,6 +101,27 @@ export function notifyClaimPackGenerated(
   confidenceLevel: string
 ) {
   return notifyClaimPackGeneratedDomain(userId, claimCategory, confidenceLevel);
+}
+
+export function notifySupportHandoffPublicResponse(
+  memberId: string,
+  handoff: { id: string; publicResponseVersion: number },
+  options: {
+    actionUrl?: string;
+    content?: string;
+    tenantId: string;
+    title?: string;
+  }
+) {
+  return notifySupportHandoffPublicResponseDomain(memberId, handoff, options);
+}
+
+export function clearSupportHandoffPublicResponseNotifications(
+  memberId: string,
+  handoff: { id: string },
+  options: { tenantId: string }
+) {
+  return clearSupportHandoffPublicResponseNotificationsDomain(memberId, handoff, options);
 }
 
 export function notifyRecoveryDecision(

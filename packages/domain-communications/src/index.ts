@@ -9,6 +9,7 @@ export type { MessageWithSender, SelectedMessageRow } from './messages/types';
 export { getNotificationsCore } from './notifications/get';
 export { markAllAsReadCore, markAsReadCore } from './notifications/mark-read';
 export {
+  clearSupportHandoffPublicResponseNotifications,
   notifyClaimAssigned,
   notifyClaimPackGenerated,
   notifyClaimSubmitted,
@@ -19,6 +20,7 @@ export {
   notifyRecoveryDecision,
   notifySlaWarning,
   notifyStatusChanged,
+  notifySupportHandoffPublicResponse,
   notifyTriageComplete,
   sendNotification,
 } from './notifications/notify';

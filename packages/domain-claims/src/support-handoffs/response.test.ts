@@ -95,7 +95,14 @@ describe('support handoff public response', () => {
     mocks.db.update.mockReturnValue({ set: mocks.updateSet });
     mocks.updateSet.mockReturnValue({ where: mocks.updateWhere });
     mocks.updateWhere.mockReturnValue({ returning: mocks.updateReturning });
-    mocks.updateReturning.mockResolvedValue([{ publicResponseVersion: 2 }]);
+    mocks.updateReturning.mockResolvedValue([
+      {
+        handoffId: 'handoff-1',
+        memberId: 'member-1',
+        publicResponseVersion: 2,
+        tenantId: 'tenant-1',
+      },
+    ]);
     mocks.db.select.mockReturnValue({ from: mocks.selectFrom });
     mocks.selectFrom.mockReturnValue({ where: mocks.selectWhere });
     mocks.selectWhere.mockReturnValue({ orderBy: mocks.selectOrderBy });
@@ -145,7 +152,15 @@ describe('support handoff public response', () => {
       { logAuditEvent: mocks.logAuditEvent }
     );
 
-    expect(result).toEqual({ data: { publicResponseVersion: 2 }, success: true });
+    expect(result).toEqual({
+      data: {
+        handoffId: 'handoff-1',
+        memberId: 'member-1',
+        publicResponseVersion: 2,
+        tenantId: 'tenant-1',
+      },
+      success: true,
+    });
     expect(mocks.updateSet).toHaveBeenCalledWith(
       expect.objectContaining({
         publicResponse: 'We reviewed your request and will follow up here.',
@@ -227,6 +242,30 @@ describe('support handoff public response', () => {
     expect(mocks.inArray).toHaveBeenCalledWith('support_handoffs.status', ACTIVE_HANDOFF_STATUSES);
     expect(mocks.isNotNull).toHaveBeenCalledWith('support_handoffs.public_response');
     expect(Object.keys(result ?? {})).toEqual(['publicResponse', 'publicResponseAt']);
+  });
+
+  it('returns the targeted active handoff response without falling back to another handoff', async () => {
+    mocks.selectLimit.mockResolvedValueOnce([
+      {
+        publicResponse: 'Targeted staff update',
+        publicResponseAt: new Date('2026-05-04T11:00:00.000Z'),
+      },
+    ]);
+
+    const result = await getMemberLatestPublicResponse({
+      claimId: 'claim-1',
+      handoffId: 'handoff-1',
+      memberId: 'member-1',
+      tenantId: 'tenant-1',
+    });
+
+    expect(result).toEqual({
+      publicResponse: 'Targeted staff update',
+      publicResponseAt: '2026-05-04T11:00:00.000Z',
+    });
+    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.id', 'handoff-1');
+    expect(mocks.eq).not.toHaveBeenCalledWith('support_handoffs.claim_id', 'claim-1');
+    expect(mocks.selectLimit).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to the latest active member response when no same-claim response exists', async () => {

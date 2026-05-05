@@ -114,6 +114,7 @@ vi.mock('./_advisory-banner', () => ({
 
 vi.mock('./_public-response-banner', () => ({
   PublicResponseBanner: (props: {
+    handoffId?: string | null;
     memberId: string;
     selectedClaim: { id: string } | null;
     tenantId: string;
@@ -121,6 +122,7 @@ vi.mock('./_public-response-banner', () => ({
     mocks.publicResponseBanner(props);
     return (
       <div
+        data-handoff-id={props.handoffId ?? ''}
         data-selected-claim={props.selectedClaim?.id ?? ''}
         data-testid="mock-member-support-handoff-public-response"
       />
@@ -193,6 +195,7 @@ describe('member help support handoff form', () => {
       tenantId: 'tenant-1',
     });
     expect(mocks.publicResponseBanner).toHaveBeenCalledWith({
+      handoffId: null,
       memberId: 'member-1',
       selectedClaim: null,
       tenantId: 'tenant-1',
@@ -241,6 +244,18 @@ describe('member help support handoff form', () => {
       publicResponse.compareDocumentPosition(advisory) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(advisory.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('passes a targeted handoff id from the notification URL to the public response banner', async () => {
+    await renderPage({ handoffId: 'handoff-1' });
+
+    expect(screen.getByTestId('mock-member-support-handoff-public-response')).toHaveAttribute(
+      'data-handoff-id',
+      'handoff-1'
+    );
+    expect(mocks.publicResponseBanner).toHaveBeenCalledWith(
+      expect.objectContaining({ handoffId: 'handoff-1' })
+    );
   });
 
   it('passes through a claim-detail source hint from the search params', async () => {

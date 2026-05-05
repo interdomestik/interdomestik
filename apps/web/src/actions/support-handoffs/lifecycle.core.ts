@@ -5,6 +5,7 @@ import {
 } from '@interdomestik/domain-claims/support-handoffs/lifecycle';
 
 import { logAuditEvent } from '@/lib/audit';
+import { clearSupportHandoffPublicResponseNotifications } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
@@ -19,6 +20,10 @@ function revalidatePathForAllLocales(path: string) {
 
 function revalidateSupportHandoffPaths() {
   revalidatePathForAllLocales('/staff/support-handoffs');
+}
+
+function revalidateMemberHelpPaths() {
+  revalidatePathForAllLocales('/member/help');
 }
 
 export async function acceptSupportHandoffCore(params: {
@@ -63,7 +68,28 @@ export async function closeSupportHandoffCore(params: {
   const result = await closeDomainSupportHandoff(params, { logAuditEvent });
 
   if (result.success) {
+    try {
+      const notificationResult = await clearSupportHandoffPublicResponseNotifications(
+        result.data.memberId,
+        { id: result.data.handoffId },
+        { tenantId: result.data.tenantId }
+      );
+
+      if (!notificationResult.success) {
+        console.error('Failed to clear support handoff public response notifications:', {
+          error: notificationResult.error,
+          handoffId: result.data.handoffId,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to clear support handoff public response notifications:', {
+        error,
+        handoffId: result.data.handoffId,
+      });
+    }
+
     revalidateSupportHandoffPaths();
+    revalidateMemberHelpPaths();
   }
 
   return result;
