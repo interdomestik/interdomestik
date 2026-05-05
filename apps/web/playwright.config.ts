@@ -34,6 +34,7 @@ const JUNIT_REPORT_FILE = path.join(TEST_RESULTS_DIR, 'junit.xml');
 const JSON_REPORT_FILE = path.join(TEST_RESULTS_DIR, 'report.json');
 
 const GATE_DEFAULT_MATCH = ['gate/**/*.spec.ts'];
+const GATE_SECURITY_MATCH = ['security/headers.spec.ts'];
 const PILOT_MATRIX_MATCH_GUARD = '/pilot/';
 const RUNNING_PILOT_MATRIX = process.argv.some(arg => arg.includes(PILOT_MATRIX_MATCH_GUARD));
 const GATE_KS_PILOT_MATCH = ['pilot/scenario-01-ks-e2e.spec.ts'];
@@ -47,11 +48,11 @@ const GATE_AL_PILOT_MATCH = ['pilot/c2-03-cross-tenant-write-isolation.spec.ts']
 const NOOP_TEST_MATCH = ['__never__/__none__.spec.ts'];
 
 const GATE_KS_TEST_MATCH = RUNNING_PILOT_MATRIX
-  ? [...GATE_DEFAULT_MATCH, ...GATE_KS_PILOT_MATCH]
-  : GATE_DEFAULT_MATCH;
+  ? [...GATE_DEFAULT_MATCH, ...GATE_SECURITY_MATCH, ...GATE_KS_PILOT_MATCH]
+  : [...GATE_DEFAULT_MATCH, ...GATE_SECURITY_MATCH];
 const GATE_MK_TEST_MATCH = RUNNING_PILOT_MATRIX
-  ? [...GATE_DEFAULT_MATCH, ...GATE_MK_PILOT_MATCH]
-  : GATE_DEFAULT_MATCH;
+  ? [...GATE_DEFAULT_MATCH, ...GATE_SECURITY_MATCH, ...GATE_MK_PILOT_MATCH]
+  : [...GATE_DEFAULT_MATCH, ...GATE_SECURITY_MATCH];
 const GATE_AL_TEST_MATCH = RUNNING_PILOT_MATRIX ? GATE_AL_PILOT_MATCH : NOOP_TEST_MATCH;
 
 function requireState(statePath: string) {

@@ -100,14 +100,14 @@ describe('tenant-request', () => {
     );
   });
 
-  it('keeps non-sensitive fallback behavior in production mode by design', async () => {
+  it('uses production-sensitive fallback behavior in production mode by default', async () => {
     mutableEnv.NODE_ENV = 'production';
     delete mutableEnv.VERCEL_ENV;
     mutableEnv.DEFAULT_PUBLIC_TENANT_ID = 'tenant_ks';
     mocks.headers.mockResolvedValue(new Headers({ host: 'localhost:3000' }));
     mocks.cookieGet.mockReturnValue(undefined);
 
-    await expect(resolveTenantIdFromRequest({ tenantIdFromQuery: 'tenant_ks' })).resolves.toBe(
+    await expect(resolveTenantIdFromRequest({ tenantIdFromQuery: 'tenant_mk' })).resolves.toBe(
       'tenant_ks'
     );
   });

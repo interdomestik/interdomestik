@@ -13,6 +13,7 @@ export type TenantResolutionSources = {
 
 export type TenantResolutionOptions = {
   productionSensitive?: boolean;
+  allowLoopbackFallback?: boolean;
 };
 
 export type TenantResolutionSource = 'host' | 'cookie' | 'header' | 'query' | 'default_public';
@@ -162,6 +163,11 @@ function isProductionLikeEnvironment(): boolean {
   return process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
 }
 
+function isLoopbackHost(host: string | null | undefined): boolean {
+  const normalized = normalizeHost(host ?? '');
+  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+}
+
 export function resolveTenantIdFromSources(
   sources: TenantResolutionSources,
   options: TenantResolutionOptions = {}
@@ -176,14 +182,18 @@ export function resolveTenantContextFromSources(
   const hostTenant = resolveTenantFromHost(sources.host ?? '');
   if (hostTenant) return { tenantId: hostTenant, source: 'host' };
 
-  const cookieTenant = coerceTenantId(sources.cookieTenantId);
-  if (cookieTenant) return { tenantId: cookieTenant, source: 'cookie' };
+  const productionSensitive = options.productionSensitive ?? true;
+  const isLocalLoopbackFallbackAllowed =
+    options.allowLoopbackFallback === true && isLoopbackHost(sources.host);
+  const allowUserControlledFallback =
+    isLocalLoopbackFallbackAllowed || !(productionSensitive && isProductionLikeEnvironment());
+  if (allowUserControlledFallback) {
+    const cookieTenant = coerceTenantId(sources.cookieTenantId);
+    if (cookieTenant) return { tenantId: cookieTenant, source: 'cookie' };
 
-  const headerTenant = coerceTenantId(sources.headerTenantId);
-  if (headerTenant) return { tenantId: headerTenant, source: 'header' };
+    const headerTenant = coerceTenantId(sources.headerTenantId);
+    if (headerTenant) return { tenantId: headerTenant, source: 'header' };
 
-  const allowQueryFallback = !(options.productionSensitive && isProductionLikeEnvironment());
-  if (allowQueryFallback) {
     const queryTenant = coerceTenantId(sources.queryTenantId);
     if (queryTenant) return { tenantId: queryTenant, source: 'query' };
   }

@@ -22,9 +22,9 @@ function getRequestHost(h: Headers): string {
  * 3) Header `x-tenant-id`
  * 4) Query param `tenantId` (back-compat)
  *
- * This helper intentionally uses the non-production-sensitive resolver mode.
- * Security-sensitive API entry points (auth/register/proxy) call
- * `resolveTenantIdFromSources(..., { productionSensitive: true })` directly.
+ * This helper uses the production-sensitive resolver default. In production-like
+ * environments, user-controlled cookie/header/query hints are ignored on neutral
+ * hosts unless a caller explicitly opts out through `resolveTenantIdFromSources`.
  */
 export async function resolveTenantIdFromRequest(
   options: ResolveTenantOptions = {}
