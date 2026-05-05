@@ -2,12 +2,15 @@ import { getMemberLatestPublicResponse } from '@interdomestik/domain-claims/supp
 import { MessageSquareText } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
 
+import { PublicResponseAcknowledgementForm } from './_public-response-acknowledgement-form';
+
 type SelectedClaim = {
   id: string;
 } | null;
 
 type PublicResponseBannerProps = {
   handoffId?: string | null;
+  locale: string;
   memberId: string;
   selectedClaim: SelectedClaim;
   tenantId: string;
@@ -15,6 +18,7 @@ type PublicResponseBannerProps = {
 
 export async function PublicResponseBanner({
   handoffId,
+  locale,
   memberId,
   selectedClaim,
   tenantId,
@@ -65,6 +69,19 @@ export async function PublicResponseBanner({
         >
           {t('publicResponse.updatedAt', { date: updatedAt })}
         </div>
+        <PublicResponseAcknowledgementForm
+          acknowledgedAt={response.publicResponseAcknowledgedAt}
+          expectedPublicResponseVersion={response.publicResponseVersion}
+          handoffId={response.handoffId}
+          labels={{
+            acknowledge: t('publicResponse.acknowledge'),
+            acknowledgedAt: t('publicResponse.acknowledgedAt', { date: '{date}' }),
+            acknowledging: t('publicResponse.acknowledging'),
+            error: t('publicResponse.acknowledgementError'),
+            stale: t('publicResponse.acknowledgementStale'),
+          }}
+          locale={locale}
+        />
       </div>
     </div>
   );

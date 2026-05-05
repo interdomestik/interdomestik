@@ -115,6 +115,7 @@ vi.mock('./_advisory-banner', () => ({
 vi.mock('./_public-response-banner', () => ({
   PublicResponseBanner: (props: {
     handoffId?: string | null;
+    locale: string;
     memberId: string;
     selectedClaim: { id: string } | null;
     tenantId: string;
@@ -196,6 +197,7 @@ describe('member help support handoff form', () => {
     });
     expect(mocks.publicResponseBanner).toHaveBeenCalledWith({
       handoffId: null,
+      locale: 'en',
       memberId: 'member-1',
       selectedClaim: null,
       tenantId: 'tenant-1',

@@ -283,6 +283,10 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
     lifecycleReason: t('detail.lifecycle_reason'),
     loading: t('detail.loading'),
     publicResponseEmpty: t('detail.public_response_empty'),
+    publicResponseAcknowledgedAt: t('detail.public_response_acknowledged_at', {
+      date: '{date}',
+    }),
+    publicResponseAwaitingAcknowledgement: t('detail.public_response_awaiting_acknowledgement'),
     publicResponseLabel: t('detail.public_response_label'),
     publicResponsePlaceholder: t('detail.public_response_placeholder'),
     publicResponseReadonly: t('detail.public_response_readonly'),

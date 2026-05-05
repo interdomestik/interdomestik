@@ -141,6 +141,11 @@ export const supportHandoffs = pgTable(
     publicResponseAt: timestamp('public_response_at'),
     publicResponseById: text('public_response_by_id').references(() => user.id),
     publicResponseVersion: integer('public_response_version').notNull().default(0),
+    publicResponseAcknowledgedAt: timestamp('public_response_acknowledged_at'),
+    publicResponseAcknowledgedById: text('public_response_acknowledged_by_id').references(
+      () => user.id
+    ),
+    publicResponseAcknowledgedVersion: integer('public_response_acknowledged_version'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

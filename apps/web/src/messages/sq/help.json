@@ -48,7 +48,12 @@
     },
     "publicResponse": {
       "title": "Përditësim nga stafi",
-      "updatedAt": "Përditësuar {date}"
+      "updatedAt": "Përditësuar {date}",
+      "acknowledge": "Konfirmo përditësimin",
+      "acknowledging": "Duke konfirmuar...",
+      "acknowledgedAt": "Konfirmuar {date}",
+      "acknowledgementError": "Nuk mundëm ta konfirmojmë këtë përditësim. Provoni përsëri.",
+      "acknowledgementStale": "Ekipi i mbështetjes sapo e përditësoi këtë përgjigje. Ju lutemi rishikoni përditësimin më të fundit."
     },
     "advisory": {
       "claimSpecific": "Tashmë keni një kërkesë aktive mbështetjeje për këtë rast. Mund të dërgoni ende një të re.",

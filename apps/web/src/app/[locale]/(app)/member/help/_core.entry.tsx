@@ -203,6 +203,7 @@ export default async function HelpPage({ params, searchParams }: Props) {
               <>
                 <PublicResponseBanner
                   handoffId={requestedHandoffId ?? null}
+                  locale={locale}
                   memberId={session.user.id}
                   selectedClaim={selectedClaim}
                   tenantId={session.user.tenantId}

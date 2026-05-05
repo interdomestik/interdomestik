@@ -359,6 +359,8 @@
           "lifecycle_reason": "Razlog",
           "public_response_title": "Ažuriranje osoblja za člana",
           "public_response_empty": "Članu još nije poslato ažuriranje osoblja.",
+          "public_response_acknowledged_at": "Član je potvrdio {date}",
+          "public_response_awaiting_acknowledgement": "Čeka se potvrda člana",
           "public_response_label": "Javni odgovor",
           "public_response_placeholder": "Napišite kratak odgovor koji član može da vidi...",
           "public_response_readonly": "Samo dodeljeni odgovorni član osoblja može da pošalje ili ažurira odgovor vidljiv članu.",

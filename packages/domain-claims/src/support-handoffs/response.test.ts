@@ -41,6 +41,9 @@ const mocks = vi.hoisted(() => {
       memberId: 'support_handoffs.member_id',
       publicResponse: 'support_handoffs.public_response',
       publicResponseAt: 'support_handoffs.public_response_at',
+      publicResponseAcknowledgedAt: 'support_handoffs.public_response_acknowledged_at',
+      publicResponseAcknowledgedById: 'support_handoffs.public_response_acknowledged_by_id',
+      publicResponseAcknowledgedVersion: 'support_handoffs.public_response_acknowledged_version',
       publicResponseById: 'support_handoffs.public_response_by_id',
       publicResponseVersion: 'support_handoffs.public_response_version',
       staffId: 'support_handoffs.staff_id',
@@ -224,6 +227,11 @@ describe('support handoff public response', () => {
       {
         publicResponse: 'Claim-specific staff update',
         publicResponseAt: new Date('2026-05-04T09:00:00.000Z'),
+        handoffId: 'handoff-1',
+        publicResponseAcknowledgedAt: null,
+        publicResponseAcknowledgedById: null,
+        publicResponseAcknowledgedVersion: null,
+        publicResponseVersion: 2,
       },
     ]);
 
@@ -236,12 +244,25 @@ describe('support handoff public response', () => {
     expect(result).toEqual({
       publicResponse: 'Claim-specific staff update',
       publicResponseAt: '2026-05-04T09:00:00.000Z',
+      handoffId: 'handoff-1',
+      publicResponseAcknowledged: false,
+      publicResponseAcknowledgedAt: null,
+      publicResponseAcknowledgedVersion: null,
+      publicResponseVersion: 2,
     });
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.member_id', 'member-1');
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.claim_id', 'claim-1');
     expect(mocks.inArray).toHaveBeenCalledWith('support_handoffs.status', ACTIVE_HANDOFF_STATUSES);
     expect(mocks.isNotNull).toHaveBeenCalledWith('support_handoffs.public_response');
-    expect(Object.keys(result ?? {})).toEqual(['publicResponse', 'publicResponseAt']);
+    expect(Object.keys(result ?? {})).toEqual([
+      'handoffId',
+      'publicResponse',
+      'publicResponseAt',
+      'publicResponseVersion',
+      'publicResponseAcknowledged',
+      'publicResponseAcknowledgedAt',
+      'publicResponseAcknowledgedVersion',
+    ]);
   });
 
   it('returns the targeted active handoff response without falling back to another handoff', async () => {
@@ -249,6 +270,11 @@ describe('support handoff public response', () => {
       {
         publicResponse: 'Targeted staff update',
         publicResponseAt: new Date('2026-05-04T11:00:00.000Z'),
+        handoffId: 'handoff-1',
+        publicResponseAcknowledgedAt: new Date('2026-05-04T11:05:00.000Z'),
+        publicResponseAcknowledgedById: 'member-1',
+        publicResponseAcknowledgedVersion: 3,
+        publicResponseVersion: 3,
       },
     ]);
 
@@ -262,6 +288,11 @@ describe('support handoff public response', () => {
     expect(result).toEqual({
       publicResponse: 'Targeted staff update',
       publicResponseAt: '2026-05-04T11:00:00.000Z',
+      handoffId: 'handoff-1',
+      publicResponseAcknowledged: true,
+      publicResponseAcknowledgedAt: '2026-05-04T11:05:00.000Z',
+      publicResponseAcknowledgedVersion: 3,
+      publicResponseVersion: 3,
     });
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.id', 'handoff-1');
     expect(mocks.eq).not.toHaveBeenCalledWith('support_handoffs.claim_id', 'claim-1');
@@ -273,6 +304,11 @@ describe('support handoff public response', () => {
       {
         publicResponse: 'Latest generic staff update',
         publicResponseAt: '2026-05-04T10:00:00.000Z',
+        handoffId: 'handoff-3',
+        publicResponseAcknowledgedAt: new Date('2026-05-04T10:05:00.000Z'),
+        publicResponseAcknowledgedById: 'member-1',
+        publicResponseAcknowledgedVersion: 2,
+        publicResponseVersion: 3,
       },
     ]);
 
@@ -285,6 +321,11 @@ describe('support handoff public response', () => {
     expect(result).toEqual({
       publicResponse: 'Latest generic staff update',
       publicResponseAt: '2026-05-04T10:00:00.000Z',
+      handoffId: 'handoff-3',
+      publicResponseAcknowledged: false,
+      publicResponseAcknowledgedAt: null,
+      publicResponseAcknowledgedVersion: 2,
+      publicResponseVersion: 3,
     });
     expect(mocks.selectLimit).toHaveBeenCalledTimes(2);
   });

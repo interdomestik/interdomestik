@@ -19,7 +19,7 @@ export type SupportHandoffSource = (typeof SUPPORT_HANDOFF_SOURCES)[number];
 
 export type SupportHandoffActionResult<T = void> =
   | { success: true; data: T; error?: undefined }
-  | { success: false; error: string; data?: undefined };
+  | { success: false; error: string; code?: string; data?: undefined };
 
 export type SupportHandoffSession = ClaimsSession;
 export type SupportHandoffDeps = Pick<ClaimsDeps, 'logAuditEvent'>;
@@ -53,6 +53,22 @@ export type UpdateSupportHandoffPublicResponseResult = {
   tenantId: string;
 };
 
+export type AcknowledgeSupportHandoffPublicResponseInput = {
+  expectedPublicResponseVersion: number;
+  handoffId: string;
+};
+
+export type AcknowledgeSupportHandoffPublicResponseErrorCode =
+  | 'CLOSED'
+  | 'STALE_VERSION'
+  | 'UNAUTHORIZED';
+
+export type AcknowledgeSupportHandoffPublicResponseResult = {
+  acknowledgedAt: string;
+  handoffId: string;
+  publicResponseAcknowledgedVersion: number;
+};
+
 export type SupportHandoffQueueAssignmentFilter = 'all' | 'mine' | 'unassigned';
 export type SupportHandoffQueueStatusFilter = SupportHandoffStatus | 'all';
 export type SupportHandoffQueueOwnerFilter = SupportHandoffQueueAssignmentFilter;
@@ -74,6 +90,9 @@ export type StaffPublicResponseFields = {
   publicResponse: string | null;
   publicResponseAt: string | null;
   publicResponseVersion: number;
+  publicResponseAcknowledged: boolean;
+  publicResponseAcknowledgedAt: string | null;
+  publicResponseAcknowledgedVersion: number | null;
 };
 
 export type SupportHandoffStaffDetail = SupportHandoffDetailFields & {
@@ -99,10 +118,20 @@ export type MemberActiveHandoffAdvisory = {
 };
 
 export type MemberSupportHandoffPublicResponse = {
+  /** The support handoff that owns this public response. */
+  handoffId: string;
   /** The latest staff-authored response text, or null if none sent. */
   publicResponse: string | null;
   /** ISO timestamp of when the response was last sent or updated. */
   publicResponseAt: string | null;
+  /** Version of the current staff-authored public response. */
+  publicResponseVersion: number;
+  /** Whether the authenticated member acknowledged the current response version. */
+  publicResponseAcknowledged: boolean;
+  /** ISO timestamp for acknowledgement of the current response version, or null. */
+  publicResponseAcknowledgedAt: string | null;
+  /** The last acknowledged public-response version, or null if none. */
+  publicResponseAcknowledgedVersion: number | null;
 };
 
 export type CloseSupportHandoffResult = {
