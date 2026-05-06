@@ -1,9 +1,6 @@
-import { TENANT_COOKIE_NAME, coerceTenantId } from '@/lib/tenant/tenant-hosts';
+import { applyTenantCookie } from '@/lib/tenant/tenant-cookie';
+import { coerceTenantId } from '@/lib/tenant/tenant-hosts';
 import { NextResponse } from 'next/server';
-
-function isSecureCookie(): boolean {
-  return process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
-}
 
 function sanitizeNextPath(nextPath: string | null, locale: string): string {
   const fallback = `/${locale}/login`;
@@ -14,6 +11,17 @@ function sanitizeNextPath(nextPath: string | null, locale: string): string {
   return nextPath;
 }
 
+function redirectOriginForRequest(url: URL, request: Request): string {
+  const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim();
+  if (forwardedProto?.toLowerCase() !== 'https' || url.protocol === 'https:') {
+    return url.origin;
+  }
+
+  const externalUrl = new URL(url);
+  externalUrl.protocol = 'https:';
+  return externalUrl.origin;
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ locale: string }> }
@@ -22,16 +30,10 @@ export async function GET(
   const url = new URL(request.url);
   const tenantId = coerceTenantId(url.searchParams.get('tenantId') ?? undefined);
   const redirectPath = sanitizeNextPath(url.searchParams.get('next'), locale);
-  const redirectUrl = new URL(redirectPath, url.origin);
+  const redirectUrl = new URL(redirectPath, redirectOriginForRequest(url, request));
 
   const response = NextResponse.redirect(redirectUrl);
   if (!tenantId) return response;
 
-  response.cookies.set(TENANT_COOKIE_NAME, tenantId, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: isSecureCookie(),
-    path: '/',
-  });
-  return response;
+  return applyTenantCookie(response, tenantId, request);
 }
