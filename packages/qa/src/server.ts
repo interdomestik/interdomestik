@@ -16,7 +16,13 @@ if (envFile) {
 const serverName = process.env.MCP_SERVER_NAME || 'interdomestik-qa';
 const server = new Server({ name: serverName, version: '1.0.0' }, { capabilities: { tools: {} } });
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
+let enabledTools = tools;
+if (process.env.MCP_ENABLED_TOOLS) {
+  const allowed = new Set(process.env.MCP_ENABLED_TOOLS.split(',').map(s => s.trim()));
+  enabledTools = tools.filter(t => allowed.has(t.name));
+}
+
+server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: enabledTools }));
 
 server.setRequestHandler(CallToolRequestSchema, async request => {
   const { name, arguments: args } = request.params;
