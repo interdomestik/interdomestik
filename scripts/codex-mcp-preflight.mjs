@@ -151,8 +151,8 @@ function verifyConfigToml() {
   }
 
   for (const toolName of requiredRepoQaTools) {
-    if (!configToml.includes(`"${toolName}"`)) {
-      fail(`interdomestik_qa enabled_tools must include ${toolName}`);
+    if (!configToml.includes(toolName)) {
+      fail(`interdomestik_qa MCP_ENABLED_TOOLS must include ${toolName}`);
     }
   }
 }
@@ -204,17 +204,17 @@ function verifyRepoQaTransport(qaServer) {
 }
 
 function verifyRepoQaEnabledTools(qaServerDetails) {
-  if (!Array.isArray(qaServerDetails.enabled_tools)) {
+  if (typeof qaServerDetails.env?.MCP_ENABLED_TOOLS !== 'string') {
     fail(
-      'interdomestik_qa must expose an enabled_tools allowlist.',
+      'interdomestik_qa must expose an MCP_ENABLED_TOOLS allowlist.',
       JSON.stringify(qaServerDetails, null, 2)
     );
   }
 
   for (const toolName of requiredRepoQaTools) {
-    if (!qaServerDetails.enabled_tools.includes(toolName)) {
+    if (!qaServerDetails.env.MCP_ENABLED_TOOLS.includes(toolName)) {
       fail(
-        `interdomestik_qa enabled_tools must include ${toolName}.`,
+        `interdomestik_qa MCP_ENABLED_TOOLS must include ${toolName}.`,
         JSON.stringify(qaServerDetails, null, 2)
       );
     }
