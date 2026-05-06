@@ -1,6 +1,11 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
+import {
+  assertRlsConnectionRole,
+  type RlsConnectionRoleAssertionResult,
+  type RlsConnectionRolePosture,
+} from './rls-role-assertion';
 import * as schema from './schema';
 
 const globalQueryClients = global as unknown as {
@@ -14,6 +19,20 @@ const isVercelRuntime = process.env.VERCEL === '1';
 function parseEnvInt(value: string | undefined, fallback: number): number {
   const parsed = Number.parseInt(value ?? '', 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function isLocalDatabaseUrl(databaseUrl: string): boolean {
+  try {
+    const hostname = new URL(databaseUrl).hostname;
+    return (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1' ||
+      hostname === '[::1]'
+    );
+  } catch {
+    return false;
+  }
 }
 
 if (!process.env.DATABASE_URL) {
@@ -44,6 +63,15 @@ if (isProduction && !process.env.DATABASE_URL_RLS) {
 }
 
 const rlsDatabaseUrl = process.env.DATABASE_URL_RLS ?? adminDatabaseUrl;
+const shouldRequireProductionRlsConnection = isProduction && !isLocalDatabaseUrl(rlsDatabaseUrl);
+const shouldAssertRlsConnectionRole =
+  shouldRequireProductionRlsConnection || process.env.REQUIRE_RLS_INTEGRATION === '1';
+const rlsConnectionUrlFailure =
+  shouldRequireProductionRlsConnection && rlsDatabaseUrl === adminDatabaseUrl
+    ? new Error(
+        'DATABASE_URL_RLS is identical to DATABASE_URL; configure a separate NOBYPASSRLS role for tenant-scoped queries.'
+      )
+    : null;
 
 const adminQueryClient =
   globalQueryClients.queryClientAdmin ?? createQueryClient(adminDatabaseUrl, 'admin');
@@ -56,8 +84,241 @@ const rlsQueryClient =
 globalQueryClients.queryClientAdmin = adminQueryClient;
 globalQueryClients.queryClientRls = rlsQueryClient;
 
+async function queryRlsConnectionRolePosture(
+  roleName?: string
+): Promise<RlsConnectionRolePosture[]> {
+  if (roleName) {
+    return rlsQueryClient<RlsConnectionRolePosture[]>`
+      select
+        current_user as "currentUser",
+        rolname as "roleName",
+        rolbypassrls as "roleBypassesRls",
+        rolsuper as "roleIsSuperuser"
+      from pg_roles
+      where rolname = ${roleName}
+      limit 1
+    `;
+  }
+
+  return rlsQueryClient<RlsConnectionRolePosture[]>`
+      select
+        current_user as "currentUser",
+        rolname as "roleName",
+        rolbypassrls as "roleBypassesRls",
+        rolsuper as "roleIsSuperuser"
+      from pg_roles
+      where rolname = current_user
+      limit 1
+    `;
+}
+
+type RlsConnectionRoleAssertionState = 'not_required' | 'pending' | 'passed' | 'failed';
+
+function getInitialRlsConnectionRoleAssertionState(): RlsConnectionRoleAssertionState {
+  if (shouldAssertRlsConnectionRole && rlsConnectionUrlFailure) {
+    return 'failed';
+  }
+
+  if (shouldAssertRlsConnectionRole) {
+    return 'pending';
+  }
+
+  return 'not_required';
+}
+
+let rlsConnectionRoleAssertionState: RlsConnectionRoleAssertionState =
+  getInitialRlsConnectionRoleAssertionState();
+let rlsConnectionRoleAssertionFailure: unknown = rlsConnectionUrlFailure;
+
+type OptionalSentry = {
+  addBreadcrumb?: (breadcrumb: {
+    category?: string;
+    level?: 'info' | 'error';
+    message?: string;
+    data?: Record<string, unknown>;
+  }) => void;
+  captureException?: (error: unknown, options?: Record<string, unknown>) => void;
+  captureMessage?: (message: string, options?: Record<string, unknown>) => void;
+};
+
+let rlsConnectionRoleAssertionTelemetryReported = false;
+
+async function loadOptionalSentry(): Promise<OptionalSentry | null> {
+  try {
+    const importOptionalModule = new Function('specifier', 'return import(specifier)') as (
+      specifier: string
+    ) => Promise<unknown>;
+    return (await importOptionalModule('@sentry/nextjs')) as OptionalSentry;
+  } catch {
+    return null;
+  }
+}
+
+function reportRlsConnectionRoleAssertion(
+  result: RlsConnectionRoleAssertionResult,
+  error?: unknown
+): void {
+  if (rlsConnectionRoleAssertionTelemetryReported) {
+    return;
+  }
+  rlsConnectionRoleAssertionTelemetryReported = true;
+
+  const event = `database.rls.role_assertion.${result.ok ? 'passed' : 'failed'}`;
+  const data = {
+    currentUser: result.currentUser,
+    configuredDbRole: result.configuredDbRole,
+    reason: result.ok ? undefined : result.reason,
+    checkedRole: result.ok ? undefined : result.checkedRole,
+  };
+
+  if (result.ok) {
+    console.info(`[database:rls] ${event}`, data);
+  } else {
+    console.error(`[database:rls] ${event}`, error ?? data);
+  }
+
+  void loadOptionalSentry()
+    .then(sentry => {
+      if (!sentry) {
+        return;
+      }
+
+      try {
+        sentry.addBreadcrumb?.({
+          category: 'database.rls',
+          level: result.ok ? 'info' : 'error',
+          message: event,
+          data,
+        });
+
+        if (result.ok) {
+          sentry.captureMessage?.(event, {
+            level: 'info',
+            tags: {
+              component: 'database',
+              check: 'rls_role_assertion',
+            },
+            extra: data,
+          });
+          return;
+        }
+
+        sentry.captureException?.(error, {
+          fingerprint: ['database.rls.role_assertion.failed'],
+          tags: {
+            component: 'database',
+            check: 'rls_role_assertion',
+          },
+          extra: data,
+        });
+      } catch (telemetryError) {
+        if (isProduction) {
+          console.warn('[database:rls] optional Sentry telemetry failed:', telemetryError);
+        }
+      }
+    })
+    .catch(telemetryError => {
+      if (isProduction) {
+        console.warn('[database:rls] optional Sentry telemetry failed:', telemetryError);
+      }
+    });
+}
+
+function resultFromRlsConnectionRoleAssertionError(
+  error: unknown
+): RlsConnectionRoleAssertionResult {
+  if (error instanceof Error && 'result' in error) {
+    return error.result as RlsConnectionRoleAssertionResult;
+  }
+
+  return {
+    ok: false,
+    reason: 'query_failed',
+    cause: error,
+  };
+}
+
+// One pg_roles check per process/isolate cold start, plus one more when DB_RLS_ROLE is set.
+// withTenantContext awaits the same module-scoped promise; this is not a per-request query.
+function startRlsConnectionRoleAssertion(): Promise<RlsConnectionRoleAssertionResult | undefined> {
+  if (!shouldAssertRlsConnectionRole) {
+    return Promise.resolve(undefined);
+  }
+
+  if (rlsConnectionUrlFailure) {
+    reportRlsConnectionRoleAssertion(
+      {
+        ok: false,
+        reason: 'query_failed',
+        cause: rlsConnectionUrlFailure,
+      },
+      rlsConnectionUrlFailure
+    );
+    return Promise.resolve(undefined);
+  }
+
+  return assertRlsConnectionRole({
+    isProduction: shouldAssertRlsConnectionRole,
+    configuredDbRole: process.env.DB_RLS_ROLE,
+    queryRolePosture: queryRlsConnectionRolePosture,
+  })
+    .then(result => {
+      rlsConnectionRoleAssertionState = 'passed';
+      reportRlsConnectionRoleAssertion(result);
+      return result;
+    })
+    .catch(error => {
+      rlsConnectionRoleAssertionState = 'failed';
+      rlsConnectionRoleAssertionFailure = error;
+      reportRlsConnectionRoleAssertion(resultFromRlsConnectionRoleAssertionError(error), error);
+      return undefined;
+    });
+}
+
+const rlsConnectionRoleAssertion = startRlsConnectionRoleAssertion();
+
+function assertRlsDatabaseClientReady(): void {
+  if (!shouldAssertRlsConnectionRole || rlsConnectionRoleAssertionState === 'passed') {
+    return;
+  }
+
+  if (rlsConnectionRoleAssertionState === 'failed') {
+    throw rlsConnectionRoleAssertionFailure instanceof Error
+      ? rlsConnectionRoleAssertionFailure
+      : new Error('DATABASE_URL_RLS role assertion failed');
+  }
+
+  throw new Error(
+    'DATABASE_URL_RLS role assertion has not completed; await assertRlsConnectionRoleReady() before using dbRls or db'
+  );
+}
+
+function createAssertedRlsDatabaseClient<TClient extends object>(client: TClient): TClient {
+  if (!shouldAssertRlsConnectionRole) {
+    return client;
+  }
+
+  return new Proxy(client, {
+    get(target, property, receiver) {
+      assertRlsDatabaseClientReady();
+      const value = Reflect.get(target, property, receiver);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+}
+
+export async function assertRlsConnectionRoleReady(): Promise<void> {
+  await rlsConnectionRoleAssertion;
+  if (rlsConnectionRoleAssertionState === 'failed') {
+    throw rlsConnectionRoleAssertionFailure instanceof Error
+      ? rlsConnectionRoleAssertionFailure
+      : new Error('DATABASE_URL_RLS role assertion failed');
+  }
+}
+
 export const dbAdmin = drizzle(adminQueryClient, { schema });
-export const dbRls = drizzle(rlsQueryClient, { schema });
+const dbRlsClient = drizzle(rlsQueryClient, { schema });
+export const dbRls = createAssertedRlsDatabaseClient(dbRlsClient);
 
 /**
  * Backward-compatible alias. Prefer explicit dbRls or dbAdmin.
