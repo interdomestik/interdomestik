@@ -3,10 +3,11 @@ import {
   resolveStorageUploadContentType,
   resolveUploadMimeType,
 } from '@/features/admin/claims/components/ops/file-upload-meta';
+import { createClaimUploadIntentToken } from '@/features/claims/upload/server/shared-upload';
 import {
-  createClaimUploadIntentToken,
-  sanitizeClaimUploadExtension,
-} from '@/features/claims/upload/server/shared-upload';
+  assertEvidenceStoragePath,
+  buildEvidenceStoragePath,
+} from '@/features/claims/upload/server/storage-path';
 import { findAccessibleAdminUploadClaim } from '@/features/claims/upload/server/access';
 import { confirmUpload } from '@/features/member/claims/actions';
 import { LOCALES } from '@/i18n/locales';
@@ -287,8 +288,29 @@ export async function POST(request: Request) {
   const resolvedMimeType = resolveUploadMimeType(file);
   const storageContentType = resolveStorageUploadContentType(file);
   const fileId = randomUUID();
-  const extension = sanitizeClaimUploadExtension(file.name);
-  const storagePath = `pii/tenants/${tenantId}/claims/${claimId}/${fileId}.${extension}`;
+  let storagePath: string;
+
+  try {
+    storagePath = buildEvidenceStoragePath({
+      bucket,
+      claimId,
+      fileId,
+      fileName: file.name,
+      shape: 'assigned',
+      tenantId,
+    });
+    assertEvidenceStoragePath({
+      bucket,
+      claimId,
+      fileId,
+      shape: 'assigned',
+      storagePath,
+      tenantId,
+    });
+  } catch {
+    return jsonError('Invalid form payload', 400);
+  }
+
   const uploadIntent = createUploadIntent({
     bucket,
     claimId,

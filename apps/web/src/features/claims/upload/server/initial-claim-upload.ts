@@ -2,6 +2,7 @@ import type { EvidenceFile } from '@interdomestik/domain-claims/validators/claim
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { validateStoredObject } from './shared-upload';
+import { assertEvidenceStoragePath } from './storage-path';
 
 const INITIAL_CLAIM_UPLOAD_INTENT_TTL_MS = 15 * 60 * 1000;
 
@@ -52,18 +53,18 @@ function safeCompare(a: string, b: string): boolean {
 
 export function expectedInitialClaimUploadPath(params: {
   actorId: string;
+  bucket: string;
+  expectedBucket?: string;
   fileId: string;
   storagePath: string;
   tenantId: string;
 }): boolean {
-  const { actorId, fileId, storagePath, tenantId } = params;
-  const expectedPrefix = `pii/tenants/${tenantId}/claims/${actorId}/unassigned/${fileId}-`;
-
-  return (
-    storagePath.startsWith(expectedPrefix) &&
-    !storagePath.includes('..') &&
-    storagePath.split('/').length === 7
-  );
+  try {
+    assertEvidenceStoragePath({ ...params, shape: 'initial' });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function createInitialClaimUploadIntentToken(params: {
@@ -129,6 +130,7 @@ export function verifyInitialClaimUploadIntentToken(params: {
     payload.tenantId !== expected.tenantId ||
     !expectedInitialClaimUploadPath({
       actorId: expected.actorId,
+      bucket: expected.bucket,
       fileId: expected.fileId,
       storagePath: expected.storagePath,
       tenantId: expected.tenantId,

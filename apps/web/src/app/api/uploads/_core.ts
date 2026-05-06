@@ -4,6 +4,10 @@ import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { DEFAULT_EVIDENCE_BUCKET } from '@/lib/storage/evidence-bucket';
 import { createInitialClaimUploadIntentToken } from '@/features/claims/upload/server/initial-claim-upload';
+import {
+  assertEvidenceStoragePath,
+  buildEvidenceStoragePath,
+} from '@/features/claims/upload/server/storage-path';
 
 type Session = {
   user: {
@@ -32,8 +36,6 @@ export const uploadRequestSchema = z.object({
 
 export type UploadRequest = z.infer<typeof uploadRequestSchema>;
 
-export const sanitizeFileName = (fileName: string) => fileName.replaceAll(/[^\w.-]+/g, '_');
-
 type UploadOk = {
   ok: true;
   status: 200;
@@ -55,8 +57,9 @@ type UploadOk = {
 
 type UploadErr = {
   ok: false;
-  status: 403 | 404 | 413 | 415 | 500;
+  status: 400 | 403 | 404 | 413 | 415 | 500;
   error:
+    | 'Invalid file name'
     | 'Forbidden'
     | 'Claim not found'
     | 'File too large'
@@ -69,6 +72,8 @@ export type UploadResult = UploadOk | UploadErr;
 type InitialUploadIntentResult =
   | { ok: true; intentToken: string }
   | { ok: false; result: UploadErr };
+
+type EvidenceUploadPathResult = { ok: true; path: string } | { ok: false; result: UploadErr };
 
 export async function createSignedUploadCore(args: {
   session: Session;
@@ -114,9 +119,18 @@ export async function createSignedUploadCore(args: {
   }
 
   const evidenceId = nanoid();
-  const safeName = sanitizeFileName(fileName);
   const classification = DEFAULT_CLASSIFICATION;
-  const path = `${classification}/tenants/${tenantId}/claims/${session.user.id}/${claimId ?? 'unassigned'}/${evidenceId}-${safeName}`;
+  const pathResult = createEvidenceUploadPath({
+    actorId: session.user.id,
+    bucket,
+    claimId,
+    evidenceId,
+    fileName,
+    tenantId,
+  });
+
+  if (!pathResult.ok) return pathResult.result;
+  const path = pathResult.path;
 
   let intentToken: string | undefined;
   if (!claimId) {
@@ -170,6 +184,83 @@ export async function createSignedUploadCore(args: {
       allowedMimeTypes: ALLOWED_MIME_TYPES,
     },
   };
+}
+
+function createEvidenceUploadPath(args: {
+  actorId: string;
+  bucket: string;
+  claimId?: string;
+  evidenceId: string;
+  fileName: string;
+  tenantId: string;
+}): EvidenceUploadPathResult {
+  const { actorId, bucket, claimId, evidenceId, fileName, tenantId } = args;
+
+  try {
+    return claimId
+      ? createAssignedEvidenceUploadPath({ bucket, claimId, evidenceId, fileName, tenantId })
+      : createInitialEvidenceUploadPath({ actorId, bucket, evidenceId, fileName, tenantId });
+  } catch {
+    return { ok: false, result: { ok: false, status: 400, error: 'Invalid file name' } };
+  }
+}
+
+function createAssignedEvidenceUploadPath(args: {
+  bucket: string;
+  claimId: string;
+  evidenceId: string;
+  fileName: string;
+  tenantId: string;
+}): { ok: true; path: string } {
+  const { bucket, claimId, evidenceId, fileName, tenantId } = args;
+  const path = buildEvidenceStoragePath({
+    bucket,
+    claimId,
+    fileId: evidenceId,
+    fileName,
+    shape: 'assigned',
+    tenantId,
+  });
+
+  assertEvidenceStoragePath({
+    bucket,
+    claimId,
+    fileId: evidenceId,
+    shape: 'assigned',
+    storagePath: path,
+    tenantId,
+  });
+
+  return { ok: true, path };
+}
+
+function createInitialEvidenceUploadPath(args: {
+  actorId: string;
+  bucket: string;
+  evidenceId: string;
+  fileName: string;
+  tenantId: string;
+}): { ok: true; path: string } {
+  const { actorId, bucket, evidenceId, fileName, tenantId } = args;
+  const path = buildEvidenceStoragePath({
+    actorId,
+    bucket,
+    fileId: evidenceId,
+    fileName,
+    shape: 'initial',
+    tenantId,
+  });
+
+  assertEvidenceStoragePath({
+    actorId,
+    bucket,
+    fileId: evidenceId,
+    shape: 'initial',
+    storagePath: path,
+    tenantId,
+  });
+
+  return { ok: true, path };
 }
 
 function createUnassignedUploadIntentToken(args: {

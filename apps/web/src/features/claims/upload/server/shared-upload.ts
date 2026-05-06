@@ -9,6 +9,8 @@ import { createClient } from '@supabase/supabase-js';
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { revalidatePath } from 'next/cache';
 
+import { assertEvidenceStoragePath, buildEvidenceStoragePath } from './storage-path';
+
 const SIGNED_UPLOAD_MAX_ATTEMPTS = 3;
 const SIGNED_UPLOAD_RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 250;
 const CLAIM_UPLOAD_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
@@ -125,20 +127,20 @@ export function sanitizeClaimUploadExtension(fileName: string): string {
   return ext.slice(0, 16) || 'bin';
 }
 
-function expectedUploadPath(params: {
+export function expectedUploadPath(params: {
+  bucket: string;
   claimId: string;
+  expectedBucket?: string;
   fileId: string;
   storagePath: string;
   tenantId: string;
 }): boolean {
-  const { claimId, fileId, storagePath, tenantId } = params;
-  const expectedPrefix = `pii/tenants/${tenantId}/claims/${claimId}/${fileId}.`;
-
-  return (
-    storagePath.startsWith(expectedPrefix) &&
-    !storagePath.includes('..') &&
-    storagePath.split('/').length === 6
-  );
+  try {
+    assertEvidenceStoragePath({ ...params, shape: 'assigned' });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function createClaimUploadIntentToken(params: {
@@ -220,7 +222,14 @@ function verifyClaimUploadIntentToken(params: {
     payload.mimeType !== expected.mimeType ||
     payload.storageContentType !== (expected.storageContentType ?? expected.mimeType) ||
     payload.storagePath !== expected.storagePath ||
-    payload.tenantId !== expected.tenantId
+    payload.tenantId !== expected.tenantId ||
+    !expectedUploadPath({
+      bucket: expected.bucket,
+      claimId: expected.claimId,
+      fileId: expected.fileId,
+      storagePath: expected.storagePath,
+      tenantId: expected.tenantId,
+    })
   ) {
     return {
       success: false,
@@ -347,7 +356,7 @@ export async function validateConfirmedClaimUpload(params: {
     !Number.isSafeInteger(fileSize) ||
     fileSize <= 0 ||
     fileSize > CLAIM_UPLOAD_MAX_FILE_SIZE_BYTES ||
-    !expectedUploadPath({ claimId, fileId, storagePath, tenantId })
+    !expectedUploadPath({ bucket, claimId, fileId, storagePath, tenantId })
   ) {
     return {
       success: false,
@@ -402,9 +411,30 @@ export async function createSignedUploadUrl(params: {
     return { success: false, error: 'File too large (max 50MB)', status: 413 };
   }
 
-  const ext = sanitizeClaimUploadExtension(fileName);
   const fileId = randomUUID();
-  const path = `pii/tenants/${tenantId}/claims/${claimId}/${fileId}.${ext}`;
+  let path: string;
+
+  try {
+    path = buildEvidenceStoragePath({
+      bucket,
+      claimId,
+      fileId,
+      fileName,
+      shape: 'assigned',
+      tenantId,
+    });
+    assertEvidenceStoragePath({
+      bucket,
+      claimId,
+      fileId,
+      shape: 'assigned',
+      storagePath: path,
+      tenantId,
+    });
+  } catch {
+    return { success: false, error: 'Invalid file name', status: 400 };
+  }
+
   const supabase = getSupabaseStorageClient(logPrefix);
 
   if (!supabase) {

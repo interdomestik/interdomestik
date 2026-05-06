@@ -309,9 +309,7 @@ describe('POST /api/uploads', () => {
     );
     expect(data.upload).not.toHaveProperty('intentToken');
 
-    expect(data.upload.path).toContain(
-      '/tenants/tenant_mk/claims/user-1/claim-1/evidence-123-My_File.pdf'
-    );
+    expect(data.upload.path).toBe('pii/tenants/tenant_mk/claims/claim-1/evidence-123.pdf');
     expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'api/uploads',
