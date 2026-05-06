@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 
-import { dbRls } from './db';
+import { assertRlsConnectionRoleReady, dbRls } from './db';
+import { assertRlsRoleIdentifier } from './rls-role-assertion';
 
 export type TenantContext = {
   tenantId: string;
@@ -24,16 +25,8 @@ function assertTenantId(tenantId: string): string {
   return normalized;
 }
 
-function assertRoleIdentifier(role: string): string {
-  const normalized = role.trim();
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/u.test(normalized)) {
-    throw new Error(`Invalid DB role for RLS context: ${role}`);
-  }
-  return normalized;
-}
-
 function setLocalRoleSql(role: string) {
-  const safeRole = assertRoleIdentifier(role);
+  const safeRole = assertRlsRoleIdentifier(role);
   return sql.raw(`set local role "${safeRole}"`);
 }
 
@@ -43,6 +36,8 @@ export async function withTenantContext<T>(
 ): Promise<T> {
   const tenantId = assertTenantId(context.tenantId);
   const effectiveDbRole = context.dbRole?.trim() || CONFIGURED_RLS_ROLE;
+
+  await assertRlsConnectionRoleReady();
 
   return dbRls.transaction(async tx => {
     if (effectiveDbRole) {
