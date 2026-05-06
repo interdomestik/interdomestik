@@ -498,7 +498,7 @@ export async function codeSearch(args: {
       structuredContent: {
         engine: 'rg',
         filePattern: filePattern || null,
-        matches: stdout.split('\n').filter(Boolean),
+        matches: codeSearchMatches(stdout),
         matchesTruncated: stdoutTruncated || stdout.length > MAX_CODE_SEARCH_OUTPUT_CHARS,
         outputLines: codeSearchOutputLines(stdout),
         stdoutTruncated,
@@ -529,7 +529,7 @@ export async function codeSearch(args: {
         structuredContent: {
           engine: 'git grep',
           filePattern: filePattern || null,
-          matches: stdout.split('\n').filter(Boolean),
+          matches: codeSearchMatches(stdout),
           matchesTruncated: stdoutTruncated || stdout.length > MAX_CODE_SEARCH_OUTPUT_CHARS,
           outputLines: codeSearchOutputLines(stdout),
           stdoutTruncated,
