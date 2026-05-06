@@ -19,6 +19,8 @@ This checklist ensures secure development practices for the Interdomestik projec
 - [ ] **Database security**: Database uses strong password and SSL enabled
 - [ ] **Service isolation**: No development services exposed to external networks
 - [ ] **Firewall rules**: Development ports 54321-54326 accessible from localhost only
+- [ ] **CSP nonce migration**: Follow the approved design in
+      [docs/security/csp-nonce-migration.md](../docs/security/csp-nonce-migration.md)
 
 ### 🚀 Environment Management
 

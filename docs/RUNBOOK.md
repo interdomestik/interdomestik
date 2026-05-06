@@ -194,3 +194,10 @@ This repo includes SLO targets in [docs/SLOS.md](docs/SLOS.md). In Sentry, use t
   - **Document route errors**: metric/issue alert on elevated 5xx for `GET /api/documents/:id/download`.
 - **Performance alerts**: best for latency SLOs.
   - **SLO 3 (Core API latency)**: performance alert on p95 transaction duration for key API routes (start with `/api/claims`).
+
+## CSP nonce migration
+
+The approved CSP nonce migration design is in
+[docs/security/csp-nonce-migration.md](./security/csp-nonce-migration.md). Use it for
+Report-Only observation, Sentry/report handling, enforcement criteria, and rollback via
+`CSP_NONCE_MODE`.
