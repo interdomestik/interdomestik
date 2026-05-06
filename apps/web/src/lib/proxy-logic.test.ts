@@ -464,7 +464,7 @@ describe('proxy auth guard hardening', () => {
     expect(setCookie).toContain('Max-Age=2592000');
   });
 
-  it('sets Secure on the tenant cookie in production deployments', async () => {
+  it('sets Secure on the tenant cookie for HTTPS requests', async () => {
     mutableEnv.NODE_ENV = 'production';
     const request = makeRequest('/sq/pricing', undefined, {
       protocol: 'https:',
@@ -473,6 +473,21 @@ describe('proxy auth guard hardening', () => {
     const response = await proxy(request);
 
     expect(response.headers.get('set-cookie')).toContain('Secure');
+    expect(response.headers.get('strict-transport-security')).toBe(
+      'max-age=15552000; includeSubDomains'
+    );
+  });
+
+  it('sets Secure and HTTPS-only hardening when the first forwarded proto is https', async () => {
+    mutableEnv.NODE_ENV = 'production';
+    const request = makeRequest('/sq/pricing', undefined, {
+      headers: { 'x-forwarded-proto': 'https, http' },
+    });
+
+    const response = await proxy(request);
+
+    expect(response.headers.get('set-cookie')).toContain('Secure');
+    expect(response.headers.get('content-security-policy')).toContain('upgrade-insecure-requests');
     expect(response.headers.get('strict-transport-security')).toBe(
       'max-age=15552000; includeSubDomains'
     );
@@ -488,6 +503,7 @@ describe('proxy auth guard hardening', () => {
       'upgrade-insecure-requests'
     );
     expect(response.headers.get('strict-transport-security')).toBeNull();
+    expect(response.headers.get('set-cookie')).not.toContain('Secure');
   });
 
   it('retries inactive sessions once for flagged tenants', async () => {

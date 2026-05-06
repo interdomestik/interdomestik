@@ -2,10 +2,8 @@ import { routing } from '@/i18n/routing';
 import { isStaffAuthTolerantTenant } from '@/lib/feature-flags';
 import { isE2EDiagnosticsEnabled, isProductionDeployment } from '@/lib/runtime-environment';
 import { emitAuthTelemetryEvent } from '@/lib/telemetry';
-import {
-  resolveTenantFromHost as resolveTenantFromCanonicalHost,
-  TENANT_COOKIE_NAME,
-} from '@/lib/tenant/tenant-hosts';
+import { applyTenantCookie } from '@/lib/tenant/tenant-cookie';
+import { resolveTenantFromHost as resolveTenantFromCanonicalHost } from '@/lib/tenant/tenant-hosts';
 import { NextRequest, NextResponse } from 'next/server';
 
 const PROTECTED_TOP_LEVEL = new Set(['member', 'admin', 'staff', 'agent']);
@@ -16,7 +14,6 @@ const SESSION_COOKIE_NAMES = [
 ] as const;
 const ACTIVE_SESSION_CACHE_TTL_MS = 2000;
 const ACTIVE_SESSION_CACHE_MAX_ENTRIES = 100;
-const TENANT_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 const activeSessionCache = new Map<string, number>();
 
 type SecurityHeaders = {
@@ -24,10 +21,9 @@ type SecurityHeaders = {
 };
 
 function isHttpsRequest(request: NextRequest): boolean {
-  return (
-    request.nextUrl.protocol === 'https:' ||
-    request.headers.get('x-forwarded-proto')?.toLowerCase() === 'https'
-  );
+  const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim();
+
+  return request.nextUrl.protocol === 'https:' || forwardedProto?.toLowerCase() === 'https';
 }
 
 function compactHeader(value: string): string {
@@ -82,13 +78,7 @@ function applyResponseHardening(
   }
 
   if (tenant) {
-    response.cookies.set(TENANT_COOKIE_NAME, tenant, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: isHttpsRequest(request),
-      maxAge: TENANT_COOKIE_MAX_AGE_SECONDS,
-      path: '/',
-    });
+    applyTenantCookie(response, tenant, request);
   }
 
   return response;
