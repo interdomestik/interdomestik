@@ -7,7 +7,7 @@
 - Status: Complete
 - Owner: `platform + security + qa`
 - Purpose: convert the updated production-professionalism re-review into a repo-canonical
-  maturity roadmap without blocking the already-promoted `P32-CRM09` product slice.
+  maturity roadmap without reopening the completed `P32-CRM09` product slice.
 
 ## Scope Boundary
 
@@ -30,7 +30,7 @@ access-control, and tenant-isolation authority.
 | `scripts/check-db-access-guard.mjs`                                                                                               | Direct DB access is baseline-guarded, but the guard does not yet prove sensitive callsites execute inside `withTenantContext`.                                                                          |
 | `apps/web/src/app/api/uploads/_core.ts`, `apps/web/src/app/api/documents/[id]/_core.ts`, `apps/web/src/lib/ai/claim-workflows.ts` | Several storage paths still use admin/service-role storage clients. Application invariants are stronger after `P17`, but storage-backend isolation remains a separate maturity category.                |
 | `docs/MATURITY_ASSESSMENT_2026.md`                                                                                                | The older assessment already flags missing backup restore drills, no threat model, and alerting maturity gaps. Some alert scripts now exist, but operational proof remains separate from code presence. |
-| `docs/plans/current-tracker.md`                                                                                                   | `P32-CRM09` is already promoted and pending. Any maturity roadmap must not accidentally supersede that product slice.                                                                                   |
+| `docs/plans/current-tracker.md`                                                                                                   | `P32-CRM09` is complete through PR `#650`. Any maturity roadmap must not accidentally supersede that product slice or reopen it.                                                                        |
 
 ## Decisions
 
@@ -55,33 +55,34 @@ contracts, push-subscription endpoint collisions, sensitive-route ownership mapp
 route contracts, and share-pack route contracts. The next maturity work should therefore target
 category closure rather than re-opening those fixed findings.
 
-### 3. Do Not Block CRM09 On All Maturity Categories
+### 3. Do Not Reopen CRM09 For All Maturity Categories
 
-Decision: `P32-CRM09 Member Support Handoff Reply` remains the pending product implementation slice
-promoted by `P32-DG14`.
+Decision: `P32-CRM09 Member Support Handoff Reply` is complete through PR `#650` and remains closed.
 
-The production-maturity roadmap should not block CRM09 on supply-chain attestation, restore drills,
-threat modeling, repo pruning, performance budgets, or other broad maturity categories. Those are
-valuable, but they are not prerequisites for the scoped support-handoff reply implementation.
+The production-maturity roadmap should not reopen CRM09 for supply-chain attestation, restore
+drills, threat modeling, repo pruning, performance budgets, or other broad maturity categories.
+Those are valuable, but they are not prerequisites for the scoped support-handoff reply
+implementation.
 
-It is reasonable to run one small security hardening slice before CRM09 if the team wants to reduce
-tenant-defense risk first. That hardening slice must be narrow, independently reviewable, and must
-not reopen proxy, route, auth, tenancy architecture, schema unrelated to the slice, Stripe,
-Relationship, Matter, TrustSignal, README, AGENTS, or architecture docs.
+It is reasonable to run one small security hardening slice after CRM09 if the team wants to reduce
+tenant-defense risk before the next product slice. That hardening slice must be narrow,
+independently reviewable, and must not reopen proxy, route, auth, tenancy architecture, schema
+unrelated to the slice, Stripe, Relationship, Matter, TrustSignal, README, AGENTS, or architecture
+docs.
 
 ## Candidate Ranking
 
 | Rank | Candidate                                                                                                                                                              | Decision                       | Reason                                                                                                                                                                                                                                                               |
 | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | `P33-SEC01 RLS Connection Role Startup Assertion`                                                                                                                      | Promote                        | Smallest high-value tenant-defense hardening: assert at startup that `DATABASE_URL_RLS` connects with a non-`BYPASSRLS` role. This converts an environment assumption into executable proof without touching proxy, routes, product UX, or support-handoff behavior. |
-| 2    | `P33-SEC02 CSP Nonce Phase 0 Report-Only`                                                                                                                              | Queue after SEC01 or CRM09     | CSP nonce migration already has an approved design, but the first implementation touches request/response header behavior and browser verification. It is important, but higher blast radius than the DB role assertion.                                             |
+| 2    | `P33-SEC02 CSP Nonce Phase 0 Report-Only`                                                                                                                              | Queue after SEC01 or next gate | CSP nonce migration already has an approved design, but the first implementation touches request/response header behavior and browser verification. It is important, but higher blast radius than the DB role assertion.                                             |
 | 3    | `P33-DG02 withTenantContext Build Guard Design`                                                                                                                        | Design before implementation   | Build-layer enforcement for `withTenantContext` needs a careful baseline, exemptions, and migration plan so it does not create noisy false positives across existing direct DB callsites.                                                                            |
 | 4    | `P33-DG03 Storage RLS Backstop Design`                                                                                                                                 | Design before implementation   | Replacing admin/service-role storage access or moving to a gateway/presigned service is security-relevant and may affect uploads, documents, AI downloads, and policy analysis. It needs its own design gate.                                                        |
 | 5    | Operational categories: backup/restore drills, incident drills, alert routing, threat model, SBOM/provenance, data lifecycle checks, performance budgets, repo hygiene | Defer into later bounded gates | These are valid 10/10 categories but not launch blockers for CRM09 and not safe to bundle into one implementation branch.                                                                                                                                            |
 
 ## Promoted Slice
 
-Promote exactly one optional pre-CRM09 hardening implementation slice:
+Promote exactly one optional post-CRM09 hardening implementation slice:
 
 **`P33-SEC01 RLS Connection Role Startup Assertion`**
 
@@ -93,13 +94,13 @@ failure behavior. It must preserve existing `DATABASE_URL_RLS` requiredness, RLS
 `withTenantContext` semantics, proxy behavior, canonical routes, auth layering, tenancy
 architecture, product UX, schema, Stripe posture, README, AGENTS, and architecture docs.
 
-If the team chooses not to take SEC01 first, the active product queue should resume directly with
-`P32-CRM09`.
+If the team chooses not to take SEC01 next, the active product queue should continue with the next
+post-CRM09 design gate.
 
 ## Non-Goals
 
 - Implementing all `10/10` categories in one tranche.
-- Re-ranking or replacing `P32-CRM09`.
+- Re-ranking, replacing, or reopening `P32-CRM09`.
 - Editing `apps/web/src/proxy.ts`, canonical routes, auth/tenancy architecture, product runtime,
   schema, Stripe, README, AGENTS, or architecture docs in this roadmap gate.
 - Implementing CSP nonce migration, `withTenantContext` build guards, storage RLS replacement,
