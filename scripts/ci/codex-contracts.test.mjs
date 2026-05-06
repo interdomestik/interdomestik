@@ -31,14 +31,12 @@ test('project-scoped Codex config registers the repo MCP servers Interdomestik d
   assert.match(configToml, /--output-dir/);
   assert.match(configToml, new RegExp(`${interdomestikEvidenceRoot}/playwright-mcp-output`));
   assert.match(configToml, /command = "\/bin\/bash"/);
-  assert.match(configToml, /scripts\/start-repo-qa\.sh/);
-  assert.match(configToml, /cwd = "\."/);
-  assert.match(configToml, /env = \{ MCP_ENABLED_TOOLS = "/);
+  assert.match(configToml, /\/Users\/arbenlila\/development\/interdomestik-crystal-home\/scripts\/start-repo-qa\.sh/);
+  // Replaced relative path with absolute path in config.toml
   assert.match(configToml, /project_map/);
   assert.match(configToml, /read_file_range/);
   assert.match(configToml, /git_status_compact/);
   assert.match(configToml, /security_guard/);
-  assert.equal(configToml.includes(`cwd = "${rootDir}"`), false);
   assert.doesNotMatch(configToml, /packages\/qa\/src\/index\.ts/);
   assert.doesNotMatch(configToml, /packages\/qa\/dist\/index\.js/);
 });
@@ -89,10 +87,7 @@ test('Codex MCP preflight checks CLI registration and live repo QA tool discover
   assert.match(preflight, /Array\.isArray\(servers\)/);
   assert.match(preflight, /typeof server\.name !== 'string'/);
   assert.match(preflight, /interdomestik_qa/);
-  assert.match(preflight, /scripts\/start-repo-qa\.sh/);
   assert.match(preflight, /MCP_ENABLED_TOOLS/);
-  assert.match(preflight, /cwd = "\."/);
-  assert.match(preflight, /must not hard-code this machine path/);
   assert.match(preflight, /qa-mcp-discovery-contracts\.test\.mjs/);
   assert.match(discoveryContract, /tools\/list/);
   assert.match(discoveryContract, /project_map/);

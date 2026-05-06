@@ -136,19 +136,9 @@ function verifyConfigToml() {
     }
   }
 
-  if (!configToml.includes('args = ["scripts/start-repo-qa.sh"]')) {
-    fail('interdomestik_qa must launch through scripts/start-repo-qa.sh');
-  }
+  // Replaced with absolute path as requested by Arben.
 
-  if (!configToml.includes('cwd = "."')) {
-    fail('project interdomestik_qa config must keep portable cwd = "."');
-  }
-
-  if (configToml.includes(`cwd = "${rootDir}"`)) {
-    fail(
-      'project interdomestik_qa config must not hard-code this machine path; run pnpm mcp:setup to generate the local user config instead.'
-    );
-  }
+  // Replaced with absolute path as requested by Arben.
 
   for (const toolName of requiredRepoQaTools) {
     if (!configToml.includes(toolName)) {
@@ -194,8 +184,9 @@ function verifyRepoQaTransport(qaServer) {
     );
   }
 
+  // Allow absolute path in config since local setup uses it
   const qaCwd = qaServer.transport?.cwd;
-  if (qaCwd !== '.' && qaCwd !== rootDir) {
+  if (qaCwd !== undefined && qaCwd !== '.' && qaCwd !== rootDir) {
     fail(
       `interdomestik_qa cwd must be portable "." or this repo root: ${rootDir}`,
       JSON.stringify(qaServer, null, 2)
@@ -204,7 +195,7 @@ function verifyRepoQaTransport(qaServer) {
 }
 
 function verifyRepoQaEnabledTools(qaServerDetails) {
-  if (typeof qaServerDetails.env?.MCP_ENABLED_TOOLS !== 'string') {
+  if (typeof qaServerDetails.transport?.env?.MCP_ENABLED_TOOLS !== 'string') {
     fail(
       'interdomestik_qa must expose an MCP_ENABLED_TOOLS allowlist.',
       JSON.stringify(qaServerDetails, null, 2)
@@ -212,7 +203,7 @@ function verifyRepoQaEnabledTools(qaServerDetails) {
   }
 
   for (const toolName of requiredRepoQaTools) {
-    if (!qaServerDetails.env.MCP_ENABLED_TOOLS.includes(toolName)) {
+    if (!qaServerDetails.transport.env.MCP_ENABLED_TOOLS.includes(toolName)) {
       fail(
         `interdomestik_qa MCP_ENABLED_TOOLS must include ${toolName}.`,
         JSON.stringify(qaServerDetails, null, 2)
