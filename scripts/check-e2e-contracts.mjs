@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { glob } from 'glob';
+import ts from 'typescript';
 
 const repoRoot = process.cwd();
 
@@ -23,6 +24,21 @@ const STRICT_TARGETS = new Set([
 const ALLOWLIST_PATHS = new Set([
   // Contract tests may intentionally reference cross-locale paths.
   'apps/web/e2e/gate/tenant-resolution.spec.ts',
+]);
+
+const PLAYWRIGHT_CONFIG_PATH = 'apps/web/playwright.config.ts';
+const UPLOAD_CROSS_TENANT_SPEC = 'security/upload-cross-tenant.spec.ts';
+const SECURITY_GATE_CONSUMERS = [
+  'GATE_KS_TEST_MATCH',
+  'GATE_MK_TEST_MATCH',
+  'GATE_AL_TEST_MATCH',
+  'GATE_MK_CONTRACT_MATCH',
+];
+const SECURITY_GATE_PROJECT_MATCHES = new Map([
+  ['gate-ks-sq', 'GATE_KS_TEST_MATCH'],
+  ['gate-mk-mk', 'GATE_MK_TEST_MATCH'],
+  ['gate-al-sq', 'GATE_AL_TEST_MATCH'],
+  ['gate-mk-contract', 'GATE_MK_CONTRACT_MATCH'],
 ]);
 
 const localeRules = [
@@ -98,10 +114,172 @@ function enforceProductionSpecStrictness(relPath, content) {
   return violations;
 }
 
+function propertyNameText(name) {
+  if (!name) return null;
+  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) {
+    return name.text;
+  }
+  return null;
+}
+
+function getObjectProperty(objectLiteral, propertyName) {
+  return objectLiteral.properties.find(
+    property =>
+      ts.isPropertyAssignment(property) && propertyNameText(property.name) === propertyName
+  );
+}
+
+function getConstInitializer(sourceFile, constName) {
+  let initializer = null;
+
+  function visit(node) {
+    if (initializer) return;
+    if (ts.isVariableStatement(node)) {
+      for (const declaration of node.declarationList.declarations) {
+        if (ts.isIdentifier(declaration.name) && declaration.name.text === constName) {
+          initializer = declaration.initializer ?? null;
+          return;
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+
+  if (!initializer) {
+    throw new Error(`${PLAYWRIGHT_CONFIG_PATH}: missing ${constName} declaration`);
+  }
+
+  return initializer;
+}
+
+function unwrapExpression(node) {
+  if (ts.isParenthesizedExpression(node)) return unwrapExpression(node.expression);
+  return node;
+}
+
+function arrayLiteralIncludesString(initializer, expectedValue) {
+  const expression = unwrapExpression(initializer);
+  return (
+    ts.isArrayLiteralExpression(expression) &&
+    expression.elements.some(
+      element => ts.isStringLiteral(element) && element.text === expectedValue
+    )
+  );
+}
+
+function matchListAlwaysIncludesSecuritySpread(initializer) {
+  const expression = unwrapExpression(initializer);
+
+  if (ts.isConditionalExpression(expression)) {
+    return (
+      matchListAlwaysIncludesSecuritySpread(expression.whenTrue) &&
+      matchListAlwaysIncludesSecuritySpread(expression.whenFalse)
+    );
+  }
+
+  return (
+    ts.isArrayLiteralExpression(expression) &&
+    expression.elements.some(
+      element =>
+        ts.isSpreadElement(element) &&
+        ts.isIdentifier(element.expression) &&
+        element.expression.text === 'GATE_SECURITY_MATCH'
+    )
+  );
+}
+
+function findProjectsArray(sourceFile) {
+  let projectsArray = null;
+
+  function visit(node) {
+    if (projectsArray) return;
+    if (ts.isObjectLiteralExpression(node)) {
+      const projects = getObjectProperty(node, 'projects');
+      if (projects && ts.isArrayLiteralExpression(unwrapExpression(projects.initializer))) {
+        projectsArray = unwrapExpression(projects.initializer);
+        return;
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+
+  if (!projectsArray) {
+    throw new Error(`${PLAYWRIGHT_CONFIG_PATH}: missing Playwright projects array`);
+  }
+
+  return projectsArray;
+}
+
+function collectProjectTestMatches(sourceFile) {
+  const projectsArray = findProjectsArray(sourceFile);
+  const projectMatches = new Map();
+
+  for (const element of projectsArray.elements) {
+    const project = unwrapExpression(element);
+    if (!ts.isObjectLiteralExpression(project)) continue;
+
+    const name = getObjectProperty(project, 'name');
+    const testMatch = getObjectProperty(project, 'testMatch');
+    if (!name || !testMatch || !ts.isStringLiteralLike(name.initializer)) continue;
+
+    projectMatches.set(name.initializer.text, testMatch.initializer);
+  }
+
+  return projectMatches;
+}
+
+function enforceSecurityGateWiring(playwrightConfig) {
+  const violations = [];
+  const sourceFile = ts.createSourceFile(
+    PLAYWRIGHT_CONFIG_PATH,
+    playwrightConfig,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
+  );
+  const securityMatch = getConstInitializer(sourceFile, 'GATE_SECURITY_MATCH');
+
+  if (!arrayLiteralIncludesString(securityMatch, UPLOAD_CROSS_TENANT_SPEC)) {
+    violations.push(
+      `${PLAYWRIGHT_CONFIG_PATH}: GATE_SECURITY_MATCH must include '${UPLOAD_CROSS_TENANT_SPEC}'.`
+    );
+  }
+
+  for (const consumer of SECURITY_GATE_CONSUMERS) {
+    const initializer = getConstInitializer(sourceFile, consumer);
+    if (!matchListAlwaysIncludesSecuritySpread(initializer)) {
+      violations.push(`${PLAYWRIGHT_CONFIG_PATH}: ${consumer} must include GATE_SECURITY_MATCH.`);
+    }
+  }
+
+  const projectMatches = collectProjectTestMatches(sourceFile);
+  for (const [projectName, expectedMatch] of SECURITY_GATE_PROJECT_MATCHES) {
+    const actualMatch = projectMatches.get(projectName);
+    if (!actualMatch) {
+      violations.push(`${PLAYWRIGHT_CONFIG_PATH}: missing ${projectName} project testMatch.`);
+      continue;
+    }
+
+    if (!ts.isIdentifier(actualMatch) || actualMatch.text !== expectedMatch) {
+      violations.push(
+        `${PLAYWRIGHT_CONFIG_PATH}: ${projectName} testMatch must use ${expectedMatch}.`
+      );
+    }
+  }
+
+  return violations;
+}
+
 async function main() {
   const files = await glob(E2E_GLOBS, { cwd: repoRoot, nodir: true });
 
   const violations = [];
+  const playwrightConfig = await readFile(path.join(repoRoot, PLAYWRIGHT_CONFIG_PATH), 'utf8');
+  violations.push(...enforceSecurityGateWiring(playwrightConfig));
 
   for (const relPath of files) {
     const absPath = path.join(repoRoot, relPath);

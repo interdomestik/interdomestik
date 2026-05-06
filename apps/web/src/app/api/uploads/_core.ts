@@ -118,7 +118,10 @@ export async function createSignedUploadCore(args: {
     }
   }
 
-  const evidenceId = nanoid();
+  const generatedEvidenceId = nanoid();
+  const evidenceId = /^[A-Za-z0-9]/.test(generatedEvidenceId)
+    ? generatedEvidenceId
+    : `e${generatedEvidenceId}`;
   const classification = DEFAULT_CLASSIFICATION;
   const pathResult = createEvidenceUploadPath({
     actorId: session.user.id,
