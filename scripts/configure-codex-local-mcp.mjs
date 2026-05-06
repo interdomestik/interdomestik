@@ -30,17 +30,14 @@ function tomlString(value) {
 }
 
 function createRepoQaBlock() {
-  const launcherPath = path.join(rootDir, 'scripts/start-repo-qa.sh');
-  const enabledTools = requiredRepoQaTools.map(tool => `  ${tomlString(tool)},`).join('\n');
+  const enabledToolsString = requiredRepoQaTools.join(',');
 
   return [
     `[mcp_servers.${serverName}]`,
     'command = "/bin/bash"',
-    `args = [${tomlString(launcherPath)}]`,
+    'args = ["scripts/start-repo-qa.sh"]',
     `cwd = ${tomlString(rootDir)}`,
-    'enabled_tools = [',
-    enabledTools,
-    ']',
+    `env = { MCP_ENABLED_TOOLS = ${tomlString(enabledToolsString)} }`,
   ].join('\n');
 }
 

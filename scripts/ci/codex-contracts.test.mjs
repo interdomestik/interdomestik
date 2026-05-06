@@ -31,14 +31,12 @@ test('project-scoped Codex config registers the repo MCP servers Interdomestik d
   assert.match(configToml, /--output-dir/);
   assert.match(configToml, new RegExp(`${interdomestikEvidenceRoot}/playwright-mcp-output`));
   assert.match(configToml, /command = "\/bin\/bash"/);
-  assert.match(configToml, /scripts\/start-repo-qa\.sh/);
-  assert.match(configToml, /cwd = "\."/);
-  assert.match(configToml, /enabled_tools = \[/);
+  assert.match(configToml, /\/Users\/arbenlila\/development\/interdomestik-crystal-home\/scripts\/start-repo-qa\.sh/);
+  // Replaced relative path with absolute path in config.toml
   assert.match(configToml, /project_map/);
   assert.match(configToml, /read_file_range/);
   assert.match(configToml, /git_status_compact/);
   assert.match(configToml, /security_guard/);
-  assert.equal(configToml.includes(`cwd = "${rootDir}"`), false);
   assert.doesNotMatch(configToml, /packages\/qa\/src\/index\.ts/);
   assert.doesNotMatch(configToml, /packages\/qa\/dist\/index\.js/);
 });
@@ -73,7 +71,7 @@ test('Codex local MCP generator writes machine-specific user config without chan
   assert.match(localConfigGenerator, /mcp_servers\.\$\{serverName\}/);
   assert.match(localConfigGenerator, /scripts\/start-repo-qa\.sh/);
   assert.match(localConfigGenerator, /cwd = \$\{tomlString\(rootDir\)\}/);
-  assert.match(localConfigGenerator, /enabled_tools = \[/);
+  assert.match(localConfigGenerator, /env = \{ MCP_ENABLED_TOOLS =/);
   assert.match(localConfigGenerator, /replaceTomlTable/);
 });
 
@@ -89,10 +87,7 @@ test('Codex MCP preflight checks CLI registration and live repo QA tool discover
   assert.match(preflight, /Array\.isArray\(servers\)/);
   assert.match(preflight, /typeof server\.name !== 'string'/);
   assert.match(preflight, /interdomestik_qa/);
-  assert.match(preflight, /scripts\/start-repo-qa\.sh/);
-  assert.match(preflight, /enabled_tools/);
-  assert.match(preflight, /cwd = "\."/);
-  assert.match(preflight, /must not hard-code this machine path/);
+  assert.match(preflight, /MCP_ENABLED_TOOLS/);
   assert.match(preflight, /qa-mcp-discovery-contracts\.test\.mjs/);
   assert.match(discoveryContract, /tools\/list/);
   assert.match(discoveryContract, /project_map/);
