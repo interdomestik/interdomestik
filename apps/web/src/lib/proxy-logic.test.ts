@@ -51,12 +51,13 @@ async function signSessionToken(token: string, secret: string): Promise<string> 
 function makeRequest(
   pathname: string,
   cookieHeader?: string,
-  init?: { protocol?: 'http:' | 'https:'; headers?: HeadersInit }
+  init?: { protocol?: 'http:' | 'https:'; host?: string; headers?: HeadersInit }
 ): NextRequest {
   const protocol = init?.protocol ?? 'http:';
-  const headers = new Headers({ host: 'ks.localhost:3000', ...init?.headers });
+  const host = init?.host ?? 'ks.localhost:3000';
+  const headers = new Headers({ host, ...init?.headers });
   if (cookieHeader) headers.set('cookie', cookieHeader);
-  return new NextRequest(`${protocol}//ks.localhost:3000${pathname}`, { headers });
+  return new NextRequest(`${protocol}//${host}${pathname}`, { headers });
 }
 
 function mockSessionLookup(payload: unknown, status = 200) {
@@ -81,9 +82,13 @@ function activeSessionPayload(token: string): unknown {
   };
 }
 
-function expectRedirectToLogin(response: Response): void {
+function expectRedirectToLogin(
+  response: Response,
+  expectedLocation = 'http://ks.localhost:3000/sq/login'
+): void {
   expect(response.status).toBe(307);
-  expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
+  expect(response.headers.get('location')).toBe(expectedLocation);
+  expect(response.headers.get('x-auth-guard')).toBe('middleware-redirect');
 }
 
 function expectProtectedRouteTelemetry(params: {
@@ -91,13 +96,15 @@ function expectProtectedRouteTelemetry(params: {
   reason: 'missing_cookie' | 'invalid_cookie' | 'inactive_session' | 'throttled';
   surface: 'staff' | 'member' | 'admin' | 'agent';
   pathname: string;
+  locale?: 'sq' | 'mk';
+  tenant?: 'tenant_ks' | 'tenant_mk';
 }): void {
   expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
     expect.objectContaining({
       eventName: params.eventName,
       reason: params.reason,
-      tenant: 'tenant_ks',
-      locale: 'sq',
+      tenant: params.tenant ?? 'tenant_ks',
+      locale: params.locale ?? 'sq',
       surface: params.surface,
       pathname: params.pathname,
     })
@@ -107,6 +114,7 @@ function expectProtectedRouteTelemetry(params: {
 function expectAllowedProtectedRoute(response: Response): void {
   expect(response.status).toBe(200);
   expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
+  expect(response.headers.get('x-auth-guard')).toBeNull();
 }
 
 function expectBaseSecurityHeaders(response: Response): string {
@@ -148,20 +156,74 @@ describe('proxy auth guard hardening', () => {
     mutableEnv.VERCEL_ENV = ORIGINAL_VERCEL_ENV;
   });
 
-  it('emits bounce telemetry when a protected route has no session cookie', async () => {
-    const request = makeRequest('/sq/member');
-
-    const response = await proxy(request);
-
-    expectRedirectToLogin(response);
-    expectCompatibleSecurityHeaders(response);
-    expectProtectedRouteTelemetry({
-      eventName: 'protected_route_bounce_to_login',
-      reason: 'missing_cookie',
-      surface: 'member',
+  it.each([
+    {
       pathname: '/sq/member',
-    });
-  });
+      surface: 'member' as const,
+      expectedLocation: 'http://ks.localhost:3000/sq/login',
+    },
+    {
+      pathname: '/sq/agent',
+      surface: 'agent' as const,
+      expectedLocation: 'http://ks.localhost:3000/sq/login',
+    },
+    {
+      pathname: '/sq/staff',
+      surface: 'staff' as const,
+      expectedLocation: 'http://ks.localhost:3000/sq/login',
+    },
+    {
+      pathname: '/sq/admin',
+      surface: 'admin' as const,
+      expectedLocation: 'http://ks.localhost:3000/sq/login',
+    },
+    {
+      pathname: '/mk/admin',
+      surface: 'admin' as const,
+      host: 'mk.localhost:3000',
+      expectedLocation: 'http://mk.localhost:3000/mk/login',
+      locale: 'mk' as const,
+      tenant: 'tenant_mk' as const,
+    },
+    {
+      pathname: '/member',
+      surface: 'member' as const,
+      expectedLocation: 'http://ks.localhost:3000/sq/login',
+    },
+    {
+      pathname: '/agent',
+      surface: 'agent' as const,
+      expectedLocation: 'http://ks.localhost:3000/sq/login',
+    },
+    {
+      pathname: '/staff',
+      surface: 'staff' as const,
+      expectedLocation: 'http://ks.localhost:3000/sq/login',
+    },
+    {
+      pathname: '/admin',
+      surface: 'admin' as const,
+      expectedLocation: 'http://ks.localhost:3000/sq/login',
+    },
+  ])(
+    'emits bounce telemetry when protected route $pathname has no session cookie',
+    async ({ pathname, surface, host, expectedLocation, locale, tenant }) => {
+      const request = makeRequest(pathname, undefined, { host });
+
+      const response = await proxy(request);
+
+      expectRedirectToLogin(response, expectedLocation);
+      expectCompatibleSecurityHeaders(response);
+      expectProtectedRouteTelemetry({
+        eventName: 'protected_route_bounce_to_login',
+        reason: 'missing_cookie',
+        surface,
+        pathname,
+        locale,
+        tenant,
+      });
+    }
+  );
 
   it('redirects protected routes when session cookie signature is invalid', async () => {
     const request = makeRequest('/sq/member', 'better-auth.session_token=tampered.invalid');
@@ -326,6 +388,45 @@ describe('proxy auth guard hardening', () => {
     expectCompatibleSecurityHeaders(firstResponse);
     expectCompatibleSecurityHeaders(secondResponse);
     expect(mockEmitAuthTelemetryEvent).not.toHaveBeenCalled();
+  });
+
+  it('does not let the active-session cache bypass invalid cookie validation', async () => {
+    const validSigned = await signSessionToken(
+      'token-cache-scope',
+      process.env.BETTER_AUTH_SECRET as string
+    );
+    const fetchSpy = mockSessionLookup(activeSessionPayload('token-cache-scope'));
+    const allowedRequest = makeRequest('/sq/member', `better-auth.session_token=${validSigned}`);
+    const invalidRequest = makeRequest('/sq/member', 'better-auth.session_token=tampered.invalid');
+
+    const allowedResponse = await proxy(allowedRequest);
+    const invalidResponse = await proxy(invalidRequest);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expectAllowedProtectedRoute(allowedResponse);
+    expectRedirectToLogin(invalidResponse);
+    expectProtectedRouteTelemetry({
+      eventName: 'protected_route_bounce_to_login',
+      reason: 'invalid_cookie',
+      surface: 'member',
+      pathname: '/sq/member',
+    });
+  });
+
+  it('redirects repeated tampered-cookie requests instead of caching invalid state', async () => {
+    const firstRequest = makeRequest('/sq/member', 'better-auth.session_token=tampered.invalid');
+    const secondRequest = makeRequest(
+      '/sq/member/claims',
+      'better-auth.session_token=tampered.invalid'
+    );
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+    const firstResponse = await proxy(firstRequest);
+    const secondResponse = await proxy(secondRequest);
+
+    expectRedirectToLogin(firstResponse);
+    expectRedirectToLogin(secondResponse);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('uses a client-compatible CSP for public static routes', async () => {

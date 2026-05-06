@@ -339,11 +339,14 @@ test('CI audit job runs the scripts/ci contract suite', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const auditJob = ciWorkflow.jobs.audit;
   const auditRunStep = findStep(auditJob.steps, 'Run Audits');
+  const quarantineBudgetStep = findStep(auditJob.steps, 'Check E2E quarantine budget');
 
   assert.ok(auditRunStep);
   assert.match(auditRunStep.run, /\bpnpm test:ci:contracts\b/);
-  assert.match(auditRunStep.run, /\bpnpm check:e2e-contracts\b/);
+  assert.match(auditRunStep.run, /\bpnpm check:e2e-contracts:base\b/);
   assert.match(auditRunStep.run, /\bpnpm lint:production-warnings\b/);
+  assert.ok(quarantineBudgetStep);
+  assert.equal(quarantineBudgetStep.run, 'pnpm check:e2e-quarantine-budget');
 });
 
 test('Composite CI setup action uses Node 24-compatible hosted actions', () => {
