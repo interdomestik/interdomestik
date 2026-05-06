@@ -76,6 +76,7 @@ describe('initial claim upload intents', () => {
     expect(
       expectedInitialClaimUploadPath({
         actorId: 'member-1',
+        bucket: 'claim-evidence',
         fileId: 'evidence-123',
         storagePath: 'pii/tenants/tenant-1/claims/member-1/unassigned/evidence-123-receipt.pdf',
         tenantId: 'tenant-1',
@@ -85,6 +86,7 @@ describe('initial claim upload intents', () => {
     expect(
       expectedInitialClaimUploadPath({
         actorId: 'member-1',
+        bucket: 'claim-evidence',
         fileId: 'evidence-123',
         storagePath: 'pii/tenants/tenant-1/claims/member-1/other/evidence-123-receipt.pdf',
         tenantId: 'tenant-1',

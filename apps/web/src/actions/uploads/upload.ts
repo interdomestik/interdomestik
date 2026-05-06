@@ -3,6 +3,10 @@
 import { auth } from '@/lib/auth';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import { createInitialClaimUploadIntentToken } from '@/features/claims/upload/server/initial-claim-upload';
+import {
+  assertEvidenceStoragePath,
+  buildEvidenceStoragePath,
+} from '@/features/claims/upload/server/storage-path';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
@@ -166,6 +170,30 @@ async function uploadToStorage(params: {
     }
   }
 
+  function createVoiceNotePath(bucket: string): string {
+    const storagePath = buildEvidenceStoragePath({
+      actorId: userId,
+      bucket,
+      expectedBucket: bucket,
+      fileId,
+      fileName: `voicenote.${ext}`,
+      shape: 'initial',
+      tenantId,
+    });
+
+    assertEvidenceStoragePath({
+      actorId: userId,
+      bucket,
+      expectedBucket: bucket,
+      fileId,
+      shape: 'initial',
+      storagePath,
+      tenantId,
+    });
+
+    return storagePath;
+  }
+
   // 1. MinIO / S3 Path (Docker / Local)
   if (process.env.S3_ENDPOINT) {
     try {
@@ -180,7 +208,7 @@ async function uploadToStorage(params: {
       });
 
       const bucketName = process.env.S3_BUCKET_NAME || 'claim-evidence';
-      const fileName = `pii/tenants/${tenantId}/claims/${userId}/unassigned/${fileId}-voicenote.${ext}`;
+      const fileName = createVoiceNotePath(bucketName);
       const intentToken = createVoiceNoteIntent(bucketName, fileName);
 
       if (!intentToken) {
@@ -257,7 +285,15 @@ async function uploadToStorage(params: {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   const bucketName = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
-  const fileName = `pii/tenants/${tenantId}/claims/${userId}/unassigned/${fileId}-voicenote.${ext}`;
+  let fileName: string;
+
+  try {
+    fileName = createVoiceNotePath(bucketName);
+  } catch (error) {
+    console.error('Voice note storage path creation failed:', error);
+    return { success: false, error: 'Upload unavailable. Please try again later.' };
+  }
+
   const intentToken = createVoiceNoteIntent(bucketName, fileName);
 
   if (!intentToken) {

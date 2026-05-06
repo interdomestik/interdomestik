@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { runEvidenceStoragePathGuard } from './check-evidence-storage-paths.mjs';
 
 const LOCKFILE_PATH = path.join(process.cwd(), 'pnpm-lock.yaml');
 
@@ -9,48 +10,48 @@ const BANNED_PACKAGES = [
   {
     name: 'tar',
     banned: [/@7\.5\.[0-6](?!\d)/, /@6\./, /@5\./],
-    reason: 'CVE-2024-37890 / High severity vulnerability in versions < 7.5.7'
+    reason: 'CVE-2024-37890 / High severity vulnerability in versions < 7.5.7',
   },
   {
     name: 'lodash',
     banned: [/@4\.17\.21(?!\d)/, /@4\.17\.[0-9](?!\d)/, /@4\.17\.1[0-9](?!\d)/, /@4\.17\.20(?!\d)/],
-    reason: 'Multiple high severity vulnerabilities, use ^4.17.23+'
+    reason: 'Multiple high severity vulnerabilities, use ^4.17.23+',
   },
   {
     name: '@isaacs/brace-expansion',
     banned: [/@5\.0\.0(?!\d)/],
-    reason: 'Security vulnerability in 5.0.0, use ^5.0.1+'
+    reason: 'Security vulnerability in 5.0.0, use ^5.0.1+',
   },
   {
     name: 'cross-spawn',
     banned: [/@5\./, /@6\.0\.[0-5](?!\d)/],
-    reason: 'Vulnerability in older versions, use ^7.0.6 or 6.0.6+'
+    reason: 'Vulnerability in older versions, use ^7.0.6 or 6.0.6+',
   },
   {
     name: 'undici',
     banned: [/@4\./, /@5\./, /@6\./, /@7\.(?:[0-9]|1[0-9])\./],
-    reason: 'Use >= 7.20.0'
+    reason: 'Use >= 7.20.0',
   },
   {
     name: 'esbuild',
     banned: [/@0\.(?:[0-9]|1[0-9]|2[0-4])\./],
-    reason: 'GHSA-67mh-4wv8-2f99: Security vulnerability in versions <= 0.24.2'
+    reason: 'GHSA-67mh-4wv8-2f99: Security vulnerability in versions <= 0.24.2',
   },
   {
     name: '@modelcontextprotocol/sdk',
     banned: [/@1\.(?:[0-9]|1[0-9]|2[0-5])\./],
-    reason: 'GHSA-345p-7cg4-v4c7: Cross-client data leak in versions <= 1.25.3'
+    reason: 'GHSA-345p-7cg4-v4c7: Cross-client data leak in versions <= 1.25.3',
   },
   {
     name: 'got',
     banned: [/@(?:[0-9]|10)\./, /@11\.[0-7]\./, /@11\.8\.[0-4]/],
-    reason: 'GHSA-pfrx-2q88-qq97: Redirect to UNIX socket in versions < 11.8.5'
+    reason: 'GHSA-pfrx-2q88-qq97: Redirect to UNIX socket in versions < 11.8.5',
   },
   {
     name: 'electron',
     banned: [/@23\./, /@22\./],
-    reason: 'Multiple vulnerabilities in older Electron versions used by dev tools'
-  }
+    reason: 'Multiple vulnerabilities in older Electron versions used by dev tools',
+  },
 ];
 
 async function runGuard() {
@@ -81,8 +82,15 @@ async function runGuard() {
   }
 
   if (foundVulnerabilities > 0) {
-    console.error(`🚨 Security Guard failed! ${foundVulnerabilities} banned package version(s) detected.`);
+    console.error(
+      `🚨 Security Guard failed! ${foundVulnerabilities} banned package version(s) detected.`
+    );
     process.exit(1);
+  }
+
+  const evidencePathStatus = runEvidenceStoragePathGuard();
+  if (evidencePathStatus !== 0) {
+    process.exit(evidencePathStatus);
   }
 
   console.log('✅ Security Guard passed. All enforced versions are clean.');

@@ -54,6 +54,7 @@
     "mod:autopilot:apply": "node scripts/modularize-autopilot.mjs --apply",
     "check:entrypoints": "node scripts/check-entrypoints-no-db.mjs",
     "check:db-access": "node scripts/check-db-access-guard.mjs",
+    "check:evidence-storage-paths": "node scripts/check-evidence-storage-paths.mjs",
     "check:entrypoints:strict": "node scripts/check-entrypoints-no-db.mjs --strict",
     "test:release-gate": "tsx --test scripts/release-gate/run.test.ts",
     "test": "pnpm --filter @interdomestik/web test:unit --run",

@@ -11,7 +11,6 @@ const hoisted = vi.hoisted(() => ({
   confirmAdminUpload: vi.fn(),
   confirmUpload: vi.fn(),
   createClaimUploadIntentToken: vi.fn(),
-  sanitizeClaimUploadExtension: vi.fn(),
   captureMessage: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
@@ -47,7 +46,6 @@ vi.mock('@/features/claims/upload/server/access', () => ({
 }));
 vi.mock('@/features/claims/upload/server/shared-upload', () => ({
   createClaimUploadIntentToken: hoisted.createClaimUploadIntentToken,
-  sanitizeClaimUploadExtension: hoisted.sanitizeClaimUploadExtension,
 }));
 vi.mock('@sentry/nextjs', () => ({
   captureMessage: hoisted.captureMessage,
@@ -97,7 +95,6 @@ describe('POST /api/claims/evidence-upload', () => {
     hoisted.confirmAdminUpload.mockResolvedValue({ success: true });
     hoisted.confirmUpload.mockResolvedValue({ success: true });
     hoisted.createClaimUploadIntentToken.mockReturnValue('upload-intent-token');
-    hoisted.sanitizeClaimUploadExtension.mockReturnValue('pdf');
   });
 
   it('denies staff uploads outside branch or assignment scope before storage upload', async () => {
@@ -167,21 +164,17 @@ describe('POST /api/claims/evidence-upload', () => {
     expect(hoisted.upload).not.toHaveBeenCalled();
   });
 
-  it('sanitizes direct-upload extensions before storage upload', async () => {
-    hoisted.sanitizeClaimUploadExtension.mockReturnValueOnce('bin');
-
+  it('rejects slash injection in direct-upload filenames before storage upload', async () => {
     const response = await POST(
       createEvidenceUploadRequest(
         new File(['test'], 'evidence.pdf/..', { type: 'application/pdf' })
       )
     );
+    const data = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(hoisted.upload).toHaveBeenCalledWith(
-      expect.stringMatching(/^pii\/tenants\/tenant-1\/claims\/claim-1\/[^/]+\.bin$/),
-      expect.any(Buffer),
-      expect.objectContaining({ contentType: 'application/pdf' })
-    );
+    expect(response.status).toBe(400);
+    expect(data).toEqual({ error: 'Invalid form payload' });
+    expect(hoisted.upload).not.toHaveBeenCalled();
   });
 
   it('fails upload intent configuration before storage upload', async () => {
