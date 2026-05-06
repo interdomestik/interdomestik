@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "updatedAt": "2026-05-06T05:08:25.870Z",
+  "sha": "eb34422e1b03d8ae6495c12107a9536fe4edbd97",
+  "policy": "Freeze @quarantine and @legacy marker inventory. Any marker addition, removal, or relocation must update this baseline in the same reviewed PR.",
+  "tags": {
+    "quarantine": {
+      "count": 6,
+      "files": [
+        "apps/web/e2e/member-number.spec.ts",
+        "apps/web/e2e/quarantine/regressions.spec.ts",
+        "apps/web/e2e/quarantine/ui-overlays.spec.ts",
+        "apps/web/e2e/visual/claims-dashboard.visual.spec.ts"
+      ],
+      "markers": [
+        {
+          "file": "apps/web/e2e/member-number.spec.ts",
+          "line": 114,
+          "text": "test.describe('Member Number Hardening @quarantine', () => {"
+        },
+        {
+          "file": "apps/web/e2e/quarantine/regressions.spec.ts",
+          "line": 55,
+          "text": "test('@quarantine Regression: Agent can create lead and initiate cash payment', async ({"
+        },
+        {
+          "file": "apps/web/e2e/quarantine/regressions.spec.ts",
+          "line": 195,
+          "text": "test('@quarantine Regression: Branch Manager can verify cash payment', async ({"
+        },
+        {
+          "file": "apps/web/e2e/quarantine/regressions.spec.ts",
+          "line": 333,
+          "text": "test('@quarantine Regression: Cash Ops: Verification queue loads and allows processing', async ({"
+        },
+        {
+          "file": "apps/web/e2e/quarantine/ui-overlays.spec.ts",
+          "line": 4,
+          "text": "test.describe('@quarantine UI Overlays Sanity', () => {"
+        },
+        {
+          "file": "apps/web/e2e/visual/claims-dashboard.visual.spec.ts",
+          "line": 4,
+          "text": "test.describe('@quarantine Claims Dashboard Visual Regression', () => {"
+        }
+      ]
+    },
+    "legacy": {
+      "count": 2,
+      "files": ["apps/web/e2e/claim-routing.spec.ts", "apps/web/e2e/member-flow.spec.ts"],
+      "markers": [
+        {
+          "file": "apps/web/e2e/claim-routing.spec.ts",
+          "line": 6,
+          "text": "test.describe('@legacy Claim routing (member → staff queue)', () => {"
+        },
+        {
+          "file": "apps/web/e2e/member-flow.spec.ts",
+          "line": 37,
+          "text": "test.describe('@legacy Member User Flow', () => {"
+        }
+      ]
+    }
+  }
+}

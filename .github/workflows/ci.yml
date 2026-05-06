@@ -67,7 +67,7 @@ jobs:
         run: |
           node scripts/check-env-ci.mjs
           pnpm test:ci:contracts
-          pnpm check:e2e-contracts
+          pnpm check:e2e-contracts:base
           pnpm lint:production-warnings
           pnpm track:audit
           pnpm plan:audit
@@ -76,6 +76,9 @@ jobs:
           # Contract Compliance: pnpm check remains the Golden Path marker.
           # Browser PR coverage lives in the dedicated PR E2E workflow.
           # Push/mainline gate coverage stays in the e2e-gate job below.
+
+      - name: Check E2E quarantine budget
+        run: pnpm check:e2e-quarantine-budget
 
   static:
     needs:

@@ -19,6 +19,12 @@ type RlsTestConnectionConfig = {
   dbRlsRole: string | null;
 };
 
+type RlsRuntimeReceipt = {
+  currentUser: string;
+  currentTenantId: string | null;
+  rowSecurity: string;
+};
+
 type DbModule = typeof import('../src/db');
 type TenantModule = typeof import('../src/tenant');
 
@@ -238,6 +244,34 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
       status: 'draft',
       origin: 'portal',
     });
+
+    const [mkRlsReceipt] = await withTenantContext({ tenantId: MK_TENANT_ID }, async tx => {
+      return tx.execute<RlsRuntimeReceipt>(sql`
+        select
+          current_user as "currentUser",
+          current_setting('app.current_tenant_id', true) as "currentTenantId",
+          current_setting('row_security') as "rowSecurity"
+      `);
+    });
+
+    console.log(
+      `RLS_RUNTIME_RECEIPT current_user=${mkRlsReceipt?.currentUser ?? 'unknown'} current_tenant_id=${mkRlsReceipt?.currentTenantId ?? 'unset'} row_security=${mkRlsReceipt?.rowSecurity ?? 'unknown'}`
+    );
+    assert.equal(
+      mkRlsReceipt?.currentUser,
+      TEST_DB_ROLE,
+      'RLS verification must execute under the dedicated low-privilege database role'
+    );
+    assert.equal(
+      mkRlsReceipt?.currentTenantId,
+      MK_TENANT_ID,
+      'RLS verification must set the tenant context before reading tenant-scoped rows'
+    );
+    assert.equal(
+      mkRlsReceipt?.rowSecurity,
+      'on',
+      'RLS verification must force row_security=on inside the tenant transaction'
+    );
 
     const mkRows = await withTenantContext({ tenantId: MK_TENANT_ID }, async tx => {
       return tx
