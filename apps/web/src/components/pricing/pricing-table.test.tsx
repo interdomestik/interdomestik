@@ -448,6 +448,19 @@ describe('PricingTable', () => {
     });
   });
 
+  it('moves focus to the OTP step when it opens from pre-checkout', async () => {
+    render(<PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} />);
+
+    fireEvent.click(screen.getByTestId('plan-cta-standard'));
+    fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
+
+    const otpStep = await screen.findByTestId('pricing-otp-step');
+
+    await waitFor(() => {
+      expect(otpStep).toHaveFocus();
+    });
+  });
+
   it('passes the active locale into Paddle checkout settings', async () => {
     mockLocale = 'de';
 
