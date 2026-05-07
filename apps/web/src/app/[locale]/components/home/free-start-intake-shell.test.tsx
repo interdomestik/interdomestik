@@ -311,7 +311,7 @@ describe('FreeStartIntakeShell', () => {
 
     await completeFreeStartIntake(user, 'en');
 
-    expect(screen.getByTestId('free-start-complete')).toBeInTheDocument();
+    expect(screen.getByTestId('free-start-complete-pending-pack')).toBeInTheDocument();
     expect(screen.getByTestId('free-start-confidence-level')).toHaveTextContent(
       enFreeStartMessages.freeStart.completion.confidence.levels.high.label
     );
@@ -408,7 +408,7 @@ describe('FreeStartIntakeShell', () => {
       },
     });
 
-    expect(await screen.findByTestId('free-start-complete')).toBeInTheDocument();
+    expect(await screen.findByTestId('free-start-complete-pending-pack')).toBeInTheDocument();
   });
 
   it('renders the generated claim pack when the pack action succeeds', async () => {
@@ -608,5 +608,6 @@ describe('FreeStartIntakeShell', () => {
       'Please try again. If the problem persists, contact support.'
     );
     expect(screen.queryByTestId('free-start-complete')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('free-start-complete-pending-pack')).not.toBeInTheDocument();
   });
 });
