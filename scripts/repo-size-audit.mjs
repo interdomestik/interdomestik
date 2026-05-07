@@ -244,13 +244,19 @@ function collectTrackedStats(trackedFiles, options) {
   const largestFiles = [];
   const sourceHotspots = [];
   let totalBytes = 0;
+  let processedFiles = 0;
+  const missingFiles = [];
 
   for (const relPath of trackedFiles) {
     const absPath = path.join(repoRoot, relPath);
-    if (!fs.existsSync(absPath)) continue;
+    if (!fs.existsSync(absPath)) {
+      missingFiles.push(relPath);
+      continue;
+    }
 
     const stat = fs.statSync(absPath);
     const bytes = stat.size;
+    processedFiles++;
     totalBytes += bytes;
 
     addStat(categories, categorizeTrackedFile(relPath), bytes);
@@ -267,9 +273,11 @@ function collectTrackedStats(trackedFiles, options) {
 
   return {
     total: {
-      files: trackedFiles.length,
+      files: processedFiles,
       bytes: totalBytes,
+      missingFiles: missingFiles.length,
     },
+    missingFiles,
     categories: [...categories.values()].sort(compareNamedBytesDesc),
     directories: [...directories.values()].sort(compareNamedBytesDesc),
     largestFiles: largestFiles.sort(compareByBytesDesc).slice(0, options.top),
