@@ -36,7 +36,7 @@ export function ServiceEcosystemGrid({
           { key: 'contact_center', icon: Headphones, desc: tLanding('contact_center_desc') },
         ].map((cat, i) => (
           <Card
-            key={i}
+            key={cat.key}
             className="group relative overflow-hidden bg-white/50 dark:bg-white/5 backdrop-blur-sm hover:bg-white dark:hover:bg-white/10 transition-all duration-500 cursor-pointer border-slate-200/60 dark:border-white/10 shadow-sm hover:shadow-xl hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4"
             style={{ animationDelay: `${(i + 4) * 100}ms` }}
           >

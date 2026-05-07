@@ -30,7 +30,7 @@ import type { DashboardTranslator, MemberDashboardViewProps } from './types';
 
 export type { MemberDashboardViewProps } from './types';
 
-export async function MemberDashboardView({ data, locale }: MemberDashboardViewProps) {
+export async function MemberDashboardView({ data, locale }: Readonly<MemberDashboardViewProps>) {
   const [dashboardTranslations, memberLandingTranslations] = await Promise.all([
     getTranslations('dashboard'),
     getTranslations('dashboard.member_landing'),

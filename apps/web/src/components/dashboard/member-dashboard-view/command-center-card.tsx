@@ -1,13 +1,9 @@
 import { Card, CardHeader, CardTitle } from '@interdomestik/ui';
 import { Phone } from 'lucide-react';
 
-import type { DashboardTranslator } from './types';
+import type { SupportContacts } from '@/lib/support-contacts';
 
-type SupportContacts = {
-  telHref: string;
-  phoneDisplay: string;
-  whatsappHref?: string;
-};
+import type { DashboardTranslator } from './types';
 
 export function CommandCenterCard({
   contacts,
