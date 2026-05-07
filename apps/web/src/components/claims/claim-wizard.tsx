@@ -10,258 +10,28 @@ import {
   resolveFunnelVariant,
 } from '@/lib/analytics';
 import { createClientRequestId } from '@/lib/client-request-id';
-import { COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES } from '@/lib/commercial-claim-categories';
 import { isUiV2Enabled } from '@/lib/flags';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { createClaimSchema, type CreateClaimValues } from '@/lib/validators/claims';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@interdomestik/ui/components/button';
-import { Form } from '@interdomestik/ui/components/form';
-import { Progress } from '@interdomestik/ui/components/progress';
 import * as React from 'react';
-import { useForm, type UseFormReturn } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
-import { ArrowLeft, ArrowRight, Check, PhoneCall, Sparkles } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { WizardReview } from './wizard-review';
-import { WizardStepCategory } from './wizard-step-category';
-import { WizardStepDetails } from './wizard-step-details';
-import { WizardStepEvidence } from './wizard-step-evidence';
-
-type CommercialFlowPayload = {
-  escalationRequest?: {
-    claimCategory?: string;
-    decision?: 'requested' | 'declined';
-    decisionReason?: string;
-  };
-  freeStartCompletion?: {
-    claimCategory?: string;
-  };
-};
-
-type ClaimWizardProps = {
-  initialCategory?: string;
-  tenantId?: string | null;
-  handoffContext?: {
-    source: 'diaspora-green-card';
-    country: 'DE' | 'CH' | 'AT' | 'IT';
-    incidentLocation: 'abroad';
-  } | null;
-};
-
-type ClaimWizardReadonlyProps = Readonly<ClaimWizardProps>;
-
-type ClaimWizardHandoffContext = NonNullable<ClaimWizardProps['handoffContext']>;
-
-const STEP_NAMES = ['category', 'details', 'evidence', 'review'];
-
-const STEP_VALIDATION: Record<
-  number,
-  (form: UseFormReturn<CreateClaimValues>) => Promise<boolean>
-> = {
-  0: form => form.trigger('category'),
-  1: form => form.trigger(['title', 'companyName', 'description', 'incidentDate']),
-  2: async () => true,
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object';
-}
-
-function getOptionalString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
-function getOptionalEscalationDecision(value: unknown): 'requested' | 'declined' | undefined {
-  return value === 'requested' || value === 'declined' ? value : undefined;
-}
-
-function getCommercialFlowFromResult(payload: unknown): CommercialFlowPayload | null {
-  if (!isRecord(payload) || !('commercialFlow' in payload)) {
-    return null;
-  }
-
-  const commercialFlow = payload.commercialFlow;
-  if (!isRecord(commercialFlow)) {
-    return null;
-  }
-
-  const escalationRequest = isRecord(commercialFlow.escalationRequest)
-    ? {
-        claimCategory: getOptionalString(commercialFlow.escalationRequest.claimCategory),
-        decision: getOptionalEscalationDecision(commercialFlow.escalationRequest.decision),
-        decisionReason: getOptionalString(commercialFlow.escalationRequest.decisionReason),
-      }
-    : undefined;
-  const freeStartCompletion = isRecord(commercialFlow.freeStartCompletion)
-    ? {
-        claimCategory: getOptionalString(commercialFlow.freeStartCompletion.claimCategory),
-      }
-    : undefined;
-
-  if (!escalationRequest && !freeStartCompletion) {
-    return null;
-  }
-
-  return {
-    escalationRequest,
-    freeStartCompletion,
-  };
-}
-
-function getNextStepLabel(params: {
-  currentStep: number;
-  uiV2Enabled: boolean;
-  t: ReturnType<typeof useTranslations>;
-  tCommon: ReturnType<typeof useTranslations>;
-}): string {
-  const { currentStep, uiV2Enabled, t, tCommon } = params;
-
-  if (!uiV2Enabled) {
-    return tCommon('next');
-  }
-
-  if (currentStep === 0) {
-    return t('continue_details');
-  }
-
-  if (currentStep === 1) {
-    return t('continue_upload');
-  }
-
-  return t('continue_review');
-}
-
-function ClaimCreatedSuccess(
-  props: Readonly<{
-    claimId: string;
-    claimNumber: string;
-    locale: string;
-    contacts: ReturnType<typeof getSupportContacts>;
-    tSuccess: ReturnType<typeof useTranslations>;
-  }>
-): React.JSX.Element {
-  const { claimId, claimNumber, locale, contacts, tSuccess } = props;
-
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <div
-        data-testid="claim-created-success"
-        className="space-y-4 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-cyan-50 p-6 text-emerald-950 shadow-[0_22px_46px_-34px_rgba(5,150,105,0.9)]"
-      >
-        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/80 bg-white/70 px-3 py-1 text-xs font-semibold text-emerald-800">
-          <Sparkles className="h-3.5 w-3.5" />
-          {tSuccess('title')}
-        </div>
-        <h2 className="text-2xl font-semibold tracking-tight">{tSuccess('title')}</h2>
-        <p data-testid="claim-created-id">
-          {tSuccess('case_id')}: <span className="font-mono font-semibold">{claimNumber}</span>
-        </p>
-        <ul
-          data-testid="claim-created-next-steps"
-          className="list-disc space-y-1 pl-5 text-sm leading-6"
-        >
-          <li>{tSuccess('next_step_1')}</li>
-          <li>{tSuccess('next_step_2')}</li>
-        </ul>
-        <div className="flex flex-wrap gap-2">
-          <a
-            data-testid="claim-created-help-call"
-            href={contacts.telHref}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-white/80 px-4 py-2 text-sm font-medium text-emerald-900 transition hover:bg-white"
-          >
-            <PhoneCall className="h-4 w-4" />
-            {tSuccess('help_call')}
-          </a>
-          {contacts.whatsappHref ? (
-            <a
-              data-testid="claim-created-help-whatsapp"
-              href={contacts.whatsappHref}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-300 bg-white/80 px-4 py-2 text-sm font-medium text-emerald-900 transition hover:bg-white"
-            >
-              {tSuccess('help_whatsapp')}
-            </a>
-          ) : null}
-        </div>
-        <a
-          data-testid="claim-created-go-to-claim"
-          href={`/${locale}/member/claims/${claimId}`}
-          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-        >
-          {tSuccess('go_to_claim')}
-        </a>
-      </div>
-    </div>
-  );
-}
-
-function ClaimWizardHandoffSummary(
-  props: Readonly<{
-    handoffContext: ClaimWizardHandoffContext;
-    handoffCountryLabel: string;
-    t: ReturnType<typeof useTranslations>;
-  }>
-): React.JSX.Element {
-  const { handoffContext, handoffCountryLabel, t } = props;
-
-  return (
-    <div
-      data-testid="claim-wizard-handoff"
-      className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-950"
-      data-source={handoffContext.source}
-      data-incident-location={handoffContext.incidentLocation}
-    >
-      <p className="font-semibold">{t('handoff.title')}</p>
-      <dl className="mt-3 grid gap-3 sm:grid-cols-3">
-        <div className="space-y-1">
-          <dt className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-700">
-            {t('handoff.sourceLabel')}
-          </dt>
-          <dd>{t('handoff.sourceValue')}</dd>
-        </div>
-        <div className="space-y-1">
-          <dt className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-700">
-            {t('handoff.countryLabel')}
-          </dt>
-          <dd>{handoffCountryLabel}</dd>
-        </div>
-        <div className="space-y-1">
-          <dt className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-700">
-            {t('handoff.incidentLocationLabel')}
-          </dt>
-          <dd>{t('handoff.incidentLocationValue')}</dd>
-        </div>
-      </dl>
-    </div>
-  );
-}
-
-function ClaimWizardStepContent(
-  props: Readonly<{ currentStep: number }>
-): React.JSX.Element | null {
-  const { currentStep } = props;
-
-  if (currentStep === 0) {
-    return <WizardStepCategory />;
-  }
-
-  if (currentStep === 1) {
-    return <WizardStepDetails />;
-  }
-
-  if (currentStep === 2) {
-    return <WizardStepEvidence />;
-  }
-
-  if (currentStep === 3) {
-    return <WizardReview />;
-  }
-
-  return null;
-}
+import {
+  getCommercialFlowFromResult,
+  getEscalationDecision,
+  getStringPayloadValue,
+} from './claim-wizard/commercial-flow';
+import { ClaimCreatedSuccess } from './claim-wizard/success-state';
+import type { ClaimWizardReadonlyProps, ClaimWizardStep } from './claim-wizard/types';
+import {
+  getClaimWizardDefaultValues,
+  STEP_NAMES,
+  STEP_VALIDATION,
+} from './claim-wizard/validation';
+import { ClaimWizardShell } from './claim-wizard/wizard-shell';
 
 export function ClaimWizard({
   initialCategory,
@@ -279,7 +49,7 @@ export function ClaimWizard({
   const contacts = getSupportContacts({ locale });
   const hasTrackedOpen = React.useRef(false);
 
-  const steps = [
+  const steps: ClaimWizardStep[] = [
     { id: 'category', title: t('step1') },
     { id: 'details', title: t('step2') },
     { id: 'evidence', title: t('step3') },
@@ -296,16 +66,7 @@ export function ClaimWizard({
 
   const form = useForm<CreateClaimValues>({
     resolver: zodResolver<CreateClaimValues>(createClaimSchema),
-    defaultValues: {
-      category: initialCategory || '',
-      currency: 'EUR',
-      files: [],
-      title: '',
-      companyName: '',
-      description: '',
-      claimAmount: '',
-      incidentDate: '',
-    },
+    defaultValues: getClaimWizardDefaultValues(initialCategory),
     mode: 'onChange',
   });
 
@@ -376,18 +137,8 @@ export function ClaimWizard({
           result && typeof result === 'object' && 'data' in result
             ? (result as { data?: unknown }).data
             : result;
-        const claimId =
-          payload && typeof payload === 'object' && 'claimId' in payload
-            ? typeof (payload as { claimId?: unknown }).claimId === 'string'
-              ? (payload as { claimId: string }).claimId
-              : null
-            : null;
-        const claimNumber =
-          payload && typeof payload === 'object' && 'claimNumber' in payload
-            ? typeof (payload as { claimNumber?: unknown }).claimNumber === 'string'
-              ? (payload as { claimNumber: string }).claimNumber
-              : null
-            : null;
+        const claimId = getStringPayloadValue(payload, 'claimId');
+        const claimNumber = getStringPayloadValue(payload, 'claimNumber');
         const commercialFlow = getCommercialFlowFromResult(payload);
         const normalizedClaimId = claimId ?? 'unknown-claim-id';
         const normalizedCategory =
@@ -401,39 +152,25 @@ export function ClaimWizard({
           locale,
         };
 
-        FunnelEvents.firstClaimSubmitted(funnelContext, {
-          claim_id: normalizedClaimId,
-        });
+        FunnelEvents.firstClaimSubmitted(funnelContext, { claim_id: normalizedClaimId });
         CommercialFunnelEvents.freeStartCompleted(funnelContext, {
           claim_id: normalizedClaimId,
           claim_category: normalizedCategory,
         });
 
-        if (commercialFlow?.escalationRequest?.decision === 'requested') {
+        const escalationDecision = getEscalationDecision(commercialFlow, normalizedCategory);
+
+        if (escalationDecision.decision === 'requested') {
           CommercialFunnelEvents.escalationRequested(funnelContext, {
             claim_id: normalizedClaimId,
             claim_category: normalizedCategory,
-            decision_reason:
-              commercialFlow.escalationRequest.decisionReason ?? 'launch_scope_supported',
-          });
-        } else if (commercialFlow?.escalationRequest?.decision === 'declined') {
-          CommercialFunnelEvents.escalationDeclined(funnelContext, {
-            claim_id: normalizedClaimId,
-            claim_category: normalizedCategory,
-            decision_reason:
-              commercialFlow.escalationRequest.decisionReason ?? 'outside_launch_scope',
-          });
-        } else if (COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES.has(normalizedCategory)) {
-          CommercialFunnelEvents.escalationRequested(funnelContext, {
-            claim_id: normalizedClaimId,
-            claim_category: normalizedCategory,
-            decision_reason: 'launch_scope_supported',
+            decision_reason: escalationDecision.decisionReason,
           });
         } else {
           CommercialFunnelEvents.escalationDeclined(funnelContext, {
             claim_id: normalizedClaimId,
             claim_category: normalizedCategory,
-            decision_reason: 'outside_launch_scope',
+            decision_reason: escalationDecision.decisionReason,
           });
         }
         toast.success(t('submit_success'));
@@ -471,7 +208,6 @@ export function ClaimWizard({
     current: currentStep + 1,
     total: steps.length,
   });
-  const nextStepLabel = getNextStepLabel({ currentStep, uiV2Enabled, t, tCommon });
   const submitLabel = uiV2Enabled ? t('submit_label') : t('submitClaim');
   const handoffCountryLabel = handoffContext
     ? tDiaspora(`selector.options.${handoffContext.country}`)
@@ -490,113 +226,25 @@ export function ClaimWizard({
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="mb-8 space-y-2">
-        {uiV2Enabled ? (
-          <div
-            data-testid="claim-wizard-help"
-            className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-xs text-muted-foreground shadow-[0_16px_32px_-30px_rgba(15,23,42,0.75)]"
-          >
-            <span>{t('help.title')}</span>
-            <a
-              data-testid="claim-wizard-help-call"
-              href={contacts.telHref}
-              className="inline-flex min-h-8 items-center rounded-full border border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-medium hover:bg-slate-100"
-            >
-              {t('help.call_60s')}
-            </a>
-            {contacts.whatsappHref ? (
-              <a
-                data-testid="claim-wizard-help-whatsapp"
-                href={contacts.whatsappHref}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-8 items-center rounded-full border border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-medium hover:bg-slate-100"
-              >
-                {t('help.whatsapp')}
-              </a>
-            ) : null}
-          </div>
-        ) : null}
-        <div className="flex items-center justify-between text-sm font-medium text-muted-foreground">
-          <span>{stepProgressLabel}</span>
-          <span>{steps[currentStep].title}</span>
-        </div>
-        <Progress value={progress} className="h-2.5 rounded-full bg-slate-100" />
-      </div>
-
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-8 rounded-2xl border border-slate-200/70 bg-white/85 p-4 shadow-[0_24px_52px_-42px_rgba(15,23,42,0.85)] sm:p-6"
-        >
-          {handoffContext && handoffCountryLabel ? (
-            <ClaimWizardHandoffSummary
-              handoffContext={handoffContext}
-              handoffCountryLabel={handoffCountryLabel}
-              t={t}
-            />
-          ) : null}
-          <div className="min-h-[400px]">
-            <ClaimWizardStepContent currentStep={currentStep} />
-          </div>
-
-          <div className="flex justify-between pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={prevStep}
-              disabled={currentStep === 0 || isSubmitting}
-              className={currentStep === 0 ? 'invisible' : ''}
-              data-testid="wizard-back"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              {tCommon('back')}
-            </Button>
-
-            {currentStep < steps.length - 1 ? (
-              <Button type="button" onClick={e => nextStep(e)} data-testid="wizard-next">
-                {nextStepLabel}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="min-w-[140px]"
-                data-testid="wizard-submit"
-              >
-                {isSubmitting ? (
-                  tCommon('processing')
-                ) : (
-                  <>
-                    {submitLabel}
-                    <Check className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
-          {inlineError ? (
-            <div
-              data-testid="wizard-inline-error"
-              className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-            >
-              {inlineError}
-            </div>
-          ) : null}
-          {uiV2Enabled ? (
-            <div
-              data-testid="claims-wizard-disclaimer"
-              className="rounded-md border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-1"
-            >
-              <p>{tDisclaimer('not_insurer')}</p>
-              <p>{tDisclaimer('insurer_decides')}</p>
-              <p>{tDisclaimer('privacy')}</p>
-            </div>
-          ) : null}
-        </form>
-      </Form>
-    </div>
+    <ClaimWizardShell
+      contacts={contacts}
+      form={form}
+      handoffContext={handoffContext}
+      handoffCountryLabel={handoffCountryLabel}
+      inlineError={inlineError}
+      isSubmitting={isSubmitting}
+      navigation={{
+        currentStep,
+        nextStep,
+        prevStep,
+        progress,
+        stepProgressLabel,
+        steps,
+        submitLabel,
+      }}
+      onSubmit={onSubmit}
+      uiV2Enabled={uiV2Enabled}
+      translations={{ t, tCommon, tDisclaimer }}
+    />
   );
 }
