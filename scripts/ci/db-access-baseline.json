@@ -1323,15 +1323,15 @@
       "source": "const userRecord = await db.query.user.findFirst({"
     },
     {
-      "file": "apps/web/src/components/dashboard/member-dashboard-view.tsx",
-      "line": 38,
+      "file": "apps/web/src/components/dashboard/member-dashboard-view/data.ts",
+      "line": 5,
       "method": "query",
       "risk": "app-layer",
       "source": "return db.query.user.findFirst({"
     },
     {
-      "file": "apps/web/src/components/dashboard/member-dashboard-view.tsx",
-      "line": 44,
+      "file": "apps/web/src/components/dashboard/member-dashboard-view/data.ts",
+      "line": 11,
       "method": "query",
       "risk": "app-layer",
       "source": "return db.query.subscriptions.findMany({"
