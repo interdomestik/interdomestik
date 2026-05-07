@@ -284,7 +284,9 @@ const changedFiles = fs.readFileSync(process.argv[1], "utf8")
   .split("\n")
   .map(line => line.trim())
   .filter(Boolean);
-const supported = changedFiles.filter(file => /\.(ts|tsx|md|json)$/u.test(file));
+const supported = changedFiles.filter(
+  file => /\.(ts|tsx|md|json)$/u.test(file) && fs.existsSync(file) && fs.statSync(file).isFile()
+);
 fs.writeFileSync(process.argv[2], `${supported.join("\n")}${supported.length ? "\n" : ""}`);
 ' "$CHANGED_FILES" "$format_files_file"
 

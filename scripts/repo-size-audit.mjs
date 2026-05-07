@@ -247,6 +247,8 @@ function collectTrackedStats(trackedFiles, options) {
 
   for (const relPath of trackedFiles) {
     const absPath = path.join(repoRoot, relPath);
+    if (!fs.existsSync(absPath)) continue;
+
     const stat = fs.statSync(absPath);
     const bytes = stat.size;
     totalBytes += bytes;
