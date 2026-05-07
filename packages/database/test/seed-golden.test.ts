@@ -45,7 +45,7 @@ test('buildSeededMembershipCardIdentifiers returns deterministic values for seed
   );
 });
 
-test('seedGolden orchestrator preserves sequential module-call order', async () => {
+test('seedGolden orchestrator preserves sequential module-call order', async t => {
   const { SEED_GOLDEN_STEP_ORDER, runSeedGoldenSteps } = await import('../src/seed-golden/index');
   const expectedOrder = [
     'cleanup',
@@ -64,26 +64,21 @@ test('seedGolden orchestrator preserves sequential module-call order', async () 
   const makeStep = (name: string) => async () => {
     calls.push(name);
   };
-  const originalLog = console.log;
 
-  console.log = () => {};
-  try {
-    await runSeedGoldenSteps({} as never, {
-      cleanup: makeStep('cleanup'),
-      tenants: makeStep('tenants'),
-      branches: makeStep('branches'),
-      users: makeStep('users'),
-      agentAssignments: makeStep('agent-assignments'),
-      memberships: makeStep('memberships'),
-      agentSettings: makeStep('agent-settings'),
-      claims: makeStep('claims'),
-      leads: makeStep('leads'),
-      trackingTokens: makeStep('tracking-tokens'),
-      memberCounters: makeStep('member-counters'),
-    });
-  } finally {
-    console.log = originalLog;
-  }
+  t.mock.method(console, 'log', () => {});
+  await runSeedGoldenSteps({} as never, {
+    cleanup: makeStep('cleanup'),
+    tenants: makeStep('tenants'),
+    branches: makeStep('branches'),
+    users: makeStep('users'),
+    agentAssignments: makeStep('agent-assignments'),
+    memberships: makeStep('memberships'),
+    agentSettings: makeStep('agent-settings'),
+    claims: makeStep('claims'),
+    leads: makeStep('leads'),
+    trackingTokens: makeStep('tracking-tokens'),
+    memberCounters: makeStep('member-counters'),
+  });
 
   assert.deepEqual(SEED_GOLDEN_STEP_ORDER, expectedOrder);
   assert.deepEqual(calls, expectedOrder);
