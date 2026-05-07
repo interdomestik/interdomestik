@@ -150,7 +150,7 @@ export function FreeStartSidebar({
 
     return (
       <div className="space-y-4">
-        <div data-testid="free-start-complete" className="space-y-4">
+        <div data-testid="free-start-complete-pending-pack" className="space-y-4">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">
             <CheckCircle2 className="h-3.5 w-3.5" />
             {t('completion.badge')}
