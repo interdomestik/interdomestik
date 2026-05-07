@@ -20,9 +20,9 @@ describe('commercial write-path retirement', () => {
     expect(readSource('components/dashboard/claims/claim-wizard.tsx')).toContain(
       "from '@/actions/claims.core'"
     );
-    expect(readSource('components/staff/claim-action-panel.tsx')).toContain(
-      "from '@/actions/staff-claims.core'"
-    );
+    expect(
+      readSource('components/staff/claim-action-panel/use-claim-action-panel-handlers.ts')
+    ).toContain("from '@/actions/staff-claims.core'");
     expect(readSource('components/staff/claim-triage-notes.tsx')).toContain(
       "from '@/actions/staff-claims.core'"
     );
