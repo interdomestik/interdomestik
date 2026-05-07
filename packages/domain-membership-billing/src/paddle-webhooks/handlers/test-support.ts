@@ -1,8 +1,8 @@
-import { vi } from 'vitest';
+import { expect, vi } from 'vitest';
 
-import { createQueuedFrom } from '../../../../../scripts/tests/queued-select-mock';
+import { createQueuedFrom as createQueuedFromMock } from '../../../../../scripts/tests/queued-select-mock';
 
-export { createQueuedFrom };
+export { createQueuedFromMock as createQueuedFrom };
 
 type MockFunction = ReturnType<typeof vi.fn>;
 
@@ -41,6 +41,44 @@ interface PaddleHandlerMocks {
   };
   insertedUserValues: MockFunction;
   updatedUserValues: MockFunction;
+}
+
+interface ProviderSubscriptionLookupArgs {
+  where?: (
+    subs: Record<string, string>,
+    operators: {
+      eq: (left: unknown, right: unknown) => unknown;
+      or: (...clauses: unknown[]) => unknown;
+    }
+  ) => unknown;
+}
+
+interface PaddleDatabaseMockModule {
+  agentClients: {
+    tenantId: string;
+    memberId: string;
+    agentId: string;
+  };
+  and: MockFunction;
+  asc: MockFunction;
+  db: PaddleHandlerMocks['db'];
+  eq: MockFunction;
+  membershipPlans: PaddleHandlerMocks['membershipPlans'];
+  subscriptions: PaddleHandlerMocks['subscriptions'];
+  user: PaddleHandlerMocks['user'];
+}
+
+interface CommissionMockModule {
+  createCommissionCore: MockFunction;
+}
+
+interface MemberNumberMockModule {
+  generateMemberNumber: MockFunction;
+}
+
+interface RacedSubscriptionInsertMocks {
+  mockSet: MockFunction;
+  mockWhere: MockFunction;
 }
 
 export function createHoistedPaddleHandlerMocks(): PaddleHandlerMocks {
@@ -82,13 +120,129 @@ export function createHoistedPaddleHandlerMocks(): PaddleHandlerMocks {
   };
 }
 
+export function createPaddleDatabaseMockModule(
+  hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>
+): PaddleDatabaseMockModule {
+  return {
+    agentClients: {
+      tenantId: 'agent_clients.tenant_id',
+      memberId: 'agent_clients.member_id',
+      agentId: 'agent_clients.agent_id',
+    },
+    and: hoisted.and,
+    asc: hoisted.asc,
+    db: hoisted.db,
+    eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
+    membershipPlans: hoisted.membershipPlans,
+    subscriptions: hoisted.subscriptions,
+    user: hoisted.user,
+  };
+}
+
+export function createCommissionMockModule(): CommissionMockModule {
+  return {
+    createCommissionCore: vi.fn(),
+  };
+}
+
+export function createMemberNumberMockModule(): MemberNumberMockModule {
+  return {
+    generateMemberNumber: vi.fn().mockResolvedValue({
+      memberNumber: 'MEM-2026-000123',
+      isNew: true,
+    }),
+  };
+}
+
+export function createPastDueSubscriptionEvent() {
+  return {
+    data: {
+      id: 'sub_paddle_456',
+      status: 'past_due',
+      customData: { userId: 'user_123' },
+      items: [
+        {
+          price: {
+            id: 'pri_123',
+            description: 'Asistenca',
+            unitPrice: { amount: '1000', currencyCode: 'USD' },
+          },
+        },
+      ],
+      currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+    },
+  };
+}
+
+export function createActiveSubscriptionUpdatedEvent() {
+  return {
+    eventType: 'subscription.updated',
+    data: {
+      id: 'sub_paddle_456',
+      status: 'active',
+      customData: { userId: 'user_123' },
+      items: [
+        {
+          price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
+        },
+      ],
+      currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+    },
+  };
+}
+
+export function expectProviderSubscriptionReferenceLookup(
+  args: ProviderSubscriptionLookupArgs,
+  providerSubscriptionId: string
+) {
+  const whereNode = args.where?.(
+    {
+      id: 'subscriptions.id',
+      providerSubscriptionId: 'subscriptions.provider_subscription_id',
+    },
+    {
+      eq: (left, right) => ({ op: 'eq', left, right }),
+      or: (...clauses) => ({ op: 'or', clauses }),
+    }
+  ) as
+    | { op?: string; clauses?: Array<{ op?: string; left?: unknown; right?: unknown }> }
+    | undefined;
+
+  expect(whereNode).toEqual({
+    op: 'or',
+    clauses: [
+      { op: 'eq', left: 'subscriptions.id', right: providerSubscriptionId },
+      {
+        op: 'eq',
+        left: 'subscriptions.provider_subscription_id',
+        right: providerSubscriptionId,
+      },
+    ],
+  });
+}
+
+export function mockRacedSubscriptionInsert(
+  hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>
+): RacedSubscriptionInsertMocks {
+  const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
+  const mockWhere = vi.fn().mockResolvedValue(undefined);
+  const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+
+  hoisted.db.update.mockReturnValue({ set: mockSet });
+  hoisted.db.insert.mockReturnValue({
+    values: vi.fn().mockRejectedValue(uniqueViolation),
+  });
+
+  return { mockSet, mockWhere };
+}
+
 export function resetPaddleHandlerMocks(
   hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>
 ) {
   vi.clearAllMocks();
   hoisted.selectResults.length = 0;
   hoisted.db.select.mockImplementation(() => ({
-    from: createQueuedFrom(vi.fn, hoisted.selectResults),
+    from: createQueuedFromMock(vi.fn, hoisted.selectResults),
   }));
   hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.tx));
   hoisted.db.insert.mockImplementation(() => ({

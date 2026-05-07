@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleTransactionCompleted } from './transaction';
-import { resetPaddleHandlerMocks } from './test-support';
+import { expectProviderSubscriptionReferenceLookup, resetPaddleHandlerMocks } from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -9,28 +9,23 @@ const hoisted = await vi.hoisted(async () => {
   return createHoistedPaddleHandlerMocks();
 });
 
-vi.mock('@interdomestik/database', () => ({
-  agentClients: {
-    tenantId: 'agent_clients.tenant_id',
-    memberId: 'agent_clients.member_id',
-    agentId: 'agent_clients.agent_id',
-  },
-  and: hoisted.and,
-  asc: hoisted.asc,
-  db: hoisted.db,
-  eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-  membershipPlans: hoisted.membershipPlans,
-  subscriptions: hoisted.subscriptions,
-  user: hoisted.user,
-}));
+vi.mock('@interdomestik/database', async () => {
+  const mocks = await import('./test-support');
 
-vi.mock('../../commissions/create', () => ({
-  createCommissionCore: vi.fn(),
-}));
+  return mocks.createPaddleDatabaseMockModule(hoisted);
+});
 
-vi.mock('@interdomestik/database/member-number', () => ({
-  generateMemberNumber: vi.fn().mockResolvedValue({ memberNumber: 'MEM-2026-000123', isNew: true }),
-}));
+vi.mock('../../commissions/create', async () => {
+  const mocks = await import('./test-support');
+
+  return mocks.createCommissionMockModule();
+});
+
+vi.mock('@interdomestik/database/member-number', async () => {
+  const mocks = await import('./test-support');
+
+  return mocks.createMemberNumberMockModule();
+});
 
 const logAuditEvent = vi.fn();
 
@@ -193,47 +188,10 @@ describe('handleTransactionCompleted', () => {
   });
 
   it('resolves transaction tenant from provider subscription id lookups', async () => {
-    hoisted.db.query.subscriptions.findFirst.mockImplementationOnce(
-      async (args: {
-        where?: (
-          subs: Record<string, string>,
-          operators: {
-            eq: (left: unknown, right: unknown) => unknown;
-            or: (...clauses: unknown[]) => unknown;
-          }
-        ) => unknown;
-      }) => {
-        const whereNode = args.where?.(
-          {
-            id: 'subscriptions.id',
-            providerSubscriptionId: 'subscriptions.provider_subscription_id',
-          },
-          {
-            eq: (left, right) => ({ op: 'eq', left, right }),
-            or: (...clauses) => ({ op: 'or', clauses }),
-          }
-        ) as
-          | {
-              op?: string;
-              clauses?: Array<{ op?: string; left?: unknown; right?: unknown }>;
-            }
-          | undefined;
-
-        expect(whereNode).toEqual({
-          op: 'or',
-          clauses: [
-            { op: 'eq', left: 'subscriptions.id', right: 'sub_provider_456' },
-            {
-              op: 'eq',
-              left: 'subscriptions.provider_subscription_id',
-              right: 'sub_provider_456',
-            },
-          ],
-        });
-
-        return { tenantId: 'tenant_real' };
-      }
-    );
+    hoisted.db.query.subscriptions.findFirst.mockImplementationOnce(async args => {
+      expectProviderSubscriptionReferenceLookup(args, 'sub_provider_456');
+      return { tenantId: 'tenant_real' };
+    });
 
     await handleTransactionCompleted(
       {

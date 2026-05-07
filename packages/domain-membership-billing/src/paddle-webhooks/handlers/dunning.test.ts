@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleSubscriptionPastDue } from './dunning';
-import { resetPaddleHandlerMocks } from './test-support';
+import {
+  createPastDueSubscriptionEvent,
+  mockRacedSubscriptionInsert,
+  resetPaddleHandlerMocks,
+} from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -9,28 +13,20 @@ const hoisted = await vi.hoisted(async () => {
   return createHoistedPaddleHandlerMocks();
 });
 
-vi.mock('@interdomestik/database', () => ({
-  agentClients: {
-    tenantId: 'agent_clients.tenant_id',
-    memberId: 'agent_clients.member_id',
-    agentId: 'agent_clients.agent_id',
-  },
-  and: hoisted.and,
-  asc: hoisted.asc,
-  db: hoisted.db,
-  eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-  membershipPlans: hoisted.membershipPlans,
-  subscriptions: hoisted.subscriptions,
-  user: hoisted.user,
-}));
+vi.mock('@interdomestik/database', async function () {
+  const support = await import('./test-support');
+  return support.createPaddleDatabaseMockModule(hoisted);
+});
 
-vi.mock('../../commissions/create', () => ({
-  createCommissionCore: vi.fn(),
-}));
+vi.mock('../../commissions/create', async function () {
+  const support = await import('./test-support');
+  return support.createCommissionMockModule();
+});
 
-vi.mock('@interdomestik/database/member-number', () => ({
-  generateMemberNumber: vi.fn().mockResolvedValue({ memberNumber: 'MEM-2026-000123', isNew: true }),
-}));
+vi.mock('@interdomestik/database/member-number', async function () {
+  const support = await import('./test-support');
+  return support.createMemberNumberMockModule();
+});
 
 beforeEach(() => {
   resetPaddleHandlerMocks(hoisted);
@@ -48,26 +44,7 @@ describe('handleSubscriptionPastDue', () => {
       tenantId: 'tenant_abc',
     });
 
-    await handleSubscriptionPastDue(
-      {
-        data: {
-          id: 'sub_paddle_456',
-          status: 'past_due',
-          customData: { userId: 'user_123' },
-          items: [
-            {
-              price: {
-                id: 'pri_123',
-                description: 'Asistenca',
-                unitPrice: { amount: '1000', currencyCode: 'USD' },
-              },
-            },
-          ],
-          currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
-        },
-      },
-      { sendPaymentFailedEmail }
-    );
+    await handleSubscriptionPastDue(createPastDueSubscriptionEvent(), { sendPaymentFailedEmail });
 
     expect(sendPaymentFailedEmail).toHaveBeenCalledWith(
       'test@example.com',
@@ -95,39 +72,14 @@ describe('handleSubscriptionPastDue', () => {
       tenantId: 'tenant_abc',
     });
 
-    await handleSubscriptionPastDue(
-      {
-        data: {
-          id: 'sub_paddle_456',
-          status: 'past_due',
-          customData: { userId: 'user_123' },
-          items: [
-            {
-              price: {
-                id: 'pri_123',
-                description: 'Asistenca',
-                unitPrice: { amount: '1000', currencyCode: 'USD' },
-              },
-            },
-          ],
-          currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
-        },
-      },
-      { sendPaymentFailedEmail }
-    );
+    await handleSubscriptionPastDue(createPastDueSubscriptionEvent(), { sendPaymentFailedEmail });
 
     expect(sendPaymentFailedEmail).not.toHaveBeenCalled();
   });
 
   it('retries as an update when a raced insert hits a unique constraint', async () => {
-    const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
-    const mockWhere = vi.fn().mockResolvedValue(undefined);
-    const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+    const { mockSet, mockWhere } = mockRacedSubscriptionInsert(hoisted);
 
-    hoisted.db.update.mockReturnValue({ set: mockSet });
-    hoisted.db.insert.mockReturnValue({
-      values: vi.fn().mockRejectedValue(uniqueViolation),
-    });
     hoisted.db.query.subscriptions.findFirst
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)

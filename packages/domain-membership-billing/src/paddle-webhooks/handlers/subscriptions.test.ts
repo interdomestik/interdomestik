@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleSubscriptionChanged } from './subscriptions';
-import { resetPaddleHandlerMocks } from './test-support';
+import {
+  createActiveSubscriptionUpdatedEvent,
+  mockRacedSubscriptionInsert,
+  resetPaddleHandlerMocks,
+} from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -9,28 +13,17 @@ const hoisted = await vi.hoisted(async () => {
   return createHoistedPaddleHandlerMocks();
 });
 
-vi.mock('@interdomestik/database', () => ({
-  agentClients: {
-    tenantId: 'agent_clients.tenant_id',
-    memberId: 'agent_clients.member_id',
-    agentId: 'agent_clients.agent_id',
-  },
-  and: hoisted.and,
-  asc: hoisted.asc,
-  db: hoisted.db,
-  eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-  membershipPlans: hoisted.membershipPlans,
-  subscriptions: hoisted.subscriptions,
-  user: hoisted.user,
-}));
+vi.mock('@interdomestik/database', async () =>
+  (await import('./test-support')).createPaddleDatabaseMockModule(hoisted)
+);
 
-vi.mock('../../commissions/create', () => ({
-  createCommissionCore: vi.fn(),
-}));
+vi.mock('../../commissions/create', async () =>
+  (await import('./test-support')).createCommissionMockModule()
+);
 
-vi.mock('@interdomestik/database/member-number', () => ({
-  generateMemberNumber: vi.fn().mockResolvedValue({ memberNumber: 'MEM-2026-000123', isNew: true }),
-}));
+vi.mock('@interdomestik/database/member-number', async () =>
+  (await import('./test-support')).createMemberNumberMockModule()
+);
 
 const logAuditEvent = vi.fn();
 const sendThankYouLetter = vi.fn();
@@ -198,23 +191,7 @@ describe('handleSubscriptionChanged', () => {
       tenantId: 'tenant_abc',
     });
 
-    await handleSubscriptionChanged(
-      {
-        eventType: 'subscription.updated',
-        data: {
-          id: 'sub_paddle_456',
-          status: 'active',
-          customData: { userId: 'user_123' },
-          items: [
-            {
-              price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
-            },
-          ],
-          currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
-        },
-      },
-      { logAuditEvent }
-    );
+    await handleSubscriptionChanged(createActiveSubscriptionUpdatedEvent(), { logAuditEvent });
 
     expect(hoisted.db.insert).not.toHaveBeenCalled();
     expect(hoisted.db.update).toHaveBeenCalled();
@@ -270,14 +247,8 @@ describe('handleSubscriptionChanged', () => {
   });
 
   it('retries as an update when a raced insert hits a unique constraint', async () => {
-    const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
-    const mockWhere = vi.fn().mockResolvedValue(undefined);
-    const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+    const { mockSet, mockWhere } = mockRacedSubscriptionInsert(hoisted);
 
-    hoisted.db.update.mockReturnValue({ set: mockSet });
-    hoisted.db.insert.mockReturnValue({
-      values: vi.fn().mockRejectedValue(uniqueViolation),
-    });
     hoisted.db.query.subscriptions.findFirst
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
@@ -293,23 +264,7 @@ describe('handleSubscriptionChanged', () => {
       tenantId: 'tenant_abc',
     });
 
-    await handleSubscriptionChanged(
-      {
-        eventType: 'subscription.updated',
-        data: {
-          id: 'sub_paddle_456',
-          status: 'active',
-          customData: { userId: 'user_123' },
-          items: [
-            {
-              price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
-            },
-          ],
-          currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
-        },
-      },
-      { logAuditEvent }
-    );
+    await handleSubscriptionChanged(createActiveSubscriptionUpdatedEvent(), { logAuditEvent });
 
     expect(hoisted.db.insert).toHaveBeenCalled();
     expect(mockSet).toHaveBeenCalledWith(
