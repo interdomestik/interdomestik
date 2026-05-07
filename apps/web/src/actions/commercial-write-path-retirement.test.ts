@@ -11,7 +11,7 @@ function readSource(relativePath: string) {
 
 describe('commercial write-path retirement', () => {
   it('routes migrated commercial callers directly to the canonical core server actions', () => {
-    expect(readSource('app/[locale]/components/home/free-start-intake-shell.tsx')).toContain(
+    expect(readSource('app/[locale]/components/home/free-start-intake-shell/index.tsx')).toContain(
       "from '@/actions/free-start.core'"
     );
     expect(readSource('components/claims/claim-wizard.tsx')).toContain(
