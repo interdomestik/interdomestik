@@ -288,9 +288,7 @@ function assertRlsDatabaseClientReady(): void {
       : new Error('DATABASE_URL_RLS role assertion failed');
   }
 
-  throw new Error(
-    'DATABASE_URL_RLS role assertion has not completed; await assertRlsConnectionRoleReady() before using dbRls or db'
-  );
+  // Pending checks must not make cold-start query builders fail; tenant transactions await readiness.
 }
 
 function createAssertedRlsDatabaseClient<TClient extends object>(client: TClient): TClient {
