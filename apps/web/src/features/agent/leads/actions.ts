@@ -3,7 +3,7 @@
 import { auth } from '@/lib/auth';
 import { and, db, eq, memberLeads } from '@interdomestik/database';
 import { startPayment } from '@interdomestik/domain-leads';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { ROLES, ensureTenantId } from '@interdomestik/shared-auth';
 import type { SQL } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
@@ -50,10 +50,11 @@ async function resolveLeadAccess(params: {
   ];
 
   if (params.scope === 'agent') {
-    conditions.push(eq(memberLeads.agentId, session.user.id));
-    if (session.user.branchId) {
-      conditions.push(eq(memberLeads.branchId, session.user.branchId));
+    if (session.user.role !== ROLES.agent || !session.user.branchId) {
+      throw new Error('Lead not found or access denied');
     }
+    conditions.push(eq(memberLeads.agentId, session.user.id));
+    conditions.push(eq(memberLeads.branchId, session.user.branchId));
   }
 
   const scopedWhere = and(...conditions);
@@ -108,10 +109,10 @@ async function updateLeadStatusCore(params: {
 
 /**
  * Updates the status of a lead.
- * strictly enforces tenant isolation.
+ * strictly enforces tenant, agent, and branch isolation.
  */
 export async function updateLeadStatus(leadId: string, status: string) {
-  const { tenantId, scopedWhere } = await resolveLeadAccess({ leadId, scope: 'tenant' });
+  const { tenantId, scopedWhere } = await resolveLeadAccess({ leadId, scope: 'agent' });
   return updateLeadStatusCore({ leadId, status: assertLeadStatus(status), tenantId, scopedWhere });
 }
 

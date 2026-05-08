@@ -11,23 +11,22 @@ export interface AgentLeadsServices {
 
 /**
  * Pure core logic for the Agent Leads page.
- * Fetches leads for a tenant with branch relations.
+ * Fetches leads for the signed-in agent within their tenant and branch.
  */
 export async function getAgentLeadsCore(
   params: {
     tenantId: string;
-    agentId?: string; // Optional: can be used for further isolation if needed
+    agentId: string;
+    branchId: string;
   },
   services: AgentLeadsServices
 ): Promise<MemberLeadRow[]> {
-  const { tenantId } = params;
+  const { tenantId, agentId, branchId } = params;
   const { db } = services;
 
-  // Use the query builder to keep the "with branch" logic clean as per original route
-  // Note: Original route ONLY filtered by tenantId, not agentId.
-  // We keep this behavior but allow agentId for future refinement.
   return db.query.memberLeads.findMany({
-    where: (leads, { eq }) => eq(leads.tenantId, tenantId),
+    where: (leads, { and, eq }) =>
+      and(eq(leads.tenantId, tenantId), eq(leads.agentId, agentId), eq(leads.branchId, branchId)),
     orderBy: (leads, { desc }) => [desc(leads.createdAt)],
     with: {
       branch: true,
