@@ -301,6 +301,13 @@ nonce attributes. The `data-csp-nonce-probe` canary matched on landing, pricing,
 which proves the hand-authored nonce path is not globally broken; register showed a
 route-specific canary mismatch that the follow-up fix slice must recheck.
 
+DG04's local fallback smoke covered four public KS flows: landing, pricing, login, and
+register. It did not cover the full fallback matrix from the protocol above. Authenticated
+member dashboard, claim wizard step 1, agent home, and cross-tenant authenticated samples
+were skipped because Sentry event query tooling was unavailable, Playwright MCP was blocked,
+and no authenticated storage-state setup was available for the local fallback probe. The
+missing flows remain required `P33-SEC03` follow-up evidence before Phase 1 promotion.
+
 DG04 outcomes:
 
 - H1 - Next framework scripts: confirmed.

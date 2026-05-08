@@ -83,6 +83,14 @@ public KS flows:
 | login    | 200    | yes                | 34      | 33                    | 8                    | 25                     | yes                  | 39                            |
 | register | 200    | yes                | 59      | 58                    | 28                   | 30                     | no                   | 98                            |
 
+DG04 did not complete the full DG03 fallback flow matrix. The authenticated member
+dashboard, claim wizard step 1, agent home, and other pilot-tenant flows were not sampled in
+this runtime because Sentry event query tooling was unavailable, Playwright MCP was blocked,
+and no authenticated browser storage-state setup was available for the local fallback probe.
+That gap is carried into `P33-SEC03` as required follow-up evidence. H1 is still treated as
+confirmed because the four public production-like flows all reproduced the same first-party
+Next framework/static nonce gap while the report-only CSP and canary path were observable.
+
 The report samples named first-party Next chunk URLs such as
 `/_next/static/chunks/webpack-...js` and reported that `strict-dynamic` was present, causing
 host allowlisting to be ignored by modern CSP evaluation. The canary matched on landing,
