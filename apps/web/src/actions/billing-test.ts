@@ -41,6 +41,7 @@ export async function mockActivateSubscription(planId: string, priceId: string) 
   );
 
   // Create or update mock subscription
+  // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
   await db
     .insert(subscriptions)
     .values({

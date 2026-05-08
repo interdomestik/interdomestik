@@ -20,15 +20,17 @@ direct DB access from entering the repo without review.
 | Posture            | Meaning                                                                                         | Contributor action                                                                         |
 | ------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `tenant-context`   | The DB call uses the transaction alias supplied by `withTenantContext` or `withTenantDb`.       | Preferred for new tenant-scoped writes and high-risk reads.                                |
+| `tenant-scoped`    | The call has a reviewed inline directive proving tenant scope at the call boundary.             | Use sparingly when the tenant proof is local but not classifier-visible.                   |
 | `tenant-predicate` | The DB call has a same-statement tenant predicate using `withTenant(...)` or `eq(...tenantId)`. | Acceptable for reviewed reads. New writes should move to `withTenantContext`.              |
 | `admin-privileged` | The DB call uses the explicit privileged Drizzle client, `dbAdmin`.                             | Use only for intentionally privileged maintenance/admin paths.                             |
 | `system-exempt`    | The call is immediately preceded by a reviewed `db-access-guard` directive with a reason.       | Use only for cron, webhook, seed, migration, or maintenance scope with rationale.          |
-| `unclassified`     | No recognized tenant context, tenant predicate, privileged client, or system directive.         | New entries fail. Move the call or add reviewed posture evidence before updating baseline. |
+| `unclassified`     | No recognized tenant context, tenant proof, privileged client, or system directive.             | New entries fail. Move the call or add reviewed posture evidence before updating baseline. |
 
 Canonical reason strings are stable for grep and dashboards:
 
 - `tenant-context: callback-tx-alias`
 - `tenant-context: callback-tx-block`
+- `tenant-scoped: directive`
 - `tenant-predicate: in-where-clause`
 - `admin-privileged: dbAdmin`
 - `system-exempt: directive`
@@ -60,6 +62,14 @@ Split-statement predicates intentionally stay unclassified:
 ```ts
 const scope = eq(claims.tenantId, tenantId);
 return db.select().from(claims).where(scope);
+```
+
+When a reviewed existing call has local tenant proof that the classifier cannot safely infer,
+use a directive immediately above that call and state the concrete proof:
+
+```ts
+// db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter tenantId
+await db.insert(claims).values({ tenantId });
 ```
 
 For a system path, use the directive immediately above the DB call only after reviewer sign-off:

@@ -95,6 +95,7 @@ export async function upsertMemberReferralProgramSettingsCore(params: {
       ...settings,
     });
 
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
     const rows = await db
       .insert(memberReferralSettings)
       .values({

@@ -97,6 +97,7 @@ export async function markClaimAiRunDispatchFailedService(args: {
   runId: string;
   message: string;
 }) {
+  // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
   await db
     .update(aiRuns)
     .set({
@@ -168,6 +169,7 @@ export async function processClaimDocumentWorkflowRunService(args: {
     };
   }
 
+  // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
   const [claimedRun] = await db
     .update(aiRuns)
     .set({
@@ -237,12 +239,15 @@ export async function processClaimDocumentWorkflowRunService(args: {
       updatedAt: completedAt,
     };
 
+    // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
     await db.transaction(async tx => {
+      // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
       await tx
         .insert(documentExtractions)
         .values(extractionRow)
         .onConflictDoNothing({ target: documentExtractions.sourceRunId });
 
+      // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
       await tx
         .update(aiRuns)
         .set({
@@ -270,6 +275,7 @@ export async function processClaimDocumentWorkflowRunService(args: {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Claim AI workflow failed.';
 
+    // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
     await db
       .update(aiRuns)
       .set({

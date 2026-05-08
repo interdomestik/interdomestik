@@ -41,6 +41,7 @@ export async function resubmitCashAttemptCore(
     }
 
     // D. Update
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx
       .update(leadPaymentAttempts)
       .set({
@@ -55,6 +56,7 @@ export async function resubmitCashAttemptCore(
       .where(eq(leadPaymentAttempts.id, attemptId));
 
     // E. Audit
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(auditLog).values({
       id: nanoid(),
       tenantId,

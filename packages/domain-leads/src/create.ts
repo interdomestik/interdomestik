@@ -26,6 +26,7 @@ export async function createLead(
 
   const leadId = `lead_${nanoid()}`;
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db.insert(memberLeads).values({
     id: leadId,
     tenantId: ctx.tenantId,

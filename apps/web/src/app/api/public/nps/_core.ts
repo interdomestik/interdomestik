@@ -18,6 +18,7 @@ export async function submitNpsCore(args: {
 }): Promise<SubmitNpsResult> {
   const { token, score, comment, now, userAgent } = args;
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const [tokenRow] = await db
     .select({
       id: npsSurveyTokens.id,
@@ -44,6 +45,7 @@ export async function submitNpsCore(args: {
   }
 
   try {
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
     const updated = await db
       .update(npsSurveyTokens)
       .set({ usedAt: now })

@@ -121,6 +121,22 @@ test('db access guard catches multiline chains and new domain-package direct acc
   assert.match(failingResult.stdout, /unsafe-wrapper\.ts:3 query \[domain-wrapper\]/u);
 });
 
+test('db access guard excludes e2e-only API setup routes from production posture baseline', () => {
+  const tempRoot = createTempRepo();
+  writeEmptyBaseline(tempRoot);
+  writeFixture(tempRoot, 'apps/web/src/app/api/e2e/branches/_core.ts', [
+    "import { db } from '@interdomestik/database';",
+    'export async function resetE2eBranches() {',
+    '  await db.delete(branches);',
+    '}',
+  ]);
+
+  const passingResult = runAppGuard(tempRoot);
+  assert.equal(passingResult.status, 0, passingResult.stderr);
+  const report = readReport(tempRoot);
+  assert.equal(report.scannedCount, 0);
+});
+
 test('db access guard catches new transaction callback alias writes', () => {
   const tempRoot = createTempRepo();
 
@@ -362,6 +378,28 @@ test('db access guard supports explicit system-exempt directives and dbAdmin pos
   assert.equal(report.newEntries[0].tenantPostureDetail, 'cron iterates tenants from sealed list');
   assert.ok(
     report.newEntries.some(entry => entry.tenantPostureReason === 'admin-privileged: dbAdmin')
+  );
+});
+
+test('db access guard supports explicit tenant-scoped directives with audit details', () => {
+  const tempRoot = createTempRepo();
+  writeEmptyBaseline(tempRoot);
+  writeFixture(tempRoot, 'apps/web/src/features/example/tenant-scoped.ts', [
+    "import { db } from '@interdomestik/database';",
+    'export async function tenantScoped(tenantId) {',
+    '  // db-access-guard: tenant-scoped -- reason: tenantId from validated function param tenantId',
+    '  await db.insert(claims).values({ tenantId });',
+    '}',
+  ]);
+
+  const passingResult = runAppGuard(tempRoot);
+  assert.equal(passingResult.status, 0, passingResult.stderr);
+  const report = readReport(tempRoot);
+  assert.equal(report.counts.byTenantPosture['tenant-scoped'], 1);
+  assert.equal(report.newEntries[0].tenantPostureReason, 'tenant-scoped: directive');
+  assert.equal(
+    report.newEntries[0].tenantPostureDetail,
+    'tenantId from validated function param tenantId'
   );
 });
 

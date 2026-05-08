@@ -106,6 +106,7 @@ export async function saveSuccessFeeCollectionCore(
 
   try {
     const result = await db.transaction(async tx => {
+      // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       const [claim] = await tx
         .select({
           category: claims.category,

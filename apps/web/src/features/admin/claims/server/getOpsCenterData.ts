@@ -124,6 +124,7 @@ function buildPoolConditions(context: ClaimsVisibilityContext, filters: OpsCente
         // Global Member Number Search (Tenant-Capped)
         // Find users matching the MEM- prefix, then filter claims by those userIds.
         // We use a subquery to keep it efficient and atomic in one query.
+        // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
         const memberSubquery = db
           .select({ id: user.id })
           .from(user)
@@ -193,6 +194,7 @@ export async function getOpsCenterData(
 
     // Step 1: Fetch bounded pool (DB ordering by updatedAt for stability)
     // Fetch LIMIT + 1 to detect if there are more items in the DB
+    // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
     const rawRows = await db
       .select({
         claim: {

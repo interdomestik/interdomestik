@@ -131,6 +131,7 @@ export async function grantUserRoleCore(
         )
       );
 
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const insertedRoles = await tx
       .insert(userRoles)
       .values({

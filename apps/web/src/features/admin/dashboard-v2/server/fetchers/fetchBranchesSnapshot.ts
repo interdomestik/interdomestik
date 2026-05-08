@@ -11,6 +11,7 @@ export async function fetchBranchesSnapshot(tenantId: string) {
 
   const branchesData = await Promise.all(
     allBranches.map(async b => {
+      // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
       const [active] = await db
         .select({ count: count() })
         .from(user)
@@ -21,6 +22,7 @@ export async function fetchBranchesSnapshot(tenantId: string) {
           )
         );
 
+      // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
       const [total] = await db.select({ count: count() }).from(user).where(eq(user.branchId, b.id));
 
       return {

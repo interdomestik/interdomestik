@@ -97,6 +97,7 @@ export const databaseHooks: BetterAuthOptions['databaseHooks'] = {
             // Quick read to check if we need to do anything + get createdAt for year
             const { user: userTable } = await import('@interdomestik/database/schema');
             const { eq } = await import('drizzle-orm');
+            // db-access-guard: tenant-scoped -- reason: userId comes from authenticated session creation hook
             const existing = await db
               .select({
                 role: userTable.role,

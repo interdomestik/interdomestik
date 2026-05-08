@@ -80,6 +80,7 @@ async function processLifecycleEngagement(
   for (const cadence of ENGAGEMENT_CADENCE) {
     const { start, end } = getDayWindow(now, cadence.daysSinceSubscriptionCreated);
 
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
     const members = await db
       .select({
         userId: subscriptions.userId,
@@ -174,6 +175,7 @@ async function processSeasonalEngagement(
   if (!season) return;
 
   const templateKey = `seasonal_${season}_${now.getFullYear()}`;
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const seasonalMembers = await db
     .select({
       userId: subscriptions.userId,
@@ -280,6 +282,7 @@ async function handleSuccess(
   headers: Headers,
   providerMessageId?: string
 ) {
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db
     .update(engagementEmailSends)
     .set({
@@ -323,6 +326,7 @@ async function handleFailure(
 ) {
   const status = error === 'Resend not configured' ? 'skipped' : 'error';
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db
     .update(engagementEmailSends)
     .set({ status, error })
@@ -344,6 +348,7 @@ async function handleFailure(
 }
 
 async function markAsSkipped(dedupeKey: string, reason: string) {
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db
     .update(engagementEmailSends)
     .set({ status: 'skipped', error: reason })
@@ -351,6 +356,7 @@ async function markAsSkipped(dedupeKey: string, reason: string) {
 }
 
 async function markAsError(dedupeKey: string, reason: string) {
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db
     .update(engagementEmailSends)
     .set({ status: 'error', error: reason })

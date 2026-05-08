@@ -47,6 +47,7 @@ export async function updateAgentCommissionRatesCore(params: {
         .set({ commissionRates: normalizedRates, updatedAt: new Date() })
         .where(and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)));
     } else {
+      // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
       await db.insert(agentSettings).values({
         id: nanoid(),
         tenantId,

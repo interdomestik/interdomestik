@@ -120,6 +120,7 @@ export async function getMemberDocumentsCore(args: {
     return [];
   }
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   return db.query.documents.findMany({
     where: (docs, { and: andFn, eq: eqFn }) =>
       andFn(

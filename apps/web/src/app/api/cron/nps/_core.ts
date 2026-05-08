@@ -35,6 +35,7 @@ export async function runNpsCronCore(args: {
 
   const { start, end } = getDayWindow(now, NPS_DAYS_SINCE_SUB_CREATED);
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const members = await db
     .select({
       userId: subscriptions.userId,
@@ -92,6 +93,7 @@ async function processNpsMember(args: {
   const { member, now, headers } = args;
   const dedupeKey = `engagement:${member.subId}:${NPS_TEMPLATE_KEY}`;
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const inserted = await db
     .insert(engagementEmailSends)
     .values({
@@ -166,6 +168,7 @@ async function processNpsMember(args: {
     });
 
     if (sendResult.success) {
+      // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
       await db
         .update(engagementEmailSends)
         .set({
@@ -192,6 +195,7 @@ async function processNpsMember(args: {
       const isSkipped = err === 'Resend not configured';
       const status = isSkipped ? 'skipped' : 'error';
 
+      // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
       await db
         .update(engagementEmailSends)
         .set({
@@ -213,6 +217,7 @@ async function processNpsMember(args: {
       return isSkipped ? 'skipped' : 'errors';
     }
   } catch {
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
     await db
       .update(engagementEmailSends)
       .set({

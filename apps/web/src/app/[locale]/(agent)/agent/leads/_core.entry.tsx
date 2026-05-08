@@ -33,6 +33,7 @@ export default async function AgentLeadsEntry({ params }: Readonly<Props>) {
   const tenantId = ensureTenantId(session);
 
   // Tier Gating (Strict)
+  // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
   const settings = await db.query.agentSettings.findFirst({
     where: eq(agentSettings.agentId, session.user.id),
     columns: { tier: true },

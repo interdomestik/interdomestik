@@ -27,6 +27,7 @@ export interface AuditEventParams {
 export async function logAuditEvent(params: AuditEventParams): Promise<void> {
   const { tenantId, documentId, accessType, accessedBy, ipAddress, userAgent, shareToken } = params;
 
+  // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
   await db.insert(schema.documentAccessLog).values({
     id: nanoid(),
     tenantId,

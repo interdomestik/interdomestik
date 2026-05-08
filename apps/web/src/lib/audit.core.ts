@@ -54,6 +54,7 @@ export async function logAuditEvent({
       return;
     }
 
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
     await db.insert(auditLog).values({
       id: nanoid(),
       tenantId: resolvedTenantId,

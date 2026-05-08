@@ -77,6 +77,7 @@ export async function recordUpload(params: UploadParams): Promise<UploadResult> 
   const documentId = nanoid();
 
   // Insert document record
+  // db-access-guard: tenant-scoped -- reason: tenantId validated before storage path and document insert
   await db.insert(schema.documents).values({
     id: documentId,
     tenantId,

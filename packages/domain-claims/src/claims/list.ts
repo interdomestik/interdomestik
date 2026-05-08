@@ -263,6 +263,7 @@ async function executeClaimsQuery(
 }
 
 async function fetchTotalCount(whereClause: SQL | undefined, agentClientsJoinOn: any) {
+  // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
   let countQuery = db
     .select({ total: count() })
     .from(claims)
@@ -284,6 +285,7 @@ async function fetchClaimRows(params: {
 }) {
   const { whereClause, agentClientsJoinOn, perPage, offset } = params;
 
+  // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
   let rowsQuery = db
     .select({
       id: claims.id,

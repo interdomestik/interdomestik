@@ -127,6 +127,7 @@ async function getClaimByIdInWorkspaceScope(params: {
 }): Promise<AgentProClaimDTO | null> {
   const { tenantId, claimId, assignedMemberIds, branchId, db } = params;
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const matched = await db.query.claims.findMany({
     where: buildAgentWorkspaceClaimByIdWhere({ tenantId, assignedMemberIds, branchId, claimId }),
     with: {
@@ -175,6 +176,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
       : null;
 
   // 0. Fetch Agent Context (Branch)
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const agent = await db.query.user.findFirst({
     where: eq(user.id, userId),
     columns: { branchId: true },
@@ -203,6 +205,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
   }
 
   // 1. Fetch Claims for Agent's Scope
+  // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
   const claimsData = await db.query.claims.findMany({
     where: buildAgentWorkspaceClaimsWhere({
       tenantId,
@@ -251,6 +254,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
 
   if (metadataClaimIds.length > 0) {
     // 3. Fetch Unread Counts (incoming messages only)
+    // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
     const unreadCounts = await db
       .select({
         claimId: claimMessages.claimId,

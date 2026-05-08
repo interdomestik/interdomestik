@@ -162,7 +162,9 @@ async function persistSubmittedClaim(args: {
   let queuedRuns: QueuedClaimAiRun[] = [];
   let claimNumber = '';
 
+  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   await db.transaction(async tx => {
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(claims).values({
       id: args.claimId,
       tenantId: args.tenantId,
@@ -187,6 +189,7 @@ async function persistSubmittedClaim(args: {
       createdAt: args.createdAt,
     });
 
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(claimStageHistory).values({
       id: crypto.randomUUID(),
       tenantId: args.tenantId,
@@ -210,6 +213,7 @@ async function persistSubmittedClaim(args: {
       tenantId: args.tenantId,
     });
 
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(claimDocuments).values(documentRows);
 
     queuedRuns = await queueClaimDocumentAiWorkflows({

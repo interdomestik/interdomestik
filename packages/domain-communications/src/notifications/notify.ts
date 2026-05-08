@@ -134,6 +134,7 @@ export async function sendNotification(
     const title = options?.title ?? event.replaceAll('_', ' ').toUpperCase();
     const content = resolveNotificationContent(event, payload, options?.content);
 
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
     const insertNotification = db.insert(notifications).values({
       id: options?.notificationId ?? `ntf_${nanoid()}`,
       tenantId: resolvedTenantId,

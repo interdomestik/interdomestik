@@ -143,6 +143,7 @@ export async function markWebhookProcessed(
   },
   deps: PaddleWebhookAuditDeps = {}
 ) {
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db
     .update(webhookEvents)
     .set({
@@ -183,6 +184,7 @@ export async function markWebhookFailed(
 ) {
   const message = params.error instanceof Error ? params.error.message : String(params.error);
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db
     .update(webhookEvents)
     .set({

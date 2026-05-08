@@ -67,6 +67,7 @@ export async function createCommissionCore(data: {
     }
 
     const id = nanoid();
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
     await db.insert(agentCommissions).values({
       id,
       tenantId: resolvedTenantId,

@@ -12,6 +12,7 @@ async function hasMemberActivitiesTable(): Promise<boolean> {
   // Avoid triggering noisy production errors when a tenant DB is missing this optional table.
   // This can happen in production-like environments where the migration hasn't been applied yet.
   if (!memberActivitiesTableExists) {
+    // db-access-guard: system-exempt -- reason: optional table-existence probe reads no tenant data
     memberActivitiesTableExists = db
       .execute(sql`SELECT to_regclass('public.member_activities') AS regclass`)
       .then(rows => {

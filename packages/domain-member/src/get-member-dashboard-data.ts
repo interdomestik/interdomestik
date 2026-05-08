@@ -67,6 +67,7 @@ export async function getMemberDashboardData(params: {
     ? withTenant(tenantId, user.tenantId, eq(user.id, memberId))
     : eq(user.id, memberId);
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const member = await db.query.user.findFirst({
     where: memberWhere,
     columns: { id: true, name: true, memberNumber: true, tenantId: true },

@@ -38,6 +38,7 @@ export async function findSubscriptionByProviderReference(reference: string | nu
     return null;
   }
 
+  // db-access-guard: system-exempt -- reason: provider reference lookup resolves tenant from payment provider event
   return db.query.subscriptions.findFirst({
     where: (subs, { eq: eqFn, or: orFn }) =>
       orFn(

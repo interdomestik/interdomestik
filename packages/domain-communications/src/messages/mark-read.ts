@@ -47,6 +47,7 @@ export async function markMessagesAsReadCore(params: {
           })
         );
 
+    // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
     await db
       .update(claimMessages)
       .set({ readAt: new Date() })

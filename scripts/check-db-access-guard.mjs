@@ -43,6 +43,7 @@ const APPROVED_DATABASE_INTERNAL_PATTERNS = [
 const EXCLUDED_PATH_PATTERNS = [
   /(^|\/)__tests__(\/|$)/u,
   /(^|\/)(node_modules|dist|build|coverage|test-results|\.next|\.turbo)(\/|$)/u,
+  /^apps\/web\/src\/app\/api\/e2e\//u,
   /^packages\/domain-membership-billing\/src\/paddle-webhooks\/handlers\/test-support\.[cm]?[jt]sx?$/u,
   /\.(test|spec)\.[cm]?[jt]sx?$/u,
   /\.d\.ts$/u,

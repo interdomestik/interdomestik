@@ -54,6 +54,7 @@ export async function listDiasporaOriginClaimIds(params: {
     conditions.push(inArray(claimStageHistory.claimId, claimIds));
   }
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const rows = await db
     .select({
       claimId: claimStageHistory.claimId,

@@ -87,6 +87,7 @@ export async function logAudit(
   entityId: string,
   metadata: Record<string, unknown> = {}
 ) {
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db.insert(auditLog).values({
     id: nanoid(),
     tenantId,

@@ -191,6 +191,7 @@ async function ensureAgentClientBinding(args: {
   if (!agentId) return;
 
   const now = new Date();
+  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   await db.transaction(async tx => {
     await syncActiveAgentClientBinding(tx, {
       tenantId: args.tenantId,

@@ -23,6 +23,7 @@ function getBranchCashTruthFilter(scope: BranchCashScope) {
 }
 
 export async function getBranchCashPendingCount(scope: BranchCashScope): Promise<number> {
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const [result] = await db
     .select({ count: count() })
     .from(leadPaymentAttempts)
@@ -33,6 +34,7 @@ export async function getBranchCashPendingCount(scope: BranchCashScope): Promise
 }
 
 export async function getBranchCashPendingByBranch(tenantId: string): Promise<Map<string, number>> {
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const rows = await db
     .select({
       branchId: memberLeads.branchId,
@@ -49,6 +51,7 @@ export async function getBranchCashPendingByBranch(tenantId: string): Promise<Ma
 export async function getBranchCashPendingByAgent(
   scope: BranchCashScope
 ): Promise<Map<string, number>> {
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const rows = await db
     .select({
       agentId: memberLeads.agentId,

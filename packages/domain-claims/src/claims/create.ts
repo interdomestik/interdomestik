@@ -96,8 +96,10 @@ export async function createClaimCore(
   const now = new Date();
 
   try {
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await db.transaction(async tx => {
       // 1. Insert first (claimNumber null)
+      // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       await tx.insert(claims).values({
         id: claimId,
         tenantId,

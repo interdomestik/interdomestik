@@ -177,6 +177,7 @@ export async function getAdminClaimsV2(
     const stats = await getAdminClaimStats(context);
 
     // Total count for pagination (with filters applied)
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
     const [{ totalCount }] = await db
       .select({ totalCount: count() })
       .from(claims)

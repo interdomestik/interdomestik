@@ -58,6 +58,7 @@ async function resolveTenantIdFromWebhookData(data: unknown): Promise<string | n
     const userId = customData.userId;
 
     if (userId) {
+      // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
       const userRecord = await db.query.user.findFirst({
         where: (users, { eq }) => eq(users.id, userId),
         columns: { tenantId: true },

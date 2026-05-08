@@ -211,6 +211,7 @@ async function validateReassignment(params: {
   nextTenantId: string;
 }) {
   const { userId, currentTenantId, nextTenantId } = params;
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const targetTenant = await db.query.tenants.findFirst({
     where: and(eq(tenants.id, nextTenantId), eq(tenants.isActive, true)),
     columns: { id: true },

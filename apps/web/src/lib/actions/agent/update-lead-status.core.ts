@@ -15,6 +15,7 @@ export async function updateLeadStatusCore(
     eq(crmLeads.agentId, agentId)
   );
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const lead = await db.query.crmLeads.findFirst({
     where: leadWhere,
   });
@@ -27,6 +28,7 @@ export async function updateLeadStatusCore(
     return { error: 'Invalid stage' as const };
   }
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db.update(crmLeads).set({ stage, updatedAt: new Date() }).where(leadWhere);
   return { success: true as const };
 }
