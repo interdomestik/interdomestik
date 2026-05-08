@@ -101,6 +101,8 @@ The first `P22-GO01` execution pass is recorded in `docs/plans/2026-04-27-p22-go
 
 `P33-DG03 Post-SEC02 Next Slice Selection` is complete as the post-SEC02 closeout and next-slice gate. It records that Phase 1 enforcement is not promotable from current SEC02 evidence, appends a hypothesis-driven first-party script nonce coverage investigation protocol to `docs/security/csp-nonce-migration.md`, defines the first/third/extension/noise taxonomy, locks a six-part numerical Phase 1 promotion bar, and promotes exactly one next bounded design gate: `P33-DG04 CSP First-Party Script Nonce Coverage Design Review`. The gate also records that after DG04 lands, DG04's resulting CSP fix slice and the `withTenantContext` build-guard design track may run in parallel because they touch disjoint maturity categories and should not be serialized unnecessarily.
 
+`P33-DG04 CSP First-Party Script Nonce Coverage Design Review` is complete as the post-DG03 hypothesis gate. It confirms H1: first-party Next framework/static chunk and runtime inline scripts are still rendered without nonce attributes in report mode even though the Report-Only header contains a nonce and `strict-dynamic`, while the `data-csp-nonce-probe` canary proves hand-authored nonce propagation is not globally broken on representative public flows. H2 is eliminated for repo-owned analytics scripts, H3/H4 remain unconfirmed until post-H1 smoke, and H5 extension noise was not observed locally. DG04 keeps CSP Phase 1 enforcement blocked and promotes exactly one bounded implementation slice: `P33-SEC03 First-Party Script Nonce Coverage`. The `withTenantContext` build-guard design track remains parallelizable after DG04 lands.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
@@ -313,6 +315,8 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 206. Complete `P33-SEC02 CSP Nonce Phase 0 Report-Only` through PR `#676`, merge commit `7c7f193f`, as the bounded report-only CSP nonce observation slice that preserves default/off enforced CSP behavior and exposes first-party `script-src` report evidence.
 207. Complete `P33-DG03 Post-SEC02 Next Slice Selection` as the docs-only closeout gate that rejects Phase 1 enforcement until first-party script reports are resolved, appends the hypothesis-driven DG04 protocol to the CSP migration doc, and promotes exactly one next design gate.
 208. Promote `P33-DG04 CSP First-Party Script Nonce Coverage Design Review` as the next bounded P33 design gate to confirm or eliminate the SEC02 first-party script report hypotheses and define the smallest safe fix before any CSP enforcement rollout.
+209. Complete `P33-DG04 CSP First-Party Script Nonce Coverage Design Review` as the docs-only hypothesis gate that confirms H1 first-party Next framework/static script nonce coverage is the blocker, keeps CSP Phase 1 enforcement blocked, records the violation table, and promotes exactly one bounded implementation slice.
+210. Promote `P33-SEC03 First-Party Script Nonce Coverage` as the next bounded implementation slice to make first-party framework/runtime/static scripts carry the active nonce in report mode while preserving enforced CSP behavior and the Phase 0 `enforce` guard.
 
 ## Status Command
 
