@@ -25,6 +25,8 @@ const EXPLICIT_CLASSIFICATION_PATH_PATTERNS = [
   /^apps\/web\/src\/features\/claims\/upload\/server\/access\.ts$/u,
   /^apps\/web\/src\/lib\/auth\/tenant-lookup\.ts$/u,
 ];
+const EXPLICIT_CLASSIFICATION_REASON =
+  'server-action risk, high-risk-route risk, or configured extracted boundary wrapper path';
 
 const EXCLUDED_PATH_PATTERNS = [
   /(^|\/)__tests__(\/|$)/u,
@@ -516,8 +518,9 @@ function main() {
 
   if (unclassifiedRiskyBaselineEntries.length > 0) {
     console.error(
-      'DB access guard failed: risky server-action/high-risk-route entries and extracted boundary wrapper paths require explicit classification.'
+      'DB access guard failed: baseline entries matching the explicit classification policy require classification metadata.'
     );
+    console.error(`Policy triggers: ${EXPLICIT_CLASSIFICATION_REASON}.`);
     printEntries('Unclassified risky baseline entries:', unclassifiedRiskyBaselineEntries);
     console.error('');
     console.error(
