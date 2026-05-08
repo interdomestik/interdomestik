@@ -3,6 +3,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import {
+  collectTenantContextAliasNames,
+  createEmptyPostureCounts,
+  createTenantPostureClassifier,
+} from './ci/db-access-posture.mjs';
+
 const DEFAULT_BASELINE_PATH = 'scripts/ci/db-access-baseline.json';
 const DEFAULT_REPORT_PATH = 'tmp/db-access-guard/report.json';
 const DEFAULT_SCAN_ROOTS = ['apps/web/src', 'packages'];
@@ -17,16 +23,22 @@ const DIRECT_DB_METHODS = [
 ];
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mts', '.cts']);
 
-const APPROVED_WRAPPER_PATTERNS = [/^packages\/database\//u];
-const EXPLICIT_CLASSIFICATION_RISKS = new Set(['server-action', 'high-risk-route']);
-const EXPLICIT_CLASSIFICATION_PATH_PATTERNS = [
-  /^apps\/web\/src\/features\/agent\/activation\/server\/activate-agent-profile\.ts$/u,
-  /^apps\/web\/src\/features\/agent\/leads\/server\/lead-actions\.ts$/u,
-  /^apps\/web\/src\/features\/claims\/upload\/server\/access\.ts$/u,
-  /^apps\/web\/src\/lib\/auth\/tenant-lookup\.ts$/u,
+const APPROVED_DATABASE_INTERNAL_PATTERNS = [
+  /^packages\/database\/apply-migration\.ts$/u,
+  /^packages\/database\/src\/db\.ts$/u,
+  /^packages\/database\/src\/member-number\.ts$/u,
+  /^packages\/database\/src\/tenant\.ts$/u,
+  /^packages\/database\/src\/tenant-security\.ts$/u,
+  /^packages\/database\/src\/server\.ts$/u,
+  /^packages\/database\/src\/verify-golden\.ts$/u,
+  /^packages\/database\/src\/migrate\.ts$/u,
+  /^packages\/database\/src\/seed\.ts$/u,
+  /^packages\/database\/src\/seed-[^/]+\.ts$/u,
+  /^packages\/database\/src\/seed-[^/]+\//u,
+  /^packages\/database\/src\/scripts\//u,
+  /^packages\/database\/src\/schema\.ts$/u,
+  /^packages\/database\/src\/schema\//u,
 ];
-const EXPLICIT_CLASSIFICATION_REASON =
-  'server-action risk, high-risk-route risk, or configured extracted boundary wrapper path';
 
 const EXCLUDED_PATH_PATTERNS = [
   /(^|\/)__tests__(\/|$)/u,
@@ -113,7 +125,7 @@ function isExcludedPath(relativePath) {
 }
 
 function isApprovedWrapperPath(relativePath) {
-  return APPROVED_WRAPPER_PATTERNS.some(pattern => pattern.test(relativePath));
+  return APPROVED_DATABASE_INTERNAL_PATTERNS.some(pattern => pattern.test(relativePath));
 }
 
 function walkFiles(rootDir, repoRoot, results = []) {
@@ -251,23 +263,6 @@ function createEntryKey(entry) {
   return `${entry.file}|${entry.method}|${entry.source}`;
 }
 
-function hasExplicitClassification(entry) {
-  return typeof entry.classification === 'string' && entry.classification.trim().length > 0;
-}
-
-function findUnclassifiedRiskyBaselineEntries(entries) {
-  return entries.filter(
-    entry => requiresExplicitClassification(entry) && !hasExplicitClassification(entry)
-  );
-}
-
-function requiresExplicitClassification(entry) {
-  return (
-    EXPLICIT_CLASSIFICATION_RISKS.has(entry.risk) ||
-    EXPLICIT_CLASSIFICATION_PATH_PATTERNS.some(pattern => pattern.test(entry.file))
-  );
-}
-
 function classifyRisk(relativePath) {
   if (/^packages\/domain-[^/]+\/src\//u.test(relativePath)) return 'domain-wrapper';
   if (/\/route\.[cm]?[jt]sx?$/u.test(relativePath)) return 'high-risk-route';
@@ -281,59 +276,90 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
+function createAliasState() {
+  return {
+    aliases: new Set(['db']),
+    adminAliases: new Set(['dbAdmin']),
+  };
+}
+
 function collectImportedDbAliases(searchableSource) {
-  const aliases = new Set(['db']);
+  const state = createAliasState();
   const importPattern = /\bimport\s*\{([^}]*)\}/gu;
 
   for (const match of searchableSource.matchAll(importPattern)) {
     for (const specifier of match[1].split(',')) {
-      const dbImportMatch = specifier.trim().match(/^db(?:\s+as\s+([A-Za-z_$][\w$]*))?$/u);
+      const dbImportMatch = specifier
+        .trim()
+        .match(/^(db|dbRls|dbAdmin)(?:\s+as\s+([A-Za-z_$][\w$]*))?$/u);
       if (dbImportMatch) {
-        aliases.add(dbImportMatch[1] ?? 'db');
+        const importedName = dbImportMatch[1];
+        const localName = dbImportMatch[2] ?? importedName;
+        state.aliases.add(localName);
+        if (importedName === 'dbAdmin') {
+          state.adminAliases.add(localName);
+        }
       }
     }
   }
 
-  return aliases;
+  return state;
 }
 
-function collectAssignedDbAliases(searchableSource, aliases) {
+function collectAssignedDbAliases(searchableSource, state) {
   let changed = true;
 
   while (changed) {
     changed = false;
-    const aliasPattern = [...aliases].map(escapeRegExp).join('|');
+    const aliasPattern = [...state.aliases].map(escapeRegExp).join('|');
     const assignmentPattern = new RegExp(
       `\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*(?::[^=]+)?=\\s*(?:${aliasPattern})\\b`,
       'gu'
     );
 
     for (const match of searchableSource.matchAll(assignmentPattern)) {
-      if (!aliases.has(match[1])) {
-        aliases.add(match[1]);
+      const assignedName = match[1];
+      const initializer = match[0].match(/=\s*([A-Za-z_$][\w$]*)\b/u)?.[1] ?? null;
+      if (!state.aliases.has(assignedName)) {
+        state.aliases.add(assignedName);
+        if (initializer && state.adminAliases.has(initializer)) {
+          state.adminAliases.add(assignedName);
+        }
         changed = true;
       }
     }
   }
 }
 
-function collectTransactionAliases(searchableSource, aliases) {
-  const aliasPattern = [...aliases].map(escapeRegExp).join('|');
+function collectTenantContextAliases(source, relativePath, state) {
+  for (const alias of collectTenantContextAliasNames(source, relativePath)) {
+    state.aliases.add(alias);
+  }
+}
+
+function collectTransactionAliases(searchableSource, state) {
+  const aliasPattern = [...state.aliases].map(escapeRegExp).join('|');
   const transactionAliasPattern = new RegExp(
-    `\\b(?:${aliasPattern})\\s*\\.\\s*transaction\\s*\\(\\s*(?:async\\s*)?\\(?\\s*([A-Za-z_$][\\w$]*)`,
+    `\\b(${aliasPattern})\\s*\\.\\s*transaction\\s*\\(\\s*(?:async\\s*)?\\(?\\s*([A-Za-z_$][\\w$]*)`,
     'gu'
   );
 
   for (const match of searchableSource.matchAll(transactionAliasPattern)) {
-    aliases.add(match[1]);
+    const rootAlias = match[1];
+    const txAlias = match[2];
+    state.aliases.add(txAlias);
+    if (state.adminAliases.has(rootAlias)) {
+      state.adminAliases.add(txAlias);
+    }
   }
 }
 
-function collectDbAliases(searchableSource) {
-  const aliases = collectImportedDbAliases(searchableSource);
-  collectAssignedDbAliases(searchableSource, aliases);
-  collectTransactionAliases(searchableSource, aliases);
-  return [...aliases];
+function collectDbAliases(searchableSource, source, relativePath) {
+  const state = collectImportedDbAliases(searchableSource);
+  collectAssignedDbAliases(searchableSource, state);
+  collectTenantContextAliases(source, relativePath, state);
+  collectTransactionAliases(searchableSource, state);
+  return state;
 }
 
 function collectFindings({ repoRoot, scanRoots }) {
@@ -346,25 +372,37 @@ function collectFindings({ repoRoot, scanRoots }) {
 
     const source = fs.readFileSync(filePath, 'utf8');
     const searchableSource = stripCommentsAndStrings(source);
+    const classifyTenantPosture = createTenantPostureClassifier(source, relativePath);
     const lines = source.split(/\r?\n/u);
     const lineStarts = createLineStarts(searchableSource);
-    const dbAliases = collectDbAliases(searchableSource).map(escapeRegExp).join('|');
+    const aliasState = collectDbAliases(searchableSource, source, relativePath);
+    const dbAliases = [...aliasState.aliases].map(escapeRegExp).join('|');
     const methodPattern = new RegExp(
-      `\\b(?:${dbAliases})\\s*\\.\\s*(${DIRECT_DB_METHODS.join('|')})\\b`,
+      `\\b(${dbAliases})\\s*\\.\\s*(${DIRECT_DB_METHODS.join('|')})\\b`,
       'gu'
     );
 
     for (const match of searchableSource.matchAll(methodPattern)) {
       if (isTypeOnlyReference(searchableSource, match.index)) continue;
 
-      const method = match[1];
+      const calleeAlias = match[1];
+      const method = match[2];
       const startLine = lineNumberForIndex(lineStarts, match.index);
       const endLine = lineNumberForIndex(lineStarts, match.index + match[0].length);
+      const posture = classifyTenantPosture({
+        matchIndex: match.index,
+        calleeAlias,
+        isAdminAlias: aliasState.adminAliases.has(calleeAlias),
+        method,
+        line: startLine,
+      });
       findings.push({
         file: relativePath,
         line: startLine,
+        callee: `${calleeAlias}.${method}`,
         method,
         risk: classifyRisk(relativePath),
+        ...posture,
         source: sourceSnippetForMatch(lines, startLine, endLine),
       });
     }
@@ -417,32 +455,37 @@ function diffAgainstBaseline(currentEntries, baselineEntries) {
   return { newEntries, removedEntries };
 }
 
-function createClassificationLookup(entries) {
-  const lookup = new Map();
+function countEntriesBy(entries, property) {
+  const counts = {};
   for (const entry of entries) {
-    if (hasExplicitClassification(entry)) {
-      lookup.set(createEntryKey(entry), entry.classification);
-    }
+    const value = entry[property] ?? 'unknown';
+    counts[value] = (counts[value] ?? 0) + 1;
   }
-  return lookup;
+  return counts;
 }
 
-function buildBaseline({ entries, scanRoots, existingEntries = [] }) {
-  const classificationLookup = createClassificationLookup(existingEntries);
-  const classifiedEntries = entries.map(entry => {
-    const classification = classificationLookup.get(createEntryKey(entry));
-    return classification ? { ...entry, classification } : entry;
-  });
-
+function buildCounts(entries) {
   return {
-    version: 1,
+    byRisk: countEntriesBy(entries, 'risk'),
+    byTenantPosture: {
+      ...createEmptyPostureCounts(),
+      ...countEntriesBy(entries, 'tenantPosture'),
+    },
+  };
+}
+
+function buildBaseline({ entries, scanRoots }) {
+  return {
+    version: 2,
     generatedAt: new Date().toISOString(),
-    policy:
-      'Baseline for direct db.* calls outside approved database package internals. New app-layer and domain-package direct database access must move behind an approved wrapper or intentionally update this baseline.',
+    policy: 'see docs/dev/db-access-guard.md',
     scanRoots,
-    approvedWrapperPatterns: APPROVED_WRAPPER_PATTERNS.map(pattern => pattern.source),
+    approvedDatabaseInternalPatterns: APPROVED_DATABASE_INTERNAL_PATTERNS.map(
+      pattern => pattern.source
+    ),
     methods: DIRECT_DB_METHODS,
-    entries: classifiedEntries,
+    counts: buildCounts(entries),
+    entries,
   };
 }
 
@@ -456,11 +499,19 @@ function printEntries(title, entries, limit = 25) {
 
   console.log(title);
   for (const entry of entries.slice(0, limit)) {
-    console.log(`- ${entry.file}:${entry.line} ${entry.method} [${entry.risk}] ${entry.source}`);
+    console.log(
+      `- ${entry.file}:${entry.line} ${entry.method} [${entry.risk}] [${entry.tenantPosture}] ${entry.source}`
+    );
   }
   if (entries.length > limit) {
     console.log(`...and ${entries.length - limit} more`);
   }
+}
+
+function isSensitiveNewEntry(entry) {
+  if (entry.tenantPosture === 'unclassified') return true;
+  if (entry.tenantPosture !== 'tenant-predicate') return false;
+  return entry.method === 'insert' || entry.method === 'update' || entry.method === 'delete';
 }
 
 function main() {
@@ -471,17 +522,10 @@ function main() {
   const findings = collectFindings({ repoRoot, scanRoots: options.scanRoots });
 
   if (options.writeBaseline) {
-    const existingEntries = fs.existsSync(baselinePath)
-      ? (readJson(baselinePath).entries ?? [])
-      : [];
     ensureDirForFile(baselinePath);
     fs.writeFileSync(
       baselinePath,
-      `${JSON.stringify(
-        buildBaseline({ entries: findings, existingEntries, scanRoots: options.scanRoots }),
-        null,
-        2
-      )}\n`
+      `${JSON.stringify(buildBaseline({ entries: findings, scanRoots: options.scanRoots }), null, 2)}\n`
     );
     console.log(`Updated DB access baseline: ${options.baselinePath} (${findings.length} entries)`);
     return;
@@ -498,52 +542,50 @@ function main() {
     throw new Error(`Invalid baseline ${options.baselinePath}: missing entries array.`);
   }
 
-  const unclassifiedRiskyBaselineEntries = findUnclassifiedRiskyBaselineEntries(baseline.entries);
   const { newEntries, removedEntries } = diffAgainstBaseline(findings, baseline.entries);
+  const failingNewEntries = newEntries.filter(isSensitiveNewEntry);
   const report = {
-    status:
-      newEntries.length === 0 && unclassifiedRiskyBaselineEntries.length === 0 ? 'pass' : 'fail',
+    status: failingNewEntries.length === 0 ? 'pass' : 'fail',
     baselinePath: options.baselinePath,
     scannedCount: findings.length,
     baselineCount: baseline.entries.length,
+    counts: buildCounts(findings),
     newCount: newEntries.length,
+    failingNewCount: failingNewEntries.length,
     removedCount: removedEntries.length,
-    unclassifiedRiskyBaselineCount: unclassifiedRiskyBaselineEntries.length,
     newEntries,
+    failingNewEntries,
     removedEntries,
-    unclassifiedRiskyBaselineEntries,
   };
 
   writeReport(reportPath, report);
 
-  if (unclassifiedRiskyBaselineEntries.length > 0) {
+  if (failingNewEntries.length > 0) {
     console.error(
-      'DB access guard failed: baseline entries matching the explicit classification policy require classification metadata.'
+      'DB access guard failed: new unclassified or write-only tenant-predicate direct db.* calls were added.'
     );
-    console.error(`Policy triggers: ${EXPLICIT_CLASSIFICATION_REASON}.`);
-    printEntries('Unclassified risky baseline entries:', unclassifiedRiskyBaselineEntries);
+    printEntries('Failing new direct DB access:', failingNewEntries);
     console.error('');
     console.error(
-      'Move the access behind an approved domain/database wrapper, or add classification metadata only after focused authorization review.'
+      'Move the access behind withTenantContext/withTenantDb, add a reviewed system-exempt directive, or update the baseline only with an intentional review.'
     );
     console.error(`Report: ${options.reportPath}`);
     process.exit(1);
   }
 
   if (newEntries.length > 0) {
-    console.error(
-      'DB access guard failed: new direct db.* calls were added outside approved wrappers.'
+    console.log(
+      `DB access guard passed: ${findings.length} current entries scanned with ${newEntries.length} non-failing new direct DB access entries.`
     );
-    printEntries('New direct DB access:', newEntries);
-    console.error('');
-    console.error(
-      'Move the access behind an approved domain/database wrapper, or update the baseline only with an intentional review.'
-    );
-    console.error(`Report: ${options.reportPath}`);
-    process.exit(1);
+    printEntries('Non-failing new direct DB access:', newEntries, 10);
+  } else {
+    console.log(`DB access guard passed: ${findings.length} current entries match the baseline.`);
   }
-
-  console.log(`DB access guard passed: ${findings.length} current entries match the baseline.`);
+  console.log(
+    `Posture counts: ${Object.entries(report.counts.byTenantPosture)
+      .map(([key, value]) => `${key}=${value}`)
+      .join(', ')}`
+  );
   if (removedEntries.length > 0) {
     printEntries('Baseline entries no longer present:', removedEntries, 10);
     console.log('Consider refreshing the baseline after confirming the cleanup is intentional.');
