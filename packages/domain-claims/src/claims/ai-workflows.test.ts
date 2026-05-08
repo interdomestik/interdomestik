@@ -8,7 +8,7 @@ const hoisted = vi.hoisted(() => {
 
   return {
     getResponsesWorkflowConfig: vi.fn((workflow: string) => {
-      const model = workflow === 'legal_doc_extract' ? 'gpt-5.5' : 'gpt-5-mini';
+      const model = 'gpt-5.5';
       const promptVersion =
         workflow === 'legal_doc_extract' ? 'legal_doc_extract_v1' : 'claim_intake_extract_v1';
 
@@ -139,14 +139,13 @@ describe('queueClaimDocumentAiWorkflows', () => {
           documentId: 'legacy-doc-1',
           entityType: 'claim',
           entityId: 'claim-1',
-          model: 'gpt-5-mini',
+          model: 'gpt-5.5',
           promptVersion: 'claim_intake_extract_v1',
           reviewStatus: 'pending',
           requestJson: expect.objectContaining({
             category: 'evidence',
             bucket: 'claim-evidence',
-            promptCacheKey:
-              'interdomestik:claim_intake_extract:gpt-5-mini:claim_intake_extract_v1',
+            promptCacheKey: 'interdomestik:claim_intake_extract:gpt-5.5:claim_intake_extract_v1',
             claimSnapshot: expect.objectContaining({
               incidentDate: '2026-02-15',
             }),
