@@ -161,6 +161,30 @@ HTML. Required proof:
 Nonce generation forces request-specific HTML. The implementation must explicitly assess
 dynamic rendering and edge-cache behavior before enforcement.
 
+### P33-SEC05 Next CSP Nonce Propagation Triage Update
+
+SEC05 classified the SEC03 blocker as a report-only architecture mismatch with the current
+two-header Phase 0 model, not as an upstream Next.js nonce bug and not as a product wiring gap
+by itself.
+
+Minimal Next `16.2.4` evidence shows:
+
+- the documented baseline works when a nonce-bearing `Content-Security-Policy` is present;
+- Report-Only-only can also nonce framework scripts when no enforced CSP header is present;
+- the repo-shaped Phase 0 model fails when the response includes the existing non-nonce
+  enforced `Content-Security-Policy` beside a nonce-bearing
+  `Content-Security-Policy-Report-Only`.
+
+Installed Next source explains the result: App Router request-header parsing chooses
+`content-security-policy` before `content-security-policy-report-only` when extracting the
+script nonce. If the enforced CSP exists and has no nonce, Next does not fall through to the
+nonce-bearing Report-Only header.
+
+Current consequence: SEC03 should not be retried as a framework-script nonce fix while the
+enforced CSP header must remain unchanged. CSP Phase 1 remains blocked, and the next safe
+step is a design gate for migration architecture rather than an implementation slice that
+rewrites HTML, monkey-patches Next, weakens Report-Only CSP, or hides first-party reports.
+
 ## Report Handling
 
 The nonce policy should include both reporting mechanisms:
