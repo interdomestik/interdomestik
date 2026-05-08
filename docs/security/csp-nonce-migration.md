@@ -284,11 +284,36 @@ member dashboard, claim wizard step 1, pricing, and agent home, across each
 supported pilot tenant when feasible. Keep the raw directive token visible in
 the table even if a later fix slice adds normalized directive-family tags.
 
-DG04 must append a violation table here:
+DG04 appended the first violation table on 2026-05-08:
 
-| directive               | blocked_host | document_host | count     | category  | hypothesis | proposed fix |
-| ----------------------- | ------------ | ------------- | --------- | --------- | ---------- | ------------ |
-| _pending DG04 evidence_ | _pending_    | _pending_     | _pending_ | _pending_ | _pending_  | _pending_    |
+| directive               | blocked_host                  | document_host       | count                                            | category        | hypothesis | proposed fix                                                                                          |
+| ----------------------- | ----------------------------- | ------------------- | ------------------------------------------------ | --------------- | ---------- | ----------------------------------------------------------------------------------------------------- |
+| script directive family | inline                        | ks.127.0.0.1.nip.io | 89 SEC02; 117 DG04 local public-flow DOM samples | first-party     | H1         | `P33-SEC03` must nonce framework and runtime inline scripts in report mode, then rerun browser smoke. |
+| script directive family | ks.127.0.0.1.nip.io           | ks.127.0.0.1.nip.io | 59 SEC02; 94 DG04 local public-flow DOM samples  | first-party     | H1         | `P33-SEC03` must nonce first-party Next static chunk script tags in report mode.                      |
+| script directive family | third-party allowlisted hosts | unknown locally     | 0 confirmed in DG04                              | third-party     | H4         | Recheck GTM, Pixel, Paddle, and Sentry replay after H1 is fixed and IDs are configured.               |
+| script directive family | extension schemes             | unknown locally     | 0 observed locally                               | extension/noise | H5         | Keep as non-blocking taxonomy category and document any future Sentry examples.                       |
+
+DG04 used SEC02 PR evidence plus local report-mode browser diagnostics because Sentry event
+query tooling was unavailable in this runtime. The local diagnostic confirmed that the
+report-only nonce header and `strict-dynamic` were present while first-party
+`/_next/static/chunks/*` script tags and framework/runtime inline scripts rendered without
+nonce attributes. The `data-csp-nonce-probe` canary matched on landing, pricing, and login,
+which proves the hand-authored nonce path is not globally broken; register showed a
+route-specific canary mismatch that the follow-up fix slice must recheck.
+
+DG04 outcomes:
+
+- H1 - Next framework scripts: confirmed.
+- H2 - `next/script` nonce props: eliminated for repo-owned analytics components because GTM
+  and Meta Pixel `Script` tags consume the root-layout nonce.
+- H3 - Sentry client boot script: not confirmed by local public smoke.
+- H4 - third-party runtime-injected scripts: not confirmed locally; analytics IDs and Paddle
+  checkout still need post-H1 smoke.
+- H5 - browser extension noise: not observed locally.
+
+DG04 promotes `P33-SEC03 First-Party Script Nonce Coverage` as the smallest safe fix slice.
+Phase 1 enforcement remains blocked until the promotion bar below passes after the fix and
+the report-only observation window.
 
 Use this taxonomy:
 
