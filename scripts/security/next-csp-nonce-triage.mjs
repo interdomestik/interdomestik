@@ -154,7 +154,7 @@ async function prepareApp() {
     "type CaseId = 'A' | 'B' | 'C' | 'D';",
     '',
     'function compact(value: string): string {',
-    "  return value.replace(/\\s{2,}/g, ' ').trim();",
+    String.raw`  return value.replace(/\s{2,}/g, ' ').trim();`,
     '}',
     '',
     'function noncePolicy(): string {',
@@ -247,12 +247,40 @@ async function prepareApp() {
 
 function parseAttributes(tag) {
   const attributes = {};
-  const pattern = /([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
-  for (const match of tag.matchAll(pattern)) {
-    const [, name, doubleQuoted, singleQuoted, bare] = match;
-    if (name === 'script') continue;
-    attributes[name.toLowerCase()] = doubleQuoted ?? singleQuoted ?? bare ?? '';
+  let index = tag.search(/\s/);
+  if (index === -1) return attributes;
+
+  while (index < tag.length) {
+    while (/\s/.test(tag[index] ?? '')) index += 1;
+    if (index >= tag.length || tag[index] === '>' || tag[index] === '/') break;
+
+    const nameStart = index;
+    while (index < tag.length && !/[\s=/>]/.test(tag[index])) index += 1;
+    const name = tag.slice(nameStart, index).toLowerCase();
+    if (!name) break;
+
+    while (/\s/.test(tag[index] ?? '')) index += 1;
+    let value = '';
+    if (tag[index] === '=') {
+      index += 1;
+      while (/\s/.test(tag[index] ?? '')) index += 1;
+      const quote = tag[index];
+      if (quote === '"' || quote === "'") {
+        index += 1;
+        const valueStart = index;
+        while (index < tag.length && tag[index] !== quote) index += 1;
+        value = tag.slice(valueStart, index);
+        if (tag[index] === quote) index += 1;
+      } else {
+        const valueStart = index;
+        while (index < tag.length && !/[\s>]/.test(tag[index])) index += 1;
+        value = tag.slice(valueStart, index);
+      }
+    }
+
+    attributes[name] = value;
   }
+
   return attributes;
 }
 
@@ -380,9 +408,9 @@ async function captureBrowser(url) {
   const browser = await chromium.launch();
   const page = await browser.newPage();
   await page.addInitScript(() => {
-    window.__sec05CspViolations = [];
+    globalThis.__sec05CspViolations = [];
     document.addEventListener('securitypolicyviolation', event => {
-      window.__sec05CspViolations.push({
+      globalThis.__sec05CspViolations.push({
         effectiveDirective: event.effectiveDirective,
         blockedURI: event.blockedURI,
         violatedDirective: event.violatedDirective,
@@ -407,7 +435,7 @@ async function captureBrowser(url) {
     }))
   );
   const canary = await page.locator('[data-csp-nonce-probe]').getAttribute('data-csp-nonce-probe');
-  const violations = await page.evaluate(() => window.__sec05CspViolations ?? []);
+  const violations = await page.evaluate(() => globalThis.__sec05CspViolations ?? []);
   await browser.close();
   return {
     canary,
@@ -499,7 +527,9 @@ async function main() {
   process.stdout.write(JSON.stringify(report, null, 2) + '\n');
 }
 
-main().catch(error => {
+try {
+  await main();
+} catch (error) {
   console.error(error);
   process.exitCode = 1;
-});
+}
