@@ -308,6 +308,16 @@ were skipped because Sentry event query tooling was unavailable, Playwright MCP 
 and no authenticated storage-state setup was available for the local fallback probe. The
 missing flows remain required `P33-SEC03` follow-up evidence before Phase 1 promotion.
 
+SEC03 implementation probe on 2026-05-08 confirmed an additional constraint: Next.js 16.2.4
+and a patch probe on 16.2.6 did not apply nonce attributes to App Router framework/static
+scripts in the standalone report-only path, even though the proxy emitted
+`x-middleware-request-content-security-policy`, the response emitted a matching
+`Content-Security-Policy-Report-Only`, and the root-layout canary script carried the
+response `x-nonce`. A `NextResponse.rewrite(..., { request: { headers } })` probe broke
+normal page readiness and was rejected. Until a supported Next.js hook or framework fix is
+identified, SEC03 must not claim framework nonce coverage as fixed; it should at minimum
+pin first-party CSP classification and keep Phase 1 blocked.
+
 DG04 outcomes:
 
 - H1 - Next framework scripts: confirmed.

@@ -89,6 +89,12 @@ function optionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
+function isFirstPartyReport(report: NormalizedCspReport): boolean {
+  if (report.blockedUri === 'inline') return true;
+  if (report.blockedHost === 'none' || report.blockedHost === 'opaque') return false;
+  return report.blockedHost === report.documentHost;
+}
+
 function normalizeReportPayload(payload: Record<string, unknown>): NormalizedCspReport {
   const blockedUri = stripQueryString(payload['blocked-uri'] ?? payload.blockedURL);
   const documentUri = stripQueryString(payload['document-uri'] ?? payload.documentURL);
@@ -143,6 +149,7 @@ export function captureCspReports(reports: NormalizedCspReport[]): void {
         'csp.disposition': report.disposition,
         'csp.blocked_host': report.blockedHost,
         'csp.document_host': report.documentHost,
+        'csp.first_party': String(isFirstPartyReport(report)),
       },
       fingerprint: ['csp-violation', report.violatedDirective, report.blockedHost],
       extra: report,

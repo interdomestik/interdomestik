@@ -73,9 +73,47 @@ describe('csp-report', () => {
         'csp.disposition': 'report',
         'csp.blocked_host': 'tracker.example',
         'csp.document_host': 'app.example',
+        'csp.first_party': 'false',
       },
       fingerprint: ['csp-violation', 'script-src-elem', 'tracker.example'],
       extra: report,
     });
+  });
+
+  it('tags inline and same-host reports as first-party', () => {
+    const reports = normalizeCspReportBody([
+      {
+        type: 'csp-violation',
+        body: {
+          blockedURL: 'inline',
+          documentURL: 'https://app.example/sq',
+          effectiveDirective: 'script-src',
+        },
+      },
+      {
+        type: 'csp-violation',
+        body: {
+          blockedURL: 'https://app.example/_next/static/chunks/app.js',
+          documentURL: 'https://app.example/sq',
+          effectiveDirective: 'script-src-elem',
+        },
+      },
+      {
+        type: 'csp-violation',
+        body: {
+          blockedURL: 'chrome-extension://example/script.js',
+          documentURL: 'https://app.example/sq',
+          effectiveDirective: 'script-src-elem',
+        },
+      },
+    ]);
+
+    captureCspReports(reports);
+
+    expect(hoisted.captureMessage.mock.calls.map(call => call[1].tags['csp.first_party'])).toEqual([
+      'true',
+      'true',
+      'false',
+    ]);
   });
 });
