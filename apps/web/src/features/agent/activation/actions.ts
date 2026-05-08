@@ -1,9 +1,8 @@
 'use server';
 
+import { activateAgentUserProfile } from '@/features/agent/activation/server/activate-agent-profile';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database/db';
-import { user } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { randomBytes } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
@@ -38,18 +37,17 @@ export async function activateAgentProfile() {
   const code = `${baseName}-${suffix}`;
 
   try {
+    const tenantId = ensureTenantId(session);
     // Transactional safety: In a real scenario with high concurrency,
     // we might want a loop to handle code collision (unique constraint),
     // but with 4 chars hex suffix (65k combinations per name), collision is rare enough for now.
 
-    await db
-      .update(user)
-      .set({
-        role: 'agent',
-        referralCode: code,
-        updatedAt: new Date(),
-      })
-      .where(eq(user.id, session.user.id));
+    await activateAgentUserProfile({
+      currentRole: session.user.role,
+      referralCode: code,
+      tenantId,
+      userId: session.user.id,
+    });
 
     revalidatePath('/', 'layout'); // Revalidate everything to update sidebar/nav
 

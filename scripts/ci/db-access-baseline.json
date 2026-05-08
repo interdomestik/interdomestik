@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-05-05T21:59:12.445Z",
+  "generatedAt": "2026-05-08T15:55:32.243Z",
   "policy": "Baseline for direct db.* calls outside approved database package internals. New app-layer and domain-package direct database access must move behind an approved wrapper or intentionally update this baseline.",
   "scanRoots": ["apps/web/src", "packages"],
   "approvedWrapperPatterns": ["^packages\\/database\\/"],
@@ -273,20 +273,6 @@
       "source": "const leads = await db.query.memberLeads.findMany({"
     },
     {
-      "file": "apps/web/src/actions/leads/update.ts",
-      "line": 32,
-      "method": "query",
-      "risk": "app-layer",
-      "source": "const lead = await db.query.memberLeads.findFirst({"
-    },
-    {
-      "file": "apps/web/src/actions/leads/update.ts",
-      "line": 42,
-      "method": "update",
-      "risk": "app-layer",
-      "source": "await db .update(memberLeads)"
-    },
-    {
       "file": "apps/web/src/actions/member-notes/create.core.ts",
       "line": 51,
       "method": "insert",
@@ -540,14 +526,14 @@
     },
     {
       "file": "apps/web/src/app/[locale]/(agent)/agent/leads/_core.entry.tsx",
-      "line": 28,
+      "line": 36,
       "method": "query",
       "risk": "app-layer",
       "source": "const settings = await db.query.agentSettings.findFirst({"
     },
     {
       "file": "apps/web/src/app/[locale]/(agent)/agent/leads/_core.ts",
-      "line": 29,
+      "line": 27,
       "method": "query",
       "risk": "app-layer",
       "source": "return db.query.memberLeads.findMany({"
@@ -938,20 +924,6 @@
       "source": "await tx .update(documentExtractions)"
     },
     {
-      "file": "apps/web/src/app/api/auth/[...all]/route.ts",
-      "line": 107,
-      "method": "select",
-      "risk": "high-risk-route",
-      "source": "const rows = await db .select({ tenantId: userTable.tenantId })"
-    },
-    {
-      "file": "apps/web/src/app/api/claims/evidence-upload/route.ts",
-      "line": 75,
-      "method": "query",
-      "risk": "high-risk-route",
-      "source": "const claim = await db.query.claims.findFirst({"
-    },
-    {
       "file": "apps/web/src/app/api/cron/dunning/_core.ts",
       "line": 39,
       "method": "query",
@@ -1303,7 +1275,7 @@
     },
     {
       "file": "apps/web/src/app/api/uploads/_core.ts",
-      "line": 93,
+      "line": 98,
       "method": "query",
       "risk": "app-layer",
       "source": "const claim = await db.query.claims.findFirst({"
@@ -1799,11 +1771,12 @@
       "source": "let queryBuilder = db .select({"
     },
     {
-      "file": "apps/web/src/features/agent/activation/actions.ts",
-      "line": 45,
+      "file": "apps/web/src/features/agent/activation/server/activate-agent-profile.ts",
+      "line": 11,
       "method": "update",
-      "risk": "server-action",
-      "source": "await db .update(user)"
+      "risk": "app-layer",
+      "source": "const updatedRows = await db .update(user)",
+      "classification": "extracted-server-action-wrapper: authenticated tenant/user/current-role scope is explicit in helper input and covered by negative scope tests"
     },
     {
       "file": "apps/web/src/features/agent/dashboard/components/AgentDashboardV2Page.tsx",
@@ -1841,18 +1814,20 @@
       "source": "const [slaBreaches] = await db .select({ count: count() })"
     },
     {
-      "file": "apps/web/src/features/agent/leads/actions.ts",
-      "line": 64,
+      "file": "apps/web/src/features/agent/leads/server/lead-actions.ts",
+      "line": 37,
       "method": "query",
-      "risk": "server-action",
-      "source": "const lead = await db.query.memberLeads.findFirst({"
+      "risk": "app-layer",
+      "source": "const lead = await db.query.memberLeads.findFirst({",
+      "classification": "extracted-server-action-wrapper: authenticated tenant/agent/branch lead scope is explicit in helper input and covered by negative authorization tests"
     },
     {
-      "file": "apps/web/src/features/agent/leads/actions.ts",
-      "line": 96,
+      "file": "apps/web/src/features/agent/leads/server/lead-actions.ts",
+      "line": 62,
       "method": "update",
-      "risk": "server-action",
-      "source": "await db .update(memberLeads)"
+      "risk": "app-layer",
+      "source": "await db .update(memberLeads)",
+      "classification": "extracted-server-action-wrapper: authenticated tenant/agent/branch lead scope is explicit in helper input and covered by negative authorization tests"
     },
     {
       "file": "apps/web/src/features/claims/timeline/server/getClaimTimeline.ts",
@@ -1940,28 +1915,37 @@
     },
     {
       "file": "apps/web/src/features/claims/upload/server/access.ts",
-      "line": 50,
+      "line": 54,
       "method": "query",
       "risk": "app-layer",
-      "source": "const claim = await db.query.claims.findFirst({"
+      "source": "const claim = await db.query.claims.findFirst({",
+      "classification": "extracted-upload-boundary-wrapper: tenant plus admin-role branch/staff or member-owner scope is explicit and covered by negative authorization tests"
+    },
+    {
+      "file": "apps/web/src/features/claims/upload/server/access.ts",
+      "line": 82,
+      "method": "query",
+      "risk": "app-layer",
+      "source": "const claim = await db.query.claims.findFirst({",
+      "classification": "extracted-upload-boundary-wrapper: tenant plus admin-role branch/staff or member-owner scope is explicit and covered by negative authorization tests"
     },
     {
       "file": "apps/web/src/features/claims/upload/server/shared-upload.ts",
-      "line": 501,
+      "line": 531,
       "method": "transaction",
       "risk": "app-layer",
       "source": "await db.transaction(async tx => {"
     },
     {
       "file": "apps/web/src/features/claims/upload/server/shared-upload.ts",
-      "line": 502,
+      "line": 532,
       "method": "insert",
       "risk": "app-layer",
       "source": "await tx.insert(claimDocuments).values({"
     },
     {
       "file": "apps/web/src/features/claims/upload/server/shared-upload.ts",
-      "line": 517,
+      "line": 547,
       "method": "transaction",
       "risk": "app-layer",
       "source": "const queuedRuns = await db.transaction(async tx =>"
@@ -1972,20 +1956,6 @@
       "method": "select",
       "risk": "app-layer",
       "source": "await db.select({ id: user.id }).from(user).limit(1);"
-    },
-    {
-      "file": "apps/web/src/features/member/claims/actions.ts",
-      "line": 57,
-      "method": "query",
-      "risk": "server-action",
-      "source": "const claim = await db.query.claims.findFirst({"
-    },
-    {
-      "file": "apps/web/src/features/member/claims/actions.ts",
-      "line": 152,
-      "method": "query",
-      "risk": "server-action",
-      "source": "const claim = await db.query.claims.findFirst({"
     },
     {
       "file": "apps/web/src/features/share-pack/share-pack.service.ts",
@@ -2126,6 +2096,14 @@
       "method": "select",
       "risk": "app-layer",
       "source": "const existing = await db .select({"
+    },
+    {
+      "file": "apps/web/src/lib/auth/tenant-lookup.ts",
+      "line": 8,
+      "method": "select",
+      "risk": "app-layer",
+      "source": "const rows = await db .select({ tenantId: userTable.tenantId })",
+      "classification": "extracted-high-risk-route-wrapper: email sign-in tenant lookup returns tenant id only and is consumed by tenant guard tests"
     },
     {
       "file": "apps/web/src/lib/business-leads/resolve-business-lead-owner.ts",
@@ -3403,52 +3381,31 @@
     },
     {
       "file": "packages/domain-leads/src/payment.ts",
-      "line": 22,
+      "line": 44,
+      "method": "transaction",
+      "risk": "domain-wrapper",
+      "source": "await db.transaction(async tx => {"
+    },
+    {
+      "file": "packages/domain-leads/src/payment.ts",
+      "line": 45,
+      "method": "update",
+      "risk": "domain-wrapper",
+      "source": "const updatedRows = await tx .update(memberLeads)"
+    },
+    {
+      "file": "packages/domain-leads/src/payment.ts",
+      "line": 55,
+      "method": "insert",
+      "risk": "domain-wrapper",
+      "source": "await tx.insert(leadPaymentAttempts).values({"
+    },
+    {
+      "file": "packages/domain-leads/src/payment.ts",
+      "line": 72,
       "method": "query",
       "risk": "domain-wrapper",
       "source": "const lead = await db.query.memberLeads.findFirst({"
-    },
-    {
-      "file": "packages/domain-leads/src/payment.ts",
-      "line": 33,
-      "method": "transaction",
-      "risk": "domain-wrapper",
-      "source": "await db.transaction(async tx => {"
-    },
-    {
-      "file": "packages/domain-leads/src/payment.ts",
-      "line": 34,
-      "method": "insert",
-      "risk": "domain-wrapper",
-      "source": "await tx.insert(leadPaymentAttempts).values({"
-    },
-    {
-      "file": "packages/domain-leads/src/payment.ts",
-      "line": 44,
-      "method": "update",
-      "risk": "domain-wrapper",
-      "source": "await tx .update(memberLeads)"
-    },
-    {
-      "file": "packages/domain-leads/src/payment.ts",
-      "line": 61,
-      "method": "transaction",
-      "risk": "domain-wrapper",
-      "source": "await db.transaction(async tx => {"
-    },
-    {
-      "file": "packages/domain-leads/src/payment.ts",
-      "line": 62,
-      "method": "insert",
-      "risk": "domain-wrapper",
-      "source": "await tx.insert(leadPaymentAttempts).values({"
-    },
-    {
-      "file": "packages/domain-leads/src/payment.ts",
-      "line": 75,
-      "method": "update",
-      "risk": "domain-wrapper",
-      "source": "await tx .update(memberLeads)"
     },
     {
       "file": "packages/domain-leads/src/verify.ts",

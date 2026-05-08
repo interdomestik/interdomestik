@@ -234,7 +234,7 @@ describe('updateLeadStatus', () => {
     });
 
     expect(mocks.startPayment).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
+      { agentId: 'agent-1', branchId: 'branch-1', tenantId: 'tenant-1' },
       {
         leadId: 'lead-3',
         method: 'cash',

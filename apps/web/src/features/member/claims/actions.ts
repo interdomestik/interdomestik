@@ -7,10 +7,9 @@ import {
   revalidatePathForAllLocales,
   validateConfirmedClaimUpload,
 } from '@/features/claims/upload/server/shared-upload';
+import { findOwnedMemberUploadClaim } from '@/features/claims/upload/server/access';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
-import { claims, db } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { and, eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 
 export type GenerateUploadUrlResult =
@@ -53,13 +52,10 @@ export async function generateUploadUrl(
     return { success: false, error: message, status: 500 };
   }
 
-  // Authorization: fail-closed to claims owned by the current member and tenant.
-  const claim = await db.query.claims.findFirst({
-    where: and(
-      eq(claims.id, claimId),
-      eq(claims.tenantId, tenantId),
-      eq(claims.userId, session.user.id)
-    ),
+  const claim = await findOwnedMemberUploadClaim({
+    claimId,
+    tenantId,
+    userId: session.user.id,
   });
 
   if (!claim) {
@@ -148,13 +144,10 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
   }
   const { session, tenantId, resolvedBucket } = uploadContext;
 
-  // Authorization: fail-closed to claims owned by the current member and tenant.
-  const claim = await db.query.claims.findFirst({
-    where: and(
-      eq(claims.id, claimId),
-      eq(claims.tenantId, tenantId),
-      eq(claims.userId, session.user.id)
-    ),
+  const claim = await findOwnedMemberUploadClaim({
+    claimId,
+    tenantId,
+    userId: session.user.id,
   });
 
   if (!claim) {

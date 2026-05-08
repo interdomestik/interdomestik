@@ -451,6 +451,7 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
     const subject = `E2E CRM05 advisory ${testInfo.project.name} ${Date.now()}`;
     const secondSubject = `${subject} second`;
     const claimHelpPath = `${routes.memberHelp(testInfo)}?claimId=${encodeURIComponent(claimId)}`;
+    const currentMemberSurface = () => memberPage.getByTestId('member-page-ready').last();
 
     await cleanupHandoffBySubject(subject);
     await cleanupHandoffBySubject(secondSubject);
@@ -486,16 +487,21 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       await gotoApp(memberPage, claimHelpPath, testInfo, {
         marker: 'member-page-ready',
       });
-      await expect(memberPage.getByTestId('member-support-handoff-advisory-claim')).toBeVisible({
-        timeout: 15000,
-      });
-      await expect(memberPage.getByTestId('member-support-handoff-claim')).toHaveValue(claimId);
+      const claimAdvisory = currentMemberSurface().getByTestId(
+        'member-support-handoff-advisory-claim'
+      );
+      await expect(claimAdvisory).toBeVisible({ timeout: 15000 });
+      await expect(currentMemberSurface().getByTestId('member-support-handoff-claim')).toHaveValue(
+        claimId
+      );
 
-      await memberPage.getByTestId('member-support-handoff-subject').fill(secondSubject);
-      await memberPage
+      await currentMemberSurface()
+        .getByTestId('member-support-handoff-subject')
+        .fill(secondSubject);
+      await currentMemberSurface()
         .getByTestId('member-support-handoff-message')
         .fill('Second advisory test handoff proving the advisory remains non-blocking.');
-      await memberPage.getByTestId('member-support-handoff-submit').click();
+      await currentMemberSurface().getByTestId('member-support-handoff-submit').click();
 
       await expect(memberPage).toHaveURL(/\/member\/help\?support=created$/, {
         timeout: 15000,

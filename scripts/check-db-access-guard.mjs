@@ -18,6 +18,13 @@ const DIRECT_DB_METHODS = [
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mts', '.cts']);
 
 const APPROVED_WRAPPER_PATTERNS = [/^packages\/database\//u];
+const EXPLICIT_CLASSIFICATION_RISKS = new Set(['server-action', 'high-risk-route']);
+const EXPLICIT_CLASSIFICATION_PATH_PATTERNS = [
+  /^apps\/web\/src\/features\/agent\/activation\/server\/activate-agent-profile\.ts$/u,
+  /^apps\/web\/src\/features\/agent\/leads\/server\/lead-actions\.ts$/u,
+  /^apps\/web\/src\/features\/claims\/upload\/server\/access\.ts$/u,
+  /^apps\/web\/src\/lib\/auth\/tenant-lookup\.ts$/u,
+];
 
 const EXCLUDED_PATH_PATTERNS = [
   /(^|\/)__tests__(\/|$)/u,
@@ -242,6 +249,23 @@ function createEntryKey(entry) {
   return `${entry.file}|${entry.method}|${entry.source}`;
 }
 
+function hasExplicitClassification(entry) {
+  return typeof entry.classification === 'string' && entry.classification.trim().length > 0;
+}
+
+function findUnclassifiedRiskyBaselineEntries(entries) {
+  return entries.filter(
+    entry => requiresExplicitClassification(entry) && !hasExplicitClassification(entry)
+  );
+}
+
+function requiresExplicitClassification(entry) {
+  return (
+    EXPLICIT_CLASSIFICATION_RISKS.has(entry.risk) ||
+    EXPLICIT_CLASSIFICATION_PATH_PATTERNS.some(pattern => pattern.test(entry.file))
+  );
+}
+
 function classifyRisk(relativePath) {
   if (/^packages\/domain-[^/]+\/src\//u.test(relativePath)) return 'domain-wrapper';
   if (/\/route\.[cm]?[jt]sx?$/u.test(relativePath)) return 'high-risk-route';
@@ -391,7 +415,23 @@ function diffAgainstBaseline(currentEntries, baselineEntries) {
   return { newEntries, removedEntries };
 }
 
-function buildBaseline({ entries, scanRoots }) {
+function createClassificationLookup(entries) {
+  const lookup = new Map();
+  for (const entry of entries) {
+    if (hasExplicitClassification(entry)) {
+      lookup.set(createEntryKey(entry), entry.classification);
+    }
+  }
+  return lookup;
+}
+
+function buildBaseline({ entries, scanRoots, existingEntries = [] }) {
+  const classificationLookup = createClassificationLookup(existingEntries);
+  const classifiedEntries = entries.map(entry => {
+    const classification = classificationLookup.get(createEntryKey(entry));
+    return classification ? { ...entry, classification } : entry;
+  });
+
   return {
     version: 1,
     generatedAt: new Date().toISOString(),
@@ -400,7 +440,7 @@ function buildBaseline({ entries, scanRoots }) {
     scanRoots,
     approvedWrapperPatterns: APPROVED_WRAPPER_PATTERNS.map(pattern => pattern.source),
     methods: DIRECT_DB_METHODS,
-    entries,
+    entries: classifiedEntries,
   };
 }
 
@@ -429,10 +469,17 @@ function main() {
   const findings = collectFindings({ repoRoot, scanRoots: options.scanRoots });
 
   if (options.writeBaseline) {
+    const existingEntries = fs.existsSync(baselinePath)
+      ? (readJson(baselinePath).entries ?? [])
+      : [];
     ensureDirForFile(baselinePath);
     fs.writeFileSync(
       baselinePath,
-      `${JSON.stringify(buildBaseline({ entries: findings, scanRoots: options.scanRoots }), null, 2)}\n`
+      `${JSON.stringify(
+        buildBaseline({ entries: findings, existingEntries, scanRoots: options.scanRoots }),
+        null,
+        2
+      )}\n`
     );
     console.log(`Updated DB access baseline: ${options.baselinePath} (${findings.length} entries)`);
     return;
@@ -449,19 +496,36 @@ function main() {
     throw new Error(`Invalid baseline ${options.baselinePath}: missing entries array.`);
   }
 
+  const unclassifiedRiskyBaselineEntries = findUnclassifiedRiskyBaselineEntries(baseline.entries);
   const { newEntries, removedEntries } = diffAgainstBaseline(findings, baseline.entries);
   const report = {
-    status: newEntries.length === 0 ? 'pass' : 'fail',
+    status:
+      newEntries.length === 0 && unclassifiedRiskyBaselineEntries.length === 0 ? 'pass' : 'fail',
     baselinePath: options.baselinePath,
     scannedCount: findings.length,
     baselineCount: baseline.entries.length,
     newCount: newEntries.length,
     removedCount: removedEntries.length,
+    unclassifiedRiskyBaselineCount: unclassifiedRiskyBaselineEntries.length,
     newEntries,
     removedEntries,
+    unclassifiedRiskyBaselineEntries,
   };
 
   writeReport(reportPath, report);
+
+  if (unclassifiedRiskyBaselineEntries.length > 0) {
+    console.error(
+      'DB access guard failed: risky server-action/high-risk-route entries and extracted boundary wrapper paths require explicit classification.'
+    );
+    printEntries('Unclassified risky baseline entries:', unclassifiedRiskyBaselineEntries);
+    console.error('');
+    console.error(
+      'Move the access behind an approved domain/database wrapper, or add classification metadata only after focused authorization review.'
+    );
+    console.error(`Report: ${options.reportPath}`);
+    process.exit(1);
+  }
 
   if (newEntries.length > 0) {
     console.error(

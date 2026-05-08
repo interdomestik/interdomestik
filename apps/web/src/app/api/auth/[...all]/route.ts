@@ -1,6 +1,6 @@
 import { logAuditEvent } from '@/lib/audit';
 import { auth } from '@/lib/auth';
-import { coerceTenantId } from '@/lib/tenant/tenant-hosts';
+import { lookupUserTenantByEmail } from '@/lib/auth/tenant-lookup';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { toNextJsHandler } from 'better-auth/next-js';
 
@@ -98,19 +98,7 @@ export async function POST(req: Request) {
       url: req.url,
       headers: req.headers,
       body: signInBody,
-      lookupUserTenantByEmail: async email => {
-        const [{ db }, { user: userTable }, drizzle] = await Promise.all([
-          import('@interdomestik/database/db'),
-          import('@interdomestik/database/schema'),
-          import('drizzle-orm'),
-        ]);
-        const rows = await db
-          .select({ tenantId: userTable.tenantId })
-          .from(userTable)
-          .where(drizzle.eq(userTable.email, email))
-          .limit(1);
-        return coerceTenantId(rows[0]?.tenantId ?? undefined);
-      },
+      lookupUserTenantByEmail,
     });
 
     if (tenantGuard?.decision === 'deny') {
