@@ -82,6 +82,7 @@ export async function upsertRecoveryDecisionRecord(params: {
         )
       );
   } else {
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await params.tx.insert(claimEscalationAgreements).values({
       id: crypto.randomUUID(),
       tenantId: params.tenantId,
@@ -134,7 +135,9 @@ export async function saveRecoveryDecisionCore(
   const tenantId = scopeArgs.tenantId;
 
   try {
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const result = await db.transaction(async tx => {
+      // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       const [claim] = await tx
         .select({
           id: claims.id,

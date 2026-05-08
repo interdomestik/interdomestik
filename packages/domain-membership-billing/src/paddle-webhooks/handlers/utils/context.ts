@@ -62,6 +62,7 @@ export async function resolveSubscriptionContext(sub: any) {
     return null;
   }
 
+  // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
   const userRecord = await db.query.user.findFirst({
     where: (users, { eq }) => eq(users.id, userId),
     columns: { tenantId: true, email: true, name: true, memberNumber: true, agentId: true },

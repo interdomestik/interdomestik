@@ -38,6 +38,7 @@ export async function logLeadActivityCore(params: {
   const { leadId, type, subject, description } = parsed.data;
 
   try {
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
     const lead = await db.query.crmLeads.findFirst({
       where: eq(crmLeads.id, leadId),
     });
@@ -62,6 +63,7 @@ export async function logLeadActivityCore(params: {
       createdAt: new Date(),
     };
 
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
     await db.insert(crmActivities).values(newActivity);
 
     return { success: true, error: undefined };

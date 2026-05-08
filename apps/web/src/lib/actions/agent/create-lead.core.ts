@@ -37,6 +37,7 @@ export async function createLeadCore(agentId: string, tenantId: string, formData
   try {
     const newLeadId = nanoid();
 
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
     await db.insert(crmLeads).values({
       id: newLeadId,
       tenantId,

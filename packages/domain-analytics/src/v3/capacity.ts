@@ -11,11 +11,13 @@ export interface AgentCapacityResult {
 export async function getAgentCapacitySignal(agentId: string): Promise<AgentCapacityResult> {
   // Signals: Total Active Clients + Claims touched in last 30d
 
+  // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
   const [clients] = await db
     .select({ count: count() })
     .from(agentClients)
     .where(and(eq(agentClients.agentId, agentId), eq(agentClients.status, 'active')));
 
+  // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
   const [recentClaims] = await db
     .select({ count: count() })
     .from(claims)

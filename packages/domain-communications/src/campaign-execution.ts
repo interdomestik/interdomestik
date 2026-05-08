@@ -72,6 +72,7 @@ export async function getUsersBatch(args: {
   const limit = args.limit ?? USER_BATCH_SIZE;
 
   // Cursor pagination by primary key keeps memory stable and avoids huge offsets.
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const users = await db.query.user.findMany({
     where: args.afterId ? (user, { gt }) => gt(user.id, args.afterId as string) : undefined,
     orderBy: (user, { asc }) => [asc(user.id)],

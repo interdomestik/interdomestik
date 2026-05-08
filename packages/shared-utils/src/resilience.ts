@@ -70,6 +70,7 @@ export async function withTransactionRetry<T>(
   operation: (tx: any) => Promise<T>,
   config: Partial<RetryConfig> = {}
 ): Promise<T> {
+  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   return withRetry(() => db.transaction(operation), {
     ...config,
     retryableErrors: [

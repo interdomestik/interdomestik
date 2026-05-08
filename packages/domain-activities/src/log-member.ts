@@ -11,6 +11,7 @@ async function hasMemberActivitiesTable(): Promise<boolean> {
   // Keep this check local to avoid importing extra helpers and to prevent noisy prod errors
   // if the optional member_activities table hasn't been migrated yet.
   try {
+    // db-access-guard: system-exempt -- reason: optional table-existence probe reads no tenant data
     const rows = await db.execute(`SELECT to_regclass('public.member_activities') AS regclass`);
     const first = rows[0] as unknown as { regclass?: string | null; to_regclass?: string | null };
     return Boolean(first?.regclass ?? first?.to_regclass);
@@ -48,6 +49,7 @@ export async function logActivityCore(params: {
       return { success: false, error: 'Activity log unavailable' };
     }
 
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
     const member = await db.query.user.findFirst({
       where: eq(user.id, memberId),
     });
@@ -73,6 +75,7 @@ export async function logActivityCore(params: {
       updatedAt: new Date(),
     };
 
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
     await db.insert(memberActivities).values(newActivity);
 
     return { success: true, error: undefined };

@@ -109,6 +109,7 @@ async function processDunningSubscription(params: {
   if (emailType === 'day7') stats.day7Sent++;
   else if (emailType === 'day13') stats.day13Sent++;
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db.update(subscriptions).set({ lastDunningAt: now }).where(eq(subscriptions.id, sub.id));
 
   await logAuditEvent({

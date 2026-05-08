@@ -121,6 +121,7 @@ export async function getClaimsListQuery(filters: ClaimsListV2Filters) {
   const staff = aliasedTable(user, 'staff');
 
   // Main Query
+  // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
   const dataQuery = db
     .select({
       claim: claims,
@@ -174,6 +175,7 @@ export async function getClaimsListQuery(filters: ClaimsListV2Filters) {
   } = buildClaimsQuery(facetsFilters);
 
   // Single aggregation query for facets
+  // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
   const facetsQuery = db
     .select({
       active: count(sql`CASE WHEN ${inArray(claims.status, IN_PROGRESS_STATUSES)} THEN 1 END`),

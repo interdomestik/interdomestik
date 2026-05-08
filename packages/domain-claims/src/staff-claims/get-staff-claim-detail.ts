@@ -66,6 +66,7 @@ export async function getStaffClaimDetail(params: {
 }): Promise<StaffClaimDetail | null> {
   const { branchId = null, tenantId, claimId } = params;
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const rows = await db
     .select({
       claimId: claims.id,

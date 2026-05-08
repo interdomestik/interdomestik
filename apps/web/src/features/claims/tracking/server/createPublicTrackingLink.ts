@@ -72,6 +72,7 @@ export async function createPublicTrackingLink(
         );
 
       // 4. Store Hash
+      // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
       await db.insert(claimTrackingTokens).values({
         tenantId: claim.tenantId,
         claimId: claim.id,

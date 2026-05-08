@@ -111,6 +111,7 @@ async function findLatestRequestDefault(args: {
 async function insertRequestDefault(args: DataDeletionRequestInsert): Promise<string> {
   const requestId = nanoid();
 
+  // db-access-guard: system-exempt -- reason: privacy deletion endpoint writes system audit trail
   await db.insert(auditLog).values({
     id: requestId,
     tenantId: args.tenantId,

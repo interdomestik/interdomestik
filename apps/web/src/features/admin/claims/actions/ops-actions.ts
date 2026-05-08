@@ -161,6 +161,7 @@ export async function markSlaAcknowledged(
     const claim = await getClaimForMutation(claimId, ctx.tenantId);
     assertCanMutateClaim(claim, ctx.session.user.role, 'sla_ack');
 
+    // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
     await db.insert(claimMessages).values({
       id: nanoid(),
       tenantId: ctx.tenantId,
@@ -208,6 +209,7 @@ export async function sendMemberReminder(
     }
 
     await logAudit(ctx.tenantId, ctx.session.user.id, 'send_reminder', claimId, { channel });
+    // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
     await db.insert(claimMessages).values({
       id: nanoid(),
       tenantId: ctx.tenantId,

@@ -52,6 +52,7 @@ export async function getAgentLeaderboardCore(params: {
 
     const tenantFilter = eq(agentCommissions.tenantId, tenantId);
 
+    // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
     const results = await db
       .select({
         agentId: agentCommissions.agentId,
@@ -95,6 +96,7 @@ export async function getAgentLeaderboardCore(params: {
     } else if (session.user.role === 'agent') {
       // FIXED: Added tenantFilter to prevent cross-tenant data leak
       // FIXED: Added limit cap to prevent expensive queries
+      // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
       const allRanked = await db
         .select({
           agentId: agentCommissions.agentId,

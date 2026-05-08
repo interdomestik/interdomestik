@@ -125,7 +125,9 @@ export async function persistInvoiceAndLedgerInvariants(
 
   const subscriptionId = normalizeText(payload.subscriptionId || payload.subscription_id);
 
+  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   const result = await db.transaction(async tx => {
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const invoiceRows = await tx
       .insert(billingInvoices)
       .values({
@@ -165,6 +167,7 @@ export async function persistInvoiceAndLedgerInvariants(
       throw new Error('Failed to upsert billing invoice invariant row');
     }
 
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const ledgerRows = await tx
       .insert(billingLedgerEntries)
       .values({

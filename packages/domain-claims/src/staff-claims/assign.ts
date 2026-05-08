@@ -25,6 +25,7 @@ async function getScopedClaim(args: {
   tenantId: string;
   userId: string;
 }): Promise<StaffClaimRecord | undefined> {
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const [existingClaim] = await db
     .select({ id: claims.id, staffId: claims.staffId, branchId: claims.branchId })
     .from(claims)
@@ -53,6 +54,7 @@ async function findScopedAssignee(args: {
   staffId: string;
   tenantId: string;
 }) {
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   return db.query.user.findFirst({
     where: buildAssigneeScope(args),
     columns: {

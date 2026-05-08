@@ -22,6 +22,7 @@ export async function logActivityCore(
     return { error: 'Not found' as const };
   }
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db.insert(crmActivities).values({
     id: nanoid(),
     tenantId,

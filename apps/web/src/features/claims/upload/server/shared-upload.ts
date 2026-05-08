@@ -528,7 +528,9 @@ export async function persistClaimDocumentAndQueueWorkflows(params: {
     userId,
   } = params;
 
+  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   await db.transaction(async tx => {
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(claimDocuments).values({
       id: fileId,
       tenantId,
@@ -544,6 +546,7 @@ export async function persistClaimDocumentAndQueueWorkflows(params: {
   });
 
   try {
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const queuedRuns = await db.transaction(async tx =>
       queueClaimDocumentAiWorkflows({
         tx,

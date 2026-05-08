@@ -234,6 +234,7 @@ async function persistPastDueSubscription(args: {
       throw error;
     }
 
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
     await db
       .update(subscriptions)
       .set(args.values)

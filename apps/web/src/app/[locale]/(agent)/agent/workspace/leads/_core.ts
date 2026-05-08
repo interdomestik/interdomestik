@@ -45,6 +45,7 @@ export async function getAgentWorkspaceLeadsCore(params: {
 }): Promise<AgentWorkspaceLeadsResult> {
   const { tenantId, db } = params;
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const leadsData = await db.query.memberLeads.findMany({
     where: buildAgentWorkspaceLeadsWhere({ tenantId }),
     orderBy: (leads, { desc }) => [desc(leads.createdAt)],

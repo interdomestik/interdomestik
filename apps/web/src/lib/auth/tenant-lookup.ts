@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { coerceTenantId, type TenantId } from '@/lib/tenant/tenant-hosts';
 
 export async function lookupUserTenantByEmail(email: string): Promise<TenantId | null> {
+  // db-access-guard: system-exempt -- reason: login bootstrap resolves tenant by normalized email before tenant session exists
   const rows = await db
     .select({ tenantId: userTable.tenantId })
     .from(userTable)

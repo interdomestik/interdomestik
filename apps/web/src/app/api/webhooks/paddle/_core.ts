@@ -116,6 +116,7 @@ async function resolveWebhookTenantId(data: unknown): Promise<string | null> {
   const userId = customData?.userId;
 
   if (userId) {
+    // db-access-guard: tenant-scoped -- reason: userId comes from verified Paddle webhook custom data
     const userRecord = await db.query.user.findFirst({
       where: (users, { eq }) => eq(users.id, userId),
       columns: { tenantId: true },

@@ -31,7 +31,9 @@ export async function updateClaimStatus(params: {
       ? and(eq(claims.id, claimId), eq(claims.branchId, branchId))
       : and(eq(claims.id, claimId), eq(claims.staffId, user.id));
   const scopedWhere = withTenant(tenantId, claims.tenantId, scope);
+  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   return db.transaction(async tx => {
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const [existingClaim] = await tx
       .select({
         id: claims.id,
@@ -67,6 +69,7 @@ export async function updateClaimStatus(params: {
     const statusGuard =
       previousStatus == null ? isNull(claims.status) : eq(claims.status, previousStatus);
 
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const updatedClaims = await tx
       .update(claims)
       .set(updateData)
@@ -77,6 +80,7 @@ export async function updateClaimStatus(params: {
       return { success: false, error: 'Claim not found or access denied', data: undefined };
     }
 
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(claimStageHistory).values({
       id: crypto.randomUUID(),
       tenantId,

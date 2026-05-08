@@ -31,6 +31,7 @@ export async function getAgentDashboardLiteCore(
     .from(memberLeads)
     .where(and(eq(memberLeads.agentId, agentId), eq(memberLeads.status, 'new')));
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const [activeClaims] = await db
     .select({ count: count() })
     .from(claims)

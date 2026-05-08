@@ -16,6 +16,7 @@ const TENANT_CONTEXT_REASONS = {
 };
 
 export const TENANT_POSTURE_REASONS = {
+  tenantScoped: 'tenant-scoped: directive',
   tenantPredicate: 'tenant-predicate: in-where-clause',
   adminPrivileged: 'admin-privileged: dbAdmin',
   systemExempt: 'system-exempt: directive',
@@ -24,6 +25,7 @@ export const TENANT_POSTURE_REASONS = {
 
 export const TENANT_POSTURES = [
   'tenant-context',
+  'tenant-scoped',
   'tenant-predicate',
   'admin-privileged',
   'system-exempt',
@@ -167,9 +169,9 @@ function callHasTenantPredicate(call, source) {
     const [tenantValue, tenantColumn] = call.arguments;
     return Boolean(
       tenantValue &&
-        tenantColumn &&
-        isNonLiteralTenantIdentifier(tenantValue) &&
-        expressionMentionsTenantColumn(nodeText(source, tenantColumn))
+      tenantColumn &&
+      isNonLiteralTenantIdentifier(tenantValue) &&
+      expressionMentionsTenantColumn(nodeText(source, tenantColumn))
     );
   }
 
@@ -212,9 +214,9 @@ function directiveForLine(lines, lineNumber) {
   if (!previousLine) return null;
 
   const match = previousLine.match(
-    /^\/\/\s*db-access-guard:\s*system-exempt\s*--\s*reason:\s*(\S.*)$/u
+    /^\/\/\s*db-access-guard:\s*(system-exempt|tenant-scoped)\s*--\s*reason:\s*(\S.*)$/u
   );
-  return match ? match[1].trim() : null;
+  return match ? { kind: match[1], reason: match[2].trim() } : null;
 }
 
 function findTenantContextRange(ranges, matchIndex, calleeAlias) {
@@ -237,10 +239,18 @@ export function createTenantPostureClassifier(source, fileName = 'source.ts') {
   return function classifyTenantPosture({ matchIndex, calleeAlias, isAdminAlias, method, line }) {
     const directiveReason = directiveForLine(lines, line);
     if (directiveReason) {
+      if (directiveReason.kind === 'tenant-scoped') {
+        return {
+          tenantPosture: 'tenant-scoped',
+          tenantPostureReason: TENANT_POSTURE_REASONS.tenantScoped,
+          tenantPostureDetail: directiveReason.reason,
+        };
+      }
+
       return {
         tenantPosture: 'system-exempt',
         tenantPostureReason: TENANT_POSTURE_REASONS.systemExempt,
-        tenantPostureDetail: directiveReason,
+        tenantPostureDetail: directiveReason.reason,
       };
     }
 

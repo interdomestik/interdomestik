@@ -26,6 +26,7 @@ export async function getBranchById(
   branchId: string,
   tenantId: string
 ): Promise<BranchMetadata | null> {
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const result = await db.query.branches.findFirst({
     where: (b, { and: andOp, eq: eqOp }) => andOp(eqOp(b.id, branchId), eqOp(b.tenantId, tenantId)),
   });

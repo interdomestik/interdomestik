@@ -54,6 +54,7 @@ function isOwnedSubscription(
 }
 
 async function findPushSubscriptionByEndpoint(endpoint: string) {
+  // db-access-guard: system-exempt -- reason: global endpoint uniqueness check before scoped ownership validation
   const [existing] = await db
     .select()
     .from(pushSubscriptions)

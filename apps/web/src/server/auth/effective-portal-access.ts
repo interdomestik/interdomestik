@@ -23,6 +23,7 @@ async function getExplicitTenantRolesFor(
 }
 
 async function isActiveTenant(tenantId: string): Promise<boolean> {
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const tenant = await db.query.tenants.findFirst({
     where: (t, { and: andFn }) => andFn(eq(t.id, tenantId), eq(t.isActive, true)),
     columns: { id: true },

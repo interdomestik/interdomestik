@@ -63,6 +63,7 @@ export async function updateNotificationPreferencesCore(params: {
           )
         );
     } else {
+      // db-access-guard: tenant-scoped -- reason: tenantId from validated session before preference insert
       await db.insert(userNotificationPreferences).values({
         id: nanoid(),
         tenantId,

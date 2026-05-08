@@ -98,6 +98,7 @@ export async function saveClaimEscalationAgreementCore(
 
   try {
     const result = await db.transaction(async tx => {
+      // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       const [claim] = await tx
         .select({
           category: claims.category,
@@ -190,6 +191,7 @@ export async function saveClaimEscalationAgreementCore(
         };
       }
 
+      // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       await tx.insert(claimEscalationAgreements).values({
         id: crypto.randomUUID(),
         tenantId,

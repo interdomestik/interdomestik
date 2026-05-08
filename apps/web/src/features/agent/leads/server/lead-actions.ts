@@ -34,6 +34,7 @@ export async function updateScopedAgentLeadStatus(params: {
 }) {
   const { notes, scope, status } = params;
   const scopedWhere = buildAgentLeadWhere(scope);
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const lead = await db.query.memberLeads.findFirst({
     where: scopedWhere,
   });
@@ -61,6 +62,7 @@ export async function updateScopedAgentLeadStatus(params: {
 
   const updatedNotes = notes ? [lead.notes, notes].filter(Boolean).join('\n') : lead.notes;
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db
     .update(memberLeads)
     .set({

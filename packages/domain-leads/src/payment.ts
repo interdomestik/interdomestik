@@ -44,7 +44,9 @@ async function markLeadPaymentPending(
   attemptId: string,
   scopedWhere: NonNullable<ReturnType<typeof buildLeadPaymentScope>>
 ) {
+  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   await db.transaction(async tx => {
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const updatedRows = await tx
       .update(memberLeads)
       .set({ status: 'payment_pending' })
@@ -55,6 +57,7 @@ async function markLeadPaymentPending(
       throw new Error('Lead not found');
     }
 
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(leadPaymentAttempts).values({
       id: attemptId,
       tenantId: ctx.tenantId,
@@ -72,6 +75,7 @@ export async function startPayment(ctx: StartPaymentContext, input: StartPayment
   const scopedWhere = buildLeadPaymentScope(ctx, leadId);
 
   // 1. Validate Lead
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const lead = await db.query.memberLeads.findFirst({
     where: scopedWhere,
   });

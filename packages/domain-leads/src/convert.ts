@@ -61,8 +61,10 @@ export async function convertLeadToMember(
     canonicalPlanState.planKey
   );
 
+  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   return await db.transaction(async tx => {
     // A. Insert User with role='member'
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(userTable).values({
       id: userId,
       tenantId: ctx.tenantId,
@@ -84,6 +86,7 @@ export async function convertLeadToMember(
 
     // C. Create Subscription
     const subscriptionId = `sub_${nanoid()}`;
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(subscriptions).values({
       id: subscriptionId,
       tenantId: ctx.tenantId,
@@ -104,6 +107,7 @@ export async function convertLeadToMember(
 
     // D. Issue Membership Card
     const cardNumber = `MEM-${nanoid(8).toUpperCase()}`;
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(membershipCards).values({
       id: `card_${nanoid()}`,
       tenantId: ctx.tenantId,
@@ -116,6 +120,7 @@ export async function convertLeadToMember(
     });
 
     // E. Update Lead status
+    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx
       .update(memberLeads)
       .set({ status: 'converted', convertedUserId: userId, updatedAt: now })

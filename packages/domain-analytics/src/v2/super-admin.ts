@@ -28,20 +28,29 @@ export async function getSuperAdminKPIs(): Promise<SuperAdminKPIs> {
     claims7d,
     claims30d,
   ] = await Promise.all([
+    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db.select({ count: count() }).from(tenants),
+    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db.select({ count: count() }).from(branches),
+    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db.select({ count: count() }).from(user).where(eq(user.role, 'staff')),
+    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db.select({ count: count() }).from(user).where(eq(user.role, 'agent')),
+    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db.select({ count: count() }).from(user).where(eq(user.role, 'member')),
+    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db.select({ count: count() }).from(claims),
+    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db
       .select({ count: count() })
       .from(claims)
       .where(sql`created_at >= NOW() - INTERVAL '1 day'`),
+    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db
       .select({ count: count() })
       .from(claims)
       .where(sql`created_at >= NOW() - INTERVAL '7 days'`),
+    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db
       .select({ count: count() })
       .from(claims)

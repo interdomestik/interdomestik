@@ -51,6 +51,7 @@ export async function getMemberActiveHandoffAdvisory(args: {
   memberId: string;
   tenantId: string;
 }): Promise<MemberActiveHandoffAdvisory> {
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const countQuery = db
     .select({ activeCount: count() })
     .from(supportHandoffs)

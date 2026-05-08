@@ -79,6 +79,7 @@ export async function logAuditEvent(params: {
 
   // Log access for each document in the pack
   for (const documentId of ids) {
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
     await db.insert(schema.documentAccessLog).values({
       id: nanoid(),
       tenantId,

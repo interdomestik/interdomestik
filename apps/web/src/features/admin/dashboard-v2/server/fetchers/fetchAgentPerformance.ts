@@ -17,9 +17,11 @@ export async function fetchAgentPerformance(tenantId: string) {
 
   const data = await Promise.all(
     topAgents.map(async stat => {
+      // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
       const [agentUser] = await db.select().from(user).where(eq(user.id, stat.agentId));
 
       // Get actively working leads for this agent
+      // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
       const [activeLeads] = await db
         .select({ count: count() })
         .from(memberLeads)

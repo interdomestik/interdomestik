@@ -233,6 +233,7 @@ async function handleStaffLedRecoveryStatusChange(
         return;
       }
 
+      // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       await tx
         .insert(serviceUsage)
         .values({
@@ -314,6 +315,7 @@ async function persistClaimStatusChange(params: {
       .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
   }
 
+  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   await tx.insert(claimStageHistory).values({
     id: crypto.randomUUID(),
     tenantId,
@@ -437,6 +439,7 @@ async function finalizeClaimStatusChange(params: {
 }): Promise<ActionResult> {
   const { beforePersist, ...rest } = params;
 
+  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   await db.transaction(async tx => {
     if (beforePersist) {
       await beforePersist(tx);
@@ -497,6 +500,7 @@ export async function updateClaimStatusCore(
   const trimmedDecisionExplanation = params.decisionExplanation?.trim() || undefined;
 
   try {
+    // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
     const [currentClaim] = await db
       .select({
         category: claims.category,

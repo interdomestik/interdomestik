@@ -65,16 +65,21 @@ export async function getStaffDashboardCore(params: {
     // Execute all independent DB queries in parallel
     const [[totalRes], [newRes], [inProgressRes], [completedRes], recentClaimsRaw] =
       await Promise.all([
+        // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
         db.select({ val: count() }).from(claims).where(baseWhere),
+        // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
         db
           .select({ val: count() })
           .from(claims)
           .where(and(baseWhere, eq(claims.status, newStatus))),
+        // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
         db.select({ val: count() }).from(claims).where(and(baseWhere, inProgressCondition)),
+        // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
         db
           .select({ val: count() })
           .from(claims)
           .where(and(baseWhere, inArray(claims.status, completedStatuses))),
+        // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
         db.query.claims.findMany({
           where: baseWhere,
           orderBy: [desc(claims.updatedAt)],
