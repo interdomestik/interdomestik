@@ -28,6 +28,20 @@ type NormalizedCspReport = {
   violatedDirective: string;
 };
 
+export type CspDirectiveFamily = 'script' | 'other';
+
+export type CspFirstPartyClassification = {
+  directiveFamily: CspDirectiveFamily;
+  firstParty: boolean;
+  reason:
+    | 'inline'
+    | 'same-document-host'
+    | 'extension-origin'
+    | 'opaque-origin'
+    | 'data-or-blob-origin'
+    | 'third-party-host';
+};
+
 export function isAcceptedCspReportContentType(contentType: string | null): boolean {
   if (!contentType) return false;
   return ACCEPTED_CONTENT_TYPES.has(contentType.split(';')[0].trim().toLowerCase());
@@ -89,10 +103,55 @@ function optionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
-function isFirstPartyReport(report: NormalizedCspReport): boolean {
-  if (report.blockedUri === 'inline') return true;
-  if (report.blockedHost === 'none' || report.blockedHost === 'opaque') return false;
-  return report.blockedHost === report.documentHost;
+export function getCspDirectiveFamily(violatedDirective: string): CspDirectiveFamily {
+  return violatedDirective === 'script-src' ||
+    violatedDirective === 'script-src-elem' ||
+    violatedDirective === 'script-src-attr'
+    ? 'script'
+    : 'other';
+}
+
+function isExtensionUri(value: string): boolean {
+  return (
+    value.startsWith('chrome-extension:') ||
+    value.startsWith('moz-extension:') ||
+    value.startsWith('safari-extension:') ||
+    value.startsWith('safari-web-extension:')
+  );
+}
+
+function isDataOrBlobUri(value: string): boolean {
+  return value.startsWith('data:') || value.startsWith('blob:');
+}
+
+export function classifyCspReport(report: NormalizedCspReport): CspFirstPartyClassification {
+  const directiveFamily = getCspDirectiveFamily(report.violatedDirective);
+
+  if (report.blockedUri === 'inline') {
+    return { directiveFamily, firstParty: true, reason: 'inline' };
+  }
+
+  if (isExtensionUri(report.blockedUri)) {
+    return { directiveFamily, firstParty: false, reason: 'extension-origin' };
+  }
+
+  if (isDataOrBlobUri(report.blockedUri)) {
+    return { directiveFamily, firstParty: false, reason: 'data-or-blob-origin' };
+  }
+
+  if (
+    report.blockedHost === 'none' ||
+    report.blockedHost === 'opaque' ||
+    report.blockedUri === 'null'
+  ) {
+    return { directiveFamily, firstParty: false, reason: 'opaque-origin' };
+  }
+
+  if (report.blockedHost === report.documentHost) {
+    return { directiveFamily, firstParty: true, reason: 'same-document-host' };
+  }
+
+  return { directiveFamily, firstParty: false, reason: 'third-party-host' };
 }
 
 function normalizeReportPayload(payload: Record<string, unknown>): NormalizedCspReport {
@@ -142,14 +201,18 @@ export function normalizeCspReportBody(body: unknown): NormalizedCspReport[] {
 
 export function captureCspReports(reports: NormalizedCspReport[]): void {
   for (const report of reports) {
+    const classification = classifyCspReport(report);
+
     Sentry.captureMessage('csp.violation', {
       level: 'warning',
       tags: {
         'csp.directive': report.violatedDirective,
+        'csp.directive_family': classification.directiveFamily,
         'csp.disposition': report.disposition,
         'csp.blocked_host': report.blockedHost,
         'csp.document_host': report.documentHost,
-        'csp.first_party': String(isFirstPartyReport(report)),
+        'csp.first_party': String(classification.firstParty),
+        'csp.first_party_reason': classification.reason,
       },
       fingerprint: ['csp-violation', report.violatedDirective, report.blockedHost],
       extra: report,
