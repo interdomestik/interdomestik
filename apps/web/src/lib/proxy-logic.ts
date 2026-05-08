@@ -5,6 +5,12 @@ import { emitAuthTelemetryEvent } from '@/lib/telemetry';
 import { applyTenantCookie } from '@/lib/tenant/tenant-cookie';
 import { resolveTenantFromHost as resolveTenantFromCanonicalHost } from '@/lib/tenant/tenant-hosts';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  buildReportOnlyCsp,
+  buildReportToHeader,
+  generateCspNonce,
+  isCspNonceActive,
+} from '@/lib/security/csp-nonce';
 
 const PROTECTED_TOP_LEVEL = new Set(['member', 'admin', 'staff', 'agent']);
 const SESSION_COOKIE_NAMES = [
@@ -17,6 +23,7 @@ const ACTIVE_SESSION_CACHE_MAX_ENTRIES = 100;
 const activeSessionCache = new Map<string, number>();
 
 type SecurityHeaders = {
+  requestHeaders?: Headers;
   responseHeaders: Headers;
 };
 
@@ -53,6 +60,7 @@ function buildContentSecurityPolicy(request: NextRequest): string {
 function createSecurityHeaders(request: NextRequest): SecurityHeaders {
   const csp = buildContentSecurityPolicy(request);
   const responseHeaders = new Headers();
+  const isProductionHttps = isProductionDeployment() && isHttpsRequest(request);
 
   responseHeaders.set('Content-Security-Policy', csp);
   responseHeaders.set('X-Frame-Options', 'DENY');
@@ -60,11 +68,26 @@ function createSecurityHeaders(request: NextRequest): SecurityHeaders {
   responseHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   responseHeaders.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
 
-  if (isProductionDeployment() && isHttpsRequest(request)) {
+  let requestHeaders: Headers | undefined;
+  if (isCspNonceActive()) {
+    const nonce = generateCspNonce();
+    const reportOnlyCsp = buildReportOnlyCsp({ nonce, isProductionHttps });
+
+    requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-nonce', nonce);
+    requestHeaders.set('Content-Security-Policy', reportOnlyCsp);
+    requestHeaders.set('Content-Security-Policy-Report-Only', reportOnlyCsp);
+
+    responseHeaders.set('Content-Security-Policy-Report-Only', reportOnlyCsp);
+    responseHeaders.set('Report-To', buildReportToHeader());
+    responseHeaders.set('x-nonce', nonce);
+  }
+
+  if (isProductionHttps) {
     responseHeaders.set('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
   }
 
-  return { responseHeaders };
+  return { requestHeaders, responseHeaders };
 }
 
 function applyResponseHardening(
@@ -463,7 +486,9 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   }
 
   // 3. Tenant Resolution
-  const response = NextResponse.next();
+  const response = securityHeaders.requestHeaders
+    ? NextResponse.next({ request: { headers: securityHeaders.requestHeaders } })
+    : NextResponse.next();
 
   if (isE2EDiagnosticsEnabled()) {
     response.headers.set('x-e2e-tenant', tenant ?? 'none');

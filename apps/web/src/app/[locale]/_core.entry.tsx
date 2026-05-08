@@ -8,9 +8,12 @@ import { PostHogProvider } from '@/components/providers/posthog-provider';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { routing } from '@/i18n/routing';
+import { isCspNonceActive } from '@/lib/security/csp-nonce';
 import '@interdomestik/ui/globals.css';
 import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
+import { headers } from 'next/headers';
+import { connection } from 'next/server';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -95,6 +98,11 @@ export default async function RootLayout({ children, params }: Props) {
   // Fetch messages for the locale
   const allMessages = await getMessages();
   const messages = pickMessages(allMessages, BASE_NAMESPACES);
+  let cspNonce: string | null = null;
+  if (isCspNonceActive()) {
+    await connection();
+    cspNonce = (await headers()).get('x-nonce');
+  }
 
   return (
     <html lang={locale} suppressHydrationWarning>
@@ -115,6 +123,7 @@ export default async function RootLayout({ children, params }: Props) {
             zIndex: -1,
           }}
         />
+        {cspNonce ? <script data-csp-nonce-probe="" nonce={cspNonce} /> : null}
         {process.env.NODE_ENV === 'development' && enableDevtoolsScript && (
           <script src="http://localhost:8097" async></script>
         )}
@@ -139,7 +148,7 @@ export default async function RootLayout({ children, params }: Props) {
                 {enableAxe ? <AxeProvider /> : null}
                 <ReferralTracker />
                 <PwaRegistrar />
-                <AnalyticsScripts />
+                <AnalyticsScripts nonce={cspNonce ?? undefined} />
                 <CookieConsentBanner />
               </QueryProvider>
             </NextIntlClientProvider>

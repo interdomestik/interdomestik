@@ -18,7 +18,7 @@ type AnalyticsWindow = Window & {
   _fbq?: MetaPixelFunction;
 };
 
-export function AnalyticsScripts() {
+export function AnalyticsScripts({ nonce }: { nonce?: string }) {
   const { consent } = useCookieConsent();
   const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
   const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
@@ -86,6 +86,7 @@ export function AnalyticsScripts() {
           id="google-tag-manager-src"
           src={`https://www.googletagmanager.com/gtm.js?id=${GTM_ID}`}
           strategy="afterInteractive"
+          nonce={nonce}
         />
       )}
 
@@ -94,6 +95,7 @@ export function AnalyticsScripts() {
           id="meta-pixel-src"
           src="https://connect.facebook.net/en_US/fbevents.js"
           strategy="afterInteractive"
+          nonce={nonce}
           onLoad={() => {
             const analyticsWindow = globalThis as typeof globalThis & AnalyticsWindow;
             analyticsWindow.fbq?.('init', META_PIXEL_ID);

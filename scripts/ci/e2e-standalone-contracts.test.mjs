@@ -21,9 +21,12 @@ test('e2e launchers resolve standalone server artifacts dynamically for worktree
   assert.match(webServerScript, /resolve_standalone_server\(\)/);
   assert.match(webServerScript, /resolve_standalone_app_root\(\)/);
   assert.match(webServerScript, /normalize_billing_test_mode\(\)/);
+  assert.match(webServerScript, /normalize_csp_nonce_mode\(\)/);
   assert.match(webServerScript, /stamp\.publicEnv\?\.NEXT_PUBLIC_BILLING_TEST_MODE/);
+  assert.match(webServerScript, /stamp\.buildEnv\?\.CSP_NONCE_MODE/);
   assert.match(webServerScript, /STAMP_STATUS_REASON="stale-stamp-env"/);
   assert.match(webServerScript, /requested billingTestMode:/);
+  assert.match(webServerScript, /requested cspNonceMode:/);
   assert.match(
     webServerScript,
     /find "\$\{STANDALONE_ROOT\}" -path '\*\/node_modules\/\*' -prune -o -type f -name server\.js -print/
@@ -42,8 +45,11 @@ test('e2e launchers resolve standalone server artifacts dynamically for worktree
   assert.match(gateScript, /if ! resolve_standalone_server >\/dev\/null; then/);
 
   assert.match(stampScript, /NEXT_PUBLIC_BILLING_TEST_MODE/);
+  assert.match(stampScript, /CSP_NONCE_MODE/);
   assert.match(stampScript, /publicEnv/);
+  assert.match(stampScript, /buildEnv/);
   assert.match(stampScript, /billingTestMode=/);
+  assert.match(stampScript, /cspNonceMode=/);
   assert.match(stampScript, /syncClientReferenceManifests/);
   assert.match(stampScript, /standalone client reference manifests synced=/);
   assert.match(stampScript, /aliasRouteGroupClientReferenceManifests/);
@@ -78,6 +84,7 @@ test('standalone stamp copies and aliases route-group client reference manifests
       ...process.env,
       COMMIT_SHA: 'fixture-sha',
       NEXT_PUBLIC_BILLING_TEST_MODE: '1',
+      CSP_NONCE_MODE: 'report',
     },
     encoding: 'utf8',
   });
@@ -108,5 +115,9 @@ test('standalone stamp copies and aliases route-group client reference manifests
   assert.match(
     fs.readFileSync(path.join(tempDir, '.next/standalone/.build-stamp.json'), 'utf8'),
     /"NEXT_PUBLIC_BILLING_TEST_MODE": "1"/
+  );
+  assert.match(
+    fs.readFileSync(path.join(tempDir, '.next/standalone/.build-stamp.json'), 'utf8'),
+    /"CSP_NONCE_MODE": "report"/
   );
 });

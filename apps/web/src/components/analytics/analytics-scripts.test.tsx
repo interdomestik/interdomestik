@@ -8,14 +8,24 @@ vi.mock('@/lib/cookie-consent', () => ({
 }));
 
 vi.mock('next/script', () => ({
-  default: ({ id, src, onLoad }: { id: string; src?: string; onLoad?: () => void }) => {
+  default: ({
+    id,
+    nonce,
+    src,
+    onLoad,
+  }: {
+    id: string;
+    nonce?: string;
+    src?: string;
+    onLoad?: () => void;
+  }) => {
     if (id === 'google-tag-manager-src' && !(globalThis as { dataLayer?: unknown }).dataLayer) {
       throw new Error('GTM rendered before dataLayer initialization');
     }
 
     onLoad?.();
 
-    return <div data-testid={id} data-src={src} />;
+    return <div data-testid={id} data-nonce={nonce} data-src={src} />;
   },
 }));
 
@@ -45,12 +55,16 @@ describe('AnalyticsScripts', () => {
   });
 
   it('initializes dataLayer before rendering the GTM script', async () => {
-    render(<AnalyticsScripts />);
+    render(<AnalyticsScripts nonce="nonce-test" />);
 
     await waitFor(() => {
       expect(screen.getByTestId('google-tag-manager-src')).toBeInTheDocument();
     });
 
+    expect(screen.getByTestId('google-tag-manager-src')).toHaveAttribute(
+      'data-nonce',
+      'nonce-test'
+    );
     expect((globalThis as { dataLayer?: Array<Record<string, unknown>> }).dataLayer).toEqual(
       expect.arrayContaining([expect.objectContaining({ event: 'gtm.js' })])
     );
