@@ -6,6 +6,10 @@ type ClaimScopeRecord = {
   staffId?: string | null;
 };
 
+type MemberClaimOwnershipRecord = {
+  id: string;
+};
+
 const FULL_TENANT_CLAIMS_ROLES = new Set(['admin', 'tenant_admin', 'super_admin']);
 
 export function canAccessClaimFromAdminUploadSurface(args: {
@@ -68,4 +72,23 @@ export async function findAccessibleAdminUploadClaim(args: {
   }
 
   return claim;
+}
+
+export async function findOwnedMemberUploadClaim(args: {
+  claimId: string;
+  tenantId: string;
+  userId: string;
+}): Promise<MemberClaimOwnershipRecord | null> {
+  const claim = await db.query.claims.findFirst({
+    where: and(
+      eq(claims.id, args.claimId),
+      eq(claims.tenantId, args.tenantId),
+      eq(claims.userId, args.userId)
+    ),
+    columns: {
+      id: true,
+    },
+  });
+
+  return claim ?? null;
 }

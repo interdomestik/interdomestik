@@ -9,7 +9,7 @@ const hoisted = vi.hoisted(() => {
     headers: vi.fn(),
     ensureTenantId: vi.fn(),
     resolveEvidenceBucketName: vi.fn(),
-    findClaimFirst: vi.fn(),
+    findOwnedMemberUploadClaim: vi.fn(),
     createSignedUploadUrl: vi.fn(),
     listStorageObjects: vi.fn(),
     storageFrom: vi.fn(),
@@ -45,20 +45,14 @@ vi.mock('@/lib/storage/evidence-bucket', () => ({
   resolveEvidenceBucketName: hoisted.resolveEvidenceBucketName,
 }));
 
+vi.mock('@/features/claims/upload/server/access', () => ({
+  findOwnedMemberUploadClaim: hoisted.findOwnedMemberUploadClaim,
+}));
+
 vi.mock('@interdomestik/database', () => ({
   db: {
-    query: {
-      claims: {
-        findFirst: hoisted.findClaimFirst,
-      },
-    },
     insert: hoisted.insert,
     transaction: hoisted.transaction,
-  },
-  claims: {
-    id: 'claims.id',
-    tenantId: 'claims.tenant_id',
-    userId: 'claims.user_id',
   },
   claimDocuments: 'claim_documents',
 }));
@@ -141,7 +135,7 @@ describe('member claim upload actions', () => {
     });
     hoisted.ensureTenantId.mockReturnValue('tenant-1');
     hoisted.resolveEvidenceBucketName.mockReturnValue('claim-evidence');
-    hoisted.findClaimFirst.mockResolvedValue({ id: 'claim-1', userId: 'member-1' });
+    hoisted.findOwnedMemberUploadClaim.mockResolvedValue({ id: 'claim-1' });
     hoisted.storageFrom.mockReturnValue({
       createSignedUploadUrl: hoisted.createSignedUploadUrl,
       list: hoisted.listStorageObjects,
@@ -256,36 +250,30 @@ describe('member claim upload actions', () => {
   });
 
   it('denies signed URL issuance for same-tenant claims owned by another member', async () => {
-    hoisted.findClaimFirst.mockResolvedValue(null);
+    hoisted.findOwnedMemberUploadClaim.mockResolvedValue(null);
 
     const result = await generateUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024);
 
     expect(result).toEqual({ success: false, error: 'Claim not found', status: 404 });
     expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
-    expect(hoisted.findClaimFirst).toHaveBeenCalledWith({
-      where: expect.objectContaining({
-        op: 'and',
-        args: expect.arrayContaining([
-          expect.objectContaining({ op: 'eq', left: 'claims.user_id', right: 'member-1' }),
-        ]),
-      }),
+    expect(hoisted.findOwnedMemberUploadClaim).toHaveBeenCalledWith({
+      claimId: 'claim-1',
+      tenantId: 'tenant-1',
+      userId: 'member-1',
     });
   });
 
   it('denies confirmUpload when claim is not owned by the member', async () => {
-    hoisted.findClaimFirst.mockResolvedValue(null);
+    hoisted.findOwnedMemberUploadClaim.mockResolvedValue(null);
 
     const result = await confirmUpload(createConfirmUploadParams());
 
     expect(result).toEqual({ success: false, error: 'Claim not found', status: 404 });
     expect(hoisted.insert).not.toHaveBeenCalled();
-    expect(hoisted.findClaimFirst).toHaveBeenCalledWith({
-      where: expect.objectContaining({
-        op: 'and',
-        args: expect.arrayContaining([
-          expect.objectContaining({ op: 'eq', left: 'claims.user_id', right: 'member-1' }),
-        ]),
-      }),
+    expect(hoisted.findOwnedMemberUploadClaim).toHaveBeenCalledWith({
+      claimId: 'claim-1',
+      tenantId: 'tenant-1',
+      userId: 'member-1',
     });
   });
 

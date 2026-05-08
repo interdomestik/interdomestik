@@ -12,6 +12,7 @@ const hoisted = vi.hoisted(() => ({
   confirmUpload: vi.fn(),
   createClaimUploadIntentToken: vi.fn(),
   captureMessage: vi.fn(),
+  findOwnedMemberUploadClaim: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
 }));
@@ -43,6 +44,7 @@ vi.mock('@/features/member/claims/actions', () => ({
 }));
 vi.mock('@/features/claims/upload/server/access', () => ({
   findAccessibleAdminUploadClaim: hoisted.findAccessibleAdminUploadClaim,
+  findOwnedMemberUploadClaim: hoisted.findOwnedMemberUploadClaim,
 }));
 vi.mock('@/features/claims/upload/server/shared-upload', () => ({
   createClaimUploadIntentToken: hoisted.createClaimUploadIntentToken,
@@ -84,6 +86,7 @@ describe('POST /api/claims/evidence-upload', () => {
       branchId: 'branch-1',
       staffId: 'staff-1',
     });
+    hoisted.findOwnedMemberUploadClaim.mockResolvedValue({ id: 'claim-1' });
     hoisted.upload.mockResolvedValue({ error: null });
     hoisted.createAdminClient.mockReturnValue({
       storage: {
@@ -107,6 +110,26 @@ describe('POST /api/claims/evidence-upload', () => {
     expect(data).toEqual({ error: 'Claim not found' });
     expect(hoisted.upload).not.toHaveBeenCalled();
     expect(hoisted.confirmAdminUpload).not.toHaveBeenCalled();
+  });
+
+  it('denies member uploads for claims outside member ownership before storage upload', async () => {
+    hoisted.getSession.mockResolvedValueOnce({
+      user: { id: 'member-2', role: 'member', tenantId: 'tenant-1' },
+    });
+    hoisted.findOwnedMemberUploadClaim.mockResolvedValueOnce(null);
+
+    const response = await POST(createEvidenceUploadRequest());
+    const data = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(data).toEqual({ error: 'Claim not found' });
+    expect(hoisted.findOwnedMemberUploadClaim).toHaveBeenCalledWith({
+      claimId: 'claim-1',
+      tenantId: 'tenant-1',
+      userId: 'member-2',
+    });
+    expect(hoisted.upload).not.toHaveBeenCalled();
+    expect(hoisted.confirmUpload).not.toHaveBeenCalled();
   });
 
   it('captures orphan-upload telemetry when metadata confirmation fails after storage upload', async () => {

@@ -1,6 +1,6 @@
 import { db } from '@interdomestik/database';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 // We might need to import paddle helper if we generate a transaction server-side
@@ -15,12 +15,62 @@ export const startPaymentSchema = z.object({
 
 export type StartPaymentInput = z.infer<typeof startPaymentSchema>;
 
-export async function startPayment(ctx: { tenantId: string }, input: StartPaymentInput) {
-  const { leadId, method, priceId, amountCents } = input;
+type StartPaymentContext =
+  | { tenantId: string }
+  | { tenantId: string; agentId: string; branchId: string };
+
+function buildLeadPaymentScope(ctx: StartPaymentContext, leadId: string) {
+  const conditions = [eq(memberLeads.id, leadId), eq(memberLeads.tenantId, ctx.tenantId)];
+
+  if ('agentId' in ctx) {
+    conditions.push(eq(memberLeads.agentId, ctx.agentId));
+    conditions.push(eq(memberLeads.branchId, ctx.branchId));
+  }
+
+  const scopedWhere = and(...conditions);
+  if (!scopedWhere) {
+    throw new Error('Lead not found');
+  }
+
+  return scopedWhere;
+}
+
+async function markLeadPaymentPending(
+  ctx: StartPaymentContext,
+  input: StartPaymentInput,
+  attemptId: string,
+  scopedWhere: NonNullable<ReturnType<typeof buildLeadPaymentScope>>
+) {
+  await db.transaction(async tx => {
+    const updatedRows = await tx
+      .update(memberLeads)
+      .set({ status: 'payment_pending' })
+      .where(and(scopedWhere, ne(memberLeads.status, 'converted')))
+      .returning({ id: memberLeads.id });
+
+    if (updatedRows.length === 0) {
+      throw new Error('Lead not found');
+    }
+
+    await tx.insert(leadPaymentAttempts).values({
+      id: attemptId,
+      tenantId: ctx.tenantId,
+      leadId: input.leadId,
+      method: input.method,
+      status: 'pending',
+      amount: input.amountCents,
+      currency: 'EUR',
+    });
+  });
+}
+
+export async function startPayment(ctx: StartPaymentContext, input: StartPaymentInput) {
+  const { leadId, method } = input;
+  const scopedWhere = buildLeadPaymentScope(ctx, leadId);
 
   // 1. Validate Lead
   const lead = await db.query.memberLeads.findFirst({
-    where: (leads, { eq, and }) => and(eq(leads.id, leadId), eq(leads.tenantId, ctx.tenantId)),
+    where: scopedWhere,
   });
 
   if (!lead) throw new Error('Lead not found');
@@ -28,55 +78,7 @@ export async function startPayment(ctx: { tenantId: string }, input: StartPaymen
 
   const attemptId = `pay_attempt_${nanoid()}`;
 
-  // 2. Handle Cash
-  if (method === 'cash') {
-    await db.transaction(async tx => {
-      await tx.insert(leadPaymentAttempts).values({
-        id: attemptId,
-        tenantId: ctx.tenantId,
-        leadId,
-        method: 'cash',
-        status: 'pending',
-        amount: amountCents,
-        currency: 'EUR',
-      });
+  await markLeadPaymentPending(ctx, input, attemptId, scopedWhere);
 
-      await tx
-        .update(memberLeads)
-        .set({ status: 'payment_pending' })
-        .where(eq(memberLeads.id, leadId));
-    });
-
-    return { attemptId, status: 'pending', method: 'cash' };
-  }
-
-  // 3. Handle Card (Paddle)
-  // For now, we just record the intent. The actual Transaction object is created by client or server-side SDK.
-  // If we need to create a Paddle Transaction here, we would use the Paddle SDK.
-  // Let's assume the Client initiates the transaction with Paddle using priceId,
-  // and we pass `custom_data: { leadId }` to Paddle.
-  // So strictly speaking, we might not strictly NEED a DB record for "intent" unless we want to track it.
-  // But verifying says we should.
-
-  await db.transaction(async tx => {
-    await tx.insert(leadPaymentAttempts).values({
-      id: attemptId,
-      tenantId: ctx.tenantId,
-      leadId,
-      method: 'card',
-      status: 'pending',
-      amount: amountCents,
-      currency: 'EUR',
-      // We can create a paddle transaction here if we want server-side generated checkout
-    });
-
-    // We don't necessarily move lead to 'payment_pending' yet, or maybe we do?
-    // Let's set it to payment_pending to indicate active checkout.
-    await tx
-      .update(memberLeads)
-      .set({ status: 'payment_pending' })
-      .where(eq(memberLeads.id, leadId));
-  });
-
-  return { attemptId, status: 'pending', method: 'card' };
+  return { attemptId, status: 'pending', method };
 }

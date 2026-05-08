@@ -1,9 +1,8 @@
 'use server';
 
+import { updateScopedAgentLeadStatus } from '@/features/agent/leads/server/lead-actions';
+import { ROLE_AGENT } from '@/lib/roles.core';
 import { runAuthenticatedAction } from '@/lib/safe-action';
-import { db } from '@interdomestik/database';
-import { memberLeads } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 const updateLeadStatusSchema = z.object({
@@ -25,28 +24,23 @@ export async function updateLeadStatusAction(input: unknown) {
   return runAuthenticatedAction(async ctx => {
     const data = updateLeadStatusSchema.parse(input);
     const { leadId, status, notes } = data;
-    const { tenantId, session, userRole } = ctx;
-    const { user } = session;
+    const { tenantId, userRole } = ctx;
+    const { actorAgentId, branchId } = ctx.scope;
 
-    // Verify ownership or permission
-    const lead = await db.query.memberLeads.findFirst({
-      where: (l, { eq, and }) => and(eq(l.id, leadId), eq(l.tenantId, tenantId)),
-    });
-
-    if (!lead) throw new Error('Lead not found');
-
-    if (userRole === 'agent' && lead.agentId !== user.id) {
+    if (userRole !== ROLE_AGENT || !actorAgentId || !branchId) {
       throw new Error('Unauthorized');
     }
 
-    await db
-      .update(memberLeads)
-      .set({
-        status,
-        notes: notes ? `${lead.notes ? lead.notes + '\n' : ''}${notes}` : lead.notes,
-        updatedAt: new Date(),
-      })
-      .where(eq(memberLeads.id, leadId));
+    await updateScopedAgentLeadStatus({
+      notes,
+      scope: {
+        agentId: actorAgentId,
+        branchId,
+        leadId,
+        tenantId,
+      },
+      status,
+    });
 
     return { success: true };
   });

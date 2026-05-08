@@ -1,15 +1,12 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { and, db, eq, memberLeads } from '@interdomestik/database';
-import { startPayment } from '@interdomestik/domain-leads';
+import { updateScopedAgentLeadStatus, type AgentLeadScope } from './server/lead-actions';
+import { memberLeads } from '@interdomestik/database';
 import { ROLES, ensureTenantId } from '@interdomestik/shared-auth';
-import type { SQL } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
-type LeadScope = 'tenant' | 'agent';
-type LeadScopeCondition = SQL<unknown>;
 type LeadStatus = typeof memberLeads.$inferInsert.status;
 
 const LEAD_STATUSES = [
@@ -31,10 +28,7 @@ function assertLeadStatus(status: string): LeadStatus {
   throw new Error('Invalid lead status');
 }
 
-async function resolveLeadAccess(params: {
-  leadId: string;
-  scope: LeadScope;
-}): Promise<{ tenantId: string; scopedWhere: LeadScopeCondition }> {
+async function resolveAgentLeadScope(leadId: string): Promise<AgentLeadScope> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -44,67 +38,16 @@ async function resolveLeadAccess(params: {
   }
 
   const tenantId = ensureTenantId(session);
-  const conditions: LeadScopeCondition[] = [
-    eq(memberLeads.id, params.leadId),
-    eq(memberLeads.tenantId, tenantId),
-  ];
-
-  if (params.scope === 'agent') {
-    if (session.user.role !== ROLES.agent || !session.user.branchId) {
-      throw new Error('Lead not found or access denied');
-    }
-    conditions.push(eq(memberLeads.agentId, session.user.id));
-    conditions.push(eq(memberLeads.branchId, session.user.branchId));
-  }
-
-  const scopedWhere = and(...conditions);
-  if (!scopedWhere) {
+  if (session.user.role !== ROLES.agent || !session.user.branchId) {
     throw new Error('Lead not found or access denied');
   }
 
-  const lead = await db.query.memberLeads.findFirst({
-    where: scopedWhere,
-  });
-
-  if (!lead) {
-    throw new Error('Lead not found or access denied');
-  }
-
-  return { tenantId, scopedWhere };
-}
-
-async function updateLeadStatusCore(params: {
-  leadId: string;
-  status: LeadStatus;
-  tenantId: string;
-  scopedWhere: LeadScopeCondition;
-}) {
-  const { leadId, status, tenantId, scopedWhere } = params;
-
-  // If requesting payment, we MUST create a payment attempt record
-  if (status === 'payment_pending') {
-    // Default to Cash 150 EUR for Ops Flow MVP
-    await startPayment(
-      { tenantId },
-      {
-        leadId,
-        method: 'cash',
-        amountCents: 15000,
-        priceId: 'default_membership',
-      }
-    );
-  } else {
-    await db
-      .update(memberLeads)
-      .set({
-        status,
-        updatedAt: new Date(),
-      })
-      .where(scopedWhere);
-  }
-
-  revalidatePath('/[locale]/(app)/agent/leads');
-  return { success: true };
+  return {
+    agentId: session.user.id,
+    branchId: session.user.branchId,
+    leadId,
+    tenantId,
+  };
 }
 
 /**
@@ -112,8 +55,12 @@ async function updateLeadStatusCore(params: {
  * strictly enforces tenant, agent, and branch isolation.
  */
 export async function updateLeadStatus(leadId: string, status: string) {
-  const { tenantId, scopedWhere } = await resolveLeadAccess({ leadId, scope: 'agent' });
-  return updateLeadStatusCore({ leadId, status: assertLeadStatus(status), tenantId, scopedWhere });
+  const result = await updateScopedAgentLeadStatus({
+    scope: await resolveAgentLeadScope(leadId),
+    status: assertLeadStatus(status),
+  });
+  revalidatePath('/[locale]/(app)/agent/leads');
+  return result;
 }
 
 /**
@@ -122,6 +69,10 @@ export async function updateLeadStatus(leadId: string, status: string) {
  * or would trigger a complex flow. MVP: Status -> 'converted'.
  */
 export async function convertLeadToClient(leadId: string) {
-  const { tenantId, scopedWhere } = await resolveLeadAccess({ leadId, scope: 'agent' });
-  return updateLeadStatusCore({ leadId, status: 'converted', tenantId, scopedWhere });
+  const result = await updateScopedAgentLeadStatus({
+    scope: await resolveAgentLeadScope(leadId),
+    status: 'converted',
+  });
+  revalidatePath('/[locale]/(app)/agent/leads');
+  return result;
 }

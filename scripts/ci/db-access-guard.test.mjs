@@ -87,6 +87,123 @@ test('db access guard fails only when direct db access is added beyond the basel
   assert.match(failingResult.stdout, /new\.ts:3 select/u);
 });
 
+test('db access guard requires explicit classification for risky baseline entries', () => {
+  const tempRoot = createTempRepo();
+  const actionFixturePath = 'apps/web/src/features/example/actions.ts';
+  const routeFixturePath = 'apps/web/src/app/api/example/route.ts';
+  const actionBaselineEntry = {
+    file: actionFixturePath,
+    line: 3,
+    method: 'query',
+    risk: 'server-action',
+    source: 'return db.query.user.findFirst({});',
+  };
+  const routeBaselineEntry = {
+    file: routeFixturePath,
+    line: 3,
+    method: 'select',
+    risk: 'high-risk-route',
+    source: 'return db.select().from(user);',
+  };
+
+  writeFixture(tempRoot, actionFixturePath, [
+    "import { db } from '@interdomestik/database';",
+    'export async function action() {',
+    '  return db.query.user.findFirst({});',
+    '}',
+  ]);
+  writeFixture(tempRoot, routeFixturePath, [
+    "import { db } from '@interdomestik/database';",
+    'export async function GET() {',
+    '  return db.select().from(user);',
+    '}',
+  ]);
+  fs.writeFileSync(
+    path.join(tempRoot, 'db-access-baseline.json'),
+    JSON.stringify({ version: 1, entries: [actionBaselineEntry, routeBaselineEntry] }, null, 2)
+  );
+
+  const failingResult = runAppGuard(tempRoot);
+  assert.equal(failingResult.status, 1);
+  assert.match(failingResult.stderr, /require explicit classification/u);
+  assert.match(failingResult.stderr, /server-action\/high-risk-route/u);
+
+  fs.writeFileSync(
+    path.join(tempRoot, 'db-access-baseline.json'),
+    JSON.stringify(
+      {
+        version: 1,
+        entries: [
+          {
+            ...actionBaselineEntry,
+            classification: 'negative-authorization-test-covered',
+          },
+          {
+            ...routeBaselineEntry,
+            classification: 'negative-authorization-test-covered',
+          },
+        ],
+      },
+      null,
+      2
+    )
+  );
+
+  const passingResult = runAppGuard(tempRoot);
+  assert.equal(passingResult.status, 0, passingResult.stderr);
+});
+
+test('db access guard requires classification for extracted boundary wrappers', () => {
+  const tempRoot = createTempRepo();
+  const fixturePath = 'apps/web/src/features/agent/activation/server/activate-agent-profile.ts';
+  const baselineEntry = {
+    file: fixturePath,
+    line: 3,
+    method: 'update',
+    risk: 'app-layer',
+    source: 'return db.update(user);',
+  };
+
+  writeFixture(tempRoot, fixturePath, [
+    "import { db } from '@interdomestik/database';",
+    'export async function activate() {',
+    '  return db.update(user);',
+    '}',
+  ]);
+  fs.writeFileSync(
+    path.join(tempRoot, 'db-access-baseline.json'),
+    JSON.stringify({ version: 1, entries: [baselineEntry] }, null, 2)
+  );
+
+  const failingResult = runAppGuard(tempRoot);
+  assert.equal(failingResult.status, 1);
+  assert.match(failingResult.stderr, /require explicit classification/u);
+  assert.match(failingResult.stderr, /extracted boundary wrapper paths/u);
+
+  fs.writeFileSync(
+    path.join(tempRoot, 'db-access-baseline.json'),
+    JSON.stringify(
+      {
+        version: 1,
+        entries: [
+          {
+            ...baselineEntry,
+            classification: 'extracted-server-action-wrapper: tenant and role scoped helper',
+          },
+        ],
+      },
+      null,
+      2
+    )
+  );
+
+  const writeResult = runAppGuard(tempRoot, ['--write-baseline']);
+  assert.equal(writeResult.status, 0, writeResult.stderr);
+
+  const passingResult = runAppGuard(tempRoot);
+  assert.equal(passingResult.status, 0, passingResult.stderr);
+});
+
 test('db access guard catches multiline chains and new domain-package direct access', () => {
   const tempRoot = createTempRepo();
   writeEmptyBaseline(tempRoot);

@@ -8,17 +8,19 @@ import {
   assertEvidenceStoragePath,
   buildEvidenceStoragePath,
 } from '@/features/claims/upload/server/storage-path';
-import { findAccessibleAdminUploadClaim } from '@/features/claims/upload/server/access';
+import {
+  findAccessibleAdminUploadClaim,
+  findOwnedMemberUploadClaim,
+} from '@/features/claims/upload/server/access';
 import { confirmUpload } from '@/features/member/claims/actions';
 import { LOCALES } from '@/i18n/locales';
 import { auth } from '@/lib/auth';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import { claims, createAdminClient, db } from '@interdomestik/database';
+import { createAdminClient } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import * as Sentry from '@sentry/nextjs';
 import { randomUUID } from 'crypto';
-import { and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 const ADMIN_UPLOAD_ROLES = new Set([
@@ -73,11 +75,10 @@ async function validateClaimAccess(params: {
     return claim ? { success: true, isAdminSurface } : { success: false, status: 404 };
   }
 
-  const claim = await db.query.claims.findFirst({
-    where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId), eq(claims.userId, userId)),
-    columns: {
-      id: true,
-    },
+  const claim = await findOwnedMemberUploadClaim({
+    claimId,
+    tenantId,
+    userId,
   });
 
   if (!claim) {
