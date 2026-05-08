@@ -17,7 +17,7 @@ const requireFromWeb = createRequire(path.join(webRoot, 'package.json'));
 const nonce = 'c2VjMDUtY29uc3RhbnQtbm9uY2U=';
 const reportUri = '/__sec05-csp-report';
 const host = '127.0.0.1';
-const firstPort = 43110;
+const preferredFirstPort = 43110;
 
 const cases = [
   {
@@ -334,18 +334,90 @@ function request(url) {
   });
 }
 
+function parseConfiguredFirstPort() {
+  const rawPort = process.env.SEC05_FIRST_PORT;
+  if (!rawPort) return null;
+
+  const port = Number.parseInt(rawPort, 10);
+  if (!Number.isInteger(port) || port < 1024 || port + cases.length > 65535) {
+    throw new Error(`SEC05_FIRST_PORT must leave ${cases.length} usable ports in 1024..65535.`);
+  }
+
+  return port;
+}
+
+function canListenOnPort(port) {
+  return new Promise(resolve => {
+    const server = http.createServer();
+    server.once('error', () => resolve(false));
+    server.listen(port, host, () => {
+      server.close(() => resolve(true));
+    });
+  });
+}
+
+async function allocateEphemeralPort(usedPorts) {
+  return new Promise((resolve, reject) => {
+    const server = http.createServer();
+    server.once('error', reject);
+    server.listen(0, host, () => {
+      const address = server.address();
+      const port = typeof address === 'object' && address ? address.port : null;
+      server.close(() => {
+        if (!port) {
+          reject(new Error('Unable to allocate an ephemeral SEC05 triage port.'));
+          return;
+        }
+        if (usedPorts.has(port)) {
+          allocateEphemeralPort(usedPorts).then(resolve, reject);
+          return;
+        }
+        usedPorts.add(port);
+        resolve(port);
+      });
+    });
+  });
+}
+
+async function selectPorts() {
+  const configuredFirstPort = parseConfiguredFirstPort();
+  if (configuredFirstPort !== null) {
+    const configuredPorts = cases.map((_, index) => configuredFirstPort + index);
+    for (const port of configuredPorts) {
+      if (!(await canListenOnPort(port))) {
+        throw new Error(`SEC05 configured port ${port} is already in use.`);
+      }
+    }
+    return configuredPorts;
+  }
+
+  const preferredPorts = cases.map((_, index) => preferredFirstPort + index);
+  const preferredResults = await Promise.all(preferredPorts.map(port => canListenOnPort(port)));
+  if (preferredResults.every(Boolean)) return preferredPorts;
+
+  const usedPorts = new Set();
+  const ports = [];
+  for (const _testCase of cases) {
+    ports.push(await allocateEphemeralPort(usedPorts));
+  }
+  return ports;
+}
+
 async function waitForServer(url) {
   const startedAt = Date.now();
+  let lastStatus = null;
   while (Date.now() - startedAt < 30000) {
     try {
       const response = await request(url);
-      if (response.status && response.status < 500) return;
+      lastStatus = response.status ?? null;
+      if (response.status === 200) return;
     } catch {
       // Keep polling until Next is ready.
     }
     await new Promise(resolve => setTimeout(resolve, 500));
   }
-  throw new Error(`Timed out waiting for ${url}`);
+  const suffix = lastStatus === null ? '' : `; last status=${lastStatus}`;
+  throw new Error(`Timed out waiting for ${url}${suffix}`);
 }
 
 function startServer(caseId, port) {
@@ -406,44 +478,47 @@ async function captureBrowser(url) {
     throw new Error('Unable to resolve Playwright chromium from apps/web dependencies.');
   }
   const browser = await chromium.launch();
-  const page = await browser.newPage();
-  await page.addInitScript(() => {
-    globalThis.__sec05CspViolations = [];
-    document.addEventListener('securitypolicyviolation', event => {
-      globalThis.__sec05CspViolations.push({
-        effectiveDirective: event.effectiveDirective,
-        blockedURI: event.blockedURI,
-        violatedDirective: event.violatedDirective,
-        disposition: event.disposition,
-        sourceFile: event.sourceFile,
-        lineNumber: event.lineNumber,
+  try {
+    const page = await browser.newPage();
+    await page.addInitScript(() => {
+      globalThis.__sec05CspViolations = [];
+      document.addEventListener('securitypolicyviolation', event => {
+        globalThis.__sec05CspViolations.push({
+          effectiveDirective: event.effectiveDirective,
+          blockedURI: event.blockedURI,
+          violatedDirective: event.violatedDirective,
+          disposition: event.disposition,
+          sourceFile: event.sourceFile,
+          lineNumber: event.lineNumber,
+        });
       });
     });
-  });
-  await page.goto(url, { waitUntil: 'networkidle' });
-  const domScripts = await page.$$eval('script', nodes =>
-    nodes.map((node, index) => ({
-      index,
-      src: node.getAttribute('src'),
-      nonce: node.getAttribute('nonce') || node.nonce || null,
-      inlineLength: node.textContent?.length ?? 0,
-      firstParty:
-        !node.getAttribute('src') ||
-        node.getAttribute('src')?.startsWith('/_next/') ||
-        node.getAttribute('src')?.startsWith('/') ||
-        false,
-    }))
-  );
-  const canary = await page.locator('[data-csp-nonce-probe]').getAttribute('data-csp-nonce-probe');
-  const violations = await page.evaluate(() => globalThis.__sec05CspViolations ?? []);
-  await browser.close();
-  return {
-    canary,
-    domScripts,
-    domScriptSummary: summarizeScripts(domScripts),
-    violations,
-    scriptFamilyViolationGroups: groupViolations(violations),
-  };
+    await page.goto(url, { waitUntil: 'networkidle' });
+    const domScripts = await page.$$eval('script', nodes =>
+      nodes.map((node, index) => ({
+        index,
+        src: node.getAttribute('src'),
+        nonce: node.getAttribute('nonce') || node.nonce || null,
+        inlineLength: node.textContent?.length ?? 0,
+        firstParty:
+          !node.getAttribute('src') ||
+          node.getAttribute('src')?.startsWith('/_next/') ||
+          node.getAttribute('src')?.startsWith('/') ||
+          false,
+      }))
+    );
+    const canary = await page.locator('[data-csp-nonce-probe]').getAttribute('data-csp-nonce-probe');
+    const violations = await page.evaluate(() => globalThis.__sec05CspViolations ?? []);
+    return {
+      canary,
+      domScripts,
+      domScriptSummary: summarizeScripts(domScripts),
+      violations,
+      scriptFamilyViolationGroups: groupViolations(violations),
+    };
+  } finally {
+    await browser.close();
+  }
 }
 
 async function runCase(testCase, port) {
@@ -500,15 +575,17 @@ async function main() {
     stdio: ['ignore', 'inherit', 'inherit'],
   });
 
+  const ports = await selectPorts();
   const results = [];
   for (const [index, testCase] of cases.entries()) {
-    results.push(await runCase(testCase, firstPort + index));
+    results.push(await runCase(testCase, ports[index]));
   }
 
   const report = {
     generatedAt: new Date().toISOString(),
     nextVersion: nextPackage.version,
     nonce,
+    ports: Object.fromEntries(cases.map((testCase, index) => [testCase.id, ports[index]])),
     noncePolicy: compactCsp(`
       default-src 'self';
       script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
