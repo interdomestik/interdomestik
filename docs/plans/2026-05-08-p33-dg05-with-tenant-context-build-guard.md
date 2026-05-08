@@ -336,7 +336,7 @@ SEC04 must add or update focused tests that prove:
 
 ## Acceptance Criteria
 
-SEC04 is done when:
+SEC04A is accepted as the guard/reporting baseline when:
 
 1. `pnpm check:db-access` passes on the current repo and emits posture counts.
 2. New unclassified sensitive direct DB access fails in fixture tests.
@@ -351,10 +351,29 @@ SEC04 is done when:
 8. `docs/security/db-access-posture-baseline.md` exists and reports counts by posture, risk,
    and file-prefix.
 9. `docs/dev/db-access-guard.md` exists and explains how contributors fix guard failures.
-10. The authoritative v2 classifier returns `<= 80` unclassified entries or the design is
-    reopened before merge.
+10. The authoritative v2 classifier reports the residual unclassified count in the posture
+    baseline. A count above `<= 80` is acceptable only for SEC04A and must promote a
+    follow-up burn-down slice instead of closing the full SEC04 maturity risk.
 11. `pnpm check:db-access` stays within `2x` the measured pre-SEC04 runtime unless the PR
     records an explicit reviewer-approved exception.
+
+## DG05 Amendment: SEC04A/SEC04B Split
+
+During SEC04 implementation, the authoritative v2 classifier produced useful guard and
+reporting output but returned `262` `unclassified` baseline entries. That is above the
+original `<= 80` acceptance bar. DG05 is therefore amended to split the work:
+
+- `P33-SEC04A DB Access Posture Baseline`: accepted as the mergeable guard/reporting
+  baseline. It may land the v2 baseline schema, posture classifier, non-regression guard,
+  contributor playbook, and posture report while explicitly carrying the `262`
+  `unclassified` residual.
+- `P33-SEC04B DB Access Posture Burn-Down`: required follow-up implementation slice. It
+  must reduce existing `unclassified` entries to `<= 80` or return to design review with
+  evidence that the remaining entries need a different migration strategy.
+
+SEC04A must not be used to claim full security/tenancy guard closure. Production-maturity
+closure for this category remains blocked until SEC04B lands or the `<= 80` bar is replaced
+by an explicit risk acceptance.
 
 ## Verification Plan For SEC04
 
