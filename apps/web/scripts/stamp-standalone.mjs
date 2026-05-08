@@ -26,6 +26,11 @@ function normalizeBillingTestMode(value) {
   return value?.trim() === '1' ? '1' : '0';
 }
 
+function normalizeCspNonceMode(value) {
+  if (value === undefined || value === 'off') return 'off';
+  return value;
+}
+
 function stripRouteGroups(relativePath) {
   return relativePath
     .split(path.sep)
@@ -105,11 +110,15 @@ function syncClientReferenceManifests(sourceRoot, targetRoot) {
 
 const gitSha = resolveGitSha();
 const billingTestMode = normalizeBillingTestMode(process.env.NEXT_PUBLIC_BILLING_TEST_MODE);
+const cspNonceMode = normalizeCspNonceMode(process.env.CSP_NONCE_MODE);
 const stamp = {
   gitSha,
   builtAt: new Date().toISOString(),
   publicEnv: {
     NEXT_PUBLIC_BILLING_TEST_MODE: billingTestMode,
+  },
+  buildEnv: {
+    CSP_NONCE_MODE: cspNonceMode,
   },
 };
 const outDir = path.resolve('.next/standalone');
@@ -132,7 +141,9 @@ const aliasCount = serverRoots.reduce(
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(outFile, `${JSON.stringify(stamp, null, 2)}\n`);
 
-console.log(`[build-stamp] ${outFile} (${gitSha}, billingTestMode=${billingTestMode})`);
+console.log(
+  `[build-stamp] ${outFile} (${gitSha}, billingTestMode=${billingTestMode}, cspNonceMode=${cspNonceMode})`
+);
 if (syncCount > 0) {
   console.log(`[build-stamp] standalone client reference manifests synced=${syncCount}`);
 }
