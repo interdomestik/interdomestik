@@ -58,29 +58,23 @@ export const DEFAULT_MODEL_BY_WORKFLOW = {
   claim_summary: 'gpt-5.5',
 } as const satisfies Record<AiWorkflow, AiModel>;
 
-export const RESPONSES_CONFIG_BY_WORKFLOW = {
-  policy_extract: {
-    reasoningLevel: 'deep',
-    textVerbosity: 'low',
-    maxOutputTokens: 4_000,
-  },
+export const RESPONSES_WORKFLOW_OVERRIDES = {
+  policy_extract: {},
   claim_intake_extract: {
     reasoningLevel: 'balanced',
-    textVerbosity: 'low',
     maxOutputTokens: 2_000,
   },
-  legal_doc_extract: {
-    reasoningLevel: 'deep',
-    textVerbosity: 'low',
-    maxOutputTokens: 4_000,
-  },
+  legal_doc_extract: {},
   claim_summary: {
     reasoningLevel: 'balanced',
-    textVerbosity: 'low',
     maxOutputTokens: 2_000,
   },
 } as const satisfies Record<
   AiWorkflow,
+  Partial<Pick<AiModelProfile, 'reasoningLevel' | 'textVerbosity' | 'maxOutputTokens'>>
+>;
+
+type ResponsesWorkflowOverride = Partial<
   Pick<AiModelProfile, 'reasoningLevel' | 'textVerbosity' | 'maxOutputTokens'>
 >;
 
@@ -133,7 +127,10 @@ export function getPromptCacheKeyForWorkflow(workflow: AiWorkflow): string {
 
 export function getResponsesWorkflowConfig(workflow: AiWorkflow): AiResponsesWorkflowConfig {
   const model = getDefaultModelForWorkflow(workflow);
-  const workflowConfig = RESPONSES_CONFIG_BY_WORKFLOW[workflow];
+  const profile = getAiModelProfile(model);
+  const modelConfig = getResponsesModelConfig(model);
+  const workflowOverrides: ResponsesWorkflowOverride = RESPONSES_WORKFLOW_OVERRIDES[workflow];
+  const reasoningLevel = workflowOverrides.reasoningLevel ?? profile.reasoningLevel;
 
   return {
     workflow,
@@ -141,11 +138,11 @@ export function getResponsesWorkflowConfig(workflow: AiWorkflow): AiResponsesWor
     promptVersion: getDefaultPromptVersionForWorkflow(workflow),
     promptCacheKey: getPromptCacheKeyForWorkflow(workflow),
     reasoning: {
-      effort: getReasoningEffortForLevel(workflowConfig.reasoningLevel),
+      effort: getReasoningEffortForLevel(reasoningLevel),
     },
     text: {
-      verbosity: workflowConfig.textVerbosity,
+      verbosity: workflowOverrides.textVerbosity ?? modelConfig.text.verbosity,
     },
-    maxOutputTokens: workflowConfig.maxOutputTokens,
+    maxOutputTokens: workflowOverrides.maxOutputTokens ?? modelConfig.maxOutputTokens,
   };
 }

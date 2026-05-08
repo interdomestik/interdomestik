@@ -76,6 +76,9 @@ describe('Responses model config', () => {
     expect(getPromptCacheKeyForWorkflow('claim_intake_extract')).toBe(
       'interdomestik:claim_intake_extract:gpt-5.5:claim_intake_extract_v1'
     );
+    expect(getPromptCacheKeyForWorkflow('legal_doc_extract')).toBe(
+      'interdomestik:legal_doc_extract:gpt-5.5:legal_doc_extract_v1'
+    );
     expect(getPromptCacheKeyForWorkflow('claim_summary')).toBe(
       'interdomestik:claim_summary:gpt-5.5:claim_summary_v1'
     );
@@ -97,6 +100,32 @@ describe('Responses model config', () => {
       model: 'gpt-5.5',
       promptVersion: 'claim_intake_extract_v1',
       promptCacheKey: 'interdomestik:claim_intake_extract:gpt-5.5:claim_intake_extract_v1',
+      reasoning: {
+        effort: 'medium',
+      },
+      text: {
+        verbosity: 'low',
+      },
+      maxOutputTokens: 2_000,
+    });
+    expect(getResponsesWorkflowConfig('legal_doc_extract')).toEqual({
+      workflow: 'legal_doc_extract',
+      model: 'gpt-5.5',
+      promptVersion: 'legal_doc_extract_v1',
+      promptCacheKey: 'interdomestik:legal_doc_extract:gpt-5.5:legal_doc_extract_v1',
+      reasoning: {
+        effort: 'high',
+      },
+      text: {
+        verbosity: 'low',
+      },
+      maxOutputTokens: 4_000,
+    });
+    expect(getResponsesWorkflowConfig('claim_summary')).toEqual({
+      workflow: 'claim_summary',
+      model: 'gpt-5.5',
+      promptVersion: 'claim_summary_v1',
+      promptCacheKey: 'interdomestik:claim_summary:gpt-5.5:claim_summary_v1',
       reasoning: {
         effort: 'medium',
       },
