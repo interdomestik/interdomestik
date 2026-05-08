@@ -427,7 +427,7 @@ async function selectPorts() {
 
   const usedPorts = new Set();
   const ports = [];
-  for (const _testCase of cases) {
+  for (let index = 0; index < cases.length; index += 1) {
     ports.push(await allocateEphemeralPort(usedPorts));
   }
   return ports;
