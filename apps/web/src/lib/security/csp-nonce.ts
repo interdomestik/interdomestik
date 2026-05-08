@@ -32,10 +32,19 @@ export function isCspNonceActive(): boolean {
 export function generateCspNonce(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
-  return btoa(String.fromCharCode(...bytes))
+  const nonce = btoa(String.fromCharCode(...bytes))
     .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+    .replace(/\//g, '_');
+
+  if (nonce.endsWith('==')) {
+    return nonce.slice(0, -2);
+  }
+
+  if (nonce.endsWith('=')) {
+    return nonce.slice(0, -1);
+  }
+
+  return nonce;
 }
 
 export function buildReportToHeader(): string {
