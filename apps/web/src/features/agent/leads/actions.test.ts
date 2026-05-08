@@ -33,6 +33,9 @@ vi.mock('next/headers', () => ({
 }));
 
 vi.mock('@interdomestik/shared-auth', () => ({
+  ROLES: {
+    agent: 'agent',
+  },
   ensureTenantId: mocks.ensureTenantId,
 }));
 
@@ -63,140 +66,182 @@ vi.mock('@interdomestik/database', () => ({
   eq: mocks.eq,
 }));
 
-import { convertLeadToClient } from './actions';
+import { convertLeadToClient, updateLeadStatus } from './actions';
+
+function resetActionMocks() {
+  mocks.authGetSession.mockReset();
+  mocks.headers.mockReset();
+  mocks.ensureTenantId.mockReset();
+  mocks.findLead.mockReset();
+  mocks.update.mockClear();
+  mocks.set.mockClear();
+  mocks.where.mockClear();
+  mocks.startPayment.mockReset();
+  mocks.revalidatePath.mockReset();
+
+  mocks.headers.mockResolvedValue(new Headers());
+  mockSession();
+  mocks.ensureTenantId.mockReturnValue('tenant-1');
+}
+
+function mockSession(
+  user: Record<string, string | undefined> = {
+    id: 'agent-1',
+    role: 'agent',
+    tenantId: 'tenant-1',
+    branchId: 'branch-1',
+  }
+) {
+  mocks.authGetSession.mockResolvedValue({ user });
+}
+
+function mockLead(id: string) {
+  mocks.findLead.mockResolvedValue({
+    id,
+    tenantId: 'tenant-1',
+    branchId: 'branch-1',
+    agentId: 'agent-1',
+  });
+}
+
+function expectNoMutation() {
+  expect(mocks.update).not.toHaveBeenCalled();
+  expect(mocks.startPayment).not.toHaveBeenCalled();
+}
+
+function expectNoLookupOrMutation() {
+  expect(mocks.findLead).not.toHaveBeenCalled();
+  expectNoMutation();
+}
+
+function scopedWhereForLead(leadId: string) {
+  return expect.objectContaining({
+    op: 'and',
+    args: expect.arrayContaining([
+      expect.objectContaining({ op: 'eq', left: 'member_leads.id', right: leadId }),
+      expect.objectContaining({
+        op: 'eq',
+        left: 'member_leads.tenant_id',
+        right: 'tenant-1',
+      }),
+      expect.objectContaining({ op: 'eq', left: 'member_leads.agent_id', right: 'agent-1' }),
+      expect.objectContaining({
+        op: 'eq',
+        left: 'member_leads.branch_id',
+        right: 'branch-1',
+      }),
+    ]),
+  });
+}
+
+beforeEach(resetActionMocks);
 
 describe('convertLeadToClient', () => {
-  beforeEach(() => {
-    mocks.authGetSession.mockReset();
-    mocks.headers.mockReset();
-    mocks.ensureTenantId.mockReset();
-    mocks.findLead.mockReset();
-    mocks.update.mockClear();
-    mocks.set.mockClear();
-    mocks.where.mockClear();
-    mocks.startPayment.mockReset();
-    mocks.revalidatePath.mockReset();
-
-    mocks.headers.mockResolvedValue(new Headers());
-    mocks.authGetSession.mockResolvedValue({
-      user: {
-        id: 'agent-1',
-        tenantId: 'tenant-1',
-        branchId: 'branch-1',
-      },
-    });
-    mocks.ensureTenantId.mockReturnValue('tenant-1');
-  });
-
   it('denies conversion when scoped lead is not found and performs no mutation', async () => {
     mocks.findLead.mockResolvedValue(null);
 
     await expect(convertLeadToClient('lead-1')).rejects.toThrow(/not found or access denied/i);
-    expect(mocks.update).not.toHaveBeenCalled();
-    expect(mocks.startPayment).not.toHaveBeenCalled();
+    expectNoMutation();
   });
 
   it('applies tenant + agent + branch scope constraints when session has branchId', async () => {
-    mocks.findLead.mockResolvedValue({
-      id: 'lead-2',
-      tenantId: 'tenant-1',
-      branchId: 'branch-1',
-      agentId: 'agent-1',
-    });
+    mockLead('lead-2');
 
     await expect(convertLeadToClient('lead-2')).resolves.toEqual({ success: true });
 
-    expect(mocks.findLead).toHaveBeenCalledWith({
-      where: expect.objectContaining({
-        op: 'and',
-        args: expect.arrayContaining([
-          expect.objectContaining({ op: 'eq', left: 'member_leads.id', right: 'lead-2' }),
-          expect.objectContaining({
-            op: 'eq',
-            left: 'member_leads.tenant_id',
-            right: 'tenant-1',
-          }),
-          expect.objectContaining({ op: 'eq', left: 'member_leads.agent_id', right: 'agent-1' }),
-          expect.objectContaining({
-            op: 'eq',
-            left: 'member_leads.branch_id',
-            right: 'branch-1',
-          }),
-        ]),
-      }),
-    });
-    expect(mocks.where).toHaveBeenCalledWith(
-      expect.objectContaining({
-        op: 'and',
-        args: expect.arrayContaining([
-          expect.objectContaining({ op: 'eq', left: 'member_leads.id', right: 'lead-2' }),
-          expect.objectContaining({
-            op: 'eq',
-            left: 'member_leads.tenant_id',
-            right: 'tenant-1',
-          }),
-          expect.objectContaining({ op: 'eq', left: 'member_leads.agent_id', right: 'agent-1' }),
-          expect.objectContaining({
-            op: 'eq',
-            left: 'member_leads.branch_id',
-            right: 'branch-1',
-          }),
-        ]),
-      })
-    );
+    const scopedWhere = scopedWhereForLead('lead-2');
+    expect(mocks.findLead).toHaveBeenCalledWith({ where: scopedWhere });
+    expect(mocks.where).toHaveBeenCalledWith(scopedWhere);
     expect(mocks.startPayment).not.toHaveBeenCalled();
   });
 
-  it('allows conversion when session has no branchId and lead matches tenant + agent', async () => {
-    mocks.authGetSession.mockResolvedValue({
-      user: {
-        id: 'agent-1',
-        tenantId: 'tenant-1',
-      },
-    });
-    mocks.findLead.mockResolvedValue({
-      id: 'lead-4',
-      tenantId: 'tenant-1',
-      branchId: 'branch-2',
-      agentId: 'agent-1',
-    });
+  it('rejects conversion when agent session has no branchId and performs no lookup or mutation', async () => {
+    mockSession({ id: 'agent-1', role: 'agent', tenantId: 'tenant-1' });
 
-    await expect(convertLeadToClient('lead-4')).resolves.toEqual({ success: true });
-    expect(mocks.findLead).toHaveBeenCalledWith({
-      where: expect.objectContaining({
-        op: 'and',
-        args: expect.arrayContaining([
-          expect.objectContaining({ op: 'eq', left: 'member_leads.id', right: 'lead-4' }),
-          expect.objectContaining({
-            op: 'eq',
-            left: 'member_leads.tenant_id',
-            right: 'tenant-1',
-          }),
-          expect.objectContaining({ op: 'eq', left: 'member_leads.agent_id', right: 'agent-1' }),
-        ]),
-      }),
-    });
-    const findWhereArgs = (mocks.findLead.mock.calls.at(-1)?.[0]?.where as { args?: unknown[] })
-      ?.args;
-    expect(findWhereArgs).toBeDefined();
-    expect(findWhereArgs).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          op: 'eq',
-          left: 'member_leads.branch_id',
-        }),
-      ])
-    );
-    expect(mocks.update).toHaveBeenCalled();
-    expect(mocks.startPayment).not.toHaveBeenCalled();
+    await expect(convertLeadToClient('lead-4')).rejects.toThrow(/not found or access denied/i);
+    expectNoLookupOrMutation();
   });
 
   it('rejects when unauthenticated and performs no mutation', async () => {
     mocks.authGetSession.mockResolvedValue(null);
 
     await expect(convertLeadToClient('lead-5')).rejects.toThrow(/unauthorized/i);
-    expect(mocks.findLead).not.toHaveBeenCalled();
-    expect(mocks.update).not.toHaveBeenCalled();
+    expectNoLookupOrMutation();
+  });
+});
+
+describe('updateLeadStatus', () => {
+  it('rejects unauthenticated calls and performs no mutation', async () => {
+    mocks.authGetSession.mockResolvedValue(null);
+
+    await expect(updateLeadStatus('lead-1', 'contacted')).rejects.toThrow(/unauthorized/i);
+    expectNoLookupOrMutation();
+  });
+
+  it('rejects when scoped lead is not found and performs no mutation', async () => {
+    mocks.ensureTenantId.mockReturnValue('tenant-2');
+    mocks.findLead.mockResolvedValue(null);
+
+    await expect(updateLeadStatus('lead-1', 'contacted')).rejects.toThrow(
+      /not found or access denied/i
+    );
+    expectNoMutation();
+  });
+
+  it('rejects payment_pending from a non-agent session before lookup or payment', async () => {
+    mockSession({ id: 'member-1', role: 'member', tenantId: 'tenant-1', branchId: 'branch-1' });
+
+    await expect(updateLeadStatus('lead-1', 'payment_pending')).rejects.toThrow(
+      /not found or access denied/i
+    );
+    expectNoLookupOrMutation();
+  });
+
+  it('does not start payment when payment_pending lead lookup fails', async () => {
+    mocks.findLead.mockResolvedValue(null);
+
+    await expect(updateLeadStatus('lead-1', 'payment_pending')).rejects.toThrow(
+      /not found or access denied/i
+    );
+    expectNoMutation();
+  });
+
+  it('requires branch scope for agent status updates', async () => {
+    mockSession({ id: 'agent-1', role: 'agent', tenantId: 'tenant-1' });
+
+    await expect(updateLeadStatus('lead-1', 'contacted')).rejects.toThrow(
+      /not found or access denied/i
+    );
+    expectNoLookupOrMutation();
+  });
+
+  it('applies tenant + agent + branch scope constraints before updating status', async () => {
+    mockLead('lead-2');
+
+    await expect(updateLeadStatus('lead-2', 'contacted')).resolves.toEqual({ success: true });
+
+    const scopedWhere = scopedWhereForLead('lead-2');
+    expect(mocks.findLead).toHaveBeenCalledWith({ where: scopedWhere });
+    expect(mocks.where).toHaveBeenCalledWith(scopedWhere);
     expect(mocks.startPayment).not.toHaveBeenCalled();
+  });
+
+  it('starts payment only after the agent-scoped lead lookup succeeds', async () => {
+    mockLead('lead-3');
+
+    await expect(updateLeadStatus('lead-3', 'payment_pending')).resolves.toEqual({
+      success: true,
+    });
+
+    expect(mocks.startPayment).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      {
+        leadId: 'lead-3',
+        method: 'cash',
+        amountCents: 15000,
+        priceId: 'default_membership',
+      }
+    );
+    expect(mocks.update).not.toHaveBeenCalled();
   });
 });

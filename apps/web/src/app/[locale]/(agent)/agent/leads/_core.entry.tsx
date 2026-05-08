@@ -22,6 +22,14 @@ export default async function AgentLeadsEntry({ params }: Readonly<Props>) {
     redirect(`/${locale}/login`);
   }
 
+  if (session.user.role !== 'agent') {
+    notFound();
+  }
+
+  if (!session.user.branchId) {
+    notFound();
+  }
+
   const tenantId = ensureTenantId(session);
 
   // Tier Gating (Strict)
@@ -35,7 +43,10 @@ export default async function AgentLeadsEntry({ params }: Readonly<Props>) {
     notFound();
   }
 
-  const leadsData = await getAgentLeadsCore({ tenantId, agentId: session.user.id }, { db });
+  const leadsData = await getAgentLeadsCore(
+    { tenantId, agentId: session.user.id, branchId: session.user.branchId },
+    { db }
+  );
 
   return <AgentLeadsProPage leads={leadsData} />;
 }
