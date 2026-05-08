@@ -128,6 +128,25 @@ describe('/api/csp-report', () => {
     expect(hoisted.captureMessage).not.toHaveBeenCalled();
   });
 
+  it('preserves fail-closed rate-limit outages without returning a shared body', async () => {
+    hoisted.enforceRateLimit.mockResolvedValueOnce(
+      new Response('unavailable', { status: 503, headers: { 'Retry-After': '60' } })
+    );
+
+    const response = await POST(
+      makeRequest({
+        contentType: 'application/csp-report',
+        body: { invalid: true },
+      })
+    );
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get('retry-after')).toBe('60');
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.text()).toBe('');
+    expect(hoisted.captureMessage).not.toHaveBeenCalled();
+  });
+
   it('bounds oversized report bodies without capture', async () => {
     const response = await POST(
       makeRequest({
