@@ -245,40 +245,70 @@ async function prepareApp() {
   );
 }
 
+function isWhitespace(char) {
+  return /\s/.test(char ?? '');
+}
+
+function skipWhitespace(value, index) {
+  while (index < value.length) {
+    if (!isWhitespace(value[index])) break;
+    index += 1;
+  }
+  return index;
+}
+
+function isAttributeNameChar(char) {
+  return Boolean(char && !/[\s=/>]/.test(char));
+}
+
+function readAttributeName(tag, index) {
+  const start = index;
+  while (index < tag.length && isAttributeNameChar(tag[index])) {
+    index += 1;
+  }
+  return { name: tag.slice(start, index).toLowerCase(), index };
+}
+
+function readQuotedValue(tag, index, quote) {
+  const start = index + 1;
+  const end = tag.indexOf(quote, start);
+  if (end === -1) return { value: tag.slice(start), index: tag.length };
+  return { value: tag.slice(start, end), index: end + 1 };
+}
+
+function readBareValue(tag, index) {
+  const start = index;
+  while (index < tag.length && !isWhitespace(tag[index]) && tag[index] !== '>') {
+    index += 1;
+  }
+  return { value: tag.slice(start, index), index };
+}
+
+function readAttributeValue(tag, index) {
+  index = skipWhitespace(tag, index);
+  if (tag[index] !== '=') return { value: '', index };
+
+  index = skipWhitespace(tag, index + 1);
+  const quote = tag[index];
+  if (quote === '"' || quote === "'") return readQuotedValue(tag, index, quote);
+  return readBareValue(tag, index);
+}
+
 function parseAttributes(tag) {
   const attributes = {};
   let index = tag.search(/\s/);
   if (index === -1) return attributes;
 
   while (index < tag.length) {
-    while (/\s/.test(tag[index] ?? '')) index += 1;
+    index = skipWhitespace(tag, index);
     if (index >= tag.length || tag[index] === '>' || tag[index] === '/') break;
 
-    const nameStart = index;
-    while (index < tag.length && !/[\s=/>]/.test(tag[index])) index += 1;
-    const name = tag.slice(nameStart, index).toLowerCase();
-    if (!name) break;
+    const parsedName = readAttributeName(tag, index);
+    if (!parsedName.name) break;
 
-    while (/\s/.test(tag[index] ?? '')) index += 1;
-    let value = '';
-    if (tag[index] === '=') {
-      index += 1;
-      while (/\s/.test(tag[index] ?? '')) index += 1;
-      const quote = tag[index];
-      if (quote === '"' || quote === "'") {
-        index += 1;
-        const valueStart = index;
-        while (index < tag.length && tag[index] !== quote) index += 1;
-        value = tag.slice(valueStart, index);
-        if (tag[index] === quote) index += 1;
-      } else {
-        const valueStart = index;
-        while (index < tag.length && !/[\s>]/.test(tag[index])) index += 1;
-        value = tag.slice(valueStart, index);
-      }
-    }
-
-    attributes[name] = value;
+    const parsedValue = readAttributeValue(tag, parsedName.index);
+    attributes[parsedName.name] = parsedValue.value;
+    index = parsedValue.index;
   }
 
   return attributes;
