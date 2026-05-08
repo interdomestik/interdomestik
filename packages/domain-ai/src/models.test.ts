@@ -69,22 +69,31 @@ describe('Responses model config', () => {
     });
   });
 
-  it('builds a Responses-ready workflow config with a stable prompt cache key', () => {
-    expect(getPromptCacheKeyForWorkflow('policy_extract')).toBe(
-      'interdomestik:policy_extract:gpt-5.5:policy_extract_v1'
-    );
-    expect(getResponsesWorkflowConfig('policy_extract')).toEqual({
-      workflow: 'policy_extract',
-      model: 'gpt-5.5',
-      promptVersion: 'policy_extract_v1',
-      promptCacheKey: 'interdomestik:policy_extract:gpt-5.5:policy_extract_v1',
-      reasoning: {
-        effort: 'high',
-      },
-      text: {
-        verbosity: 'low',
-      },
-      maxOutputTokens: 4_000,
-    });
+  it('builds Responses-ready workflow configs with stable prompt cache keys', () => {
+    const workflowConfigCases = [
+      ['policy_extract', 'policy_extract_v1', 'high', 4_000],
+      ['claim_intake_extract', 'claim_intake_extract_v1', 'medium', 2_000],
+      ['legal_doc_extract', 'legal_doc_extract_v1', 'high', 4_000],
+      ['claim_summary', 'claim_summary_v1', 'medium', 2_000],
+    ] as const;
+
+    for (const [workflow, promptVersion, reasoningEffort, maxOutputTokens] of workflowConfigCases) {
+      const promptCacheKey = `interdomestik:${workflow}:gpt-5.5:${promptVersion}`;
+
+      expect(getPromptCacheKeyForWorkflow(workflow)).toBe(promptCacheKey);
+      expect(getResponsesWorkflowConfig(workflow)).toEqual({
+        workflow,
+        model: 'gpt-5.5',
+        promptVersion,
+        promptCacheKey,
+        reasoning: {
+          effort: reasoningEffort,
+        },
+        text: {
+          verbosity: 'low',
+        },
+        maxOutputTokens,
+      });
+    }
   });
 });

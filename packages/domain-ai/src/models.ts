@@ -16,8 +16,8 @@ export const AI_MODEL_PROFILES = {
   'gpt-5.5': {
     model: 'gpt-5.5',
     tier: 'advanced',
-    defaultFor: ['policy_extract', 'legal_doc_extract'],
-    useCase: 'Ambiguous extraction and reviewed document reasoning.',
+    defaultFor: ['policy_extract', 'claim_intake_extract', 'legal_doc_extract', 'claim_summary'],
+    useCase: 'Production extraction, reviewed document reasoning, and operational summaries.',
     reasoningLevel: 'deep',
     textVerbosity: 'low',
     maxOutputTokens: 4_000,
@@ -25,8 +25,8 @@ export const AI_MODEL_PROFILES = {
   'gpt-5-mini': {
     model: 'gpt-5-mini',
     tier: 'standard',
-    defaultFor: ['claim_intake_extract', 'claim_summary'],
-    useCase: 'Stable extraction and operational summaries.',
+    defaultFor: [],
+    useCase: 'Optional low-cost fallback for stable extraction and operational summaries.',
     reasoningLevel: 'balanced',
     textVerbosity: 'low',
     maxOutputTokens: 2_000,
@@ -53,10 +53,30 @@ export const AI_MODEL_PROFILES = {
 
 export const DEFAULT_MODEL_BY_WORKFLOW = {
   policy_extract: 'gpt-5.5',
-  claim_intake_extract: 'gpt-5-mini',
+  claim_intake_extract: 'gpt-5.5',
   legal_doc_extract: 'gpt-5.5',
-  claim_summary: 'gpt-5-mini',
+  claim_summary: 'gpt-5.5',
 } as const satisfies Record<AiWorkflow, AiModel>;
+
+export const RESPONSES_WORKFLOW_OVERRIDES = {
+  policy_extract: {},
+  claim_intake_extract: {
+    reasoningLevel: 'balanced',
+    maxOutputTokens: 2_000,
+  },
+  legal_doc_extract: {},
+  claim_summary: {
+    reasoningLevel: 'balanced',
+    maxOutputTokens: 2_000,
+  },
+} as const satisfies Record<
+  AiWorkflow,
+  Partial<Pick<AiModelProfile, 'reasoningLevel' | 'textVerbosity' | 'maxOutputTokens'>>
+>;
+
+type ResponsesWorkflowOverride = Partial<
+  Pick<AiModelProfile, 'reasoningLevel' | 'textVerbosity' | 'maxOutputTokens'>
+>;
 
 export const DEFAULT_PROMPT_VERSION_BY_WORKFLOW = {
   policy_extract: POLICY_EXTRACT_SCHEMA_VERSION,
@@ -107,11 +127,22 @@ export function getPromptCacheKeyForWorkflow(workflow: AiWorkflow): string {
 
 export function getResponsesWorkflowConfig(workflow: AiWorkflow): AiResponsesWorkflowConfig {
   const model = getDefaultModelForWorkflow(workflow);
+  const profile = getAiModelProfile(model);
+  const modelConfig = getResponsesModelConfig(model);
+  const workflowOverrides: ResponsesWorkflowOverride = RESPONSES_WORKFLOW_OVERRIDES[workflow];
+  const reasoningLevel = workflowOverrides.reasoningLevel ?? profile.reasoningLevel;
 
   return {
     workflow,
+    model,
     promptVersion: getDefaultPromptVersionForWorkflow(workflow),
     promptCacheKey: getPromptCacheKeyForWorkflow(workflow),
-    ...getResponsesModelConfig(model),
+    reasoning: {
+      effort: getReasoningEffortForLevel(reasoningLevel),
+    },
+    text: {
+      verbosity: workflowOverrides.textVerbosity ?? modelConfig.text.verbosity,
+    },
+    maxOutputTokens: workflowOverrides.maxOutputTokens ?? modelConfig.maxOutputTokens,
   };
 }
