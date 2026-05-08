@@ -73,6 +73,12 @@ describe('Responses model config', () => {
     expect(getPromptCacheKeyForWorkflow('policy_extract')).toBe(
       'interdomestik:policy_extract:gpt-5.5:policy_extract_v1'
     );
+    expect(getPromptCacheKeyForWorkflow('claim_intake_extract')).toBe(
+      'interdomestik:claim_intake_extract:gpt-5.5:claim_intake_extract_v1'
+    );
+    expect(getPromptCacheKeyForWorkflow('claim_summary')).toBe(
+      'interdomestik:claim_summary:gpt-5.5:claim_summary_v1'
+    );
     expect(getResponsesWorkflowConfig('policy_extract')).toEqual({
       workflow: 'policy_extract',
       model: 'gpt-5.5',
@@ -85,6 +91,19 @@ describe('Responses model config', () => {
         verbosity: 'low',
       },
       maxOutputTokens: 4_000,
+    });
+    expect(getResponsesWorkflowConfig('claim_intake_extract')).toEqual({
+      workflow: 'claim_intake_extract',
+      model: 'gpt-5.5',
+      promptVersion: 'claim_intake_extract_v1',
+      promptCacheKey: 'interdomestik:claim_intake_extract:gpt-5.5:claim_intake_extract_v1',
+      reasoning: {
+        effort: 'medium',
+      },
+      text: {
+        verbosity: 'low',
+      },
+      maxOutputTokens: 2_000,
     });
   });
 });
