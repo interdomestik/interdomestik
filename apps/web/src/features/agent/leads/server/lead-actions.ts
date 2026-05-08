@@ -59,10 +59,12 @@ export async function updateScopedAgentLeadStatus(params: {
     return { success: true };
   }
 
+  const updatedNotes = notes ? [lead.notes, notes].filter(Boolean).join('\n') : lead.notes;
+
   await db
     .update(memberLeads)
     .set({
-      notes: notes ? `${lead.notes ? `${lead.notes}\n` : ''}${notes}` : lead.notes,
+      notes: updatedNotes,
       status,
       updatedAt: new Date(),
     })

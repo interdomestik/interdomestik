@@ -20,12 +20,15 @@ type StartPaymentContext =
   | { tenantId: string; agentId: string; branchId: string };
 
 function buildLeadPaymentScope(ctx: StartPaymentContext, leadId: string) {
-  const conditions = [eq(memberLeads.id, leadId), eq(memberLeads.tenantId, ctx.tenantId)];
-
-  if ('agentId' in ctx) {
-    conditions.push(eq(memberLeads.agentId, ctx.agentId));
-    conditions.push(eq(memberLeads.branchId, ctx.branchId));
-  }
+  const agentScopeConditions =
+    'agentId' in ctx
+      ? [eq(memberLeads.agentId, ctx.agentId), eq(memberLeads.branchId, ctx.branchId)]
+      : [];
+  const conditions = [
+    eq(memberLeads.id, leadId),
+    eq(memberLeads.tenantId, ctx.tenantId),
+    ...agentScopeConditions,
+  ];
 
   const scopedWhere = and(...conditions);
   if (!scopedWhere) {

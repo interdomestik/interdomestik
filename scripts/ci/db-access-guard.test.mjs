@@ -125,8 +125,8 @@ test('db access guard requires explicit classification for risky baseline entrie
 
   const failingResult = runAppGuard(tempRoot);
   assert.equal(failingResult.status, 1);
-  assert.match(failingResult.stderr, /require explicit classification/u);
-  assert.match(failingResult.stderr, /server-action\/high-risk-route/u);
+  assert.match(failingResult.stderr, /require classification metadata/u);
+  assert.match(failingResult.stderr, /server-action risk, high-risk-route risk/u);
 
   fs.writeFileSync(
     path.join(tempRoot, 'db-access-baseline.json'),
@@ -177,8 +177,8 @@ test('db access guard requires classification for extracted boundary wrappers', 
 
   const failingResult = runAppGuard(tempRoot);
   assert.equal(failingResult.status, 1);
-  assert.match(failingResult.stderr, /require explicit classification/u);
-  assert.match(failingResult.stderr, /extracted boundary wrapper paths/u);
+  assert.match(failingResult.stderr, /require classification metadata/u);
+  assert.match(failingResult.stderr, /configured extracted boundary wrapper path/u);
 
   fs.writeFileSync(
     path.join(tempRoot, 'db-access-baseline.json'),
