@@ -1,8 +1,8 @@
 # CSP Nonce Migration Design
 
-Status: approved design gate  
-Date: 2026-05-06  
-Scope: design only; no runtime behavior changes in this slice
+Status: approved design gate, updated after Phase 0 implementation
+Date: 2026-05-06; post-Phase-0 update 2026-05-08
+Scope: design history plus active post-Phase-0 investigation protocol
 
 ## Current CSP Inventory
 
@@ -73,16 +73,10 @@ Behavior:
 - Include both `report-to` and `report-uri`.
 - Observe Sentry/report data for 14 days before enforcement.
 
-The local report endpoint is intentionally not implemented in this design-gate PR. The
-smallest implementation artifact for Phase 0 can be either:
-
-- Direct browser report delivery to Sentry, if Sentry project ingestion supports the
-  desired CSP report format.
-- `apps/web/src/app/api/csp-report/route.ts`, accepting CSP reports, capturing them to
-  Sentry as warnings, and optionally storing append-only `csp_violations` later.
-
-If the local endpoint path is chosen later, it needs focused route tests and coverage-gate
-verification in that implementation slice.
+Phase 0 implemented the local report endpoint path in
+`apps/web/src/app/api/csp-report/route.ts`, accepting CSP reports, capturing them to
+Sentry as warnings, and avoiding durable CSP report storage. Direct browser report delivery
+to a Sentry ingest endpoint is no longer the active Phase 0 path.
 
 ### Phase 1: Enforce Script Nonces
 
@@ -179,7 +173,7 @@ report-uri /api/csp-report
 Suggested `Report-To` value:
 
 ```json
-{ "group": "csp-endpoint", "max_age": 10886400, "endpoints": [{ "url": "/api/csp-report" }] }
+{ "group": "csp-endpoint", "max_age": 86400, "endpoints": [{ "url": "/api/csp-report" }] }
 ```
 
 If routing reports directly to Sentry, document the exact Sentry endpoint and accepted report
@@ -187,7 +181,7 @@ format in the Phase 0 implementation PR.
 
 If using `apps/web/src/app/api/csp-report/route.ts`:
 
-- Accept `application/csp-report`, `application/reports+json`, and JSON bodies defensively.
+- Accept `application/csp-report` and `application/reports+json`; reject other content types.
 - Normalize the violated directive, blocked URI, document URI, disposition, source file,
   line number, and user agent.
 - Capture normalized violations to Sentry as warning-level events.
@@ -245,20 +239,93 @@ Add before enforcement:
 
 - Paddle sandbox checkout test proving the checkout overlay opens and completes the expected
   sandbox path under the nonce policy.
-- Sentry/report observation criteria showing no medium-or-higher actionable violations over
-  the 14-day Report-Only window.
+- Sentry/report observation criteria matching the post-Phase-0 promotion bar below.
 - Focused proxy/header unit tests for `off`, `report`, and `enforce` behavior.
 - If a local report endpoint is implemented, focused route tests for accepted formats,
   payload normalization, PII minimization, and warning-level Sentry capture.
 
 ## Acceptance Criteria
 
-- Zero CSP violations of severity medium or higher in Sentry over a 14-day Report-Only
-  observation window before enforcement.
-- Paddle sandbox checkout passes under the report policy before enforcement.
-- Security headers spec proves nonce propagation and nonce freshness.
-- Rollback is tested by switching `CSP_NONCE_MODE` back to `off` or `report`.
-- Production-like browser verification proves framework script nonces match the CSP.
+Phase 0 implementation criteria are complete through `P33-SEC02`. Phase 1 enforcement must
+use the stricter post-Phase-0 promotion bar below, not the older qualitative "zero
+medium-or-higher violations" criterion. Extension noise, third-party chains, unknown hosts,
+and first-party script-family reports must be triaged through the DG04 taxonomy before any
+enforcement decision.
+
+## Post-Phase-0 Investigation Protocol
+
+`P33-SEC02 CSP Nonce Phase 0 Report-Only` shipped the report-only nonce path and
+showed that first-party `script-src` reports still exist. Phase 1 enforcement is
+therefore blocked until `P33-DG04 CSP First-Party Script Nonce Coverage Design
+Review` confirms the root cause and defines the smallest fix.
+
+DG04 must test this prioritized hypothesis tree:
+
+| Hypothesis                                | Description                                                                                                                                                                                | Required check                                                                                            |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| H1 - Next framework scripts               | React DOM bootstrap and RSC streaming flush emit inline `<script>` tags. They get nonces only if the CSP request header contains a nonce token and `x-nonce` is on cloned request headers. | Verify request-header propagation, response CSP shape, and captured HTML framework script nonce coverage. |
+| H2 - `next/script` nonce props            | Analytics scripts receive `nonce={cspNonce}` from the root layout, but every internal `<Script>` must consume it.                                                                          | Verify GTM and Meta Pixel script tags when env IDs are configured.                                        |
+| H3 - Sentry client boot script            | Sentry client instrumentation may inject an inline boot script.                                                                                                                            | Correlate reports with `instrumentation-client.ts` and Sentry client artifacts.                           |
+| H4 - Third-party runtime-injected scripts | Paddle, GTM, Pixel, or Sentry replay may load descendant scripts.                                                                                                                          | Verify `'strict-dynamic'` and group reports by third-party host.                                          |
+| H5 - Browser extension noise              | Password managers or extensions can emit extension-scheme reports.                                                                                                                         | Classify extension reports as noise and do not block Phase 1.                                             |
+
+The first DG04 measurement is the SEC02 canary probe:
+`<script data-csp-nonce-probe nonce={cspNonce} />`. If the probe appears in CSP
+reports, nonce propagation is broken end-to-end. If it does not, hand-authored
+script nonce propagation works and the likely causes are framework,
+instrumentation, or runtime-injected scripts.
+
+DG04 evidence must come from Sentry events in the script directive family
+(`csp.directive=script-src`, `script-src-elem`, or `script-src-attr`, or the
+equivalent `csp.directive:script-src*` search) over a 48-72 hour staging window,
+or from local report-mode smoke across at least six representative flows if
+staging data is unavailable. Required flows: landing `/`, login, register,
+member dashboard, claim wizard step 1, pricing, and agent home, across each
+supported pilot tenant when feasible. Keep the raw directive token visible in
+the table even if a later fix slice adds normalized directive-family tags.
+
+DG04 must append a violation table here:
+
+| directive               | blocked_host | document_host | count     | category  | hypothesis | proposed fix |
+| ----------------------- | ------------ | ------------- | --------- | --------- | ---------- | ------------ |
+| _pending DG04 evidence_ | _pending_    | _pending_     | _pending_ | _pending_ | _pending_  | _pending_    |
+
+Use this taxonomy:
+
+- First-party blocking: `blocked-uri = 'inline'` or blocked host equals
+  document host. Must fix before Phase 1.
+- Third-party allowlisted host: blocked host is in the intended script surface,
+  such as Paddle, GTM, Pixel, or Sentry. Should be zero with `'strict-dynamic'`;
+  non-zero implies a wiring gap.
+- Browser extension: `chrome-extension://`, `moz-extension://`, or
+  `safari-web-extension://`. Document as noise; do not block Phase 1.
+- Random or unknown host: neither own-origin, allowlisted, nor extension. Triage
+  manually before promotion.
+
+Phase 1 promotion requires all six checks:
+
+1. 14 consecutive days of report-only data with zero first-party script
+   directive-family violations after taxonomy triage.
+2. Chrome, Firefox, and Safari report-mode smoke shows zero new first-party
+   violations, or skipped browsers are documented with a concrete blocker.
+3. `data-csp-nonce-probe` has a matching nonce in every captured report-mode
+   HTML sample.
+4. All E2E gate specs pass when `CSP_NONCE_MODE=enforce` is flipped in a
+   feature-flagged Playwright project for one preview run.
+5. Build route-table output is captured for off, report, and enforce preview
+   modes; any static-to-dynamic route changes are recorded with an accepted
+   cache/performance decision before enforcement.
+6. A Sentry alert for the script directive family and first-party
+   classification count greater than zero per hour is configured and silent
+   during the window. DG04 or the follow-up fix slice must either add and pin a
+   derived `csp.first_party=true` tag or document an equivalent saved Sentry
+   query using the existing `csp.blocked_host` and `csp.document_host` tags.
+
+DG04 must also define the ongoing monitoring posture: a page-able first-party
+script directive-family alert, weekly blocked-host taxonomy review, a GTM
+custom HTML tag constraint that forbids inline `<script>` without nonce
+compatibility review, and a Paddle SDK upgrade check against report-only smoke
+before merge.
 
 ## Out Of Scope
 
