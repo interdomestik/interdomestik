@@ -129,6 +129,10 @@ Scope for the next implementation slice:
   errors unless an explicitly documented, time-bounded exception remains;
 - preserve existing CI type-check gates and add focused proof for any
   build-config guard or workflow assertion introduced by the slice;
+- prove that a synthetic TypeScript error introduced on a temporary test branch
+  causes the Vercel build to fail after suppression removal, or document why
+  that proof is impractical and name the compensating static check that prevents
+  silent reintroduction through config, environment, or Vercel project settings;
 - update the plan/tracker closeout with the final decision and proof.
 
 The implementation may touch:
