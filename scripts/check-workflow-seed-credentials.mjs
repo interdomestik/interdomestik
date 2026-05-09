@@ -30,7 +30,7 @@ function workflowLines(content) {
   return content.split('\n').map(line => line.trim());
 }
 
-function hasReleaseGateLiteralPassword(content) {
+export function hasReleaseGateLiteralPassword(content) {
   return workflowLines(content).some(line => {
     const separatorIndex = line.indexOf(':');
     if (separatorIndex === -1) {
@@ -45,7 +45,7 @@ function hasReleaseGateLiteralPassword(content) {
   });
 }
 
-function hasE2EApiPlaceholder(content) {
+export function hasE2EApiPlaceholder(content) {
   return workflowLines(content).some(line => {
     const separatorIndex = line.indexOf(':');
     if (separatorIndex === -1) {

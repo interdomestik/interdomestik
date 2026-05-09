@@ -6,6 +6,11 @@ import { fileURLToPath } from 'node:url';
 
 import yaml from 'js-yaml';
 
+import {
+  hasE2EApiPlaceholder,
+  hasReleaseGateLiteralPassword,
+} from '../check-workflow-seed-credentials.mjs';
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
 
@@ -59,38 +64,6 @@ const WORKFLOWS_WITH_GENERATED_E2E_CREDENTIALS = [
 
 function readRepoText(relativePath) {
   return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
-}
-
-function workflowLines(content) {
-  return content.split('\n').map(line => line.trim());
-}
-
-function hasReleaseGateLiteralPassword(content) {
-  return workflowLines(content).some(line => {
-    const separatorIndex = line.indexOf(':');
-    if (separatorIndex === -1) {
-      return false;
-    }
-
-    const key = line.slice(0, separatorIndex).trim();
-    const value = line.slice(separatorIndex + 1).trim();
-    return (
-      key.startsWith('RELEASE_GATE_') && key.endsWith('_PASSWORD') && value === 'GoldenPass123!'
-    );
-  });
-}
-
-function hasE2EApiPlaceholder(content) {
-  return workflowLines(content).some(line => {
-    const separatorIndex = line.indexOf(':');
-    if (separatorIndex === -1) {
-      return false;
-    }
-
-    const key = line.slice(0, separatorIndex).trim();
-    const value = line.slice(separatorIndex + 1).trim();
-    return key === 'E2E_API_SECRET' && value === 'test-secret-placeholder';
-  });
 }
 
 test('workflow seed credential hardening rejects shared release passwords and E2E API placeholders', () => {
