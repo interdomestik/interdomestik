@@ -2,6 +2,7 @@
 
 Status: approved design gate, updated after Phase 0 implementation
 Date: 2026-05-06; post-Phase-0 update 2026-05-08
+Last reviewed: 2026-05-09
 Scope: design history plus active post-Phase-0 investigation protocol
 
 ## Current CSP Inventory
@@ -64,14 +65,20 @@ root-layout nonce propagation, tests, and report handling.
 
 ### Phase 0: Report-Only Nonce Policy
 
-Add `CSP_NONCE_MODE=off|report|enforce` and start with `CSP_NONCE_MODE=report`.
+Historical plan, superseded by the DG07 production posture below.
+
+Add `CSP_NONCE_MODE=off|report|enforce`. The original Phase 0 plan intended a continuous
+report-mode observation window, but DG07 now sets production default to `CSP_NONCE_MODE=off`
+and allows report mode only for bounded diagnostic windows with explicit budget controls.
 
 Behavior:
 
 - Keep the current enforced `Content-Security-Policy` unchanged.
 - Add a nonce CSP in `Content-Security-Policy-Report-Only`.
 - Include both `report-to` and `report-uri`.
-- Observe Sentry/report data for 14 days before enforcement.
+- Historical only: the original plan observed Sentry/report data for 14 days before
+  enforcement. DG07 now requires an explicit bounded diagnostic window before report mode is
+  enabled.
 
 Phase 0 implemented the local report endpoint path in
 `apps/web/src/app/api/csp-report/route.ts`, accepting CSP reports, capturing them to
@@ -79,6 +86,8 @@ Sentry as warnings, and avoiding durable CSP report storage. Direct browser repo
 to a Sentry ingest endpoint is no longer the active Phase 0 path.
 
 ### Phase 1: Enforce Script Nonces
+
+Blocked by DG07 until one of the DG07 unlock conditions is met.
 
 Set `CSP_NONCE_MODE=enforce` after Phase 0 acceptance criteria pass.
 
@@ -184,6 +193,83 @@ Current consequence: SEC03 should not be retried as a framework-script nonce fix
 enforced CSP header must remain unchanged. CSP Phase 1 remains blocked, and the next safe
 step is a design gate for migration architecture rather than an implementation slice that
 rewrites HTML, monkey-patches Next, weakens Report-Only CSP, or hides first-party reports.
+
+### P33-DG07 Architecture Rebaseline
+
+DG07 records the CSP nonce migration architecture rebaseline after SEC05.
+
+The active blocker is architectural: the current Phase 0 shape keeps the existing non-nonce
+`Content-Security-Policy` response header and adds a nonce-bearing
+`Content-Security-Policy-Report-Only` header. Next.js `16.2.4` chooses the enforced CSP
+header before the Report-Only header when extracting the App Router script nonce, so
+first-party framework/static scripts remain unnonced in this model.
+
+Pinned source receipt:
+
+- `apps/web/package.json` declares `next` as `^16.2.4`.
+- `pnpm-lock.yaml` resolves the web app dependency to `next@16.2.4` with integrity
+  `sha512-kPvz56wF5frc+FxlHI5qnklCzbq53HTwORaWBGdT0vNoKh1Aya9XC8aPauH4NJxqtzbWsS5mAbctm4cr+EkQ2Q==`.
+- The installed package reports version `16.2.4` and no exposed npm `gitHead`.
+- `apps/web/node_modules/next/dist/esm/server/app-render/app-render.js` contains:
+
+```js
+const csp = headers['content-security-policy'] || headers['content-security-policy-report-only'];
+const nonce = typeof csp === 'string' ? getScriptNonceFromHeader(csp) : undefined;
+```
+
+DG07 sets the Phase 0 production posture to **available but default off**:
+`CSP_NONCE_MODE=off` is the intended production state unless a later bounded diagnostic
+window explicitly enables `report`. Phase 0 code remains in place as a future hook:
+
+- `apps/web/src/lib/proxy-logic.ts`
+- `apps/web/src/lib/security/csp-nonce.ts`
+- `apps/web/src/app/api/csp-report/route.ts`
+- `apps/web/src/app/[locale]/_core.entry.tsx`
+- `apps/web/src/components/analytics/analytics-scripts.tsx`
+
+Sentry receipt on 2026-05-09 from the configured project
+`human-p5/interdmestik-nextjs`:
+
+```text
+statsPeriod=7d
+query="csp.first_party:true csp.directive:[script-src,script-src-elem,script-src-attr]"
+total=0 events; 7-day average=0/day
+```
+
+This is not proof that the policy is clean. It means continuous production reporting is not
+currently producing first-party script-family signal, which supports keeping report mode off
+by default rather than spending ongoing report and dynamic-rendering budget.
+
+Any future report-mode diagnostic window must name duration, traffic scope,
+route-table/cache receipts, Sentry event budget or cap for `csp.violation` warnings,
+rollback threshold, and the owner responsible for returning production to
+`CSP_NONCE_MODE=off`.
+
+SEC03 is now `blocked-by-architecture`: it should not be retried under the current two-header
+Phase 0 model. SEC05 remains completed evidence because it delivered the classification.
+
+CSP nonce enforcement migration can resume only after a later gate records one of these
+conditions:
+
+1. Next.js documents or ships a supported hook that lets apps choose a nonce-bearing
+   Report-Only policy when an enforced CSP is also present.
+2. A Next.js version change, including patch, minor, major, lockfile-only refresh, or
+   dependency-range change, changes nonce extraction behavior, and an automated SEC05-adjacent
+   reproduction plus product smoke proves the current two-header model now nonces first-party
+   framework scripts.
+3. The program explicitly approves changing the enforced CSP architecture before Phase 1,
+   with browser semantics, route performance, rollback, and production-risk evidence.
+4. A separate non-production preview harness is approved to test true nonce-enforced CSP
+   behavior without changing production defaults or unguarding `CSP_NONCE_MODE=enforce`.
+5. The program promotes a different long-term CSP architecture, such as Trusted Types,
+   tightened SRI, or accepting `'unsafe-inline'` with explicit compensating controls, and
+   explicitly retires the nonce-migration target.
+
+Review cadence: DG07's unlock conditions are reviewed at every Next.js version change,
+including patch, minor, major, lockfile-only refresh, or dependency-range change, and at
+minimum every six months. If no condition has triggered by the six-month review, the program
+must decide whether to retire Phase 0 wiring, pivot to a non-nonce CSP architecture, or renew
+the wait with a new evidence basis.
 
 ## Report Handling
 
@@ -352,9 +438,11 @@ DG04 outcomes:
   checkout still need post-H1 smoke.
 - H5 - browser extension noise: not observed locally.
 
-DG04 promotes `P33-SEC03 First-Party Script Nonce Coverage` as the smallest safe fix slice.
-Phase 1 enforcement remains blocked until the promotion bar below passes after the fix and
-the report-only observation window.
+DG04 originally promoted `P33-SEC03 First-Party Script Nonce Coverage` as the smallest safe
+fix slice. DG07 supersedes that sequencing after SEC05: SEC03 is semantically
+`blocked-by-architecture` under the current two-header Phase 0 model. Phase 1 enforcement
+remains blocked until a later gate records one of DG07's unlock conditions and then reruns
+the promotion bar below against the accepted future architecture.
 
 Use this taxonomy:
 
@@ -368,7 +456,9 @@ Use this taxonomy:
 - Random or unknown host: neither own-origin, allowlisted, nor extension. Triage
   manually before promotion.
 
-Phase 1 promotion requires all six checks:
+The historical Phase 1 promotion bar is dormant until DG07 unlocks the CSP path. After an
+unlock, Phase 1 promotion still requires all six checks against the accepted future
+architecture:
 
 1. 14 consecutive days of report-only data with zero first-party script
    directive-family violations after taxonomy triage.
