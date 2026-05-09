@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { runEvidenceStoragePathGuard } from './check-evidence-storage-paths.mjs';
 import { runServiceRoleStorageBoundaryGuard } from './check-service-role-storage-boundary.mjs';
+import { runSignedUrlExposureGuard } from './check-signed-url-exposure.mjs';
 
 const LOCKFILE_PATH = path.join(process.cwd(), 'pnpm-lock.yaml');
 
@@ -97,6 +98,11 @@ async function runGuard() {
   const serviceRoleStorageBoundaryStatus = runServiceRoleStorageBoundaryGuard();
   if (serviceRoleStorageBoundaryStatus !== 0) {
     process.exit(serviceRoleStorageBoundaryStatus);
+  }
+
+  const signedUrlExposureStatus = runSignedUrlExposureGuard();
+  if (signedUrlExposureStatus !== 0) {
+    process.exit(signedUrlExposureStatus);
   }
 
   console.log('✅ Security Guard passed. All enforced versions are clean.');

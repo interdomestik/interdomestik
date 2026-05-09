@@ -7,9 +7,14 @@ import {
   assertTenantStoragePath,
   splitStorageFolderAndName,
 } from './tenant-prefix';
+import {
+  SIGNED_DOWNLOAD_TTL_CAPS_SECONDS,
+  type SignedDownloadOperation,
+  resolveSignedDownloadTtlSeconds,
+} from './signed-url-exposure';
 
-export const SIGNED_DOWNLOAD_TTL_SECONDS = 5 * 60;
-export const VOICE_NOTE_PREVIEW_TTL_SECONDS = 10 * 60;
+export const SIGNED_DOWNLOAD_TTL_SECONDS = SIGNED_DOWNLOAD_TTL_CAPS_SECONDS.default;
+export const VOICE_NOTE_PREVIEW_TTL_SECONDS = SIGNED_DOWNLOAD_TTL_CAPS_SECONDS.voiceNotePreview;
 export const SIGNED_UPLOAD_INTENT_TTL_SECONDS = 15 * 60;
 
 type TenantStorageTarget = {
@@ -37,13 +42,18 @@ export async function createTenantSignedUploadUrl(
 }
 
 export async function createTenantSignedDownloadUrl(
-  args: TenantStorageTarget & { expiresInSeconds?: number }
+  args: TenantStorageTarget & {
+    expiresInSeconds?: number;
+    operation?: SignedDownloadOperation;
+  }
 ) {
   assertTenantStoragePath(args);
+  const expiresInSeconds = resolveSignedDownloadTtlSeconds({
+    operation: args.operation,
+    requestedSeconds: args.expiresInSeconds,
+  });
 
-  return createAdminClient()
-    .storage.from(args.bucket)
-    .createSignedUrl(args.path, args.expiresInSeconds ?? SIGNED_DOWNLOAD_TTL_SECONDS);
+  return createAdminClient().storage.from(args.bucket).createSignedUrl(args.path, expiresInSeconds);
 }
 
 export async function uploadTenantObject(args: UploadTarget) {

@@ -7,6 +7,7 @@ import {
   createTenantSignedDownloadUrl,
   uploadTenantObject,
 } from '@/lib/storage/service-role';
+import { redactSignedUrlErrorDetails } from '@/lib/storage/signed-url-exposure';
 import { createInitialClaimUploadIntentToken } from '@/features/claims/upload/server/initial-claim-upload';
 import {
   assertEvidenceStoragePath,
@@ -260,7 +261,9 @@ async function uploadToStorage(params: {
         Bucket: bucketName,
         Key: fileName,
       });
-      const viewUrl = await getSignedUrl(signer, getCommand, { expiresIn: 60 * 10 });
+      const viewUrl = await getSignedUrl(signer, getCommand, {
+        expiresIn: VOICE_NOTE_PREVIEW_TTL_SECONDS,
+      });
 
       return {
         success: true,
@@ -273,7 +276,7 @@ async function uploadToStorage(params: {
         size: buffer.byteLength,
       };
     } catch (err) {
-      console.error('S3/MinIO upload error:', err);
+      console.error('S3/MinIO upload error:', redactSignedUrlErrorDetails(err));
       return { success: false, error: 'Upload failed (S3)' };
     }
   }
@@ -308,8 +311,10 @@ async function uploadToStorage(params: {
     });
 
     if (error) {
-      console.error('Supabase upload error:', error);
-      return { success: false, error: 'Upload failed: ' + error.message };
+      const details = redactSignedUrlErrorDetails(error);
+      const message = details.message;
+      console.error('Supabase upload error:', details);
+      return { success: false, error: 'Upload failed: ' + message };
     }
 
     const { data: signedData, error: signedError } = await createTenantSignedDownloadUrl({
@@ -317,6 +322,7 @@ async function uploadToStorage(params: {
       context: 'voice note preview',
       expiresInSeconds: VOICE_NOTE_PREVIEW_TTL_SECONDS,
       family: 'claims',
+      operation: 'voiceNotePreview',
       path: fileName,
       tenantId,
     });
@@ -345,7 +351,7 @@ async function uploadToStorage(params: {
       size: buffer.byteLength,
     };
   } catch (err) {
-    console.error('Unexpected upload error:', err);
+    console.error('Unexpected upload error:', redactSignedUrlErrorDetails(err));
     return { success: false, error: 'Unexpected error during upload' };
   }
 }

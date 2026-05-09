@@ -62,6 +62,44 @@ describe('service-role storage boundary', () => {
     );
   });
 
+  it('rejects signed download TTLs above the operation cap', async () => {
+    const { createTenantSignedDownloadUrl } = await import('./service-role');
+
+    await expect(
+      createTenantSignedDownloadUrl({
+        bucket: 'policies',
+        expiresInSeconds: 301,
+        family: 'policies',
+        operation: 'documentDownload',
+        path: 'pii/tenants/tenant-a/policies/user-1/file.pdf',
+        tenantId: 'tenant-a',
+      })
+    ).rejects.toThrow(/exceeds documentDownload cap 300s/);
+
+    expect(createAdminClient).not.toHaveBeenCalled();
+    expect(createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it('allows voice-note previews to use the reviewed ten-minute TTL cap', async () => {
+    const { VOICE_NOTE_PREVIEW_TTL_SECONDS, createTenantSignedDownloadUrl } =
+      await import('./service-role');
+    createSignedUrl.mockResolvedValue({ data: { signedUrl: 'https://signed.example' } });
+
+    await createTenantSignedDownloadUrl({
+      bucket: 'claim-evidence',
+      expiresInSeconds: VOICE_NOTE_PREVIEW_TTL_SECONDS,
+      family: 'claims',
+      operation: 'voiceNotePreview',
+      path: 'pii/tenants/tenant-a/claims/user-1/unassigned/voice.webm',
+      tenantId: 'tenant-a',
+    });
+
+    expect(createSignedUrl).toHaveBeenCalledWith(
+      'pii/tenants/tenant-a/claims/user-1/unassigned/voice.webm',
+      VOICE_NOTE_PREVIEW_TTL_SECONDS
+    );
+  });
+
   it('supports upload, download, and single-file list operations after path assertion', async () => {
     const { downloadTenantObject, listTenantObjectsForSingleFile, uploadTenantObject } =
       await import('./service-role');

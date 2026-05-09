@@ -2,6 +2,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { SIGNED_URL_REFERRER_POLICY } from '@/lib/storage/signed-url-exposure';
 import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
 import {
@@ -92,6 +93,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           'Content-Type': 'text/plain',
           'Content-Disposition': `${disposition}; filename="dummy_seed.txt"`,
           'Cache-Control': 'private, no-store',
+          'Referrer-Policy': SIGNED_URL_REFERRER_POLICY,
         },
       });
     }
@@ -110,6 +112,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       'Content-Type': access.document.fileType || 'application/octet-stream',
       'Content-Disposition': buildContentDispositionHeader({ disposition, filename }),
       'Cache-Control': 'private, no-store',
+      'Referrer-Policy': SIGNED_URL_REFERRER_POLICY,
     },
   });
 }

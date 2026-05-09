@@ -2,6 +2,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { signedUrlResponseInit } from '@/lib/storage/signed-url-exposure';
 import { NextResponse } from 'next/server';
 import {
   DOCUMENT_ACCESS_STATUS_BY_CODE,
@@ -74,11 +75,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Failed to generate download URL' }, { status: 500 });
   }
 
-  return NextResponse.json({
-    url: urlResult.signedUrl,
-    name: access.document.name,
-    type: access.document.fileType,
-    size: access.document.fileSize,
-    expiresIn: 300,
-  });
+  return NextResponse.json(
+    {
+      url: urlResult.signedUrl,
+      name: access.document.name,
+      type: access.document.fileType,
+      size: access.document.fileSize,
+      expiresIn: 300,
+    },
+    signedUrlResponseInit()
+  );
 }

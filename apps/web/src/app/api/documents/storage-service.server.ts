@@ -12,6 +12,7 @@ export function createDocumentSignedUrlStorageService(): DocumentStorageService 
         context: 'document signed URL',
         expiresInSeconds: expiresIn,
         family: options.family,
+        operation: 'documentDownload',
         path,
         tenantId: options.tenantId,
       });

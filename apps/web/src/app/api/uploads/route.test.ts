@@ -296,6 +296,8 @@ describe('POST /api/uploads', () => {
     const data = await res.json();
 
     expect(res.status).toBe(200);
+    expect(res.headers.get('Cache-Control')).toBe('private, no-store, max-age=0');
+    expect(res.headers.get('Referrer-Policy')).toBe('no-referrer');
     expect(data).toEqual(
       expect.objectContaining({
         upload: expect.objectContaining({
