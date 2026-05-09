@@ -1,6 +1,13 @@
 import { db } from '@interdomestik/database';
 import { findSubscriptionByProviderReference } from '../../../subscription';
 
+export class PaddleSubscriptionContextConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PaddleSubscriptionContextConflictError';
+  }
+}
+
 export async function resolveBranchId(args: {
   customData: { agentId?: string } | undefined;
   tenantId: string;
@@ -55,25 +62,47 @@ export async function resolveSubscriptionContext(sub: any) {
     | undefined;
 
   const existingSub = await findSubscriptionByProviderReference(sub.id);
-  const userId = customData?.userId ?? existingSub?.userId;
+  const customDataUserId = normalizeText(customData?.userId);
+  const customDataTenantId = normalizeText(customData?.tenantId);
+  const existingUserId = normalizeText(existingSub?.userId);
+  const existingTenantId = normalizeText(existingSub?.tenantId);
+  const userId = existingUserId ?? customDataUserId;
 
   if (!userId) {
     console.warn(`[Webhook] No userId found in customData for subscription ${sub.id}`);
     return null;
   }
 
-  // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
+  if (existingUserId && customDataUserId && customDataUserId !== existingUserId) {
+    throw new PaddleSubscriptionContextConflictError(
+      `Cannot resolve subscription ${sub.id}; customData user=${customDataUserId} conflicts with existing subscription user=${existingUserId}`
+    );
+  }
+
+  // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps tenant context before tenant-scoped subscription writes
   const userRecord = await db.query.user.findFirst({
     where: (users, { eq }) => eq(users.id, userId),
     columns: { tenantId: true, email: true, name: true, memberNumber: true, agentId: true },
   });
 
-  const canonicalTenantId = existingSub?.tenantId ?? userRecord?.tenantId;
-  const tenantId = canonicalTenantId ?? customData?.tenantId;
-
-  if (canonicalTenantId && customData?.tenantId && customData.tenantId !== canonicalTenantId) {
+  if (!userRecord) {
     console.warn(
-      `[Webhook] Ignoring mismatched customData.tenantId for subscription ${sub.id} userId=${userId}; canonical tenant=${canonicalTenantId} customData tenant=${customData.tenantId}`
+      `[Webhook] Cannot resolve subscription ${sub.id}; canonical user ${userId} was not found`
+    );
+    return null;
+  }
+
+  if (existingTenantId && userRecord.tenantId !== existingTenantId) {
+    throw new PaddleSubscriptionContextConflictError(
+      `Cannot resolve subscription ${sub.id}; existing subscription tenant=${existingTenantId} conflicts with user tenant=${userRecord.tenantId}`
+    );
+  }
+
+  const tenantId = existingTenantId ?? userRecord.tenantId;
+
+  if (customDataTenantId && customDataTenantId !== tenantId) {
+    throw new PaddleSubscriptionContextConflictError(
+      `Cannot resolve subscription ${sub.id}; customData tenant=${customDataTenantId} conflicts with canonical tenant=${tenantId}`
     );
   }
 
@@ -91,4 +120,13 @@ export async function resolveSubscriptionContext(sub: any) {
   });
 
   return { userId, tenantId, branchId, customData, userRecord, existingSub };
+}
+
+function normalizeText(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
 }

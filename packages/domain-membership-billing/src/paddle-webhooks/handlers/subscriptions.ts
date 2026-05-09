@@ -1,4 +1,4 @@
-import { db, eq, subscriptions } from '@interdomestik/database';
+import { and, db, eq, subscriptions } from '@interdomestik/database';
 import { findSubscriptionByProviderReference } from '../../subscription';
 import {
   createCanonicalMembershipPlanState,
@@ -26,14 +26,14 @@ export async function handleSubscriptionChanged(
 
   // 1. Resolve Context (User, Tenant, Branch)
   let context = await resolveSubscriptionContext(sub);
-  if (!context && params.eventType === 'subscription.created') {
+  if (!context && params.eventType === 'subscription.created' && canReconcileCheckoutUser(sub)) {
     context = await reconcileCheckoutUser(sub, deps);
   }
   if (!context) {
     throw new Error(`Unable to resolve subscription context for ${sub.id}`);
   }
 
-  const { userId, tenantId, branchId, customData, userRecord } = context;
+  const { userId, tenantId, branchId, customData, userRecord, existingSub } = context;
   const canonicalUserRecord = userRecord ?? null;
   const resolvedAgentId = resolveSubscriptionAgentId({
     userRecord: canonicalUserRecord,
@@ -54,6 +54,7 @@ export async function handleSubscriptionChanged(
     userId,
     agentId: resolvedAgentId,
     branchId,
+    existingSub,
     mappedStatus,
     planState: canonicalPlanState,
   });
@@ -100,18 +101,21 @@ async function upsertSubscription(args: {
   userId: string;
   agentId?: string | null;
   branchId?: string;
+  existingSub?: { id: string; tenantId?: string | null; userId?: string | null } | null;
   mappedStatus: InternalSubscriptionStatus;
   planState: {
     planId: string;
     planKey: string | null;
   };
 }) {
-  const { sub, tenantId, userId, agentId, branchId, mappedStatus, planState } = args;
+  const { sub, tenantId, userId, agentId, branchId, existingSub, mappedStatus, planState } = args;
   const values = mapToSubscriptionValues(sub, mappedStatus, planState);
-  const existingSubscription = await findExistingSubscription(sub.id, userId);
+  const existingSubscription =
+    existingSub ?? (await findExistingSubscriptionForUser(userId, tenantId));
 
   if (existingSubscription) {
-    await updateSubscription(existingSubscription.id, {
+    assertSubscriptionMatchesContext(existingSubscription, { subId: sub.id, tenantId, userId });
+    await updateSubscription(existingSubscription.id, tenantId, {
       tenantId,
       userId,
       agentId,
@@ -134,18 +138,20 @@ async function upsertSubscription(args: {
   };
 
   try {
+    // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle subscription context is included in insert values
     await db.insert(subscriptions).values(insertValues);
   } catch (error) {
     if (!isUniqueViolation(error)) {
       throw error;
     }
 
-    const racedSubscription = await findExistingSubscription(sub.id, userId);
+    const racedSubscription = await findExistingSubscription(sub.id, userId, tenantId);
     if (!racedSubscription) {
       throw error;
     }
 
-    await updateSubscription(racedSubscription.id, {
+    assertSubscriptionMatchesContext(racedSubscription, { subId: sub.id, tenantId, userId });
+    await updateSubscription(racedSubscription.id, tenantId, {
       tenantId,
       userId,
       agentId,
@@ -160,18 +166,50 @@ async function upsertSubscription(args: {
   return sub.id as string;
 }
 
-async function findExistingSubscription(subId: string, userId: string) {
+async function findExistingSubscription(subId: string, userId: string, tenantId: string) {
   return (
     (await findSubscriptionByProviderReference(subId)) ??
-    (await db.query.subscriptions.findFirst({
-      where: (subs, { eq }) => eq(subs.userId, userId),
-      columns: { id: true, tenantId: true, userId: true },
-    }))
+    (await findExistingSubscriptionForUser(userId, tenantId))
   );
 }
 
-async function updateSubscription(subscriptionId: string, values: Record<string, unknown>) {
-  await db.update(subscriptions).set(values).where(eq(subscriptions.id, subscriptionId));
+async function findExistingSubscriptionForUser(userId: string, tenantId: string) {
+  return (
+    // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle subscription context constrains fallback user lookup
+    await db.query.subscriptions.findFirst({
+      where: (subs, { and, eq }) => and(eq(subs.userId, userId), eq(subs.tenantId, tenantId)),
+      columns: { id: true, tenantId: true, userId: true },
+    })
+  );
+}
+
+async function updateSubscription(
+  subscriptionId: string,
+  tenantId: string,
+  values: Record<string, unknown>
+) {
+  // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle subscription context constrains subscription update
+  await db
+    .update(subscriptions)
+    .set(values)
+    .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)));
+}
+
+function assertSubscriptionMatchesContext(
+  subscription: { id: string; tenantId?: string | null; userId?: string | null },
+  context: { subId: string; tenantId: string; userId: string }
+) {
+  if (subscription.tenantId && subscription.tenantId !== context.tenantId) {
+    throw new Error(
+      `Paddle subscription ${context.subId} tenant conflict: existing=${subscription.tenantId} resolved=${context.tenantId}`
+    );
+  }
+
+  if (subscription.userId && subscription.userId !== context.userId) {
+    throw new Error(
+      `Paddle subscription ${context.subId} user conflict: existing=${subscription.userId} resolved=${context.userId}`
+    );
+  }
 }
 
 function normalizeAgentId(agentId: string | null | undefined): string | null {
@@ -244,4 +282,24 @@ function isUniqueViolation(error: unknown): error is { code: string } {
     typeof (error as { code?: unknown }).code === 'string' &&
     (error as { code: string }).code === '23505'
   );
+}
+
+function canReconcileCheckoutUser(sub: {
+  transactionId?: string | null;
+  transaction_id?: string | null;
+  customData?: { userId?: string };
+  custom_data?: { userId?: string };
+}) {
+  const transactionId = sub.transactionId || sub.transaction_id;
+  const customData = sub.customData || sub.custom_data;
+  return Boolean(transactionId && !normalizeText(customData?.userId));
+}
+
+function normalizeText(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
 }

@@ -3,7 +3,7 @@ plan_role: input
 status: archived
 source_of_truth: false
 owner: platform + security + qa
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # DB Access Posture Burn-Down
@@ -12,17 +12,19 @@ last_reviewed: 2026-05-08
 > `docs/plans/current-program.md` and `docs/plans/current-tracker.md`.
 
 SEC04B reduced the DB access posture baseline from `262` unclassified entries to `80`.
-Classification stopped when the `<= 80` target was reached.
+Classification stopped when the `<= 80` target was reached. P33-SEC10 later reduced the
+baseline to `67` by resolving the current Paddle billing webhook/provider-event cluster.
 
 ## Burn-Down Summary
 
-| Metric                         | Count |
-| ------------------------------ | ----: |
-| SEC04A unclassified baseline   |   262 |
-| SEC04B unclassified baseline   |    80 |
-| Entries removed from scan      |     4 |
-| Reviewed `tenant-scoped` calls |   158 |
-| Reviewed `system-exempt` calls |    20 |
+| Metric                          | Count |
+| ------------------------------- | ----: |
+| SEC04A unclassified baseline    |   262 |
+| SEC04B unclassified baseline    |    80 |
+| P33-SEC10 unclassified baseline |    67 |
+| Entries removed from scan       |     4 |
+| Reviewed `tenant-scoped` calls  |   162 |
+| Reviewed `system-exempt` calls  |    28 |
 
 ## Classification Rules Used
 
@@ -44,25 +46,37 @@ system analytics:
 - Privacy deletion audit trail writes.
 - Login, push endpoint, and provider-reference bootstrap lookups that intentionally resolve
   tenant ownership before a tenant-scoped boundary exists.
+- Paddle webhook `customData.userId` fallback lookup after canonical subscription lookup cannot
+  resolve tenant ownership.
+- Paddle webhook userId bootstrap lookups that resolve canonical tenant context before later
+  subscription, dunning, or transaction audit writes are tenant-scoped.
+- Paddle webhook receipt and invalid-signature audit rows that must persist before handler-level
+  tenant resolution is safe.
+- Checkout email ownership probes that intentionally detect cross-tenant conflicts before
+  creating or updating a tenant-scoped member.
 
 The e2e-only branch setup API was removed from the production posture baseline scan rather than
 classified.
 
 ## Remaining Evidence Set
 
-The remaining `80` entries are intentionally not classified in SEC04B. They include clusters that
-need migration or a narrower design decision:
+The remaining `67` entries are intentionally not classified. They include clusters that need
+migration or a narrower design decision:
 
 | Count | Cluster                                                                                           |
 | ----: | ------------------------------------------------------------------------------------------------- |
 |     5 | Commercial action idempotency records with optional tenant identity.                              |
 |     5 | Legacy agent dashboard reads without current tenant proof.                                        |
-|    14 | Billing webhook handlers and persistence paths that derive tenant identity from provider events.  |
 |     7 | Campaign execution and communication paths that batch across users or campaigns.                  |
 |     8 | Cron and public NPS/engagement residue that needs per-tenant job modeling or narrower predicates. |
 |     4 | Admin and branch dashboard cross-tenant lookup paths.                                             |
+|     1 | Non-Paddle membership billing commission ownership probe outside the SEC10 webhook scope.         |
 |    37 | Smaller one-off application/domain paths requiring callsite-specific migration review.            |
 
-Those entries should not be mass-stamped. The next action, if further burn-down is needed, is a
-targeted design review for webhook/provider-event tenancy, commercial idempotency scoping, and
-legacy agent dashboard ownership.
+Those entries should not be mass-stamped. P33-SEC10 resolved all current unclassified entries
+under `packages/domain-membership-billing/src/paddle-webhooks/**`. DG14 had inventoried `14`
+billing webhook/provider-event entries, but the synced implementation baseline contained `13`
+under that package path; the remaining membership-billing unclassified entry is the non-Paddle
+commission ownership probe listed above. The next action, if further burn-down is needed, is a
+targeted design review for commercial idempotency scoping, legacy agent dashboard ownership,
+campaign/cron/public-token tenancy, or the remaining one-off paths.

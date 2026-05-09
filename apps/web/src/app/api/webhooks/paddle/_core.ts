@@ -113,10 +113,16 @@ export async function requestPasswordResetOnboarding(params: {
 async function resolveWebhookTenantId(data: unknown): Promise<string | null> {
   const payload = (data ?? {}) as PaddleWebhookData;
   const customData = payload.customData || payload.custom_data;
-  const userId = customData?.userId;
+  const subscriptionId = payload.id || payload.subscriptionId || payload.subscription_id;
 
+  if (subscriptionId) {
+    const subscription = await findSubscriptionByProviderReference(subscriptionId);
+    if (subscription?.tenantId) return subscription.tenantId;
+  }
+
+  const userId = customData?.userId;
   if (userId) {
-    // db-access-guard: tenant-scoped -- reason: userId comes from verified Paddle webhook custom data
+    // db-access-guard: system-exempt -- reason: Paddle customData userId is a fallback only after canonical subscription lookup cannot resolve tenant
     const userRecord = await db.query.user.findFirst({
       where: (users, { eq }) => eq(users.id, userId),
       columns: { tenantId: true },
@@ -124,11 +130,7 @@ async function resolveWebhookTenantId(data: unknown): Promise<string | null> {
     if (userRecord?.tenantId) return userRecord.tenantId;
   }
 
-  const subscriptionId = payload.id || payload.subscriptionId || payload.subscription_id;
-  if (!subscriptionId) return null;
-
-  const subscription = await findSubscriptionByProviderReference(subscriptionId);
-  return subscription?.tenantId ?? null;
+  return null;
 }
 
 export async function handlePaddleWebhookCore(args: {

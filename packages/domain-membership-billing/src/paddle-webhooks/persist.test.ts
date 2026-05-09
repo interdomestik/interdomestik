@@ -59,6 +59,27 @@ describe('webhook persistence idempotency', () => {
     expect(hoisted.onConflictDoNothing).toHaveBeenCalledWith();
   });
 
+  it('preserves nullable tenant persistence for invalid signatures when tenant is unsafe', async () => {
+    await persistInvalidSignatureAttempt({
+      headers: new Headers(),
+      processingScopeKey: 'entity:unknown',
+      dedupeKey: 'paddle:entity:unknown:hash:hash_unsafe',
+      eventType: 'transaction.completed',
+      eventId: undefined,
+      eventTimestamp: null,
+      payloadHash: 'hash_unsafe',
+      parsedPayload: { ok: false },
+      tenantId: null,
+    });
+
+    expect(hoisted.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: null,
+        processingScopeKey: 'entity:unknown',
+      })
+    );
+  });
+
   it('returns duplicate=false when DB unique linkage blocks a replayed transaction identity', async () => {
     hoisted.returning.mockResolvedValueOnce([{ id: 'we_tx_1' }]).mockResolvedValueOnce([]);
 
@@ -103,6 +124,41 @@ describe('webhook persistence idempotency', () => {
         metadata: expect.objectContaining({
           processingScopeKey: 'tenant:tenant_ks',
           providerTransactionId: 'txn_1',
+        }),
+      })
+    );
+  });
+
+  it('preserves duplicate webhook audit behavior when tenantId is nullable', async () => {
+    hoisted.returning.mockResolvedValueOnce([]);
+    const deps = { logAuditEvent: vi.fn() };
+
+    const result = await insertWebhookEvent(
+      {
+        headers: new Headers(),
+        processingScopeKey: 'entity:unknown',
+        dedupeKey: 'paddle:entity:unknown:event:evt_dup',
+        eventType: 'transaction.completed',
+        eventId: 'evt_dup',
+        eventTimestamp: new Date('2026-02-23T00:00:00.000Z'),
+        payloadHash: 'hash_dup',
+        parsedPayload: { data: { id: 'txn_dup' } },
+        signatureValid: true,
+        signatureBypassed: false,
+        tenantId: null,
+        providerTransactionId: 'txn_dup',
+      },
+      deps
+    );
+
+    expect(result).toEqual({ inserted: false, webhookEventRowId: null });
+    expect(hoisted.insertValues).toHaveBeenCalledWith(expect.objectContaining({ tenantId: null }));
+    expect(deps.logAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'webhook.duplicate',
+        metadata: expect.objectContaining({
+          processingScopeKey: 'entity:unknown',
+          providerTransactionId: 'txn_dup',
         }),
       })
     );

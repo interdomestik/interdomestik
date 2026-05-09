@@ -60,7 +60,7 @@ describe('handleTransactionCompleted', () => {
     );
   });
 
-  it('uses customData tenant and attribution metadata for anonymous transactions', async () => {
+  it('skips tenant-scoped audit for anonymous transactions with only provider customData tenant', async () => {
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
 
     const payload = {
@@ -81,22 +81,7 @@ describe('handleTransactionCompleted', () => {
 
     await handleTransactionCompleted({ data: payload }, { logAuditEvent });
 
-    expect(logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: 'payment.processed',
-        entityId: 'tx_anon',
-        tenantId: 'tenant_mk',
-        metadata: expect.objectContaining({
-          acquisitionSource: 'self_serve_web',
-          agentId: 'agent_9',
-          customerEmail: 'buyer@example.com',
-          customerId: 'ctm_123',
-          subscriptionId: 'sub_anon',
-          utmSource: 'google',
-          utmCampaign: 'diaspora',
-        }),
-      })
-    );
+    expect(logAuditEvent).not.toHaveBeenCalled();
     expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
   });
 
@@ -111,7 +96,7 @@ describe('handleTransactionCompleted', () => {
       status: 'completed',
       subscriptionId: 'sub_existing_owner',
       customData: {
-        tenantId: 'tenant_bad',
+        tenantId: 'tenant_real',
         agentId: 'agent_stale',
       },
       details: { totals: { total: '2000', currencyCode: 'EUR' } },
@@ -161,7 +146,9 @@ describe('handleTransactionCompleted', () => {
     );
   });
 
-  it('prefers persisted subscription tenant over client-provided tenant metadata', async () => {
+  it('skips transaction audit when provider tenant metadata conflicts with persisted subscription', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       tenantId: 'tenant_real',
     });
@@ -179,12 +166,46 @@ describe('handleTransactionCompleted', () => {
 
     await handleTransactionCompleted({ data: payload }, { logAuditEvent });
 
-    expect(logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tenantId: 'tenant_real',
-      })
+    expect(logAuditEvent).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('canonical tenant=tenant_real customData tenant=tenant_bad')
     );
     expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
+  it('skips transaction audit when provider user metadata conflicts with persisted subscription user', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
+      tenantId: 'tenant_real',
+      userId: 'user_real',
+    });
+
+    await handleTransactionCompleted(
+      {
+        data: {
+          id: 'tx_user_conflict',
+          status: 'completed',
+          subscriptionId: 'sub_existing',
+          customData: {
+            userId: 'user_bad',
+            tenantId: 'tenant_real',
+          },
+          details: { totals: { total: '2000', currencyCode: 'EUR' } },
+        },
+      },
+      { logAuditEvent }
+    );
+
+    expect(logAuditEvent).not.toHaveBeenCalled();
+    expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('subscription user=user_real customData user=user_bad')
+    );
+
+    warnSpy.mockRestore();
   });
 
   it('resolves transaction tenant from provider subscription id lookups', async () => {

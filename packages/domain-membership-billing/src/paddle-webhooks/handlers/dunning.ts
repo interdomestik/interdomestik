@@ -1,4 +1,4 @@
-import { db, eq, subscriptions } from '@interdomestik/database';
+import { and, db, eq, subscriptions } from '@interdomestik/database';
 import { findSubscriptionByProviderReference } from '../../subscription';
 import {
   createCanonicalMembershipPlanState,
@@ -17,6 +17,8 @@ type PastDueUserRecord = {
 };
 type ExistingSubscriptionRecord = {
   id: string;
+  tenantId: string;
+  userId: string;
   dunningAttemptCount?: number | null;
   pastDueAt?: Date | null;
   gracePeriodEndsAt?: Date | null;
@@ -57,37 +59,30 @@ export async function handleSubscriptionPastDue(
     return;
   }
 
-  const userId = resolvePastDueUserId(sub);
-  if (!userId) {
-    console.warn(`[Webhook] No userId found in customData for past_due subscription ${sub.id}`);
+  const context = await resolvePastDueContext(sub);
+  if (!context) {
     return;
   }
 
-  const userRecord = await findPastDueUserRecord(userId);
-  if (!userRecord) {
-    console.warn(`[Webhook] User not found: ${userId}`);
-    return;
-  }
-
-  const existingSub = await findExistingPastDueSubscription(sub.id, userId);
   const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
   const canonicalPlanState = await resolveCanonicalMembershipPlanState({
-    tenantId: userRecord.tenantId,
+    tenantId: context.userRecord.tenantId,
     planId: priceId,
   });
   const pastDueState = buildPastDueState({
     sub,
-    userId,
-    userRecord,
-    existingSub,
+    userId: context.userRecord.id,
+    userRecord: context.userRecord,
+    existingSub: context.existingSub,
     now: new Date(),
     planState: canonicalPlanState,
   });
 
   await persistPastDueSubscription({
     subscriptionId: sub.id,
-    userId,
-    existingSub,
+    userId: context.userRecord.id,
+    tenantId: context.userRecord.tenantId,
+    existingSub: context.existingSub,
     values: pastDueState.values,
   });
 
@@ -99,14 +94,14 @@ export async function handleSubscriptionPastDue(
   await logPastDueAuditEvent({
     deps,
     subscriptionId: sub.id,
-    tenantId: userRecord.tenantId,
+    tenantId: context.userRecord.tenantId,
     newDunningCount: pastDueState.newDunningCount,
     gracePeriodEnd: pastDueState.gracePeriodEnd,
   });
   await sendInitialPaymentFailedEmail({
     deps,
-    userId,
-    userRecord,
+    userId: context.userRecord.id,
+    userRecord: context.userRecord,
     sub,
     newDunningCount: pastDueState.newDunningCount,
     gracePeriodEnd: pastDueState.gracePeriodEnd,
@@ -123,30 +118,87 @@ function parsePastDueSubscription(data: unknown): SubscriptionEventData | null {
   return parseResult.data;
 }
 
+async function resolvePastDueContext(sub: SubscriptionEventData): Promise<{
+  userRecord: PastDueUserRecord;
+  existingSub: ExistingSubscriptionRecord;
+} | null> {
+  const customDataUserId = resolvePastDueUserId(sub);
+  const customDataTenantId = normalizeText((sub.customData || sub.custom_data)?.tenantId);
+  const existingSub = await findExistingPastDueSubscriptionByProvider(sub.id);
+  const existingUserId = normalizeText(existingSub?.userId);
+  const existingTenantId = normalizeText(existingSub?.tenantId);
+  const userId = existingUserId ?? customDataUserId;
+
+  if (!userId) {
+    console.warn(`[Webhook] No canonical userId found for past_due subscription ${sub.id}`);
+    return null;
+  }
+
+  if (existingUserId && customDataUserId && customDataUserId !== existingUserId) {
+    console.warn(
+      `[Webhook] Cannot resolve past_due subscription ${sub.id}; customData user=${customDataUserId} conflicts with existing subscription user=${existingUserId}`
+    );
+    return null;
+  }
+
+  const userRecord = await findPastDueUserRecord(userId);
+  if (!userRecord) {
+    console.warn(`[Webhook] User not found: ${userId}`);
+    return null;
+  }
+
+  if (existingTenantId && existingTenantId !== userRecord.tenantId) {
+    console.warn(
+      `[Webhook] Cannot resolve past_due subscription ${sub.id}; existing subscription tenant=${existingTenantId} conflicts with user tenant=${userRecord.tenantId}`
+    );
+    return null;
+  }
+
+  if (customDataTenantId && customDataTenantId !== userRecord.tenantId) {
+    console.warn(
+      `[Webhook] Cannot resolve past_due subscription ${sub.id}; customData tenant=${customDataTenantId} conflicts with canonical tenant=${userRecord.tenantId}`
+    );
+    return null;
+  }
+
+  const tenantScopedExistingSub =
+    existingSub ?? (await findExistingPastDueSubscriptionForUser(userRecord));
+
+  return {
+    userRecord,
+    existingSub: tenantScopedExistingSub,
+  };
+}
+
 function resolvePastDueUserId(sub: SubscriptionEventData): string | null {
   const customData = sub.customData || sub.custom_data;
-  return customData?.userId ?? null;
+  return normalizeText(customData?.userId);
 }
 
 async function findPastDueUserRecord(userId: string): Promise<PastDueUserRecord | null> {
-  return (
-    (await db.query.user.findFirst({
-      where: (users, { eq }) => eq(users.id, userId),
-      columns: { id: true, email: true, name: true, tenantId: true },
-    })) ?? null
-  );
+  // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps dunning tenant context before tenant-scoped writes
+  const userRecord = await db.query.user.findFirst({
+    where: (users, { eq }) => eq(users.id, userId),
+    columns: { id: true, email: true, name: true, tenantId: true },
+  });
+  return userRecord ?? null;
 }
 
-async function findExistingPastDueSubscription(
-  subscriptionId: string,
-  userId: string
+async function findExistingPastDueSubscriptionByProvider(
+  subscriptionId: string
 ): Promise<ExistingSubscriptionRecord> {
+  return (await findSubscriptionByProviderReference(subscriptionId)) ?? null;
+}
+
+async function findExistingPastDueSubscriptionForUser(
+  userRecord: PastDueUserRecord
+): Promise<ExistingSubscriptionRecord> {
+  // db-access-guard: tenant-scoped -- reason: tenantId from canonical user record constrains fallback subscription lookup
   return (
-    (await findSubscriptionByProviderReference(subscriptionId)) ??
     (await db.query.subscriptions.findFirst({
-      where: (subs, { eq }) => eq(subs.userId, userId),
-    })) ??
-    null
+      where: (subs, { and, eq }) =>
+        and(eq(subs.userId, userRecord.id), eq(subs.tenantId, userRecord.tenantId)),
+    })) ?? null
   );
 }
 
@@ -205,18 +257,23 @@ function resolveBillingPeriodDate(primary?: string | null, fallback?: string | n
 async function persistPastDueSubscription(args: {
   subscriptionId: string;
   userId: string;
+  tenantId: string;
   existingSub: ExistingSubscriptionRecord;
   values: PastDueValues;
 }) {
   if (args.existingSub) {
+    // db-access-guard: tenant-scoped -- reason: tenantId from canonical user/subscription context constrains dunning update
     await db
       .update(subscriptions)
       .set(args.values)
-      .where(eq(subscriptions.id, args.existingSub.id));
+      .where(
+        and(eq(subscriptions.id, args.existingSub.id), eq(subscriptions.tenantId, args.tenantId))
+      );
     return;
   }
 
   try {
+    // db-access-guard: tenant-scoped -- reason: tenantId from canonical user context is included in dunning insert values
     await db.insert(subscriptions).values({
       id: args.subscriptionId,
       ...args.values,
@@ -226,10 +283,12 @@ async function persistPastDueSubscription(args: {
       throw error;
     }
 
-    const racedSubscription = await findExistingPastDueSubscription(
-      args.subscriptionId,
-      args.userId
-    );
+    const racedSubscription = await findExistingPastDueSubscriptionForUser({
+      id: args.userId,
+      tenantId: args.tenantId,
+      email: null,
+      name: null,
+    });
     if (!racedSubscription) {
       throw error;
     }
@@ -238,8 +297,16 @@ async function persistPastDueSubscription(args: {
     await db
       .update(subscriptions)
       .set(args.values)
-      .where(eq(subscriptions.id, racedSubscription.id));
+      .where(
+        and(eq(subscriptions.id, racedSubscription.id), eq(subscriptions.tenantId, args.tenantId))
+      );
   }
+}
+
+function normalizeText(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
 }
 
 async function logPastDueAuditEvent(args: {

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-08T19:53:07.580Z",
+  "generatedAt": "2026-05-09T15:49:15.294Z",
   "policy": "see docs/dev/db-access-guard.md",
   "scanRoots": ["apps/web/src", "packages"],
   "approvedDatabaseInternalPatterns": [
@@ -27,11 +27,11 @@
     },
     "byTenantPosture": {
       "tenant-context": 5,
-      "tenant-scoped": 158,
-      "tenant-predicate": 352,
+      "tenant-scoped": 162,
+      "tenant-predicate": 353,
       "admin-privileged": 0,
-      "system-exempt": 20,
-      "unclassified": 80
+      "system-exempt": 28,
+      "unclassified": 67
     }
   },
   "entries": [
@@ -1196,7 +1196,7 @@
     },
     {
       "file": "apps/web/src/app/[locale]/admin/claims/[id]/_core.ts",
-      "line": 36,
+      "line": 37,
       "callee": "db.query",
       "method": "query",
       "risk": "app-layer",
@@ -1206,7 +1206,7 @@
     },
     {
       "file": "apps/web/src/app/[locale]/admin/claims/[id]/_core.ts",
-      "line": 45,
+      "line": 46,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
@@ -1578,7 +1578,7 @@
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",
-      "line": 134,
+      "line": 138,
       "callee": "db.transaction",
       "method": "transaction",
       "risk": "app-layer",
@@ -1589,7 +1589,7 @@
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",
-      "line": 141,
+      "line": 145,
       "callee": "tx.insert",
       "method": "insert",
       "risk": "app-layer",
@@ -1600,7 +1600,7 @@
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",
-      "line": 155,
+      "line": 159,
       "callee": "tx.insert",
       "method": "insert",
       "risk": "app-layer",
@@ -1611,7 +1611,7 @@
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",
-      "line": 171,
+      "line": 175,
       "callee": "tx.insert",
       "method": "insert",
       "risk": "app-layer",
@@ -1622,7 +1622,7 @@
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",
-      "line": 211,
+      "line": 215,
       "callee": "db.update",
       "method": "update",
       "risk": "app-layer",
@@ -1633,7 +1633,7 @@
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",
-      "line": 252,
+      "line": 261,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
@@ -1644,7 +1644,7 @@
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",
-      "line": 297,
+      "line": 306,
       "callee": "db.update",
       "method": "update",
       "risk": "app-layer",
@@ -1655,7 +1655,7 @@
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",
-      "line": 341,
+      "line": 350,
       "callee": "db.transaction",
       "method": "transaction",
       "risk": "app-layer",
@@ -1666,7 +1666,7 @@
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",
-      "line": 343,
+      "line": 352,
       "callee": "tx.update",
       "method": "update",
       "risk": "app-layer",
@@ -1677,7 +1677,7 @@
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",
-      "line": 353,
+      "line": 362,
       "callee": "tx.insert",
       "method": "insert",
       "risk": "app-layer",
@@ -1688,7 +1688,7 @@
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",
-      "line": 373,
+      "line": 382,
       "callee": "tx.update",
       "method": "update",
       "risk": "app-layer",
@@ -1699,7 +1699,7 @@
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",
-      "line": 401,
+      "line": 410,
       "callee": "db.update",
       "method": "update",
       "risk": "app-layer",
@@ -1864,13 +1864,13 @@
     },
     {
       "file": "apps/web/src/app/api/webhooks/paddle/_core.ts",
-      "line": 120,
+      "line": 126,
       "callee": "db.query",
       "method": "query",
       "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "userId comes from verified Paddle webhook custom data",
+      "tenantPosture": "system-exempt",
+      "tenantPostureReason": "system-exempt: directive",
+      "tenantPostureDetail": "Paddle customData userId is a fallback only after canonical subscription lookup cannot resolve tenant",
       "source": "const userRecord = await db.query.user.findFirst({"
     },
     {
@@ -2858,7 +2858,7 @@
     },
     {
       "file": "apps/web/src/features/claims/upload/server/shared-upload.ts",
-      "line": 532,
+      "line": 521,
       "callee": "db.transaction",
       "method": "transaction",
       "risk": "app-layer",
@@ -2869,7 +2869,7 @@
     },
     {
       "file": "apps/web/src/features/claims/upload/server/shared-upload.ts",
-      "line": 534,
+      "line": 523,
       "callee": "tx.insert",
       "method": "insert",
       "risk": "app-layer",
@@ -2880,7 +2880,7 @@
     },
     {
       "file": "apps/web/src/features/claims/upload/server/shared-upload.ts",
-      "line": 550,
+      "line": 539,
       "callee": "db.transaction",
       "method": "transaction",
       "risk": "app-layer",
@@ -3017,7 +3017,7 @@
     },
     {
       "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 101,
+      "line": 110,
       "callee": "db.update",
       "method": "update",
       "risk": "app-layer",
@@ -3028,7 +3028,7 @@
     },
     {
       "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 125,
+      "line": 134,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
@@ -3038,7 +3038,7 @@
     },
     {
       "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 173,
+      "line": 182,
       "callee": "db.update",
       "method": "update",
       "risk": "app-layer",
@@ -3049,7 +3049,7 @@
     },
     {
       "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 243,
+      "line": 256,
       "callee": "db.transaction",
       "method": "transaction",
       "risk": "app-layer",
@@ -3060,7 +3060,7 @@
     },
     {
       "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 245,
+      "line": 258,
       "callee": "tx.insert",
       "method": "insert",
       "risk": "app-layer",
@@ -3071,7 +3071,7 @@
     },
     {
       "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 251,
+      "line": 264,
       "callee": "tx.update",
       "method": "update",
       "risk": "app-layer",
@@ -3082,7 +3082,7 @@
     },
     {
       "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 279,
+      "line": 292,
       "callee": "db.update",
       "method": "update",
       "risk": "app-layer",
@@ -5306,47 +5306,50 @@
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/dunning.ts",
-      "line": 133,
+      "line": 180,
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
-      "source": "(await db.query.user.findFirst({"
+      "tenantPosture": "system-exempt",
+      "tenantPostureReason": "system-exempt: directive",
+      "tenantPostureDetail": "Paddle userId lookup bootstraps dunning tenant context before tenant-scoped writes",
+      "source": "const userRecord = await db.query.user.findFirst({"
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/dunning.ts",
-      "line": 146,
+      "line": 198,
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-predicate",
+      "tenantPostureReason": "tenant-predicate: in-where-clause",
       "source": "(await db.query.subscriptions.findFirst({"
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/dunning.ts",
-      "line": 212,
+      "line": 266,
       "callee": "db.update",
       "method": "update",
       "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "tenantId from canonical user/subscription context constrains dunning update",
       "source": "await db .update(subscriptions)"
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/dunning.ts",
-      "line": 220,
+      "line": 277,
       "callee": "db.insert",
       "method": "insert",
       "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "tenantId from canonical user context is included in dunning insert values",
       "source": "await db.insert(subscriptions).values({"
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/dunning.ts",
-      "line": 238,
+      "line": 297,
       "callee": "db.update",
       "method": "update",
       "risk": "domain-wrapper",
@@ -5357,53 +5360,57 @@
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscriptions.ts",
-      "line": 137,
+      "line": 142,
       "callee": "db.insert",
       "method": "insert",
       "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "tenantId from canonical Paddle subscription context is included in insert values",
       "source": "await db.insert(subscriptions).values(insertValues);"
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscriptions.ts",
-      "line": 166,
-      "callee": "db.query",
-      "method": "query",
-      "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
-      "source": "(await db.query.subscriptions.findFirst({"
-    },
-    {
-      "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscriptions.ts",
-      "line": 174,
-      "callee": "db.update",
-      "method": "update",
-      "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
-      "source": "await db.update(subscriptions).set(values).where(eq(subscriptions.id, subscriptionId));"
-    },
-    {
-      "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/transaction.ts",
-      "line": 41,
-      "callee": "db.query",
-      "method": "query",
-      "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
-      "source": "const user = await db.query.user.findFirst({"
-    },
-    {
-      "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/context.ts",
-      "line": 66,
+      "line": 179,
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
       "tenantPosture": "tenant-scoped",
       "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId resolved into local variable before this DB call",
+      "tenantPostureDetail": "tenantId from canonical Paddle subscription context constrains fallback user lookup",
+      "source": "await db.query.subscriptions.findFirst({"
+    },
+    {
+      "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscriptions.ts",
+      "line": 192,
+      "callee": "db.update",
+      "method": "update",
+      "risk": "domain-wrapper",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "tenantId from canonical Paddle subscription context constrains subscription update",
+      "source": "await db .update(subscriptions)"
+    },
+    {
+      "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/transaction.ts",
+      "line": 99,
+      "callee": "db.query",
+      "method": "query",
+      "risk": "domain-wrapper",
+      "tenantPosture": "system-exempt",
+      "tenantPostureReason": "system-exempt: directive",
+      "tenantPostureDetail": "Paddle userId lookup bootstraps transaction tenant context before tenant-scoped audit writes",
+      "source": "const user = await db.query.user.findFirst({"
+    },
+    {
+      "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/context.ts",
+      "line": 83,
+      "callee": "db.query",
+      "method": "query",
+      "risk": "domain-wrapper",
+      "tenantPosture": "system-exempt",
+      "tenantPostureReason": "system-exempt: directive",
+      "tenantPostureDetail": "Paddle userId lookup bootstraps tenant context before tenant-scoped subscription writes",
       "source": "const userRecord = await db.query.user.findFirst({"
     },
     {
@@ -5439,28 +5446,29 @@
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.ts",
-      "line": 88,
+      "line": 98,
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
-      "source": "(await db.query.user.findFirst({"
+      "tenantPosture": "system-exempt",
+      "tenantPostureReason": "system-exempt: directive",
+      "tenantPostureDetail": "checkout reconciliation probes global email ownership before tenant-scoped user writes",
+      "source": "const userRecord = await db.query.user.findFirst({"
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.ts",
-      "line": 119,
+      "line": 129,
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId resolved into local variable before this DB call",
+      "tenantPosture": "system-exempt",
+      "tenantPostureReason": "system-exempt: directive",
+      "tenantPostureDetail": "provider transaction lookup bootstraps checkout reconciliation before tenant context exists",
       "source": "const webhookEvent = await db.query.webhookEvents.findFirst({"
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.ts",
-      "line": 169,
+      "line": 196,
       "callee": "db.transaction",
       "method": "transaction",
       "risk": "domain-wrapper",
@@ -5471,7 +5479,7 @@
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.ts",
-      "line": 171,
+      "line": 198,
       "callee": "tx.insert",
       "method": "insert",
       "risk": "domain-wrapper",
@@ -5482,17 +5490,18 @@
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.ts",
-      "line": 214,
+      "line": 243,
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
-      "source": "? await db.query.account.findFirst({"
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "userId belongs to same-tenant checkout user before credential lookup",
+      "source": "const accountRecord = await db.query.account.findFirst({"
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.ts",
-      "line": 229,
+      "line": 259,
       "callee": "db.transaction",
       "method": "transaction",
       "risk": "domain-wrapper",
@@ -5503,7 +5512,7 @@
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.ts",
-      "line": 231,
+      "line": 261,
       "callee": "tx.update",
       "method": "update",
       "risk": "domain-wrapper",
@@ -5514,12 +5523,13 @@
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.ts",
-      "line": 261,
+      "line": 292,
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "tenantId from reconciled checkout context constrains final user reload",
       "source": "const finalUser = await db.query.user.findFirst({"
     },
     {
@@ -5557,27 +5567,29 @@
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/persist.ts",
-      "line": 21,
+      "line": 22,
       "callee": "db.insert",
       "method": "insert",
       "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "system-exempt",
+      "tenantPostureReason": "system-exempt: directive",
+      "tenantPostureDetail": "Paddle invalid-signature audit must persist before safe tenant resolution and allows tenantId null",
       "source": "await db .insert(webhookEvents)"
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/persist.ts",
-      "line": 71,
+      "line": 73,
       "callee": "db.insert",
       "method": "insert",
       "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "system-exempt",
+      "tenantPostureReason": "system-exempt: directive",
+      "tenantPostureDetail": "Paddle webhook receipt audit preserves duplicate detection before handler-level tenant writes",
       "source": "const inserted = await db .insert(webhookEvents)"
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/persist.ts",
-      "line": 147,
+      "line": 149,
       "callee": "db.update",
       "method": "update",
       "risk": "domain-wrapper",
@@ -5588,7 +5600,7 @@
     },
     {
       "file": "packages/domain-membership-billing/src/paddle-webhooks/persist.ts",
-      "line": 188,
+      "line": 190,
       "callee": "db.update",
       "method": "update",
       "risk": "domain-wrapper",
