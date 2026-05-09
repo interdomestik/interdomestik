@@ -161,7 +161,7 @@ test.describe('Registration tenant attribution', () => {
                 email,
                 name: `PD05 ${target.label.toUpperCase()} ${requestIndex}`,
                 role: 'user',
-                password: 'GoldenPass123!',
+                password: E2E_PASSWORD,
                 phone: `+38344111${tenantIndex}${requestIndex}${suffix.slice(-2)}`,
                 planId: 'standard',
               },

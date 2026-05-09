@@ -40,7 +40,6 @@ jobs:
       BETTER_AUTH_URL: http://127.0.0.1:3000
       DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-secret-for-ci-only-do-not-use-in-production' }}
-      E2E_API_SECRET: test-secret-placeholder
       RC_MANIFEST_PATH: scripts/release-gate/v1-required-specs.json
       RC_BASE_URL: http://127.0.0.1:3000
       RC_RUN_ID: rc-${{ github.run_id }}-${{ github.run_attempt }}
@@ -48,16 +47,11 @@ jobs:
       RC_LOGS_DIR: tmp/release-rc/rc-${{ github.run_id }}-${{ github.run_attempt }}/logs
       RC_RESULTS_DIR: apps/web/test-results
       RELEASE_GATE_MEMBER_EMAIL: member.ks.a1@interdomestik.com
-      RELEASE_GATE_MEMBER_PASSWORD: GoldenPass123!
       RELEASE_GATE_AGENT_EMAIL: agent.ks.a1@interdomestik.com
-      RELEASE_GATE_AGENT_PASSWORD: GoldenPass123!
       RELEASE_GATE_OFFICE_AGENT_EMAIL: agent.ks.b1@interdomestik.com
       RELEASE_GATE_STAFF_EMAIL: staff.ks@interdomestik.com
-      RELEASE_GATE_STAFF_PASSWORD: GoldenPass123!
       RELEASE_GATE_ADMIN_KS_EMAIL: admin.ks@interdomestik.com
-      RELEASE_GATE_ADMIN_KS_PASSWORD: GoldenPass123!
       RELEASE_GATE_ADMIN_MK_EMAIL: admin.mk@interdomestik.com
-      RELEASE_GATE_ADMIN_MK_PASSWORD: GoldenPass123!
       RELEASE_GATE_MK_USER_URL: ''
       RELEASE_GATE_TARGET_USER_URL: /admin/users/golden_mk_admin?tenantId=tenant_mk
       RELEASE_GATE_REQUIRE_ROLE_PANEL: 'false'
@@ -69,6 +63,9 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           install-playwright: true
+
+      - name: Generate ephemeral E2E credentials
+        run: bash scripts/ci/export-e2e-credentials.sh
 
       - name: Prepare RC workspace
         shell: bash

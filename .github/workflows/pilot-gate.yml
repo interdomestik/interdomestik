@@ -191,16 +191,11 @@ jobs:
       SENTRY_ORG: ${{ vars.SENTRY_ORG || secrets.SENTRY_ORG }}
       SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT || secrets.SENTRY_PROJECT }}
       RELEASE_GATE_MEMBER_EMAIL: member.ks.a1@interdomestik.com
-      RELEASE_GATE_MEMBER_PASSWORD: GoldenPass123!
       RELEASE_GATE_AGENT_EMAIL: agent.ks.a1@interdomestik.com
-      RELEASE_GATE_AGENT_PASSWORD: GoldenPass123!
       RELEASE_GATE_OFFICE_AGENT_EMAIL: agent.ks.b1@interdomestik.com
       RELEASE_GATE_STAFF_EMAIL: staff.ks@interdomestik.com
-      RELEASE_GATE_STAFF_PASSWORD: GoldenPass123!
       RELEASE_GATE_ADMIN_KS_EMAIL: admin.ks@interdomestik.com
-      RELEASE_GATE_ADMIN_KS_PASSWORD: GoldenPass123!
       RELEASE_GATE_ADMIN_MK_EMAIL: admin.mk@interdomestik.com
-      RELEASE_GATE_ADMIN_MK_PASSWORD: GoldenPass123!
       RELEASE_GATE_MK_USER_URL: ''
       RELEASE_GATE_TARGET_USER_URL: /admin/users/golden_mk_admin?tenantId=tenant_mk
       RELEASE_GATE_REQUIRE_ROLE_PANEL: 'false'
@@ -229,6 +224,9 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           install-playwright: true
+
+      - name: Generate ephemeral E2E credentials
+        run: bash scripts/ci/export-e2e-credentials.sh
 
       - name: Run Sonar quality gate (manual fallback)
         if: env.SONAR_GATE_ENABLED == 'true' && (github.event_name != 'pull_request' || needs.pilot-gate-preflight.outputs.needs_manual_sonar_fallback == 'true')

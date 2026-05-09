@@ -1,11 +1,12 @@
+import { E2E_PASSWORD } from '@interdomestik/database';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { routes } from './routes';
 import { gotoApp } from './utils/navigation';
 // Credentials from seed script
-const MEMBER_KS = { email: 'member.ks.a1@interdomestik.com', password: 'GoldenPass123!' };
-const MEMBER_MK = { email: 'member.mk.1@interdomestik.com', password: 'GoldenPass123!' };
-const ADMIN_KS = { email: 'admin.ks@interdomestik.com', password: 'GoldenPass123!' };
-const ADMIN_MK = { email: 'admin.mk@interdomestik.com', password: 'GoldenPass123!' };
+const MEMBER_KS = { email: 'member.ks.a1@interdomestik.com', password: E2E_PASSWORD };
+const MEMBER_MK = { email: 'member.mk.1@interdomestik.com', password: E2E_PASSWORD };
+const ADMIN_KS = { email: 'admin.ks@interdomestik.com', password: E2E_PASSWORD };
+const ADMIN_MK = { email: 'admin.mk@interdomestik.com', password: E2E_PASSWORD };
 
 // Claim Data - use a unique title per project run to avoid parallel collision
 // Using a fixed timestamp for the entire spec file to keep it stable during serial execution
@@ -44,7 +45,7 @@ async function loginAs(
   await page.context().clearCookies();
 
   const res = await page.request.post(loginURL, {
-    data: { email: user.email, password: user.password || 'GoldenPass123!' },
+    data: { email: user.email, password: user.password || E2E_PASSWORD },
     headers: {
       Origin: origin,
       Referer: `${origin}/login`,

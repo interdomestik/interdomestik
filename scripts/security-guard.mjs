@@ -4,6 +4,7 @@ import { runEvidenceStoragePathGuard } from './check-evidence-storage-paths.mjs'
 import { runNextTypeScriptBuildIntegrityGuard } from './check-next-typescript-build-integrity.mjs';
 import { runServiceRoleStorageBoundaryGuard } from './check-service-role-storage-boundary.mjs';
 import { runSignedUrlExposureGuard } from './check-signed-url-exposure.mjs';
+import { runWorkflowSeedCredentialGuard } from './check-workflow-seed-credentials.mjs';
 
 const LOCKFILE_PATH = path.join(process.cwd(), 'pnpm-lock.yaml');
 
@@ -109,6 +110,11 @@ async function runGuard() {
   const nextTypeScriptBuildIntegrityStatus = runNextTypeScriptBuildIntegrityGuard();
   if (nextTypeScriptBuildIntegrityStatus !== 0) {
     process.exit(nextTypeScriptBuildIntegrityStatus);
+  }
+
+  const workflowSeedCredentialStatus = runWorkflowSeedCredentialGuard();
+  if (workflowSeedCredentialStatus !== 0) {
+    process.exit(workflowSeedCredentialStatus);
   }
 
   console.log('✅ Security Guard passed. All enforced versions are clean.');

@@ -58,6 +58,9 @@ jobs:
         with:
           install-playwright: true
 
+      - name: Generate ephemeral E2E credentials
+        run: bash scripts/ci/export-e2e-credentials.sh
+
       - name: DB migrations
         run: pnpm db:migrate
 
