@@ -182,3 +182,51 @@ exfiltration or service-role key compromise risk; it reduces the app-side blast
 radius by rejecting untenant-prefixed paths before service-role Storage calls and
 keeps CSP enforce-mode dependency tracked separately under the blocked CSP
 migration line.
+
+## P33-SEC07 Implementation Receipt
+
+SEC07 implements the DG09 signed URL exposure-hardening follow-up without
+changing Storage architecture, auth/session shape, proxy behavior, canonical
+routes, schema, Stripe, README, AGENTS, or architecture docs.
+
+Signed download TTLs are now enforced at the service-role Storage boundary with
+operation-specific caps:
+
+| Operation             | Cap       | Notes                                                                 |
+| --------------------- | --------- | --------------------------------------------------------------------- |
+| Default download      | `300` sec | Used by admin/ops document signed links unless a narrower cap is set. |
+| Document download API | `300` sec | Used by `/api/documents/[id]` signed URL issuance.                    |
+| Voice-note preview    | `600` sec | Preserves the reviewed immediate playback preview bound.              |
+
+Requests above the selected cap fail before Supabase Storage is invoked. Signed
+upload URL token lifetime remains SDK-managed by Supabase; no route accepts a
+caller-provided upload-token TTL, and app-level upload intent tokens remain
+bounded at 15 minutes.
+
+Signed URL API responses that contain bearer URLs or upload tokens now use
+`Cache-Control: private, no-store, max-age=0` and
+`Referrer-Policy: no-referrer`. Direct document download responses keep
+`private, no-store` and also emit `Referrer-Policy: no-referrer` because the
+download target is sensitive even though it no longer returns a signed URL in
+the body.
+
+Known rendered anchors that can carry Storage signed URLs already used
+`noreferrer` semantics:
+
+- `apps/web/src/components/ops/OpsDocumentsPanel.tsx`;
+- `apps/web/src/features/member/policies/components/MemberPoliciesV2Page.tsx`.
+
+SEC07 keeps those semantics and adds `scripts/check-signed-url-exposure.mjs` to
+`pnpm security:guard`. The guard currently enforces three practical static
+checks under `apps/web/src`:
+
+1. no console logging blocks may include `signedUrl` values;
+2. known signed URL API routes must use the shared no-store/no-referrer response
+   helper;
+3. URL-bearing anchors must include `noreferrer`.
+
+The guard shape was assessed as practical for logs, known route responses, and
+anchor referrer suppression. It intentionally does not attempt full data-flow
+proof across every server action or arbitrary object property named `url`
+because that would create high false-positive risk; the bounded route inventory
+and focused tests cover the signed URL paths promoted by DG09.

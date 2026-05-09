@@ -160,6 +160,8 @@ describe('GET /api/documents/[id]', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store, max-age=0');
+    expect(response.headers.get('Referrer-Policy')).toBe('no-referrer');
     expect(data).toEqual({
       url: 'https://signed.example.com/file',
       name: 'file.pdf',

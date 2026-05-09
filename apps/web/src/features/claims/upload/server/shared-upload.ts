@@ -3,6 +3,7 @@ import {
   markClaimAiRunDispatchFailedService,
 } from '@/lib/ai/claim-workflows';
 import { LOCALES } from '@/i18n/locales';
+import { redactSignedUrlErrorDetails } from '@/lib/storage/signed-url-exposure';
 import { claimDocuments, db } from '@interdomestik/database';
 import { queueClaimDocumentAiWorkflows } from '@interdomestik/domain-claims/claims/ai-workflows';
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
@@ -455,7 +456,8 @@ export async function createSignedUploadUrl(params: {
         };
       }
 
-      const detail = error?.message ?? 'Unknown storage error';
+      const details = redactSignedUrlErrorDetails(error ?? 'Unknown storage error');
+      const detail = details.message;
       const retryable = shouldRetrySignedUpload(detail);
       const hasAttemptsLeft = attempt < SIGNED_UPLOAD_MAX_ATTEMPTS;
 
@@ -463,10 +465,10 @@ export async function createSignedUploadUrl(params: {
         bucket,
         path,
         detail,
-        error,
         attempt,
         maxAttempts: SIGNED_UPLOAD_MAX_ATTEMPTS,
         retryable,
+        error: details,
       });
 
       if (retryable && hasAttemptsLeft) {
@@ -483,7 +485,7 @@ export async function createSignedUploadUrl(params: {
       status: 500,
     };
   } catch (error) {
-    console.error(`${logPrefix} generate upload URL error`, error);
+    console.error(`${logPrefix} generate upload URL error`, redactSignedUrlErrorDetails(error));
     return { success: false, error: 'Unexpected error', status: 500 };
   }
 }

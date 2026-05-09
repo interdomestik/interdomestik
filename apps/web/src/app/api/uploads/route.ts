@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
+import { signedUrlResponseInit } from '@/lib/storage/signed-url-exposure';
 import { NextResponse } from 'next/server';
 
 import { createSignedUploadCore, uploadRequestSchema } from './_core';
@@ -56,5 +57,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
-  return NextResponse.json(result.body, { status: result.status });
+  return NextResponse.json(result.body, signedUrlResponseInit({ status: result.status }));
 }

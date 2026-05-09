@@ -168,6 +168,7 @@ describe('GET /api/documents/[id]/download', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('application/pdf');
     expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(response.headers.get('Referrer-Policy')).toBe('no-referrer');
 
     const contentDisposition = response.headers.get('Content-Disposition');
     expect(contentDisposition).toContain('attachment');
