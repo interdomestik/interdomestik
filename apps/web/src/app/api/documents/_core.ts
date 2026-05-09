@@ -1,4 +1,6 @@
 import { ApiErrorCode } from '@/core-contracts';
+import type { AuditEvent } from '@/lib/audit';
+import type { TenantStorageFamily } from '@/lib/storage/tenant-prefix';
 import type * as DatabaseModule from '@interdomestik/database';
 import { claimDocuments, claims, documents, policies } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -12,9 +14,14 @@ export interface DocumentAccessDeps {
     createSignedUrl: (
       bucket: string,
       path: string,
-      expiresIn: number
+      expiresIn: number,
+      options: { family: TenantStorageFamily; tenantId: string }
     ) => Promise<{ signedUrl?: string; error?: unknown }>;
-    download: (bucket: string, path: string) => Promise<{ data?: Blob; error?: unknown }>;
+    download: (
+      bucket: string,
+      path: string,
+      options: { family: TenantStorageFamily; tenantId: string }
+    ) => Promise<{ data?: Blob; error?: unknown }>;
   };
 }
 
@@ -47,8 +54,29 @@ type PolymorphicDocumentRow = {
 };
 
 export type DocumentAccessResult =
-  | { ok: true; document: DocumentRow; audit: AuditContext }
+  | {
+      ok: true;
+      document: DocumentRow;
+      audit: AuditContext;
+      storageFamily: TenantStorageFamily;
+      tenantId: string;
+    }
   | { ok: false; code: ApiErrorCode; message?: string };
+
+export const DOCUMENT_ACCESS_STATUS_BY_CODE: Record<ApiErrorCode, number> = {
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  UNAUTHORIZED: 401,
+  BAD_REQUEST: 400,
+  CONFLICT: 409,
+  RATE_LIMIT: 429,
+  INTERNAL_ERROR: 500,
+  TIMEOUT: 504,
+  PAYLOAD_TOO_LARGE: 413,
+  UNPROCESSABLE_ENTITY: 422,
+};
+
+export type DocumentAuditLogger = (event: AuditEvent) => Promise<void>;
 
 type AuditContext = {
   action: string;
@@ -171,6 +199,12 @@ function getPolymorphicDocumentAuditEntityType(entityType: string): AuditContext
   return 'claim_document';
 }
 
+function getStorageFamilyForDocument(document: DocumentRow): TenantStorageFamily {
+  return document.bucket === (process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || 'policies')
+    ? 'policies'
+    : 'claims';
+}
+
 function buildDocumentAudit(args: {
   actorRole: string | null | undefined;
   disposition: 'inline' | 'attachment';
@@ -211,6 +245,49 @@ function buildDocumentAudit(args: {
     actorRole: actorRole ?? null,
     metadata,
   };
+}
+
+export async function logDeniedDocumentAccess(args: {
+  access: Extract<DocumentAccessResult, { ok: false }>;
+  documentId: string;
+  headers: Headers;
+  logAuditEvent: DocumentAuditLogger;
+  session: SessionDTO;
+  tenantId?: string | null;
+}): Promise<void> {
+  if (args.access.code !== 'FORBIDDEN') {
+    return;
+  }
+
+  await args.logAuditEvent({
+    actorId: args.session.user.id,
+    actorRole: args.session.user.role || null,
+    tenantId: args.tenantId ?? undefined,
+    action: 'document.forbidden',
+    entityType: 'claim_document',
+    entityId: args.documentId,
+    metadata: { error: args.access.message },
+    headers: args.headers,
+  });
+}
+
+export async function logAllowedDocumentAccess(args: {
+  access: Extract<DocumentAccessResult, { ok: true }>;
+  headers: Headers;
+  logAuditEvent: DocumentAuditLogger;
+  session: SessionDTO;
+  tenantId?: string | null;
+}): Promise<void> {
+  await args.logAuditEvent({
+    actorId: args.session.user.id,
+    actorRole: args.access.audit.actorRole,
+    tenantId: args.tenantId ?? undefined,
+    action: args.access.audit.action,
+    entityType: args.access.audit.entityType,
+    entityId: args.access.audit.entityId,
+    metadata: args.access.audit.metadata,
+    headers: args.headers,
+  });
 }
 
 async function canReadPolymorphicDocument(args: {
@@ -385,6 +462,8 @@ export async function getDocumentAccessCore(args: {
     return {
       ok: true,
       document,
+      storageFamily: getStorageFamilyForDocument(document),
+      tenantId,
       audit: buildDocumentAudit({
         actorRole: userRole,
         disposition: finalDisposition,
@@ -433,6 +512,8 @@ export async function getDocumentAccessCore(args: {
   return {
     ok: true,
     document: doc,
+    storageFamily: getStorageFamilyForDocument(doc),
+    tenantId,
     audit: buildDocumentAudit({
       actorRole: userRole,
       disposition: finalDisposition,
@@ -447,13 +528,16 @@ export async function createSignedDownloadUrlCore(args: {
   bucket: string;
   filePath: string;
   expiresInSeconds: number;
+  family: TenantStorageFamily;
   deps: DocumentAccessDeps;
+  tenantId: string;
 }): Promise<{ ok: true; signedUrl: string } | { ok: false }> {
-  const { bucket, filePath, expiresInSeconds, deps } = args;
+  const { bucket, filePath, expiresInSeconds, family, deps, tenantId } = args;
   const { signedUrl, error } = await deps.storage.createSignedUrl(
     bucket,
     filePath,
-    expiresInSeconds
+    expiresInSeconds,
+    { family, tenantId }
   );
 
   if (error || !signedUrl) return { ok: false };
@@ -463,10 +547,12 @@ export async function createSignedDownloadUrlCore(args: {
 export async function downloadStorageFileCore(args: {
   bucket: string;
   filePath: string;
+  family: TenantStorageFamily;
   deps: DocumentAccessDeps;
+  tenantId: string;
 }): Promise<{ ok: true; data: Blob } | { ok: false }> {
-  const { bucket, filePath, deps } = args;
-  const { data, error } = await deps.storage.download(bucket, filePath);
+  const { bucket, filePath, family, deps, tenantId } = args;
+  const { data, error } = await deps.storage.download(bucket, filePath, { family, tenantId });
 
   if (error || !data) return { ok: false };
   return { ok: true, data };

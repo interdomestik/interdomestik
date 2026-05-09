@@ -1,26 +1,20 @@
-import { ApiErrorCode } from '@/core-contracts';
 import { logAuditEvent } from '@/lib/audit';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { createAdminClient } from '@interdomestik/database';
 import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
 import {
+  DOCUMENT_ACCESS_STATUS_BY_CODE,
   buildContentDispositionHeader,
   downloadStorageFileCore,
   getDocumentAccessCore,
+  logAllowedDocumentAccess,
+  logDeniedDocumentAccess,
 } from '../../_core';
+import { createDocumentDownloadStorageService } from '../../storage-service.server';
 
-// Service Adapter
-const storageService = {
-  createSignedUrl: async () => ({}),
-  download: async (bucket: string, path: string) => {
-    const adminClient = createAdminClient();
-    const { data, error } = await adminClient.storage.from(bucket).download(path);
-    return { data: data || undefined, error: error || undefined };
-  },
-};
+const storageService = createDocumentDownloadStorageService();
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const limited = await enforceRateLimit({
@@ -58,50 +52,35 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   });
 
   if (!access.ok) {
-    const statusMap: Record<ApiErrorCode, number> = {
-      FORBIDDEN: 403,
-      NOT_FOUND: 404,
-      UNAUTHORIZED: 401,
-      BAD_REQUEST: 400,
-      CONFLICT: 409,
-      RATE_LIMIT: 429,
-      INTERNAL_ERROR: 500,
-      TIMEOUT: 504,
-      PAYLOAD_TOO_LARGE: 413,
-      UNPROCESSABLE_ENTITY: 422,
-    };
+    await logDeniedDocumentAccess({
+      access,
+      documentId: id,
+      headers: request.headers,
+      logAuditEvent,
+      session,
+      tenantId,
+    });
 
-    if (access.code === 'FORBIDDEN') {
-      await logAuditEvent({
-        actorId: session.user.id,
-        actorRole: session.user.role || null,
-        tenantId,
-        action: 'document.forbidden',
-        entityType: 'claim_document',
-        entityId: id,
-        metadata: { error: access.message },
-        headers: request.headers,
-      });
-    }
-
-    return NextResponse.json({ error: access.message }, { status: statusMap[access.code] || 500 });
+    return NextResponse.json(
+      { error: access.message },
+      { status: DOCUMENT_ACCESS_STATUS_BY_CODE[access.code] || 500 }
+    );
   }
 
-  await logAuditEvent({
-    actorId: session.user.id,
-    actorRole: access.audit.actorRole,
-    tenantId,
-    action: access.audit.action,
-    entityType: access.audit.entityType,
-    entityId: access.audit.entityId,
-    metadata: access.audit.metadata,
+  await logAllowedDocumentAccess({
+    access,
     headers: request.headers,
+    logAuditEvent,
+    session,
+    tenantId,
   });
 
   const file = await downloadStorageFileCore({
     bucket: access.document.bucket,
     filePath: access.document.filePath,
+    family: access.storageFamily,
     deps: { db, storage: storageService },
+    tenantId: access.tenantId,
   });
 
   if (!file.ok) {

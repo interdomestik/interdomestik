@@ -1,11 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-const DEFAULT_SCAN_ROOTS = ['apps/web/src'];
+import {
+  DEFAULT_SCAN_ROOTS,
+  parseScanArgs,
+  toPosixRelative,
+  walkSourceFiles,
+} from './lib/source-scan.mjs';
+
 const APPROVED_MODULE = 'apps/web/src/features/claims/upload/server/storage-path.ts';
-const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 const RAW_EVIDENCE_PATH_PATTERNS = [
   {
     kind: 'template literal',
@@ -26,62 +30,6 @@ const RAW_EVIDENCE_PATH_PATTERNS = [
       /\[\s*["']pii["']\s*,\s*["']tenants["'][\s\S]{0,400}?["']claims["'][\s\S]{0,400}?\.join\(\s*["']\/["']\s*\)/g,
   },
 ];
-
-function parseArgs(argv) {
-  const options = {
-    root: process.cwd(),
-    scanRoots: DEFAULT_SCAN_ROOTS,
-  };
-
-  for (const arg of argv) {
-    if (arg.startsWith('--root=')) {
-      options.root = path.resolve(arg.slice('--root='.length));
-      continue;
-    }
-    if (arg.startsWith('--scan-root=')) {
-      options.scanRoots = arg
-        .slice('--scan-root='.length)
-        .split(',')
-        .map(value => value.trim())
-        .filter(Boolean);
-      continue;
-    }
-    if (arg === '--help' || arg === '-h') {
-      console.log(
-        'Usage: node scripts/check-evidence-storage-paths.mjs [--root=<repo>] [--scan-root=<path,...>]'
-      );
-      process.exit(0);
-    }
-    throw new Error(`Unknown argument: ${arg}`);
-  }
-
-  return options;
-}
-
-function toPosixRelative(root, filePath) {
-  return path.relative(root, filePath).split(path.sep).join('/');
-}
-
-function walkSourceFiles(dir, files = []) {
-  if (!fs.existsSync(dir)) return files;
-
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === 'node_modules' || entry.name === '.next' || entry.name === 'coverage') {
-      continue;
-    }
-
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walkSourceFiles(fullPath, files);
-      continue;
-    }
-    if (entry.isFile() && SOURCE_EXTENSIONS.has(path.extname(entry.name))) {
-      files.push(fullPath);
-    }
-  }
-
-  return files;
-}
 
 export function findRawEvidenceStoragePathTemplates(options = {}) {
   const root = path.resolve(options.root ?? process.cwd());
@@ -131,7 +79,12 @@ export function runEvidenceStoragePathGuard(options = {}) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    process.exitCode = runEvidenceStoragePathGuard(parseArgs(process.argv.slice(2)));
+    process.exitCode = runEvidenceStoragePathGuard(
+      parseScanArgs(
+        process.argv.slice(2),
+        'Usage: node scripts/check-evidence-storage-paths.mjs [--root=<repo>] [--scan-root=<path,...>]'
+      )
+    );
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

@@ -1,4 +1,5 @@
-import { and, claimDocuments, claims, createAdminClient, db, eq } from '@interdomestik/database';
+import { createTenantSignedDownloadUrl } from '@/lib/storage/service-role';
+import { and, claimDocuments, claims, db, eq } from '@interdomestik/database';
 
 export type AdminClaimDocument = {
   id: string;
@@ -55,8 +56,6 @@ export async function getAdminClaimDetailsCore(args: {
     .from(claimDocuments)
     .where(and(eq(claimDocuments.claimId, args.claimId), eq(claimDocuments.tenantId, tenantId)));
 
-  const adminClient = createAdminClient();
-
   const docs = await Promise.all(
     rawDocs.map(async doc => {
       if (!doc.bucket || !doc.filePath) {
@@ -70,9 +69,13 @@ export async function getAdminClaimDetailsCore(args: {
         };
       }
 
-      const { data } = await adminClient.storage
-        .from(doc.bucket)
-        .createSignedUrl(doc.filePath, 60 * 5);
+      const { data } = await createTenantSignedDownloadUrl({
+        bucket: doc.bucket,
+        context: 'admin claim document signed URL',
+        family: 'claims',
+        path: doc.filePath,
+        tenantId,
+      });
       return {
         id: doc.id,
         name: doc.name,

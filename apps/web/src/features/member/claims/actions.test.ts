@@ -42,6 +42,7 @@ vi.mock('@interdomestik/shared-auth', () => ({
 }));
 
 vi.mock('@/lib/storage/evidence-bucket', () => ({
+  DEFAULT_EVIDENCE_BUCKET: 'claim-evidence',
   resolveEvidenceBucketName: hoisted.resolveEvidenceBucketName,
 }));
 
@@ -50,6 +51,11 @@ vi.mock('@/features/claims/upload/server/access', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  createAdminClient: () => ({
+    storage: {
+      from: hoisted.storageFrom,
+    },
+  }),
   db: {
     insert: hoisted.insert,
     transaction: hoisted.transaction,

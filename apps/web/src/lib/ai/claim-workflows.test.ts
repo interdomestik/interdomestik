@@ -77,6 +77,7 @@ vi.mock('@/lib/inngest/client', () => ({
 }));
 
 vi.mock('@/lib/storage/evidence-bucket', () => ({
+  DEFAULT_EVIDENCE_BUCKET: 'claim-evidence',
   resolveEvidenceBucketName: mocks.resolveEvidenceBucketName,
 }));
 
@@ -300,7 +301,8 @@ describe('processClaimDocumentWorkflowRunService', () => {
     expect(mocks.resolveEvidenceBucketName).toHaveBeenCalledTimes(1);
     expect(deps.downloadFile).toHaveBeenCalledWith(
       'resolved-evidence-bucket',
-      'pii/tenants/tenant-1/claims/claim-1/demand-letter.pdf'
+      'pii/tenants/tenant-1/claims/claim-1/demand-letter.pdf',
+      'tenant-1'
     );
     expect(mocks.txInsertValues).toHaveBeenCalledWith(
       expect.objectContaining({

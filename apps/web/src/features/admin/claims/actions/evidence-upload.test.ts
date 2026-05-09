@@ -22,6 +22,7 @@ vi.mock('@/lib/tenant/tenant-hosts', () => ({
   resolveTenantFromHost: hoisted.resolveTenantFromHost,
 }));
 vi.mock('@/lib/storage/evidence-bucket', () => ({
+  DEFAULT_EVIDENCE_BUCKET: 'claim-evidence',
   resolveEvidenceBucketName: hoisted.resolveEvidenceBucketName,
 }));
 vi.mock('next/cache', () => ({ revalidatePath: hoisted.revalidatePath }));

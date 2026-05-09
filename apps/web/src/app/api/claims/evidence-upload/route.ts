@@ -16,8 +16,8 @@ import { confirmUpload } from '@/features/member/claims/actions';
 import { LOCALES } from '@/i18n/locales';
 import { auth } from '@/lib/auth';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
+import { uploadTenantObject } from '@/lib/storage/service-role';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import { createAdminClient } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import * as Sentry from '@sentry/nextjs';
 import { randomUUID } from 'crypto';
@@ -185,15 +185,20 @@ async function uploadEvidenceObject(params: {
   file: File;
   storageContentType: string;
   storagePath: string;
+  tenantId: string;
 }): Promise<NextResponse | null> {
   const buffer = Buffer.from(await params.file.arrayBuffer());
 
-  const { error: uploadError } = await createAdminClient()
-    .storage.from(params.bucket)
-    .upload(params.storagePath, buffer, {
-      contentType: params.storageContentType,
-      upsert: true,
-    });
+  const { error: uploadError } = await uploadTenantObject({
+    bucket: params.bucket,
+    body: buffer,
+    contentType: params.storageContentType,
+    context: 'claim evidence direct upload',
+    family: 'claims',
+    path: params.storagePath,
+    tenantId: params.tenantId,
+    upsert: true,
+  });
 
   if (uploadError) {
     return jsonError(uploadError.message || 'Failed to upload evidence', 500);
@@ -326,7 +331,13 @@ export async function POST(request: Request) {
 
   if (!uploadIntent.success) return uploadIntent.response;
 
-  const uploadError = await uploadEvidenceObject({ bucket, file, storageContentType, storagePath });
+  const uploadError = await uploadEvidenceObject({
+    bucket,
+    file,
+    storageContentType,
+    storagePath,
+    tenantId,
+  });
   if (uploadError) return uploadError;
 
   const confirmResult = await confirmEvidenceUpload({

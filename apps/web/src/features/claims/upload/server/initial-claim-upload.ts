@@ -171,6 +171,7 @@ export async function validateInitialClaimEvidenceUpload(params: {
     logPrefix: '[claim-wizard-upload]',
     mimeType: file.type,
     storagePath: file.path,
+    tenantId,
   });
 
   if (!storedObjectResult.success) {

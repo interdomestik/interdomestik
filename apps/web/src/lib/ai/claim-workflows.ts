@@ -7,7 +7,6 @@ import { extractLegalDocument } from '@interdomestik/domain-ai/legal/extract';
 import { db } from '@/lib/db.server';
 import { inngest } from '@/lib/inngest/client';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
-import { createAdminClient } from '@interdomestik/database';
 import { aiRuns, claims, documentExtractions, documents } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -22,7 +21,7 @@ type QueuedClaimAiRun = {
 };
 
 type ProcessClaimDocumentWorkflowDeps = {
-  downloadFile?: (bucket: string, filePath: string) => Promise<Buffer>;
+  downloadFile?: (bucket: string, filePath: string, tenantId: string) => Promise<Buffer>;
   analyzePdf?: (buffer: Buffer, mimeType: string) => Promise<string>;
 };
 
@@ -34,9 +33,19 @@ function getEventName(workflow: ClaimAiWorkflow) {
     : 'claim/intake-extract.requested';
 }
 
-async function downloadFileFromStorage(bucket: string, filePath: string): Promise<Buffer> {
-  const adminClient = createAdminClient();
-  const { data, error } = await adminClient.storage.from(bucket).download(filePath);
+async function downloadFileFromStorage(
+  bucket: string,
+  filePath: string,
+  tenantId: string
+): Promise<Buffer> {
+  const { downloadTenantObject } = await import('@/lib/storage/service-role');
+  const { data, error } = await downloadTenantObject({
+    bucket,
+    context: 'claim AI document download',
+    family: 'claims',
+    path: filePath,
+    tenantId,
+  });
 
   if (error || !data) {
     throw new Error('Failed to download queued claim document.');
@@ -195,7 +204,11 @@ export async function processClaimDocumentWorkflowRunService(args: {
       queuedRun.requestJson && typeof queuedRun.requestJson === 'object'
         ? (queuedRun.requestJson as Record<string, unknown>)
         : {};
-    const buffer = await downloadFile(getBucketFromRequestJson(requestJson), queuedRun.storagePath);
+    const buffer = await downloadFile(
+      getBucketFromRequestJson(requestJson),
+      queuedRun.storagePath,
+      queuedRun.tenantId
+    );
     const documentText = await analyzePdf(buffer, queuedRun.mimeType);
     const extraction =
       workflow === 'legal_doc_extract'
