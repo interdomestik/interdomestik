@@ -1,4 +1,13 @@
-export const E2E_PASSWORD = 'GoldenPass123!';
+export const DEFAULT_E2E_PASSWORD = 'GoldenPass123!';
+
+type E2EPasswordEnv = Record<string, string | undefined>;
+
+export function getE2EPassword(env: E2EPasswordEnv = process.env): string {
+  const override = env.E2E_PASSWORD?.trim();
+  return override && override.length > 0 ? override : DEFAULT_E2E_PASSWORD;
+}
+
+export const E2E_PASSWORD = getE2EPassword();
 
 /**
  * Single source of truth for E2E user identities and expected DB states.

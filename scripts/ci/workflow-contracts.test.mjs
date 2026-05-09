@@ -48,6 +48,90 @@ const RELEASE_GATE_ENV_VARS = [
   'RELEASE_GATE_ADMIN_MK_PASSWORD',
 ];
 
+const WORKFLOWS_WITH_GENERATED_E2E_CREDENTIALS = [
+  '.github/workflows/ci.yml',
+  '.github/workflows/e2e-pr.yml',
+  '.github/workflows/e2e-nightly.yml',
+  '.github/workflows/release-candidate.yml',
+  '.github/workflows/pilot-gate.yml',
+  '.github/workflows/multi-agent-pr-hardening.yml',
+];
+
+function readRepoText(relativePath) {
+  return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
+}
+
+test('workflow seed credential hardening rejects shared release passwords and E2E API placeholders', () => {
+  const workflowPaths = fs
+    .readdirSync(path.join(rootDir, '.github', 'workflows'))
+    .filter(fileName => /\.ya?ml$/u.test(fileName))
+    .map(fileName => `.github/workflows/${fileName}`);
+
+  for (const workflowPath of workflowPaths) {
+    const source = readRepoText(workflowPath);
+    assert.doesNotMatch(
+      source,
+      /^\s*RELEASE_GATE_[A-Z_]*_PASSWORD:\s*GoldenPass123!\s*$/m,
+      `${workflowPath} must not set release-gate account passwords to the shared seeded-user default`
+    );
+    assert.doesNotMatch(
+      source,
+      /^\s*E2E_API_SECRET:\s*test-secret-placeholder\s*$/m,
+      `${workflowPath} must not use the shared E2E API placeholder secret`
+    );
+  }
+});
+
+test('seeded CI workflows generate masked per-run E2E credentials before seeded auth work', () => {
+  for (const workflowPath of WORKFLOWS_WITH_GENERATED_E2E_CREDENTIALS) {
+    const source = readRepoText(workflowPath);
+    assert.match(source, /name:\s*Generate ephemeral E2E credentials/u, workflowPath);
+    assert.match(source, /bash scripts\/ci\/export-e2e-credentials\.sh/u, workflowPath);
+  }
+
+  const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
+  const ciSteps = ciWorkflow.jobs['e2e-gate'].steps;
+  assert.ok(
+    findStepIndex(ciSteps, 'Generate ephemeral E2E credentials') <
+      findStepIndex(ciSteps, 'Prepare E2E Database')
+  );
+
+  const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
+  const prE2eSteps = prE2eWorkflow.jobs.e2e.steps;
+  assert.ok(
+    findStepIndex(prE2eSteps, 'Generate ephemeral E2E credentials') <
+      findStepIndex(prE2eSteps, 'Run PR E2E Gate')
+  );
+
+  const nightlyWorkflow = readWorkflow('.github/workflows/e2e-nightly.yml');
+  const nightlySteps = nightlyWorkflow.jobs.e2e.steps;
+  assert.ok(
+    findStepIndex(nightlySteps, 'Generate ephemeral E2E credentials') <
+      findStepIndex(nightlySteps, 'Seed E2E DB')
+  );
+
+  const releaseCandidateWorkflow = readWorkflow('.github/workflows/release-candidate.yml');
+  const releaseCandidateSteps = releaseCandidateWorkflow.jobs['rc-gate'].steps;
+  assert.ok(
+    findStepIndex(releaseCandidateSteps, 'Generate ephemeral E2E credentials') <
+      findStepIndex(releaseCandidateSteps, 'Prepare CI database')
+  );
+
+  const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
+  const pilotGateSteps = pilotGateWorkflow.jobs['pilot-gate-runner'].steps;
+  assert.ok(
+    findStepIndex(pilotGateSteps, 'Generate ephemeral E2E credentials') <
+      findStepIndex(pilotGateSteps, 'Prepare CI database')
+  );
+
+  const multiAgentWorkflow = readWorkflow('.github/workflows/multi-agent-pr-hardening.yml');
+  const multiAgentSteps = multiAgentWorkflow.jobs['multi-agent-pr-hardening'].steps;
+  assert.ok(
+    findStepIndex(multiAgentSteps, 'Generate ephemeral E2E credentials') <
+      findStepIndex(multiAgentSteps, 'Prepare CI database')
+  );
+});
+
 test('CI PR path keeps only RLS coverage while PR E2E owns the PR browser gate lane', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
@@ -358,7 +442,6 @@ test('Composite CI setup action uses Node 24-compatible hosted actions', () => {
 });
 
 test('V3 onboarding and env docs describe Paddle-only runtime and deploy proof secrets', () => {
-  const readRepoText = relativePath => fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
   const readme = readRepoText('README.md');
   const architecture = readRepoText('docs/ARCHITECTURE.md');
   const envExample = readRepoText('.env.example');

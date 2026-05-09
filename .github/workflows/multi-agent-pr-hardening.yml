@@ -53,6 +53,9 @@ jobs:
         with:
           install-playwright: true
 
+      - name: Generate ephemeral E2E credentials
+        run: bash scripts/ci/export-e2e-credentials.sh
+
       - name: Prepare CI database
         shell: bash
         run: |

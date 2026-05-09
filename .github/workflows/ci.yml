@@ -143,12 +143,14 @@ jobs:
           --health-retries=10
     env:
       NODE_OPTIONS: --max-old-space-size=4096
-      E2E_API_SECRET: test-secret-placeholder
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
         with:
           install-playwright: ${{ github.event_name != 'pull_request' }}
+
+      - name: Generate ephemeral E2E credentials
+        run: bash scripts/ci/export-e2e-credentials.sh
 
       - name: Enforce E2E Best Practices
         if: github.event_name != 'pull_request'

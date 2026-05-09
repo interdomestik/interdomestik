@@ -83,6 +83,10 @@ jobs:
         with:
           install-playwright: true
 
+      - name: Generate ephemeral E2E credentials
+        if: steps.validation_surface.outputs.should_run == 'true'
+        run: bash scripts/ci/export-e2e-credentials.sh
+
       - name: Strict Rule Guards (golden/gate)
         if: steps.validation_surface.outputs.should_run == 'true'
         shell: bash

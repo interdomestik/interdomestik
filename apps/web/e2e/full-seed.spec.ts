@@ -1,8 +1,9 @@
+import { E2E_PASSWORD } from '@interdomestik/database';
 import { expect, test, type TestInfo } from '@playwright/test';
 import { gotoApp } from './utils/navigation';
 
 // Credentials from e2e seed (golden baseline)
-const PASSWORD = 'GoldenPass123!';
+const PASSWORD = E2E_PASSWORD;
 const USERS = {
   super: { email: 'super@interdomestik.com', tenant: 'tenant_mk' },
   mk_admin: { email: 'admin.mk@interdomestik.com', tenant: 'tenant_mk' },
