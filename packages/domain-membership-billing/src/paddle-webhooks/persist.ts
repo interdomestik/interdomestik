@@ -18,6 +18,7 @@ export async function persistInvalidSignatureAttempt(
   },
   deps: PaddleWebhookAuditDeps = {}
 ) {
+  // db-access-guard: system-exempt -- reason: Paddle invalid-signature audit must persist before safe tenant resolution and allows tenantId null
   await db
     .insert(webhookEvents)
     .values({
@@ -68,6 +69,7 @@ export async function insertWebhookEvent(
   },
   deps: PaddleWebhookAuditDeps = {}
 ) {
+  // db-access-guard: system-exempt -- reason: Paddle webhook receipt audit preserves duplicate detection before handler-level tenant writes
   const inserted = await db
     .insert(webhookEvents)
     .values({

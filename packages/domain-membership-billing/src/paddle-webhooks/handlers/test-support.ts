@@ -241,6 +241,13 @@ export function resetPaddleHandlerMocks(
 ) {
   vi.clearAllMocks();
   hoisted.selectResults.length = 0;
+  hoisted.db.query.user.findFirst.mockReset();
+  hoisted.db.query.account.findFirst.mockReset();
+  hoisted.db.query.subscriptions.findFirst.mockReset();
+  hoisted.db.query.tenantSettings.findFirst.mockReset();
+  hoisted.db.query.webhookEvents.findFirst.mockReset();
+  hoisted.db.query.agentClients.findFirst.mockReset();
+  hoisted.db.query.membershipPlans.findFirst.mockReset();
   hoisted.db.select.mockImplementation(() => ({
     from: createQueuedFromMock(vi.fn, hoisted.selectResults),
   }));

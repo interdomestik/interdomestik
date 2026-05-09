@@ -69,6 +69,16 @@ function toCustomData(
   return { ...fallback, ...value };
 }
 
+function hasCustomDataConflict(
+  field: 'tenantId' | 'userId',
+  value: CheckoutCustomData | undefined,
+  fallback: CheckoutCustomData | undefined
+): boolean {
+  const current = normalizeText(value?.[field]);
+  const previous = normalizeText(fallback?.[field]);
+  return Boolean(current && previous && current !== previous);
+}
+
 function shouldPromoteRole(role: string | null | undefined): boolean {
   return !role || role === 'user' || role === 'member';
 }
@@ -84,23 +94,23 @@ function isUniqueViolation(error: unknown): error is { code: string } {
 }
 
 async function findUserByEmail(email: string): Promise<ReconciledUserRecord | null> {
-  return (
-    (await db.query.user.findFirst({
-      where: (users, { eq }) => eq(users.email, email),
-      columns: {
-        id: true,
-        tenantId: true,
-        branchId: true,
-        email: true,
-        name: true,
-        role: true,
-        memberNumber: true,
-        agentId: true,
-        createdBy: true,
-        assistedByAgentId: true,
-      },
-    })) ?? null
-  );
+  // db-access-guard: system-exempt -- reason: checkout reconciliation probes global email ownership before tenant-scoped user writes
+  const userRecord = await db.query.user.findFirst({
+    where: (users, { eq }) => eq(users.email, email),
+    columns: {
+      id: true,
+      tenantId: true,
+      branchId: true,
+      email: true,
+      name: true,
+      role: true,
+      memberNumber: true,
+      agentId: true,
+      createdBy: true,
+      assistedByAgentId: true,
+    },
+  });
+  return userRecord ?? null;
 }
 
 export async function reconcileCheckoutUser(
@@ -115,7 +125,7 @@ export async function reconcileCheckoutUser(
     return null;
   }
 
-  // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
+  // db-access-guard: system-exempt -- reason: provider transaction lookup bootstraps checkout reconciliation before tenant context exists
   const webhookEvent = await db.query.webhookEvents.findFirst({
     where: (events, { eq }) => eq(events.providerTransactionId, transactionId),
     columns: { payload: true },
@@ -130,10 +140,19 @@ export async function reconcileCheckoutUser(
     return null;
   }
 
-  const mergedCustomData = toCustomData(
-    sub.customData || sub.custom_data,
-    transactionData.customData || transactionData.custom_data
-  );
+  const subscriptionCustomData = sub.customData || sub.custom_data;
+  const transactionCustomData = transactionData.customData || transactionData.custom_data;
+  if (
+    hasCustomDataConflict('tenantId', subscriptionCustomData, transactionCustomData) ||
+    hasCustomDataConflict('userId', subscriptionCustomData, transactionCustomData)
+  ) {
+    console.warn(
+      `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; subscription customData conflicts with stored transaction ${transactionId}`
+    );
+    return null;
+  }
+
+  const mergedCustomData = toCustomData(subscriptionCustomData, transactionCustomData);
   const tenantId = normalizeText(mergedCustomData?.tenantId);
   const customerEmail = normalizeText(
     transactionData.customerEmail || transactionData.customer_email
@@ -147,10 +166,18 @@ export async function reconcileCheckoutUser(
   }
 
   let existingUser = await findUserByEmail(customerEmail);
+  const customDataUserId = normalizeText(mergedCustomData?.userId);
 
   if (existingUser && existingUser.tenantId !== tenantId) {
     console.warn(
       `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; tenant mismatch for ${customerEmail}: existing=${existingUser.tenantId} payload=${tenantId}`
+    );
+    return null;
+  }
+
+  if (customDataUserId && existingUser?.id !== customDataUserId) {
+    console.warn(
+      `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; customData user=${customDataUserId} does not match canonical email user=${existingUser?.id ?? 'none'}`
     );
     return null;
   }
@@ -210,13 +237,16 @@ export async function reconcileCheckoutUser(
     }
   }
 
-  const credentialAccount = userId
-    ? await db.query.account.findFirst({
-        where: (accounts, { and, eq }) =>
-          and(eq(accounts.userId, userId), eq(accounts.providerId, 'credential')),
-        columns: { id: true, providerId: true },
-      })
-    : null;
+  let credentialAccount: { id: string; providerId: string } | null = null;
+  if (userId) {
+    // db-access-guard: tenant-scoped -- reason: userId belongs to same-tenant checkout user before credential lookup
+    const accountRecord = await db.query.account.findFirst({
+      where: (accounts, { and, eq }) =>
+        and(eq(accounts.userId, userId), eq(accounts.providerId, 'credential')),
+      columns: { id: true, providerId: true },
+    });
+    credentialAccount = accountRecord ?? null;
+  }
 
   if (
     existingUser &&
@@ -258,8 +288,10 @@ export async function reconcileCheckoutUser(
     shouldRequestOnboarding = !credentialAccount;
   }
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from reconciled checkout context constrains final user reload
   const finalUser = await db.query.user.findFirst({
-    where: (users, { eq }) => eq(users.email, customerEmail),
+    where: (users, { and, eq }) =>
+      and(eq(users.email, customerEmail), eq(users.tenantId, tenantId)),
     columns: {
       id: true,
       tenantId: true,

@@ -175,6 +175,129 @@ describe('handleSubscriptionChanged', () => {
     expect(logAuditEvent).not.toHaveBeenCalled();
   });
 
+  it('fails closed when provider tenant metadata conflicts with canonical subscription tenant', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
+      id: 'sub_existing',
+      tenantId: 'tenant_real',
+      userId: 'user_123',
+    });
+    hoisted.db.query.user.findFirst.mockResolvedValue({
+      id: 'user_123',
+      email: 'test@example.com',
+      tenantId: 'tenant_real',
+    });
+
+    await expect(
+      handleSubscriptionChanged(
+        {
+          eventType: 'subscription.updated',
+          data: {
+            id: 'sub_existing',
+            status: 'active',
+            customData: { userId: 'user_123', tenantId: 'tenant_bad' },
+            items: [
+              {
+                price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
+              },
+            ],
+            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+          },
+        },
+        { logAuditEvent }
+      )
+    ).rejects.toThrow('customData tenant=tenant_bad conflicts with canonical tenant=tenant_real');
+
+    expect(hoisted.db.insert).not.toHaveBeenCalled();
+    expect(hoisted.db.update).not.toHaveBeenCalled();
+    expect(logAuditEvent).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
+  it('does not fall back to checkout reconciliation for subscription.created tenant conflicts', async () => {
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
+      id: 'sub_existing',
+      tenantId: 'tenant_real',
+      userId: 'user_123',
+    });
+    hoisted.db.query.user.findFirst.mockResolvedValue({
+      id: 'user_123',
+      email: 'test@example.com',
+      tenantId: 'tenant_real',
+    });
+
+    await expect(
+      handleSubscriptionChanged(
+        {
+          eventType: 'subscription.created',
+          data: {
+            id: 'sub_existing',
+            status: 'active',
+            transactionId: 'txn_existing',
+            customData: { userId: 'user_123', tenantId: 'tenant_bad' },
+            items: [
+              {
+                price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
+              },
+            ],
+            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+          },
+        },
+        { logAuditEvent }
+      )
+    ).rejects.toThrow('customData tenant=tenant_bad conflicts with canonical tenant=tenant_real');
+
+    expect(hoisted.db.query.webhookEvents.findFirst).not.toHaveBeenCalled();
+    expect(hoisted.db.insert).not.toHaveBeenCalled();
+    expect(logAuditEvent).not.toHaveBeenCalled();
+  });
+
+  it('uses existing subscription canonical user when provider customData omits userId', async () => {
+    const mockWhere = vi.fn().mockResolvedValue(undefined);
+    const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+    hoisted.db.update.mockReturnValue({ set: mockSet });
+
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
+      id: 'sub_existing',
+      tenantId: 'tenant_abc',
+      userId: 'user_canonical',
+    });
+    hoisted.db.query.user.findFirst.mockResolvedValue({
+      id: 'user_canonical',
+      email: 'test@example.com',
+      tenantId: 'tenant_abc',
+    });
+
+    await handleSubscriptionChanged(
+      {
+        eventType: 'subscription.updated',
+        data: {
+          id: 'sub_existing',
+          status: 'active',
+          customData: { tenantId: 'tenant_abc' },
+          items: [
+            {
+              price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
+            },
+          ],
+          currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
+        },
+      },
+      { logAuditEvent }
+    );
+
+    expect(mockSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'tenant_abc',
+        userId: 'user_canonical',
+      })
+    );
+    expect(mockWhere).toHaveBeenCalled();
+  });
+
   it('updates an existing user-scoped subscription row instead of inserting a second row', async () => {
     const mockWhere = vi.fn().mockResolvedValue(undefined);
     const mockSet = vi.fn().mockReturnValue({ where: mockWhere });

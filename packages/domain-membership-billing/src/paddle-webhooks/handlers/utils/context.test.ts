@@ -115,7 +115,9 @@ describe('context utils', () => {
       (db.query.subscriptions.findFirst as any).mockImplementation(
         mockDbResponse({ tenantId: 'tn_ex', userId: 'u_1' })
       );
-      (db.query.user.findFirst as any).mockImplementation(mockDbResponse({ email: 'e@mail.com' }));
+      (db.query.user.findFirst as any).mockImplementation(
+        mockDbResponse({ tenantId: 'tn_ex', email: 'e@mail.com' })
+      );
       (db.query.tenantSettings.findFirst as any).mockImplementation(
         mockDbResponse({ value: { branchId: 'br_def' } })
       );
@@ -167,7 +169,7 @@ describe('context utils', () => {
       );
     });
 
-    it('should prefer canonical tenant over mismatched customData tenant', async () => {
+    it('should reject mismatched customData tenant before writes', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const sub = { id: 's_existing', customData: { userId: 'u_1', tenantId: 'tenant_bad' } };
 
@@ -181,14 +183,39 @@ describe('context utils', () => {
         mockDbResponse({ value: { branchId: 'br_def' } })
       );
 
-      const result = await resolveSubscriptionContext(sub);
-
-      expect(result?.tenantId).toBe('tenant_real');
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Ignoring mismatched customData.tenantId')
+      await expect(resolveSubscriptionContext(sub)).rejects.toThrow(
+        'customData tenant=tenant_bad conflicts with canonical tenant=tenant_real'
       );
+      expect(warnSpy).not.toHaveBeenCalled();
 
       warnSpy.mockRestore();
+    });
+
+    it('should reject mismatched customData user when an existing subscription has canonical user', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const sub = { id: 's_existing', customData: { userId: 'u_bad', tenantId: 'tenant_real' } };
+
+      (db.query.subscriptions.findFirst as any).mockImplementation(
+        mockDbResponse({ tenantId: 'tenant_real', userId: 'u_real' })
+      );
+
+      await expect(resolveSubscriptionContext(sub)).rejects.toThrow(
+        'customData user=u_bad conflicts with existing subscription user=u_real'
+      );
+      expect(db.query.user.findFirst).not.toHaveBeenCalled();
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      warnSpy.mockRestore();
+    });
+
+    it('should not use customData tenant when canonical user lookup fails', async () => {
+      const sub = { id: 's_bad', customData: { userId: 'u_missing', tenantId: 'tenant_provider' } };
+      (db.query.subscriptions.findFirst as any).mockImplementation(mockDbResponse(undefined));
+      (db.query.user.findFirst as any).mockImplementation(mockDbResponse(undefined));
+
+      const result = await resolveSubscriptionContext(sub);
+
+      expect(result).toBeNull();
     });
 
     it('should return null if tenant cannot be resolved', async () => {
