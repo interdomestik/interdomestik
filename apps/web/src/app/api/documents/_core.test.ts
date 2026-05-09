@@ -121,26 +121,28 @@ describe('getDocumentAccessCore Hardening', () => {
     it('returns signed-url audit metadata for claim documents', async () => {
       setupMocks([polymorphicDocs.claim], [branchScopedClaimRow]);
 
-      expect(await execAccess(memberSession, 'doc1', 'signed_url')).toEqual({
-        ok: true,
-        document: expect.objectContaining({
-          id: 'doc1',
-          bucket: 'claim-evidence',
-          filePath: 'path',
-        }),
-        audit: {
-          action: 'document.signed_url_issued',
-          entityType: 'claim_document',
-          entityId: 'doc1',
-          actorRole: 'member',
-          metadata: {
-            claimId: null,
+      expect(await execAccess(memberSession, 'doc1', 'signed_url')).toEqual(
+        expect.objectContaining({
+          ok: true,
+          document: expect.objectContaining({
+            id: 'doc1',
             bucket: 'claim-evidence',
             filePath: 'path',
-            expiresInSeconds: 300,
+          }),
+          audit: {
+            action: 'document.signed_url_issued',
+            entityType: 'claim_document',
+            entityId: 'doc1',
+            actorRole: 'member',
+            metadata: {
+              claimId: null,
+              bucket: 'claim-evidence',
+              filePath: 'path',
+              expiresInSeconds: 300,
+            },
           },
-        },
-      });
+        })
+      );
     });
 
     it('denies access to other member claim', async () => {

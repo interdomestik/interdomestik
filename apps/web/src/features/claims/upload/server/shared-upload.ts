@@ -5,7 +5,6 @@ import {
 import { LOCALES } from '@/i18n/locales';
 import { claimDocuments, db } from '@interdomestik/database';
 import { queueClaimDocumentAiWorkflows } from '@interdomestik/domain-claims/claims/ai-workflows';
-import { createClient } from '@supabase/supabase-js';
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { revalidatePath } from 'next/cache';
 
@@ -241,18 +240,6 @@ function verifyClaimUploadIntentToken(params: {
   return { success: true };
 }
 
-function getSupabaseStorageClient(logPrefix: string) {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.error(`${logPrefix} missing Supabase configuration`);
-    return null;
-  }
-
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
-
 function numberFromMetadata(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string') {
@@ -281,20 +268,19 @@ export async function validateStoredObject(params: {
   logPrefix: string;
   mimeType: string;
   storagePath: string;
+  tenantId: string;
 }): Promise<ConfirmedUploadValidationResult> {
-  const { bucket, fileSize, logPrefix, mimeType, storagePath } = params;
+  const { bucket, fileSize, logPrefix, mimeType, storagePath, tenantId } = params;
   const lastSlashIndex = storagePath.lastIndexOf('/');
-  const folder = storagePath.slice(0, lastSlashIndex);
   const fileName = storagePath.slice(lastSlashIndex + 1);
-  const supabase = getSupabaseStorageClient(logPrefix);
 
-  if (!supabase) {
-    return { success: false, error: 'Configuration error', status: 500 };
-  }
-
-  const { data, error } = await supabase.storage.from(bucket).list(folder, {
-    limit: 100,
-    search: fileName,
+  const { listTenantObjectsForSingleFile } = await import('@/lib/storage/service-role');
+  const { data, error } = await listTenantObjectsForSingleFile({
+    bucket,
+    context: 'claim upload verification',
+    family: 'claims',
+    path: storagePath,
+    tenantId,
   });
 
   if (error) {
@@ -388,6 +374,7 @@ export async function validateConfirmedClaimUpload(params: {
     logPrefix,
     mimeType: storageContentType ?? mimeType,
     storagePath,
+    tenantId,
   });
 }
 
@@ -435,15 +422,15 @@ export async function createSignedUploadUrl(params: {
     return { success: false, error: 'Invalid file name', status: 400 };
   }
 
-  const supabase = getSupabaseStorageClient(logPrefix);
-
-  if (!supabase) {
-    return { success: false, error: 'Configuration error', status: 500 };
-  }
-
   try {
+    const { createTenantSignedUploadUrl } = await import('@/lib/storage/service-role');
     for (let attempt = 1; attempt <= SIGNED_UPLOAD_MAX_ATTEMPTS; attempt += 1) {
-      const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path, {
+      const { data, error } = await createTenantSignedUploadUrl({
+        bucket,
+        context: 'claim evidence signed upload',
+        family: 'claims',
+        path,
+        tenantId,
         upsert: true,
       });
 

@@ -130,3 +130,55 @@ storage-boundary hardening slice that:
    cannot call Storage with caller-shaped bucket/path pairs;
 4. adds a guard that prevents new direct service-role Storage callsites outside
    the approved storage boundary.
+
+## P33-SEC06 Implementation Receipt
+
+SEC06 implements the DG08 backstop without broad Storage redesign. The migration
+`supabase/migrations/00009_storage_tenant_prefix_backstop.sql` first runs a
+legacy-object preflight for `pii/claims/%`, `pii/claims/%/voice-notes/%`, and
+`pii/policies/%`. If any legacy object remains, the migration raises an
+exception before retiring the legacy authenticated-user policies.
+
+The tenant join is explicit: `private.current_tenant_id()` is a
+`SECURITY DEFINER` helper that joins `(SELECT auth.uid())::text` to
+`public."user".id` and returns `public."user".tenant_id`. The new
+`storage.objects` policies use `storage.foldername(name)` to require:
+
+```sql
+-- claim-evidence
+bucket_id = 'claim-evidence'
+AND (storage.foldername(name))[1] = 'pii'
+AND (storage.foldername(name))[2] = 'tenants'
+AND (storage.foldername(name))[3] = (SELECT private.current_tenant_id())
+AND (storage.foldername(name))[4] = 'claims'
+
+-- policies
+bucket_id = 'policies'
+AND (storage.foldername(name))[1] = 'pii'
+AND (storage.foldername(name))[2] = 'tenants'
+AND (storage.foldername(name))[3] = (SELECT private.current_tenant_id())
+AND (storage.foldername(name))[4] = 'policies'
+```
+
+Service-role Storage access is centralized in
+`apps/web/src/lib/storage/service-role.ts`, backed by pure path assertions in
+`apps/web/src/lib/storage/tenant-prefix.ts`. The wrapper asserts bucket family,
+tenant prefix, no traversal, no empty path segment, and no sibling-prefix tenant
+match before upload, download, signed upload URL, signed download URL, or
+single-file metadata list calls reach Supabase Storage.
+
+The 13 service-role Storage callsites from the baseline now route through that
+boundary. `scripts/check-service-role-storage-boundary.mjs` is wired into
+`pnpm security:guard` so new direct `createAdminClient().storage` or
+`SUPABASE_SERVICE_ROLE_KEY` Storage callsites under `apps/web/src` fail the
+security guard unless they are in the approved boundary module.
+
+Signed download URLs use the shared `SIGNED_DOWNLOAD_TTL_SECONDS = 300` default.
+Voice-note previews keep a bounded `VOICE_NOTE_PREVIEW_TTL_SECONDS = 600`
+because they are returned immediately after upload for playback. Signed upload
+URL token lifetime is still Supabase-managed by the SDK; app-level upload intent
+tokens remain bounded at 15 minutes. SEC06 does not eliminate bearer signed URL
+exfiltration or service-role key compromise risk; it reduces the app-side blast
+radius by rejecting untenant-prefixed paths before service-role Storage calls and
+keeps CSP enforce-mode dependency tracked separately under the blocked CSP
+migration line.

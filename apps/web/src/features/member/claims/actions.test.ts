@@ -50,6 +50,11 @@ vi.mock('@/features/claims/upload/server/access', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  createAdminClient: () => ({
+    storage: {
+      from: hoisted.storageFrom,
+    },
+  }),
   db: {
     insert: hoisted.insert,
     transaction: hoisted.transaction,

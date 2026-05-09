@@ -7,13 +7,14 @@ import {
 } from '@/lib/ai/policy-analyzer';
 import { db } from '@/lib/db.server';
 import { inngest } from '@/lib/inngest/client';
-import { createAdminClient } from '@interdomestik/database';
+import { downloadTenantObject, uploadTenantObject } from '@/lib/storage/service-role';
+import { POLICIES_BUCKET, buildPolicyStoragePath } from '@/lib/storage/tenant-prefix';
 import { aiRuns, documentExtractions, documents, policies } from '@interdomestik/database/schema';
 import { getResponsesWorkflowConfig } from '@interdomestik/domain-ai/models';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
-const POLICIES_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || 'policies';
+const RESOLVED_POLICIES_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || POLICIES_BUCKET;
 const POLICY_EXTRACT_WORKFLOW = 'policy_extract' as const;
 const POLICY_EXTRACT_CONFIG = getResponsesWorkflowConfig(POLICY_EXTRACT_WORKFLOW);
 
@@ -74,7 +75,7 @@ type PolicyExtractRequestedEvent = {
 };
 
 type ProcessPolicyAnalysisDeps = {
-  downloadFile?: (filePath: string) => Promise<Buffer>;
+  downloadFile?: (filePath: string, tenantId: string) => Promise<Buffer>;
   analyzeImage?: (buffer: Buffer) => Promise<PolicyAnalysis>;
   analyzePdf?: (buffer: Buffer) => Promise<string>;
   analyzeText?: (text: string) => Promise<PolicyAnalysis>;
@@ -90,17 +91,20 @@ export async function uploadPolicyFileService(args: {
   buffer: Buffer;
   safeName: string;
 }) {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return {
-      ok: false as const,
-      error: 'Supabase service role key is required for policy uploads.',
-    };
-  }
-
-  const filePath = `pii/tenants/${args.tenantId}/policies/${args.userId}/${Date.now()}_${args.safeName}`;
-  const adminClient = createAdminClient();
-  const { error } = await adminClient.storage.from(POLICIES_BUCKET).upload(filePath, args.buffer, {
+  const filePath = buildPolicyStoragePath({
+    bucket: RESOLVED_POLICIES_BUCKET,
+    fileName: `${Date.now()}_${args.safeName}`,
+    tenantId: args.tenantId,
+    userId: args.userId,
+  });
+  const { error } = await uploadTenantObject({
+    bucket: RESOLVED_POLICIES_BUCKET,
+    body: args.buffer,
     contentType: args.file.type || 'application/octet-stream',
+    context: 'policy upload',
+    family: 'policies',
+    path: filePath,
+    tenantId: args.tenantId,
     upsert: false,
   });
 
@@ -219,9 +223,14 @@ export async function markPolicyAnalysisRunDispatchFailedService(args: {
     .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.status, 'queued')));
 }
 
-async function downloadPolicyFileService(filePath: string): Promise<Buffer> {
-  const adminClient = createAdminClient();
-  const { data, error } = await adminClient.storage.from(POLICIES_BUCKET).download(filePath);
+async function downloadPolicyFileService(filePath: string, tenantId: string): Promise<Buffer> {
+  const { data, error } = await downloadTenantObject({
+    bucket: RESOLVED_POLICIES_BUCKET,
+    context: 'policy analysis download',
+    family: 'policies',
+    path: filePath,
+    tenantId,
+  });
 
   if (error || !data) {
     throw new Error('Failed to download queued policy document.');
@@ -321,7 +330,7 @@ export async function processPolicyAnalysisRunService(args: {
     if (!fileUrl) {
       throw new Error('Queued policy analysis run is missing a storage path.');
     }
-    const fileBuffer = await deps.downloadFile(fileUrl);
+    const fileBuffer = await deps.downloadFile(fileUrl, queuedRun.tenantId);
     let analysis: PolicyAnalysis;
 
     if (isImageUpload(fileName, mimeType)) {

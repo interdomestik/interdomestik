@@ -1,11 +1,11 @@
 import { auth } from '@/lib/auth';
+import { createTenantSignedDownloadUrl } from '@/lib/storage/service-role';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import {
   and,
   claimStageHistory,
   claimDocuments,
   claims,
-  createAdminClient,
   desc,
   eq,
   user,
@@ -181,12 +181,15 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
 
   if (!claim) return { kind: 'not_found' };
 
-  const adminClient = createAdminClient();
   const docs = await Promise.all(
     rawDocs.map(async doc => {
-      const { data } = await adminClient.storage
-        .from(doc.bucket)
-        .createSignedUrl(doc.filePath, 60 * 60); // 1 hour link
+      const { data } = await createTenantSignedDownloadUrl({
+        bucket: doc.bucket,
+        context: 'ops claim document signed URL',
+        family: 'claims',
+        path: doc.filePath,
+        tenantId,
+      });
       return {
         id: doc.id,
         name: doc.name,

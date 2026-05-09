@@ -107,8 +107,8 @@ describe('GET /api/documents/[id]', () => {
         doc: {
           id: 'doc-1',
           claimId: 'claim-1',
-          bucket: 'bucket',
-          filePath: 'path/file.pdf',
+          bucket: 'claim-evidence',
+          filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
           uploadedBy: 'someone-else',
           name: 'file.pdf',
           fileType: 'application/pdf',
@@ -144,8 +144,8 @@ describe('GET /api/documents/[id]', () => {
         doc: {
           id: 'doc-1',
           claimId: 'claim-1',
-          bucket: 'bucket',
-          filePath: 'path/file.pdf',
+          bucket: 'claim-evidence',
+          filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
           uploadedBy: 'someone-else',
           name: 'file.pdf',
           fileType: 'application/pdf',

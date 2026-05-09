@@ -3,7 +3,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { createAdminClient } from '@interdomestik/database';
+import { downloadTenantObject } from '@/lib/storage/service-role';
 import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
 import {
@@ -14,10 +14,24 @@ import {
 
 // Service Adapter
 const storageService = {
-  createSignedUrl: async () => ({}),
-  download: async (bucket: string, path: string) => {
-    const adminClient = createAdminClient();
-    const { data, error } = await adminClient.storage.from(bucket).download(path);
+  createSignedUrl: async (
+    _bucket: string,
+    _path: string,
+    _expiresIn: number,
+    _options: unknown
+  ) => ({}),
+  download: async (
+    bucket: string,
+    path: string,
+    options: { family: 'claims' | 'policies'; tenantId: string }
+  ) => {
+    const { data, error } = await downloadTenantObject({
+      bucket,
+      context: 'document download',
+      family: options.family,
+      path,
+      tenantId: options.tenantId,
+    });
     return { data: data || undefined, error: error || undefined };
   },
 };
@@ -101,7 +115,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const file = await downloadStorageFileCore({
     bucket: access.document.bucket,
     filePath: access.document.filePath,
+    family: access.storageFamily,
     deps: { db, storage: storageService },
+    tenantId: access.tenantId,
   });
 
   if (!file.ok) {

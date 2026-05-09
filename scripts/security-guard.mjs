@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runEvidenceStoragePathGuard } from './check-evidence-storage-paths.mjs';
+import { runServiceRoleStorageBoundaryGuard } from './check-service-role-storage-boundary.mjs';
 
 const LOCKFILE_PATH = path.join(process.cwd(), 'pnpm-lock.yaml');
 
@@ -91,6 +92,11 @@ async function runGuard() {
   const evidencePathStatus = runEvidenceStoragePathGuard();
   if (evidencePathStatus !== 0) {
     process.exit(evidencePathStatus);
+  }
+
+  const serviceRoleStorageBoundaryStatus = runServiceRoleStorageBoundaryGuard();
+  if (serviceRoleStorageBoundaryStatus !== 0) {
+    process.exit(serviceRoleStorageBoundaryStatus);
   }
 
   console.log('✅ Security Guard passed. All enforced versions are clean.');

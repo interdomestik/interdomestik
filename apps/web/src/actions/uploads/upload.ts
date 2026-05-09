@@ -2,13 +2,17 @@
 
 import { auth } from '@/lib/auth';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
+import {
+  VOICE_NOTE_PREVIEW_TTL_SECONDS,
+  createTenantSignedDownloadUrl,
+  uploadTenantObject,
+} from '@/lib/storage/service-role';
 import { createInitialClaimUploadIntentToken } from '@/features/claims/upload/server/initial-claim-upload';
 import {
   assertEvidenceStoragePath,
   buildEvidenceStoragePath,
 } from '@/features/claims/upload/server/storage-path';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
 
 export type UploadResult =
@@ -275,15 +279,6 @@ async function uploadToStorage(params: {
   }
 
   // 2. Supabase Storage (Default)
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('Supabase service role key is required for voice note uploads.');
-    return { success: false, error: 'Upload unavailable. Please try again later.' };
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
   const bucketName = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
   let fileName: string;
 
@@ -301,8 +296,14 @@ async function uploadToStorage(params: {
   }
 
   try {
-    const { error } = await supabase.storage.from(bucketName).upload(fileName, buffer, {
+    const { error } = await uploadTenantObject({
+      bucket: bucketName,
+      body: buffer,
       contentType,
+      context: 'voice note upload',
+      family: 'claims',
+      path: fileName,
+      tenantId,
       upsert: false,
     });
 
@@ -311,9 +312,14 @@ async function uploadToStorage(params: {
       return { success: false, error: 'Upload failed: ' + error.message };
     }
 
-    const { data: signedData, error: signedError } = await supabase.storage
-      .from(bucketName)
-      .createSignedUrl(fileName, 60 * 10);
+    const { data: signedData, error: signedError } = await createTenantSignedDownloadUrl({
+      bucket: bucketName,
+      context: 'voice note preview',
+      expiresInSeconds: VOICE_NOTE_PREVIEW_TTL_SECONDS,
+      family: 'claims',
+      path: fileName,
+      tenantId,
+    });
 
     if (signedError || !signedData?.signedUrl) {
       return {

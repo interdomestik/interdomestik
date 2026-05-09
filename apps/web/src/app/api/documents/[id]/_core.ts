@@ -2,17 +2,28 @@ import { logAuditEvent } from '@/lib/audit';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { createAdminClient } from '@interdomestik/database';
+import { createTenantSignedDownloadUrl } from '@/lib/storage/service-role';
 
 import { createSignedDownloadUrlCore, getDocumentAccessCore } from '../_core';
 
 const storageService = {
-  createSignedUrl: async (bucket: string, path: string, expiresIn: number) => {
-    const adminClient = createAdminClient();
-    const { data, error } = await adminClient.storage.from(bucket).createSignedUrl(path, expiresIn);
+  createSignedUrl: async (
+    bucket: string,
+    path: string,
+    expiresIn: number,
+    options: { family: 'claims' | 'policies'; tenantId: string }
+  ) => {
+    const { data, error } = await createTenantSignedDownloadUrl({
+      bucket,
+      context: 'document signed URL',
+      expiresInSeconds: expiresIn,
+      family: options.family,
+      path,
+      tenantId: options.tenantId,
+    });
     return { signedUrl: data?.signedUrl || undefined, error: error || undefined };
   },
-  download: async () => ({}), // Not used in this route
+  download: async (_bucket: string, _path: string, _options: unknown) => ({}), // Not used in this route
 };
 
 // GET /api/documents/[id] - Generate signed download URL
@@ -89,7 +100,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     bucket: access.document.bucket,
     filePath: access.document.filePath,
     expiresInSeconds: 60 * 5,
+    family: access.storageFamily,
     deps: { db, storage: storageService },
+    tenantId: access.tenantId,
   });
 
   if (!urlResult.ok) {

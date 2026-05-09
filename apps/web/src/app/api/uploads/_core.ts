@@ -1,4 +1,4 @@
-import { and, claims, createAdminClient, db, eq } from '@interdomestik/database';
+import { and, claims, db, eq } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
@@ -152,8 +152,13 @@ export async function createSignedUploadCore(args: {
     intentToken = intent.intentToken;
   }
 
-  const adminClient = createAdminClient();
-  const { data, error } = await adminClient.storage.from(bucket).createSignedUploadUrl(path, {
+  const { createTenantSignedUploadUrl } = await import('@/lib/storage/service-role');
+  const { data, error } = await createTenantSignedUploadUrl({
+    bucket,
+    context: 'initial claim evidence upload',
+    family: 'claims',
+    path,
+    tenantId,
     upsert: true,
   });
 

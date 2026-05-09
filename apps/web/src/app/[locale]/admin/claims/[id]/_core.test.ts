@@ -96,8 +96,8 @@ describe('getAdminClaimDetailsCore', () => {
         fileSize: 123,
         fileType: 'application/pdf',
         createdAt: new Date('2025-01-01T00:00:00Z'),
-        filePath: 'claims/c1/file.pdf',
-        bucket: 'claim-documents',
+        filePath: 'pii/tenants/tenant-a/claims/c1/file.pdf',
+        bucket: 'claim-evidence',
       },
     ];
 

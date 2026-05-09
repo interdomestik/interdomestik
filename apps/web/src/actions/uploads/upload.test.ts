@@ -20,8 +20,8 @@ vi.mock('@/lib/rate-limit', () => ({
   enforceRateLimitForAction: hoisted.rateLimit,
 }));
 
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: () => ({
+vi.mock('@interdomestik/database', () => ({
+  createAdminClient: () => ({
     storage: {
       from: () => ({
         upload: hoisted.upload,
