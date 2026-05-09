@@ -2,29 +2,17 @@ import { logAuditEvent } from '@/lib/audit';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { createTenantSignedDownloadUrl } from '@/lib/storage/service-role';
 
-import { createSignedDownloadUrlCore, getDocumentAccessCore } from '../_core';
+import {
+  DOCUMENT_ACCESS_STATUS_BY_CODE,
+  createSignedDownloadUrlCore,
+  getDocumentAccessCore,
+  logAllowedDocumentAccess,
+  logDeniedDocumentAccess,
+} from '../_core';
+import { createDocumentSignedUrlStorageService } from '../storage-service.server';
 
-const storageService = {
-  createSignedUrl: async (
-    bucket: string,
-    path: string,
-    expiresIn: number,
-    options: { family: 'claims' | 'policies'; tenantId: string }
-  ) => {
-    const { data, error } = await createTenantSignedDownloadUrl({
-      bucket,
-      context: 'document signed URL',
-      expiresInSeconds: expiresIn,
-      family: options.family,
-      path,
-      tenantId: options.tenantId,
-    });
-    return { signedUrl: data?.signedUrl || undefined, error: error || undefined };
-  },
-  download: async (_bucket: string, _path: string, _options: unknown) => ({}), // Not used in this route
-};
+const storageService = createDocumentSignedUrlStorageService();
 
 // GET /api/documents/[id] - Generate signed download URL
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -52,48 +40,30 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     deps: { db, storage: storageService },
   });
 
-  const userRole = (session.user.role as string | undefined) ?? undefined;
   const tenantId = (session.user as { tenantId?: string | null }).tenantId ?? null;
 
   if (!access.ok) {
-    const statusMap: Record<string, number> = {
-      FORBIDDEN: 403,
-      NOT_FOUND: 404,
-      UNAUTHORIZED: 401,
-      BAD_REQUEST: 400,
-      CONFLICT: 409,
-      RATE_LIMIT: 429,
-      INTERNAL_ERROR: 500,
-      TIMEOUT: 504,
-      PAYLOAD_TOO_LARGE: 413,
-      UNPROCESSABLE_ENTITY: 422,
-    };
+    await logDeniedDocumentAccess({
+      access,
+      documentId: id,
+      headers: _request.headers,
+      logAuditEvent,
+      session,
+      tenantId,
+    });
 
-    if (access.code === 'FORBIDDEN') {
-      await logAuditEvent({
-        actorId: session.user.id,
-        actorRole: userRole ?? null,
-        tenantId,
-        action: 'document.forbidden',
-        entityType: 'claim_document',
-        entityId: id,
-        metadata: { error: access.message },
-        headers: _request.headers,
-      });
-    }
-
-    return Response.json({ error: access.message }, { status: statusMap[access.code] || 500 });
+    return Response.json(
+      { error: access.message },
+      { status: DOCUMENT_ACCESS_STATUS_BY_CODE[access.code] || 500 }
+    );
   }
 
-  await logAuditEvent({
-    actorId: session.user.id,
-    actorRole: access.audit.actorRole,
-    tenantId,
-    action: access.audit.action,
-    entityType: access.audit.entityType,
-    entityId: access.audit.entityId,
-    metadata: access.audit.metadata,
+  await logAllowedDocumentAccess({
+    access,
     headers: _request.headers,
+    logAuditEvent,
+    session,
+    tenantId,
   });
 
   const urlResult = await createSignedDownloadUrlCore({

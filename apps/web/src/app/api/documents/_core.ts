@@ -1,4 +1,5 @@
 import { ApiErrorCode } from '@/core-contracts';
+import type { AuditEvent } from '@/lib/audit';
 import type { TenantStorageFamily } from '@/lib/storage/tenant-prefix';
 import type * as DatabaseModule from '@interdomestik/database';
 import { claimDocuments, claims, documents, policies } from '@interdomestik/database/schema';
@@ -61,6 +62,21 @@ export type DocumentAccessResult =
       tenantId: string;
     }
   | { ok: false; code: ApiErrorCode; message?: string };
+
+export const DOCUMENT_ACCESS_STATUS_BY_CODE: Record<ApiErrorCode, number> = {
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  UNAUTHORIZED: 401,
+  BAD_REQUEST: 400,
+  CONFLICT: 409,
+  RATE_LIMIT: 429,
+  INTERNAL_ERROR: 500,
+  TIMEOUT: 504,
+  PAYLOAD_TOO_LARGE: 413,
+  UNPROCESSABLE_ENTITY: 422,
+};
+
+export type DocumentAuditLogger = (event: AuditEvent) => Promise<void>;
 
 type AuditContext = {
   action: string;
@@ -229,6 +245,49 @@ function buildDocumentAudit(args: {
     actorRole: actorRole ?? null,
     metadata,
   };
+}
+
+export async function logDeniedDocumentAccess(args: {
+  access: Extract<DocumentAccessResult, { ok: false }>;
+  documentId: string;
+  headers: Headers;
+  logAuditEvent: DocumentAuditLogger;
+  session: SessionDTO;
+  tenantId?: string | null;
+}): Promise<void> {
+  if (args.access.code !== 'FORBIDDEN') {
+    return;
+  }
+
+  await args.logAuditEvent({
+    actorId: args.session.user.id,
+    actorRole: args.session.user.role || null,
+    tenantId: args.tenantId ?? undefined,
+    action: 'document.forbidden',
+    entityType: 'claim_document',
+    entityId: args.documentId,
+    metadata: { error: args.access.message },
+    headers: args.headers,
+  });
+}
+
+export async function logAllowedDocumentAccess(args: {
+  access: Extract<DocumentAccessResult, { ok: true }>;
+  headers: Headers;
+  logAuditEvent: DocumentAuditLogger;
+  session: SessionDTO;
+  tenantId?: string | null;
+}): Promise<void> {
+  await args.logAuditEvent({
+    actorId: args.session.user.id,
+    actorRole: args.access.audit.actorRole,
+    tenantId: args.tenantId ?? undefined,
+    action: args.access.audit.action,
+    entityType: args.access.audit.entityType,
+    entityId: args.access.audit.entityId,
+    metadata: args.access.audit.metadata,
+    headers: args.headers,
+  });
 }
 
 async function canReadPolymorphicDocument(args: {
