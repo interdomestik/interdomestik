@@ -43,14 +43,15 @@ gate.
 
 ## Inputs
 
-| Input                                         | Relevance                                                                                                                                                    |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `main` at `4c919c2f`                          | Main is synced after SEC09 merged through PR `#701`.                                                                                                         |
-| `P33-DG12`                                    | Promoted exactly one implementation slice, `P33-SEC09 CI/Release Seed Credential Hardening`.                                                                 |
-| `P33-SEC09`                                   | Completed the CI/release seeded credential hardening target and added a workflow guard to prevent reintroducing the unsafe literals.                         |
-| `docs/security/db-access-posture-burndown.md` | Records the remaining `80` DB posture hard cases and explicitly says they should not be mass-stamped.                                                        |
-| `P33-SEC04B`                                  | Final DB posture counts remain `tenant-context=5`, `tenant-scoped=158`, `tenant-predicate=352`, `admin-privileged=0`, `system-exempt=20`, `unclassified=80`. |
-| Current CSP state                             | DG07/SEC05 still block CSP Phase 1 enforcement because the current two-header Phase 0 model conflicts with Next nonce extraction behavior.                   |
+| Input                                         | Relevance                                                                                                                                                         |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main` at `4c919c2f`                          | Main is synced after SEC09 merged through PR `#701`.                                                                                                              |
+| `P33-DG12`                                    | Promoted exactly one implementation slice, `P33-SEC09 CI/Release Seed Credential Hardening`.                                                                      |
+| `P33-SEC09`                                   | Completed the CI/release seeded credential hardening target and added a workflow guard to prevent reintroducing the unsafe literals.                              |
+| `docs/security/db-access-posture-burndown.md` | Records the remaining `80` DB posture hard cases and explicitly says they should not be mass-stamped.                                                             |
+| `P33-SEC04B`                                  | Final DB posture counts remain `tenant-context=5`, `tenant-scoped=158`, `tenant-predicate=352`, `admin-privileged=0`, `system-exempt=20`, `unclassified=80`.      |
+| Current Next dependency state                 | The web app resolves `next 16.2.4`, unchanged from DG09/DG10/DG11 evidence. SEC08 touched `apps/web/next.config.mjs` but did not alter the resolved Next version. |
+| Current CSP state                             | DG07/SEC05 still block CSP Phase 1 enforcement because the current two-header Phase 0 model conflicts with Next nonce extraction behavior.                        |
 
 ## SEC09 Closeout
 
@@ -93,8 +94,10 @@ DG13 explicitly preserves the DG07 rule before ranking remaining work.
 
 No unlock condition is met:
 
-1. The resolved web Next version remains covered by the DG07/SEC05 evidence
-   state.
+1. The resolved web Next version remains `16.2.4`, confirmed after SEC08
+   landed. SEC08 touched `apps/web/next.config.mjs` but did not alter the
+   resolved `next` package; `pnpm --filter @interdomestik/web list next --depth 0`
+   still resolves `next 16.2.4`, matching DG09/DG10/DG11 evidence.
 2. There is no new evidence of a supported Next header model that lets the repo
    keep a non-nonce enforced CSP beside a nonce-bearing Report-Only CSP while
    still propagating nonces to first-party framework/runtime scripts.
@@ -132,9 +135,15 @@ Scope for the next design-gate slice:
   group them by risk, ownership, and likely remediation pattern;
 - identify whether the next safe follow-up should be a targeted implementation
   slice, a guard/reporting refinement, or an explicit accepted residual set;
-- prioritize webhook/provider-event tenancy, commercial idempotency scoping,
-  legacy agent dashboard ownership, and campaign/cron/public engagement
-  residue using repo evidence;
+- cover all seven burndown clusters from `docs/security/db-access-posture-burndown.md`:
+  - billing webhook/provider-event tenancy paths (`14` entries);
+  - cron and public NPS/engagement residue needing per-tenant job modeling (`8` entries);
+  - campaign execution and communication paths that batch across users (`7` entries);
+  - commercial action idempotency records with optional tenant identity (`5` entries);
+  - legacy agent dashboard reads without current tenant proof (`5` entries);
+  - admin and branch dashboard cross-tenant lookup paths (`4` entries);
+  - smaller one-off application/domain paths requiring callsite-specific migration review
+    (`37` entries — the largest cluster; must not be bulk-classified in DG14);
 - define acceptance criteria for any later DB posture implementation, including
   focused tests and guard/reporting proof;
 - preserve the SEC04B rule that the remaining hard cases must not be
