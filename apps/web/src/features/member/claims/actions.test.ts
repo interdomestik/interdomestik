@@ -42,6 +42,7 @@ vi.mock('@interdomestik/shared-auth', () => ({
 }));
 
 vi.mock('@/lib/storage/evidence-bucket', () => ({
+  DEFAULT_EVIDENCE_BUCKET: 'claim-evidence',
   resolveEvidenceBucketName: hoisted.resolveEvidenceBucketName,
 }));
 
