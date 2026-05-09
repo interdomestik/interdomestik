@@ -24,18 +24,20 @@ function runGuard(root) {
   });
 }
 
-test('Next TypeScript build integrity guard blocks ignoreBuildErrors', () => {
+test('Next TypeScript build integrity guard blocks ignoreBuildErrors', t => {
   const tempRoot = makeTempRepo(
     "export default { typescript: { ignoreBuildErrors: process.env.VERCEL === '1' } };\n"
   );
+  t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
 
   const failed = runGuard(tempRoot);
   assert.equal(failed.status, 1, failed.stderr);
   assert.match(failed.stderr, /do not set typescript\.ignoreBuildErrors/);
 });
 
-test('Next TypeScript build integrity guard permits enforced TypeScript builds', () => {
+test('Next TypeScript build integrity guard permits enforced TypeScript builds', t => {
   const tempRoot = makeTempRepo("export default { output: 'standalone' };\n");
+  t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
 
   const passed = runGuard(tempRoot);
   assert.equal(passed.status, 0, passed.stderr);

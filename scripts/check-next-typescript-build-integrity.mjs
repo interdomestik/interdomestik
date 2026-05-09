@@ -25,7 +25,7 @@ export function findNextTypeScriptBuildIntegrityViolations(options = {}) {
   const source = fs.readFileSync(configPath, 'utf8');
   const findings = [];
 
-  for (const match of source.matchAll(/\bignoreBuildErrors\b/g)) {
+  for (const match of source.matchAll(/\bignoreBuildErrors\s*:/g)) {
     findings.push({
       file: NEXT_CONFIG_PATH,
       line: lineForIndex(source, match.index ?? 0),
