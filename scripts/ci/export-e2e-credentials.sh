@@ -6,12 +6,12 @@ if [[ -z "${GITHUB_ENV:-}" ]]; then
   exit 2
 fi
 
-seed_password="${E2E_PASSWORD:-}"
+seed_password="$(printf '%s' "${E2E_PASSWORD:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
 if [[ -z "${seed_password}" ]]; then
   seed_password="E2e-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-0}-$(openssl rand -hex 16)!"
 fi
 
-e2e_api_secret="${E2E_API_SECRET:-}"
+e2e_api_secret="$(printf '%s' "${E2E_API_SECRET:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
 if [[ -z "${e2e_api_secret}" ]]; then
   e2e_api_secret="$(openssl rand -hex 32)"
 fi

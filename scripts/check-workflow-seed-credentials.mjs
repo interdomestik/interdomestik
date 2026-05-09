@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const WORKFLOW_DIR = path.join(process.cwd(), '.github', 'workflows');
 const EXPORT_SCRIPT = 'bash scripts/ci/export-e2e-credentials.sh';
@@ -94,6 +95,6 @@ export function runWorkflowSeedCredentialGuard() {
   return 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   process.exit(runWorkflowSeedCredentialGuard());
 }
