@@ -12,14 +12,8 @@ const bundleAnalyzer = withBundleAnalyzer({
 
 validateSupabaseDeploymentSeparation(process.env);
 
-const isVercelBuild = process.env.VERCEL === '1';
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    // CI runs full type-check gates; Vercel previews skip Next's duplicate TS pass.
-    ignoreBuildErrors: isVercelBuild,
-  },
   transpilePackages: [
     '@interdomestik/ui',
     '@interdomestik/database',
