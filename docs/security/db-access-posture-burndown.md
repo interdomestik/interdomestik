@@ -14,6 +14,8 @@ last_reviewed: 2026-05-09
 SEC04B reduced the DB access posture baseline from `262` unclassified entries to `80`.
 Classification stopped when the `<= 80` target was reached. P33-SEC10 later reduced the
 baseline to `67` by resolving the current Paddle billing webhook/provider-event cluster.
+P33-SEC11 preserved the `67` unclassified count while adding one reviewed tenant-scoped
+lead ownership preflight helper for Paddle lead conversion.
 
 ## Burn-Down Summary
 
@@ -23,7 +25,7 @@ baseline to `67` by resolving the current Paddle billing webhook/provider-event 
 | SEC04B unclassified baseline    |    80 |
 | P33-SEC10 unclassified baseline |    67 |
 | Entries removed from scan       |     4 |
-| Reviewed `tenant-scoped` calls  |   162 |
+| Reviewed `tenant-scoped` calls  |   163 |
 | Reviewed `system-exempt` calls  |    28 |
 
 ## Classification Rules Used

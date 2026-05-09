@@ -34,8 +34,8 @@ type PaddleWebhookData = {
   id?: string;
   subscriptionId?: string | null;
   subscription_id?: string | null;
-  customData?: { userId?: string };
-  custom_data?: { userId?: string };
+  customData?: { userId?: string; tenantId?: string; leadId?: unknown };
+  custom_data?: { userId?: string; tenantId?: string; leadId?: unknown };
 };
 
 type PaddleTransactionData = {
@@ -48,6 +48,106 @@ function normalizeText(value: string | null | undefined): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+const PADDLE_LEAD_ID_PATTERN = /^[A-Za-z0-9_:-]{1,128}$/;
+
+function normalizePaddleLeadId(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+
+  const leadId = normalizeText(value);
+  if (!leadId || !PADDLE_LEAD_ID_PATTERN.test(leadId)) return null;
+
+  return leadId;
+}
+
+function getPaddleLeadId(data: unknown): string | null {
+  return normalizePaddleLeadId(getPaddleCustomData(data)?.leadId);
+}
+
+function getPaddleCustomData(data: unknown): PaddleWebhookData['customData'] | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+
+  const payload = data as PaddleWebhookData;
+  return payload.custom_data ?? payload.customData;
+}
+
+function getPaddleSubscriptionReferences(data: unknown): string[] {
+  if (!data || typeof data !== 'object') return [];
+
+  const payload = data as PaddleWebhookData;
+  return [
+    normalizeText(payload.subscriptionId),
+    normalizeText(payload.subscription_id),
+    normalizeText(payload.id),
+  ].filter(
+    (value, index, values): value is string => Boolean(value) && values.indexOf(value) === index
+  );
+}
+
+type WebhookSubscription = NonNullable<
+  Awaited<ReturnType<typeof findSubscriptionByProviderReference>>
+>;
+
+async function resolveWebhookSubscription(data: unknown): Promise<WebhookSubscription | null> {
+  for (const subscriptionReference of getPaddleSubscriptionReferences(data)) {
+    const subscription = await findSubscriptionByProviderReference(subscriptionReference);
+    if (subscription?.tenantId) return subscription;
+  }
+
+  return null;
+}
+
+function hasLeadConversionProviderConflict(params: {
+  data: unknown;
+  tenantId: string;
+  subscription: WebhookSubscription | null;
+}): boolean {
+  const customData = getPaddleCustomData(params.data);
+  const providerUserId = normalizeText(customData?.userId);
+  const providerTenantId = normalizeText(customData?.tenantId);
+  const subscriptionTenantId = normalizeText(params.subscription?.tenantId);
+  const subscriptionUserId = normalizeText(params.subscription?.userId);
+
+  if (providerTenantId && providerTenantId !== params.tenantId) return true;
+  if (subscriptionTenantId && subscriptionTenantId !== params.tenantId) return true;
+  if (params.subscription && providerUserId && !subscriptionUserId) return true;
+  if (subscriptionUserId && providerUserId && subscriptionUserId !== providerUserId) return true;
+
+  return false;
+}
+
+async function reconcilePaddleLeadConversion(params: {
+  eventType: string | undefined;
+  data: unknown;
+  tenantId: string | null;
+  subscription: WebhookSubscription | null;
+}): Promise<void> {
+  if (params.eventType !== 'transaction.completed' || !params.tenantId) return;
+
+  const leadId = getPaddleLeadId(params.data);
+  if (!leadId) return;
+
+  if (
+    hasLeadConversionProviderConflict({
+      data: params.data,
+      tenantId: params.tenantId,
+      subscription: params.subscription,
+    })
+  ) {
+    return;
+  }
+
+  const { convertLeadToMember, hasTenantLeadForConversion } =
+    await import('@interdomestik/domain-leads');
+
+  const leadBelongsToTenant = await hasTenantLeadForConversion(
+    { tenantId: params.tenantId },
+    { leadId }
+  );
+  if (!leadBelongsToTenant) return;
+
+  await convertLeadToMember({ tenantId: params.tenantId }, { leadId });
 }
 
 function resolveProcessingScopeKey(params: {
@@ -110,17 +210,15 @@ export async function requestPasswordResetOnboarding(params: {
   });
 }
 
-async function resolveWebhookTenantId(data: unknown): Promise<string | null> {
-  const payload = (data ?? {}) as PaddleWebhookData;
-  const customData = payload.customData || payload.custom_data;
-  const subscriptionId = payload.id || payload.subscriptionId || payload.subscription_id;
+async function resolveWebhookTenantId(
+  data: unknown,
+  subscription: WebhookSubscription | null
+): Promise<string | null> {
+  const customData = getPaddleCustomData(data);
 
-  if (subscriptionId) {
-    const subscription = await findSubscriptionByProviderReference(subscriptionId);
-    if (subscription?.tenantId) return subscription.tenantId;
-  }
+  if (subscription?.tenantId) return subscription.tenantId;
 
-  const userId = customData?.userId;
+  const userId = normalizeText(customData?.userId);
   if (userId) {
     // db-access-guard: system-exempt -- reason: Paddle customData userId is a fallback only after canonical subscription lookup cannot resolve tenant
     const userRecord = await db.query.user.findFirst({
@@ -206,7 +304,8 @@ export async function handlePaddleWebhookCore(args: {
   const normalizedEventId = normalizeText(eventId);
   const data = (eventData as { data?: unknown }).data;
 
-  const tenantId = await resolveWebhookTenantId(data);
+  const subscription = await resolveWebhookSubscription(data);
+  const tenantId = await resolveWebhookTenantId(data, subscription);
   const processingScopeKey = resolveProcessingScopeKey({ tenantId, billingEntity });
   const dedupeKey = resolveScopedDedupeKey({
     processingScopeKey,
@@ -254,33 +353,7 @@ export async function handlePaddleWebhookCore(args: {
       { logAuditEvent }
     );
 
-    // Intercept transaction.completed for Lead Conversion
-    if (eventType === 'transaction.completed' && data) {
-      const payload = data as {
-        custom_data?: { leadId?: string };
-        customData?: { leadId?: string };
-      };
-      const customData = payload.custom_data || payload.customData;
-
-      if (customData?.leadId) {
-        const { convertLeadToMember } = await import('@interdomestik/domain-leads');
-        await convertLeadToMember(
-          { tenantId: tenantId || 'unknown' },
-          { leadId: customData.leadId }
-        );
-
-        // Also mark payment attempt as succeeded?
-        // convertLeadToMember handles lead status.
-        // We might want to update leadPaymentAttempts status separately if convert doesn't do it for card.
-        // Domain logic `convertLeadToMember` does: update memberLeads -> converted.
-        // It doesn't seem to touch `leadPaymentAttempts` status in my previous implementation?
-        // Let's assume for now convert checks membership creation.
-
-        // TODO: Ideally we update the specific payment attempt linked to this transaction?
-        // But valid point: createLeadAction -> startPayment -> creates attempt.
-        // If we have attempt ID in metadata, even better.
-      }
-    }
+    await reconcilePaddleLeadConversion({ eventType, data, tenantId, subscription });
 
     await handlePaddleEvent(
       { eventType, data },

@@ -11,15 +11,15 @@ last_reviewed: 2026-05-09
 > Status: Archived implementation receipt. The authoritative execution state remains in
 > `docs/plans/current-program.md` and `docs/plans/current-tracker.md`.
 
-Generated from `scripts/ci/db-access-baseline.json` on 2026-05-09 after P33-SEC10
-cleared the Paddle billing webhook/provider-event tenant-resolution cluster.
+Generated from `scripts/ci/db-access-baseline.json` on 2026-05-09 after P33-SEC11
+added the tenant-scoped Paddle lead conversion ownership helper.
 
 ## Summary
 
 | Metric                      |      Value |
 | --------------------------- | ---------: |
 | Baseline version            |          2 |
-| Baseline entries            |        615 |
+| Baseline entries            |        616 |
 | Guard runtime sample        |      1.00s |
 | Pre-SEC04 runtime reference |      0.69s |
 | Baseline JSON size          | 6390 lines |
@@ -28,13 +28,15 @@ SEC04B reduced the v2 classifier's unclassified entries from `262` to `80`, meet
 DG05 target without classifying the remaining hard cases. P33-SEC10 then reduced the
 canonical baseline from `80` to `67` by resolving every current unclassified Paddle
 webhook entry under `packages/domain-membership-billing/src/paddle-webhooks/**`.
+P33-SEC11 preserved the `67` unclassified count while adding one reviewed
+tenant-scoped helper in `packages/domain-leads/src/convert.ts`.
 
 ## Counts By Posture
 
 | Tenant posture     | Count |
 | ------------------ | ----: |
 | `tenant-context`   |     5 |
-| `tenant-scoped`    |   162 |
+| `tenant-scoped`    |   163 |
 | `tenant-predicate` |   353 |
 | `admin-privileged` |     0 |
 | `system-exempt`    |    28 |
@@ -45,7 +47,7 @@ webhook entry under `packages/domain-membership-billing/src/paddle-webhooks/**`.
 | Risk             | Count |
 | ---------------- | ----: |
 | `app-layer`      |   315 |
-| `domain-wrapper` |   300 |
+| `domain-wrapper` |   301 |
 
 ## Counts By Posture, Risk, And File Prefix
 
@@ -61,7 +63,7 @@ webhook entry under `packages/domain-membership-billing/src/paddle-webhooks/**`.
 |    19 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-membership-billing/src` |
 |    19 | `tenant-predicate` | `domain-wrapper` | `packages/domain-communications/src`     |
 |    14 | `tenant-predicate` | `domain-wrapper` | `packages/domain-analytics/src`          |
-|    14 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-leads/src`              |
+|    15 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-leads/src`              |
 |    13 | `system-exempt`    | `domain-wrapper` | `packages/domain-analytics/src`          |
 |    12 | `tenant-predicate` | `domain-wrapper` | `packages/domain-referrals/src`          |
 |     8 | `system-exempt`    | `domain-wrapper` | `packages/domain-membership-billing/src` |
@@ -101,3 +103,7 @@ unclassified entries under the authorized Paddle webhook package path. All `13` 
 the remaining `1` unclassified `packages/domain-membership-billing/src` entry is
 `packages/domain-membership-billing/src/commissions/create.ts` and is outside the SEC10 billing
 webhook scope.
+
+P33-SEC11 note: the baseline now includes the tenant-scoped lead ownership preflight helper in
+`packages/domain-leads/src/convert.ts`. It adds one reviewed direct DB access entry and does not
+change the remaining `67` unclassified hard cases.
