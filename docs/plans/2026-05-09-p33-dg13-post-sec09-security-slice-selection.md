@@ -11,6 +11,8 @@ phase: Phase C
 
 ## Decision
 
+`P33-DG13` is the docs-only post-SEC09 selection gate for PR `#702`.
+
 `P33-SEC09 CI/Release Seed Credential Hardening` is complete through PR `#701`,
 merge commit `4c919c2fa4d33ffe7aea67b2b27e29568f1940a7`.
 
