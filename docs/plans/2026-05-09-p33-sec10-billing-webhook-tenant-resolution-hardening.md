@@ -40,10 +40,10 @@ architecture docs unchanged.
 | Tenant posture     | Count |
 | ------------------ | ----: |
 | `tenant-context`   |     5 |
-| `tenant-scoped`    |   165 |
+| `tenant-scoped`    |   162 |
 | `tenant-predicate` |   353 |
 | `admin-privileged` |     0 |
-| `system-exempt`    |    25 |
+| `system-exempt`    |    28 |
 | `unclassified`     |    67 |
 
 DG14 inventoried `14` billing webhook/provider-event hard cases, targeting `80 -> 66`.

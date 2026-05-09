@@ -79,7 +79,7 @@ export async function resolveSubscriptionContext(sub: any) {
     );
   }
 
-  // db-access-guard: tenant-scoped -- reason: userId resolved from canonical subscription or verified user lookup boundary
+  // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps tenant context before tenant-scoped subscription writes
   const userRecord = await db.query.user.findFirst({
     where: (users, { eq }) => eq(users.id, userId),
     columns: { tenantId: true, email: true, name: true, memberNumber: true, agentId: true },

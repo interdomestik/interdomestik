@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-09T15:16:36.539Z",
+  "generatedAt": "2026-05-09T15:49:15.294Z",
   "policy": "see docs/dev/db-access-guard.md",
   "scanRoots": ["apps/web/src", "packages"],
   "approvedDatabaseInternalPatterns": [
@@ -27,10 +27,10 @@
     },
     "byTenantPosture": {
       "tenant-context": 5,
-      "tenant-scoped": 165,
+      "tenant-scoped": 162,
       "tenant-predicate": 353,
       "admin-privileged": 0,
-      "system-exempt": 25,
+      "system-exempt": 28,
       "unclassified": 67
     }
   },
@@ -5310,9 +5310,9 @@
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "userId is reconciled against canonical subscription or webhook user identity before tenant-scoped writes",
+      "tenantPosture": "system-exempt",
+      "tenantPostureReason": "system-exempt: directive",
+      "tenantPostureDetail": "Paddle userId lookup bootstraps dunning tenant context before tenant-scoped writes",
       "source": "const userRecord = await db.query.user.findFirst({"
     },
     {
@@ -5397,9 +5397,9 @@
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "userId from verified Paddle event is reconciled before tenant-scoped audit writes",
+      "tenantPosture": "system-exempt",
+      "tenantPostureReason": "system-exempt: directive",
+      "tenantPostureDetail": "Paddle userId lookup bootstraps transaction tenant context before tenant-scoped audit writes",
       "source": "const user = await db.query.user.findFirst({"
     },
     {
@@ -5408,9 +5408,9 @@
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "userId resolved from canonical subscription or verified user lookup boundary",
+      "tenantPosture": "system-exempt",
+      "tenantPostureReason": "system-exempt: directive",
+      "tenantPostureDetail": "Paddle userId lookup bootstraps tenant context before tenant-scoped subscription writes",
       "source": "const userRecord = await db.query.user.findFirst({"
     },
     {

@@ -23,8 +23,8 @@ baseline to `67` by resolving the current Paddle billing webhook/provider-event 
 | SEC04B unclassified baseline    |    80 |
 | P33-SEC10 unclassified baseline |    67 |
 | Entries removed from scan       |     4 |
-| Reviewed `tenant-scoped` calls  |   165 |
-| Reviewed `system-exempt` calls  |    25 |
+| Reviewed `tenant-scoped` calls  |   162 |
+| Reviewed `system-exempt` calls  |    28 |
 
 ## Classification Rules Used
 
@@ -48,6 +48,8 @@ system analytics:
   tenant ownership before a tenant-scoped boundary exists.
 - Paddle webhook `customData.userId` fallback lookup after canonical subscription lookup cannot
   resolve tenant ownership.
+- Paddle webhook userId bootstrap lookups that resolve canonical tenant context before later
+  subscription, dunning, or transaction audit writes are tenant-scoped.
 - Paddle webhook receipt and invalid-signature audit rows that must persist before handler-level
   tenant resolution is safe.
 - Checkout email ownership probes that intentionally detect cross-tenant conflicts before

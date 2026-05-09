@@ -34,10 +34,10 @@ webhook entry under `packages/domain-membership-billing/src/paddle-webhooks/**`.
 | Tenant posture     | Count |
 | ------------------ | ----: |
 | `tenant-context`   |     5 |
-| `tenant-scoped`    |   165 |
+| `tenant-scoped`    |   162 |
 | `tenant-predicate` |   353 |
 | `admin-privileged` |     0 |
-| `system-exempt`    |    25 |
+| `system-exempt`    |    28 |
 | `unclassified`     |    67 |
 
 ## Counts By Risk
@@ -58,15 +58,15 @@ webhook entry under `packages/domain-membership-billing/src/paddle-webhooks/**`.
 |    48 | `tenant-predicate` | `domain-wrapper` | `packages/domain-users/src`              |
 |    27 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-claims/src`             |
 |    26 | `tenant-predicate` | `domain-wrapper` | `packages/domain-membership-billing/src` |
-|    22 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-membership-billing/src` |
+|    19 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-membership-billing/src` |
 |    19 | `tenant-predicate` | `domain-wrapper` | `packages/domain-communications/src`     |
 |    14 | `tenant-predicate` | `domain-wrapper` | `packages/domain-analytics/src`          |
 |    14 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-leads/src`              |
 |    13 | `system-exempt`    | `domain-wrapper` | `packages/domain-analytics/src`          |
 |    12 | `tenant-predicate` | `domain-wrapper` | `packages/domain-referrals/src`          |
+|     8 | `system-exempt`    | `domain-wrapper` | `packages/domain-membership-billing/src` |
 |     7 | `unclassified`     | `domain-wrapper` | `packages/domain-communications/src`     |
 |     5 | `tenant-context`   | `app-layer`      | `apps/web/src`                           |
-|     5 | `system-exempt`    | `domain-wrapper` | `packages/domain-membership-billing/src` |
 |     5 | `system-exempt`    | `app-layer`      | `apps/web/src`                           |
 |     4 | `tenant-predicate` | `domain-wrapper` | `packages/domain-activities/src`         |
 |     4 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-activities/src`         |

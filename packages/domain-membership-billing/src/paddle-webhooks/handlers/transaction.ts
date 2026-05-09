@@ -95,7 +95,7 @@ async function resolveTransactionTenantContext(args: {
   }
 
   if (userId) {
-    // db-access-guard: tenant-scoped -- reason: userId from verified Paddle event is reconciled before tenant-scoped audit writes
+    // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps transaction tenant context before tenant-scoped audit writes
     const user = await db.query.user.findFirst({
       where: (t, { eq }) => eq(t.id, userId),
       columns: { tenantId: true, agentId: true },

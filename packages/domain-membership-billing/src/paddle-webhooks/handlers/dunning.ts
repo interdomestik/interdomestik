@@ -176,7 +176,7 @@ function resolvePastDueUserId(sub: SubscriptionEventData): string | null {
 }
 
 async function findPastDueUserRecord(userId: string): Promise<PastDueUserRecord | null> {
-  // db-access-guard: tenant-scoped -- reason: userId is reconciled against canonical subscription or webhook user identity before tenant-scoped writes
+  // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps dunning tenant context before tenant-scoped writes
   const userRecord = await db.query.user.findFirst({
     where: (users, { eq }) => eq(users.id, userId),
     columns: { id: true, email: true, name: true, tenantId: true },
