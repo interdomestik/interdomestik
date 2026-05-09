@@ -1,5 +1,9 @@
-export const CLAIM_EVIDENCE_BUCKET = 'claim-evidence';
+import { DEFAULT_EVIDENCE_BUCKET, resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
+
+export const CLAIM_EVIDENCE_BUCKET = DEFAULT_EVIDENCE_BUCKET;
 export const POLICIES_BUCKET = 'policies';
+
+const BUCKET_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,62}$/;
 
 export type TenantStorageFamily = 'claims' | 'policies';
 
@@ -39,8 +43,22 @@ function splitTenantStoragePath(path: string): string[] {
   return segments;
 }
 
+export function resolvePolicyBucketName(env: NodeJS.ProcessEnv = process.env): string {
+  const configuredBucket = env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET?.trim();
+
+  if (!configuredBucket) {
+    return POLICIES_BUCKET;
+  }
+
+  if (!BUCKET_NAME_PATTERN.test(configuredBucket)) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_POLICY_BUCKET must be a valid Supabase bucket name');
+  }
+
+  return configuredBucket;
+}
+
 function expectedBucketForFamily(family: TenantStorageFamily): string {
-  return family === 'policies' ? POLICIES_BUCKET : CLAIM_EVIDENCE_BUCKET;
+  return family === 'policies' ? resolvePolicyBucketName() : resolveEvidenceBucketName();
 }
 
 export function assertTenantStoragePath(args: TenantStorageAssertion): void {
@@ -100,7 +118,7 @@ export function buildPolicyStoragePath(args: {
 
   const path = ['pii', 'tenants', args.tenantId, 'policies', args.userId, safeName].join('/');
   assertPolicyStoragePath({
-    bucket: args.bucket ?? POLICIES_BUCKET,
+    bucket: args.bucket ?? resolvePolicyBucketName(),
     context: 'policy upload',
     path,
     tenantId: args.tenantId,

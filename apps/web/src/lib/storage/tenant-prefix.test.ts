@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   assertClaimEvidenceStoragePath,
@@ -9,6 +9,10 @@ import {
 } from './tenant-prefix';
 
 describe('tenant-prefixed storage paths', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('accepts tenant-prefixed claim evidence and policy paths', () => {
     expect(() =>
       assertClaimEvidenceStoragePath({
@@ -100,6 +104,35 @@ describe('tenant-prefixed storage paths', () => {
         tenantId: 'tenant-a',
       })
     ).toThrow(/pii\/tenants\/tenant-a\/policies/);
+  });
+
+  it('accepts configured evidence and policy buckets', () => {
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET', 'tenant-evidence');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_POLICY_BUCKET', 'tenant-policies');
+
+    expect(() =>
+      assertClaimEvidenceStoragePath({
+        bucket: 'tenant-evidence',
+        path: 'pii/tenants/tenant-a/claims/claim-1/file.pdf',
+        tenantId: 'tenant-a',
+      })
+    ).not.toThrow();
+
+    expect(() =>
+      assertPolicyStoragePath({
+        bucket: 'tenant-policies',
+        path: 'pii/tenants/tenant-a/policies/user-1/file.pdf',
+        tenantId: 'tenant-a',
+      })
+    ).not.toThrow();
+
+    expect(() =>
+      assertPolicyStoragePath({
+        bucket: 'policies',
+        path: 'pii/tenants/tenant-a/policies/user-1/file.pdf',
+        tenantId: 'tenant-a',
+      })
+    ).toThrow(/tenant-policies/);
   });
 
   it('builds policy paths through the centralized helper', () => {
