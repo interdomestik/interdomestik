@@ -35,6 +35,19 @@ function resolveLeadConversionPlanId(planId?: string): string {
   return normalizedPlanId;
 }
 
+export async function hasTenantLeadForConversion(
+  ctx: { tenantId: string },
+  args: { leadId: string }
+): Promise<boolean> {
+  // db-access-guard: tenant-scoped -- reason: lead ownership is constrained by caller tenantId in the query predicate
+  const lead = await db.query.memberLeads.findFirst({
+    where: (l, { eq, and }) => and(eq(l.id, args.leadId), eq(l.tenantId, ctx.tenantId)),
+    columns: { id: true },
+  });
+
+  return Boolean(lead);
+}
+
 export async function convertLeadToMember(
   ctx: { tenantId: string },
   args: { leadId: string; planId?: string }

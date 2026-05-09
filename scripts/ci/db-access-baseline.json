@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-09T15:49:15.294Z",
+  "generatedAt": "2026-05-09T18:13:42.922Z",
   "policy": "see docs/dev/db-access-guard.md",
   "scanRoots": ["apps/web/src", "packages"],
   "approvedDatabaseInternalPatterns": [
@@ -23,11 +23,11 @@
   "counts": {
     "byRisk": {
       "app-layer": 315,
-      "domain-wrapper": 300
+      "domain-wrapper": 301
     },
     "byTenantPosture": {
       "tenant-context": 5,
-      "tenant-scoped": 162,
+      "tenant-scoped": 163,
       "tenant-predicate": 353,
       "admin-privileged": 0,
       "system-exempt": 28,
@@ -1864,7 +1864,7 @@
     },
     {
       "file": "apps/web/src/app/api/webhooks/paddle/_core.ts",
-      "line": 126,
+      "line": 222,
       "callee": "db.query",
       "method": "query",
       "risk": "app-layer",
@@ -4930,7 +4930,18 @@
     },
     {
       "file": "packages/domain-leads/src/convert.ts",
-      "line": 45,
+      "line": 43,
+      "callee": "db.query",
+      "method": "query",
+      "risk": "domain-wrapper",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "lead ownership is constrained by caller tenantId in the query predicate",
+      "source": "const lead = await db.query.memberLeads.findFirst({"
+    },
+    {
+      "file": "packages/domain-leads/src/convert.ts",
+      "line": 58,
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
@@ -4940,7 +4951,7 @@
     },
     {
       "file": "packages/domain-leads/src/convert.ts",
-      "line": 65,
+      "line": 78,
       "callee": "db.transaction",
       "method": "transaction",
       "risk": "domain-wrapper",
@@ -4951,7 +4962,7 @@
     },
     {
       "file": "packages/domain-leads/src/convert.ts",
-      "line": 68,
+      "line": 81,
       "callee": "tx.insert",
       "method": "insert",
       "risk": "domain-wrapper",
@@ -4962,7 +4973,7 @@
     },
     {
       "file": "packages/domain-leads/src/convert.ts",
-      "line": 90,
+      "line": 103,
       "callee": "tx.insert",
       "method": "insert",
       "risk": "domain-wrapper",
@@ -4973,7 +4984,7 @@
     },
     {
       "file": "packages/domain-leads/src/convert.ts",
-      "line": 111,
+      "line": 124,
       "callee": "tx.insert",
       "method": "insert",
       "risk": "domain-wrapper",
@@ -4984,7 +4995,7 @@
     },
     {
       "file": "packages/domain-leads/src/convert.ts",
-      "line": 124,
+      "line": 137,
       "callee": "tx.update",
       "method": "update",
       "risk": "domain-wrapper",
