@@ -11,6 +11,8 @@ phase: Phase C
 
 ## Decision
 
+`P33-DG14` is the docs-only DB posture hard-case design gate for PR `#703`.
+
 `P33-DG14` accepts the `P33-DG13` promotion and records the bounded design for
 the next DB access posture hard-case follow-up.
 
