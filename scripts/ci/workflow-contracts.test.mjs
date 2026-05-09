@@ -61,6 +61,38 @@ function readRepoText(relativePath) {
   return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
 
+function workflowLines(content) {
+  return content.split('\n').map(line => line.trim());
+}
+
+function hasReleaseGateLiteralPassword(content) {
+  return workflowLines(content).some(line => {
+    const separatorIndex = line.indexOf(':');
+    if (separatorIndex === -1) {
+      return false;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+    return (
+      key.startsWith('RELEASE_GATE_') && key.endsWith('_PASSWORD') && value === 'GoldenPass123!'
+    );
+  });
+}
+
+function hasE2EApiPlaceholder(content) {
+  return workflowLines(content).some(line => {
+    const separatorIndex = line.indexOf(':');
+    if (separatorIndex === -1) {
+      return false;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+    return key === 'E2E_API_SECRET' && value === 'test-secret-placeholder';
+  });
+}
+
 test('workflow seed credential hardening rejects shared release passwords and E2E API placeholders', () => {
   const workflowPaths = fs
     .readdirSync(path.join(rootDir, '.github', 'workflows'))
@@ -69,14 +101,14 @@ test('workflow seed credential hardening rejects shared release passwords and E2
 
   for (const workflowPath of workflowPaths) {
     const source = readRepoText(workflowPath);
-    assert.doesNotMatch(
-      source,
-      /^\s*RELEASE_GATE_[A-Z_]*_PASSWORD:\s*GoldenPass123!\s*$/m,
+    assert.equal(
+      hasReleaseGateLiteralPassword(source),
+      false,
       `${workflowPath} must not set release-gate account passwords to the shared seeded-user default`
     );
-    assert.doesNotMatch(
-      source,
-      /^\s*E2E_API_SECRET:\s*test-secret-placeholder\s*$/m,
+    assert.equal(
+      hasE2EApiPlaceholder(source),
+      false,
       `${workflowPath} must not use the shared E2E API placeholder secret`
     );
   }

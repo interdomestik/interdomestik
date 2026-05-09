@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ -z "${GITHUB_ENV:-}" ]]; then
-  echo "::error::GITHUB_ENV is required to export per-run E2E credentials."
+  echo "::error::GITHUB_ENV is required to export per-run E2E credentials." >&2
   exit 2
 fi
 

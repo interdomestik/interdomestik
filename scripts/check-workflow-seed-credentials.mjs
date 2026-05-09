@@ -4,10 +4,12 @@ import path from 'node:path';
 const WORKFLOW_DIR = path.join(process.cwd(), '.github', 'workflows');
 const EXPORT_SCRIPT = 'bash scripts/ci/export-e2e-credentials.sh';
 
-const RELEASE_GATE_LITERAL_PASSWORD = /^\s*RELEASE_GATE_[A-Z_]*_PASSWORD:\s*GoldenPass123!\s*$/gm;
-const E2E_API_PLACEHOLDER = /^\s*E2E_API_SECRET:\s*test-secret-placeholder\s*$/gm;
-const SEEDED_AUTH_COMMAND =
-  /\bpnpm\s+(?:seed:e2e|e2e:gate(?::pr)?|--filter\s+@interdomestik\/web\s+run\s+e2e:gate)\b/;
+const SEEDED_AUTH_COMMANDS = [
+  'pnpm seed:e2e',
+  'pnpm e2e:gate',
+  'pnpm e2e:gate:pr',
+  'pnpm --filter @interdomestik/web run e2e:gate',
+];
 
 function readWorkflowFiles() {
   return fs
@@ -23,28 +25,61 @@ function readWorkflowFiles() {
     });
 }
 
+function workflowLines(content) {
+  return content.split('\n').map(line => line.trim());
+}
+
+function hasReleaseGateLiteralPassword(content) {
+  return workflowLines(content).some(line => {
+    const separatorIndex = line.indexOf(':');
+    if (separatorIndex === -1) {
+      return false;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+    return (
+      key.startsWith('RELEASE_GATE_') && key.endsWith('_PASSWORD') && value === 'GoldenPass123!'
+    );
+  });
+}
+
+function hasE2EApiPlaceholder(content) {
+  return workflowLines(content).some(line => {
+    const separatorIndex = line.indexOf(':');
+    if (separatorIndex === -1) {
+      return false;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+    return key === 'E2E_API_SECRET' && value === 'test-secret-placeholder';
+  });
+}
+
+function hasSeededAuthCommand(content) {
+  return SEEDED_AUTH_COMMANDS.some(command => content.includes(command));
+}
+
 export function runWorkflowSeedCredentialGuard() {
   const failures = [];
 
   for (const workflow of readWorkflowFiles()) {
-    if (RELEASE_GATE_LITERAL_PASSWORD.test(workflow.content)) {
+    if (hasReleaseGateLiteralPassword(workflow.content)) {
       failures.push(
         `${workflow.relativePath}: release-gate password env must not use the shared seeded-user default`
       );
     }
-    RELEASE_GATE_LITERAL_PASSWORD.lastIndex = 0;
 
-    if (E2E_API_PLACEHOLDER.test(workflow.content)) {
+    if (hasE2EApiPlaceholder(workflow.content)) {
       failures.push(`${workflow.relativePath}: E2E_API_SECRET must not use the placeholder value`);
     }
-    E2E_API_PLACEHOLDER.lastIndex = 0;
 
-    if (SEEDED_AUTH_COMMAND.test(workflow.content) && !workflow.content.includes(EXPORT_SCRIPT)) {
+    if (hasSeededAuthCommand(workflow.content) && !workflow.content.includes(EXPORT_SCRIPT)) {
       failures.push(
         `${workflow.relativePath}: seeded E2E jobs must export masked per-run credentials before seeding/auth`
       );
     }
-    SEEDED_AUTH_COMMAND.lastIndex = 0;
   }
 
   if (failures.length > 0) {
