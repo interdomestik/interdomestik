@@ -10,15 +10,15 @@ tracker_path: docs/plans/current-tracker.md
 
 # P34 Domain CRM Production Roadmap
 
-> Status: queued roadmap input. `P34` is not active until `P33-SEC12` merges with required gates green.
+> Status: queued roadmap input after completed `P33-SEC12`. `P34` is pending activation through the tracker.
 
 ## Purpose
 
 `P34` is the post-`P33-SEC12` CRM execution roadmap. It resumes CRM product work from the completed
-`P32-CRM09 Member Support Handoff Reply` slice without reopening the security hardening line while
-`P33-SEC12 Commercial Action Idempotency Tenant Scope Hardening` is still in flight.
+`P32-CRM09 Member Support Handoff Reply` slice after completed `P33-SEC12 Commercial Action
+Idempotency Tenant Scope Hardening`, without reopening the security hardening line.
 
-This roadmap is queued, not active, until `P33-SEC12` is merged and required gates are green.
+This roadmap is queued as tracker input until `P34` is explicitly activated.
 
 ## Current Baseline
 
