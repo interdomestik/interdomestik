@@ -7,12 +7,16 @@
   "exports": {
     ".": "./src/index.ts",
     "./context": "./src/context.ts",
+    "./leads": "./src/leads/index.ts",
+    "./leads/repository": "./src/leads/repository.ts",
+    "./leads/types": "./src/leads/types.ts",
     "./notifications": "./src/notifications.ts",
     "./support-handoffs": "./src/support-handoffs/index.ts",
     "./support-handoffs/repository": "./src/support-handoffs/repository.ts",
     "./support-handoffs/state": "./src/support-handoffs/state.ts",
     "./support-handoffs/types": "./src/support-handoffs/types.ts",
     "./timeline": "./src/timeline/index.ts",
+    "./timeline/authorization": "./src/timeline/authorization.ts",
     "./timeline/read-model": "./src/timeline/read-model.ts"
   },
   "scripts": {
