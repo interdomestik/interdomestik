@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => {
     eq: vi.fn((left, right) => ({ left, predicate: 'eq', right })),
     inArray: vi.fn((left, right) => ({ left, predicate: 'inArray', right })),
     isNotNull: vi.fn(columnName => ({ column: columnName, predicate: 'isNotNull' })),
+    isNull: vi.fn(columnName => ({ column: columnName, predicate: 'isNull' })),
     logAuditEvent: vi.fn(),
     selectFrom,
     selectLimit,
@@ -69,7 +70,7 @@ function sharedAuthExports() {
 }
 
 function drizzleExports() {
-  return { inArray: mocks.inArray, isNotNull: mocks.isNotNull };
+  return { inArray: mocks.inArray, isNotNull: mocks.isNotNull, isNull: mocks.isNull };
 }
 
 vi.mock('@interdomestik/database', databaseExports);
@@ -97,6 +98,7 @@ function fallbackRow(overrides = {}) {
     acknowledgedAt: new Date('2026-05-05T08:30:00.000Z'),
     acknowledgedById: 'member-1',
     acknowledgedVersion: 2,
+    memberReplyAt: null,
     memberReplyResponseVersion: null,
     publicResponse: 'Staff update',
     publicResponseVersion: 2,
@@ -191,6 +193,7 @@ describe('support handoff member reply', () => {
     expect(mocks.isNotNull).toHaveBeenCalledWith(
       'support_handoffs.public_response_acknowledged_at'
     );
+    expect(mocks.isNull).toHaveBeenCalledWith('support_handoffs.member_reply_at');
     const idempotencyGuard = findSqlCallWithValue('support_handoffs.member_reply_response_version');
     expect(idempotencyGuard?.[0].join('')).toContain('is distinct from');
     expect(idempotencyGuard).toContain(2);
@@ -240,7 +243,30 @@ describe('support handoff member reply', () => {
 
   it('returns already-replied when the update fallback finds a same-cycle reply', async () => {
     mocks.updateReturning.mockResolvedValueOnce([]);
-    mocks.selectLimit.mockResolvedValueOnce([fallbackRow({ memberReplyResponseVersion: 2 })]);
+    mocks.selectLimit.mockResolvedValueOnce([
+      fallbackRow({
+        memberReplyAt: new Date('2026-05-05T08:45:00.000Z'),
+        memberReplyResponseVersion: 2,
+      }),
+    ]);
+
+    await expect(submitReply()).resolves.toEqual({
+      code: 'ALREADY_REPLIED',
+      error: 'You already replied to this response.',
+      success: false,
+    });
+    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+  });
+
+  it('keeps the bounded reply model terminal after staff follow-up', async () => {
+    mocks.updateReturning.mockResolvedValueOnce([]);
+    mocks.selectLimit.mockResolvedValueOnce([
+      fallbackRow({
+        memberReplyAt: new Date('2026-05-05T08:45:00.000Z'),
+        memberReplyResponseVersion: 1,
+        publicResponseVersion: 2,
+      }),
+    ]);
 
     await expect(submitReply()).resolves.toEqual({
       code: 'ALREADY_REPLIED',

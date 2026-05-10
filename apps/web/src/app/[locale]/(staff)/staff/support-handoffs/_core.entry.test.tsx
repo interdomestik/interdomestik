@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   }),
   reassignSupportHandoff: vi.fn(),
   requireSessionOrRedirect: vi.fn(session => session),
+  routerRefresh: vi.fn(),
   setRequestLocale: vi.fn(),
   updateSupportHandoffPublicResponse: vi.fn(),
 }));
@@ -92,6 +93,9 @@ vi.mock('next-intl/server', () => ({
 
 vi.mock('next/navigation', () => ({
   notFound: mocks.notFound,
+  useRouter: () => ({
+    refresh: mocks.routerRefresh,
+  }),
 }));
 
 import StaffSupportHandoffsPage from './_core.entry';
@@ -113,6 +117,7 @@ const queueItem = {
     name: 'Member One',
   },
   message: 'The member needs staff support.',
+  needsFollowUp: false,
   publicResponseAt: null,
   relationship: {
     agentName: 'Agent One',
@@ -140,10 +145,10 @@ function session(role: 'staff' | 'branch_manager' = 'staff') {
   };
 }
 
-async function renderPage() {
+async function renderPage(searchParams: Record<string, string | string[] | undefined> = {}) {
   const tree = await StaffSupportHandoffsPage({
     params: Promise.resolve({ locale: 'en' }),
-    searchParams: Promise.resolve({}),
+    searchParams: Promise.resolve(searchParams),
   });
   render(tree);
 }
@@ -279,6 +284,56 @@ describe('StaffSupportHandoffsPage', () => {
 
     expect(screen.getByTestId('staff-support-handoff-public-response-badge')).toHaveTextContent(
       'table.public_response_sent'
+    );
+  });
+
+  it('passes the needs-follow-up attention filter into the staff queue', async () => {
+    await renderPage({ attention: 'needs_follow_up' });
+
+    expect(mocks.getQueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attention: 'needs_follow_up',
+        status: 'accepted',
+      })
+    );
+    expect(screen.getByTestId('staff-support-handoffs-attention-filters')).toHaveTextContent(
+      'filters.attention.needs_follow_up'
+    );
+    expect(screen.getByText('filters.attention.needs_follow_up')).toHaveAttribute(
+      'href',
+      '/staff/support-handoffs?attention=needs_follow_up&status=accepted'
+    );
+  });
+
+  it('clamps needs-follow-up attention to accepted status even with conflicting params', async () => {
+    await renderPage({ attention: 'needs_follow_up', status: 'closed' });
+
+    expect(mocks.getQueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attention: 'needs_follow_up',
+        status: 'accepted',
+      })
+    );
+    expect(screen.getByText('status.accepted')).toHaveAttribute(
+      'href',
+      '/staff/support-handoffs?attention=needs_follow_up&status=accepted'
+    );
+    expect(screen.queryByText('status.closed')).not.toBeInTheDocument();
+  });
+
+  it('shows a staff follow-up attention badge for current-cycle member replies', async () => {
+    mocks.getQueue.mockResolvedValueOnce([
+      {
+        ...queueItem,
+        needsFollowUp: true,
+        publicResponseAt: '2026-05-04T11:00:00.000Z',
+      },
+    ]);
+
+    await renderPage();
+
+    expect(screen.getByTestId('staff-support-handoff-needs-follow-up-badge')).toHaveTextContent(
+      'table.needs_follow_up'
     );
   });
 
@@ -481,18 +536,96 @@ describe('StaffSupportHandoffsPage', () => {
     fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
 
     const input = await screen.findByTestId('staff-support-handoff-public-response-input');
+    mocks.routerRefresh.mockClear();
     fireEvent.change(input, { target: { value: 'Updated member-visible response' } });
     fireEvent.submit(screen.getByTestId('staff-support-handoff-public-response-form'));
 
     await waitFor(() => {
       expect(mocks.updateSupportHandoffPublicResponse).toHaveBeenCalled();
       expect(mocks.getSupportHandoffDetail).toHaveBeenCalledTimes(2);
+      expect(mocks.routerRefresh).toHaveBeenCalledTimes(1);
     });
     expect(screen.getByTestId('staff-support-handoff-public-response-input')).toHaveValue(
       'Updated member-visible response'
     );
     const refreshedForm = screen.getByTestId('staff-support-handoff-public-response-form');
     expect(refreshedForm.querySelector('input[name="expectedVersion"]')).toHaveValue('4');
+  });
+
+  it('removes resolved rows from the needs-follow-up attention queue after staff response', async () => {
+    mocks.getQueue.mockResolvedValueOnce([
+      {
+        ...queueItem,
+        needsFollowUp: true,
+        publicResponseAt: '2026-05-04T11:00:00.000Z',
+        staffId: 'staff-1',
+        staffName: 'Staff One',
+        status: 'accepted',
+      },
+    ]);
+    mocks.getSupportHandoffDetail
+      .mockResolvedValueOnce({
+        acceptedAt: '2026-05-04T08:30:00.000Z',
+        acceptedByName: 'Staff One',
+        closedAt: null,
+        closedByName: null,
+        closeReason: null,
+        contactPreference: 'phone',
+        memberReply: {
+          memberReply: 'Member reply awaiting staff.',
+          memberReplyAt: '2026-05-04T11:10:00.000Z',
+          memberReplyResponseVersion: 3,
+        },
+        publicResponse: {
+          publicResponse: 'Existing member-visible update',
+          publicResponseAt: '2026-05-04T11:00:00.000Z',
+          publicResponseAcknowledged: true,
+          publicResponseAcknowledgedAt: '2026-05-04T11:05:00.000Z',
+          publicResponseAcknowledgedVersion: 3,
+          publicResponseVersion: 3,
+        },
+        reassignedAt: null,
+        reassignedByName: null,
+        reassignReason: null,
+        source: 'member_help',
+      })
+      .mockResolvedValueOnce({
+        acceptedAt: '2026-05-04T08:30:00.000Z',
+        acceptedByName: 'Staff One',
+        closedAt: null,
+        closedByName: null,
+        closeReason: null,
+        contactPreference: 'phone',
+        memberReply: {
+          memberReply: 'Member reply awaiting staff.',
+          memberReplyAt: '2026-05-04T11:10:00.000Z',
+          memberReplyResponseVersion: 3,
+        },
+        publicResponse: {
+          publicResponse: 'Updated member-visible response',
+          publicResponseAt: '2026-05-04T12:00:00.000Z',
+          publicResponseAcknowledged: false,
+          publicResponseAcknowledgedAt: null,
+          publicResponseAcknowledgedVersion: null,
+          publicResponseVersion: 4,
+        },
+        reassignedAt: null,
+        reassignedByName: null,
+        reassignReason: null,
+        source: 'member_help',
+      });
+
+    await renderPage({ attention: 'needs_follow_up' });
+    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+
+    const input = await screen.findByTestId('staff-support-handoff-public-response-input');
+    fireEvent.change(input, { target: { value: 'Updated member-visible response' } });
+    fireEvent.submit(screen.getByTestId('staff-support-handoff-public-response-form'));
+
+    await waitFor(() => {
+      expect(mocks.updateSupportHandoffPublicResponse).toHaveBeenCalled();
+      expect(screen.queryByTestId('staff-support-handoffs-row')).not.toBeInTheDocument();
+    });
   });
 
   it('hides reassignment for accepted handoffs owned by another staff member', async () => {

@@ -13,11 +13,13 @@ import {
   user,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { aliasedTable, isNotNull, isNull, type SQL } from 'drizzle-orm';
+import { hasSupportHandoffCurrentCycleMemberReply } from '@interdomestik/domain-crm/support-handoffs';
+import { aliasedTable, gt, isNotNull, isNull, type SQL } from 'drizzle-orm';
 
 import type {
   SupportHandoffContactPreference,
   SupportHandoffQueueAssignmentFilter,
+  SupportHandoffQueueAttentionFilter,
   SupportHandoffQueueItem,
   SupportHandoffStaffDetail,
   SupportHandoffStatus,
@@ -74,8 +76,51 @@ function buildOwnOrUnassignedStaffScope(staffId: string): SQL<unknown> {
   return scope;
 }
 
+function buildNeedsFollowUpCondition(): SQL<unknown> {
+  return and(
+    eq(supportHandoffs.status, 'accepted'),
+    gt(supportHandoffs.publicResponseVersion, 0),
+    isNotNull(supportHandoffs.memberReplyAt),
+    eq(supportHandoffs.memberReplyResponseVersion, supportHandoffs.publicResponseVersion)
+  ) as SQL<unknown>;
+}
+
+function buildAssignmentCondition(args: {
+  assignment: SupportHandoffQueueAssignmentFilter;
+  branchId?: string | null;
+  staffId: string;
+  viewerRole?: string | null;
+}): SQL<unknown> | undefined {
+  if (args.assignment === 'mine') {
+    return eq(supportHandoffs.staffId, args.staffId);
+  }
+
+  if (args.assignment === 'unassigned') {
+    return isNull(supportHandoffs.staffId);
+  }
+
+  const shouldUseOwnOrUnassignedFallback =
+    args.viewerRole !== 'branch_manager' ||
+    (args.viewerRole === 'branch_manager' && args.branchId == null);
+
+  return shouldUseOwnOrUnassignedFallback
+    ? buildOwnOrUnassignedStaffScope(args.staffId)
+    : undefined;
+}
+
+function buildClaimLinkCondition(
+  claimLink: SupportHandoffClaimLinkFilter | undefined
+): SQL<unknown> | undefined {
+  if (claimLink === 'linked') {
+    return isNotNull(supportHandoffs.claimId);
+  }
+
+  return claimLink === 'unlinked' ? isNull(supportHandoffs.claimId) : undefined;
+}
+
 export function buildStaffSupportHandoffQueueScope(args: {
   assignment: SupportHandoffQueueAssignmentFilter;
+  attention?: SupportHandoffQueueAttentionFilter;
   branchId?: string | null;
   claimLink?: SupportHandoffClaimLinkFilter;
   search?: string;
@@ -87,7 +132,7 @@ export function buildStaffSupportHandoffQueueScope(args: {
 }) {
   const conditions: SQL<unknown>[] = [];
 
-  if (args.status && args.status !== 'all') {
+  if (args.attention !== 'needs_follow_up' && args.status && args.status !== 'all') {
     conditions.push(eq(supportHandoffs.status, args.status));
   }
 
@@ -99,22 +144,14 @@ export function buildStaffSupportHandoffQueueScope(args: {
     conditions.push(eq(supportHandoffs.branchId, args.branchId));
   }
 
-  const shouldUseOwnOrUnassignedFallback =
-    args.viewerRole !== 'branch_manager' ||
-    (args.viewerRole === 'branch_manager' && args.branchId == null);
+  const assignmentCondition = buildAssignmentCondition(args);
+  if (assignmentCondition) conditions.push(assignmentCondition);
 
-  if (args.assignment === 'mine') {
-    conditions.push(eq(supportHandoffs.staffId, args.staffId));
-  } else if (args.assignment === 'unassigned') {
-    conditions.push(isNull(supportHandoffs.staffId));
-  } else if (shouldUseOwnOrUnassignedFallback) {
-    conditions.push(buildOwnOrUnassignedStaffScope(args.staffId));
-  }
+  const claimLinkCondition = buildClaimLinkCondition(args.claimLink);
+  if (claimLinkCondition) conditions.push(claimLinkCondition);
 
-  if (args.claimLink === 'linked') {
-    conditions.push(isNotNull(supportHandoffs.claimId));
-  } else if (args.claimLink === 'unlinked') {
-    conditions.push(isNull(supportHandoffs.claimId));
+  if (args.attention === 'needs_follow_up') {
+    conditions.push(buildNeedsFollowUpCondition());
   }
 
   const search = normalizeSearch(args.search);
@@ -134,6 +171,7 @@ export function buildStaffSupportHandoffQueueScope(args: {
 
 export async function getStaffSupportHandoffQueue(params: {
   assignment?: SupportHandoffQueueAssignmentFilter;
+  attention?: SupportHandoffQueueAttentionFilter;
   branchId?: string | null;
   claimLink?: SupportHandoffClaimLinkFilter;
   limit: number;
@@ -155,7 +193,10 @@ export async function getStaffSupportHandoffQueue(params: {
       urgency: supportHandoffs.urgency,
       trustRisk: supportHandoffs.trustRisk,
       lifecycleVersion: supportHandoffs.lifecycleVersion,
+      memberReplyAt: supportHandoffs.memberReplyAt,
+      memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
       publicResponseAt: supportHandoffs.publicResponseAt,
+      publicResponseVersion: supportHandoffs.publicResponseVersion,
       createdAt: supportHandoffs.createdAt,
       updatedAt: supportHandoffs.updatedAt,
       staffId: supportHandoffs.staffId,
@@ -208,6 +249,7 @@ export async function getStaffSupportHandoffQueue(params: {
     .where(
       buildStaffSupportHandoffQueueScope({
         assignment: params.assignment ?? 'all',
+        attention: params.attention ?? 'all',
         branchId: params.branchId,
         claimLink: params.claimLink ?? 'all',
         search: params.search,
@@ -229,6 +271,13 @@ export async function getStaffSupportHandoffQueue(params: {
     urgency: row.urgency as SupportHandoffUrgency,
     trustRisk: row.trustRisk as SupportHandoffTrustRisk,
     lifecycleVersion: row.lifecycleVersion,
+    needsFollowUp:
+      row.status === 'accepted' &&
+      hasSupportHandoffCurrentCycleMemberReply({
+        memberReplyAt: normalizeNullableDate(row.memberReplyAt),
+        memberReplyResponseVersion: row.memberReplyResponseVersion ?? null,
+        publicResponseVersion: row.publicResponseVersion ?? 0,
+      }),
     publicResponseAt: normalizeNullableDate(row.publicResponseAt),
     createdAt: normalizeDate(row.createdAt),
     updatedAt: normalizeDate(row.updatedAt),

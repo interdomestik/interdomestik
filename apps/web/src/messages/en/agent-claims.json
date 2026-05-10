@@ -88,6 +88,11 @@
             "all": "All",
             "linked": "Linked to claim",
             "unlinked": "No claim"
+          },
+          "attention": {
+            "label": "Attention",
+            "all": "All",
+            "needs_follow_up": "Needs follow-up"
           }
         },
         "table": {
@@ -103,6 +108,7 @@
           "no_branch": "No branch",
           "no_plan": "No plan",
           "no_agent": "No agent",
+          "needs_follow_up": "Needs follow-up",
           "public_response_sent": "Staff update sent",
           "unassigned": "Unassigned"
         },

@@ -47,6 +47,7 @@
   "dependencies": {
     "@interdomestik/database": "workspace:*",
     "@interdomestik/domain-ai": "workspace:*",
+    "@interdomestik/domain-crm": "workspace:*",
     "@interdomestik/domain-membership-billing": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
     "drizzle-orm": "^0.45.2",

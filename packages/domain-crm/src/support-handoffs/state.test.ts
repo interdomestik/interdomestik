@@ -6,6 +6,8 @@ import {
   canStaffFollowUpSupportHandoffState,
   deriveSupportHandoffCrmState,
   getAllowedSupportHandoffTransitions,
+  hasSupportHandoffCurrentCycleMemberReply,
+  hasSupportHandoffStaffFollowedUpAfterMemberReply,
   isStaffOwnedSupportHandoffState,
   isTerminalSupportHandoffState,
   resolveSupportHandoffTransition,
@@ -69,6 +71,30 @@ describe('support handoff CRM state machine', () => {
       from: 'member_replied',
       to: 'staff_followed_up',
     });
+  });
+
+  it('identifies current-cycle replies and staff follow-up by version advancement', () => {
+    expect(
+      hasSupportHandoffCurrentCycleMemberReply({
+        memberReplyAt: '2026-05-10T10:10:00.000Z',
+        memberReplyResponseVersion: 1,
+        publicResponseVersion: 1,
+      })
+    ).toBe(true);
+    expect(
+      hasSupportHandoffCurrentCycleMemberReply({
+        memberReplyAt: '2026-05-10T10:10:00.000Z',
+        memberReplyResponseVersion: 1,
+        publicResponseVersion: 2,
+      })
+    ).toBe(false);
+    expect(
+      hasSupportHandoffStaffFollowedUpAfterMemberReply({
+        memberReplyAt: '2026-05-10T10:10:00.000Z',
+        memberReplyResponseVersion: 1,
+        publicResponseVersion: 2,
+      })
+    ).toBe(true);
   });
 
   it('rejects unsupported and same-state transitions with stable reasons', () => {
@@ -146,6 +172,20 @@ describe('support handoff CRM state machine', () => {
             publicResponseVersion: 1,
             staffFollowedUpAt: '2026-05-10T10:20:00.000Z',
             staffFollowedUpById: 'staff-1',
+          },
+          status: 'accepted',
+        })
+      )
+    ).toBe('staff_followed_up');
+    expect(
+      deriveSupportHandoffCrmState(
+        snapshot({
+          cycle: {
+            ...snapshot({}).cycle,
+            memberReplyAt: '2026-05-10T10:10:00.000Z',
+            memberReplyResponseVersion: 1,
+            publicResponseAt: '2026-05-10T10:20:00.000Z',
+            publicResponseVersion: 2,
           },
           status: 'accepted',
         })

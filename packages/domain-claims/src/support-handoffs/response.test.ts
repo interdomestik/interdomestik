@@ -225,6 +225,41 @@ describe('support handoff public response', () => {
     expect(mocks.logAuditEvent).not.toHaveBeenCalled();
   });
 
+  it('does not audit tenant, branch, or assignee scoped write misses', async () => {
+    mocks.updateReturning.mockResolvedValue([]);
+    mocks.ensureTenantId.mockReturnValueOnce('tenant-2');
+
+    for (const scopedSession of [
+      staffSession({ tenantId: 'tenant-2' }),
+      staffSession({ branchId: 'branch-2' }),
+      staffSession({ id: 'staff-2' }),
+    ]) {
+      const result = await updateSupportHandoffPublicResponseCore(
+        {
+          expectedVersion: 4,
+          handoffId: 'handoff-1',
+          response: 'Scoped response miss',
+          session: scopedSession,
+        },
+        { logAuditEvent: mocks.logAuditEvent }
+      );
+
+      expect(result).toEqual({
+        error: 'Handoff changed before response could be updated',
+        success: false,
+      });
+      expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+    }
+
+    expect(mocks.withTenant).toHaveBeenCalledWith(
+      'tenant-2',
+      'support_handoffs.tenant_id',
+      expect.any(Object)
+    );
+    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.branch_id', 'branch-2');
+    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.staff_id', 'staff-2');
+  });
+
   it('returns a same-claim member-safe public response when available', async () => {
     mocks.selectLimit.mockResolvedValueOnce([
       {

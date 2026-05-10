@@ -309,6 +309,11 @@
             "all": "Të gjitha",
             "linked": "Lidhur me rast",
             "unlinked": "Pa rast"
+          },
+          "attention": {
+            "label": "Vëmendje",
+            "all": "Të gjitha",
+            "needs_follow_up": "Kërkon ndjekje"
           }
         },
         "table": {
@@ -324,6 +329,7 @@
           "no_branch": "Pa degë",
           "no_plan": "Pa plan",
           "no_agent": "Pa agjent",
+          "needs_follow_up": "Kërkon ndjekje",
           "public_response_sent": "Përditësim nga stafi u dërgua",
           "unassigned": "E pacaktuar"
         },

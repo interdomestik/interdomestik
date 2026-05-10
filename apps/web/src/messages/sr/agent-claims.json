@@ -309,6 +309,11 @@
             "all": "Sve",
             "linked": "Povezano sa predmetom",
             "unlinked": "Bez predmeta"
+          },
+          "attention": {
+            "label": "Pažnja",
+            "all": "Sve",
+            "needs_follow_up": "Potreban nastavak"
           }
         },
         "table": {
@@ -324,6 +329,7 @@
           "no_branch": "Nema filijale",
           "no_plan": "Nema plana",
           "no_agent": "Nema agenta",
+          "needs_follow_up": "Potreban nastavak",
           "public_response_sent": "Ažuriranje osoblja je poslato",
           "unassigned": "Nedodeljeno"
         },

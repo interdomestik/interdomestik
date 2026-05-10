@@ -54,10 +54,8 @@ export async function PublicResponseBanner({
       })
     : null;
   const acknowledgementPermalink = `/${locale}/member/help?handoffId=${encodeURIComponent(response.handoffId)}`;
-  const hasCurrentCycleReply =
-    response.memberReplyResponseVersion === response.publicResponseVersion &&
-    !!response.memberReply;
-  const memberReplySlot = !hasCurrentCycleReply ? (
+  const hasMemberReply = !!response.memberReply && response.memberReplyAt != null;
+  const memberReplySlot = hasMemberReply ? null : (
     <MemberReplyForm
       expectedPublicResponseVersion={response.publicResponseVersion}
       handoffId={response.handoffId}
@@ -76,7 +74,7 @@ export async function PublicResponseBanner({
       locale={locale}
       permalink={acknowledgementPermalink}
     />
-  ) : null;
+  );
 
   return (
     <div
@@ -118,7 +116,7 @@ export async function PublicResponseBanner({
           memberReplySlot={memberReplySlot}
           permalink={acknowledgementPermalink}
         />
-        {hasCurrentCycleReply ? (
+        {hasMemberReply ? (
           <div
             className="mt-3 inline-flex items-center rounded-md border border-emerald-200 bg-white/70 px-2.5 py-1.5 text-xs font-medium text-emerald-800"
             data-testid="member-reply-success"
