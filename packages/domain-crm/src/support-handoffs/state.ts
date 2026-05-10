@@ -1,4 +1,8 @@
-import type { SupportHandoffCrmState, SupportHandoffStateSnapshot } from './types';
+import type {
+  SupportHandoffCrmState,
+  SupportHandoffCycle,
+  SupportHandoffStateSnapshot,
+} from './types';
 
 export const STAFF_OWNED_STATES = [
   'member_requested',
@@ -78,6 +82,32 @@ export function canStaffFollowUpSupportHandoffState(state: SupportHandoffCrmStat
   return canTransitionSupportHandoffState(state, 'staff_followed_up');
 }
 
+type SupportHandoffReplyCycleSnapshot = Pick<
+  SupportHandoffCycle,
+  'memberReplyAt' | 'memberReplyResponseVersion' | 'publicResponseVersion'
+>;
+
+export function hasSupportHandoffCurrentCycleMemberReply(
+  cycle: SupportHandoffReplyCycleSnapshot
+): boolean {
+  return (
+    cycle.publicResponseVersion > 0 &&
+    cycle.memberReplyAt != null &&
+    cycle.memberReplyResponseVersion === cycle.publicResponseVersion
+  );
+}
+
+export function hasSupportHandoffStaffFollowedUpAfterMemberReply(
+  cycle: SupportHandoffReplyCycleSnapshot
+): boolean {
+  return (
+    cycle.publicResponseVersion > 0 &&
+    cycle.memberReplyAt != null &&
+    cycle.memberReplyResponseVersion != null &&
+    cycle.publicResponseVersion > cycle.memberReplyResponseVersion
+  );
+}
+
 export function deriveSupportHandoffCrmState(
   snapshot: SupportHandoffStateSnapshot
 ): SupportHandoffCrmState {
@@ -86,15 +116,11 @@ export function deriveSupportHandoffCrmState(
   }
 
   const { cycle } = snapshot;
-  if (cycle.staffFollowedUpAt) {
+  if (cycle.staffFollowedUpAt || hasSupportHandoffStaffFollowedUpAfterMemberReply(cycle)) {
     return 'staff_followed_up';
   }
 
-  const hasCurrentMemberReply =
-    cycle.publicResponseVersion > 0 &&
-    cycle.memberReplyAt != null &&
-    cycle.memberReplyResponseVersion === cycle.publicResponseVersion;
-  if (hasCurrentMemberReply) {
+  if (hasSupportHandoffCurrentCycleMemberReply(cycle)) {
     return 'member_replied';
   }
 

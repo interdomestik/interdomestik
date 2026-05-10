@@ -13,11 +13,13 @@ import {
   user,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { hasSupportHandoffCurrentCycleMemberReply } from '@interdomestik/domain-crm/support-handoffs';
 import { aliasedTable, isNotNull, isNull, type SQL } from 'drizzle-orm';
 
 import type {
   SupportHandoffContactPreference,
   SupportHandoffQueueAssignmentFilter,
+  SupportHandoffQueueAttentionFilter,
   SupportHandoffQueueItem,
   SupportHandoffStaffDetail,
   SupportHandoffStatus,
@@ -74,8 +76,17 @@ function buildOwnOrUnassignedStaffScope(staffId: string): SQL<unknown> {
   return scope;
 }
 
+function buildNeedsFollowUpCondition(): SQL<unknown> {
+  return and(
+    eq(supportHandoffs.status, 'accepted'),
+    isNotNull(supportHandoffs.memberReplyAt),
+    eq(supportHandoffs.memberReplyResponseVersion, supportHandoffs.publicResponseVersion)
+  ) as SQL<unknown>;
+}
+
 export function buildStaffSupportHandoffQueueScope(args: {
   assignment: SupportHandoffQueueAssignmentFilter;
+  attention?: SupportHandoffQueueAttentionFilter;
   branchId?: string | null;
   claimLink?: SupportHandoffClaimLinkFilter;
   search?: string;
@@ -117,6 +128,10 @@ export function buildStaffSupportHandoffQueueScope(args: {
     conditions.push(isNull(supportHandoffs.claimId));
   }
 
+  if (args.attention === 'needs_follow_up') {
+    conditions.push(buildNeedsFollowUpCondition());
+  }
+
   const search = normalizeSearch(args.search);
   if (search) {
     const searchCondition = buildSearchCondition(search);
@@ -134,6 +149,7 @@ export function buildStaffSupportHandoffQueueScope(args: {
 
 export async function getStaffSupportHandoffQueue(params: {
   assignment?: SupportHandoffQueueAssignmentFilter;
+  attention?: SupportHandoffQueueAttentionFilter;
   branchId?: string | null;
   claimLink?: SupportHandoffClaimLinkFilter;
   limit: number;
@@ -155,7 +171,10 @@ export async function getStaffSupportHandoffQueue(params: {
       urgency: supportHandoffs.urgency,
       trustRisk: supportHandoffs.trustRisk,
       lifecycleVersion: supportHandoffs.lifecycleVersion,
+      memberReplyAt: supportHandoffs.memberReplyAt,
+      memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
       publicResponseAt: supportHandoffs.publicResponseAt,
+      publicResponseVersion: supportHandoffs.publicResponseVersion,
       createdAt: supportHandoffs.createdAt,
       updatedAt: supportHandoffs.updatedAt,
       staffId: supportHandoffs.staffId,
@@ -208,6 +227,7 @@ export async function getStaffSupportHandoffQueue(params: {
     .where(
       buildStaffSupportHandoffQueueScope({
         assignment: params.assignment ?? 'all',
+        attention: params.attention ?? 'all',
         branchId: params.branchId,
         claimLink: params.claimLink ?? 'all',
         search: params.search,
@@ -229,6 +249,13 @@ export async function getStaffSupportHandoffQueue(params: {
     urgency: row.urgency as SupportHandoffUrgency,
     trustRisk: row.trustRisk as SupportHandoffTrustRisk,
     lifecycleVersion: row.lifecycleVersion,
+    needsFollowUp:
+      row.status === 'accepted' &&
+      hasSupportHandoffCurrentCycleMemberReply({
+        memberReplyAt: normalizeNullableDate(row.memberReplyAt),
+        memberReplyResponseVersion: row.memberReplyResponseVersion ?? null,
+        publicResponseVersion: row.publicResponseVersion ?? 0,
+      }),
     publicResponseAt: normalizeNullableDate(row.publicResponseAt),
     createdAt: normalizeDate(row.createdAt),
     updatedAt: normalizeDate(row.updatedAt),

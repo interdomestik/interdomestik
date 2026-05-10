@@ -521,7 +521,6 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
     const subject = `E2E CRM06 public response ${testInfo.project.name} ${Date.now()}`;
     const firstResponse = `CRM06 member-visible update ${Date.now()}`;
     const memberReply = `CRM09 member reply ${Date.now()}`;
-    const secondMemberReply = `CRM09 second-cycle member reply ${Date.now()}`;
     const updatedResponse = `${firstResponse} updated`;
     const memberHelpRoute = routes.memberHelp(testInfo);
     let handoffId: string | null = null;
@@ -605,12 +604,23 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       await submitVisibleMemberReply(memberPage, memberReply);
       await expectMemberReplyVersion(subject, memberReply, 1);
 
-      const updateRow = await openAcceptedSupportHandoffRow(staffPage, subject, testInfo);
+      await gotoApp(
+        staffPage,
+        `${routes.staffSupportHandoffs(testInfo)}?attention=needs_follow_up&search=${encodeURIComponent(subject)}`,
+        testInfo,
+        { marker: 'staff-page-ready' }
+      );
+      const updateRow = staffPage
+        .getByTestId('staff-support-handoffs-row')
+        .filter({ hasText: subject });
       await expect(
         updateRow.getByTestId('staff-support-handoff-public-response-badge')
       ).toBeVisible({
         timeout: 15000,
       });
+      await expect(
+        updateRow.getByTestId('staff-support-handoff-needs-follow-up-badge')
+      ).toBeVisible({ timeout: 15000 });
       await updateRow.getByTestId('staff-support-handoff-detail-toggle').click();
       await expect(
         updateRow.getByTestId('staff-support-handoff-public-response-input')
@@ -630,9 +640,22 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       await updateRow.getByTestId('staff-support-handoff-public-response-submit').click();
 
       await expectPublicResponseVersion(subject, updatedResponse, 2);
+      await expect(updateRow).toHaveCount(0, { timeout: 15000 });
       await expect(
-        updateRow.getByTestId('staff-support-handoff-public-response-awaiting-acknowledgement')
+        staffPage.getByTestId('staff-support-handoffs-row').filter({ hasText: subject })
+      ).toHaveCount(0, { timeout: 15000 });
+
+      const followedUpRow = await openAcceptedSupportHandoffRow(staffPage, subject, testInfo);
+      await followedUpRow.getByTestId('staff-support-handoff-detail-toggle').click();
+      await expect(
+        followedUpRow.getByTestId('staff-support-handoff-public-response-awaiting-acknowledgement')
       ).toBeVisible({ timeout: 15000 });
+      await expect(followedUpRow.getByTestId('handoff-member-reply')).toContainText(memberReply, {
+        timeout: 15000,
+      });
+      await expect(
+        followedUpRow.getByTestId('staff-support-handoff-member-reply-warning')
+      ).toHaveCount(0);
 
       await expect
         .poll(() => countPublicResponseNotifications(responseNotificationMemberId, memberHelpUrl), {
@@ -646,17 +669,17 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       });
       await acknowledgeVisibleMemberPublicResponse(memberPage, updatedResponse);
       await expectPublicResponseAcknowledgedVersion(subject, 2);
-      await submitVisibleMemberReply(memberPage, secondMemberReply);
-      await expectMemberReplyVersion(subject, secondMemberReply, 2);
-
-      const secondReplyRow = await openAcceptedSupportHandoffRow(staffPage, subject, testInfo);
-      await secondReplyRow.getByTestId('staff-support-handoff-detail-toggle').click();
-      await expect(secondReplyRow.getByTestId('handoff-member-reply')).toContainText(
-        secondMemberReply,
-        { timeout: 15000 }
-      );
       await expect(
-        secondReplyRow.getByTestId('staff-support-handoff-member-reply-warning')
+        memberPage
+          .getByTestId('member-support-handoff-public-response')
+          .first()
+          .getByTestId('member-reply-form')
+      ).toHaveCount(0);
+      await expect(
+        memberPage
+          .getByTestId('member-support-handoff-public-response')
+          .first()
+          .getByTestId('member-reply-success')
       ).toBeVisible({ timeout: 15000 });
 
       await gotoApp(

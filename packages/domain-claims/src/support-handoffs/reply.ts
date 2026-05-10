@@ -1,6 +1,10 @@
 import { and, db, eq, sql, supportHandoffs } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { inArray, isNotNull } from 'drizzle-orm';
+import {
+  hasSupportHandoffCurrentCycleMemberReply,
+  hasSupportHandoffStaffFollowedUpAfterMemberReply,
+} from '@interdomestik/domain-crm/support-handoffs';
+import { inArray, isNotNull, isNull } from 'drizzle-orm';
 
 import {
   isCurrentResponseAcknowledged,
@@ -87,6 +91,7 @@ export async function submitSupportHandoffMemberReplyCore(
           eq(supportHandoffs.publicResponseAcknowledgedById, memberId),
           eq(supportHandoffs.publicResponseAcknowledgedVersion, expectedVersion),
           isNotNull(supportHandoffs.publicResponseAcknowledgedAt),
+          isNull(supportHandoffs.memberReplyAt),
           sql`${supportHandoffs.memberReplyResponseVersion} is distinct from ${expectedVersion}`
         )
       )
@@ -133,6 +138,7 @@ export async function submitSupportHandoffMemberReplyCore(
       acknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
       acknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
       acknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
+      memberReplyAt: supportHandoffs.memberReplyAt,
       memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
       publicResponse: supportHandoffs.publicResponse,
       publicResponseVersion: supportHandoffs.publicResponseVersion,
@@ -167,7 +173,18 @@ export async function submitSupportHandoffMemberReplyCore(
     return failure(STALE_RESPONSE_ERROR, 'STALE_VERSION');
   }
 
-  if (current.memberReplyResponseVersion === expectedVersion) {
+  if (
+    hasSupportHandoffCurrentCycleMemberReply({
+      memberReplyAt: normalizeNullableDate(current.memberReplyAt),
+      memberReplyResponseVersion: current.memberReplyResponseVersion ?? null,
+      publicResponseVersion: current.publicResponseVersion ?? 0,
+    }) ||
+    hasSupportHandoffStaffFollowedUpAfterMemberReply({
+      memberReplyAt: normalizeNullableDate(current.memberReplyAt),
+      memberReplyResponseVersion: current.memberReplyResponseVersion ?? null,
+      publicResponseVersion: current.publicResponseVersion ?? 0,
+    })
+  ) {
     return failure(ALREADY_REPLIED_ERROR, 'ALREADY_REPLIED');
   }
 

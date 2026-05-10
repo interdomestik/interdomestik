@@ -18,7 +18,10 @@ import {
   Phone,
   Smartphone,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+
+import { SUPPORT_HANDOFF_ATTENTION_RESOLVED_EVENT } from './support-handoff-attention-row';
 
 type DetailLabels = Readonly<{
   collapse: string;
@@ -130,6 +133,10 @@ function getCurrentCycleMemberReply(detail: SupportHandoffStaffDetail) {
   }
 
   return null;
+}
+
+function getLatestMemberReply(detail: SupportHandoffStaffDetail) {
+  return detail.memberReply.memberReply ? detail.memberReply : null;
 }
 
 function StaffHandoffLifecycleTimeline({
@@ -255,6 +262,7 @@ export function SupportHandoffDetailPanel({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isResponsePending, startResponseTransition] = useTransition();
+  const router = useRouter();
 
   function toggleDetail() {
     if (isOpen) {
@@ -273,6 +281,7 @@ export function SupportHandoffDetailPanel({
         return;
       }
       setDetail(result);
+      router.refresh();
     });
   }
 
@@ -286,6 +295,12 @@ export function SupportHandoffDetailPanel({
         return;
       }
       setDetail(result);
+      router.refresh();
+      window.dispatchEvent(
+        new CustomEvent(SUPPORT_HANDOFF_ATTENTION_RESOLVED_EVENT, {
+          detail: { handoffId },
+        })
+      );
     });
   }
 
@@ -386,7 +401,7 @@ export function SupportHandoffDetailPanel({
                   locale={locale}
                   publicResponse={detail.publicResponse}
                 />
-                {getCurrentCycleMemberReply(detail) ? (
+                {getLatestMemberReply(detail) ? (
                   <div
                     className="mt-3 rounded-md border border-sky-200 bg-sky-50 p-3"
                     data-testid="handoff-member-reply"
@@ -395,13 +410,13 @@ export function SupportHandoffDetailPanel({
                       {labels.memberReplyTitle}
                     </div>
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">
-                      {getCurrentCycleMemberReply(detail)?.memberReply}
+                      {getLatestMemberReply(detail)?.memberReply}
                     </p>
                     <div className="mt-2 text-xs text-sky-800">
                       {labels.memberReplyAt.replace(
                         '{date}',
                         formatDateTime(
-                          getCurrentCycleMemberReply(detail)?.memberReplyAt ?? null,
+                          getLatestMemberReply(detail)?.memberReplyAt ?? null,
                           locale,
                           labels.lifecyclePending
                         )

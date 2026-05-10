@@ -14,6 +14,7 @@ import {
 } from '@interdomestik/domain-claims/support-handoffs/queue';
 import type {
   SupportHandoffQueueAssignmentFilter,
+  SupportHandoffQueueAttentionFilter,
   SupportHandoffStatus,
   SupportHandoffUrgency,
 } from '@interdomestik/domain-claims/support-handoffs/types';
@@ -22,6 +23,7 @@ import { MessageSquareText } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
+import { SupportHandoffAttentionRow } from './support-handoff-attention-row';
 import { SupportHandoffDetailPanel } from './support-handoff-detail-panel';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
@@ -36,6 +38,7 @@ type SearchParamValue = string | string[] | undefined;
 const STATUS_FILTERS = ['all', 'open', 'accepted', 'closed'] as const;
 const URGENCY_FILTERS = ['all', 'critical', 'high', 'normal', 'low'] as const;
 const CLAIM_LINK_FILTERS = ['all', 'linked', 'unlinked'] as const;
+const ATTENTION_FILTERS = ['all', 'needs_follow_up'] as const;
 
 function getSingleParam(value: SearchParamValue) {
   return Array.isArray(value) ? value[0] : value;
@@ -58,9 +61,13 @@ function parseAssignmentFilter(
   return 'all';
 }
 
-function parseStatusFilter(value: SearchParamValue): SupportHandoffStatus | 'all' {
+function parseStatusFilter(
+  value: SearchParamValue,
+  attention: SupportHandoffQueueAttentionFilter
+): SupportHandoffStatus | 'all' {
   const filter = getSingleParam(value);
-  return isOneOf(STATUS_FILTERS, filter) ? filter : 'open';
+  if (isOneOf(STATUS_FILTERS, filter)) return filter;
+  return attention === 'needs_follow_up' ? 'accepted' : 'open';
 }
 
 function parseUrgencyFilter(value: SearchParamValue): SupportHandoffUrgency | 'all' {
@@ -73,6 +80,11 @@ function parseClaimLinkFilter(value: SearchParamValue): SupportHandoffClaimLinkF
   return isOneOf(CLAIM_LINK_FILTERS, filter) ? filter : 'all';
 }
 
+function parseAttentionFilter(value: SearchParamValue): SupportHandoffQueueAttentionFilter {
+  const filter = getSingleParam(value);
+  return isOneOf(ATTENTION_FILTERS, filter) ? filter : 'all';
+}
+
 function parseSearchTerm(value: SearchParamValue) {
   const normalized = getSingleParam(value)?.trim().replace(/\s+/g, ' ').slice(0, 80);
   return normalized || undefined;
@@ -80,6 +92,7 @@ function parseSearchTerm(value: SearchParamValue) {
 
 function buildSupportHandoffsHref(args: {
   assigned: SupportHandoffQueueAssignmentFilter;
+  attention: SupportHandoffQueueAttentionFilter;
   claim: SupportHandoffClaimLinkFilter;
   search?: string;
   status: SupportHandoffStatus | 'all';
@@ -87,6 +100,7 @@ function buildSupportHandoffsHref(args: {
 }) {
   const params = new URLSearchParams();
   if (args.assigned !== 'all') params.set('assigned', args.assigned);
+  if (args.attention !== 'all') params.set('attention', args.attention);
   if (args.status !== 'open') params.set('status', args.status);
   if (args.urgency !== 'all') params.set('urgency', args.urgency);
   if (args.claim !== 'all') params.set('claim', args.claim);
@@ -148,12 +162,14 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
     resolvedSearchParams.assigned,
     staffSession.user.role
   );
-  const currentStatus = parseStatusFilter(resolvedSearchParams.status);
   const currentUrgency = parseUrgencyFilter(resolvedSearchParams.urgency);
   const currentClaim = parseClaimLinkFilter(resolvedSearchParams.claim);
+  const currentAttention = parseAttentionFilter(resolvedSearchParams.attention);
+  const currentStatus = parseStatusFilter(resolvedSearchParams.status, currentAttention);
   const currentSearch = parseSearchTerm(resolvedSearchParams.search);
   const queue = await getStaffSupportHandoffQueue({
     assignment: currentAssignment,
+    attention: currentAttention,
     branchId: staffSession.user.branchId,
     claimLink: currentClaim,
     limit: 30,
@@ -199,6 +215,10 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
     linked: t('filters.claim.linked'),
     unlinked: t('filters.claim.unlinked'),
   };
+  const attentionLabels = {
+    all: t('filters.attention.all'),
+    needs_follow_up: t('filters.attention.needs_follow_up'),
+  };
   const assignmentValues =
     staffSession.user.role === 'staff'
       ? (['all', 'mine', 'unassigned'] as const)
@@ -211,6 +231,7 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
     toHref: assigned =>
       buildSupportHandoffsHref({
         assigned,
+        attention: currentAttention,
         claim: currentClaim,
         search: currentSearch,
         status: currentStatus,
@@ -225,6 +246,7 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
     toHref: status =>
       buildSupportHandoffsHref({
         assigned: currentAssignment,
+        attention: currentAttention,
         claim: currentClaim,
         search: currentSearch,
         status,
@@ -239,6 +261,7 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
     toHref: urgency =>
       buildSupportHandoffsHref({
         assigned: currentAssignment,
+        attention: currentAttention,
         claim: currentClaim,
         search: currentSearch,
         status: currentStatus,
@@ -253,7 +276,23 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
     toHref: claim =>
       buildSupportHandoffsHref({
         assigned: currentAssignment,
+        attention: currentAttention,
         claim,
+        search: currentSearch,
+        status: currentStatus,
+        urgency: currentUrgency,
+      }),
+  });
+  const attentionOptions = getFilterOptions({
+    current: currentAttention,
+    labels: attentionLabels,
+    values: ATTENTION_FILTERS,
+    testPrefix: 'staff-support-handoffs-attention-filter',
+    toHref: attention =>
+      buildSupportHandoffsHref({
+        assigned: currentAssignment,
+        attention,
+        claim: currentClaim,
         search: currentSearch,
         status: currentStatus,
         urgency: currentUrgency,
@@ -262,6 +301,7 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
   const hiddenFields: Array<{ name: string; value: string }> = [];
   if (currentAssignment !== 'all')
     hiddenFields.push({ name: 'assigned', value: currentAssignment });
+  if (currentAttention !== 'all') hiddenFields.push({ name: 'attention', value: currentAttention });
   if (currentStatus !== 'open') hiddenFields.push({ name: 'status', value: currentStatus });
   if (currentUrgency !== 'all') hiddenFields.push({ name: 'urgency', value: currentUrgency });
   if (currentClaim !== 'all') hiddenFields.push({ name: 'claim', value: currentClaim });
@@ -348,7 +388,7 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
             {t('filters.search')}
           </Button>
         </form>
-        <div className="mt-4 grid gap-3 md:grid-cols-4">
+        <div className="mt-4 grid gap-3 md:grid-cols-5">
           {[
             {
               label: t('filters.assignment.label'),
@@ -369,6 +409,11 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
               label: t('filters.claim.label'),
               options: claimOptions,
               testId: 'staff-support-handoffs-claim-filters',
+            },
+            {
+              label: t('filters.attention.label'),
+              options: attentionOptions,
+              testId: 'staff-support-handoffs-attention-filters',
             },
           ].map(group => (
             <div key={group.testId} className="space-y-2" data-testid={group.testId}>
@@ -405,10 +450,10 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
         </div>
         <div className="divide-y" data-testid="staff-support-handoffs-list">
           {queue.map(handoff => (
-            <div
+            <SupportHandoffAttentionRow
               key={handoff.id}
-              className="grid grid-cols-1 items-start gap-4 px-4 py-4 text-sm md:grid-cols-6"
-              data-testid="staff-support-handoffs-row"
+              handoffId={handoff.id}
+              isAttentionQueue={currentAttention === 'needs_follow_up'}
             >
               <div>
                 <div
@@ -427,6 +472,15 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
                   >
                     <MessageSquareText className="h-3.5 w-3.5" aria-hidden="true" />
                     <span>{t('table.public_response_sent')}</span>
+                  </div>
+                ) : null}
+                {handoff.needsFollowUp ? (
+                  <div
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900"
+                    data-testid="staff-support-handoff-needs-follow-up-badge"
+                  >
+                    <MessageSquareText className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>{t('table.needs_follow_up')}</span>
                   </div>
                 ) : null}
                 {handoff.claim ? (
@@ -578,7 +632,7 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
                 locale={locale}
                 message={handoff.message}
               />
-            </div>
+            </SupportHandoffAttentionRow>
           ))}
           {queue.length === 0 ? (
             <div

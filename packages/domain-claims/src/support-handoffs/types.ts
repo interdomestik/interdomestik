@@ -92,6 +92,7 @@ export type SubmitSupportHandoffMemberReplyResult = {
 };
 
 export type SupportHandoffQueueAssignmentFilter = 'all' | 'mine' | 'unassigned';
+export type SupportHandoffQueueAttentionFilter = 'all' | 'needs_follow_up';
 export type SupportHandoffQueueStatusFilter = SupportHandoffStatus | 'all';
 export type SupportHandoffQueueOwnerFilter = SupportHandoffQueueAssignmentFilter;
 
@@ -188,6 +189,7 @@ export type SupportHandoffQueueItem = {
   urgency: SupportHandoffUrgency;
   trustRisk: SupportHandoffTrustRisk;
   lifecycleVersion: number;
+  needsFollowUp: boolean;
   publicResponseAt: string | null;
   createdAt: string;
   updatedAt: string;

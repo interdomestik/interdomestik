@@ -202,6 +202,34 @@ describe('PublicResponseBanner', () => {
     expect(screen.getByTestId('member-reply-success')).toHaveTextContent('Reply sent');
   });
 
+  it('keeps the reply form hidden after staff follows up to a member reply', async () => {
+    mocks.getMemberLatestPublicResponse.mockResolvedValueOnce({
+      handoffId: 'handoff-1',
+      publicResponse: 'Follow-up after your reply.',
+      publicResponseAt: '2026-05-04T12:30:00.000Z',
+      publicResponseAcknowledged: true,
+      publicResponseAcknowledgedAt: '2026-05-04T12:45:00.000Z',
+      publicResponseAcknowledgedVersion: 3,
+      publicResponseVersion: 3,
+      memberReply: 'This resolves my request.',
+      memberReplyAt: '2026-05-04T12:05:00.000Z',
+      memberReplyResponseVersion: 2,
+    });
+
+    render(
+      await PublicResponseBanner({
+        handoffId: 'handoff-1',
+        locale: 'en',
+        memberId: 'member-1',
+        selectedClaim: null,
+        tenantId: 'tenant-1',
+      })
+    );
+
+    expect(screen.queryByTestId('mock-member-reply-form')).not.toBeInTheDocument();
+    expect(screen.getByTestId('member-reply-success')).toHaveTextContent('Reply sent');
+  });
+
   it('renders nothing when no active handoff has a public response', async () => {
     mocks.getMemberLatestPublicResponse.mockResolvedValueOnce(null);
 
