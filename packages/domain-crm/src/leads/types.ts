@@ -5,6 +5,11 @@ export type CrmLead = {
   branchId?: string | null;
   type: string;
   stage: string;
+  companyName?: string | null;
+  email?: string | null;
+  fullName?: string | null;
+  notes?: string | null;
+  phone?: string | null;
   source?: string | null;
   score?: number | null;
   createdAt: string;

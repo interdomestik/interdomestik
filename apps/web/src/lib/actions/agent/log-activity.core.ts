@@ -1,38 +1,34 @@
-import { db } from '@interdomestik/database/db';
-import { crmActivities, crmLeads } from '@interdomestik/database/schema';
-import { and, eq } from 'drizzle-orm';
+import {
+  recordCrmLeadActivity,
+  type CrmLeadMutationResult,
+} from '@interdomestik/domain-crm/leads/mutations';
+import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { nanoid } from 'nanoid';
+import { crmLeadMutationRepository } from '@/lib/domain-crm/lead-mutation-repository';
+
+function mapActivityError(result: Extract<CrmLeadMutationResult, { success: false }>) {
+  if (result.error === 'not_found') {
+    return { error: 'Not found' as const };
+  }
+  if (
+    result.error === 'forbidden' &&
+    (result.reason === 'agent_scope' || result.reason === 'branch_scope')
+  ) {
+    return { error: 'Not found' as const };
+  }
+  return { error: result.error === 'forbidden' ? 'Forbidden' : 'Invalid activity' };
+}
 
 export async function logActivityCore(
-  agentId: string,
-  tenantId: string,
+  actor: CrmActorContext,
   leadId: string,
   type: string,
   summary: string
 ) {
-  const lead = await db.query.crmLeads.findFirst({
-    where: and(
-      eq(crmLeads.id, leadId),
-      eq(crmLeads.tenantId, tenantId),
-      eq(crmLeads.agentId, agentId)
-    ),
-  });
-
-  if (!lead) {
-    return { error: 'Not found' as const };
-  }
-
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  await db.insert(crmActivities).values({
-    id: nanoid(),
-    tenantId,
-    leadId,
-    agentId,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    type: type as any,
-    summary,
-    createdAt: new Date(),
-  });
-
-  return { success: true as const };
+  const occurredAt = new Date().toISOString();
+  const result = await recordCrmLeadActivity(
+    { activityId: nanoid(), actor, leadId, occurredAt, summary, type },
+    crmLeadMutationRepository
+  );
+  return result.success ? { success: true as const } : mapActivityError(result);
 }

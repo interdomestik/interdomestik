@@ -1,15 +1,15 @@
-import { LEAD_STAGES, type LeadStage } from '@interdomestik/database/constants';
+import { CRM_LEAD_STAGES, type CrmLeadStage } from '@interdomestik/domain-crm/leads/mutations';
 import { z } from 'zod';
 
 export const MAX_MEMBER_IMPORT_ROWS = 200;
 
-export function isLeadStage(value: unknown): value is LeadStage {
-  return LEAD_STAGES.includes(value as LeadStage);
+export function isLeadStage(value: unknown): value is CrmLeadStage {
+  return CRM_LEAD_STAGES.includes(value as CrmLeadStage);
 }
 
 export const createLeadSchema = z.object({
   type: z.enum(['individual', 'business']),
-  stage: z.enum(LEAD_STAGES),
+  stage: z.enum(CRM_LEAD_STAGES),
   fullName: z.string().min(2, 'Name is required'),
   companyName: z.string().optional(),
   email: z.union([z.string().email(), z.literal('')]).optional(),
