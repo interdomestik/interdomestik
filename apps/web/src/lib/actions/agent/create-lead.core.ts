@@ -1,7 +1,11 @@
-import { db } from '@interdomestik/database/db';
-import { crmLeads } from '@interdomestik/database/schema';
+import {
+  createCrmLead,
+  type CrmLeadMutationResult,
+} from '@interdomestik/domain-crm/leads/mutations';
+import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { nanoid } from 'nanoid';
 import { createLeadSchema } from './schemas';
+import { crmLeadMutationRepository } from '@/lib/domain-crm/lead-mutation-repository';
 
 function getString(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -12,7 +16,13 @@ function getString(formData: FormData, key: string): string | undefined {
   return undefined;
 }
 
-export async function createLeadCore(agentId: string, tenantId: string, formData: FormData) {
+function mapMutationError(result: Extract<CrmLeadMutationResult, { success: false }>) {
+  if (result.error === 'invalid_input') return 'Validation failed';
+  if (result.error === 'forbidden') return 'Forbidden';
+  return 'Failed to create lead';
+}
+
+export async function createLeadCore(actor: CrmActorContext, formData: FormData) {
   const rawData = {
     type: formData.get('type'),
     stage: formData.get('stage'),
@@ -35,19 +45,22 @@ export async function createLeadCore(agentId: string, tenantId: string, formData
   }
 
   try {
-    const newLeadId = nanoid();
+    const leadId = nanoid();
+    const result = await createCrmLead(
+      {
+        actor,
+        leadId,
+        tenantId: actor.tenantId,
+        ...validated.data,
+      },
+      crmLeadMutationRepository
+    );
 
-    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-    await db.insert(crmLeads).values({
-      id: newLeadId,
-      tenantId,
-      agentId,
-      ...validated.data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    if (!result.success) {
+      return { ok: false as const, error: mapMutationError(result) };
+    }
 
-    return { ok: true as const, leadId: newLeadId };
+    return { ok: true as const, leadId };
   } catch (error) {
     console.error('Failed to create lead:', error);
     return { ok: false as const, error: 'Failed to create lead' as const };

@@ -1,34 +1,27 @@
-import { db } from '@interdomestik/database/db';
-import { crmLeads } from '@interdomestik/database/schema';
-import { and, eq } from 'drizzle-orm';
-import { isLeadStage } from './schemas';
+import {
+  updateCrmLeadStage,
+  type CrmLeadMutationResult,
+} from '@interdomestik/domain-crm/leads/mutations';
+import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+import { crmLeadMutationRepository } from '@/lib/domain-crm/lead-mutation-repository';
 
-export async function updateLeadStatusCore(
-  agentId: string,
-  tenantId: string,
-  leadId: string,
-  stage: string
-) {
-  const leadWhere = and(
-    eq(crmLeads.id, leadId),
-    eq(crmLeads.tenantId, tenantId),
-    eq(crmLeads.agentId, agentId)
-  );
-
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const lead = await db.query.crmLeads.findFirst({
-    where: leadWhere,
-  });
-
-  if (!lead) {
+function mapStageError(result: Extract<CrmLeadMutationResult, { success: false }>) {
+  if (result.error === 'not_found') {
     return { error: 'Not found' as const };
   }
-
-  if (!isLeadStage(stage)) {
+  if (
+    result.error === 'forbidden' &&
+    (result.reason === 'agent_scope' || result.reason === 'branch_scope')
+  ) {
+    return { error: 'Not found' as const };
+  }
+  if (result.error === 'invalid_input') {
     return { error: 'Invalid stage' as const };
   }
+  return { error: 'Forbidden' as const };
+}
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  await db.update(crmLeads).set({ stage, updatedAt: new Date() }).where(leadWhere);
-  return { success: true as const };
+export async function updateLeadStatusCore(actor: CrmActorContext, leadId: string, stage: string) {
+  const result = await updateCrmLeadStage({ actor, leadId, stage }, crmLeadMutationRepository);
+  return result.success ? { success: true as const } : mapStageError(result);
 }

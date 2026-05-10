@@ -10,6 +10,7 @@ const IMPORT_AGENT_SESSION = {
 } as const;
 
 const dbMock = db as unknown as {
+  returning: ReturnType<typeof vi.fn>;
   where: ReturnType<typeof vi.fn>;
   values: ReturnType<typeof vi.fn>;
 };
@@ -65,6 +66,24 @@ function scopedLeadPredicate(leadId = 'lead1', tenantId = 'tenant_mk', agentId =
   });
 }
 
+function leadLookupPredicate(leadId = 'lead1', tenantId = 'tenant_mk') {
+  return expect.objectContaining({
+    op: 'and',
+    args: expect.arrayContaining([
+      expect.objectContaining({
+        op: 'eq',
+        left: expect.objectContaining({ name: 'tenantId' }),
+        right: tenantId,
+      }),
+      expect.objectContaining({
+        op: 'eq',
+        left: expect.objectContaining({ name: 'id' }),
+        right: leadId,
+      }),
+    ]),
+  });
+}
+
 vi.mock('./agent/context', () => ({
   getAgentSession: vi.fn(),
 }));
@@ -90,13 +109,31 @@ vi.mock('@interdomestik/shared-auth', () => ({
 vi.mock('@interdomestik/database/db', () => ({
   db: {
     insert: vi.fn().mockReturnThis(),
-    values: vi.fn().mockResolvedValue(undefined),
+    values: vi.fn().mockReturnThis(),
+    returning: vi.fn().mockResolvedValue([
+      {
+        agentId: 'agent1',
+        completedAt: null,
+        createdAt: new Date('2026-05-10T08:00:00.000Z'),
+        id: 'test-id',
+        leadId: 'lead1',
+        occurredAt: new Date('2026-05-10T08:00:00.000Z'),
+        scheduledAt: null,
+        stage: 'contacted',
+        summary: 'Called user',
+        tenantId: 'tenant_mk',
+        type: 'call',
+      },
+    ]),
     update: vi.fn().mockReturnThis(),
     set: vi.fn().mockReturnThis(),
-    where: vi.fn().mockResolvedValue(undefined),
+    where: vi.fn().mockReturnThis(),
     query: {
       crmLeads: {
         findFirst: vi.fn(),
+      },
+      user: {
+        findFirst: vi.fn().mockResolvedValue({ branchId: 'b1' }),
       },
     },
   },
@@ -105,6 +142,7 @@ vi.mock('@interdomestik/database/db', () => ({
 vi.mock('@interdomestik/database/schema', () => ({
   crmLeads: { id: { name: 'id' }, agentId: { name: 'agentId' }, tenantId: { name: 'tenantId' } },
   crmActivities: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
+  user: { id: { name: 'userId' }, tenantId: { name: 'userTenantId' } },
 }));
 
 vi.mock('drizzle-orm', () => ({
@@ -144,7 +182,7 @@ describe('agent actions', () => {
   describe('createLead', () => {
     it('should create lead if valid', async () => {
       (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
       });
 
       const formData = new FormData();
@@ -172,7 +210,7 @@ describe('agent actions', () => {
 
     it('should return validation error if fields missing', async () => {
       (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
       });
       const formData = new FormData();
       // Empty
@@ -185,7 +223,7 @@ describe('agent actions', () => {
   describe('updateLeadStatus', () => {
     it('should update status if owned by agent', async () => {
       (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
       });
       (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'lead1',
@@ -196,10 +234,10 @@ describe('agent actions', () => {
       const result = await updateLeadStatus('lead1', 'contacted');
       expect(result).toEqual({ success: true });
       expect(ensureTenantId).toHaveBeenCalledWith({
-        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
       });
       expect(db.query.crmLeads.findFirst).toHaveBeenCalledWith({
-        where: scopedLeadPredicate(),
+        where: leadLookupPredicate(),
       });
       expect(db.update).toHaveBeenCalled();
       expect(dbMock.where).toHaveBeenCalledWith(scopedLeadPredicate());
@@ -207,9 +245,24 @@ describe('agent actions', () => {
 
     it('should fail if not owner', async () => {
       (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
       });
       (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+      const result = await updateLeadStatus('lead1', 'contacted');
+      expect(result).toEqual({ error: 'Not found' });
+      expect(db.update).not.toHaveBeenCalled();
+    });
+
+    it('should hide same-tenant lead ownership denials as not found when updating status', async () => {
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
+      });
+      (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'lead1',
+        agentId: 'agent2',
+        tenantId: 'tenant_mk',
+      });
 
       const result = await updateLeadStatus('lead1', 'contacted');
       expect(result).toEqual({ error: 'Not found' });
@@ -231,7 +284,7 @@ describe('agent actions', () => {
   describe('logActivity', () => {
     it('should log activity', async () => {
       (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
       });
       (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'lead1',
@@ -242,10 +295,10 @@ describe('agent actions', () => {
       const result = await logActivity('lead1', 'call', 'Called user');
       expect(result).toEqual({ success: true });
       expect(ensureTenantId).toHaveBeenCalledWith({
-        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
       });
       expect(db.query.crmLeads.findFirst).toHaveBeenCalledWith({
-        where: scopedLeadPredicate(),
+        where: leadLookupPredicate(),
       });
       expect(db.insert).toHaveBeenCalled();
       expect(dbMock.values).toHaveBeenCalledWith(
@@ -265,6 +318,21 @@ describe('agent actions', () => {
       const result = await logActivity('lead1', 'call', 'Called user');
       expect(result).toEqual({ error: 'Missing tenantId' });
       expect(db.query.crmLeads.findFirst).not.toHaveBeenCalled();
+      expect(db.insert).not.toHaveBeenCalled();
+    });
+
+    it('should hide same-tenant lead ownership denials as not found when logging activity', async () => {
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
+      });
+      (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'lead1',
+        agentId: 'agent2',
+        tenantId: 'tenant_mk',
+      });
+
+      const result = await logActivity('lead1', 'call', 'Called user');
+      expect(result).toEqual({ error: 'Not found' });
       expect(db.insert).not.toHaveBeenCalled();
     });
   });

@@ -1,5 +1,10 @@
 'use server';
 
+import {
+  CRM_ACTOR_ROLES,
+  type CrmActorContext,
+  type CrmActorRole,
+} from '@interdomestik/domain-crm/context';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -28,6 +33,30 @@ function resolveLocaleFromReferer(referer: string | null): string {
   return defaultLocale;
 }
 
+function toCrmActorRole(role: string | null | undefined): CrmActorRole {
+  if (role && (CRM_ACTOR_ROLES as readonly string[]).includes(role)) {
+    return role as CrmActorRole;
+  }
+  return 'staff';
+}
+
+function createAgentActorContext(
+  session: {
+    user: { branchId?: string | null; id: string; role?: string | null };
+  },
+  tenantId: string
+): CrmActorContext {
+  return {
+    actorId: session.user.id,
+    role: toCrmActorRole(session.user.role),
+    scope: {
+      agentId: session.user.id,
+      branchId: session.user.branchId ?? null,
+    },
+    tenantId,
+  };
+}
+
 export async function createLead(prevState: unknown, formData: FormData) {
   const session = await getAgentSession();
   if (!session) {
@@ -41,7 +70,8 @@ export async function createLead(prevState: unknown, formData: FormData) {
     return { error: 'Missing tenantId', fields: undefined };
   }
 
-  const result = await createLeadCore(session.user.id, tenantId, formData);
+  const actor = createAgentActorContext(session, tenantId);
+  const result = await createLeadCore(actor, formData);
   if (!result.ok) {
     return {
       error: result.error,
@@ -68,7 +98,8 @@ export async function updateLeadStatus(leadId: string, stage: string) {
     return { error: 'Missing tenantId' };
   }
 
-  const result = await updateLeadStatusCore(session.user.id, tenantId, leadId, stage);
+  const actor = createAgentActorContext(session, tenantId);
+  const result = await updateLeadStatusCore(actor, leadId, stage);
   if ('error' in result) {
     return result;
   }
@@ -92,7 +123,8 @@ export async function logActivity(leadId: string, type: string, summary: string)
     return { error: 'Missing tenantId' };
   }
 
-  const result = await logActivityCore(session.user.id, tenantId, leadId, type, summary);
+  const actor = createAgentActorContext(session, tenantId);
+  const result = await logActivityCore(actor, leadId, type, summary);
   if ('error' in result) {
     return result;
   }
