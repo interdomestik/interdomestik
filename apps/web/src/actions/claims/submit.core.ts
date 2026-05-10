@@ -85,8 +85,11 @@ export async function submitClaimCore(params: {
 
   return runCommercialActionWithIdempotency({
     action: 'claims.submit',
-    actorUserId: session?.user?.id ?? null,
-    tenantId: session?.user?.tenantId ?? null,
+    scope: {
+      kind: 'tenant',
+      actorUserId: session?.user?.id ?? null,
+      tenantId: session?.user?.tenantId ?? null,
+    },
     idempotencyKey: params.idempotencyKey,
     requestFingerprint: params.data,
     execute: async () => {

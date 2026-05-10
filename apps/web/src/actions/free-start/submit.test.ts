@@ -54,6 +54,10 @@ describe('actions/free-start submitFreeStartIntakeCore', () => {
     expect(mockRunCommercialActionWithIdempotency).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'free-start.submit',
+        scope: {
+          kind: 'public',
+          reason: 'public-free-start-intake-no-tenant-mutation',
+        },
         idempotencyKey: 'free-start-1',
         requestFingerprint: validInput,
       })

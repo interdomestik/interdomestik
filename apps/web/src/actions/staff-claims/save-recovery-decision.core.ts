@@ -23,6 +23,10 @@ export async function saveRecoveryDecisionCore(
     session: NonNullable<Session> | null;
   }
 ): Promise<ActionResult<RecoveryDecisionSnapshot>> {
+  if (params.session?.user?.role !== 'staff' || !params.session.user.tenantId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
   const requestFingerprint =
     params.decisionType === 'declined'
       ? {
@@ -39,8 +43,11 @@ export async function saveRecoveryDecisionCore(
 
   const result = await runCommercialActionWithIdempotency({
     action: 'staff-claims.save-recovery-decision',
-    actorUserId: params.session?.user?.id ?? null,
-    tenantId: params.session?.user?.tenantId ?? null,
+    scope: {
+      kind: 'tenant',
+      actorUserId: params.session?.user?.id ?? null,
+      tenantId: params.session?.user?.tenantId ?? null,
+    },
     idempotencyKey: params.idempotencyKey,
     requestFingerprint,
     execute: () =>
