@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { and, commercialActionIdempotency, db, eq } from '@interdomestik/database';
+import { and, commercialActionIdempotency, db, eq, isNull } from '@interdomestik/database';
 
 import type { ActionError } from './safe-action';
 
@@ -13,10 +13,59 @@ type ExistingReservation = {
   status: string;
 };
 
+export type PublicCommercialActionIdempotencyReason = 'public-free-start-intake-no-tenant-mutation';
+
+const PUBLIC_IDEMPOTENCY_ALLOWLIST: Record<string, PublicCommercialActionIdempotencyReason> = {
+  'free-start.submit': 'public-free-start-intake-no-tenant-mutation',
+};
+
+export type CommercialActionIdempotencyScope =
+  | {
+      kind: 'tenant';
+      tenantId?: string | null;
+      actorUserId?: string | null;
+    }
+  | {
+      kind: 'public';
+      reason: PublicCommercialActionIdempotencyReason;
+    };
+
+type ResolvedCommercialActionIdempotencyScope =
+  | {
+      kind: 'tenant';
+      tenantId: string;
+      actorUserId: string | null;
+    }
+  | {
+      kind: 'public';
+    };
+
 function isExplicitFailureResult(result: StoredActionResult): result is StoredActionResult & {
   success: false;
 } {
   return 'success' in result && result.success === false;
+}
+
+function isActionError(
+  value: ResolvedCommercialActionIdempotencyScope | ActionError
+): value is ActionError {
+  return 'success' in value && value.success === false;
+}
+
+function buildScopePredicates(scope: ResolvedCommercialActionIdempotencyScope) {
+  if (scope.kind === 'tenant') {
+    return [
+      eq(commercialActionIdempotency.tenantId, scope.tenantId),
+      scope.actorUserId
+        ? eq(commercialActionIdempotency.actorUserId, scope.actorUserId)
+        : isNull(commercialActionIdempotency.actorUserId),
+    ];
+  }
+
+  return [
+    isNull(commercialActionIdempotency.tenantId),
+    isNull(commercialActionIdempotency.actorUserId),
+  ];
 }
 
 function stableSerialize(value: unknown): string {
@@ -43,8 +92,12 @@ function hashFingerprint(value: unknown): string {
 
 async function findExistingReservation(
   action: string,
-  idempotencyKey: string
+  idempotencyKey: string,
+  scope: ResolvedCommercialActionIdempotencyScope
 ): Promise<ExistingReservation | null> {
+  const scopePredicates = buildScopePredicates(scope);
+
+  // db-access-guard: tenant-scoped -- reason: explicit tenant/public idempotency and actor scope is included in the lookup before cached response release
   const [existing] = await db
     .select({
       id: commercialActionIdempotency.id,
@@ -56,7 +109,8 @@ async function findExistingReservation(
     .where(
       and(
         eq(commercialActionIdempotency.action, action),
-        eq(commercialActionIdempotency.idempotencyKey, idempotencyKey)
+        eq(commercialActionIdempotency.idempotencyKey, idempotencyKey),
+        ...scopePredicates
       )
     )
     .limit(1);
@@ -80,12 +134,59 @@ function buildInProgressError(): ActionError {
   };
 }
 
+function buildMissingTenantScopeError(): ActionError {
+  return {
+    success: false,
+    error: 'Commercial action idempotency requires a tenant scope.',
+    code: 'IDEMPOTENCY_TENANT_SCOPE_REQUIRED',
+  };
+}
+
+function buildScopeConflictError(): ActionError {
+  return {
+    success: false,
+    error: 'Idempotency key is already reserved for a different scope.',
+    code: 'IDEMPOTENCY_SCOPE_CONFLICT',
+  };
+}
+
+function buildPublicIdempotencyNotAllowedError(): ActionError {
+  return {
+    success: false,
+    error: 'Public idempotency is not allowed for this commercial action.',
+    code: 'PUBLIC_IDEMPOTENCY_NOT_ALLOWED',
+  };
+}
+
+function resolveIdempotencyScope(
+  action: string,
+  scope: CommercialActionIdempotencyScope
+): ResolvedCommercialActionIdempotencyScope | ActionError {
+  if (scope.kind === 'public') {
+    if (PUBLIC_IDEMPOTENCY_ALLOWLIST[action] !== scope.reason) {
+      return buildPublicIdempotencyNotAllowedError();
+    }
+
+    return { kind: 'public' };
+  }
+
+  const tenantId = scope.tenantId?.trim();
+  if (!tenantId) {
+    return buildMissingTenantScopeError();
+  }
+
+  return {
+    kind: 'tenant',
+    tenantId,
+    actorUserId: scope.actorUserId ?? null,
+  };
+}
+
 export async function runCommercialActionWithIdempotency<
   TResult extends StoredActionResult,
 >(params: {
   action: string;
-  actorUserId?: string | null;
-  tenantId?: string | null;
+  scope: CommercialActionIdempotencyScope;
   idempotencyKey?: string | null;
   requestFingerprint: unknown;
   fingerprintHash?: string;
@@ -95,14 +196,20 @@ export async function runCommercialActionWithIdempotency<
     return params.execute();
   }
 
+  const scope = resolveIdempotencyScope(params.action, params.scope);
+  if (isActionError(scope)) {
+    return scope;
+  }
+
   const requestFingerprintHash =
     params.fingerprintHash ?? hashFingerprint(params.requestFingerprint);
+  // db-access-guard: tenant-scoped -- reason: explicit tenant/public idempotency scope is resolved before reservation insert values
   const [inserted] = await db
     .insert(commercialActionIdempotency)
     .values({
       id: crypto.randomUUID(),
-      tenantId: params.tenantId ?? null,
-      actorUserId: params.actorUserId ?? null,
+      tenantId: scope.kind === 'tenant' ? scope.tenantId : null,
+      actorUserId: scope.kind === 'tenant' ? scope.actorUserId : null,
       action: params.action,
       idempotencyKey: params.idempotencyKey,
       requestFingerprintHash,
@@ -113,10 +220,10 @@ export async function runCommercialActionWithIdempotency<
     .returning({ id: commercialActionIdempotency.id });
 
   if (!inserted) {
-    const existing = await findExistingReservation(params.action, params.idempotencyKey);
+    const existing = await findExistingReservation(params.action, params.idempotencyKey, scope);
 
     if (!existing) {
-      return buildInProgressError();
+      return buildScopeConflictError();
     }
 
     if (existing.requestFingerprintHash !== requestFingerprintHash) {
@@ -134,12 +241,14 @@ export async function runCommercialActionWithIdempotency<
     const result = await params.execute();
 
     if (isExplicitFailureResult(result)) {
+      // db-access-guard: tenant-scoped -- reason: reservation id was created under the resolved tenant/public idempotency scope
       await db
         .delete(commercialActionIdempotency)
         .where(eq(commercialActionIdempotency.id, inserted.id));
       return result;
     }
 
+    // db-access-guard: tenant-scoped -- reason: reservation id was created under the resolved tenant/public idempotency scope
     await db
       .update(commercialActionIdempotency)
       .set({
@@ -151,6 +260,7 @@ export async function runCommercialActionWithIdempotency<
 
     return result;
   } catch (error) {
+    // db-access-guard: tenant-scoped -- reason: reservation id was created under the resolved tenant/public idempotency scope
     await db
       .delete(commercialActionIdempotency)
       .where(eq(commercialActionIdempotency.id, inserted.id));

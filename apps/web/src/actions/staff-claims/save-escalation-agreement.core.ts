@@ -26,10 +26,17 @@ export async function saveClaimEscalationAgreementCore(
     session: NonNullable<Session> | null;
   }
 ): Promise<ActionResult<ClaimEscalationAgreementSnapshot>> {
+  if (params.session?.user?.role !== 'staff' || !params.session.user.tenantId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
   const result = await runCommercialActionWithIdempotency({
     action: 'staff-claims.save-escalation-agreement',
-    actorUserId: params.session?.user?.id ?? null,
-    tenantId: params.session?.user?.tenantId ?? null,
+    scope: {
+      kind: 'tenant',
+      actorUserId: params.session?.user?.id ?? null,
+      tenantId: params.session?.user?.tenantId ?? null,
+    },
     idempotencyKey: params.idempotencyKey,
     requestFingerprint: {
       claimId: params.claimId,

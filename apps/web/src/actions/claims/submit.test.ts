@@ -120,8 +120,11 @@ describe('actions/claims/submit', () => {
     expect(mockRunCommercialActionWithIdempotency).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'claims.submit',
-        actorUserId: 'user-1',
-        tenantId: 'tenant-1',
+        scope: {
+          kind: 'tenant',
+          actorUserId: 'user-1',
+          tenantId: 'tenant-1',
+        },
         idempotencyKey: 'claim-submit-1',
         requestFingerprint: validData,
       })

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-09T18:13:42.922Z",
+  "generatedAt": "2026-05-09T20:59:20.023Z",
   "policy": "see docs/dev/db-access-guard.md",
   "scanRoots": ["apps/web/src", "packages"],
   "approvedDatabaseInternalPatterns": [
@@ -27,11 +27,11 @@
     },
     "byTenantPosture": {
       "tenant-context": 5,
-      "tenant-scoped": 163,
+      "tenant-scoped": 168,
       "tenant-predicate": 353,
       "admin-privileged": 0,
       "system-exempt": 28,
-      "unclassified": 67
+      "unclassified": 62
     }
   },
   "entries": [
@@ -1864,7 +1864,7 @@
     },
     {
       "file": "apps/web/src/app/api/webhooks/paddle/_core.ts",
-      "line": 222,
+      "line": 224,
       "callee": "db.query",
       "method": "query",
       "risk": "app-layer",
@@ -3156,52 +3156,57 @@
     },
     {
       "file": "apps/web/src/lib/commercial-action-idempotency.ts",
-      "line": 48,
+      "line": 85,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "explicit tenant/public idempotency scope is included in the lookup before cached response release",
       "source": "const [existing] = await db .select({"
     },
     {
       "file": "apps/web/src/lib/commercial-action-idempotency.ts",
-      "line": 100,
+      "line": 191,
       "callee": "db.insert",
       "method": "insert",
       "risk": "app-layer",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "explicit tenant/public idempotency scope is resolved before reservation insert values",
       "source": "const [inserted] = await db .insert(commercialActionIdempotency)"
     },
     {
       "file": "apps/web/src/lib/commercial-action-idempotency.ts",
-      "line": 137,
+      "line": 229,
       "callee": "db.delete",
       "method": "delete",
       "risk": "app-layer",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "reservation id was created under the resolved tenant/public idempotency scope",
       "source": "await db .delete(commercialActionIdempotency)"
     },
     {
       "file": "apps/web/src/lib/commercial-action-idempotency.ts",
-      "line": 143,
+      "line": 236,
       "callee": "db.update",
       "method": "update",
       "risk": "app-layer",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "reservation id was created under the resolved tenant/public idempotency scope",
       "source": "await db .update(commercialActionIdempotency)"
     },
     {
       "file": "apps/web/src/lib/commercial-action-idempotency.ts",
-      "line": 154,
+      "line": 248,
       "callee": "db.delete",
       "method": "delete",
       "risk": "app-layer",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "reservation id was created under the resolved tenant/public idempotency scope",
       "source": "await db .delete(commercialActionIdempotency)"
     },
     {

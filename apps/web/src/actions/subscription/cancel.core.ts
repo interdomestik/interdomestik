@@ -16,10 +16,17 @@ export async function cancelSubscriptionCore(
   },
   deps: SubscriptionDeps = {}
 ): Promise<CancelSubscriptionResult> {
+  if (!params.session?.user?.tenantId) {
+    return { error: 'Unauthorized', success: undefined };
+  }
+
   return runCommercialActionWithIdempotency({
     action: 'subscription.cancel',
-    actorUserId: params.session?.user?.id ?? null,
-    tenantId: params.session?.user?.tenantId ?? null,
+    scope: {
+      kind: 'tenant',
+      actorUserId: params.session?.user?.id ?? null,
+      tenantId: params.session?.user?.tenantId ?? null,
+    },
     idempotencyKey: params.idempotencyKey,
     requestFingerprint: {
       subscriptionId: params.subscriptionId,

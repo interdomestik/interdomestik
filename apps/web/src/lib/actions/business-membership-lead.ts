@@ -79,8 +79,14 @@ export async function submitBusinessMembershipLeadCore(params: {
   data: SubmitBusinessMembershipLeadInput;
 }): Promise<SubmitBusinessMembershipLeadResult> {
   try {
+    const tenantId = await resolveTenantIdFromRequest();
+
     return await runCommercialActionWithIdempotency({
       action: 'business-membership.submit',
+      scope: {
+        kind: 'tenant',
+        tenantId,
+      },
       idempotencyKey: params.idempotencyKey,
       requestFingerprint: params.data,
       execute: async () => {
@@ -112,7 +118,6 @@ export async function submitBusinessMembershipLeadCore(params: {
           };
         }
 
-        const tenantId = await resolveTenantIdFromRequest();
         const owner = await resolveBusinessLeadOwner(tenantId);
 
         if (!owner) {
