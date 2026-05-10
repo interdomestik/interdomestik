@@ -207,7 +207,7 @@ export async function AgentLeadDetailV2Page({
   });
 
   return (
-    <div className="space-y-6" data-testid="agent-lead-detail-ready">
+    <div className="space-y-6" data-lead-id={id} data-testid="agent-lead-detail-ready">
       <div className="flex items-center justify-between">
         <div>
           <Button variant="ghost" size="sm" asChild className="mb-2 pl-0 hover:bg-transparent">

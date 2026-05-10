@@ -48,6 +48,7 @@ const GATE_MK_PILOT_MATCH = [
   'pilot/c2-04-cross-tenant-staff-member-write-isolation.spec.ts',
 ];
 const GATE_MK_CONTRACT_MATCH = [
+  ...GATE_DEFAULT_MATCH,
   ...GATE_SECURITY_MATCH,
   'gate/seed-contract.spec.ts',
   'gate/tenant-resolution.spec.ts',
