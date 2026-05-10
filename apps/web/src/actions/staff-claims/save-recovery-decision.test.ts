@@ -79,8 +79,11 @@ describe('saveRecoveryDecisionCore', () => {
     expect(mockRunCommercialActionWithIdempotency).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'staff-claims.save-recovery-decision',
-        actorUserId: 'staff-1',
-        tenantId: 'tenant-1',
+        scope: {
+          kind: 'tenant',
+          actorUserId: 'staff-1',
+          tenantId: 'tenant-1',
+        },
         idempotencyKey: 'decision-1',
         requestFingerprint: {
           claimId: 'claim-1',
@@ -103,5 +106,19 @@ describe('saveRecoveryDecisionCore', () => {
     expect(domainDeps).toEqual({ logAuditEvent, notifyRecoveryDecision });
     expect(revalidatePathSpy.mock.calls.map(([path]) => path)).toEqual(REVALIDATED_LOCALE_PATHS);
     expect(revalidatePathSpy).toHaveBeenCalledTimes(REVALIDATED_LOCALE_PATHS.length);
+  });
+
+  it('preserves Unauthorized for missing staff session before idempotency', async () => {
+    const result = await saveRecoveryDecisionCore({
+      claimId: 'claim-1',
+      decisionType: 'accepted',
+      explanation: 'Evidence is sufficient for staff-led recovery.',
+      idempotencyKey: 'decision-unauthorized',
+      requestHeaders: new Headers(),
+      session: null,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    expect(mockRunCommercialActionWithIdempotency).not.toHaveBeenCalled();
   });
 });

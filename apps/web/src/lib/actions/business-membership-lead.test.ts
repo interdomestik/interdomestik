@@ -97,8 +97,32 @@ describe('submitBusinessMembershipLeadCore', () => {
     expect(mockRunCommercialActionWithIdempotency).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'business-membership.submit',
+        scope: {
+          kind: 'tenant',
+          tenantId: 'tenant_ks',
+        },
         idempotencyKey: 'biz-1',
         requestFingerprint: validInput,
+      })
+    );
+  });
+
+  it('resolves tenant scope before creating an idempotency reservation', async () => {
+    await submitBusinessMembershipLeadCore({
+      idempotencyKey: 'biz-tenant-scope',
+      requestHeaders: new Headers(),
+      data: validInput,
+    });
+
+    expect(mockResolveTenantIdFromRequest.mock.invocationCallOrder[0]).toBeLessThan(
+      mockRunCommercialActionWithIdempotency.mock.invocationCallOrder[0]
+    );
+    expect(mockRunCommercialActionWithIdempotency).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: {
+          kind: 'tenant',
+          tenantId: 'tenant_ks',
+        },
       })
     );
   });

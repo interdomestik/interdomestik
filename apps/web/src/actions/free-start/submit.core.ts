@@ -32,6 +32,10 @@ export async function submitFreeStartIntakeCore(params: {
   try {
     return await runCommercialActionWithIdempotency({
       action: 'free-start.submit',
+      scope: {
+        kind: 'public',
+        reason: 'public-free-start-intake-no-tenant-mutation',
+      },
       idempotencyKey: params.idempotencyKey,
       requestFingerprint: params.data,
       execute: async () => {
