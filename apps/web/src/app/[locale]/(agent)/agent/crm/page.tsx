@@ -36,7 +36,7 @@ export default async function CRMPage({
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="agent-crm-page-ready">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">{t('crm')}</h1>
       </div>
@@ -75,13 +75,19 @@ export default async function CRMPage({
           <LeaderboardCard />
         </div>
       </div>
-      <section className="rounded-lg border bg-white p-6 shadow-sm">
+      <section
+        className="rounded-lg border bg-white p-6 shadow-sm"
+        data-testid="agent-crm-due-follow-ups"
+      >
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold">{t('followUps.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('followUps.description')}</p>
           </div>
-          <div className="rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-900">
+          <div
+            className="rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-900"
+            data-testid="agent-crm-due-follow-up-count"
+          >
             {t('followUps.dueCount', { count: stats.dueFollowUps.length })}
           </div>
         </div>
@@ -93,6 +99,8 @@ export default async function CRMPage({
               <div
                 key={followUp.activityId}
                 className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                data-lead-id={followUp.leadId}
+                data-testid="agent-crm-due-follow-up-row"
               >
                 <div>
                   <p className="font-medium">{followUp.leadName || t('followUps.unknownLead')}</p>
@@ -104,7 +112,10 @@ export default async function CRMPage({
                   </p>
                 </div>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href={`/agent/leads/${followUp.leadId}`}>
+                  <Link
+                    href={`/agent/leads/${followUp.leadId}`}
+                    data-testid="agent-crm-due-follow-up-open"
+                  >
                     {t('followUps.openLead')}
                     <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </Link>
