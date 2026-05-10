@@ -1,5 +1,5 @@
-import { db, E2E_USERS, eq, user } from '@interdomestik/database';
-import { crmDeals, crmLeads } from '@interdomestik/database/schema';
+import { db, E2E_USERS, eq, sql, user } from '@interdomestik/database';
+import { crmActivities, crmDeals, crmLeads } from '@interdomestik/database/schema';
 import { expect, test } from '../fixtures/auth.fixture';
 import { gotoApp } from '../utils/navigation';
 
@@ -49,6 +49,23 @@ test.describe('Agent Lead Detail (Golden)', () => {
       updatedAt: new Date(),
     });
 
+    await db.execute(sql`
+      insert into "crm_activities"
+        ("id", "tenant_id", "lead_id", "agent_id", "type", "summary", "scheduled_at", "completed_at", "created_at")
+      values
+        (
+          ${`crm-detail-follow-up-${suffix}`},
+          ${agent.tenantId},
+          ${leadId},
+              ${agent.id},
+              'follow_up',
+              'CRM12 follow-up call',
+              ${new Date(Date.now() - 60_000).toISOString()},
+              null,
+              ${new Date().toISOString()}
+            )
+    `);
+
     try {
       await gotoApp(page, `/agent/leads/${encodeURIComponent(leadId)}`, testInfo, {
         marker: 'agent-lead-detail-ready',
@@ -58,7 +75,14 @@ test.describe('Agent Lead Detail (Golden)', () => {
       await expect(detail.getByRole('heading', { name: 'P26 Detail Test Company' })).toBeVisible();
       await expect(detail.getByText(leadEmail)).toBeVisible();
       await expect(detail.getByTestId('agent-lead-create-deal-unavailable').first()).toBeDisabled();
+      await expect(detail.getByTestId('agent-lead-follow-up-card')).toContainText(
+        'CRM12 follow-up call'
+      );
+
+      await detail.getByTestId('agent-lead-complete-follow-up').click();
+      await expect(detail.getByTestId('agent-lead-schedule-follow-up')).toBeVisible();
     } finally {
+      await db.delete(crmActivities).where(eq(crmActivities.leadId, leadId));
       await db.delete(crmDeals).where(eq(crmDeals.id, dealId));
       await db.delete(crmLeads).where(eq(crmLeads.id, leadId));
     }

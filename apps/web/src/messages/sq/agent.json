@@ -133,6 +133,15 @@
       "deals": "marrëveshje",
       "yourRank": "Renditja jote"
     },
+    "followUps": {
+      "title": "Ndjekjet me afat",
+      "description": "Lead-et me ndjekje të hapur të planifikuar për tani ose më herët.",
+      "dueCount": "{count, plural, =0 {0 me afat} one {# me afat} other {# me afat}}",
+      "empty": "Nuk ka ndjekje me afat.",
+      "unknownLead": "Klient potencial",
+      "scheduledFor": "Planifikuar për {date}",
+      "openLead": "Hap lead-in"
+    },
     "dashboardV2": {
       "assignedBranch": "Dega e caktuar",
       "addNewLead": "Shto lead të ri",
@@ -241,6 +250,15 @@
         "won": "Fituar",
         "lost": "Humbur",
         "unknown": "E panjohur"
+      },
+      "followUp": {
+        "title": "Ndjekja e radhës",
+        "empty": "Nuk ka ndjekje të hapur të planifikuar për këtë lead.",
+        "defaultSubject": "Ndiq lead-in",
+        "scheduleNow": "Shto ndjekje",
+        "dueNow": "Me afat tani",
+        "scheduled": "E planifikuar",
+        "complete": "Përfundo ndjekjen"
       },
       "activityHistory": "Historiku i aktivitetit"
     },

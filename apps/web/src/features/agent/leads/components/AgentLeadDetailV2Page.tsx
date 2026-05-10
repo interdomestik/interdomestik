@@ -1,3 +1,7 @@
+import {
+  completeAgentLeadFollowUp,
+  scheduleAgentLeadFollowUp,
+} from '@/actions/agent-crm-follow-up';
 import { getLeadActivities } from '@/actions/activities';
 import { getAgentLeadDetailsCore } from '@/app/[locale]/(agent)/agent/leads/[id]/_core';
 import { ActivityFeed } from '@/components/crm/activity-feed';
@@ -5,8 +9,14 @@ import { LogActivityDialog } from '@/components/crm/log-activity-dialog';
 import type { AppLocale } from '@/i18n/locales';
 import { Link, redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
+import {
+  deriveCrmLeadNextAction,
+  type CrmLeadNextAction,
+} from '@interdomestik/domain-crm/leads/follow-up';
+import type { CrmLeadActivity } from '@interdomestik/domain-crm/leads/types';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { ensureTenantId } from '@interdomestik/shared-auth';
+import { CheckCircle2, PlusCircle } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -67,6 +77,100 @@ function formatDealValue(valueCents: number | null | undefined, locale: AppLocal
   }).format((valueCents ?? 0) / 100);
 }
 
+type LeadActivityFeedRow = Awaited<ReturnType<typeof getLeadActivities>>[number];
+
+function toIso(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+function mapFeedRowToCrmActivity(row: LeadActivityFeedRow): CrmLeadActivity {
+  return {
+    agentId: row.agentId,
+    completedAt: toIso(row.completedAt),
+    createdAt: toIso(row.createdAt ?? row.occurredAt) ?? new Date(0).toISOString(),
+    description: row.description ?? null,
+    id: row.id,
+    leadId: row.leadId ?? row.memberId,
+    occurredAt: toIso(row.occurredAt ?? row.createdAt) ?? new Date(0).toISOString(),
+    scheduledAt: toIso(row.scheduledAt),
+    subject: row.subject,
+    tenantId: row.tenantId ?? '',
+    type: row.type,
+  };
+}
+
+function formatFollowUpDate(value: string, locale: AppLocale) {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
+function AgentLeadFollowUpCard({
+  id,
+  locale,
+  nextAction,
+  t,
+}: Readonly<{
+  id: string;
+  locale: AppLocale;
+  nextAction: CrmLeadNextAction;
+  t: LeadDetailTranslator;
+}>) {
+  return (
+    <Card data-testid="agent-lead-follow-up-card">
+      <CardHeader>
+        <CardTitle>{t('followUp.title')}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {nextAction.kind === 'none' ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{t('followUp.empty')}</p>
+            <form action={scheduleAgentLeadFollowUp}>
+              <input type="hidden" name="leadId" value={id} />
+              <input type="hidden" name="subject" value={t('followUp.defaultSubject')} />
+              <Button type="submit" size="sm" data-testid="agent-lead-schedule-follow-up">
+                <PlusCircle className="h-4 w-4" aria-hidden="true" />
+                {t('followUp.scheduleNow')}
+              </Button>
+            </form>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <p className="font-medium">{nextAction.subject}</p>
+              <p className="text-sm text-muted-foreground">
+                {nextAction.kind === 'follow_up_due'
+                  ? t('followUp.dueNow')
+                  : t('followUp.scheduled')}
+                {' - '}
+                {formatFollowUpDate(nextAction.scheduledAt, locale)}
+              </p>
+              {nextAction.description ? (
+                <p className="mt-2 text-sm text-muted-foreground">{nextAction.description}</p>
+              ) : null}
+            </div>
+            <form action={completeAgentLeadFollowUp}>
+              <input type="hidden" name="leadId" value={id} />
+              <input type="hidden" name="activityId" value={nextAction.activityId} />
+              <Button
+                type="submit"
+                size="sm"
+                variant="outline"
+                data-testid="agent-lead-complete-follow-up"
+              >
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                {t('followUp.complete')}
+              </Button>
+            </form>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export async function AgentLeadDetailV2Page({
   id,
   locale,
@@ -96,6 +200,11 @@ export async function AgentLeadDetailV2Page({
 
   const lead = leadResult.lead;
   const deals = leadResult.deals;
+  const nextAction = deriveCrmLeadNextAction({
+    activities: activities.map(mapFeedRowToCrmActivity),
+    lead: { id: lead.id, tenantId: lead.tenantId },
+    now: new Date().toISOString(),
+  });
 
   return (
     <div className="space-y-6" data-testid="agent-lead-detail-ready">
@@ -190,6 +299,8 @@ export async function AgentLeadDetailV2Page({
         </div>
 
         <div className="space-y-6">
+          <AgentLeadFollowUpCard id={id} locale={locale} nextAction={nextAction} t={t} />
+
           <Card className="h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>{t('activityHistory')}</CardTitle>

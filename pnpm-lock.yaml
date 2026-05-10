@@ -165,6 +165,9 @@ importers:
       '@interdomestik/domain-country-guidance':
         specifier: workspace:*
         version: link:../../packages/domain-country-guidance
+      '@interdomestik/domain-crm':
+        specifier: workspace:*
+        version: link:../../packages/domain-crm
       '@interdomestik/domain-leads':
         specifier: workspace:*
         version: link:../../packages/domain-leads
