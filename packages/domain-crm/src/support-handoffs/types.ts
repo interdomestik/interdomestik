@@ -17,7 +17,9 @@ export type SupportHandoffCrmState = (typeof SUPPORT_HANDOFF_CRM_STATES)[number]
 export type SupportHandoffCycle = {
   publicResponseVersion: number;
   publicResponseAt: string | null;
+  publicResponseById?: string | null;
   publicResponseAcknowledgedAt: string | null;
+  publicResponseAcknowledgedById?: string | null;
   publicResponseAcknowledgedVersion: number | null;
   memberReplyAt: string | null;
   memberReplyResponseVersion: number | null;
@@ -36,6 +38,10 @@ export type SupportHandoff = {
   state: SupportHandoffCrmState;
   lifecycleVersion: number;
   cycle: SupportHandoffCycle;
+  acceptedAt?: string | null;
+  acceptedById?: string | null;
+  closedAt?: string | null;
+  closedById?: string | null;
   createdAt: string;
   updatedAt: string;
 };
