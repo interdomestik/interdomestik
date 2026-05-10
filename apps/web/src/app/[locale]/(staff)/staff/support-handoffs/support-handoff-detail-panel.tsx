@@ -296,7 +296,7 @@ export function SupportHandoffDetailPanel({
       }
       setDetail(result);
       router.refresh();
-      window.dispatchEvent(
+      globalThis.dispatchEvent(
         new CustomEvent(SUPPORT_HANDOFF_ATTENTION_RESOLVED_EVENT, {
           detail: { handoffId },
         })

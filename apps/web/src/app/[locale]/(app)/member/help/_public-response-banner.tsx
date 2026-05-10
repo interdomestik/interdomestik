@@ -55,7 +55,7 @@ export async function PublicResponseBanner({
     : null;
   const acknowledgementPermalink = `/${locale}/member/help?handoffId=${encodeURIComponent(response.handoffId)}`;
   const hasMemberReply = !!response.memberReply && response.memberReplyAt != null;
-  const memberReplySlot = !hasMemberReply ? (
+  const memberReplySlot = hasMemberReply ? null : (
     <MemberReplyForm
       expectedPublicResponseVersion={response.publicResponseVersion}
       handoffId={response.handoffId}
@@ -74,7 +74,7 @@ export async function PublicResponseBanner({
       locale={locale}
       permalink={acknowledgementPermalink}
     />
-  ) : null;
+  );
 
   return (
     <div

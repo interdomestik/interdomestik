@@ -84,6 +84,39 @@ function buildNeedsFollowUpCondition(): SQL<unknown> {
   ) as SQL<unknown>;
 }
 
+function buildAssignmentCondition(args: {
+  assignment: SupportHandoffQueueAssignmentFilter;
+  branchId?: string | null;
+  staffId: string;
+  viewerRole?: string | null;
+}): SQL<unknown> | undefined {
+  if (args.assignment === 'mine') {
+    return eq(supportHandoffs.staffId, args.staffId);
+  }
+
+  if (args.assignment === 'unassigned') {
+    return isNull(supportHandoffs.staffId);
+  }
+
+  const shouldUseOwnOrUnassignedFallback =
+    args.viewerRole !== 'branch_manager' ||
+    (args.viewerRole === 'branch_manager' && args.branchId == null);
+
+  return shouldUseOwnOrUnassignedFallback
+    ? buildOwnOrUnassignedStaffScope(args.staffId)
+    : undefined;
+}
+
+function buildClaimLinkCondition(
+  claimLink: SupportHandoffClaimLinkFilter | undefined
+): SQL<unknown> | undefined {
+  if (claimLink === 'linked') {
+    return isNotNull(supportHandoffs.claimId);
+  }
+
+  return claimLink === 'unlinked' ? isNull(supportHandoffs.claimId) : undefined;
+}
+
 export function buildStaffSupportHandoffQueueScope(args: {
   assignment: SupportHandoffQueueAssignmentFilter;
   attention?: SupportHandoffQueueAttentionFilter;
@@ -110,23 +143,11 @@ export function buildStaffSupportHandoffQueueScope(args: {
     conditions.push(eq(supportHandoffs.branchId, args.branchId));
   }
 
-  const shouldUseOwnOrUnassignedFallback =
-    args.viewerRole !== 'branch_manager' ||
-    (args.viewerRole === 'branch_manager' && args.branchId == null);
+  const assignmentCondition = buildAssignmentCondition(args);
+  if (assignmentCondition) conditions.push(assignmentCondition);
 
-  if (args.assignment === 'mine') {
-    conditions.push(eq(supportHandoffs.staffId, args.staffId));
-  } else if (args.assignment === 'unassigned') {
-    conditions.push(isNull(supportHandoffs.staffId));
-  } else if (shouldUseOwnOrUnassignedFallback) {
-    conditions.push(buildOwnOrUnassignedStaffScope(args.staffId));
-  }
-
-  if (args.claimLink === 'linked') {
-    conditions.push(isNotNull(supportHandoffs.claimId));
-  } else if (args.claimLink === 'unlinked') {
-    conditions.push(isNull(supportHandoffs.claimId));
-  }
+  const claimLinkCondition = buildClaimLinkCondition(args.claimLink);
+  if (claimLinkCondition) conditions.push(claimLinkCondition);
 
   if (args.attention === 'needs_follow_up') {
     conditions.push(buildNeedsFollowUpCondition());

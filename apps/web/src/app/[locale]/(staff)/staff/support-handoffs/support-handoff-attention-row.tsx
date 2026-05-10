@@ -32,9 +32,12 @@ export function SupportHandoffAttentionRow({ children, handoffId, isAttentionQue
       }
     }
 
-    window.addEventListener(SUPPORT_HANDOFF_ATTENTION_RESOLVED_EVENT, handleAttentionResolved);
+    globalThis.addEventListener(SUPPORT_HANDOFF_ATTENTION_RESOLVED_EVENT, handleAttentionResolved);
     return () =>
-      window.removeEventListener(SUPPORT_HANDOFF_ATTENTION_RESOLVED_EVENT, handleAttentionResolved);
+      globalThis.removeEventListener(
+        SUPPORT_HANDOFF_ATTENTION_RESOLVED_EVENT,
+        handleAttentionResolved
+      );
   }, [handoffId, isAttentionQueue]);
 
   if (isResolved) return null;
