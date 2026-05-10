@@ -305,6 +305,22 @@ describe('StaffSupportHandoffsPage', () => {
     );
   });
 
+  it('clamps needs-follow-up attention to accepted status even with conflicting params', async () => {
+    await renderPage({ attention: 'needs_follow_up', status: 'closed' });
+
+    expect(mocks.getQueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attention: 'needs_follow_up',
+        status: 'accepted',
+      })
+    );
+    expect(screen.getByText('status.accepted')).toHaveAttribute(
+      'href',
+      '/staff/support-handoffs?attention=needs_follow_up&status=accepted'
+    );
+    expect(screen.queryByText('status.closed')).not.toBeInTheDocument();
+  });
+
   it('shows a staff follow-up attention badge for current-cycle member replies', async () => {
     mocks.getQueue.mockResolvedValueOnce([
       {

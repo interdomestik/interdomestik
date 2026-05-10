@@ -14,7 +14,7 @@ import {
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasSupportHandoffCurrentCycleMemberReply } from '@interdomestik/domain-crm/support-handoffs';
-import { aliasedTable, isNotNull, isNull, type SQL } from 'drizzle-orm';
+import { aliasedTable, gt, isNotNull, isNull, type SQL } from 'drizzle-orm';
 
 import type {
   SupportHandoffContactPreference,
@@ -79,6 +79,7 @@ function buildOwnOrUnassignedStaffScope(staffId: string): SQL<unknown> {
 function buildNeedsFollowUpCondition(): SQL<unknown> {
   return and(
     eq(supportHandoffs.status, 'accepted'),
+    gt(supportHandoffs.publicResponseVersion, 0),
     isNotNull(supportHandoffs.memberReplyAt),
     eq(supportHandoffs.memberReplyResponseVersion, supportHandoffs.publicResponseVersion)
   ) as SQL<unknown>;
@@ -131,7 +132,7 @@ export function buildStaffSupportHandoffQueueScope(args: {
 }) {
   const conditions: SQL<unknown>[] = [];
 
-  if (args.status && args.status !== 'all') {
+  if (args.attention !== 'needs_follow_up' && args.status && args.status !== 'all') {
     conditions.push(eq(supportHandoffs.status, args.status));
   }
 

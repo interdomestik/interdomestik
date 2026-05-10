@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   },
   desc: vi.fn(column => ({ column, op: 'desc' })),
   eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
+  gt: vi.fn((left, right) => ({ left, op: 'gt', right })),
   ilike: vi.fn((left, right) => ({ left, op: 'ilike', right })),
   isNotNull: vi.fn(column => ({ column, op: 'isNotNull' })),
   isNull: vi.fn(column => ({ column, op: 'isNull' })),
@@ -101,6 +102,7 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
 
 vi.mock('drizzle-orm', () => ({
   aliasedTable: vi.fn((table, alias) => ({ ...table, alias })),
+  gt: mocks.gt,
   isNotNull: mocks.isNotNull,
   isNull: mocks.isNull,
 }));
@@ -215,11 +217,19 @@ describe('buildStaffSupportHandoffQueueScope', () => {
     buildScope({ attention: 'needs_follow_up' });
 
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.status', 'accepted');
+    expect(mocks.gt).toHaveBeenCalledWith('support_handoffs.public_response_version', 0);
     expect(mocks.isNotNull).toHaveBeenCalledWith('support_handoffs.member_reply_at');
     expect(mocks.eq).toHaveBeenCalledWith(
       'support_handoffs.member_reply_response_version',
       'support_handoffs.public_response_version'
     );
+  });
+
+  it('lets the needs-follow-up attention filter override contradictory status input', () => {
+    buildScope({ attention: 'needs_follow_up', status: 'closed' });
+
+    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.status', 'accepted');
+    expect(mocks.eq).not.toHaveBeenCalledWith('support_handoffs.status', 'closed');
   });
 });
 

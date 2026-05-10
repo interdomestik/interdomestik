@@ -65,9 +65,11 @@ function parseStatusFilter(
   value: SearchParamValue,
   attention: SupportHandoffQueueAttentionFilter
 ): SupportHandoffStatus | 'all' {
+  if (attention === 'needs_follow_up') return 'accepted';
+
   const filter = getSingleParam(value);
   if (isOneOf(STATUS_FILTERS, filter)) return filter;
-  return attention === 'needs_follow_up' ? 'accepted' : 'open';
+  return 'open';
 }
 
 function parseUrgencyFilter(value: SearchParamValue): SupportHandoffUrgency | 'all' {
@@ -241,7 +243,7 @@ export default async function StaffSupportHandoffsPage({ params, searchParams }:
   const statusOptions = getFilterOptions({
     current: currentStatus,
     labels: statusLabels,
-    values: STATUS_FILTERS,
+    values: currentAttention === 'needs_follow_up' ? (['accepted'] as const) : STATUS_FILTERS,
     testPrefix: 'staff-support-handoffs-status-filter',
     toHref: status =>
       buildSupportHandoffsHref({
