@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./context": "./src/context.ts",
+    "./leads/follow-up": "./src/leads/follow-up.ts",
     "./leads": "./src/leads/index.ts",
     "./leads/repository": "./src/leads/repository.ts",
     "./leads/types": "./src/leads/types.ts",

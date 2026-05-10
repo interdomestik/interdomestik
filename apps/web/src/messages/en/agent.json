@@ -134,6 +134,15 @@
       "deals": "deals",
       "yourRank": "Your rank"
     },
+    "followUps": {
+      "title": "Due follow-ups",
+      "description": "Leads with an open follow-up scheduled for now or earlier.",
+      "dueCount": "{count, plural, =0 {0 due} one {# due} other {# due}}",
+      "empty": "No due follow-ups.",
+      "unknownLead": "Lead",
+      "scheduledFor": "Scheduled for {date}",
+      "openLead": "Open lead"
+    },
     "dashboardV2": {
       "assignedBranch": "Assigned Branch",
       "addNewLead": "Add New Lead",
@@ -242,6 +251,15 @@
         "won": "Won",
         "lost": "Lost",
         "unknown": "Unknown"
+      },
+      "followUp": {
+        "title": "Next follow-up",
+        "empty": "No open follow-up is scheduled for this lead.",
+        "defaultSubject": "Follow up with lead",
+        "scheduleNow": "Add follow-up",
+        "dueNow": "Due now",
+        "scheduled": "Scheduled",
+        "complete": "Complete follow-up"
       },
       "activityHistory": "Activity History"
     },

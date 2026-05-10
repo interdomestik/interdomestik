@@ -47,6 +47,11 @@ vi.mock('@/actions/activities', () => ({
   getLeadActivities: hoisted.getLeadActivitiesMock,
 }));
 
+vi.mock('@/actions/agent-crm-follow-up', () => ({
+  completeAgentLeadFollowUp: vi.fn(),
+  scheduleAgentLeadFollowUp: vi.fn(),
+}));
+
 vi.mock('@/app/[locale]/(agent)/agent/leads/[id]/_core', () => ({
   getAgentLeadDetailsCore: hoisted.getAgentLeadDetailsCoreMock,
 }));
@@ -71,11 +76,20 @@ vi.mock('@interdomestik/ui', () => ({
     asChild,
     children,
     disabled,
+    type,
   }: {
     asChild?: boolean;
     children: ReactNode;
     disabled?: boolean;
-  }) => (asChild ? children : <button disabled={disabled}>{children}</button>),
+    type?: 'button' | 'submit' | 'reset';
+  }) =>
+    asChild ? (
+      children
+    ) : (
+      <button disabled={disabled} type={type}>
+        {children}
+      </button>
+    ),
   Card: ({ children }: { children: ReactNode }) => <section>{children}</section>,
   CardContent: ({ children }: { children: ReactNode }) => children,
   CardHeader: ({ children }: { children: ReactNode }) => children,
@@ -116,6 +130,13 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
             'dealStatuses.lost': 'Lost localized',
             'dealStatuses.unknown': 'Unknown localized',
             activityHistory: 'Activity localized',
+            'followUp.title': 'Follow-up localized',
+            'followUp.empty': 'No follow-up localized',
+            'followUp.defaultSubject': 'Follow up with lead localized',
+            'followUp.scheduleNow': 'Add follow-up localized',
+            'followUp.dueNow': 'Due now localized',
+            'followUp.scheduled': 'Scheduled localized',
+            'followUp.complete': 'Complete follow-up localized',
           };
 
           return `${namespace}:${messages[key] ?? key}`;
@@ -127,6 +148,7 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
       lead: {
         id: 'lead-1',
         agentId: 'agent-1',
+        tenantId: 'tenant-1',
         fullName: 'Lead',
         stage: 'new',
         type: 'individual',
@@ -210,6 +232,7 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
       lead: {
         id: 'lead-1',
         agentId: 'agent-1',
+        tenantId: 'tenant-1',
         fullName: null,
         companyName: null,
         stage: 'negotiation',
@@ -234,5 +257,45 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
     expect(html).toContain('agent.leads_page:Business localized');
     expect(html).toContain('agent.leads_page:Open localized');
     expect(html).toContain('€150.00');
+  });
+
+  it('renders a schedule action when no follow-up is open', async () => {
+    const element = await AgentLeadDetailV2Page({ id: 'lead-1', locale: 'en' });
+    const html = renderToStaticMarkup(element);
+
+    expect(html).toContain('agent.leads_page:Follow-up localized');
+    expect(html).toContain('agent.leads_page:No follow-up localized');
+    expect(html).toContain('agent.leads_page:Add follow-up localized');
+    expect(html).toContain('name="leadId" value="lead-1"');
+  });
+
+  it('renders the due follow-up completion action from lead activities', async () => {
+    hoisted.getLeadActivitiesMock.mockResolvedValueOnce([
+      {
+        id: 'follow-up-1',
+        tenantId: 'tenant-1',
+        leadId: 'lead-1',
+        memberId: 'lead-1',
+        agentId: 'agent-1',
+        type: 'follow_up',
+        subject: 'Call back',
+        description: 'Needs a call.',
+        occurredAt: '2026-05-10T08:00:00.000Z',
+        scheduledAt: '2020-01-01T10:00:00.000Z',
+        completedAt: null,
+        createdAt: '2026-05-10T08:00:00.000Z',
+        updatedAt: '2026-05-10T08:00:00.000Z',
+        agent: null,
+      },
+    ]);
+
+    const element = await AgentLeadDetailV2Page({ id: 'lead-1', locale: 'en' });
+    const html = renderToStaticMarkup(element);
+
+    expect(html).toContain('Call back');
+    expect(html).toContain('Needs a call.');
+    expect(html).toContain('agent.leads_page:Due now localized');
+    expect(html).toContain('agent.leads_page:Complete follow-up localized');
+    expect(html).toContain('name="activityId" value="follow-up-1"');
   });
 });

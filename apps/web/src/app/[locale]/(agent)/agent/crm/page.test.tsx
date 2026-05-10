@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -47,6 +48,17 @@ vi.mock('./_core', () => ({
   getAgentCrmStatsCore: hoisted.getAgentCrmStatsCoreMock,
 }));
 
+vi.mock('@/i18n/routing', () => ({
+  Link: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
+vi.mock('@interdomestik/ui', () => ({
+  Button: ({ asChild, children }: { asChild?: boolean; children: ReactNode }) =>
+    asChild ? children : <button>{children}</button>,
+}));
+
 vi.mock('@/components/agent/leaderboard-card', () => ({
   LeaderboardCard: () => null,
 }));
@@ -67,6 +79,7 @@ describe('CRMPage auth redirect', () => {
       contactedLeadsCount: 0,
       closedWonDealsCount: 0,
       paidCommissionTotal: 0,
+      dueFollowUps: [],
     });
   });
 

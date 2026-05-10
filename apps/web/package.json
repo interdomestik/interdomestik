@@ -39,6 +39,7 @@
     "@interdomestik/domain-claims": "workspace:*",
     "@interdomestik/domain-communications": "workspace:*",
     "@interdomestik/domain-country-guidance": "workspace:*",
+    "@interdomestik/domain-crm": "workspace:*",
     "@interdomestik/domain-leads": "workspace:*",
     "@interdomestik/domain-member": "workspace:*",
     "@interdomestik/domain-membership-billing": "workspace:*",

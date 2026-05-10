@@ -29,7 +29,18 @@ export async function getLeadActivitiesCore(params: {
   try {
     const activities = await db.query.crmActivities.findMany({
       where: and(eq(crmActivities.leadId, leadId), eq(crmActivities.tenantId, tenantId)),
-      orderBy: [desc(crmActivities.occurredAt)],
+      columns: {
+        agentId: true,
+        completedAt: true,
+        createdAt: true,
+        id: true,
+        leadId: true,
+        scheduledAt: true,
+        summary: true,
+        tenantId: true,
+        type: true,
+      },
+      orderBy: [desc(crmActivities.createdAt)],
       limit: effectiveLimit,
       with: {
         agent: {
