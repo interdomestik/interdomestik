@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { check, index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
 import { claims } from './claims';
@@ -85,6 +85,45 @@ export const crmLeadStageHistory = pgTable(
       'crm_lead_stage_history_to_stage_check',
       sql`${table.toStage} in ('new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost')`
     ),
+  ]
+);
+
+export const crmLeadOwnershipHistory = pgTable(
+  'crm_lead_ownership_history',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    leadId: text('lead_id')
+      .notNull()
+      .references(() => crmLeads.id, { onDelete: 'cascade' }),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => user.id),
+    branchId: text('branch_id')
+      .notNull()
+      .references(() => branches.id),
+    effectiveFrom: timestamp('effective_from').notNull(),
+    effectiveTo: timestamp('effective_to'),
+    reason: text('reason').notNull(),
+    changedById: text('changed_by_id').references(() => user.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  table => [
+    index('crm_lead_ownership_history_tenant_lead_effective_idx').on(
+      table.tenantId,
+      table.leadId,
+      table.effectiveFrom
+    ),
+    index('crm_lead_ownership_history_tenant_agent_effective_idx').on(
+      table.tenantId,
+      table.agentId,
+      table.effectiveFrom
+    ),
+    uniqueIndex('crm_lead_ownership_history_one_open_idx')
+      .on(table.tenantId, table.leadId)
+      .where(sql`${table.effectiveTo} is null`),
   ]
 );
 
