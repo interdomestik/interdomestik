@@ -1,4 +1,4 @@
-import type { CrmActorContext } from '../context';
+import { isStaffLikeCrmActor, type CrmActorContext } from '../context';
 import type { CrmLead, CrmLeadActivity } from './types';
 import type { CrmLeadRepository } from './repository';
 
@@ -51,6 +51,14 @@ export type UpdateCrmLeadStageInput = {
   stage: string;
 };
 
+export type TransferCrmLeadOwnershipInput = {
+  actor: CrmActorContext;
+  leadId: string;
+  reason?: string | null;
+  targetAgentId: string;
+  targetBranchId: string;
+};
+
 export type RecordCrmLeadActivityInput = {
   actor: CrmActorContext;
   activityId: string;
@@ -67,7 +75,12 @@ export type CrmLeadMutationResult =
   | {
       success: false;
       error: 'invalid_input';
-      reason: 'invalid_activity_type' | 'invalid_occurred_at' | 'invalid_stage' | 'invalid_type';
+      reason:
+        | 'invalid_activity_type'
+        | 'invalid_occurred_at'
+        | 'invalid_stage'
+        | 'invalid_target'
+        | 'invalid_type';
     }
   | { success: false; error: 'forbidden'; reason: CrmLeadMutationDenialReason };
 
@@ -82,6 +95,15 @@ export interface CrmLeadMutationRepository extends Pick<CrmLeadRepository, 'find
     fromStage: CrmLeadStage;
     leadId: string;
     stage: CrmLeadStage;
+  }): Promise<CrmLead | null>;
+  transferOwnership(params: {
+    actor: CrmActorContext;
+    currentAgentId: string;
+    currentBranchId: string;
+    leadId: string;
+    reason: string;
+    targetAgentId: string;
+    targetBranchId: string;
   }): Promise<CrmLead | null>;
 }
 
@@ -112,6 +134,21 @@ function authorizeExistingLead(
   if (lead.tenantId !== actor.tenantId) return 'tenant_scope';
   if (lead.agentId !== actor.actorId) return 'agent_scope';
   if (!actor.scope.branchId || !lead.branchId || lead.branchId !== actor.scope.branchId) {
+    return 'branch_scope';
+  }
+  return null;
+}
+
+function authorizeLeadOwnershipTransfer(
+  actor: CrmActorContext,
+  lead: Pick<CrmLead, 'branchId' | 'tenantId'>,
+  targetBranchId: string
+): CrmLeadMutationDenialReason | null {
+  if (lead.tenantId !== actor.tenantId) return 'tenant_scope';
+  if (!isStaffLikeCrmActor(actor)) return 'role_scope';
+  if (actor.role === 'admin') return null;
+  if (!actor.scope.branchId || !lead.branchId) return 'branch_scope';
+  if (lead.branchId !== actor.scope.branchId || targetBranchId !== actor.scope.branchId) {
     return 'branch_scope';
   }
   return null;
@@ -150,6 +187,39 @@ export async function createCrmLead(
     lead: leadInput,
   });
   return { success: true, lead };
+}
+
+export async function transferCrmLeadOwnership(
+  input: TransferCrmLeadOwnershipInput,
+  repository: CrmLeadMutationRepository
+): Promise<CrmLeadMutationResult> {
+  const targetAgentId = input.targetAgentId.trim();
+  const targetBranchId = input.targetBranchId.trim();
+  const reason = input.reason?.trim() || 'transfer';
+  if (!targetAgentId || !targetBranchId) {
+    return { success: false, error: 'invalid_input', reason: 'invalid_target' };
+  }
+
+  const lead = await repository.findById({ actor: input.actor, leadId: input.leadId });
+  if (!lead) return { success: false, error: 'not_found' };
+  const denied = authorizeLeadOwnershipTransfer(input.actor, lead, targetBranchId);
+  if (denied) return { success: false, error: 'forbidden', reason: denied };
+  if (!lead.branchId) return { success: false, error: 'forbidden', reason: 'branch_scope' };
+
+  if (lead.agentId === targetAgentId && lead.branchId === targetBranchId) {
+    return { success: true, lead };
+  }
+
+  const updated = await repository.transferOwnership({
+    actor: input.actor,
+    currentAgentId: lead.agentId,
+    currentBranchId: lead.branchId,
+    leadId: input.leadId,
+    reason,
+    targetAgentId,
+    targetBranchId,
+  });
+  return updated ? { success: true, lead: updated } : { success: false, error: 'not_found' };
 }
 
 export async function updateCrmLeadStage(

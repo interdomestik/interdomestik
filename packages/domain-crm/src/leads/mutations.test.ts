@@ -5,6 +5,7 @@ import type { CrmLead, CrmLeadActivity } from './types';
 import {
   createCrmLead,
   recordCrmLeadActivity,
+  transferCrmLeadOwnership,
   updateCrmLeadStage,
   type CreateCrmLeadInput,
   type CrmLeadMutationRepository,
@@ -89,6 +90,9 @@ function repository(args: { lead?: CrmLead | null } = {}): CrmLeadMutationReposi
           type: recorded.type,
         })
       )
+    ),
+    transferOwnership: vi.fn(({ targetAgentId, targetBranchId }) =>
+      Promise.resolve(lead({ agentId: targetAgentId, branchId: targetBranchId }))
     ),
     updateStage: vi.fn(({ stage }) => Promise.resolve(lead({ stage }))),
   };
@@ -217,6 +221,163 @@ describe('CRM lead mutation domain boundary', () => {
       );
       expect(repo.updateStage).not.toHaveBeenCalled();
     }
+  });
+
+  it('transfers lead ownership for staff-like actors within tenant and branch scope', async () => {
+    const repo = repository();
+    const staffActor: CrmActorContext = {
+      actorId: 'staff-1',
+      role: 'staff',
+      scope: { branchId: 'branch-1', staffId: 'staff-1' },
+      tenantId: 'tenant-1',
+    };
+
+    await expect(
+      transferCrmLeadOwnership(
+        {
+          actor: staffActor,
+          leadId: 'lead-1',
+          reason: 'handover',
+          targetAgentId: 'agent-2',
+          targetBranchId: 'branch-1',
+        },
+        repo
+      )
+    ).resolves.toMatchObject({
+      lead: { agentId: 'agent-2', branchId: 'branch-1' },
+      success: true,
+    });
+
+    expect(repo.transferOwnership).toHaveBeenCalledWith({
+      actor: staffActor,
+      currentAgentId: 'agent-1',
+      currentBranchId: 'branch-1',
+      leadId: 'lead-1',
+      reason: 'handover',
+      targetAgentId: 'agent-2',
+      targetBranchId: 'branch-1',
+    });
+  });
+
+  it('allows admin lead ownership transfers across branches in the same tenant', async () => {
+    const repo = repository();
+    const adminActor: CrmActorContext = {
+      actorId: 'admin-1',
+      role: 'admin',
+      scope: {},
+      tenantId: 'tenant-1',
+    };
+
+    await expect(
+      transferCrmLeadOwnership(
+        {
+          actor: adminActor,
+          leadId: 'lead-1',
+          targetAgentId: 'agent-2',
+          targetBranchId: 'branch-2',
+        },
+        repo
+      )
+    ).resolves.toMatchObject({
+      lead: { agentId: 'agent-2', branchId: 'branch-2' },
+      success: true,
+    });
+
+    expect(repo.transferOwnership).toHaveBeenCalled();
+  });
+
+  it('suppresses ownership transfer writes for failed authorization', async () => {
+    for (const [current, actor] of [
+      [null, { ...agentActor, role: 'staff' as const }],
+      [lead({ tenantId: 'tenant-2' }), { ...agentActor, role: 'staff' as const }],
+      [lead(), agentActor],
+      [
+        lead({ branchId: 'branch-2' }),
+        {
+          actorId: 'branch-manager-1',
+          role: 'branch_manager' as const,
+          scope: { branchId: 'branch-1' },
+          tenantId: 'tenant-1',
+        },
+      ],
+      [
+        lead({ branchId: 'branch-1' }),
+        {
+          actorId: 'branch-manager-1',
+          role: 'branch_manager' as const,
+          scope: { branchId: 'branch-1' },
+          tenantId: 'tenant-1',
+        },
+      ],
+      [
+        lead({ branchId: null }),
+        {
+          actorId: 'staff-1',
+          role: 'staff' as const,
+          scope: { branchId: 'branch-1' },
+          tenantId: 'tenant-1',
+        },
+      ],
+    ] as const) {
+      const repo = repository({ lead: current });
+      await transferCrmLeadOwnership(
+        {
+          actor,
+          leadId: 'lead-1',
+          targetAgentId: 'agent-2',
+          targetBranchId: current?.branchId === 'branch-1' ? 'branch-2' : 'branch-1',
+        },
+        repo
+      );
+      expect(repo.transferOwnership).not.toHaveBeenCalled();
+    }
+  });
+
+  it('treats same-owner transfer requests as no-ops without history writes', async () => {
+    const repo = repository();
+    const staffActor: CrmActorContext = {
+      actorId: 'staff-1',
+      role: 'staff',
+      scope: { branchId: 'branch-1' },
+      tenantId: 'tenant-1',
+    };
+
+    await expect(
+      transferCrmLeadOwnership(
+        {
+          actor: staffActor,
+          leadId: 'lead-1',
+          targetAgentId: 'agent-1',
+          targetBranchId: 'branch-1',
+        },
+        repo
+      )
+    ).resolves.toEqual({ lead: lead(), success: true });
+
+    expect(repo.transferOwnership).not.toHaveBeenCalled();
+  });
+
+  it('suppresses ownership transfer writes for invalid target scope before repository reads', async () => {
+    const repo = repository();
+
+    await expect(
+      transferCrmLeadOwnership(
+        {
+          actor: { ...agentActor, role: 'staff' },
+          leadId: 'lead-1',
+          targetAgentId: ' ',
+          targetBranchId: 'branch-1',
+        },
+        repo
+      )
+    ).resolves.toEqual({
+      error: 'invalid_input',
+      reason: 'invalid_target',
+      success: false,
+    });
+
+    expect(repo.findById).not.toHaveBeenCalled();
+    expect(repo.transferOwnership).not.toHaveBeenCalled();
   });
 
   it('records lead activity as a write-side event source for timeline reads after authorization', async () => {

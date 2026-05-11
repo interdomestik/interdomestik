@@ -146,6 +146,18 @@ vi.mock('@interdomestik/database/db', () => {
 });
 
 vi.mock('@interdomestik/database/schema', () => ({
+  crmLeadOwnershipHistory: {
+    agentId: { name: 'ownershipAgentId' },
+    branchId: { name: 'ownershipBranchId' },
+    changedById: { name: 'ownershipChangedById' },
+    createdAt: { name: 'ownershipCreatedAt' },
+    effectiveFrom: { name: 'ownershipEffectiveFrom' },
+    effectiveTo: { name: 'ownershipEffectiveTo' },
+    id: { name: 'ownershipId' },
+    leadId: { name: 'ownershipLeadId' },
+    reason: { name: 'ownershipReason' },
+    tenantId: { name: 'ownershipTenantId' },
+  },
   crmLeadStageHistory: {
     changedById: { name: 'historyChangedById' },
     createdAt: { name: 'historyCreatedAt' },
@@ -173,6 +185,7 @@ vi.mock('@interdomestik/database/schema', () => ({
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
+  isNull: vi.fn((value: unknown) => ({ op: 'isNull', value })),
 }));
 
 vi.mock('next/cache', () => ({
