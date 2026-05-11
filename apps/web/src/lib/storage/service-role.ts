@@ -2,6 +2,8 @@ import 'server-only';
 
 import { createAdminClient } from '@interdomestik/database';
 
+import { isLocalE2ERuntime } from '@/lib/runtime-environment';
+
 import {
   type TenantStorageFamily,
   assertTenantStoragePath,
@@ -31,10 +33,47 @@ type UploadTarget = TenantStorageTarget & {
   upsert?: boolean;
 };
 
+function shouldUseDeterministicE2EUploadSigner(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.INTERDOMESTIK_E2E_FAKE_STORAGE_SIGNING === '1' && isLocalE2ERuntime(env);
+}
+
+function resolveDeterministicE2EStorageBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
+  const configuredUrl = env.SUPABASE_URL?.trim() || env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  if (!configuredUrl) return '';
+
+  let end = configuredUrl.length;
+  while (end > 0 && configuredUrl[end - 1] === '/') {
+    end -= 1;
+  }
+  return configuredUrl.slice(0, end);
+}
+
+function createDeterministicE2EUploadSignature(args: TenantStorageTarget) {
+  const encodedPath = args.path
+    .split('/')
+    .map(segment => encodeURIComponent(segment))
+    .join('/');
+  const token = Buffer.from(`${args.bucket}:${args.path}`).toString('base64url');
+  const storageBaseUrl = resolveDeterministicE2EStorageBaseUrl();
+
+  return {
+    data: {
+      path: args.path,
+      signedUrl: `${storageBaseUrl}/storage/v1/object/upload/sign/${args.bucket}/${encodedPath}?token=${token}`,
+      token,
+    },
+    error: null,
+  };
+}
+
 export async function createTenantSignedUploadUrl(
   args: TenantStorageTarget & { upsert?: boolean }
 ) {
   assertTenantStoragePath(args);
+
+  if (shouldUseDeterministicE2EUploadSigner()) {
+    return createDeterministicE2EUploadSignature(args);
+  }
 
   return createAdminClient()
     .storage.from(args.bucket)
