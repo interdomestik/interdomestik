@@ -20,6 +20,8 @@ P33-SEC12 reduced the baseline to `62` by resolving the commercial action idempo
 cluster with explicit tenant or allowlisted public scope.
 P35-SEC01 reduced the baseline to `61` by removing the non-Paddle commission ownership fallback
 tenant lookup and requiring explicit commission tenant scope before idempotency checks or writes.
+P35-SEC02 reduced the baseline to `56` by requiring session-derived tenant proof for legacy
+agent-dashboard claim reads and adding direct tenant predicates to all five reads.
 
 ## Burn-Down Summary
 
@@ -30,6 +32,7 @@ tenant lookup and requiring explicit commission tenant scope before idempotency 
 | P33-SEC10 unclassified baseline |    67 |
 | P33-SEC12 unclassified baseline |    62 |
 | P35-SEC01 unclassified baseline |    61 |
+| P35-SEC02 unclassified baseline |    56 |
 | Entries removed from scan       |     4 |
 | Reviewed `tenant-scoped` calls  |   168 |
 | Reviewed `system-exempt` calls  |    28 |
@@ -68,12 +71,11 @@ classified.
 
 ## Remaining Evidence Set
 
-The remaining `61` entries are intentionally not classified. They include clusters that need
+The remaining `56` entries are intentionally not classified. They include clusters that need
 migration or a narrower design decision:
 
 | Count | Cluster                                                                                           |
 | ----: | ------------------------------------------------------------------------------------------------- |
-|     5 | Legacy agent dashboard reads without current tenant proof.                                        |
 |     7 | Campaign execution and communication paths that batch across users or campaigns.                  |
 |     8 | Cron and public NPS/engagement residue that needs per-tenant job modeling or narrower predicates. |
 |     4 | Admin and branch dashboard cross-tenant lookup paths.                                             |
@@ -85,7 +87,9 @@ billing webhook/provider-event entries, but the synced implementation baseline c
 under that package path. P33-SEC12 resolved the commercial idempotency cluster by requiring explicit
 tenant or allowlisted public scope before reservation access. P35-SEC01 resolved the remaining
 membership-billing unclassified entry by removing the non-Paddle commission ownership fallback
-lookup and making tenant scope an explicit commission creation contract. The next action, if further
-burn-down is needed, is a targeted design review for legacy agent dashboard ownership,
-campaign/cron/public-token tenancy, or the remaining one-off paths. The known P34 CRM adapter
-baseline drift remains non-failing guard output and was not refreshed by the P35-SEC01 receipt.
+lookup and making tenant scope an explicit commission creation contract. P35-SEC02 resolved the
+legacy agent dashboard cluster by requiring session tenant proof before staff/admin reads and making
+all five claim reads directly tenant-predicated. The next action, if further burn-down is needed, is
+a targeted design review for campaign/cron/public-token tenancy, admin/branch ownership, or the
+remaining one-off paths. The known P34 CRM adapter baseline drift remains non-failing guard output
+and was not refreshed by the P35-SEC02 receipt.

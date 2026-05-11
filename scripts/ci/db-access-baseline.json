@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-11T10:59:00.000Z",
+  "generatedAt": "2026-05-11T12:59:34.000Z",
   "policy": "see docs/dev/db-access-guard.md",
   "scanRoots": ["apps/web/src", "packages"],
   "approvedDatabaseInternalPatterns": [
@@ -28,10 +28,10 @@
     "byTenantPosture": {
       "tenant-context": 5,
       "tenant-scoped": 168,
-      "tenant-predicate": 353,
+      "tenant-predicate": 358,
       "admin-privileged": 0,
       "system-exempt": 28,
-      "unclassified": 61
+      "unclassified": 56
     }
   },
   "entries": [
@@ -147,52 +147,52 @@
     },
     {
       "file": "apps/web/src/actions/agent-dashboard/get.core.ts",
-      "line": 34,
+      "line": 40,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
-      "source": "const [totalRes] = await db.select({ count: count() }).from(claims).where(whereClause);"
+      "tenantPosture": "tenant-predicate",
+      "tenantPostureReason": "tenant-predicate: in-where-clause",
+      "source": "const [totalRes] = await db .select({ count: count() })"
     },
     {
       "file": "apps/web/src/actions/agent-dashboard/get.core.ts",
-      "line": 35,
+      "line": 44,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-predicate",
+      "tenantPostureReason": "tenant-predicate: in-where-clause",
       "source": "const [newRes] = await db .select({ count: count() })"
     },
     {
       "file": "apps/web/src/actions/agent-dashboard/get.core.ts",
-      "line": 43,
+      "line": 52,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-predicate",
+      "tenantPostureReason": "tenant-predicate: in-where-clause",
       "source": "const [inProgressRes] = await db .select({ count: count() })"
     },
     {
       "file": "apps/web/src/actions/agent-dashboard/get.core.ts",
-      "line": 47,
+      "line": 56,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-predicate",
+      "tenantPostureReason": "tenant-predicate: in-where-clause",
       "source": "const [completedRes] = await db .select({ count: count() })"
     },
     {
       "file": "apps/web/src/actions/agent-dashboard/get.core.ts",
-      "line": 52,
+      "line": 61,
       "callee": "db.query",
       "method": "query",
       "risk": "app-layer",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
+      "tenantPosture": "tenant-predicate",
+      "tenantPostureReason": "tenant-predicate: in-where-clause",
       "source": "const recentClaims = await db.query.claims.findMany({"
     },
     {

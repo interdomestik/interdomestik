@@ -1,6 +1,7 @@
 import { isStaffOrAdmin } from '@/lib/roles';
 import { claims, db, eq } from '@interdomestik/database';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, count, desc, inArray, sql } from 'drizzle-orm';
 
 import type { Session } from './context';
@@ -8,7 +9,7 @@ import type { Session } from './context';
 export async function getAgentDashboardDataCore(params: { session: Session | null }) {
   const { session } = params;
 
-  if (!session) {
+  if (!session?.user) {
     throw new Error('Unauthorized');
   }
 
@@ -23,7 +24,12 @@ export async function getAgentDashboardDataCore(params: { session: Session | nul
     throw new Error('Unauthorized');
   }
 
-  const whereClause = sql`1=1`;
+  let tenantId: string;
+  try {
+    tenantId = ensureTenantId(session);
+  } catch {
+    throw new Error('Missing tenantId');
+  }
 
   const completedStatuses: readonly ClaimStatus[] = ['resolved', 'rejected'];
   const newStatus: ClaimStatus = 'submitted';
@@ -31,11 +37,14 @@ export async function getAgentDashboardDataCore(params: { session: Session | nul
     status => status !== 'draft' && status !== newStatus && !completedStatuses.includes(status)
   );
 
-  const [totalRes] = await db.select({ count: count() }).from(claims).where(whereClause);
+  const [totalRes] = await db
+    .select({ count: count() })
+    .from(claims)
+    .where(eq(claims.tenantId, tenantId));
   const [newRes] = await db
     .select({ count: count() })
     .from(claims)
-    .where(and(whereClause, eq(claims.status, newStatus)));
+    .where(and(eq(claims.tenantId, tenantId), eq(claims.status, newStatus)));
 
   const inProgressCondition =
     inProgressStatuses.length > 0 ? inArray(claims.status, inProgressStatuses) : sql`false`;
@@ -43,14 +52,14 @@ export async function getAgentDashboardDataCore(params: { session: Session | nul
   const [inProgressRes] = await db
     .select({ count: count() })
     .from(claims)
-    .where(and(whereClause, inProgressCondition));
+    .where(and(eq(claims.tenantId, tenantId), inProgressCondition));
   const [completedRes] = await db
     .select({ count: count() })
     .from(claims)
-    .where(and(whereClause, inArray(claims.status, completedStatuses)));
+    .where(and(eq(claims.tenantId, tenantId), inArray(claims.status, completedStatuses)));
 
   const recentClaims = await db.query.claims.findMany({
-    where: whereClause,
+    where: eq(claims.tenantId, tenantId),
     orderBy: [desc(claims.updatedAt)],
     limit: 5,
     with: { user: true },
