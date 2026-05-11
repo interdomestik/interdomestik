@@ -8,7 +8,7 @@ import type { CrmLead, CrmLeadActivity } from '@interdomestik/domain-crm/leads/t
 import { and, eq, sql } from 'drizzle-orm';
 
 import { db } from '@interdomestik/database/db';
-import { crmActivities, crmLeads, user } from '@interdomestik/database/schema';
+import { crmActivities, crmLeads } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 type CrmLeadRow = typeof crmLeads.$inferSelect;
@@ -25,10 +25,10 @@ function toIso(value: Date | string | null | undefined): string | null {
   return value instanceof Date ? value.toISOString() : value;
 }
 
-function mapLead(row: CrmLeadRow, branchId: string | null | undefined): CrmLead {
+function mapLead(row: CrmLeadRow): CrmLead {
   return {
     agentId: row.agentId,
-    branchId: branchId ?? null,
+    branchId: row.branchId ?? null,
     createdAt: toIso(row.createdAt) ?? new Date(0).toISOString(),
     id: row.id,
     score: row.score,
@@ -58,17 +58,12 @@ function mapActivityCompat(row: CrmActivityCompatRow): CrmLeadActivity {
 
 export const crmLeadFollowUpRepository: CrmLeadFollowUpRepository = {
   async findById(params: { actor: CrmActorContext; leadId: string }) {
+    // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context before follow-up authorization
     const lead = await db.query.crmLeads.findFirst({
       where: withTenant(params.actor.tenantId, crmLeads.tenantId, eq(crmLeads.id, params.leadId)),
     });
     if (!lead) return null;
-
-    const assignedAgent = await db.query.user.findFirst({
-      where: and(eq(user.tenantId, params.actor.tenantId), eq(user.id, lead.agentId)),
-      columns: { branchId: true },
-    });
-
-    return mapLead(lead, assignedAgent?.branchId ?? null);
+    return mapLead(lead);
   },
 
   async createFollowUpActivity(params: {
@@ -145,6 +140,7 @@ export async function listCrmLeadFollowUpActivitiesForLead(params: {
   leadId: string;
   limit?: number;
 }): Promise<CrmLeadActivity[]> {
+  // db-access-guard: tenant-scoped -- reason: tenantId and agentId from authorized CRM actor constrain follow-up reads
   const rows = await db
     .select({
       agentId: crmActivities.agentId,

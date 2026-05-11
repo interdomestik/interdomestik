@@ -3,6 +3,16 @@ import { crmActivities, crmDeals, crmLeads } from '@interdomestik/database/schem
 import { expect, test } from '../fixtures/auth.fixture';
 import { gotoApp } from '../utils/navigation';
 
+async function countOpenFollowUps(leadId: string): Promise<number> {
+  const rows = await db.query.crmActivities.findMany({
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.leadId, leadId), eq(table.type, 'follow_up'), isNull(table.completedAt)),
+    columns: { id: true },
+  });
+
+  return rows.length;
+}
+
 test.describe('Agent Lead Detail (Golden)', () => {
   test('agent can view a tenant-owned CRM lead detail with inert deal creation', async ({
     agentPage: page,
@@ -18,14 +28,15 @@ test.describe('Agent Lead Detail (Golden)', () => {
       where: eq(user.email, agentEmail),
     });
 
-    if (!agent?.id || !agent.tenantId) {
-      throw new Error(`Expected seeded agent with tenant context for ${agentEmail}`);
+    if (!agent?.id || !agent.tenantId || !agent.branchId) {
+      throw new Error(`Expected seeded agent with tenant and branch context for ${agentEmail}`);
     }
 
     await db.insert(crmLeads).values({
       id: leadId,
       tenantId: agent.tenantId,
       agentId: agent.id,
+      branchId: agent.branchId,
       type: 'business',
       fullName: null,
       companyName: 'P26 Detail Test Company',
@@ -80,6 +91,10 @@ test.describe('Agent Lead Detail (Golden)', () => {
       );
 
       await detail.getByTestId('agent-lead-complete-follow-up').click();
+      await expect.poll(() => countOpenFollowUps(leadId), { timeout: 15000 }).toBe(0);
+      await gotoApp(page, `/agent/leads/${encodeURIComponent(leadId)}`, testInfo, {
+        marker: 'agent-lead-detail-ready',
+      });
       await expect(detail.getByTestId('agent-lead-schedule-follow-up')).toBeVisible();
     } finally {
       await db.delete(crmActivities).where(eq(crmActivities.leadId, leadId));

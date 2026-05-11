@@ -187,6 +187,7 @@ describe('CRM lead mutation domain boundary', () => {
       [{}, { role: 'staff' as const }],
       [{ agentId: 'agent-2' }, {}],
       [{ branchId: 'branch-2' }, {}],
+      [{ branchId: null }, {}],
     ] as const) {
       const repo = repository({ lead: lead(leadOverride) });
       await updateCrmLeadStage(
@@ -215,6 +216,7 @@ describe('CRM lead mutation domain boundary', () => {
       [lead(), { role: 'staff' as const }],
       [lead({ agentId: 'agent-2' }), {}],
       [lead({ branchId: 'branch-2' }), {}],
+      [lead({ branchId: null }), {}],
     ] as const) {
       const repo = repository({ lead: current });
       await recordCrmLeadActivity(

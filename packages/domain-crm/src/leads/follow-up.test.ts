@@ -149,6 +149,10 @@ describe('CRM lead follow-up authorization', () => {
       allowed: false,
       reason: 'branch_scope',
     });
+    expect(authorizeCrmLeadFollowUpAction(agentActor, lead({ branchId: null }))).toEqual({
+      allowed: false,
+      reason: 'branch_scope',
+    });
     expect(
       authorizeCrmLeadFollowUpAction({ ...agentActor, scope: { agentId: 'agent-1' } }, lead())
     ).toEqual({
@@ -231,6 +235,21 @@ describe('CRM lead follow-up commands', () => {
       )
     ).resolves.toEqual({ success: false, error: 'forbidden', reason: 'branch_scope' });
     expect(wrongBranchRepo.createFollowUpActivity).not.toHaveBeenCalled();
+
+    const missingBranchRepo = repository({ lead: lead({ branchId: null }) });
+    await expect(
+      scheduleCrmLeadFollowUp(
+        {
+          actor: agentActor,
+          leadId: 'lead-1',
+          scheduledAt: '2026-05-10T09:00:00.000Z',
+          subject: 'Follow up',
+        },
+        missingBranchRepo,
+        services
+      )
+    ).resolves.toEqual({ success: false, error: 'forbidden', reason: 'branch_scope' });
+    expect(missingBranchRepo.createFollowUpActivity).not.toHaveBeenCalled();
   });
 
   it('completes an existing follow-up only after authorization', async () => {

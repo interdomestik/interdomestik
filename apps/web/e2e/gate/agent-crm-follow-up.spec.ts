@@ -38,11 +38,11 @@ async function requireAgent(email: string) {
     where: eq(user.email, email),
   });
 
-  if (!agent?.id || !agent.tenantId) {
-    throw new Error(`Expected seeded agent with tenant context for ${email}`);
+  if (!agent?.id || !agent.tenantId || !agent.branchId) {
+    throw new Error(`Expected seeded agent with tenant and branch context for ${email}`);
   }
 
-  return { id: agent.id, tenantId: agent.tenantId };
+  return { branchId: agent.branchId, id: agent.id, tenantId: agent.tenantId };
 }
 
 async function dismissCookieConsentIfVisible(page: Page): Promise<void> {
@@ -103,6 +103,7 @@ async function countOpenFollowUps(leadId: string): Promise<number> {
 
 async function insertLead(args: {
   agentId: string;
+  branchId: string;
   leadId: string;
   name: string;
   tenantId: string;
@@ -111,6 +112,7 @@ async function insertLead(args: {
     id: args.leadId,
     tenantId: args.tenantId,
     agentId: args.agentId,
+    branchId: args.branchId,
     type: 'business',
     fullName: args.name,
     companyName: `${args.name} Company`,
@@ -174,15 +176,23 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
     const otherAgent = await requireAgent(otherAgentEmail);
 
     await cleanupCrm13Rows(seededIds);
-    await insertLead({ agentId: agent.id, leadId, name: leadName, tenantId: agent.tenantId });
     await insertLead({
       agentId: agent.id,
+      branchId: agent.branchId,
+      leadId,
+      name: leadName,
+      tenantId: agent.tenantId,
+    });
+    await insertLead({
+      agentId: agent.id,
+      branchId: agent.branchId,
       leadId: futureLeadId,
       name: `CRM13 Future ${suffix}`,
       tenantId: agent.tenantId,
     });
     await insertLead({
       agentId: otherAgent.id,
+      branchId: otherAgent.branchId,
       leadId: offTenantLeadId,
       name: `CRM13 Other Tenant ${suffix}`,
       tenantId: otherAgent.tenantId,

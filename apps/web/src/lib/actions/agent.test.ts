@@ -115,6 +115,7 @@ vi.mock('@interdomestik/database/db', () => ({
         agentId: 'agent1',
         completedAt: null,
         createdAt: new Date('2026-05-10T08:00:00.000Z'),
+        branchId: 'b1',
         id: 'test-id',
         leadId: 'lead1',
         occurredAt: new Date('2026-05-10T08:00:00.000Z'),
@@ -140,7 +141,12 @@ vi.mock('@interdomestik/database/db', () => ({
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
-  crmLeads: { id: { name: 'id' }, agentId: { name: 'agentId' }, tenantId: { name: 'tenantId' } },
+  crmLeads: {
+    id: { name: 'id' },
+    agentId: { name: 'agentId' },
+    branchId: { name: 'branchId' },
+    tenantId: { name: 'tenantId' },
+  },
   crmActivities: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   user: { id: { name: 'userId' }, tenantId: { name: 'userTenantId' } },
 }));
@@ -228,6 +234,7 @@ describe('agent actions', () => {
       (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'lead1',
         agentId: 'agent1',
+        branchId: 'b1',
         tenantId: 'tenant_mk',
       });
 
@@ -261,6 +268,7 @@ describe('agent actions', () => {
       (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'lead1',
         agentId: 'agent2',
+        branchId: 'b1',
         tenantId: 'tenant_mk',
       });
 
@@ -289,6 +297,7 @@ describe('agent actions', () => {
       (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'lead1',
         agentId: 'agent1',
+        branchId: 'b1',
         tenantId: 'tenant_mk',
       });
 
@@ -328,6 +337,7 @@ describe('agent actions', () => {
       (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'lead1',
         agentId: 'agent2',
+        branchId: 'b1',
         tenantId: 'tenant_mk',
       });
 
