@@ -5,10 +5,15 @@ const mocks = vi.hoisted(() => ({
   getMyCommissionsCore: vi.fn(),
   getMyCommissionSummaryCore: vi.fn(),
   createCommissionCore: vi.fn(),
+  ensureTenantId: vi.fn(),
 }));
 
 vi.mock('./commissions/context', () => ({
   getActionContext: () => mocks.getActionContext(),
+}));
+
+vi.mock('@interdomestik/shared-auth', () => ({
+  ensureTenantId: (...args: unknown[]) => mocks.ensureTenantId(...args),
 }));
 
 vi.mock('./commissions/get-my', () => ({
@@ -67,7 +72,7 @@ describe('commissions action wrappers', () => {
     expect(result.data?.paidCount).toBe(0);
   });
 
-  it('createCommission delegates to core with same params', async () => {
+  it('createCommission delegates to core with session-derived tenantId', async () => {
     const payload = {
       agentId: 'agent-1',
       memberId: 'member-1',
@@ -77,12 +82,48 @@ describe('commissions action wrappers', () => {
       currency: 'EUR',
       metadata: { source: 'test' },
     };
+    const session = { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' } };
 
+    mocks.getActionContext.mockResolvedValue({ session });
+    mocks.ensureTenantId.mockReturnValue('tenant-1');
     mocks.createCommissionCore.mockResolvedValue({ success: true, data: { id: 'c1' } });
 
     const result = await actions.createCommission(payload);
 
-    expect(mocks.createCommissionCore).toHaveBeenCalledWith(payload);
+    expect(mocks.ensureTenantId).toHaveBeenCalledWith(session);
+    expect(mocks.createCommissionCore).toHaveBeenCalledWith({ ...payload, tenantId: 'tenant-1' });
     expect(result).toEqual({ success: true, data: { id: 'c1' } });
+  });
+
+  it('createCommission fails before core execution when session has no tenantId', async () => {
+    mocks.getActionContext.mockResolvedValue({
+      session: { user: { id: 'admin-1', role: 'admin', tenantId: null } },
+    });
+    mocks.ensureTenantId.mockImplementation(() => {
+      throw new Error('Missing tenant');
+    });
+
+    const result = await actions.createCommission({
+      agentId: 'agent-1',
+      type: 'new_membership',
+      amount: 12.34,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Missing tenantId' });
+    expect(mocks.createCommissionCore).not.toHaveBeenCalled();
+  });
+
+  it('createCommission returns unauthorized before tenant proof when session is missing', async () => {
+    mocks.getActionContext.mockResolvedValue({ session: null });
+
+    const result = await actions.createCommission({
+      agentId: 'agent-1',
+      type: 'new_membership',
+      amount: 12.34,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    expect(mocks.ensureTenantId).not.toHaveBeenCalled();
+    expect(mocks.createCommissionCore).not.toHaveBeenCalled();
   });
 });

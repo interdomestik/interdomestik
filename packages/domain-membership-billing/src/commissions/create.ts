@@ -1,5 +1,5 @@
 import { db } from '@interdomestik/database';
-import { agentCommissions, user } from '@interdomestik/database/schema';
+import { agentCommissions } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -15,7 +15,7 @@ export async function createCommissionCore(data: {
   type: CommissionType;
   amount: number;
   currency?: string;
-  tenantId?: string | null;
+  tenantId: string;
   metadata?: Record<string, unknown>;
 }): Promise<ActionResult<{ id: string }>> {
   try {
@@ -31,16 +31,8 @@ export async function createCommissionCore(data: {
       return { success: false, error: 'Amount must be positive' };
     }
 
-    const resolvedTenantId =
-      data.tenantId ??
-      (
-        await db.query.user.findFirst({
-          where: eq(user.id, data.agentId),
-          columns: { tenantId: true },
-        })
-      )?.tenantId;
-
-    if (!resolvedTenantId) {
+    const tenantId = data.tenantId.trim();
+    if (!tenantId) {
       return { success: false, error: 'Missing tenantId for commission' };
     }
 
@@ -51,7 +43,7 @@ export async function createCommissionCore(data: {
         .from(agentCommissions)
         .where(
           and(
-            eq(agentCommissions.tenantId, resolvedTenantId),
+            eq(agentCommissions.tenantId, tenantId),
             eq(agentCommissions.subscriptionId, data.subscriptionId),
             eq(agentCommissions.type, data.type)
           )
@@ -70,7 +62,7 @@ export async function createCommissionCore(data: {
     // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
     await db.insert(agentCommissions).values({
       id,
-      tenantId: resolvedTenantId,
+      tenantId,
       agentId: data.agentId,
       memberId: data.memberId ?? null,
       subscriptionId: data.subscriptionId ?? null,

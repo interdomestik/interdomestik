@@ -1,5 +1,7 @@
 'use server';
 
+import { ensureTenantId } from '@interdomestik/shared-auth';
+
 import type {
   ActionResult,
   Commission,
@@ -36,5 +38,17 @@ export async function createCommission(data: {
   currency?: string;
   metadata?: Record<string, unknown>;
 }): Promise<ActionResult<{ id: string }>> {
-  return createCommissionCore(data);
+  const { session } = await getActionContext();
+  if (!session?.user) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  let tenantId: string;
+  try {
+    tenantId = ensureTenantId(session);
+  } catch {
+    return { success: false, error: 'Missing tenantId' };
+  }
+
+  return createCommissionCore({ ...data, tenantId });
 }
