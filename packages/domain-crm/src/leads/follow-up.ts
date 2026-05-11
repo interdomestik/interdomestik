@@ -96,7 +96,7 @@ function isSameAgent(actor: CrmActorContext, agentId: string): boolean {
 
 function hasMatchingBranch(actor: CrmActorContext, lead: Pick<CrmLead, 'branchId'>): boolean {
   if (!actor.scope.branchId) return false;
-  return lead.branchId == null || lead.branchId === actor.scope.branchId;
+  return lead.branchId != null && lead.branchId === actor.scope.branchId;
 }
 
 export function authorizeCrmLeadFollowUpAction(

@@ -110,7 +110,7 @@ function authorizeExistingLead(
   if (actorDenied) return actorDenied;
   if (lead.tenantId !== actor.tenantId) return 'tenant_scope';
   if (lead.agentId !== actor.actorId) return 'agent_scope';
-  if (!actor.scope.branchId || (lead.branchId != null && lead.branchId !== actor.scope.branchId)) {
+  if (!actor.scope.branchId || !lead.branchId || lead.branchId !== actor.scope.branchId) {
     return 'branch_scope';
   }
   return null;

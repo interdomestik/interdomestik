@@ -9,7 +9,7 @@ import type { CrmLead, CrmLeadActivity } from '@interdomestik/domain-crm/leads/t
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@interdomestik/database/db';
-import { crmActivities, crmLeads, user } from '@interdomestik/database/schema';
+import { crmActivities, crmLeads } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 type CrmLeadRow = typeof crmLeads.$inferSelect;
@@ -20,10 +20,10 @@ function toIso(value: Date | string | null | undefined): string | null {
   return value instanceof Date ? value.toISOString() : value;
 }
 
-function mapLead(row: CrmLeadRow, branchId: string | null | undefined): CrmLead {
+function mapLead(row: CrmLeadRow): CrmLead {
   return {
     agentId: row.agentId,
-    branchId: branchId ?? null,
+    branchId: row.branchId ?? null,
     companyName: row.companyName,
     createdAt: toIso(row.createdAt) ?? new Date(0).toISOString(),
     email: row.email,
@@ -56,14 +56,6 @@ function mapActivity(row: CrmActivityRow): CrmLeadActivity {
   };
 }
 
-async function resolveLeadBranch(tenantId: string, agentId: string): Promise<string | null> {
-  const assignedAgent = await db.query.user.findFirst({
-    columns: { branchId: true },
-    where: and(eq(user.tenantId, tenantId), eq(user.id, agentId)),
-  });
-  return assignedAgent?.branchId ?? null;
-}
-
 export const crmLeadMutationRepository: CrmLeadMutationRepository = {
   async createLead(params: { actor: CrmActorContext; lead: CreateCrmLeadData }) {
     const now = new Date();
@@ -72,6 +64,7 @@ export const crmLeadMutationRepository: CrmLeadMutationRepository = {
       .insert(crmLeads)
       .values({
         agentId: params.actor.actorId,
+        branchId: params.actor.scope.branchId ?? null,
         companyName: params.lead.companyName ?? undefined,
         createdAt: now,
         email: params.lead.email ?? undefined,
@@ -86,16 +79,15 @@ export const crmLeadMutationRepository: CrmLeadMutationRepository = {
         updatedAt: now,
       })
       .returning();
-    return mapLead(created, params.actor.scope.branchId ?? null);
+    return mapLead(created);
   },
 
   async findById(params: { actor: CrmActorContext; leadId: string }) {
+    // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context before domain authorization
     const lead = await db.query.crmLeads.findFirst({
       where: withTenant(params.actor.tenantId, crmLeads.tenantId, eq(crmLeads.id, params.leadId)),
     });
-    return lead
-      ? mapLead(lead, await resolveLeadBranch(params.actor.tenantId, lead.agentId))
-      : null;
+    return lead ? mapLead(lead) : null;
   },
 
   async recordActivity(params: { activity: RecordCrmLeadActivityInput; actor: CrmActorContext }) {
@@ -119,7 +111,10 @@ export const crmLeadMutationRepository: CrmLeadMutationRepository = {
   },
 
   async updateStage(params: { actor: CrmActorContext; leadId: string; stage: CrmLeadStage }) {
-    // db-access-guard: tenant-scoped -- reason: tenantId and agentId from authorized CRM actor constrain update
+    const branchId = params.actor.scope.branchId;
+    if (!branchId) return null;
+
+    // db-access-guard: tenant-scoped -- reason: tenantId, agentId, and durable branchId from authorized CRM actor constrain update
     const [updated] = await db
       .update(crmLeads)
       .set({ stage: params.stage, updatedAt: new Date() })
@@ -127,10 +122,11 @@ export const crmLeadMutationRepository: CrmLeadMutationRepository = {
         and(
           eq(crmLeads.id, params.leadId),
           eq(crmLeads.tenantId, params.actor.tenantId),
-          eq(crmLeads.agentId, params.actor.actorId)
+          eq(crmLeads.agentId, params.actor.actorId),
+          eq(crmLeads.branchId, branchId)
         )
       )
       .returning();
-    return updated ? mapLead(updated, params.actor.scope.branchId ?? null) : null;
+    return updated ? mapLead(updated) : null;
   },
 };

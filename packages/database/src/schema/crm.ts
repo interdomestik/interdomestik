@@ -14,6 +14,7 @@ export const crmLeads = pgTable('crm_leads', {
   agentId: text('agent_id')
     .notNull()
     .references(() => user.id),
+  branchId: text('branch_id').references(() => branches.id),
   type: text('type').notNull(), // 'individual', 'business'
   fullName: text('full_name'),
   companyName: text('company_name'),
