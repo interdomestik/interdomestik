@@ -118,6 +118,8 @@ vi.mock('@interdomestik/database/db', () => ({
 import { crmLeadFollowUpRepository } from './lead-follow-up-repository';
 import { crmLeadMutationRepository } from './lead-mutation-repository';
 
+type TransferOwnershipParams = Parameters<typeof crmLeadMutationRepository.transferOwnership>[0];
+
 const actor: CrmActorContext = {
   actorId: 'agent-1',
   role: 'agent',
@@ -144,6 +146,27 @@ function leadRow(overrides: Record<string, unknown> = {}) {
     updatedAt: new Date('2026-05-10T08:00:00.000Z'),
     ...overrides,
   };
+}
+
+async function expectTransferRejectedBeforeMutation(
+  overrides: Partial<TransferOwnershipParams> = {}
+) {
+  await expect(
+    crmLeadMutationRepository.transferOwnership({
+      actor: { ...actor, actorId: 'staff-1', role: 'staff' },
+      currentAgentId: 'agent-1',
+      currentBranchId: 'branch-original',
+      leadId: 'lead-1',
+      reason: 'handover',
+      targetAgentId: 'agent-2',
+      targetBranchId: 'branch-original',
+      ...overrides,
+    })
+  ).resolves.toBeNull();
+
+  expect(mocks.transaction).not.toHaveBeenCalled();
+  expect(mocks.update).not.toHaveBeenCalled();
+  expect(mocks.insert).not.toHaveBeenCalled();
 }
 
 beforeEach(() => {
@@ -389,41 +412,18 @@ describe('CRM durable lead branch ownership repositories', () => {
   it('rejects transfer before mutation when the target agent is outside the tenant or branch', async () => {
     mocks.userFindFirst.mockResolvedValueOnce(null);
 
-    await expect(
-      crmLeadMutationRepository.transferOwnership({
-        actor: { ...actor, actorId: 'staff-1', role: 'staff' },
-        currentAgentId: 'agent-1',
-        currentBranchId: 'branch-original',
-        leadId: 'lead-1',
-        reason: 'handover',
-        targetAgentId: 'agent-cross-tenant',
-        targetBranchId: 'branch-original',
-      })
-    ).resolves.toBeNull();
-
-    expect(mocks.transaction).not.toHaveBeenCalled();
-    expect(mocks.update).not.toHaveBeenCalled();
-    expect(mocks.insert).not.toHaveBeenCalled();
+    await expectTransferRejectedBeforeMutation({
+      targetAgentId: 'agent-cross-tenant',
+    });
   });
 
   it('rejects transfer before mutation when the target branch is outside the tenant', async () => {
     mocks.branchFindFirst.mockResolvedValueOnce(null);
 
-    await expect(
-      crmLeadMutationRepository.transferOwnership({
-        actor: { ...actor, actorId: 'admin-1', role: 'admin' },
-        currentAgentId: 'agent-1',
-        currentBranchId: 'branch-original',
-        leadId: 'lead-1',
-        reason: 'handover',
-        targetAgentId: 'agent-2',
-        targetBranchId: 'branch-cross-tenant',
-      })
-    ).resolves.toBeNull();
-
-    expect(mocks.transaction).not.toHaveBeenCalled();
-    expect(mocks.update).not.toHaveBeenCalled();
-    expect(mocks.insert).not.toHaveBeenCalled();
+    await expectTransferRejectedBeforeMutation({
+      actor: { ...actor, actorId: 'admin-1', role: 'admin' },
+      targetBranchId: 'branch-cross-tenant',
+    });
   });
 
   it('rolls back transfer when there is no open ownership history row to close', async () => {
