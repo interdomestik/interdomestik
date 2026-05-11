@@ -44,15 +44,27 @@ GRANT USAGE ON SCHEMA private TO authenticated;
 
 CREATE OR REPLACE FUNCTION private.current_tenant_id()
 RETURNS text
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
-  SELECT u.tenant_id
-    FROM public."user" AS u
-   WHERE u.id = (SELECT auth.uid())::text
-   LIMIT 1
+DECLARE
+  actor_id text;
+  tenant_id text;
+BEGIN
+  actor_id := (SELECT auth.uid())::text;
+
+  IF actor_id IS NULL OR to_regclass('public."user"') IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  EXECUTE 'SELECT u.tenant_id FROM public."user" AS u WHERE u.id = $1 LIMIT 1'
+    INTO tenant_id
+    USING actor_id;
+
+  RETURN tenant_id;
+END;
 $$;
 
 REVOKE ALL ON FUNCTION private.current_tenant_id() FROM PUBLIC;
