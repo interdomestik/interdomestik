@@ -176,9 +176,30 @@ describe('CRM lead mutation domain boundary', () => {
 
     expect(repo.updateStage).toHaveBeenCalledWith({
       actor: agentActor,
+      fromStage: 'new',
       leadId: 'lead-1',
       stage: 'contacted',
     });
+  });
+
+  it('treats same-stage updates as no-ops without writing transition history', async () => {
+    const repo = repository({ lead: lead({ stage: 'contacted' }) });
+
+    await expect(
+      updateCrmLeadStage({ actor: agentActor, leadId: 'lead-1', stage: 'contacted' }, repo)
+    ).resolves.toEqual({ lead: lead({ stage: 'contacted' }), success: true });
+
+    expect(repo.updateStage).not.toHaveBeenCalled();
+  });
+
+  it('rejects unsupported persisted stages before transition history is written', async () => {
+    const repo = repository({ lead: lead({ stage: 'stalled' }) });
+
+    await expect(
+      updateCrmLeadStage({ actor: agentActor, leadId: 'lead-1', stage: 'contacted' }, repo)
+    ).resolves.toEqual({ error: 'invalid_input', reason: 'invalid_stage', success: false });
+
+    expect(repo.updateStage).not.toHaveBeenCalled();
   });
 
   it('suppresses stage writes for wrong tenant, wrong role, wrong agent, and wrong branch', async () => {

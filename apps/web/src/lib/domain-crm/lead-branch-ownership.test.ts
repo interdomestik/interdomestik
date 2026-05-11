@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   insertReturning: vi.fn(),
   insertValues: vi.fn(),
   sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
+  transaction: vi.fn(),
   update: vi.fn(),
   updateReturning: vi.fn(),
   updateSet: vi.fn(),
@@ -45,13 +46,26 @@ vi.mock('@interdomestik/database/schema', () => ({
     tenantId: { name: 'activityTenantId' },
     type: { name: 'activityType' },
   },
+  crmLeadStageHistory: {
+    changedById: { name: 'historyChangedById' },
+    createdAt: { name: 'historyCreatedAt' },
+    fromStage: { name: 'historyFromStage' },
+    id: { name: 'historyId' },
+    leadId: { name: 'historyLeadId' },
+    occurredAt: { name: 'historyOccurredAt' },
+    tenantId: { name: 'historyTenantId' },
+    toStage: { name: 'historyToStage' },
+  },
   crmLeads: {
     agentId: { name: 'agentId' },
     branchId: { name: 'branchId' },
     createdAt: { name: 'createdAt' },
     id: { name: 'id' },
+    lostAt: { name: 'lostAt' },
+    stage: { name: 'stage' },
     tenantId: { name: 'tenantId' },
     updatedAt: { name: 'updatedAt' },
+    wonAt: { name: 'wonAt' },
   },
 }));
 
@@ -68,6 +82,7 @@ vi.mock('@interdomestik/database/db', () => ({
       },
     },
     select: vi.fn(),
+    transaction: mocks.transaction,
     update: mocks.update,
   },
 }));
@@ -112,6 +127,9 @@ beforeEach(() => {
   mocks.update.mockReturnValue({ set: mocks.updateSet });
   mocks.updateSet.mockReturnValue({ where: mocks.updateWhere });
   mocks.updateWhere.mockReturnValue({ returning: mocks.updateReturning });
+  mocks.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) =>
+    callback({ insert: mocks.insert, update: mocks.update })
+  );
 });
 
 describe('CRM durable lead branch ownership repositories', () => {
@@ -172,6 +190,7 @@ describe('CRM durable lead branch ownership repositories', () => {
     await expect(
       crmLeadMutationRepository.updateStage({
         actor,
+        fromStage: 'new',
         leadId: 'lead-1',
         stage: 'contacted',
       })
@@ -184,20 +203,67 @@ describe('CRM durable lead branch ownership repositories', () => {
             left: expect.objectContaining({ name: 'branchId' }),
             right: 'branch-original',
           }),
+          expect.objectContaining({
+            left: expect.objectContaining({ name: 'stage' }),
+            right: 'new',
+          }),
         ]),
       })
     );
+  });
+
+  it('writes exactly one stage history row after a successful scoped transition', async () => {
+    mocks.updateReturning.mockResolvedValue([leadRow({ stage: 'contacted' })]);
+
+    await expect(
+      crmLeadMutationRepository.updateStage({
+        actor,
+        fromStage: 'new',
+        leadId: 'lead-1',
+        stage: 'contacted',
+      })
+    ).resolves.toMatchObject({ stage: 'contacted' });
+
+    expect(mocks.transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.insert).toHaveBeenCalledTimes(1);
+    expect(mocks.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changedById: 'agent-1',
+        fromStage: 'new',
+        leadId: 'lead-1',
+        tenantId: 'tenant-1',
+        toStage: 'contacted',
+      })
+    );
+  });
+
+  it('does not write stage history when the scoped update misses', async () => {
+    mocks.updateReturning.mockResolvedValue([]);
+
+    await expect(
+      crmLeadMutationRepository.updateStage({
+        actor,
+        fromStage: 'new',
+        leadId: 'lead-1',
+        stage: 'contacted',
+      })
+    ).resolves.toBeNull();
+
+    expect(mocks.insert).not.toHaveBeenCalled();
   });
 
   it('fails closed before stage update SQL when actor branch scope is missing', async () => {
     await expect(
       crmLeadMutationRepository.updateStage({
         actor: { ...actor, scope: { agentId: 'agent-1' } },
+        fromStage: 'new',
         leadId: 'lead-1',
         stage: 'contacted',
       })
     ).resolves.toBeNull();
 
+    expect(mocks.transaction).not.toHaveBeenCalled();
     expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.insert).not.toHaveBeenCalled();
   });
 });

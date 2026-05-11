@@ -6,32 +6,87 @@ import { claims } from './claims';
 import { branches } from './rbac';
 import { tenants } from './tenants';
 
-export const crmLeads = pgTable('crm_leads', {
-  id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  agentId: text('agent_id')
-    .notNull()
-    .references(() => user.id),
-  branchId: text('branch_id').references(() => branches.id),
-  type: text('type').notNull(), // 'individual', 'business'
-  fullName: text('full_name'),
-  companyName: text('company_name'),
-  phone: text('phone'),
-  email: text('email'),
-  source: text('source'),
-  stage: text('stage').notNull(), // 'new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost'
-  score: integer('score').default(0),
-  notes: text('notes'),
-  lastContactedAt: timestamp('last_contacted_at'),
-  utmSource: text('utm_source'),
-  utmMedium: text('utm_medium'),
-  utmCampaign: text('utm_campaign'),
-  utmContent: text('utm_content'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
-});
+export const crmLeads = pgTable(
+  'crm_leads',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => user.id),
+    branchId: text('branch_id').references(() => branches.id),
+    type: text('type').notNull(), // 'individual', 'business'
+    fullName: text('full_name'),
+    companyName: text('company_name'),
+    phone: text('phone'),
+    email: text('email'),
+    source: text('source'),
+    stage: text('stage').notNull(), // 'new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost'
+    score: integer('score').default(0),
+    notes: text('notes'),
+    lastContactedAt: timestamp('last_contacted_at'),
+    wonAt: timestamp('won_at'),
+    lostAt: timestamp('lost_at'),
+    utmSource: text('utm_source'),
+    utmMedium: text('utm_medium'),
+    utmCampaign: text('utm_campaign'),
+    utmContent: text('utm_content'),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
+  },
+  table => [
+    check(
+      'crm_leads_stage_check',
+      sql`${table.stage} in ('new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost')`
+    ),
+    check(
+      'crm_leads_terminal_timestamp_check',
+      sql`(${table.stage} = 'won' and ${table.wonAt} is not null and ${table.lostAt} is null) or (${table.stage} = 'lost' and ${table.lostAt} is not null and ${table.wonAt} is null) or (${table.stage} not in ('won', 'lost') and ${table.wonAt} is null and ${table.lostAt} is null)`
+    ),
+  ]
+);
+
+export const crmLeadStageHistory = pgTable(
+  'crm_lead_stage_history',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    leadId: text('lead_id')
+      .notNull()
+      .references(() => crmLeads.id, { onDelete: 'cascade' }),
+    fromStage: text('from_stage'),
+    toStage: text('to_stage').notNull(),
+    changedById: text('changed_by_id')
+      .notNull()
+      .references(() => user.id),
+    occurredAt: timestamp('occurred_at').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  table => [
+    index('crm_lead_stage_history_tenant_lead_occurred_idx').on(
+      table.tenantId,
+      table.leadId,
+      table.occurredAt
+    ),
+    index('crm_lead_stage_history_tenant_to_stage_occurred_idx').on(
+      table.tenantId,
+      table.toStage,
+      table.occurredAt
+    ),
+    check(
+      'crm_lead_stage_history_from_stage_check',
+      sql`${table.fromStage} is null or ${table.fromStage} in ('new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost')`
+    ),
+    check(
+      'crm_lead_stage_history_to_stage_check',
+      sql`${table.toStage} in ('new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost')`
+    ),
+  ]
+);
 
 export const crmActivities = pgTable('crm_activities', {
   id: text('id').primaryKey(),
