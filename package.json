@@ -262,7 +262,10 @@
       "protobufjs": "7.5.5",
       "smol-toml": "1.6.1",
       "yaml@>=2.0.0 <2.8.3": "2.8.3",
-      "ip-address": "10.1.1"
+      "ip-address": "10.1.1",
+      "@opentelemetry/auto-instrumentations-node": "0.75.0",
+      "@opentelemetry/sdk-node": "0.217.0",
+      "@opentelemetry/exporter-prometheus": "0.217.0"
     }
   },
   "dependencies": {
