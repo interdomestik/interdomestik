@@ -12,6 +12,8 @@ export type CrmLead = {
   phone?: string | null;
   source?: string | null;
   score?: number | null;
+  lostAt?: string | null;
+  wonAt?: string | null;
   createdAt: string;
   updatedAt?: string | null;
 };

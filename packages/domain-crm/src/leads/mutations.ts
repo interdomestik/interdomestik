@@ -79,6 +79,7 @@ export interface CrmLeadMutationRepository extends Pick<CrmLeadRepository, 'find
   }): Promise<CrmLeadActivity>;
   updateStage(params: {
     actor: CrmActorContext;
+    fromStage: CrmLeadStage;
     leadId: string;
     stage: CrmLeadStage;
   }): Promise<CrmLead | null>;
@@ -161,8 +162,14 @@ export async function updateCrmLeadStage(
   if (!lead) return { success: false, error: 'not_found' };
   const denied = authorizeExistingLead(input.actor, lead);
   if (denied) return { success: false, error: 'forbidden', reason: denied };
+  if (!isLeadStage(lead.stage))
+    return { success: false, error: 'invalid_input', reason: 'invalid_stage' };
+  if (lead.stage === input.stage) {
+    return { success: true, lead };
+  }
   const updated = await repository.updateStage({
     actor: input.actor,
+    fromStage: lead.stage,
     leadId: input.leadId,
     stage: input.stage,
   });

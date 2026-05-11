@@ -106,8 +106,8 @@ vi.mock('@interdomestik/shared-auth', () => ({
   }),
 }));
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
+vi.mock('@interdomestik/database/db', () => {
+  const mockedDb = {
     insert: vi.fn().mockReturnThis(),
     values: vi.fn().mockReturnThis(),
     returning: vi.fn().mockResolvedValue([
@@ -126,6 +126,7 @@ vi.mock('@interdomestik/database/db', () => ({
         type: 'call',
       },
     ]),
+    transaction: vi.fn(),
     update: vi.fn().mockReturnThis(),
     set: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
@@ -137,15 +138,33 @@ vi.mock('@interdomestik/database/db', () => ({
         findFirst: vi.fn().mockResolvedValue({ branchId: 'b1' }),
       },
     },
-  },
-}));
+  };
+  mockedDb.transaction.mockImplementation(
+    async (callback: (tx: typeof mockedDb) => Promise<unknown>) => callback(mockedDb)
+  );
+  return { db: mockedDb };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
+  crmLeadStageHistory: {
+    changedById: { name: 'historyChangedById' },
+    createdAt: { name: 'historyCreatedAt' },
+    fromStage: { name: 'historyFromStage' },
+    id: { name: 'historyId' },
+    leadId: { name: 'historyLeadId' },
+    occurredAt: { name: 'historyOccurredAt' },
+    tenantId: { name: 'historyTenantId' },
+    toStage: { name: 'historyToStage' },
+  },
   crmLeads: {
     id: { name: 'id' },
     agentId: { name: 'agentId' },
     branchId: { name: 'branchId' },
+    lostAt: { name: 'lostAt' },
+    stage: { name: 'stage' },
     tenantId: { name: 'tenantId' },
+    updatedAt: { name: 'updatedAt' },
+    wonAt: { name: 'wonAt' },
   },
   crmActivities: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   user: { id: { name: 'userId' }, tenantId: { name: 'userTenantId' } },
@@ -235,6 +254,7 @@ describe('agent actions', () => {
         id: 'lead1',
         agentId: 'agent1',
         branchId: 'b1',
+        stage: 'new',
         tenantId: 'tenant_mk',
       });
 

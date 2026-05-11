@@ -6,10 +6,11 @@ import type {
 } from '@interdomestik/domain-crm/leads/mutations';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import type { CrmLead, CrmLeadActivity } from '@interdomestik/domain-crm/leads/types';
+import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@interdomestik/database/db';
-import { crmActivities, crmLeads } from '@interdomestik/database/schema';
+import { crmActivities, crmLeads, crmLeadStageHistory } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 type CrmLeadRow = typeof crmLeads.$inferSelect;
@@ -36,7 +37,9 @@ function mapLead(row: CrmLeadRow): CrmLead {
     stage: row.stage,
     tenantId: row.tenantId,
     type: row.type,
+    lostAt: toIso(row.lostAt),
     updatedAt: toIso(row.updatedAt),
+    wonAt: toIso(row.wonAt),
   };
 }
 
@@ -74,9 +77,11 @@ export const crmLeadMutationRepository: CrmLeadMutationRepository = {
         phone: params.lead.phone ?? undefined,
         source: params.lead.source ?? undefined,
         stage: params.lead.stage,
+        lostAt: params.lead.stage === 'lost' ? now : null,
         tenantId: params.actor.tenantId,
         type: params.lead.type,
         updatedAt: now,
+        wonAt: params.lead.stage === 'won' ? now : null,
       })
       .returning();
     return mapLead(created);
@@ -110,23 +115,52 @@ export const crmLeadMutationRepository: CrmLeadMutationRepository = {
     return mapActivity(created);
   },
 
-  async updateStage(params: { actor: CrmActorContext; leadId: string; stage: CrmLeadStage }) {
+  async updateStage(params: {
+    actor: CrmActorContext;
+    fromStage: CrmLeadStage;
+    leadId: string;
+    stage: CrmLeadStage;
+  }) {
     const branchId = params.actor.scope.branchId;
     if (!branchId) return null;
 
-    // db-access-guard: tenant-scoped -- reason: tenantId, agentId, and durable branchId from authorized CRM actor constrain update
-    const [updated] = await db
-      .update(crmLeads)
-      .set({ stage: params.stage, updatedAt: new Date() })
-      .where(
-        and(
-          eq(crmLeads.id, params.leadId),
-          eq(crmLeads.tenantId, params.actor.tenantId),
-          eq(crmLeads.agentId, params.actor.actorId),
-          eq(crmLeads.branchId, branchId)
+    const now = new Date();
+    return db.transaction(async tx => {
+      // db-access-guard: tenant-scoped -- reason: tenantId, agentId, durable branchId, and current stage from authorized CRM actor constrain update
+      const [updated] = await tx
+        .update(crmLeads)
+        .set({
+          lostAt: params.stage === 'lost' ? now : null,
+          stage: params.stage,
+          updatedAt: now,
+          wonAt: params.stage === 'won' ? now : null,
+        })
+        .where(
+          and(
+            eq(crmLeads.id, params.leadId),
+            eq(crmLeads.tenantId, params.actor.tenantId),
+            eq(crmLeads.agentId, params.actor.actorId),
+            eq(crmLeads.branchId, branchId),
+            eq(crmLeads.stage, params.fromStage)
+          )
         )
-      )
-      .returning();
-    return updated ? mapLead(updated) : null;
+        .returning();
+
+      if (!updated) return null;
+
+      // db-access-guard: tenant-scoped -- reason: history row copies explicit tenantId from authorized CRM actor after scoped stage update
+      await tx.insert(crmLeadStageHistory).values({
+        changedById: params.actor.actorId,
+        createdAt: now,
+        fromStage: params.fromStage,
+        id: randomUUID(),
+        leadId: params.leadId,
+        occurredAt: now,
+        tenantId: params.actor.tenantId,
+        toStage: params.stage,
+      });
+
+      return mapLead(updated);
+    });
   },
 };
