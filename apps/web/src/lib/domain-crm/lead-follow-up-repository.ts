@@ -15,7 +15,15 @@ type CrmLeadRow = typeof crmLeads.$inferSelect;
 type CrmActivityRow = typeof crmActivities.$inferSelect;
 type CrmActivityCompatRow = Pick<
   CrmActivityRow,
-  'agentId' | 'completedAt' | 'createdAt' | 'id' | 'leadId' | 'scheduledAt' | 'tenantId' | 'type'
+  | 'agentId'
+  | 'branchId'
+  | 'completedAt'
+  | 'createdAt'
+  | 'id'
+  | 'leadId'
+  | 'scheduledAt'
+  | 'tenantId'
+  | 'type'
 > & {
   subject: string;
 };
@@ -43,6 +51,7 @@ function mapLead(row: CrmLeadRow): CrmLead {
 function mapActivityCompat(row: CrmActivityCompatRow): CrmLeadActivity {
   return {
     agentId: row.agentId,
+    branchId: row.branchId ?? null,
     completedAt: toIso(row.completedAt),
     createdAt: toIso(row.createdAt) ?? new Date(0).toISOString(),
     description: null,
@@ -70,16 +79,22 @@ export const crmLeadFollowUpRepository: CrmLeadFollowUpRepository = {
     activity: CreateCrmLeadFollowUpActivity;
     actor: CrmActorContext;
   }) {
+    const branchId = params.actor.scope.branchId;
+    if (!branchId) {
+      throw new Error('CRM follow-up activity creation requires actor branch scope');
+    }
+
     // db-access-guard: tenant-scoped -- reason: tenantId from authorized agent context is included in follow-up insert values
     const rows = await db.execute(sql`
       insert into "crm_activities"
-        ("id", "tenant_id", "lead_id", "agent_id", "type", "summary", "scheduled_at", "completed_at", "created_at")
+        ("id", "tenant_id", "lead_id", "agent_id", "branch_id", "type", "summary", "scheduled_at", "completed_at", "created_at")
       values
         (
           ${params.activity.id},
           ${params.activity.tenantId},
           ${params.activity.leadId},
           ${params.actor.actorId},
+          ${branchId},
           ${params.activity.type},
           ${params.activity.subject},
           ${params.activity.scheduledAt},
@@ -91,6 +106,7 @@ export const crmLeadFollowUpRepository: CrmLeadFollowUpRepository = {
         "tenant_id" as "tenantId",
         "lead_id" as "leadId",
         "agent_id" as "agentId",
+        "branch_id" as "branchId",
         "type",
         "summary" as "subject",
         "scheduled_at" as "scheduledAt",
@@ -123,6 +139,7 @@ export const crmLeadFollowUpRepository: CrmLeadFollowUpRepository = {
         "tenant_id" as "tenantId",
         "lead_id" as "leadId",
         "agent_id" as "agentId",
+        "branch_id" as "branchId",
         "type",
         "summary" as "subject",
         "scheduled_at" as "scheduledAt",
@@ -144,6 +161,7 @@ export async function listCrmLeadFollowUpActivitiesForLead(params: {
   const rows = await db
     .select({
       agentId: crmActivities.agentId,
+      branchId: crmActivities.branchId,
       completedAt: crmActivities.completedAt,
       createdAt: crmActivities.createdAt,
       id: crmActivities.id,
@@ -166,6 +184,7 @@ export async function listCrmLeadFollowUpActivitiesForLead(params: {
 
   return rows.map(row => ({
     agentId: row.agentId,
+    branchId: row.branchId ?? null,
     completedAt: toIso(row.completedAt),
     createdAt: toIso(row.createdAt) ?? new Date(0).toISOString(),
     description: null,

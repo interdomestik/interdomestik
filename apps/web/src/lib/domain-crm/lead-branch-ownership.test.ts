@@ -44,6 +44,7 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
   crmActivities: {
     agentId: { name: 'activityAgentId' },
+    branchId: { name: 'activityBranchId' },
     completedAt: { name: 'completedAt' },
     createdAt: { name: 'activityCreatedAt' },
     id: { name: 'activityId' },
@@ -345,6 +346,67 @@ describe('CRM durable lead branch ownership repositories', () => {
 
     expect(mocks.transaction).not.toHaveBeenCalled();
     expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
+  it('writes the actor branch snapshot when recording manual CRM activity', async () => {
+    mocks.insertReturning.mockResolvedValue([
+      {
+        agentId: 'agent-1',
+        branchId: 'branch-original',
+        completedAt: null,
+        createdAt: new Date('2026-05-10T08:15:00.000Z'),
+        description: null,
+        id: 'activity-1',
+        leadId: 'lead-1',
+        occurredAt: new Date('2026-05-10T08:15:00.000Z'),
+        scheduledAt: null,
+        summary: 'Called lead',
+        tenantId: 'tenant-1',
+        type: 'call',
+      },
+    ]);
+
+    await expect(
+      crmLeadMutationRepository.recordActivity({
+        actor,
+        activity: {
+          activityId: 'activity-1',
+          actor,
+          leadId: 'lead-1',
+          occurredAt: '2026-05-10T08:15:00.000Z',
+          summary: 'Called lead',
+          type: 'call',
+        },
+      })
+    ).resolves.toMatchObject({ branchId: 'branch-original', id: 'activity-1' });
+
+    expect(mocks.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentId: 'agent-1',
+        branchId: 'branch-original',
+        leadId: 'lead-1',
+        tenantId: 'tenant-1',
+        type: 'call',
+      })
+    );
+  });
+
+  it('fails closed before manual CRM activity insert when actor branch scope is missing', async () => {
+    await expect(
+      crmLeadMutationRepository.recordActivity({
+        actor: { ...actor, scope: { agentId: 'agent-1' } },
+        activity: {
+          activityId: 'activity-1',
+          actor,
+          leadId: 'lead-1',
+          occurredAt: '2026-05-10T08:15:00.000Z',
+          summary: 'Called lead',
+          type: 'call',
+        },
+      })
+    ).rejects.toThrow('CRM activity creation requires actor branch scope');
+
     expect(mocks.insert).not.toHaveBeenCalled();
   });
 
