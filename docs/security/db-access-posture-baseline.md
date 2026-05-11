@@ -22,7 +22,7 @@ hardened the commission tenant proof contract.
 | Baseline entries            |        615 |
 | Guard runtime sample        |      1.00s |
 | Pre-SEC04 runtime reference |      0.69s |
-| Baseline JSON size          | 6385 lines |
+| Baseline JSON size          | 6386 lines |
 
 SEC04B reduced the v2 classifier's unclassified entries from `262` to `80`, meeting the
 DG05 target without classifying the remaining hard cases. P33-SEC10 then reduced the

@@ -112,4 +112,18 @@ describe('commissions action wrappers', () => {
     expect(result).toEqual({ success: false, error: 'Missing tenantId' });
     expect(mocks.createCommissionCore).not.toHaveBeenCalled();
   });
+
+  it('createCommission returns unauthorized before tenant proof when session is missing', async () => {
+    mocks.getActionContext.mockResolvedValue({ session: null });
+
+    const result = await actions.createCommission({
+      agentId: 'agent-1',
+      type: 'new_membership',
+      amount: 12.34,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    expect(mocks.ensureTenantId).not.toHaveBeenCalled();
+    expect(mocks.createCommissionCore).not.toHaveBeenCalled();
+  });
 });

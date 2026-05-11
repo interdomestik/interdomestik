@@ -39,6 +39,10 @@ export async function createCommission(data: {
   metadata?: Record<string, unknown>;
 }): Promise<ActionResult<{ id: string }>> {
   const { session } = await getActionContext();
+  if (!session?.user) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
   let tenantId: string;
   try {
     tenantId = ensureTenantId(session);
