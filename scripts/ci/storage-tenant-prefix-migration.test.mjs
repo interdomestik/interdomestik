@@ -19,9 +19,17 @@ test('SEC06 migration has a legacy-object preflight', () => {
 
 test('SEC06 migration derives tenant id through a security-definer helper', () => {
   assert.match(sql, /CREATE OR REPLACE FUNCTION private\.current_tenant_id\(\)/);
+  assert.match(sql, /LANGUAGE plpgsql/);
   assert.match(sql, /SECURITY DEFINER/);
-  assert.match(sql, /FROM public\."user" AS u/);
-  assert.match(sql, /u\.id = \(SELECT auth\.uid\(\)\)::text/);
+  assert.match(sql, /actor_id := \(SELECT auth\.uid\(\)\)::text/);
+  assert.match(sql, /to_regclass\('public\."user"'\) IS NULL/);
+  assert.match(sql, /RETURN NULL/);
+  assert.match(
+    sql,
+    /EXECUTE 'SELECT u\.tenant_id FROM public\."user" AS u WHERE u\.id = \$1 LIMIT 1'/
+  );
+  assert.match(sql, /USING actor_id/);
+  assert.match(sql, /RETURN tenant_id;\s+END;\s+\$\$;/);
 });
 
 test('SEC06 migration replaces legacy policies with tenant-prefix folder policies', () => {
