@@ -18,6 +18,8 @@ P33-SEC11 preserved the `67` unclassified count while adding one reviewed tenant
 lead ownership preflight helper for Paddle lead conversion.
 P33-SEC12 reduced the baseline to `62` by resolving the commercial action idempotency helper
 cluster with explicit tenant or allowlisted public scope.
+P35-SEC01 reduced the baseline to `61` by removing the non-Paddle commission ownership fallback
+tenant lookup and requiring explicit commission tenant scope before idempotency checks or writes.
 
 ## Burn-Down Summary
 
@@ -27,6 +29,7 @@ cluster with explicit tenant or allowlisted public scope.
 | SEC04B unclassified baseline    |    80 |
 | P33-SEC10 unclassified baseline |    67 |
 | P33-SEC12 unclassified baseline |    62 |
+| P35-SEC01 unclassified baseline |    61 |
 | Entries removed from scan       |     4 |
 | Reviewed `tenant-scoped` calls  |   168 |
 | Reviewed `system-exempt` calls  |    28 |
@@ -65,7 +68,7 @@ classified.
 
 ## Remaining Evidence Set
 
-The remaining `62` entries are intentionally not classified. They include clusters that need
+The remaining `61` entries are intentionally not classified. They include clusters that need
 migration or a narrower design decision:
 
 | Count | Cluster                                                                                           |
@@ -74,14 +77,15 @@ migration or a narrower design decision:
 |     7 | Campaign execution and communication paths that batch across users or campaigns.                  |
 |     8 | Cron and public NPS/engagement residue that needs per-tenant job modeling or narrower predicates. |
 |     4 | Admin and branch dashboard cross-tenant lookup paths.                                             |
-|     1 | Non-Paddle membership billing commission ownership probe outside the SEC10 webhook scope.         |
 |    37 | Smaller one-off application/domain paths requiring callsite-specific migration review.            |
 
 Those entries should not be mass-stamped. P33-SEC10 resolved all current unclassified entries
 under `packages/domain-membership-billing/src/paddle-webhooks/**`. DG14 had inventoried `14`
 billing webhook/provider-event entries, but the synced implementation baseline contained `13`
-under that package path; the remaining membership-billing unclassified entry is the non-Paddle
-commission ownership probe listed above. P33-SEC12 resolved the commercial idempotency cluster by
-requiring explicit tenant or allowlisted public scope before reservation access. The next action,
-if further burn-down is needed, is a targeted design review for legacy agent dashboard ownership,
-campaign/cron/public-token tenancy, or the remaining one-off paths.
+under that package path. P33-SEC12 resolved the commercial idempotency cluster by requiring explicit
+tenant or allowlisted public scope before reservation access. P35-SEC01 resolved the remaining
+membership-billing unclassified entry by removing the non-Paddle commission ownership fallback
+lookup and making tenant scope an explicit commission creation contract. The next action, if further
+burn-down is needed, is a targeted design review for legacy agent dashboard ownership,
+campaign/cron/public-token tenancy, or the remaining one-off paths. The known P34 CRM adapter
+baseline drift remains non-failing guard output and was not refreshed by the P35-SEC01 receipt.

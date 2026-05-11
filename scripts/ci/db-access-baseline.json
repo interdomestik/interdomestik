@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-09T20:59:20.023Z",
+  "generatedAt": "2026-05-11T10:59:00.000Z",
   "policy": "see docs/dev/db-access-guard.md",
   "scanRoots": ["apps/web/src", "packages"],
   "approvedDatabaseInternalPatterns": [
@@ -23,7 +23,7 @@
   "counts": {
     "byRisk": {
       "app-layer": 315,
-      "domain-wrapper": 301
+      "domain-wrapper": 300
     },
     "byTenantPosture": {
       "tenant-context": 5,
@@ -31,7 +31,7 @@
       "tenant-predicate": 353,
       "admin-privileged": 0,
       "system-exempt": 28,
-      "unclassified": 62
+      "unclassified": 61
     }
   },
   "entries": [
@@ -5261,17 +5261,7 @@
     },
     {
       "file": "packages/domain-membership-billing/src/commissions/create.ts",
-      "line": 37,
-      "callee": "db.query",
-      "method": "query",
-      "risk": "domain-wrapper",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: no-recognized-context",
-      "source": "await db.query.user.findFirst({"
-    },
-    {
-      "file": "packages/domain-membership-billing/src/commissions/create.ts",
-      "line": 49,
+      "line": 41,
       "callee": "db.select",
       "method": "select",
       "risk": "domain-wrapper",
@@ -5281,7 +5271,7 @@
     },
     {
       "file": "packages/domain-membership-billing/src/commissions/create.ts",
-      "line": 71,
+      "line": 63,
       "callee": "db.insert",
       "method": "insert",
       "risk": "domain-wrapper",

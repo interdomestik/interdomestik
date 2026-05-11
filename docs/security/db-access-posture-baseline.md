@@ -3,7 +3,7 @@ plan_role: input
 status: archived
 source_of_truth: false
 owner: platform + security + qa
-last_reviewed: 2026-05-09
+last_reviewed: 2026-05-11
 ---
 
 # DB Access Posture Baseline
@@ -11,18 +11,18 @@ last_reviewed: 2026-05-09
 > Status: Archived implementation receipt. The authoritative execution state remains in
 > `docs/plans/current-program.md` and `docs/plans/current-tracker.md`.
 
-Generated from `scripts/ci/db-access-baseline.json` on 2026-05-09 after P33-SEC12
-hardened commercial action idempotency tenant scope.
+Generated from `scripts/ci/db-access-baseline.json` on 2026-05-11 after P35-SEC01
+hardened the commission tenant proof contract.
 
 ## Summary
 
 | Metric                      |      Value |
 | --------------------------- | ---------: |
 | Baseline version            |          2 |
-| Baseline entries            |        616 |
+| Baseline entries            |        615 |
 | Guard runtime sample        |      1.00s |
 | Pre-SEC04 runtime reference |      0.69s |
-| Baseline JSON size          | 6395 lines |
+| Baseline JSON size          | 6385 lines |
 
 SEC04B reduced the v2 classifier's unclassified entries from `262` to `80`, meeting the
 DG05 target without classifying the remaining hard cases. P33-SEC10 then reduced the
@@ -32,6 +32,8 @@ P33-SEC11 preserved the `67` unclassified count while adding one reviewed
 tenant-scoped helper in `packages/domain-leads/src/convert.ts`.
 P33-SEC12 then reduced the canonical baseline from `67` to `62` by resolving the
 five-entry commercial action idempotency helper cluster.
+P35-SEC01 reduced the canonical baseline from `62` to `61` by removing the
+non-Paddle commission fallback tenant lookup.
 
 ## Counts By Posture
 
@@ -42,14 +44,14 @@ five-entry commercial action idempotency helper cluster.
 | `tenant-predicate` |   353 |
 | `admin-privileged` |     0 |
 | `system-exempt`    |    28 |
-| `unclassified`     |    62 |
+| `unclassified`     |    61 |
 
 ## Counts By Risk
 
 | Risk             | Count |
 | ---------------- | ----: |
 | `app-layer`      |   315 |
-| `domain-wrapper` |   301 |
+| `domain-wrapper` |   300 |
 
 ## Counts By Posture, Risk, And File Prefix
 
@@ -88,12 +90,11 @@ five-entry commercial action idempotency helper cluster.
 |     1 | `tenant-scoped`    | `app-layer`      | `packages/shared-utils/src`              |
 |     1 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-member/src`             |
 |     1 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-referrals/src`          |
-|     1 | `unclassified`     | `domain-wrapper` | `packages/domain-membership-billing/src` |
 |     1 | `unclassified`     | `domain-wrapper` | `packages/domain-referrals/src`          |
 
 ## Remaining Review Input
 
-The remaining `62` unclassified entries are intentionally left as hard cases. The largest
+The remaining `61` unclassified entries are intentionally left as hard cases. The largest
 clusters are legacy agent dashboard reads, campaign execution, NPS/engagement cron residue,
 admin/branch cross-tenant lookups, and smaller one-off application/domain paths. Those entries
 should not be mass-stamped; they need either callsite migration, helper-level tenant proof, or a
@@ -101,10 +102,7 @@ fresh design review.
 
 P33-SEC10 note: DG14 inventoried `14` billing webhook/provider-event entries, but the synced
 implementation baseline at `f34d0b48ba1b822facff5ee231b5f993f7070174` contained `13`
-unclassified entries under the authorized Paddle webhook package path. All `13` are resolved;
-the remaining `1` unclassified `packages/domain-membership-billing/src` entry is
-`packages/domain-membership-billing/src/commissions/create.ts` and is outside the SEC10 billing
-webhook scope.
+unclassified entries under the authorized Paddle webhook package path. All `13` are resolved.
 
 P33-SEC11 note: the baseline now includes the tenant-scoped lead ownership preflight helper in
 `packages/domain-leads/src/convert.ts`. It adds one reviewed direct DB access entry and does not
@@ -114,3 +112,10 @@ P33-SEC12 note: the commercial action idempotency helper in
 `apps/web/src/lib/commercial-action-idempotency.ts` now requires explicit tenant or allowlisted
 public scope before reservation access. Its five direct DB access entries are reviewed as
 tenant-scoped, reducing the remaining hard cases to `62`.
+
+P35-SEC01 note: the non-Paddle commission creation core in
+`packages/domain-membership-billing/src/commissions/create.ts` no longer performs an ambient
+`agentId` to `tenantId` fallback lookup. Commission creation now requires explicit non-empty tenant
+scope before idempotency checks or writes, reducing the remaining hard cases to `61`. The known P34
+CRM adapter baseline drift remains visible as non-failing `pnpm check:db-access` output and was not
+refreshed in this receipt.
