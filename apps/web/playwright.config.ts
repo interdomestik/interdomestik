@@ -403,6 +403,7 @@ export default defineConfig({
           INTERDOMESTIK_AUTOMATED: '1',
           INTERDOMESTIK_LOCAL_E2E: '1',
           INTERDOMESTIK_E2E_DIAGNOSTICS: '1',
+          INTERDOMESTIK_E2E_FAKE_STORAGE_SIGNING: '1',
           PLAYWRIGHT: '1',
           BILLING_TEST_MODE: '1',
           NEXT_PUBLIC_BILLING_TEST_MODE: '1',
