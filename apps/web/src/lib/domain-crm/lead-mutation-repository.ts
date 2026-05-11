@@ -53,6 +53,7 @@ function mapLead(row: CrmLeadRow): CrmLead {
 function mapActivity(row: CrmActivityRow): CrmLeadActivity {
   return {
     agentId: row.agentId,
+    branchId: row.branchId ?? null,
     completedAt: toIso(row.completedAt),
     createdAt: toIso(row.createdAt) ?? new Date(0).toISOString(),
     description: row.description,
@@ -154,6 +155,11 @@ export const crmLeadMutationRepository: CrmLeadMutationRepository = {
   },
 
   async recordActivity(params: { activity: RecordCrmLeadActivityInput; actor: CrmActorContext }) {
+    const branchId = params.actor.scope.branchId;
+    if (!branchId) {
+      throw new Error('CRM activity creation requires actor branch scope');
+    }
+
     // `crm_activities` is the write-side event source that CRM11 timeline reads project from.
     // Domain writes do not write timeline rows directly.
     // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context
@@ -161,7 +167,7 @@ export const crmLeadMutationRepository: CrmLeadMutationRepository = {
       .insert(crmActivities)
       .values({
         agentId: params.actor.actorId,
-        createdAt: new Date(params.activity.occurredAt),
+        branchId,
         id: params.activity.activityId,
         leadId: params.activity.leadId,
         occurredAt: new Date(params.activity.occurredAt),

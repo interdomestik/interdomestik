@@ -37,6 +37,7 @@ function lead(overrides: Partial<CrmLead> = {}): CrmLead {
 function activity(overrides: Partial<CrmLeadActivity> = {}): CrmLeadActivity {
   return {
     agentId: 'agent-1',
+    branchId: 'branch-1',
     completedAt: null,
     createdAt: '2026-05-10T08:15:00.000Z',
     description: null,
@@ -389,6 +390,30 @@ describe('CRM lead mutation domain boundary', () => {
     });
 
     expect(repo.recordActivity).toHaveBeenCalled();
+  });
+
+  it('accepts supported manual lead activity types', async () => {
+    for (const type of ['call', 'email', 'meeting', 'note', 'other'] as const) {
+      const repo = repository();
+
+      await expect(
+        recordCrmLeadActivity(
+          recordActivityInput({
+            activityId: `activity-${type}`,
+            type,
+          }),
+          repo
+        )
+      ).resolves.toMatchObject({
+        activity: { type },
+        success: true,
+      });
+
+      expect(repo.recordActivity).toHaveBeenCalledWith({
+        actor: agentActor,
+        activity: expect.objectContaining({ type }),
+      });
+    }
   });
 
   it('suppresses activity writes for missing and unauthorized leads', async () => {

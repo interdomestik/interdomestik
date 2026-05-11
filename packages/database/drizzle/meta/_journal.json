@@ -428,6 +428,13 @@
       "when": 1778522400000,
       "tag": "0060_crm_lead_ownership_history",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1778528569283,
+      "tag": "0061_crm_activity_discipline",
+      "breakpoints": true
     }
   ]
 }

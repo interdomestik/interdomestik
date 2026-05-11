@@ -23,6 +23,7 @@ export type CrmLeadActivity = {
   tenantId: string;
   leadId: string;
   agentId: string;
+  branchId?: string | null;
   type: string;
   subject: string;
   description?: string | null;

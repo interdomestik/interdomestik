@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import {
+  check,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
 import { claims } from './claims';
@@ -37,6 +46,7 @@ export const crmLeads = pgTable(
     updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
   },
   table => [
+    uniqueIndex('crm_leads_tenant_id_id_uq').on(table.tenantId, table.id),
     check(
       'crm_leads_stage_check',
       sql`${table.stage} in ('new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost')`
@@ -127,25 +137,57 @@ export const crmLeadOwnershipHistory = pgTable(
   ]
 );
 
-export const crmActivities = pgTable('crm_activities', {
-  id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  leadId: text('lead_id')
-    .notNull()
-    .references(() => crmLeads.id),
-  agentId: text('agent_id')
-    .notNull()
-    .references(() => user.id),
-  type: text('type').notNull(), // 'call', 'meeting', 'email', 'note'
-  summary: text('summary').notNull(), // treated as subject
-  description: text('description'),
-  occurredAt: timestamp('occurred_at').defaultNow(),
-  scheduledAt: timestamp('scheduled_at'),
-  completedAt: timestamp('completed_at'),
-  createdAt: timestamp('created_at').defaultNow(),
-});
+export const crmActivities = pgTable(
+  'crm_activities',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    leadId: text('lead_id')
+      .notNull()
+      .references(() => crmLeads.id),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => user.id),
+    branchId: text('branch_id').references(() => branches.id),
+    type: text('type').notNull(), // 'call', 'meeting', 'email', 'note', 'other', 'follow_up'
+    summary: text('summary').notNull(), // treated as subject
+    description: text('description'),
+    occurredAt: timestamp('occurred_at').defaultNow(),
+    scheduledAt: timestamp('scheduled_at'),
+    completedAt: timestamp('completed_at'),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  table => [
+    index('crm_activities_tenant_agent_type_completed_scheduled_idx').on(
+      table.tenantId,
+      table.agentId,
+      table.type,
+      table.completedAt,
+      table.scheduledAt
+    ),
+    index('crm_activities_tenant_lead_occurred_idx').on(
+      table.tenantId,
+      table.leadId,
+      table.occurredAt
+    ),
+    index('crm_activities_tenant_branch_occurred_idx').on(
+      table.tenantId,
+      table.branchId,
+      table.occurredAt
+    ),
+    foreignKey({
+      columns: [table.tenantId, table.leadId],
+      foreignColumns: [crmLeads.tenantId, crmLeads.id],
+      name: 'crm_activities_tenant_lead_fk',
+    }),
+    check(
+      'crm_activities_type_check',
+      sql`${table.type} in ('call', 'email', 'meeting', 'note', 'other', 'follow_up')`
+    ),
+  ]
+);
 
 // Forward reference - crmDeals needs membershipPlans which is in memberships.ts
 // We'll import it in the index and use the reference there
