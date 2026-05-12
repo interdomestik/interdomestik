@@ -1,124 +1,80 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
-  findLeadFirst: vi.fn(),
-  dbSelect: vi.fn(),
-}));
-
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
-    query: {
-      crmLeads: {
-        findFirst: hoisted.findLeadFirst,
-      },
-    },
-    select: hoisted.dbSelect,
+  getAgentCrmLeadDetail: vi.fn(),
+  crmLeadDetailRepository: {
+    findAgentLead: vi.fn(),
+    listAgentLeadDeals: vi.fn(),
   },
 }));
 
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: vi.fn((tenantId: unknown, col: unknown, conds?: unknown) => ({
-    withTenant: [tenantId, col, conds],
-  })),
+vi.mock('@interdomestik/domain-crm/lead-details', () => ({
+  getAgentCrmLeadDetail: hoisted.getAgentCrmLeadDetail,
 }));
 
-vi.mock('drizzle-orm', () => ({
-  and: vi.fn((...args: unknown[]) => ({ and: args })),
-  eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
+vi.mock('@/lib/domain-crm/lead-detail-repository', () => ({
+  crmLeadDetailRepository: hoisted.crmLeadDetailRepository,
 }));
 
-vi.mock('@interdomestik/database/schema', () => ({
-  crmLeads: {
-    id: 'crmLeads.id',
-    tenantId: 'crmLeads.tenantId',
-    agentId: 'crmLeads.agentId',
-  },
-  crmDeals: {
-    tenantId: 'crmDeals.tenantId',
-    leadId: 'crmDeals.leadId',
-    agentId: 'crmDeals.agentId',
-    $inferSelect: {} as unknown,
-  },
-}));
+import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 
-import { getAgentLeadDetailsCore } from './_core';
+import { AgentLeadDetailsAccessDeniedError, getAgentLeadDetailsCore } from './_core';
+
+const actor: CrmActorContext = {
+  actorId: 'agent-1',
+  role: 'agent',
+  scope: { agentId: 'agent-1', branchId: 'branch-1' },
+  tenantId: 'tenant-1',
+};
 
 describe('getAgentLeadDetailsCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.getAgentCrmLeadDetail.mockResolvedValue({
+      success: true,
+      lead: { id: 'lead-1', agentId: 'agent-1', branchId: 'branch-1', tenantId: 'tenant-1' },
+      deals: [{ id: 'deal-1', agentId: 'agent-1', leadId: 'lead-1', tenantId: 'tenant-1' }],
+    });
   });
 
-  it('returns not_found when lead missing', async () => {
-    hoisted.findLeadFirst.mockResolvedValueOnce(null);
+  it('delegates lead detail reads to the domain CRM lead-detail API with actor context', async () => {
+    const result = await getAgentLeadDetailsCore({ actor, leadId: 'lead-1' });
 
-    const result = await getAgentLeadDetailsCore({
-      leadId: 'l1',
-      tenantId: 'tenant-1',
-      viewerAgentId: 'a1',
+    expect(result).toEqual({
+      kind: 'ok',
+      lead: { id: 'lead-1', agentId: 'agent-1', branchId: 'branch-1', tenantId: 'tenant-1' },
+      deals: [{ id: 'deal-1', agentId: 'agent-1', leadId: 'lead-1', tenantId: 'tenant-1' }],
     });
+    expect(hoisted.getAgentCrmLeadDetail).toHaveBeenCalledWith(
+      { actor, leadId: 'lead-1' },
+      hoisted.crmLeadDetailRepository
+    );
+  });
+
+  it('maps absent scoped leads to not_found', async () => {
+    hoisted.getAgentCrmLeadDetail.mockResolvedValueOnce({ success: false, error: 'not_found' });
+
+    const result = await getAgentLeadDetailsCore({ actor, leadId: 'lead-1' });
+
     expect(result).toEqual({ kind: 'not_found' });
   });
 
-  it('returns not_found when no lead matches the tenant and viewer agent scope', async () => {
-    hoisted.findLeadFirst.mockResolvedValueOnce(null);
-
-    const result = await getAgentLeadDetailsCore({
-      leadId: 'l1',
-      tenantId: 'tenant-1',
-      viewerAgentId: 'a1',
-    });
-    expect(result).toEqual({ kind: 'not_found' });
-    expect(hoisted.dbSelect).not.toHaveBeenCalled();
-  });
-
-  it('returns ok when agent owns lead', async () => {
-    hoisted.findLeadFirst.mockResolvedValueOnce({ id: 'l1', agentId: 'a1' });
-    hoisted.dbSelect.mockReturnValueOnce({
-      from: () => ({
-        where: async () => [],
-      }),
+  it('raises a typed access-denied error when the domain CRM lead-detail read is forbidden', async () => {
+    hoisted.getAgentCrmLeadDetail.mockResolvedValueOnce({
+      success: false,
+      error: 'forbidden',
+      reason: 'branch_scope',
     });
 
-    const result = await getAgentLeadDetailsCore({
-      leadId: 'l1',
-      tenantId: 'tenant-1',
-      viewerAgentId: 'a1',
-    });
-    expect(result.kind).toBe('ok');
-    if (result.kind === 'ok') {
-      expect(result.lead).toEqual({ id: 'l1', agentId: 'a1' });
-      expect(result.deals).toEqual([]);
+    try {
+      await getAgentLeadDetailsCore({ actor, leadId: 'lead-1' });
+      throw new Error('Expected getAgentLeadDetailsCore to reject');
+    } catch (error) {
+      expect(error).toBeInstanceOf(AgentLeadDetailsAccessDeniedError);
+      expect(error).toMatchObject({
+        name: 'AgentLeadDetailsAccessDeniedError',
+        reason: 'branch_scope',
+      });
     }
-  });
-
-  it('filters lead and deal reads by tenant and viewer agent', async () => {
-    hoisted.findLeadFirst.mockResolvedValueOnce({ id: 'l1', agentId: 'a1' });
-    const where = vi.fn().mockResolvedValue([]);
-    hoisted.dbSelect.mockReturnValueOnce({
-      from: vi.fn(() => ({ where })),
-    });
-
-    await getAgentLeadDetailsCore({
-      leadId: 'l1',
-      tenantId: 'tenant-1',
-      viewerAgentId: 'a1',
-    });
-
-    expect(hoisted.findLeadFirst).toHaveBeenCalledWith({
-      where: {
-        withTenant: [
-          'tenant-1',
-          'crmLeads.tenantId',
-          { and: [{ eq: ['crmLeads.id', 'l1'] }, { eq: ['crmLeads.agentId', 'a1'] }] },
-        ],
-      },
-    });
-    expect(where).toHaveBeenCalledWith({
-      withTenant: [
-        'tenant-1',
-        'crmDeals.tenantId',
-        { and: [{ eq: ['crmDeals.leadId', 'l1'] }, { eq: ['crmDeals.agentId', 'a1'] }] },
-      ],
-    });
   });
 });

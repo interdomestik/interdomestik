@@ -1,41 +1,46 @@
-import { db } from '@interdomestik/database/db';
-import { crmDeals, crmLeads } from '@interdomestik/database/schema';
-import { withTenant } from '@interdomestik/database/tenant-security';
-import { and, eq } from 'drizzle-orm';
+import {
+  getAgentCrmLeadDetail,
+  type AgentCrmLeadDetailAuthorizationDenialReason,
+} from '@interdomestik/domain-crm/lead-details';
+import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 
-export type AgentLeadDetails = Awaited<ReturnType<typeof db.query.crmLeads.findFirst>>;
+import {
+  crmLeadDetailRepository,
+  type AgentCrmLeadDetailDealRow,
+  type AgentCrmLeadDetailLeadRow,
+} from '@/lib/domain-crm/lead-detail-repository';
 
-export type AgentLeadDealRow = typeof crmDeals.$inferSelect;
+export type AgentLeadDetails = AgentCrmLeadDetailLeadRow | null;
+
+export type AgentLeadDealRow = AgentCrmLeadDetailDealRow;
 
 export type AgentLeadDetailsResult =
   | { kind: 'ok'; lead: NonNullable<AgentLeadDetails>; deals: AgentLeadDealRow[] }
   | { kind: 'not_found' };
 
+export class AgentLeadDetailsAccessDeniedError extends Error {
+  constructor(readonly reason: AgentCrmLeadDetailAuthorizationDenialReason) {
+    super(`CRM lead detail read denied: ${reason}`);
+    this.name = 'AgentLeadDetailsAccessDeniedError';
+  }
+}
+
 export async function getAgentLeadDetailsCore(args: {
+  actor: CrmActorContext;
   leadId: string;
-  tenantId: string;
-  viewerAgentId: string;
 }): Promise<AgentLeadDetailsResult> {
-  const lead = await db.query.crmLeads.findFirst({
-    where: withTenant(
-      args.tenantId,
-      crmLeads.tenantId,
-      and(eq(crmLeads.id, args.leadId), eq(crmLeads.agentId, args.viewerAgentId))
-    ),
-  });
+  const result = await getAgentCrmLeadDetail(
+    { actor: args.actor, leadId: args.leadId },
+    crmLeadDetailRepository
+  );
 
-  if (!lead) return { kind: 'not_found' };
+  if (result.success) {
+    return { kind: 'ok', lead: result.lead, deals: result.deals };
+  }
 
-  const deals = await db
-    .select()
-    .from(crmDeals)
-    .where(
-      withTenant(
-        args.tenantId,
-        crmDeals.tenantId,
-        and(eq(crmDeals.leadId, args.leadId), eq(crmDeals.agentId, args.viewerAgentId))
-      )
-    );
+  if (result.error === 'not_found') {
+    return { kind: 'not_found' };
+  }
 
-  return { kind: 'ok', lead, deals };
+  throw new AgentLeadDetailsAccessDeniedError(result.reason);
 }
