@@ -9,7 +9,7 @@ overrides:
   fast-xml-parser: 5.7.0
   kysely: 0.28.17
   qs: ^6.14.2
-  basic-ftp: 5.3.0
+  basic-ftp: 5.3.1
   bn.js: ^4.12.3
   ajv@^6.12.4: 6.14.0
   lodash: ^4.18.1
@@ -8711,10 +8711,10 @@ packages:
     engines: { node: '>=6.0.0' }
     hasBin: true
 
-  basic-ftp@5.3.0:
+  basic-ftp@5.3.1:
     resolution:
       {
-        integrity: sha512-5K9eNNn7ywHPsYnFwjKgYH8Hf8B5emh7JKcPaVjjrMJFQQwGpwowEnZNEtHs7DfR7hCZsmaK3VA4HUK0YarT+w==,
+        integrity: sha512-bopVNp6ugyA150DDuZfPFdt1KZ5a94ZDiwX4hMgZDzF+GttD80lEy8kj98kbyhLXnPvhtIo93mdnLIjpCAeeOw==,
       }
     engines: { node: '>=10.0.0' }
 
@@ -22042,7 +22042,7 @@ snapshots:
 
   baseline-browser-mapping@2.10.19: {}
 
-  basic-ftp@5.3.0: {}
+  basic-ftp@5.3.1: {}
 
   bcryptjs@3.0.3: {}
 
@@ -23770,7 +23770,7 @@ snapshots:
 
   get-uri@6.0.5:
     dependencies:
-      basic-ftp: 5.3.0
+      basic-ftp: 5.3.1
       data-uri-to-buffer: 6.0.2
       debug: 4.4.3
     transitivePeerDependencies:
