@@ -3,6 +3,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  AgentLeadDetailsAccessDeniedError: class AgentLeadDetailsAccessDeniedError extends Error {
+    constructor(readonly reason: string) {
+      super(`CRM lead detail read denied: ${reason}`);
+      this.name = 'AgentLeadDetailsAccessDeniedError';
+    }
+  },
   headersMock: vi.fn(async () => new Headers()),
   redirectMock: vi.fn((params: { href: string; locale: string }) => {
     throw new Error(`redirect:${params.href}:${params.locale}`);
@@ -53,6 +59,7 @@ vi.mock('@/actions/agent-crm-follow-up', () => ({
 }));
 
 vi.mock('@/app/[locale]/(agent)/agent/leads/[id]/_core', () => ({
+  AgentLeadDetailsAccessDeniedError: hoisted.AgentLeadDetailsAccessDeniedError,
   getAgentLeadDetailsCore: hoisted.getAgentLeadDetailsCoreMock,
 }));
 
@@ -102,7 +109,7 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.getSessionMock.mockResolvedValue({
-      user: { id: 'agent-1', tenantId: 'tenant-1' },
+      user: { branchId: 'branch-1', id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
     });
     hoisted.getTranslationsMock.mockImplementation(
       async (namespace = 'agent.leads_page') =>
@@ -163,7 +170,9 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
   });
 
   it('rejects a session with missing tenant identity before loading lead details', async () => {
-    const session = { user: { id: 'agent-1', tenantId: null } };
+    const session = {
+      user: { branchId: 'branch-1', id: 'agent-1', role: 'agent', tenantId: null },
+    };
     hoisted.getSessionMock.mockResolvedValue(session);
     hoisted.ensureTenantIdMock.mockImplementationOnce(() => {
       throw new Error('Session missing tenantId. Data integrity issue.');
@@ -178,22 +187,53 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
     expect(hoisted.getLeadActivitiesMock).not.toHaveBeenCalled();
   });
 
-  it('passes tenant identity into the lead detail core before loading activities', async () => {
+  it('passes actor context into the lead detail core before loading activities', async () => {
     await AgentLeadDetailV2Page({ id: 'lead-1', locale: 'en' });
 
     expect(hoisted.setRequestLocaleMock).toHaveBeenCalledWith('en');
     expect(hoisted.getAgentLeadDetailsCoreMock).toHaveBeenCalledWith({
+      actor: {
+        actorId: 'agent-1',
+        role: 'agent',
+        scope: { agentId: 'agent-1', branchId: 'branch-1' },
+        tenantId: 'tenant-1',
+      },
       leadId: 'lead-1',
-      tenantId: 'tenant-1',
-      viewerAgentId: 'agent-1',
     });
     expect(hoisted.getLeadActivitiesMock).toHaveBeenCalledWith('lead-1');
+  });
+
+  it('rejects a non-agent or branchless session before loading lead details', async () => {
+    hoisted.getSessionMock.mockResolvedValueOnce({
+      user: { branchId: null, id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
+    });
+
+    await expect(AgentLeadDetailV2Page({ id: 'lead-1', locale: 'en' })).rejects.toThrow(
+      'not-found'
+    );
+
+    expect(hoisted.notFoundMock).toHaveBeenCalled();
+    expect(hoisted.getAgentLeadDetailsCoreMock).not.toHaveBeenCalled();
+    expect(hoisted.getLeadActivitiesMock).not.toHaveBeenCalled();
   });
 
   it('does not load activities when the lead detail core returns not_found', async () => {
     hoisted.getAgentLeadDetailsCoreMock.mockResolvedValueOnce({
       kind: 'not_found',
     });
+
+    await expect(AgentLeadDetailV2Page({ id: 'lead-1', locale: 'en' })).rejects.toThrow(
+      'not-found'
+    );
+
+    expect(hoisted.notFoundMock).toHaveBeenCalled();
+    expect(hoisted.getLeadActivitiesMock).not.toHaveBeenCalled();
+  });
+
+  it('does not load activities when the lead detail core denies access', async () => {
+    hoisted.getAgentLeadDetailsCoreMock.mockRejectedValueOnce(
+      new hoisted.AgentLeadDetailsAccessDeniedError('branch_scope')
+    );
 
     await expect(AgentLeadDetailV2Page({ id: 'lead-1', locale: 'en' })).rejects.toThrow(
       'not-found'

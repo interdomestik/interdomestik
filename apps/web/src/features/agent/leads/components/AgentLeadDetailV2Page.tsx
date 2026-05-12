@@ -3,12 +3,16 @@ import {
   scheduleAgentLeadFollowUp,
 } from '@/actions/agent-crm-follow-up';
 import { getLeadActivities } from '@/actions/activities';
-import { getAgentLeadDetailsCore } from '@/app/[locale]/(agent)/agent/leads/[id]/_core';
+import {
+  AgentLeadDetailsAccessDeniedError,
+  getAgentLeadDetailsCore,
+} from '@/app/[locale]/(agent)/agent/leads/[id]/_core';
 import { ActivityFeed } from '@/components/crm/activity-feed';
 import { LogActivityDialog } from '@/components/crm/log-activity-dialog';
 import type { AppLocale } from '@/i18n/locales';
 import { Link, redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
+import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import {
   deriveCrmLeadNextAction,
   type CrmLeadNextAction,
@@ -187,12 +191,36 @@ export async function AgentLeadDetailV2Page({
   }
 
   const tenantId = ensureTenantId(session);
+  const agentId = session.user.id;
+  const role = session.user.role;
+  const branchId = session.user.branchId ?? null;
 
-  const leadResult = await getAgentLeadDetailsCore({
-    leadId: id,
+  if (role !== 'agent' || !branchId) {
+    notFound();
+  }
+
+  const actor = {
+    actorId: agentId,
+    role,
+    scope: {
+      agentId,
+      branchId,
+    },
     tenantId,
-    viewerAgentId: session.user.id,
-  });
+  } satisfies CrmActorContext;
+
+  let leadResult;
+  try {
+    leadResult = await getAgentLeadDetailsCore({
+      actor,
+      leadId: id,
+    });
+  } catch (error) {
+    if (error instanceof AgentLeadDetailsAccessDeniedError) {
+      notFound();
+    }
+    throw error;
+  }
 
   if (leadResult.kind === 'not_found') notFound();
 

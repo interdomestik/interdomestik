@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./context": "./src/context.ts",
     "./dashboards": "./src/dashboards/index.ts",
+    "./lead-details": "./src/lead-details/index.ts",
     "./leads/follow-up": "./src/leads/follow-up.ts",
     "./leads": "./src/leads/index.ts",
     "./leads/mutations": "./src/leads/mutations.ts",
