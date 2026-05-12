@@ -190,12 +190,12 @@
   "devDependencies": {
     "@commitlint/cli": "^20.5.3",
     "@commitlint/config-conventional": "^20.5.3",
-    "@playwright/mcp": "^0.0.73",
+    "@playwright/mcp": "^0.0.75",
     "@release-it/conventional-changelog": "^10.0.6",
     "@supabase/supabase-js": "^2.105.4",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.12.2",
-    "@upstash/context7-mcp": "^2.2.4",
+    "@upstash/context7-mcp": "^2.2.5",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "glob": "^13.0.6",
@@ -211,7 +211,7 @@
     "react-devtools": "^7.0.1",
     "release-it": "^19.2.4",
     "tsx": "^4.21.0",
-    "turbo": "^2.9.9",
+    "turbo": "^2.9.12",
     "typescript": "^5.9.3"
   },
   "engines": {
