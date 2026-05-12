@@ -6,9 +6,19 @@ const hoisted = vi.hoisted(() => ({
   redirectMock: vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
-  getSessionMock: vi.fn<() => Promise<{ user: { id: string; tenantId: string | null } } | null>>(
-    async () => null
-  ),
+  notFoundMock: vi.fn(() => {
+    throw new Error('notFound');
+  }),
+  getSessionMock: vi.fn<
+    () => Promise<{
+      user: {
+        branchId?: string | null;
+        id: string;
+        role?: string | null;
+        tenantId: string | null;
+      };
+    } | null>
+  >(async () => null),
   getTranslationsMock: vi.fn(async () => (key: string) => key),
   setRequestLocaleMock: vi.fn(),
   getFormatterMock: vi.fn(async () => ({
@@ -16,6 +26,12 @@ const hoisted = vi.hoisted(() => ({
   })),
   ensureTenantIdMock: vi.fn(() => 'tenant-1'),
   getAgentCrmStatsCoreMock: vi.fn(),
+  AgentCrmStatsAccessDeniedError: class AgentCrmStatsAccessDeniedError extends Error {
+    constructor(readonly reason: string) {
+      super(`CRM dashboard read denied: ${reason}`);
+      this.name = 'AgentCrmStatsAccessDeniedError';
+    }
+  },
 }));
 
 vi.mock('next/headers', () => ({
@@ -23,6 +39,7 @@ vi.mock('next/headers', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  notFound: hoisted.notFoundMock,
   redirect: hoisted.redirectMock,
 }));
 
@@ -45,6 +62,7 @@ vi.mock('@interdomestik/shared-auth', () => ({
 }));
 
 vi.mock('./_core', () => ({
+  AgentCrmStatsAccessDeniedError: hoisted.AgentCrmStatsAccessDeniedError,
   getAgentCrmStatsCore: hoisted.getAgentCrmStatsCoreMock,
 }));
 
@@ -92,7 +110,9 @@ describe('CRMPage auth redirect', () => {
   });
 
   it('rejects a session with missing tenant identity before loading CRM stats', async () => {
-    const session = { user: { id: 'agent-1', tenantId: null } };
+    const session = {
+      user: { branchId: 'branch-1', id: 'agent-1', role: 'agent', tenantId: null },
+    };
     hoisted.getSessionMock.mockResolvedValue(session);
     hoisted.ensureTenantIdMock.mockImplementationOnce(() => {
       throw new Error('Session missing tenantId. Data integrity issue.');
@@ -108,9 +128,41 @@ describe('CRMPage auth redirect', () => {
     expect(hoisted.getAgentCrmStatsCoreMock).not.toHaveBeenCalled();
   });
 
-  it('passes tenant identity into the CRM stats core on the authorized path', async () => {
+  it('fails closed for non-agent sessions before loading CRM stats', async () => {
     hoisted.getSessionMock.mockResolvedValue({
-      user: { id: 'agent-1', tenantId: 'tenant-1' },
+      user: { branchId: 'branch-1', id: 'staff-1', role: 'staff', tenantId: 'tenant-1' },
+    });
+
+    await expect(
+      CRMPage({
+        params: Promise.resolve({ locale: 'en' }),
+      })
+    ).rejects.toThrow('notFound');
+
+    expect(hoisted.notFoundMock).toHaveBeenCalled();
+    expect(hoisted.ensureTenantIdMock).not.toHaveBeenCalled();
+    expect(hoisted.getAgentCrmStatsCoreMock).not.toHaveBeenCalled();
+  });
+
+  it('fails closed for agent sessions without branch scope before loading CRM stats', async () => {
+    hoisted.getSessionMock.mockResolvedValue({
+      user: { branchId: null, id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
+    });
+
+    await expect(
+      CRMPage({
+        params: Promise.resolve({ locale: 'en' }),
+      })
+    ).rejects.toThrow('notFound');
+
+    expect(hoisted.notFoundMock).toHaveBeenCalled();
+    expect(hoisted.ensureTenantIdMock).not.toHaveBeenCalled();
+    expect(hoisted.getAgentCrmStatsCoreMock).not.toHaveBeenCalled();
+  });
+
+  it('passes CRM actor context into the CRM stats core on the authorized path', async () => {
+    hoisted.getSessionMock.mockResolvedValue({
+      user: { branchId: 'branch-1', id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
     });
 
     await CRMPage({
@@ -118,8 +170,32 @@ describe('CRMPage auth redirect', () => {
     });
 
     expect(hoisted.getAgentCrmStatsCoreMock).toHaveBeenCalledWith({
-      agentId: 'agent-1',
-      tenantId: 'tenant-1',
+      actor: {
+        actorId: 'agent-1',
+        role: 'agent',
+        scope: {
+          agentId: 'agent-1',
+          branchId: 'branch-1',
+        },
+        tenantId: 'tenant-1',
+      },
     });
+  });
+
+  it('fails closed when the CRM stats core denies dashboard access', async () => {
+    hoisted.getSessionMock.mockResolvedValue({
+      user: { branchId: 'branch-1', id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
+    });
+    hoisted.getAgentCrmStatsCoreMock.mockRejectedValueOnce(
+      new hoisted.AgentCrmStatsAccessDeniedError('branch_scope')
+    );
+
+    await expect(
+      CRMPage({
+        params: Promise.resolve({ locale: 'en' }),
+      })
+    ).rejects.toThrow('notFound');
+
+    expect(hoisted.notFoundMock).toHaveBeenCalled();
   });
 });

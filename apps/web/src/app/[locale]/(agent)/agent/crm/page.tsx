@@ -2,14 +2,15 @@ import { LeaderboardCard } from '@/components/agent/leaderboard-card';
 import { PipelineChart } from '@/components/agent/pipeline-chart';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth'; // server-side auth
+import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { Button } from '@interdomestik/ui';
 import { ArrowRight } from 'lucide-react';
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
-import { getAgentCrmStatsCore } from './_core';
+import { AgentCrmStatsAccessDeniedError, getAgentCrmStatsCore } from './_core';
 
 export default async function CRMPage({
   params,
@@ -27,9 +28,34 @@ export default async function CRMPage({
   }
 
   const agentId = session.user.id;
-  const tenantId = ensureTenantId(session);
+  const role = session.user.role;
+  const branchId = session.user.branchId ?? null;
 
-  const stats = await getAgentCrmStatsCore({ agentId, tenantId });
+  if (role !== 'agent' || !branchId) {
+    notFound();
+  }
+
+  const tenantId = ensureTenantId(session);
+  const actor = {
+    actorId: agentId,
+    role,
+    scope: {
+      agentId,
+      branchId,
+    },
+    tenantId,
+  } satisfies CrmActorContext;
+
+  let stats;
+  try {
+    stats = await getAgentCrmStatsCore({ actor });
+  } catch (error) {
+    if (error instanceof AgentCrmStatsAccessDeniedError) {
+      notFound();
+    }
+    throw error;
+  }
+
   const dueFormatter = new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
     timeStyle: 'short',
