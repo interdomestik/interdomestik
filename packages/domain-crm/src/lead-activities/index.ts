@@ -53,29 +53,47 @@ function normalizeLimit(limit: number | null | undefined): number {
   return Math.max(1, Math.min(integerLimit, AGENT_CRM_LEAD_ACTIVITY_MAX_ROWS));
 }
 
+function authorizeActor(
+  actor: CrmActorContext
+): AgentCrmLeadActivityAuthorizationDenialReason | null {
+  if (actor.role !== 'agent') return 'role_scope';
+  if (actor.scope.agentId && actor.scope.agentId !== actor.actorId) return 'agent_scope';
+  if (!actor.scope.branchId) return 'branch_scope';
+  return null;
+}
+
+function authorizeLead(
+  actor: CrmActorContext,
+  lead: AgentCrmLeadActivityLead
+): AgentCrmLeadActivityAuthorizationDenialReason | null {
+  if (lead.tenantId !== actor.tenantId) return 'tenant_scope';
+  if (lead.agentId !== actor.actorId) return 'agent_scope';
+  if (lead.branchId !== actor.scope.branchId) return 'branch_scope';
+  return null;
+}
+
+function authorizeActivity(
+  actor: CrmActorContext,
+  lead: AgentCrmLeadActivityLead | undefined,
+  activity: AgentCrmLeadActivity
+): AgentCrmLeadActivityAuthorizationDenialReason | null {
+  if (activity.tenantId !== actor.tenantId) return 'tenant_scope';
+  if (activity.agentId !== actor.actorId) return 'agent_scope';
+  if (lead && activity.leadId !== lead.id) return 'lead_scope';
+  if (activity.branchId !== actor.scope.branchId) return 'branch_scope';
+  return null;
+}
+
 export function authorizeAgentCrmLeadActivityRead(
   actor: CrmActorContext,
   lead?: AgentCrmLeadActivityLead,
   activity?: AgentCrmLeadActivity
 ): AgentCrmLeadActivityAuthorizationDenialReason | null {
-  if (actor.role !== 'agent') return 'role_scope';
-  if (actor.scope.agentId && actor.scope.agentId !== actor.actorId) return 'agent_scope';
-  if (!actor.scope.branchId) return 'branch_scope';
-
-  if (lead) {
-    if (lead.tenantId !== actor.tenantId) return 'tenant_scope';
-    if (lead.agentId !== actor.actorId) return 'agent_scope';
-    if (lead.branchId !== actor.scope.branchId) return 'branch_scope';
-  }
-
-  if (activity) {
-    if (activity.tenantId !== actor.tenantId) return 'tenant_scope';
-    if (activity.agentId !== actor.actorId) return 'agent_scope';
-    if (lead && activity.leadId !== lead.id) return 'lead_scope';
-    if (activity.branchId !== actor.scope.branchId) return 'branch_scope';
-  }
-
-  return null;
+  return (
+    authorizeActor(actor) ??
+    (lead ? authorizeLead(actor, lead) : null) ??
+    (activity ? authorizeActivity(actor, lead, activity) : null)
+  );
 }
 
 export async function getAgentCrmLeadActivities<
