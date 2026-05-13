@@ -6,6 +6,7 @@ export const CRM_DOMAIN_EVENT_TYPES = [
   'crm.contact.created',
   'crm.lead.created',
   'crm.lead.converted',
+  'crm.lead.merged',
   'crm.lead.stage_changed',
   'crm.lead.ownership_transferred',
   'crm.lead.activity_recorded',
@@ -90,6 +91,19 @@ export type CrmLeadConvertedEvent = CrmDomainEventBase<
     conversionId: string;
     leadId: string;
     reason?: string | null;
+  }
+>;
+
+export type CrmLeadMergedEvent = CrmDomainEventBase<
+  'crm.lead.merged',
+  'lead',
+  {
+    branchId: string;
+    loserLeadId: string;
+    matchReasonCodes: readonly string[];
+    mergedFieldKeys: readonly string[];
+    reason: string;
+    winnerLeadId: string;
   }
 >;
 
@@ -203,6 +217,7 @@ export type CrmDomainEvent =
   | CrmContactCreatedEvent
   | CrmLeadCreatedEvent
   | CrmLeadConvertedEvent
+  | CrmLeadMergedEvent
   | CrmLeadStageChangedEvent
   | CrmLeadOwnershipTransferredEvent
   | CrmLeadActivityRecordedEvent

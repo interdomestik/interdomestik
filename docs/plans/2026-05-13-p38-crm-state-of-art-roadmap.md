@@ -43,22 +43,28 @@ The tranche is not a broad CRM rewrite. It must continue the existing ports/adap
    - Promote `crmDeals` into the domain with stage history and forecast-ready read contracts.
 6. `P38-DG04 Dedupe And Routing Design`
    - Split dedupe and routing into parallelizable slices only after account/contact identity is available.
-7. `P38-CRM04 Lead Dedupe Domain Foundation`
+7. `P38-CRM04 Pipeline And Deal Persistence`
+   - Add schema/adapter persistence only after the pipeline/deal domain contracts are stable.
+8. `P38-CRM05 Reporting Read-Models And Forecast Snapshots`
+   - Add funnel, velocity, source, win-rate, leaderboard, and forecast snapshot contracts after pipelines exist.
+9. `P38-CRM06 Lead Dedupe Domain Foundation`
    - Add pure lead matching and explicit merge-history contracts before routing decisions depend on duplicate-prone lead identity.
-8. `P38-DG05 Lead Routing Design`
-   - Promote routing only after dedupe contracts exist, so assignment strategy can account for duplicate or merge-pending leads.
-9. `P38-CRM05 Lead Routing Domain Foundation`
-   - Add routing-rule and assignee-selection contracts without web or SQL wiring.
+10. `P38-DG05 Lead Routing Design`
+
+- Promote routing only after dedupe contracts exist, so assignment strategy can account for duplicate or merge-pending leads.
+
+11. `P38-CRM07 Lead Routing Domain Foundation`
+
+- Add routing-rule and assignee-selection contracts without web or SQL wiring.
 
 ### P1 product depth
 
-10. `P38-CRM06 Tasks Foundation`
-11. `P38-CRM07 Templates Foundation`
-12. `P38-CRM08 Sequences Foundation`
-13. `P38-CRM09 Activity Channel Specializations`
-14. `P38-CRM10 Lead Scoring Provenance`
-15. `P38-CRM11 Reporting Read-Models And Forecast Snapshots`
-16. `P38-CRM12 Consent And Preferences`
+12. `P38-CRM08 Tasks Foundation`
+13. `P38-CRM09 Templates Foundation`
+14. `P38-CRM10 Sequences Foundation`
+15. `P38-CRM11 Activity Channel Specializations`
+16. `P38-CRM12 Lead Scoring Provenance`
+17. `P38-CRM13 Consent And Preferences`
 
 ### P2 strategic backlog
 

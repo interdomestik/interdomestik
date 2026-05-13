@@ -5,6 +5,7 @@ export * from './dashboards';
 export * from './deals';
 export * from './lead-activities';
 export * from './lead-conversion';
+export * from './lead-dedupe';
 export * from './lead-details';
 export * from './leads';
 export * from './notifications';
