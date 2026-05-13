@@ -4,8 +4,8 @@
 
 - Date: 2026-05-13
 - Classification: roadmap/design gate plus promoted implementation slices
-- Current branch: `codex/p38-crm01-domain-outbox`
-- Current implementation slice: `P38-CRM02 Accounts, Contacts, And Lead Conversion Foundation`
+- Current branch: `codex/p38-dg03-pipeline-deal-design`
+- Current promoted implementation slice: `P38-CRM03 Pipeline And Deal Domain Foundation`
 
 ## Inputs
 
