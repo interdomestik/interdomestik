@@ -8,6 +8,7 @@ import {
   normalizeLeadDedupeIdentity,
   scoreCrmLeadMatchCandidate,
 } from './mutations';
+import type { MergeCrmLeadInput, MergeCrmLeadResult } from './mutations';
 import {
   CRM_LEAD_MATCH_WEIGHTS,
   CRM_LEAD_MERGEABLE_FIELDS,
@@ -51,6 +52,15 @@ const memberActor: CrmActorContext = {
   role: 'member',
   scope: { memberId: 'member-1' },
   tenantId: 'tenant-1',
+};
+
+const defaultMergeFieldDecisions: readonly CrmLeadMergeFieldDecision[] = [
+  { field: 'email', source: 'winner' },
+];
+
+const mergeDependencies = {
+  clock: { now: () => now },
+  ids: { leadMergeHistoryId: () => 'merge-history-1' },
 };
 
 function lead(overrides: Partial<CrmLeadDedupeLead> = {}): CrmLeadDedupeLead {
@@ -116,6 +126,24 @@ class InMemoryLeadDedupeRepository implements CrmLeadDedupeRepository {
     });
     return params.history;
   }
+}
+
+function mergeAttempt(
+  repository: CrmLeadDedupeRepository,
+  overrides: Partial<MergeCrmLeadInput> = {}
+): Promise<MergeCrmLeadResult> {
+  return mergeCrmLead(
+    {
+      actor: agentActor,
+      fieldDecisions: defaultMergeFieldDecisions,
+      loserLeadId: 'loser-lead',
+      reason: 'duplicate',
+      winnerLeadId: 'winner-lead',
+      ...overrides,
+    },
+    repository,
+    mergeDependencies
+  );
 }
 
 describe('CRM lead dedupe domain', () => {
@@ -412,31 +440,19 @@ describe('CRM lead dedupe domain', () => {
     const repository = new InMemoryLeadDedupeRepository([lead({ id: 'lead-1' })]);
 
     await expect(
-      mergeCrmLead(
-        {
-          actor: agentActor,
-          fieldDecisions: [{ field: 'email', source: 'winner' }],
-          loserLeadId: 'lead-1',
-          reason: 'same lead',
-          winnerLeadId: 'lead-1',
-        },
-        repository,
-        { clock: { now: () => now }, ids: { leadMergeHistoryId: () => 'merge-history-1' } }
-      )
+      mergeAttempt(repository, {
+        loserLeadId: 'lead-1',
+        reason: 'same lead',
+        winnerLeadId: 'lead-1',
+      })
     ).resolves.toEqual({ success: false, error: 'invalid_input', reason: 'self_merge' });
 
     await expect(
-      mergeCrmLead(
-        {
-          actor: agentActor,
-          fieldDecisions: [{ field: 'email', source: 'winner' }],
-          loserLeadId: '',
-          reason: 'missing loser',
-          winnerLeadId: 'lead-1',
-        },
-        repository,
-        { clock: { now: () => now }, ids: { leadMergeHistoryId: () => 'merge-history-1' } }
-      )
+      mergeAttempt(repository, {
+        loserLeadId: '',
+        reason: 'missing loser',
+        winnerLeadId: 'lead-1',
+      })
     ).resolves.toEqual({ success: false, error: 'invalid_input', reason: 'invalid_target' });
     expect(repository.histories).toHaveLength(0);
   });
@@ -448,77 +464,36 @@ describe('CRM lead dedupe domain', () => {
       lead({ id: 'tenant-2-loser', tenantId: 'tenant-2' }),
     ]);
 
-    await expect(
-      mergeCrmLead(
-        {
-          actor: agentActor,
-          fieldDecisions: [{ field: 'email', source: 'winner' }],
-          loserLeadId: 'missing-loser',
-          reason: 'duplicate',
-          winnerLeadId: 'winner-lead',
-        },
-        repository,
-        { clock: { now: () => now }, ids: { leadMergeHistoryId: () => 'merge-history-1' } }
-      )
-    ).resolves.toEqual({ success: false, error: 'not_found' });
+    await expect(mergeAttempt(repository, { loserLeadId: 'missing-loser' })).resolves.toEqual({
+      success: false,
+      error: 'not_found',
+    });
 
-    await expect(
-      mergeCrmLead(
-        {
-          actor: agentActor,
-          fieldDecisions: [{ field: 'email', source: 'winner' }],
-          loserLeadId: 'tenant-2-loser',
-          reason: 'duplicate',
-          winnerLeadId: 'winner-lead',
-        },
-        repository,
-        { clock: { now: () => now }, ids: { leadMergeHistoryId: () => 'merge-history-1' } }
-      )
-    ).resolves.toEqual({ success: false, error: 'forbidden', reason: 'tenant_scope' });
+    await expect(mergeAttempt(repository, { loserLeadId: 'tenant-2-loser' })).resolves.toEqual({
+      success: false,
+      error: 'forbidden',
+      reason: 'tenant_scope',
+    });
 
-    await expect(
-      mergeCrmLead(
-        {
-          actor: memberActor,
-          fieldDecisions: [{ field: 'email', source: 'winner' }],
-          loserLeadId: 'loser-lead',
-          reason: 'duplicate',
-          winnerLeadId: 'winner-lead',
-        },
-        repository,
-        { clock: { now: () => now }, ids: { leadMergeHistoryId: () => 'merge-history-1' } }
-      )
-    ).resolves.toEqual({ success: false, error: 'forbidden', reason: 'role_scope' });
+    await expect(mergeAttempt(repository, { actor: memberActor })).resolves.toEqual({
+      success: false,
+      error: 'forbidden',
+      reason: 'role_scope',
+    });
 
-    await expect(
-      mergeCrmLead(
-        {
-          actor: agentActor,
-          fieldDecisions: [{ field: 'email', source: 'winner' }],
-          loserLeadId: 'loser-lead',
-          reason: 'duplicate',
-          winnerLeadId: 'winner-lead',
-        },
-        repository,
-        { clock: { now: () => now }, ids: { leadMergeHistoryId: () => 'merge-history-1' } }
-      )
-    ).resolves.toEqual({ success: false, error: 'forbidden', reason: 'agent_scope' });
+    await expect(mergeAttempt(repository)).resolves.toEqual({
+      success: false,
+      error: 'forbidden',
+      reason: 'agent_scope',
+    });
     expect(repository.histories).toHaveLength(0);
 
     repository.leads.set('loser-lead', lead({ id: 'loser-lead', branchId: 'branch-2' }));
-    await expect(
-      mergeCrmLead(
-        {
-          actor: managerActor,
-          fieldDecisions: [{ field: 'email', source: 'winner' }],
-          loserLeadId: 'loser-lead',
-          reason: 'duplicate',
-          winnerLeadId: 'winner-lead',
-        },
-        repository,
-        { clock: { now: () => now }, ids: { leadMergeHistoryId: () => 'merge-history-1' } }
-      )
-    ).resolves.toEqual({ success: false, error: 'forbidden', reason: 'branch_scope' });
+    await expect(mergeAttempt(repository, { actor: managerActor })).resolves.toEqual({
+      success: false,
+      error: 'forbidden',
+      reason: 'branch_scope',
+    });
     expect(repository.histories).toHaveLength(0);
   });
 
@@ -529,17 +504,7 @@ describe('CRM lead dedupe domain', () => {
     ]);
 
     async function attempt(): Promise<unknown> {
-      return mergeCrmLead(
-        {
-          actor: agentActor,
-          fieldDecisions: [{ field: 'email', source: 'winner' }],
-          loserLeadId: 'loser-lead',
-          reason: 'duplicate',
-          winnerLeadId: 'winner-lead',
-        },
-        repository,
-        { clock: { now: () => now }, ids: { leadMergeHistoryId: () => 'merge-history-1' } }
-      );
+      return mergeAttempt(repository);
     }
 
     await expect(attempt()).resolves.toEqual({
@@ -594,50 +559,22 @@ describe('CRM lead dedupe domain', () => {
       lead({ id: 'loser-lead' }),
     ]);
 
-    await expect(
-      mergeCrmLead(
-        {
-          actor: agentActor,
-          fieldDecisions: [{ field: 'email', source: 'winner' }],
-          loserLeadId: 'loser-lead',
-          reason: '   ',
-          winnerLeadId: 'winner-lead',
-        },
-        repository,
-        { clock: { now: () => now }, ids: { leadMergeHistoryId: () => 'merge-history-1' } }
-      )
-    ).resolves.toEqual({ success: false, error: 'invalid_input', reason: 'empty_reason' });
+    await expect(mergeAttempt(repository, { reason: '   ' })).resolves.toEqual({
+      success: false,
+      error: 'invalid_input',
+      reason: 'empty_reason',
+    });
 
-    await expect(
-      mergeCrmLead(
-        {
-          actor: agentActor,
-          fieldDecisions: [],
-          loserLeadId: 'loser-lead',
-          reason: 'duplicate',
-          winnerLeadId: 'winner-lead',
-        },
-        repository,
-        { clock: { now: () => now }, ids: { leadMergeHistoryId: () => 'merge-history-1' } }
-      )
-    ).resolves.toEqual({
+    await expect(mergeAttempt(repository, { fieldDecisions: [] })).resolves.toEqual({
       success: false,
       error: 'invalid_input',
       reason: 'empty_field_decisions',
     });
 
     await expect(
-      mergeCrmLead(
-        {
-          actor: agentActor,
-          fieldDecisions: [{ field: 'score' as CrmLeadMergeableField, source: 'winner' }],
-          loserLeadId: 'loser-lead',
-          reason: 'duplicate',
-          winnerLeadId: 'winner-lead',
-        },
-        repository,
-        { clock: { now: () => now }, ids: { leadMergeHistoryId: () => 'merge-history-1' } }
-      )
+      mergeAttempt(repository, {
+        fieldDecisions: [{ field: 'score' as CrmLeadMergeableField, source: 'winner' }],
+      })
     ).resolves.toEqual({
       success: false,
       error: 'invalid_input',

@@ -107,7 +107,15 @@ function normalizedText(value?: string | null): string | null {
 function normalizedEmail(value?: string | null): string | null {
   const normalized = normalizedText(value);
   if (!normalized) return null;
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) return null;
+
+  const atIndex = normalized.indexOf('@');
+  if (atIndex <= 0 || atIndex !== normalized.lastIndexOf('@')) return null;
+
+  const domain = normalized.slice(atIndex + 1);
+  const dotIndex = domain.lastIndexOf('.');
+  if (dotIndex <= 0 || dotIndex === domain.length - 1) return null;
+  if (normalized.slice(0, atIndex).includes(' ') || domain.includes(' ')) return null;
+
   return normalized;
 }
 
