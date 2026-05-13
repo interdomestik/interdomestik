@@ -17,6 +17,25 @@ describe('policyExtractSchema', () => {
     ).toBeTruthy();
   });
 
+  it('accepts null fact fields with warnings for unsupported extracted facts', () => {
+    expect(
+      policyExtractSchema.parse({
+        provider: null,
+        policyNumber: null,
+        coverageAmount: 0,
+        currency: 'EUR',
+        deductible: 0,
+        confidence: 0.32,
+        warnings: [
+          'Provider could not be extracted from the uploaded policy.',
+          'Policy number could not be extracted from the uploaded policy.',
+        ],
+        hiddenPerks: [],
+        summary: 'Insurance welcome letter with general terms only.',
+      })
+    ).toBeTruthy();
+  });
+
   it('rejects non-numeric amounts', () => {
     expect(() =>
       policyExtractSchema.parse({
