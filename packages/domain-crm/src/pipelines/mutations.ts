@@ -63,6 +63,7 @@ export type CrmPipelineValidationReason =
   | 'invalid_stage_name'
   | 'invalid_stage_order'
   | 'invalid_stage_probability'
+  | 'invalid_expected_duration'
   | 'invalid_terminal_flags'
   | 'missing_terminal_stage'
   | 'archived_pipeline'
@@ -113,7 +114,7 @@ function validateStage(stage: CrmPipelineStageInput): CrmPipelineValidationReaso
     stage.expectedDurationDays != null &&
     (!Number.isInteger(stage.expectedDurationDays) || stage.expectedDurationDays < 0)
   ) {
-    return 'invalid_stage_probability';
+    return 'invalid_expected_duration';
   }
   return null;
 }
@@ -297,8 +298,15 @@ export async function reorderCrmPipelineStages(
   const loaded = await loadMutablePipeline(input, repository);
   if (!loaded.success) return loaded;
 
+  if (input.stageOrders.length !== loaded.pipeline.stages.length) {
+    return { success: false, error: 'invalid_input', reason: 'invalid_stage_order' };
+  }
+  const requestedStageIds = new Set(input.stageOrders.map(stage => stage.stageId));
+  if (requestedStageIds.size !== input.stageOrders.length) {
+    return { success: false, error: 'invalid_input', reason: 'invalid_stage_order' };
+  }
   const orderByStage = new Map(input.stageOrders.map(stage => [stage.stageId, stage.order]));
-  if (orderByStage.size !== loaded.pipeline.stages.length) {
+  if (requestedStageIds.size !== loaded.pipeline.stages.length) {
     return { success: false, error: 'invalid_input', reason: 'invalid_stage_order' };
   }
   const stages = loaded.pipeline.stages.map(stage => {

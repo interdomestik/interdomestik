@@ -41,6 +41,7 @@ export type CrmDealStageHistory = {
 };
 
 export type CrmDealReference = {
+  archivedAt?: string | null;
   branchId: string;
   id: string;
   tenantId: string;

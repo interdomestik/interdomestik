@@ -1,6 +1,11 @@
 import type { CrmPipeline } from '../pipelines/repository';
 import type { CrmDeal, CrmDealReferenceSnapshot, CrmDealStageHistory } from './types';
 
+export type CrmDealWithStageHistory = {
+  deal: CrmDeal;
+  history: CrmDealStageHistory;
+};
+
 export type {
   CrmDeal,
   CrmDealForecastCategory,
@@ -11,8 +16,10 @@ export type {
 } from './types';
 
 export interface CrmDealRepository {
-  appendStageHistory(params: { history: CrmDealStageHistory }): Promise<CrmDealStageHistory>;
-  createDeal(params: { deal: CrmDeal }): Promise<CrmDeal>;
+  createDealWithStageHistory(params: {
+    deal: CrmDeal;
+    history: CrmDealStageHistory;
+  }): Promise<CrmDealWithStageHistory>;
   findDealById(params: { dealId: string; tenantId: string }): Promise<CrmDeal | null>;
   findPipelineById(params: { pipelineId: string; tenantId: string }): Promise<CrmPipeline | null>;
   findReferenceSnapshot(params: {
@@ -21,4 +28,8 @@ export interface CrmDealRepository {
     tenantId: string;
   }): Promise<CrmDealReferenceSnapshot>;
   updateDeal(params: { deal: CrmDeal }): Promise<CrmDeal>;
+  updateDealWithStageHistory(params: {
+    deal: CrmDeal;
+    history: CrmDealStageHistory;
+  }): Promise<CrmDealWithStageHistory>;
 }

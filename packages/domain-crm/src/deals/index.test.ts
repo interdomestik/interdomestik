@@ -125,14 +125,13 @@ class InMemoryCrmDeals implements CrmDealRepository {
     contact: { branchId: 'branch-1', id: 'contact-1', tenantId: 'tenant-1' },
   };
 
-  async appendStageHistory(params: { history: CrmDealStageHistory }): Promise<CrmDealStageHistory> {
-    this.histories.push(params.history);
-    return params.history;
-  }
-
-  async createDeal(params: { deal: CrmDeal }): Promise<CrmDeal> {
+  async createDealWithStageHistory(params: {
+    deal: CrmDeal;
+    history: CrmDealStageHistory;
+  }): Promise<{ deal: CrmDeal; history: CrmDealStageHistory }> {
     this.deals.push(params.deal);
-    return params.deal;
+    this.histories.push(params.history);
+    return params;
   }
 
   async findDealById(params: { dealId: string; tenantId: string }): Promise<CrmDeal | null> {
@@ -154,6 +153,15 @@ class InMemoryCrmDeals implements CrmDealRepository {
     const index = this.deals.findIndex(deal => deal.id === params.deal.id);
     if (index >= 0) this.deals[index] = params.deal;
     return params.deal;
+  }
+
+  async updateDealWithStageHistory(params: {
+    deal: CrmDeal;
+    history: CrmDealStageHistory;
+  }): Promise<{ deal: CrmDeal; history: CrmDealStageHistory }> {
+    const deal = await this.updateDeal({ deal: params.deal });
+    this.histories.push(params.history);
+    return { deal, history: params.history };
   }
 }
 
@@ -274,6 +282,129 @@ describe('CRM deals domain', () => {
         }
       )
     ).resolves.toEqual({ success: false, error: 'forbidden', reason: 'branch_scope' });
+
+    const archivedPipelineRepository = new InMemoryCrmDeals();
+    archivedPipelineRepository.currentPipeline = pipeline({ archivedAt: now });
+
+    await expect(
+      createCrmDeal(
+        {
+          accountId: 'account-1',
+          actor: agentActor,
+          currencyCode: 'EUR',
+          forecastCategory: 'pipeline',
+          pipelineId: 'pipeline-1',
+          pipelineStageId: 'stage-qualified',
+          tenantId: 'tenant-1',
+          valueAmountMinor: 500000,
+        },
+        archivedPipelineRepository,
+        {
+          clock: { now: () => now },
+          ids: { dealId: () => 'deal-1', dealStageHistoryId: () => 'history-1' },
+        }
+      )
+    ).resolves.toEqual({ success: false, error: 'invalid_input', reason: 'archived_pipeline' });
+
+    const archivedReferenceRepository = new InMemoryCrmDeals();
+    archivedReferenceRepository.referenceSnapshot = {
+      account: { archivedAt: now, branchId: 'branch-1', id: 'account-1', tenantId: 'tenant-1' },
+      contact: { branchId: 'branch-1', id: 'contact-1', tenantId: 'tenant-1' },
+    };
+
+    await expect(
+      createCrmDeal(
+        {
+          accountId: 'account-1',
+          actor: agentActor,
+          contactId: 'contact-1',
+          currencyCode: 'EUR',
+          forecastCategory: 'pipeline',
+          pipelineId: 'pipeline-1',
+          pipelineStageId: 'stage-qualified',
+          tenantId: 'tenant-1',
+          valueAmountMinor: 500000,
+        },
+        archivedReferenceRepository,
+        {
+          clock: { now: () => now },
+          ids: { dealId: () => 'deal-1', dealStageHistoryId: () => 'history-1' },
+        }
+      )
+    ).resolves.toEqual({ success: false, error: 'invalid_input', reason: 'archived_reference' });
+
+    const lostStageRepository = new InMemoryCrmDeals();
+    await expect(
+      createCrmDeal(
+        {
+          accountId: 'account-1',
+          actor: agentActor,
+          currencyCode: 'EUR',
+          forecastCategory: 'closed',
+          pipelineId: 'pipeline-1',
+          pipelineStageId: 'stage-lost',
+          tenantId: 'tenant-1',
+          valueAmountMinor: 500000,
+        },
+        lostStageRepository,
+        {
+          clock: { now: () => now },
+          ids: { dealId: () => 'deal-1', dealStageHistoryId: () => 'history-1' },
+        }
+      )
+    ).resolves.toEqual({ success: false, error: 'invalid_input', reason: 'loss_reason_required' });
+  });
+
+  it('normalizes optional contact IDs and requires staff creators to assign an agent', async () => {
+    const repository = new InMemoryCrmDeals();
+
+    await expect(
+      createCrmDeal(
+        {
+          accountId: 'account-1',
+          actor: managerActor,
+          currencyCode: 'EUR',
+          forecastCategory: 'pipeline',
+          pipelineId: 'pipeline-1',
+          pipelineStageId: 'stage-qualified',
+          tenantId: 'tenant-1',
+          valueAmountMinor: 500000,
+        },
+        repository,
+        {
+          clock: { now: () => now },
+          ids: { dealId: () => 'deal-manager', dealStageHistoryId: () => 'history-manager' },
+        }
+      )
+    ).resolves.toEqual({ success: false, error: 'invalid_input', reason: 'agent_required' });
+
+    await expect(
+      createCrmDeal(
+        {
+          accountId: 'account-1',
+          actor: agentActor,
+          contactId: '   ',
+          currencyCode: 'EUR',
+          forecastCategory: 'pipeline',
+          pipelineId: 'pipeline-1',
+          pipelineStageId: 'stage-qualified',
+          tenantId: 'tenant-1',
+          valueAmountMinor: 500000,
+        },
+        repository,
+        {
+          clock: { now: () => now },
+          ids: { dealId: () => 'deal-1', dealStageHistoryId: () => 'history-1' },
+        }
+      )
+    ).resolves.toEqual({
+      deal: expect.objectContaining({ contactId: null }),
+      event: expect.objectContaining({
+        payload: expect.objectContaining({ contactId: null }),
+      }),
+      history: expect.objectContaining({ id: 'history-1' }),
+      success: true,
+    });
   });
 
   it('moves stages with append-only history and mutually exclusive transition events', async () => {
@@ -315,6 +446,39 @@ describe('CRM deals domain', () => {
       success: true,
     });
     expect(repository.histories).toHaveLength(1);
+
+    const archivedRepository = new InMemoryCrmDeals();
+    archivedRepository.deals.push(deal({ archivedAt: now }));
+    await expect(
+      moveCrmDealStage(
+        {
+          actor: agentActor,
+          dealId: 'deal-1',
+          fromStageId: 'stage-qualified',
+          toStageId: 'stage-commit',
+        },
+        archivedRepository,
+        lossReasons,
+        { clock: { now: () => now }, ids: { dealStageHistoryId: () => 'history-archived' } }
+      )
+    ).resolves.toEqual({ success: false, error: 'invalid_input', reason: 'archived_deal' });
+
+    const noOpRepository = new InMemoryCrmDeals();
+    noOpRepository.deals.push(deal());
+    await expect(
+      moveCrmDealStage(
+        {
+          actor: agentActor,
+          dealId: 'deal-1',
+          fromStageId: 'stage-qualified',
+          toStageId: 'stage-qualified',
+        },
+        noOpRepository,
+        lossReasons,
+        { clock: { now: () => now }, ids: { dealStageHistoryId: () => 'history-noop' } }
+      )
+    ).resolves.toEqual({ success: false, error: 'invalid_input', reason: 'no_op_transition' });
+    expect(noOpRepository.histories).toHaveLength(0);
 
     const second = await moveCrmDealStage(
       {
@@ -429,6 +593,45 @@ describe('CRM deals domain', () => {
       }),
       success: true,
     });
+
+    const openRepository = new InMemoryCrmDeals();
+    openRepository.deals.push(deal());
+    await expect(
+      reopenCrmDeal(
+        {
+          actor: managerActor,
+          dealId: 'deal-1',
+          fromStageId: 'stage-qualified',
+          reopenReason: 'No closed state',
+          toStageId: 'stage-commit',
+        },
+        openRepository,
+        { clock: { now: () => now }, ids: { dealStageHistoryId: () => 'history-open' } }
+      )
+    ).resolves.toEqual({ success: false, error: 'invalid_input', reason: 'deal_not_closed' });
+
+    const archivedRepository = new InMemoryCrmDeals();
+    archivedRepository.deals.push(
+      deal({
+        archivedAt: now,
+        closedAt: now,
+        currentStageId: 'stage-lost',
+        forecastCategory: 'closed',
+      })
+    );
+    await expect(
+      reopenCrmDeal(
+        {
+          actor: managerActor,
+          dealId: 'deal-1',
+          fromStageId: 'stage-lost',
+          reopenReason: 'Archived cannot reopen',
+          toStageId: 'stage-commit',
+        },
+        archivedRepository,
+        { clock: { now: () => now }, ids: { dealStageHistoryId: () => 'history-archived' } }
+      )
+    ).resolves.toEqual({ success: false, error: 'invalid_input', reason: 'archived_deal' });
   });
 
   it('wins and loses deals through explicit transition commands', async () => {

@@ -33,6 +33,11 @@ export type CrmDealMutationDenialReason =
   | 'role_scope';
 
 export type CrmDealValidationReason =
+  | 'agent_required'
+  | 'archived_deal'
+  | 'archived_pipeline'
+  | 'archived_reference'
+  | 'deal_not_closed'
   | 'invalid_amount'
   | 'invalid_currency'
   | 'invalid_expected_close_at'
@@ -41,6 +46,7 @@ export type CrmDealValidationReason =
   | 'loss_reason_not_allowed'
   | 'loss_reason_required'
   | 'loss_reason_unknown'
+  | 'no_op_transition'
   | 'pipeline_stage_mismatch'
   | 'stage_drift'
   | 'terminal_deal';
@@ -202,14 +208,16 @@ function authorizeReopen(
 function validateReferences(
   references: CrmDealReferenceSnapshot,
   input: { accountId: string; branchId: string; contactId?: string | null; tenantId: string }
-): CrmDealMutationDenialReason | 'not_found' | null {
+): CrmDealMutationDenialReason | 'archived_reference' | 'not_found' | null {
   if (!references.account || references.account.id !== input.accountId) return 'not_found';
   if (references.account.tenantId !== input.tenantId) return 'tenant_scope';
   if (references.account.branchId !== input.branchId) return 'branch_scope';
-  if (input.contactId) {
+  if (references.account.archivedAt) return 'archived_reference';
+  if (input.contactId != null) {
     if (!references.contact || references.contact.id !== input.contactId) return 'not_found';
     if (references.contact.tenantId !== input.tenantId) return 'tenant_scope';
     if (references.contact.branchId !== input.branchId) return 'branch_scope';
+    if (references.contact.archivedAt) return 'archived_reference';
   }
   return null;
 }
@@ -251,7 +259,7 @@ export async function createCrmDeal(
   input: CreateCrmDealInput,
   repository: Pick<
     CrmDealRepository,
-    'appendStageHistory' | 'createDeal' | 'findPipelineById' | 'findReferenceSnapshot'
+    'createDealWithStageHistory' | 'findPipelineById' | 'findReferenceSnapshot'
   >,
   services: {
     clock: CrmDealClock;
@@ -266,8 +274,14 @@ export async function createCrmDeal(
   if (pipeline.tenantId !== input.tenantId) {
     return { success: false, error: 'forbidden', reason: 'tenant_scope' };
   }
+  if (pipeline.archivedAt) {
+    return { success: false, error: 'invalid_input', reason: 'archived_pipeline' };
+  }
   const stage = findStage(pipeline, input.pipelineStageId);
   if (!stage) return { success: false, error: 'invalid_input', reason: 'pipeline_stage_mismatch' };
+  if (stage.isLost) {
+    return { success: false, error: 'invalid_input', reason: 'loss_reason_required' };
+  }
   const moneyError = validateMoney(input);
   if (moneyError) return { success: false, error: 'invalid_input', reason: moneyError };
   if (input.expectedCloseAt && !isParseableDate(input.expectedCloseAt)) {
@@ -280,22 +294,30 @@ export async function createCrmDeal(
 
   const branchId = pipeline.branchId || input.actor.scope.branchId;
   if (!branchId) return { success: false, error: 'forbidden', reason: 'branch_scope' };
-  const agentId = input.agentId?.trim() || input.actor.actorId;
+  const requestedAgentId = input.agentId?.trim() || null;
+  if (input.actor.role !== 'agent' && !requestedAgentId) {
+    return { success: false, error: 'invalid_input', reason: 'agent_required' };
+  }
+  const agentId = requestedAgentId ?? input.actor.actorId;
   const denied = authorizeCreate(input.actor, input.tenantId, branchId, agentId);
   if (denied) return { success: false, error: 'forbidden', reason: denied };
+  const contactId = input.contactId?.trim() || null;
 
   const references = await repository.findReferenceSnapshot({
     accountId: input.accountId,
-    contactId: input.contactId ?? null,
+    contactId,
     tenantId: input.tenantId,
   });
   const referenceError = validateReferences(references, {
     accountId: input.accountId,
     branchId,
-    contactId: input.contactId,
+    contactId,
     tenantId: input.tenantId,
   });
   if (referenceError === 'not_found') return { success: false, error: 'not_found' };
+  if (referenceError === 'archived_reference') {
+    return { success: false, error: 'invalid_input', reason: referenceError };
+  }
   if (referenceError) return { success: false, error: 'forbidden', reason: referenceError };
 
   const now = services.clock.now();
@@ -306,7 +328,7 @@ export async function createCrmDeal(
     archivedById: null,
     branchId,
     closedAt: isTerminalStage(stage) ? now : null,
-    contactId: input.contactId ?? null,
+    contactId,
     createdAt: now,
     currencyCode: input.currencyCode,
     currentStageId: input.pipelineStageId,
@@ -328,8 +350,10 @@ export async function createCrmDeal(
     tenantId: deal.tenantId,
     toStageId: deal.currentStageId,
   });
-  const created = await repository.createDeal({ deal });
-  const appended = await repository.appendStageHistory({ history });
+  const { deal: created, history: appended } = await repository.createDealWithStageHistory({
+    deal,
+    history,
+  });
 
   return {
     deal: created,
@@ -364,7 +388,7 @@ export async function moveCrmDealStage(
   input: MoveCrmDealStageInput,
   repository: Pick<
     CrmDealRepository,
-    'appendStageHistory' | 'findDealById' | 'findPipelineById' | 'updateDeal'
+    'findDealById' | 'findPipelineById' | 'updateDealWithStageHistory'
   >,
   lossReasons: LossReasonResolver,
   services: { clock: CrmDealClock; ids: Pick<CrmDealIds, 'dealStageHistoryId'> }
@@ -376,7 +400,7 @@ async function moveCrmDealStageCore(
   input: MoveCrmDealStageInput,
   repository: Pick<
     CrmDealRepository,
-    'appendStageHistory' | 'findDealById' | 'findPipelineById' | 'updateDeal'
+    'findDealById' | 'findPipelineById' | 'updateDealWithStageHistory'
   >,
   lossReasons: LossReasonResolver,
   services: { clock: CrmDealClock; ids: Pick<CrmDealIds, 'dealStageHistoryId'> },
@@ -389,6 +413,7 @@ async function moveCrmDealStageCore(
   if (!deal) return { success: false, error: 'not_found' };
   const denied = authorizeExistingDeal(input.actor, deal);
   if (denied) return { success: false, error: 'forbidden', reason: denied };
+  if (deal.archivedAt) return { success: false, error: 'invalid_input', reason: 'archived_deal' };
   if (deal.currentStageId !== input.fromStageId) {
     return { success: false, error: 'invalid_input', reason: 'stage_drift' };
   }
@@ -404,6 +429,9 @@ async function moveCrmDealStageCore(
   const toStage = findStage(pipeline, input.toStageId);
   if (!toStage)
     return { success: false, error: 'invalid_input', reason: 'pipeline_stage_mismatch' };
+  if (toStage.id === deal.currentStageId) {
+    return { success: false, error: 'invalid_input', reason: 'no_op_transition' };
+  }
   if (options.expectedTerminalStage === 'won' && !toStage.isWon) {
     return { success: false, error: 'invalid_input', reason: 'pipeline_stage_mismatch' };
   }
@@ -447,8 +475,10 @@ async function moveCrmDealStageCore(
     tenantId: deal.tenantId,
     toStageId: toStage.id,
   });
-  const saved = await repository.updateDeal({ deal: updated });
-  const appended = await repository.appendStageHistory({ history });
+  const { deal: saved, history: appended } = await repository.updateDealWithStageHistory({
+    deal: updated,
+    history,
+  });
 
   const event = createTransitionEvent(input.actor, saved, deal.currentStageId, toStage, now, {
     idempotencyKey: input.idempotencyKey,
@@ -461,7 +491,7 @@ export async function winCrmDeal(
   input: WinCrmDealInput,
   repository: Pick<
     CrmDealRepository,
-    'appendStageHistory' | 'findDealById' | 'findPipelineById' | 'updateDeal'
+    'findDealById' | 'findPipelineById' | 'updateDealWithStageHistory'
   >,
   lossReasons: LossReasonResolver,
   services: { clock: CrmDealClock; ids: Pick<CrmDealIds, 'dealStageHistoryId'> }
@@ -475,7 +505,7 @@ export async function loseCrmDeal(
   input: LoseCrmDealInput,
   repository: Pick<
     CrmDealRepository,
-    'appendStageHistory' | 'findDealById' | 'findPipelineById' | 'updateDeal'
+    'findDealById' | 'findPipelineById' | 'updateDealWithStageHistory'
   >,
   lossReasons: LossReasonResolver,
   services: { clock: CrmDealClock; ids: Pick<CrmDealIds, 'dealStageHistoryId'> }
@@ -489,7 +519,7 @@ export async function reopenCrmDeal(
   input: ReopenCrmDealInput,
   repository: Pick<
     CrmDealRepository,
-    'appendStageHistory' | 'findDealById' | 'findPipelineById' | 'updateDeal'
+    'findDealById' | 'findPipelineById' | 'updateDealWithStageHistory'
   >,
   services: { clock: CrmDealClock; ids: Pick<CrmDealIds, 'dealStageHistoryId'> }
 ): Promise<ReopenCrmDealResult> {
@@ -500,8 +530,12 @@ export async function reopenCrmDeal(
   if (!deal) return { success: false, error: 'not_found' };
   const denied = authorizeReopen(input.actor, deal);
   if (denied) return { success: false, error: 'forbidden', reason: denied };
+  if (deal.archivedAt) return { success: false, error: 'invalid_input', reason: 'archived_deal' };
   if (deal.currentStageId !== input.fromStageId) {
     return { success: false, error: 'invalid_input', reason: 'stage_drift' };
+  }
+  if (!deal.closedAt && deal.forecastCategory !== 'closed') {
+    return { success: false, error: 'invalid_input', reason: 'deal_not_closed' };
   }
   const reopenReason = input.reopenReason.trim();
   if (!reopenReason) {
@@ -537,8 +571,10 @@ export async function reopenCrmDeal(
     tenantId: deal.tenantId,
     toStageId: toStage.id,
   });
-  const saved = await repository.updateDeal({ deal: updated });
-  const appended = await repository.appendStageHistory({ history });
+  const { deal: saved, history: appended } = await repository.updateDealWithStageHistory({
+    deal: updated,
+    history,
+  });
   return {
     deal: saved,
     event: {

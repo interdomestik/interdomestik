@@ -180,6 +180,11 @@ describe('CRM pipelines domain', () => {
         { name: 'Open', order: 10, probability: 20 },
         { name: 'Won', order: 20, probability: 100, isWon: true },
       ],
+      [
+        { name: 'Open', order: 10, probability: 20, expectedDurationDays: -1 },
+        { name: 'Won', order: 20, probability: 100, isWon: true },
+        { name: 'Lost', order: 30, probability: 0, isLost: true },
+      ],
     ];
 
     for (const stages of invalidStageSets) {
@@ -328,6 +333,28 @@ describe('CRM pipelines domain', () => {
         ],
       }),
       success: true,
+    });
+
+    await expect(
+      reorderCrmPipelineStages(
+        {
+          actor: branchManagerActor,
+          pipelineId: 'pipeline-1',
+          stageOrders: [
+            { order: 10, stageId: 'stage-commit' },
+            { order: 20, stageId: 'stage-commit' },
+            { order: 30, stageId: 'stage-won' },
+            { order: 40, stageId: 'stage-lost' },
+          ],
+          tenantId: 'tenant-1',
+        },
+        repository,
+        { clock: { now: () => '2026-05-13T20:07:30.000Z' } }
+      )
+    ).resolves.toEqual({
+      success: false,
+      error: 'invalid_input',
+      reason: 'invalid_stage_order',
     });
   });
 
