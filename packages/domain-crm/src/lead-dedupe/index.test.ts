@@ -110,7 +110,6 @@ class InMemoryLeadDedupeRepository implements CrmLeadDedupeRepository {
     lead: CrmLeadDedupeLead;
     limit: number;
   }): Promise<readonly CrmLeadDedupeLead[]> {
-    void params.actor;
     return [...this.leads.values()]
       .filter(candidate => candidate.tenantId === params.lead.tenantId)
       .slice(0, params.limit + 10);
