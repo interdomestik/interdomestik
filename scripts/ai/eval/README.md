@@ -30,4 +30,5 @@ The suite reports:
 
 - The suite is deterministic and does not call network models.
 - Policy extraction now validates the analyzer output directly against `policyExtractSchema`; sparse and adversarial fixtures assert unsupported facts stay null with warnings instead of being fabricated.
-- The fixture suite is available for manual and local validation, but it no longer runs automatically on every PR.
+- CI runs the fixture suite as a blocking lane for AI-surface PRs and for mainline pushes.
+- The release-candidate command pack runs the same fixture suite as blocking release proof.

@@ -1,4 +1,6 @@
 const AI_EVAL_PATTERNS = [
+  /^\.github\/workflows\/ci\.yml$/,
+  /^\.github\/workflows\/release-candidate\.yml$/,
   /^apps\/web\/src\/app\/api\/ai\//,
   /^apps\/web\/src\/app\/api\/policies\/analyze\//,
   /^apps\/web\/src\/lib\/ai\//,
@@ -10,6 +12,8 @@ const AI_EVAL_PATTERNS = [
   /^packages\/domain-claims\/src\/claims\//,
   /^packages\/domain-claims\/package\.json$/,
   /^scripts\/ai\/eval\//,
+  /^scripts\/ci\/ai-eval-surface(?:-lib|\.test)?\.mjs$/,
+  /^scripts\/ci\/workflow-contracts\.test\.mjs$/,
 ];
 
 function normalizeChangedFiles(changedFiles) {
