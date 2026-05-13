@@ -43,16 +43,22 @@ The tranche is not a broad CRM rewrite. It must continue the existing ports/adap
    - Promote `crmDeals` into the domain with stage history and forecast-ready read contracts.
 6. `P38-DG04 Dedupe And Routing Design`
    - Split dedupe and routing into parallelizable slices only after account/contact identity is available.
+7. `P38-CRM04 Lead Dedupe Domain Foundation`
+   - Add pure lead matching and explicit merge-history contracts before routing decisions depend on duplicate-prone lead identity.
+8. `P38-DG05 Lead Routing Design`
+   - Promote routing only after dedupe contracts exist, so assignment strategy can account for duplicate or merge-pending leads.
+9. `P38-CRM05 Lead Routing Domain Foundation`
+   - Add routing-rule and assignee-selection contracts without web or SQL wiring.
 
 ### P1 product depth
 
-7. `P38-CRM04 Tasks Foundation`
-8. `P38-CRM05 Templates Foundation`
-9. `P38-CRM06 Sequences Foundation`
-10. `P38-CRM07 Activity Channel Specializations`
-11. `P38-CRM08 Lead Scoring Provenance`
-12. `P38-CRM09 Reporting Read-Models And Forecast Snapshots`
-13. `P38-CRM10 Consent And Preferences`
+10. `P38-CRM06 Tasks Foundation`
+11. `P38-CRM07 Templates Foundation`
+12. `P38-CRM08 Sequences Foundation`
+13. `P38-CRM09 Activity Channel Specializations`
+14. `P38-CRM10 Lead Scoring Provenance`
+15. `P38-CRM11 Reporting Read-Models And Forecast Snapshots`
+16. `P38-CRM12 Consent And Preferences`
 
 ### P2 strategic backlog
 
