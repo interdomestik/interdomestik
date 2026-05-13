@@ -2,7 +2,10 @@ import type { CrmActorContext } from '../context';
 import type { CrmLeadStage } from '../leads/mutations';
 
 export const CRM_DOMAIN_EVENT_TYPES = [
+  'crm.account.created',
+  'crm.contact.created',
   'crm.lead.created',
+  'crm.lead.converted',
   'crm.lead.stage_changed',
   'crm.lead.ownership_transferred',
   'crm.lead.activity_recorded',
@@ -37,6 +40,28 @@ export type CrmDomainEventBase<
   type: TType;
 };
 
+export type CrmAccountCreatedEvent = CrmDomainEventBase<
+  'crm.account.created',
+  'account',
+  {
+    accountId: string;
+    branchId: string;
+    name: string;
+    ownerAgentId?: string | null;
+  }
+>;
+
+export type CrmContactCreatedEvent = CrmDomainEventBase<
+  'crm.contact.created',
+  'contact',
+  {
+    branchId: string;
+    contactId: string;
+    email?: string | null;
+    fullName: string;
+  }
+>;
+
 export type CrmLeadCreatedEvent = CrmDomainEventBase<
   'crm.lead.created',
   'lead',
@@ -47,6 +72,19 @@ export type CrmLeadCreatedEvent = CrmDomainEventBase<
     source?: string | null;
     stage: CrmLeadStage;
     type: 'individual' | 'business';
+  }
+>;
+
+export type CrmLeadConvertedEvent = CrmDomainEventBase<
+  'crm.lead.converted',
+  'lead',
+  {
+    accountId: string;
+    branchId: string;
+    contactId: string;
+    conversionId: string;
+    leadId: string;
+    reason?: string | null;
   }
 >;
 
@@ -101,7 +139,10 @@ export type CrmDealWonEvent = CrmDomainEventBase<
 >;
 
 export type CrmDomainEvent =
+  | CrmAccountCreatedEvent
+  | CrmContactCreatedEvent
   | CrmLeadCreatedEvent
+  | CrmLeadConvertedEvent
   | CrmLeadStageChangedEvent
   | CrmLeadOwnershipTransferredEvent
   | CrmLeadActivityRecordedEvent
