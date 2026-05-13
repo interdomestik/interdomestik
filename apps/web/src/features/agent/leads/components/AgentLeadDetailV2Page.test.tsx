@@ -21,7 +21,8 @@ const hoisted = vi.hoisted(() => ({
   getSessionMock: vi.fn(),
   ensureTenantIdMock: vi.fn(() => 'tenant-1'),
   getAgentLeadDetailsCoreMock: vi.fn(),
-  getLeadActivitiesMock: vi.fn(),
+  getAgentCrmLeadActivitiesMock: vi.fn(),
+  crmLeadActivityRepository: {},
 }));
 
 vi.mock('next/headers', () => ({
@@ -49,18 +50,22 @@ vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: hoisted.ensureTenantIdMock,
 }));
 
-vi.mock('@/actions/activities', () => ({
-  getLeadActivities: hoisted.getLeadActivitiesMock,
-}));
-
 vi.mock('@/actions/agent-crm-follow-up', () => ({
   completeAgentLeadFollowUp: vi.fn(),
   scheduleAgentLeadFollowUp: vi.fn(),
 }));
 
+vi.mock('@/lib/domain-crm/lead-activity-repository', () => ({
+  crmLeadActivityRepository: hoisted.crmLeadActivityRepository,
+}));
+
 vi.mock('@/app/[locale]/(agent)/agent/leads/[id]/_core', () => ({
   AgentLeadDetailsAccessDeniedError: hoisted.AgentLeadDetailsAccessDeniedError,
   getAgentLeadDetailsCore: hoisted.getAgentLeadDetailsCoreMock,
+}));
+
+vi.mock('@interdomestik/domain-crm/lead-activities', () => ({
+  getAgentCrmLeadActivities: hoisted.getAgentCrmLeadActivitiesMock,
 }));
 
 vi.mock('@/components/crm/activity-feed', () => ({
@@ -166,7 +171,7 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
       },
       deals: [],
     });
-    hoisted.getLeadActivitiesMock.mockResolvedValue([]);
+    hoisted.getAgentCrmLeadActivitiesMock.mockResolvedValue({ success: true, activities: [] });
   });
 
   it('rejects a session with missing tenant identity before loading lead details', async () => {
@@ -184,23 +189,30 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
 
     expect(hoisted.ensureTenantIdMock).toHaveBeenCalledWith(session);
     expect(hoisted.getAgentLeadDetailsCoreMock).not.toHaveBeenCalled();
-    expect(hoisted.getLeadActivitiesMock).not.toHaveBeenCalled();
+    expect(hoisted.getAgentCrmLeadActivitiesMock).not.toHaveBeenCalled();
   });
 
-  it('passes actor context into the lead detail core before loading activities', async () => {
+  it('passes actor context into the lead detail and activity read domains', async () => {
     await AgentLeadDetailV2Page({ id: 'lead-1', locale: 'en' });
 
+    const actor = {
+      actorId: 'agent-1',
+      role: 'agent',
+      scope: { agentId: 'agent-1', branchId: 'branch-1' },
+      tenantId: 'tenant-1',
+    };
     expect(hoisted.setRequestLocaleMock).toHaveBeenCalledWith('en');
     expect(hoisted.getAgentLeadDetailsCoreMock).toHaveBeenCalledWith({
-      actor: {
-        actorId: 'agent-1',
-        role: 'agent',
-        scope: { agentId: 'agent-1', branchId: 'branch-1' },
-        tenantId: 'tenant-1',
-      },
+      actor,
       leadId: 'lead-1',
     });
-    expect(hoisted.getLeadActivitiesMock).toHaveBeenCalledWith('lead-1');
+    expect(hoisted.getAgentCrmLeadActivitiesMock).toHaveBeenCalledWith(
+      {
+        actor,
+        leadId: 'lead-1',
+      },
+      hoisted.crmLeadActivityRepository
+    );
   });
 
   it('rejects a non-agent or branchless session before loading lead details', async () => {
@@ -214,7 +226,7 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
 
     expect(hoisted.notFoundMock).toHaveBeenCalled();
     expect(hoisted.getAgentLeadDetailsCoreMock).not.toHaveBeenCalled();
-    expect(hoisted.getLeadActivitiesMock).not.toHaveBeenCalled();
+    expect(hoisted.getAgentCrmLeadActivitiesMock).not.toHaveBeenCalled();
   });
 
   it('does not load activities when the lead detail core returns not_found', async () => {
@@ -227,7 +239,7 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
     );
 
     expect(hoisted.notFoundMock).toHaveBeenCalled();
-    expect(hoisted.getLeadActivitiesMock).not.toHaveBeenCalled();
+    expect(hoisted.getAgentCrmLeadActivitiesMock).not.toHaveBeenCalled();
   });
 
   it('does not load activities when the lead detail core denies access', async () => {
@@ -240,7 +252,21 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
     );
 
     expect(hoisted.notFoundMock).toHaveBeenCalled();
-    expect(hoisted.getLeadActivitiesMock).not.toHaveBeenCalled();
+    expect(hoisted.getAgentCrmLeadActivitiesMock).not.toHaveBeenCalled();
+  });
+
+  it('does not render when the activity domain denies the read after lead authorization', async () => {
+    hoisted.getAgentCrmLeadActivitiesMock.mockResolvedValueOnce({
+      success: false,
+      error: 'forbidden',
+      reason: 'branch_scope',
+    });
+
+    await expect(AgentLeadDetailV2Page({ id: 'lead-1', locale: 'en' })).rejects.toThrow(
+      'not-found'
+    );
+
+    expect(hoisted.notFoundMock).toHaveBeenCalled();
   });
 
   it('preserves the route locale when redirecting unauthenticated sessions to login', async () => {
@@ -310,24 +336,26 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
   });
 
   it('renders the due follow-up completion action from lead activities', async () => {
-    hoisted.getLeadActivitiesMock.mockResolvedValueOnce([
-      {
-        id: 'follow-up-1',
-        tenantId: 'tenant-1',
-        leadId: 'lead-1',
-        memberId: 'lead-1',
-        agentId: 'agent-1',
-        type: 'follow_up',
-        subject: 'Call back',
-        description: 'Needs a call.',
-        occurredAt: '2026-05-10T08:00:00.000Z',
-        scheduledAt: '2020-01-01T10:00:00.000Z',
-        completedAt: null,
-        createdAt: '2026-05-10T08:00:00.000Z',
-        updatedAt: '2026-05-10T08:00:00.000Z',
-        agent: null,
-      },
-    ]);
+    hoisted.getAgentCrmLeadActivitiesMock.mockResolvedValueOnce({
+      success: true,
+      activities: [
+        {
+          id: 'follow-up-1',
+          tenantId: 'tenant-1',
+          leadId: 'lead-1',
+          agentId: 'agent-1',
+          branchId: 'branch-1',
+          type: 'follow_up',
+          subject: 'Call back',
+          description: 'Needs a call.',
+          occurredAt: '2026-05-10T08:00:00.000Z',
+          scheduledAt: '2020-01-01T10:00:00.000Z',
+          completedAt: null,
+          createdAt: '2026-05-10T08:00:00.000Z',
+          agent: null,
+        },
+      ],
+    });
 
     const element = await AgentLeadDetailV2Page({ id: 'lead-1', locale: 'en' });
     const html = renderToStaticMarkup(element);
