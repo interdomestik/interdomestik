@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CrmActorContext } from '../context';
 import {
   AGENT_CRM_LEAD_ACTIVITY_MAX_ROWS,
+  authorizeAgentCrmLeadActivityRead,
   getAgentCrmLeadActivities,
   type AgentCrmLeadActivity,
   type AgentCrmLeadActivityLead,
@@ -154,5 +155,23 @@ describe('getAgentCrmLeadActivities', () => {
       lead: lead(),
       limit: AGENT_CRM_LEAD_ACTIVITY_MAX_ROWS,
     });
+  });
+
+  it('normalizes fractional limits before reading the repository', async () => {
+    const repo = repository({});
+
+    await getAgentCrmLeadActivities({ actor, leadId: 'lead-1', limit: 1.5 }, repo);
+
+    expect(repo.listAgentLeadActivities).toHaveBeenCalledWith({
+      actor,
+      lead: lead(),
+      limit: 1,
+    });
+  });
+
+  it('classifies lead mismatches separately from agent scope mismatches', () => {
+    expect(authorizeAgentCrmLeadActivityRead(actor, lead(), activity({ leadId: 'lead-2' }))).toBe(
+      'lead_scope'
+    );
   });
 });

@@ -6,6 +6,7 @@ export const AGENT_CRM_LEAD_ACTIVITY_MAX_ROWS = 100;
 export type AgentCrmLeadActivityAuthorizationDenialReason =
   | 'agent_scope'
   | 'branch_scope'
+  | 'lead_scope'
   | 'role_scope'
   | 'tenant_scope';
 
@@ -48,10 +49,8 @@ function normalizeLimit(limit: number | null | undefined): number {
   if (!Number.isFinite(limit ?? AGENT_CRM_LEAD_ACTIVITY_MAX_ROWS)) {
     return AGENT_CRM_LEAD_ACTIVITY_MAX_ROWS;
   }
-  return Math.max(
-    1,
-    Math.min(limit ?? AGENT_CRM_LEAD_ACTIVITY_MAX_ROWS, AGENT_CRM_LEAD_ACTIVITY_MAX_ROWS)
-  );
+  const integerLimit = Math.trunc(limit ?? AGENT_CRM_LEAD_ACTIVITY_MAX_ROWS);
+  return Math.max(1, Math.min(integerLimit, AGENT_CRM_LEAD_ACTIVITY_MAX_ROWS));
 }
 
 export function authorizeAgentCrmLeadActivityRead(
@@ -72,7 +71,7 @@ export function authorizeAgentCrmLeadActivityRead(
   if (activity) {
     if (activity.tenantId !== actor.tenantId) return 'tenant_scope';
     if (activity.agentId !== actor.actorId) return 'agent_scope';
-    if (lead && activity.leadId !== lead.id) return 'agent_scope';
+    if (lead && activity.leadId !== lead.id) return 'lead_scope';
     if (activity.branchId !== actor.scope.branchId) return 'branch_scope';
   }
 

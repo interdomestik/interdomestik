@@ -32,6 +32,8 @@ function mapActivity(row: AgentCrmLeadActivityRow): AgentCrmLeadActivity {
     branchId: row.branchId ?? null,
     completedAt: toIso(row.completedAt),
     createdAt: toIso(row.createdAt) ?? new Date(0).toISOString(),
+    // The current migrated crm_activities table does not expose a description column; the
+    // legacy activity feed read also rendered these rows from summary-only data.
     description: null,
     id: row.id,
     leadId: row.leadId,
