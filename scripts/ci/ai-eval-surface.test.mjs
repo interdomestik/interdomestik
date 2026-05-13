@@ -74,6 +74,42 @@ test('AI eval surface only reacts to AI package manifests, not root workspace fi
   );
 });
 
+test('AI eval surface runs when the CI or release gate contract changes', () => {
+  assert.deepEqual(
+    evaluateAiEvalSurface({
+      eventName: 'pull_request',
+      changedFiles: [
+        '.github/workflows/ci.yml',
+        '.github/workflows/release-candidate.yml',
+        'scripts/ci/workflow-contracts.test.mjs',
+      ],
+    }),
+    decision(true, 'ai_eval_surface_changed', [
+      '.github/workflows/ci.yml',
+      '.github/workflows/release-candidate.yml',
+      'scripts/ci/workflow-contracts.test.mjs',
+    ])
+  );
+
+  assert.deepEqual(
+    evaluateAiEvalSurface({
+      eventName: 'pull_request',
+      changedFiles: ['scripts/ci/ai-eval-surface-lib.mjs'],
+    }),
+    decision(true, 'ai_eval_surface_changed', ['scripts/ci/ai-eval-surface-lib.mjs'])
+  );
+});
+
+test('AI eval surface skips unrelated CI policy helpers', () => {
+  assert.deepEqual(
+    evaluateAiEvalSurface({
+      eventName: 'pull_request',
+      changedFiles: ['scripts/ci/validation-surface-policy.mjs'],
+    }),
+    decision(false, 'no_ai_eval_surface_changes')
+  );
+});
+
 test('AI eval surface CLI prints GitHub output fields', () => {
   const root = createTempRoot('ai-eval-surface-cli-');
   const changedFilesPath = path.join(root, 'changed-files.txt');

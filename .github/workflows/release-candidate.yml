@@ -76,6 +76,18 @@ jobs:
           echo "ref=${GITHUB_REF}" >> "${RC_LOGS_DIR}/run-metadata.txt"
           echo "sha=${GITHUB_SHA}" >> "${RC_LOGS_DIR}/run-metadata.txt"
 
+      - name: RC check - AI eval fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="${RC_LOGS_DIR}/ai_eval.log"
+          set +e
+          pnpm ai:eval 2>&1 | tee "${log_file}"
+          exit_code=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/ai_eval.exit"
+          exit "${exit_code}"
+
       - name: Prepare CI database
         shell: bash
         run: |

@@ -194,16 +194,56 @@ test('CI PR path keeps only RLS coverage while PR E2E owns the PR browser gate l
   assert.equal(findStep(prE2eJob.steps, 'E2E Smoke Suite (KS+MK)'), undefined);
 });
 
-test('CI no longer materializes optional AI-eval and multi-agent dry-run lanes on the default PR path', () => {
+test('CI materializes AI eval as a blocking surface-gated lane', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const validationSurfaceJob = ciWorkflow.jobs['validation-surface'];
+  const aiEvalJob = ciWorkflow.jobs['ai-eval'];
 
-  assert.equal(validationSurfaceJob.outputs.ai_eval_should_run, undefined);
-  assert.equal(validationSurfaceJob.outputs.ai_eval_reason, undefined);
-  assert.equal(validationSurfaceJob.outputs.ai_eval_matched_paths, undefined);
-  assert.equal(findStep(validationSurfaceJob.steps, 'Evaluate AI eval surface'), undefined);
-  assert.equal(ciWorkflow.jobs['ai-eval'], undefined);
+  assert.equal(
+    validationSurfaceJob.outputs.ai_eval_should_run,
+    '${{ steps.ai_eval_surface.outputs.should_run }}'
+  );
+  assert.equal(
+    validationSurfaceJob.outputs.ai_eval_reason,
+    '${{ steps.ai_eval_surface.outputs.reason }}'
+  );
+  assert.equal(
+    validationSurfaceJob.outputs.ai_eval_matched_paths,
+    '${{ steps.ai_eval_surface.outputs.matched_paths }}'
+  );
+
+  const aiEvalSurfaceStep = findStep(validationSurfaceJob.steps, 'Evaluate AI eval surface');
+  assert.ok(aiEvalSurfaceStep);
+  assert.equal(aiEvalSurfaceStep.id, 'ai_eval_surface');
+  assert.match(aiEvalSurfaceStep.run, /scripts\/ci\/ai-eval-surface\.mjs/u);
+
+  assert.ok(aiEvalJob);
+  assert.ok(normalizeNeeds(aiEvalJob.needs).includes('validation-surface'));
+  assert.equal(aiEvalJob.if, "needs.validation-surface.outputs.ai_eval_should_run == 'true'");
+  assert.equal(aiEvalJob['continue-on-error'], undefined);
+  const runStep = findStep(aiEvalJob.steps, 'Run AI Eval Fixtures');
+  assert.ok(runStep);
+  assert.equal(runStep.run, 'pnpm ai:eval');
   assert.equal(ciWorkflow.jobs['multi-agent-dry-run'], undefined);
+});
+
+test('Release candidate gate includes blocking AI eval fixture proof', () => {
+  const releaseCandidateWorkflow = readWorkflow('.github/workflows/release-candidate.yml');
+  const releaseCandidateSteps = releaseCandidateWorkflow.jobs['rc-gate'].steps;
+
+  const aiEvalStep = findStep(releaseCandidateSteps, 'RC check - AI eval fixtures');
+  assert.ok(aiEvalStep);
+  assert.equal(aiEvalStep['continue-on-error'], undefined);
+  assert.match(aiEvalStep.run, /\bpnpm ai:eval\b/u);
+  assert.match(aiEvalStep.run, /ai_eval\.exit/u);
+  assert.ok(
+    findStepIndex(releaseCandidateSteps, 'Prepare RC workspace') <
+      findStepIndex(releaseCandidateSteps, 'RC check - AI eval fixtures')
+  );
+  assert.ok(
+    findStepIndex(releaseCandidateSteps, 'RC check - AI eval fixtures') <
+      findStepIndex(releaseCandidateSteps, 'Prepare CI database')
+  );
 });
 
 test('CI unit lane runs the blocking repository coverage gate', () => {
