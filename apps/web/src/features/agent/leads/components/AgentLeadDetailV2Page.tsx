@@ -2,7 +2,6 @@ import {
   completeAgentLeadFollowUp,
   scheduleAgentLeadFollowUp,
 } from '@/actions/agent-crm-follow-up';
-import { getLeadActivities } from '@/actions/activities';
 import {
   AgentLeadDetailsAccessDeniedError,
   getAgentLeadDetailsCore,
@@ -12,12 +11,13 @@ import { LogActivityDialog } from '@/components/crm/log-activity-dialog';
 import type { AppLocale } from '@/i18n/locales';
 import { Link, redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
+import { crmLeadActivityRepository } from '@/lib/domain-crm/lead-activity-repository';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+import { getAgentCrmLeadActivities } from '@interdomestik/domain-crm/lead-activities';
 import {
   deriveCrmLeadNextAction,
   type CrmLeadNextAction,
 } from '@interdomestik/domain-crm/leads/follow-up';
-import type { CrmLeadActivity } from '@interdomestik/domain-crm/leads/types';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { CheckCircle2, PlusCircle } from 'lucide-react';
@@ -79,29 +79,6 @@ function formatDealValue(valueCents: number | null | undefined, locale: AppLocal
     style: 'currency',
     currency: 'EUR',
   }).format((valueCents ?? 0) / 100);
-}
-
-type LeadActivityFeedRow = Awaited<ReturnType<typeof getLeadActivities>>[number];
-
-function toIso(value: Date | string | null | undefined): string | null {
-  if (!value) return null;
-  return value instanceof Date ? value.toISOString() : value;
-}
-
-function mapFeedRowToCrmActivity(row: LeadActivityFeedRow): CrmLeadActivity {
-  return {
-    agentId: row.agentId,
-    completedAt: toIso(row.completedAt),
-    createdAt: toIso(row.createdAt ?? row.occurredAt) ?? new Date(0).toISOString(),
-    description: row.description ?? null,
-    id: row.id,
-    leadId: row.leadId ?? row.memberId,
-    occurredAt: toIso(row.occurredAt ?? row.createdAt) ?? new Date(0).toISOString(),
-    scheduledAt: toIso(row.scheduledAt),
-    subject: row.subject,
-    tenantId: row.tenantId ?? '',
-    type: row.type,
-  };
 }
 
 function formatFollowUpDate(value: string, locale: AppLocale) {
@@ -224,12 +201,21 @@ export async function AgentLeadDetailV2Page({
 
   if (leadResult.kind === 'not_found') notFound();
 
-  const activities = await getLeadActivities(id);
+  const activityResult = await getAgentCrmLeadActivities(
+    {
+      actor,
+      leadId: id,
+    },
+    crmLeadActivityRepository
+  );
+
+  if (!activityResult.success) notFound();
 
   const lead = leadResult.lead;
   const deals = leadResult.deals;
+  const activities = activityResult.activities;
   const nextAction = deriveCrmLeadNextAction({
-    activities: activities.map(mapFeedRowToCrmActivity),
+    activities,
     lead: { id: lead.id, tenantId: lead.tenantId },
     now: new Date().toISOString(),
   });
