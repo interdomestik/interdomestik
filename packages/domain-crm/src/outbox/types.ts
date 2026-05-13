@@ -9,7 +9,11 @@ export const CRM_DOMAIN_EVENT_TYPES = [
   'crm.lead.stage_changed',
   'crm.lead.ownership_transferred',
   'crm.lead.activity_recorded',
+  'crm.deal.created',
+  'crm.deal.stage_changed',
   'crm.deal.won',
+  'crm.deal.lost',
+  'crm.deal.reopened',
 ] as const;
 export type CrmDomainEventType = (typeof CRM_DOMAIN_EVENT_TYPES)[number];
 
@@ -38,6 +42,7 @@ export type CrmDomainEventBase<
   payload: TPayload;
   tenantId: string;
   type: TType;
+  idempotencyKey?: string | null;
 };
 
 export type CrmAccountCreatedEvent = CrmDomainEventBase<
@@ -138,6 +143,61 @@ export type CrmDealWonEvent = CrmDomainEventBase<
   }
 >;
 
+export type CrmDealCreatedEvent = CrmDomainEventBase<
+  'crm.deal.created',
+  'deal',
+  {
+    accountId: string;
+    agentId: string;
+    branchId: string;
+    contactId?: string | null;
+    currencyCode: string;
+    dealId: string;
+    expectedCloseAt?: string | null;
+    forecastCategory: 'pipeline' | 'best' | 'commit' | 'omitted' | 'closed';
+    pipelineId: string;
+    pipelineStageId: string;
+    valueAmountMinor: number;
+  }
+>;
+
+export type CrmDealStageChangedEvent = CrmDomainEventBase<
+  'crm.deal.stage_changed',
+  'deal',
+  {
+    dealId: string;
+    fromStageId: string;
+    isLost: false;
+    isWon: false;
+    pipelineId: string;
+    toStageId: string;
+  }
+>;
+
+export type CrmDealLostEvent = CrmDomainEventBase<
+  'crm.deal.lost',
+  'deal',
+  {
+    dealId: string;
+    fromStageId: string;
+    lossReasonId: string;
+    pipelineId: string;
+    toStageId: string;
+  }
+>;
+
+export type CrmDealReopenedEvent = CrmDomainEventBase<
+  'crm.deal.reopened',
+  'deal',
+  {
+    dealId: string;
+    fromStageId: string;
+    pipelineId: string;
+    reopenReason: string;
+    toStageId: string;
+  }
+>;
+
 export type CrmDomainEvent =
   | CrmAccountCreatedEvent
   | CrmContactCreatedEvent
@@ -146,7 +206,11 @@ export type CrmDomainEvent =
   | CrmLeadStageChangedEvent
   | CrmLeadOwnershipTransferredEvent
   | CrmLeadActivityRecordedEvent
-  | CrmDealWonEvent;
+  | CrmDealCreatedEvent
+  | CrmDealStageChangedEvent
+  | CrmDealWonEvent
+  | CrmDealLostEvent
+  | CrmDealReopenedEvent;
 
 export const CRM_OUTBOX_EVENT_STATUSES = ['pending', 'publishing', 'published', 'failed'] as const;
 export type CrmOutboxEventStatus = (typeof CRM_OUTBOX_EVENT_STATUSES)[number];
