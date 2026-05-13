@@ -19,7 +19,7 @@ function getSupportedLocale(value: unknown): AppLocale {
     : DEFAULT_LOCALE;
 }
 
-export async function createMemberSupportHandoff(formData: FormData) {
+async function executeCreateMemberSupportHandoff(formData: FormData) {
   const { session, requestHeaders } = await getActionContext();
   const input = formDataToInput(formData);
   const locale = getSupportedLocale(input.locale);
@@ -30,6 +30,12 @@ export async function createMemberSupportHandoff(formData: FormData) {
     requestHeaders,
     session,
   });
+
+  return { locale, result };
+}
+
+export async function createMemberSupportHandoff(formData: FormData) {
+  const { locale, result } = await executeCreateMemberSupportHandoff(formData);
 
   if (!result.success) {
     redirect({

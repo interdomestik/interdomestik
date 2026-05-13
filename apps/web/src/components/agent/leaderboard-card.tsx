@@ -1,13 +1,14 @@
 'use client';
 
 import { getAgentLeaderboard, type LeaderboardEntry } from '@/actions/leaderboard';
+import type { ActionResult, LeaderboardData } from '@/actions/leaderboard';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@interdomestik/ui/components/tabs';
 import { Crown, Medal, Trophy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 type Period = 'week' | 'month' | 'all';
 
@@ -23,15 +24,29 @@ const RANK_COLORS = {
   3: 'bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200',
 };
 
-export function LeaderboardCard() {
+export function LeaderboardCard({
+  initialResult,
+}: Readonly<{
+  initialResult?: ActionResult<LeaderboardData>;
+}>) {
   const t = useTranslations('agent.leaderboard');
-  const [period, setPeriod] = useState<Period>('month');
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [currentUserRank, setCurrentUserRank] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const initialData = initialResult?.success ? initialResult.data : null;
+  const hasInitialData = initialData !== null;
+  const [period, setPeriod] = useState<Period>(initialData?.period ?? 'month');
+  const [entries, setEntries] = useState<LeaderboardEntry[]>(initialData?.topAgents ?? []);
+  const [currentUserRank, setCurrentUserRank] = useState<number | null>(
+    initialData?.currentUserRank ?? null
+  );
+  const [isLoading, setIsLoading] = useState(!hasInitialData);
   const skeletonId = useId();
+  const hasHydratedRef = useRef(false);
 
   useEffect(() => {
+    if (!hasHydratedRef.current) {
+      hasHydratedRef.current = true;
+      if (hasInitialData) return;
+    }
+
     async function load() {
       setIsLoading(true);
       try {
@@ -47,7 +62,7 @@ export function LeaderboardCard() {
       }
     }
     load();
-  }, [period]);
+  }, [hasInitialData, period]);
 
   const renderContent = () => {
     if (isLoading) {

@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   branchFindFirstMock: vi.fn(),
   ensureTenantIdMock: vi.fn(() => 'tenant-1'),
+  getAgentLeaderboardCoreMock: vi.fn(),
+  getAgentReferralLinkCoreMock: vi.fn(),
   getMyCommissionSummaryMock: vi.fn(),
   getSessionMock: vi.fn(),
   getTranslationsMock: vi.fn(async () => (key: string) => key),
@@ -54,8 +56,16 @@ vi.mock('@/app/[locale]/(agent)/agent/_core', () => ({
   getAgentDashboardV2StatsCore: hoisted.statsCoreMock,
 }));
 
-vi.mock('@/actions/commissions', () => ({
-  getMyCommissionSummary: hoisted.getMyCommissionSummaryMock,
+vi.mock('@/actions/leaderboard/get', () => ({
+  getAgentLeaderboardCore: hoisted.getAgentLeaderboardCoreMock,
+}));
+
+vi.mock('@interdomestik/domain-membership-billing/commissions/summary', () => ({
+  getMyCommissionSummaryCore: hoisted.getMyCommissionSummaryMock,
+}));
+
+vi.mock('@interdomestik/domain-referrals/referrals/get-agent-link', () => ({
+  getAgentReferralLinkCore: hoisted.getAgentReferralLinkCoreMock,
 }));
 
 vi.mock('@/components/agent/agent-verified-id', () => ({
@@ -127,6 +137,23 @@ describe('AgentDashboardV2Page tenant boundary', () => {
         totalPaid: 0,
         totalPending: 0,
         totalApproved: 0,
+      },
+    });
+    hoisted.getAgentReferralLinkCoreMock.mockResolvedValue({
+      success: true,
+      data: {
+        code: 'AGENT-1',
+        link: 'http://localhost:3000?ref=AGENT-1',
+      },
+      error: undefined,
+      fieldErrors: undefined,
+    });
+    hoisted.getAgentLeaderboardCoreMock.mockResolvedValue({
+      success: true,
+      data: {
+        topAgents: [],
+        currentUserRank: null,
+        period: 'month',
       },
     });
   });

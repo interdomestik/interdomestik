@@ -1,4 +1,4 @@
-import { getMyCommissionSummary } from '@/actions/commissions';
+import { getAgentLeaderboardCore } from '@/actions/leaderboard/get';
 import { getAgentDashboardV2StatsCore } from '@/app/[locale]/(agent)/agent/_core';
 import { AgentVerifiedID } from '@/components/agent/agent-verified-id';
 import { LeaderboardCard } from '@/components/agent/leaderboard-card';
@@ -9,6 +9,8 @@ import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { localizeSeededBranchName } from '@/lib/localize-seeded-branch-name';
 import { db } from '@interdomestik/database/db';
+import { getMyCommissionSummaryCore } from '@interdomestik/domain-membership-billing/commissions/summary';
+import { getAgentReferralLinkCore } from '@interdomestik/domain-referrals/referrals/get-agent-link';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import {
   Button,
@@ -45,7 +47,7 @@ export async function AgentDashboardV2Page({
   const agentId = session.user.id;
   const tenantId = ensureTenantId(session);
 
-  const [stats, branch] = await Promise.all([
+  const [stats, branch, referralLinkResult, leaderboardResult, summaryResult] = await Promise.all([
     getAgentDashboardV2StatsCore({ agentId, tenantId }, { db }),
     session.user.branchId
       ? db.query.branches.findFirst({
@@ -54,10 +56,10 @@ export async function AgentDashboardV2Page({
           columns: { name: true },
         })
       : null,
+    getAgentReferralLinkCore({ session }),
+    getAgentLeaderboardCore({ session, period: 'month' }),
+    getMyCommissionSummaryCore({ session }),
   ]);
-
-  // Get commission summary
-  const summaryResult = await getMyCommissionSummary();
 
   const summary = summaryResult.success ? summaryResult.data : null;
 
@@ -243,11 +245,11 @@ export async function AgentDashboardV2Page({
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="lg:col-span-8 space-y-6">
           {isPro && <PipelineChart data={stats} />}
-          <LeaderboardCard />
+          <LeaderboardCard initialResult={leaderboardResult} />
         </div>
 
         <div className="lg:col-span-4 space-y-6">
-          <ReferralLinkCard />
+          <ReferralLinkCard referralLinkResult={referralLinkResult} />
           <Card className="border-white/5 bg-slate-950/20">
             <CardHeader>
               <CardTitle>{t('commissions.summary')}</CardTitle>

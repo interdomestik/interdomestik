@@ -1,4 +1,3 @@
-import { createMemberSupportHandoff } from '@/actions/support-handoffs/create';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { Link } from '@/i18n/routing';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
@@ -18,6 +17,7 @@ import { redirect } from 'next/navigation';
 
 import { AdvisoryBanner } from './_advisory-banner';
 import { PublicResponseBanner } from './_public-response-banner';
+import { MemberSupportHandoffForm } from './_support-handoff-form';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
@@ -215,89 +215,24 @@ export default async function HelpPage({ params, searchParams }: Props) {
                 />
               </>
             ) : null}
-            <form
-              action={createMemberSupportHandoff}
-              className="space-y-4"
-              data-testid="member-support-handoff-form"
-            >
-              <input type="hidden" name="locale" value={locale} />
-              <input
-                type="hidden"
-                name="source"
-                value={sourceClaimId ? 'member_claim_detail' : 'member_help'}
-              />
-              {sourceClaimId ? (
-                <input type="hidden" name="sourceClaimId" value={sourceClaimId} />
-              ) : null}
-              <div className="space-y-2">
-                <label htmlFor="support-subject" className="text-sm font-medium">
-                  {t('request.subject')}
-                </label>
-                <input
-                  id="support-subject"
-                  name="subject"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  maxLength={120}
-                  required
-                  data-testid="member-support-handoff-subject"
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="support-message" className="text-sm font-medium">
-                  {t('request.message')}
-                </label>
-                <textarea
-                  id="support-message"
-                  name="message"
-                  className="min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  maxLength={2000}
-                  required
-                  data-testid="member-support-handoff-message"
-                />
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label htmlFor="support-contact-preference" className="text-sm font-medium">
-                    {t('request.contactPreference')}
-                  </label>
-                  <select
-                    id="support-contact-preference"
-                    name="contactPreference"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    defaultValue="staff_reply"
-                    data-testid="member-support-handoff-contact-preference"
-                  >
-                    <option value="staff_reply">{t('request.contact.staff_reply')}</option>
-                    <option value="phone">{t('request.contact.phone')}</option>
-                    <option value="email">{t('request.contact.email')}</option>
-                    <option value="whatsapp">{t('request.contact.whatsapp')}</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="support-claim" className="text-sm font-medium">
-                    {t('request.claim')}
-                  </label>
-                  <select
-                    id="support-claim"
-                    name="claimId"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    defaultValue={selectedClaim?.id ?? ''}
-                    data-testid="member-support-handoff-claim"
-                  >
-                    <option value="">{t('request.noClaim')}</option>
-                    {claimOptions.map(claim => (
-                      <option key={claim.id} value={claim.id}>
-                        {claim.claimNumber || claim.title || claim.id}
-                        {claim.status ? ` (${claim.status})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <Button type="submit" data-testid="member-support-handoff-submit">
-                {t('request.submit')}
-              </Button>
-            </form>
+            <MemberSupportHandoffForm
+              claimOptions={claimOptions}
+              labels={{
+                claim: t('request.claim'),
+                contactPreference: t('request.contactPreference'),
+                contactPreferenceEmail: t('request.contact.email'),
+                contactPreferencePhone: t('request.contact.phone'),
+                contactPreferenceStaffReply: t('request.contact.staff_reply'),
+                contactPreferenceWhatsApp: t('request.contact.whatsapp'),
+                message: t('request.message'),
+                noClaim: t('request.noClaim'),
+                subject: t('request.subject'),
+                submit: t('request.submit'),
+              }}
+              locale={locale}
+              selectedClaimId={selectedClaim?.id ?? null}
+              sourceClaimId={sourceClaimId}
+            />
           </CardContent>
         </Card>
 
