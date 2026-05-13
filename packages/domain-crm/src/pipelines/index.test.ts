@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { CrmActorContext } from '../context';
-import type { CrmPipeline, CrmPipelineRepository } from './repository';
+import type { CrmPipeline, CrmPipelineRepository, CrmPipelineStage } from './repository';
 import {
   addCrmPipelineStage,
   archiveCrmPipeline,
@@ -64,6 +64,51 @@ class InMemoryCrmPipelines implements CrmPipelineRepository {
     if (index >= 0) this.pipelines[index] = params.pipeline;
     return params.pipeline;
   }
+}
+
+function pipelineStage(overrides: Partial<CrmPipelineStage>): CrmPipelineStage {
+  return {
+    id: 'stage-qualified',
+    isLost: false,
+    isWon: false,
+    name: 'Qualified',
+    order: 10,
+    pipelineId: 'pipeline-1',
+    probability: 20,
+    tenantId: 'tenant-1',
+    ...overrides,
+  };
+}
+
+function persistedPipeline(overrides: Partial<CrmPipeline> = {}): CrmPipeline {
+  return {
+    archivedAt: null,
+    archivedById: null,
+    branchId: 'branch-1',
+    createdAt: now,
+    id: 'pipeline-1',
+    name: 'Residential Sales',
+    stages: [
+      pipelineStage({}),
+      pipelineStage({
+        id: 'stage-won',
+        isWon: true,
+        name: 'Won',
+        order: 30,
+        probability: 100,
+      }),
+      pipelineStage({
+        id: 'stage-lost',
+        isLost: true,
+        name: 'Lost',
+        order: 40,
+        probability: 0,
+      }),
+    ],
+    tenantId: 'tenant-1',
+    updatedAt: now,
+    ...overrides,
+  };
 }
 
 describe('CRM pipelines domain', () => {
@@ -198,48 +243,7 @@ describe('CRM pipelines domain', () => {
 
   it('adds, edits, and reorders stages while preserving terminal-stage invariants', async () => {
     const repository = new InMemoryCrmPipelines();
-    repository.pipelines.push({
-      archivedAt: null,
-      archivedById: null,
-      branchId: 'branch-1',
-      createdAt: now,
-      id: 'pipeline-1',
-      name: 'Residential Sales',
-      stages: [
-        {
-          id: 'stage-qualified',
-          isLost: false,
-          isWon: false,
-          name: 'Qualified',
-          order: 10,
-          pipelineId: 'pipeline-1',
-          probability: 20,
-          tenantId: 'tenant-1',
-        },
-        {
-          id: 'stage-won',
-          isLost: false,
-          isWon: true,
-          name: 'Won',
-          order: 30,
-          pipelineId: 'pipeline-1',
-          probability: 100,
-          tenantId: 'tenant-1',
-        },
-        {
-          id: 'stage-lost',
-          isLost: true,
-          isWon: false,
-          name: 'Lost',
-          order: 40,
-          pipelineId: 'pipeline-1',
-          probability: 0,
-          tenantId: 'tenant-1',
-        },
-      ],
-      tenantId: 'tenant-1',
-      updatedAt: now,
-    });
+    repository.pipelines.push(persistedPipeline());
 
     const added = await addCrmPipelineStage(
       {
@@ -329,48 +333,7 @@ describe('CRM pipelines domain', () => {
 
   it('archives branch-scoped pipelines and rejects changes to archived pipelines', async () => {
     const repository = new InMemoryCrmPipelines();
-    repository.pipelines.push({
-      archivedAt: null,
-      archivedById: null,
-      branchId: 'branch-1',
-      createdAt: now,
-      id: 'pipeline-1',
-      name: 'Residential Sales',
-      stages: [
-        {
-          id: 'stage-qualified',
-          isLost: false,
-          isWon: false,
-          name: 'Qualified',
-          order: 10,
-          pipelineId: 'pipeline-1',
-          probability: 20,
-          tenantId: 'tenant-1',
-        },
-        {
-          id: 'stage-won',
-          isLost: false,
-          isWon: true,
-          name: 'Won',
-          order: 30,
-          pipelineId: 'pipeline-1',
-          probability: 100,
-          tenantId: 'tenant-1',
-        },
-        {
-          id: 'stage-lost',
-          isLost: true,
-          isWon: false,
-          name: 'Lost',
-          order: 40,
-          pipelineId: 'pipeline-1',
-          probability: 0,
-          tenantId: 'tenant-1',
-        },
-      ],
-      tenantId: 'tenant-1',
-      updatedAt: now,
-    });
+    repository.pipelines.push(persistedPipeline());
 
     await expect(
       archiveCrmPipeline(
