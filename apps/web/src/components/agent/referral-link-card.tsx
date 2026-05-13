@@ -48,7 +48,7 @@ export function ReferralLinkCard({
       toast.success(t('copied'));
       setTimeout(() => setIsCopied(false), 2000);
     } catch {
-      if (copyTextFallback(link)) {
+      if (copyTextFallback(normalizedLink)) {
         setIsCopied(true);
         toast.success(t('copied'));
         setTimeout(() => setIsCopied(false), 2000);

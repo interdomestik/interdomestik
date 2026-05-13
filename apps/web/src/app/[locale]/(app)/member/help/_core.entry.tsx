@@ -224,8 +224,6 @@ export default async function HelpPage({ params, searchParams }: Props) {
                 contactPreferencePhone: t('request.contact.phone'),
                 contactPreferenceStaffReply: t('request.contact.staff_reply'),
                 contactPreferenceWhatsApp: t('request.contact.whatsapp'),
-                created: t('request.created'),
-                error: t('request.error'),
                 message: t('request.message'),
                 noClaim: t('request.noClaim'),
                 subject: t('request.subject'),

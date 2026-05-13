@@ -18,8 +18,6 @@ type MemberSupportHandoffFormLabels = {
   contactPreferencePhone: string;
   contactPreferenceStaffReply: string;
   contactPreferenceWhatsApp: string;
-  created: string;
-  error: string;
   message: string;
   noClaim: string;
   subject: string;

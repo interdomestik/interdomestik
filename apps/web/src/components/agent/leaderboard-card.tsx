@@ -31,19 +31,20 @@ export function LeaderboardCard({
 }>) {
   const t = useTranslations('agent.leaderboard');
   const initialData = initialResult?.success ? initialResult.data : null;
+  const hasInitialData = initialData !== null;
   const [period, setPeriod] = useState<Period>(initialData?.period ?? 'month');
   const [entries, setEntries] = useState<LeaderboardEntry[]>(initialData?.topAgents ?? []);
   const [currentUserRank, setCurrentUserRank] = useState<number | null>(
     initialData?.currentUserRank ?? null
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(!hasInitialData);
   const skeletonId = useId();
   const hasHydratedRef = useRef(false);
 
   useEffect(() => {
     if (!hasHydratedRef.current) {
       hasHydratedRef.current = true;
-      return;
+      if (hasInitialData) return;
     }
 
     async function load() {
@@ -61,7 +62,7 @@ export function LeaderboardCard({
       }
     }
     load();
-  }, [period]);
+  }, [hasInitialData, period]);
 
   const renderContent = () => {
     if (isLoading) {
