@@ -3,13 +3,13 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-import { analyzePolicyText } from '../../../apps/web/src/lib/ai/policy-analyzer.ts';
-import { summarizeClaim } from '../../../packages/domain-ai/src/claims/summary.ts';
-import { extractLegalDocument } from '../../../packages/domain-ai/src/legal/extract.ts';
-import { claimSummarySchema } from '../../../packages/domain-ai/src/schemas/claim-summary.ts';
-import { legalDocExtractSchema } from '../../../packages/domain-ai/src/schemas/legal-doc-extract.ts';
-import { policyExtractSchema } from '../../../packages/domain-ai/src/schemas/policy-extract.ts';
-import { aggregateAiTelemetry, createAiTelemetryEvent } from '../../../packages/domain-ai/src/telemetry.ts';
+import * as policyAnalyzerModule from '../../../apps/web/src/lib/ai/policy-analyzer.ts';
+import * as claimSummaryModule from '../../../packages/domain-ai/src/claims/summary.ts';
+import * as legalExtractModule from '../../../packages/domain-ai/src/legal/extract.ts';
+import * as claimSummarySchemaModule from '../../../packages/domain-ai/src/schemas/claim-summary.ts';
+import * as legalDocExtractSchemaModule from '../../../packages/domain-ai/src/schemas/legal-doc-extract.ts';
+import * as policyExtractSchemaModule from '../../../packages/domain-ai/src/schemas/policy-extract.ts';
+import * as telemetryModule from '../../../packages/domain-ai/src/telemetry.ts';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DATASET_FILES = [
@@ -17,11 +17,22 @@ const DATASET_FILES = [
   'claim-summary.dataset.json',
   'legal-extract.dataset.json',
 ];
+const { analyzePolicyText } = unwrapModule(policyAnalyzerModule);
+const { summarizeClaim } = unwrapModule(claimSummaryModule);
+const { extractLegalDocument } = unwrapModule(legalExtractModule);
+const { claimSummarySchema } = unwrapModule(claimSummarySchemaModule);
+const { legalDocExtractSchema } = unwrapModule(legalDocExtractSchemaModule);
+const { policyExtractSchema } = unwrapModule(policyExtractSchemaModule);
+const { aggregateAiTelemetry, createAiTelemetryEvent } = unwrapModule(telemetryModule);
+
+function unwrapModule(module) {
+  return module.default ?? module['module.exports'] ?? module;
+}
 
 const WORKFLOW_RUNNERS = {
   policy_extract: {
     execute: async input => analyzePolicyText(String(input.documentText ?? '')),
-    normalizeForSchema: normalizePolicyAnalysisForEval,
+    normalizeForSchema: value => value,
     schema: policyExtractSchema,
   },
   claim_summary: {
@@ -40,68 +51,13 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function parseNonNegativeNumber(value) {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return Math.max(0, value);
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Number.parseFloat(value.replaceAll(',', '').trim());
-    if (Number.isFinite(parsed)) {
-      return Math.max(0, parsed);
-    }
-  }
-
-  return 0;
-}
-
-function dedupeStrings(values) {
-  return Array.from(
-    new Set(values.map(value => normalizeText(value)).filter(Boolean))
-  );
-}
-
-function normalizePolicyAnalysisForEval(rawOutput) {
-  const provider = normalizeText(rawOutput?.provider);
-  const policyNumber = normalizeText(rawOutput?.policyNumber);
-  const coverageAmount = parseNonNegativeNumber(rawOutput?.coverageAmount);
-  const deductible = parseNonNegativeNumber(rawOutput?.deductible);
-  const currency = normalizeText(rawOutput?.currency) || 'EUR';
-  const warnings = [];
-
-  if (!provider) {
-    warnings.push('Provider could not be extracted from the uploaded policy.');
-  }
-  if (!policyNumber) {
-    warnings.push('Policy number could not be extracted from the uploaded policy.');
-  }
-  if (coverageAmount === 0) {
-    warnings.push('Coverage amount could not be extracted from the uploaded policy.');
-  }
-  if (deductible === 0) {
-    warnings.push('Deductible could not be extracted from the uploaded policy.');
-  }
-
-  return {
-    provider: provider || 'Unknown provider',
-    policyNumber: policyNumber || 'Unknown policy number',
-    coverageAmount,
-    currency,
-    deductible,
-    confidence: normalizeText(rawOutput?.summary) ? 0.68 : 0.32,
-    warnings: dedupeStrings([...(rawOutput?.warnings ?? []), ...warnings]),
-  };
-}
-
 function valueContains(actualValue, expectedFragment) {
   if (typeof actualValue === 'string') {
     return actualValue.includes(expectedFragment);
   }
 
   if (Array.isArray(actualValue)) {
-    return actualValue.some(
-      value => typeof value === 'string' && value.includes(expectedFragment)
-    );
+    return actualValue.some(value => typeof value === 'string' && value.includes(expectedFragment));
   }
 
   return false;

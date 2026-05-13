@@ -234,9 +234,11 @@ describe('processPolicyAnalysisRunService', () => {
     const analysis = {
       provider: 'Acme Insurance',
       policyNumber: 'POL-123',
-      coverageAmount: '100000',
+      coverageAmount: 100000,
       currency: 'EUR',
-      deductible: '500',
+      deductible: 500,
+      confidence: 0.83,
+      warnings: ['Confirm deductible.'],
       hiddenPerks: [],
       summary: 'Extracted in background.',
     };
@@ -293,7 +295,7 @@ describe('processPolicyAnalysisRunService', () => {
         workflow: 'policy_extract',
         schemaVersion: 'policy_extract_v1',
         extractedJson: analysis,
-        warnings: [],
+        warnings: ['Confirm deductible.'],
         sourceRunId: 'run-1',
         reviewStatus: 'pending',
         createdAt: expect.any(Date),
@@ -309,6 +311,41 @@ describe('processPolicyAnalysisRunService', () => {
       expect.objectContaining({
         status: 'completed',
         outputJson: analysis,
+        completedAt: expect.any(Date),
+      })
+    );
+  });
+
+  it('fails the run before persistence when policy extraction does not satisfy the strict schema', async () => {
+    await expect(
+      processPolicyAnalysisRunService({
+        runId: 'run-1',
+        deps: {
+          downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
+          analyzeImage: vi.fn(),
+          analyzePdf: vi
+            .fn()
+            .mockResolvedValue(
+              'Valid text content from PDF that is definitely longer than fifty characters.'
+            ),
+          analyzeText: vi.fn().mockResolvedValue({
+            provider: 'Acme Insurance',
+            policyNumber: 'POL-123',
+            coverageAmount: '100000',
+            currency: 'EUR',
+            deductible: 500,
+            confidence: 0.83,
+            warnings: [],
+          }),
+        },
+      })
+    ).rejects.toThrow();
+
+    expect(mocks.transaction).not.toHaveBeenCalled();
+    expect(mocks.updateSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'failed',
+        errorCode: 'policy_extract_failed',
         completedAt: expect.any(Date),
       })
     );

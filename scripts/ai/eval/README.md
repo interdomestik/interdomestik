@@ -29,5 +29,5 @@ The suite reports:
 ## Notes
 
 - The suite is deterministic and does not call network models.
-- Policy extraction currently evaluates through a normalization shim because the live policy analyzer still emits a UI-oriented shape instead of the strict `policyExtractSchema` contract.
+- Policy extraction now validates the analyzer output directly against `policyExtractSchema`; sparse and adversarial fixtures assert unsupported facts stay null with warnings instead of being fabricated.
 - The fixture suite is available for manual and local validation, but it no longer runs automatically on every PR.

@@ -11,6 +11,7 @@ import { downloadTenantObject, uploadTenantObject } from '@/lib/storage/service-
 import { POLICIES_BUCKET, buildPolicyStoragePath } from '@/lib/storage/tenant-prefix';
 import { aiRuns, documentExtractions, documents, policies } from '@interdomestik/database/schema';
 import { getResponsesWorkflowConfig } from '@interdomestik/domain-ai/models';
+import { policyExtractSchema } from '@interdomestik/domain-ai/schemas/policy-extract';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -344,6 +345,7 @@ export async function processPolicyAnalysisRunService(args: {
       analysis = await deps.analyzeText(extractedText);
     }
 
+    const policyExtract = policyExtractSchema.parse(analysis);
     const completedAt = new Date();
 
     // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
@@ -352,9 +354,9 @@ export async function processPolicyAnalysisRunService(args: {
       await tx
         .update(policies)
         .set({
-          provider: analysis.provider ?? null,
-          policyNumber: analysis.policyNumber ?? null,
-          analysisJson: analysis,
+          provider: policyExtract.provider ?? null,
+          policyNumber: policyExtract.policyNumber ?? null,
+          analysisJson: policyExtract,
         })
         .where(eq(policies.id, policyId));
 
@@ -369,8 +371,8 @@ export async function processPolicyAnalysisRunService(args: {
           entityId: policyId,
           workflow: POLICY_EXTRACT_WORKFLOW,
           schemaVersion: POLICY_EXTRACT_CONFIG.promptVersion,
-          extractedJson: analysis,
-          warnings: [],
+          extractedJson: policyExtract,
+          warnings: policyExtract.warnings,
           sourceRunId: runId,
           reviewStatus: 'pending',
           createdAt: completedAt,
@@ -387,7 +389,7 @@ export async function processPolicyAnalysisRunService(args: {
             event: 'policy/extract.requested',
             runId,
           },
-          outputJson: analysis,
+          outputJson: policyExtract,
           reviewStatus: 'pending',
           completedAt,
           errorCode: null,
@@ -400,7 +402,7 @@ export async function processPolicyAnalysisRunService(args: {
       status: 'completed',
       runId,
       policyId,
-      analysis,
+      analysis: policyExtract,
     };
   } catch (error) {
     const completedAt = new Date();
