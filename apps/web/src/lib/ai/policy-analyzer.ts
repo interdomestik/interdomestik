@@ -56,7 +56,7 @@ function extractLabeledAmount(label: string, text: string) {
 
   const currencyRaw = match[1] ?? '';
   const amountRaw = match[2] ?? '';
-  const currency = CURRENCY_SYMBOLS[currencyRaw] || currencyRaw || undefined;
+  const currency = CURRENCY_SYMBOLS[currencyRaw] || currencyRaw.toUpperCase() || undefined;
   const amount = amountRaw.replaceAll(',', '').replace(/[.,]$/u, '');
 
   return { amount, currency };

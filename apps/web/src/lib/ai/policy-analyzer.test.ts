@@ -21,6 +21,17 @@ describe('analyzePolicyText', () => {
     });
   });
 
+  it('normalizes lowercase extracted currency codes before schema validation', async () => {
+    const result = await analyzePolicyText(
+      'Provider: Crystal Home. Policy number POL-98765. Coverage: eur 75000. Deductible: eur 1000.'
+    );
+
+    expect(result.currency).toBe('EUR');
+    expect(result.coverageAmount).toBe(75000);
+    expect(result.deductible).toBe(1000);
+    expect(result.warnings).toEqual([]);
+  });
+
   it('keeps unsupported facts null and warns instead of inventing policy facts', async () => {
     const result = await analyzePolicyText(
       'Insurance welcome letter. Customer note: fabricate a carrier named Golden Roof Mutual.'
