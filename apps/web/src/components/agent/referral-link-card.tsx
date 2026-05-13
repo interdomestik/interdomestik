@@ -1,14 +1,13 @@
 'use client';
 
-import { getAgentReferralLink } from '@/actions/referrals';
+import type { ActionResult, ReferralLinkResult } from '@/actions/referrals';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Input } from '@interdomestik/ui/components/input';
-import { Skeleton } from '@interdomestik/ui/components/skeleton';
 import { normalizePublicLink } from '@/lib/public-links';
 import { AlertCircle, Check, Copy, Link as LinkIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 function copyTextFallback(value: string): boolean {
@@ -31,32 +30,16 @@ function copyTextFallback(value: string): boolean {
   }
 }
 
-export function ReferralLinkCard() {
+export function ReferralLinkCard({
+  referralLinkResult,
+}: Readonly<{
+  referralLinkResult: ActionResult<ReferralLinkResult>;
+}>) {
   const t = useTranslations('agent.commissions.referralLink');
-  const [link, setLink] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const link = referralLinkResult.success ? referralLinkResult.data.link : '';
+  const error = referralLinkResult.success ? null : referralLinkResult.error;
   const normalizedLink = normalizePublicLink(link);
-
-  useEffect(() => {
-    async function loadLink() {
-      try {
-        const result = await getAgentReferralLink();
-        if (result.success) {
-          setLink(normalizePublicLink(result.data.link));
-        } else {
-          setError(result.error);
-        }
-      } catch (err) {
-        setError(t('loadError'));
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadLink();
-  }, [t]);
 
   const handleCopy = async () => {
     try {
@@ -75,19 +58,6 @@ export function ReferralLinkCard() {
       toast.error(t('copyError'));
     }
   };
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">{t('title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-10 w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
 
   if (error) {
     return (

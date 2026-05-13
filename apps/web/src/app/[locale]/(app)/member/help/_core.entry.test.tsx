@@ -24,7 +24,9 @@ const mocks = vi.hoisted(() => {
     requireSessionOrRedirect: vi.fn(session => session),
     select: vi.fn(() => selectChain),
     selectChain,
+    searchParams: new URLSearchParams(),
     setRequestLocale: vi.fn(),
+    useRouter: vi.fn(() => ({ push: vi.fn() })),
     withTenant: vi.fn((_tenantId, _column, condition) => ({ condition, scoped: true })),
   };
 });
@@ -144,11 +146,13 @@ vi.mock('next-intl/server', () => ({
 
 vi.mock('next/navigation', () => ({
   redirect: mocks.redirect,
+  useRouter: mocks.useRouter,
 }));
 
 import HelpPage from './_core.entry';
 
 async function renderPage(searchParams: Record<string, string> = {}) {
+  mocks.searchParams = new URLSearchParams(searchParams);
   const tree = await HelpPage({
     params: Promise.resolve({ locale: 'en' }),
     searchParams: Promise.resolve(searchParams),

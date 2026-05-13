@@ -1,5 +1,4 @@
 import { getMemberReferralCardData } from '@/actions/member-referrals';
-import { getAgentReferralLink } from '@/actions/referrals';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -17,10 +16,6 @@ import { ReferralCard } from './referral-card';
 
 vi.mock('@/actions/member-referrals', () => ({
   getMemberReferralCardData: vi.fn(),
-}));
-
-vi.mock('@/actions/referrals', () => ({
-  getAgentReferralLink: vi.fn(),
 }));
 
 vi.mock('@/lib/public-links', () => ({
@@ -143,16 +138,6 @@ describe('ReferralCard', () => {
         },
       },
     });
-
-    vi.mocked(getAgentReferralLink).mockResolvedValue({
-      success: true,
-      data: {
-        code: 'STEFAN-GMV1SU',
-        link: 'https://localhost:3000?ref=STEFAN-GMV1SU',
-      },
-      error: undefined,
-      fieldErrors: undefined,
-    });
   });
 
   it('renders referral stats and dynamic reward summary', async () => {
@@ -224,15 +209,39 @@ describe('ReferralCard', () => {
   });
 
   it('normalizes the displayed agent referral link to the live origin', async () => {
-    render(<ReferralLinkCard />);
+    render(
+      <ReferralLinkCard
+        referralLinkResult={{
+          success: true,
+          data: {
+            code: 'STEFAN-GMV1SU',
+            link: 'https://localhost:3000?ref=STEFAN-GMV1SU',
+          },
+          error: undefined,
+          fieldErrors: undefined,
+        }}
+      />
+    );
 
     expect(
-      await screen.findByDisplayValue('https://pilot.127.0.0.1.nip.io:3000?ref=STEFAN-GMV1SU')
+      screen.getByDisplayValue('https://pilot.127.0.0.1.nip.io:3000?ref=STEFAN-GMV1SU')
     ).toBeInTheDocument();
   });
 
   it('copies the normalized agent referral link instead of the localhost fallback', async () => {
-    render(<ReferralLinkCard />);
+    render(
+      <ReferralLinkCard
+        referralLinkResult={{
+          success: true,
+          data: {
+            code: 'STEFAN-GMV1SU',
+            link: 'https://localhost:3000?ref=STEFAN-GMV1SU',
+          },
+          error: undefined,
+          fieldErrors: undefined,
+        }}
+      />
+    );
 
     const copyButton = await screen.findByRole('button');
     fireEvent.click(copyButton);
