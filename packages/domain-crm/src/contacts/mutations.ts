@@ -41,7 +41,12 @@ export type CrmContactMutationResult =
   | {
       success: false;
       error: 'forbidden';
-      reason: 'agent_scope' | 'branch_scope' | 'role_scope' | 'tenant_scope';
+      reason:
+        | 'agent_scope'
+        | 'archived_destination'
+        | 'branch_scope'
+        | 'role_scope'
+        | 'tenant_scope';
     }
   | { success: false; error: 'invalid_input'; reason: 'invalid_name' | 'invalid_role' };
 
@@ -77,8 +82,7 @@ export async function createCrmContact(
   const denied = authorizeAgent(input.actor, input.tenantId);
   if (denied) return denied;
 
-  const branchId = input.actor.scope.branchId;
-  if (!branchId) return { success: false, error: 'forbidden', reason: 'branch_scope' };
+  const branchId = input.actor.scope.branchId!;
   const now = services.clock.now();
   const contact: CrmContact = {
     archivedAt: null,
@@ -144,13 +148,10 @@ export async function linkCrmContactToAccount(
     return { success: false, error: 'forbidden', reason: 'tenant_scope' };
   }
   if (account.archivedAt || contact.archivedAt) {
-    return { success: false, error: 'forbidden', reason: 'branch_scope' };
+    return { success: false, error: 'forbidden', reason: 'archived_destination' };
   }
-  if (
-    !input.actor.scope.branchId ||
-    account.branchId !== input.actor.scope.branchId ||
-    contact.branchId !== input.actor.scope.branchId
-  ) {
+  const actorBranchId = input.actor.scope.branchId!;
+  if (account.branchId !== actorBranchId || contact.branchId !== actorBranchId) {
     return { success: false, error: 'forbidden', reason: 'branch_scope' };
   }
 

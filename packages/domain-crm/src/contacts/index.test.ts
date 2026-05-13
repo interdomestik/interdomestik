@@ -134,10 +134,10 @@ describe('CRM contacts domain', () => {
   });
 
   it('suppresses account-contact links for cross-tenant and archived destinations', async () => {
-    for (const currentAccount of [
-      account({ tenantId: 'tenant-2' }),
-      account({ archivedAt: '2026-05-13T18:20:00.000Z' }),
-    ]) {
+    for (const [currentAccount, expectedReason] of [
+      [account({ tenantId: 'tenant-2' }), 'tenant_scope'],
+      [account({ archivedAt: '2026-05-13T18:20:00.000Z' }), 'archived_destination'],
+    ] as const) {
       const repository = new InMemoryCrmContacts();
       repository.accounts.set('account-1', currentAccount);
       repository.contacts.push({
@@ -164,6 +164,7 @@ describe('CRM contacts domain', () => {
       );
 
       expect(result.success).toBe(false);
+      expect(result).toMatchObject({ error: 'forbidden', reason: expectedReason });
       expect(repository.accountContacts).toHaveLength(0);
     }
   });

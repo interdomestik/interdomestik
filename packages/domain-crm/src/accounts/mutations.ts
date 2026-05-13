@@ -59,8 +59,7 @@ export async function createCrmAccount(
   const denied = authorizeAgentCreate(input.actor, input.tenantId);
   if (denied) return denied;
 
-  const branchId = input.actor.scope.branchId;
-  if (!branchId) return { success: false, error: 'forbidden', reason: 'branch_scope' };
+  const branchId = input.actor.scope.branchId!;
   const now = services.clock.now();
   const account: CrmAccount = {
     archivedAt: null,
