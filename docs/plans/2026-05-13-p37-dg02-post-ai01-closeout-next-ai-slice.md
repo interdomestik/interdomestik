@@ -23,6 +23,16 @@ The next bounded implementation slice is:
 
 `P37-AI02 Formal AI Eval CI And Release Gate`
 
+## Inputs
+
+| Input                            | Relevance                                                                                                                                                                                 |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PR `#740` / `P37-AI01`           | Merged the strict policy extraction output contract, removed the policy eval-only normalization shim, and added sparse/adversarial no-hallucination fixtures.                             |
+| Remote merge evidence            | AI01 is on `main` through merge commit `a300d3c02fcce2983ce65d58143ee62d85005af9`; PR checks, Copilot threads, and Sonar issues were resolved before merge.                               |
+| Current `pnpm ai:eval` posture   | `package.json` exposes `pnpm ai:eval`, and `scripts/ai/eval/**` runs deterministic fixture checks without network model calls or OpenAI API key dependency.                               |
+| Current CI posture               | `.github/workflows/ci.yml` has no blocking `ai-eval` job, and `scripts/ci/workflow-contracts.test.mjs` currently asserts that the CI workflow has no `ai-eval` job.                       |
+| Remaining AI-readiness candidate | Claim/legal contract tightening, AI run telemetry proof, and model/profile registry production alignment remain valid, but all benefit from formal eval gate enforcement before widening. |
+
 ## AI01 Closeout Evidence
 
 PR `#740` merged the strict policy extraction contract work into `main` at
