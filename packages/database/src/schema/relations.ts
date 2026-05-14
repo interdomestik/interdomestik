@@ -4,7 +4,18 @@ import { relations } from 'drizzle-orm';
 import { agentClients, agentCommissions, agentSettings } from './agents';
 import { user } from './auth';
 import { claimDocuments, claimMessages, claims, claimStageHistory } from './claims';
-import { crmActivities, crmDeals, crmLeads, memberActivities, supportHandoffs } from './crm';
+import {
+  crmActivities,
+  crmDealBackfillQuarantine,
+  crmDeals,
+  crmDealStageHistory,
+  crmLeads,
+  crmLossReasons,
+  crmPipelines,
+  crmPipelineStages,
+  memberActivities,
+  supportHandoffs,
+} from './crm';
 import { membershipFamilyMembers, membershipPlans, subscriptions } from './memberships';
 import { auditLog, memberNotes } from './notes';
 import { emailCampaignLogs, notifications } from './notifications';
@@ -156,11 +167,79 @@ export const crmActivitiesRelations = relations(crmActivities, ({ one }) => ({
 export const crmDealsRelations = relations(crmDeals, ({ one }) => ({
   lead: one(crmLeads, { fields: [crmDeals.leadId], references: [crmLeads.id] }),
   agent: one(user, { fields: [crmDeals.agentId], references: [user.id] }),
+  branch: one(branches, { fields: [crmDeals.branchId], references: [branches.id] }),
+  pipeline: one(crmPipelines, {
+    fields: [crmDeals.pipelineId],
+    references: [crmPipelines.id],
+  }),
+  currentStage: one(crmPipelineStages, {
+    fields: [crmDeals.currentStageId],
+    references: [crmPipelineStages.id],
+  }),
+  lossReason: one(crmLossReasons, {
+    fields: [crmDeals.lossReasonId],
+    references: [crmLossReasons.id],
+  }),
   plan: one(membershipPlans, {
     fields: [crmDeals.membershipPlanId],
     references: [membershipPlans.id],
   }),
 }));
+
+export const crmPipelinesRelations = relations(crmPipelines, ({ many, one }) => ({
+  branch: one(branches, { fields: [crmPipelines.branchId], references: [branches.id] }),
+  stages: many(crmPipelineStages),
+  deals: many(crmDeals),
+}));
+
+export const crmPipelineStagesRelations = relations(crmPipelineStages, ({ many, one }) => ({
+  pipeline: one(crmPipelines, {
+    fields: [crmPipelineStages.pipelineId],
+    references: [crmPipelines.id],
+  }),
+  currentDeals: many(crmDeals),
+  fromHistoryRows: many(crmDealStageHistory, { relationName: 'crm_deal_stage_from' }),
+  toHistoryRows: many(crmDealStageHistory, { relationName: 'crm_deal_stage_to' }),
+}));
+
+export const crmLossReasonsRelations = relations(crmLossReasons, ({ many, one }) => ({
+  branch: one(branches, { fields: [crmLossReasons.branchId], references: [branches.id] }),
+  deals: many(crmDeals),
+  stageHistory: many(crmDealStageHistory),
+}));
+
+export const crmDealStageHistoryRelations = relations(crmDealStageHistory, ({ one }) => ({
+  deal: one(crmDeals, { fields: [crmDealStageHistory.dealId], references: [crmDeals.id] }),
+  pipeline: one(crmPipelines, {
+    fields: [crmDealStageHistory.pipelineId],
+    references: [crmPipelines.id],
+  }),
+  fromStage: one(crmPipelineStages, {
+    fields: [crmDealStageHistory.fromStageId],
+    references: [crmPipelineStages.id],
+    relationName: 'crm_deal_stage_from',
+  }),
+  toStage: one(crmPipelineStages, {
+    fields: [crmDealStageHistory.toStageId],
+    references: [crmPipelineStages.id],
+    relationName: 'crm_deal_stage_to',
+  }),
+  actor: one(user, { fields: [crmDealStageHistory.actorId], references: [user.id] }),
+  lossReason: one(crmLossReasons, {
+    fields: [crmDealStageHistory.lossReasonId],
+    references: [crmLossReasons.id],
+  }),
+}));
+
+export const crmDealBackfillQuarantineRelations = relations(
+  crmDealBackfillQuarantine,
+  ({ one }) => ({
+    deal: one(crmDeals, {
+      fields: [crmDealBackfillQuarantine.dealId],
+      references: [crmDeals.id],
+    }),
+  })
+);
 
 // Referral and service relations
 export const referralsRelations = relations(referrals, ({ one }) => ({

@@ -20,7 +20,7 @@ export const agentClients = pgTable(
     id: text('id').primaryKey(),
     tenantId: text('tenant_id')
       .notNull()
-      .references(() => tenants.id),
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     agentId: text('agent_id')
       .notNull()
       .references(() => user.id),
