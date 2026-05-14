@@ -120,7 +120,6 @@ export type CrmLeadRoutedEvent = CrmDomainEventBase<
     reasonCode: CrmRoutingAssignmentAuditReasonCode;
     ruleId: string;
     strategy: CrmRoutingStrategy;
-    idempotencyKey?: string;
   }
 >;
 

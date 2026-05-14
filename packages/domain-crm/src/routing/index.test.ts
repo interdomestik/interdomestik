@@ -112,6 +112,7 @@ class InMemoryRoutingRepository implements CrmRoutingRepository {
 
   async appendRoutingAssignmentAudit(params: {
     auditRecord: CrmRoutingAssignmentAuditRecord;
+    idempotencyKey?: string | null;
   }): Promise<CrmRoutingAssignmentAuditRecord> {
     this.auditRecords.push(params.auditRecord);
     return params.auditRecord;
@@ -119,6 +120,7 @@ class InMemoryRoutingRepository implements CrmRoutingRepository {
 
   async advanceRoutingCursor(params: {
     advancement: CrmRoutingCursorAdvancement;
+    idempotencyKey?: string | null;
   }): Promise<CrmRoutingCursorAdvanceResult> {
     const current = this.cursors.get(params.advancement.ruleId) ?? null;
     if (current !== params.advancement.priorCursor) {
@@ -128,7 +130,8 @@ class InMemoryRoutingRepository implements CrmRoutingRepository {
     return { success: true, advancement: params.advancement };
   }
 
-  async listRoutingRules(): Promise<readonly CrmRoutingRule[]> {
+  async listRoutingRules(params: { actor: CrmActorContext }): Promise<readonly CrmRoutingRule[]> {
+    void params;
     return this.rules;
   }
 }
@@ -173,7 +176,6 @@ describe('CRM routing', () => {
         agentId: 'agent-2',
         branchId: 'branch-1',
         fromAgentId: 'agent-old',
-        idempotencyKey: 'route:lead-1',
         leadId: 'lead-1',
         reasonCode: 'rule_match',
         ruleId: 'rule-top',
@@ -265,6 +267,36 @@ describe('CRM routing', () => {
     ).toEqual({ outcome: 'manual_review', reason: 'manual_override_direct_transfer' });
   });
 
+  it('checks authorization and lead eligibility before accepting manual override attempts', () => {
+    expect(
+      selectCrmLeadAssignee(
+        {
+          actor: agentActor,
+          lead: lead(),
+          now,
+          override: { agentId: 'agent-2', reason: 'manual' },
+        },
+        [rule()],
+        workload(),
+        {}
+      )
+    ).toEqual({ outcome: 'rejected', reason: 'role_scope' });
+
+    expect(
+      selectCrmLeadAssignee(
+        {
+          actor: managerActor,
+          lead: lead({ lifecycleState: 'archived' }),
+          now,
+          override: { agentId: 'agent-2', reason: 'manual' },
+        },
+        [rule()],
+        workload(),
+        {}
+      )
+    ).toEqual({ outcome: 'rejected', reason: 'lead_state' });
+  });
+
   it('returns no_rule when no enabled rule matches', () => {
     expect(
       selectCrmLeadAssignee(
@@ -350,6 +382,15 @@ describe('CRM routing', () => {
     expect(
       selectCrmLeadAssignee(
         { actor: managerActor, lead: lead(), now },
+        [rule({ agentIds: [' ', ''] })],
+        workload(),
+        {}
+      )
+    ).toEqual({ outcome: 'rejected', reason: 'empty_agent_pool' });
+
+    expect(
+      selectCrmLeadAssignee(
+        { actor: managerActor, lead: lead(), now },
         [rule({ maxOpenLeadsPerAgent: 1 })],
         workload(),
         {}
@@ -413,5 +454,34 @@ describe('CRM routing', () => {
     const cursorConflict: CrmRoutingRejectionReason = 'cursor_conflict';
     expect(noMatchingRule).toBe('no_matching_rule');
     expect(cursorConflict).toBe('cursor_conflict');
+  });
+
+  it('normalizes idempotency keys on audit records without duplicating them in routed event payloads', () => {
+    const decision = selectCrmLeadAssignee(
+      { actor: managerActor, idempotencyKey: '  route:lead-1  ', lead: lead(), now },
+      [rule()],
+      workload(),
+      {}
+    );
+
+    if (decision.outcome !== 'assigned') {
+      throw new Error('expected assignment');
+    }
+
+    expect(decision.auditRecord.idempotencyKey).toBe('route:lead-1');
+    expect('idempotencyKey' in decision.event).toBe(false);
+
+    const blankKeyDecision = selectCrmLeadAssignee(
+      { actor: managerActor, idempotencyKey: '   ', lead: lead(), now },
+      [rule()],
+      workload(),
+      {}
+    );
+
+    if (blankKeyDecision.outcome !== 'assigned') {
+      throw new Error('expected assignment');
+    }
+
+    expect(blankKeyDecision.auditRecord.idempotencyKey).toBeNull();
   });
 });

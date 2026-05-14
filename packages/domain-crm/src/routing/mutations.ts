@@ -17,6 +17,11 @@ function isNonEmptyString(value?: string | null): value is string {
   return Boolean(value?.trim());
 }
 
+function normalizeOptionalString(value?: string | null): string | null {
+  const normalized = value?.trim() ?? '';
+  return normalized.length > 0 ? normalized : null;
+}
+
 function optionalMatch(ruleValue: string | null | undefined, leadValue: string | null | undefined) {
   return !isNonEmptyString(ruleValue) || ruleValue.trim() === (leadValue?.trim() ?? '');
 }
@@ -117,25 +122,37 @@ function eligibleAgentIds(
   rule: CrmRoutingRule,
   workloadSnapshot: CrmRoutingWorkloadSnapshot
 ): string[] {
-  return [...new Set(rule.agentIds.map(agentId => agentId.trim()).filter(Boolean))].filter(
-    agentId => {
-      const workload = workloadFor(workloadSnapshot, agentId);
-      if (!isAgentAvailable(workload)) return false;
-      if (
-        typeof rule.maxOpenLeadsPerAgent === 'number' &&
-        workload.openLeads >= rule.maxOpenLeadsPerAgent
-      ) {
-        return false;
-      }
-      if (
-        typeof rule.maxNewLeadsPerAgentPerDay === 'number' &&
-        workload.newLeadsAssignedToday >= rule.maxNewLeadsPerAgentPerDay
-      ) {
-        return false;
-      }
-      return true;
+  return configuredAgentIds(rule).filter(agentId => {
+    const workload = workloadFor(workloadSnapshot, agentId);
+    if (!isAgentAvailable(workload)) return false;
+    if (
+      typeof rule.maxOpenLeadsPerAgent === 'number' &&
+      workload.openLeads >= rule.maxOpenLeadsPerAgent
+    ) {
+      return false;
     }
-  );
+    if (
+      typeof rule.maxNewLeadsPerAgentPerDay === 'number' &&
+      workload.newLeadsAssignedToday >= rule.maxNewLeadsPerAgentPerDay
+    ) {
+      return false;
+    }
+    return true;
+  });
+}
+
+function configuredAgentIds(rule: CrmRoutingRule): string[] {
+  return [
+    ...new Set(
+      rule.agentIds
+        .map(agentId => normalizeOptionalString(agentId))
+        .filter((agentId): agentId is string => agentId !== null)
+    ),
+  ];
+}
+
+function hasConfiguredAgentPool(rule: CrmRoutingRule): boolean {
+  return configuredAgentIds(rule).length > 0;
 }
 
 function createCursorAdvancement(
@@ -181,11 +198,12 @@ function assignmentDecision(params: {
   rule: CrmRoutingRule;
 }): CrmRoutingAssignmentDecision {
   const { agentId, cursorAdvancement, input, reasonCode, rule } = params;
+  const idempotencyKey = normalizeOptionalString(input.idempotencyKey);
   const auditRecord = {
     actorId: input.actor.actorId,
     agentId,
     branchId: input.lead.branchId,
-    idempotencyKey: input.idempotencyKey,
+    idempotencyKey,
     leadId: input.lead.id,
     occurredAt: input.now,
     reasonCode,
@@ -201,7 +219,6 @@ function assignmentDecision(params: {
       agentId,
       branchId: input.lead.branchId,
       fromAgentId: input.lead.assignedAgentId ?? null,
-      idempotencyKey: input.idempotencyKey ?? undefined,
       leadId: input.lead.id,
       reasonCode,
       ruleId: rule.id,
@@ -267,7 +284,6 @@ export function selectCrmLeadAssignee(
     if (!isNonEmptyString(input.override.agentId) || !isNonEmptyString(input.override.reason)) {
       return { outcome: 'rejected', reason: 'invalid_override' };
     }
-    return { outcome: 'manual_review', reason: 'manual_override_direct_transfer' };
   }
 
   const denied = authorizeRouting(input);
@@ -275,6 +291,10 @@ export function selectCrmLeadAssignee(
 
   const leadStateDenied = leadStateRejection(input.lead);
   if (leadStateDenied) return { outcome: 'rejected', reason: leadStateDenied };
+
+  if (input.override) {
+    return { outcome: 'manual_review', reason: 'manual_override_direct_transfer' };
+  }
 
   if (!isFreshSnapshot(workloadSnapshot, input.now)) {
     return { outcome: 'rejected', reason: 'stale_workload_snapshot' };
@@ -314,6 +334,6 @@ export function selectCrmLeadAssignee(
 
   return {
     outcome: 'rejected',
-    reason: rule.agentIds.length === 0 ? 'empty_agent_pool' : 'capacity',
+    reason: hasConfiguredAgentPool(rule) ? 'capacity' : 'empty_agent_pool',
   };
 }

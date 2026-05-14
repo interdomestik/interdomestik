@@ -124,7 +124,6 @@ export type CrmLeadRoutedEventData = {
   agentId: string;
   branchId?: string | null;
   fromAgentId?: string | null;
-  idempotencyKey?: string;
   leadId: string;
   reasonCode: CrmRoutingAssignmentAuditReasonCode;
   ruleId: string;
