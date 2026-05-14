@@ -12,7 +12,8 @@
       "subtitle": "Kontrolni panel",
       "members": "Članovi",
       "agents": "Agenti",
-      "staff": "Osoblje"
+      "staff": "Osoblje",
+      "crm": "CRM izveštaji"
     },
     "errors": {
       "admin": {
