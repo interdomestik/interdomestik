@@ -1,0 +1,55 @@
+{
+  "staff-crm": {
+    "title": "Raportimi CRM",
+    "description": "Raportim operativ për stafin mbi ngarkesën e pipeline-it, lëvizjen në funnel dhe shpejtësinë e fazave.",
+    "pipelineWorkload": {
+      "title": "Ngarkesa e pipeline-it",
+      "description": "Pipeline i hapur 90-ditor sipas degës, pipeline-it dhe valutës.",
+      "empty": "Nuk ka ngarkesë të hapur të pipeline-it për dritaren standarde të raportimit."
+    },
+    "funnelMovement": {
+      "title": "Lëvizja në funnel",
+      "description": "Lëvizjet kryesore të fazave CRM sipas hyrjeve të periudhës.",
+      "empty": "Nuk ka lëvizje në funnel për dritaren standarde të raportimit."
+    },
+    "stageVelocity": {
+      "title": "Shpejtësia e fazave",
+      "description": "Fazat më të ngadalta CRM sipas mesatares mediane të ditëve.",
+      "empty": "Asnjë mostër e shpejtësisë së fazave nuk plotëson pragun minimal.",
+      "excludedOpenIntervals": "{count, plural, one {# interval i hapur u përjashtua} other {# intervale të hapura u përjashtuan}}",
+      "excludedOpenIntervalsHelp": "Intervalet e hapura të fazave përjashtohen nga llogaritjet e shpejtësisë së fazave."
+    },
+    "metrics": {
+      "openDeals": "Marrëveshje të hapura",
+      "totalPipeline": "Totali",
+      "weighted": "E peshuar",
+      "commit": "I konfirmuar",
+      "bestCase": "Rasti më i mirë",
+      "entered": "Hyrë",
+      "exited": "Dalë",
+      "wonLost": "Fituar / humbur",
+      "conversion": "Konvertimi",
+      "dropOff": "Rënia",
+      "medianDays": "Mediana",
+      "averageDays": "Mesatarja",
+      "minimumDays": "Minimumi",
+      "maximumDays": "Maksimumi",
+      "sampleCount": "Mostra"
+    },
+    "label": {
+      "no-branch": "Pa degë"
+    },
+    "durationDays": "{days} ditë",
+    "excludedRows": "{count, plural, one {# rresht agregat u përjashtua} other {# rreshta agregatë u përjashtuan}}",
+    "excludedRowsHelp": "Rreshtat mund të përjashtohen nga metrikat agregate kur fushat e kërkuara të raportimit mungojnë ose janë jokonsistente.",
+    "error": {
+      "tenant": "Raportimi CRM nuk është i disponueshëm për këtë kontekst tenant.",
+      "role": "Kjo llogari stafi nuk mund të shohë raportimin CRM.",
+      "branch": "Raportimi CRM kërkon fushëveprim të vlefshëm dege.",
+      "agent": "Raportimi CRM me fushëveprim agjenti nuk shfaqet në panelin e stafit.",
+      "window": "Dritarja e raportimit CRM është e pavlefshme.",
+      "grouping": "Ky grupim i raportimit CRM nuk mbështetet.",
+      "generic": "Raportimi CRM nuk mund të ngarkohej. Provoni përsëri më vonë."
+    }
+  }
+}

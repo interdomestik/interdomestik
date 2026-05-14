@@ -21,7 +21,7 @@ vi.mock('@/lib/auth/logout', () => ({
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     useSession: vi.fn().mockReturnValue({
-      data: { user: { name: 'Staff', email: 'staff@example.com' } },
+      data: { user: { name: 'Staff', email: 'staff@example.com', role: 'staff' } },
       isPending: false,
       error: null,
     }),
@@ -68,6 +68,7 @@ vi.mock('@interdomestik/ui/components/avatar', () => ({
 }));
 
 vi.mock('lucide-react', () => ({
+  BarChart3: () => <span />,
   ChevronUp: () => <span />,
   FileText: () => <span />,
   Inbox: () => <span />,
@@ -96,7 +97,24 @@ describe('StaffSidebar', () => {
     const hrefs = screen.getAllByRole('link').map(link => link.getAttribute('href'));
     expect(hrefs).toContain('/staff/claims');
     expect(hrefs).toContain('/staff/support-handoffs');
+    expect(hrefs).toContain('/staff/crm');
     expect(hrefs).not.toContain('/staff');
+  });
+
+  it('renders the staff CRM entry for staff users only', () => {
+    const { rerender } = render(<StaffSidebar user={{ name: 'Staff', role: 'staff' }} />);
+
+    expect(screen.getAllByRole('link').map(link => link.getAttribute('href'))).toContain(
+      '/staff/crm'
+    );
+
+    for (const role of ['branch_manager', 'admin', 'agent', 'member', null, undefined]) {
+      rerender(<StaffSidebar user={{ name: 'User', role }} />);
+
+      expect(screen.getAllByRole('link').map(link => link.getAttribute('href'))).not.toContain(
+        '/staff/crm'
+      );
+    }
   });
 
   it('signs out with a localized hard redirect', async () => {
