@@ -6,6 +6,18 @@ export type CrmDealWithStageHistory = {
   history: CrmDealStageHistory;
 };
 
+export type CrmDealRepositoryFailureReason = 'invalid_currency' | 'stage_drift';
+
+export class CrmDealRepositoryFailure extends Error {
+  readonly reason: CrmDealRepositoryFailureReason;
+
+  constructor(reason: CrmDealRepositoryFailureReason) {
+    super(`CRM deal repository rejected write: ${reason}`);
+    this.name = 'CrmDealRepositoryFailure';
+    this.reason = reason;
+  }
+}
+
 export type {
   CrmDeal,
   CrmDealForecastCategory,

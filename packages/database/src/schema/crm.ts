@@ -1,9 +1,11 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   foreignKey,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -189,27 +191,288 @@ export const crmActivities = pgTable(
   ]
 );
 
-// Forward reference - crmDeals needs membershipPlans which is in memberships.ts
-// We'll import it in the index and use the reference there
-export const crmDeals = pgTable('crm_deals', {
-  id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  leadId: text('lead_id')
-    .notNull()
-    .references(() => crmLeads.id),
-  agentId: text('agent_id')
-    .notNull()
-    .references(() => user.id),
-  membershipPlanId: text('membership_plan_id'), // FK added via relations
-  valueCents: integer('value_cents').default(0),
-  stage: text('stage').notNull(), // 'proposal', 'negotiation', 'closed_won', 'closed_lost'
-  status: text('status').default('open'),
-  closedAt: timestamp('closed_at'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
-});
+export const crmPipelines = pgTable(
+  'crm_pipelines',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    branchId: text('branch_id').references(() => branches.id),
+    name: text('name').notNull(),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    archivedById: text('archived_by_id').references(() => user.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  table => [
+    uniqueIndex('crm_pipelines_tenant_id_id_uq').on(table.tenantId, table.id),
+    index('crm_pipelines_tenant_archived_idx').on(table.tenantId, table.archivedAt),
+    uniqueIndex('crm_pipelines_tenant_branch_name_active_uq')
+      .on(table.tenantId, table.branchId, table.name)
+      .where(sql`${table.archivedAt} is null and ${table.branchId} is not null`),
+    uniqueIndex('crm_pipelines_tenant_name_active_uq')
+      .on(table.tenantId, table.name)
+      .where(sql`${table.archivedAt} is null and ${table.branchId} is null`),
+  ]
+);
+
+export const crmPipelineStages = pgTable(
+  'crm_pipeline_stages',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    pipelineId: text('pipeline_id')
+      .notNull()
+      .references(() => crmPipelines.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    order: integer('order').notNull(),
+    probability: integer('probability').notNull(),
+    isWon: boolean('is_won').default(false).notNull(),
+    isLost: boolean('is_lost').default(false).notNull(),
+    expectedDurationDays: integer('expected_duration_days'),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    archivedById: text('archived_by_id').references(() => user.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  table => [
+    uniqueIndex('crm_pipeline_stages_tenant_id_id_uq').on(table.tenantId, table.id),
+    index('crm_pipeline_stages_tenant_pipeline_order_idx').on(
+      table.tenantId,
+      table.pipelineId,
+      table.order
+    ),
+    uniqueIndex('crm_pipeline_stages_active_order_uq')
+      .on(table.tenantId, table.pipelineId, table.order)
+      .where(sql`${table.archivedAt} is null`),
+    uniqueIndex('crm_pipeline_stages_one_won_active_uq')
+      .on(table.tenantId, table.pipelineId)
+      .where(sql`${table.isWon} = true and ${table.archivedAt} is null`),
+    foreignKey({
+      columns: [table.tenantId, table.pipelineId],
+      foreignColumns: [crmPipelines.tenantId, crmPipelines.id],
+      name: 'crm_pipeline_stages_tenant_pipeline_fk',
+    }).onDelete('cascade'),
+    check(
+      'crm_pipeline_stages_probability_check',
+      sql`${table.probability} >= 0 and ${table.probability} <= 100`
+    ),
+    check('crm_pipeline_stages_terminal_check', sql`not (${table.isWon} and ${table.isLost})`),
+  ]
+);
+
+export const crmLossReasons = pgTable(
+  'crm_loss_reasons',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    branchId: text('branch_id').references(() => branches.id),
+    code: text('code').notNull(),
+    label: text('label').notNull(),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    archivedById: text('archived_by_id').references(() => user.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  table => [
+    uniqueIndex('crm_loss_reasons_tenant_id_id_uq').on(table.tenantId, table.id),
+    index('crm_loss_reasons_tenant_archived_idx').on(table.tenantId, table.archivedAt),
+    uniqueIndex('crm_loss_reasons_tenant_branch_code_active_uq')
+      .on(table.tenantId, table.branchId, table.code)
+      .where(sql`${table.archivedAt} is null and ${table.branchId} is not null`),
+    uniqueIndex('crm_loss_reasons_tenant_code_active_uq')
+      .on(table.tenantId, table.code)
+      .where(sql`${table.archivedAt} is null and ${table.branchId} is null`),
+  ]
+);
+
+// Legacy lead-linked deal rows remain supported during the migration window. Normalized CRM04
+// writes may be account-backed before a legacy lead link exists, so leadId is intentionally nullable.
+export const crmDeals = pgTable(
+  'crm_deals',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    leadId: text('lead_id').references(() => crmLeads.id),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => user.id),
+    branchId: text('branch_id').references(() => branches.id),
+    accountId: text('account_id'),
+    contactId: text('contact_id'),
+    pipelineId: text('pipeline_id').references(() => crmPipelines.id),
+    currentStageId: text('current_stage_id').references(() => crmPipelineStages.id),
+    expectedCloseAt: timestamp('expected_close_at', { withTimezone: true }),
+    forecastCategory: text('forecast_category'),
+    currencyCode: text('currency_code'),
+    valueAmountMinor: integer('value_amount_minor'),
+    lossReasonId: text('loss_reason_id').references(() => crmLossReasons.id),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    archivedById: text('archived_by_id').references(() => user.id),
+    membershipPlanId: text('membership_plan_id'), // FK added via relations
+    valueCents: integer('value_cents').default(0),
+    stage: text('stage').notNull(), // 'proposal', 'negotiation', 'closed_won', 'closed_lost'
+    status: text('status').default('open'),
+    closedAt: timestamp('closed_at'),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
+  },
+  table => [
+    uniqueIndex('crm_deals_tenant_id_id_uq').on(table.tenantId, table.id),
+    index('crm_deals_tenant_pipeline_stage_idx').on(
+      table.tenantId,
+      table.pipelineId,
+      table.currentStageId
+    ),
+    index('crm_deals_tenant_branch_stage_idx').on(
+      table.tenantId,
+      table.branchId,
+      table.currentStageId
+    ),
+    index('crm_deals_tenant_archived_idx').on(table.tenantId, table.archivedAt),
+    foreignKey({
+      columns: [table.tenantId, table.pipelineId],
+      foreignColumns: [crmPipelines.tenantId, crmPipelines.id],
+      name: 'crm_deals_tenant_pipeline_fk',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.currentStageId],
+      foreignColumns: [crmPipelineStages.tenantId, crmPipelineStages.id],
+      name: 'crm_deals_tenant_current_stage_fk',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.lossReasonId],
+      foreignColumns: [crmLossReasons.tenantId, crmLossReasons.id],
+      name: 'crm_deals_tenant_loss_reason_fk',
+    }),
+    check(
+      'crm_deals_forecast_category_check',
+      sql`${table.forecastCategory} is null or ${table.forecastCategory} in ('pipeline', 'best', 'commit', 'omitted', 'closed')`
+    ),
+    check(
+      'crm_deals_currency_code_check',
+      sql`${table.currencyCode} is null or ${table.currencyCode} ~ '^[A-Z]{3}$'`
+    ),
+    check(
+      'crm_deals_value_amount_minor_check',
+      sql`${table.valueAmountMinor} is null or ${table.valueAmountMinor} >= 0`
+    ),
+  ]
+);
+
+export const crmDealStageHistory = pgTable(
+  'crm_deal_stage_history',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    dealId: text('deal_id')
+      .notNull()
+      .references(() => crmDeals.id),
+    pipelineId: text('pipeline_id')
+      .notNull()
+      .references(() => crmPipelines.id),
+    fromStageId: text('from_stage_id').references(() => crmPipelineStages.id),
+    toStageId: text('to_stage_id')
+      .notNull()
+      .references(() => crmPipelineStages.id),
+    kind: text('kind').notNull(),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => user.id),
+    lossReasonId: text('loss_reason_id').references(() => crmLossReasons.id),
+    reason: text('reason'),
+    idempotencyKey: text('idempotency_key'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    index('crm_deal_stage_history_tenant_deal_occurred_idx').on(
+      table.tenantId,
+      table.dealId,
+      table.occurredAt
+    ),
+    index('crm_deal_stage_history_tenant_to_stage_occurred_idx').on(
+      table.tenantId,
+      table.toStageId,
+      table.occurredAt
+    ),
+    foreignKey({
+      columns: [table.tenantId, table.dealId],
+      foreignColumns: [crmDeals.tenantId, crmDeals.id],
+      name: 'crm_deal_stage_history_tenant_deal_fk',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.pipelineId],
+      foreignColumns: [crmPipelines.tenantId, crmPipelines.id],
+      name: 'crm_deal_stage_history_tenant_pipeline_fk',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.fromStageId],
+      foreignColumns: [crmPipelineStages.tenantId, crmPipelineStages.id],
+      name: 'crm_deal_stage_history_tenant_from_stage_fk',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.toStageId],
+      foreignColumns: [crmPipelineStages.tenantId, crmPipelineStages.id],
+      name: 'crm_deal_stage_history_tenant_to_stage_fk',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.lossReasonId],
+      foreignColumns: [crmLossReasons.tenantId, crmLossReasons.id],
+      name: 'crm_deal_stage_history_tenant_loss_reason_fk',
+    }),
+    check(
+      'crm_deal_stage_history_kind_check',
+      sql`${table.kind} in ('created', 'stage_changed', 'won', 'lost', 'reopened')`
+    ),
+  ]
+);
+
+export const crmDealBackfillQuarantine = pgTable(
+  'crm_deal_backfill_quarantine',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    dealId: text('deal_id')
+      .notNull()
+      .references(() => crmDeals.id),
+    reasonCode: text('reason_code').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex('crm_deal_backfill_quarantine_tenant_deal_reason_uq').on(
+      table.tenantId,
+      table.dealId,
+      table.reasonCode
+    ),
+    foreignKey({
+      columns: [table.tenantId, table.dealId],
+      foreignColumns: [crmDeals.tenantId, crmDeals.id],
+      name: 'crm_deal_backfill_quarantine_tenant_deal_fk',
+    }),
+  ]
+);
 
 export const memberActivities = pgTable(
   'member_activities',

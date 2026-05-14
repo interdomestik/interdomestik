@@ -435,6 +435,13 @@
       "when": 1778528569283,
       "tag": "0061_crm_activity_discipline",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1778739724435,
+      "tag": "0062_careful_gideon",
+      "breakpoints": true
     }
   ]
 }

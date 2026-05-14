@@ -8,7 +8,7 @@ import type {
 } from '../outbox/types';
 import type { CrmPipeline, CrmPipelineStage } from '../pipelines/repository';
 import type { LossReasonResolver } from './loss-reason';
-import type { CrmDealRepository } from './repository';
+import { CrmDealRepositoryFailure, type CrmDealRepository } from './repository';
 import {
   CRM_DEAL_FORECAST_CATEGORIES,
   type CrmDeal,
@@ -222,6 +222,16 @@ function validateReferences(
   return null;
 }
 
+function mapRepositoryFailure(
+  error: unknown
+): { success: false; error: 'invalid_input'; reason: 'invalid_currency' | 'stage_drift' } | null {
+  if (!(error instanceof CrmDealRepositoryFailure)) return null;
+  if (error.reason === 'invalid_currency') {
+    return { success: false, error: 'invalid_input', reason: 'invalid_currency' };
+  }
+  return { success: false, error: 'invalid_input', reason: 'stage_drift' };
+}
+
 function createStageHistory(input: {
   actor: CrmActorContext;
   dealId: string;
@@ -350,10 +360,20 @@ export async function createCrmDeal(
     tenantId: deal.tenantId,
     toStageId: deal.currentStageId,
   });
-  const { deal: created, history: appended } = await repository.createDealWithStageHistory({
-    deal,
-    history,
-  });
+  let created: CrmDeal;
+  let appended: CrmDealStageHistory;
+  try {
+    const saved = await repository.createDealWithStageHistory({
+      deal,
+      history,
+    });
+    created = saved.deal;
+    appended = saved.history;
+  } catch (error) {
+    const repositoryFailure = mapRepositoryFailure(error);
+    if (repositoryFailure) return repositoryFailure;
+    throw error;
+  }
 
   return {
     deal: created,
@@ -475,10 +495,20 @@ async function moveCrmDealStageCore(
     tenantId: deal.tenantId,
     toStageId: toStage.id,
   });
-  const { deal: saved, history: appended } = await repository.updateDealWithStageHistory({
-    deal: updated,
-    history,
-  });
+  let saved: CrmDeal;
+  let appended: CrmDealStageHistory;
+  try {
+    const persisted = await repository.updateDealWithStageHistory({
+      deal: updated,
+      history,
+    });
+    saved = persisted.deal;
+    appended = persisted.history;
+  } catch (error) {
+    const repositoryFailure = mapRepositoryFailure(error);
+    if (repositoryFailure) return repositoryFailure;
+    throw error;
+  }
 
   const event = createTransitionEvent(input.actor, saved, deal.currentStageId, toStage, now, {
     idempotencyKey: input.idempotencyKey,
@@ -571,10 +601,20 @@ export async function reopenCrmDeal(
     tenantId: deal.tenantId,
     toStageId: toStage.id,
   });
-  const { deal: saved, history: appended } = await repository.updateDealWithStageHistory({
-    deal: updated,
-    history,
-  });
+  let saved: CrmDeal;
+  let appended: CrmDealStageHistory;
+  try {
+    const persisted = await repository.updateDealWithStageHistory({
+      deal: updated,
+      history,
+    });
+    saved = persisted.deal;
+    appended = persisted.history;
+  } catch (error) {
+    const repositoryFailure = mapRepositoryFailure(error);
+    if (repositoryFailure) return repositoryFailure;
+    throw error;
+  }
   return {
     deal: saved,
     event: {

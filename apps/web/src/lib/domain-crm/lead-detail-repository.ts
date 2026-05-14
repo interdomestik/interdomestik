@@ -5,7 +5,9 @@ import { crmDeals, crmLeads } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 
 export type AgentCrmLeadDetailLeadRow = typeof crmLeads.$inferSelect;
-export type AgentCrmLeadDetailDealRow = typeof crmDeals.$inferSelect;
+export type AgentCrmLeadDetailDealRow = Omit<typeof crmDeals.$inferSelect, 'leadId'> & {
+  leadId: string;
+};
 
 function requireBranchScope(actor: CrmActorContext): string {
   const branchId = actor.scope.branchId;
@@ -36,7 +38,7 @@ export const crmLeadDetailRepository: AgentCrmLeadDetailRepository<
   async listAgentLeadDeals(params) {
     requireBranchScope(params.actor);
 
-    return db
+    const rows = await db
       .select()
       .from(crmDeals)
       .where(
@@ -46,5 +48,6 @@ export const crmLeadDetailRepository: AgentCrmLeadDetailRepository<
           eq(crmDeals.agentId, params.actor.actorId)
         )
       );
+    return rows as AgentCrmLeadDetailDealRow[];
   },
 };

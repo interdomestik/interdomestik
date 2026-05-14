@@ -9,6 +9,7 @@ import type {
   CrmDealStageHistory,
   CrmDealReferenceSnapshot,
 } from './repository';
+import { CrmDealRepositoryFailure } from './repository';
 import { staticLossReasonResolver } from './loss-reason';
 import {
   archiveCrmDeal,
@@ -726,6 +727,74 @@ describe('CRM deals domain', () => {
       success: true,
     });
     expect(repository.histories).toHaveLength(0);
+  });
+
+  it('maps repository currency mirror refusal to typed invalid currency', async () => {
+    class RejectingCreateRepository extends InMemoryCrmDeals {
+      override async createDealWithStageHistory(): Promise<{
+        deal: CrmDeal;
+        history: CrmDealStageHistory;
+      }> {
+        throw new CrmDealRepositoryFailure('invalid_currency');
+      }
+    }
+
+    await expect(
+      createCrmDeal(
+        {
+          accountId: 'account-1',
+          actor: agentActor,
+          contactId: 'contact-1',
+          currencyCode: 'USD',
+          forecastCategory: 'pipeline',
+          pipelineId: 'pipeline-1',
+          pipelineStageId: 'stage-qualified',
+          tenantId: 'tenant-1',
+          valueAmountMinor: 500000,
+        },
+        new RejectingCreateRepository(),
+        {
+          clock: { now: () => now },
+          ids: { dealId: () => 'deal-1', dealStageHistoryId: () => 'history-1' },
+        }
+      )
+    ).resolves.toEqual({
+      error: 'invalid_input',
+      reason: 'invalid_currency',
+      success: false,
+    });
+  });
+
+  it('maps late repository stage drift to the typed stage_drift result', async () => {
+    class ConcurrentStageMoveRepository extends InMemoryCrmDeals {
+      override async updateDealWithStageHistory(): Promise<{
+        deal: CrmDeal;
+        history: CrmDealStageHistory;
+      }> {
+        throw new CrmDealRepositoryFailure('stage_drift');
+      }
+    }
+
+    const repository = new ConcurrentStageMoveRepository();
+    repository.deals.push(deal());
+
+    await expect(
+      moveCrmDealStage(
+        {
+          actor: agentActor,
+          dealId: 'deal-1',
+          fromStageId: 'stage-qualified',
+          toStageId: 'stage-commit',
+        },
+        repository,
+        staticLossReasonResolver([]),
+        { clock: { now: () => now }, ids: { dealStageHistoryId: () => 'history-1' } }
+      )
+    ).resolves.toEqual({
+      error: 'invalid_input',
+      reason: 'stage_drift',
+      success: false,
+    });
   });
 
   it('keeps existing crm.deal.won events assignable while accepting new deal events', () => {
