@@ -442,6 +442,13 @@
       "when": 1778739724435,
       "tag": "0062_careful_gideon",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1778749374865,
+      "tag": "0063_clean_serpent_society",
+      "breakpoints": true
     }
   ]
 }

@@ -106,10 +106,15 @@ Required read-model functions:
 
 - `deriveCrmFunnelConversion(rows, input)`:
   returns per-stage entered count, exited count, won count, lost count, conversion rate, and drop-off
-  rate over a bounded window.
+  rate over a bounded window. CRM05 uses period-entry cohort semantics: each stage row is counted
+  when the deal enters that stage inside `[from, to)`. Created-in-window and snapshot-at-window-end
+  funnel modes are deferred and must not be inferred by adapter code in this slice.
 - `deriveCrmStageVelocity(rows, input)`:
   returns average, median, minimum, maximum, and sample count of days spent per stage, excluding open
-  intervals unless explicitly requested.
+  intervals unless explicitly requested. Intervals are computed only from consecutive
+  `crm_deal_stage_history.occurred_at` deltas ordered by `(dealId, occurredAt, createdAt, id)`. An
+  open interval is a stage entry with no later stage-history row for the same deal; open intervals
+  are excluded by default and included only when `input.includeOpenIntervals === true`.
 - `deriveCrmSourceBreakdown(rows, input)`:
   returns lead/deal count, won count, lost count, win rate, raw value, and weighted value grouped by
   source/UTM dimensions supplied by the repository.
@@ -121,8 +126,10 @@ Required read-model functions:
   tie-break fields.
 - `deriveCrmWeightedPipeline(rows, input)`:
   returns open deal value multiplied by stage probability, grouped by pipeline, stage, branch, agent,
-  forecast category, and currency.
-- `deriveCrmForecastSnapshot(input)`:
+  forecast category, and currency. The live CRM05 read-model uses the current stage-config
+  probability, not point-in-time historical stage probability; point-in-time weighting requires
+  historical stage-config persistence and is reserved for a later gate.
+- `deriveCrmForecastSnapshot(rows, input)`:
   converts weighted-pipeline rows into an append-only daily snapshot payload.
 
 The domain package owns math, grouping, normalization of empty buckets, percentage rounding, and
@@ -136,8 +143,10 @@ window validation. The app/database adapter owns SQL, tenant scoping, joins, and
   `CRM_REPORTING_MAX_WINDOW_DAYS`.
 - Stage velocity uses decimal days rounded to two decimals via exported
   `CRM_REPORTING_DURATION_DECIMAL_PLACES = 2`.
+- Median velocity for an even sample count uses the lower-middle value after ascending sort.
 - Percentage outputs are integer basis points (`0` to `10000`) via exported
   `CRM_REPORTING_PERCENT_DENOMINATOR = 10000`.
+- Percentage basis points use round-half-away-from-zero.
 - Row limits are exported constants, including `CRM_REPORTING_MAX_GROUP_ROWS = 250` and
   `CRM_REPORTING_MAX_LEADERBOARD_ROWS = 100`.
 - Monetary values are always minor units and grouped by `currencyCode`. CRM05 must not convert
@@ -145,6 +154,9 @@ window validation. The app/database adapter owns SQL, tenant scoping, joins, and
 - Rows with null `currencyCode`, null `valueAmountMinor`, null `pipelineId`, or null
   `currentStageId` are excluded from monetary or stage-specific metrics and counted in explicit
   `excluded*Count` fields.
+- Rows with inconsistent normalized state, such as a non-terminal stage with
+  `forecastCategory = 'closed'`, are excluded from monetary and stage-specific metrics and counted
+  in `excludedInconsistentForecastCount`.
 - Archived deals, archived pipelines, and archived stages are excluded by default unless an input
   explicitly allows archived rows for administrative audit.
 - Lost-stage metrics must carry `lossReasonId` when present but must not require loss reason display
@@ -190,24 +202,37 @@ Required columns:
 - `forecast_best_amount_minor`
 - `forecast_commit_amount_minor`
 - `forecast_omitted_amount_minor`
+- `closed_won_amount_minor`
+- `closed_lost_amount_minor`
 - nullable `source_run_id`
 - nullable `idempotency_key`
 - nullable `metadata jsonb`
 - `created_at`
 - nullable `created_by_id`
 
+`source_run_id` is a caller-supplied correlation ID shared by all snapshot rows emitted by one
+logical generation pass; it is nullable when the caller does not supply one. `idempotency_key` is
+reserved for the standard CRM mutation idempotency discipline and may be nullable in CRM05.
+`metadata` exists for adapter writes only; reporting reads ignore it in CRM05, and a later gate is
+required before any read-model consumes metadata.
+
 Persistence rules:
 
 - Snapshots are append-only. Application code must not update or delete existing snapshot rows.
 - Re-running a snapshot for the same tenant, pipeline, branch, currency, and date creates the next
   `snapshot_version`.
+- Concurrent snapshot inserts rely on the unique version index for race resolution. On conflict, the
+  adapter retries with the next version; advisory locks are not used in CRM05.
 - Querying snapshots defaults to the latest version per key.
+- Snapshot derivation computes from deals open at `snapshot_date 23:59:59.999 UTC`.
 - Unique index:
   `(tenant_id, pipeline_id, branch_id, currency_code, snapshot_date, snapshot_version)`.
 - Reporting indexes:
   `(tenant_id, snapshot_date)`, `(tenant_id, pipeline_id, snapshot_date)`, and
   `(tenant_id, branch_id, snapshot_date)`.
 - Composite tenant FKs are required for pipeline references.
+- Snapshot pipeline FKs do not cascade. Archived pipelines remain queryable for historical
+  integrity.
 - Scheduled generation is out of scope; CRM05 only adds the derivation and repository boundary.
 
 ## Adapter Contract
@@ -218,6 +243,13 @@ The app-side reporting adapter must:
   `crm_deal_stage_history`, and `crm_loss_reasons` where needed.
 - Prefer CRM04 normalized fields over legacy `crm_deals.stage` and never derive stage metrics from
   legacy text.
+- Project `crm_deal_stage_history.kind` as the closed CRM04 union
+  `created | stage_changed | won | lost | reopened`; reporting adapters must not replace it with
+  stage-label or legacy-text equivalents.
+- Use stage-history deltas, not `crm_deals.current_stage_id` plus `created_at`, for stage velocity.
+- Join `crm_loss_reasons` only for loss-reason grouping/exclusion fields in funnel and win-rate
+  rows; CRM05 source breakdown and leaderboard rows must not speculatively depend on loss-reason
+  display names.
 - Scope every query by tenant and actor-derived branch/agent filters before rows reach the domain
   read-model functions.
 - Return typed row shapes with stable IDs, timestamps, probability values, forecast categories,
@@ -225,8 +257,7 @@ The app-side reporting adapter must:
 - Use explicit SQL ordering for deterministic leaderboard and snapshot rows.
 - Keep existing dashboard repositories behavior-compatible; CRM05 must not replace current dashboard
   DTOs or UI data paths unless a focused adapter test proves unchanged output.
-- Include `db-access-guard` comments for new tenant-scoped queries if the existing guard requires
-  them.
+- Include `db-access-guard` comments for every new tenant-scoped reporting query.
 
 ## Acceptance Criteria For P38-CRM05
 
@@ -240,7 +271,10 @@ The app-side reporting adapter must:
 - App-side SQL adapters read CRM04 normalized persistence and do not import legacy stage text for
   reporting metrics.
 - Forecast snapshot adapter tests prove first-version insert, same-day re-run version increment,
-  latest-version reads, tenant isolation, branch isolation, and idempotency-key reservation.
+  latest-version reads, tenant isolation, branch isolation, conflict retry with incremented version,
+  and idempotency-key reservation.
+- Reporting tests include a PII-shape regression assertion that output keys never include
+  `email | phone | fullName | notes | description | subject`.
 - No SQL or `drizzle-orm` imports appear under `packages/domain-crm/src`.
 - No dashboard UI, proxy, canonical route, auth, tenancy, Stripe, README, AGENTS, or broad
   architecture-doc changes appear in the slice.
@@ -283,10 +317,15 @@ Required proof before implementation PR merge:
   conversion requires a later finance/forecast gate.
 - **Snapshot scheduling.** CRM05 records the table, derivation, and adapter boundary. Cron/worker
   scheduling remains deferred.
+- **Snapshot scale.** First-slice scale is expected to be modest. Snapshot writes may be inserted in
+  one transaction without batching; batch sizing and statement-timeout policy are deferred to
+  `P38-CRM13 Forecast Snapshot Scheduler`.
 - **Dashboard UI timing.** CRM05 should not change widgets. Later dashboard slices can consume the
   reporting ports once proven.
 - **Stage-history semantics.** CRM05 depends on CRM04 `kind` values to distinguish created,
   stage-changed, won, lost, and reopened events; it must not infer those states from text labels.
+- **Peer comparison.** Agent actors may read their own aggregate rows only. Peer-relative
+  comparison, branch-average comparison, and peer-by-name leaderboard rows for agents are deferred.
 - **Leaderboard fairness.** First-slice leaderboard rows are descriptive aggregates, not quota or
   compensation truth. Goals/quotas remain a later P2 item.
 - **Legacy deal retirement.** CRM05 may reduce reliance on legacy stage text for reporting, but
@@ -333,3 +372,5 @@ column retirement, deal nullability tightening, and broad CRM redesign require l
 | `P38-CRM09 Routing Admin UX And Rule Management`         | reserved | post-CRM08 | Requires routing persistence first.                                   |
 | `P38-CRM10 Legacy Deal Column Retirement`                | reserved | post-CRM05 | Requires normalized reporting/readers before legacy mirrors are cut.  |
 | `P38-CRM11 Deal Nullability Tightening`                  | reserved | later gate | Requires production zero-null evidence and backfill confidence first. |
+| `P38-CRM12 Reporting Dashboard UI`                       | reserved | post-CRM05 | Future dashboard widget consumption of CRM05 read-models.             |
+| `P38-CRM13 Forecast Snapshot Scheduler`                  | reserved | post-CRM05 | Future cron/worker generation and batching policy for snapshots.      |
