@@ -1,5 +1,6 @@
 import type { CrmActorContext } from '../context';
 import type { CrmLeadStage } from '../leads/mutations';
+import type { CrmRoutingAssignmentAuditReasonCode, CrmRoutingStrategy } from '../routing/types';
 
 export const CRM_DOMAIN_EVENT_TYPES = [
   'crm.account.created',
@@ -7,6 +8,7 @@ export const CRM_DOMAIN_EVENT_TYPES = [
   'crm.lead.created',
   'crm.lead.converted',
   'crm.lead.merged',
+  'crm.lead.routed',
   'crm.lead.stage_changed',
   'crm.lead.ownership_transferred',
   'crm.lead.activity_recorded',
@@ -104,6 +106,20 @@ export type CrmLeadMergedEvent = CrmDomainEventBase<
     mergedFieldKeys: readonly string[];
     reason: string;
     winnerLeadId: string;
+  }
+>;
+
+export type CrmLeadRoutedEvent = CrmDomainEventBase<
+  'crm.lead.routed',
+  'lead',
+  {
+    agentId: string;
+    branchId?: string | null;
+    fromAgentId?: string | null;
+    leadId: string;
+    reasonCode: CrmRoutingAssignmentAuditReasonCode;
+    ruleId: string;
+    strategy: CrmRoutingStrategy;
   }
 >;
 
@@ -218,6 +234,7 @@ export type CrmDomainEvent =
   | CrmLeadCreatedEvent
   | CrmLeadConvertedEvent
   | CrmLeadMergedEvent
+  | CrmLeadRoutedEvent
   | CrmLeadStageChangedEvent
   | CrmLeadOwnershipTransferredEvent
   | CrmLeadActivityRecordedEvent
