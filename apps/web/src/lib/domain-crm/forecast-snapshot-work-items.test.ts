@@ -6,29 +6,67 @@ import {
   mapWorkItemRows,
 } from './forecast-snapshot-work-items';
 
+type QueryCall = { args: unknown[]; method: string };
+type WorkItemRow = {
+  branchId: string | null;
+  currencyCode: string | null;
+  pipelineId: string | null;
+  tenantId: string;
+};
+
+function row(overrides: Partial<WorkItemRow> = {}): WorkItemRow {
+  return {
+    branchId: 'branch-1',
+    currencyCode: 'EUR',
+    pipelineId: 'pipeline-1',
+    tenantId: 'tenant-1',
+    ...overrides,
+  };
+}
+
+function createDatabaseDouble(results: WorkItemRow[][]) {
+  const calls: QueryCall[] = [];
+  const limitResults = [...results];
+  const createChain = () => {
+    const chain = {
+      from: vi.fn((...args: unknown[]) => pushCall(chain, calls, 'from', args)),
+      groupBy: vi.fn((...args: unknown[]) => pushCall(chain, calls, 'groupBy', args)),
+      innerJoin: vi.fn((...args: unknown[]) => pushCall(chain, calls, 'innerJoin', args)),
+      limit: vi.fn(async (...args: unknown[]) => {
+        calls.push({ args, method: 'limit' });
+        return limitResults.shift() ?? [];
+      }),
+      orderBy: vi.fn((...args: unknown[]) => pushCall(chain, calls, 'orderBy', args)),
+      where: vi.fn((...args: unknown[]) => pushCall(chain, calls, 'where', args)),
+    };
+    return chain;
+  };
+  return { calls, database: { select: vi.fn(() => createChain()) } };
+}
+
+function pushCall<TChain>(
+  chain: TChain,
+  calls: QueryCall[],
+  method: string,
+  args: unknown[]
+): TChain {
+  calls.push({ args, method });
+  return chain;
+}
+
 describe('crmForecastSnapshotWorkItemRepository', () => {
   it('maps bounded grouped rows and reports deferred work', () => {
     expect(
       mapWorkItemRows(
         [
-          {
-            branchId: null,
-            currencyCode: 'EUR',
-            pipelineId: 'pipeline-1',
-            tenantId: 'tenant-1',
-          },
-          {
+          row({ branchId: null }),
+          row({
             branchId: 'branch-2',
             currencyCode: 'USD',
             pipelineId: 'pipeline-2',
             tenantId: 'tenant-2',
-          },
-          {
-            branchId: 'branch-3',
-            currencyCode: null,
-            pipelineId: 'pipeline-3',
-            tenantId: 'tenant-3',
-          },
+          }),
+          row({ branchId: 'branch-3', currencyCode: null, pipelineId: 'pipeline-3' }),
         ],
         2
       )
@@ -52,41 +90,7 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
   });
 
   it('uses a grouped normalized-deal query with the exported work-item cap', async () => {
-    const calls: { args: unknown[]; method: string }[] = [];
-    const chain = {
-      from: vi.fn((...args: unknown[]) => {
-        calls.push({ args, method: 'from' });
-        return chain;
-      }),
-      groupBy: vi.fn((...args: unknown[]) => {
-        calls.push({ args, method: 'groupBy' });
-        return chain;
-      }),
-      innerJoin: vi.fn((...args: unknown[]) => {
-        calls.push({ args, method: 'innerJoin' });
-        return chain;
-      }),
-      limit: vi.fn(async (...args: unknown[]) => {
-        calls.push({ args, method: 'limit' });
-        return [
-          {
-            branchId: 'branch-1',
-            currencyCode: 'EUR',
-            pipelineId: 'pipeline-1',
-            tenantId: 'tenant-1',
-          },
-        ];
-      }),
-      orderBy: vi.fn((...args: unknown[]) => {
-        calls.push({ args, method: 'orderBy' });
-        return chain;
-      }),
-      where: vi.fn((...args: unknown[]) => {
-        calls.push({ args, method: 'where' });
-        return chain;
-      }),
-    };
-    const database = { select: vi.fn(() => chain) };
+    const { calls, database } = createDatabaseDouble([[row()]]);
 
     const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
     const result = await repository.listWorkItems({
@@ -102,7 +106,7 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
         tenantId: 'tenant-1',
       },
     ]);
-    expect(chain.innerJoin).toHaveBeenCalledTimes(2);
+    expect(calls.filter(call => call.method === 'innerJoin')).toHaveLength(2);
     expect(calls.find(call => call.method === 'groupBy')?.args).toHaveLength(4);
     expect(calls.find(call => call.method === 'limit')?.args).toEqual([
       CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN + 1,
@@ -110,61 +114,25 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
   });
 
   it('fetches the true deferred work-item count when the first grouped query overflows', async () => {
-    const calls: { args: unknown[]; method: string }[] = [];
     const firstRows = [
-      {
-        branchId: null,
-        currencyCode: 'EUR',
-        pipelineId: 'pipeline-1',
-        tenantId: 'tenant-1',
-      },
-      {
+      row({ branchId: null }),
+      row({
         branchId: 'branch-2',
         currencyCode: 'USD',
         pipelineId: 'pipeline-2',
         tenantId: 'tenant-2',
-      },
+      }),
     ];
     const allRows = [
       ...firstRows,
-      {
+      row({
         branchId: 'branch-3',
         currencyCode: 'GBP',
         pipelineId: 'pipeline-3',
         tenantId: 'tenant-3',
-      },
+      }),
     ];
-    const limitResults = [firstRows, allRows];
-    const createChain = () => {
-      const chain = {
-        from: vi.fn((...args: unknown[]) => {
-          calls.push({ args, method: 'from' });
-          return chain;
-        }),
-        groupBy: vi.fn((...args: unknown[]) => {
-          calls.push({ args, method: 'groupBy' });
-          return chain;
-        }),
-        innerJoin: vi.fn((...args: unknown[]) => {
-          calls.push({ args, method: 'innerJoin' });
-          return chain;
-        }),
-        limit: vi.fn(async (...args: unknown[]) => {
-          calls.push({ args, method: 'limit' });
-          return limitResults.shift() ?? [];
-        }),
-        orderBy: vi.fn((...args: unknown[]) => {
-          calls.push({ args, method: 'orderBy' });
-          return chain;
-        }),
-        where: vi.fn((...args: unknown[]) => {
-          calls.push({ args, method: 'where' });
-          return chain;
-        }),
-      };
-      return chain;
-    };
-    const database = { select: vi.fn(() => createChain()) };
+    const { calls, database } = createDatabaseDouble([firstRows, allRows]);
 
     const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
     const result = await repository.listWorkItems({
