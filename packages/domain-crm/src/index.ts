@@ -11,5 +11,6 @@ export * from './leads';
 export * from './notifications';
 export * from './outbox';
 export * from './pipelines';
+export * from './routing';
 export * from './support-handoffs';
 export * from './timeline';
