@@ -20,13 +20,14 @@ import {
   SidebarMenuItem,
 } from '@interdomestik/ui';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
-import { ChevronUp, FileText, Inbox, LogOut, Shield } from 'lucide-react';
+import { BarChart3, ChevronUp, FileText, Inbox, LogOut, Shield } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 type StaffSidebarUser = Readonly<{
   name?: string | null;
   email?: string | null;
   image?: string | null;
+  role?: string | null;
 }>;
 
 function StaffSidebarInner({ user }: Readonly<{ user: StaffSidebarUser | null | undefined }>) {
@@ -42,6 +43,9 @@ function StaffSidebarInner({ user }: Readonly<{ user: StaffSidebarUser | null | 
       href: '/staff/support-handoffs',
       icon: Inbox,
     },
+    ...(user?.role === 'staff'
+      ? [{ title: tNav('staffCrm'), href: '/staff/crm', icon: BarChart3 }]
+      : []),
   ];
 
   const handleSignOut = async () => {

@@ -1,0 +1,55 @@
+{
+  "staff-crm": {
+    "title": "CRM Reporting",
+    "description": "Staff operational reporting for pipeline workload, funnel movement, and stage velocity.",
+    "pipelineWorkload": {
+      "title": "Pipeline workload",
+      "description": "Live 90-day open pipeline by branch, pipeline, and currency.",
+      "empty": "No open pipeline workload is available for the default reporting window."
+    },
+    "funnelMovement": {
+      "title": "Funnel movement",
+      "description": "Top CRM stage movement by period entries.",
+      "empty": "No funnel movement is available for the default reporting window."
+    },
+    "stageVelocity": {
+      "title": "Stage velocity",
+      "description": "Slowest CRM stages by median elapsed days.",
+      "empty": "No stage velocity samples meet the minimum sample threshold.",
+      "excludedOpenIntervals": "{count, plural, one {# open interval excluded} other {# open intervals excluded}}",
+      "excludedOpenIntervalsHelp": "Open stage intervals are excluded from stage velocity calculations."
+    },
+    "metrics": {
+      "openDeals": "Open deals",
+      "totalPipeline": "Total",
+      "weighted": "Weighted",
+      "commit": "Commit",
+      "bestCase": "Best case",
+      "entered": "Entered",
+      "exited": "Exited",
+      "wonLost": "Won / lost",
+      "conversion": "Conversion",
+      "dropOff": "Drop-off",
+      "medianDays": "Median",
+      "averageDays": "Average",
+      "minimumDays": "Minimum",
+      "maximumDays": "Maximum",
+      "sampleCount": "Samples"
+    },
+    "label": {
+      "no-branch": "No branch"
+    },
+    "durationDays": "{days} days",
+    "excludedRows": "{count, plural, one {# aggregate row excluded} other {# aggregate rows excluded}}",
+    "excludedRowsHelp": "Rows can be excluded from aggregate metrics when required reporting fields are missing or inconsistent.",
+    "error": {
+      "tenant": "CRM reporting is unavailable for this tenant context.",
+      "role": "This staff account cannot view CRM reporting.",
+      "branch": "CRM reporting requires a valid branch scope.",
+      "agent": "Agent-scoped CRM reporting is not shown on the staff dashboard.",
+      "window": "The CRM reporting window is invalid.",
+      "grouping": "This CRM reporting grouping is not supported.",
+      "generic": "CRM reporting could not be loaded. Try again later."
+    }
+  }
+}

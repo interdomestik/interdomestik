@@ -1,0 +1,55 @@
+{
+  "staff-crm": {
+    "title": "CRM izveštavanje",
+    "description": "Operativno izveštavanje za osoblje o opterećenju pipeline-a, kretanju kroz funnel i brzini faza.",
+    "pipelineWorkload": {
+      "title": "Opterećenje pipeline-a",
+      "description": "Živi 90-dnevni otvoreni pipeline po filijali, pipeline-u i valuti.",
+      "empty": "Nema otvorenog opterećenja pipeline-a za podrazumevani period izveštavanja."
+    },
+    "funnelMovement": {
+      "title": "Kretanje kroz funnel",
+      "description": "Najveća CRM kretanja po fazama prema ulascima u periodu.",
+      "empty": "Nema kretanja kroz funnel za podrazumevani period izveštavanja."
+    },
+    "stageVelocity": {
+      "title": "Brzina faza",
+      "description": "Najsporije CRM faze po medijani proteklih dana.",
+      "empty": "Nijedan uzorak brzine faze ne ispunjava minimalni prag.",
+      "excludedOpenIntervals": "{count, plural, one {# otvoreni interval je izuzet} other {# otvorenih intervala je izuzeto}}",
+      "excludedOpenIntervalsHelp": "Otvoreni intervali faza se izuzimaju iz izračunavanja brzine faza."
+    },
+    "metrics": {
+      "openDeals": "Otvoreni poslovi",
+      "totalPipeline": "Ukupno",
+      "weighted": "Ponderisano",
+      "commit": "Obaveza",
+      "bestCase": "Najbolji slučaj",
+      "entered": "Ušlo",
+      "exited": "Izašlo",
+      "wonLost": "Dobijeno / izgubljeno",
+      "conversion": "Konverzija",
+      "dropOff": "Otpadanje",
+      "medianDays": "Medijana",
+      "averageDays": "Prosek",
+      "minimumDays": "Najmanje",
+      "maximumDays": "Maksimum",
+      "sampleCount": "Uzorci"
+    },
+    "label": {
+      "no-branch": "Bez filijale"
+    },
+    "durationDays": "{days} dana",
+    "excludedRows": "{count, plural, one {# agregirani red je izuzet} other {# agregiranih redova je izuzeto}}",
+    "excludedRowsHelp": "Redovi se mogu izuzeti iz agregiranih metrika kada obavezna polja za izveštavanje nedostaju ili nisu dosledna.",
+    "error": {
+      "tenant": "CRM izveštavanje nije dostupno za ovaj tenant kontekst.",
+      "role": "Ovaj nalog osoblja ne može da vidi CRM izveštavanje.",
+      "branch": "CRM izveštavanje zahteva važeći opseg filijale.",
+      "agent": "CRM izveštavanje u opsegu agenta se ne prikazuje na tabli osoblja.",
+      "window": "Period CRM izveštavanja nije važeći.",
+      "grouping": "Ovo grupisanje CRM izveštavanja nije podržano.",
+      "generic": "CRM izveštavanje nije moglo da se učita. Pokušajte ponovo kasnije."
+    }
+  }
+}

@@ -51,6 +51,7 @@ export const MESSAGE_NAMESPACES = [
   'servicesPage',
   'settings',
   'stats',
+  'staff-crm',
   'testimonials',
   'timeline',
   'trust',
@@ -124,6 +125,7 @@ export const STAFF_NAMESPACES = [
   'claims-tracking',
   'messaging',
   'notifications',
+  'staff-crm',
 ] as const;
 export const ADMIN_NAMESPACES = [
   'admin',
