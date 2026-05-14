@@ -1,6 +1,6 @@
 # P38-DG11 Staff Reporting Dashboard UI Design Review
 
-Status: design-review
+Status: complete
 Slice: `P38-DG11`
 Owner: platform + product + qa
 Phase: Phase C
@@ -378,20 +378,20 @@ canonical route changes, or auth/tenancy architecture changes.
 
 ## Promotion / Sign-Off
 
-| Slice                                                    | Status        | Authority            | Notes                                                       |
-| -------------------------------------------------------- | ------------- | -------------------- | ----------------------------------------------------------- |
-| `P38-CRM05 Reporting Read-Models And Forecast Snapshots` | complete      | PR `#756`            | Merge commit `e9cc7eef34c6b1ce29be2aeb492cb5a299fe9190`.    |
-| `P38-CRM12 Reporting Dashboard UI`                       | complete      | PR `#757`            | Merge commit `3a220ea88eb0c2b765b56d3d926edd21952b3def`.    |
-| `P38-CRM13 Forecast Snapshot Scheduler`                  | complete      | PR `#759`            | Merge commit `5544ffdea752031086a5bf5cda8b5892af6e3a83`.    |
-| `P38-CRM14 Admin Reporting Dashboard UI`                 | complete      | PR `#761`            | Merge commit `de4e60c4ed79d81a6f92e721a4ad04ab1944151b`.    |
-| `P38-DG11 Staff Reporting Dashboard UI Design Review`    | design-review | tracker/program gate | Promotes exactly one bounded staff dashboard UI slice.      |
-| `P38-CRM15 Staff Reporting Dashboard UI`                 | promoted      | `P38-DG11`           | Staff operational aggregate reporting UI only.              |
-| `P38-CRM16 Reporting Charting Foundation`                | reserved      | later gate           | Charting dependency and bundle-size policy remain deferred. |
-| `P38-CRM17 Forecast Snapshot Backfill`                   | reserved      | later gate           | Historical backfill and operator runbook remain deferred.   |
-| `P38-CRM18 Forecast Snapshot Observability`              | reserved      | later gate           | Alerting and run telemetry dashboards remain deferred.      |
-| `P38-CRM19 Forecast Snapshot Backfill Operator UX`       | reserved      | post-backfill        | Operator-facing backfill controls remain deferred.          |
-| `P38-CRM20 Admin Reporting Branch-Manager Surface`       | reserved      | post-staff/admin     | Branch-manager reporting surface remains deferred.          |
-| `P38-CRM08 Routing Persistence And Cursor Adapter`       | reserved      | future gate          | Still valid, but not selected ahead of staff reporting.     |
-| `P38-CRM09 Routing Admin UX And Rule Management`         | reserved      | post-routing         | Requires routing persistence first.                         |
-| `P38-CRM10 Legacy Deal Column Retirement`                | reserved      | later gate           | Requires normalized-reader confidence and retirement proof. |
-| `P38-CRM11 Deal Nullability Tightening`                  | reserved      | later gate           | Requires production zero-null evidence.                     |
+| Slice                                                    | Status   | Authority            | Notes                                                       |
+| -------------------------------------------------------- | -------- | -------------------- | ----------------------------------------------------------- |
+| `P38-CRM05 Reporting Read-Models And Forecast Snapshots` | complete | PR `#756`            | Merge commit `e9cc7eef34c6b1ce29be2aeb492cb5a299fe9190`.    |
+| `P38-CRM12 Reporting Dashboard UI`                       | complete | PR `#757`            | Merge commit `3a220ea88eb0c2b765b56d3d926edd21952b3def`.    |
+| `P38-CRM13 Forecast Snapshot Scheduler`                  | complete | PR `#759`            | Merge commit `5544ffdea752031086a5bf5cda8b5892af6e3a83`.    |
+| `P38-CRM14 Admin Reporting Dashboard UI`                 | complete | PR `#761`            | Merge commit `de4e60c4ed79d81a6f92e721a4ad04ab1944151b`.    |
+| `P38-DG11 Staff Reporting Dashboard UI Design Review`    | complete | tracker/program gate | Promotes exactly one bounded staff dashboard UI slice.      |
+| `P38-CRM15 Staff Reporting Dashboard UI`                 | promoted | `P38-DG11`           | Staff operational aggregate reporting UI only.              |
+| `P38-CRM16 Reporting Charting Foundation`                | reserved | later gate           | Charting dependency and bundle-size policy remain deferred. |
+| `P38-CRM17 Forecast Snapshot Backfill`                   | reserved | later gate           | Historical backfill and operator runbook remain deferred.   |
+| `P38-CRM18 Forecast Snapshot Observability`              | reserved | later gate           | Alerting and run telemetry dashboards remain deferred.      |
+| `P38-CRM19 Forecast Snapshot Backfill Operator UX`       | reserved | post-backfill        | Operator-facing backfill controls remain deferred.          |
+| `P38-CRM20 Admin Reporting Branch-Manager Surface`       | reserved | post-staff/admin     | Branch-manager reporting surface remains deferred.          |
+| `P38-CRM08 Routing Persistence And Cursor Adapter`       | reserved | future gate          | Still valid, but not selected ahead of staff reporting.     |
+| `P38-CRM09 Routing Admin UX And Rule Management`         | reserved | post-routing         | Requires routing persistence first.                         |
+| `P38-CRM10 Legacy Deal Column Retirement`                | reserved | later gate           | Requires normalized-reader confidence and retirement proof. |
+| `P38-CRM11 Deal Nullability Tightening`                  | reserved | later gate           | Requires production zero-null evidence.                     |
