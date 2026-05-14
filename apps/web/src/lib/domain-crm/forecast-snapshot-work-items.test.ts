@@ -108,4 +108,83 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
       CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN + 1,
     ]);
   });
+
+  it('fetches the true deferred work-item count when the first grouped query overflows', async () => {
+    const calls: { args: unknown[]; method: string }[] = [];
+    const firstRows = [
+      {
+        branchId: null,
+        currencyCode: 'EUR',
+        pipelineId: 'pipeline-1',
+        tenantId: 'tenant-1',
+      },
+      {
+        branchId: 'branch-2',
+        currencyCode: 'USD',
+        pipelineId: 'pipeline-2',
+        tenantId: 'tenant-2',
+      },
+    ];
+    const allRows = [
+      ...firstRows,
+      {
+        branchId: 'branch-3',
+        currencyCode: 'GBP',
+        pipelineId: 'pipeline-3',
+        tenantId: 'tenant-3',
+      },
+    ];
+    const limitResults = [firstRows, allRows];
+    const createChain = () => {
+      const chain = {
+        from: vi.fn((...args: unknown[]) => {
+          calls.push({ args, method: 'from' });
+          return chain;
+        }),
+        groupBy: vi.fn((...args: unknown[]) => {
+          calls.push({ args, method: 'groupBy' });
+          return chain;
+        }),
+        innerJoin: vi.fn((...args: unknown[]) => {
+          calls.push({ args, method: 'innerJoin' });
+          return chain;
+        }),
+        limit: vi.fn(async (...args: unknown[]) => {
+          calls.push({ args, method: 'limit' });
+          return limitResults.shift() ?? [];
+        }),
+        orderBy: vi.fn((...args: unknown[]) => {
+          calls.push({ args, method: 'orderBy' });
+          return chain;
+        }),
+        where: vi.fn((...args: unknown[]) => {
+          calls.push({ args, method: 'where' });
+          return chain;
+        }),
+      };
+      return chain;
+    };
+    const database = { select: vi.fn(() => createChain()) };
+
+    const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
+    const result = await repository.listWorkItems({
+      limit: 1,
+      snapshotDateEndExclusive: new Date('2026-05-14T00:00:00.000Z'),
+      snapshotDateStartInclusive: new Date('2025-04-09T00:00:00.000Z'),
+    });
+
+    expect(result.workItems).toEqual([
+      {
+        branchId: null,
+        currencyCode: 'EUR',
+        pipelineId: 'pipeline-1',
+        tenantId: 'tenant-1',
+      },
+    ]);
+    expect(result.workItemsDeferred).toBe(2);
+    expect(database.select).toHaveBeenCalledTimes(2);
+    expect(calls.filter(call => call.method === 'limit').map(call => call.args[0])).toEqual([
+      2, 2_147_483_647,
+    ]);
+  });
 });

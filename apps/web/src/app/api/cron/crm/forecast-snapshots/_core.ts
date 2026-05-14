@@ -46,6 +46,7 @@ export type CrmForecastSnapshotSchedulerResult = {
 export type CrmForecastSnapshotSchedulerLogger = Pick<Console, 'error' | 'info' | 'warn'>;
 
 export type RunCrmForecastSnapshotSchedulerCoreArgs = {
+  logger?: CrmForecastSnapshotSchedulerLogger;
   maxWorkItemsPerRun?: number;
   now: Date;
   nowMs?: () => number;
@@ -77,6 +78,7 @@ export async function runCrmForecastSnapshotSchedulerCore(
   const workItemRepository = args.workItemRepository ?? crmForecastSnapshotWorkItemRepository;
   const reportingRepository = args.reportingRepository ?? crmReportingRepository;
   const snapshotRepository = args.snapshotRepository ?? crmForecastSnapshotRepository;
+  const logger = args.logger ?? console;
 
   const listed = await workItemRepository.listWorkItems({
     limit: args.maxWorkItemsPerRun ?? CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN,
@@ -96,16 +98,18 @@ export async function runCrmForecastSnapshotSchedulerCore(
 
     try {
       const inserted = await withTimeout(
-        processWorkItem({
-          reportingRepository,
-          snapshotDate,
-          snapshotDateEndExclusive,
-          snapshotDateStartInclusive,
-          snapshotRepository,
-          sourceRunId,
-          tenantRows,
-          workItem,
-        }),
+        signal =>
+          processWorkItem({
+            reportingRepository,
+            signal,
+            snapshotDate,
+            snapshotDateEndExclusive,
+            snapshotDateStartInclusive,
+            snapshotRepository,
+            sourceRunId,
+            tenantRows,
+            workItem,
+          }),
         workItemSoftTimeoutMs
       );
       if (inserted === 'version_conflict') {
@@ -114,13 +118,36 @@ export async function runCrmForecastSnapshotSchedulerCore(
         result.workItemsSucceeded += 1;
         result.snapshotsInserted += inserted;
       }
-    } catch {
+    } catch (error) {
       result.failedWorkItems += 1;
+      logWorkItemFailure(logger, workItem, error);
+      if (isSoftTimeoutError(error)) {
+        result.workItemsDeferred += listed.workItems.length - index - 1;
+        break;
+      }
     }
   }
 
   result.completedAt = new Date(nowMs()).toISOString();
   return result;
+}
+
+function logWorkItemFailure(
+  logger: CrmForecastSnapshotSchedulerLogger,
+  workItem: CrmForecastSnapshotWorkItem,
+  error: unknown
+): void {
+  const payload = {
+    branchId: workItem.branchId ?? CRM_FORECAST_SNAPSHOT_NO_BRANCH_SENTINEL,
+    currencyCode: workItem.currencyCode,
+    errorMessage: error instanceof Error ? error.message : String(error),
+    pipelineId: workItem.pipelineId,
+    tenantId: workItem.tenantId,
+  };
+  const message = isSoftTimeoutError(error)
+    ? '[CRM Forecast Snapshot Scheduler] work item timed out'
+    : '[CRM Forecast Snapshot Scheduler] work item failed';
+  logger.warn(message, payload);
 }
 
 export function getCrmForecastSnapshotSchedulerStatus(
@@ -217,6 +244,7 @@ function startInclusiveForSnapshotDate(snapshotDateEndExclusive: Date): Date {
 
 async function processWorkItem(args: {
   reportingRepository: CrmReportingRepository;
+  signal: AbortSignal;
   snapshotDate: string;
   snapshotDateEndExclusive: Date;
   snapshotDateStartInclusive: Date;
@@ -225,7 +253,9 @@ async function processWorkItem(args: {
   tenantRows: TenantWeightedRows;
   workItem: CrmForecastSnapshotWorkItem;
 }): Promise<number | 'version_conflict'> {
+  throwIfAborted(args.signal);
   const rows = await getTenantRows(args);
+  throwIfAborted(args.signal);
   const filtered = rows.filter(row => isWorkItemRow(row, args.workItem));
   const input = reportingInputFor(
     args.workItem.tenantId,
@@ -248,7 +278,9 @@ async function processWorkItem(args: {
   });
 
   if (snapshots.length === 0) return 0;
+  throwIfAborted(args.signal);
   const inserted = await args.snapshotRepository.insertPipelineSnapshots({ snapshots });
+  throwIfAborted(args.signal);
   if (!inserted.success) return inserted.reason;
   return inserted.snapshots.length;
 }
@@ -312,22 +344,53 @@ export function buildSnapshotIdempotencyKey(
   ].join(':');
 }
 
-function withTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
+class SoftTimeoutError extends Error {
+  constructor() {
+    super('CRM forecast snapshot timed out');
+    this.name = 'SoftTimeoutError';
+  }
+}
+
+function isSoftTimeoutError(error: unknown): error is SoftTimeoutError {
+  return error instanceof SoftTimeoutError;
+}
+
+function throwIfAborted(signal: AbortSignal): void {
+  if (signal.aborted) {
+    throw new SoftTimeoutError();
+  }
+}
+
+function withTimeout<T>(
+  startWork: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number
+): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(
-      () => reject(new Error('CRM forecast snapshot timed out')),
-      timeoutMs
-    );
-    work.then(
-      value => {
-        clearTimeout(timeout);
-        resolve(value);
-      },
-      error => {
-        clearTimeout(timeout);
-        reject(error);
-      }
-    );
+    const controller = new AbortController();
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      controller.abort();
+      reject(new SoftTimeoutError());
+    }, timeoutMs);
+    const work = startWork(controller.signal);
+    work
+      .then(
+        value => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          resolve(value);
+        },
+        error => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          reject(error);
+        }
+      )
+      .catch(() => undefined);
   });
 }
 

@@ -197,6 +197,7 @@ describe('runCrmForecastSnapshotSchedulerCore', () => {
   });
 
   it('counts partial failures and returns 500 only when every selected item fails', async () => {
+    const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
     const deps = createDeps({
       workItems: [workItem, { ...workItem, tenantId: 'tenant-2', pipelineId: 'pipeline-2' }],
     });
@@ -204,31 +205,57 @@ describe('runCrmForecastSnapshotSchedulerCore', () => {
       .mockRejectedValueOnce(new Error('db unavailable'))
       .mockResolvedValueOnce([weightedRow({ tenantId: 'tenant-2', pipelineId: 'pipeline-2' })]);
 
-    const result = await runCrmForecastSnapshotSchedulerCore({ ...deps, now });
+    const result = await runCrmForecastSnapshotSchedulerCore({ ...deps, logger, now });
 
     expect(result.failedWorkItems).toBe(1);
     expect(result.workItemsSucceeded).toBe(1);
     expect(getCrmForecastSnapshotSchedulerStatus(result)).toBe(200);
+    expect(logger.warn).toHaveBeenCalledWith(
+      '[CRM Forecast Snapshot Scheduler] work item failed',
+      expect.objectContaining({
+        branchId: 'branch-1',
+        currencyCode: 'EUR',
+        errorMessage: 'db unavailable',
+        pipelineId: 'pipeline-1',
+        tenantId: 'tenant-1',
+      })
+    );
 
     const failedDeps = createDeps();
     failedDeps.reportingRepository.listWeightedPipelineRows.mockRejectedValue(new Error('down'));
-    const failed = await runCrmForecastSnapshotSchedulerCore({ ...failedDeps, now });
+    const failed = await runCrmForecastSnapshotSchedulerCore({ ...failedDeps, logger, now });
     expect(failed.failedWorkItems).toBe(1);
     expect(getCrmForecastSnapshotSchedulerStatus(failed)).toBe(500);
   });
 
-  it('soft-times out individual work items', async () => {
-    const deps = createDeps();
+  it('soft-times out individual work items and defers remaining work', async () => {
+    const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
+    const deps = createDeps({
+      workItems: [workItem, { ...workItem, tenantId: 'tenant-2', pipelineId: 'pipeline-2' }],
+    });
     deps.reportingRepository.listWeightedPipelineRows.mockReturnValue(new Promise(() => {}));
 
     const result = await runCrmForecastSnapshotSchedulerCore({
       ...deps,
+      logger,
       now,
       workItemSoftTimeoutMs: 1,
     });
 
     expect(result.failedWorkItems).toBe(1);
     expect(result.workItemsSucceeded).toBe(0);
+    expect(result.workItemsDeferred).toBe(1);
+    expect(deps.reportingRepository.listWeightedPipelineRows).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(
+      '[CRM Forecast Snapshot Scheduler] work item timed out',
+      expect.objectContaining({
+        branchId: 'branch-1',
+        currencyCode: 'EUR',
+        errorMessage: 'CRM forecast snapshot timed out',
+        pipelineId: 'pipeline-1',
+        tenantId: 'tenant-1',
+      })
+    );
   });
 
   it('uses the no-branch sentinel in idempotency keys', () => {
