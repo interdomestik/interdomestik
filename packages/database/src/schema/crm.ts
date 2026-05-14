@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  date,
   foreignKey,
   index,
   integer,
@@ -444,6 +445,86 @@ export const crmDealStageHistory = pgTable(
       'crm_deal_stage_history_kind_check',
       sql`${table.kind} in ('created', 'stage_changed', 'won', 'lost', 'reopened')`
     ),
+  ]
+);
+
+export const crmPipelineSnapshots = pgTable(
+  'crm_pipeline_snapshots',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    branchId: text('branch_id').references(() => branches.id),
+    pipelineId: text('pipeline_id')
+      .notNull()
+      .references(() => crmPipelines.id),
+    snapshotDate: date('snapshot_date').notNull(),
+    snapshotVersion: integer('snapshot_version').notNull(),
+    currencyCode: text('currency_code').notNull(),
+    openDealCount: integer('open_deal_count').notNull(),
+    rawValueAmountMinor: integer('raw_value_amount_minor').notNull(),
+    weightedValueAmountMinor: integer('weighted_value_amount_minor').notNull(),
+    forecastPipelineAmountMinor: integer('forecast_pipeline_amount_minor').notNull(),
+    forecastBestAmountMinor: integer('forecast_best_amount_minor').notNull(),
+    forecastCommitAmountMinor: integer('forecast_commit_amount_minor').notNull(),
+    forecastOmittedAmountMinor: integer('forecast_omitted_amount_minor').notNull(),
+    closedWonAmountMinor: integer('closed_won_amount_minor').notNull(),
+    closedLostAmountMinor: integer('closed_lost_amount_minor').notNull(),
+    sourceRunId: text('source_run_id'),
+    idempotencyKey: text('idempotency_key'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    createdById: text('created_by_id').references(() => user.id),
+  },
+  table => [
+    uniqueIndex('crm_pipeline_snapshots_version_uq').on(
+      table.tenantId,
+      table.pipelineId,
+      sql`coalesce(${table.branchId}, '')`,
+      table.currencyCode,
+      table.snapshotDate,
+      table.snapshotVersion
+    ),
+    index('crm_pipeline_snapshots_tenant_date_idx').on(table.tenantId, table.snapshotDate),
+    index('crm_pipeline_snapshots_tenant_pipeline_date_idx').on(
+      table.tenantId,
+      table.pipelineId,
+      table.snapshotDate
+    ),
+    index('crm_pipeline_snapshots_tenant_branch_date_idx').on(
+      table.tenantId,
+      table.branchId,
+      table.snapshotDate
+    ),
+    foreignKey({
+      columns: [table.tenantId, table.pipelineId],
+      foreignColumns: [crmPipelines.tenantId, crmPipelines.id],
+      name: 'crm_pipeline_snapshots_tenant_pipeline_fk',
+    }),
+    check('crm_pipeline_snapshots_version_check', sql`${table.snapshotVersion} >= 1`),
+    check('crm_pipeline_snapshots_currency_code_check', sql`${table.currencyCode} ~ '^[A-Z]{3}$'`),
+    check('crm_pipeline_snapshots_open_count_check', sql`${table.openDealCount} >= 0`),
+    check('crm_pipeline_snapshots_raw_value_check', sql`${table.rawValueAmountMinor} >= 0`),
+    check(
+      'crm_pipeline_snapshots_weighted_value_check',
+      sql`${table.weightedValueAmountMinor} >= 0`
+    ),
+    check(
+      'crm_pipeline_snapshots_forecast_pipeline_check',
+      sql`${table.forecastPipelineAmountMinor} >= 0`
+    ),
+    check('crm_pipeline_snapshots_forecast_best_check', sql`${table.forecastBestAmountMinor} >= 0`),
+    check(
+      'crm_pipeline_snapshots_forecast_commit_check',
+      sql`${table.forecastCommitAmountMinor} >= 0`
+    ),
+    check(
+      'crm_pipeline_snapshots_forecast_omitted_check',
+      sql`${table.forecastOmittedAmountMinor} >= 0`
+    ),
+    check('crm_pipeline_snapshots_closed_won_check', sql`${table.closedWonAmountMinor} >= 0`),
+    check('crm_pipeline_snapshots_closed_lost_check', sql`${table.closedLostAmountMinor} >= 0`),
   ]
 );
 

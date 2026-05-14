@@ -12,6 +12,7 @@ import {
   crmLeads,
   crmLossReasons,
   crmPipelines,
+  crmPipelineSnapshots,
   crmPipelineStages,
   memberActivities,
   supportHandoffs,
@@ -54,6 +55,7 @@ export const userRelations = relations(user, ({ many, one }) => ({
     relationName: 'support_handoffs_staff',
   }),
   crmDeals: many(crmDeals),
+  crmPipelineSnapshots: many(crmPipelineSnapshots),
   referralsSent: many(referrals, { relationName: 'referrer' }),
   referralsReceived: many(referrals, { relationName: 'referred' }),
   serviceUsage: many(serviceUsage),
@@ -190,6 +192,7 @@ export const crmPipelinesRelations = relations(crmPipelines, ({ many, one }) => 
   branch: one(branches, { fields: [crmPipelines.branchId], references: [branches.id] }),
   stages: many(crmPipelineStages),
   deals: many(crmDeals),
+  snapshots: many(crmPipelineSnapshots),
 }));
 
 export const crmPipelineStagesRelations = relations(crmPipelineStages, ({ many, one }) => ({
@@ -229,6 +232,15 @@ export const crmDealStageHistoryRelations = relations(crmDealStageHistory, ({ on
     fields: [crmDealStageHistory.lossReasonId],
     references: [crmLossReasons.id],
   }),
+}));
+
+export const crmPipelineSnapshotsRelations = relations(crmPipelineSnapshots, ({ one }) => ({
+  branch: one(branches, { fields: [crmPipelineSnapshots.branchId], references: [branches.id] }),
+  pipeline: one(crmPipelines, {
+    fields: [crmPipelineSnapshots.pipelineId],
+    references: [crmPipelines.id],
+  }),
+  createdBy: one(user, { fields: [crmPipelineSnapshots.createdById], references: [user.id] }),
 }));
 
 export const crmDealBackfillQuarantineRelations = relations(
