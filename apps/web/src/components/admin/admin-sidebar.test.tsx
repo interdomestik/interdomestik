@@ -24,6 +24,7 @@ vi.mock('next-intl', () => ({
         members: 'Members',
         agents: 'Agents',
         staff: 'Staff',
+        crm: 'CRM Reporting',
         analytics: 'Analytics',
         settings: 'Settings',
       },
@@ -139,6 +140,7 @@ describe('AdminSidebar', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Claims')).toBeInTheDocument();
     expect(screen.getByText('Members')).toBeInTheDocument();
+    expect(screen.getByText('CRM Reporting')).toBeInTheDocument();
     expect(screen.getByText('Analytics')).toBeInTheDocument();
   });
 
@@ -168,6 +170,10 @@ describe('AdminSidebar', () => {
     expect(screen.getByRole('link', { name: 'Payment Verification' })).toHaveAttribute(
       'href',
       '/admin/leads?tenantId=tenant_ks'
+    );
+    expect(screen.getByRole('link', { name: 'CRM Reporting' })).toHaveAttribute(
+      'href',
+      '/admin/crm?tenantId=tenant_ks'
     );
     expect(screen.getByRole('link', { name: 'Staff' })).toHaveAttribute(
       'href',

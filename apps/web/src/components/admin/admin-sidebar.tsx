@@ -129,6 +129,12 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
       icon: Banknote,
     },
     {
+      title: 'crm',
+      href: '/admin/crm',
+      icon: BarChart,
+      hidden: !['super_admin', 'tenant_admin', 'admin'].includes(user.role),
+    },
+    {
       title: 'members',
       href: '/admin/users',
       icon: Users,

@@ -1,0 +1,50 @@
+{
+  "admin-crm": {
+    "title": "CRM izveštaji",
+    "description": "CRM izveštaji na nivou organizacije za stanje prodajnog toka, kvalitet izvora i prognozne snimke.",
+    "snapshot": {
+      "title": "Najnoviji prognozni snimak",
+      "description": "Prethodni UTC datum snimka, grupisan po valuti.",
+      "empty": "Prognozni snimak nije generisan za prethodni UTC datum.",
+      "staleEmpty": "Najnoviji snimak je zastareo. Vrednosti su sakrivene dok ih planer ne osveži.",
+      "fresh": "Sveže",
+      "delayed": "Kasni",
+      "stale": "Zastarelo",
+      "date": "Snimak {date}",
+      "versionLabel": "Verzija snimka"
+    },
+    "branchPipeline": {
+      "title": "Sažetak pipeline-a po ogranku",
+      "description": "Živi 90-dnevni ponderisani pipeline po ogranku, pipeline-u i valuti.",
+      "empty": "Nema živih pipeline redova za podrazumevani period izveštavanja."
+    },
+    "sourceBreakdown": {
+      "title": "Pregled po izvoru",
+      "description": "Najvažniji CRM izvori po broju poslova u podrazumevanom periodu.",
+      "empty": "Nema redova izvora za podrazumevani period izveštavanja.",
+      "deals": "{count, plural, one {# posao} other {# poslova}}"
+    },
+    "metrics": {
+      "totalPipeline": "Ukupno",
+      "weighted": "Ponderisano",
+      "openDeals": "Otvoreni poslovi",
+      "closedWon": "Dobijeno",
+      "closedLost": "Izgubljeno"
+    },
+    "labels": {
+      "tenantWide": "Cela organizacija",
+      "unknownSource": "Nepoznat izvor"
+    },
+    "excludedRows": "{count, plural, one {# agregatni red izuzet} other {# agregatnih redova izuzeto}}",
+    "excludedRowsHelp": "Redovi mogu biti izuzeti iz agregatnih metrika kada nedostaju ili nisu dosledna obavezna polja za izveštavanje.",
+    "error": {
+      "tenant": "CRM izveštaji nisu dostupni za ovaj kontekst organizacije.",
+      "role": "Ovaj administratorski nalog ne može da vidi CRM izveštaje.",
+      "branch": "CRM izveštaji zahtevaju važeći opseg ogranka.",
+      "agent": "CRM izveštaji za opseg agenta nisu prikazani na admin tabli.",
+      "window": "Period CRM izveštavanja nije važeći.",
+      "grouping": "Ovo grupisanje CRM izveštaja nije podržano.",
+      "generic": "CRM izveštaji nisu mogli da se učitaju. Pokušajte kasnije."
+    }
+  }
+}

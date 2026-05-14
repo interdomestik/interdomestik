@@ -1,0 +1,50 @@
+{
+  "admin-crm": {
+    "title": "CRM Reporting",
+    "description": "Tenant-wide CRM reporting for pipeline health, source quality, and forecast snapshots.",
+    "snapshot": {
+      "title": "Latest forecast snapshot",
+      "description": "Previous UTC snapshot date, grouped by currency.",
+      "empty": "No forecast snapshot has been generated for the previous UTC date.",
+      "staleEmpty": "The latest snapshot is stale. Current values are hidden until the scheduler refreshes them.",
+      "fresh": "Fresh",
+      "delayed": "Delayed",
+      "stale": "Stale",
+      "date": "Snapshot {date}",
+      "versionLabel": "Snapshot version"
+    },
+    "branchPipeline": {
+      "title": "Branch pipeline summary",
+      "description": "Live 90-day weighted pipeline by branch, pipeline, and currency.",
+      "empty": "No live pipeline rows are available for the default reporting window."
+    },
+    "sourceBreakdown": {
+      "title": "Source breakdown",
+      "description": "Top CRM sources by deal count for the default reporting window.",
+      "empty": "No source rows are available for the default reporting window.",
+      "deals": "{count, plural, one {# deal} other {# deals}}"
+    },
+    "metrics": {
+      "totalPipeline": "Total",
+      "weighted": "Weighted",
+      "openDeals": "Open deals",
+      "closedWon": "Closed won",
+      "closedLost": "Closed lost"
+    },
+    "labels": {
+      "tenantWide": "Tenant-wide",
+      "unknownSource": "Unknown source"
+    },
+    "excludedRows": "{count, plural, one {# aggregate row excluded} other {# aggregate rows excluded}}",
+    "excludedRowsHelp": "Rows can be excluded from aggregate metrics when required reporting fields are missing or inconsistent.",
+    "error": {
+      "tenant": "CRM reporting is unavailable for this tenant context.",
+      "role": "This admin account cannot view CRM reporting.",
+      "branch": "CRM reporting requires a valid branch scope.",
+      "agent": "Agent-scoped CRM reporting is not shown on the admin dashboard.",
+      "window": "The CRM reporting window is invalid.",
+      "grouping": "This CRM reporting grouping is not supported.",
+      "generic": "CRM reporting could not be loaded. Try again later."
+    }
+  }
+}

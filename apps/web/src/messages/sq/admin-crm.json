@@ -1,0 +1,50 @@
+{
+  "admin-crm": {
+    "title": "Raportimi CRM",
+    "description": "Raportim CRM për tenantin mbi shëndetin e pipeline-it, cilësinë e burimeve dhe snapshot-et e parashikimit.",
+    "snapshot": {
+      "title": "Snapshot-i i fundit i parashikimit",
+      "description": "Data e mëparshme UTC e snapshot-it, e grupuar sipas valutës.",
+      "empty": "Nuk është gjeneruar snapshot parashikimi për datën e mëparshme UTC.",
+      "staleEmpty": "Snapshot-i i fundit është i vjetër. Vlerat fshihen derisa planifikuesi t'i rifreskojë.",
+      "fresh": "I freskët",
+      "delayed": "I vonuar",
+      "stale": "I vjetër",
+      "date": "Pamje {date}",
+      "versionLabel": "Versioni i snapshot-it"
+    },
+    "branchPipeline": {
+      "title": "Përmbledhje pipeline sipas degës",
+      "description": "Pipeline i ponderuar live 90-ditor sipas degës, pipeline-it dhe valutës.",
+      "empty": "Nuk ka rreshta pipeline live për dritaren standarde të raportimit."
+    },
+    "sourceBreakdown": {
+      "title": "Ndarja sipas burimit",
+      "description": "Burimet kryesore CRM sipas numrit të marrëveshjeve në dritaren standarde.",
+      "empty": "Nuk ka rreshta burimi për dritaren standarde të raportimit.",
+      "deals": "{count, plural, one {# marrëveshje} other {# marrëveshje}}"
+    },
+    "metrics": {
+      "totalPipeline": "Totali",
+      "weighted": "I ponderuar",
+      "openDeals": "Marrëveshje të hapura",
+      "closedWon": "Të fituara",
+      "closedLost": "Të humbura"
+    },
+    "labels": {
+      "tenantWide": "Në nivel tenanti",
+      "unknownSource": "Burim i panjohur"
+    },
+    "excludedRows": "{count, plural, one {# rresht agregat i përjashtuar} other {# rreshta agregatë të përjashtuar}}",
+    "excludedRowsHelp": "Rreshtat mund të përjashtohen nga metrikat agregate kur mungojnë ose janë jokonsistente fushat e raportimit.",
+    "error": {
+      "tenant": "Raportimi CRM nuk është i disponueshëm për këtë kontekst tenanti.",
+      "role": "Ky llogari admini nuk mund të shohë raportimin CRM.",
+      "branch": "Raportimi CRM kërkon fushë të vlefshme dege.",
+      "agent": "Raportimi CRM me fushë agjenti nuk shfaqet në panelin e adminit.",
+      "window": "Dritarja e raportimit CRM është e pavlefshme.",
+      "grouping": "Ky grupim i raportimit CRM nuk mbështetet.",
+      "generic": "Raportimi CRM nuk mund të ngarkohej. Provoni më vonë."
+    }
+  }
+}
