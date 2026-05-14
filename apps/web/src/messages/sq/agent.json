@@ -142,6 +142,36 @@
       "scheduledFor": "Planifikuar për {date}",
       "openLead": "Hap lead-in"
     },
+    "reporting": {
+      "unknownSource": "Burim i panjohur",
+      "weightedPipeline": {
+        "title": "Pipeline i ponderuar",
+        "description": "Vlera e hapur e pipeline-it sipas monedhës.",
+        "empty": "Nuk ka vlerë pipeline-i në periudhën e raportimit.",
+        "excludedRows": "{count, plural, one {# rresht u përjashtua nga kjo përmbledhje} other {# rreshta u përjashtuan nga kjo përmbledhje}}",
+        "openDeals": "{count, plural, =0 {0 marrëveshje të hapura} one {# marrëveshje e hapur} other {# marrëveshje të hapura}}",
+        "raw": "Vlera bruto e hapur",
+        "weighted": "Vlera e ponderuar",
+        "commit": "E zotuar",
+        "best": "Rasti më i mirë",
+        "closedWon": "Të fituara",
+        "closedLost": "Të humbura"
+      },
+      "sourceBreakdown": {
+        "title": "Ndarja sipas burimit",
+        "description": "Cilësia e pipeline-it sipas burimit të lead-it.",
+        "empty": "Nuk ka të dhëna burimi në periudhën e raportimit.",
+        "deals": "{count, plural, =0 {0 marrëveshje} one {# marrëveshje} other {# marrëveshje}}",
+        "weighted": "E ponderuar",
+        "winRate": "Norma e fitimit"
+      },
+      "winRate": {
+        "title": "Norma e fitimit sipas burimit",
+        "description": "Rezultatet e fituara dhe të humbura sipas burimit.",
+        "empty": "Nuk ka marrëveshje të fituara ose të humbura në periudhën e raportimit.",
+        "counts": "{won} fituar / {lost} humbur / {open} hapur"
+      }
+    },
     "dashboardV2": {
       "assignedBranch": "Dega e caktuar",
       "addNewLead": "Shto lead të ri",

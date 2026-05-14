@@ -339,6 +339,36 @@
       "scheduledFor": "Zakazano za {date}",
       "openLead": "Otvori klijenta"
     },
+    "reporting": {
+      "unknownSource": "Nepoznat izvor",
+      "weightedPipeline": {
+        "title": "Ponderisani pipeline",
+        "description": "Otvorena vrednost pipeline-a po valuti.",
+        "empty": "Nema vrednosti pipeline-a u periodu izveštaja.",
+        "excludedRows": "{count, plural, one {# red je izuzet iz ovog pregleda} other {# redova je izuzeto iz ovog pregleda}}",
+        "openDeals": "{count, plural, =0 {0 otvorenih dogovora} one {# otvoren dogovor} other {# otvorenih dogovora}}",
+        "raw": "Bruto otvorena vrednost",
+        "weighted": "Ponderisana vrednost",
+        "commit": "Obavezano",
+        "best": "Najbolji slučaj",
+        "closedWon": "Dobijeno",
+        "closedLost": "Izgubljeno"
+      },
+      "sourceBreakdown": {
+        "title": "Pregled po izvoru",
+        "description": "Kvalitet pipeline-a po izvoru potencijalnog klijenta.",
+        "empty": "Nema podataka o izvoru u periodu izveštaja.",
+        "deals": "{count, plural, =0 {0 dogovora} one {# dogovor} other {# dogovora}}",
+        "weighted": "Ponderisano",
+        "winRate": "Stopa dobitka"
+      },
+      "winRate": {
+        "title": "Stopa dobitka po izvoru",
+        "description": "Dobijeni i izgubljeni ishodi po izvoru.",
+        "empty": "Nema dobijenih ili izgubljenih dogovora u periodu izveštaja.",
+        "counts": "{won} dobijeno / {lost} izgubljeno / {open} otvoreno"
+      }
+    },
     "dashboardV2": {
       "assignedBranch": "Dodeljena filijala",
       "addNewLead": "Dodaj novog potencijalnog klijenta",

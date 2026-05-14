@@ -3,6 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   getAgentCrmDashboard: vi.fn(),
   crmDashboardRepository: { readAgentDashboard: vi.fn() },
+  crmReportingRepository: {
+    listSourceBreakdownRows: vi.fn(),
+    listWeightedPipelineRows: vi.fn(),
+    listWinRateRows: vi.fn(),
+  },
 }));
 
 vi.mock('@interdomestik/domain-crm/dashboards', () => ({
@@ -13,14 +18,60 @@ vi.mock('@/lib/domain-crm/dashboard-repository', () => ({
   crmDashboardRepository: hoisted.crmDashboardRepository,
 }));
 
-import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+vi.mock('@/lib/domain-crm/reporting-repository', () => ({
+  crmReportingRepository: hoisted.crmReportingRepository,
+}));
 
-import { AgentCrmStatsAccessDeniedError, getAgentCrmStatsCore } from './_core';
+import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+import type {
+  CrmSourceBreakdownRow,
+  CrmWeightedPipelineRow,
+  CrmWinRateRow,
+} from '@interdomestik/domain-crm/reporting';
+
+import {
+  AgentCrmReportingAccessDeniedError,
+  AgentCrmStatsAccessDeniedError,
+  createAgentCrmReportingWindow,
+  getAgentCrmReportingCore,
+  getAgentCrmStatsCore,
+} from './_core';
 
 const actor: CrmActorContext = {
   actorId: 'agent-1',
   role: 'agent',
   scope: { agentId: 'agent-1', branchId: 'branch-1' },
+  tenantId: 'tenant-1',
+};
+
+const weightedRow: CrmWeightedPipelineRow = {
+  agentId: 'agent-1',
+  branchId: 'branch-1',
+  currencyCode: 'EUR',
+  currentStageId: 'stage-commit',
+  dealId: 'deal-1',
+  forecastCategory: 'commit',
+  isLostStage: false,
+  isWonStage: false,
+  pipelineId: 'pipeline-1',
+  source: 'website',
+  stageProbability: 80,
+  tenantId: 'tenant-1',
+  valueAmountMinor: 10000,
+};
+
+const sourceRow: CrmSourceBreakdownRow = {
+  ...weightedRow,
+  outcome: 'won',
+};
+
+const winRateRow: CrmWinRateRow = {
+  agentId: 'agent-1',
+  branchId: 'branch-1',
+  outcome: 'won',
+  pipelineId: 'pipeline-1',
+  source: 'website',
+  stageId: 'stage-won',
   tenantId: 'tenant-1',
 };
 
@@ -37,6 +88,9 @@ describe('getAgentCrmStatsCore', () => {
         paidCommissionTotal: 0,
       },
     });
+    hoisted.crmReportingRepository.listWeightedPipelineRows.mockResolvedValue([weightedRow]);
+    hoisted.crmReportingRepository.listSourceBreakdownRows.mockResolvedValue([sourceRow]);
+    hoisted.crmReportingRepository.listWinRateRows.mockResolvedValue([winRateRow]);
   });
 
   it('delegates dashboard reads to the domain CRM dashboard API with actor context', async () => {
@@ -73,5 +127,81 @@ describe('getAgentCrmStatsCore', () => {
         name: 'AgentCrmStatsAccessDeniedError',
       });
     }
+  });
+
+  it('builds CRM12 reporting widgets from the reporting repository and CRM05 derivations', async () => {
+    const reporting = await getAgentCrmReportingCore({
+      actor,
+      now: () => '2026-05-14T12:00:00.000Z',
+    });
+
+    const expectedWindow = createAgentCrmReportingWindow('2026-05-14T12:00:00.000Z');
+    expect(hoisted.crmReportingRepository.listWeightedPipelineRows).toHaveBeenCalledWith({
+      actor,
+      window: expectedWindow,
+    });
+    expect(hoisted.crmReportingRepository.listSourceBreakdownRows).toHaveBeenCalledWith({
+      actor,
+      window: expectedWindow,
+    });
+    expect(hoisted.crmReportingRepository.listWinRateRows).toHaveBeenCalledWith({
+      actor,
+      window: expectedWindow,
+    });
+    expect(reporting).toMatchObject({
+      sourceBreakdown: {
+        groups: [
+          {
+            currencyCode: 'EUR',
+            dealCount: 1,
+            source: 'website',
+            weightedValueAmountMinor: 8000,
+            winRateBps: 10000,
+          },
+        ],
+      },
+      weightedPipeline: {
+        currencySummaries: [
+          {
+            currencyCode: 'EUR',
+            forecastCommitAmountMinor: 8000,
+            openDealCount: 1,
+            rawValueAmountMinor: 10000,
+            weightedValueAmountMinor: 8000,
+          },
+        ],
+        excludedRowCount: 0,
+      },
+      winRateBySource: {
+        groups: [
+          {
+            groupKey: 'website',
+            lostCount: 0,
+            openCount: 0,
+            winRateBps: 10000,
+            wonCount: 1,
+          },
+        ],
+      },
+      window: expectedWindow,
+    });
+  });
+
+  it('fails closed before reporting repository reads when reporting scope is invalid', async () => {
+    await expect(
+      getAgentCrmReportingCore({
+        actor: {
+          ...actor,
+          scope: { agentId: 'other-agent', branchId: 'branch-1' },
+        },
+      })
+    ).rejects.toMatchObject({
+      name: 'AgentCrmReportingAccessDeniedError',
+      reason: 'agent_scope',
+    } satisfies Partial<AgentCrmReportingAccessDeniedError>);
+
+    expect(hoisted.crmReportingRepository.listWeightedPipelineRows).not.toHaveBeenCalled();
+    expect(hoisted.crmReportingRepository.listSourceBreakdownRows).not.toHaveBeenCalled();
+    expect(hoisted.crmReportingRepository.listWinRateRows).not.toHaveBeenCalled();
   });
 });

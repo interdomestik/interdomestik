@@ -143,6 +143,36 @@
       "scheduledFor": "Scheduled for {date}",
       "openLead": "Open lead"
     },
+    "reporting": {
+      "unknownSource": "Unknown source",
+      "weightedPipeline": {
+        "title": "Weighted pipeline",
+        "description": "Open pipeline value grouped by currency.",
+        "empty": "No pipeline value in the reporting window.",
+        "excludedRows": "{count, plural, one {# row excluded from this summary} other {# rows excluded from this summary}}",
+        "openDeals": "{count, plural, =0 {0 open deals} one {# open deal} other {# open deals}}",
+        "raw": "Raw open value",
+        "weighted": "Weighted value",
+        "commit": "Commit",
+        "best": "Best case",
+        "closedWon": "Closed won",
+        "closedLost": "Closed lost"
+      },
+      "sourceBreakdown": {
+        "title": "Source breakdown",
+        "description": "Pipeline quality by lead source.",
+        "empty": "No source data in the reporting window.",
+        "deals": "{count, plural, =0 {0 deals} one {# deal} other {# deals}}",
+        "weighted": "Weighted",
+        "winRate": "Win rate"
+      },
+      "winRate": {
+        "title": "Win rate by source",
+        "description": "Won and lost outcomes by lead source.",
+        "empty": "No won or lost deals in the reporting window.",
+        "counts": "{won} won / {lost} lost / {open} open"
+      }
+    },
     "dashboardV2": {
       "assignedBranch": "Assigned Branch",
       "addNewLead": "Add New Lead",
