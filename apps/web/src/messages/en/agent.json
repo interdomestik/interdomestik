@@ -149,7 +149,7 @@
         "title": "Weighted pipeline",
         "description": "Open pipeline value grouped by currency.",
         "empty": "No pipeline value in the reporting window.",
-        "excludedRows": "{count, plural, one {# row excluded for incomplete reporting data} other {# rows excluded for incomplete reporting data}}",
+        "excludedRows": "{count, plural, one {# row excluded from this summary} other {# rows excluded from this summary}}",
         "openDeals": "{count, plural, =0 {0 open deals} one {# open deal} other {# open deals}}",
         "raw": "Raw open value",
         "weighted": "Weighted value",

@@ -191,7 +191,13 @@ function SourceBreakdownWidget({
         <div className="mt-6 divide-y">
           {reporting.groups.map(group => (
             <div
-              key={`${sourceLabel(group)}-${group.currencyCode}-${group.utmMedium ?? ''}`}
+              key={[
+                group.source ?? '',
+                group.utmSource ?? '',
+                group.utmMedium ?? '',
+                group.utmCampaign ?? '',
+                group.currencyCode,
+              ].join('|')}
               className="grid gap-2 py-3 first:pt-0 last:pb-0"
             >
               <div className="flex items-center justify-between gap-3">

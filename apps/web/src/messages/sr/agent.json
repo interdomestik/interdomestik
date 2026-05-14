@@ -345,7 +345,7 @@
         "title": "Ponderisani pipeline",
         "description": "Otvorena vrednost pipeline-a po valuti.",
         "empty": "Nema vrednosti pipeline-a u periodu izveštaja.",
-        "excludedRows": "{count, plural, one {# red je izuzet zbog nepotpunih podataka} other {# redova je izuzeto zbog nepotpunih podataka}}",
+        "excludedRows": "{count, plural, one {# red je izuzet iz ovog pregleda} other {# redova je izuzeto iz ovog pregleda}}",
         "openDeals": "{count, plural, =0 {0 otvorenih dogovora} one {# otvoren dogovor} other {# otvorenih dogovora}}",
         "raw": "Bruto otvorena vrednost",
         "weighted": "Ponderisana vrednost",

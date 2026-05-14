@@ -148,7 +148,7 @@
         "title": "Pipeline i ponderuar",
         "description": "Vlera e hapur e pipeline-it sipas monedhës.",
         "empty": "Nuk ka vlerë pipeline-i në periudhën e raportimit.",
-        "excludedRows": "{count, plural, one {# rresht u përjashtua për të dhëna jo të plota} other {# rreshta u përjashtuan për të dhëna jo të plota}}",
+        "excludedRows": "{count, plural, one {# rresht u përjashtua nga kjo përmbledhje} other {# rreshta u përjashtuan nga kjo përmbledhje}}",
         "openDeals": "{count, plural, =0 {0 marrëveshje të hapura} one {# marrëveshje e hapur} other {# marrëveshje të hapura}}",
         "raw": "Vlera bruto e hapur",
         "weighted": "Vlera e ponderuar",
