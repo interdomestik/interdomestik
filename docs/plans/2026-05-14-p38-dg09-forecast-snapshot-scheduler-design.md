@@ -2,6 +2,8 @@
 
 Status: complete
 Slice: `P38-DG09`
+Owner: platform + product + qa
+Phase: Phase C
 Date: 2026-05-14
 Authority: this gate opens `P38-CRM13 Forecast Snapshot Scheduler` only.
 Promoted implementation slice: `P38-CRM13 Forecast Snapshot Scheduler`
@@ -81,28 +83,84 @@ Must not touch:
 ## Scheduler Contract
 
 - Route path: `GET /api/cron/crm/forecast-snapshots`.
+- Method rationale: `GET` matches the existing cron helper/route convention; snapshot writes remain
+  append-only through CRM05's version contract. Request bodies are ignored.
 - Authorization: fail closed with `401` unless `Authorization` exactly equals
   `Bearer ${CRON_SECRET}` via the existing cron auth helper.
 - Rate limiting: use the existing cron route rate-limit posture before doing any DB work.
 - Schedule target: daily run at `05:15 UTC`; first implementation may document the cron path without
   adding platform-specific deployment config if no repo-level scheduler config exists.
+- Deployment wiring: if a checked-in platform scheduler config such as `vercel.json` exists at PR
+  time, CRM13 must add the cron entry in that config; otherwise the route ships dark and deployment
+  scheduling remains an operator step.
+- Function budget: target p95 invocation duration is `< 60s`. Each work item has a soft timeout; if
+  it expires, that item increments `failedWorkItems` and the run continues until the overall budget
+  requires early exit.
+- Platform timeout posture: partial commits are acceptable because snapshots are append-only and
+  versioned. A platform kill may leave a partial run; the next authorized run appends new versions.
 - Default snapshot date: previous UTC date relative to the route invocation time.
-- Manual date override: allowed only for authorized cron requests through `?date=YYYY-MM-DD`; it is
-  validated as an ISO calendar date and capped to a non-future date.
+- Manual date override: allowed only for authorized cron requests through `?date=YYYY-MM-DD`, and
+  only for the previous UTC date. Historical date backfill is deferred to `P38-CRM17`.
+- Snapshot date freezing: the snapshot date is computed once at scheduler-core entry and reused for
+  every work item in the run, even if the invocation crosses midnight UTC.
 - Snapshot window: the core uses CRM05's live weighted-pipeline read model for the selected
-  `snapshotDate` and preserves DG07's rule that snapshots represent state at
+  `snapshotDate`, bounded to CRM05's existing `CRM_REPORTING_MAX_WINDOW_DAYS` window ending at
   `snapshotDate 23:59:59.999 UTC`.
 - `sourceRunId`: one caller-generated correlation ID shared across all rows emitted by one logical
   generation pass. The default format is `crm-forecast-snapshot:<snapshotDate>:<runStartedAtIso>`.
 - `idempotencyKey`: populated on emitted snapshot rows as
-  `crm-forecast-snapshot:<tenantId>:<pipelineId>:<branchId-or-tenant>:<currencyCode>:<snapshotDate>:<sourceRunId>`.
-  The existing CRM05 repository still controls append-only versioning.
+  `crm-forecast-snapshot:<tenantId>:<pipelineId>:<branchId-or-_no_branch>:<currencyCode>:<snapshotDate>:<sourceRunId>`.
+  Branchless snapshots use the literal `_no_branch` sentinel. The `crm-forecast-snapshot:` prefix is
+  reserved for CRM13 and follow-on revisions of this scheduler; future scheduler families must use
+  distinct prefixes.
 - Rerun behavior: a new authorized logical run for the same date appends the next snapshot version;
   CRM13 does not update or delete existing snapshots.
 - Duplicate keys inside a single insert batch are treated as a scheduler bug and surfaced as
   `version_conflict` rather than silently coalesced.
+- Overlapping runs: CRM13 holds no lock. Overlapping cron/manual invocations are safe because each
+  run has a distinct `sourceRunId`, and cross-request row conflicts resolve through CRM05's
+  unique-version retry loop. If the repository still returns `version_conflict`, the row contributes
+  to `versionConflicts`.
 - Output: aggregate counts only. The route response and logs must not contain lead, contact, email,
   phone, notes, subject, description, or raw activity text.
+- Error responses: cron responses use fixed English machine-readable strings, not locale messages.
+- Secret rotation: `CRON_SECRET` rotation is owned by existing ops/secret-management practice and
+  the shared cron helper; CRM13 does not add rotation workflow.
+- Health posture: no separate health endpoint is added; CRM18 owns observability and health
+  improvements.
+
+### Result And Status Contract
+
+CRM13 returns a stable aggregate result shape, including successful no-op runs:
+
+```ts
+type CrmForecastSnapshotSchedulerResult = {
+  sourceRunId: string;
+  snapshotDate: string;
+  workItemsConsidered: number;
+  workItemsSucceeded: number;
+  workItemsDeferred: number;
+  failedWorkItems: number;
+  versionConflicts: number;
+  snapshotsInserted: number;
+  startedAt: string;
+  completedAt: string;
+};
+```
+
+Status-code policy:
+
+- `200` for full success, successful empty-set no-op, and partial failure.
+- `401` for missing or bad bearer authorization.
+- `500` only when the core cannot initialize or every selected work item fails.
+
+### Logging Contract
+
+- Emit one structured log line per authorized run; no per-row logs.
+- Log fields: `sourceRunId`, `snapshotDate`, every result counter, and `durationMs`.
+- Use `info` for normal completion.
+- Use `warn` when `failedWorkItems > 0`, `versionConflicts > 0`, or `workItemsDeferred > 0`.
+- Use `error` only when the route returns `500`.
 
 ## Work Item Contract
 
@@ -117,6 +175,13 @@ type CrmForecastSnapshotWorkItem = {
 };
 ```
 
+Exported constants:
+
+- `CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN = 1000`.
+- `CRM_FORECAST_SNAPSHOT_TARGET_DURATION_MS = 60000`.
+- `CRM_FORECAST_SNAPSHOT_WORK_ITEM_SOFT_TIMEOUT_MS = 5000`.
+- `CRM_FORECAST_SNAPSHOT_NO_BRANCH_SENTINEL = '_no_branch'`.
+
 The projection is adapter-owned and may be derived from normalized CRM04/CRM05 tables. It must:
 
 - Exclude archived pipelines and archived deals from work-item discovery.
@@ -124,6 +189,8 @@ The projection is adapter-owned and may be derived from normalized CRM04/CRM05 t
 - Keep tenant ID explicit on every repository call.
 - Prefer normalized CRM04 fields; it must not group by legacy `crm_deals.stage` text.
 - Carry `db-access-guard` comments on new tenant-scoped queries.
+- Use a single grouped query with a bounded limit. When the cap is hit, extra work contributes to
+  `workItemsDeferred`; continuation/backfill is deferred to `P38-CRM17`.
 
 ## Failure And Concurrency Semantics
 
@@ -133,6 +200,9 @@ The projection is adapter-owned and may be derived from normalized CRM04/CRM05 t
 - A work-item read failure increments `failedWorkItems` and does not block unrelated tenants.
 - A snapshot insert `version_conflict` increments `versionConflicts` and is returned in the aggregate
   result for that work item.
+- Duplicate keys inside one insert batch are a scheduler bug and surface as `version_conflict`.
+  Cross-batch duplicates from parallel HTTP requests are resolved by the CRM05 repository retry loop;
+  any final conflict increments `versionConflicts`.
 - Unexpected exceptions for one tenant/pipeline are captured in aggregate counters and logged without
   PII. The route returns `500` only when the scheduler core itself cannot initialize or every selected
   work item fails.
@@ -151,7 +221,7 @@ The projection is adapter-owned and may be derived from normalized CRM04/CRM05 t
   forecast snapshot repository.
 - Snapshot writes are append-only; no update/delete path is introduced.
 - `sourceRunId` and `idempotencyKey` are populated according to the scheduler contract.
-- Empty work-item sets return a successful no-op result.
+- Empty work-item sets return the full stable result object with zero counters.
 - Partial failures are counted and surfaced without leaking PII.
 - The implementation does not modify UI, schema/migrations, proxy, canonical routes, auth/tenancy
   architecture, Stripe, README, AGENTS.md, or broad architecture docs.
@@ -161,7 +231,8 @@ The projection is adapter-owned and may be derived from normalized CRM04/CRM05 t
 - Route tests must cover missing secret, bad bearer token, valid bearer token, and no-DB-work before
   authorization succeeds.
 - Scheduler-core tests must cover default date selection, explicit date validation, future-date
-  rejection, empty work items, successful append, `version_conflict`, and partial failure.
+  rejection, previous-day-only override, empty work items, successful append, work-item cap deferral,
+  soft timeout, `version_conflict`, and partial failure.
 - Repository/work-item tests must prove tenant scoping and normalized-field grouping without legacy
   stage-text grouping.
 - A PII-shape regression test must assert route/core outputs do not expose `email`, `phone`,
@@ -203,6 +274,7 @@ deal column retirement (`P38-CRM10`), and CRM04 nullability tightening (`P38-CRM
 
 - Forecast snapshot schema changes, migrations, RLS changes, or run-ledger tables.
 - Historical snapshot backfill.
+- Historical manual date ranges beyond the previous UTC day.
 - Tenant-local timezone snapshot days.
 - Dashboard UI changes, admin/staff reporting UI, charting, or visual-regression baselines.
 - Alerting integrations, Slack/email notifications, or external observability dashboards.
@@ -216,8 +288,10 @@ deal column retirement (`P38-CRM10`), and CRM04 nullability tightening (`P38-CRM
 - `pnpm --filter @interdomestik/domain-crm test:unit --run src/reporting/index.test.ts`
 - `pnpm --filter @interdomestik/web type-check`
 - `pnpm check:db-access`
-- `pnpm plan:audit`
-- `pnpm track:audit`
+- `pnpm plan:audit` to validate the canonical program/tracker model and referenced governed docs.
+- `pnpm track:audit` to validate the delivery tracker contract.
+- `scripts/ci/db-access-baseline.json` must be updated if the work-item query changes the guarded DB
+  access baseline; otherwise the PR must document why no baseline change was required.
 - `pnpm verify-slice -- --static`
 - Before PR/merge: `pnpm pr:verify`, `pnpm security:guard`, and `pnpm e2e:gate`
 - `interdomestik_qa.scope_audit` with docs plus explicitly authorized cron/reporting scheduler paths.
@@ -233,6 +307,8 @@ architecture changes.
 
 | Slice                                                    | Status   | Authority                | Notes                                                                |
 | -------------------------------------------------------- | -------- | ------------------------ | -------------------------------------------------------------------- |
+| `P38-CRM06 Lead Dedupe Domain Foundation`                | complete | PR `#750`                | Merge commit `c7412618c9f55adf85a75d8f06d7b5de51961254`.             |
+| `P38-CRM07 Lead Routing Domain Foundation`               | complete | PR `#751`                | Merge commit `dce513248cee825ae5e7d616f17c489a80422a1e`.             |
 | `P38-CRM05 Reporting Read-Models And Forecast Snapshots` | complete | PR `#756`                | Merge commit `e9cc7eef34c6b1ce29be2aeb492cb5a299fe9190`.             |
 | `P38-CRM12 Reporting Dashboard UI`                       | complete | PR `#757`                | Merge commit `3a220ea88eb0c2b765b56d3d926edd21952b3def`.             |
 | `P38-DG09 Forecast Snapshot Scheduler Design Review`     | complete | tracker/program gate     | Promotes exactly one bounded scheduler slice.                        |
@@ -242,6 +318,7 @@ architecture changes.
 | `P38-CRM16 Reporting Charting Foundation`                | reserved | later gate               | Charting dependency and bundle-size policy remain deferred.          |
 | `P38-CRM17 Forecast Snapshot Backfill`                   | reserved | later gate               | Historical backfill and operator runbook remain deferred.            |
 | `P38-CRM18 Forecast Snapshot Observability`              | reserved | later gate               | Alerting and run telemetry dashboards remain deferred.               |
+| `P38-CRM19 Forecast Snapshot Backfill Operator UX`       | reserved | post-backfill            | Operator-facing backfill controls remain deferred.                   |
 | `P38-CRM08 Routing Persistence And Cursor Adapter`       | reserved | future gate              | Still valid, but not selected ahead of snapshot automation.          |
 | `P38-CRM09 Routing Admin UX And Rule Management`         | reserved | post-routing-persistence | Requires routing persistence first.                                  |
 | `P38-CRM10 Legacy Deal Column Retirement`                | reserved | later gate               | Requires normalized-reader confidence and explicit retirement proof. |
