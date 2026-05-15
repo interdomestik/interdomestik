@@ -102,6 +102,80 @@
         "none": "Нема"
       }
     },
+    "backfill": {
+      "title": "Backfill на прогнозни снимки",
+      "description": "Извршете dry-run и потврдете ограничени поправки на прогнозни снимки за овој тенант.",
+      "help": "Прво извршете dry-run, прегледајте го агрегатниот ефект и потврдете append-only запис само ако барањето не е сменето.",
+      "fields": {
+        "tenantId": "ID на тенант",
+        "fromDate": "Од датум",
+        "toDate": "До датум",
+        "maxWorkItemsPerDate": "Макс. работни ставки"
+      },
+      "dryRun": {
+        "button": "Проба",
+        "pending": "Dry-run се извршува",
+        "help": "Dry-run не внесува снимки. Завршен или делумен dry-run создава краткотрајна потврда."
+      },
+      "confirm": {
+        "button": "Потврди запис",
+        "pending": "Снимките се запишуваат",
+        "warning": "Записот внесува append-only снимки за истото dry-run барање.",
+        "invalidates": "Промена на кое било поле бара нов dry-run.",
+        "expired": "Потврдата истече. Извршете нов dry-run.",
+        "invalid": "Потврдата повеќе не одговара на ова барање. Извршете нов dry-run.",
+        "inFlight": "Запис веќе е во тек за оваа потврда."
+      },
+      "result": {
+        "summary": "Резултат од backfill",
+        "dateRows": "Резултати по датум",
+        "noDateRows": "Нема вратени редови по датум."
+      },
+      "status": {
+        "completed": "Завршено",
+        "partial": "Делумно",
+        "failed": "Неуспешно",
+        "deferred": "Одложено"
+      },
+      "summary": {
+        "datesConsidered": "Разгледани датуми",
+        "datesCompleted": "Завршени датуми",
+        "datesPartial": "Делумни датуми",
+        "datesDeferred": "Одложени датуми",
+        "datesFailed": "Неуспешни датуми",
+        "workItemsConsidered": "Разгледани работни ставки",
+        "workItemsSucceeded": "Успешни работни ставки",
+        "workItemsDeferred": "Одложени работни ставки",
+        "workItemsFailed": "Неуспешни работни ставки",
+        "snapshotsInserted": "Внесени снимки",
+        "versionConflicts": "Конфликти на верзија",
+        "generatedAt": "Генерирано",
+        "sourceRunId": "Изворно извршување"
+      },
+      "table": {
+        "date": "Датум",
+        "status": "Статус",
+        "workItems": "Работни ставки",
+        "succeeded": "Успешни",
+        "failed": "Неуспешни",
+        "inserted": "Внесени"
+      },
+      "error": {
+        "unauthorized": "Оваа сметка не може да изврши backfill на прогнозни снимки.",
+        "invalid_request": "Backfill барањето содржи неподдржани полиња.",
+        "invalid_range": "Користете валиден UTC опсег на датуми.",
+        "range_too_large": "Опсегот на датуми е поголем од дозволениот backfill прозорец.",
+        "date_out_of_bounds": "Опсегот на датуми е надвор од дозволените историски граници.",
+        "invalid_tenant": "Испратениот тенант мора да одговара на тековната админ сесија.",
+        "confirmation_invalid": "Потврдата повеќе не одговара на ова барање. Извршете нов dry-run.",
+        "confirmation_expired": "Потврдата истече. Извршете нов dry-run.",
+        "confirmation_in_flight": "Запис веќе е во тек за оваа потврда.",
+        "rate_limited": "Премногу backfill обиди. Почекајте и обидете се повторно.",
+        "all_dates_failed": "Сите датуми не успеаја. Потврда за запис не е достапна.",
+        "partial_failure": "Backfill заврши со делумни неуспеси.",
+        "internal_error": "Backfill не можеше да се заврши. Обидете се подоцна."
+      }
+    },
     "charts": {
       "hiddenItems": "{count, plural, one {# дополнителен ред е скриен од резимето на графиконот} other {# дополнителни редови се скриени од резимето на графиконот}}",
       "pipelineAmount": {

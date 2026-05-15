@@ -102,6 +102,80 @@
         "none": "Nema"
       }
     },
+    "backfill": {
+      "title": "Backfill prognoznih snimaka",
+      "description": "Pokrenite dry-run i potvrdite ograničene popravke prognoznih snimaka za ovu organizaciju.",
+      "help": "Prvo pokrenite dry-run, pregledajte agregatni uticaj, zatim potvrdite append-only upis samo ako zahtev nije promenjen.",
+      "fields": {
+        "tenantId": "ID organizacije",
+        "fromDate": "Od datuma",
+        "toDate": "Do datuma",
+        "maxWorkItemsPerDate": "Maks. radnih stavki"
+      },
+      "dryRun": {
+        "button": "Proba",
+        "pending": "Dry-run je u toku",
+        "help": "Dry-run ne upisuje snimke. Završeni ili delimični dry-run kreira kratkotrajnu potvrdu."
+      },
+      "confirm": {
+        "button": "Potvrdi upis",
+        "pending": "Snimci se upisuju",
+        "warning": "Upis dodaje append-only snimke za tačan dry-run zahtev.",
+        "invalidates": "Promena bilo kog polja zahteva novi dry-run.",
+        "expired": "Potvrda je istekla. Pokrenite novi dry-run.",
+        "invalid": "Potvrda se više ne poklapa sa ovim zahtevom. Pokrenite novi dry-run.",
+        "inFlight": "Upis je već u toku za ovu potvrdu."
+      },
+      "result": {
+        "summary": "Rezultat backfill-a",
+        "dateRows": "Rezultati po datumu",
+        "noDateRows": "Nema vraćenih redova datuma."
+      },
+      "status": {
+        "completed": "Završeno",
+        "partial": "Delimično",
+        "failed": "Neuspešno",
+        "deferred": "Odloženo"
+      },
+      "summary": {
+        "datesConsidered": "Razmatrani datumi",
+        "datesCompleted": "Završeni datumi",
+        "datesPartial": "Delimični datumi",
+        "datesDeferred": "Odloženi datumi",
+        "datesFailed": "Neuspešni datumi",
+        "workItemsConsidered": "Razmatrane radne stavke",
+        "workItemsSucceeded": "Uspešne radne stavke",
+        "workItemsDeferred": "Odložene radne stavke",
+        "workItemsFailed": "Neuspešne radne stavke",
+        "snapshotsInserted": "Upisani snimci",
+        "versionConflicts": "Konflikti verzija",
+        "generatedAt": "Generisano",
+        "sourceRunId": "Izvorno pokretanje"
+      },
+      "table": {
+        "date": "Datum",
+        "status": "Stanje",
+        "workItems": "Radne stavke",
+        "succeeded": "Uspešno",
+        "failed": "Neuspešno",
+        "inserted": "Upisano"
+      },
+      "error": {
+        "unauthorized": "Ovaj nalog ne može da pokrene backfill prognoznih snimaka.",
+        "invalid_request": "Backfill zahtev sadrži nepodržana polja.",
+        "invalid_range": "Koristite važeći UTC opseg datuma.",
+        "range_too_large": "Opseg datuma je veći od dozvoljenog backfill prozora.",
+        "date_out_of_bounds": "Opseg datuma je van dozvoljenih istorijskih granica.",
+        "invalid_tenant": "Poslata organizacija mora da se poklapa sa trenutnom admin sesijom.",
+        "confirmation_invalid": "Potvrda se više ne poklapa sa ovim zahtevom. Pokrenite novi dry-run.",
+        "confirmation_expired": "Potvrda je istekla. Pokrenite novi dry-run.",
+        "confirmation_in_flight": "Upis je već u toku za ovu potvrdu.",
+        "rate_limited": "Previše backfill pokušaja. Sačekajte i pokušajte ponovo.",
+        "all_dates_failed": "Svi datumi su neuspešni. Potvrda upisa nije dostupna.",
+        "partial_failure": "Backfill je završen sa delimičnim greškama.",
+        "internal_error": "Backfill nije mogao da se završi. Pokušajte kasnije."
+      }
+    },
     "charts": {
       "hiddenItems": "{count, plural, one {# dodatni red je sakriven iz rezimea grafikona} other {# dodatnih redova je sakriveno iz rezimea grafikona}}",
       "pipelineAmount": {

@@ -102,6 +102,80 @@
         "none": "Asnjë"
       }
     },
+    "backfill": {
+      "title": "Backfill i snapshot-it të parashikimit",
+      "description": "Kryeni dry-run dhe konfirmoni riparime të kufizuara të snapshot-eve për këtë tenant.",
+      "help": "Kryeni fillimisht dry-run, kontrolloni ndikimin agregat dhe konfirmoni shkrimin append-only vetëm nëse kërkesa nuk ka ndryshuar.",
+      "fields": {
+        "tenantId": "ID e tenantit",
+        "fromDate": "Nga data",
+        "toDate": "Deri më",
+        "maxWorkItemsPerDate": "Maks. work items"
+      },
+      "dryRun": {
+        "button": "Provë",
+        "pending": "Dry-run po ekzekutohet",
+        "help": "Dry-run nuk fut snapshot-e. Dry-run-et e përfunduara ose të pjesshme krijojnë konfirmim jetëshkurtër."
+      },
+      "confirm": {
+        "button": "Konfirmo shkrimin",
+        "pending": "Snapshot-et po shkruhen",
+        "warning": "Shkrimi fut snapshot-e append-only për të njëjtën kërkesë dry-run.",
+        "invalidates": "Çdo ndryshim fushe kërkon dry-run të ri.",
+        "expired": "Konfirmimi skadoi. Kryeni dry-run të ri.",
+        "invalid": "Konfirmimi nuk përputhet më me këtë kërkesë. Kryeni dry-run të ri.",
+        "inFlight": "Një shkrim është tashmë në proces për këtë konfirmim."
+      },
+      "result": {
+        "summary": "Rezultati i backfill-it",
+        "dateRows": "Rezultatet sipas datës",
+        "noDateRows": "Nuk u kthyen rreshta datash."
+      },
+      "status": {
+        "completed": "Përfunduar",
+        "partial": "I pjesshëm",
+        "failed": "Dështoi",
+        "deferred": "Shtyrë"
+      },
+      "summary": {
+        "datesConsidered": "Data të shqyrtuara",
+        "datesCompleted": "Data të përfunduara",
+        "datesPartial": "Data të pjesshme",
+        "datesDeferred": "Data të shtyra",
+        "datesFailed": "Data të dështuara",
+        "workItemsConsidered": "Work items të shqyrtuara",
+        "workItemsSucceeded": "Work items të suksesshme",
+        "workItemsDeferred": "Work items të shtyra",
+        "workItemsFailed": "Work items të dështuara",
+        "snapshotsInserted": "Snapshot-e të futura",
+        "versionConflicts": "Konflikte versioni",
+        "generatedAt": "Gjeneruar më",
+        "sourceRunId": "Run burim"
+      },
+      "table": {
+        "date": "Data",
+        "status": "Statusi",
+        "workItems": "Zëra pune",
+        "succeeded": "Sukses",
+        "failed": "Dështuar",
+        "inserted": "Futur"
+      },
+      "error": {
+        "unauthorized": "Ky llogari nuk mund të kryejë backfill të snapshot-eve të parashikimit.",
+        "invalid_request": "Kërkesa e backfill-it përmban fusha të pambështetura.",
+        "invalid_range": "Përdorni një interval të vlefshëm datash UTC.",
+        "range_too_large": "Intervali i datave është më i madh se dritarja e lejuar.",
+        "date_out_of_bounds": "Intervali i datave është jashtë kufijve historikë të lejuar.",
+        "invalid_tenant": "Tenanti i dorëzuar duhet të përputhet me sesionin tuaj admin.",
+        "confirmation_invalid": "Konfirmimi nuk përputhet më me këtë kërkesë. Kryeni dry-run të ri.",
+        "confirmation_expired": "Konfirmimi skadoi. Kryeni dry-run të ri.",
+        "confirmation_in_flight": "Një shkrim është tashmë në proces për këtë konfirmim.",
+        "rate_limited": "Shumë tentativa backfill. Prisni dhe provoni përsëri.",
+        "all_dates_failed": "Të gjitha datat dështuan. Nuk ka konfirmim shkrimi.",
+        "partial_failure": "Backfill përfundoi me dështime të pjesshme.",
+        "internal_error": "Backfill nuk mund të përfundohej. Provoni më vonë."
+      }
+    },
     "charts": {
       "hiddenItems": "{count, plural, one {# rresht shtesë është fshehur nga përmbledhja e grafikut} other {# rreshta shtesë janë fshehur nga përmbledhja e grafikut}}",
       "pipelineAmount": {

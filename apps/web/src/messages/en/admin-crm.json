@@ -102,6 +102,80 @@
         "none": "None"
       }
     },
+    "backfill": {
+      "title": "Forecast snapshot backfill",
+      "description": "Dry-run and confirm bounded forecast snapshot repairs for this tenant.",
+      "help": "Run a dry-run first, review aggregate impact, then confirm append-only write mode only if the request is unchanged.",
+      "fields": {
+        "tenantId": "Tenant ID",
+        "fromDate": "From date",
+        "toDate": "To date",
+        "maxWorkItemsPerDate": "Max work items"
+      },
+      "dryRun": {
+        "button": "Dry-run",
+        "pending": "Running dry-run",
+        "help": "Dry-run does not insert snapshots. Completed or partial dry-runs create a short-lived confirmation."
+      },
+      "confirm": {
+        "button": "Confirm write",
+        "pending": "Writing snapshots",
+        "warning": "Write mode inserts append-only snapshots for the exact dry-run request.",
+        "invalidates": "Changing any field requires a new dry-run.",
+        "expired": "The confirmation expired. Run a new dry-run.",
+        "invalid": "The confirmation no longer matches this request. Run a new dry-run.",
+        "inFlight": "A write is already in flight for this confirmation."
+      },
+      "result": {
+        "summary": "Backfill result",
+        "dateRows": "Date results",
+        "noDateRows": "No date rows were returned."
+      },
+      "status": {
+        "completed": "Completed",
+        "partial": "Partial",
+        "failed": "Failed",
+        "deferred": "Deferred"
+      },
+      "summary": {
+        "datesConsidered": "Dates considered",
+        "datesCompleted": "Dates completed",
+        "datesPartial": "Dates partial",
+        "datesDeferred": "Dates deferred",
+        "datesFailed": "Dates failed",
+        "workItemsConsidered": "Work items considered",
+        "workItemsSucceeded": "Work items succeeded",
+        "workItemsDeferred": "Work items deferred",
+        "workItemsFailed": "Work items failed",
+        "snapshotsInserted": "Snapshots inserted",
+        "versionConflicts": "Version conflicts",
+        "generatedAt": "Generated at",
+        "sourceRunId": "Source run"
+      },
+      "table": {
+        "date": "Date",
+        "status": "Status",
+        "workItems": "Work items",
+        "succeeded": "Succeeded",
+        "failed": "Failed",
+        "inserted": "Inserted"
+      },
+      "error": {
+        "unauthorized": "This account cannot run forecast snapshot backfill.",
+        "invalid_request": "The backfill request contains unsupported fields.",
+        "invalid_range": "Use a valid UTC date range.",
+        "range_too_large": "The date range is larger than the allowed backfill window.",
+        "date_out_of_bounds": "The date range is outside the allowed historical bounds.",
+        "invalid_tenant": "The submitted tenant must match your current admin session.",
+        "confirmation_invalid": "The confirmation no longer matches this request. Run a new dry-run.",
+        "confirmation_expired": "The confirmation expired. Run a new dry-run.",
+        "confirmation_in_flight": "A write is already in flight for this confirmation.",
+        "rate_limited": "Too many backfill attempts. Wait and try again.",
+        "all_dates_failed": "All dates failed. No write confirmation is available.",
+        "partial_failure": "The backfill completed with partial failures.",
+        "internal_error": "Backfill could not be completed. Try again later."
+      }
+    },
     "charts": {
       "hiddenItems": "{count, plural, one {# additional row hidden from the chart summary} other {# additional rows hidden from the chart summary}}",
       "pipelineAmount": {

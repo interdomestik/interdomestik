@@ -48,6 +48,15 @@ import {
   type AdminCrmFormatter,
   type AdminCrmTranslations,
 } from './_reporting-dashboard-primitives';
+import {
+  AdminCrmForecastBackfillOperator,
+  type AdminCrmForecastBackfillOperatorCopy,
+} from './_backfill-operator';
+import {
+  ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_MARKER_PREFIX,
+  type AdminCrmForecastBackfillOperatorErrorCode,
+} from './_backfill-types';
+import { ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_MAX_WORK_ITEMS_PER_DATE } from './_backfill-core';
 
 type Formatter = AdminCrmFormatter;
 type Translations = AdminCrmTranslations;
@@ -548,15 +557,115 @@ function ForecastObservabilityWidget({
   );
 }
 
+function buildBackfillOperatorCopy(t: Translations): AdminCrmForecastBackfillOperatorCopy {
+  const errorCodes: AdminCrmForecastBackfillOperatorErrorCode[] = [
+    'all_dates_failed',
+    'confirmation_expired',
+    'confirmation_in_flight',
+    'confirmation_invalid',
+    'date_out_of_bounds',
+    'internal_error',
+    'invalid_range',
+    'invalid_request',
+    'invalid_tenant',
+    'partial_failure',
+    'range_too_large',
+    'rate_limited',
+    'unauthorized',
+  ];
+  return {
+    confirmInvalidates: t('backfill.confirm.invalidates'),
+    confirmWarning: t('backfill.confirm.warning'),
+    dateRowsTitle: t('backfill.result.dateRows'),
+    dryRunButton: t('backfill.dryRun.button'),
+    dryRunHelp: t('backfill.dryRun.help'),
+    error: Object.fromEntries(
+      errorCodes.map(code => [code, t(`backfill.error.${code}`)])
+    ) as AdminCrmForecastBackfillOperatorCopy['error'],
+    fields: {
+      fromDate: t('backfill.fields.fromDate'),
+      maxWorkItemsPerDate: t('backfill.fields.maxWorkItemsPerDate'),
+      tenantId: t('backfill.fields.tenantId'),
+      toDate: t('backfill.fields.toDate'),
+    },
+    help: t('backfill.help'),
+    noDateRows: t('backfill.result.noDateRows'),
+    pendingDryRun: t('backfill.dryRun.pending'),
+    pendingWrite: t('backfill.confirm.pending'),
+    resultSummary: t('backfill.result.summary'),
+    runWriteButton: t('backfill.confirm.button'),
+    status: {
+      completed: t('backfill.status.completed'),
+      deferred: t('backfill.status.deferred'),
+      failed: t('backfill.status.failed'),
+      partial: t('backfill.status.partial'),
+    },
+    summary: {
+      datesCompleted: t('backfill.summary.datesCompleted'),
+      datesConsidered: t('backfill.summary.datesConsidered'),
+      datesDeferred: t('backfill.summary.datesDeferred'),
+      datesFailed: t('backfill.summary.datesFailed'),
+      datesPartial: t('backfill.summary.datesPartial'),
+      generatedAt: t('backfill.summary.generatedAt'),
+      snapshotsInserted: t('backfill.summary.snapshotsInserted'),
+      sourceRunId: t('backfill.summary.sourceRunId'),
+      versionConflicts: t('backfill.summary.versionConflicts'),
+      workItemsConsidered: t('backfill.summary.workItemsConsidered'),
+      workItemsDeferred: t('backfill.summary.workItemsDeferred'),
+      workItemsFailed: t('backfill.summary.workItemsFailed'),
+      workItemsSucceeded: t('backfill.summary.workItemsSucceeded'),
+    },
+    table: {
+      date: t('backfill.table.date'),
+      failed: t('backfill.table.failed'),
+      inserted: t('backfill.table.inserted'),
+      status: t('backfill.table.status'),
+      succeeded: t('backfill.table.succeeded'),
+      workItems: t('backfill.table.workItems'),
+    },
+  };
+}
+
+function ForecastBackfillOperatorWidget({
+  locale,
+  reporting,
+  sessionTenantId,
+  t,
+}: Readonly<{
+  locale: string;
+  reporting: AdminCrmReportingDashboard;
+  sessionTenantId: string;
+  t: Translations;
+}>) {
+  return (
+    <ReportingWidget
+      title={t('backfill.title')}
+      description={t('backfill.description')}
+      marker={`${ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_MARKER_PREFIX}form`}
+    >
+      <AdminCrmForecastBackfillOperator
+        copy={buildBackfillOperatorCopy(t)}
+        defaultFromDate={reporting.snapshotDate}
+        defaultTenantId={sessionTenantId}
+        defaultToDate={reporting.snapshotDate}
+        locale={locale}
+        maxWorkItemsPerDate={ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_MAX_WORK_ITEMS_PER_DATE}
+      />
+    </ReportingWidget>
+  );
+}
+
 function AdminCrmDashboard({
   format,
   locale,
   reporting,
+  sessionTenantId,
   t,
 }: Readonly<{
   format: Formatter;
   locale: string;
   reporting: AdminCrmReportingDashboard;
+  sessionTenantId: string;
   t: Translations;
 }>) {
   return (
@@ -577,6 +686,12 @@ function AdminCrmDashboard({
       <ForecastObservabilityWidget
         forecastObservability={reporting.forecastObservability}
         format={format}
+        t={t}
+      />
+      <ForecastBackfillOperatorWidget
+        locale={locale}
+        reporting={reporting}
+        sessionTenantId={sessionTenantId}
         t={t}
       />
     </>
@@ -699,7 +814,13 @@ export default async function AdminCrmPage({
 
   return (
     <AdminCrmPageFrame description={t('description')} title={t('title')}>
-      <AdminCrmDashboard format={format} locale={locale} reporting={reporting} t={t} />
+      <AdminCrmDashboard
+        format={format}
+        locale={locale}
+        reporting={reporting}
+        sessionTenantId={resolvedActor.actor.tenantId}
+        t={t}
+      />
     </AdminCrmPageFrame>
   );
 }

@@ -68,6 +68,12 @@ vi.mock('@/components/crm/charts/reporting-chart-boundary', () => ({
   ),
 }));
 
+vi.mock('./_backfill-operator', () => ({
+  AdminCrmForecastBackfillOperator: () => (
+    <div data-testid="admin-crm-forecast-backfill-operator-client" />
+  ),
+}));
+
 import AdminCrmPage from './page';
 
 describe('AdminCrmPage', () => {
@@ -271,6 +277,8 @@ describe('AdminCrmPage', () => {
     expect(screen.getByTestId('admin-crm-forecast-observability-summary')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-forecast-observability-coverage')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-forecast-observability-batches')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-crm-forecast-backfill-operator-form')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-crm-forecast-backfill-operator-client')).toBeInTheDocument();
     expect(screen.getByTestId('crm-reporting-chart-pipeline-amount')).toHaveTextContent(
       'charts.pipelineAmount.title'
     );
@@ -346,6 +354,12 @@ describe('AdminCrmPage', () => {
     ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('admin-crm-forecast-observability-batches')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('admin-crm-forecast-backfill-operator-form')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('admin-crm-forecast-backfill-operator-client')
     ).not.toBeInTheDocument();
     expect(screen.getByTestId('crm-reporting-chart-pipeline-amount')).toHaveTextContent(
       'charts.pipelineAmount.title'
