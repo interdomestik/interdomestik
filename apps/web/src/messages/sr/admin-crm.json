@@ -65,7 +65,7 @@
       },
       "ok": {
         "headline": "Prognozni snimci su zdravi",
-        "explanation": "Najnovije očekivane radne stavke prognoznih snimaka su uočene bez odloženih, zastarelih, nedostajućih ili neočekivanih redova."
+        "explanation": "Najnovije očekivane radne stavke prognoznih snimaka su uočene bez zakasnelih, odloženih, zastarelih, nedostajućih ili neočekivanih redova."
       },
       "warning": {
         "headline": "Prognozne snimke treba proveriti",
