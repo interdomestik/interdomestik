@@ -12,6 +12,7 @@ vi.mock('next-intl', () => ({
     const translations: Record<string, Record<string, string>> = {
       common: {
         'roles.admin': 'Administrator',
+        'roles.branch_manager': 'Branch manager',
         'roles.tenant_admin': 'Tenant administrator',
       },
       'admin.sidebar': {
@@ -142,6 +143,37 @@ describe('AdminSidebar', () => {
     expect(screen.getByText('Members')).toBeInTheDocument();
     expect(screen.getByText('CRM Reporting')).toBeInTheDocument();
     expect(screen.getByText('Analytics')).toBeInTheDocument();
+  });
+
+  it('renders the CRM reporting link for branch managers only with branch scope', () => {
+    const { rerender } = render(
+      <AdminSidebar
+        user={{
+          branchId: 'branch-1',
+          name: 'Branch Manager',
+          email: 'manager@test.com',
+          role: 'branch_manager',
+        }}
+      />
+    );
+
+    expect(screen.getByRole('link', { name: 'CRM Reporting' })).toHaveAttribute(
+      'href',
+      '/admin/crm'
+    );
+
+    rerender(
+      <AdminSidebar
+        user={{
+          branchId: null,
+          name: 'Branch Manager',
+          email: 'manager@test.com',
+          role: 'branch_manager',
+        }}
+      />
+    );
+
+    expect(screen.queryByRole('link', { name: 'CRM Reporting' })).not.toBeInTheDocument();
   });
 
   it('only preserves tenant context in sidebar links', () => {

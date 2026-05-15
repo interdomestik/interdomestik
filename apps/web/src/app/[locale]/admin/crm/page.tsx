@@ -1,5 +1,4 @@
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
-import { Info } from 'lucide-react';
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
@@ -11,6 +10,12 @@ import {
 import { PipelineAmountChartBoundary } from '@/components/crm/charts/reporting-chart-boundary';
 import { getSessionSafe } from '@/components/shell/session';
 
+import { BranchManagerCrmDashboard } from './_branch-manager-dashboard';
+import {
+  BranchManagerCrmReportingAccessDeniedError,
+  getBranchManagerCrmReportingCore,
+  type BranchManagerCrmReportingDashboard,
+} from './_branch-manager-core';
 import {
   ADMIN_CRM_REPORTING_MARKER_PREFIX,
   AdminCrmReportingAccessDeniedError,
@@ -21,22 +26,24 @@ import {
   type AdminCrmSourceBreakdownRow,
   type AdminCrmWidget,
 } from './_core';
+import {
+  ExcludedRowsNote,
+  PipelineRowsList,
+  ReportingWidget,
+  SnapshotRowsList,
+  SourceRowsList,
+  WidgetEmpty,
+  WidgetError,
+  formatMinorAmount,
+  type AdminCrmFormatter,
+  type AdminCrmTranslations,
+} from './_reporting-dashboard-primitives';
 
-type Formatter = Awaited<ReturnType<typeof getFormatter>>;
-type Translations = Awaited<ReturnType<typeof getTranslations>>;
+type Formatter = AdminCrmFormatter;
+type Translations = AdminCrmTranslations;
 
 const ADMIN_CRM_SESSION_ROLES = new Set(['admin', 'super_admin', 'tenant_admin']);
-
-function formatMinorAmount(format: Formatter, amountMinor: number, currencyCode: string): string {
-  return `${format.number(amountMinor / 100, {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2,
-  })} ${currencyCode}`;
-}
-
-function formatCount(format: Formatter, value: number): string {
-  return format.number(value, { maximumFractionDigits: 0 });
-}
+const BRANCH_MANAGER_SESSION_ROLE = 'branch_manager';
 
 function toAdminPipelineAmountChartRows(
   format: Formatter,
@@ -62,79 +69,6 @@ function toAdminPipelineAmountChartRows(
   });
 }
 
-function ReportingWidget({
-  children,
-  description,
-  marker,
-  title,
-}: Readonly<{
-  children: ReactNode;
-  description: string;
-  marker: string;
-  title: string;
-}>) {
-  return (
-    <section className="rounded-lg border bg-white p-5 shadow-sm" data-testid={marker}>
-      <div className="space-y-1">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function WidgetError({ message }: Readonly<{ message: string }>) {
-  return (
-    <p className="mt-5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-      {message}
-    </p>
-  );
-}
-
-function WidgetEmpty({ message }: Readonly<{ message: string }>) {
-  return <p className="mt-5 text-sm text-muted-foreground">{message}</p>;
-}
-
-function ExcludedRowsNote({
-  count,
-  label,
-  title,
-}: Readonly<{ count: number; label: string; title: string }>) {
-  if (count <= 0) return null;
-  return (
-    <p className="mt-4 inline-flex items-center gap-1 text-xs text-muted-foreground" title={title}>
-      <Info className="h-3.5 w-3.5" aria-hidden="true" />
-      {label}
-    </p>
-  );
-}
-
-function SnapshotStatus({ row, t }: Readonly<{ row: AdminCrmLatestSnapshotRow; t: Translations }>) {
-  if (row.freshness === 'fresh') {
-    return (
-      <span className="text-xs text-muted-foreground" title={t('snapshot.versionLabel')}>
-        {t('snapshot.fresh')}
-      </span>
-    );
-  }
-  if (row.freshness === 'delayed') {
-    return (
-      <span
-        className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900"
-        title={`${t('snapshot.versionLabel')}: ${row.snapshotVersion}`}
-      >
-        {t('snapshot.delayed')}
-      </span>
-    );
-  }
-  return (
-    <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-      {t('snapshot.stale')}
-    </span>
-  );
-}
-
 function SnapshotWidget({
   format,
   snapshot,
@@ -156,50 +90,12 @@ function SnapshotWidget({
         <WidgetEmpty message={t('snapshot.staleEmpty')} />
       ) : null}
       {snapshot.state === 'data' && snapshot.rows[0]?.freshness !== 'stale' ? (
-        <div className="mt-5 space-y-4">
-          {snapshot.rows.map(row => (
-            <div
-              key={`${row.pipelineId}-${row.branchId ?? 'tenant'}-${row.currencyCode}`}
-              className="rounded-md border p-4"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="font-medium">{row.currencyCode}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t('snapshot.date', { date: row.snapshotDate })}
-                  </p>
-                </div>
-                <SnapshotStatus row={row} t={t} />
-              </div>
-              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t('metrics.totalPipeline')}</dt>
-                  <dd className="font-semibold">
-                    {formatMinorAmount(format, row.totalPipelineAmountMinor, row.currencyCode)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t('metrics.weighted')}</dt>
-                  <dd className="font-semibold">
-                    {formatMinorAmount(format, row.weightedPipelineAmountMinor, row.currencyCode)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t('metrics.openDeals')}</dt>
-                  <dd>{formatCount(format, row.openDealCount)}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t('metrics.closedWon')}</dt>
-                  <dd>{formatMinorAmount(format, row.closedWonAmountMinor, row.currencyCode)}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t('metrics.closedLost')}</dt>
-                  <dd>{formatMinorAmount(format, row.closedLostAmountMinor, row.currencyCode)}</dd>
-                </div>
-              </dl>
-            </div>
-          ))}
-        </div>
+        <SnapshotRowsList
+          format={format}
+          getKey={row => `${row.pipelineId}-${row.branchId ?? 'tenant'}-${row.currencyCode}`}
+          rows={snapshot.rows}
+          t={t}
+        />
       ) : null}
     </ReportingWidget>
   );
@@ -243,39 +139,15 @@ function BranchPipelineWidget({
         <WidgetEmpty message={t('branchPipeline.empty')} />
       ) : null}
       {branchPipeline.state === 'data' ? (
-        <div className="mt-5 divide-y">
-          {branchPipeline.rows.map(row => (
-            <div
-              key={`${row.branchId ?? 'tenant'}-${row.pipelineId}-${row.currencyCode}`}
-              className="grid gap-3 py-4 first:pt-0 last:pb-0 md:grid-cols-[1fr_auto]"
-            >
-              <div>
-                <p className="font-medium">
-                  {row.branchLabel === 'tenant' ? t('labels.tenantWide') : row.branchLabel}
-                </p>
-                <p className="text-sm text-muted-foreground">{row.pipelineLabel}</p>
-              </div>
-              <dl className="grid gap-3 text-sm sm:grid-cols-3 md:text-right">
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t('metrics.weighted')}</dt>
-                  <dd className="font-semibold">
-                    {formatMinorAmount(format, row.weightedPipelineAmountMinor, row.currencyCode)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t('metrics.totalPipeline')}</dt>
-                  <dd>
-                    {formatMinorAmount(format, row.totalPipelineAmountMinor, row.currencyCode)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t('metrics.openDeals')}</dt>
-                  <dd>{formatCount(format, row.openDealCount)}</dd>
-                </div>
-              </dl>
-            </div>
-          ))}
-        </div>
+        <PipelineRowsList
+          format={format}
+          getBranchLabel={row =>
+            row.branchLabel === 'tenant' ? t('labels.tenantWide') : row.branchLabel
+          }
+          getKey={row => `${row.branchId ?? 'tenant'}-${row.pipelineId}-${row.currencyCode}`}
+          rows={branchPipeline.rows}
+          t={t}
+        />
       ) : null}
       {chartRows.length > 0 ? (
         <Suspense fallback={null}>
@@ -323,35 +195,12 @@ function SourceBreakdownWidget({
         <WidgetEmpty message={t('sourceBreakdown.empty')} />
       ) : null}
       {sourceBreakdown.state === 'data' ? (
-        <div className="mt-5 divide-y">
-          {sourceBreakdown.rows.map(row => (
-            <div
-              key={`${row.sourceLabel}-${row.currencyCode}`}
-              className="grid gap-3 py-4 first:pt-0 last:pb-0 md:grid-cols-[1fr_auto]"
-            >
-              <div>
-                <p className="font-medium">
-                  {row.sourceLabel === 'unknown' ? t('labels.unknownSource') : row.sourceLabel}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t('sourceBreakdown.deals', { count: row.dealCount })}
-                </p>
-              </div>
-              <dl className="grid gap-3 text-sm sm:grid-cols-2 md:text-right">
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t('metrics.weighted')}</dt>
-                  <dd className="font-semibold">
-                    {formatMinorAmount(format, row.weightedAmountMinor, row.currencyCode)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t('metrics.totalPipeline')}</dt>
-                  <dd>{formatMinorAmount(format, row.totalAmountMinor, row.currencyCode)}</dd>
-                </div>
-              </dl>
-            </div>
-          ))}
-        </div>
+        <SourceRowsList
+          format={format}
+          getKey={row => `${row.sourceLabel}-${row.currencyCode}`}
+          rows={sourceBreakdown.rows}
+          t={t}
+        />
       ) : null}
       <ExcludedRowsNote
         count={sourceBreakdown.excludedRowCount}
@@ -362,58 +211,19 @@ function SourceBreakdownWidget({
   );
 }
 
-function buildAdminCrmActor(session: {
-  user?: {
-    branchId?: string | null;
-    id?: string;
-    role?: string | null;
-    tenantId?: string | null;
-  } | null;
-}): CrmActorContext | null {
-  const role = session.user?.role;
-  const actorId = session.user?.id;
-  const tenantId = session.user?.tenantId;
-  if (!role || !actorId || !tenantId || !ADMIN_CRM_SESSION_ROLES.has(role)) return null;
-  return {
-    actorId,
-    role: 'admin',
-    scope: {
-      branchId: session.user?.branchId ?? null,
-    },
-    tenantId,
-  };
-}
-
-export default async function AdminCrmPage({
-  params,
-}: Readonly<{ params: Promise<{ locale: string }> }>) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-  const t = await getTranslations('admin-crm');
-  const format = await getFormatter();
-  const session = await getSessionSafe('AdminCrmPage');
-  if (!session) notFound();
-
-  const actor = buildAdminCrmActor(session);
-  if (!actor) notFound();
-
-  let reporting: AdminCrmReportingDashboard;
-  try {
-    reporting = await getAdminCrmReportingCore({ actor });
-  } catch (error) {
-    if (error instanceof AdminCrmReportingAccessDeniedError) {
-      notFound();
-    }
-    throw error;
-  }
-
+function AdminCrmDashboard({
+  format,
+  locale,
+  reporting,
+  t,
+}: Readonly<{
+  format: Formatter;
+  locale: string;
+  reporting: AdminCrmReportingDashboard;
+  t: Translations;
+}>) {
   return (
-    <div className="space-y-6" data-testid="admin-crm-page-ready">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('description')}</p>
-      </header>
-
+    <>
       <div className="grid gap-4 xl:grid-cols-3">
         <SnapshotWidget format={format} snapshot={reporting.snapshot} t={t} />
         <div className="xl:col-span-2">
@@ -427,6 +237,124 @@ export default async function AdminCrmPage({
       </div>
 
       <SourceBreakdownWidget format={format} sourceBreakdown={reporting.sourceBreakdown} t={t} />
+    </>
+  );
+}
+
+type AdminCrmResolvedActor =
+  | { kind: 'admin'; actor: CrmActorContext }
+  | { kind: 'branch_manager'; actor: CrmActorContext; branchLabel: string };
+
+function buildAdminCrmActor(session: {
+  user?: {
+    branchId?: string | null;
+    id?: string;
+    role?: string | null;
+    tenantId?: string | null;
+  } | null;
+}): AdminCrmResolvedActor | null {
+  const role = session.user?.role;
+  const actorId = session.user?.id;
+  const tenantId = session.user?.tenantId;
+  if (!role || !actorId || !tenantId) return null;
+  if (role === BRANCH_MANAGER_SESSION_ROLE) {
+    const branchId = session.user?.branchId;
+    if (!branchId) return null;
+    return {
+      actor: {
+        actorId,
+        role: 'branch_manager',
+        scope: { branchId },
+        tenantId,
+      },
+      branchLabel: branchId,
+      kind: 'branch_manager',
+    };
+  }
+  if (!ADMIN_CRM_SESSION_ROLES.has(role)) return null;
+  return {
+    actor: {
+      actorId,
+      role: 'admin',
+      scope: {
+        branchId: session.user?.branchId ?? null,
+      },
+      tenantId,
+    },
+    kind: 'admin',
+  };
+}
+
+function AdminCrmPageFrame({
+  children,
+  description,
+  title,
+}: Readonly<{
+  children: ReactNode;
+  description: string;
+  title: string;
+}>) {
+  return (
+    <div className="space-y-6" data-testid="admin-crm-page-ready">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </header>
+      {children}
     </div>
+  );
+}
+
+export default async function AdminCrmPage({
+  params,
+}: Readonly<{ params: Promise<{ locale: string }> }>) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations('admin-crm');
+  const format = await getFormatter();
+  const session = await getSessionSafe('AdminCrmPage');
+  if (!session) notFound();
+
+  const resolvedActor = buildAdminCrmActor(session);
+  if (!resolvedActor) notFound();
+
+  if (resolvedActor.kind === 'branch_manager') {
+    let reporting: BranchManagerCrmReportingDashboard;
+    try {
+      reporting = await getBranchManagerCrmReportingCore(
+        { actor: resolvedActor.actor },
+        { branchLabel: resolvedActor.branchLabel }
+      );
+    } catch (error) {
+      if (error instanceof BranchManagerCrmReportingAccessDeniedError) {
+        notFound();
+      }
+      throw error;
+    }
+
+    return (
+      <AdminCrmPageFrame
+        description={t('branchManager.description')}
+        title={t('branchManager.title')}
+      >
+        <BranchManagerCrmDashboard format={format} locale={locale} reporting={reporting} t={t} />
+      </AdminCrmPageFrame>
+    );
+  }
+
+  let reporting: AdminCrmReportingDashboard;
+  try {
+    reporting = await getAdminCrmReportingCore({ actor: resolvedActor.actor });
+  } catch (error) {
+    if (error instanceof AdminCrmReportingAccessDeniedError) {
+      notFound();
+    }
+    throw error;
+  }
+
+  return (
+    <AdminCrmPageFrame description={t('description')} title={t('title')}>
+      <AdminCrmDashboard format={format} locale={locale} reporting={reporting} t={t} />
+    </AdminCrmPageFrame>
   );
 }

@@ -1,14 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
-import type {
-  CrmSourceBreakdownRow,
-  CrmWeightedPipelineRow,
-} from '@interdomestik/domain-crm/reporting';
-import type {
-  CrmForecastSnapshotRepository,
-  CrmReportingRepository,
-} from '@interdomestik/domain-crm/reporting/repository';
 
 import {
   ADMIN_CRM_FORBIDDEN_PII_KEYS,
@@ -19,6 +11,11 @@ import {
   getAdminCrmReportingCore,
   getPreviousUtcSnapshotDate,
 } from './_core';
+import {
+  createCrmReportingRepositories,
+  sourceBreakdownReportingRow,
+  weightedReportingRow,
+} from './_reporting-test-fixtures';
 
 const actor: CrmActorContext = {
   actorId: 'admin-1',
@@ -27,49 +24,11 @@ const actor: CrmActorContext = {
   tenantId: 'tenant-1',
 };
 
-function weightedRow(overrides: Partial<CrmWeightedPipelineRow> = {}): CrmWeightedPipelineRow {
-  return {
-    agentId: 'agent-1',
-    branchId: 'branch-1',
-    currencyCode: 'EUR',
-    currentStageId: 'stage-open',
-    dealId: overrides.dealId ?? 'deal-1',
-    forecastCategory: 'commit',
-    isLostStage: false,
-    isWonStage: false,
-    pipelineId: 'pipeline-1',
-    source: 'website',
-    stageProbability: 80,
-    tenantId: 'tenant-1',
-    valueAmountMinor: 10000,
-    ...overrides,
-  };
-}
-
-function sourceRow(overrides: Partial<CrmSourceBreakdownRow> = {}): CrmSourceBreakdownRow {
-  return {
-    ...weightedRow(overrides),
-    outcome: 'open',
-    ...overrides,
-  };
-}
-
 function createRepositories() {
-  const reportingRepository = {
-    listAgentLeaderboardRows: vi.fn(),
-    listFunnelConversionRows: vi.fn(),
-    listSourceBreakdownRows: vi.fn(),
-    listStageVelocityRows: vi.fn(),
-    listWeightedPipelineRows: vi.fn(),
-    listWinRateRows: vi.fn(),
-  } satisfies CrmReportingRepository;
-  const forecastSnapshotRepository = {
-    insertPipelineSnapshots: vi.fn(),
-    listLatestPipelineSnapshots: vi.fn(),
-  } satisfies CrmForecastSnapshotRepository;
+  const { forecastSnapshotRepository, reportingRepository } = createCrmReportingRepositories();
 
-  reportingRepository.listWeightedPipelineRows.mockResolvedValue([weightedRow()]);
-  reportingRepository.listSourceBreakdownRows.mockResolvedValue([sourceRow()]);
+  reportingRepository.listWeightedPipelineRows.mockResolvedValue([weightedReportingRow()]);
+  reportingRepository.listSourceBreakdownRows.mockResolvedValue([sourceBreakdownReportingRow()]);
   forecastSnapshotRepository.listLatestPipelineSnapshots.mockResolvedValue([
     {
       branchId: null,
@@ -153,15 +112,15 @@ describe('admin CRM reporting core', () => {
     const { forecastSnapshotRepository, reportingRepository } = createRepositories();
     reportingRepository.listSourceBreakdownRows.mockResolvedValue([
       ...Array.from({ length: ADMIN_CRM_REPORTING_SOURCE_TOP_N + 3 }, (_, index) =>
-        sourceRow({
+        sourceBreakdownReportingRow({
           currencyCode: index % 2 === 0 ? 'EUR' : 'USD',
           dealId: `deal-${index}`,
           source: index === 0 ? 'beta' : `source-${String(index).padStart(2, '0')}`,
           valueAmountMinor: 1000,
         })
       ),
-      sourceRow({ dealId: 'top', source: 'alpha', valueAmountMinor: 5000 }),
-      sourceRow({ dealId: 'top-2', source: 'alpha', valueAmountMinor: 5000 }),
+      sourceBreakdownReportingRow({ dealId: 'top', source: 'alpha', valueAmountMinor: 5000 }),
+      sourceBreakdownReportingRow({ dealId: 'top-2', source: 'alpha', valueAmountMinor: 5000 }),
     ]);
 
     const dashboard = await getAdminCrmReportingCore(
