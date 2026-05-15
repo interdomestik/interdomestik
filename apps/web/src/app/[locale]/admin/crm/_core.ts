@@ -43,6 +43,22 @@ export const ADMIN_CRM_FORECAST_OBSERVABILITY_MARKER_PREFIX = 'admin-crm-forecas
 export const ADMIN_CRM_FORECAST_OBSERVABILITY_SUMMARY_MARKER = `${ADMIN_CRM_FORECAST_OBSERVABILITY_MARKER_PREFIX}summary`;
 export const ADMIN_CRM_FORECAST_OBSERVABILITY_COVERAGE_MARKER = `${ADMIN_CRM_FORECAST_OBSERVABILITY_MARKER_PREFIX}coverage`;
 export const ADMIN_CRM_FORECAST_OBSERVABILITY_BATCHES_MARKER = `${ADMIN_CRM_FORECAST_OBSERVABILITY_MARKER_PREFIX}batches`;
+export const ADMIN_CRM_FORECAST_ALERT_MARKER_PREFIX = 'admin-crm-forecast-alert-';
+export const ADMIN_CRM_FORECAST_ALERT_BAND_MARKER = `${ADMIN_CRM_FORECAST_ALERT_MARKER_PREFIX}band`;
+export const ADMIN_CRM_FORECAST_ALERT_STATUS_MARKER = `${ADMIN_CRM_FORECAST_ALERT_MARKER_PREFIX}status`;
+export const ADMIN_CRM_FORECAST_ALERT_METRICS_MARKER = `${ADMIN_CRM_FORECAST_ALERT_MARKER_PREFIX}metrics`;
+export const ADMIN_CRM_FORECAST_ALERT_SEVERITIES = [
+  'ok',
+  'warning',
+  'critical',
+  'unknown',
+] as const;
+export const ADMIN_CRM_FORECAST_ALERT_ZERO_OBSERVED_CRITICAL_THRESHOLD = 0;
+export const ADMIN_CRM_FORECAST_ALERT_STALE_WORK_ITEMS_CRITICAL_THRESHOLD = 1;
+export const ADMIN_CRM_FORECAST_ALERT_DEFERRED_WORK_ITEMS_WARNING_THRESHOLD = 1;
+export const ADMIN_CRM_FORECAST_ALERT_MISSING_WORK_ITEMS_WARNING_THRESHOLD = 1;
+export const ADMIN_CRM_FORECAST_ALERT_DELAYED_WORK_ITEMS_WARNING_THRESHOLD = 1;
+export const ADMIN_CRM_FORECAST_ALERT_UNEXPECTED_WORK_ITEMS_WARNING_THRESHOLD = 1;
 
 export const ADMIN_CRM_REPORTING_ERROR_MESSAGE_BY_REASON: Record<
   CrmReportingAuthorizationDenialReason | 'repository_failure',
@@ -122,6 +138,29 @@ export interface AdminCrmForecastObservabilitySummary {
   latestSourceRunId: string | null;
 }
 
+export type AdminCrmForecastAlertSeverity = (typeof ADMIN_CRM_FORECAST_ALERT_SEVERITIES)[number];
+
+export interface AdminCrmForecastAlertMetrics {
+  delayedWorkItems: number;
+  expectedWorkItems: number;
+  expectedWorkItemsDeferred: number;
+  latestSnapshotCreatedAt: string | null;
+  latestSourceRunId: string | null;
+  missingWorkItems: number;
+  observedWorkItems: number;
+  staleWorkItems: number;
+  unexpectedObservedWorkItems: number;
+}
+
+export interface AdminCrmForecastAlertResult {
+  explanationMessageKey: string;
+  generatedAt: string | null;
+  headlineMessageKey: string;
+  metrics: AdminCrmForecastAlertMetrics;
+  severity: AdminCrmForecastAlertSeverity;
+  snapshotDate: string | null;
+}
+
 export interface AdminCrmForecastObservabilityCoverageRow {
   branchId: string | null;
   branchLabel: string;
@@ -177,6 +216,7 @@ export type AdminCrmForecastObservabilityWidget =
 
 export type AdminCrmReportingDashboard = {
   branchPipeline: AdminCrmWidget<AdminCrmBranchPipelineRow>;
+  forecastAlert: AdminCrmForecastAlertResult;
   forecastObservability: AdminCrmForecastObservabilityWidget;
   generatedAt: string;
   snapshot: AdminCrmWidget<AdminCrmLatestSnapshotRow>;
@@ -517,6 +557,89 @@ export function deriveAdminCrmForecastObservability(args: {
   };
 }
 
+function zeroForecastAlertMetrics(): AdminCrmForecastAlertMetrics {
+  return {
+    delayedWorkItems: 0,
+    expectedWorkItems: 0,
+    expectedWorkItemsDeferred: 0,
+    latestSnapshotCreatedAt: null,
+    latestSourceRunId: null,
+    missingWorkItems: 0,
+    observedWorkItems: 0,
+    staleWorkItems: 0,
+    unexpectedObservedWorkItems: 0,
+  };
+}
+
+function forecastAlertMessageKeys(severity: AdminCrmForecastAlertSeverity): {
+  explanationMessageKey: string;
+  headlineMessageKey: string;
+} {
+  return {
+    explanationMessageKey: `forecastAlert.${severity}.explanation`,
+    headlineMessageKey: `forecastAlert.${severity}.headline`,
+  };
+}
+
+function forecastAlertMetricsFromSummary(
+  summary: AdminCrmForecastObservabilitySummary
+): AdminCrmForecastAlertMetrics {
+  return {
+    delayedWorkItems: summary.delayedWorkItems,
+    expectedWorkItems: summary.expectedWorkItems,
+    expectedWorkItemsDeferred: summary.expectedWorkItemsDeferred,
+    latestSnapshotCreatedAt: summary.latestSnapshotCreatedAt,
+    latestSourceRunId: summary.latestSourceRunId,
+    missingWorkItems: summary.missingWorkItems,
+    observedWorkItems: summary.observedWorkItems,
+    staleWorkItems: summary.staleWorkItems,
+    unexpectedObservedWorkItems: summary.unexpectedObservedWorkItems,
+  };
+}
+
+export function deriveAdminCrmForecastAlert(
+  forecastObservability: AdminCrmForecastObservabilityWidget
+): AdminCrmForecastAlertResult {
+  const summary = forecastObservability.summary;
+  if (forecastObservability.state === 'error' || !summary) {
+    return {
+      ...forecastAlertMessageKeys('unknown'),
+      generatedAt: null,
+      metrics: zeroForecastAlertMetrics(),
+      severity: 'unknown',
+      snapshotDate: null,
+    };
+  }
+
+  const metrics = forecastAlertMetricsFromSummary(summary);
+  let severity: AdminCrmForecastAlertSeverity = 'ok';
+  if (summary.expectedWorkItems === 0) {
+    severity = 'unknown';
+  } else if (
+    summary.observedWorkItems === ADMIN_CRM_FORECAST_ALERT_ZERO_OBSERVED_CRITICAL_THRESHOLD ||
+    summary.staleWorkItems >= ADMIN_CRM_FORECAST_ALERT_STALE_WORK_ITEMS_CRITICAL_THRESHOLD
+  ) {
+    severity = 'critical';
+  } else if (
+    summary.expectedWorkItemsDeferred >=
+      ADMIN_CRM_FORECAST_ALERT_DEFERRED_WORK_ITEMS_WARNING_THRESHOLD ||
+    summary.missingWorkItems >= ADMIN_CRM_FORECAST_ALERT_MISSING_WORK_ITEMS_WARNING_THRESHOLD ||
+    summary.delayedWorkItems >= ADMIN_CRM_FORECAST_ALERT_DELAYED_WORK_ITEMS_WARNING_THRESHOLD ||
+    summary.unexpectedObservedWorkItems >=
+      ADMIN_CRM_FORECAST_ALERT_UNEXPECTED_WORK_ITEMS_WARNING_THRESHOLD
+  ) {
+    severity = 'warning';
+  }
+
+  return {
+    ...forecastAlertMessageKeys(severity),
+    generatedAt: summary.generatedAt,
+    metrics,
+    severity,
+    snapshotDate: summary.snapshotDate,
+  };
+}
+
 function mapSnapshotRows(
   rows: readonly CrmPipelineSnapshotRecord[],
   nowIso: string
@@ -763,6 +886,7 @@ export async function getAdminCrmReportingCore(
 
   return {
     branchPipeline,
+    forecastAlert: deriveAdminCrmForecastAlert(forecastObservability),
     forecastObservability,
     generatedAt: nowIso,
     snapshot,

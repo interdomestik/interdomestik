@@ -148,6 +148,24 @@ describe('AdminCrmPage', () => {
           unexpectedObservedWorkItems: 0,
         },
       },
+      forecastAlert: {
+        explanationMessageKey: 'forecastAlert.ok.explanation',
+        generatedAt: '2026-05-14T12:00:00.000Z',
+        headlineMessageKey: 'forecastAlert.ok.headline',
+        metrics: {
+          delayedWorkItems: 0,
+          expectedWorkItems: 1,
+          expectedWorkItemsDeferred: 0,
+          latestSnapshotCreatedAt: '2026-05-14T05:20:00.000Z',
+          latestSourceRunId: 'run-1',
+          missingWorkItems: 0,
+          observedWorkItems: 1,
+          staleWorkItems: 0,
+          unexpectedObservedWorkItems: 0,
+        },
+        severity: 'ok',
+        snapshotDate: '2026-05-13',
+      },
       generatedAt: '2026-05-14T12:00:00.000Z',
       snapshot: {
         excludedRowCount: 0,
@@ -275,6 +293,11 @@ describe('AdminCrmPage', () => {
     expect(screen.getByTestId('admin-crm-reporting-branch-pipeline')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-reporting-source-breakdown')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-forecast-observability-summary')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-crm-forecast-alert-band')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-crm-forecast-alert-status')).toHaveTextContent(
+      'forecastAlert.severity.ok'
+    );
+    expect(screen.getByTestId('admin-crm-forecast-alert-metrics')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-forecast-observability-coverage')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-forecast-observability-batches')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-forecast-backfill-operator-form')).toBeInTheDocument();
@@ -355,6 +378,9 @@ describe('AdminCrmPage', () => {
     expect(
       screen.queryByTestId('admin-crm-forecast-observability-batches')
     ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('admin-crm-forecast-alert-band')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('admin-crm-forecast-alert-status')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('admin-crm-forecast-alert-metrics')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('admin-crm-forecast-backfill-operator-form')
     ).not.toBeInTheDocument();

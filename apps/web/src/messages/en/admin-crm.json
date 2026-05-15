@@ -56,6 +56,40 @@
       "tenantWide": "Tenant-wide",
       "unknownSource": "Unknown source"
     },
+    "forecastAlert": {
+      "severity": {
+        "ok": "OK",
+        "warning": "Warning",
+        "critical": "Critical",
+        "unknown": "Unknown"
+      },
+      "ok": {
+        "headline": "Forecast snapshots are healthy",
+        "explanation": "The latest expected forecast snapshot work items are observed without delayed, stale, missing, deferred, or unexpected rows."
+      },
+      "warning": {
+        "headline": "Forecast snapshots need review",
+        "explanation": "Some forecast snapshot work items are delayed, missing, deferred, or unexpectedly observed. Review observability before running repairs."
+      },
+      "critical": {
+        "headline": "Forecast snapshots require attention",
+        "explanation": "The latest expected forecast snapshot work has no observed snapshots or includes stale rows. Use observability and backfill before relying on the data."
+      },
+      "unknown": {
+        "headline": "Forecast snapshot health is unknown",
+        "explanation": "Forecast snapshot expectations are unavailable or the observability read failed. Retry after the reporting data is available."
+      },
+      "metrics": {
+        "expected": "Expected",
+        "observed": "Observed",
+        "missing": "Missing",
+        "stale": "Stale",
+        "deferred": "Deferred",
+        "latestCreated": "Latest created",
+        "latestRun": "Latest run",
+        "none": "None"
+      }
+    },
     "forecastObservability": {
       "title": "Forecast snapshot observability",
       "description": "Operational coverage for the previous UTC forecast snapshot date.",

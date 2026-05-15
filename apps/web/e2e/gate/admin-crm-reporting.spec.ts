@@ -7,7 +7,7 @@ function adminCrmRoute(testInfo: Parameters<typeof routes.getLocale>[0]) {
 }
 
 test.describe('Admin CRM reporting role paths', () => {
-  test('admin session reaches tenant-wide CRM reporting markers', async ({
+  test('admin session reaches tenant-wide CRM reporting markers @admin-crm-forecast-alert', async ({
     page,
     loginAs,
   }, testInfo) => {
@@ -21,6 +21,9 @@ test.describe('Admin CRM reporting role paths', () => {
     await expect(
       page.getByTestId('admin-crm-forecast-observability-summary').first()
     ).toBeVisible();
+    await expect(page.getByTestId('admin-crm-forecast-alert-band').first()).toBeVisible();
+    await expect(page.getByTestId('admin-crm-forecast-alert-status').first()).toBeVisible();
+    await expect(page.getByTestId('admin-crm-forecast-alert-metrics').first()).toBeVisible();
     await expect(
       page.getByTestId('admin-crm-forecast-observability-coverage').first()
     ).toBeVisible();
@@ -35,7 +38,7 @@ test.describe('Admin CRM reporting role paths', () => {
     ).toBeVisible();
   });
 
-  test('branch-manager session reaches branch-scoped CRM reporting markers', async ({
+  test('branch-manager session reaches branch-scoped CRM reporting markers @admin-crm-forecast-alert', async ({
     page,
     loginAs,
   }, testInfo) => {
@@ -51,6 +54,9 @@ test.describe('Admin CRM reporting role paths', () => {
       page.getByTestId('branch-manager-crm-reporting-source-breakdown').first()
     ).toBeVisible();
     await expect(page.getByTestId('admin-crm-forecast-observability-summary')).toHaveCount(0);
+    await expect(page.getByTestId('admin-crm-forecast-alert-band')).toHaveCount(0);
+    await expect(page.getByTestId('admin-crm-forecast-alert-status')).toHaveCount(0);
+    await expect(page.getByTestId('admin-crm-forecast-alert-metrics')).toHaveCount(0);
     await expect(page.getByTestId('admin-crm-forecast-observability-coverage')).toHaveCount(0);
     await expect(page.getByTestId('admin-crm-forecast-observability-batches')).toHaveCount(0);
     await expect(page.getByTestId('admin-crm-forecast-backfill-operator-form')).toHaveCount(0);

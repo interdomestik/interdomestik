@@ -18,6 +18,9 @@ import {
   type BranchManagerCrmReportingDashboard,
 } from './_branch-manager-core';
 import {
+  ADMIN_CRM_FORECAST_ALERT_BAND_MARKER,
+  ADMIN_CRM_FORECAST_ALERT_METRICS_MARKER,
+  ADMIN_CRM_FORECAST_ALERT_STATUS_MARKER,
   ADMIN_CRM_FORECAST_OBSERVABILITY_BATCHES_MARKER,
   ADMIN_CRM_FORECAST_OBSERVABILITY_COVERAGE_MARKER,
   ADMIN_CRM_FORECAST_OBSERVABILITY_SUMMARY_MARKER,
@@ -25,6 +28,8 @@ import {
   AdminCrmReportingAccessDeniedError,
   getAdminCrmReportingCore,
   type AdminCrmBranchPipelineRow,
+  type AdminCrmForecastAlertResult,
+  type AdminCrmForecastAlertSeverity,
   type AdminCrmForecastObservabilityBatchRow,
   type AdminCrmForecastObservabilityCoverageRow,
   type AdminCrmForecastObservabilitySummary,
@@ -258,6 +263,115 @@ function ForecastObservabilityStatusBadge({
       <Icon className="h-3.5 w-3.5" aria-hidden="true" />
       {t(`forecastObservability.status.${status}`)}
     </span>
+  );
+}
+
+function ForecastAlertStatusBadge({
+  severity,
+  t,
+}: Readonly<{
+  severity: AdminCrmForecastAlertSeverity;
+  t: Translations;
+}>) {
+  const Icon =
+    severity === 'ok'
+      ? CircleCheck
+      : severity === 'warning'
+        ? Clock3
+        : severity === 'critical'
+          ? TriangleAlert
+          : CircleSlash;
+  const className =
+    severity === 'ok'
+      ? 'bg-emerald-50 text-emerald-900'
+      : severity === 'warning'
+        ? 'bg-amber-50 text-amber-900'
+        : severity === 'critical'
+          ? 'bg-red-50 text-red-900'
+          : 'bg-muted text-muted-foreground';
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${className}`}
+      data-testid={ADMIN_CRM_FORECAST_ALERT_STATUS_MARKER}
+      role="status"
+    >
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      {t(`forecastAlert.severity.${severity}`)}
+    </span>
+  );
+}
+
+function ForecastAlertBand({
+  alert,
+  format,
+  t,
+}: Readonly<{
+  alert: AdminCrmForecastAlertResult;
+  format: Formatter;
+  t: Translations;
+}>) {
+  const metricItems: Array<{ key: string; label: string; value: ReactNode }> = [
+    {
+      key: 'expected',
+      label: t('forecastAlert.metrics.expected'),
+      value: formatCount(format, alert.metrics.expectedWorkItems),
+    },
+    {
+      key: 'observed',
+      label: t('forecastAlert.metrics.observed'),
+      value: formatCount(format, alert.metrics.observedWorkItems),
+    },
+    {
+      key: 'missing',
+      label: t('forecastAlert.metrics.missing'),
+      value: formatCount(format, alert.metrics.missingWorkItems),
+    },
+    {
+      key: 'stale',
+      label: t('forecastAlert.metrics.stale'),
+      value: formatCount(format, alert.metrics.staleWorkItems),
+    },
+    {
+      key: 'deferred',
+      label: t('forecastAlert.metrics.deferred'),
+      value: formatCount(format, alert.metrics.expectedWorkItemsDeferred),
+    },
+    {
+      key: 'latestCreated',
+      label: t('forecastAlert.metrics.latestCreated'),
+      value: alert.metrics.latestSnapshotCreatedAt ?? t('forecastAlert.metrics.none'),
+    },
+    {
+      key: 'latestRun',
+      label: t('forecastAlert.metrics.latestRun'),
+      value: alert.metrics.latestSourceRunId ?? t('forecastAlert.metrics.none'),
+    },
+  ];
+
+  return (
+    <section
+      className="rounded-md border bg-background p-4"
+      data-testid={ADMIN_CRM_FORECAST_ALERT_BAND_MARKER}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-1">
+          <h2 className="text-base font-semibold">{t(alert.headlineMessageKey)}</h2>
+          <p className="text-sm text-muted-foreground">{t(alert.explanationMessageKey)}</p>
+        </div>
+        <ForecastAlertStatusBadge severity={alert.severity} t={t} />
+      </div>
+      <dl
+        className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-7"
+        data-testid={ADMIN_CRM_FORECAST_ALERT_METRICS_MARKER}
+      >
+        {metricItems.map(item => (
+          <div key={item.key} className="rounded-md border p-3">
+            <dt className="text-xs text-muted-foreground">{item.label}</dt>
+            <dd className="break-all text-sm font-semibold">{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 
@@ -683,6 +797,7 @@ function AdminCrmDashboard({
       </div>
 
       <SourceBreakdownWidget format={format} sourceBreakdown={reporting.sourceBreakdown} t={t} />
+      <ForecastAlertBand alert={reporting.forecastAlert} format={format} t={t} />
       <ForecastObservabilityWidget
         forecastObservability={reporting.forecastObservability}
         format={format}
