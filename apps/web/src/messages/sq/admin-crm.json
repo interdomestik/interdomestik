@@ -24,6 +24,26 @@
       "empty": "Nuk ka rreshta burimi për dritaren standarde të raportimit.",
       "deals": "{count, plural, one {# marrëveshje} other {# marrëveshje}}"
     },
+    "branchManager": {
+      "title": "Raportimi CRM i degës",
+      "description": "Raportim CRM i kufizuar në degë për shëndetin e pipeline-it, cilësinë e burimeve dhe snapshot-et e parashikimit.",
+      "snapshot": {
+        "title": "Snapshot parashikimi i degës",
+        "description": "Data e mëparshme UTC e snapshot-it për degën tuaj, e grupuar sipas valutës.",
+        "empty": "Nuk është gjeneruar snapshot parashikimi për degën në datën e mëparshme UTC.",
+        "staleEmpty": "Snapshot-i i fundit i degës është i vjetër. Vlerat fshihen derisa planifikuesi t'i rifreskojë."
+      },
+      "branchPipeline": {
+        "title": "Përmbledhje pipeline e degës",
+        "description": "Pipeline i ponderuar live 90-ditor për degën tuaj, i grupuar sipas pipeline-it dhe valutës.",
+        "empty": "Nuk ka rreshta pipeline për degën në dritaren standarde të raportimit."
+      },
+      "sourceBreakdown": {
+        "title": "Ndarja sipas burimit për degën",
+        "description": "Burimet kryesore CRM sipas numrit të marrëveshjeve për degën tuaj në dritaren standarde.",
+        "empty": "Nuk ka rreshta burimi për degën në dritaren standarde të raportimit."
+      }
+    },
     "metrics": {
       "totalPipeline": "Totali",
       "weighted": "I ponderuar",

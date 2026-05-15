@@ -72,6 +72,7 @@ export default async function AdminLayout({
         <SidebarProvider defaultOpen={true}>
           <AdminSidebar
             user={{
+              branchId: sessionNonNull.user.branchId,
               name: sessionNonNull.user.name || 'Admin',
               email: sessionNonNull.user.email,
               role: sessionNonNull.user.role,

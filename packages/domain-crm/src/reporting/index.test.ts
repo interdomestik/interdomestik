@@ -39,6 +39,13 @@ const agentActor: CrmActorContext = {
   tenantId: 'tenant-1',
 };
 
+const branchManagerActor: CrmActorContext = {
+  actorId: 'manager-1',
+  role: 'branch_manager',
+  scope: { branchId: 'branch-1' },
+  tenantId: 'tenant-1',
+};
+
 function weightedRow(overrides: Partial<CrmWeightedPipelineRow> = {}): CrmWeightedPipelineRow {
   return {
     agentId: 'agent-1',
@@ -73,6 +80,7 @@ describe('CRM reporting domain', () => {
         window,
       })
     ).toBe('branch_scope');
+    expect(authorizeCrmReportingRead({ actor: branchManagerActor, window })).toBeNull();
     expect(
       authorizeCrmReportingRead({
         actor: agentActor,

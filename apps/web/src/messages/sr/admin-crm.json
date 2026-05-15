@@ -24,6 +24,26 @@
       "empty": "Nema redova izvora za podrazumevani period izveštavanja.",
       "deals": "{count, plural, one {# posao} other {# poslova}}"
     },
+    "branchManager": {
+      "title": "CRM izveštaji ogranka",
+      "description": "CRM izveštaji ogranka za stanje pipeline-a, kvalitet izvora i prognozne snimke.",
+      "snapshot": {
+        "title": "Prognozni snimak ogranka",
+        "description": "Prethodni UTC datum snimka za vaš ogranak, grupisan po valuti.",
+        "empty": "Prognozni snimak za ogranak nije generisan za prethodni UTC datum.",
+        "staleEmpty": "Najnoviji snimak ogranka je zastareo. Vrednosti su sakrivene dok ih planer ne osveži."
+      },
+      "branchPipeline": {
+        "title": "Sažetak pipeline-a ogranka",
+        "description": "Živi 90-dnevni ponderisani pipeline za vaš ogranak, grupisan po pipeline-u i valuti.",
+        "empty": "Nema pipeline redova ogranka za podrazumevani period izveštavanja."
+      },
+      "sourceBreakdown": {
+        "title": "Pregled izvora ogranka",
+        "description": "Najvažniji CRM izvori po broju poslova za vaš ogranak u podrazumevanom periodu.",
+        "empty": "Nema redova izvora ogranka za podrazumevani period izveštavanja."
+      }
+    },
     "metrics": {
       "totalPipeline": "Ukupno",
       "weighted": "Ponderisano",

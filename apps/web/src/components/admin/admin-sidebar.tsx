@@ -48,6 +48,7 @@ import { useSearchParams } from 'next/navigation';
 interface AdminSidebarProps {
   readonly className?: string;
   readonly user: {
+    branchId?: string | null;
     name: string;
     email: string;
     role: string;
@@ -132,7 +133,9 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
       title: 'crm',
       href: '/admin/crm',
       icon: BarChart,
-      hidden: !['super_admin', 'tenant_admin', 'admin'].includes(user.role),
+      hidden:
+        !['super_admin', 'tenant_admin', 'admin'].includes(user.role) &&
+        !(user.role === 'branch_manager' && user.branchId),
     },
     {
       title: 'members',

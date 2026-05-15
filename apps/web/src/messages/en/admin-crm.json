@@ -24,6 +24,26 @@
       "empty": "No source rows are available for the default reporting window.",
       "deals": "{count, plural, one {# deal} other {# deals}}"
     },
+    "branchManager": {
+      "title": "Branch CRM Reporting",
+      "description": "Branch-scoped CRM reporting for pipeline health, source quality, and forecast snapshots.",
+      "snapshot": {
+        "title": "Branch forecast snapshot",
+        "description": "Previous UTC snapshot date for your branch, grouped by currency.",
+        "empty": "No branch forecast snapshot has been generated for the previous UTC date.",
+        "staleEmpty": "The latest branch snapshot is stale. Current values are hidden until the scheduler refreshes them."
+      },
+      "branchPipeline": {
+        "title": "Branch pipeline summary",
+        "description": "Live 90-day weighted pipeline for your branch, grouped by pipeline and currency.",
+        "empty": "No branch pipeline rows are available for the default reporting window."
+      },
+      "sourceBreakdown": {
+        "title": "Branch source breakdown",
+        "description": "Top CRM sources by deal count for your branch in the default reporting window.",
+        "empty": "No branch source rows are available for the default reporting window."
+      }
+    },
     "metrics": {
       "totalPipeline": "Total",
       "weighted": "Weighted",
