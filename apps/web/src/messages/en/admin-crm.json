@@ -35,6 +35,16 @@
       "tenantWide": "Tenant-wide",
       "unknownSource": "Unknown source"
     },
+    "charts": {
+      "hiddenItems": "{count, plural, one {# additional row hidden from the chart summary} other {# additional rows hidden from the chart summary}}",
+      "pipelineAmount": {
+        "title": "Pipeline amount chart",
+        "description": "Supplemental comparison of total and weighted pipeline amount. The table above is the source of truth.",
+        "summaryIntro": "Pipeline amount chart summary",
+        "total": "Total",
+        "weighted": "Weighted"
+      }
+    },
     "excludedRows": "{count, plural, one {# aggregate row excluded} other {# aggregate rows excluded}}",
     "excludedRowsHelp": "Rows can be excluded from aggregate metrics when required reporting fields are missing or inconsistent.",
     "error": {

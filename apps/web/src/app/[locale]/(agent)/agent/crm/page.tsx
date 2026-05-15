@@ -7,8 +7,13 @@ import { ArrowRight } from 'lucide-react';
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 
+import {
+  buildPipelineAmountScreenReaderSummary,
+  type PipelineAmountChartRow,
+} from '@/components/crm/charts/chart-projections';
+import { PipelineAmountChartBoundary } from '@/components/crm/charts/reporting-chart-boundary';
 import {
   AgentCrmReportingAccessDeniedError,
   AgentCrmStatsAccessDeniedError,
@@ -43,6 +48,25 @@ function sourceLabel(source: AgentCrmSourceBreakdownSummary | AgentCrmWinRateSum
   return source.groupKey === 'unknown' ? 'unknown' : source.groupKey;
 }
 
+function toAgentPipelineAmountChartRows(
+  format: Formatter,
+  summaries: readonly AgentCrmPipelineCurrencySummary[]
+): PipelineAmountChartRow[] {
+  return summaries.map(summary => ({
+    currencyCode: summary.currencyCode,
+    id: summary.currencyCode,
+    label: summary.currencyCode,
+    totalAmountMinor: summary.rawValueAmountMinor,
+    totalFormatted: formatMinorAmount(format, summary.rawValueAmountMinor, summary.currencyCode),
+    weightedAmountMinor: summary.weightedValueAmountMinor,
+    weightedFormatted: formatMinorAmount(
+      format,
+      summary.weightedValueAmountMinor,
+      summary.currencyCode
+    ),
+  }));
+}
+
 function ReportingCard({
   children,
   description,
@@ -67,13 +91,26 @@ function ReportingCard({
 
 function WeightedPipelineWidget({
   format,
+  locale,
   reporting,
   t,
 }: Readonly<{
   format: Formatter;
+  locale: string;
   reporting: AgentCrmReportingDashboard['weightedPipeline'];
   t: Awaited<ReturnType<typeof getTranslations>>;
 }>) {
+  const chartRows = toAgentPipelineAmountChartRows(format, reporting.currencySummaries);
+  const chartSummary =
+    chartRows.length > 0
+      ? buildPipelineAmountScreenReaderSummary(chartRows, {
+          hiddenItems: count => t('reporting.charts.hiddenItems', { count }),
+          intro: t('reporting.charts.pipelineAmount.summaryIntro'),
+          total: t('reporting.charts.pipelineAmount.total'),
+          weighted: t('reporting.charts.pipelineAmount.weighted'),
+        })
+      : '';
+
   return (
     <ReportingCard
       title={t('reporting.weightedPipeline.title')}
@@ -96,6 +133,21 @@ function WeightedPipelineWidget({
           ))}
         </div>
       )}
+      {chartRows.length > 0 ? (
+        <Suspense fallback={null}>
+          <PipelineAmountChartBoundary
+            description={t('reporting.charts.pipelineAmount.description')}
+            locale={locale}
+            rows={chartRows}
+            summary={chartSummary}
+            text={{
+              total: t('reporting.charts.pipelineAmount.total'),
+              weighted: t('reporting.charts.pipelineAmount.weighted'),
+            }}
+            title={t('reporting.charts.pipelineAmount.title')}
+          />
+        </Suspense>
+      ) : null}
       {reporting.excludedRowCount > 0 && (
         <p className="mt-4 text-xs text-muted-foreground">
           {t('reporting.weightedPipeline.excludedRows', {
@@ -358,7 +410,12 @@ export default async function CRMPage({
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <div className="lg:col-span-3">
-          <WeightedPipelineWidget format={format} reporting={reporting.weightedPipeline} t={t} />
+          <WeightedPipelineWidget
+            format={format}
+            locale={locale}
+            reporting={reporting.weightedPipeline}
+            t={t}
+          />
         </div>
         <div className="lg:col-span-2">
           <SourceBreakdownWidget format={format} reporting={reporting.sourceBreakdown} t={t} />

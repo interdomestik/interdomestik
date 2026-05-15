@@ -367,6 +367,16 @@
         "description": "Dobijeni i izgubljeni ishodi po izvoru.",
         "empty": "Nema dobijenih ili izgubljenih dogovora u periodu izveštaja.",
         "counts": "{won} dobijeno / {lost} izgubljeno / {open} otvoreno"
+      },
+      "charts": {
+        "hiddenItems": "{count, plural, one {# dodatni red je sakriven iz rezimea grafikona} other {# dodatnih redova je sakriveno iz rezimea grafikona}}",
+        "pipelineAmount": {
+          "title": "Grafikon iznosa pipeline-a",
+          "description": "Dopunsko poređenje ukupnog i ponderisanog iznosa pipeline-a. Tabela iznad je izvor istine.",
+          "summaryIntro": "Rezime grafikona iznosa pipeline-a",
+          "total": "Ukupno",
+          "weighted": "Ponderisano"
+        }
       }
     },
     "dashboardV2": {

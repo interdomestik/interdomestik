@@ -52,6 +52,18 @@ vi.mock('./_core', async importOriginal => {
   });
 });
 
+vi.mock('@/components/crm/charts/reporting-chart-boundary', () => ({
+  FunnelMovementChartBoundary: ({ title }: { title: string }) => (
+    <div data-testid="crm-reporting-chart-funnel-movement">{title}</div>
+  ),
+  PipelineAmountChartBoundary: ({ title }: { title: string }) => (
+    <div data-testid="crm-reporting-chart-pipeline-amount">{title}</div>
+  ),
+  StageVelocityChartBoundary: ({ title }: { title: string }) => (
+    <div data-testid="crm-reporting-chart-stage-velocity">{title}</div>
+  ),
+}));
+
 import StaffCrmPage from './page';
 
 function dataDashboard() {
@@ -168,6 +180,15 @@ describe('StaffCrmPage', () => {
     expect(screen.getByTestId('staff-crm-reporting-pipeline-workload')).toHaveTextContent('USD');
     expect(screen.getByTestId('staff-crm-reporting-funnel-movement')).toBeInTheDocument();
     expect(screen.getByTestId('staff-crm-reporting-stage-velocity')).toBeInTheDocument();
+    expect(screen.getByTestId('crm-reporting-chart-pipeline-amount')).toHaveTextContent(
+      'charts.pipelineAmount.title'
+    );
+    expect(screen.getByTestId('crm-reporting-chart-funnel-movement')).toHaveTextContent(
+      'charts.funnelMovement.title'
+    );
+    expect(screen.getByTestId('crm-reporting-chart-stage-velocity')).toHaveTextContent(
+      'charts.stageVelocity.title'
+    );
   });
 
   it('fails closed for non-staff sessions before loading reporting data', async () => {

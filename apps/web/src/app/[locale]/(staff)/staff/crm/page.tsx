@@ -2,8 +2,21 @@ import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { Info } from 'lucide-react';
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 
+import {
+  buildFunnelMovementScreenReaderSummary,
+  buildPipelineAmountScreenReaderSummary,
+  buildStageVelocityScreenReaderSummary,
+  type FunnelMovementChartRow,
+  type PipelineAmountChartRow,
+  type StageVelocityChartRow,
+} from '@/components/crm/charts/chart-projections';
+import {
+  FunnelMovementChartBoundary,
+  PipelineAmountChartBoundary,
+  StageVelocityChartBoundary,
+} from '@/components/crm/charts/reporting-chart-boundary';
 import { getSessionSafe } from '@/components/shell/session';
 
 import {
@@ -44,6 +57,61 @@ function formatDays(format: Formatter, value: number): string {
     maximumFractionDigits: 2,
     minimumFractionDigits: 0,
   });
+}
+
+function toStaffPipelineAmountChartRows(
+  format: Formatter,
+  rows: readonly StaffCrmPipelineWorkloadRow[]
+): PipelineAmountChartRow[] {
+  return rows.map(row => {
+    const label = `${row.branchLabel} / ${row.pipelineLabel}`;
+    return {
+      currencyCode: row.currencyCode,
+      id: `${row.branchId ?? 'no-branch'}-${row.pipelineId}-${row.currencyCode}`,
+      label,
+      totalAmountMinor: row.totalPipelineAmountMinor,
+      totalFormatted: formatMinorAmount(format, row.totalPipelineAmountMinor, row.currencyCode),
+      weightedAmountMinor: row.weightedPipelineAmountMinor,
+      weightedFormatted: formatMinorAmount(
+        format,
+        row.weightedPipelineAmountMinor,
+        row.currencyCode
+      ),
+    };
+  });
+}
+
+function toStaffFunnelMovementChartRows(
+  format: Formatter,
+  rows: readonly StaffCrmFunnelMovementRow[]
+): FunnelMovementChartRow[] {
+  return rows.map(row => ({
+    enteredCount: row.enteredCount,
+    enteredFormatted: formatCount(format, row.enteredCount),
+    exitedCount: row.exitedCount,
+    exitedFormatted: formatCount(format, row.exitedCount),
+    id: `${row.pipelineId}-${row.stageId}`,
+    label: `${row.stageLabel} / ${row.pipelineLabel}`,
+    lostCount: row.lostCount,
+    lostFormatted: formatCount(format, row.lostCount),
+    wonCount: row.wonCount,
+    wonFormatted: formatCount(format, row.wonCount),
+  }));
+}
+
+function toStaffStageVelocityChartRows(
+  format: Formatter,
+  rows: readonly StaffCrmStageVelocityRow[],
+  t: Translations
+): StageVelocityChartRow[] {
+  return rows.map(row => ({
+    averageDays: row.averageDays,
+    averageFormatted: t('durationDays', { days: formatDays(format, row.averageDays) }),
+    id: `${row.pipelineId}-${row.stageId}`,
+    label: `${row.stageLabel} / ${row.pipelineLabel}`,
+    medianDays: row.medianDays,
+    medianFormatted: t('durationDays', { days: formatDays(format, row.medianDays) }),
+  }));
 }
 
 function StaffReportPanel({
@@ -102,13 +170,29 @@ function InlineCountNote({
 
 function PipelineWorkloadWidget({
   format,
+  locale,
   pipelineWorkload,
   t,
 }: Readonly<{
   format: Formatter;
+  locale: string;
   pipelineWorkload: StaffCrmWidget<StaffCrmPipelineWorkloadRow>;
   t: Translations;
 }>) {
+  const chartRows =
+    pipelineWorkload.state === 'data'
+      ? toStaffPipelineAmountChartRows(format, pipelineWorkload.rows)
+      : [];
+  const chartSummary =
+    chartRows.length > 0
+      ? buildPipelineAmountScreenReaderSummary(chartRows, {
+          hiddenItems: count => t('charts.hiddenItems', { count }),
+          intro: t('charts.pipelineAmount.summaryIntro'),
+          total: t('charts.pipelineAmount.total'),
+          weighted: t('charts.pipelineAmount.weighted'),
+        })
+      : '';
+
   return (
     <StaffReportPanel
       title={t('pipelineWorkload.title')}
@@ -168,6 +252,21 @@ function PipelineWorkloadWidget({
           ))}
         </div>
       ) : null}
+      {chartRows.length > 0 ? (
+        <Suspense fallback={null}>
+          <PipelineAmountChartBoundary
+            description={t('charts.pipelineAmount.description')}
+            locale={locale}
+            rows={chartRows}
+            summary={chartSummary}
+            text={{
+              total: t('charts.pipelineAmount.total'),
+              weighted: t('charts.pipelineAmount.weighted'),
+            }}
+            title={t('charts.pipelineAmount.title')}
+          />
+        </Suspense>
+      ) : null}
       <InlineCountNote
         count={pipelineWorkload.excludedRowCount}
         label={t('excludedRows', { count: pipelineWorkload.excludedRowCount })}
@@ -180,12 +279,30 @@ function PipelineWorkloadWidget({
 function FunnelMovementWidget({
   format,
   funnelMovement,
+  locale,
   t,
 }: Readonly<{
   format: Formatter;
   funnelMovement: StaffCrmWidget<StaffCrmFunnelMovementRow>;
+  locale: string;
   t: Translations;
 }>) {
+  const chartRows =
+    funnelMovement.state === 'data'
+      ? toStaffFunnelMovementChartRows(format, funnelMovement.rows)
+      : [];
+  const chartSummary =
+    chartRows.length > 0
+      ? buildFunnelMovementScreenReaderSummary(chartRows, {
+          entered: t('charts.funnelMovement.entered'),
+          exited: t('charts.funnelMovement.exited'),
+          hiddenItems: count => t('charts.hiddenItems', { count }),
+          intro: t('charts.funnelMovement.summaryIntro'),
+          lost: t('charts.funnelMovement.lost'),
+          won: t('charts.funnelMovement.won'),
+        })
+      : '';
+
   return (
     <StaffReportPanel
       title={t('funnelMovement.title')}
@@ -239,19 +356,52 @@ function FunnelMovementWidget({
           ))}
         </div>
       ) : null}
+      {chartRows.length > 0 ? (
+        <Suspense fallback={null}>
+          <FunnelMovementChartBoundary
+            description={t('charts.funnelMovement.description')}
+            locale={locale}
+            rows={chartRows}
+            summary={chartSummary}
+            text={{
+              entered: t('charts.funnelMovement.entered'),
+              exited: t('charts.funnelMovement.exited'),
+              lost: t('charts.funnelMovement.lost'),
+              won: t('charts.funnelMovement.won'),
+            }}
+            title={t('charts.funnelMovement.title')}
+          />
+        </Suspense>
+      ) : null}
     </StaffReportPanel>
   );
 }
 
 function StageVelocityWidget({
   format,
+  locale,
   stageVelocity,
   t,
 }: Readonly<{
   format: Formatter;
+  locale: string;
   stageVelocity: StaffCrmStageVelocityWidget;
   t: Translations;
 }>) {
+  const chartRows =
+    stageVelocity.state === 'data'
+      ? toStaffStageVelocityChartRows(format, stageVelocity.summary.rows, t)
+      : [];
+  const chartSummary =
+    chartRows.length > 0
+      ? buildStageVelocityScreenReaderSummary(chartRows, {
+          average: t('charts.stageVelocity.average'),
+          hiddenItems: count => t('charts.hiddenItems', { count }),
+          intro: t('charts.stageVelocity.summaryIntro'),
+          median: t('charts.stageVelocity.median'),
+        })
+      : '';
+
   return (
     <StaffReportPanel
       title={t('stageVelocity.title')}
@@ -302,6 +452,21 @@ function StageVelocityWidget({
             </div>
           ))}
         </div>
+      ) : null}
+      {chartRows.length > 0 ? (
+        <Suspense fallback={null}>
+          <StageVelocityChartBoundary
+            description={t('charts.stageVelocity.description')}
+            locale={locale}
+            rows={chartRows}
+            summary={chartSummary}
+            text={{
+              average: t('charts.stageVelocity.average'),
+              median: t('charts.stageVelocity.median'),
+            }}
+            title={t('charts.stageVelocity.title')}
+          />
+        </Suspense>
       ) : null}
       <InlineCountNote
         count={stageVelocity.summary.excludedOpenIntervalCount}
@@ -376,11 +541,26 @@ export default async function StaffCrmPage({
         <p className="text-sm text-muted-foreground">{t('description')}</p>
       </header>
 
-      <PipelineWorkloadWidget format={format} pipelineWorkload={reporting.pipelineWorkload} t={t} />
+      <PipelineWorkloadWidget
+        format={format}
+        locale={locale}
+        pipelineWorkload={reporting.pipelineWorkload}
+        t={t}
+      />
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <FunnelMovementWidget format={format} funnelMovement={reporting.funnelMovement} t={t} />
-        <StageVelocityWidget format={format} stageVelocity={reporting.stageVelocity} t={t} />
+        <FunnelMovementWidget
+          format={format}
+          funnelMovement={reporting.funnelMovement}
+          locale={locale}
+          t={t}
+        />
+        <StageVelocityWidget
+          format={format}
+          locale={locale}
+          stageVelocity={reporting.stageVelocity}
+          t={t}
+        />
       </div>
     </div>
   );

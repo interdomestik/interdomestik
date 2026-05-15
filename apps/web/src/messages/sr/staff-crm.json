@@ -39,6 +39,32 @@
     "label": {
       "no-branch": "Bez filijale"
     },
+    "charts": {
+      "hiddenItems": "{count, plural, one {# dodatni red je sakriven iz rezimea grafikona} other {# dodatnih redova je sakriveno iz rezimea grafikona}}",
+      "pipelineAmount": {
+        "title": "Grafikon iznosa pipeline-a",
+        "description": "Dopunsko poređenje ukupnog i ponderisanog iznosa pipeline-a. Tabela iznad je izvor istine.",
+        "summaryIntro": "Rezime grafikona iznosa pipeline-a",
+        "total": "Ukupno",
+        "weighted": "Ponderisano"
+      },
+      "funnelMovement": {
+        "title": "Grafikon kretanja kroz funnel",
+        "description": "Dopunsko poređenje kretanja po fazama. Tabela iznad je izvor istine.",
+        "summaryIntro": "Rezime grafikona kretanja kroz funnel",
+        "entered": "Ušlo",
+        "exited": "Izašlo",
+        "won": "Dobijeno",
+        "lost": "Izgubljeno"
+      },
+      "stageVelocity": {
+        "title": "Grafikon brzine faza",
+        "description": "Dopunsko poređenje medijane i proseka dana. Tabela iznad je izvor istine.",
+        "summaryIntro": "Rezime grafikona brzine faza",
+        "median": "Medijana",
+        "average": "Prosek"
+      }
+    },
     "durationDays": "{days} dana",
     "excludedRows": "{count, plural, one {# agregirani red je izuzet} other {# agregiranih redova je izuzeto}}",
     "excludedRowsHelp": "Redovi se mogu izuzeti iz agregiranih metrika kada obavezna polja za izveštavanje nedostaju ili nisu dosledna.",

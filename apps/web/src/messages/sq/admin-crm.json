@@ -35,6 +35,16 @@
       "tenantWide": "Në nivel tenanti",
       "unknownSource": "Burim i panjohur"
     },
+    "charts": {
+      "hiddenItems": "{count, plural, one {# rresht shtesë është fshehur nga përmbledhja e grafikut} other {# rreshta shtesë janë fshehur nga përmbledhja e grafikut}}",
+      "pipelineAmount": {
+        "title": "Grafiku i shumës së pipeline-it",
+        "description": "Krahasim plotësues i shumës totale dhe të ponderuar të pipeline-it. Tabela sipër është burimi kryesor.",
+        "summaryIntro": "Përmbledhje e grafikut të shumës së pipeline-it",
+        "total": "Totali",
+        "weighted": "I ponderuar"
+      }
+    },
     "excludedRows": "{count, plural, one {# rresht agregat i përjashtuar} other {# rreshta agregatë të përjashtuar}}",
     "excludedRowsHelp": "Rreshtat mund të përjashtohen nga metrikat agregate kur mungojnë ose janë jokonsistente fushat e raportimit.",
     "error": {
