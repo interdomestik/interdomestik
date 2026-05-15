@@ -32,7 +32,6 @@ export function createCrmForecastSnapshotObservabilityRepository(
 ): CrmForecastSnapshotObservabilityRepository {
   return {
     async listObservedSnapshots(params) {
-      // db-access-guard: tenant-scoped -- reason: CRM forecast snapshot observability reads only aggregate snapshot rows for the authorized admin tenant and frozen snapshot date
       const rows = await database
         .select({
           branchId: crmPipelineSnapshots.branchId,

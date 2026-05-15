@@ -52,7 +52,7 @@
       "closedLost": "Izgubljeno"
     },
     "labels": {
-      "noBranch": "Bez ogranka",
+      "noBranch": "Bez filijale",
       "tenantWide": "Cela organizacija",
       "unknownSource": "Nepoznat izvor"
     },

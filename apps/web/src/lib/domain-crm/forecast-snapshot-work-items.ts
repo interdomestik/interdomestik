@@ -88,7 +88,7 @@ function buildWorkItemQuery(
     tenantId?: string;
   }
 ) {
-  const predicates = [
+  const basePredicates = [
     isNull(crmDeals.archivedAt),
     isNull(crmPipelines.archivedAt),
     isNull(crmPipelineStages.archivedAt),
@@ -99,12 +99,8 @@ function buildWorkItemQuery(
     gte(crmDeals.createdAt, params.snapshotDateStartInclusive),
     lt(crmDeals.createdAt, params.snapshotDateEndExclusive),
   ];
-  if (params.tenantId) {
-    predicates.unshift(eq(crmDeals.tenantId, params.tenantId));
-  }
 
-  // db-access-guard: tenant-scoped -- reason: CRM forecast snapshot work-item discovery groups tenant-scoped normalized deals and carries tenant ids into every scheduler repository call
-  return database
+  const query = database
     .select({
       branchId: crmDeals.branchId,
       currencyCode: crmDeals.currencyCode,
@@ -122,8 +118,24 @@ function buildWorkItemQuery(
         eq(crmPipelineStages.tenantId, crmDeals.tenantId),
         eq(crmPipelineStages.id, crmDeals.currentStageId)
       )
-    )
-    .where(and(...predicates))
+    );
+
+  if (params.tenantId) {
+    // db-access-guard: tenant-predicate -- reason: admin forecast observability discovers expected work items for exactly the authorized admin tenant
+    return query
+      .where(and(eq(crmDeals.tenantId, params.tenantId), ...basePredicates))
+      .groupBy(crmDeals.tenantId, crmDeals.pipelineId, crmDeals.branchId, crmDeals.currencyCode)
+      .orderBy(
+        asc(crmDeals.tenantId),
+        asc(crmDeals.pipelineId),
+        asc(crmDeals.branchId),
+        asc(crmDeals.currencyCode)
+      );
+  }
+
+  // db-access-guard: system-exempt -- reason: protected CRM forecast snapshot scheduler enumerates aggregate work items across tenants and carries tenant ids into each append-only snapshot write
+  return query
+    .where(and(...basePredicates))
     .groupBy(crmDeals.tenantId, crmDeals.pipelineId, crmDeals.branchId, crmDeals.currencyCode)
     .orderBy(
       asc(crmDeals.tenantId),

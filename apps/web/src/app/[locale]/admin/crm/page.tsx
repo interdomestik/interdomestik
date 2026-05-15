@@ -450,7 +450,7 @@ function ForecastObservabilityBatchTable({
           cellClassName: 'break-all py-3 pr-3',
           header: t('forecastObservability.batches.sourceRun'),
           id: 'sourceRun',
-          render: row => row.sourceRunId,
+          render: row => row.sourceRunId ?? t('forecastObservability.labels.none'),
         },
         {
           header: t('forecastObservability.batches.observed'),
@@ -478,7 +478,7 @@ function ForecastObservabilityBatchTable({
           render: row => row.lastSnapshotCreatedAt,
         },
       ]}
-      getKey={row => row.sourceRunId}
+      getKey={row => row.sourceRunId ?? 'missing-source-run'}
       rows={rows}
     />
   );
