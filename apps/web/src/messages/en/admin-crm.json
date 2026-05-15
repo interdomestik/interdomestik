@@ -52,8 +52,55 @@
       "closedLost": "Closed lost"
     },
     "labels": {
+      "noBranch": "No branch",
       "tenantWide": "Tenant-wide",
       "unknownSource": "Unknown source"
+    },
+    "forecastObservability": {
+      "title": "Forecast snapshot observability",
+      "description": "Operational coverage for the previous UTC forecast snapshot date.",
+      "empty": "No expected or observed forecast snapshot work items were found for the previous UTC date.",
+      "summary": {
+        "expected": "Expected",
+        "observed": "Observed",
+        "missing": "Missing",
+        "unexpected": "Unexpected observed",
+        "delayed": "Delayed",
+        "stale": "Stale",
+        "deferred": "Deferred expected",
+        "latestRun": "Latest run"
+      },
+      "status": {
+        "fresh": "Fresh",
+        "delayed": "Delayed",
+        "stale": "Stale",
+        "missing": "Missing"
+      },
+      "coverage": {
+        "title": "Coverage",
+        "empty": "No expected forecast snapshot work items are available for this date.",
+        "branch": "Branch",
+        "pipeline": "Pipeline",
+        "currency": "Currency",
+        "status": "Status",
+        "version": "Version",
+        "latestCreated": "Latest created",
+        "hidden": "{count, plural, one {# coverage row hidden} other {# coverage rows hidden}}",
+        "hiddenHelp": "Coverage rows are capped after deterministic sorting."
+      },
+      "batches": {
+        "title": "Observed batches",
+        "empty": "No observed forecast snapshot batches are available for this date.",
+        "sourceRun": "Source run",
+        "observed": "Observed",
+        "branches": "Branches",
+        "pipelines": "Pipelines",
+        "currencies": "Currencies",
+        "lastCreated": "Last created"
+      },
+      "labels": {
+        "none": "None"
+      }
     },
     "charts": {
       "hiddenItems": "{count, plural, one {# additional row hidden from the chart summary} other {# additional rows hidden from the chart summary}}",

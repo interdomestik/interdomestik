@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 
 import {
+  ADMIN_CRM_FORECAST_OBSERVABILITY_MAX_COVERAGE_ROWS,
   ADMIN_CRM_FORBIDDEN_PII_KEYS,
   ADMIN_CRM_REPORTING_SOURCE_TOP_N,
   AdminCrmReportingAccessDeniedError,
   createAdminCrmReportingWindow,
+  deriveAdminCrmForecastObservability,
   deriveAdminCrmSnapshotFreshness,
   getAdminCrmReportingCore,
   getPreviousUtcSnapshotDate,
@@ -26,6 +28,12 @@ const actor: CrmActorContext = {
 
 function createRepositories() {
   const { forecastSnapshotRepository, reportingRepository } = createCrmReportingRepositories();
+  const forecastSnapshotObservabilityRepository = {
+    listObservedSnapshots: vi.fn(),
+  };
+  const forecastSnapshotWorkItemRepository = {
+    listWorkItems: vi.fn(),
+  };
 
   reportingRepository.listWeightedPipelineRows.mockResolvedValue([weightedReportingRow()]);
   reportingRepository.listSourceBreakdownRows.mockResolvedValue([sourceBreakdownReportingRow()]);
@@ -50,8 +58,36 @@ function createRepositories() {
       weightedValueAmountMinor: 8000,
     },
   ]);
+  forecastSnapshotWorkItemRepository.listWorkItems.mockResolvedValue({
+    workItems: [
+      {
+        branchId: null,
+        currencyCode: 'EUR',
+        pipelineId: 'pipeline-1',
+        tenantId: 'tenant-1',
+      },
+    ],
+    workItemsDeferred: 0,
+  });
+  forecastSnapshotObservabilityRepository.listObservedSnapshots.mockResolvedValue([
+    {
+      branchId: null,
+      createdAt: '2026-05-14T05:20:00.000Z',
+      currencyCode: 'EUR',
+      pipelineId: 'pipeline-1',
+      snapshotDate: '2026-05-13',
+      snapshotVersion: 2,
+      sourceRunId: 'run-1',
+      tenantId: 'tenant-1',
+    },
+  ]);
 
-  return { forecastSnapshotRepository, reportingRepository };
+  return {
+    forecastSnapshotObservabilityRepository,
+    forecastSnapshotRepository,
+    forecastSnapshotWorkItemRepository,
+    reportingRepository,
+  };
 }
 
 describe('admin CRM reporting core', () => {
@@ -60,15 +96,20 @@ describe('admin CRM reporting core', () => {
   });
 
   it('builds the CRM14 dashboard from CRM05 repositories with frozen dates', async () => {
-    const { forecastSnapshotRepository, reportingRepository } = createRepositories();
+    const repositories = createRepositories();
+    const {
+      forecastSnapshotObservabilityRepository,
+      forecastSnapshotRepository,
+      forecastSnapshotWorkItemRepository,
+      reportingRepository,
+    } = repositories;
     const now = '2026-05-14T12:00:00.000Z';
 
     const dashboard = await getAdminCrmReportingCore(
       { actor },
       {
-        forecastSnapshotRepository,
+        ...repositories,
         now: () => now,
-        reportingRepository,
       }
     );
 
@@ -77,6 +118,16 @@ describe('admin CRM reporting core', () => {
     expect(reportingRepository.listWeightedPipelineRows).toHaveBeenCalledWith({ actor, window });
     expect(reportingRepository.listSourceBreakdownRows).toHaveBeenCalledWith({ actor, window });
     expect(forecastSnapshotRepository.listLatestPipelineSnapshots).toHaveBeenCalledWith({
+      snapshotDate: '2026-05-13',
+      tenantId: 'tenant-1',
+    });
+    expect(forecastSnapshotWorkItemRepository.listWorkItems).toHaveBeenCalledWith({
+      limit: ADMIN_CRM_FORECAST_OBSERVABILITY_MAX_COVERAGE_ROWS,
+      snapshotDateEndExclusive: new Date('2026-05-14T00:00:00.000Z'),
+      snapshotDateStartInclusive: new Date('2026-05-13T00:00:00.000Z'),
+      tenantId: 'tenant-1',
+    });
+    expect(forecastSnapshotObservabilityRepository.listObservedSnapshots).toHaveBeenCalledWith({
       snapshotDate: '2026-05-13',
       tenantId: 'tenant-1',
     });
@@ -106,10 +157,19 @@ describe('admin CRM reporting core', () => {
         },
       ],
     });
+    expect(dashboard.forecastObservability).toMatchObject({
+      state: 'data',
+      summary: {
+        expectedWorkItems: 1,
+        observedWorkItems: 1,
+        latestSourceRunId: 'run-1',
+      },
+    });
   });
 
   it('caps and sorts source rows by deal count, source label, then currency', async () => {
-    const { forecastSnapshotRepository, reportingRepository } = createRepositories();
+    const repositories = createRepositories();
+    const { reportingRepository } = repositories;
     reportingRepository.listSourceBreakdownRows.mockResolvedValue([
       ...Array.from({ length: ADMIN_CRM_REPORTING_SOURCE_TOP_N + 3 }, (_, index) =>
         sourceBreakdownReportingRow({
@@ -125,7 +185,7 @@ describe('admin CRM reporting core', () => {
 
     const dashboard = await getAdminCrmReportingCore(
       { actor },
-      { forecastSnapshotRepository, now: () => '2026-05-14T12:00:00.000Z', reportingRepository }
+      { ...repositories, now: () => '2026-05-14T12:00:00.000Z' }
     );
 
     expect(dashboard.sourceBreakdown.state).toBe('data');
@@ -137,12 +197,13 @@ describe('admin CRM reporting core', () => {
   });
 
   it('returns empty state when no previous-day snapshot rows exist', async () => {
-    const { forecastSnapshotRepository, reportingRepository } = createRepositories();
+    const repositories = createRepositories();
+    const { forecastSnapshotRepository } = repositories;
     forecastSnapshotRepository.listLatestPipelineSnapshots.mockResolvedValue([]);
 
     const dashboard = await getAdminCrmReportingCore(
       { actor },
-      { forecastSnapshotRepository, now: () => '2026-05-14T12:00:00.000Z', reportingRepository }
+      { ...repositories, now: () => '2026-05-14T12:00:00.000Z' }
     );
 
     expect(dashboard.snapshot).toEqual({ excludedRowCount: 0, rows: [], state: 'empty' });
@@ -158,12 +219,13 @@ describe('admin CRM reporting core', () => {
   });
 
   it('fails closed for non-admin CRM actors before repository reads', async () => {
-    const { forecastSnapshotRepository, reportingRepository } = createRepositories();
+    const repositories = createRepositories();
+    const { forecastSnapshotRepository, reportingRepository } = repositories;
 
     await expect(
       getAdminCrmReportingCore(
         { actor: { ...actor, role: 'branch_manager', scope: { branchId: 'branch-1' } } },
-        { forecastSnapshotRepository, reportingRepository }
+        repositories
       )
     ).rejects.toMatchObject({
       name: 'AdminCrmReportingAccessDeniedError',
@@ -175,7 +237,8 @@ describe('admin CRM reporting core', () => {
   });
 
   it('maps repository failures to a widget error without leaking raw failure text', async () => {
-    const { forecastSnapshotRepository, reportingRepository } = createRepositories();
+    const repositories = createRepositories();
+    const { reportingRepository } = repositories;
     const logger = { error: vi.fn() };
     reportingRepository.listSourceBreakdownRows.mockRejectedValueOnce(
       new Error('database details with sensitive context')
@@ -184,10 +247,9 @@ describe('admin CRM reporting core', () => {
     const dashboard = await getAdminCrmReportingCore(
       { actor },
       {
-        forecastSnapshotRepository,
+        ...repositories,
         logger,
         now: () => '2026-05-14T12:00:00.000Z',
-        reportingRepository,
       }
     );
 
@@ -200,17 +262,138 @@ describe('admin CRM reporting core', () => {
     expect(logger.error).toHaveBeenCalled();
   });
 
+  it('derives forecast observability statuses, unexpected counts, and latest run deterministically', () => {
+    const widget = deriveAdminCrmForecastObservability({
+      expectedWorkItems: [
+        {
+          branchId: null,
+          currencyCode: 'EUR',
+          pipelineId: 'pipeline-missing',
+          tenantId: 'tenant-1',
+        },
+        {
+          branchId: 'branch-delayed',
+          currencyCode: 'EUR',
+          pipelineId: 'pipeline-delayed',
+          tenantId: 'tenant-1',
+        },
+        {
+          branchId: 'branch-stale',
+          currencyCode: 'USD',
+          pipelineId: 'pipeline-stale',
+          tenantId: 'tenant-1',
+        },
+        {
+          branchId: 'branch-fresh',
+          currencyCode: 'GBP',
+          pipelineId: 'pipeline-fresh',
+          tenantId: 'tenant-1',
+        },
+      ],
+      expectedWorkItemsDeferred: 2,
+      generatedAt: '2026-05-14T12:00:00.000Z',
+      noBranchLabel: 'No branch',
+      observedSnapshots: [
+        {
+          branchId: 'branch-delayed',
+          createdAt: '2026-05-13T06:00:00.000Z',
+          currencyCode: 'EUR',
+          pipelineId: 'pipeline-delayed',
+          snapshotDate: '2026-05-13',
+          snapshotVersion: 2,
+          sourceRunId: 'run-delayed',
+          tenantId: 'tenant-1',
+        },
+        {
+          branchId: 'branch-stale',
+          createdAt: '2026-05-12T12:00:00.000Z',
+          currencyCode: 'USD',
+          pipelineId: 'pipeline-stale',
+          snapshotDate: '2026-05-13',
+          snapshotVersion: 10,
+          sourceRunId: 'run-stale',
+          tenantId: 'tenant-1',
+        },
+        {
+          branchId: 'branch-fresh',
+          createdAt: '2026-05-14T11:00:00.000Z',
+          currencyCode: 'GBP',
+          pipelineId: 'pipeline-fresh',
+          snapshotDate: '2026-05-13',
+          snapshotVersion: 1,
+          sourceRunId: 'run-z',
+          tenantId: 'tenant-1',
+        },
+        {
+          branchId: 'branch-unexpected',
+          createdAt: '2026-05-14T10:00:00.000Z',
+          currencyCode: 'EUR',
+          pipelineId: 'pipeline-unexpected',
+          snapshotDate: '2026-05-13',
+          snapshotVersion: 1,
+          sourceRunId: 'run-a',
+          tenantId: 'tenant-1',
+        },
+        {
+          branchId: 'branch-unexpected',
+          createdAt: '2026-05-14T11:00:00.000Z',
+          currencyCode: 'EUR',
+          pipelineId: 'pipeline-unexpected',
+          snapshotDate: '2026-05-13',
+          snapshotVersion: 2,
+          sourceRunId: 'run-a',
+          tenantId: 'tenant-1',
+        },
+      ],
+      snapshotDate: '2026-05-13',
+    });
+
+    if (widget.state !== 'data') {
+      throw new Error('expected data forecast observability widget');
+    }
+    expect(widget.summary).toMatchObject({
+      delayedWorkItems: 1,
+      expectedWorkItems: 4,
+      expectedWorkItemsDeferred: 2,
+      latestSnapshotCreatedAt: '2026-05-14T11:00:00.000Z',
+      latestSourceRunId: 'run-a',
+      missingWorkItems: 1,
+      observedWorkItems: 4,
+      staleWorkItems: 1,
+      unexpectedObservedWorkItems: 1,
+    });
+    expect(widget.coverageRows.map(row => row.status)).toEqual([
+      'missing',
+      'stale',
+      'delayed',
+      'fresh',
+    ]);
+    expect(widget.coverageRows[0]).toMatchObject({
+      branchLabel: 'No branch',
+      latestSnapshotCreatedAt: null,
+      snapshotVersion: null,
+      sourceRunId: null,
+    });
+    expect(widget.coverageRows.find(row => row.pipelineId === 'pipeline-stale')).toMatchObject({
+      snapshotVersion: 10,
+      status: 'stale',
+    });
+  });
+
   it('keeps widget row shapes aggregate-only and PII-free', async () => {
-    const { forecastSnapshotRepository, reportingRepository } = createRepositories();
+    const repositories = createRepositories();
     const dashboard = await getAdminCrmReportingCore(
       { actor },
-      { forecastSnapshotRepository, now: () => '2026-05-14T12:00:00.000Z', reportingRepository }
+      { ...repositories, now: () => '2026-05-14T12:00:00.000Z' }
     );
 
     const rowKeys = [
       ...Object.keys(dashboard.snapshot.rows[0] ?? {}),
       ...Object.keys(dashboard.branchPipeline.rows[0] ?? {}),
       ...Object.keys(dashboard.sourceBreakdown.rows[0] ?? {}),
+      ...Object.keys(dashboard.forecastObservability.summary ?? {}),
+      ...Object.keys(dashboard.forecastObservability.coverageRows[0] ?? {}),
+      ...Object.keys(dashboard.forecastObservability.batchRows[0] ?? {}),
     ];
 
     for (const forbiddenKey of ADMIN_CRM_FORBIDDEN_PII_KEYS) {

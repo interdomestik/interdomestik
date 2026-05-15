@@ -99,6 +99,49 @@ describe('AdminCrmPage', () => {
         ],
         state: 'data',
       },
+      forecastObservability: {
+        batchRows: [
+          {
+            branchCount: 1,
+            currencyCount: 1,
+            firstSnapshotCreatedAt: '2026-05-14T05:00:00.000Z',
+            lastSnapshotCreatedAt: '2026-05-14T05:20:00.000Z',
+            observedWorkItems: 1,
+            pipelineCount: 1,
+            snapshotDate: '2026-05-13',
+            sourceRunId: 'run-1',
+          },
+        ],
+        coverageRows: [
+          {
+            branchId: null,
+            branchLabel: 'No branch',
+            currencyCode: 'EUR',
+            latestSnapshotCreatedAt: '2026-05-14T05:20:00.000Z',
+            pipelineId: 'pipeline-1',
+            pipelineLabel: 'pipeline-1',
+            snapshotDate: '2026-05-13',
+            snapshotVersion: 1,
+            sourceRunId: 'run-1',
+            status: 'fresh',
+          },
+        ],
+        hiddenCoverageRowCount: 0,
+        state: 'data',
+        summary: {
+          delayedWorkItems: 0,
+          expectedWorkItems: 1,
+          expectedWorkItemsDeferred: 0,
+          generatedAt: '2026-05-14T12:00:00.000Z',
+          latestSnapshotCreatedAt: '2026-05-14T05:20:00.000Z',
+          latestSourceRunId: 'run-1',
+          missingWorkItems: 0,
+          observedWorkItems: 1,
+          snapshotDate: '2026-05-13',
+          staleWorkItems: 0,
+          unexpectedObservedWorkItems: 0,
+        },
+      },
       generatedAt: '2026-05-14T12:00:00.000Z',
       snapshot: {
         excludedRowCount: 0,
@@ -210,18 +253,24 @@ describe('AdminCrmPage', () => {
     render(tree);
 
     expect(hoisted.setRequestLocaleMock).toHaveBeenCalledWith('en');
-    expect(hoisted.getAdminCrmReportingCoreMock).toHaveBeenCalledWith({
-      actor: {
-        actorId: 'admin-1',
-        role: 'admin',
-        scope: { branchId: null },
-        tenantId: 'tenant-1',
+    expect(hoisted.getAdminCrmReportingCoreMock).toHaveBeenCalledWith(
+      {
+        actor: {
+          actorId: 'admin-1',
+          role: 'admin',
+          scope: { branchId: null },
+          tenantId: 'tenant-1',
+        },
       },
-    });
+      { labels: { noBranch: 'labels.noBranch' } }
+    );
     expect(screen.getByTestId('admin-crm-page-ready')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-reporting-snapshot')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-reporting-branch-pipeline')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-reporting-source-breakdown')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-crm-forecast-observability-summary')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-crm-forecast-observability-coverage')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-crm-forecast-observability-batches')).toBeInTheDocument();
     expect(screen.getByTestId('crm-reporting-chart-pipeline-amount')).toHaveTextContent(
       'charts.pipelineAmount.title'
     );
@@ -243,14 +292,17 @@ describe('AdminCrmPage', () => {
 
       render(tree);
 
-      expect(hoisted.getAdminCrmReportingCoreMock).toHaveBeenCalledWith({
-        actor: {
-          actorId: `${role}-1`,
-          role: 'admin',
-          scope: { branchId: 'branch-1' },
-          tenantId: 'tenant-1',
+      expect(hoisted.getAdminCrmReportingCoreMock).toHaveBeenCalledWith(
+        {
+          actor: {
+            actorId: `${role}-1`,
+            role: 'admin',
+            scope: { branchId: 'branch-1' },
+            tenantId: 'tenant-1',
+          },
         },
-      });
+        { labels: { noBranch: 'labels.noBranch' } }
+      );
       expect(hoisted.getBranchManagerCrmReportingCoreMock).not.toHaveBeenCalled();
       expect(screen.getByTestId('admin-crm-reporting-branch-pipeline')).toBeInTheDocument();
     }
@@ -286,6 +338,15 @@ describe('AdminCrmPage', () => {
     expect(screen.getByTestId('branch-manager-crm-reporting-snapshot')).toBeInTheDocument();
     expect(screen.getByTestId('branch-manager-crm-reporting-branch-pipeline')).toBeInTheDocument();
     expect(screen.getByTestId('branch-manager-crm-reporting-source-breakdown')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('admin-crm-forecast-observability-summary')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('admin-crm-forecast-observability-coverage')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('admin-crm-forecast-observability-batches')
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId('crm-reporting-chart-pipeline-amount')).toHaveTextContent(
       'charts.pipelineAmount.title'
     );

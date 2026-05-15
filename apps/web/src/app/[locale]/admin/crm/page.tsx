@@ -1,4 +1,5 @@
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+import { CircleCheck, CircleSlash, Clock3, TriangleAlert } from 'lucide-react';
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
@@ -17,10 +18,18 @@ import {
   type BranchManagerCrmReportingDashboard,
 } from './_branch-manager-core';
 import {
+  ADMIN_CRM_FORECAST_OBSERVABILITY_BATCHES_MARKER,
+  ADMIN_CRM_FORECAST_OBSERVABILITY_COVERAGE_MARKER,
+  ADMIN_CRM_FORECAST_OBSERVABILITY_SUMMARY_MARKER,
   ADMIN_CRM_REPORTING_MARKER_PREFIX,
   AdminCrmReportingAccessDeniedError,
   getAdminCrmReportingCore,
   type AdminCrmBranchPipelineRow,
+  type AdminCrmForecastObservabilityBatchRow,
+  type AdminCrmForecastObservabilityCoverageRow,
+  type AdminCrmForecastObservabilitySummary,
+  type AdminCrmForecastObservabilityStatus,
+  type AdminCrmForecastObservabilityWidget,
   type AdminCrmLatestSnapshotRow,
   type AdminCrmReportingDashboard,
   type AdminCrmSourceBreakdownRow,
@@ -34,6 +43,7 @@ import {
   SourceRowsList,
   WidgetEmpty,
   WidgetError,
+  formatCount,
   formatMinorAmount,
   type AdminCrmFormatter,
   type AdminCrmTranslations,
@@ -211,6 +221,333 @@ function SourceBreakdownWidget({
   );
 }
 
+function ForecastObservabilityStatusBadge({
+  status,
+  t,
+}: Readonly<{
+  status: AdminCrmForecastObservabilityStatus;
+  t: Translations;
+}>) {
+  const Icon =
+    status === 'fresh'
+      ? CircleCheck
+      : status === 'delayed'
+        ? Clock3
+        : status === 'stale'
+          ? TriangleAlert
+          : CircleSlash;
+  const className =
+    status === 'fresh'
+      ? 'bg-emerald-50 text-emerald-900'
+      : status === 'delayed'
+        ? 'bg-amber-50 text-amber-900'
+        : status === 'stale'
+          ? 'bg-red-50 text-red-900'
+          : 'bg-muted text-muted-foreground';
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ${className}`}>
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      {t(`forecastObservability.status.${status}`)}
+    </span>
+  );
+}
+
+function ForecastObservabilitySummaryTile({
+  label,
+  value,
+}: Readonly<{
+  label: string;
+  value: ReactNode;
+}>) {
+  return (
+    <div className="rounded-md border p-3">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="text-lg font-semibold">{value}</dd>
+    </div>
+  );
+}
+
+function ForecastObservabilitySummaryGrid({
+  format,
+  summary,
+  t,
+}: Readonly<{
+  format: Formatter;
+  summary: AdminCrmForecastObservabilitySummary;
+  t: Translations;
+}>) {
+  const metrics: Array<{ key: string; label: string; value: ReactNode }> = [
+    {
+      key: 'expected',
+      label: t('forecastObservability.summary.expected'),
+      value: formatCount(format, summary.expectedWorkItems),
+    },
+    {
+      key: 'observed',
+      label: t('forecastObservability.summary.observed'),
+      value: formatCount(format, summary.observedWorkItems),
+    },
+    {
+      key: 'missing',
+      label: t('forecastObservability.summary.missing'),
+      value: formatCount(format, summary.missingWorkItems),
+    },
+    {
+      key: 'unexpected',
+      label: t('forecastObservability.summary.unexpected'),
+      value: formatCount(format, summary.unexpectedObservedWorkItems),
+    },
+    {
+      key: 'delayed',
+      label: t('forecastObservability.summary.delayed'),
+      value: formatCount(format, summary.delayedWorkItems),
+    },
+    {
+      key: 'stale',
+      label: t('forecastObservability.summary.stale'),
+      value: formatCount(format, summary.staleWorkItems),
+    },
+    {
+      key: 'deferred',
+      label: t('forecastObservability.summary.deferred'),
+      value: formatCount(format, summary.expectedWorkItemsDeferred),
+    },
+    {
+      key: 'latestRun',
+      label: t('forecastObservability.summary.latestRun'),
+      value: (
+        <span className="break-all text-sm font-medium">
+          {summary.latestSourceRunId ?? t('forecastObservability.labels.none')}
+        </span>
+      ),
+    },
+  ];
+
+  return (
+    <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {metrics.map(metric => (
+        <ForecastObservabilitySummaryTile
+          key={metric.key}
+          label={metric.label}
+          value={metric.value}
+        />
+      ))}
+    </dl>
+  );
+}
+
+function ForecastObservabilityTable<T>({
+  columns,
+  getKey,
+  rows,
+}: Readonly<{
+  columns: Array<{
+    header: string;
+    id: string;
+    render: (row: T) => ReactNode;
+    cellClassName?: string;
+  }>;
+  getKey: (row: T) => string;
+  rows: readonly T[];
+}>) {
+  return (
+    <div className="mt-3 overflow-x-auto">
+      <table className="w-full min-w-[760px] text-left text-sm">
+        <thead className="border-b text-xs text-muted-foreground">
+          <tr>
+            {columns.map((column, index) => (
+              <th
+                key={column.id}
+                className={`${index === columns.length - 1 ? 'py-2' : 'py-2 pr-3'} font-medium`}
+              >
+                {column.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {rows.map(row => (
+            <tr key={getKey(row)}>
+              {columns.map((column, index) => (
+                <td
+                  key={column.id}
+                  className={
+                    column.cellClassName ?? (index === columns.length - 1 ? 'py-3' : 'py-3 pr-3')
+                  }
+                >
+                  {column.render(row)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ForecastObservabilityCoverageTable({
+  rows,
+  t,
+}: Readonly<{
+  rows: readonly AdminCrmForecastObservabilityCoverageRow[];
+  t: Translations;
+}>) {
+  const noneLabel = t('forecastObservability.labels.none');
+  return (
+    <ForecastObservabilityTable
+      columns={[
+        {
+          header: t('forecastObservability.coverage.branch'),
+          id: 'branch',
+          render: row => row.branchLabel,
+        },
+        {
+          header: t('forecastObservability.coverage.pipeline'),
+          id: 'pipeline',
+          render: row => row.pipelineLabel,
+        },
+        {
+          header: t('forecastObservability.coverage.currency'),
+          id: 'currency',
+          render: row => row.currencyCode,
+        },
+        {
+          header: t('forecastObservability.coverage.status'),
+          id: 'status',
+          render: row => <ForecastObservabilityStatusBadge status={row.status} t={t} />,
+        },
+        {
+          header: t('forecastObservability.coverage.version'),
+          id: 'version',
+          render: row => row.snapshotVersion ?? noneLabel,
+        },
+        {
+          header: t('forecastObservability.coverage.latestCreated'),
+          id: 'latestCreated',
+          render: row => row.latestSnapshotCreatedAt ?? noneLabel,
+        },
+      ]}
+      getKey={row => `${row.branchId ?? 'none'}-${row.pipelineId}-${row.currencyCode}`}
+      rows={rows}
+    />
+  );
+}
+
+function ForecastObservabilityBatchTable({
+  format,
+  rows,
+  t,
+}: Readonly<{
+  format: Formatter;
+  rows: readonly AdminCrmForecastObservabilityBatchRow[];
+  t: Translations;
+}>) {
+  return (
+    <ForecastObservabilityTable
+      columns={[
+        {
+          cellClassName: 'break-all py-3 pr-3',
+          header: t('forecastObservability.batches.sourceRun'),
+          id: 'sourceRun',
+          render: row => row.sourceRunId ?? t('forecastObservability.labels.none'),
+        },
+        {
+          header: t('forecastObservability.batches.observed'),
+          id: 'observed',
+          render: row => formatCount(format, row.observedWorkItems),
+        },
+        {
+          header: t('forecastObservability.batches.branches'),
+          id: 'branches',
+          render: row => formatCount(format, row.branchCount),
+        },
+        {
+          header: t('forecastObservability.batches.pipelines'),
+          id: 'pipelines',
+          render: row => formatCount(format, row.pipelineCount),
+        },
+        {
+          header: t('forecastObservability.batches.currencies'),
+          id: 'currencies',
+          render: row => formatCount(format, row.currencyCount),
+        },
+        {
+          header: t('forecastObservability.batches.lastCreated'),
+          id: 'lastCreated',
+          render: row => row.lastSnapshotCreatedAt,
+        },
+      ]}
+      getKey={row => row.sourceRunId ?? 'missing-source-run'}
+      rows={rows}
+    />
+  );
+}
+
+function ForecastObservabilityWidget({
+  forecastObservability,
+  format,
+  t,
+}: Readonly<{
+  forecastObservability: AdminCrmForecastObservabilityWidget;
+  format: Formatter;
+  t: Translations;
+}>) {
+  const summary = forecastObservability.summary;
+
+  return (
+    <ReportingWidget
+      title={t('forecastObservability.title')}
+      description={t('forecastObservability.description')}
+      marker={ADMIN_CRM_FORECAST_OBSERVABILITY_SUMMARY_MARKER}
+    >
+      {forecastObservability.state === 'error' ? (
+        <WidgetError message={t(forecastObservability.messageKey)} />
+      ) : null}
+      {summary ? (
+        <ForecastObservabilitySummaryGrid format={format} summary={summary} t={t} />
+      ) : null}
+
+      {forecastObservability.state === 'empty' ? (
+        <WidgetEmpty message={t('forecastObservability.empty')} />
+      ) : null}
+
+      {forecastObservability.state !== 'error' ? (
+        <div className="mt-6 space-y-5">
+          <div data-testid={ADMIN_CRM_FORECAST_OBSERVABILITY_COVERAGE_MARKER}>
+            <h3 className="text-sm font-semibold">{t('forecastObservability.coverage.title')}</h3>
+            {forecastObservability.coverageRows.length === 0 ? (
+              <WidgetEmpty message={t('forecastObservability.coverage.empty')} />
+            ) : (
+              <ForecastObservabilityCoverageTable rows={forecastObservability.coverageRows} t={t} />
+            )}
+            <ExcludedRowsNote
+              count={forecastObservability.hiddenCoverageRowCount}
+              label={t('forecastObservability.coverage.hidden', {
+                count: forecastObservability.hiddenCoverageRowCount,
+              })}
+              title={t('forecastObservability.coverage.hiddenHelp')}
+            />
+          </div>
+
+          <div data-testid={ADMIN_CRM_FORECAST_OBSERVABILITY_BATCHES_MARKER}>
+            <h3 className="text-sm font-semibold">{t('forecastObservability.batches.title')}</h3>
+            {forecastObservability.batchRows.length === 0 ? (
+              <WidgetEmpty message={t('forecastObservability.batches.empty')} />
+            ) : (
+              <ForecastObservabilityBatchTable
+                format={format}
+                rows={forecastObservability.batchRows}
+                t={t}
+              />
+            )}
+          </div>
+        </div>
+      ) : null}
+    </ReportingWidget>
+  );
+}
+
 function AdminCrmDashboard({
   format,
   locale,
@@ -237,6 +574,11 @@ function AdminCrmDashboard({
       </div>
 
       <SourceBreakdownWidget format={format} sourceBreakdown={reporting.sourceBreakdown} t={t} />
+      <ForecastObservabilityWidget
+        forecastObservability={reporting.forecastObservability}
+        format={format}
+        t={t}
+      />
     </>
   );
 }
@@ -344,7 +686,10 @@ export default async function AdminCrmPage({
 
   let reporting: AdminCrmReportingDashboard;
   try {
-    reporting = await getAdminCrmReportingCore({ actor: resolvedActor.actor });
+    reporting = await getAdminCrmReportingCore(
+      { actor: resolvedActor.actor },
+      { labels: { noBranch: t('labels.noBranch') } }
+    );
   } catch (error) {
     if (error instanceof AdminCrmReportingAccessDeniedError) {
       notFound();
