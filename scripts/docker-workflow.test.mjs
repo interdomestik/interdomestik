@@ -56,7 +56,10 @@ test('docker gate scripts avoid redundant playwright startup and reuse the same 
   assert.match(gateScript, /GATE_INFRA_SERVICES=\(redis mailpit minio\)/);
   assert.match(gateScript, /docker compose --profile gate up -d "\$\{GATE_INFRA_SERVICES\[@\]\}"/);
   assert.match(gateScript, /docker compose --profile gate run --rm --no-deps createbuckets/);
-  assert.doesNotMatch(gateScript, /docker compose --profile gate run --rm --no-deps createbuckets >\/dev\/null/);
+  assert.doesNotMatch(
+    gateScript,
+    /docker compose --profile gate run --rm --no-deps createbuckets >\/dev\/null/
+  );
   assert.match(gateScript, /docker compose --profile gate up -d web/);
   assert.match(gateScript, /GATE_WEB_READY_URL=/);
   assert.match(gateScript, /curl --fail --silent --output \/dev\/null "\$\{GATE_WEB_READY_URL\}"/);
@@ -80,9 +83,85 @@ test('docker gate uses bounded cache policy and exposes explicit warm-cache opt-
     reclaimScript,
     /\*playwright_pnpm_store\|\*playwright_root_node_modules\|\*playwright_web_node_modules/
   );
-  assert.match(reclaimScript, /DOCKER_RECLAIM_SOFT_LIMIT_GB="\$\{DOCKER_RECLAIM_SOFT_LIMIT_GB:-20\}"/);
+  assert.match(
+    reclaimScript,
+    /DOCKER_RECLAIM_SOFT_LIMIT_GB="\$\{DOCKER_RECLAIM_SOFT_LIMIT_GB:-20\}"/
+  );
   assert.match(reclaimScript, /docker system df --format '\{\{json \.\}\}'/);
-  assert.equal(packageJson.scripts['docker:gate:warm'], 'DOCKER_GATE_CACHE_MODE=warm DOCKER_GATE_RECLAIM=1 bash scripts/docker-gate.sh');
+  assert.equal(
+    packageJson.scripts['docker:gate:warm'],
+    'DOCKER_GATE_CACHE_MODE=warm DOCKER_GATE_RECLAIM=1 bash scripts/docker-gate.sh'
+  );
+});
+
+test('local CI parity runner mirrors required PR gate surfaces in Docker', () => {
+  const compose = readRepoFile('docker-compose.yml');
+  const parityScript = readRepoFile('scripts/ci-local-parity.sh');
+  const packageJson = JSON.parse(readRepoFile('package.json'));
+  const dockerfile = readRepoFile('docker/Dockerfile.ci-parity');
+
+  assert.equal(packageJson.scripts['ci:local:quick'], 'bash scripts/ci-local-parity.sh quick');
+  assert.equal(packageJson.scripts['ci:local:pr'], 'bash scripts/ci-local-parity.sh pr');
+  assert.equal(packageJson.scripts['ci:local:full'], 'bash scripts/ci-local-parity.sh full');
+  assert.equal(packageJson.scripts['ci:local:clean'], 'bash scripts/ci-local-parity.sh clean');
+
+  assert.match(dockerfile, /FROM node:24-bookworm/);
+  assert.match(dockerfile, /corepack prepare pnpm@10\.28\.2 --activate/);
+  assert.match(dockerfile, /playwright@1\.60\.0 -- install-deps chromium/);
+  assert.match(dockerfile, /postgresql-client/);
+  assert.match(dockerfile, /ripgrep/);
+
+  assert.match(compose, /ci-postgres:[\s\S]*image: postgres:16/);
+  assert.match(compose, /ci-parity:[\s\S]*dockerfile: docker\/Dockerfile\.ci-parity/);
+  assert.match(compose, /ci_local_pnpm_store:\s*\/pnpm-store/);
+  assert.match(compose, /ci_local_root_node_modules:\s*\/workspace\/node_modules/);
+  assert.match(compose, /ci_local_web_node_modules:\s*\/workspace\/apps\/web\/node_modules/);
+  assert.match(compose, /ci_local_playwright_cache:\s*\/home\/node\/\.cache\/ms-playwright/);
+  assert.match(compose, /ci_local_turbo_cache:\s*\/home\/node\/\.cache\/turbo/);
+  assert.match(
+    compose,
+    /\$\{CI_LOCAL_GIT_DIR:-\.git\}:\$\{CI_LOCAL_GIT_DIR:-\/workspace\/\.git\}:ro/
+  );
+  assert.match(
+    compose,
+    /\$\{CI_LOCAL_GIT_COMMON_DIR:-\.git\}:\$\{CI_LOCAL_GIT_COMMON_DIR:-\/workspace\/\.git\}:ro/
+  );
+  assert.match(
+    compose,
+    /DATABASE_URL: postgresql:\/\/postgres:postgres@ci-postgres:5432\/interdomestik_test/
+  );
+  assert.match(compose, /QA_MCP_CONTRACT_TIMEOUT_MS: '30000'/);
+  assert.match(compose, /TURBO_CACHE_DIR: \/home\/node\/\.cache\/turbo/);
+
+  assert.match(parityScript, /pnpm test:ci:contracts/);
+  assert.match(parityScript, /git rev-parse --git-dir/);
+  assert.doesNotMatch(parityScript, /export GIT_DIR/);
+  assert.match(parityScript, /node scripts\/ci\/reviewer-preflight\.mjs/);
+  assert.match(parityScript, /pnpm check:e2e-contracts:base/);
+  assert.match(parityScript, /pnpm lint:production-warnings/);
+  assert.match(parityScript, /pnpm db:migrations:check-journal/);
+  assert.match(parityScript, /pnpm check:e2e-quarantine-budget/);
+  assert.match(parityScript, /pnpm -w lint/);
+  assert.match(parityScript, /pnpm -w type-check/);
+  assert.match(parityScript, /pnpm coverage:gate/);
+  assert.match(parityScript, /pnpm db:rls:test:required/);
+  assert.match(parityScript, /pnpm e2e:gate:pr/);
+  assert.match(parityScript, /pnpm -s release:gate:p0:raw --baseUrl http:\/\/127\.0\.0\.1:3000/);
+  assert.match(parityScript, /pnpm security:guard/);
+  assert.match(parityScript, /pnpm audit --prod --audit-level=high --json/);
+  assert.match(parityScript, /node scripts\/pnpm-audit-gate\.mjs \/tmp\/pnpm-audit\.json/);
+  assert.match(parityScript, /pnpm e2e:gate/);
+});
+
+test('QA MCP contract timeout override falls back for invalid values', () => {
+  const qaContract = readRepoFile('scripts/ci/qa-mcp-discovery-contracts.test.mjs');
+
+  assert.match(qaContract, /function parsePositiveTimeout\(value, fallback\)/);
+  assert.match(qaContract, /Number\.isFinite\(parsed\) && parsed > 0/);
+  assert.match(
+    qaContract,
+    /parsePositiveTimeout\(\s*process\.env\.QA_MCP_CONTRACT_TIMEOUT_MS,\s*10000\s*\)/m
+  );
 });
 
 test('docker compose avoids fixed container names and allows worktree-safe port overrides', () => {
@@ -92,7 +171,10 @@ test('docker compose avoids fixed container names and allows worktree-safe port 
   const devUpScript = readRepoFile('scripts/docker-dev-up.sh');
   const composeLines = compose.split('\n');
 
-  assert.equal(composeLines.some(line => line.trimStart().startsWith('container_name:')), false);
+  assert.equal(
+    composeLines.some(line => line.trimStart().startsWith('container_name:')),
+    false
+  );
   assert.match(compose, /- '\$\{DOCKER_WEB_PORT:-3000\}:3000'/);
   assert.match(compose, /- '\$\{DOCKER_REDIS_PORT:-6379\}:6379'/);
   assert.match(compose, /- '\$\{DOCKER_SMTP_PORT:-1025\}:1025'/);
@@ -102,10 +184,16 @@ test('docker compose avoids fixed container names and allows worktree-safe port 
   assert.match(compose, /http:\/\/127\.0\.0\.1\.nip\.io:\$\{DOCKER_WEB_PORT:-3000\}/);
   assert.match(compose, /http:\/\/localhost:\$\{DOCKER_MINIO_API_PORT:-9000\}/);
   assert.match(gateScript, /DOCKER_WEB_PORT="\$\{DOCKER_WEB_PORT:-3000\}"/);
-  assert.match(gateScript, /GATE_WEB_READY_URL="\$\{GATE_WEB_READY_URL:-http:\/\/127\.0\.0\.1:\$\{DOCKER_WEB_PORT\}\/robots\.txt\}"/);
+  assert.match(
+    gateScript,
+    /GATE_WEB_READY_URL="\$\{GATE_WEB_READY_URL:-http:\/\/127\.0\.0\.1:\$\{DOCKER_WEB_PORT\}\/robots\.txt\}"/
+  );
   assert.match(startSystemScript, /http:\/\/localhost:\$\{DOCKER_WEB_PORT:-3000\}/);
   assert.match(devUpScript, /⏳ Waiting for MinIO and provisioning buckets\.\.\./);
-  assert.doesNotMatch(devUpScript, /docker compose --profile infra run --rm --no-deps createbuckets >\/dev\/null/);
+  assert.doesNotMatch(
+    devUpScript,
+    /docker compose --profile infra run --rm --no-deps createbuckets >\/dev\/null/
+  );
   assert.match(devUpScript, /http:\/\/localhost:\$\{DOCKER_MAILPIT_UI_PORT:-8025\}/);
 });
 
@@ -115,16 +203,21 @@ test('createbuckets waits for MinIO readiness before creating the claim-evidence
   assert.match(compose, /createbuckets:[\s\S]*profiles: \['infra', 'gate'\]/);
   assert.ok(compose.includes('MAX_ATTEMPTS=30;'));
   assert.ok(compose.includes('ATTEMPT=1;'));
+  assert.ok(compose.includes(String.raw`while [ \"$$ATTEMPT\" -le \"$$MAX_ATTEMPTS\" ]; do`));
   assert.ok(
-    compose.includes(String.raw`while [ \"$$ATTEMPT\" -le \"$$MAX_ATTEMPTS\" ]; do`)
+    compose.includes(
+      'Waiting for MinIO to accept connections... (attempt $$ATTEMPT/$$MAX_ATTEMPTS)'
+    )
   );
-  assert.ok(compose.includes('Waiting for MinIO to accept connections... (attempt $$ATTEMPT/$$MAX_ATTEMPTS)'));
   assert.ok(
     compose.includes(
       'ERROR: Timed out waiting for MinIO to accept connections after $$MAX_ATTEMPTS attempts (about $$((MAX_ATTEMPTS * SLEEP_INTERVAL)) seconds).'
     )
   );
-  assert.match(compose, /\/usr\/bin\/mc mb -p myminio\/claim-evidence >\/dev\/null 2>&1 \|\| true;/);
+  assert.match(
+    compose,
+    /\/usr\/bin\/mc mb -p myminio\/claim-evidence >\/dev\/null 2>&1 \|\| true;/
+  );
   assert.match(compose, /\/usr\/bin\/mc anonymous set public myminio\/claim-evidence >/);
 });
 
@@ -144,7 +237,10 @@ test('docker gate reuses the external web service instead of rebuilding inside P
   const playwrightConfig = readRepoFile('apps/web/playwright.config.ts');
 
   assert.match(gateScript, /PW_EXTERNAL_SERVER=1 .*pnpm --filter @interdomestik\/web test:smoke/);
-  assert.match(playwrightConfig, /const useExternalWebServer = process\.env\.PW_EXTERNAL_SERVER === '1';/);
+  assert.match(
+    playwrightConfig,
+    /const useExternalWebServer = process\.env\.PW_EXTERNAL_SERVER === '1';/
+  );
   assert.match(playwrightConfig, /webServer:\s*useExternalWebServer\s*\?\s*undefined\s*:\s*\{/);
 });
 
@@ -157,13 +253,16 @@ test('web docker path injects public Supabase client env into the browser build 
   assert.match(dockerfile, /ARG INTERDOMESTIK_DEPLOY_ENV/);
   assert.match(dockerfile, /ENV INTERDOMESTIK_DEPLOY_ENV=\$INTERDOMESTIK_DEPLOY_ENV/);
   assert.match(dockerfile, /ARG SUPABASE_PRODUCTION_PROJECT_REF/);
+  assert.match(dockerfile, /ENV SUPABASE_PRODUCTION_PROJECT_REF=\$SUPABASE_PRODUCTION_PROJECT_REF/);
   assert.match(
-    dockerfile,
-    /ENV SUPABASE_PRODUCTION_PROJECT_REF=\$SUPABASE_PRODUCTION_PROJECT_REF/
+    compose,
+    /NEXT_PUBLIC_SUPABASE_URL: \$\{DOCKER_GATE_SUPABASE_URL:-http:\/\/localhost:54321\}/
   );
-  assert.match(compose, /NEXT_PUBLIC_SUPABASE_URL: \$\{DOCKER_GATE_SUPABASE_URL:-http:\/\/localhost:54321\}/);
   assert.match(compose, /NEXT_PUBLIC_SUPABASE_ANON_KEY: \$\{NEXT_PUBLIC_SUPABASE_ANON_KEY\}/);
-  assert.match(compose, /- NEXT_PUBLIC_SUPABASE_URL=\$\{DOCKER_GATE_SUPABASE_URL:-http:\/\/localhost:54321\}/);
+  assert.match(
+    compose,
+    /- NEXT_PUBLIC_SUPABASE_URL=\$\{DOCKER_GATE_SUPABASE_URL:-http:\/\/localhost:54321\}/
+  );
   assert.match(compose, /- NEXT_PUBLIC_SUPABASE_ANON_KEY=\$\{NEXT_PUBLIC_SUPABASE_ANON_KEY\}/);
 });
 
