@@ -73,7 +73,7 @@ export function createAdminCrmForecastBackfillConfirmationStore(args?: {
       const signature = signPayload(encodedPayload, secret());
       const completedAtMs = Date.parse(dryRunCompletedAt);
       if (!Number.isFinite(completedAtMs)) {
-        throw new Error('CRM backfill confirmation dry-run timestamp is invalid');
+        throw new TypeError('CRM backfill confirmation dry-run timestamp is invalid');
       }
       pruneExpired(nowMs());
       records.set(tokenId, {

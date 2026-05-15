@@ -11,6 +11,7 @@ import {
   type CrmForecastSnapshotBackfillDateResult,
   type CrmForecastSnapshotBackfillResult,
 } from '../../../api/cron/crm/forecast-snapshots/backfill/_core';
+export { CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_WORK_ITEMS_PER_DATE as ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_MAX_WORK_ITEMS_PER_DATE } from '../../../api/cron/crm/forecast-snapshots/backfill/_core';
 import {
   adminCrmForecastBackfillConfirmationStore,
   type AdminCrmForecastBackfillConfirmationStore,
@@ -31,8 +32,6 @@ import {
 
 export const ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_MAX_DATE_ROWS =
   CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_DAYS;
-export const ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_MAX_WORK_ITEMS_PER_DATE =
-  CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_WORK_ITEMS_PER_DATE;
 
 export const ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_ALLOWED_SESSION_ROLES = [
   'admin',
@@ -129,44 +128,29 @@ export async function runAdminCrmForecastBackfillOperatorCore(
 
   const now = (deps.now ?? (() => new Date()))();
   const tuple = confirmationTuple(actor.actorId, request);
-  let consumedTokenId: string | null = null;
   const confirmationStore = deps.confirmationStore ?? adminCrmForecastBackfillConfirmationStore;
 
-  if (mode === 'write') {
-    const confirmationToken = parsed.data.confirmationToken?.trim();
-    if (!confirmationToken) return errorResult('confirmation_invalid');
-    const consumed = confirmationStore.consume(confirmationToken, tuple, now);
-    if ('error' in consumed) return errorResult(consumed.error);
-    consumedTokenId = consumed.tokenId;
-  }
+  const confirmation = consumeWriteConfirmation({
+    confirmationStore,
+    mode,
+    now,
+    token: parsed.data.confirmationToken,
+    tuple,
+  });
+  if ('errorCode' in confirmation) return errorResult(confirmation.errorCode);
 
   try {
-    const coreResult = await (deps.runBackfillCore ?? runCrmForecastSnapshotBackfillCore)({
-      dryRun: mode === 'dry_run',
-      fromDate: request.fromDate,
-      maxWorkItemsPerDate: request.maxWorkItemsPerDate,
-      now,
-      tenantId: actor.tenantId,
-      toDate: request.toDate,
-    });
-    const projected = projectBackfillResult({
+    return await runAndProjectBackfill({
+      actorId: actor.actorId,
       confirmationStore,
-      coreResult,
-      generatedAt: now.toISOString(),
+      consumedTokenId: confirmation.tokenId,
+      logger: deps.logger ?? console,
       mode,
+      now,
+      request,
+      runBackfillCore: deps.runBackfillCore ?? runCrmForecastSnapshotBackfillCore,
       tuple,
     });
-    assertNoAdminCrmForecastBackfillOperatorPiiKeys(projected);
-    logOperatorResult(projected, {
-      actorId: actor.actorId,
-      logger: deps.logger ?? console,
-      tokenId: consumedTokenId,
-    });
-
-    if (projected.status === 'failed') {
-      return { errorCode: 'all_dates_failed', result: projected, success: false };
-    }
-    return { result: projected, success: true };
   } catch (error) {
     const mapped = mapOperatorError(error);
     if (mapped !== 'internal_error') return errorResult(mapped);
@@ -177,7 +161,7 @@ export async function runAdminCrmForecastBackfillOperatorCore(
     });
     return errorResult('internal_error');
   } finally {
-    if (consumedTokenId) confirmationStore.finalize(consumedTokenId);
+    if (confirmation.tokenId) confirmationStore.finalize(confirmation.tokenId);
   }
 }
 
@@ -250,6 +234,63 @@ async function enforceOperatorRateLimit(args: {
   });
 }
 
+function consumeWriteConfirmation(args: {
+  confirmationStore: AdminCrmForecastBackfillConfirmationStore;
+  mode: AdminCrmForecastBackfillOperatorMode;
+  now: Date;
+  token?: string | null;
+  tuple: AdminCrmForecastBackfillConfirmationTuple;
+}): { tokenId: string | null } | { errorCode: AdminCrmForecastBackfillOperatorErrorCode } {
+  if (args.mode !== 'write') return { tokenId: null };
+
+  const confirmationToken = args.token?.trim();
+  if (!confirmationToken) return { errorCode: 'confirmation_invalid' };
+
+  const consumed = args.confirmationStore.consume(confirmationToken, args.tuple, args.now);
+  if ('error' in consumed) return { errorCode: consumed.error };
+
+  return { tokenId: consumed.tokenId };
+}
+
+async function runAndProjectBackfill(args: {
+  actorId: string;
+  confirmationStore: AdminCrmForecastBackfillConfirmationStore;
+  consumedTokenId: string | null;
+  logger: Pick<Console, 'error' | 'info' | 'warn'>;
+  mode: AdminCrmForecastBackfillOperatorMode;
+  now: Date;
+  request: AdminCrmForecastBackfillOperatorRequest;
+  runBackfillCore: typeof runCrmForecastSnapshotBackfillCore;
+  tuple: AdminCrmForecastBackfillConfirmationTuple;
+}): Promise<AdminCrmForecastBackfillOperatorActionResult> {
+  const coreResult = await args.runBackfillCore({
+    dryRun: args.mode === 'dry_run',
+    fromDate: args.request.fromDate,
+    maxWorkItemsPerDate: args.request.maxWorkItemsPerDate,
+    now: args.now,
+    tenantId: args.request.tenantId,
+    toDate: args.request.toDate,
+  });
+  const projected = projectBackfillResult({
+    confirmationStore: args.confirmationStore,
+    coreResult,
+    generatedAt: args.now.toISOString(),
+    mode: args.mode,
+    tuple: args.tuple,
+  });
+  assertNoAdminCrmForecastBackfillOperatorPiiKeys(projected);
+  logOperatorResult(projected, {
+    actorId: args.actorId,
+    logger: args.logger,
+    tokenId: args.consumedTokenId,
+  });
+
+  if (projected.status === 'failed') {
+    return { errorCode: 'all_dates_failed', result: projected, success: false };
+  }
+  return { result: projected, success: true };
+}
+
 function projectBackfillResult(args: {
   confirmationStore: AdminCrmForecastBackfillConfirmationStore;
   coreResult: CrmForecastSnapshotBackfillResult;
@@ -313,25 +354,31 @@ function aggregateStatus(
 function projectDateRow(
   row: CrmForecastSnapshotBackfillDateResult
 ): AdminCrmForecastBackfillOperatorDateRow {
-  const status =
-    row.status === 'dry_run'
-      ? 'completed'
-      : row.status === 'completed' ||
-          row.status === 'deferred' ||
-          row.status === 'failed' ||
-          row.status === 'partial'
-        ? row.status
-        : 'partial';
   return {
     failedWorkItems: row.failedWorkItems,
     snapshotDate: row.snapshotDate,
     snapshotsInserted: row.snapshotsInserted,
-    status,
+    status: projectDateStatus(row.status),
     versionConflicts: row.versionConflicts,
     workItemsConsidered: row.workItemsConsidered,
     workItemsDeferred: row.workItemsDeferred,
     workItemsSucceeded: row.workItemsSucceeded,
   };
+}
+
+function projectDateStatus(
+  status: CrmForecastSnapshotBackfillDateResult['status']
+): AdminCrmForecastBackfillOperatorDateRow['status'] {
+  if (status === 'dry_run') return 'completed';
+  if (
+    status === 'completed' ||
+    status === 'deferred' ||
+    status === 'failed' ||
+    status === 'partial'
+  ) {
+    return status;
+  }
+  return 'partial';
 }
 
 function validationErrorCode(error: z.ZodError): AdminCrmForecastBackfillOperatorErrorCode {
