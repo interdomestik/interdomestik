@@ -2,8 +2,13 @@ import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { Info } from 'lucide-react';
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 
+import {
+  buildPipelineAmountScreenReaderSummary,
+  type PipelineAmountChartRow,
+} from '@/components/crm/charts/chart-projections';
+import { PipelineAmountChartBoundary } from '@/components/crm/charts/reporting-chart-boundary';
 import { getSessionSafe } from '@/components/shell/session';
 
 import {
@@ -31,6 +36,30 @@ function formatMinorAmount(format: Formatter, amountMinor: number, currencyCode:
 
 function formatCount(format: Formatter, value: number): string {
   return format.number(value, { maximumFractionDigits: 0 });
+}
+
+function toAdminPipelineAmountChartRows(
+  format: Formatter,
+  rows: readonly AdminCrmBranchPipelineRow[],
+  t: Translations
+): PipelineAmountChartRow[] {
+  return rows.map(row => {
+    const branch = row.branchLabel === 'tenant' ? t('labels.tenantWide') : row.branchLabel;
+    const label = `${branch} / ${row.pipelineLabel}`;
+    return {
+      currencyCode: row.currencyCode,
+      id: `${row.branchId ?? 'tenant'}-${row.pipelineId}-${row.currencyCode}`,
+      label,
+      totalAmountMinor: row.totalPipelineAmountMinor,
+      totalFormatted: formatMinorAmount(format, row.totalPipelineAmountMinor, row.currencyCode),
+      weightedAmountMinor: row.weightedPipelineAmountMinor,
+      weightedFormatted: formatMinorAmount(
+        format,
+        row.weightedPipelineAmountMinor,
+        row.currencyCode
+      ),
+    };
+  });
 }
 
 function ReportingWidget({
@@ -179,12 +208,28 @@ function SnapshotWidget({
 function BranchPipelineWidget({
   branchPipeline,
   format,
+  locale,
   t,
 }: Readonly<{
   branchPipeline: AdminCrmWidget<AdminCrmBranchPipelineRow>;
   format: Formatter;
+  locale: string;
   t: Translations;
 }>) {
+  const chartRows =
+    branchPipeline.state === 'data'
+      ? toAdminPipelineAmountChartRows(format, branchPipeline.rows, t)
+      : [];
+  const chartSummary =
+    chartRows.length > 0
+      ? buildPipelineAmountScreenReaderSummary(chartRows, {
+          hiddenItems: count => t('charts.hiddenItems', { count }),
+          intro: t('charts.pipelineAmount.summaryIntro'),
+          total: t('charts.pipelineAmount.total'),
+          weighted: t('charts.pipelineAmount.weighted'),
+        })
+      : '';
+
   return (
     <ReportingWidget
       title={t('branchPipeline.title')}
@@ -231,6 +276,21 @@ function BranchPipelineWidget({
             </div>
           ))}
         </div>
+      ) : null}
+      {chartRows.length > 0 ? (
+        <Suspense fallback={null}>
+          <PipelineAmountChartBoundary
+            description={t('charts.pipelineAmount.description')}
+            locale={locale}
+            rows={chartRows}
+            summary={chartSummary}
+            text={{
+              total: t('charts.pipelineAmount.total'),
+              weighted: t('charts.pipelineAmount.weighted'),
+            }}
+            title={t('charts.pipelineAmount.title')}
+          />
+        </Suspense>
       ) : null}
       <ExcludedRowsNote
         count={branchPipeline.excludedRowCount}
@@ -357,7 +417,12 @@ export default async function AdminCrmPage({
       <div className="grid gap-4 xl:grid-cols-3">
         <SnapshotWidget format={format} snapshot={reporting.snapshot} t={t} />
         <div className="xl:col-span-2">
-          <BranchPipelineWidget branchPipeline={reporting.branchPipeline} format={format} t={t} />
+          <BranchPipelineWidget
+            branchPipeline={reporting.branchPipeline}
+            format={format}
+            locale={locale}
+            t={t}
+          />
         </div>
       </div>
 

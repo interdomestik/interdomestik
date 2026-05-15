@@ -170,6 +170,16 @@
         "description": "Rezultatet e fituara dhe të humbura sipas burimit.",
         "empty": "Nuk ka marrëveshje të fituara ose të humbura në periudhën e raportimit.",
         "counts": "{won} fituar / {lost} humbur / {open} hapur"
+      },
+      "charts": {
+        "hiddenItems": "{count, plural, one {# rresht shtesë është fshehur nga përmbledhja e grafikut} other {# rreshta shtesë janë fshehur nga përmbledhja e grafikut}}",
+        "pipelineAmount": {
+          "title": "Grafiku i shumës së pipeline-it",
+          "description": "Krahasim plotësues i shumës totale dhe të ponderuar të pipeline-it. Tabela sipër është burimi kryesor.",
+          "summaryIntro": "Përmbledhje e grafikut të shumës së pipeline-it",
+          "total": "Totali",
+          "weighted": "E ponderuar"
+        }
       }
     },
     "dashboardV2": {

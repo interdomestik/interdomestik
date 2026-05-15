@@ -171,6 +171,16 @@
         "description": "Won and lost outcomes by lead source.",
         "empty": "No won or lost deals in the reporting window.",
         "counts": "{won} won / {lost} lost / {open} open"
+      },
+      "charts": {
+        "hiddenItems": "{count, plural, one {# additional row hidden from the chart summary} other {# additional rows hidden from the chart summary}}",
+        "pipelineAmount": {
+          "title": "Pipeline amount chart",
+          "description": "Supplemental comparison of total and weighted pipeline amount. The table above is the source of truth.",
+          "summaryIntro": "Pipeline amount chart summary",
+          "total": "Total",
+          "weighted": "Weighted"
+        }
       }
     },
     "dashboardV2": {

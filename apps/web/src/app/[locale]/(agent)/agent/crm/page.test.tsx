@@ -95,6 +95,12 @@ vi.mock('@/components/agent/pipeline-chart', () => ({
   PipelineChart: () => null,
 }));
 
+vi.mock('@/components/crm/charts/reporting-chart-boundary', () => ({
+  PipelineAmountChartBoundary: ({ title }: { title: string }) => (
+    <div data-testid="crm-reporting-chart-pipeline-amount">{title}</div>
+  ),
+}));
+
 import CRMPage from './page';
 
 describe('CRMPage auth redirect', () => {
@@ -359,6 +365,9 @@ describe('CRMPage auth redirect', () => {
     expect(screen.getByTestId('agent-crm-reporting-weighted-pipeline')).toHaveTextContent('USD');
     expect(screen.getByTestId('agent-crm-reporting-weighted-pipeline')).toHaveTextContent(
       'reporting.weightedPipeline.excludedRows'
+    );
+    expect(screen.getByTestId('crm-reporting-chart-pipeline-amount')).toHaveTextContent(
+      'reporting.charts.pipelineAmount.title'
     );
     expect(screen.getByTestId('agent-crm-reporting-source-breakdown')).toHaveTextContent('website');
     expect(screen.getByTestId('agent-crm-reporting-win-rate')).toHaveTextContent('website');

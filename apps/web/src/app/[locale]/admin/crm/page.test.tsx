@@ -46,6 +46,12 @@ vi.mock('./_core', async importOriginal => {
   };
 });
 
+vi.mock('@/components/crm/charts/reporting-chart-boundary', () => ({
+  PipelineAmountChartBoundary: ({ title }: { title: string }) => (
+    <div data-testid="crm-reporting-chart-pipeline-amount">{title}</div>
+  ),
+}));
+
 import AdminCrmPage from './page';
 
 describe('AdminCrmPage', () => {
@@ -137,6 +143,9 @@ describe('AdminCrmPage', () => {
     expect(screen.getByTestId('admin-crm-reporting-snapshot')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-reporting-branch-pipeline')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-reporting-source-breakdown')).toBeInTheDocument();
+    expect(screen.getByTestId('crm-reporting-chart-pipeline-amount')).toHaveTextContent(
+      'charts.pipelineAmount.title'
+    );
   });
 
   it('fails closed for branch-manager sessions before loading reporting data', async () => {

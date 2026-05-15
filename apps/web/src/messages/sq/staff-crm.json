@@ -39,6 +39,32 @@
     "label": {
       "no-branch": "Pa degë"
     },
+    "charts": {
+      "hiddenItems": "{count, plural, one {# rresht shtesë është fshehur nga përmbledhja e grafikut} other {# rreshta shtesë janë fshehur nga përmbledhja e grafikut}}",
+      "pipelineAmount": {
+        "title": "Grafiku i shumës së pipeline-it",
+        "description": "Krahasim plotësues i shumës totale dhe të ponderuar të pipeline-it. Tabela sipër është burimi kryesor.",
+        "summaryIntro": "Përmbledhje e grafikut të shumës së pipeline-it",
+        "total": "Totali",
+        "weighted": "E peshuar"
+      },
+      "funnelMovement": {
+        "title": "Grafiku i lëvizjes në funnel",
+        "description": "Krahasim plotësues i lëvizjes së fazave. Tabela sipër është burimi kryesor.",
+        "summaryIntro": "Përmbledhje e grafikut të lëvizjes në funnel",
+        "entered": "Hyrë",
+        "exited": "Dalë",
+        "won": "Fituar",
+        "lost": "Humbur"
+      },
+      "stageVelocity": {
+        "title": "Grafiku i shpejtësisë së fazave",
+        "description": "Krahasim plotësues i ditëve mediane dhe mesatare. Tabela sipër është burimi kryesor.",
+        "summaryIntro": "Përmbledhje e grafikut të shpejtësisë së fazave",
+        "median": "Mediana",
+        "average": "Mesatarja"
+      }
+    },
     "durationDays": "{days} ditë",
     "excludedRows": "{count, plural, one {# rresht agregat u përjashtua} other {# rreshta agregatë u përjashtuan}}",
     "excludedRowsHelp": "Rreshtat mund të përjashtohen nga metrikat agregate kur fushat e kërkuara të raportimit mungojnë ose janë jokonsistente.",
