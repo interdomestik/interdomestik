@@ -1,12 +1,12 @@
 # P38-DG15 Forecast Snapshot Backfill Design Review
 
-Status: review_draft
+Status: complete
 Slice: `P38-DG15`
 Owner: platform + product + qa
 Phase: Phase C
 Date: 2026-05-15
-Authority: review draft only. This document does not promote implementation until final reviewer approval.
-Recommended implementation slice: `P38-CRM17 Forecast Snapshot Backfill`
+Authority: completed design gate. This document promotes exactly one implementation slice.
+Promoted implementation slice: `P38-CRM17 Forecast Snapshot Backfill`
 
 Status vocabulary: `review_draft` records a design awaiting reviewer approval; `complete` records an
 approved design gate that may promote exactly one implementation slice.
@@ -34,32 +34,30 @@ the first pass.
 
 ## Decision
 
-Review exactly one bounded implementation candidate:
+Promote exactly one bounded implementation candidate:
 
 `P38-CRM17 Forecast Snapshot Backfill`
 
-The recommended slice should add a tenant-scoped, manually invoked backfill API that reuses CRM13
-snapshot derivation and CRM05 append-only snapshot persistence for a short historical UTC date range.
-It should be protected by the existing cron bearer-secret boundary, return aggregate-only PII-safe
-results, support dry-run mode, and leave operator UI/run-ledger/alerting for later gates.
+The promoted slice adds a tenant-scoped, manually invoked backfill API that reuses CRM13 snapshot
+derivation and CRM05 append-only snapshot persistence for a short historical UTC date range. It is
+protected by the existing cron bearer-secret boundary, returns aggregate-only PII-safe results,
+supports dry-run mode, and leaves operator UI/run-ledger/alerting for later gates.
 
-This draft does not promote CRM17 yet. Promotion requires final reviewer approval and a subsequent
-update of this document to `Status: complete` with `Promoted implementation slice: P38-CRM17 Forecast
-Snapshot Backfill`. The 2026-05-15 automated design review amendments are incorporated below as
-promotion prerequisites.
+The 2026-05-15 automated design review amendments are incorporated below and are part of the promoted
+implementation contract.
 
 ## Candidate Ranking
 
-| Rank | Candidate                                          | Decision                                                                                 |
-| ---- | -------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| 1    | `P38-CRM17 Forecast Snapshot Backfill`             | Recommend for review. CRM18 can expose gaps; the next step is bounded historical repair. |
-| 2    | `P38-CRM19 Forecast Snapshot Backfill Operator UX` | Defer. UX controls should follow a stable protected backfill contract.                   |
-| 3    | `P38-CRM22 Forecast Snapshot Alerting`             | Defer. Alerting should follow a stable health/backfill/run-history contract.             |
-| 4    | `P38-CRM21 Visual Regression Baseline`             | Defer. Useful, but less urgent than operational repair of snapshot gaps.                 |
-| 5    | `P38-CRM08 Routing Persistence And Cursor Adapter` | Defer. Independent from the forecast snapshot operations sequence.                       |
-| 6    | `P38-CRM09 Routing Admin UX And Rule Management`   | Defer. Requires routing persistence first.                                               |
-| 7    | `P38-CRM10 Legacy Deal Column Retirement`          | Defer. Requires normalized-reader and production-data confidence.                        |
-| 8    | `P38-CRM11 Deal Nullability Tightening`            | Defer. Requires production zero-null evidence and backfill confidence.                   |
+| Rank | Candidate                                          | Decision                                                                     |
+| ---- | -------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 1    | `P38-CRM17 Forecast Snapshot Backfill`             | Promoted. CRM18 can expose gaps; the next step is bounded historical repair. |
+| 2    | `P38-CRM19 Forecast Snapshot Backfill Operator UX` | Defer. UX controls should follow a stable protected backfill contract.       |
+| 3    | `P38-CRM22 Forecast Snapshot Alerting`             | Defer. Alerting should follow a stable health/backfill/run-history contract. |
+| 4    | `P38-CRM21 Visual Regression Baseline`             | Defer. Useful, but less urgent than operational repair of snapshot gaps.     |
+| 5    | `P38-CRM08 Routing Persistence And Cursor Adapter` | Defer. Independent from the forecast snapshot operations sequence.           |
+| 6    | `P38-CRM09 Routing Admin UX And Rule Management`   | Defer. Requires routing persistence first.                                   |
+| 7    | `P38-CRM10 Legacy Deal Column Retirement`          | Defer. Requires normalized-reader and production-data confidence.            |
+| 8    | `P38-CRM11 Deal Nullability Tightening`            | Defer. Requires production zero-null evidence and backfill confidence.       |
 
 ## Implementation Scope For P38-CRM17
 
@@ -486,7 +484,7 @@ routing admin UX, legacy deal column retirement, and CRM04 nullability tightenin
 
 ## Verification Plan
 
-Draft-review verification for this document requires:
+Promotion verification for this document requires:
 
 - `pnpm plan:audit`
 - `pnpm track:audit`
@@ -516,14 +514,23 @@ Future implementation PR verification should include:
 - `pnpm verify-slice -- --static`
 - Before PR merge: `pnpm pr:verify`, `pnpm security:guard`, and `pnpm e2e:gate`
 
+## Sign-Off Table
+
+| Slice / Reservation | Status                  | Notes                                                                                 |
+| ------------------- | ----------------------- | ------------------------------------------------------------------------------------- |
+| `P38-CRM05`         | completed predecessor   | Reporting read-models and append-only forecast snapshot persistence.                  |
+| `P38-CRM13`         | completed predecessor   | Protected daily forecast snapshot scheduler and derivation semantics.                 |
+| `P38-CRM18`         | completed predecessor   | Admin-only snapshot health visibility that exposes missing/stale coverage.            |
+| `P38-CRM17`         | promoted implementation | Tenant-scoped protected historical backfill API; implementation follows this gate.    |
+| `P38-CRM19`         | reserved / deferred     | Backfill operator UX should follow a stable protected API contract.                   |
+| `P38-CRM22`         | reserved / deferred     | Forecast snapshot alerting should follow health/backfill/run-history contract proof.  |
+| `P38-CRM21`         | reserved / deferred     | Visual-regression baseline remains separate from operational repair.                  |
+| `P38-CRM08`         | reserved / deferred     | Routing persistence remains independent from forecast snapshot operations.            |
+| `P38-CRM09`         | reserved / deferred     | Routing admin UX requires routing persistence first.                                  |
+| `P38-CRM10`         | reserved / deferred     | Legacy deal column cleanup requires normalized-reader and production-data confidence. |
+| `P38-CRM11`         | reserved / deferred     | CRM04 nullability tightening requires production zero-null/backfill confidence.       |
+
 ## Promotion Boundary
 
-This review draft is docs-only and does not authorize implementation. If reviewer feedback is
-accepted, the promotion PR should:
-
-- Change `Status: review_draft` to `Status: complete`.
-- Add `Promoted implementation slice: P38-CRM17 Forecast Snapshot Backfill`.
-- Update `docs/plans/current-program.md` and `docs/plans/current-tracker.md`.
-- Include a sign-off table that records CRM05, CRM13, CRM18, CRM17, CRM19, CRM22, CRM21, CRM08,
-  CRM09, CRM10, and CRM11 statuses.
-- Remain docs-only; implementation must land in a separate PR after promotion.
+This promotion PR is docs-only and authorizes `P38-CRM17 Forecast Snapshot Backfill` as the next
+implementation slice. Implementation must land in a separate PR after this gate merges.
