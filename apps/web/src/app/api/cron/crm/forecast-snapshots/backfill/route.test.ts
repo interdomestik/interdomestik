@@ -31,38 +31,9 @@ vi.mock('./_core', async importOriginal => {
 
 import { POST } from './route';
 import { CrmForecastSnapshotBackfillCoreError } from './_core';
+import { createCrmForecastSnapshotBackfillResult } from '../_core.test-helpers';
 
-const result = {
-  completedAt: '2026-05-15T10:30:01.000Z',
-  dateResults: [
-    {
-      failedWorkItems: 0,
-      snapshotDate: '2026-05-14',
-      snapshotsInserted: 1,
-      status: 'completed',
-      versionConflicts: 0,
-      workItemsConsidered: 1,
-      workItemsDeferred: 0,
-      workItemsSucceeded: 1,
-    },
-  ],
-  datesConsidered: 1,
-  datesDeferred: 0,
-  datesFailed: 0,
-  datesSucceeded: 1,
-  dryRun: false,
-  failedWorkItems: 0,
-  fromDate: '2026-05-14',
-  snapshotsInserted: 1,
-  sourceRunId: 'run-1',
-  startedAt: '2026-05-15T10:30:00.000Z',
-  tenantId: 'tenant-1',
-  toDate: '2026-05-14',
-  versionConflicts: 0,
-  workItemsConsidered: 1,
-  workItemsDeferred: 0,
-  workItemsSucceeded: 1,
-};
+const result = createCrmForecastSnapshotBackfillResult();
 
 function request(body: unknown): NextRequest {
   return new NextRequest('http://localhost:3000/api/cron/crm/forecast-snapshots/backfill', {

@@ -136,6 +136,38 @@ export function deriveCrmForecastSnapshotsForWorkItem(args: {
   });
 }
 
+export async function buildCrmForecastSnapshotsForWorkItem(args: {
+  abortMessage: string;
+  createdAt: string;
+  idempotencyKey: string;
+  reportingInputFor: (tenantId: string, from: Date, to: Date) => CrmReportingBaseInput;
+  reportingRepository: CrmReportingRepository;
+  signal: AbortSignal;
+  snapshotDate: string;
+  snapshotDateEndExclusive: Date;
+  snapshotDateStartInclusive: Date;
+  sourceRunId: string;
+  tenantRows: CrmForecastSnapshotTenantWeightedRows;
+  workItem: CrmForecastSnapshotWorkItem;
+}): Promise<CrmForecastSnapshotRow[]> {
+  throwIfCrmForecastSnapshotAborted(args.signal, args.abortMessage);
+  const rows = await loadCrmForecastSnapshotTenantRows(args);
+  throwIfCrmForecastSnapshotAborted(args.signal, args.abortMessage);
+  return deriveCrmForecastSnapshotsForWorkItem({
+    createdAt: args.createdAt,
+    idempotencyKey: args.idempotencyKey,
+    input: args.reportingInputFor(
+      args.workItem.tenantId,
+      args.snapshotDateStartInclusive,
+      args.snapshotDateEndExclusive
+    ),
+    rows,
+    snapshotDate: args.snapshotDate,
+    sourceRunId: args.sourceRunId,
+    workItem: args.workItem,
+  });
+}
+
 function collectKeys(value: unknown, keys: Set<string>): void {
   if (!value || typeof value !== 'object') return;
   if (Array.isArray(value)) {

@@ -19,9 +19,8 @@ import {
 } from '@/lib/domain-crm/reporting-repository';
 
 import {
-  deriveCrmForecastSnapshotsForWorkItem,
   assertNoCrmForecastSnapshotPiiKeys,
-  loadCrmForecastSnapshotTenantRows,
+  buildCrmForecastSnapshotsForWorkItem,
   isCrmForecastSnapshotSoftTimeoutError,
   throwIfCrmForecastSnapshotAborted,
   withCrmForecastSnapshotTimeout,
@@ -252,31 +251,21 @@ async function processWorkItem(args: {
   tenantRows: CrmForecastSnapshotTenantWeightedRows;
   workItem: CrmForecastSnapshotWorkItem;
 }): Promise<number | 'version_conflict'> {
-  throwIfCrmForecastSnapshotAborted(args.signal, SOFT_TIMEOUT_MESSAGE);
-  const rows = await loadCrmForecastSnapshotTenantRows({
-    reportingInputFor,
-    reportingRepository: args.reportingRepository,
-    snapshotDateEndExclusive: args.snapshotDateEndExclusive,
-    snapshotDateStartInclusive: args.snapshotDateStartInclusive,
-    tenantRows: args.tenantRows,
-    workItem: args.workItem,
-  });
-  throwIfCrmForecastSnapshotAborted(args.signal, SOFT_TIMEOUT_MESSAGE);
-  const input = reportingInputFor(
-    args.workItem.tenantId,
-    args.snapshotDateStartInclusive,
-    args.snapshotDateEndExclusive
-  );
-  const snapshots = deriveCrmForecastSnapshotsForWorkItem({
+  const snapshots = await buildCrmForecastSnapshotsForWorkItem({
+    abortMessage: SOFT_TIMEOUT_MESSAGE,
     createdAt: new Date().toISOString(),
     idempotencyKey: buildSnapshotIdempotencyKey(args.workItem, {
       snapshotDate: args.snapshotDate,
       sourceRunId: args.sourceRunId,
     }),
-    input,
-    rows,
+    reportingInputFor,
+    reportingRepository: args.reportingRepository,
+    signal: args.signal,
     snapshotDate: args.snapshotDate,
+    snapshotDateEndExclusive: args.snapshotDateEndExclusive,
+    snapshotDateStartInclusive: args.snapshotDateStartInclusive,
     sourceRunId: args.sourceRunId,
+    tenantRows: args.tenantRows,
     workItem: args.workItem,
   });
 
