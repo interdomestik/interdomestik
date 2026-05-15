@@ -353,7 +353,8 @@ not infer per-date success from HTTP status alone.
 - Responses and logs must not include lead, contact, member, staff, agent, deal, email, phone, full
   name, notes, description, subject, or raw activity fields.
 - Safe response/log fields are limited to tenant ID, pipeline ID, branch ID or no-branch sentinel,
-  ISO currency code, snapshot date, source run ID, aggregate counts, status, and error class.
+  ISO currency code, snapshot date, source run ID, date range metadata, `startedAt`, `completedAt`,
+  `dryRun`, aggregate counts, status, and error class.
 - Work-item failure logs may include tenant ID, pipeline ID, branch ID/no-branch sentinel, currency
   code, snapshot date, and sanitized error message only.
 - Structured logs use the prefix `[CRM Forecast Snapshot Backfill]` and must not reuse CRM13's
