@@ -5,7 +5,7 @@ Slice: `P38-DG15`
 Owner: platform + product + qa
 Phase: Phase C
 Date: 2026-05-15
-Authority: review draft only. This document does not promote implementation until reviewer feedback is applied.
+Authority: review draft only. This document does not promote implementation until final reviewer approval.
 Recommended implementation slice: `P38-CRM17 Forecast Snapshot Backfill`
 
 Status vocabulary: `review_draft` records a design awaiting reviewer approval; `complete` records an
@@ -43,9 +43,10 @@ snapshot derivation and CRM05 append-only snapshot persistence for a short histo
 It should be protected by the existing cron bearer-secret boundary, return aggregate-only PII-safe
 results, support dry-run mode, and leave operator UI/run-ledger/alerting for later gates.
 
-This draft does not promote CRM17 yet. Promotion requires reviewer approval and a subsequent update
-of this document to `Status: complete` with `Promoted implementation slice: P38-CRM17 Forecast
-Snapshot Backfill`.
+This draft does not promote CRM17 yet. Promotion requires final reviewer approval and a subsequent
+update of this document to `Status: complete` with `Promoted implementation slice: P38-CRM17 Forecast
+Snapshot Backfill`. The 2026-05-15 automated design review amendments are incorporated below as
+promotion prerequisites.
 
 ## Candidate Ranking
 
@@ -102,13 +103,17 @@ Authorization rules:
 
 1. The route uses `authorizeCronRequest` with `process.env.CRON_SECRET`, matching the protected cron
    posture used by CRM13.
-2. Missing, malformed, or incorrect authorization returns `401` before reading the request body or
+2. The route applies `enforceRateLimit` before authorization with a tighter backfill-specific limit
+   than the daily scheduler: `3` requests per `60` seconds. Rate-limited requests return the existing
+   rate-limit response and map to the stable `rate_limited` error code where the route wraps the
+   response body.
+3. Missing, malformed, or incorrect authorization returns `401` before reading the request body or
    touching CRM repositories.
-3. Backfill is tenant-scoped in the first slice. The request must include exactly one non-empty
+4. Backfill is tenant-scoped in the first slice. The request must include exactly one non-empty
    `tenantId`; all-tenant backfill is deferred.
-4. The route must not use a user session, admin session, or branch-manager session to authorize the
+5. The route must not use a user session, admin session, or branch-manager session to authorize the
    operation. Operator identity is not inferred in CRM17.
-5. The route must not mutate Vercel cron configuration or make the backfill route scheduled.
+6. The route must not mutate Vercel cron configuration or make the backfill route scheduled.
 
 Author rationale: using the existing cron bearer boundary avoids auth/session refactors and CSRF
 surface area while keeping the first repair path manually invokable by trusted operators. Requiring a
@@ -128,6 +133,25 @@ export interface CrmForecastSnapshotBackfillRequest {
 }
 ```
 
+The route must validate the body with a colocated strict Zod schema before invoking the core:
+
+```ts
+const backfillRequestSchema = z
+  .object({
+    dryRun: z.boolean().optional(),
+    fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    maxWorkItemsPerDate: z
+      .number()
+      .int()
+      .positive()
+      .max(CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_WORK_ITEMS_PER_DATE)
+      .optional(),
+    tenantId: z.string().trim().min(1),
+    toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  })
+  .strict();
+```
+
 Validation rules:
 
 - `tenantId` is trimmed and must be non-empty.
@@ -141,8 +165,10 @@ Validation rules:
 - Date count must be at most `CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_DAYS`.
 - `maxWorkItemsPerDate`, when present, must be a positive integer no greater than
   `CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_WORK_ITEMS_PER_DATE`.
-- Unknown request fields are ignored or rejected consistently by the implementation; the design
-  recommendation is to reject unknown fields so operator typos fail closed.
+- Unknown request fields are rejected by the strict request schema so operator typos fail closed.
+- CRM17 must implement a distinct `validateBackfillDateRange(fromDate, toDate, now)` helper. It must
+  not reuse CRM13's `resolveSnapshotDate`, because that helper intentionally rejects every date other
+  than the previous UTC date.
 
 Dry run rules:
 
@@ -171,9 +197,34 @@ For each date:
 5. Continue processing later dates after a per-date partial failure unless the global duration cap is
    reached.
 
+CRM17 processes multiple snapshot dates in one request, so date-specific state must stay scoped to the
+current date:
+
+- Create a fresh tenant weighted-row cache per snapshot date. Do not share CRM13's
+  `TenantWeightedRows` map across the whole backfill range, because each date has a different
+  reporting window.
+- Apply a per-work-item soft timeout in addition to the global duration cap. The first slice should
+  match CRM13's `5_000` ms default so one slow work item cannot consume the whole run.
+- Use a distinct system actor ID, `system:crm-forecast-snapshot-backfill`, when constructing
+  CRM05/CRM13 reporting inputs. Do not reuse `system:crm-forecast-snapshot-scheduler`; audit logs
+  must distinguish scheduler reads from backfill reads.
+
 The implementation may extract shared scheduler/backfill helpers from CRM13 only when doing so keeps
-the existing scheduler route behavior byte-for-byte equivalent at the contract level. Any helper
-extraction must be covered by existing CRM13 tests plus focused CRM17 tests.
+the existing scheduler route behavior byte-for-byte equivalent at the contract level. Helper
+extraction boundaries are:
+
+| Helper candidate                   | CRM17 posture                                                    |
+| ---------------------------------- | ---------------------------------------------------------------- |
+| `endExclusiveForSnapshotDate`      | Pure date math; safe to share.                                   |
+| `startInclusiveForSnapshotDate`    | Pure date math; safe to share.                                   |
+| `isWorkItemRow`                    | Pure predicate; safe to share.                                   |
+| `withTimeout` / `SoftTimeoutError` | Utility behavior; safe to share if CRM13 tests remain green.     |
+| `processWorkItem`                  | Complex and stateful; copy/adapt rather than extract in CRM17.   |
+| `buildSnapshotIdempotencyKey`      | Do not share; CRM17 needs the backfill source-run namespace.     |
+| `reportingInputFor`                | Do not share; CRM17 needs the distinct backfill system actor ID. |
+| `resolveSnapshotDate`              | Do not share; incompatible with historical backfill date ranges. |
+
+Any extraction must be covered by existing CRM13 tests plus focused CRM17 tests.
 
 ## Append-Only Semantics
 
@@ -187,6 +238,9 @@ CRM17 does not repair rows in place and does not delete old snapshots.
 - The response must state that snapshots are append-only and expose inserted/version-conflict counts.
 - CRM17 must not add a unique idempotency index, mutate existing idempotency semantics, or attempt
   in-place deduplication without a later schema-reviewed gate.
+- CRM17's backfill source-run namespace is intentionally separate from CRM13's scheduler namespace.
+  `crm-forecast-snapshot-backfill:<tenantId>:<fromDate>:<toDate>:<startedAt>` must never collide with
+  CRM13's `crm-forecast-snapshot:<snapshotDate>:<startedAt>`.
 
 ## Exported Constants
 
@@ -196,8 +250,13 @@ CRM17 should export constants from the backfill core:
 export const CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_DAYS = 7;
 export const CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_LOOKBACK_DAYS = 366;
 export const CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_WORK_ITEMS_PER_DATE = 250;
+export const CRM_FORECAST_SNAPSHOT_BACKFILL_RATE_LIMIT = 3;
+export const CRM_FORECAST_SNAPSHOT_BACKFILL_RATE_LIMIT_WINDOW_SECONDS = 60;
+export const CRM_FORECAST_SNAPSHOT_BACKFILL_SYSTEM_ACTOR_ID =
+  'system:crm-forecast-snapshot-backfill';
 export const CRM_FORECAST_SNAPSHOT_BACKFILL_TARGET_DURATION_MS = 60_000;
 export const CRM_FORECAST_SNAPSHOT_BACKFILL_SOURCE_RUN_PREFIX = 'crm-forecast-snapshot-backfill';
+export const CRM_FORECAST_SNAPSHOT_BACKFILL_WORK_ITEM_SOFT_TIMEOUT_MS = 5_000;
 ```
 
 Tests should import these constants rather than duplicating literal thresholds.
@@ -253,6 +312,9 @@ export interface CrmForecastSnapshotBackfillResult {
 crm-forecast-snapshot-backfill:<tenantId>:<fromDate>:<toDate>:<startedAt>
 ```
 
+The `sourceRunId` format is a separate namespace from CRM13's daily scheduler source-run format and
+must not be generated from a caller-supplied value.
+
 The route response is:
 
 ```ts
@@ -261,8 +323,20 @@ type CrmForecastSnapshotBackfillResponse =
   | { success: false; error: string; code: CrmForecastSnapshotBackfillErrorCode };
 ```
 
-Error codes should be stable literals such as `unauthorized`, `invalid_json`, `invalid_range`,
-`range_too_large`, `date_out_of_bounds`, `invalid_tenant`, and `internal_error`.
+Error codes should be stable literals such as `unauthorized`, `rate_limited`, `invalid_json`,
+`invalid_range`, `range_too_large`, `date_out_of_bounds`, `invalid_tenant`, and `internal_error`.
+
+Date status semantics:
+
+- `completed`: write mode processed the date and every considered work item either inserted zero or
+  more snapshots successfully.
+- `dry_run`: dry-run mode processed the date without calling `insertPipelineSnapshots`.
+- `partial`: at least one work item failed or timed out, but at least one work item succeeded or the
+  date produced a structured aggregate result.
+- `failed`: every considered work item for the date failed due to processing errors.
+- `deferred`: the global `CRM_FORECAST_SNAPSHOT_BACKFILL_TARGET_DURATION_MS` cap was reached before
+  processing for this date began. All remaining unprocessed dates in the ascending sequence are marked
+  `deferred` with zeroed counters.
 
 ## HTTP Status Semantics
 
@@ -284,7 +358,13 @@ not infer per-date success from HTTP status alone.
   ISO currency code, snapshot date, source run ID, aggregate counts, status, and error class.
 - Work-item failure logs may include tenant ID, pipeline ID, branch ID/no-branch sentinel, currency
   code, snapshot date, and sanitized error message only.
-- A colocated PII regression test must inspect response keys and representative logs.
+- Structured logs use the prefix `[CRM Forecast Snapshot Backfill]` and must not reuse CRM13's
+  `[CRM Forecast Snapshot Scheduler]` prefix.
+- CRM17 should import or replicate CRM13's PII response-key set
+  `description|email|fullName|notes|phone|subject` and apply a distinct
+  `assertNoCrmForecastSnapshotBackfillPiiKeys` helper to the full response result, including nested
+  `dateResults` objects.
+- A colocated PII regression test must inspect response keys at every depth and representative logs.
 - The route must not log request bodies wholesale.
 
 ## DB Access And Tenancy Rules
@@ -292,7 +372,8 @@ not infer per-date success from HTTP status alone.
 - Expected work-item discovery must pass `tenantId` and retain the same-statement tenant predicate
   added during CRM18.
 - Weighted-pipeline reads must use CRM05 reporting repository authorization with a system/admin CRM
-  actor scoped to the requested tenant.
+  actor scoped to the requested tenant and actor ID
+  `system:crm-forecast-snapshot-backfill`.
 - Snapshot writes must carry the same tenant ID from the expected work item into every derived row.
 - No all-tenant work-item discovery is allowed in CRM17.
 - No in-memory filtering of all-tenant rows is allowed as a substitute for SQL tenant predicates.
@@ -301,10 +382,13 @@ not infer per-date success from HTTP status alone.
 
 - The protected backfill route accepts a tenant-scoped historical UTC date range and rejects
   unauthorized, future/today, out-of-order, over-large, too-old, tenantless, and malformed requests.
+- The route applies the backfill-specific rate limit and fails closed on unknown request fields.
 - Dry-run mode returns the same aggregate shape without inserting snapshots.
 - Write mode appends forecast snapshot rows through the existing snapshot repository and preserves
   existing append-only version semantics.
 - Backfill uses CRM13/CRM05 reporting derivation semantics for each date and tenant-scoped work item.
+- Backfill uses a distinct system actor ID, per-date tenant-row cache, per-work-item soft timeout,
+  backfill log prefix, and backfill source-run namespace.
 - The existing daily scheduler route behavior and Vercel cron config are unchanged.
 - Output and logs remain aggregate-only and PII-safe.
 - CRM18 observability can see backfilled rows through the existing latest-version snapshot readers
@@ -316,17 +400,18 @@ not infer per-date success from HTTP status alone.
 
 Focused implementation proof should include:
 
-- Route tests for `401`, invalid JSON, invalid date formats, today/future dates, range too large,
-  too-old dates, missing tenant ID, dry-run success, write success, partial success, and all-date
-  failure mapping.
+- Route tests for `401`, rate limiting, invalid JSON, unknown fields, invalid date formats,
+  today/future dates, range too large, too-old dates, missing tenant ID, dry-run success, write
+  success, partial success, and all-date failure mapping.
 - Core tests for inclusive date expansion, ascending date processing, previous-UTC boundary freezing,
   per-date reporting window calculation, per-date work-item caps, global duration deferral, source
-  run ID generation, dry-run no-write behavior, append-only write behavior, and aggregate totals.
+  run ID generation, distinct system actor ID, per-date tenant-row cache isolation, per-work-item soft
+  timeout handling, dry-run no-write behavior, append-only write behavior, and aggregate totals.
 - Repository/domain-boundary tests proving tenant-scoped expected work-item discovery and exact
   tenant/pipeline/branch/currency filtering.
 - Scheduler non-regression tests proving existing `GET /api/cron/crm/forecast-snapshots` date
   validation and previous-UTC behavior remain unchanged.
-- PII regression tests for response keys and log payloads.
+- PII regression tests for nested response keys and log payloads.
 - DB-access guard proof for any new direct DB access.
 - No Playwright/browser validation is required unless implementation adds UI, which CRM17 should not
   do.
@@ -337,6 +422,10 @@ Focused implementation proof should include:
   rewriting history. This is compatible with current readers but can grow snapshot rows. The first
   slice mitigates with tenant/date caps and leaves dedupe/retention policy to a later schema-reviewed
   gate.
+- **Concurrent backfill requests.** Overlapping requests for the same tenant/date range will each
+  create separate snapshot versions. This is safe under append-only semantics but wasteful. CRM17 does
+  not add mutual exclusion in the first slice; operators should avoid concurrent backfills by runbook
+  discipline. A later slice may add advisory locking or run-ledger-based reentrancy guards.
 - **All-tenant outage recovery.** Tenant-scoped requests require operators to loop tenants for a
   fleet-wide outage. This is deliberate first-slice blast-radius control. Reviewers may choose to
   promote all-tenant backfill later after run-ledger or operator UX work.
