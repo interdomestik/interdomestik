@@ -56,6 +56,40 @@
       "tenantWide": "Në nivel tenanti",
       "unknownSource": "Burim i panjohur"
     },
+    "forecastAlert": {
+      "severity": {
+        "ok": "Në rregull",
+        "warning": "Paralajmërim",
+        "critical": "Kritike",
+        "unknown": "E panjohur"
+      },
+      "ok": {
+        "headline": "Snapshot-et e parashikimit janë të shëndetshme",
+        "explanation": "Punët e fundit të pritura të snapshot-eve të parashikimit janë vëzhguar pa rreshta të vonuar, të vjetruar, mungues, të shtyrë ose të papritur."
+      },
+      "warning": {
+        "headline": "Snapshot-et e parashikimit kërkojnë rishikim",
+        "explanation": "Disa punë të snapshot-eve të parashikimit janë të vonuara, mungojnë, janë shtyrë ose janë vëzhguar papritur. Kontrolloni observueshmërinë para riparimeve."
+      },
+      "critical": {
+        "headline": "Snapshot-et e parashikimit kërkojnë vëmendje",
+        "explanation": "Puna e fundit e pritur nuk ka snapshot-e të vëzhguara ose përfshin rreshta të vjetruar. Përdorni observueshmërinë dhe backfill-in para se të mbështeteni te të dhënat."
+      },
+      "unknown": {
+        "headline": "Shëndeti i snapshot-eve të parashikimit është i panjohur",
+        "explanation": "Pritshmëritë e snapshot-eve nuk janë të disponueshme ose leximi i observueshmërisë dështoi. Provoni përsëri kur të dhënat të jenë gati."
+      },
+      "metrics": {
+        "expected": "Pritura",
+        "observed": "Vëzhguara",
+        "missing": "Mungojnë",
+        "stale": "Të vjetruara",
+        "deferred": "Të shtyra",
+        "latestCreated": "Krijimi i fundit",
+        "latestRun": "Ekzekutimi i fundit",
+        "none": "Nuk ka"
+      }
+    },
     "forecastObservability": {
       "title": "Vëzhgueshmëria e snapshot-it të parashikimit",
       "description": "Mbulim operacional për datën e mëparshme UTC të snapshot-it të parashikimit.",

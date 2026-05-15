@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { ADMIN_CRM_FORBIDDEN_PII_KEYS } from './_core';
 import type {
   AdminCrmBranchPipelineRow,
+  AdminCrmForecastAlertMetrics,
+  AdminCrmForecastAlertResult,
   AdminCrmForecastObservabilityBatchRow,
   AdminCrmForecastObservabilityCoverageRow,
   AdminCrmForecastObservabilitySummary,
@@ -12,6 +14,8 @@ import type {
 
 type AdminCrmAggregateKey =
   | keyof AdminCrmBranchPipelineRow
+  | keyof AdminCrmForecastAlertMetrics
+  | keyof AdminCrmForecastAlertResult
   | keyof AdminCrmForecastObservabilityBatchRow
   | keyof AdminCrmForecastObservabilityCoverageRow
   | keyof AdminCrmForecastObservabilitySummary
@@ -28,16 +32,19 @@ const aggregateSafeKeys: readonly AdminCrmAggregateKey[] = [
   'currencyCount',
   'dealCount',
   'delayedWorkItems',
+  'explanationMessageKey',
   'excludedInconsistentForecastCount',
   'expectedWorkItems',
   'expectedWorkItemsDeferred',
   'firstSnapshotCreatedAt',
   'freshness',
   'generatedAt',
+  'headlineMessageKey',
   'latestSnapshotCreatedAt',
   'latestSourceRunId',
   'lastSnapshotCreatedAt',
   'missingWorkItems',
+  'metrics',
   'observedWorkItems',
   'openDealCount',
   'pipelineId',
@@ -48,6 +55,7 @@ const aggregateSafeKeys: readonly AdminCrmAggregateKey[] = [
   'sourceLabel',
   'sourceRunId',
   'staleWorkItems',
+  'severity',
   'status',
   'totalAmountMinor',
   'totalPipelineAmountMinor',

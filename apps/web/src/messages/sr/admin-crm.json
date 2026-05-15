@@ -56,6 +56,40 @@
       "tenantWide": "Cela organizacija",
       "unknownSource": "Nepoznat izvor"
     },
+    "forecastAlert": {
+      "severity": {
+        "ok": "U redu",
+        "warning": "Upozorenje",
+        "critical": "Kritično",
+        "unknown": "Nepoznato"
+      },
+      "ok": {
+        "headline": "Prognozni snimci su zdravi",
+        "explanation": "Najnovije očekivane radne stavke prognoznih snimaka su uočene bez zakasnelih, odloženih, zastarelih, nedostajućih ili neočekivanih redova."
+      },
+      "warning": {
+        "headline": "Prognozne snimke treba proveriti",
+        "explanation": "Neke radne stavke prognoznih snimaka kasne, nedostaju, odložene su ili su neočekivano uočene. Proverite nadzor pre popravki."
+      },
+      "critical": {
+        "headline": "Prognozni snimci zahtevaju pažnju",
+        "explanation": "Najnoviji očekivani rad nema uočene snimke ili sadrži zastarele redove. Koristite nadzor i backfill pre oslanjanja na podatke."
+      },
+      "unknown": {
+        "headline": "Zdravlje prognoznih snimaka je nepoznato",
+        "explanation": "Očekivanja prognoznih snimaka nisu dostupna ili je čitanje nadzora neuspešno. Pokušajte ponovo kada podaci budu dostupni."
+      },
+      "metrics": {
+        "expected": "Očekivano",
+        "observed": "Uočeno",
+        "missing": "Nedostaje",
+        "stale": "Zastarelo",
+        "deferred": "Odloženo",
+        "latestCreated": "Najnovije kreirano",
+        "latestRun": "Najnovije pokretanje",
+        "none": "Nema"
+      }
+    },
     "forecastObservability": {
       "title": "Nadzor prognoznih snimaka",
       "description": "Operativna pokrivenost za prethodni UTC datum prognoznog snimka.",

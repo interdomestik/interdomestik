@@ -8,6 +8,7 @@ import {
   ADMIN_CRM_REPORTING_SOURCE_TOP_N,
   AdminCrmReportingAccessDeniedError,
   createAdminCrmReportingWindow,
+  deriveAdminCrmForecastAlert,
   deriveAdminCrmForecastObservability,
   deriveAdminCrmSnapshotFreshness,
   getAdminCrmReportingCore,
@@ -163,6 +164,17 @@ describe('admin CRM reporting core', () => {
         expectedWorkItems: 1,
         observedWorkItems: 1,
         latestSourceRunId: 'run-1',
+      },
+    });
+    expect(dashboard.forecastAlert).toMatchObject({
+      generatedAt: now,
+      severity: 'ok',
+      snapshotDate: '2026-05-13',
+      metrics: {
+        expectedWorkItems: 1,
+        latestSnapshotCreatedAt: '2026-05-14T05:20:00.000Z',
+        latestSourceRunId: 'run-1',
+        observedWorkItems: 1,
       },
     });
   });
@@ -380,6 +392,110 @@ describe('admin CRM reporting core', () => {
     });
   });
 
+  it('derives forecast alert severity with critical precedence over warnings', () => {
+    const alert = deriveAdminCrmForecastAlert({
+      batchRows: [],
+      coverageRows: [],
+      hiddenCoverageRowCount: 0,
+      state: 'data',
+      summary: {
+        delayedWorkItems: 1,
+        expectedWorkItems: 4,
+        expectedWorkItemsDeferred: 1,
+        generatedAt: '2026-05-14T12:00:00.000Z',
+        latestSnapshotCreatedAt: '2026-05-12T12:00:00.000Z',
+        latestSourceRunId: 'run-1',
+        missingWorkItems: 1,
+        observedWorkItems: 3,
+        snapshotDate: '2026-05-13',
+        staleWorkItems: 1,
+        unexpectedObservedWorkItems: 1,
+      },
+    });
+
+    expect(alert).toMatchObject({
+      explanationMessageKey: 'forecastAlert.critical.explanation',
+      generatedAt: '2026-05-14T12:00:00.000Z',
+      headlineMessageKey: 'forecastAlert.critical.headline',
+      metrics: {
+        latestSnapshotCreatedAt: '2026-05-12T12:00:00.000Z',
+        latestSourceRunId: 'run-1',
+      },
+      severity: 'critical',
+      snapshotDate: '2026-05-13',
+    });
+  });
+
+  it('derives warning, ok, and unknown forecast alert states', () => {
+    const baseSummary = {
+      delayedWorkItems: 0,
+      expectedWorkItems: 2,
+      expectedWorkItemsDeferred: 0,
+      generatedAt: '2026-05-14T12:00:00.000Z',
+      latestSnapshotCreatedAt: '2026-05-14T05:20:00.000Z',
+      latestSourceRunId: 'run-1',
+      missingWorkItems: 0,
+      observedWorkItems: 2,
+      snapshotDate: '2026-05-13',
+      staleWorkItems: 0,
+      unexpectedObservedWorkItems: 0,
+    };
+
+    expect(
+      deriveAdminCrmForecastAlert({
+        batchRows: [],
+        coverageRows: [],
+        hiddenCoverageRowCount: 0,
+        state: 'data',
+        summary: { ...baseSummary, expectedWorkItemsDeferred: 1 },
+      }).severity
+    ).toBe('warning');
+    expect(
+      deriveAdminCrmForecastAlert({
+        batchRows: [],
+        coverageRows: [],
+        hiddenCoverageRowCount: 0,
+        state: 'data',
+        summary: baseSummary,
+      }).severity
+    ).toBe('ok');
+    expect(
+      deriveAdminCrmForecastAlert({
+        batchRows: [],
+        coverageRows: [],
+        hiddenCoverageRowCount: 0,
+        state: 'empty',
+        summary: { ...baseSummary, expectedWorkItems: 0, observedWorkItems: 0 },
+      })
+    ).toMatchObject({
+      generatedAt: baseSummary.generatedAt,
+      metrics: {
+        latestSnapshotCreatedAt: baseSummary.latestSnapshotCreatedAt,
+        latestSourceRunId: baseSummary.latestSourceRunId,
+      },
+      severity: 'unknown',
+      snapshotDate: baseSummary.snapshotDate,
+    });
+    expect(
+      deriveAdminCrmForecastAlert({
+        batchRows: [],
+        coverageRows: [],
+        hiddenCoverageRowCount: 0,
+        messageKey: 'error.generic',
+        state: 'error',
+        summary: null,
+      })
+    ).toMatchObject({
+      generatedAt: null,
+      metrics: {
+        latestSnapshotCreatedAt: null,
+        latestSourceRunId: null,
+      },
+      severity: 'unknown',
+      snapshotDate: null,
+    });
+  });
+
   it('keeps widget row shapes aggregate-only and PII-free', async () => {
     const repositories = createRepositories();
     const dashboard = await getAdminCrmReportingCore(
@@ -394,6 +510,8 @@ describe('admin CRM reporting core', () => {
       ...Object.keys(dashboard.forecastObservability.summary ?? {}),
       ...Object.keys(dashboard.forecastObservability.coverageRows[0] ?? {}),
       ...Object.keys(dashboard.forecastObservability.batchRows[0] ?? {}),
+      ...Object.keys(dashboard.forecastAlert),
+      ...Object.keys(dashboard.forecastAlert.metrics),
     ];
 
     for (const forbiddenKey of ADMIN_CRM_FORBIDDEN_PII_KEYS) {
