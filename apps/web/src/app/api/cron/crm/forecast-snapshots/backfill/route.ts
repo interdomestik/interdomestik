@@ -8,6 +8,7 @@ import {
   CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_WORK_ITEMS_PER_DATE,
   CRM_FORECAST_SNAPSHOT_BACKFILL_RATE_LIMIT,
   CRM_FORECAST_SNAPSHOT_BACKFILL_RATE_LIMIT_WINDOW_SECONDS,
+  CrmForecastSnapshotBackfillCoreError,
   assertNoCrmForecastSnapshotBackfillPiiKeys,
   getCrmForecastSnapshotBackfillStatus,
   logCrmForecastSnapshotBackfillResult,
@@ -122,18 +123,17 @@ function mapCoreError(error: unknown): {
   error: string;
   status: 400 | 500;
 } {
-  const message = error instanceof Error ? error.message : String(error);
-  if (message.includes('tenantId')) {
-    return { code: 'invalid_tenant', error: 'Invalid tenant', status: 400 };
-  }
-  if (message.includes('range is too large')) {
-    return { code: 'range_too_large', error: 'Date range is too large', status: 400 };
-  }
-  if (message.includes('before today') || message.includes('out of bounds')) {
-    return { code: 'date_out_of_bounds', error: 'Date is out of bounds', status: 400 };
-  }
-  if (message.includes('date range is invalid') || message.includes('Invalid CRM forecast')) {
-    return { code: 'invalid_range', error: 'Invalid date range', status: 400 };
+  if (error instanceof CrmForecastSnapshotBackfillCoreError) {
+    switch (error.code) {
+      case 'invalid_tenant':
+        return { code: 'invalid_tenant', error: 'Invalid tenant', status: 400 };
+      case 'range_too_large':
+        return { code: 'range_too_large', error: 'Date range is too large', status: 400 };
+      case 'date_out_of_bounds':
+        return { code: 'date_out_of_bounds', error: 'Date is out of bounds', status: 400 };
+      case 'invalid_range':
+        return { code: 'invalid_range', error: 'Invalid date range', status: 400 };
+    }
   }
   return { code: 'internal_error', error: 'Internal Server Error', status: 500 };
 }

@@ -30,6 +30,7 @@ vi.mock('./_core', async importOriginal => {
 });
 
 import { POST } from './route';
+import { CrmForecastSnapshotBackfillCoreError } from './_core';
 
 const result = {
   completedAt: '2026-05-15T10:30:01.000Z',
@@ -198,7 +199,10 @@ describe('POST /api/cron/crm/forecast-snapshots/backfill', () => {
 
   it('maps core range errors to stable 400 codes', async () => {
     hoisted.runCrmForecastSnapshotBackfillCore.mockRejectedValueOnce(
-      new Error('CRM forecast snapshot backfill range is too large')
+      new CrmForecastSnapshotBackfillCoreError(
+        'range_too_large',
+        'CRM forecast snapshot backfill range is too large'
+      )
     );
     const tooLarge = await POST(
       request({ fromDate: '2026-05-08', tenantId: 'tenant-1', toDate: '2026-05-14' })
@@ -211,7 +215,10 @@ describe('POST /api/cron/crm/forecast-snapshots/backfill', () => {
     });
 
     hoisted.runCrmForecastSnapshotBackfillCore.mockRejectedValueOnce(
-      new Error('CRM forecast snapshot backfill date must be before today')
+      new CrmForecastSnapshotBackfillCoreError(
+        'date_out_of_bounds',
+        'CRM forecast snapshot backfill date must be before today'
+      )
     );
     const outOfBounds = await POST(
       request({ fromDate: '2026-05-15', tenantId: 'tenant-1', toDate: '2026-05-15' })

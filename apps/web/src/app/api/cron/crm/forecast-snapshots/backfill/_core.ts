@@ -84,6 +84,22 @@ export interface CrmForecastSnapshotBackfillResult {
 
 export type CrmForecastSnapshotBackfillLogger = Pick<Console, 'error' | 'info' | 'warn'>;
 
+export type CrmForecastSnapshotBackfillCoreErrorCode =
+  | 'date_out_of_bounds'
+  | 'invalid_range'
+  | 'invalid_tenant'
+  | 'range_too_large';
+
+export class CrmForecastSnapshotBackfillCoreError extends Error {
+  constructor(
+    readonly code: CrmForecastSnapshotBackfillCoreErrorCode,
+    message: string
+  ) {
+    super(message);
+    this.name = 'CrmForecastSnapshotBackfillCoreError';
+  }
+}
+
 export type RunCrmForecastSnapshotBackfillCoreArgs = {
   dryRun?: boolean;
   fromDate: string;
@@ -108,7 +124,12 @@ export async function runCrmForecastSnapshotBackfillCore(
   const dryRun = args.dryRun === true;
   const dates = validateBackfillDateRange(args.fromDate, args.toDate, args.now);
   const tenantId = args.tenantId.trim();
-  if (!tenantId) throw new Error('CRM forecast snapshot backfill tenantId is required');
+  if (!tenantId) {
+    throw new CrmForecastSnapshotBackfillCoreError(
+      'invalid_tenant',
+      'CRM forecast snapshot backfill tenantId is required'
+    );
+  }
 
   const sourceRunId =
     args.sourceRunId ??
@@ -167,24 +188,36 @@ export function validateBackfillDateRange(fromDate: string, toDate: string, now:
   const from = parseSnapshotDate(fromDate);
   const to = parseSnapshotDate(toDate);
   if (from.getTime() > to.getTime()) {
-    throw new Error('CRM forecast snapshot backfill date range is invalid');
+    throw new CrmForecastSnapshotBackfillCoreError(
+      'invalid_range',
+      'CRM forecast snapshot backfill date range is invalid'
+    );
   }
 
   const previous = previousUtcDateAsDate(now);
   if (to.getTime() > previous.getTime()) {
-    throw new Error('CRM forecast snapshot backfill date must be before today');
+    throw new CrmForecastSnapshotBackfillCoreError(
+      'date_out_of_bounds',
+      'CRM forecast snapshot backfill date must be before today'
+    );
   }
 
   const earliest = new Date(
     previous.getTime() - CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_LOOKBACK_DAYS * MS_PER_DAY
   );
   if (from.getTime() < earliest.getTime()) {
-    throw new Error('CRM forecast snapshot backfill date is out of bounds');
+    throw new CrmForecastSnapshotBackfillCoreError(
+      'date_out_of_bounds',
+      'CRM forecast snapshot backfill date is out of bounds'
+    );
   }
 
   const count = Math.floor((to.getTime() - from.getTime()) / MS_PER_DAY) + 1;
   if (count > CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_DAYS) {
-    throw new Error('CRM forecast snapshot backfill range is too large');
+    throw new CrmForecastSnapshotBackfillCoreError(
+      'range_too_large',
+      'CRM forecast snapshot backfill range is too large'
+    );
   }
 
   return Array.from({ length: count }, (_, index) =>
@@ -500,10 +533,18 @@ export function buildBackfillSnapshotIdempotencyKey(
 }
 
 function parseSnapshotDate(value: string): Date {
-  if (!DATE_PATTERN.test(value)) throw new Error('Invalid CRM forecast snapshot backfill date');
+  if (!DATE_PATTERN.test(value)) {
+    throw new CrmForecastSnapshotBackfillCoreError(
+      'invalid_range',
+      'Invalid CRM forecast snapshot backfill date'
+    );
+  }
   const date = new Date(`${value}T00:00:00.000Z`);
   if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
-    throw new Error('Invalid CRM forecast snapshot backfill date');
+    throw new CrmForecastSnapshotBackfillCoreError(
+      'invalid_range',
+      'Invalid CRM forecast snapshot backfill date'
+    );
   }
   return date;
 }
