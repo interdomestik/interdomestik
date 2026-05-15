@@ -27,6 +27,12 @@ test.describe('Admin CRM reporting role paths', () => {
     await expect(
       page.getByTestId('admin-crm-forecast-observability-batches').first()
     ).toBeVisible();
+    await expect(
+      page.getByTestId('admin-crm-forecast-backfill-operator-form').first()
+    ).toBeVisible();
+    await expect(
+      page.getByTestId('admin-crm-forecast-backfill-operator-dry-run').first()
+    ).toBeVisible();
   });
 
   test('branch-manager session reaches branch-scoped CRM reporting markers', async ({
@@ -47,5 +53,10 @@ test.describe('Admin CRM reporting role paths', () => {
     await expect(page.getByTestId('admin-crm-forecast-observability-summary')).toHaveCount(0);
     await expect(page.getByTestId('admin-crm-forecast-observability-coverage')).toHaveCount(0);
     await expect(page.getByTestId('admin-crm-forecast-observability-batches')).toHaveCount(0);
+    await expect(page.getByTestId('admin-crm-forecast-backfill-operator-form')).toHaveCount(0);
+    await expect(page.getByTestId('admin-crm-forecast-backfill-operator-dry-run')).toHaveCount(0);
+    await expect(
+      page.getByTestId('admin-crm-forecast-backfill-operator-confirm-write')
+    ).toHaveCount(0);
   });
 });
