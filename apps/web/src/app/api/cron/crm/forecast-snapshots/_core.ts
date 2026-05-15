@@ -1,9 +1,6 @@
 import {
   CRM_REPORTING_MAX_WINDOW_DAYS,
-  deriveCrmForecastSnapshot,
-  deriveCrmWeightedPipeline,
   type CrmReportingBaseInput,
-  type CrmWeightedPipelineRow,
 } from '@interdomestik/domain-crm/reporting';
 import type {
   CrmForecastSnapshotRepository,
@@ -21,6 +18,15 @@ import {
   crmReportingRepository,
 } from '@/lib/domain-crm/reporting-repository';
 
+import {
+  assertNoCrmForecastSnapshotPiiKeys,
+  buildCrmForecastSnapshotsForWorkItem,
+  isCrmForecastSnapshotSoftTimeoutError,
+  throwIfCrmForecastSnapshotAborted,
+  withCrmForecastSnapshotTimeout,
+  type CrmForecastSnapshotTenantWeightedRows,
+} from './_shared';
+
 export const CRM_FORECAST_SNAPSHOT_IDEMPOTENCY_PREFIX = 'crm-forecast-snapshot';
 export const CRM_FORECAST_SNAPSHOT_NO_BRANCH_SENTINEL = '_no_branch';
 export const CRM_FORECAST_SNAPSHOT_TARGET_DURATION_MS = 60_000;
@@ -28,7 +34,7 @@ export const CRM_FORECAST_SNAPSHOT_WORK_ITEM_SOFT_TIMEOUT_MS = 5_000;
 
 const SYSTEM_ACTOR_ID = 'system:crm-forecast-snapshot-scheduler';
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const PII_RESPONSE_KEYS = new Set('description|email|fullName|notes|phone|subject'.split('|'));
+const SOFT_TIMEOUT_MESSAGE = 'CRM forecast snapshot timed out';
 
 export type CrmForecastSnapshotSchedulerResult = {
   completedAt: string;
@@ -59,8 +65,6 @@ export type RunCrmForecastSnapshotSchedulerCoreArgs = {
   workItemSoftTimeoutMs?: number;
 };
 
-type TenantWeightedRows = Map<string, Promise<readonly CrmWeightedPipelineRow[]>>;
-
 export async function runCrmForecastSnapshotSchedulerCore(
   args: RunCrmForecastSnapshotSchedulerCoreArgs
 ): Promise<CrmForecastSnapshotSchedulerResult> {
@@ -89,7 +93,7 @@ export async function runCrmForecastSnapshotSchedulerCore(
   result.workItemsConsidered = listed.workItems.length;
   result.workItemsDeferred = listed.workItemsDeferred;
 
-  const tenantRows = new Map<string, Promise<readonly CrmWeightedPipelineRow[]>>();
+  const tenantRows: CrmForecastSnapshotTenantWeightedRows = new Map();
   for (const [index, workItem] of listed.workItems.entries()) {
     if (nowMs() - startedMs >= targetDurationMs) {
       result.workItemsDeferred += listed.workItems.length - index;
@@ -121,7 +125,7 @@ export async function runCrmForecastSnapshotSchedulerCore(
     } catch (error) {
       result.failedWorkItems += 1;
       logWorkItemFailure(logger, workItem, error);
-      if (isSoftTimeoutError(error)) {
+      if (isCrmForecastSnapshotSoftTimeoutError(error)) {
         result.workItemsDeferred += listed.workItems.length - index - 1;
         break;
       }
@@ -144,7 +148,7 @@ function logWorkItemFailure(
     pipelineId: workItem.pipelineId,
     tenantId: workItem.tenantId,
   };
-  const message = isSoftTimeoutError(error)
+  const message = isCrmForecastSnapshotSoftTimeoutError(error)
     ? '[CRM Forecast Snapshot Scheduler] work item timed out'
     : '[CRM Forecast Snapshot Scheduler] work item failed';
   logger.warn(message, payload);
@@ -190,13 +194,7 @@ export function logCrmForecastSnapshotSchedulerResult(
 }
 
 export function assertNoCrmForecastSnapshotSchedulerPiiKeys(value: unknown): void {
-  const keys = new Set<string>();
-  collectKeys(value, keys);
-  for (const key of keys) {
-    if (PII_RESPONSE_KEYS.has(key)) {
-      throw new Error(`CRM forecast snapshot scheduler output contains PII key: ${key}`);
-    }
-  }
+  assertNoCrmForecastSnapshotPiiKeys(value, 'CRM forecast snapshot scheduler output');
 }
 
 function createResult(params: { snapshotDate: string; sourceRunId: string; startedAt: string }) {
@@ -250,59 +248,33 @@ async function processWorkItem(args: {
   snapshotDateStartInclusive: Date;
   snapshotRepository: CrmForecastSnapshotRepository;
   sourceRunId: string;
-  tenantRows: TenantWeightedRows;
+  tenantRows: CrmForecastSnapshotTenantWeightedRows;
   workItem: CrmForecastSnapshotWorkItem;
 }): Promise<number | 'version_conflict'> {
-  throwIfAborted(args.signal);
-  const rows = await getTenantRows(args);
-  throwIfAborted(args.signal);
-  const filtered = rows.filter(row => isWorkItemRow(row, args.workItem));
-  const input = reportingInputFor(
-    args.workItem.tenantId,
-    args.snapshotDateStartInclusive,
-    args.snapshotDateEndExclusive
-  );
-  const weighted = deriveCrmWeightedPipeline(filtered, {
-    ...input,
-    groupBy: ['branch', 'pipeline'],
-  });
-  const idempotencyKey = buildSnapshotIdempotencyKey(args.workItem, {
-    snapshotDate: args.snapshotDate,
-    sourceRunId: args.sourceRunId,
-  });
-  const snapshots = deriveCrmForecastSnapshot(weighted.groups, {
+  const snapshots = await buildCrmForecastSnapshotsForWorkItem({
+    abortMessage: SOFT_TIMEOUT_MESSAGE,
     createdAt: new Date().toISOString(),
-    idempotencyKey,
+    idempotencyKey: buildSnapshotIdempotencyKey(args.workItem, {
+      snapshotDate: args.snapshotDate,
+      sourceRunId: args.sourceRunId,
+    }),
+    reportingInputFor,
+    reportingRepository: args.reportingRepository,
+    signal: args.signal,
     snapshotDate: args.snapshotDate,
+    snapshotDateEndExclusive: args.snapshotDateEndExclusive,
+    snapshotDateStartInclusive: args.snapshotDateStartInclusive,
     sourceRunId: args.sourceRunId,
+    tenantRows: args.tenantRows,
+    workItem: args.workItem,
   });
 
   if (snapshots.length === 0) return 0;
-  throwIfAborted(args.signal);
+  throwIfCrmForecastSnapshotAborted(args.signal, SOFT_TIMEOUT_MESSAGE);
   const inserted = await args.snapshotRepository.insertPipelineSnapshots({ snapshots });
-  throwIfAborted(args.signal);
+  throwIfCrmForecastSnapshotAborted(args.signal, SOFT_TIMEOUT_MESSAGE);
   if (!inserted.success) return inserted.reason;
   return inserted.snapshots.length;
-}
-
-function getTenantRows(args: {
-  reportingRepository: CrmReportingRepository;
-  snapshotDateStartInclusive: Date;
-  snapshotDateEndExclusive: Date;
-  tenantRows: TenantWeightedRows;
-  workItem: CrmForecastSnapshotWorkItem;
-}) {
-  const cached = args.tenantRows.get(args.workItem.tenantId);
-  if (cached) return cached;
-  const loaded = args.reportingRepository.listWeightedPipelineRows(
-    reportingInputFor(
-      args.workItem.tenantId,
-      args.snapshotDateStartInclusive,
-      args.snapshotDateEndExclusive
-    )
-  );
-  args.tenantRows.set(args.workItem.tenantId, loaded);
-  return loaded;
 }
 
 function reportingInputFor(tenantId: string, from: Date, to: Date): CrmReportingBaseInput {
@@ -315,18 +287,6 @@ function reportingInputFor(tenantId: string, from: Date, to: Date): CrmReporting
     },
     window: { from: from.toISOString(), to: to.toISOString() },
   };
-}
-
-function isWorkItemRow(
-  row: CrmWeightedPipelineRow,
-  workItem: CrmForecastSnapshotWorkItem
-): boolean {
-  return (
-    row.tenantId === workItem.tenantId &&
-    row.pipelineId === workItem.pipelineId &&
-    (row.branchId ?? null) === (workItem.branchId ?? null) &&
-    row.currencyCode === workItem.currencyCode
-  );
 }
 
 export function buildSnapshotIdempotencyKey(
@@ -344,64 +304,9 @@ export function buildSnapshotIdempotencyKey(
   ].join(':');
 }
 
-class SoftTimeoutError extends Error {
-  constructor() {
-    super('CRM forecast snapshot timed out');
-    this.name = 'SoftTimeoutError';
-  }
-}
-
-function isSoftTimeoutError(error: unknown): error is SoftTimeoutError {
-  return error instanceof SoftTimeoutError;
-}
-
-function throwIfAborted(signal: AbortSignal): void {
-  if (signal.aborted) {
-    throw new SoftTimeoutError();
-  }
-}
-
 function withTimeout<T>(
   startWork: (signal: AbortSignal) => Promise<T>,
   timeoutMs: number
 ): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const controller = new AbortController();
-    let settled = false;
-    const timeout = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      controller.abort();
-      reject(new SoftTimeoutError());
-    }, timeoutMs);
-    const work = startWork(controller.signal);
-    work
-      .then(
-        value => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timeout);
-          resolve(value);
-        },
-        error => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timeout);
-          reject(error);
-        }
-      )
-      .catch(() => undefined);
-  });
-}
-
-function collectKeys(value: unknown, keys: Set<string>): void {
-  if (!value || typeof value !== 'object') return;
-  if (Array.isArray(value)) {
-    value.forEach(item => collectKeys(item, keys));
-    return;
-  }
-  for (const [key, nested] of Object.entries(value)) {
-    keys.add(key);
-    collectKeys(nested, keys);
-  }
+  return withCrmForecastSnapshotTimeout(startWork, timeoutMs, SOFT_TIMEOUT_MESSAGE);
 }
