@@ -1,9 +1,6 @@
 import {
   CRM_REPORTING_MAX_WINDOW_DAYS,
-  deriveCrmForecastSnapshot,
-  deriveCrmWeightedPipeline,
   type CrmReportingBaseInput,
-  type CrmWeightedPipelineRow,
 } from '@interdomestik/domain-crm/reporting';
 import type {
   CrmForecastSnapshotRepository,
@@ -22,11 +19,13 @@ import {
 } from '@/lib/domain-crm/reporting-repository';
 
 import {
+  deriveCrmForecastSnapshotsForWorkItem,
   assertNoCrmForecastSnapshotPiiKeys,
+  loadCrmForecastSnapshotTenantRows,
   isCrmForecastSnapshotSoftTimeoutError,
-  isCrmForecastSnapshotWorkItemRow,
   throwIfCrmForecastSnapshotAborted,
   withCrmForecastSnapshotTimeout,
+  type CrmForecastSnapshotTenantWeightedRows,
 } from './_shared';
 
 export const CRM_FORECAST_SNAPSHOT_IDEMPOTENCY_PREFIX = 'crm-forecast-snapshot';
@@ -67,8 +66,6 @@ export type RunCrmForecastSnapshotSchedulerCoreArgs = {
   workItemSoftTimeoutMs?: number;
 };
 
-type TenantWeightedRows = Map<string, Promise<readonly CrmWeightedPipelineRow[]>>;
-
 export async function runCrmForecastSnapshotSchedulerCore(
   args: RunCrmForecastSnapshotSchedulerCoreArgs
 ): Promise<CrmForecastSnapshotSchedulerResult> {
@@ -97,7 +94,7 @@ export async function runCrmForecastSnapshotSchedulerCore(
   result.workItemsConsidered = listed.workItems.length;
   result.workItemsDeferred = listed.workItemsDeferred;
 
-  const tenantRows = new Map<string, Promise<readonly CrmWeightedPipelineRow[]>>();
+  const tenantRows: CrmForecastSnapshotTenantWeightedRows = new Map();
   for (const [index, workItem] of listed.workItems.entries()) {
     if (nowMs() - startedMs >= targetDurationMs) {
       result.workItemsDeferred += listed.workItems.length - index;
@@ -252,31 +249,35 @@ async function processWorkItem(args: {
   snapshotDateStartInclusive: Date;
   snapshotRepository: CrmForecastSnapshotRepository;
   sourceRunId: string;
-  tenantRows: TenantWeightedRows;
+  tenantRows: CrmForecastSnapshotTenantWeightedRows;
   workItem: CrmForecastSnapshotWorkItem;
 }): Promise<number | 'version_conflict'> {
   throwIfCrmForecastSnapshotAborted(args.signal, SOFT_TIMEOUT_MESSAGE);
-  const rows = await getTenantRows(args);
+  const rows = await loadCrmForecastSnapshotTenantRows({
+    reportingInputFor,
+    reportingRepository: args.reportingRepository,
+    snapshotDateEndExclusive: args.snapshotDateEndExclusive,
+    snapshotDateStartInclusive: args.snapshotDateStartInclusive,
+    tenantRows: args.tenantRows,
+    workItem: args.workItem,
+  });
   throwIfCrmForecastSnapshotAborted(args.signal, SOFT_TIMEOUT_MESSAGE);
-  const filtered = rows.filter(row => isCrmForecastSnapshotWorkItemRow(row, args.workItem));
   const input = reportingInputFor(
     args.workItem.tenantId,
     args.snapshotDateStartInclusive,
     args.snapshotDateEndExclusive
   );
-  const weighted = deriveCrmWeightedPipeline(filtered, {
-    ...input,
-    groupBy: ['branch', 'pipeline'],
-  });
-  const idempotencyKey = buildSnapshotIdempotencyKey(args.workItem, {
-    snapshotDate: args.snapshotDate,
-    sourceRunId: args.sourceRunId,
-  });
-  const snapshots = deriveCrmForecastSnapshot(weighted.groups, {
+  const snapshots = deriveCrmForecastSnapshotsForWorkItem({
     createdAt: new Date().toISOString(),
-    idempotencyKey,
+    idempotencyKey: buildSnapshotIdempotencyKey(args.workItem, {
+      snapshotDate: args.snapshotDate,
+      sourceRunId: args.sourceRunId,
+    }),
+    input,
+    rows,
     snapshotDate: args.snapshotDate,
     sourceRunId: args.sourceRunId,
+    workItem: args.workItem,
   });
 
   if (snapshots.length === 0) return 0;
@@ -285,26 +286,6 @@ async function processWorkItem(args: {
   throwIfCrmForecastSnapshotAborted(args.signal, SOFT_TIMEOUT_MESSAGE);
   if (!inserted.success) return inserted.reason;
   return inserted.snapshots.length;
-}
-
-function getTenantRows(args: {
-  reportingRepository: CrmReportingRepository;
-  snapshotDateStartInclusive: Date;
-  snapshotDateEndExclusive: Date;
-  tenantRows: TenantWeightedRows;
-  workItem: CrmForecastSnapshotWorkItem;
-}) {
-  const cached = args.tenantRows.get(args.workItem.tenantId);
-  if (cached) return cached;
-  const loaded = args.reportingRepository.listWeightedPipelineRows(
-    reportingInputFor(
-      args.workItem.tenantId,
-      args.snapshotDateStartInclusive,
-      args.snapshotDateEndExclusive
-    )
-  );
-  args.tenantRows.set(args.workItem.tenantId, loaded);
-  return loaded;
 }
 
 function reportingInputFor(tenantId: string, from: Date, to: Date): CrmReportingBaseInput {
