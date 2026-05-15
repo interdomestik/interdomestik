@@ -1,0 +1,43 @@
+FROM node:24-bookworm
+
+ENV CI=1
+ENV HUSKY=0
+ENV PNPM_HOME=/pnpm
+ENV PNPM_STORE_DIR=/pnpm-store
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
+ENV PATH=$PNPM_HOME:$PATH
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    bash \
+    ca-certificates \
+    curl \
+    git \
+    jq \
+    lsof \
+    openssl \
+    postgresql-client \
+    procps \
+    ripgrep \
+  && npm exec --yes playwright@1.60.0 -- install-deps chromium \
+  && corepack enable \
+  && corepack prepare pnpm@10.28.2 --activate \
+  && mkdir -p \
+    /pnpm \
+    /pnpm-store \
+    /workspace/node_modules \
+    /workspace/apps/web/node_modules \
+    /home/node/.cache/ms-playwright \
+    /home/node/.cache/turbo \
+  && chown -R node:node \
+    /pnpm \
+    /pnpm-store \
+    /workspace \
+    /home/node/.cache \
+  && node --version \
+  && pnpm --version \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+USER node

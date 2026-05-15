@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
+const MCP_RESPONSE_TIMEOUT_MS = Number(process.env.QA_MCP_CONTRACT_TIMEOUT_MS ?? 10000);
 
 async function createMcpClient() {
   const child = spawn('/bin/bash', ['scripts/start-repo-qa.sh'], {
@@ -67,7 +68,7 @@ async function createMcpClient() {
       const timeout = setTimeout(() => {
         pending.delete(id);
         reject(new Error(`Timed out waiting for MCP response ${id} (${label})`));
-      }, 10000);
+      }, MCP_RESPONSE_TIMEOUT_MS);
 
       pending.set(id, {
         label,

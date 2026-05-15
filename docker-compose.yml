@@ -119,6 +119,64 @@ services:
     ipc: host # Recommended for browser testing
     shm_size: '1gb'
 
+  ci-postgres:
+    profiles: ['ci-local']
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: interdomestik_test
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d interdomestik_test']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - interdomestik-net
+
+  ci-parity:
+    profiles: ['ci-local']
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ci-parity
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - ci_local_pnpm_store:/pnpm-store
+      - ci_local_root_node_modules:/workspace/node_modules
+      - ci_local_web_node_modules:/workspace/apps/web/node_modules
+      - ci_local_playwright_cache:/home/node/.cache/ms-playwright
+      - ci_local_turbo_cache:/home/node/.cache/turbo
+      - ${CI_LOCAL_GIT_DIR:-.git}:${CI_LOCAL_GIT_DIR:-/workspace/.git}:ro
+      - ${CI_LOCAL_GIT_COMMON_DIR:-.git}:${CI_LOCAL_GIT_COMMON_DIR:-/workspace/.git}:ro
+    environment:
+      CI: '1'
+      PLAYWRIGHT: '1'
+      HUSKY: '0'
+      PNPM_STORE_DIR: /pnpm-store
+      PLAYWRIGHT_BROWSERS_PATH: /home/node/.cache/ms-playwright
+      TURBO_CACHE_DIR: /home/node/.cache/turbo
+      NEXT_PUBLIC_BILLING_TEST_MODE: '1'
+      PORT: '3000'
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      DATABASE_URL: postgresql://postgres:postgres@ci-postgres:5432/interdomestik_test
+      DATABASE_URL_RLS: postgresql://postgres:postgres@ci-postgres:5432/interdomestik_test
+      E2E_DATABASE_URL: postgresql://postgres:postgres@ci-postgres:5432/interdomestik_test
+      E2E_DATABASE_URL_RLS: postgresql://postgres:postgres@ci-postgres:5432/interdomestik_test
+      BETTER_AUTH_SECRET: test-secret-for-ci-only-do-not-use-in-production
+      NODE_OPTIONS: --max-old-space-size=4096
+      QA_MCP_CONTRACT_TIMEOUT_MS: '30000'
+      UPSTASH_REDIS_REST_URL: http://localhost:8080
+      UPSTASH_REDIS_REST_TOKEN: dummy-token
+    depends_on:
+      ci-postgres:
+        condition: service_healthy
+    networks:
+      - interdomestik-net
+    ipc: host
+    shm_size: '1gb'
+
   redis:
     profiles: ['infra', 'gate']
     image: redis:alpine
@@ -205,6 +263,11 @@ volumes:
   playwright_pnpm_store:
   playwright_root_node_modules:
   playwright_web_node_modules:
+  ci_local_pnpm_store:
+  ci_local_root_node_modules:
+  ci_local_web_node_modules:
+  ci_local_playwright_cache:
+  ci_local_turbo_cache:
   sonar_data:
   sonar_extensions:
   sonar_logs:
