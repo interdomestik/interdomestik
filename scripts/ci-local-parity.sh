@@ -211,8 +211,29 @@ run_unit_checks() {
   run pnpm test:release-gate
 }
 
+run_rls_integration_gate() {
+  run pnpm db:rls:test:required
+}
+
 run_security_checks() {
   run pnpm security:guard
+  run_shell '
+    attempt() {
+      pnpm audit --prod --audit-level=high --json > /tmp/pnpm-audit.json || true
+      node scripts/pnpm-audit-gate.mjs /tmp/pnpm-audit.json
+    }
+
+    for i in 1 2 3; do
+      if attempt; then
+        exit 0
+      fi
+      echo "pnpm audit gate failed (attempt ${i}/3). Retrying..." >&2
+      sleep $((i * 5))
+    done
+
+    echo "pnpm audit gate failed after retries." >&2
+    exit 1
+  '
 }
 
 run_strict_e2e_guards() {
@@ -276,6 +297,7 @@ run_pr_inside() {
   run_ci_audit
   run_static_checks
   run_unit_checks
+  run_rls_integration_gate
   run_pr_e2e_gate
   run_pilot_gate_p0
   run_security_checks

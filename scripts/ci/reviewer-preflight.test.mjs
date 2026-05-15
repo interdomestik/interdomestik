@@ -23,6 +23,10 @@ function withTempRepo(callback) {
     cwd: tmpDir,
     env: SAFE_EXEC_ENV,
   });
+  execFileSync(GIT_BIN, ['config', 'commit.gpgsign', 'false'], {
+    cwd: tmpDir,
+    env: SAFE_EXEC_ENV,
+  });
 
   try {
     callback(tmpDir);
@@ -80,6 +84,50 @@ test('review preflight blocks hard-coded local URLs in production app source', (
 
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /hard-codes local URL/u);
+  });
+});
+
+test('review preflight only checks newly added production lines by default', () => {
+  withTempRepo(root => {
+    writeFile(
+      root,
+      'apps/web/src/lib/example.ts',
+      'export const existing = "http://127.0.0.1:54321";\n'
+    );
+    commitAll(root, 'initial');
+
+    writeFile(
+      root,
+      'apps/web/src/lib/example.ts',
+      [
+        'export const existing = "http://127.0.0.1:54321";',
+        'export const changed = true;',
+        '',
+      ].join('\n')
+    );
+
+    const result = runPreflight(root);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /review-preflight passed/u);
+  });
+});
+
+test('review preflight blocks newly added optional-binding empty catches', () => {
+  withTempRepo(root => {
+    writeFile(root, 'apps/web/src/lib/example.ts', 'export const value = 1;\n');
+    commitAll(root, 'initial');
+
+    writeFile(
+      root,
+      'apps/web/src/lib/example.ts',
+      ['export function swallow() {', '  try {} catch {}', '}', ''].join('\n')
+    );
+
+    const result = runPreflight(root);
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /empty catch block/u);
   });
 });
 

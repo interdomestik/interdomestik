@@ -10,7 +10,8 @@ const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']
 const TEST_OR_CONFIG_PATTERN =
   /(\.test\.|\.spec\.|playwright\.config\.|next\.config\.|instrumentation\.)/u;
 const LOCAL_URL_PATTERN = /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/u;
-const EMPTY_CATCH_PATTERN = /catch\s*\([^)]*\)\s*\{\s*\}/u;
+const EMPTY_CATCH_PATTERN = /catch\s*(?:\([^)]*\)\s*)?\{\s*\}/u;
+const ENV_OR_FALLBACK_PATTERN = /process\.env\.[A-Z0-9_]+\s*\|\|\s*['"`]/u;
 
 function git(args) {
   return execFileSync(GIT_BIN, args, {
@@ -68,6 +69,66 @@ function changedFiles() {
   return [...files].sort((left, right) => left.localeCompare(right));
 }
 
+function diffAddedLines(diff) {
+  const lines = [];
+  let newLine = 0;
+
+  for (const line of diff.split('\n')) {
+    const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/u.exec(line);
+    if (hunk) {
+      newLine = Number(hunk[1]);
+      continue;
+    }
+
+    if (line.startsWith('+++')) {
+      continue;
+    }
+
+    if (line.startsWith('+')) {
+      lines.push({ line: newLine, text: line.slice(1) });
+      newLine += 1;
+      continue;
+    }
+
+    if (line.startsWith('-')) {
+      continue;
+    }
+
+    if (newLine > 0) {
+      newLine += 1;
+    }
+  }
+
+  return lines;
+}
+
+function changedLineRecords(file) {
+  const records = [];
+  const base = resolveMergeBase();
+  const diffs = [
+    tryGit(['diff', '--unified=0', '--no-ext-diff', `${base}...HEAD`, '--', file]),
+    tryGit(['diff', '--unified=0', '--no-ext-diff', '--cached', '--', file]),
+    tryGit(['diff', '--unified=0', '--no-ext-diff', '--', file]),
+  ];
+
+  for (const diff of diffs) {
+    records.push(...diffAddedLines(diff));
+  }
+
+  const untracked = tryGit(['ls-files', '--others', '--exclude-standard', '--', file]);
+  if (untracked.trim() === file && fs.existsSync(file)) {
+    const content = fs.readFileSync(file, 'utf8');
+    records.push(
+      ...content.split('\n').map((text, index) => ({
+        line: index + 1,
+        text,
+      }))
+    );
+  }
+
+  return records;
+}
+
 function isSourceFile(file) {
   return SOURCE_EXTENSIONS.has(path.extname(file));
 }
@@ -82,11 +143,25 @@ function lineForOffset(content, offset) {
   return content.slice(0, offset).split('\n').length;
 }
 
+function lineForRecordsOffset(records, offset) {
+  let cursor = 0;
+
+  for (const record of records) {
+    const width = record.text.length + 1;
+    if (offset < cursor + width) {
+      return record.line;
+    }
+    cursor += width;
+  }
+
+  return records.at(-1)?.line ?? 1;
+}
+
 function addFinding(findings, file, message, line) {
   findings.push(line ? `${file}:${line} ${message}` : `${file} ${message}`);
 }
 
-function inspectFile(file, findings, warnings) {
+function inspectFile(file, findings, warnings, inspectWholeFile) {
   if (PROTECTED_PATHS.has(file)) {
     addFinding(findings, file, 'changes Phase C routing authority; this needs explicit review.', 1);
   }
@@ -95,14 +170,30 @@ function inspectFile(file, findings, warnings) {
     return;
   }
 
-  const content = fs.readFileSync(file, 'utf8');
+  const records = inspectWholeFile
+    ? fs
+        .readFileSync(file, 'utf8')
+        .split('\n')
+        .map((text, index) => ({
+          line: index + 1,
+          text,
+        }))
+    : changedLineRecords(file);
+
+  if (records.length === 0) {
+    return;
+  }
+
+  const content = records.map(record => record.text).join('\n');
   const localUrlMatch = LOCAL_URL_PATTERN.exec(content);
   if (localUrlMatch) {
     addFinding(
       findings,
       file,
       `hard-codes local URL ${localUrlMatch[0]}; derive it from runtime config or keep it in tests/config.`,
-      lineForOffset(content, localUrlMatch.index)
+      inspectWholeFile
+        ? lineForOffset(content, localUrlMatch.index)
+        : lineForRecordsOffset(records, localUrlMatch.index)
     );
   }
 
@@ -112,11 +203,13 @@ function inspectFile(file, findings, warnings) {
       findings,
       file,
       'contains an empty catch block; handle or intentionally document the error path.',
-      lineForOffset(content, emptyCatchMatch.index)
+      inspectWholeFile
+        ? lineForOffset(content, emptyCatchMatch.index)
+        : lineForRecordsOffset(records, emptyCatchMatch.index)
     );
   }
 
-  if (/process\.env\.[A-Z0-9_]+\s*\|\|\s*['"`]/u.test(content)) {
+  if (ENV_OR_FALLBACK_PATTERN.test(content)) {
     warnings.push(
       `${file} uses || fallback for an env var. Prefer ?? when empty string is a meaningful configured value.`
     );
@@ -131,12 +224,13 @@ function hasTestChanges(files) {
   return files.some(file => /\.(test|spec)\.[cm]?[jt]sx?$/u.test(file));
 }
 
+const explicitFiles = process.argv.slice(2);
 const files = changedFiles();
 const findings = [];
 const warnings = [];
 
 for (const file of files) {
-  inspectFile(file, findings, warnings);
+  inspectFile(file, findings, warnings, explicitFiles.length > 0);
 }
 
 if (hasSourceChanges(files) && !hasTestChanges(files)) {

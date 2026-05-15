@@ -144,10 +144,24 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
   assert.match(parityScript, /pnpm -w lint/);
   assert.match(parityScript, /pnpm -w type-check/);
   assert.match(parityScript, /pnpm coverage:gate/);
+  assert.match(parityScript, /pnpm db:rls:test:required/);
   assert.match(parityScript, /pnpm e2e:gate:pr/);
   assert.match(parityScript, /pnpm -s release:gate:p0:raw --baseUrl http:\/\/127\.0\.0\.1:3000/);
   assert.match(parityScript, /pnpm security:guard/);
+  assert.match(parityScript, /pnpm audit --prod --audit-level=high --json/);
+  assert.match(parityScript, /node scripts\/pnpm-audit-gate\.mjs \/tmp\/pnpm-audit\.json/);
   assert.match(parityScript, /pnpm e2e:gate/);
+});
+
+test('QA MCP contract timeout override falls back for invalid values', () => {
+  const qaContract = readRepoFile('scripts/ci/qa-mcp-discovery-contracts.test.mjs');
+
+  assert.match(qaContract, /function parsePositiveTimeout\(value, fallback\)/);
+  assert.match(qaContract, /Number\.isFinite\(parsed\) && parsed > 0/);
+  assert.match(
+    qaContract,
+    /parsePositiveTimeout\(\s*process\.env\.QA_MCP_CONTRACT_TIMEOUT_MS,\s*10000\s*\)/m
+  );
 });
 
 test('docker compose avoids fixed container names and allows worktree-safe port overrides', () => {
