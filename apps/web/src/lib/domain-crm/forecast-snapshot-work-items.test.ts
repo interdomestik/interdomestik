@@ -96,6 +96,7 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
     const result = await repository.listWorkItems({
       snapshotDateEndExclusive: new Date('2026-05-14T00:00:00.000Z'),
       snapshotDateStartInclusive: new Date('2025-04-09T00:00:00.000Z'),
+      tenantId: 'tenant-1',
     });
 
     expect(result.workItems).toEqual([
@@ -107,6 +108,7 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
       },
     ]);
     expect(calls.filter(call => call.method === 'innerJoin')).toHaveLength(2);
+    expect(calls.find(call => call.method === 'where')?.args).toHaveLength(1);
     expect(calls.find(call => call.method === 'groupBy')?.args).toHaveLength(4);
     expect(calls.find(call => call.method === 'limit')?.args).toEqual([
       CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN + 1,

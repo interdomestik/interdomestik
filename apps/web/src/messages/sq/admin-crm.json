@@ -52,8 +52,55 @@
       "closedLost": "Të humbura"
     },
     "labels": {
+      "noBranch": "Pa degë",
       "tenantWide": "Në nivel tenanti",
       "unknownSource": "Burim i panjohur"
+    },
+    "forecastObservability": {
+      "title": "Vëzhgueshmëria e snapshot-it të parashikimit",
+      "description": "Mbulim operacional për datën e mëparshme UTC të snapshot-it të parashikimit.",
+      "empty": "Nuk u gjetën work items të pritura ose të vëzhguara për datën e mëparshme UTC.",
+      "summary": {
+        "expected": "Të pritura",
+        "observed": "Të vëzhguara",
+        "missing": "Mungojnë",
+        "unexpected": "Të papritura",
+        "delayed": "Të vonuara",
+        "stale": "Të vjetra",
+        "deferred": "Të shtyra",
+        "latestRun": "Run-i i fundit"
+      },
+      "status": {
+        "fresh": "I freskët",
+        "delayed": "I vonuar",
+        "stale": "I vjetër",
+        "missing": "Mungon"
+      },
+      "coverage": {
+        "title": "Mbulimi",
+        "empty": "Nuk ka work items të pritura të snapshot-it për këtë datë.",
+        "branch": "Dega",
+        "pipeline": "Linja e shitjeve",
+        "currency": "Valuta",
+        "status": "Statusi",
+        "version": "Versioni",
+        "latestCreated": "Krijimi i fundit",
+        "hidden": "{count, plural, one {# rresht mbulimi i fshehur} other {# rreshta mbulimi të fshehur}}",
+        "hiddenHelp": "Rreshtat e mbulimit kufizohen pas renditjes deterministike."
+      },
+      "batches": {
+        "title": "Batch-et e vëzhguara",
+        "empty": "Nuk ka batch-e snapshot-i të vëzhguara për këtë datë.",
+        "sourceRun": "Run burim",
+        "observed": "Të vëzhguara",
+        "branches": "Degë",
+        "pipelines": "Linja shitjesh",
+        "currencies": "Valuta",
+        "lastCreated": "Krijimi i fundit"
+      },
+      "labels": {
+        "none": "Asnjë"
+      }
     },
     "charts": {
       "hiddenItems": "{count, plural, one {# rresht shtesë është fshehur nga përmbledhja e grafikut} other {# rreshta shtesë janë fshehur nga përmbledhja e grafikut}}",

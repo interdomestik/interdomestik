@@ -23,6 +23,7 @@ export interface CrmForecastSnapshotWorkItemRepository {
     snapshotDateStartInclusive: Date;
     limit?: number;
     snapshotDateEndExclusive: Date;
+    tenantId?: string;
   }): Promise<CrmForecastSnapshotWorkItemList>;
 }
 
@@ -84,8 +85,24 @@ function buildWorkItemQuery(
   params: {
     snapshotDateStartInclusive: Date;
     snapshotDateEndExclusive: Date;
+    tenantId?: string;
   }
 ) {
+  const predicates = [
+    isNull(crmDeals.archivedAt),
+    isNull(crmPipelines.archivedAt),
+    isNull(crmPipelineStages.archivedAt),
+    isNotNull(crmDeals.pipelineId),
+    isNotNull(crmDeals.currentStageId),
+    isNotNull(crmDeals.currencyCode),
+    isNotNull(crmDeals.valueAmountMinor),
+    gte(crmDeals.createdAt, params.snapshotDateStartInclusive),
+    lt(crmDeals.createdAt, params.snapshotDateEndExclusive),
+  ];
+  if (params.tenantId) {
+    predicates.unshift(eq(crmDeals.tenantId, params.tenantId));
+  }
+
   // db-access-guard: tenant-scoped -- reason: CRM forecast snapshot work-item discovery groups tenant-scoped normalized deals and carries tenant ids into every scheduler repository call
   return database
     .select({
@@ -106,19 +123,7 @@ function buildWorkItemQuery(
         eq(crmPipelineStages.id, crmDeals.currentStageId)
       )
     )
-    .where(
-      and(
-        isNull(crmDeals.archivedAt),
-        isNull(crmPipelines.archivedAt),
-        isNull(crmPipelineStages.archivedAt),
-        isNotNull(crmDeals.pipelineId),
-        isNotNull(crmDeals.currentStageId),
-        isNotNull(crmDeals.currencyCode),
-        isNotNull(crmDeals.valueAmountMinor),
-        gte(crmDeals.createdAt, params.snapshotDateStartInclusive),
-        lt(crmDeals.createdAt, params.snapshotDateEndExclusive)
-      )
-    )
+    .where(and(...predicates))
     .groupBy(crmDeals.tenantId, crmDeals.pipelineId, crmDeals.branchId, crmDeals.currencyCode)
     .orderBy(
       asc(crmDeals.tenantId),

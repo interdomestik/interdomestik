@@ -1,4 +1,5 @@
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+import { CircleCheck, CircleSlash, Clock3, TriangleAlert } from 'lucide-react';
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
@@ -17,10 +18,15 @@ import {
   type BranchManagerCrmReportingDashboard,
 } from './_branch-manager-core';
 import {
+  ADMIN_CRM_FORECAST_OBSERVABILITY_BATCHES_MARKER,
+  ADMIN_CRM_FORECAST_OBSERVABILITY_COVERAGE_MARKER,
+  ADMIN_CRM_FORECAST_OBSERVABILITY_SUMMARY_MARKER,
   ADMIN_CRM_REPORTING_MARKER_PREFIX,
   AdminCrmReportingAccessDeniedError,
   getAdminCrmReportingCore,
   type AdminCrmBranchPipelineRow,
+  type AdminCrmForecastObservabilityStatus,
+  type AdminCrmForecastObservabilityWidget,
   type AdminCrmLatestSnapshotRow,
   type AdminCrmReportingDashboard,
   type AdminCrmSourceBreakdownRow,
@@ -34,6 +40,7 @@ import {
   SourceRowsList,
   WidgetEmpty,
   WidgetError,
+  formatCount,
   formatMinorAmount,
   type AdminCrmFormatter,
   type AdminCrmTranslations,
@@ -211,6 +218,240 @@ function SourceBreakdownWidget({
   );
 }
 
+function ForecastObservabilityStatusBadge({
+  status,
+  t,
+}: Readonly<{
+  status: AdminCrmForecastObservabilityStatus;
+  t: Translations;
+}>) {
+  const Icon =
+    status === 'fresh'
+      ? CircleCheck
+      : status === 'delayed'
+        ? Clock3
+        : status === 'stale'
+          ? TriangleAlert
+          : CircleSlash;
+  const className =
+    status === 'fresh'
+      ? 'bg-emerald-50 text-emerald-900'
+      : status === 'delayed'
+        ? 'bg-amber-50 text-amber-900'
+        : status === 'stale'
+          ? 'bg-red-50 text-red-900'
+          : 'bg-muted text-muted-foreground';
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ${className}`}>
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      {t(`forecastObservability.status.${status}`)}
+    </span>
+  );
+}
+
+function ForecastObservabilityWidget({
+  forecastObservability,
+  format,
+  t,
+}: Readonly<{
+  forecastObservability: AdminCrmForecastObservabilityWidget;
+  format: Formatter;
+  t: Translations;
+}>) {
+  const summary = forecastObservability.summary;
+
+  return (
+    <ReportingWidget
+      title={t('forecastObservability.title')}
+      description={t('forecastObservability.description')}
+      marker={ADMIN_CRM_FORECAST_OBSERVABILITY_SUMMARY_MARKER}
+    >
+      {forecastObservability.state === 'error' ? (
+        <WidgetError message={t(forecastObservability.messageKey)} />
+      ) : null}
+      {summary ? (
+        <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-md border p-3">
+            <dt className="text-xs text-muted-foreground">
+              {t('forecastObservability.summary.expected')}
+            </dt>
+            <dd className="text-lg font-semibold">
+              {formatCount(format, summary.expectedWorkItems)}
+            </dd>
+          </div>
+          <div className="rounded-md border p-3">
+            <dt className="text-xs text-muted-foreground">
+              {t('forecastObservability.summary.observed')}
+            </dt>
+            <dd className="text-lg font-semibold">
+              {formatCount(format, summary.observedWorkItems)}
+            </dd>
+          </div>
+          <div className="rounded-md border p-3">
+            <dt className="text-xs text-muted-foreground">
+              {t('forecastObservability.summary.missing')}
+            </dt>
+            <dd className="text-lg font-semibold">
+              {formatCount(format, summary.missingWorkItems)}
+            </dd>
+          </div>
+          <div className="rounded-md border p-3">
+            <dt className="text-xs text-muted-foreground">
+              {t('forecastObservability.summary.unexpected')}
+            </dt>
+            <dd className="text-lg font-semibold">
+              {formatCount(format, summary.unexpectedObservedWorkItems)}
+            </dd>
+          </div>
+          <div className="rounded-md border p-3">
+            <dt className="text-xs text-muted-foreground">
+              {t('forecastObservability.summary.delayed')}
+            </dt>
+            <dd className="text-lg font-semibold">
+              {formatCount(format, summary.delayedWorkItems)}
+            </dd>
+          </div>
+          <div className="rounded-md border p-3">
+            <dt className="text-xs text-muted-foreground">
+              {t('forecastObservability.summary.stale')}
+            </dt>
+            <dd className="text-lg font-semibold">{formatCount(format, summary.staleWorkItems)}</dd>
+          </div>
+          <div className="rounded-md border p-3">
+            <dt className="text-xs text-muted-foreground">
+              {t('forecastObservability.summary.deferred')}
+            </dt>
+            <dd className="text-lg font-semibold">
+              {formatCount(format, summary.expectedWorkItemsDeferred)}
+            </dd>
+          </div>
+          <div className="rounded-md border p-3">
+            <dt className="text-xs text-muted-foreground">
+              {t('forecastObservability.summary.latestRun')}
+            </dt>
+            <dd className="break-all text-sm font-medium">
+              {summary.latestSourceRunId ?? t('forecastObservability.labels.none')}
+            </dd>
+          </div>
+        </dl>
+      ) : null}
+
+      {forecastObservability.state === 'empty' ? (
+        <WidgetEmpty message={t('forecastObservability.empty')} />
+      ) : null}
+
+      {forecastObservability.state !== 'error' ? (
+        <div className="mt-6 space-y-5">
+          <div data-testid={ADMIN_CRM_FORECAST_OBSERVABILITY_COVERAGE_MARKER}>
+            <h3 className="text-sm font-semibold">{t('forecastObservability.coverage.title')}</h3>
+            {forecastObservability.coverageRows.length === 0 ? (
+              <WidgetEmpty message={t('forecastObservability.coverage.empty')} />
+            ) : (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full min-w-[760px] text-left text-sm">
+                  <thead className="border-b text-xs text-muted-foreground">
+                    <tr>
+                      <th className="py-2 pr-3 font-medium">
+                        {t('forecastObservability.coverage.branch')}
+                      </th>
+                      <th className="py-2 pr-3 font-medium">
+                        {t('forecastObservability.coverage.pipeline')}
+                      </th>
+                      <th className="py-2 pr-3 font-medium">
+                        {t('forecastObservability.coverage.currency')}
+                      </th>
+                      <th className="py-2 pr-3 font-medium">
+                        {t('forecastObservability.coverage.status')}
+                      </th>
+                      <th className="py-2 pr-3 font-medium">
+                        {t('forecastObservability.coverage.version')}
+                      </th>
+                      <th className="py-2 font-medium">
+                        {t('forecastObservability.coverage.latestCreated')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {forecastObservability.coverageRows.map(row => (
+                      <tr key={`${row.branchId ?? 'none'}-${row.pipelineId}-${row.currencyCode}`}>
+                        <td className="py-3 pr-3">{row.branchLabel}</td>
+                        <td className="py-3 pr-3">{row.pipelineLabel}</td>
+                        <td className="py-3 pr-3">{row.currencyCode}</td>
+                        <td className="py-3 pr-3">
+                          <ForecastObservabilityStatusBadge status={row.status} t={t} />
+                        </td>
+                        <td className="py-3 pr-3">
+                          {row.snapshotVersion ?? t('forecastObservability.labels.none')}
+                        </td>
+                        <td className="py-3">
+                          {row.latestSnapshotCreatedAt ?? t('forecastObservability.labels.none')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <ExcludedRowsNote
+              count={forecastObservability.hiddenCoverageRowCount}
+              label={t('forecastObservability.coverage.hidden', {
+                count: forecastObservability.hiddenCoverageRowCount,
+              })}
+              title={t('forecastObservability.coverage.hiddenHelp')}
+            />
+          </div>
+
+          <div data-testid={ADMIN_CRM_FORECAST_OBSERVABILITY_BATCHES_MARKER}>
+            <h3 className="text-sm font-semibold">{t('forecastObservability.batches.title')}</h3>
+            {forecastObservability.batchRows.length === 0 ? (
+              <WidgetEmpty message={t('forecastObservability.batches.empty')} />
+            ) : (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full min-w-[760px] text-left text-sm">
+                  <thead className="border-b text-xs text-muted-foreground">
+                    <tr>
+                      <th className="py-2 pr-3 font-medium">
+                        {t('forecastObservability.batches.sourceRun')}
+                      </th>
+                      <th className="py-2 pr-3 font-medium">
+                        {t('forecastObservability.batches.observed')}
+                      </th>
+                      <th className="py-2 pr-3 font-medium">
+                        {t('forecastObservability.batches.branches')}
+                      </th>
+                      <th className="py-2 pr-3 font-medium">
+                        {t('forecastObservability.batches.pipelines')}
+                      </th>
+                      <th className="py-2 pr-3 font-medium">
+                        {t('forecastObservability.batches.currencies')}
+                      </th>
+                      <th className="py-2 font-medium">
+                        {t('forecastObservability.batches.lastCreated')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {forecastObservability.batchRows.map(row => (
+                      <tr key={row.sourceRunId}>
+                        <td className="break-all py-3 pr-3">{row.sourceRunId}</td>
+                        <td className="py-3 pr-3">{formatCount(format, row.observedWorkItems)}</td>
+                        <td className="py-3 pr-3">{formatCount(format, row.branchCount)}</td>
+                        <td className="py-3 pr-3">{formatCount(format, row.pipelineCount)}</td>
+                        <td className="py-3 pr-3">{formatCount(format, row.currencyCount)}</td>
+                        <td className="py-3">{row.lastSnapshotCreatedAt}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </ReportingWidget>
+  );
+}
+
 function AdminCrmDashboard({
   format,
   locale,
@@ -237,6 +478,11 @@ function AdminCrmDashboard({
       </div>
 
       <SourceBreakdownWidget format={format} sourceBreakdown={reporting.sourceBreakdown} t={t} />
+      <ForecastObservabilityWidget
+        forecastObservability={reporting.forecastObservability}
+        format={format}
+        t={t}
+      />
     </>
   );
 }
@@ -344,7 +590,10 @@ export default async function AdminCrmPage({
 
   let reporting: AdminCrmReportingDashboard;
   try {
-    reporting = await getAdminCrmReportingCore({ actor: resolvedActor.actor });
+    reporting = await getAdminCrmReportingCore(
+      { actor: resolvedActor.actor },
+      { labels: { noBranch: t('labels.noBranch') } }
+    );
   } catch (error) {
     if (error instanceof AdminCrmReportingAccessDeniedError) {
       notFound();

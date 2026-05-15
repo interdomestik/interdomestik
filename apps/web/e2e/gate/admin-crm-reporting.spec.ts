@@ -18,6 +18,15 @@ test.describe('Admin CRM reporting role paths', () => {
     await expect(page.getByTestId('admin-crm-reporting-snapshot').first()).toBeVisible();
     await expect(page.getByTestId('admin-crm-reporting-branch-pipeline').first()).toBeVisible();
     await expect(page.getByTestId('admin-crm-reporting-source-breakdown').first()).toBeVisible();
+    await expect(
+      page.getByTestId('admin-crm-forecast-observability-summary').first()
+    ).toBeVisible();
+    await expect(
+      page.getByTestId('admin-crm-forecast-observability-coverage').first()
+    ).toBeVisible();
+    await expect(
+      page.getByTestId('admin-crm-forecast-observability-batches').first()
+    ).toBeVisible();
   });
 
   test('branch-manager session reaches branch-scoped CRM reporting markers', async ({
@@ -35,5 +44,8 @@ test.describe('Admin CRM reporting role paths', () => {
     await expect(
       page.getByTestId('branch-manager-crm-reporting-source-breakdown').first()
     ).toBeVisible();
+    await expect(page.getByTestId('admin-crm-forecast-observability-summary')).toHaveCount(0);
+    await expect(page.getByTestId('admin-crm-forecast-observability-coverage')).toHaveCount(0);
+    await expect(page.getByTestId('admin-crm-forecast-observability-batches')).toHaveCount(0);
   });
 });

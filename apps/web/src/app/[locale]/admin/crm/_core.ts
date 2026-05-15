@@ -17,12 +17,32 @@ import {
   crmForecastSnapshotRepository,
   crmReportingRepository,
 } from '@/lib/domain-crm/reporting-repository';
+import {
+  crmForecastSnapshotObservabilityRepository,
+  type CrmForecastSnapshotObservabilityRepository,
+  type CrmForecastSnapshotObservedRow,
+} from '@/lib/domain-crm/forecast-snapshot-observability';
+import {
+  CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN,
+  crmForecastSnapshotWorkItemRepository,
+  type CrmForecastSnapshotWorkItem,
+  type CrmForecastSnapshotWorkItemRepository,
+} from '@/lib/domain-crm/forecast-snapshot-work-items';
 
 export const ADMIN_CRM_REPORTING_WINDOW_DAYS = 90;
 export const ADMIN_CRM_REPORTING_SOURCE_TOP_N = 10;
 export const ADMIN_CRM_REPORTING_MARKER_PREFIX = 'admin-crm-reporting-';
 export const ADMIN_CRM_SNAPSHOT_DELAYED_AFTER_HOURS = 24;
 export const ADMIN_CRM_SNAPSHOT_STALE_AFTER_HOURS = 48;
+export const ADMIN_CRM_FORECAST_OBSERVABILITY_WINDOW_DAYS = 1;
+export const ADMIN_CRM_FORECAST_OBSERVABILITY_MAX_COVERAGE_ROWS = 100;
+export const ADMIN_CRM_FORECAST_OBSERVABILITY_MAX_BATCH_ROWS = 10;
+export const ADMIN_CRM_FORECAST_OBSERVABILITY_DELAYED_AFTER_HOURS = 30;
+export const ADMIN_CRM_FORECAST_OBSERVABILITY_STALE_AFTER_HOURS = 48;
+export const ADMIN_CRM_FORECAST_OBSERVABILITY_MARKER_PREFIX = 'admin-crm-forecast-observability-';
+export const ADMIN_CRM_FORECAST_OBSERVABILITY_SUMMARY_MARKER = `${ADMIN_CRM_FORECAST_OBSERVABILITY_MARKER_PREFIX}summary`;
+export const ADMIN_CRM_FORECAST_OBSERVABILITY_COVERAGE_MARKER = `${ADMIN_CRM_FORECAST_OBSERVABILITY_MARKER_PREFIX}coverage`;
+export const ADMIN_CRM_FORECAST_OBSERVABILITY_BATCHES_MARKER = `${ADMIN_CRM_FORECAST_OBSERVABILITY_MARKER_PREFIX}batches`;
 
 export const ADMIN_CRM_REPORTING_ERROR_MESSAGE_BY_REASON: Record<
   CrmReportingAuthorizationDenialReason | 'repository_failure',
@@ -86,13 +106,78 @@ export interface AdminCrmSourceBreakdownRow {
   excludedInconsistentForecastCount: number;
 }
 
+export type AdminCrmForecastObservabilityStatus = 'fresh' | 'delayed' | 'stale' | 'missing';
+
+export interface AdminCrmForecastObservabilitySummary {
+  snapshotDate: string;
+  generatedAt: string;
+  expectedWorkItems: number;
+  expectedWorkItemsDeferred: number;
+  observedWorkItems: number;
+  missingWorkItems: number;
+  delayedWorkItems: number;
+  staleWorkItems: number;
+  unexpectedObservedWorkItems: number;
+  latestSnapshotCreatedAt: string | null;
+  latestSourceRunId: string | null;
+}
+
+export interface AdminCrmForecastObservabilityCoverageRow {
+  branchId: string | null;
+  branchLabel: string;
+  pipelineId: string;
+  pipelineLabel: string;
+  currencyCode: string;
+  snapshotDate: string;
+  snapshotVersion: number | null;
+  latestSnapshotCreatedAt: string | null;
+  sourceRunId: string | null;
+  status: AdminCrmForecastObservabilityStatus;
+}
+
+export interface AdminCrmForecastObservabilityBatchRow {
+  sourceRunId: string;
+  snapshotDate: string;
+  firstSnapshotCreatedAt: string;
+  lastSnapshotCreatedAt: string;
+  observedWorkItems: number;
+  branchCount: number;
+  pipelineCount: number;
+  currencyCount: number;
+}
+
 export type AdminCrmWidget<T> =
   | { state: 'data'; rows: T[]; excludedRowCount: number }
   | { state: 'empty'; rows: []; excludedRowCount: number }
   | { state: 'error'; rows: []; excludedRowCount: 0; messageKey: string };
 
+export type AdminCrmForecastObservabilityWidget =
+  | {
+      state: 'data';
+      summary: AdminCrmForecastObservabilitySummary;
+      coverageRows: AdminCrmForecastObservabilityCoverageRow[];
+      batchRows: AdminCrmForecastObservabilityBatchRow[];
+      hiddenCoverageRowCount: number;
+    }
+  | {
+      state: 'empty';
+      summary: AdminCrmForecastObservabilitySummary;
+      coverageRows: [];
+      batchRows: [];
+      hiddenCoverageRowCount: 0;
+    }
+  | {
+      state: 'error';
+      summary: null;
+      coverageRows: [];
+      batchRows: [];
+      hiddenCoverageRowCount: 0;
+      messageKey: string;
+    };
+
 export type AdminCrmReportingDashboard = {
   branchPipeline: AdminCrmWidget<AdminCrmBranchPipelineRow>;
+  forecastObservability: AdminCrmForecastObservabilityWidget;
   generatedAt: string;
   snapshot: AdminCrmWidget<AdminCrmLatestSnapshotRow>;
   snapshotDate: string;
@@ -109,6 +194,11 @@ export class AdminCrmReportingAccessDeniedError extends Error {
 
 type AdminCrmReportingCoreOptions = {
   forecastSnapshotRepository?: CrmForecastSnapshotRepository;
+  forecastSnapshotObservabilityRepository?: CrmForecastSnapshotObservabilityRepository;
+  forecastSnapshotWorkItemRepository?: CrmForecastSnapshotWorkItemRepository;
+  labels?: {
+    noBranch?: string;
+  };
   logger?: Pick<Console, 'error'>;
   now?: () => string;
   reportingRepository?: CrmReportingRepository;
@@ -182,6 +272,250 @@ function branchLabel(branchId: string | null): string {
 
 function pipelineLabel(pipelineId: string): string {
   return pipelineId;
+}
+
+function sourceRunLabel(sourceRunId: string | null): string {
+  return sourceRunId ?? 'unknown';
+}
+
+function snapshotDateRange(snapshotDate: string): {
+  snapshotDateEndExclusive: Date;
+  snapshotDateStartInclusive: Date;
+} {
+  const snapshotDateStartInclusive = new Date(`${snapshotDate}T00:00:00.000Z`);
+  const snapshotDateEndExclusive = new Date(snapshotDateStartInclusive);
+  snapshotDateEndExclusive.setUTCDate(
+    snapshotDateEndExclusive.getUTCDate() + ADMIN_CRM_FORECAST_OBSERVABILITY_WINDOW_DAYS
+  );
+  return { snapshotDateEndExclusive, snapshotDateStartInclusive };
+}
+
+function workItemKey(input: {
+  branchId?: string | null;
+  currencyCode: string;
+  pipelineId: string;
+  tenantId: string;
+}): string {
+  return [input.tenantId, input.pipelineId, input.branchId ?? '', input.currencyCode].join(
+    '\u001f'
+  );
+}
+
+function deriveAdminCrmForecastObservabilityStatus(
+  latestSnapshotCreatedAt: string,
+  generatedAt: string
+): AdminCrmForecastObservabilityStatus {
+  const generated = Date.parse(generatedAt);
+  const latest = Date.parse(latestSnapshotCreatedAt);
+  if (!Number.isFinite(generated) || !Number.isFinite(latest)) return 'stale';
+  const ageHours = (generated - latest) / (60 * 60 * 1000);
+  if (ageHours >= ADMIN_CRM_FORECAST_OBSERVABILITY_STALE_AFTER_HOURS) return 'stale';
+  if (ageHours >= ADMIN_CRM_FORECAST_OBSERVABILITY_DELAYED_AFTER_HOURS) return 'delayed';
+  return 'fresh';
+}
+
+function latestObservedByWorkItem(
+  rows: readonly CrmForecastSnapshotObservedRow[]
+): Map<string, CrmForecastSnapshotObservedRow> {
+  const latest = new Map<string, CrmForecastSnapshotObservedRow>();
+  for (const row of rows) {
+    const key = workItemKey(row);
+    const previous = latest.get(key);
+    if (
+      !previous ||
+      row.snapshotVersion > previous.snapshotVersion ||
+      (row.snapshotVersion === previous.snapshotVersion && row.createdAt > previous.createdAt)
+    ) {
+      latest.set(key, row);
+    }
+  }
+  return latest;
+}
+
+function maxIso(values: readonly string[]): string | null {
+  return values.reduce<string | null>((latest, value) => {
+    if (!latest || value > latest) return value;
+    return latest;
+  }, null);
+}
+
+function compareCoverageRows(
+  left: AdminCrmForecastObservabilityCoverageRow,
+  right: AdminCrmForecastObservabilityCoverageRow
+): number {
+  const severity: Record<AdminCrmForecastObservabilityStatus, number> = {
+    missing: 0,
+    stale: 1,
+    delayed: 2,
+    fresh: 3,
+  };
+  const byStatus = severity[left.status] - severity[right.status];
+  if (byStatus !== 0) return byStatus;
+  const byBranchLabel = left.branchLabel.localeCompare(right.branchLabel);
+  if (byBranchLabel !== 0) return byBranchLabel;
+  const byPipelineLabel = left.pipelineLabel.localeCompare(right.pipelineLabel);
+  if (byPipelineLabel !== 0) return byPipelineLabel;
+  const byCurrency = left.currencyCode.localeCompare(right.currencyCode);
+  if (byCurrency !== 0) return byCurrency;
+  const byBranchId = (left.branchId ?? '').localeCompare(right.branchId ?? '');
+  if (byBranchId !== 0) return byBranchId;
+  return left.pipelineId.localeCompare(right.pipelineId);
+}
+
+function deriveBatchRows(
+  rows: readonly CrmForecastSnapshotObservedRow[]
+): AdminCrmForecastObservabilityBatchRow[] {
+  const batches = new Map<
+    string,
+    {
+      branches: Set<string>;
+      currencies: Set<string>;
+      firstSnapshotCreatedAt: string;
+      lastSnapshotCreatedAt: string;
+      pipelines: Set<string>;
+      snapshotDate: string;
+      workItems: Set<string>;
+    }
+  >();
+
+  for (const row of rows) {
+    const sourceRunId = sourceRunLabel(row.sourceRunId);
+    const existing = batches.get(sourceRunId);
+    const batch = existing ?? {
+      branches: new Set<string>(),
+      currencies: new Set<string>(),
+      firstSnapshotCreatedAt: row.createdAt,
+      lastSnapshotCreatedAt: row.createdAt,
+      pipelines: new Set<string>(),
+      snapshotDate: row.snapshotDate,
+      workItems: new Set<string>(),
+    };
+    batch.firstSnapshotCreatedAt =
+      row.createdAt < batch.firstSnapshotCreatedAt ? row.createdAt : batch.firstSnapshotCreatedAt;
+    batch.lastSnapshotCreatedAt =
+      row.createdAt > batch.lastSnapshotCreatedAt ? row.createdAt : batch.lastSnapshotCreatedAt;
+    batch.branches.add(row.branchId ?? '');
+    batch.currencies.add(row.currencyCode);
+    batch.pipelines.add(row.pipelineId);
+    batch.workItems.add(workItemKey(row));
+    batches.set(sourceRunId, batch);
+  }
+
+  return [...batches.entries()]
+    .map(([sourceRunId, batch]) => ({
+      branchCount: batch.branches.size,
+      currencyCount: batch.currencies.size,
+      firstSnapshotCreatedAt: batch.firstSnapshotCreatedAt,
+      lastSnapshotCreatedAt: batch.lastSnapshotCreatedAt,
+      observedWorkItems: batch.workItems.size,
+      pipelineCount: batch.pipelines.size,
+      snapshotDate: batch.snapshotDate,
+      sourceRunId,
+    }))
+    .sort((left, right) => {
+      const byLastSnapshot = right.lastSnapshotCreatedAt.localeCompare(left.lastSnapshotCreatedAt);
+      if (byLastSnapshot !== 0) return byLastSnapshot;
+      return left.sourceRunId.localeCompare(right.sourceRunId);
+    })
+    .slice(0, ADMIN_CRM_FORECAST_OBSERVABILITY_MAX_BATCH_ROWS);
+}
+
+export function deriveAdminCrmForecastObservability(args: {
+  expectedWorkItems: readonly CrmForecastSnapshotWorkItem[];
+  expectedWorkItemsDeferred: number;
+  generatedAt: string;
+  noBranchLabel: string;
+  observedSnapshots: readonly CrmForecastSnapshotObservedRow[];
+  snapshotDate: string;
+}): AdminCrmForecastObservabilityWidget {
+  const latestObserved = latestObservedByWorkItem(args.observedSnapshots);
+  const expectedKeys = new Set(args.expectedWorkItems.map(workItemKey));
+  const observedKeys = new Set(args.observedSnapshots.map(workItemKey));
+  let unexpectedObservedWorkItems = 0;
+  for (const key of observedKeys) {
+    if (!expectedKeys.has(key)) unexpectedObservedWorkItems += 1;
+  }
+
+  let missingWorkItems = 0;
+  let delayedWorkItems = 0;
+  let staleWorkItems = 0;
+  const matchedCreatedAt: string[] = [];
+  const coverageRows = args.expectedWorkItems
+    .map(workItem => {
+      const observed = latestObserved.get(workItemKey(workItem));
+      if (!observed) {
+        missingWorkItems += 1;
+        return {
+          branchId: workItem.branchId ?? null,
+          branchLabel: workItem.branchId ?? args.noBranchLabel,
+          currencyCode: workItem.currencyCode,
+          latestSnapshotCreatedAt: null,
+          pipelineId: workItem.pipelineId,
+          pipelineLabel: pipelineLabel(workItem.pipelineId),
+          snapshotDate: args.snapshotDate,
+          snapshotVersion: null,
+          sourceRunId: null,
+          status: 'missing' as const,
+        };
+      }
+      const status = deriveAdminCrmForecastObservabilityStatus(
+        observed.createdAt,
+        args.generatedAt
+      );
+      if (status === 'delayed') delayedWorkItems += 1;
+      if (status === 'stale') staleWorkItems += 1;
+      matchedCreatedAt.push(observed.createdAt);
+      return {
+        branchId: workItem.branchId ?? null,
+        branchLabel: workItem.branchId ?? args.noBranchLabel,
+        currencyCode: workItem.currencyCode,
+        latestSnapshotCreatedAt: observed.createdAt,
+        pipelineId: workItem.pipelineId,
+        pipelineLabel: pipelineLabel(workItem.pipelineId),
+        snapshotDate: args.snapshotDate,
+        snapshotVersion: observed.snapshotVersion,
+        sourceRunId: sourceRunLabel(observed.sourceRunId),
+        status,
+      };
+    })
+    .sort(compareCoverageRows);
+
+  const batchRows = deriveBatchRows(args.observedSnapshots);
+  const latestBatch = batchRows[0] ?? null;
+  const summary: AdminCrmForecastObservabilitySummary = {
+    delayedWorkItems,
+    expectedWorkItems: args.expectedWorkItems.length,
+    expectedWorkItemsDeferred: args.expectedWorkItemsDeferred,
+    generatedAt: args.generatedAt,
+    latestSnapshotCreatedAt: maxIso(matchedCreatedAt),
+    latestSourceRunId: latestBatch?.sourceRunId ?? null,
+    missingWorkItems,
+    observedWorkItems: observedKeys.size,
+    snapshotDate: args.snapshotDate,
+    staleWorkItems,
+    unexpectedObservedWorkItems,
+  };
+
+  if (coverageRows.length === 0 && batchRows.length === 0) {
+    return {
+      batchRows: [],
+      coverageRows: [],
+      hiddenCoverageRowCount: 0,
+      state: 'empty',
+      summary,
+    };
+  }
+
+  return {
+    batchRows,
+    coverageRows: coverageRows.slice(0, ADMIN_CRM_FORECAST_OBSERVABILITY_MAX_COVERAGE_ROWS),
+    hiddenCoverageRowCount: Math.max(
+      0,
+      coverageRows.length - ADMIN_CRM_FORECAST_OBSERVABILITY_MAX_COVERAGE_ROWS
+    ),
+    state: 'data',
+    summary,
+  };
 }
 
 function mapSnapshotRows(
@@ -282,6 +616,44 @@ async function readSourceBreakdownWidget(args: {
   return toWidget(mapped, excludedRowCount);
 }
 
+async function readForecastObservabilityWidget(args: {
+  actor: CrmActorContext;
+  generatedAt: string;
+  noBranchLabel: string;
+  observabilityRepository: CrmForecastSnapshotObservabilityRepository;
+  snapshotDate: string;
+  workItemRepository: CrmForecastSnapshotWorkItemRepository;
+}): Promise<AdminCrmForecastObservabilityWidget> {
+  const { snapshotDateEndExclusive, snapshotDateStartInclusive } = snapshotDateRange(
+    args.snapshotDate
+  );
+  const limit = Math.min(
+    CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN,
+    ADMIN_CRM_FORECAST_OBSERVABILITY_MAX_COVERAGE_ROWS
+  );
+  const [expected, observedSnapshots] = await Promise.all([
+    args.workItemRepository.listWorkItems({
+      limit,
+      snapshotDateEndExclusive,
+      snapshotDateStartInclusive,
+      tenantId: args.actor.tenantId,
+    }),
+    args.observabilityRepository.listObservedSnapshots({
+      snapshotDate: args.snapshotDate,
+      tenantId: args.actor.tenantId,
+    }),
+  ]);
+
+  return deriveAdminCrmForecastObservability({
+    expectedWorkItems: expected.workItems,
+    expectedWorkItemsDeferred: expected.workItemsDeferred,
+    generatedAt: args.generatedAt,
+    noBranchLabel: args.noBranchLabel,
+    observedSnapshots,
+    snapshotDate: args.snapshotDate,
+  });
+}
+
 async function settleWidget<T>(
   promise: Promise<AdminCrmWidget<T>>,
   logger: Pick<Console, 'error'>,
@@ -298,6 +670,25 @@ async function settleWidget<T>(
     }
     logger.error(`[AdminCrmReporting] ${label} failed`, error);
     return toErrorWidget('repository_failure');
+  }
+}
+
+async function settleForecastObservabilityWidget(
+  promise: Promise<AdminCrmForecastObservabilityWidget>,
+  logger: Pick<Console, 'error'>
+): Promise<AdminCrmForecastObservabilityWidget> {
+  try {
+    return await promise;
+  } catch (error) {
+    logger.error('[AdminCrmReporting] forecastObservability failed', error);
+    return {
+      batchRows: [],
+      coverageRows: [],
+      hiddenCoverageRowCount: 0,
+      messageKey: ADMIN_CRM_REPORTING_ERROR_MESSAGE_BY_REASON.repository_failure,
+      state: 'error',
+      summary: null,
+    };
   }
 }
 
@@ -329,10 +720,15 @@ export async function getAdminCrmReportingCore(
   const reportingRepository = options.reportingRepository ?? crmReportingRepository;
   const forecastSnapshotRepository =
     options.forecastSnapshotRepository ?? crmForecastSnapshotRepository;
+  const forecastSnapshotObservabilityRepository =
+    options.forecastSnapshotObservabilityRepository ?? crmForecastSnapshotObservabilityRepository;
+  const forecastSnapshotWorkItemRepository =
+    options.forecastSnapshotWorkItemRepository ?? crmForecastSnapshotWorkItemRepository;
   const logger = options.logger ?? console;
+  const noBranchLabel = options.labels?.noBranch ?? 'No branch';
   const snapshotDate = getPreviousUtcSnapshotDate(nowIso);
 
-  const [snapshot, branchPipeline, sourceBreakdown] = await Promise.all([
+  const [snapshot, branchPipeline, sourceBreakdown, forecastObservability] = await Promise.all([
     settleWidget(
       readSnapshotWidget({
         actor: args.actor,
@@ -353,10 +749,22 @@ export async function getAdminCrmReportingCore(
       logger,
       'sourceBreakdown'
     ),
+    settleForecastObservabilityWidget(
+      readForecastObservabilityWidget({
+        actor: args.actor,
+        generatedAt: nowIso,
+        noBranchLabel,
+        observabilityRepository: forecastSnapshotObservabilityRepository,
+        snapshotDate,
+        workItemRepository: forecastSnapshotWorkItemRepository,
+      }),
+      logger
+    ),
   ]);
 
   return {
     branchPipeline,
+    forecastObservability,
     generatedAt: nowIso,
     snapshot,
     snapshotDate,

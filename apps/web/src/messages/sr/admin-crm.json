@@ -52,8 +52,55 @@
       "closedLost": "Izgubljeno"
     },
     "labels": {
+      "noBranch": "Bez ogranka",
       "tenantWide": "Cela organizacija",
       "unknownSource": "Nepoznat izvor"
+    },
+    "forecastObservability": {
+      "title": "Nadzor prognoznih snimaka",
+      "description": "Operativna pokrivenost za prethodni UTC datum prognoznog snimka.",
+      "empty": "Nisu pronađene očekivane ni uočene radne stavke prognoznog snimka za prethodni UTC datum.",
+      "summary": {
+        "expected": "Očekivano",
+        "observed": "Uočeno",
+        "missing": "Nedostaje",
+        "unexpected": "Neočekivano uočeno",
+        "delayed": "Kasni",
+        "stale": "Zastarelo",
+        "deferred": "Odloženo",
+        "latestRun": "Najnovije pokretanje"
+      },
+      "status": {
+        "fresh": "Sveže",
+        "delayed": "Kasni",
+        "stale": "Zastarelo",
+        "missing": "Nedostaje"
+      },
+      "coverage": {
+        "title": "Pokrivenost",
+        "empty": "Nema očekivanih radnih stavki prognoznog snimka za ovaj datum.",
+        "branch": "Ogranak",
+        "pipeline": "Prodajni tok",
+        "currency": "Valuta",
+        "status": "Stanje",
+        "version": "Verzija",
+        "latestCreated": "Najnovije kreirano",
+        "hidden": "{count, plural, one {# red pokrivenosti sakriven} other {# redova pokrivenosti sakriveno}}",
+        "hiddenHelp": "Redovi pokrivenosti se ograničavaju posle determinističkog sortiranja."
+      },
+      "batches": {
+        "title": "Uočene serije",
+        "empty": "Nema uočenih serija prognoznih snimaka za ovaj datum.",
+        "sourceRun": "Izvorno pokretanje",
+        "observed": "Uočeno",
+        "branches": "Ogranci",
+        "pipelines": "Prodajni tokovi",
+        "currencies": "Valute",
+        "lastCreated": "Najnovije kreirano"
+      },
+      "labels": {
+        "none": "Nema"
+      }
     },
     "charts": {
       "hiddenItems": "{count, plural, one {# dodatni red je sakriven iz rezimea grafikona} other {# dodatnih redova je sakriveno iz rezimea grafikona}}",
