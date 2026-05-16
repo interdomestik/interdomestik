@@ -185,6 +185,8 @@ The first `P22-GO01` execution pass is recorded in `docs/plans/2026-04-27-p22-go
 
 `P38-DG20 Routing Admin UX Design Review` is complete and promotes exactly one bounded next implementation slice, `P38-CRM09 Routing Admin UX And Rule Management`: admin-only rule visibility and bounded create/update/enable-disable/archive/reorder management on existing `/admin/crm` using CRM08 persistence, with branch-manager exclusion, strict server-action authorization, PII-safe output, localized `admin-crm.routing.*` copy, focused proof, and no automatic routing, ownership transfer, new routes, proxy, auth/tenancy, Stripe, README, AGENTS, or broad architecture-doc work.
 
+`P38-CRM09 Routing Admin UX And Rule Management` is in progress on branch `codex/p38-crm09-routing-admin-ux`. The slice is implementing DG20's approved admin-only routing-rule panel, sibling route core, strict server actions, app-side CRM08 write-path extensions, localized copy, and focused proof while preserving branch-manager exclusion and avoiding automatic routing, proxy, canonical route, auth/tenancy, Stripe, README, AGENTS, and broad architecture-doc changes.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals

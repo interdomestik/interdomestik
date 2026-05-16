@@ -210,6 +210,77 @@
         "internal_error": "Backfill nije mogao da se završi. Pokušajte kasnije."
       }
     },
+    "routing": {
+      "title": "Pravila rutiranja",
+      "counts": "{total, plural, one {# pravilo} other {# pravila}} · {active} aktivno · {archived} arhivirano",
+      "empty": "Nema konfigurisanih pravila rutiranja.",
+      "actions": {
+        "archive": "Arhiviraj",
+        "create": "Kreiraj",
+        "disable": "Onemogući",
+        "enable": "Omogući",
+        "moveDown": "Pomeri dole",
+        "moveUp": "Pomeri gore",
+        "update": "Ažuriraj"
+      },
+      "fields": {
+        "agentIds": "ID-jevi agenata",
+        "branchId": "ID ogranka",
+        "effectiveFrom": "Važi od",
+        "effectiveTo": "Važi do",
+        "fallbackAgentId": "ID rezervnog agenta",
+        "fallbackRuleId": "ID rezervnog pravila",
+        "leadType": "Tip lead-a",
+        "maxNewLeadsPerAgentPerDay": "Dnevno ograničenje",
+        "maxOpenLeadsPerAgent": "Ograničenje otvorenih lead-ova",
+        "priority": "Prioritet",
+        "source": "Izvor",
+        "strategy": "Strategija",
+        "utmCampaign": "UTM kampanja",
+        "utmMedium": "UTM medijum",
+        "utmSource": "UTM izvor"
+      },
+      "result": {
+        "idle": "Još nema akcije rutiranja.",
+        "success": "Pravilo rutiranja je sačuvano."
+      },
+      "rule": {
+        "active": "Aktivno",
+        "archived": "Arhivirano",
+        "disabled": "Onemogućeno",
+        "fallback": "Rezerva",
+        "filters": "Filteri",
+        "noFallback": "Bez rezerve",
+        "noFilters": "Bez filtera",
+        "tenantScope": "Cela organizacija"
+      },
+      "strategy": {
+        "least_loaded": "Najmanje opterećen",
+        "manual_only": "Samo ručno",
+        "round_robin": "Kružno"
+      },
+      "error": {
+        "invalidStrategy": "Izaberite podržanu strategiju rutiranja.",
+        "invalidPriority": "Prioritet i ograničenja kapaciteta moraju biti nenegativni celi brojevi.",
+        "invalidWindow": "Vreme početka mora biti pre vremena završetka.",
+        "emptyAgentPool": "ID-jevi agenata su obavezni osim kada je strategija samo ručna.",
+        "duplicateAgent": "ID-jevi agenata ne smeju da se ponavljaju.",
+        "duplicateRule": "ID-jevi pravila ne smeju da se ponavljaju.",
+        "crossTenantAgent": "Svaki agent mora pripadati ovoj organizaciji.",
+        "branchAgent": "Svaki agent mora odgovarati izabranom ogranku.",
+        "invalidBranch": "Izaberite važeći ogranak za ovu organizaciju.",
+        "selfFallback": "Pravilo ne može koristiti samo sebe kao rezervu.",
+        "branchFallback": "Rezervna pravila moraju odgovarati organizaciji i ogranku.",
+        "archivedFallback": "Arhivirana pravila ne mogu biti rezerve.",
+        "disabledFallback": "Onemogućena pravila ne mogu biti rezerve.",
+        "fieldTooLong": "Jedno polje je duže od dozvoljenog ograničenja.",
+        "unknownField": "Zahtev sadrži nepodržano polje.",
+        "forbidden": "Ovaj nalog ne može da upravlja pravilima rutiranja.",
+        "notFound": "Pravilo rutiranja nije pronađeno.",
+        "cursorConflict": "Pravilo se promenilo pre nego što je ovo ažuriranje sačuvano.",
+        "generic": "Pravila rutiranja nisu mogla da se sačuvaju. Pokušajte kasnije."
+      }
+    },
     "charts": {
       "hiddenItems": "{count, plural, one {# dodatni red je sakriven iz rezimea grafikona} other {# dodatnih redova je sakriveno iz rezimea grafikona}}",
       "pipelineAmount": {
