@@ -98,6 +98,7 @@ export type CrmRoutingCursorAdvancement = {
   nextCursor: string;
   priorCursor: string | null;
   ruleId: string;
+  tenantId: string;
 };
 
 export type CrmRoutingManualOverride = {

@@ -10,6 +10,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
@@ -188,6 +189,149 @@ export const crmActivities = pgTable(
     check(
       'crm_activities_type_check',
       sql`${table.type} in ('call', 'email', 'meeting', 'note', 'other', 'follow_up')`
+    ),
+  ]
+);
+
+export const crmRoutingRules = pgTable(
+  'crm_routing_rules',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    branchId: text('branch_id').references(() => branches.id),
+    source: text('source'),
+    leadType: text('lead_type'),
+    utmSource: text('utm_source'),
+    utmMedium: text('utm_medium'),
+    utmCampaign: text('utm_campaign'),
+    effectiveFrom: timestamp('effective_from', { withTimezone: true }),
+    effectiveTo: timestamp('effective_to', { withTimezone: true }),
+    strategy: text('strategy').notNull(),
+    enabled: boolean('enabled').default(true).notNull(),
+    priority: integer('priority').notNull(),
+    agentPool: jsonb('agent_pool').$type<readonly string[]>().notNull(),
+    maxNewLeadsPerAgentPerDay: integer('max_new_leads_per_agent_per_day'),
+    maxOpenLeadsPerAgent: integer('max_open_leads_per_agent'),
+    fallbackAgentId: text('fallback_agent_id').references(() => user.id),
+    fallbackRuleId: text('fallback_rule_id'),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  table => [
+    unique('crm_routing_rules_tenant_id_id_uq').on(table.tenantId, table.id),
+    index('crm_routing_rules_tenant_branch_enabled_priority_idx').on(
+      table.tenantId,
+      table.branchId,
+      table.enabled,
+      table.priority
+    ),
+    index('crm_routing_rules_tenant_active_idx')
+      .on(table.tenantId, table.archivedAt)
+      .where(sql`${table.archivedAt} is null`),
+    foreignKey({
+      columns: [table.tenantId, table.fallbackRuleId],
+      foreignColumns: [table.tenantId, table.id],
+      name: 'crm_routing_rules_tenant_fallback_rule_fk',
+    }),
+    check(
+      'crm_routing_rules_strategy_check',
+      sql`${table.strategy} in ('round_robin', 'least_loaded', 'manual_only')`
+    ),
+    check('crm_routing_rules_priority_check', sql`${table.priority} >= 0`),
+    check(
+      'crm_routing_rules_agent_pool_array_check',
+      sql`jsonb_typeof(${table.agentPool}) = 'array'`
+    ),
+    check(
+      'crm_routing_rules_max_new_leads_check',
+      sql`${table.maxNewLeadsPerAgentPerDay} is null or ${table.maxNewLeadsPerAgentPerDay} >= 0`
+    ),
+    check(
+      'crm_routing_rules_max_open_leads_check',
+      sql`${table.maxOpenLeadsPerAgent} is null or ${table.maxOpenLeadsPerAgent} >= 0`
+    ),
+  ]
+);
+
+export const crmRoutingCursors = pgTable(
+  'crm_routing_cursors',
+  {
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    ruleId: text('rule_id').notNull(),
+    cursorValue: text('cursor_value').notNull(),
+    lastIdempotencyKey: text('last_idempotency_key'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex('crm_routing_cursors_tenant_rule_uq').on(table.tenantId, table.ruleId),
+    foreignKey({
+      columns: [table.tenantId, table.ruleId],
+      foreignColumns: [crmRoutingRules.tenantId, crmRoutingRules.id],
+      name: 'crm_routing_cursors_tenant_rule_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const crmRoutingAssignmentsAudit = pgTable(
+  'crm_routing_assignments_audit',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    leadId: text('lead_id')
+      .notNull()
+      .references(() => crmLeads.id),
+    ruleId: text('rule_id').notNull(),
+    actorId: text('actor_id').references(() => user.id),
+    selectedAgentId: text('selected_agent_id').references(() => user.id),
+    branchId: text('branch_id').references(() => branches.id),
+    strategy: text('strategy').notNull(),
+    reasonCode: text('reason_code').notNull(),
+    idempotencyKey: text('idempotency_key'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    index('crm_routing_assignments_audit_tenant_lead_occurred_idx').on(
+      table.tenantId,
+      table.leadId,
+      table.occurredAt
+    ),
+    index('crm_routing_assignments_audit_tenant_rule_occurred_idx').on(
+      table.tenantId,
+      table.ruleId,
+      table.occurredAt
+    ),
+    uniqueIndex('crm_routing_assignments_audit_idempotency_uq')
+      .on(table.tenantId, table.idempotencyKey)
+      .where(sql`${table.idempotencyKey} is not null`),
+    foreignKey({
+      columns: [table.tenantId, table.ruleId],
+      foreignColumns: [crmRoutingRules.tenantId, crmRoutingRules.id],
+      name: 'crm_routing_assignments_audit_tenant_rule_fk',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.leadId],
+      foreignColumns: [crmLeads.tenantId, crmLeads.id],
+      name: 'crm_routing_assignments_audit_tenant_lead_fk',
+    }),
+    check(
+      'crm_routing_assignments_audit_strategy_check',
+      sql`${table.strategy} in ('round_robin', 'least_loaded', 'manual_only')`
+    ),
+    check(
+      'crm_routing_assignments_audit_reason_code_check',
+      sql`${table.reasonCode} in ('rule_match', 'fallback_agent', 'fallback_rule')`
     ),
   ]
 );

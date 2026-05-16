@@ -74,6 +74,8 @@ import PricingPage from './_core.entry';
 describe('PricingPage server shell', () => {
   beforeEach(() => {
     process.env = { ...ORIGINAL_ENV };
+    delete process.env.BILLING_TEST_MODE;
+    delete process.env.NEXT_PUBLIC_BILLING_TEST_MODE;
     vi.clearAllMocks();
   });
 
