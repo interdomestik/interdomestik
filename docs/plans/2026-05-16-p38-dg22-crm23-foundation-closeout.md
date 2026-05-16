@@ -66,6 +66,11 @@ Promote no next `P38` implementation slice. Any future CRM work must start from 
 program or a narrowly justified pilot blocker, and must preserve Phase C constraints unless a later
 approved design gate explicitly changes them.
 
+## Repo-Size Budget
+
+This closeout adds one tracked design record and updates `scripts/repo-size-budget.json` only to
+raise the tracked-file ceiling from `3,710` to `3,711`. No other budget is expanded.
+
 ## Boundaries Preserved
 
 This closeout does not authorize or perform:
