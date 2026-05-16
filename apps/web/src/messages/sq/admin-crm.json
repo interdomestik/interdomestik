@@ -210,6 +210,77 @@
         "internal_error": "Backfill nuk mund të përfundohej. Provoni më vonë."
       }
     },
+    "routing": {
+      "title": "Rregullat e rutimit",
+      "counts": "{total, plural, one {# rregull} other {# rregulla}} · {active} aktive · {archived} të arkivuara",
+      "empty": "Nuk janë konfiguruar rregulla rutimi.",
+      "actions": {
+        "archive": "Arkivo",
+        "create": "Krijo",
+        "disable": "Çaktivizo",
+        "enable": "Aktivizo",
+        "moveDown": "Zhvendos poshtë",
+        "moveUp": "Zhvendos lart",
+        "update": "Përditëso"
+      },
+      "fields": {
+        "agentIds": "ID-të e agjentëve",
+        "branchId": "ID dege",
+        "effectiveFrom": "Efektive nga",
+        "effectiveTo": "Efektive deri",
+        "fallbackAgentId": "ID agjenti rezervë",
+        "fallbackRuleId": "ID rregulli rezervë",
+        "leadType": "Lloji i lead-it",
+        "maxNewLeadsPerAgentPerDay": "Kufiri ditor",
+        "maxOpenLeadsPerAgent": "Kufiri i lead-eve të hapura",
+        "priority": "Prioriteti",
+        "source": "Burimi",
+        "strategy": "Strategjia",
+        "utmCampaign": "Fushata UTM",
+        "utmMedium": "Mediumi UTM",
+        "utmSource": "Burimi UTM"
+      },
+      "result": {
+        "idle": "Asnjë veprim rutimi ende.",
+        "success": "Rregulli i rutimit u ruajt."
+      },
+      "rule": {
+        "active": "Aktiv",
+        "archived": "I arkivuar",
+        "disabled": "I çaktivizuar",
+        "fallback": "Rezervë",
+        "filters": "Filtrat",
+        "noFallback": "Pa rezervë",
+        "noFilters": "Pa filtra",
+        "tenantScope": "Në gjithë organizatën"
+      },
+      "strategy": {
+        "least_loaded": "Më pak i ngarkuar",
+        "manual_only": "Vetëm manualisht",
+        "round_robin": "Me radhë"
+      },
+      "error": {
+        "invalidStrategy": "Zgjidhni një strategji rutimi të mbështetur.",
+        "invalidPriority": "Prioriteti dhe kufijtë e kapacitetit duhet të jenë numra të plotë jo negativë.",
+        "invalidWindow": "Koha fillestare duhet të jetë para kohës përfundimtare.",
+        "emptyAgentPool": "ID-të e agjentëve kërkohen nëse strategjia nuk është vetëm manuale.",
+        "duplicateAgent": "ID-të e agjentëve nuk duhet të përsëriten.",
+        "duplicateRule": "ID-të e rregullave nuk duhet të përsëriten.",
+        "crossTenantAgent": "Çdo agjent duhet t’i përkasë këtij tenanti.",
+        "branchAgent": "Çdo agjent duhet të përputhet me degën e zgjedhur.",
+        "invalidBranch": "Zgjidhni një degë të vlefshme për këtë tenant.",
+        "selfFallback": "Një rregull nuk mund të ketë vetveten si rezervë.",
+        "branchFallback": "Rregullat rezervë duhet të përputhen me tenantin dhe degën.",
+        "archivedFallback": "Rregullat e arkivuara nuk mund të përdoren si rezervë.",
+        "disabledFallback": "Rregullat e çaktivizuara nuk mund të përdoren si rezervë.",
+        "fieldTooLong": "Një fushë është më e gjatë se kufiri i lejuar.",
+        "unknownField": "Kërkesa përmban një fushë të pambështetur.",
+        "forbidden": "Kjo llogari nuk mund të menaxhojë rregullat e rutimit.",
+        "notFound": "Rregulli i rutimit nuk u gjet.",
+        "cursorConflict": "Rregulli ndryshoi para se ky përditësim të ruhej.",
+        "generic": "Rregullat e rutimit nuk mund të ruheshin. Provoni më vonë."
+      }
+    },
     "charts": {
       "hiddenItems": "{count, plural, one {# rresht shtesë është fshehur nga përmbledhja e grafikut} other {# rreshta shtesë janë fshehur nga përmbledhja e grafikut}}",
       "pipelineAmount": {

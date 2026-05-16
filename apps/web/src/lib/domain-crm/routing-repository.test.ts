@@ -20,7 +20,12 @@ import {
   crmRoutingRules,
 } from '@interdomestik/database/schema';
 
-import { createCrmRoutingRepository } from './routing-repository';
+import {
+  createAdminCrmRoutingRuleRepository,
+  createCrmRoutingRepository,
+} from './routing-repository';
+
+type AdminRoutingDb = Parameters<typeof createAdminCrmRoutingRuleRepository>[0];
 
 const now = new Date('2026-05-16T08:00:00.000Z');
 
@@ -28,6 +33,13 @@ const branchManager: CrmActorContext = {
   actorId: 'manager-1',
   role: 'branch_manager',
   scope: { branchId: 'branch-1' },
+  tenantId: 'tenant-1',
+};
+
+const adminActor: CrmActorContext = {
+  actorId: 'admin-1',
+  role: 'admin',
+  scope: { branchId: null },
   tenantId: 'tenant-1',
 };
 
@@ -95,6 +107,10 @@ function auditRow(overrides: Record<string, unknown> = {}) {
     tenantId: auditRecord.tenantId,
     ...overrides,
   };
+}
+
+function createAdminRepositoryForTest(fakeDb: unknown) {
+  return createAdminCrmRoutingRuleRepository(fakeDb as AdminRoutingDb);
 }
 
 function createUpdateDb(rows: readonly unknown[], existingCursor: unknown = null) {
@@ -354,6 +370,206 @@ describe('crmRoutingRepository', () => {
       })
     );
     expect(insert).toHaveBeenCalledWith(crmRoutingAssignmentsAudit);
+  });
+
+  it('creates admin routing rules with the session tenant and domain agentIds vocabulary', async () => {
+    const calls: unknown[] = [];
+    const fakeDb = {
+      insert(table: unknown) {
+        calls.push({ action: 'insert', table });
+        return {
+          values(values: unknown) {
+            calls.push({ action: 'values', values });
+            return {
+              returning: vi.fn(async () => [
+                routingRuleRow({
+                  agentPool: ['agent-1'],
+                  branchId: null,
+                  priority: 0,
+                  tenantId: 'tenant-1',
+                }),
+              ]),
+            };
+          },
+        };
+      },
+      query: {
+        branches: { findMany: vi.fn() },
+        crmRoutingRules: { findFirst: vi.fn(), findMany: vi.fn() },
+        user: { findMany: vi.fn() },
+      },
+    };
+    const repository = createAdminRepositoryForTest(fakeDb);
+
+    await expect(
+      repository.createRoutingRule({
+        actor: adminActor,
+        input: {
+          agentIds: ['agent-1'],
+          branchId: null,
+          effectiveFrom: null,
+          effectiveTo: null,
+          fallbackAgentId: null,
+          fallbackRuleId: null,
+          leadType: null,
+          maxNewLeadsPerAgentPerDay: null,
+          maxOpenLeadsPerAgent: null,
+          priority: 0,
+          source: null,
+          strategy: 'manual_only',
+          utmCampaign: null,
+          utmMedium: null,
+          utmSource: null,
+        },
+      })
+    ).resolves.toEqual(
+      expect.objectContaining({
+        agentIds: ['agent-1'],
+        tenantId: 'tenant-1',
+      })
+    );
+
+    expect(calls).toEqual([
+      { action: 'insert', table: crmRoutingRules },
+      expect.objectContaining({
+        action: 'values',
+        values: expect.objectContaining({
+          agentPool: ['agent-1'],
+          tenantId: 'tenant-1',
+        }),
+      }),
+    ]);
+  });
+
+  it('normalizes routing rule priorities in a transaction during reorder', async () => {
+    const updatedRows = [
+      routingRuleRow({ id: 'rule-2', priority: 0 }),
+      routingRuleRow({ id: 'rule-1', priority: 1 }),
+    ];
+    const updates: unknown[] = [];
+    const tx = {
+      query: {
+        crmRoutingRules: {
+          findMany: vi.fn(async () => [
+            routingRuleRow({ id: 'rule-1', priority: 0 }),
+            routingRuleRow({ id: 'rule-2', priority: 1 }),
+          ]),
+        },
+      },
+      update(table: unknown) {
+        updates.push({ action: 'update', table });
+        return {
+          set(values: unknown) {
+            updates.push({ action: 'set', values });
+            return {
+              where(where: unknown) {
+                updates.push({ action: 'where', where });
+                return { returning: vi.fn(async () => [updatedRows.shift()]) };
+              },
+            };
+          },
+        };
+      },
+    };
+    const fakeDb = {
+      transaction: vi.fn(async callback => callback(tx)),
+    };
+    const repository = createAdminRepositoryForTest(fakeDb);
+
+    await expect(
+      repository.reorderRoutingRules({
+        actor: adminActor,
+        branchId: null,
+        ruleIds: ['rule-2', 'rule-1'],
+      })
+    ).resolves.toEqual([
+      expect.objectContaining({ id: 'rule-2', priority: 0 }),
+      expect.objectContaining({ id: 'rule-1', priority: 1 }),
+    ]);
+
+    expect(fakeDb.transaction).toHaveBeenCalledTimes(1);
+    expect(updates.filter(call => (call as { action: string }).action === 'set')).toEqual([
+      expect.objectContaining({ values: expect.objectContaining({ priority: 0 }) }),
+      expect.objectContaining({ values: expect.objectContaining({ priority: 1 }) }),
+    ]);
+  });
+
+  it('rejects stale reorder lists before writing priorities', async () => {
+    const updates: unknown[] = [];
+    const tx = {
+      query: {
+        crmRoutingRules: {
+          findMany: vi.fn(async () => [
+            routingRuleRow({ id: 'rule-1', priority: 0 }),
+            routingRuleRow({ id: 'rule-2', priority: 1 }),
+          ]),
+        },
+      },
+      update(table: unknown) {
+        updates.push({ action: 'update', table });
+        return {
+          set(values: unknown) {
+            updates.push({ action: 'set', values });
+            return {
+              where(where: unknown) {
+                updates.push({ action: 'where', where });
+                return { returning: vi.fn(async () => []) };
+              },
+            };
+          },
+        };
+      },
+    };
+    const fakeDb = {
+      transaction: vi.fn(async callback => callback(tx)),
+    };
+    const repository = createAdminRepositoryForTest(fakeDb);
+
+    await expect(
+      repository.reorderRoutingRules({
+        actor: adminActor,
+        branchId: null,
+        ruleIds: ['rule-2'],
+      })
+    ).resolves.toEqual([]);
+
+    expect(updates).toEqual([]);
+  });
+
+  it('rolls back reorder transactions when a validated row disappears mid-update', async () => {
+    const tx = {
+      query: {
+        crmRoutingRules: {
+          findMany: vi.fn(async () => [
+            routingRuleRow({ id: 'rule-1', priority: 0 }),
+            routingRuleRow({ id: 'rule-2', priority: 1 }),
+          ]),
+        },
+      },
+      update() {
+        return {
+          set() {
+            return {
+              where() {
+                return { returning: vi.fn(async () => []) };
+              },
+            };
+          },
+        };
+      },
+    };
+    const fakeDb = {
+      transaction: vi.fn(async callback => callback(tx)),
+    };
+    const repository = createAdminRepositoryForTest(fakeDb);
+
+    await expect(
+      repository.reorderRoutingRules({
+        actor: adminActor,
+        branchId: null,
+        ruleIds: ['rule-2', 'rule-1'],
+      })
+    ).rejects.toThrow('CRM routing reorder failed during priority update');
   });
 
   it('exposes routing tables through database schema exports for migration-backed adapters', () => {

@@ -62,6 +62,19 @@ import {
   type AdminCrmForecastBackfillOperatorErrorCode,
 } from './_backfill-types';
 import { ADMIN_CRM_FORECAST_BACKFILL_OPERATOR_MAX_WORK_ITEMS_PER_DATE } from './_backfill-core';
+import {
+  AdminCrmRoutingAccessDeniedError,
+  getAdminCrmRoutingErrorMessageKey,
+  getAdminCrmRoutingRulesCore,
+} from './_routing-core';
+import {
+  AdminCrmRoutingRulesPanel,
+  type AdminCrmRoutingRulesPanelCopy,
+} from './_routing-rules-panel';
+import type {
+  AdminCrmRoutingActionErrorReason,
+  AdminCrmRoutingRulesPayload,
+} from './_routing-types';
 
 type Formatter = AdminCrmFormatter;
 type Translations = AdminCrmTranslations;
@@ -740,6 +753,91 @@ function buildBackfillOperatorCopy(t: Translations): AdminCrmForecastBackfillOpe
   };
 }
 
+function buildRoutingRulesPanelCopy(
+  t: Translations,
+  routing: AdminCrmRoutingRulesPayload
+): AdminCrmRoutingRulesPanelCopy {
+  const reasons: AdminCrmRoutingActionErrorReason[] = [
+    'invalid_strategy',
+    'invalid_priority_or_cap',
+    'invalid_window',
+    'empty_agent_pool',
+    'duplicate_agent_id',
+    'duplicate_rule_id',
+    'cross_tenant_agent',
+    'branch_incompatible_agent',
+    'invalid_branch',
+    'self_referential_fallback',
+    'branch_incompatible_rule',
+    'archived_fallback',
+    'disabled_fallback',
+    'field_too_long',
+    'unknown_field',
+    'forbidden',
+    'not_found',
+    'cursor_conflict',
+    'repository_failure',
+  ];
+  return {
+    actions: {
+      archive: t('routing.actions.archive'),
+      create: t('routing.actions.create'),
+      disable: t('routing.actions.disable'),
+      enable: t('routing.actions.enable'),
+      moveDown: t('routing.actions.moveDown'),
+      moveUp: t('routing.actions.moveUp'),
+      update: t('routing.actions.update'),
+    },
+    counts: t('routing.counts', {
+      active: routing.counts.active,
+      archived: routing.counts.archived,
+      total: routing.rules.length,
+    }),
+    empty: t('routing.empty'),
+    fields: {
+      agentIds: t('routing.fields.agentIds'),
+      branchId: t('routing.fields.branchId'),
+      effectiveFrom: t('routing.fields.effectiveFrom'),
+      effectiveTo: t('routing.fields.effectiveTo'),
+      fallbackAgentId: t('routing.fields.fallbackAgentId'),
+      fallbackRuleId: t('routing.fields.fallbackRuleId'),
+      leadType: t('routing.fields.leadType'),
+      maxNewLeadsPerAgentPerDay: t('routing.fields.maxNewLeadsPerAgentPerDay'),
+      maxOpenLeadsPerAgent: t('routing.fields.maxOpenLeadsPerAgent'),
+      priority: t('routing.fields.priority'),
+      source: t('routing.fields.source'),
+      strategy: t('routing.fields.strategy'),
+      utmCampaign: t('routing.fields.utmCampaign'),
+      utmMedium: t('routing.fields.utmMedium'),
+      utmSource: t('routing.fields.utmSource'),
+    },
+    genericError: t('routing.error.generic'),
+    reasons: Object.fromEntries(
+      reasons.map(reason => [reason, t(getAdminCrmRoutingErrorMessageKey(reason))])
+    ) as AdminCrmRoutingRulesPanelCopy['reasons'],
+    result: {
+      idle: t('routing.result.idle'),
+      success: t('routing.result.success'),
+    },
+    rule: {
+      active: t('routing.rule.active'),
+      archived: t('routing.rule.archived'),
+      disabled: t('routing.rule.disabled'),
+      fallback: t('routing.rule.fallback'),
+      filters: t('routing.rule.filters'),
+      noFallback: t('routing.rule.noFallback'),
+      noFilters: t('routing.rule.noFilters'),
+      tenantScope: t('routing.rule.tenantScope'),
+    },
+    strategy: {
+      least_loaded: t('routing.strategy.least_loaded'),
+      manual_only: t('routing.strategy.manual_only'),
+      round_robin: t('routing.strategy.round_robin'),
+    },
+    title: t('routing.title'),
+  };
+}
+
 function ForecastBackfillOperatorWidget({
   locale,
   reporting,
@@ -773,12 +871,14 @@ function AdminCrmDashboard({
   format,
   locale,
   reporting,
+  routing,
   sessionTenantId,
   t,
 }: Readonly<{
   format: Formatter;
   locale: string;
   reporting: AdminCrmReportingDashboard;
+  routing: AdminCrmRoutingRulesPayload;
   sessionTenantId: string;
   t: Translations;
 }>) {
@@ -809,6 +909,7 @@ function AdminCrmDashboard({
         sessionTenantId={sessionTenantId}
         t={t}
       />
+      <AdminCrmRoutingRulesPanel copy={buildRoutingRulesPanelCopy(t, routing)} payload={routing} />
     </>
   );
 }
@@ -915,13 +1016,20 @@ export default async function AdminCrmPage({
   }
 
   let reporting: AdminCrmReportingDashboard;
+  let routing: AdminCrmRoutingRulesPayload;
   try {
-    reporting = await getAdminCrmReportingCore(
-      { actor: resolvedActor.actor },
-      { labels: { noBranch: t('labels.noBranch') } }
-    );
+    [reporting, routing] = await Promise.all([
+      getAdminCrmReportingCore(
+        { actor: resolvedActor.actor },
+        { labels: { noBranch: t('labels.noBranch') } }
+      ),
+      getAdminCrmRoutingRulesCore({ actor: resolvedActor.actor }),
+    ]);
   } catch (error) {
-    if (error instanceof AdminCrmReportingAccessDeniedError) {
+    if (
+      error instanceof AdminCrmReportingAccessDeniedError ||
+      error instanceof AdminCrmRoutingAccessDeniedError
+    ) {
       notFound();
     }
     throw error;
@@ -933,6 +1041,7 @@ export default async function AdminCrmPage({
         format={format}
         locale={locale}
         reporting={reporting}
+        routing={routing}
         sessionTenantId={resolvedActor.actor.tenantId}
         t={t}
       />

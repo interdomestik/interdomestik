@@ -210,6 +210,77 @@
         "internal_error": "Backfill could not be completed. Try again later."
       }
     },
+    "routing": {
+      "title": "Routing rules",
+      "counts": "{total, plural, one {# rule} other {# rules}} · {active} active · {archived} archived",
+      "empty": "No routing rules have been configured.",
+      "actions": {
+        "archive": "Archive",
+        "create": "Create",
+        "disable": "Disable",
+        "enable": "Enable",
+        "moveDown": "Move down",
+        "moveUp": "Move up",
+        "update": "Update"
+      },
+      "fields": {
+        "agentIds": "Agent IDs",
+        "branchId": "Branch ID",
+        "effectiveFrom": "Effective from",
+        "effectiveTo": "Effective to",
+        "fallbackAgentId": "Fallback agent ID",
+        "fallbackRuleId": "Fallback rule ID",
+        "leadType": "Lead type",
+        "maxNewLeadsPerAgentPerDay": "Daily cap",
+        "maxOpenLeadsPerAgent": "Open-lead cap",
+        "priority": "Priority",
+        "source": "Source",
+        "strategy": "Strategy",
+        "utmCampaign": "UTM campaign",
+        "utmMedium": "UTM medium",
+        "utmSource": "UTM source"
+      },
+      "result": {
+        "idle": "No routing action yet.",
+        "success": "Routing rule saved."
+      },
+      "rule": {
+        "active": "Active",
+        "archived": "Archived",
+        "disabled": "Disabled",
+        "fallback": "Fallback",
+        "filters": "Filters",
+        "noFallback": "No fallback",
+        "noFilters": "No filters",
+        "tenantScope": "Tenant-wide"
+      },
+      "strategy": {
+        "least_loaded": "Least loaded",
+        "manual_only": "Manual only",
+        "round_robin": "Round robin"
+      },
+      "error": {
+        "invalidStrategy": "Choose a supported routing strategy.",
+        "invalidPriority": "Priority and capacity caps must be non-negative whole numbers.",
+        "invalidWindow": "The effective-from time must be before effective-to.",
+        "emptyAgentPool": "Agent IDs are required unless the strategy is manual only.",
+        "duplicateAgent": "Agent IDs must not be duplicated.",
+        "duplicateRule": "Rule IDs must not be duplicated.",
+        "crossTenantAgent": "Every agent must belong to this tenant.",
+        "branchAgent": "Every agent must match the selected branch scope.",
+        "invalidBranch": "Choose a valid branch for this tenant.",
+        "selfFallback": "A rule cannot fall back to itself.",
+        "branchFallback": "Fallback rules must match the tenant and branch scope.",
+        "archivedFallback": "Archived rules cannot be used as fallbacks.",
+        "disabledFallback": "Disabled rules cannot be used as fallbacks.",
+        "fieldTooLong": "One field is longer than the allowed limit.",
+        "unknownField": "The request contains an unsupported field.",
+        "forbidden": "This account cannot manage routing rules.",
+        "notFound": "The routing rule was not found.",
+        "cursorConflict": "The rule changed before this update was saved.",
+        "generic": "Routing rules could not be saved. Try again later."
+      }
+    },
     "charts": {
       "hiddenItems": "{count, plural, one {# additional row hidden from the chart summary} other {# additional rows hidden from the chart summary}}",
       "pipelineAmount": {

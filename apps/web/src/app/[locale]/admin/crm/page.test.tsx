@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   getAdminCrmReportingCoreMock: vi.fn(),
+  getAdminCrmRoutingRulesCoreMock: vi.fn(),
   getBranchManagerCrmReportingCoreMock: vi.fn(),
   getFormatterMock: vi.fn(async () => ({
     number: vi.fn((value: number) => String(value)),
@@ -61,6 +62,18 @@ vi.mock('./_branch-manager-core', async importOriginal => {
     getBranchManagerCrmReportingCore: hoisted.getBranchManagerCrmReportingCoreMock,
   };
 });
+
+vi.mock('./_routing-core', async importOriginal => {
+  const actual = await importOriginal<typeof import('./_routing-core')>();
+  return {
+    ...actual,
+    getAdminCrmRoutingRulesCore: hoisted.getAdminCrmRoutingRulesCoreMock,
+  };
+});
+
+vi.mock('./_routing-rules-panel', () => ({
+  AdminCrmRoutingRulesPanel: () => <div data-testid="admin-crm-routing-rules-list" />,
+}));
 
 vi.mock('@/components/crm/charts/reporting-chart-boundary', () => ({
   PipelineAmountChartBoundary: ({ title }: { title: string }) => (
@@ -269,6 +282,34 @@ describe('AdminCrmPage', () => {
         to: '2026-05-14T12:00:00.000Z',
       },
     });
+    hoisted.getAdminCrmRoutingRulesCoreMock.mockResolvedValue({
+      counts: { active: 1, archived: 0 },
+      rules: [
+        {
+          agentPoolCount: 2,
+          archived: false,
+          capacityCaps: {
+            maxNewLeadsPerAgentPerDay: null,
+            maxOpenLeadsPerAgent: null,
+          },
+          effectiveWindow: { from: null, to: null },
+          enabled: true,
+          fallback: { agentId: null, ruleId: null },
+          filters: {
+            leadType: null,
+            source: 'website',
+            utmCampaign: null,
+            utmMedium: null,
+            utmSource: null,
+          },
+          id: 'rule-1',
+          priority: 0,
+          scope: { kind: 'tenant' },
+          strategy: 'round_robin',
+          updatedAt: '2026-05-14T12:00:00.000Z',
+        },
+      ],
+    });
   });
 
   it('renders the admin CRM page and all reporting markers for an admin session', async () => {
@@ -288,6 +329,14 @@ describe('AdminCrmPage', () => {
       },
       { labels: { noBranch: 'labels.noBranch' } }
     );
+    expect(hoisted.getAdminCrmRoutingRulesCoreMock).toHaveBeenCalledWith({
+      actor: {
+        actorId: 'admin-1',
+        role: 'admin',
+        scope: { branchId: null },
+        tenantId: 'tenant-1',
+      },
+    });
     expect(screen.getByTestId('admin-crm-page-ready')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-reporting-snapshot')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-reporting-branch-pipeline')).toBeInTheDocument();
@@ -302,6 +351,7 @@ describe('AdminCrmPage', () => {
     expect(screen.getByTestId('admin-crm-forecast-observability-batches')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-forecast-backfill-operator-form')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-forecast-backfill-operator-client')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-crm-routing-rules-list')).toBeInTheDocument();
     expect(screen.getByTestId('crm-reporting-chart-pipeline-amount')).toHaveTextContent(
       'charts.pipelineAmount.title'
     );
@@ -336,6 +386,7 @@ describe('AdminCrmPage', () => {
       );
       expect(hoisted.getBranchManagerCrmReportingCoreMock).not.toHaveBeenCalled();
       expect(screen.getByTestId('admin-crm-reporting-branch-pipeline')).toBeInTheDocument();
+      expect(screen.getByTestId('admin-crm-routing-rules-list')).toBeInTheDocument();
     }
   );
 
@@ -354,6 +405,7 @@ describe('AdminCrmPage', () => {
     render(tree);
 
     expect(hoisted.getAdminCrmReportingCoreMock).not.toHaveBeenCalled();
+    expect(hoisted.getAdminCrmRoutingRulesCoreMock).not.toHaveBeenCalled();
     expect(hoisted.getBranchManagerCrmReportingCoreMock).toHaveBeenCalledWith(
       {
         actor: {
@@ -387,6 +439,7 @@ describe('AdminCrmPage', () => {
     expect(
       screen.queryByTestId('admin-crm-forecast-backfill-operator-client')
     ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('admin-crm-routing-rules-list')).not.toBeInTheDocument();
     expect(screen.getByTestId('crm-reporting-chart-pipeline-amount')).toHaveTextContent(
       'charts.pipelineAmount.title'
     );
