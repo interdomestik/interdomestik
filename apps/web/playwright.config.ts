@@ -64,6 +64,8 @@ const GATE_MK_TEST_MATCH = RUNNING_PILOT_MATRIX
 const GATE_AL_TEST_MATCH = RUNNING_PILOT_MATRIX
   ? [...GATE_SECURITY_MATCH, ...GATE_AL_PILOT_MATCH]
   : [...GATE_SECURITY_MATCH];
+const CRM_VISUAL_TEST_MATCH = ['visual/crm-reporting.visual.spec.ts'];
+const CRM_VISUAL_VIEWPORT = { width: 1280, height: 900 };
 
 function requireState(statePath: string) {
   if (fs.existsSync(statePath)) return;
@@ -293,6 +295,46 @@ export default defineConfig({
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // CRM VISUAL BASELINE LANES (opt-in)
+    // - Runs only the CRM visual baseline spec.
+    // - Not wired into e2e:gate, pr:verify, or required merge gates.
+    // ═══════════════════════════════════════════════════════════════════════════
+    {
+      name: 'crm-visual-ks-sq',
+      testMatch: CRM_VISUAL_TEST_MATCH,
+      grep: /@crm-visual-ks-sq/,
+      retries: process.env.CI ? 1 : 0,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: tenantBaseUrl(KS_HOST, 'sq'),
+        viewport: CRM_VISUAL_VIEWPORT,
+        colorScheme: 'light',
+        extraHTTPHeaders: {
+          'x-forwarded-host': KS_HOST,
+        },
+        actionTimeout: 20 * 1000,
+        navigationTimeout: 60 * 1000,
+      },
+    },
+    {
+      name: 'crm-visual-mk-mk',
+      testMatch: CRM_VISUAL_TEST_MATCH,
+      grep: /@crm-visual-mk-mk/,
+      retries: process.env.CI ? 1 : 0,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: tenantBaseUrl(MK_HOST, 'mk'),
+        viewport: CRM_VISUAL_VIEWPORT,
+        colorScheme: 'light',
+        extraHTTPHeaders: {
+          'x-forwarded-host': MK_HOST,
+        },
+        actionTimeout: 20 * 1000,
+        navigationTimeout: 60 * 1000,
+      },
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // SETUP PROJECTS - Generate auth states per tenant
     // ═══════════════════════════════════════════════════════════════════════════
     {
@@ -332,7 +374,11 @@ export default defineConfig({
         },
         storageState: KS_MEMBER_STATE,
       },
-      testIgnore: [/setup\.state\.spec\.ts/, /claim-resolver-isolation\.spec\.ts/], // Ignore MK tests
+      testIgnore: [
+        /setup\.state\.spec\.ts/,
+        /claim-resolver-isolation\.spec\.ts/,
+        /visual\/.*\.spec\.ts/,
+      ], // Ignore MK tests and opt-in visual baselines
     },
     {
       name: 'mk-mk',
@@ -346,7 +392,7 @@ export default defineConfig({
         storageState: MK_MEMBER_STATE,
       },
       // Mirror the ks-sq lane: run the normal E2E suite against the MK tenant + mk locale.
-      testIgnore: [/setup\.state\.spec\.ts/],
+      testIgnore: [/setup\.state\.spec\.ts/, /visual\/.*\.spec\.ts/],
     },
     {
       name: 'pilot-mk',
@@ -367,6 +413,7 @@ export default defineConfig({
       name: 'smoke',
       dependencies: ['setup-ks'], // Default to KS for general smoke
       testMatch: /.*\.spec\.ts/,
+      testIgnore: [/visual\/.*\.spec\.ts/],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: tenantBaseUrl(KS_HOST, 'sq'),
@@ -396,7 +443,9 @@ export default defineConfig({
           NODE_ENV: 'production',
           PORT: String(PORT),
           HOSTNAME: BIND_HOST,
-          NODE_OPTIONS: '--dns-result-order=ipv4first',
+          NODE_OPTIONS: [process.env.NODE_OPTIONS, '--dns-result-order=ipv4first']
+            .filter(Boolean)
+            .join(' '),
           NEXT_PUBLIC_APP_URL: BASE_URL,
           BETTER_AUTH_URL: BASE_URL,
           BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,http://${KS_HOST},http://${MK_HOST},http://${AL_HOST},http://${PILOT_HOST},${BASE_URL}`,
