@@ -154,3 +154,70 @@ test('review preflight allows local URLs in tests and config files', () => {
     assert.match(result.stdout, /review-preflight passed/u);
   });
 });
+
+test('review preflight blocks unconditional Vercel deployment skips', () => {
+  withTempRepo(root => {
+    writeFile(
+      root,
+      'apps/web/vercel.json',
+      JSON.stringify({ ignoreCommand: 'exit 0' }, null, 2)
+    );
+    commitAll(root, 'initial');
+
+    const result = runPreflight(root, ['apps/web/vercel.json']);
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /unconditionally skips Vercel builds/u);
+  });
+});
+
+test('review preflight allows deployment skips with an environment escape hatch', () => {
+  withTempRepo(root => {
+    writeFile(
+      root,
+      'apps/web/vercel.json',
+      JSON.stringify(
+        {
+          ignoreCommand: 'if [ "$ENABLE_VERCEL_DEPLOYMENTS" = "1" ]; then exit 1; else exit 0; fi',
+        },
+        null,
+        2
+      )
+    );
+    commitAll(root, 'initial');
+
+    const result = runPreflight(root, ['apps/web/vercel.json']);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /review-preflight passed/u);
+  });
+});
+
+test('review preflight blocks test-only values in production source', () => {
+  withTempRepo(root => {
+    writeFile(
+      root,
+      'apps/web/src/lib/auth-secret.ts',
+      'export const secret = "test-secret-for-ci-only-do-not-use-in-production";\n'
+    );
+    commitAll(root, 'initial');
+
+    const result = runPreflight(root, ['apps/web/src/lib/auth-secret.ts']);
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /test-only configuration/u);
+  });
+});
+
+test('review preflight warns on auth and tenant sensitive paths', () => {
+  withTempRepo(root => {
+    writeFile(root, 'packages/shared-auth/src/index.ts', 'export const auth = true;\n');
+    commitAll(root, 'initial');
+
+    const result = runPreflight(root, ['packages/shared-auth/src/index.ts']);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, /auth, tenant, or RLS-sensitive code/u);
+    assert.match(result.stdout, /review-preflight passed/u);
+  });
+});

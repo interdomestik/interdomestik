@@ -108,9 +108,20 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
     packageJson.scripts['ci:local:sonar'],
     'node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh sonar'
   );
+  assert.equal(
+    packageJson.scripts['ci:local:sonar:pr'],
+    'node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh sonar-pr'
+  );
+  assert.equal(
+    packageJson.scripts['ci:local:ready'],
+    'node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh ready'
+  );
   assert.equal(packageJson.scripts['ci:local:clean'], 'bash scripts/ci-local-parity.sh clean');
 
   assert.match(dockerfile, /FROM node:24-bookworm/);
+  assert.match(dockerfile, /ARG GITLEAKS_VERSION=8\.30\.0/);
+  assert.match(dockerfile, /gitleaks_\$\{GITLEAKS_VERSION\}_linux_x64\.tar\.gz/);
+  assert.match(dockerfile, /install \/tmp\/gitleaks \/usr\/local\/bin\/gitleaks/);
   assert.match(dockerfile, /corepack prepare pnpm@10\.28\.2 --activate/);
   assert.match(dockerfile, /playwright@1\.60\.0 -- install-deps chromium/);
   assert.match(dockerfile, /postgresql-client/);
@@ -139,6 +150,10 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
     /DATABASE_URL: postgresql:\/\/postgres:postgres@ci-postgres:5432\/interdomestik_test/
   );
   assert.match(compose, /QA_MCP_CONTRACT_TIMEOUT_MS: '30000'/);
+  assert.match(compose, /CI_LOCAL_PR_NUMBER: \$\{CI_LOCAL_PR_NUMBER:-\}/);
+  assert.match(compose, /CI_LOCAL_BASE_REF: \$\{CI_LOCAL_BASE_REF:-origin\/main\}/);
+  assert.match(compose, /CI_LOCAL_BASE_SHA: \$\{CI_LOCAL_BASE_SHA:-\}/);
+  assert.match(compose, /CI_LOCAL_HEAD_SHA: \$\{CI_LOCAL_HEAD_SHA:-\}/);
   assert.match(compose, /TURBO_CACHE_DIR: \/home\/node\/\.cache\/turbo/);
   assert.match(compose, /SONAR_HOST_URL: \$\{SONAR_HOST_URL:-http:\/\/sonarqube:9000\}/);
   assert.match(compose, /SONAR_PROJECT_KEY: \$\{SONAR_PROJECT_KEY:-interdomestik\}/);
@@ -147,9 +162,20 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
   assert.match(compose, /SONAR_USER_HOME: \/home\/node\/\.sonar/);
 
   assert.match(parityScript, /pnpm test:ci:contracts/);
+  assert.match(parityScript, /detect_pull_request_context\(\)/);
+  assert.match(parityScript, /SONAR_PULLREQUEST_KEY="\$\{CI_LOCAL_PR_NUMBER\}"/);
+  assert.match(parityScript, /export_default_git_context\(\)/);
+  assert.match(parityScript, /run_host_pr_finalizer_if_available\(\)/);
+  assert.match(parityScript, /PR_FINALIZER_SKIP_CHECK_POLLING=false/);
+  assert.match(parityScript, /run_validation_surface_check\(\)/);
+  assert.match(parityScript, /validation-surface-policy\.mjs --event-name pull_request/);
   assert.match(parityScript, /git rev-parse --git-dir/);
   assert.doesNotMatch(parityScript, /export GIT_DIR/);
   assert.match(parityScript, /node scripts\/ci\/reviewer-preflight\.mjs/);
+  assert.match(parityScript, /pnpm repo:size:check/);
+  assert.match(parityScript, /pnpm exec commitlint --from/);
+  assert.match(parityScript, /gitleaks git --redact --log-opts/);
+  assert.match(parityScript, /run_github_edge_checks\(\)/);
   assert.match(parityScript, /pnpm check:e2e-contracts:base/);
   assert.match(parityScript, /pnpm lint:production-warnings/);
   assert.match(parityScript, /pnpm db:migrations:check-journal/);
@@ -169,6 +195,8 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
   assert.match(parityScript, /pnpm sonar:start/);
   assert.match(parityScript, /run_sonar_checks\(\)/);
   assert.match(parityScript, /pnpm sonar:gate/);
+  assert.match(parityScript, /run_optional_sonar_pr_checks\(\)/);
+  assert.match(parityScript, /Skipping Sonar PR parity because SONAR_TOKEN is not set/);
   assert.match(parityScript, /SONAR_RUN_COVERAGE.*true/);
   assert.match(parityScript, /SONAR_SCANNER_FORCE_NATIVE/);
   assert.match(parityScript, /NEXT_PUBLIC_BILLING_TEST_MODE=0/);

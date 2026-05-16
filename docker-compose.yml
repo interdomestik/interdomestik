@@ -168,6 +168,12 @@ services:
       BETTER_AUTH_SECRET: test-secret-for-ci-only-do-not-use-in-production
       NODE_OPTIONS: --max-old-space-size=4096
       QA_MCP_CONTRACT_TIMEOUT_MS: '30000'
+      CI_LOCAL_PR_NUMBER: ${CI_LOCAL_PR_NUMBER:-}
+      CI_LOCAL_PR_TITLE: ${CI_LOCAL_PR_TITLE:-}
+      CI_LOCAL_PR_AUTHOR: ${CI_LOCAL_PR_AUTHOR:-}
+      CI_LOCAL_BASE_REF: ${CI_LOCAL_BASE_REF:-origin/main}
+      CI_LOCAL_BASE_SHA: ${CI_LOCAL_BASE_SHA:-}
+      CI_LOCAL_HEAD_SHA: ${CI_LOCAL_HEAD_SHA:-}
       SONAR_HOST_URL: ${SONAR_HOST_URL:-http://sonarqube:9000}
       SONAR_PROJECT_KEY: ${SONAR_PROJECT_KEY:-interdomestik}
       SONAR_ORGANIZATION: ${SONAR_ORGANIZATION:-}

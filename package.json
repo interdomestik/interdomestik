@@ -87,6 +87,8 @@
     "ci:local:pr": "bash scripts/ci-local-parity.sh pr",
     "ci:local:full": "bash scripts/ci-local-parity.sh full",
     "ci:local:sonar": "node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh sonar",
+    "ci:local:sonar:pr": "node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh sonar-pr",
+    "ci:local:ready": "node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh ready",
     "ci:local:clean": "bash scripts/ci-local-parity.sh clean",
     "test:ci:contracts": "node --test scripts/ci/*.test.mjs",
     "sonar:start": "docker compose --profile sonar up -d sonarqube db",
