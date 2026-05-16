@@ -19,6 +19,7 @@ RUN apt-get update \
     postgresql-client \
     procps \
     ripgrep \
+    unzip \
   && npm exec --yes playwright@1.60.0 -- install-deps chromium \
   && corepack enable \
   && corepack prepare pnpm@10.28.2 --activate \
@@ -29,11 +30,13 @@ RUN apt-get update \
     /workspace/apps/web/node_modules \
     /home/node/.cache/ms-playwright \
     /home/node/.cache/turbo \
+    /home/node/.sonar \
   && chown -R node:node \
     /pnpm \
     /pnpm-store \
     /workspace \
     /home/node/.cache \
+    /home/node/.sonar \
   && node --version \
   && pnpm --version \
   && rm -rf /var/lib/apt/lists/*
