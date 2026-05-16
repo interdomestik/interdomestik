@@ -51,8 +51,8 @@ current tranche is closed:
 - Pipeline, reporting, and forecasting surfaces are usable through CRM04, CRM05, CRM12, CRM13, CRM14,
   CRM15, CRM16, CRM17, CRM18, CRM19, CRM20, CRM21, and CRM22.
 - Routing rules can be managed through CRM09 and applied through CRM23's controlled service boundary.
-- Legacy deal cleanup and nullability risks remain explicitly deferred: `P38-CRM10 Legacy Deal Column
-Retirement` and `P38-CRM11 Deal Nullability Tightening` require separate parity, zero-null,
+- Legacy deal cleanup and nullability risks remain explicitly deferred: `P38-CRM10` Legacy Deal
+  Column Retirement and `P38-CRM11` Deal Nullability Tightening require separate parity, zero-null,
   quarantine, and backfill proof before promotion.
 - Tasks, templates, sequences, scoring, consent, routing audit retention, automated routing triggers,
   external notification fanout, and broader CRM workflow expansion are moved to a later program unless
