@@ -319,6 +319,48 @@ async function applyAssignedDecision(params: {
   };
 }
 
+type RoutingApplicationAttemptResult = ApplyCrmLeadRoutingDecisionResult | 'cursor_conflict';
+
+async function applyRoutingDecisionAttempt(params: {
+  input: ApplyCrmLeadRoutingDecisionInput;
+  ports: CrmLeadRoutingApplicationPorts;
+}): Promise<RoutingApplicationAttemptResult> {
+  const { input, ports } = params;
+  const lead = await ports.getLeadRoutingSnapshot({
+    actor: input.actor,
+    leadId: input.leadId,
+  });
+  if (!lead) return { outcome: 'rejected', reason: 'tenant_scope' };
+
+  const stale = staleLeadResult(lead);
+  if (stale) return stale;
+
+  const rules = scopeRulesForActor(
+    input.actor,
+    await ports.listRoutingRules({ actor: input.actor })
+  );
+  const workloadSnapshot = await ports.getRoutingWorkloadSnapshot({
+    actor: input.actor,
+    now: input.now,
+    rules,
+  });
+  const cursors = await ports.getRoutingCursors({
+    actor: input.actor,
+    ruleIds: rules.map(rule => rule.id),
+  });
+  const decision = selectCrmLeadAssignee({ ...input, lead }, rules, workloadSnapshot, cursors);
+
+  if (decision.outcome === 'assigned') {
+    return applyAssignedDecision({
+      decision,
+      input,
+      ports,
+      selectedFromLead: lead,
+    });
+  }
+  return decision;
+}
+
 export async function applyCrmLeadRoutingDecision(
   input: ApplyCrmLeadRoutingDecisionInput,
   ports: CrmLeadRoutingApplicationPorts
@@ -337,48 +379,9 @@ export async function applyCrmLeadRoutingDecision(
   if (replay) return replayResult({ audit: replay, input: normalizedInput });
 
   for (let attempt = 0; attempt < CRM_ROUTING_CURSOR_RETRY_LIMIT; attempt += 1) {
-    const lead = await ports.getLeadRoutingSnapshot({
-      actor: normalizedInput.actor,
-      leadId: normalizedInput.leadId,
-    });
-    if (!lead) return { outcome: 'rejected', reason: 'tenant_scope' };
-
-    const stale = staleLeadResult(lead);
-    if (stale) return stale;
-
-    const rules = scopeRulesForActor(
-      normalizedInput.actor,
-      await ports.listRoutingRules({ actor: normalizedInput.actor })
-    );
-    const workloadSnapshot = await ports.getRoutingWorkloadSnapshot({
-      actor: normalizedInput.actor,
-      now: normalizedInput.now,
-      rules,
-    });
-    const cursors = await ports.getRoutingCursors({
-      actor: normalizedInput.actor,
-      ruleIds: rules.map(rule => rule.id),
-    });
-    const decision = selectCrmLeadAssignee(
-      { ...normalizedInput, lead },
-      rules,
-      workloadSnapshot,
-      cursors
-    );
-
-    if (decision.outcome === 'assigned') {
-      const result = await applyAssignedDecision({
-        decision,
-        input: normalizedInput,
-        ports,
-        selectedFromLead: lead,
-      });
-      if (result === 'cursor_conflict') continue;
-      return result;
-    }
-    if (decision.outcome === 'manual_review') return decision;
-    if (decision.outcome === 'no_rule') return decision;
-    return decision;
+    const result = await applyRoutingDecisionAttempt({ input: normalizedInput, ports });
+    if (result === 'cursor_conflict') continue;
+    return result;
   }
 
   return { outcome: 'cursor_conflict_exhausted' };

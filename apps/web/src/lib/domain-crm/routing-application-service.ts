@@ -1,11 +1,9 @@
-import type {
-  ApplyCrmLeadRoutingDecisionInput,
-  ApplyCrmLeadRoutingDecisionResult,
-  CrmLeadRoutingApplicationPorts,
-} from '@interdomestik/domain-crm/routing';
 import {
   applyCrmLeadRoutingDecision,
   CrmRoutingApplicationRollback,
+  type ApplyCrmLeadRoutingDecisionInput,
+  type ApplyCrmLeadRoutingDecisionResult,
+  type CrmLeadRoutingApplicationPorts,
   type CrmRoutingCursorMap,
   type CrmRoutingDedupeState,
   type CrmRoutingLeadLifecycleState,

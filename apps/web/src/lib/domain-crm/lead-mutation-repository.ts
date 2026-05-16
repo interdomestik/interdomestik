@@ -338,7 +338,7 @@ export function createCrmLeadMutationRepository(
           transferOwnershipInDatabase(tx as never, params, { validateTarget: false })
         );
       } catch (error) {
-        if (error instanceof MissingOpenOwnershipHistoryError && useTransaction) return null;
+        if (error instanceof MissingOpenOwnershipHistoryError) return null;
         throw error;
       }
     },

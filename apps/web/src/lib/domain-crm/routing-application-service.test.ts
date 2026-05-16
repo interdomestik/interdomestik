@@ -104,6 +104,64 @@ function auditRow() {
   };
 }
 
+async function auditRows() {
+  return [auditRow()];
+}
+
+function createInsertValues(table: unknown) {
+  if (table === crmRoutingAssignmentsAudit) {
+    return {
+      onConflictDoNothing() {
+        return { returning: vi.fn(auditRows) };
+      },
+    };
+  }
+  return Promise.resolve([]);
+}
+
+async function groupedRows(selection: unknown, table: unknown) {
+  if (table === crmLeads) return [{ agentId: 'agent-2', count: 4 }];
+  if (selection && table === crmLeadOwnershipHistory) {
+    return [{ agentId: 'agent-2', count: 1 }];
+  }
+  return [{ agentId: 'agent-2', count: 2 }];
+}
+
+function createSelectQuery(selection: unknown) {
+  return {
+    from(table: unknown) {
+      return {
+        where() {
+          return {
+            groupBy: vi.fn(() => groupedRows(selection, table)),
+          };
+        },
+      };
+    },
+  };
+}
+
+async function updatedRows(table: unknown) {
+  if (table === crmLeads) return [leadRow({ agentId: 'agent-2' })];
+  if (table === crmLeadOwnershipHistory) return [{ id: 'ownership-history-1' }];
+  if (table === crmRoutingCursors) return [{ ruleId: 'rule-1' }];
+  return [];
+}
+
+function createUpdateQuery(table: unknown) {
+  return {
+    set() {
+      return {
+        where() {
+          return {
+            returning: vi.fn(() => updatedRows(table)),
+          };
+        },
+      };
+    },
+  };
+}
+
 function createFakeDatabase() {
   const writeTables: unknown[] = [];
   const committedWriteTables: unknown[] = [];
@@ -114,16 +172,7 @@ function createFakeDatabase() {
     insert(table: unknown) {
       writeTables.push(table);
       return {
-        values() {
-          if (table === crmRoutingAssignmentsAudit) {
-            return {
-              onConflictDoNothing() {
-                return { returning: vi.fn(async () => [auditRow()]) };
-              },
-            };
-          }
-          return Promise.resolve([]);
-        },
+        values: () => createInsertValues(table),
       };
     },
     query: {
@@ -136,41 +185,10 @@ function createFakeDatabase() {
       crmLeadOwnershipHistory: { findMany: vi.fn(async () => []) },
       user: { findFirst: vi.fn(async () => ({ id: 'agent-2' })) },
     },
-    select: vi.fn((selection: unknown) => ({
-      from(table: unknown) {
-        return {
-          where() {
-            return {
-              groupBy: vi.fn(async () => {
-                if (table === crmLeads) return [{ agentId: 'agent-2', count: 4 }];
-                if (selection && table === crmLeadOwnershipHistory) {
-                  return [{ agentId: 'agent-2', count: 1 }];
-                }
-                return [{ agentId: 'agent-2', count: 2 }];
-              }),
-            };
-          },
-        };
-      },
-    })),
+    select: vi.fn(createSelectQuery),
     update(table: unknown) {
       writeTables.push(table);
-      return {
-        set() {
-          return {
-            where() {
-              return {
-                returning: vi.fn(async () => {
-                  if (table === crmLeads) return [leadRow({ agentId: 'agent-2' })];
-                  if (table === crmLeadOwnershipHistory) return [{ id: 'ownership-history-1' }];
-                  if (table === crmRoutingCursors) return [{ ruleId: 'rule-1' }];
-                  return [];
-                }),
-              };
-            },
-          };
-        },
-      };
+      return createUpdateQuery(table);
     },
   };
 

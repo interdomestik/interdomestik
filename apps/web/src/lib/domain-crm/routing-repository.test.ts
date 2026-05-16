@@ -26,8 +26,13 @@ import {
 } from './routing-repository';
 
 type AdminRoutingDb = Parameters<typeof createAdminCrmRoutingRuleRepository>[0];
+type RoutingRepositoryDb = Parameters<typeof createCrmRoutingRepository>[0];
 
 const now = new Date('2026-05-16T08:00:00.000Z');
+
+function routingRepositoryDb(database: unknown): RoutingRepositoryDb {
+  return database as RoutingRepositoryDb;
+}
 
 const branchManager: CrmActorContext = {
   actorId: 'manager-1',
@@ -157,7 +162,7 @@ describe('crmRoutingRepository', () => {
       },
       update: vi.fn(),
     };
-    const repository = createCrmRoutingRepository(fakeDb as never);
+    const repository = createCrmRoutingRepository(routingRepositoryDb(fakeDb));
 
     await expect(repository.listRoutingRules({ actor: branchManager })).resolves.toEqual([
       {
@@ -254,7 +259,7 @@ describe('crmRoutingRepository', () => {
       },
       update: vi.fn(),
     };
-    const repository = createCrmRoutingRepository(fakeDb as never);
+    const repository = createCrmRoutingRepository(routingRepositoryDb(fakeDb));
 
     await expect(
       repository.advanceRoutingCursor({
@@ -355,7 +360,7 @@ describe('crmRoutingRepository', () => {
       },
       update: vi.fn(),
     };
-    const repository = createCrmRoutingRepository(fakeDb as never);
+    const repository = createCrmRoutingRepository(routingRepositoryDb(fakeDb));
 
     await expect(
       repository.appendRoutingAssignmentAudit({
@@ -380,7 +385,7 @@ describe('crmRoutingRepository', () => {
         crmRoutingRules: { findMany: vi.fn() },
       },
     };
-    const repository = createCrmRoutingRepository(fakeDb as never);
+    const repository = createCrmRoutingRepository(routingRepositoryDb(fakeDb));
 
     await expect(
       repository.findRoutingAssignmentAuditByIdempotency({

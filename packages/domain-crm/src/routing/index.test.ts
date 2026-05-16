@@ -118,7 +118,10 @@ class InMemoryRoutingRepository implements CrmRoutingRepository {
     return { auditRecord: params.auditRecord, status: 'appended' as const };
   }
 
-  async findRoutingAssignmentAuditByIdempotency(): Promise<CrmRoutingAssignmentAuditRecord | null> {
+  async findRoutingAssignmentAuditByIdempotency(_params: {
+    idempotencyKey: string;
+    tenantId: string;
+  }): Promise<CrmRoutingAssignmentAuditRecord | null> {
     return null;
   }
 
