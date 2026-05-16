@@ -472,17 +472,19 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       await expect(memberPage).toHaveURL(/\/member\/help\?support=created$/, {
         timeout: 15000,
       });
-      await expect(memberPage.getByTestId('member-support-handoff-created')).toBeVisible();
-      await expect(memberPage.getByTestId('member-support-handoff-advisory-generic')).toBeVisible({
-        timeout: 15000,
-      });
+      await expect(
+        currentMemberSurface().getByTestId('member-support-handoff-created')
+      ).toBeVisible();
+      await expect(
+        currentMemberSurface().getByTestId('member-support-handoff-advisory-generic')
+      ).toBeVisible({ timeout: 15000 });
 
       await gotoApp(memberPage, routes.memberHelp(testInfo), testInfo, {
         marker: 'member-page-ready',
       });
-      await expect(memberPage.getByTestId('member-support-handoff-advisory-generic')).toBeVisible({
-        timeout: 15000,
-      });
+      await expect(
+        currentMemberSurface().getByTestId('member-support-handoff-advisory-generic')
+      ).toBeVisible({ timeout: 15000 });
 
       await gotoApp(memberPage, claimHelpPath, testInfo, {
         marker: 'member-page-ready',
@@ -506,7 +508,9 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       await expect(memberPage).toHaveURL(/\/member\/help\?support=created$/, {
         timeout: 15000,
       });
-      await expect(memberPage.getByTestId('member-support-handoff-created')).toBeVisible();
+      await expect(
+        currentMemberSurface().getByTestId('member-support-handoff-created')
+      ).toBeVisible();
     } finally {
       await cleanupHandoffBySubject(subject);
       await cleanupHandoffBySubject(secondSubject);

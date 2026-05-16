@@ -111,6 +111,14 @@ async function ruleEnabled(tenantId: string, source: string): Promise<boolean | 
   return rule?.enabled ?? null;
 }
 
+async function ruleArchived(tenantId: string, source: string): Promise<boolean> {
+  const rule = await db.query.crmRoutingRules.findFirst({
+    columns: { archivedAt: true },
+    where: and(eq(crmRoutingRules.tenantId, tenantId), eq(crmRoutingRules.source, source)),
+  });
+  return Boolean(rule?.archivedAt);
+}
+
 test.describe('Admin CRM routing rules @admin-crm-routing-rules', () => {
   test('admin can create, reorder, disable, and archive a routing rule', async ({
     page,
@@ -141,6 +149,8 @@ test.describe('Admin CRM routing rules @admin-crm-routing-rules', () => {
       await createForm.locator('input[name="priority"]').fill('1001');
       await createForm.locator('input[name="source"]').fill(createdSource);
       await createForm.locator('button[type="submit"]').click();
+      await expect.poll(async () => rulePriority(context.tenantId, createdSource)).not.toBeNull();
+      await gotoApp(page, adminCrmRoute(testInfo), testInfo, { marker: 'admin-crm-page-ready' });
 
       const createdRow = page.getByTestId(RULE_ROW_MARKER).filter({ hasText: createdSource });
       await expect(createdRow.first()).toBeVisible();
@@ -155,13 +165,24 @@ test.describe('Admin CRM routing rules @admin-crm-routing-rules', () => {
           return created !== null && seeded !== null && created < seeded;
         })
         .toBe(true);
+      await gotoApp(page, adminCrmRoute(testInfo), testInfo, { marker: 'admin-crm-page-ready' });
 
       await createdRow.first().getByTestId(ENABLED_BUTTON_MARKER).click();
       await expect(page.getByTestId(ACTION_RESULT_MARKER).first()).toBeVisible();
       await expect.poll(async () => ruleEnabled(context.tenantId, createdSource)).toBe(false);
+      await gotoApp(page, adminCrmRoute(testInfo), testInfo, { marker: 'admin-crm-page-ready' });
 
-      await createdRow.first().getByTestId(ARCHIVE_BUTTON_MARKER).click();
-      await expect(createdRow.first().getByTestId(ARCHIVE_BUTTON_MARKER)).toBeDisabled();
+      const disabledRow = page.getByTestId(RULE_ROW_MARKER).filter({ hasText: createdSource });
+      await expect(disabledRow.first().getByTestId(ENABLED_BUTTON_MARKER)).toBeEnabled();
+      await expect(disabledRow.first().getByTestId(ARCHIVE_BUTTON_MARKER)).toBeEnabled();
+      await disabledRow.first().getByTestId(ARCHIVE_BUTTON_MARKER).click();
+      await expect.poll(async () => ruleArchived(context.tenantId, createdSource)).toBe(true);
+      await gotoApp(page, adminCrmRoute(testInfo), testInfo, { marker: 'admin-crm-page-ready' });
+
+      const archivedRow = page.getByTestId(RULE_ROW_MARKER).filter({ hasText: createdSource });
+      await expect(archivedRow.first().getByTestId(ARCHIVE_BUTTON_MARKER)).toBeDisabled({
+        timeout: 15000,
+      });
     } finally {
       await restoreTenantWidePriorities(context.tenantId, prioritySnapshot);
       await cleanupRules(context.tenantId, [seededSource, createdSource]);

@@ -362,7 +362,7 @@ describe('crmRoutingRepository', () => {
         auditRecord,
         idempotencyKey: auditRecord.idempotencyKey,
       })
-    ).resolves.toEqual(auditRecord);
+    ).resolves.toEqual({ auditRecord, status: 'existing' });
 
     expect(findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -370,6 +370,30 @@ describe('crmRoutingRepository', () => {
       })
     );
     expect(insert).toHaveBeenCalledWith(crmRoutingAssignmentsAudit);
+  });
+
+  it('reads assignment audit replay rows by tenant and idempotency key', async () => {
+    const findFirst = vi.fn(async () => auditRow());
+    const fakeDb = {
+      query: {
+        crmRoutingAssignmentsAudit: { findFirst },
+        crmRoutingRules: { findMany: vi.fn() },
+      },
+    };
+    const repository = createCrmRoutingRepository(fakeDb as never);
+
+    await expect(
+      repository.findRoutingAssignmentAuditByIdempotency({
+        idempotencyKey: 'route:lead-1',
+        tenantId: 'tenant-1',
+      })
+    ).resolves.toEqual(auditRecord);
+
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.anything(),
+      })
+    );
   });
 
   it('creates admin routing rules with the session tenant and domain agentIds vocabulary', async () => {
