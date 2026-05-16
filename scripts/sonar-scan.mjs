@@ -167,30 +167,39 @@ const scannerPropertiesWithAnalysisContext = appendPullRequestScannerProperties(
   pullRequestKey,
 });
 
-// If we are targeting the default local SonarQube, wait briefly for it to be ready.
-// This avoids the common “Failed to query server version” error when SonarQube is still booting.
-if (sonarHostUrl.includes('host.docker.internal:9000')) {
+const forceDocker = process.env.SONAR_SCANNER_FORCE_DOCKER === 'true';
+const forceNative = process.env.SONAR_SCANNER_FORCE_NATIVE === 'true';
+const shouldUseNativeScanner =
+  forceNative || (!forceDocker && process.platform === 'darwin' && process.arch === 'arm64');
+
+if (sonarHostUrl.includes('host.docker.internal:9000') || sonarHostUrl.includes('sonarqube:9000')) {
   await waitForSonarUp({
-    statusUrl: 'http://localhost:9000/api/system/status',
+    statusUrl: forceNative
+      ? `${sonarHostUrl.replace(/\/$/u, '')}/api/system/status`
+      : 'http://localhost:9000/api/system/status',
     timeoutMs: 120_000,
   });
 }
 
-const forceDocker = process.env.SONAR_SCANNER_FORCE_DOCKER === 'true';
-const shouldUseNativeArmScanner =
-  !forceDocker && process.platform === 'darwin' && process.arch === 'arm64';
-
-if (shouldUseNativeArmScanner) {
+if (shouldUseNativeScanner) {
   try {
     const nativeArgs = buildNativeScannerArgs(scannerPropertiesWithAnalysisContext);
     const nativeStatus = run('pnpm', nativeArgs, { allowFailure: true });
     if (nativeStatus === 0) {
       process.exit(0);
     }
+    if (forceNative) {
+      process.exit(nativeStatus || 1);
+    }
     console.error(
       `Native Sonar scanner failed with status ${nativeStatus}. Falling back to Docker scanner.`
     );
   } catch (error) {
+    if (forceNative) {
+      console.error('Native Sonar scanner invocation failed.');
+      console.error(String(error));
+      process.exit(1);
+    }
     console.error('Native Sonar scanner invocation failed. Falling back to Docker scanner.');
     console.error(String(error));
   }

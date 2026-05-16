@@ -99,10 +99,15 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
   const parityScript = readRepoFile('scripts/ci-local-parity.sh');
   const packageJson = JSON.parse(readRepoFile('package.json'));
   const dockerfile = readRepoFile('docker/Dockerfile.ci-parity');
+  const sonarScan = readRepoFile('scripts/sonar-scan.mjs');
 
   assert.equal(packageJson.scripts['ci:local:quick'], 'bash scripts/ci-local-parity.sh quick');
   assert.equal(packageJson.scripts['ci:local:pr'], 'bash scripts/ci-local-parity.sh pr');
   assert.equal(packageJson.scripts['ci:local:full'], 'bash scripts/ci-local-parity.sh full');
+  assert.equal(
+    packageJson.scripts['ci:local:sonar'],
+    'node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh sonar'
+  );
   assert.equal(packageJson.scripts['ci:local:clean'], 'bash scripts/ci-local-parity.sh clean');
 
   assert.match(dockerfile, /FROM node:24-bookworm/);
@@ -110,6 +115,8 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
   assert.match(dockerfile, /playwright@1\.60\.0 -- install-deps chromium/);
   assert.match(dockerfile, /postgresql-client/);
   assert.match(dockerfile, /ripgrep/);
+  assert.match(dockerfile, /unzip/);
+  assert.match(dockerfile, /\/home\/node\/\.sonar/);
 
   assert.match(compose, /ci-postgres:[\s\S]*image: postgres:16/);
   assert.match(compose, /ci-parity:[\s\S]*dockerfile: docker\/Dockerfile\.ci-parity/);
@@ -118,6 +125,7 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
   assert.match(compose, /ci_local_web_node_modules:\s*\/workspace\/apps\/web\/node_modules/);
   assert.match(compose, /ci_local_playwright_cache:\s*\/home\/node\/\.cache\/ms-playwright/);
   assert.match(compose, /ci_local_turbo_cache:\s*\/home\/node\/\.cache\/turbo/);
+  assert.match(compose, /ci_local_sonar_cache:\s*\/home\/node\/\.sonar/);
   assert.match(
     compose,
     /\$\{CI_LOCAL_GIT_DIR:-\.git\}:\$\{CI_LOCAL_GIT_DIR:-\/workspace\/\.git\}:ro/
@@ -132,6 +140,11 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
   );
   assert.match(compose, /QA_MCP_CONTRACT_TIMEOUT_MS: '30000'/);
   assert.match(compose, /TURBO_CACHE_DIR: \/home\/node\/\.cache\/turbo/);
+  assert.match(compose, /SONAR_HOST_URL: \$\{SONAR_HOST_URL:-http:\/\/sonarqube:9000\}/);
+  assert.match(compose, /SONAR_PROJECT_KEY: \$\{SONAR_PROJECT_KEY:-interdomestik\}/);
+  assert.match(compose, /SONAR_TOKEN: \$\{SONAR_TOKEN:-\}/);
+  assert.match(compose, /SONAR_SCANNER_FORCE_NATIVE: \$\{SONAR_SCANNER_FORCE_NATIVE:-true\}/);
+  assert.match(compose, /SONAR_USER_HOME: \/home\/node\/\.sonar/);
 
   assert.match(parityScript, /pnpm test:ci:contracts/);
   assert.match(parityScript, /git rev-parse --git-dir/);
@@ -151,6 +164,19 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
   assert.match(parityScript, /pnpm audit --prod --audit-level=high --json/);
   assert.match(parityScript, /node scripts\/pnpm-audit-gate\.mjs \/tmp\/pnpm-audit\.json/);
   assert.match(parityScript, /pnpm e2e:gate/);
+  assert.match(parityScript, /ensure_sonar_server_ready\(\)/);
+  assert.match(parityScript, /api\/system\/status/);
+  assert.match(parityScript, /pnpm sonar:start/);
+  assert.match(parityScript, /run_sonar_checks\(\)/);
+  assert.match(parityScript, /pnpm sonar:gate/);
+  assert.match(parityScript, /SONAR_RUN_COVERAGE.*true/);
+  assert.match(parityScript, /SONAR_SCANNER_FORCE_NATIVE/);
+  assert.match(parityScript, /NEXT_PUBLIC_BILLING_TEST_MODE=0/);
+
+  assert.match(sonarScan, /SONAR_SCANNER_FORCE_NATIVE/);
+  assert.match(sonarScan, /shouldUseNativeScanner/);
+  assert.match(sonarScan, /statusUrl: forceNative/);
+  assert.match(sonarScan, /if \(forceNative\) \{\s*process\.exit\(nativeStatus \|\| 1\);/);
 });
 
 test('QA MCP contract timeout override falls back for invalid values', () => {

@@ -147,6 +147,7 @@ services:
       - ci_local_web_node_modules:/workspace/apps/web/node_modules
       - ci_local_playwright_cache:/home/node/.cache/ms-playwright
       - ci_local_turbo_cache:/home/node/.cache/turbo
+      - ci_local_sonar_cache:/home/node/.sonar
       - ${CI_LOCAL_GIT_DIR:-.git}:${CI_LOCAL_GIT_DIR:-/workspace/.git}:ro
       - ${CI_LOCAL_GIT_COMMON_DIR:-.git}:${CI_LOCAL_GIT_COMMON_DIR:-/workspace/.git}:ro
     environment:
@@ -167,6 +168,16 @@ services:
       BETTER_AUTH_SECRET: test-secret-for-ci-only-do-not-use-in-production
       NODE_OPTIONS: --max-old-space-size=4096
       QA_MCP_CONTRACT_TIMEOUT_MS: '30000'
+      SONAR_HOST_URL: ${SONAR_HOST_URL:-http://sonarqube:9000}
+      SONAR_PROJECT_KEY: ${SONAR_PROJECT_KEY:-interdomestik}
+      SONAR_ORGANIZATION: ${SONAR_ORGANIZATION:-}
+      SONAR_TOKEN: ${SONAR_TOKEN:-}
+      SONAR_PULLREQUEST_KEY: ${SONAR_PULLREQUEST_KEY:-}
+      SONAR_PULLREQUEST_BRANCH: ${SONAR_PULLREQUEST_BRANCH:-}
+      SONAR_PULLREQUEST_BASE: ${SONAR_PULLREQUEST_BASE:-}
+      SONAR_SCANNER_FORCE_NATIVE: ${SONAR_SCANNER_FORCE_NATIVE:-true}
+      SONAR_SCANNER_SKIP_JRE_PROVISIONING: ${SONAR_SCANNER_SKIP_JRE_PROVISIONING:-false}
+      SONAR_USER_HOME: /home/node/.sonar
       UPSTASH_REDIS_REST_URL: http://localhost:8080
       UPSTASH_REDIS_REST_TOKEN: dummy-token
     depends_on:
@@ -268,6 +279,7 @@ volumes:
   ci_local_web_node_modules:
   ci_local_playwright_cache:
   ci_local_turbo_cache:
+  ci_local_sonar_cache:
   sonar_data:
   sonar_extensions:
   sonar_logs:
