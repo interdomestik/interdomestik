@@ -50,6 +50,7 @@
     "./reporting/repository": "./src/reporting/repository.ts",
     "./reporting/types": "./src/reporting/types.ts",
     "./routing": "./src/routing/index.ts",
+    "./routing/application-service": "./src/routing/application-service.ts",
     "./routing/mutations": "./src/routing/mutations.ts",
     "./routing/repository": "./src/routing/repository.ts",
     "./routing/types": "./src/routing/types.ts",

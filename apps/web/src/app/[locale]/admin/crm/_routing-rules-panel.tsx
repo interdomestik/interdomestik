@@ -1,7 +1,8 @@
 'use client';
 
 import { Archive, ArrowDown, ArrowUp, PauseCircle, PlayCircle, Save } from 'lucide-react';
-import { useActionState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useState, type ReactNode } from 'react';
 
 import {
   archiveRoutingRuleAction,
@@ -22,6 +23,11 @@ import {
 } from './_routing-types';
 
 const initialActionState: AdminCrmRoutingActionState = { status: 'idle' };
+
+type AdminCrmRoutingServerAction = (
+  previousState: AdminCrmRoutingActionState,
+  formData: FormData
+) => Promise<AdminCrmRoutingActionState>;
 
 export type AdminCrmRoutingRulesPanelCopy = {
   actions: {
@@ -83,14 +89,9 @@ export function AdminCrmRoutingRulesPanel({
   copy: AdminCrmRoutingRulesPanelCopy;
   payload: AdminCrmRoutingRulesPayload;
 }>) {
-  const [createState, createAction, createPending] = useActionState(
-    createRoutingRuleAction,
-    initialActionState
-  );
-  const [reorderState, reorderAction, reorderPending] = useActionState(
-    reorderRoutingRulesAction,
-    initialActionState
-  );
+  const [createState, createAction, createPending] = useRoutingRuleAction(createRoutingRuleAction);
+  const [reorderState, reorderAction, reorderPending] =
+    useRoutingRuleAction(reorderRoutingRulesAction);
   const activeRules = payload.rules.filter(rule => !rule.archived);
 
   return (
@@ -176,18 +177,12 @@ function RoutingRuleRow({
   reorderPending: boolean;
   rule: AdminCrmRoutingRuleSummary;
 }>) {
-  const [updateState, updateAction, updatePending] = useActionState(
-    updateRoutingRuleAction,
-    initialActionState
+  const [updateState, updateAction, updatePending] = useRoutingRuleAction(updateRoutingRuleAction);
+  const [enabledState, enabledAction, enabledPending] = useRoutingRuleAction(
+    setRoutingRuleEnabledAction
   );
-  const [enabledState, enabledAction, enabledPending] = useActionState(
-    setRoutingRuleEnabledAction,
-    initialActionState
-  );
-  const [archiveState, archiveAction, archivePending] = useActionState(
-    archiveRoutingRuleAction,
-    initialActionState
-  );
+  const [archiveState, archiveAction, archivePending] =
+    useRoutingRuleAction(archiveRoutingRuleAction);
   const rowState = currentRowState(updateState, enabledState, archiveState);
   const scopeLabel = rule.scope.kind === 'tenant' ? copy.rule.tenantScope : rule.scope.branchLabel;
   const filterLabel = filterSummary(rule, copy);
@@ -290,6 +285,27 @@ function RoutingRuleRow({
       </td>
     </tr>
   );
+}
+
+function useRoutingRuleAction(action: AdminCrmRoutingServerAction) {
+  const router = useRouter();
+  const [state, setState] = useState<AdminCrmRoutingActionState>(initialActionState);
+  const [pending, setPending] = useState(false);
+  const formAction = useCallback(
+    async (formData: FormData) => {
+      setPending(true);
+      try {
+        const result = await action(initialActionState, formData);
+        setState(result);
+        if (result.status === 'ok') router.refresh();
+      } finally {
+        setPending(false);
+      }
+    },
+    [action, router]
+  );
+
+  return [state, formAction, pending] as const;
 }
 
 function RuleFields({

@@ -215,6 +215,17 @@ function auditValues(params: {
 
 export function createCrmRoutingRepository(database: CrmRoutingDb = db): CrmRoutingRepository {
   return {
+    async findRoutingAssignmentAuditByIdempotency(params) {
+      // db-access-guard: tenant-scoped -- reason: routing application idempotency replay constrains by explicit tenantId and opaque idempotency key
+      const existing = await database.query.crmRoutingAssignmentsAudit.findFirst({
+        where: and(
+          eq(crmRoutingAssignmentsAudit.tenantId, params.tenantId),
+          eq(crmRoutingAssignmentsAudit.idempotencyKey, params.idempotencyKey)
+        ),
+      });
+      return existing ? mapAudit(existing) : null;
+    },
+
     async listRoutingRules(params: { actor: CrmActorContext }) {
       const actor = params.actor;
       if (actor.role === 'member') return [];
@@ -317,7 +328,7 @@ export function createCrmRoutingRepository(database: CrmRoutingDb = db): CrmRout
         .returning();
 
       if (inserted[0]) {
-        return mapAudit(inserted[0]);
+        return { auditRecord: mapAudit(inserted[0]), status: 'appended' };
       }
 
       if (!values.idempotencyKey) {
@@ -336,7 +347,7 @@ export function createCrmRoutingRepository(database: CrmRoutingDb = db): CrmRout
         throw new Error('CRM routing audit idempotency conflict did not return an existing row');
       }
 
-      return mapAudit(existing);
+      return { auditRecord: mapAudit(existing), status: 'existing' };
     },
   };
 }
