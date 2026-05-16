@@ -57,7 +57,8 @@ clean_outer() {
 }
 
 detect_pull_request_context() {
-  if [[ -n "${CI_LOCAL_PR_NUMBER:-}" && -n "${SONAR_PULLREQUEST_KEY:-}" && -n "${SONAR_PULLREQUEST_BRANCH:-}" && -n "${SONAR_PULLREQUEST_BASE:-}" ]]; then
+  if [[ -n "${SONAR_PULLREQUEST_KEY:-}" && -n "${SONAR_PULLREQUEST_BRANCH:-}" && -n "${SONAR_PULLREQUEST_BASE:-}" ]]; then
+    export CI_LOCAL_PR_NUMBER="${CI_LOCAL_PR_NUMBER:-${SONAR_PULLREQUEST_KEY}}"
     return 0
   fi
 
@@ -147,7 +148,7 @@ run_outer() {
   detect_pull_request_context || true
   export_default_git_context
 
-  if [[ "${MODE}" == "sonar-pr" && -z "${CI_LOCAL_PR_NUMBER:-}" ]]; then
+  if [[ "${MODE}" == "sonar-pr" && ( -z "${SONAR_PULLREQUEST_KEY:-}" || -z "${SONAR_PULLREQUEST_BRANCH:-}" || -z "${SONAR_PULLREQUEST_BASE:-}" ) ]]; then
     echo "Unable to detect an open GitHub PR for this branch; set SONAR_PULLREQUEST_* manually or open a PR first." >&2
     exit 2
   fi

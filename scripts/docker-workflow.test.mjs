@@ -163,7 +163,12 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
 
   assert.match(parityScript, /pnpm test:ci:contracts/);
   assert.match(parityScript, /detect_pull_request_context\(\)/);
+  assert.match(
+    parityScript,
+    /export CI_LOCAL_PR_NUMBER="\$\{CI_LOCAL_PR_NUMBER:-\$\{SONAR_PULLREQUEST_KEY\}\}"/
+  );
   assert.match(parityScript, /SONAR_PULLREQUEST_KEY="\$\{CI_LOCAL_PR_NUMBER\}"/);
+  assert.match(parityScript, /MODE.*sonar-pr[\s\S]*SONAR_PULLREQUEST_KEY/);
   assert.match(parityScript, /export_default_git_context\(\)/);
   assert.match(parityScript, /run_host_pr_finalizer_if_available\(\)/);
   assert.match(parityScript, /PR_FINALIZER_SKIP_CHECK_POLLING=false/);
