@@ -6,6 +6,7 @@ ENV PNPM_HOME=/pnpm
 ENV PNPM_STORE_DIR=/pnpm-store
 ENV PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
 ENV PATH=$PNPM_HOME:$PATH
+ARG GITLEAKS_VERSION=8.30.0
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -20,6 +21,15 @@ RUN apt-get update \
     procps \
     ripgrep \
     unzip \
+  && arch="$(uname -m)" \
+  && case "$arch" in \
+    x86_64) gitleaks_archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" ;; \
+    aarch64|arm64) gitleaks_archive="gitleaks_${GITLEAKS_VERSION}_linux_arm64.tar.gz" ;; \
+    *) echo "Unsupported platform for gitleaks: linux-${arch}" >&2; exit 1 ;; \
+  esac \
+  && curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${gitleaks_archive}" -o "/tmp/${gitleaks_archive}" \
+  && tar -xzf "/tmp/${gitleaks_archive}" -C /tmp gitleaks \
+  && install /tmp/gitleaks /usr/local/bin/gitleaks \
   && npm exec --yes playwright@1.60.0 -- install-deps chromium \
   && corepack enable \
   && corepack prepare pnpm@10.28.2 --activate \
@@ -39,6 +49,7 @@ RUN apt-get update \
     /home/node/.sonar \
   && node --version \
   && pnpm --version \
+  && gitleaks version \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace

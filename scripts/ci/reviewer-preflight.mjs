@@ -6,12 +6,22 @@ import process from 'node:process';
 const GIT_BIN = '/usr/bin/git';
 const SAFE_EXEC_ENV = Object.freeze({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
 const PROTECTED_PATHS = new Set(['apps/web/src/proxy.ts']);
+const SENSITIVE_PATH_PATTERNS = [
+  /^apps\/web\/src\/app\/api\/auth\//u,
+  /^apps\/web\/src\/lib\/auth/u,
+  /^packages\/shared-auth\//u,
+  /^packages\/database\/src\/.*tenant/u,
+  /^packages\/database\/src\/.*rls/u,
+];
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 const TEST_OR_CONFIG_PATTERN =
   /(\.test\.|\.spec\.|playwright\.config\.|next\.config\.|instrumentation\.)/u;
 const LOCAL_URL_PATTERN = /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/u;
 const EMPTY_CATCH_PATTERN = /catch\s*(?:\([^)]*\)\s*)?\{\s*\}/u;
 const ENV_OR_FALLBACK_PATTERN = /process\.env\.[A-Z0-9_]+\s*\|\|\s*['"`]/u;
+const TEST_ONLY_VALUE_PATTERN =
+  /(test-secret-for-(?:ci|local)|dummy-token|NEXT_PUBLIC_BILLING_TEST_MODE\s*[:=]\s*['"]?1)/u;
+const ENV_ESCAPE_PATTERN = /\$[A-Z][A-Z0-9_]*|\$\{[A-Z][A-Z0-9_]*\}|process\.env\.[A-Z0-9_]+/u;
 
 function git(args) {
   return execFileSync(GIT_BIN, args, {
@@ -161,10 +171,66 @@ function addFinding(findings, file, message, line) {
   findings.push(line ? `${file}:${line} ${message}` : `${file} ${message}`);
 }
 
+function addWarning(warnings, file, message, line) {
+  warnings.push(line ? `${file}:${line} ${message}` : `${file} ${message}`);
+}
+
+function inspectSensitivePath(file, warnings) {
+  if (SENSITIVE_PATH_PATTERNS.some(pattern => pattern.test(file))) {
+    addWarning(
+      warnings,
+      file,
+      'touches auth, tenant, or RLS-sensitive code. Confirm the change is surgical and covered.',
+      1
+    );
+  }
+}
+
+function readJsonFile(file) {
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function inspectDeploymentConfig(file, findings) {
+  if (!fs.existsSync(file) || file !== 'apps/web/vercel.json') {
+    return;
+  }
+
+  const parsed = readJsonFile(file);
+  if (!parsed || typeof parsed.ignoreCommand !== 'string') {
+    return;
+  }
+
+  const ignoreCommand = parsed.ignoreCommand.trim();
+  if (/^exit\s+0$/u.test(ignoreCommand)) {
+    addFinding(
+      findings,
+      file,
+      'unconditionally skips Vercel builds; gate deployment pauses behind an environment variable escape hatch.',
+      1
+    );
+    return;
+  }
+
+  if (/\bexit\s+0\b/u.test(ignoreCommand) && !ENV_ESCAPE_PATTERN.test(ignoreCommand)) {
+    addFinding(
+      findings,
+      file,
+      'skips Vercel builds without an environment variable escape hatch.',
+      1
+    );
+  }
+}
+
 function inspectFile(file, findings, warnings, inspectWholeFile) {
   if (PROTECTED_PATHS.has(file)) {
     addFinding(findings, file, 'changes Phase C routing authority; this needs explicit review.', 1);
   }
+  inspectSensitivePath(file, warnings);
+  inspectDeploymentConfig(file, findings);
 
   if (!isProductionAppSource(file) || !fs.existsSync(file)) {
     return;
@@ -212,6 +278,18 @@ function inspectFile(file, findings, warnings, inspectWholeFile) {
   if (ENV_OR_FALLBACK_PATTERN.test(content)) {
     warnings.push(
       `${file} uses || fallback for an env var. Prefer ?? when empty string is a meaningful configured value.`
+    );
+  }
+
+  const testOnlyValueMatch = TEST_ONLY_VALUE_PATTERN.exec(content);
+  if (testOnlyValueMatch) {
+    addFinding(
+      findings,
+      file,
+      'introduces test-only configuration into production source; keep CI/dev placeholders in tests, scripts, or environment setup.',
+      inspectWholeFile
+        ? lineForOffset(content, testOnlyValueMatch.index)
+        : lineForRecordsOffset(records, testOnlyValueMatch.index)
     );
   }
 }
