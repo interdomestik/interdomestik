@@ -6,5 +6,5 @@
       "schedule": "15 5 * * *"
     }
   ],
-  "ignoreCommand": "if [ \"$VERCEL_ENV\" = \"production\" ]; then exit 1; else exit 0; fi"
+  "ignoreCommand": "if [ \"$ENABLE_VERCEL_DEPLOYMENTS\" = \"1\" ]; then exit 1; else exit 0; fi"
 }
