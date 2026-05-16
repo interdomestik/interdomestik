@@ -29,7 +29,7 @@ export const crmLeads = pgTable(
     agentId: text('agent_id')
       .notNull()
       .references(() => user.id),
-    branchId: text('branch_id').references(() => branches.id),
+    branchId: text('branch_id'),
     type: text('type').notNull(), // 'individual', 'business'
     fullName: text('full_name'),
     companyName: text('company_name'),
@@ -235,6 +235,11 @@ export const crmRoutingRules = pgTable(
       .on(table.tenantId, table.archivedAt)
       .where(sql`${table.archivedAt} is null`),
     foreignKey({
+      columns: [table.tenantId, table.branchId],
+      foreignColumns: [branches.tenantId, branches.id],
+      name: 'crm_routing_rules_tenant_branch_fk',
+    }),
+    foreignKey({
       columns: [table.tenantId, table.fallbackRuleId],
       foreignColumns: [table.tenantId, table.id],
       name: 'crm_routing_rules_tenant_fallback_rule_fk',
@@ -291,9 +296,13 @@ export const crmRoutingAssignmentsAudit = pgTable(
       .notNull()
       .references(() => crmLeads.id),
     ruleId: text('rule_id').notNull(),
-    actorId: text('actor_id').references(() => user.id),
-    selectedAgentId: text('selected_agent_id').references(() => user.id),
-    branchId: text('branch_id').references(() => branches.id),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => user.id),
+    selectedAgentId: text('selected_agent_id')
+      .notNull()
+      .references(() => user.id),
+    branchId: text('branch_id'),
     strategy: text('strategy').notNull(),
     reasonCode: text('reason_code').notNull(),
     idempotencyKey: text('idempotency_key'),
@@ -324,6 +333,11 @@ export const crmRoutingAssignmentsAudit = pgTable(
       columns: [table.tenantId, table.leadId],
       foreignColumns: [crmLeads.tenantId, crmLeads.id],
       name: 'crm_routing_assignments_audit_tenant_lead_fk',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.branchId],
+      foreignColumns: [branches.tenantId, branches.id],
+      name: 'crm_routing_assignments_audit_tenant_branch_fk',
     }),
     check(
       'crm_routing_assignments_audit_strategy_check',

@@ -6730,13 +6730,13 @@
           "name": "actor_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "selected_agent_id": {
           "name": "selected_agent_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "branch_id": {
           "name": "branch_id",
@@ -6913,19 +6913,6 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "crm_routing_assignments_audit_branch_id_branches_id_fk": {
-          "name": "crm_routing_assignments_audit_branch_id_branches_id_fk",
-          "tableFrom": "crm_routing_assignments_audit",
-          "tableTo": "branches",
-          "columnsFrom": [
-            "branch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
         "crm_routing_assignments_audit_tenant_rule_fk": {
           "name": "crm_routing_assignments_audit_tenant_rule_fk",
           "tableFrom": "crm_routing_assignments_audit",
@@ -6948,6 +6935,21 @@
           "columnsFrom": [
             "tenant_id",
             "lead_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "crm_routing_assignments_audit_tenant_branch_fk": {
+          "name": "crm_routing_assignments_audit_tenant_branch_fk",
+          "tableFrom": "crm_routing_assignments_audit",
+          "tableTo": "branches",
+          "columnsFrom": [
+            "tenant_id",
+            "branch_id"
           ],
           "columnsTo": [
             "tenant_id",
@@ -7272,19 +7274,6 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "crm_routing_rules_branch_id_branches_id_fk": {
-          "name": "crm_routing_rules_branch_id_branches_id_fk",
-          "tableFrom": "crm_routing_rules",
-          "tableTo": "branches",
-          "columnsFrom": [
-            "branch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
         "crm_routing_rules_fallback_agent_id_user_id_fk": {
           "name": "crm_routing_rules_fallback_agent_id_user_id_fk",
           "tableFrom": "crm_routing_rules",
@@ -7305,6 +7294,21 @@
           "columnsFrom": [
             "tenant_id",
             "fallback_rule_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "crm_routing_rules_tenant_branch_fk": {
+          "name": "crm_routing_rules_tenant_branch_fk",
+          "tableFrom": "crm_routing_rules",
+          "tableTo": "branches",
+          "columnsFrom": [
+            "tenant_id",
+            "branch_id"
           ],
           "columnsTo": [
             "tenant_id",
@@ -10845,7 +10849,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "branches_tenant_id_id_uq": {
+          "name": "branches_tenant_id_id_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

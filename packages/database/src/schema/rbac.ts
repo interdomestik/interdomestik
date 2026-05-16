@@ -1,4 +1,4 @@
-import { boolean, index, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { boolean, index, pgTable, text, timestamp, unique, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
 import { tenants } from './tenants';
@@ -21,6 +21,7 @@ export const branches = pgTable(
       .notNull(),
   },
   table => [
+    unique('branches_tenant_id_id_uq').on(table.tenantId, table.id),
     uniqueIndex('branches_tenant_slug_uq').on(table.tenantId, table.slug),
     uniqueIndex('branches_tenant_code_uq').on(table.tenantId, table.code),
     index('idx_branches_tenant').on(table.tenantId),

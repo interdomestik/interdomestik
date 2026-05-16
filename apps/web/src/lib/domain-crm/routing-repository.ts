@@ -52,6 +52,10 @@ function mapAudit(row: CrmRoutingAssignmentAuditRow): CrmRoutingAssignmentAuditR
   if (!row.actorId || !row.selectedAgentId) {
     throw new Error('CRM routing audit row is missing assignment actor or selected agent');
   }
+  const occurredAt = toIso(row.occurredAt);
+  if (!occurredAt || Number.isNaN(Date.parse(occurredAt))) {
+    throw new Error('CRM routing audit row is missing a valid occurrence timestamp');
+  }
 
   return {
     actorId: row.actorId,
@@ -59,7 +63,7 @@ function mapAudit(row: CrmRoutingAssignmentAuditRow): CrmRoutingAssignmentAuditR
     branchId: row.branchId ?? null,
     idempotencyKey: row.idempotencyKey ?? null,
     leadId: row.leadId,
-    occurredAt: toIso(row.occurredAt) ?? new Date(0).toISOString(),
+    occurredAt,
     reasonCode: row.reasonCode as CrmRoutingAssignmentAuditRecord['reasonCode'],
     ruleId: row.ruleId,
     strategy: row.strategy as CrmRoutingStrategy,

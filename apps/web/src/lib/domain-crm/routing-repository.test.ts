@@ -97,13 +97,16 @@ function auditRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function createUpdateDb(rows: readonly unknown[]) {
+function createUpdateDb(rows: readonly unknown[], existingCursor: unknown = null) {
   const calls: unknown[] = [];
+  const findFirst = vi.fn(async () => existingCursor);
   return {
     calls,
+    findFirst,
     db: {
       query: {
         crmRoutingAssignmentsAudit: { findFirst: vi.fn() },
+        crmRoutingCursors: { findFirst },
         crmRoutingRules: { findMany: vi.fn() },
       },
       update(table: unknown) {
@@ -200,6 +203,69 @@ describe('crmRoutingRepository', () => {
     ]);
   });
 
+  it('creates the first routing cursor with a tenant-scoped insert when no prior cursor exists', async () => {
+    const firstAdvancement = { ...advancement, priorCursor: null };
+    const calls: unknown[] = [];
+    const fakeDb = {
+      insert(table: unknown) {
+        calls.push({ action: 'insert', table });
+        return {
+          values(values: unknown) {
+            calls.push({ action: 'values', values });
+            return {
+              onConflictDoNothing(options: unknown) {
+                calls.push({ action: 'onConflictDoNothing', options });
+                return {
+                  returning: vi.fn(async () => [
+                    {
+                      cursorValue: firstAdvancement.nextCursor,
+                      lastIdempotencyKey: 'route:lead-1',
+                      ruleId: firstAdvancement.ruleId,
+                      tenantId: firstAdvancement.tenantId,
+                      updatedAt: now,
+                    },
+                  ]),
+                };
+              },
+            };
+          },
+        };
+      },
+      query: {
+        crmRoutingAssignmentsAudit: { findFirst: vi.fn() },
+        crmRoutingCursors: { findFirst: vi.fn() },
+        crmRoutingRules: { findMany: vi.fn() },
+      },
+      update: vi.fn(),
+    };
+    const repository = createCrmRoutingRepository(fakeDb as never);
+
+    await expect(
+      repository.advanceRoutingCursor({
+        advancement: firstAdvancement,
+        idempotencyKey: 'route:lead-1',
+      })
+    ).resolves.toEqual({ success: true, advancement: firstAdvancement });
+
+    expect(calls).toEqual([
+      { action: 'insert', table: crmRoutingCursors },
+      expect.objectContaining({
+        action: 'values',
+        values: expect.objectContaining({
+          cursorValue: firstAdvancement.nextCursor,
+          ruleId: firstAdvancement.ruleId,
+          tenantId: firstAdvancement.tenantId,
+        }),
+      }),
+      expect.objectContaining({
+        action: 'onConflictDoNothing',
+        options: expect.objectContaining({
+          target: [crmRoutingCursors.tenantId, crmRoutingCursors.ruleId],
+        }),
+      }),
+    ]);
+  });
+
   it('returns cursor_conflict when the compare-and-swap update finds no cursor row', async () => {
     const fake = createUpdateDb([]);
     const repository = createCrmRoutingRepository(fake.db as never);
@@ -208,6 +274,27 @@ describe('crmRoutingRepository', () => {
       reason: 'cursor_conflict',
       success: false,
     });
+  });
+
+  it('treats a cursor write retried with the same idempotency key as successful', async () => {
+    const fake = createUpdateDb([], {
+      cursorValue: advancement.nextCursor,
+      lastIdempotencyKey: 'route:lead-1',
+      ruleId: advancement.ruleId,
+      tenantId: advancement.tenantId,
+      updatedAt: now,
+    });
+    const repository = createCrmRoutingRepository(fake.db as never);
+
+    await expect(
+      repository.advanceRoutingCursor({ advancement, idempotencyKey: 'route:lead-1' })
+    ).resolves.toEqual({ success: true, advancement });
+
+    expect(fake.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.anything(),
+      })
+    );
   });
 
   it('returns the existing assignment audit row when idempotent append already exists', async () => {
