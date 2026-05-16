@@ -170,6 +170,7 @@ function createCursorAdvancement(
     nextCursor: agentId,
     priorCursor,
     ruleId: rule.id,
+    tenantId: rule.tenantId,
   };
 }
 

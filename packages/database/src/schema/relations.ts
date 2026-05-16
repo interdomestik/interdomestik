@@ -14,6 +14,9 @@ import {
   crmPipelines,
   crmPipelineSnapshots,
   crmPipelineStages,
+  crmRoutingAssignmentsAudit,
+  crmRoutingCursors,
+  crmRoutingRules,
   memberActivities,
   supportHandoffs,
 } from './crm';
@@ -48,6 +51,12 @@ export const userRelations = relations(user, ({ many, one }) => ({
   clients: many(user, { relationName: 'user_agent' }),
   crmLeads: many(crmLeads),
   crmActivities: many(crmActivities),
+  crmRoutingAssignmentAuditsAuthored: many(crmRoutingAssignmentsAudit, {
+    relationName: 'crm_routing_assignments_audit_actor',
+  }),
+  crmRoutingAssignmentAuditsSelected: many(crmRoutingAssignmentsAudit, {
+    relationName: 'crm_routing_assignments_audit_selected_agent',
+  }),
   memberActivities: many(memberActivities, { relationName: 'agent_member_activities' }),
   memberActivityHistory: many(memberActivities, { relationName: 'member_activity_history' }),
   supportHandoffs: many(supportHandoffs, { relationName: 'support_handoffs_member' }),
@@ -158,6 +167,7 @@ export const membershipFamilyMembersRelations = relations(membershipFamilyMember
 export const crmLeadsRelations = relations(crmLeads, ({ one, many }) => ({
   agent: one(user, { fields: [crmLeads.agentId], references: [user.id] }),
   activities: many(crmActivities),
+  routingAssignmentAudits: many(crmRoutingAssignmentsAudit),
   deals: many(crmDeals),
 }));
 
@@ -165,6 +175,50 @@ export const crmActivitiesRelations = relations(crmActivities, ({ one }) => ({
   lead: one(crmLeads, { fields: [crmActivities.leadId], references: [crmLeads.id] }),
   agent: one(user, { fields: [crmActivities.agentId], references: [user.id] }),
 }));
+
+export const crmRoutingRulesRelations = relations(crmRoutingRules, ({ one, many }) => ({
+  branch: one(branches, { fields: [crmRoutingRules.branchId], references: [branches.id] }),
+  cursor: one(crmRoutingCursors, {
+    fields: [crmRoutingRules.tenantId, crmRoutingRules.id],
+    references: [crmRoutingCursors.tenantId, crmRoutingCursors.ruleId],
+  }),
+  assignmentAudits: many(crmRoutingAssignmentsAudit),
+}));
+
+export const crmRoutingCursorsRelations = relations(crmRoutingCursors, ({ one }) => ({
+  rule: one(crmRoutingRules, {
+    fields: [crmRoutingCursors.tenantId, crmRoutingCursors.ruleId],
+    references: [crmRoutingRules.tenantId, crmRoutingRules.id],
+  }),
+}));
+
+export const crmRoutingAssignmentsAuditRelations = relations(
+  crmRoutingAssignmentsAudit,
+  ({ one }) => ({
+    actor: one(user, {
+      fields: [crmRoutingAssignmentsAudit.actorId],
+      references: [user.id],
+      relationName: 'crm_routing_assignments_audit_actor',
+    }),
+    branch: one(branches, {
+      fields: [crmRoutingAssignmentsAudit.branchId],
+      references: [branches.id],
+    }),
+    lead: one(crmLeads, {
+      fields: [crmRoutingAssignmentsAudit.leadId],
+      references: [crmLeads.id],
+    }),
+    rule: one(crmRoutingRules, {
+      fields: [crmRoutingAssignmentsAudit.tenantId, crmRoutingAssignmentsAudit.ruleId],
+      references: [crmRoutingRules.tenantId, crmRoutingRules.id],
+    }),
+    selectedAgent: one(user, {
+      fields: [crmRoutingAssignmentsAudit.selectedAgentId],
+      references: [user.id],
+      relationName: 'crm_routing_assignments_audit_selected_agent',
+    }),
+  })
+);
 
 export const crmDealsRelations = relations(crmDeals, ({ one }) => ({
   lead: one(crmLeads, { fields: [crmDeals.leadId], references: [crmLeads.id] }),
