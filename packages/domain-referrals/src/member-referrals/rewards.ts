@@ -159,6 +159,7 @@ export async function createMemberReferralRewardCore(
   }
 
   const rewardId = nanoid();
+  // db-access-guard: tenant-scoped -- reason: tenantId from resolved referral row before reward insert
   const rows = await db
     .insert(memberReferralRewards)
     .values({

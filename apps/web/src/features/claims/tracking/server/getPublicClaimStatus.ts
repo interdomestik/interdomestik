@@ -45,6 +45,7 @@ export async function getPublicClaimStatus(token: string): Promise<PublicClaimSt
       // 2. Lookup Token
       const now = new Date();
 
+      // db-access-guard: system-exempt -- reason: bearer tracking token lookup resolves tenant before scoped claim status read
       const record = await db.query.claimTrackingTokens.findFirst({
         where: and(
           eq(claimTrackingTokens.tokenHash, tokenHash),

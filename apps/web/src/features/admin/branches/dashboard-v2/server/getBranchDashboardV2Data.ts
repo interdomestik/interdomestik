@@ -77,6 +77,7 @@ export async function getBranchDashboardV2Data(
 
         // Fetch Branch Metadata first to confirm existence and get tenantId if cross-tenant
         // Support lookup by either ID (UUID) or code (e.g., branch_mk_b)
+        // db-access-guard: system-exempt -- reason: branch id or code lookup resolves tenant before scoped dashboard reads
         const branchResult = await db.query.branches.findFirst({
           where: or(eq(branches.id, branchId), eq(branches.code, branchId)),
           with: {
@@ -323,6 +324,7 @@ async function getStaffLoad(branchId: string, tenantId: string) {
           and(
             eq(claims.staffId, staff.id),
             eq(claims.branchId, branchId), // Workload IN THIS BRANCH
+            eq(claims.tenantId, tenantId),
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             inArray(claims.status, IN_PROGRESS_STATUSES as unknown as any[])
           )

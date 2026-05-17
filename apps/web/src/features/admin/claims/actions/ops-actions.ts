@@ -194,7 +194,11 @@ export async function sendMemberReminder(
 
     // Rate limit check
     const lastPoke = await db.query.auditLog.findFirst({
-      where: and(eq(auditLog.entityId, claimId), eq(auditLog.action, 'send_reminder')),
+      where: and(
+        eq(auditLog.entityId, claimId),
+        eq(auditLog.action, 'send_reminder'),
+        eq(auditLog.tenantId, ctx.tenantId)
+      ),
       orderBy: [desc(auditLog.createdAt)],
     });
 

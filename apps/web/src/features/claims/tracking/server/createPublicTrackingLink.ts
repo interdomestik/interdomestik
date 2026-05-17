@@ -42,6 +42,7 @@ export async function createPublicTrackingLink(
         branchId,
       });
 
+      // db-access-guard: tenant-scoped -- reason: tenant predicate built by claim visibility helper before tracking link claim lookup
       const claim = await db.query.claims.findFirst({
         where: and(eq(claims.id, claimId), visibilityCondition),
         columns: { id: true, tenantId: true },

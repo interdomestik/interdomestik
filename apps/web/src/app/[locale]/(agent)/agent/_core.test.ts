@@ -8,6 +8,7 @@ vi.mock('@interdomestik/database/schema', () => ({
     amount: 'agentCommissions.amount',
   },
   claims: {
+    tenantId: 'claims.tenantId',
     agentId: 'claims.agentId',
     status: 'claims.status',
   },
@@ -22,6 +23,7 @@ vi.mock('@interdomestik/database/schema', () => ({
     stage: 'crmLeads.stage',
   },
   memberLeads: {
+    tenantId: 'memberLeads.tenantId',
     agentId: 'memberLeads.agentId',
     status: 'memberLeads.status',
   },
@@ -64,6 +66,10 @@ describe('agent dashboard core', () => {
 
   const services: AgentDashboardServices = { db: mockDb as never };
 
+  const expectWhereCall = (index: number, clauses: unknown[]) => {
+    expect(mockDb.where.mock.calls[index]?.[0]).toEqual({ and: clauses });
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockDb.select.mockReturnThis();
@@ -74,22 +80,49 @@ describe('agent dashboard core', () => {
     it('calculates counts correctly for an agent', async () => {
       mockDb.where.mockResolvedValueOnce([{ count: 5 }]).mockResolvedValueOnce([{ count: 3 }]);
 
-      const result = await getAgentDashboardLiteCore({ agentId: 'agent-1' }, services);
+      const result = await getAgentDashboardLiteCore(
+        { agentId: 'agent-1', tenantId: 'tenant-1' },
+        services
+      );
 
       expect(result.newLeadsCount).toBe(5);
       expect(result.activeClaimsCount).toBe(3);
       expect(result.followUpsCount).toBe(0);
       expect(mockDb.from).toHaveBeenCalledWith(memberLeads);
       expect(mockDb.from).toHaveBeenCalledWith(claims);
+      expectWhereCall(0, [
+        { eq: ['memberLeads.agentId', 'agent-1'] },
+        { eq: ['memberLeads.tenantId', 'tenant-1'] },
+        { eq: ['memberLeads.status', 'new'] },
+      ]);
+      expectWhereCall(1, [
+        { eq: ['claims.tenantId', 'tenant-1'] },
+        { eq: ['claims.agentId', 'agent-1'] },
+        { not: { inArray: ['claims.status', ['resolved', 'rejected']] } },
+      ]);
     });
 
     it('handles empty results', async () => {
       mockDb.where.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
 
-      const result = await getAgentDashboardLiteCore({ agentId: 'agent-1' }, services);
+      const result = await getAgentDashboardLiteCore(
+        { agentId: 'agent-1', tenantId: 'tenant-1' },
+        services
+      );
 
       expect(result.newLeadsCount).toBe(0);
       expect(result.activeClaimsCount).toBe(0);
+    });
+
+    it('does not run lite dashboard reads without tenant context', async () => {
+      const result = await getAgentDashboardLiteCore({ agentId: 'agent-1' }, services);
+
+      expect(result).toEqual({
+        newLeadsCount: 0,
+        activeClaimsCount: 0,
+        followUpsCount: 0,
+      });
+      expect(mockDb.select).not.toHaveBeenCalled();
     });
   });
 
@@ -139,40 +172,30 @@ describe('agent dashboard core', () => {
         [subscriptions],
       ]);
 
-      expect(mockDb.where.mock.calls[0]?.[0]).toEqual({
-        and: [
-          { eq: ['crmLeads.tenantId', 'tenant-1'] },
-          { eq: ['crmLeads.agentId', 'agent-1'] },
-          { eq: ['crmLeads.stage', 'new'] },
-        ],
-      });
-      expect(mockDb.where.mock.calls[1]?.[0]).toEqual({
-        and: [
-          { eq: ['crmLeads.tenantId', 'tenant-1'] },
-          { eq: ['crmLeads.agentId', 'agent-1'] },
-          { eq: ['crmLeads.stage', 'contacted'] },
-        ],
-      });
-      expect(mockDb.where.mock.calls[2]?.[0]).toEqual({
-        and: [
-          { eq: ['crmDeals.tenantId', 'tenant-1'] },
-          { eq: ['crmDeals.agentId', 'agent-1'] },
-          { eq: ['crmDeals.stage', 'closed_won'] },
-        ],
-      });
-      expect(mockDb.where.mock.calls[3]?.[0]).toEqual({
-        and: [
-          { eq: ['agentCommissions.tenantId', 'tenant-1'] },
-          { eq: ['agentCommissions.agentId', 'agent-1'] },
-          { eq: ['agentCommissions.status', 'paid'] },
-        ],
-      });
-      expect(mockDb.where.mock.calls[4]?.[0]).toEqual({
-        and: [
-          { eq: ['subscriptions.tenantId', 'tenant-1'] },
-          { eq: ['subscriptions.referredByAgentId', 'agent-1'] },
-        ],
-      });
+      expectWhereCall(0, [
+        { eq: ['crmLeads.tenantId', 'tenant-1'] },
+        { eq: ['crmLeads.agentId', 'agent-1'] },
+        { eq: ['crmLeads.stage', 'new'] },
+      ]);
+      expectWhereCall(1, [
+        { eq: ['crmLeads.tenantId', 'tenant-1'] },
+        { eq: ['crmLeads.agentId', 'agent-1'] },
+        { eq: ['crmLeads.stage', 'contacted'] },
+      ]);
+      expectWhereCall(2, [
+        { eq: ['crmDeals.tenantId', 'tenant-1'] },
+        { eq: ['crmDeals.agentId', 'agent-1'] },
+        { eq: ['crmDeals.stage', 'closed_won'] },
+      ]);
+      expectWhereCall(3, [
+        { eq: ['agentCommissions.tenantId', 'tenant-1'] },
+        { eq: ['agentCommissions.agentId', 'agent-1'] },
+        { eq: ['agentCommissions.status', 'paid'] },
+      ]);
+      expectWhereCall(4, [
+        { eq: ['subscriptions.tenantId', 'tenant-1'] },
+        { eq: ['subscriptions.referredByAgentId', 'agent-1'] },
+      ]);
     });
   });
 });

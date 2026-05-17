@@ -89,6 +89,7 @@ export async function getAdminClaimsV2(
     const staff = aliasedTable(user, 'staff');
 
     // Main data query
+    // db-access-guard: tenant-scoped -- reason: tenant predicate built by admin claims visibility context before this DB call
     const rawRows = await db
       .select({
         claim: {

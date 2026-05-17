@@ -30,6 +30,7 @@ export async function resolveAdminTenantContext(params: {
     return sessionTenantId;
   }
 
+  // db-access-guard: system-exempt -- reason: super-admin requested tenant validation reads active tenant metadata only
   const requestedTenant = await db.query.tenants.findFirst({
     where: and(eq(tenants.id, requestedTenantId), eq(tenants.isActive, true)),
     columns: { id: true },

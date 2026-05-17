@@ -86,7 +86,7 @@ export async function updateMemberNoteCore(params: {
       })
       .from(memberNotes)
       .leftJoin(userTable, eq(memberNotes.authorId, userTable.id))
-      .where(eq(memberNotes.id, validated.data.id))
+      .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)))
       .limit(1);
 
     return { success: true, data: mapNoteRow(updated) };

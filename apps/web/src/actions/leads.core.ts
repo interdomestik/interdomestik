@@ -16,6 +16,7 @@ export async function submitLead(data: z.infer<typeof createLeadSchema>) {
   try {
     const validated = createLeadSchema.parse(data);
 
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated lead payload before lead insert
     await db.insert(leads).values({
       id: randomUUID(),
       name: validated.name,

@@ -194,6 +194,7 @@ export async function createMemberSupportHandoffCore(
   const handoffId = `support_handoff_${randomUUID()}`;
   const now = new Date();
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated member session before support handoff insert
   await db.insert(supportHandoffs).values({
     id: handoffId,
     tenantId,

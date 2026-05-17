@@ -128,6 +128,7 @@ export async function createSharePack(params: {
   };
   packValues['document' + 'Ids'] = documentIds;
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated share-pack request before pack insert
   await db.insert(schema.sharePacks).values(packValues);
 
   const token = generateShareToken({ packId, tenantId });

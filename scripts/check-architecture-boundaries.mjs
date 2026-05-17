@@ -21,6 +21,8 @@ const deprecatedCrmAdapterImport = ['@', 'lib', 'domain-crm'].join('/');
 const deprecatedCrmAdapterPath = ['apps', 'web', 'src', 'lib', 'domain-crm'].join('/');
 const deprecatedCrmAdapterShortPath = ['src', 'lib', 'domain-crm'].join('/');
 const crmAdapterPath = ['apps', 'web', 'src', 'adapters', 'crm'].join('/');
+const legacyCoreAllowlistPath = 'scripts/ci/core-module-legacy-allowlist.json';
+const legacyRouteAllowlistPath = 'scripts/ci/legacy-route-allowlist.json';
 const deprecatedCrmAdapterPatterns = [
   deprecatedCrmAdapterImport,
   deprecatedCrmAdapterPath,
@@ -70,6 +72,31 @@ function findDeprecatedCrmAdapterReferences() {
   return matches;
 }
 
+function findUnexpectedUnderscoreCoreFiles() {
+  const allowlistFile = path.join(repoRoot, legacyCoreAllowlistPath);
+  const allowlist = new Set(
+    JSON.parse(fs.readFileSync(allowlistFile, 'utf8')).allowedUnderscoreCoreFiles ?? []
+  );
+  const files = sourceRoots
+    .flatMap(root => walkFiles(path.join(repoRoot, root)))
+    .map(file => toPosix(path.relative(repoRoot, file)))
+    .filter(relativePath => /(^|\/)_core\.[cm]?[jt]sx?$/u.test(relativePath));
+
+  return files.filter(file => !allowlist.has(file));
+}
+
+function findUnexpectedLegacyRouteFiles() {
+  const allowlistFile = path.join(repoRoot, legacyRouteAllowlistPath);
+  const allowlist = new Set(
+    JSON.parse(fs.readFileSync(allowlistFile, 'utf8')).allowedLegacyRouteFiles ?? []
+  );
+  const files = walkFiles(path.join(repoRoot, 'apps/web/src/app/[locale]/legacy')).map(file =>
+    toPosix(path.relative(repoRoot, file))
+  );
+
+  return files.filter(file => !allowlist.has(file));
+}
+
 function main() {
   const deprecatedCrmAdapterDir = path.join(repoRoot, ...deprecatedCrmAdapterPath.split('/'));
   const crmAdapterDir = path.join(repoRoot, ...crmAdapterPath.split('/'));
@@ -90,6 +117,20 @@ function main() {
   const deprecatedReferences = findDeprecatedCrmAdapterReferences();
   for (const match of deprecatedReferences) {
     failures.push(`${match.file} references deprecated CRM adapter boundary "${match.pattern}".`);
+  }
+
+  const unexpectedUnderscoreCoreFiles = findUnexpectedUnderscoreCoreFiles();
+  for (const file of unexpectedUnderscoreCoreFiles) {
+    failures.push(
+      `${file} uses the legacy _core.ts naming convention; new extracted cores must use *.core.ts.`
+    );
+  }
+
+  const unexpectedLegacyRouteFiles = findUnexpectedLegacyRouteFiles();
+  for (const file of unexpectedLegacyRouteFiles) {
+    failures.push(
+      `${file} extends the frozen legacy route surface; use canonical /member, /agent, /staff, or /admin routes.`
+    );
   }
 
   if (failures.length > 0) {

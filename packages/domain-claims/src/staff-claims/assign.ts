@@ -126,6 +126,7 @@ export async function assignClaimCore(
       claims.tenantId,
       buildStaffClaimReadScope({ branchId, claimId, userId: user.id })
     );
+    // db-access-guard: tenant-scoped -- reason: tenant predicate built by scopedWhere and consumed by this DB call
     const updatedClaims = await db
       .update(claims)
       .set({

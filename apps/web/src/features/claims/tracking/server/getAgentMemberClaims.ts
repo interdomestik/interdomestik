@@ -93,6 +93,7 @@ export async function getAgentMemberClaims(
         agentMemberIds: resolvedMemberIds,
       });
 
+      // db-access-guard: tenant-scoped -- reason: tenant predicate built by claim visibility helper before agent member claims lookup
       const memberClaims = await db.query.claims.findMany({
         where: and(
           visibilityCondition,

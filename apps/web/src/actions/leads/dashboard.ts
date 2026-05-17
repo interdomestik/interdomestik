@@ -64,6 +64,7 @@ export async function listLeadsAction(input: unknown) {
     }
 
     // Fetch leads
+    // db-access-guard: tenant-scoped -- reason: tenant predicate built in local conditions array before this DB call
     const leads = await db.query.memberLeads.findMany({
       where: and(...conditions),
       orderBy: [desc(memberLeads.createdAt)],

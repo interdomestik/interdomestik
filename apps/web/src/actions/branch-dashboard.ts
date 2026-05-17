@@ -111,6 +111,7 @@ async function resolveTenantFromBranch(branchId: string): Promise<string | null>
   const { branches } = await import('@interdomestik/database/schema');
   const { eq } = await import('drizzle-orm');
 
+  // db-access-guard: system-exempt -- reason: super-admin branch lookup resolves tenant before scoped dashboard reads
   const result = await db.query.branches.findFirst({
     where: eq(branches.id, branchId),
     columns: { tenantId: true },

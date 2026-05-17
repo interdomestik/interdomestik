@@ -68,6 +68,7 @@ export async function updateDraftClaimCore(
         tenantId,
       });
 
+      // db-access-guard: tenant-scoped -- reason: tenantId from validated session before draft document insert
       await db.insert(claimDocuments).values(documentRows);
     }
 

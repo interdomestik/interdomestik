@@ -5,6 +5,7 @@ export async function resendWelcomeEmailCore(userId: string) {
   const { eq, desc } = await import('drizzle-orm');
   const { user, subscriptions } = await import('@interdomestik/database/schema');
 
+  // db-access-guard: system-exempt -- reason: admin resend resolves tenant ownership from selected user before subscription lookup
   const userData = await db.query.user.findFirst({
     where: eq(user.id, userId),
   });
@@ -13,8 +14,10 @@ export async function resendWelcomeEmailCore(userId: string) {
     return { success: false, error: 'User not found' };
   }
 
+  // db-access-guard: tenant-scoped -- reason: tenantId resolved from selected user before membership email subscription lookup
   const subscription = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.userId, userId),
+    where: (table, { and, eq }) =>
+      and(eq(table.userId, userId), eq(table.tenantId, userData.tenantId)),
     orderBy: [desc(subscriptions.createdAt)],
     with: {
       plan: true,

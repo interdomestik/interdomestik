@@ -57,6 +57,7 @@ export async function AdminDashboardV2Page({ locale }: { locale: string }) {
   const dashboardData = await getTenantAdminDashboardV2Data(tenantId);
 
   // Get Tenant Name for display
+  // db-access-guard: system-exempt -- reason: tenant metadata lookup by authenticated admin-selected tenant id
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
   const tenantName = tenant?.name || 'Unknown Tenant';
 

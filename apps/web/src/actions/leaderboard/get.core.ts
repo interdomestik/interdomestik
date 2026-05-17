@@ -72,7 +72,7 @@ export async function getAgentLeaderboardCore(params: {
     const topAgents: LeaderboardEntry[] = await Promise.all(
       results.map(async (row, index) => {
         const agentData = await db.query.user.findFirst({
-          where: eq(user.id, row.agentId),
+          where: and(eq(user.id, row.agentId), eq(user.tenantId, tenantId)),
           columns: { name: true, image: true },
         });
 

@@ -20,22 +20,43 @@ export interface AgentDashboardServices {
  * LITE: Logic for the standard Agent Dashboard (using MemberLeads/Claims).
  */
 export async function getAgentDashboardLiteCore(
-  params: { agentId: string },
+  params: { agentId: string; tenantId?: string | null },
   services: AgentDashboardServices
 ) {
-  const { agentId } = params;
+  const { agentId, tenantId } = params;
   const { db } = services;
 
+  if (!tenantId) {
+    return {
+      newLeadsCount: 0,
+      activeClaimsCount: 0,
+      followUpsCount: 0,
+    };
+  }
+
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const [newLeads] = await db
     .select({ count: count() })
     .from(memberLeads)
-    .where(and(eq(memberLeads.agentId, agentId), eq(memberLeads.status, 'new')));
+    .where(
+      and(
+        eq(memberLeads.agentId, agentId),
+        eq(memberLeads.tenantId, tenantId),
+        eq(memberLeads.status, 'new')
+      )
+    );
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const [activeClaims] = await db
     .select({ count: count() })
     .from(claims)
-    .where(and(eq(claims.agentId, agentId), not(inArray(claims.status, ['resolved', 'rejected']))));
+    .where(
+      and(
+        eq(claims.tenantId, tenantId),
+        eq(claims.agentId, agentId),
+        not(inArray(claims.status, ['resolved', 'rejected']))
+      )
+    );
 
   return {
     newLeadsCount: Number(newLeads?.count ?? 0),

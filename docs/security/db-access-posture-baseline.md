@@ -3,7 +3,7 @@ plan_role: input
 status: archived
 source_of_truth: false
 owner: platform + security + qa
-last_reviewed: 2026-05-11
+last_reviewed: 2026-05-17
 ---
 
 # DB Access Posture Baseline
@@ -11,15 +11,15 @@ last_reviewed: 2026-05-11
 > Status: Archived implementation receipt. The authoritative execution state remains in
 > `docs/plans/current-program.md` and `docs/plans/current-tracker.md`.
 
-Generated from `scripts/ci/db-access-baseline.json` on 2026-05-11 after P35-SEC02
-hardened the legacy agent-dashboard tenant read contract.
+Generated from `scripts/ci/db-access-baseline.json` on 2026-05-17 after the architecture
+posture burn-down reduced the remaining unclassified hard cases below the pilot ceiling.
 
 ## Summary
 
 | Metric                      |      Value |
 | --------------------------- | ---------: |
 | Baseline version            |          2 |
-| Baseline entries            |        615 |
+| Baseline entries            |        617 |
 | Guard runtime sample        |      1.00s |
 | Pre-SEC04 runtime reference |      0.69s |
 | Baseline JSON size          | 6385 lines |
@@ -35,71 +35,71 @@ five-entry commercial action idempotency helper cluster.
 P35-SEC01 reduced the canonical baseline from `62` to `61` by removing the
 non-Paddle commission fallback tenant lookup.
 P35-SEC02 reduced the canonical baseline from `61` to `56` by requiring session-derived
-tenant proof for legacy agent-dashboard claim reads.
+tenant proof for legacy agent-dashboard claim reads. The 2026-05-17 architecture burn-down then
+reduced the baseline from `56` to `15` by classifying callsites with local tenant proof or explicit
+metadata/token bootstrap rationale.
 
 ## Counts By Posture
 
 | Tenant posture     | Count |
 | ------------------ | ----: |
 | `tenant-context`   |     5 |
-| `tenant-scoped`    |   168 |
-| `tenant-predicate` |   358 |
+| `tenant-scoped`    |   194 |
+| `tenant-predicate` |   364 |
 | `admin-privileged` |     0 |
-| `system-exempt`    |    28 |
-| `unclassified`     |    56 |
+| `system-exempt`    |    39 |
+| `unclassified`     |    15 |
 
 ## Counts By Risk
 
 | Risk             | Count |
 | ---------------- | ----: |
-| `app-layer`      |   315 |
+| `app-layer`      |   317 |
 | `domain-wrapper` |   300 |
 
 ## Counts By Posture, Risk, And File Prefix
 
 | Count | Tenant posture     | Risk             | File prefix                              |
 | ----: | ------------------ | ---------------- | ---------------------------------------- |
-|   170 | `tenant-predicate` | `app-layer`      | `apps/web/src`                           |
-|    92 | `tenant-scoped`    | `app-layer`      | `apps/web/src`                           |
+|   175 | `tenant-predicate` | `app-layer`      | `apps/web/src`                           |
+|   111 | `tenant-scoped`    | `app-layer`      | `apps/web/src`                           |
 |    56 | `tenant-predicate` | `domain-wrapper` | `packages/domain-claims/src`             |
-|    48 | `tenant-predicate` | `domain-wrapper` | `packages/domain-users/src`              |
-|    42 | `unclassified`     | `app-layer`      | `apps/web/src`                           |
-|    27 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-claims/src`             |
+|    49 | `tenant-predicate` | `domain-wrapper` | `packages/domain-users/src`              |
+|    31 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-claims/src`             |
 |    26 | `tenant-predicate` | `domain-wrapper` | `packages/domain-membership-billing/src` |
-|    19 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-membership-billing/src` |
 |    19 | `tenant-predicate` | `domain-wrapper` | `packages/domain-communications/src`     |
-|    14 | `tenant-predicate` | `domain-wrapper` | `packages/domain-analytics/src`          |
+|    19 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-membership-billing/src` |
+|    15 | `system-exempt`    | `app-layer`      | `apps/web/src`                           |
 |    15 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-leads/src`              |
+|    14 | `tenant-predicate` | `domain-wrapper` | `packages/domain-analytics/src`          |
 |    13 | `system-exempt`    | `domain-wrapper` | `packages/domain-analytics/src`          |
 |    12 | `tenant-predicate` | `domain-wrapper` | `packages/domain-referrals/src`          |
+|    10 | `unclassified`     | `app-layer`      | `apps/web/src`                           |
 |     8 | `system-exempt`    | `domain-wrapper` | `packages/domain-membership-billing/src` |
-|     7 | `unclassified`     | `domain-wrapper` | `packages/domain-communications/src`     |
 |     5 | `tenant-context`   | `app-layer`      | `apps/web/src`                           |
-|     5 | `system-exempt`    | `app-layer`      | `apps/web/src`                           |
+|     5 | `unclassified`     | `domain-wrapper` | `packages/domain-communications/src`     |
 |     4 | `tenant-predicate` | `domain-wrapper` | `packages/domain-activities/src`         |
 |     4 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-activities/src`         |
-|     4 | `unclassified`     | `domain-wrapper` | `packages/domain-claims/src`             |
+|     4 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-communications/src`     |
+|     4 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-users/src`              |
 |     3 | `tenant-predicate` | `domain-wrapper` | `packages/domain-agent/src`              |
-|     3 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-communications/src`     |
-|     3 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-users/src`              |
 |     2 | `system-exempt`    | `domain-wrapper` | `packages/domain-activities/src`         |
 |     2 | `tenant-predicate` | `domain-wrapper` | `packages/domain-documents/src`          |
 |     2 | `tenant-predicate` | `domain-wrapper` | `packages/domain-leads/src`              |
 |     2 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-documents/src`          |
-|     2 | `unclassified`     | `domain-wrapper` | `packages/domain-users/src`              |
+|     2 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-referrals/src`          |
+|     1 | `system-exempt`    | `domain-wrapper` | `packages/domain-communications/src`     |
 |     1 | `tenant-predicate` | `domain-wrapper` | `packages/domain-ai/src`                 |
 |     1 | `tenant-predicate` | `domain-wrapper` | `packages/domain-member/src`             |
 |     1 | `tenant-scoped`    | `app-layer`      | `packages/shared-utils/src`              |
 |     1 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-member/src`             |
-|     1 | `tenant-scoped`    | `domain-wrapper` | `packages/domain-referrals/src`          |
-|     1 | `unclassified`     | `domain-wrapper` | `packages/domain-referrals/src`          |
 
 ## Remaining Review Input
 
-The remaining `56` unclassified entries are intentionally left as hard cases. The largest
-clusters are campaign execution, NPS/engagement cron residue, admin/branch cross-tenant lookups,
-and smaller one-off application/domain paths. Those entries should not be mass-stamped; they need
-either callsite migration, helper-level tenant proof, or a fresh design review.
+The remaining `15` unclassified entries are intentionally left as hard cases. They are limited to
+campaign execution, NPS/engagement cron residue, and subscription communication cron paths. Those
+entries should not be mass-stamped; they need either per-tenant job modeling, helper-level tenant
+proof, or a fresh design review.
 
 P33-SEC10 note: DG14 inventoried `14` billing webhook/provider-event entries, but the synced
 implementation baseline at `f34d0b48ba1b822facff5ee231b5f993f7070174` contained `13`
@@ -127,3 +127,8 @@ staff/admin claim reads and adds direct `claims.tenantId` predicates to all five
 baseline moves those five entries to `tenant-predicate`, reducing the remaining hard cases to `56`.
 The known P34 CRM adapter baseline drift remains visible as non-failing `pnpm check:db-access`
 output and was not refreshed in this receipt.
+
+2026-05-17 architecture note: reviewed local tenant proof and metadata bootstrap callsites moved the
+baseline from `56` to `15` unclassified entries. The residual set is intentionally constrained to
+campaign, NPS/engagement, dunning, and communication cron surfaces that need a separate tenancy/job
+modeling decision rather than inline posture stamping.
