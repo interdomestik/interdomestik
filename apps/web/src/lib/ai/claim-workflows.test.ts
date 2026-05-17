@@ -6,13 +6,20 @@ const mocks = vi.hoisted(() => {
   const txInsert = vi.fn(() => ({
     values: txInsertValues,
   }));
-  const txUpdateWhere = vi.fn().mockResolvedValue(undefined);
+  const txUpdateReturning = vi.fn();
+  const txUpdateWhere = vi.fn(() => ({
+    returning: txUpdateReturning,
+  }));
   const txUpdateSet = vi.fn(() => ({
     where: txUpdateWhere,
   }));
   const txUpdate = vi.fn(() => ({
     set: txUpdateSet,
   }));
+  const tenantWriteTx = {
+    insert: txInsert,
+    update: txUpdate,
+  };
   const transaction = vi.fn(
     async (
       callback: (tx: { insert: typeof txInsert; update: typeof txUpdate }) => Promise<unknown>
@@ -61,8 +68,14 @@ const mocks = vi.hoisted(() => {
     txInsert,
     txInsertOnConflictDoNothing,
     txInsertValues,
+    txUpdate,
+    txUpdateReturning,
     txUpdateSet,
     updateReturning,
+    withTenantContext: vi.fn(
+      async (_context: unknown, callback: (tx: typeof tenantWriteTx) => Promise<unknown>) =>
+        callback(tenantWriteTx)
+    ),
   };
 });
 
@@ -79,6 +92,10 @@ vi.mock('@/lib/inngest/client', () => ({
 vi.mock('@/lib/storage/evidence-bucket', () => ({
   DEFAULT_EVIDENCE_BUCKET: 'claim-evidence',
   resolveEvidenceBucketName: mocks.resolveEvidenceBucketName,
+}));
+
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -208,7 +225,7 @@ describe('processClaimDocumentWorkflowRunService', () => {
     mocks.txInsertValues.mockImplementation(() => ({
       onConflictDoNothing: mocks.txInsertOnConflictDoNothing,
     }));
-    mocks.updateReturning.mockResolvedValue([{ id: 'run-1' }]);
+    mocks.txUpdateReturning.mockResolvedValue([{ id: 'run-1' }]);
   });
 
   it('processes a queued claim-intake run and persists a document extraction', async () => {
@@ -245,6 +262,15 @@ describe('processClaimDocumentWorkflowRunService', () => {
         claimSnapshot: { incidentDate: '2026-02-15' },
       })
     );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1', role: 'system' },
+      expect.any(Function)
+    );
+    expect(mocks.txUpdate).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ __name: 'ai_runs' })
+    );
+    expect(mocks.txUpdateReturning).toHaveBeenCalledWith({ id: { __name: 'ai_runs.id' } });
     expect(mocks.txInsert).toHaveBeenCalledWith(
       expect.objectContaining({ __name: 'document_extractions' })
     );

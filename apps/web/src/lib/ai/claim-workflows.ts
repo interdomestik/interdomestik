@@ -7,6 +7,7 @@ import { extractLegalDocument } from '@interdomestik/domain-ai/legal/extract';
 import { db } from '@/lib/db.server';
 import { inngest } from '@/lib/inngest/client';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
+import { withTenantContext } from '@interdomestik/database';
 import { aiRuns, claims, documentExtractions, documents } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -26,6 +27,49 @@ type ProcessClaimDocumentWorkflowDeps = {
 };
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const CLAIM_AI_TENANT_CONTEXT_ROLE = 'system' as const;
+
+function getClaimAiTenantContext(tenantId: string) {
+  return { tenantId, role: CLAIM_AI_TENANT_CONTEXT_ROLE };
+}
+
+function getClaimAiProcessingPatch(startedAt: Date) {
+  return {
+    status: 'processing' as const,
+    startedAt,
+    errorCode: null,
+    errorMessage: null,
+  };
+}
+
+function getClaimAiCompletedPatch(args: {
+  completedAt: Date;
+  extraction: Record<string, unknown>;
+  runId: string;
+  workflow: ClaimAiWorkflow;
+}) {
+  return {
+    status: 'completed' as const,
+    responseJson: {
+      event: getEventName(args.workflow),
+      runId: args.runId,
+    },
+    outputJson: args.extraction,
+    reviewStatus: 'pending' as const,
+    completedAt: args.completedAt,
+    errorCode: null,
+    errorMessage: null,
+  };
+}
+
+function getClaimAiFailedPatch(message: string, completedAt: Date) {
+  return {
+    status: 'failed' as const,
+    completedAt,
+    errorCode: 'claim_ai_processing_failed' as const,
+    errorMessage: message,
+  };
+}
 
 function getEventName(workflow: ClaimAiWorkflow) {
   return workflow === 'legal_doc_extract'
@@ -168,6 +212,7 @@ export async function processClaimDocumentWorkflowRunService(args: {
   }
 
   const workflow = queuedRun.workflow;
+  const tenantContext = getClaimAiTenantContext(queuedRun.tenantId);
 
   if (queuedRun.status === 'completed' || queuedRun.status === 'failed') {
     return {
@@ -178,17 +223,13 @@ export async function processClaimDocumentWorkflowRunService(args: {
     };
   }
 
-  // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
-  const [claimedRun] = await db
-    .update(aiRuns)
-    .set({
-      status: 'processing',
-      startedAt: new Date(),
-      errorCode: null,
-      errorMessage: null,
-    })
-    .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.status, 'queued')))
-    .returning({ id: aiRuns.id });
+  const [claimedRun] = await withTenantContext(tenantContext, async tx =>
+    tx
+      .update(aiRuns)
+      .set(getClaimAiProcessingPatch(new Date()))
+      .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.status, 'queued')))
+      .returning({ id: aiRuns.id })
+  );
 
   if (!claimedRun) {
     return {
@@ -252,29 +293,22 @@ export async function processClaimDocumentWorkflowRunService(args: {
       updatedAt: completedAt,
     };
 
-    // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
-    await db.transaction(async tx => {
-      // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
+    await withTenantContext(tenantContext, async tx => {
       await tx
         .insert(documentExtractions)
         .values(extractionRow)
         .onConflictDoNothing({ target: documentExtractions.sourceRunId });
 
-      // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
       await tx
         .update(aiRuns)
-        .set({
-          status: 'completed',
-          responseJson: {
-            event: getEventName(workflow),
+        .set(
+          getClaimAiCompletedPatch({
+            completedAt,
+            extraction,
             runId: args.runId,
-          },
-          outputJson: extraction,
-          reviewStatus: 'pending',
-          completedAt,
-          errorCode: null,
-          errorMessage: null,
-        })
+            workflow,
+          })
+        )
         .where(eq(aiRuns.id, args.runId));
     });
 
@@ -288,16 +322,12 @@ export async function processClaimDocumentWorkflowRunService(args: {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Claim AI workflow failed.';
 
-    // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
-    await db
-      .update(aiRuns)
-      .set({
-        status: 'failed',
-        completedAt: new Date(),
-        errorCode: 'claim_ai_processing_failed',
-        errorMessage: message,
-      })
-      .where(eq(aiRuns.id, args.runId));
+    await withTenantContext(tenantContext, async tx => {
+      await tx
+        .update(aiRuns)
+        .set(getClaimAiFailedPatch(message, new Date()))
+        .where(eq(aiRuns.id, args.runId));
+    });
 
     throw error;
   }

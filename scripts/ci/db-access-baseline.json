@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-17T17:27:06.744Z",
+  "generatedAt": "2026-05-17T18:11:31.344Z",
   "policy": "see docs/dev/db-access-guard.md",
   "scanRoots": ["apps/web/src", "packages"],
   "approvedDatabaseInternalPatterns": [
@@ -22,12 +22,12 @@
   "methods": ["query", "select", "insert", "update", "delete", "execute", "transaction"],
   "counts": {
     "byRisk": {
-      "app-layer": 305,
+      "app-layer": 304,
       "domain-wrapper": 300
     },
     "byTenantPosture": {
-      "tenant-context": 22,
-      "tenant-scoped": 169,
+      "tenant-context": 26,
+      "tenant-scoped": 164,
       "tenant-predicate": 366,
       "admin-privileged": 0,
       "system-exempt": 48,
@@ -2928,7 +2928,7 @@
     },
     {
       "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 110,
+      "line": 111,
       "callee": "db.update",
       "method": "update",
       "risk": "app-layer",
@@ -2939,7 +2939,7 @@
     },
     {
       "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 134,
+      "line": 135,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
@@ -2949,58 +2949,43 @@
     },
     {
       "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 182,
-      "callee": "db.update",
+      "line": 185,
+      "callee": "tx.update",
       "method": "update",
       "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId comes from validated AI policy queue input or queued run row",
-      "source": "const [claimedRun] = await db .update(aiRuns)"
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-alias",
+      "source": "tx .update(aiRuns)"
     },
     {
       "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 256,
-      "callee": "db.transaction",
-      "method": "transaction",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId comes from validated AI policy queue input or queued run row",
-      "source": "await db.transaction(async tx => {"
-    },
-    {
-      "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 258,
+      "line": 260,
       "callee": "tx.insert",
       "method": "insert",
       "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId comes from validated AI policy queue input or queued run row",
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-block",
       "source": "await tx .insert(documentExtractions)"
     },
     {
       "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 264,
+      "line": 265,
       "callee": "tx.update",
       "method": "update",
       "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId comes from validated AI policy queue input or queued run row",
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-block",
       "source": "await tx .update(aiRuns)"
     },
     {
       "file": "apps/web/src/lib/ai/claim-workflows.ts",
-      "line": 292,
-      "callee": "db.update",
+      "line": 293,
+      "callee": "tx.update",
       "method": "update",
       "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId comes from validated AI policy queue input or queued run row",
-      "source": "await db .update(aiRuns)"
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-block",
+      "source": "await tx .update(aiRuns)"
     },
     {
       "file": "apps/web/src/lib/audit.core.ts",
