@@ -100,8 +100,8 @@ async function processNpsMember(args: {
     .insert(engagementEmailSends)
     .values({
       id: nanoid(),
-      tenantId: member.tenantId!,
-      userId: member.userId!,
+      tenantId: member.tenantId,
+      userId: member.userId,
       subscriptionId: member.subId,
       templateKey: NPS_TEMPLATE_KEY,
       dedupeKey,
@@ -140,8 +140,8 @@ async function processNpsMember(args: {
     .insert(npsSurveyTokens)
     .values({
       id: nanoid(),
-      tenantId: member.tenantId!,
-      userId: member.userId!,
+      tenantId: member.tenantId,
+      userId: member.userId,
       subscriptionId: member.subId,
       dedupeKey,
       token,

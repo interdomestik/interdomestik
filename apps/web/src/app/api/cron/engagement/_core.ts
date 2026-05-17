@@ -125,8 +125,8 @@ async function processMemberEngagement(
     .insert(engagementEmailSends)
     .values({
       id: nanoid(),
-      tenantId: member.tenantId!,
-      userId: member.userId!,
+      tenantId: member.tenantId,
+      userId: member.userId,
       subscriptionId: member.subId,
       templateKey,
       dedupeKey,
@@ -220,8 +220,8 @@ async function processSeasonalMember(
     .insert(engagementEmailSends)
     .values({
       id: nanoid(),
-      tenantId: member.tenantId!,
-      userId: member.userId!,
+      tenantId: member.tenantId,
+      userId: member.userId,
       subscriptionId: member.subId,
       templateKey,
       dedupeKey,
