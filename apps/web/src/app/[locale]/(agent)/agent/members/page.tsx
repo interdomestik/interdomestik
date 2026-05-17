@@ -1,10 +1,7 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { headers } from 'next/headers';
-import { notFound, redirect } from 'next/navigation';
 import { Badge } from '@interdomestik/ui';
 import { Link } from '@/i18n/routing';
-import { getAgentMembersListReadModel } from '@/features/agent/members/server/get-agent-members-read-model';
-import { auth } from '@/lib/auth';
+import { getAgentMembersPageData } from './_core';
 import { AgentMembersSearch } from './components/agent-members-search';
 
 export default async function AgentMembersPage({
@@ -18,32 +15,11 @@ export default async function AgentMembersPage({
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'agent-members' });
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    redirect(`/${locale}/login`);
-  }
-
-  if (session.user.role !== 'agent') {
-    notFound();
-  }
-
   const resolvedSearchParams = await searchParams;
-  const rawSearch = typeof resolvedSearchParams?.q === 'string' ? resolvedSearchParams.q : '';
-  const search = rawSearch.trim() || undefined;
-
-  const { members } = await getAgentMembersListReadModel({
-    agentId: session.user.id,
-    tenantId: session.user.tenantId,
-    query: search,
+  const { attentionCount, members, openClaimsTotal, search } = await getAgentMembersPageData({
+    locale,
+    searchParams: resolvedSearchParams,
   });
-
-  const attentionCount = members.filter(
-    member => member.attentionState === 'needs_attention'
-  ).length;
-  const openClaimsTotal = members.reduce((sum, member) => sum + member.openClaimsCount, 0);
 
   return (
     <div data-testid="agent-dashboard-page">

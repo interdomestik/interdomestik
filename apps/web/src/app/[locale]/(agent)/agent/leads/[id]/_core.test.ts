@@ -12,7 +12,7 @@ vi.mock('@interdomestik/domain-crm/lead-details', () => ({
   getAgentCrmLeadDetail: hoisted.getAgentCrmLeadDetail,
 }));
 
-vi.mock('@/lib/domain-crm/lead-detail-repository', () => ({
+vi.mock('@/adapters/crm/lead-detail-repository', () => ({
   crmLeadDetailRepository: hoisted.crmLeadDetailRepository,
 }));
 

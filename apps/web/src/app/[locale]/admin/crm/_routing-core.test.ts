@@ -5,7 +5,7 @@ import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import type {
   AdminCrmRoutingRuleAdminRepository,
   AdminCrmRoutingRuleRow,
-} from '@/lib/domain-crm/routing-repository';
+} from '@/adapters/crm/routing-repository';
 
 import {
   getAdminCrmRoutingErrorMessageKey,

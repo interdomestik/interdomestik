@@ -14,11 +14,11 @@ vi.mock('@interdomestik/domain-crm/dashboards', () => ({
   getAgentCrmDashboard: hoisted.getAgentCrmDashboard,
 }));
 
-vi.mock('@/lib/domain-crm/dashboard-repository', () => ({
+vi.mock('@/adapters/crm/dashboard-repository', () => ({
   crmDashboardRepository: hoisted.crmDashboardRepository,
 }));
 
-vi.mock('@/lib/domain-crm/reporting-repository', () => ({
+vi.mock('@/adapters/crm/reporting-repository', () => ({
   crmReportingRepository: hoisted.crmReportingRepository,
 }));
 

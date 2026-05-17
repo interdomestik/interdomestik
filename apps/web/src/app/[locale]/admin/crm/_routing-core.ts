@@ -7,7 +7,7 @@ import {
   type AdminCrmRoutingRuleAdminRepository,
   type AdminCrmRoutingRuleRow,
   type AdminCrmRoutingRuleWriteInput,
-} from '@/lib/domain-crm/routing-repository';
+} from '@/adapters/crm/routing-repository';
 
 import { ADMIN_CRM_FORBIDDEN_PII_KEYS } from './_core';
 import {

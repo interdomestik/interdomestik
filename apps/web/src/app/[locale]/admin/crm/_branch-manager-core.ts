@@ -18,7 +18,7 @@ import type {
 import {
   crmForecastSnapshotRepository,
   crmReportingRepository,
-} from '@/lib/domain-crm/reporting-repository';
+} from '@/adapters/crm/reporting-repository';
 
 import { getPreviousUtcSnapshotDate, type AdminCrmSnapshotFreshness } from './_core';
 

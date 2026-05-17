@@ -55,7 +55,7 @@ vi.mock('@/actions/agent-crm-follow-up', () => ({
   scheduleAgentLeadFollowUp: vi.fn(),
 }));
 
-vi.mock('@/lib/domain-crm/lead-activity-repository', () => ({
+vi.mock('@/adapters/crm/lead-activity-repository', () => ({
   crmLeadActivityRepository: hoisted.crmLeadActivityRepository,
 }));
 

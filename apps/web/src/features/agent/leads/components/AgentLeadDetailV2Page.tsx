@@ -11,7 +11,7 @@ import { LogActivityDialog } from '@/components/crm/log-activity-dialog';
 import type { AppLocale } from '@/i18n/locales';
 import { Link, redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { crmLeadActivityRepository } from '@/lib/domain-crm/lead-activity-repository';
+import { crmLeadActivityRepository } from '@/adapters/crm/lead-activity-repository';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { getAgentCrmLeadActivities } from '@interdomestik/domain-crm/lead-activities';
 import {

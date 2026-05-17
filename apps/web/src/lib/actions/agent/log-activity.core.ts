@@ -4,7 +4,7 @@ import {
 } from '@interdomestik/domain-crm/leads/mutations';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { nanoid } from 'nanoid';
-import { crmLeadMutationRepository } from '@/lib/domain-crm/lead-mutation-repository';
+import { crmLeadMutationRepository } from '@/adapters/crm/lead-mutation-repository';
 
 function mapActivityError(result: Extract<CrmLeadMutationResult, { success: false }>) {
   if (result.error === 'not_found') {
