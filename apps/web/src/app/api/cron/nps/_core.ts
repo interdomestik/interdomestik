@@ -1,7 +1,7 @@
 import { logAuditEvent } from '@/lib/audit';
 import { getDayWindow } from '@/lib/cron/engagement-schedule';
 import { sendNpsSurveyEmail } from '@/lib/email';
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
 import {
   engagementEmailSends,
   npsSurveyTokens,
@@ -94,85 +94,74 @@ async function processNpsMember(args: {
   const dedupeKey = `engagement:${member.subId}:${NPS_TEMPLATE_KEY}`;
 
   if (!member.tenantId || !member.userId) return 'skipped';
+  const tenantId = member.tenantId;
+  const userId = member.userId;
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
-  const inserted = await db
-    .insert(engagementEmailSends)
-    .values({
-      id: nanoid(),
-      tenantId: member.tenantId,
-      userId: member.userId,
-      subscriptionId: member.subId,
-      templateKey: NPS_TEMPLATE_KEY,
-      dedupeKey,
-      status: 'pending',
-      createdAt: new Date(),
-      metadata: {
-        scheduledDays: NPS_DAYS_SINCE_SUB_CREATED,
-      },
-    })
-    .onConflictDoNothing({ target: engagementEmailSends.dedupeKey })
-    .returning({ id: engagementEmailSends.id });
+  const inserted = await withTenantContext({ tenantId, role: 'system' }, tx =>
+    tx
+      .insert(engagementEmailSends)
+      .values({
+        id: nanoid(),
+        tenantId,
+        userId,
+        subscriptionId: member.subId,
+        templateKey: NPS_TEMPLATE_KEY,
+        dedupeKey,
+        status: 'pending',
+        createdAt: new Date(),
+        metadata: {
+          scheduledDays: NPS_DAYS_SINCE_SUB_CREATED,
+        },
+      })
+      .onConflictDoNothing({ target: engagementEmailSends.dedupeKey })
+      .returning({ id: engagementEmailSends.id })
+  );
 
   if (inserted.length === 0) return 'skipped'; // Already processed
 
   if (!member.email || !member.name) {
-    await db
-      .update(engagementEmailSends)
-      .set({
-        status: 'skipped',
-        error: 'Missing recipient email or name',
-      })
-      .where(
-        and(
-          eq(engagementEmailSends.dedupeKey, dedupeKey),
-          eq(engagementEmailSends.tenantId, member.tenantId)
-        )
-      );
+    await updateEngagementSend(tenantId, dedupeKey, {
+      status: 'skipped',
+      error: 'Missing recipient email or name',
+    });
     return 'skipped';
   }
 
   const token = nanoid(32);
   const expiresAt = new Date(now.getTime() + TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
-  await db
-    .insert(npsSurveyTokens)
-    .values({
-      id: nanoid(),
-      tenantId: member.tenantId,
-      userId: member.userId,
-      subscriptionId: member.subId,
-      dedupeKey,
-      token,
-      createdAt: new Date(),
-      expiresAt,
-      usedAt: null,
-      metadata: {
-        templateKey: NPS_TEMPLATE_KEY,
-      },
-    })
-    .onConflictDoNothing({ target: npsSurveyTokens.dedupeKey });
+  const [tokenRow] = await withTenantContext({ tenantId, role: 'system' }, async tx => {
+    await tx
+      .insert(npsSurveyTokens)
+      .values({
+        id: nanoid(),
+        tenantId,
+        userId,
+        subscriptionId: member.subId,
+        dedupeKey,
+        token,
+        createdAt: new Date(),
+        expiresAt,
+        usedAt: null,
+        metadata: {
+          templateKey: NPS_TEMPLATE_KEY,
+        },
+      })
+      .onConflictDoNothing({ target: npsSurveyTokens.dedupeKey });
 
-  const [tokenRow] = await db
-    .select({ token: npsSurveyTokens.token })
-    .from(npsSurveyTokens)
-    .where(
-      and(eq(npsSurveyTokens.dedupeKey, dedupeKey), eq(npsSurveyTokens.tenantId, member.tenantId))
-    )
-    .limit(1);
+    return tx
+      .select({ token: npsSurveyTokens.token })
+      .from(npsSurveyTokens)
+      .where(and(eq(npsSurveyTokens.dedupeKey, dedupeKey), eq(npsSurveyTokens.tenantId, tenantId)))
+      .limit(1);
+  });
 
   const surveyToken = tokenRow?.token;
   if (!surveyToken) {
-    await db
-      .update(engagementEmailSends)
-      .set({ status: 'error', error: 'Failed to create NPS token' })
-      .where(
-        and(
-          eq(engagementEmailSends.dedupeKey, dedupeKey),
-          eq(engagementEmailSends.tenantId, member.tenantId)
-        )
-      );
+    await updateEngagementSend(tenantId, dedupeKey, {
+      status: 'error',
+      error: 'Failed to create NPS token',
+    });
     return 'errors';
   }
 
@@ -183,20 +172,11 @@ async function processNpsMember(args: {
     });
 
     if (sendResult.success) {
-      // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
-      await db
-        .update(engagementEmailSends)
-        .set({
-          status: 'sent',
-          providerMessageId: sendResult.id || null,
-          sentAt: new Date(),
-        })
-        .where(
-          and(
-            eq(engagementEmailSends.dedupeKey, dedupeKey),
-            eq(engagementEmailSends.tenantId, member.tenantId)
-          )
-        );
+      await updateEngagementSend(tenantId, dedupeKey, {
+        status: 'sent',
+        providerMessageId: sendResult.id || null,
+        sentAt: new Date(),
+      });
 
       await logAuditEvent({
         actorId: null,
@@ -215,19 +195,10 @@ async function processNpsMember(args: {
       const isSkipped = err === 'Resend not configured';
       const status = isSkipped ? 'skipped' : 'error';
 
-      // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
-      await db
-        .update(engagementEmailSends)
-        .set({
-          status,
-          error: err,
-        })
-        .where(
-          and(
-            eq(engagementEmailSends.dedupeKey, dedupeKey),
-            eq(engagementEmailSends.tenantId, member.tenantId)
-          )
-        );
+      await updateEngagementSend(tenantId, dedupeKey, {
+        status,
+        error: err,
+      });
 
       await logAuditEvent({
         actorId: null,
@@ -242,19 +213,28 @@ async function processNpsMember(args: {
       return isSkipped ? 'skipped' : 'errors';
     }
   } catch {
-    // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
-    await db
+    await updateEngagementSend(tenantId, dedupeKey, {
+      status: 'error',
+      error: 'Unhandled exception during send',
+    });
+    return 'errors';
+  }
+}
+
+async function updateEngagementSend(
+  tenantId: string,
+  dedupeKey: string,
+  values: Partial<typeof engagementEmailSends.$inferInsert>
+) {
+  await withTenantContext({ tenantId, role: 'system' }, async tx => {
+    await tx
       .update(engagementEmailSends)
-      .set({
-        status: 'error',
-        error: 'Unhandled exception during send',
-      })
+      .set(values)
       .where(
         and(
           eq(engagementEmailSends.dedupeKey, dedupeKey),
-          eq(engagementEmailSends.tenantId, member.tenantId)
+          eq(engagementEmailSends.tenantId, tenantId)
         )
       );
-    return 'errors';
-  }
+  });
 }
