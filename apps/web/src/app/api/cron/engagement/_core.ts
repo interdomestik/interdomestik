@@ -8,15 +8,16 @@ import {
   sendSeasonalEmail,
 } from '@/lib/email';
 import { db } from '@interdomestik/database';
-import { engagementEmailSends, subscriptions, user } from '@interdomestik/database/schema';
+import { subscriptions, user } from '@interdomestik/database/schema';
 import { and, eq, gte, lte } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 
 import {
   ENGAGEMENT_CADENCE,
   getDayWindow,
   type EngagementCadence,
 } from '@/lib/cron/engagement-schedule';
+
+import { createPendingEngagementSend, updateEngagementSend } from '../_engagement-email-sends';
 
 export type EngagementCronResults = {
   day7: number;
@@ -119,25 +120,19 @@ async function processMemberEngagement(
     results.skipped++;
     return;
   }
+  const tenantId = member.tenantId;
+  const userId = member.userId;
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
-  const inserted = await db
-    .insert(engagementEmailSends)
-    .values({
-      id: nanoid(),
-      tenantId: member.tenantId,
-      userId: member.userId,
-      subscriptionId: member.subId,
-      templateKey,
-      dedupeKey,
-      status: 'pending',
-      createdAt: new Date(),
-      metadata: {
-        scheduledDays: cadence.daysSinceSubscriptionCreated,
-      },
-    })
-    .onConflictDoNothing({ target: engagementEmailSends.dedupeKey })
-    .returning({ id: engagementEmailSends.id });
+  const inserted = await createPendingEngagementSend({
+    tenantId,
+    userId,
+    subscriptionId: member.subId,
+    templateKey,
+    dedupeKey,
+    metadata: {
+      scheduledDays: cadence.daysSinceSubscriptionCreated,
+    },
+  });
 
   if (inserted.length === 0) return;
 
@@ -214,26 +209,20 @@ async function processSeasonalMember(
     results.skipped++;
     return;
   }
+  const tenantId = member.tenantId;
+  const userId = member.userId;
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
-  const inserted = await db
-    .insert(engagementEmailSends)
-    .values({
-      id: nanoid(),
-      tenantId: member.tenantId,
-      userId: member.userId,
-      subscriptionId: member.subId,
-      templateKey,
-      dedupeKey,
-      status: 'pending',
-      createdAt: new Date(),
-      metadata: {
-        season,
-        year: now.getFullYear(),
-      },
-    })
-    .onConflictDoNothing({ target: engagementEmailSends.dedupeKey })
-    .returning({ id: engagementEmailSends.id });
+  const inserted = await createPendingEngagementSend({
+    tenantId,
+    userId,
+    subscriptionId: member.subId,
+    templateKey,
+    dedupeKey,
+    metadata: {
+      season,
+      year: now.getFullYear(),
+    },
+  });
 
   if (inserted.length === 0) return;
 
@@ -296,19 +285,11 @@ async function handleSuccess(
 ) {
   if (!member.tenantId) return;
 
-  await db
-    .update(engagementEmailSends)
-    .set({
-      status: 'sent',
-      providerMessageId: providerMessageId || null,
-      sentAt: new Date(),
-    })
-    .where(
-      and(
-        eq(engagementEmailSends.dedupeKey, dedupeKey),
-        eq(engagementEmailSends.tenantId, member.tenantId)
-      )
-    );
+  await updateEngagementSend(member.tenantId, dedupeKey, {
+    status: 'sent',
+    providerMessageId: providerMessageId || null,
+    sentAt: new Date(),
+  });
 
   await logAuditEvent({
     actorId: null,
@@ -350,15 +331,7 @@ async function handleFailure(
     return;
   }
 
-  await db
-    .update(engagementEmailSends)
-    .set({ status, error })
-    .where(
-      and(
-        eq(engagementEmailSends.dedupeKey, dedupeKey),
-        eq(engagementEmailSends.tenantId, member.tenantId)
-      )
-    );
+  await updateEngagementSend(member.tenantId, dedupeKey, { status, error });
 
   if (status === 'skipped') results.skipped++;
   else results.errors++;
@@ -376,25 +349,9 @@ async function handleFailure(
 }
 
 async function markAsSkipped(dedupeKey: string, tenantId: string, reason: string) {
-  await db
-    .update(engagementEmailSends)
-    .set({ status: 'skipped', error: reason })
-    .where(
-      and(
-        eq(engagementEmailSends.dedupeKey, dedupeKey),
-        eq(engagementEmailSends.tenantId, tenantId)
-      )
-    );
+  await updateEngagementSend(tenantId, dedupeKey, { status: 'skipped', error: reason });
 }
 
 async function markAsError(dedupeKey: string, tenantId: string, reason: string) {
-  await db
-    .update(engagementEmailSends)
-    .set({ status: 'error', error: reason })
-    .where(
-      and(
-        eq(engagementEmailSends.dedupeKey, dedupeKey),
-        eq(engagementEmailSends.tenantId, tenantId)
-      )
-    );
+  await updateEngagementSend(tenantId, dedupeKey, { status: 'error', error: reason });
 }

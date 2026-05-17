@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-17T13:25:02.756Z",
+  "generatedAt": "2026-05-17T16:58:50.611Z",
   "policy": "see docs/dev/db-access-guard.md",
   "scanRoots": ["apps/web/src", "packages"],
   "approvedDatabaseInternalPatterns": [
@@ -22,13 +22,13 @@
   "methods": ["query", "select", "insert", "update", "delete", "execute", "transaction"],
   "counts": {
     "byRisk": {
-      "app-layer": 317,
+      "app-layer": 307,
       "domain-wrapper": 300
     },
     "byTenantPosture": {
-      "tenant-context": 10,
-      "tenant-scoped": 186,
-      "tenant-predicate": 373,
+      "tenant-context": 14,
+      "tenant-scoped": 179,
+      "tenant-predicate": 366,
       "admin-privileged": 0,
       "system-exempt": 48,
       "unclassified": 0
@@ -1456,6 +1456,26 @@
       "source": "await tx .update(documentExtractions)"
     },
     {
+      "file": "apps/web/src/app/api/cron/_engagement-email-sends.ts",
+      "line": 17,
+      "callee": "tx.insert",
+      "method": "insert",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-alias",
+      "source": "tx .insert(engagementEmailSends)"
+    },
+    {
+      "file": "apps/web/src/app/api/cron/_engagement-email-sends.ts",
+      "line": 41,
+      "callee": "tx.update",
+      "method": "update",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-block",
+      "source": "await tx .update(engagementEmailSends)"
+    },
+    {
       "file": "apps/web/src/app/api/cron/dunning/_core.ts",
       "line": 40,
       "callee": "db.query",
@@ -1488,7 +1508,7 @@
     },
     {
       "file": "apps/web/src/app/api/cron/engagement/_core.ts",
-      "line": 84,
+      "line": 85,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
@@ -1499,18 +1519,7 @@
     },
     {
       "file": "apps/web/src/app/api/cron/engagement/_core.ts",
-      "line": 124,
-      "callee": "db.insert",
-      "method": "insert",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from subscription row",
-      "source": "const inserted = await db .insert(engagementEmailSends)"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/engagement/_core.ts",
-      "line": 185,
+      "line": 180,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
@@ -1520,59 +1529,8 @@
       "source": "const seasonalMembers = await db .select({"
     },
     {
-      "file": "apps/web/src/app/api/cron/engagement/_core.ts",
-      "line": 219,
-      "callee": "db.insert",
-      "method": "insert",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from subscription row",
-      "source": "const inserted = await db .insert(engagementEmailSends)"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/engagement/_core.ts",
-      "line": 299,
-      "callee": "db.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-predicate",
-      "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "await db .update(engagementEmailSends)"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/engagement/_core.ts",
-      "line": 353,
-      "callee": "db.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-predicate",
-      "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "await db .update(engagementEmailSends)"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/engagement/_core.ts",
-      "line": 379,
-      "callee": "db.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-predicate",
-      "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "await db .update(engagementEmailSends)"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/engagement/_core.ts",
-      "line": 391,
-      "callee": "db.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-predicate",
-      "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "await db .update(engagementEmailSends)"
-    },
-    {
       "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 39,
+      "line": 36,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
@@ -1583,88 +1541,23 @@
     },
     {
       "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 99,
-      "callee": "db.insert",
+      "line": 122,
+      "callee": "tx.insert",
       "method": "insert",
       "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from subscription row",
-      "source": "const inserted = await db .insert(engagementEmailSends)"
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-block",
+      "source": "await tx .insert(npsSurveyTokens)"
     },
     {
       "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 120,
-      "callee": "db.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-predicate",
-      "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "await db .update(engagementEmailSends)"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 139,
-      "callee": "db.insert",
-      "method": "insert",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from subscription row",
-      "source": "await db .insert(npsSurveyTokens)"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 157,
-      "callee": "db.select",
+      "line": 140,
+      "callee": "tx.select",
       "method": "select",
       "risk": "app-layer",
-      "tenantPosture": "tenant-predicate",
-      "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "const [tokenRow] = await db .select({ token: npsSurveyTokens.token })"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 167,
-      "callee": "db.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-predicate",
-      "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "await db .update(engagementEmailSends)"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 187,
-      "callee": "db.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from subscription row",
-      "source": "await db .update(engagementEmailSends)"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 219,
-      "callee": "db.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from subscription row",
-      "source": "await db .update(engagementEmailSends)"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 246,
-      "callee": "db.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from subscription row",
-      "source": "await db .update(engagementEmailSends)"
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-block",
+      "source": "return tx .select({ token: npsSurveyTokens.token })"
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",
@@ -4683,7 +4576,7 @@
     },
     {
       "file": "packages/domain-communications/src/campaign-execution.ts",
-      "line": 311,
+      "line": 310,
       "callee": "tx.insert",
       "method": "insert",
       "risk": "domain-wrapper",
@@ -4693,7 +4586,7 @@
     },
     {
       "file": "packages/domain-communications/src/campaign-execution.ts",
-      "line": 343,
+      "line": 342,
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
