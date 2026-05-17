@@ -1,32 +1,23 @@
-import { headers } from 'next/headers';
-import { notFound, redirect } from 'next/navigation';
-
 import { getAgentMembersListReadModel } from '@/features/agent/members/server/get-agent-members-read-model';
-import { auth } from '@/lib/auth';
 
 type AgentMembersSearchParams = {
   q?: string;
 };
 
+type AgentMembersSession = {
+  user: {
+    id: string;
+    tenantId: string;
+  };
+};
+
 export async function getAgentMembersPageData({
-  locale,
   searchParams,
+  session,
 }: {
-  locale: string;
   searchParams?: AgentMembersSearchParams;
+  session: AgentMembersSession;
 }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    redirect(`/${locale}/login`);
-  }
-
-  if (session.user.role !== 'agent') {
-    notFound();
-  }
-
   const rawSearch = typeof searchParams?.q === 'string' ? searchParams.q : '';
   const search = rawSearch.trim() || undefined;
 

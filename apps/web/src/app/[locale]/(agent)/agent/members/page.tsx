@@ -1,6 +1,9 @@
+import { headers } from 'next/headers';
+import { notFound, redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Badge } from '@interdomestik/ui';
 import { Link } from '@/i18n/routing';
+import { auth } from '@/lib/auth';
 import { getAgentMembersPageData } from './_core';
 import { AgentMembersSearch } from './components/agent-members-search';
 
@@ -14,11 +17,22 @@ export default async function AgentMembersPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'agent-members' });
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    redirect(`/${locale}/login`);
+  }
+
+  if (session.user.role !== 'agent') {
+    notFound();
+  }
 
   const resolvedSearchParams = await searchParams;
   const { attentionCount, members, openClaimsTotal, search } = await getAgentMembersPageData({
-    locale,
     searchParams: resolvedSearchParams,
+    session,
   });
 
   return (

@@ -21,7 +21,6 @@ import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import * as Sentry from '@sentry/nextjs';
 import { randomUUID } from 'crypto';
-import { NextResponse } from 'next/server';
 
 const ADMIN_UPLOAD_ROLES = new Set([
   'admin',
@@ -39,13 +38,13 @@ type EvidenceUploadForm = {
   file: File;
 };
 
-type ResponseResult<T> = { success: true; data: T } | { success: false; response: NextResponse };
+type ResponseResult<T> = { success: true; data: T } | { success: false; response: Response };
 type ClaimAccess =
   | { success: true; isAdminSurface: boolean }
   | { success: false; status: 401 | 404 };
 
-function jsonError(error: string, status: number): NextResponse {
-  return NextResponse.json({ error }, { status });
+function jsonError(error: string, status: number): Response {
+  return Response.json({ error }, { status });
 }
 
 function isAdminUploadRole(role: string | null | undefined): boolean {
@@ -186,7 +185,7 @@ async function uploadEvidenceObject(params: {
   storageContentType: string;
   storagePath: string;
   tenantId: string;
-}): Promise<NextResponse | null> {
+}): Promise<Response | null> {
   const buffer = Buffer.from(await params.file.arrayBuffer());
 
   const { error: uploadError } = await uploadTenantObject({
@@ -369,5 +368,5 @@ export async function POST(request: Request) {
     return jsonError(confirmResult.error, confirmResult.status);
   }
 
-  return NextResponse.json({ success: true, fileId, storagePath });
+  return Response.json({ success: true, fileId, storagePath });
 }

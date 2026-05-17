@@ -1,32 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
-  headersMock: vi.fn(async () => new Headers()),
-  redirectMock: vi.fn((url: string) => {
-    throw new Error(`redirect:${url}`);
-  }),
-  notFoundMock: vi.fn(() => {
-    throw new Error('notFound');
-  }),
-  getSessionMock: vi.fn(),
   getAgentMembersListReadModelMock: vi.fn(),
-}));
-
-vi.mock('next/headers', () => ({
-  headers: hoisted.headersMock,
-}));
-
-vi.mock('next/navigation', () => ({
-  notFound: hoisted.notFoundMock,
-  redirect: hoisted.redirectMock,
-}));
-
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: hoisted.getSessionMock,
-    },
-  },
 }));
 
 vi.mock('@/features/agent/members/server/get-agent-members-read-model', () => ({
@@ -36,15 +11,15 @@ vi.mock('@/features/agent/members/server/get-agent-members-read-model', () => ({
 import { getAgentMembersPageData } from './_core';
 
 describe('getAgentMembersPageData', () => {
+  const agentSession = {
+    user: {
+      id: 'agent-1',
+      tenantId: 'tenant-1',
+    },
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    hoisted.getSessionMock.mockResolvedValue({
-      user: {
-        id: 'agent-1',
-        role: 'agent',
-        tenantId: 'tenant-1',
-      },
-    });
     hoisted.getAgentMembersListReadModelMock.mockResolvedValue({
       members: [
         {
@@ -61,28 +36,10 @@ describe('getAgentMembersPageData', () => {
     });
   });
 
-  it('redirects unauthenticated users to the locale login path', async () => {
-    hoisted.getSessionMock.mockResolvedValueOnce(null);
-
-    await expect(getAgentMembersPageData({ locale: 'en' })).rejects.toThrow('redirect:/en/login');
-  });
-
-  it('returns not found for non-agent sessions', async () => {
-    hoisted.getSessionMock.mockResolvedValueOnce({
-      user: {
-        id: 'staff-1',
-        role: 'staff',
-        tenantId: 'tenant-1',
-      },
-    });
-
-    await expect(getAgentMembersPageData({ locale: 'en' })).rejects.toThrow('notFound');
-  });
-
   it('loads members with trimmed search and summary counts', async () => {
     const data = await getAgentMembersPageData({
-      locale: 'en',
       searchParams: { q: '  arta  ' },
+      session: agentSession,
     });
 
     expect(hoisted.getAgentMembersListReadModelMock).toHaveBeenCalledWith({
