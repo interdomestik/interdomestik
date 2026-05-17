@@ -74,7 +74,7 @@ export async function activateSponsoredMembership(subscriptionId: string) {
       ...activeAnnualMembershipState,
       updatedAt: currentPeriodStart,
     })
-    .where(eq(subscriptions.id, subscriptionId));
+    .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)));
 
   revalidatePath(MEMBER_MEMBERSHIP_PATH);
   revalidatePath(MEMBER_CARD_PATH);

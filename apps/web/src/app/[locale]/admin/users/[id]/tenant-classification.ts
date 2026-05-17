@@ -18,6 +18,7 @@ export async function getTenantClassificationOptions(params: {
     return [];
   }
 
+  // db-access-guard: system-exempt -- reason: super-admin tenant classification selector lists active tenant metadata only
   const activeTenants = await db.query.tenants.findMany({
     where: eq(tenants.isActive, true),
     columns: {

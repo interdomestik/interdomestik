@@ -3,7 +3,7 @@ plan_role: input
 status: archived
 source_of_truth: false
 owner: platform + security + qa
-last_reviewed: 2026-05-09
+last_reviewed: 2026-05-17
 ---
 
 # DB Access Posture Burn-Down
@@ -22,20 +22,23 @@ P35-SEC01 reduced the baseline to `61` by removing the non-Paddle commission own
 tenant lookup and requiring explicit commission tenant scope before idempotency checks or writes.
 P35-SEC02 reduced the baseline to `56` by requiring session-derived tenant proof for legacy
 agent-dashboard claim reads and adding direct tenant predicates to all five reads.
+The 2026-05-17 architecture burn-down reduced the baseline to `15` by classifying reviewed local
+tenant-proof callsites and explicit tenant-bootstrap metadata reads.
 
 ## Burn-Down Summary
 
-| Metric                          | Count |
-| ------------------------------- | ----: |
-| SEC04A unclassified baseline    |   262 |
-| SEC04B unclassified baseline    |    80 |
-| P33-SEC10 unclassified baseline |    67 |
-| P33-SEC12 unclassified baseline |    62 |
-| P35-SEC01 unclassified baseline |    61 |
-| P35-SEC02 unclassified baseline |    56 |
-| Entries removed from scan       |     4 |
-| Reviewed `tenant-scoped` calls  |   168 |
-| Reviewed `system-exempt` calls  |    28 |
+| Metric                           | Count |
+| -------------------------------- | ----: |
+| SEC04A unclassified baseline     |   262 |
+| SEC04B unclassified baseline     |    80 |
+| P33-SEC10 unclassified baseline  |    67 |
+| P33-SEC12 unclassified baseline  |    62 |
+| P35-SEC01 unclassified baseline  |    61 |
+| P35-SEC02 unclassified baseline  |    56 |
+| 2026-05-17 unclassified baseline |    15 |
+| Entries removed from scan        |     4 |
+| Reviewed `tenant-scoped` calls   |   194 |
+| Reviewed `system-exempt` calls   |    39 |
 
 ## Classification Rules Used
 
@@ -71,15 +74,13 @@ classified.
 
 ## Remaining Evidence Set
 
-The remaining `56` entries are intentionally not classified. They include clusters that need
+The remaining `15` entries are intentionally not classified. They include clusters that need
 migration or a narrower design decision:
 
 | Count | Cluster                                                                                           |
 | ----: | ------------------------------------------------------------------------------------------------- |
-|     7 | Campaign execution and communication paths that batch across users or campaigns.                  |
-|     8 | Cron and public NPS/engagement residue that needs per-tenant job modeling or narrower predicates. |
-|     4 | Admin and branch dashboard cross-tenant lookup paths.                                             |
-|    37 | Smaller one-off application/domain paths requiring callsite-specific migration review.            |
+|     5 | Campaign execution and communication paths that batch across users or campaigns.                  |
+|    10 | Cron and public NPS/engagement residue that needs per-tenant job modeling or narrower predicates. |
 
 Those entries should not be mass-stamped. P33-SEC10 resolved all current unclassified entries
 under `packages/domain-membership-billing/src/paddle-webhooks/**`. DG14 had inventoried `14`
@@ -90,6 +91,5 @@ membership-billing unclassified entry by removing the non-Paddle commission owne
 lookup and making tenant scope an explicit commission creation contract. P35-SEC02 resolved the
 legacy agent dashboard cluster by requiring session tenant proof before staff/admin reads and making
 all five claim reads directly tenant-predicated. The next action, if further burn-down is needed, is
-a targeted design review for campaign/cron/public-token tenancy, admin/branch ownership, or the
-remaining one-off paths. The known P34 CRM adapter baseline drift remains non-failing guard output
-and was not refreshed by the P35-SEC02 receipt.
+a targeted design review for campaign/cron/public-token tenancy. The 2026-05-17 architecture
+burn-down resolved the prior admin/branch ownership and one-off application/domain posture residue.

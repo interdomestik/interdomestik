@@ -93,6 +93,7 @@ export async function upsertNotificationPreferencesCore(args: {
     return;
   }
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated route context before preference insert
   await db.insert(userNotificationPreferences).values({
     id: nanoid(),
     tenantId: resolvedTenantId,

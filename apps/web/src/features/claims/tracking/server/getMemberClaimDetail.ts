@@ -91,6 +91,7 @@ export async function getMemberClaimDetail(
       const whereClause = and(eq(claims.id, claimId), visibilityCondition);
 
       // 3. Fetch Data (Parallel)
+      // db-access-guard: tenant-scoped -- reason: tenant predicate built by claim visibility helper before member claim detail lookup
       const claimQuery = db.query.claims.findFirst({
         where: whereClause,
         with: {

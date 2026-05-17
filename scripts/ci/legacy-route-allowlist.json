@@ -1,0 +1,14 @@
+{
+  "policy": "Legacy route files are frozen while E2E gates still assert legacy surfaces. New work must target canonical /member, /agent, /staff, or /admin routes.",
+  "allowedLegacyRouteFiles": [
+    "apps/web/src/app/[locale]/legacy/admin/layout.tsx",
+    "apps/web/src/app/[locale]/legacy/admin/page.tsx",
+    "apps/web/src/app/[locale]/legacy/agent/layout.tsx",
+    "apps/web/src/app/[locale]/legacy/agent/page.tsx",
+    "apps/web/src/app/[locale]/legacy/member/layout.tsx",
+    "apps/web/src/app/[locale]/legacy/member/page.tsx",
+    "apps/web/src/app/[locale]/legacy/staff/layout.tsx",
+    "apps/web/src/app/[locale]/legacy/staff/page.test.tsx",
+    "apps/web/src/app/[locale]/legacy/staff/page.tsx"
+  ]
+}

@@ -131,6 +131,7 @@ export async function getStaffClaimsList(params: {
   const scopedWhere = withTenant(tenantId, claims.tenantId, and(...conditions));
   const assignee = aliasedTable(user, 'assignee');
 
+  // db-access-guard: tenant-scoped -- reason: tenant predicate built by scopedWhere and consumed by this DB call
   const rows = await db
     .select({
       id: claims.id,

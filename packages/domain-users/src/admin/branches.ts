@@ -73,6 +73,7 @@ export async function createBranchCore(
   const branchId = randomUUID();
   const code = params.code?.trim() || null;
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from validated admin session before branch insert
   await db.insert(branches).values({
     id: branchId,
     tenantId,

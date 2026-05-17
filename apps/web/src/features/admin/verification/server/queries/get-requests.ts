@@ -53,6 +53,7 @@ export async function getVerificationRequests(
   // Verifier Alias for History Join
   const verifier = aliasedTable(user, 'verifier');
 
+  // db-access-guard: tenant-scoped -- reason: tenant predicate built in local conditions array before verification list query
   let queryBuilder = db
     .select({
       id: leadPaymentAttempts.id,

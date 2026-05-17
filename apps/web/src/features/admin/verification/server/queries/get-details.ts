@@ -30,6 +30,7 @@ export async function getVerificationRequestDetails(
     conditions.push(eq(memberLeads.branchId, scope.branchId));
   }
 
+  // db-access-guard: tenant-scoped -- reason: tenant predicate built in local conditions array before verification details query
   const [row] = (await db
     .select({
       // Base DTO

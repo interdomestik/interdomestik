@@ -48,6 +48,7 @@ export async function createMemberNoteCore(params: {
       updatedAt: null,
     };
 
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated session before member note insert
     await db.insert(memberNotes).values(newNote);
 
     await logAuditEvent({

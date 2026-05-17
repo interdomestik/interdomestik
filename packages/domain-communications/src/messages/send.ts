@@ -108,6 +108,7 @@ export async function sendMessageDbCore(params: {
 
     const messageId = nanoid();
 
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated session before claim message insert
     await db.insert(claimMessages).values({
       id: messageId,
       tenantId,

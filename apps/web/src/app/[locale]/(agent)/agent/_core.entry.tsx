@@ -21,7 +21,7 @@ export default async function AgentDashboardEntry({
   }
   await requireEffectivePortalAccessOrNotFound(session, ['agent']);
 
-  const tier = await getAgentTier({ agentId: session.user.id });
+  const tier = await getAgentTier({ agentId: session.user.id, tenantId: session.user.tenantId });
 
   // The V2Page component handles its own data fetching
   return <AgentDashboardV2Page locale={locale} tier={tier} />;

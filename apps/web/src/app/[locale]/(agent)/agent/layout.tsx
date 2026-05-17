@@ -28,7 +28,10 @@ export default async function AgentLayout({
   await requireEffectivePortalAccessOrNotFound(sessionNonNull, ['agent']);
 
   const agentTier = sessionNonNull.user.id
-    ? await getAgentTier({ agentId: sessionNonNull.user.id })
+    ? await getAgentTier({
+        agentId: sessionNonNull.user.id,
+        tenantId: sessionNonNull.user.tenantId,
+      })
     : 'standard';
   const shellUser = toClientShellUser(sessionNonNull.user);
 

@@ -18,7 +18,10 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
-  userNotificationPreferences: { userId: 'userNotificationPreferences.userId' },
+  userNotificationPreferences: {
+    userId: 'userNotificationPreferences.userId',
+    tenantId: 'userNotificationPreferences.tenantId',
+  },
 }));
 
 import { getNotificationPreferencesCore } from './get';
@@ -32,11 +35,15 @@ describe('getNotificationPreferencesCore', () => {
   it('returns defaults when no preferences exist', async () => {
     const result = await getNotificationPreferencesCore({
       session: {
-        user: { id: 'user-1', role: 'user' },
+        user: { id: 'user-1', role: 'user', tenantId: 'tenant-1' },
       } as unknown as NonNullable<import('./context').Session>,
     });
 
-    expect(result).toEqual({ success: true, preferences: DEFAULT_NOTIFICATION_PREFERENCES });
+    expect(result).toEqual({
+      success: true,
+      preferences: DEFAULT_NOTIFICATION_PREFERENCES,
+      error: undefined,
+    });
     expect(mocks.select).toHaveBeenCalledTimes(1);
     expect(mocks.limit).toHaveBeenCalledWith(1);
   });

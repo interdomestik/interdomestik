@@ -16,7 +16,7 @@ export default async function AgentImportPage() {
     redirect('/member');
   }
 
-  const tier = await getAgentTier({ agentId: session.user.id });
+  const tier = await getAgentTier({ agentId: session.user.id, tenantId: session.user.tenantId });
   if (tier !== 'office') {
     notFound();
   }

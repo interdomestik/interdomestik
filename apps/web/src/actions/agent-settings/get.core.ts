@@ -1,6 +1,7 @@
 import { db } from '@interdomestik/database';
 import { agentSettings } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
+import { ensureTenantId } from '@interdomestik/shared-auth';
+import { and, eq } from 'drizzle-orm';
 
 import type { ActionResult, AgentCommissionSettings, CommissionRates } from '../commissions.types';
 import { canReadAgentSettings } from './access';
@@ -17,10 +18,16 @@ export async function getAgentSettingsCore(params: {
   if (!canReadAgentSettings({ session, agentId })) {
     return { success: false, error: 'Access denied' };
   }
+  let tenantId: string;
+  try {
+    tenantId = ensureTenantId(session);
+  } catch {
+    return { success: false, error: 'Missing tenantId' };
+  }
 
   try {
     const settings = await db.query.agentSettings?.findFirst({
-      where: eq(agentSettings.agentId, agentId),
+      where: and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)),
     });
 
     if (!settings) {

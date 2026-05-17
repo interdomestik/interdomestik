@@ -102,6 +102,7 @@ export async function getAgentClaimsCore(params: {
 
     // 3. Fetch Claims for these members (excluding drafts)
     // We use a simplified visibility logic here for the core.
+    // db-access-guard: tenant-scoped -- reason: tenant predicate built by visibility helper and consumed by this DB call
     const memberClaims = await db.query.claims.findMany({
       where: and(
         buildAgentClaimsWhere({ tenantId, memberIds: resolvedMemberIds, branchId }),

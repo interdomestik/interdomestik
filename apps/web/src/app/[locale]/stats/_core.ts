@@ -28,6 +28,7 @@ export async function getPublicStatsCore(): Promise<PublicStats> {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
+      // db-access-guard: system-exempt -- reason: public aggregate stats intentionally read cross-tenant counts only
       const [statsRow] = await db
         .select({
           totalClaims: count(),

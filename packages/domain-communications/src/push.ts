@@ -56,14 +56,15 @@ export async function sendPushToUser(
     return { success: false, skipped: true, reason: 'missing_vapid' as const };
   }
 
-  const resolvedTenantId =
-    deps?.tenantId ??
-    (
-      await db.query.user.findFirst({
-        where: (users, { eq }) => eq(users.id, userId),
-        columns: { tenantId: true },
-      })
-    )?.tenantId;
+  let resolvedTenantId = deps?.tenantId ?? null;
+  if (!resolvedTenantId) {
+    // db-access-guard: system-exempt -- reason: push delivery resolves tenant from target user before scoped preference lookup
+    const userTenant = await db.query.user.findFirst({
+      where: (users, { eq }) => eq(users.id, userId),
+      columns: { tenantId: true },
+    });
+    resolvedTenantId = userTenant?.tenantId ?? null;
+  }
 
   if (!resolvedTenantId) {
     return { success: false, skipped: true, reason: 'missing_tenant' as const };

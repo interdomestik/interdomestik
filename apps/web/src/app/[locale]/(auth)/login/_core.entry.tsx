@@ -48,6 +48,7 @@ export default async function LoginPage({ params, searchParams }: Props) {
   const tenantOptions: TenantOption[] = await loadTenantOptions({
     resolvedTenantId,
     loadTenants: async () =>
+      // db-access-guard: system-exempt -- reason: public login tenant selector lists active tenant metadata only
       db
         .select({ id: tenants.id, name: tenants.name, countryCode: tenants.countryCode })
         .from(tenants)

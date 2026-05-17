@@ -52,6 +52,7 @@ export default async function AdminLayout({
       ]);
 
       // Keep selector lightweight: only active tenants.
+      // db-access-guard: system-exempt -- reason: super-admin tenant selector lists active tenant metadata only
       const rows = await db
         .select({ id: tenants.id, name: tenants.name, countryCode: tenants.countryCode })
         .from(tenants)

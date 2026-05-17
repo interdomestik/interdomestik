@@ -1,6 +1,7 @@
 import { db } from '@interdomestik/database';
 import { userNotificationPreferences } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
+import { ensureTenantId } from '@interdomestik/shared-auth';
+import { and, eq } from 'drizzle-orm';
 
 import type { UserSession } from '../types';
 import { DEFAULT_NOTIFICATION_PREFERENCES, type NotificationPreferences } from './types';
@@ -18,10 +19,16 @@ export async function getNotificationPreferencesCore(params: {
   }
 
   try {
+    const tenantId = ensureTenantId(session);
     const [preferences] = await db
       .select()
       .from(userNotificationPreferences)
-      .where(eq(userNotificationPreferences.userId, session.user.id))
+      .where(
+        and(
+          eq(userNotificationPreferences.userId, session.user.id),
+          eq(userNotificationPreferences.tenantId, tenantId)
+        )
+      )
       .limit(1);
 
     if (!preferences) {

@@ -132,6 +132,7 @@ export async function upsertPushSubscriptionCore(args: {
     await updatePushSubscription(updateArgs);
   } else {
     try {
+      // db-access-guard: tenant-scoped -- reason: tenantId from validated route context before push subscription insert
       await db.insert(pushSubscriptions).values({
         id: nanoid(),
         tenantId: resolvedTenantId,
