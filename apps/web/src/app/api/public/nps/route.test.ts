@@ -23,11 +23,19 @@ vi.mock('@interdomestik/database', () => ({
     update: () => mockUpdateChain,
     insert: () => mockInsertChain,
   },
+  withTenantContext: vi.fn(
+    async (_context: { tenantId: string }, action: (tx: unknown) => Promise<unknown>) =>
+      await action({
+        update: () => mockUpdateChain,
+        insert: () => mockInsertChain,
+      })
+  ),
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
   npsSurveyTokens: {
     id: 'id',
+    tenantId: 'tenant_id',
     userId: 'user_id',
     subscriptionId: 'subscription_id',
     expiresAt: 'expires_at',
@@ -36,6 +44,7 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
   npsSurveyResponses: {
     id: 'id',
+    tenantId: 'tenant_id',
     tokenId: 'token_id',
     userId: 'user_id',
     subscriptionId: 'subscription_id',
@@ -55,6 +64,16 @@ vi.mock('drizzle-orm', () => ({
 vi.mock('nanoid', () => ({
   nanoid: () => 'test-id-123',
 }));
+
+const tokenRow = (overrides: Record<string, unknown> = {}) => ({
+  id: 'tok-1',
+  tenantId: 'tenant-1',
+  userId: 'user-1',
+  subscriptionId: 'sub-1',
+  expiresAt: new Date('2999-01-01T00:00:00.000Z'),
+  usedAt: null,
+  ...overrides,
+});
 
 describe('POST /api/public/nps', () => {
   beforeEach(() => {
@@ -111,13 +130,9 @@ describe('POST /api/public/nps', () => {
 
   it('returns 410 for expired token', async () => {
     mockSelectChain.limit.mockReturnValue([
-      {
-        id: 'tok-1',
-        userId: 'user-1',
-        subscriptionId: 'sub-1',
+      tokenRow({
         expiresAt: new Date('2000-01-01T00:00:00.000Z'),
-        usedAt: null,
-      },
+      }),
     ]);
 
     const request = new Request('http://localhost:3000/api/public/nps', {
@@ -134,13 +149,9 @@ describe('POST /api/public/nps', () => {
 
   it('returns alreadySubmitted when token is already used', async () => {
     mockSelectChain.limit.mockReturnValue([
-      {
-        id: 'tok-1',
-        userId: 'user-1',
-        subscriptionId: 'sub-1',
-        expiresAt: new Date('2999-01-01T00:00:00.000Z'),
+      tokenRow({
         usedAt: new Date('2025-01-01T00:00:00.000Z'),
-      },
+      }),
     ]);
 
     const request = new Request('http://localhost:3000/api/public/nps', {
@@ -156,15 +167,7 @@ describe('POST /api/public/nps', () => {
   });
 
   it('submits successfully for a fresh token', async () => {
-    mockSelectChain.limit.mockReturnValue([
-      {
-        id: 'tok-1',
-        userId: 'user-1',
-        subscriptionId: 'sub-1',
-        expiresAt: new Date('2999-01-01T00:00:00.000Z'),
-        usedAt: null,
-      },
-    ]);
+    mockSelectChain.limit.mockReturnValue([tokenRow()]);
     mockUpdateChain.returning.mockResolvedValue([{ id: 'tok-1' }]);
 
     const request = new Request('http://localhost:3000/api/public/nps', {
@@ -190,15 +193,7 @@ describe('POST /api/public/nps', () => {
   });
 
   it('handles race: token becomes used before update', async () => {
-    mockSelectChain.limit.mockReturnValue([
-      {
-        id: 'tok-1',
-        userId: 'user-1',
-        subscriptionId: 'sub-1',
-        expiresAt: new Date('2999-01-01T00:00:00.000Z'),
-        usedAt: null,
-      },
-    ]);
+    mockSelectChain.limit.mockReturnValue([tokenRow()]);
     mockUpdateChain.returning.mockResolvedValue([]);
 
     const request = new Request('http://localhost:3000/api/public/nps', {
