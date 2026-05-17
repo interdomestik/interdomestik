@@ -9,7 +9,7 @@ import { nanoid } from 'nanoid';
 import { revalidatePath } from 'next/cache';
 
 import { LOCALES } from '@/i18n/locales';
-import { crmLeadFollowUpRepository } from '@/lib/domain-crm/lead-follow-up-repository';
+import { crmLeadFollowUpRepository } from '@/adapters/crm/lead-follow-up-repository';
 
 type AgentCrmFollowUpSession = NonNullable<SessionWithTenant>;
 type AgentCrmFollowUpActionFailure = Extract<AgentCrmFollowUpActionResult, { success: false }>;

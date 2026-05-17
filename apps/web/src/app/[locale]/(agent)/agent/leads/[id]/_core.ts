@@ -8,7 +8,7 @@ import {
   crmLeadDetailRepository,
   type AgentCrmLeadDetailDealRow,
   type AgentCrmLeadDetailLeadRow,
-} from '@/lib/domain-crm/lead-detail-repository';
+} from '@/adapters/crm/lead-detail-repository';
 
 export type AgentLeadDetails = AgentCrmLeadDetailLeadRow | null;
 

@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
 }));
 
-vi.mock('@/lib/domain-crm/lead-follow-up-repository', () => ({
+vi.mock('@/adapters/crm/lead-follow-up-repository', () => ({
   crmLeadFollowUpRepository: {
     completeFollowUpActivity: mocks.completeFollowUpActivity,
     createFollowUpActivity: mocks.createFollowUpActivity,

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CrmForecastSnapshotWorkItem } from '@/lib/domain-crm/forecast-snapshot-work-items';
+import type { CrmForecastSnapshotWorkItem } from '@/adapters/crm/forecast-snapshot-work-items';
 
 import {
   CRM_FORECAST_SNAPSHOT_BACKFILL_NO_BRANCH_SENTINEL,

@@ -7,7 +7,7 @@ import {
 } from '@interdomestik/domain-crm/reporting';
 import type { CrmReportingRepository } from '@interdomestik/domain-crm/reporting/repository';
 
-import type { CrmForecastSnapshotWorkItem } from '@/lib/domain-crm/forecast-snapshot-work-items';
+import type { CrmForecastSnapshotWorkItem } from '@/adapters/crm/forecast-snapshot-work-items';
 
 const PII_RESPONSE_KEYS = new Set('description|email|fullName|notes|phone|subject'.split('|'));
 

@@ -2,7 +2,7 @@ import type { CrmWeightedPipelineRow } from '@interdomestik/domain-crm/reporting
 import type { CrmForecastSnapshotRow } from '@interdomestik/domain-crm/reporting/types';
 import { vi } from 'vitest';
 
-import type { CrmForecastSnapshotWorkItem } from '@/lib/domain-crm/forecast-snapshot-work-items';
+import type { CrmForecastSnapshotWorkItem } from '@/adapters/crm/forecast-snapshot-work-items';
 
 import type { CrmForecastSnapshotBackfillResult } from './backfill/_core';
 

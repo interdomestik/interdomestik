@@ -10,8 +10,8 @@ import {
 } from '@interdomestik/domain-crm/reporting';
 import type { CrmReportingRepository } from '@interdomestik/domain-crm/reporting/repository';
 
-import { crmDashboardRepository } from '@/lib/domain-crm/dashboard-repository';
-import { crmReportingRepository } from '@/lib/domain-crm/reporting-repository';
+import { crmDashboardRepository } from '@/adapters/crm/dashboard-repository';
+import { crmReportingRepository } from '@/adapters/crm/reporting-repository';
 
 export type AgentCrmStats = AgentCrmDashboard;
 export type { AgentCrmDashboardDueFollowUp as AgentCrmDueFollowUp } from '@interdomestik/domain-crm/dashboards';

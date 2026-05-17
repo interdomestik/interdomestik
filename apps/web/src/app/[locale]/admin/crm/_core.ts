@@ -16,18 +16,18 @@ import type {
 import {
   crmForecastSnapshotRepository,
   crmReportingRepository,
-} from '@/lib/domain-crm/reporting-repository';
+} from '@/adapters/crm/reporting-repository';
 import {
   crmForecastSnapshotObservabilityRepository,
   type CrmForecastSnapshotObservabilityRepository,
   type CrmForecastSnapshotObservedRow,
-} from '@/lib/domain-crm/forecast-snapshot-observability';
+} from '@/adapters/crm/forecast-snapshot-observability';
 import {
   CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN,
   crmForecastSnapshotWorkItemRepository,
   type CrmForecastSnapshotWorkItem,
   type CrmForecastSnapshotWorkItemRepository,
-} from '@/lib/domain-crm/forecast-snapshot-work-items';
+} from '@/adapters/crm/forecast-snapshot-work-items';
 
 export const ADMIN_CRM_REPORTING_WINDOW_DAYS = 90;
 export const ADMIN_CRM_REPORTING_SOURCE_TOP_N = 10;
