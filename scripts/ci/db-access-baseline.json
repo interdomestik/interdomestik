@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-17T12:41:49.285Z",
+  "generatedAt": "2026-05-17T13:25:02.756Z",
   "policy": "see docs/dev/db-access-guard.md",
   "scanRoots": ["apps/web/src", "packages"],
   "approvedDatabaseInternalPatterns": [
@@ -26,8 +26,8 @@
       "domain-wrapper": 300
     },
     "byTenantPosture": {
-      "tenant-context": 5,
-      "tenant-scoped": 191,
+      "tenant-context": 10,
+      "tenant-scoped": 186,
       "tenant-predicate": 373,
       "admin-privileged": 0,
       "system-exempt": 48,
@@ -1479,13 +1479,12 @@
     {
       "file": "apps/web/src/app/api/cron/dunning/_core.ts",
       "line": 114,
-      "callee": "db.update",
+      "callee": "tx.update",
       "method": "update",
       "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from subscription row",
-      "source": "await db .update(subscriptions)"
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-block",
+      "source": "await tx .update(subscriptions)"
     },
     {
       "file": "apps/web/src/app/api/cron/engagement/_core.ts",
@@ -1834,28 +1833,26 @@
     {
       "file": "apps/web/src/app/api/public/nps/_core.ts",
       "line": 49,
-      "callee": "db.update",
+      "callee": "tx.update",
       "method": "update",
       "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from NPS token row",
-      "source": "const updated = await db .update(npsSurveyTokens)"
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-block",
+      "source": "const updatedRows = await tx .update(npsSurveyTokens)"
     },
     {
       "file": "apps/web/src/app/api/public/nps/_core.ts",
-      "line": 66,
-      "callee": "db.insert",
+      "line": 65,
+      "callee": "tx.insert",
       "method": "insert",
       "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from NPS token row",
-      "source": "await db.insert(npsSurveyResponses).values({"
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-block",
+      "source": "await tx.insert(npsSurveyResponses).values({"
     },
     {
       "file": "apps/web/src/app/api/public/nps/_core.ts",
-      "line": 104,
+      "line": 110,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
@@ -4676,29 +4673,27 @@
     },
     {
       "file": "packages/domain-communications/src/campaign-execution.ts",
-      "line": 197,
-      "callee": "db.insert",
+      "line": 198,
+      "callee": "tx.insert",
       "method": "insert",
       "risk": "domain-wrapper",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from campaign user row",
-      "source": "await db.insert(emailCampaignLogs).values(insertLog);"
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-block",
+      "source": "await tx.insert(emailCampaignLogs).values(insertLog);"
     },
     {
       "file": "packages/domain-communications/src/campaign-execution.ts",
-      "line": 305,
-      "callee": "db.insert",
+      "line": 311,
+      "callee": "tx.insert",
       "method": "insert",
       "risk": "domain-wrapper",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from campaign item row",
-      "source": "await db.insert(emailCampaignLogs).values({"
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-block",
+      "source": "await tx.insert(emailCampaignLogs).values({"
     },
     {
       "file": "packages/domain-communications/src/campaign-execution.ts",
-      "line": 336,
+      "line": 343,
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",

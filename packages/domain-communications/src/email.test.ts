@@ -1,71 +1,61 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  sendMail: vi.fn(),
-  createTransport: vi.fn(),
-  resendSend: vi.fn(),
-  resendConstructor: vi.fn(),
+// prettier-ignore
+const m = vi.hoisted(() => ({
+  and: vi.fn((...conditions: unknown[]) => ({ op: 'and', conditions })),
+  createTransport: vi.fn(), dbInsert: vi.fn(),
+  eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
+  findManyLogs: vi.fn(), inArray: vi.fn((left: unknown, right: unknown[]) => ({ op: 'inArray', left, right })),
+  nanoid: vi.fn(() => 'test-id-123'), or: vi.fn((...conditions: unknown[]) => ({ op: 'or', conditions })),
+  resendConstructor: vi.fn(), resendSend: vi.fn(), sendMail: vi.fn(),
+  txInsert: vi.fn(), txValues: vi.fn(), withTenantContext: vi.fn(),
 }));
 
-vi.mock('nodemailer', () => ({
-  default: {
-    createTransport: mocks.createTransport,
-  },
-  createTransport: mocks.createTransport,
-}));
+// prettier-ignore
+vi.mock('nodemailer', () => ({ default: { createTransport: m.createTransport }, createTransport: m.createTransport }));
 
 vi.mock('resend', () => ({
   Resend: function MockResend(...args: unknown[]) {
-    mocks.resendConstructor(...args);
+    m.resendConstructor(...args);
     return {
       emails: {
-        send: mocks.resendSend,
+        send: m.resendSend,
       },
     };
   },
 }));
 
-describe('email delivery fallback', () => {
-  const originalEnv = { ...process.env };
-  const managedEnvKeys = [
-    'INTERDOMESTIK_AUTOMATED',
-    'PLAYWRIGHT',
-    'SMTP_HOST',
-    'SMTP_PORT',
-    'RESEND_API_KEY',
-    'RESEND_FROM_EMAIL',
-  ] as const;
+// prettier-ignore
+vi.mock('@interdomestik/database', () => ({ db: { insert: m.dbInsert, query: { emailCampaignLogs: { findMany: m.findManyLogs } } }, inArray: m.inArray, withTenantContext: m.withTenantContext }));
 
+// prettier-ignore
+vi.mock('@interdomestik/database/schema', () => ({ emailCampaignLogs: { campaignId: 'emailCampaignLogs.campaignId', tenantId: 'emailCampaignLogs.tenantId', userId: 'emailCampaignLogs.userId' } }));
+
+vi.mock('drizzle-orm', () => ({ and: m.and, eq: m.eq, or: m.or }));
+vi.mock('nanoid', () => ({ nanoid: m.nanoid }));
+
+describe('email delivery fallback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
-
-    process.env.INTERDOMESTIK_AUTOMATED = '0';
-    process.env.PLAYWRIGHT = '0';
-    process.env.SMTP_HOST = 'localhost';
-    process.env.SMTP_PORT = '1025';
-    process.env.RESEND_API_KEY = 're_test_key';
-    process.env.RESEND_FROM_EMAIL = 'support@interdomestik.com';
-
-    mocks.createTransport.mockReturnValue({
-      sendMail: mocks.sendMail,
+    vi.stubEnv('INTERDOMESTIK_AUTOMATED', '0');
+    vi.stubEnv('PLAYWRIGHT', '0');
+    vi.stubEnv('SMTP_HOST', 'localhost');
+    vi.stubEnv('SMTP_PORT', '1025');
+    vi.stubEnv('RESEND_API_KEY', 're_test_key');
+    vi.stubEnv('RESEND_FROM_EMAIL', 'support@interdomestik.com');
+    m.createTransport.mockReturnValue({
+      sendMail: m.sendMail,
     });
   });
 
   afterEach(() => {
-    for (const key of managedEnvKeys) {
-      const originalValue = originalEnv[key];
-      if (originalValue === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = originalValue;
-      }
-    }
+    vi.unstubAllEnvs();
   });
 
   it('falls back to Resend when SMTP transport fails', async () => {
-    mocks.sendMail.mockRejectedValueOnce(new Error('ECONNREFUSED'));
-    mocks.resendSend.mockResolvedValueOnce({
+    m.sendMail.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    m.resendSend.mockResolvedValueOnce({
       data: { id: 'resend-message-id' },
       error: null,
     });
@@ -78,8 +68,28 @@ describe('email delivery fallback', () => {
     );
 
     expect(result).toEqual({ success: true, id: 'resend-message-id' });
-    expect(mocks.sendMail).toHaveBeenCalledOnce();
-    expect(mocks.resendConstructor).toHaveBeenCalledWith('re_test_key');
-    expect(mocks.resendSend).toHaveBeenCalledOnce();
+    expect(m.sendMail).toHaveBeenCalledOnce();
+    expect(m.resendConstructor).toHaveBeenCalledWith('re_test_key');
+    expect(m.resendSend).toHaveBeenCalledOnce();
+  });
+});
+
+// prettier-ignore
+describe('campaign execution tenant-context writes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks(); m.findManyLogs.mockResolvedValue([]); m.nanoid.mockReturnValue('test-id-123');
+    m.txInsert.mockReturnValue({ values: m.txValues }); m.txValues.mockResolvedValue(undefined);
+    m.withTenantContext.mockImplementation(async (_context: { tenantId: string; role: string }, action: (tx: unknown) => Promise<void>) => await action({ insert: m.txInsert }));
+  });
+
+  it('writes campaign logs through each item tenant context', async () => {
+    const { executeCampaign, processCampaignUser } = await import('./campaign-execution');
+    await processCampaignUser({ email: 'member@example.com', id: 'user-1', name: 'Member One', tenantId: 'tenant-1' }, { campaignId: 'campaign-1', sendToUser: vi.fn().mockResolvedValue(undefined) }, new Set(), { attempted: 0, sent: 0, skipped: 0 }, [], []);
+    await executeCampaign('campaign-2', vi.fn().mockResolvedValueOnce([{ email: 'member@example.com', id: 'item-1', tenantId: 'tenant-2', userId: 'user-2' }]).mockResolvedValueOnce([]), vi.fn().mockResolvedValue(undefined), { errors: [], logs: [], stats: { attempted: 0, failed: 0, sent: 0, skipped: 0 } });
+    expect(m.withTenantContext).toHaveBeenNthCalledWith(1, { tenantId: 'tenant-1', role: 'system' }, expect.any(Function));
+    expect(m.withTenantContext).toHaveBeenNthCalledWith(2, { tenantId: 'tenant-2', role: 'system' }, expect.any(Function));
+    expect(m.txValues).toHaveBeenNthCalledWith(1, expect.objectContaining({ campaignId: 'campaign-1', tenantId: 'tenant-1', userId: 'user-1' }));
+    expect(m.txValues).toHaveBeenNthCalledWith(2, expect.objectContaining({ campaignId: 'campaign-2', tenantId: 'tenant-2', userId: 'user-2' }));
+    expect(m.dbInsert).not.toHaveBeenCalled();
   });
 });

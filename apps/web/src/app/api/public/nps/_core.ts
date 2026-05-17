@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
 import { npsSurveyResponses, npsSurveyTokens } from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -45,37 +45,43 @@ export async function submitNpsCore(args: {
   }
 
   try {
-    // db-access-guard: tenant-scoped -- reason: tenantId from NPS token row
-    const updated = await db
-      .update(npsSurveyTokens)
-      .set({ usedAt: now })
-      .where(
-        and(
-          eq(npsSurveyTokens.id, tokenRow.id),
-          eq(npsSurveyTokens.tenantId, tokenRow.tenantId),
-          isNull(npsSurveyTokens.usedAt)
+    const didSubmit = await withTenantContext({ tenantId: tokenRow.tenantId }, async tx => {
+      const updatedRows = await tx
+        .update(npsSurveyTokens)
+        .set({ usedAt: now })
+        .where(
+          and(
+            eq(npsSurveyTokens.id, tokenRow.id),
+            eq(npsSurveyTokens.tenantId, tokenRow.tenantId),
+            isNull(npsSurveyTokens.usedAt)
+          )
         )
-      )
-      .returning({ id: npsSurveyTokens.id });
+        .returning({ id: npsSurveyTokens.id });
 
-    if (updated.length === 0) {
+      if (updatedRows.length === 0) {
+        return false;
+      }
+
+      await tx.insert(npsSurveyResponses).values({
+        id: nanoid(),
+        tenantId: tokenRow.tenantId,
+        tokenId: tokenRow.id,
+        userId: tokenRow.userId,
+        subscriptionId: tokenRow.subscriptionId,
+        score,
+        comment: comment || null,
+        createdAt: now,
+        metadata: {
+          userAgent,
+        },
+      });
+
+      return true;
+    });
+
+    if (!didSubmit) {
       return { status: 200, body: { success: true, alreadySubmitted: true } };
     }
-
-    // db-access-guard: tenant-scoped -- reason: tenantId from NPS token row
-    await db.insert(npsSurveyResponses).values({
-      id: nanoid(),
-      tenantId: tokenRow.tenantId,
-      tokenId: tokenRow.id,
-      userId: tokenRow.userId,
-      subscriptionId: tokenRow.subscriptionId,
-      score,
-      comment: comment || null,
-      createdAt: now,
-      metadata: {
-        userAgent,
-      },
-    });
 
     return { status: 200, body: { success: true } };
   } catch (error) {

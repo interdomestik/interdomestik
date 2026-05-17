@@ -1,4 +1,4 @@
-import { db, inArray } from '@interdomestik/database';
+import { db, inArray, withTenantContext } from '@interdomestik/database';
 import { emailCampaignLogs } from '@interdomestik/database/schema';
 import { and, eq, or } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -171,6 +171,7 @@ export async function processCampaignUser(
     errors.push(`Missing tenantId for userId=${u.id} email=${u.email ?? 'n/a'}`);
     return;
   }
+  const tenantId = u.tenantId;
 
   if (!u.email) {
     stats.skipped += 1;
@@ -188,13 +189,14 @@ export async function processCampaignUser(
 
     const insertLog = {
       id: `ecl_${nanoid()}`,
-      tenantId: u.tenantId,
+      tenantId,
       userId: u.id,
       campaignId: args.campaignId,
       sentAt: new Date(),
     };
-    // db-access-guard: tenant-scoped -- reason: tenantId from campaign user row
-    await db.insert(emailCampaignLogs).values(insertLog);
+    await withTenantContext({ tenantId, role: 'system' }, async tx => {
+      await tx.insert(emailCampaignLogs).values(insertLog);
+    });
 
     stats.sent += 1;
     logs.push(`Sent ${args.campaignId} to ${u.email}`);
@@ -284,7 +286,6 @@ export async function executeCampaign<T extends CampaignExecutionItem>(
     });
 
     for (const item of batch) {
-      // Basic validation mapped to generic structure
       const userMini: UserMini = {
         id: item.userId,
         email: item.user?.email ?? item.email ?? null,
@@ -295,19 +296,24 @@ export async function executeCampaign<T extends CampaignExecutionItem>(
       if (shouldSkipUser(userMini, alreadySentSet, context.stats, context.errors)) {
         continue;
       }
+      const tenantId = userMini.tenantId;
+      if (!tenantId) {
+        continue;
+      }
 
       context.stats.attempted += 1;
 
       try {
         await processItem(item);
 
-        // db-access-guard: tenant-scoped -- reason: tenantId from campaign item row
-        await db.insert(emailCampaignLogs).values({
-          id: `ecl_${nanoid()}`,
-          tenantId: userMini.tenantId!,
-          userId: userMini.id,
-          campaignId,
-          sentAt: new Date(),
+        await withTenantContext({ tenantId, role: 'system' }, async tx => {
+          await tx.insert(emailCampaignLogs).values({
+            id: `ecl_${nanoid()}`,
+            tenantId,
+            userId: userMini.id,
+            campaignId,
+            sentAt: new Date(),
+          });
         });
         context.stats.sent += 1;
         context.logs.push(`Sent ${campaignId} to ${userMini.email}`);
@@ -342,14 +348,9 @@ export async function processStandardUserCampaign(
         orderBy: (user, { asc }) => [asc(user.id)],
         limit: USER_BATCH_SIZE,
       });
-      // Map to satisfy generic constraint { userId: string, ... }
       return users.map(u => ({ ...u, userId: u.id }));
     },
     async u => {
-      // u has userId due to mapping above, but sendFn expects UserMini (id, email, etc)
-      // We can reconstruct UserMini or pass u if it matches enough.
-      // UserMini requires: id, email, name, tenantId.
-      // u has id, email, name, tenantId AND userId.
       await sendFn(u);
     },
     context

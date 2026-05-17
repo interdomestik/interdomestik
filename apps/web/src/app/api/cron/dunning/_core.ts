@@ -1,6 +1,6 @@
 import { logAuditEvent } from '@/lib/audit';
 import { sendPaymentFinalWarningEmail, sendPaymentReminderEmail } from '@/lib/email';
-import { db, subscriptions, user } from '@interdomestik/database';
+import { db, subscriptions, user, withTenantContext } from '@interdomestik/database';
 import { and, eq, gt } from 'drizzle-orm';
 
 export type DunningCronStats = {
@@ -110,11 +110,12 @@ async function processDunningSubscription(params: {
   if (emailType === 'day7') stats.day7Sent++;
   else if (emailType === 'day13') stats.day13Sent++;
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
-  await db
-    .update(subscriptions)
-    .set({ lastDunningAt: now })
-    .where(and(eq(subscriptions.id, sub.id), eq(subscriptions.tenantId, sub.tenantId)));
+  await withTenantContext({ tenantId: sub.tenantId, role: 'system' }, async tx => {
+    await tx
+      .update(subscriptions)
+      .set({ lastDunningAt: now })
+      .where(and(eq(subscriptions.id, sub.id), eq(subscriptions.tenantId, sub.tenantId)));
+  });
 
   await logAuditEvent({
     actorId: null,

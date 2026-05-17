@@ -35,7 +35,6 @@ export async function POST(request: Request) {
   return NextResponse.json(result.body, { status: result.status });
 }
 
-// Optional: allow clients to check if a token is still valid / already used
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const token = url.searchParams.get('token') ?? '';

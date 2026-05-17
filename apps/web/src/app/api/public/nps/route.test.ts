@@ -1,260 +1,117 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET, POST } from './route';
 
-const mockSelectChain = {
-  from: vi.fn().mockReturnThis(),
-  where: vi.fn().mockReturnThis(),
-  limit: vi.fn().mockReturnValue([]),
-};
+// prettier-ignore
+const m = vi.hoisted(() => {
+  const select = { from: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), limit: vi.fn() };
+  const update = { set: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), returning: vi.fn() };
+  const insert = { values: vi.fn() };
+  const dbSelect = vi.fn(() => select), dbUpdate = vi.fn(() => update), dbInsert = vi.fn(() => insert);
+  const txUpdate = vi.fn(() => update), txInsert = vi.fn(() => insert);
+  const columns = new Proxy({}, { get: (_target, prop) => String(prop) });
+  const withTenantContext = vi.fn(async (_context: { tenantId: string }, action: (tx: unknown) => Promise<unknown>) => await action({ insert: txInsert, update: txUpdate }));
+  return { columns, dbInsert, dbSelect, dbUpdate, insert, select, txInsert, txUpdate, update, withTenantContext };
+});
 
-const mockUpdateChain = {
-  set: vi.fn().mockReturnThis(),
-  where: vi.fn().mockReturnThis(),
-  returning: vi.fn().mockResolvedValue([]),
-};
+// prettier-ignore
+vi.mock('@interdomestik/database', () => ({ db: { insert: m.dbInsert, select: m.dbSelect, update: m.dbUpdate }, withTenantContext: m.withTenantContext }));
 
-const mockInsertChain = {
-  values: vi.fn().mockResolvedValue(undefined),
-};
+// prettier-ignore
+vi.mock('@interdomestik/database/schema', () => ({ npsSurveyResponses: m.columns, npsSurveyTokens: m.columns }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
-    select: () => mockSelectChain,
-    update: () => mockUpdateChain,
-    insert: () => mockInsertChain,
-  },
-}));
+vi.mock('drizzle-orm', () => ({ and: vi.fn(), eq: vi.fn(), isNull: vi.fn() }));
+vi.mock('nanoid', () => ({ nanoid: () => 'test-id-123' }));
 
-vi.mock('@interdomestik/database/schema', () => ({
-  npsSurveyTokens: {
-    id: 'id',
-    userId: 'user_id',
-    subscriptionId: 'subscription_id',
-    expiresAt: 'expires_at',
-    usedAt: 'used_at',
-    token: 'token',
-  },
-  npsSurveyResponses: {
-    id: 'id',
-    tokenId: 'token_id',
-    userId: 'user_id',
-    subscriptionId: 'subscription_id',
-    score: 'score',
-    comment: 'comment',
-    createdAt: 'created_at',
-    metadata: 'metadata',
-  },
-}));
+const tokenRow = (overrides: Record<string, unknown> = {}) => ({
+  expiresAt: new Date('2999-01-01T00:00:00.000Z'),
+  id: 'tok-1',
+  subscriptionId: 'sub-1',
+  tenantId: 'tenant-1',
+  usedAt: null,
+  userId: 'user-1',
+  ...overrides,
+});
 
-vi.mock('drizzle-orm', () => ({
-  and: vi.fn(),
-  eq: vi.fn(),
-  isNull: vi.fn(),
-}));
+function post(body: unknown, headers?: HeadersInit) {
+  return POST(
+    new Request('http://localhost:3000/api/public/nps', {
+      body: typeof body === 'string' ? body : JSON.stringify(body),
+      headers,
+      method: 'POST',
+    })
+  );
+}
 
-vi.mock('nanoid', () => ({
-  nanoid: () => 'test-id-123',
-}));
-
+// prettier-ignore
 describe('POST /api/public/nps', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSelectChain.from.mockReturnThis();
-    mockSelectChain.where.mockReturnThis();
-    mockSelectChain.limit.mockReturnValue([]);
-    mockUpdateChain.set.mockReturnThis();
-    mockUpdateChain.where.mockReturnThis();
-    mockUpdateChain.returning.mockResolvedValue([]);
-    mockInsertChain.values.mockResolvedValue(undefined);
+    m.select.from.mockReturnThis(); m.select.where.mockReturnThis(); m.select.limit.mockReturnValue([]);
+    m.update.set.mockReturnThis(); m.update.where.mockReturnThis(); m.update.returning.mockResolvedValue([]);
+    m.insert.values.mockResolvedValue(undefined);
+    m.dbSelect.mockReturnValue(m.select); m.dbUpdate.mockReturnValue(m.update); m.dbInsert.mockReturnValue(m.insert);
+    m.txUpdate.mockReturnValue(m.update); m.txInsert.mockReturnValue(m.insert);
+    m.withTenantContext.mockImplementation(async (_context: { tenantId: string }, action: (tx: unknown) => Promise<unknown>) => await action({ insert: m.txInsert, update: m.txUpdate }));
   });
 
-  it('returns 400 for invalid JSON', async () => {
-    const request = new Request('http://localhost:3000/api/public/nps', {
-      method: 'POST',
-      body: 'not-json',
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Invalid JSON' });
+  it.each([['not-json', 400, { error: 'Invalid JSON' }], [{ token: 'abc', score: 11 }, 400, { error: 'Invalid request' }]])('rejects invalid submission %#', async (body, status, expected) => {
+    const response = await post(body);
+    expect(response.status).toBe(status);
+    expect(await response.json()).toEqual(expected);
   });
 
-  it('returns 400 for invalid body', async () => {
-    const request = new Request('http://localhost:3000/api/public/nps', {
-      method: 'POST',
-      body: JSON.stringify({ token: 'abc', score: 11 }),
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Invalid request' });
+  it.each([[[], 404, { error: 'Invalid token' }], [[tokenRow({ expiresAt: new Date('2000-01-01T00:00:00.000Z') })], 410, { error: 'Token expired' }], [[tokenRow({ usedAt: new Date('2025-01-01T00:00:00.000Z') })], 200, { success: true, alreadySubmitted: true }]])('handles token state %#', async (rows, status, expected) => {
+    m.select.limit.mockReturnValue(rows);
+    const response = await post({ token: 'valid-token-12345', score: 7 });
+    expect(response.status).toBe(status);
+    expect(await response.json()).toEqual(expected);
   });
 
-  it('returns 404 for invalid token', async () => {
-    mockSelectChain.limit.mockReturnValue([]);
-
-    const request = new Request('http://localhost:3000/api/public/nps', {
-      method: 'POST',
-      body: JSON.stringify({ token: 'valid-token-12345', score: 7 }),
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(404);
-    expect(data).toEqual({ error: 'Invalid token' });
-  });
-
-  it('returns 410 for expired token', async () => {
-    mockSelectChain.limit.mockReturnValue([
-      {
-        id: 'tok-1',
-        userId: 'user-1',
-        subscriptionId: 'sub-1',
-        expiresAt: new Date('2000-01-01T00:00:00.000Z'),
-        usedAt: null,
-      },
-    ]);
-
-    const request = new Request('http://localhost:3000/api/public/nps', {
-      method: 'POST',
-      body: JSON.stringify({ token: 'valid-token-12345', score: 7 }),
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(410);
-    expect(data).toEqual({ error: 'Token expired' });
-  });
-
-  it('returns alreadySubmitted when token is already used', async () => {
-    mockSelectChain.limit.mockReturnValue([
-      {
-        id: 'tok-1',
-        userId: 'user-1',
-        subscriptionId: 'sub-1',
-        expiresAt: new Date('2999-01-01T00:00:00.000Z'),
-        usedAt: new Date('2025-01-01T00:00:00.000Z'),
-      },
-    ]);
-
-    const request = new Request('http://localhost:3000/api/public/nps', {
-      method: 'POST',
-      body: JSON.stringify({ token: 'valid-token-12345', score: 7 }),
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
+  it('submits through the token tenant context', async () => {
+    m.select.limit.mockReturnValue([tokenRow()]); m.update.returning.mockResolvedValue([{ id: 'tok-1' }]);
+    const response = await post({ token: 'valid-token-12345', score: 9, comment: 'Great' }, { 'user-agent': 'vitest' });
     expect(response.status).toBe(200);
-    expect(data).toEqual({ success: true, alreadySubmitted: true });
+    expect(await response.json()).toEqual({ success: true });
+    expect(m.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(m.dbUpdate).not.toHaveBeenCalled(); expect(m.dbInsert).not.toHaveBeenCalled();
+    expect(m.txUpdate).toHaveBeenCalledWith(expect.anything()); expect(m.txInsert).toHaveBeenCalledWith(expect.anything());
+    expect(m.insert.values).toHaveBeenCalledWith(expect.objectContaining({ comment: 'Great', score: 9, subscriptionId: 'sub-1', tenantId: 'tenant-1', tokenId: 'tok-1', userId: 'user-1' }));
   });
 
-  it('submits successfully for a fresh token', async () => {
-    mockSelectChain.limit.mockReturnValue([
-      {
-        id: 'tok-1',
-        userId: 'user-1',
-        subscriptionId: 'sub-1',
-        expiresAt: new Date('2999-01-01T00:00:00.000Z'),
-        usedAt: null,
-      },
-    ]);
-    mockUpdateChain.returning.mockResolvedValue([{ id: 'tok-1' }]);
-
-    const request = new Request('http://localhost:3000/api/public/nps', {
-      method: 'POST',
-      headers: { 'user-agent': 'vitest' },
-      body: JSON.stringify({ token: 'valid-token-12345', score: 9, comment: 'Great' }),
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
+  it('does not insert when the token update loses the race', async () => {
+    m.select.limit.mockReturnValue([tokenRow()]); m.update.returning.mockResolvedValue([]);
+    const response = await post({ token: 'valid-token-12345', score: 6 });
     expect(response.status).toBe(200);
-    expect(data).toEqual({ success: true });
-    expect(mockInsertChain.values).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tokenId: 'tok-1',
-        userId: 'user-1',
-        subscriptionId: 'sub-1',
-        score: 9,
-        comment: 'Great',
-      })
-    );
-  });
-
-  it('handles race: token becomes used before update', async () => {
-    mockSelectChain.limit.mockReturnValue([
-      {
-        id: 'tok-1',
-        userId: 'user-1',
-        subscriptionId: 'sub-1',
-        expiresAt: new Date('2999-01-01T00:00:00.000Z'),
-        usedAt: null,
-      },
-    ]);
-    mockUpdateChain.returning.mockResolvedValue([]);
-
-    const request = new Request('http://localhost:3000/api/public/nps', {
-      method: 'POST',
-      body: JSON.stringify({ token: 'valid-token-12345', score: 6 }),
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data).toEqual({ success: true, alreadySubmitted: true });
+    expect(await response.json()).toEqual({ success: true, alreadySubmitted: true });
+    expect(m.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(m.txUpdate).toHaveBeenCalledWith(expect.anything());
+    expect(m.txInsert).not.toHaveBeenCalled(); expect(m.insert.values).not.toHaveBeenCalled();
   });
 });
 
 describe('GET /api/public/nps', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSelectChain.from.mockReturnThis();
-    mockSelectChain.where.mockReturnThis();
-    mockSelectChain.limit.mockReturnValue([]);
+    m.select.from.mockReturnThis();
+    m.select.where.mockReturnThis();
+    m.select.limit.mockReturnValue([]);
   });
 
-  it('returns 400 if token is missing', async () => {
-    const request = new Request('http://localhost:3000/api/public/nps');
-    const response = await GET(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Missing token' });
-  });
-
-  it('returns 404 for invalid token', async () => {
-    mockSelectChain.limit.mockReturnValue([]);
-
-    const request = new Request('http://localhost:3000/api/public/nps?token=bad');
-    const response = await GET(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(404);
-    expect(data).toEqual({ error: 'Invalid token' });
+  it.each([
+    ['http://localhost:3000/api/public/nps', 400, { error: 'Missing token' }],
+    ['http://localhost:3000/api/public/nps?token=bad', 404, { error: 'Invalid token' }],
+  ])('rejects invalid lookup %#', async (url, status, expected) => {
+    const response = await GET(new Request(url));
+    expect(response.status).toBe(status);
+    expect(await response.json()).toEqual(expected);
   });
 
   it('returns valid:true for fresh token', async () => {
-    mockSelectChain.limit.mockReturnValue([
-      {
-        expiresAt: new Date('2999-01-01T00:00:00.000Z'),
-        usedAt: null,
-      },
-    ]);
+    m.select.limit.mockReturnValue([tokenRow()]);
 
-    const request = new Request('http://localhost:3000/api/public/nps?token=ok');
-    const response = await GET(request);
-    const data = await response.json();
+    const response = await GET(new Request('http://localhost:3000/api/public/nps?token=ok'));
 
     expect(response.status).toBe(200);
-    expect(data).toEqual({ valid: true, alreadySubmitted: false });
+    expect(await response.json()).toEqual({ valid: true, alreadySubmitted: false });
   });
 });
