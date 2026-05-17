@@ -36,6 +36,7 @@ export async function runDunningCronCore(args: {
       conditions.push(gt(subscriptions.id, afterId));
     }
 
+    // db-access-guard: system-exempt -- reason: dunning cron enumerates tenants before per-row scoped writes
     const pastDueSubscriptions = await db.query.subscriptions.findMany({
       where: and(...conditions),
       orderBy: (subscriptions, { asc }) => [asc(subscriptions.id)],
@@ -93,7 +94,7 @@ async function processDunningSubscription(params: {
   if (!emailType) return;
 
   const userRecord = await db.query.user.findFirst({
-    where: eq(user.id, sub.userId),
+    where: and(eq(user.id, sub.userId), eq(user.tenantId, sub.tenantId)),
   });
 
   if (!userRecord?.email) return;
@@ -109,8 +110,11 @@ async function processDunningSubscription(params: {
   if (emailType === 'day7') stats.day7Sent++;
   else if (emailType === 'day13') stats.day13Sent++;
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  await db.update(subscriptions).set({ lastDunningAt: now }).where(eq(subscriptions.id, sub.id));
+  // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
+  await db
+    .update(subscriptions)
+    .set({ lastDunningAt: now })
+    .where(and(eq(subscriptions.id, sub.id), eq(subscriptions.tenantId, sub.tenantId)));
 
   await logAuditEvent({
     actorId: null,

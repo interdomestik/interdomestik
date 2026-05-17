@@ -35,7 +35,7 @@ export async function runNpsCronCore(args: {
 
   const { start, end } = getDayWindow(now, NPS_DAYS_SINCE_SUB_CREATED);
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+  // db-access-guard: system-exempt -- reason: NPS cron enumerates tenants before per-row scoped writes
   const members = await db
     .select({
       userId: subscriptions.userId,
@@ -93,7 +93,9 @@ async function processNpsMember(args: {
   const { member, now, headers } = args;
   const dedupeKey = `engagement:${member.subId}:${NPS_TEMPLATE_KEY}`;
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+  if (!member.tenantId || !member.userId) return 'skipped';
+
+  // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
   const inserted = await db
     .insert(engagementEmailSends)
     .values({
@@ -121,13 +123,19 @@ async function processNpsMember(args: {
         status: 'skipped',
         error: 'Missing recipient email or name',
       })
-      .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+      .where(
+        and(
+          eq(engagementEmailSends.dedupeKey, dedupeKey),
+          eq(engagementEmailSends.tenantId, member.tenantId)
+        )
+      );
     return 'skipped';
   }
 
   const token = nanoid(32);
   const expiresAt = new Date(now.getTime() + TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
 
+  // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
   await db
     .insert(npsSurveyTokens)
     .values({
@@ -149,7 +157,9 @@ async function processNpsMember(args: {
   const [tokenRow] = await db
     .select({ token: npsSurveyTokens.token })
     .from(npsSurveyTokens)
-    .where(eq(npsSurveyTokens.dedupeKey, dedupeKey))
+    .where(
+      and(eq(npsSurveyTokens.dedupeKey, dedupeKey), eq(npsSurveyTokens.tenantId, member.tenantId))
+    )
     .limit(1);
 
   const surveyToken = tokenRow?.token;
@@ -157,7 +167,12 @@ async function processNpsMember(args: {
     await db
       .update(engagementEmailSends)
       .set({ status: 'error', error: 'Failed to create NPS token' })
-      .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+      .where(
+        and(
+          eq(engagementEmailSends.dedupeKey, dedupeKey),
+          eq(engagementEmailSends.tenantId, member.tenantId)
+        )
+      );
     return 'errors';
   }
 
@@ -176,7 +191,12 @@ async function processNpsMember(args: {
           providerMessageId: sendResult.id || null,
           sentAt: new Date(),
         })
-        .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+        .where(
+          and(
+            eq(engagementEmailSends.dedupeKey, dedupeKey),
+            eq(engagementEmailSends.tenantId, member.tenantId)
+          )
+        );
 
       await logAuditEvent({
         actorId: null,
@@ -202,7 +222,12 @@ async function processNpsMember(args: {
           status,
           error: err,
         })
-        .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+        .where(
+          and(
+            eq(engagementEmailSends.dedupeKey, dedupeKey),
+            eq(engagementEmailSends.tenantId, member.tenantId)
+          )
+        );
 
       await logAuditEvent({
         actorId: null,
@@ -224,7 +249,12 @@ async function processNpsMember(args: {
         status: 'error',
         error: 'Unhandled exception during send',
       })
-      .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+      .where(
+        and(
+          eq(engagementEmailSends.dedupeKey, dedupeKey),
+          eq(engagementEmailSends.tenantId, member.tenantId)
+        )
+      );
     return 'errors';
   }
 }

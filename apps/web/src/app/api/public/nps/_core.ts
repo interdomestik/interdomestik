@@ -18,7 +18,7 @@ export async function submitNpsCore(args: {
 }): Promise<SubmitNpsResult> {
   const { token, score, comment, now, userAgent } = args;
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+  // db-access-guard: system-exempt -- reason: public NPS token resolves tenant for scoped write
   const [tokenRow] = await db
     .select({
       id: npsSurveyTokens.id,
@@ -49,13 +49,20 @@ export async function submitNpsCore(args: {
     const updated = await db
       .update(npsSurveyTokens)
       .set({ usedAt: now })
-      .where(and(eq(npsSurveyTokens.id, tokenRow.id), isNull(npsSurveyTokens.usedAt)))
+      .where(
+        and(
+          eq(npsSurveyTokens.id, tokenRow.id),
+          eq(npsSurveyTokens.tenantId, tokenRow.tenantId),
+          isNull(npsSurveyTokens.usedAt)
+        )
+      )
       .returning({ id: npsSurveyTokens.id });
 
     if (updated.length === 0) {
       return { status: 200, body: { success: true, alreadySubmitted: true } };
     }
 
+    // db-access-guard: tenant-scoped -- reason: tenantId from NPS token row
     await db.insert(npsSurveyResponses).values({
       id: nanoid(),
       tenantId: tokenRow.tenantId,
@@ -93,6 +100,7 @@ export async function getNpsTokenStatusCore(args: {
     return { status: 400, body: { error: 'Missing token' } };
   }
 
+  // db-access-guard: system-exempt -- reason: public NPS token validity lookup
   const [row] = await db
     .select({
       expiresAt: npsSurveyTokens.expiresAt,

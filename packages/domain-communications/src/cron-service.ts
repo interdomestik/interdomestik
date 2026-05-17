@@ -35,6 +35,7 @@ async function runWelcomeCampaign(context: { logs: string[]; errors: string[]; s
   await executeCampaign(
     campaignId,
     afterId =>
+      // db-access-guard: system-exempt -- reason: welcome campaign enumerates tenants before per-row checks
       db.query.subscriptions.findMany({
         where: (subscriptions, { eq, and, gt }) =>
           and(
