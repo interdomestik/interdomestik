@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-17T16:20:55.587Z",
+  "generatedAt": "2026-05-17T16:58:50.611Z",
   "policy": "see docs/dev/db-access-guard.md",
   "scanRoots": ["apps/web/src", "packages"],
   "approvedDatabaseInternalPatterns": [
@@ -22,11 +22,11 @@
   "methods": ["query", "select", "insert", "update", "delete", "execute", "transaction"],
   "counts": {
     "byRisk": {
-      "app-layer": 310,
+      "app-layer": 307,
       "domain-wrapper": 300
     },
     "byTenantPosture": {
-      "tenant-context": 17,
+      "tenant-context": 14,
       "tenant-scoped": 179,
       "tenant-predicate": 366,
       "admin-privileged": 0,
@@ -1456,6 +1456,26 @@
       "source": "await tx .update(documentExtractions)"
     },
     {
+      "file": "apps/web/src/app/api/cron/_engagement-email-sends.ts",
+      "line": 17,
+      "callee": "tx.insert",
+      "method": "insert",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-alias",
+      "source": "tx .insert(engagementEmailSends)"
+    },
+    {
+      "file": "apps/web/src/app/api/cron/_engagement-email-sends.ts",
+      "line": 41,
+      "callee": "tx.update",
+      "method": "update",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-context",
+      "tenantPostureReason": "tenant-context: callback-tx-block",
+      "source": "await tx .update(engagementEmailSends)"
+    },
+    {
       "file": "apps/web/src/app/api/cron/dunning/_core.ts",
       "line": 40,
       "callee": "db.query",
@@ -1488,7 +1508,7 @@
     },
     {
       "file": "apps/web/src/app/api/cron/engagement/_core.ts",
-      "line": 84,
+      "line": 85,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
@@ -1499,17 +1519,7 @@
     },
     {
       "file": "apps/web/src/app/api/cron/engagement/_core.ts",
-      "line": 124,
-      "callee": "tx.insert",
-      "method": "insert",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-context",
-      "tenantPostureReason": "tenant-context: callback-tx-alias",
-      "source": "tx .insert(engagementEmailSends)"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/engagement/_core.ts",
-      "line": 186,
+      "line": 180,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
@@ -1519,28 +1529,8 @@
       "source": "const seasonalMembers = await db .select({"
     },
     {
-      "file": "apps/web/src/app/api/cron/engagement/_core.ts",
-      "line": 220,
-      "callee": "tx.insert",
-      "method": "insert",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-context",
-      "tenantPostureReason": "tenant-context: callback-tx-alias",
-      "source": "tx .insert(engagementEmailSends)"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/engagement/_core.ts",
-      "line": 378,
-      "callee": "tx.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-context",
-      "tenantPostureReason": "tenant-context: callback-tx-block",
-      "source": "await tx .update(engagementEmailSends)"
-    },
-    {
       "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 39,
+      "line": 36,
       "callee": "db.select",
       "method": "select",
       "risk": "app-layer",
@@ -1551,17 +1541,7 @@
     },
     {
       "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 99,
-      "callee": "tx.insert",
-      "method": "insert",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-context",
-      "tenantPostureReason": "tenant-context: callback-tx-alias",
-      "source": "tx .insert(engagementEmailSends)"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 134,
+      "line": 122,
       "callee": "tx.insert",
       "method": "insert",
       "risk": "app-layer",
@@ -1571,23 +1551,13 @@
     },
     {
       "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 152,
+      "line": 140,
       "callee": "tx.select",
       "method": "select",
       "risk": "app-layer",
       "tenantPosture": "tenant-context",
       "tenantPostureReason": "tenant-context: callback-tx-block",
       "source": "return tx .select({ token: npsSurveyTokens.token })"
-    },
-    {
-      "file": "apps/web/src/app/api/cron/nps/_core.ts",
-      "line": 236,
-      "callee": "tx.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-context",
-      "tenantPostureReason": "tenant-context: callback-tx-block",
-      "source": "await tx .update(engagementEmailSends)"
     },
     {
       "file": "apps/web/src/app/api/policies/analyze/_services.ts",

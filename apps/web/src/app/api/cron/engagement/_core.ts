@@ -7,16 +7,17 @@ import {
   sendOnboardingEmail,
   sendSeasonalEmail,
 } from '@/lib/email';
-import { db, withTenantContext } from '@interdomestik/database';
-import { engagementEmailSends, subscriptions, user } from '@interdomestik/database/schema';
+import { db } from '@interdomestik/database';
+import { subscriptions, user } from '@interdomestik/database/schema';
 import { and, eq, gte, lte } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 
 import {
   ENGAGEMENT_CADENCE,
   getDayWindow,
   type EngagementCadence,
 } from '@/lib/cron/engagement-schedule';
+
+import { createPendingEngagementSend, updateEngagementSend } from '../_engagement-email-sends';
 
 export type EngagementCronResults = {
   day7: number;
@@ -122,25 +123,16 @@ async function processMemberEngagement(
   const tenantId = member.tenantId;
   const userId = member.userId;
 
-  const inserted = await withTenantContext({ tenantId, role: 'system' }, tx =>
-    tx
-      .insert(engagementEmailSends)
-      .values({
-        id: nanoid(),
-        tenantId,
-        userId,
-        subscriptionId: member.subId,
-        templateKey,
-        dedupeKey,
-        status: 'pending',
-        createdAt: new Date(),
-        metadata: {
-          scheduledDays: cadence.daysSinceSubscriptionCreated,
-        },
-      })
-      .onConflictDoNothing({ target: engagementEmailSends.dedupeKey })
-      .returning({ id: engagementEmailSends.id })
-  );
+  const inserted = await createPendingEngagementSend({
+    tenantId,
+    userId,
+    subscriptionId: member.subId,
+    templateKey,
+    dedupeKey,
+    metadata: {
+      scheduledDays: cadence.daysSinceSubscriptionCreated,
+    },
+  });
 
   if (inserted.length === 0) return;
 
@@ -220,26 +212,17 @@ async function processSeasonalMember(
   const tenantId = member.tenantId;
   const userId = member.userId;
 
-  const inserted = await withTenantContext({ tenantId, role: 'system' }, tx =>
-    tx
-      .insert(engagementEmailSends)
-      .values({
-        id: nanoid(),
-        tenantId,
-        userId,
-        subscriptionId: member.subId,
-        templateKey,
-        dedupeKey,
-        status: 'pending',
-        createdAt: new Date(),
-        metadata: {
-          season,
-          year: now.getFullYear(),
-        },
-      })
-      .onConflictDoNothing({ target: engagementEmailSends.dedupeKey })
-      .returning({ id: engagementEmailSends.id })
-  );
+  const inserted = await createPendingEngagementSend({
+    tenantId,
+    userId,
+    subscriptionId: member.subId,
+    templateKey,
+    dedupeKey,
+    metadata: {
+      season,
+      year: now.getFullYear(),
+    },
+  });
 
   if (inserted.length === 0) return;
 
@@ -371,22 +354,4 @@ async function markAsSkipped(dedupeKey: string, tenantId: string, reason: string
 
 async function markAsError(dedupeKey: string, tenantId: string, reason: string) {
   await updateEngagementSend(tenantId, dedupeKey, { status: 'error', error: reason });
-}
-
-async function updateEngagementSend(
-  tenantId: string,
-  dedupeKey: string,
-  values: Partial<typeof engagementEmailSends.$inferInsert>
-) {
-  await withTenantContext({ tenantId, role: 'system' }, async tx => {
-    await tx
-      .update(engagementEmailSends)
-      .set(values)
-      .where(
-        and(
-          eq(engagementEmailSends.dedupeKey, dedupeKey),
-          eq(engagementEmailSends.tenantId, tenantId)
-        )
-      );
-  });
 }

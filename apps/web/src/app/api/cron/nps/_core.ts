@@ -2,14 +2,11 @@ import { logAuditEvent } from '@/lib/audit';
 import { getDayWindow } from '@/lib/cron/engagement-schedule';
 import { sendNpsSurveyEmail } from '@/lib/email';
 import { db, withTenantContext } from '@interdomestik/database';
-import {
-  engagementEmailSends,
-  npsSurveyTokens,
-  subscriptions,
-  user,
-} from '@interdomestik/database/schema';
+import { npsSurveyTokens, subscriptions, user } from '@interdomestik/database/schema';
 import { and, eq, gte, lte } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+
+import { createPendingEngagementSend, updateEngagementSend } from '../_engagement-email-sends';
 
 const NPS_TEMPLATE_KEY = 'nps_v1';
 const NPS_DAYS_SINCE_SUB_CREATED = 45;
@@ -97,25 +94,16 @@ async function processNpsMember(args: {
   const tenantId = member.tenantId;
   const userId = member.userId;
 
-  const inserted = await withTenantContext({ tenantId, role: 'system' }, tx =>
-    tx
-      .insert(engagementEmailSends)
-      .values({
-        id: nanoid(),
-        tenantId,
-        userId,
-        subscriptionId: member.subId,
-        templateKey: NPS_TEMPLATE_KEY,
-        dedupeKey,
-        status: 'pending',
-        createdAt: new Date(),
-        metadata: {
-          scheduledDays: NPS_DAYS_SINCE_SUB_CREATED,
-        },
-      })
-      .onConflictDoNothing({ target: engagementEmailSends.dedupeKey })
-      .returning({ id: engagementEmailSends.id })
-  );
+  const inserted = await createPendingEngagementSend({
+    tenantId,
+    userId,
+    subscriptionId: member.subId,
+    templateKey: NPS_TEMPLATE_KEY,
+    dedupeKey,
+    metadata: {
+      scheduledDays: NPS_DAYS_SINCE_SUB_CREATED,
+    },
+  });
 
   if (inserted.length === 0) return 'skipped'; // Already processed
 
@@ -219,22 +207,4 @@ async function processNpsMember(args: {
     });
     return 'errors';
   }
-}
-
-async function updateEngagementSend(
-  tenantId: string,
-  dedupeKey: string,
-  values: Partial<typeof engagementEmailSends.$inferInsert>
-) {
-  await withTenantContext({ tenantId, role: 'system' }, async tx => {
-    await tx
-      .update(engagementEmailSends)
-      .set(values)
-      .where(
-        and(
-          eq(engagementEmailSends.dedupeKey, dedupeKey),
-          eq(engagementEmailSends.tenantId, tenantId)
-        )
-      );
-  });
 }
