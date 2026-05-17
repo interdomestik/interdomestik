@@ -11,6 +11,7 @@ const hoisted = vi.hoisted(() => ({
   returning: vi.fn(),
   values: vi.fn(),
   transaction: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -47,6 +48,7 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     transaction: hoisted.transaction,
   },
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 describe('POST /api/policies/analyze', () => {
@@ -69,6 +71,14 @@ describe('POST /api/policies/analyze', () => {
           values: hoisted.values,
         }),
       })
+    );
+    hoisted.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) =>
+        callback({
+          insert: () => ({
+            values: hoisted.values,
+          }),
+        })
     );
 
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://supabase.test';
