@@ -7,7 +7,10 @@ const mocks = vi.hoisted(() => {
   const txInsert = vi.fn(() => ({
     values: txInsertValues,
   }));
-  const txUpdateWhere = vi.fn().mockResolvedValue(undefined);
+  const txUpdateReturning = vi.fn();
+  const txUpdateWhere = vi.fn(() => ({
+    returning: txUpdateReturning,
+  }));
   const txUpdateSet = vi.fn(() => ({
     where: txUpdateWhere,
   }));
@@ -69,12 +72,23 @@ const mocks = vi.hoisted(() => {
     txInsertReturning,
     txInsertValues,
     txUpdate,
+    txUpdateReturning,
     txUpdateSet,
     txUpdateWhere,
     update,
     updateReturning,
     updateSet,
     updateWhere,
+    withTenantContext: vi.fn(
+      async (
+        _context: { tenantId: string; role?: string },
+        callback: (tx: { insert: typeof txInsert; update: typeof txUpdate }) => Promise<unknown>
+      ) =>
+        callback({
+          insert: txInsert,
+          update: txUpdate,
+        })
+    ),
   };
 });
 
@@ -84,6 +98,7 @@ vi.mock('@/lib/db.server', () => ({
 
 vi.mock('@interdomestik/database', () => ({
   createAdminClient: mocks.createAdminClient,
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -121,6 +136,7 @@ describe('queuePolicyAnalysisService', () => {
     }));
     mocks.txInsertReturning.mockResolvedValue([{ id: 'policy-1' }]);
     mocks.txInsertOnConflictDoNothing.mockResolvedValue(undefined);
+    mocks.txUpdateReturning.mockResolvedValue([{ id: 'run-1' }]);
   });
 
   it('persists a placeholder policy, document, and queued ai run in one transaction', async () => {
@@ -134,7 +150,11 @@ describe('queuePolicyAnalysisService', () => {
     });
 
     expect(result).toEqual({ policyId: 'policy-1', runId: 'run-1' });
-    expect(mocks.transaction).toHaveBeenCalledOnce();
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1', role: 'system' },
+      expect.any(Function)
+    );
+    expect(mocks.transaction).not.toHaveBeenCalled();
     expect(mocks.txInsert).toHaveBeenCalledTimes(3);
 
     expect(mocks.txInsert).toHaveBeenNthCalledWith(1, { __name: 'policies' });
@@ -224,6 +244,7 @@ describe('processPolicyAnalysisRunService', () => {
       },
     ]);
     mocks.updateReturning.mockResolvedValue([{ id: 'run-1' }]);
+    mocks.txUpdateReturning.mockResolvedValue([{ id: 'run-1' }]);
     mocks.txInsertValues.mockImplementation(() => ({
       onConflictDoNothing: mocks.txInsertOnConflictDoNothing,
       returning: mocks.txInsertReturning,
@@ -263,19 +284,24 @@ describe('processPolicyAnalysisRunService', () => {
       policyId: 'policy-1',
       analysis,
     });
-    expect(mocks.update).toHaveBeenCalledWith({ __name: 'ai_runs' });
-    expect(mocks.updateSet).toHaveBeenCalledWith(
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1', role: 'system' },
+      expect.any(Function)
+    );
+    expect(mocks.txUpdate).toHaveBeenCalledWith({ __name: 'ai_runs' });
+    expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
         status: 'processing',
         startedAt: expect.any(Date),
       })
     );
-    expect(mocks.updateReturning).toHaveBeenCalledWith({ id: undefined });
-    expect(mocks.transaction).toHaveBeenCalledOnce();
-    expect(mocks.txUpdate).toHaveBeenCalledTimes(2);
-    expect(mocks.txUpdate).toHaveBeenNthCalledWith(1, { __name: 'policies' });
+    expect(mocks.txUpdateReturning).toHaveBeenCalledWith({ id: undefined });
+    expect(mocks.transaction).not.toHaveBeenCalled();
+    expect(mocks.txUpdate).toHaveBeenCalledTimes(3);
+    expect(mocks.txUpdate).toHaveBeenNthCalledWith(2, { __name: 'policies' });
     expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
-      1,
+      2,
       expect.objectContaining({
         provider: 'Acme Insurance',
         policyNumber: 'POL-123',
@@ -305,9 +331,9 @@ describe('processPolicyAnalysisRunService', () => {
     expect(mocks.txInsertOnConflictDoNothing).toHaveBeenCalledWith({
       target: { __name: 'document_extractions.source_run_id' },
     });
-    expect(mocks.txUpdate).toHaveBeenNthCalledWith(2, { __name: 'ai_runs' });
+    expect(mocks.txUpdate).toHaveBeenNthCalledWith(3, { __name: 'ai_runs' });
     expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
-      2,
+      3,
       expect.objectContaining({
         status: 'completed',
         outputJson: analysis,
@@ -342,7 +368,7 @@ describe('processPolicyAnalysisRunService', () => {
     ).rejects.toThrow();
 
     expect(mocks.transaction).not.toHaveBeenCalled();
-    expect(mocks.updateSet).toHaveBeenCalledWith(
+    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'failed',
         errorCode: 'policy_extract_failed',
@@ -352,7 +378,7 @@ describe('processPolicyAnalysisRunService', () => {
   });
 
   it('skips when another worker already claimed the queued run', async () => {
-    mocks.updateReturning.mockResolvedValueOnce([]);
+    mocks.txUpdateReturning.mockResolvedValueOnce([]);
 
     const result = await processPolicyAnalysisRunService({
       runId: 'run-1',

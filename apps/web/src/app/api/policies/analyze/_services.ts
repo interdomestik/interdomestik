@@ -9,6 +9,7 @@ import { db } from '@/lib/db.server';
 import { inngest } from '@/lib/inngest/client';
 import { downloadTenantObject, uploadTenantObject } from '@/lib/storage/service-role';
 import { POLICIES_BUCKET, buildPolicyStoragePath } from '@/lib/storage/tenant-prefix';
+import { withTenantContext } from '@interdomestik/database';
 import { aiRuns, documentExtractions, documents, policies } from '@interdomestik/database/schema';
 import { getResponsesWorkflowConfig } from '@interdomestik/domain-ai/models';
 import { policyExtractSchema } from '@interdomestik/domain-ai/schemas/policy-extract';
@@ -135,14 +136,12 @@ export async function analyzePdfService(buffer: Buffer): Promise<string> {
 export async function queuePolicyAnalysisService(
   data: QueuePolicyAnalysisArgs
 ): Promise<{ policyId: string; runId: string }> {
-  // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
-  return db.transaction(async tx => {
+  return withTenantContext({ tenantId: data.tenantId, role: 'system' }, async tx => {
     const policyId = nanoid();
     const documentId = nanoid();
     const runId = nanoid();
     const now = new Date();
 
-    // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
     await tx
       .insert(policies)
       .values({
@@ -156,7 +155,6 @@ export async function queuePolicyAnalysisService(
       })
       .returning();
 
-    // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
     await tx.insert(documents).values({
       id: documentId,
       tenantId: data.tenantId,
@@ -172,7 +170,6 @@ export async function queuePolicyAnalysisService(
       uploadedAt: now,
     });
 
-    // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
     await tx.insert(aiRuns).values({
       id: runId,
       tenantId: data.tenantId,
@@ -303,17 +300,20 @@ export async function processPolicyAnalysisRunService(args: {
   }
 
   const startedAt = new Date();
-  // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
-  const [claimedRun] = await db
-    .update(aiRuns)
-    .set({
-      status: 'processing',
-      startedAt,
-      errorCode: null,
-      errorMessage: null,
-    })
-    .where(and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued')))
-    .returning({ id: aiRuns.id });
+  const [claimedRun] = await withTenantContext(
+    { tenantId: queuedRun.tenantId, role: 'system' },
+    async tx =>
+      tx
+        .update(aiRuns)
+        .set({
+          status: 'processing',
+          startedAt,
+          errorCode: null,
+          errorMessage: null,
+        })
+        .where(and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued')))
+        .returning({ id: aiRuns.id })
+  );
 
   if (!claimedRun) {
     return {
@@ -348,9 +348,7 @@ export async function processPolicyAnalysisRunService(args: {
     const policyExtract = policyExtractSchema.parse(analysis);
     const completedAt = new Date();
 
-    // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
-    await db.transaction(async tx => {
-      // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
+    await withTenantContext({ tenantId: queuedRun.tenantId, role: 'system' }, async tx => {
       await tx
         .update(policies)
         .set({
@@ -360,7 +358,6 @@ export async function processPolicyAnalysisRunService(args: {
         })
         .where(eq(policies.id, policyId));
 
-      // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
       await tx
         .insert(documentExtractions)
         .values({
@@ -380,7 +377,6 @@ export async function processPolicyAnalysisRunService(args: {
         })
         .onConflictDoNothing({ target: documentExtractions.sourceRunId });
 
-      // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
       await tx
         .update(aiRuns)
         .set({
@@ -408,16 +404,17 @@ export async function processPolicyAnalysisRunService(args: {
     const completedAt = new Date();
     const message = error instanceof Error ? error.message : 'Policy extraction failed.';
 
-    // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
-    await db
-      .update(aiRuns)
-      .set({
-        status: 'failed',
-        completedAt,
-        errorCode: 'policy_extract_failed',
-        errorMessage: message,
-      })
-      .where(eq(aiRuns.id, runId));
+    await withTenantContext({ tenantId: queuedRun.tenantId, role: 'system' }, async tx => {
+      await tx
+        .update(aiRuns)
+        .set({
+          status: 'failed',
+          completedAt,
+          errorCode: 'policy_extract_failed',
+          errorMessage: message,
+        })
+        .where(eq(aiRuns.id, runId));
+    });
 
     throw error;
   }
