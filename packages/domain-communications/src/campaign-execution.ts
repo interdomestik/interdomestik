@@ -286,7 +286,6 @@ export async function executeCampaign<T extends CampaignExecutionItem>(
     });
 
     for (const item of batch) {
-      // Basic validation mapped to generic structure
       const userMini: UserMini = {
         id: item.userId,
         email: item.user?.email ?? item.email ?? null,
@@ -349,14 +348,9 @@ export async function processStandardUserCampaign(
         orderBy: (user, { asc }) => [asc(user.id)],
         limit: USER_BATCH_SIZE,
       });
-      // Map to satisfy generic constraint { userId: string, ... }
       return users.map(u => ({ ...u, userId: u.id }));
     },
     async u => {
-      // u has userId due to mapping above, but sendFn expects UserMini (id, email, etc)
-      // We can reconstruct UserMini or pass u if it matches enough.
-      // UserMini requires: id, email, name, tenantId.
-      // u has id, email, name, tenantId AND userId.
       await sendFn(u);
     },
     context

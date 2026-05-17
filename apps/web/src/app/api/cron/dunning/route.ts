@@ -4,28 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authorizeCronRequest } from '../_auth';
 import { type DunningCronStats, runDunningCronCore } from './_core';
 
-/**
- * DUNNING CRON JOB
- *
- * This endpoint should be called daily by a cron service (e.g., Vercel Cron, Railway Cron)
- * It checks for subscriptions in grace period and sends reminder emails:
- * - Day 7: 7 days remaining (send reminder)
- * - Day 13: 1 day remaining (send final warning)
- *
- * Cron schedule: 0 10 * * * (daily at 10:00 AM)
- *
- * Example vercel.json:
- * {
- *   "crons": [{
- *     "path": "/api/cron/dunning",
- *     "schedule": "0 10 * * *"
- *   }]
- * }
- *
- * Auth header required:
- *   Authorization: Bearer $CRON_SECRET
- */
-
 export async function GET(req: NextRequest) {
   const limited = await enforceRateLimit({
     name: 'api/cron/dunning',

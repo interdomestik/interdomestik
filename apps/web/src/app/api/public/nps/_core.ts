@@ -45,7 +45,7 @@ export async function submitNpsCore(args: {
   }
 
   try {
-    const updated = await withTenantContext({ tenantId: tokenRow.tenantId }, async tx => {
+    const didSubmit = await withTenantContext({ tenantId: tokenRow.tenantId }, async tx => {
       const updatedRows = await tx
         .update(npsSurveyTokens)
         .set({ usedAt: now })
@@ -59,7 +59,7 @@ export async function submitNpsCore(args: {
         .returning({ id: npsSurveyTokens.id });
 
       if (updatedRows.length === 0) {
-        return updatedRows;
+        return false;
       }
 
       await tx.insert(npsSurveyResponses).values({
@@ -76,10 +76,10 @@ export async function submitNpsCore(args: {
         },
       });
 
-      return updatedRows;
+      return true;
     });
 
-    if (updated.length === 0) {
+    if (!didSubmit) {
       return { status: 200, body: { success: true, alreadySubmitted: true } };
     }
 
