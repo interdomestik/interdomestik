@@ -4,6 +4,7 @@ import {
 } from '@interdomestik/domain-ai';
 import { extractClaimIntake } from '@interdomestik/domain-ai/claims/intake-extract';
 import { extractLegalDocument } from '@interdomestik/domain-ai/legal/extract';
+import { markAiRunDispatchFailedWithTenantContext } from '@/lib/ai/dispatch-failure';
 import { db } from '@/lib/db.server';
 import { inngest } from '@/lib/inngest/client';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
@@ -150,16 +151,12 @@ export async function markClaimAiRunDispatchFailedService(args: {
   runId: string;
   message: string;
 }) {
-  // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
-  await db
-    .update(aiRuns)
-    .set({
-      status: 'failed',
-      completedAt: new Date(),
-      errorCode: 'claim_ai_dispatch_failed',
-      errorMessage: args.message,
-    })
-    .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.status, 'queued')));
+  await markAiRunDispatchFailedWithTenantContext({
+    entityType: 'claim',
+    errorCode: 'claim_ai_dispatch_failed',
+    message: args.message,
+    runId: args.runId,
+  });
 }
 
 export async function processClaimDocumentWorkflowRunService(args: {

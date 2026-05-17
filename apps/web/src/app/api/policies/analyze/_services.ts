@@ -5,6 +5,7 @@ import {
   analyzePolicyImages,
   analyzePolicyText,
 } from '@/lib/ai/policy-analyzer';
+import { markAiRunDispatchFailedWithTenantContext } from '@/lib/ai/dispatch-failure';
 import { db } from '@/lib/db.server';
 import { inngest } from '@/lib/inngest/client';
 import { downloadTenantObject, uploadTenantObject } from '@/lib/storage/service-role';
@@ -209,16 +210,13 @@ export async function markPolicyAnalysisRunDispatchFailedService(args: {
   runId: string;
   message: string;
 }) {
-  // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
-  await db
-    .update(aiRuns)
-    .set({
-      status: 'failed',
-      completedAt: new Date(),
-      errorCode: 'policy_extract_dispatch_failed',
-      errorMessage: args.message,
-    })
-    .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.status, 'queued')));
+  await markAiRunDispatchFailedWithTenantContext({
+    entityType: 'policy',
+    errorCode: 'policy_extract_dispatch_failed',
+    message: args.message,
+    runId: args.runId,
+    workflow: POLICY_EXTRACT_WORKFLOW,
+  });
 }
 
 async function downloadPolicyFileService(filePath: string, tenantId: string): Promise<Buffer> {
