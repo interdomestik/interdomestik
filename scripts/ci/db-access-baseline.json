@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-17T12:04:16.733Z",
+  "generatedAt": "2026-05-17T12:41:49.285Z",
   "policy": "see docs/dev/db-access-guard.md",
   "scanRoots": ["apps/web/src", "packages"],
   "approvedDatabaseInternalPatterns": [
@@ -1642,7 +1642,7 @@
       "risk": "app-layer",
       "tenantPosture": "tenant-scoped",
       "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from validated function parameter at current DB boundary",
+      "tenantPostureDetail": "tenantId from subscription row",
       "source": "await db .update(engagementEmailSends)"
     },
     {
@@ -1653,7 +1653,7 @@
       "risk": "app-layer",
       "tenantPosture": "tenant-scoped",
       "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from validated function parameter at current DB boundary",
+      "tenantPostureDetail": "tenantId from subscription row",
       "source": "await db .update(engagementEmailSends)"
     },
     {
@@ -1664,7 +1664,7 @@
       "risk": "app-layer",
       "tenantPosture": "tenant-scoped",
       "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from validated function parameter at current DB boundary",
+      "tenantPostureDetail": "tenantId from subscription row",
       "source": "await db .update(engagementEmailSends)"
     },
     {
@@ -1839,7 +1839,7 @@
       "risk": "app-layer",
       "tenantPosture": "tenant-scoped",
       "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from validated function parameter at current DB boundary",
+      "tenantPostureDetail": "tenantId from NPS token row",
       "source": "const updated = await db .update(npsSurveyTokens)"
     },
     {
@@ -4655,17 +4655,17 @@
     },
     {
       "file": "packages/domain-communications/src/campaign-execution.ts",
-      "line": 75,
+      "line": 87,
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
       "tenantPosture": "tenant-predicate",
       "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "const tenantRows = await db.query.emailCampaignLogs.findMany({"
+      "source": "const rows = await db.query.emailCampaignLogs.findMany({"
     },
     {
       "file": "packages/domain-communications/src/campaign-execution.ts",
-      "line": 98,
+      "line": 113,
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",
@@ -4676,7 +4676,7 @@
     },
     {
       "file": "packages/domain-communications/src/campaign-execution.ts",
-      "line": 182,
+      "line": 197,
       "callee": "db.insert",
       "method": "insert",
       "risk": "domain-wrapper",
@@ -4687,7 +4687,7 @@
     },
     {
       "file": "packages/domain-communications/src/campaign-execution.ts",
-      "line": 292,
+      "line": 305,
       "callee": "db.insert",
       "method": "insert",
       "risk": "domain-wrapper",
@@ -4698,7 +4698,7 @@
     },
     {
       "file": "packages/domain-communications/src/campaign-execution.ts",
-      "line": 323,
+      "line": 336,
       "callee": "db.query",
       "method": "query",
       "risk": "domain-wrapper",

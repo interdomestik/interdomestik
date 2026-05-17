@@ -1,6 +1,6 @@
 import { db, inArray } from '@interdomestik/database';
 import { emailCampaignLogs } from '@interdomestik/database/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export const USER_BATCH_SIZE = 500;
@@ -13,6 +13,15 @@ export type UserMini = {
   email: string | null;
   name: string | null;
   tenantId: string | null;
+};
+
+type CampaignExecutionItem = {
+  id: string;
+  userId: string;
+  tenantId?: string | null;
+  user?: Pick<UserMini, 'email' | 'name' | 'tenantId'> | null;
+  email?: string | null;
+  name?: string | null;
 };
 
 function dedupeKeyForUser(user: Pick<UserMini, 'id' | 'tenantId'>): string | null {
@@ -71,17 +80,23 @@ export async function getAlreadySentUserIdSet(args: {
   if (args.users.length === 0) return new Set();
 
   const sent = new Set<string>();
-  for (const [tenantId, userIds] of groupUserIdsByTenant(args.users)) {
-    const tenantRows = await db.query.emailCampaignLogs.findMany({
-      where: and(
-        eq(emailCampaignLogs.tenantId, tenantId),
-        eq(emailCampaignLogs.campaignId, args.campaignId),
-        inArray(emailCampaignLogs.userId, userIds)
-      ),
-    });
-    for (const row of tenantRows) {
-      sent.add(`${row.tenantId}:${row.userId}`);
-    }
+  const tenantGroups = Array.from(groupUserIdsByTenant(args.users));
+
+  if (tenantGroups.length === 0) return sent;
+
+  const rows = await db.query.emailCampaignLogs.findMany({
+    where: and(
+      eq(emailCampaignLogs.campaignId, args.campaignId),
+      or(
+        ...tenantGroups.map(([tenantId, userIds]) =>
+          and(eq(emailCampaignLogs.tenantId, tenantId), inArray(emailCampaignLogs.userId, userIds))
+        )
+      )
+    ),
+  });
+
+  for (const row of rows) {
+    sent.add(`${row.tenantId}:${row.userId}`);
   }
 
   return sent;
@@ -249,9 +264,7 @@ export function shouldSkipUser(
   return false;
 }
 
-export async function executeCampaign<
-  T extends { id: string; userId: string; tenantId?: string | null },
->(
+export async function executeCampaign<T extends CampaignExecutionItem>(
   campaignId: string,
   fetchBatch: (afterId: string | null) => Promise<T[]>,
   processItem: (item: T) => Promise<void>,
@@ -266,7 +279,7 @@ export async function executeCampaign<
       campaignId,
       users: batch.map(item => ({
         id: item.userId,
-        tenantId: item.tenantId ?? (item as any).user?.tenantId ?? null,
+        tenantId: item.tenantId ?? item.user?.tenantId ?? null,
       })),
     });
 
@@ -274,9 +287,9 @@ export async function executeCampaign<
       // Basic validation mapped to generic structure
       const userMini: UserMini = {
         id: item.userId,
-        email: (item as any).user?.email ?? (item as any).email, // flexible check
-        name: (item as any).user?.name ?? (item as any).name,
-        tenantId: item.tenantId ?? (item as any).user?.tenantId,
+        email: item.user?.email ?? item.email ?? null,
+        name: item.user?.name ?? item.name ?? null,
+        tenantId: item.tenantId ?? item.user?.tenantId ?? null,
       };
 
       if (shouldSkipUser(userMini, alreadySentSet, context.stats, context.errors)) {

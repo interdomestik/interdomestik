@@ -45,7 +45,7 @@ export async function submitNpsCore(args: {
   }
 
   try {
-    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+    // db-access-guard: tenant-scoped -- reason: tenantId from NPS token row
     const updated = await db
       .update(npsSurveyTokens)
       .set({ usedAt: now })

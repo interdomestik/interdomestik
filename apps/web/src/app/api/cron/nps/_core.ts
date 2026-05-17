@@ -183,7 +183,7 @@ async function processNpsMember(args: {
     });
 
     if (sendResult.success) {
-      // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+      // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
       await db
         .update(engagementEmailSends)
         .set({
@@ -215,7 +215,7 @@ async function processNpsMember(args: {
       const isSkipped = err === 'Resend not configured';
       const status = isSkipped ? 'skipped' : 'error';
 
-      // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+      // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
       await db
         .update(engagementEmailSends)
         .set({
@@ -242,7 +242,7 @@ async function processNpsMember(args: {
       return isSkipped ? 'skipped' : 'errors';
     }
   } catch {
-    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+    // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
     await db
       .update(engagementEmailSends)
       .set({
