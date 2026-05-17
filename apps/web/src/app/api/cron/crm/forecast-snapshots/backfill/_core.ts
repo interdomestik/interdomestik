@@ -11,11 +11,11 @@ import {
   crmForecastSnapshotWorkItemRepository,
   type CrmForecastSnapshotWorkItem,
   type CrmForecastSnapshotWorkItemRepository,
-} from '@/lib/domain-crm/forecast-snapshot-work-items';
+} from '@/adapters/crm/forecast-snapshot-work-items';
 import {
   crmForecastSnapshotRepository,
   crmReportingRepository,
-} from '@/lib/domain-crm/reporting-repository';
+} from '@/adapters/crm/reporting-repository';
 
 import {
   assertNoCrmForecastSnapshotPiiKeys,

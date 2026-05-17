@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-16T09:13:02.068Z",
+  "generatedAt": "2026-05-16T20:35:05.395Z",
   "policy": "see docs/dev/db-access-guard.md",
   "scanRoots": ["apps/web/src", "packages"],
   "approvedDatabaseInternalPatterns": [
@@ -22,13 +22,13 @@
   "methods": ["query", "select", "insert", "update", "delete", "execute", "transaction"],
   "counts": {
     "byRisk": {
-      "app-layer": 331,
+      "app-layer": 317,
       "domain-wrapper": 300
     },
     "byTenantPosture": {
       "tenant-context": 5,
-      "tenant-scoped": 184,
-      "tenant-predicate": 358,
+      "tenant-scoped": 172,
+      "tenant-predicate": 356,
       "admin-privileged": 0,
       "system-exempt": 28,
       "unclassified": 56
@@ -570,6 +570,134 @@
       "tenantPosture": "tenant-predicate",
       "tenantPostureReason": "tenant-predicate: in-where-clause",
       "source": "const userClaims = await db.query.claims.findMany({"
+    },
+    {
+      "file": "apps/web/src/adapters/crm/dashboard-repository.ts",
+      "line": 27,
+      "callee": "db.select",
+      "method": "select",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "domain CRM dashboard adapter constrains lead counts by actor tenant, agent, and branch scope",
+      "source": "db .select({ stage: crmLeads.stage, count: count() })"
+    },
+    {
+      "file": "apps/web/src/adapters/crm/dashboard-repository.ts",
+      "line": 40,
+      "callee": "db.select",
+      "method": "select",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "domain CRM dashboard adapter constrains won deals by actor tenant, agent, and durable lead branch scope",
+      "source": "db .select({ count: count() })"
+    },
+    {
+      "file": "apps/web/src/adapters/crm/dashboard-repository.ts",
+      "line": 60,
+      "callee": "db.select",
+      "method": "select",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "domain CRM dashboard adapter constrains commission aggregate by actor tenant and agent scope; commissions do not carry branch_id",
+      "source": "db .select({ total: sql<number>`sum(${agentCommissions.amount})` })"
+    },
+    {
+      "file": "apps/web/src/adapters/crm/dashboard-repository.ts",
+      "line": 71,
+      "callee": "db.select",
+      "method": "select",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "domain CRM dashboard adapter constrains due follow-up reads by actor tenant, agent, activity branch, and lead branch scope",
+      "source": "db .select({"
+    },
+    {
+      "file": "apps/web/src/adapters/crm/lead-activity-repository.ts",
+      "line": 56,
+      "callee": "db.query",
+      "method": "query",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-predicate",
+      "tenantPostureReason": "tenant-predicate: in-where-clause",
+      "source": "const lead = await db.query.crmLeads.findFirst({"
+    },
+    {
+      "file": "apps/web/src/adapters/crm/lead-activity-repository.ts",
+      "line": 71,
+      "callee": "db.query",
+      "method": "query",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-predicate",
+      "tenantPostureReason": "tenant-predicate: in-where-clause",
+      "source": "const activities = await db.query.crmActivities.findMany({"
+    },
+    {
+      "file": "apps/web/src/adapters/crm/lead-detail-repository.ts",
+      "line": 27,
+      "callee": "db.query",
+      "method": "query",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-predicate",
+      "tenantPostureReason": "tenant-predicate: in-where-clause",
+      "source": "const lead = await db.query.crmLeads.findFirst({"
+    },
+    {
+      "file": "apps/web/src/adapters/crm/lead-detail-repository.ts",
+      "line": 41,
+      "callee": "db.select",
+      "method": "select",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-predicate",
+      "tenantPostureReason": "tenant-predicate: in-where-clause",
+      "source": "const rows = await db .select()"
+    },
+    {
+      "file": "apps/web/src/adapters/crm/lead-follow-up-repository.ts",
+      "line": 71,
+      "callee": "db.query",
+      "method": "query",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "tenantId comes from explicit authorized CRM actor context before follow-up authorization",
+      "source": "const lead = await db.query.crmLeads.findFirst({"
+    },
+    {
+      "file": "apps/web/src/adapters/crm/lead-follow-up-repository.ts",
+      "line": 88,
+      "callee": "db.execute",
+      "method": "execute",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "tenantId from authorized agent context is included in follow-up insert values",
+      "source": "const rows = await db.execute(sql`"
+    },
+    {
+      "file": "apps/web/src/adapters/crm/lead-follow-up-repository.ts",
+      "line": 128,
+      "callee": "db.execute",
+      "method": "execute",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "tenantId from authorized agent context constrains follow-up completion update",
+      "source": "const rows = await db.execute(sql`"
+    },
+    {
+      "file": "apps/web/src/adapters/crm/lead-follow-up-repository.ts",
+      "line": 161,
+      "callee": "db.select",
+      "method": "select",
+      "risk": "app-layer",
+      "tenantPosture": "tenant-scoped",
+      "tenantPostureReason": "tenant-scoped: directive",
+      "tenantPostureDetail": "tenantId and agentId from authorized CRM actor constrain follow-up reads",
+      "source": "const rows = await db .select({"
     },
     {
       "file": "apps/web/src/app/[locale]/(agent)/agent/_core.ts",
@@ -3104,286 +3232,6 @@
       "tenantPostureReason": "tenant-scoped: directive",
       "tenantPostureDetail": "reservation id was created under the resolved tenant/public idempotency scope",
       "source": "await db .delete(commercialActionIdempotency)"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/dashboard-repository.ts",
-      "line": 27,
-      "callee": "db.select",
-      "method": "select",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "domain CRM dashboard adapter constrains lead counts by actor tenant, agent, and branch scope",
-      "source": "db .select({ stage: crmLeads.stage, count: count() })"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/dashboard-repository.ts",
-      "line": 40,
-      "callee": "db.select",
-      "method": "select",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "domain CRM dashboard adapter constrains won deals by actor tenant, agent, and durable lead branch scope",
-      "source": "db .select({ count: count() })"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/dashboard-repository.ts",
-      "line": 60,
-      "callee": "db.select",
-      "method": "select",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "domain CRM dashboard adapter constrains commission aggregate by actor tenant and agent scope; commissions do not carry branch_id",
-      "source": "db .select({ total: sql<number>`sum(${agentCommissions.amount})` })"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/dashboard-repository.ts",
-      "line": 71,
-      "callee": "db.select",
-      "method": "select",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "domain CRM dashboard adapter constrains due follow-up reads by actor tenant, agent, activity branch, and lead branch scope",
-      "source": "db .select({"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-activity-repository.ts",
-      "line": 56,
-      "callee": "db.query",
-      "method": "query",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-predicate",
-      "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "const lead = await db.query.crmLeads.findFirst({"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-activity-repository.ts",
-      "line": 71,
-      "callee": "db.query",
-      "method": "query",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-predicate",
-      "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "const activities = await db.query.crmActivities.findMany({"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-detail-repository.ts",
-      "line": 27,
-      "callee": "db.query",
-      "method": "query",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-predicate",
-      "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "const lead = await db.query.crmLeads.findFirst({"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-detail-repository.ts",
-      "line": 41,
-      "callee": "db.select",
-      "method": "select",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-predicate",
-      "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "const rows = await db .select()"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-follow-up-repository.ts",
-      "line": 71,
-      "callee": "db.query",
-      "method": "query",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId comes from explicit authorized CRM actor context before follow-up authorization",
-      "source": "const lead = await db.query.crmLeads.findFirst({"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-follow-up-repository.ts",
-      "line": 88,
-      "callee": "db.execute",
-      "method": "execute",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from authorized agent context is included in follow-up insert values",
-      "source": "const rows = await db.execute(sql`"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-follow-up-repository.ts",
-      "line": 128,
-      "callee": "db.execute",
-      "method": "execute",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId from authorized agent context constrains follow-up completion update",
-      "source": "const rows = await db.execute(sql`"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-follow-up-repository.ts",
-      "line": 161,
-      "callee": "db.select",
-      "method": "select",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId and agentId from authorized CRM actor constrain follow-up reads",
-      "source": "const rows = await db .select({"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 78,
-      "callee": "db.query",
-      "method": "query",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "validates transfer target agent belongs to the authorized CRM actor tenant and target branch",
-      "source": "const targetAgent = await db.query.user.findFirst({"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 91,
-      "callee": "db.query",
-      "method": "query",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "validates transfer target branch belongs to the authorized CRM actor tenant",
-      "source": "const targetBranch = await db.query.branches.findFirst({"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 108,
-      "callee": "db.transaction",
-      "method": "transaction",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "creates CRM lead and initial ownership history with explicit authorized CRM actor tenant",
-      "source": "return db.transaction(async tx => {"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 110,
-      "callee": "tx.insert",
-      "method": "insert",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId comes from explicit authorized CRM actor context",
-      "source": "const [created] = await tx .insert(crmLeads)"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 133,
-      "callee": "tx.insert",
-      "method": "insert",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "ownership history copies explicit tenantId from authorized CRM actor after lead creation",
-      "source": "await tx.insert(crmLeadOwnershipHistory).values({"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 151,
-      "callee": "db.query",
-      "method": "query",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId comes from explicit authorized CRM actor context before domain authorization",
-      "source": "const lead = await db.query.crmLeads.findFirst({"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 166,
-      "callee": "db.insert",
-      "method": "insert",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId comes from explicit authorized CRM actor context",
-      "source": "const [created] = await db .insert(crmActivities)"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 192,
-      "callee": "db.transaction",
-      "method": "transaction",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-predicate",
-      "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "return db.transaction(async tx => {"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 194,
-      "callee": "tx.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId, agentId, durable branchId, and current stage from authorized CRM actor constrain update",
-      "source": "const [updated] = await tx .update(crmLeads)"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 216,
-      "callee": "tx.insert",
-      "method": "insert",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "history row copies explicit tenantId from authorized CRM actor after scoped stage update",
-      "source": "await tx.insert(crmLeadStageHistory).values({"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 249,
-      "callee": "db.transaction",
-      "method": "transaction",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-predicate",
-      "tenantPostureReason": "tenant-predicate: in-where-clause",
-      "source": "return await db.transaction(async tx => {"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 251,
-      "callee": "tx.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "tenantId and expected current lead ownership from authorized CRM actor constrain transfer update",
-      "source": "const [updated] = await tx .update(crmLeads)"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 271,
-      "callee": "tx.update",
-      "method": "update",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "closes the current open ownership row for the same tenant-scoped lead transfer",
-      "source": "const closedRows = await tx .update(crmLeadOwnershipHistory)"
-    },
-    {
-      "file": "apps/web/src/lib/domain-crm/lead-mutation-repository.ts",
-      "line": 290,
-      "callee": "tx.insert",
-      "method": "insert",
-      "risk": "app-layer",
-      "tenantPosture": "tenant-scoped",
-      "tenantPostureReason": "tenant-scoped: directive",
-      "tenantPostureDetail": "opens the new ownership row for the same tenant-scoped lead transfer",
-      "source": "await tx.insert(crmLeadOwnershipHistory).values({"
     },
     {
       "file": "apps/web/src/lib/permissions.core.ts",

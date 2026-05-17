@@ -5,7 +5,7 @@ import {
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { nanoid } from 'nanoid';
 import { createLeadSchema } from './schemas';
-import { crmLeadMutationRepository } from '@/lib/domain-crm/lead-mutation-repository';
+import { crmLeadMutationRepository } from '@/adapters/crm/lead-mutation-repository';
 
 function getString(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
