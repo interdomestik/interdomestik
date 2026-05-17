@@ -80,7 +80,7 @@ async function processLifecycleEngagement(
   for (const cadence of ENGAGEMENT_CADENCE) {
     const { start, end } = getDayWindow(now, cadence.daysSinceSubscriptionCreated);
 
-    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+    // db-access-guard: system-exempt -- reason: engagement cron enumerates tenants before per-row scoped writes
     const members = await db
       .select({
         userId: subscriptions.userId,
@@ -115,12 +115,18 @@ async function processMemberEngagement(
   const templateKey = cadence.templateKey;
   const dedupeKey = `engagement:${member.subId}:${templateKey}`;
 
+  if (!member.tenantId || !member.userId) {
+    results.skipped++;
+    return;
+  }
+
+  // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
   const inserted = await db
     .insert(engagementEmailSends)
     .values({
       id: nanoid(),
-      tenantId: member.tenantId!,
-      userId: member.userId!,
+      tenantId: member.tenantId,
+      userId: member.userId,
       subscriptionId: member.subId,
       templateKey,
       dedupeKey,
@@ -136,7 +142,7 @@ async function processMemberEngagement(
   if (inserted.length === 0) return;
 
   if (!member.email || !member.name) {
-    await markAsSkipped(dedupeKey, 'Missing recipient email or name');
+    await markAsSkipped(dedupeKey, member.tenantId, 'Missing recipient email or name');
     results.skipped++;
     return;
   }
@@ -146,7 +152,7 @@ async function processMemberEngagement(
     await handleLifecycleSendResult(sendResult, dedupeKey, member, templateKey, results, headers);
   } catch {
     results.errors++;
-    await markAsError(dedupeKey, 'Unhandled exception during send');
+    await markAsError(dedupeKey, member.tenantId, 'Unhandled exception during send');
   }
 }
 
@@ -175,7 +181,7 @@ async function processSeasonalEngagement(
   if (!season) return;
 
   const templateKey = `seasonal_${season}_${now.getFullYear()}`;
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+  // db-access-guard: system-exempt -- reason: seasonal cron enumerates tenants before per-row scoped writes
   const seasonalMembers = await db
     .select({
       userId: subscriptions.userId,
@@ -204,12 +210,18 @@ async function processSeasonalMember(
 ) {
   const dedupeKey = `engagement:${member.subId}:${templateKey}`;
 
+  if (!member.tenantId || !member.userId) {
+    results.skipped++;
+    return;
+  }
+
+  // db-access-guard: tenant-scoped -- reason: tenantId from subscription row
   const inserted = await db
     .insert(engagementEmailSends)
     .values({
       id: nanoid(),
-      tenantId: member.tenantId!,
-      userId: member.userId!,
+      tenantId: member.tenantId,
+      userId: member.userId,
       subscriptionId: member.subId,
       templateKey,
       dedupeKey,
@@ -226,7 +238,7 @@ async function processSeasonalMember(
   if (inserted.length === 0) return;
 
   if (!member.email || !member.name) {
-    await markAsSkipped(dedupeKey, 'Missing recipient email or name');
+    await markAsSkipped(dedupeKey, member.tenantId, 'Missing recipient email or name');
     results.skipped++;
     return;
   }
@@ -239,7 +251,7 @@ async function processSeasonalMember(
     await handleSeasonalSendResult(sendResult, dedupeKey, member, templateKey, results, headers);
   } catch {
     results.errors++;
-    await markAsError(dedupeKey, 'Unhandled exception during send');
+    await markAsError(dedupeKey, member.tenantId, 'Unhandled exception during send');
   }
 }
 
@@ -282,7 +294,8 @@ async function handleSuccess(
   headers: Headers,
   providerMessageId?: string
 ) {
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+  if (!member.tenantId) return;
+
   await db
     .update(engagementEmailSends)
     .set({
@@ -290,7 +303,12 @@ async function handleSuccess(
       providerMessageId: providerMessageId || null,
       sentAt: new Date(),
     })
-    .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+    .where(
+      and(
+        eq(engagementEmailSends.dedupeKey, dedupeKey),
+        eq(engagementEmailSends.tenantId, member.tenantId)
+      )
+    );
 
   await logAuditEvent({
     actorId: null,
@@ -326,11 +344,21 @@ async function handleFailure(
 ) {
   const status = error === 'Resend not configured' ? 'skipped' : 'error';
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+  if (!member.tenantId) {
+    if (status === 'skipped') results.skipped++;
+    else results.errors++;
+    return;
+  }
+
   await db
     .update(engagementEmailSends)
     .set({ status, error })
-    .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+    .where(
+      and(
+        eq(engagementEmailSends.dedupeKey, dedupeKey),
+        eq(engagementEmailSends.tenantId, member.tenantId)
+      )
+    );
 
   if (status === 'skipped') results.skipped++;
   else results.errors++;
@@ -347,18 +375,26 @@ async function handleFailure(
   });
 }
 
-async function markAsSkipped(dedupeKey: string, reason: string) {
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+async function markAsSkipped(dedupeKey: string, tenantId: string, reason: string) {
   await db
     .update(engagementEmailSends)
     .set({ status: 'skipped', error: reason })
-    .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+    .where(
+      and(
+        eq(engagementEmailSends.dedupeKey, dedupeKey),
+        eq(engagementEmailSends.tenantId, tenantId)
+      )
+    );
 }
 
-async function markAsError(dedupeKey: string, reason: string) {
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+async function markAsError(dedupeKey: string, tenantId: string, reason: string) {
   await db
     .update(engagementEmailSends)
     .set({ status: 'error', error: reason })
-    .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+    .where(
+      and(
+        eq(engagementEmailSends.dedupeKey, dedupeKey),
+        eq(engagementEmailSends.tenantId, tenantId)
+      )
+    );
 }

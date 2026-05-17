@@ -122,14 +122,14 @@ function main() {
   const unexpectedUnderscoreCoreFiles = findUnexpectedUnderscoreCoreFiles();
   for (const file of unexpectedUnderscoreCoreFiles) {
     failures.push(
-      `${file} uses the legacy _core.ts naming convention; new extracted cores must use *.core.ts.`
+      `${file} uses the legacy _core.ts naming convention; new extracted cores must use *.core.ts. See docs/architecture/core-module-convention.md.`
     );
   }
 
   const unexpectedLegacyRouteFiles = findUnexpectedLegacyRouteFiles();
   for (const file of unexpectedLegacyRouteFiles) {
     failures.push(
-      `${file} extends the frozen legacy route surface; use canonical /member, /agent, /staff, or /admin routes.`
+      `${file} extends the frozen legacy route surface; use canonical /member, /agent, /staff, or /admin routes. See docs/architecture/legacy-route-freeze.md.`
     );
   }
 

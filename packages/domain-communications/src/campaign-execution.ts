@@ -1,6 +1,6 @@
 import { db, inArray } from '@interdomestik/database';
 import { emailCampaignLogs } from '@interdomestik/database/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export const USER_BATCH_SIZE = 500;
@@ -14,6 +14,30 @@ export type UserMini = {
   name: string | null;
   tenantId: string | null;
 };
+
+type CampaignExecutionItem = {
+  id: string;
+  userId: string;
+  tenantId?: string | null;
+  user?: Pick<UserMini, 'email' | 'name' | 'tenantId'> | null;
+  email?: string | null;
+  name?: string | null;
+};
+
+function dedupeKeyForUser(user: Pick<UserMini, 'id' | 'tenantId'>): string | null {
+  return user.tenantId ? `${user.tenantId}:${user.id}` : null;
+}
+
+function groupUserIdsByTenant(users: Pick<UserMini, 'id' | 'tenantId'>[]) {
+  const groups = new Map<string, string[]>();
+  for (const user of users) {
+    if (!user.tenantId) continue;
+    const existing = groups.get(user.tenantId) ?? [];
+    existing.push(user.id);
+    groups.set(user.tenantId, existing);
+  }
+  return groups;
+}
 
 export function sleep(ms: number) {
   return new Promise<void>(resolve => setTimeout(resolve, ms));
@@ -51,18 +75,31 @@ export async function withRetries<T>(
 
 export async function getAlreadySentUserIdSet(args: {
   campaignId: string;
-  userIds: string[];
+  users: Pick<UserMini, 'id' | 'tenantId'>[];
 }): Promise<Set<string>> {
-  if (args.userIds.length === 0) return new Set();
+  if (args.users.length === 0) return new Set();
+
+  const sent = new Set<string>();
+  const tenantGroups = Array.from(groupUserIdsByTenant(args.users));
+
+  if (tenantGroups.length === 0) return sent;
 
   const rows = await db.query.emailCampaignLogs.findMany({
     where: and(
       eq(emailCampaignLogs.campaignId, args.campaignId),
-      inArray(emailCampaignLogs.userId, args.userIds)
+      or(
+        ...tenantGroups.map(([tenantId, userIds]) =>
+          and(eq(emailCampaignLogs.tenantId, tenantId), inArray(emailCampaignLogs.userId, userIds))
+        )
+      )
     ),
   });
 
-  return new Set(rows.map(r => r.userId));
+  for (const row of rows) {
+    sent.add(`${row.tenantId}:${row.userId}`);
+  }
+
+  return sent;
 }
 
 export async function getUsersBatch(args: {
@@ -72,7 +109,7 @@ export async function getUsersBatch(args: {
   const limit = args.limit ?? USER_BATCH_SIZE;
 
   // Cursor pagination by primary key keeps memory stable and avoids huge offsets.
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+  // db-access-guard: system-exempt -- reason: campaign job enumerates tenants before per-row checks
   const users = await db.query.user.findMany({
     where: args.afterId ? (user, { gt }) => gt(user.id, args.afterId as string) : undefined,
     orderBy: (user, { asc }) => [asc(user.id)],
@@ -140,7 +177,8 @@ export async function processCampaignUser(
     return;
   }
 
-  if (alreadySentSet.has(u.id)) {
+  const dedupeKey = dedupeKeyForUser(u);
+  if (dedupeKey && alreadySentSet.has(dedupeKey)) {
     stats.skipped += 1;
     return;
   }
@@ -155,6 +193,7 @@ export async function processCampaignUser(
       campaignId: args.campaignId,
       sentAt: new Date(),
     };
+    // db-access-guard: tenant-scoped -- reason: tenantId from campaign user row
     await db.insert(emailCampaignLogs).values(insertLog);
 
     stats.sent += 1;
@@ -181,10 +220,9 @@ export async function processBatchedUserCampaign(args: {
   await forEachBatchedUsers({
     fetchBatch: afterId => getUsersBatch({ afterId, limit: USER_BATCH_SIZE }),
     onBatch: async batch => {
-      const userIds = batch.map(u => u.id);
       const alreadySentSet = await getAlreadySentUserIdSet({
         campaignId: args.campaignId,
-        userIds,
+        users: batch,
       });
 
       for (const u of batch) {
@@ -212,7 +250,8 @@ export function shouldSkipUser(
     return true;
   }
 
-  if (alreadySentSet.has(u.id)) {
+  const dedupeKey = dedupeKeyForUser(u);
+  if (dedupeKey && alreadySentSet.has(dedupeKey)) {
     stats.skipped += 1;
     return true;
   }
@@ -225,9 +264,7 @@ export function shouldSkipUser(
   return false;
 }
 
-export async function executeCampaign<
-  T extends { id: string; userId: string; tenantId?: string | null },
->(
+export async function executeCampaign<T extends CampaignExecutionItem>(
   campaignId: string,
   fetchBatch: (afterId: string | null) => Promise<T[]>,
   processItem: (item: T) => Promise<void>,
@@ -238,16 +275,21 @@ export async function executeCampaign<
     const batch = await fetchBatch(afterId);
     if (batch.length === 0) break;
 
-    const userIds = Array.from(new Set(batch.map(i => i.userId)));
-    const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
+    const alreadySentSet = await getAlreadySentUserIdSet({
+      campaignId,
+      users: batch.map(item => ({
+        id: item.userId,
+        tenantId: item.tenantId ?? item.user?.tenantId ?? null,
+      })),
+    });
 
     for (const item of batch) {
       // Basic validation mapped to generic structure
       const userMini: UserMini = {
         id: item.userId,
-        email: (item as any).user?.email ?? (item as any).email, // flexible check
-        name: (item as any).user?.name ?? (item as any).name,
-        tenantId: item.tenantId ?? (item as any).user?.tenantId,
+        email: item.user?.email ?? item.email ?? null,
+        name: item.user?.name ?? item.name ?? null,
+        tenantId: item.tenantId ?? item.user?.tenantId ?? null,
       };
 
       if (shouldSkipUser(userMini, alreadySentSet, context.stats, context.errors)) {
@@ -259,7 +301,7 @@ export async function executeCampaign<
       try {
         await processItem(item);
 
-        // Log success
+        // db-access-guard: tenant-scoped -- reason: tenantId from campaign item row
         await db.insert(emailCampaignLogs).values({
           id: `ecl_${nanoid()}`,
           tenantId: userMini.tenantId!,
@@ -290,6 +332,7 @@ export async function processStandardUserCampaign(
   await executeCampaign(
     campaignId,
     async afterId => {
+      // db-access-guard: system-exempt -- reason: campaign lifecycle job enumerates tenants before per-row checks
       const users = await db.query.user.findMany({
         where: (user, { between, and, gt }) =>
           and(
