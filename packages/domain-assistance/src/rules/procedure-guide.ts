@@ -373,29 +373,37 @@ export function createProcedurePack(input: CreateProcedurePackInput): ProcedureP
     zone: 'member',
   });
   const outcome = createProcedureOutcome(input, readiness);
-  const requiredHumanReview = readiness.humanReviewRequired || outcome.humanReviewRequired;
 
   return {
-    packId: input.packId,
     packType: 'procedure',
-    outcome,
+    packId: input.packId,
     zone: 'member',
-    inputsSummary: [
-      { code: readiness.jurisdiction ? `country:${readiness.jurisdiction}` : 'country:unknown' },
-      { code: `procedure_scenario:${readiness.scenario}` },
-      { code: `procedure_role:${readiness.participantRole}` },
-      { code: `procedure_rule_family:${readiness.requestedRuleFamily}` },
-    ],
-    requiredDisclaimers: readiness.requiredDisclaimers,
-    requiredHumanReview,
-    countryRuleMetadata: readiness.countryRuleMetadata,
-    piiClassification: input.piiClassification ?? 'identifier_minimal',
-    retentionPolicyKey: DEFAULT_ASSISTANCE_RETENTION_POLICY,
-    provenance: input.provenance ?? DEFAULT_ASSISTANCE_PROVENANCE,
+    outcome,
     procedureCodes: readiness.procedureCodes,
     deadlineReferences: readiness.deadlineReferences,
     legalBasisReference: readiness.legalBasisReference,
+    inputsSummary: procedureInputsSummary(readiness),
+    requiredHumanReview: readiness.humanReviewRequired || outcome.humanReviewRequired,
+    requiredDisclaimers: readiness.requiredDisclaimers,
+    piiClassification: input.piiClassification ?? 'identifier_minimal',
+    countryRuleMetadata: readiness.countryRuleMetadata,
+    provenance: input.provenance ?? DEFAULT_ASSISTANCE_PROVENANCE,
+    retentionPolicyKey: DEFAULT_ASSISTANCE_RETENTION_POLICY,
   };
+}
+
+function procedureInputsSummary(
+  readiness: ProcedureGuideReadiness
+): ProcedurePack['inputsSummary'] {
+  const countryCode =
+    readiness.jurisdiction.length > 0 ? `country:${readiness.jurisdiction}` : 'country:unknown';
+
+  return [
+    { code: countryCode },
+    { code: `procedure_scenario:${readiness.scenario}` },
+    { code: `procedure_role:${readiness.participantRole}` },
+    { code: `procedure_rule_family:${readiness.requestedRuleFamily}` },
+  ];
 }
 
 function procedureReadiness(params: {
