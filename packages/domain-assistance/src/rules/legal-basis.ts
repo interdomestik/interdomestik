@@ -299,7 +299,7 @@ export function evaluateLegalBasisPrecheck(input: LegalBasisReadinessInput): Leg
     };
   }
 
-  if (applicableRules.some(rule => rule.conclusion === 'legal_basis_precheck_unsupported')) {
+  if (applicableRules.some(rule => rule.conclusion !== 'legal_basis_precheck_supported')) {
     return legalBasisReadiness({
       ...base,
       countryRuleMetadata: readiness.countryRuleMetadata,

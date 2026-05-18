@@ -247,6 +247,17 @@ describe('legal-basis pre-check readiness', () => {
     expect(result.humanReviewRequired).toBe(true);
   });
 
+  it('fails closed when an applicable rule does not encode a legal-basis conclusion', () => {
+    const result = readiness({
+      rules: [rule({ conclusion: undefined })],
+    });
+
+    expect(result.kind).toBe('unsupported_legal_basis');
+    expect(result.outcomeKind).toBe('manual_review_required');
+    expect(result.legalBasisCodes).toEqual([]);
+    expect(result.humanReviewRequired).toBe(true);
+  });
+
   it('fails closed when the requested rule family is unsupported', () => {
     const result = readiness({ requestedRuleFamily: 'recovery_activation_basis' });
 
