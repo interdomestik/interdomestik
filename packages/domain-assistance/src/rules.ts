@@ -7,4 +7,5 @@ export * from './rules/human-review';
 export * from './rules/inputs';
 export * from './rules/legal-basis';
 export * from './rules/outcomes';
+export * from './rules/procedure-guide';
 export * from './rules/session-digest';
