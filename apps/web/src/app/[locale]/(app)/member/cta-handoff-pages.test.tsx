@@ -77,14 +77,6 @@ describe('Member CTA handoff pages', () => {
       'member_cta_pages.benefits.primary',
       '/member/membership',
     ],
-    [
-      'incident guide',
-      IncidentGuidePage,
-      'member_cta_pages.incident_guide.description',
-      'member_cta_pages.incident_guide.boundary',
-      'member_cta_pages.incident_guide.primary',
-      '/member/claims/new',
-    ],
   ])(
     'renders bounded handoff content for %s instead of a placeholder destination',
     async (_, Component, descriptionKey, boundaryKey, primaryKey, primaryHref) => {
@@ -113,4 +105,61 @@ describe('Member CTA handoff pages', () => {
       ).toHaveAttribute('href', '/member/help');
     }
   );
+
+  it('renders the Help Now incident scene pack as free-zone guidance only', async () => {
+    const tree = await IncidentGuidePage({
+      params: Promise.resolve({ locale: 'en' }),
+    });
+
+    render(tree);
+
+    expect(screen.getByTestId('incident-guide-page-ready')).toBeInTheDocument();
+    expect(screen.getByTestId('help-now-incident-scene-pack')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        getJsonTranslationValue(enDashboard.dashboard, 'member_cta_pages.incident_guide.pack_title')
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        getJsonTranslationValue(
+          enDashboard.dashboard,
+          'member_cta_pages.incident_guide.disclaimers.not_legal_advice'
+        )
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        getJsonTranslationValue(
+          enDashboard.dashboard,
+          'member_cta_pages.incident_guide.disclaimers.not_medical_advice'
+        )
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        getJsonTranslationValue(
+          enDashboard.dashboard,
+          'member_cta_pages.incident_guide.no_pii_value'
+        )
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: getJsonTranslationValue(
+          enDashboard.dashboard,
+          'member_cta_pages.incident_guide.primary'
+        ),
+      })
+    ).toHaveAttribute('href', '/member/claims/new');
+    expect(
+      screen.getByRole('link', {
+        name: getJsonTranslationValue(
+          enDashboard.dashboard,
+          'member_cta_pages.incident_guide.secondary'
+        ),
+      })
+    ).toHaveAttribute('href', '/member/help');
+  });
 });

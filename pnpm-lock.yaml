@@ -159,6 +159,9 @@ importers:
       '@interdomestik/domain-analytics':
         specifier: workspace:*
         version: link:../../packages/domain-analytics
+      '@interdomestik/domain-assistance':
+        specifier: workspace:*
+        version: link:../../packages/domain-assistance
       '@interdomestik/domain-claims':
         specifier: workspace:*
         version: link:../../packages/domain-claims
