@@ -72,6 +72,24 @@ export const PROCEDURE_GUIDE_CODES = [
 
 export type ProcedureGuideCode = (typeof PROCEDURE_GUIDE_CODES)[number];
 
+const ASSISTANCE_EVIDENCE_KINDS = [
+  'checklist_item',
+  'country_rule',
+  'member_statement_summary',
+  'document_reference',
+  'professional_review_reference',
+  'agreement_reference',
+  'consent_reference',
+  'finance_audit_reference',
+] as const satisfies readonly AssistanceEvidenceKind[];
+
+const COUNTRY_METADATA_TEXT_FIELDS = [
+  'country',
+  'sourceReference',
+  'owner',
+  'lastReviewed',
+] as const satisfies readonly (keyof CountryRuleMetadata)[];
+
 export type ProcedureGuideReadinessKind =
   | 'ready'
   | 'requires_member_zone'
@@ -178,133 +196,84 @@ export function evaluateProcedureGuideReadiness(
   const minimumConfidence = minimumProcedureConfidence(input.minimumConfidence);
   const jurisdiction = normalizeCountry(input.jurisdiction);
   const metadata = completeMetadataFromRules(input.rules);
-  const base = {
-    minimumConfidence,
-    countryRuleMetadata: metadata,
-    jurisdiction,
-    scenario: input.scenario,
-    participantRole: input.participantRole,
-    requestedRuleFamily: input.requestedRuleFamily,
-    legalBasisReference: input.legalBasisReference,
+  const base = procedureReadinessContext(input, jurisdiction, minimumConfidence, metadata);
+  const closed = (
+    kind: Exclude<ProcedureGuideReadinessKind, 'ready'>,
+    outcomeKind: AssistanceOutcomeKind,
+    countryRuleMetadata: readonly CountryRuleMetadata[] = base.countryRuleMetadata
+  ) => {
+    return procedureReadiness({
+      ...base,
+      countryRuleMetadata,
+      kind,
+      outcomeKind,
+    });
   };
 
   if (input.zone === 'professional_recovery' || input.requiresProfessionalRecovery === true) {
-    return procedureReadiness({
-      ...base,
-      kind: 'requires_professional_recovery',
-      outcomeKind: 'requires_professional_recovery',
-    });
+    return closed('requires_professional_recovery', 'requires_professional_recovery');
   }
 
   if (input.zone !== 'member') {
-    return procedureReadiness({
-      ...base,
-      kind: 'requires_member_zone',
-      outcomeKind: 'requires_member_zone',
-    });
+    return closed('requires_member_zone', 'requires_member_zone');
   }
 
   if (jurisdiction.length === 0) {
-    return procedureReadiness({
-      ...base,
-      kind: 'missing_jurisdiction',
-      outcomeKind: 'manual_review_required',
-    });
+    return closed('missing_jurisdiction', 'manual_review_required');
   }
 
   if (!isProcedureGuideRuleFamily(input.requestedRuleFamily)) {
-    return procedureReadiness({
-      ...base,
-      kind: 'unsupported_rule_family',
-      outcomeKind: 'uncertain',
-    });
+    return closed('unsupported_rule_family', 'uncertain');
   }
 
   if (!isProcedureGuideScenario(input.scenario)) {
-    return procedureReadiness({
-      ...base,
-      kind: 'unsupported_scenario',
-      outcomeKind: 'uncertain',
-    });
+    return closed('unsupported_scenario', 'uncertain');
   }
 
   if (!isProcedureGuideParticipantRole(input.participantRole)) {
-    return procedureReadiness({
-      ...base,
-      kind: 'unsupported_role',
-      outcomeKind: 'uncertain',
-    });
+    return closed('unsupported_role', 'uncertain');
   }
 
   const applicableRules = input.rules.filter(rule => isApplicableRule(rule, input, jurisdiction));
   const relevantRules = input.rules.filter(rule => isRelevantProcedureRule(rule, input));
 
   if (applicableRules.length === 0) {
-    return procedureReadiness({
-      ...base,
-      kind: 'missing_rule',
-      outcomeKind: 'manual_review_required',
-    });
+    return closed('missing_rule', 'manual_review_required');
   }
 
   if (applicableRules.some(rule => !isCompleteCountryRuleMetadata(rule.metadata))) {
-    return procedureReadiness({
-      ...base,
-      kind: 'metadata_incomplete',
-      outcomeKind: 'manual_review_required',
-    });
+    return closed('metadata_incomplete', 'manual_review_required');
   }
 
-  const applicableMetadata = applicableRules.map(rule => rule.metadata as CountryRuleMetadata);
-  const metadataCountryMismatch = applicableRules.some(rule => {
-    return normalizeCountry(rule.metadata?.country) !== jurisdiction;
+  const applicableMetadata = collectApplicableRuleMetadata(applicableRules);
+  const conflictingSourceReferences = procedureConflictingSourceReferences({
+    explicitReferences: input.conflictingSourceReferences,
+    relevantRules,
+    applicableRules,
+    jurisdiction,
   });
-  const conflictingSourceReferences = [
-    ...(input.conflictingSourceReferences ?? []),
-    ...findContradictingSourceReferences(relevantRules),
-  ];
-
-  if (metadataCountryMismatch) {
-    conflictingSourceReferences.push('procedure-guide/metadata-country-mismatch');
-  }
 
   if (applicableRules.some(rule => rule.requiresProfessionalRecovery === true)) {
-    return procedureReadiness({
-      ...base,
-      countryRuleMetadata: applicableMetadata,
-      kind: 'requires_professional_recovery',
-      outcomeKind: 'requires_professional_recovery',
-    });
+    return closed(
+      'requires_professional_recovery',
+      'requires_professional_recovery',
+      applicableMetadata
+    );
   }
 
   if (applicableRules.some(rule => rule.ruleFamilySupported === false)) {
-    return procedureReadiness({
-      ...base,
-      countryRuleMetadata: applicableMetadata,
-      kind: 'unsupported_rule_family',
-      outcomeKind: 'uncertain',
-    });
+    return closed('unsupported_rule_family', 'uncertain', applicableMetadata);
   }
 
   if (applicableRules.some(rule => rule.roleSupported === false)) {
-    return procedureReadiness({
-      ...base,
-      countryRuleMetadata: applicableMetadata,
-      kind: 'unsupported_role',
-      outcomeKind: 'uncertain',
-    });
+    return closed('unsupported_role', 'uncertain', applicableMetadata);
   }
 
   if (
     input.requiresLegalInterpretation === true ||
     applicableRules.some(rule => rule.requiresLegalInterpretation === true)
   ) {
-    return procedureReadiness({
-      ...base,
-      countryRuleMetadata: applicableMetadata,
-      kind: 'out_of_scope',
-      outcomeKind: 'out_of_scope',
-    });
+    return closed('out_of_scope', 'out_of_scope', applicableMetadata);
   }
 
   if (
@@ -314,21 +283,13 @@ export function evaluateProcedureGuideReadiness(
         rule.conclusion === 'professional_review_required'
     )
   ) {
-    return procedureReadiness({
-      ...base,
-      countryRuleMetadata: applicableMetadata,
-      kind: 'professional_review_required',
-      outcomeKind: 'manual_review_required',
-    });
+    return closed('professional_review_required', 'manual_review_required', applicableMetadata);
   }
 
-  const countryRuleReadiness = evaluateCountryRuleReadiness({
+  const countryRuleReadiness = evaluateProcedureCountryReadiness(input, {
     metadata: applicableMetadata,
-    now: input.now,
-    staleAfterDays: normalizeStaleAfterDays(input.staleAfterDays),
     minimumConfidence,
-    supportedCountry: !applicableRules.some(rule => rule.supportedCountry === false),
-    scenarioSupported: !applicableRules.some(rule => rule.scenarioSupported === false),
+    rules: applicableRules,
     conflictingSourceReferences,
   });
 
@@ -349,21 +310,19 @@ export function evaluateProcedureGuideReadiness(
   }
 
   if (applicableRules.some(rule => rule.conclusion !== 'procedure_guide_supported')) {
-    return procedureReadiness({
-      ...base,
-      countryRuleMetadata: countryRuleReadiness.countryRuleMetadata,
-      kind: 'unsupported_procedure',
-      outcomeKind: 'manual_review_required',
-    });
+    return closed(
+      'unsupported_procedure',
+      'manual_review_required',
+      countryRuleReadiness.countryRuleMetadata
+    );
   }
 
   if (applicableRules.some(rule => uniqueNonEmptyStrings(rule.procedureCodes ?? []).length === 0)) {
-    return procedureReadiness({
-      ...base,
-      countryRuleMetadata: countryRuleReadiness.countryRuleMetadata,
-      kind: 'unsupported_procedure',
-      outcomeKind: 'manual_review_required',
-    });
+    return closed(
+      'unsupported_procedure',
+      'manual_review_required',
+      countryRuleReadiness.countryRuleMetadata
+    );
   }
 
   const procedureCodes = uniqueNonEmptyStrings(
@@ -371,23 +330,21 @@ export function evaluateProcedureGuideReadiness(
   );
 
   if (procedureCodes.some(code => !isProcedureGuideCode(code))) {
-    return procedureReadiness({
-      ...base,
-      countryRuleMetadata: countryRuleReadiness.countryRuleMetadata,
-      kind: 'unsupported_procedure_code',
-      outcomeKind: 'manual_review_required',
-    });
+    return closed(
+      'unsupported_procedure_code',
+      'manual_review_required',
+      countryRuleReadiness.countryRuleMetadata
+    );
   }
 
   const deadlineReadiness = evaluateDeadlineReferences(input, applicableRules);
 
   if (deadlineReadiness.kind !== 'ready') {
-    return procedureReadiness({
-      ...base,
-      countryRuleMetadata: countryRuleReadiness.countryRuleMetadata,
-      kind: deadlineReadiness.kind,
-      outcomeKind: 'manual_review_required',
-    });
+    return closed(
+      deadlineReadiness.kind,
+      'manual_review_required',
+      countryRuleReadiness.countryRuleMetadata
+    );
   }
 
   return {
@@ -415,18 +372,7 @@ export function createProcedurePack(input: CreateProcedurePackInput): ProcedureP
     ...input,
     zone: 'member',
   });
-  const outcome = createAssistanceOutcome({
-    kind: readiness.outcomeKind,
-    zone: 'member',
-    reasons: readiness.reasons,
-    evidence: input.evidence,
-    countryRuleMetadata: readiness.countryRuleMetadata,
-    humanReviewRequired: readiness.humanReviewRequired,
-    disclaimers: readiness.requiredDisclaimers,
-    provenance: input.provenance,
-    piiClassification: input.piiClassification ?? 'identifier_minimal',
-    createdAt: input.createdAt,
-  }) as AssistanceOutcome & { zone: 'member' };
+  const outcome = createProcedureOutcome(input, readiness);
   const requiredHumanReview = readiness.humanReviewRequired || outcome.humanReviewRequired;
 
   return {
@@ -487,6 +433,98 @@ function procedureReadiness(params: {
   };
 }
 
+function procedureReadinessContext(
+  input: ProcedureGuideReadinessInput,
+  jurisdiction: string,
+  minimumConfidence: number,
+  countryRuleMetadata: readonly CountryRuleMetadata[]
+) {
+  return {
+    requestedRuleFamily: input.requestedRuleFamily,
+    participantRole: input.participantRole,
+    scenario: input.scenario,
+    legalBasisReference: input.legalBasisReference,
+    jurisdiction,
+    countryRuleMetadata,
+    minimumConfidence,
+  };
+}
+
+function collectApplicableRuleMetadata(
+  rules: readonly ProcedureGuideRuleInput[]
+): readonly CountryRuleMetadata[] {
+  const metadata: CountryRuleMetadata[] = [];
+
+  for (const rule of rules) {
+    metadata.push(rule.metadata as CountryRuleMetadata);
+  }
+
+  return metadata;
+}
+
+function procedureConflictingSourceReferences(params: {
+  explicitReferences?: readonly string[];
+  relevantRules: readonly ProcedureGuideRuleInput[];
+  applicableRules: readonly ProcedureGuideRuleInput[];
+  jurisdiction: string;
+}): string[] {
+  const sourceReferences = [
+    ...(params.explicitReferences ?? []),
+    ...findContradictingSourceReferences(params.relevantRules),
+  ];
+
+  const hasCountryMismatch = params.applicableRules.some(rule => {
+    return normalizeCountry(rule.metadata?.country) !== params.jurisdiction;
+  });
+
+  if (hasCountryMismatch) {
+    sourceReferences.push('procedure-guide/metadata-country-mismatch');
+  }
+
+  return sourceReferences;
+}
+
+function evaluateProcedureCountryReadiness(
+  input: ProcedureGuideReadinessInput,
+  params: {
+    metadata: readonly CountryRuleMetadata[];
+    minimumConfidence: number;
+    rules: readonly ProcedureGuideRuleInput[];
+    conflictingSourceReferences: readonly string[];
+  }
+): ReturnType<typeof evaluateCountryRuleReadiness> {
+  const supportedCountry = params.rules.every(rule => rule.supportedCountry !== false);
+  const scenarioSupported = params.rules.every(rule => rule.scenarioSupported !== false);
+
+  return evaluateCountryRuleReadiness({
+    conflictingSourceReferences: params.conflictingSourceReferences,
+    scenarioSupported,
+    supportedCountry,
+    minimumConfidence: params.minimumConfidence,
+    staleAfterDays: normalizeStaleAfterDays(input.staleAfterDays),
+    now: input.now,
+    metadata: params.metadata,
+  });
+}
+
+function createProcedureOutcome(
+  input: CreateProcedurePackInput,
+  readiness: ProcedureGuideReadiness
+): AssistanceOutcome & { zone: 'member' } {
+  return createAssistanceOutcome({
+    createdAt: input.createdAt,
+    piiClassification: input.piiClassification ?? 'identifier_minimal',
+    provenance: input.provenance,
+    disclaimers: readiness.requiredDisclaimers,
+    humanReviewRequired: readiness.humanReviewRequired,
+    countryRuleMetadata: readiness.countryRuleMetadata,
+    evidence: input.evidence,
+    reasons: readiness.reasons,
+    zone: 'member',
+    kind: readiness.outcomeKind,
+  }) as AssistanceOutcome & { zone: 'member' };
+}
+
 function isRelevantProcedureRule(
   rule: ProcedureGuideRuleInput,
   input: ProcedureGuideReadinessInput
@@ -503,13 +541,12 @@ function isApplicableRule(
   input: ProcedureGuideReadinessInput,
   jurisdiction: string
 ): boolean {
-  return (
-    normalizeCountry(rule.country) === jurisdiction &&
-    rule.jurisdictionRole === 'incident_country' &&
-    rule.scenario === input.scenario &&
-    rule.participantRole === input.participantRole &&
-    rule.ruleFamily === input.requestedRuleFamily
-  );
+  return [
+    normalizeCountry(rule.country) === jurisdiction && rule.jurisdictionRole === 'incident_country',
+    rule.scenario === input.scenario,
+    rule.participantRole === input.participantRole,
+    rule.ruleFamily === input.requestedRuleFamily,
+  ].every(Boolean);
 }
 
 function evaluateDeadlineReferences(
@@ -639,21 +676,21 @@ function procedureKindFromCountryRule(
 function completeMetadataFromRules(
   rules: readonly ProcedureGuideRuleInput[]
 ): readonly CountryRuleMetadata[] {
-  return rules
-    .map(rule => rule.metadata)
-    .filter((metadata): metadata is CountryRuleMetadata => isCompleteCountryRuleMetadata(metadata));
+  const metadata: CountryRuleMetadata[] = [];
+
+  for (const rule of rules) {
+    if (isCompleteCountryRuleMetadata(rule.metadata)) {
+      metadata.push(rule.metadata);
+    }
+  }
+
+  return metadata;
 }
 
 function findContradictingSourceReferences(
   rules: readonly ProcedureGuideRuleInput[]
 ): readonly string[] {
-  const conclusionGroups = new Map<
-    string,
-    {
-      conclusions: Set<ProcedureGuideRuleConclusion>;
-      sourceReferences: string[];
-    }
-  >();
+  const groupedRules = new Map<string, ProcedureGuideRuleInput[]>();
 
   for (const rule of rules) {
     if (rule.conclusion == null) {
@@ -661,27 +698,22 @@ function findContradictingSourceReferences(
     }
 
     const subject = conclusionSubject(rule);
-    const group =
-      conclusionGroups.get(subject) ??
-      ({
-        conclusions: new Set<ProcedureGuideRuleConclusion>(),
-        sourceReferences: [],
-      } satisfies {
-        conclusions: Set<ProcedureGuideRuleConclusion>;
-        sourceReferences: string[];
-      });
-
-    group.conclusions.add(rule.conclusion);
-    if (isCompleteCountryRuleMetadata(rule.metadata)) {
-      group.sourceReferences.push(rule.metadata.sourceReference);
-    }
-
-    conclusionGroups.set(subject, group);
+    const nextGroup = groupedRules.get(subject) ?? [];
+    nextGroup.push(rule);
+    groupedRules.set(subject, nextGroup);
   }
 
-  return [...conclusionGroups.values()]
-    .filter(group => group.conclusions.size > 1)
-    .flatMap(group => group.sourceReferences);
+  return [...groupedRules.values()].flatMap(group => {
+    const uniqueConclusions = new Set(group.map(rule => rule.conclusion));
+
+    if (uniqueConclusions.size <= 1) {
+      return [];
+    }
+
+    return group.flatMap(rule => {
+      return isCompleteCountryRuleMetadata(rule.metadata) ? [rule.metadata.sourceReference] : [];
+    });
+  });
 }
 
 function conclusionSubject(rule: ProcedureGuideRuleInput): string {
@@ -697,18 +729,11 @@ function conclusionSubject(rule: ProcedureGuideRuleInput): string {
 function isCompleteCountryRuleMetadata(
   metadata?: ProcedureGuideCountryRuleMetadataInput | null
 ): metadata is CountryRuleMetadata {
-  if (metadata == null) {
+  if (metadata == null || !COUNTRY_METADATA_TEXT_FIELDS.every(field => isFilled(metadata[field]))) {
     return false;
   }
 
-  return (
-    hasNonEmptyString(metadata.country) &&
-    hasNonEmptyString(metadata.sourceReference) &&
-    hasNonEmptyString(metadata.owner) &&
-    hasNonEmptyString(metadata.lastReviewed) &&
-    typeof metadata.confidence === 'number' &&
-    Number.isFinite(metadata.confidence)
-  );
+  return isFiniteConfidence(metadata.confidence);
 }
 
 function isCompleteDeadlineReference(
@@ -722,12 +747,17 @@ function isCompleteDeadlineReference(
 } {
   return (
     reference != null &&
-    hasNonEmptyString(reference.kind) &&
-    hasNonEmptyString(reference.referenceId) &&
-    hasNonEmptyString(reference.sourceReference) &&
-    hasNonEmptyString(reference.lastReviewed) &&
-    typeof reference.confidence === 'number' &&
-    Number.isFinite(reference.confidence)
+    isAssistanceEvidenceKind(reference.kind) &&
+    isFilled(reference.referenceId) &&
+    isFilled(reference.sourceReference) &&
+    isFilled(reference.lastReviewed) &&
+    isFiniteConfidence(reference.confidence)
+  );
+}
+
+function isAssistanceEvidenceKind(value: unknown): value is AssistanceEvidenceKind {
+  return (
+    typeof value === 'string' && ASSISTANCE_EVIDENCE_KINDS.includes(value as AssistanceEvidenceKind)
   );
 }
 
@@ -748,19 +778,15 @@ function isProcedureGuideCode(value: string): value is ProcedureGuideCode {
 }
 
 function minimumProcedureConfidence(value: number | undefined): number {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
+  if (!isFiniteConfidence(value) || value < 0 || value > 1) {
     return MINIMUM_COUNTRY_RULE_CONFIDENCE;
   }
 
-  return Math.max(value, MINIMUM_COUNTRY_RULE_CONFIDENCE);
+  return value < MINIMUM_COUNTRY_RULE_CONFIDENCE ? MINIMUM_COUNTRY_RULE_CONFIDENCE : value;
 }
 
 function normalizeStaleAfterDays(value: number | undefined): number | undefined {
-  if (value == null) {
-    return undefined;
-  }
-
-  return Number.isFinite(value) && value > 0 ? value : undefined;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
 function isDeadlineReferenceStale(
@@ -768,13 +794,13 @@ function isDeadlineReferenceStale(
   now: Date,
   staleAfterDays = 180
 ): boolean {
-  const reviewedAt = new Date(reference.lastReviewed ?? '');
-  if (Number.isNaN(reviewedAt.getTime())) {
+  const reviewedAtMs = Date.parse(reference.lastReviewed ?? '');
+  if (!Number.isFinite(reviewedAtMs)) {
     return true;
   }
 
   const staleAfterMs = staleAfterDays * 24 * 60 * 60 * 1000;
-  return now.getTime() - reviewedAt.getTime() > staleAfterMs;
+  return now.getTime() - reviewedAtMs > staleAfterMs;
 }
 
 function inputMinimum(input: ProcedureGuideReadinessInput): number {
@@ -782,13 +808,26 @@ function inputMinimum(input: ProcedureGuideReadinessInput): number {
 }
 
 function uniqueNonEmptyStrings(values: readonly string[]): readonly string[] {
-  return [...new Set(values.map(value => value.trim()).filter(value => value.length > 0))];
+  const output: string[] = [];
+
+  for (const value of values) {
+    const normalized = value.trim();
+    if (normalized.length > 0 && !output.includes(normalized)) {
+      output.push(normalized);
+    }
+  }
+
+  return output;
 }
 
-function hasNonEmptyString(value: string | undefined): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
+function isFilled(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
+}
+
+function isFiniteConfidence(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
 }
 
 function normalizeCountry(country: string | undefined): string {
-  return country?.trim().toUpperCase() ?? '';
+  return typeof country === 'string' ? country.trim().toLocaleUpperCase('en-US') : '';
 }

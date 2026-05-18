@@ -86,6 +86,21 @@ function pack(input: Partial<CreateProcedurePackInput> = {}) {
   });
 }
 
+function aiAssistedProcedureProvenance(): CreateProcedurePackInput['provenance'] {
+  return {
+    source: 'ai_assisted',
+    generatedBy: 'domain-assistance',
+    ai: {
+      aiConfidence: 0.91,
+      aiModelVersion: 'gpt-5.5',
+      aiWorkflowName: 'procedure_guide_extract',
+      aiPromptOrSchemaVersion: 'assist-procedure-guide-v1',
+      aiRunId: 'airun_procedure_guide_123',
+      role: 'classification',
+    },
+  };
+}
+
 function expectClosed(
   result: ReturnType<typeof readiness>,
   expected: {
@@ -107,29 +122,23 @@ describe('procedure guide readiness', () => {
   it('creates a member-zone procedure pack for supported rules without final legal advice', () => {
     const result = pack();
 
-    expect(result).toMatchObject({
-      packType: 'procedure',
-      zone: 'member',
-      requiredHumanReview: false,
-      procedureCodes: ['notice_counterparty_insurer', 'preserve_incident_documents'],
-      deadlineReferences: [
-        {
-          kind: 'country_rule',
-          referenceId: 'deadline_notice_de_2026_05',
-          summaryKey: 'assistance.procedureGuide.deadline.notice.de',
-          sourceReference: 'procedure-guide/de/deadline-notice/2026-05',
-          lastReviewed: '2026-05-01',
-          confidence: MINIMUM_COUNTRY_RULE_CONFIDENCE,
-        },
-      ],
-      piiClassification: 'identifier_minimal',
-    });
-    expect(result.outcome).toMatchObject({
-      kind: 'eligible',
-      zone: 'member',
-      humanReviewRequired: false,
-      piiClassification: 'identifier_minimal',
-    });
+    expect(result.packType).toBe('procedure');
+    expect(result.zone).toBe('member');
+    expect(result.requiredHumanReview).toBe(false);
+    expect(result.procedureCodes).toEqual([
+      'notice_counterparty_insurer',
+      'preserve_incident_documents',
+    ]);
+    expect(result.deadlineReferences).toEqual([
+      {
+        ...deadline(),
+      },
+    ]);
+    expect(result.piiClassification).toBe('identifier_minimal');
+    expect(result.outcome.kind).toBe('eligible');
+    expect(result.outcome.zone).toBe('member');
+    expect(result.outcome.humanReviewRequired).toBe(false);
+    expect(result.outcome.piiClassification).toBe('identifier_minimal');
     expect(result.requiredDisclaimers).toEqual(
       expect.arrayContaining([
         'not_legal_advice',
@@ -138,10 +147,8 @@ describe('procedure guide readiness', () => {
       ])
     );
     expect(result.countryRuleMetadata).toEqual([metadata('DE')]);
-    expect(result.provenance).toEqual({
-      source: 'rules',
-      generatedBy: 'domain-assistance',
-    });
+    expect(result.provenance.source).toBe('rules');
+    expect(result.provenance.generatedBy).toBe('domain-assistance');
   });
 
   it('can carry a structural legal-basis readiness reference', () => {
@@ -183,24 +190,30 @@ describe('procedure guide readiness', () => {
     expectClosed(readiness(input), expected);
   });
 
-  it('fails closed when country-rule metadata is incomplete', () => {
-    const result = readiness({
-      rules: [
-        rule({
-          metadata: {
-            country: 'DE',
-            sourceReference: 'procedure-guide/de/2026-05',
-            lastReviewed: '2026-05-01',
-            confidence: 0.91,
-          },
-        }),
-      ],
-    });
-
-    expectClosed(result, {
-      kind: 'metadata_incomplete',
-      outcomeKind: 'manual_review_required',
-    });
+  it.each([
+    [
+      'fails closed when country-rule metadata is incomplete',
+      {
+        rules: [
+          rule({
+            metadata: {
+              country: 'DE',
+              sourceReference: 'procedure-guide/de/2026-05',
+              lastReviewed: '2026-05-01',
+              confidence: 0.91,
+            },
+          }),
+        ],
+      },
+      { kind: 'metadata_incomplete', outcomeKind: 'manual_review_required' },
+    ],
+    [
+      'fails closed when a country is unsupported',
+      { rules: [rule({ supportedCountry: false })] },
+      { kind: 'unsupported_country', outcomeKind: 'unsupported_country' },
+    ],
+  ] as const)('%s', (_name, input, expected) => {
+    expectClosed(readiness(input), expected);
   });
 
   it('fails closed when an applicable rule is stale', () => {
@@ -259,17 +272,6 @@ describe('procedure guide readiness', () => {
 
     expect(result.kind).toBe('conflicting');
     expect(result.outcomeKind).toBe('manual_review_required');
-  });
-
-  it('fails closed when a country is unsupported', () => {
-    const result = readiness({
-      rules: [rule({ supportedCountry: false })],
-    });
-
-    expectClosed(result, {
-      kind: 'unsupported_country',
-      outcomeKind: 'unsupported_country',
-    });
   });
 
   it.each([
@@ -407,6 +409,21 @@ describe('procedure guide readiness', () => {
       { rules: [rule({ deadlineReferences: [deadline({ confidence: 0.79 })] })] },
       { kind: 'deadline_low_confidence', outcomeKind: 'manual_review_required' },
     ],
+    [
+      'fails closed when imported deadline evidence uses an unsupported kind',
+      {
+        rules: [
+          rule({
+            deadlineReferences: [
+              deadline({
+                kind: 'unsupported_evidence_kind',
+              } as unknown as Partial<ProcedureDeadlineReferenceInput>),
+            ],
+          }),
+        ],
+      },
+      { kind: 'deadline_missing', outcomeKind: 'manual_review_required' },
+    ],
   ] as const)('%s', (_name, input, expected) => {
     expectClosed(readiness(input), expected);
   });
@@ -453,18 +470,7 @@ describe('procedure guide readiness', () => {
 
   it('keeps pack-level human review aligned when AI-assisted provenance is supplied', () => {
     const result = pack({
-      provenance: {
-        source: 'ai_assisted',
-        generatedBy: 'domain-assistance',
-        ai: {
-          aiConfidence: 0.91,
-          aiModelVersion: 'gpt-5.5',
-          aiWorkflowName: 'procedure_guide_extract',
-          aiPromptOrSchemaVersion: 'assist-procedure-guide-v1',
-          aiRunId: 'airun_procedure_guide_123',
-          role: 'classification',
-        },
-      },
+      provenance: aiAssistedProcedureProvenance(),
     });
 
     expect(result.outcome.kind).toBe('manual_review_required');
