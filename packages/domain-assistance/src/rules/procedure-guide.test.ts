@@ -86,6 +86,23 @@ function pack(input: Partial<CreateProcedurePackInput> = {}) {
   });
 }
 
+function expectClosed(
+  result: ReturnType<typeof readiness>,
+  expected: {
+    kind: ReturnType<typeof readiness>['kind'];
+    outcomeKind: ReturnType<typeof readiness>['outcomeKind'];
+    procedureCodes?: readonly string[];
+  }
+) {
+  expect(result.kind).toBe(expected.kind);
+  expect(result.outcomeKind).toBe(expected.outcomeKind);
+  expect(result.humanReviewRequired).toBe(true);
+
+  if (expected.procedureCodes != null) {
+    expect(result.procedureCodes).toEqual(expected.procedureCodes);
+  }
+}
+
 describe('procedure guide readiness', () => {
   it('creates a member-zone procedure pack for supported rules without final legal advice', () => {
     const result = pack();
@@ -138,36 +155,32 @@ describe('procedure guide readiness', () => {
     expect(result.legalBasisReference).toEqual(legalBasisReference);
   });
 
-  it('requires member-zone access for procedure guidance', () => {
-    const result = readiness({ zone: 'free' });
-
-    expect(result.kind).toBe('requires_member_zone');
-    expect(result.outcomeKind).toBe('requires_member_zone');
-    expect(result.humanReviewRequired).toBe(true);
-  });
-
-  it('fails closed for Professional-Recovery-like inputs', () => {
-    const result = readiness({ requiresProfessionalRecovery: true });
-
-    expect(result.kind).toBe('requires_professional_recovery');
-    expect(result.outcomeKind).toBe('requires_professional_recovery');
-    expect(result.humanReviewRequired).toBe(true);
-  });
-
-  it('fails closed when jurisdiction is missing', () => {
-    const result = readiness({ jurisdiction: '' });
-
-    expect(result.kind).toBe('missing_jurisdiction');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.humanReviewRequired).toBe(true);
-  });
-
-  it('fails closed when an applicable procedure rule is missing', () => {
-    const result = readiness({ rules: [] });
-
-    expect(result.kind).toBe('missing_rule');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.humanReviewRequired).toBe(true);
+  it.each([
+    [
+      'requires member-zone access for procedure guidance',
+      { zone: 'free' },
+      { kind: 'requires_member_zone', outcomeKind: 'requires_member_zone' },
+    ],
+    [
+      'fails closed for Professional-Recovery-like inputs',
+      { requiresProfessionalRecovery: true },
+      {
+        kind: 'requires_professional_recovery',
+        outcomeKind: 'requires_professional_recovery',
+      },
+    ],
+    [
+      'fails closed when jurisdiction is missing',
+      { jurisdiction: '' },
+      { kind: 'missing_jurisdiction', outcomeKind: 'manual_review_required' },
+    ],
+    [
+      'fails closed when an applicable procedure rule is missing',
+      { rules: [] },
+      { kind: 'missing_rule', outcomeKind: 'manual_review_required' },
+    ],
+  ] as const)('%s', (_name, input, expected) => {
+    expectClosed(readiness(input), expected);
   });
 
   it('fails closed when country-rule metadata is incomplete', () => {
@@ -184,9 +197,10 @@ describe('procedure guide readiness', () => {
       ],
     });
 
-    expect(result.kind).toBe('metadata_incomplete');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.humanReviewRequired).toBe(true);
+    expectClosed(result, {
+      kind: 'metadata_incomplete',
+      outcomeKind: 'manual_review_required',
+    });
   });
 
   it('fails closed when an applicable rule is stale', () => {
@@ -221,9 +235,10 @@ describe('procedure guide readiness', () => {
       ],
     });
 
-    expect(result.kind).toBe('conflicting');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.humanReviewRequired).toBe(true);
+    expectClosed(result, {
+      kind: 'conflicting',
+      outcomeKind: 'manual_review_required',
+    });
   });
 
   it('fails closed for cross-jurisdiction procedure contradictions', () => {
@@ -251,90 +266,77 @@ describe('procedure guide readiness', () => {
       rules: [rule({ supportedCountry: false })],
     });
 
-    expect(result.kind).toBe('unsupported_country');
-    expect(result.outcomeKind).toBe('unsupported_country');
-    expect(result.humanReviewRequired).toBe(true);
-  });
-
-  it('fails closed when a procedure code is outside the supported registry', () => {
-    const result = readiness({
-      rules: [rule({ procedureCodes: ['activate_professional_recovery_without_consent'] })],
+    expectClosed(result, {
+      kind: 'unsupported_country',
+      outcomeKind: 'unsupported_country',
     });
-
-    expect(result.kind).toBe('unsupported_procedure_code');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.procedureCodes).toEqual([]);
-    expect(result.humanReviewRequired).toBe(true);
   });
 
-  it('fails closed when one applicable rule omits procedure codes', () => {
-    const result = readiness({
-      rules: [
-        rule(),
-        rule({
-          metadata: {
-            ...metadata('DE'),
-            sourceReference: 'procedure-guide/de/second-rule',
-          },
-          procedureCodes: [],
-        }),
-      ],
-    });
-
-    expect(result.kind).toBe('unsupported_procedure');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.procedureCodes).toEqual([]);
-    expect(result.humanReviewRequired).toBe(true);
-  });
-
-  it('fails closed when the scenario is unsupported', () => {
-    const result = readiness({
-      rules: [rule({ scenarioSupported: false })],
-    });
-
-    expect(result.kind).toBe('unsupported_scenario');
-    expect(result.outcomeKind).toBe('uncertain');
-    expect(result.humanReviewRequired).toBe(true);
-  });
-
-  it('fails closed when the participant role is unsupported', () => {
-    const result = readiness({
-      rules: [rule({ roleSupported: false })],
-    });
-
-    expect(result.kind).toBe('unsupported_role');
-    expect(result.outcomeKind).toBe('uncertain');
-    expect(result.humanReviewRequired).toBe(true);
-  });
-
-  it('fails closed when the requested rule family is unsupported', () => {
-    const result = readiness({ requestedRuleFamily: 'recovery_activation_procedure' });
-
-    expect(result.kind).toBe('unsupported_rule_family');
-    expect(result.outcomeKind).toBe('uncertain');
-    expect(result.humanReviewRequired).toBe(true);
-  });
-
-  it('fails closed when an encoded procedure conclusion is unsupported', () => {
-    const result = readiness({
-      rules: [rule({ conclusion: 'procedure_guide_unsupported' })],
-    });
-
-    expect(result.kind).toBe('unsupported_procedure');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.procedureCodes).toEqual([]);
-    expect(result.humanReviewRequired).toBe(true);
-  });
-
-  it('fails closed when an applicable rule does not encode a procedure conclusion', () => {
-    const result = readiness({
-      rules: [rule({ conclusion: undefined })],
-    });
-
-    expect(result.kind).toBe('unsupported_procedure');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.procedureCodes).toEqual([]);
-    expect(result.humanReviewRequired).toBe(true);
+  it.each([
+    [
+      'fails closed when a procedure code is outside the supported registry',
+      { rules: [rule({ procedureCodes: ['activate_professional_recovery_without_consent'] })] },
+      {
+        kind: 'unsupported_procedure_code',
+        outcomeKind: 'manual_review_required',
+        procedureCodes: [],
+      },
+    ],
+    [
+      'fails closed when one applicable rule omits procedure codes',
+      {
+        rules: [
+          rule(),
+          rule({
+            metadata: {
+              ...metadata('DE'),
+              sourceReference: 'procedure-guide/de/second-rule',
+            },
+            procedureCodes: [],
+          }),
+        ],
+      },
+      {
+        kind: 'unsupported_procedure',
+        outcomeKind: 'manual_review_required',
+        procedureCodes: [],
+      },
+    ],
+    [
+      'fails closed when the scenario is unsupported',
+      { rules: [rule({ scenarioSupported: false })] },
+      { kind: 'unsupported_scenario', outcomeKind: 'uncertain' },
+    ],
+    [
+      'fails closed when the participant role is unsupported',
+      { rules: [rule({ roleSupported: false })] },
+      { kind: 'unsupported_role', outcomeKind: 'uncertain' },
+    ],
+    [
+      'fails closed when the requested rule family is unsupported',
+      { requestedRuleFamily: 'recovery_activation_procedure' },
+      { kind: 'unsupported_rule_family', outcomeKind: 'uncertain' },
+    ],
+    [
+      'fails closed when an encoded procedure conclusion is unsupported',
+      { rules: [rule({ conclusion: 'procedure_guide_unsupported' })] },
+      {
+        kind: 'unsupported_procedure',
+        outcomeKind: 'manual_review_required',
+        procedureCodes: [],
+      },
+    ],
+    [
+      'fails closed when an applicable rule does not encode a procedure conclusion',
+      { rules: [rule({ conclusion: undefined })] },
+      {
+        kind: 'unsupported_procedure',
+        outcomeKind: 'manual_review_required',
+        procedureCodes: [],
+      },
+    ],
+  ] as const)('%s', (_name, input, expected) => {
+    expectClosed(readiness(input), expected);
   });
 
   it('fails closed when confidence falls below the 0.80 launch floor', () => {
@@ -342,10 +344,11 @@ describe('procedure guide readiness', () => {
       rules: [rule({ metadata: metadata('DE', 0.79) })],
     });
 
-    expect(result.kind).toBe('low_confidence');
-    expect(result.outcomeKind).toBe('uncertain');
+    expectClosed(result, {
+      kind: 'low_confidence',
+      outcomeKind: 'uncertain',
+    });
     expect(result.minimumConfidence).toBe(0.8);
-    expect(result.humanReviewRequired).toBe(true);
   });
 
   it('does not allow callers to lower the confidence floor', () => {
@@ -358,70 +361,54 @@ describe('procedure guide readiness', () => {
     expect(result.minimumConfidence).toBe(0.8);
   });
 
-  it('fails closed when deadline evidence is missing', () => {
-    const result = readiness({
-      rules: [rule({ deadlineReferences: [] })],
-    });
-
-    expect(result.kind).toBe('deadline_missing');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.humanReviewRequired).toBe(true);
-  });
-
-  it('fails closed when deadline evidence omits confidence', () => {
-    const result = readiness({
-      rules: [
-        rule({
-          deadlineReferences: [
-            deadline({
-              confidence: undefined,
-            }),
-          ],
-        }),
-      ],
-    });
-
-    expect(result.kind).toBe('deadline_missing');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.humanReviewRequired).toBe(true);
-  });
-
-  it('fails closed when deadline evidence is ambiguous', () => {
-    const result = readiness({
-      rules: [rule({ deadlineReferences: [deadline({ ambiguous: true })] })],
-    });
-
-    expect(result.kind).toBe('deadline_ambiguous');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.humanReviewRequired).toBe(true);
-  });
-
-  it('fails closed when deadline evidence is conflicting', () => {
-    const result = readiness({
-      rules: [
-        rule({
-          deadlineReferences: [
-            deadline({
-              conflictsWith: ['procedure-guide/de/deadline-notice-conflict'],
-            }),
-          ],
-        }),
-      ],
-    });
-
-    expect(result.kind).toBe('deadline_conflicting');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.humanReviewRequired).toBe(true);
-  });
-
-  it('fails closed when deadline evidence confidence is below the launch floor', () => {
-    const result = readiness({
-      rules: [rule({ deadlineReferences: [deadline({ confidence: 0.79 })] })],
-    });
-
-    expect(result.kind).toBe('deadline_low_confidence');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.humanReviewRequired).toBe(true);
+  it.each([
+    [
+      'fails closed when deadline evidence is missing',
+      { rules: [rule({ deadlineReferences: [] })] },
+      { kind: 'deadline_missing', outcomeKind: 'manual_review_required' },
+    ],
+    [
+      'fails closed when deadline evidence omits confidence',
+      {
+        rules: [
+          rule({
+            deadlineReferences: [
+              deadline({
+                confidence: undefined,
+              }),
+            ],
+          }),
+        ],
+      },
+      { kind: 'deadline_missing', outcomeKind: 'manual_review_required' },
+    ],
+    [
+      'fails closed when deadline evidence is ambiguous',
+      { rules: [rule({ deadlineReferences: [deadline({ ambiguous: true })] })] },
+      { kind: 'deadline_ambiguous', outcomeKind: 'manual_review_required' },
+    ],
+    [
+      'fails closed when deadline evidence is conflicting',
+      {
+        rules: [
+          rule({
+            deadlineReferences: [
+              deadline({
+                conflictsWith: ['procedure-guide/de/deadline-notice-conflict'],
+              }),
+            ],
+          }),
+        ],
+      },
+      { kind: 'deadline_conflicting', outcomeKind: 'manual_review_required' },
+    ],
+    [
+      'fails closed when deadline evidence confidence is below the launch floor',
+      { rules: [rule({ deadlineReferences: [deadline({ confidence: 0.79 })] })] },
+      { kind: 'deadline_low_confidence', outcomeKind: 'manual_review_required' },
+    ],
+  ] as const)('%s', (_name, input, expected) => {
+    expectClosed(readiness(input), expected);
   });
 
   it('fails closed when deadline evidence is stale', () => {
@@ -438,17 +425,19 @@ describe('procedure guide readiness', () => {
       ],
     });
 
-    expect(result.kind).toBe('deadline_stale');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.humanReviewRequired).toBe(true);
+    expectClosed(result, {
+      kind: 'deadline_stale',
+      outcomeKind: 'manual_review_required',
+    });
   });
 
   it('fails closed when inputs require legal interpretation beyond encoded rules', () => {
     const result = readiness({ requiresLegalInterpretation: true });
 
-    expect(result.kind).toBe('out_of_scope');
-    expect(result.outcomeKind).toBe('out_of_scope');
-    expect(result.humanReviewRequired).toBe(true);
+    expectClosed(result, {
+      kind: 'out_of_scope',
+      outcomeKind: 'out_of_scope',
+    });
   });
 
   it('requires manual review when the encoded rule requires professional review', () => {
@@ -456,9 +445,10 @@ describe('procedure guide readiness', () => {
       rules: [rule({ conclusion: 'professional_review_required' })],
     });
 
-    expect(result.kind).toBe('professional_review_required');
-    expect(result.outcomeKind).toBe('manual_review_required');
-    expect(result.humanReviewRequired).toBe(true);
+    expectClosed(result, {
+      kind: 'professional_review_required',
+      outcomeKind: 'manual_review_required',
+    });
   });
 
   it('keeps pack-level human review aligned when AI-assisted provenance is supplied', () => {
