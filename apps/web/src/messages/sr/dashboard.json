@@ -185,9 +185,45 @@
         "primary": "Otvori pogodnosti članstva"
       },
       "incident_guide": {
-        "description": "Ako se incident upravo dogodio, prvo pokrenite tok zahteva člana kako bi trijaža mogla da počne i tim vas uputi oko dokumenata i sledećih koraka.",
-        "boundary": "Ova stranica je usmeravanje za člana, a ne interni operatorov priručnik.",
-        "primary": "Otvori prijavu incidenta"
+        "description": "Help Now daje trenutna besplatna uputstva za prve minute posle incidenta. To je lista za bezbednost, očuvanje dokaza i sledeći izričiti članski korak.",
+        "boundary": "Ova stranica je Help Now lista, a ne interni operatorov priručnik.",
+        "primary": "Otvori prijavu incidenta",
+        "secondary": "Kontaktiraj člansku podršku",
+        "help_now_label": "Pomoć sada",
+        "pack_title": "Paket za mesto incidenta",
+        "pack_description": "Koristite ovaj redosled pre unošenja ličnih podataka. Ne kreira automatski zahtev, CRM lead ili predaju osoblju.",
+        "checklist_title": "Prve radnje",
+        "checklist": {
+          "scene_safety": "Pomerite se na bezbedno ako možete, obezbedite putnike i izbegnite novi rizik na mestu događaja.",
+          "emergency_services": "Najpre pozovite lokalne hitne službe ako je neko povređen, zarobljen, ugrožen ili neposredna opasnost traje.",
+          "document_scene": "Fotografišite ili snimite položaje, tablice, štetu, uslove na putu, znakove i vidljive dokaze pre pomeranja stvari.",
+          "exchange_information": "Razmenite podatke o vozaču, vozilu, osiguravaču, svedocima i nadležnima bez priznanja krivice ili potpisivanja nejasnih izjava.",
+          "record_timeline": "Zapišite vreme, mesto, smer kretanja, vremenske uslove, prisustvo policije i šta se dogodilo običnim činjenicama.",
+          "preserve_documents": "Čuvajte zajedno policijske izveštaje, medicinske beleške, račune, potvrde za vuču, fotografije i poruke za članski dosije."
+        },
+        "disclaimer_title": "Granica besplatne zone",
+        "disclaimers": {
+          "not_legal_advice": "Ovo nije pravni savet.",
+          "not_medical_advice": "Ovo nije medicinski savet.",
+          "not_insurer_assessment": "Ovo nije procena osiguravača niti odluka o odgovornosti.",
+          "not_professional_opinion": "Ovo nije profesionalno mišljenje.",
+          "educational_only": "Ovo su samo edukativna uputstva i uputstva za očuvanje dokaza.",
+          "professional_review_required": "Profesionalni pregled je potreban pre aktivnosti za Professional Recovery."
+        },
+        "member_boundary_title": "Eskalacija zahteva saglasnost",
+        "member_boundary_body": "Ako nastavite u člansku zonu, vi odlučujete šta ćete predati. Sa ove stranice se ne kreira članski zapis, zahtev, CRM lead ili predaja bez vašeg izričitog sledećeg koraka.",
+        "pack_status_title": "Status pack-a",
+        "zone_label": "Servisna zona",
+        "zones": {
+          "free": "Besplatno uputstvo"
+        },
+        "outcome_label": "Ishod",
+        "outcomes": {
+          "requires_member_zone": "Potreban je članski korak"
+        },
+        "no_pii_value": "Ovde nisu potrebni lični, medicinski niti podaci o zahtevu.",
+        "escalation_title": "Sledeći izričit korak",
+        "escalation_body": "Koristite člansko prijavljivanje kada ste spremni da povežete incident sa nalogom, ili kontaktirajte podršku ako vam treba ljudska pomoć za sledeći korak."
       }
     },
     "protection_status": {

@@ -183,9 +183,45 @@
         "primary": "Hap përfitimet e anëtarësisë"
       },
       "incident_guide": {
-        "description": "Nëse incidenti sapo ka ndodhur, nis së pari rrjedhën e kërkesës së anëtarit që triage të fillojë dhe ekipi të të udhëzojë për dokumentet dhe hapat e radhës.",
-        "boundary": "Kjo faqe është një orientim për anëtarin, jo udhëzuesi i brendshëm i operatorit.",
-        "primary": "Hap raportimin e incidentit"
+        "description": "Help Now jep udhëzim të menjëhershëm në zonën falas për minutat e para pas incidentit. Është checklist për siguri, ruajtje të provave dhe hapin e radhës të anëtarit.",
+        "boundary": "Kjo faqe është checklist Help Now, jo udhëzuesi i brendshëm i operatorit.",
+        "primary": "Hap raportimin e incidentit",
+        "secondary": "Kontakto mbështetjen e anëtarit",
+        "help_now_label": "Ndihmë tani",
+        "pack_title": "Paketa e vendngjarjes së incidentit",
+        "pack_description": "Përdore këtë rend para se të fusësh të dhëna personale. Nuk krijon automatikisht kërkesë, CRM lead apo handoff për staf.",
+        "checklist_title": "Veprimet e para",
+        "checklist": {
+          "scene_safety": "Lëviz në vend të sigurt nëse mundesh, siguro pasagjerët dhe shmang rrezik të ri në vendngjarje.",
+          "emergency_services": "Thirr së pari shërbimet lokale emergjente nëse dikush është i lënduar, i bllokuar, i kërcënuar ose rreziku vazhdon.",
+          "document_scene": "Bëj foto ose video të pozicioneve, targave, dëmit, kushteve të rrugës, shenjave dhe provave të dukshme para se gjërat të lëvizin.",
+          "exchange_information": "Shkëmbe të dhënat e shoferit, automjetit, siguruesit, dëshmitarëve dhe autoriteteve pa pranuar faj apo nënshkruar deklarata të paqarta.",
+          "record_timeline": "Shëno kohën, vendin, drejtimin e lëvizjes, motin, praninë e policisë dhe çfarë ndodhi me fakte të thjeshta.",
+          "preserve_documents": "Mbaj së bashku raportet policore, shënimet mjekësore, faturat, dëftesat e tërheqjes, fotot dhe mesazhet për dosjen e anëtarit."
+        },
+        "disclaimer_title": "Kufiri i zonës falas",
+        "disclaimers": {
+          "not_legal_advice": "Ky nuk është këshillim juridik.",
+          "not_medical_advice": "Ky nuk është këshillim mjekësor.",
+          "not_insurer_assessment": "Ky nuk është vlerësim i siguruesit apo vendim për përgjegjësi.",
+          "not_professional_opinion": "Ky nuk është opinion profesional.",
+          "educational_only": "Ky është vetëm udhëzim edukues dhe për ruajtje provash.",
+          "professional_review_required": "Shqyrtimi profesional kërkohet para veprimit për Professional Recovery."
+        },
+        "member_boundary_title": "Eskalimi kërkon pëlqim",
+        "member_boundary_body": "Nëse vazhdon në zonën e anëtarit, ti vendos çfarë të dorëzosh. Nga kjo faqe nuk krijohet rekord anëtari, kërkesë, CRM lead apo handoff pa veprim të qartë nga ti.",
+        "pack_status_title": "Statusi i pack-ut",
+        "zone_label": "Zona e shërbimit",
+        "zones": {
+          "free": "Udhëzim falas"
+        },
+        "outcome_label": "Rezultati",
+        "outcomes": {
+          "requires_member_zone": "Kërkohet hap i anëtarit"
+        },
+        "no_pii_value": "Këtu nuk kërkohen të dhëna personale, mjekësore apo të rastit.",
+        "escalation_title": "Hapi i radhës i qartë",
+        "escalation_body": "Përdor raportimin e anëtarit kur je gati ta lidhësh incidentin me llogarinë tënde, ose kontakto mbështetjen nëse ke nevojë për ndihmë njerëzore për hapin e radhës."
       }
     },
     "protection_status": {

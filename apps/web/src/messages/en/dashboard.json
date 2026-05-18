@@ -183,9 +183,45 @@
         "primary": "Open membership benefits"
       },
       "incident_guide": {
-        "description": "If an incident just happened, start the member claim flow first so triage can begin and the team can guide you on documents and next steps.",
-        "boundary": "This page is a member handoff, not the internal operator playbook.",
-        "primary": "Open incident reporting"
+        "description": "Help Now gives immediate free-zone guidance for the first minutes after an incident. It is a checklist for safety, evidence preservation, and the next explicit member step.",
+        "boundary": "This page is a Help Now checklist, not the internal operator playbook.",
+        "primary": "Open incident reporting",
+        "secondary": "Contact member support",
+        "help_now_label": "Help Now",
+        "pack_title": "Incident Scene Pack",
+        "pack_description": "Use this sequence before entering personal details. It does not create a claim, CRM lead, or staff handoff automatically.",
+        "checklist_title": "First actions",
+        "checklist": {
+          "scene_safety": "Move to safety if you can, secure passengers, and avoid creating new risk at the scene.",
+          "emergency_services": "Call local emergency services first if anyone is injured, trapped, threatened, or immediate danger continues.",
+          "document_scene": "Take photos or video of positions, plates, damage, road conditions, signs, and visible evidence before items move.",
+          "exchange_information": "Exchange driver, vehicle, insurer, witness, and authority details without admitting fault or signing unclear statements.",
+          "record_timeline": "Write down the time, location, direction of travel, weather, police presence, and what happened in plain facts.",
+          "preserve_documents": "Keep police reports, medical notes, invoices, tow receipts, photos, and messages together for the member case file."
+        },
+        "disclaimer_title": "Free-zone boundary",
+        "disclaimers": {
+          "not_legal_advice": "This is not legal advice.",
+          "not_medical_advice": "This is not medical advice.",
+          "not_insurer_assessment": "This is not an insurer assessment or liability decision.",
+          "not_professional_opinion": "This is not a professional opinion.",
+          "educational_only": "This is educational and evidence-preserving guidance only.",
+          "professional_review_required": "Professional review is required before professional recovery action."
+        },
+        "member_boundary_title": "Escalation requires consent",
+        "member_boundary_body": "If you continue into the member zone, you decide what to submit. No member record, claim, CRM lead, or handoff is created from this page without an explicit next action.",
+        "pack_status_title": "Pack status",
+        "zone_label": "Service zone",
+        "zones": {
+          "free": "Free guidance"
+        },
+        "outcome_label": "Outcome",
+        "outcomes": {
+          "requires_member_zone": "Member step required"
+        },
+        "no_pii_value": "No personal, medical, or claim details are required here.",
+        "escalation_title": "Next explicit step",
+        "escalation_body": "Use member reporting when you are ready to attach the incident to your account, or contact support if you need human help deciding the next step."
       }
     },
     "protection_status": {
