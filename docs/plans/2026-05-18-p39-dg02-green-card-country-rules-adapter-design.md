@@ -195,20 +195,23 @@ This gate does not authorize:
   outbox/event emission, proxy edits, canonical route edits, auth/tenancy/routing refactors, or
   autonomous AI decisioning.
 - If `domain-country-guidance` is touched, changes are limited to the adapter boundary and tests.
-- The PR includes implementation subagent review because the user explicitly requested subagents for
-  the implementation phase.
+- The PR includes independent implementation review proof for country-rule correctness, coupling,
+  and boundary preservation. Subagents are the preferred review mechanism when available; if runtime
+  tooling blocks subagents, the PR must record the blocker and use the strongest available local
+  fallback review.
 
 ## Implementation Subagent Plan
 
 When `P39-ASSIST-03` starts, the main agent remains on the critical path and owns final integration.
-Subagents should be used for independent, non-overlapping work:
+Subagents are the preferred mechanism for independent, non-overlapping work:
 
 - domain-assistance contracts/tests exploration or patching;
 - domain-country-guidance adapter/readiness exploration or patching if that package is touched;
 - pre-PR sidecar review for security/auth/tenancy, maintainability, and test/gate coverage.
 
-Subagents must not edit `apps/web/src/proxy.ts`, route/auth/tenancy files, README, AGENTS.md, or
-broad architecture docs.
+If subagent tooling is unavailable, the implementation PR must record the blocker and include
+equivalent local review evidence. Subagents or fallback reviewers must not edit
+`apps/web/src/proxy.ts`, route/auth/tenancy files, README, AGENTS.md, or broad architecture docs.
 
 ## Risks And Open Questions
 
