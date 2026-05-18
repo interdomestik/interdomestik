@@ -75,6 +75,9 @@ export interface AssistanceEvidenceReference {
   kind: AssistanceEvidenceKind;
   referenceId: string;
   summaryKey?: string;
+  sourceReference?: string;
+  lastReviewed?: string;
+  confidence?: number;
 }
 
 export interface AssistanceReason {
@@ -182,6 +185,7 @@ export interface LegalBasisPack extends AssistancePackBase<'legal_basis', 'membe
 export interface ProcedurePack extends AssistancePackBase<'procedure', 'member'> {
   procedureCodes: readonly string[];
   deadlineReferences: readonly AssistanceEvidenceReference[];
+  legalBasisReference?: AssistanceEvidenceReference;
 }
 
 export interface InjuryCategoryPack extends AssistancePackBase<'injury_category', 'member'> {
