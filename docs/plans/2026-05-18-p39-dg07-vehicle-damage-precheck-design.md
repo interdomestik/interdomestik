@@ -6,16 +6,18 @@ Owner: platform + product + security + qa
 Phase: Phase C
 Date: 2026-05-18
 Authority: repo-canonical closeout and promotion gate. This document closes `P39-ASSIST-06`
-and promotes exactly one next implementation slice:
+after the ASSIST-06 contract landed in main through PR `#817`, and promotes exactly one next
+implementation slice:
 `P39-ASSIST-07 Vehicle Damage Pre-check`.
 
 Status vocabulary: `review_draft` means not approved, `complete` records an approved design gate,
 and `deferred` records an explicitly postponed candidate. Tracker queue statuses remain the
 repo-audited values `completed`, `in_progress`, `pending`, and `blocked`.
 
-Phase C constraints remain active: `apps/web/src/proxy.ts` is the routing, access-control, and
-tenant-isolation authority; canonical `/member`, `/agent`, `/staff`, and `/admin` routes remain
-fixed; no auth, tenancy, routing, or broad domain architecture refactor is authorized by this gate.
+Phase C means the V3 pilot constraints remain active: `apps/web/src/proxy.ts` is the routing,
+access-control, and tenant-isolation authority; canonical `/member`, `/agent`, `/staff`, and
+`/admin` routes remain fixed; no auth, tenancy, routing, or broad domain architecture refactor is
+authorized by this gate.
 
 ## Revision History
 
@@ -23,6 +25,7 @@ fixed; no auth, tenancy, routing, or broad domain architecture refactor is autho
 | -------- | ---------- | ------------------------------------------ |
 | `r1`     | 2026-05-18 | Initial approved DG07 promotion record.    |
 | `r2`     | 2026-05-18 | Design-review clarifications before merge. |
+| `r3`     | 2026-05-19 | Review hardening for privacy/disclaimers.  |
 
 ## Definitions
 
@@ -43,6 +46,16 @@ fixed; no auth, tenancy, routing, or broad domain architecture refactor is autho
   must not produce a final appraisal.
 - Bureau reference: insurer, regulatory, or motor-claims bureau evidence reference; it must be a
   structured reference, not raw narrative or unrestricted document contents.
+- Article 9: GDPR special-category data posture for health facts; vehicle evidence containing
+  health facts must route to injury and sensitive-health contracts.
+- RLS: row-level security; no database or RLS changes are authorized by this gate.
+- DPIA: data protection impact assessment; a later runtime or AI gate may require one.
+- DSR: data subject request; retention and redaction expectations must remain compatible with
+  privacy-foundation DSR handling.
+- POA: power of attorney; representation or authority documents are out of scope here.
+- Outbox: event-emission boundary; ASSIST-07 must not write events or notification payloads.
+- Professional Recovery: represented recovery service posture; activation is out of scope.
+- AssistanceOutcomeKind: the stable domain outcome taxonomy used by assistance pre-checks.
 
 ## Predecessor Dependency
 
@@ -52,13 +65,16 @@ Predecessor proof:
 
 - `P39-DG06 Injury Category Pre-check Design Gate` is recorded in
   `docs/plans/2026-05-18-p39-dg06-injury-category-precheck-design.md`.
+- `P39-DG07 Vehicle Damage Pre-check Design Gate` is recorded in
+  `docs/plans/2026-05-18-p39-dg07-vehicle-damage-precheck-design.md`.
 - `P39-ASSIST-06` landed through PR `#817`, merge commit
   `594b2441cfea897e638bdc6c8b6db69e236bd6dc`.
 - `P39-ASSIST-06` added pure injury category pre-check contracts, synthetic non-identifiable proof,
   structural privacy alignment, and the expected fail-closed health-data boundary.
 
-`P39-ASSIST-06` did not authorize runtime UI, upload flows, product route changes, database
-migrations/RLS, CRM/claim/handoff creation, outbox/event emission, Professional Recovery
+`P39-ASSIST-06` was a domain-only contract slice and therefore did not authorize runtime UI, upload
+flows, product route changes, database migrations/RLS, CRM/claim/handoff creation,
+outbox/event emission, Professional Recovery
 activation, autonomous AI decisioning, proxy/canonical route/auth/tenancy/routing changes, Stripe,
 README, AGENTS, or broad architecture-doc work.
 
@@ -76,8 +92,16 @@ README, AGENTS, or broad architecture-doc work.
   `docs/plans/2026-05-18-p39-dg03-legal-basis-precheck-design.md`.
 - Current program/tracker records: `docs/plans/current-program.md` and
   `docs/plans/current-tracker.md`.
-- Assistance package contracts: `packages/domain-assistance/src/types.ts` and
+- Assistance package contracts: `packages/domain-assistance/src/types.ts`,
+  `packages/domain-assistance/src/rules/outcomes.ts`,
+  `packages/domain-assistance/src/rules/disclaimers.ts`,
+  `packages/domain-assistance/src/rules/country-rules.ts`,
+  `packages/domain-assistance/src/rules/human-review.ts`,
+  `packages/domain-assistance/src/rules/constants.ts`, and
   `packages/domain-assistance/src/rules/injury-category.ts`.
+- Assistance package test patterns:
+  `packages/domain-assistance/src/rules/injury-category.test.ts` and
+  `packages/domain-assistance/src/rules/green-card.test.ts`.
 - Existing vehicle-adjacent rule adapter:
   `packages/domain-assistance/src/rules/green-card.ts`. No vehicle damage evaluator exists before
   ASSIST-07; `VehicleDamagePack` already exists as a pack shape in
@@ -95,7 +119,10 @@ Promote exactly one implementation slice:
 The promoted slice must implement a bounded member-zone, rules-first vehicle damage pre-check in
 `packages/domain-assistance`. It may define vehicle damage rule families, damage category codes,
 inspection or repair-readiness markers, vehicle evidence-reference contracts, privacy-purpose
-alignment metadata, readiness outputs, and pack creation helpers.
+alignment metadata, readiness outputs, input flags, and pack creation helpers. Inspection readiness
+markers are structured outputs that indicate whether more human inspection evidence is needed;
+repair/assessment routing markers are non-final reason codes that indicate professional review
+posture without estimating repair cost or liability.
 
 It must not create product runtime UI, upload flows, persistence, claims, CRM handoffs, outbox
 events, Professional Recovery activation, autonomous AI decisions, final repair valuations, insurer
@@ -105,23 +132,31 @@ liability findings, fraud determinations, settlement strategy, or legal advice.
 that involve registration documents, vehicle photos, location, insurer documents, police reports,
 bureau references, towing, or repair evidence must carry explicit purpose, document-processing
 consent, insurer-sharing consent when sharing is requested, retention, redaction, AI non-finality,
-and human-review expectations. Structural alignment should use exact `domain-privacy` keys:
+and human-review expectations. Vehicle damage data is not GDPR special-category data by default,
+but registration-country and applicable-jurisdiction divergence still triggers cross-border
+processing discipline under DG02 and DG05. Structural alignment should use exact `domain-privacy`
+keys:
 `vehicle_damage_precheck`, `document_upload_processing`, `ai_document_extraction`, and
 `share_with_insurer`; focused tests or contract snapshots should fail if those keys drift.
 `document_upload_processing` is the umbrella processing consent for vehicle photos, police reports,
 towing records, bureau references, repair invoices, and insurer correspondence unless a later
-privacy-foundation amendment adds a narrower key. Document-processing consent is required for the
-pre-check itself. Insurer-sharing consent is separate, independently required when sharing is
-requested, and is never implied by document-processing consent.
+privacy-foundation amendment adds a narrower key. This gate does not broaden DG05; if ASSIST-07
+needs narrower processing semantics, it must route them through a privacy-foundation amendment.
+Document-processing consent is required for the pre-check itself. Insurer-sharing consent is
+separate, independently required when sharing is requested, and is never implied by
+document-processing consent. Bureau sharing is also separate: if outbound bureau sharing is
+introduced, ASSIST-07 must align with the existing `share_with_bureau` consent key and must not
+infer bureau-sharing consent from document-processing or insurer-sharing consent.
 
 Health facts found inside vehicle evidence must defer to the injury and sensitive-health contracts
-instead of being processed as ordinary vehicle damage. ASSIST-07 should fail closed with
-`manual_review_required` and a structured reason such as `health_evidence_requires_injury_review`;
-it should not return a split vehicle-plus-injury pack from the vehicle damage evaluator.
+instead of being processed as ordinary vehicle damage. ASSIST-07 must fail closed with
+`manual_review_required` and the structured reason `health_evidence_requires_injury_review`; it
+must not return a split vehicle-plus-injury pack from the vehicle damage evaluator.
 
 ASSIST-07 may run alongside DG02 green-card rule metadata for cross-border insurance posture, but
-green-card eligibility and coverage remain owned by the green-card adapter. ASSIST-07 must not
-collapse vehicle damage, legal-basis, green-card, and insurer-coverage decisions into one rule.
+green-card eligibility and coverage remain owned by the green-card adapter. ASSIST-07 may reuse
+`GREEN_CARD_JURISDICTION_ROLES` constants where structurally appropriate, but must not collapse
+vehicle damage, legal-basis, green-card, and insurer-coverage decisions into one rule.
 
 ## Candidate Ranking
 
@@ -138,12 +173,13 @@ collapse vehicle damage, legal-basis, green-card, and insurer-coverage decisions
 Authorized implementation scope:
 
 - Add pure `domain-assistance` vehicle damage types, constants, helpers, and tests.
-- Reuse existing `AssistanceOutcome`, `VehicleDamagePack`, PII classification, country-rule
-  metadata, provenance, and fail-closed conventions where possible; define or extend
-  vehicle-specific disclaimer codes only when the existing taxonomy is insufficient.
+- Reuse existing `AssistanceOutcome`, `VehicleDamagePack`, PII classification, document sensitivity
+  class, country-rule metadata, provenance, and fail-closed conventions where possible; define or
+  extend vehicle-specific disclaimer codes only when the existing taxonomy is insufficient.
 - Align vehicle outputs with `domain-privacy` purpose and consent contracts, especially
   `vehicle_damage_precheck`, `document_upload_processing`, `ai_document_extraction`, and
-  `share_with_insurer`.
+  `share_with_insurer`; use `share_with_bureau` if ASSIST-07 introduces outbound bureau-sharing
+  posture.
 - Represent evidence as structured references, category codes, inspection or repair markers, and
   summaries, not raw photos, plate numbers, VINs, police narratives, repair invoices, or insurer
   correspondence.
@@ -186,6 +222,12 @@ The contract must be able to represent at least:
   first implementation may use bespoke `domain-assistance` codes, while insurer-specific schedules,
   repair-guild codes, ABI categories, or other external damage-code mappings are deferred until a
   later reviewed gate;
+- a minimal internal damage-code taxonomy, if needed; this gate does not pin the exact taxonomy,
+  but acceptable seed codes could include `panel_damage_reported`, `structural_damage_reported`,
+  `total_loss_suspected`, `drivability_compromised`, `glass_only`, and
+  `mechanical_damage_reported`;
+- explicit input flags for model-unsafe extraction requirements, such as `requiresPlateOcr` and
+  `requiresVinOcr`, so ASSIST-07 can detect and reject plate/VIN OCR requests deterministically;
 - evidence references as summaries or IDs, not raw photos, plate numbers, VINs, or narratives, for
   example `{ kind: "document_reference", referenceId: "vehicle_damage_photo_ref" }`;
 - country-rule metadata and confidence;
@@ -202,9 +244,16 @@ Outputs must include:
 - required disclaimers, including existing codes such as `not_legal_advice`,
   `not_insurer_assessment`, and `professional_review_required`, plus vehicle-specific codes such as
   `not_repair_estimate`, `not_diminished_value_valuation`, `not_liability_assessment`,
-  `not_insurer_coverage_decision`, and `not_fraud_determination` when ASSIST-07 adds them;
+  `not_insurer_coverage_decision`, and `not_fraud_determination` when ASSIST-07 adds them. This
+  named set is gate-blessed for ASSIST-07; any additional disclaimer code requires separate
+  implementation-PR justification, and tests must fail if the required vehicle disclaimer set is
+  reduced without an explicit contract update;
 - PII classification, normally `incident_sensitive` for vehicle identifiers, registration details,
   insurer documents, location, police/bureau references, or repair evidence;
+- document sensitivity class: use `personal` for ordinary vehicle identifiers, photos,
+  registration details, location, towing, and repair evidence; use `legal_professional_recovery`
+  when evidence is insurer, bureau, POA, representation, or recovery-adjacent; health facts are not
+  classified by the vehicle evaluator and must route to injury/sensitive-health review;
 - retention policy key compatible with the privacy foundation;
 - provenance and human-review state.
 
@@ -232,6 +281,8 @@ Vehicle damage pre-checks must fail closed when:
   insurer;
 - AI provenance is present but the output would be treated as final or non-reviewed;
 - health evidence appears and the request tries to process it as ordinary vehicle damage;
+- health evidence appears and the output does not use `manual_review_required` with
+  `health_evidence_requires_injury_review`;
 - plate OCR or VIN OCR is proposed for model-call input, prompt context, logs, metrics, analytics,
   or outbox payloads;
 - the input requires repair-cost valuation, diminished-value valuation, fraud determination,
@@ -250,12 +301,15 @@ The promoted slice must preserve the privacy foundation:
 
 - vehicle documents, images, registration, police, insurer, bureau, repair, or towing evidence
   requires explicit processing purpose and consent expectations;
+- bureau references are evidence references only unless a later ASSIST-07 implementation explicitly
+  models outbound sharing with the `share_with_bureau` consent key;
 - plate numbers, VINs, registration details, location, and insurer documents must not appear in
   logs, metrics, analytics, outbox payloads, or debug traces;
 - insurer sharing is not implied by a pre-check and requires explicit sharing consent;
 - agent/promoter access to sensitive documents remains denied by design;
 - medical or health-sensitive facts encountered during vehicle review must follow injury and
-  sensitive-health contracts;
+  sensitive-health contracts and must return `manual_review_required` with
+  `health_evidence_requires_injury_review` from the vehicle evaluator;
 - plate OCR and VIN OCR are not authorized for any model-call surface in ASSIST-07; tests may model
   redacted references only;
 - AI may assist extraction or classification only as non-final, no-training, zero-retention,
@@ -296,7 +350,7 @@ This gate does not authorize:
 - The implementation preserves `domain-assistance` as pure rules-first domain code.
 - Outputs are member-zone pre-checks and include required legal/insurer/professional disclaimers.
 - Supported outputs include country-rule metadata, provenance, PII classification, privacy purpose,
-  consent/sharing expectations, retention key, and human-review state.
+  document sensitivity class, consent/sharing expectations, retention key, and human-review state.
 - Missing, stale, conflicting, unsupported, low-confidence, metadata-incomplete,
   privacy-incomplete, and out-of-scope valuation/liability inputs fail closed.
 - `MINIMUM_COUNTRY_RULE_CONFIDENCE` remains the launch floor and is not lowered.
@@ -317,6 +371,8 @@ AI-provenance implications, the PR must include independent sidecar review proof
 - security-owned review of auth, tenancy, privacy, consent, sharing, and PII boundaries;
 - product-owned review of repair-valuation, insurer-liability, legal-advice, and human-review
   boundary preservation;
+- security plus product review of the vehicle disclaimer-code taxonomy extension and any
+  deprecation posture for public domain identifiers;
 - security plus product review of AI no-final-decision, no plate/VIN OCR model-call surface, and
   provenance handling;
 - platform-owned review of package coupling, green-card adapter boundary, and maintainability;
@@ -342,7 +398,10 @@ the strongest available local fallback review.
 
 Rollback posture: because ASSIST-07 is pure code, an incorrect rule family should be disabled by
 reverting or amending the domain rule implementation in a follow-up PR. Runtime kill-switches,
-persisted revocation, and rule-administration controls are out of scope for this gate.
+persisted revocation, and rule-administration controls are out of scope for this gate. New
+disclaimer codes introduced by ASSIST-07 are public domain identifiers once rendered by later UI;
+after that point they should be deprecated rather than removed unless a separate contract migration
+authorizes removal.
 
 ## Approval Bar
 
@@ -355,8 +414,8 @@ Approve this gate only if reviewers agree that:
   fault allocation, fraud determinations, insurer coverage decisions, legal advice, or Professional
   Recovery activation;
 - privacy purpose, document-processing consent, insurer-sharing consent, AI non-finality,
-  no plate/VIN OCR model-call surface, human review, retention, redaction, and
-  agent/promoter-denial expectations are explicit;
+  document sensitivity class, bureau-sharing separation, no plate/VIN OCR model-call surface, human
+  review, retention, redaction, and agent/promoter-denial expectations are explicit;
 - DG02 green-card metadata may be referenced without merging green-card eligibility or coverage
   decisions into the vehicle damage evaluator;
 - runtime UI, upload flows, persistence, CRM/claim/handoff side effects, Professional Recovery
@@ -386,5 +445,6 @@ pnpm repo:size:check
 
 No product test suite is required for this docs/design-gate slice unless docs tooling or repo-size
 guards require it.
+Implementation tests run in the promoted ASSIST-07 PR, not this design-gate PR.
 This design-gate PR should remain a docs/budget-only delta; any larger source/test budget increase
 belongs to the promoted ASSIST-07 implementation PR.
