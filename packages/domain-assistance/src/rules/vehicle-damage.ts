@@ -13,6 +13,7 @@ import type {
 } from '../types';
 import { DEFAULT_ASSISTANCE_PROVENANCE } from './constants';
 import { evaluateCountryRuleReadiness } from './country-rules';
+import { getRequiredDisclaimerCodes } from './disclaimers';
 import { createAssistanceOutcome } from './outcomes';
 import {
   isFilled,
@@ -89,14 +90,12 @@ export const VEHICLE_DAMAGE_PRIVACY_ALIGNMENT = {
 } as const;
 
 export const VEHICLE_DAMAGE_REQUIRED_DISCLAIMERS = [
-  'not_legal_advice',
-  'not_insurer_assessment',
+  ...getRequiredDisclaimerCodes('member'),
   'not_repair_estimate',
   'not_diminished_value_valuation',
   'not_liability_assessment',
   'not_insurer_coverage_decision',
   'not_fraud_determination',
-  'professional_review_required',
 ] as const satisfies readonly AssistanceDisclaimerCode[];
 
 const ASSISTANCE_EVIDENCE_KINDS = [
@@ -432,10 +431,7 @@ function vehicleInputFailure(
     return closed('missing_jurisdiction', 'manual_review_required');
   }
 
-  if (
-    jurisdictionTieBreakerRequired(input, base) &&
-    !isFilled(input.jurisdictionTieBreakerReason)
-  ) {
+  if (jurisdictionTieBreakerRequired(base) && !isFilled(input.jurisdictionTieBreakerReason)) {
     return closed('jurisdiction_tie_breaker_missing', 'manual_review_required');
   }
 
@@ -768,24 +764,17 @@ function vehicleReadinessContext(
   };
 }
 
-function jurisdictionTieBreakerRequired(
-  input: VehicleDamageReadinessInput,
-  countries: {
-    applicableJurisdictionCountry: string;
-    incidentCountry: string;
-    vehicleRegistrationCountry: string;
-    insurerCountry: string;
-  }
-): boolean {
+function jurisdictionTieBreakerRequired(countries: {
+  applicableJurisdictionCountry: string;
+  incidentCountry: string;
+  vehicleRegistrationCountry: string;
+  insurerCountry: string;
+}): boolean {
   const comparedCountries = [
     countries.incidentCountry,
     countries.vehicleRegistrationCountry,
     countries.insurerCountry,
   ].filter(country => country.length > 0);
-
-  if (input.scenario === 'cross_border_collision_damage' && comparedCountries.length > 1) {
-    return comparedCountries.some(country => country !== countries.applicableJurisdictionCountry);
-  }
 
   return comparedCountries.some(country => country !== countries.applicableJurisdictionCountry);
 }

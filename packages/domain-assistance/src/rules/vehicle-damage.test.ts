@@ -82,6 +82,9 @@ describe('evaluateVehicleDamagePrecheck', () => {
     });
     expect(result.minimumConfidence).toBe(0.8);
     expect(result.requiredDisclaimers).toEqual(VEHICLE_DAMAGE_REQUIRED_DISCLAIMERS);
+    expect(result.requiredDisclaimers).toEqual(
+      expect.arrayContaining(['not_medical_advice', 'not_professional_opinion', 'educational_only'])
+    );
     expect(result.evidenceReferences).toEqual([BASE_EVIDENCE]);
   });
 
