@@ -11,11 +11,18 @@ import type {
   InjuryCategoryPack,
   PiiClassification,
 } from '../types';
-import { MINIMUM_COUNTRY_RULE_CONFIDENCE } from '../types';
 import { DEFAULT_ASSISTANCE_PROVENANCE } from './constants';
 import { evaluateCountryRuleReadiness } from './country-rules';
 import { getRequiredDisclaimerCodes } from './disclaimers';
 import { createAssistanceOutcome } from './outcomes';
+import {
+  isFilled,
+  isFiniteConfidence,
+  minimumCountryRuleConfidence,
+  normalizeCountry,
+  normalizeStaleAfterDays,
+  uniqueNonEmptyStrings,
+} from './rule-utils';
 
 export const INJURY_CATEGORY_RULE_FAMILIES = ['injury_category_precheck'] as const;
 
@@ -718,38 +725,5 @@ function isInjuryCategorySeverityBand(value: string): value is InjuryCategorySev
 }
 
 function minimumInjuryConfidence(value: number | undefined): number {
-  if (!isFiniteConfidence(value) || value < 0 || value > 1) {
-    return MINIMUM_COUNTRY_RULE_CONFIDENCE;
-  }
-
-  return value < MINIMUM_COUNTRY_RULE_CONFIDENCE ? MINIMUM_COUNTRY_RULE_CONFIDENCE : value;
-}
-
-function normalizeStaleAfterDays(value: number | undefined): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
-}
-
-function uniqueNonEmptyStrings(values: readonly string[]): readonly string[] {
-  const output: string[] = [];
-
-  for (const value of values) {
-    const normalized = value.trim();
-    if (normalized.length > 0 && !output.includes(normalized)) {
-      output.push(normalized);
-    }
-  }
-
-  return output;
-}
-
-function isFilled(value: unknown): value is string {
-  return typeof value === 'string' && value.trim() !== '';
-}
-
-function isFiniteConfidence(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
-}
-
-function normalizeCountry(country: string | undefined): string {
-  return typeof country === 'string' ? country.trim().toLocaleUpperCase('en-US') : '';
+  return minimumCountryRuleConfidence(value);
 }
