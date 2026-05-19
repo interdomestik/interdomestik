@@ -226,6 +226,22 @@ route changes, database migrations/RLS, CRM/claim/handoff creation, outbox/event
 Professional Recovery activation, autonomous AI decisioning, Stripe, proxy/canonical
 route/auth/tenancy/routing changes, README, AGENTS.md, or broad architecture-doc work.
 
+`P39-DG09 Assistance Session Workflow Wiring Design Gate` is recorded in
+`docs/plans/2026-05-19-p39-dg09-assistance-session-workflow-wiring-design.md` after
+`P39-ASSIST-08` closed through PR `#823`, merge commit
+`95805bcd3fb8fcc7a93611eb8fd12137b69142b9`. It promotes exactly one next implementation
+slice, `P39-ASSIST-09 Assistance Session Workflow Wiring Contract`, scoped to pure
+`domain-assistance` workflow-intent contracts over `AssistanceSessionDigest`: deterministic
+non-executing intent envelopes, `executionAllowed: false`, target-surface and blocker codes,
+ordered digest summary/outcome reconciliation, existing outcome and disclaimer taxonomy reuse,
+hash-safe reference keys, privacy/consent/disclaimer/human-review propagation, Article 9 and DPIA
+posture, AI non-finality, and fail-closed blocking for missing identity, missing explicit consent,
+missing disclaimers, missing country metadata, sensitive-data/human-review mismatches, AI
+provenance, or any request to create records. It does not authorize runtime UI, upload flows,
+database migrations/RLS, CRM/claim/handoff creation, outbox/event emission, Professional Recovery
+activation, autonomous AI workflows, model calls, prompt changes, proxy/canonical
+route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, or broad architecture-doc work.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
