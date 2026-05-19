@@ -10,3 +10,4 @@ export * from './rules/legal-basis';
 export * from './rules/outcomes';
 export * from './rules/procedure-guide';
 export * from './rules/session-digest';
+export * from './rules/vehicle-damage';

@@ -50,6 +50,11 @@ export type AssistanceDisclaimerCode =
   | 'not_medical_advice'
   | 'not_insurer_assessment'
   | 'not_professional_opinion'
+  | 'not_repair_estimate'
+  | 'not_diminished_value_valuation'
+  | 'not_liability_assessment'
+  | 'not_insurer_coverage_decision'
+  | 'not_fraud_determination'
   | 'educational_only'
   | 'professional_review_required';
 
