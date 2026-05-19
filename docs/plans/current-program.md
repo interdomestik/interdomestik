@@ -205,6 +205,27 @@ The first `P22-GO01` execution pass is recorded in `docs/plans/2026-04-27-p22-go
 
 `P39-DG08 Invalidity Coefficient Review Design Gate` is recorded in `docs/plans/2026-05-19-p39-dg08-invalidity-coefficient-review-design.md` after `P39-ASSIST-07` closed through PR `#821`, merge commit `e7d764f16a2064d099a0a5767c4ba973c69bea65`, and Notion closeout sync at `https://www.notion.so/365036cff1f881659503dfdb9565c653`. It promotes exactly one next implementation slice, `P39-ASSIST-08 Invalidity Coefficient Review`, scoped to pure member-zone, human-review-only domain contracts in `packages/domain-assistance`: invalidity review reason codes, prerequisite injury and vehicle references, structured evidence references, privacy and medical-document consent alignment, Article 9 posture, the `0.80` confidence floor, required disclaimers, PII/provenance, retention/redaction posture, and fail-closed blocking for any request to calculate or finalize an invalidity coefficient. It does not authorize coefficient automation, medical diagnosis, prognosis, treatment advice, compensation valuation, insurer liability or coverage decisions, settlement strategy, legal advice, runtime UI, upload flows, `/member/incident-guide` redesign, database migrations/RLS, CRM/claim/handoff creation, outbox/event emission, Professional Recovery activation, autonomous AI decisioning, Stripe, proxy/canonical route/auth/tenancy/routing changes, README, AGENTS.md, or broad architecture-doc work.
 
+`P39-ASSIST-08 Invalidity Coefficient Review` is complete on the pure domain lane:
+`packages/domain-assistance` now exposes typed invalidity review rule-family, scenario,
+participant-role, review-reason, prerequisite-status, prerequisite-reference, structured evidence,
+privacy-alignment, document-sensitivity, readiness, and pack contracts plus fail-closed invalidity
+review evaluation for free-zone inputs, Professional-Recovery-like inputs, missing jurisdiction,
+cross-border jurisdiction tie-breaker gaps across incident, residence, treatment, registration, and
+insurer countries, missing injury or vehicle prerequisite references, incomplete prerequisite
+metadata, missing rules, incomplete/stale/conflicting/unsupported/low-confidence country rules,
+unsupported reason/prerequisite/evidence values, missing medical-document consent, missing Article
+9 posture, missing document-processing or AI-extraction consent, incomplete AI posture, out-of-scope
+diagnosis/prognosis/treatment/coefficient/compensation/insurer/fraud/settlement/legal-advice
+requests, lowered-threshold attempts, and AI-assisted provenance remaining non-final and
+human-review-gated. It preserves structural alignment to `domain-privacy` keys
+(`invalidity_review`, `medical_document_processing`, `ai_document_extraction`,
+`sensitive_health`, `personal`, `legal_professional_recovery`), synthetic non-identifiable tests,
+required medical/legal/insurer/professional disclaimers, PII/provenance, retention/redaction
+posture, and the `0.80` confidence floor. It does not introduce runtime UI, upload flows, product
+route changes, database migrations/RLS, CRM/claim/handoff creation, outbox/event emission,
+Professional Recovery activation, autonomous AI decisioning, Stripe, proxy/canonical
+route/auth/tenancy/routing changes, README, AGENTS.md, or broad architecture-doc work.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
