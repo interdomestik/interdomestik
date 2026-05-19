@@ -11,10 +11,17 @@ import type {
   PiiClassification,
   VehicleDamagePack,
 } from '../types';
-import { MINIMUM_COUNTRY_RULE_CONFIDENCE } from '../types';
 import { DEFAULT_ASSISTANCE_PROVENANCE } from './constants';
 import { evaluateCountryRuleReadiness } from './country-rules';
 import { createAssistanceOutcome } from './outcomes';
+import {
+  isFilled,
+  isFiniteConfidence,
+  minimumCountryRuleConfidence,
+  normalizeCountry,
+  normalizeStaleAfterDays,
+  uniqueNonEmptyStrings,
+} from './rule-utils';
 
 export const VEHICLE_DAMAGE_RULE_FAMILIES = ['vehicle_damage_precheck'] as const;
 
@@ -190,9 +197,9 @@ export interface VehicleDamageReadinessInput {
   insurerCountry?: string;
   driverResidenceCountry?: string;
   jurisdictionTieBreakerReason?: string;
-  scenario: VehicleDamageScenario | string;
-  participantRole: VehicleDamageParticipantRole | string;
-  requestedRuleFamily: VehicleDamageRuleFamily | string;
+  scenario: string;
+  participantRole: string;
+  requestedRuleFamily: string;
   rules: readonly VehicleDamageRuleInput[];
   now: Date;
   staleAfterDays?: number;
@@ -261,6 +268,12 @@ export interface CreateVehicleDamagePackInput extends Omit<VehicleDamageReadines
   provenance?: AssistanceProvenance;
 }
 
+type CloseVehicleReadiness = (
+  kind: Exclude<VehicleDamageReadinessKind, 'ready'>,
+  outcomeKind: AssistanceOutcomeKind,
+  countryRuleMetadata?: readonly CountryRuleMetadata[]
+) => VehicleDamageReadiness;
+
 export function evaluateVehicleDamagePrecheck(
   input: VehicleDamageReadinessInput
 ): VehicleDamageReadiness {
@@ -294,6 +307,119 @@ export function evaluateVehicleDamagePrecheck(
     });
   };
 
+  const inputFailure = vehicleInputFailure(input, base, closed);
+  if (inputFailure != null) {
+    return inputFailure;
+  }
+
+  const applicableRules = input.rules.filter(rule =>
+    isApplicableRule(rule, input, applicableJurisdictionCountry)
+  );
+  const relevantRules = input.rules.filter(rule => isRelevantVehicleRule(rule, input));
+
+  const ruleSelectionFailure = vehicleRuleSelectionFailure(applicableRules, closed);
+  if (ruleSelectionFailure != null) {
+    return ruleSelectionFailure;
+  }
+
+  const applicableMetadata = applicableRules.map(rule => rule.metadata as CountryRuleMetadata);
+  const conflictingSourceReferences = vehicleConflictingSourceReferences({
+    explicitReferences: input.conflictingSourceReferences,
+    relevantRules,
+    applicableRules,
+    applicableJurisdictionCountry,
+  });
+
+  const applicableRuleFailure = vehicleApplicableRuleFailure(
+    applicableRules,
+    applicableMetadata,
+    closed
+  );
+  if (applicableRuleFailure != null) {
+    return applicableRuleFailure;
+  }
+
+  const countryRuleReadiness = evaluateCountryRuleReadiness({
+    conflictingSourceReferences,
+    scenarioSupported: applicableRules.every(rule => rule.scenarioSupported !== false),
+    supportedCountry: applicableRules.every(rule => rule.supportedCountry !== false),
+    minimumConfidence,
+    staleAfterDays: normalizeStaleAfterDays(input.staleAfterDays),
+    now: input.now,
+    metadata: applicableMetadata,
+  });
+
+  if (countryRuleReadiness.kind !== 'ready') {
+    return vehicleCountryRuleFailure(base, countryRuleReadiness);
+  }
+
+  const damageCategoryCodes = uniqueNonEmptyStrings(
+    applicableRules.flatMap(rule => rule.damageCategoryCodes ?? [])
+  );
+
+  const inspectionReadinessMarkers = uniqueNonEmptyStrings(
+    applicableRules.flatMap(rule => rule.inspectionReadinessMarkers ?? [])
+  );
+
+  const repairAssessmentRoutingMarkers = uniqueNonEmptyStrings(
+    applicableRules.flatMap(rule => rule.repairAssessmentRoutingMarkers ?? [])
+  );
+
+  const outputFailure = vehicleOutputFailure(
+    {
+      damageCategoryCodes,
+      inspectionReadinessMarkers,
+      repairAssessmentRoutingMarkers,
+      applicableRules,
+      countryRuleMetadata: countryRuleReadiness.countryRuleMetadata,
+    },
+    closed
+  );
+  if (outputFailure != null) {
+    return outputFailure;
+  }
+
+  const evidenceReferences = uniqueEvidenceReferences(
+    applicableRules.flatMap(rule => rule.evidenceReferences ?? [])
+  );
+
+  return {
+    ...base,
+    kind: 'ready',
+    ready: true,
+    outcomeKind: 'eligible',
+    humanReviewRequired: false,
+    reasons: [
+      {
+        code: 'vehicle_damage_precheck_supported',
+        messageKey: 'assistance.vehicleDamage.supported',
+      },
+    ],
+    minimumConfidence: countryRuleReadiness.minimumConfidence,
+    countryRuleMetadata: countryRuleReadiness.countryRuleMetadata,
+    damageCategoryCodes: damageCategoryCodes as readonly VehicleDamageCategoryCode[],
+    inspectionReadinessMarkers:
+      inspectionReadinessMarkers as readonly VehicleInspectionReadinessMarker[],
+    repairAssessmentRoutingMarkers:
+      repairAssessmentRoutingMarkers as readonly VehicleRepairAssessmentRoutingMarker[],
+    evidenceReferences,
+    requiredDisclaimers: VEHICLE_DAMAGE_REQUIRED_DISCLAIMERS,
+    privacyAlignment: VEHICLE_DAMAGE_PRIVACY_ALIGNMENT,
+    piiClassification: 'incident_sensitive',
+  };
+}
+
+function vehicleInputFailure(
+  input: VehicleDamageReadinessInput,
+  base: Pick<
+    VehicleDamageReadiness,
+    | 'applicableJurisdictionCountry'
+    | 'incidentCountry'
+    | 'vehicleRegistrationCountry'
+    | 'insurerCountry'
+  >,
+  closed: CloseVehicleReadiness
+): VehicleDamageReadiness | null {
   if (input.zone === 'professional_recovery' || input.requiresProfessionalRecovery === true) {
     return closed('requires_professional_recovery', 'requires_professional_recovery');
   }
@@ -302,7 +428,7 @@ export function evaluateVehicleDamagePrecheck(
     return closed('requires_member_zone', 'requires_member_zone');
   }
 
-  if (applicableJurisdictionCountry.length === 0) {
+  if (base.applicableJurisdictionCountry.length === 0) {
     return closed('missing_jurisdiction', 'manual_review_required');
   }
 
@@ -325,6 +451,13 @@ export function evaluateVehicleDamagePrecheck(
     return closed('unsupported_role', 'uncertain');
   }
 
+  return vehicleConsentOrScopeFailure(input, closed);
+}
+
+function vehicleConsentOrScopeFailure(
+  input: VehicleDamageReadinessInput,
+  closed: CloseVehicleReadiness
+): VehicleDamageReadiness | null {
   if (input.healthEvidenceDetected === true) {
     return closed('health_evidence_requires_injury_review', 'manual_review_required');
   }
@@ -353,11 +486,13 @@ export function evaluateVehicleDamagePrecheck(
     return closed('ai_extraction_consent_missing', 'manual_review_required');
   }
 
-  const applicableRules = input.rules.filter(rule =>
-    isApplicableRule(rule, input, applicableJurisdictionCountry)
-  );
-  const relevantRules = input.rules.filter(rule => isRelevantVehicleRule(rule, input));
+  return null;
+}
 
+function vehicleRuleSelectionFailure(
+  applicableRules: readonly VehicleDamageRuleInput[],
+  closed: CloseVehicleReadiness
+): VehicleDamageReadiness | null {
   if (applicableRules.length === 0) {
     return closed('missing_rule', 'manual_review_required');
   }
@@ -366,14 +501,14 @@ export function evaluateVehicleDamagePrecheck(
     return closed('metadata_incomplete', 'manual_review_required');
   }
 
-  const applicableMetadata = applicableRules.map(rule => rule.metadata as CountryRuleMetadata);
-  const conflictingSourceReferences = vehicleConflictingSourceReferences({
-    explicitReferences: input.conflictingSourceReferences,
-    relevantRules,
-    applicableRules,
-    applicableJurisdictionCountry,
-  });
+  return null;
+}
 
+function vehicleApplicableRuleFailure(
+  applicableRules: readonly VehicleDamageRuleInput[],
+  applicableMetadata: readonly CountryRuleMetadata[],
+  closed: CloseVehicleReadiness
+): VehicleDamageReadiness | null {
   if (applicableRules.some(rule => rule.healthEvidenceDetected === true)) {
     return closed(
       'health_evidence_requires_injury_review',
@@ -412,117 +547,91 @@ export function evaluateVehicleDamagePrecheck(
     return closed('professional_review_required', 'manual_review_required', applicableMetadata);
   }
 
-  const countryRuleReadiness = evaluateCountryRuleReadiness({
-    conflictingSourceReferences,
-    scenarioSupported: applicableRules.every(rule => rule.scenarioSupported !== false),
-    supportedCountry: applicableRules.every(rule => rule.supportedCountry !== false),
-    minimumConfidence,
-    staleAfterDays: normalizeStaleAfterDays(input.staleAfterDays),
-    now: input.now,
-    metadata: applicableMetadata,
-  });
+  return null;
+}
 
-  if (countryRuleReadiness.kind !== 'ready') {
-    return {
-      ...base,
-      kind: vehicleKindFromCountryRule(countryRuleReadiness.kind),
-      ready: false,
-      outcomeKind: countryRuleReadiness.outcomeKind,
-      humanReviewRequired: true,
-      reasons: countryRuleReadiness.reasons,
-      minimumConfidence: countryRuleReadiness.minimumConfidence,
-      countryRuleMetadata: countryRuleReadiness.countryRuleMetadata,
-      damageCategoryCodes: [],
-      inspectionReadinessMarkers: [],
-      repairAssessmentRoutingMarkers: [],
-      evidenceReferences: [],
-      requiredDisclaimers: VEHICLE_DAMAGE_REQUIRED_DISCLAIMERS,
-      privacyAlignment: VEHICLE_DAMAGE_PRIVACY_ALIGNMENT,
-      piiClassification: 'incident_sensitive',
-    };
-  }
-
-  const damageCategoryCodes = uniqueNonEmptyStrings(
-    applicableRules.flatMap(rule => rule.damageCategoryCodes ?? [])
-  );
-
-  if (
-    damageCategoryCodes.length === 0 ||
-    damageCategoryCodes.some(code => !isVehicleDamageCategoryCode(code))
-  ) {
-    return closed(
-      'unsupported_damage_category',
-      'manual_review_required',
-      countryRuleReadiness.countryRuleMetadata
-    );
-  }
-
-  const inspectionReadinessMarkers = uniqueNonEmptyStrings(
-    applicableRules.flatMap(rule => rule.inspectionReadinessMarkers ?? [])
-  );
-
-  if (
-    inspectionReadinessMarkers.length === 0 ||
-    inspectionReadinessMarkers.some(marker => !isVehicleInspectionReadinessMarker(marker))
-  ) {
-    return closed(
-      'unsupported_inspection_marker',
-      'manual_review_required',
-      countryRuleReadiness.countryRuleMetadata
-    );
-  }
-
-  const repairAssessmentRoutingMarkers = uniqueNonEmptyStrings(
-    applicableRules.flatMap(rule => rule.repairAssessmentRoutingMarkers ?? [])
-  );
-
-  if (
-    repairAssessmentRoutingMarkers.length === 0 ||
-    repairAssessmentRoutingMarkers.some(marker => !isVehicleRepairAssessmentRoutingMarker(marker))
-  ) {
-    return closed(
-      'unsupported_routing_marker',
-      'manual_review_required',
-      countryRuleReadiness.countryRuleMetadata
-    );
-  }
-
-  if (applicableRules.some(rule => hasUnsupportedEvidenceType(rule))) {
-    return closed(
-      'unsupported_evidence_type',
-      'manual_review_required',
-      countryRuleReadiness.countryRuleMetadata
-    );
-  }
-
-  const evidenceReferences = uniqueEvidenceReferences(
-    applicableRules.flatMap(rule => rule.evidenceReferences ?? [])
-  );
-
+function vehicleCountryRuleFailure(
+  base: ReturnType<typeof vehicleReadinessContext>,
+  countryRuleReadiness: ReturnType<typeof evaluateCountryRuleReadiness>
+): VehicleDamageReadiness {
   return {
     ...base,
-    kind: 'ready',
-    ready: true,
-    outcomeKind: 'eligible',
-    humanReviewRequired: false,
-    reasons: [
-      {
-        code: 'vehicle_damage_precheck_supported',
-        messageKey: 'assistance.vehicleDamage.supported',
-      },
-    ],
+    kind: vehicleKindFromCountryRule(
+      countryRuleReadiness.kind as Exclude<
+        ReturnType<typeof evaluateCountryRuleReadiness>['kind'],
+        'ready'
+      >
+    ),
+    ready: false,
+    outcomeKind: countryRuleReadiness.outcomeKind,
+    humanReviewRequired: true,
+    reasons: countryRuleReadiness.reasons,
     minimumConfidence: countryRuleReadiness.minimumConfidence,
     countryRuleMetadata: countryRuleReadiness.countryRuleMetadata,
-    damageCategoryCodes: damageCategoryCodes as readonly VehicleDamageCategoryCode[],
-    inspectionReadinessMarkers:
-      inspectionReadinessMarkers as readonly VehicleInspectionReadinessMarker[],
-    repairAssessmentRoutingMarkers:
-      repairAssessmentRoutingMarkers as readonly VehicleRepairAssessmentRoutingMarker[],
-    evidenceReferences,
+    damageCategoryCodes: [],
+    inspectionReadinessMarkers: [],
+    repairAssessmentRoutingMarkers: [],
+    evidenceReferences: [],
     requiredDisclaimers: VEHICLE_DAMAGE_REQUIRED_DISCLAIMERS,
     privacyAlignment: VEHICLE_DAMAGE_PRIVACY_ALIGNMENT,
     piiClassification: 'incident_sensitive',
   };
+}
+
+function vehicleOutputFailure(
+  params: {
+    damageCategoryCodes: readonly string[];
+    inspectionReadinessMarkers: readonly string[];
+    repairAssessmentRoutingMarkers: readonly string[];
+    applicableRules: readonly VehicleDamageRuleInput[];
+    countryRuleMetadata: readonly CountryRuleMetadata[];
+  },
+  closed: CloseVehicleReadiness
+): VehicleDamageReadiness | null {
+  if (
+    params.damageCategoryCodes.length === 0 ||
+    params.damageCategoryCodes.some(code => !isVehicleDamageCategoryCode(code))
+  ) {
+    return closed(
+      'unsupported_damage_category',
+      'manual_review_required',
+      params.countryRuleMetadata
+    );
+  }
+
+  if (
+    params.inspectionReadinessMarkers.length === 0 ||
+    params.inspectionReadinessMarkers.some(marker => !isVehicleInspectionReadinessMarker(marker))
+  ) {
+    return closed(
+      'unsupported_inspection_marker',
+      'manual_review_required',
+      params.countryRuleMetadata
+    );
+  }
+
+  if (
+    params.repairAssessmentRoutingMarkers.length === 0 ||
+    params.repairAssessmentRoutingMarkers.some(
+      marker => !isVehicleRepairAssessmentRoutingMarker(marker)
+    )
+  ) {
+    return closed(
+      'unsupported_routing_marker',
+      'manual_review_required',
+      params.countryRuleMetadata
+    );
+  }
+
+  if (params.applicableRules.some(rule => hasUnsupportedEvidenceType(rule))) {
+    return closed(
+      'unsupported_evidence_type',
+      'manual_review_required',
+      params.countryRuleMetadata
+    );
+  }
+
+  return null;
 }
 
 export function createVehicleDamagePack(
@@ -933,38 +1042,5 @@ function isVehicleRepairAssessmentRoutingMarker(
 }
 
 function minimumVehicleDamageConfidence(value: number | undefined): number {
-  if (!isFiniteConfidence(value) || value < 0 || value > 1) {
-    return MINIMUM_COUNTRY_RULE_CONFIDENCE;
-  }
-
-  return value < MINIMUM_COUNTRY_RULE_CONFIDENCE ? MINIMUM_COUNTRY_RULE_CONFIDENCE : value;
-}
-
-function normalizeStaleAfterDays(value: number | undefined): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
-}
-
-function uniqueNonEmptyStrings(values: readonly string[]): readonly string[] {
-  const output: string[] = [];
-
-  for (const value of values) {
-    const normalized = value.trim();
-    if (normalized.length > 0 && !output.includes(normalized)) {
-      output.push(normalized);
-    }
-  }
-
-  return output;
-}
-
-function isFilled(value: unknown): value is string {
-  return typeof value === 'string' && value.trim() !== '';
-}
-
-function isFiniteConfidence(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
-}
-
-function normalizeCountry(country: string | undefined): string {
-  return typeof country === 'string' ? country.trim().toLocaleUpperCase('en-US') : '';
+  return minimumCountryRuleConfidence(value);
 }
