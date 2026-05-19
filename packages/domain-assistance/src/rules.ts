@@ -6,6 +6,7 @@ export * from './rules/help-now';
 export * from './rules/human-review';
 export * from './rules/injury-category';
 export * from './rules/inputs';
+export * from './rules/invalidity-review';
 export * from './rules/legal-basis';
 export * from './rules/outcomes';
 export * from './rules/procedure-guide';
