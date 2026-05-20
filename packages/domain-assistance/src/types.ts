@@ -251,3 +251,78 @@ export interface AssistanceSessionDigest {
   externalRecordIds?: never;
   createdRecordIds?: never;
 }
+
+export const ASSISTANCE_WORKFLOW_INTENT_KINDS = [
+  'prepare_member_zone_context',
+  'prepare_claim_context_review',
+  'prepare_support_handoff_review',
+  'prepare_crm_follow_up_review',
+  'prepare_professional_recovery_review',
+  'blocked_workflow_intent',
+] as const;
+
+export type AssistanceWorkflowIntentKind = (typeof ASSISTANCE_WORKFLOW_INTENT_KINDS)[number];
+
+export const ASSISTANCE_WORKFLOW_TARGET_SURFACES = [
+  'member_zone',
+  'claim_context',
+  'support_handoff',
+  'crm_follow_up',
+  'professional_recovery_review',
+  'blocked_workflow',
+] as const;
+
+export type AssistanceWorkflowTargetSurface = (typeof ASSISTANCE_WORKFLOW_TARGET_SURFACES)[number];
+
+export const ASSISTANCE_WORKFLOW_BLOCKER_CODES = [
+  'session_identity_missing',
+  'member_attachment_missing',
+  'explicit_consent_missing',
+  'required_disclaimer_missing',
+  'country_rule_metadata_missing',
+  'digest_pair_count_mismatch',
+  'digest_summary_outcome_mismatch',
+  'sensitive_human_review_missing',
+  'ai_non_final_review_required',
+  'final_or_executable_outcome_blocked',
+  'created_or_external_record_ids_present',
+  'professional_recovery_activation_blocked',
+] as const;
+
+export type AssistanceWorkflowBlockerCode = (typeof ASSISTANCE_WORKFLOW_BLOCKER_CODES)[number];
+
+export type AssistanceWorkflowRedactionPosture =
+  | 'none'
+  | 'identifier_hash_only'
+  | 'sensitive_reference_only'
+  | 'professional_secret_reference_only';
+
+export interface AssistanceWorkflowPackReference {
+  packId: string;
+  packType: AssistancePackType;
+  outcomeKind: AssistanceOutcomeKind;
+  zone: AssistanceServiceZone;
+  requiredHumanReview: boolean;
+}
+
+export interface AssistanceWorkflowIntent {
+  intentKind: AssistanceWorkflowIntentKind;
+  targetSurface: AssistanceWorkflowTargetSurface;
+  executionAllowed: false;
+  blocked: boolean;
+  outcomeKind?: AssistanceOutcomeKind;
+  reasons: readonly AssistanceReason[];
+  blockers: readonly AssistanceWorkflowBlockerCode[];
+  evidence: readonly AssistanceEvidenceReference[];
+  packReferences: readonly AssistanceWorkflowPackReference[];
+  requiredConsentState?: Extract<AssistanceConsentState, 'explicit_consent_recorded'>;
+  requiredDisclaimers: readonly AssistanceDisclaimerCode[];
+  missingDisclaimers: readonly AssistanceDisclaimerCode[];
+  requiredHumanReview: boolean;
+  piiClassification: PiiClassification;
+  redactionPosture: AssistanceWorkflowRedactionPosture;
+  aiAdvisoryOnly: boolean;
+  referenceKey: string;
+  externalRecordIds?: never;
+  createdRecordIds?: never;
+}
