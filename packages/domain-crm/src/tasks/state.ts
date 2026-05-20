@@ -528,7 +528,11 @@ export function createCrmTask(
   return { success: true, task, transition: createTransition };
 }
 
-export function assignCrmTask(task: CrmTask, input: AssignCrmTaskInput, services: CrmTaskClock) {
+export function assignCrmTask(
+  task: CrmTask,
+  input: AssignCrmTaskInput,
+  services: CrmTaskClock
+): CrmTaskMutationResult {
   const actorError = validateMutableTaskActor(input.actor, task);
   if (actorError) return actorError;
   if (isCrmTaskMutationBlockedStatus(task.status)) return terminal('terminal_state');
@@ -591,7 +595,7 @@ export function startCrmTask(
 ): CrmTaskMutationResult {
   const actorError = validateMutableTaskActor(input.actor, task);
   if (actorError) return actorError;
-  if (task.status !== 'pending') return terminal('unsupported_transition');
+  if (task.status !== 'pending') return invalid('unsupported_transition');
   const reasonCode: CrmTaskStartReasonCode = input.reasonCode ?? 'manual_start';
   const reasonError = validateReason(reasonCode, CRM_TASK_START_REASON_CODES);
   if (reasonError) return reasonError;
@@ -673,7 +677,7 @@ export function reopenCrmTask(
   const reasonError = validateReason(input.reasonCode, CRM_TASK_REOPEN_REASON_CODES);
   if (reasonError) return reasonError;
   if (task.status === 'cancelled') return terminal('terminal_state');
-  if (task.status !== 'completed') return terminal('unsupported_transition');
+  if (task.status !== 'completed') return invalid('unsupported_transition');
   const now = normalizeTimestamp(services.now());
   if (!now) return invalid('invalid_timestamp');
   const timestampError = validateMutationTimestamp(task, now);
