@@ -40,7 +40,7 @@ authorized by this gate.
   contract kinds: `lead`, `deal`, `account`, `contact`, and `support_handoff`.
 - Durable subject kinds: the subject kinds with current database backing in this repo. In this
   draft they are `lead`, `deal`, and `support_handoff`.
-- Unsupported durable subject kind: a contract-valid subject kind without a current table backing.
+- Unsupported subject kind: a contract-valid subject kind without a current table backing.
   In this draft `account` and `contact` remain contract-valid but adapter persistence must fail
   closed until a later account/contact persistence slice exists.
 - Idempotent persistence: repeated create/save attempts with the same idempotency key and equivalent
