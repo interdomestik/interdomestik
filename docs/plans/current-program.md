@@ -242,6 +242,28 @@ database migrations/RLS, CRM/claim/handoff creation, outbox/event emission, Prof
 activation, autonomous AI workflows, model calls, prompt changes, proxy/canonical
 route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, or broad architecture-doc work.
 
+`P39-ASSIST-09 Assistance Session Workflow Wiring Contract` is complete through PR `#825`, merge
+commit `35a011372eff9b16c879ddadbf7313d92bc48bd1`: `packages/domain-assistance` now exposes pure
+workflow-intent contracts over `AssistanceSessionDigest`, deterministic readonly intent output,
+literal `executionAllowed: false`, fail-closed blocker codes, existing outcome/disclaimer taxonomy
+reuse, hash-safe reference keys, privacy/consent/disclaimer/human-review propagation, AI
+non-finality, and scoped digest evidence pairing. P39 remains a package-only assistance foundation
+and still does not authorize runtime UI, upload flows, database persistence/RLS, CRM/claim/handoff
+creation, outbox/event emission, Professional Recovery activation, autonomous AI workflows, model
+calls, prompt changes, proxy/canonical route/auth/tenancy/routing changes, Stripe, README,
+AGENTS.md, or broad architecture-doc work.
+
+`P40 CRM Product Depth` is now open after the completed package-only P39 assistance lane.
+`P40-DG01 CRM Resume And Task Foundation Design Gate` is recorded in
+`docs/plans/2026-05-20-p40-dg01-crm-resume-task-foundation.md` and promotes exactly one next
+implementation slice, `P40-CRM24 CRM Task Domain Foundation`. The promoted slice resumes CRM at the
+first deferred product-depth item from the P38 roadmap, but only as pure `packages/domain-crm` task
+contracts, repository ports, state-transition helpers, deterministic clock/ID injection, and
+focused unit tests. It does not authorize task persistence, runtime UI, scheduler/cron,
+notifications, templates, sequences, scoring, consent/preference implementation, assistance-intent
+execution, CRM/claim/handoff creation from assistance, proxy/canonical route/auth/tenancy/routing
+changes, Stripe, README, AGENTS.md, or broad architecture-doc work.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
