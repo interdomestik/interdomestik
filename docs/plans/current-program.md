@@ -269,6 +269,17 @@ broad architecture-doc work. Local proof passed focused `domain-crm` type-check 
 `pnpm security:guard`, `pnpm pr:verify`, and standalone `pnpm e2e:gate` with `128` passed / `4`
 skipped. Any later P40 persistence, UI, scheduler, notification, template, sequence, scoring,
 consent, or assistance-adapter work requires a separate repo-canonical gate.
+`P40-DG02 CRM Task Persistence And Repository Adapter Design Gate` is recorded in
+`docs/plans/2026-05-20-p40-dg02-crm-task-persistence-design.md` and promotes exactly one next
+implementation slice, `P40-CRM25 CRM Task Persistence And Repository Adapter`. The promoted slice
+is limited to additive `crm_tasks` and `crm_task_history` persistence, tenant RLS, database schema
+exports, an app-side `CrmTaskRepository` adapter, lifecycle-version compare-and-set proof,
+subject-visibility proof for durable `lead`, `deal`, and `support_handoff` subjects, fail-closed
+`account` and `contact` handling until durable tables exist, and focused adapter/database tests.
+It does not authorize runtime task UI, routes, server actions, scheduler/cron, notifications,
+templates, sequences, scoring, consent/preference implementation, lead-follow-up migration,
+assistance-intent execution, CRM/claim/handoff creation from assistance, proxy/canonical
+route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, or broad architecture-doc work.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
