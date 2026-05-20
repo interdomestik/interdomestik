@@ -14,4 +14,5 @@ export * from './pipelines';
 export * from './reporting';
 export * from './routing';
 export * from './support-handoffs';
+export * from './tasks';
 export * from './timeline';

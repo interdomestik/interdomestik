@@ -58,6 +58,11 @@
     "./support-handoffs/repository": "./src/support-handoffs/repository.ts",
     "./support-handoffs/state": "./src/support-handoffs/state.ts",
     "./support-handoffs/types": "./src/support-handoffs/types.ts",
+    "./tasks": "./src/tasks/index.ts",
+    "./tasks/mutations": "./src/tasks/mutations.ts",
+    "./tasks/repository": "./src/tasks/repository.ts",
+    "./tasks/state": "./src/tasks/state.ts",
+    "./tasks/types": "./src/tasks/types.ts",
     "./timeline": "./src/timeline/index.ts",
     "./timeline/authorization": "./src/timeline/authorization.ts",
     "./timeline/read-model": "./src/timeline/read-model.ts"
