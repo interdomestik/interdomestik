@@ -93,7 +93,9 @@ export function createAssistanceWorkflowIntents(
       const targetBlockers = collectTargetBlockers(digest, candidate.targetSurface);
       const blockers = dedupe([...globalBlockers, ...targetBlockers]);
       const packReferences = selectPackReferences(digest.packSummaries, candidate.packTypes);
-      const evidence = sanitizeEvidenceReferences(collectEvidence(digest.outcomes, packReferences));
+      const evidence = sanitizeEvidenceReferences(
+        collectEvidence(digest.outcomes, digest.packSummaries, packReferences)
+      );
       const reasons = createReasons(candidate.reasonCodes, blockers, digest);
 
       return {
@@ -370,26 +372,17 @@ function selectPackReferences(
 
 function collectEvidence(
   outcomes: readonly AssistanceOutcome[],
+  packSummaries: readonly AssistancePackSummary[],
   packReferences: readonly AssistanceWorkflowPackReference[]
 ): readonly AssistanceEvidenceReference[] {
-  const selectedPackIndexes = new Set(
-    packReferences
-      .map(reference => reference.packId)
-      .flatMap(packId =>
-        outcomes
-          .map((outcome, index) => ({ outcome, index }))
-          .filter(({ outcome }) =>
-            outcome.evidence.some(evidence => evidence.sourceReference?.includes(packId))
-          )
-          .map(({ index }) => index)
-      )
-  );
-  const evidence =
-    selectedPackIndexes.size > 0
-      ? outcomes
-          .filter((_outcome, index) => selectedPackIndexes.has(index))
-          .flatMap(outcome => outcome.evidence)
-      : outcomes.flatMap(outcome => outcome.evidence);
+  const selectedPackIds = new Set(packReferences.map(reference => reference.packId));
+  const evidence = outcomes
+    .filter((_outcome, index) => {
+      const summary = packSummaries[index];
+
+      return summary !== undefined && selectedPackIds.has(summary.packId);
+    })
+    .flatMap(outcome => outcome.evidence);
 
   return dedupeBy(evidence, evidenceReferenceKey);
 }

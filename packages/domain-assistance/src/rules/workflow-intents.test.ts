@@ -198,6 +198,51 @@ describe('createAssistanceWorkflowIntents', () => {
     expect(intents.every(intent => intent.requiredHumanReview)).toBe(true);
   });
 
+  it('scopes evidence to the selected pack summaries instead of source-reference text', () => {
+    const legalOutcome = outcome({
+      evidence: [
+        {
+          kind: 'document_reference',
+          referenceId: 'legal-basis-evidence',
+          sourceReference: 'legal-basis/de/2026-05',
+        },
+      ],
+    });
+    const recoveryOutcome = outcome({
+      kind: 'requires_professional_recovery',
+      humanReviewRequired: true,
+      evidence: [
+        {
+          kind: 'professional_review_reference',
+          referenceId: 'recovery-evidence',
+          sourceReference: 'professional-recovery/de/2026-05',
+        },
+      ],
+    });
+    const source = digest({
+      outcomes: [legalOutcome, recoveryOutcome],
+      packSummaries: [
+        packSummary('pack-legal-basis-1', 'legal_basis', legalOutcome),
+        packSummary('pack-recovery-1', 'recovery_eligibility', recoveryOutcome),
+      ],
+    });
+
+    const intents = createAssistanceWorkflowIntents(source);
+    const claimIntent = intents.find(intent => intent.targetSurface === 'claim_context');
+    const professionalReviewIntent = intents.find(
+      intent => intent.targetSurface === 'professional_recovery_review'
+    );
+
+    expect(claimIntent?.packReferences.map(reference => reference.packId)).toEqual([
+      'pack-legal-basis-1',
+    ]);
+    expect(claimIntent?.evidence.map(reference => reference.kind)).toEqual(['document_reference']);
+    expect(professionalReviewIntent?.evidence.map(reference => reference.kind)).toEqual([
+      'document_reference',
+      'professional_review_reference',
+    ]);
+  });
+
   it('fails closed for professional recovery recommendations instead of activating recovery', () => {
     const source = digest({
       escalationRecommendation: 'professional_recovery',
