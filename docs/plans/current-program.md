@@ -258,13 +258,17 @@ AGENTS.md, or broad architecture-doc work.
 `docs/plans/2026-05-20-p40-dg01-crm-resume-task-foundation.md` and promotes exactly one next
 implementation slice, `P40-CRM24 CRM Task Domain Foundation`. The promoted slice resumes the CRM
 program lane, not task-state recovery or paused-task runtime behavior, at the first deferred
-product-depth item from the P38 roadmap. It is limited to pure `packages/domain-crm` task contracts,
-repository ports, state-transition helpers, deterministic clock/ID injection, idempotency
-expectations, PII-safe subject references, and focused unit tests. It does not authorize task
-persistence, runtime UI, scheduler/cron, notifications, templates, sequences, scoring,
-consent/preference implementation, assistance-intent execution, CRM/claim/handoff creation from
-assistance, proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, or broad
-architecture-doc work.
+product-depth item from the P38 roadmap. `P40-CRM24` is complete as the pure
+`packages/domain-crm` task-domain foundation: typed task contracts, repository ports,
+state-transition helpers, deterministic clock/ID injection, idempotency expectations, PII-safe
+subject references, branch-scoped fail-closed mutation rules, and focused unit tests. It does not
+authorize task persistence, runtime UI, scheduler/cron, notifications, templates, sequences,
+scoring, consent/preference implementation, assistance-intent execution, CRM/claim/handoff creation
+from assistance, proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, or
+broad architecture-doc work. Local proof passed focused `domain-crm` type-check and unit tests,
+`pnpm security:guard`, `pnpm pr:verify`, and standalone `pnpm e2e:gate` with `128` passed / `4`
+skipped. Any later P40 persistence, UI, scheduler, notification, template, sequence, scoring,
+consent, or assistance-adapter work requires a separate repo-canonical gate.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
