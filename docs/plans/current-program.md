@@ -335,6 +335,18 @@ before merge. Broad task UI, scheduler/cron, reminders, notifications, outbox, t
 sequences, scoring, assistance-intent execution, database migration/RLS, historical backfill,
 proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
 architecture-doc work remained blocked.
+`P40-DG05 CRM Task Work Queue UI Foundation Design Gate` is recorded in
+`docs/plans/2026-05-21-p40-dg05-crm-task-work-queue-ui-foundation-design.md` after
+`P40-CRM27`. It promotes exactly one next implementation slice,
+`P40-CRM28 Agent CRM Task Work Queue UI Foundation`, limited to a read-only, agent-scoped,
+lead-backed CRM task queue on the existing `/agent/crm` route. The promoted slice may add a pure
+task work-queue read model and app-side read adapter using the existing RSC/server `_core.ts` read
+pattern, task-only queue DTOs, PII-safe lead display projection, deterministic 10-row ordering,
+active app locale labels, and accessibility proof. Staff/admin/member task UI, task mutation controls,
+scheduler/cron, reminders, notifications, outbox, templates, sequences, scoring,
+assistance-intent execution, database migration/RLS, historical backfill,
+proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
+architecture-doc work remain blocked.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
