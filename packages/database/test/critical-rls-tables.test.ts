@@ -10,7 +10,14 @@ type CriticalRlsRow = {
   relrowsecurity: boolean | null;
 };
 
-const CRITICAL_TABLES = ['claim', 'claim_messages', 'documents', 'user'] as const;
+const CRITICAL_TABLES = [
+  'claim',
+  'claim_messages',
+  'crm_task_history',
+  'crm_tasks',
+  'documents',
+  'user',
+] as const;
 
 test('critical tables keep row level security enabled', async t => {
   if (!process.env.DATABASE_URL) {

@@ -7,7 +7,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import { claims, user } from '../src/schema';
+import { claims, crmTaskHistory, crmTasks, user } from '../src/schema';
 
 const KS_TENANT_ID = 'tenant_ks';
 const MK_TENANT_ID = 'tenant_mk';
@@ -67,6 +67,7 @@ async function requireRlsPreconditions(
   requireIntegration: boolean,
   t: TestContext
 ): Promise<void> {
+  const requiredTables = ['claim', 'crm_tasks', 'crm_task_history'] as const;
   const [rlsEnabled] = await adminDb.execute<{ enabled: boolean }>(
     sql`select relrowsecurity as enabled from pg_class where relname = 'claim'`
   );
@@ -81,17 +82,49 @@ async function requireRlsPreconditions(
     return;
   }
 
-  const policies = await adminDb.execute<{ policyname: string }>(
-    sql`select policyname from pg_policies where schemaname = 'public' and tablename = 'claim' and policyname = 'tenant_isolation_claim'`
-  );
-  if (policies.length === 0) {
+  const tableRows = await adminDb.execute<{ relname: string; relrowsecurity: boolean }>(sql`
+    select c.relname, c.relrowsecurity
+    from pg_class c
+    join pg_namespace n
+      on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relkind = 'r'
+      and c.relname in ('claim', 'crm_tasks', 'crm_task_history')
+  `);
+  const enabledTables = new Map(tableRows.map(row => [row.relname, row.relrowsecurity]));
+  const missingOrDisabled = requiredTables.filter(table => enabledTables.get(table) !== true);
+  if (missingOrDisabled.length > 0) {
     await adminSql.end({ timeout: 5 });
     if (requireIntegration) {
       assert.fail(
-        'RLS test requires tenant_isolation_claim policy when REQUIRE_RLS_INTEGRATION=1.'
+        `RLS test requires CRM task tables with RLS enabled when REQUIRE_RLS_INTEGRATION=1: ${missingOrDisabled.join(', ')}`
       );
     }
-    t.skip('tenant_isolation_claim policy is not present in current database');
+    t.skip(`CRM task RLS tables are not ready: ${missingOrDisabled.join(', ')}`);
+    return;
+  }
+
+  const policies = await adminDb.execute<{ policyname: string }>(
+    sql`
+      select policyname
+      from pg_policies
+      where schemaname = 'public'
+        and (
+          (tablename = 'claim' and policyname = 'tenant_isolation_claim')
+          or (tablename = 'crm_tasks' and policyname = 'tenant_isolation_crm_tasks')
+          or (tablename = 'crm_task_history' and policyname = 'tenant_isolation_crm_task_history')
+        )
+    `
+  );
+  if (policies.length !== requiredTables.length) {
+    await adminSql.end({ timeout: 5 });
+    if (requireIntegration) {
+      assert.fail(
+        'RLS test requires tenant-isolation policies for claim, crm_tasks, and crm_task_history when REQUIRE_RLS_INTEGRATION=1.'
+      );
+    }
+    t.skip('tenant-isolation policy set for claim/crm task tables is not present');
+    return;
   }
 }
 
@@ -189,6 +222,8 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
   );
   await adminDb.execute(sql.raw(`grant usage on schema public to "${TEST_DB_ROLE}"`));
   await adminDb.execute(sql.raw(`grant select on table "claim" to "${TEST_DB_ROLE}"`));
+  await adminDb.execute(sql.raw(`grant select on table "crm_tasks" to "${TEST_DB_ROLE}"`));
+  await adminDb.execute(sql.raw(`grant select on table "crm_task_history" to "${TEST_DB_ROLE}"`));
   const [{ currentUser }] = await adminDb.execute<{ currentUser: string }>(
     sql`select current_user as "currentUser"`
   );
@@ -197,14 +232,17 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
   const ksUserId = uniqueId('rls_user_ks');
   const mkUserId = uniqueId('rls_user_mk');
   const claimId = uniqueId('rls_claim_ks');
+  const taskId = uniqueId('rls_task_ks');
+  const historyId = uniqueId('rls_task_history_ks');
   const now = new Date();
   let rlsTestEnv: ReturnType<typeof applyRlsTestConnectionEnv> | null = null;
   let dbAdmin: DbModule['dbAdmin'] | null = null;
+  let dbRls: DbModule['dbRls'] | null = null;
   let withTenantContext: TenantModule['withTenantContext'] | null = null;
 
   try {
     rlsTestEnv = applyRlsTestConnectionEnv(process.env.DATABASE_URL);
-    [{ dbAdmin }, { withTenantContext }] = await Promise.all([
+    [{ dbAdmin, dbRls }, { withTenantContext }] = await Promise.all([
       import('../src/db'),
       import('../src/tenant'),
     ]);
@@ -245,6 +283,42 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
       origin: 'portal',
     });
 
+    await dbAdmin.insert(crmTasks).values({
+      assignedActorId: ksUserId,
+      assignedBranchId: null,
+      assignedKind: 'actor',
+      assignedRole: 'agent',
+      assignedTeamId: null,
+      assignedTenantId: KS_TENANT_ID,
+      branchId: null,
+      createReasonCode: 'manual',
+      createdAt: now,
+      createdById: ksUserId,
+      createdByRole: 'admin',
+      dueAt: null,
+      id: taskId,
+      idempotencyKey: null,
+      priority: 'normal',
+      status: 'pending',
+      subjectId: 'rls-subject',
+      subjectKind: 'lead',
+      tenantId: KS_TENANT_ID,
+      updatedAt: now,
+    });
+
+    await dbAdmin.insert(crmTaskHistory).values({
+      actorId: ksUserId,
+      actorRole: 'admin',
+      event: 'created',
+      fromStatus: null,
+      id: historyId,
+      occurredAt: now,
+      reasonCode: 'manual',
+      taskId,
+      tenantId: KS_TENANT_ID,
+      toStatus: 'pending',
+    });
+
     const [mkRlsReceipt] = await withTenantContext({ tenantId: MK_TENANT_ID }, async tx => {
       return tx.execute<RlsRuntimeReceipt>(sql`
         select
@@ -282,6 +356,22 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
 
     assert.equal(mkRows.length, 0, 'tenant_mk must not see tenant_ks claim row');
 
+    const unsetTaskRows = await dbRls
+      .select({ id: crmTasks.id })
+      .from(crmTasks)
+      .where(and(eq(crmTasks.id, taskId), eq(crmTasks.tenantId, KS_TENANT_ID)));
+    assert.equal(unsetTaskRows.length, 0, 'crm_tasks must return zero rows with tenant GUC unset');
+
+    const unsetHistoryRows = await dbRls
+      .select({ id: crmTaskHistory.id })
+      .from(crmTaskHistory)
+      .where(and(eq(crmTaskHistory.id, historyId), eq(crmTaskHistory.tenantId, KS_TENANT_ID)));
+    assert.equal(
+      unsetHistoryRows.length,
+      0,
+      'crm_task_history must return zero rows with tenant GUC unset'
+    );
+
     const ksRows = await withTenantContext({ tenantId: KS_TENANT_ID }, async tx => {
       return tx
         .select({ id: claims.id })
@@ -290,8 +380,19 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
     });
 
     assert.equal(ksRows.length, 1, 'tenant_ks must see its own claim row');
+
+    const ksTaskRows = await withTenantContext({ tenantId: KS_TENANT_ID }, async tx => {
+      return tx
+        .select({ id: crmTasks.id })
+        .from(crmTasks)
+        .where(and(eq(crmTasks.id, taskId), eq(crmTasks.tenantId, KS_TENANT_ID)));
+    });
+
+    assert.equal(ksTaskRows.length, 1, 'tenant_ks must see its own CRM task row');
   } finally {
     if (dbAdmin) {
+      await dbAdmin.delete(crmTaskHistory).where(eq(crmTaskHistory.id, historyId));
+      await dbAdmin.delete(crmTasks).where(eq(crmTasks.id, taskId));
       await dbAdmin.delete(claims).where(eq(claims.id, claimId));
       await dbAdmin.delete(user).where(eq(user.id, ksUserId));
       await dbAdmin.delete(user).where(eq(user.id, mkUserId));
