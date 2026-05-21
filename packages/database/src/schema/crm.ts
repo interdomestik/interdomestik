@@ -832,6 +832,191 @@ export const supportHandoffs = pgTable(
   ]
 );
 
+export const crmTasks = pgTable(
+  'crm_tasks',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    branchId: text('branch_id'),
+    subjectKind: text('subject_kind').notNull(),
+    subjectId: text('subject_id').notNull(),
+    assignedKind: text('assigned_kind').notNull(),
+    assignedActorId: text('assigned_actor_id').references(() => user.id),
+    assignedRole: text('assigned_role'),
+    assignedTeamId: text('assigned_team_id'),
+    assignedBranchId: text('assigned_branch_id'),
+    assignedTenantId: text('assigned_tenant_id'),
+    status: text('status').notNull(),
+    priority: text('priority').notNull(),
+    dueAt: timestamp('due_at', { withTimezone: true }),
+    idempotencyKey: text('idempotency_key'),
+    lifecycleVersion: integer('lifecycle_version').notNull().default(1),
+    createdById: text('created_by_id')
+      .notNull()
+      .references(() => user.id),
+    createdByRole: text('created_by_role').notNull(),
+    createdByBranchId: text('created_by_branch_id'),
+    createReasonCode: text('create_reason_code').notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    completionReasonCode: text('completion_reason_code'),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+    cancellationReasonCode: text('cancellation_reason_code'),
+    reopenedAt: timestamp('reopened_at', { withTimezone: true }),
+    reopenReasonCode: text('reopen_reason_code'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  table => [
+    unique('crm_tasks_tenant_id_id_uq').on(table.tenantId, table.id),
+    uniqueIndex('crm_tasks_tenant_idempotency_uq')
+      .on(table.tenantId, table.idempotencyKey)
+      .where(sql`${table.idempotencyKey} is not null`),
+    index('crm_tasks_tenant_status_due_idx').on(table.tenantId, table.status, table.dueAt),
+    index('crm_tasks_tenant_branch_status_due_idx').on(
+      table.tenantId,
+      table.branchId,
+      table.status,
+      table.dueAt
+    ),
+    index('crm_tasks_tenant_subject_idx').on(table.tenantId, table.subjectKind, table.subjectId),
+    index('crm_tasks_tenant_assigned_actor_status_due_idx').on(
+      table.tenantId,
+      table.assignedActorId,
+      table.status,
+      table.dueAt
+    ),
+    foreignKey({
+      columns: [table.tenantId, table.branchId],
+      foreignColumns: [branches.tenantId, branches.id],
+      name: 'crm_tasks_tenant_branch_fk',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.assignedBranchId],
+      foreignColumns: [branches.tenantId, branches.id],
+      name: 'crm_tasks_tenant_assigned_branch_fk',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.createdByBranchId],
+      foreignColumns: [branches.tenantId, branches.id],
+      name: 'crm_tasks_tenant_created_by_branch_fk',
+    }),
+    check(
+      'crm_tasks_subject_kind_check',
+      sql`${table.subjectKind} in ('lead', 'deal', 'account', 'contact', 'support_handoff')`
+    ),
+    check(
+      'crm_tasks_assigned_kind_check',
+      sql`${table.assignedKind} in ('unassigned', 'actor', 'role', 'team')`
+    ),
+    check(
+      'crm_tasks_status_check',
+      sql`${table.status} in ('pending', 'in_progress', 'completed', 'cancelled')`
+    ),
+    check(
+      'crm_tasks_priority_check',
+      sql`${table.priority} in ('low', 'normal', 'high', 'urgent')`
+    ),
+    check(
+      'crm_tasks_created_by_role_check',
+      sql`${table.createdByRole} in ('member', 'agent', 'staff', 'branch_manager', 'admin')`
+    ),
+    check(
+      'crm_tasks_assigned_role_check',
+      sql`${table.assignedRole} is null or ${table.assignedRole} in ('agent', 'staff', 'branch_manager', 'admin')`
+    ),
+    check(
+      'crm_tasks_create_reason_check',
+      sql`${table.createReasonCode} in ('manual', 'follow_up', 'support_handoff', 'assistance_review', 'data_quality')`
+    ),
+    check(
+      'crm_tasks_completion_reason_check',
+      sql`${table.completionReasonCode} is null or ${table.completionReasonCode} in ('resolved', 'no_longer_needed', 'duplicate', 'converted', 'manually_closed')`
+    ),
+    check(
+      'crm_tasks_cancellation_reason_check',
+      sql`${table.cancellationReasonCode} is null or ${table.cancellationReasonCode} in ('not_needed', 'duplicate', 'created_in_error', 'subject_closed')`
+    ),
+    check(
+      'crm_tasks_reopen_reason_check',
+      sql`${table.reopenReasonCode} is null or ${table.reopenReasonCode} in ('follow_up_required', 'incomplete', 'manually_reopened')`
+    ),
+    check('crm_tasks_lifecycle_version_check', sql`${table.lifecycleVersion} >= 1`),
+    check(
+      'crm_tasks_assignment_shape_check',
+      sql`
+        (${table.assignedKind} = 'unassigned' and ${table.assignedActorId} is null and ${table.assignedRole} is null and ${table.assignedTeamId} is null)
+        or (${table.assignedKind} = 'actor' and ${table.assignedActorId} is not null and ${table.assignedRole} is not null and ${table.assignedTeamId} is null)
+        or (${table.assignedKind} = 'role' and ${table.assignedActorId} is null and ${table.assignedRole} is not null and ${table.assignedTeamId} is null)
+        or (${table.assignedKind} = 'team' and ${table.assignedActorId} is null and ${table.assignedRole} is null and ${table.assignedTeamId} is not null)
+      `
+    ),
+  ]
+);
+
+export const crmTaskHistory = pgTable(
+  'crm_task_history',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    taskId: text('task_id').notNull(),
+    event: text('event').notNull(),
+    fromStatus: text('from_status'),
+    toStatus: text('to_status').notNull(),
+    reasonCode: text('reason_code').notNull(),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => user.id),
+    actorRole: text('actor_role').notNull(),
+    actorBranchId: text('actor_branch_id'),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    index('crm_task_history_tenant_task_occurred_idx').on(
+      table.tenantId,
+      table.taskId,
+      table.occurredAt
+    ),
+    foreignKey({
+      columns: [table.tenantId, table.taskId],
+      foreignColumns: [crmTasks.tenantId, crmTasks.id],
+      name: 'crm_task_history_tenant_task_fk',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.actorBranchId],
+      foreignColumns: [branches.tenantId, branches.id],
+      name: 'crm_task_history_tenant_actor_branch_fk',
+    }),
+    check(
+      'crm_task_history_event_check',
+      sql`${table.event} in ('created', 'assigned', 'reassigned', 'due_updated', 'started', 'completed', 'cancelled', 'reopened')`
+    ),
+    check(
+      'crm_task_history_from_status_check',
+      sql`${table.fromStatus} is null or ${table.fromStatus} in ('pending', 'in_progress', 'completed', 'cancelled')`
+    ),
+    check(
+      'crm_task_history_to_status_check',
+      sql`${table.toStatus} in ('pending', 'in_progress', 'completed', 'cancelled')`
+    ),
+    check(
+      'crm_task_history_reason_code_check',
+      sql`${table.reasonCode} in ('manual', 'follow_up', 'support_handoff', 'assistance_review', 'data_quality', 'manual_assignment', 'reassignment', 'workload_balance', 'due_date_changed', 'due_date_cleared', 'manual_start', 'resolved', 'no_longer_needed', 'duplicate', 'converted', 'manually_closed', 'not_needed', 'created_in_error', 'subject_closed', 'follow_up_required', 'incomplete', 'manually_reopened')`
+    ),
+    check(
+      'crm_task_history_actor_role_check',
+      sql`${table.actorRole} in ('member', 'agent', 'staff', 'branch_manager', 'admin')`
+    ),
+  ]
+);
+
 // Legacy leads table
 export const leads = pgTable('leads', {
   id: text('id').primaryKey(),
