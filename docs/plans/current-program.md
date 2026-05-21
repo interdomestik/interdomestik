@@ -323,6 +323,18 @@ scheduler/cron, reminders, notifications, outbox, templates, sequences,
 scoring, assistance-intent execution, database migration/RLS, historical backfill, proxy/canonical
 route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad architecture-doc work
 remain blocked.
+`P40-CRM27` is complete through PR `#837`: new agent lead follow-up scheduling writes to CRM
+tasks through the CRM26 boundary instead of creating new legacy `crm_activities` follow-up rows,
+existing open legacy follow-up rows remain visible and completable through bounded compatibility,
+task-backed rows are canonical in union reads, duplicate legacy rows shadowed by a task-backed
+completion are completed, and stale lifecycle-version conflicts fail closed. Focused proof covers
+domain derivation, dashboard union/dedupe behavior, branch-scoped legacy reads, server-action
+schedule/complete flows, lead-detail rendering, and the agent CRM follow-up E2E gate. Local proof
+passed `pnpm security:guard`, `pnpm pr:verify`, and `pnpm e2e:gate`; remote checks were green
+before merge. Broad task UI, scheduler/cron, reminders, notifications, outbox, templates,
+sequences, scoring, assistance-intent execution, database migration/RLS, historical backfill,
+proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
+architecture-doc work remained blocked.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
