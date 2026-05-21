@@ -13,6 +13,7 @@ import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 
+import { withTenantContext } from '@interdomestik/database';
 import { db } from '@interdomestik/database/db';
 import {
   crmDeals,
@@ -25,6 +26,41 @@ import {
 type CrmTaskDb = typeof db;
 type CrmTaskRow = typeof crmTasks.$inferSelect;
 type CrmTaskHistoryRow = typeof crmTaskHistory.$inferSelect;
+type CrmTaskTenantRunner = <T>(
+  actor: CrmActorContext,
+  action: (database: CrmTaskDb) => Promise<T>
+) => Promise<T>;
+
+const IDEMPOTENCY_UNIQUE_CONSTRAINT = 'crm_tasks_tenant_idempotency_uq';
+
+function createTenantRunner(database: CrmTaskDb): CrmTaskTenantRunner {
+  return async (actor, action) => {
+    if (database !== db) return action(database);
+    return withTenantContext({ tenantId: actor.tenantId, role: actor.role }, tx =>
+      action(tx as unknown as CrmTaskDb)
+    );
+  };
+}
+
+function databaseErrorRecord(error: unknown): Record<string, unknown> | null {
+  return typeof error === 'object' && error !== null ? (error as Record<string, unknown>) : null;
+}
+
+function isIdempotencyUniqueViolation(error: unknown): boolean {
+  const record = databaseErrorRecord(error);
+  if (!record) return false;
+  const code = typeof record.code === 'string' ? record.code : null;
+  const constraint = typeof record.constraint === 'string' ? record.constraint : null;
+  const message = typeof record.message === 'string' ? record.message : '';
+  if (
+    code === '23505' &&
+    (constraint === IDEMPOTENCY_UNIQUE_CONSTRAINT ||
+      message.includes(IDEMPOTENCY_UNIQUE_CONSTRAINT))
+  ) {
+    return true;
+  }
+  return isIdempotencyUniqueViolation(record.cause);
+}
 
 function toDate(value: string | null | undefined): Date | null {
   if (!value) return null;
@@ -256,6 +292,27 @@ function idempotencyMaterial(task: CrmTask): string {
   });
 }
 
+async function replayIdempotentCreate(
+  database: CrmTaskDb,
+  actor: CrmActorContext,
+  task: CrmTask
+): Promise<CrmTask | null> {
+  if (!task.idempotencyKey) return null;
+  const existingRow = await database.query.crmTasks.findFirst({
+    where: and(
+      eq(crmTasks.tenantId, actor.tenantId),
+      eq(crmTasks.idempotencyKey, task.idempotencyKey)
+    ),
+  });
+  if (!existingRow) return null;
+  const existing = await hydrateVisibleTask(database, actor, existingRow);
+  if (!existing) throw new CrmTaskRepositoryFailure('idempotency_conflict');
+  if (idempotencyMaterial(existing) !== idempotencyMaterial(task)) {
+    throw new CrmTaskRepositoryFailure('idempotency_conflict');
+  }
+  return existing;
+}
+
 async function hydrateVisibleTask(
   database: Pick<CrmTaskDb, 'query'>,
   actor: CrmActorContext,
@@ -337,149 +394,168 @@ async function validateSubjectReference(
   return { branchId: row.branchId ?? null, tenantId: row.tenantId, visible: true };
 }
 
-export function createCrmTaskRepository(database: CrmTaskDb = db): CrmTaskRepository {
+export function createCrmTaskRepository(
+  database: CrmTaskDb = db,
+  runInTenantContext: CrmTaskTenantRunner = createTenantRunner(database)
+): CrmTaskRepository {
   return {
     async appendTaskHistory(params) {
-      const existingRow = await database.query.crmTasks.findFirst({
-        where: taskVisibilityPredicate(params.actor, params.taskId),
-      });
-      if (!existingRow) throw new CrmTaskRepositoryFailure('lifecycle_conflict');
+      return runInTenantContext(params.actor, async scopedDatabase => {
+        const existingRow = await scopedDatabase.query.crmTasks.findFirst({
+          where: taskVisibilityPredicate(params.actor, params.taskId),
+        });
+        if (!existingRow) throw new CrmTaskRepositoryFailure('lifecycle_conflict');
 
-      const visibility = await validateSubjectReference(database, {
-        actor: params.actor,
-        subjectReference: {
-          id: existingRow.subjectId,
-          kind: existingRow.subjectKind as CrmTaskSubjectReference['kind'],
-        },
-      });
-      if (!visibility.visible) throw new CrmTaskRepositoryFailure(visibility.reason);
-      if (visibility.branchId !== (existingRow.branchId ?? null)) {
-        throw new CrmTaskRepositoryFailure('subject_not_visible');
-      }
+        const visibility = await validateSubjectReference(scopedDatabase, {
+          actor: params.actor,
+          subjectReference: {
+            id: existingRow.subjectId,
+            kind: existingRow.subjectKind as CrmTaskSubjectReference['kind'],
+          },
+        });
+        if (!visibility.visible) throw new CrmTaskRepositoryFailure(visibility.reason);
+        if (visibility.branchId !== (existingRow.branchId ?? null)) {
+          throw new CrmTaskRepositoryFailure('subject_not_visible');
+        }
 
-      // db-access-guard: tenant-scoped -- reason: CRM task history append constrains by actor tenant, branch-visible task id, and expected lifecycle version.
-      const [row] = await database.transaction(async tx => {
-        const [updated] = await tx
-          .update(crmTasks)
-          .set({
-            lifecycleVersion: sql`${crmTasks.lifecycleVersion} + 1`,
-            status: params.entry.toStatus,
-            updatedAt: new Date(params.entry.timestamp),
-          })
-          .where(
-            and(
-              taskVisibilityPredicate(params.actor, params.taskId),
-              eq(crmTasks.lifecycleVersion, params.expectedLifecycleVersion)
+        // db-access-guard: tenant-scoped -- reason: CRM task history append constrains by actor tenant, branch-visible task id, and expected lifecycle version.
+        const [row] = await scopedDatabase.transaction(async tx => {
+          // db-access-guard: tenant-scoped -- reason: CRM task update runs inside withTenantContext and constrains by actor tenant, branch-visible task id, and expected lifecycle version.
+          const [updated] = await tx
+            .update(crmTasks)
+            .set({
+              lifecycleVersion: sql`${crmTasks.lifecycleVersion} + 1`,
+              status: params.entry.toStatus,
+              updatedAt: new Date(params.entry.timestamp),
+            })
+            .where(
+              and(
+                taskVisibilityPredicate(params.actor, params.taskId),
+                eq(crmTasks.lifecycleVersion, params.expectedLifecycleVersion)
+              )
             )
-          )
-          .returning();
+            .returning();
 
-        if (!updated) throw new CrmTaskRepositoryFailure('lifecycle_conflict');
-        await tx.insert(crmTaskHistory).values(historyValues(params.taskId, params.entry));
-        return [updated];
+          if (!updated) throw new CrmTaskRepositoryFailure('lifecycle_conflict');
+          // db-access-guard: tenant-scoped -- reason: CRM task history row runs inside withTenantContext and copies the actor tenant from the validated domain event.
+          await tx.insert(crmTaskHistory).values(historyValues(params.taskId, params.entry));
+          return [updated];
+        });
+
+        const task = await hydrateVisibleTask(scopedDatabase, params.actor, row);
+        if (!task) throw new CrmTaskRepositoryFailure('subject_not_visible');
+        return task;
       });
-
-      const task = await hydrateVisibleTask(database, params.actor, row);
-      if (!task) throw new CrmTaskRepositoryFailure('subject_not_visible');
-      return task;
     },
 
     async findTaskById(params) {
-      // db-access-guard: tenant-scoped -- reason: CRM task lookup constrains by actor tenant and branch-visible task id before hydration.
-      const row = await database.query.crmTasks.findFirst({
-        where: taskVisibilityPredicate(params.actor, params.taskId),
+      return runInTenantContext(params.actor, async scopedDatabase => {
+        // db-access-guard: tenant-scoped -- reason: CRM task lookup constrains by actor tenant and branch-visible task id before hydration.
+        const row = await scopedDatabase.query.crmTasks.findFirst({
+          where: taskVisibilityPredicate(params.actor, params.taskId),
+        });
+        return row ? hydrateVisibleTask(scopedDatabase, params.actor, row) : null;
       });
-      return row ? hydrateVisibleTask(database, params.actor, row) : null;
     },
 
     async findTaskByIdempotencyKey(params) {
-      // db-access-guard: tenant-scoped -- reason: CRM task idempotency lookup constrains by actor tenant, branch visibility, and opaque idempotency key.
-      const row = await database.query.crmTasks.findFirst({
-        where: and(
-          taskVisibilityPredicate(params.actor),
-          eq(crmTasks.idempotencyKey, params.idempotencyKey)
-        ),
+      return runInTenantContext(params.actor, async scopedDatabase => {
+        // db-access-guard: tenant-scoped -- reason: CRM task idempotency lookup constrains by actor tenant, branch visibility, and opaque idempotency key.
+        const row = await scopedDatabase.query.crmTasks.findFirst({
+          where: and(
+            taskVisibilityPredicate(params.actor),
+            eq(crmTasks.idempotencyKey, params.idempotencyKey)
+          ),
+        });
+        return row ? hydrateVisibleTask(scopedDatabase, params.actor, row) : null;
       });
-      return row ? hydrateVisibleTask(database, params.actor, row) : null;
     },
 
     async saveTask(params) {
-      const visibility = await validateSubjectReference(database, {
-        actor: params.actor,
-        subjectReference: params.task.subjectReference,
-      });
-      if (!visibility.visible) throw new CrmTaskRepositoryFailure(visibility.reason);
-      if (visibility.branchId !== params.task.branchId) {
-        throw new CrmTaskRepositoryFailure('subject_not_visible');
-      }
-      if (!branchVisible(params.actor, params.task.branchId)) {
-        throw new CrmTaskRepositoryFailure('subject_not_visible');
-      }
-
-      if (params.expectedLifecycleVersion == null) {
-        if (params.task.lifecycleVersion !== 1) {
-          throw new CrmTaskRepositoryFailure('lifecycle_conflict');
+      return runInTenantContext(params.actor, async scopedDatabase => {
+        const visibility = await validateSubjectReference(scopedDatabase, {
+          actor: params.actor,
+          subjectReference: params.task.subjectReference,
+        });
+        if (!visibility.visible) throw new CrmTaskRepositoryFailure(visibility.reason);
+        if (visibility.branchId !== params.task.branchId) {
+          throw new CrmTaskRepositoryFailure('subject_not_visible');
         }
-        if (params.task.idempotencyKey) {
-          const existingRow = await database.query.crmTasks.findFirst({
-            where: and(
-              eq(crmTasks.tenantId, params.actor.tenantId),
-              eq(crmTasks.idempotencyKey, params.task.idempotencyKey)
-            ),
-          });
-          if (existingRow) {
-            const existing = await hydrateVisibleTask(database, params.actor, existingRow);
-            if (!existing) throw new CrmTaskRepositoryFailure('idempotency_conflict');
-            if (idempotencyMaterial(existing) !== idempotencyMaterial(params.task)) {
-              throw new CrmTaskRepositoryFailure('idempotency_conflict');
-            }
-            return existing;
+        if (!branchVisible(params.actor, params.task.branchId)) {
+          throw new CrmTaskRepositoryFailure('subject_not_visible');
+        }
+
+        if (params.expectedLifecycleVersion == null) {
+          if (params.task.lifecycleVersion !== 1) {
+            throw new CrmTaskRepositoryFailure('lifecycle_conflict');
+          }
+          const replayed = await replayIdempotentCreate(scopedDatabase, params.actor, params.task);
+          if (replayed) return replayed;
+
+          try {
+            const [row] = await scopedDatabase.transaction(async tx => {
+              // db-access-guard: tenant-scoped -- reason: CRM task create runs inside withTenantContext after subject visibility validates the actor tenant and branch.
+              const [created] = await tx
+                .insert(crmTasks)
+                .values(taskValues(params.task))
+                .returning();
+              // db-access-guard: tenant-scoped -- reason: CRM task history create runs inside withTenantContext and copies actor tenant from validated task history.
+              await tx
+                .insert(crmTaskHistory)
+                .values(params.task.history.map(entry => historyValues(params.task.taskId, entry)));
+              return [created];
+            });
+            const task = await hydrateVisibleTask(scopedDatabase, params.actor, row);
+            if (!task) throw new CrmTaskRepositoryFailure('subject_not_visible');
+            return task;
+          } catch (error) {
+            if (!isIdempotencyUniqueViolation(error)) throw error;
+            const replayedAfterRace = await replayIdempotentCreate(
+              scopedDatabase,
+              params.actor,
+              params.task
+            );
+            if (!replayedAfterRace) throw new CrmTaskRepositoryFailure('idempotency_conflict');
+            return replayedAfterRace;
           }
         }
 
-        const [row] = await database.transaction(async tx => {
-          const [created] = await tx.insert(crmTasks).values(taskValues(params.task)).returning();
-          await tx
-            .insert(crmTaskHistory)
-            .values(params.task.history.map(entry => historyValues(params.task.taskId, entry)));
-          return [created];
+        const expectedLifecycleVersion = params.expectedLifecycleVersion;
+        if (params.task.lifecycleVersion !== expectedLifecycleVersion + 1) {
+          throw new CrmTaskRepositoryFailure('lifecycle_conflict');
+        }
+        // db-access-guard: tenant-scoped -- reason: CRM task save constrains by actor tenant, branch-visible task id, and expected lifecycle version.
+        const [row] = await scopedDatabase.transaction(async tx => {
+          // db-access-guard: tenant-scoped -- reason: CRM task save runs inside withTenantContext and constrains by actor tenant, branch-visible task id, and expected lifecycle version.
+          const [updated] = await tx
+            .update(crmTasks)
+            .set(taskValues(params.task))
+            .where(
+              and(
+                taskVisibilityPredicate(params.actor, params.task.taskId),
+                eq(crmTasks.lifecycleVersion, expectedLifecycleVersion)
+              )
+            )
+            .returning();
+          if (!updated) throw new CrmTaskRepositoryFailure('lifecycle_conflict');
+
+          const newest = params.task.history.at(-1);
+          if (newest) {
+            // db-access-guard: tenant-scoped -- reason: CRM task history append runs inside withTenantContext and copies the actor tenant from the validated domain event.
+            await tx.insert(crmTaskHistory).values(historyValues(params.task.taskId, newest));
+          }
+          return [updated];
         });
-        const task = await hydrateVisibleTask(database, params.actor, row);
+        const task = await hydrateVisibleTask(scopedDatabase, params.actor, row);
         if (!task) throw new CrmTaskRepositoryFailure('subject_not_visible');
         return task;
-      }
-
-      const expectedLifecycleVersion = params.expectedLifecycleVersion;
-      if (params.task.lifecycleVersion !== expectedLifecycleVersion + 1) {
-        throw new CrmTaskRepositoryFailure('lifecycle_conflict');
-      }
-      // db-access-guard: tenant-scoped -- reason: CRM task save constrains by actor tenant, branch-visible task id, and expected lifecycle version.
-      const [row] = await database.transaction(async tx => {
-        const [updated] = await tx
-          .update(crmTasks)
-          .set(taskValues(params.task))
-          .where(
-            and(
-              taskVisibilityPredicate(params.actor, params.task.taskId),
-              eq(crmTasks.lifecycleVersion, expectedLifecycleVersion)
-            )
-          )
-          .returning();
-        if (!updated) throw new CrmTaskRepositoryFailure('lifecycle_conflict');
-
-        const newest = params.task.history.at(-1);
-        if (newest) {
-          await tx.insert(crmTaskHistory).values(historyValues(params.task.taskId, newest));
-        }
-        return [updated];
       });
-      const task = await hydrateVisibleTask(database, params.actor, row);
-      if (!task) throw new CrmTaskRepositoryFailure('subject_not_visible');
-      return task;
     },
 
     validateSubjectReference(params) {
-      return validateSubjectReference(database, params);
+      return runInTenantContext(params.actor, scopedDatabase =>
+        validateSubjectReference(scopedDatabase, params)
+      );
     },
   };
 }

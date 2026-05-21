@@ -40,10 +40,35 @@ CREATE TABLE "crm_tasks" (
 	CONSTRAINT "crm_tasks_reopen_reason_check" CHECK ("crm_tasks"."reopen_reason_code" is null or "crm_tasks"."reopen_reason_code" in ('follow_up_required', 'incomplete', 'manually_reopened')),
 	CONSTRAINT "crm_tasks_lifecycle_version_check" CHECK ("crm_tasks"."lifecycle_version" >= 1),
 	CONSTRAINT "crm_tasks_assignment_shape_check" CHECK (
-		("crm_tasks"."assigned_kind" = 'unassigned' and "crm_tasks"."assigned_actor_id" is null and "crm_tasks"."assigned_role" is null and "crm_tasks"."assigned_team_id" is null)
-		or ("crm_tasks"."assigned_kind" = 'actor' and "crm_tasks"."assigned_actor_id" is not null and "crm_tasks"."assigned_role" is not null and "crm_tasks"."assigned_team_id" is null)
-		or ("crm_tasks"."assigned_kind" = 'role' and "crm_tasks"."assigned_actor_id" is null and "crm_tasks"."assigned_role" is not null and "crm_tasks"."assigned_team_id" is null)
-		or ("crm_tasks"."assigned_kind" = 'team' and "crm_tasks"."assigned_actor_id" is null and "crm_tasks"."assigned_role" is null and "crm_tasks"."assigned_team_id" is not null)
+		(
+			"crm_tasks"."assigned_kind" = 'unassigned'
+			and "crm_tasks"."assigned_actor_id" is null
+			and "crm_tasks"."assigned_role" is null
+			and "crm_tasks"."assigned_team_id" is null
+			and "crm_tasks"."assigned_branch_id" is null
+			and "crm_tasks"."assigned_tenant_id" is null
+		)
+		or (
+			"crm_tasks"."assigned_kind" = 'actor'
+			and "crm_tasks"."assigned_actor_id" is not null
+			and "crm_tasks"."assigned_role" is not null
+			and "crm_tasks"."assigned_team_id" is null
+			and ("crm_tasks"."assigned_tenant_id" is null or "crm_tasks"."assigned_tenant_id" = "crm_tasks"."tenant_id")
+		)
+		or (
+			"crm_tasks"."assigned_kind" = 'role'
+			and "crm_tasks"."assigned_actor_id" is null
+			and "crm_tasks"."assigned_role" is not null
+			and "crm_tasks"."assigned_team_id" is null
+			and ("crm_tasks"."assigned_tenant_id" is null or "crm_tasks"."assigned_tenant_id" = "crm_tasks"."tenant_id")
+		)
+		or (
+			"crm_tasks"."assigned_kind" = 'team'
+			and "crm_tasks"."assigned_actor_id" is null
+			and "crm_tasks"."assigned_role" is null
+			and "crm_tasks"."assigned_team_id" is not null
+			and ("crm_tasks"."assigned_tenant_id" is null or "crm_tasks"."assigned_tenant_id" = "crm_tasks"."tenant_id")
+		)
 	)
 );
 --> statement-breakpoint

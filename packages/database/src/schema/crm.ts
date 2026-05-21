@@ -949,10 +949,35 @@ export const crmTasks = pgTable(
     check(
       'crm_tasks_assignment_shape_check',
       sql`
-        (${table.assignedKind} = 'unassigned' and ${table.assignedActorId} is null and ${table.assignedRole} is null and ${table.assignedTeamId} is null)
-        or (${table.assignedKind} = 'actor' and ${table.assignedActorId} is not null and ${table.assignedRole} is not null and ${table.assignedTeamId} is null)
-        or (${table.assignedKind} = 'role' and ${table.assignedActorId} is null and ${table.assignedRole} is not null and ${table.assignedTeamId} is null)
-        or (${table.assignedKind} = 'team' and ${table.assignedActorId} is null and ${table.assignedRole} is null and ${table.assignedTeamId} is not null)
+        (
+          ${table.assignedKind} = 'unassigned'
+          and ${table.assignedActorId} is null
+          and ${table.assignedRole} is null
+          and ${table.assignedTeamId} is null
+          and ${table.assignedBranchId} is null
+          and ${table.assignedTenantId} is null
+        )
+        or (
+          ${table.assignedKind} = 'actor'
+          and ${table.assignedActorId} is not null
+          and ${table.assignedRole} is not null
+          and ${table.assignedTeamId} is null
+          and (${table.assignedTenantId} is null or ${table.assignedTenantId} = ${table.tenantId})
+        )
+        or (
+          ${table.assignedKind} = 'role'
+          and ${table.assignedActorId} is null
+          and ${table.assignedRole} is not null
+          and ${table.assignedTeamId} is null
+          and (${table.assignedTenantId} is null or ${table.assignedTenantId} = ${table.tenantId})
+        )
+        or (
+          ${table.assignedKind} = 'team'
+          and ${table.assignedActorId} is null
+          and ${table.assignedRole} is null
+          and ${table.assignedTeamId} is not null
+          and (${table.assignedTenantId} is null or ${table.assignedTenantId} = ${table.tenantId})
+        )
       `
     ),
   ]

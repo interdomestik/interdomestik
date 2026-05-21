@@ -116,6 +116,7 @@ function historyRowFromTask(task: CrmTask) {
 
 function createFakeDb(options: {
   historyRows?: readonly unknown[];
+  insertTaskError?: unknown;
   leadRow?: unknown;
   taskRow?: unknown;
   updateRows?: readonly unknown[];
@@ -147,7 +148,10 @@ function createFakeDb(options: {
         values(values: unknown) {
           calls.push({ action: 'values', table, values });
           return {
-            returning: vi.fn(async () => (table === crmTasks ? [taskRow] : [])),
+            returning: vi.fn(async () => {
+              if (table === crmTasks && options.insertTaskError) throw options.insertTaskError;
+              return table === crmTasks ? [taskRow] : [];
+            }),
           };
         },
       };
@@ -281,6 +285,29 @@ describe('crmTaskRepository', () => {
         task: { ...fake.task, priority: 'urgent' },
       })
     ).rejects.toMatchObject({ reason: 'idempotency_conflict' });
+  });
+
+  it('replays equivalent idempotent creates after concurrent unique-key races', async () => {
+    const fake = createFakeDb({
+      insertTaskError: Object.assign(new Error('duplicate key value'), {
+        code: '23505',
+        constraint: 'crm_tasks_tenant_idempotency_uq',
+      }),
+    });
+    fake.query.crmTasks.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(rowFromTask(fake.task));
+    const repository = createCrmTaskRepository(fake.db);
+
+    await expect(
+      repository.saveTask({ actor: agentActor, task: fake.task })
+    ).resolves.toMatchObject({
+      idempotencyKey: 'crm25-task-create',
+      taskId: 'task-1',
+    });
+
+    expect(fake.db.transaction).toHaveBeenCalledOnce();
+    expect(fake.query.crmTasks.findFirst).toHaveBeenCalledTimes(2);
   });
 
   it('fails closed for unsupported account/contact subjects and agent-invisible leads', async () => {
