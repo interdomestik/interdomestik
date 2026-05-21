@@ -65,8 +65,8 @@ Predecessor proof:
   schema exports, app-side `createCrmTaskRepository`, lifecycle-version compare-and-set writes,
   idempotent create replay, subject visibility proof for `lead`, `deal`, and `support_handoff`,
   fail-closed `account` and `contact` subject handling, and focused adapter/RLS tests.
-- The repository tracker still shows `P40-CRM25` as pending at the time of this draft. The approved
-  DG03 PR must correct that closeout state before promoting the next implementation slice.
+- Before this DG03 PR, the repository tracker still showed `P40-CRM25` as pending. This approved
+  DG03 PR corrects that closeout state before promoting the next implementation slice.
 
 This gate must not reinterpret CRM task runtime as task-state recovery, paused workflow resume,
 lead-follow-up migration, scheduler retry replay, notification fanout, or assistance-intent
@@ -529,12 +529,11 @@ this gate does not authorize database schema, migration, or RLS changes.
 
 ## Completion State
 
-The status column reflects the intended state after the approved DG03 PR merges; the review draft
-itself records that repo tracker closeout is still pending.
+The status column reflects the intended state after the approved DG03 PR merges.
 
 | Item                                                                | Status    | Decision                                                        |
 | ------------------------------------------------------------------- | --------- | --------------------------------------------------------------- |
 | `P40-CRM25 CRM Task Persistence And Repository Adapter`             | completed | Merged through PR `#833`, merge commit `0c941890`.              |
 | `P40-DG03 CRM Task Runtime Boundary Design Gate`                    | completed | This gate promotes the next bounded runtime-boundary slice.     |
 | `P40-CRM26 CRM Task Application Service And Server Action Boundary` | promoted  | Service/action boundary over the CRM25 task repository adapter. |
-| Later P40 UI/scheduler/notification/template/sequence work          | reserved  | No implementation authority from this review draft.             |
+| Later P40 UI/scheduler/notification/template/sequence work          | reserved  | No implementation authority from this design gate.              |
