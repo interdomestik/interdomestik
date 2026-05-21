@@ -302,6 +302,27 @@ HTTP route handlers, cron route handlers, scheduler/reminder behavior, notificat
 templates, sequences, scoring, lead-follow-up migration, assistance-intent execution, database
 schema/migration/RLS changes, proxy/canonical route/auth/tenancy/routing changes, Stripe, README,
 AGENTS.md, or broad architecture-doc work.
+`P40-CRM26` is complete through PR `#835`, merge commit
+`a70dda59463eeb664fd97804c8563653f46c9e04`: it adds the CRM task application-service and
+server-action boundary over the CRM25 adapter, typed `{ outcome: ... }` results, trusted
+session-derived actor context, lifecycle-version conflict mapping, deterministic create
+idempotency and replay, PII-safe structural `CrmTask` output, audit events, action rate limiting,
+locale-loop CRM revalidation, admin-equivalent role normalization, and focused service/action
+tests. Runtime task UI, HTTP route handlers, cron route handlers, scheduler/reminder behavior,
+notifications, outbox, templates, sequences, scoring, lead-follow-up migration,
+assistance-intent execution, database schema/migration/RLS changes, proxy/canonical
+route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad architecture-doc work
+remained out of scope.
+`P40-DG04 CRM Lead Follow-Up Task Migration Design Gate` is recorded in
+`docs/plans/2026-05-21-p40-dg04-crm-lead-follow-up-task-migration-design.md` after
+`P40-CRM26`. It promotes exactly one next implementation slice,
+`P40-CRM27 Agent Lead Follow-Up To CRM Task Migration`, limited to making new agent lead follow-up
+scheduling and completion task-backed through the CRM task aggregate and CRM26 boundary while
+preserving bounded compatibility for existing legacy `crm_activities` follow-up rows. Broad task UI,
+scheduler/cron, reminders, notifications, outbox, templates, sequences,
+scoring, assistance-intent execution, database migration/RLS, historical backfill, proxy/canonical
+route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad architecture-doc work
+remain blocked.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
