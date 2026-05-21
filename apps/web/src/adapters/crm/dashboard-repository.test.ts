@@ -299,7 +299,7 @@ describe('crmDashboardRepository', () => {
       { asc: 'crmActivities.scheduledAt' },
       { asc: 'crmActivities.id' }
     );
-    expect(dueFollowUpsChain.afterOrderBy.limit).toHaveBeenCalledWith(5);
+    expect(dueFollowUpsChain.afterOrderBy.limit).toHaveBeenCalledWith(10);
 
     expect(taskFollowUpsChain.innerJoin).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'crmLeads.id' }),
@@ -328,7 +328,7 @@ describe('crmDashboardRepository', () => {
       { asc: 'crmTasks.dueAt' },
       { asc: 'crmTasks.id' }
     );
-    expect(taskFollowUpsChain.afterOrderBy.limit).toHaveBeenCalledWith(5);
+    expect(taskFollowUpsChain.afterOrderBy.limit).toHaveBeenCalledWith(10);
   });
 
   it('fails closed before querying when branch scope is missing', async () => {

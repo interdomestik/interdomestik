@@ -18,6 +18,11 @@ export type CrmLeadNextAction =
       subject: string;
     };
 
+export type CrmLeadFollowUpActivityLike = CrmLeadActivity & {
+  readonly expectedLifecycleVersion?: number | null;
+  readonly followUpSource?: 'legacy_activity' | 'crm_task';
+};
+
 export type CrmLeadFollowUpAuthorizationDenialReason =
   | 'tenant_scope'
   | 'agent_scope'
@@ -91,11 +96,6 @@ function parseTime(value: string | null | undefined): number | null {
   const timestamp = Date.parse(value);
   return Number.isNaN(timestamp) ? null : timestamp;
 }
-
-type CrmLeadFollowUpActivityLike = CrmLeadActivity & {
-  readonly expectedLifecycleVersion?: number | null;
-  readonly followUpSource?: 'legacy_activity' | 'crm_task';
-};
 
 function followUpSourceRank(activity: CrmLeadFollowUpActivityLike): number {
   return activity.followUpSource === 'crm_task' ? 0 : 1;

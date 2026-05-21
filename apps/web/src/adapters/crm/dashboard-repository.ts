@@ -18,6 +18,7 @@ import type { LeadStage } from '@interdomestik/database/constants';
 export const crmDashboardRepository: AgentCrmDashboardRepository = {
   async readAgentDashboard(params): Promise<AgentCrmDashboardReadModel> {
     const { actor, limit, now } = params;
+    const dueFollowUpFetchLimit = limit * 2;
     const branchId = actor.scope.branchId;
     if (!branchId) {
       throw new Error('CRM dashboard read requires actor branch scope');
@@ -106,7 +107,7 @@ export const crmDashboardRepository: AgentCrmDashboardRepository = {
             )
           )
           .orderBy(asc(crmActivities.scheduledAt), asc(crmActivities.id))
-          .limit(limit),
+          .limit(dueFollowUpFetchLimit),
         // db-access-guard: tenant-scoped -- reason: task-backed follow-up reads constrain by actor tenant, assignment, branch, lead visibility, and due status
         db
           .select({
@@ -144,7 +145,7 @@ export const crmDashboardRepository: AgentCrmDashboardRepository = {
             )
           )
           .orderBy(asc(crmTasks.dueAt), asc(crmTasks.id))
-          .limit(limit),
+          .limit(dueFollowUpFetchLimit),
       ]);
 
     return {

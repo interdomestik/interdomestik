@@ -1,6 +1,7 @@
 import {
   CRM_LEAD_FOLLOW_UP_ACTIVITY_TYPE,
   type CreateCrmLeadFollowUpActivity,
+  type CrmLeadFollowUpActivityLike,
   type CrmLeadFollowUpRepository,
 } from '@interdomestik/domain-crm/leads/follow-up';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
@@ -225,7 +226,7 @@ export async function listCrmLeadFollowUpTasksForLead(params: {
   actor: CrmActorContext;
   leadId: string;
   limit?: number;
-}): Promise<CrmLeadActivity[]> {
+}): Promise<CrmLeadFollowUpActivityLike[]> {
   const branchId = params.actor.scope.branchId;
   if (!branchId) return [];
 
@@ -266,23 +267,20 @@ export async function listCrmLeadFollowUpTasksForLead(params: {
     .orderBy(asc(crmTasks.dueAt), asc(crmTasks.id))
     .limit(params.limit ?? 25);
 
-  return (rows as CrmTaskFollowUpRow[]).map(
-    row =>
-      ({
-        agentId: row.agentId ?? params.actor.actorId,
-        branchId: row.branchId ?? null,
-        completedAt: null,
-        createdAt: toIso(row.createdAt) ?? new Date(0).toISOString(),
-        description: null,
-        expectedLifecycleVersion: row.expectedLifecycleVersion,
-        followUpSource: 'crm_task',
-        id: row.taskId,
-        leadId: row.leadId,
-        occurredAt: toIso(row.createdAt) ?? new Date(0).toISOString(),
-        scheduledAt: toIso(row.scheduledAt),
-        subject: 'Follow up',
-        tenantId: row.tenantId,
-        type: CRM_LEAD_FOLLOW_UP_ACTIVITY_TYPE,
-      }) as CrmLeadActivity
-  );
+  return (rows as CrmTaskFollowUpRow[]).map(row => ({
+    agentId: row.agentId ?? params.actor.actorId,
+    branchId: row.branchId ?? null,
+    completedAt: null,
+    createdAt: toIso(row.createdAt) ?? new Date(0).toISOString(),
+    description: null,
+    expectedLifecycleVersion: row.expectedLifecycleVersion,
+    followUpSource: 'crm_task',
+    id: row.taskId,
+    leadId: row.leadId,
+    occurredAt: toIso(row.createdAt) ?? new Date(0).toISOString(),
+    scheduledAt: toIso(row.scheduledAt),
+    subject: 'Follow up',
+    tenantId: row.tenantId,
+    type: CRM_LEAD_FOLLOW_UP_ACTIVITY_TYPE,
+  }));
 }

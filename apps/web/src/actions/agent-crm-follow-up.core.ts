@@ -1,9 +1,9 @@
 import {
   authorizeCrmLeadFollowUpAction,
   completeCrmLeadFollowUp,
+  type CrmLeadFollowUpActivityLike,
   type CrmLeadFollowUpResult,
 } from '@interdomestik/domain-crm/leads/follow-up';
-import type { CrmLeadActivity } from '@interdomestik/domain-crm/leads/types';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import type { CrmTask } from '@interdomestik/domain-crm/tasks';
 import { ensureTenantId, type SessionWithTenant } from '@interdomestik/shared-auth';
@@ -30,15 +30,11 @@ export type AgentCrmFollowUpActionResult =
   | { success: false; error: 'unauthorized' | 'missing_branch_scope' }
   | { success: false; error: 'conflict' | 'repository_failure'; reason: string }
   | { success: false; error: 'rate_limited'; retryAfter?: number }
-  | { success: false; error: 'invalid_input'; reason: 'missing_task_lifecycle_version' };
+  | { success: false; error: 'invalid_input'; reason: string }
+  | { success: false; error: 'forbidden'; reason: string };
 
 const FOLLOW_UP_TASK_LABEL = 'Follow up';
 const FOLLOW_UP_TASK_ID_PREFIX = 'lead-follow-up';
-
-type TaskBackedFollowUpActivity = CrmLeadActivity & {
-  readonly expectedLifecycleVersion?: number | null;
-  readonly followUpSource?: 'legacy_activity' | 'crm_task';
-};
 
 function revalidateAgentLeadFollowUpPaths(leadId: string) {
   for (const locale of LOCALES) {
@@ -101,7 +97,7 @@ function taskFollowUpKey(params: {
   );
 }
 
-function taskToFollowUpActivity(task: CrmTask): CrmLeadActivity {
+function taskToFollowUpActivity(task: CrmTask): CrmLeadFollowUpActivityLike {
   const agentId =
     task.assignedTo.kind === 'actor' && task.assignedTo.role === 'agent'
       ? task.assignedTo.actorId
@@ -121,7 +117,7 @@ function taskToFollowUpActivity(task: CrmTask): CrmLeadActivity {
     subject: FOLLOW_UP_TASK_LABEL,
     tenantId: task.tenantId,
     type: 'follow_up',
-  } as CrmLeadActivity;
+  };
 }
 
 function mapTaskResult(result: CrmTaskBoundaryResult): AgentCrmFollowUpActionResult {
@@ -134,15 +130,15 @@ function mapTaskResult(result: CrmTaskBoundaryResult): AgentCrmFollowUpActionRes
     return { success: false, error: 'rate_limited', retryAfter: result.retryAfter };
   }
   if (result.outcome === 'invalid_input') {
-    return { success: false, error: 'invalid_input', reason: 'invalid_scheduled_at' };
+    return { success: false, error: 'invalid_input', reason: result.reason };
   }
   if (result.outcome === 'forbidden') {
-    return { success: false, error: 'forbidden', reason: 'branch_scope' };
+    return { success: false, error: 'forbidden', reason: result.reason };
   }
   return { success: false, error: result.outcome, reason: result.reason };
 }
 
-function hasSameScheduledAt(activity: CrmLeadActivity, scheduledAt: string): boolean {
+function hasSameScheduledAt(activity: CrmLeadFollowUpActivityLike, scheduledAt: string): boolean {
   return parseTimestamp(activity.scheduledAt) === scheduledAt && activity.completedAt == null;
 }
 
@@ -265,10 +261,10 @@ export async function completeAgentLeadFollowUpCore(params: {
       return { success: false, error: 'invalid_input', reason: 'missing_task_lifecycle_version' };
     }
 
-    const taskBackedFollowUps = (await listCrmLeadFollowUpTasksForLead({
+    const taskBackedFollowUps = await listCrmLeadFollowUpTasksForLead({
       actor,
       leadId: params.leadId,
-    })) as TaskBackedFollowUpActivity[];
+    });
     const taskBackedFollowUp = taskBackedFollowUps.find(
       activity => activity.id === params.activityId && activity.followUpSource === 'crm_task'
     );
