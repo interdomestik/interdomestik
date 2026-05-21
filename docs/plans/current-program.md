@@ -280,6 +280,28 @@ It does not authorize runtime task UI, routes, server actions, scheduler/cron, n
 templates, sequences, scoring, consent/preference implementation, lead-follow-up migration,
 assistance-intent execution, CRM/claim/handoff creation from assistance, proxy/canonical
 route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, or broad architecture-doc work.
+`P40-CRM25` is complete through PR `#833`, merge commit
+`0c941890e2f2f2ae1f9460879a6857a42e374161`: it adds additive `crm_tasks` and
+`crm_task_history` persistence, tenant RLS, database schema exports, app-side
+`createCrmTaskRepository`, lifecycle-version compare-and-set writes, idempotent create replay,
+subject-visibility proof for `lead`, `deal`, and `support_handoff`, fail-closed `account` and
+`contact` handling, and focused adapter/RLS proof. Runtime task UI, routes, server actions,
+scheduler/cron, notifications, templates, sequences, scoring, consent/preference implementation,
+lead-follow-up migration, assistance-intent execution, CRM/claim/handoff creation from assistance,
+proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
+architecture-doc work remained out of scope.
+`P40-DG03 CRM Task Runtime Boundary Design Gate` is recorded in
+`docs/plans/2026-05-21-p40-dg03-crm-task-runtime-boundary-design.md` and promotes exactly one next
+implementation slice, `P40-CRM26 CRM Task Application Service And Server Action Boundary`. The
+promoted slice is limited to `.core.ts`/server-action boundary code over the CRM25 repository
+adapter, typed `{ outcome: ... }` result envelopes, session-derived `CrmActorContext`,
+`expectedLifecycleVersion` conflict handling, deterministic idempotency posture, PII-safe task DTOs,
+`logAuditEvent` audit proof, `enforceRateLimitForAction` mutation throttling, locale-loop
+revalidation discipline, and focused service/action tests. It does not authorize runtime task UI,
+HTTP route handlers, cron route handlers, scheduler/reminder behavior, notifications, outbox,
+templates, sequences, scoring, lead-follow-up migration, assistance-intent execution, database
+schema/migration/RLS changes, proxy/canonical route/auth/tenancy/routing changes, Stripe, README,
+AGENTS.md, or broad architecture-doc work.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
