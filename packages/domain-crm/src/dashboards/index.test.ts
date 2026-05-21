@@ -143,10 +143,66 @@ describe('getAgentCrmDashboard', () => {
     expect(result.success && result.dashboard.dueFollowUps).toEqual([
       {
         activityId: 'activity-due',
+        expectedLifecycleVersion: null,
         leadId: 'lead-1',
         leadName: 'Lead One',
         scheduledAt: '2026-05-11T09:00:00.000Z',
+        source: 'legacy_activity',
         subject: 'Call back',
+      },
+    ]);
+  });
+
+  it('dedupes legacy and task-backed due follow-ups with task rows winning', async () => {
+    const repo = repository({
+      dueFollowUps: [
+        {
+          activityId: 'activity-legacy',
+          agentId: 'agent-1',
+          branchId: 'branch-1',
+          completedAt: null,
+          companyName: null,
+          createdAt: '2026-05-11T08:00:00.000Z',
+          fullName: 'Lead One',
+          leadId: 'lead-1',
+          scheduledAt: '2026-05-11T09:00:00.000Z',
+          source: 'legacy_activity',
+          subject: 'Legacy subject',
+          tenantId: 'tenant-1',
+          type: 'follow_up',
+        },
+        {
+          activityId: 'task-backed',
+          agentId: 'agent-1',
+          branchId: 'branch-1',
+          completedAt: null,
+          companyName: null,
+          createdAt: '2026-05-11T08:00:00.000Z',
+          expectedLifecycleVersion: 2,
+          fullName: 'Lead One',
+          leadId: 'lead-1',
+          scheduledAt: '2026-05-11T09:00:00.000Z',
+          source: 'crm_task',
+          subject: 'Follow up',
+          tenantId: 'tenant-1',
+          type: 'follow_up',
+        },
+      ],
+    });
+
+    const result = await getAgentCrmDashboard({ actor: agentActor }, repo, {
+      now: () => '2026-05-12T08:00:00.000Z',
+    });
+
+    expect(result.success && result.dashboard.dueFollowUps).toEqual([
+      {
+        activityId: 'task-backed',
+        expectedLifecycleVersion: 2,
+        leadId: 'lead-1',
+        leadName: 'Lead One',
+        scheduledAt: '2026-05-11T09:00:00.000Z',
+        source: 'crm_task',
+        subject: 'Follow up',
       },
     ]);
   });

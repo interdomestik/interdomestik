@@ -22,6 +22,7 @@ const hoisted = vi.hoisted(() => ({
   ensureTenantIdMock: vi.fn(() => 'tenant-1'),
   getAgentLeadDetailsCoreMock: vi.fn(),
   getAgentCrmLeadActivitiesMock: vi.fn(),
+  listCrmLeadFollowUpTasksForLeadMock: vi.fn(),
   crmLeadActivityRepository: {},
 }));
 
@@ -57,6 +58,10 @@ vi.mock('@/actions/agent-crm-follow-up', () => ({
 
 vi.mock('@/adapters/crm/lead-activity-repository', () => ({
   crmLeadActivityRepository: hoisted.crmLeadActivityRepository,
+}));
+
+vi.mock('@/adapters/crm/lead-follow-up-repository', () => ({
+  listCrmLeadFollowUpTasksForLead: hoisted.listCrmLeadFollowUpTasksForLeadMock,
 }));
 
 vi.mock('@/app/[locale]/(agent)/agent/leads/[id]/_core', () => ({
@@ -172,6 +177,7 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
       deals: [],
     });
     hoisted.getAgentCrmLeadActivitiesMock.mockResolvedValue({ success: true, activities: [] });
+    hoisted.listCrmLeadFollowUpTasksForLeadMock.mockResolvedValue([]);
   });
 
   it('rejects a session with missing tenant identity before loading lead details', async () => {
@@ -213,6 +219,10 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
       },
       hoisted.crmLeadActivityRepository
     );
+    expect(hoisted.listCrmLeadFollowUpTasksForLeadMock).toHaveBeenCalledWith({
+      actor,
+      leadId: 'lead-1',
+    });
   });
 
   it('rejects a non-agent or branchless session before loading lead details', async () => {
@@ -365,5 +375,34 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
     expect(html).toContain('agent.leads_page:Due now localized');
     expect(html).toContain('agent.leads_page:Complete follow-up localized');
     expect(html).toContain('name="activityId" value="follow-up-1"');
+    expect(html).toContain('name="source" value="legacy_activity"');
+  });
+
+  it('renders task-backed follow-up completion with lifecycle version', async () => {
+    hoisted.listCrmLeadFollowUpTasksForLeadMock.mockResolvedValueOnce([
+      {
+        id: 'task-follow-up-1',
+        tenantId: 'tenant-1',
+        leadId: 'lead-1',
+        agentId: 'agent-1',
+        branchId: 'branch-1',
+        type: 'follow_up',
+        subject: 'Follow up',
+        description: null,
+        occurredAt: '2026-05-10T08:00:00.000Z',
+        scheduledAt: '2020-01-01T10:00:00.000Z',
+        completedAt: null,
+        createdAt: '2026-05-10T08:00:00.000Z',
+        expectedLifecycleVersion: 3,
+        followUpSource: 'crm_task',
+      },
+    ]);
+
+    const element = await AgentLeadDetailV2Page({ id: 'lead-1', locale: 'en' });
+    const html = renderToStaticMarkup(element);
+
+    expect(html).toContain('name="activityId" value="task-follow-up-1"');
+    expect(html).toContain('name="source" value="crm_task"');
+    expect(html).toContain('name="expectedLifecycleVersion" value="3"');
   });
 });
