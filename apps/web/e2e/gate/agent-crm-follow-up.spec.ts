@@ -1,5 +1,11 @@
 import { db, E2E_USERS, eq, inArray, sql, user } from '@interdomestik/database';
-import { crmActivities, crmDeals, crmLeads } from '@interdomestik/database/schema';
+import {
+  crmActivities,
+  crmDeals,
+  crmLeads,
+  crmTaskHistory,
+  crmTasks,
+} from '@interdomestik/database/schema';
 import type { Page, TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
@@ -19,6 +25,15 @@ async function cleanupCrm13Rows(args: {
   leadIds: string[];
 }): Promise<void> {
   if (args.leadIds.length > 0) {
+    const taskRows = await db.query.crmTasks.findMany({
+      where: (table, { inArray }) => inArray(table.subjectId, args.leadIds),
+      columns: { id: true },
+    });
+    const taskIds = taskRows.map(row => row.id);
+    if (taskIds.length > 0) {
+      await db.delete(crmTaskHistory).where(inArray(crmTaskHistory.taskId, taskIds));
+      await db.delete(crmTasks).where(inArray(crmTasks.id, taskIds));
+    }
     await db.delete(crmActivities).where(inArray(crmActivities.leadId, args.leadIds));
     await db.delete(crmDeals).where(inArray(crmDeals.leadId, args.leadIds));
     await db.delete(crmLeads).where(inArray(crmLeads.id, args.leadIds));
@@ -91,10 +106,25 @@ async function seedCookieConsent(page: Page, testInfo: TestInfo): Promise<void> 
   );
 }
 
-async function countOpenFollowUps(leadId: string): Promise<number> {
+async function countOpenLegacyFollowUps(leadId: string): Promise<number> {
   const openFollowUps = await db.query.crmActivities.findMany({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.leadId, leadId), eq(table.type, 'follow_up'), isNull(table.completedAt)),
+    columns: { id: true },
+  });
+
+  return openFollowUps.length;
+}
+
+async function countOpenTaskFollowUps(leadId: string): Promise<number> {
+  const openFollowUps = await db.query.crmTasks.findMany({
+    where: (table, { and, eq, inArray }) =>
+      and(
+        eq(table.subjectKind, 'lead'),
+        eq(table.subjectId, leadId),
+        eq(table.createReasonCode, 'follow_up'),
+        inArray(table.status, ['pending', 'in_progress'])
+      ),
     columns: { id: true },
   });
 
@@ -239,8 +269,12 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
       await expect(detail.getByTestId('agent-lead-schedule-follow-up')).toBeVisible();
       await detail.getByTestId('agent-lead-schedule-follow-up').click();
       await expect
-        .poll(() => countOpenFollowUps(leadId), { timeout: 15000, intervals: [250, 500, 1000] })
+        .poll(() => countOpenTaskFollowUps(leadId), {
+          timeout: 15000,
+          intervals: [250, 500, 1000],
+        })
         .toBe(1);
+      await expect.poll(() => countOpenLegacyFollowUps(leadId), { timeout: 15000 }).toBe(0);
 
       await gotoApp(page, `/agent/leads/${encodeURIComponent(leadId)}`, testInfo, {
         marker: 'agent-lead-detail-ready',
@@ -278,7 +312,10 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
       await expect(detail).toBeVisible({ timeout: 15000 });
       await detail.getByTestId('agent-lead-complete-follow-up').first().click();
       await expect
-        .poll(() => countOpenFollowUps(leadId), { timeout: 15000, intervals: [250, 500, 1000] })
+        .poll(() => countOpenTaskFollowUps(leadId), {
+          timeout: 15000,
+          intervals: [250, 500, 1000],
+        })
         .toBe(0);
 
       await gotoApp(page, `/agent/leads/${encodeURIComponent(leadId)}`, testInfo, {
@@ -298,7 +335,8 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
         )
       ).toHaveCount(0);
 
-      await expect.poll(() => countOpenFollowUps(leadId), { timeout: 15000 }).toBe(0);
+      await expect.poll(() => countOpenTaskFollowUps(leadId), { timeout: 15000 }).toBe(0);
+      await expect.poll(() => countOpenLegacyFollowUps(leadId), { timeout: 15000 }).toBe(0);
     } finally {
       await cleanupCrm13Rows(seededIds);
     }

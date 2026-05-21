@@ -20,6 +20,7 @@ export async function scheduleAgentLeadFollowUp(formData: FormData) {
   await scheduleAgentLeadFollowUpCore({
     description: getString(formData, 'description') || null,
     leadId: getString(formData, 'leadId'),
+    requestHeaders,
     scheduledAt: getString(formData, 'scheduledAt'),
     session,
     subject: getString(formData, 'subject') || 'Follow up',
@@ -32,7 +33,10 @@ export async function completeAgentLeadFollowUp(formData: FormData) {
 
   await completeAgentLeadFollowUpCore({
     activityId: getString(formData, 'activityId'),
+    expectedLifecycleVersion: getString(formData, 'expectedLifecycleVersion') || null,
     leadId: getString(formData, 'leadId'),
+    requestHeaders,
     session,
+    source: getString(formData, 'source') || null,
   });
 }

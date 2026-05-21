@@ -44,6 +44,20 @@ vi.mock('@interdomestik/database/schema', () => ({
     stage: 'crmLeads.stage',
     tenantId: 'crmLeads.tenantId',
   },
+  crmTasks: {
+    assignedActorId: 'crmTasks.assignedActorId',
+    assignedKind: 'crmTasks.assignedKind',
+    branchId: 'crmTasks.branchId',
+    createReasonCode: 'crmTasks.createReasonCode',
+    createdAt: 'crmTasks.createdAt',
+    dueAt: 'crmTasks.dueAt',
+    id: 'crmTasks.id',
+    lifecycleVersion: 'crmTasks.lifecycleVersion',
+    status: 'crmTasks.status',
+    subjectId: 'crmTasks.subjectId',
+    subjectKind: 'crmTasks.subjectKind',
+    tenantId: 'crmTasks.tenantId',
+  },
 }));
 
 vi.mock('drizzle-orm', () => ({
@@ -136,6 +150,22 @@ describe('crmDashboardRepository', () => {
             type: 'follow_up',
           },
         ])
+      )
+      .mockReturnValueOnce(
+        createDueFollowUpsChain([
+          {
+            activityId: 'task-1',
+            agentId: 'agent-1',
+            branchId: 'branch-1',
+            companyName: 'Task Co',
+            createdAt: new Date('2026-05-10T08:00:00.000Z'),
+            expectedLifecycleVersion: 1,
+            fullName: null,
+            leadId: 'lead-2',
+            scheduledAt: new Date('2026-05-10T11:00:00.000Z'),
+            tenantId: 'tenant-1',
+          },
+        ])
       );
 
     const readModel = await crmDashboardRepository.readAgentDashboard({
@@ -154,10 +184,28 @@ describe('crmDashboardRepository', () => {
           completedAt: null,
           companyName: null,
           createdAt: new Date('2026-05-10T08:00:00.000Z'),
+          expectedLifecycleVersion: null,
           fullName: 'Lead One',
           leadId: 'lead-1',
           scheduledAt: new Date('2026-05-10T10:00:00.000Z'),
+          source: 'legacy_activity',
           subject: 'Call back',
+          tenantId: 'tenant-1',
+          type: 'follow_up',
+        },
+        {
+          activityId: 'task-1',
+          agentId: 'agent-1',
+          branchId: 'branch-1',
+          companyName: 'Task Co',
+          completedAt: null,
+          createdAt: new Date('2026-05-10T08:00:00.000Z'),
+          expectedLifecycleVersion: 1,
+          fullName: null,
+          leadId: 'lead-2',
+          scheduledAt: new Date('2026-05-10T11:00:00.000Z'),
+          source: 'crm_task',
+          subject: 'Follow up',
           tenantId: 'tenant-1',
           type: 'follow_up',
         },
@@ -175,12 +223,14 @@ describe('crmDashboardRepository', () => {
     const dealsChain = createJoinSelectChain([{ count: 0 }]);
     const commissionChain = createSelectChain([{ total: null }]);
     const dueFollowUpsChain = createDueFollowUpsChain([]);
+    const taskFollowUpsChain = createDueFollowUpsChain([]);
 
     hoisted.dbSelect
       .mockReturnValueOnce(leadChain)
       .mockReturnValueOnce(dealsChain)
       .mockReturnValueOnce(commissionChain)
-      .mockReturnValueOnce(dueFollowUpsChain);
+      .mockReturnValueOnce(dueFollowUpsChain)
+      .mockReturnValueOnce(taskFollowUpsChain);
 
     await crmDashboardRepository.readAgentDashboard({
       actor,
@@ -245,10 +295,40 @@ describe('crmDashboardRepository', () => {
         { lte: ['crmActivities.scheduledAt', expect.any(Date)] },
       ],
     });
-    expect(dueFollowUpsChain.afterWhere.orderBy).toHaveBeenCalledWith({
-      asc: 'crmActivities.scheduledAt',
-    });
+    expect(dueFollowUpsChain.afterWhere.orderBy).toHaveBeenCalledWith(
+      { asc: 'crmActivities.scheduledAt' },
+      { asc: 'crmActivities.id' }
+    );
     expect(dueFollowUpsChain.afterOrderBy.limit).toHaveBeenCalledWith(5);
+
+    expect(taskFollowUpsChain.innerJoin).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'crmLeads.id' }),
+      {
+        and: [
+          { eq: ['crmLeads.id', 'crmTasks.subjectId'] },
+          { eq: ['crmLeads.tenantId', 'tenant-1'] },
+          { eq: ['crmLeads.agentId', 'agent-1'] },
+          { eq: ['crmLeads.branchId', 'branch-1'] },
+        ],
+      }
+    );
+    expect(taskFollowUpsChain.where).toHaveBeenCalledWith({
+      and: [
+        { eq: ['crmTasks.tenantId', 'tenant-1'] },
+        { eq: ['crmTasks.branchId', 'branch-1'] },
+        { eq: ['crmTasks.subjectKind', 'lead'] },
+        { eq: ['crmTasks.createReasonCode', 'follow_up'] },
+        { eq: ['crmTasks.assignedKind', 'actor'] },
+        { eq: ['crmTasks.assignedActorId', 'agent-1'] },
+        { inArray: ['crmTasks.status', ['pending', 'in_progress']] },
+        { lte: ['crmTasks.dueAt', expect.any(Date)] },
+      ],
+    });
+    expect(taskFollowUpsChain.afterWhere.orderBy).toHaveBeenCalledWith(
+      { asc: 'crmTasks.dueAt' },
+      { asc: 'crmTasks.id' }
+    );
+    expect(taskFollowUpsChain.afterOrderBy.limit).toHaveBeenCalledWith(5);
   });
 
   it('fails closed before querying when branch scope is missing', async () => {

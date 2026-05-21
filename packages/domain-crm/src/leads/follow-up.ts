@@ -9,10 +9,12 @@ export type CrmLeadNextAction =
   | {
       activityId: string;
       description: string | null;
+      expectedLifecycleVersion?: number | null;
       isOverdue: boolean;
       kind: 'follow_up_due' | 'follow_up_scheduled';
       leadId: string;
       scheduledAt: string;
+      source?: 'legacy_activity' | 'crm_task';
       subject: string;
     };
 
@@ -90,6 +92,19 @@ function parseTime(value: string | null | undefined): number | null {
   return Number.isNaN(timestamp) ? null : timestamp;
 }
 
+type CrmLeadFollowUpActivityLike = CrmLeadActivity & {
+  readonly expectedLifecycleVersion?: number | null;
+  readonly followUpSource?: 'legacy_activity' | 'crm_task';
+};
+
+function followUpSourceRank(activity: CrmLeadFollowUpActivityLike): number {
+  return activity.followUpSource === 'crm_task' ? 0 : 1;
+}
+
+function followUpDedupeKey(activity: CrmLeadFollowUpActivityLike): string {
+  return [activity.tenantId, activity.agentId, activity.leadId, activity.scheduledAt].join(':');
+}
+
 function isSameAgent(actor: CrmActorContext, agentId: string): boolean {
   return actor.actorId === agentId || actor.scope.agentId === agentId;
 }
@@ -143,7 +158,7 @@ export function deriveCrmLeadNextAction(args: {
   now: string;
 }): CrmLeadNextAction {
   const nowAt = parseTime(args.now);
-  const next = args.activities
+  const openFollowUps = (args.activities as readonly CrmLeadFollowUpActivityLike[])
     .filter(
       activity =>
         activity.tenantId === args.lead.tenantId &&
@@ -151,7 +166,19 @@ export function deriveCrmLeadNextAction(args: {
         isOpenCrmLeadFollowUpActivity(activity) &&
         parseTime(activity.scheduledAt) != null
     )
-    .sort((left, right) => parseTime(left.scheduledAt)! - parseTime(right.scheduledAt)!)[0];
+    .sort((left, right) => {
+      const scheduledDiff = parseTime(left.scheduledAt)! - parseTime(right.scheduledAt)!;
+      if (scheduledDiff !== 0) return scheduledDiff;
+      const sourceDiff = followUpSourceRank(left) - followUpSourceRank(right);
+      if (sourceDiff !== 0) return sourceDiff;
+      return left.id.localeCompare(right.id);
+    });
+  const deduped = new Map<string, CrmLeadFollowUpActivityLike>();
+  for (const activity of openFollowUps) {
+    const key = followUpDedupeKey(activity);
+    if (!deduped.has(key)) deduped.set(key, activity);
+  }
+  const next = [...deduped.values()][0];
 
   if (!next?.scheduledAt || nowAt == null) {
     return { kind: 'none' };
@@ -166,6 +193,8 @@ export function deriveCrmLeadNextAction(args: {
     kind: isOverdue ? 'follow_up_due' : 'follow_up_scheduled',
     leadId: next.leadId,
     scheduledAt: next.scheduledAt,
+    source: next.followUpSource ?? 'legacy_activity',
+    expectedLifecycleVersion: next.expectedLifecycleVersion ?? null,
     subject: next.subject,
   };
 }
