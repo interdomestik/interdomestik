@@ -33,6 +33,14 @@ export function TaskQueueControls({
   const startButtonRef = useRef<HTMLButtonElement | null>(null);
   const completeButtonRef = useRef<HTMLButtonElement | null>(null);
 
+  function lifecycleLabel(action: TaskQueueLifecycleAction, activeKey: 'active' | 'idle') {
+    if (action === 'start') {
+      return t(activeKey === 'active' ? 'starting' : 'start');
+    }
+
+    return t(activeKey === 'active' ? 'completing' : 'complete');
+  }
+
   function focusAfterSuccess(action: TaskQueueLifecycleAction) {
     const button = action === 'start' ? startButtonRef.current : completeButtonRef.current;
     const row = button?.closest('[data-testid="agent-crm-task-queue-row"]');
@@ -76,8 +84,7 @@ export function TaskQueueControls({
     });
   }
 
-  const pendingLabel =
-    activeAction === 'start' ? t('starting') : activeAction === 'complete' ? t('completing') : '';
+  const pendingLabel = activeAction ? lifecycleLabel(activeAction, 'active') : '';
   const isSubmitting = isPending || activeAction !== null;
   const rowDisabled = isSubmitting || isDuePending;
 
@@ -96,7 +103,7 @@ export function TaskQueueControls({
             icon={<Play className="h-4 w-4" aria-hidden="true" />}
             testId="agent-crm-task-queue-start"
           >
-            {activeAction === 'start' ? t('starting') : t('start')}
+            {lifecycleLabel('start', activeAction === 'start' ? 'active' : 'idle')}
           </TaskQueueIconButton>
         ) : null}
         <TaskQueueIconButton
@@ -106,7 +113,7 @@ export function TaskQueueControls({
           icon={<Check className="h-4 w-4" aria-hidden="true" />}
           testId="agent-crm-task-queue-complete"
         >
-          {activeAction === 'complete' ? t('completing') : t('complete')}
+          {lifecycleLabel('complete', activeAction === 'complete' ? 'active' : 'idle')}
         </TaskQueueIconButton>
       </div>
       <TaskQueueDueDateControls

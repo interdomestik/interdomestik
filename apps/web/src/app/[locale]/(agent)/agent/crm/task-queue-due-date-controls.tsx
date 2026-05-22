@@ -10,19 +10,14 @@ import { TaskQueueIconButton } from './task-queue-icon-button';
 
 type TaskQueueDueDatePendingAction = 'due_save' | 'due_clear';
 
-function normalizeLocalDateTimeInput(value: string): string | null | 'invalid' {
-  const trimmed = value.trim();
-  if (trimmed.length === 0) return 'invalid';
-
-  const date = new Date(trimmed);
-  if (!Number.isFinite(date.getTime())) return 'invalid';
-
-  return date.toISOString();
+function parseDueDateInput(value: string): string | 'invalid' {
+  const timestamp = Date.parse(value.trim());
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : 'invalid';
 }
 
-function focusAfterFrame(element: HTMLElement | null) {
+function focusQueued(getElement: () => HTMLElement | null) {
   window.requestAnimationFrame(() => {
-    element?.focus();
+    getElement()?.focus();
   });
 }
 
@@ -58,7 +53,7 @@ export function TaskQueueDueDateControls({
     setIsEditing(true);
     setHasError(false);
     onMessage(null);
-    focusAfterFrame(inputRef.current);
+    focusQueued(() => inputRef.current);
   }
 
   function closeEditor() {
@@ -66,11 +61,11 @@ export function TaskQueueDueDateControls({
     setIsEditing(false);
     setHasError(false);
     onMessage(null);
-    focusAfterFrame(editButtonRef.current);
+    focusQueued(() => editButtonRef.current);
   }
 
   function submitDueDate(action: TaskQueueDueDatePendingAction) {
-    const dueAtValue = action === 'due_clear' ? null : normalizeLocalDateTimeInput(dueValue);
+    const dueAtValue = action === 'due_clear' ? null : parseDueDateInput(dueValue);
     if (dueAtValue === 'invalid') {
       setHasError(true);
       onMessage(t('error.invalid_date'));
@@ -96,7 +91,7 @@ export function TaskQueueDueDateControls({
           onPendingChange(false);
           setActiveAction(null);
           setIsEditing(false);
-          focusAfterFrame(editButtonRef.current);
+          focusQueued(() => editButtonRef.current);
           router.refresh();
           return;
         }
@@ -113,59 +108,9 @@ export function TaskQueueDueDateControls({
     })();
   }
 
-  return (
-    <div
-      className="flex flex-col items-stretch gap-2 text-sm sm:items-end"
-      role="group"
-      aria-label={t('group')}
-    >
-      {isEditing ? (
-        <>
-          <label className="sr-only" htmlFor={dueInputId}>
-            {t('field')}
-          </label>
-          <input
-            ref={inputRef}
-            id={dueInputId}
-            type="datetime-local"
-            step={1}
-            value={dueValue}
-            disabled={isSubmitting}
-            aria-describedby={rowMessageId}
-            aria-invalid={hasError ? true : undefined}
-            onChange={event => setDueValue(event.target.value)}
-            className="min-h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            data-testid="agent-crm-task-queue-due-input"
-          />
-          <div className="flex flex-wrap justify-end gap-2">
-            <TaskQueueIconButton
-              disabled={isSubmitting || !canSaveDueDate}
-              onClick={() => submitDueDate('due_save')}
-              icon={<Save className="h-4 w-4" aria-hidden="true" />}
-              testId="agent-crm-task-queue-due-save"
-            >
-              {activeAction === 'due_save' ? t('saving') : t('save')}
-            </TaskQueueIconButton>
-            <TaskQueueIconButton
-              disabled={isSubmitting}
-              onClick={() => submitDueDate('due_clear')}
-              icon={<Eraser className="h-4 w-4" aria-hidden="true" />}
-              testId="agent-crm-task-queue-due-clear"
-            >
-              {activeAction === 'due_clear' ? t('clearing') : t('clear')}
-            </TaskQueueIconButton>
-            <TaskQueueIconButton
-              variant="ghost"
-              disabled={isSubmitting}
-              onClick={closeEditor}
-              icon={<X className="h-4 w-4" aria-hidden="true" />}
-              testId="agent-crm-task-queue-due-cancel"
-            >
-              {t('cancel')}
-            </TaskQueueIconButton>
-          </div>
-        </>
-      ) : (
+  if (!isEditing) {
+    return (
+      <span className="inline-flex justify-end" role="group" aria-label={t('group')}>
         <TaskQueueIconButton
           ref={editButtonRef}
           disabled={isSubmitting}
@@ -175,7 +120,55 @@ export function TaskQueueDueDateControls({
         >
           {t('edit')}
         </TaskQueueIconButton>
-      )}
+      </span>
+    );
+  }
+
+  return (
+    <div className="grid justify-items-end gap-2 text-sm" role="group" aria-label={t('group')}>
+      <label className="sr-only" htmlFor={dueInputId}>
+        {t('field')}
+      </label>
+      <input
+        ref={inputRef}
+        id={dueInputId}
+        type="datetime-local"
+        step={1}
+        value={dueValue}
+        disabled={isSubmitting}
+        aria-describedby={rowMessageId}
+        aria-invalid={hasError ? true : undefined}
+        onChange={event => setDueValue(event.target.value)}
+        className="min-h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        data-testid="agent-crm-task-queue-due-input"
+      />
+      <div className="flex flex-wrap justify-end gap-2">
+        <TaskQueueIconButton
+          disabled={isSubmitting || !canSaveDueDate}
+          onClick={() => submitDueDate('due_save')}
+          icon={<Save className="h-4 w-4" aria-hidden="true" />}
+          testId="agent-crm-task-queue-due-save"
+        >
+          {activeAction === 'due_save' ? t('saving') : t('save')}
+        </TaskQueueIconButton>
+        <TaskQueueIconButton
+          disabled={isSubmitting}
+          onClick={() => submitDueDate('due_clear')}
+          icon={<Eraser className="h-4 w-4" aria-hidden="true" />}
+          testId="agent-crm-task-queue-due-clear"
+        >
+          {activeAction === 'due_clear' ? t('clearing') : t('clear')}
+        </TaskQueueIconButton>
+        <TaskQueueIconButton
+          variant="ghost"
+          disabled={isSubmitting}
+          onClick={closeEditor}
+          icon={<X className="h-4 w-4" aria-hidden="true" />}
+          testId="agent-crm-task-queue-due-cancel"
+        >
+          {t('cancel')}
+        </TaskQueueIconButton>
+      </div>
     </div>
   );
 }
