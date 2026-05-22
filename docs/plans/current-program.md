@@ -427,6 +427,33 @@ assignment/reassignment, staff/admin/member task UI, new routes, scheduler/cron,
 notifications, outbox, templates, sequences, scoring, assistance-intent execution, database
 migration/RLS, historical backfill, proxy/canonical route/auth/tenancy/routing changes, Stripe,
 README, AGENTS.md, and broad architecture-doc work remain blocked.
+`P40-CRM31 Agent CRM Task Queue Cancellation Controls` is complete through PR `#847`, merge commit
+`f00a44b3ee4d1d701dc7ba5447db4326841754b0`: the existing `/agent/crm` task queue now has
+row-local cancellation controls for visible, assigned, open, lead-backed task rows only. The
+implementation reuses CRM26 `cancelCrmTaskAction` through a queue-visibility guard, exposes only
+`not_needed`, `duplicate`, and `created_in_error`, requires row-local inline confirmation,
+preserves Start/Complete controls, due-date controls, lead links, queue markers, legacy
+due-follow-up separation, canonical routes, and `apps/web/src/proxy.ts`, and passed focused unit
+proof, `pnpm security:guard`, `pnpm pr:verify`, and `pnpm e2e:gate`, with remote validation,
+audit, static, unit, full E2E, `e2e-gate`, Pilot Gate, gitleaks, pnpm-audit, PR finalizer,
+SonarCloud, Vercel ignored-build, and Vercel Preview Comments green before merge.
+Reopen UI, terminal-task recovery surfacing, `subject_closed` picker exposure,
+assignment/reassignment, staff/admin/member task UI, scheduler/reminders/notifications/outbox, new
+routes/API/cron, DB schema/RLS/migrations, assistance execution, auth/tenancy/routing refactors,
+Stripe, README/AGENTS.md, and architecture-doc work remained out of scope.
+`P40-DG09 CRM Task Queue Completed Task Recovery Design Gate` is recorded in
+`docs/plans/2026-05-22-p40-dg09-crm-task-completed-recovery-design.md` after `P40-CRM31`. It
+promotes exactly one next implementation slice,
+`P40-CRM32 Agent CRM Task Queue Completed Task Recovery`, limited to a bounded completed-task
+recovery panel below the existing `/agent/crm` open work queue. The promoted slice may show only
+recently completed, assigned, lead-backed CRM tasks for the current agent, use a distinct
+completed-queue DTO and pure derivation path, and add row-local reopen controls that use existing
+CRM26 `reopenCrmTaskAction` with stable reason codes `follow_up_required`, `incomplete`, and
+`manually_reopened`. Cancelled tasks have no authorized reopen path and must never appear in the
+panel. The slice blocks cancelled-task recovery, full task history, assignment/reassignment,
+staff/admin/member task UI, scheduler/cron, reminders, notifications, outbox, new routes,
+DB schema/RLS/migrations, assistance execution, proxy/canonical route/auth/tenancy changes, Stripe,
+README/AGENTS.md, and broad architecture-doc work.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
