@@ -23,6 +23,8 @@ vi.mock('@interdomestik/database/schema', () => ({
     assignedActorId: 'crmTasks.assignedActorId',
     assignedKind: 'crmTasks.assignedKind',
     branchId: 'crmTasks.branchId',
+    completedAt: 'crmTasks.completedAt',
+    completionReasonCode: 'crmTasks.completionReasonCode',
     createReasonCode: 'crmTasks.createReasonCode',
     dueAt: 'crmTasks.dueAt',
     id: 'crmTasks.id',
@@ -38,8 +40,10 @@ vi.mock('@interdomestik/database/schema', () => ({
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ and: args })),
   asc: vi.fn((col: unknown) => ({ asc: col })),
+  desc: vi.fn((col: unknown) => ({ desc: col })),
   eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
   inArray: vi.fn((col: unknown, vals: unknown) => ({ inArray: [col, vals] })),
+  isNotNull: vi.fn((col: unknown) => ({ isNotNull: col })),
   sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({ sql: { strings, values } }),
 }));
 
@@ -157,5 +161,73 @@ describe('createAgentCrmTaskWorkQueueRepository', () => {
     ).resolves.toEqual([]);
 
     expect(hoisted.dbSelect).not.toHaveBeenCalled();
+  });
+
+  it('returns a distinct completed task recovery queue DTO', async () => {
+    hoisted.dbSelect.mockReturnValueOnce(
+      createQueueChain([
+        {
+          assignedActorId: 'agent-1',
+          branchId: 'branch-1',
+          companyName: null,
+          completedAt: new Date('2026-05-22T12:00:00.000Z'),
+          completionReasonCode: 'resolved',
+          dueAt: null,
+          fullName: 'Lead Person',
+          leadId: 'lead-1',
+          lifecycleVersion: 4,
+          priority: 'normal',
+          status: 'completed',
+          taskId: 'task-1',
+          tenantId: 'tenant-1',
+        },
+      ])
+    );
+
+    const queue = await createAgentCrmTaskWorkQueueRepository().readAgentCompletedTaskQueue({
+      actor,
+      now: '2026-05-22T08:00:00.000Z',
+    });
+
+    expect(queue).toEqual([
+      {
+        completedAt: '2026-05-22T12:00:00.000Z',
+        completionReasonCode: 'resolved',
+        dueAt: null,
+        leadDisplayRef: { id: 'lead-1', label: 'Lead Person' },
+        lifecycleVersion: 4,
+        priority: 'normal',
+        status: 'completed',
+        subjectReference: { id: 'lead-1', kind: 'lead' },
+        taskId: 'task-1',
+      },
+    ]);
+  });
+
+  it('constrains completed queue reads to completed lead-backed assigned rows', async () => {
+    const chain = createQueueChain([]);
+    hoisted.dbSelect.mockReturnValueOnce(chain);
+
+    await createAgentCrmTaskWorkQueueRepository().readAgentCompletedTaskQueue({
+      actor,
+      now: '2026-05-22T08:00:00.000Z',
+    });
+
+    expect(chain.where).toHaveBeenCalledWith({
+      and: [
+        { eq: ['crmTasks.tenantId', 'tenant-1'] },
+        { eq: ['crmTasks.branchId', 'branch-1'] },
+        { eq: ['crmTasks.subjectKind', 'lead'] },
+        { eq: ['crmTasks.assignedKind', 'actor'] },
+        { eq: ['crmTasks.assignedActorId', 'agent-1'] },
+        { eq: ['crmTasks.status', 'completed'] },
+        { isNotNull: 'crmTasks.completedAt' },
+      ],
+    });
+    expect(chain.afterWhere.orderBy).toHaveBeenCalledWith(
+      { desc: 'crmTasks.completedAt' },
+      { asc: 'crmTasks.id' }
+    );
+    expect(chain.afterOrderBy.limit).toHaveBeenCalledWith(10);
   });
 });

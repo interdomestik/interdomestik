@@ -39,6 +39,14 @@
         "unknownLead": "Kontakt",
         "openLead": "Hap lead-in",
         "dueWithDate": "Afati {bucket}: {date}",
+        "completed": {
+          "title": "Të përfunduara së fundmi",
+          "description": "Detyra CRM të përfunduara për lead-e që ju janë caktuar.",
+          "count": "{count, plural, =0 {0 detyra} one {# detyrë} other {# detyra}}",
+          "countLabel": "{count, plural, =0 {Nuk ka detyra të përfunduara së fundmi} one {# detyrë e përfunduar së fundmi} other {# detyra të përfunduara së fundmi}}",
+          "empty": "Nuk ka detyra CRM të përfunduara së fundmi.",
+          "completedAt": "Përfunduar: {date}"
+        },
         "actions": {
           "group": "Veprime të ciklit të detyrës",
           "start": "Fillo",
@@ -103,6 +111,33 @@
             "transient": "Detyra nuk mund të anulohej. Provoni përsëri."
           }
         },
+        "reopenActions": {
+          "group": "Veprime për rikuperimin e detyrës",
+          "groupFor": "Veprime për rikuperimin e detyrës për {label}",
+          "confirmGroup": "Konfirmo rikuperimin e detyrës",
+          "confirmGroupFor": "Konfirmo rikuperimin e detyrës për {label}",
+          "field": "Arsyeja e rikuperimit",
+          "open": "Rihap detyrën",
+          "openFor": "Rihap detyrën për {label}",
+          "placeholder": "Zgjidh arsyen",
+          "confirm": "Konfirmo rihapjen",
+          "confirming": "Duke rihapur...",
+          "dismiss": "Mbaje të përfunduar",
+          "success": "Detyra u rihap.",
+          "reasons": {
+            "follow_up_required": "Kërkohet ndjekje",
+            "incomplete": "Detyra është e paplotë",
+            "manually_reopened": "Rikuperim manual"
+          },
+          "error": {
+            "unavailable": "Kjo detyrë nuk është më e disponueshme.",
+            "invalid_reason": "Zgjidhni një arsye rikuperimi.",
+            "conflict": "Kjo detyrë ndryshoi. Rifreskoni radhën dhe provoni përsëri.",
+            "terminal": "Kjo detyrë ndryshoi. Rifreskoni radhën dhe provoni përsëri.",
+            "rate_limited": "Shumë përpjekje. Prisni pak dhe provoni përsëri.",
+            "transient": "Detyra nuk mund të rihapej. Provoni përsëri."
+          }
+        },
         "labels": {
           "manual": "Detyrë",
           "follow_up": "Ndjekje",
@@ -112,7 +147,15 @@
         },
         "status": {
           "pending": "Në pritje",
-          "in_progress": "Në proces"
+          "in_progress": "Në proces",
+          "completed": "E përfunduar"
+        },
+        "completionReasons": {
+          "resolved": "U zgjidh",
+          "no_longer_needed": "Nuk nevojitet më",
+          "duplicate": "Detyrë e dyfishtë",
+          "converted": "U konvertua",
+          "manually_closed": "Mbyllur manualisht"
         },
         "priority": {
           "low": "E ulët",

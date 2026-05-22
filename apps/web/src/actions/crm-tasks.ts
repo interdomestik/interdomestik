@@ -76,3 +76,11 @@ export async function reopenCrmTaskAction(input: ReopenCrmTaskCoreInput) {
   const { requestHeaders, session } = await getActionSession();
   return reopenCrmTaskCore({ input, requestHeaders, session });
 }
+
+export async function reopenCrmTaskActionWithGuard(
+  input: ReopenCrmTaskCoreInput,
+  guard: CrmTaskExistingMutationGuard
+) {
+  const { requestHeaders, session } = await getActionSession();
+  return reopenCrmTaskCore({ guard, input, requestHeaders, session });
+}

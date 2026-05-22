@@ -650,6 +650,55 @@ describe('CRM task core boundary', () => {
     );
   });
 
+  it('runs the completed-queue guard before reopening a task', async () => {
+    const repo = repository({
+      findTaskById: vi.fn().mockResolvedValue(
+        task({
+          completedAt: '2026-05-21T09:30:00.000Z',
+          completionReasonCode: 'resolved',
+          lifecycleVersion: 9,
+          status: 'completed',
+        })
+      ),
+    });
+    const d = deps(repo);
+    const guard = vi.fn().mockResolvedValue({
+      outcome: 'forbidden',
+      reason: 'task_not_in_completed_queue',
+    });
+
+    const result = await reopenCrmTaskCore({
+      deps: d,
+      guard,
+      input: {
+        expectedLifecycleVersion: 9,
+        reasonCode: 'follow_up_required',
+        taskId: 'task-1',
+      },
+      session: session(),
+    });
+
+    expect(result).toEqual({
+      outcome: 'forbidden',
+      reason: 'task_not_in_completed_queue',
+    });
+    expect(guard).toHaveBeenCalledWith({
+      actor: expect.objectContaining({
+        actorId: 'agent-1',
+        role: 'agent',
+        tenantId: 'tenant-1',
+      }),
+      deps: d,
+      input: expect.objectContaining({
+        expectedLifecycleVersion: 9,
+        taskId: 'task-1',
+      }),
+      requestHeaders: expect.any(Headers),
+    });
+    expect(repo.findTaskById).not.toHaveBeenCalled();
+    expect(repo.saveTask).not.toHaveBeenCalled();
+  });
+
   it.each([
     {
       existingTask: task({

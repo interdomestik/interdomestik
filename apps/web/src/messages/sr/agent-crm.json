@@ -39,6 +39,14 @@
         "unknownLead": "Lid",
         "openLead": "Otvori lid",
         "dueWithDate": "Rok {bucket}: {date}",
+        "completed": {
+          "title": "Nedavno završeni",
+          "description": "Završeni CRM zadaci za lidove dodeljeni vama.",
+          "count": "{count, plural, =0 {0 zadataka} one {# zadatak} other {# zadataka}}",
+          "countLabel": "{count, plural, =0 {Nema nedavno završenih zadataka} one {# nedavno završen zadatak} other {# nedavno završenih zadataka}}",
+          "empty": "Nema nedavno završenih CRM zadataka.",
+          "completedAt": "Završeno: {date}"
+        },
         "actions": {
           "group": "Radnje životnog ciklusa zadatka",
           "start": "Pokreni",
@@ -103,6 +111,33 @@
             "transient": "Zadatak nije mogao biti otkazan. Pokušajte ponovo."
           }
         },
+        "reopenActions": {
+          "group": "Radnje oporavka zadatka",
+          "groupFor": "Radnje oporavka zadatka za {label}",
+          "confirmGroup": "Potvrdite oporavak zadatka",
+          "confirmGroupFor": "Potvrdite oporavak zadatka za {label}",
+          "field": "Razlog oporavka",
+          "open": "Ponovo otvori zadatak",
+          "openFor": "Ponovo otvori zadatak za {label}",
+          "placeholder": "Izaberite razlog",
+          "confirm": "Potvrdi ponovno otvaranje",
+          "confirming": "Ponovno otvaranje...",
+          "dismiss": "Zadrži kao završeno",
+          "success": "Zadatak je ponovo otvoren.",
+          "reasons": {
+            "follow_up_required": "Potrebno je praćenje",
+            "incomplete": "Zadatak je nepotpun",
+            "manually_reopened": "Ručni oporavak"
+          },
+          "error": {
+            "unavailable": "Ovaj zadatak više nije dostupan.",
+            "invalid_reason": "Izaberite razlog oporavka.",
+            "conflict": "Ovaj zadatak je promenjen. Osvežite red i pokušajte ponovo.",
+            "terminal": "Ovaj zadatak je promenjen. Osvežite red i pokušajte ponovo.",
+            "rate_limited": "Previše pokušaja. Sačekajte trenutak i pokušajte ponovo.",
+            "transient": "Zadatak nije mogao biti ponovo otvoren. Pokušajte ponovo."
+          }
+        },
         "labels": {
           "manual": "Zadatak",
           "follow_up": "Praćenje",
@@ -112,7 +147,15 @@
         },
         "status": {
           "pending": "Na čekanju",
-          "in_progress": "U toku"
+          "in_progress": "U toku",
+          "completed": "Završen"
+        },
+        "completionReasons": {
+          "resolved": "Rešeno",
+          "no_longer_needed": "Više nije potrebno",
+          "duplicate": "Dupliran zadatak",
+          "converted": "Konvertovano",
+          "manually_closed": "Ručno zatvoreno"
         },
         "priority": {
           "low": "Nizak",
