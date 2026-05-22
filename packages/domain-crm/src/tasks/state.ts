@@ -400,6 +400,7 @@ function applyTransition(args: {
         : args.completionReasonCode,
     dueAt: args.dueAt === undefined ? args.task.dueAt : args.dueAt,
     history: [...args.task.history, entry],
+    lifecycleVersion: args.task.lifecycleVersion + 1,
     reopenedAt: args.reopenedAt === undefined ? args.task.reopenedAt : args.reopenedAt,
     reopenReasonCode:
       args.reopenReasonCode === undefined ? args.task.reopenReasonCode : args.reopenReasonCode,
@@ -515,6 +516,7 @@ export function createCrmTask(
     dueAt,
     history: [historyEntry(input.actor, createTransition)],
     idempotencyKey: input.idempotencyKey ?? null,
+    lifecycleVersion: 1,
     priority: input.priority,
     reopenedAt: null,
     reopenReasonCode: null,

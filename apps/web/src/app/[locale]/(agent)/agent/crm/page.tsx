@@ -19,11 +19,14 @@ import {
   AgentCrmStatsAccessDeniedError,
   getAgentCrmReportingCore,
   getAgentCrmStatsCore,
+  getAgentCrmTaskQueueCore,
   type AgentCrmPipelineCurrencySummary,
   type AgentCrmReportingDashboard,
   type AgentCrmSourceBreakdownSummary,
+  type AgentCrmTaskQueueItem,
   type AgentCrmWinRateSummary,
 } from './_core';
+import { TaskQueueControls } from './task-queue-controls';
 
 type Formatter = Awaited<ReturnType<typeof getFormatter>>;
 
@@ -326,12 +329,114 @@ function WinRateWidget({
   );
 }
 
+function TaskQueueWidget({
+  dueFormatter,
+  queue,
+  t,
+}: Readonly<{
+  dueFormatter: Intl.DateTimeFormat;
+  queue: readonly AgentCrmTaskQueueItem[];
+  t: Awaited<ReturnType<typeof getTranslations>>;
+}>) {
+  return (
+    <section
+      className="rounded-lg border bg-white p-6 shadow-sm"
+      data-testid="agent-crm-task-queue-ready"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2
+            className="text-lg font-semibold"
+            data-testid="agent-crm-task-queue-title"
+            tabIndex={-1}
+          >
+            {t('crm.taskQueue.title')}
+          </h2>
+          <p className="text-sm text-muted-foreground">{t('crm.taskQueue.description')}</p>
+        </div>
+        <div
+          className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-800"
+          aria-label={t('crm.taskQueue.countLabel', { count: queue.length })}
+          data-testid="agent-crm-task-queue-count"
+        >
+          {t('crm.taskQueue.count', { count: queue.length })}
+        </div>
+      </div>
+      {queue.length === 0 ? (
+        <p className="mt-6 text-sm text-muted-foreground">{t('crm.taskQueue.empty')}</p>
+      ) : (
+        <div className="mt-6 divide-y">
+          {queue.map(item => (
+            <div
+              key={item.taskId}
+              className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+              data-lead-id={item.subjectReference.id}
+              data-task-id={item.taskId}
+              data-testid="agent-crm-task-queue-row"
+            >
+              <div className="min-w-0">
+                <p className="truncate font-medium">
+                  {item.leadDisplayRef.label || t('crm.taskQueue.unknownLead')}
+                </p>
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                  <span>{t(`crm.taskQueue.labels.${item.displayLabelCode}`)}</span>
+                  <span>{t(`crm.taskQueue.status.${item.status}`)}</span>
+                  <span>{t(`crm.taskQueue.priority.${item.priority}`)}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {item.dueAt
+                    ? t('crm.taskQueue.dueWithDate', {
+                        bucket: t(`crm.taskQueue.dueBucket.${item.dueBucket}`),
+                        date: dueFormatter.format(new Date(item.dueAt)),
+                      })
+                    : t(`crm.taskQueue.dueBucket.${item.dueBucket}`)}
+                </p>
+              </div>
+              <div className="flex flex-col items-stretch gap-2 sm:items-end">
+                <TaskQueueControls
+                  expectedLifecycleVersion={item.lifecycleVersion}
+                  labels={{
+                    complete: t('crm.taskQueue.actions.complete'),
+                    completing: t('crm.taskQueue.actions.completing'),
+                    error: {
+                      conflict: t('crm.taskQueue.actions.error.conflict'),
+                      rate_limited: t('crm.taskQueue.actions.error.rate_limited'),
+                      transient: t('crm.taskQueue.actions.error.transient'),
+                      unavailable: t('crm.taskQueue.actions.error.unavailable'),
+                    },
+                    group: t('crm.taskQueue.actions.group'),
+                    start: t('crm.taskQueue.actions.start'),
+                    starting: t('crm.taskQueue.actions.starting'),
+                    success: {
+                      complete: t('crm.taskQueue.actions.success.complete'),
+                      start: t('crm.taskQueue.actions.success.start'),
+                    },
+                  }}
+                  status={item.status}
+                  taskId={item.taskId}
+                />
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={item.href} data-testid="agent-crm-task-queue-open">
+                    {t('crm.taskQueue.openLead')}
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default async function CRMPage({
   params,
 }: Readonly<{ params: Promise<{ locale: string }> }>) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('agent');
+  const tCrm = await getTranslations('agent-crm');
   const format = await getFormatter();
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -362,10 +467,12 @@ export default async function CRMPage({
 
   let stats;
   let reporting;
+  let taskQueue;
   try {
-    [stats, reporting] = await Promise.all([
+    [stats, reporting, taskQueue] = await Promise.all([
       getAgentCrmStatsCore({ actor }),
       getAgentCrmReportingCore({ actor }),
+      getAgentCrmTaskQueueCore({ actor }),
     ]);
   } catch (error) {
     if (
@@ -424,6 +531,7 @@ export default async function CRMPage({
           <WinRateWidget format={format} reporting={reporting.winRateBySource} t={t} />
         </div>
       </div>
+      <TaskQueueWidget dueFormatter={dueFormatter} queue={taskQueue} t={tCrm} />
       <section
         className="rounded-lg border bg-white p-6 shadow-sm"
         data-testid="agent-crm-due-follow-ups"

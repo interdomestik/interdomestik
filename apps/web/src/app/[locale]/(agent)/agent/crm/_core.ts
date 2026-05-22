@@ -1,5 +1,6 @@
 import { getAgentCrmDashboard, type AgentCrmDashboard } from '@interdomestik/domain-crm/dashboards';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+import type { CrmTaskWorkQueueItem } from '@interdomestik/domain-crm/tasks';
 import {
   authorizeCrmReportingRead,
   deriveCrmSourceBreakdown,
@@ -12,9 +13,16 @@ import type { CrmReportingRepository } from '@interdomestik/domain-crm/reporting
 
 import { crmDashboardRepository } from '@/adapters/crm/dashboard-repository';
 import { crmReportingRepository } from '@/adapters/crm/reporting-repository';
+import {
+  agentCrmTaskWorkQueueRepository,
+  type AgentCrmTaskWorkQueueRepository,
+} from '@/adapters/crm/task-work-queue-repository';
 
 export type AgentCrmStats = AgentCrmDashboard;
 export type { AgentCrmDashboardDueFollowUp as AgentCrmDueFollowUp } from '@interdomestik/domain-crm/dashboards';
+export type AgentCrmTaskQueueItem = CrmTaskWorkQueueItem & {
+  href: `/agent/leads/${string}`;
+};
 
 const CRM12_REPORTING_WINDOW_DAYS = 90;
 const CRM12_MAX_SOURCE_ROWS = 5;
@@ -94,6 +102,23 @@ export async function getAgentCrmStatsCore(args: {
   }
 
   return result.dashboard;
+}
+
+export async function getAgentCrmTaskQueueCore(args: {
+  actor: CrmActorContext;
+  now?: () => string;
+  repository?: AgentCrmTaskWorkQueueRepository;
+}): Promise<AgentCrmTaskQueueItem[]> {
+  const repository = args.repository ?? agentCrmTaskWorkQueueRepository;
+  const rows = await repository.readAgentTaskWorkQueue({
+    actor: args.actor,
+    now: (args.now ?? (() => new Date().toISOString()))(),
+  });
+
+  return rows.map(row => ({
+    ...row,
+    href: `/agent/leads/${encodeURIComponent(row.subjectReference.id)}`,
+  }));
 }
 
 export function createAgentCrmReportingWindow(nowIso: string): CrmReportingWindow {

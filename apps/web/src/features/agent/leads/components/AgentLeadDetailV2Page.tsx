@@ -12,6 +12,7 @@ import type { AppLocale } from '@/i18n/locales';
 import { Link, redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { crmLeadActivityRepository } from '@/adapters/crm/lead-activity-repository';
+import { listCrmLeadFollowUpTasksForLead } from '@/adapters/crm/lead-follow-up-repository';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { getAgentCrmLeadActivities } from '@interdomestik/domain-crm/lead-activities';
 import {
@@ -135,6 +136,14 @@ function AgentLeadFollowUpCard({
             <form action={completeAgentLeadFollowUp}>
               <input type="hidden" name="leadId" value={id} />
               <input type="hidden" name="activityId" value={nextAction.activityId} />
+              <input type="hidden" name="source" value={nextAction.source ?? 'legacy_activity'} />
+              {nextAction.source === 'crm_task' && nextAction.expectedLifecycleVersion ? (
+                <input
+                  type="hidden"
+                  name="expectedLifecycleVersion"
+                  value={nextAction.expectedLifecycleVersion}
+                />
+              ) : null}
               <Button
                 type="submit"
                 size="sm"
@@ -214,8 +223,12 @@ export async function AgentLeadDetailV2Page({
   const lead = leadResult.lead;
   const deals = leadResult.deals;
   const activities = activityResult.activities;
+  const taskBackedFollowUps = await listCrmLeadFollowUpTasksForLead({
+    actor,
+    leadId: id,
+  });
   const nextAction = deriveCrmLeadNextAction({
-    activities,
+    activities: [...taskBackedFollowUps, ...activities],
     lead: { id: lead.id, tenantId: lead.tenantId },
     now: new Date().toISOString(),
   });
