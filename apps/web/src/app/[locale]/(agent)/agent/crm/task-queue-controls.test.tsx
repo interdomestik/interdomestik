@@ -176,6 +176,26 @@ describe('TaskQueueControls', () => {
     expect(screen.getByText('Due date cleared')).toBeTruthy();
   });
 
+  it('keeps empty save separate from the clear due-date action', async () => {
+    hoisted.dueDateSubmitMock.mockResolvedValueOnce({ dueAt: null, success: true });
+
+    render(<TaskQueueControls expectedLifecycleVersion={8} status="pending" taskId="task-8" />);
+
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
+    expect(screen.getByTestId('agent-crm-task-queue-due-save')).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-clear'));
+
+    await waitFor(() => {
+      expect(hoisted.dueDateSubmitMock).toHaveBeenCalledWith({
+        dueAt: null,
+        expectedLifecycleVersion: 8,
+        taskId: 'task-8',
+      });
+    });
+    expect(screen.getByText('Due date cleared')).toBeTruthy();
+  });
+
   it('renders server-side invalid-date failures as stable row-local copy', async () => {
     hoisted.dueDateSubmitMock.mockResolvedValueOnce({
       error: 'invalid_date',
@@ -205,6 +225,9 @@ describe('TaskQueueControls', () => {
     render(<TaskQueueControls expectedLifecycleVersion={8} status="pending" taskId="task-8" />);
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
+    fireEvent.change(screen.getByTestId('agent-crm-task-queue-due-input'), {
+      target: { value: '2026-05-22T12:30' },
+    });
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-save'));
 
     await waitFor(() => {

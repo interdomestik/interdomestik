@@ -12,7 +12,7 @@ type TaskQueueDueDatePendingAction = 'due_save' | 'due_clear';
 
 function normalizeLocalDateTimeInput(value: string): string | null | 'invalid' {
   const trimmed = value.trim();
-  if (trimmed.length === 0) return null;
+  if (trimmed.length === 0) return 'invalid';
 
   const date = new Date(trimmed);
   if (!Number.isFinite(date.getTime())) return 'invalid';
@@ -45,6 +45,7 @@ export function TaskQueueDueDateControls({
   const editButtonRef = useRef<HTMLButtonElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const isSubmitting = disabled || activeAction !== null;
+  const canSaveDueDate = dueValue.trim().length > 0;
 
   function openEditor() {
     setDueValue('');
@@ -141,7 +142,7 @@ export function TaskQueueDueDateControls({
               type="button"
               variant="outline"
               size="sm"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !canSaveDueDate}
               onClick={() => submitDueDate('due_save')}
               data-testid="agent-crm-task-queue-due-save"
             >
