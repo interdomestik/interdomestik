@@ -196,29 +196,22 @@ describe('TaskQueueControls', () => {
     expect(screen.getByText('Due date cleared')).toBeTruthy();
   });
 
-  it('renders server-side invalid-date failures as stable row-local copy', async () => {
-    hoisted.dueDateSubmitMock.mockResolvedValueOnce({
+  it.each([
+    {
       error: 'invalid_date',
-      success: false,
-    });
-
-    render(<TaskQueueControls expectedLifecycleVersion={8} status="pending" taskId="task-8" />);
-
-    fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
-    fireEvent.change(screen.getByTestId('agent-crm-task-queue-due-input'), {
-      target: { value: '2026-05-22T12:30' },
-    });
-    fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-save'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Invalid date')).toBeTruthy();
-    });
-    expect(hoisted.refreshMock).not.toHaveBeenCalled();
-  });
-
-  it('keeps due-date failures row-local and displays only stable UI copy', async () => {
-    hoisted.dueDateSubmitMock.mockResolvedValueOnce({
+      leakedText: null,
+      name: 'renders server-side invalid-date failures as stable row-local copy',
+      text: 'Invalid date',
+    },
+    {
       error: 'conflict',
+      leakedText: 'lifecycle_conflict',
+      name: 'keeps due-date failures row-local and displays only stable UI copy',
+      text: 'Due date changed',
+    },
+  ] as const)('$name', async scenario => {
+    hoisted.dueDateSubmitMock.mockResolvedValueOnce({
+      error: scenario.error,
       success: false,
     });
 
@@ -231,9 +224,11 @@ describe('TaskQueueControls', () => {
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-save'));
 
     await waitFor(() => {
-      expect(screen.getByText('Due date changed')).toBeTruthy();
+      expect(screen.getByText(scenario.text)).toBeTruthy();
     });
-    expect(screen.queryByText('lifecycle_conflict')).toBeNull();
+    if (scenario.leakedText) {
+      expect(screen.queryByText(scenario.leakedText)).toBeNull();
+    }
     expect(hoisted.refreshMock).not.toHaveBeenCalled();
   });
 });

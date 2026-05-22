@@ -393,16 +393,33 @@ describe('CRM task core boundary', () => {
     }
   );
 
-  it('rejects invalid due dates without save, audit, or revalidation', async () => {
+  it.each([
+    {
+      dueAt: 'not-a-date',
+      expected: { outcome: 'invalid_input', reason: 'invalid_due_at' },
+      name: 'rejects invalid due dates',
+      sourceTask: task(),
+    },
+    {
+      dueAt: '2026-05-22T12:00:00.000Z',
+      expected: { outcome: 'conflict', reason: 'terminal_state' },
+      name: 'maps terminal due-date updates to conflict',
+      sourceTask: task({
+        completedAt: TEST_NOW,
+        completionReasonCode: 'resolved',
+        status: 'completed',
+      }),
+    },
+  ] as const)('$name without save, audit, or revalidation', async scenario => {
     const repo = repository({
-      findTaskById: vi.fn().mockResolvedValue(task()),
+      findTaskById: vi.fn().mockResolvedValue(scenario.sourceTask),
     });
     const d = deps(repo);
 
     const result = await updateCrmTaskDueAtCore({
       deps: d,
       input: {
-        dueAt: 'not-a-date',
+        dueAt: scenario.dueAt,
         expectedLifecycleVersion: 1,
         reasonCode: 'due_date_changed',
         taskId: 'task-1',
@@ -410,36 +427,7 @@ describe('CRM task core boundary', () => {
       session: session(),
     });
 
-    expect(result).toEqual({ outcome: 'invalid_input', reason: 'invalid_due_at' });
-    expect(repo.saveTask).not.toHaveBeenCalled();
-    expect(d.audit).not.toHaveBeenCalled();
-    expect(d.revalidate).not.toHaveBeenCalled();
-  });
-
-  it('maps terminal due-date updates to conflict without save, audit, or revalidation', async () => {
-    const repo = repository({
-      findTaskById: vi.fn().mockResolvedValue(
-        task({
-          completedAt: TEST_NOW,
-          completionReasonCode: 'resolved',
-          status: 'completed',
-        })
-      ),
-    });
-    const d = deps(repo);
-
-    const result = await updateCrmTaskDueAtCore({
-      deps: d,
-      input: {
-        dueAt: '2026-05-22T12:00:00.000Z',
-        expectedLifecycleVersion: 1,
-        reasonCode: 'due_date_changed',
-        taskId: 'task-1',
-      },
-      session: session(),
-    });
-
-    expect(result).toEqual({ outcome: 'conflict', reason: 'terminal_state' });
+    expect(result).toEqual(scenario.expected);
     expect(repo.saveTask).not.toHaveBeenCalled();
     expect(d.audit).not.toHaveBeenCalled();
     expect(d.revalidate).not.toHaveBeenCalled();
