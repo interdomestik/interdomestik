@@ -297,6 +297,8 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
         `[data-testid="agent-crm-due-follow-up-row"][data-lead-id="${leadId}"]`
       );
       await expect(dueRow).toBeVisible({ timeout: 15000 });
+      await expect(dueRow.getByTestId('agent-crm-task-queue-start')).toHaveCount(0);
+      await expect(dueRow.getByTestId('agent-crm-task-queue-complete')).toHaveCount(0);
       await expect(
         dueSection.locator(
           `[data-testid="agent-crm-due-follow-up-row"][data-lead-id="${futureLeadId}"]`
@@ -325,6 +327,8 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
         )
       ).toHaveCount(0);
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-open')).toHaveCount(1);
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-start')).toBeVisible();
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-complete')).toBeVisible();
       await expect(taskQueueRow.getByTestId('agent-lead-complete-follow-up')).toHaveCount(0);
       await expect.poll(() => countOpenTaskFollowUps(leadId), { timeout: 15000 }).toBe(1);
 

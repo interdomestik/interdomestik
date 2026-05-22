@@ -39,6 +39,23 @@
         "unknownLead": "Lid",
         "openLead": "Otvori lid",
         "dueWithDate": "Rok {bucket}: {date}",
+        "actions": {
+          "group": "Radnje životnog ciklusa zadatka",
+          "start": "Pokreni",
+          "starting": "Pokretanje...",
+          "complete": "Završi",
+          "completing": "Završavanje...",
+          "success": {
+            "start": "Zadatak je pokrenut.",
+            "complete": "Zadatak je završen."
+          },
+          "error": {
+            "unavailable": "Ovaj zadatak više nije dostupan.",
+            "conflict": "Ovaj zadatak je promenjen. Osvežite red i pokušajte ponovo.",
+            "rate_limited": "Previše pokušaja. Sačekajte trenutak i pokušajte ponovo.",
+            "transient": "Zadatak nije mogao biti ažuriran. Pokušajte ponovo."
+          }
+        },
         "labels": {
           "manual": "Zadatak",
           "follow_up": "Praćenje",

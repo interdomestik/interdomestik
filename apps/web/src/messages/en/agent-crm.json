@@ -39,6 +39,23 @@
         "unknownLead": "Lead",
         "openLead": "Open lead",
         "dueWithDate": "{bucket}: {date}",
+        "actions": {
+          "group": "Task lifecycle actions",
+          "start": "Start",
+          "starting": "Starting...",
+          "complete": "Complete",
+          "completing": "Completing...",
+          "success": {
+            "start": "Task started.",
+            "complete": "Task completed."
+          },
+          "error": {
+            "unavailable": "This task is no longer available.",
+            "conflict": "This task changed. Refresh the queue and try again.",
+            "rate_limited": "Too many attempts. Wait a moment and try again.",
+            "transient": "The task could not be updated. Try again."
+          }
+        },
         "labels": {
           "manual": "Task",
           "follow_up": "Follow-up",

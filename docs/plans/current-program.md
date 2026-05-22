@@ -371,6 +371,21 @@ reopening, assignment, due-date editing, staff/admin/member task UI, new routes,
 reminders, notifications, outbox, templates, sequences, scoring, assistance-intent execution,
 database migration/RLS, historical backfill, proxy/canonical route/auth/tenancy/routing changes,
 Stripe, README, AGENTS.md, and broad architecture-doc work remain blocked.
+`P40-CRM29 Agent CRM Task Queue Start And Complete Controls` is complete on branch
+`codex/p40-crm29-agent-task-queue-controls`: the existing `/agent/crm` CRM28 task queue now exposes
+non-optimistic Start and Complete controls only on visible, assigned, open, lead-backed task rows.
+The controls route through a route-local UI action wrapper over the CRM26 `startCrmTaskAction` and
+`completeCrmTaskAction` boundaries, pin the existing `manual_start` and `resolved` reason codes,
+preserve server-side reauthorization, expose only UI-safe result buckets, keep row-local pending and
+failure states, refresh after successful mutations, and keep legacy due-follow-up rows separate and
+unmutated by the new queue controls. Focused proof passed the route-local action/control/page unit
+tests, web type-check, i18n completeness and purity checks, the targeted agent CRM follow-up
+Playwright gate for KS/SQ and MK/MK, `pnpm security:guard`, `pnpm pr:verify`, and
+`pnpm e2e:gate`. Cancellation, reopening, assignment, due-date editing, staff/admin/member task UI,
+new routes, scheduler/cron, reminders, notifications, outbox, templates, sequences, scoring,
+assistance-intent execution, database migration/RLS, historical backfill,
+proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
+architecture-doc work remained blocked.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 

@@ -26,6 +26,7 @@ import {
   type AgentCrmTaskQueueItem,
   type AgentCrmWinRateSummary,
 } from './_core';
+import { TaskQueueControls } from './task-queue-controls';
 
 type Formatter = Awaited<ReturnType<typeof getFormatter>>;
 
@@ -344,7 +345,13 @@ function TaskQueueWidget({
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold">{t('crm.taskQueue.title')}</h2>
+          <h2
+            className="text-lg font-semibold"
+            data-testid="agent-crm-task-queue-title"
+            tabIndex={-1}
+          >
+            {t('crm.taskQueue.title')}
+          </h2>
           <p className="text-sm text-muted-foreground">{t('crm.taskQueue.description')}</p>
         </div>
         <div
@@ -385,12 +392,36 @@ function TaskQueueWidget({
                     : t(`crm.taskQueue.dueBucket.${item.dueBucket}`)}
                 </p>
               </div>
-              <Button variant="outline" size="sm" asChild>
-                <Link href={item.href} data-testid="agent-crm-task-queue-open">
-                  {t('crm.taskQueue.openLead')}
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Link>
-              </Button>
+              <div className="flex flex-col items-stretch gap-2 sm:items-end">
+                <TaskQueueControls
+                  expectedLifecycleVersion={item.lifecycleVersion}
+                  labels={{
+                    complete: t('crm.taskQueue.actions.complete'),
+                    completing: t('crm.taskQueue.actions.completing'),
+                    error: {
+                      conflict: t('crm.taskQueue.actions.error.conflict'),
+                      rate_limited: t('crm.taskQueue.actions.error.rate_limited'),
+                      transient: t('crm.taskQueue.actions.error.transient'),
+                      unavailable: t('crm.taskQueue.actions.error.unavailable'),
+                    },
+                    group: t('crm.taskQueue.actions.group'),
+                    start: t('crm.taskQueue.actions.start'),
+                    starting: t('crm.taskQueue.actions.starting'),
+                    success: {
+                      complete: t('crm.taskQueue.actions.success.complete'),
+                      start: t('crm.taskQueue.actions.success.start'),
+                    },
+                  }}
+                  status={item.status}
+                  taskId={item.taskId}
+                />
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={item.href} data-testid="agent-crm-task-queue-open">
+                    {t('crm.taskQueue.openLead')}
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+              </div>
             </div>
           ))}
         </div>
