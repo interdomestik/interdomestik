@@ -452,7 +452,7 @@ Failure copy must not distinguish absent work from invisible work.
 - Tenant timezone preference, business calendar, holiday calendar, recurring schedule model, SLA
   calendar, or reminder engine.
 - Proxy, canonical route, auth/session layering, tenancy architecture, routing architecture,
-  Stripe, README, AGENTS, or broad architecture-doc changes.
+  Stripe, README, AGENTS.md, or broad architecture-doc changes.
 
 ## Acceptance Criteria
 
@@ -491,7 +491,7 @@ Failure copy must not distinguish absent work from invisible work.
   accessibility basics, and targeted agent CRM E2E behavior.
 - No cancellation, reopening, assignment, staff/admin/member task UI, new routes, scheduler,
   reminder, notification, outbox, assistance execution, database migration/RLS, proxy, auth,
-  tenancy, Stripe, README, AGENTS, or broad architecture-doc change is included.
+  tenancy, Stripe, README, AGENTS.md, or broad architecture-doc change is included.
 
 ## Implementation Review Plan
 
@@ -548,7 +548,7 @@ Approve DG07 only if:
 - The promoted slice reuses existing CRM26 `updateCrmTaskDueAtAction`.
 - Cancellation, reopening, assignment, scheduler/cron, reminders, notifications, outbox, templates,
   sequences, scoring, assistance-intent execution, database migrations/RLS, historical backfill,
-  route/proxy/auth/tenancy changes, Stripe, README, AGENTS, and broad architecture-doc changes
+  route/proxy/auth/tenancy changes, Stripe, README, AGENTS.md, and broad architecture-doc changes
   remain blocked.
 - PII-safe action copy, server-side reauthorization, date validation, lifecycle-version conflict
   handling, duplicate-click suppression, result-to-copy buckets, legacy-row separation, focus
