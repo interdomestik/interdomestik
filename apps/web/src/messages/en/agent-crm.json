@@ -56,6 +56,27 @@
             "transient": "The task could not be updated. Try again."
           }
         },
+        "dueActions": {
+          "group": "Task due date actions",
+          "field": "Due date and time",
+          "edit": "Edit due date",
+          "save": "Save due date",
+          "saving": "Saving...",
+          "clear": "Clear due date",
+          "clearing": "Clearing...",
+          "cancel": "Cancel",
+          "success": {
+            "set": "Due date updated.",
+            "clear": "Due date cleared."
+          },
+          "error": {
+            "unavailable": "This task is no longer available.",
+            "invalid_date": "Enter a valid date and time.",
+            "conflict": "This task changed. Refresh the queue and try again.",
+            "rate_limited": "Too many attempts. Wait a moment and try again.",
+            "transient": "The due date could not be updated. Try again."
+          }
+        },
         "labels": {
           "manual": "Task",
           "follow_up": "Follow-up",

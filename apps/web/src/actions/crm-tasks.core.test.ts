@@ -365,6 +365,85 @@ describe('CRM task core boundary', () => {
     expect(d.revalidate).not.toHaveBeenCalled();
   });
 
+  it('maps due-date lifecycle repository conflicts to conflict without audit or revalidation', async () => {
+    const existing = task({
+      dueAt: '2026-05-22T10:00:00.000Z',
+      updatedAt: '2026-05-21T09:59:00.000Z',
+    });
+    const repo = repository({
+      findTaskById: vi.fn().mockResolvedValue(existing),
+      saveTask: vi.fn().mockRejectedValue(new CrmTaskRepositoryFailure('lifecycle_conflict')),
+    });
+    const d = deps(repo);
+
+    const result = await updateCrmTaskDueAtCore({
+      deps: d,
+      input: {
+        dueAt: '2026-05-22T12:00:00.000Z',
+        expectedLifecycleVersion: 1,
+        reasonCode: 'due_date_changed',
+        taskId: 'task-1',
+      },
+      session: session(),
+    });
+
+    expect(result).toEqual({ outcome: 'conflict', reason: 'lifecycle_conflict' });
+    expect(d.audit).not.toHaveBeenCalled();
+    expect(d.revalidate).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid due dates without save, audit, or revalidation', async () => {
+    const repo = repository({
+      findTaskById: vi.fn().mockResolvedValue(task()),
+    });
+    const d = deps(repo);
+
+    const result = await updateCrmTaskDueAtCore({
+      deps: d,
+      input: {
+        dueAt: 'not-a-date',
+        expectedLifecycleVersion: 1,
+        reasonCode: 'due_date_changed',
+        taskId: 'task-1',
+      },
+      session: session(),
+    });
+
+    expect(result).toEqual({ outcome: 'invalid_input', reason: 'invalid_due_at' });
+    expect(repo.saveTask).not.toHaveBeenCalled();
+    expect(d.audit).not.toHaveBeenCalled();
+    expect(d.revalidate).not.toHaveBeenCalled();
+  });
+
+  it('maps terminal due-date updates to conflict without save, audit, or revalidation', async () => {
+    const repo = repository({
+      findTaskById: vi.fn().mockResolvedValue(
+        task({
+          completedAt: TEST_NOW,
+          completionReasonCode: 'resolved',
+          status: 'completed',
+        })
+      ),
+    });
+    const d = deps(repo);
+
+    const result = await updateCrmTaskDueAtCore({
+      deps: d,
+      input: {
+        dueAt: '2026-05-22T12:00:00.000Z',
+        expectedLifecycleVersion: 1,
+        reasonCode: 'due_date_changed',
+        taskId: 'task-1',
+      },
+      session: session(),
+    });
+
+    expect(result).toEqual({ outcome: 'conflict', reason: 'terminal_state' });
+    expect(repo.saveTask).not.toHaveBeenCalled();
+    expect(d.audit).not.toHaveBeenCalled();
+    expect(d.revalidate).not.toHaveBeenCalled();
+  });
+
   it('maps absent scoped reads to not_found', async () => {
     const repo = repository({
       findTaskById: vi.fn().mockResolvedValue(null),
@@ -433,6 +512,32 @@ describe('CRM task core boundary', () => {
       mutate: updateCrmTaskDueAtCore,
       name: 'due date updates',
       sourceTask: task({ updatedAt: '2026-05-21T09:59:00.000Z' }),
+    },
+    {
+      expectedTask: {
+        dueAt: null,
+        lifecycleVersion: 3,
+        status: 'pending',
+      },
+      expectedTransition: {
+        event: 'due_updated',
+        fromStatus: 'pending',
+        reasonCode: 'due_date_cleared',
+        toStatus: 'pending',
+      },
+      input: {
+        dueAt: null,
+        expectedLifecycleVersion: 2,
+        reasonCode: 'due_date_cleared',
+        taskId: 'task-1',
+      },
+      mutate: updateCrmTaskDueAtCore,
+      name: 'due date clearing',
+      sourceTask: task({
+        dueAt: '2026-05-22T10:00:00.000Z',
+        lifecycleVersion: 2,
+        updatedAt: '2026-05-21T09:59:00.000Z',
+      }),
     },
     {
       expectedTask: {
@@ -557,6 +662,22 @@ describe('CRM task core boundary', () => {
   });
 
   it.each([
+    {
+      existingTask: task({
+        dueAt: null,
+        updatedAt: '2026-05-21T09:59:00.000Z',
+      }),
+      expectedEvent: 'due_updated',
+      expectedFromStatus: null,
+      input: {
+        dueAt: null,
+        expectedLifecycleVersion: 1,
+        reasonCode: 'due_date_cleared',
+        taskId: 'task-1',
+      },
+      mutate: updateCrmTaskDueAtCore,
+      name: 'cleared due date updates',
+    },
     {
       existingTask: task({
         dueAt: '2026-05-22T10:00:00.000Z',

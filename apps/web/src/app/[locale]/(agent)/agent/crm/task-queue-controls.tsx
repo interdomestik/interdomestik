@@ -3,12 +3,16 @@
 import { Button } from '@interdomestik/ui';
 import { Check, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useRef, useState, useTransition } from 'react';
+import { useId, useRef, useState, useTransition } from 'react';
 
 import {
   submitAgentCrmTaskQueueLifecycleAction,
   type AgentCrmTaskQueueLifecycleInput,
 } from './task-queue-actions';
+import {
+  TaskQueueDueDateControls,
+  type TaskQueueDueDateControlsLabels,
+} from './task-queue-due-date-controls';
 
 type TaskQueueControlsStatus = 'pending' | 'in_progress';
 type TaskQueueLifecycleAction = AgentCrmTaskQueueLifecycleInput['action'];
@@ -17,6 +21,7 @@ type TaskQueueLifecycleError = 'unavailable' | 'conflict' | 'rate_limited' | 'tr
 export type TaskQueueControlsLabels = {
   readonly complete: string;
   readonly completing: string;
+  readonly due: TaskQueueDueDateControlsLabels;
   readonly error: Record<TaskQueueLifecycleError, string>;
   readonly group: string;
   readonly start: string;
@@ -36,8 +41,10 @@ export function TaskQueueControls({
   taskId: string;
 }>) {
   const router = useRouter();
+  const messageId = useId();
   const [isPending, startTransition] = useTransition();
   const [activeAction, setActiveAction] = useState<TaskQueueLifecycleAction | null>(null);
+  const [isDuePending, setIsDuePending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const startButtonRef = useRef<HTMLButtonElement | null>(null);
   const completeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -92,6 +99,7 @@ export function TaskQueueControls({
         ? labels.completing
         : '';
   const isSubmitting = isPending || activeAction !== null;
+  const rowDisabled = isSubmitting || isDuePending;
 
   return (
     <div
@@ -106,7 +114,7 @@ export function TaskQueueControls({
             type="button"
             variant="outline"
             size="sm"
-            disabled={isSubmitting}
+            disabled={rowDisabled}
             onClick={() => submit('start')}
             data-testid="agent-crm-task-queue-start"
           >
@@ -119,7 +127,7 @@ export function TaskQueueControls({
           type="button"
           variant="outline"
           size="sm"
-          disabled={isSubmitting}
+          disabled={rowDisabled}
           onClick={() => submit('complete')}
           data-testid="agent-crm-task-queue-complete"
         >
@@ -127,7 +135,20 @@ export function TaskQueueControls({
           {activeAction === 'complete' ? labels.completing : labels.complete}
         </Button>
       </div>
-      <p className="sr-only" aria-live="polite">
+      <TaskQueueDueDateControls
+        disabled={isSubmitting}
+        expectedLifecycleVersion={expectedLifecycleVersion}
+        labels={labels.due}
+        onMessage={setMessage}
+        onPendingChange={setIsDuePending}
+        rowMessageId={messageId}
+        taskId={taskId}
+      />
+      <p
+        id={messageId}
+        className={message ? 'text-xs text-muted-foreground' : 'sr-only'}
+        aria-live="polite"
+      >
         {message ?? pendingLabel}
       </p>
     </div>

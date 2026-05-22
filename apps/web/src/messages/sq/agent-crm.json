@@ -56,6 +56,27 @@
             "transient": "Detyra nuk mund të përditësohej. Provoni përsëri."
           }
         },
+        "dueActions": {
+          "group": "Veprime për afatin e detyrës",
+          "field": "Data dhe ora e afatit",
+          "edit": "Ndrysho afatin",
+          "save": "Ruaj afatin",
+          "saving": "Duke ruajtur...",
+          "clear": "Pastro afatin",
+          "clearing": "Duke pastruar...",
+          "cancel": "Anulo",
+          "success": {
+            "set": "Afati u përditësua.",
+            "clear": "Afati u pastrua."
+          },
+          "error": {
+            "unavailable": "Kjo detyrë nuk është më e disponueshme.",
+            "invalid_date": "Vendosni një datë dhe orë të vlefshme.",
+            "conflict": "Kjo detyrë ndryshoi. Rifreskoni radhën dhe provoni përsëri.",
+            "rate_limited": "Shumë përpjekje. Prisni pak dhe provoni përsëri.",
+            "transient": "Afati nuk mund të përditësohej. Provoni përsëri."
+          }
+        },
         "labels": {
           "manual": "Detyrë",
           "follow_up": "Ndjekje",
