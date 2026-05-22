@@ -4,12 +4,14 @@ import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 
 const mocks = vi.hoisted(() => ({
   and: vi.fn((...args: unknown[]) => ({ args, op: 'and' })),
+  asc: vi.fn((value: unknown) => ({ op: 'asc', value })),
   branchFindFirst: vi.fn(),
   crmLeadFindFirst: vi.fn(),
   eq: vi.fn((left: unknown, right: unknown) => ({ left, op: 'eq', right })),
   insert: vi.fn(),
   insertReturning: vi.fn(),
   insertValues: vi.fn(),
+  inArray: vi.fn((left: unknown, right: unknown) => ({ left, op: 'inArray', right })),
   isNull: vi.fn((value: unknown) => ({ op: 'isNull', value })),
   sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
   transaction: vi.fn(),
@@ -28,7 +30,9 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('drizzle-orm', () => ({
   and: mocks.and,
+  asc: mocks.asc,
   eq: mocks.eq,
+  inArray: mocks.inArray,
   isNull: mocks.isNull,
   sql: mocks.sql,
 }));
@@ -86,6 +90,20 @@ vi.mock('@interdomestik/database/schema', () => ({
     tenantId: { name: 'tenantId' },
     updatedAt: { name: 'updatedAt' },
     wonAt: { name: 'wonAt' },
+  },
+  crmTasks: {
+    assignedActorId: { name: 'taskAssignedActorId' },
+    assignedKind: { name: 'taskAssignedKind' },
+    branchId: { name: 'taskBranchId' },
+    createReasonCode: { name: 'taskCreateReasonCode' },
+    createdAt: { name: 'taskCreatedAt' },
+    dueAt: { name: 'taskDueAt' },
+    id: { name: 'taskId' },
+    lifecycleVersion: { name: 'taskLifecycleVersion' },
+    status: { name: 'taskStatus' },
+    subjectId: { name: 'taskSubjectId' },
+    subjectKind: { name: 'taskSubjectKind' },
+    tenantId: { name: 'taskTenantId' },
   },
   user: {
     branchId: { name: 'targetAgentBranchId' },

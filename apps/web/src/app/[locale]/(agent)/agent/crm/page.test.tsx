@@ -10,6 +10,7 @@ const hoisted = vi.hoisted(() => ({
   notFoundMock: vi.fn(() => {
     throw new Error('notFound');
   }),
+  refreshMock: vi.fn(),
   getSessionMock: vi.fn<
     () => Promise<{
       user: {
@@ -27,6 +28,7 @@ const hoisted = vi.hoisted(() => ({
   })),
   ensureTenantIdMock: vi.fn(() => 'tenant-1'),
   getAgentCrmStatsCoreMock: vi.fn(),
+  getAgentCrmTaskQueueCoreMock: vi.fn(),
   AgentCrmStatsAccessDeniedError: class AgentCrmStatsAccessDeniedError extends Error {
     constructor(readonly reason: string) {
       super(`CRM dashboard read denied: ${reason}`);
@@ -49,6 +51,9 @@ vi.mock('next/headers', () => ({
 vi.mock('next/navigation', () => ({
   notFound: hoisted.notFoundMock,
   redirect: hoisted.redirectMock,
+  useRouter: () => ({
+    refresh: hoisted.refreshMock,
+  }),
 }));
 
 vi.mock('next-intl/server', () => ({
@@ -74,17 +79,35 @@ vi.mock('./_core', () => ({
   AgentCrmStatsAccessDeniedError: hoisted.AgentCrmStatsAccessDeniedError,
   getAgentCrmReportingCore: hoisted.getAgentCrmReportingCoreMock,
   getAgentCrmStatsCore: hoisted.getAgentCrmStatsCoreMock,
+  getAgentCrmTaskQueueCore: hoisted.getAgentCrmTaskQueueCoreMock,
 }));
 
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  Link: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: ReactNode;
+    href: string;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
 vi.mock('@interdomestik/ui', () => ({
-  Button: ({ asChild, children }: { asChild?: boolean; children: ReactNode }) =>
-    asChild ? children : <button>{children}</button>,
+  Button: ({
+    asChild,
+    children,
+    ...props
+  }: {
+    asChild?: boolean;
+    children: ReactNode;
+    [key: string]: unknown;
+  }) => (asChild ? children : <button {...props}>{children}</button>),
 }));
 
 vi.mock('@/components/agent/leaderboard-card', () => ({
@@ -133,6 +156,7 @@ describe('CRMPage auth redirect', () => {
         to: '2026-05-14T12:00:00.000Z',
       },
     });
+    hoisted.getAgentCrmTaskQueueCoreMock.mockResolvedValue([]);
   });
 
   it('redirects unauthenticated users to the locale login path', async () => {
@@ -161,6 +185,7 @@ describe('CRMPage auth redirect', () => {
     expect(hoisted.ensureTenantIdMock).toHaveBeenCalledWith(session);
     expect(hoisted.getAgentCrmStatsCoreMock).not.toHaveBeenCalled();
     expect(hoisted.getAgentCrmReportingCoreMock).not.toHaveBeenCalled();
+    expect(hoisted.getAgentCrmTaskQueueCoreMock).not.toHaveBeenCalled();
   });
 
   it('fails closed for non-agent sessions before loading CRM stats', async () => {
@@ -178,6 +203,7 @@ describe('CRMPage auth redirect', () => {
     expect(hoisted.ensureTenantIdMock).not.toHaveBeenCalled();
     expect(hoisted.getAgentCrmStatsCoreMock).not.toHaveBeenCalled();
     expect(hoisted.getAgentCrmReportingCoreMock).not.toHaveBeenCalled();
+    expect(hoisted.getAgentCrmTaskQueueCoreMock).not.toHaveBeenCalled();
   });
 
   it('fails closed for agent sessions without branch scope before loading CRM stats', async () => {
@@ -195,6 +221,7 @@ describe('CRMPage auth redirect', () => {
     expect(hoisted.ensureTenantIdMock).not.toHaveBeenCalled();
     expect(hoisted.getAgentCrmStatsCoreMock).not.toHaveBeenCalled();
     expect(hoisted.getAgentCrmReportingCoreMock).not.toHaveBeenCalled();
+    expect(hoisted.getAgentCrmTaskQueueCoreMock).not.toHaveBeenCalled();
   });
 
   it('passes CRM actor context into the CRM stats and reporting cores on the authorized path', async () => {
@@ -218,6 +245,17 @@ describe('CRMPage auth redirect', () => {
       },
     });
     expect(hoisted.getAgentCrmReportingCoreMock).toHaveBeenCalledWith({
+      actor: {
+        actorId: 'agent-1',
+        role: 'agent',
+        scope: {
+          agentId: 'agent-1',
+          branchId: 'branch-1',
+        },
+        tenantId: 'tenant-1',
+      },
+    });
+    expect(hoisted.getAgentCrmTaskQueueCoreMock).toHaveBeenCalledWith({
       actor: {
         actorId: 'agent-1',
         role: 'agent',
@@ -276,6 +314,9 @@ describe('CRMPage auth redirect', () => {
     );
 
     expect(screen.getByTestId('agent-crm-page-ready')).toBeTruthy();
+    expect(screen.getByTestId('agent-crm-task-queue-ready')).toHaveTextContent(
+      'crm.taskQueue.empty'
+    );
     expect(screen.getByTestId('agent-crm-reporting-weighted-pipeline')).toHaveTextContent(
       'reporting.weightedPipeline.empty'
     );
@@ -371,5 +412,60 @@ describe('CRMPage auth redirect', () => {
     );
     expect(screen.getByTestId('agent-crm-reporting-source-breakdown')).toHaveTextContent('website');
     expect(screen.getByTestId('agent-crm-reporting-win-rate')).toHaveTextContent('website');
+  });
+
+  it('renders the task-backed work queue with lifecycle controls only on task rows', async () => {
+    hoisted.getSessionMock.mockResolvedValue({
+      user: { branchId: 'branch-1', id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
+    });
+    hoisted.getAgentCrmTaskQueueCoreMock.mockResolvedValueOnce([
+      {
+        createReasonCode: 'follow_up',
+        displayLabelCode: 'follow_up',
+        dueAt: '2026-05-22T12:00:00.000Z',
+        dueBucket: 'due_today',
+        href: '/agent/leads/lead-1',
+        leadDisplayRef: { id: 'lead-1', label: 'Lead One' },
+        lifecycleVersion: 3,
+        priority: 'urgent',
+        status: 'pending',
+        subjectReference: { id: 'lead-1', kind: 'lead' },
+        taskId: 'task-1',
+      },
+      {
+        createReasonCode: 'follow_up',
+        displayLabelCode: 'follow_up',
+        dueAt: '2026-05-22T13:00:00.000Z',
+        dueBucket: 'due_today',
+        href: '/agent/leads/lead-2',
+        leadDisplayRef: { id: 'lead-2', label: 'Lead Two' },
+        lifecycleVersion: 4,
+        priority: 'normal',
+        status: 'in_progress',
+        subjectReference: { id: 'lead-2', kind: 'lead' },
+        taskId: 'task-2',
+      },
+    ]);
+
+    render(
+      await CRMPage({
+        params: Promise.resolve({ locale: 'en' }),
+      })
+    );
+
+    const queue = screen.getByTestId('agent-crm-task-queue-ready');
+    expect(queue).toHaveTextContent('crm.taskQueue.title');
+    expect(queue).toHaveTextContent('Lead One');
+    expect(queue).toHaveTextContent('Lead Two');
+    expect(queue).toHaveTextContent('crm.taskQueue.labels.follow_up');
+    expect(queue).toHaveTextContent('crm.taskQueue.priority.urgent');
+    expect(screen.getAllByTestId('agent-crm-task-queue-open')[0]).toHaveAttribute(
+      'href',
+      '/agent/leads/lead-1'
+    );
+    expect(screen.getAllByTestId('agent-crm-task-queue-start')).toHaveLength(1);
+    expect(screen.getAllByTestId('agent-crm-task-queue-complete')).toHaveLength(2);
+    expect(screen.queryByTestId('agent-lead-complete-follow-up')).toBeNull();
+    expect(screen.queryByTestId('agent-lead-schedule-follow-up')).toBeNull();
   });
 });

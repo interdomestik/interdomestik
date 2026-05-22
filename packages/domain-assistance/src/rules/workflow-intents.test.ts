@@ -492,9 +492,23 @@ describe('createAssistanceWorkflowIntents', () => {
     const intentText = JSON.stringify(intents);
 
     expect(intentText).not.toContain('ABC-123');
+    expect(intentText).not.toContain('abc-123');
     expect(intentText).not.toContain('WDD123');
+    expect(intentText).not.toContain('wdd123');
     expect(intentText).not.toContain('medical text');
+    expect(intentText).not.toContain('medical_text');
     expect(intentText).not.toContain('insurer letter');
+    expect(intentText).not.toContain('insurer_letter');
     expect(intentText).not.toContain('expert report');
+    expect(intentText).not.toContain('expert_report');
+    expect(intents.flatMap(intent => intent.reasons.map(reason => reason.code))).toEqual(
+      expect.arrayContaining([
+        'workflow.claim_context.review_requested',
+        'workflow.source_outcome.eligible',
+      ])
+    );
+    expect(
+      intents.every(intent => intent.reasons.every(reason => reason.code.startsWith('workflow.')))
+    ).toBe(true);
   });
 });

@@ -119,6 +119,7 @@ describe('CRM task domain contracts', () => {
       dueAt: '2026-05-21T07:30:00.000Z',
       branchId: 'branch-1',
       idempotencyKey: 'crm24-create-1',
+      lifecycleVersion: 1,
       priority: 'normal',
       status: 'pending',
       subjectReference: { id: 'lead-1', kind: 'lead' },
@@ -320,9 +321,12 @@ describe('CRM task domain contracts', () => {
     );
 
     expect(started.status).toBe('in_progress');
+    expect(started.lifecycleVersion).toBe(2);
     expect(completed.status).toBe('completed');
+    expect(completed.lifecycleVersion).toBe(3);
     expect(completed.completedAt).toBe('2026-05-20T14:00:00.000Z');
     expect(reopened.status).toBe('in_progress');
+    expect(reopened.lifecycleVersion).toBe(4);
     expect(reopened.completedAt).toBeNull();
     expect(reopened.history.map(entry => entry.event)).toEqual([
       'created',

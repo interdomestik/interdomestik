@@ -269,6 +269,137 @@ broad architecture-doc work. Local proof passed focused `domain-crm` type-check 
 `pnpm security:guard`, `pnpm pr:verify`, and standalone `pnpm e2e:gate` with `128` passed / `4`
 skipped. Any later P40 persistence, UI, scheduler, notification, template, sequence, scoring,
 consent, or assistance-adapter work requires a separate repo-canonical gate.
+`P40-DG02 CRM Task Persistence And Repository Adapter Design Gate` is recorded in
+`docs/plans/2026-05-20-p40-dg02-crm-task-persistence-design.md` and promotes exactly one next
+implementation slice, `P40-CRM25 CRM Task Persistence And Repository Adapter`. The promoted slice
+is limited to additive `crm_tasks` and `crm_task_history` persistence, tenant RLS, database schema
+exports, an app-side `CrmTaskRepository` adapter, lifecycle-version compare-and-set proof,
+subject-visibility proof for durable `lead`, `deal`, and `support_handoff` subjects, fail-closed
+`account` and `contact` handling until durable tables exist, and focused adapter/database tests.
+It does not authorize runtime task UI, routes, server actions, scheduler/cron, notifications,
+templates, sequences, scoring, consent/preference implementation, lead-follow-up migration,
+assistance-intent execution, CRM/claim/handoff creation from assistance, proxy/canonical
+route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, or broad architecture-doc work.
+`P40-CRM25` is complete through PR `#833`, merge commit
+`0c941890e2f2f2ae1f9460879a6857a42e374161`: it adds additive `crm_tasks` and
+`crm_task_history` persistence, tenant RLS, database schema exports, app-side
+`createCrmTaskRepository`, lifecycle-version compare-and-set writes, idempotent create replay,
+subject-visibility proof for `lead`, `deal`, and `support_handoff`, fail-closed `account` and
+`contact` handling, and focused adapter/RLS proof. Runtime task UI, routes, server actions,
+scheduler/cron, notifications, templates, sequences, scoring, consent/preference implementation,
+lead-follow-up migration, assistance-intent execution, CRM/claim/handoff creation from assistance,
+proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
+architecture-doc work remained out of scope.
+`P40-DG03 CRM Task Runtime Boundary Design Gate` is recorded in
+`docs/plans/2026-05-21-p40-dg03-crm-task-runtime-boundary-design.md` and promotes exactly one next
+implementation slice, `P40-CRM26 CRM Task Application Service And Server Action Boundary`. The
+promoted slice is limited to `.core.ts`/server-action boundary code over the CRM25 repository
+adapter, typed `{ outcome: ... }` result envelopes, session-derived `CrmActorContext`,
+`expectedLifecycleVersion` conflict handling, deterministic idempotency posture, PII-safe task DTOs,
+`logAuditEvent` audit proof, `enforceRateLimitForAction` mutation throttling, locale-loop
+revalidation discipline, and focused service/action tests. It does not authorize runtime task UI,
+HTTP route handlers, cron route handlers, scheduler/reminder behavior, notifications, outbox,
+templates, sequences, scoring, lead-follow-up migration, assistance-intent execution, database
+schema/migration/RLS changes, proxy/canonical route/auth/tenancy/routing changes, Stripe, README,
+AGENTS.md, or broad architecture-doc work.
+`P40-CRM26` is complete through PR `#835`, merge commit
+`a70dda59463eeb664fd97804c8563653f46c9e04`: it adds the CRM task application-service and
+server-action boundary over the CRM25 adapter, typed `{ outcome: ... }` results, trusted
+session-derived actor context, lifecycle-version conflict mapping, deterministic create
+idempotency and replay, PII-safe structural `CrmTask` output, audit events, action rate limiting,
+locale-loop CRM revalidation, admin-equivalent role normalization, and focused service/action
+tests. Runtime task UI, HTTP route handlers, cron route handlers, scheduler/reminder behavior,
+notifications, outbox, templates, sequences, scoring, lead-follow-up migration,
+assistance-intent execution, database schema/migration/RLS changes, proxy/canonical
+route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad architecture-doc work
+remained out of scope.
+`P40-DG04 CRM Lead Follow-Up Task Migration Design Gate` is recorded in
+`docs/plans/2026-05-21-p40-dg04-crm-lead-follow-up-task-migration-design.md` after
+`P40-CRM26`. It promotes exactly one next implementation slice,
+`P40-CRM27 Agent Lead Follow-Up To CRM Task Migration`, limited to making new agent lead follow-up
+scheduling and completion task-backed through the CRM task aggregate and CRM26 boundary while
+preserving bounded compatibility for existing legacy `crm_activities` follow-up rows. Broad task UI,
+scheduler/cron, reminders, notifications, outbox, templates, sequences,
+scoring, assistance-intent execution, database migration/RLS, historical backfill, proxy/canonical
+route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad architecture-doc work
+remain blocked.
+`P40-CRM27` is complete through PR `#837`: new agent lead follow-up scheduling writes to CRM
+tasks through the CRM26 boundary instead of creating new legacy `crm_activities` follow-up rows,
+existing open legacy follow-up rows remain visible and completable through bounded compatibility,
+task-backed rows are canonical in union reads, duplicate legacy rows shadowed by a task-backed
+completion are completed, and stale lifecycle-version conflicts fail closed. Focused proof covers
+domain derivation, dashboard union/dedupe behavior, branch-scoped legacy reads, server-action
+schedule/complete flows, lead-detail rendering, and the agent CRM follow-up E2E gate. Local proof
+passed `pnpm security:guard`, `pnpm pr:verify`, and `pnpm e2e:gate`; remote checks were green
+before merge. Broad task UI, scheduler/cron, reminders, notifications, outbox, templates,
+sequences, scoring, assistance-intent execution, database migration/RLS, historical backfill,
+proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
+architecture-doc work remained blocked.
+`P40-DG05 CRM Task Work Queue UI Foundation Design Gate` is recorded in
+`docs/plans/2026-05-21-p40-dg05-crm-task-work-queue-ui-foundation-design.md` after
+`P40-CRM27`. It promotes exactly one next implementation slice,
+`P40-CRM28 Agent CRM Task Work Queue UI Foundation`, limited to a read-only, agent-scoped,
+lead-backed CRM task queue on the existing `/agent/crm` route. The promoted slice may add a pure
+task work-queue read model and app-side read adapter using the existing RSC/server `_core.ts` read
+pattern, task-only queue DTOs, PII-safe lead display projection, deterministic 10-row ordering,
+active app locale labels, and accessibility proof. Staff/admin/member task UI, task mutation controls,
+scheduler/cron, reminders, notifications, outbox, templates, sequences, scoring,
+assistance-intent execution, database migration/RLS, historical backfill,
+proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
+architecture-doc work remain blocked.
+`P40-CRM28 Agent CRM Task Work Queue UI Foundation` is complete through PR `#839`, merge commit
+`f18b28b9b438b4ec6247da307d39c709544a35e4`: the slice adds a pure `domain-crm` task work-queue
+read model, a task-only app-side read adapter, and a read-only queue panel on the existing
+`/agent/crm` page with the `agent-crm-task-queue-ready` marker. The queue remains limited to
+visible, assigned, open, lead-backed CRM tasks with PII-safe lead display projection, deterministic
+10-row ordering, active app locale labels, and targeted agent CRM follow-up gate proof. Local proof
+passed `pnpm security:guard`, `pnpm pr:verify`, and `pnpm e2e:gate`; remote checks were green
+before merge. Task mutations, staff/admin/member task UI, new routes,
+scheduler/cron/reminders/notifications/outbox/templates/sequences/scoring, assistance-intent
+execution, database migration/RLS, historical backfill, proxy/canonical route/auth/tenancy/routing
+changes, Stripe, README, AGENTS.md, and broad architecture-doc work remained blocked.
+`P40-DG06 CRM Task Queue Lifecycle Controls Design Gate` is recorded in
+`docs/plans/2026-05-22-p40-dg06-crm-task-queue-lifecycle-controls-design.md` after
+`P40-CRM28`. It promotes exactly one next implementation slice,
+`P40-CRM29 Agent CRM Task Queue Start And Complete Controls`, limited to non-optimistic Start and
+Complete controls on visible, assigned, open, lead-backed CRM28 queue rows on the existing
+`/agent/crm` route. The promoted slice reuses the CRM26 `startCrmTaskAction` and
+`completeCrmTaskAction` paths with existing `manual_start` and `resolved` reason codes, preserves
+server-side reauthorization, lifecycle-version conflict handling, PII-safe copy, CRM26
+rate-limit/audit/revalidation behavior, and legacy due-follow-up separation. Cancellation,
+reopening, assignment, due-date editing, staff/admin/member task UI, new routes, scheduler/cron,
+reminders, notifications, outbox, templates, sequences, scoring, assistance-intent execution,
+database migration/RLS, historical backfill, proxy/canonical route/auth/tenancy/routing changes,
+Stripe, README, AGENTS.md, and broad architecture-doc work remain blocked.
+`P40-CRM29 Agent CRM Task Queue Start And Complete Controls` is complete through PR `#841`, merge
+commit `9dc0a300a89b4501a99879271dac7839d1ab533c`: the existing `/agent/crm` CRM28 task queue now
+exposes non-optimistic Start and Complete controls only on visible, assigned, open, lead-backed task
+rows. The controls route through a route-local UI action wrapper over the CRM26
+`startCrmTaskAction` and `completeCrmTaskAction` boundaries, pin the existing `manual_start` and
+`resolved` reason codes, preserve server-side reauthorization, expose only UI-safe result buckets,
+keep row-local pending and failure states, refresh after successful mutations, and keep legacy
+due-follow-up rows separate and unmutated by the new queue controls. Focused proof passed the
+route-local action/control/page unit tests, web type-check, i18n completeness and purity checks, the
+targeted agent CRM follow-up Playwright gate for KS/SQ and MK/MK, `pnpm security:guard`,
+`pnpm pr:verify`, and `pnpm e2e:gate`. Cancellation, reopening, assignment, due-date editing,
+staff/admin/member task UI, new routes, scheduler/cron, reminders, notifications, outbox,
+templates, sequences, scoring, assistance-intent execution, database migration/RLS, historical
+backfill, proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
+architecture-doc work remained blocked.
+`P40-DG07 CRM Task Queue Due-Date Adjustment Controls Design Gate` is recorded in
+`docs/plans/2026-05-22-p40-dg07-crm-task-queue-due-date-controls-design.md` after `P40-CRM29`. It
+promotes exactly one next implementation slice,
+`P40-CRM30 Agent CRM Task Queue Due-Date Adjustment Controls`, limited to bounded due-date
+adjustment and clear controls on visible, assigned, open, lead-backed CRM28/CRM29 queue rows on the
+existing `/agent/crm` route. The promoted slice reuses the CRM26 `updateCrmTaskDueAtAction` path
+with existing `due_date_changed` and `due_date_cleared` reason codes, preserves server-side
+reauthorization, lifecycle-version conflict handling, same-value idempotency, PII-safe result
+buckets, CRM26 audit/rate-limit/revalidation behavior, legacy due-follow-up separation, timezone
+normalization, and row-local focus behavior. Cancellation, reopening, assignment, staff/admin/member
+task UI, new routes, scheduler/cron, reminders, notifications, outbox, templates, sequences,
+scoring, assistance-intent execution, database migration/RLS, historical backfill,
+proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
+architecture-doc work remain blocked.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 

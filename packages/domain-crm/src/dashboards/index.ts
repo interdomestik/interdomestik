@@ -16,9 +16,11 @@ export type AgentCrmDashboard = {
 
 export type AgentCrmDashboardDueFollowUp = {
   activityId: string;
+  expectedLifecycleVersion?: number | null;
   leadId: string;
   leadName: string | null;
   scheduledAt: string;
+  source?: 'legacy_activity' | 'crm_task';
   subject: string;
 };
 
@@ -34,9 +36,11 @@ export type AgentCrmDashboardDueFollowUpRow = {
   completedAt?: Date | string | null;
   companyName?: string | null;
   createdAt?: Date | string | null;
+  expectedLifecycleVersion?: number | null;
   fullName?: string | null;
   leadId: string;
   scheduledAt?: Date | string | null;
+  source?: 'legacy_activity' | 'crm_task';
   subject: string;
   tenantId: string;
   type: string;
@@ -83,6 +87,14 @@ function toNumber(value: number | string | null | undefined): number {
   return Number(value ?? 0);
 }
 
+function dueFollowUpSourceRank(row: AgentCrmDashboardDueFollowUpRow): number {
+  return row.source === 'crm_task' ? 0 : 1;
+}
+
+function dueFollowUpDedupeKey(row: AgentCrmDashboardDueFollowUpRow): string {
+  return [row.tenantId, row.agentId, row.leadId, toIso(row.scheduledAt)].join(':');
+}
+
 export function authorizeAgentCrmDashboardRead(
   actor: CrmActorContext
 ): AgentCrmDashboardAuthorizationDenialReason | null {
@@ -116,7 +128,7 @@ export async function getAgentCrmDashboard(
       contactedLeadsCount: toNumber(readModel.leadCounts.find(r => r.stage === 'contacted')?.count),
       closedWonDealsCount: toNumber(readModel.closedWonDealsCount),
       paidCommissionTotal: toNumber(readModel.paidCommissionTotal),
-      dueFollowUps: readModel.dueFollowUps
+      dueFollowUps: [...readModel.dueFollowUps]
         .filter(row => {
           const activity: CrmLeadActivity = {
             agentId: row.agentId,
@@ -134,11 +146,27 @@ export async function getAgentCrmDashboard(
           };
           return isCrmLeadFollowUpDue(activity, now);
         })
+        .sort((left, right) => {
+          const leftAt = Date.parse(toIso(left.scheduledAt) ?? '');
+          const rightAt = Date.parse(toIso(right.scheduledAt) ?? '');
+          const scheduledDiff = leftAt - rightAt;
+          if (scheduledDiff !== 0) return scheduledDiff;
+          const sourceDiff = dueFollowUpSourceRank(left) - dueFollowUpSourceRank(right);
+          if (sourceDiff !== 0) return sourceDiff;
+          return left.activityId.localeCompare(right.activityId);
+        })
+        .filter((row, index, rows) => {
+          const key = dueFollowUpDedupeKey(row);
+          return rows.findIndex(candidate => dueFollowUpDedupeKey(candidate) === key) === index;
+        })
+        .slice(0, AGENT_CRM_DASHBOARD_MAX_DUE_FOLLOW_UPS)
         .map(row => ({
           activityId: row.activityId,
+          expectedLifecycleVersion: row.expectedLifecycleVersion ?? null,
           leadId: row.leadId,
           leadName: row.fullName || row.companyName || null,
           scheduledAt: toIso(row.scheduledAt) ?? now,
+          source: row.source ?? 'legacy_activity',
           subject: row.subject,
         })),
     },

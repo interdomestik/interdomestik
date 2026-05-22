@@ -154,6 +154,7 @@ export type CrmTask = {
   readonly dueAt: string | null;
   readonly history: readonly CrmTaskHistoryEntry[];
   readonly idempotencyKey: string | null;
+  readonly lifecycleVersion: number;
   readonly priority: CrmTaskPriority;
   readonly reopenedAt: string | null;
   readonly reopenReasonCode: CrmTaskReopenReasonCode | null;

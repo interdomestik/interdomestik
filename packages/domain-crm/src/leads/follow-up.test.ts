@@ -104,6 +104,34 @@ describe('CRM lead follow-up state helpers', () => {
     ).toMatchObject({ activityId: 'future', isOverdue: false, kind: 'follow_up_scheduled' });
   });
 
+  it('uses task-backed follow-ups before legacy activities for the same scheduled time', () => {
+    const legacy = activity({
+      id: 'legacy',
+      scheduledAt: '2026-05-10T08:00:00.000Z',
+    });
+    const taskBacked = {
+      ...activity({
+        id: 'task-backed',
+        scheduledAt: '2026-05-10T08:00:00.000Z',
+        subject: 'Follow up',
+      }),
+      expectedLifecycleVersion: 2,
+      followUpSource: 'crm_task' as const,
+    };
+
+    expect(
+      deriveCrmLeadNextAction({
+        activities: [legacy, taskBacked],
+        lead: { id: 'lead-1', tenantId: 'tenant-1' },
+        now: '2026-05-10T09:00:00.000Z',
+      })
+    ).toMatchObject({
+      activityId: 'task-backed',
+      expectedLifecycleVersion: 2,
+      source: 'crm_task',
+    });
+  });
+
   it('ignores completed, non-follow-up, cross-lead, cross-tenant, and invalid scheduled activities', () => {
     expect(
       deriveCrmLeadNextAction({

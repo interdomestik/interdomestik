@@ -449,7 +449,19 @@ function createReasons(
       ...(outcome.humanReviewRequired ? ['workflow.human_review.required'] : []),
     ]),
     ...(digest.aiProvenance.length > 0 ? ['workflow.ai.advisory_only'] : []),
-  ]).map(code => ({ code: sanitizeCode(code) }));
+  ])
+    .map(toWorkflowReason)
+    .filter((reason): reason is AssistanceReason => reason !== undefined);
+}
+
+function toWorkflowReason(code: string): AssistanceReason | undefined {
+  const sanitized = sanitizeCode(code);
+
+  if (!sanitized.startsWith('workflow.')) {
+    return undefined;
+  }
+
+  return { code: sanitized };
 }
 
 function createReferenceKey(params: {
