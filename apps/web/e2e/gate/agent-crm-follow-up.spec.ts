@@ -131,6 +131,21 @@ async function countOpenTaskFollowUps(leadId: string): Promise<number> {
   return openFollowUps.length;
 }
 
+async function readOpenTaskDueAt(leadId: string): Promise<Date | null | undefined> {
+  const openFollowUp = await db.query.crmTasks.findFirst({
+    where: (table, { and, eq, inArray }) =>
+      and(
+        eq(table.subjectKind, 'lead'),
+        eq(table.subjectId, leadId),
+        eq(table.createReasonCode, 'follow_up'),
+        inArray(table.status, ['pending', 'in_progress'])
+      ),
+    columns: { dueAt: true },
+  });
+
+  return openFollowUp?.dueAt;
+}
+
 async function insertLead(args: {
   agentId: string;
   branchId: string;
@@ -299,6 +314,7 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
       await expect(dueRow).toBeVisible({ timeout: 15000 });
       await expect(dueRow.getByTestId('agent-crm-task-queue-start')).toHaveCount(0);
       await expect(dueRow.getByTestId('agent-crm-task-queue-complete')).toHaveCount(0);
+      await expect(dueRow.getByTestId('agent-crm-task-queue-due-edit')).toHaveCount(0);
       await expect(
         dueSection.locator(
           `[data-testid="agent-crm-due-follow-up-row"][data-lead-id="${futureLeadId}"]`
@@ -329,10 +345,30 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-open')).toHaveCount(1);
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-start')).toBeVisible();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-complete')).toBeVisible();
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-edit')).toBeVisible();
+      await taskQueueRow.getByTestId('agent-crm-task-queue-due-edit').click();
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-input')).toBeVisible();
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-save')).toBeVisible();
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-clear')).toBeVisible();
+      await taskQueueRow.getByTestId('agent-crm-task-queue-due-clear').click();
+      await expect.poll(() => readOpenTaskDueAt(leadId), { timeout: 15000 }).toBeNull();
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-edit')).toBeVisible({
+        timeout: 15000,
+      });
+      await taskQueueRow.getByTestId('agent-crm-task-queue-due-edit').click();
+      await taskQueueRow.getByTestId('agent-crm-task-queue-due-input').fill('2026-05-23T09:45:30');
+      await taskQueueRow.getByTestId('agent-crm-task-queue-due-save').click();
+      await expect
+        .poll(async () => Boolean(await readOpenTaskDueAt(leadId)), {
+          timeout: 15000,
+        })
+        .toBe(true);
+      await taskQueueRow.getByTestId('agent-crm-task-queue-due-edit').click();
+      await taskQueueRow.getByTestId('agent-crm-task-queue-due-cancel').click();
       await expect(taskQueueRow.getByTestId('agent-lead-complete-follow-up')).toHaveCount(0);
       await expect.poll(() => countOpenTaskFollowUps(leadId), { timeout: 15000 }).toBe(1);
 
-      await dueRow.getByTestId('agent-crm-due-follow-up-open').click();
+      await taskQueueRow.getByTestId('agent-crm-task-queue-open').click();
 
       await expect(detail).toBeVisible({ timeout: 15000 });
       await detail.getByTestId('agent-lead-complete-follow-up').first().click();

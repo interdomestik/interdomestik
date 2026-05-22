@@ -1,9 +1,19 @@
 'use server';
 
-import { completeCrmTaskAction, startCrmTaskAction } from '@/actions/crm-tasks';
+import {
+  completeCrmTaskAction,
+  startCrmTaskAction,
+  updateCrmTaskDueAtAction,
+} from '@/actions/crm-tasks';
 
 type TaskQueueLifecycleAction = 'start' | 'complete';
 type TaskQueueLifecycleError = 'unavailable' | 'conflict' | 'rate_limited' | 'transient';
+type TaskQueueDueDateError =
+  | 'unavailable'
+  | 'invalid_date'
+  | 'conflict'
+  | 'rate_limited'
+  | 'transient';
 
 export type AgentCrmTaskQueueLifecycleInput = {
   readonly action: TaskQueueLifecycleAction;
@@ -19,6 +29,22 @@ export type AgentCrmTaskQueueLifecycleResult =
   | {
       readonly action: TaskQueueLifecycleAction;
       readonly error: TaskQueueLifecycleError;
+      readonly success: false;
+    };
+
+export type AgentCrmTaskQueueDueDateInput = {
+  readonly dueAt: string | null;
+  readonly expectedLifecycleVersion: number;
+  readonly taskId: string;
+};
+
+export type AgentCrmTaskQueueDueDateResult =
+  | {
+      readonly dueAt: string | null;
+      readonly success: true;
+    }
+  | {
+      readonly error: TaskQueueDueDateError;
       readonly success: false;
     };
 
@@ -73,6 +99,51 @@ function mapOutcomeToError(outcome: string): TaskQueueLifecycleError {
   return 'unavailable';
 }
 
+function isValidIsoTimestamp(value: string): boolean {
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
+}
+
+function parseDueDateInput(input: unknown): AgentCrmTaskQueueDueDateInput | null {
+  if (typeof input !== 'object' || input === null) {
+    return null;
+  }
+
+  const candidate = input as Record<string, unknown>;
+  const dueAt = candidate.dueAt;
+  if (
+    typeof candidate.taskId !== 'string' ||
+    candidate.taskId.trim().length === 0 ||
+    !Number.isInteger(candidate.expectedLifecycleVersion) ||
+    Number(candidate.expectedLifecycleVersion) < 0 ||
+    !(dueAt === null || (typeof dueAt === 'string' && isValidIsoTimestamp(dueAt)))
+  ) {
+    return null;
+  }
+
+  return {
+    dueAt,
+    expectedLifecycleVersion: Number(candidate.expectedLifecycleVersion),
+    taskId: candidate.taskId,
+  };
+}
+
+function mapDueDateOutcomeToError(outcome: string, reason?: string): TaskQueueDueDateError {
+  if (outcome === 'conflict') {
+    return 'conflict';
+  }
+  if (outcome === 'rate_limited') {
+    return 'rate_limited';
+  }
+  if (outcome === 'repository_failure') {
+    return 'transient';
+  }
+  if (outcome === 'invalid_input' && reason === 'invalid_due_at') {
+    return 'invalid_date';
+  }
+  return 'unavailable';
+}
+
 export async function submitAgentCrmTaskQueueLifecycleAction(
   input: AgentCrmTaskQueueLifecycleInput
 ): Promise<AgentCrmTaskQueueLifecycleResult> {
@@ -106,5 +177,34 @@ export async function submitAgentCrmTaskQueueLifecycleAction(
     };
   } catch {
     return { action: parsedInput.action, error: 'transient', success: false };
+  }
+}
+
+export async function submitAgentCrmTaskQueueDueDateAction(
+  input: AgentCrmTaskQueueDueDateInput
+): Promise<AgentCrmTaskQueueDueDateResult> {
+  const parsedInput = parseDueDateInput(input);
+  if (parsedInput === null) {
+    return { error: 'invalid_date', success: false };
+  }
+
+  try {
+    const result = await updateCrmTaskDueAtAction({
+      dueAt: parsedInput.dueAt,
+      expectedLifecycleVersion: parsedInput.expectedLifecycleVersion,
+      reasonCode: parsedInput.dueAt === null ? 'due_date_cleared' : 'due_date_changed',
+      taskId: parsedInput.taskId,
+    });
+
+    if (result.outcome === 'success' || result.outcome === 'idempotent_replay') {
+      return { dueAt: parsedInput.dueAt, success: true };
+    }
+
+    return {
+      error: mapDueDateOutcomeToError(result.outcome, result.reason),
+      success: false,
+    };
+  } catch {
+    return { error: 'transient', success: false };
   }
 }

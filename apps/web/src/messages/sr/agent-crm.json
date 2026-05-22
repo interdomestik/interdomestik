@@ -56,6 +56,27 @@
             "transient": "Zadatak nije mogao biti ažuriran. Pokušajte ponovo."
           }
         },
+        "dueActions": {
+          "group": "Radnje za rok zadatka",
+          "field": "Datum i vreme roka",
+          "edit": "Izmeni rok",
+          "save": "Sačuvaj rok",
+          "saving": "Čuvanje...",
+          "clear": "Obriši rok",
+          "clearing": "Brisanje...",
+          "cancel": "Otkaži",
+          "success": {
+            "set": "Rok je ažuriran.",
+            "clear": "Rok je obrisan."
+          },
+          "error": {
+            "unavailable": "Ovaj zadatak više nije dostupan.",
+            "invalid_date": "Unesite važeći datum i vreme.",
+            "conflict": "Ovaj zadatak je promenjen. Osvežite red i pokušajte ponovo.",
+            "rate_limited": "Previše pokušaja. Sačekajte trenutak i pokušajte ponovo.",
+            "transient": "Rok nije mogao biti ažuriran. Pokušajte ponovo."
+          }
+        },
         "labels": {
           "manual": "Zadatak",
           "follow_up": "Praćenje",
