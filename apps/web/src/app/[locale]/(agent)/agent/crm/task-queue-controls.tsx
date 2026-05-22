@@ -9,6 +9,7 @@ import {
   submitAgentCrmTaskQueueLifecycleAction,
   type AgentCrmTaskQueueLifecycleInput,
 } from './task-queue-actions';
+import { TaskQueueCancelControls } from './task-queue-cancel-controls';
 import { TaskQueueDueDateControls } from './task-queue-due-date-controls';
 import { TaskQueueIconButton } from './task-queue-icon-button';
 
@@ -16,10 +17,12 @@ type TaskQueueControlsStatus = 'pending' | 'in_progress';
 type TaskQueueLifecycleAction = AgentCrmTaskQueueLifecycleInput['action'];
 export function TaskQueueControls({
   expectedLifecycleVersion,
+  rowLabel,
   status,
   taskId,
 }: Readonly<{
   expectedLifecycleVersion: number;
+  rowLabel: string;
   status: TaskQueueControlsStatus;
   taskId: string;
 }>) {
@@ -28,6 +31,7 @@ export function TaskQueueControls({
   const messageId = useId();
   const [isPending, startTransition] = useTransition();
   const [activeAction, setActiveAction] = useState<TaskQueueLifecycleAction | null>(null);
+  const [isCancelPending, setIsCancelPending] = useState(false);
   const [isDuePending, setIsDuePending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const startButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -86,7 +90,7 @@ export function TaskQueueControls({
 
   const pendingLabel = activeAction ? lifecycleLabel(activeAction, 'active') : '';
   const isSubmitting = isPending || activeAction !== null;
-  const rowDisabled = isSubmitting || isDuePending;
+  const rowDisabled = isSubmitting || isDuePending || isCancelPending;
 
   return (
     <div
@@ -117,10 +121,19 @@ export function TaskQueueControls({
         </TaskQueueIconButton>
       </div>
       <TaskQueueDueDateControls
-        disabled={isSubmitting}
+        disabled={isSubmitting || isCancelPending}
         expectedLifecycleVersion={expectedLifecycleVersion}
         onMessage={setMessage}
         onPendingChange={setIsDuePending}
+        rowMessageId={messageId}
+        taskId={taskId}
+      />
+      <TaskQueueCancelControls
+        disabled={isSubmitting || isDuePending}
+        expectedLifecycleVersion={expectedLifecycleVersion}
+        onMessage={setMessage}
+        onPendingChange={setIsCancelPending}
+        rowLabel={rowLabel}
         rowMessageId={messageId}
         taskId={taskId}
       />

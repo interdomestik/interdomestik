@@ -17,6 +17,7 @@ import {
   type CancelCrmTaskCoreInput,
   type CompleteCrmTaskCoreInput,
   type CreateCrmTaskCoreInput,
+  type CrmTaskExistingMutationGuard,
   type ReopenCrmTaskCoreInput,
   type StartCrmTaskCoreInput,
   type UpdateCrmTaskDueAtCoreInput,
@@ -61,6 +62,14 @@ export async function completeCrmTaskAction(input: CompleteCrmTaskCoreInput) {
 export async function cancelCrmTaskAction(input: CancelCrmTaskCoreInput) {
   const { requestHeaders, session } = await getActionSession();
   return cancelCrmTaskCore({ input, requestHeaders, session });
+}
+
+export async function cancelCrmTaskActionWithGuard(
+  input: CancelCrmTaskCoreInput,
+  guard: CrmTaskExistingMutationGuard
+) {
+  const { requestHeaders, session } = await getActionSession();
+  return cancelCrmTaskCore({ guard, input, requestHeaders, session });
 }
 
 export async function reopenCrmTaskAction(input: ReopenCrmTaskCoreInput) {
