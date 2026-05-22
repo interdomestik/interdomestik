@@ -72,7 +72,7 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.8.0",
     "typescript-eslint": "^8.59.4",
-    "vite": "^8.0.13"
+    "vite": "^8.0.14"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",
