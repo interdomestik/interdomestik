@@ -9,14 +9,17 @@ import { submitAgentCrmTaskQueueDueDateAction } from './task-queue-actions';
 import { TaskQueueIconButton } from './task-queue-icon-button';
 
 type TaskQueueDueDatePendingAction = 'due_save' | 'due_clear';
+type DueDateParseResult = { ok: true; value: string } | { ok: false };
 
-function parseDueDateInput(value: string): string | 'invalid' {
+function parseDueDateInput(value: string): DueDateParseResult {
   const timestamp = Date.parse(value.trim());
-  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : 'invalid';
+  return Number.isFinite(timestamp)
+    ? { ok: true, value: new Date(timestamp).toISOString() }
+    : { ok: false };
 }
 
 function focusQueued(getElement: () => HTMLElement | null) {
-  window.requestAnimationFrame(() => {
+  globalThis.requestAnimationFrame(() => {
     getElement()?.focus();
   });
 }
@@ -65,8 +68,9 @@ export function TaskQueueDueDateControls({
   }
 
   function submitDueDate(action: TaskQueueDueDatePendingAction) {
-    const dueAtValue = action === 'due_clear' ? null : parseDueDateInput(dueValue);
-    if (dueAtValue === 'invalid') {
+    const dueDate =
+      action === 'due_clear' ? ({ ok: true, value: null } as const) : parseDueDateInput(dueValue);
+    if (!dueDate.ok) {
       setHasError(true);
       onMessage(t('error.invalid_date'));
       inputRef.current?.focus();
@@ -80,7 +84,7 @@ export function TaskQueueDueDateControls({
     void (async () => {
       try {
         const result = await submitAgentCrmTaskQueueDueDateAction({
-          dueAt: dueAtValue,
+          dueAt: dueDate.value,
           expectedLifecycleVersion,
           taskId,
         });
@@ -110,7 +114,8 @@ export function TaskQueueDueDateControls({
 
   if (!isEditing) {
     return (
-      <span className="inline-flex justify-end" role="group" aria-label={t('group')}>
+      <fieldset className="inline-flex justify-end">
+        <legend className="sr-only">{t('group')}</legend>
         <TaskQueueIconButton
           ref={editButtonRef}
           disabled={isSubmitting}
@@ -120,12 +125,13 @@ export function TaskQueueDueDateControls({
         >
           {t('edit')}
         </TaskQueueIconButton>
-      </span>
+      </fieldset>
     );
   }
 
   return (
-    <div className="grid justify-items-end gap-2 text-sm" role="group" aria-label={t('group')}>
+    <fieldset className="grid justify-items-end gap-2 text-sm">
+      <legend className="sr-only">{t('group')}</legend>
       <label className="sr-only" htmlFor={dueInputId}>
         {t('field')}
       </label>
@@ -169,6 +175,6 @@ export function TaskQueueDueDateControls({
           {t('cancel')}
         </TaskQueueIconButton>
       </div>
-    </div>
+    </fieldset>
   );
 }
