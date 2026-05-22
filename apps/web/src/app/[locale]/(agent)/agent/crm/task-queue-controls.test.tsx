@@ -13,51 +13,46 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+const translations: Record<string, string> = {
+  'actions.complete': 'Complete',
+  'actions.completing': 'Completing...',
+  'actions.error.conflict': 'Changed',
+  'actions.error.rate_limited': 'Wait',
+  'actions.error.transient': 'Try again',
+  'actions.error.unavailable': 'Unavailable',
+  'actions.group': 'Task actions',
+  'actions.start': 'Start',
+  'actions.starting': 'Starting...',
+  'actions.success.complete': 'Completed',
+  'actions.success.start': 'Started',
+  'dueActions.cancel': 'Cancel',
+  'dueActions.clear': 'Clear due date',
+  'dueActions.clearing': 'Clearing...',
+  'dueActions.edit': 'Edit due date',
+  'dueActions.error.conflict': 'Due date changed',
+  'dueActions.error.invalid_date': 'Invalid date',
+  'dueActions.error.rate_limited': 'Wait to update due date',
+  'dueActions.error.transient': 'Try date again',
+  'dueActions.error.unavailable': 'Due date unavailable',
+  'dueActions.field': 'Due date and time',
+  'dueActions.group': 'Due date actions',
+  'dueActions.save': 'Save due date',
+  'dueActions.saving': 'Saving...',
+  'dueActions.success.clear': 'Due date cleared',
+  'dueActions.success.set': 'Due date updated',
+};
+
+vi.mock('next-intl', () => ({
+  useTranslations: (namespace: string) => (key: string) =>
+    translations[`${namespace.replace('agent-crm.crm.taskQueue.', '')}.${key}`] ?? key,
+}));
+
 vi.mock('./task-queue-actions', () => ({
   submitAgentCrmTaskQueueDueDateAction: hoisted.dueDateSubmitMock,
   submitAgentCrmTaskQueueLifecycleAction: hoisted.lifecycleSubmitMock,
 }));
 
-import { TaskQueueControls, type TaskQueueControlsLabels } from './task-queue-controls';
-
-const labels: TaskQueueControlsLabels = {
-  complete: 'Complete',
-  completing: 'Completing...',
-  due: {
-    cancel: 'Cancel',
-    clear: 'Clear due date',
-    clearing: 'Clearing...',
-    edit: 'Edit due date',
-    error: {
-      conflict: 'Due date changed',
-      invalid_date: 'Invalid date',
-      rate_limited: 'Wait to update due date',
-      transient: 'Try date again',
-      unavailable: 'Due date unavailable',
-    },
-    field: 'Due date and time',
-    group: 'Due date actions',
-    save: 'Save due date',
-    saving: 'Saving...',
-    success: {
-      clear: 'Due date cleared',
-      set: 'Due date updated',
-    },
-  },
-  error: {
-    conflict: 'Changed',
-    rate_limited: 'Wait',
-    transient: 'Try again',
-    unavailable: 'Unavailable',
-  },
-  group: 'Task actions',
-  start: 'Start',
-  starting: 'Starting...',
-  success: {
-    complete: 'Completed',
-    start: 'Started',
-  },
-};
+import { TaskQueueControls } from './task-queue-controls';
 
 describe('TaskQueueControls', () => {
   beforeEach(() => {
@@ -78,14 +73,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('renders start and complete controls for pending rows', () => {
-    render(
-      <TaskQueueControls
-        expectedLifecycleVersion={2}
-        labels={labels}
-        status="pending"
-        taskId="task-1"
-      />
-    );
+    render(<TaskQueueControls expectedLifecycleVersion={2} status="pending" taskId="task-1" />);
 
     expect(screen.getByTestId('agent-crm-task-queue-start')).toHaveTextContent('Start');
     expect(screen.getByTestId('agent-crm-task-queue-complete')).toHaveTextContent('Complete');
@@ -95,14 +83,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('renders only complete for in-progress rows', () => {
-    render(
-      <TaskQueueControls
-        expectedLifecycleVersion={2}
-        labels={labels}
-        status="in_progress"
-        taskId="task-1"
-      />
-    );
+    render(<TaskQueueControls expectedLifecycleVersion={2} status="in_progress" taskId="task-1" />);
 
     expect(screen.queryByTestId('agent-crm-task-queue-start')).toBeNull();
     expect(screen.getByTestId('agent-crm-task-queue-complete')).toHaveTextContent('Complete');
@@ -110,14 +91,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('submits the current task id and lifecycle version without optimistic row mutation', async () => {
-    render(
-      <TaskQueueControls
-        expectedLifecycleVersion={7}
-        labels={labels}
-        status="pending"
-        taskId="task-7"
-      />
-    );
+    render(<TaskQueueControls expectedLifecycleVersion={7} status="pending" taskId="task-7" />);
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-start'));
 
@@ -139,14 +113,7 @@ describe('TaskQueueControls', () => {
       success: false,
     });
 
-    render(
-      <TaskQueueControls
-        expectedLifecycleVersion={7}
-        labels={labels}
-        status="in_progress"
-        taskId="task-7"
-      />
-    );
+    render(<TaskQueueControls expectedLifecycleVersion={7} status="in_progress" taskId="task-7" />);
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-complete'));
 
@@ -160,14 +127,7 @@ describe('TaskQueueControls', () => {
   it('restores the row after unexpected submission failures', async () => {
     hoisted.lifecycleSubmitMock.mockRejectedValueOnce(new Error('network unavailable'));
 
-    render(
-      <TaskQueueControls
-        expectedLifecycleVersion={7}
-        labels={labels}
-        status="pending"
-        taskId="task-7"
-      />
-    );
+    render(<TaskQueueControls expectedLifecycleVersion={7} status="pending" taskId="task-7" />);
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-start'));
 
@@ -179,14 +139,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('submits a normalized due-date update without optimistic row mutation', async () => {
-    render(
-      <TaskQueueControls
-        expectedLifecycleVersion={8}
-        labels={labels}
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    render(<TaskQueueControls expectedLifecycleVersion={8} status="pending" taskId="task-8" />);
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-due-input'), {
@@ -208,14 +161,7 @@ describe('TaskQueueControls', () => {
   it('clears the due date through the row-local due-date control', async () => {
     hoisted.dueDateSubmitMock.mockResolvedValueOnce({ dueAt: null, success: true });
 
-    render(
-      <TaskQueueControls
-        expectedLifecycleVersion={8}
-        labels={labels}
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    render(<TaskQueueControls expectedLifecycleVersion={8} status="pending" taskId="task-8" />);
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-clear'));
@@ -236,14 +182,7 @@ describe('TaskQueueControls', () => {
       success: false,
     });
 
-    render(
-      <TaskQueueControls
-        expectedLifecycleVersion={8}
-        labels={labels}
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    render(<TaskQueueControls expectedLifecycleVersion={8} status="pending" taskId="task-8" />);
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-due-input'), {
@@ -263,14 +202,7 @@ describe('TaskQueueControls', () => {
       success: false,
     });
 
-    render(
-      <TaskQueueControls
-        expectedLifecycleVersion={8}
-        labels={labels}
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    render(<TaskQueueControls expectedLifecycleVersion={8} status="pending" taskId="task-8" />);
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-save'));

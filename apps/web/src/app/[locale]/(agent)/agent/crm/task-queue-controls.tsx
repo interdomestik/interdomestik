@@ -2,6 +2,7 @@
 
 import { Button } from '@interdomestik/ui';
 import { Check, Play } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useId, useRef, useState, useTransition } from 'react';
 
@@ -9,38 +10,21 @@ import {
   submitAgentCrmTaskQueueLifecycleAction,
   type AgentCrmTaskQueueLifecycleInput,
 } from './task-queue-actions';
-import {
-  TaskQueueDueDateControls,
-  type TaskQueueDueDateControlsLabels,
-} from './task-queue-due-date-controls';
+import { TaskQueueDueDateControls } from './task-queue-due-date-controls';
 
 type TaskQueueControlsStatus = 'pending' | 'in_progress';
 type TaskQueueLifecycleAction = AgentCrmTaskQueueLifecycleInput['action'];
-type TaskQueueLifecycleError = 'unavailable' | 'conflict' | 'rate_limited' | 'transient';
-
-export type TaskQueueControlsLabels = {
-  readonly complete: string;
-  readonly completing: string;
-  readonly due: TaskQueueDueDateControlsLabels;
-  readonly error: Record<TaskQueueLifecycleError, string>;
-  readonly group: string;
-  readonly start: string;
-  readonly starting: string;
-  readonly success: Record<TaskQueueLifecycleAction, string>;
-};
-
 export function TaskQueueControls({
   expectedLifecycleVersion,
-  labels,
   status,
   taskId,
 }: Readonly<{
   expectedLifecycleVersion: number;
-  labels: TaskQueueControlsLabels;
   status: TaskQueueControlsStatus;
   taskId: string;
 }>) {
   const router = useRouter();
+  const t = useTranslations('agent-crm.crm.taskQueue.actions');
   const messageId = useId();
   const [isPending, startTransition] = useTransition();
   const [activeAction, setActiveAction] = useState<TaskQueueLifecycleAction | null>(null);
@@ -76,16 +60,16 @@ export function TaskQueueControls({
         });
 
         if (result.success) {
-          setMessage(labels.success[action]);
+          setMessage(t(`success.${action}`));
           focusAfterSuccess(action);
           router.refresh();
           setActiveAction(null);
           return;
         }
 
-        setMessage(labels.error[result.error]);
+        setMessage(t(`error.${result.error}`));
       } catch {
-        setMessage(labels.error.transient);
+        setMessage(t('error.transient'));
       } finally {
         setActiveAction(null);
       }
@@ -93,11 +77,7 @@ export function TaskQueueControls({
   }
 
   const pendingLabel =
-    activeAction === 'start'
-      ? labels.starting
-      : activeAction === 'complete'
-        ? labels.completing
-        : '';
+    activeAction === 'start' ? t('starting') : activeAction === 'complete' ? t('completing') : '';
   const isSubmitting = isPending || activeAction !== null;
   const rowDisabled = isSubmitting || isDuePending;
 
@@ -105,7 +85,7 @@ export function TaskQueueControls({
     <div
       className="flex flex-col items-stretch gap-2 sm:items-end"
       role="group"
-      aria-label={labels.group}
+      aria-label={t('group')}
     >
       <div className="flex flex-wrap justify-end gap-2">
         {status === 'pending' ? (
@@ -119,7 +99,7 @@ export function TaskQueueControls({
             data-testid="agent-crm-task-queue-start"
           >
             <Play className="h-4 w-4" aria-hidden="true" />
-            {activeAction === 'start' ? labels.starting : labels.start}
+            {activeAction === 'start' ? t('starting') : t('start')}
           </Button>
         ) : null}
         <Button
@@ -132,13 +112,12 @@ export function TaskQueueControls({
           data-testid="agent-crm-task-queue-complete"
         >
           <Check className="h-4 w-4" aria-hidden="true" />
-          {activeAction === 'complete' ? labels.completing : labels.complete}
+          {activeAction === 'complete' ? t('completing') : t('complete')}
         </Button>
       </div>
       <TaskQueueDueDateControls
         disabled={isSubmitting}
         expectedLifecycleVersion={expectedLifecycleVersion}
-        labels={labels.due}
         onMessage={setMessage}
         onPendingChange={setIsDuePending}
         rowMessageId={messageId}

@@ -2,34 +2,13 @@
 
 import { Button } from '@interdomestik/ui';
 import { CalendarClock, Eraser, Save, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useId, useRef, useState } from 'react';
 
 import { submitAgentCrmTaskQueueDueDateAction } from './task-queue-actions';
 
-type TaskQueueDueDateError =
-  | 'unavailable'
-  | 'invalid_date'
-  | 'conflict'
-  | 'rate_limited'
-  | 'transient';
 type TaskQueueDueDatePendingAction = 'due_save' | 'due_clear';
-
-export type TaskQueueDueDateControlsLabels = {
-  readonly cancel: string;
-  readonly clear: string;
-  readonly clearing: string;
-  readonly edit: string;
-  readonly error: Record<TaskQueueDueDateError, string>;
-  readonly field: string;
-  readonly group: string;
-  readonly save: string;
-  readonly saving: string;
-  readonly success: {
-    readonly clear: string;
-    readonly set: string;
-  };
-};
 
 function normalizeLocalDateTimeInput(value: string): string | null | 'invalid' {
   const trimmed = value.trim();
@@ -44,7 +23,6 @@ function normalizeLocalDateTimeInput(value: string): string | null | 'invalid' {
 export function TaskQueueDueDateControls({
   disabled,
   expectedLifecycleVersion,
-  labels,
   onMessage,
   onPendingChange,
   rowMessageId,
@@ -52,13 +30,13 @@ export function TaskQueueDueDateControls({
 }: Readonly<{
   disabled: boolean;
   expectedLifecycleVersion: number;
-  labels: TaskQueueDueDateControlsLabels;
   onMessage: (message: string | null) => void;
   onPendingChange: (isPending: boolean) => void;
   rowMessageId: string;
   taskId: string;
 }>) {
   const router = useRouter();
+  const t = useTranslations('agent-crm.crm.taskQueue.dueActions');
   const dueInputId = useId();
   const [activeAction, setActiveAction] = useState<TaskQueueDueDatePendingAction | null>(null);
   const [hasError, setHasError] = useState(false);
@@ -92,7 +70,7 @@ export function TaskQueueDueDateControls({
     const dueAtValue = action === 'due_clear' ? null : normalizeLocalDateTimeInput(dueValue);
     if (dueAtValue === 'invalid') {
       setHasError(true);
-      onMessage(labels.error.invalid_date);
+      onMessage(t('error.invalid_date'));
       inputRef.current?.focus();
       return;
     }
@@ -100,7 +78,7 @@ export function TaskQueueDueDateControls({
     setHasError(false);
     setActiveAction(action);
     onPendingChange(true);
-    onMessage(action === 'due_clear' ? labels.clearing : labels.saving);
+    onMessage(action === 'due_clear' ? t('clearing') : t('saving'));
     void (async () => {
       try {
         const result = await submitAgentCrmTaskQueueDueDateAction({
@@ -111,7 +89,7 @@ export function TaskQueueDueDateControls({
 
         if (result.success) {
           setHasError(false);
-          onMessage(result.dueAt === null ? labels.success.clear : labels.success.set);
+          onMessage(t(result.dueAt === null ? 'success.clear' : 'success.set'));
           onPendingChange(false);
           setActiveAction(null);
           setIsEditing(false);
@@ -123,10 +101,10 @@ export function TaskQueueDueDateControls({
         }
 
         setHasError(true);
-        onMessage(labels.error[result.error]);
+        onMessage(t(`error.${result.error}`));
       } catch {
         setHasError(true);
-        onMessage(labels.error.transient);
+        onMessage(t('error.transient'));
       } finally {
         onPendingChange(false);
         setActiveAction(null);
@@ -138,12 +116,12 @@ export function TaskQueueDueDateControls({
     <div
       className="flex flex-col items-stretch gap-2 text-sm sm:items-end"
       role="group"
-      aria-label={labels.group}
+      aria-label={t('group')}
     >
       {isEditing ? (
         <>
           <label className="sr-only" htmlFor={dueInputId}>
-            {labels.field}
+            {t('field')}
           </label>
           <input
             ref={inputRef}
@@ -168,7 +146,7 @@ export function TaskQueueDueDateControls({
               data-testid="agent-crm-task-queue-due-save"
             >
               <Save className="h-4 w-4" aria-hidden="true" />
-              {activeAction === 'due_save' ? labels.saving : labels.save}
+              {activeAction === 'due_save' ? t('saving') : t('save')}
             </Button>
             <Button
               type="button"
@@ -179,7 +157,7 @@ export function TaskQueueDueDateControls({
               data-testid="agent-crm-task-queue-due-clear"
             >
               <Eraser className="h-4 w-4" aria-hidden="true" />
-              {activeAction === 'due_clear' ? labels.clearing : labels.clear}
+              {activeAction === 'due_clear' ? t('clearing') : t('clear')}
             </Button>
             <Button
               type="button"
@@ -190,7 +168,7 @@ export function TaskQueueDueDateControls({
               data-testid="agent-crm-task-queue-due-cancel"
             >
               <X className="h-4 w-4" aria-hidden="true" />
-              {labels.cancel}
+              {t('cancel')}
             </Button>
           </div>
         </>
@@ -205,7 +183,7 @@ export function TaskQueueDueDateControls({
           data-testid="agent-crm-task-queue-due-edit"
         >
           <CalendarClock className="h-4 w-4" aria-hidden="true" />
-          {labels.edit}
+          {t('edit')}
         </Button>
       )}
     </div>

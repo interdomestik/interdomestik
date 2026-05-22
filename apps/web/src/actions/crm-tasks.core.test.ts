@@ -346,51 +346,52 @@ describe('CRM task core boundary', () => {
     expect(d.audit).not.toHaveBeenCalled();
   });
 
-  it('maps lifecycle repository conflicts to conflict without audit or revalidation', async () => {
-    const existing = task({ updatedAt: '2026-05-21T09:59:00.000Z' });
-    const repo = repository({
-      findTaskById: vi.fn().mockResolvedValue(existing),
-      saveTask: vi.fn().mockRejectedValue(new CrmTaskRepositoryFailure('lifecycle_conflict')),
-    });
-    const d = deps(repo);
-
-    const result = await startCrmTaskCore({
-      deps: d,
+  it.each([
+    {
       input: { expectedLifecycleVersion: 1, reasonCode: 'manual_start', taskId: 'task-1' },
-      session: session(),
-    });
-
-    expect(result).toEqual({ outcome: 'conflict', reason: 'lifecycle_conflict' });
-    expect(d.audit).not.toHaveBeenCalled();
-    expect(d.revalidate).not.toHaveBeenCalled();
-  });
-
-  it('maps due-date lifecycle repository conflicts to conflict without audit or revalidation', async () => {
-    const existing = task({
-      dueAt: '2026-05-22T10:00:00.000Z',
-      updatedAt: '2026-05-21T09:59:00.000Z',
-    });
-    const repo = repository({
-      findTaskById: vi.fn().mockResolvedValue(existing),
-      saveTask: vi.fn().mockRejectedValue(new CrmTaskRepositoryFailure('lifecycle_conflict')),
-    });
-    const d = deps(repo);
-
-    const result = await updateCrmTaskDueAtCore({
-      deps: d,
+      mutate: startCrmTaskCore,
+      name: 'lifecycle',
+      sourceTask: task({ updatedAt: '2026-05-21T09:59:00.000Z' }),
+    },
+    {
       input: {
         dueAt: '2026-05-22T12:00:00.000Z',
         expectedLifecycleVersion: 1,
         reasonCode: 'due_date_changed',
         taskId: 'task-1',
       },
-      session: session(),
-    });
+      mutate: updateCrmTaskDueAtCore,
+      name: 'due-date lifecycle',
+      sourceTask: task({
+        dueAt: '2026-05-22T10:00:00.000Z',
+        updatedAt: '2026-05-21T09:59:00.000Z',
+      }),
+    },
+  ] as const)(
+    'maps $name repository conflicts to conflict without audit or revalidation',
+    async scenario => {
+      const repo = repository({
+        findTaskById: vi.fn().mockResolvedValue(scenario.sourceTask),
+        saveTask: vi.fn().mockRejectedValue(new CrmTaskRepositoryFailure('lifecycle_conflict')),
+      });
+      const d = deps(repo);
 
-    expect(result).toEqual({ outcome: 'conflict', reason: 'lifecycle_conflict' });
-    expect(d.audit).not.toHaveBeenCalled();
-    expect(d.revalidate).not.toHaveBeenCalled();
-  });
+      const mutate = scenario.mutate as (params: {
+        readonly deps: typeof d;
+        readonly input: typeof scenario.input;
+        readonly session: ReturnType<typeof session>;
+      }) => ReturnType<typeof updateCrmTaskDueAtCore>;
+      const result = await mutate({
+        deps: d,
+        input: scenario.input,
+        session: session(),
+      });
+
+      expect(result).toEqual({ outcome: 'conflict', reason: 'lifecycle_conflict' });
+      expect(d.audit).not.toHaveBeenCalled();
+      expect(d.revalidate).not.toHaveBeenCalled();
+    }
+  );
 
   it('rejects invalid due dates without save, audit, or revalidation', async () => {
     const repo = repository({

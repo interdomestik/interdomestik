@@ -395,44 +395,6 @@ function TaskQueueWidget({
               <div className="flex flex-col items-stretch gap-2 sm:items-end">
                 <TaskQueueControls
                   expectedLifecycleVersion={item.lifecycleVersion}
-                  labels={{
-                    complete: t('crm.taskQueue.actions.complete'),
-                    completing: t('crm.taskQueue.actions.completing'),
-                    due: {
-                      cancel: t('crm.taskQueue.dueActions.cancel'),
-                      clear: t('crm.taskQueue.dueActions.clear'),
-                      clearing: t('crm.taskQueue.dueActions.clearing'),
-                      edit: t('crm.taskQueue.dueActions.edit'),
-                      error: {
-                        conflict: t('crm.taskQueue.dueActions.error.conflict'),
-                        invalid_date: t('crm.taskQueue.dueActions.error.invalid_date'),
-                        rate_limited: t('crm.taskQueue.dueActions.error.rate_limited'),
-                        transient: t('crm.taskQueue.dueActions.error.transient'),
-                        unavailable: t('crm.taskQueue.dueActions.error.unavailable'),
-                      },
-                      field: t('crm.taskQueue.dueActions.field'),
-                      group: t('crm.taskQueue.dueActions.group'),
-                      save: t('crm.taskQueue.dueActions.save'),
-                      saving: t('crm.taskQueue.dueActions.saving'),
-                      success: {
-                        clear: t('crm.taskQueue.dueActions.success.clear'),
-                        set: t('crm.taskQueue.dueActions.success.set'),
-                      },
-                    },
-                    error: {
-                      conflict: t('crm.taskQueue.actions.error.conflict'),
-                      rate_limited: t('crm.taskQueue.actions.error.rate_limited'),
-                      transient: t('crm.taskQueue.actions.error.transient'),
-                      unavailable: t('crm.taskQueue.actions.error.unavailable'),
-                    },
-                    group: t('crm.taskQueue.actions.group'),
-                    start: t('crm.taskQueue.actions.start'),
-                    starting: t('crm.taskQueue.actions.starting'),
-                    success: {
-                      complete: t('crm.taskQueue.actions.success.complete'),
-                      start: t('crm.taskQueue.actions.success.start'),
-                    },
-                  }}
                   status={item.status}
                   taskId={item.taskId}
                 />
