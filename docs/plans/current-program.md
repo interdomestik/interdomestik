@@ -400,6 +400,33 @@ task UI, new routes, scheduler/cron, reminders, notifications, outbox, templates
 scoring, assistance-intent execution, database migration/RLS, historical backfill,
 proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
 architecture-doc work remain blocked.
+`P40-CRM30 Agent CRM Task Queue Due-Date Adjustment Controls` is complete through PR `#845`, merge
+commit `fbfe70c8be9a69079784f6c7f9f31fab1be105c1`: the existing `/agent/crm` task queue now has
+row-local due-date edit/save/clear/cancel controls for visible, assigned, open, lead-backed task
+rows only. The implementation reuses CRM26 `updateCrmTaskDueAtAction`, preserves Start/Complete
+controls, lead links, queue markers, legacy due-follow-up separation, canonical routes, and
+`apps/web/src/proxy.ts`, and passed local focused CRM task tests, web type-check,
+`pnpm security:guard`, and earlier required gates, with remote validation, audit, static, unit, E2E,
+`e2e-gate`, Pilot Gate, SonarCloud, Copilot/pr-finalizer, gitleaks, pnpm-audit, and Vercel checks
+green before merge. Scheduler/reminders/notifications/outbox, cancellation, reopening,
+reassignment, new routes/API/cron, DB schema/RLS/migrations, assistance execution,
+auth/tenancy/routing refactors, Stripe, README, AGENTS.md, and architecture-doc work remained out of
+scope.
+`P40-DG08 CRM Task Queue Cancellation Controls Design Gate` is recorded in
+`docs/plans/2026-05-22-p40-dg08-crm-task-cancellation-controls-design.md` after `P40-CRM30`. It
+promotes exactly one next implementation slice,
+`P40-CRM31 Agent CRM Task Queue Cancellation Controls`, limited to bounded row-local cancellation
+controls for visible, assigned, open, lead-backed CRM task queue rows on the existing `/agent/crm`
+route. The promoted slice reuses CRM26 `cancelCrmTaskAction`, exposes only `not_needed`,
+`duplicate`, and `created_in_error` in the first queue picker, requires row-local inline
+confirmation, preserves server-side reauthorization, lifecycle-version conflict handling,
+same-reason idempotency semantics, CRM26 audit/rate-limit/revalidation behavior, active-locale
+labels, PII-safe result buckets, legacy due-follow-up separation, and existing Start/Complete and
+due-date controls. Reopen UI, terminal-task recovery surfacing, `subject_closed` UI exposure,
+assignment/reassignment, staff/admin/member task UI, new routes, scheduler/cron, reminders,
+notifications, outbox, templates, sequences, scoring, assistance-intent execution, database
+migration/RLS, historical backfill, proxy/canonical route/auth/tenancy/routing changes, Stripe,
+README, AGENTS.md, and broad architecture-doc work remain blocked.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
