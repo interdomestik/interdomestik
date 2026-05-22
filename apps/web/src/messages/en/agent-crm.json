@@ -39,6 +39,14 @@
         "unknownLead": "Lead",
         "openLead": "Open lead",
         "dueWithDate": "{bucket}: {date}",
+        "completed": {
+          "title": "Recently completed",
+          "description": "Completed lead-backed CRM tasks assigned to you.",
+          "count": "{count, plural, =0 {0 tasks} one {# task} other {# tasks}}",
+          "countLabel": "{count, plural, =0 {No recently completed tasks} one {# recently completed task} other {# recently completed tasks}}",
+          "empty": "No recently completed CRM tasks.",
+          "completedAt": "Completed: {date}"
+        },
         "actions": {
           "group": "Task lifecycle actions",
           "start": "Start",
@@ -103,6 +111,33 @@
             "transient": "The task could not be cancelled. Try again."
           }
         },
+        "reopenActions": {
+          "group": "Task recovery actions",
+          "groupFor": "Task recovery actions for {label}",
+          "confirmGroup": "Confirm task recovery",
+          "confirmGroupFor": "Confirm task recovery for {label}",
+          "field": "Recovery reason",
+          "open": "Reopen task",
+          "openFor": "Reopen task for {label}",
+          "placeholder": "Select reason",
+          "confirm": "Confirm reopen",
+          "confirming": "Reopening...",
+          "dismiss": "Keep completed",
+          "success": "Task reopened.",
+          "reasons": {
+            "follow_up_required": "Follow-up required",
+            "incomplete": "Task incomplete",
+            "manually_reopened": "Manual recovery"
+          },
+          "error": {
+            "unavailable": "This task is no longer available.",
+            "invalid_reason": "Select a recovery reason.",
+            "conflict": "This task changed. Refresh the queue and try again.",
+            "terminal": "This task changed. Refresh the queue and try again.",
+            "rate_limited": "Too many attempts. Wait a moment and try again.",
+            "transient": "The task could not be reopened. Try again."
+          }
+        },
         "labels": {
           "manual": "Task",
           "follow_up": "Follow-up",
@@ -112,7 +147,15 @@
         },
         "status": {
           "pending": "Pending",
-          "in_progress": "In progress"
+          "in_progress": "In progress",
+          "completed": "Completed"
+        },
+        "completionReasons": {
+          "resolved": "Resolved",
+          "no_longer_needed": "No longer needed",
+          "duplicate": "Duplicate task",
+          "converted": "Converted",
+          "manually_closed": "Manually closed"
         },
         "priority": {
           "low": "Low",

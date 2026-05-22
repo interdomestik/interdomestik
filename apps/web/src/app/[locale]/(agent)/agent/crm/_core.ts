@@ -1,6 +1,9 @@
 import { getAgentCrmDashboard, type AgentCrmDashboard } from '@interdomestik/domain-crm/dashboards';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
-import type { CrmTaskWorkQueueItem } from '@interdomestik/domain-crm/tasks';
+import type {
+  CrmTaskCompletedQueueItem,
+  CrmTaskWorkQueueItem,
+} from '@interdomestik/domain-crm/tasks';
 import {
   authorizeCrmReportingRead,
   deriveCrmSourceBreakdown,
@@ -21,6 +24,9 @@ import {
 export type AgentCrmStats = AgentCrmDashboard;
 export type { AgentCrmDashboardDueFollowUp as AgentCrmDueFollowUp } from '@interdomestik/domain-crm/dashboards';
 export type AgentCrmTaskQueueItem = CrmTaskWorkQueueItem & {
+  href: `/agent/leads/${string}`;
+};
+export type AgentCrmCompletedTaskQueueItem = CrmTaskCompletedQueueItem & {
   href: `/agent/leads/${string}`;
 };
 
@@ -111,6 +117,23 @@ export async function getAgentCrmTaskQueueCore(args: {
 }): Promise<AgentCrmTaskQueueItem[]> {
   const repository = args.repository ?? agentCrmTaskWorkQueueRepository;
   const rows = await repository.readAgentTaskWorkQueue({
+    actor: args.actor,
+    now: (args.now ?? (() => new Date().toISOString()))(),
+  });
+
+  return rows.map(row => ({
+    ...row,
+    href: `/agent/leads/${encodeURIComponent(row.subjectReference.id)}`,
+  }));
+}
+
+export async function getAgentCrmCompletedTaskQueueCore(args: {
+  actor: CrmActorContext;
+  now?: () => string;
+  repository?: AgentCrmTaskWorkQueueRepository;
+}): Promise<AgentCrmCompletedTaskQueueItem[]> {
+  const repository = args.repository ?? agentCrmTaskWorkQueueRepository;
+  const rows = await repository.readAgentCompletedTaskQueue({
     actor: args.actor,
     now: (args.now ?? (() => new Date().toISOString()))(),
   });

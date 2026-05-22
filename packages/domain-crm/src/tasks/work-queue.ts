@@ -1,4 +1,5 @@
 import type {
+  CrmTaskCompletionReasonCode,
   CrmTaskCreateReasonCode,
   CrmTaskPriority,
   CrmTaskStatus,
@@ -6,6 +7,7 @@ import type {
 } from './types';
 
 export const CRM_TASK_WORK_QUEUE_PAGE_SIZE = 10;
+export const CRM_TASK_COMPLETED_QUEUE_PAGE_SIZE = 5;
 
 const CRM_TASK_WORK_QUEUE_OPEN_STATUSES = new Set<CrmTaskStatus>(['pending', 'in_progress']);
 const PRIORITY_RANK: Record<CrmTaskPriority, number> = {
@@ -45,6 +47,36 @@ export type CrmTaskWorkQueueItem = {
   readonly lifecycleVersion: number;
   readonly priority: CrmTaskPriority;
   readonly status: Extract<CrmTaskStatus, 'pending' | 'in_progress'>;
+  readonly subjectReference: {
+    readonly id: string;
+    readonly kind: 'lead';
+  };
+  readonly taskId: string;
+};
+
+export type CrmTaskCompletedQueueInputRow = {
+  readonly assignedActorId: string | null;
+  readonly branchId: string | null;
+  readonly completedAt: string | null;
+  readonly completionReasonCode: CrmTaskCompletionReasonCode | null;
+  readonly dueAt: string | null;
+  readonly leadDisplayRef: CrmTaskWorkQueueLeadDisplayRef;
+  readonly lifecycleVersion: number;
+  readonly priority: CrmTaskPriority;
+  readonly status: CrmTaskStatus;
+  readonly subjectReference: CrmTaskSubjectReference;
+  readonly taskId: string;
+  readonly tenantId: string;
+};
+
+export type CrmTaskCompletedQueueItem = {
+  readonly completedAt: string;
+  readonly completionReasonCode: CrmTaskCompletionReasonCode | null;
+  readonly dueAt: string | null;
+  readonly leadDisplayRef: CrmTaskWorkQueueLeadDisplayRef;
+  readonly lifecycleVersion: number;
+  readonly priority: CrmTaskPriority;
+  readonly status: Extract<CrmTaskStatus, 'completed'>;
   readonly subjectReference: {
     readonly id: string;
     readonly kind: 'lead';
@@ -121,5 +153,47 @@ export function deriveCrmTaskWorkQueue(params: {
       taskId: row.taskId,
     }))
     .sort(compareCrmTaskWorkQueueItems)
+    .slice(0, limit);
+}
+
+function compareCrmTaskCompletedQueueItems(
+  left: CrmTaskCompletedQueueItem,
+  right: CrmTaskCompletedQueueItem
+): number {
+  const completedDiff = Date.parse(right.completedAt) - Date.parse(left.completedAt);
+  if (completedDiff !== 0) return completedDiff;
+  return left.taskId.localeCompare(right.taskId);
+}
+
+export function deriveCrmTaskCompletedQueue(params: {
+  readonly actorId: string;
+  readonly branchId: string;
+  readonly limit?: number;
+  readonly rows: readonly CrmTaskCompletedQueueInputRow[];
+  readonly tenantId: string;
+}): CrmTaskCompletedQueueItem[] {
+  const limit = params.limit ?? CRM_TASK_COMPLETED_QUEUE_PAGE_SIZE;
+
+  return params.rows
+    .filter(row => {
+      if (row.tenantId !== params.tenantId) return false;
+      if (row.branchId !== params.branchId) return false;
+      if (row.assignedActorId !== params.actorId) return false;
+      if (row.subjectReference.kind !== 'lead') return false;
+      if (row.status !== 'completed') return false;
+      return row.completedAt !== null;
+    })
+    .map(row => ({
+      completedAt: row.completedAt as string,
+      completionReasonCode: row.completionReasonCode,
+      dueAt: row.dueAt,
+      leadDisplayRef: row.leadDisplayRef,
+      lifecycleVersion: row.lifecycleVersion,
+      priority: row.priority,
+      status: 'completed' as const,
+      subjectReference: row.subjectReference as CrmTaskCompletedQueueItem['subjectReference'],
+      taskId: row.taskId,
+    }))
+    .sort(compareCrmTaskCompletedQueueItems)
     .slice(0, limit);
 }

@@ -1,15 +1,15 @@
 'use client';
 
-import { Ban } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
-import { submitAgentCrmTaskQueueCancellationAction } from './task-queue-actions';
+import { submitAgentCrmTaskQueueReopenAction } from './task-queue-actions';
 import {
-  AGENT_CRM_TASK_QUEUE_CANCELLATION_REASON_CODES,
-  type AgentCrmTaskQueueCancellationReasonCode,
-} from './task-queue-cancellation-reasons';
+  AGENT_CRM_TASK_QUEUE_REOPEN_REASON_CODES,
+  type AgentCrmTaskQueueReopenReasonCode,
+} from './task-queue-reopen-reasons';
 import { TaskQueueIconButton } from './task-queue-icon-button';
 import { TaskQueueReasonConfirmation } from './task-queue-reason-confirmation';
 
@@ -19,54 +19,55 @@ function focusQueued(getElement: () => HTMLElement | null) {
   });
 }
 
-export function TaskQueueCancelControls({
-  disabled,
+export function TaskQueueReopenControls({
   expectedLifecycleVersion,
-  onMessage,
-  onPendingChange,
-  rowMessageId,
   rowLabel,
   taskId,
 }: Readonly<{
-  disabled: boolean;
   expectedLifecycleVersion: number;
-  onMessage: (message: string | null) => void;
-  onPendingChange: (isPending: boolean) => void;
-  rowMessageId: string;
   rowLabel: string;
   taskId: string;
 }>) {
   const router = useRouter();
-  const t = useTranslations('agent-crm.crm.taskQueue.cancelActions');
+  const t = useTranslations('agent-crm.crm.taskQueue.reopenActions');
+  const messageId = useId();
   const reasonSelectId = useId();
   const [hasError, setHasError] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [reasonCode, setReasonCode] = useState<AgentCrmTaskQueueCancellationReasonCode | ''>('');
-  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [reasonCode, setReasonCode] = useState<AgentCrmTaskQueueReopenReasonCode | ''>('');
+  const reopenButtonRef = useRef<HTMLButtonElement | null>(null);
   const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
   const reasonSelectRef = useRef<HTMLSelectElement | null>(null);
+  const shouldFocusReopenRef = useRef(false);
 
-  const isDisabled = disabled || isSubmitting;
+  useEffect(() => {
+    if (isConfirming || !shouldFocusReopenRef.current) return;
+    shouldFocusReopenRef.current = false;
+    focusQueued(() => reopenButtonRef.current);
+  }, [isConfirming]);
 
   function openConfirmation() {
     setHasError(false);
     setIsConfirming(true);
+    setMessage(null);
     setReasonCode('');
-    onMessage(null);
     focusQueued(() => reasonSelectRef.current);
   }
 
   function dismissConfirmation() {
     setHasError(false);
     setIsConfirming(false);
+    setMessage(null);
     setReasonCode('');
-    onMessage(null);
-    focusQueued(() => cancelButtonRef.current);
+    shouldFocusReopenRef.current = true;
   }
 
   function focusAfterSuccess() {
-    const row = confirmButtonRef.current?.closest('[data-testid="agent-crm-task-queue-row"]');
+    const row = confirmButtonRef.current?.closest(
+      '[data-testid="agent-crm-task-completed-queue-row"]'
+    );
     const nextRow = row?.nextElementSibling?.querySelector<HTMLElement>(
       'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
     );
@@ -74,27 +75,26 @@ export function TaskQueueCancelControls({
       'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
     );
     const heading = document.querySelector<HTMLElement>(
-      '[data-testid="agent-crm-task-queue-title"]'
+      '[data-testid="agent-crm-task-completed-queue-title"]'
     );
 
     focusQueued(() => nextRow ?? previousRow ?? heading);
   }
 
-  function submitCancellation() {
+  function submitReopen() {
     if (!reasonCode) {
       setHasError(true);
-      onMessage(t('error.invalid_reason'));
+      setMessage(t('error.invalid_reason'));
       reasonSelectRef.current?.focus();
       return;
     }
 
     setHasError(false);
     setIsSubmitting(true);
-    onPendingChange(true);
-    onMessage(t('confirming'));
+    setMessage(t('confirming'));
     void (async () => {
       try {
-        const result = await submitAgentCrmTaskQueueCancellationAction({
+        const result = await submitAgentCrmTaskQueueReopenAction({
           expectedLifecycleVersion,
           reasonCode,
           taskId,
@@ -104,8 +104,7 @@ export function TaskQueueCancelControls({
           setHasError(false);
           setIsConfirming(false);
           setReasonCode('');
-          onMessage(t('success'));
-          onPendingChange(false);
+          setMessage(t('success'));
           setIsSubmitting(false);
           focusAfterSuccess();
           router.refresh();
@@ -113,12 +112,11 @@ export function TaskQueueCancelControls({
         }
 
         setHasError(true);
-        onMessage(t(`error.${result.error}`));
+        setMessage(t(`error.${result.error}`));
       } catch {
         setHasError(true);
-        onMessage(t('error.transient'));
+        setMessage(t('error.transient'));
       } finally {
-        onPendingChange(false);
         setIsSubmitting(false);
       }
     })();
@@ -129,15 +127,18 @@ export function TaskQueueCancelControls({
       <fieldset className="m-0 inline-flex min-w-0 justify-end border-0 p-0">
         <legend className="sr-only">{t('groupFor', { label: rowLabel })}</legend>
         <TaskQueueIconButton
-          ref={cancelButtonRef}
+          ref={reopenButtonRef}
           ariaLabel={t('openFor', { label: rowLabel })}
-          disabled={isDisabled}
+          disabled={isSubmitting}
           onClick={openConfirmation}
-          icon={<Ban className="h-4 w-4" aria-hidden="true" />}
-          testId="agent-crm-task-queue-cancel"
+          icon={<RotateCcw className="h-4 w-4" aria-hidden="true" />}
+          testId="agent-crm-task-completed-queue-reopen"
         >
           {t('open')}
         </TaskQueueIconButton>
+        <p id={messageId} className="sr-only" aria-live="polite">
+          {message ?? ''}
+        </p>
       </fieldset>
     );
   }
@@ -147,27 +148,35 @@ export function TaskQueueCancelControls({
       confirmButtonRef={confirmButtonRef}
       confirmLabel={t('confirm')}
       confirmingLabel={t('confirming')}
-      disabled={isDisabled}
+      disabled={isSubmitting}
       dismissLabel={t('dismiss')}
       fieldLabel={t('field')}
       groupLabel={t('confirmGroupFor', { label: rowLabel })}
       hasError={hasError}
       isSubmitting={isSubmitting}
-      messageId={rowMessageId}
+      messageId={messageId}
       onDismiss={dismissConfirmation}
       onReasonChange={setReasonCode}
-      onSubmit={submitCancellation}
+      onSubmit={submitReopen}
       placeholder={t('placeholder')}
       reasonCode={reasonCode}
       reasonLabel={reason => t(`reasons.${reason}`)}
       reasonSelectId={reasonSelectId}
       reasonSelectRef={reasonSelectRef}
-      reasons={AGENT_CRM_TASK_QUEUE_CANCELLATION_REASON_CODES}
+      reasons={AGENT_CRM_TASK_QUEUE_REOPEN_REASON_CODES}
       testIds={{
-        confirm: 'agent-crm-task-queue-cancel-confirm',
-        dismiss: 'agent-crm-task-queue-cancel-dismiss',
-        select: 'agent-crm-task-queue-cancel-reason',
+        confirm: 'agent-crm-task-completed-queue-reopen-confirm',
+        dismiss: 'agent-crm-task-completed-queue-reopen-dismiss',
+        select: 'agent-crm-task-completed-queue-reopen-reason',
       }}
-    />
+    >
+      <p
+        id={messageId}
+        className={message ? 'text-xs text-muted-foreground' : 'sr-only'}
+        aria-live="polite"
+      >
+        {message ?? ''}
+      </p>
+    </TaskQueueReasonConfirmation>
   );
 }

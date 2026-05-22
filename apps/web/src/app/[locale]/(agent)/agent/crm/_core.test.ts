@@ -9,6 +9,7 @@ const hoisted = vi.hoisted(() => ({
     listWinRateRows: vi.fn(),
   },
   agentCrmTaskWorkQueueRepository: {
+    readAgentCompletedTaskQueue: vi.fn(),
     readAgentTaskWorkQueue: vi.fn(),
   },
 }));
@@ -41,6 +42,7 @@ import {
   AgentCrmStatsAccessDeniedError,
   createAgentCrmReportingWindow,
   getAgentCrmReportingCore,
+  getAgentCrmCompletedTaskQueueCore,
   getAgentCrmStatsCore,
   getAgentCrmTaskQueueCore,
 } from './_core';
@@ -99,6 +101,7 @@ describe('getAgentCrmStatsCore', () => {
     hoisted.crmReportingRepository.listWeightedPipelineRows.mockResolvedValue([weightedRow]);
     hoisted.crmReportingRepository.listSourceBreakdownRows.mockResolvedValue([sourceRow]);
     hoisted.crmReportingRepository.listWinRateRows.mockResolvedValue([winRateRow]);
+    hoisted.agentCrmTaskWorkQueueRepository.readAgentCompletedTaskQueue.mockResolvedValue([]);
     hoisted.agentCrmTaskWorkQueueRepository.readAgentTaskWorkQueue.mockResolvedValue([]);
   });
 
@@ -225,6 +228,41 @@ describe('getAgentCrmStatsCore', () => {
       expect.objectContaining({
         href: '/agent/leads/lead-1',
         taskId: 'task-1',
+      }),
+    ]);
+  });
+
+  it('loads the agent completed task queue through the completed queue repository', async () => {
+    hoisted.agentCrmTaskWorkQueueRepository.readAgentCompletedTaskQueue.mockResolvedValueOnce([
+      {
+        completedAt: '2026-05-22T14:00:00.000Z',
+        completionReasonCode: 'resolved',
+        dueAt: null,
+        leadDisplayRef: { id: 'lead-1', label: 'Lead One' },
+        lifecycleVersion: 6,
+        priority: 'normal',
+        status: 'completed',
+        subjectReference: { id: 'lead-1', kind: 'lead' },
+        taskId: 'task-6',
+      },
+    ]);
+
+    const queue = await getAgentCrmCompletedTaskQueueCore({
+      actor,
+      now: () => '2026-05-22T15:00:00.000Z',
+    });
+
+    expect(
+      hoisted.agentCrmTaskWorkQueueRepository.readAgentCompletedTaskQueue
+    ).toHaveBeenCalledWith({
+      actor,
+      now: '2026-05-22T15:00:00.000Z',
+    });
+    expect(queue).toEqual([
+      expect.objectContaining({
+        href: '/agent/leads/lead-1',
+        status: 'completed',
+        taskId: 'task-6',
       }),
     ]);
   });

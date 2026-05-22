@@ -4,6 +4,7 @@ import type { CrmTaskExistingMutationGuard } from '@/actions/crm-tasks.core';
 import {
   cancelCrmTaskActionWithGuard,
   completeCrmTaskAction,
+  reopenCrmTaskActionWithGuard,
   startCrmTaskAction,
   updateCrmTaskDueAtAction,
 } from '@/actions/crm-tasks';
@@ -13,6 +14,10 @@ import {
   isAgentCrmTaskQueueCancellationReasonCode,
   type AgentCrmTaskQueueCancellationReasonCode,
 } from './task-queue-cancellation-reasons';
+import {
+  isAgentCrmTaskQueueReopenReasonCode,
+  type AgentCrmTaskQueueReopenReasonCode,
+} from './task-queue-reopen-reasons';
 
 type TaskQueueLifecycleAction = 'start' | 'complete';
 
@@ -29,9 +34,24 @@ type TaskQueueCancellationError =
   | 'conflict'
   | 'rate_limited'
   | 'transient';
-type CancellationParseResult =
-  | { readonly input: AgentCrmTaskQueueCancellationInput; readonly ok: true }
+type TaskQueueReopenError =
+  | 'unavailable'
+  | 'invalid_reason'
+  | 'conflict'
+  | 'terminal'
+  | 'rate_limited'
+  | 'transient';
+type ReasonedTaskQueueInput<TReasonCode extends string> = {
+  readonly expectedLifecycleVersion: number;
+  readonly reasonCode: TReasonCode;
+  readonly taskId: string;
+};
+type ReasonedTaskQueueParseResult<TReasonCode extends string> =
+  | { readonly input: ReasonedTaskQueueInput<TReasonCode>; readonly ok: true }
   | { readonly error: 'invalid_reason' | 'unavailable'; readonly ok: false };
+type CancellationParseResult =
+  ReasonedTaskQueueParseResult<AgentCrmTaskQueueCancellationReasonCode>;
+type ReopenParseResult = ReasonedTaskQueueParseResult<AgentCrmTaskQueueReopenReasonCode>;
 
 export type AgentCrmTaskQueueLifecycleInput = {
   readonly action: TaskQueueLifecycleAction;
@@ -79,6 +99,22 @@ export type AgentCrmTaskQueueCancellationResult =
     }
   | {
       readonly error: TaskQueueCancellationError;
+      readonly success: false;
+    };
+
+export type AgentCrmTaskQueueReopenInput = {
+  readonly expectedLifecycleVersion: number;
+  readonly reasonCode: AgentCrmTaskQueueReopenReasonCode;
+  readonly taskId: string;
+};
+
+export type AgentCrmTaskQueueReopenResult =
+  | {
+      readonly reasonCode: AgentCrmTaskQueueReopenReasonCode;
+      readonly success: true;
+    }
+  | {
+      readonly error: TaskQueueReopenError;
       readonly success: false;
     };
 
@@ -162,7 +198,10 @@ function parseDueDateInput(input: unknown): AgentCrmTaskQueueDueDateInput | null
   };
 }
 
-function parseCancellationInput(input: unknown): CancellationParseResult {
+function parseReasonedTaskQueueInput<TReasonCode extends string>(
+  input: unknown,
+  isReasonCode: (value: unknown) => value is TReasonCode
+): ReasonedTaskQueueParseResult<TReasonCode> {
   if (typeof input !== 'object' || input === null) {
     return { error: 'unavailable', ok: false };
   }
@@ -177,7 +216,7 @@ function parseCancellationInput(input: unknown): CancellationParseResult {
     return { error: 'unavailable', ok: false };
   }
 
-  if (!isAgentCrmTaskQueueCancellationReasonCode(candidate.reasonCode)) {
+  if (!isReasonCode(candidate.reasonCode)) {
     return { error: 'invalid_reason', ok: false };
   }
 
@@ -189,6 +228,14 @@ function parseCancellationInput(input: unknown): CancellationParseResult {
     },
     ok: true,
   };
+}
+
+function parseCancellationInput(input: unknown): CancellationParseResult {
+  return parseReasonedTaskQueueInput(input, isAgentCrmTaskQueueCancellationReasonCode);
+}
+
+function parseReopenInput(input: unknown): ReopenParseResult {
+  return parseReasonedTaskQueueInput(input, isAgentCrmTaskQueueReopenReasonCode);
 }
 
 function mapDueDateOutcomeToError(outcome: string, reason?: string): TaskQueueDueDateError {
@@ -207,10 +254,10 @@ function mapDueDateOutcomeToError(outcome: string, reason?: string): TaskQueueDu
   return 'unavailable';
 }
 
-function mapCancellationOutcomeToError(
+function mapReasonedMutationOutcomeToError(
   outcome: string,
   reason?: string
-): TaskQueueCancellationError {
+): Exclude<TaskQueueReopenError, 'terminal'> {
   if (outcome === 'conflict') {
     return 'conflict';
   }
@@ -229,6 +276,20 @@ function mapCancellationOutcomeToError(
   return 'unavailable';
 }
 
+function mapCancellationOutcomeToError(
+  outcome: string,
+  reason?: string
+): TaskQueueCancellationError {
+  return mapReasonedMutationOutcomeToError(outcome, reason);
+}
+
+function mapReopenOutcomeToError(outcome: string, reason?: string): TaskQueueReopenError {
+  if (outcome === 'conflict') {
+    return reason === 'terminal_state' ? 'terminal' : 'conflict';
+  }
+  return mapReasonedMutationOutcomeToError(outcome, reason);
+}
+
 const requireVisibleAgentTaskQueueRow: CrmTaskExistingMutationGuard = async ({ actor, input }) => {
   try {
     const queue = await agentCrmTaskWorkQueueRepository.readAgentTaskWorkQueue({
@@ -239,6 +300,31 @@ const requireVisibleAgentTaskQueueRow: CrmTaskExistingMutationGuard = async ({ a
 
     if (!row) {
       return { outcome: 'forbidden', reason: 'task_not_in_queue' };
+    }
+
+    if (row.lifecycleVersion !== input.expectedLifecycleVersion) {
+      return { outcome: 'conflict', reason: 'lifecycle_conflict' };
+    }
+
+    return null;
+  } catch {
+    return { outcome: 'repository_failure', reason: 'repository_failure' };
+  }
+};
+
+const requireVisibleAgentCompletedTaskQueueRow: CrmTaskExistingMutationGuard = async ({
+  actor,
+  input,
+}) => {
+  try {
+    const queue = await agentCrmTaskWorkQueueRepository.readAgentCompletedTaskQueue({
+      actor,
+      now: new Date().toISOString(),
+    });
+    const row = queue.find(item => item.taskId === input.taskId);
+
+    if (!row) {
+      return { outcome: 'forbidden', reason: 'task_not_in_completed_queue' };
     }
 
     if (row.lifecycleVersion !== input.expectedLifecycleVersion) {
@@ -341,6 +427,38 @@ export async function submitAgentCrmTaskQueueCancellationAction(
 
     return {
       error: mapCancellationOutcomeToError(result.outcome, result.reason),
+      success: false,
+    };
+  } catch {
+    return { error: 'transient', success: false };
+  }
+}
+
+export async function submitAgentCrmTaskQueueReopenAction(
+  input: AgentCrmTaskQueueReopenInput
+): Promise<AgentCrmTaskQueueReopenResult> {
+  const parsed = parseReopenInput(input);
+  if (!parsed.ok) {
+    return { error: parsed.error, success: false };
+  }
+  const parsedInput = parsed.input;
+
+  try {
+    const result = await reopenCrmTaskActionWithGuard(
+      {
+        expectedLifecycleVersion: parsedInput.expectedLifecycleVersion,
+        reasonCode: parsedInput.reasonCode,
+        taskId: parsedInput.taskId,
+      },
+      requireVisibleAgentCompletedTaskQueueRow
+    );
+
+    if (result.outcome === 'success' || result.outcome === 'idempotent_replay') {
+      return { reasonCode: parsedInput.reasonCode, success: true };
+    }
+
+    return {
+      error: mapReopenOutcomeToError(result.outcome, result.reason),
       success: false,
     };
   } catch {

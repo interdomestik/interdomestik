@@ -581,7 +581,10 @@ export async function cancelCrmTaskCore(
 }
 
 export async function reopenCrmTaskCore(
-  params: CoreParams & { readonly input: ReopenCrmTaskCoreInput }
+  params: CoreParams & {
+    readonly guard?: CrmTaskExistingMutationGuard;
+    readonly input: ReopenCrmTaskCoreInput;
+  }
 ): Promise<CrmTaskBoundaryResult> {
   return runExistingTaskMutation({
     ...params,
