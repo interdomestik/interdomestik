@@ -371,21 +371,35 @@ reopening, assignment, due-date editing, staff/admin/member task UI, new routes,
 reminders, notifications, outbox, templates, sequences, scoring, assistance-intent execution,
 database migration/RLS, historical backfill, proxy/canonical route/auth/tenancy/routing changes,
 Stripe, README, AGENTS.md, and broad architecture-doc work remain blocked.
-`P40-CRM29 Agent CRM Task Queue Start And Complete Controls` is complete on branch
-`codex/p40-crm29-agent-task-queue-controls`: the existing `/agent/crm` CRM28 task queue now exposes
-non-optimistic Start and Complete controls only on visible, assigned, open, lead-backed task rows.
-The controls route through a route-local UI action wrapper over the CRM26 `startCrmTaskAction` and
-`completeCrmTaskAction` boundaries, pin the existing `manual_start` and `resolved` reason codes,
-preserve server-side reauthorization, expose only UI-safe result buckets, keep row-local pending and
-failure states, refresh after successful mutations, and keep legacy due-follow-up rows separate and
-unmutated by the new queue controls. Focused proof passed the route-local action/control/page unit
-tests, web type-check, i18n completeness and purity checks, the targeted agent CRM follow-up
-Playwright gate for KS/SQ and MK/MK, `pnpm security:guard`, `pnpm pr:verify`, and
-`pnpm e2e:gate`. Cancellation, reopening, assignment, due-date editing, staff/admin/member task UI,
-new routes, scheduler/cron, reminders, notifications, outbox, templates, sequences, scoring,
-assistance-intent execution, database migration/RLS, historical backfill,
-proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
+`P40-CRM29 Agent CRM Task Queue Start And Complete Controls` is complete through PR `#841`, merge
+commit `9dc0a300a89b4501a99879271dac7839d1ab533c`: the existing `/agent/crm` CRM28 task queue now
+exposes non-optimistic Start and Complete controls only on visible, assigned, open, lead-backed task
+rows. The controls route through a route-local UI action wrapper over the CRM26
+`startCrmTaskAction` and `completeCrmTaskAction` boundaries, pin the existing `manual_start` and
+`resolved` reason codes, preserve server-side reauthorization, expose only UI-safe result buckets,
+keep row-local pending and failure states, refresh after successful mutations, and keep legacy
+due-follow-up rows separate and unmutated by the new queue controls. Focused proof passed the
+route-local action/control/page unit tests, web type-check, i18n completeness and purity checks, the
+targeted agent CRM follow-up Playwright gate for KS/SQ and MK/MK, `pnpm security:guard`,
+`pnpm pr:verify`, and `pnpm e2e:gate`. Cancellation, reopening, assignment, due-date editing,
+staff/admin/member task UI, new routes, scheduler/cron, reminders, notifications, outbox,
+templates, sequences, scoring, assistance-intent execution, database migration/RLS, historical
+backfill, proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
 architecture-doc work remained blocked.
+`P40-DG07 CRM Task Queue Due-Date Adjustment Controls Design Gate` is recorded in
+`docs/plans/2026-05-22-p40-dg07-crm-task-queue-due-date-controls-design.md` after `P40-CRM29`. It
+promotes exactly one next implementation slice,
+`P40-CRM30 Agent CRM Task Queue Due-Date Adjustment Controls`, limited to bounded due-date
+adjustment and clear controls on visible, assigned, open, lead-backed CRM28/CRM29 queue rows on the
+existing `/agent/crm` route. The promoted slice reuses the CRM26 `updateCrmTaskDueAtAction` path
+with existing `due_date_changed` and `due_date_cleared` reason codes, preserves server-side
+reauthorization, lifecycle-version conflict handling, same-value idempotency, PII-safe result
+buckets, CRM26 audit/rate-limit/revalidation behavior, legacy due-follow-up separation, timezone
+normalization, and row-local focus behavior. Cancellation, reopening, assignment, staff/admin/member
+task UI, new routes, scheduler/cron, reminders, notifications, outbox, templates, sequences,
+scoring, assistance-intent execution, database migration/RLS, historical backfill,
+proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
+architecture-doc work remain blocked.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
