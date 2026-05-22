@@ -77,6 +77,32 @@
             "transient": "Rok nije mogao biti ažuriran. Pokušajte ponovo."
           }
         },
+        "cancelActions": {
+          "group": "Radnje otkazivanja zadatka",
+          "groupFor": "Radnje otkazivanja zadatka za {label}",
+          "confirmGroup": "Potvrdite otkazivanje zadatka",
+          "confirmGroupFor": "Potvrdite otkazivanje zadatka za {label}",
+          "field": "Razlog otkazivanja",
+          "open": "Otkaži zadatak",
+          "openFor": "Otkaži zadatak za {label}",
+          "placeholder": "Izaberite razlog",
+          "confirm": "Potvrdi otkazivanje",
+          "confirming": "Otkazivanje...",
+          "dismiss": "Zadrži zadatak",
+          "success": "Zadatak je otkazan.",
+          "reasons": {
+            "not_needed": "Nije potrebno",
+            "duplicate": "Dupliran zadatak",
+            "created_in_error": "Kreiran greškom"
+          },
+          "error": {
+            "unavailable": "Ovaj zadatak više nije dostupan.",
+            "invalid_reason": "Izaberite razlog otkazivanja.",
+            "conflict": "Ovaj zadatak je promenjen. Osvežite red i pokušajte ponovo.",
+            "rate_limited": "Previše pokušaja. Sačekajte trenutak i pokušajte ponovo.",
+            "transient": "Zadatak nije mogao biti otkazan. Pokušajte ponovo."
+          }
+        },
         "labels": {
           "manual": "Zadatak",
           "follow_up": "Praćenje",

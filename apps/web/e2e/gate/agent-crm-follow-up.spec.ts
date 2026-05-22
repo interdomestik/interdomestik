@@ -195,6 +195,39 @@ async function insertDueFollowUp(args: {
   `);
 }
 
+async function insertQueueTaskFollowUp(args: {
+  agentId: string;
+  branchId: string;
+  dueAt: Date;
+  leadId: string;
+  taskId: string;
+  tenantId: string;
+}): Promise<void> {
+  await db.insert(crmTasks).values({
+    id: args.taskId,
+    tenantId: args.tenantId,
+    branchId: args.branchId,
+    subjectKind: 'lead',
+    subjectId: args.leadId,
+    assignedKind: 'actor',
+    assignedActorId: args.agentId,
+    assignedRole: 'agent',
+    assignedBranchId: args.branchId,
+    assignedTenantId: args.tenantId,
+    status: 'pending',
+    priority: 'normal',
+    dueAt: args.dueAt,
+    idempotencyKey: null,
+    lifecycleVersion: 1,
+    createdById: args.agentId,
+    createdByRole: 'agent',
+    createdByBranchId: args.branchId,
+    createReasonCode: 'follow_up',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+}
+
 test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
   test('agent schedules a lead follow-up, sees it due, and completes it', async ({
     agentPage: page,
@@ -206,72 +239,89 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
       otherTenant === 'mk' ? E2E_USERS.MK_AGENT.email : E2E_USERS.KS_AGENT.email;
     const suffix = `${tenant}-${testInfo.workerIndex}-${testInfo.retry}-${Date.now()}`;
     const leadId = `${CRM13_PREFIX}${suffix}`;
+    const cancelLeadId = `${CRM13_PREFIX}cancel-${suffix}`;
     const futureLeadId = `${CRM13_PREFIX}future-${suffix}`;
     const offTenantLeadId = `${CRM13_PREFIX}offtenant-${suffix}`;
+    const cancelTaskId = `${CRM13_PREFIX}cancel-task-${suffix}`;
     const dealId = `${CRM13_PREFIX}deal-${suffix}`;
     const futureActivityId = `${CRM13_PREFIX}future-activity-${suffix}`;
     const offTenantActivityId = `${CRM13_PREFIX}offtenant-activity-${suffix}`;
     const seededIds = {
       activityIds: [futureActivityId, offTenantActivityId],
       dealIds: [dealId],
-      leadIds: [leadId, futureLeadId, offTenantLeadId],
+      leadIds: [leadId, cancelLeadId, futureLeadId, offTenantLeadId],
     };
     const leadName = `CRM13 Follow Up ${suffix}`;
     const agent = await requireAgent(agentEmail);
     const otherAgent = await requireAgent(otherAgentEmail);
 
-    await cleanupCrm13Rows(seededIds);
-    await insertLead({
-      agentId: agent.id,
-      branchId: agent.branchId,
-      leadId,
-      name: leadName,
-      tenantId: agent.tenantId,
-    });
-    await insertLead({
-      agentId: agent.id,
-      branchId: agent.branchId,
-      leadId: futureLeadId,
-      name: `CRM13 Future ${suffix}`,
-      tenantId: agent.tenantId,
-    });
-    await insertLead({
-      agentId: otherAgent.id,
-      branchId: otherAgent.branchId,
-      leadId: offTenantLeadId,
-      name: `CRM13 Other Tenant ${suffix}`,
-      tenantId: otherAgent.tenantId,
-    });
-
-    await db.insert(crmDeals).values({
-      id: dealId,
-      tenantId: agent.tenantId,
-      leadId,
-      agentId: agent.id,
-      valueCents: 10000,
-      stage: 'proposal',
-      status: 'open',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    await insertDueFollowUp({
-      activityId: futureActivityId,
-      agentId: agent.id,
-      leadId: futureLeadId,
-      scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      tenantId: agent.tenantId,
-    });
-    await insertDueFollowUp({
-      activityId: offTenantActivityId,
-      agentId: otherAgent.id,
-      leadId: offTenantLeadId,
-      scheduledAt: new Date(Date.now() - 60_000),
-      tenantId: otherAgent.tenantId,
-    });
-    await seedCookieConsent(page, testInfo);
-
     try {
+      await cleanupCrm13Rows(seededIds);
+      await insertLead({
+        agentId: agent.id,
+        branchId: agent.branchId,
+        leadId,
+        name: leadName,
+        tenantId: agent.tenantId,
+      });
+      await insertLead({
+        agentId: agent.id,
+        branchId: agent.branchId,
+        leadId: cancelLeadId,
+        name: `CRM13 Cancel ${suffix}`,
+        tenantId: agent.tenantId,
+      });
+      await insertLead({
+        agentId: agent.id,
+        branchId: agent.branchId,
+        leadId: futureLeadId,
+        name: `CRM13 Future ${suffix}`,
+        tenantId: agent.tenantId,
+      });
+      await insertLead({
+        agentId: otherAgent.id,
+        branchId: otherAgent.branchId,
+        leadId: offTenantLeadId,
+        name: `CRM13 Other Tenant ${suffix}`,
+        tenantId: otherAgent.tenantId,
+      });
+
+      await db.insert(crmDeals).values({
+        id: dealId,
+        tenantId: agent.tenantId,
+        leadId,
+        agentId: agent.id,
+        valueCents: 10000,
+        stage: 'proposal',
+        status: 'open',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await insertDueFollowUp({
+        activityId: futureActivityId,
+        agentId: agent.id,
+        leadId: futureLeadId,
+        scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        tenantId: agent.tenantId,
+      });
+      await insertDueFollowUp({
+        activityId: offTenantActivityId,
+        agentId: otherAgent.id,
+        leadId: offTenantLeadId,
+        scheduledAt: new Date(Date.now() - 60_000),
+        tenantId: otherAgent.tenantId,
+      });
+      await insertQueueTaskFollowUp({
+        agentId: agent.id,
+        branchId: agent.branchId,
+        dueAt: new Date(Date.now() - 30_000),
+        leadId: cancelLeadId,
+        taskId: cancelTaskId,
+        tenantId: agent.tenantId,
+      });
+      await seedCookieConsent(page, testInfo);
+
       await gotoApp(page, `/agent/leads/${encodeURIComponent(leadId)}`, testInfo, {
         marker: 'agent-lead-detail-ready',
       });
@@ -315,6 +365,7 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
       await expect(dueRow.getByTestId('agent-crm-task-queue-start')).toHaveCount(0);
       await expect(dueRow.getByTestId('agent-crm-task-queue-complete')).toHaveCount(0);
       await expect(dueRow.getByTestId('agent-crm-task-queue-due-edit')).toHaveCount(0);
+      await expect(dueRow.getByTestId('agent-crm-task-queue-cancel')).toHaveCount(0);
       await expect(
         dueSection.locator(
           `[data-testid="agent-crm-due-follow-up-row"][data-lead-id="${futureLeadId}"]`
@@ -326,12 +377,16 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
         )
       ).toHaveCount(0);
 
-      const taskQueue = page.getByTestId('agent-crm-task-queue-ready').first();
+      let taskQueue = page.getByTestId('agent-crm-task-queue-ready').first();
       await expect(taskQueue).toBeVisible();
-      const taskQueueRow = taskQueue.locator(
+      let taskQueueRow = taskQueue.locator(
         `[data-testid="agent-crm-task-queue-row"][data-lead-id="${leadId}"]`
       );
+      const cancelTaskQueueRow = taskQueue.locator(
+        `[data-testid="agent-crm-task-queue-row"][data-lead-id="${cancelLeadId}"]`
+      );
       await expect(taskQueueRow).toBeVisible({ timeout: 15000 });
+      await expect(cancelTaskQueueRow).toBeVisible({ timeout: 15000 });
       await expect(
         taskQueue.locator(
           `[data-testid="agent-crm-task-queue-row"][data-lead-id="${futureLeadId}"]`
@@ -346,6 +401,37 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-start')).toBeVisible();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-complete')).toBeVisible();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-edit')).toBeVisible();
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-cancel')).toBeVisible();
+      await expect(cancelTaskQueueRow.getByTestId('agent-crm-task-queue-cancel')).toBeVisible();
+      await cancelTaskQueueRow.getByTestId('agent-crm-task-queue-cancel').click();
+      await expect(
+        cancelTaskQueueRow.getByTestId('agent-crm-task-queue-cancel-reason')
+      ).toBeVisible();
+      await expect(
+        cancelTaskQueueRow.getByTestId('agent-crm-task-queue-cancel-confirm')
+      ).toBeDisabled();
+      await expect(
+        cancelTaskQueueRow.locator(
+          '[data-testid="agent-crm-task-queue-cancel-reason"] option[value="subject_closed"]'
+        )
+      ).toHaveCount(0);
+      await cancelTaskQueueRow
+        .getByTestId('agent-crm-task-queue-cancel-reason')
+        .selectOption('duplicate');
+      await cancelTaskQueueRow.getByTestId('agent-crm-task-queue-cancel-confirm').click();
+      await expect.poll(() => countOpenTaskFollowUps(cancelLeadId), { timeout: 15000 }).toBe(0);
+      await gotoApp(page, routes.agentCrm(testInfo), testInfo, {
+        marker: 'agent-crm-page-ready',
+      });
+      taskQueue = page.getByTestId('agent-crm-task-queue-ready').first();
+      taskQueueRow = taskQueue.locator(
+        `[data-testid="agent-crm-task-queue-row"][data-lead-id="${leadId}"]`
+      );
+      await expect(
+        taskQueue.locator(
+          `[data-testid="agent-crm-task-queue-row"][data-lead-id="${cancelLeadId}"]`
+        )
+      ).toHaveCount(0, { timeout: 15000 });
       await taskQueueRow.getByTestId('agent-crm-task-queue-due-edit').click();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-input')).toBeVisible();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-save')).toBeVisible();

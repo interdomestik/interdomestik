@@ -1,21 +1,69 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  cancelCrmTaskActionWithGuardMock: vi.fn(),
   completeCrmTaskActionMock: vi.fn(),
+  readAgentTaskWorkQueueMock: vi.fn(),
   startCrmTaskActionMock: vi.fn(),
   updateCrmTaskDueAtActionMock: vi.fn(),
 }));
 
 vi.mock('@/actions/crm-tasks', () => ({
+  cancelCrmTaskActionWithGuard: hoisted.cancelCrmTaskActionWithGuardMock,
   completeCrmTaskAction: hoisted.completeCrmTaskActionMock,
   startCrmTaskAction: hoisted.startCrmTaskActionMock,
   updateCrmTaskDueAtAction: hoisted.updateCrmTaskDueAtActionMock,
 }));
 
+vi.mock('@/adapters/crm/task-work-queue-repository', () => ({
+  agentCrmTaskWorkQueueRepository: {
+    readAgentTaskWorkQueue: hoisted.readAgentTaskWorkQueueMock,
+  },
+}));
+
 import {
+  submitAgentCrmTaskQueueCancellationAction,
   submitAgentCrmTaskQueueDueDateAction,
   submitAgentCrmTaskQueueLifecycleAction,
 } from './task-queue-actions';
+
+const mockRequestHeaders = new Headers();
+const mockAgentActor = {
+  actorId: 'agent-1',
+  role: 'agent',
+  scope: { agentId: 'agent-1', branchId: 'branch-1', memberId: null, staffId: null },
+  tenantId: 'tenant-1',
+};
+
+function mockVisibleAgentTaskQueue(lifecycleVersion = 5): void {
+  hoisted.readAgentTaskWorkQueueMock.mockResolvedValue([{ lifecycleVersion, taskId: 'task-5' }]);
+}
+
+function mockCancelActionWithQueueGuard(): void {
+  hoisted.cancelCrmTaskActionWithGuardMock.mockImplementation(async (input, guard) => {
+    const guardResult = guard
+      ? await guard({
+          actor: mockAgentActor,
+          deps: {},
+          input,
+          requestHeaders: mockRequestHeaders,
+        })
+      : null;
+
+    return guardResult ?? { outcome: 'success' };
+  });
+}
+
+function submitQueueCancellation(
+  overrides: Partial<Parameters<typeof submitAgentCrmTaskQueueCancellationAction>[0]> = {}
+) {
+  return submitAgentCrmTaskQueueCancellationAction({
+    expectedLifecycleVersion: 5,
+    reasonCode: 'not_needed',
+    taskId: 'task-5',
+    ...overrides,
+  });
+}
 
 describe('submitAgentCrmTaskQueueLifecycleAction', () => {
   beforeEach(() => {
@@ -23,6 +71,8 @@ describe('submitAgentCrmTaskQueueLifecycleAction', () => {
     hoisted.completeCrmTaskActionMock.mockResolvedValue({ outcome: 'success' });
     hoisted.startCrmTaskActionMock.mockResolvedValue({ outcome: 'success' });
     hoisted.updateCrmTaskDueAtActionMock.mockResolvedValue({ outcome: 'success' });
+    mockVisibleAgentTaskQueue();
+    mockCancelActionWithQueueGuard();
   });
 
   it('starts a task with the fixed manual_start reason code', async () => {
@@ -112,6 +162,114 @@ describe('submitAgentCrmTaskQueueLifecycleAction', () => {
     });
 
     expect(result).toEqual({ action: 'complete', error: 'transient', success: false });
+  });
+});
+
+describe('submitAgentCrmTaskQueueCancellationAction', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockVisibleAgentTaskQueue();
+    mockCancelActionWithQueueGuard();
+  });
+
+  it('cancels a task with an explicit UI-exposed cancellation reason code', async () => {
+    const result = await submitQueueCancellation({
+      reasonCode: 'duplicate',
+    });
+
+    expect(result).toEqual({ reasonCode: 'duplicate', success: true });
+    expect(hoisted.readAgentTaskWorkQueueMock).toHaveBeenCalledWith({
+      actor: mockAgentActor,
+      now: expect.any(String),
+    });
+    expect(hoisted.cancelCrmTaskActionWithGuardMock).toHaveBeenCalledWith(
+      {
+        expectedLifecycleVersion: 5,
+        reasonCode: 'duplicate',
+        taskId: 'task-5',
+      },
+      expect.any(Function)
+    );
+  });
+
+  it('treats same-reason idempotency as success', async () => {
+    hoisted.cancelCrmTaskActionWithGuardMock.mockResolvedValueOnce({
+      outcome: 'idempotent_replay',
+      reason: 'idempotent_replay',
+    });
+
+    const result = await submitQueueCancellation({
+      reasonCode: 'created_in_error',
+    });
+
+    expect(result).toEqual({ reasonCode: 'created_in_error', success: true });
+  });
+
+  it('fails closed before cancellation when the task is not in the visible agent queue', async () => {
+    hoisted.readAgentTaskWorkQueueMock.mockResolvedValueOnce([]);
+
+    const result = await submitQueueCancellation();
+
+    expect(result).toEqual({ error: 'unavailable', success: false });
+  });
+
+  it('maps visible queue lifecycle-version drift to a conflict before cancellation', async () => {
+    hoisted.readAgentTaskWorkQueueMock.mockResolvedValueOnce([
+      { lifecycleVersion: 6, taskId: 'task-5' },
+    ]);
+
+    const result = await submitQueueCancellation();
+
+    expect(result).toEqual({ error: 'conflict', success: false });
+  });
+
+  it.each([
+    ['conflict', 'terminal_state', 'conflict'],
+    ['rate_limited', 'rate_limited', 'rate_limited'],
+    ['repository_failure', 'repository_failure', 'transient'],
+    ['invalid_input', 'invalid_reason_code', 'invalid_reason'],
+    ['invalid_input', 'unsupported_transition', 'conflict'],
+    ['forbidden', 'subject_not_visible', 'unavailable'],
+    ['not_found', 'task_not_found', 'unavailable'],
+    ['unauthorized', 'missing_session', 'unavailable'],
+  ] as const)('maps %s/%s to the UI-safe %s bucket', async (outcome, reason, error) => {
+    hoisted.cancelCrmTaskActionWithGuardMock.mockResolvedValueOnce({ outcome, reason });
+
+    const result = await submitQueueCancellation();
+
+    expect(result).toEqual({ error, success: false });
+    if (reason !== error) {
+      expect(JSON.stringify(result)).not.toContain(reason);
+    }
+  });
+
+  it('rejects subject_closed because CRM31 does not expose that reason in the queue picker', async () => {
+    const result = await submitQueueCancellation({
+      reasonCode: 'subject_closed',
+    } as never);
+
+    expect(result).toEqual({ error: 'invalid_reason', success: false });
+    expect(hoisted.cancelCrmTaskActionWithGuardMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed task input before calling the CRM task action', async () => {
+    const result = await submitQueueCancellation({
+      expectedLifecycleVersion: -1,
+      taskId: '',
+    });
+
+    expect(result).toEqual({ error: 'unavailable', success: false });
+    expect(hoisted.cancelCrmTaskActionWithGuardMock).not.toHaveBeenCalled();
+  });
+
+  it('maps thrown CRM task action failures to the transient bucket', async () => {
+    hoisted.cancelCrmTaskActionWithGuardMock.mockRejectedValueOnce(
+      new Error('database unavailable')
+    );
+
+    const result = await submitQueueCancellation();
+
+    expect(result).toEqual({ error: 'transient', success: false });
   });
 });
 

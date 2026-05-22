@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  cancellationSubmitMock: vi.fn(),
   dueDateSubmitMock: vi.fn(),
   refreshMock: vi.fn(),
   lifecycleSubmitMock: vi.fn(),
@@ -25,6 +26,26 @@ const translations: Record<string, string> = {
   'actions.starting': 'Starting...',
   'actions.success.complete': 'Completed',
   'actions.success.start': 'Started',
+  'cancelActions.confirm': 'Confirm cancellation',
+  'cancelActions.confirmGroup': 'Confirm task cancellation',
+  'cancelActions.confirmGroupFor': 'Confirm task cancellation for {label}',
+  'cancelActions.confirming': 'Cancelling...',
+  'cancelActions.dismiss': 'Keep task',
+  'cancelActions.error.conflict': 'Task changed before cancellation',
+  'cancelActions.error.invalid_reason': 'Select a cancellation reason',
+  'cancelActions.error.rate_limited': 'Wait to cancel',
+  'cancelActions.error.transient': 'Try cancel again',
+  'cancelActions.error.unavailable': 'Cancellation unavailable',
+  'cancelActions.field': 'Cancellation reason',
+  'cancelActions.group': 'Task cancellation actions',
+  'cancelActions.groupFor': 'Task cancellation actions for {label}',
+  'cancelActions.open': 'Cancel task',
+  'cancelActions.openFor': 'Cancel task for {label}',
+  'cancelActions.placeholder': 'Select reason',
+  'cancelActions.reasons.created_in_error': 'Created in error',
+  'cancelActions.reasons.duplicate': 'Duplicate task',
+  'cancelActions.reasons.not_needed': 'Not needed',
+  'cancelActions.success': 'Task cancelled',
   'dueActions.cancel': 'Cancel',
   'dueActions.clear': 'Clear due date',
   'dueActions.clearing': 'Clearing...',
@@ -43,11 +64,18 @@ const translations: Record<string, string> = {
 };
 
 vi.mock('next-intl', () => ({
-  useTranslations: (namespace: string) => (key: string) =>
-    translations[`${namespace.replace('agent-crm.crm.taskQueue.', '')}.${key}`] ?? key,
+  useTranslations: (namespace: string) => (key: string, values?: Record<string, string>) => {
+    let message =
+      translations[`${namespace.replace('agent-crm.crm.taskQueue.', '')}.${key}`] ?? key;
+    for (const [name, value] of Object.entries(values ?? {})) {
+      message = message.replaceAll(`{${name}}`, value);
+    }
+    return message;
+  },
 }));
 
 vi.mock('./task-queue-actions', () => ({
+  submitAgentCrmTaskQueueCancellationAction: hoisted.cancellationSubmitMock,
   submitAgentCrmTaskQueueDueDateAction: hoisted.dueDateSubmitMock,
   submitAgentCrmTaskQueueLifecycleAction: hoisted.lifecycleSubmitMock,
 }));
@@ -59,6 +87,10 @@ describe('TaskQueueControls', () => {
     vi.clearAllMocks();
     hoisted.dueDateSubmitMock.mockResolvedValue({
       dueAt: '2026-05-22T10:00:00.000Z',
+      success: true,
+    });
+    hoisted.cancellationSubmitMock.mockResolvedValue({
+      reasonCode: 'not_needed',
       success: true,
     });
     hoisted.lifecycleSubmitMock.mockResolvedValue({ action: 'start', success: true });
@@ -73,25 +105,54 @@ describe('TaskQueueControls', () => {
   });
 
   it('renders start and complete controls for pending rows', () => {
-    render(<TaskQueueControls expectedLifecycleVersion={2} status="pending" taskId="task-1" />);
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={2}
+        status="pending"
+        taskId="task-1"
+      />
+    );
 
     expect(screen.getByTestId('agent-crm-task-queue-start')).toHaveTextContent('Start');
     expect(screen.getByTestId('agent-crm-task-queue-complete')).toHaveTextContent('Complete');
     expect(screen.getByTestId('agent-crm-task-queue-due-edit')).toHaveTextContent('Edit due date');
+    expect(screen.getByTestId('agent-crm-task-queue-cancel')).toHaveTextContent('Cancel task');
     expect(screen.getByRole('group', { name: 'Task actions' })).toBeTruthy();
     expect(screen.getByRole('group', { name: 'Due date actions' })).toBeTruthy();
+    expect(
+      screen.getByRole('group', { name: 'Task cancellation actions for Lead One' })
+    ).toBeTruthy();
+    expect(screen.getByTestId('agent-crm-task-queue-cancel')).toHaveAccessibleName(
+      'Cancel task for Lead One'
+    );
   });
 
   it('renders only complete for in-progress rows', () => {
-    render(<TaskQueueControls expectedLifecycleVersion={2} status="in_progress" taskId="task-1" />);
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={2}
+        status="in_progress"
+        taskId="task-1"
+      />
+    );
 
     expect(screen.queryByTestId('agent-crm-task-queue-start')).toBeNull();
     expect(screen.getByTestId('agent-crm-task-queue-complete')).toHaveTextContent('Complete');
     expect(screen.getByTestId('agent-crm-task-queue-due-edit')).toHaveTextContent('Edit due date');
+    expect(screen.getByTestId('agent-crm-task-queue-cancel')).toHaveTextContent('Cancel task');
   });
 
   it('submits the current task id and lifecycle version without optimistic row mutation', async () => {
-    render(<TaskQueueControls expectedLifecycleVersion={7} status="pending" taskId="task-7" />);
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={7}
+        status="pending"
+        taskId="task-7"
+      />
+    );
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-start'));
 
@@ -113,7 +174,14 @@ describe('TaskQueueControls', () => {
       success: false,
     });
 
-    render(<TaskQueueControls expectedLifecycleVersion={7} status="in_progress" taskId="task-7" />);
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={7}
+        status="in_progress"
+        taskId="task-7"
+      />
+    );
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-complete'));
 
@@ -127,7 +195,14 @@ describe('TaskQueueControls', () => {
   it('restores the row after unexpected submission failures', async () => {
     hoisted.lifecycleSubmitMock.mockRejectedValueOnce(new Error('network unavailable'));
 
-    render(<TaskQueueControls expectedLifecycleVersion={7} status="pending" taskId="task-7" />);
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={7}
+        status="pending"
+        taskId="task-7"
+      />
+    );
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-start'));
 
@@ -139,7 +214,14 @@ describe('TaskQueueControls', () => {
   });
 
   it('submits a normalized due-date update without optimistic row mutation', async () => {
-    render(<TaskQueueControls expectedLifecycleVersion={8} status="pending" taskId="task-8" />);
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={8}
+        status="pending"
+        taskId="task-8"
+      />
+    );
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-due-input'), {
@@ -158,10 +240,176 @@ describe('TaskQueueControls', () => {
     expect(screen.getByText('Due date updated')).toBeTruthy();
   });
 
+  it('requires an explicit cancellation reason before confirming cancellation', () => {
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={9}
+        status="pending"
+        taskId="task-9"
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
+
+    expect(
+      screen.getByRole('group', { name: 'Confirm task cancellation for Lead One' })
+    ).toBeTruthy();
+    expect(screen.getByTestId('agent-crm-task-queue-cancel-reason')).toHaveTextContent(
+      'Not needed'
+    );
+    expect(screen.getByTestId('agent-crm-task-queue-cancel-reason')).toHaveTextContent(
+      'Duplicate task'
+    );
+    expect(screen.getByTestId('agent-crm-task-queue-cancel-reason')).toHaveTextContent(
+      'Created in error'
+    );
+    expect(screen.getByTestId('agent-crm-task-queue-cancel-reason')).not.toHaveTextContent(
+      'subject_closed'
+    );
+    expect(screen.getByTestId('agent-crm-task-queue-cancel-confirm')).toBeDisabled();
+    expect(hoisted.cancellationSubmitMock).not.toHaveBeenCalled();
+  });
+
+  it('dismisses cancellation confirmation back to the row-local cancel control', () => {
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={9}
+        status="pending"
+        taskId="task-9"
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel-dismiss'));
+
+    expect(screen.queryByTestId('agent-crm-task-queue-cancel-reason')).toBeNull();
+    expect(screen.getByTestId('agent-crm-task-queue-cancel')).toHaveTextContent('Cancel task');
+    expect(hoisted.cancellationSubmitMock).not.toHaveBeenCalled();
+  });
+
+  it('submits cancellation with selected reason and refreshes after success', async () => {
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={9}
+        status="pending"
+        taskId="task-9"
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
+    fireEvent.change(screen.getByTestId('agent-crm-task-queue-cancel-reason'), {
+      target: { value: 'created_in_error' },
+    });
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel-confirm'));
+
+    await waitFor(() => {
+      expect(hoisted.cancellationSubmitMock).toHaveBeenCalledWith({
+        expectedLifecycleVersion: 9,
+        reasonCode: 'created_in_error',
+        taskId: 'task-9',
+      });
+    });
+    expect(hoisted.refreshMock).toHaveBeenCalled();
+    expect(screen.getByText('Task cancelled')).toBeTruthy();
+  });
+
+  it.each([
+    {
+      error: 'conflict',
+      leakedText: 'terminal_state',
+      text: 'Task changed before cancellation',
+    },
+    {
+      error: 'rate_limited',
+      leakedText: 'rate_limited',
+      text: 'Wait to cancel',
+    },
+    {
+      error: 'transient',
+      leakedText: 'repository_failure',
+      text: 'Try cancel again',
+    },
+  ] as const)('keeps cancellation $error failures row-local', async scenario => {
+    hoisted.cancellationSubmitMock.mockResolvedValueOnce({
+      error: scenario.error,
+      success: false,
+    });
+
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={9}
+        status="pending"
+        taskId="task-9"
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
+    fireEvent.change(screen.getByTestId('agent-crm-task-queue-cancel-reason'), {
+      target: { value: 'not_needed' },
+    });
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel-confirm'));
+
+    await waitFor(() => {
+      expect(screen.getByText(scenario.text)).toBeTruthy();
+    });
+    expect(screen.queryByText(scenario.leakedText)).toBeNull();
+    expect(hoisted.refreshMock).not.toHaveBeenCalled();
+  });
+
+  it('disables sibling row controls while cancellation is pending', async () => {
+    let resolveCancellation: (value: {
+      reasonCode: 'not_needed';
+      success: true;
+    }) => void = () => {};
+    hoisted.cancellationSubmitMock.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolveCancellation = resolve;
+        })
+    );
+
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={9}
+        status="pending"
+        taskId="task-9"
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
+    fireEvent.change(screen.getByTestId('agent-crm-task-queue-cancel-reason'), {
+      target: { value: 'not_needed' },
+    });
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel-confirm'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('agent-crm-task-queue-start')).toBeDisabled();
+    });
+    expect(screen.getByTestId('agent-crm-task-queue-complete')).toBeDisabled();
+    expect(screen.getByTestId('agent-crm-task-queue-due-edit')).toBeDisabled();
+
+    resolveCancellation({ reasonCode: 'not_needed', success: true });
+    await waitFor(() => {
+      expect(hoisted.refreshMock).toHaveBeenCalled();
+    });
+  });
+
   it('clears the due date through the row-local due-date control', async () => {
     hoisted.dueDateSubmitMock.mockResolvedValueOnce({ dueAt: null, success: true });
 
-    render(<TaskQueueControls expectedLifecycleVersion={8} status="pending" taskId="task-8" />);
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={8}
+        status="pending"
+        taskId="task-8"
+      />
+    );
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-clear'));
@@ -179,7 +427,14 @@ describe('TaskQueueControls', () => {
   it('keeps empty save separate from the clear due-date action', async () => {
     hoisted.dueDateSubmitMock.mockResolvedValueOnce({ dueAt: null, success: true });
 
-    render(<TaskQueueControls expectedLifecycleVersion={8} status="pending" taskId="task-8" />);
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={8}
+        status="pending"
+        taskId="task-8"
+      />
+    );
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
     expect(screen.getByTestId('agent-crm-task-queue-due-save')).toBeDisabled();
@@ -215,7 +470,14 @@ describe('TaskQueueControls', () => {
       success: false,
     });
 
-    render(<TaskQueueControls expectedLifecycleVersion={8} status="pending" taskId="task-8" />);
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={8}
+        status="pending"
+        taskId="task-8"
+      />
+    );
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-due-input'), {

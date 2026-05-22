@@ -9,13 +9,15 @@ type TaskQueueIconButtonProps = Readonly<{
   icon: ReactNode;
   onClick: () => void;
   testId: string;
+  ariaLabel?: string;
   variant?: ComponentProps<typeof Button>['variant'];
 }>;
 
 export const TaskQueueIconButton = forwardRef<HTMLButtonElement, TaskQueueIconButtonProps>(
-  ({ children, disabled, icon, onClick, testId, variant = 'outline' }, ref) => (
+  ({ ariaLabel, children, disabled, icon, onClick, testId, variant = 'outline' }, ref) => (
     <Button
       ref={ref}
+      aria-label={ariaLabel}
       type="button"
       variant={variant}
       size="sm"

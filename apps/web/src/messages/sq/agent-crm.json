@@ -77,6 +77,32 @@
             "transient": "Afati nuk mund të përditësohej. Provoni përsëri."
           }
         },
+        "cancelActions": {
+          "group": "Veprime për anulimin e detyrës",
+          "groupFor": "Veprime për anulimin e detyrës për {label}",
+          "confirmGroup": "Konfirmo anulimin e detyrës",
+          "confirmGroupFor": "Konfirmo anulimin e detyrës për {label}",
+          "field": "Arsyeja e anulimit",
+          "open": "Anulo detyrën",
+          "openFor": "Anulo detyrën për {label}",
+          "placeholder": "Zgjidh arsyen",
+          "confirm": "Konfirmo anulimin",
+          "confirming": "Duke anuluar...",
+          "dismiss": "Mbaje detyrën",
+          "success": "Detyra u anulua.",
+          "reasons": {
+            "not_needed": "Nuk nevojitet",
+            "duplicate": "Detyrë e dyfishtë",
+            "created_in_error": "Krijuar gabimisht"
+          },
+          "error": {
+            "unavailable": "Kjo detyrë nuk është më e disponueshme.",
+            "invalid_reason": "Zgjidhni një arsye anulimi.",
+            "conflict": "Kjo detyrë ndryshoi. Rifreskoni radhën dhe provoni përsëri.",
+            "rate_limited": "Shumë përpjekje. Prisni pak dhe provoni përsëri.",
+            "transient": "Detyra nuk mund të anulohej. Provoni përsëri."
+          }
+        },
         "labels": {
           "manual": "Detyrë",
           "follow_up": "Ndjekje",

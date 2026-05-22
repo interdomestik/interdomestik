@@ -1,12 +1,21 @@
 'use server';
 
+import type { CrmTaskExistingMutationGuard } from '@/actions/crm-tasks.core';
 import {
+  cancelCrmTaskActionWithGuard,
   completeCrmTaskAction,
   startCrmTaskAction,
   updateCrmTaskDueAtAction,
 } from '@/actions/crm-tasks';
+import { agentCrmTaskWorkQueueRepository } from '@/adapters/crm/task-work-queue-repository';
+
+import {
+  isAgentCrmTaskQueueCancellationReasonCode,
+  type AgentCrmTaskQueueCancellationReasonCode,
+} from './task-queue-cancellation-reasons';
 
 type TaskQueueLifecycleAction = 'start' | 'complete';
+
 type TaskQueueLifecycleError = 'unavailable' | 'conflict' | 'rate_limited' | 'transient';
 type TaskQueueDueDateError =
   | 'unavailable'
@@ -14,6 +23,15 @@ type TaskQueueDueDateError =
   | 'conflict'
   | 'rate_limited'
   | 'transient';
+type TaskQueueCancellationError =
+  | 'unavailable'
+  | 'invalid_reason'
+  | 'conflict'
+  | 'rate_limited'
+  | 'transient';
+type CancellationParseResult =
+  | { readonly input: AgentCrmTaskQueueCancellationInput; readonly ok: true }
+  | { readonly error: 'invalid_reason' | 'unavailable'; readonly ok: false };
 
 export type AgentCrmTaskQueueLifecycleInput = {
   readonly action: TaskQueueLifecycleAction;
@@ -45,6 +63,22 @@ export type AgentCrmTaskQueueDueDateResult =
     }
   | {
       readonly error: TaskQueueDueDateError;
+      readonly success: false;
+    };
+
+export type AgentCrmTaskQueueCancellationInput = {
+  readonly expectedLifecycleVersion: number;
+  readonly reasonCode: AgentCrmTaskQueueCancellationReasonCode;
+  readonly taskId: string;
+};
+
+export type AgentCrmTaskQueueCancellationResult =
+  | {
+      readonly reasonCode: AgentCrmTaskQueueCancellationReasonCode;
+      readonly success: true;
+    }
+  | {
+      readonly error: TaskQueueCancellationError;
       readonly success: false;
     };
 
@@ -128,6 +162,35 @@ function parseDueDateInput(input: unknown): AgentCrmTaskQueueDueDateInput | null
   };
 }
 
+function parseCancellationInput(input: unknown): CancellationParseResult {
+  if (typeof input !== 'object' || input === null) {
+    return { error: 'unavailable', ok: false };
+  }
+
+  const candidate = input as Record<string, unknown>;
+  if (
+    typeof candidate.taskId !== 'string' ||
+    candidate.taskId.trim().length === 0 ||
+    !Number.isInteger(candidate.expectedLifecycleVersion) ||
+    Number(candidate.expectedLifecycleVersion) < 0
+  ) {
+    return { error: 'unavailable', ok: false };
+  }
+
+  if (!isAgentCrmTaskQueueCancellationReasonCode(candidate.reasonCode)) {
+    return { error: 'invalid_reason', ok: false };
+  }
+
+  return {
+    input: {
+      expectedLifecycleVersion: Number(candidate.expectedLifecycleVersion),
+      reasonCode: candidate.reasonCode,
+      taskId: candidate.taskId,
+    },
+    ok: true,
+  };
+}
+
 function mapDueDateOutcomeToError(outcome: string, reason?: string): TaskQueueDueDateError {
   if (outcome === 'conflict') {
     return 'conflict';
@@ -143,6 +206,50 @@ function mapDueDateOutcomeToError(outcome: string, reason?: string): TaskQueueDu
   }
   return 'unavailable';
 }
+
+function mapCancellationOutcomeToError(
+  outcome: string,
+  reason?: string
+): TaskQueueCancellationError {
+  if (outcome === 'conflict') {
+    return 'conflict';
+  }
+  if (outcome === 'rate_limited') {
+    return 'rate_limited';
+  }
+  if (outcome === 'repository_failure') {
+    return 'transient';
+  }
+  if (outcome === 'invalid_input' && reason === 'invalid_reason_code') {
+    return 'invalid_reason';
+  }
+  if (outcome === 'invalid_input' && reason === 'unsupported_transition') {
+    return 'conflict';
+  }
+  return 'unavailable';
+}
+
+const requireVisibleAgentTaskQueueRow: CrmTaskExistingMutationGuard = async ({ actor, input }) => {
+  try {
+    const queue = await agentCrmTaskWorkQueueRepository.readAgentTaskWorkQueue({
+      actor,
+      now: new Date().toISOString(),
+    });
+    const row = queue.find(item => item.taskId === input.taskId);
+
+    if (!row) {
+      return { outcome: 'forbidden', reason: 'task_not_in_queue' };
+    }
+
+    if (row.lifecycleVersion !== input.expectedLifecycleVersion) {
+      return { outcome: 'conflict', reason: 'lifecycle_conflict' };
+    }
+
+    return null;
+  } catch {
+    return { outcome: 'repository_failure', reason: 'repository_failure' };
+  }
+};
 
 export async function submitAgentCrmTaskQueueLifecycleAction(
   input: AgentCrmTaskQueueLifecycleInput
@@ -202,6 +309,38 @@ export async function submitAgentCrmTaskQueueDueDateAction(
 
     return {
       error: mapDueDateOutcomeToError(result.outcome, result.reason),
+      success: false,
+    };
+  } catch {
+    return { error: 'transient', success: false };
+  }
+}
+
+export async function submitAgentCrmTaskQueueCancellationAction(
+  input: AgentCrmTaskQueueCancellationInput
+): Promise<AgentCrmTaskQueueCancellationResult> {
+  const parsed = parseCancellationInput(input);
+  if (!parsed.ok) {
+    return { error: parsed.error, success: false };
+  }
+  const parsedInput = parsed.input;
+
+  try {
+    const result = await cancelCrmTaskActionWithGuard(
+      {
+        expectedLifecycleVersion: parsedInput.expectedLifecycleVersion,
+        reasonCode: parsedInput.reasonCode,
+        taskId: parsedInput.taskId,
+      },
+      requireVisibleAgentTaskQueueRow
+    );
+
+    if (result.outcome === 'success' || result.outcome === 'idempotent_replay') {
+      return { reasonCode: parsedInput.reasonCode, success: true };
+    }
+
+    return {
+      error: mapCancellationOutcomeToError(result.outcome, result.reason),
       success: false,
     };
   } catch {

@@ -538,6 +538,31 @@ describe('CRM task domain contracts', () => {
         services('2026-05-20T14:00:00Z')
       )
     ).toMatchObject({ error: 'terminal_state', reason: 'terminal_state', success: false });
+
+    const cancellable = expectTask(createTask({ idempotencyKey: 'crm24-cancellable' }));
+    const cancelled = expectTask(
+      cancelCrmTask(
+        cancellable,
+        { actor: agentActor, reasonCode: 'not_needed' },
+        services('2026-05-20T13:00:00Z')
+      )
+    );
+
+    expect(
+      cancelCrmTask(
+        cancelled,
+        { actor: agentActor, reasonCode: 'not_needed' },
+        services('2026-05-20T14:00:00Z')
+      )
+    ).toMatchObject({ idempotent: true, success: true, task: cancelled, transition: null });
+
+    expect(
+      cancelCrmTask(
+        cancelled,
+        { actor: agentActor, reasonCode: 'duplicate' },
+        services('2026-05-20T14:00:00Z')
+      )
+    ).toMatchObject({ error: 'terminal_state', reason: 'terminal_state', success: false });
   });
 
   it('keeps raw narrative-like caller fields out of public task output', () => {

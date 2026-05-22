@@ -77,6 +77,32 @@
             "transient": "The due date could not be updated. Try again."
           }
         },
+        "cancelActions": {
+          "group": "Task cancellation actions",
+          "groupFor": "Task cancellation actions for {label}",
+          "confirmGroup": "Confirm task cancellation",
+          "confirmGroupFor": "Confirm task cancellation for {label}",
+          "field": "Cancellation reason",
+          "open": "Cancel task",
+          "openFor": "Cancel task for {label}",
+          "placeholder": "Select reason",
+          "confirm": "Confirm cancellation",
+          "confirming": "Cancelling...",
+          "dismiss": "Keep task",
+          "success": "Task cancelled.",
+          "reasons": {
+            "not_needed": "Not needed",
+            "duplicate": "Duplicate task",
+            "created_in_error": "Created in error"
+          },
+          "error": {
+            "unavailable": "This task is no longer available.",
+            "invalid_reason": "Select a cancellation reason.",
+            "conflict": "This task changed. Refresh the queue and try again.",
+            "rate_limited": "Too many attempts. Wait a moment and try again.",
+            "transient": "The task could not be cancelled. Try again."
+          }
+        },
         "labels": {
           "manual": "Task",
           "follow_up": "Follow-up",

@@ -144,6 +144,13 @@ type MutationContext =
     }
   | CrmTaskBoundaryResult;
 
+export type CrmTaskExistingMutationGuard = (params: {
+  readonly actor: CrmActorContext;
+  readonly deps: Required<CrmTaskCoreDeps>;
+  readonly input: { readonly expectedLifecycleVersion: number; readonly taskId: string };
+  readonly requestHeaders: Headers;
+}) => Promise<CrmTaskBoundaryResult | null>;
+
 const MUTATION_LIMIT = 30;
 const MUTATION_WINDOW_SECONDS = 60;
 const CRM_TASK_REVALIDATION_PATHS = ['/agent/crm', '/staff/crm', '/admin/crm'] as const;
@@ -368,6 +375,7 @@ async function persistMutation(params: {
 async function runExistingTaskMutation(
   params: CoreParams & {
     readonly fallbackEvent: CrmTaskTransition['event'];
+    readonly guard?: CrmTaskExistingMutationGuard;
     readonly input: { readonly expectedLifecycleVersion: number; readonly taskId: string };
     readonly mutate: (
       task: CrmTask,
@@ -380,6 +388,16 @@ async function runExistingTaskMutation(
   if (isBoundaryResult(context)) return context;
 
   try {
+    const guardResult = params.guard
+      ? await params.guard({
+          actor: context.actor,
+          deps: context.deps,
+          input: params.input,
+          requestHeaders: context.requestHeaders,
+        })
+      : null;
+    if (guardResult) return guardResult;
+
     const task = await context.deps.repository.findTaskById({
       actor: context.actor,
       taskId: params.input.taskId,
@@ -549,7 +567,10 @@ export async function completeCrmTaskCore(
 }
 
 export async function cancelCrmTaskCore(
-  params: CoreParams & { readonly input: CancelCrmTaskCoreInput }
+  params: CoreParams & {
+    readonly guard?: CrmTaskExistingMutationGuard;
+    readonly input: CancelCrmTaskCoreInput;
+  }
 ): Promise<CrmTaskBoundaryResult> {
   return runExistingTaskMutation({
     ...params,
