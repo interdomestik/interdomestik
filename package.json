@@ -220,7 +220,7 @@
     "react-devtools": "^7.0.1",
     "release-it": "^19.2.4",
     "tsx": "^4.21.0",
-    "turbo": "^2.9.12",
+    "turbo": "^2.9.14",
     "typescript": "^5.9.3"
   },
   "engines": {
