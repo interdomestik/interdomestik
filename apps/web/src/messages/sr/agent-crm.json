@@ -29,6 +29,39 @@
           "won": "Dobijen",
           "lost": "Izgubljen"
         }
+      },
+      "taskQueue": {
+        "title": "Red zadataka",
+        "description": "Otvoreni CRM zadaci za lidove dodeljeni vama.",
+        "count": "{count, plural, =0 {0 zadataka} one {# zadatak} other {# zadataka}}",
+        "countLabel": "{count, plural, =0 {Nema vidljivih zadataka} one {# vidljiv zadatak} other {# vidljivih zadataka}}",
+        "empty": "Nema vidljivih CRM zadataka.",
+        "unknownLead": "Lid",
+        "openLead": "Otvori lid",
+        "dueWithDate": "Rok {bucket}: {date}",
+        "labels": {
+          "manual": "Zadatak",
+          "follow_up": "Praćenje",
+          "support_handoff": "Predaja podršci",
+          "assistance_review": "Pregled asistencije",
+          "data_quality": "Kvalitet podataka"
+        },
+        "status": {
+          "pending": "Na čekanju",
+          "in_progress": "U toku"
+        },
+        "priority": {
+          "low": "Nizak",
+          "normal": "Normalan",
+          "high": "Visok",
+          "urgent": "Hitan"
+        },
+        "dueBucket": {
+          "overdue": "Kasni",
+          "due_today": "Za danas",
+          "upcoming": "Predstoji",
+          "undated": "Bez roka"
+        }
       }
     }
   }

@@ -8,6 +8,9 @@ const hoisted = vi.hoisted(() => ({
     listWeightedPipelineRows: vi.fn(),
     listWinRateRows: vi.fn(),
   },
+  agentCrmTaskWorkQueueRepository: {
+    readAgentTaskWorkQueue: vi.fn(),
+  },
 }));
 
 vi.mock('@interdomestik/domain-crm/dashboards', () => ({
@@ -20,6 +23,10 @@ vi.mock('@/adapters/crm/dashboard-repository', () => ({
 
 vi.mock('@/adapters/crm/reporting-repository', () => ({
   crmReportingRepository: hoisted.crmReportingRepository,
+}));
+
+vi.mock('@/adapters/crm/task-work-queue-repository', () => ({
+  agentCrmTaskWorkQueueRepository: hoisted.agentCrmTaskWorkQueueRepository,
 }));
 
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
@@ -35,6 +42,7 @@ import {
   createAgentCrmReportingWindow,
   getAgentCrmReportingCore,
   getAgentCrmStatsCore,
+  getAgentCrmTaskQueueCore,
 } from './_core';
 
 const actor: CrmActorContext = {
@@ -91,6 +99,7 @@ describe('getAgentCrmStatsCore', () => {
     hoisted.crmReportingRepository.listWeightedPipelineRows.mockResolvedValue([weightedRow]);
     hoisted.crmReportingRepository.listSourceBreakdownRows.mockResolvedValue([sourceRow]);
     hoisted.crmReportingRepository.listWinRateRows.mockResolvedValue([winRateRow]);
+    hoisted.agentCrmTaskWorkQueueRepository.readAgentTaskWorkQueue.mockResolvedValue([]);
   });
 
   it('delegates dashboard reads to the domain CRM dashboard API with actor context', async () => {
@@ -185,6 +194,39 @@ describe('getAgentCrmStatsCore', () => {
       },
       window: expectedWindow,
     });
+  });
+
+  it('loads the agent task queue through the task-only queue repository', async () => {
+    hoisted.agentCrmTaskWorkQueueRepository.readAgentTaskWorkQueue.mockResolvedValueOnce([
+      {
+        createReasonCode: 'follow_up',
+        displayLabelCode: 'follow_up',
+        dueAt: '2026-05-22T12:00:00.000Z',
+        dueBucket: 'due_today',
+        leadDisplayRef: { id: 'lead-1', label: 'Lead One' },
+        lifecycleVersion: 3,
+        priority: 'urgent',
+        status: 'pending',
+        subjectReference: { id: 'lead-1', kind: 'lead' },
+        taskId: 'task-1',
+      },
+    ]);
+
+    const queue = await getAgentCrmTaskQueueCore({
+      actor,
+      now: () => '2026-05-22T08:00:00.000Z',
+    });
+
+    expect(hoisted.agentCrmTaskWorkQueueRepository.readAgentTaskWorkQueue).toHaveBeenCalledWith({
+      actor,
+      now: '2026-05-22T08:00:00.000Z',
+    });
+    expect(queue).toEqual([
+      expect.objectContaining({
+        href: '/agent/leads/lead-1',
+        taskId: 'task-1',
+      }),
+    ]);
   });
 
   it('fails closed before reporting repository reads when reporting scope is invalid', async () => {

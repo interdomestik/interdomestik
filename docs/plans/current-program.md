@@ -347,6 +347,17 @@ scheduler/cron, reminders, notifications, outbox, templates, sequences, scoring,
 assistance-intent execution, database migration/RLS, historical backfill,
 proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
 architecture-doc work remain blocked.
+`P40-CRM28 Agent CRM Task Work Queue UI Foundation` is implemented on branch
+`codex/p40-crm28-agent-task-work-queue-ui`. The slice adds a pure `domain-crm` task work-queue
+read model, a task-only app-side read adapter, and a read-only queue panel on the existing
+`/agent/crm` page with the `agent-crm-task-queue-ready` marker. The queue remains limited to
+visible, assigned, open, lead-backed CRM tasks with PII-safe lead display projection, deterministic
+10-row ordering, active app locale labels, and targeted agent CRM follow-up gate proof. Local proof
+passed `pnpm security:guard`, `pnpm pr:verify`, and `pnpm e2e:gate`. Task mutations,
+staff/admin/member task UI, new routes, scheduler/cron/reminders/notifications/outbox/templates/
+sequences/scoring, assistance-intent execution, database migration/RLS, historical backfill,
+proxy/canonical route/auth/tenancy/routing changes, Stripe, README, AGENTS.md, and broad
+architecture-doc work remained blocked.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 

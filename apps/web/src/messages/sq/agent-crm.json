@@ -29,6 +29,39 @@
           "won": "Fituar",
           "lost": "Humbur"
         }
+      },
+      "taskQueue": {
+        "title": "Radha e detyrave",
+        "description": "Detyra të hapura CRM për lead-e që ju janë caktuar.",
+        "count": "{count, plural, =0 {0 detyra} one {# detyrë} other {# detyra}}",
+        "countLabel": "{count, plural, =0 {Nuk ka detyra të dukshme} one {# detyrë e dukshme} other {# detyra të dukshme}}",
+        "empty": "Nuk ka detyra CRM të dukshme.",
+        "unknownLead": "Kontakt",
+        "openLead": "Hap lead-in",
+        "dueWithDate": "Afati {bucket}: {date}",
+        "labels": {
+          "manual": "Detyrë",
+          "follow_up": "Ndjekje",
+          "support_handoff": "Dorëzim te mbështetja",
+          "assistance_review": "Rishikim asistence",
+          "data_quality": "Cilësi të dhënash"
+        },
+        "status": {
+          "pending": "Në pritje",
+          "in_progress": "Në proces"
+        },
+        "priority": {
+          "low": "E ulët",
+          "normal": "Normale",
+          "high": "E lartë",
+          "urgent": "Urgjente"
+        },
+        "dueBucket": {
+          "overdue": "E vonuar",
+          "due_today": "Për sot",
+          "upcoming": "E ardhshme",
+          "undated": "Pa afat"
+        }
       }
     }
   }
