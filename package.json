@@ -201,7 +201,7 @@
     "@commitlint/config-conventional": "^20.5.3",
     "@playwright/mcp": "^0.0.75",
     "@release-it/conventional-changelog": "^10.0.6",
-    "@supabase/supabase-js": "^2.105.4",
+    "@supabase/supabase-js": "^2.106.1",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.12.2",
     "@upstash/context7-mcp": "^2.2.5",
