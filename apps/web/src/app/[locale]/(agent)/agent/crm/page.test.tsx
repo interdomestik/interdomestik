@@ -10,6 +10,7 @@ const hoisted = vi.hoisted(() => ({
   notFoundMock: vi.fn(() => {
     throw new Error('notFound');
   }),
+  refreshMock: vi.fn(),
   getSessionMock: vi.fn<
     () => Promise<{
       user: {
@@ -50,6 +51,9 @@ vi.mock('next/headers', () => ({
 vi.mock('next/navigation', () => ({
   notFound: hoisted.notFoundMock,
   redirect: hoisted.redirectMock,
+  useRouter: () => ({
+    refresh: hoisted.refreshMock,
+  }),
 }));
 
 vi.mock('next-intl/server', () => ({
@@ -95,8 +99,15 @@ vi.mock('@/i18n/routing', () => ({
 }));
 
 vi.mock('@interdomestik/ui', () => ({
-  Button: ({ asChild, children }: { asChild?: boolean; children: ReactNode }) =>
-    asChild ? children : <button>{children}</button>,
+  Button: ({
+    asChild,
+    children,
+    ...props
+  }: {
+    asChild?: boolean;
+    children: ReactNode;
+    [key: string]: unknown;
+  }) => (asChild ? children : <button {...props}>{children}</button>),
 }));
 
 vi.mock('@/components/agent/leaderboard-card', () => ({
@@ -403,7 +414,7 @@ describe('CRMPage auth redirect', () => {
     expect(screen.getByTestId('agent-crm-reporting-win-rate')).toHaveTextContent('website');
   });
 
-  it('renders the task-backed work queue without mutation controls', async () => {
+  it('renders the task-backed work queue with lifecycle controls only on task rows', async () => {
     hoisted.getSessionMock.mockResolvedValue({
       user: { branchId: 'branch-1', id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
     });
@@ -421,6 +432,19 @@ describe('CRMPage auth redirect', () => {
         subjectReference: { id: 'lead-1', kind: 'lead' },
         taskId: 'task-1',
       },
+      {
+        createReasonCode: 'follow_up',
+        displayLabelCode: 'follow_up',
+        dueAt: '2026-05-22T13:00:00.000Z',
+        dueBucket: 'due_today',
+        href: '/agent/leads/lead-2',
+        leadDisplayRef: { id: 'lead-2', label: 'Lead Two' },
+        lifecycleVersion: 4,
+        priority: 'normal',
+        status: 'in_progress',
+        subjectReference: { id: 'lead-2', kind: 'lead' },
+        taskId: 'task-2',
+      },
     ]);
 
     render(
@@ -432,12 +456,15 @@ describe('CRMPage auth redirect', () => {
     const queue = screen.getByTestId('agent-crm-task-queue-ready');
     expect(queue).toHaveTextContent('crm.taskQueue.title');
     expect(queue).toHaveTextContent('Lead One');
+    expect(queue).toHaveTextContent('Lead Two');
     expect(queue).toHaveTextContent('crm.taskQueue.labels.follow_up');
     expect(queue).toHaveTextContent('crm.taskQueue.priority.urgent');
-    expect(screen.getByTestId('agent-crm-task-queue-open')).toHaveAttribute(
+    expect(screen.getAllByTestId('agent-crm-task-queue-open')[0]).toHaveAttribute(
       'href',
       '/agent/leads/lead-1'
     );
+    expect(screen.getAllByTestId('agent-crm-task-queue-start')).toHaveLength(1);
+    expect(screen.getAllByTestId('agent-crm-task-queue-complete')).toHaveLength(2);
     expect(screen.queryByTestId('agent-lead-complete-follow-up')).toBeNull();
     expect(screen.queryByTestId('agent-lead-schedule-follow-up')).toBeNull();
   });

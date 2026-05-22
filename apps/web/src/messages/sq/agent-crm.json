@@ -39,6 +39,23 @@
         "unknownLead": "Kontakt",
         "openLead": "Hap lead-in",
         "dueWithDate": "Afati {bucket}: {date}",
+        "actions": {
+          "group": "Veprime të ciklit të detyrës",
+          "start": "Fillo",
+          "starting": "Duke filluar...",
+          "complete": "Përfundo",
+          "completing": "Duke përfunduar...",
+          "success": {
+            "start": "Detyra filloi.",
+            "complete": "Detyra përfundoi."
+          },
+          "error": {
+            "unavailable": "Kjo detyrë nuk është më e disponueshme.",
+            "conflict": "Kjo detyrë ndryshoi. Rifreskoni radhën dhe provoni përsëri.",
+            "rate_limited": "Shumë përpjekje. Prisni pak dhe provoni përsëri.",
+            "transient": "Detyra nuk mund të përditësohej. Provoni përsëri."
+          }
+        },
         "labels": {
           "manual": "Detyrë",
           "follow_up": "Ndjekje",
