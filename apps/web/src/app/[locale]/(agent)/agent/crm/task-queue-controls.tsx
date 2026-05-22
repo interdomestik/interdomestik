@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@interdomestik/ui';
 import { Check, Play } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -11,6 +10,7 @@ import {
   type AgentCrmTaskQueueLifecycleInput,
 } from './task-queue-actions';
 import { TaskQueueDueDateControls } from './task-queue-due-date-controls';
+import { TaskQueueIconButton } from './task-queue-icon-button';
 
 type TaskQueueControlsStatus = 'pending' | 'in_progress';
 type TaskQueueLifecycleAction = AgentCrmTaskQueueLifecycleInput['action'];
@@ -89,31 +89,25 @@ export function TaskQueueControls({
     >
       <div className="flex flex-wrap justify-end gap-2">
         {status === 'pending' ? (
-          <Button
+          <TaskQueueIconButton
             ref={startButtonRef}
-            type="button"
-            variant="outline"
-            size="sm"
             disabled={rowDisabled}
             onClick={() => submit('start')}
-            data-testid="agent-crm-task-queue-start"
+            icon={<Play className="h-4 w-4" aria-hidden="true" />}
+            testId="agent-crm-task-queue-start"
           >
-            <Play className="h-4 w-4" aria-hidden="true" />
             {activeAction === 'start' ? t('starting') : t('start')}
-          </Button>
+          </TaskQueueIconButton>
         ) : null}
-        <Button
+        <TaskQueueIconButton
           ref={completeButtonRef}
-          type="button"
-          variant="outline"
-          size="sm"
           disabled={rowDisabled}
           onClick={() => submit('complete')}
-          data-testid="agent-crm-task-queue-complete"
+          icon={<Check className="h-4 w-4" aria-hidden="true" />}
+          testId="agent-crm-task-queue-complete"
         >
-          <Check className="h-4 w-4" aria-hidden="true" />
           {activeAction === 'complete' ? t('completing') : t('complete')}
-        </Button>
+        </TaskQueueIconButton>
       </div>
       <TaskQueueDueDateControls
         disabled={isSubmitting}

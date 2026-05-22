@@ -1,12 +1,12 @@
 'use client';
 
-import { Button } from '@interdomestik/ui';
 import { CalendarClock, Eraser, Save, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useId, useRef, useState } from 'react';
 
 import { submitAgentCrmTaskQueueDueDateAction } from './task-queue-actions';
+import { TaskQueueIconButton } from './task-queue-icon-button';
 
 type TaskQueueDueDatePendingAction = 'due_save' | 'due_clear';
 
@@ -18,6 +18,12 @@ function normalizeLocalDateTimeInput(value: string): string | null | 'invalid' {
   if (!Number.isFinite(date.getTime())) return 'invalid';
 
   return date.toISOString();
+}
+
+function focusAfterFrame(element: HTMLElement | null) {
+  window.requestAnimationFrame(() => {
+    element?.focus();
+  });
 }
 
 export function TaskQueueDueDateControls({
@@ -52,9 +58,7 @@ export function TaskQueueDueDateControls({
     setIsEditing(true);
     setHasError(false);
     onMessage(null);
-    window.requestAnimationFrame(() => {
-      inputRef.current?.focus();
-    });
+    focusAfterFrame(inputRef.current);
   }
 
   function closeEditor() {
@@ -62,9 +66,7 @@ export function TaskQueueDueDateControls({
     setIsEditing(false);
     setHasError(false);
     onMessage(null);
-    window.requestAnimationFrame(() => {
-      editButtonRef.current?.focus();
-    });
+    focusAfterFrame(editButtonRef.current);
   }
 
   function submitDueDate(action: TaskQueueDueDatePendingAction) {
@@ -94,9 +96,7 @@ export function TaskQueueDueDateControls({
           onPendingChange(false);
           setActiveAction(null);
           setIsEditing(false);
-          window.requestAnimationFrame(() => {
-            editButtonRef.current?.focus();
-          });
+          focusAfterFrame(editButtonRef.current);
           router.refresh();
           return;
         }
@@ -138,54 +138,43 @@ export function TaskQueueDueDateControls({
             data-testid="agent-crm-task-queue-due-input"
           />
           <div className="flex flex-wrap justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
+            <TaskQueueIconButton
               disabled={isSubmitting || !canSaveDueDate}
               onClick={() => submitDueDate('due_save')}
-              data-testid="agent-crm-task-queue-due-save"
+              icon={<Save className="h-4 w-4" aria-hidden="true" />}
+              testId="agent-crm-task-queue-due-save"
             >
-              <Save className="h-4 w-4" aria-hidden="true" />
               {activeAction === 'due_save' ? t('saving') : t('save')}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
+            </TaskQueueIconButton>
+            <TaskQueueIconButton
               disabled={isSubmitting}
               onClick={() => submitDueDate('due_clear')}
-              data-testid="agent-crm-task-queue-due-clear"
+              icon={<Eraser className="h-4 w-4" aria-hidden="true" />}
+              testId="agent-crm-task-queue-due-clear"
             >
-              <Eraser className="h-4 w-4" aria-hidden="true" />
               {activeAction === 'due_clear' ? t('clearing') : t('clear')}
-            </Button>
-            <Button
-              type="button"
+            </TaskQueueIconButton>
+            <TaskQueueIconButton
               variant="ghost"
-              size="sm"
               disabled={isSubmitting}
               onClick={closeEditor}
-              data-testid="agent-crm-task-queue-due-cancel"
+              icon={<X className="h-4 w-4" aria-hidden="true" />}
+              testId="agent-crm-task-queue-due-cancel"
             >
-              <X className="h-4 w-4" aria-hidden="true" />
               {t('cancel')}
-            </Button>
+            </TaskQueueIconButton>
           </div>
         </>
       ) : (
-        <Button
+        <TaskQueueIconButton
           ref={editButtonRef}
-          type="button"
-          variant="outline"
-          size="sm"
           disabled={isSubmitting}
           onClick={openEditor}
-          data-testid="agent-crm-task-queue-due-edit"
+          icon={<CalendarClock className="h-4 w-4" aria-hidden="true" />}
+          testId="agent-crm-task-queue-due-edit"
         >
-          <CalendarClock className="h-4 w-4" aria-hidden="true" />
           {t('edit')}
-        </Button>
+        </TaskQueueIconButton>
       )}
     </div>
   );
