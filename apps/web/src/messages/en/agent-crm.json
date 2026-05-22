@@ -29,6 +29,39 @@
           "won": "Won",
           "lost": "Lost"
         }
+      },
+      "taskQueue": {
+        "title": "Task work queue",
+        "description": "Open lead-backed CRM tasks assigned to you.",
+        "count": "{count, plural, =0 {0 tasks} one {# task} other {# tasks}}",
+        "countLabel": "{count, plural, =0 {No visible tasks} one {# visible task} other {# visible tasks}}",
+        "empty": "No visible CRM tasks.",
+        "unknownLead": "Lead",
+        "openLead": "Open lead",
+        "dueWithDate": "{bucket}: {date}",
+        "labels": {
+          "manual": "Task",
+          "follow_up": "Follow-up",
+          "support_handoff": "Support handoff",
+          "assistance_review": "Assistance review",
+          "data_quality": "Data quality"
+        },
+        "status": {
+          "pending": "Pending",
+          "in_progress": "In progress"
+        },
+        "priority": {
+          "low": "Low",
+          "normal": "Normal",
+          "high": "High",
+          "urgent": "Urgent"
+        },
+        "dueBucket": {
+          "overdue": "Overdue",
+          "due_today": "Due today",
+          "upcoming": "Upcoming",
+          "undated": "No due date"
+        }
       }
     }
   }
