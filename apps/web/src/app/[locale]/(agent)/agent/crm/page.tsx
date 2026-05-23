@@ -398,6 +398,7 @@ function TaskQueueWidget({
               <div className="flex flex-col items-stretch gap-2 sm:items-end">
                 <TaskQueueControls
                   expectedLifecycleVersion={item.lifecycleVersion}
+                  priority={item.priority}
                   rowLabel={item.leadDisplayRef.label || t('crm.taskQueue.unknownLead')}
                   status={item.status}
                   taskId={item.taskId}

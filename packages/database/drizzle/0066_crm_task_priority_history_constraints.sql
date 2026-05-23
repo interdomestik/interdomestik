@@ -1,0 +1,6 @@
+ALTER TABLE "crm_task_history" DROP CONSTRAINT IF EXISTS "crm_task_history_event_check";--> statement-breakpoint
+ALTER TABLE "crm_task_history" ADD CONSTRAINT "crm_task_history_event_check" CHECK ("crm_task_history"."event" in ('created', 'assigned', 'reassigned', 'due_updated', 'started', 'completed', 'cancelled', 'reopened', 'priority_updated')) NOT VALID;--> statement-breakpoint
+ALTER TABLE "crm_task_history" VALIDATE CONSTRAINT "crm_task_history_event_check";--> statement-breakpoint
+ALTER TABLE "crm_task_history" DROP CONSTRAINT IF EXISTS "crm_task_history_reason_code_check";--> statement-breakpoint
+ALTER TABLE "crm_task_history" ADD CONSTRAINT "crm_task_history_reason_code_check" CHECK ("crm_task_history"."reason_code" in ('manual', 'follow_up', 'support_handoff', 'assistance_review', 'data_quality', 'manual_assignment', 'reassignment', 'workload_balance', 'due_date_changed', 'due_date_cleared', 'manual_start', 'resolved', 'no_longer_needed', 'duplicate', 'converted', 'manually_closed', 'not_needed', 'created_in_error', 'subject_closed', 'follow_up_required', 'incomplete', 'manually_reopened', 'manual_priority_change')) NOT VALID;--> statement-breakpoint
+ALTER TABLE "crm_task_history" VALIDATE CONSTRAINT "crm_task_history_reason_code_check";

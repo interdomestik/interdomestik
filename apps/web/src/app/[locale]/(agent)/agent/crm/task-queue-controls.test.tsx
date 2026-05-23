@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   cancellationSubmitMock: vi.fn(),
   dueDateSubmitMock: vi.fn(),
+  prioritySubmitMock: vi.fn(),
   refreshMock: vi.fn(),
   lifecycleSubmitMock: vi.fn(),
 }));
@@ -61,12 +62,33 @@ const translations: Record<string, string> = {
   'dueActions.saving': 'Saving...',
   'dueActions.success.clear': 'Due date cleared',
   'dueActions.success.set': 'Due date updated',
+  'priority.high': 'High',
+  'priority.low': 'Low',
+  'priority.normal': 'Normal',
+  'priority.urgent': 'Urgent',
+  'priorityActions.error.conflict': 'Priority changed',
+  'priorityActions.error.invalid_priority': 'Invalid priority',
+  'priorityActions.error.rate_limited': 'Wait to update priority',
+  'priorityActions.error.terminal': 'Priority unavailable',
+  'priorityActions.error.transient': 'Try priority again',
+  'priorityActions.error.unavailable': 'Priority unavailable',
+  'priorityActions.field': 'Task priority',
+  'priorityActions.fieldFor': 'Task priority for {label}',
+  'priorityActions.group': 'Priority actions',
+  'priorityActions.groupFor': 'Priority actions for {label}',
+  'priorityActions.save': 'Save priority',
+  'priorityActions.saveFor': 'Save priority for {label}',
+  'priorityActions.saving': 'Saving...',
+  'priorityActions.success': 'Priority updated',
 };
 
 vi.mock('next-intl', () => ({
   useTranslations: (namespace: string) => (key: string, values?: Record<string, string>) => {
-    let message =
-      translations[`${namespace.replace('agent-crm.crm.taskQueue.', '')}.${key}`] ?? key;
+    const prefix =
+      namespace === 'agent-crm.crm.taskQueue'
+        ? ''
+        : namespace.replace('agent-crm.crm.taskQueue.', '');
+    let message = translations[prefix ? `${prefix}.${key}` : key] ?? key;
     for (const [name, value] of Object.entries(values ?? {})) {
       message = message.replaceAll(`{${name}}`, value);
     }
@@ -78,6 +100,7 @@ vi.mock('./task-queue-actions', () => ({
   submitAgentCrmTaskQueueCancellationAction: hoisted.cancellationSubmitMock,
   submitAgentCrmTaskQueueDueDateAction: hoisted.dueDateSubmitMock,
   submitAgentCrmTaskQueueLifecycleAction: hoisted.lifecycleSubmitMock,
+  submitAgentCrmTaskQueuePriorityAction: hoisted.prioritySubmitMock,
 }));
 
 import { TaskQueueControls } from './task-queue-controls';
@@ -94,6 +117,7 @@ describe('TaskQueueControls', () => {
       success: true,
     });
     hoisted.lifecycleSubmitMock.mockResolvedValue({ action: 'start', success: true });
+    hoisted.prioritySubmitMock.mockResolvedValue({ priority: 'urgent', success: true });
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       callback(0);
       return 0;
@@ -109,6 +133,7 @@ describe('TaskQueueControls', () => {
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={2}
+        priority="normal"
         status="pending"
         taskId="task-1"
       />
@@ -117,9 +142,18 @@ describe('TaskQueueControls', () => {
     expect(screen.getByTestId('agent-crm-task-queue-start')).toHaveTextContent('Start');
     expect(screen.getByTestId('agent-crm-task-queue-complete')).toHaveTextContent('Complete');
     expect(screen.getByTestId('agent-crm-task-queue-due-edit')).toHaveTextContent('Edit due date');
+    expect(screen.getByTestId('agent-crm-task-queue-priority-select')).toHaveValue('normal');
+    expect(screen.getByTestId('agent-crm-task-queue-priority-save')).toBeDisabled();
     expect(screen.getByTestId('agent-crm-task-queue-cancel')).toHaveTextContent('Cancel task');
     expect(screen.getByRole('group', { name: 'Task actions' })).toBeTruthy();
     expect(screen.getByRole('group', { name: 'Due date actions' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Priority actions for Lead One' })).toBeTruthy();
+    expect(screen.getByTestId('agent-crm-task-queue-priority-select')).toHaveAccessibleName(
+      'Task priority for Lead One'
+    );
+    expect(screen.getByTestId('agent-crm-task-queue-priority-save')).toHaveAccessibleName(
+      'Save priority for Lead One'
+    );
     expect(
       screen.getByRole('group', { name: 'Task cancellation actions for Lead One' })
     ).toBeTruthy();
@@ -133,6 +167,7 @@ describe('TaskQueueControls', () => {
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={2}
+        priority="normal"
         status="in_progress"
         taskId="task-1"
       />
@@ -149,6 +184,7 @@ describe('TaskQueueControls', () => {
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={7}
+        priority="normal"
         status="pending"
         taskId="task-7"
       />
@@ -178,6 +214,7 @@ describe('TaskQueueControls', () => {
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={7}
+        priority="normal"
         status="in_progress"
         taskId="task-7"
       />
@@ -199,6 +236,7 @@ describe('TaskQueueControls', () => {
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={7}
+        priority="normal"
         status="pending"
         taskId="task-7"
       />
@@ -218,6 +256,7 @@ describe('TaskQueueControls', () => {
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={8}
+        priority="normal"
         status="pending"
         taskId="task-8"
       />
@@ -240,11 +279,107 @@ describe('TaskQueueControls', () => {
     expect(screen.getByText('Due date updated')).toBeTruthy();
   });
 
+  it('submits a priority update with stable row-local state', async () => {
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={8}
+        priority="normal"
+        status="pending"
+        taskId="task-8"
+      />
+    );
+
+    fireEvent.change(screen.getByTestId('agent-crm-task-queue-priority-select'), {
+      target: { value: 'urgent' },
+    });
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-priority-save'));
+
+    await waitFor(() => {
+      expect(hoisted.prioritySubmitMock).toHaveBeenCalledWith({
+        expectedLifecycleVersion: 8,
+        priority: 'urgent',
+        taskId: 'task-8',
+      });
+    });
+    expect(hoisted.refreshMock).toHaveBeenCalled();
+    expect(screen.getByText('Priority updated')).toBeTruthy();
+  });
+
+  it('suppresses duplicate priority submissions while the row is pending', async () => {
+    let resolvePriority:
+      | ((value: { readonly priority: 'urgent'; readonly success: true }) => void)
+      | undefined;
+    hoisted.prioritySubmitMock.mockReturnValueOnce(
+      new Promise(resolve => {
+        resolvePriority = resolve;
+      })
+    );
+
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={8}
+        priority="normal"
+        status="pending"
+        taskId="task-8"
+      />
+    );
+
+    fireEvent.change(screen.getByTestId('agent-crm-task-queue-priority-select'), {
+      target: { value: 'urgent' },
+    });
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-priority-save'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('agent-crm-task-queue-priority-select')).toBeDisabled();
+    });
+    expect(screen.getByTestId('agent-crm-task-queue-priority-save')).toBeDisabled();
+    expect(screen.getAllByText('Saving...').length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-priority-save'));
+    expect(hoisted.prioritySubmitMock).toHaveBeenCalledTimes(1);
+
+    resolvePriority?.({ priority: 'urgent', success: true });
+    await waitFor(() => {
+      expect(screen.getByText('Priority updated')).toBeTruthy();
+    });
+  });
+
+  it('keeps priority failures row-local and displays only stable UI copy', async () => {
+    hoisted.prioritySubmitMock.mockResolvedValueOnce({
+      error: 'conflict',
+      success: false,
+    });
+
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={8}
+        priority="normal"
+        status="pending"
+        taskId="task-8"
+      />
+    );
+
+    fireEvent.change(screen.getByTestId('agent-crm-task-queue-priority-select'), {
+      target: { value: 'high' },
+    });
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-priority-save'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Priority changed')).toBeTruthy();
+    });
+    expect(screen.queryByText('lifecycle_conflict')).toBeNull();
+    expect(hoisted.refreshMock).not.toHaveBeenCalled();
+  });
+
   it('requires an explicit cancellation reason before confirming cancellation', () => {
     render(
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={9}
+        priority="normal"
         status="pending"
         taskId="task-9"
       />
@@ -276,6 +411,7 @@ describe('TaskQueueControls', () => {
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={9}
+        priority="normal"
         status="pending"
         taskId="task-9"
       />
@@ -294,6 +430,7 @@ describe('TaskQueueControls', () => {
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={9}
+        priority="normal"
         status="pending"
         taskId="task-9"
       />
@@ -342,6 +479,7 @@ describe('TaskQueueControls', () => {
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={9}
+        priority="normal"
         status="pending"
         taskId="task-9"
       />
@@ -376,6 +514,7 @@ describe('TaskQueueControls', () => {
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={9}
+        priority="normal"
         status="pending"
         taskId="task-9"
       />
@@ -406,6 +545,7 @@ describe('TaskQueueControls', () => {
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={8}
+        priority="normal"
         status="pending"
         taskId="task-8"
       />
@@ -431,6 +571,7 @@ describe('TaskQueueControls', () => {
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={8}
+        priority="normal"
         status="pending"
         taskId="task-8"
       />
@@ -474,6 +615,7 @@ describe('TaskQueueControls', () => {
       <TaskQueueControls
         rowLabel="Lead One"
         expectedLifecycleVersion={8}
+        priority="normal"
         status="pending"
         taskId="task-8"
       />

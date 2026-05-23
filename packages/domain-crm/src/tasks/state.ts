@@ -8,6 +8,7 @@ import {
   CRM_TASK_DUE_REASON_CODES,
   CRM_TASK_MUTATION_BLOCKED_STATUSES,
   CRM_TASK_MUTATION_ROLES,
+  CRM_TASK_PRIORITY_REASON_CODES,
   CRM_TASK_PRIORITIES,
   CRM_TASK_REOPEN_REASON_CODES,
   CRM_TASK_START_REASON_CODES,
@@ -41,6 +42,7 @@ import {
   type ReopenCrmTaskInput,
   type StartCrmTaskInput,
   type UpdateCrmTaskDueInput,
+  type UpdateCrmTaskPriorityInput,
 } from './types';
 
 const STRUCTURAL_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
@@ -379,6 +381,7 @@ function applyTransition(args: {
   assignedTo?: CrmTaskAssignmentTarget;
   cancellationReasonCode?: CrmTaskCancellationReasonCode | null;
   cancelledAt?: string | null;
+  priority?: CrmTaskPriority;
   reopenReasonCode?: CrmTaskReopenReasonCode | null;
   reopenedAt?: string | null;
   task: CrmTask;
@@ -401,6 +404,7 @@ function applyTransition(args: {
     dueAt: args.dueAt === undefined ? args.task.dueAt : args.dueAt,
     history: [...args.task.history, entry],
     lifecycleVersion: args.task.lifecycleVersion + 1,
+    priority: args.priority ?? args.task.priority,
     reopenedAt: args.reopenedAt === undefined ? args.task.reopenedAt : args.reopenedAt,
     reopenReasonCode:
       args.reopenReasonCode === undefined ? args.task.reopenReasonCode : args.reopenReasonCode,
@@ -588,6 +592,29 @@ export function updateCrmTaskDueAt(
   if (timestampError) return timestampError;
   const next = transition('due_updated', task.status, task.status, input.reasonCode, now);
   return applyTransition({ actor: input.actor, dueAt, task, transition: next });
+}
+
+export function updateCrmTaskPriority(
+  task: CrmTask,
+  input: UpdateCrmTaskPriorityInput,
+  services: CrmTaskClock
+): CrmTaskMutationResult {
+  const actorError = validateMutableTaskActor(input.actor, task);
+  if (actorError) return actorError;
+  if (isCrmTaskMutationBlockedStatus(task.status)) return terminal('terminal_state');
+  const priorityError = validatePriority(input.priority);
+  if (priorityError) return priorityError;
+  const reasonError = validateReason(input.reasonCode, CRM_TASK_PRIORITY_REASON_CODES);
+  if (reasonError) return reasonError;
+  if (task.priority === input.priority) {
+    return { idempotent: true, success: true, task, transition: null };
+  }
+  const now = normalizeTimestamp(services.now());
+  if (!now) return invalid('invalid_timestamp');
+  const timestampError = validateMutationTimestamp(task, now);
+  if (timestampError) return timestampError;
+  const next = transition('priority_updated', task.status, task.status, input.reasonCode, now);
+  return applyTransition({ actor: input.actor, priority: input.priority, task, transition: next });
 }
 
 export function startCrmTask(

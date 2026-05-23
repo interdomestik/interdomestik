@@ -14,6 +14,7 @@ import {
   reopenCrmTask,
   startCrmTask,
   updateCrmTaskDueAt,
+  updateCrmTaskPriority,
   type CrmTask,
   type CrmTaskClock,
   type CrmTaskIds,
@@ -385,6 +386,18 @@ describe('CRM task domain contracts', () => {
       reason: 'non_monotonic_timestamp',
       success: false,
     });
+
+    expect(
+      updateCrmTaskPriority(
+        cancelled,
+        {
+          actor: agentActor,
+          priority: 'urgent',
+          reasonCode: 'manual_priority_change',
+        },
+        services('2026-05-20T14:00:00Z')
+      )
+    ).toMatchObject({ error: 'terminal_state', reason: 'terminal_state', success: false });
   });
 
   it('handles idempotent create, due-date no-op, and terminal duplicate completion explicitly', () => {
@@ -504,6 +517,14 @@ describe('CRM task domain contracts', () => {
     ).toMatchObject({ idempotent: true, success: true, task, transition: null });
 
     expect(
+      updateCrmTaskPriority(
+        task,
+        { actor: agentActor, priority: 'normal', reasonCode: 'manual_priority_change' },
+        services('2026-05-20T13:00:00Z')
+      )
+    ).toMatchObject({ idempotent: true, success: true, task, transition: null });
+
+    expect(
       assignCrmTask(
         task,
         {
@@ -602,6 +623,63 @@ describe('CRM task domain contracts', () => {
     expect(serialized).not.toContain('insurer says liability');
     expect(serialized).not.toContain('without POA');
     expect(serialized).toContain('assistance_review');
+  });
+
+  it('updates open task priority with an audit-safe history entry', () => {
+    const task = expectTask(createTask());
+    const updated = expectTask(
+      updateCrmTaskPriority(
+        task,
+        { actor: agentActor, priority: 'urgent', reasonCode: 'manual_priority_change' },
+        services('2026-05-20T13:00:00Z')
+      )
+    );
+
+    expect(updated).toMatchObject({
+      dueAt: task.dueAt,
+      lifecycleVersion: task.lifecycleVersion + 1,
+      priority: 'urgent',
+      status: task.status,
+      updatedAt: '2026-05-20T13:00:00.000Z',
+    });
+    expect(updated.assignedTo).toEqual(task.assignedTo);
+    expect(updated.history).toHaveLength(task.history.length + 1);
+    expect(updated.history.at(-1)).toMatchObject({
+      event: 'priority_updated',
+      fromStatus: 'pending',
+      reasonCode: 'manual_priority_change',
+      toStatus: 'pending',
+    });
+
+    expect(
+      updateCrmTaskPriority(
+        task,
+        {
+          actor: agentActor,
+          priority: 'unsupported' as never,
+          reasonCode: 'manual_priority_change',
+        },
+        services('2026-05-20T13:00:00Z')
+      )
+    ).toMatchObject({ error: 'invalid_input', reason: 'invalid_priority', success: false });
+    expect(
+      updateCrmTaskPriority(
+        task,
+        { actor: agentActor, priority: 'high', reasonCode: 'unsupported_reason' as never },
+        services('2026-05-20T13:00:00Z')
+      )
+    ).toMatchObject({ error: 'invalid_input', reason: 'invalid_reason_code', success: false });
+    expect(
+      updateCrmTaskPriority(
+        task,
+        {
+          actor: { ...agentActor, scope: { agentId: 'agent-1', branchId: 'branch-2' } },
+          priority: 'high',
+          reasonCode: 'manual_priority_change',
+        },
+        services('2026-05-20T13:00:00Z')
+      )
+    ).toMatchObject({ error: 'forbidden', reason: 'branch_scope', success: false });
   });
 
   it('keeps the task module free of forbidden cross-domain and runtime imports', () => {

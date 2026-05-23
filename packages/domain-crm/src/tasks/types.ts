@@ -32,6 +32,7 @@ export const CRM_TASK_EVENT_KINDS = [
   'assigned',
   'reassigned',
   'due_updated',
+  'priority_updated',
   'started',
   'completed',
   'cancelled',
@@ -57,6 +58,9 @@ export type CrmTaskAssignmentReasonCode = (typeof CRM_TASK_ASSIGNMENT_REASON_COD
 
 export const CRM_TASK_DUE_REASON_CODES = ['due_date_changed', 'due_date_cleared'] as const;
 export type CrmTaskDueReasonCode = (typeof CRM_TASK_DUE_REASON_CODES)[number];
+
+export const CRM_TASK_PRIORITY_REASON_CODES = ['manual_priority_change'] as const;
+export type CrmTaskPriorityReasonCode = (typeof CRM_TASK_PRIORITY_REASON_CODES)[number];
 
 export const CRM_TASK_START_REASON_CODES = ['manual_start'] as const;
 export type CrmTaskStartReasonCode = (typeof CRM_TASK_START_REASON_CODES)[number];
@@ -135,6 +139,7 @@ export type CrmTaskHistoryEntry = {
     | CrmTaskCompletionReasonCode
     | CrmTaskCreateReasonCode
     | CrmTaskDueReasonCode
+    | CrmTaskPriorityReasonCode
     | CrmTaskReopenReasonCode
     | CrmTaskStartReasonCode;
   readonly timestamp: string;
@@ -254,6 +259,12 @@ export type UpdateCrmTaskDueInput = {
   actor: CrmActorContext;
   dueAt: string | null;
   reasonCode: CrmTaskDueReasonCode;
+};
+
+export type UpdateCrmTaskPriorityInput = {
+  actor: CrmActorContext;
+  priority: CrmTaskPriority;
+  reasonCode: CrmTaskPriorityReasonCode;
 };
 
 export type StartCrmTaskInput = {

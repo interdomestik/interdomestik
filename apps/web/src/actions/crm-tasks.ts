@@ -13,6 +13,7 @@ import {
   reopenCrmTaskCore,
   startCrmTaskCore,
   updateCrmTaskDueAtCore,
+  updateCrmTaskPriorityCore,
   type AssignCrmTaskCoreInput,
   type CancelCrmTaskCoreInput,
   type CompleteCrmTaskCoreInput,
@@ -21,6 +22,7 @@ import {
   type ReopenCrmTaskCoreInput,
   type StartCrmTaskCoreInput,
   type UpdateCrmTaskDueAtCoreInput,
+  type UpdateCrmTaskPriorityCoreInput,
 } from './crm-tasks.core';
 
 async function getActionSession() {
@@ -47,6 +49,19 @@ export async function assignCrmTaskAction(input: AssignCrmTaskCoreInput) {
 export async function updateCrmTaskDueAtAction(input: UpdateCrmTaskDueAtCoreInput) {
   const { requestHeaders, session } = await getActionSession();
   return updateCrmTaskDueAtCore({ input, requestHeaders, session });
+}
+
+export async function updateCrmTaskPriorityAction(input: UpdateCrmTaskPriorityCoreInput) {
+  const { requestHeaders, session } = await getActionSession();
+  return updateCrmTaskPriorityCore({ input, requestHeaders, session });
+}
+
+export async function updateCrmTaskPriorityActionWithGuard(
+  input: UpdateCrmTaskPriorityCoreInput,
+  guard: CrmTaskExistingMutationGuard
+) {
+  const { requestHeaders, session } = await getActionSession();
+  return updateCrmTaskPriorityCore({ guard, input, requestHeaders, session });
 }
 
 export async function startCrmTaskAction(input: StartCrmTaskCoreInput) {

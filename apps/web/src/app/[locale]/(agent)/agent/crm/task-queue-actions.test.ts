@@ -8,6 +8,7 @@ const hoisted = vi.hoisted(() => ({
   reopenCrmTaskActionWithGuardMock: vi.fn(),
   startCrmTaskActionMock: vi.fn(),
   updateCrmTaskDueAtActionMock: vi.fn(),
+  updateCrmTaskPriorityActionWithGuardMock: vi.fn(),
 }));
 
 vi.mock('@/actions/crm-tasks', () => ({
@@ -16,6 +17,7 @@ vi.mock('@/actions/crm-tasks', () => ({
   reopenCrmTaskActionWithGuard: hoisted.reopenCrmTaskActionWithGuardMock,
   startCrmTaskAction: hoisted.startCrmTaskActionMock,
   updateCrmTaskDueAtAction: hoisted.updateCrmTaskDueAtActionMock,
+  updateCrmTaskPriorityActionWithGuard: hoisted.updateCrmTaskPriorityActionWithGuardMock,
 }));
 
 vi.mock('@/adapters/crm/task-work-queue-repository', () => ({
@@ -29,6 +31,7 @@ import {
   submitAgentCrmTaskQueueCancellationAction,
   submitAgentCrmTaskQueueDueDateAction,
   submitAgentCrmTaskQueueLifecycleAction,
+  submitAgentCrmTaskQueuePriorityAction,
   submitAgentCrmTaskQueueReopenAction,
 } from './task-queue-actions';
 
@@ -80,6 +83,21 @@ function mockReopenActionWithQueueGuard(): void {
   });
 }
 
+function mockPriorityActionWithQueueGuard(): void {
+  hoisted.updateCrmTaskPriorityActionWithGuardMock.mockImplementation(async (input, guard) => {
+    const guardResult = guard
+      ? await guard({
+          actor: mockAgentActor,
+          deps: {},
+          input,
+          requestHeaders: mockRequestHeaders,
+        })
+      : null;
+
+    return guardResult ?? { outcome: 'success' };
+  });
+}
+
 function submitQueueCancellation(
   overrides: Partial<Parameters<typeof submitAgentCrmTaskQueueCancellationAction>[0]> = {}
 ) {
@@ -97,6 +115,17 @@ function submitQueueReopen(
   return submitAgentCrmTaskQueueReopenAction({
     expectedLifecycleVersion: 5,
     reasonCode: 'follow_up_required',
+    taskId: 'task-5',
+    ...overrides,
+  });
+}
+
+function submitQueuePriority(
+  overrides: Partial<Parameters<typeof submitAgentCrmTaskQueuePriorityAction>[0]> = {}
+) {
+  return submitAgentCrmTaskQueuePriorityAction({
+    expectedLifecycleVersion: 5,
+    priority: 'urgent',
     taskId: 'task-5',
     ...overrides,
   });
@@ -526,6 +555,96 @@ describe('submitAgentCrmTaskQueueDueDateAction', () => {
       expectedLifecycleVersion: 5,
       taskId: 'task-5',
     });
+
+    expect(result).toEqual({ error: 'transient', success: false });
+  });
+});
+
+describe('submitAgentCrmTaskQueuePriorityAction', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockVisibleAgentTaskQueue();
+    mockPriorityActionWithQueueGuard();
+  });
+
+  it('updates priority with the fixed manual_priority_change reason code', async () => {
+    const result = await submitQueuePriority();
+
+    expect(result).toEqual({ priority: 'urgent', success: true });
+    expect(hoisted.updateCrmTaskPriorityActionWithGuardMock).toHaveBeenCalledWith(
+      {
+        expectedLifecycleVersion: 5,
+        priority: 'urgent',
+        reasonCode: 'manual_priority_change',
+        taskId: 'task-5',
+      },
+      expect.any(Function)
+    );
+  });
+
+  it('requires visibility in the current open task queue before mutating', async () => {
+    hoisted.readAgentTaskWorkQueueMock.mockResolvedValueOnce([]);
+
+    const result = await submitQueuePriority();
+
+    expect(result).toEqual({ error: 'unavailable', success: false });
+  });
+
+  it('maps stale lifecycle versions to a generic conflict bucket', async () => {
+    mockVisibleAgentTaskQueue(6);
+
+    const result = await submitQueuePriority();
+
+    expect(result).toEqual({ error: 'conflict', success: false });
+  });
+
+  it('treats same-priority idempotency as success when it reaches the server', async () => {
+    hoisted.updateCrmTaskPriorityActionWithGuardMock.mockResolvedValueOnce({
+      outcome: 'idempotent_replay',
+      reason: 'idempotent_replay',
+    });
+
+    const result = await submitQueuePriority();
+
+    expect(result).toEqual({ priority: 'urgent', success: true });
+  });
+
+  it.each([
+    ['conflict', 'lifecycle_conflict', 'conflict'],
+    ['conflict', 'terminal_state', 'terminal'],
+    ['rate_limited', 'rate_limited', 'rate_limited'],
+    ['repository_failure', 'repository_failure', 'transient'],
+    ['invalid_input', 'invalid_priority', 'invalid_priority'],
+    ['invalid_input', 'invalid_reason_code', 'invalid_priority'],
+    ['forbidden', 'subject_not_visible', 'unavailable'],
+    ['not_found', 'task_not_found', 'unavailable'],
+    ['unauthorized', 'missing_session', 'unavailable'],
+  ] as const)('maps %s/%s to the UI-safe %s bucket', async (outcome, reason, error) => {
+    hoisted.updateCrmTaskPriorityActionWithGuardMock.mockResolvedValueOnce({ outcome, reason });
+
+    const result = await submitQueuePriority();
+
+    expect(result).toEqual({ error, success: false });
+    if (reason !== error) {
+      expect(JSON.stringify(result)).not.toContain(reason);
+    }
+  });
+
+  it('rejects malformed priority input before calling the CRM task action', async () => {
+    const result = await submitQueuePriority({
+      priority: 'unsupported' as never,
+    });
+
+    expect(result).toEqual({ error: 'invalid_priority', success: false });
+    expect(hoisted.updateCrmTaskPriorityActionWithGuardMock).not.toHaveBeenCalled();
+  });
+
+  it('maps thrown CRM task action failures to the transient bucket', async () => {
+    hoisted.updateCrmTaskPriorityActionWithGuardMock.mockRejectedValueOnce(
+      new Error('database unavailable')
+    );
+
+    const result = await submitQueuePriority();
 
     expect(result).toEqual({ error: 'transient', success: false });
   });

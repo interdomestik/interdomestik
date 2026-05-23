@@ -7,6 +7,7 @@ import {
   reopenCrmTaskActionWithGuard,
   startCrmTaskAction,
   updateCrmTaskDueAtAction,
+  updateCrmTaskPriorityActionWithGuard,
 } from '@/actions/crm-tasks';
 import { agentCrmTaskWorkQueueRepository } from '@/adapters/crm/task-work-queue-repository';
 
@@ -18,6 +19,10 @@ import {
   isAgentCrmTaskQueueReopenReasonCode,
   type AgentCrmTaskQueueReopenReasonCode,
 } from './task-queue-reopen-reasons';
+import {
+  isAgentCrmTaskQueuePriority,
+  type AgentCrmTaskQueuePriority,
+} from './task-queue-priorities';
 
 type TaskQueueLifecycleAction = 'start' | 'complete';
 
@@ -37,6 +42,13 @@ type TaskQueueCancellationError =
 type TaskQueueReopenError =
   | 'unavailable'
   | 'invalid_reason'
+  | 'conflict'
+  | 'terminal'
+  | 'rate_limited'
+  | 'transient';
+type TaskQueuePriorityError =
+  | 'unavailable'
+  | 'invalid_priority'
   | 'conflict'
   | 'terminal'
   | 'rate_limited'
@@ -115,6 +127,22 @@ export type AgentCrmTaskQueueReopenResult =
     }
   | {
       readonly error: TaskQueueReopenError;
+      readonly success: false;
+    };
+
+export type AgentCrmTaskQueuePriorityInput = {
+  readonly expectedLifecycleVersion: number;
+  readonly priority: AgentCrmTaskQueuePriority;
+  readonly taskId: string;
+};
+
+export type AgentCrmTaskQueuePriorityResult =
+  | {
+      readonly priority: AgentCrmTaskQueuePriority;
+      readonly success: true;
+    }
+  | {
+      readonly error: TaskQueuePriorityError;
       readonly success: false;
     };
 
@@ -238,6 +266,29 @@ function parseReopenInput(input: unknown): ReopenParseResult {
   return parseReasonedTaskQueueInput(input, isAgentCrmTaskQueueReopenReasonCode);
 }
 
+function parsePriorityInput(input: unknown): AgentCrmTaskQueuePriorityInput | null {
+  if (typeof input !== 'object' || input === null) {
+    return null;
+  }
+
+  const candidate = input as Record<string, unknown>;
+  if (
+    typeof candidate.taskId !== 'string' ||
+    candidate.taskId.trim().length === 0 ||
+    !Number.isInteger(candidate.expectedLifecycleVersion) ||
+    Number(candidate.expectedLifecycleVersion) < 0 ||
+    !isAgentCrmTaskQueuePriority(candidate.priority)
+  ) {
+    return null;
+  }
+
+  return {
+    expectedLifecycleVersion: Number(candidate.expectedLifecycleVersion),
+    priority: candidate.priority,
+    taskId: candidate.taskId,
+  };
+}
+
 function mapDueDateOutcomeToError(outcome: string, reason?: string): TaskQueueDueDateError {
   if (outcome === 'conflict') {
     return 'conflict';
@@ -288,6 +339,28 @@ function mapReopenOutcomeToError(outcome: string, reason?: string): TaskQueueReo
     return reason === 'terminal_state' ? 'terminal' : 'conflict';
   }
   return mapReasonedMutationOutcomeToError(outcome, reason);
+}
+
+function mapPriorityOutcomeToError(outcome: string, reason?: string): TaskQueuePriorityError {
+  if (outcome === 'conflict') {
+    return reason === 'terminal_state' ? 'terminal' : 'conflict';
+  }
+  if (outcome === 'rate_limited') {
+    return 'rate_limited';
+  }
+  if (outcome === 'repository_failure') {
+    return 'transient';
+  }
+  if (
+    outcome === 'invalid_input' &&
+    (reason === 'invalid_priority' || reason === 'invalid_reason_code')
+  ) {
+    return 'invalid_priority';
+  }
+  if (outcome === 'invalid_input' && reason === 'unsupported_transition') {
+    return 'conflict';
+  }
+  return 'unavailable';
 }
 
 const requireVisibleAgentTaskQueueRow: CrmTaskExistingMutationGuard = async ({ actor, input }) => {
@@ -459,6 +532,38 @@ export async function submitAgentCrmTaskQueueReopenAction(
 
     return {
       error: mapReopenOutcomeToError(result.outcome, result.reason),
+      success: false,
+    };
+  } catch {
+    return { error: 'transient', success: false };
+  }
+}
+
+export async function submitAgentCrmTaskQueuePriorityAction(
+  input: AgentCrmTaskQueuePriorityInput
+): Promise<AgentCrmTaskQueuePriorityResult> {
+  const parsedInput = parsePriorityInput(input);
+  if (parsedInput === null) {
+    return { error: 'invalid_priority', success: false };
+  }
+
+  try {
+    const result = await updateCrmTaskPriorityActionWithGuard(
+      {
+        expectedLifecycleVersion: parsedInput.expectedLifecycleVersion,
+        priority: parsedInput.priority,
+        reasonCode: 'manual_priority_change',
+        taskId: parsedInput.taskId,
+      },
+      requireVisibleAgentTaskQueueRow
+    );
+
+    if (result.outcome === 'success' || result.outcome === 'idempotent_replay') {
+      return { priority: parsedInput.priority, success: true };
+    }
+
+    return {
+      error: mapPriorityOutcomeToError(result.outcome, result.reason),
       success: false,
     };
   } catch {

@@ -85,6 +85,24 @@
             "transient": "The due date could not be updated. Try again."
           }
         },
+        "priorityActions": {
+          "group": "Task priority actions",
+          "groupFor": "Task priority actions for {label}",
+          "field": "Task priority",
+          "fieldFor": "Task priority for {label}",
+          "save": "Save priority",
+          "saveFor": "Save priority for {label}",
+          "saving": "Saving...",
+          "success": "Priority updated.",
+          "error": {
+            "unavailable": "This task is no longer available.",
+            "invalid_priority": "Select a valid priority.",
+            "conflict": "This task changed. Refresh the queue and try again.",
+            "terminal": "This task changed. Refresh the queue and try again.",
+            "rate_limited": "Too many attempts. Wait a moment and try again.",
+            "transient": "The priority could not be updated. Try again."
+          }
+        },
         "cancelActions": {
           "group": "Task cancellation actions",
           "groupFor": "Task cancellation actions for {label}",

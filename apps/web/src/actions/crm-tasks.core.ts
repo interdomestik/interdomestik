@@ -13,6 +13,7 @@ import {
   reopenCrmTask,
   startCrmTask,
   updateCrmTaskDueAt,
+  updateCrmTaskPriority,
   type CrmTask,
   type CrmTaskAssignmentReasonCode,
   type CrmTaskAssignmentTarget,
@@ -23,6 +24,7 @@ import {
   type CrmTaskMutationDenialReason,
   type CrmTaskMutationResult,
   type CrmTaskPriority,
+  type CrmTaskPriorityReasonCode,
   type CrmTaskReopenReasonCode,
   type CrmTaskRepository,
   type CrmTaskStartReasonCode,
@@ -94,6 +96,13 @@ export type UpdateCrmTaskDueAtCoreInput = {
   readonly dueAt: string | null;
   readonly expectedLifecycleVersion: number;
   readonly reasonCode: CrmTaskDueReasonCode;
+  readonly taskId: string;
+};
+
+export type UpdateCrmTaskPriorityCoreInput = {
+  readonly expectedLifecycleVersion: number;
+  readonly priority: CrmTaskPriority;
+  readonly reasonCode: CrmTaskPriorityReasonCode;
   readonly taskId: string;
 };
 
@@ -539,6 +548,24 @@ export async function updateCrmTaskDueAtCore(
       updateCrmTaskDueAt(
         task,
         { actor, dueAt: params.input.dueAt, reasonCode: params.input.reasonCode },
+        { now: deps.now }
+      ),
+  });
+}
+
+export async function updateCrmTaskPriorityCore(
+  params: CoreParams & {
+    readonly guard?: CrmTaskExistingMutationGuard;
+    readonly input: UpdateCrmTaskPriorityCoreInput;
+  }
+): Promise<CrmTaskBoundaryResult> {
+  return runExistingTaskMutation({
+    ...params,
+    fallbackEvent: 'priority_updated',
+    mutate: (task, actor, deps) =>
+      updateCrmTaskPriority(
+        task,
+        { actor, priority: params.input.priority, reasonCode: params.input.reasonCode },
         { now: deps.now }
       ),
   });

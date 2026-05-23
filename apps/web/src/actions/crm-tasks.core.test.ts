@@ -31,6 +31,7 @@ import {
   reopenCrmTaskCore,
   startCrmTaskCore,
   updateCrmTaskDueAtCore,
+  updateCrmTaskPriorityCore,
 } from './crm-tasks.core';
 
 const TEST_NOW = '2026-05-21T10:00:00.000Z';
@@ -433,6 +434,62 @@ describe('CRM task core boundary', () => {
     expect(d.revalidate).not.toHaveBeenCalled();
   });
 
+  it.each([
+    {
+      expected: { outcome: 'invalid_input', reason: 'invalid_priority' },
+      input: {
+        expectedLifecycleVersion: 1,
+        priority: 'unsupported',
+        reasonCode: 'manual_priority_change',
+        taskId: 'task-1',
+      },
+      name: 'rejects invalid priority values',
+      sourceTask: task(),
+    },
+    {
+      expected: { outcome: 'invalid_input', reason: 'invalid_reason_code' },
+      input: {
+        expectedLifecycleVersion: 1,
+        priority: 'urgent',
+        reasonCode: 'unsupported_reason',
+        taskId: 'task-1',
+      },
+      name: 'rejects invalid priority reason values',
+      sourceTask: task(),
+    },
+    {
+      expected: { outcome: 'conflict', reason: 'terminal_state' },
+      input: {
+        expectedLifecycleVersion: 1,
+        priority: 'urgent',
+        reasonCode: 'manual_priority_change',
+        taskId: 'task-1',
+      },
+      name: 'maps terminal priority updates to conflict',
+      sourceTask: task({
+        completedAt: TEST_NOW,
+        completionReasonCode: 'resolved',
+        status: 'completed',
+      }),
+    },
+  ] as const)('$name without save, audit, or revalidation', async scenario => {
+    const repo = repository({
+      findTaskById: vi.fn().mockResolvedValue(scenario.sourceTask),
+    });
+    const d = deps(repo);
+
+    const result = await updateCrmTaskPriorityCore({
+      deps: d,
+      input: scenario.input as never,
+      session: session(),
+    });
+
+    expect(result).toEqual(scenario.expected);
+    expect(repo.saveTask).not.toHaveBeenCalled();
+    expect(d.audit).not.toHaveBeenCalled();
+    expect(d.revalidate).not.toHaveBeenCalled();
+  });
+
   it('maps absent scoped reads to not_found', async () => {
     const repo = repository({
       findTaskById: vi.fn().mockResolvedValue(null),
@@ -527,6 +584,28 @@ describe('CRM task core boundary', () => {
         lifecycleVersion: 2,
         updatedAt: '2026-05-21T09:59:00.000Z',
       }),
+    },
+    {
+      expectedTask: {
+        lifecycleVersion: 2,
+        priority: 'urgent',
+        status: 'pending',
+      },
+      expectedTransition: {
+        event: 'priority_updated',
+        fromStatus: 'pending',
+        reasonCode: 'manual_priority_change',
+        toStatus: 'pending',
+      },
+      input: {
+        expectedLifecycleVersion: 1,
+        priority: 'urgent',
+        reasonCode: 'manual_priority_change',
+        taskId: 'task-1',
+      },
+      mutate: updateCrmTaskPriorityCore,
+      name: 'priority update',
+      sourceTask: task({ updatedAt: '2026-05-21T09:59:00.000Z' }),
     },
     {
       expectedTask: {
@@ -650,6 +729,54 @@ describe('CRM task core boundary', () => {
     );
   });
 
+  it('runs the open-queue guard before priority updates', async () => {
+    const repo = repository({
+      findTaskById: vi.fn().mockResolvedValue(
+        task({
+          lifecycleVersion: 9,
+          priority: 'normal',
+        })
+      ),
+    });
+    const d = deps(repo);
+    const guard = vi.fn().mockResolvedValue({
+      outcome: 'forbidden',
+      reason: 'task_not_in_queue',
+    });
+
+    const result = await updateCrmTaskPriorityCore({
+      deps: d,
+      guard,
+      input: {
+        expectedLifecycleVersion: 9,
+        priority: 'urgent',
+        reasonCode: 'manual_priority_change',
+        taskId: 'task-1',
+      },
+      session: session(),
+    });
+
+    expect(result).toEqual({
+      outcome: 'forbidden',
+      reason: 'task_not_in_queue',
+    });
+    expect(guard).toHaveBeenCalledWith({
+      actor: expect.objectContaining({
+        actorId: 'agent-1',
+        role: 'agent',
+        tenantId: 'tenant-1',
+      }),
+      deps: d,
+      input: expect.objectContaining({
+        expectedLifecycleVersion: 9,
+        taskId: 'task-1',
+      }),
+      requestHeaders: expect.any(Headers),
+    });
+    expect(repo.findTaskById).not.toHaveBeenCalled();
+    expect(repo.saveTask).not.toHaveBeenCalled();
+  });
+
   it('runs the completed-queue guard before reopening a task', async () => {
     const repo = repository({
       findTaskById: vi.fn().mockResolvedValue(
@@ -731,6 +858,22 @@ describe('CRM task core boundary', () => {
       },
       mutate: updateCrmTaskDueAtCore,
       name: 'due date updates',
+    },
+    {
+      existingTask: task({
+        priority: 'urgent',
+        updatedAt: '2026-05-21T09:59:00.000Z',
+      }),
+      expectedEvent: 'priority_updated',
+      expectedFromStatus: null,
+      input: {
+        expectedLifecycleVersion: 1,
+        priority: 'urgent',
+        reasonCode: 'manual_priority_change',
+        taskId: 'task-1',
+      },
+      mutate: updateCrmTaskPriorityCore,
+      name: 'priority updates',
     },
     {
       existingTask: task({

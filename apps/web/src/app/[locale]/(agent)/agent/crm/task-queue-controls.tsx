@@ -12,16 +12,20 @@ import {
 import { TaskQueueCancelControls } from './task-queue-cancel-controls';
 import { TaskQueueDueDateControls } from './task-queue-due-date-controls';
 import { TaskQueueIconButton } from './task-queue-icon-button';
+import { TaskQueuePriorityControls } from './task-queue-priority-controls';
+import type { AgentCrmTaskQueuePriority } from './task-queue-priorities';
 
 type TaskQueueControlsStatus = 'pending' | 'in_progress';
 type TaskQueueLifecycleAction = AgentCrmTaskQueueLifecycleInput['action'];
 export function TaskQueueControls({
   expectedLifecycleVersion,
+  priority,
   rowLabel,
   status,
   taskId,
 }: Readonly<{
   expectedLifecycleVersion: number;
+  priority: AgentCrmTaskQueuePriority;
   rowLabel: string;
   status: TaskQueueControlsStatus;
   taskId: string;
@@ -33,6 +37,7 @@ export function TaskQueueControls({
   const [activeAction, setActiveAction] = useState<TaskQueueLifecycleAction | null>(null);
   const [isCancelPending, setIsCancelPending] = useState(false);
   const [isDuePending, setIsDuePending] = useState(false);
+  const [isPriorityPending, setIsPriorityPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const startButtonRef = useRef<HTMLButtonElement | null>(null);
   const completeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -90,7 +95,7 @@ export function TaskQueueControls({
 
   const pendingLabel = activeAction ? lifecycleLabel(activeAction, 'active') : '';
   const isSubmitting = isPending || activeAction !== null;
-  const rowDisabled = isSubmitting || isDuePending || isCancelPending;
+  const rowDisabled = isSubmitting || isDuePending || isCancelPending || isPriorityPending;
 
   return (
     <div
@@ -121,15 +126,25 @@ export function TaskQueueControls({
         </TaskQueueIconButton>
       </div>
       <TaskQueueDueDateControls
-        disabled={isSubmitting || isCancelPending}
+        disabled={isSubmitting || isCancelPending || isPriorityPending}
         expectedLifecycleVersion={expectedLifecycleVersion}
         onMessage={setMessage}
         onPendingChange={setIsDuePending}
         rowMessageId={messageId}
         taskId={taskId}
       />
+      <TaskQueuePriorityControls
+        currentPriority={priority}
+        disabled={isSubmitting || isCancelPending || isDuePending}
+        expectedLifecycleVersion={expectedLifecycleVersion}
+        onMessage={setMessage}
+        onPendingChange={setIsPriorityPending}
+        rowLabel={rowLabel}
+        rowMessageId={messageId}
+        taskId={taskId}
+      />
       <TaskQueueCancelControls
-        disabled={isSubmitting || isDuePending}
+        disabled={isSubmitting || isDuePending || isPriorityPending}
         expectedLifecycleVersion={expectedLifecycleVersion}
         onMessage={setMessage}
         onPendingChange={setIsCancelPending}
