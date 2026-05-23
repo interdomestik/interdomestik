@@ -519,6 +519,19 @@ most one follow-up implementation slice for a later promotion gate. It does not 
 UI edits, additional CRM behavior, new routes, proxy/canonical route/auth/tenancy changes,
 schema/RLS/migrations, Stripe, README/AGENTS.md, or broad architecture-doc work.
 
+`P41-UX01 Product Surface UX Audit And Slice Ranking` is complete as a docs-and-evidence audit in
+`docs/plans/2026-05-23-p41-ux01-product-surface-ux-audit.md`. The audit inspected existing
+canonical public, member, agent, staff, and admin surfaces and ranked the accumulated `/agent/crm`
+task-row action density after P40 as the clearest next product-professionalism risk. It recommends
+exactly one next design gate, `P41-DG02 Agent CRM Task Queue Action Density And Mobile Ergonomics
+Design Gate`, before any runtime UI implementation. P41-UX01 did not edit runtime UI, routes,
+proxy, auth, tenancy, schemas, tests, messages, Stripe, README/AGENTS.md, or architecture docs.
+
+`P41-DG02 Agent CRM Task Queue Action Density And Mobile Ergonomics Design Gate` is now pending as
+the sole recommended successor to P41-UX01. It is a future docs/design gate, not runtime
+implementation: it may define the presentation-only `/agent/crm` task-row ergonomics contract and
+propose a later bounded implementation slice, but it does not itself authorize code changes.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
@@ -794,6 +807,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 269. Keep `P37 AI Production Readiness` closed for the purpose of opening Dashboard Professionalism, with `P37-AI02` as the last completed marker and any remaining `P37-*` items deferred into separately tracked work.
 270. Keep `P40 CRM Product Depth` complete after `P40-CRM33`, preserving the CRM task queue foundation, lifecycle, due-date, cancellation, completed recovery, and priority-control sequence without promoting additional CRM runtime behavior by default.
 271. Open `P41 Product Surface UX Professionalism` as a docs-and-evidence product UI/UX audit tranche after P40, starting with `P41-UX01 Product Surface UX Audit And Slice Ranking` and preserving Phase C route, proxy, auth, tenancy, schema, Stripe, README, AGENTS, and architecture-doc boundaries.
+272. Keep `P41-UX01 Product Surface UX Audit And Slice Ranking` complete as the docs-and-evidence audit that ranks `/agent/crm` task-row action density and mobile ergonomics as the next design target, recommending `P41-DG02 Agent CRM Task Queue Action Density And Mobile Ergonomics Design Gate` before any runtime UI implementation.
 
 ## Status Command
 
