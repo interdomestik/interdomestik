@@ -454,6 +454,35 @@ panel. The slice blocks cancelled-task recovery, full task history, assignment/r
 staff/admin/member task UI, scheduler/cron, reminders, notifications, outbox, new routes,
 DB schema/RLS/migrations, assistance execution, proxy/canonical route/auth/tenancy changes, Stripe,
 README/AGENTS.md, and broad architecture-doc work.
+`P40-CRM32 Agent CRM Task Queue Completed Task Recovery` is complete through PR `#849`, merge
+commit `4c086bf3c8964549caa5a11e7bfa81b7c7f66b35`: the existing `/agent/crm` task queue now has a
+bounded completed-task recovery panel below the open work queue. The implementation derives a
+distinct completed-queue DTO for recently completed, assigned, lead-backed tasks for the current
+agent, reuses CRM26 `reopenCrmTaskAction`, exposes `follow_up_required`, `incomplete`, and
+`manually_reopened`, excludes cancelled tasks from the completed panel, maps terminal and stale
+lifecycle states to non-disclosing copy, preserves existing open queue controls, cancellation
+controls, due-date controls, lead links, legacy due-follow-up separation, canonical routes, and
+`apps/web/src/proxy.ts`, and passed focused unit proof, `pnpm security:guard`, `pnpm pr:verify`,
+and `pnpm e2e:gate`, with remote validation, audit, static, unit, full E2E, `e2e-gate`, Pilot
+Gate, gitleaks, pnpm-audit, PR finalizer, SonarCloud, Vercel ignored-build, and Vercel Preview
+Comments green before merge. Cancelled-task recovery, full task history, assignment/reassignment,
+staff/admin/member task UI, scheduler/reminders/notifications/outbox, new routes/API/cron, DB
+schema/RLS/migrations, assistance execution, auth/tenancy/routing refactors, Stripe,
+README/AGENTS.md, and architecture-doc work remained out of scope.
+`P40-DG10 CRM Task Queue Priority Adjustment Controls Design Gate` is recorded in
+`docs/plans/2026-05-23-p40-dg10-crm-task-priority-controls-design.md` after `P40-CRM32`. It
+promotes exactly one next implementation slice,
+`P40-CRM33 Agent CRM Task Queue Priority Adjustment Controls`, limited to a narrow CRM task
+priority mutation and row-local priority controls on existing visible, assigned, open, lead-backed
+CRM task queue rows on `/agent/crm`. The promoted slice may add the missing `priority_updated`
+domain event, `manual_priority_change` reason code, CRM26 `updateCrmTaskPriorityAction`, and
+inline always-visible priority controls that reuse the existing `crm.taskQueue.priority.*` labels,
+disable same-priority saves, preserve row-local pending/focus/scroll behavior, and rely on CRM26
+rate-limit, audit, lifecycle-version, and revalidation semantics. It blocks assignment,
+reassignment, task creation, completed-row priority editing, full task history, filters,
+pagination, staff/admin/member task UI, scheduler/cron, reminders, notifications, outbox, new
+routes, DB schema/RLS/migrations, assistance execution, proxy/canonical route/auth/tenancy
+changes, Stripe, README/AGENTS.md, and broad architecture-doc work.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
