@@ -85,6 +85,24 @@
             "transient": "Afati nuk mund të përditësohej. Provoni përsëri."
           }
         },
+        "priorityActions": {
+          "group": "Veprime për prioritetin e detyrës",
+          "groupFor": "Veprime për prioritetin e detyrës për {label}",
+          "field": "Prioriteti i detyrës",
+          "fieldFor": "Prioriteti i detyrës për {label}",
+          "save": "Ruaj prioritetin",
+          "saveFor": "Ruaj prioritetin për {label}",
+          "saving": "Duke ruajtur...",
+          "success": "Prioriteti u përditësua.",
+          "error": {
+            "unavailable": "Kjo detyrë nuk është më e disponueshme.",
+            "invalid_priority": "Zgjidhni një prioritet të vlefshëm.",
+            "conflict": "Kjo detyrë ndryshoi. Rifreskoni radhën dhe provoni përsëri.",
+            "terminal": "Kjo detyrë ndryshoi. Rifreskoni radhën dhe provoni përsëri.",
+            "rate_limited": "Shumë përpjekje. Prisni pak dhe provoni përsëri.",
+            "transient": "Prioriteti nuk mund të përditësohej. Provoni përsëri."
+          }
+        },
         "cancelActions": {
           "group": "Veprime për anulimin e detyrës",
           "groupFor": "Veprime për anulimin e detyrës për {label}",

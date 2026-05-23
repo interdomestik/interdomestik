@@ -1021,7 +1021,7 @@ export const crmTaskHistory = pgTable(
     }),
     check(
       'crm_task_history_event_check',
-      sql`${table.event} in ('created', 'assigned', 'reassigned', 'due_updated', 'started', 'completed', 'cancelled', 'reopened')`
+      sql`${table.event} in ('created', 'assigned', 'reassigned', 'due_updated', 'started', 'completed', 'cancelled', 'reopened', 'priority_updated')`
     ),
     check(
       'crm_task_history_from_status_check',
@@ -1033,7 +1033,7 @@ export const crmTaskHistory = pgTable(
     ),
     check(
       'crm_task_history_reason_code_check',
-      sql`${table.reasonCode} in ('manual', 'follow_up', 'support_handoff', 'assistance_review', 'data_quality', 'manual_assignment', 'reassignment', 'workload_balance', 'due_date_changed', 'due_date_cleared', 'manual_start', 'resolved', 'no_longer_needed', 'duplicate', 'converted', 'manually_closed', 'not_needed', 'created_in_error', 'subject_closed', 'follow_up_required', 'incomplete', 'manually_reopened')`
+      sql`${table.reasonCode} in ('manual', 'follow_up', 'support_handoff', 'assistance_review', 'data_quality', 'manual_assignment', 'reassignment', 'workload_balance', 'due_date_changed', 'due_date_cleared', 'manual_start', 'resolved', 'no_longer_needed', 'duplicate', 'converted', 'manually_closed', 'not_needed', 'created_in_error', 'subject_closed', 'follow_up_required', 'incomplete', 'manually_reopened', 'manual_priority_change')`
     ),
     check(
       'crm_task_history_actor_role_check',

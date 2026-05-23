@@ -85,6 +85,24 @@
             "transient": "Rok nije mogao biti ažuriran. Pokušajte ponovo."
           }
         },
+        "priorityActions": {
+          "group": "Radnje za prioritet zadatka",
+          "groupFor": "Radnje za prioritet zadatka za {label}",
+          "field": "Prioritet zadatka",
+          "fieldFor": "Prioritet zadatka za {label}",
+          "save": "Sačuvaj prioritet",
+          "saveFor": "Sačuvaj prioritet za {label}",
+          "saving": "Čuvanje...",
+          "success": "Prioritet je ažuriran.",
+          "error": {
+            "unavailable": "Ovaj zadatak više nije dostupan.",
+            "invalid_priority": "Izaberite važeći prioritet.",
+            "conflict": "Ovaj zadatak je promenjen. Osvežite red i pokušajte ponovo.",
+            "terminal": "Ovaj zadatak je promenjen. Osvežite red i pokušajte ponovo.",
+            "rate_limited": "Previše pokušaja. Sačekajte trenutak i pokušajte ponovo.",
+            "transient": "Prioritet nije mogao biti ažuriran. Pokušajte ponovo."
+          }
+        },
         "cancelActions": {
           "group": "Radnje otkazivanja zadatka",
           "groupFor": "Radnje otkazivanja zadatka za {label}",

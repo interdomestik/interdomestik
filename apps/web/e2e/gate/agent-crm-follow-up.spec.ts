@@ -365,6 +365,7 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
       await expect(dueRow.getByTestId('agent-crm-task-queue-start')).toHaveCount(0);
       await expect(dueRow.getByTestId('agent-crm-task-queue-complete')).toHaveCount(0);
       await expect(dueRow.getByTestId('agent-crm-task-queue-due-edit')).toHaveCount(0);
+      await expect(dueRow.getByTestId('agent-crm-task-queue-priority')).toHaveCount(0);
       await expect(dueRow.getByTestId('agent-crm-task-queue-cancel')).toHaveCount(0);
       await expect(
         dueSection.locator(
@@ -401,6 +402,7 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-start')).toBeVisible();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-complete')).toBeVisible();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-edit')).toBeVisible();
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-priority-select')).toBeVisible();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-cancel')).toBeVisible();
       await expect(cancelTaskQueueRow.getByTestId('agent-crm-task-queue-cancel')).toBeVisible();
       await cancelTaskQueueRow.getByTestId('agent-crm-task-queue-cancel').click();

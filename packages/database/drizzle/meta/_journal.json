@@ -463,6 +463,13 @@
       "when": 1779343710000,
       "tag": "0065_crm_task_persistence",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1779530199331,
+      "tag": "0066_crm_task_priority_history_constraints",
+      "breakpoints": true
     }
   ]
 }

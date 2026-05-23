@@ -6,4 +6,5 @@ export {
   reopenCrmTask,
   startCrmTask,
   updateCrmTaskDueAt,
+  updateCrmTaskPriority,
 } from './state';
