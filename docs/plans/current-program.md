@@ -484,6 +484,17 @@ pagination, staff/admin/member task UI, scheduler/cron, reminders, notifications
 routes, DB schema/RLS/migrations, assistance execution, proxy/canonical route/auth/tenancy
 changes, Stripe, README/AGENTS.md, and broad architecture-doc work.
 
+`P40-DG10A CRM33 Priority History Constraint Hardening Decision` is recorded in
+`docs/plans/2026-05-23-p40-dg10a-crm33-priority-history-constraint-hardening.md` after `P40-DG10`
+and before `P40-CRM33` implementation. It amends DG10 only to authorize the minimum
+`crm_task_history` check-constraint widening required for the DG10-approved `priority_updated`
+event and `manual_priority_change` reason code to persist. The authorization is limited to the
+active Drizzle schema check definitions, one additive migration plus required migration metadata,
+and focused schema/database proof. It does not authorize new tables, columns, indexes, RLS
+policies, tenant functions, grants, backfills, destructive migrations, trigger changes, repository
+redesign, broader task persistence changes, proxy/canonical route/auth/tenancy changes, Stripe,
+README/AGENTS.md, or broad architecture-doc work.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals

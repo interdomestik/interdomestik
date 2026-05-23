@@ -23,6 +23,7 @@ authorized by this gate.
 | -------- | ---------- | --------------------------------------------------------------------------------------------- |
 | `r1`     | 2026-05-23 | Initial review draft after `P40-CRM32` merged through PR `#849`.                              |
 | `r2`     | 2026-05-23 | Review hardening for stale lifecycle-version semantics, idempotent success, save-button behavior, success copy, i18n key reuse, pending visuals, scroll/focus behavior, return-code enumeration, and implementation verification breadth. |
+| `r3`     | 2026-05-23 | DG10A amendment authorizes only the minimal `crm_task_history` check-constraint widening needed for CRM33 `priority_updated` and `manual_priority_change` persistence. |
 
 ## Definitions
 
@@ -134,6 +135,9 @@ Codebase verification as of this draft:
 - The existing `CRM_TASK_REVALIDATION_PATHS` in `crm-tasks.core.ts` covers
   `/{locale}/agent/crm`, `/{locale}/staff/crm`, and `/{locale}/admin/crm`; no new path is needed
   for CRM33 priority updates.
+- `P40-DG10A CRM33 Priority History Constraint Hardening Decision` records that the active
+  `crm_task_history` database checks reject the new CRM33 event/reason pair unless the history
+  allowlists are widened. DG10A authorizes only that minimal constraint widening.
 
 ## Decision
 
@@ -223,7 +227,9 @@ Expected implementation delta should stay focused on:
 - targeted preservation or update of `apps/web/e2e/gate/agent-crm-follow-up.spec.ts`.
 
 CRM33 should avoid changing database schema, migrations, RLS, CRM task repository shape, work-queue
-DTO shapes, completed-queue DTO shapes, route groups, or proxy/routing/auth/tenancy layers.
+DTO shapes, completed-queue DTO shapes, route groups, or proxy/routing/auth/tenancy layers, except
+for the DG10A-authorized minimum `crm_task_history` check-constraint widening for
+`priority_updated` and `manual_priority_change`.
 
 ## Priority Mutation Contract
 
@@ -517,6 +523,9 @@ distinguish absent work from invisible work, and must not reveal concurrent acto
 - DG10 promotes only `P40-CRM33 Agent CRM Task Queue Priority Adjustment Controls`.
 - CRM33 adds a narrow priority mutation event `priority_updated` and stable reason code
   `manual_priority_change`.
+- CRM33 includes the DG10A-authorized database/schema migration delta only to widen
+  `crm_task_history_event_check` for `priority_updated` and
+  `crm_task_history_reason_code_check` for `manual_priority_change`.
 - CRM33 adds `updateCrmTaskPriorityAction` through the CRM26 action/core pattern.
 - Priority updates use only task id, expected lifecycle version, target priority, and stable reason
   code.
@@ -669,7 +678,8 @@ This promotion records the following repo-canonical state:
   `P40-CRM33 Agent CRM Task Queue Priority Adjustment Controls`.
 - Changes stay scoped to docs/plans, tracker/program proof, and repo-size budget.
 - Do not edit runtime code, tests, proxy, routes, auth, tenancy, schemas, migrations, Stripe,
-  README, AGENTS.md, or architecture docs during DG10 promotion.
+  README, AGENTS.md, or architecture docs during DG10 promotion. DG10A separately authorizes only
+  the minimum schema/migration check-constraint widening during CRM33 implementation.
 
 ## Completion State
 
