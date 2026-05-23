@@ -527,10 +527,17 @@ exactly one next design gate, `P41-DG02 Agent CRM Task Queue Action Density And 
 Design Gate`, before any runtime UI implementation. P41-UX01 did not edit runtime UI, routes,
 proxy, auth, tenancy, schemas, tests, messages, Stripe, README/AGENTS.md, or architecture docs.
 
-`P41-DG02 Agent CRM Task Queue Action Density And Mobile Ergonomics Design Gate` is now pending as
-the sole recommended successor to P41-UX01. It is a future docs/design gate, not runtime
-implementation: it may define the presentation-only `/agent/crm` task-row ergonomics contract and
-propose a later bounded implementation slice, but it does not itself authorize code changes.
+`P41-DG02 Agent CRM Task Queue Action Density And Mobile Ergonomics Design Gate` is complete in
+`docs/plans/2026-05-23-p41-dg02-agent-crm-task-queue-ergonomics-design.md` after mandatory
+Sonnet 4.6 architecture/scope review through Copilot CLI and Gemini Pro product/mobile/accessibility
+review. The gate promotes exactly one next implementation slice, `P41-UX02 Agent CRM Task Queue
+Action Density And Mobile Ergonomics`. The promoted slice is presentation-only on the existing
+`/agent/crm` task queue: it keeps lifecycle action and lead navigation immediately visible, groups
+due-date, priority, and cancellation controls into a row-local secondary-actions disclosure, proves
+mobile and dense-desktop behavior, and preserves existing CRM26 actions and P40 behavior. It does
+not authorize CRM runtime capability, server-action payload changes, domain state-machine changes,
+routes, proxy/canonical route/auth/tenancy changes, schema/RLS/migrations, Stripe, README/AGENTS.md,
+or architecture-doc work.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -808,6 +815,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 270. Keep `P40 CRM Product Depth` complete after `P40-CRM33`, preserving the CRM task queue foundation, lifecycle, due-date, cancellation, completed recovery, and priority-control sequence without promoting additional CRM runtime behavior by default.
 271. Open `P41 Product Surface UX Professionalism` as a docs-and-evidence product UI/UX audit tranche after P40, starting with `P41-UX01 Product Surface UX Audit And Slice Ranking` and preserving Phase C route, proxy, auth, tenancy, schema, Stripe, README, AGENTS, and architecture-doc boundaries.
 272. Keep `P41-UX01 Product Surface UX Audit And Slice Ranking` complete as the docs-and-evidence audit that ranks `/agent/crm` task-row action density and mobile ergonomics as the next design target, recommending `P41-DG02 Agent CRM Task Queue Action Density And Mobile Ergonomics Design Gate` before any runtime UI implementation.
+273. Complete `P41-DG02 Agent CRM Task Queue Action Density And Mobile Ergonomics Design Gate` as the approved design authority that promotes exactly one presentation-only implementation slice, `P41-UX02 Agent CRM Task Queue Action Density And Mobile Ergonomics`, preserving existing CRM26 actions, CRM task behavior, completed recovery, lead links, queue markers, legacy due-follow-up behavior, canonical routes, proxy, auth, tenancy, schemas, Stripe, README, AGENTS, and architecture-doc boundaries.
 
 ## Status Command
 
