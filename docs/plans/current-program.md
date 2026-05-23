@@ -253,7 +253,7 @@ creation, outbox/event emission, Professional Recovery activation, autonomous AI
 calls, prompt changes, proxy/canonical route/auth/tenancy/routing changes, Stripe, README,
 AGENTS.md, or broad architecture-doc work.
 
-`P40 CRM Product Depth` is now open after the completed package-only P39 assistance lane.
+`P40 CRM Product Depth` is now complete after the completed package-only P39 assistance lane.
 `P40-DG01 CRM Lane Resumption And Task Foundation Design Gate` is recorded in
 `docs/plans/2026-05-20-p40-dg01-crm-resume-task-foundation.md` and promotes exactly one next
 implementation slice, `P40-CRM24 CRM Task Domain Foundation`. The promoted slice resumes the CRM
@@ -494,6 +494,30 @@ and focused schema/database proof. It does not authorize new tables, columns, in
 policies, tenant functions, grants, backfills, destructive migrations, trigger changes, repository
 redesign, broader task persistence changes, proxy/canonical route/auth/tenancy changes, Stripe,
 README/AGENTS.md, or broad architecture-doc work.
+
+`P40-CRM33 Agent CRM Task Queue Priority Adjustment Controls` is complete through PR `#852`, merge
+commit `722576e12ca7d993174aff51f2b95375cde7bd86`: the existing `/agent/crm` task queue now has a
+narrow priority mutation foundation, row-local priority controls for visible, assigned, open,
+lead-backed CRM task rows, and the DG10A-authorized minimum `crm_task_history` constraint widening
+for `priority_updated` and `manual_priority_change`. The implementation preserved Start/Complete
+controls, due-date controls, cancellation controls, completed-task recovery controls, lead links,
+queue markers, legacy due-follow-up separation, canonical routes, and `apps/web/src/proxy.ts`.
+Assignment/reassignment, task creation, completed-row priority editing, full task history,
+filters/pagination, staff/admin/member task UI, scheduler/reminders/notifications/outbox, new
+routes/API/cron, broader DB schema/RLS/migrations, assistance execution, auth/tenancy/routing
+refactors, Stripe, README/AGENTS.md, and architecture-doc work remained out of scope. P40 is now
+closed as the CRM task queue product-depth tranche.
+
+`P41 Product Surface UX Professionalism` is now open after completed `P40`. `P41-DG01 Post-CRM33
+UI/UX Slice Selection Design Gate` is recorded in
+`docs/plans/2026-05-23-p41-dg01-post-crm33-ui-ux-slice-selection.md` after mandatory Sonnet 4.6
+architecture/scope review through Copilot CLI. It closes P40/CRM33 and promotes exactly one next
+slice, `P41-UX01 Product Surface UX Audit And Slice Ranking`. The promoted slice is
+docs-and-evidence only: it reviews existing canonical public, member, agent, staff, and admin surfaces,
+records concrete UX and workflow issues, ranks bounded implementation candidates, and recommends at
+most one follow-up implementation slice for a later promotion gate. It does not authorize runtime
+UI edits, additional CRM behavior, new routes, proxy/canonical route/auth/tenancy changes,
+schema/RLS/migrations, Stripe, README/AGENTS.md, or broad architecture-doc work.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -768,6 +792,8 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 267. Complete `P37-DG02 Post-AI01 Closeout And Next AI Slice Selection` as the docs-only closeout gate that records PR `#740` merge proof, removes stale AI01 in-progress state from the live program/tracker, ranks remaining AI-readiness candidates from repo evidence, and promotes exactly one next bounded implementation slice: `P37-AI02 Formal AI Eval CI And Release Gate`.
 268. Keep `P37-AI02 Formal AI Eval CI And Release Gate` complete by preserving the blocking CI AI-eval lane for AI-surface PRs and mainline validation, retaining release-candidate `pnpm ai:eval` proof, keeping the changed-file classifier scoped to current AI and gate-contract surfaces, preserving deterministic fixture-only execution with no network model calls, and avoiding runtime AI behavior, prompt, model-call, auth, tenancy, routing, proxy, Stripe, CRM, automation, campaign, cron/NPS, task aggregate, or `member_leads` changes.
 269. Keep `P37 AI Production Readiness` closed for the purpose of opening Dashboard Professionalism, with `P37-AI02` as the last completed marker and any remaining `P37-*` items deferred into separately tracked work.
+270. Keep `P40 CRM Product Depth` complete after `P40-CRM33`, preserving the CRM task queue foundation, lifecycle, due-date, cancellation, completed recovery, and priority-control sequence without promoting additional CRM runtime behavior by default.
+271. Open `P41 Product Surface UX Professionalism` as a docs-and-evidence product UI/UX audit tranche after P40, starting with `P41-UX01 Product Surface UX Audit And Slice Ranking` and preserving Phase C route, proxy, auth, tenancy, schema, Stripe, README, AGENTS, and architecture-doc boundaries.
 
 ## Status Command
 
