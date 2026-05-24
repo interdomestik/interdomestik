@@ -561,6 +561,15 @@ desktop, and standard desktop behavior. It does not authorize new pages, filter 
 query-state architecture changes, data fetching changes, broad ops redesign, CRM runtime behavior,
 schemas, migrations, RLS, Stripe, README/AGENTS.md, or architecture-doc work.
 
+`P41-UX03 Admin/Ops Filter Wrapping Hardening` is complete through PR `#858`, merge commit
+`599c3fb9a647317346d1f350588f1f4db6ac6d83`. The implementation hardened the shared
+`OpsFiltersBar` and existing `/admin/claims` filters so tabs, search, assignment filters, and
+diaspora-origin filters wrap or stack predictably while preserving props, links, search behavior,
+query parameters, pending feedback, active inertness, stable markers, routes, proxy, auth, tenancy,
+data reads, schemas, migrations, Stripe, README/AGENTS.md, and architecture-doc boundaries. Focused
+unit, i18n, targeted browser, scope, security, local required-gate, remote E2E, Pilot Gate, Sonar,
+and PR checks were green before merge.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
@@ -840,6 +849,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 273. Complete `P41-DG02 Agent CRM Task Queue Action Density And Mobile Ergonomics Design Gate` as the approved design authority that promotes exactly one presentation-only implementation slice, `P41-UX02 Agent CRM Task Queue Action Density And Mobile Ergonomics`, preserving existing CRM26 actions, CRM task behavior, completed recovery, lead links, queue markers, legacy due-follow-up behavior, canonical routes, proxy, auth, tenancy, schemas, Stripe, README, AGENTS, and architecture-doc boundaries.
 274. Keep `P41-UX02 Agent CRM Task Queue Action Density And Mobile Ergonomics` complete through PR `#856`, preserving the existing CRM task behavior while reducing `/agent/crm` row action density through presentation-only secondary actions.
 275. Complete `P41-DG03 Admin/Ops Filter Wrapping Hardening Design Gate` as the approved design authority that promotes exactly one presentation-only implementation slice, `P41-UX03 Admin/Ops Filter Wrapping Hardening`, scoped to shared `OpsFiltersBar` and `/admin/claims` filter wrapping/accessibility hardening while preserving query semantics, routes, proxy, auth, tenancy, data reads, schemas, Stripe, README, AGENTS, and architecture-doc boundaries.
+276. Keep `P41-UX03 Admin/Ops Filter Wrapping Hardening` complete through PR `#858`, preserving shared ops/admin filter semantics while adding presentation-only wrapping, grouping, accessible labels, and structural proof.
 
 ## Status Command
 
