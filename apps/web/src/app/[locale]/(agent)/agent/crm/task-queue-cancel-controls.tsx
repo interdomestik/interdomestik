@@ -3,7 +3,7 @@
 import { Ban } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { submitAgentCrmTaskQueueCancellationAction } from './task-queue-actions';
 import {
@@ -23,6 +23,7 @@ export function TaskQueueCancelControls({
   disabled,
   expectedLifecycleVersion,
   onMessage,
+  onConfirmingChange,
   onPendingChange,
   rowMessageId,
   rowLabel,
@@ -31,6 +32,7 @@ export function TaskQueueCancelControls({
   disabled: boolean;
   expectedLifecycleVersion: number;
   onMessage: (message: string | null) => void;
+  onConfirmingChange?: (isConfirming: boolean) => void;
   onPendingChange: (isPending: boolean) => void;
   rowMessageId: string;
   rowLabel: string;
@@ -49,9 +51,16 @@ export function TaskQueueCancelControls({
 
   const isDisabled = disabled || isSubmitting;
 
+  useEffect(() => {
+    return () => {
+      onConfirmingChange?.(false);
+    };
+  }, [onConfirmingChange]);
+
   function openConfirmation() {
     setHasError(false);
     setIsConfirming(true);
+    onConfirmingChange?.(true);
     setReasonCode('');
     onMessage(null);
     focusQueued(() => reasonSelectRef.current);
@@ -60,24 +69,18 @@ export function TaskQueueCancelControls({
   function dismissConfirmation() {
     setHasError(false);
     setIsConfirming(false);
+    onConfirmingChange?.(false);
     setReasonCode('');
     onMessage(null);
     focusQueued(() => cancelButtonRef.current);
   }
 
   function focusAfterSuccess() {
-    const row = confirmButtonRef.current?.closest('[data-testid="agent-crm-task-queue-row"]');
-    const nextRow = row?.nextElementSibling?.querySelector<HTMLElement>(
-      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    );
-    const previousRow = row?.previousElementSibling?.querySelector<HTMLElement>(
-      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    );
     const heading = document.querySelector<HTMLElement>(
       '[data-testid="agent-crm-task-queue-title"]'
     );
 
-    focusQueued(() => nextRow ?? previousRow ?? heading);
+    focusQueued(() => heading);
   }
 
   function submitCancellation() {
@@ -103,6 +106,7 @@ export function TaskQueueCancelControls({
         if (result.success) {
           setHasError(false);
           setIsConfirming(false);
+          onConfirmingChange?.(false);
           setReasonCode('');
           onMessage(t('success'));
           onPendingChange(false);

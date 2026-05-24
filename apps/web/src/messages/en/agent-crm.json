@@ -64,6 +64,14 @@
             "transient": "The task could not be updated. Try again."
           }
         },
+        "secondaryActions": {
+          "group": "Secondary task actions",
+          "groupFor": "Secondary task actions for {label}",
+          "open": "More actions",
+          "openFor": "More actions for {label}",
+          "close": "Close actions",
+          "closeFor": "Close actions for {label}"
+        },
         "dueActions": {
           "group": "Task due date actions",
           "field": "Due date and time",

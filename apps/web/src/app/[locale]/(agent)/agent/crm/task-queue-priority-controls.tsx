@@ -24,6 +24,7 @@ export function TaskQueuePriorityControls({
   expectedLifecycleVersion,
   onMessage,
   onPendingChange,
+  onSuccess,
   rowLabel,
   rowMessageId,
   taskId,
@@ -33,6 +34,7 @@ export function TaskQueuePriorityControls({
   expectedLifecycleVersion: number;
   onMessage: (message: string | null) => void;
   onPendingChange: (isPending: boolean) => void;
+  onSuccess?: () => void;
   rowLabel: string;
   rowMessageId: string;
   taskId: string;
@@ -72,8 +74,11 @@ export function TaskQueuePriorityControls({
         if (result.success) {
           onMessage(t('priorityActions.success'));
           onPendingChange(false);
-          setIsSaving(false);
-          focusQueued(() => selectRef.current);
+          onSuccess?.();
+          if (!onSuccess) {
+            setIsSaving(false);
+            focusQueued(() => selectRef.current);
+          }
           router.refresh();
           return;
         }

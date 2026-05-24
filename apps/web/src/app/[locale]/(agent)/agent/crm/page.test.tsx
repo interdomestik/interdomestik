@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -487,8 +487,13 @@ describe('CRMPage auth redirect', () => {
     );
     expect(screen.getAllByTestId('agent-crm-task-queue-start')).toHaveLength(1);
     expect(screen.getAllByTestId('agent-crm-task-queue-complete')).toHaveLength(2);
-    expect(screen.getAllByTestId('agent-crm-task-queue-due-edit')).toHaveLength(2);
-    expect(screen.getAllByTestId('agent-crm-task-queue-cancel')).toHaveLength(2);
+    expect(screen.getAllByTestId('agent-crm-task-queue-secondary-toggle')).toHaveLength(2);
+    expect(screen.queryByTestId('agent-crm-task-queue-due-edit')).toBeNull();
+    expect(screen.queryByTestId('agent-crm-task-queue-cancel')).toBeNull();
+    fireEvent.click(screen.getAllByTestId('agent-crm-task-queue-secondary-toggle')[0]);
+    expect(screen.getAllByTestId('agent-crm-task-queue-due-edit')).toHaveLength(1);
+    expect(screen.getAllByTestId('agent-crm-task-queue-priority-select')).toHaveLength(1);
+    expect(screen.getAllByTestId('agent-crm-task-queue-cancel')).toHaveLength(1);
     expect(screen.queryByTestId('agent-lead-complete-follow-up')).toBeNull();
     expect(screen.queryByTestId('agent-lead-schedule-follow-up')).toBeNull();
     expect(screen.queryByTestId('agent-crm-task-queue-due-save')).toBeNull();
