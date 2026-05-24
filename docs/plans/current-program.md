@@ -539,6 +539,28 @@ not authorize CRM runtime capability, server-action payload changes, domain stat
 routes, proxy/canonical route/auth/tenancy changes, schema/RLS/migrations, Stripe, README/AGENTS.md,
 or architecture-doc work.
 
+`P41-UX02 Agent CRM Task Queue Action Density And Mobile Ergonomics` is complete through PR `#856`,
+merge commit `aa9237a08542651099fc2e1f30820b8aca06a73e`. The implementation hardened the existing
+`/agent/crm` task queue presentation by keeping lifecycle work and lead navigation immediately
+visible, grouping due-date, priority, and cancellation controls into row-local secondary actions,
+and preserving CRM26 server actions, CRM task behavior, completed recovery, lead links, queue
+markers, legacy due-follow-up behavior, canonical routes, and `apps/web/src/proxy.ts`. Runtime CRM
+capability, server-action payload changes, domain state-machine changes, routes, proxy/canonical
+route/auth/tenancy changes, schema/RLS/migrations, Stripe, README/AGENTS.md, and architecture-doc
+work remained out of scope.
+
+`P41-DG03 Admin/Ops Filter Wrapping Hardening Design Gate` is complete in
+`docs/plans/2026-05-24-p41-dg03-admin-ops-filter-wrapping-design.md` after mandatory Sonnet 4.6
+architecture/scope review through Copilot CLI and Gemini Pro product/mobile/accessibility review.
+The gate promotes exactly one next implementation slice, `P41-UX03 Admin/Ops Filter Wrapping
+Hardening`. The promoted slice is presentation-only on the shared `OpsFiltersBar` and existing
+`/admin/claims` filter composition: it hardens wrapping and stacking for tabs, search, assignment,
+and diaspora-origin filters; preserves query semantics, pending feedback, active inertness, stable
+markers, routes, proxy, auth, tenancy, data reads, and persistence; and proves mobile, dense
+desktop, and standard desktop behavior. It does not authorize new pages, filter semantics changes,
+query-state architecture changes, data fetching changes, broad ops redesign, CRM runtime behavior,
+schemas, migrations, RLS, Stripe, README/AGENTS.md, or architecture-doc work.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
@@ -816,6 +838,8 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 271. Open `P41 Product Surface UX Professionalism` as a docs-and-evidence product UI/UX audit tranche after P40, starting with `P41-UX01 Product Surface UX Audit And Slice Ranking` and preserving Phase C route, proxy, auth, tenancy, schema, Stripe, README, AGENTS, and architecture-doc boundaries.
 272. Keep `P41-UX01 Product Surface UX Audit And Slice Ranking` complete as the docs-and-evidence audit that ranks `/agent/crm` task-row action density and mobile ergonomics as the next design target, recommending `P41-DG02 Agent CRM Task Queue Action Density And Mobile Ergonomics Design Gate` before any runtime UI implementation.
 273. Complete `P41-DG02 Agent CRM Task Queue Action Density And Mobile Ergonomics Design Gate` as the approved design authority that promotes exactly one presentation-only implementation slice, `P41-UX02 Agent CRM Task Queue Action Density And Mobile Ergonomics`, preserving existing CRM26 actions, CRM task behavior, completed recovery, lead links, queue markers, legacy due-follow-up behavior, canonical routes, proxy, auth, tenancy, schemas, Stripe, README, AGENTS, and architecture-doc boundaries.
+274. Keep `P41-UX02 Agent CRM Task Queue Action Density And Mobile Ergonomics` complete through PR `#856`, preserving the existing CRM task behavior while reducing `/agent/crm` row action density through presentation-only secondary actions.
+275. Complete `P41-DG03 Admin/Ops Filter Wrapping Hardening Design Gate` as the approved design authority that promotes exactly one presentation-only implementation slice, `P41-UX03 Admin/Ops Filter Wrapping Hardening`, scoped to shared `OpsFiltersBar` and `/admin/claims` filter wrapping/accessibility hardening while preserving query semantics, routes, proxy, auth, tenancy, data reads, schemas, Stripe, README, AGENTS, and architecture-doc boundaries.
 
 ## Status Command
 
