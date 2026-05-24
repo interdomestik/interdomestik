@@ -323,7 +323,14 @@ describe('TaskQueueControls', () => {
       expect(screen.getByTestId('agent-crm-task-queue-priority-select')).toBeDisabled();
     });
     expect(screen.getByTestId('agent-crm-task-queue-priority-save')).toBeDisabled();
+    expect(screen.getByTestId('agent-crm-task-queue-secondary-toggle')).toBeDisabled();
+    expect(screen.getByTestId('agent-crm-task-queue-secondary-close')).toBeDisabled();
     expect(screen.getAllByText('Saving...').length).toBeGreaterThan(0);
+
+    fireEvent.keyDown(screen.getByTestId('agent-crm-task-queue-secondary-panel'), {
+      key: 'Escape',
+    });
+    expect(screen.getByTestId('agent-crm-task-queue-secondary-panel')).toBeTruthy();
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-priority-save'));
     expect(hoisted.prioritySubmitMock).toHaveBeenCalledTimes(1);

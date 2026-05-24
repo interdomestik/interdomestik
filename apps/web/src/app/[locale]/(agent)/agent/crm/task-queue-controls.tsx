@@ -63,6 +63,13 @@ export function TaskQueueControls({
   const secondaryTriggerRef = useRef<HTMLButtonElement | null>(null);
   const secondaryPanelRef = useRef<HTMLDivElement | null>(null);
   const shouldFocusSecondaryPanelRef = useRef(false);
+  const pendingLabel = activeAction ? lifecycleLabel(activeAction, 'active') : '';
+  const isSubmitting = isPending || activeAction !== null;
+  const isSecondaryPending = isDuePending || isCancelPending || isPriorityPending;
+  const rowDisabled = isSubmitting || isSecondaryPending;
+  const dueDisabled = isSubmitting || isCancelPending || isPriorityPending || isCancelConfirming;
+  const priorityDisabled = isSubmitting || isCancelPending || isDuePending || isCancelConfirming;
+  const cancelDisabled = isSubmitting || isDuePending || isPriorityPending;
 
   function lifecycleLabel(action: TaskQueueLifecycleAction, activeKey: 'active' | 'idle') {
     if (action === 'start') {
@@ -96,6 +103,10 @@ export function TaskQueueControls({
   }
 
   function closeSecondaryActions() {
+    if (isSecondaryPending) {
+      return;
+    }
+
     setIsSecondaryOpen(false);
     setIsCancelConfirming(false);
     setMessage(null);
@@ -146,13 +157,6 @@ export function TaskQueueControls({
       }
     });
   }
-
-  const pendingLabel = activeAction ? lifecycleLabel(activeAction, 'active') : '';
-  const isSubmitting = isPending || activeAction !== null;
-  const rowDisabled = isSubmitting || isDuePending || isCancelPending || isPriorityPending;
-  const dueDisabled = isSubmitting || isCancelPending || isPriorityPending || isCancelConfirming;
-  const priorityDisabled = isSubmitting || isCancelPending || isDuePending || isCancelConfirming;
-  const cancelDisabled = isSubmitting || isDuePending || isPriorityPending;
 
   useEffect(() => {
     if (!isSecondaryOpen || !shouldFocusSecondaryPanelRef.current) {
@@ -247,7 +251,7 @@ export function TaskQueueControls({
           />
           <TaskQueueIconButton
             ariaLabel={tSecondary('closeFor', { label: rowLabel })}
-            disabled={false}
+            disabled={isSecondaryPending}
             variant="ghost"
             onClick={closeSecondaryActions}
             icon={<X className="h-4 w-4" aria-hidden="true" />}
