@@ -111,6 +111,32 @@ vi.mock('./task-queue-actions', () => ({
 
 import { TaskQueueControls } from './task-queue-controls';
 
+type RenderControlsOptions = {
+  readonly expectedLifecycleVersion?: number;
+  readonly priority?: 'low' | 'normal' | 'high' | 'urgent';
+  readonly rowLabel?: string;
+  readonly status?: 'pending' | 'in_progress';
+  readonly taskId?: string;
+};
+
+function renderControls({
+  expectedLifecycleVersion = 2,
+  priority = 'normal',
+  rowLabel = 'Lead One',
+  status = 'pending',
+  taskId = 'task-1',
+}: RenderControlsOptions = {}) {
+  return render(
+    <TaskQueueControls
+      rowLabel={rowLabel}
+      expectedLifecycleVersion={expectedLifecycleVersion}
+      priority={priority}
+      status={status}
+      taskId={taskId}
+    />
+  );
+}
+
 function openSecondaryActions() {
   fireEvent.click(screen.getByTestId('agent-crm-task-queue-secondary-toggle'));
 }
@@ -139,15 +165,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('renders start and complete controls for pending rows', () => {
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={2}
-        priority="normal"
-        status="pending"
-        taskId="task-1"
-      />
-    );
+    renderControls();
 
     expect(screen.getByTestId('agent-crm-task-queue-start')).toHaveTextContent('Start');
     expect(screen.getByTestId('agent-crm-task-queue-complete')).toHaveTextContent('Complete');
@@ -182,15 +200,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('renders only complete for in-progress rows', () => {
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={2}
-        priority="normal"
-        status="in_progress"
-        taskId="task-1"
-      />
-    );
+    renderControls({ status: 'in_progress' });
 
     expect(screen.queryByTestId('agent-crm-task-queue-start')).toBeNull();
     expect(screen.getByTestId('agent-crm-task-queue-complete')).toHaveTextContent('Complete');
@@ -201,15 +211,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('submits the current task id and lifecycle version without optimistic row mutation', async () => {
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={7}
-        priority="normal"
-        status="pending"
-        taskId="task-7"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 7, taskId: 'task-7' });
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-start'));
 
@@ -231,15 +233,7 @@ describe('TaskQueueControls', () => {
       success: false,
     });
 
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={7}
-        priority="normal"
-        status="in_progress"
-        taskId="task-7"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 7, status: 'in_progress', taskId: 'task-7' });
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-complete'));
 
@@ -253,15 +247,7 @@ describe('TaskQueueControls', () => {
   it('restores the row after unexpected submission failures', async () => {
     hoisted.lifecycleSubmitMock.mockRejectedValueOnce(new Error('network unavailable'));
 
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={7}
-        priority="normal"
-        status="pending"
-        taskId="task-7"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 7, taskId: 'task-7' });
 
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-start'));
 
@@ -273,15 +259,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('submits a normalized due-date update without optimistic row mutation', async () => {
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={8}
-        priority="normal"
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 8, taskId: 'task-8' });
 
     openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
@@ -303,15 +281,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('submits a priority update with stable row-local state', async () => {
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={8}
-        priority="normal"
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 8, taskId: 'task-8' });
 
     openSecondaryActions();
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-priority-select'), {
@@ -341,15 +311,7 @@ describe('TaskQueueControls', () => {
       })
     );
 
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={8}
-        priority="normal"
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 8, taskId: 'task-8' });
 
     openSecondaryActions();
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-priority-select'), {
@@ -378,15 +340,7 @@ describe('TaskQueueControls', () => {
       success: false,
     });
 
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={8}
-        priority="normal"
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 8, taskId: 'task-8' });
 
     openSecondaryActions();
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-priority-select'), {
@@ -402,15 +356,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('requires an explicit cancellation reason before confirming cancellation', () => {
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={9}
-        priority="normal"
-        status="pending"
-        taskId="task-9"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 9, taskId: 'task-9' });
 
     openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
@@ -435,15 +381,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('dismisses cancellation confirmation back to the row-local cancel control', () => {
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={9}
-        priority="normal"
-        status="pending"
-        taskId="task-9"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 9, taskId: 'task-9' });
 
     openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
@@ -455,15 +393,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('submits cancellation with selected reason and refreshes after success', async () => {
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={9}
-        priority="normal"
-        status="pending"
-        taskId="task-9"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 9, taskId: 'task-9' });
 
     openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
@@ -505,15 +435,7 @@ describe('TaskQueueControls', () => {
       success: false,
     });
 
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={9}
-        priority="normal"
-        status="pending"
-        taskId="task-9"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 9, taskId: 'task-9' });
 
     openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
@@ -541,15 +463,7 @@ describe('TaskQueueControls', () => {
         })
     );
 
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={9}
-        priority="normal"
-        status="pending"
-        taskId="task-9"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 9, taskId: 'task-9' });
 
     openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
@@ -631,15 +545,7 @@ describe('TaskQueueControls', () => {
   it('clears the due date through the row-local due-date control', async () => {
     hoisted.dueDateSubmitMock.mockResolvedValueOnce({ dueAt: null, success: true });
 
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={8}
-        priority="normal"
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 8, taskId: 'task-8' });
 
     openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
@@ -658,15 +564,7 @@ describe('TaskQueueControls', () => {
   it('keeps empty save separate from the clear due-date action', async () => {
     hoisted.dueDateSubmitMock.mockResolvedValueOnce({ dueAt: null, success: true });
 
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={8}
-        priority="normal"
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 8, taskId: 'task-8' });
 
     openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
@@ -685,15 +583,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('closes the secondary panel with Escape and returns focus to the disclosure trigger', () => {
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={8}
-        priority="normal"
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 8, taskId: 'task-8' });
 
     const trigger = screen.getByTestId('agent-crm-task-queue-secondary-toggle');
     trigger.focus();
@@ -711,15 +601,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('discards secondary-control drafts when the panel closes', () => {
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={8}
-        priority="normal"
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 8, taskId: 'task-8' });
 
     openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
@@ -749,15 +631,7 @@ describe('TaskQueueControls', () => {
       name: 'Escape',
     },
   ])('discards secondary-control drafts when closed with $name', ({ close }) => {
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={8}
-        priority="normal"
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 8, taskId: 'task-8' });
 
     openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
@@ -777,15 +651,7 @@ describe('TaskQueueControls', () => {
   });
 
   it('disables due-date and priority controls while cancellation confirmation is open', () => {
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={8}
-        priority="normal"
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 8, taskId: 'task-8' });
 
     openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
@@ -827,15 +693,7 @@ describe('TaskQueueControls', () => {
       success: false,
     });
 
-    render(
-      <TaskQueueControls
-        rowLabel="Lead One"
-        expectedLifecycleVersion={8}
-        priority="normal"
-        status="pending"
-        taskId="task-8"
-      />
-    );
+    renderControls({ expectedLifecycleVersion: 8, taskId: 'task-8' });
 
     openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
