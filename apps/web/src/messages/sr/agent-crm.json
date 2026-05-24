@@ -64,6 +64,14 @@
             "transient": "Zadatak nije mogao biti ažuriran. Pokušajte ponovo."
           }
         },
+        "secondaryActions": {
+          "group": "Sporedne radnje zadatka",
+          "groupFor": "Sporedne radnje zadatka za {label}",
+          "open": "Još radnji",
+          "openFor": "Još radnji za {label}",
+          "close": "Zatvori radnje",
+          "closeFor": "Zatvori radnje za {label}"
+        },
         "dueActions": {
           "group": "Radnje za rok zadatka",
           "field": "Datum i vreme roka",

@@ -64,6 +64,14 @@
             "transient": "Detyra nuk mund të përditësohej. Provoni përsëri."
           }
         },
+        "secondaryActions": {
+          "group": "Veprime dytësore të detyrës",
+          "groupFor": "Veprime dytësore të detyrës për {label}",
+          "open": "Më shumë veprime",
+          "openFor": "Më shumë veprime për {label}",
+          "close": "Mbyll veprimet",
+          "closeFor": "Mbyll veprimet për {label}"
+        },
         "dueActions": {
           "group": "Veprime për afatin e detyrës",
           "field": "Data dhe ora e afatit",

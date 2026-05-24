@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -27,6 +27,12 @@ const translations: Record<string, string> = {
   'actions.starting': 'Starting...',
   'actions.success.complete': 'Completed',
   'actions.success.start': 'Started',
+  'secondaryActions.close': 'Close actions',
+  'secondaryActions.closeFor': 'Close actions for {label}',
+  'secondaryActions.group': 'Secondary task actions',
+  'secondaryActions.groupFor': 'Secondary task actions for {label}',
+  'secondaryActions.open': 'More actions',
+  'secondaryActions.openFor': 'More actions for {label}',
   'cancelActions.confirm': 'Confirm cancellation',
   'cancelActions.confirmGroup': 'Confirm task cancellation',
   'cancelActions.confirmGroupFor': 'Confirm task cancellation for {label}',
@@ -105,6 +111,10 @@ vi.mock('./task-queue-actions', () => ({
 
 import { TaskQueueControls } from './task-queue-controls';
 
+function openSecondaryActions() {
+  fireEvent.click(screen.getByTestId('agent-crm-task-queue-secondary-toggle'));
+}
+
 describe('TaskQueueControls', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -141,6 +151,15 @@ describe('TaskQueueControls', () => {
 
     expect(screen.getByTestId('agent-crm-task-queue-start')).toHaveTextContent('Start');
     expect(screen.getByTestId('agent-crm-task-queue-complete')).toHaveTextContent('Complete');
+    const secondaryToggle = screen.getByTestId('agent-crm-task-queue-secondary-toggle');
+    expect(secondaryToggle).toHaveTextContent('More actions');
+    expect(secondaryToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('agent-crm-task-queue-due-edit')).toBeNull();
+    expect(screen.queryByTestId('agent-crm-task-queue-priority-select')).toBeNull();
+    expect(screen.queryByTestId('agent-crm-task-queue-cancel')).toBeNull();
+    openSecondaryActions();
+    expect(secondaryToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('group', { name: 'Secondary task actions for Lead One' })).toBeTruthy();
     expect(screen.getByTestId('agent-crm-task-queue-due-edit')).toHaveTextContent('Edit due date');
     expect(screen.getByTestId('agent-crm-task-queue-priority-select')).toHaveValue('normal');
     expect(screen.getByTestId('agent-crm-task-queue-priority-save')).toBeDisabled();
@@ -175,6 +194,8 @@ describe('TaskQueueControls', () => {
 
     expect(screen.queryByTestId('agent-crm-task-queue-start')).toBeNull();
     expect(screen.getByTestId('agent-crm-task-queue-complete')).toHaveTextContent('Complete');
+    expect(screen.queryByTestId('agent-crm-task-queue-due-edit')).toBeNull();
+    openSecondaryActions();
     expect(screen.getByTestId('agent-crm-task-queue-due-edit')).toHaveTextContent('Edit due date');
     expect(screen.getByTestId('agent-crm-task-queue-cancel')).toHaveTextContent('Cancel task');
   });
@@ -262,6 +283,7 @@ describe('TaskQueueControls', () => {
       />
     );
 
+    openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-due-input'), {
       target: { value: '2026-05-22T12:30' },
@@ -277,6 +299,7 @@ describe('TaskQueueControls', () => {
     });
     expect(hoisted.refreshMock).toHaveBeenCalled();
     expect(screen.getByText('Due date updated')).toBeTruthy();
+    expect(screen.queryByTestId('agent-crm-task-queue-secondary-panel')).toBeNull();
   });
 
   it('submits a priority update with stable row-local state', async () => {
@@ -290,6 +313,7 @@ describe('TaskQueueControls', () => {
       />
     );
 
+    openSecondaryActions();
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-priority-select'), {
       target: { value: 'urgent' },
     });
@@ -304,6 +328,7 @@ describe('TaskQueueControls', () => {
     });
     expect(hoisted.refreshMock).toHaveBeenCalled();
     expect(screen.getByText('Priority updated')).toBeTruthy();
+    expect(screen.queryByTestId('agent-crm-task-queue-secondary-panel')).toBeNull();
   });
 
   it('suppresses duplicate priority submissions while the row is pending', async () => {
@@ -326,6 +351,7 @@ describe('TaskQueueControls', () => {
       />
     );
 
+    openSecondaryActions();
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-priority-select'), {
       target: { value: 'urgent' },
     });
@@ -362,6 +388,7 @@ describe('TaskQueueControls', () => {
       />
     );
 
+    openSecondaryActions();
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-priority-select'), {
       target: { value: 'high' },
     });
@@ -385,6 +412,7 @@ describe('TaskQueueControls', () => {
       />
     );
 
+    openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
 
     expect(
@@ -417,6 +445,7 @@ describe('TaskQueueControls', () => {
       />
     );
 
+    openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel-dismiss'));
 
@@ -436,6 +465,7 @@ describe('TaskQueueControls', () => {
       />
     );
 
+    openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-cancel-reason'), {
       target: { value: 'created_in_error' },
@@ -485,6 +515,7 @@ describe('TaskQueueControls', () => {
       />
     );
 
+    openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-cancel-reason'), {
       target: { value: 'not_needed' },
@@ -520,6 +551,7 @@ describe('TaskQueueControls', () => {
       />
     );
 
+    openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-cancel-reason'), {
       target: { value: 'not_needed' },
@@ -531,6 +563,64 @@ describe('TaskQueueControls', () => {
     });
     expect(screen.getByTestId('agent-crm-task-queue-complete')).toBeDisabled();
     expect(screen.getByTestId('agent-crm-task-queue-due-edit')).toBeDisabled();
+
+    resolveCancellation({ reasonCode: 'not_needed', success: true });
+    await waitFor(() => {
+      expect(hoisted.refreshMock).toHaveBeenCalled();
+    });
+  });
+
+  it('keeps adjacent rows enabled while one row cancellation is pending', async () => {
+    let resolveCancellation: (value: {
+      reasonCode: 'not_needed';
+      success: true;
+    }) => void = () => {};
+    hoisted.cancellationSubmitMock.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolveCancellation = resolve;
+        })
+    );
+
+    render(
+      <div>
+        <div data-testid="row-one">
+          <TaskQueueControls
+            rowLabel="Lead One"
+            expectedLifecycleVersion={9}
+            priority="normal"
+            status="pending"
+            taskId="task-9"
+          />
+        </div>
+        <div data-testid="row-two">
+          <TaskQueueControls
+            rowLabel="Lead Two"
+            expectedLifecycleVersion={10}
+            priority="high"
+            status="pending"
+            taskId="task-10"
+          />
+        </div>
+      </div>
+    );
+
+    const rowOne = within(screen.getByTestId('row-one'));
+    const rowTwo = within(screen.getByTestId('row-two'));
+
+    fireEvent.click(rowOne.getByTestId('agent-crm-task-queue-secondary-toggle'));
+    fireEvent.click(rowOne.getByTestId('agent-crm-task-queue-cancel'));
+    fireEvent.change(rowOne.getByTestId('agent-crm-task-queue-cancel-reason'), {
+      target: { value: 'not_needed' },
+    });
+    fireEvent.click(rowOne.getByTestId('agent-crm-task-queue-cancel-confirm'));
+
+    await waitFor(() => {
+      expect(rowOne.getByTestId('agent-crm-task-queue-start')).toBeDisabled();
+    });
+    expect(rowTwo.getByTestId('agent-crm-task-queue-start')).not.toBeDisabled();
+    expect(rowTwo.getByTestId('agent-crm-task-queue-complete')).not.toBeDisabled();
+    expect(rowTwo.getByTestId('agent-crm-task-queue-secondary-toggle')).not.toBeDisabled();
 
     resolveCancellation({ reasonCode: 'not_needed', success: true });
     await waitFor(() => {
@@ -551,6 +641,7 @@ describe('TaskQueueControls', () => {
       />
     );
 
+    openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-clear'));
 
@@ -577,6 +668,7 @@ describe('TaskQueueControls', () => {
       />
     );
 
+    openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
     expect(screen.getByTestId('agent-crm-task-queue-due-save')).toBeDisabled();
 
@@ -590,6 +682,130 @@ describe('TaskQueueControls', () => {
       });
     });
     expect(screen.getByText('Due date cleared')).toBeTruthy();
+  });
+
+  it('closes the secondary panel with Escape and returns focus to the disclosure trigger', () => {
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={8}
+        priority="normal"
+        status="pending"
+        taskId="task-8"
+      />
+    );
+
+    const trigger = screen.getByTestId('agent-crm-task-queue-secondary-toggle');
+    trigger.focus();
+    fireEvent.click(trigger);
+    expect(screen.getByTestId('agent-crm-task-queue-secondary-panel')).toBeTruthy();
+    const dueEdit = screen.getByTestId('agent-crm-task-queue-due-edit');
+    expect(document.activeElement).toBe(dueEdit);
+
+    fireEvent.keyDown(dueEdit, {
+      key: 'Escape',
+    });
+
+    expect(screen.queryByTestId('agent-crm-task-queue-secondary-panel')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('discards secondary-control drafts when the panel closes', () => {
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={8}
+        priority="normal"
+        status="pending"
+        taskId="task-8"
+      />
+    );
+
+    openSecondaryActions();
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
+    fireEvent.change(screen.getByTestId('agent-crm-task-queue-due-input'), {
+      target: { value: '2026-05-22T12:30' },
+    });
+    fireEvent.change(screen.getByTestId('agent-crm-task-queue-priority-select'), {
+      target: { value: 'urgent' },
+    });
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-secondary-close'));
+
+    openSecondaryActions();
+    expect(screen.getByTestId('agent-crm-task-queue-due-edit')).toHaveTextContent('Edit due date');
+    expect(screen.queryByTestId('agent-crm-task-queue-due-input')).toBeNull();
+    expect(screen.getByTestId('agent-crm-task-queue-priority-select')).toHaveValue('normal');
+    expect(screen.getByTestId('agent-crm-task-queue-priority-save')).toBeDisabled();
+  });
+
+  it.each([
+    {
+      close: () => fireEvent.click(screen.getByTestId('agent-crm-task-queue-secondary-toggle')),
+      name: 'disclosure trigger',
+    },
+    {
+      close: () =>
+        fireEvent.keyDown(screen.getByTestId('agent-crm-task-queue-due-input'), { key: 'Escape' }),
+      name: 'Escape',
+    },
+  ])('discards secondary-control drafts when closed with $name', ({ close }) => {
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={8}
+        priority="normal"
+        status="pending"
+        taskId="task-8"
+      />
+    );
+
+    openSecondaryActions();
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
+    fireEvent.change(screen.getByTestId('agent-crm-task-queue-due-input'), {
+      target: { value: '2026-05-22T12:30' },
+    });
+    fireEvent.change(screen.getByTestId('agent-crm-task-queue-priority-select'), {
+      target: { value: 'urgent' },
+    });
+    close();
+
+    openSecondaryActions();
+    expect(screen.getByTestId('agent-crm-task-queue-due-edit')).toHaveTextContent('Edit due date');
+    expect(screen.queryByTestId('agent-crm-task-queue-due-input')).toBeNull();
+    expect(screen.getByTestId('agent-crm-task-queue-priority-select')).toHaveValue('normal');
+    expect(screen.getByTestId('agent-crm-task-queue-priority-save')).toBeDisabled();
+  });
+
+  it('disables due-date and priority controls while cancellation confirmation is open', () => {
+    render(
+      <TaskQueueControls
+        rowLabel="Lead One"
+        expectedLifecycleVersion={8}
+        priority="normal"
+        status="pending"
+        taskId="task-8"
+      />
+    );
+
+    openSecondaryActions();
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
+    fireEvent.change(screen.getByTestId('agent-crm-task-queue-due-input'), {
+      target: { value: '2026-05-22T12:30' },
+    });
+    fireEvent.change(screen.getByTestId('agent-crm-task-queue-priority-select'), {
+      target: { value: 'urgent' },
+    });
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel'));
+
+    expect(screen.queryByTestId('agent-crm-task-queue-due-input')).toBeNull();
+    expect(screen.getByTestId('agent-crm-task-queue-due-edit')).toBeDisabled();
+    expect(screen.getByTestId('agent-crm-task-queue-priority-select')).toBeDisabled();
+    expect(screen.getByTestId('agent-crm-task-queue-priority-select')).toHaveValue('normal');
+    expect(screen.getByTestId('agent-crm-task-queue-priority-save')).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('agent-crm-task-queue-cancel-dismiss'));
+    expect(screen.getByTestId('agent-crm-task-queue-due-edit')).not.toBeDisabled();
+    expect(screen.getByTestId('agent-crm-task-queue-priority-select')).not.toBeDisabled();
   });
 
   it.each([
@@ -621,6 +837,7 @@ describe('TaskQueueControls', () => {
       />
     );
 
+    openSecondaryActions();
     fireEvent.click(screen.getByTestId('agent-crm-task-queue-due-edit'));
     fireEvent.change(screen.getByTestId('agent-crm-task-queue-due-input'), {
       target: { value: '2026-05-22T12:30' },

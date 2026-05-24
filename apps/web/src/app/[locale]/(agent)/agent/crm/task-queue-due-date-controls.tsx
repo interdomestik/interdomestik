@@ -29,6 +29,7 @@ export function TaskQueueDueDateControls({
   expectedLifecycleVersion,
   onMessage,
   onPendingChange,
+  onSuccess,
   rowMessageId,
   taskId,
 }: Readonly<{
@@ -36,6 +37,7 @@ export function TaskQueueDueDateControls({
   expectedLifecycleVersion: number;
   onMessage: (message: string | null) => void;
   onPendingChange: (isPending: boolean) => void;
+  onSuccess?: () => void;
   rowMessageId: string;
   taskId: string;
 }>) {
@@ -93,9 +95,12 @@ export function TaskQueueDueDateControls({
           setHasError(false);
           onMessage(t(result.dueAt === null ? 'success.clear' : 'success.set'));
           onPendingChange(false);
-          setActiveAction(null);
-          setIsEditing(false);
-          focusQueued(() => editButtonRef.current);
+          onSuccess?.();
+          if (!onSuccess) {
+            setActiveAction(null);
+            setIsEditing(false);
+            focusQueued(() => editButtonRef.current);
+          }
           router.refresh();
           return;
         }

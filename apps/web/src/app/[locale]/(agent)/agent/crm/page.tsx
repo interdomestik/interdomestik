@@ -396,6 +396,12 @@ function TaskQueueWidget({
                 </p>
               </div>
               <div className="flex flex-col items-stretch gap-2 sm:items-end">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={item.href} data-testid="agent-crm-task-queue-open">
+                    {t('crm.taskQueue.openLead')}
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </Button>
                 <TaskQueueControls
                   expectedLifecycleVersion={item.lifecycleVersion}
                   priority={item.priority}
@@ -403,12 +409,6 @@ function TaskQueueWidget({
                   status={item.status}
                   taskId={item.taskId}
                 />
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={item.href} data-testid="agent-crm-task-queue-open">
-                    {t('crm.taskQueue.openLead')}
-                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                  </Link>
-                </Button>
               </div>
             </div>
           ))}

@@ -6,7 +6,7 @@ import {
   crmTaskHistory,
   crmTasks,
 } from '@interdomestik/database/schema';
-import type { Page, TestInfo } from '@playwright/test';
+import type { Locator, Page, TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
@@ -104,6 +104,24 @@ async function seedCookieConsent(page: Page, testInfo: TestInfo): Promise<void> 
     },
     { key: COOKIE_CONSENT_STORAGE_KEY, value: 'accepted' }
   );
+}
+
+async function openTaskQueueSecondaryActions(row: Locator): Promise<void> {
+  const panel = row.getByTestId('agent-crm-task-queue-secondary-panel');
+  if (
+    (await panel.count()) > 0 &&
+    (await panel
+      .first()
+      .isVisible()
+      .catch(() => false))
+  ) {
+    return;
+  }
+
+  const toggle = row.getByTestId('agent-crm-task-queue-secondary-toggle');
+  await expect(toggle).toBeVisible();
+  await toggle.click();
+  await expect(panel).toBeVisible();
 }
 
 async function countOpenLegacyFollowUps(leadId: string): Promise<number> {
@@ -367,6 +385,7 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
       await expect(dueRow.getByTestId('agent-crm-task-queue-due-edit')).toHaveCount(0);
       await expect(dueRow.getByTestId('agent-crm-task-queue-priority')).toHaveCount(0);
       await expect(dueRow.getByTestId('agent-crm-task-queue-cancel')).toHaveCount(0);
+      await expect(dueRow.getByTestId('agent-crm-task-queue-secondary-toggle')).toHaveCount(0);
       await expect(
         dueSection.locator(
           `[data-testid="agent-crm-due-follow-up-row"][data-lead-id="${futureLeadId}"]`
@@ -401,9 +420,15 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-open')).toHaveCount(1);
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-start')).toBeVisible();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-complete')).toBeVisible();
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-secondary-toggle')).toBeVisible();
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-edit')).toHaveCount(0);
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-priority-select')).toHaveCount(0);
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-cancel')).toHaveCount(0);
+      await openTaskQueueSecondaryActions(taskQueueRow);
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-edit')).toBeVisible();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-priority-select')).toBeVisible();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-cancel')).toBeVisible();
+      await openTaskQueueSecondaryActions(cancelTaskQueueRow);
       await expect(cancelTaskQueueRow.getByTestId('agent-crm-task-queue-cancel')).toBeVisible();
       await cancelTaskQueueRow.getByTestId('agent-crm-task-queue-cancel').click();
       await expect(
@@ -434,12 +459,18 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
           `[data-testid="agent-crm-task-queue-row"][data-lead-id="${cancelLeadId}"]`
         )
       ).toHaveCount(0, { timeout: 15000 });
+      await openTaskQueueSecondaryActions(taskQueueRow);
       await taskQueueRow.getByTestId('agent-crm-task-queue-due-edit').click();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-input')).toBeVisible();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-save')).toBeVisible();
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-clear')).toBeVisible();
       await taskQueueRow.getByTestId('agent-crm-task-queue-due-clear').click();
       await expect.poll(() => readOpenTaskDueAt(leadId), { timeout: 15000 }).toBeNull();
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-secondary-panel')).toHaveCount(
+        0,
+        { timeout: 15000 }
+      );
+      await openTaskQueueSecondaryActions(taskQueueRow);
       await expect(taskQueueRow.getByTestId('agent-crm-task-queue-due-edit')).toBeVisible({
         timeout: 15000,
       });
@@ -451,6 +482,11 @@ test.describe('P34 CRM13 agent CRM follow-up gate @crm', () => {
           timeout: 15000,
         })
         .toBe(true);
+      await expect(taskQueueRow.getByTestId('agent-crm-task-queue-secondary-panel')).toHaveCount(
+        0,
+        { timeout: 15000 }
+      );
+      await openTaskQueueSecondaryActions(taskQueueRow);
       await taskQueueRow.getByTestId('agent-crm-task-queue-due-edit').click();
       await taskQueueRow.getByTestId('agent-crm-task-queue-due-cancel').click();
       await expect(taskQueueRow.getByTestId('agent-lead-complete-follow-up')).toHaveCount(0);
