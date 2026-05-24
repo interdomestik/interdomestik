@@ -583,6 +583,18 @@ claim states, proves authenticated mobile/dense/desktop viewport behavior, and k
 auth, tenancy, data reads, runtime behavior, schemas, migrations, Stripe, README/AGENTS.md, and
 architecture-doc boundaries unchanged.
 
+`P41-UX04 Member Dashboard Visual Hierarchy Hardening` is complete through PR `#861`, merge commit
+`e6be4b2c302df928efe17740196c949c72a35e22`. The implementation made the canonical `/member`
+dashboard task-first by adding priority and secondary dashboard regions, moving the
+`dashboard-heading` marker into the priority region, quieting the secondary hero and service
+ecosystem content, removing the no-op `Explore All` affordance, keeping service ecosystem tiles
+static, and hardening localized responsive wrapping for secondary dashboard content. It preserved
+existing member links, active/empty claim behavior, routes, proxy, auth, tenancy, data reads,
+runtime behavior, schemas, migrations, Stripe, README/AGENTS.md, and architecture-doc boundaries.
+Focused unit, i18n, type, lint, security, local PR-style E2E, remote validation, audit, static,
+unit, full E2E, `e2e-gate`, Pilot Gate, gitleaks, pnpm-audit, PR finalizer, SonarCloud, Vercel
+ignored-build, and Vercel Preview Comments were green before merge.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
@@ -864,6 +876,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 275. Complete `P41-DG03 Admin/Ops Filter Wrapping Hardening Design Gate` as the approved design authority that promotes exactly one presentation-only implementation slice, `P41-UX03 Admin/Ops Filter Wrapping Hardening`, scoped to shared `OpsFiltersBar` and `/admin/claims` filter wrapping/accessibility hardening while preserving query semantics, routes, proxy, auth, tenancy, data reads, schemas, Stripe, README, AGENTS, and architecture-doc boundaries.
 276. Keep `P41-UX03 Admin/Ops Filter Wrapping Hardening` complete through PR `#858`, preserving shared ops/admin filter semantics while adding presentation-only wrapping, grouping, accessible labels, and structural proof.
 277. Complete `P41-DG04 Member Dashboard Visual Hierarchy Hardening Design Gate` as the approved design authority that promotes exactly one presentation-only implementation slice, `P41-UX04 Member Dashboard Visual Hierarchy Hardening`, scoped to the canonical `/member` dashboard task-first hierarchy and secondary-service quieting while preserving routes, proxy, auth, tenancy, data reads, runtime behavior, schemas, Stripe, README, AGENTS, and architecture-doc boundaries.
+278. Keep `P41-UX04 Member Dashboard Visual Hierarchy Hardening` complete through PR `#861`, preserving canonical `/member` dashboard behavior while making the first visible dashboard region task-first, quieting secondary dashboard content, neutralizing false service-card interactivity, and proving localized authenticated viewport behavior.
 
 ## Status Command
 
