@@ -88,6 +88,7 @@
         "assigned_only": "Assigned",
         "unassigned_only": "Unassigned",
         "assigned_to_me": "Assigned to me",
+        "assignment_label": "Assignment",
         "origin_label": "Origin",
         "origin_all": "All origins",
         "origin_diaspora": "Diaspora / Green Card",
