@@ -62,6 +62,8 @@
       "account_error_cta": "Get assistance",
       "unavailable_short": "N/A",
       "help_label": "Need help?",
+      "priority_region_label": "Primary tasks",
+      "secondary_region_label": "Additional services and benefits",
       "more_services": "More services",
       "diaspora_description": "Specialized support network for members across Europe and beyond.",
       "cta_incident_kicker": "SOS",

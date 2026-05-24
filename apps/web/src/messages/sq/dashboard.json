@@ -62,6 +62,8 @@
       "account_error_cta": "Merr ndihmë",
       "unavailable_short": "Nuk ka",
       "help_label": "Keni nevojë për ndihmë?",
+      "priority_region_label": "Detyrat kryesore",
+      "secondary_region_label": "Shërbime dhe përfitime shtesë",
       "more_services": "Më shumë shërbime",
       "diaspora_description": "Rrjet i specializuar mbështetjeje për anëtarët në Evropë dhe më gjerë.",
       "cta_incident_kicker": "URGJENT",

@@ -127,9 +127,9 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="min-w-0">
         <CardHeader>
-          <CardTitle className="text-sm font-medium">{t('title')}</CardTitle>
+          <CardTitle className="break-words text-sm font-medium">{t('title')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <Skeleton className="h-10 w-full" />
@@ -145,15 +145,15 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
 
   if (error || !data) {
     return (
-      <Card className="border-destructive/50">
+      <Card className="min-w-0 border-destructive/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-sm font-medium text-destructive">
-            <AlertCircle className="h-4 w-4" />
+          <CardTitle className="flex min-w-0 items-center gap-2 break-words text-sm font-medium text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
             {t('loadError')}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="break-words text-sm text-muted-foreground">{error}</p>
         </CardContent>
       </Card>
     );
@@ -163,23 +163,23 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
   const currency = data.stats.rewardsCurrency || data.settings.currencyCode;
 
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader className="space-y-2">
-        <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <Gift className="h-4 w-4 text-primary" />
+        <CardTitle className="flex min-w-0 items-center gap-2 break-words text-base font-semibold">
+          <Gift className="h-4 w-4 shrink-0 text-primary" />
           {t('title')}
         </CardTitle>
-        <p className="text-sm text-muted-foreground">{t('description')}</p>
+        <p className="break-words text-sm text-muted-foreground">{t('description')}</p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
           <Input
             value={data.link}
             readOnly
-            className="font-mono text-sm"
+            className="min-w-0 font-mono text-sm"
             onClick={event => event.currentTarget.select()}
           />
-          <div className="flex gap-2">
+          <div className="flex shrink-0 gap-2">
             <Button
               type="button"
               variant="outline"
@@ -205,35 +205,43 @@ export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>)
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('friends')}</p>
+        <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="min-w-0 rounded-lg border bg-muted/30 p-3">
+            <p className="break-words text-xs uppercase tracking-wide text-muted-foreground">
+              {t('friends')}
+            </p>
             <p className="mt-2 text-2xl font-semibold">{data.stats.totalReferred}</p>
           </div>
-          <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('pending')}</p>
-            <p className="mt-2 text-2xl font-semibold">
+          <div className="min-w-0 rounded-lg border bg-muted/30 p-3">
+            <p className="break-words text-xs uppercase tracking-wide text-muted-foreground">
+              {t('pending')}
+            </p>
+            <p className="mt-2 break-words text-2xl font-semibold">
               {formatCurrency(data.stats.pendingRewards, currency)}
             </p>
           </div>
-          <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('credited')}</p>
-            <p className="mt-2 text-2xl font-semibold">
+          <div className="min-w-0 rounded-lg border bg-muted/30 p-3">
+            <p className="break-words text-xs uppercase tracking-wide text-muted-foreground">
+              {t('credited')}
+            </p>
+            <p className="mt-2 break-words text-2xl font-semibold">
               {formatCurrency(data.stats.creditedRewards, currency)}
             </p>
           </div>
-          <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('paid')}</p>
-            <p className="mt-2 text-2xl font-semibold">
+          <div className="min-w-0 rounded-lg border bg-muted/30 p-3">
+            <p className="break-words text-xs uppercase tracking-wide text-muted-foreground">
+              {t('paid')}
+            </p>
+            <p className="mt-2 break-words text-2xl font-semibold">
               {formatCurrency(data.stats.paidRewards, currency)}
             </p>
           </div>
         </div>
 
-        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
-          <div className="flex items-start gap-2">
-            <Wallet className="mt-0.5 h-4 w-4 text-primary" />
-            <div className="space-y-1">
+        <div className="min-w-0 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+          <div className="flex min-w-0 items-start gap-2">
+            <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 space-y-1 break-words">
               <p>{rewardSummary}</p>
               {data.settings.settlementMode === 'credit_or_payout' ? (
                 <p>
