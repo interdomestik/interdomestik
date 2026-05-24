@@ -89,6 +89,7 @@
         "assigned_only": "Dodeljeno",
         "unassigned_only": "Nedodeljeno",
         "assigned_to_me": "Dodeljeno meni",
+        "assignment_label": "Dodela",
         "origin_label": "Poreklo",
         "origin_all": "Sva porekla",
         "origin_diaspora": "Dijaspora / Zeleni karton",

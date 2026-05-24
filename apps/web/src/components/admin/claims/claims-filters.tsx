@@ -182,8 +182,12 @@ export function AdminClaimsFilters() {
         isPending={isNavigationPending}
         searchDisabled={pendingKind === 'filter'}
         rightActions={
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex bg-black/20 p-1 rounded-lg border border-white/5">
+          <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+            <div
+              className="flex max-w-full flex-wrap bg-black/20 p-1 rounded-lg border border-white/5"
+              role="group"
+              aria-label={tAdmin('filters.assignment_label')}
+            >
               {assignmentOptions.map(option => {
                 const isActive = currentAssignment === option.value;
                 const isInert = isNavigationPending || isActive;
@@ -210,7 +214,8 @@ export function AdminClaimsFilters() {
               })}
             </div>
             <div
-              className="flex bg-black/20 p-1 rounded-lg border border-white/5"
+              className="flex max-w-full flex-wrap bg-black/20 p-1 rounded-lg border border-white/5"
+              role="group"
               aria-label={tAdmin('filters.origin_label')}
             >
               {diasporaOptions.map(option => {

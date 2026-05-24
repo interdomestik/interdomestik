@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps, PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { OPS_TEST_IDS } from '@/components/ops/testids';
 import { AdminClaimsFilters } from './claims-filters';
 
 // Mock next/navigation - the component imports useRouter, usePathname, useSearchParams from here
@@ -23,6 +24,7 @@ vi.mock('next-intl', () => ({
       'sections.resolved': 'Closed',
       'filters.unassigned_only': 'Unassigned',
       'filters.assigned_to_me': 'Assigned to me',
+      'filters.assignment_label': 'Assignment',
       'filters.origin_label': 'Origin',
       'filters.origin_all': 'All origins',
       'filters.origin_diaspora': 'Diaspora / Green Card',
@@ -38,6 +40,7 @@ vi.mock('next-intl', () => ({
 vi.mock('@interdomestik/ui', () => ({
   Button: ({
     children,
+    asChild: _asChild,
     ...props
   }: PropsWithChildren<ComponentProps<'button'> & { asChild?: boolean }>) => (
     <button {...props}>{children}</button>
@@ -181,5 +184,13 @@ describe('AdminClaimsFilters', () => {
     fireEvent.click(screen.getByTestId('assigned-filter-unassigned'));
 
     expect(screen.getByPlaceholderText('Search...')).toBeDisabled();
+  });
+
+  it('labels assignment controls and preserves wrapping classes for filter groups', () => {
+    render(<AdminClaimsFilters />);
+
+    expect(screen.getByTestId(OPS_TEST_IDS.FILTERS.ACTIONS)).toHaveClass('flex-wrap');
+    expect(screen.getByRole('group', { name: 'Assignment' })).toHaveClass('flex-wrap');
+    expect(screen.getByRole('group', { name: 'Origin' })).toHaveClass('flex-wrap');
   });
 });

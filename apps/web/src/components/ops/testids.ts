@@ -20,6 +20,9 @@ export const OPS_TEST_IDS = {
   },
   FILTERS: {
     BAR: 'ops-filters-bar',
+    TABS: 'ops-filters-tabs',
+    ACTIONS: 'ops-filters-actions',
+    SEARCH_GROUP: 'ops-filters-search-group',
     TAB: (id: string) => `ops-tab-${id}`,
     SEARCH: 'ops-search-input',
   },

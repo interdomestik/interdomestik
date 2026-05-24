@@ -54,7 +54,10 @@ export function OpsFiltersBar({
 
   return (
     <div className={containerClasses} data-testid={OPS_TEST_IDS.FILTERS.BAR}>
-      <div className="flex gap-2">
+      <div
+        className="flex w-full flex-wrap gap-2 sm:w-auto"
+        data-testid={OPS_TEST_IDS.FILTERS.TABS}
+      >
         {tabs.map(tab => {
           const isActive = tab.id === activeTab;
 
@@ -116,8 +119,14 @@ export function OpsFiltersBar({
           );
         })}
       </div>
-      <div className="flex w-full sm:w-auto items-center gap-3">
-        <div className="relative w-full sm:w-auto sm:min-w-[280px]">
+      <div
+        className="flex w-full flex-wrap items-center gap-3 sm:w-auto"
+        data-testid={OPS_TEST_IDS.FILTERS.ACTIONS}
+      >
+        <div
+          className="relative w-full min-w-0 sm:w-auto sm:min-w-[280px]"
+          data-testid={OPS_TEST_IDS.FILTERS.SEARCH_GROUP}
+        >
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             type="search"
