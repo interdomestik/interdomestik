@@ -78,45 +78,67 @@ export async function MemberDashboardView({ data, locale }: Readonly<MemberDashb
     : tLanding('hero_subtitle_inactive');
 
   return (
-    <div className="space-y-10 pb-10" data-testid="member-dashboard-ready">
-      <MemberHeader name={member.name} membershipNumber={member.membershipNumber} />
-      <PrimaryActions locale={locale} />
-      <MemberGuidancePanel
-        activeClaim={activeClaim}
-        hasNoClaims={hasNoClaims}
-        isActive={isActive}
-        supportHref={supportHref}
-        tLanding={tLanding}
-        validThru={validThru}
-      />
-      {hasNoClaims ? (
-        <OrientationCard orientationHref={orientationHref} tLanding={tLanding} />
-      ) : null}
-
-      {activeClaim ? (
-        <ActiveClaimFocus
-          claimNumber={activeClaim.claimNumber}
-          locale={locale}
-          status={activeClaim.status}
-          stageLabel={activeClaim.stageLabel}
-          stageKey={activeClaim.stageKey}
-          updatedAt={activeClaim.updatedAt}
-          nextMemberAction={
-            activeClaim.requiresMemberAction ? activeClaim.nextMemberAction : undefined
-          }
+    <div className="min-w-0 max-w-full space-y-10 pb-10" data-testid="member-dashboard-ready">
+      <section
+        aria-labelledby="member-dashboard-priority-heading"
+        className="min-w-0 space-y-5"
+        data-testid="member-dashboard-priority-region"
+      >
+        <div className="min-w-0 space-y-3">
+          <MemberHeader name={member.name} membershipNumber={member.membershipNumber} />
+          <h2
+            id="member-dashboard-priority-heading"
+            className="break-words text-sm font-semibold uppercase tracking-wide text-muted-foreground"
+            data-testid="dashboard-heading"
+          >
+            {tLanding('priority_region_label')}
+          </h2>
+        </div>
+        <PrimaryActions locale={locale} />
+        <MemberGuidancePanel
+          activeClaim={activeClaim}
+          hasNoClaims={hasNoClaims}
+          isActive={isActive}
+          supportHref={supportHref}
+          tLanding={tLanding}
+          validThru={validThru}
         />
-      ) : null}
+        {hasNoClaims ? (
+          <OrientationCard orientationHref={orientationHref} tLanding={tLanding} />
+        ) : null}
 
-      {hasNoClaims ? <MemberEmptyState locale={locale} /> : null}
+        {activeClaim ? (
+          <ActiveClaimFocus
+            claimNumber={activeClaim.claimNumber}
+            locale={locale}
+            status={activeClaim.status}
+            stageLabel={activeClaim.stageLabel}
+            stageKey={activeClaim.stageKey}
+            updatedAt={activeClaim.updatedAt}
+            nextMemberAction={
+              activeClaim.requiresMemberAction ? activeClaim.nextMemberAction : undefined
+            }
+          />
+        ) : null}
 
-      <SupportLink href={supportHref} />
+        {hasNoClaims ? <MemberEmptyState locale={locale} /> : null}
 
-      {shouldShowActivationPanel ? <ActivationPanel tLanding={tLanding} /> : null}
+        <SupportLink href={supportHref} />
 
-      <section className="space-y-6">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            {tLanding('more_services')}
+        {shouldShowActivationPanel ? <ActivationPanel tLanding={tLanding} /> : null}
+      </section>
+
+      <section
+        aria-labelledby="member-dashboard-secondary-heading"
+        className="min-w-0 space-y-6"
+        data-testid="member-dashboard-secondary-region"
+      >
+        <div className="flex min-w-0 items-center justify-between px-1">
+          <h2
+            id="member-dashboard-secondary-heading"
+            className="min-w-0 break-words text-sm font-semibold uppercase tracking-wide text-muted-foreground"
+          >
+            {tLanding('secondary_region_label')}
           </h2>
         </div>
 
@@ -134,8 +156,8 @@ export async function MemberDashboardView({ data, locale }: Readonly<MemberDashb
         <DiasporaRibbon t={t} tLanding={tLanding} />
 
         {/* Action Center - Primary Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+        <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="min-w-0 space-y-8 lg:col-span-2">
             <MemberActionGrid t={t} tLanding={tLanding} />
           </div>
 
@@ -145,7 +167,7 @@ export async function MemberDashboardView({ data, locale }: Readonly<MemberDashb
         {/* Secondary Service Tiles - Glass Grid */}
         <ServiceEcosystemGrid t={t} tLanding={tLanding} />
 
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid min-w-0 gap-8 lg:grid-cols-3">
           <CommandCenterCard contacts={contacts} tLanding={tLanding} />
 
           <ReferralStatusColumn

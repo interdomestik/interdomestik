@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import type { MemberDashboardData } from '@interdomestik/domain-member';
@@ -52,6 +52,8 @@ guidance_membership_cta|Активирај членство`
 
 const translationMap: Record<string, string> = {
   'dashboard.member_landing.page_title': 'Панел за членови',
+  'dashboard.member_landing.priority_region_label': 'Главни задачи',
+  'dashboard.member_landing.secondary_region_label': 'Дополнителни услуги и бенефиции',
   'dashboard.member_landing.more_services': 'Повеќе услуги',
   'dashboard.member_landing.hero_greeting': 'Добредојде',
   'dashboard.member_landing.hero_subtitle_active':
@@ -206,11 +208,31 @@ vi.mock('@/lib/roles.core', () => ({
 }));
 
 vi.mock('@interdomestik/ui', () => ({
-  Button: ({ children }: { children: ReactNode }) => <button>{children}</button>,
-  Card: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  CardContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  CardHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  CardTitle: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Button: ({ children, className }: { children: ReactNode; className?: string }) => (
+    <button className={className}>{children}</button>
+  ),
+  Card: ({
+    children,
+    className,
+    'data-testid': testId,
+  }: {
+    children: ReactNode;
+    className?: string;
+    'data-testid'?: string;
+  }) => (
+    <div className={className} data-testid={testId}>
+      {children}
+    </div>
+  ),
+  CardContent: ({ children, className }: { children: ReactNode; className?: string }) => (
+    <div className={className}>{children}</div>
+  ),
+  CardHeader: ({ children, className }: { children: ReactNode; className?: string }) => (
+    <div className={className}>{children}</div>
+  ),
+  CardTitle: ({ children, className }: { children: ReactNode; className?: string }) => (
+    <div className={className}>{children}</div>
+  ),
 }));
 
 import { MemberDashboardView } from './member-dashboard-view';
@@ -266,6 +288,7 @@ describe('MemberDashboardView MK localization', () => {
     expect(screen.queryByText('Your membership is not active yet.')).not.toBeInTheDocument();
     expect(screen.queryByText('Live Protection')).not.toBeInTheDocument();
     expect(screen.queryByText('Explore All')).not.toBeInTheDocument();
+    expect(screen.queryByText('Истражи ги сите')).not.toBeInTheDocument();
     expect(
       screen.queryByText('dashboard.member_landing.card_member_support')
     ).not.toBeInTheDocument();
@@ -274,6 +297,59 @@ describe('MemberDashboardView MK localization', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByTestId('member-guidance-panel')).toBeInTheDocument();
     expect(screen.getByText('Вашиот најважен следен чекор')).toBeInTheDocument();
+  });
+
+  it('renders a named task-first region before secondary services', async () => {
+    const tree = await MemberDashboardView({
+      data: makeData(),
+      locale: 'mk',
+    });
+
+    render(tree);
+
+    const priorityRegion = screen.getByRole('region', { name: 'Главни задачи' });
+    const secondaryRegion = screen.getByRole('region', {
+      name: 'Дополнителни услуги и бенефиции',
+    });
+    const heading = screen.getByTestId('dashboard-heading');
+
+    expect(priorityRegion).toHaveAttribute('data-testid', 'member-dashboard-priority-region');
+    expect(secondaryRegion).toHaveAttribute('data-testid', 'member-dashboard-secondary-region');
+    expect(priorityRegion).toContainElement(heading);
+    expect(within(priorityRegion).getByTestId('member-primary-actions')).toBeInTheDocument();
+    expect(
+      priorityRegion.compareDocumentPosition(secondaryRegion) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('keeps the secondary service cards static and non-interactive', async () => {
+    const tree = await MemberDashboardView({
+      data: makeData(),
+      locale: 'mk',
+    });
+
+    render(tree);
+
+    expect(screen.queryByRole('button', { name: /Истражи/i })).not.toBeInTheDocument();
+    for (const card of screen.getAllByTestId('member-service-ecosystem-card')) {
+      expect(card.className).not.toContain('cursor-pointer');
+      expect(card.className).not.toContain('hover:-translate-y-1');
+      expect(card.className).not.toContain('hover:shadow-xl');
+    }
+  });
+
+  it('preserves the combined no-claim orientation and empty state in the task-first region', async () => {
+    const tree = await MemberDashboardView({
+      data: makeData(),
+      locale: 'mk',
+    });
+
+    render(tree);
+
+    const priorityRegion = screen.getByRole('region', { name: 'Главни задачи' });
+
+    expect(within(priorityRegion).getByTestId('member-orientation-card')).toBeInTheDocument();
+    expect(within(priorityRegion).getByTestId('member-empty-state')).toBeInTheDocument();
   });
 
   it('surfaces activation CTAs before claim-centric actions for unpaid members', async () => {

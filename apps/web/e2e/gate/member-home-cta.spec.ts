@@ -3,6 +3,11 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 const MEMBER_HOME_MARKER_TIMEOUT_MS = 30000;
+const DASHBOARD_HIERARCHY_VIEWPORTS = [
+  { name: 'mobile', width: 390, height: 844 },
+  { name: 'dense desktop', width: 1024, height: 768 },
+  { name: 'standard desktop', width: 1440, height: 900 },
+] as const;
 
 test.describe('Strict Gate: Member Home Crystal UI', () => {
   test('Member can navigate via the 4 Crystal CTAs', async ({
@@ -105,4 +110,56 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
       '/member/membership'
     );
   });
+
+  for (const viewport of DASHBOARD_HIERARCHY_VIEWPORTS) {
+    test(`Member dashboard hierarchy stays task-first at ${viewport.name}`, async ({
+      authenticatedPage: page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await gotoApp(page, routes.member(test.info()), testInfo, {
+        marker: 'member-dashboard-ready',
+        markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
+      });
+
+      const dashboard = page.getByTestId('member-dashboard-ready').first();
+      const priorityRegion = dashboard.getByTestId('member-dashboard-priority-region');
+      const secondaryRegion = dashboard.getByTestId('member-dashboard-secondary-region');
+
+      await expect(dashboard).toBeVisible();
+      await expect(priorityRegion).toBeVisible();
+      await expect(secondaryRegion).toBeVisible();
+      await expect(dashboard.getByTestId('dashboard-heading')).toBeVisible();
+      await expect(dashboard.getByTestId('member-primary-actions')).toBeVisible();
+
+      const priorityPrecedesSecondary = await dashboard.evaluate(element => {
+        const priority = element.querySelector('[data-testid="member-dashboard-priority-region"]');
+        const secondary = element.querySelector(
+          '[data-testid="member-dashboard-secondary-region"]'
+        );
+
+        return Boolean(
+          priority &&
+          secondary &&
+          priority.compareDocumentPosition(secondary) & Node.DOCUMENT_POSITION_FOLLOWING
+        );
+      });
+      expect(priorityPrecedesSecondary).toBe(true);
+
+      const dashboardHasHorizontalOverflow = await dashboard.evaluate(
+        element => element.scrollWidth > element.clientWidth + 1
+      );
+      expect(dashboardHasHorizontalOverflow).toBe(false);
+
+      const firstServiceCardClass = await dashboard
+        .getByTestId('member-service-ecosystem-card')
+        .first()
+        .getAttribute('class');
+      expect(firstServiceCardClass ?? '').not.toContain('cursor-pointer');
+      expect(firstServiceCardClass ?? '').not.toContain('hover:-translate-y-1');
+      expect(firstServiceCardClass ?? '').not.toContain('hover:shadow-xl');
+      await expect(
+        dashboard.getByRole('button', { name: /explore|истражи|eksploro|istraži/i })
+      ).toHaveCount(0);
+    });
+  }
 });

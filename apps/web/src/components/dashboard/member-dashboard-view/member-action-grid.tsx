@@ -54,6 +54,7 @@ export function MemberActionGrid({
           description={action.description}
           colorClassName={action.color}
           testId={`home-cta-${action.id}`}
+          compact
         />
       ))}
     </HomeGrid>
