@@ -570,6 +570,19 @@ data reads, schemas, migrations, Stripe, README/AGENTS.md, and architecture-doc 
 unit, i18n, targeted browser, scope, security, local required-gate, remote E2E, Pilot Gate, Sonar,
 and PR checks were green before merge.
 
+`P41-DG04 Member Dashboard Visual Hierarchy Hardening Design Gate` is complete in
+`docs/plans/2026-05-24-p41-dg04-member-dashboard-visual-hierarchy-design.md` after mandatory
+Sonnet 4.6 architecture/scope review through Copilot CLI and Gemini Pro product/mobile/
+accessibility review. The gate promotes exactly one next implementation slice, `P41-UX04 Member
+Dashboard Visual Hierarchy Hardening`. The promoted slice is presentation-only on the canonical
+`/member` dashboard rendered by `MemberDashboardView`: it makes the first visible dashboard region
+task-first, moves the `dashboard-heading` marker into that task-first region, adds accessible
+priority/secondary region markers, quiets secondary service cards, removes false interactive
+affordances and the no-op `Explore All` control, preserves existing member links and empty/active
+claim states, proves authenticated mobile/dense/desktop viewport behavior, and keeps routes, proxy,
+auth, tenancy, data reads, runtime behavior, schemas, migrations, Stripe, README/AGENTS.md, and
+architecture-doc boundaries unchanged.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
@@ -850,6 +863,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 274. Keep `P41-UX02 Agent CRM Task Queue Action Density And Mobile Ergonomics` complete through PR `#856`, preserving the existing CRM task behavior while reducing `/agent/crm` row action density through presentation-only secondary actions.
 275. Complete `P41-DG03 Admin/Ops Filter Wrapping Hardening Design Gate` as the approved design authority that promotes exactly one presentation-only implementation slice, `P41-UX03 Admin/Ops Filter Wrapping Hardening`, scoped to shared `OpsFiltersBar` and `/admin/claims` filter wrapping/accessibility hardening while preserving query semantics, routes, proxy, auth, tenancy, data reads, schemas, Stripe, README, AGENTS, and architecture-doc boundaries.
 276. Keep `P41-UX03 Admin/Ops Filter Wrapping Hardening` complete through PR `#858`, preserving shared ops/admin filter semantics while adding presentation-only wrapping, grouping, accessible labels, and structural proof.
+277. Complete `P41-DG04 Member Dashboard Visual Hierarchy Hardening Design Gate` as the approved design authority that promotes exactly one presentation-only implementation slice, `P41-UX04 Member Dashboard Visual Hierarchy Hardening`, scoped to the canonical `/member` dashboard task-first hierarchy and secondary-service quieting while preserving routes, proxy, auth, tenancy, data reads, runtime behavior, schemas, Stripe, README, AGENTS, and architecture-doc boundaries.
 
 ## Status Command
 
