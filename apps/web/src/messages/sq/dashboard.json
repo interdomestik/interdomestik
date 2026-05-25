@@ -165,7 +165,7 @@
         }
       },
       "heroResolver": {
-        "nextActionLabel": "Hapi tjetër",
+        "nextActionLabel": "Hapi i radhës",
         "states": {
           "visitor_general": {
             "kicker": "Asistenca IDA",
@@ -204,13 +204,13 @@
             "cta": "Hap rastin e parë"
           },
           "member_active_has_open_case": {
-            "kicker": "Rast i hapur",
-            "title": "Rasti yt është aktiv.",
-            "highlight": "Vazhdo nga statusi.",
-            "body": "Ndiq statusin, afatin dhe hapat e publikuar nga dosja e rastit.",
+            "kicker": "Rast aktiv",
+            "title": "Rasti juaj është në trajtim.",
+            "highlight": "Ndiq statusin dhe hapat e radhës.",
+            "body": "Ndiq statusin, dokumentet dhe hapat e radhës nga dosja e rastit.",
             "valueLabel": "Statusi",
-            "value": "Rasti në proces",
-            "cta": "Hap rastin"
+            "value": "Në trajtim",
+            "cta": "Shiko rastin"
           },
           "missing_documents": {
             "kicker": "Kërkohet veprim",
@@ -233,7 +233,7 @@
         }
       },
       "nextStep": {
-        "kicker": "Hapi më i mirë tani",
+        "kicker": "Hapi i radhës",
         "activate": {
           "title": "Aktivizo Asistencën",
           "body": "Mund të përdorni orientimin falas tani. Aktivizoni anëtarësinë për të ruajtur rastin, ndjekur statusin, përdorur Kartën IDA dhe kontaktuar mbështetjen.",
@@ -251,8 +251,8 @@
         },
         "memberAction": {
           "title": "Kërkohet veprimi juaj",
-          "body": "Shikoni hapin e publikuar që timeline i rastit të vazhdojë.",
-          "cta": "Hap rastin"
+          "body": "Shikoni hapin e publikuar që dosja e rastit të vazhdojë.",
+          "cta": "Shiko rastin"
         },
         "authorization": {
           "title": "Nënshkruaj autorizimin",
@@ -260,9 +260,9 @@
           "cta": "Shiko autorizimin"
         },
         "review": {
-          "title": "Rasti është në shqyrtim",
-          "body": "Rasti juaj është i dokumentuar dhe i dukshëm. Ndiqni statusin dhe hapat e publikuar nga timeline.",
-          "cta": "Hap rastin"
+          "title": "Rasti është duke u shqyrtuar",
+          "body": "Rasti juaj është i dokumentuar dhe i dukshëm. Ndiqni statusin dhe hapat e publikuar nga dosja e rastit.",
+          "cta": "Shiko rastin"
         },
         "history": {
           "title": "Shiko rastet e mëparshme",
@@ -294,7 +294,7 @@
           },
           "complaint": {
             "mobile": "Ankesë",
-            "situation": "Mora ofertë të ulët ose të paqartë",
+            "situation": "Oferta është e ulët ose e paqartë",
             "title": "Jep ankesë",
             "body": "Përdore kur ka refuzim, vonesë ose ofertë të paqartë."
           },
@@ -312,7 +312,7 @@
           },
           "flightDelay": {
             "mobile": "Fluturim",
-            "situation": "Fluturimi më është vonuar",
+            "situation": "Fluturimi im u vonua",
             "title": "Fluturim i vonuar",
             "body": "Kontrollo nëse fluturimi i vonuar mund të kualifikohet për kompensim."
           }
@@ -325,10 +325,10 @@
         "caseFallback": "Rast anëtari",
         "caseNumber": "Numër rasti",
         "status": "Statusi",
-        "open": "Hap rastin",
+        "open": "Shiko rastin",
         "support": "Kërko mbështetje",
         "lastUpdate": "Përditësimi i fundit",
-        "timelinePreview": "Timeline është i dukshëm. Përditësimi i radhës shfaqet në dosje.",
+        "timelinePreview": "Dosja e rastit është e dukshme. Përditësimi i radhës shfaqet aty.",
         "emptyTitle": "Nuk keni hapur ende rast",
         "emptyBody": "Kur ndodh dëm, IDA ju udhëzon hap pas hapi.",
         "emptyCta": "Hap rastin"

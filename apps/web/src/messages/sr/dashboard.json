@@ -167,7 +167,7 @@
         }
       },
       "heroResolver": {
-        "nextActionLabel": "Sledeća radnja",
+        "nextActionLabel": "Sledeći korak",
         "states": {
           "visitor_general": {
             "kicker": "IDA asistencija",
@@ -206,13 +206,13 @@
             "cta": "Otvori prvi slučaj"
           },
           "member_active_has_open_case": {
-            "kicker": "Otvoren slučaj",
-            "title": "Vaš slučaj je aktivan.",
-            "highlight": "Nastavite od statusa.",
-            "body": "Pratite objavljeni status, vremensku liniju i sledeće korake iz dosijea slučaja.",
+            "kicker": "Aktivan slučaj",
+            "title": "Vaš slučaj je u toku.",
+            "highlight": "Pratite status i sledeće korake.",
+            "body": "Pratite status, dokumenta i sledeće korake iz dosijea slučaja.",
             "valueLabel": "Stanje",
-            "value": "Slučaj u toku",
-            "cta": "Otvori slučaj"
+            "value": "U toku",
+            "cta": "Vidi slučaj"
           },
           "missing_documents": {
             "kicker": "Potrebna je radnja",
@@ -235,7 +235,7 @@
         }
       },
       "nextStep": {
-        "kicker": "Najbolji sledeći korak",
+        "kicker": "Sledeći korak",
         "activate": {
           "title": "Aktiviraj asistenciju",
           "body": "Sada možete koristiti besplatnu orijentaciju. Aktivirajte članstvo da sačuvate slučaj, pratite status, koristite IDA karticu i kontaktirate podršku.",
@@ -253,8 +253,8 @@
         },
         "memberAction": {
           "title": "Potrebna je vaša radnja",
-          "body": "Pregledajte objavljeni sledeći korak da bi vremenska linija slučaja nastavila.",
-          "cta": "Otvori slučaj"
+          "body": "Pregledajte objavljeni sledeći korak da bi dosije slučaja nastavio.",
+          "cta": "Vidi slučaj"
         },
         "authorization": {
           "title": "Potpišite ovlašćenje",
@@ -262,9 +262,9 @@
           "cta": "Pregledaj ovlašćenje"
         },
         "review": {
-          "title": "Slučaj je u pregledu",
-          "body": "Vaš slučaj je dokumentovan i vidljiv. Pratite status i objavljene sledeće korake iz vremenske linije.",
-          "cta": "Otvori slučaj"
+          "title": "Slučaj se pregleda",
+          "body": "Vaš slučaj je dokumentovan i vidljiv. Pratite status i objavljene sledeće korake iz dosijea slučaja.",
+          "cta": "Vidi slučaj"
         },
         "history": {
           "title": "Pregledaj prethodne slučajeve",
@@ -327,10 +327,10 @@
         "caseFallback": "Članski slučaj",
         "caseNumber": "Broj slučaja",
         "status": "Stanje",
-        "open": "Otvori slučaj",
+        "open": "Vidi slučaj",
         "support": "Zatraži podršku",
         "lastUpdate": "Poslednje ažuriranje",
-        "timelinePreview": "Vremenska linija je vidljiva. Sledeće ažuriranje će se pojaviti u dosijeu.",
+        "timelinePreview": "Dosije slučaja je vidljiv. Sledeće ažuriranje će se pojaviti tamo.",
         "emptyTitle": "Još niste otvorili slučaj",
         "emptyBody": "Kada se dogodi šteta, IDA vas vodi korak po korak.",
         "emptyCta": "Otvori slučaj"

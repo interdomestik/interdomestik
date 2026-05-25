@@ -165,7 +165,7 @@
         }
       },
       "heroResolver": {
-        "nextActionLabel": "Next action",
+        "nextActionLabel": "Next step",
         "states": {
           "visitor_general": {
             "kicker": "IDA assistance",
@@ -204,13 +204,13 @@
             "cta": "Open first case"
           },
           "member_active_has_open_case": {
-            "kicker": "Open case",
-            "title": "Your case is active.",
-            "highlight": "Continue from status.",
-            "body": "Follow the published status, timeline, and next steps from the case file.",
+            "kicker": "Active case",
+            "title": "Your case is in progress.",
+            "highlight": "Follow status and next steps.",
+            "body": "Follow status, documents, and next steps from the case file.",
             "valueLabel": "Status",
-            "value": "Case in progress",
-            "cta": "Open case"
+            "value": "In progress",
+            "cta": "View case"
           },
           "missing_documents": {
             "kicker": "Action needed",
@@ -233,7 +233,7 @@
         }
       },
       "nextStep": {
-        "kicker": "Next best action",
+        "kicker": "Next step",
         "activate": {
           "title": "Activate Assistance",
           "body": "You can use free orientation now. Activate membership to save a case, track status, use the IDA Card, and reach member support.",
@@ -251,8 +251,8 @@
         },
         "memberAction": {
           "title": "Your action is needed",
-          "body": "Review the published next step so the case timeline can keep moving.",
-          "cta": "Open case"
+          "body": "Review the published next step so the case file can keep moving.",
+          "cta": "View case"
         },
         "authorization": {
           "title": "Sign authorization",
@@ -260,9 +260,9 @@
           "cta": "Review authorization"
         },
         "review": {
-          "title": "Case is under review",
-          "body": "Your case is documented and visible. Follow status updates and published next steps from the case timeline.",
-          "cta": "Open case"
+          "title": "Case is being reviewed",
+          "body": "Your case is documented and visible. Follow status updates and published next steps from the case file.",
+          "cta": "View case"
         },
         "history": {
           "title": "Review previous cases",
@@ -325,10 +325,10 @@
         "caseFallback": "Member case",
         "caseNumber": "Case number",
         "status": "Status",
-        "open": "Open case",
+        "open": "View case",
         "support": "Request support",
         "lastUpdate": "Last update",
-        "timelinePreview": "Timeline is visible. The next status update will appear in the case file.",
+        "timelinePreview": "The case file is visible. The next status update will appear there.",
         "emptyTitle": "No case opened yet",
         "emptyBody": "When damage happens, IDA guides you step by step.",
         "emptyCta": "Open case"
