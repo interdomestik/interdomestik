@@ -1,10 +1,8 @@
 import { ChevronRight, type LucideIcon } from 'lucide-react';
 
 type MainServiceCardProps = {
-  description: string;
   href: string;
   icon: LucideIcon;
-  label: string;
   mobileLabel?: string;
   situation: string;
   testId?: string;

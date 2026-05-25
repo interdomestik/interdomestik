@@ -36,6 +36,7 @@ let currentMessages: typeof mkMessages = mkMessages;
 
 vi.mock('next/navigation', () => ({
   redirect: hoisted.redirectMock,
+  usePathname: () => '/mk/member',
 }));
 
 vi.mock('next-intl/server', () => ({

@@ -61,41 +61,33 @@ function normalizeDate(value: Date | string | null | undefined) {
 
 export async function getMemberDashboardData(params: {
   memberId: string;
-  tenantId?: string | null;
+  tenantId: string;
 }): Promise<MemberDashboardData> {
   const { memberId, tenantId } = params;
 
-  if (tenantId) {
-    return withTenantContext({ tenantId, role: 'member' }, async tx => {
-      return getMemberDashboardDataWithDb({
-        dbClient: tx,
-        memberId,
-        tenantId,
-      });
-    });
+  if (!tenantId) {
+    throw new Error('Missing tenant context');
   }
 
-  return getMemberDashboardDataWithDb({
-    dbClient: db,
-    memberId,
-    tenantId,
+  return withTenantContext({ tenantId, role: 'member' }, async tx => {
+    return getMemberDashboardDataWithDb({
+      dbClient: tx,
+      memberId,
+      tenantId,
+    });
   });
 }
 
 async function getMemberDashboardDataWithDb(params: {
   dbClient: typeof db | TenantTransaction;
   memberId: string;
-  tenantId?: string | null;
+  tenantId: string;
 }): Promise<MemberDashboardData> {
   const { dbClient, memberId, tenantId } = params;
 
-  const memberWhere = tenantId
-    ? withTenant(tenantId, user.tenantId, eq(user.id, memberId))
-    : eq(user.id, memberId);
-
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+  // db-access-guard: tenant-scoped -- reason: tenantId is required and enforced by withTenantContext at the DB boundary
   const member = await dbClient.query.user.findFirst({
-    where: memberWhere,
+    where: withTenant(tenantId, user.tenantId, eq(user.id, memberId)),
     columns: { id: true, name: true, memberNumber: true, role: true, tenantId: true },
   });
 
@@ -103,13 +95,8 @@ async function getMemberDashboardDataWithDb(params: {
     throw new Error('Member not found');
   }
 
-  const resolvedTenantId = tenantId ?? member.tenantId;
-  if (!resolvedTenantId) {
-    throw new Error('Missing tenant context');
-  }
-
   const rawClaims = await dbClient.query.claims.findMany({
-    where: withTenant(resolvedTenantId, claims.tenantId, eq(claims.userId, memberId)),
+    where: withTenant(tenantId, claims.tenantId, eq(claims.userId, memberId)),
     orderBy: [desc(claims.updatedAt)],
     columns: {
       id: true,

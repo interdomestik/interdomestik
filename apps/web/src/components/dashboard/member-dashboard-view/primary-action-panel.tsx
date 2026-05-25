@@ -20,7 +20,7 @@ export function PrimaryActionPanel({ locale, t }: PrimaryActionPanelProps) {
       className="flex items-center justify-between rounded-[1.25rem] bg-[#eef4ef] p-3 shadow-lg shadow-emerald-900/5 ring-1 ring-emerald-900/5 transition-all active:scale-[0.98] md:rounded-[1.5rem] md:p-6"
       data-testid="home-cta-benefits"
     >
-      <span className="contents" data-testid="member-primary-action-panel">
+      <div className="contents" data-testid="member-primary-action-panel">
         <div className="flex min-w-0 flex-col gap-1.5">
           <h2 className="text-base font-extrabold tracking-tight text-[#0e5c2b] md:text-2xl">
             {t('membershipValue.price')}
@@ -60,7 +60,7 @@ export function PrimaryActionPanel({ locale, t }: PrimaryActionPanelProps) {
             </svg>
           </div>
         </div>
-      </span>
+      </div>
     </a>
   );
 }
