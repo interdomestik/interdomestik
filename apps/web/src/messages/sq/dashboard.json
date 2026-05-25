@@ -3,124 +3,16 @@
     "welcome_back": "Mirësevini përsëri! Këtu është një përmbledhje e kërkesave tuaja për dëmshpërblim sot.",
     "overview": "Përmbledhje e Panelit",
     "member_landing": {
-      "page_title": "Paneli i anëtarit",
-      "primary_cta": "Nis kërkesë të re",
-      "secondary_cta": "Shiko kërkesat",
-      "hero_greeting": "Mirësevini",
-      "hero_subtitle_active": "Anëtarësimi juaj është aktiv. Jemi gati t'ju asistojmë nëse ndodh një incident.",
-      "hero_subtitle_inactive": "Anëtarësimi juaj nuk është ende aktiv.",
-      "activation_title": "Aktivizo anëtarësimin",
-      "activation_body": "Përfundo planin për të zhbllokuar mbështetjen prioritare, përfitimet e anëtarësimit dhe paraqitjen e kërkesave të reja.",
-      "activation_primary_cta": "Hap anëtarësimin",
-      "activation_secondary_cta": "Shiko planet",
-      "status_label": "Statusi",
-      "status_active": "Aktiv",
-      "status_pending": "Në pritje",
-      "response_label": "Përgjigjja mesatare",
-      "response_value": "Nën 3 minuta",
-      "card_ready_label": "Karta digjitale",
-      "card_ready_value": "Gati",
-      "protection_label": "Mbrojtja",
-      "level_label": "Niveli",
-      "level_value": "Elitë premium",
-      "guidance_label": "Sot",
-      "guidance_title": "Hapi juaj më i rëndësishëm",
-      "guidance_subtitle_active": "Paneli mban kërkesat, dokumentet dhe mbështetjen në një vend, që hapi i radhës të jetë i dukshëm.",
-      "guidance_subtitle_inactive": "Aktivizoni anëtarësimin për të hapur mbështetjen prioritare për kërkesa. Dokumentet dhe udhëzimet mund t'i përgatisni tani.",
-      "guidance_membership_active": "Anëtarësim aktiv",
-      "guidance_membership_inactive": "Duhet aktivizim",
-      "guidance_no_claim_title": "Nisni kur ndodh incidenti",
-      "guidance_no_claim_body": "Hapni pranimin e kërkesës dhe ndani faktet bazë. Rasti do të mbahet në rrjedhën e kërkesave të anëtarit.",
-      "guidance_start_claim_cta": "Nis kërkesë",
-      "guidance_action_needed_title": "Kërkohet veprim",
-      "guidance_action_needed_body": "Kërkesa {claimNumber} pret informacion nga ju që ekipi të vazhdojë triage.",
-      "guidance_active_claim_title": "Kërkesë në proces",
-      "guidance_active_claim_body": "Kërkesa {claimNumber} është në rrjedhën aktive. Kontrolloni statusin, mesazhet dhe hapat e publikuar.",
-      "guidance_claim_review_cta": "Hap kërkesën",
-      "guidance_claims_title": "Shikoni historikun",
-      "guidance_claims_body": "Kërkesat e mbyllura ose të zgjidhura mbeten të disponueshme në zonën e kërkesave.",
-      "guidance_claims_cta": "Shiko kërkesat",
-      "guidance_documents_title": "Organizoni dokumentet",
-      "guidance_documents_body": "Mbani fotot, raportet, faturat dhe dokumentet e polisës të lidhura me kërkesën e duhur.",
-      "guidance_documents_cta": "Hap dokumentet",
-      "guidance_support_title": "Gatishmëria e mbështetjes",
-      "guidance_membership_valid_thru": "Mbështetja prioritare është e disponueshme. Vlefshmëria: {validThru}.",
-      "guidance_support_inactive_body": "Mbështetja e anëtarësimit është e kufizuar derisa aktivizimi të përfundojë.",
-      "guidance_support_cta": "Kontakto mbështetjen",
-      "guidance_membership_cta": "Aktivizo anëtarësimin",
-      "orientation_title": "Anëtarësimi juaj — ja si funksionon",
-      "orientation_point_one": "Nëse ndodh një incident, niseni kërkesën në pak hapa.",
-      "orientation_point_two": "Mbani dokumentet gati dhe kontaktoni mbështetjen sa herë të keni nevojë.",
-      "orientation_cta": "Shiko si funksionon",
-      "active_claim_title": "Kërkesa aktive",
-      "empty_title": "Nuk keni kërkesa ende",
-      "empty_body": "Kur ta dërgoni kërkesën e parë, ajo do të shfaqet këtu.",
-      "active_claim_title": "Kërkesë aktive",
-      "updated_label": "Përditësuar",
       "account_error_title": "Gabim në konfigurimin e llogarisë",
       "account_error_body": "Nuk mundëm të merrnim detajet e profilit tuaj. Ju lutemi kontaktoni mbështetjen.",
       "account_error_cta": "Merr ndihmë",
-      "unavailable_short": "Nuk ka",
+      "active_claim_title": "Kërkesë aktive",
+      "updated_label": "Përditësuar",
       "help_label": "Keni nevojë për ndihmë?",
-      "priority_region_label": "Detyrat kryesore",
-      "secondary_region_label": "Shërbime dhe përfitime shtesë",
-      "more_services": "Më shumë shërbime",
-      "diaspora_description": "Rrjet i specializuar mbështetjeje për anëtarët në Evropë dhe më gjerë.",
-      "cta_incident_kicker": "URGJENT",
-      "cta_report_kicker": "RAPORT I RI",
-      "cta_green_card_kicker": "DOKUMENTE UDHËTIMI",
-      "cta_benefits_kicker": "QASJE EKSKLUZIVE",
-      "live_protection_title": "Mbështetje live",
-      "system_integrity": "Statusi i anëtarësimit",
-      "integrity_optimal": "Në nivel optimal",
-      "integrity_low": "I ulët",
-      "nodes": "Nyje",
-      "latency": "Vonesë",
-      "active_protection_nodes": "Kanale aktive mbështetëse",
-      "online": "Në linjë",
-      "get_help_support": "Merr ndihmë dhe mbështetje",
-      "system_ecosystem": "Ekosistemi i sistemit",
-      "explore_all": "Eksploro të gjitha",
-      "property_damage_desc": "Vlerësim dëmi",
-      "health_safety_desc": "Udhëzim mjekësor",
-      "my_documents_desc": "Kasafortë polisash",
-      "contact_center_desc": "Mbështetje njerëzore",
-      "command_center_title": "QENDRA KOMANDUESE 24/7",
-      "priority_line_active": "LINJA PRIORITARE AKTIVE",
-      "country_north_macedonia": "Maqedonia e Veriut",
-      "country_kosovo": "Republika e Kosovës",
-      "available_now_avg_response": "I disponueshëm tani • Përgjigjja mesatare {seconds}",
-      "status_insight_title": "Statusi i anëtarësimit",
-      "status_insight_body": "Anëtarësimi juaj është aktiv. Mbajini dokumentet në kasafortë për trajtim më të shpejtë të incidenteve përmes aplikacionit IDA.",
-      "support_panel_title": "Gatishmëria e mbështetjes",
-      "support_readiness_label": "Gatishmëria",
-      "support_readiness_active": "Gati tani",
-      "support_readiness_pending": "Në pritje të aktivizimit",
-      "support_channel_label": "Kanali kryesor",
-      "support_channel_value": "Telefon + WhatsApp",
-      "support_window_label": "Orari i mbulimit",
-      "support_window_value": "24 orë / 7 ditë",
-      "support_highlights_title": "Çfarë përfshin mbështetja",
-      "support_highlight_one": "Triage i incidentit",
-      "support_highlight_two": "Udhëzim për dokumentet",
-      "support_highlight_three": "Koordinim për mbështetje udhëtimi",
-      "online_now": "Në linjë tani",
-      "support_panel_cta": "Hap mbështetjen e anëtarit",
-      "support_phone_label": "Telefoni i mbështetjes",
-      "support_whatsapp_label": "Linja WhatsApp",
-      "support_whatsapp_value": "Biseda është e disponueshme tani",
-      "command_center_body": "Kontakto ekipin e mbështetjes së anëtarëve për incidente urgjente, udhëzim për dokumentet dhe ndihmë për udhëtimet e diasporës. Të drejtojmë te hapi i duhur pa zgjeruar fushën e produktit.",
-      "review_security_parameters": "Rishiko parametrat e sigurisë",
-      "card_membership": "Anëtarësim",
-      "card_claim_support": "Dëmshpërblim",
-      "card_legal_protection": "Mbrojtje ligjore",
-      "card_assistance_247": "Asistencë 24/7",
-      "card_member_name": "Emri i anëtarit",
-      "card_valid_thru": "Vlen deri më",
-      "card_active_member": "Anëtar aktiv",
-      "card_protection_paused": "Anëtarësimi i pauzuar",
-      "card_add_to_apple_wallet": "Shto në Apple Wallet",
-      "card_google_pay_ready": "Gati për Google Pay"
+      "primary_cta": "Nis kërkesë të re",
+      "secondary_cta": "Shiko kërkesat",
+      "empty_title": "Nuk keni kërkesa ende",
+      "empty_body": "Kur ta dërgoni kërkesën e parë, ajo do të shfaqet këtu."
     },
     "activeClaims": "Kërkesat Aktive për Dëmshpërblim",
     "activeClaimsDesc": "Mosmarrëveshjet tuaja në vijim",
@@ -197,7 +89,7 @@
           "scene_safety": "Lëviz në vend të sigurt nëse mundesh, siguro pasagjerët dhe shmang rrezik të ri në vendngjarje.",
           "emergency_services": "Thirr së pari shërbimet lokale emergjente nëse dikush është i lënduar, i bllokuar, i kërcënuar ose rreziku vazhdon.",
           "document_scene": "Bëj foto ose video të pozicioneve, targave, dëmit, kushteve të rrugës, shenjave dhe provave të dukshme para se gjërat të lëvizin.",
-          "exchange_information": "Shkëmbe të dhënat e shoferit, automjetit, siguruesit, dëshmitarëve dhe autoriteteve pa pranuar faj apo nënshkruar deklarata të paqarta.",
+          "exchange_information": "Shkëmbe të dhënat e shoferit, automjetit, dëshmitarëve, autoriteteve dhe policës së disponueshme pa pranuar faj apo nënshkruar deklarata të paqarta.",
           "record_timeline": "Shëno kohën, vendin, drejtimin e lëvizjes, motin, praninë e policisë dhe çfarë ndodhi me fakte të thjeshta.",
           "preserve_documents": "Mbaj së bashku raportet policore, shënimet mjekësore, faturat, dëftesat e tërheqjes, fotot dhe mesazhet për dosjen e anëtarit."
         },
@@ -205,7 +97,7 @@
         "disclaimers": {
           "not_legal_advice": "Ky nuk është këshillim juridik.",
           "not_medical_advice": "Ky nuk është këshillim mjekësor.",
-          "not_insurer_assessment": "Ky nuk është vlerësim i siguruesit apo vendim për përgjegjësi.",
+          "not_insurer_assessment": "Ky nuk është vlerësim apo vendim për përgjegjësi.",
           "not_professional_opinion": "Ky nuk është opinion profesional.",
           "educational_only": "Ky është vetëm udhëzim edukues dhe për ruajtje provash.",
           "professional_review_required": "Shqyrtimi profesional kërkohet para veprimit për Professional Recovery."
@@ -235,6 +127,242 @@
       "health_safety": "Shëndeti dhe Siguria",
       "my_documents": "Dokumentet e Mia",
       "contact_center": "Qendra e Kontaktit"
+    },
+    "member_assistance": {
+      "common": {
+        "unavailable": "Nuk ka"
+      },
+      "header": {
+        "brand": "Interdomestik Asistenca",
+        "logoAlt": "Logo e Interdomestik",
+        "product": "Aplikacioni IDA",
+        "tagline": "Më lehtë është bashkë",
+        "notifications": "Njoftimet",
+        "profile": "Profili i anëtarit"
+      },
+      "welcome": {
+        "active": "Aktive",
+        "inactive": "Vizitor / jo aktiv"
+      },
+      "primary": {
+        "kicker": "Veprimi i parë",
+        "title": "Kur ndodh diçka, filloni këtu",
+        "body": "Hapi i parë ju orienton, ndihmon ruajtjen e provave dhe ju tregon nëse duhet hapur rast anëtari.",
+        "helpNow": "Ndihmë tani",
+        "helpNowSubtitle": "Udhëzim i menjëhershëm kur ndodh diçka",
+        "openCase": "Hap rastin",
+        "openCaseSubtitle": "Krijo dosje dhe ruaj provat"
+      },
+      "membershipValue": {
+        "label": "Vlera e anëtarësisë IDA",
+        "price": "Vetëm 20€/vit",
+        "cardTitle": "Anëtar",
+        "cardSubtitle": "Asistencë 24/7",
+        "benefits": {
+          "assistance": "Asistencë 24/7",
+          "activation": "Aktivizim i menjëhershëm",
+          "cases": "Rastet online në IDA"
+        }
+      },
+      "heroResolver": {
+        "nextActionLabel": "Hapi tjetër",
+        "states": {
+          "visitor_general": {
+            "kicker": "Asistenca IDA",
+            "title": "Bashkohu me asistencën IDA.",
+            "highlight": "Dije hapin tjetër.",
+            "body": "Merr ndihmë të udhëzuar pas një aksidenti, mbaj dokumentet të organizuara dhe hap rast kur anëtarësia është aktive.",
+            "valueLabel": "Anëtarësia",
+            "value": "20 EUR/vit",
+            "cta": "Aktivizo asistencën"
+          },
+          "visitor_broker_tpl": {
+            "kicker": "Hyrje me referim",
+            "title": "Fillo asistencën IDA.",
+            "highlight": "Mbaje rastin të organizuar.",
+            "body": "Përdor IDA për të dokumentuar çfarë ndodhi, ruajtur dosjet dhe vazhduar me rrjedhën e rastit me anëtarësi.",
+            "valueLabel": "Anëtarësia",
+            "value": "20 EUR/vit",
+            "cta": "Aktivizo asistencën"
+          },
+          "visitor_diaspora": {
+            "kicker": "Mbështetje për diasporën",
+            "title": "Jeton apo udhëton jashtë?",
+            "highlight": "Fillo me IDA.",
+            "body": "Përdor asistencën për orientim pas aksidentit, kontekst të Green Card, dokumente dhe hapa të qartë vijues.",
+            "valueLabel": "Anëtarësia",
+            "value": "20 EUR/vit",
+            "cta": "Aktivizo asistencën për diasporë"
+          },
+          "member_active_no_case": {
+            "kicker": "Anëtar aktiv",
+            "title": "Të duhet ndihmë tani?",
+            "highlight": "Hap rastin e parë.",
+            "body": "Anëtarësia jote është aktive. Fillo rast kur faktet, fotot ose dokumentet duhet të ruhen në llogarinë tënde.",
+            "valueLabel": "Statusi",
+            "value": "Asistencë aktive",
+            "cta": "Hap rastin e parë"
+          },
+          "member_active_has_open_case": {
+            "kicker": "Rast i hapur",
+            "title": "Rasti yt është aktiv.",
+            "highlight": "Vazhdo nga statusi.",
+            "body": "Ndiq statusin, afatin dhe hapat e publikuar nga dosja e rastit.",
+            "valueLabel": "Statusi",
+            "value": "Rasti në proces",
+            "cta": "Hap rastin"
+          },
+          "missing_documents": {
+            "kicker": "Kërkohet veprim",
+            "title": "Duhen dokumente.",
+            "highlight": "Ngarkoji tani.",
+            "body": "Rasti ka nevojë për dokumentet e tua para se ekipi të vazhdojë shqyrtimin.",
+            "valueLabel": "Statusi",
+            "value": "Mungojnë dokumente",
+            "cta": "Hap dokumentet"
+          },
+          "authorization_needed": {
+            "kicker": "Autorizimi",
+            "title": "Duhet autorizim.",
+            "highlight": "Shqyrto para recovery.",
+            "body": "Recovery profesional mund të vazhdojë vetëm pasi autorizimi, marrëveshja, kushtet dhe audit trail të jenë vendosur.",
+            "valueLabel": "Statusi",
+            "value": "Duhet nënshkrim",
+            "cta": "Shiko autorizimin"
+          }
+        }
+      },
+      "nextStep": {
+        "kicker": "Hapi më i mirë tani",
+        "activate": {
+          "title": "Aktivizo Asistencën",
+          "body": "Mund të përdorni orientimin falas tani. Aktivizoni anëtarësinë për të ruajtur rastin, ndjekur statusin, përdorur Kartën IDA dhe kontaktuar mbështetjen.",
+          "cta": "Aktivizo Asistencën"
+        },
+        "firstCase": {
+          "title": "Hap rastin e parë",
+          "body": "Hapni dosjen kur jeni gati të lidhni faktet, provat dhe dokumentet me llogarinë tuaj.",
+          "cta": "Hap rastin e parë"
+        },
+        "missingDocs": {
+          "title": "Ngarko dokumentet që mungojnë",
+          "body": "Rasti ka nevojë për dokumentet tuaja para se ekipi të vazhdojë shqyrtimin.",
+          "cta": "Hap dokumentet"
+        },
+        "memberAction": {
+          "title": "Kërkohet veprimi juaj",
+          "body": "Shikoni hapin e publikuar që timeline i rastit të vazhdojë.",
+          "cta": "Hap rastin"
+        },
+        "authorization": {
+          "title": "Nënshkruaj autorizimin",
+          "body": "Professional Recovery mund të vazhdojë vetëm me autorizim, marrëveshje, kushte dhe audit trail.",
+          "cta": "Shiko autorizimin"
+        },
+        "review": {
+          "title": "Rasti është në shqyrtim",
+          "body": "Rasti juaj është i dokumentuar dhe i dukshëm. Ndiqni statusin dhe hapat e publikuar nga timeline.",
+          "cta": "Hap rastin"
+        },
+        "history": {
+          "title": "Shiko rastet e mëparshme",
+          "body": "Nuk ka rast aktiv të zgjedhur. Rastet e mbyllura ose të ruajtura mbeten të disponueshme.",
+          "cta": "Shiko rastet"
+        }
+      },
+      "inactive": {
+        "title": "Çfarë është falas dhe çfarë kërkon anëtarësi",
+        "body": "Vetëshërbimi falas përfshin orientim, listë kontrolli, hapin e radhës dhe gatishmëri dokumentesh. Asistenca e anëtarit shton rast të ruajtur, status, afat të rastit, kasafortë dokumentesh, Kartën IDA dhe mbështetje.",
+        "cta": "Aktivizo Asistencën"
+      },
+      "services": {
+        "kicker": "Shërbimet kryesore",
+        "title": "Çka po ndodh tani?",
+        "open": "Hap",
+        "cards": {
+          "helpNow": {
+            "mobile": "Aksident",
+            "situation": "Kam aksident tani",
+            "title": "Udhëzues vendngjarje + Green Card",
+            "body": "Zgjidh shtetin ku ndodhi aksidenti dhe merr udhëzimin e parë: polici, Deklaratë Europiane, foto dhe dokumente."
+          },
+          "reportClaim": {
+            "mobile": "Raporto",
+            "situation": "Dua të raportoj dëm",
+            "title": "Raporto dëmin",
+            "body": "Hap një dosje dhe ruaj provat, dokumentet dhe statusin e rastit."
+          },
+          "complaint": {
+            "mobile": "Ankesë",
+            "situation": "Mora ofertë të ulët ose të paqartë",
+            "title": "Jep ankesë",
+            "body": "Përdore kur ka refuzim, vonesë ose ofertë të paqartë."
+          },
+          "procedureGuide": {
+            "mobile": "Procedurë",
+            "situation": "Dua hapat proceduralë",
+            "title": "Udhëzues procedure",
+            "body": "Merr hapat proceduralë sipas shtetit, llojit të dëmit dhe dokumenteve."
+          },
+          "recovery": {
+            "mobile": "Ndjekje",
+            "situation": "Dua që Interdomestik ta ndjekë rastin",
+            "title": "Ndërmjetësim / Recovery",
+            "body": "Me autorizim, Interdomestik mund ta ndjekë rastin në emrin tuaj."
+          },
+          "flightDelay": {
+            "mobile": "Fluturim",
+            "situation": "Fluturimi më është vonuar",
+            "title": "Fluturim i vonuar",
+            "body": "Kontrollo nëse fluturimi i vonuar mund të kualifikohet për kompensim."
+          }
+        }
+      },
+      "cases": {
+        "kicker": "Statusi i rastit",
+        "title": "Rastet aktive",
+        "viewAll": "Shiko të gjitha",
+        "caseFallback": "Rast anëtari",
+        "caseNumber": "Numër rasti",
+        "status": "Statusi",
+        "open": "Hap rastin",
+        "support": "Kërko mbështetje",
+        "lastUpdate": "Përditësimi i fundit",
+        "timelinePreview": "Timeline është i dukshëm. Përditësimi i radhës shfaqet në dosje.",
+        "emptyTitle": "Nuk keni hapur ende rast",
+        "emptyBody": "Kur ndodh dëm, IDA ju udhëzon hap pas hapi.",
+        "emptyCta": "Hap rastin"
+      },
+      "documents": {
+        "kicker": "Kasaforta e dokumenteve",
+        "title": "Përmbledhje e dokumenteve",
+        "body": "Paneli shfaq vetëm numra. Përmbajtja sensitive ose mjekësore qëndron brenda rrjedhës së mbrojtur të rastit.",
+        "saved": "Dokumente të ruajtura",
+        "missing": "Dokumente që mungojnë",
+        "missingActive": "Hap vault për të parë ngarkimet e kërkuara për rastet aktive.",
+        "missingNoCase": "Dokumentet që mungojnë shfaqen pasi të hapet rasti.",
+        "consent": "Shqyrtimi i dokumenteve mjekësore ose sensitive kërkon pëlqim të qartë para ngarkimit ose shqyrtimit.",
+        "cta": "Hap kasafortën e dokumenteve"
+      },
+      "trust": {
+        "title": "Besimi dhe privatësia",
+        "body": "IDA e mban rastin të organizuar dhe transparent pa premtuar rezultat.",
+        "center": "Qendra e Besimit",
+        "items": {
+          "caseNumber": "Numër unik rasti",
+          "documents": "Dokumente të ruajtura",
+          "transparent": "Proces transparent",
+          "privacy": "Privatësi dhe siguri"
+        }
+      },
+      "bottomNav": {
+        "label": "Navigimi i anëtarit",
+        "home": "Kreu",
+        "cases": "Rastet",
+        "help": "Ndihmë",
+        "documents": "Dokumente",
+        "more": "Më shumë"
+      }
     },
     "member": {
       "home": {
@@ -283,7 +411,7 @@
           "title": "Si funksionon",
           "step1": "Na kontakto",
           "step2": "Ne të udhëzojmë",
-          "step3": "E zgjidhim rastin bashkë"
+          "step3": "E ndjekim statusin bashkë"
         },
         "claims": {
           "title": "Statusi i rastit",

@@ -4,7 +4,7 @@ export * from './types';
 // Export client creators
 export { createClient } from './client';
 export { createAdminClient, createServerSupabaseClient } from './server';
-export { withTenantContext, withTenantDb } from './tenant';
+export { withTenantContext, withTenantDb, type TenantTransaction } from './tenant';
 
 // Export Drizzle instance and schema
 export { db, dbAdmin, dbRls } from './db';

@@ -50,14 +50,16 @@ export default async function DashboardLayout({
     <NextIntlClientProvider messages={messages} locale={locale}>
       <NavigationFeedback>
         <div data-testid="dashboard-page-ready">
-          <SidebarProvider defaultOpen={true}>
+          <SidebarProvider defaultOpen={false}>
             <DashboardSidebar user={shellUser} adminAccess={false} />
-            <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-              <DashboardHeader user={shellUser} adminAccess={false} />
-              <div className="px-6 pt-4 md:px-8">
+            <SidebarInset className="bg-mesh flex min-h-screen w-screen max-w-[100svw] flex-col overflow-x-hidden md:w-auto">
+              <div className="hidden md:block">
+                <DashboardHeader user={shellUser} adminAccess={false} />
+              </div>
+              <div className="hidden px-6 pt-4 md:block md:px-8">
                 <LegacyBanner role={shellUser.role} />
               </div>
-              <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
+              <main className="flex-1 p-0 md:p-8 md:pt-6">{children}</main>
             </SidebarInset>
           </SidebarProvider>
         </div>

@@ -23,6 +23,8 @@ function makeData(overrides?: Partial<MemberDashboardData>): MemberDashboardData
       id: 'member-1',
       name: 'Test Member',
       membershipNumber: 'M-100',
+      role: 'member',
+      tenantId: 'tenant-ks',
     },
     claims: [],
     activeClaimId: null,

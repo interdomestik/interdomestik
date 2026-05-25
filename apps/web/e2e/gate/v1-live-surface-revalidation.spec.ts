@@ -174,7 +174,7 @@ test.describe('P21-QA01 v1.0.0 live surface revalidation', () => {
       timeout: 15000,
     });
 
-    const memberStartClaimCta = page.getByTestId('member-start-claim-cta').first();
+    const memberStartClaimCta = page.getByTestId('hero-cta-open-first-case').first();
     await expect(memberStartClaimCta).toBeVisible();
     await memberStartClaimCta.click({ force: true });
     await expect(page).toHaveURL(new RegExp(`${routes.memberNewClaim(testInfo)}$`));

@@ -90,9 +90,12 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       await expect(supportLink).toHaveCount(1);
       await expect(supportLink).toBeVisible();
 
-      const cta = primaryActions.getByTestId('member-start-claim-cta');
+      const cta = primaryActions.getByTestId('hero-cta-open-active-case');
       await expect(cta).toHaveCount(1);
-      await expect(cta).toHaveAttribute('href', routes.memberNewClaim(testInfo));
+      await expect(cta).toHaveAttribute(
+        'href',
+        new RegExp(`${routes.memberClaims(testInfo)}/[^/]+$`)
+      );
     });
 
     test('Member (KS) can login, see dashboard, and create a claim', async ({ page }, testInfo) => {

@@ -1,144 +1,38 @@
 import { render, screen, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ReactNode } from 'react';
 import type { MemberDashboardData } from '@interdomestik/domain-member';
+import enMessages from '@/messages/en/dashboard.json';
+import mkMessages from '@/messages/mk/dashboard.json';
+import sqMessages from '@/messages/sq/dashboard.json';
+import srMessages from '@/messages/sr/dashboard.json';
+import type { ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
-  andMock: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
-  userFindFirstMock: vi.fn(async () => ({
-    id: 'member-1',
-    name: 'Stefan Dimitrioski',
-    role: 'member',
-    memberNumber: 'ID-MEMBER',
-    tenantId: 'tenant-ks',
-  })),
-  subscriptionFindManyMock: vi.fn(async (): Promise<Array<Record<string, unknown>>> => []),
-  getActiveSubscriptionMock: vi.fn(async (): Promise<Record<string, unknown> | null> => null),
+  activeSubscription: null as Record<string, unknown> | null,
+  documentCount: 0,
+  getActiveSubscriptionMock: vi.fn(),
   redirectMock: vi.fn(),
+  subscriptionFindManyMock: vi.fn(async (): Promise<Array<Record<string, unknown>>> => []),
+  withTenantContextMock: vi.fn(
+    async (_context: { tenantId: string; role?: string }, action: (tx: unknown) => unknown) =>
+      action({
+        query: {
+          subscriptions: {
+            findMany: hoisted.subscriptionFindManyMock,
+          },
+        },
+        select: vi.fn(() => ({
+          from: vi.fn(() => ({
+            leftJoin: vi.fn(() => ({
+              where: vi.fn(async () => [{ count: hoisted.documentCount }]),
+            })),
+          })),
+        })),
+      })
+  ),
 }));
 
-const guidanceTranslationMap = Object.fromEntries(
-  `guidance_label|Денес
-guidance_title|Вашиот најважен следен чекор
-guidance_subtitle_active|Панелот ги држи барањата, документите и поддршката на едно место.
-guidance_subtitle_inactive|Активирајте членство за да отклучите приоритетна поддршка.
-guidance_membership_active|Членството е активно
-guidance_membership_inactive|Потребна е активација
-guidance_no_claim_title|Започнете кога ќе се случи инцидент
-guidance_no_claim_body|Отворете го приемот на барање и внесете ги основните факти.
-guidance_start_claim_cta|Започни барање
-guidance_action_needed_title|Потребно е дејство
-guidance_action_needed_body|Барањето {claimNumber} чека ваш внес за тимот да продолжи со тријажа.
-guidance_active_claim_title|Барањето е во процес
-guidance_active_claim_body|Барањето {claimNumber} е во активниот тек.
-guidance_claim_review_cta|Отвори барање
-guidance_claims_title|Прегледај историја
-guidance_claims_body|Затворените барања остануваат достапни.
-guidance_claims_cta|Види барања
-guidance_documents_title|Организирај документи
-guidance_documents_body|Чувајте фотографии, извештаи, фактури и полиси со барањето.
-guidance_documents_cta|Отвори документи
-guidance_support_title|Подготвеност за поддршка
-guidance_membership_valid_thru|Приоритетната поддршка е достапна. Важи до: {validThru}.
-guidance_support_inactive_body|Членската поддршка е ограничена додека не заврши активацијата.
-guidance_support_cta|Контактирај поддршка
-guidance_membership_cta|Активирај членство`
-    .split('\n')
-    .map(row => {
-      const separator = row.indexOf('|');
-      return [`dashboard.member_landing.${row.slice(0, separator)}`, row.slice(separator + 1)];
-    })
-);
-
-const translationMap: Record<string, string> = {
-  'dashboard.member_landing.page_title': 'Панел за членови',
-  'dashboard.member_landing.priority_region_label': 'Главни задачи',
-  'dashboard.member_landing.secondary_region_label': 'Дополнителни услуги и бенефиции',
-  'dashboard.member_landing.more_services': 'Повеќе услуги',
-  'dashboard.member_landing.hero_greeting': 'Добредојде',
-  'dashboard.member_landing.hero_subtitle_active':
-    'Вашето членство е активно. Подготвени сме да помогнеме.',
-  'dashboard.member_landing.hero_subtitle_inactive': 'Вашето членство сè уште не е активно.',
-  'dashboard.member_landing.activation_title': 'Активирај го членството',
-  'dashboard.member_landing.activation_body':
-    'Завршете го вашиот план за да пристапите до приоритетна поддршка и нови барања.',
-  'dashboard.member_landing.activation_primary_cta': 'Отвори членство',
-  'dashboard.member_landing.activation_secondary_cta': 'Види планови',
-  'dashboard.member_landing.status_label': 'Статус',
-  'dashboard.member_landing.status_active': 'Активно',
-  'dashboard.member_landing.status_pending': 'Во чекање',
-  'dashboard.member_landing.response_label': 'Просечно време',
-  'dashboard.member_landing.response_value': '< 3 Мин',
-  'dashboard.member_landing.card_ready_label': 'Дигитална картичка',
-  'dashboard.member_landing.card_ready_value': 'Спремна',
-  'dashboard.member_landing.protection_label': 'Заштита',
-  'dashboard.member_landing.level_label': 'Ниво',
-  'dashboard.member_landing.level_value': 'Премиум елит',
-  ...guidanceTranslationMap,
-  'dashboard.member_landing.diaspora_description':
-    'Специјализирана архитектура за заштита за членови низ Европа и пошироко.',
-  'dashboard.member_landing.live_protection_title': 'Заштита во живо',
-  'dashboard.member_landing.system_integrity': 'Интегритет на системот',
-  'dashboard.member_landing.integrity_low': 'Ниско',
-  'dashboard.member_landing.nodes': 'Јазли',
-  'dashboard.member_landing.latency': 'Доцнење',
-  'dashboard.member_landing.active_protection_nodes': 'Активни заштитни јазли',
-  'dashboard.member_landing.online': 'Онлајн',
-  'dashboard.member_landing.get_help_support': 'Побарај помош и поддршка',
-  'dashboard.member_landing.system_ecosystem': 'Системски екосистем',
-  'dashboard.member_landing.explore_all': 'Истражи ги сите',
-  'dashboard.member_landing.property_damage_desc': 'Проценка на штета',
-  'dashboard.member_landing.health_safety_desc': 'Медицински насоки',
-  'dashboard.member_landing.my_documents_desc': 'Сеф за полиси',
-  'dashboard.member_landing.contact_center_desc': 'Човечка поддршка',
-  'dashboard.member_landing.command_center_title': '24/7 КОМАНДЕН ЦЕНТАР',
-  'dashboard.member_landing.priority_line_active': 'ПРИОРИТЕТНА ЛИНИЈА АКТИВНА',
-  'dashboard.member_landing.country_north_macedonia': 'Северна Македонија',
-  'dashboard.member_landing.country_kosovo': 'Република Косово',
-  'dashboard.member_landing.available_now_avg_response':
-    'Достапно сега • Просечен одговор {seconds}',
-  'dashboard.member_landing.status_insight_title': 'Статусен увид',
-  'dashboard.member_landing.status_insight_body':
-    'Вашиот статус на заштита се следи во реално време од нашиот глобален оперативен центар.',
-  'dashboard.member_landing.support_panel_title': 'Подготвеност за поддршка',
-  'dashboard.member_landing.support_readiness_label': 'Подготвеност',
-  'dashboard.member_landing.support_readiness_active': 'Подготвено сега',
-  'dashboard.member_landing.support_readiness_pending': 'Во чекање',
-  'dashboard.member_landing.support_channel_label': 'Главен канал',
-  'dashboard.member_landing.support_channel_value': 'Телефон + WhatsApp',
-  'dashboard.member_landing.support_window_label': 'Покриеност',
-  'dashboard.member_landing.support_window_value': '24/7',
-  'dashboard.member_landing.support_highlights_title': 'Што вклучува поддршката',
-  'dashboard.member_landing.support_highlight_one': 'Тријажа на инцидент',
-  'dashboard.member_landing.support_highlight_two': 'Насоки за документи',
-  'dashboard.member_landing.support_highlight_three': 'Координација за патување',
-  'dashboard.member_landing.online_now': 'Онлајн сега',
-  'dashboard.member_landing.support_panel_cta': 'Отвори членска поддршка',
-  'dashboard.member_landing.support_phone_label': 'Телефон за поддршка',
-  'dashboard.member_landing.support_whatsapp_label': 'WhatsApp линија',
-  'dashboard.member_landing.support_whatsapp_value': 'Разговорот е достапен сега',
-  'dashboard.member_landing.command_center_body':
-    'Контактирајте го тимот за членска поддршка за итни инциденти и насоки за документи.',
-  'dashboard.member_landing.review_security_parameters': 'Провери безбедносни параметри',
-  'dashboard.protection_status.inactive': 'Нема активна заштита',
-  'dashboard.categories.property_damage': 'Штета на имот',
-  'dashboard.categories.health_safety': 'Здравје и безбедност',
-  'dashboard.categories.my_documents': 'Мои документи',
-  'dashboard.categories.contact_center': 'Контакт центар',
-};
-
-function translate(namespace?: string) {
-  return (key: string, values?: Record<string, string>) => {
-    const fullKey = namespace ? `${namespace}.${key}` : key;
-    let value = translationMap[fullKey] ?? fullKey;
-    if (values) {
-      for (const [token, replacement] of Object.entries(values)) {
-        value = value.replace(`{${token}}`, replacement);
-      }
-    }
-    return value;
-  };
-}
+let currentMessages: typeof mkMessages = mkMessages;
 
 vi.mock('next/navigation', () => ({
   redirect: hoisted.redirectMock,
@@ -149,52 +43,44 @@ vi.mock('next-intl/server', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  and: hoisted.andMock,
+  and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
+  claimDocuments: {
+    claimId: 'claim_documents.claim_id',
+    tenantId: 'claim_documents.tenant_id',
+  },
+  claims: {
+    id: 'claims.id',
+    tenantId: 'claims.tenant_id',
+    userId: 'claims.user_id',
+  },
   db: {
     query: {
-      user: {
-        findFirst: hoisted.userFindFirstMock,
-      },
       subscriptions: {
         findMany: hoisted.subscriptionFindManyMock,
       },
     },
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        leftJoin: vi.fn(() => ({
+          where: vi.fn(async () => [{ count: hoisted.documentCount }]),
+        })),
+      })),
+    })),
   },
-  eq: vi.fn(),
+  eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   subscriptions: {
-    userId: 'subscriptions.user_id',
+    createdAt: 'subscriptions.created_at',
     tenantId: 'subscriptions.tenant_id',
+    userId: 'subscriptions.user_id',
   },
-  user: {},
+  user: {
+    id: 'user.id',
+  },
+  withTenantContext: hoisted.withTenantContextMock,
 }));
 
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
-  getActiveSubscription: hoisted.getActiveSubscriptionMock,
-}));
-
-vi.mock('@/components/member-dashboard', () => ({
-  ActiveClaimFocus: () => null,
-  MemberEmptyState: () => <div data-testid="member-empty-state" />,
-  MemberHeader: ({ name }: { name: string }) => <div>{name}</div>,
-  PrimaryActions: () => <div data-testid="member-primary-actions" />,
-  SupportLink: ({ href }: { href: string }) => <a href={href}>support</a>,
-}));
-
-vi.mock('@/components/member/HomeGrid', () => ({
-  HomeGrid: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-
-vi.mock('@/components/member/referral-card', () => ({
-  ReferralCard: () => <div data-testid="referral-card" />,
-}));
-
-vi.mock('./matte-anchor-card', () => ({
-  MatteAnchorCard: ({ label, description }: { label: string; description: string }) => (
-    <div>
-      <span>{label}</span>
-      <span>{description}</span>
-    </div>
-  ),
+  getActiveSubscription: (...args: unknown[]) => hoisted.getActiveSubscriptionMock(...args),
 }));
 
 vi.mock('@/i18n/routing', () => ({
@@ -203,316 +89,164 @@ vi.mock('@/i18n/routing', () => ({
   ),
 }));
 
-vi.mock('@/lib/roles.core', () => ({
-  isAgent: () => false,
-}));
-
 vi.mock('@interdomestik/ui', () => ({
-  Button: ({ children, className }: { children: ReactNode; className?: string }) => (
-    <button className={className}>{children}</button>
-  ),
-  Card: ({
-    children,
-    className,
-    'data-testid': testId,
-  }: {
-    children: ReactNode;
-    className?: string;
-    'data-testid'?: string;
-  }) => (
-    <div className={className} data-testid={testId}>
-      {children}
-    </div>
-  ),
-  CardContent: ({ children, className }: { children: ReactNode; className?: string }) => (
-    <div className={className}>{children}</div>
-  ),
-  CardHeader: ({ children, className }: { children: ReactNode; className?: string }) => (
-    <div className={className}>{children}</div>
-  ),
-  CardTitle: ({ children, className }: { children: ReactNode; className?: string }) => (
-    <div className={className}>{children}</div>
-  ),
+  Button: ({ children }: { children: ReactNode }) => <button>{children}</button>,
 }));
 
 import { MemberDashboardView } from './member-dashboard-view';
 
 function makeData(overrides?: Partial<MemberDashboardData>): MemberDashboardData {
   return {
+    activeClaimId: null,
+    claims: [],
     member: {
       id: 'member-1',
-      name: 'Stefan Dimitrioski',
       membershipNumber: 'M-100',
+      name: 'Arta Member',
+      role: 'member',
+      tenantId: 'tenant-ks',
     },
-    claims: [],
-    activeClaimId: null,
     supportHref: '/member/help',
     ...overrides,
   };
 }
 
-function mockActiveMembership() {
-  const activeSubscription = {
-    id: 'sub-active',
-    status: 'active',
-    currentPeriodEnd: new Date('2026-09-30T00:00:00Z'),
+function translate(namespace?: string) {
+  return (key: string, values?: Record<string, string | number | boolean | Date | null>) => {
+    const path = namespace ? `${namespace}.${key}` : key;
+    const resolved = getPath(currentMessages, path);
+    if (typeof resolved !== 'string') return path;
+    let value = resolved;
+
+    if (values) {
+      for (const [token, replacement] of Object.entries(values)) {
+        value = value.replace(`{${token}}`, String(replacement ?? ''));
+      }
+    }
+
+    return value;
   };
-  hoisted.getActiveSubscriptionMock.mockResolvedValueOnce(activeSubscription);
-  hoisted.subscriptionFindManyMock.mockResolvedValueOnce([activeSubscription]);
 }
 
-describe('MemberDashboardView MK localization', () => {
+function getPath(source: unknown, path: string): unknown {
+  return path.split('.').reduce<unknown>((acc, part) => {
+    if (!acc || typeof acc !== 'object') return undefined;
+    return (acc as Record<string, unknown>)[part];
+  }, source);
+}
+
+function mockActiveMembership() {
+  const subscription = {
+    currentPeriodEnd: new Date('2026-09-30T00:00:00Z'),
+    id: 'sub-active',
+    status: 'active',
+  };
+  hoisted.getActiveSubscriptionMock.mockResolvedValue(subscription);
+  hoisted.subscriptionFindManyMock.mockResolvedValue([subscription]);
+}
+
+describe('MemberDashboardView assistance dashboard', () => {
   beforeEach(() => {
-    hoisted.userFindFirstMock.mockResolvedValue({
-      id: 'member-1',
-      name: 'Stefan Dimitrioski',
-      role: 'member',
-      memberNumber: 'ID-MEMBER',
-      tenantId: 'tenant-ks',
-    });
-    hoisted.subscriptionFindManyMock.mockResolvedValue([]);
+    currentMessages = mkMessages;
+    hoisted.documentCount = 0;
+    hoisted.getActiveSubscriptionMock.mockReset();
     hoisted.getActiveSubscriptionMock.mockResolvedValue(null);
+    hoisted.redirectMock.mockReset();
+    hoisted.subscriptionFindManyMock.mockReset();
+    hoisted.subscriptionFindManyMock.mockResolvedValue([]);
+    hoisted.withTenantContextMock.mockClear();
   });
 
-  it('does not leak hardcoded Albanian or English hero copy on mk member surface', async () => {
-    const tree = await MemberDashboardView({
-      data: makeData(),
-      locale: 'mk',
-    });
-
-    render(tree);
-
-    expect(screen.getByText(/Добредојде/)).toBeInTheDocument();
-    expect(screen.getByText('Вашето членство сè уште не е активно.')).toBeInTheDocument();
-    expect(screen.queryByText('Mirësevini,')).not.toBeInTheDocument();
-    expect(screen.queryByText('Your membership is not active yet.')).not.toBeInTheDocument();
-    expect(screen.queryByText('Live Protection')).not.toBeInTheDocument();
-    expect(screen.queryByText('Explore All')).not.toBeInTheDocument();
-    expect(screen.queryByText('Истражи ги сите')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('dashboard.member_landing.card_member_support')
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('dashboard.member_landing.support_panel_title')
-    ).not.toBeInTheDocument();
-    expect(screen.getByTestId('member-guidance-panel')).toBeInTheDocument();
-    expect(screen.getByText('Вашиот најважен следен чекор')).toBeInTheDocument();
-  });
-
-  it('renders a named task-first region before secondary services', async () => {
-    const tree = await MemberDashboardView({
-      data: makeData(),
-      locale: 'mk',
-    });
-
-    render(tree);
-
-    const priorityRegion = screen.getByRole('region', { name: 'Главни задачи' });
-    const secondaryRegion = screen.getByRole('region', {
-      name: 'Дополнителни услуги и бенефиции',
-    });
-    const heading = screen.getByTestId('dashboard-heading');
-
-    expect(priorityRegion).toHaveAttribute('data-testid', 'member-dashboard-priority-region');
-    expect(secondaryRegion).toHaveAttribute('data-testid', 'member-dashboard-secondary-region');
-    expect(priorityRegion).toContainElement(heading);
-    expect(within(priorityRegion).getByTestId('member-primary-actions')).toBeInTheDocument();
-    expect(
-      priorityRegion.compareDocumentPosition(secondaryRegion) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
-  });
-
-  it('keeps the secondary service cards static and non-interactive', async () => {
-    const tree = await MemberDashboardView({
-      data: makeData(),
-      locale: 'mk',
-    });
-
-    render(tree);
-
-    expect(screen.queryByRole('button', { name: /Истражи/i })).not.toBeInTheDocument();
-    for (const card of screen.getAllByTestId('member-service-ecosystem-card')) {
-      expect(card.className).not.toContain('cursor-pointer');
-      expect(card.className).not.toContain('hover:-translate-y-1');
-      expect(card.className).not.toContain('hover:shadow-xl');
-    }
-  });
-
-  it('preserves the combined no-claim orientation and empty state in the task-first region', async () => {
-    const tree = await MemberDashboardView({
-      data: makeData(),
-      locale: 'mk',
-    });
-
-    render(tree);
-
-    const priorityRegion = screen.getByRole('region', { name: 'Главни задачи' });
-
-    expect(within(priorityRegion).getByTestId('member-orientation-card')).toBeInTheDocument();
-    expect(within(priorityRegion).getByTestId('member-empty-state')).toBeInTheDocument();
-  });
-
-  it('surfaces activation CTAs before claim-centric actions for unpaid members', async () => {
-    const tree = await MemberDashboardView({
-      data: makeData(),
-      locale: 'mk',
-    });
-
-    render(tree);
-
-    expect(screen.getByTestId('member-activation-panel')).toBeInTheDocument();
-    expect(screen.getAllByText('Активирај го членството').length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: 'Отвори членство' })).toHaveAttribute(
-      'href',
-      '/member/membership'
-    );
-    expect(screen.getByRole('link', { name: 'Види планови' })).toHaveAttribute('href', '/pricing');
-  });
-
-  it.each([
-    {
-      description: 'trialing memberships',
-      activeSubscription: {
-        id: 'sub-trialing',
-        status: 'trialing',
-        currentPeriodEnd: new Date('2026-04-30T00:00:00Z'),
-      },
-    },
-    {
-      description: 'past_due memberships still inside grace',
-      activeSubscription: {
-        id: 'sub-grace',
-        status: 'past_due',
-        currentPeriodEnd: new Date('2026-04-30T00:00:00Z'),
-        gracePeriodEndsAt: new Date('2099-04-05T00:00:00Z'),
-      },
-    },
-  ])(
-    'does not show activation panel for claim-eligible $description',
-    async ({ activeSubscription }) => {
-      hoisted.getActiveSubscriptionMock.mockResolvedValueOnce(activeSubscription);
-      hoisted.subscriptionFindManyMock.mockResolvedValueOnce([activeSubscription]);
-
-      const tree = await MemberDashboardView({
-        data: makeData(),
-        locale: 'mk',
-      });
-
-      render(tree);
-
-      expect(screen.queryByTestId('member-activation-panel')).not.toBeInTheDocument();
-      expect(
-        screen.getByText('Вашето членство е активно. Подготвени сме да помогнеме.')
-      ).toBeInTheDocument();
-      expect(screen.getAllByText('Активно').length).toBeGreaterThan(0);
-    }
-  );
-
-  it('keeps inactive no-claim guidance activation-oriented before claim intake', async () => {
-    const tree = await MemberDashboardView({
-      data: makeData(),
-      locale: 'mk',
-    });
-
-    render(tree);
-
-    expect(screen.getByTestId('member-guidance-activation')).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'Активирај членство' })[0]).toHaveAttribute(
-      'href',
-      '/member/membership'
-    );
-    expect(screen.getByRole('link', { name: 'Отвори документи' })).toHaveAttribute(
-      'href',
-      '/member/documents'
-    );
-  });
-
-  it('guides active members with no claims toward the claim intake and document vault', async () => {
+  it('renders active member status with a mobile-first assistance command center', async () => {
     mockActiveMembership();
+    hoisted.documentCount = 4;
 
-    const tree = await MemberDashboardView({
-      data: makeData(),
-      locale: 'mk',
-    });
-
+    const tree = await MemberDashboardView({ data: makeData(), locale: 'mk' });
     render(tree);
 
-    expect(screen.getByTestId('member-guidance-start-claim')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Започни барање' })).toHaveAttribute(
-      'href',
-      '/member/claims/new'
+    expect(screen.getByTestId('member-app-header')).toHaveTextContent('Интердоместик ИДА');
+    expect(screen.getByTestId('member-app-header')).toHaveTextContent('Полесно е заедно');
+    expect(screen.getByTestId('member-welcome-status')).toHaveTextContent('Активно');
+    expect(screen.getByTestId('member-welcome-status')).toHaveAttribute(
+      'data-hero-state',
+      'member_active_no_case'
     );
-    expect(screen.getByRole('link', { name: 'Отвори документи' })).toHaveAttribute(
+    expect(screen.getByTestId('hero-cta-open-first-case')).toHaveAttribute(
       'href',
-      '/member/documents'
+      '/mk/member/claims/new'
     );
+    expect(screen.getByTestId('member-hero-value-row')).toHaveTextContent('Активна асистенција');
+    expect(screen.queryByTestId('hero-cta-visitor_general')).not.toBeInTheDocument();
+    expect(screen.getByTestId('member-primary-action-panel')).toBeInTheDocument();
+    expect(screen.getAllByTestId('main-service-card')).toHaveLength(5);
+    expect(screen.getByText('Сакам Interdomestik да го следи случајот')).toBeInTheDocument();
+    expect(screen.getByTestId('document-vault-summary')).toHaveTextContent('4');
+    expect(screen.getByTestId('trust-strip')).toHaveTextContent('Центар за доверба');
+    expect(screen.getByTestId('mobile-bottom-nav')).toHaveTextContent('Почетна');
   });
 
-  it('surfaces active claim guidance and support readiness for claim-eligible members', async () => {
-    mockActiveMembership();
-
+  it('treats agent member-mode access as assistance/action, not visitor conversion', async () => {
     const tree = await MemberDashboardView({
       data: makeData({
-        supportHref: '/member/help/tenant-support',
-        activeClaimId: 'claim-1',
-        claims: [
-          {
-            id: 'claim-1',
-            claimNumber: 'CLM-100',
-            status: 'evaluation',
-            stageKey: 'evaluation',
-            stageLabel: 'Evaluation',
-            submittedAt: '2026-04-01T00:00:00.000Z',
-            updatedAt: '2026-04-20T00:00:00.000Z',
-            requiresMemberAction: false,
-          },
-        ],
+        member: {
+          id: 'agent-1',
+          membershipNumber: null,
+          name: 'Blerim Agent',
+          role: 'agent',
+          tenantId: 'tenant-ks',
+        },
       }),
       locale: 'mk',
     });
-
     render(tree);
 
-    expect(screen.getByTestId('member-guidance-active-claim')).toBeInTheDocument();
-    expect(screen.getByText('Барањето CLM-100 е во активниот тек.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Отвори барање' })).toHaveAttribute(
-      'href',
-      '/member/claims/claim-1'
+    expect(screen.getByTestId('member-welcome-status')).toHaveAttribute(
+      'data-hero-state',
+      'member_active_no_case'
     );
-    expect(screen.getByText('Членството е активно')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Контактирај поддршка' })).toHaveAttribute(
+    expect(screen.getByTestId('hero-cta-open-first-case')).toHaveAttribute(
       'href',
-      '/member/help/tenant-support'
+      '/mk/member/claims/new'
+    );
+    expect(screen.queryByTestId('hero-cta-visitor_general')).not.toBeInTheDocument();
+  });
+
+  it('renders inactive visitor state with free-versus-member assistance boundary', async () => {
+    const tree = await MemberDashboardView({ data: makeData(), locale: 'mk' });
+    render(tree);
+
+    expect(screen.getByTestId('member-welcome-status')).toHaveTextContent('Посетител / неактивно');
+    expect(screen.getByTestId('member-welcome-status')).toHaveAttribute(
+      'data-hero-state',
+      'visitor_general'
+    );
+    expect(screen.getByTestId('hero-cta-visitor_general')).toHaveAttribute(
+      'href',
+      '/mk/member/membership'
+    );
+    expect(screen.getByTestId('member-hero-value-row')).toHaveTextContent('20 EUR/год.');
+    expect(screen.getByTestId('member-inactive-boundary')).toHaveTextContent(
+      'Што е бесплатно и што бара членство'
+    );
+    expect(screen.getByTestId('next-step-activate-membership')).toHaveAttribute(
+      'href',
+      '/mk/member/membership'
     );
   });
 
-  it('keeps dashboard support CTAs aligned with the canonical support handoff', async () => {
+  it('renders the no-active-case empty state calmly', async () => {
     mockActiveMembership();
-    const supportHref = '/member/help/tenant-support';
 
-    const tree = await MemberDashboardView({
-      data: makeData({ supportHref }),
-      locale: 'mk',
-    });
-
+    const tree = await MemberDashboardView({ data: makeData(), locale: 'mk' });
     render(tree);
 
-    expect(screen.getByRole('link', { name: 'Контактирај поддршка' })).toHaveAttribute(
-      'href',
-      supportHref
-    );
-    expect(screen.getByRole('link', { name: 'support' })).toHaveAttribute('href', supportHref);
-    expect(screen.getByRole('link', { name: 'Отвори членска поддршка' })).toHaveAttribute(
-      'href',
-      supportHref
-    );
-    expect(screen.getByRole('link', { name: 'Провери безбедносни параметри' })).toHaveAttribute(
-      'href',
-      supportHref
+    expect(screen.getByTestId('next-step-open-first-case')).toBeInTheDocument();
+    expect(screen.getByTestId('empty-state-case-panel')).toHaveTextContent(
+      'Сè уште немате отворено случај'
     );
   });
 
-  it('uses the member action CTA when the active claim requires member input', async () => {
+  it('renders active case status, number, last update, and member next action', async () => {
     mockActiveMembership();
 
     const tree = await MemberDashboardView({
@@ -520,65 +254,174 @@ describe('MemberDashboardView MK localization', () => {
         activeClaimId: 'claim-action',
         claims: [
           {
-            id: 'claim-action',
             claimNumber: 'CLM-200',
-            status: 'verification',
-            stageKey: 'documents',
-            stageLabel: 'Documents',
-            submittedAt: '2026-04-01T00:00:00.000Z',
-            updatedAt: '2026-04-20T00:00:00.000Z',
-            requiresMemberAction: true,
+            id: 'claim-action',
             nextMemberAction: {
-              label: 'Upload evidence',
               actionType: 'upload_document',
               href: '/member/claims/claim-action/documents',
+              label: 'Upload evidence',
             },
+            requiresMemberAction: true,
+            stageKey: 'verification',
+            stageLabel: 'Verification',
+            status: 'verification',
+            submittedAt: '2026-04-01T00:00:00.000Z',
+            updatedAt: '2026-04-20T00:00:00.000Z',
           },
         ],
       }),
       locale: 'mk',
     });
-
     render(tree);
 
-    expect(screen.getByTestId('member-guidance-action-needed')).toBeInTheDocument();
-    expect(
-      screen.getByText('Барањето CLM-200 чека ваш внес за тимот да продолжи со тријажа.')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Upload evidence' })).toHaveAttribute(
+    expect(screen.getByTestId('next-step-missingDocs')).toHaveAttribute(
       'href',
       '/member/claims/claim-action/documents'
     );
+    expect(screen.getByTestId('member-welcome-status')).toHaveAttribute(
+      'data-hero-state',
+      'missing_documents'
+    );
+    expect(screen.getByTestId('hero-cta-upload-documents')).toHaveAttribute(
+      'href',
+      '/member/claims/claim-action/documents'
+    );
+    const activeCase = screen.getByTestId('active-case-card');
+    expect(within(activeCase).getByText(/CLM-200/)).toBeInTheDocument();
+    expect(within(activeCase).getByText(/Verification/)).toBeInTheDocument();
+    expect(within(activeCase).getByText('Upload evidence')).toBeInTheDocument();
   });
 
-  it('falls back to claim history guidance when no active claim is selected', async () => {
+  it('shows only one priority case on the dashboard home', async () => {
     mockActiveMembership();
 
     const tree = await MemberDashboardView({
       data: makeData({
-        activeClaimId: null,
+        activeClaimId: 'claim-action',
         claims: [
           {
-            id: 'claim-closed',
-            claimNumber: 'CLM-300',
-            status: 'resolved',
-            stageKey: 'closed',
-            stageLabel: 'Closed',
-            submittedAt: '2026-01-01T00:00:00.000Z',
-            updatedAt: '2026-02-01T00:00:00.000Z',
+            claimNumber: 'CLM-200',
+            id: 'claim-action',
             requiresMemberAction: false,
+            stageKey: 'verification',
+            stageLabel: 'Verification',
+            status: 'verification',
+            submittedAt: '2026-04-01T00:00:00.000Z',
+            updatedAt: '2026-04-20T00:00:00.000Z',
+          },
+          {
+            claimNumber: 'CLM-201',
+            id: 'claim-secondary',
+            requiresMemberAction: false,
+            stageKey: 'evaluation',
+            stageLabel: 'Evaluation',
+            status: 'evaluation',
+            submittedAt: '2026-04-02T00:00:00.000Z',
+            updatedAt: '2026-04-21T00:00:00.000Z',
           },
         ],
       }),
       locale: 'mk',
     });
-
     render(tree);
 
-    expect(screen.getByTestId('member-guidance-claims-history')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Види барања' })).toHaveAttribute(
-      'href',
-      '/member/claims'
+    expect(screen.getAllByTestId('active-case-card')).toHaveLength(1);
+    expect(screen.getByTestId('member-welcome-status')).toHaveAttribute(
+      'data-hero-state',
+      'member_active_has_open_case'
     );
+    expect(screen.getByTestId('hero-cta-open-active-case')).toHaveAttribute(
+      'href',
+      '/mk/member/claims/claim-action'
+    );
+    expect(screen.getByText(/CLM-200/)).toBeInTheDocument();
+    expect(screen.queryByText(/CLM-201/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['sq', sqMessages],
+    ['mk', mkMessages],
+    ['en', enMessages],
+    ['sr', srMessages],
+  ])('has complete member assistance i18n keys for %s', (_locale, messages) => {
+    for (const path of REQUIRED_MEMBER_ASSISTANCE_KEYS) {
+      expect(getPath(messages, path), path).toEqual(expect.any(String));
+    }
+  });
+
+  it('does not introduce forbidden compensation or insurer claims in member assistance copy', () => {
+    const forbiddenPatterns = [
+      /we guarantee compensation/i,
+      /we pay damages/i,
+      /you will win/i,
+      /we replace insurance/i,
+      /we are your insurer/i,
+      /garantojmë kompensim/i,
+      /paguajmë dëmet/i,
+      /do të fitoni/i,
+      /zëvendësojmë sigurimin/i,
+      /ne jemi siguruesi juaj/i,
+      /гарантираме компензација/i,
+      /плаќаме штета/i,
+      /ќе победите/i,
+      /го заменуваме осигурувањето/i,
+      /ние сме ваш осигурител/i,
+    ];
+
+    for (const messages of [sqMessages, mkMessages, enMessages, srMessages]) {
+      const copy = JSON.stringify(messages.dashboard.member_assistance);
+      for (const pattern of forbiddenPatterns) {
+        expect(copy).not.toMatch(pattern);
+      }
+    }
   });
 });
+
+const REQUIRED_MEMBER_ASSISTANCE_KEYS = [
+  'dashboard.member_assistance.header.product',
+  'dashboard.member_assistance.header.notifications',
+  'dashboard.member_assistance.header.profile',
+  'dashboard.member_assistance.welcome.active',
+  'dashboard.member_assistance.welcome.inactive',
+  'dashboard.member_assistance.heroResolver.nextActionLabel',
+  'dashboard.member_assistance.heroResolver.states.visitor_general.title',
+  'dashboard.member_assistance.heroResolver.states.visitor_general.cta',
+  'dashboard.member_assistance.heroResolver.states.visitor_broker_tpl.title',
+  'dashboard.member_assistance.heroResolver.states.visitor_broker_tpl.cta',
+  'dashboard.member_assistance.heroResolver.states.visitor_diaspora.title',
+  'dashboard.member_assistance.heroResolver.states.visitor_diaspora.cta',
+  'dashboard.member_assistance.heroResolver.states.member_active_no_case.title',
+  'dashboard.member_assistance.heroResolver.states.member_active_no_case.cta',
+  'dashboard.member_assistance.heroResolver.states.member_active_has_open_case.title',
+  'dashboard.member_assistance.heroResolver.states.member_active_has_open_case.cta',
+  'dashboard.member_assistance.heroResolver.states.missing_documents.title',
+  'dashboard.member_assistance.heroResolver.states.missing_documents.cta',
+  'dashboard.member_assistance.heroResolver.states.authorization_needed.title',
+  'dashboard.member_assistance.heroResolver.states.authorization_needed.cta',
+  'dashboard.member_assistance.nextStep.firstCase.title',
+  'dashboard.member_assistance.nextStep.missingDocs.title',
+  'dashboard.member_assistance.nextStep.review.title',
+  'dashboard.member_assistance.nextStep.authorization.title',
+  'dashboard.member_assistance.inactive.cta',
+  'dashboard.member_assistance.services.cards.helpNow.situation',
+  'dashboard.member_assistance.services.cards.helpNow.body',
+  'dashboard.member_assistance.services.cards.reportClaim.situation',
+  'dashboard.member_assistance.services.cards.reportClaim.body',
+  'dashboard.member_assistance.services.cards.complaint.situation',
+  'dashboard.member_assistance.services.cards.complaint.body',
+  'dashboard.member_assistance.services.cards.procedureGuide.situation',
+  'dashboard.member_assistance.services.cards.procedureGuide.body',
+  'dashboard.member_assistance.services.cards.recovery.situation',
+  'dashboard.member_assistance.services.cards.recovery.body',
+  'dashboard.member_assistance.services.cards.flightDelay.situation',
+  'dashboard.member_assistance.services.cards.flightDelay.body',
+  'dashboard.member_assistance.cases.emptyBody',
+  'dashboard.member_assistance.documents.consent',
+  'dashboard.member_assistance.trust.center',
+  'dashboard.member_assistance.bottomNav.label',
+  'dashboard.member_assistance.bottomNav.home',
+  'dashboard.member_assistance.bottomNav.cases',
+  'dashboard.member_assistance.bottomNav.help',
+  'dashboard.member_assistance.bottomNav.documents',
+  'dashboard.member_assistance.bottomNav.more',
+];
