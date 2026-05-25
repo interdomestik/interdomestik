@@ -208,7 +208,17 @@ export async function MemberDashboardView({ data, locale }: Readonly<MemberDashb
           </div>
         </div>
       </div>
-      <MobileBottomNav locale={locale} t={t} />
+      <MobileBottomNav
+        labels={{
+          cases: t('bottomNav.cases'),
+          documents: t('bottomNav.documents'),
+          help: t('bottomNav.help'),
+          home: t('bottomNav.home'),
+          label: t('bottomNav.label'),
+          more: t('bottomNav.more'),
+        }}
+        locale={locale}
+      />
     </main>
   );
 }

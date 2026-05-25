@@ -10,23 +10,36 @@ import {
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
-import type { DashboardTranslator } from './types';
+type MobileBottomNavLabels = {
+  cases: string;
+  documents: string;
+  help: string;
+  home: string;
+  label: string;
+  more: string;
+};
 
-export function MobileBottomNav({ locale, t }: { locale: string; t: DashboardTranslator }) {
+export function MobileBottomNav({
+  labels,
+  locale,
+}: {
+  labels: MobileBottomNavLabels;
+  locale: string;
+}) {
   const pathname = usePathname();
   const memberHomeHref = `/${locale}/member`;
   const currentPath = normalizePath(pathname ?? memberHomeHref);
   const items = [
-    { href: memberHomeHref, icon: Home, label: t('bottomNav.home') },
-    { href: `/${locale}/member/claims`, icon: BriefcaseBusiness, label: t('bottomNav.cases') },
-    { href: `/${locale}/member/help`, icon: LifeBuoy, label: t('bottomNav.help') },
-    { href: `/${locale}/member/documents`, icon: Files, label: t('bottomNav.documents') },
-    { href: `/${locale}/member/membership`, icon: MoreHorizontal, label: t('bottomNav.more') },
+    { href: memberHomeHref, icon: Home, label: labels.home },
+    { href: `/${locale}/member/claims`, icon: BriefcaseBusiness, label: labels.cases },
+    { href: `/${locale}/member/help`, icon: LifeBuoy, label: labels.help },
+    { href: `/${locale}/member/documents`, icon: Files, label: labels.documents },
+    { href: `/${locale}/member/membership`, icon: MoreHorizontal, label: labels.more },
   ];
 
   return (
     <nav
-      aria-label={t('bottomNav.label')}
+      aria-label={labels.label}
       className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-1 shadow-[0_-8px_30px_rgba(0,0,0,0.04)] md:hidden"
       data-testid="mobile-bottom-nav"
     >
