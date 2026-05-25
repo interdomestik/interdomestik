@@ -51,8 +51,12 @@ export function MobileBottomNav({ locale, t }: { locale: string; t: DashboardTra
 }
 
 function normalizePath(pathname: string) {
-  const normalized = pathname.replace(/\/+$/, '');
-  return normalized || '/';
+  let end = pathname.length;
+  while (end > 1 && pathname[end - 1] === '/') {
+    end -= 1;
+  }
+
+  return pathname.slice(0, end) || '/';
 }
 
 function isActiveNavItem({
