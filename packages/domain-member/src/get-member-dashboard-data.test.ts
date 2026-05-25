@@ -5,8 +5,16 @@ const mockDb = vi.hoisted(() => ({
     claims: { findMany: vi.fn() },
   },
 }));
+const mockWithTenantContext = vi.hoisted(() =>
+  vi.fn(async (_context: { tenantId: string; role?: string }, action: (tx: unknown) => unknown) =>
+    action(mockDb)
+  )
+);
 
-vi.mock('@interdomestik/database', () => ({ db: mockDb }));
+vi.mock('@interdomestik/database', () => ({
+  db: mockDb,
+  withTenantContext: mockWithTenantContext,
+}));
 vi.mock('@interdomestik/database/schema', () => ({
   claims: { tenantId: 'claim.tenant_id', userId: 'claim.userId', updatedAt: 'updatedAt' },
   user: { tenantId: 'user.tenant_id', id: 'user.id' },
@@ -38,6 +46,7 @@ describe('getMemberDashboardData', () => {
       id: 'member-1',
       name: 'Member One',
       memberNumber: 'M-0001',
+      role: 'member',
       tenantId: 'tenant-1',
     });
 
@@ -70,6 +79,10 @@ describe('getMemberDashboardData', () => {
       tenantId: 'tenant-1',
     });
 
+    expect(mockWithTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1', role: 'member' },
+      expect.any(Function)
+    );
     expect(data.member.name).toBe('Member One');
     expect(data.activeClaimId).toBe('c-2');
     expect(data.claims[0].claimNumber).toBe('CLM-002');
@@ -85,6 +98,7 @@ describe('getMemberDashboardData', () => {
       id: 'member-2',
       name: 'Member Two',
       memberNumber: null,
+      role: 'member',
       tenantId: 'tenant-1',
     });
 

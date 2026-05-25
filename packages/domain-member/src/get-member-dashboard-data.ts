@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { db, type TenantTransaction, withTenantContext } from '@interdomestik/database';
 import { claims, user } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { desc, eq } from 'drizzle-orm';
@@ -27,6 +27,8 @@ export type MemberDashboardData = {
     id: string;
     name: string;
     membershipNumber: string | null;
+    role: string;
+    tenantId: string | null;
   };
   claims: Array<{
     id: string;
@@ -59,31 +61,42 @@ function normalizeDate(value: Date | string | null | undefined) {
 
 export async function getMemberDashboardData(params: {
   memberId: string;
-  tenantId?: string | null;
+  tenantId: string;
 }): Promise<MemberDashboardData> {
   const { memberId, tenantId } = params;
 
-  const memberWhere = tenantId
-    ? withTenant(tenantId, user.tenantId, eq(user.id, memberId))
-    : eq(user.id, memberId);
+  if (!tenantId) {
+    throw new Error('Missing tenant context');
+  }
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const member = await db.query.user.findFirst({
-    where: memberWhere,
-    columns: { id: true, name: true, memberNumber: true, tenantId: true },
+  return withTenantContext({ tenantId, role: 'member' }, async tx => {
+    return getMemberDashboardDataWithDb({
+      dbClient: tx,
+      memberId,
+      tenantId,
+    });
+  });
+}
+
+async function getMemberDashboardDataWithDb(params: {
+  dbClient: typeof db | TenantTransaction;
+  memberId: string;
+  tenantId: string;
+}): Promise<MemberDashboardData> {
+  const { dbClient, memberId, tenantId } = params;
+
+  // db-access-guard: tenant-scoped -- reason: tenantId is required and enforced by withTenantContext at the DB boundary
+  const member = await dbClient.query.user.findFirst({
+    where: withTenant(tenantId, user.tenantId, eq(user.id, memberId)),
+    columns: { id: true, name: true, memberNumber: true, role: true, tenantId: true },
   });
 
   if (!member) {
     throw new Error('Member not found');
   }
 
-  const resolvedTenantId = tenantId ?? member.tenantId;
-  if (!resolvedTenantId) {
-    throw new Error('Missing tenant context');
-  }
-
-  const rawClaims = await db.query.claims.findMany({
-    where: withTenant(resolvedTenantId, claims.tenantId, eq(claims.userId, memberId)),
+  const rawClaims = await dbClient.query.claims.findMany({
+    where: withTenant(tenantId, claims.tenantId, eq(claims.userId, memberId)),
     orderBy: [desc(claims.updatedAt)],
     columns: {
       id: true,
@@ -121,6 +134,8 @@ export async function getMemberDashboardData(params: {
       id: member.id,
       name: member.name,
       membershipNumber: member.memberNumber ?? null,
+      role: member.role,
+      tenantId: member.tenantId ?? null,
     },
     claims: claimsData,
     activeClaimId: activeClaim?.id ?? null,

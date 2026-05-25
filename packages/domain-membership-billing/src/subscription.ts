@@ -1,4 +1,4 @@
-import { and, db, eq, subscriptions } from '@interdomestik/database';
+import { and, db, eq, subscriptions, withTenantContext } from '@interdomestik/database';
 
 import {
   getMembershipLifecycleBucket,
@@ -23,9 +23,11 @@ export async function hasActiveMembership(
   if (!tenantId) {
     throw new Error('tenantId is required for membership lookup');
   }
-  const sub = await db.query.subscriptions.findFirst({
-    where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
-  });
+  const sub = await withTenantContext({ tenantId, role: 'member' }, tx =>
+    tx.query.subscriptions.findFirst({
+      where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
+    })
+  );
 
   if (!sub) return false;
 
@@ -62,9 +64,11 @@ export async function getActiveSubscription(userId: string, tenantId: string) {
   if (!tenantId) {
     throw new Error('tenantId is required for membership lookup');
   }
-  const sub = await db.query.subscriptions.findFirst({
-    where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
-  });
+  const sub = await withTenantContext({ tenantId, role: 'member' }, tx =>
+    tx.query.subscriptions.findFirst({
+      where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
+    })
+  );
 
   if (!sub) return null;
 

@@ -41,6 +41,10 @@ export default async function LegacyMemberPage({
     notFound();
   }
 
+  if (!session.user.tenantId) {
+    notFound();
+  }
+
   let data;
   try {
     data = await getMemberDashboardData({

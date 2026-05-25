@@ -3,124 +3,16 @@
     "welcome": "Dobrodošli, {name}!",
     "overview": "Pregled panela",
     "member_landing": {
-      "page_title": "Kontrolna tabla člana",
-      "primary_cta": "Započnite novi zahtev",
-      "secondary_cta": "Pogledajte zahteve",
-      "hero_greeting": "Dobrodošli",
-      "hero_subtitle_active": "Vaše članstvo je aktivno. Spremni smo da pomognemo ako se desi incident.",
-      "hero_subtitle_inactive": "Vaše članstvo još nije aktivno.",
-      "activation_title": "Aktivirajte članstvo",
-      "activation_body": "Završite svoj plan da otključate prioritetnu podršku, pogodnosti članstva i podnošenje novih zahteva.",
-      "activation_primary_cta": "Otvori članstvo",
-      "activation_secondary_cta": "Pogledaj planove",
-      "status_label": "Stanje",
-      "status_active": "Aktivno",
-      "status_pending": "Na čekanju",
-      "response_label": "Prosečan odgovor",
-      "response_value": "Ispod 3 minuta",
-      "card_ready_label": "Digitalna kartica",
-      "card_ready_value": "Spremna",
-      "protection_label": "Zaštita",
-      "level_label": "Nivo",
-      "level_value": "Premijum elita",
-      "guidance_label": "Danas",
-      "guidance_title": "Vaš najvažniji sledeći korak",
-      "guidance_subtitle_active": "Kontrolna tabla drži zahteve, dokumenta i podršku na jednom mestu da bi sledeći korak bio vidljiv.",
-      "guidance_subtitle_inactive": "Aktivirajte članstvo da otključate prioritetnu podršku za zahteve. Dokumenta i uputstva možete pripremiti sada.",
-      "guidance_membership_active": "Članstvo je aktivno",
-      "guidance_membership_inactive": "Potrebna je aktivacija",
-      "guidance_no_claim_title": "Počnite kada se desi incident",
-      "guidance_no_claim_body": "Otvorite prijem zahteva i unesite osnovne činjenice. Slučaj ostaje u vremenskoj liniji člana.",
-      "guidance_start_claim_cta": "Započni zahtev",
-      "guidance_action_needed_title": "Potrebna je radnja",
-      "guidance_action_needed_body": "Zahtev {claimNumber} čeka vaš unos da bi tim nastavio trijažu.",
-      "guidance_active_claim_title": "Zahtev je u toku",
-      "guidance_active_claim_body": "Zahtev {claimNumber} je u aktivnom toku. Proverite status, poruke i objavljene sledeće korake.",
-      "guidance_claim_review_cta": "Otvori zahtev",
-      "guidance_claims_title": "Pregledajte istoriju",
-      "guidance_claims_body": "Zatvoreni ili rešeni zahtevi ostaju dostupni u delu za zahteve.",
-      "guidance_claims_cta": "Pogledaj zahteve",
-      "guidance_documents_title": "Organizujte dokumenta",
-      "guidance_documents_body": "Držite fotografije, izveštaje, račune i polise povezane sa pravim zahtevom.",
-      "guidance_documents_cta": "Otvori dokumenta",
-      "guidance_support_title": "Spremnost podrške",
-      "guidance_membership_valid_thru": "Prioritetna podrška je dostupna. Važi do: {validThru}.",
-      "guidance_support_inactive_body": "Podrška članstvu je ograničena dok se aktivacija ne završi.",
-      "guidance_support_cta": "Kontaktiraj podršku",
-      "guidance_membership_cta": "Aktiviraj članstvo",
-      "orientation_title": "Osigurani ste - evo kako funkcioniše",
-      "orientation_point_one": "Ako se desi incident, započnite zahtev u nekoliko brzih koraka.",
-      "orientation_point_two": "Držite dokumenta spremna i kontaktirajte podršku kada god je potrebno.",
-      "orientation_cta": "Pogledajte kako funkcioniše",
-      "active_claim_title": "Aktivan zahtev",
-      "empty_title": "Još uvek nema zahteva",
-      "empty_body": "Kada podnesete svoj prvi zahtev, on će se pojaviti ovde.",
-      "active_claim_title": "Aktivan zahtev",
-      "updated_label": "Ažurirano",
       "account_error_title": "Greška u konfiguraciji naloga",
       "account_error_body": "Nismo mogli da učitamo detalje vašeg profila. Obratite se podršci.",
       "account_error_cta": "Zatraži pomoć",
-      "unavailable_short": "Nema",
+      "active_claim_title": "Aktivan zahtev",
+      "updated_label": "Ažurirano",
       "help_label": "Potrebna vam je pomoć?",
-      "priority_region_label": "Glavni zadaci",
-      "secondary_region_label": "Dodatne usluge i pogodnosti",
-      "more_services": "Više usluga",
-      "diaspora_description": "Specijalizovana mreža podrške za članove širom Evrope i šire.",
-      "cta_incident_kicker": "HITNO",
-      "cta_report_kicker": "NOVI IZVEŠTAJ",
-      "cta_green_card_kicker": "PUTNA DOKUMENTA",
-      "cta_benefits_kicker": "EKSKLUZIVAN PRISTUP",
-      "live_protection_title": "Podrška uživo",
-      "system_integrity": "Status članstva",
-      "integrity_optimal": "Optimalno",
-      "integrity_low": "Nisko",
-      "nodes": "Čvorovi",
-      "latency": "Latencija",
-      "active_protection_nodes": "Aktivni kanali podrške",
-      "online": "Onlajn",
-      "get_help_support": "Zatraži pomoć i podršku",
-      "system_ecosystem": "Sistemski ekosistem",
-      "explore_all": "Istraži sve",
-      "property_damage_desc": "Procena štete",
-      "health_safety_desc": "Medicinsko vođstvo",
-      "my_documents_desc": "Sef za polise",
-      "contact_center_desc": "Ljudska podrška",
-      "command_center_title": "KOMANDNI CENTAR 24/7",
-      "priority_line_active": "PRIORITETNA LINIJA AKTIVNA",
-      "country_north_macedonia": "Severna Makedonija",
-      "country_kosovo": "Republika Kosovo",
-      "available_now_avg_response": "Dostupno sada • Prosečan odgovor {seconds}",
-      "status_insight_title": "Status članstva",
-      "status_insight_body": "Vaše članstvo je aktivno. Držite dokumenta u sefu radi bržeg postupanja tokom incidenata kroz IDA App.",
-      "support_panel_title": "Spremnost podrške",
-      "support_readiness_label": "Spremnost",
-      "support_readiness_active": "Spremno sada",
-      "support_readiness_pending": "Čeka aktivaciju",
-      "support_channel_label": "Glavni kanal",
-      "support_channel_value": "Telefon + WhatsApp",
-      "support_window_label": "Vreme pokrivenosti",
-      "support_window_value": "24 sata / 7 dana",
-      "support_highlights_title": "Šta podrška obuhvata",
-      "support_highlight_one": "Trijaža incidenta",
-      "support_highlight_two": "Vođenje kroz dokumenta",
-      "support_highlight_three": "Koordinacija podrške za putovanja",
-      "online_now": "Onlajn sada",
-      "support_panel_cta": "Otvori podršku za članove",
-      "support_phone_label": "Telefon podrške",
-      "support_whatsapp_label": "WhatsApp linija",
-      "support_whatsapp_value": "Ćaskanje je dostupno sada",
-      "command_center_body": "Kontaktirajte tim za podršku članovima za hitne incidente, vođenje kroz dokumenta i pomoć za putovanja dijaspore. Usmeravamo vas na pravi sledeći korak bez širenja opsega proizvoda.",
-      "review_security_parameters": "Pregledaj bezbednosne parametre",
-      "card_membership": "Članstvo",
-      "card_claim_support": "Odšteta",
-      "card_legal_protection": "Pravna zaštita",
-      "card_assistance_247": "Asistencija 24/7",
-      "card_member_name": "Ime člana",
-      "card_valid_thru": "Važi do",
-      "card_active_member": "Aktivan član",
-      "card_protection_paused": "Članstvo pauzirano",
-      "card_add_to_apple_wallet": "Dodaj u Apple Wallet",
-      "card_google_pay_ready": "Spremno za Google Pay"
+      "primary_cta": "Započnite novi zahtev",
+      "secondary_cta": "Pogledajte zahteve",
+      "empty_title": "Još uvek nema zahteva",
+      "empty_body": "Kada podnesete svoj prvi zahtev, on će se pojaviti ovde."
     },
     "activeClaims": "Aktivni zahtevi",
     "resolvedClaims": "Rešeni zahtevi",
@@ -199,7 +91,7 @@
           "scene_safety": "Pomerite se na bezbedno ako možete, obezbedite putnike i izbegnite novi rizik na mestu događaja.",
           "emergency_services": "Najpre pozovite lokalne hitne službe ako je neko povređen, zarobljen, ugrožen ili neposredna opasnost traje.",
           "document_scene": "Fotografišite ili snimite položaje, tablice, štetu, uslove na putu, znakove i vidljive dokaze pre pomeranja stvari.",
-          "exchange_information": "Razmenite podatke o vozaču, vozilu, osiguravaču, svedocima i nadležnima bez priznanja krivice ili potpisivanja nejasnih izjava.",
+          "exchange_information": "Razmenite podatke o vozaču, vozilu, svedocima, nadležnima i dostupnoj polisi bez priznanja krivice ili potpisivanja nejasnih izjava.",
           "record_timeline": "Zapišite vreme, mesto, smer kretanja, vremenske uslove, prisustvo policije i šta se dogodilo običnim činjenicama.",
           "preserve_documents": "Čuvajte zajedno policijske izveštaje, medicinske beleške, račune, potvrde za vuču, fotografije i poruke za članski dosije."
         },
@@ -207,7 +99,7 @@
         "disclaimers": {
           "not_legal_advice": "Ovo nije pravni savet.",
           "not_medical_advice": "Ovo nije medicinski savet.",
-          "not_insurer_assessment": "Ovo nije procena osiguravača niti odluka o odgovornosti.",
+          "not_insurer_assessment": "Ovo nije procena niti odluka o odgovornosti.",
           "not_professional_opinion": "Ovo nije profesionalno mišljenje.",
           "educational_only": "Ovo su samo edukativna uputstva i uputstva za očuvanje dokaza.",
           "professional_review_required": "Profesionalni pregled je potreban pre aktivnosti za Professional Recovery."
@@ -237,6 +129,242 @@
       "health_safety": "Zdravlje i bezbednost",
       "my_documents": "Moja dokumenta",
       "contact_center": "Kontakt centar"
+    },
+    "member_assistance": {
+      "common": {
+        "unavailable": "Nema podatka"
+      },
+      "header": {
+        "brand": "IDA asistencija",
+        "logoAlt": "Logo IDA asistencije",
+        "product": "IDA aplikacija",
+        "tagline": "Lakše je zajedno",
+        "notifications": "Obaveštenja",
+        "profile": "Članski profil"
+      },
+      "welcome": {
+        "active": "Aktivno",
+        "inactive": "Posetilac / neaktivno"
+      },
+      "primary": {
+        "kicker": "Prva radnja",
+        "title": "Kada se nešto dogodi, počnite ovde",
+        "body": "Prvi korak vas orijentiše, pomaže da sačuvate dokaze i pokazuje da li treba otvoriti članski slučaj.",
+        "helpNow": "Pomoć sada",
+        "helpNowSubtitle": "Neposredne smernice kada se nešto dogodi",
+        "openCase": "Otvori slučaj",
+        "openCaseSubtitle": "Kreiraj dosije i sačuvaj dokaze"
+      },
+      "membershipValue": {
+        "label": "Vrednost IDA članstva",
+        "price": "Samo 20€/god.",
+        "cardTitle": "Član",
+        "cardSubtitle": "24/7 asistencija",
+        "benefits": {
+          "assistance": "24/7 asistencija",
+          "activation": "Neposredna aktivacija",
+          "cases": "Online slučajevi u IDA"
+        }
+      },
+      "heroResolver": {
+        "nextActionLabel": "Sledeći korak",
+        "states": {
+          "visitor_general": {
+            "kicker": "IDA asistencija",
+            "title": "Pridružite se IDA asistenciji.",
+            "highlight": "Znajte sledeći korak.",
+            "body": "Dobijte vođenu pomoć posle nezgode, držite dokumenta organizovanim i otvorite slučaj kada je članstvo aktivno.",
+            "valueLabel": "Članstvo",
+            "value": "20 EUR/god.",
+            "cta": "Aktiviraj asistenciju"
+          },
+          "visitor_broker_tpl": {
+            "kicker": "Ulaz preko preporuke",
+            "title": "Započnite IDA asistenciju.",
+            "highlight": "Držite slučaj organizovanim.",
+            "body": "Koristite IDA da dokumentujete šta se dogodilo, sačuvate dosije i nastavite kroz članski tok slučaja.",
+            "valueLabel": "Članstvo",
+            "value": "20 EUR/god.",
+            "cta": "Aktiviraj asistenciju"
+          },
+          "visitor_diaspora": {
+            "kicker": "Podrška za dijasporu",
+            "title": "Živite ili putujete u inostranstvu?",
+            "highlight": "Počnite sa IDA.",
+            "body": "Koristite asistenciju za orijentaciju posle nezgode, Green Card kontekst, dokumenta i jasne sledeće korake.",
+            "valueLabel": "Članstvo",
+            "value": "20 EUR/god.",
+            "cta": "Aktiviraj dijaspora asistenciju"
+          },
+          "member_active_no_case": {
+            "kicker": "Aktivan član",
+            "title": "Treba vam pomoć sada?",
+            "highlight": "Otvorite prvi slučaj.",
+            "body": "Vaše članstvo je aktivno. Započnite slučaj kada činjenice, fotografije ili dokumenta treba sačuvati na vašem nalogu.",
+            "valueLabel": "Stanje",
+            "value": "Aktivna asistencija",
+            "cta": "Otvori prvi slučaj"
+          },
+          "member_active_has_open_case": {
+            "kicker": "Aktivan slučaj",
+            "title": "Vaš slučaj je u toku.",
+            "highlight": "Pratite status i sledeće korake.",
+            "body": "Pratite status, dokumenta i sledeće korake iz dosijea slučaja.",
+            "valueLabel": "Stanje",
+            "value": "U toku",
+            "cta": "Vidi slučaj"
+          },
+          "missing_documents": {
+            "kicker": "Potrebna je radnja",
+            "title": "Dokumenta su potrebna.",
+            "highlight": "Otpremite ih sada.",
+            "body": "Slučaju je potreban vaš dokumentarni unos pre nego što tim nastavi pregled.",
+            "valueLabel": "Stanje",
+            "value": "Nedostaju dokumenta",
+            "cta": "Otvori dokumenta"
+          },
+          "authorization_needed": {
+            "kicker": "Ovlašćenje",
+            "title": "Potrebno je ovlašćenje.",
+            "highlight": "Pregled pre recovery.",
+            "body": "Profesionalni recovery može nastaviti samo kada su potrebno ovlašćenje, ugovor, uslovi i audit trail uspostavljeni.",
+            "valueLabel": "Stanje",
+            "value": "Potreban je potpis",
+            "cta": "Pregledaj ovlašćenje"
+          }
+        }
+      },
+      "nextStep": {
+        "kicker": "Sledeći korak",
+        "activate": {
+          "title": "Aktiviraj asistenciju",
+          "body": "Sada možete koristiti besplatnu orijentaciju. Aktivirajte članstvo da sačuvate slučaj, pratite status, koristite IDA karticu i kontaktirate podršku.",
+          "cta": "Aktiviraj asistenciju"
+        },
+        "firstCase": {
+          "title": "Otvorite prvi slučaj",
+          "body": "Otvorite dosije kada ste spremni da činjenice, dokaze i dokumente povežete sa svojim nalogom.",
+          "cta": "Otvori prvi slučaj"
+        },
+        "missingDocs": {
+          "title": "Otpremite dokumenta koja nedostaju",
+          "body": "Slučaju je potreban vaš dokumentarni unos pre nego što tim nastavi pregled.",
+          "cta": "Otvori dokumenta"
+        },
+        "memberAction": {
+          "title": "Potrebna je vaša radnja",
+          "body": "Pregledajte objavljeni sledeći korak da bi dosije slučaja nastavio.",
+          "cta": "Vidi slučaj"
+        },
+        "authorization": {
+          "title": "Potpišite ovlašćenje",
+          "body": "Professional Recovery može nastaviti samo uz ovlašćenje, ugovor, uslove i audit trail.",
+          "cta": "Pregledaj ovlašćenje"
+        },
+        "review": {
+          "title": "Slučaj se pregleda",
+          "body": "Vaš slučaj je dokumentovan i vidljiv. Pratite status i objavljene sledeće korake iz dosijea slučaja.",
+          "cta": "Vidi slučaj"
+        },
+        "history": {
+          "title": "Pregledaj prethodne slučajeve",
+          "body": "Nema izabranog aktivnog slučaja. Zatvoreni ili sačuvani slučajevi ostaju dostupni.",
+          "cta": "Vidi slučajeve"
+        }
+      },
+      "inactive": {
+        "title": "Šta je besplatno i šta zahteva članstvo",
+        "body": "Besplatna samousluga uključuje orijentaciju, ček-liste, sledeći korak i spremnost dokumenata. Članska asistencija dodaje sačuvan slučaj, status, vremensku liniju, sef za dokumenta, IDA karticu i podršku.",
+        "cta": "Aktiviraj asistenciju"
+      },
+      "services": {
+        "kicker": "Glavne usluge",
+        "title": "Šta se dešava sada?",
+        "open": "Otvori",
+        "cards": {
+          "helpNow": {
+            "mobile": "Nezgoda",
+            "situation": "Imam nezgodu sada",
+            "title": "Vodič sa mesta + Green Card",
+            "body": "Izaberite državu u kojoj se dogodila nezgoda i dobijte prve smernice: policija, Evropski izveštaj, fotografije i dokumenta."
+          },
+          "reportClaim": {
+            "mobile": "Prijava",
+            "situation": "Želim da prijavim štetu",
+            "title": "Prijavi štetu",
+            "body": "Otvorite dosije i sačuvajte dokaze, dokumenta i status slučaja."
+          },
+          "complaint": {
+            "mobile": "Žalba",
+            "situation": "Dobio/la sam nisku ili nejasnu ponudu",
+            "title": "Podnesi žalbu",
+            "body": "Koristite kada postoji odbijanje, kašnjenje ili nejasna ponuda."
+          },
+          "procedureGuide": {
+            "mobile": "Postupak",
+            "situation": "Trebaju mi proceduralni koraci",
+            "title": "Proceduralni vodič",
+            "body": "Dobijte proceduralne korake prema državi, tipu štete i dokumentima."
+          },
+          "recovery": {
+            "mobile": "Praćenje",
+            "situation": "Želim da Interdomestik prati slučaj",
+            "title": "Posredovanje / Recovery",
+            "body": "Uz ovlašćenje, Interdomestik može pratiti slučaj u vaše ime."
+          },
+          "flightDelay": {
+            "mobile": "Let",
+            "situation": "Let mi je zakasnio",
+            "title": "Zakasneli let",
+            "body": "Proverite da li zakasneli let može da se kvalifikuje za kompenzaciju."
+          }
+        }
+      },
+      "cases": {
+        "kicker": "Status slučaja",
+        "title": "Aktivni slučajevi",
+        "viewAll": "Vidi sve",
+        "caseFallback": "Članski slučaj",
+        "caseNumber": "Broj slučaja",
+        "status": "Stanje",
+        "open": "Vidi slučaj",
+        "support": "Zatraži podršku",
+        "lastUpdate": "Poslednje ažuriranje",
+        "timelinePreview": "Dosije slučaja je vidljiv. Sledeće ažuriranje će se pojaviti tamo.",
+        "emptyTitle": "Još niste otvorili slučaj",
+        "emptyBody": "Kada se dogodi šteta, IDA vas vodi korak po korak.",
+        "emptyCta": "Otvori slučaj"
+      },
+      "documents": {
+        "kicker": "Sef za dokumenta",
+        "title": "Rezime sačuvanih dokumenata",
+        "body": "Panel prikazuje samo brojeve. Osetljiv ili medicinski sadržaj ostaje u zaštićenom toku slučaja.",
+        "saved": "Sačuvana dokumenta",
+        "missing": "Dokumenta koja nedostaju",
+        "missingActive": "Otvorite vault da vidite tražena otpremanja za aktivne slučajeve.",
+        "missingNoCase": "Dokumenta koja nedostaju pojaviće se nakon otvaranja slučaja.",
+        "consent": "Pregled medicinskih ili osetljivih dokumenata zahteva izričit pristanak pre otpremanja ili pregleda.",
+        "cta": "Otvori sef za dokumenta"
+      },
+      "trust": {
+        "title": "Poverenje i privatnost",
+        "body": "IDA održava slučaj organizovanim i transparentnim bez obećavanja ishoda.",
+        "center": "Centar poverenja",
+        "items": {
+          "caseNumber": "Jedinstven broj slučaja",
+          "documents": "Sačuvana dokumenta",
+          "transparent": "Transparentan proces",
+          "privacy": "Privatnost i bezbednost"
+        }
+      },
+      "bottomNav": {
+        "label": "Članska navigacija",
+        "home": "Početna",
+        "cases": "Slučajevi",
+        "help": "Pomoć",
+        "documents": "Dokumenti",
+        "more": "Više"
+      }
     },
     "member": {
       "home": {
@@ -285,7 +413,7 @@
           "title": "Kako funkcioniše",
           "step1": "Kontaktirajte nas",
           "step2": "Mi vas vodimo",
-          "step3": "Rešavamo slučaj zajedno"
+          "step3": "Zajedno pratimo status"
         },
         "claims": {
           "title": "Status slučaja",

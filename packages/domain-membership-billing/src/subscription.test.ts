@@ -5,6 +5,16 @@ const hoisted = vi.hoisted(() => ({
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   or: vi.fn((...args: unknown[]) => ({ op: 'or', args })),
   findSubscriptionFirst: vi.fn(),
+  withTenantContext: vi.fn(
+    async (_context: { tenantId: string; role?: string }, action: (tx: unknown) => unknown) =>
+      action({
+        query: {
+          subscriptions: {
+            findFirst: hoisted.findSubscriptionFirst,
+          },
+        },
+      })
+  ),
   subscriptions: {
     userId: 'subscriptions.user_id',
     tenantId: 'subscriptions.tenant_id',
@@ -25,6 +35,7 @@ vi.mock('@interdomestik/database', () => ({
   eq: hoisted.eq,
   or: hoisted.or,
   subscriptions: hoisted.subscriptions,
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 import {

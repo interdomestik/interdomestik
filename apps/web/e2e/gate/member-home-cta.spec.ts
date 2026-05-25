@@ -4,13 +4,13 @@ import { gotoApp } from '../utils/navigation';
 
 const MEMBER_HOME_MARKER_TIMEOUT_MS = 30000;
 const DASHBOARD_HIERARCHY_VIEWPORTS = [
-  { name: 'mobile', width: 390, height: 844 },
-  { name: 'dense desktop', width: 1024, height: 768 },
-  { name: 'standard desktop', width: 1440, height: 900 },
+  { name: 'mobile 360', width: 360, height: 740 },
+  { name: 'mobile 390', width: 390, height: 844 },
+  { name: 'mobile 430', width: 430, height: 932 },
 ] as const;
 
 test.describe('Strict Gate: Member Home Crystal UI', () => {
-  test('Member can navigate via the 4 Crystal CTAs', async ({
+  test('Member can navigate via the member home CTAs', async ({
     authenticatedPage: page,
   }, testInfo) => {
     const clickCtaAndAssertNavigation = async (
@@ -56,23 +56,11 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
 
     // Assert we are on the dashboard
     await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
+    const resolvedHeroCta = page.getByTestId(/^hero-cta-/).first();
+    await expect(resolvedHeroCta).toBeVisible();
+    await expect(resolvedHeroCta).toHaveAttribute('href', /\/member\/(membership|claims)/);
 
-    // 2. Incident Guide CTA
-    await clickCtaAndAssertNavigation(
-      'home-cta-incident',
-      /\/incident-guide/,
-      'incident-guide-page-ready',
-      '/member/claims/new'
-    );
-
-    // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo, {
-      marker: 'member-dashboard-ready',
-      markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
-    });
-    await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
-
-    // 3. Report CTA
+    // 2. Report CTA
     await clickCtaAndAssertNavigation(
       'home-cta-report',
       /\/claim-report/,
@@ -87,7 +75,7 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     });
     await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
 
-    // 4. Green Card CTA
+    // 3. Green Card CTA
     await clickCtaAndAssertNavigation(
       'home-cta-green-card',
       /\/green-card/,
@@ -102,7 +90,7 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     });
     await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
 
-    // 5. Benefits CTA
+    // 4. Benefits CTA
     await clickCtaAndAssertNavigation(
       'home-cta-benefits',
       /\/benefits/,
@@ -130,6 +118,26 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
       await expect(secondaryRegion).toBeVisible();
       await expect(dashboard.getByTestId('dashboard-heading')).toBeVisible();
       await expect(dashboard.getByTestId('member-primary-actions')).toBeVisible();
+      await expect(dashboard.getByTestId('member-hero-value-row')).toBeVisible();
+
+      const heroProof = await dashboard.evaluate(element => {
+        const valueRow = element.querySelector('[data-testid="member-hero-value-row"]');
+        const actions = element.querySelector('[data-testid="member-primary-actions"]');
+        const primaryCta = element.querySelector('[data-testid^="hero-cta-"]');
+        const viewportHeight = window.innerHeight;
+
+        return {
+          primaryCtaCount: element.querySelectorAll('[data-testid^="hero-cta-"]').length,
+          valueRowBottom: valueRow?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
+          actionsBottom: actions?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
+          primaryCtaBottom: primaryCta?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
+          viewportHeight,
+        };
+      });
+      expect(heroProof.primaryCtaCount).toBe(1);
+      expect(heroProof.valueRowBottom).toBeLessThanOrEqual(heroProof.viewportHeight);
+      expect(heroProof.actionsBottom).toBeLessThanOrEqual(heroProof.viewportHeight);
+      expect(heroProof.primaryCtaBottom).toBeLessThanOrEqual(heroProof.viewportHeight);
 
       const priorityPrecedesSecondary = await dashboard.evaluate(element => {
         const priority = element.querySelector('[data-testid="member-dashboard-priority-region"]');

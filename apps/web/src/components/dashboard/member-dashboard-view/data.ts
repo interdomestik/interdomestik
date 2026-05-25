@@ -1,16 +1,38 @@
-import { and, db, eq, subscriptions, user } from '@interdomestik/database';
+import {
+  and,
+  claimDocuments,
+  claims,
+  eq,
+  subscriptions,
+  withTenantContext,
+} from '@interdomestik/database';
+import { count } from 'drizzle-orm';
 import { cache } from 'react';
 
-export const getCachedUser = cache(async (userId: string) => {
-  // db-access-guard: tenant-scoped -- reason: userId comes from authenticated member dashboard data
-  return db.query.user.findFirst({
-    where: eq(user.id, userId),
-  });
+export const getCachedTenantSubscriptions = cache(async (userId: string, tenantId: string) => {
+  return withTenantContext({ tenantId, role: 'member' }, tx =>
+    tx.query.subscriptions.findMany({
+      where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
+      orderBy: (subscriptionTable, { desc }) => [desc(subscriptionTable.createdAt)],
+    })
+  );
 });
 
-export const getCachedTenantSubscriptions = cache(async (userId: string, tenantId: string) => {
-  return db.query.subscriptions.findMany({
-    where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
-    orderBy: (subscriptionTable, { desc }) => [desc(subscriptionTable.createdAt)],
-  });
+export const getCachedClaimDocumentCount = cache(async (userId: string, tenantId: string) => {
+  const rows = await withTenantContext({ tenantId, role: 'member' }, tx =>
+    // db-access-guard: tenant-scoped -- reason: document summary joins only viewer-owned claims inside tenant context
+    tx
+      .select({ count: count() })
+      .from(claimDocuments)
+      .leftJoin(claims, eq(claimDocuments.claimId, claims.id))
+      .where(
+        and(
+          eq(claims.userId, userId),
+          eq(claims.tenantId, tenantId),
+          eq(claimDocuments.tenantId, tenantId)
+        )
+      )
+  );
+
+  return Number(rows[0]?.count ?? 0);
 });

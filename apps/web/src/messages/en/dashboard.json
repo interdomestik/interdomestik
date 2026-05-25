@@ -3,124 +3,16 @@
     "welcome_back": "Welcome back! Here's what's happening with your claims today.",
     "overview": "Dashboard Overview",
     "member_landing": {
-      "page_title": "Member dashboard",
-      "primary_cta": "Start a new claim",
-      "secondary_cta": "View claims",
-      "hero_greeting": "Welcome",
-      "hero_subtitle_active": "Your membership is active and ready. We are here if an incident happens.",
-      "hero_subtitle_inactive": "Your membership is not active yet.",
-      "activation_title": "Activate your membership",
-      "activation_body": "Finish your plan to unlock priority support, membership benefits, and new claim intake.",
-      "activation_primary_cta": "Open membership",
-      "activation_secondary_cta": "See plans",
-      "status_label": "Status",
-      "status_active": "Active",
-      "status_pending": "Pending",
-      "response_label": "Avg. response",
-      "response_value": "< 3 Min",
-      "card_ready_label": "Digital Card",
-      "card_ready_value": "Ready",
-      "protection_label": "Protection",
-      "level_label": "Level",
-      "level_value": "Premium Elite",
-      "guidance_label": "Today",
-      "guidance_title": "Your next best action",
-      "guidance_subtitle_active": "Your dashboard keeps claims, documents, and support in one place so the next step is visible before you need to search.",
-      "guidance_subtitle_inactive": "Activate membership to unlock priority claim support. You can still prepare documents and review how the flow works.",
-      "guidance_membership_active": "Membership active",
-      "guidance_membership_inactive": "Activation needed",
-      "guidance_no_claim_title": "Start when something happens",
-      "guidance_no_claim_body": "Open the claim intake and share the basic facts. We will keep the case on the member claim timeline.",
-      "guidance_start_claim_cta": "Start claim",
-      "guidance_action_needed_title": "Action needed",
-      "guidance_action_needed_body": "Claim {claimNumber} is waiting for your input so staff can keep triage moving.",
-      "guidance_active_claim_title": "Claim in progress",
-      "guidance_active_claim_body": "Claim {claimNumber} is on the active workflow. Check status, messages, and published next steps.",
-      "guidance_claim_review_cta": "Open claim",
-      "guidance_claims_title": "Review claim history",
-      "guidance_claims_body": "Closed or resolved claims remain available in your claims area for reference.",
-      "guidance_claims_cta": "View claims",
-      "guidance_documents_title": "Organize documents",
-      "guidance_documents_body": "Keep photos, reports, invoices, and policy documents attached to the right claim.",
-      "guidance_documents_cta": "Open documents",
-      "guidance_support_title": "Support readiness",
-      "guidance_membership_valid_thru": "Priority support is available. Membership validity: {validThru}.",
-      "guidance_support_inactive_body": "Membership support is limited until activation is complete.",
-      "guidance_support_cta": "Contact support",
-      "guidance_membership_cta": "Activate membership",
-      "orientation_title": "Your membership — here's how it works",
-      "orientation_point_one": "If an incident happens, start a claim in a few quick steps.",
-      "orientation_point_two": "Keep your documents ready and contact support whenever needed.",
-      "orientation_cta": "See how it works",
-      "active_claim_title": "Active claim",
-      "empty_title": "No claims yet",
-      "empty_body": "When you submit your first claim, it will appear here.",
-      "active_claim_title": "Active claim",
-      "updated_label": "Updated",
       "account_error_title": "Account configuration error",
       "account_error_body": "We couldn't retrieve your profile details. Please contact support.",
       "account_error_cta": "Get assistance",
-      "unavailable_short": "N/A",
+      "active_claim_title": "Active claim",
+      "updated_label": "Updated",
       "help_label": "Need help?",
-      "priority_region_label": "Primary tasks",
-      "secondary_region_label": "Additional services and benefits",
-      "more_services": "More services",
-      "diaspora_description": "Specialized support network for members across Europe and beyond.",
-      "cta_incident_kicker": "SOS",
-      "cta_report_kicker": "NEW REPORT",
-      "cta_green_card_kicker": "TRAVEL DOCS",
-      "cta_benefits_kicker": "EXCLUSIVE ACCESS",
-      "live_protection_title": "Live support",
-      "system_integrity": "Membership status",
-      "integrity_optimal": "Optimal",
-      "integrity_low": "Low",
-      "nodes": "Nodes",
-      "latency": "Latency",
-      "active_protection_nodes": "Active support channels",
-      "online": "Online",
-      "get_help_support": "Get help and support",
-      "system_ecosystem": "System ecosystem",
-      "explore_all": "Explore all",
-      "property_damage_desc": "Damage assessment",
-      "health_safety_desc": "Medical guidance",
-      "my_documents_desc": "Policy vault",
-      "contact_center_desc": "Human support",
-      "command_center_title": "24/7 command center",
-      "priority_line_active": "Priority line active",
-      "country_north_macedonia": "North Macedonia",
-      "country_kosovo": "Republic of Kosovo",
-      "available_now_avg_response": "Available now • Avg response {seconds}",
-      "status_insight_title": "Membership status",
-      "status_insight_body": "Your membership is active. Keep your documents in the vault for faster incident handling through IDA App.",
-      "support_panel_title": "Support readiness",
-      "support_readiness_label": "Readiness",
-      "support_readiness_active": "Ready now",
-      "support_readiness_pending": "Pending activation",
-      "support_channel_label": "Primary channel",
-      "support_channel_value": "Phone + WhatsApp",
-      "support_window_label": "Coverage window",
-      "support_window_value": "24/7",
-      "support_highlights_title": "What support includes",
-      "support_highlight_one": "Incident triage",
-      "support_highlight_two": "Document guidance",
-      "support_highlight_three": "Travel support coordination",
-      "online_now": "Online now",
-      "support_panel_cta": "Open member support",
-      "support_phone_label": "Support phone",
-      "support_whatsapp_label": "WhatsApp line",
-      "support_whatsapp_value": "Chat available now",
-      "command_center_body": "Reach the member support team for urgent incidents, document guidance, and diaspora travel help. We route you to the right next step without reopening product scope.",
-      "review_security_parameters": "Review security parameters",
-      "card_membership": "Membership",
-      "card_claim_support": "Claims support",
-      "card_legal_protection": "Legal protection",
-      "card_assistance_247": "24/7 assistance",
-      "card_member_name": "Member name",
-      "card_valid_thru": "Valid thru",
-      "card_active_member": "Active member",
-      "card_protection_paused": "Membership paused",
-      "card_add_to_apple_wallet": "Add to Apple Wallet",
-      "card_google_pay_ready": "Google Pay ready"
+      "primary_cta": "Start a new claim",
+      "secondary_cta": "View claims",
+      "empty_title": "No claims yet",
+      "empty_body": "When you submit your first claim, it will appear here."
     },
     "activeClaims": "Active Claims",
     "activeClaimsDesc": "Your ongoing disputes",
@@ -197,7 +89,7 @@
           "scene_safety": "Move to safety if you can, secure passengers, and avoid creating new risk at the scene.",
           "emergency_services": "Call local emergency services first if anyone is injured, trapped, threatened, or immediate danger continues.",
           "document_scene": "Take photos or video of positions, plates, damage, road conditions, signs, and visible evidence before items move.",
-          "exchange_information": "Exchange driver, vehicle, insurer, witness, and authority details without admitting fault or signing unclear statements.",
+          "exchange_information": "Exchange driver, vehicle, witness, authority, and available policy details without admitting fault or signing unclear statements.",
           "record_timeline": "Write down the time, location, direction of travel, weather, police presence, and what happened in plain facts.",
           "preserve_documents": "Keep police reports, medical notes, invoices, tow receipts, photos, and messages together for the member case file."
         },
@@ -205,7 +97,7 @@
         "disclaimers": {
           "not_legal_advice": "This is not legal advice.",
           "not_medical_advice": "This is not medical advice.",
-          "not_insurer_assessment": "This is not an insurer assessment or liability decision.",
+          "not_insurer_assessment": "This is not an assessment or liability decision.",
           "not_professional_opinion": "This is not a professional opinion.",
           "educational_only": "This is educational and evidence-preserving guidance only.",
           "professional_review_required": "Professional review is required before professional recovery action."
@@ -235,6 +127,242 @@
       "health_safety": "Health & Safety",
       "my_documents": "My Documents",
       "contact_center": "Contact Center"
+    },
+    "member_assistance": {
+      "common": {
+        "unavailable": "Not available"
+      },
+      "header": {
+        "brand": "Interdomestik",
+        "logoAlt": "Interdomestik logo",
+        "product": "Interdomestik IDA",
+        "tagline": "Easier together",
+        "notifications": "Notifications",
+        "profile": "Member profile"
+      },
+      "welcome": {
+        "active": "Active",
+        "inactive": "Visitor / not active"
+      },
+      "primary": {
+        "kicker": "First action",
+        "title": "When something happens, start here",
+        "body": "The first step helps you orient yourself, preserve evidence, and decide whether to open a member case.",
+        "helpNow": "Help Now",
+        "helpNowSubtitle": "Immediate guidance when something happens",
+        "openCase": "Open case",
+        "openCaseSubtitle": "Create a file and save evidence"
+      },
+      "membershipValue": {
+        "label": "IDA membership value",
+        "price": "Only €20/year",
+        "cardTitle": "Member",
+        "cardSubtitle": "24/7 Assistance",
+        "benefits": {
+          "assistance": "24/7 assistance",
+          "activation": "Immediate activation",
+          "cases": "Online cases in IDA"
+        }
+      },
+      "heroResolver": {
+        "nextActionLabel": "Next step",
+        "states": {
+          "visitor_general": {
+            "kicker": "IDA assistance",
+            "title": "Join IDA assistance.",
+            "highlight": "Know the next step.",
+            "body": "Get guided help after an accident, keep documents organized, and open a case when membership is active.",
+            "valueLabel": "Membership",
+            "value": "20 EUR/year",
+            "cta": "Activate assistance"
+          },
+          "visitor_broker_tpl": {
+            "kicker": "Referral entry",
+            "title": "Start IDA assistance.",
+            "highlight": "Keep the case organized.",
+            "body": "Use IDA to document what happened, preserve files, and continue with a membership-gated case flow.",
+            "valueLabel": "Membership",
+            "value": "20 EUR/year",
+            "cta": "Activate assistance"
+          },
+          "visitor_diaspora": {
+            "kicker": "Diaspora support",
+            "title": "Traveling or living abroad?",
+            "highlight": "Start with IDA.",
+            "body": "Use assistance for accident orientation, Green Card context, documents, and clear follow-up steps.",
+            "valueLabel": "Membership",
+            "value": "20 EUR/year",
+            "cta": "Activate diaspora assistance"
+          },
+          "member_active_no_case": {
+            "kicker": "Active member",
+            "title": "Need help now?",
+            "highlight": "Open your first case.",
+            "body": "Your membership is active. Start a case when facts, photos, or documents need to be saved to your account.",
+            "valueLabel": "Status",
+            "value": "Active assistance",
+            "cta": "Open first case"
+          },
+          "member_active_has_open_case": {
+            "kicker": "Active case",
+            "title": "Your case is in progress.",
+            "highlight": "Follow status and next steps.",
+            "body": "Follow status, documents, and next steps from the case file.",
+            "valueLabel": "Status",
+            "value": "In progress",
+            "cta": "View case"
+          },
+          "missing_documents": {
+            "kicker": "Action needed",
+            "title": "Documents are needed.",
+            "highlight": "Upload them now.",
+            "body": "The case needs your document input before the team can continue review.",
+            "valueLabel": "Status",
+            "value": "Missing documents",
+            "cta": "Open documents"
+          },
+          "authorization_needed": {
+            "kicker": "Authorization",
+            "title": "Authorization is needed.",
+            "highlight": "Review before recovery.",
+            "body": "Professional recovery can continue only after the required authorization, agreement, terms, and audit trail are in place.",
+            "valueLabel": "Status",
+            "value": "Signature needed",
+            "cta": "Review authorization"
+          }
+        }
+      },
+      "nextStep": {
+        "kicker": "Next step",
+        "activate": {
+          "title": "Activate Assistance",
+          "body": "You can use free orientation now. Activate membership to save a case, track status, use the IDA Card, and reach member support.",
+          "cta": "Activate Assistance"
+        },
+        "firstCase": {
+          "title": "Open your first case",
+          "body": "Start a case file when you are ready to attach facts, evidence, and documents to your account.",
+          "cta": "Open first case"
+        },
+        "missingDocs": {
+          "title": "Upload missing documents",
+          "body": "Your case needs your document input before the team can continue review.",
+          "cta": "Open documents"
+        },
+        "memberAction": {
+          "title": "Your action is needed",
+          "body": "Review the published next step so the case file can keep moving.",
+          "cta": "View case"
+        },
+        "authorization": {
+          "title": "Sign authorization",
+          "body": "Professional Recovery can proceed only with authorization, agreement, terms, and an audit trail.",
+          "cta": "Review authorization"
+        },
+        "review": {
+          "title": "Case is being reviewed",
+          "body": "Your case is documented and visible. Follow status updates and published next steps from the case file.",
+          "cta": "View case"
+        },
+        "history": {
+          "title": "Review previous cases",
+          "body": "No active case is selected. Your closed or saved cases remain available for reference.",
+          "cta": "View cases"
+        }
+      },
+      "inactive": {
+        "title": "What is free and what requires membership",
+        "body": "Free self-service includes orientation, checklists, next-step guidance, and document readiness. Member assistance adds a saved case, status, timeline, document vault, IDA Card, and support.",
+        "cta": "Activate Assistance"
+      },
+      "services": {
+        "kicker": "Main services",
+        "title": "What is happening now?",
+        "open": "Open",
+        "cards": {
+          "helpNow": {
+            "mobile": "Accident",
+            "situation": "I had an accident now",
+            "title": "Scene guide + Green Card",
+            "body": "Choose the country where the accident happened and get the first guidance: police, European Accident Statement, photos, and documents."
+          },
+          "reportClaim": {
+            "mobile": "Report",
+            "situation": "I want to report damage",
+            "title": "Report damage",
+            "body": "Open a case file and save evidence, documents, and case status."
+          },
+          "complaint": {
+            "mobile": "Complaint",
+            "situation": "I received a low or unclear offer",
+            "title": "Submit complaint",
+            "body": "Use this when there is a refusal, delay, or unclear offer."
+          },
+          "procedureGuide": {
+            "mobile": "Procedure",
+            "situation": "I need procedure steps",
+            "title": "Procedure guide",
+            "body": "Get procedural steps by country, damage type, and required documents."
+          },
+          "recovery": {
+            "mobile": "Recovery",
+            "situation": "I want Interdomestik to follow the case",
+            "title": "Mediation / Recovery",
+            "body": "With authorization, Interdomestik may follow the case on your behalf."
+          },
+          "flightDelay": {
+            "mobile": "Flight",
+            "situation": "My flight was delayed",
+            "title": "Delayed flight",
+            "body": "Check whether a delayed flight may qualify for compensation."
+          }
+        }
+      },
+      "cases": {
+        "kicker": "Case status",
+        "title": "Active cases",
+        "viewAll": "View all",
+        "caseFallback": "Member case",
+        "caseNumber": "Case number",
+        "status": "Status",
+        "open": "View case",
+        "support": "Request support",
+        "lastUpdate": "Last update",
+        "timelinePreview": "The case file is visible. The next status update will appear there.",
+        "emptyTitle": "No case opened yet",
+        "emptyBody": "When damage happens, IDA guides you step by step.",
+        "emptyCta": "Open case"
+      },
+      "documents": {
+        "kicker": "Document vault",
+        "title": "Saved documents summary",
+        "body": "The dashboard shows counts only. Sensitive or medical document content stays inside the protected case flow.",
+        "saved": "Saved documents",
+        "missing": "Missing documents",
+        "missingActive": "Open the vault to see requested uploads for active cases.",
+        "missingNoCase": "Missing documents will appear after a case is opened.",
+        "consent": "Medical or sensitive document review requires explicit consent before upload or review.",
+        "cta": "Open document vault"
+      },
+      "trust": {
+        "title": "Trust and privacy",
+        "body": "IDA keeps the case organized and transparent without promising an outcome.",
+        "center": "Trust Center",
+        "items": {
+          "caseNumber": "Unique case number",
+          "documents": "Saved documents",
+          "transparent": "Transparent process",
+          "privacy": "Privacy and security"
+        }
+      },
+      "bottomNav": {
+        "label": "Member navigation",
+        "home": "Home",
+        "cases": "Cases",
+        "help": "Help",
+        "documents": "Docs",
+        "more": "More"
+      }
     },
     "member": {
       "home": {
@@ -283,7 +411,7 @@
           "title": "How it works",
           "step1": "Contact us",
           "step2": "We guide you",
-          "step3": "We resolve the case together"
+          "step3": "We follow the status together"
         },
         "claims": {
           "title": "Your claim status",

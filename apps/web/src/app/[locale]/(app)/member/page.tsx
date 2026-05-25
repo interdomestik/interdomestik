@@ -28,6 +28,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
     notFound();
   }
 
+  if (!session.user.tenantId) {
+    notFound();
+  }
+
   let data;
   try {
     data = await getMemberDashboardData({
