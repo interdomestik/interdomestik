@@ -29,7 +29,7 @@ export function TenantSelector({
   return (
     <Card
       data-testid="tenant-chooser"
-      className="w-full max-w-md border-none shadow-xl ring-1 ring-white/10 bg-white/5 backdrop-blur-lg"
+      className="w-full max-w-md border-none bg-white/80 shadow-xl ring-1 ring-[hsl(var(--border))] backdrop-blur-lg dark:bg-white/5 dark:ring-white/10"
     >
       <CardHeader className="text-center space-y-1">
         <CardTitle data-testid="tenant-chooser-title" className="text-lg font-semibold">

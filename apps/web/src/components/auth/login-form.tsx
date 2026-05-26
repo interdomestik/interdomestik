@@ -125,21 +125,21 @@ export function LoginForm({
   const locale = getValidatedLocaleFromPathname(pathname);
 
   return (
-    <Card className="w-full max-w-md animate-fade-in shadow-xl border-none ring-1 ring-white/10 bg-white/5 backdrop-blur-lg">
-      <CardHeader className="text-center space-y-1">
+    <Card className="w-full max-w-md animate-fade-in border-none bg-white/80 shadow-xl ring-1 ring-[hsl(var(--border))] backdrop-blur-lg dark:bg-white/5 dark:ring-white/10">
+      <CardHeader className="space-y-1 px-5 py-4 text-center sm:p-6">
         <Link
           href="/"
-          className="flex items-center justify-center gap-2 mb-6 transition-transform hover:scale-105 duration-300"
+          className="mb-3 flex items-center justify-center gap-2 transition-transform duration-300 hover:scale-105 sm:mb-6"
         >
-          <Shield className="h-10 w-10 text-primary" />
+          <Shield className="h-8 w-8 text-primary sm:h-10 sm:w-10" />
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+        <h2 className="text-xl font-bold sm:text-2xl">{t('title')}</h2>
         <CardDescription className="text-muted-foreground">{t('subtitle')}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-5 pb-5 sm:p-6 sm:pt-0">
         <form
           method="POST"
-          className="space-y-4"
+          className="space-y-3 sm:space-y-4"
           data-testid="login-form"
           onSubmit={async e => {
             e.preventDefault();
@@ -270,7 +270,7 @@ export function LoginForm({
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                tabIndex={-1}
+                aria-label={showPassword ? t('hidePassword') : t('showPassword')}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -279,7 +279,6 @@ export function LoginForm({
               <Link
                 href="/forgot-password"
                 className="text-sm font-medium text-primary hover:underline transition-all"
-                tabIndex={-1}
               >
                 {t('forgotPassword')}
               </Link>

@@ -39,6 +39,8 @@ vi.mock('next-intl', () => ({
         subtitle: 'Sign in to continue',
         email: 'Email',
         password: 'Password',
+        showPassword: 'Show password',
+        hidePassword: 'Hide password',
         forgotPassword: 'Forgot password?',
         rememberMe: 'Remember me',
         submit: 'Sign In',
@@ -344,6 +346,18 @@ describe('LoginForm', () => {
 
     const forgotLink = screen.getByText('Forgot password?');
     expect(forgotLink.closest('a')).toHaveAttribute('href', '/forgot-password');
+  });
+
+  it('keeps password helper actions keyboard-accessible', () => {
+    render(<LoginForm />);
+
+    const toggle = screen.getByRole('button', { name: 'Show password' });
+    expect(toggle).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Forgot password?' })).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(screen.getByRole('button', { name: 'Hide password' })).toBeInTheDocument();
   });
 
   it('has register link', () => {
