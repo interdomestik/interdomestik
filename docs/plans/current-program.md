@@ -608,6 +608,17 @@ proxy edits, canonical-route changes, auth/session/tenant behavior changes, bill
 work, login flow rewrites, forbidden claims, remote asset fetches, Stripe, README, AGENTS, and
 architecture-doc changes.
 
+`IDA-AUTH01 Portal Sign-In Visual Refresh v0` is complete through PR `#867`, merged at
+`8e9ecab5aacb00daf8ee86d87137fde278851aa0`. The existing localized login route now has a
+route-local split/stacked auth portal shell around the existing login form, neutral localized
+portal copy for `en`, `sq`, `mk`, and `sr`, preserved `auth-ready` and login-form markers,
+TenantSelector-present and TenantSelector-absent behavior, `LoginForm` auth/redirect/OAuth
+behavior, and `plan`/`next` query continuity. It preserved canonical routes, proxy,
+auth/session/tenant behavior, billing, schema, backend, Stripe posture, README/AGENTS.md, and
+architecture-doc boundaries, avoided forbidden claims and remote asset fetches, and kept remote
+validation, audit, static, unit, full E2E, `e2e-gate`, Pilot Gate, gitleaks, pnpm-audit, PR
+finalizer, SonarCloud, Vercel ignored-build, and Vercel Preview Comments green before merge.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
@@ -891,7 +902,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 277. Complete `P41-DG04 Member Dashboard Visual Hierarchy Hardening Design Gate` as the approved design authority that promotes exactly one presentation-only implementation slice, `P41-UX04 Member Dashboard Visual Hierarchy Hardening`, scoped to the canonical `/member` dashboard task-first hierarchy and secondary-service quieting while preserving routes, proxy, auth, tenancy, data reads, runtime behavior, schemas, Stripe, README, AGENTS, and architecture-doc boundaries.
 278. Keep `P41-UX04 Member Dashboard Visual Hierarchy Hardening` complete through PR `#861`, preserving canonical `/member` dashboard behavior while making the first visible dashboard region task-first, quieting secondary dashboard content, neutralizing false service-card interactivity, and proving localized authenticated viewport behavior.
 279. Complete `IDA-DG02 Auth Portal Visual Refresh Design Gate` as the approved design authority that promotes exactly one presentation-only implementation slice, `IDA-AUTH01 Portal Sign-In Visual Refresh v0`, scoped to the existing localized login route and preserving proxy, canonical routes, auth/session behavior, tenant resolution, safe redirects, billing, schema, backend, Stripe, README, AGENTS, and architecture-doc boundaries.
-280. Implement `IDA-AUTH01 Portal Sign-In Visual Refresh v0` by adding a route-local split/stacked auth portal shell around the existing login form, preserving `auth-ready` and login-form markers, validating TenantSelector present/absent states, keeping `plan` and `next` query continuity, adding `en`/`sq`/`mk`/`sr` neutral portal copy, and proving mobile `360`, `390`, and `430` viewport behavior without hard no-scroll behavior or forbidden claims.
+280. Keep `IDA-AUTH01 Portal Sign-In Visual Refresh v0` complete through PR `#867`, preserving existing localized login auth/session/tenant behavior while adding the route-local portal shell, neutral `en`/`sq`/`mk`/`sr` copy, query continuity, and mobile `360`, `390`, and `430` proof without hard no-scroll behavior, forbidden claims, route changes, proxy edits, or backend changes.
 
 ## Status Command
 
