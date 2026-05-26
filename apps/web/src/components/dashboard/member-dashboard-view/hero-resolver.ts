@@ -30,6 +30,10 @@ type ResolveMemberHomeHeroParams = {
 
 const AUTHORIZATION_STAGE_PATTERN = /authorization|authorisation|autoriz/i;
 
+export function isAuthorizationStage(stageKey: string): boolean {
+  return AUTHORIZATION_STAGE_PATTERN.test(stageKey);
+}
+
 export function resolveMemberHomeHero({
   activeClaim,
   isActive,
@@ -66,7 +70,7 @@ export function resolveMemberHomeHero({
     };
   }
 
-  if (AUTHORIZATION_STAGE_PATTERN.test(activeClaim.stageKey)) {
+  if (isAuthorizationStage(activeClaim.stageKey)) {
     return {
       copyKey: 'heroResolver.states.authorization_needed',
       href: `/${locale}/member/claims/${activeClaim.id}`,

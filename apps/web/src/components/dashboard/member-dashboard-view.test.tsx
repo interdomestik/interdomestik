@@ -32,7 +32,13 @@ const hoisted = vi.hoisted(() => ({
   ),
 }));
 
-let currentMessages: typeof mkMessages = mkMessages;
+type DashboardMessages =
+  | typeof enMessages
+  | typeof mkMessages
+  | typeof sqMessages
+  | typeof srMessages;
+
+let currentMessages: DashboardMessages = mkMessages;
 
 vi.mock('next/navigation', () => ({
   redirect: hoisted.redirectMock,
@@ -144,6 +150,17 @@ function mockActiveMembership() {
   };
   hoisted.getActiveSubscriptionMock.mockResolvedValue(subscription);
   hoisted.subscriptionFindManyMock.mockResolvedValue([subscription]);
+}
+
+function expectNoMemberConversionHeroCta() {
+  expect(screen.queryByTestId('hero-cta-visitor_general')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('hero-cta-visitor_broker_tpl')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('hero-cta-visitor_diaspora')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('link', {
+      name: /activate assistance|активирај асистенција|aktiviraj asistenciju|aktivizo asistencën/i,
+    })
+  ).not.toBeInTheDocument();
 }
 
 describe('MemberDashboardView assistance dashboard', () => {
@@ -287,10 +304,63 @@ describe('MemberDashboardView assistance dashboard', () => {
       'href',
       '/member/claims/claim-action/documents'
     );
+    expect(screen.getByRole('link', { name: 'Отвори документи' })).toHaveAttribute(
+      'href',
+      '/member/claims/claim-action/documents'
+    );
+    expectNoMemberConversionHeroCta();
     const activeCase = screen.getByTestId('active-case-card');
     expect(within(activeCase).getByText(/CLM-200/)).toBeInTheDocument();
     expect(within(activeCase).getByText(/Verification/)).toBeInTheDocument();
     expect(within(activeCase).getByText('Upload evidence')).toBeInTheDocument();
+  });
+
+  it('renders authorization-needed hero, interactive CTA, and no member conversion CTA', async () => {
+    currentMessages = enMessages;
+    mockActiveMembership();
+
+    const tree = await MemberDashboardView({
+      data: makeData({
+        activeClaimId: 'claim-auth',
+        claims: [
+          {
+            claimNumber: 'CLM-300',
+            id: 'claim-auth',
+            nextMemberAction: {
+              actionType: 'provide_info',
+              href: '/member/claims/claim-auth/documents/authorization.pdf',
+              label: 'Review authorization file',
+            },
+            requiresMemberAction: true,
+            stageKey: 'authorization_needed',
+            stageLabel: 'Authorization needed',
+            status: 'verification',
+            submittedAt: '2026-04-01T00:00:00.000Z',
+            updatedAt: '2026-04-22T00:00:00.000Z',
+          },
+        ],
+      }),
+      locale: 'en',
+    });
+    render(tree);
+
+    expect(screen.getByTestId('member-welcome-status')).toHaveAttribute(
+      'data-hero-state',
+      'authorization_needed'
+    );
+    expect(screen.getByTestId('member-hero-value-row')).toHaveTextContent('Signature needed');
+    expect(screen.getByTestId('hero-cta-sign-authorization')).toHaveAttribute(
+      'href',
+      '/en/member/claims/claim-auth'
+    );
+    expect(screen.getByTestId('hero-cta-sign-authorization')).toHaveAccessibleName(
+      'Review authorization'
+    );
+    expect(screen.getByTestId('next-step-authorization')).toHaveAttribute(
+      'href',
+      '/en/member/claims/claim-auth'
+    );
+    expectNoMemberConversionHeroCta();
   });
 
   it('shows only one priority case on the dashboard home', async () => {

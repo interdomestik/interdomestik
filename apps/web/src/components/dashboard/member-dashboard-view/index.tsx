@@ -17,7 +17,11 @@ import { ActiveCaseSummary } from './active-case-summary';
 import { getCachedClaimDocumentCount } from './data';
 import { DocumentVaultSummary } from './document-vault-summary';
 import { getRoleRedirect } from './helpers';
-import { resolveMemberHomeHero, type MemberHomeHeroModel } from './hero-resolver';
+import {
+  isAuthorizationStage,
+  resolveMemberHomeHero,
+  type MemberHomeHeroModel,
+} from './hero-resolver';
 import { MainServiceCard } from './main-service-card';
 import { MobileBottomNav } from './mobile-bottom-nav';
 import { NextStepCard, type NextStepModel } from './next-step-card';
@@ -420,27 +424,36 @@ function getNextStep(params: {
     };
   }
 
-  if (activeClaim?.requiresMemberAction && activeClaim.nextMemberAction) {
-    const uploadKey =
-      activeClaim.nextMemberAction.actionType === 'upload_document'
-        ? 'missingDocs'
-        : 'memberAction';
+  if (
+    activeClaim?.requiresMemberAction &&
+    activeClaim.nextMemberAction?.actionType === 'upload_document'
+  ) {
     return {
-      body: t(`nextStep.${uploadKey}.body`),
+      body: t('nextStep.missingDocs.body'),
       href: activeClaim.nextMemberAction.href,
       label: activeClaim.nextMemberAction.label,
-      testId: `next-step-${uploadKey}`,
-      title: t(`nextStep.${uploadKey}.title`),
+      testId: 'next-step-missingDocs',
+      title: t('nextStep.missingDocs.title'),
     };
   }
 
-  if (activeClaim && /authorization|authorisation|autoriz/i.test(activeClaim.stageKey)) {
+  if (activeClaim && isAuthorizationStage(activeClaim.stageKey)) {
     return {
       body: t('nextStep.authorization.body'),
       href: `/${locale}/member/claims/${activeClaim.id}`,
       label: t('nextStep.authorization.cta'),
       testId: 'next-step-authorization',
       title: t('nextStep.authorization.title'),
+    };
+  }
+
+  if (activeClaim?.requiresMemberAction && activeClaim.nextMemberAction) {
+    return {
+      body: t('nextStep.memberAction.body'),
+      href: activeClaim.nextMemberAction.href,
+      label: activeClaim.nextMemberAction.label,
+      testId: 'next-step-memberAction',
+      title: t('nextStep.memberAction.title'),
     };
   }
 
