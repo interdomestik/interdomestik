@@ -619,6 +619,19 @@ architecture-doc boundaries, avoided forbidden claims and remote asset fetches, 
 validation, audit, static, unit, full E2E, `e2e-gate`, Pilot Gate, gitleaks, pnpm-audit, PR
 finalizer, SonarCloud, Vercel ignored-build, and Vercel Preview Comments green before merge.
 
+`IDA-DG03 Member-Action Hero Render Design Gate` is complete in
+`docs/plans/2026-05-26-ida-dg03-member-action-hero-render-design.md` after mandatory Sonnet 4.6
+review through Copilot CLI and Gemini Pro 3.1 premium product/design review through Gemini CLI using
+`gemini-3.1-pro-preview`. The gate promotes exactly one next implementation slice, `IDA-MH02
+Member-Action Hero Render Contract`, scoped to focused dashboard render proof for the existing
+`missing_documents` and `authorization_needed` member-home hero states. The promoted slice keeps the
+pure resolver small, preserves one dominant hero CTA, preserves the canonical `/member` route and
+dashboard markers, keeps localized `en`/`sq`/`mk`/`sr` copy discipline, requires authorization
+matching-breadth proof, interactive primary CTA proof, active-member anti-conversion proof, and
+mobile tap-target/copy-density attention if UI copy or classes change, and blocks proxy edits,
+canonical-route changes, auth/session/tenant behavior changes, billing/schema/backend work, Stripe,
+broad dashboard redesign, README, AGENTS, and architecture-doc changes.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
@@ -903,6 +916,8 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 278. Keep `P41-UX04 Member Dashboard Visual Hierarchy Hardening` complete through PR `#861`, preserving canonical `/member` dashboard behavior while making the first visible dashboard region task-first, quieting secondary dashboard content, neutralizing false service-card interactivity, and proving localized authenticated viewport behavior.
 279. Complete `IDA-DG02 Auth Portal Visual Refresh Design Gate` as the approved design authority that promotes exactly one presentation-only implementation slice, `IDA-AUTH01 Portal Sign-In Visual Refresh v0`, scoped to the existing localized login route and preserving proxy, canonical routes, auth/session behavior, tenant resolution, safe redirects, billing, schema, backend, Stripe, README, AGENTS, and architecture-doc boundaries.
 280. Keep `IDA-AUTH01 Portal Sign-In Visual Refresh v0` complete through PR `#867`, preserving existing localized login auth/session/tenant behavior while adding the route-local portal shell, neutral `en`/`sq`/`mk`/`sr` copy, query continuity, and mobile `360`, `390`, and `430` proof without hard no-scroll behavior, forbidden claims, route changes, proxy edits, or backend changes.
+281. Complete `IDA-DG03 Member-Action Hero Render Design Gate` as the approved design authority that promotes exactly one proof-first implementation slice, `IDA-MH02 Member-Action Hero Render Contract`, scoped to dashboard render proof for existing `missing_documents` and `authorization_needed` member-home hero states while preserving proxy, canonical routes, auth/session behavior, tenancy, billing, schema, backend, Stripe, README, AGENTS, and architecture-doc boundaries.
+282. Keep `IDA-MH02 Member-Action Hero Render Contract` pending until implemented from a clean synced main branch with focused dashboard/resolver tests, authorization matching-breadth proof, interactive primary CTA role proof, active-member anti-conversion proof, i18n and forbidden-claim proof, and no broad member dashboard redesign or backend changes.
 
 ## Status Command
 
