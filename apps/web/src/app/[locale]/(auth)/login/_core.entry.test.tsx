@@ -1,17 +1,20 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   getSessionSafeMock: vi.fn(async () => null),
   loadTenantOptionsMock: vi.fn(async () => [{ id: 'tenant_ks', name: 'KS', countryCode: 'XK' }]),
   loginFormMock: vi.fn((_: unknown) => <div>login-form</div>),
   redirectMock: vi.fn(),
-  resolveTenantIdFromRequestMock: vi.fn(async () => 'tenant_ks'),
+  resolveTenantIdFromRequestMock: vi.fn<() => Promise<string | null>>(async () => 'tenant_ks'),
   setRequestLocaleMock: vi.fn(),
   tenantSelectorMock: vi.fn((_: unknown) => <div>tenant-selector</div>),
 }));
 
 vi.mock('next-intl/server', () => ({
+  getTranslations: vi.fn(async () => (key: string) => `auth.login.${key}`),
   setRequestLocale: hoisted.setRequestLocaleMock,
 }));
 
@@ -47,7 +50,16 @@ vi.mock('./_core', () => ({
 import LoginPage from './_core.entry';
 
 describe('LoginPage tenant selection', () => {
-  it('resolves tenant context without rendering the chooser', async () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.getSessionSafeMock.mockResolvedValue(null);
+    hoisted.loadTenantOptionsMock.mockResolvedValue([
+      { id: 'tenant_ks', name: 'KS', countryCode: 'XK' },
+    ]);
+    hoisted.resolveTenantIdFromRequestMock.mockResolvedValue('tenant_ks');
+  });
+
+  it('renders the portal shell and resolves tenant context without rendering the chooser', async () => {
     const tree = await LoginPage({
       params: Promise.resolve({ locale: 'en' }),
       searchParams: Promise.resolve({}),
@@ -55,10 +67,64 @@ describe('LoginPage tenant selection', () => {
 
     render(tree);
 
+    expect(screen.getByTestId('auth-ready')).toBeInTheDocument();
+    expect(screen.getByTestId('auth-portal-hero')).toHaveTextContent(
+      'auth.login.portal.panelTitle'
+    );
+    expect(screen.getByTestId('auth-portal-form-region')).toBeInTheDocument();
     expect(screen.queryByText('tenant-selector')).not.toBeInTheDocument();
     expect(screen.getByText('login-form')).toBeInTheDocument();
     expect(hoisted.loginFormMock).toHaveBeenCalledWith(
       expect.objectContaining({ tenantId: 'tenant_ks' })
     );
+  });
+
+  it('renders the tenant chooser inside the portal form region when no tenant is resolved', async () => {
+    hoisted.resolveTenantIdFromRequestMock.mockResolvedValueOnce(null);
+
+    const tree = await LoginPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({}),
+    });
+
+    render(tree);
+
+    expect(screen.getByTestId('auth-portal-form-region')).toContainElement(
+      screen.getByText('tenant-selector')
+    );
+    expect(hoisted.tenantSelectorMock).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'auth.login.portal.tenantTitle' })
+    );
+    expect(hoisted.loginFormMock).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: undefined })
+    );
+  });
+
+  it('keeps portal login copy available in every supported locale', () => {
+    const expectedKeys = [
+      'eyebrow',
+      'title',
+      'subtitle',
+      'panelTitle',
+      'panelBody',
+      'chipSecure',
+      'chipStatus',
+      'chipDocuments',
+      'tenantTitle',
+      'formRegionLabel',
+    ];
+
+    for (const locale of ['en', 'sq', 'mk', 'sr']) {
+      const file = readFileSync(join(process.cwd(), 'src/messages', locale, 'auth.json'), 'utf8');
+      const messages = JSON.parse(file) as {
+        auth?: { login?: { portal?: Record<string, string> } };
+      };
+
+      const sortAlphabetically = (a: string, b: string): number => a.localeCompare(b);
+
+      expect(Object.keys(messages.auth?.login?.portal ?? {}).sort(sortAlphabetically)).toEqual(
+        [...expectedKeys].sort(sortAlphabetically)
+      );
+    }
   });
 });
