@@ -38,6 +38,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   const dataPromise = getMemberDashboardData({
     memberId: result.userId,
     tenantId: session.user.tenantId,
+  }).catch(error => {
+    if (error instanceof Error && error.message === 'Member not found') {
+      notFound();
+    }
+    throw error;
   });
 
   const supplementalDataPromise = getDashboardSupplementalData({
