@@ -51,6 +51,7 @@ vi.mock('@interdomestik/domain-member', () => ({
 
 vi.mock('@/components/dashboard/member-dashboard-view', () => ({
   MemberDashboardView: (props: unknown) => hoisted.memberDashboardViewMock(props),
+  getDashboardSupplementalData: vi.fn(),
 }));
 
 vi.mock('@/components/dashboard/member-dashboard-v2', () => ({
