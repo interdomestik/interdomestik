@@ -1,4 +1,7 @@
-import { MemberDashboardView } from '@/components/dashboard/member-dashboard-view';
+import {
+  MemberDashboardView,
+  getDashboardSupplementalData,
+} from '@/components/dashboard/member-dashboard-view';
 import { MemberDashboardSkeleton } from '@/components/dashboard/member-dashboard-skeleton';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { ErrorBoundary } from '@interdomestik/ui';
@@ -32,24 +35,25 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
     notFound();
   }
 
-  let data;
-  try {
-    data = await getMemberDashboardData({
-      memberId: result.userId,
-      tenantId: session.user.tenantId,
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Member not found') {
-      notFound();
-    }
-    throw error;
-  }
+  const dataPromise = getMemberDashboardData({
+    memberId: result.userId,
+    tenantId: session.user.tenantId,
+  });
+
+  const supplementalDataPromise = getDashboardSupplementalData({
+    memberId: result.userId,
+    tenantId: session.user.tenantId,
+  });
 
   return (
     <ErrorBoundary>
       <Suspense fallback={<MemberDashboardSkeleton />}>
         <div data-testid="member-header">
-          <MemberDashboardView data={data} locale={locale} />
+          <MemberDashboardView
+            dataPromise={dataPromise}
+            supplementalDataPromise={supplementalDataPromise}
+            locale={locale}
+          />
         </div>
       </Suspense>
     </ErrorBoundary>
