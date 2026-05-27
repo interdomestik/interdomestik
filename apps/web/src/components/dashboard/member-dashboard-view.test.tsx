@@ -162,7 +162,14 @@ describe('MemberDashboardView assistance dashboard', () => {
     mockActiveMembership();
     hoisted.documentCount = 4;
 
-    const tree = await MemberDashboardView({ data: makeData(), locale: 'mk' });
+    const tree = await MemberDashboardView({
+      dataPromise: Promise.resolve(makeData()),
+      supplementalDataPromise: Promise.resolve([
+        await hoisted.getActiveSubscriptionMock(),
+        hoisted.documentCount,
+      ]),
+      locale: 'mk',
+    });
     render(tree);
 
     expect(screen.getByTestId('member-app-header')).toHaveTextContent('Интердоместик ИДА');
@@ -188,15 +195,21 @@ describe('MemberDashboardView assistance dashboard', () => {
 
   it('treats agent member-mode access as assistance/action, not visitor conversion', async () => {
     const tree = await MemberDashboardView({
-      data: makeData({
-        member: {
-          id: 'agent-1',
-          membershipNumber: null,
-          name: 'Blerim Agent',
-          role: 'agent',
-          tenantId: 'tenant-ks',
-        },
-      }),
+      dataPromise: Promise.resolve(
+        makeData({
+          member: {
+            id: 'agent-1',
+            membershipNumber: null,
+            name: 'Blerim Agent',
+            role: 'agent',
+            tenantId: 'tenant-ks',
+          },
+        })
+      ),
+      supplementalDataPromise: Promise.resolve([
+        await hoisted.getActiveSubscriptionMock(),
+        hoisted.documentCount,
+      ]),
       locale: 'mk',
     });
     render(tree);
@@ -213,7 +226,14 @@ describe('MemberDashboardView assistance dashboard', () => {
   });
 
   it('renders inactive visitor state with free-versus-member assistance boundary', async () => {
-    const tree = await MemberDashboardView({ data: makeData(), locale: 'mk' });
+    const tree = await MemberDashboardView({
+      dataPromise: Promise.resolve(makeData()),
+      supplementalDataPromise: Promise.resolve([
+        await hoisted.getActiveSubscriptionMock(),
+        hoisted.documentCount,
+      ]),
+      locale: 'mk',
+    });
     render(tree);
 
     expect(screen.getByTestId('member-welcome-status')).toHaveTextContent('Посетител / неактивно');
@@ -238,7 +258,14 @@ describe('MemberDashboardView assistance dashboard', () => {
   it('renders the no-active-case empty state calmly', async () => {
     mockActiveMembership();
 
-    const tree = await MemberDashboardView({ data: makeData(), locale: 'mk' });
+    const tree = await MemberDashboardView({
+      dataPromise: Promise.resolve(makeData()),
+      supplementalDataPromise: Promise.resolve([
+        await hoisted.getActiveSubscriptionMock(),
+        hoisted.documentCount,
+      ]),
+      locale: 'mk',
+    });
     render(tree);
 
     expect(screen.getByTestId('next-step-open-first-case')).toBeInTheDocument();
@@ -251,26 +278,32 @@ describe('MemberDashboardView assistance dashboard', () => {
     mockActiveMembership();
 
     const tree = await MemberDashboardView({
-      data: makeData({
-        activeClaimId: 'claim-action',
-        claims: [
-          {
-            claimNumber: 'CLM-200',
-            id: 'claim-action',
-            nextMemberAction: {
-              actionType: 'upload_document',
-              href: '/member/claims/claim-action/documents',
-              label: 'Upload evidence',
+      dataPromise: Promise.resolve(
+        makeData({
+          activeClaimId: 'claim-action',
+          claims: [
+            {
+              claimNumber: 'CLM-200',
+              id: 'claim-action',
+              nextMemberAction: {
+                actionType: 'upload_document',
+                href: '/member/claims/claim-action/documents',
+                label: 'Upload evidence',
+              },
+              requiresMemberAction: true,
+              stageKey: 'verification',
+              stageLabel: 'Verification',
+              status: 'verification',
+              submittedAt: '2026-04-01T00:00:00.000Z',
+              updatedAt: '2026-04-20T00:00:00.000Z',
             },
-            requiresMemberAction: true,
-            stageKey: 'verification',
-            stageLabel: 'Verification',
-            status: 'verification',
-            submittedAt: '2026-04-01T00:00:00.000Z',
-            updatedAt: '2026-04-20T00:00:00.000Z',
-          },
-        ],
-      }),
+          ],
+        })
+      ),
+      supplementalDataPromise: Promise.resolve([
+        await hoisted.getActiveSubscriptionMock(),
+        hoisted.documentCount,
+      ]),
       locale: 'mk',
     });
     render(tree);
@@ -297,31 +330,37 @@ describe('MemberDashboardView assistance dashboard', () => {
     mockActiveMembership();
 
     const tree = await MemberDashboardView({
-      data: makeData({
-        activeClaimId: 'claim-action',
-        claims: [
-          {
-            claimNumber: 'CLM-200',
-            id: 'claim-action',
-            requiresMemberAction: false,
-            stageKey: 'verification',
-            stageLabel: 'Verification',
-            status: 'verification',
-            submittedAt: '2026-04-01T00:00:00.000Z',
-            updatedAt: '2026-04-20T00:00:00.000Z',
-          },
-          {
-            claimNumber: 'CLM-201',
-            id: 'claim-secondary',
-            requiresMemberAction: false,
-            stageKey: 'evaluation',
-            stageLabel: 'Evaluation',
-            status: 'evaluation',
-            submittedAt: '2026-04-02T00:00:00.000Z',
-            updatedAt: '2026-04-21T00:00:00.000Z',
-          },
-        ],
-      }),
+      dataPromise: Promise.resolve(
+        makeData({
+          activeClaimId: 'claim-action',
+          claims: [
+            {
+              claimNumber: 'CLM-200',
+              id: 'claim-action',
+              requiresMemberAction: false,
+              stageKey: 'verification',
+              stageLabel: 'Verification',
+              status: 'verification',
+              submittedAt: '2026-04-01T00:00:00.000Z',
+              updatedAt: '2026-04-20T00:00:00.000Z',
+            },
+            {
+              claimNumber: 'CLM-201',
+              id: 'claim-secondary',
+              requiresMemberAction: false,
+              stageKey: 'evaluation',
+              stageLabel: 'Evaluation',
+              status: 'evaluation',
+              submittedAt: '2026-04-02T00:00:00.000Z',
+              updatedAt: '2026-04-21T00:00:00.000Z',
+            },
+          ],
+        })
+      ),
+      supplementalDataPromise: Promise.resolve([
+        await hoisted.getActiveSubscriptionMock(),
+        hoisted.documentCount,
+      ]),
       locale: 'mk',
     });
     render(tree);

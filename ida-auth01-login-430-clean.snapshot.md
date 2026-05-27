@@ -1,0 +1,39 @@
+- generic [active] [ref=e1] [box=0,0,430,932]:
+  - main [ref=e2] [box=0,0,430,932]:
+    - region "Portal sign-in" [ref=e26] [box=16,16,398,569]:
+      - generic [ref=e55] [box=16,16,398,89]:
+        - paragraph [ref=e56] [box=16,16,398,16]: INTERDOMESTIK IDA
+        - heading "Sign in to your IDA portal" [level=1] [ref=e57] [box=16,36,398,25]
+        - paragraph [ref=e58] [box=16,65,398,40]: Use the email linked to your Interdomestik account to continue.
+      - generic [ref=e27] [box=16,121,398,464]:
+        - generic [ref=e28] [box=16,121,398,132]:
+          - link [ref=e29] [cursor=pointer] [box=36,137,358,32]:
+            - /url: /en
+            - img [ref=e30] [box=199,137,32,32]
+          - heading "Welcome Back" [level=2] [ref=e32] [box=36,185,358,28]
+          - paragraph [ref=e33] [box=36,217,358,20]: Log in to your account to continue
+        - generic [ref=e35] [box=36,253,358,312]:
+          - generic [ref=e36] [box=36,253,358,72]:
+            - text: Email Address
+            - textbox "Email Address" [ref=e37] [box=36,285,358,40]:
+              - /placeholder: name@example.com
+          - generic [ref=e38] [box=36,337,358,100]:
+            - text: Password
+            - generic [ref=e39] [box=36,369,358,40]:
+              - textbox "Password" [ref=e40] [box=36,369,358,40]:
+                - /placeholder: ••••••••
+              - button "Show password" [ref=e41] [cursor=pointer] [box=366,381,16,16]:
+                - img [ref=e42] [box=366,381,16,16]
+            - link "Forgot password?" [ref=e46] [cursor=pointer] [box=274,417,120,20]:
+              - /url: /en/forgot-password
+          - generic [ref=e47] [box=36,449,358,20]:
+            - checkbox "Remember me" [ref=e48] [cursor=pointer] [box=36,451,16,16]
+            - checkbox [box=20,451,16,16]
+            - generic [ref=e49] [cursor=pointer] [box=60,449,96,20]: Remember me
+          - button "Log In" [ref=e51] [cursor=pointer] [box=36,489,358,44]
+          - paragraph [ref=e52] [box=36,545,358,20]:
+            - text: Not a member yet?
+            - link "Start Membership" [ref=e53] [cursor=pointer] [box=220,546,120,17]:
+              - /url: /en/pricing
+  - region "Notifications alt+T" [box=0,932,430,0]
+  - alert [ref=e54] [box=-1,931,1,1]

@@ -1,7 +1,10 @@
 import type { MemberDashboardData } from '@interdomestik/domain-member';
 
+import type { ActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
+
 export type MemberDashboardViewProps = {
-  data: MemberDashboardData;
+  dataPromise: Promise<MemberDashboardData>;
+  supplementalDataPromise: Promise<readonly [ActiveSubscription | null, number]>;
   locale: string;
 };
 

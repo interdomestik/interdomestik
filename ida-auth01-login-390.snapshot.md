@@ -1,0 +1,31 @@
+- generic [active] [ref=e1] [box=0,0,390,881]:
+  - main [ref=e2] [box=0,0,390,881]:
+    - generic [ref=e3] [box=16,16,358,849]:
+      - region "Built for member assistance across Europe" [ref=e4] [box=16,16,358,264]:
+        - generic [ref=e5] [box=33,33,324,144]:
+          - paragraph [ref=e6] [box=33,33,324,16]: INTERDOMESTIK IDA
+          - heading "Built for member assistance across Europe" [level=1] [ref=e7] [box=33,57,324,60]
+          - paragraph [ref=e8] [box=33,129,324,48]: Cases, documents, and next steps stay organized in one secure portal.
+        - generic [ref=e55] [box=33,193,324,70]:
+          - generic [ref=e56] [box=33,193,93,66]: Secure account access
+          - generic [ref=e57] [box=134,193,97,66]: Case status in one place
+          - generic [ref=e58] [box=239,193,118,66]: Documents ready when needed
+      - region "Portal sign-in" [ref=e26] [box=16,296,358,569]:
+        - generic [ref=e59] [box=16,296,358,89]:
+          - paragraph [ref=e60] [box=16,296,358,16]: INTERDOMESTIK IDA
+          - heading "Sign in to your IDA portal" [level=2] [ref=e61] [box=16,316,358,25]
+          - paragraph [ref=e62] [box=16,345,358,40]: Use the email linked to your Interdomestik account to continue.
+        - generic [ref=e27] [box=16,401,358,464]:
+          - generic [ref=e28] [box=16,401,358,132]:
+            - link [ref=e29] [cursor=pointer] [box=36,417,318,32]:
+              - /url: /en
+            - heading "Welcome Back" [level=1] [ref=e32] [box=36,465,318,28]
+            - paragraph [ref=e33] [box=36,497,318,20]: Log in to your account to continue
+          - generic [ref=e35] [box=36,533,318,312]:
+            - generic [ref=e36] [box=36,533,318,72]
+            - generic [ref=e38] [box=36,617,318,100]
+            - generic [ref=e47] [box=36,729,318,20]
+            - button "Log In" [ref=e51] [cursor=pointer] [box=36,769,318,44]
+            - paragraph [ref=e52] [box=36,825,318,20]
+  - region "Notifications alt+T" [box=0,881,390,0]
+  - alert [ref=e54] [box=-1,880,1,1]

@@ -1,0 +1,31 @@
+- generic [active] [ref=e1] [box=0,0,430,932]:
+  - main [ref=e2] [box=0,0,430,932]:
+    - generic [ref=e3] [box=16,16,398,849]:
+      - region "Built for member assistance across Europe" [ref=e4] [box=16,16,398,264]:
+        - generic [ref=e5] [box=33,33,364,144]:
+          - paragraph [ref=e6] [box=33,33,364,16]: INTERDOMESTIK IDA
+          - heading "Built for member assistance across Europe" [level=1] [ref=e7] [box=33,57,364,60]
+          - paragraph [ref=e8] [box=33,129,364,48]: Cases, documents, and next steps stay organized in one secure portal.
+        - generic [ref=e55] [box=33,193,364,70]:
+          - generic [ref=e56] [box=33,193,105,66]: Secure account access
+          - generic [ref=e57] [box=146,193,109,66]: Case status in one place
+          - generic [ref=e58] [box=263,193,134,66]: Documents ready when needed
+      - region "Portal sign-in" [ref=e26] [box=16,296,398,569]:
+        - generic [ref=e59] [box=16,296,398,89]:
+          - paragraph [ref=e60] [box=16,296,398,16]: INTERDOMESTIK IDA
+          - heading "Sign in to your IDA portal" [level=2] [ref=e61] [box=16,316,398,25]
+          - paragraph [ref=e62] [box=16,345,398,40]: Use the email linked to your Interdomestik account to continue.
+        - generic [ref=e27] [box=16,401,398,464]:
+          - generic [ref=e28] [box=16,401,398,132]:
+            - link [ref=e29] [cursor=pointer] [box=36,417,358,32]:
+              - /url: /en
+            - heading "Welcome Back" [level=1] [ref=e32] [box=36,465,358,28]
+            - paragraph [ref=e33] [box=36,497,358,20]: Log in to your account to continue
+          - generic [ref=e35] [box=36,533,358,312]:
+            - generic [ref=e36] [box=36,533,358,72]
+            - generic [ref=e38] [box=36,617,358,100]
+            - generic [ref=e47] [box=36,729,358,20]
+            - button "Log In" [ref=e51] [cursor=pointer] [box=36,769,358,44]
+            - paragraph [ref=e52] [box=36,825,358,20]
+  - region "Notifications alt+T" [box=0,932,430,0]
+  - alert [ref=e54] [box=-1,931,1,1]
