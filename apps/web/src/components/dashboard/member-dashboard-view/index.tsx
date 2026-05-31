@@ -326,6 +326,10 @@ function MemberHero({
   isActive: boolean;
   t: DashboardTranslator;
 }) {
+  const ctaKey = hero.ctaKey ?? `${hero.copyKey}.cta`;
+  const ctaText = t(ctaKey, hero.translationValues);
+  const ariaLabel = hero.ariaLabelKey ? t(hero.ariaLabelKey, hero.translationValues) : undefined;
+
   return (
     <section
       aria-labelledby="dashboard-heading"
@@ -373,7 +377,7 @@ function MemberHero({
               {t('heroResolver.nextActionLabel')}
             </p>
             <p className="mt-1 text-sm font-extrabold leading-tight text-slate-950 md:text-lg">
-              {t(`${hero.copyKey}.cta`)}
+              {ctaText}
             </p>
           </div>
         </div>
@@ -385,11 +389,12 @@ function MemberHero({
           <a
             data-testid={hero.primaryTestId}
             href={hero.href}
+            aria-label={ariaLabel}
             className="flex min-h-14 w-full items-center justify-between rounded-[1.1rem] bg-[#0e5c2b] px-5 py-3 text-white shadow-lg shadow-emerald-900/20 transition-all hover:bg-[#09421f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-900 focus-visible:ring-offset-2 active:scale-[0.98] active:opacity-90 md:min-h-16 md:px-5 md:py-4"
           >
             <span className="flex min-w-0 items-center">
               <span className="truncate text-sm font-extrabold leading-tight md:text-base">
-                {t(`${hero.copyKey}.cta`)}
+                {ctaText}
               </span>
             </span>
             <ChevronRight className="h-4 w-4" aria-hidden="true" />

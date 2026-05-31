@@ -7,7 +7,8 @@ export type MemberHomeHeroState =
   | 'member_active_no_case'
   | 'member_active_has_open_case'
   | 'missing_documents'
-  | 'authorization_needed';
+  | 'authorization_needed'
+  | 'member_action';
 
 export type VisitorHeroVariant = Extract<
   MemberHomeHeroState,
@@ -15,10 +16,17 @@ export type VisitorHeroVariant = Extract<
 >;
 
 export type MemberHomeHeroModel = {
+  ariaLabelKey?: `heroResolver.states.member_action.actions.${GenericMemberActionType}.ariaLabel`;
   copyKey: `heroResolver.states.${MemberHomeHeroState}`;
+  ctaKey?:
+    | `heroResolver.states.${MemberHomeHeroState}.cta`
+    | `heroResolver.states.member_action.actions.${GenericMemberActionType}.cta`;
   href: string;
   primaryTestId: string;
   state: MemberHomeHeroState;
+  translationValues?: {
+    claimReference: string;
+  };
 };
 
 export type ClaimActionKind =
@@ -36,8 +44,33 @@ type ResolveMemberHomeHeroParams = {
 
 const AUTHORIZATION_STAGE_PATTERN = /authorization|authorisation|autoriz/i;
 
+type MemberAction = NonNullable<DashboardClaim['nextMemberAction']>;
+type GenericMemberActionType = Exclude<MemberAction['actionType'], 'upload_document'>;
+
+const MEMBER_ACTION_CTA_KEYS: Record<
+  GenericMemberActionType,
+  `heroResolver.states.member_action.actions.${GenericMemberActionType}.cta`
+> = {
+  provide_info: 'heroResolver.states.member_action.actions.provide_info.cta',
+  review_offer: 'heroResolver.states.member_action.actions.review_offer.cta',
+};
+
+const MEMBER_ACTION_ARIA_LABEL_KEYS: Record<
+  GenericMemberActionType,
+  `heroResolver.states.member_action.actions.${GenericMemberActionType}.ariaLabel`
+> = {
+  provide_info: 'heroResolver.states.member_action.actions.provide_info.ariaLabel',
+  review_offer: 'heroResolver.states.member_action.actions.review_offer.ariaLabel',
+};
+
 export function isAuthorizationStage(stageKey: string): boolean {
   return AUTHORIZATION_STAGE_PATTERN.test(stageKey);
+}
+
+function isGenericMemberActionType(
+  actionType: MemberAction['actionType']
+): actionType is GenericMemberActionType {
+  return actionType === 'provide_info' || actionType === 'review_offer';
 }
 
 export function resolveClaimActionKind(activeClaim: DashboardClaim): ClaimActionKind {
@@ -102,6 +135,24 @@ export function resolveMemberHomeHero({
       primaryTestId: 'hero-cta-sign-authorization',
       state: 'authorization_needed',
     };
+  }
+
+  if (actionKind === 'member_action' && activeClaim.nextMemberAction) {
+    const actionType = activeClaim.nextMemberAction.actionType;
+
+    if (isGenericMemberActionType(actionType)) {
+      return {
+        ariaLabelKey: MEMBER_ACTION_ARIA_LABEL_KEYS[actionType],
+        copyKey: 'heroResolver.states.member_action',
+        ctaKey: MEMBER_ACTION_CTA_KEYS[actionType],
+        href: activeClaim.nextMemberAction.href,
+        primaryTestId: 'hero-cta-member-action',
+        state: 'member_action',
+        translationValues: {
+          claimReference: activeClaim.claimNumber ?? activeClaim.id,
+        },
+      };
+    }
   }
 
   return {

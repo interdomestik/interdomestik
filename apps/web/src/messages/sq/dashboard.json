@@ -229,6 +229,25 @@
             "valueLabel": "Statusi",
             "value": "Duhet nënshkrim",
             "cta": "Shiko autorizimin"
+          },
+          "member_action": {
+            "kicker": "Kërkohet veprim",
+            "title": "Hapi tjetër i rastit është gati.",
+            "highlight": "Shikoje që rasti të vazhdojë.",
+            "body": "Dosja e rastit ka një detyrë për anëtarin. Hap hapin tjetër dhe jep përgjigjen e kërkuar.",
+            "valueLabel": "Statusi",
+            "value": "Kërkohet veprim nga anëtari",
+            "cta": "Vazhdo hapin tjetër",
+            "actions": {
+              "review_offer": {
+                "cta": "Shiko ofertën",
+                "ariaLabel": "Shiko ofertën për rastin {claimReference}"
+              },
+              "provide_info": {
+                "cta": "Jep informacion",
+                "ariaLabel": "Jep informacion për rastin {claimReference}"
+              }
+            }
           }
         }
       },
