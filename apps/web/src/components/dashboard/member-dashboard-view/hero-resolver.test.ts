@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   isAuthorizationStage,
+  resolveClaimActionKind,
   resolveMemberHomeHero,
   type VisitorHeroVariant,
 } from './hero-resolver';
@@ -135,6 +136,50 @@ describe('resolveMemberHomeHero', () => {
       primaryTestId: 'hero-cta-sign-authorization',
       state: 'authorization_needed',
     });
+  });
+
+  it('keeps upload documents before authorization and generic member actions', () => {
+    expect(
+      resolveClaimActionKind(
+        makeClaim({
+          nextMemberAction: {
+            actionType: 'upload_document',
+            href: '/member/claims/claim-docs/documents',
+            label: 'Upload documents',
+          },
+          requiresMemberAction: true,
+          stageKey: 'authorization_needed',
+        })
+      )
+    ).toBe('missing_documents');
+
+    expect(
+      resolveClaimActionKind(
+        makeClaim({
+          nextMemberAction: {
+            actionType: 'provide_info',
+            href: '/member/claims/claim-auth/documents/authorization.pdf',
+            label: 'Review authorization file',
+          },
+          requiresMemberAction: true,
+          stageKey: 'authorization_needed',
+        })
+      )
+    ).toBe('authorization_needed');
+
+    expect(
+      resolveClaimActionKind(
+        makeClaim({
+          nextMemberAction: {
+            actionType: 'provide_info',
+            href: '/member/claims/claim-action',
+            label: 'Review request',
+          },
+          requiresMemberAction: true,
+          stageKey: 'verification',
+        })
+      )
+    ).toBe('member_action');
   });
 
   it.each(['authorization_needed', 'authorisation_required', 'autorizim_pending'])(

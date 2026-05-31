@@ -38,6 +38,8 @@ type DashboardMessages =
   | typeof sqMessages
   | typeof srMessages;
 
+type DashboardClaim = MemberDashboardData['claims'][number];
+
 let currentMessages: DashboardMessages = mkMessages;
 
 vi.mock('next/navigation', () => ({
@@ -118,6 +120,20 @@ function makeData(overrides?: Partial<MemberDashboardData>): MemberDashboardData
   };
 }
 
+function makeClaim(overrides?: Partial<DashboardClaim>): DashboardClaim {
+  return {
+    claimNumber: 'CLM-200',
+    id: 'claim-action',
+    requiresMemberAction: false,
+    stageKey: 'verification',
+    stageLabel: 'Verification',
+    status: 'verification',
+    submittedAt: '2026-04-01T00:00:00.000Z',
+    updatedAt: '2026-04-20T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
 function translate(namespace?: string) {
   return (key: string, values?: Record<string, string | number | boolean | Date | null>) => {
     const path = namespace ? `${namespace}.${key}` : key;
@@ -156,10 +172,9 @@ function expectNoMemberConversionHeroCta() {
   expect(screen.queryByTestId('hero-cta-visitor_general')).not.toBeInTheDocument();
   expect(screen.queryByTestId('hero-cta-visitor_broker_tpl')).not.toBeInTheDocument();
   expect(screen.queryByTestId('hero-cta-visitor_diaspora')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('next-step-activate-membership')).not.toBeInTheDocument();
   expect(
-    screen.queryByRole('link', {
-      name: /activate assistance|активирај асистенција|aktiviraj asistenciju|aktivizo asistencën/i,
-    })
+    screen.getByTestId('member-primary-actions').querySelector('a[href$="/member/membership"]')
   ).not.toBeInTheDocument();
 }
 
@@ -299,21 +314,14 @@ describe('MemberDashboardView assistance dashboard', () => {
         makeData({
           activeClaimId: 'claim-action',
           claims: [
-            {
-              claimNumber: 'CLM-200',
-              id: 'claim-action',
+            makeClaim({
               nextMemberAction: {
                 actionType: 'upload_document',
                 href: '/member/claims/claim-action/documents',
                 label: 'Upload evidence',
               },
               requiresMemberAction: true,
-              stageKey: 'verification',
-              stageLabel: 'Verification',
-              status: 'verification',
-              submittedAt: '2026-04-01T00:00:00.000Z',
-              updatedAt: '2026-04-20T00:00:00.000Z',
-            },
+            }),
           ],
         })
       ),
@@ -353,26 +361,30 @@ describe('MemberDashboardView assistance dashboard', () => {
     mockActiveMembership();
 
     const tree = await MemberDashboardView({
-      data: makeData({
-        activeClaimId: 'claim-auth',
-        claims: [
-          {
-            claimNumber: 'CLM-300',
-            id: 'claim-auth',
-            nextMemberAction: {
-              actionType: 'provide_info',
-              href: '/member/claims/claim-auth/documents/authorization.pdf',
-              label: 'Review authorization file',
-            },
-            requiresMemberAction: true,
-            stageKey: 'authorization_needed',
-            stageLabel: 'Authorization needed',
-            status: 'verification',
-            submittedAt: '2026-04-01T00:00:00.000Z',
-            updatedAt: '2026-04-22T00:00:00.000Z',
-          },
-        ],
-      }),
+      dataPromise: Promise.resolve(
+        makeData({
+          activeClaimId: 'claim-auth',
+          claims: [
+            makeClaim({
+              claimNumber: 'CLM-300',
+              id: 'claim-auth',
+              nextMemberAction: {
+                actionType: 'provide_info',
+                href: '/member/claims/claim-auth/documents/authorization.pdf',
+                label: 'Review authorization file',
+              },
+              requiresMemberAction: true,
+              stageKey: 'authorization_needed',
+              stageLabel: 'Authorization needed',
+              updatedAt: '2026-04-22T00:00:00.000Z',
+            }),
+          ],
+        })
+      ),
+      supplementalDataPromise: Promise.resolve([
+        await hoisted.getActiveSubscriptionMock(),
+        hoisted.documentCount,
+      ]),
       locale: 'en',
     });
     render(tree);
@@ -404,26 +416,16 @@ describe('MemberDashboardView assistance dashboard', () => {
         makeData({
           activeClaimId: 'claim-action',
           claims: [
-            {
-              claimNumber: 'CLM-200',
-              id: 'claim-action',
-              requiresMemberAction: false,
-              stageKey: 'verification',
-              stageLabel: 'Verification',
-              status: 'verification',
-              submittedAt: '2026-04-01T00:00:00.000Z',
-              updatedAt: '2026-04-20T00:00:00.000Z',
-            },
-            {
+            makeClaim(),
+            makeClaim({
               claimNumber: 'CLM-201',
               id: 'claim-secondary',
-              requiresMemberAction: false,
               stageKey: 'evaluation',
               stageLabel: 'Evaluation',
               status: 'evaluation',
               submittedAt: '2026-04-02T00:00:00.000Z',
               updatedAt: '2026-04-21T00:00:00.000Z',
-            },
+            }),
           ],
         })
       ),

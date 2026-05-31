@@ -18,7 +18,7 @@ import { getCachedClaimDocumentCount } from './data';
 import { DocumentVaultSummary } from './document-vault-summary';
 import { getRoleRedirect } from './helpers';
 import {
-  isAuthorizationStage,
+  resolveClaimActionKind,
   resolveMemberHomeHero,
   type MemberHomeHeroModel,
 } from './hero-resolver';
@@ -392,7 +392,7 @@ function MemberHero({
                 {t(`${hero.copyKey}.cta`)}
               </span>
             </span>
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </a>
         </div>
       </div>
@@ -429,20 +429,30 @@ function getNextStep(params: {
     };
   }
 
-  if (
-    activeClaim?.requiresMemberAction &&
-    activeClaim.nextMemberAction?.actionType === 'upload_document'
-  ) {
+  if (!activeClaim) {
+    return {
+      body: t('nextStep.history.body'),
+      href: `/${locale}/member/claims`,
+      label: t('nextStep.history.cta'),
+      testId: 'next-step-history',
+      title: t('nextStep.history.title'),
+    };
+  }
+
+  const actionKind = resolveClaimActionKind(activeClaim);
+
+  if (actionKind === 'missing_documents') {
+    const uploadAction = activeClaim.nextMemberAction;
     return {
       body: t('nextStep.missingDocs.body'),
-      href: activeClaim.nextMemberAction.href,
-      label: activeClaim.nextMemberAction.label,
+      href: uploadAction?.href ?? `/${locale}/member/claims/${activeClaim.id}`,
+      label: uploadAction?.label ?? t('nextStep.missingDocs.cta'),
       testId: 'next-step-missingDocs',
       title: t('nextStep.missingDocs.title'),
     };
   }
 
-  if (activeClaim && isAuthorizationStage(activeClaim.stageKey)) {
+  if (actionKind === 'authorization_needed') {
     return {
       body: t('nextStep.authorization.body'),
       href: `/${locale}/member/claims/${activeClaim.id}`,
@@ -452,7 +462,7 @@ function getNextStep(params: {
     };
   }
 
-  if (activeClaim?.requiresMemberAction && activeClaim.nextMemberAction) {
+  if (actionKind === 'member_action' && activeClaim.nextMemberAction) {
     return {
       body: t('nextStep.memberAction.body'),
       href: activeClaim.nextMemberAction.href,
@@ -462,21 +472,11 @@ function getNextStep(params: {
     };
   }
 
-  if (activeClaim) {
-    return {
-      body: t('nextStep.review.body'),
-      href: `/${locale}/member/claims/${activeClaim.id}`,
-      label: t('nextStep.review.cta'),
-      testId: 'next-step-review',
-      title: t('nextStep.review.title'),
-    };
-  }
-
   return {
-    body: t('nextStep.history.body'),
-    href: `/${locale}/member/claims`,
-    label: t('nextStep.history.cta'),
-    testId: 'next-step-history',
-    title: t('nextStep.history.title'),
+    body: t('nextStep.review.body'),
+    href: `/${locale}/member/claims/${activeClaim.id}`,
+    label: t('nextStep.review.cta'),
+    testId: 'next-step-review',
+    title: t('nextStep.review.title'),
   };
 }
