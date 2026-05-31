@@ -9,6 +9,8 @@ type Operation = {
   table: string;
 };
 
+type CleanupDb = Parameters<typeof cleanupByPrefixes>[0];
+
 function tableName(table: unknown): string {
   switch (table) {
     case schema.aiRuns:
@@ -62,8 +64,8 @@ function tableName(table: unknown): string {
   }
 }
 
-function createFakeDb(operations: Operation[]) {
-  return {
+function createFakeDb(operations: Operation[]): CleanupDb {
+  const fakeDb = {
     query: {
       claims: {
         findMany: async () => [],
@@ -116,6 +118,8 @@ function createFakeDb(operations: Operation[]) {
       };
     },
   };
+
+  return fakeDb as unknown as CleanupDb;
 }
 
 test('cleanupByPrefixes deletes AI provenance rows before documents uploaded by seeded users', async () => {
