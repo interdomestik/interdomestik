@@ -162,6 +162,10 @@ function isKnownFrontDoorHost(host: string): boolean {
   );
 }
 
+function hasKnownDirectFrontDoorHost(headers: Headers): boolean {
+  return isKnownFrontDoorHost(getDirectRequestHost(headers));
+}
+
 function hasUnambiguousFrontDoorHost(headers: Headers): boolean {
   const host = normalizeHost(getDirectRequestHost(headers));
   if (!isKnownFrontDoorHost(host)) return false;
@@ -193,7 +197,7 @@ export function resolveTenantIdForPasswordResetAudit(
     // ignore malformed URL and fall through to null
   }
 
-  if (hasUnambiguousFrontDoorHost(headers)) {
+  if (hasKnownDirectFrontDoorHost(headers)) {
     return resolveFrontDoorTenantHint(headers);
   }
 
@@ -218,7 +222,7 @@ export function isEmailSignInUrl(url: string): boolean {
 }
 
 export function resolveTenantIdForEmailSignIn(headers: Headers): TenantId | null {
-  if (hasUnambiguousFrontDoorHost(headers)) {
+  if (hasKnownDirectFrontDoorHost(headers)) {
     return resolveFrontDoorTenantHint(headers);
   }
 

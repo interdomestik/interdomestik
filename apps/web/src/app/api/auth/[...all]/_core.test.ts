@@ -265,6 +265,22 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
     ).toBeNull();
   });
 
+  it('fails closed on ida front door when forwarded host conflicts', () => {
+    setProductionBuildEnv();
+    const headers = new Headers({
+      host: 'ida.127.0.0.1.nip.io:3000',
+      'x-forwarded-host': 'ks.localhost:3000',
+      'x-tenant-id': 'tenant_mk',
+    });
+
+    expect(
+      resolveTenantIdForPasswordResetAudit(
+        'https://ida.127.0.0.1.nip.io:3000/api/auth/request-password-reset',
+        headers
+      )
+    ).toBeNull();
+  });
+
   it('does not activate front-door context from spoofed forwarded host in production builds', () => {
     setProductionBuildEnv();
     const headers = new Headers({
@@ -382,6 +398,15 @@ describe('resolveTenantIdForEmailSignIn', () => {
     {
       name: 'returns null on the ida front door when no tenant context is present',
       headers: { host: 'ida.127.0.0.1.nip.io:3000' },
+      expected: null,
+    },
+    {
+      name: 'fails closed on ida front door when forwarded host conflicts',
+      headers: {
+        host: 'ida.127.0.0.1.nip.io:3000',
+        'x-forwarded-host': 'ks.localhost:3000',
+        'x-tenant-id': 'tenant_mk',
+      },
       expected: null,
     },
     {
