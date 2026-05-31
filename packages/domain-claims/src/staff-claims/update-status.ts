@@ -277,9 +277,9 @@ type ClaimsTransaction = {
 };
 
 async function assignClaimToActingStaffIfUnassigned(params: {
-  claimId: string;
   currentStaffId: string | null;
   session: ClaimsSession;
+  staffScopeWhere: StaffScopeWhere;
   tenantId: string;
   tx: ClaimsTransaction;
 }) {
@@ -288,6 +288,7 @@ async function assignClaimToActingStaffIfUnassigned(params: {
   }
 
   const now = new Date();
+  // db-access-guard: tenant-scoped -- reason: staffScopeWhere includes tenant, claim, branch, and assignment scope
   await params.tx
     .update(claims)
     .set({
@@ -295,7 +296,7 @@ async function assignClaimToActingStaffIfUnassigned(params: {
       assignedAt: sql`coalesce(${claims.assignedAt}, ${now})`,
       assignedById: sql`coalesce(${claims.assignedById}, ${params.session.user.id})`,
     })
-    .where(withTenant(params.tenantId, claims.tenantId, eq(claims.id, params.claimId)));
+    .where(params.staffScopeWhere);
 }
 
 async function logClaimStatusAudit(params: {
@@ -434,9 +435,9 @@ async function finalizeClaimStatusChange(params: {
     }
 
     await assignClaimToActingStaffIfUnassigned({
-      claimId: rest.claimId,
       currentStaffId: rest.currentStaffId,
       session: rest.session,
+      staffScopeWhere: rest.staffScopeWhere,
       tenantId: rest.tenantId,
       tx,
     });
