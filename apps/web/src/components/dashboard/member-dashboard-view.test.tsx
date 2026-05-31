@@ -32,7 +32,15 @@ const hoisted = vi.hoisted(() => ({
   ),
 }));
 
-let currentMessages: typeof mkMessages = mkMessages;
+type DashboardMessages =
+  | typeof enMessages
+  | typeof mkMessages
+  | typeof sqMessages
+  | typeof srMessages;
+
+type DashboardClaim = MemberDashboardData['claims'][number];
+
+let currentMessages: DashboardMessages = mkMessages;
 
 vi.mock('next/navigation', () => ({
   redirect: hoisted.redirectMock,
@@ -112,6 +120,20 @@ function makeData(overrides?: Partial<MemberDashboardData>): MemberDashboardData
   };
 }
 
+function makeClaim(overrides?: Partial<DashboardClaim>): DashboardClaim {
+  return {
+    claimNumber: 'CLM-200',
+    id: 'claim-action',
+    requiresMemberAction: false,
+    stageKey: 'verification',
+    stageLabel: 'Verification',
+    status: 'verification',
+    submittedAt: '2026-04-01T00:00:00.000Z',
+    updatedAt: '2026-04-20T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
 function translate(namespace?: string) {
   return (key: string, values?: Record<string, string | number | boolean | Date | null>) => {
     const path = namespace ? `${namespace}.${key}` : key;
@@ -144,6 +166,16 @@ function mockActiveMembership() {
   };
   hoisted.getActiveSubscriptionMock.mockResolvedValue(subscription);
   hoisted.subscriptionFindManyMock.mockResolvedValue([subscription]);
+}
+
+function expectNoMemberConversionHeroCta() {
+  expect(screen.queryByTestId('hero-cta-visitor_general')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('hero-cta-visitor_broker_tpl')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('hero-cta-visitor_diaspora')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('next-step-activate-membership')).not.toBeInTheDocument();
+  expect(
+    screen.getByTestId('member-primary-actions').querySelector('a[href$="/member/membership"]')
+  ).not.toBeInTheDocument();
 }
 
 describe('MemberDashboardView assistance dashboard', () => {
@@ -282,21 +314,14 @@ describe('MemberDashboardView assistance dashboard', () => {
         makeData({
           activeClaimId: 'claim-action',
           claims: [
-            {
-              claimNumber: 'CLM-200',
-              id: 'claim-action',
+            makeClaim({
               nextMemberAction: {
                 actionType: 'upload_document',
                 href: '/member/claims/claim-action/documents',
                 label: 'Upload evidence',
               },
               requiresMemberAction: true,
-              stageKey: 'verification',
-              stageLabel: 'Verification',
-              status: 'verification',
-              submittedAt: '2026-04-01T00:00:00.000Z',
-              updatedAt: '2026-04-20T00:00:00.000Z',
-            },
+            }),
           ],
         })
       ),
@@ -320,10 +345,67 @@ describe('MemberDashboardView assistance dashboard', () => {
       'href',
       '/member/claims/claim-action/documents'
     );
+    expect(screen.getByRole('link', { name: 'Отвори документи' })).toHaveAttribute(
+      'href',
+      '/member/claims/claim-action/documents'
+    );
+    expectNoMemberConversionHeroCta();
     const activeCase = screen.getByTestId('active-case-card');
     expect(within(activeCase).getByText(/CLM-200/)).toBeInTheDocument();
     expect(within(activeCase).getByText(/Verification/)).toBeInTheDocument();
     expect(within(activeCase).getByText('Upload evidence')).toBeInTheDocument();
+  });
+
+  it('renders authorization-needed hero, interactive CTA, and no member conversion CTA', async () => {
+    currentMessages = enMessages;
+    mockActiveMembership();
+
+    const tree = await MemberDashboardView({
+      dataPromise: Promise.resolve(
+        makeData({
+          activeClaimId: 'claim-auth',
+          claims: [
+            makeClaim({
+              claimNumber: 'CLM-300',
+              id: 'claim-auth',
+              nextMemberAction: {
+                actionType: 'provide_info',
+                href: '/member/claims/claim-auth/documents/authorization.pdf',
+                label: 'Review authorization file',
+              },
+              requiresMemberAction: true,
+              stageKey: 'authorization_needed',
+              stageLabel: 'Authorization needed',
+              updatedAt: '2026-04-22T00:00:00.000Z',
+            }),
+          ],
+        })
+      ),
+      supplementalDataPromise: Promise.resolve([
+        await hoisted.getActiveSubscriptionMock(),
+        hoisted.documentCount,
+      ]),
+      locale: 'en',
+    });
+    render(tree);
+
+    expect(screen.getByTestId('member-welcome-status')).toHaveAttribute(
+      'data-hero-state',
+      'authorization_needed'
+    );
+    expect(screen.getByTestId('member-hero-value-row')).toHaveTextContent('Signature needed');
+    expect(screen.getByTestId('hero-cta-sign-authorization')).toHaveAttribute(
+      'href',
+      '/en/member/claims/claim-auth'
+    );
+    expect(screen.getByTestId('hero-cta-sign-authorization')).toHaveAccessibleName(
+      'Review authorization'
+    );
+    expect(screen.getByTestId('next-step-authorization')).toHaveAttribute(
+      'href',
+      '/en/member/claims/claim-auth'
+    );
+    expectNoMemberConversionHeroCta();
   });
 
   it('shows only one priority case on the dashboard home', async () => {
@@ -334,26 +416,16 @@ describe('MemberDashboardView assistance dashboard', () => {
         makeData({
           activeClaimId: 'claim-action',
           claims: [
-            {
-              claimNumber: 'CLM-200',
-              id: 'claim-action',
-              requiresMemberAction: false,
-              stageKey: 'verification',
-              stageLabel: 'Verification',
-              status: 'verification',
-              submittedAt: '2026-04-01T00:00:00.000Z',
-              updatedAt: '2026-04-20T00:00:00.000Z',
-            },
-            {
+            makeClaim(),
+            makeClaim({
               claimNumber: 'CLM-201',
               id: 'claim-secondary',
-              requiresMemberAction: false,
               stageKey: 'evaluation',
               stageLabel: 'Evaluation',
               status: 'evaluation',
               submittedAt: '2026-04-02T00:00:00.000Z',
               updatedAt: '2026-04-21T00:00:00.000Z',
-            },
+            }),
           ],
         })
       ),

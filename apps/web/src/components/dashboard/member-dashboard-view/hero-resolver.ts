@@ -21,6 +21,12 @@ export type MemberHomeHeroModel = {
   state: MemberHomeHeroState;
 };
 
+export type ClaimActionKind =
+  | 'missing_documents'
+  | 'authorization_needed'
+  | 'member_action'
+  | 'open_case';
+
 type ResolveMemberHomeHeroParams = {
   activeClaim: DashboardClaim | null;
   isActive: boolean;
@@ -29,6 +35,29 @@ type ResolveMemberHomeHeroParams = {
 };
 
 const AUTHORIZATION_STAGE_PATTERN = /authorization|authorisation|autoriz/i;
+
+export function isAuthorizationStage(stageKey: string): boolean {
+  return AUTHORIZATION_STAGE_PATTERN.test(stageKey);
+}
+
+export function resolveClaimActionKind(activeClaim: DashboardClaim): ClaimActionKind {
+  if (
+    activeClaim.requiresMemberAction &&
+    activeClaim.nextMemberAction?.actionType === 'upload_document'
+  ) {
+    return 'missing_documents';
+  }
+
+  if (isAuthorizationStage(activeClaim.stageKey)) {
+    return 'authorization_needed';
+  }
+
+  if (activeClaim.requiresMemberAction && activeClaim.nextMemberAction) {
+    return 'member_action';
+  }
+
+  return 'open_case';
+}
 
 export function resolveMemberHomeHero({
   activeClaim,
@@ -54,19 +83,19 @@ export function resolveMemberHomeHero({
     };
   }
 
-  if (
-    activeClaim.requiresMemberAction &&
-    activeClaim.nextMemberAction?.actionType === 'upload_document'
-  ) {
+  const actionKind = resolveClaimActionKind(activeClaim);
+
+  if (actionKind === 'missing_documents') {
+    const uploadAction = activeClaim.nextMemberAction;
     return {
       copyKey: 'heroResolver.states.missing_documents',
-      href: activeClaim.nextMemberAction.href,
+      href: uploadAction?.href ?? `/${locale}/member/claims/${activeClaim.id}`,
       primaryTestId: 'hero-cta-upload-documents',
       state: 'missing_documents',
     };
   }
 
-  if (AUTHORIZATION_STAGE_PATTERN.test(activeClaim.stageKey)) {
+  if (actionKind === 'authorization_needed') {
     return {
       copyKey: 'heroResolver.states.authorization_needed',
       href: `/${locale}/member/claims/${activeClaim.id}`,

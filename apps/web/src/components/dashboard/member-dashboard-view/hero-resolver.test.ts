@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveMemberHomeHero, type VisitorHeroVariant } from './hero-resolver';
+import {
+  isAuthorizationStage,
+  resolveClaimActionKind,
+  resolveMemberHomeHero,
+  type VisitorHeroVariant,
+} from './hero-resolver';
 import type { DashboardClaim } from './types';
 
 function makeClaim(overrides?: Partial<DashboardClaim>): DashboardClaim {
@@ -105,6 +110,108 @@ describe('resolveMemberHomeHero', () => {
       href: '/sr/member/claims/claim-auth',
       primaryTestId: 'hero-cta-sign-authorization',
       state: 'authorization_needed',
+    });
+  });
+
+  it('resolves authorization stage before generic non-upload member action', () => {
+    expect(
+      resolveMemberHomeHero({
+        activeClaim: makeClaim({
+          id: 'claim-auth-action',
+          nextMemberAction: {
+            actionType: 'provide_info',
+            href: '/member/claims/claim-auth-action/documents/authorization.pdf',
+            label: 'Review authorization file',
+          },
+          requiresMemberAction: true,
+          stageKey: 'authorization_needed',
+          stageLabel: 'Authorization needed',
+        }),
+        isActive: true,
+        locale: 'en',
+      })
+    ).toMatchObject({
+      copyKey: 'heroResolver.states.authorization_needed',
+      href: '/en/member/claims/claim-auth-action',
+      primaryTestId: 'hero-cta-sign-authorization',
+      state: 'authorization_needed',
+    });
+  });
+
+  it('keeps upload documents before authorization and generic member actions', () => {
+    expect(
+      resolveClaimActionKind(
+        makeClaim({
+          nextMemberAction: {
+            actionType: 'upload_document',
+            href: '/member/claims/claim-docs/documents',
+            label: 'Upload documents',
+          },
+          requiresMemberAction: true,
+          stageKey: 'authorization_needed',
+        })
+      )
+    ).toBe('missing_documents');
+
+    expect(
+      resolveClaimActionKind(
+        makeClaim({
+          nextMemberAction: {
+            actionType: 'provide_info',
+            href: '/member/claims/claim-auth/documents/authorization.pdf',
+            label: 'Review authorization file',
+          },
+          requiresMemberAction: true,
+          stageKey: 'authorization_needed',
+        })
+      )
+    ).toBe('authorization_needed');
+
+    expect(
+      resolveClaimActionKind(
+        makeClaim({
+          nextMemberAction: {
+            actionType: 'provide_info',
+            href: '/member/claims/claim-action',
+            label: 'Review request',
+          },
+          requiresMemberAction: true,
+          stageKey: 'verification',
+        })
+      )
+    ).toBe('member_action');
+  });
+
+  it.each(['authorization_needed', 'authorisation_required', 'autorizim_pending'])(
+    'treats %s as an authorization stage key',
+    stageKey => {
+      expect(isAuthorizationStage(stageKey)).toBe(true);
+    }
+  );
+
+  it('does not infer authorization from labels, hrefs, or filenames outside stage keys', () => {
+    const hero = resolveMemberHomeHero({
+      activeClaim: makeClaim({
+        claimNumber: 'AUTH-FILE-100',
+        id: 'claim-review',
+        nextMemberAction: {
+          actionType: 'provide_info',
+          href: '/member/claims/claim-review/documents/authorization.pdf',
+          label: 'Review authorization file',
+        },
+        requiresMemberAction: true,
+        stageKey: 'verification',
+        stageLabel: 'Authorization needed',
+      }),
+      isActive: true,
+      locale: 'en',
+    });
+
+    expect(hero).toMatchObject({
+      copyKey: 'heroResolver.states.member_active_has_open_case',
+      href: '/en/member/claims/claim-review',
+      primaryTestId: 'hero-cta-open-active-case',
+      state: 'member_active_has_open_case',
     });
   });
 });
