@@ -632,6 +632,32 @@ mobile tap-target/copy-density attention if UI copy or classes change, and block
 canonical-route changes, auth/session/tenant behavior changes, billing/schema/backend work, Stripe,
 broad dashboard redesign, README, AGENTS, and architecture-doc changes.
 
+`IDA-MH02 Member-Action Hero Render Contract` is complete through PR `#870`, squash merge commit
+`101a0bf67fbb8264ba1836e737e12be0a47ac0fe`. The implementation proved the
+`authorization_needed` and `missing_documents` dashboard hero render contracts, centralized
+member-action priority in `resolveClaimActionKind`, preserved upload-document and authorization
+precedence over generic member actions, made active-member anti-conversion proof explicit, removed a
+brittle multi-locale regex from dashboard tests, and kept the canonical `/member` route, dashboard
+markers, proxy, auth, tenancy, billing, schema, backend, Paddle, Stripe posture, README,
+AGENTS.md, and architecture-doc boundaries unchanged. Remote CI, Pilot Gate, full PR E2E, Sonar,
+CodeQL, gitleaks, pnpm-audit, Vercel, and PR finalizer checks were green before merge.
+
+`IDA-DG04 Post-MH02 Closeout And Generic Member-Action Hero Design Gate` is complete in this
+program/tracker record. The gate closes `IDA-MH02` and promotes exactly one next implementation
+slice, `IDA-MH03 Generic Member-Action Hero State`, scoped to making already-classified generic
+`member_action` claims first-class in the member-home hero. The promoted slice may add a generic
+hero state, localized administrative copy, typed action-specific CTA labels for `review_offer` and
+`provide_info`, contextual accessible CTA text, a stable primary CTA test id, and focused
+resolver/dashboard render tests while preserving upload-document and authorization priority,
+`NextStepCard` behavior, canonical routes, proxy, auth, tenancy, billing, schema, backend, Paddle,
+Stripe, README, AGENTS, and architecture-doc boundaries. The implementation must add
+`member_action` to the hero state union, cover every `MemberHero` sub-key consumed by the component,
+update the authorization-inference negative resolver test to expect generic `member_action` when a
+valid generic `nextMemberAction` is present, and prove active-member anti-conversion plus i18n and
+forbidden-claim safety. The gate includes Sonnet 4.6 review through the Copilot fallback after a
+hung Claude CLI attempt and Gemini Pro 3.1 preview product/mobile/accessibility review after
+`gemini-3.1-pro` returned `ModelNotFoundError`.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
