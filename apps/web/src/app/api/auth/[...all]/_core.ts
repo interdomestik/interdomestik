@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import {
+  coerceTenantId,
   resolveTenantIdFromSources,
   TENANT_COOKIE_NAME,
   TENANT_HEADER_NAME,
@@ -10,6 +11,11 @@ import {
 export type AuthMethod = 'GET' | 'POST';
 
 const EMAIL_SIGN_IN_PATH_SUFFIXES = ['/api/auth/sign-in/email', '/api/auth/sign-in/email-otp'];
+const DEFAULT_FRONT_DOOR_HOSTS = new Set([
+  'ida.interdomestik.com',
+  'ida.localhost',
+  'ida.127.0.0.1.nip.io',
+]);
 
 function getAuthPathname(url: string): string | null {
   try {
@@ -111,6 +117,49 @@ function getRequestHost(headers: Headers): string {
   return headers.get('x-forwarded-host') ?? headers.get('host') ?? '';
 }
 
+function getDirectRequestHost(headers: Headers): string {
+  return headers.get('host') ?? '';
+}
+
+function normalizeHost(host: string | null | undefined): string {
+  const raw = host?.split(',')[0]?.trim() ?? '';
+  return raw
+    .replace(/^https?:\/\//iu, '')
+    .replace(/\/.*$/u, '')
+    .replace(/:\d+$/, '')
+    .toLowerCase()
+    .replace(/\.$/, '');
+}
+
+function isKnownFrontDoorHost(host: string): boolean {
+  const normalized = normalizeHost(host);
+  const configuredIdaHost = normalizeHost(process.env.IDA_HOST);
+
+  return (
+    DEFAULT_FRONT_DOOR_HOSTS.has(normalized) ||
+    (configuredIdaHost.length > 0 && normalized === configuredIdaHost)
+  );
+}
+
+function hasUnambiguousFrontDoorHost(headers: Headers): boolean {
+  const host = normalizeHost(getDirectRequestHost(headers));
+  if (!isKnownFrontDoorHost(host)) return false;
+
+  const forwardedHost = headers.get('x-forwarded-host');
+  if (!forwardedHost) return true;
+
+  return normalizeHost(forwardedHost) === host;
+}
+
+function resolveFrontDoorTenantHint(headers: Headers): TenantId | null {
+  if (!hasUnambiguousFrontDoorHost(headers)) return null;
+
+  return (
+    coerceTenantId(headers.get(TENANT_HEADER_NAME)) ??
+    coerceTenantId(parseCookieValue(headers.get('cookie'), TENANT_COOKIE_NAME))
+  );
+}
+
 export function resolveTenantIdForPasswordResetAudit(
   url: string,
   headers: Headers
@@ -121,6 +170,10 @@ export function resolveTenantIdForPasswordResetAudit(
     queryTenantId = new URL(url).searchParams.get('tenantId');
   } catch {
     // ignore malformed URL and fall through to null
+  }
+
+  if (hasUnambiguousFrontDoorHost(headers)) {
+    return resolveFrontDoorTenantHint(headers);
   }
 
   return resolveTenantIdFromSources(
@@ -144,6 +197,10 @@ export function isEmailSignInUrl(url: string): boolean {
 }
 
 export function resolveTenantIdForEmailSignIn(headers: Headers): TenantId | null {
+  if (hasUnambiguousFrontDoorHost(headers)) {
+    return resolveFrontDoorTenantHint(headers);
+  }
+
   return resolveTenantIdFromSources(
     {
       host: getRequestHost(headers),

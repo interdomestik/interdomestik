@@ -68,6 +68,11 @@ test('E2E quarantine budget is wired into contract checks and PR verification', 
     packageJson.scripts['check:e2e-contracts:base'],
     'node scripts/check-e2e-contracts.mjs'
   );
+  assert.equal(
+    packageJson.scripts['check:e2e-tenant-host-lanes'],
+    'node scripts/check-e2e-tenant-host-lanes.mjs'
+  );
+  assert.match(packageJson.scripts['check:e2e-contracts'], /pnpm check:e2e-tenant-host-lanes/u);
   assert.match(packageJson.scripts['check:e2e-contracts'], /pnpm check:e2e-quarantine-budget/u);
   assert.match(packageJson.scripts['pr:verify'], /pnpm check:e2e-contracts/u);
   assert.equal(baseline.version, 1);

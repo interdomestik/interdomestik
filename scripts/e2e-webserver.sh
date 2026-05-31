@@ -127,6 +127,7 @@ fi
 
 # Always ensure nip.io subdomains are trusted for E2E, even in production
 NIPIO_ORIGINS=(
+	"http://ida.127.0.0.1.nip.io:3000"
 	"http://ks.127.0.0.1.nip.io:3000"
 	"http://mk.127.0.0.1.nip.io:3000"
 	"http://pilot.127.0.0.1.nip.io:3000"

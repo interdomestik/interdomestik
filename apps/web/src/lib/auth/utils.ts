@@ -14,6 +14,7 @@ export function getTrustedOrigins(): string[] | undefined {
     process.env.PLAYWRIGHT === '1'
   ) {
     const devOrigins = [
+      'http://ida.127.0.0.1.nip.io:3000',
       'http://ks.127.0.0.1.nip.io:3000',
       'http://mk.127.0.0.1.nip.io:3000',
       'http://pilot.127.0.0.1.nip.io:3000',
