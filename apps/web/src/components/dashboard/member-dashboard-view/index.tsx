@@ -40,8 +40,17 @@ const OPEN_STATUSES = new Set([
   'court',
 ]);
 
-export async function MemberDashboardView({ data, locale }: Readonly<MemberDashboardViewProps>) {
-  const memberHomeTranslations = await getTranslations('dashboard.member_assistance');
+export async function MemberDashboardView({
+  dataPromise,
+  supplementalDataPromise,
+  locale,
+}: Readonly<MemberDashboardViewProps>) {
+  const memberHomeTranslationsPromise = getTranslations('dashboard.member_assistance');
+  const [memberHomeTranslations, data, supplementalData] = await Promise.all([
+    memberHomeTranslationsPromise,
+    dataPromise,
+    supplementalDataPromise,
+  ]);
   const t = memberHomeTranslations as unknown as DashboardTranslator;
   const { member, claims } = data;
   const activeClaim = data.activeClaimId
@@ -53,11 +62,7 @@ export async function MemberDashboardView({ data, locale }: Readonly<MemberDashb
     redirect(redirectPath);
   }
 
-  const tenantId = member.tenantId ?? null;
-  const [claimEligibleSubscription, documentsCount] = await getDashboardSupplementalData({
-    memberId: member.id,
-    tenantId,
-  });
+  const [claimEligibleSubscription, documentsCount] = supplementalData;
 
   const isActive = Boolean(claimEligibleSubscription);
   const hasAssistanceAccess = isActive || member.role === 'agent';
@@ -227,7 +232,7 @@ export async function MemberDashboardView({ data, locale }: Readonly<MemberDashb
   );
 }
 
-async function getDashboardSupplementalData({
+export async function getDashboardSupplementalData({
   memberId,
   tenantId,
 }: {
