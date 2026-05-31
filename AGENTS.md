@@ -322,14 +322,14 @@ const tenantId = ensureTenantId(session);
 const sanitizedContent = content.trim().slice(0, 1000);
 ```
 
-### 300-Line Rule (Strict Modularity & Boy Scout Refactoring)
+### 150-Line Rule (Strict Modularity & Boy Scout Refactoring)
 
 To maintain a pure modular architecture and avoid "monolith drift" or over-coupling, we enforce a strict modularity guideline:
 
-- **Rule:** Every new code file (React components, helpers, domain rule engines, server actions) and any newly refactored file **MUST be kept concise, focused, and under 300 lines of code**.
+- **Rule:** Every new code file (React components, helpers, domain rule engines, server actions) and any newly refactored file **MUST be kept concise, focused, and under 150 lines of code** (with an absolute hard-ceiling of **200 lines** allowed ONLY for complex backend transactions or rule engines if absolutely necessary).
 - **Exception:** Auto-generated assets and third-party libraries.
-- **Decomposition:** If a file naturally grows beyond 300 lines, it is a structural code-smell indicating over-coupling. You must decompose the logic into smaller, dedicated sub-components, custom hooks, or utility helper modules (Separation of Concerns).
-- **Boy Scout Rule for Grandfathered/Legacy Files:** If a task requires modifying an existing legacy file that already exceeds 300 lines, **do NOT append more code to make it larger**. Instead, proactively assess if it is "too large" and split it into smaller, decoupled files (under 300 lines each) as part of your change. If the split is too complex for a single PR, decompose the touched logical path into separate helpers and leave the legacy file smaller and cleaner than you found it.
+- **Decomposition:** If a file naturally grows beyond 150 lines, it is a structural code-smell indicating over-coupling. You must decompose the logic into smaller, dedicated sub-components, custom hooks, or utility helper modules (Separation of Concerns).
+- **Boy Scout Rule for Grandfathered/Legacy Files:** If a task requires modifying an existing legacy file that already exceeds 150 lines, **do NOT append more code to make it larger**. Instead, proactively assess if it is "too large" and split it into smaller, decoupled files (under 150 lines each) as part of your change. If the split is too complex for a single PR, decompose the touched logical path into separate helpers and leave the legacy file smaller and cleaner than you found it.
 
 ## Architecture Guidelines
 
