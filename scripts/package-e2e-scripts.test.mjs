@@ -8,6 +8,10 @@ import billingPackageJson from '../packages/domain-membership-billing/package.js
 import webPackageJson from '../apps/web/package.json' with { type: 'json' };
 
 test('e2e gate scripts keep full and fast lanes distinct', () => {
+  const e2eLaneRunner = readFileSync(
+    new URL('../scripts/run-e2e-lane.mjs', import.meta.url),
+    'utf8'
+  );
   const stateSetup = packageJson.scripts['e2e:state:setup'];
   const fullGate = packageJson.scripts['e2e:gate'];
   const fastGate = packageJson.scripts['e2e:gate:fast'];
@@ -15,40 +19,33 @@ test('e2e gate scripts keep full and fast lanes distinct', () => {
   const prGateFast = packageJson.scripts['e2e:gate:pr:fast'];
   const fastCheck = packageJson.scripts['check:fast'];
 
-  assert.equal(typeof stateSetup, 'string');
-  assert.match(stateSetup, /setup\.state\.spec\.ts/);
-  assert.match(stateSetup, /--project=setup-ks/);
-  assert.match(stateSetup, /--project=setup-mk/);
+  assert.equal(stateSetup, 'node scripts/run-e2e-lane.mjs state');
+  assert.equal(fullGate, 'node scripts/run-e2e-lane.mjs gate');
+  assert.equal(fastGate, 'node scripts/run-e2e-lane.mjs gate-fast');
+  assert.equal(prGate, 'node scripts/run-e2e-lane.mjs pr');
+  assert.equal(prGateFast, 'node scripts/run-e2e-lane.mjs pr-fast');
+  assert.equal(fastCheck, 'node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr');
 
-  assert.match(fullGate, /pnpm e2e:state:setup/);
-  assert.match(fullGate, /PW_FAST_GATES=1/);
-  assert.match(fullGate, /--project=gate-ks-sq/);
-  assert.match(fullGate, /--project=gate-mk-mk/);
-  assert.doesNotMatch(fullGate, /--project=gate-mk-contract/);
-
-  assert.match(fastGate, /PW_FAST_GATES=1/);
-  assert.match(fastGate, /--project=gate-ks-sq/);
-  assert.match(fastGate, /--project=gate-mk-mk/);
-  assert.doesNotMatch(fastGate, /--project=gate-mk-contract/);
-
-  assert.equal(typeof prGate, 'string');
-  assert.match(prGate, /pnpm e2e:state:setup/);
-  assert.match(prGate, /--project=gate-ks-sq/);
-  assert.match(prGate, /--project=gate-mk-contract/);
-  assert.doesNotMatch(prGate, /--project=gate-mk-mk/);
-
-  assert.equal(typeof prGateFast, 'string');
-  assert.match(prGateFast, /PW_FAST_GATES=1/);
-  assert.match(prGateFast, /--project=gate-ks-sq/);
-  assert.match(prGateFast, /--project=gate-mk-contract/);
-  assert.doesNotMatch(prGateFast, /--project=gate-mk-mk/);
-
-  assert.equal(
-    fastCheck,
-    'node scripts/run-with-default-db-url.mjs bash -c \'cd "$PWD" && NEXT_PUBLIC_BILLING_TEST_MODE=1 pnpm --filter @interdomestik/web run build:ci\' && node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup && node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast'
-  );
+  assert.match(e2eLaneRunner, /setup\.state\.spec\.ts/);
+  assert.match(e2eLaneRunner, /--project=setup-ks/);
+  assert.match(e2eLaneRunner, /--project=setup-mk/);
+  assert.match(e2eLaneRunner, /PW_FAST_GATES: '1'/);
+  assert.match(e2eLaneRunner, /--project=gate-ks-sq/);
+  assert.match(e2eLaneRunner, /--project=gate-mk-mk/);
+  assert.match(e2eLaneRunner, /--project=gate-mk-contract/);
   assert.notEqual(fullGate, fastGate);
   assert.notEqual(prGate, prGateFast);
+});
+
+test('root package exposes slice-time verification without the full PR gate', () => {
+  assert.match(packageJson.scripts['slice:static'], /\bgit diff --check\b/);
+  assert.match(packageJson.scripts['slice:static'], /\bpnpm lint\b/);
+  assert.match(packageJson.scripts['slice:static'], /\bpnpm type-check\b/);
+  assert.match(packageJson.scripts['slice:static'], /\bpnpm security:guard\b/);
+  assert.equal(packageJson.scripts['slice:unit'], 'pnpm test && pnpm test:unit:domains');
+  assert.equal(packageJson.scripts['slice:verify'], 'pnpm slice:static && pnpm slice:unit');
+  assert.doesNotMatch(packageJson.scripts['slice:verify'], /\bpnpm pr:verify\b/);
+  assert.doesNotMatch(packageJson.scripts['slice:verify'], /\bpnpm e2e:gate\b/);
 });
 
 test('web package exposes full and PR gate lanes separately', () => {
