@@ -84,10 +84,24 @@ const TENANT_HOST_FILE_ALLOWLIST = new Map([
 ]);
 
 const E2E_FILE_GLOBS = [`${e2eRoot}/**/*.{ts,tsx}`];
-const TENANT_HOST_USAGE_PATTERN =
-  /\b(?:ks|mk|al|pilot)\.(?:localhost|127\.0\.0\.1\.nip\.io|interdomestik\.com)(?::\d+)?\b|\b(?:KS|MK|AL|PILOT)_HOST\b|['"]x-forwarded-host['"]\s*:|tenantBaseUrl\s*\(/gu;
-const TENANT_HOST_PROJECT_PATTERN =
-  /\b(?:ks|mk|al|pilot)\.(?:localhost|127\.0\.0\.1\.nip\.io|interdomestik\.com)(?::\d+)?\b|\b(?:KS|MK|AL|PILOT)_HOST\b|tenantBaseUrl\s*\(\s*(KS_HOST|MK_HOST|AL_HOST|PILOT_HOST)\b|['"]x-forwarded-host['"]\s*:/u;
+const COUNTRY_HOST_PATTERN =
+  /\b(?:ks|mk|al|pilot)\.(?:localhost|127\.0\.0\.1\.nip\.io|interdomestik\.com)(?::\d+)?\b/u;
+const TENANT_HOST_ENV_PATTERN = /\b(?:KS|MK|AL|PILOT)_HOST\b/u;
+const FORWARDED_HOST_PATTERN = /['"]x-forwarded-host['"]\s*:/u;
+const TENANT_BASE_URL_PATTERN = /tenantBaseUrl\s*\(/u;
+const TENANT_BASE_URL_HOST_PATTERN = /tenantBaseUrl\s*\(\s*(KS_HOST|MK_HOST|AL_HOST|PILOT_HOST)\b/u;
+const TENANT_HOST_USAGE_PATTERNS = [
+  COUNTRY_HOST_PATTERN,
+  TENANT_HOST_ENV_PATTERN,
+  FORWARDED_HOST_PATTERN,
+  TENANT_BASE_URL_PATTERN,
+];
+const TENANT_HOST_PROJECT_PATTERNS = [
+  COUNTRY_HOST_PATTERN,
+  TENANT_HOST_ENV_PATTERN,
+  TENANT_BASE_URL_HOST_PATTERN,
+  FORWARDED_HOST_PATTERN,
+];
 
 function propertyNameText(name) {
   if (!name) return null;
@@ -134,7 +148,8 @@ function findProjectsArray(sourceFile) {
 }
 
 function expressionUsesTenantHost(sourceFile, expression) {
-  return TENANT_HOST_PROJECT_PATTERN.test(expression.getText(sourceFile));
+  const text = expression.getText(sourceFile);
+  return TENANT_HOST_PROJECT_PATTERNS.some(pattern => pattern.test(text));
 }
 
 function collectProjectObjects(node) {
@@ -182,6 +197,12 @@ function computeLineCol(text, index) {
   return { line: lines.length, col: lines[lines.length - 1].length + 1 };
 }
 
+function findTenantHostUsage(content) {
+  return TENANT_HOST_USAGE_PATTERNS.map(pattern => pattern.exec(content))
+    .filter(Boolean)
+    .sort((left, right) => left.index - right.index)[0];
+}
+
 async function enforcePlaywrightProjectInventory(violations) {
   const configAbsPath = path.join(repoRoot, playwrightConfigPath);
   const playwrightConfig = await readFile(configAbsPath, 'utf8');
@@ -215,8 +236,7 @@ async function enforceE2EFileInventory(violations) {
 
   for (const relPath of files.sort()) {
     const content = await readFile(path.join(repoRoot, relPath), 'utf8');
-    TENANT_HOST_USAGE_PATTERN.lastIndex = 0;
-    const match = TENANT_HOST_USAGE_PATTERN.exec(content);
+    const match = findTenantHostUsage(content);
     if (!match) continue;
 
     matchedFiles.push(relPath);
@@ -259,7 +279,9 @@ async function main() {
   );
 }
 
-main().catch(err => {
+try {
+  await main();
+} catch (err) {
   console.error(err);
   process.exit(1);
-});
+}

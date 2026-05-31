@@ -22,6 +22,14 @@ function resetEnv() {
   MUTABLE_ENV.IDA_HOST = ORIGINAL_IDA_HOST;
 }
 
+function setProductionBuildEnv(idaHost?: string) {
+  MUTABLE_ENV.NODE_ENV = 'production';
+  delete MUTABLE_ENV.VERCEL_ENV;
+  if (idaHost) {
+    MUTABLE_ENV.IDA_HOST = idaHost;
+  }
+}
+
 afterEach(() => {
   resetEnv();
 });
@@ -200,8 +208,7 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
   });
 
   it('ignores cookie/header/query fallback hints when host is neutral in production', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
+    setProductionBuildEnv();
     const headers = new Headers({
       host: 'interdomestik-web.vercel.app',
       cookie: 'tenantId=tenant_mk',
@@ -217,8 +224,7 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
   });
 
   it('allows loopback release-gate tenant hints in production builds', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
+    setProductionBuildEnv();
     const headers = new Headers({
       host: '127.0.0.1:3000',
       'x-tenant-id': 'tenant_mk',
@@ -226,15 +232,14 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
 
     expect(
       resolveTenantIdForPasswordResetAudit(
-        'http://127.0.0.1:3000/api/auth/request-password-reset',
+        'https://127.0.0.1:3000/api/auth/request-password-reset',
         headers
       )
     ).toBe('tenant_mk');
   });
 
   it('uses explicit tenant context on the ida front door in production builds', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
+    setProductionBuildEnv();
     const headers = new Headers({
       host: 'ida.127.0.0.1.nip.io:3000',
       'x-tenant-id': 'tenant_mk',
@@ -242,28 +247,26 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
 
     expect(
       resolveTenantIdForPasswordResetAudit(
-        'http://ida.127.0.0.1.nip.io:3000/api/auth/request-password-reset',
+        'https://ida.127.0.0.1.nip.io:3000/api/auth/request-password-reset',
         headers
       )
     ).toBe('tenant_mk');
   });
 
   it('ignores query tenant context on the ida front door in production builds', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
+    setProductionBuildEnv();
     const headers = new Headers({ host: 'ida.127.0.0.1.nip.io:3000' });
 
     expect(
       resolveTenantIdForPasswordResetAudit(
-        'http://ida.127.0.0.1.nip.io:3000/api/auth/request-password-reset?tenantId=tenant_mk',
+        'https://ida.127.0.0.1.nip.io:3000/api/auth/request-password-reset?tenantId=tenant_mk',
         headers
       )
     ).toBeNull();
   });
 
   it('does not activate front-door context from spoofed forwarded host in production builds', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
+    setProductionBuildEnv();
     const headers = new Headers({
       host: 'ks.localhost:3000',
       'x-forwarded-host': 'ida.127.0.0.1.nip.io:3000',
@@ -272,15 +275,14 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
 
     expect(
       resolveTenantIdForPasswordResetAudit(
-        'http://ks.localhost:3000/api/auth/request-password-reset',
+        'https://ks.localhost:3000/api/auth/request-password-reset',
         headers
       )
     ).toBe('tenant_ks');
   });
 
   it('keeps host as canonical in production when fallback hints conflict', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
+    setProductionBuildEnv();
     const headers = new Headers({
       host: 'ks.localhost:3000',
       cookie: 'tenantId=tenant_mk',
@@ -336,103 +338,73 @@ describe('resolveTenantIdForEmailSignIn', () => {
     expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_ks');
   });
 
-  it('ignores cookie/header fallback hints when host is neutral in production', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
-    const headers = new Headers({
-      host: 'interdomestik-web.vercel.app',
-      cookie: 'tenantId=tenant_mk',
-      'x-tenant-id': 'tenant_ks',
-    });
-    expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_ks');
-  });
-
-  it('allows loopback release-gate tenant hints in production builds', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
-    const headers = new Headers({
-      host: '127.0.0.1:3000',
-      'x-tenant-id': 'tenant_mk',
-    });
-    expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_mk');
-  });
-
-  it('uses explicit tenant context on the ida front door in production builds', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
-    const headers = new Headers({
-      host: 'ida.127.0.0.1.nip.io:3000',
-      'x-tenant-id': 'tenant_mk',
-    });
-
-    expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_mk');
-  });
-
-  it('prefers explicit ida front-door tenant context over stale tenant cookies', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
-    const headers = new Headers({
-      host: 'ida.127.0.0.1.nip.io:3000',
-      cookie: 'tenantId=tenant_ks',
-      'x-tenant-id': 'tenant_mk',
-    });
-
-    expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_mk');
-  });
-
-  it('supports an IDA_HOST override for local front-door auth entry', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
-    MUTABLE_ENV.IDA_HOST = 'front-door.localhost:3000';
-    const headers = new Headers({
-      host: 'front-door.localhost:3000',
-      'x-tenant-id': 'tenant_mk',
-    });
-
-    expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_mk');
-  });
-
-  it('supports an IDA_HOST override with a URL value', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
-    MUTABLE_ENV.IDA_HOST = 'http://front-door.localhost:3000';
-    const headers = new Headers({
-      host: 'front-door.localhost:3000',
-      'x-tenant-id': 'tenant_mk',
-    });
-
-    expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_mk');
-  });
-
-  it('returns null on the ida front door when no tenant context is present', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
-    const headers = new Headers({ host: 'ida.127.0.0.1.nip.io:3000' });
-
-    expect(resolveTenantIdForEmailSignIn(headers)).toBeNull();
-  });
-
-  it('does not activate front-door sign-in context from spoofed forwarded host', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
-    const headers = new Headers({
-      host: 'ks.localhost:3000',
-      'x-forwarded-host': 'ida.127.0.0.1.nip.io:3000',
-      'x-tenant-id': 'tenant_mk',
-    });
-
-    expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_ks');
-  });
-
-  it('uses host tenant in production when fallback hints conflict', () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
-    const headers = new Headers({
-      host: 'ks.localhost:3000',
-      cookie: 'tenantId=tenant_mk',
-      'x-tenant-id': 'tenant_mk',
-    });
-    expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_ks');
+  it.each([
+    {
+      name: 'ignores cookie/header fallback hints when host is neutral in production',
+      headers: {
+        host: 'interdomestik-web.vercel.app',
+        cookie: 'tenantId=tenant_mk',
+        'x-tenant-id': 'tenant_ks',
+      },
+      expected: 'tenant_ks',
+    },
+    {
+      name: 'allows loopback release-gate tenant hints in production builds',
+      headers: { host: '127.0.0.1:3000', 'x-tenant-id': 'tenant_mk' },
+      expected: 'tenant_mk',
+    },
+    {
+      name: 'uses explicit tenant context on the ida front door in production builds',
+      headers: { host: 'ida.127.0.0.1.nip.io:3000', 'x-tenant-id': 'tenant_mk' },
+      expected: 'tenant_mk',
+    },
+    {
+      name: 'prefers explicit ida front-door tenant context over stale tenant cookies',
+      headers: {
+        host: 'ida.127.0.0.1.nip.io:3000',
+        cookie: 'tenantId=tenant_ks',
+        'x-tenant-id': 'tenant_mk',
+      },
+      expected: 'tenant_mk',
+    },
+    {
+      name: 'supports an IDA_HOST override for local front-door auth entry',
+      idaHost: 'front-door.localhost:3000',
+      headers: { host: 'front-door.localhost:3000', 'x-tenant-id': 'tenant_mk' },
+      expected: 'tenant_mk',
+    },
+    {
+      name: 'supports an IDA_HOST override with a URL value',
+      idaHost: 'https://front-door.localhost:3000',
+      headers: { host: 'front-door.localhost:3000', 'x-tenant-id': 'tenant_mk' },
+      expected: 'tenant_mk',
+    },
+    {
+      name: 'returns null on the ida front door when no tenant context is present',
+      headers: { host: 'ida.127.0.0.1.nip.io:3000' },
+      expected: null,
+    },
+    {
+      name: 'does not activate front-door sign-in context from spoofed forwarded host',
+      headers: {
+        host: 'ks.localhost:3000',
+        'x-forwarded-host': 'ida.127.0.0.1.nip.io:3000',
+        'x-tenant-id': 'tenant_mk',
+      },
+      expected: 'tenant_ks',
+    },
+    {
+      name: 'uses host tenant in production when fallback hints conflict',
+      headers: {
+        host: 'ks.localhost:3000',
+        cookie: 'tenantId=tenant_mk',
+        'x-tenant-id': 'tenant_mk',
+      },
+      expected: 'tenant_ks',
+    },
+  ] as const)('$name', ({ headers, expected, idaHost }) => {
+    setProductionBuildEnv(idaHost);
+    expect(resolveTenantIdForEmailSignIn(new Headers(headers))).toBe(expected);
   });
 });
 
@@ -460,26 +432,18 @@ describe('evaluateEmailSignInTenantGuard', () => {
     expect(result).toEqual({ decision: 'allow' });
   });
 
-  it('denies sign-in when user tenant and request tenant mismatch', async () => {
-    const result = await evaluateEmailSignInTenantGuard({
+  it.each([
+    {
+      name: 'denies sign-in when user tenant and request tenant mismatch',
       url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
-      headers: new Headers({ 'x-tenant-id': 'tenant_mk' }),
-      body: { email: 'admin.ks@interdomestik.com' },
-      lookupUserTenantByEmail: async () => 'tenant_ks',
-    });
-
-    expect(result).toEqual({
-      decision: 'deny',
-      code: 'WRONG_TENANT_CONTEXT',
-      message: 'Wrong tenant context',
-      reason: 'tenant_mismatch',
-      resolvedTenantId: 'tenant_mk',
-    });
-  });
-
-  it('denies email OTP sign-in when user tenant and request tenant mismatch', async () => {
-    const result = await evaluateEmailSignInTenantGuard({
+    },
+    {
+      name: 'denies email OTP sign-in when user tenant and request tenant mismatch',
       url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email-otp',
+    },
+  ])('$name', async ({ url }) => {
+    const result = await evaluateEmailSignInTenantGuard({
+      url,
       headers: new Headers({ 'x-tenant-id': 'tenant_mk' }),
       body: { email: 'admin.ks@interdomestik.com' },
       lookupUserTenantByEmail: async () => 'tenant_ks',
@@ -506,11 +470,10 @@ describe('evaluateEmailSignInTenantGuard', () => {
   });
 
   it('allows MK sign-in through the ida front door when explicit tenant context matches', async () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
+    setProductionBuildEnv();
 
     const result = await evaluateEmailSignInTenantGuard({
-      url: 'http://ida.127.0.0.1.nip.io:3000/api/auth/sign-in/email',
+      url: 'https://ida.127.0.0.1.nip.io:3000/api/auth/sign-in/email',
       headers: new Headers({
         host: 'ida.127.0.0.1.nip.io:3000',
         'x-tenant-id': 'tenant_mk',
@@ -523,11 +486,10 @@ describe('evaluateEmailSignInTenantGuard', () => {
   });
 
   it('denies ida front-door sign-in when explicit tenant context mismatches the user tenant', async () => {
-    MUTABLE_ENV.NODE_ENV = 'production';
-    delete MUTABLE_ENV.VERCEL_ENV;
+    setProductionBuildEnv();
 
     const result = await evaluateEmailSignInTenantGuard({
-      url: 'http://ida.127.0.0.1.nip.io:3000/api/auth/sign-in/email',
+      url: 'https://ida.127.0.0.1.nip.io:3000/api/auth/sign-in/email',
       headers: new Headers({
         host: 'ida.127.0.0.1.nip.io:3000',
         'x-tenant-id': 'tenant_mk',

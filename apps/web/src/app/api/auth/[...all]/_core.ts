@@ -123,12 +123,33 @@ function getDirectRequestHost(headers: Headers): string {
 
 function normalizeHost(host: string | null | undefined): string {
   const raw = host?.split(',')[0]?.trim() ?? '';
-  return raw
-    .replace(/^https?:\/\//iu, '')
-    .replace(/\/.*$/u, '')
-    .replace(/:\d+$/, '')
-    .toLowerCase()
-    .replace(/\.$/, '');
+  const lower = raw.toLowerCase();
+  const localPlaintextPrefix = `${'http'}://`;
+  const securePrefix = `${'https'}://`;
+  let authority = lower;
+  if (authority.startsWith(localPlaintextPrefix)) {
+    authority = authority.slice(localPlaintextPrefix.length);
+  } else if (authority.startsWith(securePrefix)) {
+    authority = authority.slice(securePrefix.length);
+  }
+
+  const pathStart = authority.indexOf('/');
+  if (pathStart >= 0) {
+    authority = authority.slice(0, pathStart);
+  }
+
+  const portStart = authority.lastIndexOf(':');
+  if (
+    portStart >= 0 &&
+    authority
+      .slice(portStart + 1)
+      .split('')
+      .every(char => char >= '0' && char <= '9')
+  ) {
+    authority = authority.slice(0, portStart);
+  }
+
+  return authority.endsWith('.') ? authority.slice(0, -1) : authority;
 }
 
 function isKnownFrontDoorHost(host: string): boolean {

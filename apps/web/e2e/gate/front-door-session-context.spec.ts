@@ -9,7 +9,7 @@ function projectInfo(baseURL: string | undefined): {
   origin: string;
   locale: string;
 } {
-  const url = new URL(baseURL ?? 'http://ida.127.0.0.1.nip.io:3000');
+  const url = new URL(baseURL ?? 'https://ida.127.0.0.1.nip.io:3000');
   const firstSegment = url.pathname.split('/').find(Boolean) ?? 'en';
   const locale = /^(sq|mk|en)$/i.test(firstSegment) ? firstSegment.toLowerCase() : 'en';
   return { origin: url.origin, locale };

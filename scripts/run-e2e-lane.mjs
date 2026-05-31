@@ -183,7 +183,7 @@ if (!lane) {
   process.exit(2);
 }
 
-const laneEnv = { ...baseEnv, ...(lane.env || {}) };
+const laneEnv = lane.env ? { ...baseEnv, ...lane.env } : baseEnv;
 
 if (lane.gatekeeper) {
   run('bash', ['scripts/m4-gatekeeper.sh'], laneEnv);

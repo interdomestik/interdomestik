@@ -122,7 +122,7 @@ test('cleanupByPrefixes deletes AI provenance rows before documents uploaded by 
   const operations: Operation[] = [];
   const db = createFakeDb(operations);
 
-  await cleanupByPrefixes(db as never, schema, ['golden_']);
+  await cleanupByPrefixes(db, schema, ['golden_']);
 
   const deleteOrder = operations.filter(op => op.kind === 'delete').map(op => op.table);
   const documentExtractionsIndex = deleteOrder.indexOf('document_extractions');
@@ -143,7 +143,7 @@ test('cleanupByPrefixes deletes email campaign logs before deleting seeded users
   const operations: Operation[] = [];
   const db = createFakeDb(operations);
 
-  await cleanupByPrefixes(db as never, schema, ['golden_']);
+  await cleanupByPrefixes(db, schema, ['golden_']);
 
   const deleteOrder = operations.filter(op => op.kind === 'delete').map(op => op.table);
   const emailCampaignLogsIndex = deleteOrder.indexOf('email_campaign_logs');
@@ -161,7 +161,7 @@ test('cleanupByPrefixes deletes CRM user dependencies before deleting seeded use
   const operations: Operation[] = [];
   const db = createFakeDb(operations);
 
-  await cleanupByPrefixes(db as never, schema, ['golden_']);
+  await cleanupByPrefixes(db, schema, ['golden_']);
 
   const deleteOrder = operations.filter(op => op.kind === 'delete').map(op => op.table);
   const crmActivitiesIndex = deleteOrder.indexOf('crm_activities');
