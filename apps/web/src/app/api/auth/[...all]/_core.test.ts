@@ -329,6 +329,13 @@ describe('isEmailSignInUrl', () => {
 });
 
 describe('resolveTenantIdForEmailSignIn', () => {
+  type EmailSignInTenantCase = {
+    name: string;
+    headers: Record<string, string>;
+    expected: string | null;
+    idaHost?: string;
+  };
+
   it('prefers host-derived tenant', () => {
     const headers = new Headers({ host: 'ks.localhost:3000' });
     expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_ks');
@@ -354,7 +361,7 @@ describe('resolveTenantIdForEmailSignIn', () => {
     expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_ks');
   });
 
-  it.each([
+  const productionSignInTenantCases: EmailSignInTenantCase[] = [
     {
       name: 'ignores cookie/header fallback hints when host is neutral in production',
       headers: {
@@ -427,7 +434,9 @@ describe('resolveTenantIdForEmailSignIn', () => {
       },
       expected: 'tenant_ks',
     },
-  ] as const)('$name', ({ headers, expected, idaHost }) => {
+  ];
+
+  it.each(productionSignInTenantCases)('$name', ({ headers, expected, idaHost }) => {
     setProductionBuildEnv(idaHost);
     expect(resolveTenantIdForEmailSignIn(new Headers(headers))).toBe(expected);
   });
