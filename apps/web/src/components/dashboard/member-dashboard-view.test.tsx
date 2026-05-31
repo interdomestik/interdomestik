@@ -204,8 +204,17 @@ describe('MemberDashboardView assistance dashboard', () => {
     });
     render(tree);
 
+    const appHeader = within(screen.getByTestId('member-app-header'));
     expect(screen.getByTestId('member-app-header')).toHaveTextContent('Интердоместик ИДА');
     expect(screen.getByTestId('member-app-header')).toHaveTextContent('Полесно е заедно');
+    expect(appHeader.getByRole('link', { name: 'Известувања' })).toHaveAttribute(
+      'href',
+      '/mk/member/settings#notifications'
+    );
+    expect(appHeader.getByRole('link', { name: 'Членски профил' })).toHaveAttribute(
+      'href',
+      '/mk/member/settings#profile'
+    );
     expect(screen.getByTestId('member-welcome-status')).toHaveTextContent('Активно');
     expect(screen.getByTestId('member-welcome-status')).toHaveAttribute(
       'data-hero-state',
@@ -223,6 +232,15 @@ describe('MemberDashboardView assistance dashboard', () => {
     expect(screen.getByTestId('document-vault-summary')).toHaveTextContent('4');
     expect(screen.getByTestId('trust-strip')).toHaveTextContent('Центар за доверба');
     expect(screen.getByTestId('mobile-bottom-nav')).toHaveTextContent('Почетна');
+
+    const nextStepHeadingIds = screen
+      .getAllByTestId('next-step-card')
+      .map(card => card.getAttribute('aria-labelledby'));
+    expect(new Set(nextStepHeadingIds).size).toBe(nextStepHeadingIds.length);
+    for (const headingId of nextStepHeadingIds) {
+      expect(headingId).toBeTruthy();
+      expect(document.querySelectorAll(`[id="${headingId}"]`)).toHaveLength(1);
+    }
   });
 
   it('treats agent member-mode access as assistance/action, not visitor conversion', async () => {

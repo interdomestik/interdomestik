@@ -50,7 +50,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
         {/* Left Column - Profile & Security */}
         <div className="space-y-8">
           {/* Profile Section */}
-          <section>
+          <section id="profile">
             <h3 className="text-lg font-medium mb-4">{t('profile.sectionTitle')}</h3>
             <Suspense fallback={<SettingsSkeleton />}>
               <ProfileForm
@@ -82,7 +82,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
           </section>
 
           {/* Notifications Section */}
-          <section>
+          <section id="notifications">
             <h3 className="text-lg font-medium mb-4">{t('notifications.sectionTitle')}</h3>
             <Suspense fallback={<SettingsSkeleton />}>
               <NotificationSettings />
