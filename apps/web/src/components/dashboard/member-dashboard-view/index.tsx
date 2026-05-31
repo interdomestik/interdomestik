@@ -118,7 +118,7 @@ export async function MemberDashboardView({
       data-testid="member-dashboard-ready"
     >
       <div className="mx-auto flex max-w-[920px] flex-col gap-2 pb-[6.5rem] md:block md:space-y-4 md:pb-10">
-        <MemberTopBar isActive={hasAssistanceAccess} t={t} />
+        <MemberTopBar isActive={hasAssistanceAccess} locale={locale} t={t} />
 
         <div className="space-y-1.5 md:space-y-4" data-testid="member-dashboard-priority-region">
           <MemberHero hero={hero} isActive={hasAssistanceAccess} t={t} />
@@ -268,7 +268,15 @@ export async function getDashboardSupplementalData({
   ] as const;
 }
 
-function MemberTopBar({ isActive, t }: { isActive: boolean; t: DashboardTranslator }) {
+function MemberTopBar({
+  isActive,
+  locale,
+  t,
+}: {
+  isActive: boolean;
+  locale: string;
+  t: DashboardTranslator;
+}) {
   const brand = t('header.brand');
   const mobileBrand = brand.split(' ')[0] ?? brand;
 
@@ -298,20 +306,20 @@ function MemberTopBar({ isActive, t }: { isActive: boolean; t: DashboardTranslat
         <span className="hidden rounded-full border border-emerald-900/15 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-900 shadow-sm sm:inline-flex">
           {isActive ? t('welcome.active') : t('welcome.inactive')}
         </span>
-        <button
-          type="button"
+        <a
+          href={`/${locale}/member/settings#notifications`}
           className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-transparent text-slate-800 transition hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-900 focus-visible:ring-offset-2 md:h-11 md:w-11"
           aria-label={t('header.notifications')}
         >
           <Bell className="h-5 w-5" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
+        </a>
+        <a
+          href={`/${locale}/member/settings#profile`}
           className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-transparent text-slate-800 transition hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-900 focus-visible:ring-offset-2 md:h-11 md:w-11 md:hidden"
           aria-label={t('header.profile')}
         >
           <UserRound className="h-5 w-5" aria-hidden="true" />
-        </button>
+        </a>
       </div>
     </header>
   );

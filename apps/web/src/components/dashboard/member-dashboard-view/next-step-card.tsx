@@ -17,9 +17,11 @@ type NextStepCardProps = {
 };
 
 export function NextStepCard({ compact = false, nextStep, t }: NextStepCardProps) {
+  const headingId = compact ? 'member-next-step-heading-compact' : 'member-next-step-heading';
+
   return (
     <section
-      aria-labelledby="member-next-step-heading"
+      aria-labelledby={headingId}
       className={
         compact
           ? 'relative rounded-[1.25rem] border border-emerald-900/10 bg-white p-3 shadow-md shadow-emerald-900/5'
@@ -48,7 +50,7 @@ export function NextStepCard({ compact = false, nextStep, t }: NextStepCardProps
             {t('nextStep.kicker')}
           </p>
           <h2
-            id="member-next-step-heading"
+            id={headingId}
             className={
               compact
                 ? 'mt-0.5 truncate text-sm font-extrabold tracking-tight text-slate-950'
