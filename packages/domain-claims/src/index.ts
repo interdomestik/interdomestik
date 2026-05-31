@@ -15,6 +15,7 @@ export { updateClaimStatusCore as updateAdminClaimStatusCore } from './admin-cla
 export { assignClaimCore as assignAgentClaimCore } from './agent-claims/assign';
 export { updateClaimStatusCore as updateAgentClaimStatusCore } from './agent-claims/update-status';
 export * from './claims/list';
+export * from './claims/transition-guard';
 export { updateClaimStatusCore } from './claims/status';
 export { assignClaimCore as assignStaffClaimCore } from './staff-claims/assign';
 export { buildScopedStaffClaimWhere, buildStaffClaimReadScope } from './staff-claims/scope';

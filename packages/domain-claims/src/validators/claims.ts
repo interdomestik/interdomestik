@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 
 export const MAX_CLAIM_EVIDENCE_FILES = 10;
 
@@ -45,19 +46,8 @@ export const createClaimSchema = claimCategorySchema
   .merge(claimDetailsSchema)
   .merge(claimEvidenceSchema);
 
-const VALID_STATUSES = [
-  'draft',
-  'submitted',
-  'verification',
-  'evaluation',
-  'negotiation',
-  'court',
-  'resolved',
-  'rejected',
-] as const;
-
 export const claimStatusSchema = z.object({
-  status: z.enum(VALID_STATUSES),
+  status: z.enum(CLAIM_STATUSES),
 });
 
 export const assignClaimSchema = z.object({
