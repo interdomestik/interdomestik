@@ -33,6 +33,7 @@ export const claims = pgTable(
     title: text('title').notNull(),
     description: text('description'),
     status: statusEnum('status').default('draft'),
+    lifecycleVersion: integer('lifecycle_version').notNull().default(0),
     origin: text('origin').default('portal').notNull(), // 'portal' | 'agent' | 'admin' | 'api'
     originRefId: text('origin_ref_id'), // agentId or staffId
     category: text('category').notNull(), // e.g. 'retail', 'services'

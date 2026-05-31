@@ -38,6 +38,7 @@ export const CLAIM_STATUS_WRITER_ALLOWLIST = new Set([
   'packages/domain-claims/src/claims/draft.ts',
   'packages/domain-claims/src/claims/status.ts',
   'packages/domain-claims/src/claims/submit.ts',
+  'packages/domain-claims/src/claims/transition.ts',
   'packages/domain-claims/src/staff-claims/update-status.ts',
   'packages/domain-claims/src/update-claim-status.ts',
   'scripts/ci/db-access-guard.test.mjs',
