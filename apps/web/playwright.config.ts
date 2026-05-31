@@ -66,6 +66,8 @@ const GATE_AL_TEST_MATCH = RUNNING_PILOT_MATRIX
   : [...GATE_SECURITY_MATCH];
 const CRM_VISUAL_TEST_MATCH = ['visual/crm-reporting.visual.spec.ts'];
 const CRM_VISUAL_VIEWPORT = { width: 1280, height: 900 };
+const FRONT_DOOR_TEST_MATCH = ['gate/front-door-session-context.spec.ts'];
+const ENABLE_FRONT_DOOR_PROJECTS = process.env.PW_FRONT_DOOR === '1';
 
 function requireState(statePath: string) {
   if (fs.existsSync(statePath)) return;
@@ -171,6 +173,10 @@ const AL_HOST = normalizeLoopbackTenantHost(
 const PILOT_HOST = normalizeLoopbackTenantHost(
   envOrFallback('PILOT_HOST', `pilot.${BIND_HOST}.nip.io:${PORT}`)
 );
+const IDA_HOST = normalizeLoopbackTenantHost(
+  envOrFallback('IDA_HOST', `ida.${BIND_HOST}.nip.io:${PORT}`)
+);
+process.env.IDA_HOST = IDA_HOST;
 
 fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
 
@@ -293,6 +299,37 @@ export default defineConfig({
         navigationTimeout: 60 * 1000,
       },
     },
+
+    ...(ENABLE_FRONT_DOOR_PROJECTS
+      ? [
+          {
+            name: 'front-door-ida-ks',
+            testMatch: FRONT_DOOR_TEST_MATCH,
+            use: {
+              ...devices['Desktop Chrome'],
+              baseURL: tenantBaseUrl(IDA_HOST, 'sq'),
+              extraHTTPHeaders: {
+                'x-tenant-id': 'tenant_ks',
+              },
+              actionTimeout: 20 * 1000,
+              navigationTimeout: 60 * 1000,
+            },
+          },
+          {
+            name: 'front-door-ida-mk',
+            testMatch: FRONT_DOOR_TEST_MATCH,
+            use: {
+              ...devices['Desktop Chrome'],
+              baseURL: tenantBaseUrl(IDA_HOST, 'mk'),
+              extraHTTPHeaders: {
+                'x-tenant-id': 'tenant_mk',
+              },
+              actionTimeout: 20 * 1000,
+              navigationTimeout: 60 * 1000,
+            },
+          },
+        ]
+      : []),
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CRM VISUAL BASELINE LANES (opt-in)
@@ -448,7 +485,7 @@ export default defineConfig({
             .join(' '),
           NEXT_PUBLIC_APP_URL: BASE_URL,
           BETTER_AUTH_URL: BASE_URL,
-          BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,http://${KS_HOST},http://${MK_HOST},http://${AL_HOST},http://${PILOT_HOST},${BASE_URL}`,
+          BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,http://${KS_HOST},http://${MK_HOST},http://${AL_HOST},http://${PILOT_HOST},http://${IDA_HOST},${BASE_URL}`,
           INTERDOMESTIK_AUTOMATED: '1',
           INTERDOMESTIK_LOCAL_E2E: '1',
           INTERDOMESTIK_E2E_DIAGNOSTICS: '1',

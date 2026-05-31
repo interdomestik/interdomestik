@@ -3,9 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-const turboConfig = JSON.parse(
-  fs.readFileSync(path.join(process.cwd(), 'turbo.json'), 'utf8')
-);
+const turboConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'turbo.json'), 'utf8'));
 
 test('turbo build forwards production Supabase separation env', () => {
   assert.ok(Array.isArray(turboConfig.globalEnv));
@@ -45,4 +43,24 @@ test('turbo build forwards production Paddle entity env', () => {
     turboConfig.globalEnv.includes('PADDLE_WEBHOOK_SECRET_KEY_*'),
     'turbo globalEnv must include PADDLE_WEBHOOK_SECRET_KEY_* for entity billing builds'
   );
+});
+
+test('turbo keeps inner-loop lint and type-check independent from builds', () => {
+  assert.deepEqual(
+    turboConfig.tasks.lint.dependsOn || [],
+    [],
+    'lint should not build package dependencies before checking source'
+  );
+  assert.deepEqual(
+    turboConfig.tasks['type-check'].dependsOn || [],
+    [],
+    'type-check should not force builds before TypeScript analysis'
+  );
+});
+
+test('turbo exposes cacheable CI build and unit-test tasks', () => {
+  assert.ok(turboConfig.tasks['build:ci'], 'build:ci should be a first-class Turbo task');
+  assert.deepEqual(turboConfig.tasks['build:ci'].dependsOn, ['^build']);
+  assert.ok(turboConfig.tasks['test:unit'], 'test:unit should be a first-class Turbo task');
+  assert.deepEqual(turboConfig.tasks['test:unit'].outputs, ['coverage/**']);
 });

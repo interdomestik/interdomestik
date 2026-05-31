@@ -62,7 +62,8 @@ services:
       - NEXT_PUBLIC_APP_URL=http://127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000}
       - NEXT_PUBLIC_SITE_URL=http://127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000}
       - BETTER_AUTH_URL=http://127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000}
-      - BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:${DOCKER_WEB_PORT:-3000},http://127.0.0.1:${DOCKER_WEB_PORT:-3000},http://127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000},http://app.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000},http://ks.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000},http://mk.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000},http://al.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000},http://pilot.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000}
+      - BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:${DOCKER_WEB_PORT:-3000},http://127.0.0.1:${DOCKER_WEB_PORT:-3000},http://127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000},http://app.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000},http://ida.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000},http://ks.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000},http://mk.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000},http://al.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000},http://pilot.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000}
+      - IDA_HOST=ida.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000}
       - KS_HOST=ks.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000}
       - MK_HOST=mk.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000}
       - AL_HOST=al.127.0.0.1.nip.io:${DOCKER_WEB_PORT:-3000}
