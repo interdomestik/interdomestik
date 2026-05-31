@@ -152,10 +152,10 @@ describe('transitionClaimStatusInTransaction', () => {
     expect(calls.historyValues).toBeUndefined();
   });
 
-  it('records same-status history without touching the claim row', async () => {
+  it('keeps same-status history behind the lifecycle-version compare-and-set', async () => {
     const { calls, tx } = makeTx({
       current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
-      updated: [{ id: 'claim-1', lifecycleVersion: 7 }],
+      updated: [{ id: 'claim-1', lifecycleVersion: 6 }],
     });
 
     const result = await transitionClaimStatusInTransaction(
@@ -169,7 +169,10 @@ describe('transitionClaimStatusInTransaction', () => {
       lifecycleVersion: 6,
       status: 'evaluation',
     });
-    expect(calls.updateValues).toBeUndefined();
+    expect(calls.updateValues).toEqual({ updatedAt: expect.any(Date) });
+    const updateWhere = inspect(calls.whereConditions.at(-1), { depth: 20 });
+    expect(updateWhere).toContain('lifecycle_version');
+    expect(updateWhere).toContain('status');
     expect(calls.historyValues).toEqual(
       expect.objectContaining({
         fromStatus: 'evaluation',

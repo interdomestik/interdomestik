@@ -515,6 +515,7 @@ describe('staff updateClaimStatusCore', () => {
         staffId: expect.objectContaining({ op: 'sql' }),
         assignedAt: expect.objectContaining({ op: 'sql' }),
         assignedById: expect.objectContaining({ op: 'sql' }),
+        updatedAt: expect.any(Date),
       })
     );
     expect(mocks.sql).toHaveBeenNthCalledWith(

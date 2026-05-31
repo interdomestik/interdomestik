@@ -295,6 +295,7 @@ async function assignClaimToActingStaffIfUnassigned(params: {
       staffId: sql`coalesce(${claims.staffId}, ${params.session.user.id})`,
       assignedAt: sql`coalesce(${claims.assignedAt}, ${now})`,
       assignedById: sql`coalesce(${claims.assignedById}, ${params.session.user.id})`,
+      updatedAt: now,
     })
     .where(params.staffScopeWhere);
 }

@@ -92,31 +92,31 @@ export async function transitionClaimStatusInTransaction(
 
   const now = new Date();
   let lifecycleVersion = current.lifecycleVersion;
+  const updateData =
+    current.status === toStatus
+      ? { updatedAt: now }
+      : {
+          lifecycleVersion: sql`${claims.lifecycleVersion} + 1`,
+          status: toStatus,
+          statusUpdatedAt: now,
+          updatedAt: now,
+        };
 
-  if (current.status !== toStatus) {
-    const updateData = {
-      lifecycleVersion: sql`${claims.lifecycleVersion} + 1`,
-      status: toStatus,
-      statusUpdatedAt: now,
-      updatedAt: now,
-    };
-
-    // db-access-guard: tenant-scoped -- reason: tenant scope plus lifecycle CAS are in the where clause.
-    const updated = await tx
-      .update(claims)
-      .set(updateData)
-      .where(
-        and(
-          readWhere,
-          eq(claims.status, current.status),
-          eq(claims.lifecycleVersion, current.lifecycleVersion)
-        )
+  // db-access-guard: tenant-scoped -- reason: tenant scope plus lifecycle CAS are in the where clause.
+  const updated = await tx
+    .update(claims)
+    .set(updateData)
+    .where(
+      and(
+        readWhere,
+        eq(claims.status, current.status),
+        eq(claims.lifecycleVersion, current.lifecycleVersion)
       )
-      .returning({ id: claims.id, lifecycleVersion: claims.lifecycleVersion });
+    )
+    .returning({ id: claims.id, lifecycleVersion: claims.lifecycleVersion });
 
-    if (updated.length === 0) throw new ClaimTransitionConflictError(claimId);
-    lifecycleVersion = updated[0].lifecycleVersion;
-  }
+  if (updated.length === 0) throw new ClaimTransitionConflictError(claimId);
+  lifecycleVersion = updated[0].lifecycleVersion;
 
   // db-access-guard: tenant-scoped -- reason: tenantId is copied from the command boundary.
   await tx.insert(claimStageHistory).values({
