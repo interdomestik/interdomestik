@@ -12,6 +12,7 @@ The following rules are non-negotiable for all agents (human or AI):
 - Canonical routes (`/member`, `/agent`, `/staff`, `/admin`) MUST NOT be renamed or bypassed.
 - Clarity markers (`*-page-ready`) are contractual and enforced by E2E gates.
 - No architectural refactors (routing, auth, domains, tenancy) unless explicitly requested.
+- Architecture-finalization work, when explicitly authorized, follows `docs/plans/architecture-finalization-program-2026-05-29.md` and `docs/plans/architecture-finalization-tracker-2026-05-29.md` as the canonical M0→M5 execution authority.
 - Stripe is **not used** in V3 pilot flows.
 - Do not update README, AGENTS.md, or architecture docs unless explicitly requested.
 - All changes must pass:
@@ -320,6 +321,15 @@ const tenantId = ensureTenantId(session);
 // Sanitize user inputs
 const sanitizedContent = content.trim().slice(0, 1000);
 ```
+
+### 300-Line Rule (Strict Modularity & Boy Scout Refactoring)
+
+To maintain a pure modular architecture and avoid "monolith drift" or over-coupling, we enforce a strict modularity guideline:
+
+- **Rule:** Every new code file (React components, helpers, domain rule engines, server actions) and any newly refactored file **MUST be kept concise, focused, and under 300 lines of code**.
+- **Exception:** Auto-generated assets and third-party libraries.
+- **Decomposition:** If a file naturally grows beyond 300 lines, it is a structural code-smell indicating over-coupling. You must decompose the logic into smaller, dedicated sub-components, custom hooks, or utility helper modules (Separation of Concerns).
+- **Boy Scout Rule for Grandfathered/Legacy Files:** If a task requires modifying an existing legacy file that already exceeds 300 lines, **do NOT append more code to make it larger**. Instead, proactively assess if it is "too large" and split it into smaller, decoupled files (under 300 lines each) as part of your change. If the split is too complex for a single PR, decompose the touched logical path into separate helpers and leave the legacy file smaller and cleaner than you found it.
 
 ## Architecture Guidelines
 
