@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-05-13
+last_reviewed: 2026-05-31
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -13,7 +13,17 @@ status_command: pnpm plan:status
 
 > Authority: This is the only document allowed to define the current phase, committed priorities, and sequencing for repository execution.
 
+## Active Architecture Finalization Authority
+
+Effective 2026-05-31, the active execution authority is extended by `docs/plans/architecture-finalization-program-2026-05-29.md`. That document is now the canonical new-architecture program for the M0→M5 path: M0 guardrails, M1 ida-first foundation and event/outbox schema, M2 case/recovery split, M3 tenant-context/RLS migration, M4 product-model hardening, and M5 live cutover.
+
+The historical phase queue below remains the evidence ledger for completed Phase C work. New product expansion such as `IDA-MH03` is paused behind the architecture-finalization tracker unless explicitly re-promoted after the architecture spine is stable.
+
+Phase C guardrails still apply during architecture finalization: `apps/web/src/proxy.ts` remains gated, canonical routes stay `/member`, `/agent`, `/staff`, `/admin`, clarity markers remain contractual, Paddle stays the billing provider, and all tenancy/RLS changes must follow the approved tracker tasks and gates.
+
 ## Current Phase
+
+Architecture Finalization is now the active Phase C execution lane as of 2026-05-31. The canonical new-architecture program is `docs/plans/architecture-finalization-program-2026-05-29.md`, the active architecture queue is `docs/plans/architecture-finalization-tracker-2026-05-29.md`, and the next implementation work starts from M0 guardrails. The previously promoted `IDA-MH03` product slice is paused behind this architecture lane unless explicitly re-promoted.
 
 `v1.0.0` release authority is declared and active.
 
