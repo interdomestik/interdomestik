@@ -1,3 +1,4 @@
+import { inspect } from 'node:util';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { describe, expect, it } from 'vitest';
 
@@ -26,23 +27,33 @@ function makeTx(options: {
     | Array<{ id: string; lifecycleVersion: number }>
     | (() => Array<{ id: string; lifecycleVersion: number }>);
 }) {
-  const calls: { historyValues?: unknown; updateValues?: Record<string, unknown> } = {};
+  const calls: {
+    historyValues?: unknown;
+    updateValues?: Record<string, unknown>;
+    whereConditions: unknown[];
+  } = { whereConditions: [] };
   const tx = {
     select: () => ({
       from: () => ({
-        where: () => ({
-          limit: async () => (options.current ? [options.current] : []),
-        }),
+        where: (condition: unknown) => {
+          calls.whereConditions.push(condition);
+          return {
+            limit: async () => (options.current ? [options.current] : []),
+          };
+        },
       }),
     }),
     update: () => ({
       set: (values: Record<string, unknown>) => {
         calls.updateValues = values;
         return {
-          where: () => ({
-            returning: async () =>
-              typeof options.updated === 'function' ? options.updated() : (options.updated ?? []),
-          }),
+          where: (condition: unknown) => {
+            calls.whereConditions.push(condition);
+            return {
+              returning: async () =>
+                typeof options.updated === 'function' ? options.updated() : (options.updated ?? []),
+            };
+          },
         };
       },
     }),
@@ -72,6 +83,9 @@ describe('transitionClaimStatusInTransaction', () => {
         updatedAt: expect.any(Date),
       })
     );
+    const updateWhere = inspect(calls.whereConditions.at(-1), { depth: 20 });
+    expect(updateWhere).toContain('lifecycle_version');
+    expect(updateWhere).toContain('status');
     expect(calls.historyValues).toEqual(
       expect.objectContaining({
         changedById: 'staff-1',
@@ -90,9 +104,8 @@ describe('transitionClaimStatusInTransaction', () => {
       updated: [],
     });
 
-    await expect(transitionClaimStatusInTransaction(tx, makeParams())).rejects.toBeInstanceOf(
-      ClaimTransitionConflictError
-    );
+    const transition = transitionClaimStatusInTransaction(tx, makeParams());
+    await expect(transition).rejects.toThrow(ClaimTransitionConflictError);
   });
 
   it('lets exactly one same-version transition win', async () => {
