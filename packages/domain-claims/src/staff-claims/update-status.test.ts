@@ -1,3 +1,4 @@
+import { inspect } from 'node:util';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ClaimsSession } from '../claims/types';
@@ -86,7 +87,8 @@ const mocks = vi.hoisted(() => {
   }));
   const txInsert = vi.fn(() => ({ values: txInsertValues }));
   const txSelect = vi.fn(() => txSelectChain);
-  const txUpdateWhere = vi.fn();
+  const txUpdateReturning = vi.fn();
+  const txUpdateWhere = vi.fn(() => ({ returning: txUpdateReturning }));
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
   const transaction = vi.fn(async cb =>
@@ -117,6 +119,7 @@ const mocks = vi.hoisted(() => {
       staffId: 'claims.staff_id',
       assignedAt: 'claims.assigned_at',
       assignedById: 'claims.assigned_by_id',
+      lifecycleVersion: 'claims.lifecycle_version',
       status: 'claims.status',
       updatedAt: 'claims.updated_at',
       userId: 'claims.user_id',
@@ -200,7 +203,9 @@ const mocks = vi.hoisted(() => {
     txInsertReturning,
     txInsertValues,
     txUpdate,
+    txUpdateReturning,
     txUpdateSet,
+    txUpdateWhere,
   };
 });
 
@@ -340,7 +345,11 @@ describe('staff updateClaimStatusCore', () => {
     mocks.serviceUsageCountSelectChain.where.mockReturnValue(mocks.serviceUsageCountSelectChain);
     mocks.txSelectChain.from.mockReturnValue(mocks.txSelectChain);
     mocks.txSelectChain.where.mockReturnValue(mocks.txSelectChain);
+    mocks.txSelectChain.limit.mockResolvedValue([
+      { id: 'claim-1', lifecycleVersion: 1, status: 'evaluation' },
+    ]);
     mocks.txInsertReturning.mockResolvedValue([{ id: 'usage-claim-1' }]);
+    mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
   });
 
   it.each([
@@ -454,7 +463,12 @@ describe('staff updateClaimStatusCore', () => {
     expect(mocks.txInsertValues).toHaveBeenCalledWith(
       expect.objectContaining({
         claimId: 'claim-1',
+        changedById: 'staff-1',
+        changedByRole: 'staff',
         fromStatus: 'evaluation',
+        isPublic: true,
+        note: 'member signed the agreement',
+        tenantId: 'tenant-1',
         toStatus: 'negotiation',
       })
     );
@@ -481,29 +495,42 @@ describe('staff updateClaimStatusCore', () => {
     });
 
     expect(result).toEqual({ success: true, error: undefined });
-    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
+    expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
+        lifecycleVersion: expect.objectContaining({ op: 'sql' }),
         status: 'verification',
-        staffId: expect.objectContaining({ op: 'sql' }),
-        assignedAt: expect.objectContaining({ op: 'sql' }),
-        assignedById: expect.objectContaining({ op: 'sql' }),
+        statusUpdatedAt: expect.any(Date),
         updatedAt: expect.any(Date),
       })
     );
+    const [transitionWhereArg] = (mocks.txUpdateWhere.mock.calls[0] ?? []) as unknown[];
+    const transitionWhere = inspect(transitionWhereArg, { depth: 20 });
+    expect(transitionWhere).toContain('claims.branch_id');
+    expect(transitionWhere).toContain('claims.lifecycle_version');
+    expect(transitionWhere).toContain('claims.status');
+    expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        staffId: expect.objectContaining({ op: 'sql' }),
+        assignedAt: expect.objectContaining({ op: 'sql' }),
+        assignedById: expect.objectContaining({ op: 'sql' }),
+      })
+    );
     expect(mocks.sql).toHaveBeenNthCalledWith(
-      1,
+      2,
       expect.any(Array),
       mocks.claims.staffId,
       'staff-1'
     );
     expect(mocks.sql).toHaveBeenNthCalledWith(
-      2,
+      3,
       expect.any(Array),
       mocks.claims.assignedAt,
       expect.any(Date)
     );
     expect(mocks.sql).toHaveBeenNthCalledWith(
-      3,
+      4,
       expect.any(Array),
       mocks.claims.assignedById,
       'staff-1'
@@ -522,6 +549,9 @@ describe('staff updateClaimStatusCore', () => {
         title: 'Vehicle claim',
         staffId: 'staff-1',
       },
+    ]);
+    mocks.txSelectChain.limit.mockResolvedValueOnce([
+      { id: 'claim-1', lifecycleVersion: 1, status: 'submitted' },
     ]);
 
     const result = await updateClaimStatusCore(
@@ -562,6 +592,33 @@ describe('staff updateClaimStatusCore', () => {
     });
     expect(mocks.txUpdate).not.toHaveBeenCalled();
     expect(mocks.txInsert).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid guarded transitions before status, history, or assignment writes', async () => {
+    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      {
+        id: 'claim-1',
+        status: 'submitted',
+        userId: 'member-1',
+        category: 'vehicle',
+        title: 'Vehicle claim',
+        staffId: null,
+      },
+    ]);
+    mocks.txSelectChain.limit.mockResolvedValueOnce([
+      { id: 'claim-1', lifecycleVersion: 1, status: null },
+    ]);
+
+    const result = await updateClaimStatusCore({
+      claimId: 'claim-1',
+      newStatus: 'verification',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({ success: false, error: 'Failed to update claim status' });
+    expect(mocks.txUpdateSet).not.toHaveBeenCalled();
+    expect(mocks.txInsertValues).not.toHaveBeenCalled();
   });
 
   it('blocks recovery status transition after staff accept the recovery decision when agreement terms are still missing', async () => {
@@ -711,7 +768,9 @@ describe('staff updateClaimStatusCore', () => {
     mocks.claimSelectChain.limit.mockResolvedValue([
       { id: 'claim-1', status: 'negotiation', userId: 'member-1', category: 'vehicle' },
     ]);
-    mocks.txSelectChain.limit.mockResolvedValue([]);
+    mocks.txSelectChain.limit
+      .mockResolvedValueOnce([{ id: 'claim-1', lifecycleVersion: 1, status: 'negotiation' }])
+      .mockResolvedValueOnce([]);
 
     const result = await updateClaimStatusCore(
       {

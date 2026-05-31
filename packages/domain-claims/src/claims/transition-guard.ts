@@ -8,6 +8,7 @@ export type ClaimTransitionActor = {
 
 export type ClaimTransitionContext = {
   paymentAuthorizationState?: PaymentAuthorizationState | null;
+  staffRecoveryPrerequisitesSatisfied?: boolean;
 };
 
 export type ClaimTransitionDecision =
@@ -27,13 +28,20 @@ export function canTransition(params: {
   from: ClaimStatus;
   to: ClaimStatus;
 }): ClaimTransitionDecision {
-  const { from, to, context } = params;
+  const { actor, from, to, context } = params;
 
   if (!isClaimStatus(from) || !isClaimStatus(to)) {
     return { allowed: false, reason: 'invalid_status' };
   }
 
-  if (PAYMENT_GATED_STATUSES.has(to) && context?.paymentAuthorizationState !== 'authorized') {
+  const staffRecoveryPrerequisitesSatisfied =
+    actor.role === 'staff' && context?.staffRecoveryPrerequisitesSatisfied === true;
+
+  if (
+    PAYMENT_GATED_STATUSES.has(to) &&
+    context?.paymentAuthorizationState !== 'authorized' &&
+    !staffRecoveryPrerequisitesSatisfied
+  ) {
     return { allowed: false, reason: 'payment_authorization_required' };
   }
 

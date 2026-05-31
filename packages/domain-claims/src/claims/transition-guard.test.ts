@@ -49,6 +49,34 @@ describe('canTransition', () => {
     }
   );
 
+  it('allows recovery when staff recovery prerequisites are already satisfied', () => {
+    expect(
+      canTransition({
+        actor,
+        context: {
+          paymentAuthorizationState: 'revoked',
+          staffRecoveryPrerequisitesSatisfied: true,
+        },
+        from: 'evaluation',
+        to: 'negotiation',
+      })
+    ).toEqual({ allowed: true });
+  });
+
+  it('does not let non-staff actors use staff recovery prerequisite context', () => {
+    expect(
+      canTransition({
+        actor: { id: 'agent-1', role: 'agent' },
+        context: {
+          paymentAuthorizationState: 'revoked',
+          staffRecoveryPrerequisitesSatisfied: true,
+        },
+        from: 'evaluation',
+        to: 'negotiation',
+      })
+    ).toEqual({ allowed: false, reason: 'payment_authorization_required' });
+  });
+
   it('allows non-recovery transitions without payment authorization', () => {
     expect(
       canTransition({
