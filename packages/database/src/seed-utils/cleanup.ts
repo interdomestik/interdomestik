@@ -162,9 +162,204 @@ export async function cleanupByPrefixes(
             inArray(dbSchema.supportHandoffs.staffId, allUserIds),
             inArray(dbSchema.supportHandoffs.acceptedById, allUserIds),
             inArray(dbSchema.supportHandoffs.reassignedById, allUserIds),
-            inArray(dbSchema.supportHandoffs.closedById, allUserIds)
+            inArray(dbSchema.supportHandoffs.closedById, allUserIds),
+            inArray(dbSchema.supportHandoffs.publicResponseById, allUserIds),
+            inArray(dbSchema.supportHandoffs.publicResponseAcknowledgedById, allUserIds)
           )
         );
+    }
+
+    // CRM gate specs may leave rows that reference seeded users with NO ACTION FKs
+    // if a previous run is interrupted. Remove those dependents before user cleanup.
+    const crmLeadIds = dbSchema.crmLeads
+      ? (
+          await db.query.crmLeads.findMany({
+            where: inArray(dbSchema.crmLeads.agentId, allUserIds),
+            columns: { id: true },
+          })
+        ).map(row => row.id)
+      : [];
+
+    const crmRoutingRuleIds = dbSchema.crmRoutingRules
+      ? (
+          await db.query.crmRoutingRules.findMany({
+            where: inArray(dbSchema.crmRoutingRules.fallbackAgentId, allUserIds),
+            columns: { id: true },
+          })
+        ).map(row => row.id)
+      : [];
+
+    const crmDealFilters = [];
+    if (dbSchema.crmDeals) {
+      crmDealFilters.push(inArray(dbSchema.crmDeals.agentId, allUserIds));
+      if (crmLeadIds.length > 0) {
+        crmDealFilters.push(inArray(dbSchema.crmDeals.leadId, crmLeadIds));
+      }
+    }
+
+    const crmDealIds =
+      dbSchema.crmDeals == null || crmDealFilters.length === 0
+        ? []
+        : (
+            await db.query.crmDeals.findMany({
+              where: or(...crmDealFilters),
+              columns: { id: true },
+            })
+          ).map(row => row.id);
+
+    const crmTaskIds = dbSchema.crmTasks
+      ? (
+          await db.query.crmTasks.findMany({
+            where: or(
+              inArray(dbSchema.crmTasks.assignedActorId, allUserIds),
+              inArray(dbSchema.crmTasks.createdById, allUserIds)
+            ),
+            columns: { id: true },
+          })
+        ).map(row => row.id)
+      : [];
+
+    if (dbSchema.crmTaskHistory) {
+      const crmTaskHistoryFilters = [inArray(dbSchema.crmTaskHistory.actorId, allUserIds)];
+      if (crmTaskIds.length > 0) {
+        crmTaskHistoryFilters.push(inArray(dbSchema.crmTaskHistory.taskId, crmTaskIds));
+      }
+      await db.delete(dbSchema.crmTaskHistory).where(or(...crmTaskHistoryFilters));
+    }
+
+    if (dbSchema.crmTasks && crmTaskIds.length > 0) {
+      await db.delete(dbSchema.crmTasks).where(inArray(dbSchema.crmTasks.id, crmTaskIds));
+    }
+
+    if (dbSchema.crmActivities) {
+      const crmActivityFilters = [inArray(dbSchema.crmActivities.agentId, allUserIds)];
+      if (crmLeadIds.length > 0) {
+        crmActivityFilters.push(inArray(dbSchema.crmActivities.leadId, crmLeadIds));
+      }
+      await db.delete(dbSchema.crmActivities).where(or(...crmActivityFilters));
+    }
+
+    if (dbSchema.crmRoutingAssignmentsAudit) {
+      const crmRoutingAuditFilters = [
+        inArray(dbSchema.crmRoutingAssignmentsAudit.actorId, allUserIds),
+        inArray(dbSchema.crmRoutingAssignmentsAudit.selectedAgentId, allUserIds),
+      ];
+      if (crmLeadIds.length > 0) {
+        crmRoutingAuditFilters.push(
+          inArray(dbSchema.crmRoutingAssignmentsAudit.leadId, crmLeadIds)
+        );
+      }
+      if (crmRoutingRuleIds.length > 0) {
+        crmRoutingAuditFilters.push(
+          inArray(dbSchema.crmRoutingAssignmentsAudit.ruleId, crmRoutingRuleIds)
+        );
+      }
+      await db.delete(dbSchema.crmRoutingAssignmentsAudit).where(or(...crmRoutingAuditFilters));
+    }
+
+    if (dbSchema.crmRoutingCursors && crmRoutingRuleIds.length > 0) {
+      await db
+        .delete(dbSchema.crmRoutingCursors)
+        .where(inArray(dbSchema.crmRoutingCursors.ruleId, crmRoutingRuleIds));
+    }
+
+    if (dbSchema.crmRoutingRules && crmRoutingRuleIds.length > 0) {
+      await db
+        .delete(dbSchema.crmRoutingRules)
+        .where(inArray(dbSchema.crmRoutingRules.id, crmRoutingRuleIds));
+    }
+
+    if (dbSchema.crmDealBackfillQuarantine && crmDealIds.length > 0) {
+      await db
+        .delete(dbSchema.crmDealBackfillQuarantine)
+        .where(inArray(dbSchema.crmDealBackfillQuarantine.dealId, crmDealIds));
+    }
+
+    if (dbSchema.crmDealStageHistory) {
+      const crmDealStageHistoryFilters = [
+        inArray(dbSchema.crmDealStageHistory.actorId, allUserIds),
+      ];
+      if (crmDealIds.length > 0) {
+        crmDealStageHistoryFilters.push(inArray(dbSchema.crmDealStageHistory.dealId, crmDealIds));
+      }
+      await db.delete(dbSchema.crmDealStageHistory).where(or(...crmDealStageHistoryFilters));
+    }
+
+    if (dbSchema.crmDeals) {
+      await db
+        .update(dbSchema.crmDeals)
+        .set({ archivedById: null })
+        .where(inArray(dbSchema.crmDeals.archivedById, allUserIds));
+      if (crmDealIds.length > 0) {
+        await db.delete(dbSchema.crmDeals).where(inArray(dbSchema.crmDeals.id, crmDealIds));
+      }
+    }
+
+    if (dbSchema.crmLeadStageHistory) {
+      const crmLeadStageHistoryFilters = [
+        inArray(dbSchema.crmLeadStageHistory.changedById, allUserIds),
+      ];
+      if (crmLeadIds.length > 0) {
+        crmLeadStageHistoryFilters.push(inArray(dbSchema.crmLeadStageHistory.leadId, crmLeadIds));
+      }
+      await db.delete(dbSchema.crmLeadStageHistory).where(or(...crmLeadStageHistoryFilters));
+    }
+
+    if (dbSchema.crmLeadOwnershipHistory) {
+      const crmLeadOwnershipHistoryFilters = [
+        inArray(dbSchema.crmLeadOwnershipHistory.agentId, allUserIds),
+        inArray(dbSchema.crmLeadOwnershipHistory.changedById, allUserIds),
+      ];
+      if (crmLeadIds.length > 0) {
+        crmLeadOwnershipHistoryFilters.push(
+          inArray(dbSchema.crmLeadOwnershipHistory.leadId, crmLeadIds)
+        );
+      }
+      await db
+        .delete(dbSchema.crmLeadOwnershipHistory)
+        .where(or(...crmLeadOwnershipHistoryFilters));
+    }
+
+    if (dbSchema.crmLeads && crmLeadIds.length > 0) {
+      await db.delete(dbSchema.crmLeads).where(inArray(dbSchema.crmLeads.id, crmLeadIds));
+    }
+
+    if (dbSchema.memberActivities) {
+      await db
+        .delete(dbSchema.memberActivities)
+        .where(
+          or(
+            inArray(dbSchema.memberActivities.agentId, allUserIds),
+            inArray(dbSchema.memberActivities.memberId, allUserIds)
+          )
+        );
+    }
+
+    if (dbSchema.crmPipelineSnapshots) {
+      await db
+        .delete(dbSchema.crmPipelineSnapshots)
+        .where(inArray(dbSchema.crmPipelineSnapshots.createdById, allUserIds));
+    }
+
+    if (dbSchema.crmPipelines) {
+      await db
+        .update(dbSchema.crmPipelines)
+        .set({ archivedById: null })
+        .where(inArray(dbSchema.crmPipelines.archivedById, allUserIds));
+    }
+
+    if (dbSchema.crmPipelineStages) {
+      await db
+        .update(dbSchema.crmPipelineStages)
+        .set({ archivedById: null })
+        .where(inArray(dbSchema.crmPipelineStages.archivedById, allUserIds));
+    }
+
+    if (dbSchema.crmLossReasons) {
+      await db
+        .update(dbSchema.crmLossReasons)
+        .set({ archivedById: null })
+        .where(inArray(dbSchema.crmLossReasons.archivedById, allUserIds));
     }
 
     // Helper for batching if needed, but for seeds 100-200 is fine in one IN clause usually.
