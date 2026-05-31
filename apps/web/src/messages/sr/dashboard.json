@@ -231,6 +231,25 @@
             "valueLabel": "Stanje",
             "value": "Potreban je potpis",
             "cta": "Pregledaj ovlašćenje"
+          },
+          "member_action": {
+            "kicker": "Potrebna je radnja",
+            "title": "Sledeći korak za slučaj je spreman.",
+            "highlight": "Pregledajte ga da slučaj nastavi.",
+            "body": "Dosije slučaja ima zadatak za člana. Otvorite sledeći korak i dostavite traženi odgovor.",
+            "valueLabel": "Stanje",
+            "value": "Potrebna je radnja člana",
+            "cta": "Nastavi sledeći korak",
+            "actions": {
+              "review_offer": {
+                "cta": "Pregledaj ponudu",
+                "ariaLabel": "Pregledaj ponudu za slučaj {claimReference}"
+              },
+              "provide_info": {
+                "cta": "Dostavi informacije",
+                "ariaLabel": "Dostavi informacije za slučaj {claimReference}"
+              }
+            }
           }
         }
       },

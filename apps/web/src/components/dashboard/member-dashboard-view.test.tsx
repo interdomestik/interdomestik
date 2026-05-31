@@ -408,6 +408,73 @@ describe('MemberDashboardView assistance dashboard', () => {
     expectNoMemberConversionHeroCta();
   });
 
+  it.each([
+    [
+      'review_offer',
+      '/member/claims/claim-offer/offer',
+      'Provider offer label',
+      'Review offer',
+      'Review offer for case CLM-410',
+    ],
+    [
+      'provide_info',
+      '/member/claims/claim-info/request',
+      'Provider information label',
+      'Provide information',
+      'Provide information for case CLM-411',
+    ],
+  ] as const)(
+    'renders %s as a first-class member-action hero with typed localized CTA',
+    async (actionType, href, rawLabel, visibleCta, accessibleName) => {
+      currentMessages = enMessages;
+      mockActiveMembership();
+      const claimId = actionType === 'review_offer' ? 'claim-offer' : 'claim-info';
+      const claimNumber = actionType === 'review_offer' ? 'CLM-410' : 'CLM-411';
+
+      const tree = await MemberDashboardView({
+        dataPromise: Promise.resolve(
+          makeData({
+            activeClaimId: claimId,
+            claims: [
+              makeClaim({
+                claimNumber,
+                id: claimId,
+                nextMemberAction: {
+                  actionType,
+                  href,
+                  label: rawLabel,
+                },
+                requiresMemberAction: true,
+                stageKey: 'verification',
+                stageLabel: 'Verification',
+              }),
+            ],
+          })
+        ),
+        supplementalDataPromise: Promise.resolve([
+          await hoisted.getActiveSubscriptionMock(),
+          hoisted.documentCount,
+        ]),
+        locale: 'en',
+      });
+      render(tree);
+
+      const heroCta = screen.getByTestId('hero-cta-member-action');
+
+      expect(screen.getByTestId('member-welcome-status')).toHaveAttribute(
+        'data-hero-state',
+        'member_action'
+      );
+      expect(screen.getByTestId('member-hero-value-row')).toHaveTextContent(visibleCta);
+      expect(heroCta).toHaveAttribute('href', href);
+      expect(heroCta).toHaveTextContent(visibleCta);
+      expect(heroCta).toHaveAccessibleName(accessibleName);
+      expect(screen.getByTestId('next-step-memberAction')).toHaveAttribute('href', href);
+      expect(screen.getByTestId('next-step-memberAction')).toHaveTextContent(rawLabel);
+      expectNoMemberConversionHeroCta();
+    }
+  );
+
   it('shows only one priority case on the dashboard home', async () => {
     mockActiveMembership();
 
@@ -510,6 +577,17 @@ const REQUIRED_MEMBER_ASSISTANCE_KEYS = [
   'dashboard.member_assistance.heroResolver.states.missing_documents.cta',
   'dashboard.member_assistance.heroResolver.states.authorization_needed.title',
   'dashboard.member_assistance.heroResolver.states.authorization_needed.cta',
+  'dashboard.member_assistance.heroResolver.states.member_action.kicker',
+  'dashboard.member_assistance.heroResolver.states.member_action.title',
+  'dashboard.member_assistance.heroResolver.states.member_action.highlight',
+  'dashboard.member_assistance.heroResolver.states.member_action.body',
+  'dashboard.member_assistance.heroResolver.states.member_action.valueLabel',
+  'dashboard.member_assistance.heroResolver.states.member_action.value',
+  'dashboard.member_assistance.heroResolver.states.member_action.cta',
+  'dashboard.member_assistance.heroResolver.states.member_action.actions.review_offer.cta',
+  'dashboard.member_assistance.heroResolver.states.member_action.actions.review_offer.ariaLabel',
+  'dashboard.member_assistance.heroResolver.states.member_action.actions.provide_info.cta',
+  'dashboard.member_assistance.heroResolver.states.member_action.actions.provide_info.ariaLabel',
   'dashboard.member_assistance.nextStep.firstCase.title',
   'dashboard.member_assistance.nextStep.missingDocs.title',
   'dashboard.member_assistance.nextStep.review.title',

@@ -229,6 +229,25 @@
             "valueLabel": "Status",
             "value": "Signature needed",
             "cta": "Review authorization"
+          },
+          "member_action": {
+            "kicker": "Action needed",
+            "title": "Your next case step is ready.",
+            "highlight": "Review it to keep moving.",
+            "body": "The case file has a member task waiting. Open the next step and provide the requested response.",
+            "valueLabel": "Status",
+            "value": "Member action needed",
+            "cta": "Continue next step",
+            "actions": {
+              "review_offer": {
+                "cta": "Review offer",
+                "ariaLabel": "Review offer for case {claimReference}"
+              },
+              "provide_info": {
+                "cta": "Provide information",
+                "ariaLabel": "Provide information for case {claimReference}"
+              }
+            }
           }
         }
       },

@@ -138,6 +138,78 @@ describe('resolveMemberHomeHero', () => {
     });
   });
 
+  it.each([
+    [
+      'review_offer',
+      '/member/claims/claim-offer/offer',
+      'heroResolver.states.member_action.actions.review_offer.cta',
+      'heroResolver.states.member_action.actions.review_offer.ariaLabel',
+    ],
+    [
+      'provide_info',
+      '/member/claims/claim-info/request',
+      'heroResolver.states.member_action.actions.provide_info.cta',
+      'heroResolver.states.member_action.actions.provide_info.ariaLabel',
+    ],
+  ] as const)(
+    'resolves %s as the generic member-action hero state',
+    (actionType, href, ctaKey, ariaLabelKey) => {
+      expect(
+        resolveMemberHomeHero({
+          activeClaim: makeClaim({
+            claimNumber: 'CLM-ACTION',
+            id: `claim-${actionType}`,
+            nextMemberAction: {
+              actionType,
+              href,
+              label: 'Free-form action label',
+            },
+            requiresMemberAction: true,
+            stageKey: 'verification',
+          }),
+          isActive: true,
+          locale: 'en',
+        })
+      ).toMatchObject({
+        ariaLabelKey,
+        copyKey: 'heroResolver.states.member_action',
+        ctaKey,
+        href,
+        primaryTestId: 'hero-cta-member-action',
+        state: 'member_action',
+        translationValues: {
+          claimReference: 'CLM-ACTION',
+        },
+      });
+    }
+  );
+
+  it('falls back to open-case hero for an unrecognized runtime member action type', () => {
+    expect(
+      resolveMemberHomeHero({
+        activeClaim: makeClaim({
+          id: 'claim-unknown-action',
+          nextMemberAction: {
+            actionType: 'sign_document' as NonNullable<
+              DashboardClaim['nextMemberAction']
+            >['actionType'],
+            href: '/member/claims/claim-unknown-action/sign',
+            label: 'Sign document',
+          },
+          requiresMemberAction: true,
+          stageKey: 'verification',
+        }),
+        isActive: true,
+        locale: 'en',
+      })
+    ).toMatchObject({
+      copyKey: 'heroResolver.states.member_active_has_open_case',
+      href: '/en/member/claims/claim-unknown-action',
+      primaryTestId: 'hero-cta-open-active-case',
+      state: 'member_active_has_open_case',
+    });
+  });
+
   it('keeps upload documents before authorization and generic member actions', () => {
     expect(
       resolveClaimActionKind(
@@ -208,10 +280,11 @@ describe('resolveMemberHomeHero', () => {
     });
 
     expect(hero).toMatchObject({
-      copyKey: 'heroResolver.states.member_active_has_open_case',
-      href: '/en/member/claims/claim-review',
-      primaryTestId: 'hero-cta-open-active-case',
-      state: 'member_active_has_open_case',
+      copyKey: 'heroResolver.states.member_action',
+      ctaKey: 'heroResolver.states.member_action.actions.provide_info.cta',
+      href: '/member/claims/claim-review/documents/authorization.pdf',
+      primaryTestId: 'hero-cta-member-action',
+      state: 'member_action',
     });
   });
 });
