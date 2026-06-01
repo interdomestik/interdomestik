@@ -58,6 +58,7 @@
     "check:db-access": "node scripts/check-db-access-guard.mjs",
     "check:architecture-boundaries": "node scripts/check-architecture-boundaries.mjs",
     "check:evidence-storage-paths": "node scripts/check-evidence-storage-paths.mjs",
+    "check:raw-role-arrays": "node scripts/check-raw-role-arrays.mjs",
     "check:entrypoints:strict": "node scripts/check-entrypoints-no-db.mjs --strict",
     "test:release-gate": "tsx --test scripts/release-gate/run.test.ts scripts/release-gate/pilot-artifacts.test.ts scripts/release-gate/pilot-evidence-workflow.test.ts",
     "test": "pnpm --filter @interdomestik/web test:unit --run",

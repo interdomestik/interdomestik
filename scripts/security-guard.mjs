@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { runEvidenceStoragePathGuard } from './check-evidence-storage-paths.mjs';
 import { runNextTypeScriptBuildIntegrityGuard } from './check-next-typescript-build-integrity.mjs';
+import { runRawRoleArrayGuard } from './check-raw-role-arrays.mjs';
 import { runServiceRoleStorageBoundaryGuard } from './check-service-role-storage-boundary.mjs';
 import { runClaimStatusWriterGuard } from './check-claim-status-writers.mjs';
 import { runSignedUrlExposureGuard } from './check-signed-url-exposure.mjs';
@@ -116,6 +117,11 @@ async function runGuard() {
   const workflowSeedCredentialStatus = runWorkflowSeedCredentialGuard();
   if (workflowSeedCredentialStatus !== 0) {
     process.exit(workflowSeedCredentialStatus);
+  }
+
+  const rawRoleArrayStatus = runRawRoleArrayGuard();
+  if (rawRoleArrayStatus !== 0) {
+    process.exit(rawRoleArrayStatus);
   }
 
   const claimStatusWriterStatus = runClaimStatusWriterGuard();
