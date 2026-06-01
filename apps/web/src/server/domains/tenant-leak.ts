@@ -1,3 +1,5 @@
+import 'server-only';
+
 export interface TenantLeakAssertableRow {
   claim: {
     id: string;
