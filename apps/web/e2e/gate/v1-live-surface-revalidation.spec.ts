@@ -162,6 +162,9 @@ test.describe('P21-QA01 v1.0.0 live surface revalidation', () => {
   test('agent can enter member claim context and return to CRM without session loss', async ({
     agentPage: page,
   }, testInfo) => {
+    const visibleReady = (testId: string) =>
+      page.locator(`[data-testid="${testId}"]:visible`).last();
+
     await gotoApp(page, `/${routes.getLocale(testInfo)}/agent`, testInfo, {
       marker: 'dashboard-page-ready',
     });
@@ -173,22 +176,20 @@ test.describe('P21-QA01 v1.0.0 live surface revalidation', () => {
     ).toBeVisible({
       timeout: 15000,
     });
-
     const memberStartClaimCta = page.getByTestId('hero-cta-open-first-case').first();
     await expect(memberStartClaimCta).toBeVisible();
     await memberStartClaimCta.click({ force: true });
     await expect(page).toHaveURL(new RegExp(`${routes.memberNewClaim(testInfo)}$`));
-    await expect(page.getByTestId('new-claim-page-ready')).toBeVisible();
-
+    await expect(visibleReady('new-claim-page-ready')).toBeVisible();
     await page.locator(`a[href$="/agent"]`).first().click();
     await expect(page).toHaveURL(new RegExp(`/${routes.getLocale(testInfo)}/agent$`));
-    await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
+    await expect(visibleReady('dashboard-page-ready')).toBeVisible();
 
     await gotoApp(page, routes.agent(testInfo), testInfo, { marker: 'agent-members-ready' });
     const agentMembersReady = page.locator('[data-testid="agent-members-ready"]:visible').last();
     await expect(agentMembersReady).toBeVisible();
     await agentMembersReady.getByTestId('agent-support-link').click();
     await expect(page).toHaveURL(new RegExp(`${routes.agentCrm(testInfo)}$`));
-    await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
+    await expect(visibleReady('dashboard-page-ready')).toBeVisible();
   });
 });
