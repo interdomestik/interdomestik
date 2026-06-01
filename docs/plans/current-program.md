@@ -25,7 +25,7 @@ Phase C guardrails still apply during architecture finalization: `apps/web/src/p
 
 Architecture Finalization is now the active Phase C execution lane as of 2026-05-31. The canonical new-architecture program is `docs/plans/architecture-finalization-program-2026-05-29.md`, the active architecture queue is `docs/plans/architecture-finalization-tracker-2026-05-29.md`, and the next implementation work starts from M0 guardrails. The previously promoted `IDA-MH03` product slice is paused behind this architecture lane unless explicitly re-promoted.
 
-M0 guardrails have completed through `ARCH-M0-03`: writer inventory (`T-000`) landed in PR `#880`, transition guard plus lifecycle foundation (`T-001` and `T-001b`) landed in PR `#881`, and staff transition writer adoption (`T-003` plus the first bounded `T-002` adoption step) landed in PR `#883`. The next promoted implementation slice is `ARCH-M0-04 Tenant Leak Harness Extraction`, scoped to `T-004` only.
+M0 guardrails have completed through `ARCH-M0-04`: writer inventory (`T-000`) landed in PR `#880`, transition guard plus lifecycle foundation (`T-001` and `T-001b`) landed in PR `#881`, staff transition writer adoption (`T-003` plus the first bounded `T-002` adoption step) landed in PR `#883`, and tenant leak harness extraction (`T-004`) landed in PR `#885`. The next promoted implementation slice is `ARCH-M0-05 Tenant Leak Guard Adoption`, scoped to `T-005` only.
 
 `v1.0.0` release authority is declared and active.
 
