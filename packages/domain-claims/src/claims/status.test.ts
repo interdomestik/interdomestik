@@ -48,7 +48,7 @@ describe('updateClaimStatusCore', () => {
       newStatus: 'submitted',
     });
 
-    expect(result).toEqual({ error: 'Claim not found' });
+    expect(result).toEqual({ success: false, error: 'Claim not found', data: undefined });
     expect(mocks.withTenant).toHaveBeenCalledWith(
       'tenant-1',
       'claims.tenant_id',
@@ -64,7 +64,7 @@ describe('updateClaimStatusCore', () => {
       newStatus: 'invalid-status',
     });
 
-    expect(result).toEqual({ error: 'Invalid status' });
+    expect(result).toEqual({ success: false, error: 'Invalid status', data: undefined });
   });
 
   it('rejects unauthorized user (member)', async () => {
@@ -75,7 +75,7 @@ describe('updateClaimStatusCore', () => {
       newStatus: 'submitted',
     });
 
-    expect(result).toEqual({ error: 'Unauthorized' });
+    expect(result).toEqual({ success: false, error: 'Unauthorized', data: undefined });
   });
 
   it('successfully updates status', async () => {
@@ -102,7 +102,7 @@ describe('updateClaimStatusCore', () => {
       }
     );
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.update).toHaveBeenCalled();
     expect(mocks.updateSet).toHaveBeenCalledWith({
       status: 'submitted',
