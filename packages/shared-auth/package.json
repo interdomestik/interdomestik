@@ -10,6 +10,12 @@
     "./session": "./src/session.ts"
   },
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.7",
+    "vitest": "^4.1.7"
   }
 }

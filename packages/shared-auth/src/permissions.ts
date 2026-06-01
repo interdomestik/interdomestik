@@ -18,6 +18,7 @@ export const PERMISSIONS = {
   // Admin
   'analytics.read': 'analytics.read',
   'settings.manage': 'settings.manage',
+  'tenants.manage': 'tenants.manage',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -35,33 +36,45 @@ export const ROLES = {
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
+const TENANT_ADMIN_PERMISSIONS = [
+  PERMISSIONS['members.read'],
+  PERMISSIONS['members.write'],
+  PERMISSIONS['claims.read'],
+  PERMISSIONS['claims.update'],
+  PERMISSIONS['claims.assign'],
+  PERMISSIONS['roles.manage'],
+  PERMISSIONS['branches.manage'],
+  PERMISSIONS['analytics.read'],
+  PERMISSIONS['settings.manage'],
+] as const satisfies readonly Permission[];
+
 // Permission matrix: which roles have which permissions
-const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  super_admin: Object.values(PERMISSIONS),
-  admin: Object.values(PERMISSIONS), // Legacy admin treated as super_admin
-  tenant_admin: Object.values(PERMISSIONS),
-  branch_manager: [
+export const ROLE_PERMISSIONS = {
+  [ROLES.super_admin]: Object.values(PERMISSIONS),
+  [ROLES.admin]: TENANT_ADMIN_PERMISSIONS,
+  [ROLES.tenant_admin]: TENANT_ADMIN_PERMISSIONS,
+  [ROLES.branch_manager]: [
     PERMISSIONS['members.read'],
     PERMISSIONS['members.write'],
     PERMISSIONS['claims.read'],
     PERMISSIONS['analytics.read'],
   ],
-  staff: [
+  [ROLES.staff]: [
     PERMISSIONS['members.read'],
     PERMISSIONS['claims.read'],
     PERMISSIONS['claims.update'],
     PERMISSIONS['claims.assign'],
   ],
-  agent: [PERMISSIONS['members.read'], PERMISSIONS['claims.read']],
-  member: [],
-};
+  [ROLES.agent]: [PERMISSIONS['members.read'], PERMISSIONS['claims.read']],
+  [ROLES.member]: [],
+} satisfies Record<Role, readonly Permission[]>;
 
 /**
  * Check if a role has a specific permission
  */
 export function hasPermission(role: string | null | undefined, permission: Permission): boolean {
   if (!role) return false;
-  const perms = ROLE_PERMISSIONS[role as Role];
+  const perms = ROLE_PERMISSIONS[role as Role] as readonly Permission[] | undefined;
   if (!perms) return false;
   return perms.includes(permission);
 }
@@ -71,7 +84,7 @@ export function hasPermission(role: string | null | undefined, permission: Permi
  */
 export function getRolePermissions(role: string | null | undefined): Permission[] {
   if (!role) return [];
-  return ROLE_PERMISSIONS[role as Role] ?? [];
+  return [...(ROLE_PERMISSIONS[role as Role] ?? [])];
 }
 
 /**
