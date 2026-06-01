@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { runBrandDisciplineGuard } from './check-brand-discipline.mjs';
 import { runEvidenceStoragePathGuard } from './check-evidence-storage-paths.mjs';
 import { runNextTypeScriptBuildIntegrityGuard } from './check-next-typescript-build-integrity.mjs';
 import { runRawRoleArrayGuard } from './check-raw-role-arrays.mjs';
@@ -60,6 +61,11 @@ const BANNED_PACKAGES = [
   },
 ];
 
+function runRequiredGuard(guard) {
+  const status = guard();
+  if (status !== 0) process.exit(status);
+}
+
 async function runGuard() {
   if (!fs.existsSync(LOCKFILE_PATH)) {
     console.error(`Error: ${LOCKFILE_PATH} not found.`);
@@ -94,42 +100,20 @@ async function runGuard() {
     process.exit(1);
   }
 
-  const evidencePathStatus = runEvidenceStoragePathGuard();
-  if (evidencePathStatus !== 0) {
-    process.exit(evidencePathStatus);
+  for (const guard of [
+    runEvidenceStoragePathGuard,
+    runServiceRoleStorageBoundaryGuard,
+    runSignedUrlExposureGuard,
+    runNextTypeScriptBuildIntegrityGuard,
+    runWorkflowSeedCredentialGuard,
+    runRawRoleArrayGuard,
+    runClaimStatusWriterGuard,
+    runBrandDisciplineGuard,
+  ]) {
+    runRequiredGuard(guard);
   }
 
-  const serviceRoleStorageBoundaryStatus = runServiceRoleStorageBoundaryGuard();
-  if (serviceRoleStorageBoundaryStatus !== 0) {
-    process.exit(serviceRoleStorageBoundaryStatus);
-  }
-
-  const signedUrlExposureStatus = runSignedUrlExposureGuard();
-  if (signedUrlExposureStatus !== 0) {
-    process.exit(signedUrlExposureStatus);
-  }
-
-  const nextTypeScriptBuildIntegrityStatus = runNextTypeScriptBuildIntegrityGuard();
-  if (nextTypeScriptBuildIntegrityStatus !== 0) {
-    process.exit(nextTypeScriptBuildIntegrityStatus);
-  }
-
-  const workflowSeedCredentialStatus = runWorkflowSeedCredentialGuard();
-  if (workflowSeedCredentialStatus !== 0) {
-    process.exit(workflowSeedCredentialStatus);
-  }
-
-  const rawRoleArrayStatus = runRawRoleArrayGuard();
-  if (rawRoleArrayStatus !== 0) {
-    process.exit(rawRoleArrayStatus);
-  }
-
-  const claimStatusWriterStatus = runClaimStatusWriterGuard();
-  if (claimStatusWriterStatus !== 0) {
-    process.exit(claimStatusWriterStatus);
-  }
-
-  console.log('✅ Security Guard passed. All enforced versions are clean.');
+  console.log('✅ Security Guard passed. All enforced checks are clean.');
 }
 
 runGuard().catch(err => {

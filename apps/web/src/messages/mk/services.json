@@ -1,12 +1,12 @@
 {
   "services": {
     "speed": {
-      "title": "Speed Guarantee",
-      "desc": "We review all new claims within <bold>24 business hours</bold>. You won't be left wondering."
+      "title": "Обврска за одговор",
+      "desc": "Ги прегледуваме сите нови барања во рок од <bold>24 работни часа</bold>. Нема да останете без јасен одговор."
     },
     "safety": {
-      "title": "No Win, No Fee",
-      "desc": "You pay nothing upfront. Our service fee is deducted only from the final compensation.",
+      "title": "Надомест по успешна наплата",
+      "desc": "Не плаќате ништо однапред. Нашиот надомест за услуга се одбива само по успешна наплата.",
       "speed": {
         "title": "Брза пријава",
         "description": "Потребни се помалку од 5 минути за поднесување."
