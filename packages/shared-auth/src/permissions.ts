@@ -18,6 +18,7 @@ export const PERMISSIONS = {
   // Admin
   'analytics.read': 'analytics.read',
   'settings.manage': 'settings.manage',
+  'tenants.manage': 'tenants.manage',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -35,33 +36,49 @@ export const ROLES = {
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
+type RolePermissions = Readonly<Record<Role, readonly Permission[]>>;
+
+const ALL_PERMISSIONS: readonly Permission[] = Object.freeze(Object.values(PERMISSIONS));
+
+const TENANT_ADMIN_PERMISSIONS: readonly Permission[] = Object.freeze([
+  PERMISSIONS['members.read'],
+  PERMISSIONS['members.write'],
+  PERMISSIONS['claims.read'],
+  PERMISSIONS['claims.update'],
+  PERMISSIONS['claims.assign'],
+  PERMISSIONS['roles.manage'],
+  PERMISSIONS['branches.manage'],
+  PERMISSIONS['analytics.read'],
+  PERMISSIONS['settings.manage'],
+]);
+
 // Permission matrix: which roles have which permissions
-const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  super_admin: Object.values(PERMISSIONS),
-  admin: Object.values(PERMISSIONS), // Legacy admin treated as super_admin
-  tenant_admin: Object.values(PERMISSIONS),
-  branch_manager: [
+export const ROLE_PERMISSIONS: RolePermissions = Object.freeze({
+  [ROLES.super_admin]: ALL_PERMISSIONS,
+  [ROLES.admin]: TENANT_ADMIN_PERMISSIONS,
+  [ROLES.tenant_admin]: TENANT_ADMIN_PERMISSIONS,
+  [ROLES.branch_manager]: Object.freeze([
     PERMISSIONS['members.read'],
     PERMISSIONS['members.write'],
     PERMISSIONS['claims.read'],
     PERMISSIONS['analytics.read'],
-  ],
-  staff: [
+  ]),
+  [ROLES.staff]: Object.freeze([
     PERMISSIONS['members.read'],
     PERMISSIONS['claims.read'],
     PERMISSIONS['claims.update'],
     PERMISSIONS['claims.assign'],
-  ],
-  agent: [PERMISSIONS['members.read'], PERMISSIONS['claims.read']],
-  member: [],
-};
+  ]),
+  [ROLES.agent]: Object.freeze([PERMISSIONS['members.read'], PERMISSIONS['claims.read']]),
+  [ROLES.member]: Object.freeze([]),
+});
 
 /**
  * Check if a role has a specific permission
  */
 export function hasPermission(role: string | null | undefined, permission: Permission): boolean {
   if (!role) return false;
-  const perms = ROLE_PERMISSIONS[role as Role];
+  const perms = ROLE_PERMISSIONS[role as Role] as readonly Permission[] | undefined;
   if (!perms) return false;
   return perms.includes(permission);
 }
@@ -71,7 +88,7 @@ export function hasPermission(role: string | null | undefined, permission: Permi
  */
 export function getRolePermissions(role: string | null | undefined): Permission[] {
   if (!role) return [];
-  return ROLE_PERMISSIONS[role as Role] ?? [];
+  return [...(ROLE_PERMISSIONS[role as Role] ?? [])];
 }
 
 /**
@@ -85,7 +102,7 @@ export function isSuperAdmin(role: string | null | undefined): boolean {
  * Check if role is tenant-level admin
  */
 export function isTenantAdmin(role: string | null | undefined): boolean {
-  return role === ROLES.tenant_admin || role === ROLES.super_admin;
+  return role === ROLES.admin || role === ROLES.tenant_admin || role === ROLES.super_admin;
 }
 
 /**
@@ -94,6 +111,7 @@ export function isTenantAdmin(role: string | null | undefined): boolean {
 export function isStaffOrHigher(role: string | null | undefined): boolean {
   return (
     role === ROLES.super_admin ||
+    role === ROLES.admin ||
     role === ROLES.tenant_admin ||
     role === ROLES.branch_manager ||
     role === ROLES.staff
