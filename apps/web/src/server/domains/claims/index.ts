@@ -1,6 +1,7 @@
 // v2.0.0-ops — Admin Claims lifecycle hardening
 import * as Sentry from '@sentry/nextjs';
 import 'server-only';
+import { assertNoTenantLeak } from '../tenant-leak';
 import { ClaimsSession, ensureClaimsAccess } from './guards';
 import { mapClaimsToDto } from './mappers';
 import { getClaimsListQuery } from './queries';
@@ -36,19 +37,7 @@ export async function getClaimsListV2(
 
         // LEAK SENTINEL: Confirm result purity (Dev/Stage/Test check)
         // In production this might be expensive if many rows, but critical for multi-tenant safety.
-        if (rows.length > 0) {
-          const leakingRow = rows.find(r => r.claim.tenantId !== accessConfig.tenantId);
-          if (leakingRow) {
-            console.error('🚨 TENANT LEAK DETECTED', {
-              userTenant: accessConfig.tenantId,
-              leakedRowId: leakingRow.claim.id,
-              leakedRowTenant: leakingRow.claim.tenantId,
-            });
-            throw new Error(
-              `CRITICAL: Tenant Data Leak Detected! User ${accessConfig.tenantId} saw data from ${leakingRow.claim.tenantId}`
-            );
-          }
-        }
+        assertNoTenantLeak(rows, accessConfig.tenantId);
 
         return dto;
       } catch (error) {
