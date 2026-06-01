@@ -120,7 +120,10 @@ async function openTaskQueueSecondaryActions(row: Locator): Promise<void> {
 
   const toggle = row.getByTestId('agent-crm-task-queue-secondary-toggle');
   await expect(toggle).toBeVisible();
+  await expect(toggle).toBeEnabled();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await expect(panel).toBeVisible();
 }
 
