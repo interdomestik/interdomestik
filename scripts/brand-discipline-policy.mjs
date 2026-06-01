@@ -15,7 +15,8 @@ export const BANNED_BRAND_FRAMINGS = [
   },
   {
     label: 'compensation promise framing',
-    pattern: /\bget your compensation\b|\bcompensation you deserve\b|\bfinal compensation\b/i,
+    pattern:
+      /\bget your compensation\b|\bcompensation you deserve\b|\bcompensation guaranteed\b|\bfinal compensation\b/i,
   },
   {
     label: 'final-opinion framing',

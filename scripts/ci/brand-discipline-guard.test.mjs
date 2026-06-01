@@ -96,6 +96,29 @@ test('brand discipline guard blocks seeded banned framing', () => {
   assert.match(failed.stderr, /no-win-no-fee framing|guaranteed service\/result framing/);
 });
 
+test('brand discipline guard blocks compensation guaranteed in locale and email copy', () => {
+  const localeRoot = createTempRoot('brand-discipline-compensation-locale-');
+  writeFixture(localeRoot, { pricingFreeStart: 'Compensation guaranteed after your case starts.' });
+
+  const localeFailed = runGuard(localeRoot);
+  assert.equal(localeFailed.status, 1, localeFailed.stderr);
+  assert.match(localeFailed.stderr, /compensation promise framing/);
+  assert.match(localeFailed.stderr, /apps\/web\/src\/messages\/sq\/pricing\.json/);
+
+  const emailRoot = createTempRoot('brand-discipline-compensation-email-');
+  writeFixture(emailRoot);
+  writeFile(
+    emailRoot,
+    'packages/domain-communications/src/email/thank-you-letter.ts',
+    "export const body = 'Compensation guaranteed after review.';\n"
+  );
+
+  const emailFailed = runGuard(emailRoot);
+  assert.equal(emailFailed.status, 1, emailFailed.stderr);
+  assert.match(emailFailed.stderr, /compensation promise framing/);
+  assert.match(emailFailed.stderr, /packages\/domain-communications\/src\/email\/thank-you-letter\.ts/);
+});
+
 test('brand discipline guard blocks missing required protective messages', () => {
   const root = createTempRoot('brand-discipline-missing-');
   writeFixture(root);
