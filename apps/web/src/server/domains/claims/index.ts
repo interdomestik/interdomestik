@@ -1,10 +1,9 @@
 // v2.0.0-ops — Admin Claims lifecycle hardening
 import * as Sentry from '@sentry/nextjs';
 import 'server-only';
-import { assertNoTenantLeak } from '../tenant-leak';
 import { ClaimsSession, ensureClaimsAccess } from './guards';
+import { getTenantSafeClaimsListQuery } from './list-query';
 import { mapClaimsToDto } from './mappers';
-import { getClaimsListQuery } from './queries';
 import type { ClaimsListV2Dto, ClaimsListV2Filters } from './types';
 
 export async function getClaimsListV2(
@@ -30,14 +29,10 @@ export async function getClaimsListV2(
         };
 
         // 2. Query
-        const { rows, facets } = await getClaimsListQuery(filters);
+        const { rows, facets } = await getTenantSafeClaimsListQuery(filters, accessConfig.tenantId);
 
         // 3. Map
         const dto = mapClaimsToDto(rows, facets, params.page || 1, params.perPage || 20);
-
-        // LEAK SENTINEL: Confirm result purity (Dev/Stage/Test check)
-        // In production this might be expensive if many rows, but critical for multi-tenant safety.
-        assertNoTenantLeak(rows, accessConfig.tenantId);
 
         return dto;
       } catch (error) {

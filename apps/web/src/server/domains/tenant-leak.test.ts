@@ -43,4 +43,20 @@ describe('assertNoTenantLeak', () => {
       leakedRowTenant: 'tenant-b',
     });
   });
+
+  it('catches overlapping claim ids from another tenant', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    expect(() =>
+      assertNoTenantLeak(
+        [claimRow('shared-claim-id', 'tenant-a'), claimRow('shared-claim-id', 'tenant-b')],
+        'tenant-a'
+      )
+    ).toThrow('CRITICAL: Tenant Data Leak Detected! User tenant-a saw data from tenant-b');
+    expect(errorSpy).toHaveBeenCalledWith('🚨 TENANT LEAK DETECTED', {
+      userTenant: 'tenant-a',
+      leakedRowId: 'shared-claim-id',
+      leakedRowTenant: 'tenant-b',
+    });
+  });
 });
