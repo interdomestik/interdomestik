@@ -3,6 +3,7 @@ import path from 'node:path';
 import { runBrandDisciplineGuard } from './check-brand-discipline.mjs';
 import { runEvidenceStoragePathGuard } from './check-evidence-storage-paths.mjs';
 import { runNextTypeScriptBuildIntegrityGuard } from './check-next-typescript-build-integrity.mjs';
+import { runModularityGuard } from './check-modularity-guard.mjs';
 import { runRawRoleArrayGuard } from './check-raw-role-arrays.mjs';
 import { runServiceRoleStorageBoundaryGuard } from './check-service-role-storage-boundary.mjs';
 import { runClaimStatusWriterGuard } from './check-claim-status-writers.mjs';
@@ -106,6 +107,7 @@ async function runGuard() {
     runSignedUrlExposureGuard,
     runNextTypeScriptBuildIntegrityGuard,
     runWorkflowSeedCredentialGuard,
+    runModularityGuard,
     runRawRoleArrayGuard,
     runClaimStatusWriterGuard,
     runBrandDisciplineGuard,
