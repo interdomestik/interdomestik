@@ -36,7 +36,11 @@ export const ROLES = {
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
-const TENANT_ADMIN_PERMISSIONS = [
+type RolePermissions = Readonly<Record<Role, readonly Permission[]>>;
+
+const ALL_PERMISSIONS: readonly Permission[] = Object.freeze(Object.values(PERMISSIONS));
+
+const TENANT_ADMIN_PERMISSIONS: readonly Permission[] = Object.freeze([
   PERMISSIONS['members.read'],
   PERMISSIONS['members.write'],
   PERMISSIONS['claims.read'],
@@ -46,28 +50,28 @@ const TENANT_ADMIN_PERMISSIONS = [
   PERMISSIONS['branches.manage'],
   PERMISSIONS['analytics.read'],
   PERMISSIONS['settings.manage'],
-] as const satisfies readonly Permission[];
+]);
 
 // Permission matrix: which roles have which permissions
-export const ROLE_PERMISSIONS = {
-  [ROLES.super_admin]: Object.values(PERMISSIONS),
+export const ROLE_PERMISSIONS: RolePermissions = Object.freeze({
+  [ROLES.super_admin]: ALL_PERMISSIONS,
   [ROLES.admin]: TENANT_ADMIN_PERMISSIONS,
   [ROLES.tenant_admin]: TENANT_ADMIN_PERMISSIONS,
-  [ROLES.branch_manager]: [
+  [ROLES.branch_manager]: Object.freeze([
     PERMISSIONS['members.read'],
     PERMISSIONS['members.write'],
     PERMISSIONS['claims.read'],
     PERMISSIONS['analytics.read'],
-  ],
-  [ROLES.staff]: [
+  ]),
+  [ROLES.staff]: Object.freeze([
     PERMISSIONS['members.read'],
     PERMISSIONS['claims.read'],
     PERMISSIONS['claims.update'],
     PERMISSIONS['claims.assign'],
-  ],
-  [ROLES.agent]: [PERMISSIONS['members.read'], PERMISSIONS['claims.read']],
-  [ROLES.member]: [],
-} satisfies Record<Role, readonly Permission[]>;
+  ]),
+  [ROLES.agent]: Object.freeze([PERMISSIONS['members.read'], PERMISSIONS['claims.read']]),
+  [ROLES.member]: Object.freeze([]),
+});
 
 /**
  * Check if a role has a specific permission
@@ -98,7 +102,7 @@ export function isSuperAdmin(role: string | null | undefined): boolean {
  * Check if role is tenant-level admin
  */
 export function isTenantAdmin(role: string | null | undefined): boolean {
-  return role === ROLES.tenant_admin || role === ROLES.super_admin;
+  return role === ROLES.admin || role === ROLES.tenant_admin || role === ROLES.super_admin;
 }
 
 /**
@@ -107,6 +111,7 @@ export function isTenantAdmin(role: string | null | undefined): boolean {
 export function isStaffOrHigher(role: string | null | undefined): boolean {
   return (
     role === ROLES.super_admin ||
+    role === ROLES.admin ||
     role === ROLES.tenant_admin ||
     role === ROLES.branch_manager ||
     role === ROLES.staff

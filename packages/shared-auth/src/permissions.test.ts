@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getRolePermissions,
+  isTenantAdmin,
   PERMISSIONS,
   ROLE_PERMISSIONS,
   ROLES,
@@ -33,6 +34,14 @@ describe('ROLE_PERMISSIONS', () => {
     }
   });
 
+  it('exports immutable role permission arrays', () => {
+    expect(Object.isFrozen(ROLE_PERMISSIONS)).toBe(true);
+
+    for (const permissions of Object.values(ROLE_PERMISSIONS)) {
+      expect(Object.isFrozen(permissions)).toBe(true);
+    }
+  });
+
   it('keeps admin and tenant_admin distinct from super_admin', () => {
     const superAdminPermissions = sortedPermissions(getRolePermissions(ROLES.super_admin));
 
@@ -44,5 +53,12 @@ describe('ROLE_PERMISSIONS', () => {
       expect(permissions).not.toEqual(superAdminPermissions);
       expect(permissions).not.toContain(PERMISSIONS['tenants.manage']);
     }
+  });
+
+  it('treats admin and tenant_admin as tenant-level administrators', () => {
+    expect(isTenantAdmin(ROLES.admin)).toBe(true);
+    expect(isTenantAdmin(ROLES.tenant_admin)).toBe(true);
+    expect(isTenantAdmin(ROLES.super_admin)).toBe(true);
+    expect(isTenantAdmin(ROLES.staff)).toBe(false);
   });
 });
