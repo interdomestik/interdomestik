@@ -9,12 +9,14 @@ import {
 } from './permissions';
 
 function sortedPermissions(permissions: readonly Permission[]): Permission[] {
-  return [...permissions].sort();
+  return [...permissions].sort((left, right) => left.localeCompare(right));
 }
 
 describe('ROLE_PERMISSIONS', () => {
   it('covers every declared role exactly once', () => {
-    expect(Object.keys(ROLE_PERMISSIONS).sort()).toEqual(Object.values(ROLES).sort());
+    expect(Object.keys(ROLE_PERMISSIONS).sort((left, right) => left.localeCompare(right))).toEqual(
+      Object.values(ROLES).sort((left, right) => left.localeCompare(right))
+    );
 
     for (const role of Object.values(ROLES)) {
       expect(Array.isArray(ROLE_PERMISSIONS[role])).toBe(true);
