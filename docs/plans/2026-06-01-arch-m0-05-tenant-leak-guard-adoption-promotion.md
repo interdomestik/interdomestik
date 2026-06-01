@@ -21,7 +21,7 @@ Goal: apply the reusable `assertNoTenantLeak(rows, tenantId)` guard to every app
 
 ## Scope
 
-- Inventory current list queries under `apps/web/src/server/domains/*`.
+- Inventory current list queries under `server/domains/*`.
 - Apply `assertNoTenantLeak(rows, tenantId)` only to list-query paths that return tenant-scoped rows.
 - Add static proof that applicable list queries do not return tenant-scoped rows without the guard.
 - Add focused two-tenant overlapping-id fuzz or unit proof.
