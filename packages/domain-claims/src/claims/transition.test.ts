@@ -75,7 +75,12 @@ describe('transitionClaimStatusInTransaction', () => {
 
     const result = await transitionClaimStatusInTransaction(tx, makeParams());
 
-    expect(result).toEqual({ success: true, lifecycleVersion: 7, status: 'negotiation' });
+    expect(result).toEqual({
+      success: true,
+      fromStatus: 'evaluation',
+      lifecycleVersion: 7,
+      status: 'negotiation',
+    });
     expect(calls.updateValues).toEqual(
       expect.objectContaining({
         status: 'negotiation',
@@ -145,5 +150,34 @@ describe('transitionClaimStatusInTransaction', () => {
     expect(result).toEqual({ success: false, error: 'transition_rejected' });
     expect(calls.updateValues).toBeUndefined();
     expect(calls.historyValues).toBeUndefined();
+  });
+
+  it('keeps same-status history behind the lifecycle-version compare-and-set', async () => {
+    const { calls, tx } = makeTx({
+      current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
+      updated: [{ id: 'claim-1', lifecycleVersion: 6 }],
+    });
+
+    const result = await transitionClaimStatusInTransaction(
+      tx,
+      makeParams({ toStatus: 'evaluation' })
+    );
+
+    expect(result).toEqual({
+      success: true,
+      fromStatus: 'evaluation',
+      lifecycleVersion: 6,
+      status: 'evaluation',
+    });
+    expect(calls.updateValues).toEqual({ updatedAt: expect.any(Date) });
+    const updateWhere = inspect(calls.whereConditions.at(-1), { depth: 20 });
+    expect(updateWhere).toContain('lifecycle_version');
+    expect(updateWhere).toContain('status');
+    expect(calls.historyValues).toEqual(
+      expect.objectContaining({
+        fromStatus: 'evaluation',
+        toStatus: 'evaluation',
+      })
+    );
   });
 });
