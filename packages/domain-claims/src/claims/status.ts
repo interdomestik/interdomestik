@@ -2,18 +2,7 @@ import { claims, db, eq } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
-import type { ClaimsDeps, ClaimsSession } from './types';
-
-const VALID_STATUSES = [
-  'draft',
-  'submitted',
-  'verification',
-  'evaluation',
-  'negotiation',
-  'court',
-  'resolved',
-  'rejected',
-] as const;
+import type { ActionResult, ClaimsDeps, ClaimsSession } from './types';
 
 import { claimStatusSchema } from '../validators/claims';
 
@@ -29,16 +18,16 @@ export async function updateClaimStatusCore(
     newStatus: string;
   },
   deps: ClaimsDeps = {}
-) {
+): Promise<ActionResult> {
   const { session, requestHeaders, claimId, newStatus } = params;
 
   if (!session || !isStaffOrAdmin(session.user.role ?? null)) {
-    return { error: 'Unauthorized' };
+    return { success: false, error: 'Unauthorized', data: undefined };
   }
 
   const parsed = claimStatusSchema.safeParse({ status: newStatus });
   if (!parsed.success) {
-    return { error: 'Invalid status' };
+    return { success: false, error: 'Invalid status', data: undefined };
   }
 
   // validated by safeParse above
@@ -53,7 +42,7 @@ export async function updateClaimStatusCore(
     });
 
     if (!claim) {
-      return { error: 'Claim not found' };
+      return { success: false, error: 'Claim not found', data: undefined };
     }
 
     const oldStatus = claim.status;
@@ -107,9 +96,9 @@ export async function updateClaimStatusCore(
       await deps.revalidatePath('/member/claims');
     }
 
-    return { success: true };
+    return { success: true, error: undefined };
   } catch (e) {
     console.error('Failed to update status:', e);
-    return { error: 'Failed to update status' };
+    return { success: false, error: 'Failed to update status', data: undefined };
   }
 }
