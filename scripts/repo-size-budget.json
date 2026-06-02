@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "maxTrackedBytes": 31000000,
-  "maxTrackedFiles": 3861,
+  "maxTrackedBytes": 31001000,
+  "maxTrackedFiles": 3862,
   "maxLargestFileBytes": 1048576,
   "maxSourceOrTestLines": 3000,
   "maxCategoryBytes": {
