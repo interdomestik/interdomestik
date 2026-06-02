@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { submitClaim } from './claims.core';
 import { createClaim, updateClaimStatus } from './claims';
 
-// Mocks
 const mockGetSession = vi.fn();
 const mockDbInsert = vi.fn().mockReturnValue({
   onConflictDoUpdate: vi.fn().mockReturnValue({
@@ -14,6 +13,11 @@ const mockDbInsert = vi.fn().mockReturnValue({
   returning: vi.fn().mockResolvedValue([{ id: 'claim-1' }]),
 });
 const mockDbUpdate = vi.fn();
+const mockTxSelectLimit = vi
+  .fn()
+  .mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 1, status: 'submitted' }]);
+const mockTxUpdateReturning = vi.fn().mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
+const mockPaymentLimit = vi.fn().mockResolvedValue([{ paymentAuthorizationState: 'authorized' }]);
 const mockHasActiveMembership = vi.fn();
 const mockGetActiveSubscription = vi.fn();
 const mockValidateInitialClaimEvidenceUpload = vi.hoisted(() => vi.fn());
@@ -47,22 +51,17 @@ vi.mock('@interdomestik/database/claim-number', () => ({
 vi.mock('@interdomestik/database', () => ({
   db: {
     insert: () => ({ values: mockDbInsert }),
+    select: () => ({ from: () => ({ where: () => ({ limit: mockPaymentLimit }) }) }),
     update: () => ({ set: () => ({ where: mockDbUpdate }) }),
-    transaction: async (fn: (tx: unknown) => Promise<void>) => {
-      return fn({
-        insert: () => ({
-          values: mockDbInsert,
-        }),
+    transaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
+      fn({
+        insert: () => ({ values: mockDbInsert }),
+        select: () => ({ from: () => ({ where: () => ({ limit: mockTxSelectLimit }) }) }),
+        update: () => ({ set: () => ({ where: () => ({ returning: mockTxUpdateReturning }) }) }),
         query: {
-          tenants: {
-            findFirst: vi.fn().mockResolvedValue({
-              id: 'tenant_mk',
-              countryCode: 'MK',
-            }),
-          },
+          tenants: { findFirst: vi.fn().mockResolvedValue({ id: 'tenant_mk', countryCode: 'MK' }) },
         },
-      });
-    },
+      }),
     query: {
       subscriptions: {
         findFirst: vi.fn().mockResolvedValue({
@@ -111,7 +110,12 @@ vi.mock('@interdomestik/database', () => ({
     memberId: { name: 'memberId' },
     status: { name: 'status' },
   },
-  claims: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
+  claims: { id: 'id', lifecycleVersion: 'lifecycleVersion', status: 'status', tenantId: {} },
+  claimEscalationAgreements: {
+    claimId: 'claimId',
+    paymentAuthorizationState: 'payment',
+    tenantId: {},
+  },
   claimStageHistory: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   claimDocuments: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   documents: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
@@ -137,12 +141,10 @@ vi.mock('@interdomestik/database', () => ({
   sql: (_strings: TemplateStringsArray, ..._values: unknown[]) => 'sql-mock',
 }));
 
-// Mock nanoid
 vi.mock('nanoid', () => ({
   nanoid: () => 'test-id',
 }));
 
-// Mock next/navigation utils
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
@@ -151,7 +153,6 @@ vi.mock('next/headers', () => ({
   headers: vi.fn(),
 }));
 
-// Mock notifications (prevents Novu SDK initialization)
 vi.mock('@/lib/notifications', () => ({
   notifyClaimSubmitted: vi.fn().mockResolvedValue({ success: true }),
   notifyStatusChanged: vi.fn().mockResolvedValue({ success: true }),
@@ -174,6 +175,10 @@ describe('Claim Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockValidateInitialClaimEvidenceUpload.mockResolvedValue(undefined);
+    mockTxSelectLimit.mockResolvedValue([
+      { id: 'claim-1', lifecycleVersion: 1, status: 'submitted' },
+    ]);
+    mockTxUpdateReturning.mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
     mockHasActiveMembership.mockResolvedValue(true);
     mockGetActiveSubscription.mockResolvedValue({
       id: 'sub-def',
@@ -182,8 +187,6 @@ describe('Claim Actions', () => {
       agentId: 'agent-1',
       status: 'active',
     });
-
-    // Keep submitClaimCore bucket validation deterministic across environments.
     process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET = 'claim-evidence';
   });
 
@@ -191,7 +194,6 @@ describe('Claim Actions', () => {
     it('should fail if user has no active membership', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
-      // Explicitly return null for subscription
       mockGetActiveSubscription.mockResolvedValueOnce(null);
 
       const formData = new FormData();
@@ -288,7 +290,7 @@ describe('Claim Actions', () => {
       });
       const result = await updateClaimStatus('claim-1', 'resolved');
 
-      expect(mockDbUpdate).toHaveBeenCalled();
+      expect(mockTxUpdateReturning).toHaveBeenCalled();
       expect(result).toEqual({ success: true });
     });
 
@@ -298,7 +300,7 @@ describe('Claim Actions', () => {
       });
       const result = await updateClaimStatus('claim-1', 'resolved');
 
-      expect(mockDbUpdate).toHaveBeenCalled();
+      expect(mockTxUpdateReturning).toHaveBeenCalled();
       expect(result).toEqual({ success: true });
     });
 
@@ -530,7 +532,7 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue({
         user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
       });
-      mockDbUpdate.mockRejectedValueOnce(new Error('DB Error'));
+      mockTxSelectLimit.mockRejectedValueOnce(new Error('DB Error'));
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -545,8 +547,6 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue({
         user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
       });
-      mockDbUpdate.mockResolvedValue(undefined);
-
       for (const status of CLAIM_STATUSES) {
         const result = await updateClaimStatus('claim-1', status);
         expect(result).toEqual({ success: true });

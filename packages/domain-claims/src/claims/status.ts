@@ -1,13 +1,58 @@
-import { claims, db, eq } from '@interdomestik/database';
+import { db } from '@interdomestik/database';
+import type { ClaimStatus } from '@interdomestik/database/constants';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ActionResult, ClaimsDeps, ClaimsSession } from './types';
+import type { TransitionClaimStatusResult } from './transition';
 
+import { getPaymentAuthorizationState } from '../admin-claims/payment-authorization';
 import { claimStatusSchema } from '../validators/claims';
+import { transitionClaimStatus } from './transition';
 
 function isStaffOrAdmin(role: string | null | undefined): boolean {
   return role === 'staff' || role === 'admin';
+}
+
+function transitionFailureMessage(error: string): string {
+  if (error === 'claim_not_found') {
+    return 'Claim not found';
+  }
+
+  if (error === 'invalid_current_status') {
+    return 'Invalid current claim status';
+  }
+
+  return 'Invalid status transition';
+}
+
+type FailedTransition = Extract<TransitionClaimStatusResult, { success: false }>;
+
+function transitionFailureResult(result: FailedTransition): ActionResult {
+  return { success: false, error: transitionFailureMessage(result.error), data: undefined };
+}
+
+async function runStatusTransition(args: {
+  actorId: string;
+  actorRole: string | null | undefined;
+  claimId: string;
+  status: ClaimStatus;
+  tenantId: string;
+}): Promise<TransitionClaimStatusResult> {
+  const { actorId, actorRole, claimId, status, tenantId } = args;
+  const paymentAuthorizationState = await getPaymentAuthorizationState({
+    claimId,
+    status,
+    tenantId,
+  });
+
+  return transitionClaimStatus({
+    actor: { id: actorId, role: actorRole ?? null },
+    claimId,
+    ...(paymentAuthorizationState === undefined ? {} : { paymentAuthorizationState }),
+    tenantId,
+    toStatus: status,
+  });
 }
 
 export async function updateClaimStatusCore(
@@ -45,33 +90,33 @@ export async function updateClaimStatusCore(
       return { success: false, error: 'Claim not found', data: undefined };
     }
 
-    const oldStatus = claim.status;
+    const transitionResult = await runStatusTransition({
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      claimId,
+      status,
+      tenantId,
+    });
 
-    await db
-      .update(claims)
-      .set({
-        status,
-        updatedAt: new Date(),
-      })
-      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
-
-    if (deps.logAuditEvent) {
-      await deps.logAuditEvent({
-        actorId: session.user.id,
-        actorRole: session.user.role,
-        tenantId,
-        action: 'claim.status_changed',
-        entityType: 'claim',
-        entityId: claimId,
-        metadata: {
-          oldStatus,
-          newStatus,
-        },
-        headers: requestHeaders,
-      });
+    if (!transitionResult.success) {
+      return transitionFailureResult(transitionResult);
     }
 
-    if (claim.userId && oldStatus !== newStatus && deps.notifyStatusChanged) {
+    const oldStatus = transitionResult.fromStatus;
+    const persistedStatus = transitionResult.status;
+
+    await deps.logAuditEvent?.({
+      action: 'claim.status_changed',
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      entityId: claimId,
+      entityType: 'claim',
+      headers: requestHeaders,
+      metadata: { oldStatus, newStatus: persistedStatus },
+      tenantId,
+    });
+
+    if (claim.userId && oldStatus !== persistedStatus && deps.notifyStatusChanged) {
       const member = await db.query.user.findFirst({
         where: (userTable, { eq }) =>
           withTenant(tenantId, userTable.tenantId, eq(userTable.id, claim.userId)),
@@ -83,8 +128,8 @@ export async function updateClaimStatusCore(
             claim.userId,
             member.email,
             { id: claimId, title: claim.title },
-            oldStatus ?? 'unknown',
-            newStatus
+            oldStatus,
+            persistedStatus
           )
         ).catch((err: Error) => console.error('Failed to send status change notification:', err));
       }
