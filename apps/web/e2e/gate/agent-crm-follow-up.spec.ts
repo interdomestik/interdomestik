@@ -108,22 +108,22 @@ async function seedCookieConsent(page: Page, testInfo: TestInfo): Promise<void> 
 
 async function openTaskQueueSecondaryActions(row: Locator): Promise<void> {
   const panel = row.getByTestId('agent-crm-task-queue-secondary-panel');
-  if (
-    (await panel.count()) > 0 &&
-    (await panel
+  const panelVisible = () =>
+    panel
       .first()
       .isVisible()
-      .catch(() => false))
-  ) {
-    return;
-  }
+      .catch(() => false);
+  if (await panelVisible()) return;
 
   const toggle = row.getByTestId('agent-crm-task-queue-secondary-toggle');
   await expect(toggle).toBeVisible();
   await expect(toggle).toBeEnabled();
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-  await toggle.click();
-  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+  await expect(async () => {
+    if (!(await panelVisible())) await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true', { timeout: 1000 });
+  }).toPass({ intervals: [250, 500, 1000], timeout: 5000 });
   await expect(panel).toBeVisible();
 }
 
