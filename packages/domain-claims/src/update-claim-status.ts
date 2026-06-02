@@ -1,7 +1,12 @@
-import { and, claimStageHistory, claims, db, eq, isNull } from '@interdomestik/database';
+import { and, claims, db, eq } from '@interdomestik/database';
+import type { ClaimStatus } from '@interdomestik/database/constants';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
+import {
+  ClaimTransitionConflictError,
+  transitionClaimStatusInTransaction,
+} from './claims/transition';
 import type { ActionResult, ClaimsSession } from './claims/types';
 import { claimStatusSchema } from './validators/claims';
 
@@ -31,69 +36,54 @@ export async function updateClaimStatus(params: {
       ? and(eq(claims.id, claimId), eq(claims.branchId, branchId))
       : and(eq(claims.id, claimId), eq(claims.staffId, user.id));
   const scopedWhere = withTenant(tenantId, claims.tenantId, scope);
-  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  return db.transaction(async tx => {
+  try {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    const [existingClaim] = await tx
-      .select({
-        id: claims.id,
-        status: claims.status,
-      })
-      .from(claims)
-      .where(scopedWhere)
-      .limit(1);
+    return await db.transaction(async tx => {
+      // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
+      const [existingClaim] = await tx
+        .select({
+          id: claims.id,
+          status: claims.status,
+        })
+        .from(claims)
+        .where(scopedWhere)
+        .limit(1);
 
-    if (!existingClaim) {
-      return { success: false, error: 'Claim not found or access denied', data: undefined };
-    }
+      if (!existingClaim) {
+        return { success: false, error: 'Claim not found or access denied', data: undefined };
+      }
 
-    if (existingClaim.status === parsed.data.status && !note) {
+      if (existingClaim.status === parsed.data.status && !note) {
+        return { success: true, error: undefined };
+      }
+
+      const transitionResult = await transitionClaimStatusInTransaction(
+        tx as unknown as Parameters<typeof transitionClaimStatusInTransaction>[0],
+        {
+          actor: { id: user.id, role: 'staff' },
+          claimId,
+          isPublic: true,
+          note: note ?? null,
+          requiredWhereCondition: scope,
+          tenantId,
+          toStatus: parsed.data.status as ClaimStatus,
+        }
+      );
+
+      if (!transitionResult.success) {
+        const error =
+          transitionResult.error === 'claim_not_found'
+            ? 'Claim not found or access denied'
+            : 'Failed to update claim status';
+        return { success: false, error, data: undefined };
+      }
+
       return { success: true, error: undefined };
-    }
-
-    const now = new Date();
-    const previousStatus = existingClaim.status;
-    const nextStatus = parsed.data.status as NonNullable<typeof existingClaim.status>;
-    const updateData: {
-      status: NonNullable<typeof existingClaim.status>;
-      updatedAt: Date;
-      statusUpdatedAt?: Date;
-    } = {
-      status: nextStatus,
-      updatedAt: now,
-    };
-    if (existingClaim.status !== nextStatus) {
-      updateData.statusUpdatedAt = now;
-    }
-
-    const statusGuard =
-      previousStatus == null ? isNull(claims.status) : eq(claims.status, previousStatus);
-
-    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    const updatedClaims = await tx
-      .update(claims)
-      .set(updateData)
-      .where(and(scopedWhere, statusGuard))
-      .returning({ id: claims.id });
-
-    if (updatedClaims.length === 0) {
+    });
+  } catch (error) {
+    if (error instanceof ClaimTransitionConflictError) {
       return { success: false, error: 'Claim not found or access denied', data: undefined };
     }
-
-    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await tx.insert(claimStageHistory).values({
-      id: crypto.randomUUID(),
-      tenantId,
-      claimId,
-      fromStatus: previousStatus,
-      toStatus: nextStatus,
-      changedById: user.id,
-      changedByRole: 'staff',
-      note: note ?? null,
-      isPublic: true,
-      createdAt: now,
-    });
-
-    return { success: true, error: undefined };
-  });
+    throw error;
+  }
 }
