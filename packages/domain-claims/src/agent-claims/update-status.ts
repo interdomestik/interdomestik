@@ -3,7 +3,9 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ActionResult, ClaimsDeps, ClaimsSession } from '../claims/types';
+import { transitionClaimStatus } from '../claims/transition';
 import { claimStatusSchema } from '../validators/claims';
+import { getPaymentAuthorizationState } from '../admin-claims/payment-authorization';
 
 function isStaff(role: string | null | undefined) {
   return role === 'staff';
@@ -11,6 +13,18 @@ function isStaff(role: string | null | undefined) {
 
 function isStaffOrAdmin(role: string | null | undefined) {
   return role === 'staff' || role === 'admin';
+}
+
+function transitionFailureMessage(error: string): string {
+  if (error === 'claim_not_found') {
+    return 'Claim not found';
+  }
+
+  if (error === 'invalid_current_status') {
+    return 'Invalid current claim status';
+  }
+
+  return 'Invalid status transition';
 }
 
 export async function updateClaimStatusCore(
@@ -59,13 +73,30 @@ export async function updateClaimStatusCore(
     return { success: false, error: 'Access denied', data: undefined };
   }
 
-  const oldStatus = claimWithUser.status || 'draft';
+  const paymentAuthorizationState = await getPaymentAuthorizationState({
+    claimId,
+    status,
+    tenantId,
+  });
 
-  // Update status
-  await db
-    .update(claims)
-    .set({ status: status })
-    .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
+  const transitionResult = await transitionClaimStatus({
+    actor: { id: session.user.id, role: session.user.role ?? null },
+    claimId,
+    ...(paymentAuthorizationState !== undefined ? { paymentAuthorizationState } : {}),
+    tenantId,
+    toStatus: status,
+  });
+
+  if (!transitionResult.success) {
+    return {
+      success: false,
+      error: transitionFailureMessage(transitionResult.error),
+      data: undefined,
+    };
+  }
+
+  const oldStatus = transitionResult.fromStatus;
+  const persistedStatus = transitionResult.status;
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
@@ -77,7 +108,7 @@ export async function updateClaimStatusCore(
       entityId: claimId,
       metadata: {
         oldStatus,
-        newStatus: status,
+        newStatus: persistedStatus,
       },
       headers: requestHeaders,
     });
@@ -87,7 +118,7 @@ export async function updateClaimStatusCore(
   if (
     claimWithUser.userId &&
     claimWithUser.userEmail &&
-    oldStatus !== status &&
+    oldStatus !== persistedStatus &&
     deps.notifyStatusChanged
   ) {
     Promise.resolve(
@@ -96,7 +127,7 @@ export async function updateClaimStatusCore(
         claimWithUser.userEmail,
         { id: claimWithUser.id, title: claimWithUser.title },
         oldStatus,
-        status
+        persistedStatus
       )
     ).catch((err: Error) => console.error('Failed to send status notification:', err));
   }

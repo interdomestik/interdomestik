@@ -32,7 +32,6 @@ export const CLAIM_STATUS_WRITER_ALLOWLIST = new Set([
   'packages/database/src/seed-golden/claims.ts',
   'packages/database/src/seed-packs/ks-workflow-pack.ts',
   'packages/database/test/rls-engaged.test.ts',
-  'packages/domain-claims/src/agent-claims/update-status.ts',
   'packages/domain-claims/src/claims/create.ts',
   'packages/domain-claims/src/claims/draft.ts',
   'packages/domain-claims/src/claims/status.ts',
@@ -50,14 +49,26 @@ export const CLAIM_STATUS_WRITER_ALLOWLIST = new Set([
 const CLAIMS_REF = String.raw`(?:schema\.)?claims`;
 const STATUS_UPDATE_PATTERNS = [
   // Drizzle updates with status in set
-  new RegExp(String.raw`\.update\(\s*${CLAIMS_REF}\s*\)[\s\S]{0,1200}\.set\(\s*\{[\s\S]{0,800}\bstatus\b`, 'u'),
-  new RegExp(String.raw`\.update\(\s*${CLAIMS_REF}\s*\)[\s\S]{0,1200}\.set\(\s*updateData\s*\)`, 'u'),
+  new RegExp(
+    String.raw`\.update\(\s*${CLAIMS_REF}\s*\)[\s\S]{0,1200}\.set\(\s*\{[\s\S]{0,800}\bstatus\b`,
+    'u'
+  ),
+  new RegExp(
+    String.raw`\.update\(\s*${CLAIMS_REF}\s*\)[\s\S]{0,1200}\.set\(\s*updateData\s*\)`,
+    'u'
+  ),
   // Drizzle inserts with status
-  new RegExp(String.raw`\.insert\(\s*${CLAIMS_REF}\s*\)[\s\S]{0,1400}\.values\(\s*\{[\s\S]{0,1000}\bstatus\s*:`, 'u'),
-  new RegExp(String.raw`\.insert\(\s*${CLAIMS_REF}\s*\)[\s\S]{0,1800}\.onConflictDoUpdate\([\s\S]{0,900}\bstatus\s*:`, 'u'),
+  new RegExp(
+    String.raw`\.insert\(\s*${CLAIMS_REF}\s*\)[\s\S]{0,1400}\.values\(\s*\{[\s\S]{0,1000}\bstatus\s*:`,
+    'u'
+  ),
+  new RegExp(
+    String.raw`\.insert\(\s*${CLAIMS_REF}\s*\)[\s\S]{0,1800}\.onConflictDoUpdate\([\s\S]{0,900}\bstatus\s*:`,
+    'u'
+  ),
   // Raw SQL updates/inserts
-  /UPDATE\s+claims\s+SET\s+[\s\S]{0,150}\bstatus\b/ui,
-  /INSERT\s+INTO\s+claims\s+[\s\S]{0,250}\bstatus\b/ui,
+  /UPDATE\s+claims\s+SET\s+[\s\S]{0,150}\bstatus\b/iu,
+  /INSERT\s+INTO\s+claims\s+[\s\S]{0,250}\bstatus\b/iu,
 ];
 
 function toPosix(value) {
