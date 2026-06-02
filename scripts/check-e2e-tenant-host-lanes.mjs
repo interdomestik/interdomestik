@@ -85,9 +85,9 @@ const TENANT_HOST_FILE_ALLOWLIST = new Map([
 
 const E2E_FILE_GLOBS = [`${e2eRoot}/**/*.{ts,tsx}`];
 const COUNTRY_HOST_PATTERN =
-  /\b(?:ks|mk|al|pilot)\.(?:localhost|127\.0\.0\.1\.nip\.io|interdomestik\.com)(?::\d+)?\b/u;
+  /\b(?:ks|mk|al|pilot)\.(?:localhost|127\.0\.0\.1\.nip\.io|interdomestik\.com)(?::\d+)?\b/iu;
 const TENANT_HOST_ENV_PATTERN = /\b(?:KS|MK|AL|PILOT)_HOST\b/u;
-const FORWARDED_HOST_PATTERN = /['"]x-forwarded-host['"]\s*:/u;
+const FORWARDED_HOST_PATTERN = /['"`]x-forwarded-host['"`]\s*(?::|\])/iu;
 const TENANT_BASE_URL_PATTERN = /tenantBaseUrl\s*\(/u;
 const TENANT_BASE_URL_HOST_PATTERN = /tenantBaseUrl\s*\(\s*(KS_HOST|MK_HOST|AL_HOST|PILOT_HOST)\b/u;
 const TENANT_HOST_USAGE_PATTERNS = [

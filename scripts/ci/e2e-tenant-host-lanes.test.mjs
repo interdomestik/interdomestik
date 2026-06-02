@@ -53,6 +53,7 @@ test('tenant-host lane guard passes current inventoried alias and regression fil
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /E2E tenant-host lane guard passed/u);
+  assert.match(result.stdout, /12 projects, 17 files inventoried/u);
 });
 
 test('tenant-host lane guard blocks new dashboard or auth specs from using host as tenant identity', t => {
@@ -70,7 +71,7 @@ test('tenant-host lane guard blocks new dashboard or auth specs from using host 
       "import { test } from '@playwright/test';",
       '',
       "test('new auth flow', async ({ page }) => {",
-      "  await page.setExtraHTTPHeaders({ 'x-forwarded-host': 'ks.localhost:3000' });",
+      "  await page.setExtraHTTPHeaders({ [`X-Forwarded-Host`]: 'ks.localhost:3000' });",
       "  await page.goto('/sq/login');",
       '});',
       '',
@@ -96,7 +97,7 @@ test('tenant-host lane guard blocks direct country-host project baseURL literals
       '  projects: [',
       '    {',
       "      name: 'new-country-host-lane',",
-      "      use: { baseURL: 'http://ks.localhost:3000/sq' },",
+      "      use: { baseURL: 'http://KS.localhost:3000/sq' },",
       '    },',
       '  ],',
       '};',
