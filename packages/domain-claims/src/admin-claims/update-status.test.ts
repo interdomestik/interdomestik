@@ -1,61 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  selectWhere: vi.fn(),
-  selectLeftJoin: vi.fn(),
-  selectFrom: vi.fn(),
-  dbSelect: vi.fn(),
-  dbUpdate: vi.fn(),
-  transitionClaimStatus: vi.fn(),
-  withTenant: vi.fn((tenantId, tenantColumn, condition) => ({ tenantId, tenantColumn, condition })),
-}));
-
-mocks.selectLeftJoin.mockReturnValue({ where: mocks.selectWhere });
-mocks.selectFrom.mockReturnValue({ leftJoin: mocks.selectLeftJoin });
-mocks.dbSelect.mockReturnValue({ from: mocks.selectFrom });
-
-vi.mock('@interdomestik/database', () => ({
-  db: {
-    select: mocks.dbSelect,
-    update: mocks.dbUpdate,
-  },
-  claims: { id: 'claims.id', tenantId: 'claims.tenant_id', userId: 'claims.user_id' },
-  claimEscalationAgreements: {},
-  user: { id: 'user.id', email: 'user.email' },
-  eq: vi.fn((left, right) => ({ left, right })),
-}));
-
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
-}));
-
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: vi.fn(() => 'tenant-1'),
-}));
-
-vi.mock('../claims/transition', () => ({
-  transitionClaimStatus: mocks.transitionClaimStatus,
-}));
+import {
+  adminSession,
+  getUpdateStatusMocks,
+  mockClaim,
+  requestHeaders,
+} from './update-status.test-support';
 
 import { updateClaimStatusCore } from './update-status';
 
-const adminSession = {
-  user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant-1' },
-} as never;
-
-const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
-
-function mockClaim(status: string) {
-  mocks.selectWhere.mockResolvedValueOnce([
-    {
-      id: 'claim-1',
-      title: 'Claim',
-      status,
-      userId: 'member-1',
-      userEmail: 'member@example.com',
-    },
-  ]);
-}
+const mocks = getUpdateStatusMocks();
 
 function runStatusUpdate(
   newStatus: Parameters<typeof updateClaimStatusCore>[0]['newStatus'],
@@ -90,7 +44,7 @@ describe('admin updateClaimStatusCore', () => {
     expect(mocks.transitionClaimStatus).not.toHaveBeenCalled();
 
     vi.clearAllMocks();
-    mocks.selectWhere.mockResolvedValueOnce([]);
+    mocks.claimWhere.mockResolvedValueOnce([]);
 
     await expect(runStatusUpdate('resolved')).rejects.toThrow('Claim not found');
 
