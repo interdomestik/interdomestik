@@ -37,7 +37,7 @@ test('fails when a new checked file exceeds the modularity line limit', () => {
   const root = initRepo('modularity-new-');
   writeFile(root, 'README.md', 'seed\n');
   const base = commitAll(root);
-  writeFile(root, 'scripts/oversized-new.mjs', lines(301));
+  writeFile(root, 'scripts/oversized-new.mjs', lines(151));
 
   const result = resultFor(root, base);
 
@@ -48,23 +48,23 @@ test('fails when a new checked file exceeds the modularity line limit', () => {
 
 test('fails when an oversized legacy file grows beyond its base line count', () => {
   const root = initRepo('modularity-legacy-growth-');
-  writeFile(root, 'apps/web/src/legacy.ts', lines(301));
+  writeFile(root, 'apps/web/src/legacy.ts', lines(151));
   const base = commitAll(root);
-  writeFile(root, 'apps/web/src/legacy.ts', lines(302));
+  writeFile(root, 'apps/web/src/legacy.ts', lines(152));
 
   const result = resultFor(root, base);
 
   assert.equal(result.violations.length, 1);
-  assert.equal(result.violations[0].baseLines, 301);
-  assert.equal(result.violations[0].currentLines, 302);
+  assert.equal(result.violations[0].baseLines, 151);
+  assert.equal(result.violations[0].currentLines, 152);
   assert.equal(result.violations[0].reason, 'legacy-file-grew');
 });
 
 test('allows an oversized legacy file when edited without line-count growth', () => {
   const root = initRepo('modularity-legacy-stable-');
-  writeFile(root, 'apps/web/src/legacy.ts', lines(301, 'before'));
+  writeFile(root, 'apps/web/src/legacy.ts', lines(151, 'before'));
   const base = commitAll(root);
-  writeFile(root, 'apps/web/src/legacy.ts', lines(301, 'after'));
+  writeFile(root, 'apps/web/src/legacy.ts', lines(151, 'after'));
 
   const result = resultFor(root, base);
 
@@ -74,7 +74,7 @@ test('allows an oversized legacy file when edited without line-count growth', ()
 
 test('parses rename entries and reports growth on the surviving path', () => {
   const root = initRepo('modularity-rename-');
-  writeFile(root, 'apps/web/src/old-name.ts', lines(301));
+  writeFile(root, 'apps/web/src/old-name.ts', lines(151));
   const base = commitAll(root);
   git(root, ['mv', 'apps/web/src/old-name.ts', 'apps/web/src/new-name.ts']);
   fs.appendFileSync(path.join(root, 'apps/web/src/new-name.ts'), 'extra\n');

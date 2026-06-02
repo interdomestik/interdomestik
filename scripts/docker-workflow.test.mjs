@@ -188,7 +188,7 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
   assert.match(parityScript, /pnpm -w lint/);
   assert.match(parityScript, /pnpm -w type-check/);
   assert.match(parityScript, /pnpm coverage:gate/);
-  assert.match(parityScript, /pnpm db:rls:test:required/);
+  assert.match(parityScript, /pnpm db:migrate && pnpm db:rls:test:required/);
   assert.match(parityScript, /pnpm e2e:gate:pr/);
   assert.match(parityScript, /pnpm -s release:gate:p0:raw --baseUrl http:\/\/127\.0\.0\.1:3000/);
   assert.match(parityScript, /pnpm security:guard/);

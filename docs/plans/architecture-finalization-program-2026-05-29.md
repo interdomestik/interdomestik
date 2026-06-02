@@ -257,8 +257,8 @@ The lint fails both on a banned phrase **and** on a key page missing the protect
 
 To maintain strict modularity, prevent over-coupling, and eliminate monolith drift:
 
-- All new files and newly modified files **must be kept under 300 lines of code** (excluding third-party or auto-generated assets).
-- **Boy Scout Rule for Large Legacy Files:** If an active task modifies an existing legacy file that already exceeds 300 lines, you **must not make it larger**. Instead, proactively assess, extract, and split the modified logical paths into smaller, decoupled helpers or sub-components (under 300 lines each) to leave the file smaller and cleaner than it was found.
+- All new files and newly modified files **must be kept under 150 lines of code** (excluding third-party or auto-generated assets).
+- **Boy Scout Rule for Large Legacy Files:** If an active task modifies an existing legacy file that already exceeds 150 lines, you **must not make it larger**. Instead, proactively assess, extract, and split the modified logical paths into smaller, decoupled helpers or sub-components (under 150 lines each) to leave the file smaller and cleaner than it was found.
 - The CI pipeline (T-007b modularity guard) automatically scans and blocks any Pull Request containing newly added or modified files that violate this limit, enforcing structural decomposition at the commit boundary.
 
 ### `canTransition` invariants added by this overlay

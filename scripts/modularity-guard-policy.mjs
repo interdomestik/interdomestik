@@ -1,4 +1,6 @@
-export const MODULARITY_LINE_LIMIT = 300;
+export const MODULARITY_LINE_LIMIT = 150;
+// CI enforces the 150-line modularity rule. AGENTS.md's 200-line emergency ceiling is
+// not an automatic escape hatch; exceptions must be pre-approved as explicit policy.
 
 export const CHECKED_TEXT_EXTENSIONS = new Set([
   '.cjs',
