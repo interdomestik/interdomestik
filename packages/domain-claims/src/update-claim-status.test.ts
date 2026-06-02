@@ -4,263 +4,142 @@ import type { ClaimsSession } from './claims/types';
 import { updateClaimStatus } from './update-claim-status';
 
 const mocks = vi.hoisted(() => {
-  const selectChain = {
-    from: vi.fn(),
-    where: vi.fn(),
-    limit: vi.fn(),
-  };
-
-  const txSelectChain = {
-    from: vi.fn(),
-    where: vi.fn(),
-    limit: vi.fn(),
-  };
-  const txUpdateReturning = vi.fn();
-  const txUpdateWhere = vi.fn(() => ({ returning: txUpdateReturning }));
-  const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
-  const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
-  const txInsertValues = vi.fn();
-  const txInsert = vi.fn(() => ({ values: txInsertValues }));
-  const txSelect = vi.fn(() => txSelectChain);
-  const transaction = vi.fn(async cb =>
-    cb({ select: txSelect, update: txUpdate, insert: txInsert })
-  );
+  class MockClaimTransitionConflictError extends Error {}
+  const selectChain = { from: vi.fn(), where: vi.fn(), limit: vi.fn() };
+  const tx = { insert: vi.fn(), select: vi.fn(() => selectChain), update: vi.fn() };
 
   return {
-    db: {
-      select: vi.fn(),
-      transaction,
-    },
-    selectChain,
+    and: vi.fn((...conditions) => ({ op: 'and', conditions })),
     claims: {
-      id: 'claims.id',
-      tenantId: 'claims.tenant_id',
       branchId: 'claims.branch_id',
+      id: 'claims.id',
       staffId: 'claims.staff_id',
       status: 'claims.status',
-      updatedAt: 'claims.updated_at',
+      tenantId: 'claims.tenant_id',
     },
-    claimStageHistory: {
-      id: 'claim_stage_history.id',
-      tenantId: 'claim_stage_history.tenant_id',
-      claimId: 'claim_stage_history.claim_id',
-      fromStatus: 'claim_stage_history.from_status',
-      toStatus: 'claim_stage_history.to_status',
-      changedById: 'claim_stage_history.changed_by_id',
-      changedByRole: 'claim_stage_history.changed_by_role',
-      note: 'claim_stage_history.note',
-      isPublic: 'claim_stage_history.is_public',
-      createdAt: 'claim_stage_history.created_at',
-    },
-    eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
-    isNull: vi.fn(column => ({ op: 'isNull', column })),
-    and: vi.fn((...conditions) => ({ op: 'and', conditions })),
-    withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
+    db: { transaction: vi.fn(async cb => cb(tx)) },
     ensureTenantId: vi.fn(() => 'tenant-1'),
-    txUpdate,
-    txUpdateSet,
-    txUpdateWhere,
-    txUpdateReturning,
-    txInsert,
-    txInsertValues,
-    txSelect,
-    txSelectChain,
+    eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
+    MockClaimTransitionConflictError,
+    selectChain,
+    transition: vi.fn(),
+    tx,
+    withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
   };
 });
 
 vi.mock('@interdomestik/database', () => ({
-  db: mocks.db,
-  claims: mocks.claims,
-  claimStageHistory: mocks.claimStageHistory,
-  eq: mocks.eq,
-  isNull: mocks.isNull,
   and: mocks.and,
+  claims: mocks.claims,
+  db: mocks.db,
+  eq: mocks.eq,
+}));
+vi.mock('@interdomestik/database/tenant-security', () => ({ withTenant: mocks.withTenant }));
+vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: mocks.ensureTenantId }));
+vi.mock('./claims/transition', () => ({
+  ClaimTransitionConflictError: mocks.MockClaimTransitionConflictError,
+  transitionClaimStatusInTransaction: mocks.transition,
 }));
 
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
-}));
+const ok = { success: true, error: undefined };
+const failure = (error: string) => ({ success: false, error, data: undefined });
 
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: mocks.ensureTenantId,
-}));
-
-function createSession(options: {
-  userId: string;
-  role?: string;
-  tenantId?: string;
-  branchId?: string | null;
-}): ClaimsSession {
+function session(options: { branchId?: string | null; role?: string } = {}): ClaimsSession {
   return {
     user: {
-      id: options.userId,
+      id: 'staff-1',
       role: options.role ?? 'staff',
-      tenantId: options.tenantId ?? 'tenant-1',
+      tenantId: 'tenant-1',
       ...(options.branchId !== undefined ? { branchId: options.branchId } : {}),
     },
   } as unknown as ClaimsSession;
 }
 
+function call(overrides: Partial<Parameters<typeof updateClaimStatus>[0]> = {}) {
+  return updateClaimStatus({
+    claimId: 'claim-1',
+    newStatus: 'evaluation',
+    session: session({ branchId: 'branch-1' }),
+    ...overrides,
+  });
+}
+
 describe('updateClaimStatus', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.db.select.mockReturnValue(mocks.selectChain);
     mocks.selectChain.from.mockReturnValue(mocks.selectChain);
     mocks.selectChain.where.mockReturnValue(mocks.selectChain);
-    mocks.txSelect.mockReturnValue(mocks.txSelectChain);
-    mocks.txSelectChain.from.mockReturnValue(mocks.txSelectChain);
-    mocks.txSelectChain.where.mockReturnValue(mocks.txSelectChain);
+    mocks.selectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'submitted' }]);
+    mocks.transition.mockResolvedValue({
+      fromStatus: 'submitted',
+      lifecycleVersion: 2,
+      status: 'evaluation',
+      success: true,
+    });
   });
 
-  it('denies cross-tenant update', async () => {
-    mocks.txSelectChain.limit.mockResolvedValue([]);
+  it('preserves authorization and status validation errors', async () => {
+    await expect(call({ session: session({ role: 'agent' }) })).resolves.toEqual(
+      failure('Unauthorized')
+    );
+    await expect(call({ newStatus: 'not-a-status' })).resolves.toEqual(failure('Invalid status'));
+    expect(mocks.db.transaction).not.toHaveBeenCalled();
+  });
 
-    const result = await updateClaimStatus({
-      claimId: 'claim-1',
-      newStatus: 'evaluation',
-      session: createSession({ userId: 'staff-1', tenantId: 'tenant-1', branchId: 'branch-1' }),
-    });
-
-    expect(result).toEqual({
-      success: false,
-      error: 'Claim not found or access denied',
-      data: undefined,
-    });
+  it('keeps branch scope and delegates success to the transition command', async () => {
+    await expect(call({ note: 'picked for review' })).resolves.toEqual(ok);
+    expect(mocks.eq).toHaveBeenCalledWith('claims.branch_id', 'branch-1');
     expect(mocks.withTenant).toHaveBeenCalledWith(
       'tenant-1',
       'claims.tenant_id',
       expect.any(Object)
     );
-    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expect(mocks.transition).toHaveBeenCalledWith(
+      mocks.tx,
+      expect.objectContaining({
+        actor: { id: 'staff-1', role: 'staff' },
+        claimId: 'claim-1',
+        isPublic: true,
+        note: 'picked for review',
+        requiredWhereCondition: expect.any(Object),
+        tenantId: 'tenant-1',
+        toStatus: 'evaluation',
+      })
+    );
+    expect(mocks.tx.update).not.toHaveBeenCalled();
+    expect(mocks.tx.insert).not.toHaveBeenCalled();
   });
 
-  it('denies out-of-scope update when staff branch is present and mismatched', async () => {
-    mocks.txSelectChain.limit.mockResolvedValue([]);
-
-    await updateClaimStatus({
-      claimId: 'claim-1',
-      newStatus: 'evaluation',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
-
-    expect(mocks.eq).toHaveBeenCalledWith('claims.branch_id', 'branch-1');
-    expect(mocks.txUpdate).not.toHaveBeenCalled();
-  });
-
-  it('denies out-of-scope update when branchless staff is not claim owner', async () => {
-    mocks.txSelectChain.limit.mockResolvedValue([]);
-
-    await updateClaimStatus({
-      claimId: 'claim-1',
-      newStatus: 'evaluation',
-      session: createSession({ userId: 'staff-1', branchId: null }),
-    });
+  it('keeps assigned-staff scope when the staff user has no branch', async () => {
+    await call({ session: session({ branchId: null }) });
 
     expect(mocks.eq).toHaveBeenCalledWith('claims.staff_id', 'staff-1');
     expect(mocks.eq).not.toHaveBeenCalledWith('claims.branch_id', expect.anything());
-    expect(mocks.txUpdate).not.toHaveBeenCalled();
   });
 
-  it('persists status transition and timeline event in one transaction for in-scope update', async () => {
-    mocks.txSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'submitted' }]);
-    mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1' }]);
+  it('preserves scoped miss and unchanged-status no-op behavior', async () => {
+    mocks.selectChain.limit.mockResolvedValueOnce([]);
+    await expect(call()).resolves.toEqual(failure('Claim not found or access denied'));
 
-    const result = await updateClaimStatus({
-      claimId: 'claim-1',
-      newStatus: 'evaluation',
-      note: 'picked for review',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
+    mocks.selectChain.limit.mockResolvedValueOnce([{ id: 'claim-1', status: 'evaluation' }]);
+    await expect(call()).resolves.toEqual(ok);
+    expect(mocks.transition).not.toHaveBeenCalled();
 
-    expect(result).toEqual({ success: true, error: undefined });
-    expect(mocks.db.transaction).toHaveBeenCalledTimes(1);
-    expect(mocks.txUpdate).toHaveBeenCalledWith(mocks.claims);
-    expect(mocks.txInsert).toHaveBeenCalledWith(mocks.claimStageHistory);
-    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'evaluation',
-        statusUpdatedAt: expect.any(Date),
-        updatedAt: expect.any(Date),
-      })
-    );
-    expect(mocks.txInsertValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        claimId: 'claim-1',
-        fromStatus: 'submitted',
-        toStatus: 'evaluation',
-        changedById: 'staff-1',
-      })
+    mocks.selectChain.limit.mockResolvedValueOnce([{ id: 'claim-1', status: 'evaluation' }]);
+    await expect(call({ note: 'status context only' })).resolves.toEqual(ok);
+    expect(mocks.transition).toHaveBeenCalledWith(
+      mocks.tx,
+      expect.objectContaining({ note: 'status context only', toStatus: 'evaluation' })
     );
   });
 
-  it('returns generic denial when scoped update affects zero rows', async () => {
-    mocks.txSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'submitted' }]);
-    mocks.txUpdateReturning.mockResolvedValue([]);
+  it('maps command rejection without writing status directly', async () => {
+    mocks.transition.mockResolvedValue({ success: false, error: 'transition_rejected' });
 
-    const result = await updateClaimStatus({
-      claimId: 'claim-1',
-      newStatus: 'evaluation',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
-
-    expect(result).toEqual({
-      success: false,
-      error: 'Claim not found or access denied',
-      data: undefined,
-    });
-    expect(mocks.txInsertValues).not.toHaveBeenCalled();
-  });
-
-  it('keeps statusUpdatedAt unchanged on note-only update with same status', async () => {
-    mocks.txSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'evaluation' }]);
-    mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1' }]);
-
-    const result = await updateClaimStatus({
-      claimId: 'claim-1',
-      newStatus: 'evaluation',
-      note: 'internal staff note',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
-
-    expect(result).toEqual({ success: true, error: undefined });
-    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'evaluation',
-        updatedAt: expect.any(Date),
-      })
+    await expect(call({ newStatus: 'negotiation' })).resolves.toEqual(
+      failure('Failed to update claim status')
     );
-    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
-      expect.not.objectContaining({
-        statusUpdatedAt: expect.anything(),
-      })
-    );
-    expect(mocks.txInsertValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fromStatus: 'evaluation',
-        toStatus: 'evaluation',
-        note: 'internal staff note',
-      })
-    );
-  });
-
-  it('uses null-safe optimistic guard when existing claim status is null', async () => {
-    mocks.txSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: null }]);
-    mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1' }]);
-
-    const result = await updateClaimStatus({
-      claimId: 'claim-1',
-      newStatus: 'evaluation',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
-
-    expect(result).toEqual({ success: true, error: undefined });
-    expect(mocks.isNull).toHaveBeenCalledWith('claims.status');
-    expect(mocks.eq).not.toHaveBeenCalledWith('claims.status', null);
-    expect(mocks.txInsertValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fromStatus: null,
-        toStatus: 'evaluation',
-      })
-    );
+    expect(mocks.tx.update).not.toHaveBeenCalled();
+    expect(mocks.tx.insert).not.toHaveBeenCalled();
   });
 });
