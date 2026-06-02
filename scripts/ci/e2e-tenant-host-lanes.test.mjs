@@ -71,7 +71,7 @@ test('tenant-host lane guard blocks new dashboard or auth specs from using host 
       "import { test } from '@playwright/test';",
       '',
       "test('new auth flow', async ({ page }) => {",
-      "  await page.setExtraHTTPHeaders({ 'X-Forwarded-Host': 'ks.localhost:3000' });",
+      "  await page.setExtraHTTPHeaders({ [`X-Forwarded-Host`]: 'ks.localhost:3000' });",
       "  await page.goto('/sq/login');",
       '});',
       '',
