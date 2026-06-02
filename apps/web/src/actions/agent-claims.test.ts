@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock variables must be defined before vi.mock is called
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   dbUpdate: vi.fn(),
   dbSelect: vi.fn(),
+  txUpdateReturning: vi.fn(),
+  txInsertValues: vi.fn(),
   dbQueryUser: vi.fn(),
   dbQueryClaims: vi.fn(),
 }));
@@ -34,7 +35,9 @@ vi.mock('@interdomestik/database', () => ({
     staffId: { name: 'staffId' },
     userId: { name: 'userId' },
     title: { name: 'title' },
+    lifecycleVersion: { name: 'lifecycleVersion' },
   },
+  claimStageHistory: {},
   user: { id: { name: 'id' }, tenantId: { name: 'tenantId' }, email: { name: 'email' } },
   db: {
     select: () => ({
@@ -47,6 +50,27 @@ vi.mock('@interdomestik/database', () => ({
     update: () => ({
       set: () => ({ where: mocks.dbUpdate }),
     }),
+    transaction: async <T>(callback: (tx: unknown) => T) =>
+      callback({
+        select: () => ({
+          from: () => ({
+            where: () => ({
+              limit: () =>
+                Promise.resolve([{ id: 'claim-1', lifecycleVersion: 1, status: 'submitted' }]),
+            }),
+          }),
+        }),
+        update: () => ({
+          set: () => ({
+            where: () => ({
+              returning: mocks.txUpdateReturning,
+            }),
+          }),
+        }),
+        insert: () => ({
+          values: mocks.txInsertValues,
+        }),
+      }),
     query: {
       user: {
         findFirst: () => mocks.dbQueryUser(),
@@ -58,6 +82,7 @@ vi.mock('@interdomestik/database', () => ({
   },
   and: vi.fn(),
   eq: vi.fn(),
+  sql: vi.fn(),
 }));
 
 vi.mock('next/cache', () => ({
@@ -77,39 +102,12 @@ describe('Staff Claims Actions', () => {
   });
 
   describe('updateClaimStatus', () => {
-    it('should throw if user is not authenticated', async () => {
-      mocks.getSession.mockResolvedValue(null);
-      mocks.getSession.mockResolvedValue(null);
-      await expect(updateClaimStatus('claim-1', 'resolved')).resolves.toEqual({
-        success: false,
-        error: 'Unauthorized',
-      });
-    });
-
-    it('should throw if user is a regular member', async () => {
-      mocks.getSession.mockResolvedValue({
-        user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
-      });
-      await expect(updateClaimStatus('claim-1', 'resolved')).resolves.toEqual({
-        success: false,
-        error: 'Unauthorized',
-      });
-    });
-
-    it('should throw if user role is user (not staff/admin)', async () => {
-      mocks.getSession.mockResolvedValue({
-        user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
-      });
-      await expect(updateClaimStatus('claim-1', 'resolved')).resolves.toEqual({
-        success: false,
-        error: 'Unauthorized',
-      });
-    });
-
-    it('should throw if user role is agent (sales only)', async () => {
-      mocks.getSession.mockResolvedValue({
-        user: { id: 'agent-1', role: 'agent', tenantId: 'tenant_mk' },
-      });
+    it.each([
+      ['unauthenticated user', null],
+      ['regular member', { user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' } }],
+      ['sales agent', { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant_mk' } }],
+    ])('should reject %s status updates', async (_label, session) => {
+      mocks.getSession.mockResolvedValue(session);
       await expect(updateClaimStatus('claim-1', 'resolved')).resolves.toEqual({
         success: false,
         error: 'Unauthorized',
@@ -130,11 +128,12 @@ describe('Staff Claims Actions', () => {
           userEmail: 'user@test.com',
         },
       ]);
-      mocks.dbUpdate.mockResolvedValue(undefined);
+      mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
+      mocks.txInsertValues.mockResolvedValue(undefined);
 
       await updateClaimStatus('claim-1', 'verification');
 
-      expect(mocks.dbUpdate).toHaveBeenCalled();
+      expect(mocks.txUpdateReturning).toHaveBeenCalled();
     });
 
     it('should allow admin to update claim status', async () => {
@@ -150,11 +149,12 @@ describe('Staff Claims Actions', () => {
           userEmail: 'user@test.com',
         },
       ]);
-      mocks.dbUpdate.mockResolvedValue(undefined);
+      mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
+      mocks.txInsertValues.mockResolvedValue(undefined);
 
       await updateClaimStatus('claim-1', 'resolved');
 
-      expect(mocks.dbUpdate).toHaveBeenCalled();
+      expect(mocks.txUpdateReturning).toHaveBeenCalled();
     });
   });
 
