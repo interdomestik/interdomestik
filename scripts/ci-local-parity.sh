@@ -343,7 +343,7 @@ run_unit_checks() {
 }
 
 run_rls_integration_gate() {
-  run pnpm db:rls:test:required
+  run_shell 'pnpm db:migrate && pnpm db:rls:test:required'
 }
 
 run_security_checks() {
