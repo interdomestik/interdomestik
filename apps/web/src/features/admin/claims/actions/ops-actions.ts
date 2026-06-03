@@ -1,18 +1,18 @@
 'use server';
 
 import { and, auditLog, claimMessages, claims, db, desc, eq } from '@interdomestik/database';
-import { ClaimStatus } from '@interdomestik/database/constants';
+import type { ClaimStatus } from '@interdomestik/database/constants';
 import { nanoid } from 'nanoid';
 import {
   assertCanMutateClaim,
   assertRowsAffected,
-  assertTransitionAllowed,
   getActionSession,
   getClaimForMutation,
   logAudit,
   OpsActionResponse,
   revalidateClaim,
 } from './action-helpers';
+import { updateStatusAction } from './ops-status-action';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Assignment Actions
@@ -57,11 +57,7 @@ export async function assignOwner(
     // CRITICAL: Invalidate BOTH detail layout and global claims list to update KPIs immediately
     revalidateClaim(locale, claimId);
 
-    return {
-      success: true,
-      // Return updated fields for optimistic UI updates if needed
-      data: updated[0],
-    };
+    return { success: true, data: updated[0] };
   } catch (error: unknown) {
     console.error('Action Failed:', error);
     return { success: false, error: (error as Error).message };
@@ -116,38 +112,7 @@ export async function updateStatus(
   newStatus: ClaimStatus,
   locale: string
 ): Promise<OpsActionResponse> {
-  try {
-    const ctx = await getActionSession();
-    if (!ctx) return { success: false, error: 'Unauthorized' };
-
-    const claim = await getClaimForMutation(claimId, ctx.tenantId);
-    assertCanMutateClaim(claim, ctx.session.user.role, 'status_change');
-    assertTransitionAllowed(claim.status as ClaimStatus, newStatus);
-
-    if (
-      claim.staffId &&
-      claim.staffId !== ctx.session.user.id &&
-      ctx.session.user.role !== 'admin'
-    ) {
-      throw new Error('Only the assigned owner can update the status.');
-    }
-
-    const updated = await db
-      .update(claims)
-      .set({ status: newStatus, updatedAt: new Date(), statusUpdatedAt: new Date() })
-      .where(and(eq(claims.id, claimId), eq(claims.tenantId, ctx.tenantId)))
-      .returning({ id: claims.id });
-
-    assertRowsAffected(updated);
-    await logAudit(ctx.tenantId, ctx.session.user.id, 'update_status', claimId, {
-      previousStatus: claim.status,
-      newStatus,
-    });
-    revalidateClaim(locale, claimId);
-    return { success: true };
-  } catch (error: unknown) {
-    return { success: false, error: (error as Error).message };
-  }
+  return updateStatusAction(claimId, newStatus, locale);
 }
 
 export async function markSlaAcknowledged(

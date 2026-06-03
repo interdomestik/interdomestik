@@ -5,21 +5,7 @@ import type { SQLWrapper } from 'drizzle-orm';
 import { canTransition, isClaimStatus, type ClaimTransitionActor } from './transition-guard';
 import type { PaymentAuthorizationState } from '../staff-claims/types';
 
-type TransitionTx = {
-  select: (fields: unknown) => {
-    from: (table: unknown) => {
-      where: (condition: unknown) => { limit: (count: number) => Promise<CurrentClaimRow[]> };
-    };
-  };
-  update: (table: unknown) => {
-    set: (values: Record<string, unknown>) => {
-      where: (condition: unknown) => {
-        returning: (fields: unknown) => Promise<Array<{ id: string; lifecycleVersion: number }>>;
-      };
-    };
-  };
-  insert: (table: unknown) => { values: (values: unknown) => Promise<unknown> };
-};
+export type TransitionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 type CurrentClaimRow = {
   id: string;
@@ -139,7 +125,5 @@ export async function transitionClaimStatus(
   params: TransitionClaimStatusParams
 ): Promise<TransitionClaimStatusResult> {
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transition by values and where clause
-  return db.transaction(tx =>
-    transitionClaimStatusInTransaction(tx as unknown as TransitionTx, params)
-  );
+  return db.transaction(tx => transitionClaimStatusInTransaction(tx, params));
 }
