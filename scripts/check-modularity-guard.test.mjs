@@ -7,6 +7,10 @@ import test from 'node:test';
 import { createTempRoot, writeFile } from './plan-test-helpers.mjs';
 import { evaluateModularityGuard, parseNameStatus } from './lib/modularity-guard.mjs';
 
+const DEFAULT_EXEC_BUFFER_BYTES = 1024 * 1024;
+const GIT_MAX_BUFFER_BYTES = 16 * 1024 * 1024;
+const LARGE_LINE_PAYLOAD_BYTES = 7500;
+
 function git(root, args) {
   return execFileSync('/usr/bin/git', args, { cwd: root, encoding: 'utf8' }).trim();
 }
@@ -27,6 +31,13 @@ function commitAll(root, message = 'seed') {
 
 function lines(count, prefix = 'line') {
   return Array.from({ length: count }, (_, index) => `${prefix}-${index + 1}`).join('\n') + '\n';
+}
+
+function largeLines(count) {
+  return Array.from(
+    { length: count },
+    (_, index) => `line-${index + 1}-${'x'.repeat(LARGE_LINE_PAYLOAD_BYTES)}`
+  ).join('\n') + '\n';
 }
 
 function resultFor(root, base) {
@@ -65,6 +76,23 @@ test('allows an oversized legacy file when edited without line-count growth', ()
   writeFile(root, 'apps/web/src/legacy.ts', lines(151, 'before'));
   const base = commitAll(root);
   writeFile(root, 'apps/web/src/legacy.ts', lines(151, 'after'));
+
+  const result = resultFor(root, base);
+
+  assert.deepEqual(result.violations, []);
+  assert.equal(result.checkedFiles, 1);
+});
+
+test('compares oversized legacy files larger than the default exec buffer', () => {
+  const root = initRepo('modularity-large-legacy-');
+  const largeLegacyContent = largeLines(151);
+  const largeLegacyBytes = Buffer.byteLength(largeLegacyContent, 'utf8');
+  assert.ok(largeLegacyBytes > DEFAULT_EXEC_BUFFER_BYTES);
+  assert.ok(largeLegacyBytes < GIT_MAX_BUFFER_BYTES);
+
+  writeFile(root, 'docs/large-legacy.md', largeLegacyContent);
+  const base = commitAll(root);
+  writeFile(root, 'docs/large-legacy.md', largeLegacyContent.replace('line-1-', 'updated-1-'));
 
   const result = resultFor(root, base);
 

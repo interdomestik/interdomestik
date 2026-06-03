@@ -5,6 +5,7 @@ import path from 'node:path';
 import { MODULARITY_LINE_LIMIT, isModularityChecked } from '../modularity-guard-policy.mjs';
 
 const GIT_BIN = '/usr/bin/git';
+const GIT_MAX_BUFFER_BYTES = 16 * 1024 * 1024;
 const SAFE_EXEC_ENV = Object.freeze({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
 
 function git(root, args, options = {}) {
@@ -12,6 +13,7 @@ function git(root, args, options = {}) {
     cwd: root,
     encoding: options.encoding ?? 'utf8',
     env: { ...SAFE_EXEC_ENV, ...options.env },
+    maxBuffer: options.maxBuffer ?? GIT_MAX_BUFFER_BYTES,
     stdio: options.stdio ?? ['ignore', 'pipe', 'pipe'],
   });
 }
