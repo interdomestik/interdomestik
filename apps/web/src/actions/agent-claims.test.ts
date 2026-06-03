@@ -28,6 +28,7 @@ vi.mock('@/lib/audit', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   claims: {
     id: { name: 'id' },
     tenantId: { name: 'tenantId' },
@@ -92,7 +93,6 @@ vi.mock('next/cache', () => ({
 vi.mock('next/headers', () => ({
   headers: vi.fn(),
 }));
-
 import { notifyClaimAssigned } from '@/lib/notifications';
 import { assignClaim, updateClaimStatus } from './agent-claims';
 

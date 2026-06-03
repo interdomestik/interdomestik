@@ -1,4 +1,4 @@
-import { and, claimStageHistory, claims, db, eq, sql } from '@interdomestik/database';
+import { and, appendEvent, claimStageHistory, claims, db, eq, sql } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import type { SQLWrapper } from 'drizzle-orm';
@@ -23,6 +23,7 @@ export class ClaimTransitionConflictError extends Error {
 export type TransitionClaimStatusParams = {
   actor: ClaimTransitionActor;
   claimId: string;
+  correlationId?: string;
   isPublic?: boolean;
   note?: string | null;
   paymentAuthorizationState?: PaymentAuthorizationState | null;
@@ -43,6 +44,7 @@ export async function transitionClaimStatusInTransaction(
   const {
     actor,
     claimId,
+    correlationId,
     isPublic = true,
     note,
     paymentAuthorizationState,
@@ -116,6 +118,21 @@ export async function transitionClaimStatusInTransaction(
     note: note ?? null,
     isPublic,
     createdAt: now,
+  });
+
+  await appendEvent(tx, {
+    actor: { id: actor.id, role: actor.role?.trim() || 'unknown' },
+    aggregateVersion: lifecycleVersion,
+    correlationId: correlationId ?? crypto.randomUUID(),
+    createdAt: now,
+    entity: { id: claimId, type: 'claim' },
+    eventName: 'claim.status_changed',
+    eventVersion: 1,
+    payload: {
+      fromStatus: current.status,
+      toStatus,
+    },
+    tenantId,
   });
 
   return { success: true, fromStatus: current.status, lifecycleVersion, status: toStatus };

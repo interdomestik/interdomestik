@@ -1,4 +1,5 @@
 import { inspect } from 'node:util';
+import { domainEvents } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { describe, expect, it } from 'vitest';
 
@@ -11,7 +12,6 @@ import {
 
 type UpdatedRows = Array<{ id: string; lifecycleVersion: number }>;
 type Params = TransitionClaimStatusParams;
-
 function makeParams(overrides: Partial<Params> = {}): Params {
   return {
     actor: { id: 'staff-1', role: 'staff' },
@@ -22,7 +22,6 @@ function makeParams(overrides: Partial<Params> = {}): Params {
     ...overrides,
   };
 }
-
 function makeTx(options: {
   current?: { id: string; lifecycleVersion: number; status: ClaimStatus | null };
   updated?: UpdatedRows | (() => UpdatedRows);
@@ -57,9 +56,10 @@ function makeTx(options: {
         };
       },
     }),
-    insert: () => ({
-      values: async (values: unknown) => {
-        calls.historyValues = values;
+    insert: (table: unknown) => ({
+      values: (values: Record<string, unknown>) => {
+        if (table !== domainEvents) calls.historyValues = values;
+        return { returning: async () => [{ id: values.id }] };
       },
     }),
   };
