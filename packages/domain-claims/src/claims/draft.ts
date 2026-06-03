@@ -6,6 +6,8 @@ import { createClaimSchema, type CreateClaimValues } from '../validators/claims'
 import { buildClaimDocumentRows } from './documents';
 import type { ClaimsDeps, ClaimsSession } from './types';
 
+export { cancelClaimCore } from './draft-cancellation';
+
 export async function updateDraftClaimCore(
   params: {
     session: ClaimsSession | null;
@@ -93,75 +95,6 @@ export async function updateDraftClaimCore(
   } catch (error) {
     console.error('Failed to update claim:', error);
     return { success: false, error: 'Failed to update claim' };
-  }
-
-  if (deps.revalidatePath) {
-    await deps.revalidatePath('/member/claims');
-    await deps.revalidatePath(`/member/claims/${claimId}`);
-  }
-
-  return { success: true };
-}
-
-export async function cancelClaimCore(
-  params: {
-    session: ClaimsSession | null;
-    requestHeaders: Headers;
-    claimId: string;
-  },
-  deps: ClaimsDeps = {}
-) {
-  const { session, requestHeaders, claimId } = params;
-
-  if (!session) {
-    return { success: false, error: 'Unauthorized' };
-  }
-
-  const tenantId = ensureTenantId(session);
-  const claim = await db.query.claims.findFirst({
-    where: (claimsTable, { eq }) =>
-      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-  });
-
-  if (!claim) {
-    return { success: false, error: 'Claim not found' };
-  }
-
-  if (claim.userId !== session.user.id) {
-    return { success: false, error: 'Access denied' };
-  }
-
-  if (claim.status === 'resolved' || claim.status === 'rejected') {
-    return { success: false, error: 'Claim cannot be cancelled' };
-  }
-
-  try {
-    await db
-      .update(claims)
-      .set({
-        status: 'rejected',
-        updatedAt: new Date(),
-      })
-      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
-
-    if (deps.logAuditEvent) {
-      await deps.logAuditEvent({
-        actorId: session.user.id,
-        actorRole: session.user.role,
-        tenantId,
-        action: 'claim.cancelled',
-        entityType: 'claim',
-        entityId: claimId,
-        metadata: {
-          oldStatus: claim.status,
-          newStatus: 'rejected',
-        },
-        headers: requestHeaders,
-      });
-    }
-  } catch (error) {
-    console.error('Failed to cancel claim:', error);
-    return { success: false, error: 'Failed to cancel claim' };
   }
 
   if (deps.revalidatePath) {
