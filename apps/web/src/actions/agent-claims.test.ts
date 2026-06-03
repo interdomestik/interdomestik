@@ -152,7 +152,7 @@ describe('Staff Claims Actions', () => {
       mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
       mocks.txInsertValues.mockResolvedValue(undefined);
 
-      await updateClaimStatus('claim-1', 'resolved');
+      await updateClaimStatus('claim-1', 'verification');
 
       expect(mocks.txUpdateReturning).toHaveBeenCalled();
     });

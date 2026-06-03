@@ -1,24 +1,41 @@
-import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
+import type { ClaimStatus } from '@interdomestik/database/constants';
 import { describe, expect, it } from 'vitest';
 
-import { canTransition } from './transition-guard';
+import { canTransition, isClaimStatusTransitionInGraph } from './transition-guard';
 
 const actor = { id: 'staff-1', role: 'staff' };
 
 describe('canTransition', () => {
-  it('allows every current claim status transition when payment is authorized', () => {
-    for (const from of CLAIM_STATUSES) {
-      for (const to of CLAIM_STATUSES) {
-        expect(
-          canTransition({
-            actor,
-            context: { paymentAuthorizationState: 'authorized' },
-            from,
-            to,
-          })
-        ).toEqual({ allowed: true });
-      }
-    }
+  it('allows valid graph transitions when payment is authorized', () => {
+    expect(
+      canTransition({
+        actor,
+        context: { paymentAuthorizationState: 'authorized' },
+        from: 'evaluation',
+        to: 'negotiation',
+      })
+    ).toEqual({ allowed: true });
+  });
+
+  it.each([
+    ['draft', 'resolved'],
+    ['resolved', 'draft'],
+  ] satisfies Array<[ClaimStatus, ClaimStatus]>)('rejects illegal %s to %s jumps', (from, to) => {
+    expect(
+      canTransition({
+        actor,
+        context: { paymentAuthorizationState: 'authorized' },
+        from,
+        to,
+      })
+    ).toEqual({ allowed: false, reason: 'illegal_transition' });
+  });
+
+  it('keeps same-status graph transitions available', () => {
+    expect(isClaimStatusTransitionInGraph('evaluation', 'evaluation')).toBe(true);
+    expect(canTransition({ actor, from: 'evaluation', to: 'evaluation' })).toEqual({
+      allowed: true,
+    });
   });
 
   it.each(['negotiation', 'court'] satisfies ClaimStatus[])(
@@ -28,7 +45,7 @@ describe('canTransition', () => {
         canTransition({
           actor,
           context: { paymentAuthorizationState: 'pending' },
-          from: 'evaluation',
+          from: to === 'court' ? 'negotiation' : 'evaluation',
           to,
         })
       ).toEqual({ allowed: false, reason: 'payment_authorization_required' });
@@ -42,7 +59,7 @@ describe('canTransition', () => {
         canTransition({
           actor,
           context: { paymentAuthorizationState },
-          from: 'evaluation',
+          from: 'negotiation',
           to: 'court',
         })
       ).toEqual({ allowed: false, reason: 'payment_authorization_required' });

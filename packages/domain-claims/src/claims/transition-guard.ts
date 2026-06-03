@@ -13,13 +13,32 @@ export type ClaimTransitionContext = {
 
 export type ClaimTransitionDecision =
   | { allowed: true }
-  | { allowed: false; reason: 'payment_authorization_required' | 'invalid_status' };
+  | {
+      allowed: false;
+      reason: 'payment_authorization_required' | 'invalid_status' | 'illegal_transition';
+    };
 
 const STATUS_SET = new Set<string>(CLAIM_STATUSES);
 const PAYMENT_GATED_STATUSES = new Set<ClaimStatus>(['negotiation', 'court']);
 
+export const ALLOWED_CLAIM_STATUS_TRANSITIONS = {
+  draft: ['submitted'],
+  submitted: ['verification', 'evaluation', 'rejected'],
+  verification: ['evaluation', 'submitted'],
+  evaluation: ['negotiation', 'verification', 'rejected', 'resolved'],
+  negotiation: ['court', 'resolved', 'evaluation', 'rejected'],
+  court: ['resolved', 'rejected', 'negotiation'],
+  resolved: ['evaluation', 'negotiation'],
+  rejected: ['evaluation', 'submitted'],
+} as const satisfies Record<ClaimStatus, readonly ClaimStatus[]>;
+
 export function isClaimStatus(value: string | null | undefined): value is ClaimStatus {
   return typeof value === 'string' && STATUS_SET.has(value);
+}
+
+export function isClaimStatusTransitionInGraph(from: ClaimStatus, to: ClaimStatus): boolean {
+  const allowedTransitions = ALLOWED_CLAIM_STATUS_TRANSITIONS[from] as readonly ClaimStatus[];
+  return from === to || allowedTransitions.includes(to);
 }
 
 export function canTransition(params: {
@@ -32,6 +51,10 @@ export function canTransition(params: {
 
   if (!isClaimStatus(from) || !isClaimStatus(to)) {
     return { allowed: false, reason: 'invalid_status' };
+  }
+
+  if (!isClaimStatusTransitionInGraph(from, to)) {
+    return { allowed: false, reason: 'illegal_transition' };
   }
 
   const staffRecoveryPrerequisitesSatisfied =

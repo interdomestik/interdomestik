@@ -55,6 +55,7 @@ export const CLAIM_STATUS_WRITER_ALLOWLIST = new Set([
 ]);
 
 const CLAIMS_REF = String.raw`(?:schema\.)?claims`;
+const RAW_CLAIM_TABLE_REF = String.raw`(?:(?:"[^"]+"|[A-Za-z_]\w*)\.)?(?:"claim"|claim|claims)`;
 const STATUS_UPDATE_PATTERNS = [
   // Drizzle updates with status in set
   new RegExp(
@@ -75,8 +76,8 @@ const STATUS_UPDATE_PATTERNS = [
     'u'
   ),
   // Raw SQL updates/inserts
-  /UPDATE\s+claims\s+SET\s+[\s\S]{0,150}\bstatus\b/iu,
-  /INSERT\s+INTO\s+claims\s+[\s\S]{0,250}\bstatus\b/iu,
+  new RegExp(String.raw`UPDATE\s+${RAW_CLAIM_TABLE_REF}\s+SET\s+[\s\S]{0,150}\bstatus\b`, 'iu'),
+  new RegExp(String.raw`INSERT\s+INTO\s+${RAW_CLAIM_TABLE_REF}\s+[\s\S]{0,250}\bstatus\b`, 'iu'),
 ];
 
 function toPosix(value) {
@@ -108,7 +109,8 @@ export function findClaimStatusWriterViolations(root = process.cwd()) {
     const relativePath = toPosix(path.relative(root, file));
     if (
       relativePath === 'scripts/check-claim-status-writers.mjs' ||
-      relativePath === 'scripts/ci/claim-status-writer-guard.test.mjs'
+      relativePath === 'scripts/ci/claim-status-writer-guard.test.mjs' ||
+      relativePath === 'scripts/ci/claim-status-writer-guard-raw-sql.test.mjs'
     ) {
       continue;
     }

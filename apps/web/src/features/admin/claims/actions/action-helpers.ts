@@ -2,12 +2,12 @@
 
 import { auth } from '@/lib/auth';
 import { and, auditLog, claims, db, eq } from '@interdomestik/database';
-import { ClaimStatus } from '@interdomestik/database/constants';
+import type { ClaimStatus } from '@interdomestik/database/constants';
+import { isClaimStatusTransitionInGraph } from '@interdomestik/domain-claims/claims/transition-guard';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
-import { ALLOWED_TRANSITIONS } from '../domain/claiming-rules';
 import { TERMINAL_STATUSES } from '../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -64,8 +64,7 @@ export function assertCanMutateClaim(
 }
 
 export function assertTransitionAllowed(currentStatus: ClaimStatus, newStatus: ClaimStatus) {
-  const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
-  if (!allowed.includes(newStatus)) {
+  if (!isClaimStatusTransitionInGraph(currentStatus, newStatus)) {
     throw new Error(`Illegal transition from ${currentStatus} to ${newStatus}`);
   }
 }
