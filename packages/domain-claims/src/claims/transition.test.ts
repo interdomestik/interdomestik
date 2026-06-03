@@ -6,11 +6,13 @@ import {
   ClaimTransitionConflictError,
   transitionClaimStatusInTransaction,
   type TransitionClaimStatusParams,
+  type TransitionTx,
 } from './transition';
 
-function makeParams(
-  overrides: Partial<TransitionClaimStatusParams> = {}
-): TransitionClaimStatusParams {
+type UpdatedRows = Array<{ id: string; lifecycleVersion: number }>;
+type Params = TransitionClaimStatusParams;
+
+function makeParams(overrides: Partial<Params> = {}): Params {
   return {
     actor: { id: 'staff-1', role: 'staff' },
     claimId: 'claim-1',
@@ -23,9 +25,7 @@ function makeParams(
 
 function makeTx(options: {
   current?: { id: string; lifecycleVersion: number; status: ClaimStatus | null };
-  updated?:
-    | Array<{ id: string; lifecycleVersion: number }>
-    | (() => Array<{ id: string; lifecycleVersion: number }>);
+  updated?: UpdatedRows | (() => UpdatedRows);
 }) {
   const calls: {
     historyValues?: unknown;
@@ -63,7 +63,7 @@ function makeTx(options: {
       },
     }),
   };
-  return { calls, tx };
+  return { calls, tx: tx as unknown as TransitionTx };
 }
 
 describe('transitionClaimStatusInTransaction', () => {

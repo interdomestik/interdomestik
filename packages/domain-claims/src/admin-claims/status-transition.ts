@@ -44,18 +44,13 @@ export async function transitionAdminClaimStatus(
 
   // db-access-guard: tenant-scoped -- reason: transition helper applies tenant-scoped CAS.
   return db.transaction(tx =>
-    transitionClaimStatusInTransaction(
-      tx as unknown as Parameters<typeof transitionClaimStatusInTransaction>[0],
-      {
-        actor: params.actor,
-        claimId: params.claimId,
-        ...(requiresPaymentAuthorization
-          ? { paymentAuthorizationState: 'authorized' as const }
-          : {}),
-        requiredWhereCondition: requiredTransitionCondition(params),
-        tenantId: params.tenantId,
-        toStatus: params.toStatus,
-      }
-    )
+    transitionClaimStatusInTransaction(tx, {
+      actor: params.actor,
+      claimId: params.claimId,
+      ...(requiresPaymentAuthorization ? { paymentAuthorizationState: 'authorized' as const } : {}),
+      requiredWhereCondition: requiredTransitionCondition(params),
+      tenantId: params.tenantId,
+      toStatus: params.toStatus,
+    })
   );
 }
