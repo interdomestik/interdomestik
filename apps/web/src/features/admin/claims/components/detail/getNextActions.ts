@@ -1,5 +1,5 @@
 import type { ClaimStatus } from '@interdomestik/database/constants';
-import { ALLOWED_TRANSITIONS } from '../../domain/claiming-rules';
+import { ALLOWED_CLAIM_STATUS_TRANSITIONS } from '@interdomestik/domain-claims/claims/transition-guard';
 import { ClaimOpsDetail, TERMINAL_STATUSES } from '../../types';
 
 export type ActionType =
@@ -44,7 +44,7 @@ export function getNextActions(claim: ClaimOpsDetail, currentUserId: string): Ne
 
   let primary: NextAction | null = null;
   const secondary: NextAction[] = [];
-  const allowedTransitions = ALLOWED_TRANSITIONS[claim.status] || [];
+  const allowedTransitions = [...ALLOWED_CLAIM_STATUS_TRANSITIONS[claim.status]];
 
   if (isTerminal) {
     if (allowedTransitions.length > 0) {

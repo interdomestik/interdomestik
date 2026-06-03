@@ -1,6 +1,5 @@
 import type { CreateClaimValues } from '@/lib/validators/claims';
 import { db } from '@interdomestik/database';
-import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { submitClaim } from './claims.core';
 import { createClaim, updateClaimStatus } from './claims';
@@ -280,7 +279,7 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue({
         user: { id: 'user-123', role: 'user', tenantId: 'tenant_mk' },
       });
-      const result = await updateClaimStatus('claim-1', 'resolved');
+      const result = await updateClaimStatus('claim-1', 'verification');
       expect(result).toEqual({ success: false, error: 'Unauthorized' });
     });
 
@@ -288,7 +287,7 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue({
         user: { id: 'staff-1', role: 'staff', tenantId: 'tenant_mk' },
       });
-      const result = await updateClaimStatus('claim-1', 'resolved');
+      const result = await updateClaimStatus('claim-1', 'verification');
 
       expect(mockTxUpdateReturning).toHaveBeenCalled();
       expect(result).toEqual({ success: true });
@@ -298,7 +297,7 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue({
         user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
       });
-      const result = await updateClaimStatus('claim-1', 'resolved');
+      const result = await updateClaimStatus('claim-1', 'verification');
 
       expect(mockTxUpdateReturning).toHaveBeenCalled();
       expect(result).toEqual({ success: true });
@@ -543,14 +542,15 @@ describe('Claim Actions', () => {
       expect(result).toEqual({ success: false, error: 'Failed to update status' });
     });
 
-    it('should accept all valid status values', async () => {
+    it('should accept same-status updates', async () => {
       mockGetSession.mockResolvedValue({
         user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
       });
-      for (const status of CLAIM_STATUSES) {
-        const result = await updateClaimStatus('claim-1', status);
-        expect(result).toEqual({ success: true });
-      }
+      mockTxSelectLimit.mockResolvedValueOnce([
+        { id: 'claim-1', lifecycleVersion: 1, status: 'resolved' },
+      ]);
+      const result = await updateClaimStatus('claim-1', 'resolved');
+      expect(result).toEqual({ success: true });
     });
   });
 

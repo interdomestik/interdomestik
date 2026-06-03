@@ -1,25 +1,19 @@
-import { ClaimStatus } from '@interdomestik/database/constants';
+import type { ClaimStatus } from '@interdomestik/database/constants';
+import {
+  ALLOWED_CLAIM_STATUS_TRANSITIONS,
+  isClaimStatusTransitionInGraph,
+} from '@interdomestik/domain-claims/claims/transition-guard';
 
 /**
- * Defines allowed status transitions to prevent invalid lifecycle jumps.
- * Used by the UI to filter available target statuses in the picker.
+ * Compatibility export for admin claim UI callers.
+ * The graph itself is owned by the domain transition authority.
  */
-export const ALLOWED_TRANSITIONS: Record<ClaimStatus, ClaimStatus[]> = {
-  draft: ['submitted'],
-  submitted: ['verification', 'evaluation', 'rejected'],
-  verification: ['evaluation', 'submitted'], // Can go back to submitted or straight to evaluation
-  evaluation: ['negotiation', 'verification', 'rejected', 'resolved'],
-  negotiation: ['court', 'resolved', 'evaluation', 'rejected'],
-  court: ['resolved', 'rejected', 'negotiation'],
-  resolved: ['evaluation', 'negotiation'], // Reopening usually requires re-evaluation
-  rejected: ['evaluation', 'submitted'], // Reopening
-};
+export const ALLOWED_TRANSITIONS: Record<ClaimStatus, readonly ClaimStatus[]> =
+  ALLOWED_CLAIM_STATUS_TRANSITIONS;
 
 /**
  * Checks if a transition is valid.
  */
 export function isTransitionAllowed(from: ClaimStatus, to: ClaimStatus): boolean {
-  if (from === to) return true;
-  const allowed = ALLOWED_TRANSITIONS[from];
-  return allowed ? allowed.includes(to) : false;
+  return isClaimStatusTransitionInGraph(from, to);
 }
