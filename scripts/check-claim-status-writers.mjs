@@ -27,7 +27,6 @@ const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']
 
 export const CLAIM_STATUS_WRITER_ALLOWLIST = new Set([
   'apps/web/e2e/gate/agent-workspace-claims-selection.spec.ts',
-  'apps/web/src/features/admin/claims/actions/ops-actions.ts',
   'packages/database/src/seed-full/claims.ts',
   'packages/database/src/seed-golden/claims.ts',
   'packages/database/src/seed-packs/ks-workflow-pack.ts',
