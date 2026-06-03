@@ -4,6 +4,12 @@ export * from './types';
 // Export client creators
 export { createClient } from './client';
 export { createAdminClient, createServerSupabaseClient } from './server';
+export {
+  appendEvent,
+  type AppendEventParams,
+  type AppendEventResult,
+  type DomainEventTx,
+} from './domain-events';
 export { withTenantContext, withTenantDb, type TenantTransaction } from './tenant';
 
 // Export Drizzle instance and schema

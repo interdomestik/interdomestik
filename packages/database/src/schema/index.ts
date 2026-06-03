@@ -17,6 +17,7 @@ export * from './claims';
 export * from './counters';
 export * from './crm';
 export * from './documents';
+export * from './domain-events';
 export * from './leads';
 export * from './member-counters';
 export * from './memberships';
