@@ -25,21 +25,33 @@ const EXCLUDED_DIRS = new Set([
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 
-export const CLAIM_STATUS_WRITER_ALLOWLIST = new Set([
+export const CLAIM_STATUS_TRANSITION_WRITERS = new Set([
+  'packages/domain-claims/src/claims/transition.ts',
+  'packages/domain-claims/src/staff-claims/update-status.ts',
+]);
+
+export const CLAIM_STATUS_INITIALIZATION_WRITERS = new Set([
+  'packages/domain-claims/src/claims/create.ts',
+  'packages/domain-claims/src/claims/submit.ts',
+]);
+
+export const CLAIM_STATUS_FIXTURE_WRITERS = new Set([
   'apps/web/e2e/gate/agent-workspace-claims-selection.spec.ts',
   'packages/database/src/seed-full/claims.ts',
   'packages/database/src/seed-golden/claims.ts',
   'packages/database/src/seed-packs/ks-workflow-pack.ts',
   'packages/database/test/rls-engaged.test.ts',
-  'packages/domain-claims/src/claims/create.ts',
-  'packages/domain-claims/src/claims/submit.ts',
-  'packages/domain-claims/src/claims/transition.ts',
-  'packages/domain-claims/src/staff-claims/update-status.ts',
   'scripts/ci/db-access-guard.test.mjs',
   'scripts/pilot/day1_multi_seeder.ts',
   'scripts/pilot/day1_run3_lifecycle.ts',
   'scripts/pilot/simulate_agent_claim.ts',
   'scripts/pilot/simulate_triage.ts',
+]);
+
+export const CLAIM_STATUS_WRITER_ALLOWLIST = new Set([
+  ...CLAIM_STATUS_TRANSITION_WRITERS,
+  ...CLAIM_STATUS_INITIALIZATION_WRITERS,
+  ...CLAIM_STATUS_FIXTURE_WRITERS,
 ]);
 
 const CLAIMS_REF = String.raw`(?:schema\.)?claims`;
