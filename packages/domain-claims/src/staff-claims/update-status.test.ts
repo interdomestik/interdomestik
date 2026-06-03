@@ -211,6 +211,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
+  appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   claimEscalationAgreements: mocks.claimEscalationAgreements,
   claimStageHistory: mocks.claimStageHistory,
   claims: mocks.claims,
@@ -220,7 +221,6 @@ vi.mock('@interdomestik/database', () => ({
   sql: mocks.sql,
   subscriptions: mocks.subscriptions,
 }));
-
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));

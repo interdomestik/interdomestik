@@ -1,4 +1,5 @@
 import { inspect } from 'node:util';
+import { domainEvents } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { describe, expect, it } from 'vitest';
 
@@ -11,7 +12,6 @@ import {
 
 type UpdatedRows = Array<{ id: string; lifecycleVersion: number }>;
 type Params = TransitionClaimStatusParams;
-
 function makeParams(overrides: Partial<Params> = {}): Params {
   return {
     actor: { id: 'staff-1', role: 'staff' },
@@ -22,12 +22,12 @@ function makeParams(overrides: Partial<Params> = {}): Params {
     ...overrides,
   };
 }
-
 function makeTx(options: {
   current?: { id: string; lifecycleVersion: number; status: ClaimStatus | null };
   updated?: UpdatedRows | (() => UpdatedRows);
 }) {
   const calls: {
+    eventValues?: unknown;
     historyValues?: unknown;
     updateValues?: Record<string, unknown>;
     whereConditions: unknown[];
@@ -57,15 +57,16 @@ function makeTx(options: {
         };
       },
     }),
-    insert: () => ({
-      values: async (values: unknown) => {
-        calls.historyValues = values;
+    insert: (table: unknown) => ({
+      values: (values: Record<string, unknown>) => {
+        if (table === domainEvents) calls.eventValues = values;
+        else calls.historyValues = values;
+        return { returning: async () => [{ id: values.id }] };
       },
     }),
   };
   return { calls, tx: tx as unknown as TransitionTx };
 }
-
 describe('transitionClaimStatusInTransaction', () => {
   it('updates status with a lifecycle-version compare-and-set and appends history', async () => {
     const { calls, tx } = makeTx({
@@ -102,7 +103,6 @@ describe('transitionClaimStatusInTransaction', () => {
       })
     );
   });
-
   it('throws a typed conflict when the lifecycle version is stale', async () => {
     const { tx } = makeTx({
       current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
@@ -112,7 +112,6 @@ describe('transitionClaimStatusInTransaction', () => {
     const transition = transitionClaimStatusInTransaction(tx, makeParams());
     await expect(transition).rejects.toThrow(ClaimTransitionConflictError);
   });
-
   it('lets exactly one same-version transition win', async () => {
     let claimed = false;
     const { tx } = makeTx({
@@ -179,5 +178,6 @@ describe('transitionClaimStatusInTransaction', () => {
         toStatus: 'evaluation',
       })
     );
+    expect(calls.eventValues).toBeUndefined();
   });
 });

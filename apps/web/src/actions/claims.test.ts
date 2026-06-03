@@ -48,6 +48,7 @@ vi.mock('@interdomestik/database/claim-number', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   db: {
     insert: () => ({ values: mockDbInsert }),
     select: () => ({ from: () => ({ where: () => ({ limit: mockPaymentLimit }) }) }),
@@ -243,7 +244,6 @@ describe('Claim Actions', () => {
     it('applies tenant default branch when subscription has no branchId', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
-      // Override the domain function mock, not the DB mock
       mockGetActiveSubscription.mockResolvedValueOnce({
         id: 'sub-1',
         userId: 'user-123',
