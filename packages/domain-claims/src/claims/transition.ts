@@ -120,20 +120,22 @@ export async function transitionClaimStatusInTransaction(
     createdAt: now,
   });
 
-  await appendEvent(tx, {
-    actor: { id: actor.id, role: actor.role?.trim() || 'unknown' },
-    aggregateVersion: lifecycleVersion,
-    correlationId: correlationId ?? crypto.randomUUID(),
-    createdAt: now,
-    entity: { id: claimId, type: 'claim' },
-    eventName: 'claim.status_changed',
-    eventVersion: 1,
-    payload: {
-      fromStatus: current.status,
-      toStatus,
-    },
-    tenantId,
-  });
+  if (current.status !== toStatus) {
+    await appendEvent(tx, {
+      actor: { id: actor.id, role: actor.role?.trim() || 'unknown' },
+      aggregateVersion: lifecycleVersion,
+      correlationId: correlationId ?? crypto.randomUUID(),
+      createdAt: now,
+      entity: { id: claimId, type: 'claim' },
+      eventName: 'claim.status_changed',
+      eventVersion: 1,
+      payload: {
+        fromStatus: current.status,
+        toStatus,
+      },
+      tenantId,
+    });
+  }
 
   return { success: true, fromStatus: current.status, lifecycleVersion, status: toStatus };
 }
