@@ -11,6 +11,57 @@ type ClaimState = {
   lifecycleVersion: number;
   status: ClaimStatus;
 };
+type FailOn = 'history' | 'event';
+
+class FakeSelect {
+  constructor(private readonly state: ClaimState) {}
+  from(): this {
+    return this;
+  }
+  where(): this {
+    return this;
+  }
+  async limit(): Promise<Row[]> {
+    return [{ ...this.state, id: 'claim-1' }];
+  }
+}
+
+class FakeUpdate {
+  private values: Row = {};
+  constructor(private readonly staged: ClaimState) {}
+  set(values: Row): this {
+    this.values = values;
+    return this;
+  }
+  where(): this {
+    return this;
+  }
+  async returning(): Promise<Row[]> {
+    if (typeof this.values.status === 'string')
+      this.staged.status = this.values.status as ClaimStatus;
+    if ('lifecycleVersion' in this.values) this.staged.lifecycleVersion += 1;
+    return [{ id: 'claim-1', lifecycleVersion: this.staged.lifecycleVersion }];
+  }
+}
+
+class FakeInsert {
+  constructor(
+    private readonly staged: ClaimState,
+    private readonly table: unknown,
+    private readonly failOn?: FailOn
+  ) {}
+  values(values: Row) {
+    if (this.table === claimStageHistory) {
+      if (this.failOn === 'history') throw new Error('history failed');
+      this.staged.histories.push(values);
+    }
+    if (this.table === domainEvents) {
+      if (this.failOn === 'event') throw new Error('event failed');
+      this.staged.events.push(values);
+    }
+    return { returning: async () => [{ id: values.id }] };
+  }
+}
 
 function makeParams() {
   return {
@@ -23,36 +74,12 @@ function makeParams() {
   };
 }
 
-function makeTx(state: ClaimState, failOn?: 'history' | 'event') {
+function makeTx(state: ClaimState, failOn?: FailOn) {
   const staged = { ...state, events: [...state.events], histories: [...state.histories] };
   const tx = {
-    select: () => ({
-      from: () => ({ where: () => ({ limit: async () => [{ ...state, id: 'claim-1' }] }) }),
-    }),
-    update: () => ({
-      set: (values: Row) => ({
-        where: () => ({
-          returning: async () => {
-            if (typeof values.status === 'string') staged.status = values.status as ClaimStatus;
-            if ('lifecycleVersion' in values) staged.lifecycleVersion += 1;
-            return [{ id: 'claim-1', lifecycleVersion: staged.lifecycleVersion }];
-          },
-        }),
-      }),
-    }),
-    insert: (table: unknown) => ({
-      values: (values: Row) => {
-        if (table === claimStageHistory) {
-          if (failOn === 'history') throw new Error('history failed');
-          staged.histories.push(values);
-        }
-        if (table === domainEvents) {
-          if (failOn === 'event') throw new Error('event failed');
-          staged.events.push(values);
-        }
-        return { returning: async () => [{ id: values.id }] };
-      },
-    }),
+    select: () => new FakeSelect(state),
+    update: () => new FakeUpdate(staged),
+    insert: (table: unknown) => new FakeInsert(staged, table, failOn),
   };
   return { commit: () => Object.assign(state, staged), tx: tx as unknown as TransitionTx };
 }
