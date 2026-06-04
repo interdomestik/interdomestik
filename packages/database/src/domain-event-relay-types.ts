@@ -22,6 +22,8 @@ export type RelayMode = 'undelivered' | 'replay';
 
 export type RelayDomainEventsParams = {
   consumer: DomainEventRelayConsumer;
+  eventName?: string;
+  eventVersion?: number;
   limit: number;
   mode?: RelayMode;
   replayFrom?: { createdAt: Date; eventId?: string };

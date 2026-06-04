@@ -38,6 +38,38 @@ describe('domain event relay selection', () => {
     assert.match(query, /for update skip locked/);
   });
 
+  it('can narrow relay selection to one event family and version', async () => {
+    const tx = new FakeSelectTx();
+
+    await selectDomainEventsForRelay(tx as never, {
+      consumerName: 'audit_projection',
+      eventName: 'claim.status_changed',
+      eventVersion: 1,
+      limit: 10,
+      tenantId: 'tenant-1',
+    });
+
+    const query = sqlText(tx.query).toLowerCase();
+    assert.match(query, /event_name/);
+    assert.match(query, /event_version/);
+  });
+
+  it('rejects blank event names before building the query', async () => {
+    const tx = new FakeSelectTx();
+
+    await assert.rejects(
+      () =>
+        selectDomainEventsForRelay(tx as never, {
+          consumerName: 'audit_projection',
+          eventName: '   ',
+          limit: 10,
+          tenantId: 'tenant-1',
+        }),
+      /eventName/
+    );
+    assert.equal(tx.query, undefined);
+  });
+
   it('selects replay batches from an arbitrary offset without delivery filtering', async () => {
     const tx = new FakeSelectTx();
 
