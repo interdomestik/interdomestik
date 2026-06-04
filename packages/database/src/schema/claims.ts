@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   decimal,
   index,
   integer,
@@ -13,6 +15,7 @@ import { user } from './auth';
 import { documentCategoryEnum, statusEnum } from './enums';
 import { branches } from './rbac';
 import { tenants } from './tenants';
+import type { ClaimCaseLifecycleState, ClaimRecoveryLifecycleState } from '../constants';
 
 export const claims = pgTable(
   'claim',
@@ -33,6 +36,10 @@ export const claims = pgTable(
     title: text('title').notNull(),
     description: text('description'),
     status: statusEnum('status').default('draft'),
+    caseLifecycleState: text('case_lifecycle_state').$type<ClaimCaseLifecycleState | null>(),
+    recoveryLifecycleState: text(
+      'recovery_lifecycle_state'
+    ).$type<ClaimRecoveryLifecycleState | null>(),
     lifecycleVersion: integer('lifecycle_version').notNull().default(0),
     origin: text('origin').default('portal').notNull(), // 'portal' | 'agent' | 'admin' | 'api'
     originRefId: text('origin_ref_id'), // agentId or staffId
@@ -56,6 +63,14 @@ export const claims = pgTable(
     index('idx_claims_tenant_status_created').on(table.tenantId, table.status, table.createdAt),
     // Uniqueness for human readable claim number per tenant
     uniqueIndex('idx_claims_tenant_number').on(table.tenantId, table.claimNumber), // Enable after backfill
+    check(
+      'claim_case_lifecycle_state_check',
+      sql`${table.caseLifecycleState} is null or ${table.caseLifecycleState} in ('draft', 'submitted', 'verification', 'evaluation', 'recovery', 'resolved', 'rejected')`
+    ),
+    check(
+      'claim_recovery_lifecycle_state_check',
+      sql`${table.recoveryLifecycleState} is null or ${table.recoveryLifecycleState} in ('not_started', 'negotiation', 'court', 'resolved', 'closed')`
+    ),
   ]
 );
 

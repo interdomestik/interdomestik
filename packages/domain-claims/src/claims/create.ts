@@ -6,6 +6,7 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 
+import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import type { ClaimsDeps, ClaimsSession } from './types';
 
 const claimSchema = z.object({
@@ -16,7 +17,7 @@ const claimSchema = z.object({
   claimAmount: z
     .string()
     .optional()
-    .transform((val: string | undefined) => val || null), // Handle empty string for optional decimal
+    .transform((val: string | undefined) => val || null),
   currency: z.string().default('EUR'),
 });
 
@@ -98,7 +99,6 @@ export async function createClaimCore(
   try {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await db.transaction(async tx => {
-      // 1. Insert first (claimNumber null)
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       await tx.insert(claims).values({
         id: claimId,
@@ -109,16 +109,16 @@ export async function createClaimCore(
         description,
         category,
         companyName,
+        status: 'draft',
+        ...mapClaimStatusToLifecycleStates('draft'),
         claimAmount: claimAmount || undefined,
         currency,
-        status: 'draft',
         branchId: subscription.branchId ?? defaultBranchId,
         agentId: subscription.agentId,
         createdAt: now, // Sync with generator year
         updatedAt: now,
       });
 
-      // 2. Generate and Assign (updates the row)
       await generateClaimNumber(tx, {
         tenantId,
         claimId,

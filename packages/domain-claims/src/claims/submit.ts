@@ -16,9 +16,9 @@ import { nanoid } from 'nanoid';
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
 import { queueClaimDocumentAiWorkflows, type QueuedClaimAiRun } from './ai-workflows';
 import { buildClaimDocumentRows } from './documents';
+import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import type { ClaimStartHandoffContext, ClaimsDeps, ClaimsSession } from './types';
 
-// Custom error for validation failures (can be mapped to 400/403 by API routes)
 export class ClaimValidationError extends Error {
   constructor(
     message: string,
@@ -35,7 +35,6 @@ export class ClaimValidationError extends Error {
     this.name = 'ClaimValidationError';
   }
 }
-
 type ClaimAssignmentContext = {
   subscription: Awaited<ReturnType<typeof getActiveSubscription>>;
   branchId: string | null;
@@ -178,6 +177,7 @@ async function persistSubmittedClaim(args: {
       claimAmount: claimAmount || undefined,
       currency: currency || 'EUR',
       status: 'submitted',
+      ...mapClaimStatusToLifecycleStates('submitted'),
       claimNumber: null,
       createdAt: args.createdAt,
       updatedAt: args.createdAt,
