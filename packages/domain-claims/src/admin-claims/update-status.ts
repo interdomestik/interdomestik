@@ -3,6 +3,7 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
+import { activateClaimStatusAuditProjection } from '../claims/audit-projection';
 import { transitionClaimStatus } from '../claims/transition';
 import { getPaymentAuthorizationState } from './payment-authorization';
 
@@ -36,7 +37,7 @@ export async function updateClaimStatusCore(
   },
   deps: ClaimsDeps = {}
 ) {
-  const { claimId, newStatus, session, requestHeaders } = params;
+  const { claimId, newStatus, session } = params;
 
   const role = session?.user?.role;
   const isAdminRole = role === 'admin' || role === 'tenant_admin' || role === 'super_admin';
@@ -101,20 +102,7 @@ export async function updateClaimStatusCore(
   const persistedOldStatus = result.fromStatus;
   const persistedNewStatus = result.status;
 
-  if (deps.logAuditEvent) {
-    await deps.logAuditEvent({
-      actorId: session.user.id,
-      actorRole: session.user.role,
-      action: 'claim.status_changed',
-      entityType: 'claim',
-      entityId: claimId,
-      metadata: {
-        oldStatus: persistedOldStatus,
-        newStatus: persistedNewStatus,
-      },
-      headers: requestHeaders,
-    });
-  }
+  await activateClaimStatusAuditProjection({ deps, tenantId });
 
   // Send notification to claim owner (fire-and-forget)
   if (

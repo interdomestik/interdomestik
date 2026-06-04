@@ -29,6 +29,10 @@ export type ClaimsAuditEvent = {
 };
 
 export type ClaimsDeps = {
+  projectClaimStatusAuditProjection?: (args: {
+    limit?: number;
+    tenantId: string;
+  }) => Promise<unknown> | unknown;
   validateSubmittedClaimFile?: (args: {
     actorId: string;
     file: EvidenceFile;

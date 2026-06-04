@@ -3,6 +3,7 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ActionResult, ClaimsDeps, ClaimsSession } from '../claims/types';
+import { activateClaimStatusAuditProjection } from '../claims/audit-projection';
 import { transitionClaimStatus } from '../claims/transition';
 import { claimStatusSchema } from '../validators/claims';
 import { getPaymentAuthorizationState } from '../admin-claims/payment-authorization';
@@ -36,7 +37,7 @@ export async function updateClaimStatusCore(
   },
   deps: ClaimsDeps = {}
 ): Promise<ActionResult> {
-  const { claimId, newStatus, session, requestHeaders } = params;
+  const { claimId, newStatus, session } = params;
 
   if (!session || !isStaffOrAdmin(session.user.role)) {
     return { success: false, error: 'Unauthorized', data: undefined };
@@ -98,21 +99,7 @@ export async function updateClaimStatusCore(
   const oldStatus = transitionResult.fromStatus;
   const persistedStatus = transitionResult.status;
 
-  if (deps.logAuditEvent) {
-    await deps.logAuditEvent({
-      actorId: session.user.id,
-      actorRole: session.user.role,
-      tenantId,
-      action: 'claim.status_changed',
-      entityType: 'claim',
-      entityId: claimId,
-      metadata: {
-        oldStatus,
-        newStatus: persistedStatus,
-      },
-      headers: requestHeaders,
-    });
-  }
+  await activateClaimStatusAuditProjection({ deps, tenantId });
 
   // Send notification to claim owner (fire-and-forget)
   if (

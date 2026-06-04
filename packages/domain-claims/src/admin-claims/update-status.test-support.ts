@@ -43,6 +43,7 @@ vi.mock('@interdomestik/database', () => ({
     select: updateStatusMocks.dbSelect,
     update: updateStatusMocks.dbUpdate,
   },
+  relayClaimStatusAuditProjectionEvents: vi.fn(),
   claimEscalationAgreements: {
     claimId: 'claim_escalation_agreements.claim_id',
     paymentAuthorizationState: 'claim_escalation_agreements.payment_authorization_state',

@@ -110,6 +110,7 @@ const mocks = vi.hoisted(() => {
       transaction,
     },
     logAuditEvent: vi.fn(),
+    projectClaimStatusAuditProjection: vi.fn(),
     and: vi.fn((...conditions) => ({ op: 'and', conditions })),
     claims: {
       id: 'claims.id',
@@ -218,6 +219,7 @@ vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
   eq: mocks.eq,
   serviceUsage: mocks.serviceUsage,
+  relayClaimStatusAuditProjectionEvents: vi.fn(),
   sql: mocks.sql,
   subscriptions: mocks.subscriptions,
 }));
@@ -313,7 +315,7 @@ async function runNegotiationUpdate(
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
       ...overrides,
     },
-    deps
+    deps ?? { projectClaimStatusAuditProjection: mocks.projectClaimStatusAuditProjection }
   );
 }
 
@@ -350,6 +352,7 @@ describe('staff updateClaimStatusCore', () => {
     ]);
     mocks.txInsertReturning.mockResolvedValue([{ id: 'usage-claim-1' }]);
     mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
+    mocks.projectClaimStatusAuditProjection.mockResolvedValue(undefined);
   });
 
   it.each([
@@ -561,10 +564,17 @@ describe('staff updateClaimStatusCore', () => {
         newStatus: 'verification',
         session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
       },
-      { notifyStatusChanged }
+      {
+        notifyStatusChanged,
+        projectClaimStatusAuditProjection: mocks.projectClaimStatusAuditProjection,
+      }
     );
 
     expect(result).toEqual({ success: true, error: undefined });
+    expect(mocks.projectClaimStatusAuditProjection).toHaveBeenCalledWith({
+      limit: 10,
+      tenantId: 'tenant-1',
+    });
     await vi.waitFor(() =>
       expect(notifyStatusChanged).toHaveBeenCalledWith(
         'member-1',
@@ -710,18 +720,19 @@ describe('staff updateClaimStatusCore', () => {
       {
         allowanceOverrideReason: 'Family upgrade is pending but recovery must start now',
       },
-      { logAuditEvent: mocks.logAuditEvent }
+      {
+        logAuditEvent: mocks.logAuditEvent,
+        projectClaimStatusAuditProjection: mocks.projectClaimStatusAuditProjection,
+      }
     );
 
     expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.txInsert).toHaveBeenCalledWith(mocks.serviceUsage);
-    expect(mocks.logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        metadata: expect.objectContaining({
-          allowanceOverrideReason: 'Family upgrade is pending but recovery must start now',
-        }),
-      })
-    );
+    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+    expect(mocks.projectClaimStatusAuditProjection).toHaveBeenCalledWith({
+      limit: 10,
+      tenantId: 'tenant-1',
+    });
   });
 
   it('treats a conflicting recovery usage insert as an already consumed matter', async () => {
@@ -762,7 +773,7 @@ describe('staff updateClaimStatusCore', () => {
     expect(mocks.txInsert).not.toHaveBeenCalled();
   });
 
-  it('records an audit event when staff decline a recovery matter', async () => {
+  it('activates audit projection when staff decline a recovery matter', async () => {
     const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 
     mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
@@ -782,29 +793,17 @@ describe('staff updateClaimStatusCore', () => {
         requestHeaders,
         session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
       },
-      { logAuditEvent: mocks.logAuditEvent }
+      {
+        logAuditEvent: mocks.logAuditEvent,
+        projectClaimStatusAuditProjection: mocks.projectClaimStatusAuditProjection,
+      }
     );
 
     expect(result).toEqual({ success: true, error: undefined });
-    expect(mocks.logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: 'claim.status_changed',
-        actorId: 'staff-1',
-        actorRole: 'staff',
-        entityId: 'claim-1',
-        entityType: 'claim',
-        headers: requestHeaders,
-        tenantId: 'tenant-1',
-        metadata: expect.objectContaining({
-          decisionNextStatus: 'rejected',
-          declineReasonCode: 'no_monetary_recovery_path',
-          decisionReason: 'Declined after review',
-          decisionType: 'declined',
-          oldStatus: 'negotiation',
-          newStatus: 'rejected',
-          note: 'This matter does not currently show a clear monetary recovery path for staff-led recovery.',
-        }),
-      })
-    );
+    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+    expect(mocks.projectClaimStatusAuditProjection).toHaveBeenCalledWith({
+      limit: 10,
+      tenantId: 'tenant-1',
+    });
   });
 });

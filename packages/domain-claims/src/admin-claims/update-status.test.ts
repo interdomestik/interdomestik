@@ -60,9 +60,10 @@ describe('admin updateClaimStatusCore', () => {
 
   it('routes admin status changes through the transition command', async () => {
     const logAuditEvent = vi.fn();
+    const projectClaimStatusAuditProjection = vi.fn();
     mockClaim('submitted');
 
-    await runStatusUpdate('resolved', { logAuditEvent });
+    await runStatusUpdate('resolved', { logAuditEvent, projectClaimStatusAuditProjection });
 
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
     expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
@@ -71,15 +72,11 @@ describe('admin updateClaimStatusCore', () => {
       tenantId: 'tenant-1',
       toStatus: 'resolved',
     });
-    expect(logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        actorId: 'admin-1',
-        action: 'claim.status_changed',
-        entityId: 'claim-1',
-        headers: requestHeaders,
-        metadata: { oldStatus: 'verification', newStatus: 'resolved' },
-      })
-    );
+    expect(logAuditEvent).not.toHaveBeenCalled();
+    expect(projectClaimStatusAuditProjection).toHaveBeenCalledWith({
+      limit: 10,
+      tenantId: 'tenant-1',
+    });
   });
 
   it('surfaces transition command rejection without audit or notification side effects', async () => {

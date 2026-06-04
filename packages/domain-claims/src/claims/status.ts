@@ -8,6 +8,7 @@ import type { TransitionClaimStatusResult } from './transition';
 
 import { getPaymentAuthorizationState } from '../admin-claims/payment-authorization';
 import { claimStatusSchema } from '../validators/claims';
+import { activateClaimStatusAuditProjection } from './audit-projection';
 import { transitionClaimStatus } from './transition';
 
 function isStaffOrAdmin(role: string | null | undefined): boolean {
@@ -64,7 +65,7 @@ export async function updateClaimStatusCore(
   },
   deps: ClaimsDeps = {}
 ): Promise<ActionResult> {
-  const { session, requestHeaders, claimId, newStatus } = params;
+  const { session, claimId, newStatus } = params;
 
   if (!session || !isStaffOrAdmin(session.user.role ?? null)) {
     return { success: false, error: 'Unauthorized', data: undefined };
@@ -105,16 +106,7 @@ export async function updateClaimStatusCore(
     const oldStatus = transitionResult.fromStatus;
     const persistedStatus = transitionResult.status;
 
-    await deps.logAuditEvent?.({
-      action: 'claim.status_changed',
-      actorId: session.user.id,
-      actorRole: session.user.role,
-      entityId: claimId,
-      entityType: 'claim',
-      headers: requestHeaders,
-      metadata: { oldStatus, newStatus: persistedStatus },
-      tenantId,
-    });
+    await activateClaimStatusAuditProjection({ deps, tenantId });
 
     if (claim.userId && oldStatus !== persistedStatus && deps.notifyStatusChanged) {
       const member = await db.query.user.findFirst({
