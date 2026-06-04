@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-06-03
+last_reviewed: 2026-06-04
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -23,9 +23,9 @@ Phase C guardrails still apply during architecture finalization: `apps/web/src/p
 
 ## Current Phase
 
-Architecture Finalization is now the active Phase C execution lane as of 2026-05-31. The canonical new-architecture program is `docs/plans/architecture-finalization-program-2026-05-29.md`, the active architecture queue is `docs/plans/architecture-finalization-tracker-2026-05-29.md`, and the next implementation work continues in M1 with `ARCH-M1-02`. The previously promoted `IDA-MH03` product slice is paused behind this architecture lane unless explicitly re-promoted.
+Architecture Finalization is now the active Phase C execution lane as of 2026-05-31. The canonical new-architecture program is `docs/plans/architecture-finalization-program-2026-05-29.md`, the active architecture queue is `docs/plans/architecture-finalization-tracker-2026-05-29.md`, and the next implementation work continues in M1 with `ARCH-M1-03`. The previously promoted `IDA-MH03` product slice is paused behind this architecture lane unless explicitly re-promoted.
 
-M0 guardrails have completed through `ARCH-M0-19`: writer inventory (`T-000`) landed in PR `#880`, transition guard plus lifecycle foundation (`T-001` and `T-001b`) landed in PR `#881`, staff/package/app claim-status writer adoptions landed through PR `#918`, claim creation/submit initialization classification landed in PR `#920`, and transition graph authority hardening landed in PR `#922`. `ARCH-M1-01` / `T-104` landed in PR `#924` with the additive `domain_events` transactional outbox table, migration/snapshot, schema export, and typed `appendEvent(tx, ...)` helper. `T-002` remains WIP only for wiring `transitionClaimStatus()` to append one event atomically with status/history and proving rollback; the next promoted architecture slice is `ARCH-M1-02`, limited to that claim-transition event append and atomic rollback proof as recorded in `docs/plans/2026-06-03-arch-m1-01-closeout-and-m1-02-promotion.md`. Relay/CDC, per-consumer deliveries, PII reference tables, event retention/crypto-shredding, audit projection, timeline UI, ida-host work, proxy, routes, auth, tenancy, billing, README, AGENTS, and broad architecture docs remain out of scope for that next slice.
+M0 guardrails have completed through `ARCH-M0-19`: writer inventory (`T-000`) landed in PR `#880`, transition guard plus lifecycle foundation (`T-001` and `T-001b`) landed in PR `#881`, staff/package/app claim-status writer adoptions landed through PR `#918`, claim creation/submit initialization classification landed in PR `#920`, and transition graph authority hardening landed in PR `#922`. `ARCH-M1-01` / `T-104` landed in PR `#924` with the additive `domain_events` transactional outbox table, migration/snapshot, schema export, and typed `appendEvent(tx, ...)` helper. `ARCH-M1-02` landed in PR `#926` / squash merge `ddbc207ca51b36a09ba1c2358f831c7e24504beb`, closing the remaining `T-002` event append obligation and `T-002c` rollback guarantee by appending one conservative non-PII `claim.status_changed` event inside the same transaction as status, lifecycle-version, and history writes, while leaving same-status no-op paths event-free and enabling tenant-isolated `domain_events` RLS. The next promoted architecture slice is `ARCH-M1-03`, limited to `T-104c` domain-event payload PII allowlist and redaction as recorded in `docs/plans/2026-06-04-arch-m1-02-closeout-and-m1-03-promotion.md`. Relay/CDC, per-consumer deliveries, PII reference tables, event retention/crypto-shredding, audit projection, timeline UI, ida-host work, proxy, routes, auth, tenancy, billing, README, AGENTS, and broad architecture docs remain out of scope for that next slice.
 
 `v1.0.0` release authority is declared and active.
 
