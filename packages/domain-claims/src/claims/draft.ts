@@ -4,6 +4,7 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
 import { buildClaimDocumentRows } from './documents';
+import { resolveClaimIncidentCountryUpdate } from './incident-country';
 import type { ClaimsDeps, ClaimsSession } from './types';
 
 export { cancelClaimCore } from './draft-cancellation';
@@ -47,6 +48,7 @@ export async function updateDraftClaimCore(
   }
 
   const { title, description, category, companyName, claimAmount, currency, files } = result.data;
+  const incidentCountry = resolveClaimIncidentCountryUpdate(result.data);
 
   try {
     await db
@@ -58,6 +60,7 @@ export async function updateDraftClaimCore(
         companyName,
         claimAmount: claimAmount || undefined,
         currency: currency || 'EUR',
+        ...incidentCountry,
         updatedAt: new Date(),
       })
       .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));

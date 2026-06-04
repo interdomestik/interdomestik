@@ -31,6 +31,8 @@ export const claimDetailsSchema = z.object({
     .optional(), // Made optional as it's not in DB yet
   claimAmount: z.string().optional(), // Can be parsed to number on server
   currency: z.string().default('EUR'),
+  incidentCountryCode: z.string().optional(),
+  incidentJurisdiction: z.string().optional(),
   voiceNoteUrl: z.string().optional(),
 });
 

@@ -40,6 +40,8 @@ export const claims = pgTable(
     recoveryLifecycleState: text(
       'recovery_lifecycle_state'
     ).$type<ClaimRecoveryLifecycleState | null>(),
+    incidentCountryCode: text('incident_country_code'),
+    incidentJurisdiction: text('incident_jurisdiction'),
     lifecycleVersion: integer('lifecycle_version').notNull().default(0),
     origin: text('origin').default('portal').notNull(), // 'portal' | 'agent' | 'admin' | 'api'
     originRefId: text('origin_ref_id'), // agentId or staffId
@@ -61,6 +63,11 @@ export const claims = pgTable(
     index('idx_claims_tenant_branch').on(table.tenantId, table.branchId),
     index('idx_claims_tenant_branch_status').on(table.tenantId, table.branchId, table.status),
     index('idx_claims_tenant_status_created').on(table.tenantId, table.status, table.createdAt),
+    index('idx_claims_tenant_incident_country').on(
+      table.tenantId,
+      table.incidentCountryCode,
+      table.createdAt
+    ),
     // Uniqueness for human readable claim number per tenant
     uniqueIndex('idx_claims_tenant_number').on(table.tenantId, table.claimNumber), // Enable after backfill
     check(
@@ -70,6 +77,14 @@ export const claims = pgTable(
     check(
       'claim_recovery_lifecycle_state_check',
       sql`${table.recoveryLifecycleState} is null or ${table.recoveryLifecycleState} in ('not_started', 'negotiation', 'court', 'resolved', 'closed')`
+    ),
+    check(
+      'claim_incident_country_code_check',
+      sql`${table.incidentCountryCode} is null or ${table.incidentCountryCode} ~ '^[A-Z]{2}$'`
+    ),
+    check(
+      'claim_incident_jurisdiction_check',
+      sql`${table.incidentJurisdiction} is null or ${table.incidentJurisdiction} ~ '^country:[A-Z]{2}$'`
     ),
   ]
 );
