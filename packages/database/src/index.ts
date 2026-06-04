@@ -21,6 +21,13 @@ export {
   type RelayDomainEventsResult,
   type RelayMode,
 } from './domain-event-relay';
+export {
+  CLAIM_STATUS_AUDIT_PROJECTION_CONSUMER_NAME,
+  claimStatusAuditProjectionConsumer,
+  projectClaimStatusChangedAuditEvent,
+  relayClaimStatusAuditProjectionEvents,
+  type ProjectClaimStatusChangedAuditResult,
+} from './domain-event-audit-projection';
 export { withTenantContext, withTenantDb, type TenantTransaction } from './tenant';
 
 // Export Drizzle instance and schema

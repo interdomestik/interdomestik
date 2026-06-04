@@ -1,12 +1,13 @@
 import { sql } from 'drizzle-orm';
 
+import { domainEventDeliveryIdempotencyKey } from './domain-event-delivery-keys';
+import { recordDomainEventDelivery } from './domain-event-delivery-recording';
 import { type DomainEventTx } from './domain-events';
 import type {
   DomainEventRelayEvent,
   RelayDomainEventsParams,
   RelayDomainEventsResult,
 } from './domain-event-relay-types';
-import { domainEventDeliveries } from './schema/domain-event-deliveries';
 
 export type {
   DomainEventRelayConsumer,
@@ -15,6 +16,8 @@ export type {
   RelayDomainEventsResult,
   RelayMode,
 } from './domain-event-relay-types';
+export { recordDomainEventDelivery } from './domain-event-delivery-recording';
+export { domainEventDeliveryIdempotencyKey } from './domain-event-delivery-keys';
 
 type RelayTx = DomainEventTx & {
   execute<T>(query: unknown): Promise<T[]>;
@@ -33,10 +36,6 @@ function assertLimit(limit: number): number {
   return limit;
 }
 
-export function domainEventDeliveryIdempotencyKey(eventId: string, consumerName: string): string {
-  return `domain-event:${assertNonBlank(consumerName, 'consumer.name')}:${assertNonBlank(eventId, 'event.id')}`;
-}
-
 export async function selectDomainEventsForRelay(
   tx: RelayTx,
   params: Omit<RelayDomainEventsParams, 'consumer'> & { consumerName: string }
@@ -46,6 +45,19 @@ export async function selectDomainEventsForRelay(
   const limit = assertLimit(params.limit);
   const replayFrom = params.replayFrom;
   const mode = params.mode ?? 'undelivered';
+  const eventNameFilter =
+    params.eventName !== undefined
+      ? sql`and e."event_name" = ${assertNonBlank(params.eventName, 'eventName')}`
+      : sql``;
+  if (
+    params.eventVersion !== undefined &&
+    (!Number.isInteger(params.eventVersion) || params.eventVersion < 1)
+  ) {
+    throw new Error('domain event relay requires eventVersion >= 1');
+  }
+  const eventVersionFilter = params.eventVersion
+    ? sql`and e."event_version" = ${params.eventVersion}`
+    : sql``;
   const deliveryFilter =
     mode === 'replay'
       ? sql``
@@ -79,41 +91,14 @@ export async function selectDomainEventsForRelay(
     from "domain_events" e
     where 1 = 1
     and e."tenant_id" = ${tenantId}
+    ${eventNameFilter}
+    ${eventVersionFilter}
     ${deliveryFilter}
     ${offsetFilter}
     order by e."created_at" asc, e."id" asc
     limit ${limit}
     ${lockClause}
   `);
-}
-
-export async function recordDomainEventDelivery(
-  tx: DomainEventTx,
-  params: { consumerName: string; eventId: string; id?: string; tenantId: string }
-): Promise<{
-  id: string | null;
-  idempotencyKey: string;
-  status: 'delivered' | 'already_delivered';
-}> {
-  const consumerName = assertNonBlank(params.consumerName, 'consumer.name');
-  const deliveryId =
-    params.id === undefined ? crypto.randomUUID() : assertNonBlank(params.id, 'delivery.id');
-  const idempotencyKey = domainEventDeliveryIdempotencyKey(params.eventId, consumerName);
-  const [row] = await tx
-    .insert(domainEventDeliveries)
-    .values({
-      id: deliveryId,
-      tenantId: assertNonBlank(params.tenantId, 'tenantId'),
-      eventId: assertNonBlank(params.eventId, 'event.id'),
-      consumerName,
-      idempotencyKey,
-    })
-    .onConflictDoNothing({
-      target: [domainEventDeliveries.eventId, domainEventDeliveries.consumerName],
-    })
-    .returning({ id: domainEventDeliveries.id });
-
-  return { id: row?.id ?? null, idempotencyKey, status: row ? 'delivered' : 'already_delivered' };
 }
 
 export async function relayDomainEvents(
