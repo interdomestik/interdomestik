@@ -10,6 +10,17 @@ export {
   type AppendEventResult,
   type DomainEventTx,
 } from './domain-events';
+export {
+  domainEventDeliveryIdempotencyKey,
+  recordDomainEventDelivery,
+  relayDomainEvents,
+  selectDomainEventsForRelay,
+  type DomainEventRelayConsumer,
+  type DomainEventRelayEvent,
+  type RelayDomainEventsParams,
+  type RelayDomainEventsResult,
+  type RelayMode,
+} from './domain-event-relay';
 export { withTenantContext, withTenantDb, type TenantTransaction } from './tenant';
 
 // Export Drizzle instance and schema
