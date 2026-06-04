@@ -491,6 +491,13 @@
       "when": 1780525216296,
       "tag": "0069_enable_domain_events_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1780571280000,
+      "tag": "0070_domain_event_deliveries",
+      "breakpoints": true
     }
   ]
 }

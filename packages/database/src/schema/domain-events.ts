@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  check,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 
 import { tenants } from './tenants';
 
@@ -22,6 +31,7 @@ export const domainEvents = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   table => [
+    uniqueIndex('domain_events_tenant_id_id_uq').on(table.tenantId, table.id),
     index('domain_events_tenant_created_idx').on(table.tenantId, table.createdAt),
     index('domain_events_entity_idx').on(table.entityType, table.entityId, table.aggregateVersion),
     index('domain_events_correlation_idx').on(table.correlationId),
