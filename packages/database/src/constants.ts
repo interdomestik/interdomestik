@@ -13,6 +13,28 @@ export const CLAIM_STATUSES = [
 
 export type ClaimStatus = (typeof CLAIM_STATUSES)[number];
 
+export const CLAIM_CASE_LIFECYCLE_STATES = [
+  'draft',
+  'submitted',
+  'verification',
+  'evaluation',
+  'recovery',
+  'resolved',
+  'rejected',
+] as const;
+
+export type ClaimCaseLifecycleState = (typeof CLAIM_CASE_LIFECYCLE_STATES)[number];
+
+export const CLAIM_RECOVERY_LIFECYCLE_STATES = [
+  'not_started',
+  'negotiation',
+  'court',
+  'resolved',
+  'closed',
+] as const;
+
+export type ClaimRecoveryLifecycleState = (typeof CLAIM_RECOVERY_LIFECYCLE_STATES)[number];
+
 export const LEAD_STAGES = [
   'new',
   'contacted',

@@ -3,15 +3,10 @@ import type { ClaimStatus } from '@interdomestik/database/constants';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import type { SQLWrapper } from 'drizzle-orm';
 import { canTransition, isClaimStatus, type ClaimTransitionActor } from './transition-guard';
+import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import type { PaymentAuthorizationState } from '../staff-claims/types';
 
 export type TransitionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-type CurrentClaimRow = {
-  id: string;
-  lifecycleVersion: number;
-  status: ClaimStatus | null;
-};
 
 export class ClaimTransitionConflictError extends Error {
   constructor(claimId: string) {
@@ -84,6 +79,7 @@ export async function transitionClaimStatusInTransaction(
     current.status === toStatus
       ? { updatedAt: now }
       : {
+          ...mapClaimStatusToLifecycleStates(toStatus),
           lifecycleVersion: sql`${claims.lifecycleVersion} + 1`,
           status: toStatus,
           statusUpdatedAt: now,
