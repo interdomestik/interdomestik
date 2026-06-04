@@ -46,7 +46,7 @@ describe('appendEvent', () => {
       eventName: 'claim.status_changed',
       eventVersion: 1,
       id: 'event-1',
-      payload: { toStatus: 'submitted' },
+      payload: { fromStatus: 'draft', toStatus: 'submitted' },
       tenantId: 'tenant-1',
     });
 
@@ -63,7 +63,7 @@ describe('appendEvent', () => {
       eventVersion: 1,
       aggregateVersion: 7,
       correlationId: 'corr-1',
-      payload: { toStatus: 'submitted' },
+      payload: { fromStatus: 'draft', toStatus: 'submitted' },
       createdAt,
     });
   });
@@ -98,6 +98,7 @@ describe('appendEvent', () => {
       eventName: 'claim.status_changed',
       eventVersion: 1,
       id: 'event-2',
+      payload: { fromStatus: 'draft', toStatus: 'submitted' },
       tenantId: 'tenant-1',
     });
 
