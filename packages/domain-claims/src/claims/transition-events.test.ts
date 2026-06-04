@@ -12,6 +12,12 @@ type ClaimState = {
   status: ClaimStatus;
 };
 type FailOn = 'history' | 'event';
+const initialState = (): ClaimState => ({
+  events: [],
+  histories: [],
+  lifecycleVersion: 6,
+  status: 'evaluation',
+});
 
 class FakeSelect {
   constructor(private readonly state: ClaimState) {}
@@ -68,6 +74,8 @@ function makeParams() {
     actor: { id: 'staff-1', role: 'staff' },
     claimId: 'claim-1',
     correlationId: 'corr-1',
+    isPublic: false,
+    note: 'member-visible status note',
     paymentAuthorizationState: 'authorized' as const,
     tenantId: 'tenant-1',
     toStatus: 'negotiation' as const,
@@ -93,18 +101,19 @@ async function runTransaction(state: ClaimState, failOn?: 'history' | 'event') {
 
 describe('transitionClaimStatusInTransaction event atomicity', () => {
   it('commits status, history, and exactly one event for a successful transition', async () => {
-    const state: ClaimState = {
-      events: [],
-      histories: [],
-      lifecycleVersion: 6,
-      status: 'evaluation',
-    };
+    const state = initialState();
 
     await expect(runTransaction(state)).resolves.toMatchObject({ success: true });
 
     expect(state.status).toBe('negotiation');
     expect(state.lifecycleVersion).toBe(7);
     expect(state.histories).toHaveLength(1);
+    expect(state.histories[0]).toEqual(
+      expect.objectContaining({
+        isPublic: false,
+        note: 'member-visible status note',
+      })
+    );
     expect(state.events).toHaveLength(1);
     expect(state.events[0]).toEqual(
       expect.objectContaining({
@@ -119,15 +128,12 @@ describe('transitionClaimStatusInTransaction event atomicity', () => {
         tenantId: 'tenant-1',
       })
     );
+    expect(state.events[0].payload).not.toHaveProperty('isPublic');
+    expect(state.events[0].payload).not.toHaveProperty('note');
   });
 
   it('rolls back status and history when event append fails', async () => {
-    const state: ClaimState = {
-      events: [],
-      histories: [],
-      lifecycleVersion: 6,
-      status: 'evaluation',
-    };
+    const state = initialState();
 
     await expect(runTransaction(state, 'event')).rejects.toThrow('event failed');
 
@@ -135,12 +141,7 @@ describe('transitionClaimStatusInTransaction event atomicity', () => {
   });
 
   it('does not commit status or event when history insert fails', async () => {
-    const state: ClaimState = {
-      events: [],
-      histories: [],
-      lifecycleVersion: 6,
-      status: 'evaluation',
-    };
+    const state = initialState();
 
     await expect(runTransaction(state, 'history')).rejects.toThrow('history failed');
 

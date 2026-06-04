@@ -33,6 +33,7 @@ vi.mock('@interdomestik/database', () => ({
     select: mocks.dbSelect,
     update: mocks.dbUpdate,
   },
+  relayClaimStatusAuditProjectionEvents: vi.fn(),
   eq: vi.fn((left, right) => ({ left, right })),
   user: { email: 'user.email', id: 'user.id' },
 }));
@@ -95,10 +96,14 @@ describe('agent updateClaimStatusCore', () => {
   it('routes agent status changes through the transition command', async () => {
     const logAuditEvent = vi.fn();
     const notifyStatusChanged = vi.fn().mockResolvedValue(undefined);
+    const projectClaimStatusAuditProjection = vi.fn();
     mockClaim('submitted');
     mocks.getPaymentAuthorizationState.mockResolvedValueOnce('authorized');
 
-    const result = await runStatusUpdate({ logAuditEvent, notifyStatusChanged }, 'negotiation');
+    const result = await runStatusUpdate(
+      { logAuditEvent, notifyStatusChanged, projectClaimStatusAuditProjection },
+      'negotiation'
+    );
 
     expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
@@ -109,16 +114,11 @@ describe('agent updateClaimStatusCore', () => {
       tenantId: 'tenant-1',
       toStatus: 'negotiation',
     });
-    expect(logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        actorId: 'staff-1',
-        action: 'claim.status_changed',
-        entityId: 'claim-1',
-        headers: requestHeaders,
-        metadata: { oldStatus: 'submitted', newStatus: 'negotiation' },
-        tenantId: 'tenant-1',
-      })
-    );
+    expect(logAuditEvent).not.toHaveBeenCalled();
+    expect(projectClaimStatusAuditProjection).toHaveBeenCalledWith({
+      limit: 10,
+      tenantId: 'tenant-1',
+    });
     await vi.waitFor(() =>
       expect(notifyStatusChanged).toHaveBeenCalledWith(
         'member-1',

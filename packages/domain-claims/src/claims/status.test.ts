@@ -15,6 +15,7 @@ vi.mock('@interdomestik/database', () => ({
       user: { findFirst: mocks.userFindFirst },
     },
   },
+  relayClaimStatusAuditProjectionEvents: vi.fn(),
   claims: { id: 'claims.id', tenantId: 'claims.tenant_id' },
   user: { id: 'user.id', tenantId: 'user.tenant_id' },
   eq: vi.fn((left, right) => ({ left, right })),
@@ -55,19 +56,20 @@ function mockClaim(status: string) {
 }
 
 function runStatusUpdate(deps = {}, newStatus = 'submitted') {
-  return updateClaimStatusCore(
-    { session: staffSession, requestHeaders, claimId: 'claim-1', newStatus },
-    deps
-  );
+  const params = { session: staffSession, requestHeaders, claimId: 'claim-1', newStatus };
+  return updateClaimStatusCore(params, deps);
 }
 
 function sideEffectDeps() {
   return {
     logAuditEvent: vi.fn(),
     notifyStatusChanged: vi.fn(),
+    projectClaimStatusAuditProjection: vi.fn(),
     revalidatePath: vi.fn(),
   };
 }
+
+const projectionCall = { limit: 10, tenantId: 'tenant-1' };
 
 describe('updateClaimStatusCore', () => {
   beforeEach(() => {
@@ -117,9 +119,8 @@ describe('updateClaimStatusCore', () => {
       paymentAuthorizationState: 'authorized',
       toStatus: 'negotiation',
     });
-    expect(deps.logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ metadata: { oldStatus: 'draft', newStatus: 'negotiation' } })
-    );
+    expect(deps.logAuditEvent).not.toHaveBeenCalled();
+    expect(deps.projectClaimStatusAuditProjection).toHaveBeenCalledWith(projectionCall);
     expect(deps.notifyStatusChanged).toHaveBeenCalledWith(
       'member-1',
       'member@example.com',

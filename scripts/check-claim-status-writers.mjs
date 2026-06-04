@@ -27,7 +27,6 @@ const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']
 
 export const CLAIM_STATUS_TRANSITION_WRITERS = new Set([
   'packages/domain-claims/src/claims/transition.ts',
-  'packages/domain-claims/src/staff-claims/update-status.ts',
 ]);
 
 export const CLAIM_STATUS_INITIALIZATION_WRITERS = new Set([

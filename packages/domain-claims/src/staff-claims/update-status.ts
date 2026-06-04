@@ -17,6 +17,7 @@ import {
 } from './accepted-recovery-prerequisites';
 import { resolveCommercialHandlingScopeGate } from './commercial-handling-scope';
 import { claimStatusSchema } from '../validators/claims';
+import { activateClaimStatusAuditProjection } from '../claims/audit-projection';
 import {
   getMatterAllowanceContextForSubscription,
   getMatterAllowanceSubscriptionContextForUser,
@@ -300,53 +301,6 @@ async function assignClaimToActingStaffIfUnassigned(params: {
     .where(params.staffScopeWhere);
 }
 
-async function logClaimStatusAudit(params: {
-  auditMetadata?: Record<string, boolean | string | undefined>;
-  claimId: string;
-  currentStatus: ClaimStatus | null;
-  deps: ClaimsDeps;
-  isPublicChange: boolean;
-  note?: string;
-  requestHeaders?: Headers;
-  session: ClaimsSession;
-  status: ClaimStatus;
-  tenantId: string;
-}) {
-  const {
-    auditMetadata,
-    claimId,
-    currentStatus,
-    deps,
-    isPublicChange,
-    note,
-    requestHeaders,
-    session,
-    status,
-    tenantId,
-  } = params;
-
-  if (!deps.logAuditEvent) {
-    return;
-  }
-
-  await deps.logAuditEvent({
-    actorId: session.user.id,
-    actorRole: session.user.role,
-    tenantId,
-    action: 'claim.status_changed',
-    entityType: 'claim',
-    entityId: claimId,
-    metadata: {
-      oldStatus: currentStatus,
-      newStatus: status,
-      note: note || undefined,
-      isPublic: isPublicChange,
-      ...auditMetadata,
-    },
-    headers: requestHeaders,
-  });
-}
-
 function scheduleStatusChangeNotification(params: {
   claimId: string;
   claimTitle: string;
@@ -458,7 +412,10 @@ async function finalizeClaimStatusChange(params: {
 
   const sideEffectParams = { ...rest, currentStatus: transitionResult.fromStatus };
 
-  await logClaimStatusAudit(sideEffectParams);
+  await activateClaimStatusAuditProjection({
+    deps: sideEffectParams.deps,
+    tenantId: sideEffectParams.tenantId,
+  });
 
   if (sideEffectParams.isPublicChange) {
     scheduleStatusChangeNotification({
