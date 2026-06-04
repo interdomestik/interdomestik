@@ -505,6 +505,13 @@
       "when": 1780599640397,
       "tag": "0071_claim_lifecycle_states",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1780605666847,
+      "tag": "0072_claim_incident_country",
+      "breakpoints": true
     }
   ]
 }

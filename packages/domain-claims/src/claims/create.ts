@@ -6,6 +6,8 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 
+import { formatZodFieldErrors, extractBranchIdFromSetting } from './create-helpers';
+import { resolveClaimIncidentCountry } from './incident-country';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import type { ClaimsDeps, ClaimsSession } from './types';
 
@@ -19,32 +21,9 @@ const claimSchema = z.object({
     .optional()
     .transform((val: string | undefined) => val || null),
   currency: z.string().default('EUR'),
+  incidentCountryCode: z.string().optional(),
+  incidentJurisdiction: z.string().optional(),
 });
-
-function formatZodFieldErrors(errors: Record<string, string[] | undefined>) {
-  const formattedErrors: Record<string, string> = {};
-
-  Object.keys(errors).forEach(key => {
-    const messages = errors[key];
-    if (messages && messages.length > 0) {
-      formattedErrors[key] = messages[0];
-    }
-  });
-
-  return formattedErrors;
-}
-
-function extractBranchIdFromSetting(value: unknown): string | undefined {
-  if (!value || typeof value !== 'object') return undefined;
-  const obj = value as Record<string, unknown>;
-  const candidate =
-    (typeof obj.branchId === 'string' && obj.branchId) ||
-    (typeof obj.defaultBranchId === 'string' && obj.defaultBranchId) ||
-    (typeof obj.id === 'string' && obj.id) ||
-    (typeof obj.value === 'string' && obj.value) ||
-    undefined;
-  return candidate;
-}
 
 export async function createClaimCore(
   params: {
@@ -92,6 +71,7 @@ export async function createClaimCore(
   }
 
   const { title, description, category, companyName, claimAmount, currency } = result.data;
+  const incidentCountry = resolveClaimIncidentCountry(result.data);
 
   const claimId = nanoid();
   const now = new Date();
@@ -111,6 +91,7 @@ export async function createClaimCore(
         companyName,
         status: 'draft',
         ...mapClaimStatusToLifecycleStates('draft'),
+        ...incidentCountry,
         claimAmount: claimAmount || undefined,
         currency,
         branchId: subscription.branchId ?? defaultBranchId,

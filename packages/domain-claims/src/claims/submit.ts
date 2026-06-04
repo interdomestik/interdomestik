@@ -16,6 +16,10 @@ import { nanoid } from 'nanoid';
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
 import { queueClaimDocumentAiWorkflows, type QueuedClaimAiRun } from './ai-workflows';
 import { buildClaimDocumentRows } from './documents';
+import {
+  buildClaimStartPublicNote,
+  resolveSubmittedClaimIncidentCountry,
+} from './incident-country';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import type { ClaimStartHandoffContext, ClaimsDeps, ClaimsSession } from './types';
 
@@ -42,26 +46,6 @@ type ClaimAssignmentContext = {
   agentAttributionSource: 'agent_clients' | 'subscription' | 'none';
   branchResolutionSource: 'subscription' | 'agent' | 'tenant_default' | 'none';
 };
-
-const DIASPORA_HANDOFF_COUNTRIES = new Set(['DE', 'CH', 'AT', 'IT']);
-const DIASPORA_INCIDENT_LOCATIONS = new Set(['abroad']);
-
-function buildClaimStartPublicNote(
-  handoffContext: ClaimStartHandoffContext | null | undefined
-): string | null {
-  if (handoffContext?.source !== 'diaspora-green-card') {
-    return null;
-  }
-
-  if (
-    !DIASPORA_HANDOFF_COUNTRIES.has(handoffContext.country) ||
-    !DIASPORA_INCIDENT_LOCATIONS.has(handoffContext.incidentLocation)
-  ) {
-    return null;
-  }
-
-  return `Started from Diaspora / Green Card quickstart. Country: ${handoffContext.country}. Incident location: ${handoffContext.incidentLocation}.`;
-}
 
 function resolveDefaultBranchId(value: unknown): string | null {
   if (!value) {
@@ -158,6 +142,10 @@ async function persistSubmittedClaim(args: {
   const { title, description, category, companyName, claimAmount, currency, incidentDate, files } =
     args.data;
   const publicNote = buildClaimStartPublicNote(args.handoffContext);
+  const incidentCountry = resolveSubmittedClaimIncidentCountry({
+    data: args.data,
+    handoffContext: args.handoffContext,
+  });
   let queuedRuns: QueuedClaimAiRun[] = [];
   let claimNumber = '';
 
@@ -178,6 +166,7 @@ async function persistSubmittedClaim(args: {
       currency: currency || 'EUR',
       status: 'submitted',
       ...mapClaimStatusToLifecycleStates('submitted'),
+      ...incidentCountry,
       claimNumber: null,
       createdAt: args.createdAt,
       updatedAt: args.createdAt,
