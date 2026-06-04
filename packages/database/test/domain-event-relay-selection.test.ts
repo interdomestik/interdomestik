@@ -56,6 +56,23 @@ describe('domain event relay selection', () => {
     assert.doesNotMatch(query, /for update skip locked/);
   });
 
+  it('rejects blank replay cursor event ids before building the query', async () => {
+    const tx = new FakeSelectTx();
+
+    await assert.rejects(
+      () =>
+        selectDomainEventsForRelay(tx as never, {
+          consumerName: 'audit_projection',
+          limit: 10,
+          mode: 'replay',
+          replayFrom: { createdAt: new Date('2026-06-04T10:00:00.000Z'), eventId: '   ' },
+          tenantId: 'tenant-1',
+        }),
+      /replayFrom\.eventId/
+    );
+    assert.equal(tx.query, undefined);
+  });
+
   it('returns the selected event rows without mapping them in userland', async () => {
     const event = { id: 'event-1', tenantId: 'tenant-1' } as DomainEventRelayEvent;
     const tx = { execute: async () => [event] };

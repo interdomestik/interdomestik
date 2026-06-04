@@ -48,7 +48,6 @@ class FakeInsertStep {
 
 class FakeRelayTx {
   readonly capture: { conflict?: unknown; row?: Record<string, unknown>; table?: unknown } = {};
-  executedQueries = 0;
   query?: unknown;
 
   constructor(
@@ -57,7 +56,6 @@ class FakeRelayTx {
   ) {}
 
   execute<T>(query: unknown) {
-    this.executedQueries += 1;
     this.query = query;
     return Promise.resolve(this.rows as T[]);
   }
@@ -88,6 +86,21 @@ describe('domain event relay foundation', () => {
     assert.equal(result.status, 'already_delivered');
     assert.equal(result.idempotencyKey, 'domain-event:audit_projection:event-1');
     assert.equal((tx as unknown as FakeRelayTx).capture.table, domainEventDeliveries);
+  });
+
+  it('rejects blank caller-provided delivery ids before insert', async () => {
+    const tx = new FakeRelayTx([]) as unknown as DomainEventTx;
+
+    await assert.rejects(
+      () =>
+        recordDomainEventDelivery(tx, {
+          consumerName: 'audit_projection',
+          eventId: 'event-1',
+          id: '   ',
+          tenantId: 'tenant-1',
+        }),
+      /delivery\.id/
+    );
   });
 
   it('counts relay-level delivery record conflicts without hiding consumer invocation', async () => {

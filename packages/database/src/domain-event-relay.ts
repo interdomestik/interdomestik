@@ -56,7 +56,9 @@ export async function selectDomainEventsForRelay(
   const offsetFilter = replayFrom
     ? sql`and (
         e."created_at" > ${replayFrom.createdAt}
-        or (e."created_at" = ${replayFrom.createdAt} and e."id" >= ${replayFrom.eventId ?? ''})
+        or (e."created_at" = ${replayFrom.createdAt} and e."id" >= ${
+          replayFrom.eventId ? assertNonBlank(replayFrom.eventId, 'replayFrom.eventId') : ''
+        })
       )`
     : sql``;
   const lockClause = mode === 'replay' ? sql`` : sql`for update skip locked`;
@@ -94,11 +96,13 @@ export async function recordDomainEventDelivery(
   status: 'delivered' | 'already_delivered';
 }> {
   const consumerName = assertNonBlank(params.consumerName, 'consumer.name');
+  const deliveryId =
+    params.id === undefined ? crypto.randomUUID() : assertNonBlank(params.id, 'delivery.id');
   const idempotencyKey = domainEventDeliveryIdempotencyKey(params.eventId, consumerName);
   const [row] = await tx
     .insert(domainEventDeliveries)
     .values({
-      id: params.id ?? crypto.randomUUID(),
+      id: deliveryId,
       tenantId: assertNonBlank(params.tenantId, 'tenantId'),
       eventId: assertNonBlank(params.eventId, 'event.id'),
       consumerName,
@@ -109,11 +113,7 @@ export async function recordDomainEventDelivery(
     })
     .returning({ id: domainEventDeliveries.id });
 
-  return {
-    id: row?.id ?? null,
-    idempotencyKey,
-    status: row ? 'delivered' : 'already_delivered',
-  };
+  return { id: row?.id ?? null, idempotencyKey, status: row ? 'delivered' : 'already_delivered' };
 }
 
 export async function relayDomainEvents(
