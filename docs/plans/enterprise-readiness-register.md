@@ -48,7 +48,7 @@ separate from the active architecture-finalization queue unless explicitly promo
 | ---------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Backup/restore drill cadence | First attempt blocked by restore-access gap                                        | Recurring staging restore drill with measured RTO/RPO and owner sign-off                                      |
 | Exercised incident readiness | Partial                                                                            | Quarterly drills for auth-secret rotation, Supabase failover, restore, and tenant-cookie recovery             |
-| Threat model                 | Not yet scoped                                                                     | Written per-surface model for registration, uploads, documents, share packs, billing, AI review, and webhooks |
+| Threat model                 | Evidence contract scoped; first surface model pending                              | Written per-surface model for registration, uploads, documents, share packs, billing, AI review, and webhooks |
 | Supply-chain attestation     | Deploy-boundary digest confirmation configured; real provider run evidence pending | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                |
 | Alert routing proof          | Partial                                                                            | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes           |
 | Data lifecycle verification  | Partial                                                                            | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                              |
@@ -83,32 +83,36 @@ Rationale:
 
 ## Latest Repo-Owned Enterprise-Hardening Slice
 
-While `ENT-OPS02` remains blocked on provider or CLI restore access, the next smallest repo-owned
-enterprise-hardening slice was:
+While `ENT-OPS02` remains blocked on provider or CLI restore access, the latest smallest repo-owned
+enterprise-hardening slice is:
 
-`ENT-SCA03 Deploy Digest Verification Boundary`
+`ENT-TM01 Threat Model Evidence Contract`
 
 Scope:
 
-- Build on `ENT-SCA02` by adding a deploy-boundary contract for immutable image digest proof.
-- Send the attested image digest to the environment-scoped deploy webhook.
-- Require the deploy webhook to confirm the same digest in a non-secret JSON response.
-- Fail closed when the provider, webhook, or runtime boundary cannot confirm digest equality.
+- Scope the enterprise threat-model lane without claiming completion.
+- Define the required per-surface record, STRIDE coverage, evidence rules, and sensitive-data
+  exclusions.
+- Use `docs/reviews/2026-04-25-sensitive-route-ownership-map.md` as the surface inventory input.
+- Promote exactly one first bounded follow-up: `ENT-TM02 Initial Claim Uploads Threat Model`.
 - Do not change runtime code, schema, auth, tenancy, routing, billing, product UI, proxy,
   README, AGENTS, or broad architecture docs.
 
 Rationale:
 
-- `ENT-SCA02` adds repo-owned SBOM/provenance generation, digest capture, signed provenance, and
-  pre-deploy attestation verification.
-- The remaining supply-chain gap after `ENT-SCA02` was proving that deployment promotion carries
-  the attested immutable digest instead of relying on mutable tags or commit equality alone.
-- `ENT-SCA03` configures the repo-owned deploy boundary to fail closed until the deploy webhook
-  confirms the digest it accepted or deployed.
+- The production professionalism re-review named formal per-surface threat modeling as an open
+  enterprise gap.
+- The sensitive route ownership map already identifies owners, entrypoints, boundary contracts,
+  expected failures, and current proof, making the threat-model contract the next repo-owned
+  hardening step while the restore drill remains externally blocked.
+- Initial claim uploads are the smallest high-value first model because they cross browser,
+  storage, tenant, file-content, and evidence-custody boundaries without requiring a runtime
+  change.
 
 Next enterprise maturity remains broader than this repo-owned slice. The highest-value remaining
-lanes are the blocked `ENT-OPS02` staging restore drill, formal threat modeling, alert-routing
-exercise proof, data lifecycle verification, and performance regression gates.
+lanes are the blocked `ENT-OPS02` staging restore drill, `ENT-TM02 Initial Claim Uploads Threat
+Model`, alert-routing exercise proof, data lifecycle verification, and performance regression
+gates.
 
 ## Non-Goals
 
