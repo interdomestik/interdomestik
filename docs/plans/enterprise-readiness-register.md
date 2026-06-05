@@ -36,26 +36,27 @@ enterprise-ready.
 | Production go-live checklist | `docs/plans/2026-04-27-p22-go01-production-go-live-readiness.md`                                                                                         | Governed checklist        |
 | Pilot operations evidence    | `docs/pilot/**` launch, daily, rollback, incident, KPI, and closeout records                                                                             | Bounded pilot evidence    |
 | Security gates               | CodeQL, SonarCloud, gitleaks, pnpm-audit, `pnpm security:guard`, DB/RLS/access audits in PR gates                                                        | Strong for repo delivery  |
-| Restore drill contract       | `docs/plans/ent-ops01-backup-restore-drill-evidence-contract.md`                                                                                         | Contract defined          |
+| Restore drill contract       | `docs/plans/ent-ops01-backup-restore-drill-evidence-contract.md`; `docs/plans/ent-ops02-first-staging-restore-drill-record-2026-06-05.md`                | Blocker recorded          |
 
 ## Open Enterprise Maturity Lanes
 
 These lanes come from `docs/reviews/2026-04-25-production-professionalism-rereview.md` and remain
 separate from the active architecture-finalization queue unless explicitly promoted.
 
-| Lane                         | Current gap                          | Enterprise requirement                                                                                        |
-| ---------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| Backup/restore drill cadence | Contract defined; real drill pending | Recurring staging restore drill with measured RTO/RPO and owner sign-off                                      |
-| Exercised incident readiness | Partial                              | Quarterly drills for auth-secret rotation, Supabase failover, restore, and tenant-cookie recovery             |
-| Threat model                 | Not yet scoped                       | Written per-surface model for registration, uploads, documents, share packs, billing, AI review, and webhooks |
-| Supply-chain attestation     | Not yet scoped                       | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                |
-| Alert routing proof          | Partial                              | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes           |
-| Data lifecycle verification  | Partial                              | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                              |
-| Performance regression gate  | Not yet scoped                       | Representative route/storage performance budgets that can block releases                                      |
+| Lane                         | Current gap                                 | Enterprise requirement                                                                                        |
+| ---------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Backup/restore drill cadence | First attempt blocked by restore-access gap | Recurring staging restore drill with measured RTO/RPO and owner sign-off                                      |
+| Exercised incident readiness | Partial                                     | Quarterly drills for auth-secret rotation, Supabase failover, restore, and tenant-cookie recovery             |
+| Threat model                 | Not yet scoped                              | Written per-surface model for registration, uploads, documents, share packs, billing, AI review, and webhooks |
+| Supply-chain attestation     | Not yet scoped                              | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                |
+| Alert routing proof          | Partial                                     | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes           |
+| Data lifecycle verification  | Partial                                     | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                              |
+| Performance regression gate  | Not yet scoped                              | Representative route/storage performance budgets that can block releases                                      |
 
 ## Next Bounded Operational Slice
 
-The next concrete enterprise-hardening step is now one real operational drill:
+The next concrete enterprise-hardening step remains one real operational drill after the first
+attempt recorded the current restore-access blocker:
 
 `ENT-OPS02 First Staging Restore Drill Record`
 
@@ -66,6 +67,8 @@ Scope:
   pass/fail decision.
 - Record missing provider access or connector credentials as blockers instead of simulating
   success.
+- Resolve the 2026-06-05 blocker by granting a named operator backup/recovery-point listing and
+  isolated restore-target access before rerunning the drill.
 - Do not run a production restore in a repo thread.
 - Do not change runtime code, schema, auth, tenancy, routing, billing, product UI, proxy,
   README, AGENTS, or broad architecture docs.
