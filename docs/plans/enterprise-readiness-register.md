@@ -38,6 +38,7 @@ enterprise-ready.
 | Security gates               | CodeQL, SonarCloud, gitleaks, pnpm-audit, `pnpm security:guard`, DB/RLS/access audits in PR gates                                                                                                                      | Strong for repo delivery         |
 | Restore drill contract       | `docs/plans/ent-ops01-backup-restore-drill-evidence-contract.md`; `docs/plans/ent-ops02-first-staging-restore-drill-record-2026-06-05.md`                                                                              | Blocker recorded                 |
 | Supply-chain attestation     | `docs/plans/ent-sca01-supply-chain-attestation-evidence-contract.md`; `docs/plans/ent-sca02-supply-chain-attestation-ci-proof-2026-06-05.md`; `docs/plans/ent-sca03-deploy-digest-verification-boundary-2026-06-05.md` | Deploy-boundary proof configured |
+| Threat-model evidence        | `docs/plans/ent-tm01-threat-model-evidence-contract-2026-06-05.md`; `docs/plans/ent-tm02-initial-claim-uploads-threat-model-2026-06-05.md`                                                                             | First surface modeled            |
 
 ## Open Enterprise Maturity Lanes
 
@@ -48,7 +49,7 @@ separate from the active architecture-finalization queue unless explicitly promo
 | ---------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Backup/restore drill cadence | First attempt blocked by restore-access gap                                        | Recurring staging restore drill with measured RTO/RPO and owner sign-off                                      |
 | Exercised incident readiness | Partial                                                                            | Quarterly drills for auth-secret rotation, Supabase failover, restore, and tenant-cookie recovery             |
-| Threat model                 | Evidence contract scoped; first surface model pending                              | Written per-surface model for registration, uploads, documents, share packs, billing, AI review, and webhooks |
+| Threat model                 | Evidence contract scoped; initial claim-upload surface modeled                     | Written per-surface model for registration, uploads, documents, share packs, billing, AI review, and webhooks |
 | Supply-chain attestation     | Deploy-boundary digest confirmation configured; real provider run evidence pending | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                |
 | Alert routing proof          | Partial                                                                            | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes           |
 | Data lifecycle verification  | Partial                                                                            | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                              |
@@ -86,33 +87,31 @@ Rationale:
 While `ENT-OPS02` remains blocked on provider or CLI restore access, the latest repo-owned
 enterprise-hardening slice is:
 
-`ENT-TM01 Threat Model Evidence Contract`
+`ENT-TM02 Initial Claim Uploads Threat Model`
 
 Scope:
 
-- Scope the enterprise threat-model lane without claiming completion.
-- Define the required per-surface record, STRIDE coverage, evidence rules, and sensitive-data
-  exclusions.
-- Use `docs/reviews/2026-04-25-sensitive-route-ownership-map.md` as the surface inventory input.
-- Promote exactly one first bounded follow-up: `ENT-TM02 Initial Claim Uploads Threat Model`.
+- Apply the `ENT-TM01` contract to the initial claim-wizard upload surface only.
+- Model protected metadata, actors, trust boundaries, existing controls, STRIDE threats, residual
+  risks, and verification evidence.
+- Promote exactly one next bounded follow-up:
+  `ENT-TM03 Authenticated Claim Evidence Uploads Threat Model`.
 - Do not change runtime code, schema, auth, tenancy, routing, billing, product UI, proxy,
   README, AGENTS, or broad architecture docs.
 
 Rationale:
 
-- The production professionalism re-review named formal per-surface threat modeling as an open
-  enterprise gap.
-- The sensitive route ownership map already identifies owners, entrypoints, boundary contracts,
-  expected failures, and current proof, making the threat-model contract the next repo-owned
-  hardening step while the restore drill remains externally blocked.
+- The threat-model evidence contract is already defined by `ENT-TM01`.
 - Initial claim uploads are the smallest high-value first model because they cross browser,
-  storage, tenant, file-content, and evidence-custody boundaries without requiring a runtime
-  change.
+  storage, tenant, file-content, and evidence-custody boundaries while staying bounded to existing
+  proof files.
+- Authenticated claim evidence uploads are the next adjacent custody surface and should be modeled
+  separately before documents, share packs, Paddle webhooks, AI review, and registration.
 
 Next enterprise maturity remains broader than this repo-owned slice. The highest-value remaining
-lanes are the blocked `ENT-OPS02` staging restore drill, `ENT-TM02 Initial Claim Uploads Threat
-Model`, alert-routing exercise proof, data lifecycle verification, and performance regression
-gates.
+lanes are the blocked `ENT-OPS02` staging restore drill,
+`ENT-TM03 Authenticated Claim Evidence Uploads Threat Model`, alert-routing exercise proof, data
+lifecycle verification, and performance regression gates.
 
 ## Non-Goals
 
