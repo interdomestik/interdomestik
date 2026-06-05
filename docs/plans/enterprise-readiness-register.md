@@ -26,33 +26,33 @@ enterprise-ready.
 
 ## Evidence Already Present
 
-| Lane                         | Current evidence                                                                                                                                         | Status                    |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| Repo governance              | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, architecture-finalization program/tracker, PR finalizer, required checks               | Strong                    |
-| Plugin/tool discipline       | `docs/plans/plugin-usage-playbook.md`                                                                                                                    | Strong                    |
-| Incident procedure           | `docs/plans/2026-03-09-d06-incident-playbook-evidence.md`, `docs/INCIDENT_PLAYBOOK.md`, `docs/RUNBOOK.md`                                                | Documented                |
-| Sentry alert foundation      | `docs/plans/2026-03-09-d07-sentry-burn-rate-alerts-evidence.md`, `pnpm sentry:alerts:check`, `pnpm sentry:seer:sweep:pre`, `pnpm sentry:seer:sweep:post` | Partial operational proof |
-| Sensitive route ownership    | `docs/reviews/2026-04-25-sensitive-route-ownership-map.md`                                                                                               | Documented                |
-| Production go-live checklist | `docs/plans/2026-04-27-p22-go01-production-go-live-readiness.md`                                                                                         | Governed checklist        |
-| Pilot operations evidence    | `docs/pilot/**` launch, daily, rollback, incident, KPI, and closeout records                                                                             | Bounded pilot evidence    |
-| Security gates               | CodeQL, SonarCloud, gitleaks, pnpm-audit, `pnpm security:guard`, DB/RLS/access audits in PR gates                                                        | Strong for repo delivery  |
-| Restore drill contract       | `docs/plans/ent-ops01-backup-restore-drill-evidence-contract.md`; `docs/plans/ent-ops02-first-staging-restore-drill-record-2026-06-05.md`                | Blocker recorded          |
-| Supply-chain attestation     | `docs/plans/ent-sca01-supply-chain-attestation-evidence-contract.md`; `docs/plans/ent-sca02-supply-chain-attestation-ci-proof-2026-06-05.md`             | CI proof configured       |
+| Lane                         | Current evidence                                                                                                                                                                                                       | Status                           |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Repo governance              | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, architecture-finalization program/tracker, PR finalizer, required checks                                                                             | Strong                           |
+| Plugin/tool discipline       | `docs/plans/plugin-usage-playbook.md`                                                                                                                                                                                  | Strong                           |
+| Incident procedure           | `docs/plans/2026-03-09-d06-incident-playbook-evidence.md`, `docs/INCIDENT_PLAYBOOK.md`, `docs/RUNBOOK.md`                                                                                                              | Documented                       |
+| Sentry alert foundation      | `docs/plans/2026-03-09-d07-sentry-burn-rate-alerts-evidence.md`, `pnpm sentry:alerts:check`, `pnpm sentry:seer:sweep:pre`, `pnpm sentry:seer:sweep:post`                                                               | Partial operational proof        |
+| Sensitive route ownership    | `docs/reviews/2026-04-25-sensitive-route-ownership-map.md`                                                                                                                                                             | Documented                       |
+| Production go-live checklist | `docs/plans/2026-04-27-p22-go01-production-go-live-readiness.md`                                                                                                                                                       | Governed checklist               |
+| Pilot operations evidence    | `docs/pilot/**` launch, daily, rollback, incident, KPI, and closeout records                                                                                                                                           | Bounded pilot evidence           |
+| Security gates               | CodeQL, SonarCloud, gitleaks, pnpm-audit, `pnpm security:guard`, DB/RLS/access audits in PR gates                                                                                                                      | Strong for repo delivery         |
+| Restore drill contract       | `docs/plans/ent-ops01-backup-restore-drill-evidence-contract.md`; `docs/plans/ent-ops02-first-staging-restore-drill-record-2026-06-05.md`                                                                              | Blocker recorded                 |
+| Supply-chain attestation     | `docs/plans/ent-sca01-supply-chain-attestation-evidence-contract.md`; `docs/plans/ent-sca02-supply-chain-attestation-ci-proof-2026-06-05.md`; `docs/plans/ent-sca03-deploy-digest-verification-boundary-2026-06-05.md` | Deploy-boundary proof configured |
 
 ## Open Enterprise Maturity Lanes
 
 These lanes come from `docs/reviews/2026-04-25-production-professionalism-rereview.md` and remain
 separate from the active architecture-finalization queue unless explicitly promoted.
 
-| Lane                         | Current gap                                        | Enterprise requirement                                                                                        |
-| ---------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Backup/restore drill cadence | First attempt blocked by restore-access gap        | Recurring staging restore drill with measured RTO/RPO and owner sign-off                                      |
-| Exercised incident readiness | Partial                                            | Quarterly drills for auth-secret rotation, Supabase failover, restore, and tenant-cookie recovery             |
-| Threat model                 | Not yet scoped                                     | Written per-surface model for registration, uploads, documents, share packs, billing, AI review, and webhooks |
-| Supply-chain attestation     | CI proof configured; deployed digest proof pending | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                |
-| Alert routing proof          | Partial                                            | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes           |
-| Data lifecycle verification  | Partial                                            | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                              |
-| Performance regression gate  | Not yet scoped                                     | Representative route/storage performance budgets that can block releases                                      |
+| Lane                         | Current gap                                                                        | Enterprise requirement                                                                                        |
+| ---------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Backup/restore drill cadence | First attempt blocked by restore-access gap                                        | Recurring staging restore drill with measured RTO/RPO and owner sign-off                                      |
+| Exercised incident readiness | Partial                                                                            | Quarterly drills for auth-secret rotation, Supabase failover, restore, and tenant-cookie recovery             |
+| Threat model                 | Not yet scoped                                                                     | Written per-surface model for registration, uploads, documents, share packs, billing, AI review, and webhooks |
+| Supply-chain attestation     | Deploy-boundary digest confirmation configured; real provider run evidence pending | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                |
+| Alert routing proof          | Partial                                                                            | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes           |
+| Data lifecycle verification  | Partial                                                                            | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                              |
+| Performance regression gate  | Not yet scoped                                                                     | Representative route/storage performance budgets that can block releases                                      |
 
 ## Next Bounded Operational Slice
 
@@ -81,21 +81,19 @@ Rationale:
 - The evidence contract is now defined; the missing proof is an executed staging drill record.
 - A drill record can be pursued without disturbing active `ARCH-M1` work.
 
-## Next Repo-Owned Enterprise-Hardening Slice
+## Latest Repo-Owned Enterprise-Hardening Slice
 
 While `ENT-OPS02` remains blocked on provider or CLI restore access, the next smallest repo-owned
-enterprise-hardening slice is:
+enterprise-hardening slice was:
 
 `ENT-SCA03 Deploy Digest Verification Boundary`
 
 Scope:
 
 - Build on `ENT-SCA02` by adding a deploy-boundary contract for immutable image digest proof.
-- Ensure the deployment webhook accepts the digest used for deployment, or the deploy platform
-  exposes the running OCI image digest through a safe non-secret status channel.
-- Compare the deployed digest with the attested digest before production sign-off.
-- Record the exact provider, webhook, or runtime capability blocker instead of simulating digest
-  equality.
+- Send the attested image digest to the environment-scoped deploy webhook.
+- Require the deploy webhook to confirm the same digest in a non-secret JSON response.
+- Fail closed when the provider, webhook, or runtime boundary cannot confirm digest equality.
 - Do not change runtime code, schema, auth, tenancy, routing, billing, product UI, proxy,
   README, AGENTS, or broad architecture docs.
 
@@ -103,10 +101,14 @@ Rationale:
 
 - `ENT-SCA02` adds repo-owned SBOM/provenance generation, digest capture, signed provenance, and
   pre-deploy attestation verification.
-- The remaining supply-chain gap is not another repo-local assertion; it is proving that the
-  running deployment equals the attested digest.
-- This should be handled as the next smallest bounded supply-chain slice when the deploy boundary
-  can be changed or inspected.
+- The remaining supply-chain gap after `ENT-SCA02` was proving that deployment promotion carries
+  the attested immutable digest instead of relying on mutable tags or commit equality alone.
+- `ENT-SCA03` configures the repo-owned deploy boundary to fail closed until the deploy webhook
+  confirms the digest it accepted or deployed.
+
+Next enterprise maturity remains broader than this repo-owned slice. The highest-value remaining
+lanes are the blocked `ENT-OPS02` staging restore drill, formal threat modeling, alert-routing
+exercise proof, data lifecycle verification, and performance regression gates.
 
 ## Non-Goals
 

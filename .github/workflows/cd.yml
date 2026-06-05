@@ -30,7 +30,7 @@ jobs:
       image_digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
@@ -74,57 +74,22 @@ jobs:
       url: https://staging.interdomestik.com
     env:
       BASE_URL: https://staging.interdomestik.com
-      DEPLOY_WEBHOOK_URL: ${{ secrets.INTERDOMESTIK_STAGING_DEPLOY_WEBHOOK_URL }}
-      DEPLOY_WEBHOOK_TOKEN: ${{ secrets.INTERDOMESTIK_STAGING_DEPLOY_TOKEN }}
       EXPECTED_COMMIT_SHA: ${{ github.sha }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+
       - name: Trigger Staging Deploy
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          missing=()
-          [[ -n "${DEPLOY_WEBHOOK_URL:-}" ]] || missing+=("INTERDOMESTIK_STAGING_DEPLOY_WEBHOOK_URL")
-          [[ -n "${DEPLOY_WEBHOOK_TOKEN:-}" ]] || missing+=("INTERDOMESTIK_STAGING_DEPLOY_TOKEN")
-
-          if (( ${#missing[@]} > 0 )); then
-            echo "::error::Missing staging deploy secret(s): ${missing[*]}."
-            exit 1
-          fi
-
-          payload_file="$(mktemp)"
-          response_file="$(mktemp)"
-          trap 'rm -f "${payload_file}" "${response_file}"' EXIT
-
-          printf '{"environment":"%s","image":"%s","image_tag":"%s","sha":"%s"}' \
-            "staging" \
-            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" \
-            "${{ needs.build-staging.outputs.image_tag }}" \
-            "${{ github.sha }}" > "${payload_file}"
-
-          curl_exit=0
-          http_status="$(
-            curl --silent --show-error --output "${response_file}" --write-out '%{http_code}' \
-              --retry 3 --retry-delay 5 \
-              -H 'content-type: application/json' \
-              -H "authorization: Bearer ${DEPLOY_WEBHOOK_TOKEN}" \
-              --data-binary @"${payload_file}" \
-              "${DEPLOY_WEBHOOK_URL}"
-          )" || curl_exit=$?
-
-          if (( curl_exit != 0 )); then
-            echo "::error::Failed to trigger staging deploy webhook."
-            if [[ -s "${response_file}" ]]; then
-              cat "${response_file}"
-            fi
-            exit "${curl_exit}"
-          fi
-
-          if [[ ! "${http_status}" =~ ^2[0-9][0-9]$ ]]; then
-            echo "::error::Staging deploy webhook returned HTTP ${http_status}."
-            cat "${response_file}"
-            exit 1
-          fi
+        uses: ./.github/actions/trigger-digest-verified-deploy
+        with:
+          environment: staging
+          webhook-url: ${{ secrets.INTERDOMESTIK_STAGING_DEPLOY_WEBHOOK_URL }}
+          webhook-token: ${{ secrets.INTERDOMESTIK_STAGING_DEPLOY_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          image-name: ${{ env.IMAGE_NAME }}
+          image-tag: ${{ needs.build-staging.outputs.image_tag }}
+          image-digest: ${{ needs.build-staging.outputs.image_digest }}
+          sha: ${{ github.sha }}
 
       - name: Wait for Staging Health
         shell: bash
@@ -194,7 +159,7 @@ jobs:
       RELEASE_GATE_ADMIN_MK_EMAIL: ${{ secrets.RELEASE_GATE_ADMIN_MK_EMAIL }}
       RELEASE_GATE_ADMIN_MK_PASSWORD: ${{ secrets.RELEASE_GATE_ADMIN_MK_PASSWORD }}
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
 
       - uses: ./.github/actions/setup
         with:
@@ -236,7 +201,7 @@ jobs:
       image_digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
@@ -281,58 +246,21 @@ jobs:
     environment:
       name: production
       url: https://app.interdomestik.com
-    env:
-      BASE_URL: https://app.interdomestik.com
-      DEPLOY_WEBHOOK_URL: ${{ secrets.INTERDOMESTIK_PRODUCTION_DEPLOY_WEBHOOK_URL }}
-      DEPLOY_WEBHOOK_TOKEN: ${{ secrets.INTERDOMESTIK_PRODUCTION_DEPLOY_TOKEN }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+
       - name: Trigger Production Deploy
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          missing=()
-          [[ -n "${DEPLOY_WEBHOOK_URL:-}" ]] || missing+=("INTERDOMESTIK_PRODUCTION_DEPLOY_WEBHOOK_URL")
-          [[ -n "${DEPLOY_WEBHOOK_TOKEN:-}" ]] || missing+=("INTERDOMESTIK_PRODUCTION_DEPLOY_TOKEN")
-
-          if (( ${#missing[@]} > 0 )); then
-            echo "::error::Missing production deploy secret(s): ${missing[*]}."
-            exit 1
-          fi
-
-          payload_file="$(mktemp)"
-          response_file="$(mktemp)"
-          trap 'rm -f "${payload_file}" "${response_file}"' EXIT
-
-          printf '{"environment":"%s","image":"%s","image_tag":"%s","sha":"%s"}' \
-            "production" \
-            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" \
-            "${{ needs.build-production.outputs.image_tag }}" \
-            "${{ github.sha }}" > "${payload_file}"
-
-          curl_exit=0
-          http_status="$(
-            curl --silent --show-error --output "${response_file}" --write-out '%{http_code}' \
-              --retry 3 --retry-delay 5 \
-              -H 'content-type: application/json' \
-              -H "authorization: Bearer ${DEPLOY_WEBHOOK_TOKEN}" \
-              --data-binary @"${payload_file}" \
-              "${DEPLOY_WEBHOOK_URL}"
-          )" || curl_exit=$?
-
-          if (( curl_exit != 0 )); then
-            echo "::error::Failed to trigger production deploy webhook."
-            if [[ -s "${response_file}" ]]; then
-              cat "${response_file}"
-            fi
-            exit "${curl_exit}"
-          fi
-
-          if [[ ! "${http_status}" =~ ^2[0-9][0-9]$ ]]; then
-            echo "::error::Production deploy webhook returned HTTP ${http_status}."
-            cat "${response_file}"
-            exit 1
-          fi
+        uses: ./.github/actions/trigger-digest-verified-deploy
+        with:
+          environment: production
+          webhook-url: ${{ secrets.INTERDOMESTIK_PRODUCTION_DEPLOY_WEBHOOK_URL }}
+          webhook-token: ${{ secrets.INTERDOMESTIK_PRODUCTION_DEPLOY_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          image-name: ${{ env.IMAGE_NAME }}
+          image-tag: ${{ needs.build-production.outputs.image_tag }}
+          image-digest: ${{ needs.build-production.outputs.image_digest }}
+          sha: ${{ github.sha }}
 
   verify-production:
     needs: deploy-production
@@ -360,7 +288,7 @@ jobs:
       SENTRY_ENVIRONMENT: production
       SENTRY_SEVERITY_THRESHOLD: error
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
 
       - uses: ./.github/actions/setup
         with:

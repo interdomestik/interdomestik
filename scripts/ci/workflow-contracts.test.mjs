@@ -522,6 +522,7 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.ok(buildStagingJob);
   assert.equal(buildStagingJob.environment.name, 'staging');
   assert.equal(buildStagingJob.outputs.image_tag, '${{ steps.meta.outputs.version }}');
+  assert.equal(buildStagingJob.outputs.image_digest, '${{ steps.build.outputs.digest }}');
   const buildStagingStep = findStep(
     buildStagingJob.steps,
     'Build, attest, and verify Docker image'
@@ -536,6 +537,7 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.deepEqual(normalizeNeeds(buildProductionJob.needs), ['e2e-staging']);
   assert.equal(buildProductionJob.environment.name, 'production');
   assert.equal(buildProductionJob.outputs.image_tag, '${{ steps.meta.outputs.version }}');
+  assert.equal(buildProductionJob.outputs.image_digest, '${{ steps.build.outputs.digest }}');
   const buildProductionStep = findStep(
     buildProductionJob.steps,
     'Build, attest, and verify Docker image'
@@ -547,23 +549,20 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.equal(buildProductionStep.with['app-url'], 'https://app.interdomestik.com');
 
   assert.deepEqual(normalizeNeeds(deployStagingJob.needs), ['build-staging']);
-  assert.equal(
-    deployStagingJob.env.DEPLOY_WEBHOOK_URL,
-    '${{ secrets.INTERDOMESTIK_STAGING_DEPLOY_WEBHOOK_URL }}'
-  );
-  assert.equal(
-    deployStagingJob.env.DEPLOY_WEBHOOK_TOKEN,
-    '${{ secrets.INTERDOMESTIK_STAGING_DEPLOY_TOKEN }}'
-  );
   assert.equal(deployStagingJob.env.EXPECTED_COMMIT_SHA, '${{ github.sha }}');
   const triggerStagingDeployStep = findStep(deployStagingJob.steps, 'Trigger Staging Deploy');
   assert.ok(triggerStagingDeployStep);
-  assert.match(triggerStagingDeployStep.run, /INTERDOMESTIK_STAGING_DEPLOY_WEBHOOK_URL/);
-  assert.match(triggerStagingDeployStep.run, /INTERDOMESTIK_STAGING_DEPLOY_TOKEN/);
-  assert.match(triggerStagingDeployStep.run, /authorization: Bearer/);
-  assert.match(triggerStagingDeployStep.run, /curl --silent --show-error/);
-  assert.match(triggerStagingDeployStep.run, /http_status/);
-  assert.match(triggerStagingDeployStep.run, /needs\.build-staging\.outputs\.image_tag/);
+  assert.equal(triggerStagingDeployStep.uses, './.github/actions/trigger-digest-verified-deploy');
+  assert.equal(triggerStagingDeployStep.with.environment, 'staging');
+  assert.match(triggerStagingDeployStep.with['webhook-url'], /INTERDOMESTIK_STAGING_DEPLOY/);
+  assert.equal(
+    triggerStagingDeployStep.with['image-tag'],
+    '${{ needs.build-staging.outputs.image_tag }}'
+  );
+  assert.equal(
+    triggerStagingDeployStep.with['image-digest'],
+    '${{ needs.build-staging.outputs.image_digest }}'
+  );
   const stagingHealthIndex = findStepIndex(deployStagingJob.steps, 'Wait for Staging Health');
   const stagingProvenanceIndex = findStepIndex(
     deployStagingJob.steps,
@@ -598,25 +597,25 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.equal(stagingArtifactsStep.with['if-no-files-found'], 'error');
 
   assert.deepEqual(normalizeNeeds(deployProductionJob.needs), ['build-production']);
-  assert.equal(
-    deployProductionJob.env.DEPLOY_WEBHOOK_URL,
-    '${{ secrets.INTERDOMESTIK_PRODUCTION_DEPLOY_WEBHOOK_URL }}'
-  );
-  assert.equal(
-    deployProductionJob.env.DEPLOY_WEBHOOK_TOKEN,
-    '${{ secrets.INTERDOMESTIK_PRODUCTION_DEPLOY_TOKEN }}'
-  );
   const triggerProductionDeployStep = findStep(
     deployProductionJob.steps,
     'Trigger Production Deploy'
   );
   assert.ok(triggerProductionDeployStep);
-  assert.match(triggerProductionDeployStep.run, /INTERDOMESTIK_PRODUCTION_DEPLOY_WEBHOOK_URL/);
-  assert.match(triggerProductionDeployStep.run, /INTERDOMESTIK_PRODUCTION_DEPLOY_TOKEN/);
-  assert.match(triggerProductionDeployStep.run, /authorization: Bearer/);
-  assert.match(triggerProductionDeployStep.run, /curl --silent --show-error/);
-  assert.match(triggerProductionDeployStep.run, /http_status/);
-  assert.match(triggerProductionDeployStep.run, /needs\.build-production\.outputs\.image_tag/);
+  assert.equal(
+    triggerProductionDeployStep.uses,
+    './.github/actions/trigger-digest-verified-deploy'
+  );
+  assert.equal(triggerProductionDeployStep.with.environment, 'production');
+  assert.match(triggerProductionDeployStep.with['webhook-url'], /INTERDOMESTIK_PRODUCTION_DEPLOY/);
+  assert.equal(
+    triggerProductionDeployStep.with['image-tag'],
+    '${{ needs.build-production.outputs.image_tag }}'
+  );
+  assert.equal(
+    triggerProductionDeployStep.with['image-digest'],
+    '${{ needs.build-production.outputs.image_digest }}'
+  );
 
   assert.deepEqual(normalizeNeeds(verifyProductionJob.needs), ['deploy-production']);
   assert.equal(verifyProductionJob.env.EXPECTED_COMMIT_SHA, '${{ github.sha }}');

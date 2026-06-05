@@ -1,0 +1,120 @@
+name: Trigger digest-verified deploy
+description: Trigger an environment deploy webhook and require immutable image digest confirmation.
+
+inputs:
+  environment:
+    required: true
+  webhook-url:
+    required: true
+  webhook-token:
+    required: true
+  registry:
+    required: true
+  image-name:
+    required: true
+  image-tag:
+    required: true
+  image-digest:
+    required: true
+  sha:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Trigger deploy webhook
+      shell: bash
+      env:
+        DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+        DEPLOY_WEBHOOK_URL: ${{ inputs.webhook-url }}
+        DEPLOY_WEBHOOK_TOKEN: ${{ inputs.webhook-token }}
+        IMAGE_REGISTRY: ${{ inputs.registry }}
+        IMAGE_NAME: ${{ inputs.image-name }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
+        IMAGE_DIGEST: ${{ inputs.image-digest }}
+        COMMIT_SHA: ${{ inputs.sha }}
+      run: |
+        set -euo pipefail
+
+        missing=()
+        [[ -n "${DEPLOY_ENVIRONMENT:-}" ]] || missing+=("environment")
+        [[ -n "${DEPLOY_WEBHOOK_URL:-}" ]] || missing+=("webhook-url")
+        [[ -n "${DEPLOY_WEBHOOK_TOKEN:-}" ]] || missing+=("webhook-token")
+        [[ -n "${IMAGE_REGISTRY:-}" ]] || missing+=("registry")
+        [[ -n "${IMAGE_NAME:-}" ]] || missing+=("image-name")
+        [[ -n "${IMAGE_TAG:-}" ]] || missing+=("image-tag")
+        [[ -n "${IMAGE_DIGEST:-}" ]] || missing+=("image-digest")
+        [[ -n "${COMMIT_SHA:-}" ]] || missing+=("sha")
+
+        if (( ${#missing[@]} > 0 )); then
+          echo "::error::Missing ${DEPLOY_ENVIRONMENT:-unknown} deploy prerequisite(s): ${missing[*]}."
+          exit 1
+        fi
+
+        image_ref="${IMAGE_REGISTRY}/${IMAGE_NAME}"
+        payload_file="$(mktemp)"
+        response_file="$(mktemp)"
+        trap 'rm -f "${payload_file}" "${response_file}"' EXIT
+
+        printf '{"environment":"%s","image":"%s","image_tag":"%s","image_digest":"%s","sha":"%s"}' \
+          "${DEPLOY_ENVIRONMENT}" \
+          "${image_ref}" \
+          "${IMAGE_TAG}" \
+          "${IMAGE_DIGEST}" \
+          "${COMMIT_SHA}" > "${payload_file}"
+
+        curl_exit=0
+        http_status="$(
+          curl --silent --show-error --output "${response_file}" --write-out '%{http_code}' \
+            --connect-timeout 10 --max-time 120 \
+            --retry 3 --retry-delay 5 \
+            -H 'content-type: application/json' \
+            -H "authorization: Bearer ${DEPLOY_WEBHOOK_TOKEN}" \
+            --data-binary @"${payload_file}" \
+            "${DEPLOY_WEBHOOK_URL}"
+        )" || curl_exit=$?
+
+        if (( curl_exit != 0 )); then
+          echo "::error::Failed to trigger ${DEPLOY_ENVIRONMENT} deploy webhook."
+          if [[ -s "${response_file}" ]]; then
+            cat "${response_file}"
+          fi
+          exit "${curl_exit}"
+        fi
+
+        if [[ ! "${http_status}" =~ ^2[0-9][0-9]$ ]]; then
+          echo "::error::${DEPLOY_ENVIRONMENT} deploy webhook returned HTTP ${http_status}."
+          cat "${response_file}"
+          exit 1
+        fi
+
+        DEPLOY_WEBHOOK_RESPONSE_FILE="${response_file}" node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const expected = process.env.IMAGE_DIGEST;
+          const environment = process.env.DEPLOY_ENVIRONMENT || 'unknown';
+          const responseFile = process.env.DEPLOY_WEBHOOK_RESPONSE_FILE;
+          if (!expected || !responseFile) {
+            throw new Error('IMAGE_DIGEST and DEPLOY_WEBHOOK_RESPONSE_FILE are required');
+          }
+
+          const raw = fs.readFileSync(responseFile, 'utf8').trim();
+          if (!raw) {
+            throw new Error(`${environment} deploy webhook must confirm image_digest in JSON`);
+          }
+
+          let response;
+          try {
+            response = JSON.parse(raw);
+          } catch (error) {
+            throw new Error(`${environment} deploy webhook must confirm image_digest in JSON`, {
+              cause: error,
+            });
+          }
+          const actual = response?.image_digest;
+          if (actual !== expected) {
+            throw new Error(`${environment} deploy digest mismatch: expected ${expected}, got ${actual || 'missing'}`);
+          }
+
+          console.log(`${environment} deploy webhook confirmed image digest: ${actual}`);
+        NODE
