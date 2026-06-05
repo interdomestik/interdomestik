@@ -36,48 +36,50 @@ enterprise-ready.
 | Production go-live checklist | `docs/plans/2026-04-27-p22-go01-production-go-live-readiness.md`                                                                                         | Governed checklist        |
 | Pilot operations evidence    | `docs/pilot/**` launch, daily, rollback, incident, KPI, and closeout records                                                                             | Bounded pilot evidence    |
 | Security gates               | CodeQL, SonarCloud, gitleaks, pnpm-audit, `pnpm security:guard`, DB/RLS/access audits in PR gates                                                        | Strong for repo delivery  |
+| Restore drill contract       | `docs/plans/ent-ops01-backup-restore-drill-evidence-contract.md`                                                                                         | Contract defined          |
 
 ## Open Enterprise Maturity Lanes
 
 These lanes come from `docs/reviews/2026-04-25-production-professionalism-rereview.md` and remain
 separate from the active architecture-finalization queue unless explicitly promoted.
 
-| Lane                         | Current gap    | Enterprise requirement                                                                                        |
-| ---------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------- |
-| Backup/restore drill cadence | Not yet scoped | Recurring staging restore drill with measured RTO/RPO and owner sign-off                                      |
-| Exercised incident readiness | Partial        | Quarterly drills for auth-secret rotation, Supabase failover, restore, and tenant-cookie recovery             |
-| Threat model                 | Not yet scoped | Written per-surface model for registration, uploads, documents, share packs, billing, AI review, and webhooks |
-| Supply-chain attestation     | Not yet scoped | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                |
-| Alert routing proof          | Partial        | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes           |
-| Data lifecycle verification  | Partial        | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                              |
-| Performance regression gate  | Not yet scoped | Representative route/storage performance budgets that can block releases                                      |
+| Lane                         | Current gap                          | Enterprise requirement                                                                                        |
+| ---------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Backup/restore drill cadence | Contract defined; real drill pending | Recurring staging restore drill with measured RTO/RPO and owner sign-off                                      |
+| Exercised incident readiness | Partial                              | Quarterly drills for auth-secret rotation, Supabase failover, restore, and tenant-cookie recovery             |
+| Threat model                 | Not yet scoped                       | Written per-surface model for registration, uploads, documents, share packs, billing, AI review, and webhooks |
+| Supply-chain attestation     | Not yet scoped                       | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                |
+| Alert routing proof          | Partial                              | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes           |
+| Data lifecycle verification  | Partial                              | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                              |
+| Performance regression gate  | Not yet scoped                       | Representative route/storage performance budgets that can block releases                                      |
 
 ## Next Bounded Operational Slice
 
-If the user asks to pursue enterprise hardening next, promote exactly one small operational slice:
+The next concrete enterprise-hardening step is now one real operational drill:
 
-`ENT-OPS01 Backup Restore Drill Evidence Contract`
+`ENT-OPS02 First Staging Restore Drill Record`
 
 Scope:
 
-- Define the staging restore drill evidence contract.
-- Name the required RTO/RPO fields, backup or recovery-point identifier, restore target,
-  validation commands, owner, date, and pass/fail decision.
-- Add a small reusable evidence template under `docs/operations/` or `docs/plans/`.
-- Do not run a real production restore in the repo thread.
+- Execute the `ENT-OPS01` contract against an isolated staging or non-production restore target.
+- Record measured RTO/RPO, backup/recovery-point identity, validation commands, owner, date, and
+  pass/fail decision.
+- Record missing provider access or connector credentials as blockers instead of simulating
+  success.
+- Do not run a production restore in a repo thread.
 - Do not change runtime code, schema, auth, tenancy, routing, billing, product UI, proxy,
   README, AGENTS, or broad architecture docs.
 
 Rationale:
 
-- Backup/restore proof is the most foundational open enterprise lane because every higher-level
-  incident or live-traffic recovery decision depends on recoverable tenant data.
-- It is small enough to scope without disturbing active `ARCH-M1` work.
-- It creates a concrete artifact that a future operator can execute against staging.
+- Backup/restore proof is the most foundational remaining enterprise lane because every
+  higher-level incident or live-traffic recovery decision depends on recoverable tenant data.
+- The evidence contract is now defined; the missing proof is an executed staging drill record.
+- A drill record can be pursued without disturbing active `ARCH-M1` work.
 
 ## Non-Goals
 
-- This register does not promote `ENT-OPS01` into the canonical tracker.
+- This register does not promote `ENT-OPS02` into the canonical tracker.
 - This register does not claim the platform is fully enterprise-ready.
 - This register does not replace `P22-GO01` live go/no-go evidence.
 - This register does not authorize production operations, credential changes, or data restores.
