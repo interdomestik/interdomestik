@@ -1,0 +1,102 @@
+name: Build Attested Image
+description: Build, push, attest, and verify an Interdomestik release image.
+
+inputs:
+  registry:
+    required: true
+  image-name:
+    required: true
+  tags:
+    required: true
+  labels:
+    required: true
+  deploy-env:
+    required: true
+  app-url:
+    required: true
+  supabase-url:
+    required: true
+  supabase-anon-key:
+    required: true
+  supabase-production-project-ref:
+    required: true
+
+outputs:
+  digest:
+    value: ${{ steps.build.outputs.digest }}
+
+runs:
+  using: composite
+  steps:
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+      with:
+        context: .
+        file: apps/web/Dockerfile
+        push: true
+        provenance: mode=max
+        sbom: true
+        tags: ${{ inputs.tags }}
+        labels: ${{ inputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          COMMIT_SHA=${{ github.sha }}
+          INTERDOMESTIK_DEPLOY_ENV=${{ inputs.deploy-env }}
+          NEXT_PUBLIC_SUPABASE_URL=${{ inputs.supabase-url }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ inputs.supabase-anon-key }}
+          SUPABASE_PRODUCTION_PROJECT_REF=${{ inputs.supabase-production-project-ref }}
+          NEXT_PUBLIC_APP_URL=${{ inputs.app-url }}
+
+    - name: Generate Image SBOM
+      uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+      with:
+        image: ${{ inputs.registry }}/${{ inputs.image-name }}@${{ steps.build.outputs.digest }}
+        format: spdx-json
+        output-file: image.sbom.spdx.json
+        upload-artifact: false
+        upload-release-assets: false
+
+    - name: Attest Image Build Provenance
+      uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+      with:
+        subject-name: ${{ inputs.registry }}/${{ inputs.image-name }}
+        subject-digest: ${{ steps.build.outputs.digest }}
+        push-to-registry: true
+
+    - name: Attest Image SBOM
+      uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+      with:
+        subject-name: ${{ inputs.registry }}/${{ inputs.image-name }}
+        subject-digest: ${{ steps.build.outputs.digest }}
+        sbom-path: image.sbom.spdx.json
+        push-to-registry: true
+
+    - name: Verify Signed Provenance And SBOM
+      env:
+        GH_TOKEN: ${{ github.token }}
+        IMAGE_REF: ${{ inputs.registry }}/${{ inputs.image-name }}@${{ steps.build.outputs.digest }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        digest="${IMAGE_REF##*@}"
+        signer_workflow="${GITHUB_SERVER_URL#https://}/${GITHUB_REPOSITORY}/.github/workflows/cd.yml"
+        if [[ "${digest}" == "${IMAGE_REF}" || -z "${digest}" ]]; then
+          echo "::error::Missing image digest for attestation verification."
+          exit 1
+        fi
+
+        gh attestation verify "oci://${IMAGE_REF}" \
+          -R "${GITHUB_REPOSITORY}" \
+          --source-digest "${GITHUB_SHA}" \
+          --source-ref "${GITHUB_REF}" \
+          --signer-workflow "${signer_workflow}"
+
+        gh attestation verify "oci://${IMAGE_REF}" \
+          -R "${GITHUB_REPOSITORY}" \
+          --source-digest "${GITHUB_SHA}" \
+          --source-ref "${GITHUB_REF}" \
+          --signer-workflow "${signer_workflow}" \
+          --predicate-type https://spdx.dev/Document/v2.3

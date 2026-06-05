@@ -522,51 +522,29 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.ok(buildStagingJob);
   assert.equal(buildStagingJob.environment.name, 'staging');
   assert.equal(buildStagingJob.outputs.image_tag, '${{ steps.meta.outputs.version }}');
-  const buildStagingStep = findStep(buildStagingJob.steps, 'Build and push Docker image');
+  const buildStagingStep = findStep(
+    buildStagingJob.steps,
+    'Build, attest, and verify Docker image'
+  );
   assert.ok(buildStagingStep);
-  assert.match(buildStagingStep.with['build-args'], /COMMIT_SHA=\$\{\{\s*github\.sha\s*\}\}/);
-  assert.match(buildStagingStep.with['build-args'], /INTERDOMESTIK_DEPLOY_ENV=staging/);
-  assert.match(
-    buildStagingStep.with['build-args'],
-    /NEXT_PUBLIC_APP_URL=https:\/\/staging\.interdomestik\.com/
-  );
-  assert.match(
-    buildStagingStep.with['build-args'],
-    /NEXT_PUBLIC_SUPABASE_URL=\$\{\{\s*(vars|secrets)\.NEXT_PUBLIC_SUPABASE_URL/
-  );
-  assert.match(
-    buildStagingStep.with['build-args'],
-    /NEXT_PUBLIC_SUPABASE_ANON_KEY=\$\{\{\s*(vars|secrets)\.NEXT_PUBLIC_SUPABASE_ANON_KEY/
-  );
-  assert.match(
-    buildStagingStep.with['build-args'],
-    /SUPABASE_PRODUCTION_PROJECT_REF=\$\{\{\s*(vars|secrets)\.SUPABASE_PRODUCTION_PROJECT_REF/
-  );
+  assert.equal(buildStagingStep.id, 'build');
+  assert.equal(buildStagingStep.uses, './.github/actions/build-attested-image');
+  assert.equal(buildStagingStep.with['deploy-env'], 'staging');
+  assert.equal(buildStagingStep.with['app-url'], 'https://staging.interdomestik.com');
 
   assert.ok(buildProductionJob);
   assert.deepEqual(normalizeNeeds(buildProductionJob.needs), ['e2e-staging']);
   assert.equal(buildProductionJob.environment.name, 'production');
   assert.equal(buildProductionJob.outputs.image_tag, '${{ steps.meta.outputs.version }}');
-  const buildProductionStep = findStep(buildProductionJob.steps, 'Build and push Docker image');
+  const buildProductionStep = findStep(
+    buildProductionJob.steps,
+    'Build, attest, and verify Docker image'
+  );
   assert.ok(buildProductionStep);
-  assert.match(buildProductionStep.with['build-args'], /COMMIT_SHA=\$\{\{\s*github\.sha\s*\}\}/);
-  assert.match(buildProductionStep.with['build-args'], /INTERDOMESTIK_DEPLOY_ENV=production/);
-  assert.match(
-    buildProductionStep.with['build-args'],
-    /NEXT_PUBLIC_APP_URL=https:\/\/app\.interdomestik\.com/
-  );
-  assert.match(
-    buildProductionStep.with['build-args'],
-    /NEXT_PUBLIC_SUPABASE_URL=\$\{\{\s*(vars|secrets)\.NEXT_PUBLIC_SUPABASE_URL/
-  );
-  assert.match(
-    buildProductionStep.with['build-args'],
-    /NEXT_PUBLIC_SUPABASE_ANON_KEY=\$\{\{\s*(vars|secrets)\.NEXT_PUBLIC_SUPABASE_ANON_KEY/
-  );
-  assert.match(
-    buildProductionStep.with['build-args'],
-    /SUPABASE_PRODUCTION_PROJECT_REF=\$\{\{\s*(vars|secrets)\.SUPABASE_PRODUCTION_PROJECT_REF/
-  );
+  assert.equal(buildProductionStep.id, 'build');
+  assert.equal(buildProductionStep.uses, './.github/actions/build-attested-image');
+  assert.equal(buildProductionStep.with['deploy-env'], 'production');
+  assert.equal(buildProductionStep.with['app-url'], 'https://app.interdomestik.com');
 
   assert.deepEqual(normalizeNeeds(deployStagingJob.needs), ['build-staging']);
   assert.equal(
