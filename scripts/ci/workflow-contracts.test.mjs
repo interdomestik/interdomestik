@@ -155,8 +155,8 @@ test('CI delegates PR browser gate to PR E2E', () => {
   assert.equal(setupStep.with['install-playwright'], "${{ github.event_name != 'pull_request' }}");
 
   const strictGuardStep = findStep(ciSteps, 'Enforce E2E Best Practices');
-  assert.equal(strictGuardStep.if, "github.event_name != 'pull_request'"), assert.match(strictGuardStep.run, /guards/u);
-
+  assert.equal(strictGuardStep.if, "github.event_name != 'pull_request'");
+  assert.match(strictGuardStep.run, /guards/u);
   const prepareDbStep = findStep(ciSteps, 'Prepare E2E Database');
   assert.equal(prepareDbStep.if, undefined);
 
