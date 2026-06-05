@@ -114,8 +114,8 @@ A per-surface threat-model record satisfies this contract only when:
 
 - it identifies the protected data, durable records, external systems, and tenant boundary for the
   selected surface;
-- it includes at least one concrete threat and disposition for each STRIDE category, even when the
-  disposition is "not applicable" with rationale;
+- it includes a threat disposition row for each STRIDE category; categories without an applicable
+  concrete threat must say "not applicable" with rationale;
 - every residual high-impact tenant isolation, privilege, data exposure, or payment integrity risk
   has a named follow-up slice, issue, or acceptance owner;
 - current controls are linked to repo evidence such as tests, gates, ownership maps, plans, or

@@ -83,7 +83,7 @@ Rationale:
 
 ## Latest Repo-Owned Enterprise-Hardening Slice
 
-While `ENT-OPS02` remains blocked on provider or CLI restore access, the latest smallest repo-owned
+While `ENT-OPS02` remains blocked on provider or CLI restore access, the latest repo-owned
 enterprise-hardening slice is:
 
 `ENT-TM01 Threat Model Evidence Contract`
