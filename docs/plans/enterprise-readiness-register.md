@@ -3,7 +3,7 @@ plan_role: input
 status: active
 source_of_truth: false
 owner: platform
-last_reviewed: 2026-06-05
+last_reviewed: 2026-06-06
 superseded_by:
 ---
 
@@ -26,19 +26,19 @@ enterprise-ready.
 
 ## Evidence Already Present
 
-| Lane                         | Current evidence                                                                                                                                                                                                       | Status                           |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| Repo governance              | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, architecture-finalization program/tracker, PR finalizer, required checks                                                                             | Strong                           |
-| Plugin/tool discipline       | `docs/plans/plugin-usage-playbook.md`                                                                                                                                                                                  | Strong                           |
-| Incident procedure           | `docs/plans/2026-03-09-d06-incident-playbook-evidence.md`, `docs/INCIDENT_PLAYBOOK.md`, `docs/RUNBOOK.md`                                                                                                              | Documented                       |
-| Sentry alert foundation      | `docs/plans/2026-03-09-d07-sentry-burn-rate-alerts-evidence.md`, `pnpm sentry:alerts:check`, `pnpm sentry:seer:sweep:pre`, `pnpm sentry:seer:sweep:post`                                                               | Partial operational proof        |
-| Sensitive route ownership    | `docs/reviews/2026-04-25-sensitive-route-ownership-map.md`                                                                                                                                                             | Documented                       |
-| Production go-live checklist | `docs/plans/2026-04-27-p22-go01-production-go-live-readiness.md`                                                                                                                                                       | Governed checklist               |
-| Pilot operations evidence    | `docs/pilot/**` launch, daily, rollback, incident, KPI, and closeout records                                                                                                                                           | Bounded pilot evidence           |
-| Security gates               | CodeQL, SonarCloud, gitleaks, pnpm-audit, `pnpm security:guard`, DB/RLS/access audits in PR gates                                                                                                                      | Strong for repo delivery         |
-| Restore drill contract       | `docs/plans/ent-ops01-backup-restore-drill-evidence-contract.md`; `docs/plans/ent-ops02-first-staging-restore-drill-record-2026-06-05.md`                                                                              | Blocker recorded                 |
-| Supply-chain attestation     | `docs/plans/ent-sca01-supply-chain-attestation-evidence-contract.md`; `docs/plans/ent-sca02-supply-chain-attestation-ci-proof-2026-06-05.md`; `docs/plans/ent-sca03-deploy-digest-verification-boundary-2026-06-05.md` | Deploy-boundary proof configured |
-| Threat-model evidence        | `docs/plans/ent-tm01-threat-model-evidence-contract-2026-06-05.md`; `docs/plans/ent-tm02-initial-claim-uploads-threat-model-2026-06-05.md`                                                                             | First surface modeled            |
+| Lane                         | Current evidence                                                                                                                                                                                                                  | Status                           |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Repo governance              | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, architecture-finalization program/tracker, PR finalizer, required checks                                                                                        | Strong                           |
+| Plugin/tool discipline       | `docs/plans/plugin-usage-playbook.md`                                                                                                                                                                                             | Strong                           |
+| Incident procedure           | `docs/plans/2026-03-09-d06-incident-playbook-evidence.md`, `docs/INCIDENT_PLAYBOOK.md`, `docs/RUNBOOK.md`                                                                                                                         | Documented                       |
+| Sentry alert foundation      | `docs/plans/2026-03-09-d07-sentry-burn-rate-alerts-evidence.md`, `pnpm sentry:alerts:check`, `pnpm sentry:seer:sweep:pre`, `pnpm sentry:seer:sweep:post`                                                                          | Partial operational proof        |
+| Sensitive route ownership    | `docs/reviews/2026-04-25-sensitive-route-ownership-map.md`                                                                                                                                                                        | Documented                       |
+| Production go-live checklist | `docs/plans/2026-04-27-p22-go01-production-go-live-readiness.md`                                                                                                                                                                  | Governed checklist               |
+| Pilot operations evidence    | `docs/pilot/**` launch, daily, rollback, incident, KPI, and closeout records                                                                                                                                                      | Bounded pilot evidence           |
+| Security gates               | CodeQL, SonarCloud, gitleaks, pnpm-audit, `pnpm security:guard`, DB/RLS/access audits in PR gates                                                                                                                                 | Strong for repo delivery         |
+| Restore drill contract       | `docs/plans/ent-ops01-backup-restore-drill-evidence-contract.md`; `docs/plans/ent-ops02-first-staging-restore-drill-record-2026-06-05.md`                                                                                         | Blocker recorded                 |
+| Supply-chain attestation     | `docs/plans/ent-sca01-supply-chain-attestation-evidence-contract.md`; `docs/plans/ent-sca02-supply-chain-attestation-ci-proof-2026-06-05.md`; `docs/plans/ent-sca03-deploy-digest-verification-boundary-2026-06-05.md`            | Deploy-boundary proof configured |
+| Threat-model evidence        | `docs/plans/ent-tm01-threat-model-evidence-contract-2026-06-05.md`; `docs/plans/ent-tm02-initial-claim-uploads-threat-model-2026-06-05.md`; `docs/plans/ent-tm03-authenticated-claim-evidence-uploads-threat-model-2026-06-06.md` | Upload custody surfaces modeled  |
 
 ## Open Enterprise Maturity Lanes
 
@@ -49,7 +49,7 @@ separate from the active architecture-finalization queue unless explicitly promo
 | ---------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Backup/restore drill cadence | First attempt blocked by restore-access gap                                        | Recurring staging restore drill with measured RTO/RPO and owner sign-off                                      |
 | Exercised incident readiness | Partial                                                                            | Quarterly drills for auth-secret rotation, Supabase failover, restore, and tenant-cookie recovery             |
-| Threat model                 | Evidence contract scoped; initial claim-upload surface modeled                     | Written per-surface model for registration, uploads, documents, share packs, billing, AI review, and webhooks |
+| Threat model                 | Evidence contract scoped; initial and authenticated claim-upload surfaces modeled  | Written per-surface model for registration, uploads, documents, share packs, billing, AI review, and webhooks |
 | Supply-chain attestation     | Deploy-boundary digest confirmation configured; real provider run evidence pending | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                |
 | Alert routing proof          | Partial                                                                            | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes           |
 | Data lifecycle verification  | Partial                                                                            | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                              |
@@ -87,30 +87,32 @@ Rationale:
 While `ENT-OPS02` remains blocked on provider or CLI restore access, the latest repo-owned
 enterprise-hardening slice is:
 
-`ENT-TM02 Initial Claim Uploads Threat Model`
+`ENT-TM03 Authenticated Claim Evidence Uploads Threat Model`
 
 Scope:
 
-- Apply the `ENT-TM01` contract to the initial claim-wizard upload surface only.
-- Model protected metadata, actors, trust boundaries, existing controls, STRIDE threats, residual
-  risks, and verification evidence.
+- Apply the `ENT-TM01` contract to the authenticated claim evidence upload surface only.
+- Model member, staff, branch-manager, and admin upload actors; direct multipart and signed-upload
+  boundaries; claim access controls; storage/object validation; AI queueing; STRIDE threats;
+  residual risks; and verification evidence.
 - Promote exactly one next bounded follow-up:
-  `ENT-TM03 Authenticated Claim Evidence Uploads Threat Model`.
+  `ENT-TM04 Document Signed URLs And Downloads Threat Model`.
 - Do not change runtime code, schema, auth, tenancy, routing, billing, product UI, proxy,
   README, AGENTS, or broad architecture docs.
 
 Rationale:
 
-- The threat-model evidence contract is already defined by `ENT-TM01`.
-- Initial claim uploads are the smallest high-value first model because they cross browser,
-  storage, tenant, file-content, and evidence-custody boundaries while staying bounded to existing
-  proof files.
-- Authenticated claim evidence uploads are the next adjacent custody surface and should be modeled
-  separately before documents, share packs, Paddle webhooks, AI review, and registration.
+- The threat-model evidence contract is already defined by `ENT-TM01`, and `ENT-TM02` completed
+  the first upload-custody surface.
+- Authenticated claim evidence uploads are the adjacent custody surface because they add member,
+  staff, branch-manager, admin, direct-upload, signed-upload, object-validation, and AI queueing
+  boundaries while staying bounded to current route/action proof files.
+- Document signed URLs and downloads are the next adjacent custody surface and should be modeled
+  separately before share packs, Paddle webhooks, AI review, and registration.
 
 Next enterprise maturity remains broader than this repo-owned slice. The highest-value remaining
 lanes are the blocked `ENT-OPS02` staging restore drill,
-`ENT-TM03 Authenticated Claim Evidence Uploads Threat Model`, alert-routing exercise proof, data
+`ENT-TM04 Document Signed URLs And Downloads Threat Model`, alert-routing exercise proof, data
 lifecycle verification, and performance regression gates.
 
 ## Non-Goals
