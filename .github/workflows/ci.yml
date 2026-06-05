@@ -183,11 +183,7 @@ jobs:
 
       - name: Enforce E2E Best Practices
         if: github.event_name != 'pull_request'
-        run: |
-          if grep -r "page.goto" apps/web/e2e/gate apps/web/e2e/golden | grep -v "tenant-resolution.spec.ts"; then
-            echo "❌ Strict Gate Violation: Raw page.goto found. Use gotoApp() instead."
-            exit 1
-          fi
+        run: pnpm --filter @interdomestik/web run e2e:guards
 
       - name: Prepare E2E Database
         run: |

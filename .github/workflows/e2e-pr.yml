@@ -89,20 +89,7 @@ jobs:
 
       - name: Strict Rule Guards (golden/gate)
         if: steps.validation_surface.outputs.should_run == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
-            | grep -v "apps/web/e2e/gate/tenant-resolution.spec.ts" ; then
-            echo "❌ raw page.goto found in golden/gate"
-            exit 1
-          fi
-
-          if grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" ; then
-            echo "❌ locale-prefixed /<locale>/api detected"
-            exit 1
-          fi
+        run: pnpm --filter @interdomestik/web run e2e:guards
 
       - name: Run PR E2E Gate
         if: steps.validation_surface.outputs.should_run == 'true'

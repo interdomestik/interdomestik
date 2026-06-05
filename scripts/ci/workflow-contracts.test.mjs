@@ -137,7 +137,7 @@ test('seeded CI workflows generate masked per-run E2E credentials before seeded 
   );
 });
 
-test('CI PR path keeps only RLS coverage while PR E2E owns the PR browser gate lane', () => {
+test('CI delegates PR browser gate to PR E2E', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
 
@@ -155,7 +155,7 @@ test('CI PR path keeps only RLS coverage while PR E2E owns the PR browser gate l
   assert.equal(setupStep.with['install-playwright'], "${{ github.event_name != 'pull_request' }}");
 
   const strictGuardStep = findStep(ciSteps, 'Enforce E2E Best Practices');
-  assert.equal(strictGuardStep.if, "github.event_name != 'pull_request'");
+  assert.equal(strictGuardStep.if, "github.event_name != 'pull_request'"), assert.match(strictGuardStep.run, /guards/u);
 
   const prepareDbStep = findStep(ciSteps, 'Prepare E2E Database');
   assert.equal(prepareDbStep.if, undefined);
@@ -179,10 +179,9 @@ test('CI PR path keeps only RLS coverage while PR E2E owns the PR browser gate l
   assert.equal(prE2eSetupStep.with['install-playwright'], true);
 
   const prStrictGuardStep = findStep(prE2eJob.steps, 'Strict Rule Guards (golden/gate)');
-  assert.ok(prStrictGuardStep);
+  assert.match(prStrictGuardStep.run, /guards/u);
 
   const prGateStep = findStep(prE2eJob.steps, 'Run PR E2E Gate');
-  assert.ok(prGateStep);
   assert.equal(prGateStep.run, 'pnpm e2e:gate:pr');
   assert.deepEqual(prGateStep.env, {
     E2E_DATABASE_URL: '${{ env.DATABASE_URL }}',

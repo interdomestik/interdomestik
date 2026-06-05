@@ -66,24 +66,7 @@ jobs:
 
       # ---- Strict-rule guards (fail fast before burning minutes) ----
       - name: Strict Rule Guards (golden/gate)
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "Guard: No raw page.goto in golden/gate (exception only in tenant-resolution.spec.ts)"
-          if grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
-            | grep -v "apps/web/e2e/gate/tenant-resolution.spec.ts" ; then
-            echo "❌ Found raw page.goto in golden/gate"
-            exit 1
-          fi
-          echo "✅ page.goto guard OK"
-
-          echo "Guard: No locale-prefixed API calls like /sq/api"
-          if grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" ; then
-            echo "❌ Found locale-prefixed API calls"
-            exit 1
-          fi
-          echo "✅ API prefix guard OK"
+        run: pnpm --filter @interdomestik/web run e2e:guards
 
       # ---- Seed (always) ----
       - name: Seed E2E DB
