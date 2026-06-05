@@ -24,10 +24,7 @@ echo "📂 Log: $PWD/$LOG_FILE"
 
 # 1. Strict Rule Guards
 echo -e "\n${GREEN}🛡️  Running Strict Rule Guards...${NC}"
-if grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" | grep -v "apps/web/e2e/gate/tenant-resolution.spec.ts"; then
-  echo -e "${RED}❌ Guard Failed: Raw page.goto found in restricted directories.${NC}"
-  exit 1
-fi
+pnpm --filter @interdomestik/web run e2e:guards
 echo "✅ Guards Passed."
 
 # 2. Database Seed

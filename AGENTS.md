@@ -13,7 +13,7 @@ The following rules are non-negotiable for all agents (human or AI):
 - Clarity markers (`*-page-ready`) are contractual and enforced by E2E gates.
 - No architectural refactors (routing, auth, domains, tenancy) unless explicitly requested.
 - Architecture-finalization work, when explicitly authorized, follows `docs/plans/architecture-finalization-program-2026-05-29.md` and `docs/plans/architecture-finalization-tracker-2026-05-29.md` as the canonical M0→M5 execution authority.
-- Stripe is **not used** in V3 pilot flows.
+- Paddle-only V3 pilot billing.
 - Do not update README, AGENTS.md, or architecture docs unless explicitly requested.
 - All changes must pass:
   - `pnpm pr:verify`

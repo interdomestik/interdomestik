@@ -415,8 +415,7 @@ run_optional_sonar_pr_checks() {
 }
 
 run_strict_e2e_guards() {
-  run_shell '! rg "page\\.goto" apps/web/e2e/golden apps/web/e2e/gate -g "*.spec.ts" | rg -v "apps/web/e2e/gate/tenant-resolution.spec.ts"'
-  run_shell '! rg -n "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e -g "*.ts"'
+  run pnpm --filter @interdomestik/web run e2e:guards
 }
 
 run_pr_e2e_gate() {

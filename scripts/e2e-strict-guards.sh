@@ -1,165 +1,135 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-# E2E Strict Guards
-# Enforces strict rules on the E2E codebase.
+node --input-type=module <<'NODE'
+import fs from 'node:fs';
+import path from 'node:path';
 
-echo "🛡️  Running E2E Strict Guards..."
+const ROOTS = ['apps/web/e2e/golden', 'apps/web/e2e/gate'];
+const EXCLUDED = new Set(['apps/web/e2e/gate/tenant-resolution.spec.ts']);
 
-EXIT_CODE=0
+const repoPath = filePath => filePath.split(path.sep).join('/');
+const lineNumber = (source, index) => source.slice(0, index).split('\n').length;
+const mask = text => text.replace(/[^\n]/g, ' ');
+const stripComments = source =>
+  source.replace(/\/\*[\s\S]*?\*\//g, mask).replace(/\/\/.*/g, mask);
 
-# 1. No raw page.goto in golden/gate (except exceptions)
-echo "   Checking for raw page.goto()..."
-FORBIDDEN_GOTO=$(grep -r "page.goto(" apps/web/e2e/golden apps/web/e2e/gate \
-  | grep -v "tenant-resolution.spec.ts" \
-  | grep -v "apps/web/e2e/golden/legacy/" \
-  || true)
-
-if [ -n "$FORBIDDEN_GOTO" ]; then
-  echo "❌ Error: Found raw page.goto() in strict suites:"
-  echo "$FORBIDDEN_GOTO"
-  EXIT_CODE=1
-else
-  echo "✅ No illegal page.goto() found."
-fi
-
-# 2. gotoApp must have marker
-echo "   Checking gotoApp usage..."
-# Heuristic: Look for gotoApp calls that DON'T have a { marker: ... } or { ... marker: ... }
-# This is hard to regex perfectly, so we'll look for simple violations or just rely on the strict template.
-# A simpler check: Ensure gotoApp is used.
-# Real check: grep lines with gotoApp, ensure "marker" is present nearby.
-# For now, let's just warn if we see gotoApp without a comma (implying no options object)
-# Note: This is weak, but better than nothing.
-# We enforce this with a small parser so multi-line calls are handled reliably.
-MISSING_MARKERS=$(python3 - <<'PY'
-import re
-from pathlib import Path
-
-ROOTS = [Path('apps/web/e2e/golden'), Path('apps/web/e2e/gate')]
-EXCLUDE = {
-  'apps/web/e2e/gate/tenant-resolution.spec.ts',
+function walk(root, predicate, output = []) {
+  if (!fs.existsSync(root)) return output;
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    const entryPath = path.join(root, entry.name);
+    if (entry.isDirectory()) walk(entryPath, predicate, output);
+    else if (predicate(entryPath)) output.push(entryPath);
+  }
+  return output;
 }
 
-# Extremely small, pragmatic parser:
-# - removes comments
-# - finds gotoApp( ... ) calls
-# - checks 4th arg exists and contains 'marker'
+function splitArgs(source) {
+  const args = [];
+  let buffer = '';
+  let depth = 0;
+  let quote = '';
+  let escaped = false;
 
-def strip_comments(s: str) -> str:
-  s = re.sub(r'/\*.*?\*/', '', s, flags=re.S)
-  s = re.sub(r'//.*', '', s)
-  return s
+  for (const char of source) {
+    if (quote) {
+      buffer += char;
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === quote) quote = '';
+      continue;
+    }
 
-def iter_spec_files():
-  for root in ROOTS:
-    if not root.exists():
-      continue
-    for p in root.rglob('*.ts'):
-      sp = p.as_posix()
-      if sp in EXCLUDE:
-        continue
-      if '/golden/legacy/' in sp:
-        continue
-      yield p
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+      buffer += char;
+      continue;
+    }
 
-pat = re.compile(r'\bgotoApp\s*\(')
+    if ('([{'.includes(char)) depth += 1;
+    if (')]}'.includes(char)) depth -= 1;
+    if (char === ',' && depth === 0) {
+      args.push(buffer.trim());
+      buffer = '';
+    } else {
+      buffer += char;
+    }
+  }
 
-violations = []
-for p in iter_spec_files():
-  raw = p.read_text(encoding='utf-8')
-  txt = strip_comments(raw)
-  i = 0
-  while True:
-    m = pat.search(txt, i)
-    if not m:
-      break
-    start = m.end()
+  if (buffer.trim()) args.push(buffer.trim());
+  return args;
+}
 
-    # find matching closing paren
-    depth = 1
-    j = start
-    while j < len(txt) and depth:
-      c = txt[j]
-      if c == '(':
-        depth += 1
-      elif c == ')':
-        depth -= 1
-      j += 1
+function findCloseParen(source, openIndex) {
+  let depth = 1;
+  let quote = '';
+  let escaped = false;
+  for (let index = openIndex + 1; index < source.length; index += 1) {
+    const char = source[index];
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === quote) quote = '';
+      continue;
+    }
 
-    call = txt[start:j-1]
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+      continue;
+    }
 
-    # split args at top-level commas
-    args = []
-    buf = []
-    d = 0
-    in_str = None
-    esc = False
+    if (source[index] === '(') depth += 1;
+    if (source[index] === ')') depth -= 1;
+    if (depth === 0) return index;
+  }
+  return -1;
+}
 
-    for ch in call:
-      if in_str:
-        buf.append(ch)
-        if esc:
-          esc = False
-        elif ch == '\\':
-          esc = True
-        elif ch == in_str:
-          in_str = None
-        continue
+const strictSpecs = ROOTS.flatMap(root =>
+  walk(root, filePath => {
+    const file = repoPath(filePath);
+    return file.endsWith('.spec.ts') && !file.includes('/golden/legacy/') && !EXCLUDED.has(file);
+  })
+);
+const allE2eTs = walk('apps/web/e2e', filePath => repoPath(filePath).endsWith('.ts'));
+const violations = [];
 
-      if ch in ('"', "'", '`'):
-        in_str = ch
-        buf.append(ch)
-        continue
+for (const filePath of strictSpecs) {
+  const file = repoPath(filePath);
+  const raw = fs.readFileSync(filePath, 'utf8');
+  const source = stripComments(raw);
 
-      if ch in '([{':
-        d += 1
-      elif ch in ')]}':
-        d -= 1
+  for (const match of source.matchAll(/page\.goto\(/g)) {
+    violations.push(`${file}:${lineNumber(raw, match.index)} raw goto`);
+  }
 
-      if ch == ',' and d == 0:
-        arg = ''.join(buf).strip()
-        if arg:
-          args.append(arg)
-        buf = []
-      else:
-        buf.append(ch)
+  for (const match of source.matchAll(/\bgotoApp\s*\(/g)) {
+    const openIndex = match.index + match[0].lastIndexOf('(');
+    const closeIndex = findCloseParen(source, openIndex);
+    if (closeIndex === -1) {
+      violations.push(`${file}:${lineNumber(source, match.index)} unclosed gotoApp`);
+      continue;
+    }
+    const args = splitArgs(source.slice(openIndex + 1, closeIndex));
+    if (args.length < 4 || !/\bmarker\b/.test(args[3])) {
+      violations.push(`${file}:${lineNumber(source, match.index)} gotoApp marker`);
+    }
+  }
+}
 
-    last = ''.join(buf).strip()
-    if last:
-      args.append(last)
+for (const filePath of allE2eTs) {
+  const file = repoPath(filePath);
+  const source = fs.readFileSync(filePath, 'utf8');
+  for (const match of source.matchAll(/\/(sq|mk|en|sr|de|hr)\/api/g)) {
+    violations.push(`${file}:${lineNumber(source, match.index)} locale API`);
+  }
+}
 
-    has_marker = len(args) >= 4 and ('marker' in args[3])
-    if not has_marker:
-      line = raw[:m.start()].count('\n') + 1
-      violations.append(f"{p.as_posix()}:{line} - gotoApp missing marker")
+if (violations.length > 0) {
+  console.error('E2E guard violations');
+  console.error(violations.join('\n'));
+  process.exit(1);
+}
 
-    i = j
-
-print('\n'.join(violations))
-PY
-)
-
-if [ -n "$MISSING_MARKERS" ]; then
-  echo "❌ Error: Found gotoApp() calls without explicit { marker: ... }:"
-  echo "$MISSING_MARKERS"
-  EXIT_CODE=1
-else
-  echo "✅ All gotoApp() calls include an explicit marker."
-fi
-
-# 3. No locale-prefixed API usage
-echo "   Checking for locale-prefixed API calls..."
-FORBIDDEN_API=$(grep -rE "/(sq|mk|en|sr|de|hr)/api" apps/web/e2e | grep -v "\.md" || true)
-
-if [ -n "$FORBIDDEN_API" ]; then
-  echo "❌ Error: Found locale-prefixed API calls:"
-  echo "$FORBIDDEN_API"
-  EXIT_CODE=1
-else
-  echo "✅ No locale-prefixed API calls found."
-fi
-
-
-
-exit $EXIT_CODE
+console.log('E2E guards passed.');
+NODE
