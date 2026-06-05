@@ -23,8 +23,11 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     outputs:
       image_tag: ${{ steps.meta.outputs.version }}
+      image_digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -49,23 +52,19 @@ jobs:
           tags: |
             type=raw,value=staging-${{ github.sha }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+      - name: Build, attest, and verify Docker image
+        id: build
+        uses: ./.github/actions/build-attested-image
         with:
-          context: .
-          file: apps/web/Dockerfile
-          push: true
+          registry: ${{ env.REGISTRY }}
+          image-name: ${{ env.IMAGE_NAME }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            COMMIT_SHA=${{ github.sha }}
-            INTERDOMESTIK_DEPLOY_ENV=staging
-            NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
-            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-            SUPABASE_PRODUCTION_PROJECT_REF=${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
-            NEXT_PUBLIC_APP_URL=https://staging.interdomestik.com
+          deploy-env: staging
+          app-url: https://staging.interdomestik.com
+          supabase-url: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          supabase-anon-key: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          supabase-production-project-ref: ${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
 
   deploy-staging:
     needs: build-staging
@@ -230,8 +229,11 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     outputs:
       image_tag: ${{ steps.meta.outputs.version }}
+      image_digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -259,23 +261,19 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+      - name: Build, attest, and verify Docker image
+        id: build
+        uses: ./.github/actions/build-attested-image
         with:
-          context: .
-          file: apps/web/Dockerfile
-          push: true
+          registry: ${{ env.REGISTRY }}
+          image-name: ${{ env.IMAGE_NAME }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            COMMIT_SHA=${{ github.sha }}
-            INTERDOMESTIK_DEPLOY_ENV=production
-            NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
-            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-            SUPABASE_PRODUCTION_PROJECT_REF=${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
-            NEXT_PUBLIC_APP_URL=https://app.interdomestik.com
+          deploy-env: production
+          app-url: https://app.interdomestik.com
+          supabase-url: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          supabase-anon-key: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          supabase-production-project-ref: ${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
 
   deploy-production:
     needs: build-production
