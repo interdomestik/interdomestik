@@ -60,6 +60,27 @@ function assertAttestedImageAction() {
   assert.equal(buildStep.with.provenance, 'mode=max');
   assert.equal(buildStep.with.sbom, true);
   assert.match(buildStep.with.tags, /\$\{\{\s*inputs\.tags\s*\}\}/u);
+  assert.match(buildStep.with['build-args'], /COMMIT_SHA=\$\{\{\s*github\.sha\s*\}\}/u);
+  assert.match(
+    buildStep.with['build-args'],
+    /INTERDOMESTIK_DEPLOY_ENV=\$\{\{\s*inputs\.deploy-env\s*\}\}/u
+  );
+  assert.match(
+    buildStep.with['build-args'],
+    /NEXT_PUBLIC_SUPABASE_URL=\$\{\{\s*inputs\.supabase-url\s*\}\}/u
+  );
+  assert.match(
+    buildStep.with['build-args'],
+    /NEXT_PUBLIC_SUPABASE_ANON_KEY=\$\{\{\s*inputs\.supabase-anon-key\s*\}\}/u
+  );
+  assert.match(
+    buildStep.with['build-args'],
+    /SUPABASE_PRODUCTION_PROJECT_REF=\$\{\{\s*inputs\.supabase-production-project-ref\s*\}\}/u
+  );
+  assert.match(
+    buildStep.with['build-args'],
+    /NEXT_PUBLIC_APP_URL=\$\{\{\s*inputs\.app-url\s*\}\}/u
+  );
 
   const sbomStep = findStep(steps, 'Generate Image SBOM');
   const attestStep = findStep(steps, 'Attest Image Build Provenance');
