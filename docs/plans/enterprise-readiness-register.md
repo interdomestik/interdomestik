@@ -31,7 +31,7 @@ enterprise-ready.
 | Repo governance              | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, architecture-finalization program/tracker, PR finalizer, required checks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Strong                                                                                                                                 |
 | Plugin/tool discipline       | `docs/plans/plugin-usage-playbook.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Strong                                                                                                                                 |
 | Incident procedure           | `docs/plans/2026-03-09-d06-incident-playbook-evidence.md`, `docs/INCIDENT_PLAYBOOK.md`, `docs/RUNBOOK.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Documented                                                                                                                             |
-| Sentry alert foundation      | `docs/plans/2026-03-09-d07-sentry-burn-rate-alerts-evidence.md`, `docs/plans/ent-alert01-alert-routing-evidence-contract-2026-06-06.md`, `docs/plans/ent-alert02-d07-alert-routing-exercise-record-2026-06-06.md`, `docs/plans/ent-alert03-d07-resolve-threshold-drift-disposition-2026-06-06.md`, `docs/plans/ent-alert04-d07-notification-acknowledgement-exercise-2026-06-06.md`, `pnpm sentry:alerts:check`, `pnpm sentry:seer:sweep:pre`, `pnpm sentry:seer:sweep:post`                                                                                                                                                                                                                 | D07 drift-free notification exercise attempted; routed acknowledgement proof blocked                                                   |
+| Sentry alert foundation      | `docs/plans/2026-03-09-d07-sentry-burn-rate-alerts-evidence.md`, `docs/plans/ent-alert01-alert-routing-evidence-contract-2026-06-06.md`, `docs/plans/ent-alert02-d07-alert-routing-exercise-record-2026-06-06.md`, `docs/plans/ent-alert03-d07-resolve-threshold-drift-disposition-2026-06-06.md`, `docs/plans/ent-alert04-d07-notification-acknowledgement-exercise-2026-06-06.md`, `docs/plans/ent-alert05-d07-provider-supported-notification-proof-2026-06-06.md`, `pnpm sentry:alerts:check`, `pnpm sentry:seer:sweep:pre`, `pnpm sentry:seer:sweep:post`                                                                                                                               | D07 drift-free provider proof attempted; routed acknowledgement proof blocked on operator evidence                                     |
 | Sensitive route ownership    | `docs/reviews/2026-04-25-sensitive-route-ownership-map.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Documented                                                                                                                             |
 | Production go-live checklist | `docs/plans/2026-04-27-p22-go01-production-go-live-readiness.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Governed checklist                                                                                                                     |
 | Pilot operations evidence    | `docs/pilot/**` launch, daily, rollback, incident, KPI, and closeout records                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Bounded pilot evidence                                                                                                                 |
@@ -45,15 +45,15 @@ enterprise-ready.
 These lanes come from `docs/reviews/2026-04-25-production-professionalism-rereview.md` and remain
 separate from the active architecture-finalization queue unless explicitly promoted.
 
-| Lane                         | Current gap                                                                                                                                                                             | Enterprise requirement                                                                                                                         |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Backup/restore drill cadence | First attempt blocked by restore-access gap                                                                                                                                             | Recurring staging restore drill with measured RTO/RPO and owner sign-off                                                                       |
-| Exercised incident readiness | Partial                                                                                                                                                                                 | Quarterly drills for auth-secret rotation, Supabase failover, restore, and tenant-cookie recovery                                              |
-| Threat model                 | Evidence contract scoped; initial uploads, authenticated uploads, document access, share packs, AI review, Paddle webhooks, assisted registration, and admin verification modeled       | Written per-surface model for registration, uploads, documents, share packs, AI review, billing, webhooks, and privileged verification details |
-| Supply-chain attestation     | Deploy-boundary digest confirmation configured; real provider run evidence pending                                                                                                      | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                                                 |
-| Alert routing proof          | D07 inventory, resolve-threshold disposition, and drift-free notification exercise attempt recorded; routed acknowledgement proof and broader auth/RLS/protected-route coverage pending | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes                                            |
-| Data lifecycle verification  | Partial                                                                                                                                                                                 | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                                                               |
-| Performance regression gate  | Not yet scoped                                                                                                                                                                          | Representative route/storage performance budgets that can block releases                                                                       |
+| Lane                         | Current gap                                                                                                                                                                                             | Enterprise requirement                                                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backup/restore drill cadence | First attempt blocked by restore-access gap                                                                                                                                                             | Recurring staging restore drill with measured RTO/RPO and owner sign-off                                                                       |
+| Exercised incident readiness | Partial                                                                                                                                                                                                 | Quarterly drills for auth-secret rotation, Supabase failover, restore, and tenant-cookie recovery                                              |
+| Threat model                 | Evidence contract scoped; initial uploads, authenticated uploads, document access, share packs, AI review, Paddle webhooks, assisted registration, and admin verification modeled                       | Written per-surface model for registration, uploads, documents, share packs, AI review, billing, webhooks, and privileged verification details |
+| Supply-chain attestation     | Deploy-boundary digest confirmation configured; real provider run evidence pending                                                                                                                      | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                                                 |
+| Alert routing proof          | D07 inventory, resolve-threshold disposition, drift-free notification exercise, and provider-proof attempt recorded; routed acknowledgement proof and broader auth/RLS/protected-route coverage pending | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes                                            |
+| Data lifecycle verification  | Partial                                                                                                                                                                                                 | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                                                               |
+| Performance regression gate  | Not yet scoped                                                                                                                                                                                          | Representative route/storage performance budgets that can block releases                                                                       |
 
 ## Next Bounded Operational Slice
 
@@ -87,32 +87,34 @@ Rationale:
 While `ENT-OPS02` remains blocked on provider or CLI restore access, the latest repo-owned
 enterprise-hardening slice is:
 
-`ENT-ALERT04 D07 Notification Acknowledgement Exercise`
+`ENT-ALERT05 D07 Provider-Supported Notification Proof`
 
 Scope:
 
-- Re-run the D07 read-only drift check after the `ENT-ALERT03` catalog alignment.
-- Search available operational notification evidence for D07 receipt or acknowledgement without
-  writing private message content into the repo.
-- Record the routed acknowledgement gap honestly instead of claiming a notification proof.
+- Re-run the D07 read-only drift check after the `ENT-ALERT04` blocked exercise.
+- Search available Sentry, Gmail, and Notion-connected operational evidence for a D07 routed
+  notification or acknowledgement.
+- Record that the routed acknowledgement proof still requires operator-provided evidence instead of
+  claiming a provider proof from configuration-only evidence.
 - Promote exactly one next bounded follow-up:
-  `ENT-ALERT05 D07 Provider-Supported Notification Proof`.
+  `ENT-DLV01 Data Lifecycle Verification Evidence Contract`.
 - Do not change runtime code, schema, auth, tenancy, routing, billing, product UI, proxy,
   README, AGENTS, or broad architecture docs.
 
 Rationale:
 
-- `ENT-ALERT03` proved the D07 catalog now matches the remote Sentry rules.
-- `ENT-ALERT04` confirmed the clean drift state but could not prove routed receipt or
-  acknowledgement from available repo and connector evidence.
-- The next smallest alerting slice is to obtain one provider-supported or operator-supplied D07
-  notification proof with sanitized receipt and acknowledgement metadata.
-- The broader enterprise alerting lane remains open after this contract until dedicated auth, RLS or
-  tenant-boundary, and protected-route failure-mode alert coverage is cataloged and exercised.
+- `ENT-ALERT04` confirmed the clean D07 drift state but could not prove routed receipt or
+  acknowledgement.
+- `ENT-ALERT05` found no existing D07 issue, incident, Gmail, or Notion-connected acknowledgement
+  evidence and no callable safe provider notification trigger in this repo thread.
+- The D07 routed acknowledgement proof remains an operator-evidence gap with platform as risk
+  owner.
+- The next smallest repo-owned enterprise slice that can progress without external operator access
+  is a data lifecycle verification evidence contract.
 
 Next enterprise maturity remains broader than this repo-owned slice. The highest-value remaining
-lanes are the blocked `ENT-OPS02` staging restore drill, the promoted
-`ENT-ALERT05 D07 Provider-Supported Notification Proof`, data lifecycle verification, and performance
+lanes are the blocked `ENT-OPS02` staging restore drill, the operator-blocked D07 notification
+acknowledgement proof, the promoted `ENT-DLV01 Data Lifecycle Verification Evidence Contract`, and performance
 regression gates.
 
 ## Non-Goals
