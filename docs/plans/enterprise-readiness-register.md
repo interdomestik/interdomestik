@@ -31,7 +31,7 @@ enterprise-ready.
 | Repo governance              | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, architecture-finalization program/tracker, PR finalizer, required checks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Strong                                                                                                                                 |
 | Plugin/tool discipline       | `docs/plans/plugin-usage-playbook.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Strong                                                                                                                                 |
 | Incident procedure           | `docs/plans/2026-03-09-d06-incident-playbook-evidence.md`, `docs/INCIDENT_PLAYBOOK.md`, `docs/RUNBOOK.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Documented                                                                                                                             |
-| Sentry alert foundation      | `docs/plans/2026-03-09-d07-sentry-burn-rate-alerts-evidence.md`, `docs/plans/ent-alert01-alert-routing-evidence-contract-2026-06-06.md`, `docs/plans/ent-alert02-d07-alert-routing-exercise-record-2026-06-06.md`, `pnpm sentry:alerts:check`, `pnpm sentry:seer:sweep:pre`, `pnpm sentry:seer:sweep:post`                                                                                                                                                                                                                                                                                                                                                                                   | D07 routing inventory recorded; drift and notification exercise proof pending                                                          |
+| Sentry alert foundation      | `docs/plans/2026-03-09-d07-sentry-burn-rate-alerts-evidence.md`, `docs/plans/ent-alert01-alert-routing-evidence-contract-2026-06-06.md`, `docs/plans/ent-alert02-d07-alert-routing-exercise-record-2026-06-06.md`, `docs/plans/ent-alert03-d07-resolve-threshold-drift-disposition-2026-06-06.md`, `pnpm sentry:alerts:check`, `pnpm sentry:seer:sweep:pre`, `pnpm sentry:seer:sweep:post`                                                                                                                                                                                                                                                                                                   | D07 drift disposition recorded; notification acknowledgement proof pending                                                             |
 | Sensitive route ownership    | `docs/reviews/2026-04-25-sensitive-route-ownership-map.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Documented                                                                                                                             |
 | Production go-live checklist | `docs/plans/2026-04-27-p22-go01-production-go-live-readiness.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Governed checklist                                                                                                                     |
 | Pilot operations evidence    | `docs/pilot/**` launch, daily, rollback, incident, KPI, and closeout records                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Bounded pilot evidence                                                                                                                 |
@@ -51,7 +51,7 @@ separate from the active architecture-finalization queue unless explicitly promo
 | Exercised incident readiness | Partial                                                                                                                                                                           | Quarterly drills for auth-secret rotation, Supabase failover, restore, and tenant-cookie recovery                                              |
 | Threat model                 | Evidence contract scoped; initial uploads, authenticated uploads, document access, share packs, AI review, Paddle webhooks, assisted registration, and admin verification modeled | Written per-surface model for registration, uploads, documents, share packs, AI review, billing, webhooks, and privileged verification details |
 | Supply-chain attestation     | Deploy-boundary digest confirmation configured; real provider run evidence pending                                                                                                | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                                                 |
-| Alert routing proof          | D07 inventory recorded; resolve-threshold drift blocks passing exercise proof; broader auth/RLS/protected-route coverage pending                                                  | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes                                            |
+| Alert routing proof          | D07 inventory and resolve-threshold disposition recorded; notification acknowledgement proof and broader auth/RLS/protected-route coverage pending                                | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes                                            |
 | Data lifecycle verification  | Partial                                                                                                                                                                           | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                                                               |
 | Performance regression gate  | Not yet scoped                                                                                                                                                                    | Representative route/storage performance budgets that can block releases                                                                       |
 
@@ -87,34 +87,32 @@ Rationale:
 While `ENT-OPS02` remains blocked on provider or CLI restore access, the latest repo-owned
 enterprise-hardening slice is:
 
-`ENT-ALERT02 D07 Alert Routing Exercise Record`
+`ENT-ALERT03 D07 Resolve-Threshold Drift Disposition`
 
 Scope:
 
-- Record the first read-only D07 alert-routing exercise attempt against current Sentry state.
-- Prove all three D07 remote rule ids are present, owner-set, and action-backed with warning and
-  critical email team routes.
-- Record the blocking resolve-threshold drift and missing no-production-impact notification
-  acknowledgement proof.
+- Accept the current remote D07 resolve-threshold policy as intentional operating posture.
+- Align the repo-owned Sentry catalog and focused tests so read-only drift checks can return zero
+  changed rules without mutating Sentry.
+- Preserve the remaining no-production-impact notification acknowledgement gap.
 - Promote exactly one next bounded follow-up:
-  `ENT-ALERT03 D07 Resolve-Threshold Drift Disposition`.
+  `ENT-ALERT04 D07 Notification Acknowledgement Exercise`.
 - Do not change runtime code, schema, auth, tenancy, routing, billing, product UI, proxy,
   README, AGENTS, or broad architecture docs.
 
 Rationale:
 
-- The `ENT-ALERT01` contract required a real attempt rather than assuming routing proof from rule
-  presence alone.
-- The read-only exercise found useful routing inventory, but the current Sentry rules are not green
-  against the checked-in catalog because remote resolve thresholds differ.
-- The next smallest alerting slice is to disposition that drift before attempting notification and
-  acknowledgement proof.
+- `ENT-ALERT02` proved useful D07 routing inventory but found resolve-threshold drift.
+- The remote resolve thresholds consistently equal the warning threshold, which is a conservative
+  accepted resolution policy.
+- The next smallest alerting slice is a no-production-impact routed notification acknowledgement
+  exercise.
 - The broader enterprise alerting lane remains open after this contract until dedicated auth, RLS or
   tenant-boundary, and protected-route failure-mode alert coverage is cataloged and exercised.
 
 Next enterprise maturity remains broader than this repo-owned slice. The highest-value remaining
 lanes are the blocked `ENT-OPS02` staging restore drill, the promoted
-`ENT-ALERT03 D07 Resolve-Threshold Drift Disposition`, data lifecycle verification, and performance
+`ENT-ALERT04 D07 Notification Acknowledgement Exercise`, data lifecycle verification, and performance
 regression gates.
 
 ## Non-Goals
