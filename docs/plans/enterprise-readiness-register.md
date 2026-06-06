@@ -57,88 +57,30 @@ separate from the active architecture-finalization queue unless explicitly promo
 | Data lifecycle verification  | Evidence contract and static surface inventory recorded; first live fixture proof blocked on isolated non-production lifecycle target, lifecycle action, and storage/database provider access                                                                                                                                                                                                                                                                                                                                                                                                                        | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                                                               |
 | Performance regression gate  | Evidence contract scoped; first `/api/uploads` route/storage surface selected; non-blocking runner contract exists; blocked dry-run, fixture-readiness handoff, and blocked latency-run attempt recorded for missing target, fixture, and session gaps                                                                                                                                                                                                                                                                                                                                                               | Representative route/storage performance budgets that can block releases                                                                       |
 
-## Next Bounded Operational Slice
+## Remaining Enterprise Proof Backlog
 
-The next concrete enterprise-hardening step remains one real operational drill after the first
-attempt recorded the current restore-access blocker:
+This backlog supersedes the stale `ENT-ALERT15` promotion for enterprise-readiness sequencing.
+`ENT-ALERT15` is not the next enterprise-readiness slice unless a later closeout proves tenant
+boundary runtime tagging is blocking a required enterprise proof.
 
-`ENT-OPS02 First Staging Restore Drill Record`
+| Order | Work item                       | Current disposition                                                                   |
+| ----- | ------------------------------- | ------------------------------------------------------------------------------------- |
+| 1     | `ENT-PERF04`                    | Complete in PR `#970`; blocked dry-run evidence recorded.                             |
+| 2     | `ENT-PERF05`                    | Complete in PR `#971`; fixture-readiness handoff recorded.                            |
+| 3     | `ENT-PERF06`                    | Complete in PR `#972`; real latency run remains blocked on target/session fixture.    |
+| 4     | `ENT-PERF07`                    | Not promotable until a real `ENT-PERF06` latency run records usable measurements.     |
+| 5     | `ENT-OPS02`                     | Blocked record merged in PR `#946`; real restore drill needs provider restore access. |
+| 6     | Data lifecycle live proof       | Blocked on isolated fixture tenant/user, lifecycle action, database, and storage.     |
+| 7     | D07 alert acknowledgement proof | Blocked on routed notification receipt and owner acknowledgement evidence.            |
+| 8     | Supply-chain deploy proof       | Attempted in PR `#973`; real provider digest proof remains blocked.                   |
+| 9     | Incident drill proof            | Needs exercised auth-secret, tenant-cookie, or Supabase-failover drill evidence.      |
+| 10    | Enterprise readiness closeout   | Not ready until the operational proof blockers above are resolved or accepted.        |
+| 11    | Production go-live checklist    | Optional refresh only if the closeout requires a separate go-live decision update.    |
 
-Scope:
-
-- Execute the `ENT-OPS01` contract against an isolated staging or non-production restore target.
-- Record measured RTO/RPO, backup/recovery-point identity, validation commands, owner, date, and
-  pass/fail decision.
-- Record missing provider access or connector credentials as blockers instead of simulating
-  success.
-- Resolve the 2026-06-05 blocker by granting a named operator backup/recovery-point listing and
-  isolated restore-target access before rerunning the drill.
-- Do not run a production restore in a repo thread.
-- Do not change runtime code, schema, auth, tenancy, routing, billing, product UI, proxy,
-  README, AGENTS, or broad architecture docs.
-
-Rationale:
-
-- Backup/restore proof is the most foundational remaining enterprise lane because every
-  higher-level incident or live-traffic recovery decision depends on recoverable tenant data.
-- The evidence contract is now defined; the missing proof is an executed staging drill record.
-- A drill record can be pursued without disturbing active `ARCH-M1` work.
-
-## Latest Repo-Owned Enterprise-Hardening Slice
-
-While `ENT-OPS02` remains blocked on provider or CLI restore access, the latest repo-owned
-enterprise-hardening slice is:
-
-`ENT-ALERT14 Tenant Boundary Runtime Tagging Design Gate`
-
-Scope:
-
-- Define the smallest safe runtime-tagging implementation path for deterministic tenant-boundary
-  failures that already fail closed before data access.
-- Use `ENT-ALERT09` low-cardinality tag rules and current repo evidence around
-  `resolveTenantBoundary()`, `ensureTenantId()`, and the existing enterprise alert tagging helper.
-- Reject broad shared-auth package instrumentation, database/RLS-layer instrumentation, provider
-  mutation, and successful-request tagging for this slice.
-- Preserve `tenant_boundary` provider coverage as unclaimed because runtime implementation and
-  provider routing are still pending.
-- Promote exactly one next bounded follow-up for a future PR:
-  `ENT-ALERT15 Tenant Boundary Runtime Tagging Foundation`.
-- Do not change runtime behavior, provider state, alert destinations, schema, auth/session flow,
-  tenancy, routing, billing, product UI, proxy, README, AGENTS, or broad architecture docs.
-
-Rationale:
-
-- `ENT-ALERT01` scoped D07 alert-routing proof and explicitly left auth, RLS or tenant-boundary,
-  and protected-route failure-mode coverage as separate required proof.
-- `ENT-ALERT02` through `ENT-ALERT05` recorded D07 drift and provider acknowledgement attempts, but
-  did not prove the broader alert categories.
-- `ENT-ALERT06` makes the broader alert-coverage claim auditable before any future provider or
-  runtime implementation attempts it.
-- `ENT-ALERT07` shows which category surfaces are observable today and confirms that dedicated
-  provider alert rules for those categories are still missing.
-- `ENT-ALERT08` defines the first rule shape and records that stable, low-cardinality telemetry
-  categories are required before provider-rule mutation is safe.
-- `ENT-ALERT09` fixed the telemetry tag namespace, values, owners, forbidden data, and future test
-  proof requirements before runtime tagging or provider-rule implementation starts.
-- `ENT-ALERT10` implements the first safe runtime foundation for the categories already covered by
-  existing deterministic auth telemetry failure paths, while keeping tenant-boundary runtime tagging
-  explicit and unclaimed.
-- `ENT-ALERT11` creates the checked-in provider catalog shape needed before read-only provider drift
-  checks or any future authorized provider mutation can be reasoned about safely.
-- `ENT-ALERT12` records that the read-only provider drift check found all three `[ENT]` enterprise
-  rules missing in Sentry, with no changed or unchanged enterprise rules returned.
-- `ENT-ALERT13` records that provider mutation remains blocked without an enterprise apply command,
-  named production mutation authorization, write-scoped token proof, owner evidence, and redacted
-  alert-action destinations.
-- `ENT-ALERT14` defines the narrow tenant-boundary runtime tagging path before any Tier 3
-  auth/tenancy implementation begins.
-
-Next enterprise maturity remains broader than this repo-owned slice. The highest-value remaining
-lanes are the blocked `ENT-OPS02` staging restore drill, the operator-blocked D07 notification
-acknowledgement proof, the environment-blocked live data-lifecycle fixture proof, the
-environment-blocked upload performance latency proof, the provider-blocked deployed digest proof,
-the promoted tenant-boundary runtime tag implementation gap, and the later authorized enterprise
-provider rule creation/routing proof.
+The next repo-owned action should be the smallest item that can convert one blocked proof into real
+operational evidence. If no provider, fixture, session, or operator evidence is available, do not
+open another numbered evidence slice just to restate the same blocker; preserve the blocker here and
+return to the active architecture-finalization queue.
 
 ## Non-Goals
 
