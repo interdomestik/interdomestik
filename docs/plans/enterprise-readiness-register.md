@@ -40,7 +40,7 @@ enterprise-ready.
 | Supply-chain attestation     | `docs/plans/ent-sca01-supply-chain-attestation-evidence-contract.md`; `docs/plans/ent-sca02-supply-chain-attestation-ci-proof-2026-06-05.md`; `docs/plans/ent-sca03-deploy-digest-verification-boundary-2026-06-05.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Deploy-boundary proof configured                                                                                                       |
 | Threat-model evidence        | `docs/plans/ent-tm01-threat-model-evidence-contract-2026-06-05.md`; `docs/plans/ent-tm02-initial-claim-uploads-threat-model-2026-06-05.md`; `docs/plans/ent-tm03-authenticated-claim-evidence-uploads-threat-model-2026-06-06.md`; `docs/plans/ent-tm04-document-signed-urls-and-downloads-threat-model-2026-06-06.md`; `docs/plans/ent-tm05-share-packs-threat-model-2026-06-06.md`; `docs/plans/ent-tm06-ai-run-read-and-review-threat-model-2026-06-06.md`; `docs/plans/ent-tm07-paddle-billing-webhooks-threat-model-2026-06-06.md`; `docs/plans/ent-tm08-assisted-registration-threat-model-2026-06-06.md`; `docs/plans/ent-tm09-admin-verification-details-threat-model-2026-06-06.md` | Upload, document-access, share-pack, AI review, Paddle webhook, assisted-registration, and admin-verification details surfaces modeled |
 | Data lifecycle evidence      | `docs/plans/ent-dlv01-data-lifecycle-verification-evidence-contract-2026-06-06.md`; `docs/plans/ent-dlv02-data-lifecycle-surface-inventory-and-probe-record-2026-06-06.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Evidence contract and static surface inventory recorded; live fixture proof blocked on isolated non-production target                  |
-| Performance gate evidence    | `docs/plans/ent-perf01-performance-regression-gate-evidence-contract-2026-06-06.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Evidence contract scoped; first advisory dry-run and blocking gate pending                                                             |
+| Performance gate evidence    | `docs/plans/ent-perf01-performance-regression-gate-evidence-contract-2026-06-06.md`; `docs/plans/ent-perf02-performance-budget-surface-inventory-and-advisory-dry-run-record-2026-06-06.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Evidence contract and first surface inventory recorded; advisory dry-run blocked on target, fixture, session, and tooling gaps         |
 
 ## Open Enterprise Maturity Lanes
 
@@ -55,7 +55,7 @@ separate from the active architecture-finalization queue unless explicitly promo
 | Supply-chain attestation     | Deploy-boundary digest confirmation configured; real provider run evidence pending                                                                                                                      | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                                                 |
 | Alert routing proof          | D07 inventory, resolve-threshold disposition, drift-free notification exercise, and provider-proof attempt recorded; routed acknowledgement proof and broader auth/RLS/protected-route coverage pending | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes                                            |
 | Data lifecycle verification  | Evidence contract and static surface inventory recorded; first live fixture proof blocked on isolated non-production lifecycle target, lifecycle action, and storage/database provider access           | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                                                               |
-| Performance regression gate  | Evidence contract scoped; first protected-route/storage advisory dry-run and future PR-blocking gate pending                                                                                            | Representative route/storage performance budgets that can block releases                                                                       |
+| Performance regression gate  | Evidence contract scoped; first `/api/uploads` route/storage surface selected; advisory dry-run blocked on target, fixture, session, and tooling gaps                                                   | Representative route/storage performance budgets that can block releases                                                                       |
 
 ## Next Bounded Operational Slice
 
@@ -89,40 +89,38 @@ Rationale:
 While `ENT-OPS02` remains blocked on provider or CLI restore access, the latest repo-owned
 enterprise-hardening slice is:
 
-`ENT-PERF01 Performance Regression Gate Evidence Contract`
+`ENT-PERF02 Performance Budget Surface Inventory And Advisory Dry-Run Record`
 
 Scope:
 
-- Define the required evidence shape for representative protected-route and storage performance
-  budgets that can eventually block releases.
-- Name the first candidate budget surfaces from the sensitive route ownership map, Sentry latency
-  alert evidence, and existing upload/document proof.
-- Record that no advisory dry-run was run because no isolated performance target, fixture tenant,
-  fixture users, authenticated session source, or storage provider target was available.
-- Keep production load, runtime behavior, route/auth/tenancy/billing/product UI/schema/RLS/proxy
-  changes, and CI gate installation out of scope.
+- Select the first protected route and storage workflow for future advisory proof:
+  `POST /api/uploads` plus initial claim-wizard upload-intent signed URL preparation.
+- Record the deterministic fixture, command, sampling, output, and safety requirements for the
+  first advisory performance run.
+- Record that no advisory dry-run was run because no isolated target, fixture tenant/user/session,
+  safe measurement command, or verified storage-provider target was available.
+- Keep production load, blocking CI gate installation, runtime behavior, route/auth/tenancy/billing
+  product UI/schema/RLS/proxy changes, and signed URL or file-content evidence out of scope.
 - Promote exactly one next bounded follow-up for a future PR:
-  `ENT-PERF02 Performance Budget Surface Inventory And Advisory Dry-Run Record`.
+  `ENT-PERF03 Initial Upload Performance Advisory Runner Contract`.
 - Do not change runtime code, schema, auth, tenancy, routing, billing, product UI, proxy,
   README, AGENTS, or broad architecture docs.
 
 Rationale:
 
-- `docs/reviews/2026-04-25-production-professionalism-rereview.md` records the performance
-  regression gate as not yet scoped and says representative load/performance budgets are not yet
-  PR-blocking gates.
-- Existing functional, security, Sentry alert, and historical load-test evidence is useful, but it
-  does not yet define deterministic budgets, fixtures, variance handling, pass/fail ownership, or a
-  safe release-blocking promotion path.
-- `ENT-PERF01` scopes that contract without changing runtime behavior or installing a premature
-  blocking gate.
-- The next smallest unblocked repo-owned enterprise slice is an advisory dry-run record for one
+- `ENT-PERF01` scoped the performance evidence contract and required the next proof to select one
   protected route and one storage workflow.
+- `/api/uploads` is the smallest valuable first route/storage candidate because it is protected,
+  tenant-scoped, storage-adjacent, and already covered by focused route/path/intent tests.
+- `ENT-PERF02` records the first surface inventory and honestly blocks the advisory dry-run on
+  missing target, fixture, session, and tooling prerequisites instead of simulating latency proof.
+- The next smallest repo-owned slice is a non-blocking runner contract that can fail closed as
+  `blocked` until those prerequisites are supplied.
 
 Next enterprise maturity remains broader than this repo-owned slice. The highest-value remaining
 lanes are the blocked `ENT-OPS02` staging restore drill, the operator-blocked D07 notification
 acknowledgement proof, the environment-blocked live data-lifecycle fixture proof, and the promoted
-`ENT-PERF02 Performance Budget Surface Inventory And Advisory Dry-Run Record`.
+`ENT-PERF03 Initial Upload Performance Advisory Runner Contract`.
 
 ## Non-Goals
 
