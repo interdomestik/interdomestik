@@ -31,7 +31,7 @@ enterprise-ready.
 | Repo governance              | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, architecture-finalization program/tracker, PR finalizer, required checks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Strong                                                                                                                                 |
 | Plugin/tool discipline       | `docs/plans/plugin-usage-playbook.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Strong                                                                                                                                 |
 | Incident procedure           | `docs/plans/2026-03-09-d06-incident-playbook-evidence.md`, `docs/INCIDENT_PLAYBOOK.md`, `docs/RUNBOOK.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Documented                                                                                                                             |
-| Sentry alert foundation      | `docs/plans/2026-03-09-d07-sentry-burn-rate-alerts-evidence.md`, `pnpm sentry:alerts:check`, `pnpm sentry:seer:sweep:pre`, `pnpm sentry:seer:sweep:post`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Partial operational proof                                                                                                              |
+| Sentry alert foundation      | `docs/plans/2026-03-09-d07-sentry-burn-rate-alerts-evidence.md`, `docs/plans/ent-alert01-alert-routing-evidence-contract-2026-06-06.md`, `pnpm sentry:alerts:check`, `pnpm sentry:seer:sweep:pre`, `pnpm sentry:seer:sweep:post`                                                                                                                                                                                                                                                                                                                                                                                                                                                             | D07 contract-defined; exercise proof and broader auth/RLS/protected-route coverage pending                                             |
 | Sensitive route ownership    | `docs/reviews/2026-04-25-sensitive-route-ownership-map.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Documented                                                                                                                             |
 | Production go-live checklist | `docs/plans/2026-04-27-p22-go01-production-go-live-readiness.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Governed checklist                                                                                                                     |
 | Pilot operations evidence    | `docs/pilot/**` launch, daily, rollback, incident, KPI, and closeout records                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Bounded pilot evidence                                                                                                                 |
@@ -51,7 +51,7 @@ separate from the active architecture-finalization queue unless explicitly promo
 | Exercised incident readiness | Partial                                                                                                                                                                           | Quarterly drills for auth-secret rotation, Supabase failover, restore, and tenant-cookie recovery                                              |
 | Threat model                 | Evidence contract scoped; initial uploads, authenticated uploads, document access, share packs, AI review, Paddle webhooks, assisted registration, and admin verification modeled | Written per-surface model for registration, uploads, documents, share packs, AI review, billing, webhooks, and privileged verification details |
 | Supply-chain attestation     | Deploy-boundary digest confirmation configured; real provider run evidence pending                                                                                                | Release provenance, SBOM, artifact signing, and deployed-artifact verification                                                                 |
-| Alert routing proof          | Partial                                                                                                                                                                           | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes                                            |
+| Alert routing proof          | D07 contract-defined; exercise proof and broader auth/RLS/protected-route coverage pending                                                                                        | SLO alerts applied, routed, and exercised for auth, RLS, webhook, and protected-route failure modes                                            |
 | Data lifecycle verification  | Partial                                                                                                                                                                           | Periodic proof that deleted users leave no tenant-scoped rows or storage objects                                                               |
 | Performance regression gate  | Not yet scoped                                                                                                                                                                    | Representative route/storage performance budgets that can block releases                                                                       |
 
@@ -87,36 +87,36 @@ Rationale:
 While `ENT-OPS02` remains blocked on provider or CLI restore access, the latest repo-owned
 enterprise-hardening slice is:
 
-`ENT-TM09 Admin Verification Details Threat Model`
+`ENT-ALERT01 Alert Routing Evidence Contract`
 
 Scope:
 
-- Apply the `ENT-TM01` contract to the privileged admin verification details read route and query
-  only.
-- Model session authentication, tenant identity resolution, allowed verification roles, tenant and
-  branch query predicates, verification detail DTO data, document-link handoff to the document
-  custody route, timeline/audit provenance, STRIDE threats, residual risks, and verification
-  evidence.
+- Define the evidence required to prove that the existing D07 SLO alerts are present, owner-routed,
+  action-backed, and exercised without production impact.
+- Cover remote Sentry drift state, warning and critical action inventory, named owners or escalation
+  destinations, a no-production-impact exercise path, notification receipt, acknowledgement timing,
+  triage destination, pass/fail decision, and follow-up capture.
 - Promote exactly one next bounded follow-up:
-  `ENT-ALERT01 Alert Routing Evidence Contract`.
+  `ENT-ALERT02 D07 Alert Routing Exercise Record`.
 - Do not change runtime code, schema, auth, tenancy, routing, billing, product UI, proxy,
   README, AGENTS, or broad architecture docs.
 
 Rationale:
 
-- The threat-model evidence contract is already defined by `ENT-TM01`; `ENT-TM02` through
-  `ENT-TM09` completed upload custody, document access, share-pack, AI review, Paddle webhook,
-  assisted-registration, and admin-verification-details surfaces.
-- Admin verification details are a distinct privileged read surface in the sensitive-route ownership
-  map because they expose payment verification case detail, lead PII, branch/agent context, document
-  links, and audit timeline metadata.
-- Alert-routing exercise proof is the next smallest repo-owned enterprise maturity lane after the
-  promoted threat-model surface because the restore drill remains blocked on provider or CLI restore
-  access and the register already records alert routing as partial.
+- The threat-model evidence lane now has a governed contract plus per-surface records through
+  `ENT-TM09`; the next smallest repo-owned enterprise lane is alert routing because Sentry D07
+  alert definitions already exist but routing and exercise proof remain partial.
+- A routing evidence contract can be completed entirely as repo-owned documentation without
+  production traffic, credential changes, Sentry mutation, runtime code, or architecture-tracker
+  disturbance.
+- The follow-up exercise record should use the existing `pnpm sentry:alerts:check` surface and
+  current Sentry project to prove owner routing or record the exact provider/destination blocker.
+- The broader enterprise alerting lane remains open after this contract until dedicated auth, RLS or
+  tenant-boundary, and protected-route failure-mode alert coverage is cataloged and exercised.
 
 Next enterprise maturity remains broader than this repo-owned slice. The highest-value remaining
 lanes are the blocked `ENT-OPS02` staging restore drill, the promoted
-`ENT-ALERT01 Alert Routing Evidence Contract`, data lifecycle verification, and performance
+`ENT-ALERT02 D07 Alert Routing Exercise Record`, data lifecycle verification, and performance
 regression gates.
 
 ## Non-Goals
