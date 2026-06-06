@@ -7,6 +7,11 @@ source "$ROOT_DIR/scripts/multi-agent/pr-hardening-common.sh"
 RUN_ROOT=""
 ROLE="sentinel"
 FIRST_FAILING_COMMAND="none"
+PATH_WITH_NODE="$PATH"
+
+if [[ -n "${NVM_BIN:-}" && -d "${NVM_BIN:-}" ]]; then
+  PATH_WITH_NODE="${NVM_BIN}:$PATH_WITH_NODE"
+fi
 
 usage() {
   cat <<'USAGE'
@@ -45,7 +50,7 @@ run_cmd() {
   local command="$1"
   local log_file="$2"
   set +e
-  run_redacted "$log_file" bash -lc "cd '$ROOT_DIR' && $command"
+  run_redacted "$log_file" env PATH="$PATH_WITH_NODE" bash -c "cd '$ROOT_DIR' && $command"
   local status=$?
   set -e
   if [[ "$status" -ne 0 && "$FIRST_FAILING_COMMAND" == "none" ]]; then
@@ -57,7 +62,7 @@ run_cmd() {
 run_cmd 'pnpm security:guard' "$EVIDENCE_DIR/security-guard.log" || true
 
 set +e
-run_redacted "$EVIDENCE_DIR/sensitive-path-scan.txt" bash -lc \
+run_redacted "$EVIDENCE_DIR/sensitive-path-scan.txt" env PATH="$PATH_WITH_NODE" bash -c \
   "cd '$ROOT_DIR' && git diff --name-only '$BASE_COMMIT'...HEAD | rg -n 'apps/web/src/proxy.ts|apps/web/src/.*(auth|tenant|proxy)|packages/.*/(auth|tenant)' || true"
 SCAN_STATUS=$?
 set -e
@@ -89,10 +94,14 @@ if [[ "$FIRST_FAILING_COMMAND" != "none" || "$SECRET_HITS" -gt 0 ]]; then
   STATUS="FAIL"
 fi
 
+ACTIVE_NODE_BIN="$(PATH="$PATH_WITH_NODE" command -v node || true)"
+ACTIVE_NODE_VERSION="$(PATH="$PATH_WITH_NODE" node -v 2>/dev/null || printf 'unknown')"
+
 {
   echo "# Sentinel Summary"
   echo
   echo "- status: \`$STATUS\`"
+  echo "- node: \`${ACTIVE_NODE_VERSION} (${ACTIVE_NODE_BIN:-unknown})\`"
   echo "- first_failing_command: \`$FIRST_FAILING_COMMAND\`"
   echo "- secret_hits: \`$SECRET_HITS\`"
   if [[ "$SECRET_HITS" -gt 0 ]]; then
