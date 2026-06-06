@@ -139,7 +139,7 @@ export function buildMetricAlertPayload(alert, context) {
     queryType: alert.queryType,
     timeWindow: alert.timeWindow,
     thresholdType: alert.thresholdType,
-    resolveThreshold: null,
+    resolveThreshold: alert.thresholds.warning,
     environment: context.environment ?? null,
     projects: [context.project],
     ...(context.owner ? { owner: context.owner } : {}),
@@ -148,14 +148,14 @@ export function buildMetricAlertPayload(alert, context) {
         label: 'critical',
         thresholdType: alert.thresholdType,
         alertThreshold: alert.thresholds.critical,
-        resolveThreshold: null,
+        resolveThreshold: alert.thresholds.warning,
         actions: actionsByLabel.critical ?? [],
       },
       {
         label: 'warning',
         thresholdType: alert.thresholdType,
         alertThreshold: alert.thresholds.warning,
-        resolveThreshold: null,
+        resolveThreshold: alert.thresholds.warning,
         actions: actionsByLabel.warning ?? [],
       },
     ],
@@ -291,9 +291,13 @@ function validateAlertShape(alert, alertId, problems) {
     problems.push(`alert ${alertId} missing docsRefs`);
   }
 
-  validateAlertField(problems, alertId, 'unsupported dataset', SUPPORTED_DATASETS.has(alert.dataset), {
-    value: alert.dataset,
-  });
+  validateAlertField(
+    problems,
+    alertId,
+    'unsupported dataset',
+    SUPPORTED_DATASETS.has(alert.dataset),
+    alert.dataset
+  );
   validateAlertField(
     problems,
     alertId,
@@ -312,12 +316,7 @@ function validateAlertShape(alert, alertId, problems) {
     'missing query',
     typeof alert.query === 'string' && alert.query.length > 0
   );
-  validateAlertField(
-    problems,
-    alertId,
-    'missing timeWindow',
-    typeof alert.timeWindow === 'number'
-  );
+  validateAlertField(problems, alertId, 'missing timeWindow', typeof alert.timeWindow === 'number');
   validateAlertField(
     problems,
     alertId,
@@ -333,13 +332,13 @@ function validateAlertShape(alert, alertId, problems) {
   }
 }
 
-function validateAlertField(problems, alertId, label, valid, options = {}) {
+function validateAlertField(problems, alertId, label, valid, value = undefined) {
   if (valid) {
     return;
   }
 
   if (label === 'unsupported dataset') {
-    problems.push(`alert ${alertId} has unsupported dataset: ${options.value}`);
+    problems.push(`alert ${alertId} has unsupported dataset: ${value}`);
     return;
   }
 
