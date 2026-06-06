@@ -1,9 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const hoisted = vi.hoisted(() => ({
+  captureMessage: vi.fn(),
+}));
+
+vi.mock('@sentry/nextjs', () => ({
+  captureMessage: hoisted.captureMessage,
+}));
+
 import {
   emitAuthTelemetryEvent,
   normalizeAuthPathnameFamily,
   normalizeAuthTelemetryPayload,
 } from './auth-telemetry';
+import { ENTERPRISE_ALERT_CONTRACT } from './auth-enterprise-alert-tags';
 
 describe('auth telemetry', () => {
   beforeEach(() => {
@@ -14,6 +24,7 @@ describe('auth telemetry', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    hoisted.captureMessage.mockClear();
   });
 
   it('emits exactly one structured console line with a flat payload', () => {
@@ -60,6 +71,16 @@ describe('auth telemetry', () => {
       'reason',
       'pathname_family',
     ]);
+    expect(hoisted.captureMessage).toHaveBeenCalledWith('enterprise_alert.protected_route', {
+      level: 'warning',
+      tags: {
+        enterprise_alert: 'protected_route',
+        alert_contract: ENTERPRISE_ALERT_CONTRACT,
+        route_contract: 'canonical_protected_route',
+        protected_route_class: 'staff',
+      },
+      fingerprint: ['enterprise-alert', 'protected_route', 'staff'],
+    });
   });
 
   it('normalizes pathname families to stable route groups', () => {
