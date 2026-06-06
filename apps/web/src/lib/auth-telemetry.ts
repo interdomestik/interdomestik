@@ -1,9 +1,9 @@
+import { captureEnterpriseAuthAlertTags } from './auth-enterprise-alert-tags';
 export type AuthTelemetryEventName =
   | 'staff_post_login_redirect_failed'
   | 'protected_route_bounce_to_login'
   | 'session_introspection_throttled'
   | 'session_probe_skipped_after_ready';
-
 export type AuthTelemetryReason =
   | 'missing_cookie'
   | 'invalid_cookie'
@@ -12,7 +12,6 @@ export type AuthTelemetryReason =
   | 'post_login_sync_timeout'
   | 'unsupported_redirect_target'
   | 'ready_probe_skipped';
-
 export type AuthTelemetrySurface = 'staff' | 'member' | 'admin' | 'agent' | 'unknown';
 export type AuthTelemetryHostClass = 'nipio' | 'canonical' | 'localhost' | 'other';
 
@@ -146,5 +145,6 @@ export function normalizeAuthTelemetryPayload(input: AuthTelemetryInput): AuthTe
 export function emitAuthTelemetryEvent(input: AuthTelemetryInput): AuthTelemetryPayload {
   const payload = normalizeAuthTelemetryPayload(input);
   console.info(JSON.stringify(payload));
+  captureEnterpriseAuthAlertTags(payload);
   return payload;
 }
