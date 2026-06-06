@@ -24,6 +24,10 @@ superseded_by:
 - Production traffic affected: no
 - Exercise timestamp: `2026-06-06T03:02:02Z`
 
+Slug note: the observed `SENTRY_PROJECT` value for this exercise is `interdmestik-nextjs`. Older
+D07 records may reference the earlier `interdomestik-nextjs` spelling; this record keeps the live
+dotenv value used by the successful drift check.
+
 ## Method
 
 The exercise used read-only Sentry drift verification and read-only mailbox search for existing D07
