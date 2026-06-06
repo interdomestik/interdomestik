@@ -512,6 +512,13 @@
       "when": 1780605666847,
       "tag": "0072_claim_incident_country",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1780766400000,
+      "tag": "0073_harden_member_referral_reward_type_functions",
+      "breakpoints": true
     }
   ]
 }
