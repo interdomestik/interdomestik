@@ -35,6 +35,7 @@ const EXCLUDED_PREFIXES = [
   'build/',
   'coverage/',
   'dist/',
+  'docs/plans/',
   'node_modules/',
   'packages/database/drizzle/',
 ];
