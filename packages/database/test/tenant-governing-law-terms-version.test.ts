@@ -36,7 +36,7 @@ test('tenant governing_law migration is additive and backfills from country_code
   assert.match(sql, /ALTER TABLE "tenants" ADD COLUMN "terms_version" text;/u);
   assert.match(
     sql,
-    /UPDATE "tenants" SET "governing_law" = "country_code" WHERE "governing_law" IS NULL;/u
+    /UPDATE "tenants" SET "governing_law" = UPPER\("country_code"\) WHERE "governing_law" IS NULL;/u
   );
   assert.match(sql, /"governing_law" IS NULL OR "tenants"\."governing_law" ~ '\^\[A-Z\]\{2\}\$'/u);
   assert.doesNotMatch(sql, /"governing_law" text NOT NULL/u);
