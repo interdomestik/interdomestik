@@ -6,6 +6,8 @@ export const tenants = pgTable('tenants', {
   legalName: text('legal_name').notNull(),
   code: text('code').unique(), // Short tenant code (e.g. KS01) - Nullable for migration, will be unique later
   countryCode: text('country_code').notNull(),
+  governingLaw: text('governing_law'),
+  termsVersion: text('terms_version'),
   currency: text('currency').default('EUR').notNull(),
   taxId: text('tax_id'),
   address: jsonb('address').$type<Record<string, unknown>>(),
