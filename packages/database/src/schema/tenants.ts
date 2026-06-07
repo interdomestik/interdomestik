@@ -1,23 +1,35 @@
-import { boolean, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { boolean, check, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
-export const tenants = pgTable('tenants', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  legalName: text('legal_name').notNull(),
-  code: text('code').unique(), // Short tenant code (e.g. KS01) - Nullable for migration, will be unique later
-  countryCode: text('country_code').notNull(),
-  currency: text('currency').default('EUR').notNull(),
-  taxId: text('tax_id'),
-  address: jsonb('address').$type<Record<string, unknown>>(),
-  contact: jsonb('contact').$type<Record<string, unknown>>(),
-  branding: jsonb('branding').$type<Record<string, unknown>>(),
-  isActive: boolean('is_active').default(true).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at')
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-});
+export const tenants = pgTable(
+  'tenants',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    legalName: text('legal_name').notNull(),
+    code: text('code').unique(), // Short tenant code (e.g. KS01) - Nullable for migration, will be unique later
+    countryCode: text('country_code').notNull(),
+    governingLaw: text('governing_law'),
+    termsVersion: text('terms_version'),
+    currency: text('currency').default('EUR').notNull(),
+    taxId: text('tax_id'),
+    address: jsonb('address').$type<Record<string, unknown>>(),
+    contact: jsonb('contact').$type<Record<string, unknown>>(),
+    branding: jsonb('branding').$type<Record<string, unknown>>(),
+    isActive: boolean('is_active').default(true).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  table => [
+    check(
+      'tenants_governing_law_check',
+      sql`${table.governingLaw} IS NULL OR ${table.governingLaw} ~ '^[A-Z]{2}$'`
+    ),
+  ]
+);
 
 export const tenantSettings = pgTable(
   'tenant_settings',
