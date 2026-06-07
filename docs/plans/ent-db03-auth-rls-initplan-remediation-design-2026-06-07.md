@@ -79,7 +79,9 @@ The migration must preserve the live policy shape:
 
 Prefer explicit `ALTER POLICY ... ON public.<table> USING ...` statements over a broad dynamic loop
 unless the implementation also adds focused tests proving the generated target list is exactly the
-53 expected policies and no storage/archive/domain-event policies are included.
+53 expected policies and no storage/archive/domain-event policies are included. Explicit statements
+must quote identifiers where required, including `public."user"`; generated statements must use
+identifier-safe formatting such as `%I`.
 
 ## Verification Contract
 
