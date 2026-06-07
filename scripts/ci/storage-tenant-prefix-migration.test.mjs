@@ -10,6 +10,11 @@ const migrationPath = path.join(
   'supabase/migrations/00009_storage_tenant_prefix_backstop.sql'
 );
 const sql = fs.readFileSync(migrationPath, 'utf8');
+const cleanupMigrationPath = path.join(
+  repoRoot,
+  'supabase/migrations/20260607055009_storage_legacy_policy_cleanup.sql'
+);
+const cleanupSql = fs.readFileSync(cleanupMigrationPath, 'utf8');
 
 test('SEC06 migration has a legacy-object preflight', () => {
   assert.match(sql, /SEC06 storage preflight failed/);
@@ -43,4 +48,12 @@ test('SEC06 migration replaces legacy policies with tenant-prefix folder policie
   );
   assert.match(sql, /\(storage\.foldername\(name\)\)\[4\] = 'claims'/);
   assert.match(sql, /\(storage\.foldername\(name\)\)\[4\] = 'policies'/);
+});
+
+test('SEC06 cleanup migration removes legacy live storage policy names', () => {
+  assert.match(cleanupSql, /DROP POLICY IF EXISTS "Members can read own evidence objects"/);
+  assert.match(cleanupSql, /DROP POLICY IF EXISTS "Members can read own policy objects"/);
+  assert.match(cleanupSql, /DROP POLICY IF EXISTS "Members can read own voice note objects"/);
+  assert.match(cleanupSql, /DROP POLICY IF EXISTS "Members can insert own voice note objects"/);
+  assert.match(cleanupSql, /DROP POLICY IF EXISTS "Members can delete own voice note objects"/);
 });
