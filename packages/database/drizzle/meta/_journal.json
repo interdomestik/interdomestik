@@ -526,6 +526,13 @@
       "when": 1780837200000,
       "tag": "0074_drop_duplicate_legacy_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1780868100000,
+      "tag": "0075_optimize_tenant_rls_initplan",
+      "breakpoints": true
     }
   ]
 }
