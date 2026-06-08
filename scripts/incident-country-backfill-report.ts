@@ -1,4 +1,5 @@
 import type { IncidentCountryBackfillPlan } from '@interdomestik/domain-claims';
+import { parseArgs } from 'node:util';
 
 export type Coverage = { populated: number; total: number };
 export type ScriptOptions = { apply?: boolean; limit?: string; tenant?: string };
@@ -13,6 +14,29 @@ export function parseBackfillLimit(value: string | undefined): number | undefine
     throw new Error('--limit must be a positive integer');
   }
   return parsed;
+}
+
+export function parseBackfillArgs(argv?: string[]): {
+  apply: boolean;
+  limit: number | undefined;
+  tenantId: string | undefined;
+} {
+  const raw = argv ?? process.argv.slice(2);
+  const args = raw[0] === '--' ? raw.slice(1) : raw;
+  const { values } = parseArgs({
+    args,
+    options: {
+      apply: { type: 'boolean' },
+      limit: { type: 'string' },
+      tenant: { type: 'string' },
+    },
+  }) as { values: ScriptOptions };
+  const tenantId = values.tenant;
+  const limit = parseBackfillLimit(values.limit);
+  if (values.apply && !tenantId && !limit) {
+    throw new Error('--apply requires --tenant or --limit to avoid an unbounded write run');
+  }
+  return { apply: values.apply ?? false, limit, tenantId };
 }
 
 function withPercent(coverage: Coverage) {

@@ -1,8 +1,7 @@
 import 'dotenv/config';
 import { and, asc, claims, db, eq, isNull, sql } from '@interdomestik/database';
 import { generateClaimNumber } from '@interdomestik/database/claim-number';
-import { parseArgs } from 'node:util';
-import { parseBackfillLimit, type ScriptOptions } from './incident-country-backfill-report';
+import { parseBackfillArgs } from './incident-country-backfill-report';
 
 async function getCoverage(tenantId: string | undefined) {
   // db-access-guard: system-exempt -- reason: dry-run operator coverage counts across tenants
@@ -31,23 +30,7 @@ async function listMissingClaims(tenantId: string | undefined, limit: number | u
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-  const parsedArgs = args[0] === '--' ? args.slice(1) : args;
-  const { values } = parseArgs({
-    args: parsedArgs,
-    options: {
-      apply: { type: 'boolean' },
-      limit: { type: 'string' },
-      tenant: { type: 'string' },
-    },
-  }) as { values: ScriptOptions };
-
-  const tenantId = values.tenant;
-  const limit = parseBackfillLimit(values.limit);
-
-  if (values.apply && !tenantId && !limit) {
-    throw new Error('--apply requires --tenant or --limit to avoid an unbounded write run');
-  }
+  const { apply, tenantId, limit } = parseBackfillArgs();
 
   const before = await getCoverage(tenantId);
   const missingRows = await listMissingClaims(tenantId, limit);
@@ -55,7 +38,7 @@ async function main() {
   let updated = 0;
   let skipped = 0;
 
-  if (values.apply) {
+  if (apply) {
     for (const row of missingRows) {
       if (!row.createdAt) {
         skipped++;
@@ -79,7 +62,7 @@ async function main() {
     }
   }
 
-  const after = values.apply ? await getCoverage(tenantId) : before;
+  const after = apply ? await getCoverage(tenantId) : before;
   const pct = (n: number, d: number) => (d === 0 ? '—' : `${((n / d) * 100).toFixed(1)}%`);
 
   console.log(
@@ -88,16 +71,16 @@ async function main() {
       '=== claim-number backfill report ===',
       `  tenant filter : ${tenantId ?? '(all)'}`,
       `  limit         : ${limit ?? '(none)'}`,
-      `  write mode    : ${values.apply ? 'APPLY' : 'dry-run'}`,
+      `  write mode    : ${apply ? 'APPLY' : 'dry-run'}`,
       '',
       `  before        : ${before.populated}/${before.total} populated (${pct(before.populated, before.total)})`,
-      values.apply
+      apply
         ? `  after         : ${after.populated}/${after.total} populated (${pct(after.populated, after.total)})`
         : '',
       '',
       `  scanned       : ${missingRows.length}`,
-      values.apply ? `  updated       : ${updated}` : '',
-      values.apply ? `  skipped       : ${skipped}` : '',
+      apply ? `  updated       : ${updated}` : '',
+      apply ? `  skipped       : ${skipped}` : '',
       '',
     ]
       .filter(l => l !== undefined)

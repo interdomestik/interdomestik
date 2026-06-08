@@ -14,12 +14,10 @@ import {
   buildIncidentCountryBackfillPlan,
   type IncidentCountryBackfillRow,
 } from '@interdomestik/domain-claims';
-import { parseArgs } from 'node:util';
 import {
   formatIncidentCountryBackfillReport,
-  parseBackfillLimit,
+  parseBackfillArgs,
   type Coverage,
-  type ScriptOptions,
 } from './incident-country-backfill-report';
 
 async function getCoverage(tenantId: string | undefined): Promise<Coverage> {
@@ -83,21 +81,7 @@ async function listDiasporaNotes(
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-  const parsedArgs = args[0] === '--' ? args.slice(1) : args;
-  const { values } = parseArgs({
-    args: parsedArgs,
-    options: {
-      apply: { type: 'boolean' },
-      limit: { type: 'string' },
-      tenant: { type: 'string' },
-    },
-  }) as { values: ScriptOptions };
-  const tenantId = values.tenant;
-  const limit = parseBackfillLimit(values.limit);
-  if (values.apply && !tenantId && !limit) {
-    throw new Error('--apply requires --tenant or --limit to avoid an unbounded write run');
-  }
+  const { apply, tenantId, limit } = parseBackfillArgs();
   const before = await getCoverage(tenantId);
   const missingRows = await listMissingClaims(tenantId, limit);
   const notesByClaimId = await listDiasporaNotes(missingRows, tenantId);
@@ -106,7 +90,7 @@ async function main() {
   );
 
   let updated = 0;
-  if (values.apply) {
+  if (apply) {
     for (const update of plan.updates) {
       // db-access-guard: tenant-scoped -- reason: update includes tenant_id and still-null guard to preserve live incident-country values
       const rows = await db
@@ -127,7 +111,7 @@ async function main() {
     }
   }
 
-  const after = values.apply ? await getCoverage(tenantId) : before;
+  const after = apply ? await getCoverage(tenantId) : before;
   console.log(
     formatIncidentCountryBackfillReport({
       after,
@@ -137,7 +121,7 @@ async function main() {
       plan,
       tenantId,
       updated,
-      writeMode: values.apply,
+      writeMode: apply,
     })
   );
 }
