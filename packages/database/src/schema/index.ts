@@ -18,6 +18,7 @@ export * from './counters';
 export * from './crm';
 export * from './documents';
 export * from './domain-event-deliveries';
+export * from './domain-event-keys';
 export * from './domain-events';
 export * from './leads';
 export * from './member-counters';
