@@ -31,13 +31,17 @@ export async function markSubjectErased(
   assertNonEmpty(params.subjectType, 'subjectType');
   assertNonEmpty(params.subjectId, 'subjectId');
 
+  const tenantId = params.tenantId.trim();
+  const subjectType = params.subjectType.trim();
+  const subjectId = params.subjectId.trim();
+
   await tx
     .insert(domainEventKeys)
     .values({
       id: crypto.randomUUID(),
-      tenantId: params.tenantId,
-      subjectType: params.subjectType,
-      subjectId: params.subjectId,
+      tenantId,
+      subjectType,
+      subjectId,
       erasedAt: new Date(),
     })
     .onConflictDoUpdate({
@@ -50,16 +54,20 @@ export async function isSubjectErased(
   tx: DomainEventErasureTx,
   params: IsSubjectErasedParams
 ): Promise<boolean> {
+  const tenantId = params.tenantId.trim();
+  const subjectType = params.subjectType.trim();
+  const subjectId = params.subjectId.trim();
+
   const rows = await tx
     .select({ erasedAt: domainEventKeys.erasedAt })
     .from(domainEventKeys)
     .where(
       and(
-        eq(domainEventKeys.tenantId, params.tenantId),
-        eq(domainEventKeys.subjectType, params.subjectType),
-        eq(domainEventKeys.subjectId, params.subjectId)
+        eq(domainEventKeys.tenantId, tenantId),
+        eq(domainEventKeys.subjectType, subjectType),
+        eq(domainEventKeys.subjectId, subjectId)
       )
     );
 
-  return rows.length > 0 && rows[0]?.erasedAt !== null && rows[0]?.erasedAt !== undefined;
+  return rows.length > 0 && rows[0].erasedAt != null;
 }
