@@ -11,6 +11,13 @@ export {
   type DomainEventTx,
 } from './domain-events';
 export {
+  isSubjectErased,
+  markSubjectErased,
+  type DomainEventErasureTx,
+  type IsSubjectErasedParams,
+  type MarkSubjectErasedParams,
+} from './domain-event-erasure';
+export {
   domainEventDeliveryIdempotencyKey,
   recordDomainEventDelivery,
   relayDomainEvents,
