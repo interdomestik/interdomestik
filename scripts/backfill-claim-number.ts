@@ -2,19 +2,7 @@ import 'dotenv/config';
 import { and, asc, claims, db, eq, isNull, sql } from '@interdomestik/database';
 import { generateClaimNumber } from '@interdomestik/database/claim-number';
 import { parseArgs } from 'node:util';
-
-interface ScriptOptions {
-  apply?: boolean;
-  limit?: string;
-  tenant?: string;
-}
-
-function parseBackfillLimit(raw: string | undefined): number | undefined {
-  if (!raw) return undefined;
-  const n = parseInt(raw, 10);
-  if (Number.isNaN(n) || n <= 0) throw new Error(`--limit must be a positive integer, got: ${raw}`);
-  return n;
-}
+import { parseBackfillLimit, type ScriptOptions } from './incident-country-backfill-report';
 
 async function getCoverage(tenantId: string | undefined) {
   // db-access-guard: system-exempt -- reason: dry-run operator coverage counts across tenants
@@ -73,13 +61,14 @@ async function main() {
         skipped++;
         continue;
       }
+      const createdAt = row.createdAt;
       try {
         // db-access-guard: tenant-scoped -- reason: generateClaimNumber guards tenantId + isNull(claimNumber)
         await db.transaction(async tx => {
           await generateClaimNumber(tx, {
             tenantId: row.tenantId,
             claimId: row.id,
-            createdAt: row.createdAt as Date,
+            createdAt,
           });
         });
         updated++;
