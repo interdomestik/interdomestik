@@ -1,12 +1,11 @@
 import { boolean, index, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
-import { branches } from './rbac';
+import { subscriptions } from './subscriptions';
 import { tenants } from './tenants';
 
 // Extracted to own modules; re-exported here for backward compatibility.
 export { membershipPlans } from './membership-plans';
-import { subscriptions } from './subscriptions';
 export { subscriptions };
 
 export const membershipFamilyMembers = pgTable('membership_family_members', {
