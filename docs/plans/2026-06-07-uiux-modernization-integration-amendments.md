@@ -29,8 +29,8 @@ UI/UX is woven as **gates and explicit nodes on existing tasks**, not a parallel
 
 ### T-108 (M1, WS A) — define the `ida.*` front-door UI assumption
 
-**Append to acceptance:** _"UI corollary: `{kind:'public'}` renders a **neutral, no-tenant-branding public shell** (login/landing) with a skeleton fallback; no tenant theme, logo, or chrome is assumed until a session resolves. A test asserts the `ida._`public route renders zero tenant-branded tokens."*
-Dim:`ARCH, ISO` → **`ARCH, ISO, UX`\*\*.
+**Append to acceptance:** _"UI corollary: `{kind:'public'}` renders a **neutral, no-tenant-branding public shell** (login/landing) with a skeleton fallback; no tenant theme, logo, or chrome is assumed until a session resolves. A test asserts the `ida.*` public route renders zero tenant-branded tokens."_
+Dim: `ARCH, ISO` → **`ARCH, ISO, UX`**.
 
 ### T-114 (M1, WS A,D) — make `ida.localhost` the canonical UI E2E lane
 
