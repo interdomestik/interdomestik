@@ -65,6 +65,18 @@ Business logic resides **strictly** in `packages/domain-*`.
 - **Data Access** is encapsulated. Domains define their own Zod schemas and Drizzle queries.
 - **Cross-Domain Communication** happens via explicit service calls, not database joins across schemas.
 
+### 2.4 Bounded Domain Expansion (Registered, Gated)
+
+Five additional bounded contexts are **registered and committed but gated** behind the `ARCH M1→M5` finalization spine (see `docs/plans/current-program.md` → program `DOM`, packet `docs/plans/2026-06-08-bounded-domain-expansion-program-input.md`). They are the packaging view of existing `ARCH-M5` / `OMG` / `P38` work — **no new execution authority** and nothing enters the active queue until promoted:
+
+- **`@interdomestik/domain-reporting`** — read-only projections over `domain_events` (+ `domain-analytics`); never relaxes RLS.
+- **`@interdomestik/domain-sales`** — sales-network tables (`access_tenant_id`-leading); zero claims/recovery access (ADR-05).
+- **`@interdomestik/domain-finance`** — gated commission/settlement commands; no second ledger.
+- **`@interdomestik/domain-partners`** — B2B/fleet activation; mints subscriptions via billing.
+- **`@interdomestik/domain-billing`** — single money-movement boundary; facade over `domain-membership-billing` + Paddle, entity-of-record at M5.
+
+Binding rules: money movement lives only in `domain-billing`; read-models derive only from `domain_events`; `access_tenant_id` + RLS remain the only isolation mechanism.
+
 ---
 
 ## 3. Key Technology Decisions (V3 Standard)
