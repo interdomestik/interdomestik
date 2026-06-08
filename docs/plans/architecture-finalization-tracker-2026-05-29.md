@@ -3,7 +3,7 @@ plan_role: input
 status: active
 source_of_truth: false
 owner: platform
-last_reviewed: 2026-06-05
+last_reviewed: 2026-06-08
 adopted_as_canonical: 2026-05-31
 current_program_path: docs/plans/architecture-finalization-program-2026-05-29.md
 current_tracker_bridge: docs/plans/current-tracker.md
