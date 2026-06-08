@@ -547,6 +547,13 @@
       "when": 1780992000000,
       "tag": "0077_subscriptions_entity_of_record",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1781078400000,
+      "tag": "0078_backfill_tenant_codes",
+      "breakpoints": true
     }
   ]
 }
