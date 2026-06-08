@@ -540,6 +540,13 @@
       "when": 1780905600000,
       "tag": "0076_tenant_governing_law_terms_version",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1780992000000,
+      "tag": "0077_subscriptions_entity_of_record",
+      "breakpoints": true
     }
   ]
 }
