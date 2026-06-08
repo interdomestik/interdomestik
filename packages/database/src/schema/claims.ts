@@ -24,7 +24,7 @@ export const claims = pgTable(
     tenantId: text('tenant_id')
       .notNull()
       .references(() => tenants.id),
-    claimNumber: text('claim_number'), // Human readable ID, unique per tenant. Nullable for migration.
+    claimNumber: text('claim_number'), // Human readable ID, unique per tenant (idx_claims_tenant_number).
     userId: text('userId')
       .notNull()
       .references(() => user.id),
@@ -69,7 +69,7 @@ export const claims = pgTable(
       table.createdAt
     ),
     // Uniqueness for human readable claim number per tenant
-    uniqueIndex('idx_claims_tenant_number').on(table.tenantId, table.claimNumber), // Enable after backfill
+    uniqueIndex('idx_claims_tenant_number').on(table.tenantId, table.claimNumber),
     check(
       'claim_case_lifecycle_state_check',
       sql`${table.caseLifecycleState} is null or ${table.caseLifecycleState} in ('draft', 'submitted', 'verification', 'evaluation', 'recovery', 'resolved', 'rejected')`
