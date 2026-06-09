@@ -9,7 +9,7 @@
     "source/scripts": 6500000,
     "tests/e2e": 4341000,
     "docs/text": 4980000,
-    "config/data/messages": 1535339,
+    "config/data/messages": 1535400,
     "other": 1048576
   }
 }
