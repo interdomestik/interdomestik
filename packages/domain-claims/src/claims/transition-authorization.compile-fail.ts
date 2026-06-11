@@ -12,7 +12,7 @@ declare const scopedReadWhere: SQLWrapper;
 declare const to: ClaimStatus;
 
 // @ts-expect-error T-002d: structural construction must fail.
-const forgedProof: AuthorizedTransition = { actorId: 'actor-1', from, to };
+export const forgedProof: AuthorizedTransition = { actorId: 'actor-1', from, to };
 
 export async function rawPersistenceCallMustFail(): Promise<void> {
   await persistAuthorizedTransition(tx, {
@@ -56,5 +56,3 @@ export async function scopedWhereMustBeProvided(): Promise<void> {
     tenantId: 'tenant-1',
   });
 }
-
-void forgedProof;
