@@ -1,0 +1,123 @@
+{
+  "adapterVersion": 1,
+  "project": "interdomestik",
+  "repoRoot": "/Users/arbenlila/development/interdomestik-crystal-home",
+  "authorityOrder": [
+    "user instruction",
+    "AGENTS.md",
+    "current git/PR/CI state",
+    "docs/plans/current-program.md",
+    "docs/plans/current-tracker.md",
+    "docs/plans/architecture-finalization-tracker-2026-05-29.md"
+  ],
+  "skillAuthorityPaths": [
+    { "path": ".claude/skills/interdomestik-slice-runner/SKILL.md", "optional": true },
+    { "path": ".codex/skills/interdomestik-slice-runner/SKILL.md", "optional": true },
+    { "path": ".gemini/skills/interdomestik-slice-runner/SKILL.md", "optional": true }
+  ],
+  "canonicalTrackers": {
+    "files": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md",
+      "docs/plans/architecture-finalization-tracker-2026-05-29.md"
+    ],
+    "statusCommands": ["pnpm plan:status", "pnpm plan:audit", "pnpm track:audit"],
+    "boundedOutput": true
+  },
+  "protectedPaths": [
+    "apps/web/src/proxy.ts",
+    "README.md",
+    "AGENTS.md",
+    "docs/plans/current-program.md",
+    "docs/plans/current-tracker.md",
+    "docs/plans/architecture-finalization-program-2026-05-29.md",
+    "docs/plans/architecture-finalization-tracker-2026-05-29.md",
+    ".github/workflows/"
+  ],
+  "scopeAudit": {
+    "tool": "interdomestik_qa.scope_audit",
+    "fallbackCommand": "git diff --name-only"
+  },
+  "mcp": { "preferredServers": ["interdomestik_qa", "playwright", "context7"] },
+  "gates": [
+    { "name": "static", "command": "pnpm slice:static", "costClass": "fast" },
+    { "name": "unit", "command": "pnpm slice:unit", "costClass": "fast" },
+    { "name": "slice-verify", "command": "pnpm slice:verify", "costClass": "slice" },
+    { "name": "security-guard", "command": "pnpm security:guard", "costClass": "slice" },
+    {
+      "name": "pr-verify",
+      "command": "pnpm pr:verify",
+      "costClass": "full",
+      "requires": ["postgres:54322", "playwright"],
+      "covers": ["e2e-gate-pr"]
+    },
+    {
+      "name": "e2e-gate",
+      "command": "pnpm e2e:gate",
+      "costClass": "full",
+      "requires": ["docker", "postgres:54322", "playwright"],
+      "skipWhenCoveredBy": ["pr-verify"]
+    },
+    { "name": "ci-required-checks", "command": "gh checks", "costClass": "remote" }
+  ],
+  "reviewerWaterfall": {
+    "order": ["fable", "codex", "sonnet", "copilot"],
+    "routes": {
+      "fable": { "command": "claude", "args": ["-p", "{prompt}", "--model", "claude-fable-5"] },
+      "codex": { "command": "codex", "args": ["exec", "--model", "gpt-5.5", "{prompt}"] },
+      "sonnet": {
+        "command": "claude",
+        "args": ["-p", "{prompt}", "--model", "claude-sonnet-4-6"]
+      },
+      "copilot": {
+        "command": "copilot",
+        "args": ["--model", "claude-sonnet-4.6", "-p", "{prompt}"]
+      }
+    },
+    "fallbackTriggers": ["unavailable", "error", "refused", "rerouted", "invalid", "blockers"],
+    "refusalIsBlocker": false
+  },
+  "budgets": {
+    "maxModelCalls": 8,
+    "maxGitRemoteCalls": 6,
+    "maxFullGateRuns": 2,
+    "prPollIntervalMinutes": 5
+  },
+  "branching": { "base": "main", "prefix": "codex/", "requireCleanBase": true },
+  "prRemediation": {
+    "autoSafe": [
+      "format/lint fixes inside slice files",
+      "known-flaky rerun after log inspection",
+      "bounded transitive audit pin with no runtime API change",
+      "review nits confined to slice scope"
+    ],
+    "humanRequired": [
+      "scope expansion",
+      "protected path outside closeout",
+      "schema/RLS/auth/tenancy/routing change",
+      "security finding",
+      "merge"
+    ],
+    "maxAutoRemediations": 3
+  },
+  "closeout": {
+    "updateTargets": ["docs/plans/current-tracker.md", "docs/plans/current-program.md"],
+    "proofCommands": [
+      "git diff --check",
+      "pnpm plan:audit",
+      "pnpm track:audit",
+      "pnpm docs:verify"
+    ],
+    "protectedPathException": "Protected updateTargets may be edited only during approved closeout. This authorizes nothing for apps/web/src/proxy.ts, README.md, AGENTS.md, or workflows.",
+    "rules": ["required gates green", "waterfall review pass", "PR merged or explicitly approved"]
+  },
+  "evidenceRoot": "tmp/golden-loop",
+  "evidenceByteBudget": 16384,
+  "stopConditions": [
+    "ambiguous active slice",
+    "unauthorized protected-path edit",
+    "invariant conflict",
+    "required tool/model/gate blocked",
+    "budget exhausted"
+  ]
+}
