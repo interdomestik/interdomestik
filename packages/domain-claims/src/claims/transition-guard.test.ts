@@ -14,7 +14,32 @@ describe('canTransition', () => {
         from: 'evaluation',
         to: 'negotiation',
       })
-    ).toEqual({ allowed: true });
+    ).toMatchObject({ allowed: true });
+  });
+
+  // T-002d: an allowed decision carries the branded proof, bound to the
+  // actor and the exact from/to statuses it was minted for.
+  it('mints an authorization proof bound to actor and statuses on allow', () => {
+    const decision = canTransition({
+      actor,
+      context: { paymentAuthorizationState: 'authorized' },
+      from: 'evaluation',
+      to: 'negotiation',
+    });
+    expect(decision.allowed).toBe(true);
+    if (decision.allowed) {
+      expect(decision.authorization).toMatchObject({
+        actorId: 'staff-1',
+        from: 'evaluation',
+        to: 'negotiation',
+      });
+    }
+  });
+
+  it('does not expose an authorization on rejected decisions', () => {
+    const decision = canTransition({ actor, from: 'draft', to: 'resolved' });
+    expect(decision.allowed).toBe(false);
+    expect('authorization' in decision).toBe(false);
   });
 
   it.each([
@@ -33,7 +58,7 @@ describe('canTransition', () => {
 
   it('keeps same-status graph transitions available', () => {
     expect(isClaimStatusTransitionInGraph('evaluation', 'evaluation')).toBe(true);
-    expect(canTransition({ actor, from: 'evaluation', to: 'evaluation' })).toEqual({
+    expect(canTransition({ actor, from: 'evaluation', to: 'evaluation' })).toMatchObject({
       allowed: true,
     });
   });
@@ -77,7 +102,7 @@ describe('canTransition', () => {
         from: 'evaluation',
         to: 'negotiation',
       })
-    ).toEqual({ allowed: true });
+    ).toMatchObject({ allowed: true });
   });
 
   it('does not let non-staff actors use staff recovery prerequisite context', () => {
@@ -102,6 +127,6 @@ describe('canTransition', () => {
         from: 'submitted',
         to: 'verification',
       })
-    ).toEqual({ allowed: true });
+    ).toMatchObject({ allowed: true });
   });
 });
