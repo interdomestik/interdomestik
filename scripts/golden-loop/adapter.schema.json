@@ -1,0 +1,147 @@
+{
+  "type": "object",
+  "required": [
+    "adapterVersion",
+    "project",
+    "repoRoot",
+    "authorityOrder",
+    "canonicalTrackers",
+    "protectedPaths",
+    "gates",
+    "reviewerWaterfall",
+    "budgets",
+    "prRemediation",
+    "autoMerge",
+    "closeout",
+    "evidenceRoot",
+    "stopConditions"
+  ],
+  "properties": {
+    "adapterVersion": { "const": 1 },
+    "project": { "type": "string", "minLength": 1 },
+    "repoRoot": { "type": "string", "minLength": 1 },
+    "authorityOrder": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "canonicalTrackers": {
+      "type": "object",
+      "required": ["files"],
+      "properties": {
+        "files": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "statusCommands": { "type": "array", "items": { "type": "string" } },
+        "boundedOutput": { "type": "boolean", "default": true }
+      }
+    },
+    "protectedPaths": { "type": "array", "items": { "type": "string" } },
+    "skillAuthorityPaths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": { "type": "string" },
+          "optional": { "type": "boolean", "default": false },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "evidenceRoot": { "type": "string", "minLength": 1 },
+    "evidenceByteBudget": { "type": "integer", "minimum": 1024, "default": 16384 },
+    "stopConditions": { "type": "array", "items": { "type": "string" } },
+    "scopeAudit": {
+      "type": "object",
+      "properties": { "tool": { "type": "string" }, "fallbackCommand": { "type": "string" } }
+    },
+    "mcp": {
+      "type": "object",
+      "properties": {
+        "preferredServers": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" }
+      }
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "command", "costClass"],
+        "properties": {
+          "name": { "type": "string" },
+          "command": { "type": "string" },
+          "costClass": { "enum": ["fast", "slice", "full", "remote"] },
+          "requires": { "type": "array", "items": { "type": "string" } },
+          "covers": { "type": "array", "items": { "type": "string" } },
+          "skipWhenCoveredBy": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "reviewerWaterfall": {
+      "type": "object",
+      "required": ["order", "routes"],
+      "properties": {
+        "order": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "routes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["command", "args"],
+            "properties": {
+              "label": { "type": "string" },
+              "command": { "type": "string" },
+              "args": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "fallbackTriggers": { "type": "array", "items": { "type": "string" } },
+        "refusalIsBlocker": { "type": "boolean", "default": false }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "required": ["maxModelCalls", "maxGitRemoteCalls", "maxFullGateRuns"],
+      "properties": {
+        "maxModelCalls": { "type": "integer", "minimum": 1 },
+        "maxGitRemoteCalls": { "type": "integer", "minimum": 1 },
+        "maxFullGateRuns": { "type": "integer", "minimum": 1 },
+        "prPollIntervalMinutes": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "branching": {
+      "type": "object",
+      "properties": {
+        "base": { "type": "string" },
+        "prefix": { "type": "string" },
+        "requireCleanBase": { "type": "boolean" }
+      }
+    },
+    "prRemediation": {
+      "type": "object",
+      "required": ["autoSafe", "humanRequired"],
+      "properties": {
+        "autoSafe": { "type": "array", "items": { "type": "string" } },
+        "humanRequired": { "type": "array", "items": { "type": "string" } },
+        "maxAutoRemediations": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "autoMerge": {
+      "type": "object",
+      "required": ["method", "criteria"],
+      "properties": {
+        "method": { "enum": ["squash", "merge", "rebase"] },
+        "criteria": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      }
+    },
+    "closeout": {
+      "type": "object",
+      "required": ["updateTargets", "proofCommands"],
+      "properties": {
+        "updateTargets": { "type": "array", "items": { "type": "string" } },
+        "proofCommands": { "type": "array", "items": { "type": "string" } },
+        "protectedPathException": { "type": "string" },
+        "rules": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
