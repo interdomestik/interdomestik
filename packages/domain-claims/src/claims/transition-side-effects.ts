@@ -1,5 +1,4 @@
-import { appendEvent, claimStageHistory } from '@interdomestik/database';
-import type { db } from '@interdomestik/database';
+import { appendEvent, claimStageHistory, db } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { SQLWrapper } from 'drizzle-orm';
 import type { AuthorizedTransition, ClaimTransitionActor } from './transition-guard';
