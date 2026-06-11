@@ -11,8 +11,18 @@ export type ClaimTransitionContext = {
   staffRecoveryPrerequisitesSatisfied?: boolean;
 };
 
+// T-002d: module-private brand for the transition proof.
+declare const AuthorizedTransitionBrand: unique symbol;
+
+export type AuthorizedTransition = {
+  readonly [AuthorizedTransitionBrand]: 'claim-status-transition';
+  readonly actorId: string;
+  readonly from: ClaimStatus;
+  readonly to: ClaimStatus;
+};
+
 export type ClaimTransitionDecision =
-  | { allowed: true }
+  | { allowed: true; authorization: AuthorizedTransition }
   | {
       allowed: false;
       reason: 'payment_authorization_required' | 'invalid_status' | 'illegal_transition';
@@ -39,6 +49,15 @@ export function isClaimStatus(value: string | null | undefined): value is ClaimS
 export function isClaimStatusTransitionInGraph(from: ClaimStatus, to: ClaimStatus): boolean {
   const allowedTransitions = ALLOWED_CLAIM_STATUS_TRANSITIONS[from] as readonly ClaimStatus[];
   return from === to || allowedTransitions.includes(to);
+}
+
+// T-002d: the only legal construction site for the proof.
+function mintAuthorizedTransition(
+  actorId: string,
+  from: ClaimStatus,
+  to: ClaimStatus
+): AuthorizedTransition {
+  return { actorId, from, to } as AuthorizedTransition;
 }
 
 export function canTransition(params: {
@@ -68,7 +87,7 @@ export function canTransition(params: {
     return { allowed: false, reason: 'payment_authorization_required' };
   }
 
-  return { allowed: true };
+  return { allowed: true, authorization: mintAuthorizedTransition(actor.id, from, to) };
 }
 
 export const canTransitionClaimStatus = canTransition;

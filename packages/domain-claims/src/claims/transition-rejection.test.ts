@@ -1,7 +1,14 @@
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import { sql } from '@interdomestik/database';
 import { describe, expect, it } from 'vitest';
 
-import { transitionClaimStatusInTransaction, type TransitionTx } from './transition';
+import {
+  ClaimTransitionAuthorizationError,
+  persistAuthorizedTransition,
+  transitionClaimStatusInTransaction,
+  type TransitionTx,
+} from './transition';
+import { canTransition } from './transition-guard';
 
 type FakeTxCalls = {
   historyValues?: unknown;
@@ -75,5 +82,58 @@ describe('transitionClaimStatusInTransaction transition graph rejection', () => 
     expect(result).toEqual({ success: false, error: 'transition_rejected' });
     expect(calls.updateValues).toBeUndefined();
     expect(calls.historyValues).toBeUndefined();
+  });
+});
+
+const actor = { id: 'staff-1', role: 'staff' };
+const unreachableTx = new Proxy(
+  {},
+  {
+    get() {
+      throw new Error('persistence must not touch the database after a failed re-check');
+    },
+  }
+) as TransitionTx;
+
+function mintProof(from: 'evaluation', to: 'negotiation') {
+  const decision = canTransition({
+    actor,
+    context: { paymentAuthorizationState: 'authorized' },
+    from,
+    to,
+  });
+  if (!decision.allowed) throw new Error('expected allowed decision for proof minting');
+  return decision.authorization;
+}
+
+describe('persistAuthorizedTransition runtime re-check (T-002d)', () => {
+  it('rejects a proof minted for a different current status before any write', async () => {
+    await expect(
+      persistAuthorizedTransition(unreachableTx, {
+        actor,
+        authorization: mintProof('evaluation', 'negotiation'),
+        claimId: 'claim-1',
+        current: { lifecycleVersion: 3, status: 'draft' },
+        isPublic: true,
+        note: null,
+        readWhere: sql`tenant_scoped_claim = true`,
+        tenantId: 'tenant-1',
+      })
+    ).rejects.toBeInstanceOf(ClaimTransitionAuthorizationError);
+  });
+
+  it('rejects a proof minted for a different actor before any write', async () => {
+    await expect(
+      persistAuthorizedTransition(unreachableTx, {
+        actor: { id: 'someone-else', role: 'staff' },
+        authorization: mintProof('evaluation', 'negotiation'),
+        claimId: 'claim-1',
+        current: { lifecycleVersion: 3, status: 'evaluation' },
+        isPublic: true,
+        note: null,
+        readWhere: sql`tenant_scoped_claim = true`,
+        tenantId: 'tenant-1',
+      })
+    ).rejects.toBeInstanceOf(ClaimTransitionAuthorizationError);
   });
 });
