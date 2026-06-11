@@ -1,7 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "golden-loop-adapter.schema.json",
-  "title": "Golden Loop project adapter",
   "type": "object",
   "required": [
     "adapterVersion",
@@ -14,6 +11,7 @@
     "reviewerWaterfall",
     "budgets",
     "prRemediation",
+    "autoMerge",
     "closeout",
     "evidenceRoot",
     "stopConditions"
@@ -23,7 +21,6 @@
     "project": { "type": "string", "minLength": 1 },
     "repoRoot": { "type": "string", "minLength": 1 },
     "authorityOrder": {
-      "description": "Ordered authority/constitution sources, highest first.",
       "type": "array",
       "items": { "type": "string" },
       "minItems": 1
@@ -74,11 +71,9 @@
           "name": { "type": "string" },
           "command": { "type": "string" },
           "costClass": { "enum": ["fast", "slice", "full", "remote"] },
-          "approxRuntime": { "type": "string" },
           "requires": { "type": "array", "items": { "type": "string" } },
           "covers": { "type": "array", "items": { "type": "string" } },
-          "skipWhenCoveredBy": { "type": "array", "items": { "type": "string" } },
-          "coverageNote": { "type": "string" }
+          "skipWhenCoveredBy": { "type": "array", "items": { "type": "string" } }
         }
       }
     },
@@ -95,8 +90,7 @@
             "properties": {
               "label": { "type": "string" },
               "command": { "type": "string" },
-              "args": { "type": "array", "items": { "type": "string" } },
-              "promptArg": { "type": "string", "default": "-p" }
+              "args": { "type": "array", "items": { "type": "string" } }
             }
           }
         },
@@ -131,16 +125,21 @@
         "maxAutoRemediations": { "type": "integer", "minimum": 0 }
       }
     },
+    "autoMerge": {
+      "type": "object",
+      "required": ["method", "criteria"],
+      "properties": {
+        "method": { "enum": ["squash", "merge", "rebase"] },
+        "criteria": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      }
+    },
     "closeout": {
       "type": "object",
       "required": ["updateTargets", "proofCommands"],
       "properties": {
         "updateTargets": { "type": "array", "items": { "type": "string" } },
         "proofCommands": { "type": "array", "items": { "type": "string" } },
-        "protectedPathException": {
-          "type": "string",
-          "description": "States that protected updateTargets are editable ONLY in approved closeout (P7) after closeout.rules prerequisites; every other protected-path edit is a stop/human boundary."
-        },
+        "protectedPathException": { "type": "string" },
         "rules": { "type": "array", "items": { "type": "string" } }
       }
     }

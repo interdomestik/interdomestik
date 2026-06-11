@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { validateAdapter } from './load-adapter.mjs';
+import { validateAdapter, checkReferencedFiles } from './load-adapter.mjs';
 import { emptyState, readState, writeState, appendJournal, statePaths } from './resume-state.mjs';
-import { boundOutput, buildPacket, writePacket } from './evidence-packet.mjs';
+import { boundOutput, buildPacket, writePacket, parseByteBudget } from './evidence-packet.mjs';
+import { safeJoin, safeName } from './safe-paths.mjs';
 
 const schema = JSON.parse(
   fs.readFileSync(new URL('./adapter.schema.json', import.meta.url), 'utf8')
@@ -43,10 +44,12 @@ test('adapter records PR E2E lane coverage to avoid duplicate full gates', () =>
   const e2eGate = adapter.gates.find(gate => gate.name === 'e2e-gate');
   assert.ok(prVerify.covers.includes('e2e-gate-pr'));
   assert.ok(e2eGate.skipWhenCoveredBy.includes('pr-verify'));
+  assert.equal(adapter.autoMerge.method, 'squash');
+  assert.ok(adapter.autoMerge.criteria.some(item => item.includes('SonarCloud')));
 });
 
 test('validateAdapter reports missing fields and unrouted reviewers', () => {
-  const broken = JSON.parse(JSON.stringify(adapter));
+  const broken = structuredClone(adapter);
   delete broken.budgets;
   broken.reviewerWaterfall.order.push('ghost-reviewer');
   const errors = validateAdapter(broken, schema);
@@ -78,6 +81,8 @@ test('boundOutput truncates head+tail within budget and flags it', () => {
   assert.ok(bounded.startsWith('AAAA'));
   assert.ok(bounded.endsWith('ZZZZ'));
   assert.equal(boundOutput('short', 1024).truncated, false);
+  assert.equal(parseByteBudget('2048'), 2048);
+  assert.throws(() => parseByteBudget('nan'), /budget/);
 });
 
 test('packets persist with hash and bounded body, and index appends', () => {
@@ -97,4 +102,17 @@ test('packets persist with hash and bounded body, and index appends', () => {
   assert.equal(index.trim().split('\n').length, 1);
   assert.ok(!index.includes('XXXX'));
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('safe path helpers reject traversal and unsafe ids', () => {
+  const root = tempRoot();
+  assert.throws(() => safeJoin(root, '..', 'escape'), /escapes root/);
+  assert.throws(() => safeName('../T-TEST', 'slice'), /safe id/);
+  assert.equal(safeJoin(root, 'T-TEST').startsWith(root), true);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('adapter reference warnings tolerate malformed optional arrays', () => {
+  const broken = { ...adapter, protectedPaths: [false], skillAuthorityPaths: [{}] };
+  assert.deepEqual(checkReferencedFiles(broken), []);
 });

@@ -12,10 +12,17 @@
 //     --prompt-file <path> [--root tmp/golden-loop] [--dry-run]
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import path from 'node:path';
 import process from 'node:process';
 import { buildPacket, writePacket } from './evidence-packet.mjs';
 import { buildContractPreamble, classifyReview } from './review-contract.mjs';
+import { safeJoin, safeName, safeReadJson, safeReadText, safeRoot } from './safe-paths.mjs';
+
+function reviewerCommand(name) {
+  if (name === 'claude') return 'claude';
+  if (name === 'codex') return 'codex';
+  if (name === 'copilot') return 'copilot';
+  return null;
+}
 
 function argValue(args, name, fallback = '') {
   const index = args.indexOf(name);
@@ -23,16 +30,25 @@ function argValue(args, name, fallback = '') {
 }
 
 function defaultExecutor(route, prompt, dryRun) {
-  const probe = spawnSync('/bin/sh', ['-lc', `command -v ${route.command}`], { encoding: 'utf8' });
-  if (probe.status !== 0) {
-    return { unavailable: true, reason: `${route.command} not on PATH`, exitCode: -1, output: '' };
+  const command = reviewerCommand(route.command);
+  if (!command) {
+    return {
+      unavailable: true,
+      reason: `${route.command} is not an allowed reviewer`,
+      exitCode: -1,
+    };
+  }
+  const probe = spawnSync(command, ['--version'], { encoding: 'utf8', shell: false });
+  if (probe.error?.code === 'ENOENT') {
+    return { unavailable: true, reason: `${command} not on PATH`, exitCode: -1, output: '' };
   }
   if (dryRun) return { probeOnly: true, unavailable: false };
   const args = route.args.map(arg => (arg === '{prompt}' ? prompt : arg));
-  const result = spawnSync(route.command, args, {
+  const result = spawnSync(command, args, {
     encoding: 'utf8',
     timeout: 15 * 60 * 1000,
     maxBuffer: 16 * 1024 * 1024,
+    shell: false,
   });
   return {
     unavailable: false,
@@ -72,9 +88,9 @@ export function runWaterfall(order, routes, prompt, executor, options = {}) {
 function main() {
   const args = process.argv.slice(2);
   const adapterPath = argValue(args, '--adapter', process.env.GOLDEN_LOOP_ADAPTER || '');
-  const sliceId = argValue(args, '--slice');
+  const sliceId = safeName(argValue(args, '--slice'), 'slice');
   const promptFile = argValue(args, '--prompt-file');
-  const root = argValue(args, '--root', process.env.GOLDEN_LOOP_EVIDENCE_ROOT || 'tmp/golden-loop');
+  const root = safeRoot(argValue(args, '--root', process.env.GOLDEN_LOOP_EVIDENCE_ROOT));
   const dryRun = args.includes('--dry-run');
   if (!adapterPath || !sliceId || !promptFile) {
     console.error(
@@ -82,8 +98,8 @@ function main() {
     );
     process.exit(1);
   }
-  const adapter = JSON.parse(fs.readFileSync(adapterPath, 'utf8'));
-  const prompt = buildContractPreamble(sliceId) + fs.readFileSync(promptFile, 'utf8');
+  const adapter = safeReadJson(adapterPath);
+  const prompt = buildContractPreamble(sliceId) + safeReadText(promptFile);
   const { order, routes } = adapter.reviewerWaterfall;
   const { results, winner } = runWaterfall(
     order,
@@ -92,7 +108,9 @@ function main() {
     (route, p) => defaultExecutor(route, p, dryRun),
     { dryRun, sliceId }
   );
-  const receiptDir = path.join(root, sliceId, 'reviews');
+  const receiptDir = safeJoin(root, safeName(sliceId, 'slice'), 'reviews');
+
+  // codeql[js/path-injection] receipt dir is constrained by safeRoot/safeName/safeJoin.
   fs.mkdirSync(receiptDir, { recursive: true });
   const receipt = {
     receiptVersion: 2,
@@ -104,7 +122,9 @@ function main() {
     winner: winner ? winner.reviewer : null,
   };
   const receiptName = dryRun ? 'availability-probe.json' : 'waterfall.json';
-  fs.writeFileSync(path.join(receiptDir, receiptName), `${JSON.stringify(receipt, null, 2)}\n`);
+
+  // codeql[js/path-injection] receipt path is constrained by safeRoot/safeName/safeJoin.
+  fs.writeFileSync(safeJoin(receiptDir, receiptName), `${JSON.stringify(receipt, null, 2)}\n`);
   if (winner) {
     const packet = buildPacket({
       name: `review-${winner.reviewer}`,

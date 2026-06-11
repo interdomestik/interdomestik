@@ -26,7 +26,10 @@ function contractReview({ slice = SLICE, verdict = 'READY', findings = '1. Nit: 
 
 test('only a full-contract READY review classifies as completed', () => {
   const context = { sliceId: SLICE };
-  assert.equal(classifyReview({ exitCode: 0, output: contractReview() }, context).status, 'completed');
+  assert.equal(
+    classifyReview({ exitCode: 0, output: contractReview() }, context).status,
+    'completed'
+  );
   const generic = classifyReview({ exitCode: 0, output: 'Looks good to me. '.repeat(30) }, context);
   assert.equal(generic.status, 'invalid');
   assert.match(generic.reason, /missing review contract field/);
@@ -38,8 +41,10 @@ test('only a full-contract READY review classifies as completed', () => {
   assert.equal(wrongSlice.status, 'invalid');
   assert.match(wrongSlice.reason, /slice mismatch/);
   assert.equal(
-    classifyReview({ exitCode: 0, output: contractReview({ verdict: 'READY AFTER FIXES' }) }, context)
-      .status,
+    classifyReview(
+      { exitCode: 0, output: contractReview({ verdict: 'READY AFTER FIXES' }) },
+      context
+    ).status,
     'unresolved-blockers'
   );
   assert.equal(
@@ -58,7 +63,10 @@ test('only a full-contract READY review classifies as completed', () => {
     'refused'
   );
   assert.equal(classifyReview({ exitCode: 3, output: 'boom' }, context).status, 'error');
-  assert.equal(classifyReview({ unavailable: true, reason: 'gone' }, context).status, 'unavailable');
+  assert.equal(
+    classifyReview({ unavailable: true, reason: 'gone' }, context).status,
+    'unavailable'
+  );
   assert.match(buildContractPreamble(SLICE), /VERDICT: READY \| READY AFTER FIXES \| BLOCKED/);
 });
 
@@ -74,7 +82,11 @@ test('waterfall short-circuits at first contract-valid READY review', () => {
     sonnet: { exitCode: 0, output: contractReview() },
     copilot: { exitCode: 0, output: contractReview() },
   };
-  const executor = route => (calls.push(reviewerOf(route)), outputs[reviewerOf(route)]);
+  const executor = route => {
+    const reviewer = reviewerOf(route);
+    calls.push(reviewer);
+    return outputs[reviewer];
+  };
   const { results, winner } = runWaterfall(
     adapter.reviewerWaterfall.order,
     adapter.reviewerWaterfall.routes,

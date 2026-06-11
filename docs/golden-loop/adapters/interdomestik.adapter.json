@@ -1,7 +1,7 @@
 {
   "adapterVersion": 1,
   "project": "interdomestik",
-  "repoRoot": "/Users/arbenlila/development/interdomestik-crystal-home",
+  "repoRoot": ".",
   "authorityOrder": [
     "user instruction",
     "AGENTS.md",
@@ -74,7 +74,7 @@
         "args": ["--model", "claude-sonnet-4.6", "-p", "{prompt}"]
       }
     },
-    "fallbackTriggers": ["unavailable", "error", "refused", "rerouted", "invalid", "blockers"],
+    "fallbackTriggers": ["unavailable", "error", "refused", "invalid", "unresolved-blockers"],
     "refusalIsBlocker": false
   },
   "budgets": {
@@ -89,16 +89,26 @@
       "format/lint fixes inside slice files",
       "known-flaky rerun after log inspection",
       "bounded transitive audit pin with no runtime API change",
+      "CodeQL/Sonar/Copilot hardening confined to slice files with no risk acceptance",
       "review nits confined to slice scope"
     ],
     "humanRequired": [
       "scope expansion",
       "protected path outside closeout",
       "schema/RLS/auth/tenancy/routing change",
-      "security finding",
-      "merge"
+      "risk acceptance or security exception"
     ],
     "maxAutoRemediations": 3
+  },
+  "autoMerge": {
+    "method": "squash",
+    "criteria": [
+      "required checks green",
+      "SonarCloud quality gate green with zero new issues and zero security hotspots",
+      "CodeQL alerts resolved or dismissed with evidence",
+      "Copilot/reviewer comments addressed and resolved",
+      "no protected-path violation"
+    ]
   },
   "closeout": {
     "updateTargets": ["docs/plans/current-tracker.md", "docs/plans/current-program.md"],

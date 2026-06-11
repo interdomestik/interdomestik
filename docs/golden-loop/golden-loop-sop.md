@@ -1,9 +1,8 @@
 # Golden Loop SOP (project-agnostic, v0.1)
 
-Status: Phase 1 foundation — piloting on one project. This spec contains **no
-project-specific names**: everything project-specific is declared in a project
-adapter (see `adapter-schema.md`). The Golden Loop never weakens a project's
-constitution; where the adapter's constitution is stricter, the constitution wins.
+Status: Phase 1 foundation — piloting on one project. Project-specific rules
+live in an adapter validated by `scripts/golden-loop/adapter.schema.json`. The
+Golden Loop never weakens a constitution; stricter project authority wins.
 
 ## Goal
 
@@ -28,8 +27,11 @@ through routine decisions.
 | P3  | Implementation     | auto               | Branch per adapter rules; scoped edits only; respect file-size and modularity rules from the adapter.                                                                        |
 | P4  | Verification       | auto               | Run gates by **cost class** (below). Cheap → expensive; full-cost gates at most `budgets.maxFullGateRuns` per slice.                                                         |
 | P5  | Review             | auto               | **Sequential reviewer waterfall** (below). First valid, blocker-free senior review suffices.                                                                                 |
-| P6  | PR + remediation   | mostly auto        | Open one PR; auto-remediate only `prRemediation.autoSafe` classes; everything else → human boundary.                                                                         |
-| P7  | Closeout           | auto, gated        | Update canonical trackers/programs only after gates green + review pass, using the adapter's closeout rules.                                                                 |
+| P6  | PR + remediation   | mostly auto        | Open one PR; batch-poll CI/Sonar/CodeQL/Copilot/reviewer feedback; auto-remediate `autoSafe` classes until green or human-blocked.                                           |
+| P7  | Merge + closeout   | auto, gated        | If `autoMerge` criteria pass, squash-merge; then update canonical trackers/programs and prepare the next-slice handoff for human approval.                                   |
+
+Opening a PR is **not** a completion point: a run completes only after merge or
+human-block, closeout when allowed, and next-slice handoff readiness.
 
 ## Gate cost classes
 
@@ -99,9 +101,9 @@ layout, tooling, or design decisions. State writes are atomic
 2. Any edit to a protected path or canonical tracker outside closeout rules.
 3. Any schema/migration/RLS/auth/tenancy/routing change beyond the promoted
    slice's explicit scope.
-4. PR remediation outside `autoSafe` classes (scope growth, security findings,
+4. PR remediation outside `autoSafe` classes (scope growth, risk acceptance,
    invariant conflicts).
-5. Merge, if the adapter marks merge as human-gated.
+5. Merge when adapter `autoMerge` criteria are not fully satisfied.
 6. Budget exhaustion or any stop condition below.
 
 ## Stop conditions

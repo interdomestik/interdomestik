@@ -4,16 +4,34 @@
 // output is re-derivable. Prevents unbounded logs in reviews/PRs/state.
 // Usage:
 //   node scripts/golden-loop/evidence-packet.mjs --slice <id> --name <gate> \
-//     [--root tmp/golden-loop] [--budget 16384] (--command "pnpm lint" | --file <path>)
+//     [--root tmp/golden-loop] [--budget 16384] (--gate <known-gate> | --file <path>)
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import path from 'node:path';
 import process from 'node:process';
+import { safeJoin, safeName, safeReadText, safeRoot } from './safe-paths.mjs';
+
+function gateCommand(gate) {
+  if (gate === 'docs-verify') return ['pnpm', ['docs:verify']];
+  if (gate === 'modularity') return ['pnpm', ['check:modularity-guard']];
+  if (gate === 'plan-audit') return ['pnpm', ['plan:audit']];
+  if (gate === 'repo-size') return ['pnpm', ['repo:size:check']];
+  if (gate === 'security-guard') return ['pnpm', ['security:guard']];
+  if (gate === 'track-audit') return ['pnpm', ['track:audit']];
+  return null;
+}
 
 function argValue(args, name, fallback = '') {
   const index = args.indexOf(name);
   return index >= 0 && args[index + 1] ? args[index + 1] : fallback;
+}
+
+export function parseByteBudget(raw) {
+  const budget = Number(raw);
+  if (!Number.isInteger(budget) || budget < 1024 || budget > 1024 * 1024) {
+    throw new Error('budget must be an integer from 1024 to 1048576 bytes');
+  }
+  return budget;
 }
 
 export function boundOutput(text, byteBudget) {
@@ -48,42 +66,56 @@ export function buildPacket({ name, source, output, exitCode, byteBudget }) {
 }
 
 export function writePacket(root, sliceId, packet) {
-  const dir = path.join(root, sliceId, 'evidence');
+  const dir = safeJoin(root, safeName(sliceId, 'slice'), 'evidence');
+
+  // codeql[js/path-injection] evidence dir is constrained by safeRoot/safeName/safeJoin.
   fs.mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, `${packet.name.replace(/[^\w.-]+/g, '_')}.packet.json`);
+  const packetName = safeName(packet.name.replace(/[^\w.-]+/g, '_'), 'packet name');
+  const file = safeJoin(dir, `${packetName}.packet.json`);
+
+  // codeql[js/path-injection] packet path is constrained by safeRoot/safeName/safeJoin.
   fs.writeFileSync(file, `${JSON.stringify(packet, null, 2)}\n`);
-  const index = path.join(dir, 'index.jsonl');
-  const { output: _omit, ...summary } = packet;
+  const index = safeJoin(dir, 'index.jsonl');
+  const summary = { ...packet };
+  delete summary.output;
+
+  // codeql[js/path-injection] evidence index path is constrained by safeRoot/safeName/safeJoin.
   fs.appendFileSync(index, `${JSON.stringify({ ...summary, file })}\n`);
   return file;
 }
 
 function main() {
   const args = process.argv.slice(2);
-  const sliceId = argValue(args, '--slice');
-  const name = argValue(args, '--name');
-  const root = argValue(args, '--root', process.env.GOLDEN_LOOP_EVIDENCE_ROOT || 'tmp/golden-loop');
-  const byteBudget = Number(argValue(args, '--budget', '16384'));
-  const command = argValue(args, '--command');
+  const sliceId = safeName(argValue(args, '--slice'), 'slice');
+  const name = safeName(argValue(args, '--name'), 'name');
+  const root = safeRoot(argValue(args, '--root', process.env.GOLDEN_LOOP_EVIDENCE_ROOT));
+  const byteBudget = parseByteBudget(argValue(args, '--budget', '16384'));
+  const gate = argValue(args, '--gate');
   const file = argValue(args, '--file');
-  if (!sliceId || !name || (!command && !file)) {
-    console.error('evidence-packet: usage: --slice <id> --name <n> (--command <cmd> | --file <path>)');
+  if (!sliceId || !name || (!gate && !file)) {
+    console.error(
+      'evidence-packet: usage: --slice <id> --name <n> (--gate <gate> | --file <path>)'
+    );
     process.exit(1);
   }
   let output = '';
   let exitCode = 0;
   let source = '';
-  if (command) {
-    source = command;
-    const result = spawnSync('/bin/sh', ['-c', command], {
+  if (gate) {
+    const commandSpec = gateCommand(gate);
+    if (!commandSpec) throw new Error(`unknown evidence gate: ${gate}`);
+    const [command, commandArgs] = commandSpec;
+    source = `${command} ${commandArgs.join(' ')}`;
+    const result = spawnSync(command, commandArgs, {
       encoding: 'utf8',
       maxBuffer: 64 * 1024 * 1024,
+      shell: false,
     });
     output = `${result.stdout || ''}${result.stderr || ''}`;
     exitCode = result.status ?? -1;
   } else {
     source = file;
-    output = fs.readFileSync(file, 'utf8');
+    output = safeReadText(file);
   }
   const packet = buildPacket({ name, source, output, exitCode, byteBudget });
   const written = writePacket(root, sliceId, packet);

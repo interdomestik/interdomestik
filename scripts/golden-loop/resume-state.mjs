@@ -7,8 +7,8 @@
 //   node scripts/golden-loop/resume-state.mjs set  --root tmp/golden-loop --slice <id> --field phase --value P3
 //   node scripts/golden-loop/resume-state.mjs log  --root tmp/golden-loop --slice <id> --message "gate static passed"
 import fs from 'node:fs';
-import path from 'node:path';
 import process from 'node:process';
+import { safeJoin, safeName, safeRoot } from './safe-paths.mjs';
 
 function argValue(args, name, fallback = '') {
   const index = args.indexOf(name);
@@ -16,8 +16,8 @@ function argValue(args, name, fallback = '') {
 }
 
 export function statePaths(root, sliceId) {
-  const dir = path.join(root, sliceId);
-  return { dir, state: path.join(dir, 'state.json'), journal: path.join(dir, 'journal.log') };
+  const dir = safeJoin(root, safeName(sliceId, 'slice'));
+  return { dir, state: safeJoin(dir, 'state.json'), journal: safeJoin(dir, 'journal.log') };
 }
 
 export function emptyState(sliceId) {
@@ -39,23 +39,37 @@ export function emptyState(sliceId) {
 
 export function readState(root, sliceId) {
   const { state } = statePaths(root, sliceId);
+
+  // codeql[js/path-injection] state is constrained by safeRoot/safeName/safeJoin.
   if (!fs.existsSync(state)) return null;
+
+  // codeql[js/path-injection] state is constrained by safeRoot/safeName/safeJoin.
   return JSON.parse(fs.readFileSync(state, 'utf8'));
 }
 
 export function writeState(root, sliceId, state) {
   const { dir, state: statePath } = statePaths(root, sliceId);
+
+  // codeql[js/path-injection] state dir is constrained by safeRoot/safeName/safeJoin.
   fs.mkdirSync(dir, { recursive: true });
   state.updatedAt = new Date().toISOString();
   const temp = `${statePath}.tmp-${process.pid}`;
+
+  // codeql[js/path-injection] temp state path is constrained by safeRoot/safeName/safeJoin.
   fs.writeFileSync(temp, `${JSON.stringify(state, null, 2)}\n`);
+
+  // codeql[js/path-injection] state paths are constrained by safeRoot/safeName/safeJoin.
   fs.renameSync(temp, statePath);
   return state;
 }
 
 export function appendJournal(root, sliceId, message) {
   const { dir, journal } = statePaths(root, sliceId);
+
+  // codeql[js/path-injection] journal dir is constrained by safeRoot/safeName/safeJoin.
   fs.mkdirSync(dir, { recursive: true });
+
+  // codeql[js/path-injection] journal path is constrained by safeRoot/safeName/safeJoin.
   fs.appendFileSync(journal, `${new Date().toISOString()} ${message}\n`);
 }
 
@@ -70,8 +84,8 @@ function parseValue(raw) {
 function main() {
   const args = process.argv.slice(2);
   const command = args[0];
-  const root = argValue(args, '--root', process.env.GOLDEN_LOOP_EVIDENCE_ROOT || 'tmp/golden-loop');
-  const sliceId = argValue(args, '--slice');
+  const root = safeRoot(argValue(args, '--root', process.env.GOLDEN_LOOP_EVIDENCE_ROOT));
+  const sliceId = safeName(argValue(args, '--slice'), 'slice');
   if (!command || !sliceId) {
     console.error('resume-state: usage: <init|get|set|log> --slice <id> [--root <dir>]');
     process.exit(1);

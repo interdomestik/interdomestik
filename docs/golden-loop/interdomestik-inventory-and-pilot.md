@@ -6,9 +6,8 @@ adapter discovery plus the first completed pilot.
 
 ## Environment inventory
 
-- **Repo**: `/Users/arbenlila/development/interdomestik-crystal-home` — pnpm
-  10.28.2, Turborepo, Next.js 15, React 19, Drizzle/Postgres, Vitest and
-  Playwright.
+- **Repo**: portable checkout root — pnpm 10.28.2, Turborepo, Next.js 16.2.7,
+  React 19, Drizzle/Postgres, Vitest and Playwright.
 - **Authority**: `AGENTS.md`, `.claude/.codex/.gemini` slice-runner skills,
   `current-program.md`, `current-tracker.md`, and the architecture-finalization
   program/tracker. Rev 22 invariants are constitution-level.
