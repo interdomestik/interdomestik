@@ -1,4 +1,5 @@
 import type { PublicBillingCheckoutConfig } from '@interdomestik/domain-membership-billing/paddle-server';
+import type { EntityDisclosureNoticeModel } from '@/components/commercial/entity-disclosure-notice';
 import type { LucideIcon } from 'lucide-react';
 
 export type PricingTableProps = Readonly<{
@@ -8,6 +9,7 @@ export type PricingTableProps = Readonly<{
   billingTestMode?: boolean;
   isSessionPending?: boolean;
   checkoutConfig?: PublicBillingCheckoutConfig | null;
+  entityDisclosure?: EntityDisclosureNoticeModel | null;
 }>;
 
 export const PLAN_IDS = ['standard', 'family', 'business'] as const;
@@ -68,6 +70,7 @@ export type LocalCheckoutWarningProps = Readonly<{
 
 export type PrecheckoutConfirmationProps = Readonly<{
   plan: PricingPlan;
+  entityDisclosure?: EntityDisclosureNoticeModel | null;
   loading: boolean;
   t: TranslateFn;
   onContinue: () => void;

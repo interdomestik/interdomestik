@@ -12,6 +12,7 @@ import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { MockActivationTrigger } from '@/components/billing/mock-activation-trigger';
+import { SuccessEntityDisclosure } from './success-entity-disclosure';
 
 interface SuccessPageProps {
   params: Promise<{ locale: string }>;
@@ -80,11 +81,6 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
 
   return (
     <div className="container min-h-svh max-w-4xl px-4 py-12" data-testid="success-page-ready">
-      {/* 
-          🧪 BILLING TEST MODE TRIGGER
-          If the billing-test runtime guard allows activation and plan info is present,
-          trigger activation on the client side to avoid revalidatePath-during-render errors.
-      */}
       {canTriggerBillingTestActivation && planId && priceId && (
         <MockActivationTrigger planId={planId} priceId={priceId} />
       )}
@@ -123,8 +119,13 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
         </div>
       ) : null}
 
+      <SuccessEntityDisclosure
+        activeSubscription={activeSubscription}
+        tenantId={tenantId}
+        locale={locale}
+      />
+
       <div className="grid gap-8 md:grid-cols-2">
-        {/* Digital Card Promo */}
         <Card
           data-testid="success-card"
           className="shadow-lg hover:shadow-xl transition-shadow duration-300 border-2"
@@ -172,7 +173,6 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
           </CardContent>
         </Card>
 
-        {/* Hotline Promo */}
         <Card
           data-testid="success-hotline"
           className="border-primary shadow-xl overflow-hidden group hover:scale-[1.01] transition-transform duration-300"

@@ -6,7 +6,6 @@ import { useRouter } from '@/i18n/routing';
 import { Badge } from '@interdomestik/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-
 import {
   FALLBACK_CHECKOUT_PRICE_IDS,
   getSelectedPlanIdFromSearch,
@@ -20,7 +19,6 @@ import { PricingPlanGrid } from './plan-grid';
 import { PrecheckoutConfirmation } from './precheckout-confirmation';
 import { isSelfServePlanId, shouldOpenSelfServePrecheckout } from './pricing-decisions';
 import type { PlanId, PricingPlan, PricingTableProps } from './types';
-
 export function PricingTable({
   userId,
   email,
@@ -28,6 +26,7 @@ export function PricingTable({
   billingTestMode,
   isSessionPending = false,
   checkoutConfig,
+  entityDisclosure,
 }: PricingTableProps) {
   const t = useTranslations('pricing');
   const locale = useLocale();
@@ -53,10 +52,10 @@ export function PricingTable({
     familyYear: checkoutConfig?.priceIds.familyYear ?? FALLBACK_CHECKOUT_PRICE_IDS.familyYear,
     businessYear: checkoutConfig?.priceIds.businessYear ?? null,
   } as const;
-
   const plans = buildPricingPlans({ t, priceIds: resolvedPriceIds });
   const isBillingTestMode = billingTestMode ?? process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
   const paddleClientToken = checkoutConfig?.clientToken.trim() ?? '';
+  const resolvedEntityDisclosure = entityDisclosure ?? checkoutConfig?.entityDisclosure ?? null;
   const hasPaddleClientToken = hasUsablePaddleClientToken(paddleClientToken);
   const shouldUseDevCheckoutFallback =
     process.env.NODE_ENV === 'development' && !isBillingTestMode && !hasPaddleClientToken;
@@ -300,6 +299,7 @@ export function PricingTable({
         <PrecheckoutConfirmation
           ref={preCheckoutSectionRef}
           plan={preCheckoutPlan}
+          entityDisclosure={resolvedEntityDisclosure}
           loading={loading === preCheckoutPlan.priceId}
           t={t}
           onContinue={handlePreCheckoutContinue}

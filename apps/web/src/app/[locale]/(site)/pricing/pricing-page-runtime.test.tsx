@@ -33,6 +33,11 @@ const checkoutConfig = {
   entity: 'ks',
   tenantId: 'tenant_ks',
   environment: 'sandbox',
+  entityDisclosure: {
+    contractingCompany: 'Interdomestik KS LLC',
+    governingLaw: 'XK',
+    unavailable: false,
+  },
   clientToken: 'test_client_token_ks',
   priceIds: {
     standardYear: 'pri_standard_year',
@@ -57,6 +62,7 @@ describe('PricingPageRuntime', () => {
         billingTenantId="tenant_ks"
         billingTestMode={false}
         checkoutConfig={checkoutConfig}
+        entityDisclosure={checkoutConfig.entityDisclosure}
       />
     );
 
@@ -65,6 +71,11 @@ describe('PricingPageRuntime', () => {
         billingTestMode: false,
         checkoutConfig,
         email: undefined,
+        entityDisclosure: {
+          contractingCompany: 'Interdomestik KS LLC',
+          governingLaw: 'XK',
+          unavailable: false,
+        },
         isSessionPending: true,
         tenantId: 'tenant_ks',
         userId: undefined,
@@ -99,6 +110,7 @@ describe('PricingPageRuntime', () => {
         billingTenantId="tenant_mk"
         billingTestMode
         checkoutConfig={checkoutConfig}
+        entityDisclosure={checkoutConfig.entityDisclosure}
       />
     );
 
@@ -107,6 +119,11 @@ describe('PricingPageRuntime', () => {
         billingTestMode: true,
         checkoutConfig,
         email: 'member@example.com',
+        entityDisclosure: {
+          contractingCompany: 'Interdomestik KS LLC',
+          governingLaw: 'XK',
+          unavailable: false,
+        },
         isSessionPending: false,
         tenantId: 'tenant_mk',
         userId: 'user-1',

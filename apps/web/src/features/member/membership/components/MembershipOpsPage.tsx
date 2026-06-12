@@ -34,11 +34,9 @@ import {
 import { buildCancellationFeedbackMessage } from '@/features/member/membership/cancellation-feedback';
 import { toast } from 'sonner';
 
-// ... imports
 import { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
-// ...
+import { MembershipEntityDisclosureNotice } from './MembershipEntityDisclosureNotice';
 
-// Loose type for next-intl translator to avoid complex generic drilling
 type TranslationFn = (key: string, values?: Record<string, string | number>) => string;
 
 function normalizePricingPlanId(planId: string | null | undefined) {
@@ -68,7 +66,6 @@ export function MembershipOpsPage({
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const t = useTranslations('membership');
 
-  // Sync selection if not present and we have data (desktop only or robust default)
   useEffect(() => {
     if (!selectedId && subscriptions.length > 0 && isDesktop) {
       setSelectedId(subscriptions[0].id);
@@ -135,7 +132,6 @@ export function MembershipOpsPage({
         </Card>
       ) : (
         <div className="flex h-[calc(100vh-4rem)]">
-          {/* Left Panel: List */}
           <div
             className={`w-full md:w-1/3 border-r bg-muted/10 flex flex-col ${
               selectedId && !isDesktop ? 'hidden' : 'flex'
@@ -154,7 +150,6 @@ export function MembershipOpsPage({
             </div>
           </div>
 
-          {/* Right Panel: Detail */}
           <div
             className={`w-full md:w-2/3 flex flex-col bg-background ${
               !selectedId && !isDesktop ? 'hidden' : 'flex'
@@ -229,7 +224,6 @@ function DetailView({
       }
 
       if (id === 'cancel') {
-        // Simple confirm for now
         if (!confirm(t('actions.confirm_cancel'))) return;
 
         const idempotencyKey = cancellationKeyRef.current ?? crypto.randomUUID();
@@ -277,6 +271,11 @@ function DetailView({
                 : '-'}
             </p>
           </div>
+
+          <MembershipEntityDisclosureNotice
+            testId="membership-entity-disclosure"
+            disclosure={subscription.entityDisclosure}
+          />
 
           <OpsActionBar
             primary={primary ? mapAction(primary) : undefined}

@@ -1,0 +1,9 @@
+{
+  "entityDisclosure": {
+    "title": "Contracting entity",
+    "contractingCompany": "Contracting company",
+    "governingLaw": "Governing law",
+    "unavailableTitle": "Contracting entity unavailable",
+    "unavailableBody": "We cannot show the contracting company and governing law right now. Please contact support before continuing."
+  }
+}

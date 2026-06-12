@@ -3,26 +3,16 @@ import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 
+type MockSession = {
+  user: { id: string; name: string; tenantId: string; tenantClassificationPending?: boolean };
+} | null;
+type MockSubscription = { id: string; status: string; planId: string } | null;
+
 const hoisted = vi.hoisted(() => ({
-  getSessionSafeMock: vi.fn<
-    () => Promise<{
-      user: {
-        id: string;
-        name: string;
-        tenantId: string | null;
-        tenantClassificationPending?: boolean | null;
-      };
-    } | null>
-  >(async () => ({
-    user: {
-      id: 'member-1',
-      name: 'Test Member',
-      tenantId: 'tenant-ks',
-    },
+  getSessionSafeMock: vi.fn<() => Promise<MockSession>>(async () => ({
+    user: { id: 'member-1', name: 'Test Member', tenantId: 'tenant-ks' },
   })),
-  getActiveSubscriptionMock: vi.fn<
-    () => Promise<{ id: string; status: string; planId: string } | null>
-  >(async () => ({
+  getActiveSubscriptionMock: vi.fn<() => Promise<MockSubscription>>(async () => ({
     id: 'sub-1',
     status: 'active',
     planId: 'standard',
@@ -48,6 +38,12 @@ vi.mock('@/components/shell/session', () => ({
 
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   getActiveSubscription: hoisted.getActiveSubscriptionMock,
+}));
+
+vi.mock('./success-entity-disclosure', () => ({
+  SuccessEntityDisclosure: () => (
+    <div data-testid="membership-success-entity-disclosure">entity disclosure</div>
+  ),
 }));
 
 vi.mock('@/lib/flags', () => ({
@@ -159,6 +155,7 @@ describe('MembershipSuccessPage', () => {
     expect(screen.getByText('membership.success.cta_start_claim')).toBeInTheDocument();
     expect(screen.getByText('membership.success.cta_helper')).toBeInTheDocument();
     expect(screen.getByText('membership.success.status_active')).toBeInTheDocument();
+    expect(screen.getByTestId('membership-success-entity-disclosure')).toBeInTheDocument();
   });
 
   it('shows an activation-in-progress state when no active subscription exists yet', async () => {
@@ -177,6 +174,7 @@ describe('MembershipSuccessPage', () => {
     expect(screen.getByText('membership.success.cta_open_dashboard')).toBeInTheDocument();
     expect(screen.getByText('membership.success.cta_refresh_status')).toBeInTheDocument();
     expect(screen.getByText('membership.success.status_pending')).toBeInTheDocument();
+    expect(screen.getByTestId('membership-success-entity-disclosure')).toBeInTheDocument();
     expect(screen.queryByText('membership.success.cta_start_claim')).not.toBeInTheDocument();
   });
 
@@ -218,7 +216,7 @@ describe('MembershipSuccessPage', () => {
   });
 
   it('redirects to the localized login page when the success page opens without a session', async () => {
-    hoisted.getSessionSafeMock.mockResolvedValueOnce(null as never);
+    hoisted.getSessionSafeMock.mockResolvedValueOnce(null);
     hoisted.redirectMock.mockImplementationOnce((url: string) => {
       throw new Error(`redirect:${url}`);
     });

@@ -1,14 +1,21 @@
 'use client';
 
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
+import { EntityDisclosureNotice } from '@/components/commercial/entity-disclosure-notice';
 import { Button } from '@interdomestik/ui';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { forwardRef } from 'react';
 
 import type { PrecheckoutConfirmationProps } from './types';
 
 export const PrecheckoutConfirmation = forwardRef<HTMLElement, PrecheckoutConfirmationProps>(
-  function PrecheckoutConfirmation({ plan, loading, t, onContinue, onCancel }, ref) {
+  function PrecheckoutConfirmation(
+    { plan, entityDisclosure, loading, t, onContinue, onCancel },
+    ref
+  ) {
+    const entityDisclosureT = useTranslations('entityDisclosure');
+
     return (
       <section
         ref={ref}
@@ -39,6 +46,20 @@ export const PrecheckoutConfirmation = forwardRef<HTMLElement, PrecheckoutConfir
               {t('preCheckout.responsePromise')}
             </p>
           </div>
+        </div>
+
+        <div className="mt-6">
+          <EntityDisclosureNotice
+            testId="pricing-entity-disclosure"
+            disclosure={entityDisclosure}
+            labels={{
+              title: entityDisclosureT('title'),
+              contractingCompany: entityDisclosureT('contractingCompany'),
+              governingLaw: entityDisclosureT('governingLaw'),
+              unavailableTitle: entityDisclosureT('unavailableTitle'),
+              unavailableBody: entityDisclosureT('unavailableBody'),
+            }}
+          />
         </div>
 
         <div className="mt-6">

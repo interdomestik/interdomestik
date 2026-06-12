@@ -28,6 +28,7 @@ export const MESSAGE_NAMESPACES = [
   'dashboard',
   'diaspora',
   'documents',
+  'entityDisclosure',
   'evidence',
   'faq',
   'features',
@@ -59,7 +60,6 @@ export const MESSAGE_NAMESPACES = [
   'voiceClaim',
   'wizard',
 ] as const;
-
 export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number];
 
 export const BASE_NAMESPACES = ['common'] as const;
