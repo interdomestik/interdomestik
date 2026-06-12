@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 
+import { isKnownIdaFrontDoorHost, normalizeTenantHost } from '@/lib/tenant/tenant-front-door';
 import {
   coerceTenantId,
   resolveTenantIdFromSources,
@@ -11,11 +12,6 @@ import {
 export type AuthMethod = 'GET' | 'POST';
 
 const EMAIL_SIGN_IN_PATH_SUFFIXES = ['/api/auth/sign-in/email', '/api/auth/sign-in/email-otp'];
-const DEFAULT_FRONT_DOOR_HOSTS = new Set([
-  'ida.interdomestik.com',
-  'ida.localhost',
-  'ida.127.0.0.1.nip.io',
-]);
 
 function getAuthPathname(url: string): string | null {
   try {
@@ -121,59 +117,18 @@ function getDirectRequestHost(headers: Headers): string {
   return headers.get('host') ?? '';
 }
 
-function normalizeHost(host: string | null | undefined): string {
-  const raw = host?.split(',')[0]?.trim() ?? '';
-  const lower = raw.toLowerCase();
-  const localPlaintextPrefix = `${'http'}://`;
-  const securePrefix = `${'https'}://`;
-  let authority = lower;
-  if (authority.startsWith(localPlaintextPrefix)) {
-    authority = authority.slice(localPlaintextPrefix.length);
-  } else if (authority.startsWith(securePrefix)) {
-    authority = authority.slice(securePrefix.length);
-  }
-
-  const pathStart = authority.indexOf('/');
-  if (pathStart >= 0) {
-    authority = authority.slice(0, pathStart);
-  }
-
-  const portStart = authority.lastIndexOf(':');
-  if (
-    portStart >= 0 &&
-    authority
-      .slice(portStart + 1)
-      .split('')
-      .every(char => char >= '0' && char <= '9')
-  ) {
-    authority = authority.slice(0, portStart);
-  }
-
-  return authority.endsWith('.') ? authority.slice(0, -1) : authority;
-}
-
-function isKnownFrontDoorHost(host: string): boolean {
-  const normalized = normalizeHost(host);
-  const configuredIdaHost = normalizeHost(process.env.IDA_HOST);
-
-  return (
-    DEFAULT_FRONT_DOOR_HOSTS.has(normalized) ||
-    (configuredIdaHost.length > 0 && normalized === configuredIdaHost)
-  );
-}
-
 function hasKnownDirectFrontDoorHost(headers: Headers): boolean {
-  return isKnownFrontDoorHost(getDirectRequestHost(headers));
+  return isKnownIdaFrontDoorHost(getDirectRequestHost(headers));
 }
 
 function hasUnambiguousFrontDoorHost(headers: Headers): boolean {
-  const host = normalizeHost(getDirectRequestHost(headers));
-  if (!isKnownFrontDoorHost(host)) return false;
+  const host = normalizeTenantHost(getDirectRequestHost(headers));
+  if (!isKnownIdaFrontDoorHost(host)) return false;
 
   const forwardedHost = headers.get('x-forwarded-host');
   if (!forwardedHost) return true;
 
-  return normalizeHost(forwardedHost) === host;
+  return normalizeTenantHost(forwardedHost) === host;
 }
 
 function resolveFrontDoorTenantHint(headers: Headers): TenantId | null {

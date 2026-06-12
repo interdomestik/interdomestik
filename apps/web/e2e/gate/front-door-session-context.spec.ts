@@ -26,6 +26,33 @@ function userForTenant(tenantId: FrontDoorTenant) {
 }
 
 test.describe('Front-door session context', () => {
+  test('renders ida.* public landing without a tenant cookie', async ({ browser }, testInfo) => {
+    const { origin, locale } = projectInfo(testInfo.project.use.baseURL?.toString());
+    if (!new URL(origin).hostname.startsWith('ida.')) {
+      test.skip(true, 'front-door public contract only runs in ida projects');
+      return;
+    }
+
+    const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    try {
+      const page = await context.newPage();
+      const docResponse = await gotoApp(page, new URL(`/${locale}`, origin).toString(), testInfo, {
+        marker: 'landing-page-ready',
+      });
+
+      expect(docResponse?.headers()['x-e2e-tenant']).toBe('none');
+      expect(docResponse?.headers()['x-e2e-tenant-context']).toBe('public');
+      await expect(page.getByTestId('tenant-chooser')).toHaveCount(0);
+
+      const tenantCookie = (await context.cookies(origin)).find(
+        cookie => cookie.name === 'tenantId'
+      );
+      expect(tenantCookie).toBeUndefined();
+    } finally {
+      await context.close();
+    }
+  });
+
   test('logs in on ida.* without country-host tenant identity', async ({ page }, testInfo) => {
     const { origin, locale } = projectInfo(testInfo.project.use.baseURL?.toString());
     const projectHeaders = testInfo.project.use.extraHTTPHeaders ?? {};
