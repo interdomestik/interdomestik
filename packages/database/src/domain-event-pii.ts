@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 
 import { db } from './db';
+import * as keyCache from './domain-event-pii-key-cache';
 import { domainEventKeys } from './schema/domain-event-keys';
 import { eventPiiKeys, eventPiiReferences } from './schema/event-pii-references';
 
@@ -130,13 +131,20 @@ export async function readEventPiiReference(
     .limit(1);
 
   if (!row || row.destroyedAt != null || row.erasedAt != null) {
+    keyCache.evictEventPiiKeyMaterial({ tenantId, referenceId });
     return { status: 'erased_or_unavailable' };
   }
 
-  return {
-    encryptedPayload: row.encryptedPayload,
+  const keyMaterial = keyCache.resolveEventPiiKeyMaterial({
     keyCiphertext: row.keyCiphertext,
     keyVersion: row.keyVersion,
+    referenceId,
+    tenantId,
+  });
+
+  return {
+    encryptedPayload: row.encryptedPayload,
+    ...keyMaterial,
     status: 'available',
   };
 }
