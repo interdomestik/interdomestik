@@ -38,10 +38,10 @@ export type ReadEventPiiReferenceResult =
     }
   | { status: 'erased_or_unavailable' };
 
-function normalizeNonEmpty(value: string, field: string): string {
+function normalizeNonEmpty(api: string, value: string, field: string): string {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
-    throw new Error(`createEventPiiReference requires ${field}`);
+    throw new Error(`${api} requires ${field}`);
   }
   return trimmed;
 }
@@ -57,15 +57,20 @@ export async function createEventPiiReference(
   tx: DomainEventPiiTx,
   params: CreateEventPiiReferenceParams
 ): Promise<CreateEventPiiReferenceResult> {
-  const referenceId = normalizeNonEmpty(params.referenceId ?? crypto.randomUUID(), 'referenceId');
-  const keyId = normalizeNonEmpty(params.keyId ?? crypto.randomUUID(), 'keyId');
-  const tenantId = normalizeNonEmpty(params.tenantId, 'tenantId');
-  const eventId = normalizeNonEmpty(params.eventId, 'eventId');
-  const subjectType = normalizeNonEmpty(params.subjectType, 'subjectType');
-  const subjectId = normalizeNonEmpty(params.subjectId, 'subjectId');
-  const referenceKind = normalizeNonEmpty(params.referenceKind, 'referenceKind');
-  const encryptedPayload = normalizeNonEmpty(params.encryptedPayload, 'encryptedPayload');
-  const keyCiphertext = normalizeNonEmpty(params.keyCiphertext, 'keyCiphertext');
+  const api = 'createEventPiiReference';
+  const referenceId = normalizeNonEmpty(
+    api,
+    params.referenceId ?? crypto.randomUUID(),
+    'referenceId'
+  );
+  const keyId = normalizeNonEmpty(api, params.keyId ?? crypto.randomUUID(), 'keyId');
+  const tenantId = normalizeNonEmpty(api, params.tenantId, 'tenantId');
+  const eventId = normalizeNonEmpty(api, params.eventId, 'eventId');
+  const subjectType = normalizeNonEmpty(api, params.subjectType, 'subjectType');
+  const subjectId = normalizeNonEmpty(api, params.subjectId, 'subjectId');
+  const referenceKind = normalizeNonEmpty(api, params.referenceKind, 'referenceKind');
+  const encryptedPayload = normalizeNonEmpty(api, params.encryptedPayload, 'encryptedPayload');
+  const keyCiphertext = normalizeNonEmpty(api, params.keyCiphertext, 'keyCiphertext');
   const keyVersion = normalizeKeyVersion(params.keyVersion);
 
   await tx.insert(eventPiiReferences).values({
@@ -93,8 +98,9 @@ export async function readEventPiiReference(
   tx: DomainEventPiiTx,
   params: ReadEventPiiReferenceParams
 ): Promise<ReadEventPiiReferenceResult> {
-  const tenantId = normalizeNonEmpty(params.tenantId, 'tenantId');
-  const referenceId = normalizeNonEmpty(params.referenceId, 'referenceId');
+  const api = 'readEventPiiReference';
+  const tenantId = normalizeNonEmpty(api, params.tenantId, 'tenantId');
+  const referenceId = normalizeNonEmpty(api, params.referenceId, 'referenceId');
 
   const [row] = await tx
     .select({

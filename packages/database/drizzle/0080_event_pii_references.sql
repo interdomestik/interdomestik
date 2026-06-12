@@ -37,6 +37,9 @@ CREATE INDEX "event_pii_keys_tenant_destroyed_idx" ON "event_pii_keys" USING btr
 ALTER TABLE public."event_pii_references" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE public."event_pii_keys" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 DO $$
+DECLARE
+  tenant_setting constant text := 'app.current_tenant_id';
+  tenant_predicate constant text := 'tenant_id = (select current_setting(%L, true))::text';
 BEGIN
   IF NOT EXISTS (
     SELECT 1
@@ -45,14 +48,16 @@ BEGIN
       AND tablename = 'event_pii_references'
       AND policyname = 'tenant_isolation_event_pii_references'
   ) THEN
-    CREATE POLICY "tenant_isolation_event_pii_references" ON public."event_pii_references"
-      USING (tenant_id = (select current_setting('app.current_tenant_id', true))::text)
-      WITH CHECK (tenant_id = (select current_setting('app.current_tenant_id', true))::text);
+    EXECUTE format(
+      'CREATE POLICY "tenant_isolation_event_pii_references" ON public."event_pii_references" USING (' ||
+        tenant_predicate ||
+        ') WITH CHECK (' ||
+        tenant_predicate ||
+        ')',
+      tenant_setting,
+      tenant_setting
+    );
   END IF;
-END $$;
---> statement-breakpoint
-DO $$
-BEGIN
   IF NOT EXISTS (
     SELECT 1
     FROM pg_policies
@@ -60,8 +65,14 @@ BEGIN
       AND tablename = 'event_pii_keys'
       AND policyname = 'tenant_isolation_event_pii_keys'
   ) THEN
-    CREATE POLICY "tenant_isolation_event_pii_keys" ON public."event_pii_keys"
-      USING (tenant_id = (select current_setting('app.current_tenant_id', true))::text)
-      WITH CHECK (tenant_id = (select current_setting('app.current_tenant_id', true))::text);
+    EXECUTE format(
+      'CREATE POLICY "tenant_isolation_event_pii_keys" ON public."event_pii_keys" USING (' ||
+        tenant_predicate ||
+        ') WITH CHECK (' ||
+        tenant_predicate ||
+        ')',
+      tenant_setting,
+      tenant_setting
+    );
   END IF;
 END $$;

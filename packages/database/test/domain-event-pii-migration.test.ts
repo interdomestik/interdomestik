@@ -44,10 +44,12 @@ describe('event PII reference migration', () => {
     assert.match(migration, /tenant_isolation_event_pii_references/);
     assert.match(migration, /ALTER TABLE public\."event_pii_keys" ENABLE ROW LEVEL SECURITY/);
     assert.match(migration, /tenant_isolation_event_pii_keys/);
+    assert.match(migration, /tenant_setting constant text := 'app\.current_tenant_id'/);
     assert.match(
       migration,
-      /tenant_id = \(select current_setting\('app\.current_tenant_id', true\)\)::text/
+      /tenant_predicate constant text := 'tenant_id = \(select current_setting\(%L, true\)\)::text'/
     );
+    assert.match(migration, /EXECUTE format\(/);
     assert.doesNotMatch(
       migration,
       /tenant_id = current_setting\('app\.current_tenant_id', true\)::text/

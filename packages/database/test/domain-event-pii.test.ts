@@ -21,17 +21,19 @@ function makeTx(captures: InsertCapture[]) {
   } as unknown as DomainEventPiiTx;
 }
 
+function makeReadLimit(rows: AnyRow[]) {
+  return () => Promise.resolve(rows);
+}
+
 function makeReadTx(rows: AnyRow[]) {
+  const limit = makeReadLimit(rows);
+  const where = () => ({ limit });
+  const leftJoin = () => ({ where });
+  const innerJoin = () => ({ leftJoin });
+  const from = () => ({ innerJoin });
+
   return {
-    select: () => ({
-      from: () => ({
-        innerJoin: () => ({
-          leftJoin: () => ({
-            where: () => ({ limit: () => Promise.resolve(rows) }),
-          }),
-        }),
-      }),
-    }),
+    select: () => ({ from }),
   } as unknown as DomainEventPiiTx;
 }
 
@@ -136,6 +138,13 @@ describe('readEventPiiReference', () => {
         referenceId: 'ref-1',
       }),
       { status: 'erased_or_unavailable' }
+    );
+  });
+
+  it('reports read-specific validation errors', async () => {
+    await assert.rejects(
+      () => readEventPiiReference(makeReadTx([]), { tenantId: ' ', referenceId: 'ref-1' }),
+      /readEventPiiReference requires tenantId/
     );
   });
 });
