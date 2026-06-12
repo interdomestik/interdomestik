@@ -50,8 +50,10 @@
   "dependencies": {
     "@interdomestik/database": "workspace:*",
     "@interdomestik/domain-ai": "workspace:*",
+    "@interdomestik/domain-case": "workspace:*",
     "@interdomestik/domain-crm": "workspace:*",
     "@interdomestik/domain-membership-billing": "workspace:*",
+    "@interdomestik/domain-recovery": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "nanoid": "^5.1.11",
