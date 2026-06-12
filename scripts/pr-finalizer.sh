@@ -7,9 +7,9 @@ Usage: bash scripts/pr-finalizer.sh [--help]
 
 Runs local finalization checks for PR readiness:
   - verifies clean git working tree
-  - runs pnpm type-check
-  - runs pnpm test
-  - validates required GitHub checks and unresolved review threads
+  - classifies the PR validation surface before choosing local/runtime gates
+  - runs runtime local checks for runtime-sensitive PRs
+  - validates required GitHub checks, Sonar issues/hotspots, and review threads
 
 Environment:
   PR_FINALIZER_SKIP_CHECK_POLLING=true|false
@@ -59,24 +59,17 @@ fail() {
   exit 1
 }
 
+# shellcheck source=scripts/pr-finalizer-lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/pr-finalizer-lib.sh"
+
 require_clean_tree() {
   if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
     return 0
   fi
 
-  if ! git diff --quiet --no-ext-diff --ignore-submodules --exit-code; then
+  if [[ -n "$(git status --porcelain=v1)" ]]; then
     fail "working tree is not clean"
   fi
-}
-
-run_local_verifications() {
-  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-    echo "[pr-finalizer] INFO: skipping local type-check/test in CI; required checks cover them."
-    return 0
-  fi
-
-  run_step "pnpm type-check" pnpm type-check
-  run_step "pnpm test" pnpm test
 }
 
 pr_context() {
@@ -156,7 +149,10 @@ require_gh_checks() {
     fail "unable to read check runs for commit ${head_sha}"
   fi
 
-  for check_name in "${required_checks[@]}"; do
+  local -a active_required_checks=()
+  mapfile -t active_required_checks < <(required_check_names)
+
+  for check_name in "${active_required_checks[@]}"; do
     local matching_checks
     local check_result
     local check_count
@@ -220,6 +216,8 @@ require_gh_checks() {
       fail "required checks for '${check_name}' are not passing (found: ${check_result} non-passing)"
     fi
   done
+
+  require_feedback_checks_green "${checks_json}"
 
   # Review-thread-level unresolved checks vary by gh API version; keep this step intentionally
   # aligned to available fields and enforce unresolved threads via GraphQL.
@@ -361,8 +359,10 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
 fi
 
 require_clean_tree
+classify_pr
 run_local_verifications
 require_gh_checks
+require_sonar_clean
 require_review_threads_resolved
 
-echo "[pr-finalizer] PASS: working tree, local checks, CI status checks, and review threads all pass"
+echo "[pr-finalizer] PASS: working tree, PR classification, local checks, CI/Sonar feedback, and review threads all pass"

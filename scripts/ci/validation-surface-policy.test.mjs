@@ -68,9 +68,18 @@ const DECISION_SCENARIOS = [
   [
     'PR finalizer and template changes skip heavy validation',
     'pull_request',
-    ['scripts/pr-finalizer.sh', '.github/pull_request_template.md'],
+    [
+      'scripts/pr-finalizer.sh',
+      'scripts/pr-finalizer-lib.sh',
+      'scripts/golden-loop/evidence-packet.mjs',
+      'scripts/repo-size-budget.json',
+      '.github/pull_request_template.md',
+    ],
     decision(false, 'non_product_only_pr', [
       'scripts/pr-finalizer.sh',
+      'scripts/pr-finalizer-lib.sh',
+      'scripts/golden-loop/evidence-packet.mjs',
+      'scripts/repo-size-budget.json',
       '.github/pull_request_template.md',
     ]),
   ],

@@ -27,11 +27,12 @@ through routine decisions.
 | P3  | Implementation     | auto               | Branch per adapter rules; scoped edits only; respect file-size and modularity rules from the adapter.                                                                        |
 | P4  | Verification       | auto               | Run gates by **cost class** (below). Cheap → expensive; full-cost gates at most `budgets.maxFullGateRuns` per slice.                                                         |
 | P5  | Review             | auto               | **Sequential reviewer waterfall** (below). First valid, blocker-free senior review suffices.                                                                                 |
-| P6  | PR + remediation   | mostly auto        | Open one PR; batch-poll CI/Sonar/CodeQL/Copilot/reviewer feedback; auto-remediate `autoSafe` classes until green or human-blocked.                                           |
-| P7  | Merge + closeout   | auto, gated        | If `autoMerge` criteria pass, squash-merge; then update canonical trackers/programs and prepare the next-slice handoff for human approval.                                   |
+| P6  | PR + remediation   | mostly auto        | Classify PR as runtime or docs-only; batch-poll CI/Sonar issues/Sonar hotspots/Copilot/reviewer feedback; auto-remediate `autoSafe` classes until green or human-blocked.    |
+| P7  | Merge + closeout   | auto, gated        | If `autoMerge` criteria pass, squash-merge; then update canonical trackers/programs in a compact closeout PR and prepare the next-slice handoff for human approval.          |
 
-Opening a PR is **not** a completion point: a run completes only after merge or
-human-block, closeout when allowed, and next-slice handoff readiness.
+Opening a PR is **not** completion. A slice is complete only when the
+implementation PR is merged, required closeout is merged, branch/worktree are
+clean, and the repo is ready for the next slice.
 
 ## Gate cost classes
 
@@ -44,6 +45,20 @@ If a successful full gate declares `covers` for a later gate/lane, the later
 gate may be skipped only when its adapter entry lists that gate in
 `skipWhenCoveredBy`. Record the coverage note in evidence. This removes
 duplicate work; it never removes an uncovered constitution-required gate.
+
+## PR classification and monitoring
+
+Classify every PR before monitoring. Runtime implementation PRs require full
+runtime gates; docs-only closeout PRs should stay docs-only and avoid heavy
+runtime lanes where branch policy allows it.
+
+Every monitor poll checks GitHub checks, Sonar open issues, Sonar open
+hotspots, and unresolved Copilot/reviewer threads. Auto-merge requires green
+required checks, Sonar issues `0`, Sonar hotspots `0`, and all threads resolved.
+
+Do not fix docs-only closeout size/format failures by expanding into
+runtime/tooling changes unless a required tooling defect is proven. Compact or
+split closeout docs so the PR stays docs-only.
 
 ## Reviewer waterfall (replaces default fan-out)
 
@@ -82,9 +97,9 @@ packet. Use it for preflight; it satisfies nothing in P5.
 ## Bounded evidence packets
 
 All evidence given to reviewers, recorded in state, or pasted into PRs is
-produced by the packet tool: per-source head+tail truncation to a byte budget,
-with exit code, byte counts, and content hash preserved so full output can be
-re-derived locally. Never inline unbounded command output anywhere.
+produced by the packet tool: head+tail truncation, exit code, byte counts, and
+content hash. Never inline unbounded command output. Review packets include git
+status sections for staged, unstaged, and untracked paths.
 
 ## Resume state
 
@@ -127,23 +142,7 @@ adapter's `closeout` rules, only after required gates and review evidence are
 green, and only for the delivered slice. Mid-run progress lives in resume
 state, not in canonical docs.
 
-**Protected paths vs closeout — the only exception.** Canonical tracker/
-program files may appear in both `protectedPaths` and `closeout.updateTargets`.
-The semantics are: (a) any edit to a protected path during P0–P6 is a stop /
-human-approval boundary, no exceptions; (b) a protected file that is also a
-closeout update target may be edited during **approved closeout only**, after
-every prerequisite in `closeout.rules` is satisfied, and only for the
-delivered slice. The adapter's `closeout.protectedPathException` states this
-explicitly; protected paths not listed as update targets (e.g. routing
-authorities, constitutions, CI workflows) are never editable under this
-exception.
-
-## What is universal vs project-specific
-
-Universal: the phase machine, budgets semantics, waterfall semantics, packet
-format, state format, stop conditions, approval boundaries. Project-specific
-(adapter): authority/constitution file list and order, protected paths, gate
-commands + cost classes, reviewer route order + route definitions, branch/PR
-conventions, remediation safe-classes, closeout rules, evidence root, MCP tool
-preferences. The generic loop must run unmodified for any project whose
-adapter validates.
+**Protected paths vs closeout — the only exception.** Files listed in both
+`protectedPaths` and `closeout.updateTargets` may be edited only during approved
+closeout, after `closeout.rules` pass, and only for the delivered slice.
+Protected paths outside update targets remain stop/human-boundary surfaces.

@@ -4,9 +4,12 @@ const NON_PRODUCT_ONLY_PATTERNS = [
   /^\.github\/(?:workflows|actions)\//,
   /^\.github\/pull_request_template\.md$/,
   /^scripts\/ci\//,
+  /^scripts\/golden-loop\//,
   /^scripts\/multi-agent\//,
   /^scripts\/pr-finalizer\.sh$/,
+  /^scripts\/pr-finalizer-lib\.sh$/,
   /^scripts\/plan[^/]*\.mjs$/,
+  /^scripts\/repo-size-budget\.json$/,
   /^(?:README|CHANGELOG|CONTRIBUTING|LICENSE)(?:\.[^.]+)?$/,
 ];
 
