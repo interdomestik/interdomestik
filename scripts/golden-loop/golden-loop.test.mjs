@@ -6,6 +6,7 @@ import path from 'node:path';
 import { validateAdapter } from './load-adapter.mjs';
 import { emptyState, readState, writeState, appendJournal, statePaths } from './resume-state.mjs';
 import { boundOutput, buildPacket, writePacket } from './evidence-packet.mjs';
+import { buildGitStatusOutput } from './git-status-packet.mjs';
 import { reviewerEnv } from './reviewer-env.mjs';
 import { normalizeReviewerOutput } from './reviewer-output.mjs';
 
@@ -46,8 +47,13 @@ test('adapter encodes unified PR monitoring and auto-merge rules', () => {
   assert.ok(prVerify.covers.includes('e2e-gate-pr'));
   assert.ok(e2eGate.skipWhenCoveredBy.includes('pr-verify'));
   assert.equal(adapter.autoMerge.method, 'squash');
-  assert.ok(adapter.autoMerge.criteria.some(criterion => criterion.includes('SonarCloud')));
+  assert.ok(adapter.autoMerge.criteria.some(criterion => criterion.includes('zero open issues')));
+  assert.ok(
+    adapter.autoMerge.criteria.some(criterion => criterion.includes('zero open security hotspots'))
+  );
   assert.ok(adapter.autoMerge.criteria.some(criterion => criterion.includes('Copilot')));
+  assert.ok(adapter.closeout.rules.some(rule => rule.includes('implementation PR merged')));
+  assert.ok(adapter.closeout.rules.some(rule => rule.includes('branch and worktree clean')));
 });
 
 test('validateAdapter reports missing fields and unrouted reviewers', () => {
@@ -124,4 +130,13 @@ test('packets persist with hash and bounded body, and index appends', () => {
   assert.equal(index.trim().split('\n').length, 1);
   assert.ok(!index.includes('XXXX'));
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('git status packet source includes staged, unstaged, and untracked sections', () => {
+  const { output, exitCode } = buildGitStatusOutput();
+  assert.equal(exitCode, 0);
+  assert.match(output, /## status/);
+  assert.match(output, /## staged/);
+  assert.match(output, /## unstaged/);
+  assert.match(output, /## untracked/);
 });

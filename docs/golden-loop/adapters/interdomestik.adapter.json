@@ -83,14 +83,6 @@
         "args": ["--model", "claude-sonnet-4.6", "-p", "{prompt}"]
       }
     },
-    "fallbackTriggers": [
-      "unavailable",
-      "blocked",
-      "error",
-      "refused",
-      "invalid",
-      "unresolved-blockers"
-    ],
     "refusalIsBlocker": false
   },
   "budgets": {
@@ -121,7 +113,7 @@
     "method": "squash",
     "criteria": [
       "required checks green",
-      "SonarCloud quality gate green with zero new issues and zero security hotspots",
+      "SonarCloud quality gate green with zero open issues and zero open security hotspots",
       "CodeQL alerts resolved or dismissed with evidence",
       "Copilot/reviewer comments addressed and resolved",
       "no protected-path violation"
@@ -136,7 +128,14 @@
       "pnpm docs:verify"
     ],
     "protectedPathException": "Protected updateTargets may be edited only during approved closeout. This authorizes nothing for apps/web/src/proxy.ts, README.md, AGENTS.md, or workflows.",
-    "rules": ["required gates green", "waterfall review pass", "PR merged or explicitly approved"]
+    "rules": [
+      "implementation PR merged before canonical tracker/program closeout",
+      "closeout PR remains docs-only unless a required tooling defect is proven",
+      "required gates green",
+      "waterfall review pass",
+      "PR merged or explicitly approved",
+      "branch and worktree clean after closeout"
+    ]
   },
   "evidenceRoot": "tmp/golden-loop",
   "evidenceByteBudget": 16384,

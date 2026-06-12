@@ -4,11 +4,13 @@
 // output is re-derivable. Prevents unbounded logs in reviews/PRs/state.
 // Usage:
 //   node scripts/golden-loop/evidence-packet.mjs --slice <id> --name <gate> \
-//     [--root tmp/golden-loop] [--budget 16384] (--gate <known-gate> | --file <path>)
+//     [--root tmp/golden-loop] [--budget 16384]
+//     (--gate <known-gate> | --file <path> | --git-status)
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import process from 'node:process';
+import { buildGitStatusOutput } from './git-status-packet.mjs';
 import { safeJoin, safeName, safeReadText, safeRoot } from './safe-paths.mjs';
 
 function argValue(args, name, fallback = '') {
@@ -86,16 +88,22 @@ function main() {
   const byteBudget = parseByteBudget(argValue(args, '--budget', '16384'));
   const gate = argValue(args, '--gate');
   const file = argValue(args, '--file');
-  if (!sliceId || !name || (!gate && !file)) {
+  const gitStatus = args.includes('--git-status');
+  if (!sliceId || !name || (!gate && !file && !gitStatus)) {
     console.error(
-      'evidence-packet: usage: --slice <id> --name <n> (--gate <gate> | --file <path>)'
+      'evidence-packet: usage: --slice <id> --name <n> (--gate <gate> | --file <path> | --git-status)'
     );
     process.exit(1);
   }
   let output = '';
   let exitCode = 0;
   let source = '';
-  if (gate) {
+  if (gitStatus) {
+    source = 'git status/diff summary';
+    const status = buildGitStatusOutput();
+    output = status.output;
+    exitCode = status.exitCode;
+  } else if (gate) {
     const commandSpec = gateCommand(gate);
     if (!commandSpec) throw new Error(`unknown evidence gate: ${gate}`);
     const [gateBin, gateArgs] = commandSpec;
