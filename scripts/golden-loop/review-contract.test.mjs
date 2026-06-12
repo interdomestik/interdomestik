@@ -12,6 +12,19 @@ const adapter = JSON.parse(
 );
 
 const SLICE = 'T-002d';
+function reviewerFor(route) {
+  return Object.keys(adapter.reviewerWaterfall.routes).find(
+    key => adapter.reviewerWaterfall.routes[key] === route
+  );
+}
+function makeExecutor(calls, outputs) {
+  return route => {
+    const reviewer = reviewerFor(route);
+    calls.push(reviewer);
+    return outputs[reviewer];
+  };
+}
+
 function contractReview({ slice = SLICE, verdict = 'READY', findings = '1. Nit: naming.' } = {}) {
   return [
     'REVIEWER: claude-fable-5',
@@ -23,7 +36,6 @@ function contractReview({ slice = SLICE, verdict = 'READY', findings = '1. Nit: 
     `NOTES: ${'reviewed transition guard, tests, and compile-fail fixture in detail. '.repeat(3)}`,
   ].join('\n');
 }
-
 test('only a full-contract READY review classifies as completed', () => {
   const context = { sliceId: SLICE };
   assert.equal(
@@ -67,31 +79,22 @@ test('only a full-contract READY review classifies as completed', () => {
     classifyReview({ unavailable: true, reason: 'gone' }, context).status,
     'unavailable'
   );
+  assert.equal(classifyReview({ blocked: true, reason: 'timeout' }, context).status, 'blocked');
   assert.match(buildContractPreamble(SLICE), /VERDICT: READY \| READY AFTER FIXES \| BLOCKED/);
 });
-
-test('waterfall short-circuits at first contract-valid READY review', () => {
+test('waterfall short-circuits at first contract-valid READY review', async () => {
   const calls = [];
-  const reviewerOf = route =>
-    Object.keys(adapter.reviewerWaterfall.routes).find(
-      key => adapter.reviewerWaterfall.routes[key] === route
-    );
   const outputs = {
     fable: { unavailable: true, reason: 'not on PATH', exitCode: -1, output: '' },
     codex: { exitCode: 0, output: contractReview({ verdict: 'BLOCKED' }) },
     sonnet: { exitCode: 0, output: contractReview() },
     copilot: { exitCode: 0, output: contractReview() },
   };
-  const executor = route => {
-    const reviewer = reviewerOf(route);
-    calls.push(reviewer);
-    return outputs[reviewer];
-  };
-  const { results, winner } = runWaterfall(
+  const { results, winner } = await runWaterfall(
     adapter.reviewerWaterfall.order,
     adapter.reviewerWaterfall.routes,
     'prompt',
-    executor,
+    makeExecutor(calls, outputs),
     { sliceId: SLICE }
   );
   assert.deepEqual(calls, ['fable', 'codex', 'sonnet']);
@@ -100,11 +103,36 @@ test('waterfall short-circuits at first contract-valid READY review', () => {
     results.map(result => result.status),
     ['unavailable', 'unresolved-blockers', 'completed']
   );
+  assert.ok(results.every(result => result.startedAt && result.completedAt));
+  assert.ok(results.every(result => Number.isInteger(result.durationMs)));
+});
+test('waterfall falls through a blocked reviewer route', async () => {
+  const calls = [];
+  const outputs = {
+    fable: { blocked: true, reason: 'route timed out after 300s' },
+    codex: { exitCode: 0, output: contractReview() },
+    sonnet: { exitCode: 0, output: contractReview() },
+    copilot: { exitCode: 0, output: contractReview() },
+  };
+  const { results, winner } = await runWaterfall(
+    adapter.reviewerWaterfall.order,
+    adapter.reviewerWaterfall.routes,
+    'prompt',
+    makeExecutor(calls, outputs),
+    { sliceId: SLICE }
+  );
+  assert.deepEqual(calls, ['fable', 'codex']);
+  assert.equal(winner.reviewer, 'codex');
+  assert.deepEqual(
+    results.map(result => result.status),
+    ['blocked', 'completed']
+  );
+  assert.ok(results.every(result => result.timeoutMs === null));
 });
 
-test('dry-run probes every route and can never produce a winner', () => {
+test('dry-run probes every route and can never produce a winner', async () => {
   const executor = () => ({ probeOnly: true, unavailable: false });
-  const { results, winner } = runWaterfall(
+  const { results, winner } = await runWaterfall(
     adapter.reviewerWaterfall.order,
     adapter.reviewerWaterfall.routes,
     'prompt',
@@ -115,4 +143,5 @@ test('dry-run probes every route and can never produce a winner', () => {
   assert.equal(results.length, adapter.reviewerWaterfall.order.length);
   assert.ok(results.every(result => result.status === 'route-available'));
   assert.ok(results.every(result => result.reason.includes('not review evidence')));
+  assert.ok(results.every(result => result.startedAt && result.completedAt));
 });

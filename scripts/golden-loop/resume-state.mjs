@@ -7,6 +7,7 @@
 //   node scripts/golden-loop/resume-state.mjs set  --root tmp/golden-loop --slice <id> --field phase --value P3
 //   node scripts/golden-loop/resume-state.mjs log  --root tmp/golden-loop --slice <id> --message "gate static passed"
 import fs from 'node:fs';
+import path from 'node:path';
 import process from 'node:process';
 import { safeJoin, safeName, safeRoot } from './safe-paths.mjs';
 
@@ -17,7 +18,7 @@ function argValue(args, name, fallback = '') {
 
 export function statePaths(root, sliceId) {
   const dir = safeJoin(root, safeName(sliceId, 'slice'));
-  return { dir, state: safeJoin(dir, 'state.json'), journal: safeJoin(dir, 'journal.log') };
+  return { dir, state: path.join(dir, 'state.json'), journal: path.join(dir, 'journal.log') };
 }
 
 export function emptyState(sliceId) {
@@ -39,37 +40,23 @@ export function emptyState(sliceId) {
 
 export function readState(root, sliceId) {
   const { state } = statePaths(root, sliceId);
-
-  // codeql[js/path-injection] state is constrained by safeRoot/safeName/safeJoin.
   if (!fs.existsSync(state)) return null;
-
-  // codeql[js/path-injection] state is constrained by safeRoot/safeName/safeJoin.
   return JSON.parse(fs.readFileSync(state, 'utf8'));
 }
 
 export function writeState(root, sliceId, state) {
   const { dir, state: statePath } = statePaths(root, sliceId);
-
-  // codeql[js/path-injection] state dir is constrained by safeRoot/safeName/safeJoin.
   fs.mkdirSync(dir, { recursive: true });
   state.updatedAt = new Date().toISOString();
   const temp = `${statePath}.tmp-${process.pid}`;
-
-  // codeql[js/path-injection] temp state path is constrained by safeRoot/safeName/safeJoin.
   fs.writeFileSync(temp, `${JSON.stringify(state, null, 2)}\n`);
-
-  // codeql[js/path-injection] state paths are constrained by safeRoot/safeName/safeJoin.
   fs.renameSync(temp, statePath);
   return state;
 }
 
 export function appendJournal(root, sliceId, message) {
   const { dir, journal } = statePaths(root, sliceId);
-
-  // codeql[js/path-injection] journal dir is constrained by safeRoot/safeName/safeJoin.
   fs.mkdirSync(dir, { recursive: true });
-
-  // codeql[js/path-injection] journal path is constrained by safeRoot/safeName/safeJoin.
   fs.appendFileSync(journal, `${new Date().toISOString()} ${message}\n`);
 }
 
