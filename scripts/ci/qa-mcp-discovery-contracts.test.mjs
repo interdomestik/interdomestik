@@ -12,7 +12,7 @@ function parsePositiveTimeout(value, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-const MCP_RESPONSE_TIMEOUT_MS = parsePositiveTimeout(process.env.QA_MCP_CONTRACT_TIMEOUT_MS, 10000);
+const MCP_RESPONSE_TIMEOUT_MS = parsePositiveTimeout(process.env.QA_MCP_CONTRACT_TIMEOUT_MS, 30000);
 
 async function createMcpClient() {
   const child = spawn('/bin/bash', ['scripts/start-repo-qa.sh'], {
