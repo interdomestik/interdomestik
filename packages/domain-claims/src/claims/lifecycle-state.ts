@@ -1,13 +1,13 @@
-import type {
-  ClaimCaseLifecycleState,
-  ClaimRecoveryLifecycleState,
-  ClaimStatus,
-} from '@interdomestik/database/constants';
+import type { CaseLifecycleState } from '@interdomestik/domain-case';
+import type { RecoveryLifecycleState } from '@interdomestik/domain-recovery';
+import type { ClaimStatus } from '@interdomestik/database/constants';
 
 export type ClaimLifecycleStates = {
-  caseLifecycleState: ClaimCaseLifecycleState;
-  recoveryLifecycleState: ClaimRecoveryLifecycleState;
+  caseLifecycleState: CaseLifecycleState;
+  recoveryLifecycleState: RecoveryLifecycleState;
 };
+
+export type { CaseLifecycleState, RecoveryLifecycleState };
 
 export const CLAIM_STATUS_LIFECYCLE_STATE_MAP = {
   draft: { caseLifecycleState: 'draft', recoveryLifecycleState: 'not_started' },
