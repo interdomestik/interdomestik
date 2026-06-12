@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-06-12
+last_reviewed: 2026-06-13
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -24,6 +24,9 @@ status_command: pnpm plan:status
 > Rev 32 (2026-06-12): `OBR-COMMIT` completed as a blocker-record closeout by accepting the owner-dated 2026-06-12 blocker table in `OBR-DG01` as the operating-commitment record. This does not claim counsel completion, commercial validation, paid-acquisition readiness, fee-collection readiness, restore-drill completion, or incident-free operating readiness. No replacement runtime slice is promoted: `T-113` remains blocked on non-promoted `T-108`; `T-204`, `T-208/T-208b`, and `T-209` remain blocked on later structural/M2 work.
 > Rev 33 (2026-06-12): `OBR-DG02` completed in `docs/plans/2026-06-12-obr-dg02-t407-entity-disclosure-promotion.md`. The gate promotes `T-407` as the next bounded runtime architecture slice because it depends only on completed `T-112` and improves legal/entity correctness and public trust by rendering contracting company plus governing law on signup, membership, and invoice surfaces. This does not start `T-108-MIN`, `T-113`, `T-201-MIN`, `T-208/T-208b`, `SVC-CORE-b`, `T-105`, `T-204`, `T-408`, or `T-209`; those remain gated by their recorded prerequisites and the follow-on OBR-DG02 sequence.
 > Rev 34 (2026-06-12): `OBR-DG03` completed in `docs/plans/2026-06-12-obr-dg03-t108-min-promotion.md`. The gate reauthorizes and promotes only `T-108-MIN`, limited to proving `ida.*` as a real no-tenant public context with no tenant cookie and no tenant branding before session context exists. `T-113` is next after `T-108-MIN`; `T-201-MIN`, `T-208/T-208b`, `SVC-CORE-b`, `T-105`, `T-204`, `T-408`, and `T-209` remain gated by their recorded prerequisites and follow-on design gates or blockers.
+> Rev 35 (2026-06-13): `T-108-MIN` completed in PR `#1024` / squash merge `50af5e27`, proving `ida.*` as a real no-tenant public context with no tenant cookie and neutral no-tenant branding. `T-113` became the next governed runtime slice under OBR-DG03.
+> Rev 36 (2026-06-13): `T-113` completed in PR `#1025` / squash merge `d78ebea0`, adding nullable `users.residence_country` with ISO-2 proof and no tenant, host, or legal-entity inference. The next governed action is `OBR-DG04` to decide whether and how to promote `T-201-MIN`.
+> Rev 37 (2026-06-13): `OBR-DG04` completed in `docs/plans/2026-06-13-obr-dg04-t201-min-promotion.md`. The gate reauthorizes and promotes only `T-201-MIN`, limited to the minimum viable `domain-case` / `domain-recovery` package-boundary foundation while keeping the physical `claims` table and existing `domain-claims` compatibility imports intact. `T-208/T-208b`, `SVC-CORE-b`, `T-105`, `T-204`, `T-408`, and `T-209` remain gated by their recorded prerequisites and follow-on design gates or blockers.
 
 ## Active Queue
 
