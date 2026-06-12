@@ -111,6 +111,7 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
         billingTenantId={resolvedBillingTenantId}
         billingTestMode={billingTestMode}
         checkoutConfig={checkoutConfig}
+        entityDisclosure={checkoutConfig?.entityDisclosure ?? null}
       />
 
       <div className="mt-16">

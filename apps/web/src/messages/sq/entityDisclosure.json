@@ -1,0 +1,9 @@
+{
+  "entityDisclosure": {
+    "title": "Subjekti kontraktues",
+    "contractingCompany": "Kompania kontraktuese",
+    "governingLaw": "Ligji i zbatueshëm",
+    "unavailableTitle": "Subjekti kontraktues nuk është i disponueshëm",
+    "unavailableBody": "Nuk mund ta shfaqim kompaninë kontraktuese dhe ligjin e zbatueshëm tani. Kontaktoni mbështetjen para se të vazhdoni."
+  }
+}

@@ -1,8 +1,7 @@
 import { Environment, Paddle } from '@paddle/paddle-node-sdk';
-
+import { getPublicBillingEntityDisclosure } from './paddle-entity-disclosure';
 export type BillingTenantId = 'tenant_ks' | 'tenant_mk' | 'tenant_al';
 export type BillingEntity = 'ks' | 'mk' | 'al';
-
 const LEGACY_PADDLE_API_KEY_ENV = 'PADDLE_API_KEY';
 const LEGACY_PADDLE_WEBHOOK_SECRET_ENV = 'PADDLE_WEBHOOK_SECRET_KEY';
 const DEFAULT_BILLING_ENTITY_ENV = 'PADDLE_DEFAULT_BILLING_ENTITY';
@@ -35,7 +34,6 @@ export type GetPaddleOptions = ResolveBillingEntityConfigOptions & {
 };
 
 export type BillingEntityConfig = {
-  // Sensitive: never log this object directly (contains secrets).
   entity: BillingEntity;
   tenantId: BillingTenantId;
   apiKey: string;
@@ -49,6 +47,7 @@ export type PublicBillingCheckoutConfig = {
   entity: BillingEntity;
   tenantId: BillingTenantId;
   environment: 'sandbox' | 'production';
+  entityDisclosure?: ReturnType<typeof getPublicBillingEntityDisclosure>;
   clientToken: string;
   priceIds: {
     standardYear: string;
@@ -336,6 +335,7 @@ export function getPublicBillingCheckoutConfig(): PublicBillingCheckoutConfig {
     entity,
     tenantId: resolveBillingTenantIdForEntity(entity),
     environment: resolvePublicPaddleEnvironment(),
+    entityDisclosure: getPublicBillingEntityDisclosure(entity),
     clientToken: clientToken as string,
     priceIds: {
       standardYear: standardYear as string,

@@ -1,0 +1,9 @@
+{
+  "entityDisclosure": {
+    "title": "Ugovorni subjekat",
+    "contractingCompany": "Ugovorna kompanija",
+    "governingLaw": "Merodavno pravo",
+    "unavailableTitle": "Ugovorni subjekat nije dostupan",
+    "unavailableBody": "Trenutno ne možemo da prikažemo ugovornu kompaniju i merodavno pravo. Kontaktirajte podršku pre nastavka."
+  }
+}

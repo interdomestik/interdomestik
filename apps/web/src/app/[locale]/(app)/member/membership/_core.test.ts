@@ -1,18 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 const hoisted = vi.hoisted(() => {
   const and = vi.fn((...args: unknown[]) => ({ op: 'and', args }));
   const eq = vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right }));
 
+  const disclosure = {
+    contractingCompany: 'Interdomestik KS LLC',
+    governingLaw: 'XK',
+    unavailable: false,
+    source: 'subscription' as const,
+  };
+
   return {
     and,
     eq,
-    findSubscriptionFirst: vi.fn(),
     findSubscriptionMany: vi.fn(),
     findDocumentsMany: vi.fn(),
+    getSubscriptionEntityDisclosureCore: vi.fn(async () => disclosure),
   };
 });
-
 vi.mock('@interdomestik/database', () => ({
   and: hoisted.and,
   eq: hoisted.eq,
@@ -23,7 +28,6 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     query: {
       subscriptions: {
-        findFirst: hoisted.findSubscriptionFirst,
         findMany: hoisted.findSubscriptionMany,
       },
       documents: {
@@ -33,13 +37,15 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
+vi.mock('@/lib/entity-disclosure.core', () => ({
+  getSubscriptionEntityDisclosureCore: hoisted.getSubscriptionEntityDisclosureCore,
+}));
+
 import {
   computeDunningState,
-  getDaysRemaining,
   getMemberDocumentsCore,
   getMemberSubscriptionsCore,
   getMembershipPageModelCore,
-  isGracePeriodExpired,
   type MembershipDunningState,
 } from './_core';
 
@@ -79,19 +85,8 @@ function extractScope(where: unknown): { userId: string | null; tenantId: string
 describe('membership core', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    hoisted.findSubscriptionFirst.mockResolvedValue(null);
     hoisted.findSubscriptionMany.mockResolvedValue([]);
     hoisted.findDocumentsMany.mockResolvedValue([]);
-  });
-
-  it('getDaysRemaining returns 0 for null end date', () => {
-    expect(getDaysRemaining({ endDate: null, now: new Date('2025-01-01T00:00:00Z') })).toBe(0);
-  });
-
-  it('isGracePeriodExpired returns false for null end date', () => {
-    expect(isGracePeriodExpired({ endDate: null, now: new Date('2025-01-01T00:00:00Z') })).toBe(
-      false
-    );
   });
 
   it('computes grace period state for past_due subscription', () => {

@@ -1,5 +1,11 @@
-import { and, db, eq, membershipPlans, subscriptions } from '@interdomestik/database';
-import type { InferSelectModel } from 'drizzle-orm';
+import { and, db, eq, subscriptions } from '@interdomestik/database';
+import {
+  attachMembershipEntityDisclosure,
+  attachMembershipEntityDisclosures,
+  type SubscriptionRecord,
+} from './_entity-disclosure';
+
+export type { SubscriptionRecord } from './_entity-disclosure';
 
 export type MembershipDunningState = {
   isPastDue: boolean;
@@ -31,7 +37,9 @@ export async function getMembershipPageModelCore(args: {
       })
     : null;
 
-  const subscription = subscriptionResult?.[0] ?? null;
+  const subscription = subscriptionResult?.[0]
+    ? await attachMembershipEntityDisclosure(subscriptionResult[0])
+    : null;
 
   return {
     subscription,
@@ -50,13 +58,15 @@ export async function getMemberSubscriptionsCore(args: {
     return [];
   }
 
-  return db.query.subscriptions.findMany({
+  const records = await db.query.subscriptions.findMany({
     where: and(eq(subscriptions.userId, args.userId), eq(subscriptions.tenantId, args.tenantId)),
     with: {
       plan: true,
     },
     orderBy: (subscriptions, { desc }) => [desc(subscriptions.createdAt)],
   });
+
+  return attachMembershipEntityDisclosures(records);
 }
 
 export function computeDunningState(args: {
@@ -99,17 +109,8 @@ export function isGracePeriodExpired(args: { endDate: Date | null; now?: Date })
   return now.getTime() > endDate.getTime();
 }
 
-export type SubscriptionRecord = InferSelectModel<typeof subscriptions> & {
-  plan: InferSelectModel<typeof membershipPlans> | null;
-};
-
-type SubscriptionDunningInput =
-  | {
-      status?: string | null;
-      gracePeriodEndsAt?: Date | null;
-    }
-  | null
-  | undefined;
+type SubscriptionDunningInput = DunningSubscription | null | undefined;
+type DunningSubscription = { status?: string | null; gracePeriodEndsAt?: Date | null };
 
 export async function getMemberDocumentsCore(args: {
   userId: string;

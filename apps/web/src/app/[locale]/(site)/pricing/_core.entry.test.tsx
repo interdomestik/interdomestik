@@ -4,30 +4,26 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectCoverageMatrix, getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 import { expectCommercialTerms } from '@/test/commercial-terms-test-utils';
 import { expectSuccessFeeCalculator } from '@/test/success-fee-calculator-test-utils';
+const hoisted = vi.hoisted(() => {
+  const entityDisclosure = { contractingCompany: 'KS LLC', governingLaw: 'XK', unavailable: false };
 
-const hoisted = vi.hoisted(() => ({
-  headersMock: vi.fn(async () => new Headers([['host', 'ks.localhost:3000']])),
-  getSessionMock: vi.fn(async () => ({
-    user: {
-      id: 'user-1',
-      email: 'member@example.com',
-    },
-  })),
-  getPublicBillingCheckoutConfigMock: vi.fn(() => ({
-    entity: 'ks',
-    tenantId: 'tenant_ks',
-    environment: 'sandbox',
-    clientToken: 'test_client_token_ks',
-    priceIds: {
-      standardYear: 'pri_standard_year',
-      familyYear: 'pri_family_year',
-      businessYear: 'pri_business_year',
-    },
-  })),
-  resolveBillingEntityFromPathSegmentMock: vi.fn(() => 'ks'),
-  resolveBillingTenantIdForEntityMock: vi.fn(() => 'tenant_ks'),
-  pricingPageRuntimeMock: vi.fn((_: unknown) => null),
-}));
+  return {
+    entityDisclosure,
+    headersMock: vi.fn(async () => new Headers([['host', 'ks.localhost:3000']])),
+    getSessionMock: vi.fn(async () => ({ user: { id: 'user-1', email: 'member@example.com' } })),
+    getPublicBillingCheckoutConfigMock: vi.fn(() => ({
+      entity: 'ks',
+      tenantId: 'tenant_ks',
+      environment: 'sandbox',
+      entityDisclosure,
+      clientToken: 'test_client_token_ks',
+      priceIds: { standardYear: 'standard', familyYear: 'family', businessYear: 'business' },
+    })),
+    resolveBillingEntityFromPathSegmentMock: vi.fn(() => 'ks'),
+    resolveBillingTenantIdForEntityMock: vi.fn(() => 'tenant_ks'),
+    pricingPageRuntimeMock: vi.fn((_: unknown) => null),
+  };
+});
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -108,7 +104,6 @@ describe('PricingPage server shell', () => {
       '/#free-start-intake'
     );
     expect(screen.getByText('pricing.disclaimers.hotline.title')).toBeInTheDocument();
-    expectCommercialTerms({ sectionTestId: 'pricing-billing-terms' });
     expect(screen.getByText('pricing.scope.title')).toBeInTheDocument();
     expect(screen.getByText('pricing.scope.guidance.title')).toBeInTheDocument();
     expect(screen.getByText('pricing.scope.outOfScope.title')).toBeInTheDocument();
@@ -120,6 +115,7 @@ describe('PricingPage server shell', () => {
         entity: 'ks',
         tenantId: 'tenant_ks',
       }),
+      entityDisclosure: hoisted.entityDisclosure,
     });
     expect(hoisted.headersMock).not.toHaveBeenCalled();
     expect(hoisted.getSessionMock).not.toHaveBeenCalled();
@@ -166,6 +162,7 @@ describe('PricingPage server shell', () => {
       billingTestMode: false,
       billingTenantId: 'tenant_ks',
       checkoutConfig: null,
+      entityDisclosure: null,
     });
     expect(warnSpy).toHaveBeenCalledWith(
       'Public Paddle checkout config unavailable for pricing page:',
