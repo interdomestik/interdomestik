@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-06-11
+last_reviewed: 2026-06-12
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -30,6 +30,13 @@ through PR `#1006` / squash merge
 adapter, bounded evidence packets, sequential reviewer-waterfall evidence, safe
 PR feedback remediation, and `pr:verify` coverage of the PR E2E lane without
 changing the next promoted runtime slice.
+
+Rev 26 closeout: Golden Loop validation `T-401` completed in PR `#1010` /
+squash merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
+`grace_period` membership-card lockout. The run confirmed PR monitoring must
+check CI, Sonar issues/hotspots, and Copilot/reviewer threads together before
+auto-merge. `ARCH-M1-13` / `T-104d` remains next unless Golden Loop validation
+continues with another small slice.
 
 ## Forward Architecture Roadmap & Downstream Programs
 
