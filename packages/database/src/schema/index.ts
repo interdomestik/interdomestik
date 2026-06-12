@@ -20,6 +20,7 @@ export * from './documents';
 export * from './domain-event-deliveries';
 export * from './domain-event-keys';
 export * from './domain-events';
+export * from './event-pii-references';
 export * from './leads';
 export * from './member-counters';
 export * from './memberships';

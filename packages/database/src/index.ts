@@ -18,6 +18,15 @@ export {
   type MarkSubjectErasedParams,
 } from './domain-event-erasure';
 export {
+  createEventPiiReference,
+  type CreateEventPiiReferenceParams,
+  type CreateEventPiiReferenceResult,
+  type DomainEventPiiTx,
+  readEventPiiReference,
+  type ReadEventPiiReferenceParams,
+  type ReadEventPiiReferenceResult,
+} from './domain-event-pii';
+export {
   domainEventDeliveryIdempotencyKey,
   recordDomainEventDelivery,
   relayDomainEvents,
