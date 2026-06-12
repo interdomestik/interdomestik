@@ -21,7 +21,7 @@ function timestamp() {
 }
 
 function commandAvailable(command) {
-  return spawnSync('/bin/sh', ['-lc', `command -v ${command}`], {
+  return spawnSync('/bin/sh', ['-c', `command -v ${command}`], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   });

@@ -2,8 +2,8 @@ import { routing } from '@/i18n/routing';
 import { isStaffAuthTolerantTenant } from '@/lib/feature-flags';
 import { isE2EDiagnosticsEnabled, isProductionDeployment } from '@/lib/runtime-environment';
 import { emitAuthTelemetryEvent } from '@/lib/telemetry';
+import { resolveTenantHostContext } from '@/lib/tenant/tenant-front-door';
 import { applyTenantCookie } from '@/lib/tenant/tenant-cookie';
-import { resolveTenantFromHost as resolveTenantFromCanonicalHost } from '@/lib/tenant/tenant-hosts';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   buildReportOnlyCsp,
@@ -105,19 +105,6 @@ function applyResponseHardening(
   }
 
   return response;
-}
-
-function resolveTenantFromHost(
-  host: string
-): 'tenant_mk' | 'tenant_ks' | 'tenant_al' | 'pilot-mk' | null {
-  const canonicalTenant = resolveTenantFromCanonicalHost(host);
-  if (canonicalTenant) return canonicalTenant;
-
-  const raw = host.split(':')[0].toLowerCase();
-  if (raw.startsWith('pilot.')) return 'pilot-mk';
-  if (raw.includes('pilot.127.0.0.1.nip.io')) return 'pilot-mk';
-
-  return null;
 }
 
 function getSessionCookieValue(request: NextRequest): string | null {
@@ -434,7 +421,8 @@ function redirectToLogin(
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
   const host = request.headers.get('host') ?? '';
-  const tenant = resolveTenantFromHost(host);
+  const tenantContext = resolveTenantHostContext(host);
+  const tenant = tenantContext.tenantId;
 
   // 1. Force nip.io in Dev (Optional, if env var set)
   // Logic simplified/removed to prevent loops - rely on manual access for now
@@ -492,6 +480,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
   if (isE2EDiagnosticsEnabled()) {
     response.headers.set('x-e2e-tenant', tenant ?? 'none');
+    response.headers.set('x-e2e-tenant-context', tenantContext.kind);
     response.headers.set('x-e2e-host', host);
   }
 
