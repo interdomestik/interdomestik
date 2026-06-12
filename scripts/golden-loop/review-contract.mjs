@@ -6,51 +6,15 @@
 const MIN_VALID_CHARS = 200;
 const VERDICTS = ['READY AFTER FIXES', 'BLOCKED', 'READY']; // longest-prefix first
 const REFUSAL_PHRASES = [
-  'i cannot help',
   "i can't help",
-  'i cannot assist',
   "i can't assist",
+  'i cannot help',
+  'i cannot assist',
   'unable to help',
   'unable to review',
   'i must decline',
   'cannot comply',
 ];
-
-function linesOf(output) {
-  return output.split('\n').map(line => (line.endsWith('\r') ? line.slice(0, -1) : line));
-}
-
-function fieldValue(output, label) {
-  const prefix = `${label}:`;
-  for (const line of linesOf(output)) {
-    const trimmed = line.trimStart();
-    if (trimmed.toUpperCase().startsWith(prefix)) return trimmed.slice(prefix.length).trim();
-  }
-  return null;
-}
-
-function hasSection(output, label) {
-  return linesOf(output).some(line => line.trim().toUpperCase() === `${label}:`);
-}
-
-function withoutListPrefix(line) {
-  const trimmed = line.trimStart();
-  let index = 0;
-  while (index < trimmed.length && trimmed[index] >= '0' && trimmed[index] <= '9') index += 1;
-  if (index === 0) return trimmed;
-  const marker = trimmed[index];
-  if ((marker === '.' || marker === ')') && trimmed[index + 1] === ' ') {
-    return trimmed.slice(index + 2).trimStart();
-  }
-  return trimmed;
-}
-
-function hasBlockerFinding(output) {
-  return linesOf(output).some(line => {
-    const upper = withoutListPrefix(line).toUpperCase();
-    return upper.startsWith('BLOCKER:') || upper.startsWith('BLOCKER -');
-  });
-}
 
 export function buildContractPreamble(sliceId) {
   return [
@@ -66,18 +30,41 @@ export function buildContractPreamble(sliceId) {
 }
 
 export function parseReviewContract(output) {
-  const verdictRaw = (fieldValue(output, 'VERDICT') || '').toUpperCase();
+  const fields = new Map();
+  for (const line of output.split('\n')) {
+    const colon = line.indexOf(':');
+    if (colon <= 0) continue;
+    fields.set(line.slice(0, colon).trim().toUpperCase(), line.slice(colon + 1).trim());
+  }
+  const field = label => fields.get(label) || null;
+  const verdictRaw = (field('VERDICT') || '').toUpperCase();
   return {
-    reviewer: fieldValue(output, 'REVIEWER'),
-    slice: fieldValue(output, 'SLICE'),
-    scope: fieldValue(output, 'SCOPE'),
-    hasFindings: hasSection(output, 'FINDINGS'),
+    reviewer: field('REVIEWER'),
+    slice: field('SLICE'),
+    scope: field('SCOPE'),
+    hasFindings: fields.has('FINDINGS'),
     verdict: VERDICTS.find(verdict => verdictRaw.startsWith(verdict)) || null,
   };
 }
 
+function hasBlockerFinding(output) {
+  for (const line of output.split('\n')) {
+    let afterNumber = line.trimStart();
+    let index = 0;
+    while (index < afterNumber.length && afterNumber[index] >= '0' && afterNumber[index] <= '9') {
+      index += 1;
+    }
+    if (index > 0 && ['.', ')'].includes(afterNumber[index])) {
+      afterNumber = afterNumber.slice(index + 1).trimStart();
+    }
+    if (afterNumber.startsWith('BLOCKER:') || afterNumber.startsWith('BLOCKER-')) return true;
+  }
+  return false;
+}
+
 export function classifyReview(execResult, context = {}) {
   if (execResult.unavailable) return { status: 'unavailable', reason: execResult.reason };
+  if (execResult.blocked) return { status: 'blocked', reason: execResult.reason };
   if (execResult.exitCode !== 0) {
     return {
       status: 'error',

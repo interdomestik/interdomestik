@@ -11,6 +11,11 @@ import fs from 'node:fs';
 import process from 'node:process';
 import { safeJoin, safeName, safeReadText, safeRoot } from './safe-paths.mjs';
 
+function argValue(args, name, fallback = '') {
+  const index = args.indexOf(name);
+  return index >= 0 && args[index + 1] ? args[index + 1] : fallback;
+}
+
 function gateCommand(gate) {
   if (gate === 'docs-verify') return ['pnpm', ['docs:verify']];
   if (gate === 'modularity') return ['pnpm', ['check:modularity-guard']];
@@ -19,11 +24,6 @@ function gateCommand(gate) {
   if (gate === 'security-guard') return ['pnpm', ['security:guard']];
   if (gate === 'track-audit') return ['pnpm', ['track:audit']];
   return null;
-}
-
-function argValue(args, name, fallback = '') {
-  const index = args.indexOf(name);
-  return index >= 0 && args[index + 1] ? args[index + 1] : fallback;
 }
 
 export function parseByteBudget(raw) {
@@ -67,19 +67,13 @@ export function buildPacket({ name, source, output, exitCode, byteBudget }) {
 
 export function writePacket(root, sliceId, packet) {
   const dir = safeJoin(root, safeName(sliceId, 'slice'), 'evidence');
-
-  // codeql[js/path-injection] evidence dir is constrained by safeRoot/safeName/safeJoin.
   fs.mkdirSync(dir, { recursive: true });
   const packetName = safeName(packet.name.replace(/[^\w.-]+/g, '_'), 'packet name');
   const file = safeJoin(dir, `${packetName}.packet.json`);
-
-  // codeql[js/path-injection] packet path is constrained by safeRoot/safeName/safeJoin.
   fs.writeFileSync(file, `${JSON.stringify(packet, null, 2)}\n`);
   const index = safeJoin(dir, 'index.jsonl');
   const summary = { ...packet };
   delete summary.output;
-
-  // codeql[js/path-injection] evidence index path is constrained by safeRoot/safeName/safeJoin.
   fs.appendFileSync(index, `${JSON.stringify({ ...summary, file })}\n`);
   return file;
 }
@@ -104,9 +98,9 @@ function main() {
   if (gate) {
     const commandSpec = gateCommand(gate);
     if (!commandSpec) throw new Error(`unknown evidence gate: ${gate}`);
-    const [command, commandArgs] = commandSpec;
-    source = `${command} ${commandArgs.join(' ')}`;
-    const result = spawnSync(command, commandArgs, {
+    const [gateBin, gateArgs] = commandSpec;
+    source = `${gateBin} ${gateArgs.join(' ')}`;
+    const result = spawnSync(gateBin, gateArgs, {
       encoding: 'utf8',
       maxBuffer: 64 * 1024 * 1024,
       shell: false,

@@ -28,7 +28,7 @@ function collectRequired(schema, prefix, out) {
 }
 
 function getPath(object, dottedPath) {
-  return dottedPath.split('.').reduce((value, key) => value?.[key], object);
+  return dottedPath.split('.').reduce((value, key) => (value == null ? value : value[key]), object);
 }
 
 export function validateAdapter(adapter, schema) {
@@ -56,39 +56,45 @@ export function validateAdapter(adapter, schema) {
   return errors;
 }
 
-function adapterRoot(adapter) {
-  // Fall back to cwd when the declared repoRoot is not visible (e.g. relocated checkouts).
-  return fs.existsSync(adapter.repoRoot) ? adapter.repoRoot : process.cwd();
+function resolveExistingRoot(repoRoot) {
+  return fs.existsSync(repoRoot) ? repoRoot : process.cwd();
 }
 
-function resolveFrom(root, candidate) {
-  return path.isAbsolute(candidate) ? candidate : path.join(root, candidate);
+function referencedCandidates(adapter) {
+  return [...(adapter.canonicalTrackers?.files || []), ...(adapter.protectedPaths || [])];
 }
 
-function referencedPathWarnings(adapter, root) {
-  const candidates = [
-    ...(adapter.canonicalTrackers?.files || []),
-    ...(adapter.protectedPaths || []),
-  ];
-  return candidates
-    .filter(candidate => typeof candidate === 'string')
-    .filter(candidate => !candidate.startsWith('user ') && !candidate.includes(' '))
-    .filter(candidate => !fs.existsSync(resolveFrom(root, candidate)))
-    .map(candidate => `referenced path not found: ${candidate}`);
+function checkCandidatePath(root, candidate, warnings) {
+  if (typeof candidate !== 'string') {
+    warnings.push('referenced path is not a string');
+    return;
+  }
+  if (candidate.startsWith('user ') || candidate.includes(' ')) return;
+  const resolved = path.isAbsolute(candidate) ? candidate : path.join(root, candidate);
+  if (!fs.existsSync(resolved)) warnings.push(`referenced path not found: ${candidate}`);
 }
 
-function skillPathWarnings(adapter, root) {
-  return (adapter.skillAuthorityPaths || [])
-    .filter(entry => typeof entry?.path === 'string')
-    .filter(entry => !fs.existsSync(resolveFrom(root, entry.path)))
-    .map(
-      entry => `skill authority path not found${entry.optional ? ' (optional)' : ''}: ${entry.path}`
-    );
+function checkSkillPath(root, entry, warnings) {
+  if (!entry || typeof entry !== 'object' || typeof entry.path !== 'string') {
+    warnings.push('skill authority entry is malformed');
+    return;
+  }
+  const resolved = path.isAbsolute(entry.path) ? entry.path : path.join(root, entry.path);
+  if (!fs.existsSync(resolved) && !entry.optional) {
+    warnings.push(`skill authority path not found: ${entry.path}`);
+  }
 }
 
 export function checkReferencedFiles(adapter) {
-  const root = adapterRoot(adapter);
-  return [...referencedPathWarnings(adapter, root), ...skillPathWarnings(adapter, root)];
+  const warnings = [];
+  // Fall back to cwd when the declared repoRoot is not visible (e.g. sandboxed
+  // or relocated checkouts) so reference checks stay meaningful everywhere.
+  const root = resolveExistingRoot(adapter.repoRoot);
+  for (const candidate of referencedCandidates(adapter)) checkCandidatePath(root, candidate, warnings);
+  for (const entry of adapter.skillAuthorityPaths || []) {
+    checkSkillPath(root, entry, warnings);
+  }
+  return warnings;
 }
 
 function main() {

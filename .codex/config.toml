@@ -19,24 +19,19 @@ sandbox_mode = "workspace-write"
 url = "https://developers.openai.com/mcp"
 
 [mcp_servers.context7]
-command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
+command = "/bin/bash"
+args = ["-lc", "PATH=\"$HOME/.npm-global/bin:$HOME/Library/pnpm/nodejs/24.15.0/bin:$HOME/.nvm/versions/node/v24.15.0/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\" exec npx -y @upstash/context7-mcp"]
 
 [mcp_servers.playwright]
-command = "npx"
+command = "/bin/bash"
 args = [
-  "-y",
-  "@playwright/mcp",
-  "--sandbox",
-  "--user-data-dir",
-  "/tmp/interdomestik-pilot-evidence/playwright-mcp-profile",
-  "--output-dir",
-  "/tmp/interdomestik-pilot-evidence/playwright-mcp-output",
+  "-lc",
+  "PATH=\"$HOME/.npm-global/bin:$HOME/Library/pnpm/nodejs/24.15.0/bin:$HOME/.nvm/versions/node/v24.15.0/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\" exec npx -y @playwright/mcp --sandbox --user-data-dir /tmp/interdomestik-pilot-evidence/playwright-mcp-profile --output-dir /tmp/interdomestik-pilot-evidence/playwright-mcp-output",
 ]
 
 [mcp_servers.interdomestik_qa]
 command = "/bin/bash"
-args = ["/Users/arbenlila/development/interdomestik-crystal-home/scripts/start-repo-qa.sh"]
+args = ["scripts/start-repo-qa.sh"]
 env = { MCP_ENABLED_TOOLS = "project_map, read_files, read_file_range, code_search, git_status_compact, git_branch_info, changed_files, scope_audit, check_health, pr_verify, security_guard, e2e_gate" }
 
 [roles.scribe]

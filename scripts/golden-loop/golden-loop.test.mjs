@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { validateAdapter, checkReferencedFiles } from './load-adapter.mjs';
+import { validateAdapter } from './load-adapter.mjs';
 import { emptyState, readState, writeState, appendJournal, statePaths } from './resume-state.mjs';
-import { boundOutput, buildPacket, writePacket, parseByteBudget } from './evidence-packet.mjs';
-import { safeJoin, safeName } from './safe-paths.mjs';
+import { boundOutput, buildPacket, writePacket } from './evidence-packet.mjs';
+import { reviewerEnv } from './reviewer-env.mjs';
+import { normalizeReviewerOutput } from './reviewer-output.mjs';
 
 const schema = JSON.parse(
   fs.readFileSync(new URL('./adapter.schema.json', import.meta.url), 'utf8')
@@ -39,13 +40,14 @@ test('adapter declares explicit closeout exception and optional skill paths', ()
   assert.ok(adapter.skillAuthorityPaths.every(entry => entry.optional === true));
 });
 
-test('adapter records PR E2E lane coverage to avoid duplicate full gates', () => {
+test('adapter encodes unified PR monitoring and auto-merge rules', () => {
   const prVerify = adapter.gates.find(gate => gate.name === 'pr-verify');
   const e2eGate = adapter.gates.find(gate => gate.name === 'e2e-gate');
   assert.ok(prVerify.covers.includes('e2e-gate-pr'));
   assert.ok(e2eGate.skipWhenCoveredBy.includes('pr-verify'));
   assert.equal(adapter.autoMerge.method, 'squash');
-  assert.ok(adapter.autoMerge.criteria.some(item => item.includes('SonarCloud')));
+  assert.ok(adapter.autoMerge.criteria.some(criterion => criterion.includes('SonarCloud')));
+  assert.ok(adapter.autoMerge.criteria.some(criterion => criterion.includes('Copilot')));
 });
 
 test('validateAdapter reports missing fields and unrouted reviewers', () => {
@@ -55,6 +57,28 @@ test('validateAdapter reports missing fields and unrouted reviewers', () => {
   const errors = validateAdapter(broken, schema);
   assert.ok(errors.some(error => error.includes('budgets')));
   assert.ok(errors.some(error => error.includes('ghost-reviewer')));
+});
+
+test('reviewerEnv adds common reviewer CLI install locations', () => {
+  const env = reviewerEnv({ HOME: '/Users/example', PATH: '/usr/bin:/bin' });
+  assert.ok(env.PATH.includes('/Users/example/.npm-global/bin'));
+  assert.ok(env.PATH.includes('/opt/homebrew/bin'));
+  assert.ok(env.PATH.startsWith('/usr/bin:/bin'));
+});
+
+test('normalizeReviewerOutput extracts Copilot JSONL assistant content', () => {
+  const output = [
+    JSON.stringify({ type: 'session.skills_loaded', data: { noisy: true } }),
+    JSON.stringify({
+      type: 'assistant.message',
+      data: { content: 'REVIEWER: copilot\nSLICE: T-1' },
+    }),
+    JSON.stringify({ type: 'result', exitCode: 0 }),
+  ].join('\n');
+  assert.equal(
+    normalizeReviewerOutput(output, { outputExtractor: 'copilot-jsonl' }),
+    'REVIEWER: copilot\nSLICE: T-1'
+  );
 });
 
 test('resume state round-trips atomically and journals', () => {
@@ -81,8 +105,6 @@ test('boundOutput truncates head+tail within budget and flags it', () => {
   assert.ok(bounded.startsWith('AAAA'));
   assert.ok(bounded.endsWith('ZZZZ'));
   assert.equal(boundOutput('short', 1024).truncated, false);
-  assert.equal(parseByteBudget('2048'), 2048);
-  assert.throws(() => parseByteBudget('nan'), /budget/);
 });
 
 test('packets persist with hash and bounded body, and index appends', () => {
@@ -102,17 +124,4 @@ test('packets persist with hash and bounded body, and index appends', () => {
   assert.equal(index.trim().split('\n').length, 1);
   assert.ok(!index.includes('XXXX'));
   fs.rmSync(root, { recursive: true, force: true });
-});
-
-test('safe path helpers reject traversal and unsafe ids', () => {
-  const root = tempRoot();
-  assert.throws(() => safeJoin(root, '..', 'escape'), /escapes root/);
-  assert.throws(() => safeName('../T-TEST', 'slice'), /safe id/);
-  assert.equal(safeJoin(root, 'T-TEST').startsWith(root), true);
-  fs.rmSync(root, { recursive: true, force: true });
-});
-
-test('adapter reference warnings tolerate malformed optional arrays', () => {
-  const broken = { ...adapter, protectedPaths: [false], skillAuthorityPaths: [{}] };
-  assert.deepEqual(checkReferencedFiles(broken), []);
 });

@@ -63,24 +63,41 @@
   "reviewerWaterfall": {
     "order": ["fable", "codex", "sonnet", "copilot"],
     "routes": {
-      "fable": { "command": "claude", "args": ["-p", "{prompt}", "--model", "claude-fable-5"] },
-      "codex": { "command": "codex", "args": ["exec", "--model", "gpt-5.5", "{prompt}"] },
+      "fable": {
+        "command": "claude",
+        "stdinPrompt": true,
+        "args": ["-p", "--model", "claude-fable-5", "--tools", "", "--no-session-persistence"]
+      },
+      "codex": {
+        "command": "codex",
+        "args": ["exec", "--ignore-user-config", "--model", "gpt-5.5", "{prompt}"]
+      },
       "sonnet": {
         "command": "claude",
-        "args": ["-p", "{prompt}", "--model", "claude-sonnet-4-6"]
+        "stdinPrompt": true,
+        "args": ["-p", "--model", "claude-sonnet-4-6", "--tools", "", "--no-session-persistence"]
       },
       "copilot": {
         "command": "copilot",
+        "outputExtractor": "copilot-jsonl",
         "args": ["--model", "claude-sonnet-4.6", "-p", "{prompt}"]
       }
     },
-    "fallbackTriggers": ["unavailable", "error", "refused", "invalid", "unresolved-blockers"],
+    "fallbackTriggers": [
+      "unavailable",
+      "blocked",
+      "error",
+      "refused",
+      "invalid",
+      "unresolved-blockers"
+    ],
     "refusalIsBlocker": false
   },
   "budgets": {
     "maxModelCalls": 8,
     "maxGitRemoteCalls": 6,
     "maxFullGateRuns": 2,
+    "maxReviewerRouteMinutes": 5,
     "prPollIntervalMinutes": 5
   },
   "branching": { "base": "main", "prefix": "codex/", "requireCleanBase": true },

@@ -21,7 +21,7 @@ test('project-scoped Codex config registers the repo MCP servers Interdomestik d
   assert.match(configToml, /\[mcp_servers\.interdomestik_qa\]/);
 
   assert.match(configToml, /url = "https:\/\/developers\.openai\.com\/mcp"/);
-  assert.match(configToml, /command = "npx"/);
+  assert.match(configToml, /exec npx -y/);
   assert.match(configToml, /@upstash\/context7-mcp/);
   assert.match(configToml, /@playwright\/mcp/);
   assert.match(configToml, new RegExp(`evidence_root = "${interdomestikEvidenceRoot}"`));
@@ -31,8 +31,7 @@ test('project-scoped Codex config registers the repo MCP servers Interdomestik d
   assert.match(configToml, /--output-dir/);
   assert.match(configToml, new RegExp(`${interdomestikEvidenceRoot}/playwright-mcp-output`));
   assert.match(configToml, /command = "\/bin\/bash"/);
-  assert.match(configToml, /\/Users\/arbenlila\/development\/interdomestik-crystal-home\/scripts\/start-repo-qa\.sh/);
-  // Replaced relative path with absolute path in config.toml
+  assert.match(configToml, /args = \["scripts\/start-repo-qa\.sh"\]/);
   assert.match(configToml, /project_map/);
   assert.match(configToml, /read_file_range/);
   assert.match(configToml, /git_status_compact/);
