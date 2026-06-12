@@ -15,6 +15,19 @@ status_command: pnpm plan:status
 
 ## Active Architecture Finalization Authority
 
+Operating-Business Readiness selection rule (effective 2026-06-12, expires
+2026-09-10). Until expiry, a slice may be promoted into the active queue only if
+its primary acceptance criterion directly improves one of: legal/entity
+correctness, billing/revenue correctness, claim/recovery safety, tenant/privacy
+safety, auditability, public trust/pricing clarity, or commercial KPI evidence.
+Eligible architecture tasks: `T-113`, `T-208/T-208b`, `T-209`, `T-204`,
+`T-104d/f/g/h`, `T-401`, `T-407`, `T-408`, and their ADRs. Not promotable
+without explicit re-authorization via design gate: `T-201/T-202`, M3, M5,
+ida-host (`T-108/109/110/114`), AI posture chain, M1 UI/UX overhaul, WS-F/G/H,
+OMG, DOM, CRM expansion, and any slice whose acceptance criterion is structural
+(boundaries, moves, modularity) rather than behavioral. "Reduces spaghetti" and
+"supports the wedge" are not selection arguments.
+
 Effective 2026-05-31, the active execution authority is extended by `docs/plans/architecture-finalization-program-2026-05-29.md`. That document is now the canonical new-architecture program for the M0→M5 path: M0 guardrails, M1 ida-first foundation and event/outbox schema, M2 case/recovery split, M3 tenant-context/RLS migration, M4 product-model hardening, and M5 live cutover.
 
 The historical phase queue below remains the evidence ledger for completed Phase C work. New product expansion such as `IDA-MH03` is paused behind the architecture-finalization tracker unless explicitly re-promoted after the architecture spine is stable.
