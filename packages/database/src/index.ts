@@ -18,6 +18,16 @@ export {
   type MarkSubjectErasedParams,
 } from './domain-event-erasure';
 export {
+  ERASURE_REDACTED_VALUE,
+  ERASURE_RENDER_STORES,
+  redactAuditMetadataForErasure,
+  renderClaimDocumentForErasedSubject,
+  renderClaimForErasedSubject,
+  renderMemberNoteForErasedSubject,
+  renderTimelineEventAfterErasure,
+  type ErasureRenderStore,
+} from './domain-event-erasure-render';
+export {
   createEventPiiReference,
   type CreateEventPiiReferenceParams,
   type CreateEventPiiReferenceResult,
