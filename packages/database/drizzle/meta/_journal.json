@@ -568,6 +568,13 @@
       "when": 1781222400000,
       "tag": "0080_event_pii_references",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1781296139304,
+      "tag": "0081_user_residence_country",
+      "breakpoints": true
     }
   ]
 }
