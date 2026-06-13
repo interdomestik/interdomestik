@@ -28,7 +28,7 @@ import {
   buildRecoveryDecisionSnapshot,
   getRecoveryDeclineMemberDescription,
 } from './recovery-decision';
-import { upsertRecoveryDecisionRecord } from './save-recovery-decision';
+import { upsertRecoveryDecisionRecord } from './recovery-decision-record';
 import {
   buildScopedStaffClaimWhere,
   resolveScopedStaffClaimAccess,
