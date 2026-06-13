@@ -17,7 +17,7 @@ superseded_by:
 
 Interdomestik now has enterprise-grade repository governance for bounded Phase C delivery:
 canonical program/tracker authority, protected routing constraints, required CI/security gates,
-PR finalization, repo-size budgets, Copilot/Sonar disposition, and post-merge Notion sync.
+PR finalization, repo-size budgets, Sonar disposition, and post-merge Notion sync.
 
 That is not the same as full enterprise production readiness. The product/platform still needs
 evidence for operational recovery, exercised incident handling, formal threat modeling,

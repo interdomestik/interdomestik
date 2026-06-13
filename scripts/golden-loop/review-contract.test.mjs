@@ -27,7 +27,7 @@ function makeExecutor(calls, outputs) {
 
 function contractReview({ slice = SLICE, verdict = 'READY', findings = '1. Nit: naming.' } = {}) {
   return [
-    'REVIEWER: claude-fable-5',
+    'REVIEWER: claude-sonnet-4-6',
     `SLICE: ${slice}`,
     'SCOPE: packages/domain-claims transition module; evidence packet review-input',
     'FINDINGS:',
@@ -85,10 +85,7 @@ test('only a full-contract READY review classifies as completed', () => {
 test('waterfall short-circuits at first contract-valid READY review', async () => {
   const calls = [];
   const outputs = {
-    fable: { unavailable: true, reason: 'not on PATH', exitCode: -1, output: '' },
-    codex: { exitCode: 0, output: contractReview({ verdict: 'BLOCKED' }) },
     sonnet: { exitCode: 0, output: contractReview() },
-    copilot: { exitCode: 0, output: contractReview() },
   };
   const { results, winner } = await runWaterfall(
     adapter.reviewerWaterfall.order,
@@ -97,37 +94,37 @@ test('waterfall short-circuits at first contract-valid READY review', async () =
     makeExecutor(calls, outputs),
     { sliceId: SLICE }
   );
-  assert.deepEqual(calls, ['fable', 'codex', 'sonnet']);
+  assert.deepEqual(calls, ['sonnet']);
   assert.equal(winner.reviewer, 'sonnet');
   assert.deepEqual(
     results.map(result => result.status),
-    ['unavailable', 'unresolved-blockers', 'completed']
+    ['completed']
   );
   assert.ok(results.every(result => result.startedAt && result.completedAt));
   assert.ok(results.every(result => Number.isInteger(result.durationMs)));
 });
-test('waterfall falls through a blocked reviewer route', async () => {
+test('fable escalation runs only when explicitly included in order', async () => {
   const calls = [];
   const outputs = {
-    fable: { blocked: true, reason: 'route timed out after 300s' },
-    codex: { exitCode: 0, output: contractReview() },
-    sonnet: { exitCode: 0, output: contractReview() },
-    copilot: { exitCode: 0, output: contractReview() },
+    sonnet: { exitCode: 0, output: contractReview({ verdict: 'BLOCKED' }) },
+    fable: {
+      exitCode: 0,
+      output: contractReview().replace('claude-sonnet-4-6', 'claude-fable-5'),
+    },
   };
   const { results, winner } = await runWaterfall(
-    adapter.reviewerWaterfall.order,
+    ['sonnet', 'fable'],
     adapter.reviewerWaterfall.routes,
     'prompt',
     makeExecutor(calls, outputs),
     { sliceId: SLICE }
   );
-  assert.deepEqual(calls, ['fable', 'codex']);
-  assert.equal(winner.reviewer, 'codex');
+  assert.deepEqual(calls, ['sonnet', 'fable']);
+  assert.equal(winner.reviewer, 'fable');
   assert.deepEqual(
     results.map(result => result.status),
-    ['blocked', 'completed']
+    ['unresolved-blockers', 'completed']
   );
-  assert.ok(results.every(result => result.timeoutMs === null));
 });
 
 test('dry-run probes every route and can never produce a winner', async () => {

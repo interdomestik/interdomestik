@@ -1,3 +1,5 @@
+import type { LawPack } from './law-pack-schema';
+
 export const RECOVERY_LAW_FIELD = 'claims.recovery_law' as const;
 export const RECOVERY_LEGAL_TENANT_FIELD = 'claims.recovery_legal_tenant_id' as const;
 
@@ -125,5 +127,14 @@ export function recoveryLawClaimValues(resolution: RecoveryLawResolution): Recov
   return {
     recoveryLaw: resolution.recoveryLaw,
     recoveryLegalTenantId: resolution.recoveryLegalTenantId,
+  };
+}
+
+export function recoveryJurisdictionFromLawPack(lawPack: LawPack): RecoveryJurisdictionConfig {
+  return {
+    incidentCountryCode: lawPack.countryCode,
+    recoveryLaw: lawPack.recoveryLaw,
+    recoveryLegalTenantId: lawPack.recoveryLegalTenantId,
+    regulatedActivityNoteRequired: lawPack.regulatedActivityNoteRequired,
   };
 }

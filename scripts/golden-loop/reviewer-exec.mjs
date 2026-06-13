@@ -3,21 +3,9 @@ import { reviewerEnv } from './reviewer-env.mjs';
 import { normalizeReviewerOutput } from './reviewer-output.mjs';
 
 const OUTPUT_LIMIT = 16 * 1024 * 1024;
-const COPILOT_JSON_FLAGS = [
-  '--disable-builtin-mcps',
-  '--no-custom-instructions',
-  '--no-color',
-  '--silent',
-  '--stream',
-  'off',
-  '--output-format',
-  'json',
-];
 
 function reviewerCommand(name) {
   if (name === 'claude') return 'claude';
-  if (name === 'codex') return 'codex';
-  if (name === 'copilot') return 'copilot';
   return null;
 }
 
@@ -25,11 +13,6 @@ function reviewerArgs(route, prompt, stdinPrompt) {
   const args = route.args
     .filter(arg => !(stdinPrompt && arg === '{prompt}'))
     .map(arg => (arg === '{prompt}' ? prompt : arg));
-  if (route.command === 'copilot' && route.outputExtractor === 'copilot-jsonl') {
-    for (const flag of COPILOT_JSON_FLAGS) {
-      if (!args.includes(flag)) args.push(flag);
-    }
-  }
   return args;
 }
 

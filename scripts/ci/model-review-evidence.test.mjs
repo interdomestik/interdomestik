@@ -59,15 +59,22 @@ test('model-review evidence passes when required route completed and optional ro
       results: [
         { reviewer: 'sonnet', status: 'completed' },
         { reviewer: 'gemini', status: 'blocked' },
-        { reviewer: 'copilot', status: 'completed' },
       ],
     },
     root => {
-      const result = runEvidence(root, ['--required', 'sonnet', '--optional', 'gemini,copilot']);
+      const result = runEvidence(root, ['--required', 'sonnet', '--optional', 'gemini']);
       assert.equal(result.status, 0, result.stderr);
       assert.match(result.stdout, /blocked optional routes/u);
     }
   );
+});
+
+test('model-review evidence defaults to sonnet only', () => {
+  withReceipt({ results: [{ reviewer: 'sonnet', status: 'completed' }] }, root => {
+    const result = runEvidence(root);
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, /blocked optional routes/u);
+  });
 });
 
 test('model-review evidence fails when a required route is blocked', () => {
@@ -102,9 +109,16 @@ test('model-review access writes receipts for callable and command-only routes',
     },
     {
       name: 'required-union',
-      args: ['--reviewers', 'copilot', '--required', 'sonnet', '--probe', 'command'],
+      args: ['--reviewers', 'gemini', '--required', 'sonnet', '--probe', 'command'],
       status: 'available',
       routeStatus: 'available',
+    },
+    {
+      name: 'fable-escalation',
+      args: ['--reviewers', 'fable', '--required', 'fable', '--probe', 'command'],
+      status: 'available',
+      routeStatus: 'available',
+      requiredReviewer: 'fable',
     },
   ];
 
@@ -114,9 +128,10 @@ test('model-review access writes receipts for callable and command-only routes',
       assert.equal(result.status, 0, result.stderr);
       const receipt = readAccessReceipt(root);
       assert.equal(receipt.status, scenario.status);
-      const sonnet = receipt.results.find(item => item.reviewer === 'sonnet');
-      assert.equal(sonnet.required, true);
-      assert.equal(sonnet.status, scenario.routeStatus);
+      const reviewer = scenario.requiredReviewer || 'sonnet';
+      const requiredResult = receipt.results.find(item => item.reviewer === reviewer);
+      assert.equal(requiredResult.required, true);
+      assert.equal(requiredResult.status, scenario.routeStatus);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }

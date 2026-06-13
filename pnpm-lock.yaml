@@ -805,6 +805,9 @@ importers:
       '@interdomestik/database':
         specifier: workspace:*
         version: link:../database
+      zod:
+        specifier: ^4.2.1
+        version: 4.2.1
     devDependencies:
       tsx:
         specifier: ^4.22.3
