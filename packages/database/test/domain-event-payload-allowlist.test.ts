@@ -42,70 +42,64 @@ function makeEvent(overrides: Partial<Parameters<typeof appendEvent>[1]> = {}) {
   };
 }
 
+function makeCaseCreatedEvent(overrides: Partial<Parameters<typeof appendEvent>[1]> = {}) {
+  return makeEvent({
+    actor: { id: 'member-1', role: 'member' },
+    aggregateVersion: 1,
+    entity: { id: 'claim-1', type: 'case' },
+    eventName: 'case.created',
+    payload: {
+      hasDocuments: true,
+      initialStatus: 'submitted',
+    },
+    ...overrides,
+  });
+}
+
 describe('appendEvent payload allowlist', () => {
-  it('rejects extra claim.status_changed payload fields before inserting', async () => {
-    const { capture, tx } = makeTx();
+  for (const [name, event, error] of [
+    [
+      'extra claim.status_changed fields',
+      makeEvent({
+        payload: {
+          fromStatus: 'evaluation',
+          memberEmail: 'member@example.invalid',
+          toStatus: 'negotiation',
+        },
+      }),
+      /memberEmail is not allowlisted/,
+    ],
+    [
+      'unsupported event names',
+      makeEvent({ eventName: 'claim.note_added' }),
+      /claim\.note_added@1/,
+    ],
+    ['unsupported versions', makeEvent({ eventVersion: 2 }), /claim\.status_changed@2/],
+    ['missing required fields', makeEvent({ payload: { fromStatus: 'evaluation' } }), /toStatus/],
+    [
+      'non-status values',
+      makeEvent({ payload: { fromStatus: 'evaluation', toStatus: 'Ada Lovelace' } }),
+      /payload\.toStatus to be a claim status/,
+    ],
+    [
+      'extra case.created fields',
+      makeCaseCreatedEvent({
+        payload: {
+          companyName: 'Airline Co',
+          hasDocuments: true,
+          initialStatus: 'submitted',
+        },
+      }),
+      /companyName is not allowlisted/,
+    ],
+  ] as const) {
+    it(`rejects ${name} before inserting`, async () => {
+      const { capture, tx } = makeTx();
 
-    await assert.rejects(
-      () =>
-        appendEvent(
-          tx,
-          makeEvent({
-            payload: {
-              fromStatus: 'evaluation',
-              memberEmail: 'member@example.invalid',
-              toStatus: 'negotiation',
-            },
-          })
-        ),
-      /memberEmail is not allowlisted/
-    );
-    assert.equal(capture.row, undefined);
-  });
-
-  it('rejects unsupported event names before inserting', async () => {
-    const { capture, tx } = makeTx();
-
-    await assert.rejects(
-      () => appendEvent(tx, makeEvent({ eventName: 'claim.note_added' })),
-      /allowlist missing for claim\.note_added@1/
-    );
-    assert.equal(capture.row, undefined);
-  });
-
-  it('rejects unsupported event versions before inserting', async () => {
-    const { capture, tx } = makeTx();
-
-    await assert.rejects(
-      () => appendEvent(tx, makeEvent({ eventVersion: 2 })),
-      /allowlist missing for claim\.status_changed@2/
-    );
-    assert.equal(capture.row, undefined);
-  });
-
-  it('rejects missing required allowlisted fields before inserting', async () => {
-    const { capture, tx } = makeTx();
-
-    await assert.rejects(
-      () => appendEvent(tx, makeEvent({ payload: { fromStatus: 'evaluation' } })),
-      /requires payload\.toStatus/
-    );
-    assert.equal(capture.row, undefined);
-  });
-
-  it('rejects non-status values for allowed status fields before inserting', async () => {
-    const { capture, tx } = makeTx();
-
-    await assert.rejects(
-      () =>
-        appendEvent(
-          tx,
-          makeEvent({ payload: { fromStatus: 'evaluation', toStatus: 'Ada Lovelace' } })
-        ),
-      /payload\.toStatus to be a claim status/
-    );
-    assert.equal(capture.row, undefined);
-  });
+      await assert.rejects(() => appendEvent(tx, event), error);
+      assert.equal(capture.row, undefined);
+    });
+  }
 
   it('inserts a sanitized plain payload instead of caller serialization hooks', async () => {
     const { capture, tx } = makeTx();
@@ -122,5 +116,16 @@ describe('appendEvent payload allowlist', () => {
     await appendEvent(tx, makeEvent({ payload: payloadWithSerializationHook }));
 
     assert.deepEqual(capture.row?.payload, { fromStatus: 'evaluation', toStatus: 'negotiation' });
+  });
+
+  it('allows sanitized case.created payload fields', async () => {
+    const { capture, tx } = makeTx();
+
+    await appendEvent(tx, makeCaseCreatedEvent());
+
+    assert.deepEqual(capture.row?.payload, {
+      hasDocuments: true,
+      initialStatus: 'submitted',
+    });
   });
 });
