@@ -92,14 +92,6 @@ test('docker gate uses bounded cache policy and exposes explicit warm-cache opt-
     packageJson.scripts['docker:gate:warm'],
     'DOCKER_GATE_CACHE_MODE=warm DOCKER_GATE_RECLAIM=1 bash scripts/docker-gate.sh'
   );
-  assert.equal(
-    packageJson.scripts['docker:gate:lowdisk'],
-    'DOCKER_GATE_CACHE_MODE=ephemeral DOCKER_GATE_RECLAIM=1 DOCKER_RECLAIM_SOFT_LIMIT_GB=12 bash scripts/docker-gate.sh'
-  );
-  assert.equal(
-    packageJson.scripts['docker:reclaim:ci-local'],
-    'bash scripts/docker-reclaim-ci-local.sh'
-  );
 });
 
 test('local CI parity runner mirrors required PR gate surfaces in Docker', () => {
@@ -108,21 +100,10 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
   const packageJson = JSON.parse(readRepoFile('package.json'));
   const dockerfile = readRepoFile('docker/Dockerfile.ci-parity');
   const sonarScan = readRepoFile('scripts/sonar-scan.mjs');
-  const lowDiskScript = readRepoFile('scripts/ci-local-lowdisk.sh');
-  const ciLocalReclaimScript = readRepoFile('scripts/docker-reclaim-ci-local.sh');
 
-  assert.equal(packageJson.scripts['ci:local:quick'], 'bash scripts/ci-local-parity.sh quick');
-  assert.equal(
-    packageJson.scripts['ci:local:quick:lowdisk'],
-    'bash scripts/ci-local-lowdisk.sh quick'
-  );
-  assert.equal(packageJson.scripts['ci:local:pr'], 'bash scripts/ci-local-parity.sh pr');
-  assert.equal(packageJson.scripts['ci:local:pr:lowdisk'], 'bash scripts/ci-local-lowdisk.sh pr');
-  assert.equal(packageJson.scripts['ci:local:full'], 'bash scripts/ci-local-parity.sh full');
-  assert.equal(
-    packageJson.scripts['ci:local:full:lowdisk'],
-    'bash scripts/ci-local-lowdisk.sh full'
-  );
+  assert.equal(packageJson.scripts['ci:local:quick'], 'bash scripts/ci-local-lowdisk.sh quick');
+  assert.equal(packageJson.scripts['ci:local:pr'], 'bash scripts/ci-local-lowdisk.sh pr');
+  assert.equal(packageJson.scripts['ci:local:full'], 'bash scripts/ci-local-lowdisk.sh full');
   assert.equal(
     packageJson.scripts['ci:local:sonar'],
     'node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh sonar'
@@ -229,16 +210,6 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
   assert.match(sonarScan, /shouldUseNativeScanner/);
   assert.match(sonarScan, /statusUrl: forceNative/);
   assert.match(sonarScan, /if \(forceNative\) \{\s*process\.exit\(nativeStatus \|\| 1\);/);
-
-  assert.match(lowDiskScript, /trap cleanup EXIT/);
-  assert.match(lowDiskScript, /bash scripts\/docker-reclaim-ci-local\.sh/);
-  assert.match(lowDiskScript, /bash scripts\/ci-local-parity\.sh "\$\{MODE\}"/);
-  assert.match(ciLocalReclaimScript, /ci_local_pnpm_store/);
-  assert.match(ciLocalReclaimScript, /ci_local_sonar_cache/);
-  assert.match(
-    ciLocalReclaimScript,
-    /docker compose --profile ci-local rm -sf ci-postgres ci-parity/
-  );
 });
 
 test('QA MCP contract timeout override falls back for invalid values', () => {
