@@ -1,111 +1,15 @@
-import { claimEscalationAgreements, claims, db, eq } from '@interdomestik/database';
+import { claims, db } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { z } from 'zod';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
+import { saveRecoveryDecisionSchema } from './recovery-decision-schema';
 import {
   buildScopedStaffClaimWhere,
   resolveScopedStaffClaimAccess,
   STAFF_SCOPE_ACCESS_DENIED_ERROR,
 } from './scope';
 import type { ActionResult, RecoveryDecisionSnapshot, SaveRecoveryDecisionInput } from './types';
-import { RECOVERY_DECLINE_REASON_CODES, RECOVERY_DECISION_TYPES } from './types';
-import { buildRecoveryDecisionSnapshot } from './recovery-decision';
-
-const saveRecoveryDecisionSchema = z.discriminatedUnion('decisionType', [
-  z.object({
-    claimId: z.string().trim().min(1, 'Claim ID is required'),
-    decisionType: z.literal(RECOVERY_DECISION_TYPES[0]),
-    explanation: z.string().trim().optional(),
-  }),
-  z.object({
-    claimId: z.string().trim().min(1, 'Claim ID is required'),
-    decisionType: z.literal(RECOVERY_DECISION_TYPES[1]),
-    declineReasonCode: z.enum(RECOVERY_DECLINE_REASON_CODES),
-    explanation: z.string().trim().optional(),
-  }),
-]);
-
-type RecoveryDecisionTransaction = {
-  insert: typeof db.insert;
-  select: typeof db.select;
-  update: typeof db.update;
-};
-
-export async function upsertRecoveryDecisionRecord(params: {
-  claimId: string;
-  decisionType: SaveRecoveryDecisionInput['decisionType'];
-  declineReasonCode?: Extract<
-    SaveRecoveryDecisionInput,
-    { decisionType: 'declined' }
-  >['declineReasonCode'];
-  explanation?: string;
-  session: ClaimsSession;
-  tenantId: string;
-  tx: RecoveryDecisionTransaction;
-}): Promise<RecoveryDecisionSnapshot> {
-  const now = new Date();
-  const explanation = params.explanation?.trim() || null;
-
-  const [existingDecision] = await params.tx
-    .select({
-      id: claimEscalationAgreements.id,
-      acceptedAt: claimEscalationAgreements.acceptedAt,
-    })
-    .from(claimEscalationAgreements)
-    .where(
-      withTenant(
-        params.tenantId,
-        claimEscalationAgreements.tenantId,
-        eq(claimEscalationAgreements.claimId, params.claimId)
-      )
-    )
-    .limit(1);
-
-  if (existingDecision) {
-    await params.tx
-      .update(claimEscalationAgreements)
-      .set({
-        acceptedAt: now,
-        acceptedById: params.session.user.id,
-        decisionType: params.decisionType,
-        declineReasonCode:
-          params.decisionType === 'declined' ? (params.declineReasonCode ?? null) : null,
-        decisionReason: explanation,
-        updatedAt: now,
-      })
-      .where(
-        withTenant(
-          params.tenantId,
-          claimEscalationAgreements.tenantId,
-          eq(claimEscalationAgreements.claimId, params.claimId)
-        )
-      );
-  } else {
-    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await params.tx.insert(claimEscalationAgreements).values({
-      id: crypto.randomUUID(),
-      tenantId: params.tenantId,
-      claimId: params.claimId,
-      decisionType: params.decisionType,
-      declineReasonCode:
-        params.decisionType === 'declined' ? (params.declineReasonCode ?? null) : null,
-      decisionReason: explanation,
-      acceptedById: params.session.user.id,
-      acceptedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    });
-  }
-
-  return buildRecoveryDecisionSnapshot({
-    decidedAt: now,
-    declineReasonCode:
-      params.decisionType === 'declined' ? (params.declineReasonCode ?? null) : null,
-    decisionType: params.decisionType,
-    explanation,
-  });
-}
+import { upsertRecoveryDecisionRecord } from './recovery-decision-record';
 
 export async function saveRecoveryDecisionCore(
   params: SaveRecoveryDecisionInput & {
