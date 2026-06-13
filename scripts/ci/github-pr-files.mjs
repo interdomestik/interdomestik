@@ -11,7 +11,6 @@ function parseArgs(argv) {
   const parsed = {
     eventPath: '',
     repositoryFullName: process.env.GITHUB_REPOSITORY || '',
-    apiBaseUrl: process.env.GITHUB_API_URL || '',
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -27,10 +26,6 @@ function parseArgs(argv) {
         parsed.repositoryFullName = nextValue || '';
         index += 1;
         break;
-      case '--api-base-url':
-        parsed.apiBaseUrl = nextValue || '';
-        index += 1;
-        break;
       default:
         fail(`unknown argument: ${argument}`);
     }
@@ -43,7 +38,7 @@ function parseArgs(argv) {
   return parsed;
 }
 
-const { eventPath, repositoryFullName, apiBaseUrl } = parseArgs(process.argv.slice(2));
+const { eventPath, repositoryFullName } = parseArgs(process.argv.slice(2));
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
 
 let pullRequestContext;
@@ -60,7 +55,6 @@ if (!pullRequestContext) {
 
 try {
   const files = await fetchPullRequestFiles({
-    apiBaseUrl,
     repositoryFullName: pullRequestContext.repositoryFullName,
     pullRequestNumber: pullRequestContext.pullRequestNumber,
     token,

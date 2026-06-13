@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 
-const DEFAULT_API_BASE_URL = 'https://api.github.com';
+import { buildPullRequestFilesUrl, buildRepositoryFileContentUrl } from './github-api-url-lib.mjs';
+
 const PER_PAGE = 100;
 
 function parseRepositoryFullName(value) {
@@ -39,7 +40,6 @@ export function readPullRequestContext(eventPath, repositoryFullName = '') {
 }
 
 export async function fetchPullRequestFiles({
-  apiBaseUrl = DEFAULT_API_BASE_URL,
   repositoryFullName,
   pullRequestNumber,
   token,
@@ -48,31 +48,30 @@ export async function fetchPullRequestFiles({
   if (!repositoryFullName) {
     throw new TypeError('repositoryFullName is required');
   }
-
   if (!Number.isInteger(pullRequestNumber)) {
     throw new TypeError('pullRequestNumber must be an integer');
   }
-
   if (!token) {
     throw new Error('GH_TOKEN or GITHUB_TOKEN is required');
   }
-
   if (typeof fetchImpl !== 'function') {
     throw new TypeError('fetch implementation is required');
   }
-
   const files = [];
   for (let nextPage = 1; ; nextPage += 1) {
-    const response = await fetchImpl(
-      `${apiBaseUrl}/repos/${repositoryFullName}/pulls/${pullRequestNumber}/files?per_page=${PER_PAGE}&page=${nextPage}`,
-      {
-        headers: {
-          accept: 'application/vnd.github+json',
-          authorization: `Bearer ${token}`,
-          'user-agent': 'interdomestik-ci',
-        },
-      }
-    );
+    const requestUrl = buildPullRequestFilesUrl({
+      repositoryFullName,
+      pullRequestNumber,
+      page: nextPage,
+      perPage: PER_PAGE,
+    });
+    const response = await fetchImpl(requestUrl, {
+      headers: {
+        accept: 'application/vnd.github+json',
+        authorization: `Bearer ${token}`,
+        'user-agent': 'interdomestik-ci',
+      },
+    });
 
     if (!response.ok) {
       const responseBody = await response.text();
@@ -93,7 +92,6 @@ export async function fetchPullRequestFiles({
 }
 
 export async function fetchRepositoryFileContent({
-  apiBaseUrl = DEFAULT_API_BASE_URL,
   repositoryFullName,
   filePath,
   ref,
@@ -103,33 +101,30 @@ export async function fetchRepositoryFileContent({
   if (!repositoryFullName) {
     throw new TypeError('repositoryFullName is required');
   }
-
   if (!filePath) {
     throw new TypeError('filePath is required');
   }
-
   if (!ref) {
     throw new TypeError('ref is required');
   }
-
   if (!token) {
     throw new Error('GH_TOKEN or GITHUB_TOKEN is required');
   }
-
   if (typeof fetchImpl !== 'function') {
     throw new TypeError('fetch implementation is required');
   }
-
-  const response = await fetchImpl(
-    `${apiBaseUrl}/repos/${repositoryFullName}/contents/${filePath}?ref=${encodeURIComponent(ref)}`,
-    {
-      headers: {
-        accept: 'application/vnd.github+json',
-        authorization: `Bearer ${token}`,
-        'user-agent': 'interdomestik-ci',
-      },
-    }
-  );
+  const requestUrl = buildRepositoryFileContentUrl({
+    repositoryFullName,
+    filePath,
+    ref,
+  });
+  const response = await fetchImpl(requestUrl, {
+    headers: {
+      accept: 'application/vnd.github+json',
+      authorization: `Bearer ${token}`,
+      'user-agent': 'interdomestik-ci',
+    },
+  });
 
   if (!response.ok) {
     const responseBody = await response.text();

@@ -36,6 +36,7 @@ classify_pr() {
   output="$(
     node scripts/ci/validation-surface-policy.mjs \
       --event-name pull_request \
+      --event-path "${GITHUB_EVENT_PATH:-}" \
       --changed-files-path "${changed_files_path}"
   )"
   should_run="$(echo "${output}" | awk -F= '$1 == "should_run" { print $2 }')"

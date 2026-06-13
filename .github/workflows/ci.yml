@@ -58,7 +58,7 @@ jobs:
               --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
           fi
           node scripts/ci/validation-surface-policy.mjs \
-            --event-name "${{ github.event_name }}" \
+            --event-name "${{ github.event_name }}" --event-path "${GITHUB_EVENT_PATH}" \
             --changed-files-path "${changed_files_path}" >>"$GITHUB_OUTPUT"
       - name: Evaluate AI eval surface
         id: ai_eval_surface
