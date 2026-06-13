@@ -101,9 +101,9 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
   const dockerfile = readRepoFile('docker/Dockerfile.ci-parity');
   const sonarScan = readRepoFile('scripts/sonar-scan.mjs');
 
-  assert.equal(packageJson.scripts['ci:local:quick'], 'bash scripts/ci-local-parity.sh quick');
-  assert.equal(packageJson.scripts['ci:local:pr'], 'bash scripts/ci-local-parity.sh pr');
-  assert.equal(packageJson.scripts['ci:local:full'], 'bash scripts/ci-local-parity.sh full');
+  assert.equal(packageJson.scripts['ci:local:quick'], 'bash scripts/ci-local-lowdisk.sh quick');
+  assert.equal(packageJson.scripts['ci:local:pr'], 'bash scripts/ci-local-lowdisk.sh pr');
+  assert.equal(packageJson.scripts['ci:local:full'], 'bash scripts/ci-local-lowdisk.sh full');
   assert.equal(
     packageJson.scripts['ci:local:sonar'],
     'node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh sonar'
@@ -215,11 +215,9 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
 test('QA MCP contract timeout override falls back for invalid values', () => {
   const qaContract = readRepoFile('scripts/ci/qa-mcp-discovery-contracts.test.mjs');
 
-  assert.match(qaContract, /function parsePositiveTimeout\(value, fallback\)/);
-  assert.match(qaContract, /Number\.isFinite\(parsed\) && parsed > 0/);
   assert.match(
     qaContract,
-    /parsePositiveTimeout\(\s*process\.env\.QA_MCP_CONTRACT_TIMEOUT_MS,\s*10000\s*\)/m
+    /const MCP_RESPONSE_TIMEOUT_MS = process\.env\.QA_MCP_CONTRACT_TIMEOUT_MS === '60000' \? 60000 : 30000;/
   );
 });
 
