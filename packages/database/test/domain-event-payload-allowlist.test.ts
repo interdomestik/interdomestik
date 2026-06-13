@@ -1,31 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { appendEvent, type DomainEventTx } from '../src/domain-events';
-
-type InsertedRow = Record<string, unknown>;
-
-class FakeInsertStep {
-  constructor(private readonly capture: { row?: InsertedRow }) {}
-
-  values(row: InsertedRow) {
-    this.capture.row = row;
-    return { returning: () => [{ id: row.id }] };
-  }
-}
-
-class FakeTx {
-  constructor(private readonly capture: { row?: InsertedRow }) {}
-
-  insert() {
-    return new FakeInsertStep(this.capture);
-  }
-}
-
-function makeTx() {
-  const capture: { row?: InsertedRow } = {};
-  return { capture, tx: new FakeTx(capture) as unknown as DomainEventTx };
-}
+import { appendEvent } from '../src/domain-events';
+import { makeEventTx } from './domain-event-test-utils';
 
 function makeEvent(overrides: Partial<Parameters<typeof appendEvent>[1]> = {}) {
   return {
@@ -94,7 +71,7 @@ describe('appendEvent payload allowlist', () => {
     ],
   ] as const) {
     it(`rejects ${name} before inserting`, async () => {
-      const { capture, tx } = makeTx();
+      const { capture, tx } = makeEventTx();
 
       await assert.rejects(() => appendEvent(tx, event), error);
       assert.equal(capture.row, undefined);
@@ -102,7 +79,7 @@ describe('appendEvent payload allowlist', () => {
   }
 
   it('inserts a sanitized plain payload instead of caller serialization hooks', async () => {
-    const { capture, tx } = makeTx();
+    const { capture, tx } = makeEventTx();
     const payloadWithSerializationHook = Object.assign(
       Object.create({
         toJSON: () => ({ fromStatus: 'evaluation', memberEmail: 'member@example.invalid' }),
@@ -119,7 +96,7 @@ describe('appendEvent payload allowlist', () => {
   });
 
   it('allows sanitized case.created payload fields', async () => {
-    const { capture, tx } = makeTx();
+    const { capture, tx } = makeEventTx();
 
     await appendEvent(tx, makeCaseCreatedEvent());
 

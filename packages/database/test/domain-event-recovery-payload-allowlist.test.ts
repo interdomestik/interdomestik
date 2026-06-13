@@ -1,29 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { appendEvent, type DomainEventTx } from '../src/domain-events';
-
-class FakeInsertStep {
-  constructor(private readonly capture: { row?: Record<string, unknown> }) {}
-
-  values(row: Record<string, unknown>) {
-    this.capture.row = row;
-    return { returning: () => [{ id: row.id }] };
-  }
-}
-
-class FakeTx {
-  constructor(private readonly capture: { row?: Record<string, unknown> }) {}
-
-  insert() {
-    return new FakeInsertStep(this.capture);
-  }
-}
-
-function makeTx() {
-  const capture: { row?: Record<string, unknown> } = {};
-  return { capture, tx: new FakeTx(capture) as unknown as DomainEventTx };
-}
+import { appendEvent } from '../src/domain-events';
+import { makeEventTx } from './domain-event-test-utils';
 
 function makeRecoveryDecisionEvent(overrides: Partial<Parameters<typeof appendEvent>[1]> = {}) {
   return {
@@ -81,14 +60,14 @@ describe('appendEvent recovery decision payload allowlist', () => {
     ],
   ] as const) {
     it(`rejects ${name} before inserting`, async () => {
-      const { capture, tx } = makeTx();
+      const { capture, tx } = makeEventTx();
       await assert.rejects(() => appendEvent(tx, event), error);
       assert.equal(capture.row, undefined);
     });
   }
 
   it('allows sanitized accepted recovery decision payload fields', async () => {
-    const { capture, tx } = makeTx();
+    const { capture, tx } = makeEventTx();
     await appendEvent(
       tx,
       makeRecoveryDecisionEvent({
@@ -106,7 +85,7 @@ describe('appendEvent recovery decision payload allowlist', () => {
   });
 
   it('allows sanitized declined recovery decision payload fields', async () => {
-    const { capture, tx } = makeTx();
+    const { capture, tx } = makeEventTx();
     await appendEvent(tx, makeRecoveryDecisionEvent());
     assert.deepEqual(capture.row?.payload, {
       decisionType: 'declined',
