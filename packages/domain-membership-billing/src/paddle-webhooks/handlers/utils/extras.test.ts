@@ -9,7 +9,6 @@ import {
   redactEmail,
 } from './extras';
 
-// Mock dependencies
 vi.mock('@interdomestik/database', () => ({
   agentClients: {
     tenantId: 'agentClients.tenantId',
@@ -27,6 +26,7 @@ vi.mock('@interdomestik/database', () => ({
       },
     },
   },
+  appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   and: vi.fn((...parts) => ({ op: 'and', parts })),
   eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
 }));
