@@ -9,4 +9,6 @@ export type RecoveryLifecycleSnapshot = {
   claimId: string;
   status: ClaimStatus;
   recoveryLifecycleState: RecoveryLifecycleState;
+  recoveryLaw: string | null;
+  recoveryLegalTenantId: string | null;
 };

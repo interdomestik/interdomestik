@@ -8,6 +8,7 @@ import {
   eq,
   inArray,
   isNull,
+  or,
   sql,
 } from '@interdomestik/database';
 import {
@@ -34,19 +35,23 @@ async function getCoverage(tenantId: string | undefined): Promise<Coverage> {
 }
 
 async function listMissingClaims(tenantId: string | undefined, limit: number | undefined) {
-  // db-access-guard: system-exempt -- reason: dry-run operator discovery may enumerate missing rows across tenants before scoped apply
+  // db-access-guard: system-exempt -- reason: dry-run operator discovery may enumerate missing routing rows across tenants before scoped apply
+  const missingRouting = or(
+    isNull(claims.incidentCountryCode),
+    isNull(claims.recoveryLaw),
+    isNull(claims.recoveryLegalTenantId)
+  );
   const query = db
     .select({
       id: claims.id,
       incidentCountryCode: claims.incidentCountryCode,
+      incidentJurisdiction: claims.incidentJurisdiction,
+      recoveryLaw: claims.recoveryLaw,
+      recoveryLegalTenantId: claims.recoveryLegalTenantId,
       tenantId: claims.tenantId,
     })
     .from(claims)
-    .where(
-      tenantId
-        ? and(eq(claims.tenantId, tenantId), isNull(claims.incidentCountryCode))
-        : isNull(claims.incidentCountryCode)
-    )
+    .where(tenantId ? and(eq(claims.tenantId, tenantId), missingRouting) : missingRouting)
     .orderBy(asc(claims.tenantId), asc(claims.createdAt), asc(claims.id));
   return limit ? query.limit(limit) : query;
 }
@@ -98,12 +103,18 @@ async function main() {
         .set({
           incidentCountryCode: update.incidentCountryCode,
           incidentJurisdiction: update.incidentJurisdiction,
+          recoveryLaw: update.recoveryLaw,
+          recoveryLegalTenantId: update.recoveryLegalTenantId,
         })
         .where(
           and(
             eq(claims.id, update.claimId),
             eq(claims.tenantId, update.tenantId),
-            isNull(claims.incidentCountryCode)
+            or(
+              isNull(claims.incidentCountryCode),
+              isNull(claims.recoveryLaw),
+              isNull(claims.recoveryLegalTenantId)
+            )
           )
         )
         .returning({ id: claims.id });

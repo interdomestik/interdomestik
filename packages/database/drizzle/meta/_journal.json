@@ -575,6 +575,13 @@
       "when": 1781296139304,
       "tag": "0081_user_residence_country",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1781306185466,
+      "tag": "0082_claim_recovery_law",
+      "breakpoints": true
     }
   ]
 }

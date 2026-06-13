@@ -1,17 +1,19 @@
 import { parseDiasporaOriginFromPublicNote } from './diaspora-origin';
 import { resolveClaimIncidentCountry, type ClaimIncidentCountry } from './incident-country';
-
-export type IncidentCountryBackfillSource = 'claim_pack_json' | 'diaspora_origin_note';
-
+export type IncidentCountryBackfillSource =
+  | 'claim_pack_json'
+  | 'diaspora_origin_note'
+  | 'existing_incident_country';
 export type IncidentCountryBackfillRow = {
   claimPackJson?: unknown;
   diasporaPublicNotes?: Array<string | null | undefined>;
   id: string;
   incidentCountryCode?: string | null;
   incidentJurisdiction?: string | null;
+  recoveryLaw?: string | null;
+  recoveryLegalTenantId?: string | null;
   tenantId: string;
 };
-
 export type IncidentCountryBackfillUpdate = ClaimIncidentCountry & {
   claimId: string;
   source: IncidentCountryBackfillSource;
@@ -38,18 +40,17 @@ const CLAIM_PACK_COUNTRY_PATHS = [
   ['data', 'input', 'answers', 'incidentCountry'],
 ] as const;
 
-function readRecord(value: unknown): Record<string, unknown> | null {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
+type IncidentCountryBackfillCandidate = {
+  country: ClaimIncidentCountry;
+  invalid: boolean;
+  source: IncidentCountryBackfillSource;
+};
 
 function readStringPath(value: unknown, path: readonly string[]): string | null {
   let cursor: unknown = value;
   for (const segment of path) {
-    const record = readRecord(cursor);
-    if (!record) return null;
-    cursor = record[segment];
+    if (cursor === null || typeof cursor !== 'object' || Array.isArray(cursor)) return null;
+    cursor = (cursor as Record<string, unknown>)[segment];
   }
 
   return typeof cursor === 'string' ? cursor : null;
@@ -58,11 +59,7 @@ function readStringPath(value: unknown, path: readonly string[]): string | null 
 function resolveCandidate(
   source: IncidentCountryBackfillSource,
   countryCode: string | null
-): {
-  country: ClaimIncidentCountry;
-  invalid: boolean;
-  source: IncidentCountryBackfillSource;
-} | null {
+): IncidentCountryBackfillCandidate | null {
   if (!countryCode) return null;
   const country = resolveClaimIncidentCountry({ incidentCountryCode: countryCode });
   return country.incidentCountryCode
@@ -92,6 +89,20 @@ function readDiasporaCandidate(row: IncidentCountryBackfillRow) {
   return null;
 }
 
+function appendUpdate(
+  plan: IncidentCountryBackfillPlan,
+  row: IncidentCountryBackfillRow,
+  selected: IncidentCountryBackfillCandidate
+) {
+  plan.updates.push({
+    claimId: row.id,
+    ...selected.country,
+    source: selected.source,
+    tenantId: row.tenantId,
+  });
+  plan.updatesBySource[selected.source]++;
+}
+
 export function buildIncidentCountryBackfillPlan(
   rows: IncidentCountryBackfillRow[]
 ): IncidentCountryBackfillPlan {
@@ -101,11 +112,21 @@ export function buildIncidentCountryBackfillPlan(
     skippedInvalidSource: 0,
     skippedNoDurableSource: 0,
     updates: [],
-    updatesBySource: { claim_pack_json: 0, diaspora_origin_note: 0 },
+    updatesBySource: { claim_pack_json: 0, diaspora_origin_note: 0, existing_incident_country: 0 },
   };
 
   for (const row of rows) {
     if (row.incidentCountryCode) {
+      const existing = resolveCandidate('existing_incident_country', row.incidentCountryCode);
+      if (
+        existing?.country.recoveryLaw &&
+        existing.country.recoveryLegalTenantId &&
+        (!row.recoveryLaw || !row.recoveryLegalTenantId)
+      ) {
+        appendUpdate(plan, row, existing);
+        continue;
+      }
+
       plan.alreadyPopulated++;
       continue;
     }
@@ -122,14 +143,7 @@ export function buildIncidentCountryBackfillPlan(
       continue;
     }
 
-    plan.updates.push({
-      claimId: row.id,
-      incidentCountryCode: selected.country.incidentCountryCode,
-      incidentJurisdiction: selected.country.incidentJurisdiction,
-      source: selected.source,
-      tenantId: row.tenantId,
-    });
-    plan.updatesBySource[selected.source]++;
+    appendUpdate(plan, row, selected);
   }
 
   return plan;
