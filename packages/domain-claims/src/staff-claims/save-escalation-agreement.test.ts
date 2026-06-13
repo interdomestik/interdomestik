@@ -35,9 +35,8 @@ const mocks = vi.hoisted(() => {
   );
 
   return {
-    db: {
-      transaction,
-    },
+    appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
+    db: { transaction },
     logAuditEvent: vi.fn(),
     claims: {
       id: 'claims.id',
@@ -81,6 +80,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
+  appendEvent: mocks.appendEvent,
   claimEscalationAgreements: mocks.claimEscalationAgreements,
   claims: mocks.claims,
   db: mocks.db,

@@ -1,19 +1,25 @@
-import { claimEscalationAgreements, claims, db, eq } from '@interdomestik/database';
+import {
+  claimEscalationAgreements,
+  claims,
+  db,
+  eq,
+  type DomainEventTx,
+} from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { z } from 'zod';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import { buildCommercialHandlingScopeFailure } from './commercial-handling-scope';
 import {
+  buildEscalationAgreementSnapshot,
+  recordEscalationAgreementEvent,
+} from './escalation-agreement-record';
+import {
   buildScopedStaffClaimWhere,
   resolveScopedStaffClaimAccess,
   STAFF_SCOPE_ACCESS_DENIED_ERROR,
 } from './scope';
-import type {
-  ActionResult,
-  ClaimEscalationAgreementSnapshot,
-  SaveClaimEscalationAgreementInput,
-} from './types';
+import type { ActionResult, SaveClaimEscalationAgreementInput } from './types';
 import { ESCALATION_DECISION_NEXT_STATUSES, PAYMENT_AUTHORIZATION_STATES } from './types';
 
 const saveClaimEscalationAgreementSchema = z
@@ -32,47 +38,13 @@ const saveClaimEscalationAgreementSchema = z
     'Legal-action cap must be greater than or equal to the agreed fee percentage'
   );
 
-type DateLike = Date | string | null | undefined;
-
-function normalizeDate(value: DateLike) {
-  if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
-function buildSnapshot(params: {
-  acceptedAt: DateLike;
-  claimId: string;
-  decisionNextStatus: ClaimEscalationAgreementSnapshot['decisionNextStatus'];
-  decisionReason: string | null;
-  feePercentage: number;
-  legalActionCapPercentage: number;
-  minimumFee: string;
-  paymentAuthorizationState: ClaimEscalationAgreementSnapshot['paymentAuthorizationState'];
-  signedAt: DateLike;
-  termsVersion: string;
-}): ClaimEscalationAgreementSnapshot {
-  return {
-    acceptedAt: normalizeDate(params.acceptedAt),
-    claimId: params.claimId,
-    decisionNextStatus: params.decisionNextStatus,
-    decisionReason: params.decisionReason,
-    feePercentage: params.feePercentage,
-    legalActionCapPercentage: params.legalActionCapPercentage,
-    minimumFee: params.minimumFee,
-    paymentAuthorizationState: params.paymentAuthorizationState,
-    signedAt: normalizeDate(params.signedAt),
-    termsVersion: params.termsVersion,
-  };
-}
-
 export async function saveClaimEscalationAgreementCore(
   params: SaveClaimEscalationAgreementInput & {
     requestHeaders?: Headers;
     session: ClaimsSession | null;
   },
   deps: ClaimsDeps = {}
-): Promise<ActionResult<ClaimEscalationAgreementSnapshot>> {
+): Promise<ActionResult<ReturnType<typeof buildEscalationAgreementSnapshot>>> {
   const { session } = params;
 
   if (session?.user?.role !== 'staff') {
@@ -174,21 +146,34 @@ export async function saveClaimEscalationAgreementCore(
             )
           );
 
-        return {
-          success: true,
-          data: buildSnapshot({
-            acceptedAt: now,
-            claimId: parsed.data.claimId,
-            decisionNextStatus: parsed.data.decisionNextStatus,
-            decisionReason,
-            feePercentage: parsed.data.feePercentage,
-            legalActionCapPercentage: parsed.data.legalActionCapPercentage,
-            minimumFee,
-            paymentAuthorizationState: parsed.data.paymentAuthorizationState,
-            signedAt,
-            termsVersion: parsed.data.termsVersion,
-          }),
-        };
+        const data = buildEscalationAgreementSnapshot({
+          acceptedAt: now,
+          claimId: parsed.data.claimId,
+          decisionNextStatus: parsed.data.decisionNextStatus,
+          decisionReason,
+          feePercentage: parsed.data.feePercentage,
+          legalActionCapPercentage: parsed.data.legalActionCapPercentage,
+          minimumFee,
+          paymentAuthorizationState: parsed.data.paymentAuthorizationState,
+          signedAt,
+          termsVersion: parsed.data.termsVersion,
+        });
+
+        await recordEscalationAgreementEvent({
+          claimId: parsed.data.claimId,
+          decisionNextStatus: parsed.data.decisionNextStatus,
+          decisionReason,
+          feePercentage: parsed.data.feePercentage,
+          legalActionCapPercentage: parsed.data.legalActionCapPercentage,
+          minimumFee,
+          now,
+          paymentAuthorizationState: parsed.data.paymentAuthorizationState,
+          session,
+          tenantId,
+          tx: tx as DomainEventTx,
+        });
+
+        return { success: true, data };
       }
 
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
@@ -211,21 +196,34 @@ export async function saveClaimEscalationAgreementCore(
         updatedAt: now,
       });
 
-      return {
-        success: true,
-        data: buildSnapshot({
-          acceptedAt: now,
-          claimId: parsed.data.claimId,
-          decisionNextStatus: parsed.data.decisionNextStatus,
-          decisionReason,
-          feePercentage: parsed.data.feePercentage,
-          legalActionCapPercentage: parsed.data.legalActionCapPercentage,
-          minimumFee,
-          paymentAuthorizationState: parsed.data.paymentAuthorizationState,
-          signedAt: now,
-          termsVersion: parsed.data.termsVersion,
-        }),
-      };
+      const data = buildEscalationAgreementSnapshot({
+        acceptedAt: now,
+        claimId: parsed.data.claimId,
+        decisionNextStatus: parsed.data.decisionNextStatus,
+        decisionReason,
+        feePercentage: parsed.data.feePercentage,
+        legalActionCapPercentage: parsed.data.legalActionCapPercentage,
+        minimumFee,
+        paymentAuthorizationState: parsed.data.paymentAuthorizationState,
+        signedAt: now,
+        termsVersion: parsed.data.termsVersion,
+      });
+
+      await recordEscalationAgreementEvent({
+        claimId: parsed.data.claimId,
+        decisionNextStatus: parsed.data.decisionNextStatus,
+        decisionReason,
+        feePercentage: parsed.data.feePercentage,
+        legalActionCapPercentage: parsed.data.legalActionCapPercentage,
+        minimumFee,
+        now,
+        paymentAuthorizationState: parsed.data.paymentAuthorizationState,
+        session,
+        tenantId,
+        tx: tx as DomainEventTx,
+      });
+
+      return { success: true, data };
     });
 
     if (result.success && result.data && deps.logAuditEvent) {
