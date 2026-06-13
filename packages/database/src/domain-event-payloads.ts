@@ -9,6 +9,7 @@ import {
   recoveryEscalationAgreementRecordedPayload,
   recoverySuccessFeeCollectedPayload,
 } from './domain-event-recovery-payloads';
+import { membershipAgentClientBoundPayload } from './domain-event-membership-payloads';
 import type { AppendEventParams } from './domain-events';
 
 const CASE_CREATED_KEYS = new Set(['hasDocuments', 'initialStatus']);
@@ -49,6 +50,7 @@ const PAYLOAD_VALIDATORS: Record<
   'recovery.decision_recorded@1': recoveryDecisionRecordedPayload,
   'recovery.escalation_agreement_recorded@1': recoveryEscalationAgreementRecordedPayload,
   'recovery.success_fee_collected@1': recoverySuccessFeeCollectedPayload,
+  'membership.agent_client_bound@1': membershipAgentClientBoundPayload,
 };
 
 export function assertAllowlistedPayload(params: AppendEventParams): Record<string, unknown> {

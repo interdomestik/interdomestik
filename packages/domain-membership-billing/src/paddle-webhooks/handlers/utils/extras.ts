@@ -7,15 +7,12 @@ import { createRenewalCommissionCore } from '../../../commissions/create-renewal
 import { calculateCommission } from '../../../commissions/types';
 import { syncActiveAgentClientBinding } from '../../../ownership-attribution';
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../../types';
-
-type WebhookUserRecord = {
-  agentId?: string | null;
-  email?: string | null;
-  name?: string | null;
-  memberNumber?: string | null;
-};
-
-type NewMembershipOwnershipSource = 'user.agentId' | 'checkout.customData.agentId';
+import { recordMembershipAgentClientBoundEvent } from './membership-agent-client-bound-event';
+import {
+  resolveNewMembershipOwnership,
+  toOwnershipResolvedFrom,
+  type WebhookUserRecord,
+} from './new-membership-ownership';
 
 export const redactEmail = (email?: string | null) => {
   if (!email) return 'unknown';
@@ -24,37 +21,6 @@ export const redactEmail = (email?: string | null) => {
   const maskedLocal = local.length <= 2 ? `${local[0] ?? ''}*` : `${local[0]}***${local.slice(-1)}`;
   return `${maskedLocal}@${domain}`;
 };
-
-function normalizeAgentId(agentId: string | null | undefined): string | null {
-  if (typeof agentId !== 'string') return null;
-  const normalized = agentId.trim();
-  return normalized.length > 0 ? normalized : null;
-}
-
-function resolveNewMembershipOwnership(args: {
-  userRecord?: WebhookUserRecord | null;
-  customData?: { agentId?: string } | undefined;
-}) {
-  if (args.userRecord && 'agentId' in args.userRecord) {
-    const agentId = normalizeAgentId(args.userRecord.agentId);
-    return {
-      agentId,
-      resolvedFrom: agentId ? ('user.agentId' as const) : null,
-    };
-  }
-
-  const agentId = normalizeAgentId(args.customData?.agentId);
-  return {
-    agentId,
-    resolvedFrom: agentId ? ('checkout.customData.agentId' as const) : null,
-  };
-}
-
-function toOwnershipResolvedFrom(
-  source: NewMembershipOwnershipSource | null
-): NewMembershipOwnershipSource[] {
-  return source ? [source] : [];
-}
 
 async function processCommissions(args: {
   internalSubscriptionId?: string;
@@ -187,8 +153,10 @@ async function ensureAgentClientBinding(args: {
   customData: { agentId?: string } | undefined;
   userRecord?: WebhookUserRecord | null;
 }) {
-  const agentId = resolveNewMembershipOwnership(args).agentId;
-  if (!agentId) return;
+  const ownership = resolveNewMembershipOwnership(args);
+  const agentId = ownership.agentId;
+  const ownershipSource = ownership.resolvedFrom;
+  if (!agentId || !ownershipSource) return;
 
   const now = new Date();
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
@@ -198,6 +166,13 @@ async function ensureAgentClientBinding(args: {
       memberId: args.userId,
       agentId,
       now,
+    });
+    await recordMembershipAgentClientBoundEvent({
+      memberId: args.userId,
+      now,
+      ownershipSource,
+      tenantId: args.tenantId,
+      tx,
     });
   });
 }

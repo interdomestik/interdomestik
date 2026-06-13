@@ -1,11 +1,8 @@
 import { expect, vi } from 'vitest';
-
 import { createQueuedFrom as createQueuedFromMock } from '../../../../../scripts/tests/queued-select-mock';
 
 export { createQueuedFromMock as createQueuedFrom };
-
 type MockFunction = ReturnType<typeof vi.fn>;
-
 interface PaddleHandlerMocks {
   db: {
     query: {
@@ -24,6 +21,7 @@ interface PaddleHandlerMocks {
   };
   selectResults: unknown[][];
   and: MockFunction;
+  appendEvent: MockFunction;
   asc: MockFunction;
   subscriptions: { id: string };
   user: { id: string };
@@ -42,7 +40,6 @@ interface PaddleHandlerMocks {
   insertedUserValues: MockFunction;
   updatedUserValues: MockFunction;
 }
-
 interface ProviderSubscriptionLookupArgs {
   where?: (
     subs: Record<string, string>,
@@ -60,6 +57,7 @@ interface PaddleDatabaseMockModule {
     agentId: string;
   };
   and: MockFunction;
+  appendEvent: MockFunction;
   asc: MockFunction;
   db: PaddleHandlerMocks['db'];
   eq: MockFunction;
@@ -100,6 +98,7 @@ export function createHoistedPaddleHandlerMocks(): PaddleHandlerMocks {
     },
     selectResults: [] as unknown[][],
     and: vi.fn((...conditions: unknown[]) => ({ op: 'and', conditions })),
+    appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
     asc: vi.fn((value: unknown) => ({ op: 'asc', value })),
     subscriptions: { id: 'id_col' },
     user: { id: 'user.id' },
@@ -130,6 +129,7 @@ export function createPaddleDatabaseMockModule(
       agentId: 'agent_clients.agent_id',
     },
     and: hoisted.and,
+    appendEvent: hoisted.appendEvent,
     asc: hoisted.asc,
     db: hoisted.db,
     eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
