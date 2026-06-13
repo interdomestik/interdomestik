@@ -98,6 +98,8 @@ async function main() {
         .set({
           incidentCountryCode: update.incidentCountryCode,
           incidentJurisdiction: update.incidentJurisdiction,
+          recoveryLaw: update.recoveryLaw,
+          recoveryLegalTenantId: update.recoveryLegalTenantId,
         })
         .where(
           and(

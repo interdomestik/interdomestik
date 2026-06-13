@@ -30,6 +30,8 @@ describe('buildIncidentCountryBackfillPlan', () => {
         claimId: 'claim-1',
         incidentCountryCode: 'DE',
         incidentJurisdiction: 'country:DE',
+        recoveryLaw: null,
+        recoveryLegalTenantId: null,
         source: 'claim_pack_json',
         tenantId: 'tenant-1',
       },
@@ -65,6 +67,21 @@ describe('buildIncidentCountryBackfillPlan', () => {
         incidentCountryCode: 'IT',
         incidentJurisdiction: 'country:IT',
         source: 'diaspora_origin_note',
+      }),
+    ]);
+  });
+
+  it('includes recovery law routing values for supported incident countries', () => {
+    const plan = buildIncidentCountryBackfillPlan([
+      row({ claimPackJson: { answers: { incidentCountryCode: 'MK' } } }),
+    ]);
+
+    expect(plan.updates).toEqual([
+      expect.objectContaining({
+        claimId: 'claim-1',
+        incidentCountryCode: 'MK',
+        recoveryLaw: 'MK',
+        recoveryLegalTenantId: 'tenant_mk',
       }),
     ]);
   });

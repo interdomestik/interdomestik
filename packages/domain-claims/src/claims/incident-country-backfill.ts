@@ -124,8 +124,7 @@ export function buildIncidentCountryBackfillPlan(
 
     plan.updates.push({
       claimId: row.id,
-      incidentCountryCode: selected.country.incidentCountryCode,
-      incidentJurisdiction: selected.country.incidentJurisdiction,
+      ...selected.country,
       source: selected.source,
       tenantId: row.tenantId,
     });

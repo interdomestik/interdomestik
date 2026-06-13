@@ -1,6 +1,10 @@
+import { recoveryLawClaimValues, resolveRecoveryLaw } from '@interdomestik/domain-recovery';
+
 import type { ClaimStartHandoffContext } from './types';
 
-export type ClaimIncidentCountry = {
+type ClaimRecoveryLawValues = ReturnType<typeof resolveClaimRecoveryLawValues>;
+
+export type ClaimIncidentCountry = ClaimRecoveryLawValues & {
   incidentCountryCode: string | null;
   incidentJurisdiction: string | null;
 };
@@ -43,12 +47,20 @@ function normalizeCountryJurisdiction(
   return `country:${countryCode}`;
 }
 
+function resolveClaimRecoveryLawValues(incidentCountryCode: string | null) {
+  return recoveryLawClaimValues(resolveRecoveryLaw({ incidentCountryCode }));
+}
+
 export function resolveClaimIncidentCountry(
   input: ClaimIncidentCountryInput
 ): ClaimIncidentCountry {
   const incidentCountryCode = normalizeCountryCode(input.incidentCountryCode);
   if (!incidentCountryCode) {
-    return { incidentCountryCode: null, incidentJurisdiction: null };
+    return {
+      incidentCountryCode: null,
+      incidentJurisdiction: null,
+      ...resolveClaimRecoveryLawValues(null),
+    };
   }
 
   return {
@@ -57,6 +69,7 @@ export function resolveClaimIncidentCountry(
       input.incidentJurisdiction,
       incidentCountryCode
     ),
+    ...resolveClaimRecoveryLawValues(incidentCountryCode),
   };
 }
 
@@ -78,7 +91,7 @@ export function resolveHandoffIncidentCountry(
   handoffContext: ClaimStartHandoffContext | null | undefined
 ): ClaimIncidentCountry {
   if (handoffContext?.source !== 'diaspora-green-card') {
-    return { incidentCountryCode: null, incidentJurisdiction: null };
+    return resolveClaimIncidentCountry({});
   }
 
   return resolveClaimIncidentCountry({ incidentCountryCode: handoffContext.country });

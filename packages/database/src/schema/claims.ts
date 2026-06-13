@@ -24,13 +24,13 @@ export const claims = pgTable(
     tenantId: text('tenant_id')
       .notNull()
       .references(() => tenants.id),
-    claimNumber: text('claim_number'), // Human readable ID, unique per tenant (idx_claims_tenant_number).
+    claimNumber: text('claim_number'),
     userId: text('userId')
       .notNull()
       .references(() => user.id),
-    agentId: text('agent_id').references(() => user.id), // Sales agent from membership
-    branchId: text('branch_id').references(() => branches.id), // Branch scoping from membership
-    staffId: text('staffId').references(() => user.id), // Assigned staff handler
+    agentId: text('agent_id').references(() => user.id),
+    branchId: text('branch_id').references(() => branches.id),
+    staffId: text('staffId').references(() => user.id),
     assignedAt: timestamp('assignedAt'),
     assignedById: text('assignedById').references(() => user.id),
     title: text('title').notNull(),
@@ -42,16 +42,17 @@ export const claims = pgTable(
     ).$type<ClaimRecoveryLifecycleState | null>(),
     incidentCountryCode: text('incident_country_code'),
     incidentJurisdiction: text('incident_jurisdiction'),
+    recoveryLaw: text('recovery_law'),
+    recoveryLegalTenantId: text('recovery_legal_tenant_id').references(() => tenants.id),
     lifecycleVersion: integer('lifecycle_version').notNull().default(0),
-    origin: text('origin').default('portal').notNull(), // 'portal' | 'agent' | 'admin' | 'api'
-    originRefId: text('origin_ref_id'), // agentId or staffId
-    category: text('category').notNull(), // e.g. 'retail', 'services'
+    origin: text('origin').default('portal').notNull(),
+    originRefId: text('origin_ref_id'),
+    category: text('category').notNull(),
     companyName: text('companyName').notNull(),
     claimAmount: decimal('amount', { precision: 10, scale: 2 }),
     currency: text('currency').default('EUR'),
     createdAt: timestamp('createdAt').defaultNow(),
     updatedAt: timestamp('updatedAt').$onUpdate(() => new Date()),
-    // Tracks when status was last changed (for accurate daysInStage calculation)
     statusUpdatedAt: timestamp('statusUpdatedAt'),
   },
   table => [
@@ -85,6 +86,10 @@ export const claims = pgTable(
     check(
       'claim_incident_jurisdiction_check',
       sql`${table.incidentJurisdiction} is null or ${table.incidentJurisdiction} ~ '^country:[A-Z]{2}$'`
+    ),
+    check(
+      'claim_recovery_law_check',
+      sql`${table.recoveryLaw} is null or ${table.recoveryLaw} ~ '^[A-Z]{2}$'`
     ),
   ]
 );
