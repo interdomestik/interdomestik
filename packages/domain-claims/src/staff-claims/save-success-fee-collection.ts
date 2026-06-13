@@ -5,6 +5,7 @@ import {
   db,
   eq,
   subscriptions,
+  type DomainEventTx,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import {
@@ -16,7 +17,6 @@ import { z } from 'zod';
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import type {
   ActionResult,
-  PaymentAuthorizationState,
   SaveSuccessFeeCollectionInput,
   SuccessFeeCollectionSnapshot,
 } from './types';
@@ -27,53 +27,17 @@ import {
   resolveScopedStaffClaimAccess,
   STAFF_SCOPE_ACCESS_DENIED_ERROR,
 } from './scope';
+import { recordSuccessFeeCollectionEvent } from './success-fee-collection-event';
+import {
+  buildSuccessFeeCollectionSnapshot,
+  normalizeCurrencyCode,
+} from './success-fee-collection-snapshot';
 
 const saveSuccessFeeCollectionSchema = z.object({
   claimId: z.string().trim().min(1, 'Claim ID is required'),
   deductionAllowed: z.boolean(),
   recoveredAmount: z.coerce.number().positive('Recovered amount must be greater than zero'),
 });
-
-type DateLike = Date | string | null | undefined;
-
-function normalizeCurrencyCode(value: string | null | undefined) {
-  const normalized = value?.trim().toUpperCase();
-  return normalized && /^[A-Z]{3}$/.test(normalized) ? normalized : 'EUR';
-}
-
-function normalizeDate(value: DateLike) {
-  if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
-function buildSnapshot(params: {
-  claimId: string;
-  collectionMethod: SuccessFeeCollectionSnapshot['collectionMethod'];
-  currencyCode: string;
-  deductionAllowed: boolean;
-  feeAmount: string;
-  hasStoredPaymentMethod: boolean;
-  invoiceDueAt: DateLike;
-  paymentAuthorizationState: PaymentAuthorizationState;
-  recoveredAmount: string;
-  resolvedAt: DateLike;
-  subscriptionId: string | null;
-}): SuccessFeeCollectionSnapshot {
-  return {
-    claimId: params.claimId,
-    collectionMethod: params.collectionMethod,
-    currencyCode: params.currencyCode,
-    deductionAllowed: params.deductionAllowed,
-    feeAmount: params.feeAmount,
-    hasStoredPaymentMethod: params.hasStoredPaymentMethod,
-    invoiceDueAt: normalizeDate(params.invoiceDueAt),
-    paymentAuthorizationState: params.paymentAuthorizationState,
-    recoveredAmount: params.recoveredAmount,
-    resolvedAt: normalizeDate(params.resolvedAt),
-    subscriptionId: params.subscriptionId,
-  };
-}
 
 export async function saveSuccessFeeCollectionCore(
   params: SaveSuccessFeeCollectionInput & {
@@ -220,9 +184,23 @@ export async function saveSuccessFeeCollectionCore(
           )
         );
 
+      await recordSuccessFeeCollectionEvent({
+        claimId: parsed.data.claimId,
+        collectionMethod: collectionPlan.method,
+        currencyCode,
+        deductionAllowed: parsed.data.deductionAllowed,
+        hasStoredPaymentMethod,
+        invoiceDueAt,
+        now,
+        paymentAuthorizationState: commercialAgreement.paymentAuthorizationState,
+        session,
+        tenantId,
+        tx: tx as DomainEventTx,
+      });
+
       return {
         success: true,
-        data: buildSnapshot({
+        data: buildSuccessFeeCollectionSnapshot({
           claimId: parsed.data.claimId,
           collectionMethod: collectionPlan.method,
           currencyCode,

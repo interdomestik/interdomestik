@@ -5,6 +5,8 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { stableJson, synchronizedBudget } from '../repo-size-budget-sync-core.mjs';
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '../..');
 const syncScript = path.join(repoRoot, 'scripts/repo-size-budget-sync.mjs');
@@ -38,13 +40,6 @@ function createTempBudget(t, budget) {
   return budgetPath;
 }
 
-function createAuditedBudget(t, budget) {
-  const budgetPath = path.join(repoRoot, `.repo-size-sync-budget-${process.pid}.json`);
-  fs.writeFileSync(budgetPath, `${JSON.stringify(budget, null, 2)}\n`);
-  t.after(() => fs.rmSync(budgetPath, { force: true }));
-  return budgetPath;
-}
-
 function staleBudget() {
   return {
     version: 1,
@@ -59,6 +54,22 @@ function staleBudget() {
       'docs/text': 1,
       'config/data/messages': 1,
       other: 1,
+    },
+  };
+}
+
+function syntheticReport(bytes) {
+  const sourceBytes = 1;
+
+  return {
+    tracked: {
+      categories: [
+        { name: 'config/data/messages', bytes },
+        { name: 'source/scripts', bytes: sourceBytes },
+      ],
+      largestFiles: [{ bytes: 1 }],
+      sourceHotspots: [{ lines: 1 }],
+      total: { bytes: bytes + sourceBytes, files: 1 },
     },
   };
 }
@@ -94,15 +105,25 @@ test('repo size sync dry run reports drift without writing the budget', t => {
   assert.deepEqual(JSON.parse(fs.readFileSync(budgetPath, 'utf8')), originalBudget);
 });
 
-test('repo size sync accounts for the budget file write when audited', t => {
-  const budgetPath = createAuditedBudget(t, staleBudget());
+test('repo size sync accounts for the budget file write when audited', () => {
+  const budgetPath = '.repo-size-sync-budget.json';
+  const previousBudget = staleBudget();
+  const previousText = stableJson(previousBudget);
+  const beforeReport = syntheticReport(Buffer.byteLength(previousText));
+  const nextBudget = synchronizedBudget(
+    beforeReport,
+    previousBudget,
+    budgetPath,
+    previousText,
+    true
+  );
+  const nextText = stableJson(nextBudget);
+  const afterReport = syntheticReport(Buffer.byteLength(nextText));
 
-  const updateResult = runSync([`--budget=${budgetPath}`]);
-  assert.equal(updateResult.status, 0, updateResult.stderr);
-
-  const cleanResult = runSync(['--check', `--budget=${budgetPath}`]);
-  assert.equal(cleanResult.status, 0, cleanResult.stderr);
-  assert.match(cleanResult.stdout, /already synchronized/u);
+  assert.equal(
+    stableJson(synchronizedBudget(afterReport, nextBudget, budgetPath, nextText, true)),
+    nextText
+  );
 });
 
 test('repo size sync includes non-ignored untracked files before staging', t => {
