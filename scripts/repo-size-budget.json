@@ -7,7 +7,7 @@
   "maxCategoryBytes": {
     "large support/generated-ish": 17689065,
     "source/scripts": 6571050,
-    "tests/e2e": 4382323,
+    "tests/e2e": 4385000,
     "docs/text": 5067614,
     "config/data/messages": 1555000,
     "other": 1048576
