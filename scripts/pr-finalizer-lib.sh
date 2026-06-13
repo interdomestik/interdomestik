@@ -78,10 +78,10 @@ required_check_names() {
 
 require_feedback_checks_green() {
   local checks_json="$1"
-  local feedback_pattern="copilot|vercel"
+  local feedback_pattern="vercel"
   local feedback_failures
   if [[ "${pr_type}" != "${PR_TYPE_DOCS_ONLY}" ]]; then
-    feedback_pattern="sonar|copilot|vercel"
+    feedback_pattern="sonar|vercel"
   fi
   feedback_failures="$(
     echo "${checks_json}" | jq -r --arg PATTERN "${feedback_pattern}" '
@@ -99,7 +99,7 @@ require_feedback_checks_green() {
   if [[ -n "${feedback_failures}" ]]; then
     echo "[pr-finalizer] FAIL: non-green feedback checks:" >&2
     echo "${feedback_failures}" >&2
-    fail "Sonar/Copilot/Vercel feedback checks must be green or cleanly skipped"
+    fail "Sonar/Vercel feedback checks must be green or cleanly skipped"
   fi
   return 0
 }

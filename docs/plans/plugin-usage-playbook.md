@@ -19,7 +19,7 @@ Use available plugins as fixed evidence lanes during Interdomestik slice deliver
 repo-local evidence, then add plugin evidence only when it matches the slice risk.
 
 - `interdomestik_qa`: repo map, code search, changed files, scope audit, and local gate wrappers.
-- GitHub: PR state, CI checks, review threads, Copilot/Sonar disposition, merge, and cleanup proof.
+- GitHub: PR state, CI checks, review threads, Sonar disposition, merge, and cleanup proof.
 - Context7: current framework/library behavior for Next.js, React, Supabase, Drizzle, Playwright,
   Tailwind, or package-specific APIs.
 - Notion: external program sync or workspace search only. Repo docs remain authoritative.
@@ -48,7 +48,7 @@ Use before shell-only fallback when available: `project_map`, `code_search`, `ch
 ### GitHub
 
 Use on every PR-bound slice to fetch PR metadata/diffs/comments, monitor CodeQL, SonarCloud,
-Copilot, CI, PR E2E, Pilot Gate, gitleaks, pnpm-audit, validation-surface, and `pr-finalizer`,
+CI, PR E2E, Pilot Gate, gitleaks, pnpm-audit, validation-surface, and `pr-finalizer`,
 then confirm merge SHA and branch cleanup.
 
 ### Codex Security
@@ -101,7 +101,7 @@ For non-trivial PRs, include a short plugin/tool evidence section:
 ### Plugin / Tool Evidence
 
 - Repo MCP: project map, code search, changed files, and scope audit completed.
-- GitHub: CI, SonarCloud, Copilot, CodeQL, Pilot Gate, and pr-finalizer monitored.
+- GitHub: CI, SonarCloud, CodeQL, Pilot Gate, and pr-finalizer monitored.
 - Security: Codex Security diff scan <passed | not_applicable | blocked: reason>.
 - Supabase: advisors/logs <passed | not_applicable | blocked: reason>.
 - Browser/Playwright: UI proof <passed | not_applicable>.

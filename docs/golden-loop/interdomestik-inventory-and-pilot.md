@@ -16,8 +16,10 @@ adapter discovery plus the first completed pilot.
   are editable only during approved closeout.
 - **MCP**: adapter preference is `interdomestik_qa`, Playwright, and
   `context7`. If unavailable, record the blocker and use shell/CLI fallback.
-- **Review tooling**: default repo model-review fan-out remains available, but
-  Golden Loop uses the adapter waterfall: Fable -> Codex -> Sonnet -> Copilot.
+- **Review tooling**: default repo model-review fan-out is disabled for routine
+  slice work. Golden Loop uses Sonnet as the normal Claude review route, keeps
+  Fable 5 for explicit escalation, and runs Codex as a separate pre-PR and
+  post-remediation senior-engineer review gate.
 - **Evidence**: `tmp/golden-loop/<slice>/` stores resume state, bounded packets,
   waterfall receipts, and review packets.
 

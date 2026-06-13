@@ -1,4 +1,4 @@
-export const defaultReviewers = ['sonnet', 'gemini', 'copilot'];
+export const defaultReviewers = ['sonnet'];
 
 export const modelReviewRoutes = {
   sonnet: {
@@ -14,25 +14,23 @@ export const modelReviewRoutes = {
       '--no-session-persistence',
     ],
   },
+  fable: {
+    label: 'Claude Fable 5 escalation review',
+    command: 'claude',
+    args: prompt => [
+      '-p',
+      prompt,
+      '--model',
+      'claude-fable-5',
+      '--tools',
+      '',
+      '--no-session-persistence',
+    ],
+  },
   gemini: {
     label: 'Gemini product/design review',
     command: 'gemini',
     args: prompt => ['-p', prompt, '--model', 'gemini-3.1-pro-preview', '--output-format', 'text'],
-  },
-  copilot: {
-    label: 'Copilot Sonnet fallback review',
-    command: 'copilot',
-    args: prompt => [
-      '--model',
-      'claude-sonnet-4.6',
-      '-p',
-      prompt,
-      '--available-tools=',
-      '--disable-builtin-mcps',
-      '--no-custom-instructions',
-      '--no-color',
-      '--silent',
-    ],
   },
 };
 

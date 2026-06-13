@@ -51,7 +51,7 @@ test('adapter encodes unified PR monitoring and auto-merge rules', () => {
   assert.ok(
     adapter.autoMerge.criteria.some(criterion => criterion.includes('zero open security hotspots'))
   );
-  assert.ok(adapter.autoMerge.criteria.some(criterion => criterion.includes('Copilot')));
+  assert.ok(adapter.autoMerge.criteria.some(criterion => criterion.includes('reviewer')));
   assert.ok(adapter.closeout.rules.some(rule => rule.includes('implementation PR merged')));
   assert.ok(adapter.closeout.rules.some(rule => rule.includes('branch and worktree clean')));
 });
@@ -72,19 +72,9 @@ test('reviewerEnv adds common reviewer CLI install locations', () => {
   assert.ok(env.PATH.startsWith('/usr/bin:/bin'));
 });
 
-test('normalizeReviewerOutput extracts Copilot JSONL assistant content', () => {
-  const output = [
-    JSON.stringify({ type: 'session.skills_loaded', data: { noisy: true } }),
-    JSON.stringify({
-      type: 'assistant.message',
-      data: { content: 'REVIEWER: copilot\nSLICE: T-1' },
-    }),
-    JSON.stringify({ type: 'result', exitCode: 0 }),
-  ].join('\n');
-  assert.equal(
-    normalizeReviewerOutput(output, { outputExtractor: 'copilot-jsonl' }),
-    'REVIEWER: copilot\nSLICE: T-1'
-  );
+test('normalizeReviewerOutput returns raw reviewer output', () => {
+  const output = 'REVIEWER: sonnet\nSLICE: T-1';
+  assert.equal(normalizeReviewerOutput(output), output);
 });
 
 test('resume state round-trips atomically and journals', () => {

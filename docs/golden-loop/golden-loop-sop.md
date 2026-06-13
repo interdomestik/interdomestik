@@ -19,16 +19,16 @@ through routine decisions.
 
 ## Loop phases
 
-| #   | Phase              | Autonomy           | Notes                                                                                                                                                                        |
-| --- | ------------------ | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0  | Resume + preflight | auto               | Load adapter; load resume-state; inspect branch/dirty/staged/untracked **before any edit**; never stash/reset/touch unrelated changes.                                       |
-| P1  | Slice confirmation | **human boundary** | Slice must be promoted by the adapter's canonical trackers. If ambiguous → stop and report; never invent a slice.                                                            |
-| P2  | Design confidence  | auto               | Read authority files in adapter order; write a short design note into state. If design requires touching a protected path or violating an invariant → stop (human boundary). |
-| P3  | Implementation     | auto               | Branch per adapter rules; scoped edits only; respect file-size and modularity rules from the adapter.                                                                        |
-| P4  | Verification       | auto               | Run gates by **cost class** (below). Cheap → expensive; full-cost gates at most `budgets.maxFullGateRuns` per slice.                                                         |
-| P5  | Review             | auto               | **Sequential reviewer waterfall** (below). First valid, blocker-free senior review suffices.                                                                                 |
-| P6  | PR + remediation   | mostly auto        | Classify PR as runtime or docs-only; batch-poll CI/Sonar issues/Sonar hotspots/Copilot/reviewer feedback; auto-remediate `autoSafe` classes until green or human-blocked.    |
-| P7  | Merge + closeout   | auto, gated        | If `autoMerge` criteria pass, squash-merge; then update canonical trackers/programs in a compact closeout PR and prepare the next-slice handoff for human approval.          |
+| #   | Phase              | Autonomy           | Notes                                                                                                                                                                                 |
+| --- | ------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0  | Resume + preflight | auto               | Load adapter; load resume-state; inspect branch/dirty/staged/untracked **before any edit**; never stash/reset/touch unrelated changes.                                                |
+| P1  | Slice confirmation | **human boundary** | Slice must be promoted by the adapter's canonical trackers. If ambiguous → stop and report; never invent a slice.                                                                     |
+| P2  | Design confidence  | auto               | Read authority files in adapter order; write a short design note into state. If design requires touching a protected path or violating an invariant → stop (human boundary).          |
+| P3  | Implementation     | auto               | Branch per adapter rules; scoped edits only; respect file-size and modularity rules from the adapter.                                                                                 |
+| P4  | Verification       | auto               | Run gates by **cost class** (below). Cheap → expensive; full-cost gates at most `budgets.maxFullGateRuns` per slice.                                                                  |
+| P5  | Review             | auto               | **Pre-PR Sonnet review + Codex senior review** (below). Fable 5 is an explicit escalation route only.                                                                                 |
+| P6  | PR + remediation   | mostly auto        | Classify PR as runtime or docs-only; batch-poll CI/Sonar issues/Sonar hotspots/reviewer feedback; auto-remediate `autoSafe` classes, then rerun Codex review after substantive fixes. |
+| P7  | Merge + closeout   | auto, gated        | If `autoMerge` criteria pass, squash-merge; then update canonical trackers/programs in a compact closeout PR and prepare the next-slice handoff for human approval.                   |
 
 Opening a PR is **not** completion. A slice is complete only when the
 implementation PR is merged, required closeout is merged, branch/worktree are
@@ -53,24 +53,28 @@ runtime gates; docs-only closeout PRs should stay docs-only and avoid heavy
 runtime lanes where branch policy allows it.
 
 Every monitor poll checks GitHub checks, Sonar open issues, Sonar open
-hotspots, and unresolved Copilot/reviewer threads. Auto-merge requires green
+hotspots, and unresolved reviewer threads. Auto-merge requires green
 required checks, Sonar issues `0`, Sonar hotspots `0`, and all threads resolved.
 
 Do not fix docs-only closeout size/format failures by expanding into
 runtime/tooling changes unless a required tooling defect is proven. Compact or
 split closeout docs so the PR stays docs-only.
 
-## Reviewer waterfall (replaces default fan-out)
+## Reviewer routing (replaces default fan-out)
 
-Reviewers are an **ordered list** in the adapter. Route N+1 is consulted only
-if route N is: unavailable, errored, refused/rerouted, returned an invalid
-(empty/off-topic) review, or returned **unresolved blockers**. A refusal or
-reroute by any model route is a normal fallback event, **not** a slice blocker.
-The first available, valid, blocker-free review from a senior route satisfies
-the review requirement; remaining routes are skipped (this is the call-count
-win). Every consulted route gets a receipt entry (status + reason) so the
-evidence trail stays auditable. Reviews receive a **bounded evidence packet**,
-never raw logs or whole files.
+Normal review is front-loaded before PR: run Sonnet on a bounded evidence
+packet, fix blocker/hardening findings, then run `codex review --uncommitted`
+(or `--base main` after commit) as the final local senior-engineer bug-finding
+pass. Fable 5 stays out of the default order; add it only for Tier 3 high-risk
+scope, blocked Sonnet/Codex evidence, unresolved disagreement, or explicit
+human request. Codex is not a waterfall route.
+
+Within a configured waterfall, fall through only when the current route is
+unavailable, errored, refused/rerouted, invalid, or returns unresolved blockers.
+The first valid, blocker-free senior review wins; consulted routes get receipts
+and bounded packets. After substantive PR-review remediation, rerun Codex on
+the updated diff. Trivial PR-body or wording-only changes do not need another
+model review.
 
 **Senior-review contract.** A review counts as valid evidence only if it
 contains all of: `REVIEWER:` (model/identity), `SLICE:` (must match the slice
@@ -78,13 +82,10 @@ under review), `SCOPE:` (files reviewed or evidence-packet reference), a
 `FINDINGS:` section (unresolved must-fix items prefixed `BLOCKER:`), and an
 explicit `VERDICT: READY | READY AFTER FIXES | BLOCKED`. Only `READY` with no
 unresolved `BLOCKER:` findings is blocker-free and can win the waterfall.
-Generic prose, short output, or output missing any contract field is
-classified `invalid` and falls through to the next route.
+Generic prose or missing contract fields fall through as `invalid`.
 
 **Dry-run is never review evidence.** A dry-run probes route availability
-only: it produces an availability receipt (`route-available`/`unavailable` per
-route), never a winner, never a valid review receipt, and writes no review
-packet. Use it for preflight; it satisfies nothing in P5.
+only: it writes availability receipts, never a winner or valid review evidence.
 
 ## Budgets (per slice, defaults — adapter may tighten)
 

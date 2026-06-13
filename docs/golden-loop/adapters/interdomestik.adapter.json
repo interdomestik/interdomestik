@@ -61,26 +61,17 @@
     { "name": "ci-required-checks", "command": "gh checks", "costClass": "remote" }
   ],
   "reviewerWaterfall": {
-    "order": ["fable", "codex", "sonnet", "copilot"],
+    "order": ["sonnet"],
     "routes": {
-      "fable": {
-        "command": "claude",
-        "stdinPrompt": true,
-        "args": ["-p", "--model", "claude-fable-5", "--tools", "", "--no-session-persistence"]
-      },
-      "codex": {
-        "command": "codex",
-        "args": ["exec", "--ignore-user-config", "--model", "gpt-5.5", "{prompt}"]
-      },
       "sonnet": {
         "command": "claude",
         "stdinPrompt": true,
         "args": ["-p", "--model", "claude-sonnet-4-6", "--tools", "", "--no-session-persistence"]
       },
-      "copilot": {
-        "command": "copilot",
-        "outputExtractor": "copilot-jsonl",
-        "args": ["--model", "claude-sonnet-4.6", "-p", "{prompt}"]
+      "fable": {
+        "command": "claude",
+        "stdinPrompt": true,
+        "args": ["-p", "--model", "claude-fable-5", "--tools", "", "--no-session-persistence"]
       }
     },
     "refusalIsBlocker": false
@@ -98,7 +89,7 @@
       "format/lint fixes inside slice files",
       "known-flaky rerun after log inspection",
       "bounded transitive audit pin with no runtime API change",
-      "CodeQL/Sonar/Copilot hardening confined to slice files with no risk acceptance",
+      "CodeQL/Sonar/reviewer hardening confined to slice files with no risk acceptance",
       "review nits confined to slice scope"
     ],
     "humanRequired": [
@@ -115,7 +106,7 @@
       "required checks green",
       "SonarCloud quality gate green with zero open issues and zero open security hotspots",
       "CodeQL alerts resolved or dismissed with evidence",
-      "Copilot/reviewer comments addressed and resolved",
+      "reviewer comments addressed and resolved",
       "no protected-path violation"
     ]
   },

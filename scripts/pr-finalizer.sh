@@ -287,7 +287,6 @@ GRAPHQL
 
   local cursor=""
   local unresolved_total=0
-  local unresolved_copilot=0
   local -a unresolved_samples=()
 
   while true; do
@@ -303,15 +302,12 @@ GRAPHQL
       fail "unable to read review threads from GitHub GraphQL API"
     fi
 
-    local thread_url thread_authors thread_has_copilot
-    while IFS=$'\t' read -r thread_url thread_authors thread_has_copilot; do
-      if [[ -z "${thread_url}${thread_authors}${thread_has_copilot}" ]]; then
+    local thread_url thread_authors
+    while IFS=$'\t' read -r thread_url thread_authors; do
+      if [[ -z "${thread_url}${thread_authors}" ]]; then
         continue
       fi
       unresolved_total=$((unresolved_total + 1))
-      if [[ "${thread_has_copilot}" == "true" ]]; then
-        unresolved_copilot=$((unresolved_copilot + 1))
-      fi
       if [[ "${#unresolved_samples[@]}" -lt 5 ]]; then
         unresolved_samples+=("${thread_url} [authors=${thread_authors}]")
       fi
@@ -321,8 +317,7 @@ GRAPHQL
         | select(.isResolved == false)
         | [
             (.comments.nodes[0].url // "n/a"),
-            (([.comments.nodes[].author.login // "unknown"] | unique | join(","))),
-            (([.comments.nodes[].author.login // ""] | any(test("copilot"; "i"))) | tostring)
+            (([.comments.nodes[].author.login // "unknown"] | unique | join(",")))
           ]
         | @tsv
       '
@@ -341,7 +336,7 @@ GRAPHQL
   done
 
   if [[ "${unresolved_total}" -gt 0 ]]; then
-    echo "[pr-finalizer] FAIL: unresolved review threads: ${unresolved_total} (copilot-related: ${unresolved_copilot})" >&2
+    echo "[pr-finalizer] FAIL: unresolved review threads: ${unresolved_total}" >&2
     if [[ "${#unresolved_samples[@]}" -gt 0 ]]; then
       echo "[pr-finalizer] Sample unresolved threads:" >&2
       local sample
@@ -349,7 +344,7 @@ GRAPHQL
         echo "  - ${sample}" >&2
       done
     fi
-    fail "resolve all review threads, including Copilot feedback, then rerun finalizer"
+    fail "resolve all review threads, then rerun finalizer"
   fi
 }
 

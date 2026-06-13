@@ -43,7 +43,7 @@ function main() {
   const runRoot = argValue(args, '--run-root');
   if (!runRoot) fail('missing --run-root');
   const required = parseReviewerList(argValue(args, '--required'), ['sonnet']);
-  const optional = parseReviewerList(argValue(args, '--optional'), ['gemini', 'copilot']);
+  const optional = parseReviewerList(argValue(args, '--optional'), []);
   const requireCall = args.includes('--require-call');
   assertKnownReviewers([...new Set([...required, ...optional])]);
 
