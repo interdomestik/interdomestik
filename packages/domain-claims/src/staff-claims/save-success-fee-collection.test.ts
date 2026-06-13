@@ -26,7 +26,6 @@ type MockSubscriptionRecord = {
   id: string;
   providerCustomerId: string | null;
 };
-
 const READY_ACCEPTED_AGREEMENT: MockAgreementRecord = {
   acceptedAt: new Date('2026-03-12T09:00:00Z'),
   decisionNextStatus: 'negotiation',
@@ -125,6 +124,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
+  appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   claimEscalationAgreements: mocks.claimEscalationAgreements,
   claims: mocks.claims,
   db: mocks.db,
