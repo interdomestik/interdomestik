@@ -5,88 +5,88 @@ import { domainEvents } from './schema/domain-events';
 export type DomainEventTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export type AppendEventParams = {
-  actor: {
-    id: string;
-    role: string;
-  };
+  actor: { id: string; role: string };
   aggregateVersion: number;
   correlationId: string;
   createdAt?: Date;
-  entity: {
-    id: string;
-    type: string;
-  };
+  entity: { id: string; type: string };
   eventName: string;
   eventVersion: number;
   id?: string;
   payload?: Record<string, unknown>;
   tenantId: string;
 };
+export type AppendEventResult = { id: string };
 
-export type AppendEventResult = {
-  id: string;
-};
-
-type PayloadValidator = (payload: Record<string, unknown>) => Record<string, unknown>;
-
-const CLAIM_STATUS_SET = new Set<string>(CLAIM_STATUSES);
+const CASE_CREATED_KEYS = new Set(['hasDocuments', 'initialStatus']);
 const CLAIM_STATUS_CHANGED_KEYS = new Set(['fromStatus', 'toStatus']);
-
+const CLAIM_STATUS_SET = new Set<string>(CLAIM_STATUSES);
 function assertNonEmpty(value: string, field: string): void {
   if (value.trim().length === 0) {
     throw new Error(`appendEvent requires ${field}`);
   }
 }
-
 function assertIntegerAtLeast(value: number, minimum: number, field: string): void {
   if (!Number.isInteger(value) || value < minimum) {
     throw new Error(`appendEvent requires ${field} >= ${minimum}`);
   }
 }
-
-function eventPayloadAllowlistKey(params: AppendEventParams): string {
-  return `${params.eventName}@${params.eventVersion}`;
-}
-
 function assertClaimStatus(value: unknown, field: string): asserts value is ClaimStatus {
   if (typeof value !== 'string' || !CLAIM_STATUS_SET.has(value)) {
     throw new Error(`appendEvent requires payload.${field} to be a claim status`);
   }
 }
-
 function assertNoUnexpectedPayloadFields(
   payload: Record<string, unknown>,
-  eventName: string
+  eventName: string,
+  allowedKeys: Set<string>
 ): void {
   for (const field of Object.keys(payload)) {
-    if (!CLAIM_STATUS_CHANGED_KEYS.has(field)) {
+    if (!allowedKeys.has(field)) {
       throw new Error(`appendEvent payload field ${field} is not allowlisted for ${eventName}`);
     }
   }
 }
-
-function assertClaimStatusChangedPayload(payload: Record<string, unknown>): void {
-  assertNoUnexpectedPayloadFields(payload, 'claim.status_changed');
+function assertRequiredPayloadField(payload: Record<string, unknown>, field: string): unknown {
+  if (!Object.hasOwn(payload, field)) {
+    throw new Error(`appendEvent requires payload.${field}`);
+  }
+  return payload[field];
+}
+function assertBooleanPayloadField(payload: Record<string, unknown>, field: string): boolean {
+  const value = assertRequiredPayloadField(payload, field);
+  if (typeof value !== 'boolean') {
+    throw new TypeError(`appendEvent requires payload.${field} to be a boolean`);
+  }
+  return value;
+}
+function claimStatusChangedPayload(payload: Record<string, unknown>): Record<string, unknown> {
+  assertNoUnexpectedPayloadFields(payload, 'claim.status_changed', CLAIM_STATUS_CHANGED_KEYS);
   for (const field of CLAIM_STATUS_CHANGED_KEYS) {
-    if (!Object.hasOwn(payload, field)) {
-      throw new Error(`appendEvent requires payload.${field}`);
-    }
+    assertRequiredPayloadField(payload, field);
     assertClaimStatus(payload[field], field);
   }
-}
-
-function claimStatusChangedPayload(payload: Record<string, unknown>): Record<string, unknown> {
-  assertClaimStatusChangedPayload(payload);
   return { fromStatus: payload.fromStatus, toStatus: payload.toStatus };
 }
-
-const PAYLOAD_VALIDATORS: Record<string, PayloadValidator> = {
+function caseCreatedPayload(payload: Record<string, unknown>): Record<string, unknown> {
+  assertNoUnexpectedPayloadFields(payload, 'case.created', CASE_CREATED_KEYS);
+  const initialStatus = assertRequiredPayloadField(payload, 'initialStatus');
+  assertClaimStatus(initialStatus, 'initialStatus');
+  return {
+    hasDocuments: assertBooleanPayloadField(payload, 'hasDocuments'),
+    initialStatus,
+  };
+}
+const PAYLOAD_VALIDATORS: Record<
+  string,
+  (payload: Record<string, unknown>) => Record<string, unknown>
+> = {
+  'case.created@1': caseCreatedPayload,
   'claim.status_changed@1': claimStatusChangedPayload,
 };
-
 function assertAllowlistedPayload(params: AppendEventParams): Record<string, unknown> {
   const payload = params.payload ?? {};
-  const allowlistKey = eventPayloadAllowlistKey(params);
+  const allowlistKey = `${params.eventName}@${params.eventVersion}`;
   const validator = PAYLOAD_VALIDATORS[allowlistKey];
 
   if (!validator) {
@@ -95,7 +95,6 @@ function assertAllowlistedPayload(params: AppendEventParams): Record<string, unk
 
   return validator(payload);
 }
-
 export async function appendEvent(
   tx: DomainEventTx,
   params: AppendEventParams

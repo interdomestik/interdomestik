@@ -2,10 +2,10 @@ import { appendEvent, claimStageHistory, db } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { SQLWrapper } from 'drizzle-orm';
 import type { AuthorizedTransition, ClaimTransitionActor } from './transition-guard';
+import type { CreateClaimValues } from '../validators/claims';
 import type { PaymentAuthorizationState } from '../staff-claims/types';
 
 export type TransitionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
 export type TransitionSideEffectsArgs = {
   actor: ClaimTransitionActor;
   claimId: string;
@@ -18,21 +18,27 @@ export type TransitionSideEffectsArgs = {
   tenantId: string;
   toStatus: ClaimStatus;
 };
-
+export type RecordSubmittedClaimLifecycleArgs = {
+  changedByRole: string;
+  claimId: string;
+  createdAt: Date;
+  data: Pick<CreateClaimValues, 'files'>;
+  publicNote: string | null;
+  tenantId: string;
+  userId: string;
+};
 export class ClaimTransitionConflictError extends Error {
   constructor(claimId: string) {
     super(`Claim ${claimId} changed before the status transition could be saved.`);
     this.name = 'ClaimTransitionConflictError';
   }
 }
-
 export class ClaimTransitionAuthorizationError extends Error {
   constructor(claimId: string) {
     super(`Claim ${claimId} status write attempted with a mismatched authorization proof.`);
     this.name = 'ClaimTransitionAuthorizationError';
   }
 }
-
 export type TransitionClaimStatusParams = {
   actor: ClaimTransitionActor;
   claimId: string;
@@ -45,11 +51,9 @@ export type TransitionClaimStatusParams = {
   tenantId: string;
   toStatus: ClaimStatus;
 };
-
 export type TransitionClaimStatusResult =
   | { success: true; fromStatus: ClaimStatus; lifecycleVersion: number; status: ClaimStatus }
   | { success: false; error: 'claim_not_found' | 'invalid_current_status' | 'transition_rejected' };
-
 export type PersistAuthorizedTransitionArgs = {
   actor: ClaimTransitionActor;
   authorization: AuthorizedTransition;
@@ -61,11 +65,41 @@ export type PersistAuthorizedTransitionArgs = {
   readWhere: SQLWrapper;
   tenantId: string;
 };
-
+export async function recordSubmittedClaimLifecycle(
+  tx: TransitionTx,
+  args: RecordSubmittedClaimLifecycleArgs
+): Promise<void> {
+  // db-access-guard: tenant-scoped -- reason: tenant proof is copied from the claim command boundary.
+  await tx.insert(claimStageHistory).values({
+    id: crypto.randomUUID(),
+    tenantId: args.tenantId,
+    claimId: args.claimId,
+    fromStatus: null,
+    toStatus: 'submitted',
+    changedById: args.userId,
+    changedByRole: args.changedByRole,
+    note: args.publicNote,
+    isPublic: true,
+    createdAt: args.createdAt,
+  });
+  await appendEvent(tx, {
+    actor: { id: args.userId, role: args.changedByRole.trim() || 'member' },
+    aggregateVersion: 1,
+    correlationId: crypto.randomUUID(),
+    createdAt: args.createdAt,
+    entity: { id: args.claimId, type: 'case' },
+    eventName: 'case.created',
+    eventVersion: 1,
+    payload: {
+      hasDocuments: Boolean(args.data.files?.length),
+      initialStatus: 'submitted',
+    },
+    tenantId: args.tenantId,
+  });
+}
 // T-002d Boy Scout split from transition.ts: stage-history + outbox side
 // effects for an authorized status transition. Must always run inside the
-// SAME Postgres transaction as the status write (constitution invariant #2);
-// this module performs no claims.status write itself.
+// SAME Postgres transaction as the status write; this module does not write claims.status.
 export async function recordTransitionSideEffects(
   tx: TransitionTx,
   args: TransitionSideEffectsArgs
@@ -96,7 +130,6 @@ export async function recordTransitionSideEffects(
     isPublic,
     createdAt: now,
   });
-
   if (fromStatus !== toStatus) {
     await appendEvent(tx, {
       actor: { id: actor.id, role: actor.role?.trim() || 'unknown' },

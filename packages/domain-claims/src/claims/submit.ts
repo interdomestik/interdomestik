@@ -1,11 +1,4 @@
-import {
-  agentClients,
-  claimDocuments,
-  claimStageHistory,
-  claims,
-  db,
-  tenantSettings,
-} from '@interdomestik/database';
+import { agentClients, claimDocuments, claims, db, tenantSettings } from '@interdomestik/database';
 import { generateClaimNumber } from '@interdomestik/database/claim-number';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
@@ -21,6 +14,7 @@ import {
   resolveSubmittedClaimIncidentCountry,
 } from './incident-country';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
+import { recordSubmittedClaimLifecycle } from './transition-side-effects';
 import type { ClaimStartHandoffContext, ClaimsDeps, ClaimsSession } from './types';
 
 export class ClaimValidationError extends Error {
@@ -178,17 +172,14 @@ async function persistSubmittedClaim(args: {
       createdAt: args.createdAt,
     });
 
-    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await tx.insert(claimStageHistory).values({
-      id: crypto.randomUUID(),
-      tenantId: args.tenantId,
-      claimId: args.claimId,
-      fromStatus: null,
-      toStatus: 'submitted',
-      changedById: args.userId,
+    await recordSubmittedClaimLifecycle(tx, {
       changedByRole: args.changedByRole,
-      note: publicNote,
-      isPublic: true,
+      claimId: args.claimId,
+      createdAt: args.createdAt,
+      data: args.data,
+      publicNote,
+      tenantId: args.tenantId,
+      userId: args.userId,
     });
 
     if (!files?.length) {

@@ -27,6 +27,7 @@ const hoisted = vi.hoisted(() => {
 });
 
 vi.mock('@interdomestik/database', () => ({
+  appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   agentClients: {
     agentId: 'agent_clients.agent_id',
     memberId: 'agent_clients.member_id',

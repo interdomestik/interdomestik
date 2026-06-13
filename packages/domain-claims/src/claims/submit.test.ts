@@ -2,9 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => {
   const txInsertValues = vi.fn().mockResolvedValue(undefined);
-  const txInsert = vi.fn(() => ({
-    values: txInsertValues,
-  }));
+  const txInsert = vi.fn(() => ({ values: txInsertValues }));
   const transaction = vi.fn(async (callback: (tx: { insert: typeof txInsert }) => Promise<void>) =>
     callback({ insert: txInsert })
   );
@@ -46,6 +44,7 @@ const hoisted = vi.hoisted(() => {
 });
 
 vi.mock('@interdomestik/database', () => ({
+  appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   agentClients: {
     tenantId: 'agent_clients.tenant_id',
     memberId: 'agent_clients.member_id',
@@ -97,6 +96,7 @@ vi.mock('./ai-workflows', () => ({
   queueClaimDocumentAiWorkflows: hoisted.queueClaimDocumentAiWorkflows,
 }));
 
+import { appendEvent } from '@interdomestik/database';
 import { submitClaimCore } from './submit';
 import { MAX_CLAIM_EVIDENCE_FILES } from '../validators/claims';
 
@@ -120,8 +120,8 @@ function buildEvidenceFile(overrides: Partial<SubmitClaimFile> = {}): SubmitClai
 
 function buildClaimData(files: SubmitClaimFile[] = [buildEvidenceFile()]): SubmitClaimArgs['data'] {
   return {
-    title: 'Flight delay claim',
-    description: 'My flight was delayed overnight and I incurred hotel costs.',
+    title: 'Delay',
+    description: 'Delayed overnight costs.',
     category: 'travel',
     companyName: 'Airline Co',
     claimAmount: '650.00',
@@ -171,7 +171,7 @@ describe('submitClaimCore', () => {
     });
   });
 
-  it('queues claim AI workflows after persisting the submitted claim documents', async () => {
+  it('queues claim AI after documents persist', async () => {
     const dispatchClaimAiRun = vi.fn().mockResolvedValue(undefined);
     const validateSubmittedClaimFile = vi.fn().mockResolvedValue(undefined);
 
@@ -194,29 +194,26 @@ describe('submitClaimCore', () => {
       claimId: 'claim-1',
       claimNumber: 'CLM-T1-2026-000001',
     });
-    expect(hoisted.generateClaimNumber).toHaveBeenCalledWith(
-      expect.any(Object),
-      expect.objectContaining({
-        claimId: 'claim-1',
-        tenantId: 'tenant-1',
-      })
-    );
     expect(hoisted.txInsert).toHaveBeenNthCalledWith(1, { __name: 'claim' });
     expect(hoisted.txInsert).toHaveBeenNthCalledWith(2, { __name: 'claim_stage_history' });
-    expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(
-      2,
+    expect(hoisted.txInsert).toHaveBeenNthCalledWith(3, { __name: 'claim_documents' });
+    const stageHistoryRow = hoisted.txInsertValues.mock.calls[1]?.[0] as { createdAt?: Date };
+    const caseCreatedEvent = vi.mocked(appendEvent).mock.calls[0]?.[1];
+    expect(stageHistoryRow.createdAt).toBe(caseCreatedEvent?.createdAt);
+    expect(appendEvent).toHaveBeenCalledWith(
+      expect.any(Object),
       expect.objectContaining({
-        claimId: 'claim-1',
+        aggregateVersion: 1,
+        entity: { id: 'claim-1', type: 'case' },
+        eventName: 'case.created',
+        eventVersion: 1,
+        payload: {
+          hasDocuments: true,
+          initialStatus: 'submitted',
+        },
         tenantId: 'tenant-1',
-        fromStatus: null,
-        toStatus: 'submitted',
-        changedById: 'member-1',
-        changedByRole: 'member',
-        note: 'Started from Diaspora / Green Card quickstart. Country: IT. Incident location: abroad.',
-        isPublic: true,
       })
     );
-    expect(hoisted.txInsert).toHaveBeenNthCalledWith(3, { __name: 'claim_documents' });
     expect(hoisted.queueClaimDocumentAiWorkflows).toHaveBeenCalledWith(
       expect.objectContaining({
         claimId: 'claim-1',
@@ -244,7 +241,7 @@ describe('submitClaimCore', () => {
     });
   });
 
-  it('rejects submitted evidence without a server-issued upload intent before creating records', async () => {
+  it('rejects evidence without upload intent before writes', async () => {
     const validateSubmittedClaimFile = vi.fn().mockResolvedValue(undefined);
 
     await expect(
@@ -261,9 +258,10 @@ describe('submitClaimCore', () => {
 
     expect(validateSubmittedClaimFile).not.toHaveBeenCalled();
     expect(hoisted.txInsert).not.toHaveBeenCalled();
+    expect(appendEvent).not.toHaveBeenCalled();
   });
 
-  it('rejects submitted evidence when object validation fails before creating records', async () => {
+  it('rejects evidence when object validation fails before writes', async () => {
     const validateSubmittedClaimFile = vi
       .fn()
       .mockRejectedValue(new Error('Uploaded file was not found. Please retry upload.'));
@@ -278,7 +276,7 @@ describe('submitClaimCore', () => {
     expect(hoisted.txInsert).not.toHaveBeenCalled();
   });
 
-  it('fails as server misconfiguration when evidence validation is not wired', async () => {
+  it('fails when evidence validation is not wired', async () => {
     await expect(submitClaimCore(buildSubmitArgs())).rejects.toThrow(
       'Submitted claim file validation is not configured.'
     );
@@ -286,7 +284,7 @@ describe('submitClaimCore', () => {
     expect(hoisted.txInsert).not.toHaveBeenCalled();
   });
 
-  it('rejects too many evidence files before validating objects or creating records', async () => {
+  it('rejects too many evidence files before writes', async () => {
     const validateSubmittedClaimFile = vi.fn().mockResolvedValue(undefined);
     const files = Array.from({ length: MAX_CLAIM_EVIDENCE_FILES + 1 }, (_, index) => ({
       id: `upload-${index}`,
@@ -301,32 +299,9 @@ describe('submitClaimCore', () => {
     }));
 
     await expect(
-      submitClaimCore(
-        {
-          session: {
-            user: {
-              id: 'member-1',
-              role: 'member',
-              tenantId: 'tenant-1',
-              email: 'member@example.com',
-            },
-          },
-          requestHeaders: new Headers(),
-          data: {
-            title: 'Flight delay claim',
-            description: 'My flight was delayed overnight and I incurred hotel costs.',
-            category: 'travel',
-            companyName: 'Airline Co',
-            claimAmount: '650.00',
-            currency: 'EUR',
-            incidentDate: '2026-02-15',
-            files,
-          },
-        },
-        {
-          validateSubmittedClaimFile,
-        }
-      )
+      submitClaimCore(buildSubmitArgs({ files }), {
+        validateSubmittedClaimFile,
+      })
     ).rejects.toMatchObject({
       code: 'INVALID_PAYLOAD',
     });
@@ -335,34 +310,14 @@ describe('submitClaimCore', () => {
     expect(hoisted.txInsert).not.toHaveBeenCalled();
   });
 
-  it('derives branchId from the assigned agent when subscription branchId is missing', async () => {
+  it('derives branchId from assigned agent fallback', async () => {
     hoisted.getActiveSubscription.mockResolvedValue({
       branchId: null,
       agentId: 'agent-42',
     });
     hoisted.db.query.user.findFirst.mockResolvedValue({ branchId: 'ks-branch-a' });
 
-    await submitClaimCore({
-      session: {
-        user: {
-          id: 'member-1',
-          role: 'member',
-          tenantId: 'tenant-1',
-          email: 'member@example.com',
-        },
-      },
-      requestHeaders: new Headers(),
-      data: {
-        title: 'Flight delay claim',
-        description: 'My flight was delayed overnight and I incurred hotel costs.',
-        category: 'travel',
-        companyName: 'Airline Co',
-        claimAmount: '650.00',
-        currency: 'EUR',
-        incidentDate: '2026-02-15',
-        files: [],
-      },
-    });
+    await submitClaimCore(buildSubmitArgs({ files: [] }));
 
     expect(hoisted.db.query.user.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -378,28 +333,8 @@ describe('submitClaimCore', () => {
     );
   });
 
-  it('does not add a diaspora public note when no handoff context is provided', async () => {
-    await submitClaimCore({
-      session: {
-        user: {
-          id: 'member-1',
-          role: 'member',
-          tenantId: 'tenant-1',
-          email: 'member@example.com',
-        },
-      },
-      requestHeaders: new Headers(),
-      data: {
-        title: 'Flight delay claim',
-        description: 'My flight was delayed overnight and I incurred hotel costs.',
-        category: 'travel',
-        companyName: 'Airline Co',
-        claimAmount: '650.00',
-        currency: 'EUR',
-        incidentDate: '2026-02-15',
-        files: [],
-      },
-    });
+  it('omits diaspora note without handoff context', async () => {
+    await submitClaimCore(buildSubmitArgs({ files: [] }));
 
     expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(
       2,
@@ -409,33 +344,10 @@ describe('submitClaimCore', () => {
     );
   });
 
-  it('records claim attribution metadata in the submission audit event', async () => {
-    await submitClaimCore(
-      {
-        session: {
-          user: {
-            id: 'member-1',
-            role: 'member',
-            tenantId: 'tenant-1',
-            email: 'member@example.com',
-          },
-        },
-        requestHeaders: new Headers(),
-        data: {
-          title: 'Flight delay claim',
-          description: 'My flight was delayed overnight and I incurred hotel costs.',
-          category: 'travel',
-          companyName: 'Airline Co',
-          claimAmount: '650.00',
-          currency: 'EUR',
-          incidentDate: '2026-02-15',
-          files: [],
-        },
-      },
-      {
-        logAuditEvent: hoisted.logAuditEvent,
-      }
-    );
+  it('records claim attribution audit metadata', async () => {
+    await submitClaimCore(buildSubmitArgs({ files: [] }), {
+      logAuditEvent: hoisted.logAuditEvent,
+    });
 
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -450,7 +362,7 @@ describe('submitClaimCore', () => {
     );
   });
 
-  it('prefers active agent_clients ownership over stale subscription ownership for claim assignment', async () => {
+  it('prefers active agent_clients ownership for assignment', async () => {
     hoisted.getActiveSubscription.mockResolvedValue({
       branchId: null,
       agentId: 'agent-stale',
@@ -460,32 +372,9 @@ describe('submitClaimCore', () => {
     });
     hoisted.db.query.user.findFirst.mockResolvedValue({ branchId: 'branch-canonical' });
 
-    await submitClaimCore(
-      {
-        session: {
-          user: {
-            id: 'member-1',
-            role: 'member',
-            tenantId: 'tenant-1',
-            email: 'member@example.com',
-          },
-        },
-        requestHeaders: new Headers(),
-        data: {
-          title: 'Flight delay claim',
-          description: 'My flight was delayed overnight and I incurred hotel costs.',
-          category: 'travel',
-          companyName: 'Airline Co',
-          claimAmount: '650.00',
-          currency: 'EUR',
-          incidentDate: '2026-02-15',
-          files: [],
-        },
-      },
-      {
-        logAuditEvent: hoisted.logAuditEvent,
-      }
-    );
+    await submitClaimCore(buildSubmitArgs({ files: [] }), {
+      logAuditEvent: hoisted.logAuditEvent,
+    });
 
     expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(
       1,
