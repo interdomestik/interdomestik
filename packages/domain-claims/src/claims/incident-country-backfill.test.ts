@@ -36,7 +36,11 @@ describe('buildIncidentCountryBackfillPlan', () => {
         tenantId: 'tenant-1',
       },
     ]);
-    expect(plan.updatesBySource).toEqual({ claim_pack_json: 1, diaspora_origin_note: 0 });
+    expect(plan.updatesBySource).toEqual({
+      claim_pack_json: 1,
+      diaspora_origin_note: 0,
+      existing_incident_country: 0,
+    });
   });
 
   it('uses a later valid claim-pack country code when an earlier value is invalid', () => {
@@ -86,13 +90,45 @@ describe('buildIncidentCountryBackfillPlan', () => {
     ]);
   });
 
-  it('does not plan updates for rows that already have live incident-country values', () => {
+  it('plans recovery routing for supported rows that already have incident country', () => {
+    const plan = buildIncidentCountryBackfillPlan([
+      row({
+        incidentCountryCode: 'XK',
+        incidentJurisdiction: 'country:XK',
+        recoveryLaw: null,
+        recoveryLegalTenantId: null,
+      }),
+    ]);
+
+    expect(plan.updates).toEqual([
+      expect.objectContaining({
+        claimId: 'claim-1',
+        incidentCountryCode: 'XK',
+        recoveryLaw: 'XK',
+        recoveryLegalTenantId: 'tenant_ks',
+        source: 'existing_incident_country',
+      }),
+    ]);
+  });
+
+  it('does not plan updates for rows that already have full incident-country routing', () => {
     const plan = buildIncidentCountryBackfillPlan([
       row({
         claimPackJson: { answers: { incidentCountry: 'DE' } },
-        incidentCountryCode: 'CH',
-        incidentJurisdiction: 'country:CH',
+        incidentCountryCode: 'XK',
+        incidentJurisdiction: 'country:XK',
+        recoveryLaw: 'XK',
+        recoveryLegalTenantId: 'tenant_ks',
       }),
+    ]);
+
+    expect(plan.alreadyPopulated).toBe(1);
+    expect(plan.updates).toEqual([]);
+  });
+
+  it('does not invent recovery routing for unsupported existing incident countries', () => {
+    const plan = buildIncidentCountryBackfillPlan([
+      row({ incidentCountryCode: 'CH', incidentJurisdiction: 'country:CH' }),
     ]);
 
     expect(plan.alreadyPopulated).toBe(1);
