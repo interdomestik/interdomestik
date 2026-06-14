@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { formatZodFieldErrors, extractBranchIdFromSetting } from './create-helpers';
 import { resolveClaimIncidentCountry } from './incident-country';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
+import { recordCaseCreatedEvent } from './case-created-event';
 import type { ClaimsDeps, ClaimsSession } from './types';
 
 const claimSchema = z.object({
@@ -104,6 +105,15 @@ export async function createClaimCore(
         tenantId,
         claimId,
         createdAt: now,
+      });
+
+      await recordCaseCreatedEvent(tx, {
+        actor: { id: session.user.id, role: session.user.role ?? 'member' },
+        claimId,
+        createdAt: now,
+        hasDocuments: false,
+        initialStatus: 'draft',
+        tenantId,
       });
     });
 

@@ -68,6 +68,7 @@ vi.mock('./ai-workflows', () => ({
   queueClaimDocumentAiWorkflows: vi.fn().mockResolvedValue([]),
 }));
 
+import { appendEvent } from '@interdomestik/database';
 import { createClaimCore } from './create';
 import { submitClaimCore } from './submit';
 
@@ -106,6 +107,17 @@ describe('claim lifecycle state initialization', () => {
         caseLifecycleState: 'draft',
         recoveryLifecycleState: 'not_started',
         status: 'draft',
+      })
+    );
+    const claimRow = hoisted.txInsertValues.mock.calls[0]?.[0] as { createdAt?: Date };
+    expect(appendEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ insert: hoisted.txInsert }),
+      expect.objectContaining({
+        createdAt: claimRow.createdAt,
+        entity: { id: 'claim-1', type: 'case' },
+        eventName: 'case.created',
+        payload: { hasDocuments: false, initialStatus: 'draft' },
+        tenantId: 'tenant-1',
       })
     );
   });
