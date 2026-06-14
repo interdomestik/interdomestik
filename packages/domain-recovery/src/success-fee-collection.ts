@@ -28,7 +28,9 @@ export type SuccessFeeCollectionSnapshot = {
   subscriptionId: string | null;
 };
 
-export function normalizeRecoveryDate(value: Date | string | null | undefined) {
+export type RecoveryDateInput = Date | string | null | undefined;
+
+export function normalizeRecoveryDate(value: RecoveryDateInput) {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
@@ -51,10 +53,10 @@ export function buildRecoverySuccessFeeCollectionSnapshot(params: {
   deductionAllowed: boolean;
   feeAmount: string;
   hasStoredPaymentMethod: boolean;
-  invoiceDueAt: Date | string | null | undefined;
+  invoiceDueAt: RecoveryDateInput;
   paymentAuthorizationState: PaymentAuthorizationState;
   recoveredAmount: string;
-  resolvedAt: Date | string | null | undefined;
+  resolvedAt: RecoveryDateInput;
   subscriptionId: string | null;
 }): SuccessFeeCollectionSnapshot {
   return {
