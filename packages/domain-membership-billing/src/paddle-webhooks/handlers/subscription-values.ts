@@ -16,7 +16,7 @@ export type CanonicalMembershipPlanState = {
 
 export type ExistingSubscription = {
   id: string;
-  status?: InternalSubscriptionStatus | string | null;
+  status?: string | null;
   tenantId?: string | null;
   userId?: string | null;
 };
