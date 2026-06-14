@@ -44,15 +44,27 @@ export async function findSubscriptionByProviderReference(
   }
   const tenantId = options.tenantId?.trim();
 
+  if (tenantId) {
+    // db-access-guard: tenant-scoped -- reason: tenantId constrains race-recovery provider reference lookup.
+    return db.query.subscriptions.findFirst({
+      where: (subs, { and: andFn, eq: eqFn, or: orFn }) =>
+        andFn(
+          eqFn(subs.tenantId, tenantId),
+          orFn(
+            eqFn(subs.id, normalizedReference),
+            eqFn(subs.providerSubscriptionId, normalizedReference)
+          )
+        ),
+    });
+  }
+
   // db-access-guard: system-exempt -- reason: provider reference lookup resolves tenant from payment provider event
   return db.query.subscriptions.findFirst({
-    where: (subs, { and: andFn, eq: eqFn, or: orFn }) => {
-      const referenceMatch = orFn(
+    where: (subs, { eq: eqFn, or: orFn }) =>
+      orFn(
         eqFn(subs.id, normalizedReference),
         eqFn(subs.providerSubscriptionId, normalizedReference)
-      );
-      return tenantId ? andFn(eqFn(subs.tenantId, tenantId), referenceMatch) : referenceMatch;
-    },
+      ),
   });
 }
 

@@ -76,13 +76,17 @@ export async function cancelSubscriptionCore(
       const now = new Date();
       await db.transaction(async tx => {
         // db-access-guard: tenant-scoped -- reason: tenantId constrains local cancellation persistence.
-        await tx
+        const updatedRows = await tx
           .update(subscriptions)
           .set({
             cancelAtPeriodEnd: true,
             updatedAt: now,
           })
-          .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)));
+          .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)))
+          .returning({ id: subscriptions.id });
+        if (updatedRows.length === 0) {
+          throw new Error('Scheduled cancellation update matched no subscription rows');
+        }
         await recordMembershipSubscriptionChangedEvent({
           actor: { id: session.user.id, role: 'member' },
           cancelAtPeriodEnd: true,

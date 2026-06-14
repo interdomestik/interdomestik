@@ -61,7 +61,6 @@ describe('cancelSubscriptionCore', () => {
       cancelAtPeriodEnd: false,
       status: 'active',
     });
-
     const mockLimit = vi.fn().mockResolvedValue(params?.acceptedEscalationRows ?? []);
     const mockOrderBy = vi.fn().mockReturnValue({ limit: mockLimit });
     const mockWhere = vi.fn().mockReturnValue({ orderBy: mockOrderBy });
@@ -73,7 +72,9 @@ describe('cancelSubscriptionCore', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    const mockWhere = vi.fn().mockResolvedValue(undefined);
+    const mockWhere = vi
+      .fn()
+      .mockReturnValue({ returning: vi.fn().mockResolvedValue([{ id: 'sub_123' }]) });
     const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
     hoisted.db.update.mockReturnValue({ set: mockSet });
     hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.db));
@@ -83,7 +84,6 @@ describe('cancelSubscriptionCore', () => {
     const session: SubscriptionSession = { user: { id: 'user_123' } };
 
     mockCancellationContext();
-
     const result = await cancelSubscriptionCore(
       {
         session,

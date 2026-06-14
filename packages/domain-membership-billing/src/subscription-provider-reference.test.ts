@@ -58,4 +58,27 @@ describe('findSubscriptionByProviderReference tenant scope', () => {
       findSubscriptionByProviderReference('sub_provider_123', { tenantId: 'tenant_abc' })
     ).resolves.toEqual({ id: 'sub_internal_1', tenantId: 'tenant_abc' });
   });
+
+  it('keeps the payment-provider fallback lookup unscoped when tenant is unknown', async () => {
+    hoisted.findSubscriptionFirst.mockImplementationOnce(async (args: FindFirstArgs) => {
+      const whereNode = args.where?.(hoisted.subscriptions, hoisted);
+      expect(whereNode).toEqual({
+        op: 'or',
+        args: [
+          { op: 'eq', left: 'subscriptions.id', right: 'sub_provider_123' },
+          {
+            op: 'eq',
+            left: 'subscriptions.provider_subscription_id',
+            right: 'sub_provider_123',
+          },
+        ],
+      });
+      return { id: 'sub_internal_1', tenantId: 'tenant_abc' };
+    });
+
+    await expect(findSubscriptionByProviderReference('sub_provider_123')).resolves.toEqual({
+      id: 'sub_internal_1',
+      tenantId: 'tenant_abc',
+    });
+  });
 });
