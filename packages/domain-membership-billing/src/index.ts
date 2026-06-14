@@ -23,6 +23,8 @@ export * from './paddle-webhooks/subscription-status';
 export * from './paddle-webhooks/types';
 export * from './paddle-webhooks/verify';
 export * from './success-fees/policy';
+export * from './success-fees/paddle-success-fee-charge';
+export * from './success-fees/recovery-success-fee-billing';
 export * from './subscription';
 export * from './subscription/cancel';
 export * from './subscription/get-payment-update-url';
