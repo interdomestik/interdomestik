@@ -1,24 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const dbMocks = vi.hoisted(() => {
-  const table = (name: string) =>
-    new Proxy({}, { get: (_target, prop) => `${name}.${String(prop)}` });
-  return {
-    and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
-    claimEscalationAgreements: table('agreement'),
-    domainEventDeliveries: table('deliveries'),
-    domainEventDeliveryIdempotencyKey: vi.fn((eventId: string) => `key:${eventId}`),
-    domainEvents: table('events'),
-    eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-    recordDomainEventDelivery: vi.fn(),
-    selectDomainEventsForRelay: vi.fn(),
-    sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
-    subscriptions: table('subscriptions'),
-  };
+const dbMocks = await vi.hoisted(async () => {
+  const helper = await import('./paddle-success-fee-test-helpers');
+  return helper.createRecoverySuccessFeeDbMocks();
 });
 
 vi.mock('@interdomestik/database', () => dbMocks);
-vi.mock('../paddle-server', () => ({ getPaddle: vi.fn() }));
+vi.mock('../paddle-server', async () => {
+  const actual = await vi.importActual<typeof import('../paddle-server')>('../paddle-server');
+  return { ...actual, getPaddle: vi.fn() };
+});
 vi.mock('../subscription', () => ({
   resolveProviderSubscriptionHandle: (sub: {
     id: string;
@@ -27,31 +18,18 @@ vi.mock('../subscription', () => ({
 }));
 
 import { relayRecoverySuccessFeeBillingEvents } from './recovery-success-fee-billing';
+import { successFeeCollectedEvent } from './paddle-success-fee-test-helpers';
 
 type RelayTx = Parameters<typeof relayRecoverySuccessFeeBillingEvents>[0];
 
 function event(id: string, aggregateVersion: number) {
-  return {
+  return successFeeCollectedEvent({
     actorId: 'staff-1',
     actorRole: 'staff',
     aggregateVersion,
     correlationId: id,
-    createdAt: new Date('2026-06-01T10:00:00Z'),
-    entityId: 'claim-1',
-    entityType: 'claim',
-    eventName: 'recovery.success_fee_collected',
-    eventVersion: 1,
     id,
-    payload: {
-      collectionMethod: 'payment_method_charge',
-      currencyCode: 'EUR',
-      deductionAllowed: false,
-      hasInvoiceDueDate: false,
-      hasStoredPaymentMethod: true,
-      paymentAuthorizationState: 'authorized',
-    },
-    tenantId: 'tenant_ks',
-  };
+  });
 }
 
 function rowsQuery(rows: unknown[]) {
@@ -63,7 +41,12 @@ function whereRows(rows: unknown[]) {
 }
 
 function snapshotQuery(row: unknown) {
-  return { leftJoin: () => ({ where: () => rowsQuery([row]) }) };
+  const query = {
+    innerJoin: () => query,
+    leftJoin: () => query,
+    where: () => rowsQuery([row]),
+  };
+  return query;
 }
 
 function fakeTx(newerRows: unknown[][]): RelayTx {
@@ -75,7 +58,11 @@ function fakeTx(newerRows: unknown[][]): RelayTx {
     paymentAuthorizationState: 'authorized',
     providerCustomerId: 'ctm_123',
     providerSubscriptionId: 'sub_paddle_123',
+    recoveryLegalTenantId: 'tenant_ks',
     subscriptionId: 'sub-1',
+    subscriptionBillingEntity: 'ks',
+    subscriptionLegalTenantId: 'tenant_ks',
+    subscriptionTenantId: 'tenant_ks',
   };
   return {
     select: vi.fn(() => ({

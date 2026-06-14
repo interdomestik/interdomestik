@@ -1,7 +1,8 @@
 import { billingInvoices, billingLedgerEntries, db, sql } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 
-import { resolveBillingEntityForTenantId, type BillingEntity } from '../paddle-server';
+import type { BillingEntity } from '../paddle-server';
+import { resolveInvariantScope } from './invariant-scope';
 import type { PaddleWebhookAuditDeps } from './types';
 
 type TransactionTotalsPayload = {
@@ -35,30 +36,6 @@ function normalizeCurrencyCode(value: string | null | undefined): string | null 
   if (!normalized) return null;
   const uppercase = normalized.toUpperCase();
   return /^[A-Z]{3}$/.test(uppercase) ? uppercase : null;
-}
-
-function resolveInvariantScope(params: {
-  tenantId?: string | null;
-  billingEntity?: BillingEntity | null;
-}): { tenantId: string; billingEntity: BillingEntity } {
-  const tenantId = normalizeText(params.tenantId);
-  if (!tenantId) {
-    throw new Error('Missing tenantId for invoice/ledger invariant persistence');
-  }
-
-  const mappedEntity = resolveBillingEntityForTenantId(tenantId);
-  if (params.billingEntity && mappedEntity && mappedEntity !== params.billingEntity) {
-    throw new Error(
-      `Billing entity mismatch for tenant ${tenantId}: expected ${mappedEntity}, received ${params.billingEntity}`
-    );
-  }
-
-  const billingEntity = params.billingEntity ?? mappedEntity;
-  if (!billingEntity) {
-    throw new Error(`Unable to resolve billing entity for tenant ${tenantId}`);
-  }
-
-  return { tenantId, billingEntity };
 }
 
 export type PersistInvoiceAndLedgerInvariantsResult =
@@ -102,12 +79,13 @@ export async function persistInvoiceAndLedgerInvariants(
     throw new Error('Missing provider transaction id for invoice/ledger invariant persistence');
   }
 
-  const { tenantId, billingEntity } = resolveInvariantScope({
+  const payload = (params.data ?? {}) as TransactionInvariantPayload;
+  const { tenantId, billingEntity } = await resolveInvariantScope({
+    data: payload,
     tenantId: params.tenantId,
     billingEntity: params.billingEntity,
   });
 
-  const payload = (params.data ?? {}) as TransactionInvariantPayload;
   const totals = payload.details?.totals || {};
   const amount = normalizeAmount(totals.total);
   if (!amount) {

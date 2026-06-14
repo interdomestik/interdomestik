@@ -18,6 +18,7 @@ import {
   type PaddleSuccessFeeBillingResult,
   type RecoverySuccessFeeBillingSnapshot,
 } from './paddle-success-fee-charge';
+import { resolveBillableSuccessFeeSnapshot } from './recovery-success-fee-billable-snapshot';
 import {
   assertPayloadMatchesSnapshot,
   requireSuccessFeePayload,
@@ -77,11 +78,13 @@ async function deliverSuccessFeeBillingEvent(
   const payload = requireSuccessFeePayload(event);
   const snapshot = await resolveSuccessFeeBillingSnapshot(tx, event);
   assertPayloadMatchesSnapshot(payload, snapshot);
-  if (deps.billSuccessFee) return deps.billSuccessFee({ event, idempotencyKey, snapshot });
+  const billableSnapshot = resolveBillableSuccessFeeSnapshot(snapshot, event);
+  if (deps.billSuccessFee)
+    return deps.billSuccessFee({ event, idempotencyKey, snapshot: billableSnapshot });
   return createPaddleSuccessFeeTransaction({
     idempotencyKey,
-    paddle: getPaddle({ tenantId: event.tenantId }) as never,
-    snapshot,
+    paddle: getPaddle({ entity: billableSnapshot.billingEntity }) as never,
+    snapshot: billableSnapshot,
   });
 }
 

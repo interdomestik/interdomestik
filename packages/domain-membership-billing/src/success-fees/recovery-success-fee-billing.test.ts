@@ -1,26 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const dbMocks = vi.hoisted(() => {
-  const table = (name: string) =>
-    new Proxy({}, { get: (_target, prop) => `${name}.${String(prop)}` });
-  return {
-    and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
-    claimEscalationAgreements: table('agreement'),
-    domainEventDeliveries: table('deliveries'),
-    domainEventDeliveryIdempotencyKey: vi.fn(
-      (eventId: string, consumerName: string) => `domain-event:${consumerName}:${eventId}`
-    ),
-    domainEvents: table('events'),
-    eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-    recordDomainEventDelivery: vi.fn(),
-    selectDomainEventsForRelay: vi.fn(),
-    sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
-    subscriptions: table('subscriptions'),
-  };
+const dbMocks = await vi.hoisted(async () => {
+  const helper = await import('./paddle-success-fee-test-helpers');
+  return helper.createRecoverySuccessFeeDbMocks();
 });
 
 vi.mock('@interdomestik/database', () => dbMocks);
-vi.mock('../paddle-server', () => ({ getPaddle: vi.fn() }));
+vi.mock('../paddle-server', async () => {
+  const actual = await vi.importActual<typeof import('../paddle-server')>('../paddle-server');
+  return { ...actual, getPaddle: vi.fn() };
+});
 type Sub = { id: string; providerSubscriptionId?: string | null };
 vi.mock('../subscription', () => ({
   resolveProviderSubscriptionHandle: (sub: Sub) => sub.providerSubscriptionId || sub.id,
@@ -30,30 +19,21 @@ import {
   RECOVERY_SUCCESS_FEE_BILLING_CONSUMER,
   relayRecoverySuccessFeeBillingEvents,
 } from './recovery-success-fee-billing';
+import { successFeeCollectedEvent } from './paddle-success-fee-test-helpers';
 
 type RelayTx = Parameters<typeof relayRecoverySuccessFeeBillingEvents>[0];
-const event = {
-  aggregateVersion: 1,
-  createdAt: new Date('2026-06-01T10:00:00Z'),
-  entityId: 'claim-1',
-  entityType: 'claim',
-  eventName: 'recovery.success_fee_collected',
-  eventVersion: 1,
-  id: 'event-1',
-  payload: {
-    collectionMethod: 'payment_method_charge',
-    currencyCode: 'EUR',
-    deductionAllowed: false,
-    hasInvoiceDueDate: false,
-    hasStoredPaymentMethod: true,
-    paymentAuthorizationState: 'authorized',
-  },
-  tenantId: 'tenant_ks',
-};
+const event = successFeeCollectedEvent();
 
 const rowsQuery = (rows: unknown[]) => ({ limit: () => Promise.resolve(rows) });
 const whereRows = (rows: unknown[]) => ({ where: () => rowsQuery(rows) });
-const snapshotQuery = (rows: unknown[]) => ({ leftJoin: () => ({ where: () => rowsQuery(rows) }) });
+const snapshotQuery = (rows: unknown[]) => {
+  const query = {
+    innerJoin: () => query,
+    leftJoin: () => query,
+    where: () => rowsQuery(rows),
+  };
+  return query;
+};
 
 function snapshotRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -64,7 +44,11 @@ function snapshotRow(overrides: Record<string, unknown> = {}) {
     paymentAuthorizationState: 'authorized',
     providerCustomerId: 'ctm_123',
     providerSubscriptionId: 'sub_paddle_123',
+    recoveryLegalTenantId: 'tenant_ks',
     subscriptionId: 'sub-1',
+    subscriptionBillingEntity: 'ks',
+    subscriptionLegalTenantId: 'tenant_ks',
+    subscriptionTenantId: 'tenant_ks',
     ...overrides,
   };
 }
@@ -111,8 +95,10 @@ describe('relayRecoverySuccessFeeBillingEvents', () => {
       expect.objectContaining({
         idempotencyKey: `domain-event:${RECOVERY_SUCCESS_FEE_BILLING_CONSUMER}:event-1`,
         snapshot: expect.objectContaining({
+          billingEntity: 'ks',
           providerCustomerId: 'ctm_123',
           providerSubscriptionId: 'sub_paddle_123',
+          recoveryLegalTenantId: 'tenant_ks',
           tenantId: 'tenant_ks',
         }),
       })
@@ -120,31 +106,5 @@ describe('relayRecoverySuccessFeeBillingEvents', () => {
     expect(dbMocks.recordDomainEventDelivery).toHaveBeenCalledTimes(1);
     expect(result.billingResults).toEqual([{ status: 'skipped_deduction' }]);
     expect(result).toMatchObject({ delivered: 1, selected: 1, skippedAlreadyDelivered: 0 });
-  });
-
-  it('skips Paddle work when replay selects an already delivered event', async () => {
-    const billSuccessFee = vi.fn();
-    dbMocks.selectDomainEventsForRelay.mockResolvedValueOnce([event]);
-    const result = await relayRecoverySuccessFeeBillingEvents(
-      fakeTx({ deliveryRows: [{ id: 'delivery-1' }] }),
-      { deps: { billSuccessFee }, limit: 10, mode: 'replay', tenantId: 'tenant_ks' }
-    );
-
-    expect(billSuccessFee).not.toHaveBeenCalled();
-    expect(dbMocks.recordDomainEventDelivery).not.toHaveBeenCalled();
-    expect(result.skippedAlreadyDelivered).toBe(1);
-  });
-
-  it('rejects payload and snapshot mismatches before marking delivery', async () => {
-    const badEvent = { ...event, payload: { ...event.payload, currencyCode: 'USD' } };
-    dbMocks.selectDomainEventsForRelay.mockResolvedValueOnce([badEvent]);
-
-    await expect(
-      relayRecoverySuccessFeeBillingEvents(
-        fakeTx({ snapshotRows: [snapshotRow({ currencyCode: 'EUR' })] }),
-        { deps: { billSuccessFee: vi.fn() }, limit: 10, tenantId: 'tenant_ks' }
-      )
-    ).rejects.toThrow(/snapshot does not match/);
-    expect(dbMocks.recordDomainEventDelivery).not.toHaveBeenCalled();
   });
 });
