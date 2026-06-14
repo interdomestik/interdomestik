@@ -2,14 +2,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  buildRecoverySuccessFeeCollectedPayload,
   buildRecoverySuccessFeeCollectionSnapshot,
   normalizeRecoveryCurrencyCode,
+  recordRecoverySuccessFeeCollectedEvent,
   resolveRecoverySuccessFeeCollectionSnapshot,
 } from './index';
-import {
-  buildRecoverySuccessFeeCollectedPayload,
-  recordRecoverySuccessFeeCollectedEvent,
-} from './success-fee-collection-event';
 
 test('domain-recovery owns success-fee collection snapshot normalization', () => {
   assert.deepEqual(

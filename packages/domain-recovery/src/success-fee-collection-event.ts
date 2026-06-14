@@ -4,24 +4,7 @@ import type {
   PaymentAuthorizationState,
   SuccessFeeCollectionMethod,
 } from './success-fee-collection';
-
-export function buildRecoverySuccessFeeCollectedPayload(params: {
-  collectionMethod: SuccessFeeCollectionMethod;
-  currencyCode: string;
-  deductionAllowed: boolean;
-  hasStoredPaymentMethod: boolean;
-  invoiceDueAt: Date | null;
-  paymentAuthorizationState: PaymentAuthorizationState;
-}) {
-  return {
-    collectionMethod: params.collectionMethod,
-    currencyCode: params.currencyCode,
-    deductionAllowed: params.deductionAllowed,
-    hasInvoiceDueDate: Boolean(params.invoiceDueAt),
-    hasStoredPaymentMethod: params.hasStoredPaymentMethod,
-    paymentAuthorizationState: params.paymentAuthorizationState,
-  };
-}
+import { buildRecoverySuccessFeeCollectedPayload } from './success-fee-collection-event-payload';
 
 export async function recordRecoverySuccessFeeCollectedEvent(params: {
   actor: { id: string; role?: string | null };
