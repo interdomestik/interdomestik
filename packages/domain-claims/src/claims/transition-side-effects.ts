@@ -2,6 +2,7 @@ import { appendEvent, claimStageHistory, db } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { SQLWrapper } from 'drizzle-orm';
 import type { AuthorizedTransition, ClaimTransitionActor } from './transition-guard';
+import { recordCaseCreatedEvent } from './case-created-event';
 import type { CreateClaimValues } from '../validators/claims';
 import type { PaymentAuthorizationState } from '../staff-claims/types';
 
@@ -82,18 +83,12 @@ export async function recordSubmittedClaimLifecycle(
     isPublic: true,
     createdAt: args.createdAt,
   });
-  await appendEvent(tx, {
+  await recordCaseCreatedEvent(tx, {
     actor: { id: args.userId, role: args.changedByRole.trim() || 'member' },
-    aggregateVersion: 1,
-    correlationId: crypto.randomUUID(),
+    claimId: args.claimId,
     createdAt: args.createdAt,
-    entity: { id: args.claimId, type: 'case' },
-    eventName: 'case.created',
-    eventVersion: 1,
-    payload: {
-      hasDocuments: Boolean(args.data.files?.length),
-      initialStatus: 'submitted',
-    },
+    hasDocuments: Boolean(args.data.files?.length),
+    initialStatus: 'submitted',
     tenantId: args.tenantId,
   });
 }

@@ -105,4 +105,15 @@ describe('appendEvent payload allowlist', () => {
       initialStatus: 'submitted',
     });
   });
+
+  it('allows sanitized draft case.created payload fields', async () => {
+    const { capture, tx } = makeEventTx();
+
+    await appendEvent(
+      tx,
+      makeCaseCreatedEvent({ payload: { hasDocuments: false, initialStatus: 'draft' } })
+    );
+
+    assert.deepEqual(capture.row?.payload, { hasDocuments: false, initialStatus: 'draft' });
+  });
 });
