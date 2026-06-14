@@ -1,13 +1,9 @@
-import { and, db, eq, subscriptions } from '@interdomestik/database';
-import { findSubscriptionByProviderReference } from '../../subscription';
-import {
-  createCanonicalMembershipPlanState,
-  resolveCanonicalMembershipPlanState,
-} from '../../annual-membership';
+import { resolveCanonicalMembershipPlanState } from '../../annual-membership';
 import { subscriptionEventDataSchema } from '../schemas';
-import { mapPaddleStatus, type InternalSubscriptionStatus } from '../subscription-status';
+import { mapPaddleStatus } from '../subscription-status';
 
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../types';
+import { upsertSubscription } from './subscription-upsert';
 import { resolveSubscriptionContext } from './utils/context';
 import { handleNewSubscriptionExtras } from './utils/extras';
 import { reconcileCheckoutUser } from './utils/reconcile-checkout-user';
@@ -95,123 +91,6 @@ export async function handleSubscriptionChanged(
   }
 }
 
-async function upsertSubscription(args: {
-  sub: any;
-  tenantId: string;
-  userId: string;
-  agentId?: string | null;
-  branchId?: string;
-  existingSub?: { id: string; tenantId?: string | null; userId?: string | null } | null;
-  mappedStatus: InternalSubscriptionStatus;
-  planState: {
-    planId: string;
-    planKey: string | null;
-  };
-}) {
-  const { sub, tenantId, userId, agentId, branchId, existingSub, mappedStatus, planState } = args;
-  const values = mapToSubscriptionValues(sub, mappedStatus, planState);
-  const existingSubscription =
-    existingSub ?? (await findExistingSubscriptionForUser(userId, tenantId));
-
-  if (existingSubscription) {
-    assertSubscriptionMatchesContext(existingSubscription, { subId: sub.id, tenantId, userId });
-    await updateSubscription(existingSubscription.id, tenantId, {
-      tenantId,
-      userId,
-      agentId,
-      branchId,
-      providerSubscriptionId: sub.id,
-      ...values,
-    });
-
-    return existingSubscription.id;
-  }
-
-  const insertValues = {
-    id: sub.id,
-    tenantId,
-    userId,
-    agentId,
-    branchId,
-    providerSubscriptionId: sub.id,
-    ...values,
-  };
-
-  try {
-    // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle subscription context is included in insert values
-    await db.insert(subscriptions).values(insertValues);
-  } catch (error) {
-    if (!isUniqueViolation(error)) {
-      throw error;
-    }
-
-    const racedSubscription = await findExistingSubscription(sub.id, userId, tenantId);
-    if (!racedSubscription) {
-      throw error;
-    }
-
-    assertSubscriptionMatchesContext(racedSubscription, { subId: sub.id, tenantId, userId });
-    await updateSubscription(racedSubscription.id, tenantId, {
-      tenantId,
-      userId,
-      agentId,
-      branchId,
-      providerSubscriptionId: sub.id,
-      ...values,
-    });
-
-    return racedSubscription.id;
-  }
-
-  return sub.id as string;
-}
-
-async function findExistingSubscription(subId: string, userId: string, tenantId: string) {
-  return (
-    (await findSubscriptionByProviderReference(subId)) ??
-    (await findExistingSubscriptionForUser(userId, tenantId))
-  );
-}
-
-async function findExistingSubscriptionForUser(userId: string, tenantId: string) {
-  return (
-    // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle subscription context constrains fallback user lookup
-    await db.query.subscriptions.findFirst({
-      where: (subs, { and, eq }) => and(eq(subs.userId, userId), eq(subs.tenantId, tenantId)),
-      columns: { id: true, tenantId: true, userId: true },
-    })
-  );
-}
-
-async function updateSubscription(
-  subscriptionId: string,
-  tenantId: string,
-  values: Record<string, unknown>
-) {
-  // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle subscription context constrains subscription update
-  await db
-    .update(subscriptions)
-    .set(values)
-    .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)));
-}
-
-function assertSubscriptionMatchesContext(
-  subscription: { id: string; tenantId?: string | null; userId?: string | null },
-  context: { subId: string; tenantId: string; userId: string }
-) {
-  if (subscription.tenantId && subscription.tenantId !== context.tenantId) {
-    throw new Error(
-      `Paddle subscription ${context.subId} tenant conflict: existing=${subscription.tenantId} resolved=${context.tenantId}`
-    );
-  }
-
-  if (subscription.userId && subscription.userId !== context.userId) {
-    throw new Error(
-      `Paddle subscription ${context.subId} user conflict: existing=${subscription.userId} resolved=${context.userId}`
-    );
-  }
-}
-
 function normalizeAgentId(agentId: string | null | undefined): string | null {
   if (typeof agentId !== 'string') {
     return null;
@@ -230,58 +109,6 @@ function resolveSubscriptionAgentId(args: {
   }
 
   return normalizeAgentId(args.customData?.agentId);
-}
-
-function mapToSubscriptionValues(
-  sub: any,
-  mappedStatus: InternalSubscriptionStatus,
-  planState: {
-    planId: string;
-    planKey: string | null;
-  }
-) {
-  const currentStartsAt =
-    sub.currentBillingPeriod?.startsAt || (sub.current_billing_period?.starts_at as string);
-  const currentEndsAt =
-    sub.currentBillingPeriod?.endsAt || (sub.current_billing_period?.ends_at as string);
-
-  const baseValues = {
-    status: mappedStatus,
-    ...createCanonicalMembershipPlanState(planState.planId, planState.planKey),
-    providerCustomerId: (sub.customerId || sub.customer_id) as string | null,
-    currentPeriodStart: parseDate(currentStartsAt),
-    currentPeriodEnd: parseDate(currentEndsAt),
-    cancelAtPeriodEnd:
-      sub.scheduledChange?.action === 'cancel' || sub.scheduled_change?.action === 'cancel',
-    canceledAt: mappedStatus === 'canceled' ? new Date() : null,
-    updatedAt: new Date(),
-  };
-
-  if (mappedStatus === 'active') {
-    Object.assign(baseValues, {
-      pastDueAt: null,
-      gracePeriodEndsAt: null,
-      dunningAttemptCount: 0,
-      lastDunningAt: null,
-    });
-    console.log(`[Webhook] Subscription ${sub.id} recovered - clearing dunning fields`);
-  }
-
-  return baseValues;
-}
-
-function parseDate(dateStr: string | undefined | null): Date | null {
-  return dateStr ? new Date(dateStr) : null;
-}
-
-function isUniqueViolation(error: unknown): error is { code: string } {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    typeof (error as { code?: unknown }).code === 'string' &&
-    (error as { code: string }).code === '23505'
-  );
 }
 
 function canReconcileCheckoutUser(sub: {

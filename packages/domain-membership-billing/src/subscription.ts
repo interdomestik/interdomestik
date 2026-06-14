@@ -34,10 +34,28 @@ export async function hasActiveMembership(
   return membershipLifecycleGrantsAccess(getMembershipLifecycleBucket({ subscription: sub }));
 }
 
-export async function findSubscriptionByProviderReference(reference: string | null | undefined) {
+export async function findSubscriptionByProviderReference(
+  reference: string | null | undefined,
+  options: { tenantId?: string | null } = {}
+) {
   const normalizedReference = reference?.trim();
   if (!normalizedReference) {
     return null;
+  }
+  const tenantId = options.tenantId?.trim();
+
+  if (tenantId) {
+    // db-access-guard: tenant-scoped -- reason: tenantId constrains race-recovery provider reference lookup.
+    return db.query.subscriptions.findFirst({
+      where: (subs, { and: andFn, eq: eqFn, or: orFn }) =>
+        andFn(
+          eqFn(subs.tenantId, tenantId),
+          orFn(
+            eqFn(subs.id, normalizedReference),
+            eqFn(subs.providerSubscriptionId, normalizedReference)
+          )
+        ),
+    });
   }
 
   // db-access-guard: system-exempt -- reason: provider reference lookup resolves tenant from payment provider event

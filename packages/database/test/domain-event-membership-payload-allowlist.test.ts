@@ -24,6 +24,23 @@ function makeMembershipAgentClientBoundEvent(
   };
 }
 
+function makeMembershipSubscriptionChangedEvent(
+  overrides: Partial<Parameters<typeof appendEvent>[1]> = {}
+) {
+  return {
+    actor: { id: 'paddle-webhook', role: 'system' },
+    aggregateVersion: 0,
+    correlationId: 'corr-2',
+    entity: { id: 'sub-1', type: 'subscription' },
+    eventName: 'membership.subscription_changed',
+    eventVersion: 1,
+    id: 'event-2',
+    payload: { cancelAtPeriodEnd: false, fromStatus: 'none', toStatus: 'active' },
+    tenantId: 'tenant-1',
+    ...overrides,
+  };
+}
+
 describe('appendEvent membership payload allowlist', () => {
   for (const [name, event, error] of [
     [
@@ -65,6 +82,25 @@ describe('appendEvent membership payload allowlist', () => {
       }),
       /payload\.bindingStatus to be an agent-client binding status/,
     ],
+    [
+      'extra subscription fields',
+      makeMembershipSubscriptionChangedEvent({
+        payload: {
+          cancelAtPeriodEnd: false,
+          fromStatus: 'none',
+          memberEmail: 'member@example.invalid',
+          toStatus: 'active',
+        },
+      }),
+      /memberEmail is not allowlisted/,
+    ],
+    [
+      'unsupported subscription status',
+      makeMembershipSubscriptionChangedEvent({
+        payload: { cancelAtPeriodEnd: false, fromStatus: 'pending', toStatus: 'active' },
+      }),
+      /payload\.fromStatus to be a membership subscription status/,
+    ],
   ] as const) {
     it(`rejects ${name} before inserting`, async () => {
       const { capture, tx } = makeEventTx();
@@ -79,6 +115,16 @@ describe('appendEvent membership payload allowlist', () => {
     assert.deepEqual(capture.row?.payload, {
       bindingStatus: 'active',
       ownershipSource: 'checkout.customData.agentId',
+    });
+  });
+
+  it('allows sanitized subscription changed payload fields', async () => {
+    const { capture, tx } = makeEventTx();
+    await appendEvent(tx, makeMembershipSubscriptionChangedEvent());
+    assert.deepEqual(capture.row?.payload, {
+      cancelAtPeriodEnd: false,
+      fromStatus: 'none',
+      toStatus: 'active',
     });
   });
 });

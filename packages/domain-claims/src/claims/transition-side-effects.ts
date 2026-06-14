@@ -1,8 +1,9 @@
-import { appendEvent, claimStageHistory, db } from '@interdomestik/database';
+import { claimStageHistory, db } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { SQLWrapper } from 'drizzle-orm';
 import type { AuthorizedTransition, ClaimTransitionActor } from './transition-guard';
 import { recordCaseCreatedEvent } from './case-created-event';
+import { recordTransitionDomainEvents } from './transition-domain-events';
 import type { CreateClaimValues } from '../validators/claims';
 import type { PaymentAuthorizationState } from '../staff-claims/types';
 
@@ -125,20 +126,15 @@ export async function recordTransitionSideEffects(
     isPublic,
     createdAt: now,
   });
-  if (fromStatus !== toStatus) {
-    await appendEvent(tx, {
-      actor: { id: actor.id, role: actor.role?.trim() || 'unknown' },
-      aggregateVersion: lifecycleVersion,
-      correlationId: correlationId ?? crypto.randomUUID(),
-      createdAt: now,
-      entity: { id: claimId, type: 'claim' },
-      eventName: 'claim.status_changed',
-      eventVersion: 1,
-      payload: {
-        fromStatus,
-        toStatus,
-      },
-      tenantId,
-    });
-  }
+  await recordTransitionDomainEvents({
+    actor,
+    claimId,
+    correlationId,
+    fromStatus,
+    lifecycleVersion,
+    now,
+    tenantId,
+    toStatus,
+    tx,
+  });
 }

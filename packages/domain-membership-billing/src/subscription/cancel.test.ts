@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cancelSubscriptionCore } from './cancel';
 import type { SubscriptionSession } from './types';
 
-// Mock DB
 const hoisted = vi.hoisted(() => ({
+  appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   db: {
     query: {
       subscriptions: { findFirst: vi.fn() },
     },
     select: vi.fn(),
+    transaction: vi.fn(),
     update: vi.fn(),
   },
   subscriptions: { id: 'id', tenantId: 'tenantId' },
@@ -25,6 +26,7 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  appendEvent: hoisted.appendEvent,
   db: hoisted.db,
   subscriptions: hoisted.subscriptions,
   claims: hoisted.claims,
@@ -57,8 +59,8 @@ describe('cancelSubscriptionCore', () => {
       createdAt: params?.subscriptionCreatedAt ?? new Date('2026-03-01T00:00:00.000Z'),
       currentPeriodEnd: new Date('2027-03-01T00:00:00.000Z'),
       cancelAtPeriodEnd: false,
+      status: 'active',
     });
-
     const mockLimit = vi.fn().mockResolvedValue(params?.acceptedEscalationRows ?? []);
     const mockOrderBy = vi.fn().mockReturnValue({ limit: mockLimit });
     const mockWhere = vi.fn().mockReturnValue({ orderBy: mockOrderBy });
@@ -70,18 +72,18 @@ describe('cancelSubscriptionCore', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    const mockWhere = vi.fn().mockResolvedValue(undefined);
+    const mockWhere = vi
+      .fn()
+      .mockReturnValue({ returning: vi.fn().mockResolvedValue([{ id: 'sub_123' }]) });
     const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
     hoisted.db.update.mockReturnValue({ set: mockSet });
+    hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.db));
   });
 
   it('schedules next-term cancellation, persists cancelAtPeriodEnd, and returns refund eligibility', async () => {
-    const session: SubscriptionSession = {
-      user: { id: 'user_123' },
-    };
+    const session: SubscriptionSession = { user: { id: 'user_123' } };
 
     mockCancellationContext();
-
     const result = await cancelSubscriptionCore(
       {
         session,
@@ -104,7 +106,15 @@ describe('cancelSubscriptionCore', () => {
       success: true,
     });
     expect(hoisted.paddle.subscriptions.cancel).toHaveBeenCalledWith('sub_123', expect.anything());
+    expect(hoisted.db.transaction).toHaveBeenCalled();
     expect(hoisted.db.update).toHaveBeenCalledWith(hoisted.subscriptions);
+    expect(hoisted.appendEvent).toHaveBeenCalledWith(
+      hoisted.db,
+      expect.objectContaining({
+        actor: { id: 'user_123', role: 'member' },
+        eventName: 'membership.subscription_changed',
+      })
+    );
 
     expect(logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -118,9 +128,7 @@ describe('cancelSubscriptionCore', () => {
   });
 
   it('returns the accepted-escalation refund lock when a recovery matter has already been accepted', async () => {
-    const session: SubscriptionSession = {
-      user: { id: 'user_123' },
-    };
+    const session: SubscriptionSession = { user: { id: 'user_123' } };
 
     mockCancellationContext({
       acceptedEscalationRows: [{ acceptedAt: new Date('2026-03-05T00:00:00.000Z') }],
@@ -143,9 +151,7 @@ describe('cancelSubscriptionCore', () => {
   });
 
   it('does not treat accepted escalations from an earlier membership term as blocking', async () => {
-    const session: SubscriptionSession = {
-      user: { id: 'user_123' },
-    };
+    const session: SubscriptionSession = { user: { id: 'user_123' } };
 
     mockCancellationContext({
       acceptedEscalationRows: [{ acceptedAt: new Date('2026-02-15T00:00:00.000Z') }],
@@ -169,9 +175,7 @@ describe('cancelSubscriptionCore', () => {
   });
 
   it('returns success after provider cancellation even if local persistence fails', async () => {
-    const session: SubscriptionSession = {
-      user: { id: 'user_123' },
-    };
+    const session: SubscriptionSession = { user: { id: 'user_123' } };
 
     mockCancellationContext();
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -207,9 +211,7 @@ describe('cancelSubscriptionCore', () => {
   });
 
   it('denies access if user mismatch', async () => {
-    const session: SubscriptionSession = {
-      user: { id: 'user_123' },
-    };
+    const session: SubscriptionSession = { user: { id: 'user_123' } };
 
     hoisted.ensureTenantId.mockReturnValue('tenant_abc');
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
@@ -228,9 +230,7 @@ describe('cancelSubscriptionCore', () => {
   });
 
   it('uses the stored provider subscription id when present', async () => {
-    const session: SubscriptionSession = {
-      user: { id: 'user_123' },
-    };
+    const session: SubscriptionSession = { user: { id: 'user_123' } };
 
     mockCancellationContext();
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
