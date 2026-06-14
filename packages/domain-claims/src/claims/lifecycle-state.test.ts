@@ -95,6 +95,16 @@ describe('claim lifecycle state mapping', () => {
       caseLifecycleState: 'resolved',
       recoveryLifecycleState: 'resolved',
     });
+    expect(CLAIM_STATUS_LIFECYCLE_STATE_MAP).toEqual({
+      draft: { caseLifecycleState: 'draft', recoveryLifecycleState: 'not_started' },
+      submitted: { caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started' },
+      verification: { caseLifecycleState: 'verification', recoveryLifecycleState: 'not_started' },
+      evaluation: { caseLifecycleState: 'evaluation', recoveryLifecycleState: 'not_started' },
+      negotiation: { caseLifecycleState: 'recovery', recoveryLifecycleState: 'negotiation' },
+      court: { caseLifecycleState: 'recovery', recoveryLifecycleState: 'court' },
+      resolved: { caseLifecycleState: 'resolved', recoveryLifecycleState: 'resolved' },
+      rejected: { caseLifecycleState: 'rejected', recoveryLifecycleState: 'closed' },
+    });
   });
 
   it('persists mapped states during status-changing transitions', async () => {

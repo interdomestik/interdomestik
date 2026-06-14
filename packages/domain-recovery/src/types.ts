@@ -5,6 +5,17 @@ export const RECOVERY_LIFECYCLE_FIELD = 'claims.recovery_lifecycle_state' as con
 
 export type RecoveryLifecycleState = ClaimRecoveryLifecycleState;
 
+export const RECOVERY_STATUS_LIFECYCLE_STATE_MAP = {
+  draft: 'not_started',
+  submitted: 'not_started',
+  verification: 'not_started',
+  evaluation: 'not_started',
+  negotiation: 'negotiation',
+  court: 'court',
+  resolved: 'resolved',
+  rejected: 'closed',
+} as const satisfies Record<ClaimStatus, RecoveryLifecycleState>;
+
 export type RecoveryLifecycleSnapshot = {
   claimId: string;
   status: ClaimStatus;
@@ -12,3 +23,7 @@ export type RecoveryLifecycleSnapshot = {
   recoveryLaw: string | null;
   recoveryLegalTenantId: string | null;
 };
+
+export function mapRecoveryStatusToLifecycleState(status: ClaimStatus): RecoveryLifecycleState {
+  return RECOVERY_STATUS_LIFECYCLE_STATE_MAP[status];
+}
