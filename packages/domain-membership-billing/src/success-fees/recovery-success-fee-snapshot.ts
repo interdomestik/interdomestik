@@ -1,5 +1,6 @@
 import {
   and,
+  claims,
   claimEscalationAgreements,
   eq,
   subscriptions,
@@ -7,6 +8,7 @@ import {
   type DomainEventTx,
 } from '@interdomestik/database';
 
+import { resolveBillingScopeFromSnapshot } from '../billing-snapshot';
 import { resolveProviderSubscriptionHandle } from '../subscription';
 import type { RecoverySuccessFeeBillingSnapshot } from './paddle-success-fee-charge';
 
@@ -18,6 +20,23 @@ type SuccessFeePayload = {
   hasStoredPaymentMethod: boolean;
   paymentAuthorizationState: RecoverySuccessFeeBillingSnapshot['paymentAuthorizationState'];
 };
+
+function resolveSubscriptionBillingEntity(row: {
+  subscriptionBillingEntity?: string | null;
+  subscriptionId?: string | null;
+  subscriptionLegalTenantId?: string | null;
+  subscriptionTenantId?: string | null;
+}) {
+  if (!row.subscriptionId) return null;
+  return resolveBillingScopeFromSnapshot(
+    {
+      billingEntity: row.subscriptionBillingEntity,
+      legalTenantId: row.subscriptionLegalTenantId,
+      tenantId: row.subscriptionTenantId,
+    },
+    'success-fee subscription billing snapshot'
+  ).billingEntity;
+}
 
 function assertBooleanPayloadField(
   payload: Partial<SuccessFeePayload>,
@@ -75,9 +94,17 @@ export async function resolveSuccessFeeBillingSnapshot(
       paymentAuthorizationState: claimEscalationAgreements.paymentAuthorizationState,
       providerCustomerId: subscriptions.providerCustomerId,
       providerSubscriptionId: subscriptions.providerSubscriptionId,
+      recoveryLegalTenantId: claims.recoveryLegalTenantId,
+      subscriptionBillingEntity: subscriptions.billingEntity,
       subscriptionId: subscriptions.id,
+      subscriptionLegalTenantId: subscriptions.legalTenantId,
+      subscriptionTenantId: subscriptions.tenantId,
     })
     .from(claimEscalationAgreements)
+    .innerJoin(
+      claims,
+      and(eq(claimEscalationAgreements.claimId, claims.id), eq(claims.tenantId, event.tenantId))
+    )
     .leftJoin(
       subscriptions,
       and(
@@ -93,11 +120,16 @@ export async function resolveSuccessFeeBillingSnapshot(
     )
     .limit(1);
 
-  if (!row?.collectionMethod || !row.currencyCode || !row.feeAmount) {
+  if (!row?.collectionMethod || !row.currencyCode || !row.feeAmount || !row.recoveryLegalTenantId) {
     throw new Error('success-fee billing snapshot is unavailable for collected event');
   }
+  const billingScope = resolveBillingScopeFromSnapshot(
+    { legalTenantId: row.recoveryLegalTenantId },
+    'success-fee recovery billing snapshot'
+  );
 
   return {
+    billingEntity: billingScope.billingEntity,
     claimId: event.entityId,
     collectionMethod: row.collectionMethod,
     currencyCode: row.currencyCode,
@@ -111,6 +143,8 @@ export async function resolveSuccessFeeBillingSnapshot(
           providerSubscriptionId: row.providerSubscriptionId,
         })
       : null,
+    recoveryLegalTenantId: billingScope.legalTenantId,
+    subscriptionBillingEntity: resolveSubscriptionBillingEntity(row),
     tenantId: event.tenantId,
   };
 }

@@ -9,9 +9,11 @@ export function buildSuccessFeeCustomData(
 ) {
   return {
     claimId: snapshot.claimId,
+    billingEntity: snapshot.billingEntity,
     domainEventConsumer: RECOVERY_SUCCESS_FEE_BILLING_CONSUMER,
     idempotencyKey,
     originSubscriptionId: snapshot.providerSubscriptionId,
+    recoveryLegalTenantId: snapshot.recoveryLegalTenantId,
     tenantId: snapshot.tenantId,
   };
 }

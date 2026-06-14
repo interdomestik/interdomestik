@@ -7,11 +7,13 @@ import {
   buildPaddleInvoiceTransactionRequest,
   buildPaddleSubscriptionChargeRequest,
 } from './paddle-success-fee-request';
+import type { BillingEntity } from '../paddle-server';
 
 export type RecoverySuccessFeeCollectionMethod = 'deduction' | 'payment_method_charge' | 'invoice';
 
 export type RecoverySuccessFeeBillingSnapshot = Readonly<{
   claimId: string;
+  billingEntity: BillingEntity;
   collectionMethod: RecoverySuccessFeeCollectionMethod;
   currencyCode: string;
   feeAmount: string;
@@ -19,6 +21,8 @@ export type RecoverySuccessFeeBillingSnapshot = Readonly<{
   paymentAuthorizationState: 'pending' | 'authorized' | 'revoked';
   providerCustomerId: string | null;
   providerSubscriptionId: string | null;
+  recoveryLegalTenantId: string;
+  subscriptionBillingEntity: BillingEntity | null;
   tenantId: string;
 }>;
 

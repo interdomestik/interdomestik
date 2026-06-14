@@ -142,7 +142,6 @@ function shouldAllowLegacyFallback(options: ResolveBillingEntityConfigOptions): 
 
 function resolvePaddleEnvironment(): Environment {
   const value = getOptionalEnv('NEXT_PUBLIC_PADDLE_ENV');
-  // The env var is string-based; map known values to SDK Environment values explicitly.
   if (!value || value === 'sandbox') {
     return Environment.sandbox;
   }
@@ -170,6 +169,7 @@ export function resolveBillingEntityForTenantId(
   if (!tenantId || !isBillingTenantId(tenantId)) return null;
   return BILLING_ENTITY_BY_TENANT[tenantId];
 }
+export const resolveBillingEntityForLegalTenantId = resolveBillingEntityForTenantId;
 
 export function resolveBillingTenantIdForEntity(entity: BillingEntity): BillingTenantId {
   return BILLING_TENANT_BY_ENTITY[entity];

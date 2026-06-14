@@ -101,7 +101,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
         providerTransactionId: 'tx_1',
         data: {},
       })
-    ).rejects.toThrow('Missing tenantId');
+    ).rejects.toThrow('missing legal tenant scope');
   });
 
   it('rejects transaction events when provided entity mismatches tenant entity', async () => {
@@ -116,7 +116,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
         providerTransactionId: 'tx_1',
         data: {},
       })
-    ).rejects.toThrow('Billing entity mismatch');
+    ).rejects.toThrow('conflicts with legal tenant');
   });
 
   it('rejects transaction events without a valid amount total', async () => {
@@ -172,7 +172,6 @@ describe('persistInvoiceAndLedgerInvariants', () => {
       tenantId: 'tenant_ks',
       providerTransactionId: 'tx_1',
       data: {
-        subscriptionId: 'sub_1',
         details: {
           totals: {
             total: '1000',
