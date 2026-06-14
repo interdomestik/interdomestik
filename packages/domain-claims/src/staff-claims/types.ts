@@ -1,5 +1,7 @@
 import { statusEnum } from '@interdomestik/database/schema';
 import type { PaymentAuthorizationState } from '@interdomestik/domain-recovery';
+import type { CommercialEscalationReason } from '../claims/commercial-launch-scope';
+
 export {
   PAYMENT_AUTHORIZATION_STATES,
   SUCCESS_FEE_COLLECTION_METHODS,
@@ -8,7 +10,6 @@ export {
   type SuccessFeeCollectionMethod,
   type SuccessFeeCollectionSnapshot,
 } from '@interdomestik/domain-recovery';
-import type { CommercialEscalationReason } from '../claims/commercial-launch-scope';
 
 export type ClaimStatus = (typeof statusEnum.enumValues)[number];
 export const ESCALATION_DECISION_NEXT_STATUSES = ['negotiation', 'court'] as const;
