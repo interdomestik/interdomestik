@@ -9,6 +9,11 @@ import {
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import {
+  buildRecoverySuccessFeeCollectionSnapshot,
+  normalizeRecoveryCurrencyCode,
+} from '@interdomestik/domain-recovery';
+import { recordRecoverySuccessFeeCollectedEvent } from '@interdomestik/domain-recovery/success-fee-collection-event';
+import {
   calculateSuccessFeeAmount,
   resolveSuccessFeeCollectionPlan,
 } from '@interdomestik/domain-membership-billing/success-fees/policy';
@@ -27,11 +32,6 @@ import {
   resolveScopedStaffClaimAccess,
   STAFF_SCOPE_ACCESS_DENIED_ERROR,
 } from './scope';
-import { recordSuccessFeeCollectionEvent } from './success-fee-collection-event';
-import {
-  buildSuccessFeeCollectionSnapshot,
-  normalizeCurrencyCode,
-} from './success-fee-collection-snapshot';
 
 const saveSuccessFeeCollectionSchema = z.object({
   claimId: z.string().trim().min(1, 'Claim ID is required'),
@@ -159,7 +159,7 @@ export async function saveSuccessFeeCollectionCore(
         ? new Date(collectionPlan.invoiceDueAt)
         : null;
       const subscriptionId = hasStoredPaymentMethod ? (subscription?.id ?? null) : null;
-      const currencyCode = normalizeCurrencyCode(claim.currency);
+      const currencyCode = normalizeRecoveryCurrencyCode(claim.currency);
 
       await tx
         .update(claimEscalationAgreements)
@@ -184,7 +184,8 @@ export async function saveSuccessFeeCollectionCore(
           )
         );
 
-      await recordSuccessFeeCollectionEvent({
+      await recordRecoverySuccessFeeCollectedEvent({
+        actor: { id: session.user.id, role: session.user.role },
         claimId: parsed.data.claimId,
         collectionMethod: collectionPlan.method,
         currencyCode,
@@ -193,14 +194,13 @@ export async function saveSuccessFeeCollectionCore(
         invoiceDueAt,
         now,
         paymentAuthorizationState: commercialAgreement.paymentAuthorizationState,
-        session,
         tenantId,
         tx: tx as DomainEventTx,
       });
 
       return {
         success: true,
-        data: buildSuccessFeeCollectionSnapshot({
+        data: buildRecoverySuccessFeeCollectionSnapshot({
           claimId: parsed.data.claimId,
           collectionMethod: collectionPlan.method,
           currencyCode,
