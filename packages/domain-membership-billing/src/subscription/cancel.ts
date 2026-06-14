@@ -6,11 +6,13 @@ import {
   desc,
   eq,
   subscriptions,
+  type DomainEventTx,
 } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { getPaddle } from '../paddle-server';
 import { buildCancellationTermsSummary } from './cancellation-policy';
 import { resolveProviderSubscriptionHandle } from '../subscription';
+import { recordMembershipSubscriptionChangedEvent } from '../paddle-webhooks/handlers/subscription-event';
 
 import type { CancelSubscriptionResult, SubscriptionDeps, SubscriptionSession } from './types';
 
@@ -71,13 +73,27 @@ export async function cancelSubscriptionCore(
 
     let localPersistenceFailed = false;
     try {
-      await db
-        .update(subscriptions)
-        .set({
+      const now = new Date();
+      await db.transaction(async tx => {
+        // db-access-guard: tenant-scoped -- reason: tenantId constrains local cancellation persistence.
+        await tx
+          .update(subscriptions)
+          .set({
+            cancelAtPeriodEnd: true,
+            updatedAt: now,
+          })
+          .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)));
+        await recordMembershipSubscriptionChangedEvent({
+          actor: { id: session.user.id, role: 'member' },
           cancelAtPeriodEnd: true,
-          updatedAt: new Date(),
-        })
-        .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)));
+          fromStatus: normalizeSubscriptionStatus(sub.status),
+          now,
+          subscriptionId,
+          tenantId,
+          toStatus: normalizeSubscriptionStatus(sub.status, 'active'),
+          tx: tx as DomainEventTx,
+        });
+      });
     } catch (error) {
       localPersistenceFailed = true;
       console.error('Failed to persist scheduled subscription cancellation:', error);
@@ -109,4 +125,21 @@ export async function cancelSubscriptionCore(
     console.error('Failed to cancel subscription:', error);
     return { error: 'Failed to cancel subscription', success: undefined };
   }
+}
+
+function normalizeSubscriptionStatus(
+  status: string | null | undefined,
+  fallback: 'active' | 'canceled' = 'canceled'
+) {
+  if (
+    status === 'active' ||
+    status === 'past_due' ||
+    status === 'paused' ||
+    status === 'canceled' ||
+    status === 'trialing' ||
+    status === 'expired'
+  ) {
+    return status;
+  }
+  return fallback;
 }

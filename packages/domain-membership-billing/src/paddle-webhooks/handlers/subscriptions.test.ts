@@ -54,13 +54,15 @@ describe('handleSubscriptionChanged', () => {
       { logAuditEvent, sendThankYouLetter }
     );
 
-    // Verify Zod allowed it -> DB called
-    expect(hoisted.db.insert).toHaveBeenCalled();
-
-    // Verify Tenant Resolved
+    expect(hoisted.tx.insert).toHaveBeenCalled();
+    expect(hoisted.appendEvent).toHaveBeenCalledWith(
+      hoisted.tx,
+      expect.objectContaining({
+        eventName: 'membership.subscription_changed',
+        payload: { cancelAtPeriodEnd: false, fromStatus: 'none', toStatus: 'active' },
+      })
+    );
     expect(hoisted.db.query.user.findFirst).toHaveBeenCalledWith(expect.anything());
-
-    // Verify Audit Log
     expect(logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'subscription.updated',
@@ -83,7 +85,7 @@ describe('handleSubscriptionChanged', () => {
       { logAuditEvent }
     );
 
-    expect(hoisted.db.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(logAuditEvent).not.toHaveBeenCalled();
   });
 
@@ -143,8 +145,8 @@ describe('handleSubscriptionChanged', () => {
       email: 'buyer@example.com',
       tenantId: 'tenant_mk',
     });
-    expect(hoisted.db.transaction).toHaveBeenCalledTimes(2);
-    expect(hoisted.db.insert).toHaveBeenCalled();
+    expect(hoisted.db.transaction).toHaveBeenCalledTimes(3);
+    expect(hoisted.tx.insert).toHaveBeenCalled();
   });
 
   it('throws when a valid subscription event cannot resolve tenant context', async () => {
@@ -171,7 +173,7 @@ describe('handleSubscriptionChanged', () => {
       )
     ).rejects.toThrow('Unable to resolve subscription context');
 
-    expect(hoisted.db.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(logAuditEvent).not.toHaveBeenCalled();
   });
 
@@ -209,8 +211,8 @@ describe('handleSubscriptionChanged', () => {
       )
     ).rejects.toThrow('customData tenant=tenant_bad conflicts with canonical tenant=tenant_real');
 
-    expect(hoisted.db.insert).not.toHaveBeenCalled();
-    expect(hoisted.db.update).not.toHaveBeenCalled();
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.update).not.toHaveBeenCalled();
     expect(logAuditEvent).not.toHaveBeenCalled();
     expect(warnSpy).not.toHaveBeenCalled();
 
@@ -251,14 +253,16 @@ describe('handleSubscriptionChanged', () => {
     ).rejects.toThrow('customData tenant=tenant_bad conflicts with canonical tenant=tenant_real');
 
     expect(hoisted.db.query.webhookEvents.findFirst).not.toHaveBeenCalled();
-    expect(hoisted.db.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(logAuditEvent).not.toHaveBeenCalled();
   });
 
   it('uses existing subscription canonical user when provider customData omits userId', async () => {
-    const mockWhere = vi.fn().mockResolvedValue(undefined);
+    const mockWhere = vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([{ id: 'mock_sub_existing' }]),
+    });
     const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
-    hoisted.db.update.mockReturnValue({ set: mockSet });
+    hoisted.tx.update.mockReturnValue({ set: mockSet });
 
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       id: 'sub_existing',
@@ -290,18 +294,17 @@ describe('handleSubscriptionChanged', () => {
     );
 
     expect(mockSet).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tenantId: 'tenant_abc',
-        userId: 'user_canonical',
-      })
+      expect.objectContaining({ tenantId: 'tenant_abc', userId: 'user_canonical' })
     );
     expect(mockWhere).toHaveBeenCalled();
   });
 
   it('updates an existing user-scoped subscription row instead of inserting a second row', async () => {
-    const mockWhere = vi.fn().mockResolvedValue(undefined);
+    const mockWhere = vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([{ id: 'mock_sub_existing' }]),
+    });
     const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
-    hoisted.db.update.mockReturnValue({ set: mockSet });
+    hoisted.tx.update.mockReturnValue({ set: mockSet });
 
     hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
       id: 'mock_sub_existing',
@@ -316,12 +319,10 @@ describe('handleSubscriptionChanged', () => {
 
     await handleSubscriptionChanged(createActiveSubscriptionUpdatedEvent(), { logAuditEvent });
 
-    expect(hoisted.db.insert).not.toHaveBeenCalled();
-    expect(hoisted.db.update).toHaveBeenCalled();
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.update).toHaveBeenCalled();
     expect(mockSet).toHaveBeenCalledWith(
-      expect.objectContaining({
-        providerSubscriptionId: 'sub_paddle_456',
-      })
+      expect.objectContaining({ providerSubscriptionId: 'sub_paddle_456' })
     );
     expect(mockWhere).toHaveBeenCalled();
   });
@@ -329,9 +330,7 @@ describe('handleSubscriptionChanged', () => {
   it('stores the canonical annual plan id instead of the Paddle price id', async () => {
     const insertedValues = vi.fn().mockResolvedValue(undefined);
 
-    hoisted.db.insert.mockReturnValue({
-      values: insertedValues,
-    });
+    hoisted.tx.insert.mockReturnValue({ values: insertedValues });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
@@ -362,10 +361,7 @@ describe('handleSubscriptionChanged', () => {
     );
 
     expect(insertedValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        planId: 'standard',
-        planKey: 'mk-standard-plan',
-      })
+      expect.objectContaining({ planId: 'standard', planKey: 'mk-standard-plan' })
     );
   });
 
@@ -389,11 +385,17 @@ describe('handleSubscriptionChanged', () => {
 
     await handleSubscriptionChanged(createActiveSubscriptionUpdatedEvent(), { logAuditEvent });
 
-    expect(hoisted.db.insert).toHaveBeenCalled();
-    expect(mockSet).toHaveBeenCalledWith(
+    expect(hoisted.tx.insert).toHaveBeenCalled();
+    expect(hoisted.appendEvent).toHaveBeenCalledTimes(1);
+    expect(hoisted.appendEvent).toHaveBeenCalledWith(
+      hoisted.tx,
       expect.objectContaining({
-        providerSubscriptionId: 'sub_paddle_456',
+        eventName: 'membership.subscription_changed',
+        payload: { cancelAtPeriodEnd: false, fromStatus: 'none', toStatus: 'active' },
       })
+    );
+    expect(mockSet).toHaveBeenCalledWith(
+      expect.objectContaining({ providerSubscriptionId: 'sub_paddle_456' })
     );
     expect(mockWhere).toHaveBeenCalled();
   });
@@ -412,9 +414,7 @@ describe('handleSubscriptionChanged', () => {
   ])('$name', async ({ resolvedAgentId, subscriptionId }) => {
     const insertedValues = vi.fn().mockResolvedValue(undefined);
 
-    hoisted.db.insert.mockReturnValue({
-      values: insertedValues,
-    });
+    hoisted.tx.insert.mockReturnValue({ values: insertedValues });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
     hoisted.db.query.user.findFirst
       .mockResolvedValueOnce({
@@ -447,10 +447,7 @@ describe('handleSubscriptionChanged', () => {
     );
 
     expect(insertedValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: 'user_123',
-        agentId: resolvedAgentId,
-      })
+      expect.objectContaining({ userId: 'user_123', agentId: resolvedAgentId })
     );
   });
 });

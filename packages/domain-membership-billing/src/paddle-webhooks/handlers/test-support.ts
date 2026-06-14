@@ -33,10 +33,7 @@ interface PaddleHandlerMocks {
     interval: string;
     isActive: string;
   };
-  tx: {
-    insert: MockFunction;
-    update: MockFunction;
-  };
+  tx: { insert: MockFunction; update: MockFunction };
   insertedUserValues: MockFunction;
   updatedUserValues: MockFunction;
 }
@@ -74,10 +71,7 @@ interface MemberNumberMockModule {
   generateMemberNumber: MockFunction;
 }
 
-interface RacedSubscriptionInsertMocks {
-  mockSet: MockFunction;
-  mockWhere: MockFunction;
-}
+type RacedSubscriptionInsertMocks = { mockSet: MockFunction; mockWhere: MockFunction };
 
 export function createHoistedPaddleHandlerMocks(): PaddleHandlerMocks {
   return {
@@ -225,11 +219,17 @@ export function mockRacedSubscriptionInsert(
   hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>
 ): RacedSubscriptionInsertMocks {
   const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
-  const mockWhere = vi.fn().mockResolvedValue(undefined);
+  const mockWhere = vi
+    .fn()
+    .mockReturnValue({ returning: vi.fn().mockResolvedValue([{ id: 'sub' }]) });
   const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
 
   hoisted.db.update.mockReturnValue({ set: mockSet });
   hoisted.db.insert.mockReturnValue({
+    values: vi.fn().mockRejectedValue(uniqueViolation),
+  });
+  hoisted.tx.update.mockReturnValue({ set: mockSet });
+  hoisted.tx.insert.mockReturnValue({
     values: vi.fn().mockRejectedValue(uniqueViolation),
   });
 
@@ -272,6 +272,6 @@ export function resetPaddleHandlerMocks(
     set: hoisted.updatedUserValues,
   }));
   hoisted.updatedUserValues.mockReturnValue({
-    where: async () => undefined,
+    where: () => ({ returning: async () => [{ id: 'sub' }] }),
   });
 }

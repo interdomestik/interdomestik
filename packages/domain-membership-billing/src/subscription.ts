@@ -34,19 +34,25 @@ export async function hasActiveMembership(
   return membershipLifecycleGrantsAccess(getMembershipLifecycleBucket({ subscription: sub }));
 }
 
-export async function findSubscriptionByProviderReference(reference: string | null | undefined) {
+export async function findSubscriptionByProviderReference(
+  reference: string | null | undefined,
+  options: { tenantId?: string | null } = {}
+) {
   const normalizedReference = reference?.trim();
   if (!normalizedReference) {
     return null;
   }
+  const tenantId = options.tenantId?.trim();
 
   // db-access-guard: system-exempt -- reason: provider reference lookup resolves tenant from payment provider event
   return db.query.subscriptions.findFirst({
-    where: (subs, { eq: eqFn, or: orFn }) =>
-      orFn(
+    where: (subs, { and: andFn, eq: eqFn, or: orFn }) => {
+      const referenceMatch = orFn(
         eqFn(subs.id, normalizedReference),
         eqFn(subs.providerSubscriptionId, normalizedReference)
-      ),
+      );
+      return tenantId ? andFn(eqFn(subs.tenantId, tenantId), referenceMatch) : referenceMatch;
+    },
   });
 }
 
