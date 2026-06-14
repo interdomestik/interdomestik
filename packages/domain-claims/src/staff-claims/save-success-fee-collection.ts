@@ -11,8 +11,8 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import {
   buildRecoverySuccessFeeCollectionSnapshot,
   normalizeRecoveryCurrencyCode,
+  recordRecoverySuccessFeeCollectedEvent,
 } from '@interdomestik/domain-recovery';
-import { recordRecoverySuccessFeeCollectedEvent } from '@interdomestik/domain-recovery/success-fee-collection-event';
 import {
   calculateSuccessFeeAmount,
   resolveSuccessFeeCollectionPlan,

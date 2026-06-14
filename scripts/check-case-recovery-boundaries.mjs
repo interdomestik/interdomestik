@@ -10,15 +10,15 @@ const boundaries = [
     name: 'domain-case',
     packageName: '@interdomestik/domain-case',
     root: 'packages/domain-case',
-    forbiddenPackage: '@interdomestik/domain-recovery',
-    forbiddenPathPart: 'domain-recovery',
+    forbiddenPackages: ['@interdomestik/domain-claims', '@interdomestik/domain-recovery'],
+    forbiddenPathParts: ['domain-claims', 'domain-recovery'],
   },
   {
     name: 'domain-recovery',
     packageName: '@interdomestik/domain-recovery',
     root: 'packages/domain-recovery',
-    forbiddenPackage: '@interdomestik/domain-case',
-    forbiddenPathPart: 'domain-case',
+    forbiddenPackages: ['@interdomestik/domain-case', '@interdomestik/domain-claims'],
+    forbiddenPathParts: ['domain-case', 'domain-claims'],
   },
 ];
 
@@ -67,9 +67,23 @@ function assertBoundaryPackage(boundary, failures) {
     packageJson.peerDependencies,
   ];
 
-  if (dependencyBlocks.some(block => block && boundary.forbiddenPackage in block)) {
-    failures.push(`${packagePath} must not depend on ${boundary.forbiddenPackage}.`);
+  for (const forbiddenPackage of boundary.forbiddenPackages) {
+    if (dependencyBlocks.some(block => block && forbiddenPackage in block)) {
+      failures.push(`${packagePath} must not depend on ${forbiddenPackage}.`);
+    }
   }
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
+}
+
+function importsPackage(source, packageName) {
+  const escapedPackage = escapeRegExp(packageName);
+  return new RegExp(
+    String.raw`(?:from\s+|import\s*\(\s*|import\s+)['"]${escapedPackage}(?:/[^'"]*)?['"]`,
+    'u'
+  ).test(source);
 }
 
 function assertNoCrossImports(boundary, failures) {
@@ -78,13 +92,21 @@ function assertNoCrossImports(boundary, failures) {
   for (const file of files) {
     const source = fs.readFileSync(file, 'utf8');
     const relativePath = toPosix(path.relative(repoRoot, file));
-    if (source.includes(boundary.forbiddenPackage)) {
-      failures.push(`${relativePath} imports forbidden ${boundary.forbiddenPackage}.`);
+    for (const forbiddenPackage of boundary.forbiddenPackages) {
+      if (importsPackage(source, forbiddenPackage)) {
+        failures.push(`${relativePath} imports forbidden ${forbiddenPackage}.`);
+      }
     }
 
-    const relativeForbidden = new RegExp(`from ['"][^'"]*${boundary.forbiddenPathPart}`, 'u');
-    if (relativeForbidden.test(source)) {
-      failures.push(`${relativePath} imports through forbidden ${boundary.forbiddenPathPart}.`);
+    for (const forbiddenPathPart of boundary.forbiddenPathParts) {
+      const escapedPathPart = escapeRegExp(forbiddenPathPart);
+      const relativeForbidden = new RegExp(
+        String.raw`(?:from\s+|import\s*\(\s*|require\s*\(\s*|import\s+)['"][.][^'"]*${escapedPathPart}(?:/|['"])`,
+        'u'
+      );
+      if (relativeForbidden.test(source)) {
+        failures.push(`${relativePath} imports through forbidden ${forbiddenPathPart}.`);
+      }
     }
   }
 }
