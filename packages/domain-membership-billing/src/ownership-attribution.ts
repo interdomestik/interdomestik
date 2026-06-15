@@ -1,4 +1,4 @@
-import { agentClients, and, db, eq } from '@interdomestik/database';
+import { agentClients, and, eq } from '@interdomestik/database';
 
 function normalizeAgentId(agentId: string | null | undefined): string | null {
   if (typeof agentId !== 'string') return null;
@@ -36,7 +36,13 @@ export interface ReadOnlyOwnershipAttributionSync {
   tenantId: string;
 }
 
-type AgentClientReadScopeRevoker = Pick<typeof db, 'update'>;
+interface AgentClientReadScopeRevoker {
+  update(table: typeof agentClients): {
+    set(values: { status: 'inactive' }): {
+      where(condition: unknown): Promise<unknown>;
+    };
+  };
+}
 
 export async function recordReadOnlyOwnershipAttribution(
   _tx: unknown,

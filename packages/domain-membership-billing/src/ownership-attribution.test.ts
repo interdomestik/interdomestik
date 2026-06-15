@@ -86,13 +86,10 @@ describe('ownership attribution helpers', () => {
     };
 
     await expect(
-      revokeAgentClientReadScope(
-        tx as unknown as Parameters<typeof revokeAgentClientReadScope>[0],
-        {
-          tenantId: 'tenant-1',
-          memberId: 'member-1',
-        }
-      )
+      revokeAgentClientReadScope(tx, {
+        tenantId: 'tenant-1',
+        memberId: 'member-1',
+      })
     ).resolves.toEqual({
       memberId: 'member-1',
       readScopeGranted: false,
