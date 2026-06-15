@@ -314,6 +314,7 @@ test('Nightly E2E runs on an available hosted runner while preserving full stric
 
   assert.equal(nightlyJob['runs-on'], 'ubuntu-latest');
   assert.deepEqual(nightlyWorkflow.on.schedule, [{ cron: '10 2 * * *' }]);
+  assert.equal(nightlyJob.strategy['max-parallel'], 2);
   assert.deepEqual(nightlyJob.strategy.matrix, {
     shardIndex: [1, 2, 3],
     shardTotal: [3],
