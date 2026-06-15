@@ -104,7 +104,7 @@ cleanup_stale_supabase_containers() {
 cleanup_stale_playwright_processes
 
 echo "💀 [Gatekeeper] Killing stale processes on port 3000..."
-PIDS="$(lsof -ti:3000 2>/dev/null || true)"
+PIDS="$(lsof -tiTCP:3000 -sTCP:LISTEN 2>/dev/null || true)"
 if [ -n "$PIDS" ]; then
   kill -9 $PIDS 2>/dev/null || true
 fi
@@ -201,7 +201,7 @@ echo "   - Data: Deterministic (Version: E2E-Golden)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 echo "💀 Killing any stale processes on port 3000..."
-PIDS="$(lsof -ti:3000 2>/dev/null || true)"
+PIDS="$(lsof -tiTCP:3000 -sTCP:LISTEN 2>/dev/null || true)"
 if [ -n "$PIDS" ]; then
   kill -9 $PIDS 2>/dev/null || true
 fi

@@ -7,6 +7,7 @@ import { cleanupE2ePort } from './run-detached-command.mjs';
 
 const read = file => readFileSync(new URL(file, import.meta.url), 'utf8');
 const runner = read('../run-e2e-lane.mjs');
+const gatekeeper = read('../m4-gatekeeper.sh');
 
 test('runner cleanup contracts', () => {
   assert.match(runner, /\{ cleanupE2ePort, runDetachedCommand \}.*run-detached-command\.mjs/);
@@ -14,6 +15,11 @@ test('runner cleanup contracts', () => {
   assert.match(runner, /finally \{\s*cleanupE2ePort\(\{ env: finalEnv \}\);\s*\}/s);
   assert.match(runner, /process\.exitCode = error\?\.exitCode \?\? 1/);
   assert.doesNotMatch(runner, /process\.exit\(error\?\.exitCode \?\? 1\)/);
+});
+
+test('gatekeeper only kills port 3000 listeners', () => {
+  assert.doesNotMatch(gatekeeper, /lsof -ti:3000/);
+  assert.match(gatekeeper, /lsof -tiTCP:3000 -sTCP:LISTEN/);
 });
 
 test('port cleanup kills non-group-leader listeners', async () => {
