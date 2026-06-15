@@ -13,6 +13,10 @@ describe('tenant host compatibility aliases', () => {
   const originalKsHost = process.env.KS_HOST;
 
   afterEach(() => {
+    if (originalKsHost === undefined) {
+      delete mutableEnv.KS_HOST;
+      return;
+    }
     mutableEnv.KS_HOST = originalKsHost;
   });
 
