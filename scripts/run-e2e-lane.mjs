@@ -113,10 +113,9 @@ if (!lane) {
   process.exit(2);
 }
 
-process.env.BETTER_AUTH_SECRET = assertSecret(
-  process.env.BETTER_AUTH_SECRET || loadSecret(),
-  'environment'
-);
+const envSecret = process.env.BETTER_AUTH_SECRET;
+process.env.BETTER_AUTH_SECRET =
+  envSecret === undefined ? loadSecret() : assertSecret(envSecret, 'environment');
 const baseEnv = {
   ...process.env,
   E2E_DATABASE_URL: process.env.E2E_DATABASE_URL || dbUrl,
