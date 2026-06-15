@@ -123,6 +123,8 @@ const baseEnv = {
   NEXT_PUBLIC_BILLING_TEST_MODE: '1',
 };
 const laneEnv = lane.env ? { ...baseEnv, ...lane.env } : baseEnv;
+const stateEnv = { ...laneEnv, PW_FAST_GATES: '0' };
+const finalEnv = laneName === 'state' ? stateEnv : laneEnv;
 
 function run(command, args, env = baseEnv) {
   const result = spawnSync(command, args, {
@@ -146,6 +148,6 @@ if (lane.gatekeeper) {
 }
 
 if (lane.state) {
-  run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], laneEnv);
+  run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], stateEnv);
 }
-run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], laneEnv);
+run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], finalEnv);
