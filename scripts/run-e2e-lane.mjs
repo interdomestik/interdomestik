@@ -18,25 +18,24 @@ function readSecret() {
   }
 }
 
-function assertSecret(secret) {
-  if (!secret || secret.length < 32) throw new Error(`Invalid BETTER_AUTH_SECRET at ${secretPath}`);
+function assertSecret(secret, source) {
+  if (!secret || secret.length < 32) throw new Error(`Invalid BETTER_AUTH_SECRET from ${source}`);
   return secret;
 }
 
 function loadSecret() {
   fs.mkdirSync(path.dirname(secretPath), { recursive: true });
   const secret = readSecret();
-  if (secret) return assertSecret(secret);
+  if (secret) return assertSecret(secret, secretPath);
   const next = randomBytes(32).toString('base64url');
   try {
     fs.writeFileSync(secretPath, `${next}\n`, { flag: 'wx', mode: 0o600 });
     return next;
   } catch (error) {
     if (error?.code !== 'EEXIST') throw error;
-    return assertSecret(readSecret());
+    return assertSecret(readSecret(), secretPath);
   }
 }
-
 const reportArgs = ['--trace=retain-on-failure', '--reporter=line'];
 const strictArgs = ['--max-failures=1', ...reportArgs];
 const workerArgs = ['--workers=1', ...reportArgs];
@@ -60,7 +59,6 @@ const projectLane = (project, env) => ({
   ...(env && { env }),
   playwrightArgs: ['e2e/gate', project, ...strictArgs],
 });
-
 const laneDefinitions = {
   state: {
     playwrightArgs: [...setupArgs, ...strictWorkers],
@@ -115,7 +113,10 @@ if (!lane) {
   process.exit(2);
 }
 
-process.env.BETTER_AUTH_SECRET ||= loadSecret();
+process.env.BETTER_AUTH_SECRET = assertSecret(
+  process.env.BETTER_AUTH_SECRET || loadSecret(),
+  'environment'
+);
 const baseEnv = {
   ...process.env,
   E2E_DATABASE_URL: process.env.E2E_DATABASE_URL || dbUrl,
@@ -125,13 +126,8 @@ const baseEnv = {
 const laneEnv = lane.env ? { ...baseEnv, ...lane.env } : baseEnv;
 const stateEnv = { ...laneEnv, PW_FAST_GATES: '0' };
 const finalEnv = laneName === 'state' ? stateEnv : laneEnv;
-
 function run(command, args, env = baseEnv) {
-  const result = spawnSync(command, args, {
-    cwd: rootDir,
-    env,
-    stdio: 'inherit',
-  });
+  const result = spawnSync(command, args, { cwd: rootDir, env, stdio: 'inherit' });
 
   if (result.error) {
     console.error(result.error);
