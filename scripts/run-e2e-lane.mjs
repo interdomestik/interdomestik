@@ -7,25 +7,23 @@ import { fileURLToPath } from 'node:url';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const defaultDbUrl = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
-const localAuthSecretPath = path.join(rootDir, 'apps/web/.playwright/better-auth-secret');
+const secretPath = path.join(rootDir, 'apps/web/.playwright/better-auth-secret');
 
-function loadLocalBetterAuthSecret() {
-  fs.mkdirSync(path.dirname(localAuthSecretPath), { recursive: true });
-  const existingSecret = fs.existsSync(localAuthSecretPath)
-    ? fs.readFileSync(localAuthSecretPath, 'utf8').trim()
-    : '';
-  if (existingSecret) return existingSecret;
-  const generatedSecret = randomBytes(32).toString('base64url');
-  fs.writeFileSync(localAuthSecretPath, `${generatedSecret}\n`, { mode: 0o600 });
-  return generatedSecret;
+function loadLocalAuthSecret() {
+  fs.mkdirSync(path.dirname(secretPath), { recursive: true });
+  let secret = fs.existsSync(secretPath) ? fs.readFileSync(secretPath, 'utf8').trim() : '';
+  if (secret) return secret;
+  secret = randomBytes(32).toString('base64url');
+  fs.writeFileSync(secretPath, `${secret}\n`, { mode: 0o600 });
+  return secret;
 }
 
 const reportArgs = ['--trace=retain-on-failure', '--reporter=line'];
 const strictArgs = ['--max-failures=1', ...reportArgs];
-const singleWorkerArgs = ['--workers=1', ...reportArgs];
-const strictSingleWorkerArgs = ['--workers=1', ...strictArgs];
-const commonGateArgs = ['e2e/gate', ...strictSingleWorkerArgs];
-const playwrightCommandArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];
+const workerArgs = ['--workers=1', ...reportArgs];
+const strictWorkerArgs = ['--workers=1', ...strictArgs];
+const gateArgs = ['e2e/gate', ...strictWorkerArgs];
+const pwCommandArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];
 
 const laneDefinitions = {
   state: {
@@ -33,30 +31,30 @@ const laneDefinitions = {
       'e2e/setup.state.spec.ts',
       '--project=setup-ks',
       '--project=setup-mk',
-      ...strictSingleWorkerArgs,
+      ...strictWorkerArgs,
     ],
   },
   gate: {
     gatekeeper: true,
     state: true,
     env: { PW_FAST_GATES: '1' },
-    playwrightArgs: [...commonGateArgs, '--project=gate-ks-sq', '--project=gate-mk-mk'],
+    playwrightArgs: [...gateArgs, '--project=gate-ks-sq', '--project=gate-mk-mk'],
   },
   pr: {
     gatekeeper: true,
     state: true,
     env: { PW_FAST_GATES: '1' },
-    playwrightArgs: [...commonGateArgs, '--project=gate-ks-sq', '--project=gate-mk-contract'],
+    playwrightArgs: [...gateArgs, '--project=gate-ks-sq', '--project=gate-mk-contract'],
   },
   'gate-fast': {
     gatekeeper: true,
     env: { PW_FAST_GATES: '1' },
-    playwrightArgs: [...commonGateArgs, '--project=gate-ks-sq', '--project=gate-mk-mk'],
+    playwrightArgs: [...gateArgs, '--project=gate-ks-sq', '--project=gate-mk-mk'],
   },
   'pr-fast': {
     gatekeeper: true,
     env: { PW_FAST_GATES: '1' },
-    playwrightArgs: [...commonGateArgs, '--project=gate-ks-sq', '--project=gate-mk-contract'],
+    playwrightArgs: [...gateArgs, '--project=gate-ks-sq', '--project=gate-mk-contract'],
   },
   merge: {
     gatekeeper: true,
@@ -67,7 +65,7 @@ const laneDefinitions = {
       '@quarantine|@visual|@legacy',
       '--project=ks-sq',
       '--project=mk-mk',
-      ...singleWorkerArgs,
+      ...workerArgs,
     ],
   },
   'merge-fast': {
@@ -80,7 +78,7 @@ const laneDefinitions = {
       '@quarantine|@visual|@legacy',
       '--project=gate-ks-sq',
       '--project=gate-mk-mk',
-      ...singleWorkerArgs,
+      ...workerArgs,
     ],
   },
   ks: {
@@ -107,7 +105,7 @@ const laneDefinitions = {
       'e2e/gate/front-door-session-context.spec.ts',
       '--project=front-door-ida-ks',
       '--project=front-door-ida-mk',
-      ...strictSingleWorkerArgs,
+      ...strictWorkerArgs,
     ],
   },
 };
@@ -134,7 +132,7 @@ if (!lane) {
   process.exit(2);
 }
 
-process.env.BETTER_AUTH_SECRET ||= loadLocalBetterAuthSecret();
+process.env.BETTER_AUTH_SECRET ||= loadLocalAuthSecret();
 const baseEnv = {
   ...process.env,
   E2E_DATABASE_URL: process.env.E2E_DATABASE_URL || defaultDbUrl,
@@ -166,6 +164,6 @@ if (lane.gatekeeper) {
 }
 
 if (lane.state) {
-  run('pnpm', [...playwrightCommandArgs, ...laneDefinitions.state.playwrightArgs]);
+  run('pnpm', [...pwCommandArgs, ...laneDefinitions.state.playwrightArgs]);
 }
-run('pnpm', [...playwrightCommandArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], laneEnv);
+run('pnpm', [...pwCommandArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], laneEnv);
