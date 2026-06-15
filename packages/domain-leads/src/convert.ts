@@ -4,7 +4,7 @@ import {
   createActiveAnnualMembershipFulfillment,
   createAgentAssistedOwnershipAttribution,
   resolveCanonicalMembershipPlanState,
-  syncActiveAgentClientBinding,
+  revokeAgentClientReadScope,
 } from '@interdomestik/domain-membership-billing';
 import {
   memberLeads,
@@ -111,12 +111,7 @@ export async function convertLeadToMember(
       updatedAt: now,
     });
 
-    await syncActiveAgentClientBinding(tx, {
-      tenantId: ctx.tenantId,
-      memberId: userId,
-      agentId: lead.agentId,
-      now,
-    });
+    await revokeAgentClientReadScope(tx, { tenantId: ctx.tenantId, memberId: userId });
 
     // D. Issue Membership Card
     const cardNumber = `MEM-${nanoid(8).toUpperCase()}`;

@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { appendEvent } from '../src/domain-events';
 import { makeEventTx } from './domain-event-test-utils';
 
-function makeMembershipAgentClientBoundEvent(
+function makeMembershipAttributionRecordedEvent(
   overrides: Partial<Parameters<typeof appendEvent>[1]> = {}
 ) {
   return {
@@ -12,12 +12,12 @@ function makeMembershipAgentClientBoundEvent(
     aggregateVersion: 0,
     correlationId: 'corr-1',
     entity: { id: 'member-1', type: 'member' },
-    eventName: 'membership.agent_client_bound',
+    eventName: 'membership.agent_attribution_recorded',
     eventVersion: 1,
     id: 'event-1',
     payload: {
-      bindingStatus: 'active',
       ownershipSource: 'checkout.customData.agentId',
+      readScopeGranted: false,
     },
     tenantId: 'tenant-1',
     ...overrides,
@@ -45,42 +45,42 @@ describe('appendEvent membership payload allowlist', () => {
   for (const [name, event, error] of [
     [
       'inline member identifiers',
-      makeMembershipAgentClientBoundEvent({
+      makeMembershipAttributionRecordedEvent({
         payload: {
-          bindingStatus: 'active',
           memberEmail: 'member@example.invalid',
           ownershipSource: 'checkout.customData.agentId',
+          readScopeGranted: false,
         },
       }),
       /memberEmail is not allowlisted/,
     ],
     [
       'inline agent identifiers',
-      makeMembershipAgentClientBoundEvent({
+      makeMembershipAttributionRecordedEvent({
         payload: {
           agentId: 'agent-1',
-          bindingStatus: 'active',
           ownershipSource: 'checkout.customData.agentId',
+          readScopeGranted: false,
         },
       }),
       /agentId is not allowlisted/,
     ],
     [
       'unsupported ownership source',
-      makeMembershipAgentClientBoundEvent({
-        payload: { bindingStatus: 'active', ownershipSource: 'paddle.customData' },
+      makeMembershipAttributionRecordedEvent({
+        payload: { ownershipSource: 'paddle.customData', readScopeGranted: false },
       }),
       /payload\.ownershipSource to be a membership ownership source/,
     ],
     [
-      'unsupported binding status',
-      makeMembershipAgentClientBoundEvent({
+      'non-boolean read scope marker',
+      makeMembershipAttributionRecordedEvent({
         payload: {
-          bindingStatus: 'inactive',
           ownershipSource: 'checkout.customData.agentId',
+          readScopeGranted: 'false',
         },
       }),
-      /payload\.bindingStatus to be an agent-client binding status/,
+      /payload\.readScopeGranted to be a boolean/,
     ],
     [
       'extra subscription fields',
@@ -109,12 +109,12 @@ describe('appendEvent membership payload allowlist', () => {
     });
   }
 
-  it('allows sanitized membership binding payload fields', async () => {
+  it('allows sanitized read-only membership attribution payload fields', async () => {
     const { capture, tx } = makeEventTx();
-    await appendEvent(tx, makeMembershipAgentClientBoundEvent());
+    await appendEvent(tx, makeMembershipAttributionRecordedEvent());
     assert.deepEqual(capture.row?.payload, {
-      bindingStatus: 'active',
       ownershipSource: 'checkout.customData.agentId',
+      readScopeGranted: false,
     });
   });
 

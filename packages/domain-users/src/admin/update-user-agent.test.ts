@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => {
     values: vi.fn(),
     onConflictDoUpdate: vi.fn(),
   };
-  const syncActiveAgentClientBinding = vi.fn();
+  const revokeAgentClientReadScope = vi.fn();
   const tx = {
     update: vi.fn(),
     insert: vi.fn(),
@@ -52,7 +52,7 @@ const mocks = vi.hoisted(() => {
     subscriptionsUpdateChain,
     agentClientsUpdateChain,
     insertChain,
-    syncActiveAgentClientBinding,
+    revokeAgentClientReadScope,
     eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
     and: vi.fn((...parts) => ({ op: 'and', parts })),
     withTenant: vi.fn((tenantId, tenantColumn, filter) => ({
@@ -63,7 +63,6 @@ const mocks = vi.hoisted(() => {
     })),
     requireTenantAdminSession: vi.fn(async session => session),
     ensureTenantId: vi.fn(() => 'tenant_ks'),
-    randomUUID: vi.fn(() => 'uuid-1'),
   };
 });
 
@@ -84,15 +83,11 @@ vi.mock('@interdomestik/shared-auth', () => ({
 }));
 
 vi.mock('@interdomestik/domain-membership-billing', () => ({
-  syncActiveAgentClientBinding: mocks.syncActiveAgentClientBinding,
+  revokeAgentClientReadScope: mocks.revokeAgentClientReadScope,
 }));
 
 vi.mock('./access', () => ({
   requireTenantAdminSession: mocks.requireTenantAdminSession,
-}));
-
-vi.mock('node:crypto', () => ({
-  randomUUID: mocks.randomUUID,
 }));
 
 vi.mock('drizzle-orm', () => ({
@@ -113,7 +108,7 @@ describe('updateUserAgentCore', () => {
     mocks.agentClientsUpdateChain.where.mockResolvedValue(undefined);
     mocks.insertChain.values.mockReturnValue(mocks.insertChain);
     mocks.insertChain.onConflictDoUpdate.mockResolvedValue(undefined);
-    mocks.syncActiveAgentClientBinding.mockResolvedValue(undefined);
+    mocks.revokeAgentClientReadScope.mockResolvedValue(undefined);
     mocks.tx.update.mockImplementation(table => {
       if (table === mocks.user) return mocks.userUpdateChain;
       if (table === mocks.subscriptions) return mocks.subscriptionsUpdateChain;
@@ -124,7 +119,7 @@ describe('updateUserAgentCore', () => {
     mocks.db.transaction.mockImplementation(async callback => callback(mocks.tx as never));
   });
 
-  it('updates user, subscription, and ownership rows when assigning an agent', async () => {
+  it('updates user and subscription attribution without creating read-scope rows', async () => {
     const result = await updateUserAgentCore({
       session: {
         user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' },
@@ -177,16 +172,10 @@ describe('updateUserAgentCore', () => {
       })
     );
 
-    expect(mocks.syncActiveAgentClientBinding).toHaveBeenCalledWith(
-      mocks.tx,
-      expect.objectContaining({
-        tenantId: 'tenant_ks',
-        agentId: 'agent-2',
-        memberId: 'member-1',
-        idFactory: expect.any(Function),
-      })
-    );
-    expect(mocks.syncActiveAgentClientBinding.mock.calls[0]?.[1]?.idFactory?.()).toBe('uuid-1');
+    expect(mocks.revokeAgentClientReadScope).toHaveBeenCalledWith(mocks.tx, {
+      tenantId: 'tenant_ks',
+      memberId: 'member-1',
+    });
   });
 
   it('moves the member to company-owned when clearing the agent', async () => {
@@ -228,14 +217,9 @@ describe('updateUserAgentCore', () => {
         }),
       })
     );
-    expect(mocks.syncActiveAgentClientBinding).toHaveBeenCalledWith(
-      mocks.tx,
-      expect.objectContaining({
-        tenantId: 'tenant_ks',
-        memberId: 'member-1',
-        agentId: null,
-        idFactory: expect.any(Function),
-      })
-    );
+    expect(mocks.revokeAgentClientReadScope).toHaveBeenCalledWith(mocks.tx, {
+      tenantId: 'tenant_ks',
+      memberId: 'member-1',
+    });
   });
 });

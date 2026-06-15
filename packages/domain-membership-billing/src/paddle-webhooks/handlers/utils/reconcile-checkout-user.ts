@@ -3,7 +3,7 @@ import { generateMemberNumber } from '@interdomestik/database/member-number';
 import { nanoid } from 'nanoid';
 import {
   createSelfServeOwnershipAttribution,
-  syncActiveAgentClientBinding,
+  revokeAgentClientReadScope,
 } from '../../../ownership-attribution';
 import type { RequestPasswordResetOnboarding } from '../../types';
 import { resolveBranchId } from './context';
@@ -213,12 +213,7 @@ export async function reconcileCheckoutUser(
           joinedAt: now,
         });
 
-        await syncActiveAgentClientBinding(tx, {
-          tenantId,
-          memberId: newUserId,
-          agentId: ownershipAttribution.agentId,
-          now,
-        });
+        await revokeAgentClientReadScope(tx, { tenantId, memberId: newUserId });
       });
 
       shouldRequestOnboarding = true;
@@ -277,12 +272,7 @@ export async function reconcileCheckoutUser(
         });
       }
 
-      await syncActiveAgentClientBinding(tx, {
-        tenantId,
-        memberId: existingUser.id,
-        agentId: nextAgentId,
-        now,
-      });
+      await revokeAgentClientReadScope(tx, { tenantId, memberId: existingUser.id });
     });
 
     shouldRequestOnboarding = !credentialAccount;

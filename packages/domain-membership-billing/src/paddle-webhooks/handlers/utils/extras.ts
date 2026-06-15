@@ -5,9 +5,9 @@ import { createMemberReferralRewardCore } from '../../../../../domain-referrals/
 import { createCommissionCore } from '../../../commissions/create';
 import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
 import { calculateCommission } from '../../../commissions/types';
-import { syncActiveAgentClientBinding } from '../../../ownership-attribution';
+import { revokeAgentClientReadScope } from '../../../ownership-attribution';
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../../types';
-import { recordMembershipAgentClientBoundEvent } from './membership-agent-client-bound-event';
+import { recordMembershipAttributionRecordedEvent } from './membership-attribution-recorded-event';
 import {
   resolveNewMembershipOwnership,
   toOwnershipResolvedFrom,
@@ -147,7 +147,7 @@ async function processMemberReferralRewards(args: {
   }
 }
 
-async function ensureAgentClientBinding(args: {
+async function recordReadOnlyMembershipAttribution(args: {
   tenantId: string;
   userId: string;
   customData: { agentId?: string } | undefined;
@@ -161,13 +161,11 @@ async function ensureAgentClientBinding(args: {
   const now = new Date();
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   await db.transaction(async tx => {
-    await syncActiveAgentClientBinding(tx, {
+    await revokeAgentClientReadScope(tx, {
       tenantId: args.tenantId,
       memberId: args.userId,
-      agentId,
-      now,
     });
-    await recordMembershipAgentClientBoundEvent({
+    await recordMembershipAttributionRecordedEvent({
       memberId: args.userId,
       now,
       ownershipSource,
@@ -296,7 +294,7 @@ export async function handleNewSubscriptionExtras(args: {
   deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter'> & PaddleWebhookAuditDeps;
 }) {
   await processCommissions(args);
-  await ensureAgentClientBinding(args);
+  await recordReadOnlyMembershipAttribution(args);
   await processMemberReferralRewards(args);
   await processThankYouLetter(args);
 }

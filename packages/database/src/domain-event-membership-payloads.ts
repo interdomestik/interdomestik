@@ -4,6 +4,7 @@ import {
   assertStringSetPayloadField,
 } from './domain-event-payload-helpers';
 
+const MEMBERSHIP_ATTRIBUTION_RECORDED_KEYS = new Set(['ownershipSource', 'readScopeGranted']);
 const MEMBERSHIP_AGENT_CLIENT_BOUND_KEYS = new Set(['bindingStatus', 'ownershipSource']);
 const MEMBERSHIP_SUBSCRIPTION_CHANGED_KEYS = new Set([
   'cancelAtPeriodEnd',
@@ -22,7 +23,27 @@ const MEMBERSHIP_SUBSCRIPTION_STATUSES = new Set([
   'expired',
 ]);
 
-export function membershipAgentClientBoundPayload(
+export function membershipAttributionRecordedPayload(
+  payload: Record<string, unknown>
+): Record<string, unknown> {
+  assertNoUnexpectedPayloadFields(
+    payload,
+    'membership.agent_attribution_recorded',
+    MEMBERSHIP_ATTRIBUTION_RECORDED_KEYS
+  );
+
+  return {
+    ownershipSource: assertStringSetPayloadField(
+      payload,
+      'ownershipSource',
+      MEMBERSHIP_OWNERSHIP_SOURCES,
+      'a membership ownership source'
+    ),
+    readScopeGranted: assertBooleanPayloadField(payload, 'readScopeGranted'),
+  };
+}
+
+export function legacyMembershipAgentClientBoundPayload(
   payload: Record<string, unknown>
 ): Record<string, unknown> {
   assertNoUnexpectedPayloadFields(
