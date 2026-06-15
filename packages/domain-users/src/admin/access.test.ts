@@ -47,7 +47,7 @@ function session(role: string, tenantId: string | null = 'tenant-1'): UserSessio
       role,
       ...(tenantId === null ? {} : { tenantId }),
     },
-  } as UserSession;
+  };
 }
 
 describe('admin access role boundaries', () => {
