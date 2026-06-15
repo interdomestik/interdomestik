@@ -60,9 +60,7 @@ const projectLane = (project, env) => ({
   playwrightArgs: ['e2e/gate', project, ...strictArgs],
 });
 const laneDefinitions = {
-  state: {
-    playwrightArgs: [...setupArgs, ...strictWorkers],
-  },
+  state: { playwrightArgs: [...setupArgs, ...strictWorkers] },
   gate: gateLane([ksSq, mkMk], true),
   pr: gateLane([ksSq, mkContract], true),
   'gate-fast': gateLane([ksSq, mkMk]),
@@ -125,8 +123,16 @@ const baseEnv = {
 const laneEnv = lane.env ? { ...baseEnv, ...lane.env } : baseEnv;
 const stateEnv = { ...laneEnv, PW_FAST_GATES: '0' };
 const finalEnv = laneName === 'state' ? stateEnv : laneEnv;
+
+function stopProcessGroup(pid) {
+  try {
+    if (pid) process.kill(-pid, 'SIGTERM');
+  } catch {}
+}
+
 function run(command, args, env = baseEnv) {
-  const result = spawnSync(command, args, { cwd: rootDir, env, stdio: 'inherit' });
+  const result = spawnSync(command, args, { cwd: rootDir, detached: true, env, stdio: 'inherit' });
+  stopProcessGroup(result.pid);
 
   if (result.error) {
     console.error(result.error);
@@ -138,11 +144,6 @@ function run(command, args, env = baseEnv) {
   }
 }
 
-if (lane.gatekeeper) {
-  run('bash', ['scripts/m4-gatekeeper.sh'], laneEnv);
-}
-
-if (lane.state) {
-  run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], stateEnv);
-}
+if (lane.gatekeeper) run('bash', ['scripts/m4-gatekeeper.sh'], laneEnv);
+if (lane.state) run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], stateEnv);
 run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], finalEnv);
