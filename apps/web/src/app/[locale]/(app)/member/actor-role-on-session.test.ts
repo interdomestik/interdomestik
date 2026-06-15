@@ -16,6 +16,13 @@ describe('resolveMemberActorRoleOnSession', () => {
     expect(resolveMemberActorRoleOnSession('branch_manager')).toBe('branch_manager');
     expect(resolveMemberActorRoleOnSession('tenant_admin')).toBe('tenant_admin');
     expect(resolveMemberActorRoleOnSession(null)).toBeNull();
+    expect(resolveMemberActorRoleOnSession(undefined)).toBeUndefined();
+  });
+
+  it('keeps a session without a role unchanged', () => {
+    const session = { user: { id: 'member-1', tenantId: 'tenant-1' } };
+
+    expect(withMemberActorRoleOnSession(session)).toBe(session);
   });
 
   it('clones a session with the exercised member role without changing identity', () => {

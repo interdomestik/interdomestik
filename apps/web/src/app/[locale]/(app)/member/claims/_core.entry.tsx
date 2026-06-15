@@ -14,14 +14,11 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
   const session = requireSessionOrRedirect(await getSessionSafe('MemberClaimsPage'), locale);
   const memberSession = withMemberActorRoleOnSession(session);
 
-  // Only members (or default users) should access this page
-  // Staff uses /staff/claims, agents don't handle claims here
-  const isMember = memberSession.user.role === 'user' || memberSession.user.role === 'member';
+  // The member surface maps agent/user sessions to the exercised member role.
+  const isMember = memberSession.user.role === 'member';
 
   if (!isMember) {
-    if (memberSession.user.role === 'agent') {
-      redirect({ href: '/agent', locale });
-    } else if (memberSession.user.role === 'staff') {
+    if (memberSession.user.role === 'staff') {
       redirect({ href: '/staff/claims', locale });
     } else if (memberSession.user.role === 'admin') {
       redirect({ href: '/admin', locale });

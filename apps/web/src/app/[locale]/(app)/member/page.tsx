@@ -18,9 +18,14 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
   const session = requireSessionOrRedirect(await getSessionSafe('MemberDashboardPage'), locale);
   const memberSession = withMemberActorRoleOnSession(session);
+  const actorRoleOnSession = memberSession.user.role;
+
+  if (!actorRoleOnSession) {
+    notFound();
+  }
 
   const result = getMemberDashboardCore({
-    role: memberSession.user.role ?? '',
+    role: actorRoleOnSession,
     userId: memberSession.user.id,
     locale,
   });

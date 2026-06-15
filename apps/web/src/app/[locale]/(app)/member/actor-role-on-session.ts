@@ -1,9 +1,11 @@
-export function resolveMemberActorRoleOnSession(role: string | null | undefined): string | null {
+export function resolveMemberActorRoleOnSession(
+  role: string | null | undefined
+): string | null | undefined {
   if (role === 'agent' || role === 'member' || role === 'user') {
     return 'member';
   }
 
-  return role ?? null;
+  return role;
 }
 
 type SessionWithRole = {
@@ -25,5 +27,5 @@ export function withMemberActorRoleOnSession<TSession extends SessionWithRole>(
       ...user,
       role: actorRoleOnSession,
     },
-  } as TSession;
+  };
 }
