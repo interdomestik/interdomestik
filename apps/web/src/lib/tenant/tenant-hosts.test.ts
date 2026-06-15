@@ -129,7 +129,7 @@ describe('tenant-hosts', () => {
     expect(preferredLocaleForTenant('pilot-mk')).toBe('en');
   });
 
-  it('uses host as canonical source when other tenant hints conflict', () => {
+  it('keeps host alias compatibility when other tenant hints conflict', () => {
     expect(
       resolveTenantIdFromSources({
         host: 'ks.localhost:3000',

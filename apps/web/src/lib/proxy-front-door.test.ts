@@ -91,4 +91,32 @@ describe('proxy ida front-door context', () => {
     expect(response.headers.get('x-e2e-tenant-context')).toBe('public');
     expect(response.headers.get('set-cookie')).toBeNull();
   });
+
+  it('keeps unknown hosts outside tenant and public cookie handling', async () => {
+    const response = await proxy(makeRequest('/sq', undefined, 'example.test'));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-e2e-tenant')).toBe('none');
+    expect(response.headers.get('x-e2e-tenant-context')).toBe('unknown');
+    expect(response.headers.get('set-cookie')).toBeNull();
+  });
+
+  it('keeps country hosts resolving as compatibility aliases', async () => {
+    const response = await proxy(makeRequest('/sq', undefined, 'ks.localhost:3000'));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
+    expect(response.headers.get('x-e2e-tenant-context')).toBe('compatibility_alias');
+    expect(response.headers.get('set-cookie')).toContain('tenantId=tenant_ks');
+  });
+
+  it('overwrites stale tenant cookies on country-host aliases', async () => {
+    const response = await proxy(makeRequest('/sq', 'tenantId=tenant_mk', 'ks.localhost:3000'));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
+    expect(response.headers.get('x-e2e-tenant-context')).toBe('compatibility_alias');
+    expect(response.headers.get('set-cookie')).toContain('tenantId=tenant_ks');
+    expect(response.headers.get('set-cookie')).not.toContain('tenantId=tenant_mk');
+  });
 });

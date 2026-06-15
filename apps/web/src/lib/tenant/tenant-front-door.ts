@@ -1,4 +1,8 @@
-import { resolveTenantFromHost, type TenantId } from './tenant-hosts';
+import {
+  resolveCountryHostCompatibilityAlias,
+  type CountryHostAliasLabel,
+  type TenantId,
+} from './tenant-host-aliases';
 
 const DEFAULT_IDA_FRONT_DOOR_HOSTS = new Set([
   'ida.interdomestik.com',
@@ -7,7 +11,13 @@ const DEFAULT_IDA_FRONT_DOOR_HOSTS = new Set([
 ]);
 
 export type TenantHostContext =
-  | { kind: 'tenant'; tenantId: TenantId; source: 'host' }
+  | {
+      kind: 'compatibility_alias';
+      tenantId: TenantId;
+      source: 'country_host_alias';
+      defaultBookingTenantId: TenantId;
+      hostAlias: CountryHostAliasLabel;
+    }
   | { kind: 'public'; tenantId: null; source: 'ida_front_door' }
   | { kind: 'unknown'; tenantId: null; source: 'unknown_host' };
 
@@ -46,9 +56,15 @@ export function isKnownIdaFrontDoorHost(host: string | null | undefined): boolea
 }
 
 export function resolveTenantHostContext(host: string): TenantHostContext {
-  const tenantId = resolveTenantFromHost(host);
-  if (tenantId) {
-    return { kind: 'tenant', tenantId, source: 'host' };
+  const alias = resolveCountryHostCompatibilityAlias(host);
+  if (alias) {
+    return {
+      kind: 'compatibility_alias',
+      tenantId: alias.tenantId,
+      source: 'country_host_alias',
+      defaultBookingTenantId: alias.defaultBookingTenantId,
+      hostAlias: alias.label,
+    };
   }
 
   if (isKnownIdaFrontDoorHost(host)) {
