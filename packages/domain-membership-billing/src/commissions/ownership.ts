@@ -95,7 +95,11 @@ function buildConflictingAssignmentsResult(
 function resolveCanonicalSource(
   signals: NormalizedOwnershipSignals
 ): CommissionOwnershipSource | null {
-  if (signals.agentClientAgentIds !== null) {
+  if (signals.subscriptionAgentId !== undefined) {
+    return 'subscription.agentId';
+  }
+
+  if (signals.agentClientAgentIds !== null && signals.agentClientAgentIds.length > 0) {
     return 'agent_clients';
   }
 
@@ -103,8 +107,8 @@ function resolveCanonicalSource(
     return 'user.agentId';
   }
 
-  if (signals.subscriptionAgentId !== undefined) {
-    return 'subscription.agentId';
+  if (signals.agentClientAgentIds !== null) {
+    return 'agent_clients';
   }
 
   return null;
@@ -157,6 +161,7 @@ function addAgentClientDiagnostic(
 ) {
   if (
     agentClientAgentIds === null ||
+    agentClientAgentIds.length === 0 ||
     agentClientsMatchCanonical(expectedAgentId, agentClientAgentIds)
   ) {
     return;
@@ -196,7 +201,7 @@ export function resolveCommissionOwnership(
     );
   }
 
-  if (resolvedFrom !== 'user.agentId') {
+  if (resolvedFrom !== 'user.agentId' && resolvedFrom !== 'agent_clients') {
     addScalarDiagnostic(diagnostics, 'user.agentId', resolvedAgentId, signals.userAgentId);
   }
 
