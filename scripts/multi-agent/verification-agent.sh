@@ -140,7 +140,7 @@ if match_pattern 'EADDRINUSE|address already in use|Port 3000|port 3000' "$log_e
   if already_attempted_fix "clear-port-3000"; then
     printf '[verification-agent] remediation=clear-port-3000 status=skipped reason=already-attempted\n'
   else
-    run_fix "clear-port-3000" bash -lc 'pids="$(lsof -ti :3000 2>/dev/null || true)"; if [[ -n "$pids" ]]; then printf "%s\n" "$pids" | xargs kill || printf "%s\n" "$pids" | xargs kill -9; fi'
+    run_fix "clear-port-3000" bash -lc 'pids="$(lsof -tiTCP:3000 -sTCP:LISTEN 2>/dev/null || true)"; if [[ -n "$pids" ]]; then printf "%s\n" "$pids" | xargs kill || true; sleep 1; remaining="$(lsof -tiTCP:3000 -sTCP:LISTEN 2>/dev/null || true)"; if [[ -n "$remaining" ]]; then printf "%s\n" "$remaining" | xargs kill -9; fi; fi; true'
     exit $?
   fi
 fi
