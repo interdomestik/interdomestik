@@ -10,6 +10,7 @@ import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
+import { withMemberActorRoleOnSession } from './actor-role-on-session';
 
 export default async function DashboardLayout({
   children,
@@ -34,10 +35,11 @@ export default async function DashboardLayout({
     });
   }
 
-  const role = sessionNonNull.user.role;
-  const shellUser = toClientShellUser(sessionNonNull.user);
-  const canonical = getCanonicalRouteForRole(role, locale);
-  if (canonical && role !== 'member' && role !== 'user' && role !== 'agent') {
+  const memberSession = withMemberActorRoleOnSession(sessionNonNull);
+  const actorRoleOnSession = memberSession.user.role;
+  const shellUser = toClientShellUser(memberSession.user);
+  const canonical = getCanonicalRouteForRole(actorRoleOnSession, locale);
+  if (canonical && actorRoleOnSession !== 'member') {
     redirect(canonical);
     return null;
   }

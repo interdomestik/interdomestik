@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { getMemberClaimDetail } from '@/features/claims/tracking/server/getMemberClaimDetail';
 import { MemberClaimDetailOpsPage } from '@/features/member/claims/components/MemberClaimDetailOpsPage';
 import { setRequestLocale } from 'next-intl/server';
+import { withMemberActorRoleOnSession } from '../../actor-role-on-session';
 
 interface PageProps {
   params: Promise<{
@@ -20,8 +21,9 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
   if (!session) {
     redirect(`/${locale}/login?callbackUrl=/${locale}/member/claims/${id}`);
   }
+  const memberSession = withMemberActorRoleOnSession(session);
 
-  const claim = await getMemberClaimDetail(session, id);
+  const claim = await getMemberClaimDetail(memberSession, id);
 
   if (!claim) {
     return notFound();
@@ -58,10 +60,10 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
     <MemberClaimDetailOpsPage
       claim={serializedClaim}
       currentUser={{
-        id: session.user.id,
-        name: session.user.name ?? 'Member',
-        image: session.user.image ?? null,
-        role: session.user.role || 'member',
+        id: memberSession.user.id,
+        name: memberSession.user.name ?? 'Member',
+        image: memberSession.user.image ?? null,
+        role: memberSession.user.role || 'member',
       }}
     />
   );

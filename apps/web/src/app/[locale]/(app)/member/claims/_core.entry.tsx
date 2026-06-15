@@ -5,27 +5,26 @@ import { Link, redirect } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui';
 import { Plus } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { withMemberActorRoleOnSession } from '../actor-role-on-session';
 
 export default async function ClaimsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
 
   const session = requireSessionOrRedirect(await getSessionSafe('MemberClaimsPage'), locale);
+  const memberSession = withMemberActorRoleOnSession(session);
 
-  // Only members (or default users) should access this page
-  // Staff uses /staff/claims, agents don't handle claims here
-  const isMember = session.user.role === 'user' || session.user.role === 'member';
+  // The member surface maps agent/user sessions to the exercised member role.
+  const isMember = memberSession.user.role === 'member';
 
   if (!isMember) {
-    if (session.user.role === 'agent') {
-      redirect({ href: '/agent', locale });
-    } else if (session.user.role === 'staff') {
+    if (memberSession.user.role === 'staff') {
       redirect({ href: '/staff/claims', locale });
-    } else if (session.user.role === 'admin') {
+    } else if (memberSession.user.role === 'admin') {
       redirect({ href: '/admin', locale });
     }
     // Fallback for unknown roles
-    console.warn(`[ClaimsPage] Access denied for role: ${session.user.role}`);
+    console.warn(`[ClaimsPage] Access denied for role: ${memberSession.user.role}`);
     return null;
   }
 
