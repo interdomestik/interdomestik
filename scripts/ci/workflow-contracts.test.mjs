@@ -93,42 +93,36 @@ test('seeded CI workflows generate masked per-run E2E credentials before seeded 
     assert.match(source, /name:\s*Generate ephemeral E2E credentials/u, workflowPath);
     assert.match(source, /bash scripts\/ci\/export-e2e-credentials\.sh/u, workflowPath);
   }
-
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const ciSteps = ciWorkflow.jobs['e2e-gate'].steps;
   assert.ok(
     findStepIndex(ciSteps, 'Generate ephemeral E2E credentials') <
       findStepIndex(ciSteps, 'Prepare E2E Database')
   );
-
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
   const prE2eSteps = prE2eWorkflow.jobs.e2e.steps;
   assert.ok(
     findStepIndex(prE2eSteps, 'Generate ephemeral E2E credentials') <
       findStepIndex(prE2eSteps, 'Run PR E2E Gate')
   );
-
   const nightlyWorkflow = readWorkflow('.github/workflows/e2e-nightly.yml');
   const nightlySteps = nightlyWorkflow.jobs.e2e.steps;
   assert.ok(
     findStepIndex(nightlySteps, 'Generate ephemeral E2E credentials') <
       findStepIndex(nightlySteps, 'Seed E2E DB')
   );
-
   const releaseCandidateWorkflow = readWorkflow('.github/workflows/release-candidate.yml');
   const releaseCandidateSteps = releaseCandidateWorkflow.jobs['rc-gate'].steps;
   assert.ok(
     findStepIndex(releaseCandidateSteps, 'Generate ephemeral E2E credentials') <
       findStepIndex(releaseCandidateSteps, 'Prepare CI database')
   );
-
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const pilotGateSteps = pilotGateWorkflow.jobs['pilot-gate-runner'].steps;
   assert.ok(
     findStepIndex(pilotGateSteps, 'Generate ephemeral E2E credentials') <
       findStepIndex(pilotGateSteps, 'Prepare CI database')
   );
-
   const multiAgentWorkflow = readWorkflow('.github/workflows/multi-agent-pr-hardening.yml');
   const multiAgentSteps = multiAgentWorkflow.jobs['multi-agent-pr-hardening'].steps;
   assert.ok(
@@ -243,8 +237,12 @@ test('Release candidate gate includes blocking AI eval fixture proof', () => {
     findStepIndex(releaseCandidateSteps, 'RC check - AI eval fixtures') <
       findStepIndex(releaseCandidateSteps, 'Prepare CI database')
   );
+  const rcAuthStateStep = findStep(releaseCandidateSteps, 'Generate Playwright auth states');
+  assert.ok(rcAuthStateStep, 'release candidate auth-state setup step should exist');
+  assert.equal(rcAuthStateStep.run, 'pnpm e2e:state:setup');
+  assert.equal(rcAuthStateStep.env.E2E_DATABASE_URL, '${{ env.DATABASE_URL }}');
+  assert.equal(rcAuthStateStep.env.E2E_DATABASE_URL_RLS, '${{ env.DATABASE_URL }}');
 });
-
 test('CI unit lane runs the blocking repository coverage gate', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const unitJob = ciWorkflow.jobs.unit;
@@ -314,19 +312,21 @@ test('Nightly E2E runs on an available hosted runner while preserving full stric
 
   assert.equal(nightlyJob['runs-on'], 'ubuntu-latest');
   assert.deepEqual(nightlyWorkflow.on.schedule, [{ cron: '10 2 * * *' }]);
+  assert.equal(nightlyJob.strategy['max-parallel'], 2);
   assert.deepEqual(nightlyJob.strategy.matrix, {
     shardIndex: [1, 2, 3],
     shardTotal: [3],
   });
-  assert.equal(
-    nightlyJob.env.DATABASE_URL_RLS,
-    "${{ secrets.E2E_DATABASE_URL_RLS || secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}"
+  const e2eDatabaseUrl =
+    "${{ secrets.E2E_DATABASE_URL_RLS || secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}";
+  assert.equal(nightlyJob.env.DATABASE_URL_RLS, e2eDatabaseUrl);
+  assert.equal(nightlyJob.env.E2E_DATABASE_URL_RLS, e2eDatabaseUrl);
+  const nightlyStateStep = findStep(
+    nightlyJob.steps,
+    'Generate Playwright Gate Auth State (KS+MK)'
   );
-  assert.equal(
-    nightlyJob.env.E2E_DATABASE_URL_RLS,
-    "${{ secrets.E2E_DATABASE_URL_RLS || secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}"
-  );
-  assert.ok(findStep(nightlyJob.steps, 'Generate Playwright Gate Auth State (KS+MK)'));
+  assert.ok(nightlyStateStep);
+  assert.equal(nightlyStateStep.run, 'pnpm e2e:state:setup');
   assert.ok(findStep(nightlyJob.steps, 'E2E Gate (KS+MK)'));
   assert.match(
     findStep(nightlyJob.steps, 'E2E Subscription Lifecycle (KS+MK)').run,
