@@ -13,17 +13,36 @@ function signalExitCode(signal) {
 }
 
 export function stopProcessGroup(pid, signal = 'SIGTERM') {
-  if (!Number.isInteger(pid) || pid <= 0) return;
+  if (!Number.isInteger(pid) || pid <= 0) return false;
 
   try {
     const target = process.platform === 'win32' ? pid : -pid;
     process.kill(target, signal);
+    return true;
   } catch (error) {
-    if (error?.code === 'ESRCH') return;
+    if (error?.code === 'ESRCH') return false;
     console.warn(
       `Unable to send ${signal} to process group ${pid}: ${error?.code || error?.message || error}`
     );
+    return false;
   }
+}
+
+function stopProcess(pid, signal = 'SIGTERM') {
+  if (!Number.isInteger(pid) || pid <= 0) return;
+
+  try {
+    process.kill(pid, signal);
+  } catch (error) {
+    if (error?.code === 'ESRCH') return;
+    console.warn(
+      `Unable to send ${signal} to process ${pid}: ${error?.code || error?.message || error}`
+    );
+  }
+}
+
+function stopProcessGroupOrPid(pid, signal = 'SIGTERM') {
+  if (!stopProcessGroup(pid, signal)) stopProcess(pid, signal);
 }
 
 function stopActiveProcessGroups(signal = 'SIGTERM') {
@@ -59,10 +78,10 @@ function portListenerPids(port) {
 export function cleanupE2ePort({ env = process.env, port = 3000 } = {}) {
   if (env.PW_EXTERNAL_SERVER === '1') return [];
   const pids = portListenerPids(port);
-  for (const pid of pids) stopProcessGroup(pid);
+  for (const pid of pids) stopProcessGroupOrPid(pid);
   if (pids.length > 0) sleepSync(1000);
   for (const pid of portListenerPids(port).filter(pid => pids.includes(pid))) {
-    stopProcessGroup(pid, 'SIGKILL');
+    stopProcessGroupOrPid(pid, 'SIGKILL');
   }
   return pids;
 }

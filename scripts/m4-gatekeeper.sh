@@ -6,7 +6,6 @@ bash "${SCRIPT_DIR}/node-guard.sh"
 
 echo "🚧 [Gatekeeper] Starting Deterministic Reset..."
 
-# 0. Load env (Gatekeeper must be runnable in a fresh shell/CI)
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
@@ -29,8 +28,6 @@ if [ -n "${E2E_DATABASE_URL:-}" ]; then
 elif [ -n "${INHERITED_DATABASE_URL:-}" ]; then
   export DATABASE_URL="${INHERITED_DATABASE_URL}"
 else
-  # Ignore .env/.env.local DATABASE_URL for deterministic local parity when no
-  # explicit override is provided by caller shell or E2E_DATABASE_URL.
   if [ -n "${DATABASE_URL:-}" ]; then
     echo "ℹ️  [Gatekeeper] Ignoring env-file DATABASE_URL for Playwright gate parity"
   fi
@@ -41,7 +38,6 @@ fi
 if [ -n "${E2E_DATABASE_URL_RLS:-}" ]; then
   export DATABASE_URL_RLS="${E2E_DATABASE_URL_RLS}"
 else
-  # Keep RLS/admin reads on the same deterministic DB unless explicitly overridden.
   export DATABASE_URL_RLS="${DATABASE_URL}"
 fi
 
@@ -105,7 +101,6 @@ cleanup_stale_supabase_containers() {
   echo "${stale_supabase_containers}" | xargs docker rm -f >/dev/null 2>&1 || true
 }
 
-# 0. Kill stale processes
 cleanup_stale_playwright_processes
 
 echo "💀 [Gatekeeper] Killing stale processes on port 3000..."
@@ -118,8 +113,6 @@ echo "✅ [Gatekeeper] Port 3000 clear."
 ensure_disk_space
 
 ensure_supabase_running() {
-  # We use local Supabase (db on 54322). If it's not running, start it.
-  # First, if DB is already reachable via DATABASE_URL, do not try to start anything.
   if node - <<'NODE'
 const postgres = require('postgres');
 const url = process.env.DATABASE_URL;
@@ -148,7 +141,6 @@ NODE
   fi
 
   echo "⚠️  [Gatekeeper] Supabase not running. Starting local Supabase..."
-  # If a previous Supabase project is holding ports, stop it and retry.
   if ! pnpm --filter @interdomestik/database exec supabase start; then
     echo "⚠️  [Gatekeeper] Supabase start failed (likely port already allocated)."
     echo "   Attempting to stop Supabase project 'interdomestik' and retry..."
@@ -188,22 +180,13 @@ NODE
   echo "✅ [Gatekeeper] Postgres is READY."
 }
 
-# Run readiness check (assuming local Supabase or Docker wrapper)
-# We try lightweight check first
 echo "🔍 [Gatekeeper] Checking DB connectivity..."
 wait_for_postgres
 
-# 2. Deterministic Reset Strategy: "Migrate Down/Up" or "Seed Reset"
-# We adhere to the finding: "Supabase reset" is flaky. 
-# We prefer: "Truncate + Seed" (handled by seed:e2e --reset) OR "pnpm db:migrate" on top.
-
 echo "🏗️  [Gatekeeper] Applying Schema (Idempotent Migrate)..."
-# This ensures table structure is correct without nuking the container
 pnpm db:migrate
 
 echo "🌱 [Gatekeeper] Seeding Deterministic State (Reset Mode)..."
-# The --reset flag in our seed script handles TRUNCATE CASCADE
-# limiting the blast radius compared to a full DB drop.
 pnpm seed:e2e -- --reset
 
 echo "🏗️  [Gatekeeper] Building production-like standalone web artifact..."
@@ -217,7 +200,6 @@ echo "   - Schema: Synced"
 echo "   - Data: Deterministic (Version: E2E-Golden)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# 0. Kill stale processes to ensure fresh env/config
 echo "💀 Killing any stale processes on port 3000..."
 PIDS="$(lsof -ti:3000 2>/dev/null || true)"
 if [ -n "$PIDS" ]; then

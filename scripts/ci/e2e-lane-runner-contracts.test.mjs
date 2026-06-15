@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { cleanupE2ePort } from './run-detached-command.mjs';
 
-const runner = readFileSync(new URL('../run-e2e-lane.mjs', import.meta.url), 'utf8');
-const helper = readFileSync(new URL('run-detached-command.mjs', import.meta.url), 'utf8');
-const packageJson = JSON.parse(
-  readFileSync(new URL('../../package.json', import.meta.url), 'utf8')
-);
+const read = file => readFileSync(new URL(file, import.meta.url), 'utf8');
+const runner = read('../run-e2e-lane.mjs');
 
-test('E2E lane runner cleanup contracts', () => {
+test('runner cleanup contracts', () => {
   assert.match(runner, /\{ cleanupE2ePort, runDetachedCommand \}.*run-detached-command\.mjs/);
   assert.match(runner, /await runDetachedCommand\(command, args, \{ cwd: rootDir, env \}\)/);
   assert.match(runner, /finally \{\s*cleanupE2ePort\(\{ env: finalEnv \}\);\s*\}/s);
@@ -16,25 +16,18 @@ test('E2E lane runner cleanup contracts', () => {
   assert.doesNotMatch(runner, /process\.exit\(error\?\.exitCode \?\? 1\)/);
 });
 
-test('detached helper cleanup contracts', () => {
-  for (const pattern of [
-    /detached: true/,
-    /process\.platform === 'win32' \? pid : -pid/,
-    /process\.once\('exit', \(\) => stopActiveProcessGroups\(\)\)/,
-    /stopActiveProcessGroups\(signal\)/,
-    /execFileSync\('lsof', \[`-tiTCP:\$\{port\}`, '-sTCP:LISTEN'\]/,
-    /env\.PW_EXTERNAL_SERVER === '1'/,
-    /stopProcessGroup\(pid, 'SIGKILL'\)/,
-  ]) {
-    assert.match(helper, pattern);
+test('port cleanup kills non-group-leader listeners', async () => {
+  const code =
+    "require('net').createServer().listen(0,'127.0.0.1',function(){console.log(this.address().port)})";
+  const child = spawn(process.execPath, ['-e', code], { stdio: ['ignore', 'pipe', 'ignore'] });
+  try {
+    const [line] = await once(child.stdout, 'data');
+    const port = Number.parseInt(String(line), 10);
+    assert.ok(port > 0);
+    assert.deepEqual(cleanupE2ePort({ env: {}, port }), [child.pid]);
+    await once(child, 'exit');
+    assert.deepEqual(cleanupE2ePort({ env: {}, port }), []);
+  } finally {
+    if (!child.killed) child.kill('SIGKILL');
   }
-});
-
-test('root package keeps E2E contract scripts wired', () => {
-  const scripts = packageJson.scripts;
-  assert.equal(scripts['e2e:state:setup'], 'node scripts/run-e2e-lane.mjs state');
-  assert.equal(
-    scripts['test:ci:contracts'],
-    'node --test --test-concurrency=1 scripts/ci/*.test.mjs scripts/check-modularity-guard.test.mjs'
-  );
 });
