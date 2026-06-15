@@ -5,7 +5,6 @@ import { isNull } from 'drizzle-orm';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { UserSession } from '../types';
 
-const TENANT_ADMIN_ROLES = ['tenant_admin', 'super_admin'] as const;
 const GLOBAL_SUPER_ADMIN_ROLE = 'super_admin' as const;
 
 async function hasTenantRole(params: {
@@ -56,7 +55,7 @@ export async function requireTenantAdminSession(session: UserSession | null): Pr
     throw new Error('Unauthorized');
   }
 
-  // Platform-wide super admin (best-practice: global scope).
+  // Technical super admins retain admin-portal operations, but do not inherit tenant RBAC grants.
   if (session.user.role === GLOBAL_SUPER_ADMIN_ROLE) {
     return session;
   }
@@ -76,14 +75,8 @@ export async function requireTenantAdminSession(session: UserSession | null): Pr
   const tenantId = ensureTenantId(session);
   const userId = session.user.id;
 
-  for (const role of TENANT_ADMIN_ROLES) {
-    if (
-      await hasTenantRole({
-        tenantId,
-        userId,
-        role,
-      })
-    ) {
+  for (const role of ['tenant_admin', GLOBAL_SUPER_ADMIN_ROLE]) {
+    if (await hasTenantRole({ tenantId, userId, role })) {
       return session;
     }
   }
@@ -108,20 +101,27 @@ export async function requireTenantAdminOrBranchManagerSession(
     if (!session.user.branchId) {
       throw new Error('Unauthorized');
     }
+    ensureTenantId(session);
     return session;
   }
 
-  // If branch_manager is granted via tenant RBAC roles, allow.
   if (
-    await userHasRole({
+    session.user.role === GLOBAL_SUPER_ADMIN_ROLE ||
+    session.user.role === 'tenant_admin' ||
+    session.user.role === 'admin'
+  ) {
+    return requireTenantAdminSession(session);
+  }
+
+  // If branch_manager is granted via tenant RBAC roles, allow only with branch scope.
+  if (
+    session.user.branchId &&
+    (await userHasRole({
       session,
       role: 'branch_manager',
-      branchId: session.user.branchId ?? null,
-    })
+      branchId: session.user.branchId,
+    }))
   ) {
-    if (!session.user.branchId) {
-      throw new Error('Unauthorized');
-    }
     return session;
   }
 
@@ -136,9 +136,6 @@ export async function userHasRole(params: {
 }): Promise<boolean> {
   const { session, role, branchId } = params;
   if (!session?.user) return false;
-
-  // Global super admin implicitly has all roles.
-  if (session.user.role === GLOBAL_SUPER_ADMIN_ROLE) return true;
 
   const tenantId = ensureTenantId(session);
   return hasTenantRole({ tenantId, userId: session.user.id, role, branchId });

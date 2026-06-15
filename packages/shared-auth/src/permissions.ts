@@ -19,6 +19,10 @@ export const PERMISSIONS = {
   'analytics.read': 'analytics.read',
   'settings.manage': 'settings.manage',
   'tenants.manage': 'tenants.manage',
+  'support.cross_tenant_read': 'support.cross_tenant_read',
+  'audit.read': 'audit.read',
+  'break_glass.use': 'break_glass.use',
+  'governance.approve': 'governance.approve',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -28,6 +32,8 @@ export const ROLES = {
   super_admin: 'super_admin',
   admin: 'admin',
   tenant_admin: 'tenant_admin',
+  global_support: 'global_support',
+  auditor: 'auditor',
   branch_manager: 'branch_manager',
   staff: 'staff',
   agent: 'agent',
@@ -37,8 +43,6 @@ export const ROLES = {
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
 type RolePermissions = Readonly<Record<Role, readonly Permission[]>>;
-
-const ALL_PERMISSIONS: readonly Permission[] = Object.freeze(Object.values(PERMISSIONS));
 
 const TENANT_ADMIN_PERMISSIONS: readonly Permission[] = Object.freeze([
   PERMISSIONS['members.read'],
@@ -50,13 +54,31 @@ const TENANT_ADMIN_PERMISSIONS: readonly Permission[] = Object.freeze([
   PERMISSIONS['branches.manage'],
   PERMISSIONS['analytics.read'],
   PERMISSIONS['settings.manage'],
+  PERMISSIONS['governance.approve'],
+]);
+
+const SUPER_ADMIN_PERMISSIONS: readonly Permission[] = Object.freeze([
+  ...TENANT_ADMIN_PERMISSIONS.filter(
+    permission => permission !== PERMISSIONS['governance.approve']
+  ),
+  PERMISSIONS['tenants.manage'],
+  PERMISSIONS['support.cross_tenant_read'],
+  PERMISSIONS['audit.read'],
+  PERMISSIONS['break_glass.use'],
 ]);
 
 // Permission matrix: which roles have which permissions
 export const ROLE_PERMISSIONS: RolePermissions = Object.freeze({
-  [ROLES.super_admin]: ALL_PERMISSIONS,
+  [ROLES.super_admin]: SUPER_ADMIN_PERMISSIONS,
   [ROLES.admin]: TENANT_ADMIN_PERMISSIONS,
   [ROLES.tenant_admin]: TENANT_ADMIN_PERMISSIONS,
+  [ROLES.global_support]: Object.freeze([
+    PERMISSIONS['members.read'],
+    PERMISSIONS['claims.read'],
+    PERMISSIONS['analytics.read'],
+    PERMISSIONS['support.cross_tenant_read'],
+  ]),
+  [ROLES.auditor]: Object.freeze([PERMISSIONS['analytics.read'], PERMISSIONS['audit.read']]),
   [ROLES.branch_manager]: Object.freeze([
     PERMISSIONS['members.read'],
     PERMISSIONS['members.write'],
@@ -102,7 +124,7 @@ export function isSuperAdmin(role: string | null | undefined): boolean {
  * Check if role is tenant-level admin
  */
 export function isTenantAdmin(role: string | null | undefined): boolean {
-  return role === ROLES.admin || role === ROLES.tenant_admin || role === ROLES.super_admin;
+  return role === ROLES.admin || role === ROLES.tenant_admin;
 }
 
 /**

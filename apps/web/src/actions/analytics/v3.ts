@@ -25,7 +25,7 @@ export async function getBranchStressAction(branchId: string) {
     // Branch Managers should also be able to see their own stress?
     // Let's stick to Tenant Admin / Staff for V3 dashboards per requirements.
 
-    if (!isTenantAdmin(userRole) && userRole !== 'staff') {
+    if (!isSuperAdmin(userRole) && !isTenantAdmin(userRole) && userRole !== 'staff') {
       throw new Error('Unauthorized');
     }
 
@@ -38,7 +38,7 @@ export async function getBranchStressAction(branchId: string) {
 // 3. Tenant Admin: Agent Capacity
 export async function getAgentCapacityAction(agentId: string) {
   return runAuthenticatedAction(async ({ userRole }) => {
-    if (!isTenantAdmin(userRole) && userRole !== 'staff') {
+    if (!isSuperAdmin(userRole) && !isTenantAdmin(userRole) && userRole !== 'staff') {
       throw new Error('Unauthorized');
     }
     // Again, implicit safety via tenant scoping would be better, but domain query assumes agent exists.

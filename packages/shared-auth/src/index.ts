@@ -12,3 +12,4 @@ export { ensureTenantId, type SessionWithTenant } from './session';
 // RBAC and Scoping
 export * from './permissions';
 export * from './scope';
+export * from './governance';
