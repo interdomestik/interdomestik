@@ -238,11 +238,11 @@ test('Release candidate gate includes blocking AI eval fixture proof', () => {
       findStepIndex(releaseCandidateSteps, 'Prepare CI database')
   );
   const rcAuthStateStep = findStep(releaseCandidateSteps, 'Generate Playwright auth states');
+  assert.ok(rcAuthStateStep, 'release candidate auth-state setup step should exist');
   assert.equal(rcAuthStateStep.run, 'pnpm e2e:state:setup');
   assert.equal(rcAuthStateStep.env.E2E_DATABASE_URL, '${{ env.DATABASE_URL }}');
   assert.equal(rcAuthStateStep.env.E2E_DATABASE_URL_RLS, '${{ env.DATABASE_URL }}');
 });
-
 test('CI unit lane runs the blocking repository coverage gate', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const unitJob = ciWorkflow.jobs.unit;

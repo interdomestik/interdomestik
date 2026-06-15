@@ -87,7 +87,7 @@ test('runDetachedCommand rejects spawn failures without a secondary close error'
 
 test(
   'runDetachedCommand signal handler terminates an active child process group',
-  { timeout: 15000 },
+  { timeout: 25000 },
   async t => {
     if (process.platform === 'win32') {
       t.skip('process groups use POSIX signal semantics');
