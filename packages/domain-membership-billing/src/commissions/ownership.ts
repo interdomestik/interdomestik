@@ -50,16 +50,6 @@ function normalizeAgentId(agentId: string | null | undefined): string | null | u
   return normalized.length > 0 ? normalized : null;
 }
 
-function normalizeOwnershipSignals(
-  input: ResolveCommissionOwnershipInput
-): NormalizedOwnershipSignals {
-  return {
-    subscriptionAgentId: normalizeAgentId(input.subscriptionAgentId),
-    userAgentId: normalizeAgentId(input.userAgentId),
-    agentClientAgentIds: normalizeAgentIds(input.agentClientAgentIds),
-  };
-}
-
 function buildMissingOwnershipResult(): CommissionOwnershipResolution {
   return {
     ownerType: 'unresolved',
@@ -146,14 +136,6 @@ function addScalarDiagnostic(
   });
 }
 
-function agentClientsMatchCanonical(expectedAgentId: string | null, agentClientAgentIds: string[]) {
-  if (expectedAgentId === null) {
-    return agentClientAgentIds.length === 0;
-  }
-
-  return agentClientAgentIds.length === 1 && agentClientAgentIds[0] === expectedAgentId;
-}
-
 function addAgentClientDiagnostic(
   diagnostics: CommissionOwnershipDriftDiagnostic[],
   expectedAgentId: string | null,
@@ -162,7 +144,9 @@ function addAgentClientDiagnostic(
   if (
     agentClientAgentIds === null ||
     agentClientAgentIds.length === 0 ||
-    agentClientsMatchCanonical(expectedAgentId, agentClientAgentIds)
+    (expectedAgentId !== null &&
+      agentClientAgentIds.length === 1 &&
+      agentClientAgentIds[0] === expectedAgentId)
   ) {
     return;
   }
@@ -177,7 +161,11 @@ function addAgentClientDiagnostic(
 export function resolveCommissionOwnership(
   input: ResolveCommissionOwnershipInput
 ): CommissionOwnershipResolution {
-  const signals = normalizeOwnershipSignals(input);
+  const signals: NormalizedOwnershipSignals = {
+    subscriptionAgentId: normalizeAgentId(input.subscriptionAgentId),
+    userAgentId: normalizeAgentId(input.userAgentId),
+    agentClientAgentIds: normalizeAgentIds(input.agentClientAgentIds),
+  };
 
   if (signals.agentClientAgentIds && signals.agentClientAgentIds.length > 1) {
     return buildConflictingAssignmentsResult(signals.agentClientAgentIds);
