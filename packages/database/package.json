@@ -34,8 +34,8 @@
     "seed:assert-e2e": "tsx src/seed-assert.ts"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.108.0",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.108.2",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.9"
   },
