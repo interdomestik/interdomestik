@@ -28,7 +28,6 @@ vi.mock('@interdomestik/database', () => ({
   eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
 }));
 
-vi.mock('nanoid', () => ({ nanoid: vi.fn(() => 'agent-client-id') }));
 vi.mock('../../../../../domain-referrals/src', () => ({ createMemberReferralRewardCore: vi.fn() }));
 vi.mock('../../../commissions/create', () => ({ createCommissionCore: vi.fn() }));
 vi.mock('../../../commissions/create-renewal', () => ({ createRenewalCommissionCore: vi.fn() }));
@@ -59,7 +58,7 @@ describe('handleNewSubscriptionExtras membership events', () => {
     });
   });
 
-  it('emits sanitized membership binding event in the agent-client binding transaction', async () => {
+  it('emits sanitized read-only attribution event without granting read scope', async () => {
     await handleNewSubscriptionExtras({
       customData: { agentId: 'agent_1' },
       deps,
@@ -78,16 +77,18 @@ describe('handleNewSubscriptionExtras membership events', () => {
       tx,
       expect.objectContaining({
         actor: { id: 'paddle-webhook', role: 'system' },
-        correlationId: 'membership:user_1:agent-client-bound',
+        correlationId: 'membership:user_1:agent-attribution-recorded',
         entity: { id: 'user_1', type: 'member' },
-        eventName: 'membership.agent_client_bound',
+        eventName: 'membership.agent_attribution_recorded',
         eventVersion: 1,
         payload: {
-          bindingStatus: 'active',
           ownershipSource: 'checkout.customData.agentId',
+          readScopeGranted: false,
         },
         tenantId: 'tenant_1',
       })
     );
+    expect(tx.update).toHaveBeenCalled();
+    expect(tx.insert).not.toHaveBeenCalled();
   });
 });

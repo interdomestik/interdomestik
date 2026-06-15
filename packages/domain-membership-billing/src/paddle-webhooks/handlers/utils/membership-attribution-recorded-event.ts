@@ -2,7 +2,7 @@ import { appendEvent, type DomainEventTx } from '@interdomestik/database';
 
 import type { NewMembershipOwnershipSource } from './new-membership-ownership';
 
-export async function recordMembershipAgentClientBoundEvent(params: {
+export async function recordMembershipAttributionRecordedEvent(params: {
   memberId: string;
   now: Date;
   ownershipSource: NewMembershipOwnershipSource;
@@ -12,14 +12,14 @@ export async function recordMembershipAgentClientBoundEvent(params: {
   await appendEvent(params.tx, {
     actor: { id: 'paddle-webhook', role: 'system' },
     aggregateVersion: 0,
-    correlationId: `membership:${params.memberId}:agent-client-bound`,
+    correlationId: `membership:${params.memberId}:agent-attribution-recorded`,
     createdAt: params.now,
     entity: { id: params.memberId, type: 'member' },
-    eventName: 'membership.agent_client_bound',
+    eventName: 'membership.agent_attribution_recorded',
     eventVersion: 1,
     payload: {
-      bindingStatus: 'active',
       ownershipSource: params.ownershipSource,
+      readScopeGranted: false,
     },
     tenantId: params.tenantId,
   });

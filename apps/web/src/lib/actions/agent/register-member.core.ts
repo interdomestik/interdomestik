@@ -5,7 +5,7 @@ import {
   createAgentAssistedOwnershipAttribution,
   createCanonicalMembershipPlanState,
   resolveCanonicalMembershipPlanState,
-  syncActiveAgentClientBinding,
+  revokeAgentClientReadScope,
 } from '@interdomestik/domain-membership-billing';
 import { account, subscriptions, user as userTable } from '@interdomestik/database/schema';
 import { circuitBreakers } from '@interdomestik/shared-utils/circuit-breaker';
@@ -89,13 +89,7 @@ export async function registerMemberCore(
         joinedAt: now,
       });
 
-      await syncActiveAgentClientBinding(tx, {
-        tenantId,
-        memberId: userId,
-        agentId: agent.id,
-        now,
-        idFactory: () => nanoid(),
-      });
+      await revokeAgentClientReadScope(tx, { tenantId, memberId: userId });
 
       const subscriptionValues =
         membershipMode === 'sponsored'

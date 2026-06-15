@@ -31,10 +31,6 @@ vi.mock('@interdomestik/database', () => ({
   eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
 }));
 
-vi.mock('nanoid', () => ({
-  nanoid: vi.fn(() => 'agent-client-id'),
-}));
-
 vi.mock('../../../../../domain-referrals/src', () => ({
   createMemberReferralRewardCore: vi.fn(),
 }));
@@ -157,7 +153,7 @@ describe('extras', () => {
       );
       expect(db.transaction).toHaveBeenCalled();
       expect(tx.update).toHaveBeenCalled();
-      expect(tx.insert).toHaveBeenCalled();
+      expect(tx.insert).not.toHaveBeenCalled();
     });
 
     it('should use custom commission rates if found', async () => {
@@ -203,12 +199,9 @@ describe('extras', () => {
         })
       );
       expect(db.transaction).toHaveBeenCalled();
-      expect(tx.insert).toHaveBeenCalled();
-      expect(insertValues).toHaveBeenCalledWith(
-        expect.objectContaining({
-          agentId: 'agent_canonical',
-        })
-      );
+      expect(tx.update).toHaveBeenCalled();
+      expect(tx.insert).not.toHaveBeenCalled();
+      expect(insertValues).not.toHaveBeenCalled();
     });
 
     it('treats company-owned canonical users as company-owned even when webhook customData is stale', async () => {
@@ -250,7 +243,7 @@ describe('extras', () => {
       expect(db.transaction).not.toHaveBeenCalled();
     });
 
-    it('deactivates prior agent bindings before reactivating the requested agent-client link', async () => {
+    it('records read-only attribution without reactivating agent-client read-scope links', async () => {
       await handleNewSubscriptionExtras({
         sub: mockSub,
         userId: 'user_1',
@@ -264,16 +257,8 @@ describe('extras', () => {
       expect(db.transaction).toHaveBeenCalled();
       expect(tx.update).toHaveBeenCalled();
       expect(updateWhere).toHaveBeenCalled();
-      expect(tx.insert).toHaveBeenCalled();
-      expect(onConflictDoUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          target: expect.any(Array),
-          set: expect.objectContaining({
-            status: 'active',
-            joinedAt: expect.any(Date),
-          }),
-        })
-      );
+      expect(tx.insert).not.toHaveBeenCalled();
+      expect(onConflictDoUpdate).not.toHaveBeenCalled();
     });
 
     it('creates a member referral reward for a first paid subscription without an agent commission', async () => {

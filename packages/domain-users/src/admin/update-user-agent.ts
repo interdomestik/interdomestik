@@ -1,8 +1,7 @@
 import { db, eq, subscriptions, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { syncActiveAgentClientBinding } from '@interdomestik/domain-membership-billing';
+import { revokeAgentClientReadScope } from '@interdomestik/domain-membership-billing';
 import { and } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
 
 import type { ActionResult, UserSession } from '../types';
 import { requireTenantAdminSession } from './access';
@@ -36,12 +35,7 @@ export async function updateUserAgentCore(params: {
           )
         );
 
-      await syncActiveAgentClientBinding(tx, {
-        tenantId,
-        memberId: userId,
-        agentId,
-        idFactory: () => randomUUID(),
-      });
+      await revokeAgentClientReadScope(tx, { tenantId, memberId: userId });
     });
 
     return { success: true };

@@ -50,16 +50,6 @@ function normalizeAgentId(agentId: string | null | undefined): string | null | u
   return normalized.length > 0 ? normalized : null;
 }
 
-function normalizeOwnershipSignals(
-  input: ResolveCommissionOwnershipInput
-): NormalizedOwnershipSignals {
-  return {
-    subscriptionAgentId: normalizeAgentId(input.subscriptionAgentId),
-    userAgentId: normalizeAgentId(input.userAgentId),
-    agentClientAgentIds: normalizeAgentIds(input.agentClientAgentIds),
-  };
-}
-
 function buildMissingOwnershipResult(): CommissionOwnershipResolution {
   return {
     ownerType: 'unresolved',
@@ -95,7 +85,11 @@ function buildConflictingAssignmentsResult(
 function resolveCanonicalSource(
   signals: NormalizedOwnershipSignals
 ): CommissionOwnershipSource | null {
-  if (signals.agentClientAgentIds !== null) {
+  if (signals.subscriptionAgentId !== undefined) {
+    return 'subscription.agentId';
+  }
+
+  if (signals.agentClientAgentIds !== null && signals.agentClientAgentIds.length > 0) {
     return 'agent_clients';
   }
 
@@ -103,8 +97,8 @@ function resolveCanonicalSource(
     return 'user.agentId';
   }
 
-  if (signals.subscriptionAgentId !== undefined) {
-    return 'subscription.agentId';
+  if (signals.agentClientAgentIds !== null) {
+    return 'agent_clients';
   }
 
   return null;
@@ -142,14 +136,6 @@ function addScalarDiagnostic(
   });
 }
 
-function agentClientsMatchCanonical(expectedAgentId: string | null, agentClientAgentIds: string[]) {
-  if (expectedAgentId === null) {
-    return agentClientAgentIds.length === 0;
-  }
-
-  return agentClientAgentIds.length === 1 && agentClientAgentIds[0] === expectedAgentId;
-}
-
 function addAgentClientDiagnostic(
   diagnostics: CommissionOwnershipDriftDiagnostic[],
   expectedAgentId: string | null,
@@ -157,7 +143,10 @@ function addAgentClientDiagnostic(
 ) {
   if (
     agentClientAgentIds === null ||
-    agentClientsMatchCanonical(expectedAgentId, agentClientAgentIds)
+    agentClientAgentIds.length === 0 ||
+    (expectedAgentId !== null &&
+      agentClientAgentIds.length === 1 &&
+      agentClientAgentIds[0] === expectedAgentId)
   ) {
     return;
   }
@@ -172,7 +161,11 @@ function addAgentClientDiagnostic(
 export function resolveCommissionOwnership(
   input: ResolveCommissionOwnershipInput
 ): CommissionOwnershipResolution {
-  const signals = normalizeOwnershipSignals(input);
+  const signals: NormalizedOwnershipSignals = {
+    subscriptionAgentId: normalizeAgentId(input.subscriptionAgentId),
+    userAgentId: normalizeAgentId(input.userAgentId),
+    agentClientAgentIds: normalizeAgentIds(input.agentClientAgentIds),
+  };
 
   if (signals.agentClientAgentIds && signals.agentClientAgentIds.length > 1) {
     return buildConflictingAssignmentsResult(signals.agentClientAgentIds);
@@ -196,7 +189,7 @@ export function resolveCommissionOwnership(
     );
   }
 
-  if (resolvedFrom !== 'user.agentId') {
+  if (resolvedFrom !== 'user.agentId' && resolvedFrom !== 'agent_clients') {
     addScalarDiagnostic(diagnostics, 'user.agentId', resolvedAgentId, signals.userAgentId);
   }
 

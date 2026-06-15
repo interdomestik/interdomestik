@@ -194,7 +194,7 @@ describe('convertLeadToMember', () => {
     expect(mocks.db.transaction).not.toHaveBeenCalled();
   });
 
-  it('defaults lead conversion to the standard annual plan and creates agent binding', async () => {
+  it('defaults lead conversion to the standard annual plan without creating read-scope binding', async () => {
     const now = new Date('2026-04-16T09:00:00.000Z');
     const expectedPeriodEnd = new Date('2027-04-16T09:00:00.000Z');
     vi.useFakeTimers();
@@ -216,7 +216,6 @@ describe('convertLeadToMember', () => {
     mocks.nanoid
       .mockReturnValueOnce('user-seed')
       .mockReturnValueOnce('subscription-seed')
-      .mockReturnValueOnce('agent-client-seed')
       .mockReturnValueOnce('card-seed')
       .mockReturnValueOnce('card-num')
       .mockReturnValueOnce('card-qr');
@@ -259,27 +258,8 @@ describe('convertLeadToMember', () => {
     const agentClientInsert = insertRecords.find(
       record => record.table === tableRefs.agentClients
     )?.values;
-    expect(agentClientInsert).toMatchObject({
-      id: 'agent-client-seed',
-      tenantId: 'tenant-1',
-      agentId: 'agent-1',
-      memberId: 'usr_user-seed',
-      status: 'active',
-      joinedAt: now,
-      createdAt: now,
-    });
-    expect(conflictRecords).toEqual([
-      expect.objectContaining({
-        table: tableRefs.agentClients,
-        payload: expect.objectContaining({
-          set: expect.objectContaining({
-            status: 'active',
-            joinedAt: now,
-          }),
-          target: expect.any(Array),
-        }),
-      }),
-    ]);
+    expect(agentClientInsert).toBeUndefined();
+    expect(conflictRecords).toEqual([]);
 
     expect(updateCalls).toEqual([
       expect.objectContaining({

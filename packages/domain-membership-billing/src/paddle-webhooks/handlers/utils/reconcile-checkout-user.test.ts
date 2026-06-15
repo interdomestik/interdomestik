@@ -42,6 +42,15 @@ vi.mock('nanoid', () => ({
 
 import { reconcileCheckoutUser } from './reconcile-checkout-user';
 
+function insertedUserValuesInclude(fields: Record<string, unknown>): boolean {
+  return hoisted.insertedUserValues.mock.calls.some(([value]) => {
+    if (!value || typeof value !== 'object') return false;
+    return Object.entries(fields).every(([key, expected]) => {
+      return (value as Record<string, unknown>)[key] === expected;
+    });
+  });
+}
+
 describe('reconcileCheckoutUser', () => {
   const requestPasswordResetOnboarding = vi.fn();
 
@@ -135,13 +144,7 @@ describe('reconcileCheckoutUser', () => {
         assistedByAgentId: 'agent_9',
       })
     );
-    expect(hoisted.insertedUserValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        memberId: 'user_new',
-        agentId: 'agent_9',
-        status: 'active',
-      })
-    );
+    expect(insertedUserValuesInclude({ memberId: 'user_new', status: 'active' })).toBe(false);
     expect(hoisted.generateMemberNumber).toHaveBeenCalledWith(hoisted.tx, {
       userId: 'user_new',
       joinedAt: expect.any(Date),
@@ -556,13 +559,7 @@ describe('reconcileCheckoutUser', () => {
       userId: 'user_admin',
       joinedAt: expect.any(Date),
     });
-    expect(hoisted.insertedUserValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        memberId: 'user_admin',
-        agentId: 'agent_1',
-        status: 'active',
-      })
-    );
+    expect(insertedUserValuesInclude({ memberId: 'user_admin', status: 'active' })).toBe(false);
     expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
   });
 });

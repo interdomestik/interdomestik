@@ -17,7 +17,8 @@ import {
   recoverySuccessFeeCollectedPayload,
 } from './domain-event-recovery-payloads';
 import {
-  membershipAgentClientBoundPayload,
+  legacyMembershipAgentClientBoundPayload,
+  membershipAttributionRecordedPayload,
   membershipSubscriptionChangedPayload,
 } from './domain-event-membership-payloads';
 import type { AppendEventParams } from './domain-events';
@@ -119,7 +120,8 @@ const PAYLOAD_VALIDATORS: Record<
   'recovery.decision_recorded@1': recoveryDecisionRecordedPayload,
   'recovery.escalation_agreement_recorded@1': recoveryEscalationAgreementRecordedPayload,
   'recovery.success_fee_collected@1': recoverySuccessFeeCollectedPayload,
-  'membership.agent_client_bound@1': membershipAgentClientBoundPayload,
+  'membership.agent_client_bound@1': legacyMembershipAgentClientBoundPayload,
+  'membership.agent_attribution_recorded@1': membershipAttributionRecordedPayload,
   'membership.subscription_changed@1': membershipSubscriptionChangedPayload,
 };
 
