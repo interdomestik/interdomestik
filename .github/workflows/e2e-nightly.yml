@@ -79,7 +79,7 @@ jobs:
       # ---- Run suites ----
       - name: Generate Playwright Gate Auth State (KS+MK)
         if: matrix.shardIndex == 1
-        run: pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
+        run: pnpm e2e:state:setup
 
       # Gate is fast and tells you immediately if infra drifted.
       - name: E2E Gate (KS+MK)

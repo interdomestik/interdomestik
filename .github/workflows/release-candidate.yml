@@ -104,7 +104,7 @@ jobs:
         run: pnpm --filter @interdomestik/web run build:ci
 
       - name: Generate Playwright auth states
-        run: pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
+        run: pnpm e2e:state:setup
 
       - name: RC check - security guard
         shell: bash
