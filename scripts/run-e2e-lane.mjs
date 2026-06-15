@@ -11,24 +11,29 @@ const secretPath = path.join(rootDir, 'apps/web/.playwright/better-auth-secret')
 
 function readSecret() {
   try {
-    return fs.readFileSync(secretPath, 'utf8').trim();
+    return fs.readFileSync(secretPath, 'utf8').trim() || null;
   } catch (error) {
-    if (error?.code === 'ENOENT') return '';
+    if (error?.code === 'ENOENT') return null;
     throw error;
   }
+}
+
+function assertSecret(secret) {
+  if (!secret || secret.length < 32) throw new Error(`Invalid BETTER_AUTH_SECRET at ${secretPath}`);
+  return secret;
 }
 
 function loadSecret() {
   fs.mkdirSync(path.dirname(secretPath), { recursive: true });
   const secret = readSecret();
-  if (secret) return secret;
+  if (secret) return assertSecret(secret);
   const next = randomBytes(32).toString('base64url');
   try {
     fs.writeFileSync(secretPath, `${next}\n`, { flag: 'wx', mode: 0o600 });
     return next;
   } catch (error) {
     if (error?.code !== 'EEXIST') throw error;
-    return readSecret();
+    return assertSecret(readSecret());
   }
 }
 
@@ -40,60 +45,43 @@ const gateArgs = ['e2e/gate', ...strictWorkers];
 const setupArgs = ['e2e/setup.state.spec.ts', '--project=setup-ks', '--project=setup-mk'];
 const mergeArgs = ['e2e/gate', 'e2e/golden', '--grep-invert', '@quarantine|@visual|@legacy'];
 const pwArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];
+const fastEnv = { PW_FAST_GATES: '1' };
+const ksSq = '--project=gate-ks-sq';
+const mkMk = '--project=gate-mk-mk';
+const mkContract = '--project=gate-mk-contract';
+const gateLane = (projects, state = false) => ({
+  gatekeeper: true,
+  state,
+  env: fastEnv,
+  playwrightArgs: [...gateArgs, ...projects],
+});
+const projectLane = (project, env) => ({
+  gatekeeper: true,
+  ...(env && { env }),
+  playwrightArgs: ['e2e/gate', project, ...strictArgs],
+});
 
 const laneDefinitions = {
   state: {
     playwrightArgs: [...setupArgs, ...strictWorkers],
   },
-  gate: {
-    gatekeeper: true,
-    state: true,
-    env: { PW_FAST_GATES: '1' },
-    playwrightArgs: [...gateArgs, '--project=gate-ks-sq', '--project=gate-mk-mk'],
-  },
-  pr: {
-    gatekeeper: true,
-    state: true,
-    env: { PW_FAST_GATES: '1' },
-    playwrightArgs: [...gateArgs, '--project=gate-ks-sq', '--project=gate-mk-contract'],
-  },
-  'gate-fast': {
-    gatekeeper: true,
-    env: { PW_FAST_GATES: '1' },
-    playwrightArgs: [...gateArgs, '--project=gate-ks-sq', '--project=gate-mk-mk'],
-  },
-  'pr-fast': {
-    gatekeeper: true,
-    env: { PW_FAST_GATES: '1' },
-    playwrightArgs: [...gateArgs, '--project=gate-ks-sq', '--project=gate-mk-contract'],
-  },
+  gate: gateLane([ksSq, mkMk], true),
+  pr: gateLane([ksSq, mkContract], true),
+  'gate-fast': gateLane([ksSq, mkMk]),
+  'pr-fast': gateLane([ksSq, mkContract]),
   merge: {
     gatekeeper: true,
     playwrightArgs: [...mergeArgs, '--project=ks-sq', '--project=mk-mk', ...workerArgs],
   },
   'merge-fast': {
     gatekeeper: true,
-    env: { PW_FAST_GATES: '1' },
-    playwrightArgs: [...mergeArgs, '--project=gate-ks-sq', '--project=gate-mk-mk', ...workerArgs],
+    env: fastEnv,
+    playwrightArgs: [...mergeArgs, ksSq, mkMk, ...workerArgs],
   },
-  ks: {
-    gatekeeper: true,
-    playwrightArgs: ['e2e/gate', '--project=gate-ks-sq', ...strictArgs],
-  },
-  mk: {
-    gatekeeper: true,
-    playwrightArgs: ['e2e/gate', '--project=gate-mk-mk', ...strictArgs],
-  },
-  'ks-fast': {
-    gatekeeper: true,
-    env: { PW_FAST_GATES: '1' },
-    playwrightArgs: ['e2e/gate', '--project=gate-ks-sq', ...strictArgs],
-  },
-  'mk-fast': {
-    gatekeeper: true,
-    env: { PW_FAST_GATES: '1' },
-    playwrightArgs: ['e2e/gate', '--project=gate-mk-mk', ...strictArgs],
-  },
+  ks: projectLane(ksSq),
+  mk: projectLane(mkMk),
+  'ks-fast': projectLane(ksSq, fastEnv),
+  'mk-fast': projectLane(mkMk, fastEnv),
   'front-door': {
     env: { PW_FRONT_DOOR: '1' },
     playwrightArgs: [
@@ -158,6 +146,6 @@ if (lane.gatekeeper) {
 }
 
 if (lane.state) {
-  run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs]);
+  run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], laneEnv);
 }
 run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], laneEnv);
