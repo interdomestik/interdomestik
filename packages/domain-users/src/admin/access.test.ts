@@ -88,6 +88,12 @@ describe('admin access role boundaries', () => {
     expect(dbMock.select).not.toHaveBeenCalled();
   });
 
+  it('accepts explicit tenant super admin grants', async () => {
+    dbMock.limit.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: 'role-1' }]);
+    await expect(requireTenantAdminSession(session('staff'))).resolves.toEqual(session('staff'));
+    expect(eq).toHaveBeenCalledWith('role', 'super_admin');
+  });
+
   it('allows primary branch managers only when tenant and branch scoped', async () => {
     const scopedSession = {
       ...session('branch_manager'),

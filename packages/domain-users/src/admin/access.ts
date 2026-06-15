@@ -75,14 +75,10 @@ export async function requireTenantAdminSession(session: UserSession | null): Pr
   const tenantId = ensureTenantId(session);
   const userId = session.user.id;
 
-  if (
-    await hasTenantRole({
-      tenantId,
-      userId,
-      role: 'tenant_admin',
-    })
-  ) {
-    return session;
+  for (const role of ['tenant_admin', GLOBAL_SUPER_ADMIN_ROLE]) {
+    if (await hasTenantRole({ tenantId, userId, role })) {
+      return session;
+    }
   }
 
   throw new Error('Unauthorized');
