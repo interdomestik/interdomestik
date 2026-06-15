@@ -1,6 +1,10 @@
+import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  dashboardSidebarMock: vi.fn(() => null),
+  dashboardHeaderMock: vi.fn(() => null),
+  legacyBannerMock: vi.fn(() => null),
   getSessionSafeMock: vi.fn(async () => ({
     user: {
       id: 'agent-1',
@@ -48,15 +52,15 @@ vi.mock('@interdomestik/ui', () => ({
 }));
 
 vi.mock('@/components/dashboard/dashboard-header', () => ({
-  DashboardHeader: () => null,
+  DashboardHeader: hoisted.dashboardHeaderMock,
 }));
 
 vi.mock('@/components/dashboard/dashboard-sidebar', () => ({
-  DashboardSidebar: () => null,
+  DashboardSidebar: hoisted.dashboardSidebarMock,
 }));
 
 vi.mock('@/components/dashboard/legacy-banner', () => ({
-  LegacyBanner: () => null,
+  LegacyBanner: hoisted.legacyBannerMock,
 }));
 
 import DashboardLayout from './_core.entry';
@@ -70,5 +74,26 @@ describe('MemberDashboard layout role handling', () => {
 
     expect(tree).not.toBeNull();
     expect(hoisted.redirectMock).not.toHaveBeenCalled();
+  });
+
+  it('exercises member scope for an agent entering the member shell', async () => {
+    const tree = await DashboardLayout({
+      children: <div data-testid="child-content" />,
+      params: Promise.resolve({ locale: 'mk' }),
+    });
+    render(tree as React.ReactElement);
+
+    expect(hoisted.dashboardSidebarMock).toHaveBeenCalledWith(
+      expect.objectContaining({ user: expect.objectContaining({ role: 'member' }) }),
+      undefined
+    );
+    expect(hoisted.dashboardHeaderMock).toHaveBeenCalledWith(
+      expect.objectContaining({ user: expect.objectContaining({ role: 'member' }) }),
+      undefined
+    );
+    expect(hoisted.legacyBannerMock).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'member' }),
+      undefined
+    );
   });
 });

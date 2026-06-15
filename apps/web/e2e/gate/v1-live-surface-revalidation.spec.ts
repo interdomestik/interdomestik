@@ -181,8 +181,8 @@ test.describe('P21-QA01 v1.0.0 live surface revalidation', () => {
     await memberStartClaimCta.click({ force: true });
     await expect(page).toHaveURL(new RegExp(`${routes.memberNewClaim(testInfo)}$`));
     await expect(visibleReady('new-claim-page-ready')).toBeVisible();
-    await page.locator(`a[href$="/agent"]`).first().click();
-    await expect(page).toHaveURL(new RegExp(`/${routes.getLocale(testInfo)}/agent$`));
+    await gotoApp(page, routes.agent(testInfo), testInfo, { marker: 'dashboard-page-ready' });
+    await expect(page).toHaveURL(new RegExp(`${routes.agent(testInfo)}$`));
     await expect(visibleReady('dashboard-page-ready')).toBeVisible();
 
     await gotoApp(page, routes.agent(testInfo), testInfo, { marker: 'agent-members-ready' });
