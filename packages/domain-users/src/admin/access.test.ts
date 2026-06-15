@@ -100,6 +100,13 @@ describe('admin access role boundaries', () => {
     expect(dbMock.select).not.toHaveBeenCalled();
   });
 
+  it('rejects primary branch managers missing branch context', async () => {
+    await expect(
+      requireTenantAdminOrBranchManagerSession(session('branch_manager'))
+    ).rejects.toThrow('Unauthorized');
+    expect(dbMock.select).not.toHaveBeenCalled();
+  });
+
   it('does not let super_admin implicitly satisfy every tenant role', async () => {
     await expect(
       userHasRole({

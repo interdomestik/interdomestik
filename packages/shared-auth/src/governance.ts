@@ -32,7 +32,13 @@ export function canApproveGovernanceAction({
   actorUserId,
   requestedByUserId,
 }: GovernanceApprovalContext): boolean {
-  if (actorRole === ROLES.super_admin) return false;
+  if (
+    actorRole === ROLES.super_admin ||
+    actorRole === ROLES.global_support ||
+    actorRole === ROLES.auditor
+  ) {
+    return false;
+  }
   if (actorUserId === requestedByUserId) return false;
   return hasPermission(actorRole, PERMISSIONS['governance.approve']);
 }
