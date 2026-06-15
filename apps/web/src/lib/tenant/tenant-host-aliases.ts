@@ -84,8 +84,10 @@ function toCompatibilityAlias(config: AliasConfig): CountryHostCompatibilityAlia
 }
 
 function isLocalNipIoAlias(host: string, label: CountryHostAliasLabel): boolean {
-  const octet = '(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)';
-  return new RegExp(`^${label}\\.${octet}\\.${octet}\\.${octet}\\.${octet}\\.nip\\.io$`).test(host);
+  const octet = String.raw`(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)`;
+  return new RegExp(String.raw`^${label}\.${octet}\.${octet}\.${octet}\.${octet}\.nip\.io$`).test(
+    host
+  );
 }
 
 export function resolveCountryHostCompatibilityAlias(
