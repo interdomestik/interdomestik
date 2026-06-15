@@ -19,14 +19,18 @@ vi.mock('@interdomestik/domain-analytics', () => ({
 import { getAgentCapacityAction, getBranchStressAction } from './v3';
 
 describe('analytics v3 actions role boundaries', () => {
+  let actionContext: {
+    userRole: string;
+    tenantId: string;
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.runAuthenticatedAction.mockImplementation(async callback =>
-      callback({
-        userRole: 'super_admin',
-        tenantId: 'tenant-1',
-      })
-    );
+    actionContext = {
+      userRole: 'super_admin',
+      tenantId: 'tenant-1',
+    };
+    mocks.runAuthenticatedAction.mockImplementation(async callback => callback(actionContext));
     mocks.getAgentCapacitySignal.mockResolvedValue({ agentId: 'agent-1' });
     mocks.getBranchStressIndex.mockResolvedValue({ branchId: 'branch-1' });
   });
@@ -39,5 +43,12 @@ describe('analytics v3 actions role boundaries', () => {
   it('keeps super admins authorized for agent capacity', async () => {
     await expect(getAgentCapacityAction('agent-1')).resolves.toEqual({ agentId: 'agent-1' });
     expect(mocks.getAgentCapacitySignal).toHaveBeenCalledWith('agent-1');
+  });
+
+  it('rejects branch managers from agent capacity analytics', async () => {
+    actionContext = { ...actionContext, userRole: 'branch_manager' };
+
+    await expect(getAgentCapacityAction('agent-1')).rejects.toThrow('Unauthorized');
+    expect(mocks.getAgentCapacitySignal).not.toHaveBeenCalled();
   });
 });

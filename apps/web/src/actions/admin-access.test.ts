@@ -60,7 +60,7 @@ describe('canAccessAdmin', () => {
     expect(mocks.requireTenantAdminOrBranchManagerSession).toHaveBeenCalledWith(session);
   });
 
-  it('allows explicit tenant admin RBAC grants', async () => {
+  it('returns true when the domain guard resolves for any primary role', async () => {
     const session = { user: { role: 'staff' } };
     mocks.getActionContext.mockResolvedValueOnce({
       requestHeaders: new Headers(),

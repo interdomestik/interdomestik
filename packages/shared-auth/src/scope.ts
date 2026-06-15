@@ -33,10 +33,6 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
 
   const { id: userId, role, tenantId, branchId } = session.user;
 
-  if (!tenantId && !isSuperAdmin(role)) {
-    throw new MissingTenantError();
-  }
-
   // Super admin: cross-tenant access
   if (isSuperAdmin(role)) {
     return {
@@ -46,10 +42,14 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
     };
   }
 
+  if (!tenantId) {
+    throw new MissingTenantError();
+  }
+
   // Tenant admin: full tenant scope
   if (isTenantAdmin(role)) {
     return {
-      tenantId: tenantId!,
+      tenantId,
       isFullTenantScope: true,
       isCrossTenantScope: false,
     };
@@ -58,7 +58,7 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
   // Read-only global support and auditor roles inspect an explicitly selected tenant.
   if (role === ROLES.global_support || role === ROLES.auditor) {
     return {
-      tenantId: tenantId!,
+      tenantId,
       isFullTenantScope: true,
       isCrossTenantScope: false,
     };
@@ -67,7 +67,7 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
   // Staff: full tenant scope for claims
   if (role === ROLES.staff) {
     return {
-      tenantId: tenantId!,
+      tenantId,
       isFullTenantScope: true,
       isCrossTenantScope: false,
     };
@@ -76,7 +76,7 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
   // Branch manager: branch-scoped
   if (role === ROLES.branch_manager) {
     return {
-      tenantId: tenantId!,
+      tenantId,
       branchId: branchId ?? null,
       isFullTenantScope: false,
       isCrossTenantScope: false,
@@ -86,7 +86,7 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
   // Agent: agent-scoped (only their assigned members/claims)
   if (role === ROLES.agent) {
     return {
-      tenantId: tenantId!,
+      tenantId,
       agentId: userId ?? null,
       isFullTenantScope: false,
       isCrossTenantScope: false,
@@ -95,7 +95,7 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
 
   // Member: self only
   return {
-    tenantId: tenantId!,
+    tenantId,
     userId: userId ?? null,
     isFullTenantScope: false,
     isCrossTenantScope: false,

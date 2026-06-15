@@ -19,15 +19,20 @@ vi.mock('@interdomestik/domain-analytics', () => ({
 import { getBranchKPIsAction, getTenantAdminKPIsAction } from './v2';
 
 describe('analytics v2 actions role boundaries', () => {
+  let actionContext: {
+    userRole: string;
+    tenantId: string;
+    scope: { branchId?: string | null };
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.runAuthenticatedAction.mockImplementation(async callback =>
-      callback({
-        userRole: 'super_admin',
-        tenantId: 'tenant-1',
-        scope: { branchId: 'branch-1' },
-      })
-    );
+    actionContext = {
+      userRole: 'super_admin',
+      tenantId: 'tenant-1',
+      scope: { branchId: 'branch-1' },
+    };
+    mocks.runAuthenticatedAction.mockImplementation(async callback => callback(actionContext));
     mocks.getBranchKPIs.mockResolvedValue({ branchId: 'branch-2' });
     mocks.getTenantAdminKPIs.mockResolvedValue({ tenantId: 'tenant-1' });
   });
@@ -40,5 +45,14 @@ describe('analytics v2 actions role boundaries', () => {
   it('keeps super admins authorized for branch KPIs', async () => {
     await expect(getBranchKPIsAction('branch-2')).resolves.toEqual({ branchId: 'branch-2' });
     expect(mocks.getBranchKPIs).toHaveBeenCalledWith('tenant-1', 'branch-2');
+  });
+
+  it('rejects branch managers from tenant admin KPIs', async () => {
+    actionContext = { ...actionContext, userRole: 'branch_manager' };
+
+    await expect(getTenantAdminKPIsAction()).rejects.toThrow(
+      'Unauthorized: Tenant Admin or Staff access required'
+    );
+    expect(mocks.getTenantAdminKPIs).not.toHaveBeenCalled();
   });
 });

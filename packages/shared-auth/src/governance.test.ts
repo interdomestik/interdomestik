@@ -8,8 +8,14 @@ import {
 import { ROLES } from './permissions';
 
 describe('governance role boundaries', () => {
-  it('blocks technical super admin from fee, payment, and terms approvals', () => {
-    for (const actorRole of [ROLES.super_admin, ROLES.global_support, ROLES.auditor]) {
+  it('blocks non-governance operators from fee, payment, and terms approvals', () => {
+    for (const actorRole of [
+      ROLES.super_admin,
+      ROLES.global_support,
+      ROLES.auditor,
+      ROLES.branch_manager,
+      ROLES.staff,
+    ]) {
       expect(
         canApproveGovernanceAction({
           actorRole,

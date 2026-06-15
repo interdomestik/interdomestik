@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { eq } from '@interdomestik/database';
+
 import {
   requireTenantAdminOrBranchManagerSession,
   requireTenantAdminSession,
@@ -76,6 +78,16 @@ describe('admin access role boundaries', () => {
     expect(dbMock.select).not.toHaveBeenCalled();
   });
 
+  it('requires tenant context for primary tenant admin roles', async () => {
+    await expect(requireTenantAdminSession(session('tenant_admin', null))).rejects.toThrow(
+      'Session missing tenantId'
+    );
+    await expect(requireTenantAdminSession(session('admin', null))).rejects.toThrow(
+      'Session missing tenantId'
+    );
+    expect(dbMock.select).not.toHaveBeenCalled();
+  });
+
   it('allows primary branch managers only when tenant and branch scoped', async () => {
     const scopedSession = {
       ...session('branch_manager'),
@@ -105,6 +117,13 @@ describe('admin access role boundaries', () => {
       requireTenantAdminOrBranchManagerSession(session('branch_manager'))
     ).rejects.toThrow('Unauthorized');
     expect(dbMock.select).not.toHaveBeenCalled();
+  });
+
+  it('does not query tenant-wide branch manager RBAC grants without branch context', async () => {
+    await expect(requireTenantAdminOrBranchManagerSession(session('staff'))).rejects.toThrow(
+      'Unauthorized'
+    );
+    expect(eq).not.toHaveBeenCalledWith('role', 'branch_manager');
   });
 
   it('does not let super_admin implicitly satisfy every tenant role', async () => {

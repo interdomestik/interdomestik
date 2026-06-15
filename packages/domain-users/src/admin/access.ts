@@ -117,17 +117,15 @@ export async function requireTenantAdminOrBranchManagerSession(
     return requireTenantAdminSession(session);
   }
 
-  // If branch_manager is granted via tenant RBAC roles, allow.
+  // If branch_manager is granted via tenant RBAC roles, allow only with branch scope.
   if (
-    await userHasRole({
+    session.user.branchId &&
+    (await userHasRole({
       session,
       role: 'branch_manager',
-      branchId: session.user.branchId ?? null,
-    })
+      branchId: session.user.branchId,
+    }))
   ) {
-    if (!session.user.branchId) {
-      throw new Error('Unauthorized');
-    }
     return session;
   }
 
