@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const defaultDbUrl = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
-
+process.env.BETTER_AUTH_SECRET ||= '12345678901234567890123456789012';
 const baseEnv = {
   ...process.env,
   E2E_DATABASE_URL: process.env.E2E_DATABASE_URL || defaultDbUrl,
@@ -21,6 +21,11 @@ const commonGateArgs = [
   '--trace=retain-on-failure',
   '--reporter=line',
 ];
+const reportArgs = ['--trace=retain-on-failure', '--reporter=line'];
+const strictArgs = ['--max-failures=1', ...reportArgs];
+const singleWorkerArgs = ['--workers=1', ...reportArgs];
+const strictSingleWorkerArgs = ['--workers=1', ...strictArgs];
+const playwrightCommandArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];
 
 const laneDefinitions = {
   state: {
@@ -28,10 +33,7 @@ const laneDefinitions = {
       'e2e/setup.state.spec.ts',
       '--project=setup-ks',
       '--project=setup-mk',
-      '--workers=1',
-      '--max-failures=1',
-      '--trace=retain-on-failure',
-      '--reporter=line',
+      ...strictSingleWorkerArgs,
     ],
   },
   gate: {
@@ -65,9 +67,7 @@ const laneDefinitions = {
       '@quarantine|@visual|@legacy',
       '--project=ks-sq',
       '--project=mk-mk',
-      '--workers=1',
-      '--trace=retain-on-failure',
-      '--reporter=line',
+      ...singleWorkerArgs,
     ],
   },
   'merge-fast': {
@@ -80,30 +80,16 @@ const laneDefinitions = {
       '@quarantine|@visual|@legacy',
       '--project=gate-ks-sq',
       '--project=gate-mk-mk',
-      '--workers=1',
-      '--trace=retain-on-failure',
-      '--reporter=line',
+      ...singleWorkerArgs,
     ],
   },
   ks: {
     gatekeeper: true,
-    playwrightArgs: [
-      'e2e/gate',
-      '--project=gate-ks-sq',
-      '--max-failures=1',
-      '--trace=retain-on-failure',
-      '--reporter=line',
-    ],
+    playwrightArgs: ['e2e/gate', '--project=gate-ks-sq', ...strictArgs],
   },
   mk: {
     gatekeeper: true,
-    playwrightArgs: [
-      'e2e/gate',
-      '--project=gate-mk-mk',
-      '--max-failures=1',
-      '--trace=retain-on-failure',
-      '--reporter=line',
-    ],
+    playwrightArgs: ['e2e/gate', '--project=gate-mk-mk', ...strictArgs],
   },
   'ks-fast': {
     gatekeeper: true,
@@ -133,22 +119,13 @@ const laneDefinitions = {
       'e2e/gate/front-door-session-context.spec.ts',
       '--project=front-door-ida-ks',
       '--project=front-door-ida-mk',
-      '--workers=1',
-      '--max-failures=1',
-      '--trace=retain-on-failure',
-      '--reporter=line',
+      ...strictSingleWorkerArgs,
     ],
   },
 };
 
 function usage() {
-  console.error(
-    [
-      'Usage: node scripts/run-e2e-lane.mjs <lane> [playwright args...]',
-      '',
-      `Lanes: ${Object.keys(laneDefinitions).join(', ')}`,
-    ].join('\n')
-  );
+  console.error(`Lanes: ${Object.keys(laneDefinitions).join(', ')}`);
 }
 
 function run(command, args, env = baseEnv) {
@@ -190,26 +167,6 @@ if (lane.gatekeeper) {
 }
 
 if (lane.state) {
-  run('pnpm', [
-    '--filter',
-    '@interdomestik/web',
-    'exec',
-    'playwright',
-    'test',
-    ...laneDefinitions.state.playwrightArgs,
-  ]);
+  run('pnpm', [...playwrightCommandArgs, ...laneDefinitions.state.playwrightArgs]);
 }
-
-run(
-  'pnpm',
-  [
-    '--filter',
-    '@interdomestik/web',
-    'exec',
-    'playwright',
-    'test',
-    ...lane.playwrightArgs,
-    ...extraPlaywrightArgs,
-  ],
-  laneEnv
-);
+run('pnpm', [...playwrightCommandArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], laneEnv);
