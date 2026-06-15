@@ -17,7 +17,7 @@ role-separation stub.
 The merged slice records `canTransition(...)` and `transitionClaimStatus()` as
 the sole claim-status transition architecture in
 `docs/architecture/adr-04-claim-status-transition-sole-writer.md`, and keeps
-`docs/architecture/adr-09-role-separation-stub.md` limited to the later
+`docs/architecture/adr-09-role-separation-governance-boundaries.md` limited to the later
 role-separation direction without runtime role, proxy, auth, tenancy, schema,
 or billing changes.
 
