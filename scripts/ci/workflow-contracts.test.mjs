@@ -237,10 +237,10 @@ test('Release candidate gate includes blocking AI eval fixture proof', () => {
     findStepIndex(releaseCandidateSteps, 'RC check - AI eval fixtures') <
       findStepIndex(releaseCandidateSteps, 'Prepare CI database')
   );
-  assert.equal(
-    findStep(releaseCandidateSteps, 'Generate Playwright auth states').run,
-    'pnpm e2e:state:setup'
-  );
+  const rcAuthStateStep = findStep(releaseCandidateSteps, 'Generate Playwright auth states');
+  assert.equal(rcAuthStateStep.run, 'pnpm e2e:state:setup');
+  assert.equal(rcAuthStateStep.env.E2E_DATABASE_URL, '${{ env.DATABASE_URL }}');
+  assert.equal(rcAuthStateStep.env.E2E_DATABASE_URL_RLS, '${{ env.DATABASE_URL }}');
 });
 
 test('CI unit lane runs the blocking repository coverage gate', () => {

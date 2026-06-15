@@ -1,15 +1,12 @@
 name: Release Candidate
-
 on:
   push:
     branches:
       - 'rc/*'
   workflow_dispatch:
-
 concurrency:
   group: release-candidate-${{ github.ref }}
   cancel-in-progress: true
-
 permissions:
   contents: read
 
@@ -59,7 +56,6 @@ jobs:
       RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL: 'false'
     steps:
       - uses: actions/checkout@v5
-
       - uses: ./.github/actions/setup
         with:
           install-playwright: true
@@ -105,6 +101,9 @@ jobs:
 
       - name: Generate Playwright auth states
         run: pnpm e2e:state:setup
+        env:
+          E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
+          E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
 
       - name: RC check - security guard
         shell: bash

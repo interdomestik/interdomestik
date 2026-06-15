@@ -72,7 +72,7 @@ test('web package exposes full and PR gate lanes separately', () => {
 });
 
 test('root package exposes the scripts/ci contract suite', () => {
-  assert.match(packageJson.scripts['test:ci:contracts'], /--test-concurrency=1/u);
+  assert.equal(packageJson.scripts['test:ci:contracts'].includes('--test-concurrency=1'), true);
 });
 
 test('pilot readiness commands keep local verification and production proof distinct', () => {

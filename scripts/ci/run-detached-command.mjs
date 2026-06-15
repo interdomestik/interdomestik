@@ -16,7 +16,8 @@ export function stopProcessGroup(pid, signal = 'SIGTERM') {
   if (!Number.isInteger(pid) || pid <= 0) return;
 
   try {
-    process.kill(-pid, signal);
+    const target = process.platform === 'win32' ? pid : -pid;
+    process.kill(target, signal);
   } catch (error) {
     if (error?.code === 'ESRCH') return;
     console.warn(
@@ -26,7 +27,7 @@ export function stopProcessGroup(pid, signal = 'SIGTERM') {
 }
 
 function stopActiveProcessGroups(signal = 'SIGTERM') {
-  for (const pid of [...activeProcessGroups]) {
+  for (const pid of activeProcessGroups) {
     activeProcessGroups.delete(pid);
     stopProcessGroup(pid, signal);
   }
@@ -77,9 +78,8 @@ export async function runDetachedCommand(command, args, { cwd, env }) {
         return;
       }
 
-      const error = new Error(
-        `${command} exited with ${signal ? `signal ${signal}` : `status ${code}`}`
-      );
+      const status = signal ? `signal ${signal}` : `status ${code}`;
+      const error = new Error(`${command} exited with ${status}`);
       error.exitCode = code ?? signalExitCode(signal);
       reject(error);
     });

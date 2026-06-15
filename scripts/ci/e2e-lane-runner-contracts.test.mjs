@@ -16,7 +16,8 @@ test('E2E lane runner delegates subprocess cleanup to the detached command helpe
 test('detached command helper terminates active process groups on exit and cancellation', () => {
   assert.match(helper, /detached: true/);
   assert.match(helper, /stdio: \['ignore', 'inherit', 'inherit'\]/);
-  assert.match(helper, /process\.kill\(-pid, signal\)/);
+  assert.match(helper, /process\.platform === 'win32' \? pid : -pid/);
+  assert.match(helper, /process\.kill\(target, signal\)/);
   assert.match(helper, /error\?\.code === 'ESRCH'/);
   assert.match(helper, /process\.once\('exit', \(\) => stopActiveProcessGroups\(\)\)/);
   assert.match(helper, /process\.on\(signal, \(\) => \{/);
@@ -25,4 +26,11 @@ test('detached command helper terminates active process groups on exit and cance
 
 test('root package script exposes the hardened E2E state setup lane', () => {
   assert.equal(packageJson.scripts['e2e:state:setup'], 'node scripts/run-e2e-lane.mjs state');
+});
+
+test('root package script serializes CI contracts without dropping files', () => {
+  assert.equal(
+    packageJson.scripts['test:ci:contracts'],
+    'node --test --test-concurrency=1 scripts/ci/*.test.mjs scripts/check-modularity-guard.test.mjs'
+  );
 });
