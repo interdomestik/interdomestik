@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   getSessionSafeMock: vi.fn(async () => ({
@@ -65,6 +65,29 @@ vi.mock('./_core', () => ({
 import DashboardPage from './page';
 
 describe('DashboardPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.getSessionSafeMock.mockResolvedValue({
+      user: {
+        id: 'member-1',
+        role: 'member',
+        tenantId: 'tenant_ks',
+      },
+    });
+    hoisted.getMemberDashboardDataMock.mockResolvedValue({
+      member: {
+        id: 'member-1',
+        name: 'Member One',
+        membershipNumber: 'KS-1',
+        role: 'member',
+        tenantId: 'tenant_ks',
+      },
+      claims: [],
+      activeClaimId: null,
+      supportHref: '/member/help',
+    });
+  });
+
   it('renders the richer member dashboard view for the canonical member route', async () => {
     const tree = await DashboardPage({
       params: Promise.resolve({ locale: 'mk' }),
@@ -77,6 +100,42 @@ describe('DashboardPage', () => {
     expect(hoisted.getMemberDashboardDataMock).toHaveBeenCalledWith({
       memberId: 'member-1',
       tenantId: 'tenant_ks',
+    });
+  });
+
+  it('passes the exercised member role to dashboard data for agent sessions', async () => {
+    hoisted.getSessionSafeMock.mockResolvedValueOnce({
+      user: {
+        id: 'agent-1',
+        role: 'agent',
+        tenantId: 'tenant_ks',
+      },
+    });
+    hoisted.getMemberDashboardDataMock.mockResolvedValueOnce({
+      member: {
+        id: 'agent-1',
+        name: 'Agent One',
+        membershipNumber: null,
+        role: 'agent',
+        tenantId: 'tenant_ks',
+      },
+      claims: [],
+      activeClaimId: null,
+      supportHref: '/member/help',
+    });
+
+    const tree = await DashboardPage({
+      params: Promise.resolve({ locale: 'mk' }),
+    });
+
+    render(tree);
+
+    const props = hoisted.memberDashboardViewMock.mock.calls.at(-1)?.[0] as
+      | { dataPromise: Promise<{ member: { role: string } }> }
+      | undefined;
+
+    await expect(props?.dataPromise).resolves.toMatchObject({
+      member: { role: 'member' },
     });
   });
 });

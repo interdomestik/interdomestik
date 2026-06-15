@@ -45,7 +45,13 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   const dataPromise = getMemberDashboardData({
     memberId: result.userId,
     tenantId: memberSession.user.tenantId,
-  });
+  }).then(data => ({
+    ...data,
+    member: {
+      ...data.member,
+      role: actorRoleOnSession,
+    },
+  }));
 
   const supplementalDataPromise = getDashboardSupplementalData({
     memberId: result.userId,
