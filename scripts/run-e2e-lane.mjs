@@ -6,33 +6,44 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const defaultDbUrl = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+const dbUrl = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
 const secretPath = path.join(rootDir, 'apps/web/.playwright/better-auth-secret');
 
-function loadLocalAuthSecret() {
+function readSecret() {
+  try {
+    return fs.readFileSync(secretPath, 'utf8').trim();
+  } catch (error) {
+    if (error?.code === 'ENOENT') return '';
+    throw error;
+  }
+}
+
+function loadSecret() {
   fs.mkdirSync(path.dirname(secretPath), { recursive: true });
-  let secret = fs.existsSync(secretPath) ? fs.readFileSync(secretPath, 'utf8').trim() : '';
+  const secret = readSecret();
   if (secret) return secret;
-  secret = randomBytes(32).toString('base64url');
-  fs.writeFileSync(secretPath, `${secret}\n`, { mode: 0o600 });
-  return secret;
+  const next = randomBytes(32).toString('base64url');
+  try {
+    fs.writeFileSync(secretPath, `${next}\n`, { flag: 'wx', mode: 0o600 });
+    return next;
+  } catch (error) {
+    if (error?.code !== 'EEXIST') throw error;
+    return readSecret();
+  }
 }
 
 const reportArgs = ['--trace=retain-on-failure', '--reporter=line'];
 const strictArgs = ['--max-failures=1', ...reportArgs];
 const workerArgs = ['--workers=1', ...reportArgs];
-const strictWorkerArgs = ['--workers=1', ...strictArgs];
-const gateArgs = ['e2e/gate', ...strictWorkerArgs];
-const pwCommandArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];
+const strictWorkers = ['--workers=1', ...strictArgs];
+const gateArgs = ['e2e/gate', ...strictWorkers];
+const setupArgs = ['e2e/setup.state.spec.ts', '--project=setup-ks', '--project=setup-mk'];
+const mergeArgs = ['e2e/gate', 'e2e/golden', '--grep-invert', '@quarantine|@visual|@legacy'];
+const pwArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];
 
 const laneDefinitions = {
   state: {
-    playwrightArgs: [
-      'e2e/setup.state.spec.ts',
-      '--project=setup-ks',
-      '--project=setup-mk',
-      ...strictWorkerArgs,
-    ],
+    playwrightArgs: [...setupArgs, ...strictWorkers],
   },
   gate: {
     gatekeeper: true,
@@ -58,28 +69,12 @@ const laneDefinitions = {
   },
   merge: {
     gatekeeper: true,
-    playwrightArgs: [
-      'e2e/gate',
-      'e2e/golden',
-      '--grep-invert',
-      '@quarantine|@visual|@legacy',
-      '--project=ks-sq',
-      '--project=mk-mk',
-      ...workerArgs,
-    ],
+    playwrightArgs: [...mergeArgs, '--project=ks-sq', '--project=mk-mk', ...workerArgs],
   },
   'merge-fast': {
     gatekeeper: true,
     env: { PW_FAST_GATES: '1' },
-    playwrightArgs: [
-      'e2e/gate',
-      'e2e/golden',
-      '--grep-invert',
-      '@quarantine|@visual|@legacy',
-      '--project=gate-ks-sq',
-      '--project=gate-mk-mk',
-      ...workerArgs,
-    ],
+    playwrightArgs: [...mergeArgs, '--project=gate-ks-sq', '--project=gate-mk-mk', ...workerArgs],
   },
   ks: {
     gatekeeper: true,
@@ -105,7 +100,7 @@ const laneDefinitions = {
       'e2e/gate/front-door-session-context.spec.ts',
       '--project=front-door-ida-ks',
       '--project=front-door-ida-mk',
-      ...strictWorkerArgs,
+      ...strictWorkers,
     ],
   },
 };
@@ -132,12 +127,11 @@ if (!lane) {
   process.exit(2);
 }
 
-process.env.BETTER_AUTH_SECRET ||= loadLocalAuthSecret();
+process.env.BETTER_AUTH_SECRET ||= loadSecret();
 const baseEnv = {
   ...process.env,
-  E2E_DATABASE_URL: process.env.E2E_DATABASE_URL || defaultDbUrl,
-  E2E_DATABASE_URL_RLS:
-    process.env.E2E_DATABASE_URL_RLS || process.env.E2E_DATABASE_URL || defaultDbUrl,
+  E2E_DATABASE_URL: process.env.E2E_DATABASE_URL || dbUrl,
+  E2E_DATABASE_URL_RLS: process.env.E2E_DATABASE_URL_RLS || process.env.E2E_DATABASE_URL || dbUrl,
   NEXT_PUBLIC_BILLING_TEST_MODE: '1',
 };
 const laneEnv = lane.env ? { ...baseEnv, ...lane.env } : baseEnv;
@@ -164,6 +158,6 @@ if (lane.gatekeeper) {
 }
 
 if (lane.state) {
-  run('pnpm', [...pwCommandArgs, ...laneDefinitions.state.playwrightArgs]);
+  run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs]);
 }
-run('pnpm', [...pwCommandArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], laneEnv);
+run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], laneEnv);
