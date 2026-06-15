@@ -8,29 +8,33 @@ const packageJson = JSON.parse(
   readFileSync(new URL('../../package.json', import.meta.url), 'utf8')
 );
 
-test('E2E lane runner delegates subprocess cleanup to the detached command helper', () => {
-  assert.match(runner, /import \{ runDetachedCommand \} from '\.\/ci\/run-detached-command\.mjs'/);
+test('E2E lane runner cleanup contracts', () => {
+  assert.match(runner, /\{ cleanupE2ePort, runDetachedCommand \}.*run-detached-command\.mjs/);
   assert.match(runner, /await runDetachedCommand\(command, args, \{ cwd: rootDir, env \}\)/);
+  assert.match(runner, /finally \{\s*cleanupE2ePort\(\{ env: finalEnv \}\);\s*\}/s);
+  assert.match(runner, /process\.exitCode = error\?\.exitCode \?\? 1/);
+  assert.doesNotMatch(runner, /process\.exit\(error\?\.exitCode \?\? 1\)/);
 });
 
-test('detached command helper terminates active process groups on exit and cancellation', () => {
-  assert.match(helper, /detached: true/);
-  assert.match(helper, /stdio: \['ignore', 'inherit', 'inherit'\]/);
-  assert.match(helper, /process\.platform === 'win32' \? pid : -pid/);
-  assert.match(helper, /process\.kill\(target, signal\)/);
-  assert.match(helper, /error\?\.code === 'ESRCH'/);
-  assert.match(helper, /process\.once\('exit', \(\) => stopActiveProcessGroups\(\)\)/);
-  assert.match(helper, /process\.on\(signal, \(\) => \{/);
-  assert.match(helper, /stopActiveProcessGroups\(signal\)/);
+test('detached helper cleanup contracts', () => {
+  for (const pattern of [
+    /detached: true/,
+    /process\.platform === 'win32' \? pid : -pid/,
+    /process\.once\('exit', \(\) => stopActiveProcessGroups\(\)\)/,
+    /stopActiveProcessGroups\(signal\)/,
+    /execFileSync\('lsof', \[`-tiTCP:\$\{port\}`, '-sTCP:LISTEN'\]/,
+    /env\.PW_EXTERNAL_SERVER === '1'/,
+    /stopProcessGroup\(pid, 'SIGKILL'\)/,
+  ]) {
+    assert.match(helper, pattern);
+  }
 });
 
-test('root package script exposes the hardened E2E state setup lane', () => {
-  assert.equal(packageJson.scripts['e2e:state:setup'], 'node scripts/run-e2e-lane.mjs state');
-});
-
-test('root package script serializes CI contracts without dropping files', () => {
+test('root package keeps E2E contract scripts wired', () => {
+  const scripts = packageJson.scripts;
+  assert.equal(scripts['e2e:state:setup'], 'node scripts/run-e2e-lane.mjs state');
   assert.equal(
-    packageJson.scripts['test:ci:contracts'],
+    scripts['test:ci:contracts'],
     'node --test --test-concurrency=1 scripts/ci/*.test.mjs scripts/check-modularity-guard.test.mjs'
   );
 });

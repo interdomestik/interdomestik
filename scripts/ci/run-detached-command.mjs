@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 
 const activeProcessGroups = new Set();
 const terminationSignals = ['SIGINT', 'SIGTERM', 'SIGHUP'];
@@ -31,6 +31,40 @@ function stopActiveProcessGroups(signal = 'SIGTERM') {
     activeProcessGroups.delete(pid);
     stopProcessGroup(pid, signal);
   }
+}
+
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function portListenerPids(port) {
+  try {
+    return [
+      ...new Set(
+        execFileSync('lsof', [`-tiTCP:${port}`, '-sTCP:LISTEN'], {
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+        })
+          .split(/\s+/)
+          .map(value => Number.parseInt(value, 10))
+          .filter(pid => Number.isInteger(pid) && pid > 0)
+      ),
+    ];
+  } catch (error) {
+    if (error?.status === 1) return [];
+    throw error;
+  }
+}
+
+export function cleanupE2ePort({ env = process.env, port = 3000 } = {}) {
+  if (env.PW_EXTERNAL_SERVER === '1') return [];
+  const pids = portListenerPids(port);
+  for (const pid of pids) stopProcessGroup(pid);
+  if (pids.length > 0) sleepSync(1000);
+  for (const pid of portListenerPids(port).filter(pid => pids.includes(pid))) {
+    stopProcessGroup(pid, 'SIGKILL');
+  }
+  return pids;
 }
 
 function installCleanupHandlers() {

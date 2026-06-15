@@ -4,23 +4,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 bash "${SCRIPT_DIR}/node-guard.sh"
 
-# ==============================================================================
-# M4 Gatekeeper: Deterministic Reset & Seed Contract
-# ==============================================================================
-# 1. Stops stale app processes
-# 2. Waits for Postgres readiness (strict contract)
-# 3. Resets DB via migration (not full nukes) for speed & stability
-# 4. Seeds deterministic verification data
-# 5. Ensures no dirty state leaks between runs
-# ==============================================================================
-
 echo "🚧 [Gatekeeper] Starting Deterministic Reset..."
 
 # 0. Load env (Gatekeeper must be runnable in a fresh shell/CI)
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
-# Preserve explicit shell-provided values before sourcing local env files.
 INHERITED_DATABASE_URL="${DATABASE_URL:-}"
 INHERITED_NEXT_PUBLIC_BILLING_TEST_MODE="${NEXT_PUBLIC_BILLING_TEST_MODE:-}"
 
@@ -35,14 +24,6 @@ if [ -n "${INHERITED_NEXT_PUBLIC_BILLING_TEST_MODE:-}" ]; then
   export NEXT_PUBLIC_BILLING_TEST_MODE="${INHERITED_NEXT_PUBLIC_BILLING_TEST_MODE}"
 fi
 
-# Deterministic DB resolution for gate runs:
-# 1) E2E_DATABASE_URL override
-# 2) Explicit caller-provided DATABASE_URL
-# 3) Local Supabase fallback
-#
-# NOTE: Keep this precedence aligned with scripts/e2e-webserver.sh.
-# If gatekeeper and Playwright web server resolve different DB URLs,
-# gate runs can hang waiting on /api/health while checking a different DB.
 if [ -n "${E2E_DATABASE_URL:-}" ]; then
   export DATABASE_URL="${E2E_DATABASE_URL}"
 elif [ -n "${INHERITED_DATABASE_URL:-}" ]; then
@@ -65,14 +46,11 @@ else
 fi
 
 if [ -z "${BETTER_AUTH_SECRET:-}" ]; then
-  # Any 32+ char secret works for local E2E; keep it deterministic within this run.
   export BETTER_AUTH_SECRET="$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('base64'))")"
   echo "⚠️  [Gatekeeper] BETTER_AUTH_SECRET not set; generated an ephemeral secret for this run"
 fi
 
 ensure_disk_space() {
-  # Next.js standalone output tracing can produce multiple GB of files.
-  # Avoid ENOSPC by cleaning stale build artifacts before we start.
   echo "🧹 [Gatekeeper] Cleaning stale build artifacts..."
   rm -rf apps/web/.next .turbo || true
 
@@ -82,14 +60,11 @@ ensure_disk_space() {
     return 0
   fi
 
-  # If we're still very low on disk, optionally prune the pnpm store.
-  # This is safe but can be slow, so we only do it under pressure.
   if [ "${AVAILABLE_KB}" -lt $((6 * 1024 * 1024)) ]; then
     echo "⚠️  [Gatekeeper] Low disk space detected (<6GiB). Pruning pnpm store..."
     pnpm store prune || true
   fi
 
-  # Re-check after cleanup
   AVAILABLE_KB="$(df -Pk . | awk 'NR==2 { print $4 }')"
   if [ "${AVAILABLE_KB}" -lt $((4 * 1024 * 1024)) ]; then
     echo "❌ [Gatekeeper] Not enough free disk space to build reliably (<4GiB)."
@@ -101,12 +76,6 @@ ensure_disk_space() {
 cleanup_stale_playwright_processes() {
   echo "🧽 [Gatekeeper] Cleaning stale Playwright helper processes..."
 
-  # Stale Playwright test-server instances can survive interrupted runs and
-  # block subsequent gate execution before tests even start.
-  #
-  # Keep patterns narrowly scoped to test-server processes. Broad patterns such
-  # as "playwright test e2e/gate" can match the currently running CI command
-  # line and terminate the active gate itself.
   local patterns=(
     '@playwright/test/cli.js test-server -c apps/web/playwright.config.ts'
     'playwright test-server -c apps/web/playwright.config.ts'

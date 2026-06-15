@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runDetachedCommand } from './ci/run-detached-command.mjs';
+import { cleanupE2ePort, runDetachedCommand } from './ci/run-detached-command.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dbUrl = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
@@ -125,14 +125,16 @@ const stateEnv = { ...laneEnv, PW_FAST_GATES: '0' };
 const finalEnv = laneName === 'state' ? stateEnv : laneEnv;
 
 async function run(command, args, env = baseEnv) {
-  try {
-    await runDetachedCommand(command, args, { cwd: rootDir, env });
-  } catch (error) {
-    console.error(error);
-    process.exit(error?.exitCode ?? 1);
-  }
+  await runDetachedCommand(command, args, { cwd: rootDir, env });
 }
 
-if (lane.gatekeeper) await run('bash', ['scripts/m4-gatekeeper.sh'], laneEnv);
-if (lane.state) await run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], stateEnv);
-await run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], finalEnv);
+try {
+  if (lane.gatekeeper) await run('bash', ['scripts/m4-gatekeeper.sh'], laneEnv);
+  if (lane.state) await run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], stateEnv);
+  await run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], finalEnv);
+} catch (error) {
+  console.error(error);
+  process.exitCode = error?.exitCode ?? 1;
+} finally {
+  cleanupE2ePort({ env: finalEnv });
+}
