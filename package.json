@@ -100,7 +100,7 @@
     "ci:local:sonar:pr": "node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh sonar-pr",
     "ci:local:ready": "node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh ready",
     "ci:local:clean": "bash scripts/ci-local-parity.sh clean",
-    "test:ci:contracts": "node --test scripts/ci/*.test.mjs scripts/check-modularity-guard.test.mjs",
+    "test:ci:contracts": "node --test --test-concurrency=1 scripts/ci/*.test.mjs scripts/check-modularity-guard.test.mjs",
     "sonar:start": "docker compose --profile sonar up -d sonarqube db",
     "sonar:stop": "docker compose --profile sonar stop sonarqube db",
     "sonar:down": "docker compose --profile sonar down --remove-orphans",
