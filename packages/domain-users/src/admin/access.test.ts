@@ -37,13 +37,13 @@ vi.mock('drizzle-orm', () => ({
   isNull: vi.fn((column: unknown) => ({ isNull: column })),
 }));
 
-function session(role: string, tenantId = 'tenant-1'): UserSession {
+function session(role: string, tenantId: string | null = 'tenant-1'): UserSession {
   return {
     user: {
       id: 'user-1',
       email: 'user@example.com',
       role,
-      tenantId,
+      ...(tenantId === null ? {} : { tenantId }),
     },
   } as UserSession;
 }
@@ -73,6 +73,30 @@ describe('admin access role boundaries', () => {
       session('tenant_admin')
     );
     await expect(requireTenantAdminSession(session('admin'))).resolves.toEqual(session('admin'));
+    expect(dbMock.select).not.toHaveBeenCalled();
+  });
+
+  it('allows primary branch managers only when tenant and branch scoped', async () => {
+    const scopedSession = {
+      ...session('branch_manager'),
+      user: { ...session('branch_manager').user, branchId: 'branch-1' },
+    } as UserSession;
+
+    await expect(requireTenantAdminOrBranchManagerSession(scopedSession)).resolves.toEqual(
+      scopedSession
+    );
+    expect(dbMock.select).not.toHaveBeenCalled();
+  });
+
+  it('rejects primary branch managers missing tenant context', async () => {
+    const scopedSession = {
+      ...session('branch_manager', null),
+      user: { ...session('branch_manager', null).user, branchId: 'branch-1' },
+    } as UserSession;
+
+    await expect(requireTenantAdminOrBranchManagerSession(scopedSession)).rejects.toThrow(
+      'Session missing tenantId'
+    );
     expect(dbMock.select).not.toHaveBeenCalled();
   });
 

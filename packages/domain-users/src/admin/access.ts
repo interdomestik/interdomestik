@@ -105,6 +105,7 @@ export async function requireTenantAdminOrBranchManagerSession(
     if (!session.user.branchId) {
       throw new Error('Unauthorized');
     }
+    ensureTenantId(session);
     return session;
   }
 
