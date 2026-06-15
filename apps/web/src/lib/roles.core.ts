@@ -1,7 +1,10 @@
 export type RoleLike = string | null | undefined;
 
 export const ROLE_SUPER_ADMIN = 'super_admin' as const;
+export const ROLE_ADMIN = 'admin' as const;
 export const ROLE_TENANT_ADMIN = 'tenant_admin' as const;
+export const ROLE_GLOBAL_SUPPORT = 'global_support' as const;
+export const ROLE_AUDITOR = 'auditor' as const;
 export const ROLE_STAFF = 'staff' as const;
 export const ROLE_BRANCH_MANAGER = 'branch_manager' as const;
 export const ROLE_AGENT = 'agent' as const;
@@ -17,7 +20,7 @@ export function isStaff(role: RoleLike): boolean {
 }
 
 export function isAdmin(role: RoleLike): boolean {
-  return role === 'admin' || role === ROLE_TENANT_ADMIN || role === ROLE_SUPER_ADMIN;
+  return role === ROLE_ADMIN || role === ROLE_TENANT_ADMIN || role === ROLE_SUPER_ADMIN;
 }
 
 export function isStaffOrAdmin(role: RoleLike): boolean {
@@ -29,7 +32,7 @@ export function isSuperAdmin(role: RoleLike): boolean {
 }
 
 export function isTenantAdmin(role: RoleLike): boolean {
-  return role === ROLE_TENANT_ADMIN || isSuperAdmin(role);
+  return role === ROLE_ADMIN || role === ROLE_TENANT_ADMIN;
 }
 
 export function isBranchManager(role: RoleLike): boolean {

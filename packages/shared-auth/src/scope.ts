@@ -55,6 +55,15 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
     };
   }
 
+  // Read-only global support and auditor roles inspect an explicitly selected tenant.
+  if (role === ROLES.global_support || role === ROLES.auditor) {
+    return {
+      tenantId: tenantId!,
+      isFullTenantScope: true,
+      isCrossTenantScope: false,
+    };
+  }
+
   // Staff: full tenant scope for claims
   if (role === ROLES.staff) {
     return {

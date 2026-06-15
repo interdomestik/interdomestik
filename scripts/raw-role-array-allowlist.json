@@ -48,7 +48,6 @@
     "packages/domain-membership-billing/src/commissions/admin/access.ts:5:29:admin,tenant_admin,super_admin",
     "packages/domain-membership-billing/src/commissions/get-my.ts:21:8:agent,staff,admin",
     "packages/domain-membership-billing/src/commissions/summary.ts:15:8:agent,staff,admin",
-    "packages/domain-users/src/admin/access.ts:8:28:tenant_admin,super_admin",
     "packages/domain-users/src/admin/get-staff.ts:15:67:staff,admin",
     "packages/domain-users/src/admin/role-rules.ts:1:38:agent,branch_manager",
     "scripts/release-gate/config.ts:33:16:member,agent,staff,admin",

@@ -22,7 +22,7 @@ export async function getSuperAdminKPIsAction() {
 export async function getTenantAdminKPIsAction() {
   return runAuthenticatedAction(async ({ userRole, tenantId }) => {
     // Tenant Admin / Staff Dashboard
-    const hasAccess = isTenantAdmin(userRole) || userRole === 'staff';
+    const hasAccess = isSuperAdmin(userRole) || isTenantAdmin(userRole) || userRole === 'staff';
 
     if (!hasAccess) {
       throw new Error('Unauthorized: Tenant Admin or Staff access required');
@@ -40,7 +40,7 @@ export async function getBranchKPIsAction(branchId: string) {
 
     let allowed = false;
 
-    if (isTenantAdmin(userRole) || userRole === 'staff') {
+    if (isSuperAdmin(userRole) || isTenantAdmin(userRole) || userRole === 'staff') {
       allowed = true;
     } else if (isBranchManager(userRole)) {
       // Must match their assigned branch
