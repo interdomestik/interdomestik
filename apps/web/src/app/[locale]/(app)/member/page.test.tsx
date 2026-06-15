@@ -13,7 +13,9 @@ const hoisted = vi.hoisted(() => ({
     member: {
       id: 'member-1',
       name: 'Member One',
-      membershipNumber: 'KS-1',
+      membershipNumber: 'KS-1' as string | null,
+      role: 'member',
+      tenantId: 'tenant_ks' as string | null,
     },
     claims: [],
     activeClaimId: null,
