@@ -46,6 +46,23 @@ function makeRequest(pathname: string, cookieHeader?: string, host = 'ida.localh
   return new NextRequest(`http://${host}${pathname}`, { headers });
 }
 
+function expectProxyContext(
+  response: Response,
+  expected: { tenant: string; context: string; setCookie?: string | null }
+): void {
+  expect(response.status).toBe(200);
+  expect(response.headers.get('x-e2e-tenant')).toBe(expected.tenant);
+  expect(response.headers.get('x-e2e-tenant-context')).toBe(expected.context);
+
+  const setCookie = response.headers.get('set-cookie');
+  if (expected.setCookie === undefined) return;
+  if (expected.setCookie === null) {
+    expect(setCookie).toBeNull();
+    return;
+  }
+  expect(setCookie).toContain(expected.setCookie);
+}
+
 describe('proxy ida front-door context', () => {
   beforeEach(() => {
     originalE2eEnv = Object.fromEntries(E2E_ENV_KEYS.map(key => [key, process.env[key]]));
@@ -64,10 +81,7 @@ describe('proxy ida front-door context', () => {
   it('resolves ida.localhost as public no-tenant context without setting a tenant cookie', async () => {
     const response = await proxy(makeRequest('/sq'));
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get('x-e2e-tenant')).toBe('none');
-    expect(response.headers.get('x-e2e-tenant-context')).toBe('public');
-    expect(response.headers.get('set-cookie')).toBeNull();
+    expectProxyContext(response, { tenant: 'none', context: 'public', setCookie: null });
   });
 
   it('does not refresh stale tenant cookies on ida public requests', async () => {
@@ -75,10 +89,7 @@ describe('proxy ida front-door context', () => {
       makeRequest('/sq/pricing', 'tenantId=tenant_mk', 'ida.127.0.0.1.nip.io:3000')
     );
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get('x-e2e-tenant')).toBe('none');
-    expect(response.headers.get('x-e2e-tenant-context')).toBe('public');
-    expect(response.headers.get('set-cookie')).toBeNull();
+    expectProxyContext(response, { tenant: 'none', context: 'public', setCookie: null });
   });
 
   it('supports configured IDA_HOST as public no-tenant context', async () => {
@@ -86,9 +97,33 @@ describe('proxy ida front-door context', () => {
 
     const response = await proxy(makeRequest('/sq', undefined, 'front-door.localhost:3000'));
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get('x-e2e-tenant')).toBe('none');
-    expect(response.headers.get('x-e2e-tenant-context')).toBe('public');
-    expect(response.headers.get('set-cookie')).toBeNull();
+    expectProxyContext(response, { tenant: 'none', context: 'public', setCookie: null });
+  });
+
+  it('keeps unknown hosts outside tenant and public cookie handling', async () => {
+    const response = await proxy(makeRequest('/sq', undefined, 'example.test'));
+
+    expectProxyContext(response, { tenant: 'none', context: 'unknown', setCookie: null });
+  });
+
+  it('keeps country hosts resolving as compatibility aliases', async () => {
+    const response = await proxy(makeRequest('/sq', undefined, 'ks.localhost:3000'));
+
+    expectProxyContext(response, {
+      tenant: 'tenant_ks',
+      context: 'compatibility_alias',
+      setCookie: 'tenantId=tenant_ks',
+    });
+  });
+
+  it('overwrites stale tenant cookies on country-host aliases', async () => {
+    const response = await proxy(makeRequest('/sq', 'tenantId=tenant_mk', 'ks.localhost:3000'));
+
+    expectProxyContext(response, {
+      tenant: 'tenant_ks',
+      context: 'compatibility_alias',
+      setCookie: 'tenantId=tenant_ks',
+    });
+    expect(response.headers.get('set-cookie')).not.toContain('tenantId=tenant_mk');
   });
 });

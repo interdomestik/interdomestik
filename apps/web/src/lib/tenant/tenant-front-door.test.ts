@@ -40,16 +40,28 @@ describe('tenant-front-door', () => {
     });
   });
 
-  it('keeps country and pilot hosts as tenant contexts', () => {
+  it('keeps unknown hosts outside tenant and public contexts', () => {
+    expect(resolveTenantHostContext('example.test')).toEqual({
+      kind: 'unknown',
+      tenantId: null,
+      source: 'unknown_host',
+    });
+  });
+
+  it('keeps country and pilot hosts as compatibility alias contexts', () => {
     expect(resolveTenantHostContext('ks.localhost:3000')).toEqual({
-      kind: 'tenant',
+      kind: 'compatibility_alias',
       tenantId: 'tenant_ks',
-      source: 'host',
+      source: 'country_host_alias',
+      defaultBookingTenantId: 'tenant_ks',
+      hostAlias: 'ks',
     });
     expect(resolveTenantHostContext('pilot.127.0.0.1.nip.io:3000')).toEqual({
-      kind: 'tenant',
+      kind: 'compatibility_alias',
       tenantId: 'pilot-mk',
-      source: 'host',
+      source: 'country_host_alias',
+      defaultBookingTenantId: 'pilot-mk',
+      hostAlias: 'pilot',
     });
   });
 });

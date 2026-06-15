@@ -1,4 +1,13 @@
-export type TenantId = 'tenant_mk' | 'tenant_ks' | 'tenant_al' | 'pilot-mk';
+import {
+  canonicalHostForTenant,
+  envHostForTenant,
+  localHostForTenant,
+  resolveCountryHostCompatibilityAlias,
+  type CountryHostAliasLabel,
+  type TenantId,
+} from './tenant-host-aliases';
+
+export type { TenantId } from './tenant-host-aliases';
 export type TenantLocale = 'sq' | 'en' | 'sr' | 'mk';
 
 export const TENANT_COOKIE_NAME = 'tenantId';
@@ -16,11 +25,18 @@ export type TenantResolutionOptions = {
   allowLoopbackFallback?: boolean;
 };
 
-export type TenantResolutionSource = 'host' | 'cookie' | 'header' | 'query' | 'default_public';
+export type TenantResolutionSource =
+  | 'compatibility_alias'
+  | 'cookie'
+  | 'header'
+  | 'query'
+  | 'default_public';
 
 export type TenantResolutionResult = {
   tenantId: TenantId;
   source: TenantResolutionSource;
+  defaultBookingTenantId?: TenantId;
+  hostAlias?: CountryHostAliasLabel;
 };
 
 export function resolveDefaultPublicTenantId(): TenantId {
@@ -34,99 +50,14 @@ function normalizeHost(host: string): string {
   return withoutPort.toLowerCase().replace(/\.$/, '');
 }
 
-function normalizeHostWithPort(host: string): string {
-  const raw = host.split(',')[0]?.trim() ?? '';
-  return raw.toLowerCase().replace(/\.$/, '');
-}
-
 function isTenantId(value: string | null | undefined): value is TenantId {
   return (
     value === 'tenant_mk' || value === 'tenant_ks' || value === 'tenant_al' || value === 'pilot-mk'
   );
 }
 
-function hostsForTenant(tenantId: TenantId): string[] {
-  const envHosts: string[] = [];
-
-  if (tenantId === 'tenant_mk' && process.env.MK_HOST) envHosts.push(process.env.MK_HOST);
-  if (tenantId === 'tenant_ks' && process.env.KS_HOST) envHosts.push(process.env.KS_HOST);
-  if (tenantId === 'tenant_al' && process.env.AL_HOST) envHosts.push(process.env.AL_HOST);
-  if (tenantId === 'pilot-mk' && process.env.PILOT_HOST) envHosts.push(process.env.PILOT_HOST);
-
-  // Canonical production hosts
-  const canonical =
-    tenantId === 'tenant_mk'
-      ? ['mk.interdomestik.com']
-      : tenantId === 'tenant_ks'
-        ? ['ks.interdomestik.com']
-        : tenantId === 'tenant_al'
-          ? ['al.interdomestik.com']
-          : ['pilot.interdomestik.com'];
-
-  // Local development convenience (documented in docs/tenant-domains.md)
-  const local =
-    tenantId === 'tenant_mk'
-      ? ['mk.localhost']
-      : tenantId === 'tenant_ks'
-        ? ['ks.localhost']
-        : tenantId === 'tenant_al'
-          ? ['al.localhost']
-          : ['pilot.localhost'];
-
-  // Include both host-only and host:port variants from env.
-  // We match against both because `Host` may include a port in dev.
-  return [...canonical, ...local, ...envHosts].filter(Boolean);
-}
-
-function canonicalHostForTenant(tenantId: TenantId): string {
-  return tenantId === 'tenant_mk'
-    ? 'mk.interdomestik.com'
-    : tenantId === 'tenant_ks'
-      ? 'ks.interdomestik.com'
-      : tenantId === 'tenant_al'
-        ? 'al.interdomestik.com'
-        : 'pilot.interdomestik.com';
-}
-
-function localHostForTenant(tenantId: TenantId): string {
-  return tenantId === 'tenant_mk'
-    ? 'mk.localhost'
-    : tenantId === 'tenant_ks'
-      ? 'ks.localhost'
-      : tenantId === 'tenant_al'
-        ? 'al.localhost'
-        : 'pilot.localhost';
-}
-
-function envHostForTenant(tenantId: TenantId): string | null {
-  if (tenantId === 'tenant_mk') return process.env.MK_HOST ?? null;
-  if (tenantId === 'tenant_ks') return process.env.KS_HOST ?? null;
-  if (tenantId === 'tenant_al') return process.env.AL_HOST ?? null;
-  return process.env.PILOT_HOST ?? null;
-}
-
 export function resolveTenantFromHost(host: string): TenantId | null {
-  const normalized = normalizeHost(host);
-  const normalizedWithPort = normalizeHostWithPort(host);
-
-  for (const tenantId of ['tenant_mk', 'tenant_ks', 'tenant_al', 'pilot-mk'] as const) {
-    for (const candidate of hostsForTenant(tenantId)) {
-      const candidateNormalized = normalizeHost(candidate);
-      const candidateWithPort = normalizeHostWithPort(candidate);
-
-      if (normalized === candidateNormalized) return tenantId;
-      if (normalizedWithPort === candidateWithPort) return tenantId;
-    }
-  }
-
-  // Robust CI/Local fallback using nip.io (wildcard-like)
-  // Matches: ks.127.0.0.1.nip.io, mk.127.0.0.1.nip.io, etc.
-  if (/^mk\./i.test(normalized)) return 'tenant_mk';
-  if (/^ks\./i.test(normalized)) return 'tenant_ks';
-  if (/^al\./i.test(normalized)) return 'tenant_al';
-  if (/^pilot\./i.test(normalized)) return 'pilot-mk';
-
-  return null;
+  return resolveCountryHostCompatibilityAlias(host)?.tenantId ?? null;
 }
 
 export function isTenantHost(host: string): boolean {
@@ -179,8 +110,15 @@ export function resolveTenantContextFromSources(
   sources: TenantResolutionSources,
   options: TenantResolutionOptions = {}
 ): TenantResolutionResult {
-  const hostTenant = resolveTenantFromHost(sources.host ?? '');
-  if (hostTenant) return { tenantId: hostTenant, source: 'host' };
+  const hostAlias = resolveCountryHostCompatibilityAlias(sources.host ?? '');
+  if (hostAlias) {
+    return {
+      tenantId: hostAlias.tenantId,
+      source: 'compatibility_alias',
+      defaultBookingTenantId: hostAlias.defaultBookingTenantId,
+      hostAlias: hostAlias.label,
+    };
+  }
 
   const productionSensitive = options.productionSensitive ?? true;
   const isLocalLoopbackFallbackAllowed =
