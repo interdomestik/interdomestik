@@ -44,7 +44,7 @@ function changedFiles(repoRoot) {
 }
 
 function diffFromOriginMain(repoRoot) {
-  const output = execFileSync('/usr/bin/git', ['diff', '--name-only', 'origin/main...HEAD'], {
+  const output = execFileSync('/usr/bin/git', ['diff', '--name-only', 'origin/main..HEAD'], {
     cwd: repoRoot,
     encoding: 'utf8',
     env: SAFE_GIT_ENV,
