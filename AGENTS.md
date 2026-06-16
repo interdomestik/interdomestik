@@ -1,6 +1,6 @@
 # Interdomestik AGENTS.md
 
-This file contains guidelines and commands for agentic coding agents working on the Interdomestik monorepo.
+This file contains agent guidelines and commands. For reviews, also follow `code_review.md`.
 
 ## ⚠️ V3 / Phase C Execution Rules (MANDATORY)
 
