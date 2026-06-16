@@ -24,7 +24,7 @@ Use this file for Codex review, external model review, and human PR review.
 
 - `apps/web/src/proxy.ts` is the routing/access-control authority and is read-only unless explicitly authorized.
 - Canonical routes `/member`, `/agent`, `/staff`, and `/admin` must not be renamed or bypassed.
-- `*-page-ready` clarity markers are contractual.
+- `page-ready` and `*-page-ready` clarity markers are contractual.
 - No broad auth, tenancy, routing, domain, schema, billing, UI, README, AGENTS, or architecture refactors unless explicitly authorized.
 - Paddle remains the only V3 pilot billing provider.
 

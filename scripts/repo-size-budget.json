@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "maxTrackedBytes": 35788489,
+  "maxTrackedBytes": 35788506,
   "maxTrackedFiles": 4207,
   "maxCategoryBytes": {
     "large support/generated-ish": 17772041,
     "source/scripts": 6675480,
-    "docs/text": 5126454,
+    "docs/text": 5126471,
     "tests/e2e": 4535797,
     "config/data/messages": 1549552,
     "other": 129165
