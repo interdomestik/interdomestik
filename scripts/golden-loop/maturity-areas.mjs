@@ -27,15 +27,29 @@ function routeCommandSet(routes) {
 
 function changedFiles(repoRoot) {
   try {
-    const output = execFileSync('/usr/bin/git', ['diff', '--name-only', 'origin/main...HEAD'], {
-      cwd: repoRoot,
-      encoding: 'utf8',
-      env: SAFE_GIT_ENV,
-    });
-    return { ok: true, files: output.split('\n').filter(Boolean), reason: '' };
+    return { ok: true, files: diffFromOriginMain(repoRoot), reason: '' };
   } catch (error) {
-    return { ok: false, files: [], reason: error.message };
+    try {
+      execFileSync('/usr/bin/git', ['fetch', '--no-tags', '--depth=1', 'origin', 'main:refs/remotes/origin/main'], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        env: SAFE_GIT_ENV,
+        stdio: 'pipe',
+      });
+      return { ok: true, files: diffFromOriginMain(repoRoot), reason: '' };
+    } catch {
+      return { ok: false, files: [], reason: error.message };
+    }
   }
+}
+
+function diffFromOriginMain(repoRoot) {
+  const output = execFileSync('/usr/bin/git', ['diff', '--name-only', 'origin/main...HEAD'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: SAFE_GIT_ENV,
+  });
+  return output.split('\n').filter(Boolean);
 }
 
 function scoreArea(name, checks, reason) {
