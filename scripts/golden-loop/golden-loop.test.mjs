@@ -77,6 +77,12 @@ test('normalizeReviewerOutput returns raw reviewer output', () => {
   assert.equal(normalizeReviewerOutput(output), output);
 });
 
+test('adapter keeps Gemini as an executable fallback and Opus escalation configured', () => {
+  assert.equal(adapter.reviewerWaterfall.routes.gemini.command, 'gemini');
+  assert.equal(adapter.reviewerWaterfall.routes.opus.command, 'claude');
+  assert.equal(adapter.reviewerWaterfall.routes.fable, undefined);
+});
+
 test('resume state round-trips atomically and journals', () => {
   const root = tempRoot();
   const state = emptyState('T-TEST');

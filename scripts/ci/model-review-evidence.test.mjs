@@ -114,11 +114,11 @@ test('model-review access writes receipts for callable and command-only routes',
       routeStatus: 'available',
     },
     {
-      name: 'fable-escalation',
-      args: ['--reviewers', 'fable', '--required', 'fable', '--probe', 'command'],
+      name: 'opus-escalation',
+      args: ['--reviewers', 'opus', '--required', 'opus', '--probe', 'command'],
       status: 'available',
       routeStatus: 'available',
-      requiredReviewer: 'fable',
+      requiredReviewer: 'opus',
     },
   ];
 

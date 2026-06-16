@@ -103,24 +103,24 @@ test('waterfall short-circuits at first contract-valid READY review', async () =
   assert.ok(results.every(result => result.startedAt && result.completedAt));
   assert.ok(results.every(result => Number.isInteger(result.durationMs)));
 });
-test('fable escalation runs only when explicitly included in order', async () => {
+test('opus escalation runs only when explicitly included in order', async () => {
   const calls = [];
   const outputs = {
     sonnet: { exitCode: 0, output: contractReview({ verdict: 'BLOCKED' }) },
-    fable: {
+    opus: {
       exitCode: 0,
-      output: contractReview().replace('claude-sonnet-4-6', 'claude-fable-5'),
+      output: contractReview().replace('claude-sonnet-4-6', 'claude-opus-4-8'),
     },
   };
   const { results, winner } = await runWaterfall(
-    ['sonnet', 'fable'],
+    ['sonnet', 'opus'],
     adapter.reviewerWaterfall.routes,
     'prompt',
     makeExecutor(calls, outputs),
     { sliceId: SLICE }
   );
-  assert.deepEqual(calls, ['sonnet', 'fable']);
-  assert.equal(winner.reviewer, 'fable');
+  assert.deepEqual(calls, ['sonnet', 'opus']);
+  assert.equal(winner.reviewer, 'opus');
   assert.deepEqual(
     results.map(result => result.status),
     ['unresolved-blockers', 'completed']

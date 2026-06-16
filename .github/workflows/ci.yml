@@ -84,7 +84,7 @@ jobs:
       - name: Run Audits
         run: |
           node scripts/check-env-ci.mjs
-          pnpm test:ci:contracts
+          pnpm test:ci:contracts && node scripts/golden-loop/playbook-contracts.mjs
           pnpm check:e2e-contracts:base
           pnpm lint:production-warnings
           pnpm track:audit
