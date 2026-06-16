@@ -53,7 +53,7 @@ test('tenant-host lane guard passes current inventoried alias and regression fil
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /E2E tenant-host lane guard passed/u);
-  assert.match(result.stdout, /12 projects, 17 files inventoried/u);
+  assert.match(result.stdout, /12 projects, 16 files inventoried/u);
 });
 
 test('tenant-host lane guard blocks new dashboard or auth specs from using host as tenant identity', t => {

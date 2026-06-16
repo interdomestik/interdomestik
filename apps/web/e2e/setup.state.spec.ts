@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Page } from '@playwright/test';
 import { test as authTest, expect } from './fixtures/auth.fixture';
+import { getAuthStateScopeFromTestInfo } from './fixtures/auth-state-scope';
 
 const stateDir = path.resolve(__dirname, '..', '.playwright', 'state');
 const COOKIE_CONSENT_STORAGE_KEY = 'interdomestik_cookie_consent_v1';
@@ -32,13 +33,10 @@ authTest.describe('E2E Setup', () => {
       fs.mkdirSync(stateDir, { recursive: true });
     }
 
-    // 1. Derive tenant robustly from headers (not project name)
-    const headers = testInfo.project.use.extraHTTPHeaders || {};
-    const host = (headers['x-forwarded-host'] || '').toLowerCase();
-    const tenant = host.startsWith('mk.') ? 'mk' : 'ks';
-    const outFile = path.join(stateDir, `${tenant}.json`);
+    // 1. Derive tenant/session state scope from explicit project context.
+    const outFile = path.join(stateDir, `${getAuthStateScopeFromTestInfo(testInfo)}.json`);
 
-    console.log(`[Setup] Generating state for ${tenant} -> ${outFile}`);
+    console.log(`[Setup] Generating state -> ${outFile}`);
 
     // Perform login (using the robust saveState fixture)
     await saveState('member');

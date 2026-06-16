@@ -27,8 +27,9 @@ import {
   resolvePostAuthProbePlan,
   type PostAuthProbeMode,
 } from './auth.actions';
+import { getAuthStateScopeFromTestInfo, type AuthStateScope } from './auth-state-scope';
+import { credsFor } from './auth-users';
 import {
-  credsFor,
   getProjectUrlInfo,
   getTenantFromTestInfo,
   ipForRole,
@@ -126,10 +127,9 @@ async function assertAnyReadyMarker(
   throw new Error(`No readiness marker visible. Expected one of: ${markers.join(', ')}`);
 }
 
-function storageStateFile(role: Role, tenant: Tenant): string {
-  // Keep legacy `admin_mk` file name for backwards-compat with existing state files.
+function storageStateFile(role: Role, scope: AuthStateScope): string {
   const filename = role === 'admin_mk' ? 'admin' : role;
-  return path.join(__dirname, '..', '.auth', tenant, `${filename}.json`);
+  return path.join(__dirname, '..', '.auth', scope, `${filename}.json`);
 }
 
 async function storageStateUsable(filePath: string, expectedHost: string): Promise<boolean> {
@@ -421,7 +421,7 @@ export const test = base.extend<AuthFixtures>({
     await use(async (role: Role) => {
       attachDialogDiagnostics(page);
       const tenant = getTenantFromTestInfo(testInfo);
-      const statePath = storageStateFile(role, tenant);
+      const statePath = storageStateFile(role, getAuthStateScopeFromTestInfo(testInfo));
       const info = getProjectUrlInfo(testInfo, baseURL);
       setWorkerE2EBaseURL(info);
       await performLogin(page, role, info, testInfo, tenant);
@@ -446,7 +446,7 @@ export const test = base.extend<AuthFixtures>({
     const tenant = getTenantFromTestInfo(testInfo);
     const info = getProjectUrlInfo(testInfo, baseURL);
     setWorkerE2EBaseURL(info);
-    const statePath = storageStateFile('admin', tenant);
+    const statePath = storageStateFile('admin', getAuthStateScopeFromTestInfo(testInfo));
 
     const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
     const mergedHeaders = {
@@ -482,7 +482,7 @@ export const test = base.extend<AuthFixtures>({
     const tenant = getTenantFromTestInfo(testInfo);
     const info = getProjectUrlInfo(testInfo, null);
     setWorkerE2EBaseURL(info);
-    const statePath = storageStateFile('agent', tenant);
+    const statePath = storageStateFile('agent', getAuthStateScopeFromTestInfo(testInfo));
     const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
     const mergedHeaders = {
       ...projectHeaders,
@@ -517,7 +517,7 @@ export const test = base.extend<AuthFixtures>({
     const tenant = getTenantFromTestInfo(testInfo);
     const info = getProjectUrlInfo(testInfo, null);
     setWorkerE2EBaseURL(info);
-    const statePath = storageStateFile('staff', tenant);
+    const statePath = storageStateFile('staff', getAuthStateScopeFromTestInfo(testInfo));
     const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
     const mergedHeaders = {
       ...projectHeaders,
@@ -552,7 +552,7 @@ export const test = base.extend<AuthFixtures>({
     const tenant = getTenantFromTestInfo(testInfo);
     const info = getProjectUrlInfo(testInfo, null);
     setWorkerE2EBaseURL(info);
-    const statePath = storageStateFile('branch_manager', tenant);
+    const statePath = storageStateFile('branch_manager', getAuthStateScopeFromTestInfo(testInfo));
     const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
     const mergedHeaders = {
       ...projectHeaders,
