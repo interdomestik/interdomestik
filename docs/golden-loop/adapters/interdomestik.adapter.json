@@ -62,6 +62,14 @@
   ],
   "reviewerWaterfall": {
     "order": ["sonnet"],
+    "fallbackTriggers": [
+      "unavailable",
+      "blocked",
+      "error",
+      "refused",
+      "invalid",
+      "unresolved-blockers"
+    ],
     "routes": {
       "sonnet": {
         "command": "claude",

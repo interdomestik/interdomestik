@@ -1,0 +1,73 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { resolveActiveSlice } from './active-slice.mjs';
+import { runWaterfall } from './reviewer-waterfall.mjs';
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, '../..');
+const adapter = JSON.parse(
+  fs.readFileSync(
+    new URL('../../docs/golden-loop/adapters/interdomestik.adapter.json', import.meta.url),
+    'utf8'
+  )
+);
+
+function contractReview() {
+  return [
+    'REVIEWER: claude-fable-5',
+    'SLICE: T-303',
+    'SCOPE: bounded review packet for active-slice and fallback contracts',
+    'FINDINGS:',
+    '1. No blocker findings.',
+    'VERDICT: READY',
+    `NOTES: ${'reviewed active authority, gate coverage, and fallback behavior. '.repeat(3)}`,
+  ].join('\n');
+}
+
+test('active slice resolver prefers concrete promoted slice over ARCH-FINAL umbrella', () => {
+  const resolved = resolveActiveSlice(repoRoot);
+  assert.equal(resolved.ok, true);
+  assert.equal(resolved.active.id, 'T-303');
+  assert.notEqual(resolved.active.id, 'ARCH-FINAL');
+});
+
+test('adapter encodes bounded reviewer fallback triggers', () => {
+  const triggers = new Set(adapter.reviewerWaterfall.fallbackTriggers);
+  for (const trigger of [
+    'unavailable',
+    'blocked',
+    'error',
+    'refused',
+    'invalid',
+    'unresolved-blockers',
+  ]) {
+    assert.equal(triggers.has(trigger), true, `missing ${trigger}`);
+  }
+  assert.ok(Object.keys(adapter.reviewerWaterfall.routes).length >= 2);
+});
+
+test('waterfall falls through after quota-style reviewer blockage', async () => {
+  const calls = [];
+  const executor = route => {
+    const reviewer = Object.keys(adapter.reviewerWaterfall.routes).find(
+      key => adapter.reviewerWaterfall.routes[key] === route
+    );
+    calls.push(reviewer);
+    if (reviewer === 'sonnet') return { blocked: true, reason: 'quota_or_rate_limit' };
+    return { exitCode: 0, output: contractReview() };
+  };
+  const { results, winner } = await runWaterfall(
+    ['sonnet', 'fable'],
+    adapter.reviewerWaterfall.routes,
+    'prompt',
+    executor,
+    { sliceId: 'T-303' }
+  );
+  assert.deepEqual(calls, ['sonnet', 'fable']);
+  assert.equal(results[0].status, 'blocked');
+  assert.equal(results[0].reason, 'quota_or_rate_limit');
+  assert.equal(winner.reviewer, 'fable');
+});
