@@ -10,7 +10,7 @@ const DEFAULT_AUTHORITY_FILES = [
 ];
 
 const ACTIVE_PATTERNS = [
-  /next active governed implementation goal is exactly one canonical tracker slice:\s*`([^`]+)`/giu,
+  /next\s+active\s+governed\s+implementation\s+goal\s+is\s+exactly\s+one\s+canonical\s+tracker\s+slice:\s*`([^`]+)`/giu,
   /`([^`]+)`\s+is now the next active governed implementation goal/giu,
   /next active governed\s+goal,\s*`([^`]+)`/giu,
 ];
