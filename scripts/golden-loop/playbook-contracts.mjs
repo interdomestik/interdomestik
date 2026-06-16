@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { resolveActiveSlice } from './active-slice.mjs';
+import { buildMaturityScorecard } from './maturity-scorecard.mjs';
 
 const ADAPTER_PATH = 'docs/golden-loop/adapters/interdomestik.adapter.json';
 
@@ -104,9 +105,18 @@ function main() {
   const activeSlice = validateActiveSlice(repoRoot, findings);
   validateGateCoverage(adapter, findings);
   validateReviewerFallback(adapter, findings);
+  const maturity = buildMaturityScorecard(repoRoot);
+  addFinding(
+    findings,
+    maturity.ok && maturity.overall >= 9.2,
+    'maturity scorecard stays at or above 9.2 local PR readiness',
+    `${maturity.overall.toFixed(1)}/10`
+  );
 
   const failed = findings.filter(finding => !finding.ok);
-  console.log(JSON.stringify({ ok: failed.length === 0, repoRoot, activeSlice, findings }, null, 2));
+  console.log(
+    JSON.stringify({ ok: failed.length === 0, repoRoot, activeSlice, maturity, findings }, null, 2)
+  );
   process.exit(failed.length === 0 ? 0 : 1);
 }
 
