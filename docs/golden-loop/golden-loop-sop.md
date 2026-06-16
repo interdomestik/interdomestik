@@ -26,7 +26,7 @@ through routine decisions.
 | P2  | Design confidence  | auto               | Read authority files in adapter order; write a short design note into state. If design requires touching a protected path or violating an invariant → stop (human boundary).          |
 | P3  | Implementation     | auto               | Branch per adapter rules; scoped edits only; respect file-size and modularity rules from the adapter.                                                                                 |
 | P4  | Verification       | auto               | Run gates by **cost class** (below). Cheap → expensive; full-cost gates at most `budgets.maxFullGateRuns` per slice.                                                                  |
-| P5  | Review             | auto               | **Pre-PR Sonnet review + Codex senior review** (below). Fable 5 is an explicit escalation route only.                                                                                 |
+| P5  | Review             | auto               | **Pre-PR Sonnet review + Codex senior review** (below). Opus 4.8 is an explicit escalation route only.                                                                                |
 | P6  | PR + remediation   | mostly auto        | Classify PR as runtime or docs-only; batch-poll CI/Sonar issues/Sonar hotspots/reviewer feedback; auto-remediate `autoSafe` classes, then rerun Codex review after substantive fixes. |
 | P7  | Merge + closeout   | auto, gated        | If `autoMerge` criteria pass, squash-merge; then update canonical trackers/programs in a compact closeout PR and prepare the next-slice handoff for human approval.                   |
 
@@ -65,9 +65,10 @@ split closeout docs so the PR stays docs-only.
 Normal review is front-loaded before PR: run Sonnet on a bounded evidence
 packet, fix blocker/hardening findings, then run `codex review --uncommitted`
 (or `--base main` after commit) as the final local senior-engineer bug-finding
-pass. Fable 5 stays out of the default order; add it only for Tier 3 high-risk
-scope, blocked Sonnet/Codex evidence, unresolved disagreement, or explicit
-human request. Codex is not a waterfall route.
+pass. Gemini is the normal fallback when Sonnet is blocked; Opus 4.8 stays out
+of the default order and is added only for Tier 3 high-risk scope, blocked
+Sonnet/Codex evidence, unresolved disagreement, or explicit human request.
+Codex is not a waterfall route.
 
 Within a configured waterfall, fall through only when the current route is
 unavailable, errored, refused/rerouted, invalid, or returns unresolved blockers.

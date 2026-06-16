@@ -15,9 +15,9 @@ const adapter = JSON.parse(
   )
 );
 
-function contractReview() {
+function contractReview(reviewer = 'gemini-3.1-pro-preview') {
   return [
-    'REVIEWER: claude-fable-5',
+    `REVIEWER: ${reviewer}`,
     'SLICE: T-303',
     'SCOPE: bounded review packet for active-slice and fallback contracts',
     'FINDINGS:',
@@ -47,9 +47,13 @@ test('adapter encodes bounded reviewer fallback triggers', () => {
     assert.equal(triggers.has(trigger), true, `missing ${trigger}`);
   }
   assert.ok(Object.keys(adapter.reviewerWaterfall.routes).length >= 2);
+  assert.deepEqual(adapter.reviewerWaterfall.order, ['sonnet', 'gemini']);
+  assert.ok(adapter.reviewerWaterfall.routes.opus);
+  assert.equal(adapter.reviewerWaterfall.routes.fable, undefined);
+  assert.equal(adapter.reviewerWaterfall.order.includes('opus'), false);
 });
 
-test('waterfall falls through after quota-style reviewer blockage', async () => {
+test('configured waterfall falls through after quota-style reviewer blockage', async () => {
   const calls = [];
   const executor = route => {
     const reviewer = Object.keys(adapter.reviewerWaterfall.routes).find(
@@ -60,14 +64,14 @@ test('waterfall falls through after quota-style reviewer blockage', async () => 
     return { exitCode: 0, output: contractReview() };
   };
   const { results, winner } = await runWaterfall(
-    ['sonnet', 'fable'],
+    adapter.reviewerWaterfall.order,
     adapter.reviewerWaterfall.routes,
     'prompt',
     executor,
     { sliceId: 'T-303' }
   );
-  assert.deepEqual(calls, ['sonnet', 'fable']);
+  assert.deepEqual(calls, ['sonnet', 'gemini']);
   assert.equal(results[0].status, 'blocked');
   assert.equal(results[0].reason, 'quota_or_rate_limit');
-  assert.equal(winner.reviewer, 'fable');
+  assert.equal(winner.reviewer, 'gemini');
 });

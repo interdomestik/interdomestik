@@ -14,14 +14,14 @@ export const modelReviewRoutes = {
       '--no-session-persistence',
     ],
   },
-  fable: {
-    label: 'Claude Fable 5 escalation review',
+  opus: {
+    label: 'Claude Opus 4.8 escalation review',
     command: 'claude',
     args: prompt => [
       '-p',
       prompt,
       '--model',
-      'claude-fable-5',
+      'claude-opus-4-8',
       '--tools',
       '',
       '--no-session-persistence',

@@ -6,6 +6,7 @@ const OUTPUT_LIMIT = 16 * 1024 * 1024;
 
 function reviewerCommand(name) {
   if (name === 'claude') return 'claude';
+  if (name === 'gemini') return 'gemini';
   return null;
 }
 

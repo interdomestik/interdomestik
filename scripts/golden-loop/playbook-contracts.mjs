@@ -57,7 +57,10 @@ function validateGateCoverage(adapter, findings) {
 function validateReviewerFallback(adapter, findings) {
   const waterfall = adapter.reviewerWaterfall || {};
   const triggers = new Set(waterfall.fallbackTriggers || []);
+  const order = waterfall.order || [];
   const routes = Object.keys(waterfall.routes || {});
+  const orderRoutesMissing = order.filter(reviewer => !waterfall.routes?.[reviewer]);
+  const routeCommands = new Set(Object.values(waterfall.routes || {}).map(route => route.command));
   const requiredTriggers = ['unavailable', 'blocked', 'error', 'refused', 'invalid', 'unresolved-blockers'];
   const missingTriggers = requiredTriggers.filter(trigger => !triggers.has(trigger));
 
@@ -72,6 +75,24 @@ function validateReviewerFallback(adapter, findings) {
     routes.length >= 2,
     'reviewer waterfall keeps at least one external fallback route configured',
     routes.join(', ')
+  );
+  addFinding(
+    findings,
+    order.length >= 2 && orderRoutesMissing.length === 0,
+    'reviewer waterfall order can actually reach a fallback route',
+    orderRoutesMissing.join(', ') || order.join(', ')
+  );
+  addFinding(
+    findings,
+    order.includes('gemini') && waterfall.routes?.opus && !waterfall.routes?.fable,
+    'reviewer waterfall uses Gemini fallback and Opus escalation, with Fable unavailable',
+    order.join(', ')
+  );
+  addFinding(
+    findings,
+    routeCommands.has('claude') && routeCommands.has('gemini'),
+    'reviewer executor has both Claude and Gemini command families configured',
+    Array.from(routeCommands).join(', ')
   );
 }
 

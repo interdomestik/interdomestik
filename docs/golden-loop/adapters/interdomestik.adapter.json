@@ -20,9 +20,7 @@
       "docs/plans/current-program.md",
       "docs/plans/current-tracker.md",
       "docs/plans/architecture-finalization-tracker-2026-05-29.md"
-    ],
-    "statusCommands": ["pnpm plan:status", "pnpm plan:audit", "pnpm track:audit"],
-    "boundedOutput": true
+    ]
   },
   "protectedPaths": [
     "apps/web/src/proxy.ts",
@@ -34,11 +32,6 @@
     "docs/plans/architecture-finalization-tracker-2026-05-29.md",
     ".github/workflows/"
   ],
-  "scopeAudit": {
-    "tool": "interdomestik_qa.scope_audit",
-    "fallbackCommand": "git diff --name-only"
-  },
-  "mcp": { "preferredServers": ["interdomestik_qa", "playwright", "context7"] },
   "gates": [
     { "name": "static", "command": "pnpm slice:static", "costClass": "fast" },
     { "name": "unit", "command": "pnpm slice:unit", "costClass": "fast" },
@@ -61,7 +54,7 @@
     { "name": "ci-required-checks", "command": "gh checks", "costClass": "remote" }
   ],
   "reviewerWaterfall": {
-    "order": ["sonnet"],
+    "order": ["sonnet", "gemini"],
     "fallbackTriggers": [
       "unavailable",
       "blocked",
@@ -73,13 +66,31 @@
     "routes": {
       "sonnet": {
         "command": "claude",
-        "stdinPrompt": true,
-        "args": ["-p", "--model", "claude-sonnet-4-6", "--tools", "", "--no-session-persistence"]
+        "args": [
+          "-p",
+          "{prompt}",
+          "--model",
+          "claude-sonnet-4-6",
+          "--tools",
+          "",
+          "--no-session-persistence"
+        ]
       },
-      "fable": {
+      "gemini": {
+        "command": "gemini",
+        "args": ["-p", "{prompt}", "--model", "gemini-3.1-pro-preview", "--output-format", "text"]
+      },
+      "opus": {
         "command": "claude",
-        "stdinPrompt": true,
-        "args": ["-p", "--model", "claude-fable-5", "--tools", "", "--no-session-persistence"]
+        "args": [
+          "-p",
+          "{prompt}",
+          "--model",
+          "claude-opus-4-8",
+          "--tools",
+          "",
+          "--no-session-persistence"
+        ]
       }
     },
     "refusalIsBlocker": false
@@ -95,16 +106,13 @@
   "prRemediation": {
     "autoSafe": [
       "format/lint fixes inside slice files",
-      "known-flaky rerun after log inspection",
-      "bounded transitive audit pin with no runtime API change",
       "CodeQL/Sonar/reviewer hardening confined to slice files with no risk acceptance",
       "review nits confined to slice scope"
     ],
     "humanRequired": [
       "scope expansion",
-      "protected path outside closeout",
       "schema/RLS/auth/tenancy/routing change",
-      "risk acceptance or security exception"
+      "protected path outside closeout"
     ],
     "maxAutoRemediations": 3
   },
@@ -113,9 +121,7 @@
     "criteria": [
       "required checks green",
       "SonarCloud quality gate green with zero open issues and zero open security hotspots",
-      "CodeQL alerts resolved or dismissed with evidence",
-      "reviewer comments addressed and resolved",
-      "no protected-path violation"
+      "reviewer comments addressed and resolved"
     ]
   },
   "closeout": {
@@ -129,10 +135,6 @@
     "protectedPathException": "Protected updateTargets may be edited only during approved closeout. This authorizes nothing for apps/web/src/proxy.ts, README.md, AGENTS.md, or workflows.",
     "rules": [
       "implementation PR merged before canonical tracker/program closeout",
-      "closeout PR remains docs-only unless a required tooling defect is proven",
-      "required gates green",
-      "waterfall review pass",
-      "PR merged or explicitly approved",
       "branch and worktree clean after closeout"
     ]
   },

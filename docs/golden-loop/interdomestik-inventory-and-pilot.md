@@ -18,8 +18,9 @@ adapter discovery plus the first completed pilot.
   `context7`. If unavailable, record the blocker and use shell/CLI fallback.
 - **Review tooling**: default repo model-review fan-out is disabled for routine
   slice work. Golden Loop uses Sonnet as the normal Claude review route, keeps
-  Fable 5 for explicit escalation, and runs Codex as a separate pre-PR and
-  post-remediation senior-engineer review gate.
+  Gemini as the normal fallback, reserves Opus 4.8 for explicit escalation, and
+  runs Codex as a separate pre-PR and post-remediation senior-engineer review
+  gate.
 - **Evidence**: `tmp/golden-loop/<slice>/` stores resume state, bounded packets,
   waterfall receipts, and review packets.
 
