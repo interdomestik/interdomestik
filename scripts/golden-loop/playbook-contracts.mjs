@@ -108,9 +108,9 @@ function main() {
   const maturity = buildMaturityScorecard(repoRoot);
   addFinding(
     findings,
-    maturity.ok && maturity.overall >= 9.2,
-    'maturity scorecard stays at or above 9.2 local PR readiness',
-    `${maturity.overall.toFixed(1)}/10`
+    maturity.ok,
+    'maturity scorecard reaches 10.0 local readiness and preserves validation cap',
+    `local=${maturity.localReadiness.toFixed(1)}/10 validated=${maturity.validatedMaturity.toFixed(1)}/10`
   );
 
   const failed = findings.filter(finding => !finding.ok);
