@@ -28,10 +28,11 @@ type TenantContextBase = {
 };
 
 export type TenantContextResolution =
-  | (TenantContextBase & {
+  | (Omit<TenantContextBase, 'source'> & {
       status: 'resolved';
       access_tenant_id: TenantId;
       legal_tenant_id: TenantId;
+      source: TenantResolutionSource | 'session';
     })
   | (TenantContextBase & {
       status: 'missing_session_tenant';
@@ -96,17 +97,17 @@ export function resolveTenantContext(
     options
   );
   const hostId = requestContext.source === 'compatibility_alias' ? requestContext.tenantId : null;
-  const bookingTenantId = requestContext.defaultBookingTenantId ?? requestContext.tenantId;
   const accessTenantId = coerceTenantId(session?.user?.tenantId);
-  const base = {
+  const requestBookingTenantId = requestContext.defaultBookingTenantId ?? requestContext.tenantId;
+  const requestBase = {
     host_id: hostId,
-    booking_tenant_id: bookingTenantId,
+    booking_tenant_id: requestBookingTenantId,
     source: requestContext.source,
   };
 
   if (!accessTenantId) {
     return {
-      ...base,
+      ...requestBase,
       status: 'missing_session_tenant',
       access_tenant_id: null,
       legal_tenant_id: null,
@@ -114,9 +115,9 @@ export function resolveTenantContext(
   }
 
   const legalTenantId = coerceTenantId(session?.user?.legalTenantId) ?? accessTenantId;
-  if (hasHostSessionTenantMismatch(hostId, accessTenantId) || accessTenantId !== bookingTenantId) {
+  if (hasHostSessionTenantMismatch(hostId, accessTenantId)) {
     return {
-      ...base,
+      ...requestBase,
       status: 'tenant_mismatch',
       access_tenant_id: accessTenantId,
       legal_tenant_id: legalTenantId,
@@ -124,9 +125,11 @@ export function resolveTenantContext(
   }
 
   return {
-    ...base,
     status: 'resolved',
+    host_id: hostId,
+    booking_tenant_id: accessTenantId,
     access_tenant_id: accessTenantId,
     legal_tenant_id: legalTenantId,
+    source: 'session',
   };
 }
