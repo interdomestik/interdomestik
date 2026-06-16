@@ -45,8 +45,8 @@ export function findConcreteActiveSlice(text, sourceFile = '') {
     }
   }
 
-  matches.sort((left, right) => left.index - right.index);
-  return matches.reverse().find(match => !isUmbrella(match.id)) || null;
+  matches.sort((left, right) => right.index - left.index);
+  return matches.find(match => !isUmbrella(match.id)) || null;
 }
 
 export function resolveActiveSlice(repoRoot, authorityFiles = DEFAULT_AUTHORITY_FILES) {
@@ -68,7 +68,7 @@ export function resolveActiveSlice(repoRoot, authorityFiles = DEFAULT_AUTHORITY_
     });
   }
 
-  const active = records.map(record => record.concrete).filter(Boolean).at(0) || null;
+  const active = records.find(record => record.concrete)?.concrete || null;
   return {
     ok: Boolean(active),
     active,
