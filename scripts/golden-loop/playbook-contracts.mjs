@@ -29,7 +29,12 @@ function validateActiveSlice(repoRoot, findings) {
     'concrete active slice resolves instead of ARCH-FINAL umbrella',
     activeId || 'missing'
   );
-  addFinding(findings, activeId === 'T-303', 'current authority promotes T-303', activeId);
+  addFinding(
+    findings,
+    /^T-\d+[a-z]?$/iu.test(activeId),
+    'current authority promotes a concrete tracker slice',
+    activeId
+  );
   return resolved;
 }
 

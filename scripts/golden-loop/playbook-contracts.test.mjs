@@ -15,10 +15,10 @@ const adapter = JSON.parse(
   )
 );
 
-function contractReview(reviewer = 'gemini-3.1-pro-preview') {
+function contractReview(reviewer = 'gemini-3.1-pro-preview', sliceId = 'T-303') {
   return [
     `REVIEWER: ${reviewer}`,
-    'SLICE: T-303',
+    `SLICE: ${sliceId}`,
     'SCOPE: bounded review packet for active-slice and fallback contracts',
     'FINDINGS:',
     '1. No blocker findings.',
@@ -30,7 +30,7 @@ function contractReview(reviewer = 'gemini-3.1-pro-preview') {
 test('active slice resolver prefers concrete promoted slice over ARCH-FINAL umbrella', () => {
   const resolved = resolveActiveSlice(repoRoot);
   assert.equal(resolved.ok, true);
-  assert.equal(resolved.active.id, 'T-303');
+  assert.match(resolved.active.id, /^T-\d+[a-z]?$/i);
   assert.notEqual(resolved.active.id, 'ARCH-FINAL');
 });
 
@@ -61,7 +61,7 @@ test('configured waterfall falls through after quota-style reviewer blockage', a
     );
     calls.push(reviewer);
     if (reviewer === 'sonnet') return { blocked: true, reason: 'quota_or_rate_limit' };
-    return { exitCode: 0, output: contractReview() };
+    return { exitCode: 0, output: contractReview('gemini-3.1-pro-preview', 'T-303') };
   };
   const { results, winner } = await runWaterfall(
     adapter.reviewerWaterfall.order,

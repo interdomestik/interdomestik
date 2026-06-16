@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { resolveActiveSlice } from './active-slice.mjs';
 import { validateAdapter } from './load-adapter.mjs';
+import { protectedPathStatus } from './maturity-protected-paths.mjs';
 
 const ADAPTER_PATH = 'docs/golden-loop/adapters/interdomestik.adapter.json';
 const SCHEMA_PATH = 'scripts/golden-loop/adapter.schema.json';
@@ -70,6 +71,7 @@ export function buildMaturityAreas(repoRoot) {
   const protectedTouches = changed.files.filter(file =>
     PROTECTED_FORBIDDEN.some(item => file === item || file.startsWith(item))
   );
+  const protectedStatus = protectedPathStatus(repoRoot, protectedTouches);
   const resolved = resolveActiveSlice(repoRoot);
   const waterfall = adapter.reviewerWaterfall || {};
   const routes = waterfall.routes || {};
@@ -84,10 +86,10 @@ export function buildMaturityAreas(repoRoot) {
       'Governance/playbook design',
       [
         { ok: validateAdapter(adapter, schema).length === 0, label: 'adapter schema' },
-        { ok: resolved.ok && resolved.active?.id === 'T-303', label: 'concrete active slice' },
+        { ok: resolved.ok && /^T-\d+[a-z]?$/iu.test(resolved.active?.id || ''), label: 'concrete active slice' },
         { ok: hasEvery(adapter.authorityOrder || [], ['user instruction', 'AGENTS.md']), label: 'authority order' },
         { ok: changed.ok, label: `changed-file audit: ${changed.reason}` },
-        { ok: protectedTouches.length === 0, label: `protected path drift: ${protectedTouches.join(', ')}` },
+        { ok: protectedStatus.ok, label: `protected path drift: ${protectedStatus.detail}` },
       ],
       'Adapter schema, authority order, active-slice resolution, and protected-scope cleanliness pass.'
     ),
