@@ -1,5 +1,4 @@
 import {
-  coerceTenantId,
   hasHostSessionTenantMismatch,
   resolveTenantContextFromSources,
   TENANT_COOKIE_NAME,
@@ -8,18 +7,12 @@ import {
   type TenantResolutionOptions,
   type TenantResolutionSource,
 } from './tenant-hosts';
+import { resolveSessionTenantConcepts, type TenantSessionLike } from './tenant-session-context';
 
 type RequestLike = {
   headers: Headers;
   url: string;
 };
-
-type SessionLike = {
-  user?: {
-    legalTenantId?: string | null;
-    tenantId?: string | null;
-  } | null;
-} | null;
 
 type TenantContextBase = {
   host_id: TenantId | null;
@@ -83,7 +76,7 @@ function getQueryTenantId(request: RequestLike, explicitTenantId?: string | null
 
 export function resolveTenantContext(
   request: RequestLike,
-  session: SessionLike,
+  session: TenantSessionLike,
   options: ResolveTenantContextOptions = {}
 ): TenantContextResolution {
   const host = getRequestHost(request.headers, options.trustForwardedHost === true);
@@ -97,7 +90,7 @@ export function resolveTenantContext(
     options
   );
   const hostId = requestContext.source === 'compatibility_alias' ? requestContext.tenantId : null;
-  const accessTenantId = coerceTenantId(session?.user?.tenantId);
+  const { accessTenantId, bookingTenantId, legalTenantId } = resolveSessionTenantConcepts(session);
   const requestBookingTenantId = requestContext.defaultBookingTenantId ?? requestContext.tenantId;
   const requestBase = {
     host_id: hostId,
@@ -114,22 +107,21 @@ export function resolveTenantContext(
     };
   }
 
-  const legalTenantId = coerceTenantId(session?.user?.legalTenantId) ?? accessTenantId;
   if (hasHostSessionTenantMismatch(hostId, accessTenantId)) {
     return {
       ...requestBase,
       status: 'tenant_mismatch',
       access_tenant_id: accessTenantId,
-      legal_tenant_id: legalTenantId,
+      legal_tenant_id: legalTenantId ?? accessTenantId,
     };
   }
 
   return {
     status: 'resolved',
     host_id: hostId,
-    booking_tenant_id: accessTenantId,
+    booking_tenant_id: bookingTenantId ?? accessTenantId,
     access_tenant_id: accessTenantId,
-    legal_tenant_id: legalTenantId,
+    legal_tenant_id: legalTenantId ?? accessTenantId,
     source: 'session',
   };
 }
