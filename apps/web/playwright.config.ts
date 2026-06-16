@@ -25,6 +25,7 @@ function normalizeLoopbackTenantHost(hostWithPort: string): string {
 const AUTH_DIR = path.resolve(__dirname, './e2e/.auth');
 const KS_MEMBER_STATE = path.join(AUTH_DIR, 'ks', 'member.json');
 const MK_MEMBER_STATE = path.join(AUTH_DIR, 'mk', 'member.json');
+const IDA_KS_MEMBER_STATE = path.join(AUTH_DIR, 'ida-ks', 'member.json');
 
 const GATE_STATE_DIR = path.resolve(__dirname, '.playwright', 'state');
 const GATE_KS_STATE = path.join(GATE_STATE_DIR, 'ks.json');
@@ -67,7 +68,34 @@ const GATE_AL_TEST_MATCH = RUNNING_PILOT_MATRIX
 const CRM_VISUAL_TEST_MATCH = ['visual/crm-reporting.visual.spec.ts'];
 const CRM_VISUAL_VIEWPORT = { width: 1280, height: 900 };
 const FRONT_DOOR_TEST_MATCH = ['gate/front-door-session-context.spec.ts'];
+const IDA_DASHBOARD_SMOKE_MATCH = ['smoke/ida-dashboard-smoke.spec.ts'];
 const ENABLE_FRONT_DOOR_PROJECTS = process.env.PW_FRONT_DOOR === '1';
+const STRICT_DESKTOP_TIMEOUTS = {
+  actionTimeout: 20 * 1000,
+  navigationTimeout: 60 * 1000,
+};
+
+function strictDesktopUse(
+  baseURL: string,
+  extraHTTPHeaders: Record<string, string>,
+  extraUse: Record<string, unknown> = {}
+) {
+  return {
+    ...devices['Desktop Chrome'],
+    baseURL,
+    extraHTTPHeaders,
+    ...STRICT_DESKTOP_TIMEOUTS,
+    ...extraUse,
+  };
+}
+
+function setupUse(baseURL: string, extraHTTPHeaders: Record<string, string>) {
+  return {
+    ...devices['Desktop Chrome'],
+    baseURL,
+    extraHTTPHeaders,
+  };
+}
 
 function requireState(statePath: string) {
   if (fs.existsSync(statePath)) return;
@@ -247,57 +275,34 @@ export default defineConfig({
     {
       name: 'gate-ks-sq',
       testMatch: GATE_KS_TEST_MATCH,
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: tenantBaseUrl(KS_HOST, 'sq'),
-        extraHTTPHeaders: {
-          'x-forwarded-host': KS_HOST,
-        },
-        storageState: GATE_KS_STATE,
-        actionTimeout: 20 * 1000,
-        navigationTimeout: 60 * 1000,
-      },
+      use: strictDesktopUse(
+        tenantBaseUrl(KS_HOST, 'sq'),
+        { 'x-forwarded-host': KS_HOST },
+        { storageState: GATE_KS_STATE }
+      ),
     },
     {
       name: 'gate-mk-mk',
       testMatch: GATE_MK_TEST_MATCH,
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: tenantBaseUrl(MK_HOST, 'mk'),
-        extraHTTPHeaders: {
-          'x-forwarded-host': MK_HOST,
-        },
-        storageState: GATE_MK_STATE,
-        actionTimeout: 20 * 1000,
-        navigationTimeout: 60 * 1000,
-      },
+      use: strictDesktopUse(
+        tenantBaseUrl(MK_HOST, 'mk'),
+        { 'x-forwarded-host': MK_HOST },
+        { storageState: GATE_MK_STATE }
+      ),
     },
     {
       name: 'gate-mk-contract',
       testMatch: GATE_MK_CONTRACT_MATCH,
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: tenantBaseUrl(MK_HOST, 'mk'),
-        extraHTTPHeaders: {
-          'x-forwarded-host': MK_HOST,
-        },
-        storageState: GATE_MK_STATE,
-        actionTimeout: 20 * 1000,
-        navigationTimeout: 60 * 1000,
-      },
+      use: strictDesktopUse(
+        tenantBaseUrl(MK_HOST, 'mk'),
+        { 'x-forwarded-host': MK_HOST },
+        { storageState: GATE_MK_STATE }
+      ),
     },
     {
       name: 'gate-al-sq',
       testMatch: GATE_AL_TEST_MATCH,
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: tenantBaseUrl(AL_HOST, 'sq'),
-        extraHTTPHeaders: {
-          'x-forwarded-host': AL_HOST,
-        },
-        actionTimeout: 20 * 1000,
-        navigationTimeout: 60 * 1000,
-      },
+      use: strictDesktopUse(tenantBaseUrl(AL_HOST, 'sq'), { 'x-forwarded-host': AL_HOST }),
     },
 
     ...(ENABLE_FRONT_DOOR_PROJECTS
@@ -305,28 +310,12 @@ export default defineConfig({
           {
             name: 'front-door-ida-ks',
             testMatch: FRONT_DOOR_TEST_MATCH,
-            use: {
-              ...devices['Desktop Chrome'],
-              baseURL: tenantBaseUrl(IDA_HOST, 'sq'),
-              extraHTTPHeaders: {
-                'x-tenant-id': 'tenant_ks',
-              },
-              actionTimeout: 20 * 1000,
-              navigationTimeout: 60 * 1000,
-            },
+            use: strictDesktopUse(tenantBaseUrl(IDA_HOST, 'sq'), { 'x-tenant-id': 'tenant_ks' }),
           },
           {
             name: 'front-door-ida-mk',
             testMatch: FRONT_DOOR_TEST_MATCH,
-            use: {
-              ...devices['Desktop Chrome'],
-              baseURL: tenantBaseUrl(IDA_HOST, 'mk'),
-              extraHTTPHeaders: {
-                'x-tenant-id': 'tenant_mk',
-              },
-              actionTimeout: 20 * 1000,
-              navigationTimeout: 60 * 1000,
-            },
+            use: strictDesktopUse(tenantBaseUrl(IDA_HOST, 'mk'), { 'x-tenant-id': 'tenant_mk' }),
           },
         ]
       : []),
@@ -341,34 +330,22 @@ export default defineConfig({
       testMatch: CRM_VISUAL_TEST_MATCH,
       grep: /@crm-visual-ks-sq/,
       retries: process.env.CI ? 1 : 0,
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: tenantBaseUrl(KS_HOST, 'sq'),
-        viewport: CRM_VISUAL_VIEWPORT,
-        colorScheme: 'light',
-        extraHTTPHeaders: {
-          'x-forwarded-host': KS_HOST,
-        },
-        actionTimeout: 20 * 1000,
-        navigationTimeout: 60 * 1000,
-      },
+      use: strictDesktopUse(
+        tenantBaseUrl(KS_HOST, 'sq'),
+        { 'x-forwarded-host': KS_HOST },
+        { viewport: CRM_VISUAL_VIEWPORT, colorScheme: 'light' }
+      ),
     },
     {
       name: 'crm-visual-mk-mk',
       testMatch: CRM_VISUAL_TEST_MATCH,
       grep: /@crm-visual-mk-mk/,
       retries: process.env.CI ? 1 : 0,
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: tenantBaseUrl(MK_HOST, 'mk'),
-        viewport: CRM_VISUAL_VIEWPORT,
-        colorScheme: 'light',
-        extraHTTPHeaders: {
-          'x-forwarded-host': MK_HOST,
-        },
-        actionTimeout: 20 * 1000,
-        navigationTimeout: 60 * 1000,
-      },
+      use: strictDesktopUse(
+        tenantBaseUrl(MK_HOST, 'mk'),
+        { 'x-forwarded-host': MK_HOST },
+        { viewport: CRM_VISUAL_VIEWPORT, colorScheme: 'light' }
+      ),
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -377,24 +354,17 @@ export default defineConfig({
     {
       name: 'setup-ks',
       testMatch: /setup\.state\.spec\.ts/,
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: tenantBaseUrl(KS_HOST, 'sq'),
-        extraHTTPHeaders: {
-          'x-forwarded-host': KS_HOST,
-        },
-      },
+      use: setupUse(tenantBaseUrl(KS_HOST, 'sq'), { 'x-forwarded-host': KS_HOST }),
     },
     {
       name: 'setup-mk',
       testMatch: /setup\.state\.spec\.ts/,
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: tenantBaseUrl(MK_HOST, 'mk'),
-        extraHTTPHeaders: {
-          'x-forwarded-host': MK_HOST,
-        },
-      },
+      use: setupUse(tenantBaseUrl(MK_HOST, 'mk'), { 'x-forwarded-host': MK_HOST }),
+    },
+    {
+      name: 'setup-ida-ks',
+      testMatch: /setup\.state\.spec\.ts/,
+      use: setupUse(tenantBaseUrl(IDA_HOST, 'sq'), { 'x-tenant-id': 'tenant_ks' }),
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -444,23 +414,32 @@ export default defineConfig({
     },
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // SMOKE (Legacy/Cross-Check)
+    // SMOKE (Canonical ida.localhost lane)
+    // ═══════════════════════════════════════════════════════════════════════════
+    {
+      name: 'smoke-ida',
+      dependencies: ['setup-ida-ks'],
+      testMatch: IDA_DASHBOARD_SMOKE_MATCH,
+      use: strictDesktopUse(
+        tenantBaseUrl(IDA_HOST, 'sq'),
+        { 'x-tenant-id': 'tenant_ks' },
+        { storageState: IDA_KS_MEMBER_STATE }
+      ),
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SMOKE (Legacy/Country-Alias Regression Cross-Check)
     // ═══════════════════════════════════════════════════════════════════════════
     {
       name: 'smoke',
       dependencies: ['setup-ks'], // Default to KS for general smoke
       testMatch: /.*\.spec\.ts/,
       testIgnore: [/visual\/.*\.spec\.ts/],
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: tenantBaseUrl(KS_HOST, 'sq'),
-        extraHTTPHeaders: {
-          'x-forwarded-host': KS_HOST,
-        },
-        storageState: KS_MEMBER_STATE,
-        actionTimeout: 20 * 1000,
-        navigationTimeout: 60 * 1000,
-      },
+      use: strictDesktopUse(
+        tenantBaseUrl(KS_HOST, 'sq'),
+        { 'x-forwarded-host': KS_HOST },
+        { storageState: KS_MEMBER_STATE }
+      ),
     },
   ],
   webServer: useExternalWebServer

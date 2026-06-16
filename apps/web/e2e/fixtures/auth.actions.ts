@@ -2,7 +2,6 @@ import { expect, type Page, type TestInfo } from '@playwright/test';
 import { gotoApp } from '../utils/navigation';
 import {
   buildUiLoginUrl,
-  credsFor,
   getApiOrigin,
   getAuthOrigin,
   getProjectUrlInfo,
@@ -11,6 +10,7 @@ import {
   type Role,
   type Tenant,
 } from './auth.project';
+import { credsFor } from './auth-users';
 import { getCanonicalRouteForRole } from '../../src/lib/canonical-routes';
 import { emitAuthTelemetryEvent } from '../../src/lib/auth-telemetry';
 import { assertNoTenantChooser } from './e2e.diagnostics';

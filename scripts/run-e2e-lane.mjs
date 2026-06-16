@@ -41,13 +41,18 @@ const strictArgs = ['--max-failures=1', ...reportArgs];
 const workerArgs = ['--workers=1', ...reportArgs];
 const strictWorkers = ['--workers=1', ...strictArgs];
 const gateArgs = ['e2e/gate', ...strictWorkers];
-const setupArgs = ['e2e/setup.state.spec.ts', '--project=setup-ks', '--project=setup-mk'];
+const setupArgs = [
+  'e2e/setup.state.spec.ts',
+  '--project=setup-ks',
+  '--project=setup-mk',
+];
 const mergeArgs = ['e2e/gate', 'e2e/golden', '--grep-invert', '@quarantine|@visual|@legacy'];
 const pwArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];
 const fastEnv = { PW_FAST_GATES: '1' };
 const ksSq = '--project=gate-ks-sq';
 const mkMk = '--project=gate-mk-mk';
 const mkContract = '--project=gate-mk-contract';
+const smokeIda = '--project=smoke-ida';
 const gateLane = (projects, state = false) => ({
   gatekeeper: true,
   state,
@@ -73,6 +78,10 @@ const laneDefinitions = {
     gatekeeper: true,
     env: fastEnv,
     playwrightArgs: [...mergeArgs, ksSq, mkMk, ...workerArgs],
+  },
+  'smoke-ida': {
+    gatekeeper: true,
+    playwrightArgs: ['e2e/smoke/ida-dashboard-smoke.spec.ts', smokeIda, ...strictWorkers],
   },
   ks: projectLane(ksSq),
   mk: projectLane(mkMk),
