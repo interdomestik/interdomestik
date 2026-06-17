@@ -4,14 +4,16 @@ const SAFE_GIT_ENV = Object.freeze({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
 
 function currentBranch(repoRoot) {
   try {
-    return execFileSync('/usr/bin/git', ['branch', '--show-current'], {
+    const branch = execFileSync('/usr/bin/git', ['branch', '--show-current'], {
       cwd: repoRoot,
       encoding: 'utf8',
       env: SAFE_GIT_ENV,
     }).trim();
+    if (branch) return branch;
   } catch {
-    return '';
+    // Fall through to GitHub Actions PR metadata when checkout is detached.
   }
+  return process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || '';
 }
 
 export function isAuthorizedProtectedDocsBranch(branch, protectedTouches) {

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 
 const REQUIRED_CHECKS = [
   'audit',
@@ -21,15 +22,24 @@ const REQUIRED_CHECKS = [
 
 const CODEX_AUTHORS = new Set(['chatgpt-codex-connector', 'openai-codex']);
 const COPILOT_AUTHORS = new Set(['copilot-pull-request-reviewer']);
+const GH_BINARY_CANDIDATES = ['/usr/bin/gh', '/opt/homebrew/bin/gh', '/usr/local/bin/gh'];
+
+function resolveGhBinary() {
+  const binary = GH_BINARY_CANDIDATES.find(candidate => fs.existsSync(candidate));
+  if (!binary) {
+    throw new Error(`GitHub CLI not found in: ${GH_BINARY_CANDIDATES.join(', ')}`);
+  }
+  return binary;
+}
 
 function readPr() {
-  const prArg = process.argv.slice(2).filter(arg => arg !== '--')[0];
+  const prArg = process.argv.slice(2).find(arg => arg !== '--');
   const args = ['pr', 'view'];
   if (prArg) {
     args.push(prArg);
   }
   args.push('--json', 'number,statusCheckRollup,reviews,comments');
-  const output = execFileSync('gh', args, { encoding: 'utf8' });
+  const output = execFileSync(resolveGhBinary(), args, { encoding: 'utf8' });
   return JSON.parse(output);
 }
 

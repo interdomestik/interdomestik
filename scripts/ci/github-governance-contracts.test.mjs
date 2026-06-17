@@ -35,13 +35,18 @@ function readWorkflow(relativePath) {
   return yaml.load(read(relativePath));
 }
 
+function escapeRegexLiteral(value) {
+  return value.replace(/[\\^$.*+?()[\]{}|]/g, String.raw`\$&`);
+}
+
 test('branch-protection documentation and PR template list current governance checks', () => {
   const protectionDoc = read('docs/BRANCH_PROTECTION_MULTI_AGENT.md');
   const prTemplate = read('.github/pull_request_template.md');
 
   for (const checkName of REQUIRED_CHECKS) {
-    assert.match(protectionDoc, new RegExp(`\`${checkName.replace(/[()]/g, '\\$&')}\``));
-    assert.match(prTemplate, new RegExp(`\`${checkName.replace(/[()]/g, '\\$&')}\``));
+    const escapedName = escapeRegexLiteral(checkName);
+    assert.match(protectionDoc, new RegExp(`\`${escapedName}\``));
+    assert.match(prTemplate, new RegExp(`\`${escapedName}\``));
   }
 
   assert.doesNotMatch(protectionDoc, /multi-agent-dry-run/);
@@ -87,7 +92,7 @@ test('PR finalizer local polling covers current deterministic required checks', 
   const finalizer = read('scripts/pr-finalizer.sh');
 
   for (const checkName of REQUIRED_CHECKS.filter(name => name !== 'pr-finalizer')) {
-    assert.match(finalizer, new RegExp(`"${checkName.replace(/[()]/g, '\\$&')}"`));
+    assert.match(finalizer, new RegExp(`"${escapeRegexLiteral(checkName)}"`));
   }
   assert.match(finalizer, /\(\.name \/\/ \.workflow_name \/\/ ""\) == \$NAME/);
 });
