@@ -3,7 +3,11 @@ export const defaultReviewers = ['sonnet'];
 export const modelReviewRoutes = {
   sonnet: {
     label: 'Claude Sonnet architecture/scope review',
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-6',
     command: 'claude',
+    timeoutMs: 10 * 60_000,
+    noOutputTimeoutMs: 300_000,
     args: prompt => [
       '-p',
       prompt,
@@ -16,7 +20,11 @@ export const modelReviewRoutes = {
   },
   opus: {
     label: 'Claude Opus 4.8 escalation review',
+    provider: 'anthropic',
+    model: 'claude-opus-4-8',
     command: 'claude',
+    timeoutMs: 15 * 60_000,
+    noOutputTimeoutMs: 300_000,
     args: prompt => [
       '-p',
       prompt,
@@ -29,7 +37,11 @@ export const modelReviewRoutes = {
   },
   gemini: {
     label: 'Gemini product/design review',
+    provider: 'google',
+    model: 'gemini-3.1-pro-preview',
     command: 'gemini',
+    timeoutMs: 10 * 60_000,
+    noOutputTimeoutMs: 300_000,
     args: prompt => ['-p', prompt, '--model', 'gemini-3.1-pro-preview', '--output-format', 'text'],
   },
 };

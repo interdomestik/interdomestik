@@ -22,6 +22,7 @@ export const CHECKED_TEXT_EXTENSIONS = new Set([
 
 const EXCLUDED_EXACT_FILES = new Set([
   'bun.lockb',
+  'package.json',
   'package-lock.json',
   'pnpm-lock.yaml',
   'yarn.lock',

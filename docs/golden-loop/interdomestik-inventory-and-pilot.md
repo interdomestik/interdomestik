@@ -17,10 +17,12 @@ adapter discovery plus the first completed pilot.
 - **MCP**: adapter preference is `interdomestik_qa`, Playwright, and
   `context7`. If unavailable, record the blocker and use shell/CLI fallback.
 - **Review tooling**: default repo model-review fan-out is disabled for routine
-  slice work. Golden Loop uses Sonnet as the normal Claude review route, keeps
-  Gemini as the normal fallback, reserves Opus 4.8 for explicit escalation, and
-  runs Codex as a separate pre-PR and post-remediation senior-engineer review
-  gate.
+  slice work. Golden Loop uses repo-owned package scripts for model routes:
+  `pnpm review:sonnet`, `pnpm review:gemini`, `pnpm review:opus`, and
+  `pnpm codex:senior-head-engineer-reviewer`/`pnpm review:codex`. Sonnet is the
+  normal external route, Gemini is the fallback, Opus 4.8 is explicit
+  escalation, and Codex remains a separate pre-PR and post-remediation
+  senior-engineer review gate.
 - **Evidence**: `tmp/golden-loop/<slice>/` stores resume state, bounded packets,
   waterfall receipts, and review packets.
 

@@ -4,12 +4,8 @@ import fs from 'node:fs';
 import { buildContractPreamble, classifyReview } from './review-contract.mjs';
 import { runWaterfall } from './reviewer-waterfall.mjs';
 
-const adapter = JSON.parse(
-  fs.readFileSync(
-    new URL('../../docs/golden-loop/adapters/interdomestik.adapter.json', import.meta.url),
-    'utf8'
-  )
-);
+const adapterFile = new URL('../../docs/golden-loop/adapters/interdomestik.adapter.json', import.meta.url);
+const adapter = JSON.parse(fs.readFileSync(adapterFile, 'utf8'));
 
 const SLICE = 'T-002d';
 function reviewerFor(route) {
@@ -96,10 +92,8 @@ test('waterfall short-circuits at first contract-valid READY review', async () =
   );
   assert.deepEqual(calls, ['sonnet']);
   assert.equal(winner.reviewer, 'sonnet');
-  assert.deepEqual(
-    results.map(result => result.status),
-    ['completed']
-  );
+  assert.deepEqual(results.map(result => result.status), ['ran', 'skipped']);
+  assert.deepEqual(results.map(result => result.reviewStatus), ['completed', 'skipped']);
   assert.ok(results.every(result => result.startedAt && result.completedAt));
   assert.ok(results.every(result => Number.isInteger(result.durationMs)));
 });
@@ -121,10 +115,8 @@ test('opus escalation runs only when explicitly included in order', async () => 
   );
   assert.deepEqual(calls, ['sonnet', 'opus']);
   assert.equal(winner.reviewer, 'opus');
-  assert.deepEqual(
-    results.map(result => result.status),
-    ['unresolved-blockers', 'completed']
-  );
+  assert.deepEqual(results.map(result => result.status), ['failed', 'ran']);
+  assert.deepEqual(results.map(result => result.reviewStatus), ['unresolved-blockers', 'completed']);
 });
 
 test('dry-run probes every route and can never produce a winner', async () => {

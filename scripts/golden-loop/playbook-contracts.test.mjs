@@ -72,6 +72,8 @@ test('configured waterfall falls through after quota-style reviewer blockage', a
   );
   assert.deepEqual(calls, ['sonnet', 'gemini']);
   assert.equal(results[0].status, 'blocked');
+  assert.equal(results[0].reviewStatus, 'blocked');
   assert.equal(results[0].reason, 'quota_or_rate_limit');
   assert.equal(winner.reviewer, 'gemini');
+  assert.equal(results[1].status, 'ran');
 });

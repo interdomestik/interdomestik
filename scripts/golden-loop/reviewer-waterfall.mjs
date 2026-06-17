@@ -13,6 +13,11 @@ import process from 'node:process';
 import { executeReviewerRoute } from './reviewer-exec.mjs';
 import { createReceiptWriter, createReviewPacketWriter } from './reviewer-receipt.mjs';
 import { buildContractPreamble, classifyReview } from './review-contract.mjs';
+import {
+  missingRouteResult,
+  reviewedRouteResult,
+  skippedRouteResult,
+} from './reviewer-waterfall-route-result.mjs';
 import { safeName, safeReadJson, safeReadText, safeRoot } from './safe-paths.mjs';
 
 function argValue(args, name, fallback = '') {
@@ -23,19 +28,26 @@ function argValue(args, name, fallback = '') {
 export async function runWaterfall(order, routes, prompt, executor, options = {}) {
   const results = [];
   let winner = null;
-  for (const reviewer of order) {
+  for (let index = 0; index < order.length; index += 1) {
+    const reviewer = order[index];
     const route = routes[reviewer];
     const startedAt = new Date().toISOString();
     const startedMs = Date.now();
-    const timed = result => ({
-      ...result,
-      startedAt,
-      completedAt: new Date().toISOString(),
-      durationMs: Date.now() - startedMs,
-      timeoutMs: options.timeoutMs || null,
-    });
+    const timed = result => {
+      const endedAt = new Date().toISOString();
+      const elapsedMs = result.status === 'skipped' ? 0 : Date.now() - startedMs;
+      return {
+        ...result,
+        startedAt,
+        endedAt,
+        completedAt: endedAt,
+        elapsedMs,
+        durationMs: elapsedMs,
+        timeoutMs: options.timeoutMs || null,
+      };
+    };
     if (!route) {
-      results.push(timed({ reviewer, status: 'unavailable', reason: 'no route defined' }));
+      results.push(timed(missingRouteResult(reviewer)));
       continue;
     }
     const execResult = await executor(route, prompt);
@@ -53,15 +65,14 @@ export async function runWaterfall(order, routes, prompt, executor, options = {}
     const reviewPacket = execResult.output
       ? options.onReview?.({ reviewer, classified, execResult })
       : null;
-    const result = timed({
-      reviewer,
-      status: classified.status,
-      reason: classified.reason,
-      ...(reviewPacket ? { reviewPacket } : {}),
-    });
+    const result = timed(reviewedRouteResult({ reviewer, route, execResult, classified, reviewPacket, options }));
     results.push(result);
     if (classified.status === 'completed') {
       winner = { reviewer, output: execResult.output };
+      for (const skippedReviewer of order.slice(index + 1)) {
+        const route = routes[skippedReviewer];
+        results.push(timed(skippedRouteResult({ reviewer: skippedReviewer, route, winner: reviewer, options })));
+      }
       options.onResult?.({ results, winner });
       break; // remaining routes intentionally skipped (call budget)
     }
