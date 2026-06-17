@@ -6,18 +6,24 @@ import {
   analyzePolicyText,
 } from '@/lib/ai/policy-analyzer';
 import { markAiRunDispatchFailedWithTenantContext } from '@/lib/ai/dispatch-failure';
-import { db } from '@/lib/db.server';
+import {
+  ExtractionPipelineError,
+  critiqueExtraction,
+  validateExtractionCandidate,
+} from '@/lib/ai/extraction-pipeline';
 import { inngest } from '@/lib/inngest/client';
 import { throwTransientRetryFailure, withTransientRetry } from '@/lib/reliability/transient-retry';
 import { uploadTenantObject } from '@/lib/storage/service-role';
 import { POLICIES_BUCKET, buildPolicyStoragePath } from '@/lib/storage/tenant-prefix';
 import { withTenantContext } from '@interdomestik/database';
-import { aiRuns, documentExtractions, documents, policies } from '@interdomestik/database/schema';
+import { aiRuns, documents, policies } from '@interdomestik/database/schema';
 import { getResponsesWorkflowConfig } from '@interdomestik/domain-ai/models';
 import { policyExtractSchema } from '@interdomestik/domain-ai/schemas/policy-extract';
-import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
+import { extractPolicyCandidate, loadPolicyInput } from './_pipeline-file';
+import { claimPolicyExtractionRun, type PolicyExtractionDeps } from './_pipeline-input';
+import { markPolicyExtractionRunFailed, persistPolicyExtraction } from './_pipeline-persist';
 import { downloadPolicyFileWithRetry } from './_storage-download';
 
 const RESOLVED_POLICIES_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || POLICIES_BUCKET;
@@ -31,37 +37,6 @@ function buildPolicyInputHash(args: {
   fileSize: number;
 }) {
   return createHash('sha256').update(JSON.stringify(args)).digest('hex');
-}
-
-function isImageUpload(fileName: string, mimeType: string) {
-  if (mimeType.startsWith('image/')) {
-    return true;
-  }
-
-  const lower = fileName.toLowerCase();
-  return (
-    lower.endsWith('.jpg') ||
-    lower.endsWith('.jpeg') ||
-    lower.endsWith('.png') ||
-    lower.endsWith('.webp')
-  );
-}
-
-function getRequestStringValue(
-  requestJson: Record<string, unknown>,
-  key: 'fileName' | 'mimeType'
-): string {
-  const value = requestJson[key];
-  return typeof value === 'string' ? value : '';
-}
-
-function getRequestFileUrl(requestJson: Record<string, unknown>, fallback: unknown): string {
-  const value = requestJson.fileUrl;
-  if (typeof value === 'string' && value.length > 0) {
-    return value;
-  }
-
-  return typeof fallback === 'string' ? fallback : '';
 }
 
 type QueuePolicyAnalysisArgs = {
@@ -80,12 +55,7 @@ type PolicyExtractRequestedEvent = {
   userId: string;
 };
 
-type ProcessPolicyAnalysisDeps = {
-  downloadFile?: (filePath: string, tenantId: string) => Promise<Buffer>;
-  analyzeImage?: (buffer: Buffer) => Promise<PolicyAnalysis>;
-  analyzePdf?: (buffer: Buffer) => Promise<string>;
-  analyzeText?: (text: string) => Promise<PolicyAnalysis>;
-};
+type ProcessPolicyAnalysisDeps = Partial<PolicyExtractionDeps>;
 
 export async function uploadPolicyFileService(args: {
   userId: string;
@@ -236,7 +206,7 @@ export async function processPolicyAnalysisRunService(args: {
   runId: string;
   deps?: ProcessPolicyAnalysisDeps;
 }): Promise<{
-  status: 'completed' | 'skipped';
+  status: 'completed' | 'failed' | 'skipped';
   runId: string;
   policyId: string;
   analysis?: PolicyAnalysis;
@@ -250,167 +220,42 @@ export async function processPolicyAnalysisRunService(args: {
     analyzeText: args.deps?.analyzeText ?? analyzePolicyText,
   };
 
-  // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
-  const [queuedRun] = await db
-    .select({
-      runId: aiRuns.id,
-      tenantId: aiRuns.tenantId,
-      documentId: aiRuns.documentId,
-      policyId: aiRuns.entityId,
-      storagePath: documents.storagePath,
-      requestJson: aiRuns.requestJson,
-      status: aiRuns.status,
-    })
-    .from(aiRuns)
-    .innerJoin(documents, eq(documents.id, aiRuns.documentId))
-    .where(
-      and(
-        eq(aiRuns.id, runId),
-        eq(aiRuns.workflow, POLICY_EXTRACT_WORKFLOW),
-        eq(aiRuns.entityType, 'policy')
-      )
-    );
-
-  if (!queuedRun || !queuedRun.documentId || !queuedRun.policyId) {
-    throw new Error(`Queued policy analysis run ${runId} was not found.`);
-  }
-
-  const documentId = queuedRun.documentId;
-  const policyId = queuedRun.policyId;
-
-  if (queuedRun.status === 'completed') {
-    return {
-      status: 'skipped',
-      runId,
-      policyId,
-    };
-  }
-
-  if (queuedRun.status !== 'queued') {
-    return {
-      status: 'skipped',
-      runId,
-      policyId,
-    };
-  }
-
-  const startedAt = new Date();
-  const [claimedRun] = await withTenantContext(
-    { tenantId: queuedRun.tenantId, role: 'system' },
-    async tx =>
-      tx
-        .update(aiRuns)
-        .set({
-          status: 'processing',
-          startedAt,
-          errorCode: null,
-          errorMessage: null,
-        })
-        .where(and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued')))
-        .returning({ id: aiRuns.id })
-  );
-
-  if (!claimedRun) {
-    return {
-      status: 'skipped',
-      runId,
-      policyId,
-    };
-  }
+  const claimed = await claimPolicyExtractionRun(runId);
+  if (claimed.status === 'skipped') return { status: 'skipped', runId, policyId: claimed.policyId };
 
   try {
-    const requestJson = queuedRun.requestJson ?? {};
-    const fileName = getRequestStringValue(requestJson, 'fileName');
-    const mimeType = getRequestStringValue(requestJson, 'mimeType');
-    const fileUrl = getRequestFileUrl(requestJson, queuedRun.storagePath);
-    if (!fileUrl) {
-      throw new Error('Queued policy analysis run is missing a storage path.');
-    }
-    const fileBuffer = await deps.downloadFile(fileUrl, queuedRun.tenantId);
-    let analysis: PolicyAnalysis;
-
-    if (isImageUpload(fileName, mimeType)) {
-      analysis = await deps.analyzeImage(fileBuffer);
-    } else {
-      const extractedText = await deps.analyzePdf(fileBuffer);
-      if (!extractedText || extractedText.trim().length === 0) {
-        throw new Error('Policy document could not be parsed into text.');
-      }
-
-      analysis = await deps.analyzeText(extractedText);
-    }
-
-    const policyExtract = policyExtractSchema.parse(analysis);
-    const completedAt = new Date();
-
-    await withTenantContext({ tenantId: queuedRun.tenantId, role: 'system' }, async tx => {
-      await tx
-        .update(policies)
-        .set({
-          provider: policyExtract.provider ?? null,
-          policyNumber: policyExtract.policyNumber ?? null,
-          analysisJson: policyExtract,
-        })
-        .where(eq(policies.id, policyId));
-
-      await tx
-        .insert(documentExtractions)
-        .values({
-          id: nanoid(),
-          tenantId: queuedRun.tenantId,
-          documentId,
-          entityType: 'policy',
-          entityId: policyId,
-          workflow: POLICY_EXTRACT_WORKFLOW,
-          schemaVersion: POLICY_EXTRACT_CONFIG.promptVersion,
-          extractedJson: policyExtract,
-          warnings: policyExtract.warnings,
-          sourceRunId: runId,
-          reviewStatus: 'pending',
-          createdAt: completedAt,
-          updatedAt: completedAt,
-        })
-        .onConflictDoNothing({ target: documentExtractions.sourceRunId });
-
-      await tx
-        .update(aiRuns)
-        .set({
-          status: 'completed',
-          responseJson: {
-            event: 'policy/extract.requested',
-            runId,
-          },
-          outputJson: policyExtract,
-          reviewStatus: 'pending',
-          completedAt,
-          errorCode: null,
-          errorMessage: null,
-        })
-        .where(eq(aiRuns.id, runId));
+    const input = await loadPolicyInput(claimed.run, deps);
+    const extractionCandidate = await extractPolicyCandidate(input, deps);
+    const policyExtract = validateExtractionCandidate(
+      POLICY_EXTRACT_WORKFLOW,
+      policyExtractSchema,
+      extractionCandidate.candidate
+    );
+    const critique = critiqueExtraction({
+      confidence: extractionCandidate.rawConfidence,
+      warnings: extractionCandidate.warnings,
+      metrics: input.metrics,
     });
+    if (!critique.persistenceAllowed) {
+      throw new ExtractionPipelineError(
+        'policy_extract_critique_failed',
+        'policy_extract output failed critique.'
+      );
+    }
+
+    await persistPolicyExtraction({ run: claimed.run, extraction: policyExtract, critique });
 
     return {
       status: 'completed',
       runId,
-      policyId,
+      policyId: claimed.run.policyId,
       analysis: policyExtract,
     };
   } catch (error) {
-    const completedAt = new Date();
-    const message = error instanceof Error ? error.message : 'Policy extraction failed.';
-
-    await withTenantContext({ tenantId: queuedRun.tenantId, role: 'system' }, async tx => {
-      await tx
-        .update(aiRuns)
-        .set({
-          status: 'failed',
-          completedAt,
-          errorCode: 'policy_extract_failed',
-          errorMessage: message,
-        })
-        .where(eq(aiRuns.id, runId));
-    });
-
+    await markPolicyExtractionRunFailed({ run: claimed.run, error });
+    if (error instanceof ExtractionPipelineError) {
+      return { status: 'failed', runId, policyId: claimed.run.policyId };
+    }
     throw error;
   }
 }

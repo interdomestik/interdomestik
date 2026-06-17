@@ -343,35 +343,34 @@ describe('processPolicyAnalysisRunService', () => {
   });
 
   it('fails the run before persistence when policy extraction does not satisfy the strict schema', async () => {
-    await expect(
-      processPolicyAnalysisRunService({
-        runId: 'run-1',
-        deps: {
-          downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
-          analyzeImage: vi.fn(),
-          analyzePdf: vi
-            .fn()
-            .mockResolvedValue(
-              'Valid text content from PDF that is definitely longer than fifty characters.'
-            ),
-          analyzeText: vi.fn().mockResolvedValue({
-            provider: 'Acme Insurance',
-            policyNumber: 'POL-123',
-            coverageAmount: '100000',
-            currency: 'EUR',
-            deductible: 500,
-            confidence: 0.83,
-            warnings: [],
-          }),
-        },
-      })
-    ).rejects.toThrow();
+    const result = await processPolicyAnalysisRunService({
+      runId: 'run-1',
+      deps: {
+        downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
+        analyzeImage: vi.fn(),
+        analyzePdf: vi
+          .fn()
+          .mockResolvedValue(
+            'Valid text content from PDF that is definitely longer than fifty characters.'
+          ),
+        analyzeText: vi.fn().mockResolvedValue({
+          provider: 'Acme Insurance',
+          policyNumber: 'POL-123',
+          coverageAmount: '100000',
+          currency: 'EUR',
+          deductible: 500,
+          confidence: 0.83,
+          warnings: [],
+        }),
+      },
+    });
 
+    expect(result).toEqual({ status: 'failed', runId: 'run-1', policyId: 'policy-1' });
     expect(mocks.transaction).not.toHaveBeenCalled();
     expect(mocks.txUpdateSet).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'failed',
-        errorCode: 'policy_extract_failed',
+        errorCode: 'policy_extract_validation_failed',
         completedAt: expect.any(Date),
       })
     );
