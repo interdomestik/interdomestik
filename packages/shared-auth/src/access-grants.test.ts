@@ -54,6 +54,19 @@ describe('canUseCaseScopedDocumentGrant', () => {
     ).toBe(false);
   });
 
+  it('normalizes identifier whitespace before matching grants', () => {
+    expect(
+      canUseCaseScopedDocumentGrant({
+        accessTenantId: ' tenant_access ',
+        actorId: ' actor-local-legal ',
+        caseId: ' claim-1 ',
+        documentClass: 'legal',
+        grants: [{ ...grant, accessTenantId: ' tenant_access ', caseId: ' claim-1 ' }],
+        now,
+      })
+    ).toBe(true);
+  });
+
   it('rejects revoked or expired grants', () => {
     expect(
       canUseCaseScopedDocumentGrant({

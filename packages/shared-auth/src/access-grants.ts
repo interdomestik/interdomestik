@@ -32,7 +32,11 @@ export function canUseCaseScopedDocumentGrant(args: {
   grants?: readonly CaseScopedAccessGrant[] | null;
   now?: Date;
 }): boolean {
-  if (!args.accessTenantId.trim() || !args.actorId.trim() || !args.caseId.trim()) {
+  const accessTenantId = args.accessTenantId.trim();
+  const actorId = args.actorId.trim();
+  const caseId = args.caseId.trim();
+
+  if (!accessTenantId || !actorId || !caseId) {
     return false;
   }
 
@@ -40,9 +44,9 @@ export function canUseCaseScopedDocumentGrant(args: {
 
   return (args.grants ?? []).some(
     grant =>
-      grant.accessTenantId === args.accessTenantId &&
-      grant.actorId === args.actorId &&
-      grant.caseId === args.caseId &&
+      grant.accessTenantId.trim() === accessTenantId &&
+      grant.actorId.trim() === actorId &&
+      grant.caseId.trim() === caseId &&
       grant.documentClasses.includes(args.documentClass) &&
       isActiveGrant(grant, now)
   );
