@@ -14,14 +14,22 @@ function currentBranch(repoRoot) {
   }
 }
 
-export function protectedPathStatus(repoRoot, protectedTouches) {
-  const branch = currentBranch(repoRoot);
+export function isAuthorizedProtectedDocsBranch(branch, protectedTouches) {
   const trackerOnly =
     protectedTouches.length > 0 && protectedTouches.every(file => file.startsWith('docs/plans/'));
-  const authorizedTrackerCloseout = /^codex\/t\d+[a-z]?-closeout$/iu.test(branch) && trackerOnly;
+  return (
+    trackerOnly &&
+    (/^codex\/t\d+[a-z]?-closeout$/iu.test(branch) ||
+      /^codex\/github-governance-[a-z0-9-]+$/iu.test(branch))
+  );
+}
+
+export function protectedPathStatus(repoRoot, protectedTouches) {
+  const branch = currentBranch(repoRoot);
+  const authorized = isAuthorizedProtectedDocsBranch(branch, protectedTouches);
   return {
-    ok: protectedTouches.length === 0 || authorizedTrackerCloseout,
-    detail: authorizedTrackerCloseout
+    ok: protectedTouches.length === 0 || authorized,
+    detail: authorized
       ? `authorized tracker closeout: ${protectedTouches.join(', ')}`
       : protectedTouches.join(', '),
   };

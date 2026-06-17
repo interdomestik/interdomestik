@@ -13,6 +13,8 @@ const ACTIVE_PATTERNS = [
   /next\s+active\s+governed\s+implementation\s+goal\s+is\s+exactly\s+one\s+canonical\s+tracker\s+slice:\s*`([^`]+)`/giu,
   /`([^`]+)`\s+is now the next active governed implementation goal/giu,
   /next active governed\s+goal,\s*`([^`]+)`/giu,
+  /next canonical candidate is\s+`([^`]+)`/giu,
+  /next candidate in the canonical architecture tracker is\s+`([^`]+)`/giu,
 ];
 
 function argValue(args, name, fallback = '') {
