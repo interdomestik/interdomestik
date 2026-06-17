@@ -4,6 +4,8 @@ export * from './claims/summary';
 export * from './legal/extract';
 export * from './models';
 export * from './read-models/get-run';
+export * from './router';
+export * from './router-config';
 export * from './telemetry';
 export * from './types';
 export * from './schemas/claim-intake-extract';
