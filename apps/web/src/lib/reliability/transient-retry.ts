@@ -117,7 +117,7 @@ export async function withTransientRetry<T>(
         elapsedMs + delayMs <= retryOptions.maxElapsedMs;
 
       if (!canRetry) {
-        return failed(classified, attempts, elapsedMs, error, false);
+        return failed(classified, attempts, elapsedMs, error, classified.retryable);
       }
 
       await clock.sleep(delayMs);
@@ -130,5 +130,9 @@ export function throwTransientRetryFailure<T>(
   fallbackMessage: string
 ): never {
   if (result.cause instanceof Error) throw result.cause;
-  throw new Error(result.message || fallbackMessage);
+  const error = new Error(result.message || fallbackMessage) as Error & { cause?: unknown };
+  if (result.cause !== undefined) {
+    error.cause = result.cause;
+  }
+  throw error;
 }
