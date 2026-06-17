@@ -74,6 +74,7 @@ async function main() {
     model: route.model,
     command: route.command,
     args: route.args(prompt),
+    commandInvoked,
   });
   const paths = writeRouteReceipt(receipt);
   console.log(JSON.stringify(printableReceipt(receipt, paths), null, 2));

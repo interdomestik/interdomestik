@@ -28,11 +28,12 @@ async function runFake(name, body, options = {}) {
     return await runReviewerRoute({
       routeName: name,
       provider: options.provider || 'test',
-	      model: options.model || 'fake',
-	      command: process.execPath,
-	      args: [file],
-	      timeoutPreset: options.timeoutPreset,
-	    });
+      model: options.model || 'fake',
+      command: process.execPath,
+      args: [file],
+      commandInvoked: options.commandInvoked,
+      timeoutPreset: options.timeoutPreset,
+    });
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -89,6 +90,19 @@ test('total timeout is recorded after first output arrives', async () => {
   assert.equal(receipt.blockerReason, 'reviewer_total_timeout');
   assert.equal(receipt.firstOutputTimeout.timedOut, false);
   assert.equal(receipt.totalTimeout.timedOut, true);
+});
+
+test('successful reviewer text is not treated as a quota blocker', async () => {
+  const receipt = await runFake('quota-text-route', "console.log('review references line 429 and rate limit docs');\n");
+  assert.equal(receipt.status, 'ran');
+  assert.equal(receipt.blockerReason, '');
+});
+
+test('receipt command can redact prompt arguments', async () => {
+  const receipt = await runFake('redacted-command-route', "console.log('ok');\n", {
+    commandInvoked: [process.execPath, '-p', '<prompt>'],
+  });
+  assert.deepEqual(receipt.commandInvoked, [process.execPath, '-p', '<prompt>']);
 });
 
 test('package scripts route reviewers through repo-owned helpers', () => {

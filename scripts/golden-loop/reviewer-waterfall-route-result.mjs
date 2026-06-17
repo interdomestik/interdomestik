@@ -1,7 +1,8 @@
 export function routeModel(route) {
   const args = route?.args || [];
   const modelIndex = args.indexOf('--model');
-  return modelIndex >= 0 ? args[modelIndex + 1] : route?.model || route?.command || 'unknown';
+  const parsedModel = modelIndex >= 0 && args[modelIndex + 1] ? args[modelIndex + 1] : '';
+  return parsedModel || route?.model || route?.command || 'unknown';
 }
 
 export function routeProvider(route) {

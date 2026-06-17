@@ -56,7 +56,7 @@ export function runReviewerRoute(options) {
     options.routeName,
     options.timeoutPreset
   );
-  const commandInvoked = [options.command, ...(options.args || [])];
+  const commandInvoked = options.commandInvoked || [options.command, ...(options.args || [])];
   let stdout = '', stderr = '', blockerReason = '';
   let firstOutputTimedOut = false, totalTimedOut = false, sawOutput = false;
 
@@ -90,7 +90,7 @@ export function runReviewerRoute(options) {
       clearTimeout(firstTimer);
       if (stream === 'stdout') stdout = appendBounded(stdout, chunk, options.maxCaptureBytes || 20_000);
       else stderr = appendBounded(stderr, chunk, options.maxCaptureBytes || 20_000);
-      const reason = classifyBlocker(chunk.toString());
+      const reason = stream === 'stderr' ? classifyBlocker(chunk.toString()) : '';
       if (reason && !blockerReason) {
         blockerReason = reason;
         terminate(child);
@@ -120,7 +120,7 @@ export function runReviewerRoute(options) {
       );
     });
     child.on('close', (code, signal) => {
-      const outputBlocker = blockerReason || classifyBlocker(`${stdout}\n${stderr}`);
+      const outputBlocker = blockerReason || (code === 0 ? '' : classifyBlocker(`${stderr}\n${stdout}`));
       blockerReason = outputBlocker;
       const status = statusForClose(blockerReason, code);
       finish(finishReceipt({ status, exitCode: code ?? null, signal }));

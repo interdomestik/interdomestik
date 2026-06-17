@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createReceiptWriter } from './reviewer-receipt.mjs';
 import { runWaterfall } from './reviewer-waterfall.mjs';
+import { routeModel } from './reviewer-waterfall-route-result.mjs';
 
 const adapter = JSON.parse(
   fs.readFileSync(
@@ -60,4 +61,8 @@ test('waterfall receipt records external fallback winner', () => {
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('route model falls back when model argument is missing a value', () => {
+  assert.equal(routeModel({ command: 'claude', model: 'claude-sonnet', args: ['--model'] }), 'claude-sonnet');
 });
