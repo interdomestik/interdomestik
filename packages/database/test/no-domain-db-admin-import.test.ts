@@ -8,9 +8,30 @@ const PACKAGES_DIR = path.join(REPO_ROOT, 'packages');
 const WEB_SRC_DIR = path.join(REPO_ROOT, 'apps', 'web', 'src');
 
 const FORBIDDEN_PATTERNS = [
-  /from\s+['"]@interdomestik\/database['"][^\n]*\bdbAdmin\b/u,
-  /from\s+['"]@interdomestik\/database\/db['"][^\n]*\bdbAdmin\b/u,
+  /\bimport\s*\{[^}]*\b(?:dbAdmin|dbRls)\b[^}]*\}\s*from\s+['"]@interdomestik\/database['"]/u,
+  /\bimport\s*\{[^}]*\b(?:dbAdmin|dbRls)\b[^}]*\}\s*from\s+['"]@interdomestik\/database\/db['"]/u,
+  /\bexport\s*\{[^}]*\b(?:dbAdmin|dbRls)\b[^}]*\}\s*from\s+['"]@interdomestik\/database(?:\/db)?['"]/u,
+  /\bexport\s+\*\s+from\s+['"]@interdomestik\/database(?:\/db)?['"]/u,
+  /\bimport\s+\*\s+as\s+[A-Za-z_$][\w$]*\s+from\s+['"]@interdomestik\/database(?:\/db)?['"]/u,
 ];
+
+test('raw privileged DB import patterns catch canonical and aliased imports', () => {
+  const examples = [
+    "import { dbRls } from '@interdomestik/database';",
+    "import { dbAdmin as rawAdminDb } from '@interdomestik/database/db';",
+    "export { dbRls } from '@interdomestik/database';",
+    "export * from '@interdomestik/database';",
+    "import * as database from '@interdomestik/database/db';",
+  ];
+
+  for (const source of examples) {
+    assert.equal(
+      FORBIDDEN_PATTERNS.some(pattern => pattern.test(source)),
+      true,
+      source
+    );
+  }
+});
 
 async function getDomainSourceFiles(): Promise<string[]> {
   const entries = await fs.readdir(PACKAGES_DIR, { withFileTypes: true });
@@ -82,7 +103,7 @@ async function getSourceFiles(rootDir: string): Promise<string[]> {
   return files;
 }
 
-test('domain packages do not import privileged dbAdmin client', async () => {
+test('domain packages do not import raw privileged database clients', async () => {
   const files = await getDomainSourceFiles();
   const violations: string[] = [];
 
@@ -96,11 +117,11 @@ test('domain packages do not import privileged dbAdmin client', async () => {
   assert.deepEqual(
     violations,
     [],
-    `Forbidden dbAdmin imports found in domain packages:\n${violations.join('\n')}`
+    `Forbidden raw privileged DB imports found in domain packages:\n${violations.join('\n')}`
   );
 });
 
-test('apps/web uses dbAdmin only in /app/api routes', async () => {
+test('apps/web uses raw privileged database clients only in /app/api routes', async () => {
   const files = await getSourceFiles(WEB_SRC_DIR);
   const violations: string[] = [];
 
@@ -120,6 +141,6 @@ test('apps/web uses dbAdmin only in /app/api routes', async () => {
   assert.deepEqual(
     violations,
     [],
-    `Forbidden dbAdmin imports found outside apps/web/src/app/api:\n${violations.join('\n')}`
+    `Forbidden raw privileged DB imports found outside apps/web/src/app/api:\n${violations.join('\n')}`
   );
 });

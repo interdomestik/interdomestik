@@ -361,11 +361,11 @@ test('db access guard rejects hard-coded and split-statement tenant predicates',
 test('db access guard supports explicit system-exempt directives and dbAdmin posture', () => {
   const tempRoot = createTempRepo();
   writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, 'apps/web/src/features/example/system.ts', [
+  writeFixture(tempRoot, 'apps/web/src/app/api/example/system.ts', [
     "import { db, dbAdmin as adminDb } from '@interdomestik/database';",
     'export async function systemJob() {',
     '  // db-access-guard: system-exempt -- reason: cron iterates tenants from sealed list',
-    '  await db.update(claims).set({ status: "archived" });',
+    '  await db.update(systemJobs).set({ status: "archived" });',
     '  await adminDb.delete(auditLog);',
     '}',
   ]);
