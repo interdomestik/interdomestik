@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-type QueryTable = {
-  findFirst: ReturnType<typeof vi.fn>;
-};
+type QueryTable = { findFirst: ReturnType<typeof vi.fn> };
+type MockTenantSession = { user: { accessTenantId?: string | null; tenantId?: string | null } };
 const mocks = vi.hoisted(() => {
   const makeQueryTable = (): QueryTable => ({
     findFirst: vi.fn(),
@@ -27,7 +26,8 @@ const mocks = vi.hoisted(() => {
     user: makeQueryTable(),
   };
   const where = vi.fn();
-  const resolveTenantId = ({ user }) => user.accessTenantId?.trim() || user.tenantId?.trim();
+  const resolveTenantId = ({ user }: MockTenantSession) =>
+    user.accessTenantId?.trim() || user.tenantId?.trim();
   const set = vi.fn(() => ({ where }));
   const update = vi.fn(() => ({ set }));
   return {
@@ -120,7 +120,6 @@ const mocks = vi.hoisted(() => {
     ensureTenantId: vi.fn(resolveTenantId),
   };
 });
-
 vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
   user: mocks.user,
