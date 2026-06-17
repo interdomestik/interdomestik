@@ -66,31 +66,37 @@ test('T-302c rejects new raw privileged clients outside approved paths', () => {
   assert.equal(report.failingNewEntries[0].tenantPostureReason, 'admin-privileged: dbAdmin');
 });
 
-test('T-302c blocks new claim updates outside the transition command', () => {
-  const { result, report } = scanPackages('domain-claims/src/claims/not-transition.ts', [
-    "import { db, claims } from '@interdomestik/database';",
-    'export async function unsafeClaimWrite() {',
-    '  // db-access-guard: tenant-scoped -- reason: legacy helper provided tenant proof',
-    '  return db.update(claims);',
-    '}',
-  ]);
+test('T-302c blocks direct and aliased claim updates outside the transition command', () => {
+  const cases = [
+    {
+      expectedFile: 'not-transition.ts',
+      importLine: "import { db, claims } from '@interdomestik/database';",
+      relativePath: 'domain-claims/src/claims/not-transition.ts',
+      setupLine: null,
+      updateLine: 'return db.update(claims);',
+    },
+    {
+      expectedFile: 'aliased-not-transition.ts',
+      importLine: "import { db, claims as claimRows } from '@interdomestik/database';",
+      relativePath: 'domain-claims/src/claims/aliased-not-transition.ts',
+      setupLine: 'const directDb = db;',
+      updateLine: 'return directDb.update(claimRows);',
+    },
+  ];
 
-  assert.equal(result.status, 1);
-  assertFailingFile(report, 'not-transition.ts');
-});
+  for (const testCase of cases) {
+    const { result, report } = scanPackages(testCase.relativePath, [
+      testCase.importLine,
+      ...(testCase.setupLine ? [testCase.setupLine] : []),
+      'export async function unsafeClaimWrite() {',
+      '  // db-access-guard: tenant-scoped -- reason: legacy helper provided tenant proof',
+      `  ${testCase.updateLine}`,
+      '}',
+    ]);
 
-test('T-302c blocks aliased direct claim updates outside the transition command', () => {
-  const { result, report } = scanPackages('domain-claims/src/claims/aliased-not-transition.ts', [
-    "import { db, claims as claimRows } from '@interdomestik/database';",
-    'const directDb = db;',
-    'export async function unsafeAliasedClaimWrite() {',
-    '  // db-access-guard: tenant-scoped -- reason: legacy helper provided tenant proof',
-    '  return directDb.update(claimRows);',
-    '}',
-  ]);
-
-  assert.equal(result.status, 1);
-  assertFailingFile(report, 'aliased-not-transition.ts');
+    assert.equal(result.status, 1);
+    assertFailingFile(report, testCase.expectedFile);
+  }
 });
 
 test('T-302c blocks direct transaction claim updates outside the transition command', () => {
