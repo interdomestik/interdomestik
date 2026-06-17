@@ -320,15 +320,18 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
       toStatus: 'pending',
     });
 
-    const [mkRlsReceipt] = await withTenantContext({ tenantId: MK_TENANT_ID }, async tx => {
-      return tx.execute<RlsRuntimeReceipt>(sql`
-        select
-          current_user as "currentUser",
-          current_setting('app.current_access_tenant_id', true) as "currentAccessTenantId",
-          current_setting('app.current_tenant_id', true) as "currentTenantId",
-          current_setting('row_security') as "rowSecurity"
-      `);
-    });
+    const [mkRlsReceipt] = await withTenantContext(
+      { tenantId: MK_TENANT_ID, accessTenantId: '  ' },
+      async tx => {
+        return tx.execute<RlsRuntimeReceipt>(sql`
+          select
+            current_user as "currentUser",
+            current_setting('app.current_access_tenant_id', true) as "currentAccessTenantId",
+            current_setting('app.current_tenant_id', true) as "currentTenantId",
+            current_setting('row_security') as "rowSecurity"
+        `);
+      }
+    );
 
     assert.deepEqual(
       {
@@ -342,8 +345,7 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
         currentTenantId: MK_TENANT_ID,
         currentUser: TEST_DB_ROLE,
         rowSecurity: 'on',
-      },
-      'RLS verification must set role, tenant GUCs, and row_security inside the tenant transaction'
+      }
     );
 
     const mkRows = await withTenantContext({ tenantId: MK_TENANT_ID }, async tx => {

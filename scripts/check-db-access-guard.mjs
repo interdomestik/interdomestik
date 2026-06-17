@@ -282,7 +282,7 @@ function collectFindings({ repoRoot, scanRoots }) {
     const aliasState = collectDbAliases(searchableSource, source, relativePath);
     const dbAliases = [...aliasState.aliases].map(escapeRegExp).join('|');
     const methodPattern = new RegExp(
-      `\\b(${dbAliases})\\s*\\.\\s*(${DIRECT_DB_METHODS.join('|')})\\b`,
+      `(?<!\\.)\\b(${dbAliases})\\s*\\.\\s*(${DIRECT_DB_METHODS.join('|')})\\b`,
       'gu'
     );
 
@@ -467,13 +467,20 @@ function main() {
   writeReport(reportPath, report);
 
   if (failingNewEntries.length > 0) {
-    console.error(
-      'DB access guard failed: new unclassified or write-only tenant-predicate direct db.* calls were added.'
-    );
+    console.error('DB access guard failed: sensitive new direct DB access was added.');
     printEntries('Failing new direct DB access:', failingNewEntries);
     console.error('');
     console.error(
-      'Move the access behind withTenantContext/withTenantDb, add a reviewed system-exempt directive, or update the baseline only with an intentional review.'
+      [
+        'Failures include unclassified access, write-only tenant-predicate access, raw dbAdmin/dbRls outside approved adapters,',
+        'and db.update(claims) outside packages/domain-claims/src/claims/transition.ts.',
+      ].join(' ')
+    );
+    console.error(
+      'Claims updates are not waivable with posture directives; move them through the transition command.'
+    );
+    console.error(
+      'Move other access behind withTenantContext/withTenantDb, add a reviewed system-exempt directive, or update the baseline only with an intentional review.'
     );
     console.error(`Report: ${options.reportPath}`);
     process.exit(1);

@@ -49,7 +49,7 @@ test('db access guard fails only when direct db access is added beyond the basel
 
   const failingResult = runAppGuard(tempRoot);
   assert.equal(failingResult.status, 1);
-  assert.match(failingResult.stderr, /new unclassified/u);
+  assert.match(failingResult.stderr, /sensitive new direct DB access/u);
   assert.match(failingResult.stdout, /new\.ts:3 select/u);
 });
 
@@ -229,10 +229,12 @@ test('db access guard does not leak tenant context aliases outside callback boun
     "import { db, withTenantContext } from '@interdomestik/database';",
     'export async function mixedContext(tenantId) {',
     '  await withTenantContext({ tenantId }, async tenantTx => tenantTx.select().from(user));',
+    '  await helper({ tx: { update: () => null } });',
     '  return db.transaction(async tx => {',
     '    await tx.update(user).set({ name: "unsafe" });',
     '  });',
     '}',
+    'async function helper(params) { return params.tx.update(user); }',
   ]);
 
   const failingResult = runAppGuard(tempRoot);
@@ -244,6 +246,7 @@ test('db access guard does not leak tenant context aliases outside callback boun
       entry => entry.callee === 'tx.update' && entry.tenantPosture === 'unclassified'
     )
   );
+  assert.ok(report.newEntries.every(entry => !entry.source.includes('params.tx')));
 });
 
 test('db access guard recognizes only same-statement tenant predicates with non-literal tenant ids', () => {

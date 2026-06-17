@@ -93,6 +93,30 @@ test('T-302c blocks aliased direct claim updates outside the transition command'
   assertFailingFile(report, 'aliased-not-transition.ts');
 });
 
+test('T-302c blocks direct transaction claim updates outside the transition command', () => {
+  const { result, report } = scanPackages('domain-claims/src/claims/tx-not-transition.ts', [
+    "import { db, claims } from '@interdomestik/database';",
+    'export async function unsafeTransactionClaimWrite() {',
+    '  // db-access-guard: tenant-scoped -- reason: legacy helper provided tenant proof',
+    '  return db.transaction(async tx => {',
+    '    // db-access-guard: tenant-scoped -- reason: legacy helper provided tenant proof',
+    '    return tx.update(claims);',
+    '  });',
+    '}',
+  ]);
+
+  assert.equal(result.status, 1);
+  assert.ok(
+    report.failingNewEntries.some(
+      entry =>
+        entry.callee === 'tx.update' &&
+        entry.isDirectDbAlias &&
+        entry.claimsUpdateTarget &&
+        entry.tenantPostureReason === 'tenant-scoped: directive'
+    )
+  );
+});
+
 test('T-302c blocks privileged client claim updates even in approved API paths', () => {
   const { result, report } = scanWeb('app/api/example/raw-claim-transition.ts', [
     "import { dbAdmin, claims } from '@interdomestik/database';",

@@ -84,6 +84,7 @@ function collectTransactionAliases(searchableSource, state) {
 
   for (const match of searchableSource.matchAll(transactionAliasPattern)) {
     state.aliases.add(match[2]);
+    if (state.directDbAliases.has(match[1])) state.directDbAliases.add(match[2]);
     if (state.adminAliases.has(match[1])) state.adminAliases.add(match[2]);
     if (state.rlsAliases.has(match[1])) state.rlsAliases.add(match[2]);
   }

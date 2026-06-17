@@ -30,7 +30,7 @@ function resolveAccessTenantId(context: TenantContext, tenantId: string): string
   if (context.accessTenantId === null || context.accessTenantId === undefined) {
     return tenantId;
   }
-  return assertNonEmptyTenantId(context.accessTenantId, 'accessTenantId');
+  return context.accessTenantId.trim() || tenantId;
 }
 
 function setLocalRoleSql(role: string) {
