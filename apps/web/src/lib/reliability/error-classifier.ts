@@ -1,3 +1,5 @@
+import { retryAfterFrom } from './retry-after';
+
 export type RetryErrorKind =
   | 'transient'
   | 'permanent'
@@ -21,55 +23,32 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
 }
 
-function getErrorName(error: unknown): string {
-  return error instanceof Error ? error.name : String(asRecord(error)?.name ?? '');
+function firstField(record: Record<string, unknown> | null, names: string[]): unknown {
+  return names.map(name => record?.[name]).find(value => value !== undefined);
 }
 
-function getErrorMessage(error: unknown): string {
+function messageFrom(error: unknown, record: Record<string, unknown> | null): string {
   if (error instanceof Error) return error.message;
-  const record = asRecord(error);
-  const value = record?.message ?? record?.error ?? record?.details;
+  const value = firstField(record, ['message', 'error', 'details']);
   return typeof value === 'string' ? value : String(error || 'Unknown error');
 }
 
-function getNestedCause(error: unknown): unknown {
-  return asRecord(error)?.cause;
-}
-
-function getStatus(error: unknown): number | null {
-  const record = asRecord(error);
-  const status = record?.status ?? record?.statusCode ?? record?.code;
+function statusFrom(record: Record<string, unknown> | null): number | null {
+  const status = firstField(record, ['status', 'statusCode', 'code']);
   const parsed = typeof status === 'number' ? status : Number.parseInt(String(status ?? ''), 10);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function parseRetryAfterMs(value: unknown): number | undefined {
-  if (typeof value === 'number' && value >= 0) return value * 1000;
-  if (typeof value !== 'string' || value.trim().length === 0) return undefined;
-
-  const seconds = Number.parseFloat(value);
-  if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
-
-  const dateMs = Date.parse(value);
-  if (!Number.isFinite(dateMs)) return undefined;
-  return Math.max(0, dateMs - Date.now());
-}
-
-function parseExplicitRetryAfterMs(value: unknown): number | undefined {
-  if (typeof value === 'number' && value >= 0) return value;
-  if (typeof value !== 'string' || value.trim().length === 0) return undefined;
-
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
-}
-
-function getRetryAfterMs(error: unknown): number | undefined {
+function inspectError(error: unknown) {
   const record = asRecord(error);
-  const headers = asRecord(record?.headers);
-  return (
-    parseExplicitRetryAfterMs(record?.retryAfterMs) ??
-    parseRetryAfterMs(record?.retryAfter ?? headers?.['retry-after'])
-  );
+  return {
+    cause: record?.cause,
+    code: String(record?.code ?? ''),
+    message: messageFrom(error, record),
+    name: error instanceof Error ? error.name : String(record?.name ?? ''),
+    retryAfterMs: retryAfterFrom(record, asRecord),
+    status: statusFrom(record),
+  };
 }
 
 function includesAny(text: string, patterns: RegExp[]): boolean {
@@ -85,12 +64,13 @@ function quotaResult(message: string, retryAfterMs: number | undefined): Classif
 }
 
 export function classifyRetryError(error: unknown): ClassifiedRetryError {
-  const cause = getNestedCause(error);
-  const status = getStatus(error) ?? getStatus(cause);
-  const name = `${getErrorName(error)} ${getErrorName(cause)}`.toLowerCase();
-  const message = getErrorMessage(error);
-  const text = `${name} ${message} ${getErrorMessage(cause)}`.toLowerCase();
-  const code = String(asRecord(error)?.code ?? asRecord(cause)?.code ?? '');
+  const inspected = inspectError(error);
+  const inspectedCause = inspectError(inspected.cause);
+  const status = inspected.status ?? inspectedCause.status;
+  const name = `${inspected.name} ${inspectedCause.name}`.toLowerCase();
+  const message = inspected.message;
+  const text = `${name} ${message} ${inspectedCause.message}`.toLowerCase();
+  const code = inspected.code || inspectedCause.code;
 
   if (
     name.includes('tenantstoragepatherror') ||
@@ -101,7 +81,7 @@ export function classifyRetryError(error: unknown): ClassifiedRetryError {
     return { kind: 'auth', message, retryable: false };
   }
 
-  const retryAfterMs = getRetryAfterMs(error) ?? getRetryAfterMs(cause);
+  const retryAfterMs = inspected.retryAfterMs ?? inspectedCause.retryAfterMs;
   if (status === 429 || retryAfterMs !== undefined || includesAny(text, [/quota/, /rate.?limit/])) {
     return quotaResult(message, retryAfterMs);
   }
