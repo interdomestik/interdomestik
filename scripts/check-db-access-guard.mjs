@@ -282,7 +282,7 @@ function collectFindings({ repoRoot, scanRoots }) {
     const aliasState = collectDbAliases(searchableSource, source, relativePath);
     const dbAliases = [...aliasState.aliases].map(escapeRegExp).join('|');
     const methodPattern = new RegExp(
-      `(?<!\\.)\\b(${dbAliases})\\s*\\.\\s*(${DIRECT_DB_METHODS.join('|')})\\b`,
+      String.raw`(?<!\.)\b(${dbAliases})\s*\.\s*(${DIRECT_DB_METHODS.join('|')})\b`,
       'gu'
     );
 

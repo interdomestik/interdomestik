@@ -1,7 +1,7 @@
 import { collectTenantContextAliasNames } from './db-access-posture.mjs';
 
 export function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
 }
 
 function createAliasState() {
@@ -20,25 +20,34 @@ function collectImportedDbAliases(searchableSource) {
 
   for (const match of searchableSource.matchAll(importPattern)) {
     for (const specifier of match[1].split(',')) {
-      const dbImportMatch = specifier
-        .trim()
-        .match(/^(db|dbRls|dbAdmin|claims|claimsTable)(?:\s+as\s+([A-Za-z_$][\w$]*))?$/u);
-      if (!dbImportMatch) continue;
-
-      const importedName = dbImportMatch[1];
-      const localName = dbImportMatch[2] ?? importedName;
-      if (importedName === 'claims' || importedName === 'claimsTable') {
-        state.claimTableAliases.add(localName);
-      } else {
-        state.aliases.add(localName);
-      }
-      if (importedName === 'db') state.directDbAliases.add(localName);
-      if (importedName === 'dbAdmin') state.adminAliases.add(localName);
-      if (importedName === 'dbRls') state.rlsAliases.add(localName);
+      const importedAlias = parseImportedDbAlias(specifier);
+      if (importedAlias) addImportedAlias(state, importedAlias);
     }
   }
 
   return state;
+}
+
+function parseImportedDbAlias(specifier) {
+  const dbImportMatch = specifier
+    .trim()
+    .match(/^(db|dbRls|dbAdmin|claims|claimsTable)(?:\s+as\s+([A-Za-z_$][\w$]*))?$/u);
+  if (!dbImportMatch) return null;
+
+  const importedName = dbImportMatch[1];
+  return { importedName, localName: dbImportMatch[2] ?? importedName };
+}
+
+function addImportedAlias(state, { importedName, localName }) {
+  if (importedName === 'claims' || importedName === 'claimsTable') {
+    state.claimTableAliases.add(localName);
+    return;
+  }
+
+  state.aliases.add(localName);
+  if (importedName === 'db') state.directDbAliases.add(localName);
+  if (importedName === 'dbAdmin') state.adminAliases.add(localName);
+  if (importedName === 'dbRls') state.rlsAliases.add(localName);
 }
 
 function collectAssignedAliases(searchableSource, aliases, onAlias) {
@@ -48,7 +57,7 @@ function collectAssignedAliases(searchableSource, aliases, onAlias) {
     changed = false;
     const aliasPattern = [...aliases].map(escapeRegExp).join('|');
     const assignmentPattern = new RegExp(
-      `\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*(?::[^=]+)?=\\s*(?:${aliasPattern})\\b`,
+      String.raw`\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?::[^=]+)?=\s*(?:${aliasPattern})\b`,
       'gu'
     );
 
@@ -78,7 +87,7 @@ function collectTenantContextAliases(source, relativePath, state) {
 function collectTransactionAliases(searchableSource, state) {
   const aliasPattern = [...state.aliases].map(escapeRegExp).join('|');
   const transactionAliasPattern = new RegExp(
-    `\\b(${aliasPattern})\\s*\\.\\s*transaction\\s*\\(\\s*(?:async\\s*)?\\(?\\s*([A-Za-z_$][\\w$]*)`,
+    String.raw`\b(${aliasPattern})\s*\.\s*transaction\s*\(\s*(?:async\s*)?\(?\s*([A-Za-z_$][\w$]*)`,
     'gu'
   );
 
