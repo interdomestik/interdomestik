@@ -1,3 +1,8 @@
+import { headers } from 'next/headers';
+import { type NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+import { getClientMetadata, safeJson } from '@/app/api/request-guard';
 import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import {
   createSharePack,
@@ -5,8 +10,7 @@ import {
   logAuditEvent,
 } from '@/features/share-pack/share-pack.service';
 import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { type NextRequest, NextResponse } from 'next/server';
+
 import { createSharePackCore, getSharePackCore } from './_core';
 
 const services = {
@@ -15,20 +19,9 @@ const services = {
   logAuditEvent,
 };
 
-const idsKey = 'documentIds' as const;
-
-function getDocumentIds(body: unknown): string[] | null {
-  if (!body || typeof body !== 'object' || !(idsKey in body)) {
-    return null;
-  }
-
-  const ids = body[idsKey];
-  if (!Array.isArray(ids) || !ids.every(id => typeof id === 'string')) {
-    return null;
-  }
-
-  return ids;
-}
+const DOCUMENT_IDS_FIELD = 'documentIds';
+const createSharePackRequestShape = { [DOCUMENT_IDS_FIELD]: z.array(z.string()) };
+const createSharePackRequestSchema = z.object(createSharePackRequestShape).passthrough();
 
 /**
  * POST /api/share-pack - Create a share pack link
@@ -48,19 +41,23 @@ export async function POST(request: NextRequest) {
       return tenant.response;
     }
 
-    const ids = getDocumentIds(await request.json());
-    if (!ids) {
-      return NextResponse.json({ error: 'IDs required' }, { status: 400 });
-    }
+    const parsed = await safeJson(request, createSharePackRequestSchema, {
+      invalidRequestResponse: () => NextResponse.json({ error: 'IDs required' }, { status: 400 }),
+    });
+    if (!parsed.ok) return parsed.response;
 
-    const result = await createSharePackCore({
+    const clientMetadata = getClientMetadata(request.headers);
+    const requestedDocumentIds = parsed.data[DOCUMENT_IDS_FIELD];
+
+    const coreInput = {
       tenantId: tenant.tenantId,
       userId: session.user.id,
-      [idsKey]: ids,
-      ipAddress: request.headers.get('x-forwarded-for') ?? undefined,
-      userAgent: request.headers.get('user-agent') ?? undefined,
+      ipAddress: clientMetadata.ipAddress ?? undefined,
+      userAgent: clientMetadata.userAgent ?? undefined,
       services,
-    });
+    };
+    const sharePackInput = Object.assign(coreInput, { [DOCUMENT_IDS_FIELD]: requestedDocumentIds });
+    const result = await createSharePackCore(sharePackInput);
 
     if (!result.ok) {
       const status = result.error === 'Invalid IDs' ? 403 : 400;

@@ -1,27 +1,18 @@
-import { auth } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+import { getClientMetadata, safeJson } from '@/app/api/request-guard';
+import { auth } from '@/lib/auth';
+
 import { requestDataDeletionCore } from './_core';
 
-type RequestBody = {
-  reason?: string | null;
-};
-
-async function parseBody(request: NextRequest): Promise<RequestBody> {
-  try {
-    const parsed = (await request.json()) as RequestBody;
-    return parsed ?? {};
-  } catch {
-    return {};
-  }
-}
-
-function getClientIp(request: NextRequest): string | null {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip')?.trim() ||
-    null
-  );
-}
+const requestBodySchema = z.preprocess(
+  value => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    return value;
+  },
+  z.object({ reason: z.string().nullable().optional() }).passthrough()
+);
 
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -29,7 +20,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await parseBody(request);
+  const parsed = await safeJson(request, requestBodySchema, {
+    allowEmptyBody: true,
+    emptyBody: {},
+    invalidJsonData: {},
+  });
+  if (!parsed.ok) return parsed.response;
+
+  const clientMetadata = getClientMetadata(request.headers);
   const user = session.user as {
     id?: string;
     role?: string | null;
@@ -40,9 +38,9 @@ export async function POST(request: NextRequest) {
     userId: user.id || '',
     tenantId: user.tenantId,
     actorRole: user.role ?? null,
-    reason: body.reason,
-    ipAddress: getClientIp(request),
-    userAgent: request.headers.get('user-agent'),
+    reason: parsed.data.reason,
+    ipAddress: clientMetadata.ipAddress,
+    userAgent: clientMetadata.userAgent,
   });
 
   return NextResponse.json(result.body, { status: result.status });
