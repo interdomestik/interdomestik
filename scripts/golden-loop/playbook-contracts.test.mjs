@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { resolveActiveSlice } from './active-slice.mjs';
+import { findConcreteActiveSlice, resolveActiveSlice } from './active-slice.mjs';
+import { isAuthorizedProtectedDocsBranch } from './maturity-protected-paths.mjs';
 import { runWaterfall } from './reviewer-waterfall.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -32,6 +33,25 @@ test('active slice resolver prefers concrete promoted slice over ARCH-FINAL umbr
   assert.equal(resolved.ok, true);
   assert.match(resolved.active.id, /^T-\d+[a-z]?$/i);
   assert.notEqual(resolved.active.id, 'ARCH-FINAL');
+});
+
+test('active slice resolver accepts canonical candidate wording after closeout', () => {
+  const match = findConcreteActiveSlice(
+    'The next canonical candidate is `T-302c`, subject to fresh authority resolution.'
+  );
+  assert.equal(match.id, 'T-302c');
+});
+
+test('governance hardening branch may touch tracker docs only', () => {
+  const branch = 'codex/github-governance-hardening';
+  assert.equal(
+    isAuthorizedProtectedDocsBranch(branch, ['docs/plans/current-tracker.md']),
+    true
+  );
+  assert.equal(
+    isAuthorizedProtectedDocsBranch(branch, ['docs/plans/current-tracker.md', 'README.md']),
+    false
+  );
 });
 
 test('adapter encodes bounded reviewer fallback triggers', () => {

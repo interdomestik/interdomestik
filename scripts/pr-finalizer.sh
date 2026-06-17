@@ -21,11 +21,20 @@ EOF
 }
 
 required_checks=(
-  "CI"
+  "validation-surface"
+  "audit"
+  "static"
+  "unit"
+  "e2e"
   "e2e-gate"
   "pilot-gate"
   "pnpm-audit"
   "gitleaks"
+  "commitlint"
+  "SonarCloud Code Analysis"
+  "CodeQL"
+  "Analyze (actions)"
+  "Analyze (javascript-typescript)"
 )
 max_check_retries=120
 check_retry_delay_seconds=10
@@ -41,17 +50,7 @@ resolve_matching_checks() {
   local check_name="$1"
   local checks="$2"
 
-  if [[ "${check_name}" == "CI" ]]; then
-    echo "${checks}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("(^|.*/\\s*)(audit|static|unit|e2e-gate)$"))]'
-  elif [[ "${check_name}" == "pilot-gate" ]]; then
-    echo "${checks}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("(^|.*/\\s*)pilot-gate\\s*$"))]'
-  elif [[ "${check_name}" == "pnpm-audit" ]]; then
-    echo "${checks}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("(^|.*/\\s*)pnpm-audit$"))]'
-  elif [[ "${check_name}" == "gitleaks" ]]; then
-    echo "${checks}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("(^|.*/\\s*)gitleaks$"))]'
-  else
-    echo "${checks}" | jq --arg NAME "$check_name" '[.check_runs | .[] | select((.name // .workflow_name // "") | test(("^" + $NAME); "i"))]'
-  fi
+  echo "${checks}" | jq --arg NAME "$check_name" '[.check_runs | .[] | select((.name // .workflow_name // "") == $NAME)]'
 }
 
 fail() {
@@ -165,18 +164,6 @@ require_gh_checks() {
 
     for attempt in $(seq 1 "${max_check_retries}"); do
       check_count="$(echo "${matching_checks}" | jq 'length')"
-      if [[ "${check_name}" == "CI" && "${check_count}" -ne 4 ]]; then
-        if [[ "${attempt}" -ge "${max_check_retries}" ]]; then
-          fail "required checks for '${check_name}' are incomplete (found: ${check_count}/4 CI jobs)"
-        fi
-        echo "[pr-finalizer] INFO: '${check_name}' checks not all present yet (found: ${check_count}/4). Retrying in ${check_retry_delay_seconds}s..."
-        sleep "${check_retry_delay_seconds}"
-        checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=latest&per_page=100")"
-        matching_checks="$(resolve_matching_checks "${check_name}" "${checks_json}")"
-        matching_checks="$(echo "${matching_checks}" | jq --arg EXCLUDED "$excluded_check" '[.[] | select((.name // .workflow_name // "") != $EXCLUDED)]')"
-        continue
-      fi
-
       if [[ "${check_count}" -eq 0 ]]; then
         if [[ "${attempt}" -ge "${max_check_retries}" ]]; then
           fail "required checks for '${check_name}' are not present"

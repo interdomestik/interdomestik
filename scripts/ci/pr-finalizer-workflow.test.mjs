@@ -22,3 +22,10 @@ test('PR finalizer workflow does not force duplicate required-check polling in C
   assert.ok(runStep);
   assert.equal(runStep.env.PR_FINALIZER_SKIP_CHECK_POLLING, undefined);
 });
+
+test('PR finalizer delegates Sonar validation to required check in CI', () => {
+  const finalizerLib = fs.readFileSync(path.join(rootDir, 'scripts/pr-finalizer-lib.sh'), 'utf8');
+
+  assert.match(finalizerLib, /SonarCloud Code Analysis required check owns Sonar validation/);
+  assert.match(finalizerLib, /\$\{GITHUB_ACTIONS:-\}" == "true"/);
+});

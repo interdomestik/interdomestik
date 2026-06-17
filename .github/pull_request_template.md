@@ -40,5 +40,6 @@
 
 - [ ] All GitHub review threads resolved.
 - [ ] Bot or reviewer findings were either fixed or explicitly closed with technical reasoning.
-- [ ] Required checks green (`CI / static`, `CI / unit`, `CI / audit`, `CI / e2e-gate`, `Pilot Gate / pilot-gate`, `Security / pnpm-audit`, `Security / gitleaks`).
+- [ ] Required checks green (`validation-surface`, `audit`, `static`, `unit`, `e2e-gate`, `e2e`, `pnpm-audit`, `gitleaks`, `pilot-gate`, `pr-finalizer`, `commitlint`, `SonarCloud Code Analysis`, `CodeQL`, `Analyze (actions)`, `Analyze (javascript-typescript)`).
+- [ ] `pnpm pr:governance:report -- <PR_NUMBER>` recorded Sonar, CodeQL, Copilot, Codex, and required-check state; absent Copilot/Codex feedback is documented rather than waited on indefinitely.
 - [ ] Evidence artifact paths are present and complete.
