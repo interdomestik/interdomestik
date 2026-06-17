@@ -282,8 +282,18 @@ async function processDate(args: {
   });
 
   result.workItemsDeferred += workItemResults.unscheduledCount;
+  let softTimeoutFailures = 0;
   for (const outcome of workItemResults.outcomes) {
     if (outcome.status === 'rejected') {
+      if (isCrmForecastSnapshotSoftTimeoutError(outcome.error) && softTimeoutFailures > 0) {
+        result.workItemsDeferred += 1;
+        logWorkItemFailure(args.logger, args.snapshotDate, outcome.item, outcome.error);
+        continue;
+      }
+
+      if (isCrmForecastSnapshotSoftTimeoutError(outcome.error)) {
+        softTimeoutFailures += 1;
+      }
       result.failedWorkItems += 1;
       logWorkItemFailure(args.logger, args.snapshotDate, outcome.item, outcome.error);
       continue;

@@ -277,11 +277,7 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
   it('soft-times out individual work items and defers the rest of the date', async () => {
     const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
     const deps = createDeps({
-      workItems: [
-        workItem,
-        { ...workItem, pipelineId: 'pipeline-2', tenantId: 'tenant-2' },
-        { ...workItem, pipelineId: 'pipeline-3', tenantId: 'tenant-3' },
-      ],
+      workItems: [workItem, { ...workItem, pipelineId: 'pipeline-2', tenantId: 'tenant-2' }],
     });
     deps.reportingRepository.listWeightedPipelineRows.mockReturnValue(new Promise(() => {}));
 
@@ -296,11 +292,13 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
     });
 
     expect(result.dateResults[0]).toMatchObject({
-      failedWorkItems: 2,
+      failedWorkItems: 1,
       status: 'partial',
       workItemsDeferred: 1,
       workItemsSucceeded: 0,
     });
+    expect(result.datesFailed).toBe(0);
+    expect(getCrmForecastSnapshotBackfillStatus(result)).toBe(200);
     expect(logger.warn).toHaveBeenCalledTimes(2);
   });
 
