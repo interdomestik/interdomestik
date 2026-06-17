@@ -4,6 +4,7 @@ import { and, eq } from 'drizzle-orm';
 
 type SessionLike = {
   user?: {
+    accessTenantId?: string | null;
     role?: string | null;
     tenantId?: string | null;
   } | null;
@@ -18,7 +19,7 @@ export async function resolveAdminTenantContext(params: {
   searchParams: Record<string, string | string[] | undefined>;
 }): Promise<string | null> {
   const { session, searchParams } = params;
-  const sessionTenantId = session?.user?.tenantId ?? null;
+  const sessionTenantId = session?.user?.accessTenantId ?? session?.user?.tenantId ?? null;
   const role = session?.user?.role ?? null;
 
   if (role !== 'super_admin') {

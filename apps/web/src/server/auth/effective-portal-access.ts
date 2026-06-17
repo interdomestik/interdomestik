@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 
 type SessionLike = {
   user?: {
+    accessTenantId?: string | null;
     id?: string | null;
     role?: string | null;
     tenantId?: string | null;
@@ -40,7 +41,7 @@ export async function hasEffectivePortalAccess(
   allowedRoles: readonly string[],
   options: PortalAccessOptions = {}
 ): Promise<boolean> {
-  const sessionTenantId = session?.user?.tenantId ?? null;
+  const sessionTenantId = session?.user?.accessTenantId ?? session?.user?.tenantId ?? null;
   const requestedTenantId = options.requestedTenantId ?? sessionTenantId ?? null;
   const userId = session?.user?.id ?? null;
   const legacyRole = session?.user?.role ?? null;

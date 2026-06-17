@@ -1,5 +1,5 @@
 import { and, claims, db, eq } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { DEFAULT_EVIDENCE_BUCKET } from '@/lib/storage/evidence-bucket';
@@ -9,13 +9,13 @@ import {
   buildEvidenceStoragePath,
 } from '@/features/claims/upload/server/storage-path';
 
-type Session = {
-  user: {
-    id: string;
-    role?: string | null;
-    tenantId?: string | null;
-  };
+type SessionUser = {
+  id: string;
+  accessTenantId?: string | null;
+  role?: string | null;
+  tenantId?: string | null;
 };
+type Session = { user: SessionUser };
 
 export const ALLOWED_MIME_TYPES = [
   'image/jpeg',
@@ -92,7 +92,7 @@ export async function createSignedUploadCore(args: {
     return { ok: false, status: 413, error: 'File too large' };
   }
 
-  const tenantId = ensureTenantId(session);
+  const tenantId = ensureAccessTenantId(session);
 
   if (claimId) {
     const claim = await db.query.claims.findFirst({

@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 type QueryTable = {
   findFirst: ReturnType<typeof vi.fn>;
 };
-
 const mocks = vi.hoisted(() => {
   const makeQueryTable = (): QueryTable => ({
     findFirst: vi.fn(),
@@ -31,7 +30,6 @@ const mocks = vi.hoisted(() => {
   const where = vi.fn();
   const set = vi.fn(() => ({ where }));
   const update = vi.fn(() => ({ set }));
-
   return {
     db: {
       transaction: vi.fn(),
@@ -118,7 +116,8 @@ const mocks = vi.hoisted(() => {
       tenantColumn,
       filter,
     })),
-    ensureTenantId: vi.fn((session: { user: { tenantId: string } }) => session.user.tenantId),
+    ensureAccessTenantId: vi.fn(session => session.user.accessTenantId ?? session.user.tenantId),
+    ensureTenantId: vi.fn(session => session.user.accessTenantId ?? session.user.tenantId),
   };
 });
 
@@ -145,6 +144,7 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('@interdomestik/shared-auth', () => ({
+  ensureAccessTenantId: mocks.ensureAccessTenantId,
   ensureTenantId: mocks.ensureTenantId,
 }));
 
