@@ -9,7 +9,6 @@ const skillRoot =
   process.env.CODEX_INTERDOMESTIK_SLICE_RUNNER_ROOT ||
   path.join(os.homedir(), '.codex/skills/interdomestik-slice-runner');
 const packet = path.join(skillRoot, 'scripts/codex-review-packet.mjs');
-const receiptDir = process.env.REVIEW_RECEIPT_DIR || path.join('tmp', 'reviewer-routes');
 
 function exitForReceipt(receipt) {
   if (receipt.status === 'ran') return 0;
@@ -18,8 +17,13 @@ function exitForReceipt(receipt) {
 }
 
 function printableReceipt(receipt, paths) {
-  const { stdout, stderr, ...safeReceipt } = receipt;
-  return { ...safeReceipt, receipt: paths };
+  return {
+    routeName: receipt.routeName,
+    status: receipt.status,
+    blockerReason: receipt.blockerReason,
+    exitCode: receipt.exitCode,
+    receipt: paths,
+  };
 }
 
 const receipt = await runReviewerRoute({
@@ -31,6 +35,6 @@ const receipt = await runReviewerRoute({
   timeoutMs: 15 * 60_000,
   noOutputTimeoutMs: 300_000,
 });
-const paths = writeRouteReceipt(receipt, receiptDir);
+const paths = writeRouteReceipt(receipt);
 console.log(JSON.stringify(printableReceipt(receipt, paths), null, 2));
 process.exit(exitForReceipt(receipt));

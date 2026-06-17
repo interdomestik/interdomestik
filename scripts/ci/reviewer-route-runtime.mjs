@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { commandAvailable, safeTimeout, statusForClose } from './reviewer-route-utils.mjs';
+import { commandAvailable, statusForClose, timeoutConfig } from './reviewer-route-utils.mjs';
 
 const BLOCKERS = [
   [/AuthorizationRequired|re-authorization required|OAuth token refresh failed/i, 'mcp_auth_required'],
@@ -52,11 +52,9 @@ export function runReviewerRoute(options) {
   const env = options.env || process.env;
   const startedAt = iso();
   const startedMs = Date.now();
-  const totalTimeoutMs = safeTimeout(options.timeoutMs, 900_000, 30 * 60_000);
-  const firstOutputTimeoutMs = safeTimeout(
-    options.noOutputTimeoutMs,
-    300_000,
-    Math.min(totalTimeoutMs, 10 * 60_000)
+  const { firstOutputTimeoutMs, totalTimeoutMs } = timeoutConfig(
+    options.routeName,
+    options.timeoutPreset
   );
   const commandInvoked = [options.command, ...(options.args || [])];
   let stdout = '', stderr = '', blockerReason = '';

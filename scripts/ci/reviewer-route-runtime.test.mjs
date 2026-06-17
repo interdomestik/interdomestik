@@ -28,12 +28,11 @@ async function runFake(name, body, options = {}) {
     return await runReviewerRoute({
       routeName: name,
       provider: options.provider || 'test',
-      model: options.model || 'fake',
-      command: process.execPath,
-      args: [file],
-      timeoutMs: options.timeoutMs ?? 500,
-      noOutputTimeoutMs: options.noOutputTimeoutMs ?? 100,
-    });
+	      model: options.model || 'fake',
+	      command: process.execPath,
+	      args: [file],
+	      timeoutPreset: options.timeoutPreset,
+	    });
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -45,9 +44,10 @@ test('Codex quota blocker writes deterministic JSON and Markdown receipts', asyn
     "console.error('429 quota exceeded'); process.exit(1);\n",
     { provider: 'openai', model: 'codex-cli' }
   );
-  const root = tempRoot('codex-quota-receipt');
+  const root = path.join(repoRoot, 'tmp/reviewer-routes');
+  fs.rmSync(root, { recursive: true, force: true });
   try {
-    const paths = writeRouteReceipt(receipt, root);
+    const paths = writeRouteReceipt(receipt);
     const json = JSON.parse(fs.readFileSync(paths.jsonPath, 'utf8'));
     const markdown = fs.readFileSync(paths.mdPath, 'utf8');
     assert.equal(json.status, 'blocked');
@@ -73,8 +73,7 @@ test('missing reviewer CLI is structurally blocked', async () => {
 
 test('no-output timeout is recorded separately from total timeout', async () => {
   const receipt = await runFake('silent-route', 'setTimeout(() => {}, 500);\n', {
-    timeoutMs: 400,
-    noOutputTimeoutMs: 50,
+    timeoutPreset: 'test-no-output',
   });
   assert.equal(receipt.status, 'blocked');
   assert.equal(receipt.blockerReason, 'reviewer_no_output_timeout');
@@ -84,8 +83,7 @@ test('no-output timeout is recorded separately from total timeout', async () => 
 
 test('total timeout is recorded after first output arrives', async () => {
   const receipt = await runFake('slow-route', "console.log('started'); setTimeout(() => {}, 500);\n", {
-    timeoutMs: 80,
-    noOutputTimeoutMs: 400,
+    timeoutPreset: 'test-total',
   });
   assert.equal(receipt.status, 'blocked');
   assert.equal(receipt.blockerReason, 'reviewer_total_timeout');
@@ -103,11 +101,12 @@ test('package scripts route reviewers through repo-owned helpers', () => {
 });
 
 test('Opus helper skips escalation unless explicitly required', () => {
-  const root = tempRoot('opus-skip');
+  const root = path.join(repoRoot, 'tmp/reviewer-routes');
+  fs.rmSync(root, { recursive: true, force: true });
   try {
     const result = spawnSync(
       process.execPath,
-      ['scripts/ci/run-model-reviewer-route.mjs', '--route', 'opus', '--receipt-dir', root],
+      ['scripts/ci/run-model-reviewer-route.mjs', '--route', 'opus'],
       { cwd: repoRoot, encoding: 'utf8' }
     );
     assert.equal(result.status, 0, result.stderr);
