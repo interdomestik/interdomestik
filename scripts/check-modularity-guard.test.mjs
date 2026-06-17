@@ -34,10 +34,12 @@ function lines(count, prefix = 'line') {
 }
 
 function largeLines(count) {
-  return Array.from(
-    { length: count },
-    (_, index) => `line-${index + 1}-${'x'.repeat(LARGE_LINE_PAYLOAD_BYTES)}`
-  ).join('\n') + '\n';
+  return (
+    Array.from(
+      { length: count },
+      (_, index) => `line-${index + 1}-${'x'.repeat(LARGE_LINE_PAYLOAD_BYTES)}`
+    ).join('\n') + '\n'
+  );
 }
 
 function resultFor(root, base) {
@@ -118,6 +120,7 @@ test('keeps explicit generated and lockfile exceptions out of enforcement', () =
   const root = initRepo('modularity-exceptions-');
   writeFile(root, 'README.md', 'seed\n');
   const base = commitAll(root);
+  writeFile(root, 'package.json', lines(400));
   writeFile(root, 'pnpm-lock.yaml', lines(400));
   writeFile(root, 'packages/database/drizzle/generated.ts', lines(400));
 

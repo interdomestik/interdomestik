@@ -62,20 +62,20 @@ split closeout docs so the PR stays docs-only.
 
 ## Reviewer routing (replaces default fan-out)
 
-Normal review is front-loaded before PR: run Sonnet on a bounded evidence
-packet, fix blocker/hardening findings, then run `codex review --uncommitted`
-(or `--base main` after commit) as the final local senior-engineer bug-finding
-pass. Gemini is the normal fallback when Sonnet is blocked; Opus 4.8 stays out
-of the default order and is added only for Tier 3 high-risk scope, blocked
-Sonnet/Codex evidence, unresolved disagreement, or explicit human request.
-Codex is not a waterfall route.
+Normal review is front-loaded through repo-owned package scripts, not raw model
+CLI commands: `pnpm review:sonnet`, fallback `pnpm review:gemini`, and
+`pnpm codex:senior-head-engineer-reviewer`/`pnpm review:codex` as the local
+senior-engineer pass. `pnpm review:opus` is explicit Opus 4.8 escalation only
+for Tier 3 high-risk scope, blocked Sonnet/Codex evidence, unresolved
+disagreement, or explicit human request. Codex is not a waterfall route.
 
 Within a configured waterfall, fall through only when the current route is
 unavailable, errored, refused/rerouted, invalid, or returns unresolved blockers.
-The first valid, blocker-free senior review wins; consulted routes get receipts
-and bounded packets. After substantive PR-review remediation, rerun Codex on
-the updated diff. Trivial PR-body or wording-only changes do not need another
-model review.
+The first valid, blocker-free senior review wins; consulted routes get JSON and
+Markdown receipts plus bounded packets, and skipped routes are recorded as
+skipped rather than silently ignored. Blocked routes never count as approval.
+After substantive PR-review remediation, rerun Codex on the updated diff.
+Trivial PR-body or wording-only changes do not need another model review.
 
 **Senior-review contract.** A review counts as valid evidence only if it
 contains all of: `REVIEWER:` (model/identity), `SLICE:` (must match the slice

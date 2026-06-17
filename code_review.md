@@ -1,6 +1,10 @@
 # Interdomestik Code Review Guidance
 
 Use this file for Codex review, external model review, and human PR review.
+Use repo-owned reviewer scripts for model routes: `pnpm review:sonnet`,
+`pnpm review:gemini`, `pnpm review:opus`, and
+`pnpm codex:senior-head-engineer-reviewer`/`pnpm review:codex`. Do not open-code
+raw `claude`, `gemini`, or `codex review` commands in slice playbooks.
 
 ## Review Posture
 
@@ -36,3 +40,7 @@ Use this file for Codex review, external model review, and human PR review.
 - `rejected`: false positive with repo evidence.
 
 Never count a blocked reviewer route as approval. If Codex is quota-blocked, record the blocker and use the approved external reviewer fallback instead of retrying in the same slice.
+Each route receipt must preserve route name, provider/model, command invoked,
+started/ended timestamps, elapsed time, `ran | blocked | skipped | failed`
+status, blocker reason, exit code, first-output timeout, total timeout, and
+fallback winner when applicable.
