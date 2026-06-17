@@ -2,6 +2,7 @@ export type UserSession = {
   user: {
     id: string;
     role: string;
+    accessTenantId?: string | null;
     tenantId?: string | null;
     name?: string | null;
     email?: string | null;

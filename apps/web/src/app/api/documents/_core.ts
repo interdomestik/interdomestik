@@ -3,8 +3,15 @@ import type { AuditEvent } from '@/lib/audit';
 import type { TenantStorageFamily } from '@/lib/storage/tenant-prefix';
 import type * as DatabaseModule from '@interdomestik/database';
 import { claimDocuments, claims, documents, policies } from '@interdomestik/database/schema';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { ensureAccessTenantId, type CaseScopedAccessGrant } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
+
+import {
+  hasCaseScopedDocumentGrant,
+  hasScopedClaimReadAccess,
+  isFullTenantClaimsRole,
+  isScopedClaimReaderRole,
+} from './access-policy';
 
 type DatabaseClient = typeof DatabaseModule.db;
 
@@ -28,6 +35,8 @@ export interface DocumentAccessDeps {
 type SessionDTO = {
   user: {
     id: string;
+    accessTenantId?: string | null;
+    caseScopedAccessGrants?: readonly CaseScopedAccessGrant[] | null;
     branchId?: string | null;
     role?: string | null;
     tenantId?: string | null;
@@ -37,6 +46,7 @@ type SessionDTO = {
 type DocumentRow = {
   id: string;
   claimId: string | null;
+  category?: GrantDocumentClass | null;
   bucket: string;
   filePath: string;
   uploadedBy: string | null;
@@ -44,15 +54,15 @@ type DocumentRow = {
   fileType: string | null;
   fileSize: number | null;
 };
-
 type DocumentAccessMode = 'signed_url' | 'download';
 type PolymorphicDocumentRow = {
   id: string;
   entityId: string;
   entityType: string;
+  category?: GrantDocumentClass | null;
   uploadedBy: string | null;
 };
-
+type GrantDocumentClass = Parameters<typeof hasCaseScopedDocumentGrant>[0]['documentClass'];
 export type DocumentAccessResult =
   | {
       ok: true;
@@ -85,41 +95,6 @@ type AuditContext = {
   actorRole: string | null;
   metadata: Record<string, unknown>;
 };
-
-function isFullTenantClaimsRole(role: string | null | undefined): boolean {
-  return role === 'admin' || role === 'tenant_admin' || role === 'super_admin';
-}
-
-function isScopedClaimReaderRole(role: string | null | undefined): boolean {
-  return role === 'staff' || role === 'branch_manager' || role === 'agent';
-}
-
-function hasScopedClaimReadAccess(args: {
-  branchId?: string | null;
-  claim: {
-    branchId?: string | null;
-    staffId?: string | null;
-    userId: string | null;
-    agentId?: string | null;
-  };
-  role: string | null | undefined;
-  userId: string;
-}): boolean {
-  if (args.role === 'agent') {
-    return args.claim.agentId === args.userId;
-  }
-  const branchId = args.branchId ?? null;
-
-  if (args.role === 'branch_manager') {
-    return branchId !== null && args.claim.branchId === branchId;
-  }
-
-  if (branchId !== null) {
-    return args.claim.branchId === branchId;
-  }
-
-  return args.claim.staffId === args.userId || args.claim.staffId == null;
-}
 
 export function safeFilename(value: string) {
   const ascii = value
@@ -262,7 +237,7 @@ export async function logDeniedDocumentAccess(args: {
   await args.logAuditEvent({
     actorId: args.session.user.id,
     actorRole: args.session.user.role || null,
-    tenantId: args.tenantId ?? undefined,
+    tenantId: ensureAccessTenantId(args.session),
     action: 'document.forbidden',
     entityType: 'claim_document',
     entityId: args.documentId,
@@ -281,7 +256,7 @@ export async function logAllowedDocumentAccess(args: {
   await args.logAuditEvent({
     actorId: args.session.user.id,
     actorRole: args.access.audit.actorRole,
-    tenantId: args.tenantId ?? undefined,
+    tenantId: args.access.tenantId,
     action: args.access.audit.action,
     entityType: args.access.audit.entityType,
     entityId: args.access.audit.entityId,
@@ -362,6 +337,17 @@ async function canReadPolymorphicClaimDocument(args: {
 
   if (!claimRow) return false;
 
+  if (
+    hasCaseScopedDocumentGrant({
+      accessTenantId: tenantId,
+      caseId: polyDoc.entityId,
+      documentClass: polyDoc.category ?? 'other',
+      session,
+    })
+  ) {
+    return true;
+  }
+
   // Member can read any document attached to their own claim.
   if (userRole !== 'agent' && claimRow.claimOwnerId === session.user.id) {
     return true;
@@ -392,12 +378,25 @@ function canReadLegacyClaimDocument(args: {
     agentId: string | null;
   };
   document: DocumentRow;
+  tenantId: string;
   session: SessionDTO;
   userRole: string | undefined;
 }): boolean {
-  const { claim, document, session, userRole } = args;
+  const { claim, document, session, tenantId, userRole } = args;
 
   if (isFullTenantClaimsRole(userRole)) {
+    return true;
+  }
+
+  if (
+    document.claimId &&
+    hasCaseScopedDocumentGrant({
+      accessTenantId: tenantId,
+      caseId: document.claimId,
+      documentClass: document.category ?? 'other',
+      session,
+    })
+  ) {
     return true;
   }
 
@@ -433,7 +432,7 @@ export async function getDocumentAccessCore(args: {
   deps: DocumentAccessDeps;
 }): Promise<DocumentAccessResult> {
   const { session, documentId, mode, disposition, deps } = args;
-  const tenantId = ensureTenantId(session);
+  const tenantId = ensureAccessTenantId(session);
   const { db } = deps;
   const userRole = (session.user.role as string | undefined) ?? undefined;
   const finalDisposition = getFinalDisposition(disposition);
@@ -501,6 +500,7 @@ export async function getDocumentAccessCore(args: {
       agentId: row.claimAgentId ?? null,
     },
     document: doc,
+    tenantId,
     session,
     userRole,
   });

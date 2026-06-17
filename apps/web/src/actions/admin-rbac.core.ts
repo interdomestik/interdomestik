@@ -32,11 +32,11 @@ function revalidateAdminUserPage(locale: string | undefined, userId: string) {
 }
 
 function resolveTenantForAdminAction(
-  session: { user?: { tenantId?: string | null } | null },
+  session: { user?: { accessTenantId?: string | null; tenantId?: string | null } | null },
   tenantId?: string,
   role?: string
 ): string | undefined {
-  const sessionTenantId = session.user?.tenantId ?? undefined;
+  const sessionTenantId = session.user?.accessTenantId?.trim() || session.user?.tenantId?.trim();
   if (role === 'super_admin') {
     return tenantId ?? sessionTenantId;
   }

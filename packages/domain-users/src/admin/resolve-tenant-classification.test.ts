@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-type QueryTable = {
-  findFirst: ReturnType<typeof vi.fn>;
-};
-
+type QueryTable = { findFirst: ReturnType<typeof vi.fn> };
+type MockTenantSession = { user: { accessTenantId?: string | null; tenantId?: string | null } };
 const mocks = vi.hoisted(() => {
   const makeQueryTable = (): QueryTable => ({
     findFirst: vi.fn(),
@@ -27,11 +25,11 @@ const mocks = vi.hoisted(() => {
     tenants: makeQueryTable(),
     user: makeQueryTable(),
   };
-
   const where = vi.fn();
+  const resolveTenantId = ({ user }: MockTenantSession) =>
+    user.accessTenantId?.trim() || user.tenantId?.trim();
   const set = vi.fn(() => ({ where }));
   const update = vi.fn(() => ({ set }));
-
   return {
     db: {
       transaction: vi.fn(),
@@ -118,10 +116,10 @@ const mocks = vi.hoisted(() => {
       tenantColumn,
       filter,
     })),
-    ensureTenantId: vi.fn((session: { user: { tenantId: string } }) => session.user.tenantId),
+    ensureAccessTenantId: vi.fn(resolveTenantId),
+    ensureTenantId: vi.fn(resolveTenantId),
   };
 });
-
 vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
   user: mocks.user,
@@ -145,6 +143,7 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('@interdomestik/shared-auth', () => ({
+  ensureAccessTenantId: mocks.ensureAccessTenantId,
   ensureTenantId: mocks.ensureTenantId,
 }));
 

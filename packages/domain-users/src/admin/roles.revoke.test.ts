@@ -36,6 +36,9 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
 }));
 
 vi.mock('@interdomestik/shared-auth', () => ({
+  ensureAccessTenantId: vi.fn(
+    session => session.user.accessTenantId?.trim() || session.user.tenantId?.trim()
+  ),
   hasPermission: vi.fn(() => true),
   PERMISSIONS: {
     'roles.manage': 'roles.manage',

@@ -5,10 +5,11 @@
 
 import { MissingTenantError, UnauthorizedError } from './errors';
 import { isSuperAdmin, isTenantAdmin, ROLES, type Permission } from './permissions';
-import type { SessionWithTenant } from './session';
+import { ensureAccessTenantId, type SessionWithTenant } from './session';
 
 export type ScopeFilter = {
   tenantId: string;
+  accessTenantId: string;
   branchId?: string | null;
   agentId?: string | null;
   userId?: string | null;
@@ -31,25 +32,30 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
     throw new UnauthorizedError();
   }
 
-  const { id: userId, role, tenantId, branchId } = session.user;
+  const { id: userId, role, branchId } = session.user;
+  const accessTenantId =
+    session.user.accessTenantId?.trim() || session.user.tenantId?.trim() || null;
 
   // Super admin: cross-tenant access
   if (isSuperAdmin(role)) {
     return {
-      tenantId: tenantId ?? '*',
+      tenantId: accessTenantId ?? '*',
+      accessTenantId: accessTenantId ?? '*',
       isFullTenantScope: true,
       isCrossTenantScope: true,
     };
   }
 
-  if (!tenantId) {
+  if (!accessTenantId) {
     throw new MissingTenantError();
   }
+  const tenantId = ensureAccessTenantId(session);
 
   // Tenant admin: full tenant scope
   if (isTenantAdmin(role)) {
     return {
       tenantId,
+      accessTenantId: tenantId,
       isFullTenantScope: true,
       isCrossTenantScope: false,
     };
@@ -59,6 +65,7 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
   if (role === ROLES.global_support || role === ROLES.auditor) {
     return {
       tenantId,
+      accessTenantId: tenantId,
       isFullTenantScope: true,
       isCrossTenantScope: false,
     };
@@ -68,6 +75,7 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
   if (role === ROLES.staff) {
     return {
       tenantId,
+      accessTenantId: tenantId,
       isFullTenantScope: true,
       isCrossTenantScope: false,
     };
@@ -77,6 +85,7 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
   if (role === ROLES.branch_manager) {
     return {
       tenantId,
+      accessTenantId: tenantId,
       branchId: branchId ?? null,
       isFullTenantScope: false,
       isCrossTenantScope: false,
@@ -87,6 +96,7 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
   if (role === ROLES.agent) {
     return {
       tenantId,
+      accessTenantId: tenantId,
       agentId: userId ?? null,
       isFullTenantScope: false,
       isCrossTenantScope: false,
@@ -96,6 +106,7 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
   // Member: self only
   return {
     tenantId,
+    accessTenantId: tenantId,
     userId: userId ?? null,
     isFullTenantScope: false,
     isCrossTenantScope: false,

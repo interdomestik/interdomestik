@@ -7,9 +7,10 @@
 export { AuthError, MissingTenantError, UnauthorizedError } from './errors';
 
 // Session types and utilities
-export { ensureTenantId, type SessionWithTenant } from './session';
+export { ensureAccessTenantId, ensureTenantId, type SessionWithTenant } from './session';
 
 // RBAC and Scoping
+export * from './access-grants';
 export * from './permissions';
 export * from './scope';
 export * from './governance';
