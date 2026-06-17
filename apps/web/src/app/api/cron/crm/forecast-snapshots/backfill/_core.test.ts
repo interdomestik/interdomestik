@@ -242,15 +242,18 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
 
   it('stops starting more work items within a date after the global duration budget is reached', async () => {
     const deps = createDeps({
-      workItems: [workItem, { ...workItem, pipelineId: 'pipeline-2' }],
+      rows: [weightedRow(), weightedRow({ pipelineId: 'pipeline-2', tenantId: 'tenant-2' })],
+      workItems: [
+        workItem,
+        { ...workItem, pipelineId: 'pipeline-2', tenantId: 'tenant-2' },
+        { ...workItem, pipelineId: 'pipeline-3', tenantId: 'tenant-3' },
+      ],
     });
-    const nowMs = vi
-      .fn()
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(1_500)
-      .mockReturnValue(61_001);
+    let nowCalls = 0;
+    const nowMs = vi.fn(() => {
+      nowCalls += 1;
+      return nowCalls <= 6 ? 1_000 : 61_001;
+    });
 
     const result = await runCrmForecastSnapshotBackfillCore({
       ...deps,
@@ -264,11 +267,11 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
 
     expect(result.dateResults[0]).toMatchObject({
       status: 'partial',
-      workItemsConsidered: 2,
+      snapshotsInserted: 2,
+      workItemsConsidered: 3,
       workItemsDeferred: 1,
-      workItemsSucceeded: 1,
+      workItemsSucceeded: 2,
     });
-    expect(deps.snapshotRepository.insertPipelineSnapshots).toHaveBeenCalledTimes(1);
   });
 
   it('soft-times out individual work items and defers the rest of the date', async () => {
@@ -294,14 +297,9 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
       workItemsDeferred: 1,
       workItemsSucceeded: 0,
     });
-    expect(logger.warn).toHaveBeenCalledWith(
-      '[CRM Forecast Snapshot Backfill] work item timed out',
-      expect.objectContaining({
-        errorMessage: 'CRM forecast snapshot backfill timed out',
-        snapshotDate: '2026-05-14',
-        tenantId: 'tenant-1',
-      })
-    );
+    expect(result.datesFailed).toBe(0);
+    expect(getCrmForecastSnapshotBackfillStatus(result)).toBe(200);
+    expect(logger.warn).toHaveBeenCalledTimes(2);
   });
 
   it('returns 500 only when every considered date fails', async () => {

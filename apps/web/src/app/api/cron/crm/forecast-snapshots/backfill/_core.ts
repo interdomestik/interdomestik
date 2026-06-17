@@ -25,6 +25,9 @@ import {
   withCrmForecastSnapshotTimeout,
   type CrmForecastSnapshotTenantWeightedRows,
 } from '../_shared';
+import { runBoundedWorkItemPool } from './_bounded-work-item-pool';
+import { getCrmForecastSnapshotBackfillDateStatus } from './_date-status';
+import { rollUpCrmForecastSnapshotBackfillWorkItemOutcomes } from './_work-item-rollup';
 
 export const CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_DAYS = 7;
 export const CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_LOOKBACK_DAYS = 366;
@@ -36,6 +39,7 @@ export const CRM_FORECAST_SNAPSHOT_BACKFILL_SYSTEM_ACTOR_ID =
 export const CRM_FORECAST_SNAPSHOT_BACKFILL_TARGET_DURATION_MS = 60_000;
 export const CRM_FORECAST_SNAPSHOT_BACKFILL_SOURCE_RUN_PREFIX = 'crm-forecast-snapshot-backfill';
 export const CRM_FORECAST_SNAPSHOT_BACKFILL_WORK_ITEM_SOFT_TIMEOUT_MS = 5_000;
+export const CRM_FORECAST_SNAPSHOT_BACKFILL_WORK_ITEM_CONCURRENCY = 2;
 export const CRM_FORECAST_SNAPSHOT_BACKFILL_NO_BRANCH_SENTINEL = '_no_branch';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -252,14 +256,11 @@ async function processDate(args: {
   result.workItemsDeferred = listed.workItemsDeferred;
 
   const tenantRows: CrmForecastSnapshotTenantWeightedRows = new Map();
-  for (const [index, workItem] of listed.workItems.entries()) {
-    if (args.nowMs() - args.startedMs >= args.targetDurationMs) {
-      result.workItemsDeferred += listed.workItems.length - index;
-      break;
-    }
-
-    try {
-      const inserted = await withTimeout(
+  const workItemResults = await runBoundedWorkItemPool({
+    concurrency: CRM_FORECAST_SNAPSHOT_BACKFILL_WORK_ITEM_CONCURRENCY,
+    items: listed.workItems,
+    run: workItem =>
+      withCrmForecastSnapshotTimeout(
         signal =>
           processWorkItem({
             dryRun: args.dryRun,
@@ -274,25 +275,24 @@ async function processDate(args: {
             tenantRows,
             workItem,
           }),
-        args.workItemSoftTimeoutMs
-      );
-      if (inserted === 'version_conflict') {
-        result.versionConflicts += 1;
-      } else {
-        result.workItemsSucceeded += 1;
-        if (!args.dryRun) result.snapshotsInserted += inserted;
-      }
-    } catch (error) {
-      result.failedWorkItems += 1;
-      logWorkItemFailure(args.logger, args.snapshotDate, workItem, error);
-      if (isCrmForecastSnapshotSoftTimeoutError(error)) {
-        result.workItemsDeferred += listed.workItems.length - index - 1;
-        break;
-      }
-    }
-  }
+        args.workItemSoftTimeoutMs,
+        SOFT_TIMEOUT_MESSAGE
+      ),
+    shouldStart: () => args.nowMs() - args.startedMs < args.targetDurationMs,
+    stopAfter: outcome =>
+      outcome.status === 'rejected' && isCrmForecastSnapshotSoftTimeoutError(outcome.error),
+  });
 
-  result.status = dateStatus(result, args.dryRun);
+  result.workItemsDeferred += workItemResults.unscheduledCount;
+  rollUpCrmForecastSnapshotBackfillWorkItemOutcomes({
+    dryRun: args.dryRun,
+    logFailure: (workItem, error) =>
+      logWorkItemFailure(args.logger, args.snapshotDate, workItem, error),
+    outcomes: workItemResults.outcomes,
+    result,
+  });
+
+  result.status = getCrmForecastSnapshotBackfillDateStatus(result, args.dryRun);
   return result;
 }
 
@@ -345,18 +345,6 @@ function reportingInputFor(tenantId: string, from: Date, to: Date): CrmReporting
     },
     window: { from: from.toISOString(), to: to.toISOString() },
   };
-}
-
-function dateStatus(
-  result: CrmForecastSnapshotBackfillDateResult,
-  dryRun: boolean
-): CrmForecastSnapshotBackfillDateStatus {
-  if (result.workItemsConsidered > 0 && result.failedWorkItems === result.workItemsConsidered) {
-    return 'failed';
-  }
-  if (result.failedWorkItems > 0 || result.workItemsDeferred > 0) return 'partial';
-  if (dryRun) return 'dry_run';
-  return 'completed';
 }
 
 function rollUpDateResults(result: CrmForecastSnapshotBackfillResult): void {
@@ -549,11 +537,4 @@ function endExclusiveForSnapshotDate(snapshotDate: string): Date {
 
 function startInclusiveForSnapshotDate(snapshotDateEndExclusive: Date): Date {
   return new Date(snapshotDateEndExclusive.getTime() - CRM_REPORTING_MAX_WINDOW_DAYS * MS_PER_DAY);
-}
-
-function withTimeout<T>(
-  startWork: (signal: AbortSignal) => Promise<T>,
-  timeoutMs: number
-): Promise<T> {
-  return withCrmForecastSnapshotTimeout(startWork, timeoutMs, SOFT_TIMEOUT_MESSAGE);
 }
