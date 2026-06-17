@@ -103,13 +103,11 @@ require_feedback_checks_green() {
   fi
   return 0
 }
-
 sonar_urlencode() {
   local value="$1"
   jq -nr --arg value "${value}" '$value | @uri'
   return 0
 }
-
 fetch_sonar_json() {
   local url="$1"
   local auth_header
@@ -123,6 +121,10 @@ require_sonar_clean() {
   local project="${SONAR_PROJECT_KEY:-}"
   if [[ "${pr_type}" == "${PR_TYPE_DOCS_ONLY}" ]]; then
     echo "[pr-finalizer] INFO: docs-only PR; skipping Sonar issue/hotspot API validation."
+    return 0
+  fi
+  if [[ "${GITHUB_ACTIONS:-}" == "true" && "${PR_FINALIZER_SKIP_CHECK_POLLING:-true}" != "false" ]]; then
+    echo "[pr-finalizer] INFO: CI run; SonarCloud Code Analysis required check owns Sonar validation."
     return 0
   fi
   if [[ -z "${SONAR_TOKEN:-}" || -z "${host}" || -z "${project}" ]]; then
