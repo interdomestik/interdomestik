@@ -470,6 +470,7 @@ test('CI audit job runs the scripts/ci contract suite', () => {
   const quarantineBudgetStep = findStep(auditJob.steps, 'Check E2E quarantine budget');
   assert.ok(auditRunStep);
   assert.match(auditRunStep.run, /\bpnpm test:ci:contracts\b/);
+  assert.doesNotMatch(auditRunStep.run, /playbook-contracts\.mjs/);
   assert.match(auditRunStep.run, /\bpnpm check:e2e-contracts:base\b/);
   assert.match(auditRunStep.run, /\bpnpm lint:production-warnings\b/);
   assert.ok(quarantineBudgetStep);
