@@ -66,7 +66,6 @@ export function buildMaturityAreas(repoRoot) {
   const reviewTests = readText(repoRoot, 'scripts/golden-loop/review-contract.test.mjs');
   const finalizerTests = readText(repoRoot, 'scripts/ci/pr-finalizer-workflow.test.mjs');
   const goldenLoopTests = readText(repoRoot, 'scripts/golden-loop/golden-loop.test.mjs');
-  const playbookContracts = readText(repoRoot, 'scripts/golden-loop/playbook-contracts.mjs');
   const changed = changedFiles(repoRoot);
   const protectedTouches = changed.files.filter(file =>
     PROTECTED_FORBIDDEN.some(item => file === item || file.startsWith(item))
@@ -118,10 +117,10 @@ export function buildMaturityAreas(repoRoot) {
       [
         { ok: hasEvery(gateNames, ['pr-verify', 'e2e-gate', 'ci-required-checks']), label: 'gate inventory' },
         { ok: JSON.stringify(adapter.gates).includes('skipWhenCoveredBy'), label: 'duplicate gate skip' },
-        { ok: ciWorkflow.includes('playbook-contracts.mjs'), label: 'CI contract gate' },
-        { ok: playbookContracts.includes('maturity scorecard'), label: 'score enforced by CI gate' },
+        { ok: ciWorkflow.includes('pnpm test:ci:contracts'), label: 'CI contract suite' },
+        { ok: !ciWorkflow.includes('playbook-contracts.mjs'), label: 'Golden Loop off critical path' },
       ],
-      'Gate inventory, duplicate-work policy, and maturity enforcement are wired into CI audit.'
+      'Gate inventory and duplicate-work policy stay wired into CI audit without Golden Loop on the critical path.'
     ),
     scoreArea(
       'Future-thread skill enforcement',
