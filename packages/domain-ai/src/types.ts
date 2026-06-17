@@ -62,7 +62,7 @@ export interface AiResponsesWorkflowConfig extends AiResponsesModelConfig {
 }
 
 export interface AiModelRoutingInput {
-  workflow?: AiWorkflow | string | null;
+  workflow?: AiWorkflow | (string & {}) | null;
   mimeType?: string | null;
   parsedTextLength?: number | null;
   extractionTargetCount?: number | null;
