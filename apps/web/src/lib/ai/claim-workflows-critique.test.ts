@@ -5,14 +5,11 @@ const mocks = vi.hoisted(() => {
   const txUpdateReturning = vi.fn().mockResolvedValue([{ id: 'run-1' }]);
   const txUpdateSet = vi.fn(() => ({ where: vi.fn(() => ({ returning: txUpdateReturning })) }));
   const selectWhere = vi.fn();
-  const select = vi.fn(() => ({
-    from: vi.fn(() => ({
-      innerJoin: vi.fn(() => ({
-        innerJoin: vi.fn(() => ({ where: selectWhere })),
-        where: selectWhere,
-      })),
-    })),
-  }));
+  const secondJoin = { where: selectWhere };
+  const firstJoin = { innerJoin: vi.fn(() => secondJoin), where: selectWhere };
+  const fromResult = { innerJoin: vi.fn(() => firstJoin) };
+  const from = vi.fn(() => fromResult);
+  const select = vi.fn(() => ({ from }));
 
   return {
     db: { select },
