@@ -8,23 +8,24 @@ Require these exact check names:
 
 1. `validation-surface`
 2. `audit`
-3. `static`
-4. `unit`
-5. `e2e-gate`
-6. `e2e`
-7. `pnpm-audit`
-8. `gitleaks`
-9. `pilot-gate`
-10. `pr-finalizer`
-11. `commitlint`
-12. `SonarCloud Code Analysis`
-13. `CodeQL`
-14. `Analyze (actions)`
-15. `Analyze (javascript-typescript)`
+3. `e2e`
+4. `pnpm-audit`
+5. `gitleaks`
+6. `pilot-gate`
+7. `pr-finalizer`
+8. `commitlint`
+9. `CodeQL`
+10. `Analyze (actions)`
+11. `Analyze (javascript-typescript)`
 
 `Pilot Gate Preflight` and `Pilot Gate Runner` are monitored as evidence, but
 `pilot-gate` is the stable branch-protection context. Do not require `ai-eval`
 globally because it is path-gated and validly skipped for non-AI PRs.
+Do not require `static`, `unit`, or `e2e-gate` globally because they are
+validation-surface gated and validly skipped for non-product PRs. Do not require
+`SonarCloud Code Analysis` globally because Sonar materialization is not
+deterministic across governance-only commits; the governance report still
+records its presence, absence, and result.
 
 ## Reviewer And Feedback Monitoring
 

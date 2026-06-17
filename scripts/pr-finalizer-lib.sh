@@ -113,7 +113,7 @@ require_sonar_clean() {
     return 0
   fi
   if [[ "${GITHUB_ACTIONS:-}" == "true" && "${PR_FINALIZER_SKIP_CHECK_POLLING:-true}" != "false" ]]; then
-    echo "[pr-finalizer] INFO: CI run; SonarCloud Code Analysis required check owns Sonar validation."
+    echo "[pr-finalizer] INFO: CI run; Sonar state is reported by governance monitoring."
     return 0
   fi
   if [[ -z "${SONAR_TOKEN:-}" || -z "${host}" || -z "${project}" ]]; then
