@@ -1,4 +1,4 @@
-import type { AiWorkflow } from './types';
+import type { AiModelRoute, AiWorkflow } from './types';
 
 export interface AiTelemetryInput {
   workflow: AiWorkflow;
@@ -12,6 +12,7 @@ export interface AiTelemetryInput {
   status?: string | null;
   reviewStatus?: string | null;
   costUsd?: number | null;
+  route?: AiModelRoute | null;
 }
 
 export interface AiTelemetryEvent {
@@ -26,6 +27,7 @@ export interface AiTelemetryEvent {
   status: string;
   reviewStatus: string;
   costUsd: number;
+  route?: AiModelRoute;
 }
 
 export interface AiTelemetrySummary {
@@ -95,7 +97,7 @@ export function createAiTelemetryEvent(input: AiTelemetryInput): AiTelemetryEven
   const inputTokens = normalizeCount(input.inputTokens);
   const cachedInputTokens = Math.min(normalizeCount(input.cachedInputTokens), inputTokens);
 
-  return {
+  const event: AiTelemetryEvent = {
     workflow: input.workflow,
     tenantId: normalizeString(input.tenantId, 'unknown-tenant'),
     promptVersion: normalizeString(input.promptVersion, 'unknown_prompt'),
@@ -108,6 +110,12 @@ export function createAiTelemetryEvent(input: AiTelemetryInput): AiTelemetryEven
     reviewStatus: normalizeString(input.reviewStatus, 'pending'),
     costUsd: normalizeCost(input.costUsd),
   };
+
+  if (input.route) {
+    event.route = input.route;
+  }
+
+  return event;
 }
 
 export function aggregateAiTelemetry(events: AiTelemetryEvent[]): AiTelemetryAggregate {

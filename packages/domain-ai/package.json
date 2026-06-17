@@ -11,6 +11,8 @@
     "./claims/summary": "./src/claims/summary.ts",
     "./legal/extract": "./src/legal/extract.ts",
     "./models": "./src/models.ts",
+    "./router": "./src/router.ts",
+    "./router-config": "./src/router-config.ts",
     "./telemetry": "./src/telemetry.ts",
     "./types": "./src/types.ts",
     "./schemas/policy-extract": "./src/schemas/policy-extract.ts",
