@@ -26,6 +26,8 @@ import {
   type CrmForecastSnapshotTenantWeightedRows,
 } from '../_shared';
 import { runBoundedWorkItemPool } from './_bounded-work-item-pool';
+import { getCrmForecastSnapshotBackfillDateStatus } from './_date-status';
+import { rollUpCrmForecastSnapshotBackfillWorkItemOutcomes } from './_work-item-rollup';
 
 export const CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_DAYS = 7;
 export const CRM_FORECAST_SNAPSHOT_BACKFILL_MAX_LOOKBACK_DAYS = 366;
@@ -282,32 +284,15 @@ async function processDate(args: {
   });
 
   result.workItemsDeferred += workItemResults.unscheduledCount;
-  let softTimeoutFailures = 0;
-  for (const outcome of workItemResults.outcomes) {
-    if (outcome.status === 'rejected') {
-      if (isCrmForecastSnapshotSoftTimeoutError(outcome.error) && softTimeoutFailures > 0) {
-        result.workItemsDeferred += 1;
-        logWorkItemFailure(args.logger, args.snapshotDate, outcome.item, outcome.error);
-        continue;
-      }
+  rollUpCrmForecastSnapshotBackfillWorkItemOutcomes({
+    dryRun: args.dryRun,
+    logFailure: (workItem, error) =>
+      logWorkItemFailure(args.logger, args.snapshotDate, workItem, error),
+    outcomes: workItemResults.outcomes,
+    result,
+  });
 
-      if (isCrmForecastSnapshotSoftTimeoutError(outcome.error)) {
-        softTimeoutFailures += 1;
-      }
-      result.failedWorkItems += 1;
-      logWorkItemFailure(args.logger, args.snapshotDate, outcome.item, outcome.error);
-      continue;
-    }
-
-    if (outcome.value === 'version_conflict') {
-      result.versionConflicts += 1;
-    } else {
-      result.workItemsSucceeded += 1;
-      if (!args.dryRun) result.snapshotsInserted += outcome.value;
-    }
-  }
-
-  result.status = dateStatus(result, args.dryRun);
+  result.status = getCrmForecastSnapshotBackfillDateStatus(result, args.dryRun);
   return result;
 }
 
@@ -360,18 +345,6 @@ function reportingInputFor(tenantId: string, from: Date, to: Date): CrmReporting
     },
     window: { from: from.toISOString(), to: to.toISOString() },
   };
-}
-
-function dateStatus(
-  result: CrmForecastSnapshotBackfillDateResult,
-  dryRun: boolean
-): CrmForecastSnapshotBackfillDateStatus {
-  if (result.workItemsConsidered > 0 && result.failedWorkItems === result.workItemsConsidered) {
-    return 'failed';
-  }
-  if (result.failedWorkItems > 0 || result.workItemsDeferred > 0) return 'partial';
-  if (dryRun) return 'dry_run';
-  return 'completed';
 }
 
 function rollUpDateResults(result: CrmForecastSnapshotBackfillResult): void {
