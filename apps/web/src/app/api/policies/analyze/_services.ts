@@ -8,7 +8,8 @@ import {
 import { markAiRunDispatchFailedWithTenantContext } from '@/lib/ai/dispatch-failure';
 import { db } from '@/lib/db.server';
 import { inngest } from '@/lib/inngest/client';
-import { downloadTenantObject, uploadTenantObject } from '@/lib/storage/service-role';
+import { throwTransientRetryFailure, withTransientRetry } from '@/lib/reliability/transient-retry';
+import { uploadTenantObject } from '@/lib/storage/service-role';
 import { POLICIES_BUCKET, buildPolicyStoragePath } from '@/lib/storage/tenant-prefix';
 import { withTenantContext } from '@interdomestik/database';
 import { aiRuns, documentExtractions, documents, policies } from '@interdomestik/database/schema';
@@ -16,6 +17,8 @@ import { getResponsesWorkflowConfig } from '@interdomestik/domain-ai/models';
 import { policyExtractSchema } from '@interdomestik/domain-ai/schemas/policy-extract';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+
+import { downloadPolicyFileWithRetry } from './_storage-download';
 
 const RESOLVED_POLICIES_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || POLICIES_BUCKET;
 const POLICY_EXTRACT_WORKFLOW = 'policy_extract' as const;
@@ -84,9 +87,6 @@ type ProcessPolicyAnalysisDeps = {
   analyzeText?: (text: string) => Promise<PolicyAnalysis>;
 };
 
-/**
- * Service: Upload policy file to Supabase Storage
- */
 export async function uploadPolicyFileService(args: {
   userId: string;
   tenantId: string;
@@ -119,9 +119,6 @@ export async function uploadPolicyFileService(args: {
   return { ok: true as const, filePath };
 }
 
-/**
- * Service: Parse text from PDF buffer
- */
 export async function analyzePdfService(buffer: Buffer): Promise<string> {
   try {
     const pdfModule = await import('pdf-parse');
@@ -200,10 +197,18 @@ export async function queuePolicyAnalysisService(
 }
 
 export async function emitPolicyExtractionRequestedService(args: PolicyExtractRequestedEvent) {
-  await inngest.send({
-    name: 'policy/extract.requested',
-    data: args,
-  });
+  const result = await withTransientRetry(
+    () =>
+      inngest.send({
+        name: 'policy/extract.requested',
+        data: args,
+      }),
+    { initialDelayMs: 200, maxDelayMs: 1_000, maxElapsedMs: 10_000 }
+  );
+
+  if (!result.ok) {
+    throwTransientRetryFailure(result, 'Failed to dispatch policy extraction.');
+  }
 }
 
 export async function markPolicyAnalysisRunDispatchFailedService(args: {
@@ -220,19 +225,11 @@ export async function markPolicyAnalysisRunDispatchFailedService(args: {
 }
 
 async function downloadPolicyFileService(filePath: string, tenantId: string): Promise<Buffer> {
-  const { data, error } = await downloadTenantObject({
+  return downloadPolicyFileWithRetry({
     bucket: RESOLVED_POLICIES_BUCKET,
-    context: 'policy analysis download',
-    family: 'policies',
-    path: filePath,
+    filePath,
     tenantId,
   });
-
-  if (error || !data) {
-    throw new Error('Failed to download queued policy document.');
-  }
-
-  return Buffer.from(await data.arrayBuffer());
 }
 
 export async function processPolicyAnalysisRunService(args: {

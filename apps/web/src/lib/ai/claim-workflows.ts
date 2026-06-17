@@ -5,8 +5,10 @@ import {
 import { extractClaimIntake } from '@interdomestik/domain-ai/claims/intake-extract';
 import { extractLegalDocument } from '@interdomestik/domain-ai/legal/extract';
 import { markAiRunDispatchFailedWithTenantContext } from '@/lib/ai/dispatch-failure';
+import { downloadClaimAiFileWithRetry } from '@/lib/ai/claim-storage-download';
 import { db } from '@/lib/db.server';
 import { inngest } from '@/lib/inngest/client';
+import { throwTransientRetryFailure, withTransientRetry } from '@/lib/reliability/transient-retry';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { withTenantContext } from '@interdomestik/database';
 import { aiRuns, claims, documentExtractions, documents } from '@interdomestik/database/schema';
@@ -28,10 +30,8 @@ type ProcessClaimDocumentWorkflowDeps = {
 };
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const CLAIM_AI_TENANT_CONTEXT_ROLE = 'system' as const;
-
 function getClaimAiTenantContext(tenantId: string) {
-  return { tenantId, role: CLAIM_AI_TENANT_CONTEXT_ROLE };
+  return { tenantId, role: 'system' as const };
 }
 
 function getClaimAiProcessingPatch(startedAt: Date) {
@@ -83,20 +83,11 @@ async function downloadFileFromStorage(
   filePath: string,
   tenantId: string
 ): Promise<Buffer> {
-  const { downloadTenantObject } = await import('@/lib/storage/service-role');
-  const { data, error } = await downloadTenantObject({
+  return downloadClaimAiFileWithRetry({
     bucket,
-    context: 'claim AI document download',
-    family: 'claims',
-    path: filePath,
+    filePath,
     tenantId,
   });
-
-  if (error || !data) {
-    throw new Error('Failed to download queued claim document.');
-  }
-
-  return Buffer.from(await data.arrayBuffer());
 }
 
 async function analyzeDocumentAsText(buffer: Buffer, mimeType: string): Promise<string> {
@@ -141,10 +132,18 @@ function getClaimSnapshotFromRequestJson(
 }
 
 export async function emitClaimAiRunRequestedService(queuedRun: QueuedClaimAiRun) {
-  await inngest.send({
-    name: getEventName(queuedRun.workflow),
-    data: queuedRun,
-  });
+  const result = await withTransientRetry(
+    () =>
+      inngest.send({
+        name: getEventName(queuedRun.workflow),
+        data: queuedRun,
+      }),
+    { initialDelayMs: 200, maxDelayMs: 1_000, maxElapsedMs: 10_000 }
+  );
+
+  if (!result.ok) {
+    throwTransientRetryFailure(result, 'Failed to dispatch claim AI run.');
+  }
 }
 
 export async function markClaimAiRunDispatchFailedService(args: {
@@ -188,7 +187,6 @@ export async function processClaimDocumentWorkflowRunService(args: {
       claimTitle: claims.title,
       claimDescription: claims.description,
       claimCategory: claims.category,
-      claimCompanyName: claims.companyName,
       claimAmount: claims.claimAmount,
       claimCurrency: claims.currency,
     })
