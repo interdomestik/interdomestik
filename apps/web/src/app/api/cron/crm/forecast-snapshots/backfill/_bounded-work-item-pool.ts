@@ -36,14 +36,19 @@ export async function runBoundedWorkItemPool<TItem, TValue>(args: {
   let scheduledCount = 0;
   let stopScheduling = false;
 
+  function stopSchedulingOnce(): void {
+    if (stopScheduling) return;
+    stopScheduling = true;
+    args.onStopScheduling?.();
+  }
+
   async function worker(): Promise<void> {
     while (!stopScheduling) {
       const index = nextIndex;
       const item = args.items[index];
       if (item === undefined) return;
       if (!args.shouldStart(item, index)) {
-        stopScheduling = true;
-        args.onStopScheduling?.();
+        stopSchedulingOnce();
         return;
       }
 
@@ -59,8 +64,7 @@ export async function runBoundedWorkItemPool<TItem, TValue>(args: {
       outcomes[index] = outcome;
 
       if (args.stopAfter?.(outcome)) {
-        stopScheduling = true;
-        args.onStopScheduling?.();
+        stopSchedulingOnce();
       }
     }
   }

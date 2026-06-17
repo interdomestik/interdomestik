@@ -58,6 +58,7 @@ describe('runCrmForecastSnapshotBackfillCore concurrency', () => {
     });
 
     expect(maxActive).toBeLessThanOrEqual(2);
+    expect(maxActive).toBeGreaterThan(1);
     expect(result).toMatchObject({
       failedWorkItems: 0,
       snapshotsInserted: 5,
