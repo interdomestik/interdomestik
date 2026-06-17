@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import process from 'node:process';
 import { modelReviewRoutes } from './model-review-routes.mjs';
 import { writeRouteReceipt } from './reviewer-route-receipts.mjs';
@@ -15,15 +17,29 @@ function option(args, name, fallback = '') {
   return args.find(arg => arg.startsWith(prefix))?.slice(prefix.length) || argValue(args, name, fallback);
 }
 
+function safeInputFile(file) {
+  const resolved = path.resolve(file);
+  const allowedRoots = [process.cwd(), os.tmpdir()].map(root => path.resolve(root));
+  if (!allowedRoots.some(root => resolved === root || resolved.startsWith(`${root}${path.sep}`))) {
+    throw new Error(`prompt file must be inside the repository or temp dir: ${file}`);
+  }
+  return resolved;
+}
+
 function promptFromArgs(args) {
   const file = option(args, '--prompt-file') || process.env.REVIEW_PROMPT_FILE || '';
-  if (file) return fs.readFileSync(file, 'utf8');
+  if (file) return fs.readFileSync(safeInputFile(file), 'utf8');
   if (process.env.REVIEW_PROMPT) return process.env.REVIEW_PROMPT;
   return [
     'Review this branch as an adversarial PR reviewer.',
     'Do not edit files. Findings first with file/line references.',
     'Use code_review.md and the current git diff as the review frame.',
   ].join('\n');
+}
+
+function printableReceipt(receipt, paths) {
+  const { stdout, stderr, ...safeReceipt } = receipt;
+  return { ...safeReceipt, receipt: paths };
 }
 
 function exitForReceipt(receipt) {
@@ -61,7 +77,7 @@ async function main() {
       blockerReason: 'opus_escalation_not_required',
     });
     const paths = writeRouteReceipt(receipt, receiptDir || undefined);
-    console.log(JSON.stringify({ ...receipt, receipt: paths }, null, 2));
+    console.log(JSON.stringify(printableReceipt(receipt, paths), null, 2));
     process.exit(0);
   }
 
@@ -76,7 +92,7 @@ async function main() {
     noOutputTimeoutMs,
   });
   const paths = writeRouteReceipt(receipt, receiptDir || undefined);
-  console.log(JSON.stringify({ ...receipt, receipt: paths }, null, 2));
+  console.log(JSON.stringify(printableReceipt(receipt, paths), null, 2));
   process.exit(exitForReceipt(receipt));
 }
 

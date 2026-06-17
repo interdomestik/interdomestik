@@ -1,4 +1,5 @@
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import { commandAvailable, safeTimeout, statusForClose } from './reviewer-route-utils.mjs';
 
 const BLOCKERS = [
   [/AuthorizationRequired|re-authorization required|OAuth token refresh failed/i, 'mcp_auth_required'],
@@ -26,15 +27,6 @@ function classifyBlocker(text) {
   return match?.[1] || '';
 }
 
-function commandAvailable(command, env) {
-  const result = spawnSync('/bin/sh', ['-c', 'command -v "$1"', 'sh', command], {
-    encoding: 'utf8',
-    env,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  return result.status === 0;
-}
-
 function terminate(child) {
   child.kill('SIGTERM');
   setTimeout(() => {
@@ -60,8 +52,12 @@ export function runReviewerRoute(options) {
   const env = options.env || process.env;
   const startedAt = iso();
   const startedMs = Date.now();
-  const firstOutputTimeoutMs = options.noOutputTimeoutMs ?? 300_000;
-  const totalTimeoutMs = options.timeoutMs ?? 900_000;
+  const totalTimeoutMs = safeTimeout(options.timeoutMs, 900_000, 30 * 60_000);
+  const firstOutputTimeoutMs = safeTimeout(
+    options.noOutputTimeoutMs,
+    300_000,
+    Math.min(totalTimeoutMs, 10 * 60_000)
+  );
   const commandInvoked = [options.command, ...(options.args || [])];
   let stdout = '', stderr = '', blockerReason = '';
   let firstOutputTimedOut = false, totalTimedOut = false, sawOutput = false;
@@ -128,7 +124,7 @@ export function runReviewerRoute(options) {
     child.on('close', (code, signal) => {
       const outputBlocker = blockerReason || classifyBlocker(`${stdout}\n${stderr}`);
       blockerReason = outputBlocker;
-      const status = blockerReason ? 'blocked' : code === 0 ? 'ran' : 'failed';
+      const status = statusForClose(blockerReason, code);
       finish(finishReceipt({ status, exitCode: code ?? null, signal }));
     });
   });

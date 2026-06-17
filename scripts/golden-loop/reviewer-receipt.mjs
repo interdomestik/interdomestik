@@ -3,11 +3,26 @@ import path from 'node:path';
 import { buildPacket, writePacket } from './evidence-packet.mjs';
 import { safeName } from './safe-paths.mjs';
 
+function receiptStatus(receipt) {
+  if (receipt.isReviewEvidence) return 'ran';
+  if (receipt.partial) return 'blocked';
+  return 'failed';
+}
+
+function safeEvidenceDir(root, safeSliceId) {
+  const safeRoot = path.resolve(root);
+  const reviewDir = path.resolve(safeRoot, safeSliceId, 'reviews');
+  if (!reviewDir.startsWith(`${safeRoot}${path.sep}`)) {
+    throw new Error(`review receipt directory escapes evidence root: ${safeSliceId}`);
+  }
+  return reviewDir;
+}
+
 function markdown(receipt) {
   const lines = [
     `# Reviewer Waterfall Receipt: ${receipt.sliceId}`,
     '',
-    `- status: ${receipt.isReviewEvidence ? 'ran' : receipt.partial ? 'blocked' : 'failed'}`,
+    `- status: ${receiptStatus(receipt)}`,
     `- mode: ${receipt.mode}`,
     `- startedAt: ${receipt.startedAt}`,
     `- endedAt: ${receipt.endedAt}`,
@@ -46,7 +61,7 @@ export function createReceiptWriter({ root, sliceId, dryRun, timeoutMs, startedA
       winner: winner ? winner.reviewer : null,
       fallbackWinner: winner ? winner.reviewer : null,
     };
-    const reviewDir = path.join(root, safeSliceId, 'reviews');
+    const reviewDir = safeEvidenceDir(root, safeSliceId);
     fs.mkdirSync(reviewDir, { recursive: true });
     const receiptJson = path.join(reviewDir, `${receiptName}.json`);
     const receiptMarkdown = path.join(reviewDir, `${receiptName}.md`);

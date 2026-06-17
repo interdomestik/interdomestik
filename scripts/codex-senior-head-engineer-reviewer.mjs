@@ -17,6 +17,11 @@ function exitForReceipt(receipt) {
   return receipt.exitCode || 1;
 }
 
+function printableReceipt(receipt, paths) {
+  const { stdout, stderr, ...safeReceipt } = receipt;
+  return { ...safeReceipt, receipt: paths };
+}
+
 const receipt = await runReviewerRoute({
   routeName: 'codex-senior-reviewer',
   provider: 'openai',
@@ -27,5 +32,5 @@ const receipt = await runReviewerRoute({
   noOutputTimeoutMs: 300_000,
 });
 const paths = writeRouteReceipt(receipt, receiptDir);
-console.log(JSON.stringify({ ...receipt, receipt: paths }, null, 2));
+console.log(JSON.stringify(printableReceipt(receipt, paths), null, 2));
 process.exit(exitForReceipt(receipt));
