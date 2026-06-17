@@ -237,7 +237,7 @@ export async function logDeniedDocumentAccess(args: {
   await args.logAuditEvent({
     actorId: args.session.user.id,
     actorRole: args.session.user.role || null,
-    tenantId: args.tenantId ?? undefined,
+    tenantId: ensureAccessTenantId(args.session),
     action: 'document.forbidden',
     entityType: 'claim_document',
     entityId: args.documentId,
@@ -256,7 +256,7 @@ export async function logAllowedDocumentAccess(args: {
   await args.logAuditEvent({
     actorId: args.session.user.id,
     actorRole: args.access.audit.actorRole,
-    tenantId: args.tenantId ?? undefined,
+    tenantId: args.access.tenantId,
     action: args.access.audit.action,
     entityType: args.access.audit.entityType,
     entityId: args.access.audit.entityId,

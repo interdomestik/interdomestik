@@ -72,6 +72,17 @@ describe('document access policy', () => {
     ).toBe(true);
   });
 
+  it('preserves assigned staff document access across branch boundaries', () => {
+    expect(
+      hasScopedClaimReadAccess({
+        branchId: 'branch-1',
+        claim: { branchId: 'branch-2', staffId: 'staff-1', userId: 'member-1' },
+        role: 'staff',
+        userId: 'staff-1',
+      })
+    ).toBe(true);
+  });
+
   it('does not grant branchless staff access to every unassigned claim document', () => {
     expect(
       hasScopedClaimReadAccess({

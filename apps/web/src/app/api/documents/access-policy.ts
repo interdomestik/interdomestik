@@ -40,12 +40,9 @@ export function hasScopedClaimReadAccess(args: {
 }): boolean {
   if (args.role === 'agent') return args.claim.agentId === args.userId;
 
-  const branchId = args.branchId ?? null;
   if (args.role === 'branch_manager') {
+    const branchId = args.branchId ?? null;
     return branchId !== null && args.claim.branchId === branchId;
-  }
-  if (args.role === 'staff' && branchId !== null) {
-    return args.claim.branchId === branchId && args.claim.staffId === args.userId;
   }
 
   return args.role === 'staff' && args.claim.staffId === args.userId;

@@ -30,6 +30,18 @@ describe('resolveAdminTenantContext', () => {
     expect(mocks.findFirst).not.toHaveBeenCalled();
   });
 
+  it('falls back to tenantId when accessTenantId is blank', async () => {
+    const tenantId = await resolveAdminTenantContext({
+      session: {
+        user: { accessTenantId: ' ', role: 'tenant_admin', tenantId: 'tenant_ks' },
+      },
+      searchParams: { tenantId: 'tenant_mk' },
+    });
+
+    expect(tenantId).toBe('tenant_ks');
+    expect(mocks.findFirst).not.toHaveBeenCalled();
+  });
+
   it('allows super_admin tenant switch only for active tenants', async () => {
     mocks.findFirst.mockResolvedValue({ id: 'tenant_mk' });
 

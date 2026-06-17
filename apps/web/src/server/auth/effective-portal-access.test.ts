@@ -114,4 +114,30 @@ describe('hasEffectivePortalAccess', () => {
     expect(mocks.eq).toHaveBeenCalledWith(expect.anything(), 'tenant_access');
     expect(mocks.eq).not.toHaveBeenCalledWith(expect.anything(), 'tenant_legal_compat');
   });
+
+  it('falls back to tenantId when accessTenantId is blank before role lookup', async () => {
+    mocks.findUserRoles.mockImplementationOnce(async query => {
+      query.where(
+        { userId: 'user_id', tenantId: 'tenant_id' },
+        { and: (...conditions: unknown[]) => conditions }
+      );
+      return [{ role: 'admin' }];
+    });
+
+    await expect(
+      hasEffectivePortalAccess(
+        {
+          user: {
+            id: 'admin-1',
+            role: 'member',
+            tenantId: 'tenant_ks',
+            accessTenantId: '   ',
+          },
+        },
+        ['admin']
+      )
+    ).resolves.toBe(true);
+
+    expect(mocks.eq).toHaveBeenCalledWith(expect.anything(), 'tenant_ks');
+  });
 });

@@ -26,8 +26,8 @@ const mocks = vi.hoisted(() => {
     tenants: makeQueryTable(),
     user: makeQueryTable(),
   };
-
   const where = vi.fn();
+  const resolveTenantId = ({ user }) => user.accessTenantId?.trim() || user.tenantId?.trim();
   const set = vi.fn(() => ({ where }));
   const update = vi.fn(() => ({ set }));
   return {
@@ -116,8 +116,8 @@ const mocks = vi.hoisted(() => {
       tenantColumn,
       filter,
     })),
-    ensureAccessTenantId: vi.fn(session => session.user.accessTenantId ?? session.user.tenantId),
-    ensureTenantId: vi.fn(session => session.user.accessTenantId ?? session.user.tenantId),
+    ensureAccessTenantId: vi.fn(resolveTenantId),
+    ensureTenantId: vi.fn(resolveTenantId),
   };
 });
 

@@ -36,12 +36,16 @@ type PortalAccessOptions = {
   requestedTenantId?: string | null;
 };
 
+function resolveSessionTenantId(session: SessionLike): string | null {
+  return session?.user?.accessTenantId?.trim() || session?.user?.tenantId?.trim() || null;
+}
+
 export async function hasEffectivePortalAccess(
   session: SessionLike,
   allowedRoles: readonly string[],
   options: PortalAccessOptions = {}
 ): Promise<boolean> {
-  const sessionTenantId = session?.user?.accessTenantId ?? session?.user?.tenantId ?? null;
+  const sessionTenantId = resolveSessionTenantId(session);
   const requestedTenantId = options.requestedTenantId ?? sessionTenantId ?? null;
   const userId = session?.user?.id ?? null;
   const legacyRole = session?.user?.role ?? null;

@@ -36,7 +36,7 @@ function resolveTenantForAdminAction(
   tenantId?: string,
   role?: string
 ): string | undefined {
-  const sessionTenantId = session.user?.accessTenantId ?? session.user?.tenantId ?? undefined;
+  const sessionTenantId = session.user?.accessTenantId?.trim() || session.user?.tenantId?.trim();
   if (role === 'super_admin') {
     return tenantId ?? sessionTenantId;
   }
