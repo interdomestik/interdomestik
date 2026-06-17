@@ -12,16 +12,12 @@ const rootDir = path.resolve(scriptDir, '../..');
 const REQUIRED_CHECKS = [
   'validation-surface',
   'audit',
-  'static',
-  'unit',
-  'e2e-gate',
   'e2e',
   'pnpm-audit',
   'gitleaks',
   'pilot-gate',
   'pr-finalizer',
   'commitlint',
-  'SonarCloud Code Analysis',
   'CodeQL',
   'Analyze (actions)',
   'Analyze (javascript-typescript)',
@@ -52,6 +48,8 @@ test('branch-protection documentation and PR template list current governance ch
   assert.doesNotMatch(protectionDoc, /multi-agent-dry-run/);
   assert.match(protectionDoc, /Copilot review is expected but not deterministic/);
   assert.match(protectionDoc, /Codex GitHub review is\s+expected when enabled/);
+  assert.match(protectionDoc, /Do not require `static`, `unit`, or `e2e-gate` globally/);
+  assert.match(protectionDoc, /Do not require\s+`SonarCloud Code Analysis` globally/);
 });
 
 test('governance report script is wired and names external reviewer signals', () => {
