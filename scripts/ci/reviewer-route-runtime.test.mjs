@@ -39,11 +39,11 @@ async function runFake(name, body, options = {}) {
   }
 }
 
-test('Codex quota blocker writes deterministic JSON and Markdown receipts', async () => {
+test('OpenAI reviewer quota blocker writes deterministic JSON and Markdown receipts', async () => {
   const receipt = await runFake(
-    'codex-senior-reviewer',
+    'openai-reviewer',
     "console.error('429 quota exceeded'); process.exit(1);\n",
-    { provider: 'openai', model: 'codex-cli' }
+    { provider: 'openai', model: 'openai-cli' }
   );
   const root = path.join(repoRoot, 'tmp/reviewer-routes');
   fs.rmSync(root, { recursive: true, force: true });
@@ -83,9 +83,13 @@ test('no-output timeout is recorded separately from total timeout', async () => 
 });
 
 test('total timeout is recorded after first output arrives', async () => {
-  const receipt = await runFake('slow-route', "console.log('started'); setTimeout(() => {}, 500);\n", {
-    timeoutPreset: 'test-total',
-  });
+  const receipt = await runFake(
+    'slow-route',
+    "console.log('started'); setTimeout(() => {}, 500);\n",
+    {
+      timeoutPreset: 'test-total',
+    }
+  );
   assert.equal(receipt.status, 'blocked');
   assert.equal(receipt.blockerReason, 'reviewer_total_timeout');
   assert.equal(receipt.firstOutputTimeout.timedOut, false);
@@ -93,7 +97,10 @@ test('total timeout is recorded after first output arrives', async () => {
 });
 
 test('successful reviewer text is not treated as a quota blocker', async () => {
-  const receipt = await runFake('quota-text-route', "console.log('review references line 429 and rate limit docs');\n");
+  const receipt = await runFake(
+    'quota-text-route',
+    "console.log('review references line 429 and rate limit docs');\n"
+  );
   assert.equal(receipt.status, 'ran');
   assert.equal(receipt.blockerReason, '');
 });
@@ -105,13 +112,20 @@ test('receipt command can redact prompt arguments', async () => {
   assert.deepEqual(receipt.commandInvoked, [process.execPath, '-p', '<prompt>']);
 });
 
-test('package scripts route reviewers through repo-owned helpers', () => {
+test('package scripts route external reviewers through repo-owned helpers', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
-  assert.equal(pkg.scripts['codex:senior-head-engineer-reviewer'], 'node scripts/codex-senior-head-engineer-reviewer.mjs');
-  assert.equal(pkg.scripts['review:codex'], 'pnpm codex:senior-head-engineer-reviewer');
-  assert.equal(pkg.scripts['review:sonnet'], 'node scripts/ci/run-model-reviewer-route.mjs --route sonnet');
-  assert.equal(pkg.scripts['review:gemini'], 'node scripts/ci/run-model-reviewer-route.mjs --route gemini');
-  assert.equal(pkg.scripts['review:opus'], 'node scripts/ci/run-model-reviewer-route.mjs --route opus --allow-escalation');
+  assert.equal(
+    pkg.scripts['review:sonnet'],
+    'node scripts/ci/run-model-reviewer-route.mjs --route sonnet'
+  );
+  assert.equal(
+    pkg.scripts['review:gemini'],
+    'node scripts/ci/run-model-reviewer-route.mjs --route gemini'
+  );
+  assert.equal(
+    pkg.scripts['review:opus'],
+    'node scripts/ci/run-model-reviewer-route.mjs --route opus --allow-escalation'
+  );
 });
 
 test('Opus helper skips escalation unless explicitly required', () => {

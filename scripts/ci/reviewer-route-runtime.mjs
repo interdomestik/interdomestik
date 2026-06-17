@@ -2,7 +2,10 @@ import { spawn } from 'node:child_process';
 import { commandAvailable, statusForClose, timeoutConfig } from './reviewer-route-utils.mjs';
 
 const BLOCKERS = [
-  [/AuthorizationRequired|re-authorization required|OAuth token refresh failed/i, 'mcp_auth_required'],
+  [
+    /AuthorizationRequired|re-authorization required|OAuth token refresh failed/i,
+    'mcp_auth_required',
+  ],
   [/401 Unauthorized|Missing bearer or basic authentication/i, 'api_auth_required'],
   [
     /rate limit|quota exceeded|insufficient_quota|429|too many requests|resource exhausted/i,
@@ -37,9 +40,14 @@ function terminate(child) {
 export function skippedRouteReceipt(options) {
   const now = iso();
   return {
-    routeName: options.routeName, provider: options.provider, model: options.model,
+    routeName: options.routeName,
+    provider: options.provider,
+    model: options.model,
     commandInvoked: options.commandInvoked || [],
-    startedAt: now, endedAt: now, elapsedMs: 0, status: 'skipped',
+    startedAt: now,
+    endedAt: now,
+    elapsedMs: 0,
+    status: 'skipped',
     blockerReason: options.blockerReason || '',
     exitCode: null,
     firstOutputTimeout: { timedOut: false, timeoutMs: options.noOutputTimeoutMs ?? null },
@@ -57,18 +65,30 @@ export function runReviewerRoute(options) {
     options.timeoutPreset
   );
   const commandInvoked = options.commandInvoked || [options.command, ...(options.args || [])];
-  let stdout = '', stderr = '', blockerReason = '';
-  let firstOutputTimedOut = false, totalTimedOut = false, sawOutput = false;
+  let stdout = '',
+    stderr = '',
+    blockerReason = '';
+  let firstOutputTimedOut = false,
+    totalTimedOut = false;
 
   const finishReceipt = ({ status, exitCode = null, signal = null, error = '' }) => ({
-    routeName: options.routeName, provider: options.provider, model: options.model,
-    commandInvoked, startedAt, endedAt: iso(),
+    routeName: options.routeName,
+    provider: options.provider,
+    model: options.model,
+    commandInvoked,
+    startedAt,
+    endedAt: iso(),
     elapsedMs: Date.now() - startedMs,
-    status, blockerReason, exitCode, signal,
+    status,
+    blockerReason,
+    exitCode,
+    signal,
     firstOutputTimeout: { timedOut: firstOutputTimedOut, timeoutMs: firstOutputTimeoutMs },
     totalTimeout: { timedOut: totalTimedOut, timeoutMs: totalTimeoutMs },
     fallbackWinner: options.fallbackWinner || null,
-    error, stdout, stderr,
+    error,
+    stdout,
+    stderr,
   });
 
   if (!commandAvailable(options.command, env)) {
@@ -78,7 +98,9 @@ export function runReviewerRoute(options) {
 
   return new Promise(resolve => {
     const child = spawn(options.command, options.args || [], {
-      cwd: options.cwd || process.cwd(), env, stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: options.cwd || process.cwd(),
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
     const finish = receipt => {
       clearTimeout(firstTimer);
@@ -86,9 +108,9 @@ export function runReviewerRoute(options) {
       resolve(receipt);
     };
     const collect = (stream, chunk) => {
-      sawOutput = true;
       clearTimeout(firstTimer);
-      if (stream === 'stdout') stdout = appendBounded(stdout, chunk, options.maxCaptureBytes || 20_000);
+      if (stream === 'stdout')
+        stdout = appendBounded(stdout, chunk, options.maxCaptureBytes || 20_000);
       else stderr = appendBounded(stderr, chunk, options.maxCaptureBytes || 20_000);
       const reason = stream === 'stderr' ? classifyBlocker(chunk.toString()) : '';
       if (reason && !blockerReason) {
@@ -97,7 +119,7 @@ export function runReviewerRoute(options) {
       }
     };
     const firstTimer = setTimeout(() => {
-      if (sawOutput || blockerReason) return;
+      if (stdout || stderr || blockerReason) return;
       firstOutputTimedOut = true;
       blockerReason = 'reviewer_no_output_timeout';
       terminate(child);
@@ -111,16 +133,12 @@ export function runReviewerRoute(options) {
     child.stderr.on('data', chunk => collect('stderr', chunk));
     child.on('error', error => {
       blockerReason = classifyBlocker(error.message);
-      finish(
-        finishReceipt({
-          status: blockerReason ? 'blocked' : 'failed',
-          exitCode: 127,
-          error: error.message,
-        })
-      );
+      const status = blockerReason ? 'blocked' : 'failed';
+      finish(finishReceipt({ status, exitCode: 127, error: error.message }));
     });
     child.on('close', (code, signal) => {
-      const outputBlocker = blockerReason || (code === 0 ? '' : classifyBlocker(`${stderr}\n${stdout}`));
+      const outputBlocker =
+        blockerReason || (code === 0 ? '' : classifyBlocker(`${stderr}\n${stdout}`));
       blockerReason = outputBlocker;
       const status = statusForClose(blockerReason, code);
       finish(finishReceipt({ status, exitCode: code ?? null, signal }));

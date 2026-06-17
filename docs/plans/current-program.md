@@ -36,19 +36,11 @@ Phase C guardrails still apply during architecture finalization: `apps/web/src/p
 
 Rev 22 of the architecture-finalization program/tracker is adopted as an additive constitution and Definition-of-Done enhancement: type-level guards, transactional outbox discipline, CQRS read-model boundaries, premium RSC dashboard discipline, and `ent-*` evidence duties are now binding for architecture-finalization work. This does not re-sequence the M0→M5 path and does not change the next promoted slice.
 
-Rev 25 closeout: the first Interdomestik Golden Loop pilot completed `T-002d`
-through PR `#1006` / squash merge
-`ca35bbfde6d30db82f4e53e5f5b8e510f795302c`, closing the branded
-`AuthorizedTransition` proof guard from Rev 22. The pilot validated a reusable
-adapter, bounded evidence packets, sequential reviewer-waterfall evidence, safe
-PR feedback remediation, and `pr:verify` coverage of the PR E2E lane without
-changing the next promoted runtime slice.
-
-Rev 26 closeout: Golden Loop validation `T-401` completed in PR `#1010` /
-squash merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
-`grace_period` membership-card lockout. The run confirmed PR monitoring must
-check CI, Sonar issues/hotspots, and reviewer threads together before
-auto-merge.
+Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
+merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
+`grace_period` membership-card lockout. The canonical tracker row remains the
+authoritative task status; this evidence note does not promote replacement
+runtime work.
 
 Rev 27 closeout: `ARCH-M1-13` / `T-104d` completed in PR `#1001` /
 squash merge `6e364a58ac4219512f7d8dcc9802eb85b812771a`, adding the
@@ -381,21 +373,20 @@ measured `10.0/10` readiness and `9.4/10` validated maturity before PR/CI/merge
 validation. Protected paths remained preserved: `apps/web/src/proxy.ts`,
 canonical routes, auth-provider architecture, billing, schema/RLS, README,
 AGENTS, broad architecture docs, CI/autoresearch/playbook files, and product UI
-were not changed by the implementation. The next active governed implementation
-goal is exactly one canonical tracker slice: `T-302b` access-tenant
-isolation/RLS re-pointing, subject to a fresh authority run; this closeout does
-not start `T-302b`. `T-209` remains blocked on `T-302b`, and broad M3, `T-202`, M5, AI
-posture, UI/UX overhaul, WS-F/G/H, OMG, DOM, CRM expansion, and product redesign
-work remain unpromoted unless separately authorized.
+were not changed by the implementation. At the time of this Rev 57 closeout, the
+fresh authority candidate was `T-302b` access-tenant isolation/RLS re-pointing;
+Rev 59 later completed `T-302b`, so this historical note is no longer current
+promotion authority. `T-209` remained blocked on `T-302b`, and broad M3,
+`T-202`, M5, AI posture, UI/UX overhaul, WS-F/G/H, OMG, DOM, CRM expansion, and
+product redesign work remained unpromoted unless separately authorized.
 
 Rev 58 governance correction: tracker-only closeout evidence for `T-305` was
 recorded in PR `#1081` / merge
 `9be386a3e5ae61c067d2669dfa77fe411ce52aab`. The stale `T-209` prerequisite was
 removed from `T-302b` because current authority records `T-209` as blocked on
-`T-302b`; `T-302b` is the enabling access-tenant isolation/RLS step. The next
-active governed implementation goal remains exactly one canonical tracker slice:
-`T-302b` access-tenant isolation/RLS re-pointing, subject to a fresh authority
-run; this correction does not start `T-302b`. Product/runtime behavior,
+`T-302b`; `T-302b` was the enabling access-tenant isolation/RLS step and later
+completed in Rev 59. This correction did not start replacement work.
+Product/runtime behavior,
 `apps/web/src/proxy.ts`, canonical routes, auth layering, billing, schema/RLS,
 README, AGENTS, and broad architecture docs were not changed.
 
@@ -437,10 +428,10 @@ Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
 Post-Rev 57, `T-305` is complete in PR `#1080` / squash merge
-`b3fc99e055c47313478e99be8e875b4c413aeabb`. The next active governed
-implementation goal is exactly one canonical tracker slice: `T-302b`
-access-tenant isolation/RLS re-pointing, subject to a fresh authority run; this
-closeout does not start `T-302b`.
+`b3fc99e055c47313478e99be8e875b4c413aeabb`. At the time of Rev 57, the fresh
+authority candidate was `T-302b` access-tenant isolation/RLS re-pointing; Rev 59
+later completed it, so this historical note is no longer current promotion
+authority.
 
 Post-Rev 58, PR `#1081` / merge
 `9be386a3e5ae61c067d2669dfa77fe411ce52aab` records the tracker-only `T-305`

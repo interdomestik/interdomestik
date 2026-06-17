@@ -6,7 +6,6 @@ const NON_PRODUCT_ONLY_PATTERNS = [
   /^docker\/Dockerfile\.ci-parity$/,
   /^docker-compose\.yml$/,
   /^scripts\/ci\//,
-  /^scripts\/golden-loop\//,
   /^scripts\/multi-agent\//,
   /^scripts\/(?:ci-local-parity|docker-gate|docker-reclaim|docker-run|e2e-nightly-local|observe-local|start-system|start-system-quick)\.sh$/,
   /^scripts\/pr-finalizer\.sh$/,
