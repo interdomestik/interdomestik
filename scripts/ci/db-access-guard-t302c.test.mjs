@@ -1,48 +1,18 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
-
-const guardScript = fileURLToPath(
-  new URL('../../scripts/check-db-access-guard.mjs', import.meta.url)
-);
-
-function createTempRepo() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'interdomestik-db-access-t302c-'));
-}
-
-function writeFixture(tempRoot, relativePath, lines) {
-  const fixturePath = path.join(tempRoot, relativePath);
-  fs.mkdirSync(path.dirname(fixturePath), { recursive: true });
-  fs.writeFileSync(fixturePath, [...lines, ''].join('\n'));
-}
-
-function writeEmptyBaseline(tempRoot) {
-  fs.writeFileSync(
-    path.join(tempRoot, 'db-access-baseline.json'),
-    JSON.stringify({ version: 2, entries: [] }, null, 2)
-  );
-}
-
-function readReport(tempRoot) {
-  return JSON.parse(
-    fs.readFileSync(path.join(tempRoot, 'tmp/db-access-guard/report.json'), 'utf8')
-  );
-}
-
-function runGuard(tempRoot, roots) {
-  const args = [guardScript, `--roots=${roots}`, '--baseline=db-access-baseline.json'];
-  return spawnSync(process.execPath, args, { cwd: tempRoot, encoding: 'utf8' });
-}
+import {
+  createTempRepo,
+  readReport,
+  runGuard,
+  writeEmptyBaseline,
+  writeFixture,
+} from './db-access-guard-test-utils.mjs';
 
 function scanFixture(roots, relativePath, lines) {
   const tempRoot = createTempRepo();
   writeEmptyBaseline(tempRoot);
   writeFixture(tempRoot, relativePath, lines);
-  const result = runGuard(tempRoot, roots);
+  const result = runGuard(tempRoot, [`--roots=${roots}`, '--baseline=db-access-baseline.json']);
   return { result, report: readReport(tempRoot) };
 }
 

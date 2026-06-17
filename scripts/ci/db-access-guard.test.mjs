@@ -1,56 +1,15 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
-
-const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(scriptDir, '../..');
-const guardScript = path.join(rootDir, 'scripts/check-db-access-guard.mjs');
-
-function readText(relativePath) {
-  return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
-}
-
-function runGuard(cwd, args = []) {
-  return spawnSync(process.execPath, [guardScript, ...args], {
-    cwd,
-    encoding: 'utf8',
-  });
-}
-
-function createTempRepo() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'interdomestik-db-access-'));
-}
-
-function writeFixture(tempRoot, relativePath, lines) {
-  const fixturePath = path.join(tempRoot, relativePath);
-  fs.mkdirSync(path.dirname(fixturePath), { recursive: true });
-  fs.writeFileSync(fixturePath, [...lines, ''].join('\n'));
-}
-
-function writeEmptyBaseline(tempRoot) {
-  fs.writeFileSync(
-    path.join(tempRoot, 'db-access-baseline.json'),
-    JSON.stringify({ version: 2, entries: [] }, null, 2)
-  );
-}
-
-function readReport(tempRoot) {
-  return JSON.parse(
-    fs.readFileSync(path.join(tempRoot, 'tmp/db-access-guard/report.json'), 'utf8')
-  );
-}
-
-function runAppGuard(tempRoot, extraArgs = []) {
-  return runGuard(tempRoot, [
-    '--roots=apps/web/src',
-    '--baseline=db-access-baseline.json',
-    ...extraArgs,
-  ]);
-}
+import {
+  createTempRepo,
+  readBaseline,
+  readReport,
+  readText,
+  runAppGuard,
+  runGuard,
+  writeEmptyBaseline,
+  writeFixture,
+} from './db-access-guard-test-utils.mjs';
 
 test('db access guard is wired into PR verification and full local checks', () => {
   const packageJson = JSON.parse(readText('package.json'));
@@ -414,9 +373,7 @@ test('db access guard writes v2 baselines with posture counts and per-entry post
 
   const baselineResult = runAppGuard(tempRoot, ['--write-baseline']);
   assert.equal(baselineResult.status, 0, baselineResult.stderr);
-  const baseline = JSON.parse(
-    fs.readFileSync(path.join(tempRoot, 'db-access-baseline.json'), 'utf8')
-  );
+  const baseline = readBaseline(tempRoot);
   assert.equal(baseline.version, 2);
   assert.equal(baseline.policy, 'see docs/dev/db-access-guard.md');
   assert.equal(baseline.counts.byTenantPosture['tenant-predicate'], 1);
