@@ -32,8 +32,16 @@ function resolveGhBinary() {
   return binary;
 }
 
-function readPr() {
+function prNumberArg() {
   const prArg = process.argv.slice(2).find(arg => arg !== '--');
+  if (prArg && !/^\d+$/u.test(prArg)) {
+    throw new Error('Usage: pnpm pr:governance:report -- <PR_NUMBER>');
+  }
+  return prArg;
+}
+
+function readPr() {
+  const prArg = prNumberArg();
   const args = ['pr', 'view'];
   if (prArg) {
     args.push(prArg);

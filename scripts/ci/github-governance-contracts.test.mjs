@@ -66,6 +66,7 @@ test('governance report script is wired and names external reviewer signals', ()
   assert.match(reportScript, /CodeQL/);
   assert.match(reportScript, /copilot-pull-request-reviewer/);
   assert.match(reportScript, /chatgpt-codex-connector/);
+  assert.match(reportScript, /\^\\d\+\$/);
 });
 
 test('repo workflows still materialize documented required check names', () => {
@@ -95,4 +96,5 @@ test('PR finalizer local polling covers current deterministic required checks', 
     assert.match(finalizer, new RegExp(`"${escapeRegexLiteral(checkName)}"`));
   }
   assert.match(finalizer, /\(\.name \/\/ \.workflow_name \/\/ ""\) == \$NAME/);
+  assert.doesNotMatch(read('scripts/pr-finalizer-lib.sh'), /docs_only_required_checks/);
 });

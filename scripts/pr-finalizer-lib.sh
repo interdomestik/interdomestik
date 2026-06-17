@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
 
-docs_only_required_checks=(
-  "validation-surface"
-  "audit"
-  "pnpm-audit"
-  "gitleaks"
-)
 PR_TYPE_DOCS_ONLY="docs-only"
 PR_TYPE_RUNTIME="runtime"
 pr_type="${PR_TYPE_RUNTIME}"
@@ -67,11 +61,6 @@ run_local_verifications() {
 }
 
 required_check_names() {
-  if [[ "${pr_type}" == "${PR_TYPE_DOCS_ONLY}" ]]; then
-    printf '%s\n' "${docs_only_required_checks[@]}"
-    echo "[pr-finalizer] INFO: docs-only PR; runtime-heavy checks are not required." >&2
-    return 0
-  fi
   printf '%s\n' "${required_checks[@]}"
   return 0
 }
