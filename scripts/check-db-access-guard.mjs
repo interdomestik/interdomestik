@@ -4,23 +4,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
-  collectTenantContextAliasNames,
   createEmptyPostureCounts,
   createTenantPostureClassifier,
 } from './ci/db-access-posture.mjs';
+import { callFirstArgumentName, collectDbAliases, escapeRegExp } from './ci/db-access-aliases.mjs';
+import { DIRECT_DB_METHODS } from './ci/db-access-constants.mjs';
+import { isSensitiveNewEntry } from './ci/db-access-sensitive-entry.mjs';
 
 const DEFAULT_BASELINE_PATH = 'scripts/ci/db-access-baseline.json';
 const DEFAULT_REPORT_PATH = 'tmp/db-access-guard/report.json';
 const DEFAULT_SCAN_ROOTS = ['apps/web/src', 'packages'];
-const DIRECT_DB_METHODS = [
-  'query',
-  'select',
-  'insert',
-  'update',
-  'delete',
-  'execute',
-  'transaction',
-];
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mts', '.cts']);
 
 const APPROVED_DATABASE_INTERNAL_PATTERNS = [
@@ -273,96 +266,6 @@ function classifyRisk(relativePath) {
   return 'app-layer';
 }
 
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-}
-
-function createAliasState() {
-  return {
-    aliases: new Set(['db']),
-    adminAliases: new Set(['dbAdmin']),
-  };
-}
-
-function collectImportedDbAliases(searchableSource) {
-  const state = createAliasState();
-  const importPattern = /\bimport\s*\{([^}]*)\}/gu;
-
-  for (const match of searchableSource.matchAll(importPattern)) {
-    for (const specifier of match[1].split(',')) {
-      const dbImportMatch = specifier
-        .trim()
-        .match(/^(db|dbRls|dbAdmin)(?:\s+as\s+([A-Za-z_$][\w$]*))?$/u);
-      if (dbImportMatch) {
-        const importedName = dbImportMatch[1];
-        const localName = dbImportMatch[2] ?? importedName;
-        state.aliases.add(localName);
-        if (importedName === 'dbAdmin') {
-          state.adminAliases.add(localName);
-        }
-      }
-    }
-  }
-
-  return state;
-}
-
-function collectAssignedDbAliases(searchableSource, state) {
-  let changed = true;
-
-  while (changed) {
-    changed = false;
-    const aliasPattern = [...state.aliases].map(escapeRegExp).join('|');
-    const assignmentPattern = new RegExp(
-      `\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*(?::[^=]+)?=\\s*(?:${aliasPattern})\\b`,
-      'gu'
-    );
-
-    for (const match of searchableSource.matchAll(assignmentPattern)) {
-      const assignedName = match[1];
-      const initializer = match[0].match(/=\s*([A-Za-z_$][\w$]*)\b/u)?.[1] ?? null;
-      if (!state.aliases.has(assignedName)) {
-        state.aliases.add(assignedName);
-        if (initializer && state.adminAliases.has(initializer)) {
-          state.adminAliases.add(assignedName);
-        }
-        changed = true;
-      }
-    }
-  }
-}
-
-function collectTenantContextAliases(source, relativePath, state) {
-  for (const alias of collectTenantContextAliasNames(source, relativePath)) {
-    state.aliases.add(alias);
-  }
-}
-
-function collectTransactionAliases(searchableSource, state) {
-  const aliasPattern = [...state.aliases].map(escapeRegExp).join('|');
-  const transactionAliasPattern = new RegExp(
-    `\\b(${aliasPattern})\\s*\\.\\s*transaction\\s*\\(\\s*(?:async\\s*)?\\(?\\s*([A-Za-z_$][\\w$]*)`,
-    'gu'
-  );
-
-  for (const match of searchableSource.matchAll(transactionAliasPattern)) {
-    const rootAlias = match[1];
-    const txAlias = match[2];
-    state.aliases.add(txAlias);
-    if (state.adminAliases.has(rootAlias)) {
-      state.adminAliases.add(txAlias);
-    }
-  }
-}
-
-function collectDbAliases(searchableSource, source, relativePath) {
-  const state = collectImportedDbAliases(searchableSource);
-  collectAssignedDbAliases(searchableSource, state);
-  collectTenantContextAliases(source, relativePath, state);
-  collectTransactionAliases(searchableSource, state);
-  return state;
-}
-
 function collectFindings({ repoRoot, scanRoots }) {
   const files = scanRoots.flatMap(root => walkFiles(path.resolve(repoRoot, root), repoRoot));
   const findings = [];
@@ -379,7 +282,7 @@ function collectFindings({ repoRoot, scanRoots }) {
     const aliasState = collectDbAliases(searchableSource, source, relativePath);
     const dbAliases = [...aliasState.aliases].map(escapeRegExp).join('|');
     const methodPattern = new RegExp(
-      `\\b(${dbAliases})\\s*\\.\\s*(${DIRECT_DB_METHODS.join('|')})\\b`,
+      String.raw`(?<!\.)\b(${dbAliases})\s*\.\s*(${DIRECT_DB_METHODS.join('|')})\b`,
       'gu'
     );
 
@@ -388,12 +291,17 @@ function collectFindings({ repoRoot, scanRoots }) {
 
       const calleeAlias = match[1];
       const method = match[2];
+      const firstArgumentName = callFirstArgumentName(
+        searchableSource,
+        match.index + match[0].length
+      );
       const startLine = lineNumberForIndex(lineStarts, match.index);
       const endLine = lineNumberForIndex(lineStarts, match.index + match[0].length);
       const posture = classifyTenantPosture({
         matchIndex: match.index,
         calleeAlias,
         isAdminAlias: aliasState.adminAliases.has(calleeAlias),
+        isRlsAlias: aliasState.rlsAliases.has(calleeAlias),
         method,
         line: startLine,
       });
@@ -401,6 +309,9 @@ function collectFindings({ repoRoot, scanRoots }) {
         file: relativePath,
         line: startLine,
         callee: `${calleeAlias}.${method}`,
+        isDirectDbAlias: aliasState.directDbAliases.has(calleeAlias),
+        claimsUpdateTarget:
+          method === 'update' && aliasState.claimTableAliases.has(firstArgumentName),
         method,
         risk: classifyRisk(relativePath),
         ...posture,
@@ -509,12 +420,6 @@ function printEntries(title, entries, limit = 25) {
   }
 }
 
-function isSensitiveNewEntry(entry) {
-  if (entry.tenantPosture === 'unclassified') return true;
-  if (entry.tenantPosture !== 'tenant-predicate') return false;
-  return entry.method === 'insert' || entry.method === 'update' || entry.method === 'delete';
-}
-
 function main() {
   const options = parseArgs(process.argv.slice(2));
   const repoRoot = process.cwd();
@@ -562,13 +467,20 @@ function main() {
   writeReport(reportPath, report);
 
   if (failingNewEntries.length > 0) {
-    console.error(
-      'DB access guard failed: new unclassified or write-only tenant-predicate direct db.* calls were added.'
-    );
+    console.error('DB access guard failed: sensitive new direct DB access was added.');
     printEntries('Failing new direct DB access:', failingNewEntries);
     console.error('');
     console.error(
-      'Move the access behind withTenantContext/withTenantDb, add a reviewed system-exempt directive, or update the baseline only with an intentional review.'
+      [
+        'Failures include unclassified access, write-only tenant-predicate access, raw dbAdmin/dbRls outside approved adapters,',
+        'and db.update(claims) outside packages/domain-claims/src/claims/transition.ts.',
+      ].join(' ')
+    );
+    console.error(
+      'Claims updates are not waivable with posture directives; move them through the transition command.'
+    );
+    console.error(
+      'Move other access behind withTenantContext/withTenantDb, add a reviewed system-exempt directive, or update the baseline only with an intentional review.'
     );
     console.error(`Report: ${options.reportPath}`);
     process.exit(1);

@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 import type { TestContext } from 'node:test';
 
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -21,6 +21,7 @@ type RlsTestConnectionConfig = {
 
 type RlsRuntimeReceipt = {
   currentUser: string;
+  currentAccessTenantId: string | null;
   currentTenantId: string | null;
   rowSecurity: string;
 };
@@ -319,32 +320,32 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
       toStatus: 'pending',
     });
 
-    const [mkRlsReceipt] = await withTenantContext({ tenantId: MK_TENANT_ID }, async tx => {
-      return tx.execute<RlsRuntimeReceipt>(sql`
-        select
-          current_user as "currentUser",
-          current_setting('app.current_tenant_id', true) as "currentTenantId",
-          current_setting('row_security') as "rowSecurity"
-      `);
-    });
+    const [mkRlsReceipt] = await withTenantContext(
+      { tenantId: MK_TENANT_ID, accessTenantId: '  ' },
+      async tx => {
+        return tx.execute<RlsRuntimeReceipt>(sql`
+          select
+            current_user as "currentUser",
+            current_setting('app.current_access_tenant_id', true) as "currentAccessTenantId",
+            current_setting('app.current_tenant_id', true) as "currentTenantId",
+            current_setting('row_security') as "rowSecurity"
+        `);
+      }
+    );
 
-    console.log(
-      `RLS_RUNTIME_RECEIPT current_user=${mkRlsReceipt?.currentUser ?? 'unknown'} current_tenant_id=${mkRlsReceipt?.currentTenantId ?? 'unset'} row_security=${mkRlsReceipt?.rowSecurity ?? 'unknown'}`
-    );
-    assert.equal(
-      mkRlsReceipt?.currentUser,
-      TEST_DB_ROLE,
-      'RLS verification must execute under the dedicated low-privilege database role'
-    );
-    assert.equal(
-      mkRlsReceipt?.currentTenantId,
-      MK_TENANT_ID,
-      'RLS verification must set the tenant context before reading tenant-scoped rows'
-    );
-    assert.equal(
-      mkRlsReceipt?.rowSecurity,
-      'on',
-      'RLS verification must force row_security=on inside the tenant transaction'
+    assert.deepEqual(
+      {
+        currentAccessTenantId: mkRlsReceipt?.currentAccessTenantId,
+        currentTenantId: mkRlsReceipt?.currentTenantId,
+        currentUser: mkRlsReceipt?.currentUser,
+        rowSecurity: mkRlsReceipt?.rowSecurity,
+      },
+      {
+        currentAccessTenantId: MK_TENANT_ID,
+        currentTenantId: MK_TENANT_ID,
+        currentUser: TEST_DB_ROLE,
+        rowSecurity: 'on',
+      }
     );
 
     const mkRows = await withTenantContext({ tenantId: MK_TENANT_ID }, async tx => {
@@ -394,8 +395,7 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
       await dbAdmin.delete(crmTaskHistory).where(eq(crmTaskHistory.id, historyId));
       await dbAdmin.delete(crmTasks).where(eq(crmTasks.id, taskId));
       await dbAdmin.delete(claims).where(eq(claims.id, claimId));
-      await dbAdmin.delete(user).where(eq(user.id, ksUserId));
-      await dbAdmin.delete(user).where(eq(user.id, mkUserId));
+      await dbAdmin.delete(user).where(inArray(user.id, [ksUserId, mkUserId]));
     }
     rlsTestEnv?.restore();
     await adminSql.end({ timeout: 5 });

@@ -1,14 +1,8 @@
 import ts from 'typescript';
 
-const DIRECT_DB_METHODS = new Set([
-  'query',
-  'select',
-  'insert',
-  'update',
-  'delete',
-  'execute',
-  'transaction',
-]);
+import { DIRECT_DB_METHODS, TENANT_POSTURES } from './db-access-constants.mjs';
+
+const DIRECT_DB_METHOD_SET = new Set(DIRECT_DB_METHODS);
 
 const TENANT_CONTEXT_REASONS = {
   alias: 'tenant-context: callback-tx-alias',
@@ -19,25 +13,17 @@ export const TENANT_POSTURE_REASONS = {
   tenantScoped: 'tenant-scoped: directive',
   tenantPredicate: 'tenant-predicate: in-where-clause',
   adminPrivileged: 'admin-privileged: dbAdmin',
+  rawRlsPrivileged: 'admin-privileged: dbRls',
   systemExempt: 'system-exempt: directive',
   unclassified: 'unclassified: no-recognized-context',
 };
-
-export const TENANT_POSTURES = [
-  'tenant-context',
-  'tenant-scoped',
-  'tenant-predicate',
-  'admin-privileged',
-  'system-exempt',
-  'unclassified',
-];
 
 function nodeText(source, node) {
   return source.slice(node.getStart(), node.end);
 }
 
 function isDirectMethod(name) {
-  return DIRECT_DB_METHODS.has(name);
+  return DIRECT_DB_METHOD_SET.has(name);
 }
 
 function propertyAccessParts(expression) {
@@ -236,7 +222,14 @@ export function createTenantPostureClassifier(source, fileName = 'source.ts') {
   const tenantContextRanges = collectTenantContextRanges(sourceFile, source);
   const lines = source.split(/\r?\n/u);
 
-  return function classifyTenantPosture({ matchIndex, calleeAlias, isAdminAlias, method, line }) {
+  return function classifyTenantPosture({
+    matchIndex,
+    calleeAlias,
+    isAdminAlias,
+    isRlsAlias,
+    method,
+    line,
+  }) {
     const directiveReason = directiveForLine(lines, line);
     if (directiveReason) {
       if (directiveReason.kind === 'tenant-scoped') {
@@ -254,12 +247,17 @@ export function createTenantPostureClassifier(source, fileName = 'source.ts') {
       };
     }
 
-    if (calleeAlias === 'dbAdmin' || isAdminAlias) {
+    if (calleeAlias === 'dbAdmin' || isAdminAlias)
       return {
         tenantPosture: 'admin-privileged',
         tenantPostureReason: TENANT_POSTURE_REASONS.adminPrivileged,
       };
-    }
+
+    if (calleeAlias === 'dbRls' || isRlsAlias)
+      return {
+        tenantPosture: 'admin-privileged',
+        tenantPostureReason: TENANT_POSTURE_REASONS.rawRlsPrivileged,
+      };
 
     const tenantContextRange = findTenantContextRange(tenantContextRanges, matchIndex, calleeAlias);
     if (tenantContextRange && isDirectMethod(method)) {

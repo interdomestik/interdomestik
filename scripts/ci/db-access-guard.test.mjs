@@ -1,56 +1,15 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
-
-const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(scriptDir, '../..');
-const guardScript = path.join(rootDir, 'scripts/check-db-access-guard.mjs');
-
-function readText(relativePath) {
-  return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
-}
-
-function runGuard(cwd, args = []) {
-  return spawnSync(process.execPath, [guardScript, ...args], {
-    cwd,
-    encoding: 'utf8',
-  });
-}
-
-function createTempRepo() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'interdomestik-db-access-'));
-}
-
-function writeFixture(tempRoot, relativePath, lines) {
-  const fixturePath = path.join(tempRoot, relativePath);
-  fs.mkdirSync(path.dirname(fixturePath), { recursive: true });
-  fs.writeFileSync(fixturePath, [...lines, ''].join('\n'));
-}
-
-function writeEmptyBaseline(tempRoot) {
-  fs.writeFileSync(
-    path.join(tempRoot, 'db-access-baseline.json'),
-    JSON.stringify({ version: 2, entries: [] }, null, 2)
-  );
-}
-
-function readReport(tempRoot) {
-  return JSON.parse(
-    fs.readFileSync(path.join(tempRoot, 'tmp/db-access-guard/report.json'), 'utf8')
-  );
-}
-
-function runAppGuard(tempRoot, extraArgs = []) {
-  return runGuard(tempRoot, [
-    '--roots=apps/web/src',
-    '--baseline=db-access-baseline.json',
-    ...extraArgs,
-  ]);
-}
+import {
+  createTempRepo,
+  readBaseline,
+  readReport,
+  readText,
+  runAppGuard,
+  runGuard,
+  writeEmptyBaseline,
+  writeFixture,
+} from './db-access-guard-test-utils.mjs';
 
 test('db access guard is wired into PR verification and full local checks', () => {
   const packageJson = JSON.parse(readText('package.json'));
@@ -90,7 +49,7 @@ test('db access guard fails only when direct db access is added beyond the basel
 
   const failingResult = runAppGuard(tempRoot);
   assert.equal(failingResult.status, 1);
-  assert.match(failingResult.stderr, /new unclassified/u);
+  assert.match(failingResult.stderr, /sensitive new direct DB access/u);
   assert.match(failingResult.stdout, /new\.ts:3 select/u);
 });
 
@@ -270,10 +229,12 @@ test('db access guard does not leak tenant context aliases outside callback boun
     "import { db, withTenantContext } from '@interdomestik/database';",
     'export async function mixedContext(tenantId) {',
     '  await withTenantContext({ tenantId }, async tenantTx => tenantTx.select().from(user));',
+    '  await helper({ tx: { update: () => null } });',
     '  return db.transaction(async tx => {',
     '    await tx.update(user).set({ name: "unsafe" });',
     '  });',
     '}',
+    'async function helper(params) { return params.tx.update(user); }',
   ]);
 
   const failingResult = runAppGuard(tempRoot);
@@ -285,6 +246,7 @@ test('db access guard does not leak tenant context aliases outside callback boun
       entry => entry.callee === 'tx.update' && entry.tenantPosture === 'unclassified'
     )
   );
+  assert.ok(report.newEntries.every(entry => !entry.source.includes('params.tx')));
 });
 
 test('db access guard recognizes only same-statement tenant predicates with non-literal tenant ids', () => {
@@ -361,11 +323,11 @@ test('db access guard rejects hard-coded and split-statement tenant predicates',
 test('db access guard supports explicit system-exempt directives and dbAdmin posture', () => {
   const tempRoot = createTempRepo();
   writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, 'apps/web/src/features/example/system.ts', [
+  writeFixture(tempRoot, 'apps/web/src/app/api/example/system.ts', [
     "import { db, dbAdmin as adminDb } from '@interdomestik/database';",
     'export async function systemJob() {',
     '  // db-access-guard: system-exempt -- reason: cron iterates tenants from sealed list',
-    '  await db.update(claims).set({ status: "archived" });',
+    '  await db.update(systemJobs).set({ status: "archived" });',
     '  await adminDb.delete(auditLog);',
     '}',
   ]);
@@ -414,9 +376,7 @@ test('db access guard writes v2 baselines with posture counts and per-entry post
 
   const baselineResult = runAppGuard(tempRoot, ['--write-baseline']);
   assert.equal(baselineResult.status, 0, baselineResult.stderr);
-  const baseline = JSON.parse(
-    fs.readFileSync(path.join(tempRoot, 'db-access-baseline.json'), 'utf8')
-  );
+  const baseline = readBaseline(tempRoot);
   assert.equal(baseline.version, 2);
   assert.equal(baseline.policy, 'see docs/dev/db-access-guard.md');
   assert.equal(baseline.counts.byTenantPosture['tenant-predicate'], 1);
