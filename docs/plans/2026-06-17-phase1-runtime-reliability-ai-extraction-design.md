@@ -48,8 +48,8 @@ Runtime findings:
   timeouts, deferred rollups, idempotency keys, and version-conflict handling.
 - API request validation varies: share-pack hand-parses JSON, privacy deletion
   has a tolerant body parser, and CRM backfill uses a stricter Zod route schema.
-- Golden Loop remains outside the CI critical path. This gate must not
-  reintroduce it.
+- Retired workflow infrastructure remains outside the CI critical path. This
+  gate must not reintroduce it.
 
 ## 2. Phase 2: Shared `withTransientRetry` And Error Classifier
 
