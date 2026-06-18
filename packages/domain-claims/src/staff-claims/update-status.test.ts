@@ -1,6 +1,5 @@
 import { inspect } from 'node:util';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import type { ClaimsSession } from '../claims/types';
 import type {
   PaymentAuthorizationState,
@@ -8,15 +7,14 @@ import type {
   RecoveryDecisionType,
 } from './types';
 import { updateClaimStatusCore } from './update-status';
-
 function createSelectChain() {
   return {
     from: vi.fn(),
+    leftJoin: vi.fn(),
     where: vi.fn(),
     limit: vi.fn(),
   };
 }
-
 type MockRecoveryAgreement = {
   claimId: string;
   decisionType: RecoveryDecisionType | null;
@@ -40,7 +38,6 @@ type MockRecoveryAgreement = {
   successFeeSubscriptionId: string | null;
   termsVersion: string | null;
 };
-
 const READY_ACCEPTED_RECOVERY_RECORD: MockRecoveryAgreement = {
   claimId: 'claim-1',
   decisionType: 'accepted',
@@ -64,7 +61,6 @@ const READY_ACCEPTED_RECOVERY_RECORD: MockRecoveryAgreement = {
   successFeeSubscriptionId: 'sub-1',
   termsVersion: '2026-03-v1',
 };
-
 const STANDARD_SUBSCRIPTION = {
   id: 'sub-1',
   planId: 'standard',
@@ -72,7 +68,6 @@ const STANDARD_SUBSCRIPTION = {
   currentPeriodStart: new Date('2026-01-01T00:00:00Z'),
   currentPeriodEnd: new Date('2026-12-31T23:59:59Z'),
 };
-
 const mocks = vi.hoisted(() => {
   const claimSelectChain = createSelectChain();
   const agreementSelectChain = createSelectChain();
@@ -98,7 +93,6 @@ const mocks = vi.hoisted(() => {
       update: txUpdate,
     })
   );
-
   return {
     db: {
       query: {
@@ -209,11 +203,17 @@ const mocks = vi.hoisted(() => {
     txUpdateWhere,
   };
 });
-
 vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
   appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   claimEscalationAgreements: mocks.claimEscalationAgreements,
+  claimRecoveryNoFeeEvidence: {
+    claimId: 'claim_recovery_no_fee_evidence.claim_id',
+    documentedAt: 'claim_recovery_no_fee_evidence.documented_at',
+    documentedById: 'claim_recovery_no_fee_evidence.documented_by_id',
+    reasonCode: 'claim_recovery_no_fee_evidence.reason_code',
+    tenantId: 'claim_recovery_no_fee_evidence.tenant_id',
+  },
   claimStageHistory: mocks.claimStageHistory,
   claims: mocks.claims,
   db: mocks.db,
@@ -226,11 +226,9 @@ vi.mock('@interdomestik/database', () => ({
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
-
 vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: mocks.ensureTenantId,
 }));
-
 vi.mock('../validators/claims', () => ({
   claimStatusSchema: mocks.claimStatusSchema,
 }));
@@ -303,7 +301,6 @@ function mockRecoverySelects(options?: {
   }
   mocks.serviceUsageExistsSelectChain.limit.mockResolvedValue(options?.existingClaimUsage ?? []);
 }
-
 async function runNegotiationUpdate(
   overrides: Partial<Parameters<typeof updateClaimStatusCore>[0]> = {},
   deps?: Parameters<typeof updateClaimStatusCore>[1]
@@ -318,7 +315,6 @@ async function runNegotiationUpdate(
     deps ?? { projectClaimStatusAuditProjection: mocks.projectClaimStatusAuditProjection }
   );
 }
-
 function expectBlockedStatusChange(
   result: Awaited<ReturnType<typeof updateClaimStatusCore>>,
   error: string
@@ -329,7 +325,6 @@ function expectBlockedStatusChange(
   });
   expect(mocks.txUpdate).not.toHaveBeenCalled();
 }
-
 describe('staff updateClaimStatusCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -345,16 +340,31 @@ describe('staff updateClaimStatusCore', () => {
     mocks.serviceUsageExistsSelectChain.where.mockReturnValue(mocks.serviceUsageExistsSelectChain);
     mocks.serviceUsageCountSelectChain.from.mockReturnValue(mocks.serviceUsageCountSelectChain);
     mocks.serviceUsageCountSelectChain.where.mockReturnValue(mocks.serviceUsageCountSelectChain);
-    mocks.txSelectChain.from.mockReturnValue(mocks.txSelectChain);
+    let joinedTransitionEvidence = false;
+    mocks.txSelectChain.from.mockImplementation(() => {
+      joinedTransitionEvidence = false;
+      return mocks.txSelectChain;
+    });
+    mocks.txSelectChain.leftJoin.mockImplementation(() => {
+      joinedTransitionEvidence = true;
+      return mocks.txSelectChain;
+    });
     mocks.txSelectChain.where.mockReturnValue(mocks.txSelectChain);
-    mocks.txSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', lifecycleVersion: 1, status: 'evaluation' },
-    ]);
+    mocks.txSelectChain.limit.mockImplementation(async () =>
+      joinedTransitionEvidence
+        ? [
+            {
+              ...READY_ACCEPTED_RECOVERY_RECORD,
+              lifecycleVersion: 1,
+              status: 'evaluation',
+            },
+          ]
+        : [{ id: 'claim-1', lifecycleVersion: 1, status: 'evaluation' }]
+    );
     mocks.txInsertReturning.mockResolvedValue([{ id: 'usage-claim-1' }]);
     mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
     mocks.projectClaimStatusAuditProjection.mockResolvedValue(undefined);
   });
-
   it.each([
     {
       agreement: [] as Array<MockRecoveryAgreement>,
@@ -371,15 +381,12 @@ describe('staff updateClaimStatusCore', () => {
     },
   ])('$title', async ({ agreement }) => {
     mockRecoverySelects({ agreement });
-
     const result = await runNegotiationUpdate();
-
     expectBlockedStatusChange(
       result,
       'Staff must accept the recovery decision before staff-led recovery can begin.'
     );
   });
-
   it('blocks negotiation until the accepted escalation agreement is complete', async () => {
     mockRecoverySelects({
       agreement: [
@@ -391,9 +398,7 @@ describe('staff updateClaimStatusCore', () => {
       ],
       claim: [{ id: 'claim-1', status: 'evaluation', userId: 'member-1', category: 'vehicle' }],
     });
-
     const result = await runNegotiationUpdate();
-
     expectBlockedStatusChange(
       result,
       'Save the accepted escalation agreement before staff-led recovery can begin.'
@@ -417,9 +422,7 @@ describe('staff updateClaimStatusCore', () => {
         },
       ],
     });
-
     const result = await runNegotiationUpdate();
-
     expectBlockedStatusChange(
       result,
       'Save the success-fee collection path before staff-led recovery can begin.'
@@ -430,9 +433,7 @@ describe('staff updateClaimStatusCore', () => {
     mockRecoverySelects({
       claim: [{ id: 'claim-1', status: 'evaluation', userId: 'member-1', category: 'travel' }],
     });
-
     const result = await runNegotiationUpdate();
-
     expectBlockedStatusChange(
       result,
       'This matter stays guidance-only or referral-only under the current launch scope and cannot move into staff-led recovery or success-fee handling.'
@@ -444,7 +445,6 @@ describe('staff updateClaimStatusCore', () => {
       agreement: [
         {
           ...READY_ACCEPTED_RECOVERY_RECORD,
-          paymentAuthorizationState: 'revoked',
           successFeeCollectionMethod: 'invoice',
           successFeeHasStoredPaymentMethod: false,
           successFeeInvoiceDueAt: new Date('2026-03-19T09:00:00Z'),

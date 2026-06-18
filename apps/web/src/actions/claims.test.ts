@@ -523,7 +523,7 @@ describe('Claim Actions', () => {
   describe('updateClaimStatus - additional cases', () => {
     it('should deny unauthenticated users', async () => {
       mockGetSession.mockResolvedValue(null);
-      const result = await updateClaimStatus('claim-1', 'resolved');
+      const result = await updateClaimStatus('claim-1', 'verification');
       expect(result).toEqual({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' });
     });
 
@@ -535,7 +535,7 @@ describe('Claim Actions', () => {
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await updateClaimStatus('claim-1', 'resolved');
+      const result = await updateClaimStatus('claim-1', 'verification');
 
       consoleErrorSpy.mockRestore();
 
@@ -547,9 +547,9 @@ describe('Claim Actions', () => {
         user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
       });
       mockTxSelectLimit.mockResolvedValueOnce([
-        { id: 'claim-1', lifecycleVersion: 1, status: 'resolved' },
+        { id: 'claim-1', lifecycleVersion: 1, status: 'submitted' },
       ]);
-      const result = await updateClaimStatus('claim-1', 'resolved');
+      const result = await updateClaimStatus('claim-1', 'submitted');
       expect(result).toEqual({ success: true });
     });
   });

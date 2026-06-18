@@ -5,7 +5,6 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import { activateClaimStatusAuditProjection } from '../claims/audit-projection';
 import { transitionClaimStatus } from '../claims/transition';
-import { getPaymentAuthorizationState } from './payment-authorization';
 
 type ClaimStatus =
   | 'draft'
@@ -75,16 +74,9 @@ export async function updateClaimStatusCore(
     return;
   }
 
-  const paymentAuthorizationState = await getPaymentAuthorizationState({
-    claimId,
-    status: newStatus,
-    tenantId,
-  });
-
   const result = await transitionClaimStatus({
     actor: { id: session.user.id, role: session.user.role ?? null },
     claimId,
-    ...(paymentAuthorizationState !== undefined ? { paymentAuthorizationState } : {}),
     tenantId,
     toStatus: newStatus,
   });

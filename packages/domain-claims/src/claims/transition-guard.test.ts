@@ -64,7 +64,7 @@ describe('canTransition', () => {
   });
 
   it.each(['negotiation', 'court'] satisfies ClaimStatus[])(
-    'rejects %s without payment authorization',
+    'rejects %s without signed authorized recovery evidence',
     to => {
       expect(
         canTransition({
@@ -73,7 +73,7 @@ describe('canTransition', () => {
           from: to === 'court' ? 'negotiation' : 'evaluation',
           to,
         })
-      ).toEqual({ allowed: false, reason: 'payment_authorization_required' });
+      ).toEqual({ allowed: false, reason: 'signed_agreement_authorization_required' });
     }
   );
 
@@ -87,36 +87,22 @@ describe('canTransition', () => {
           from: 'negotiation',
           to: 'court',
         })
-      ).toEqual({ allowed: false, reason: 'payment_authorization_required' });
+      ).toEqual({ allowed: false, reason: 'signed_agreement_authorization_required' });
     }
   );
 
-  it('allows recovery when staff recovery prerequisites are already satisfied', () => {
+  it('rejects explicit central recovery invariant failures', () => {
     expect(
       canTransition({
         actor,
         context: {
-          paymentAuthorizationState: 'revoked',
-          staffRecoveryPrerequisitesSatisfied: true,
+          paymentAuthorizationState: 'authorized',
+          recoveryInvariantRejection: 'legal_action_cap_required',
         },
-        from: 'evaluation',
-        to: 'negotiation',
+        from: 'negotiation',
+        to: 'court',
       })
-    ).toMatchObject({ allowed: true });
-  });
-
-  it('does not let non-staff actors use staff recovery prerequisite context', () => {
-    expect(
-      canTransition({
-        actor: { id: 'agent-1', role: 'agent' },
-        context: {
-          paymentAuthorizationState: 'revoked',
-          staffRecoveryPrerequisitesSatisfied: true,
-        },
-        from: 'evaluation',
-        to: 'negotiation',
-      })
-    ).toEqual({ allowed: false, reason: 'payment_authorization_required' });
+    ).toEqual({ allowed: false, reason: 'legal_action_cap_required' });
   });
 
   it('allows non-recovery transitions without payment authorization', () => {

@@ -6,7 +6,6 @@ import type { ActionResult, ClaimsDeps, ClaimsSession } from '../claims/types';
 import { activateClaimStatusAuditProjection } from '../claims/audit-projection';
 import { transitionClaimStatus } from '../claims/transition';
 import { claimStatusSchema } from '../validators/claims';
-import { getPaymentAuthorizationState } from '../admin-claims/payment-authorization';
 
 function isStaff(role: string | null | undefined) {
   return role === 'staff';
@@ -74,16 +73,9 @@ export async function updateClaimStatusCore(
     return { success: false, error: 'Access denied', data: undefined };
   }
 
-  const paymentAuthorizationState = await getPaymentAuthorizationState({
-    claimId,
-    status,
-    tenantId,
-  });
-
   const transitionResult = await transitionClaimStatus({
     actor: { id: session.user.id, role: session.user.role ?? null },
     claimId,
-    ...(paymentAuthorizationState !== undefined ? { paymentAuthorizationState } : {}),
     tenantId,
     toStatus: status,
   });

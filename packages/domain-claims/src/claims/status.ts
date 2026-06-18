@@ -6,7 +6,6 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { ActionResult, ClaimsDeps, ClaimsSession } from './types';
 import type { TransitionClaimStatusResult } from './transition';
 
-import { getPaymentAuthorizationState } from '../admin-claims/payment-authorization';
 import { claimStatusSchema } from '../validators/claims';
 import { activateClaimStatusAuditProjection } from './audit-projection';
 import { transitionClaimStatus } from './transition';
@@ -41,16 +40,10 @@ async function runStatusTransition(args: {
   tenantId: string;
 }): Promise<TransitionClaimStatusResult> {
   const { actorId, actorRole, claimId, status, tenantId } = args;
-  const paymentAuthorizationState = await getPaymentAuthorizationState({
-    claimId,
-    status,
-    tenantId,
-  });
 
   return transitionClaimStatus({
     actor: { id: actorId, role: actorRole ?? null },
     claimId,
-    ...(paymentAuthorizationState === undefined ? {} : { paymentAuthorizationState }),
     tenantId,
     toStatus: status,
   });

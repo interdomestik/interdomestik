@@ -18,7 +18,6 @@ describe('admin updateClaimStatusCore payment authorization', () => {
         userEmail: 'member@example.com',
       },
     ]);
-    mocks.agreementLimit.mockResolvedValue([{ paymentAuthorizationState: 'authorized' }]);
     mocks.transitionClaimStatus.mockResolvedValue({
       success: true,
       fromStatus: 'evaluation',
@@ -27,7 +26,7 @@ describe('admin updateClaimStatusCore payment authorization', () => {
     });
   });
 
-  it('passes payment authorization state into payment-gated admin transitions', async () => {
+  it('routes payment-gated admin transitions through the central transition command', async () => {
     await updateClaimStatusCore({
       claimId: 'claim-1',
       newStatus: 'negotiation',
@@ -36,11 +35,10 @@ describe('admin updateClaimStatusCore payment authorization', () => {
     });
 
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
-    expect(mocks.agreementLimit).toHaveBeenCalledWith(1);
+    expect(mocks.agreementLimit).not.toHaveBeenCalled();
     expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
       actor: { id: 'admin-1', role: 'tenant_admin' },
       claimId: 'claim-1',
-      paymentAuthorizationState: 'authorized',
       tenantId: 'tenant-1',
       toStatus: 'negotiation',
     });

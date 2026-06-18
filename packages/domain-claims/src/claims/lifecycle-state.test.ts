@@ -18,14 +18,31 @@ type ClaimState = {
 };
 
 class FakeSelect {
+  private joined = false;
   constructor(private readonly state: ClaimState) {}
   from(): this {
+    return this;
+  }
+  leftJoin(): this {
+    this.joined = true;
     return this;
   }
   where(): this {
     return this;
   }
   async limit(): Promise<Row[]> {
+    if (this.joined) {
+      return [
+        {
+          claimId: 'claim-1',
+          legalActionCapPercentage: 25,
+          lifecycleVersion: this.state.lifecycleVersion,
+          paymentAuthorizationState: 'authorized',
+          signedAt: new Date('2026-03-12T09:00:00Z'),
+          status: this.state.status,
+        },
+      ];
+    }
     return [{ id: 'claim-1', ...this.state }];
   }
 }
@@ -72,7 +89,6 @@ function makeTx(state: ClaimState): TransitionTx {
     insert: (table: unknown) => new FakeInsert(table),
   } as unknown as TransitionTx;
 }
-
 describe('claim lifecycle state mapping', () => {
   it('defines case and recovery states for every current status', () => {
     expect(
@@ -90,10 +106,6 @@ describe('claim lifecycle state mapping', () => {
     expect(mapClaimStatusToLifecycleStates('court')).toEqual({
       caseLifecycleState: 'recovery',
       recoveryLifecycleState: 'court',
-    });
-    expect(mapClaimStatusToLifecycleStates('resolved')).toEqual({
-      caseLifecycleState: 'resolved',
-      recoveryLifecycleState: 'resolved',
     });
     expect(CLAIM_STATUS_LIFECYCLE_STATE_MAP).toEqual({
       draft: { caseLifecycleState: 'draft', recoveryLifecycleState: 'not_started' },
@@ -118,7 +130,6 @@ describe('claim lifecycle state mapping', () => {
     const result = await transitionClaimStatusInTransaction(makeTx(state), {
       actor: { id: 'staff-1', role: 'staff' },
       claimId: 'claim-1',
-      paymentAuthorizationState: 'authorized',
       tenantId: 'tenant-1',
       toStatus: 'negotiation',
     });

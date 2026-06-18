@@ -589,6 +589,13 @@
       "when": 1781753406721,
       "tag": "0083_access_tenant_rls_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1781760000000,
+      "tag": "0084_claim_recovery_no_fee_evidence",
+      "breakpoints": true
     }
   ]
 }

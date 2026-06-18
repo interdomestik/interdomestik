@@ -5,7 +5,6 @@ import type { AuthorizedTransition, ClaimTransitionActor } from './transition-gu
 import { recordCaseCreatedEvent } from './case-created-event';
 import { recordTransitionDomainEvents } from './transition-domain-events';
 import type { CreateClaimValues } from '../validators/claims';
-import type { PaymentAuthorizationState } from '../staff-claims/types';
 
 export type TransitionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 export type TransitionSideEffectsArgs = {
@@ -47,9 +46,7 @@ export type TransitionClaimStatusParams = {
   correlationId?: string;
   isPublic?: boolean;
   note?: string | null;
-  paymentAuthorizationState?: PaymentAuthorizationState | null;
   requiredWhereCondition?: SQLWrapper;
-  staffRecoveryPrerequisitesSatisfied?: boolean;
   tenantId: string;
   toStatus: ClaimStatus;
 };

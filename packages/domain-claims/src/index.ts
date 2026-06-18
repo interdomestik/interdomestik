@@ -37,5 +37,6 @@ export {
 } from './staff-claims/matter-allowance';
 export { saveRecoveryDecisionCore as saveStaffRecoveryDecisionCore } from './staff-claims/save-recovery-decision';
 export { saveClaimEscalationAgreementCore as saveStaffClaimEscalationAgreementCore } from './staff-claims/save-escalation-agreement';
+export { saveNoFeeEvidenceCore as saveStaffNoFeeEvidenceCore } from './staff-claims/save-no-fee-evidence';
 export { updateClaimStatusCore as updateStaffClaimStatusCore } from './staff-claims/update-status';
 export * from './support-handoffs';

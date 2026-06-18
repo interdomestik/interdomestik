@@ -20,14 +20,31 @@ export const initialState = (): ClaimState => ({
 });
 
 class FakeSelect {
+  private joined = false;
   constructor(private readonly state: ClaimState) {}
   from(): this {
+    return this;
+  }
+  leftJoin(): this {
+    this.joined = true;
     return this;
   }
   where(): this {
     return this;
   }
   async limit(): Promise<Row[]> {
+    if (this.joined) {
+      return [
+        {
+          claimId: 'claim-1',
+          legalActionCapPercentage: 25,
+          lifecycleVersion: this.state.lifecycleVersion,
+          paymentAuthorizationState: 'authorized',
+          signedAt: new Date('2026-03-12T09:00:00Z'),
+          status: this.state.status,
+        },
+      ];
+    }
     return [{ ...this.state, id: 'claim-1' }];
   }
 }
@@ -76,7 +93,6 @@ function makeParams() {
     correlationId: 'corr-1',
     isPublic: false,
     note: 'member-visible status note',
-    paymentAuthorizationState: 'authorized' as const,
     tenantId: 'tenant-1',
     toStatus: 'negotiation' as const,
   };
