@@ -47,7 +47,7 @@ function claimLifecycleStatusSqlFromColumns(
 }
 
 function claimAliasColumn(alias: string, column: string): SQL {
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(alias)) {
+  if (!/^[A-Za-z_]\w*$/u.test(alias)) {
     throw new Error(`Invalid claim SQL alias: ${alias}`);
   }
 

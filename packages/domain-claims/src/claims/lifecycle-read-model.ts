@@ -78,19 +78,19 @@ export function resolveClaimLifecycleReadProjection(
       ? STATUS_BY_LIFECYCLE_PAIR[lifecyclePairKey(caseLifecycleState, recoveryLifecycleState)]
       : undefined;
   const status = lifecycleStatus ?? compatStatus;
+  let consistency: ClaimLifecycleReadProjection['consistency'] = 'consistent';
+
+  if (lifecycleStatus === undefined && hasCaseState && hasRecoveryState) {
+    consistency = 'invalid_lifecycle_pair';
+  } else if (lifecycleStatus !== undefined && lifecycleStatus !== compatStatus) {
+    consistency = 'status_mismatch';
+  }
 
   return {
     authority: hasCaseState && hasRecoveryState ? 'lifecycle' : 'status_fallback',
     caseLifecycleState,
     recoveryLifecycleState,
     status,
-    consistency:
-      lifecycleStatus === undefined
-        ? hasCaseState && hasRecoveryState
-          ? 'invalid_lifecycle_pair'
-          : 'consistent'
-        : lifecycleStatus === compatStatus
-          ? 'consistent'
-          : 'status_mismatch',
+    consistency,
   };
 }

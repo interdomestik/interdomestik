@@ -17,6 +17,14 @@ export function mapAgentMemberClaimGroups(
             recoveryLifecycleState: claim.recoveryLifecycleState as string | null,
           }).status;
 
+          let updatedAt: string | null = null;
+
+          if (claim.updatedAt instanceof Date) {
+            updatedAt = claim.updatedAt.toISOString();
+          } else if (typeof claim.updatedAt === 'string') {
+            updatedAt = claim.updatedAt;
+          }
+
           return {
             id: claim.id as string,
             title: claim.title as string,
@@ -26,12 +34,7 @@ export function mapAgentMemberClaimGroups(
               claim.createdAt instanceof Date
                 ? claim.createdAt.toISOString()
                 : String(claim.createdAt),
-            updatedAt:
-              claim.updatedAt instanceof Date
-                ? claim.updatedAt.toISOString()
-                : claim.updatedAt
-                  ? String(claim.updatedAt)
-                  : null,
+            updatedAt,
           };
         });
 
