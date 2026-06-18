@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import type { TestContext } from 'node:test';
 
 import { sql } from 'drizzle-orm';
@@ -6,8 +7,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import type postgres from 'postgres';
 
 export const TEST_DB_ROLE = 'interdomestik_rls_test';
-export const TEST_DB_PASSWORD =
-  process.env.RLS_TEST_DB_PASSWORD ?? 'interdomestik_rls_test_password';
+export const TEST_DB_PASSWORD = process.env.RLS_TEST_DB_PASSWORD ?? randomUUID();
 export type RlsTestConnectionConfig = { databaseUrlRls: string | null; dbRlsRole: string | null };
 
 export function quoteIdentifier(identifier: string): string {
@@ -129,7 +129,6 @@ export async function requireRlsPreconditions(
       );
     }
     t.skip(`tenant-isolation policies are not present: ${missingPolicyTables.join(', ')}`);
-    return;
   }
 }
 

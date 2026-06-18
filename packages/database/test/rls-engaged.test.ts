@@ -50,10 +50,14 @@ test('resolveRlsTestConnectionConfig uses a dedicated low-privilege connection f
     'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
   );
 
-  assert.equal(
-    config.databaseUrlRls,
-    'postgresql://interdomestik_rls_test:interdomestik_rls_test_password@127.0.0.1:54322/postgres'
-  );
+  assert.ok(config.databaseUrlRls);
+  const rlsUrl = new URL(config.databaseUrlRls);
+  assert.equal(rlsUrl.protocol, 'postgresql:');
+  assert.equal(rlsUrl.username, TEST_DB_ROLE);
+  assert.equal(rlsUrl.password, TEST_DB_PASSWORD);
+  assert.equal(rlsUrl.hostname, '127.0.0.1');
+  assert.equal(rlsUrl.port, '54322');
+  assert.equal(rlsUrl.pathname, '/postgres');
   assert.equal(config.dbRlsRole, null);
 });
 
