@@ -467,9 +467,9 @@ closeout evidence and corrects the stale `T-302b` prerequisite cycle by keeping
 `T-209` blocked on `T-302b` rather than making `T-302b` depend on `T-209`.
 
 Post-Rev 60, `T-302c` is complete in PR `#1097` / squash merge
-`238e724275b96873fe3166ade4b0fae4046926c0`. The next canonical candidate is
-`T-302d`, subject to fresh current-authority resolution; this closeout does not
-start it.
+`238e724275b96873fe3166ade4b0fae4046926c0`. At the time of Rev 60, the fresh
+authority candidate was `T-302d`; Rev 61 later completed it, so this historical
+note is no longer current promotion authority.
 
 Post-Rev 61, `T-302d` is complete in PR `#1099` / squash merge
 `681e72734790a96c138b5de8e6c6eb1019d6cb3b`. No replacement runtime slice is
