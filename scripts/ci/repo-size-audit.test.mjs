@@ -10,6 +10,14 @@ import packageJson from '../../package.json' with { type: 'json' };
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '../..');
 const auditScript = path.join(repoRoot, 'scripts/repo-size-audit.mjs');
+const categories = [
+  'large support/generated-ish',
+  'source/scripts',
+  'tests/e2e',
+  'docs/text',
+  'config/data/messages',
+  'other',
+];
 
 function runAudit(args) {
   return spawnSync(process.execPath, [auditScript, ...args], {
@@ -33,6 +41,28 @@ function createRepoTempDir(t) {
   return tempRoot;
 }
 
+function writeBudget(file, max = 1e9, extra = {}) {
+  const maxCategoryBytes = Object.fromEntries(categories.map(name => [name, max]));
+  fs.writeFileSync(
+    file,
+    JSON.stringify({
+      version: 1,
+      maxTrackedBytes: max,
+      maxTrackedFiles: max,
+      maxLargestFileBytes: max,
+      maxSourceOrTestLines: max,
+      maxCategoryBytes,
+      ...extra,
+    })
+  );
+}
+
+function createPassingBudget(t) {
+  const budgetPath = path.join(createRepoTempDir(t), 'repo-size-budget.json');
+  writeBudget(budgetPath);
+  return budgetPath;
+}
+
 test('repo size scripts are wired into static and PR verification', () => {
   assert.equal(packageJson.scripts['repo:size'], 'node scripts/repo-size-audit.mjs');
   assert.equal(packageJson.scripts['repo:size:check'], 'node scripts/repo-size-audit.mjs --check');
@@ -41,8 +71,9 @@ test('repo size scripts are wired into static and PR verification', () => {
   assert.match(packageJson.scripts['pr:verify'], /\bpnpm repo:size:check\b/u);
 });
 
-test('repo size audit emits JSON with tracked inventory and budget result', () => {
-  const result = runAudit(['--check', '--json', '--top=2']);
+test('repo size audit emits JSON with tracked inventory and budget result', t => {
+  const budgetPath = createPassingBudget(t);
+  const result = runAudit(['--check', '--json', '--top=2', `--budget=${budgetPath}`]);
   assert.equal(result.status, 0, result.stderr);
 
   const report = JSON.parse(result.stdout);
@@ -56,28 +87,7 @@ test('repo size audit fails when the supplied budget is below current tracked si
   const tempRoot = createRepoTempDir(t);
 
   const budgetPath = path.join(tempRoot, 'repo-size-budget.json');
-  fs.writeFileSync(
-    budgetPath,
-    `${JSON.stringify(
-      {
-        version: 1,
-        maxTrackedBytes: 1,
-        maxTrackedFiles: 1,
-        maxLargestFileBytes: 1,
-        maxSourceOrTestLines: 1,
-        maxCategoryBytes: {
-          'large support/generated-ish': 1,
-          'source/scripts': 1,
-          'tests/e2e': 1,
-          'docs/text': 1,
-          'config/data/messages': 1,
-          other: 1,
-        },
-      },
-      null,
-      2
-    )}\n`
-  );
+  writeBudget(budgetPath, 1);
 
   const result = runAudit(['--check', `--budget=${budgetPath}`]);
   assert.equal(result.status, 1);
@@ -119,7 +129,8 @@ test('repo size check excludes untracked files while report mode can include the
     true
   );
 
-  const checkResult = runAudit(['--check', '--json']);
+  const budgetPath = createPassingBudget(t);
+  const checkResult = runAudit(['--check', '--json', `--budget=${budgetPath}`]);
   assert.equal(checkResult.status, 0, checkResult.stderr);
   assert.equal(JSON.parse(checkResult.stdout).options.includeUntracked, false);
 });
@@ -165,29 +176,7 @@ test('repo size audit does not over-count a trailing newline as an extra source 
 test('repo size audit rejects unsupported budget keys before JSON echo', t => {
   const tempRoot = createRepoTempDir(t);
   const budgetPath = path.join(tempRoot, 'repo-size-budget.json');
-  fs.writeFileSync(
-    budgetPath,
-    `${JSON.stringify(
-      {
-        version: 1,
-        maxTrackedBytes: 27262976,
-        maxTrackedFiles: 3600,
-        maxLargestFileBytes: 1048576,
-        maxSourceOrTestLines: 3000,
-        maxCategoryBytes: {
-          'large support/generated-ish': 13631488,
-          'source/scripts': 5767168,
-          'tests/e2e': 4194304,
-          'docs/text': 3145728,
-          'config/data/messages': 1572864,
-          other: 1048576,
-        },
-        accidentalSecret: 'do-not-print',
-      },
-      null,
-      2
-    )}\n`
-  );
+  writeBudget(budgetPath, 30_000_000, { accidentalSecret: 'do-not-print' });
 
   const result = runAudit(['--check', '--json', `--budget=${budgetPath}`]);
   assert.equal(result.status, 1);
@@ -195,8 +184,12 @@ test('repo size audit rejects unsupported budget keys before JSON echo', t => {
   assert.doesNotMatch(result.stdout, /do-not-print/u);
 });
 
-test('repo size audit resolves the repository root from subdirectories', () => {
-  const result = runAuditFrom(path.join(repoRoot, 'scripts'), ['--check']);
+test('repo size audit resolves the repository root from subdirectories', t => {
+  const budgetPath = createPassingBudget(t);
+  const result = runAuditFrom(path.join(repoRoot, 'scripts'), [
+    '--check',
+    `--budget=${budgetPath}`,
+  ]);
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Repo size budget passed/u);
 });
