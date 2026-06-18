@@ -21,6 +21,38 @@ function writeGhResponse(responsesDir, endpoint, payload) {
   fs.writeFileSync(responsePath, JSON.stringify(payload));
 }
 
+function writeMockGh(binDir) {
+  const mockGhPath = path.join(binDir, 'gh');
+  fs.writeFileSync(
+    mockGhPath,
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const path = require('node:path');
+
+const args = process.argv.slice(2);
+if (args[0] !== 'api') {
+  process.stderr.write('Unsupported gh command\\n');
+  process.exit(2);
+}
+
+const endpoint = args.at(-1);
+const responsePath = path.join(
+  process.env.MOCK_GH_RESPONSES_DIR,
+  endpoint.replace(/[^A-Za-z0-9._-]+/g, '_') + '.json'
+);
+
+if (!fs.existsSync(responsePath)) {
+  process.stderr.write(\`Missing mock response for \${endpoint}\\n\`);
+  process.exit(2);
+}
+
+process.stdout.write(fs.readFileSync(responsePath, 'utf8'));
+`,
+    { mode: 0o700 }
+  );
+  return mockGhPath;
+}
+
 function closeServer(server) {
   return new Promise((resolve, reject) => {
     server.close(error => {
@@ -99,39 +131,13 @@ test('sonar check-run gate accepts PR quality gate API results when the Sonar ch
   const responsesDir = path.join(tempRoot, 'responses');
   const evidenceDir = path.join(tempRoot, 'evidence');
   const eventPath = path.join(tempRoot, 'event.json');
+  const stepSummaryPath = path.join(tempRoot, 'github-step-summary.md');
 
   fs.mkdirSync(binDir, { recursive: true });
   fs.mkdirSync(responsesDir, { recursive: true });
   fs.writeFileSync(eventPath, JSON.stringify({ pull_request: { number: 307 } }));
 
-  const mockGhPath = path.join(binDir, 'gh');
-  fs.writeFileSync(
-    mockGhPath,
-    `#!/usr/bin/env node
-const fs = require('node:fs');
-const path = require('node:path');
-
-const args = process.argv.slice(2);
-if (args[0] !== 'api') {
-  process.stderr.write('Unsupported gh command\\n');
-  process.exit(2);
-}
-
-const endpoint = args.at(-1);
-const responsePath = path.join(
-  process.env.MOCK_GH_RESPONSES_DIR,
-  endpoint.replace(/[^A-Za-z0-9._-]+/g, '_') + '.json'
-);
-
-if (!fs.existsSync(responsePath)) {
-  process.stderr.write(\`Missing mock response for \${endpoint}\\n\`);
-  process.exit(2);
-}
-
-process.stdout.write(fs.readFileSync(responsePath, 'utf8'));
-`,
-    { mode: 0o700 }
-  );
+  const mockGhPath = writeMockGh(binDir);
 
   const checkRunsEndpoint =
     'repos/interdomestik/interdomestik/commits/test-sha/check-runs?filter=latest&per_page=100';
@@ -183,6 +189,7 @@ process.stdout.write(fs.readFileSync(responsePath, 'utf8'));
       GH_TOKEN: 'test-gh-token',
       GITHUB_EVENT_PATH: eventPath,
       GITHUB_REPOSITORY: 'interdomestik/interdomestik',
+      GITHUB_STEP_SUMMARY: stepSummaryPath,
       MOCK_GH_RESPONSES_DIR: responsesDir,
       SONAR_CHECK_MAX_RETRIES: '1',
       SONAR_CHECK_RETRY_DELAY_SECONDS: '0',
@@ -196,8 +203,11 @@ process.stdout.write(fs.readFileSync(responsePath, 'utf8'));
 
     const summaryPath = path.join(evidenceDir, 'notes', 'sonar-summary.md');
     const summary = fs.readFileSync(summaryPath, 'utf8');
+    const stepSummary = fs.readFileSync(stepSummaryPath, 'utf8');
     assert.match(summary, /source: Sonar quality gate API/);
     assert.match(summary, /conclusion: OK/);
+    assert.match(stepSummary, /source: Sonar quality gate API/);
+    assert.match(stepSummary, /conclusion: OK/);
   } finally {
     await server.close();
   }
@@ -214,34 +224,7 @@ test('sonar check-run gate ignores stale PR quality gate data until Sonar analyz
   fs.mkdirSync(responsesDir, { recursive: true });
   fs.writeFileSync(eventPath, JSON.stringify({ pull_request: { number: 307 } }));
 
-  const mockGhPath = path.join(binDir, 'gh');
-  fs.writeFileSync(
-    mockGhPath,
-    `#!/usr/bin/env node
-const fs = require('node:fs');
-const path = require('node:path');
-
-const args = process.argv.slice(2);
-if (args[0] !== 'api') {
-  process.stderr.write('Unsupported gh command\\n');
-  process.exit(2);
-}
-
-const endpoint = args.at(-1);
-const responsePath = path.join(
-  process.env.MOCK_GH_RESPONSES_DIR,
-  endpoint.replace(/[^A-Za-z0-9._-]+/g, '_') + '.json'
-);
-
-if (!fs.existsSync(responsePath)) {
-  process.stderr.write(\`Missing mock response for \${endpoint}\\n\`);
-  process.exit(2);
-}
-
-process.stdout.write(fs.readFileSync(responsePath, 'utf8'));
-`,
-    { mode: 0o700 }
-  );
+  const mockGhPath = writeMockGh(binDir);
 
   const checkRunsEndpoint =
     'repos/interdomestik/interdomestik/commits/test-sha/check-runs?filter=latest&per_page=100';
