@@ -32,7 +32,7 @@
   "dependencies": {
     "@interdomestik/database": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
-    "@types/nodemailer": "^8.0.0",
+    "@types/nodemailer": "^8.0.1",
     "@types/web-push": "^3.6.4",
     "date-fns": "^4.4.0",
     "drizzle-orm": "^0.45.2",
