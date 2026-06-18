@@ -1,23 +1,27 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
-import type { TestContext } from 'node:test';
 
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import { claims, crmTaskHistory, crmTasks, user } from '../src/schema';
+import { claims, crmTaskHistory, crmTasks, domainEvents, user } from '../src/schema';
+import {
+  applyRlsTestConnectionEnv,
+  grantRlsTestRole,
+  quoteIdentifier,
+  quoteSqlLiteral,
+  requireRlsPreconditions,
+  resolveRlsTestConnectionConfig,
+  TEST_DB_PASSWORD,
+  TEST_DB_ROLE,
+} from './rls-test-connection';
+import { assertRlsWriteBoundaries } from './rls-write-boundary-proof';
 
 const KS_TENANT_ID = 'tenant_ks';
 const MK_TENANT_ID = 'tenant_mk';
-const TEST_DB_ROLE = 'interdomestik_rls_test';
-const TEST_DB_PASSWORD = 'interdomestik_rls_test_password';
-
-type RlsTestConnectionConfig = {
-  databaseUrlRls: string | null;
-  dbRlsRole: string | null;
-};
+const REQUIRED_RLS_TABLES = ['claim', 'crm_tasks', 'crm_task_history', 'domain_events'] as const;
 
 type RlsRuntimeReceipt = {
   currentUser: string;
@@ -31,141 +35,6 @@ type TenantModule = typeof import('../src/tenant');
 
 function uniqueId(prefix: string): string {
   return `${prefix}_${Date.now()}_${randomUUID().slice(0, 8)}`;
-}
-
-function quoteIdentifier(identifier: string): string {
-  return `"${identifier.replaceAll('"', '""')}"`;
-}
-
-function isPoolerConnection(databaseUrl: string): boolean {
-  return /\.pooler\.supabase\.com$/iu.test(new URL(databaseUrl).hostname);
-}
-
-function buildRlsDatabaseUrl(databaseUrl: string): string {
-  const url = new URL(databaseUrl);
-  url.username = TEST_DB_ROLE;
-  url.password = TEST_DB_PASSWORD;
-  return url.toString();
-}
-
-function resolveRlsTestConnectionConfig(databaseUrl: string): RlsTestConnectionConfig {
-  if (isPoolerConnection(databaseUrl)) {
-    return {
-      databaseUrlRls: null,
-      dbRlsRole: TEST_DB_ROLE,
-    };
-  }
-
-  return {
-    databaseUrlRls: buildRlsDatabaseUrl(databaseUrl),
-    dbRlsRole: null,
-  };
-}
-
-async function requireRlsPreconditions(
-  adminDb: ReturnType<typeof drizzle>,
-  adminSql: postgres.Sql,
-  requireIntegration: boolean,
-  t: TestContext
-): Promise<void> {
-  const requiredTables = ['claim', 'crm_tasks', 'crm_task_history'] as const;
-  const [rlsEnabled] = await adminDb.execute<{ enabled: boolean }>(
-    sql`select relrowsecurity as enabled from pg_class where relname = 'claim'`
-  );
-  if (!rlsEnabled?.enabled) {
-    await adminSql.end({ timeout: 5 });
-    if (requireIntegration) {
-      assert.fail(
-        'RLS test requires claim table RLS enabled when REQUIRE_RLS_INTEGRATION=1 (migrations must be applied).'
-      );
-    }
-    t.skip('claim table RLS is not enabled in current database');
-    return;
-  }
-
-  const tableRows = await adminDb.execute<{ relname: string; relrowsecurity: boolean }>(sql`
-    select c.relname, c.relrowsecurity
-    from pg_class c
-    join pg_namespace n
-      on n.oid = c.relnamespace
-    where n.nspname = 'public'
-      and c.relkind = 'r'
-      and c.relname in ('claim', 'crm_tasks', 'crm_task_history')
-  `);
-  const enabledTables = new Map(tableRows.map(row => [row.relname, row.relrowsecurity]));
-  const missingOrDisabled = requiredTables.filter(table => enabledTables.get(table) !== true);
-  if (missingOrDisabled.length > 0) {
-    await adminSql.end({ timeout: 5 });
-    if (requireIntegration) {
-      assert.fail(
-        `RLS test requires CRM task tables with RLS enabled when REQUIRE_RLS_INTEGRATION=1: ${missingOrDisabled.join(', ')}`
-      );
-    }
-    t.skip(`CRM task RLS tables are not ready: ${missingOrDisabled.join(', ')}`);
-    return;
-  }
-
-  const policies = await adminDb.execute<{ policyname: string }>(
-    sql`
-      select policyname
-      from pg_policies
-      where schemaname = 'public'
-        and (
-          (tablename = 'claim' and policyname = 'tenant_isolation_claim')
-          or (tablename = 'crm_tasks' and policyname = 'tenant_isolation_crm_tasks')
-          or (tablename = 'crm_task_history' and policyname = 'tenant_isolation_crm_task_history')
-        )
-    `
-  );
-  if (policies.length !== requiredTables.length) {
-    await adminSql.end({ timeout: 5 });
-    if (requireIntegration) {
-      assert.fail(
-        'RLS test requires tenant-isolation policies for claim, crm_tasks, and crm_task_history when REQUIRE_RLS_INTEGRATION=1.'
-      );
-    }
-    t.skip('tenant-isolation policy set for claim/crm task tables is not present');
-    return;
-  }
-}
-
-function applyRlsTestConnectionEnv(databaseUrl: string): {
-  restore(): void;
-} {
-  const previousDatabaseUrlRls = process.env.DATABASE_URL_RLS;
-  const previousDbRlsRole = process.env.DB_RLS_ROLE;
-  const connectionConfig = resolveRlsTestConnectionConfig(databaseUrl);
-
-  if (connectionConfig.databaseUrlRls) {
-    process.env.DATABASE_URL_RLS = connectionConfig.databaseUrlRls;
-  } else {
-    delete process.env.DATABASE_URL_RLS;
-  }
-
-  if (connectionConfig.dbRlsRole) {
-    process.env.DB_RLS_ROLE = connectionConfig.dbRlsRole;
-  } else {
-    delete process.env.DB_RLS_ROLE;
-  }
-
-  delete (globalThis as { queryClientAdmin?: unknown; queryClientRls?: unknown }).queryClientAdmin;
-  delete (globalThis as { queryClientAdmin?: unknown; queryClientRls?: unknown }).queryClientRls;
-
-  return {
-    restore() {
-      if (previousDatabaseUrlRls) {
-        process.env.DATABASE_URL_RLS = previousDatabaseUrlRls;
-      } else {
-        delete process.env.DATABASE_URL_RLS;
-      }
-
-      if (previousDbRlsRole) {
-        process.env.DB_RLS_ROLE = previousDbRlsRole;
-      } else {
-        delete process.env.DB_RLS_ROLE;
-      }
-    },
-  };
 }
 
 test('resolveRlsTestConnectionConfig keeps pooler URLs on the admin connection and uses SET ROLE', () => {
@@ -182,10 +51,14 @@ test('resolveRlsTestConnectionConfig uses a dedicated low-privilege connection f
     'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
   );
 
-  assert.equal(
-    config.databaseUrlRls,
-    'postgresql://interdomestik_rls_test:interdomestik_rls_test_password@127.0.0.1:54322/postgres'
-  );
+  assert.ok(config.databaseUrlRls);
+  const rlsUrl = new URL(config.databaseUrlRls);
+  assert.equal(rlsUrl.protocol, 'postgresql:');
+  assert.equal(rlsUrl.username, TEST_DB_ROLE);
+  assert.equal(rlsUrl.password, TEST_DB_PASSWORD);
+  assert.equal(rlsUrl.hostname, '127.0.0.1');
+  assert.equal(rlsUrl.port, '54322');
+  assert.equal(rlsUrl.pathname, '/postgres');
   assert.equal(config.dbRlsRole, null);
 });
 
@@ -203,7 +76,7 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
   const adminSql = postgres(process.env.DATABASE_URL);
   const adminDb = drizzle(adminSql);
 
-  await requireRlsPreconditions(adminDb, adminSql, requireIntegration, t);
+  await requireRlsPreconditions(adminDb, adminSql, requireIntegration, t, REQUIRED_RLS_TABLES);
   if (t.signal.aborted) {
     return;
   }
@@ -213,28 +86,32 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
     sql.raw(`
       do $$
       begin
-        create role "${TEST_DB_ROLE}" login password '${TEST_DB_PASSWORD}';
+        create role ${quoteIdentifier(TEST_DB_ROLE)} login password ${quoteSqlLiteral(TEST_DB_PASSWORD)};
       exception
         when duplicate_object then
-          alter role "${TEST_DB_ROLE}" with login password '${TEST_DB_PASSWORD}';
+          alter role ${quoteIdentifier(TEST_DB_ROLE)} with login password ${quoteSqlLiteral(TEST_DB_PASSWORD)};
       end
       $$;
     `)
   );
-  await adminDb.execute(sql.raw(`grant usage on schema public to "${TEST_DB_ROLE}"`));
-  await adminDb.execute(sql.raw(`grant select on table "claim" to "${TEST_DB_ROLE}"`));
-  await adminDb.execute(sql.raw(`grant select on table "crm_tasks" to "${TEST_DB_ROLE}"`));
-  await adminDb.execute(sql.raw(`grant select on table "crm_task_history" to "${TEST_DB_ROLE}"`));
-  const [{ currentUser }] = await adminDb.execute<{ currentUser: string }>(
-    sql`select current_user as "currentUser"`
+  await grantRlsTestRole(adminDb, REQUIRED_RLS_TABLES);
+  await adminDb.execute(
+    sql.raw(`grant insert on table "claim" to ${quoteIdentifier(TEST_DB_ROLE)}`)
   );
-  await adminDb.execute(sql.raw(`grant "${TEST_DB_ROLE}" to ${quoteIdentifier(currentUser)}`));
+  await adminDb.execute(
+    sql.raw(`grant insert on table "domain_events" to ${quoteIdentifier(TEST_DB_ROLE)}`)
+  );
 
   const ksUserId = uniqueId('rls_user_ks');
   const mkUserId = uniqueId('rls_user_mk');
   const claimId = uniqueId('rls_claim_ks');
   const taskId = uniqueId('rls_task_ks');
   const historyId = uniqueId('rls_task_history_ks');
+  const eventId = uniqueId('rls_event_ks');
+  const mkEventId = uniqueId('rls_event_mk');
+  const rlsEventId = uniqueId('rls_event_insert_ks');
+  const rejectedClaimId = uniqueId('rls_claim_rejected_mk');
+  const rejectedEventId = uniqueId('rls_event_rejected_mk');
   const now = new Date();
   let rlsTestEnv: ReturnType<typeof applyRlsTestConnectionEnv> | null = null;
   let dbAdmin: DbModule['dbAdmin'] | null = null;
@@ -320,6 +197,34 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
       toStatus: 'pending',
     });
 
+    await dbAdmin.insert(domainEvents).values({
+      actorId: ksUserId,
+      actorRole: 'admin',
+      aggregateVersion: 1,
+      correlationId: uniqueId('rls_correlation'),
+      entityId: claimId,
+      entityType: 'claim',
+      eventName: 'claim.rls_tested',
+      eventVersion: 1,
+      id: eventId,
+      payload: {},
+      tenantId: KS_TENANT_ID,
+    });
+
+    await dbAdmin.insert(domainEvents).values({
+      actorId: mkUserId,
+      actorRole: 'admin',
+      aggregateVersion: 1,
+      correlationId: uniqueId('rls_correlation'),
+      entityId: mkUserId,
+      entityType: 'user',
+      eventName: 'user.rls_tested',
+      eventVersion: 1,
+      id: mkEventId,
+      payload: {},
+      tenantId: MK_TENANT_ID,
+    });
+
     const [mkRlsReceipt] = await withTenantContext(
       { tenantId: MK_TENANT_ID, accessTenantId: '  ' },
       async tx => {
@@ -357,6 +262,94 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
 
     assert.equal(mkRows.length, 0, 'tenant_mk must not see tenant_ks claim row');
 
+    const blankAccessEventRows = await withTenantContext(
+      { tenantId: MK_TENANT_ID, accessTenantId: '  ' },
+      async tx => {
+        return tx
+          .select({ id: domainEvents.id })
+          .from(domainEvents)
+          .where(and(eq(domainEvents.id, eventId), eq(domainEvents.tenantId, KS_TENANT_ID)));
+      }
+    );
+    assert.equal(
+      blankAccessEventRows.length,
+      0,
+      'blank access_tenant fallback to tenant_mk must not see tenant_ks domain event'
+    );
+
+    const blankAccessOwnEventRows = await withTenantContext(
+      { tenantId: MK_TENANT_ID, accessTenantId: '  ' },
+      async tx => {
+        return tx
+          .select({ id: domainEvents.id })
+          .from(domainEvents)
+          .where(and(eq(domainEvents.id, mkEventId), eq(domainEvents.tenantId, MK_TENANT_ID)));
+      }
+    );
+    assert.equal(
+      blankAccessOwnEventRows.length,
+      1,
+      'blank access_tenant fallback to tenant_mk must see tenant_mk domain event'
+    );
+
+    const accessKsClaimRows = await withTenantContext(
+      { tenantId: MK_TENANT_ID, accessTenantId: KS_TENANT_ID },
+      async tx => {
+        return tx
+          .select({ id: claims.id })
+          .from(claims)
+          .where(and(eq(claims.id, claimId), eq(claims.tenantId, KS_TENANT_ID)));
+      }
+    );
+    assert.equal(
+      accessKsClaimRows.length,
+      1,
+      'access_tenant tenant_ks must see tenant_ks claim even when current_tenant is tenant_mk'
+    );
+
+    const accessKsEventRows = await withTenantContext(
+      { tenantId: MK_TENANT_ID, accessTenantId: KS_TENANT_ID },
+      async tx => {
+        return tx
+          .select({ id: domainEvents.id })
+          .from(domainEvents)
+          .where(and(eq(domainEvents.id, eventId), eq(domainEvents.tenantId, KS_TENANT_ID)));
+      }
+    );
+    assert.equal(
+      accessKsEventRows.length,
+      1,
+      'access_tenant tenant_ks must see tenant_ks domain event under access-GUC RLS'
+    );
+
+    const tenantKsAccessMkRows = await withTenantContext(
+      { tenantId: KS_TENANT_ID, accessTenantId: MK_TENANT_ID },
+      async tx => {
+        return tx
+          .select({ id: domainEvents.id })
+          .from(domainEvents)
+          .where(and(eq(domainEvents.id, eventId), eq(domainEvents.tenantId, KS_TENANT_ID)));
+      }
+    );
+    assert.equal(
+      tenantKsAccessMkRows.length,
+      0,
+      'access_tenant tenant_mk must not see tenant_ks domain event even when current_tenant is tenant_ks'
+    );
+
+    await assertRlsWriteBoundaries({
+      claimId,
+      ksTenantId: KS_TENANT_ID,
+      ksUserId,
+      mkTenantId: MK_TENANT_ID,
+      mkUserId,
+      rejectedClaimId,
+      rejectedEventId,
+      rlsEventId,
+      uniqueId,
+      withTenantContext,
+    });
+
     const unsetTaskRows = await dbRls
       .select({ id: crmTasks.id })
       .from(crmTasks)
@@ -392,6 +385,9 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
     assert.equal(ksTaskRows.length, 1, 'tenant_ks must see its own CRM task row');
   } finally {
     if (dbAdmin) {
+      await dbAdmin
+        .delete(domainEvents)
+        .where(inArray(domainEvents.id, [eventId, mkEventId, rlsEventId]));
       await dbAdmin.delete(crmTaskHistory).where(eq(crmTaskHistory.id, historyId));
       await dbAdmin.delete(crmTasks).where(eq(crmTasks.id, taskId));
       await dbAdmin.delete(claims).where(eq(claims.id, claimId));
