@@ -39,6 +39,8 @@ vi.mock('@interdomestik/database/schema', () => ({
     createdAt: 'claims.createdAt',
     agentId: 'claims.agentId',
     status: 'claims.status',
+    caseLifecycleState: 'claims.caseLifecycleState',
+    recoveryLifecycleState: 'claims.recoveryLifecycleState',
   },
   agentClients: {
     agentId: 'agentClients.agentId',
@@ -60,14 +62,12 @@ vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args) => args),
   eq: vi.fn((a, b) => [a, b]),
   count: vi.fn(() => 'count'),
-  gte: vi.fn((a, b) => [a, b]),
   desc: vi.fn(a => a),
   sql: vi.fn(() => ({ as: vi.fn(() => 'sql_column') })),
-  notInArray: vi.fn((a, b) => [a, b]),
+  not: vi.fn(value => ({ not: value })),
   inArray: vi.fn((a, b) => [a, b]),
   lt: vi.fn((a, b) => [a, b]),
 }));
-
 describe('Branch Dashboard Core', () => {
   describe('getBranchById', () => {
     it('returns null for non-existent branch', async () => {

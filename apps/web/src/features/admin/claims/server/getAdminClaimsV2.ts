@@ -1,9 +1,9 @@
-// v2.0.2-admin-claims-ops — Main V2 List Loader
 import { db } from '@interdomestik/database';
 import {
   buildDiasporaOriginClaimIdsSubquery,
   parseDiasporaOriginFromPublicNote,
 } from '@interdomestik/domain-claims';
+import { claimLifecycleStatusIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { branches, claimStageHistory, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { aliasedTable, and, count, desc, eq, ilike, inArray, or, SQL } from 'drizzle-orm';
@@ -26,7 +26,6 @@ function buildConditions(context: ClaimsVisibilityContext, filters: AdminClaimsV
   const { tenantId, role, branchId, userId } = context;
   const conditions: SQL[] = [eq(claims.tenantId, tenantId)];
 
-  // Role-based scoping
   if (role === 'branch_manager' && branchId) {
     conditions.push(eq(claims.branchId, branchId));
   } else if (role === 'staff') {
@@ -36,9 +35,6 @@ function buildConditions(context: ClaimsVisibilityContext, filters: AdminClaimsV
       conditions.push(eq(claims.staffId, userId));
     }
   }
-  // admin/tenant_admin/super_admin see all in tenant
-
-  // Lifecycle filter
   const lifecycleStage =
     typeof filters.lifecycleStage === 'string' &&
     Object.prototype.hasOwnProperty.call(LIFECYCLE_STATUS_MAP, filters.lifecycleStage)
@@ -47,7 +43,7 @@ function buildConditions(context: ClaimsVisibilityContext, filters: AdminClaimsV
   if (lifecycleStage) {
     const statuses = LIFECYCLE_STATUS_MAP[lifecycleStage];
     if (Array.isArray(statuses) && statuses.length > 0) {
-      conditions.push(inArray(claims.status, statuses as never));
+      conditions.push(claimLifecycleStatusIn(statuses as never));
     }
   }
 
@@ -88,7 +84,6 @@ export async function getAdminClaimsV2(
     }
     const staff = aliasedTable(user, 'staff');
 
-    // Main data query
     // db-access-guard: tenant-scoped -- reason: tenant predicate built by admin claims visibility context before this DB call
     const rawRows = await db
       .select({
@@ -98,6 +93,8 @@ export async function getAdminClaimsV2(
           userId: claims.userId,
           title: claims.title,
           status: claims.status,
+          caseLifecycleState: claims.caseLifecycleState,
+          recoveryLifecycleState: claims.recoveryLifecycleState,
           createdAt: claims.createdAt,
           updatedAt: claims.updatedAt,
           assignedAt: claims.assignedAt,

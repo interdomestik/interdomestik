@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 const mocks = vi.hoisted(() => {
   const claimChain = {
     from: vi.fn(),
@@ -17,7 +16,6 @@ const mocks = vi.hoisted(() => {
     from: vi.fn(),
     where: vi.fn(),
   };
-
   return {
     claimChain,
     historyChain,
@@ -31,6 +29,8 @@ const mocks = vi.hoisted(() => {
       claimNumber: 'claims.claim_number',
       companyName: 'claims.company_name',
       status: 'claims.status',
+      caseLifecycleState: 'claims.case_lifecycle_state',
+      recoveryLifecycleState: 'claims.recovery_lifecycle_state',
       title: 'claims.title',
       updatedAt: 'claims.updated_at',
       userId: 'claims.user_id',
@@ -64,7 +64,6 @@ const mocks = vi.hoisted(() => {
     withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
   };
 });
-
 vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
   claims: mocks.claims,
@@ -77,19 +76,21 @@ vi.mock('@interdomestik/database', () => ({
   inArray: mocks.inArray,
   or: mocks.or,
 }));
-
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
-
 vi.mock('drizzle-orm', () => ({
   aliasedTable: mocks.aliasedTable,
+  inArray: mocks.inArray,
   or: mocks.or,
   isNull: mocks.isNull,
+  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+    op: 'sql',
+    strings,
+    values,
+  })),
 }));
-
 import { getStaffClaimsList } from './get-staff-claims-list';
-
 function expectOwnOrUnassignedQueueScope(args: { staffId: string; tenantId: string }) {
   expect(mocks.withTenant).toHaveBeenCalledWith(
     args.tenantId,
@@ -109,7 +110,6 @@ function expectOwnOrUnassignedQueueScope(args: { staffId: string; tenantId: stri
     })
   );
 }
-
 describe('getStaffClaimsList', () => {
   beforeEach(() => {
     mocks.and.mockClear();
@@ -385,7 +385,7 @@ describe('getStaffClaimsList', () => {
         op: 'and',
         conditions: expect.arrayContaining([
           expect.objectContaining({ op: 'inArray' }),
-          expect.objectContaining({ op: 'eq', left: 'claims.status', right: 'verification' }),
+          expect.objectContaining({ op: 'inArray', values: ['verification'] }),
           expect.objectContaining({ op: 'isNull', column: 'claims.staff_id' }),
           expect.objectContaining({
             op: 'or',

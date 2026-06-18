@@ -2,9 +2,7 @@
 
 /**
  * Branch Dashboard Core Queries
- * V1: Read-only aggregate queries for branch overview
- *
- * All queries are tenant-scoped and use existing indexes.
+ * V1: Read-only aggregate queries for branch overview.
  */
 
 import type { BranchAgentRow, BranchMetadata, BranchStats } from '@/actions/branch-dashboard.types';
@@ -17,6 +15,7 @@ import {
   guardBranchStatsScope,
   type ControlResult,
 } from '@interdomestik/domain-membership-billing';
+import * as lifecycleSql from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
 
 /**
@@ -148,12 +147,13 @@ export async function getBranchAgents(
       activeClaimCount: sql<number>`(
         SELECT COUNT(*) FROM claims 
         WHERE claims.agent_id = ${user.id} 
-        AND claims.status NOT IN ('resolved', 'rejected', 'paid')
+        AND ${lifecycleSql.claimLifecycleStatusNotIn(['resolved', 'rejected'])}
+        AND claims.status <> 'paid'
       )`.as('active_claim_count'),
       submittedClaimsLast30Days: sql<number>`(
         SELECT COUNT(*) FROM claims 
         WHERE claims.agent_id = ${user.id}
-        AND claims.status = 'submitted'
+        AND ${lifecycleSql.claimLifecycleStatusIs('submitted')}
         AND claims.created_at >= ${thirtyDaysAgo}
       )`.as('submitted_claims_last_30_days'),
     })

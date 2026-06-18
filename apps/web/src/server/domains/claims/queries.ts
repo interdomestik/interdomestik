@@ -1,5 +1,6 @@
 import { db } from '@interdomestik/database';
 import { branches, claimMessages, claims, user } from '@interdomestik/database/schema';
+import { claimLifecycleStatusIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import {
   aliasedTable,
   and,
@@ -7,7 +8,6 @@ import {
   desc,
   eq,
   ilike,
-  inArray,
   isNotNull,
   isNull,
   or,
@@ -80,21 +80,20 @@ export function buildClaimsQuery(filters: ClaimsListV2Filters) {
       )!
     );
   }
-
   // 4. Status Filter
   if (statusFilter) {
     if (statusFilter === 'active') {
-      conditions.push(inArray(claims.status, IN_PROGRESS_STATUSES));
+      conditions.push(claimLifecycleStatusIn(IN_PROGRESS_STATUSES));
     } else if (statusFilter === 'closed') {
-      conditions.push(inArray(claims.status, CLOSED_STATUSES));
+      conditions.push(claimLifecycleStatusIn(CLOSED_STATUSES));
     } else if (statusFilter === 'draft') {
-      conditions.push(inArray(claims.status, DRAFT_STATUSES));
+      conditions.push(claimLifecycleStatusIn(DRAFT_STATUSES));
     }
   }
 
-  // 5. Specific Statuses (e.g. Chips)
+  // 5. Specific Statuses
   if (statuses && statuses.length > 0) {
-    conditions.push(inArray(claims.status, statuses));
+    conditions.push(claimLifecycleStatusIn(statuses));
   }
 
   // 6. Assignment Filter
@@ -178,9 +177,9 @@ export async function getClaimsListQuery(filters: ClaimsListV2Filters) {
   // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
   const facetsQuery = db
     .select({
-      active: count(sql`CASE WHEN ${inArray(claims.status, IN_PROGRESS_STATUSES)} THEN 1 END`),
-      draft: count(sql`CASE WHEN ${inArray(claims.status, DRAFT_STATUSES)} THEN 1 END`),
-      closed: count(sql`CASE WHEN ${inArray(claims.status, CLOSED_STATUSES)} THEN 1 END`),
+      active: count(sql`CASE WHEN ${claimLifecycleStatusIn(IN_PROGRESS_STATUSES)} THEN 1 END`),
+      draft: count(sql`CASE WHEN ${claimLifecycleStatusIn(DRAFT_STATUSES)} THEN 1 END`),
+      closed: count(sql`CASE WHEN ${claimLifecycleStatusIn(CLOSED_STATUSES)} THEN 1 END`),
       total: count(),
     })
     .from(claims)

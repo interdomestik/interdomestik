@@ -17,6 +17,8 @@ import {
   buildDiasporaOriginClaimIdsSubquery,
   type DiasporaOriginFilter,
 } from '../claims/diaspora-origin-filter';
+import { resolveClaimLifecycleReadProjection } from '../claims/lifecycle-read-model';
+import { claimLifecycleStatusIn } from '../claims/lifecycle-read-sql';
 
 export type StaffClaimsAssignmentFilter = 'all' | 'mine' | 'unassigned';
 
@@ -92,8 +94,7 @@ export async function getStaffClaimsList(params: {
     status,
     viewerRole,
   } = params;
-  const conditions: SQL<unknown>[] = [inArray(claims.status, ACTIONABLE_CLAIM_STATUSES)];
-
+  const conditions: SQL<unknown>[] = [claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES)];
   if (branchId != null) {
     conditions.push(eq(claims.branchId, branchId));
   }
@@ -111,9 +112,8 @@ export async function getStaffClaimsList(params: {
       conditions.push(ownOrUnassigned);
     }
   }
-
   if (isActionableStatus(status)) {
-    conditions.push(eq(claims.status, status));
+    conditions.push(claimLifecycleStatusIn([status]));
   }
 
   const searchTerm = normalizeSearch(search);
@@ -123,11 +123,9 @@ export async function getStaffClaimsList(params: {
       conditions.push(searchCondition);
     }
   }
-
   if (diasporaOrigin === 'diaspora') {
     conditions.push(inArray(claims.id, buildDiasporaOriginClaimIdsSubquery(tenantId)));
   }
-
   const scopedWhere = withTenant(tenantId, claims.tenantId, and(...conditions));
   const assignee = aliasedTable(user, 'assignee');
 
@@ -139,6 +137,8 @@ export async function getStaffClaimsList(params: {
       companyName: claims.companyName,
       title: claims.title,
       status: claims.status,
+      caseLifecycleState: claims.caseLifecycleState,
+      recoveryLifecycleState: claims.recoveryLifecycleState,
       staffId: claims.staffId,
       assigneeName: assignee.name,
       assigneeEmail: assignee.email,
@@ -189,17 +189,17 @@ export async function getStaffClaimsList(params: {
 
   return rows.map(row => {
     const diasporaOriginData = diasporaOriginsByClaimId.get(row.id) ?? null;
-
+    const { status } = resolveClaimLifecycleReadProjection(row);
     return {
       id: row.id,
       claimNumber: row.claimNumber,
       companyName: row.companyName,
       title: row.title,
-      status: row.status,
+      status,
       staffId: row.staffId ?? null,
       assigneeName: row.assigneeName ?? null,
       assigneeEmail: row.assigneeEmail ?? null,
-      stageLabel: formatStageLabel(row.status),
+      stageLabel: formatStageLabel(status),
       updatedAt: normalizeDate(row.updatedAt),
       memberName: row.memberName ?? undefined,
       memberNumber: row.memberNumber ?? null,

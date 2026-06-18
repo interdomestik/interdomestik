@@ -1,5 +1,9 @@
 import { claims, leadPaymentAttempts } from '@interdomestik/database/schema';
-import { and, eq, inArray, lt } from 'drizzle-orm';
+import {
+  claimLifecycleStatusIn,
+  claimLifecycleStatusIs,
+} from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
+import { and, eq, lt } from 'drizzle-orm';
 
 /**
  * Statuses that are considered "Open" for KPI tracking.
@@ -34,7 +38,7 @@ export function getSlaThresholdDate(): Date {
  * Usage: .where(and(tenantFilter, getOpenClaimsFilter()))
  */
 export function getOpenClaimsFilter() {
-  return inArray(claims.status, [...OPEN_CLAIMS_STATUSES]);
+  return claimLifecycleStatusIn([...OPEN_CLAIMS_STATUSES]);
 }
 
 /**
@@ -43,7 +47,7 @@ export function getOpenClaimsFilter() {
  */
 export function getSlaBreachesFilter() {
   const threshold = getSlaThresholdDate();
-  return and(eq(claims.status, 'submitted'), lt(claims.createdAt, threshold));
+  return and(claimLifecycleStatusIs('submitted'), lt(claims.createdAt, threshold));
 }
 
 /**

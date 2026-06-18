@@ -1,8 +1,12 @@
 import { isStaffOrAdmin } from '@/lib/roles';
 import { claims, db, eq } from '@interdomestik/database';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
+import {
+  claimLifecycleStatusIn,
+  claimLifecycleStatusIs,
+} from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { and, count, desc, inArray, sql } from 'drizzle-orm';
+import { and, count, desc, sql } from 'drizzle-orm';
 
 import type { Session } from './context';
 
@@ -44,10 +48,10 @@ export async function getAgentDashboardDataCore(params: { session: Session | nul
   const [newRes] = await db
     .select({ count: count() })
     .from(claims)
-    .where(and(eq(claims.tenantId, tenantId), eq(claims.status, newStatus)));
+    .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs(newStatus)));
 
   const inProgressCondition =
-    inProgressStatuses.length > 0 ? inArray(claims.status, inProgressStatuses) : sql`false`;
+    inProgressStatuses.length > 0 ? claimLifecycleStatusIn(inProgressStatuses) : sql`false`;
 
   const [inProgressRes] = await db
     .select({ count: count() })
@@ -56,7 +60,7 @@ export async function getAgentDashboardDataCore(params: { session: Session | nul
   const [completedRes] = await db
     .select({ count: count() })
     .from(claims)
-    .where(and(eq(claims.tenantId, tenantId), inArray(claims.status, completedStatuses)));
+    .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(completedStatuses)));
 
   const recentClaims = await db.query.claims.findMany({
     where: eq(claims.tenantId, tenantId),

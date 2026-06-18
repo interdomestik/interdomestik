@@ -1,10 +1,12 @@
 import { db } from '@interdomestik/database';
+import { claimLifecycleStatusNotIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { agentClients, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
-import { and, desc, eq, inArray, ne } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import 'server-only';
 import { ensureClaimsAccess, type ClaimsSession } from '../../../../server/domains/claims/guards';
 import { buildClaimVisibilityWhere } from '../utils';
+import { mapAgentMemberClaimGroups } from './agentMemberClaimGroups';
 
 export interface AgentMemberClaimsDto {
   memberId: string;
@@ -98,46 +100,22 @@ export async function getAgentMemberClaims(
         where: and(
           visibilityCondition,
           inArray(claims.userId, resolvedMemberIds), // Optimization redundant but safe
-          ne(claims.status, 'draft') // PRD: Agents must not see draft claims
+          claimLifecycleStatusNotIn(['draft']) // PRD: Agents must not see draft claims
         ),
         orderBy: desc(claims.updatedAt),
         columns: {
           id: true,
           title: true,
           status: true,
+          caseLifecycleState: true,
+          recoveryLifecycleState: true,
           createdAt: true,
           updatedAt: true,
           userId: true,
         },
       });
 
-      // 4. Group by Member
-      const result: AgentMemberClaimsDto[] = members
-        .map(member => {
-          const theirClaims = memberClaims
-            .filter(c => c.userId === member.id)
-            .map(c => ({
-              id: c.id,
-              title: c.title,
-              status: c.status || 'draft',
-              statusLabelKey: `claims-tracking.status.${c.status || 'draft'}`,
-              createdAt: c.createdAt ?? new Date(),
-              updatedAt: c.updatedAt,
-            }));
-
-          return {
-            memberId: member.id,
-            memberName: member.name,
-            memberEmail: member.email,
-            claims: theirClaims,
-          };
-        })
-        .filter(group => group.claims.length > 0); // Optional: only show members with claims? Prompt says "Shows list of claims for members..." often implies all members.
-      // "grouped by member" -> let's keep all members even if empty?
-      // "Agent must always see current status of their members’ claims."
-      // Let's filter out empty for cleanliness unless requested.
-
-      return result;
+      return mapAgentMemberClaimGroups(members, memberClaims);
     }
   );
 }

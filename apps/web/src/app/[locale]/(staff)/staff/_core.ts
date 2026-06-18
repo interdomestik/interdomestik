@@ -1,7 +1,13 @@
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { claims } from '@interdomestik/database/schema';
 import type * as DatabaseModule from '@interdomestik/database';
-import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
+import {
+  claimLifecycleStatusIn,
+  claimLifecycleStatusIs,
+} from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
+import { ROLES } from '@interdomestik/shared-auth';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
 
 type DatabaseClient = typeof DatabaseModule.db;
 
@@ -45,7 +51,13 @@ export async function getStaffDashboardCore(params: {
   const { tenantId, role, db } = params;
 
   // 1. Role Gating
-  const isStaffOrAdmin = ['staff', 'admin', 'tenant_admin', 'super_admin'].includes(role);
+  const staffOrAdminRoles = [
+    ROLES.staff,
+    ROLES.admin,
+    ROLES.tenant_admin,
+    ROLES.super_admin,
+  ] as readonly string[];
+  const isStaffOrAdmin = staffOrAdminRoles.includes(role);
   if (!isStaffOrAdmin) {
     return { ok: false, code: 'FORBIDDEN' };
   }
@@ -59,7 +71,7 @@ export async function getStaffDashboardCore(params: {
 
     const baseWhere = buildStaffDashboardWhere({ tenantId });
     const inProgressCondition =
-      inProgressStatuses.length > 0 ? inArray(claims.status, inProgressStatuses) : sql`false`;
+      inProgressStatuses.length > 0 ? claimLifecycleStatusIn(inProgressStatuses) : sql`false`;
 
     // Vercel Best Practice: Eliminate Waterfall (async-parallel)
     // Execute all independent DB queries in parallel
@@ -71,14 +83,14 @@ export async function getStaffDashboardCore(params: {
         db
           .select({ val: count() })
           .from(claims)
-          .where(and(baseWhere, eq(claims.status, newStatus))),
+          .where(and(baseWhere, claimLifecycleStatusIs(newStatus))),
         // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
         db.select({ val: count() }).from(claims).where(and(baseWhere, inProgressCondition)),
         // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
         db
           .select({ val: count() })
           .from(claims)
-          .where(and(baseWhere, inArray(claims.status, completedStatuses))),
+          .where(and(baseWhere, claimLifecycleStatusIn(completedStatuses))),
         // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
         db.query.claims.findMany({
           where: baseWhere,
@@ -91,7 +103,11 @@ export async function getStaffDashboardCore(params: {
     const recentClaims = recentClaimsRaw.map((c: Record<string, unknown>) => ({
       id: c.id as string,
       title: c.title as string,
-      status: (c.status as string) || 'draft',
+      status: resolveClaimLifecycleReadProjection({
+        status: c.status as string | null,
+        caseLifecycleState: c.caseLifecycleState as string | null,
+        recoveryLifecycleState: c.recoveryLifecycleState as string | null,
+      }).status,
       companyName: (c.companyName as string) || 'Unknown',
       createdAt: c.createdAt instanceof Date ? c.createdAt.toISOString() : String(c.createdAt),
       user: c.user ? { name: (c.user as Record<string, unknown>).name as string | null } : null,

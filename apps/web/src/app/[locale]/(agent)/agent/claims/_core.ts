@@ -1,6 +1,10 @@
 import { agentClients, claims, user } from '@interdomestik/database/schema';
 import type * as DatabaseModule from '@interdomestik/database';
-import { and, desc, eq, inArray, ne } from 'drizzle-orm';
+import { claimLifecycleStatusNotIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
+import { ROLES } from '@interdomestik/shared-auth';
+import { and, desc, eq, inArray } from 'drizzle-orm';
+
+import { mapAgentMemberClaimGroups } from './_claim-groups';
 
 type DatabaseClient = typeof DatabaseModule.db;
 
@@ -53,7 +57,12 @@ export async function getAgentClaimsCore(params: {
   const { tenantId, userId, role, branchId, db } = params;
 
   // 1. Role Gating
-  const allowedRoles = ['agent', 'admin', 'tenant_admin', 'super_admin'];
+  const allowedRoles = [
+    ROLES.agent,
+    ROLES.admin,
+    ROLES.tenant_admin,
+    ROLES.super_admin,
+  ] as readonly string[];
   if (!allowedRoles.includes(role)) {
     return { ok: false, code: 'FORBIDDEN' };
   }
@@ -106,49 +115,22 @@ export async function getAgentClaimsCore(params: {
     const memberClaims = await db.query.claims.findMany({
       where: and(
         buildAgentClaimsWhere({ tenantId, memberIds: resolvedMemberIds, branchId }),
-        ne(claims.status, 'draft')
+        claimLifecycleStatusNotIn(['draft'])
       ),
       orderBy: desc(claims.updatedAt),
       columns: {
         id: true,
         title: true,
         status: true,
+        caseLifecycleState: true,
+        recoveryLifecycleState: true,
         createdAt: true,
         updatedAt: true,
         userId: true,
       },
     });
 
-    // 4. Group by Member
-    const result: AgentMemberClaimsDTO[] = members
-      .map((member: Record<string, unknown>) => {
-        const theirClaims = memberClaims
-          .filter((c: Record<string, unknown>) => (c.userId as string) === (member.id as string))
-          .map((c: Record<string, unknown>) => ({
-            id: c.id as string,
-            title: c.title as string,
-            status: (c.status as string) || 'draft',
-            statusLabelKey: `claims-tracking.status.${(c.status as string) || 'draft'}`,
-            createdAt:
-              c.createdAt instanceof Date ? c.createdAt.toISOString() : String(c.createdAt),
-            updatedAt:
-              c.updatedAt instanceof Date
-                ? c.updatedAt.toISOString()
-                : c.updatedAt
-                  ? String(c.updatedAt)
-                  : null,
-          }));
-
-        return {
-          memberId: member.id as string,
-          memberName: (member.name as string) || 'Unknown',
-          memberEmail: (member.email as string) || 'No email',
-          claims: theirClaims,
-        };
-      })
-      .filter((group: AgentMemberClaimsDTO) => group.claims.length > 0);
-
-    return { ok: true, data: result };
+    return { ok: true, data: mapAgentMemberClaimGroups(members, memberClaims) };
   } catch (error) {
     console.error('[AgentClaimsCore] Error assembling dashboard:', error);
     return { ok: false, code: 'INTERNAL' };

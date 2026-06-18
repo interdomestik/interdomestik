@@ -21,11 +21,9 @@ import { ClaimOpsDetail } from '../types';
 
 export type OpsClaimDetailResult = { kind: 'not_found' } | { kind: 'ok'; data: ClaimOpsDetail };
 
-// Local helper type for the query result with relations
 type ClaimWithRelations = typeof claims.$inferSelect & {
   staff: { name: string; email: string } | null;
   branch: { id: string; code: string; name: string } | null;
-  // agent: manually fetched
 };
 
 const NEUTRAL_DEPLOYMENT_HOSTS = new Set(['interdomestik-web.vercel.app']);
@@ -207,6 +205,8 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
       id: claim.id,
       title: claim.title,
       status: claim.status as ClaimStatus,
+      caseLifecycleState: claim.caseLifecycleState,
+      recoveryLifecycleState: claim.recoveryLifecycleState,
       createdAt: claim.createdAt,
       updatedAt: claim.updatedAt,
       assignedAt: claim.assignedAt,

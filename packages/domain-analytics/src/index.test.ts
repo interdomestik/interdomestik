@@ -26,7 +26,8 @@ const mocks = vi.hoisted(() => {
     and: vi.fn((...conditions: unknown[]) => ({ conditions, op: 'and' })),
     count: vi.fn(() => ({ op: 'count' })),
     eq: vi.fn((left: unknown, right: unknown) => ({ left, right, op: 'eq' })),
-    inArray: vi.fn((left: unknown, right: unknown[]) => ({ left, right, op: 'inArray' })),
+    claimLifecycleStatusIn: vi.fn((statuses: readonly string[]) => ({ statuses })),
+    claimLifecycleStatusIs: vi.fn((status: string) => ({ op: 'claimLifecycleStatusIs', status })),
     sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
       op: 'sql',
       strings,
@@ -41,28 +42,21 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
-  agentClients: {
-    agentId: 'agent_clients.agent_id',
-    status: 'agent_clients.status',
-  },
+  agentClients: { agentId: 'agent_clients.agent_id', status: 'agent_clients.status' },
   agentCommissions: {
     agentId: 'agent_commissions.agent_id',
     amount: 'agent_commissions.amount',
     status: 'agent_commissions.status',
     tenantId: 'agent_commissions.tenant_id',
   },
-  branches: {
-    tenantId: 'branches.tenant_id',
-  },
+  branches: { tenantId: 'branches.tenant_id' },
   claims: {
     agentId: 'claims.agent_id',
     branchId: 'claims.branch_id',
     status: 'claims.status',
     tenantId: 'claims.tenant_id',
   },
-  tenants: {
-    id: 'tenants.id',
-  },
+  tenants: { id: 'tenants.id' },
   user: {
     branchId: 'user.branch_id',
     id: 'user.id',
@@ -75,9 +69,13 @@ vi.mock('drizzle-orm', () => ({
   and: mocks.and,
   count: mocks.count,
   eq: mocks.eq,
-  inArray: mocks.inArray,
   sql: mocks.sql,
   sum: mocks.sum,
+}));
+
+vi.mock('@interdomestik/domain-claims', () => ({
+  claimLifecycleStatusIn: mocks.claimLifecycleStatusIn,
+  claimLifecycleStatusIs: mocks.claimLifecycleStatusIs,
 }));
 
 import { getBranchKPIs } from './v2/branch';
@@ -201,5 +199,7 @@ describe('domain analytics', () => {
         rejected: 5,
       },
     });
+    expect(mocks.claimLifecycleStatusIs).toHaveBeenCalledTimes(4);
+    expect(mocks.claimLifecycleStatusIn).toHaveBeenCalledTimes(1);
   });
 });

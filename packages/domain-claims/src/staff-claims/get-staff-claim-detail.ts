@@ -9,6 +9,7 @@ import { buildCommercialHandlingScopeSnapshot } from './commercial-handling-scop
 import { getMatterAllowanceVisibilityForUser } from './matter-allowance';
 import { buildRecoveryDecisionSnapshot } from './recovery-decision';
 import { buildScopedStaffClaimWhere } from './scope';
+import { resolveClaimLifecycleReadProjection } from '../claims/lifecycle-read-model';
 import type {
   AcceptedRecoveryPrerequisitesSnapshot,
   ClaimEscalationAgreementSnapshot,
@@ -65,7 +66,6 @@ export async function getStaffClaimDetail(params: {
   claimId: string;
 }): Promise<StaffClaimDetail | null> {
   const { branchId = null, tenantId, claimId } = params;
-
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const rows = await db
     .select({
@@ -73,6 +73,8 @@ export async function getStaffClaimDetail(params: {
       claimCategory: claims.category,
       claimNumber: claims.claimNumber,
       status: claims.status,
+      caseLifecycleState: claims.caseLifecycleState,
+      recoveryLifecycleState: claims.recoveryLifecycleState,
       staffId: claims.staffId,
       updatedAt: claims.updatedAt,
       createdAt: claims.createdAt,
@@ -117,7 +119,7 @@ export async function getStaffClaimDetail(params: {
 
   const row = rows[0];
   if (!row || !row.memberId || !row.memberName) return null;
-
+  const { status } = resolveClaimLifecycleReadProjection(row);
   let agent: StaffClaimDetail['agent'];
   if (row.agentId) {
     const agentRows = await db
@@ -130,7 +132,6 @@ export async function getStaffClaimDetail(params: {
       agent = { id: agentRow.id, name: agentRow.name };
     }
   }
-
   const matterAllowance = await getMatterAllowanceVisibilityForUser({
     tenantId,
     userId: row.memberId,
@@ -175,14 +176,13 @@ export async function getStaffClaimDetail(params: {
     recoveryDecisionStatus: recoveryDecision.status,
     successFeeCollection,
   });
-
   return {
     claim: {
       id: row.claimId,
       claimNumber: row.claimNumber,
-      status: row.status,
+      status,
       staffId: row.staffId ?? null,
-      stageLabel: formatStageLabel(row.status),
+      stageLabel: formatStageLabel(status),
       submittedAt: normalizeDate(row.createdAt),
       updatedAt: normalizeDate(row.updatedAt ?? row.createdAt),
     },

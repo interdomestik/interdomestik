@@ -1,4 +1,5 @@
 import { claims, db } from '@interdomestik/database';
+import { claimLifecycleStatusIs } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { count, sql } from 'drizzle-orm';
 
 export type PublicStats = {
@@ -33,10 +34,10 @@ export async function getPublicStatsCore(): Promise<PublicStats> {
         .select({
           totalClaims: count(),
           resolvedClaims: sql<number>`
-            COUNT(*) FILTER (WHERE ${claims.status} = 'resolved')
+            COUNT(*) FILTER (WHERE ${claimLifecycleStatusIs('resolved')})
           `,
           totalRecovered: sql<string>`
-            COALESCE(SUM(CASE WHEN ${claims.status} = 'resolved' THEN ${claims.claimAmount} ELSE 0 END), 0)
+            COALESCE(SUM(CASE WHEN ${claimLifecycleStatusIs('resolved')} THEN ${claims.claimAmount} ELSE 0 END), 0)
           `,
         })
         .from(claims);

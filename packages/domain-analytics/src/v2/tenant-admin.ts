@@ -1,6 +1,7 @@
 import { db } from '@interdomestik/database';
 import { branches, claims, user } from '@interdomestik/database/schema';
-import { and, count, eq, inArray } from 'drizzle-orm';
+import { claimLifecycleStatusIn, claimLifecycleStatusIs } from '@interdomestik/domain-claims';
+import { and, count, eq } from 'drizzle-orm';
 
 export interface TenantAdminKPIs {
   totalBranches: number;
@@ -38,28 +39,28 @@ export async function getTenantAdminKPIs(tenantId: string): Promise<TenantAdminK
     db
       .select({ count: count() })
       .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), eq(claims.status, 'draft'))),
+      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('draft'))),
     db
       .select({ count: count() })
       .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), eq(claims.status, 'submitted'))),
+      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('submitted'))),
     db
       .select({ count: count() })
       .from(claims)
       .where(
         and(
           eq(claims.tenantId, tenantId),
-          inArray(claims.status, ['verification', 'evaluation', 'negotiation', 'court'])
+          claimLifecycleStatusIn(['verification', 'evaluation', 'negotiation', 'court'])
         )
       ),
     db
       .select({ count: count() })
       .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), eq(claims.status, 'resolved'))),
+      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('resolved'))),
     db
       .select({ count: count() })
       .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), eq(claims.status, 'rejected'))),
+      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('rejected'))),
   ]);
 
   return {

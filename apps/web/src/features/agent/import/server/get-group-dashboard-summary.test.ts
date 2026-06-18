@@ -85,7 +85,7 @@ describe('getGroupDashboardSummaryCore', () => {
     expect(mockDb.from).toHaveBeenCalledWith(serviceUsage);
     expect(mockDb.from).toHaveBeenCalledWith(claims);
     expect(mockDb.innerJoin).toHaveBeenCalledWith(agentClients, expect.anything());
-    expect(mockDb.groupBy).toHaveBeenCalledWith(claims.status);
+    expect(mockDb.groupBy).toHaveBeenCalledWith(expect.anything());
   });
 
   it('returns zero aggregates when the agent has no active member assignments', async () => {

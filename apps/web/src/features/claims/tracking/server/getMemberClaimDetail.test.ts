@@ -8,6 +8,9 @@ const hoisted = vi.hoisted(() => ({
   ensureClaimsAccess: vi.fn(),
   buildClaimVisibilityWhere: vi.fn(),
   getMatterAllowanceVisibility: vi.fn(),
+  resolveClaimLifecycleReadProjection: vi.fn((claim: { status?: string | null }) => ({
+    status: claim.status ?? 'draft',
+  })),
   buildRecoveryDecisionSnapshot: vi.fn((record: Record<string, unknown> | null | undefined) => {
     if (!record?.decisionType) {
       return {
@@ -20,7 +23,6 @@ const hoisted = vi.hoisted(() => ({
         memberDescription: null,
       };
     }
-
     if (record.decisionType === 'accepted') {
       return {
         status: 'accepted',
@@ -32,7 +34,6 @@ const hoisted = vi.hoisted(() => ({
         memberDescription: 'We accepted this matter for staff-led recovery.',
       };
     }
-
     return {
       status: 'declined',
       decidedAt: record.decidedAt ?? null,
@@ -45,9 +46,7 @@ const hoisted = vi.hoisted(() => ({
     };
   }),
   toMemberSafeRecoveryDecision: vi.fn((snapshot: Record<string, unknown> | null | undefined) => {
-    if (!snapshot || snapshot.status === 'pending') {
-      return null;
-    }
+    if (!snapshot || snapshot.status === 'pending') return null;
 
     return {
       status: snapshot.status,
@@ -68,6 +67,7 @@ vi.mock('@/server/domains/claims/guards', () => ({
 
 vi.mock('@interdomestik/domain-claims', () => ({
   getMatterAllowanceVisibilityForUser: hoisted.getMatterAllowanceVisibility,
+  resolveClaimLifecycleReadProjection: hoisted.resolveClaimLifecycleReadProjection,
   buildRecoveryDecisionSnapshot: hoisted.buildRecoveryDecisionSnapshot,
   toMemberSafeRecoveryDecision: hoisted.toMemberSafeRecoveryDecision,
 }));

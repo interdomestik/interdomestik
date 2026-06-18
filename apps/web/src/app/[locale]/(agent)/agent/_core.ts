@@ -8,7 +8,8 @@ import {
   subscriptions,
 } from '@interdomestik/database/schema';
 import type * as DatabaseModule from '@interdomestik/database';
-import { and, count, eq, inArray, not, sql } from 'drizzle-orm';
+import { claimLifecycleStatusNotIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
+import { and, count, eq, sql } from 'drizzle-orm';
 
 type DatabaseClient = typeof DatabaseModule.db;
 
@@ -54,7 +55,7 @@ export async function getAgentDashboardLiteCore(
       and(
         eq(claims.tenantId, tenantId),
         eq(claims.agentId, agentId),
-        not(inArray(claims.status, ['resolved', 'rejected']))
+        claimLifecycleStatusNotIn(['resolved', 'rejected'])
       )
     );
 

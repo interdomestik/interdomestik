@@ -1,5 +1,6 @@
 // v2.0.0-ops — Admin Claims lifecycle hardening
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 import type {
   ClaimLifecycleStage,
   ClaimOwnerRole,
@@ -80,7 +81,7 @@ export function mapClaimsToDto(
     // Status Label Mapping
     // "no ghost statuses" - we rely on the enum.
     // UI will translate `claims.status.${status}`
-    const status = claim.status as ClaimStatus;
+    const status = resolveClaimLifecycleReadProjection(claim).status;
     const statusLabelKey = `claims.status.${status}`;
 
     // Format Amount

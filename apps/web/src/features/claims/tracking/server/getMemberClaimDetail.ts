@@ -4,6 +4,7 @@ import { buildMemberClaimTrustSummary } from '@/features/claims/tracking/memberT
 import {
   getMatterAllowanceVisibilityForUser,
   buildRecoveryDecisionSnapshot,
+  resolveClaimLifecycleReadProjection,
   toMemberSafeRecoveryDecision,
 } from '@interdomestik/domain-claims';
 import { db } from '@interdomestik/database';
@@ -145,8 +146,7 @@ export async function getMemberClaimDetail(
         userId: claim.userId ?? userId,
       });
 
-      // 4. Map to DTO
-      const claimStatus = (claim.status || 'draft') as ClaimStatus;
+      const claimStatus = resolveClaimLifecycleReadProjection(claim).status;
       let timeline: ClaimTimelineEvent[] = timelineRows.map(row => ({
         id: row.id,
         date: row.createdAt ?? new Date(),

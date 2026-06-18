@@ -128,4 +128,23 @@ describe('getPublicClaimStatus', () => {
     expect(result).toBeNull();
     expect(hoisted.claimFindFirst).not.toHaveBeenCalled();
   });
+
+  it('returns lifecycle-derived public status when compat status differs', async () => {
+    hoisted.tokenFindFirst.mockResolvedValueOnce({
+      claimId: 'claim-1',
+      tenantId: 'tenant-ks',
+    });
+    hoisted.claimFindFirst.mockResolvedValueOnce({
+      caseLifecycleState: 'resolved',
+      id: 'claim-1',
+      recoveryLifecycleState: 'resolved',
+      status: 'submitted',
+      updatedAt: new Date('2026-04-01T00:00:00.000Z'),
+    });
+
+    const result = await getPublicClaimStatus('public-token');
+
+    expect(result?.status).toBe('resolved');
+    expect(result?.statusLabelKey).toBe('claims-tracking.status.resolved');
+  });
 });

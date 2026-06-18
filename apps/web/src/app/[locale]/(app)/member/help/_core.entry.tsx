@@ -1,8 +1,6 @@
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { Link } from '@/i18n/routing';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
-import { and, claims, db, desc, eq } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import { Button } from '@interdomestik/ui/components/button';
 import {
   Card,
@@ -16,6 +14,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 
 import { AdvisoryBanner } from './_advisory-banner';
+import { getMemberClaimOptions } from './_member-claim-options';
 import { PublicResponseBanner } from './_public-response-banner';
 import { MemberSupportHandoffForm } from './_support-handoff-form';
 
@@ -28,57 +27,6 @@ type Props = {
 
 function getSingleParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
-}
-
-type MemberClaimOption = {
-  id: string;
-  claimNumber: string | null;
-  title: string | null;
-  status: string | null;
-  createdAt: Date | null;
-};
-
-const memberClaimOptionSelection = {
-  id: claims.id,
-  claimNumber: claims.claimNumber,
-  title: claims.title,
-  status: claims.status,
-  createdAt: claims.createdAt,
-};
-
-async function getMemberClaimOptions(args: {
-  memberId: string;
-  tenantId: string;
-  requestedClaimId?: string | null;
-}): Promise<MemberClaimOption[]> {
-  const recentClaims = await db
-    .select({
-      ...memberClaimOptionSelection,
-    })
-    .from(claims)
-    .where(withTenant(args.tenantId, claims.tenantId, eq(claims.userId, args.memberId)))
-    .orderBy(desc(claims.createdAt))
-    .limit(10);
-
-  if (!args.requestedClaimId || recentClaims.some(claim => claim.id === args.requestedClaimId)) {
-    return recentClaims;
-  }
-
-  const requestedClaims = await db
-    .select({
-      ...memberClaimOptionSelection,
-    })
-    .from(claims)
-    .where(
-      withTenant(
-        args.tenantId,
-        claims.tenantId,
-        and(eq(claims.userId, args.memberId), eq(claims.id, args.requestedClaimId))
-      )
-    )
-    .limit(1);
-
-  return requestedClaims.length > 0 ? [...recentClaims, requestedClaims[0]] : recentClaims;
 }
 
 export default async function HelpPage({ params, searchParams }: Props) {

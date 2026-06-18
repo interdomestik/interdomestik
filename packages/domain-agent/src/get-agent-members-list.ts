@@ -11,6 +11,7 @@ import {
   sql,
   user,
 } from '@interdomestik/database';
+import { claimLifecycleStatusIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 
 const ACTIVE_STATUSES = [
   'draft',
@@ -58,10 +59,7 @@ export async function getAgentMembersList(params: {
       membershipNumber: user.memberNumber,
       userUpdatedAt: user.updatedAt,
       joinedAt: agentClients.joinedAt,
-      activeClaimsCount: sql<number>`coalesce(sum(case when ${claims.status} in (${sql.join(
-        ACTIVE_STATUSES.map(status => sql`${status}`),
-        sql`, `
-      )}) then 1 else 0 end), 0)`,
+      activeClaimsCount: sql<number>`coalesce(sum(case when ${claimLifecycleStatusIn([...ACTIVE_STATUSES])} then 1 else 0 end), 0)`,
       lastClaimUpdatedAt: sql<Date | null>`max(${claims.updatedAt})`,
     })
     .from(agentClients)

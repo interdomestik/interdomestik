@@ -1,5 +1,6 @@
 // v2.0.2-admin-claims-ops — Pure mapper for operational rows
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 
 import { computeRiskFlags } from '@/features/claims/policy';
 import type { ClaimOperationalRow, ClaimOriginType, LifecycleStage, OwnerRole } from '../types';
@@ -24,6 +25,8 @@ export interface RawClaimRow {
     id: string;
     title: string;
     status: ClaimStatus;
+    caseLifecycleState?: string | null;
+    recoveryLifecycleState?: string | null;
     createdAt: Date | null;
     updatedAt: Date | null;
     assignedAt: Date | null;
@@ -63,7 +66,11 @@ export interface RawClaimRow {
  */
 export function mapClaimToOperationalRow(row: RawClaimRow): ClaimOperationalRow {
   const { claim, claimant, staff, branch, agent } = row;
-  const status = claim.status as ClaimStatus;
+  const status = resolveClaimLifecycleReadProjection({
+    status: claim.status,
+    caseLifecycleState: claim.caseLifecycleState,
+    recoveryLifecycleState: claim.recoveryLifecycleState,
+  }).status;
 
   // Derive timing
   // Use statusUpdatedAt if available for accurate "time in stage", fallback to other dates
