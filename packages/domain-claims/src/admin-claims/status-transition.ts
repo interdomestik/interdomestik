@@ -40,14 +40,11 @@ function requiredTransitionCondition(params: TransitionAdminClaimStatusParams): 
 export async function transitionAdminClaimStatus(
   params: TransitionAdminClaimStatusParams
 ): Promise<TransitionClaimStatusResult> {
-  const requiresPaymentAuthorization = paymentGatedStatuses.has(params.toStatus);
-
   // db-access-guard: tenant-scoped -- reason: transition helper applies tenant-scoped CAS.
   return db.transaction(tx =>
     transitionClaimStatusInTransaction(tx, {
       actor: params.actor,
       claimId: params.claimId,
-      ...(requiresPaymentAuthorization ? { paymentAuthorizationState: 'authorized' as const } : {}),
       requiredWhereCondition: requiredTransitionCondition(params),
       tenantId: params.tenantId,
       toStatus: params.toStatus,

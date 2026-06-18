@@ -1,75 +1,27 @@
 import { inspect } from 'node:util';
-import { domainEvents } from '@interdomestik/database';
-import type { ClaimStatus } from '@interdomestik/database/constants';
 import { describe, expect, it } from 'vitest';
 
 import {
   ClaimTransitionConflictError,
   transitionClaimStatusInTransaction,
   type TransitionClaimStatusParams,
-  type TransitionTx,
 } from './transition';
+import { authorizedRecoveryEvidence, makeTransitionTx } from './transition-test-support';
 
-type UpdatedRows = Array<{ id: string; lifecycleVersion: number }>;
 type Params = TransitionClaimStatusParams;
 function makeParams(overrides: Partial<Params> = {}): Params {
   return {
     actor: { id: 'staff-1', role: 'staff' },
     claimId: 'claim-1',
-    paymentAuthorizationState: 'authorized',
     tenantId: 'tenant-1',
     toStatus: 'negotiation',
     ...overrides,
   };
 }
-function makeTx(options: {
-  current?: { id: string; lifecycleVersion: number; status: ClaimStatus | null };
-  updated?: UpdatedRows | (() => UpdatedRows);
-}) {
-  const calls: {
-    eventValues?: unknown;
-    historyValues?: unknown;
-    updateValues?: Record<string, unknown>;
-    whereConditions: unknown[];
-  } = { whereConditions: [] };
-  const tx = {
-    select: () => ({
-      from: () => ({
-        where: (condition: unknown) => {
-          calls.whereConditions.push(condition);
-          return {
-            limit: async () => (options.current ? [options.current] : []),
-          };
-        },
-      }),
-    }),
-    update: () => ({
-      set: (values: Record<string, unknown>) => {
-        calls.updateValues = values;
-        return {
-          where: (condition: unknown) => {
-            calls.whereConditions.push(condition);
-            return {
-              returning: async () =>
-                typeof options.updated === 'function' ? options.updated() : (options.updated ?? []),
-            };
-          },
-        };
-      },
-    }),
-    insert: (table: unknown) => ({
-      values: (values: Record<string, unknown>) => {
-        if (table === domainEvents) calls.eventValues = values;
-        else calls.historyValues = values;
-        return { returning: async () => [{ id: values.id }] };
-      },
-    }),
-  };
-  return { calls, tx: tx as unknown as TransitionTx };
-}
+
 describe('transitionClaimStatusInTransaction', () => {
   it('updates status with a lifecycle-version compare-and-set and appends history', async () => {
-    const { calls, tx } = makeTx({
+    const { calls, tx } = makeTransitionTx({
       current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
       updated: [{ id: 'claim-1', lifecycleVersion: 7 }],
     });
@@ -104,7 +56,7 @@ describe('transitionClaimStatusInTransaction', () => {
     );
   });
   it('throws a typed conflict when the lifecycle version is stale', async () => {
-    const { tx } = makeTx({
+    const { tx } = makeTransitionTx({
       current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
       updated: [],
     });
@@ -114,7 +66,7 @@ describe('transitionClaimStatusInTransaction', () => {
   });
   it('lets exactly one same-version transition win', async () => {
     let claimed = false;
-    const { tx } = makeTx({
+    const { tx } = makeTransitionTx({
       current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
       updated: () => {
         if (claimed) return [];
@@ -135,16 +87,14 @@ describe('transitionClaimStatusInTransaction', () => {
     );
   });
 
-  it('rejects payment-gated transitions before updating', async () => {
-    const { calls, tx } = makeTx({
+  it('rejects payment-gated transitions without signed authorized evidence before updating', async () => {
+    const { calls, tx } = makeTransitionTx({
       current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
+      evidence: { ...authorizedRecoveryEvidence, paymentAuthorizationState: 'pending' },
       updated: [{ id: 'claim-1', lifecycleVersion: 7 }],
     });
 
-    const result = await transitionClaimStatusInTransaction(
-      tx,
-      makeParams({ paymentAuthorizationState: 'pending' })
-    );
+    const result = await transitionClaimStatusInTransaction(tx, makeParams());
 
     expect(result).toEqual({ success: false, error: 'transition_rejected' });
     expect(calls.updateValues).toBeUndefined();
@@ -152,7 +102,7 @@ describe('transitionClaimStatusInTransaction', () => {
   });
 
   it('keeps same-status history behind the lifecycle-version compare-and-set', async () => {
-    const { calls, tx } = makeTx({
+    const { calls, tx } = makeTransitionTx({
       current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
       updated: [{ id: 'claim-1', lifecycleVersion: 6 }],
     });

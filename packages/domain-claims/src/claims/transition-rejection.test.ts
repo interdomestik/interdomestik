@@ -16,7 +16,7 @@ type FakeTxCalls = {
 };
 
 const selectStep = { from: () => selectFromStep };
-const selectFromStep = { where: () => selectWhereStep };
+const selectFromStep = { leftJoin: () => selectFromStep, where: () => selectWhereStep };
 const selectWhereStep = { limit: limitCurrentClaim };
 const updateWhereStep = { returning: returnUpdatedClaim };
 
@@ -74,7 +74,6 @@ describe('transitionClaimStatusInTransaction transition graph rejection', () => 
     const result = await transitionClaimStatusInTransaction(tx, {
       actor: { id: 'staff-1', role: 'staff' },
       claimId: 'claim-1',
-      paymentAuthorizationState: 'authorized',
       tenantId: 'tenant-1',
       toStatus: 'resolved',
     });

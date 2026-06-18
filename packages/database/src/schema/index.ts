@@ -12,6 +12,7 @@ export * from './automation';
 export * from './billing';
 export * from './commercial-action-idempotency';
 export * from './claim-commercial';
+export * from './claim-recovery-no-fee';
 export * from './claim-threads';
 export * from './claims';
 export * from './counters';

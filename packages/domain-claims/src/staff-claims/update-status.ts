@@ -267,7 +267,6 @@ async function handleStaffLedRecoveryStatusChange(
     status,
     staffScopeWhere,
     tenantId,
-    staffRecoveryPrerequisitesSatisfied: true,
   });
 }
 
@@ -356,7 +355,6 @@ async function finalizeClaimStatusChange(params: {
   deps: ClaimsDeps;
   isPublicChange: boolean;
   note?: string;
-  staffRecoveryPrerequisitesSatisfied?: boolean;
   staffScopeWhere: StaffScopeWhere;
   requestHeaders?: Headers;
   session: ClaimsSession;
@@ -375,7 +373,6 @@ async function finalizeClaimStatusChange(params: {
         isPublic: rest.isPublicChange,
         note: rest.note ?? null,
         requiredWhereCondition: rest.staffScopeWhere,
-        staffRecoveryPrerequisitesSatisfied: rest.staffRecoveryPrerequisitesSatisfied,
         tenantId: rest.tenantId,
         toStatus: rest.status,
       }

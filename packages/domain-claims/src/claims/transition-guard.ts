@@ -1,5 +1,9 @@
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import type { PaymentAuthorizationState } from '../staff-claims/types';
+import {
+  needsRecoveryInvariantEvidence,
+  type RecoveryInvariantRejectionReason,
+} from './recovery-invariants';
 
 export type ClaimTransitionActor = {
   id: string;
@@ -8,7 +12,7 @@ export type ClaimTransitionActor = {
 
 export type ClaimTransitionContext = {
   paymentAuthorizationState?: PaymentAuthorizationState | null;
-  staffRecoveryPrerequisitesSatisfied?: boolean;
+  recoveryInvariantRejection?: RecoveryInvariantRejectionReason | null;
 };
 
 // T-002d: module-private brand for the transition proof.
@@ -25,7 +29,7 @@ export type ClaimTransitionDecision =
   | { allowed: true; authorization: AuthorizedTransition }
   | {
       allowed: false;
-      reason: 'payment_authorization_required' | 'invalid_status' | 'illegal_transition';
+      reason: 'invalid_status' | 'illegal_transition' | RecoveryInvariantRejectionReason;
     };
 
 const STATUS_SET = new Set<string>(CLAIM_STATUSES);
@@ -76,15 +80,12 @@ export function canTransition(params: {
     return { allowed: false, reason: 'illegal_transition' };
   }
 
-  const staffRecoveryPrerequisitesSatisfied =
-    actor.role === 'staff' && context?.staffRecoveryPrerequisitesSatisfied === true;
+  if (needsRecoveryInvariantEvidence(to) && context?.recoveryInvariantRejection) {
+    return { allowed: false, reason: context.recoveryInvariantRejection };
+  }
 
-  if (
-    PAYMENT_GATED_STATUSES.has(to) &&
-    context?.paymentAuthorizationState !== 'authorized' &&
-    !staffRecoveryPrerequisitesSatisfied
-  ) {
-    return { allowed: false, reason: 'payment_authorization_required' };
+  if (PAYMENT_GATED_STATUSES.has(to) && context?.paymentAuthorizationState !== 'authorized') {
+    return { allowed: false, reason: 'signed_agreement_authorization_required' };
   }
 
   return { allowed: true, authorization: mintAuthorizedTransition(actor.id, from, to) };

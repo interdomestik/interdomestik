@@ -108,7 +108,6 @@ describe('updateClaimStatusCore', () => {
     const deps = sideEffectDeps();
     mockClaim('draft');
     mocks.userFindFirst.mockResolvedValueOnce({ email: 'member@example.com' });
-    mocks.getPaymentAuthorizationState.mockResolvedValueOnce('authorized');
     mocks.transitionClaimStatus.mockResolvedValueOnce(persistedNegotiation);
 
     const result = await runStatusUpdate(deps, 'negotiation');
@@ -116,7 +115,6 @@ describe('updateClaimStatusCore', () => {
     expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.transitionClaimStatus.mock.calls[0]?.[0]).toMatchObject({
       actor: { id: 'staff-1' },
-      paymentAuthorizationState: 'authorized',
       toStatus: 'negotiation',
     });
     expect(deps.logAuditEvent).not.toHaveBeenCalled();

@@ -98,7 +98,6 @@ describe('agent updateClaimStatusCore', () => {
     const notifyStatusChanged = vi.fn().mockResolvedValue(undefined);
     const projectClaimStatusAuditProjection = vi.fn();
     mockClaim('submitted');
-    mocks.getPaymentAuthorizationState.mockResolvedValueOnce('authorized');
 
     const result = await runStatusUpdate(
       { logAuditEvent, notifyStatusChanged, projectClaimStatusAuditProjection },
@@ -110,7 +109,6 @@ describe('agent updateClaimStatusCore', () => {
     expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
       actor: { id: 'staff-1', role: 'staff' },
       claimId: 'claim-1',
-      paymentAuthorizationState: 'authorized',
       tenantId: 'tenant-1',
       toStatus: 'negotiation',
     });

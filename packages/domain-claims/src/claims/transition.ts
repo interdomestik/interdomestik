@@ -1,7 +1,7 @@
 import { and, claims, db, eq, sql } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import { canTransition, isClaimStatus } from './transition-guard';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
+import { loadTransitionReadContext } from './transition-read-context';
 import {
   ClaimTransitionAuthorizationError,
   ClaimTransitionConflictError,
@@ -91,34 +91,23 @@ export async function transitionClaimStatusInTransaction(
     correlationId,
     isPublic = true,
     note,
-    paymentAuthorizationState,
     requiredWhereCondition,
-    staffRecoveryPrerequisitesSatisfied,
     tenantId,
     toStatus,
   } = params;
-  const scopedWhere = withTenant(tenantId, claims.tenantId, eq(claims.id, claimId));
-  const readWhere = (
-    requiredWhereCondition ? and(scopedWhere, requiredWhereCondition) : scopedWhere
-  )!;
-
-  // db-access-guard: tenant-scoped -- reason: tenantId is an explicit command parameter.
-  const [current] = await tx
-    .select({
-      id: claims.id,
-      lifecycleVersion: claims.lifecycleVersion,
-      status: claims.status,
-    })
-    .from(claims)
-    .where(readWhere)
-    .limit(1);
+  const { current, guardContext, readWhere } = await loadTransitionReadContext(tx, {
+    claimId,
+    requiredWhereCondition,
+    tenantId,
+    toStatus,
+  });
 
   if (!current) return { success: false, error: 'claim_not_found' };
   if (!isClaimStatus(current.status)) return { success: false, error: 'invalid_current_status' };
 
   const decision = canTransition({
     actor,
-    context: { paymentAuthorizationState, staffRecoveryPrerequisitesSatisfied },
+    context: guardContext,
     from: current.status,
     to: toStatus,
   });
