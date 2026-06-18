@@ -30,7 +30,7 @@ OMG, DOM, CRM expansion, and any slice whose acceptance criterion is structural
 
 Effective 2026-05-31, the active execution authority is extended by `docs/plans/architecture-finalization-program-2026-05-29.md`. That document is now the canonical new-architecture program for the M0→M5 path: M0 guardrails, M1 ida-first foundation and event/outbox schema, M2 case/recovery split, M3 tenant-context/RLS migration, M4 product-model hardening, and M5 live cutover.
 
-The historical phase queue below remains the evidence ledger for completed Phase C work. New product expansion such as `IDA-MH03` is paused behind the architecture-finalization tracker unless explicitly re-promoted after the architecture spine is stable.
+The historical phase queue below remains the evidence ledger for completed Phase C work. New product expansion remains paused behind the architecture-finalization tracker unless explicitly re-promoted. `IDA-MH03` is the narrow exception recorded by Rev 62: Arben explicitly authorized a product-over-architecture verification closeout after the `T-302d` closeout, and no product diff was needed because the requested behavior already exists on `main`.
 
 Phase C guardrails still apply during architecture finalization: `apps/web/src/proxy.ts` remains gated, canonical routes stay `/member`, `/agent`, `/staff`, `/admin`, clarity markers remain contractual, Paddle stays the billing provider, and all tenancy/RLS changes must follow the approved tracker tasks and gates.
 
@@ -427,6 +427,29 @@ README, AGENTS, and non-closeout architecture docs. No replacement runtime slice
 is started by this closeout; the next action must begin with fresh
 current-authority resolution.
 
+Rev 62 closeout: `IDA-MH03 Generic Member-Action Hero State` is complete by
+verification-only evidence after Arben explicitly authorized a
+product-over-architecture override following the `T-302d` closeout. No
+product/runtime diff was needed because the requested behavior already exists on
+`main` at `d40e84ad51656cab286f652df60b5542917db17f`: `member_action` is part
+of `MemberHomeHeroState`, `review_offer` and `provide_info` use typed localized
+CTA and aria keys, the hero CTA points at `nextMemberAction.href`, the stable
+primary CTA test id is `hero-cta-member-action`, upload-document and
+authorization priority are preserved, `NextStepCard` generic member-action
+behavior remains label-driven, and required `en`/`sq`/`mk`/`sr`
+member-assistance keys are present. Focused proof passed in the delegated
+worktree: `pnpm --filter @interdomestik/web test:unit --run
+src/components/dashboard/member-dashboard-view/hero-resolver.test.ts` (`16`
+passed), `pnpm --filter @interdomestik/web test:unit --run
+src/components/dashboard/member-dashboard-view.test.tsx` (`14` passed),
+`pnpm i18n:check && pnpm i18n:purity:check`, and `git diff --check`. Runner
+evidence now fails closed: `next-slice.mjs` and `workflow-scorecard.mjs` report
+`blocked_requires_current_authority` instead of selecting `ARCH-FINAL` as a
+concrete implementation slice. Protected surfaces remained preserved:
+`apps/web/src/proxy.ts`, canonical routes, auth/session/tenancy, schema/RLS,
+billing, Paddle/Stripe posture, README, AGENTS, architecture docs, and product
+runtime code. No replacement slice is started by this closeout.
+
 ## Forward Architecture Roadmap & Downstream Programs
 
 This is the single canonical milestone architecture. Execution proceeds strictly through the active queue in `docs/plans/architecture-finalization-tracker-2026-05-29.md` (Rev 22); the downstream programs below are **registered and committed but gated** — they do not enter the active queue, Phase C, or the M0→M5 scope until their prerequisites are green and they are promoted via the governance flow. Nothing here changes the current active slice.
@@ -450,7 +473,7 @@ any next handoff.
 
 ## Current Phase
 
-Architecture Finalization is now the active Phase C execution lane as of 2026-05-31. The canonical new-architecture program is `docs/plans/architecture-finalization-program-2026-05-29.md`, the active architecture queue is `docs/plans/architecture-finalization-tracker-2026-05-29.md`, and the next implementation work continues through the OBR-governed architecture sequence; `ARCH-M1-11` / `T-112` completed in PR `#997` / squash merge `0bd2eace04eb86a2b123b3348163a72f15acf3cb`; `ARCH-M1-12` / `T-106` is complete (PR `#999` / squash merge `b11ae6d3ecc489e3a39b45a76c1e0565cb7c3ea9`); `ARCH-M1-13` / `T-104d` is complete (PR `#1001` / squash merge `6e364a58ac4219512f7d8dcc9802eb85b812771a`); `T-104f` is complete (PR `#1015` / squash merge `ec04913b1253db9e7aa4afa94063a8705a670b0f`); `T-104g` is complete (PR `#1016` / squash merge `a900a84974cd133835a03264b850c8496f170b0b`); `T-104h` is complete (PR `#1017` / squash merge `ac4f7cf39a93eb7916b531358bc17d3a340e72d4`); `OBR-COMMIT` is complete as an accepted blocker-record closeout; `OBR-DG02` is complete; `T-407` is complete; `OBR-DG03` is complete; `T-108-MIN` is complete; `T-113` is complete; `OBR-DG04` is complete; `T-201-MIN` is complete; `OBR-DG05` is complete; `T-208` is complete; `OBR-DG06` is complete; `SVC-CORE-b` is complete in PR `#1034`; `T-208b` is complete in PR `#1035`; `POST-T208B` is complete; `T-105` is complete in PR `#1044`; full `T-201` is complete in PR `#1047`; `T-204` is complete in PR `#1049`; `T-408` is complete in PR `#1051`; `OBR-DG07` is complete; `T-301` is complete in PR `#1056`; `T-304` is complete in PR `#1060`; `T-306` is complete in PR `#1063`; `T-308` is complete via ADR closeout; `OBR-DG08` is complete as the post-ADR reauthorization gate; `T-109` is complete in PR `#1069`; `T-114` is complete in PR `#1072`; `T-302` is complete in PR `#1075`; `T-303` is complete in PR `#1078`; `T-305` is complete in PR `#1080`; `T-302b` is complete in PR `#1085`; `T-302c` is complete in PR `#1097`; and `T-302d` is complete in PR `#1099`. No replacement runtime slice is started by this closeout; fresh current-authority resolution is required before any next handoff. `T-209` remains unpromoted pending fresh authority resolution before any handoff implementation starts; the previously promoted `IDA-MH03` product slice is paused behind this architecture lane unless explicitly re-promoted.
+Architecture Finalization is now the active Phase C execution lane as of 2026-05-31. The canonical new-architecture program is `docs/plans/architecture-finalization-program-2026-05-29.md`, the active architecture queue is `docs/plans/architecture-finalization-tracker-2026-05-29.md`, and the next implementation work continues through the OBR-governed architecture sequence; `ARCH-M1-11` / `T-112` completed in PR `#997` / squash merge `0bd2eace04eb86a2b123b3348163a72f15acf3cb`; `ARCH-M1-12` / `T-106` is complete (PR `#999` / squash merge `b11ae6d3ecc489e3a39b45a76c1e0565cb7c3ea9`); `ARCH-M1-13` / `T-104d` is complete (PR `#1001` / squash merge `6e364a58ac4219512f7d8dcc9802eb85b812771a`); `T-104f` is complete (PR `#1015` / squash merge `ec04913b1253db9e7aa4afa94063a8705a670b0f`); `T-104g` is complete (PR `#1016` / squash merge `a900a84974cd133835a03264b850c8496f170b0b`); `T-104h` is complete (PR `#1017` / squash merge `ac4f7cf39a93eb7916b531358bc17d3a340e72d4`); `OBR-COMMIT` is complete as an accepted blocker-record closeout; `OBR-DG02` is complete; `T-407` is complete; `OBR-DG03` is complete; `T-108-MIN` is complete; `T-113` is complete; `OBR-DG04` is complete; `T-201-MIN` is complete; `OBR-DG05` is complete; `T-208` is complete; `OBR-DG06` is complete; `SVC-CORE-b` is complete in PR `#1034`; `T-208b` is complete in PR `#1035`; `POST-T208B` is complete; `T-105` is complete in PR `#1044`; full `T-201` is complete in PR `#1047`; `T-204` is complete in PR `#1049`; `T-408` is complete in PR `#1051`; `OBR-DG07` is complete; `T-301` is complete in PR `#1056`; `T-304` is complete in PR `#1060`; `T-306` is complete in PR `#1063`; `T-308` is complete via ADR closeout; `OBR-DG08` is complete as the post-ADR reauthorization gate; `T-109` is complete in PR `#1069`; `T-114` is complete in PR `#1072`; `T-302` is complete in PR `#1075`; `T-303` is complete in PR `#1078`; `T-305` is complete in PR `#1080`; `T-302b` is complete in PR `#1085`; `T-302c` is complete in PR `#1097`; and `T-302d` is complete in PR `#1099`. No replacement runtime slice is started by this closeout; fresh current-authority resolution is required before any next handoff. `T-209` remains unpromoted pending fresh authority resolution before any handoff implementation starts; `IDA-MH03` is complete by Rev 62 verification-only product-over-architecture closeout without product/runtime changes.
 
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
@@ -1120,6 +1143,17 @@ valid generic `nextMemberAction` is present, and prove active-member anti-conver
 forbidden-claim safety. The gate includes Sonnet 4.6 review through the Copilot fallback after a
 hung Claude CLI attempt and Gemini Pro 3.1 preview product/mobile/accessibility review after
 `gemini-3.1-pro` returned `ModelNotFoundError`.
+
+`IDA-MH03 Generic Member-Action Hero State` is complete by Rev 62 verification-only closeout.
+Arben explicitly authorized the product-over-architecture override after the `T-302d` closeout, and
+the implementation needed no product/runtime diff because the requested behavior was already present
+on `main` at `d40e84ad51656cab286f652df60b5542917db17f`. Focused proof passed: resolver unit test
+(`16` passed), dashboard render test (`14` passed), `pnpm i18n:check && pnpm i18n:purity:check`,
+and `git diff --check`. Runner proof also fails closed: `next-slice.mjs` and
+`workflow-scorecard.mjs` report `blocked_requires_current_authority` instead of selecting the
+`ARCH-FINAL` umbrella. Protected surfaces stayed unchanged: proxy, canonical routes,
+auth/session/tenancy, schema/RLS, billing, Paddle/Stripe posture, README, AGENTS, architecture docs,
+and product runtime code.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
