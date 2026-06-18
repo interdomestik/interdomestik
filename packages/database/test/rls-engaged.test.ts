@@ -11,6 +11,7 @@ import {
   applyRlsTestConnectionEnv,
   grantRlsTestRole,
   quoteIdentifier,
+  quoteSqlLiteral,
   requireRlsPreconditions,
   resolveRlsTestConnectionConfig,
   TEST_DB_PASSWORD,
@@ -85,10 +86,10 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
     sql.raw(`
       do $$
       begin
-        create role "${TEST_DB_ROLE}" login password '${TEST_DB_PASSWORD}';
+        create role ${quoteIdentifier(TEST_DB_ROLE)} login password ${quoteSqlLiteral(TEST_DB_PASSWORD)};
       exception
         when duplicate_object then
-          alter role "${TEST_DB_ROLE}" with login password '${TEST_DB_PASSWORD}';
+          alter role ${quoteIdentifier(TEST_DB_ROLE)} with login password ${quoteSqlLiteral(TEST_DB_PASSWORD)};
       end
       $$;
     `)

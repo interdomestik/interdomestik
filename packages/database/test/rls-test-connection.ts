@@ -14,6 +14,8 @@ export function quoteIdentifier(identifier: string): string {
   return `"${identifier.replaceAll('"', '""')}"`;
 }
 
+export const quoteSqlLiteral = (value: string): string => `'${value.replaceAll("'", "''")}'`;
+
 function isPoolerConnection(databaseUrl: string): boolean {
   return /\.pooler\.supabase\.com$/iu.test(new URL(databaseUrl).hostname);
 }
@@ -39,9 +41,7 @@ export function resolveRlsTestConnectionConfig(databaseUrl: string): RlsTestConn
   };
 }
 
-export function applyRlsTestConnectionEnv(databaseUrl: string): {
-  restore(): void;
-} {
+export function applyRlsTestConnectionEnv(databaseUrl: string): { restore(): void } {
   const previousDatabaseUrlRls = process.env.DATABASE_URL_RLS;
   const previousDbRlsRole = process.env.DB_RLS_ROLE;
   const connectionConfig = resolveRlsTestConnectionConfig(databaseUrl);
