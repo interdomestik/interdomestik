@@ -7,6 +7,7 @@ import { HealthProfile, computeHealthScore } from '@/features/admin/health/healt
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
 import { db } from '@interdomestik/database/db';
 import { branches, claims, user } from '@interdomestik/database/schema';
+import * as lifecycleSql from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { ROLES, scopeFilter } from '@interdomestik/shared-auth';
 import * as Sentry from '@sentry/nextjs';
 import { and, count, eq, inArray, or } from 'drizzle-orm';
@@ -164,10 +165,10 @@ export async function getBranchDashboardV2Data(
 
           // 6. Pipeline: Group by Status
           db
-            .select({ status: claims.status, count: count() })
+            .select({ status: lifecycleSql.claimLifecycleStatusSql(), count: count() })
             .from(claims)
             .where(and(eq(claims.branchId, resolvedBranchId), eq(claims.tenantId, tenantId)))
-            .groupBy(claims.status),
+            .groupBy(lifecycleSql.claimLifecycleStatusSql()),
 
           // 7. Agent Health Data
           // We need advanced metrics per agent to compute health scores
@@ -325,8 +326,7 @@ async function getStaffLoad(branchId: string, tenantId: string) {
             eq(claims.staffId, staff.id),
             eq(claims.branchId, branchId), // Workload IN THIS BRANCH
             eq(claims.tenantId, tenantId),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            inArray(claims.status, IN_PROGRESS_STATUSES as unknown as any[])
+            lifecycleSql.claimLifecycleStatusIn(IN_PROGRESS_STATUSES)
           )
         );
 

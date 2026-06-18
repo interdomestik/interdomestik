@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-
 const hoisted = vi.hoisted(() => ({
   userFindFirst: vi.fn(),
   subscriptionsFindFirst: vi.fn(),
@@ -8,7 +7,6 @@ const hoisted = vi.hoisted(() => ({
   dbSelect: vi.fn(),
   getAgentMemberDetail: vi.fn(),
 }));
-
 vi.mock('@interdomestik/database/db', () => ({
   db: {
     query: {
@@ -20,7 +18,6 @@ vi.mock('@interdomestik/database/db', () => ({
     select: hoisted.dbSelect,
   },
 }));
-
 vi.mock('@interdomestik/database/schema', () => ({
   user: { id: 'user.id', tenantId: 'user.tenantId' },
   subscriptions: {
@@ -40,6 +37,8 @@ vi.mock('@interdomestik/database/schema', () => ({
     tenantId: 'claims.tenantId',
     userId: 'claims.userId',
     status: 'claims.status',
+    caseLifecycleState: 'claims.caseLifecycleState',
+    recoveryLifecycleState: 'claims.recoveryLifecycleState',
     createdAt: 'claims.createdAt',
   },
   memberActivities: {
@@ -48,20 +47,19 @@ vi.mock('@interdomestik/database/schema', () => ({
     occurredAt: 'memberActivities.occurredAt',
   },
 }));
-
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
   and: vi.fn((...args: unknown[]) => ({ and: args })),
   desc: vi.fn((v: unknown) => ({ desc: v })),
   count: vi.fn(() => ({ kind: 'count' })),
+  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+    sql: { strings, values },
+  })),
 }));
-
 vi.mock('@interdomestik/domain-agent', () => ({
   getAgentMemberDetail: hoisted.getAgentMemberDetail,
 }));
-
 import { getAgentClientProfileCore } from './_core';
-
 function createSelectChain(result: unknown) {
   return {
     from: vi.fn().mockReturnThis(),

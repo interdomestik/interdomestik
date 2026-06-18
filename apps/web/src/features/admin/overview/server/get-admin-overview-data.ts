@@ -1,9 +1,13 @@
 import 'server-only';
 
 import { ACTIONABLE_CLAIM_STATUSES } from '@interdomestik/domain-claims';
+import {
+  claimLifecycleStatusIn,
+  claimLifecycleStatusSql,
+} from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { db } from '@interdomestik/database/db';
 import { branches, claims, user } from '@interdomestik/database/schema';
-import { and, count, desc, eq, gte, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, gte } from 'drizzle-orm';
 
 export type AdminOverviewReadModel = {
   kpis: {
@@ -28,6 +32,7 @@ export async function getAdminOverviewData(params: {
 }): Promise<AdminOverviewReadModel> {
   const { tenantId } = params;
   const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const lifecycleStatus = claimLifecycleStatusSql();
 
   const [
     membersRes,
@@ -48,25 +53,25 @@ export async function getAdminOverviewData(params: {
     db
       .select({ value: count() })
       .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), inArray(claims.status, ACTIONABLE_CLAIM_STATUSES))),
+      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES))),
     db
       .select({ value: count() })
       .from(claims)
       .where(
         and(
           eq(claims.tenantId, tenantId),
-          inArray(claims.status, ACTIONABLE_CLAIM_STATUSES),
+          claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES),
           gte(claims.updatedAt, last24h)
         )
       ),
     db
       .select({
-        stage: claims.status,
+        stage: lifecycleStatus,
         count: count(),
       })
       .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), inArray(claims.status, ACTIONABLE_CLAIM_STATUSES)))
-      .groupBy(claims.status)
+      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES)))
+      .groupBy(lifecycleStatus)
       .orderBy(desc(count())),
     db
       .select({
@@ -76,7 +81,7 @@ export async function getAdminOverviewData(params: {
       })
       .from(claims)
       .leftJoin(branches, and(eq(branches.id, claims.branchId), eq(branches.tenantId, tenantId)))
-      .where(and(eq(claims.tenantId, tenantId), inArray(claims.status, ACTIONABLE_CLAIM_STATUSES)))
+      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES)))
       .groupBy(claims.branchId, branches.name)
       .orderBy(desc(count())),
   ]);

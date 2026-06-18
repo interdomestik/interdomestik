@@ -3,6 +3,7 @@ import { deriveClaimSlaPhase } from '@/features/claims/policy/slaPolicy';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { db } from '@interdomestik/database/db';
 import { agentClients, claims, serviceUsage, subscriptions } from '@interdomestik/database/schema';
+import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, eq } from 'drizzle-orm';
 
 export type GroupDashboardSummary = {
@@ -86,12 +87,13 @@ export async function getGroupDashboardSummaryCore(
       )
     );
 
+  const lifecycleStatus = claimLifecycleStatusSql();
   const openClaimStatusCounts: OpenClaimStatusCountRow[] = await db
-    .select({ count: count(), status: claims.status })
+    .select({ count: count(), status: lifecycleStatus })
     .from(claims)
     .innerJoin(agentClients, eq(agentClients.memberId, claims.userId))
     .where(and(eq(claims.tenantId, tenantId), assignmentScope, getOpenClaimsFilter()))
-    .groupBy(claims.status);
+    .groupBy(lifecycleStatus);
 
   const [slaBreaches] = await db
     .select({ count: count() })

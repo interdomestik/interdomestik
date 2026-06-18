@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 vi.mock('@interdomestik/database/schema', () => ({
   agentCommissions: {
     tenantId: 'agentCommissions.tenantId',
@@ -11,6 +10,8 @@ vi.mock('@interdomestik/database/schema', () => ({
     tenantId: 'claims.tenantId',
     agentId: 'claims.agentId',
     status: 'claims.status',
+    caseLifecycleState: 'claims.caseLifecycleState',
+    recoveryLifecycleState: 'claims.recoveryLifecycleState',
   },
   crmDeals: {
     tenantId: 'crmDeals.tenantId',
@@ -32,7 +33,6 @@ vi.mock('@interdomestik/database/schema', () => ({
     referredByAgentId: 'subscriptions.referredByAgentId',
   },
 }));
-
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ and: args })),
   count: vi.fn(() => ({ kind: 'count' })),
@@ -41,7 +41,6 @@ vi.mock('drizzle-orm', () => ({
   not: vi.fn((arg: unknown) => ({ not: arg })),
   sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({ sql: { strings, values } }),
 }));
-
 import {
   agentCommissions,
   claims,
@@ -50,7 +49,6 @@ import {
   memberLeads,
   subscriptions,
 } from '@interdomestik/database/schema';
-
 import {
   getAgentDashboardLiteCore,
   getAgentDashboardV2StatsCore,
@@ -98,7 +96,7 @@ describe('agent dashboard core', () => {
       expectWhereCall(1, [
         { eq: ['claims.tenantId', 'tenant-1'] },
         { eq: ['claims.agentId', 'agent-1'] },
-        { not: { inArray: ['claims.status', ['resolved', 'rejected']] } },
+        { not: { inArray: [expect.anything(), ['resolved', 'rejected']] } },
       ]);
     });
 

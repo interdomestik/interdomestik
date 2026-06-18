@@ -1,18 +1,20 @@
 // v2.0.2-admin-claims-ops — Lifecycle Stats Query
 import { db } from '@interdomestik/database';
+import type { ClaimStatus } from '@interdomestik/database/constants';
 import { claims } from '@interdomestik/database/schema';
+import { claimLifecycleStatusIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import * as Sentry from '@sentry/nextjs';
-import { count, eq, inArray, sql } from 'drizzle-orm';
+import { count, eq, sql } from 'drizzle-orm';
 
 import type { LifecycleStats } from '../types';
 import type { ClaimsVisibilityContext } from './claimVisibility';
 
-const INTAKE_STATUSES = ['draft', 'submitted'] as const;
-const VERIFICATION_STATUSES = ['verification'] as const;
-const PROCESSING_STATUSES = ['evaluation'] as const;
-const NEGOTIATION_STATUSES = ['negotiation'] as const;
-const LEGAL_STATUSES = ['court'] as const;
-const COMPLETED_STATUSES = ['resolved', 'rejected'] as const;
+const INTAKE_STATUSES: ClaimStatus[] = ['draft', 'submitted'];
+const VERIFICATION_STATUSES: ClaimStatus[] = ['verification'];
+const PROCESSING_STATUSES: ClaimStatus[] = ['evaluation'];
+const NEGOTIATION_STATUSES: ClaimStatus[] = ['negotiation'];
+const LEGAL_STATUSES: ClaimStatus[] = ['court'];
+const COMPLETED_STATUSES: ClaimStatus[] = ['resolved', 'rejected'];
 
 /**
  * Gets claim counts per lifecycle stage.
@@ -24,20 +26,16 @@ export async function getAdminClaimStats(
   try {
     const [result] = await db
       .select({
-        intake: count(sql`CASE WHEN ${inArray(claims.status, [...INTAKE_STATUSES])} THEN 1 END`),
+        intake: count(sql`CASE WHEN ${claimLifecycleStatusIn(INTAKE_STATUSES)} THEN 1 END`),
         verification: count(
-          sql`CASE WHEN ${inArray(claims.status, [...VERIFICATION_STATUSES])} THEN 1 END`
+          sql`CASE WHEN ${claimLifecycleStatusIn(VERIFICATION_STATUSES)} THEN 1 END`
         ),
-        processing: count(
-          sql`CASE WHEN ${inArray(claims.status, [...PROCESSING_STATUSES])} THEN 1 END`
-        ),
+        processing: count(sql`CASE WHEN ${claimLifecycleStatusIn(PROCESSING_STATUSES)} THEN 1 END`),
         negotiation: count(
-          sql`CASE WHEN ${inArray(claims.status, [...NEGOTIATION_STATUSES])} THEN 1 END`
+          sql`CASE WHEN ${claimLifecycleStatusIn(NEGOTIATION_STATUSES)} THEN 1 END`
         ),
-        legal: count(sql`CASE WHEN ${inArray(claims.status, [...LEGAL_STATUSES])} THEN 1 END`),
-        completed: count(
-          sql`CASE WHEN ${inArray(claims.status, [...COMPLETED_STATUSES])} THEN 1 END`
-        ),
+        legal: count(sql`CASE WHEN ${claimLifecycleStatusIn(LEGAL_STATUSES)} THEN 1 END`),
+        completed: count(sql`CASE WHEN ${claimLifecycleStatusIn(COMPLETED_STATUSES)} THEN 1 END`),
       })
       .from(claims)
       .where(eq(claims.tenantId, context.tenantId));

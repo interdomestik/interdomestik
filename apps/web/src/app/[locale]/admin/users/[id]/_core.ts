@@ -1,6 +1,5 @@
 import { db } from '@interdomestik/database/db';
 import {
-  claims,
   subscriptions,
   userNotificationPreferences,
   user as userTable,
@@ -10,7 +9,9 @@ import {
   type MembershipLifecycleBucket,
   type MembershipLifecycleInput,
 } from '@interdomestik/domain-membership-billing';
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
+
+import { getAdminUserClaimSummary } from './_claim-summary';
 
 export type AdminUserClaimCounts = {
   total: number;
@@ -89,7 +90,7 @@ export async function getAdminUserProfileCore(args: {
 
   if (!member) return { kind: 'not_found' };
 
-  const [subscription, preferences, claimCounts, recentClaims] = await Promise.all([
+  const [subscription, preferences, claimSummary] = await Promise.all([
     db.query.subscriptions.findFirst({
       where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, args.tenantId)),
       orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
@@ -100,27 +101,13 @@ export async function getAdminUserProfileCore(args: {
         eq(userNotificationPreferences.tenantId, args.tenantId)
       ),
     }),
-    db
-      .select({ status: claims.status, total: count() })
-      .from(claims)
-      .where(and(eq(claims.userId, member.id), eq(claims.tenantId, args.tenantId)))
-      .groupBy(claims.status),
-    db
-      .select({
-        id: claims.id,
-        title: claims.title,
-        status: claims.status,
-        claimAmount: claims.claimAmount,
-        currency: claims.currency,
-        createdAt: claims.createdAt,
-      })
-      .from(claims)
-      .where(and(eq(claims.userId, member.id), eq(claims.tenantId, args.tenantId)))
-      .orderBy(desc(claims.createdAt))
-      .limit(args.recentClaimsLimit),
+    getAdminUserClaimSummary({
+      recentClaimsLimit: args.recentClaimsLimit,
+      tenantId: args.tenantId,
+      userId: member.id,
+    }),
   ]);
 
-  const counts = computeAdminUserClaimCounts(claimCounts);
   const membershipStatus = getAdminUserMembershipStatus(subscription);
 
   return {
@@ -128,8 +115,8 @@ export async function getAdminUserProfileCore(args: {
     member,
     subscription: (subscription ?? null) as SubscriptionRow | null,
     preferences: (preferences ?? null) as PreferencesRow | null,
-    counts,
-    recentClaims: recentClaims.map(c => ({ ...c, status: c.status ?? 'unknown' })),
+    counts: claimSummary.counts,
+    recentClaims: claimSummary.recentClaims,
     membershipStatus,
   };
 }

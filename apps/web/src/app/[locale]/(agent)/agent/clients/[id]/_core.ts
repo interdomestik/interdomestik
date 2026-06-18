@@ -1,16 +1,16 @@
 import { db } from '@interdomestik/database/db';
 import {
   agentClients,
-  claims,
   memberActivities,
   subscriptions,
   userNotificationPreferences,
   user as userTable,
 } from '@interdomestik/database/schema';
 import { getAgentMemberDetail } from '@interdomestik/domain-agent';
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
-const RECENT_CLAIMS_LIMIT = 6;
+import { getAgentClientClaimSummary, type AgentClientClaimCounts } from './_claim-summary';
+export type { AgentClientClaimCounts } from './_claim-summary';
 
 const membershipStatusStyles: Record<string, string> = {
   active: 'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -18,13 +18,6 @@ const membershipStatusStyles: Record<string, string> = {
   paused: 'bg-slate-100 text-slate-700 border-slate-200',
   canceled: 'bg-rose-100 text-rose-700 border-rose-200',
   none: 'bg-muted text-muted-foreground border-transparent',
-};
-
-export type AgentClientClaimCounts = {
-  total: number;
-  open: number;
-  resolved: number;
-  rejected: number;
 };
 
 export type AgentClientMembership = {
@@ -102,7 +95,7 @@ export async function getAgentClientProfileCore(args: {
     }
   }
 
-  const [subscription, preferences, claimCounts, recentClaims, activities] = await Promise.all([
+  const [subscription, preferences, claimSummary, activities] = await Promise.all([
     db.query.subscriptions.findFirst({
       where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, tenantId)),
       orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
@@ -113,20 +106,7 @@ export async function getAgentClientProfileCore(args: {
         eq(userNotificationPreferences.tenantId, tenantId)
       ),
     }),
-    db
-      .select({ status: claims.status, total: count() })
-      .from(claims)
-      .where(and(eq(claims.userId, member.id), eq(claims.tenantId, tenantId)))
-      .groupBy(claims.status),
-    db
-      .select({
-        id: claims.id,
-        status: claims.status,
-      })
-      .from(claims)
-      .where(and(eq(claims.userId, member.id), eq(claims.tenantId, tenantId)))
-      .orderBy(desc(claims.createdAt))
-      .limit(RECENT_CLAIMS_LIMIT),
+    getAgentClientClaimSummary(member.id, tenantId),
     db.query.memberActivities.findMany({
       where: and(eq(memberActivities.memberId, member.id), eq(memberActivities.tenantId, tenantId)),
       orderBy: [desc(memberActivities.occurredAt)],
@@ -142,20 +122,6 @@ export async function getAgentClientProfileCore(args: {
     }),
   ]);
 
-  const counts: AgentClientClaimCounts = { total: 0, open: 0, resolved: 0, rejected: 0 };
-  for (const row of claimCounts) {
-    const status = (row.status || 'draft') as string;
-    const total = Number(row.total || 0);
-    counts.total += total;
-    if (status === 'resolved') {
-      counts.resolved += total;
-    } else if (status === 'rejected') {
-      counts.rejected += total;
-    } else {
-      counts.open += total;
-    }
-  }
-
   const rawStatus = (subscription as { status?: string | null } | null | undefined)?.status;
   const membershipStatus = rawStatus && membershipStatusStyles[rawStatus] ? rawStatus : 'none';
 
@@ -168,8 +134,8 @@ export async function getAgentClientProfileCore(args: {
       subscription: (subscription ?? null) as SubscriptionRecord | null,
     },
     preferences: (preferences ?? null) as PreferencesRecord | null,
-    claimCounts: counts,
-    recentClaims,
+    claimCounts: claimSummary.claimCounts,
+    recentClaims: claimSummary.recentClaims,
     activities: (activities ?? []) as MemberActivities,
   };
 }

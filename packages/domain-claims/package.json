@@ -15,6 +15,7 @@
     "./claims/submit": "./src/claims/submit.ts",
     "./claims/diaspora-origin": "./src/claims/diaspora-origin.ts",
     "./claims/status": "./src/claims/status.ts",
+    "./claims/lifecycle-read-sql": "./src/claims/lifecycle-read-sql.ts",
     "./claims/transition": "./src/claims/transition.ts",
     "./claims/transition-guard": "./src/claims/transition-guard.ts",
     "./claims/draft": "./src/claims/draft.ts",

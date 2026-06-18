@@ -2,6 +2,7 @@
 import { db } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { branches, claims, user } from '@interdomestik/database/schema';
+import * as lifecycleSql from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import * as Sentry from '@sentry/nextjs';
 import { aliasedTable, and, desc, eq, ilike, inArray, or, sql, SQL } from 'drizzle-orm';
 
@@ -88,18 +89,13 @@ function buildPoolConditions(context: ClaimsVisibilityContext, filters: OpsCente
   }
 
   // Exclude terminal statuses (ops = open claims only)
-  conditions.push(
-    sql`${claims.status} NOT IN (${sql.join(
-      TERMINAL_STATUSES.map(s => sql`${s}`),
-      sql`, `
-    )})`
-  );
+  conditions.push(lifecycleSql.claimLifecycleStatusNotIn(TERMINAL_STATUSES));
 
   // Lifecycle filter (affects KPIs too)
   if (filters.lifecycle) {
     const statuses = LIFECYCLE_STATUS_MAP[filters.lifecycle];
     if (statuses?.length) {
-      conditions.push(inArray(claims.status, statuses));
+      conditions.push(lifecycleSql.claimLifecycleStatusIn(statuses));
     }
   }
 
@@ -201,6 +197,8 @@ export async function getOpsCenterData(
           id: claims.id,
           title: claims.title,
           status: claims.status,
+          caseLifecycleState: claims.caseLifecycleState,
+          recoveryLifecycleState: claims.recoveryLifecycleState,
           createdAt: claims.createdAt,
           updatedAt: claims.updatedAt,
           assignedAt: claims.assignedAt,

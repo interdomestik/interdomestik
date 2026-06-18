@@ -17,6 +17,8 @@ const mocks = vi.hoisted(() => {
       userId: 'claims.user_id',
       claimNumber: 'claims.claim_number',
       status: 'claims.status',
+      caseLifecycleState: 'claims.case_lifecycle_state',
+      recoveryLifecycleState: 'claims.recovery_lifecycle_state',
       createdAt: 'claims.created_at',
       updatedAt: 'claims.updated_at',
     },
@@ -56,21 +58,18 @@ describe('getMemberClaimDetail', () => {
     mocks.selectChain.where.mockReturnValue(mocks.selectChain);
   });
 
-  it('reflects updated status deterministically from ordered timeline events', async () => {
+  it('reads current status from lifecycle fields when they are present', async () => {
     mocks.selectChain.limit.mockResolvedValue([
       {
         id: 'claim-1',
         claimNumber: 'MK-100',
         status: 'submitted',
+        caseLifecycleState: 'evaluation',
+        recoveryLifecycleState: 'not_started',
         createdAt: new Date('2026-02-01T00:00:00.000Z'),
         updatedAt: new Date('2026-02-02T00:00:00.000Z'),
       },
     ]);
-    mocks.getClaimTimeline.mockResolvedValue([{ id: 'e1' }]);
-    mocks.getClaimStatus.mockReturnValue({
-      status: 'evaluation',
-      lastTransitionAt: '2026-02-02T00:00:00.000Z',
-    });
 
     const result = await getMemberClaimDetail({
       tenantId: 'tenant-1',
@@ -78,37 +77,23 @@ describe('getMemberClaimDetail', () => {
       claimId: 'claim-1',
     });
 
-    expect(mocks.getClaimTimeline).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
-      claimId: 'claim-1',
-    });
-    expect(mocks.getClaimStatus).toHaveBeenCalledTimes(1);
     expect(result?.status).toBe('evaluation');
+    expect(mocks.getClaimStatus).not.toHaveBeenCalled();
+    expect(mocks.getClaimTimeline).not.toHaveBeenCalled();
   });
 
-  it('ignores unknown timeline events without corrupting member-visible status', async () => {
+  it('uses lifecycle status over a mismatched compat status', async () => {
     mocks.selectChain.limit.mockResolvedValue([
       {
         id: 'claim-1',
         claimNumber: 'MK-101',
         status: 'submitted',
+        caseLifecycleState: 'resolved',
+        recoveryLifecycleState: 'resolved',
         createdAt: new Date('2026-02-01T00:00:00.000Z'),
         updatedAt: new Date('2026-02-03T00:00:00.000Z'),
       },
     ]);
-    mocks.getClaimTimeline.mockResolvedValue([
-      { id: 'e3', type: 'note_added', createdAt: '2026-02-03T00:00:00.000Z' },
-      {
-        id: 'e2',
-        type: 'status_changed',
-        toStatus: 'resolved',
-        createdAt: '2026-02-02T00:00:00.000Z',
-      },
-    ]);
-    mocks.getClaimStatus.mockReturnValue({
-      status: 'resolved',
-      lastTransitionAt: '2026-02-02T00:00:00.000Z',
-    });
 
     const result = await getMemberClaimDetail({
       tenantId: 'tenant-1',
@@ -125,15 +110,12 @@ describe('getMemberClaimDetail', () => {
         id: 'claim-1',
         claimNumber: 'MK-102',
         status: 'submitted',
+        caseLifecycleState: null,
+        recoveryLifecycleState: null,
         createdAt: new Date('2026-02-01T00:00:00.000Z'),
         updatedAt: new Date('2026-02-03T00:00:00.000Z'),
       },
     ]);
-    mocks.getClaimTimeline.mockResolvedValue([]);
-    mocks.getClaimStatus.mockReturnValue({
-      status: 'draft',
-      lastTransitionAt: null,
-    });
 
     const result = await getMemberClaimDetail({
       tenantId: 'tenant-1',

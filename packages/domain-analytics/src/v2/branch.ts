@@ -1,11 +1,12 @@
 import { db } from '@interdomestik/database';
 import { agentCommissions, claims, user } from '@interdomestik/database/schema';
-import { and, count, eq, sql, sum } from 'drizzle-orm';
+import { claimLifecycleStatusIn } from '@interdomestik/domain-claims';
+import { and, count, eq, sum } from 'drizzle-orm';
 
 export interface BranchKPIs {
   totalAgents: number;
   totalMembers: number;
-  claimsPending: number; // submitted + in_review
+  claimsPending: number; // submitted + verification
   totalCommissionPaid: number;
 }
 
@@ -28,7 +29,7 @@ export async function getBranchKPIs(tenantId: string, branchId: string): Promise
         and(
           eq(claims.tenantId, tenantId),
           eq(claims.branchId, branchId),
-          sql`${claims.status} IN ('submitted', 'in_review')`
+          claimLifecycleStatusIn(['submitted', 'verification'])
         )
       ),
     // Assuming agentCommissions are linked to agents who belong to this branch.

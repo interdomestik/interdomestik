@@ -11,13 +11,9 @@ const mocks = vi.hoisted(() => {
     limit: vi.fn(),
   };
 
-  const sql = Object.assign(vi.fn(), {
-    join: vi.fn((items: unknown[], separator: unknown) => ({ items, separator })),
-  });
-
   return {
     chain,
-    sql,
+    sql: vi.fn(),
     select: vi.fn(),
     asc: vi.fn(value => ({ value, op: 'asc' })),
     ilike: vi.fn((column, value) => ({ column, value, op: 'ilike' })),
@@ -25,6 +21,7 @@ const mocks = vi.hoisted(() => {
     and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
     eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
     desc: vi.fn(value => ({ value, op: 'desc' })),
+    claimLifecycleStatusIn: vi.fn((statuses: readonly string[]) => ({ statuses })),
     agentClients: {
       memberId: 'agent_clients.member_id',
       agentId: 'agent_clients.agent_id',
@@ -33,7 +30,7 @@ const mocks = vi.hoisted(() => {
       joinedAt: 'agent_clients.joined_at',
     },
     claims: {
-      status: 'claims.status',
+      id: 'claims.id',
       updatedAt: 'claims.updated_at',
       userId: 'claims.user_id',
       tenantId: 'claims.tenant_id',
@@ -45,9 +42,7 @@ const mocks = vi.hoisted(() => {
       updatedAt: 'user.updated_at',
       role: 'user.role',
     },
-    db: {
-      select: vi.fn(),
-    },
+    db: { select: vi.fn() },
   };
 });
 
@@ -63,6 +58,10 @@ vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
   sql: mocks.sql,
   user: mocks.user,
+}));
+
+vi.mock('@interdomestik/domain-claims/claims/lifecycle-read-sql', () => ({
+  claimLifecycleStatusIn: mocks.claimLifecycleStatusIn,
 }));
 
 import { getAgentMembersList } from './get-agent-members-list';
@@ -102,6 +101,7 @@ describe('getAgentMembersList', () => {
     expect(mocks.or).toHaveBeenCalledTimes(1);
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.agentId, 'agent-1');
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.tenantId, 'tenant-1');
+    expect(mocks.claimLifecycleStatusIn).toHaveBeenCalledTimes(1);
     expect(result.members).toHaveLength(1);
     expect(result.members[0].name).toBe('Arben Krasniqi');
     expect(result.members[0].openClaimsCount).toBe(0);

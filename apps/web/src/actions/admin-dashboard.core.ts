@@ -1,6 +1,7 @@
 import { type ClaimStatus } from '@interdomestik/database/constants';
 import { db } from '@interdomestik/database/db';
 import { claims, user } from '@interdomestik/database/schema';
+import { claimLifecycleStatusIs } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, desc, eq, sql } from 'drizzle-orm';
 
 export interface DashboardStats {
@@ -23,12 +24,12 @@ export async function getAdminDashboardStats(tenantId: string): Promise<Dashboar
   const [newClaimsRes] = await db
     .select({ count: count() })
     .from(claims)
-    .where(and(eq(claims.status, NEW_STATUS), eq(claims.tenantId, tenantId)));
+    .where(and(claimLifecycleStatusIs(NEW_STATUS), eq(claims.tenantId, tenantId)));
 
   const [resolvedClaimsRes] = await db
     .select({ count: count() })
     .from(claims)
-    .where(and(eq(claims.status, RESOLVED_STATUS), eq(claims.tenantId, tenantId)));
+    .where(and(claimLifecycleStatusIs(RESOLVED_STATUS), eq(claims.tenantId, tenantId)));
 
   const [totalUsersRes] = await db
     .select({ count: count() })

@@ -1,7 +1,6 @@
 import { and, claims, db, eq } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { getClaimStatus } from '../staff-claims/get-claim-status';
-import { getClaimTimeline } from '../staff-claims/get-claim-timeline';
+import { resolveClaimLifecycleReadProjection } from '../claims/lifecycle-read-model';
 
 export type MemberClaimDetail = {
   id: string;
@@ -30,6 +29,8 @@ export async function getMemberClaimDetail(params: {
       id: claims.id,
       claimNumber: claims.claimNumber,
       status: claims.status,
+      caseLifecycleState: claims.caseLifecycleState,
+      recoveryLifecycleState: claims.recoveryLifecycleState,
       createdAt: claims.createdAt,
       updatedAt: claims.updatedAt,
     })
@@ -44,8 +45,7 @@ export async function getMemberClaimDetail(params: {
     .limit(1);
 
   if (!row) return null;
-  const timeline = await getClaimTimeline({ tenantId, claimId });
-  const status = timeline.length > 0 ? getClaimStatus(timeline).status : (row.status ?? null);
+  const { status } = resolveClaimLifecycleReadProjection(row);
 
   return {
     id: row.id,

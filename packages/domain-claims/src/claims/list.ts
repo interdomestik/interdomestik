@@ -13,7 +13,9 @@ import {
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
-import { SQL, count, desc, isNotNull, isNull, ne } from 'drizzle-orm';
+import { SQL, count, desc, isNotNull, isNull } from 'drizzle-orm';
+import { claimLifecycleStatusIn, claimLifecycleStatusNotIn } from './lifecycle-read-sql';
+import { mapClaimsToResponse } from './list-response';
 
 export type ClaimsScope =
   | 'member'
@@ -175,7 +177,7 @@ function buildClaimsWhereClause(params: {
 
   // 2. Status Filter
   if (statusFilter && (VALID_STATUSES as readonly string[]).includes(statusFilter)) {
-    conditions.push(eq(claims.status, statusFilter as (typeof VALID_STATUSES)[number])); // NOSONAR
+    conditions.push(claimLifecycleStatusIn([statusFilter as (typeof VALID_STATUSES)[number]]));
   }
 
   // 3. Search Query
@@ -218,7 +220,7 @@ function buildScopeConditions( // NOSONAR - complexity justified by RBAC require
     if (!userId) throw new Error('User ID required for staff queue');
     conditions.push(eq(claims.staffId, userId));
   } else if (scope === 'staff_unassigned') {
-    conditions.push(isNull(claims.staffId), ne(claims.status, 'draft'));
+    conditions.push(isNull(claims.staffId), claimLifecycleStatusNotIn(['draft']));
   } else if (scope === 'agent_queue' && isPrivileged) {
     conditions.push(isNotNull(claims.agentId));
   }
@@ -291,6 +293,8 @@ async function fetchClaimRows(params: {
       id: claims.id,
       title: claims.title,
       status: claims.status,
+      caseLifecycleState: claims.caseLifecycleState,
+      recoveryLifecycleState: claims.recoveryLifecycleState,
       createdAt: claims.createdAt,
       companyName: claims.companyName,
       claimAmount: claims.claimAmount,
@@ -351,28 +355,4 @@ async function fetchUnreadCounts(params: {
     }
   }
   return unreadCounts;
-}
-
-function mapClaimsToResponse(
-  rows: any[],
-  scope: ClaimsScope,
-  isAgent: boolean,
-  unreadCounts: Map<string, number>
-) {
-  const redactForAgent = scope === 'agent_queue' && isAgent;
-
-  return rows.map(row => ({
-    id: row.id,
-    title: redactForAgent ? null : row.title,
-    status: row.status,
-    createdAt: row.createdAt ? row.createdAt.toISOString() : null,
-    companyName: redactForAgent ? null : row.companyName,
-    claimAmount: redactForAgent ? null : row.claimAmount,
-    currency: redactForAgent ? null : row.currency,
-    category: redactForAgent ? null : row.category,
-    claimantName: redactForAgent ? null : row.claimantName,
-    claimantEmail: redactForAgent ? null : row.claimantEmail,
-    claimNumber: row.claimNumber,
-    unreadCount: scope === 'member' || redactForAgent ? 0 : unreadCounts.get(row.id) || 0,
-  }));
 }

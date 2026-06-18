@@ -10,6 +10,8 @@ vi.mock('@interdomestik/database', () => ({
   },
   claims: {
     status: 'claims.status',
+    caseLifecycleState: 'claims.caseLifecycleState',
+    recoveryLifecycleState: 'claims.recoveryLifecycleState',
     claimAmount: 'claims.claimAmount',
   },
 }));

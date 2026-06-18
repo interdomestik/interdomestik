@@ -1,4 +1,5 @@
 import { claims, db } from '@interdomestik/database';
+import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { eq, sql } from 'drizzle-orm';
 
 export type AdminAnalyticsStatusDistributionItem = {
@@ -61,15 +62,16 @@ export async function getAdminAnalyticsDataCore(session: {
     .where(eq(claims.tenantId, tenantId));
 
   const totals = normalizeTotalsRow(totalsResult);
+  const lifecycleStatus = claimLifecycleStatusSql();
 
   const statusDistributionRaw = await db
     .select({
-      status: claims.status,
+      status: lifecycleStatus,
       count: sql<number>`COUNT(*)`,
     })
     .from(claims)
     .where(eq(claims.tenantId, tenantId))
-    .groupBy(claims.status);
+    .groupBy(lifecycleStatus);
 
   const categoryDistributionRaw = await db
     .select({

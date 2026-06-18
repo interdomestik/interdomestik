@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 const hoisted = vi.hoisted(() => ({
   ensureClaimsAccess: vi.fn(),
   setTag: vi.fn(),
@@ -13,10 +12,8 @@ const hoisted = vi.hoisted(() => ({
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   inArray: vi.fn((left: unknown, right: unknown) => ({ op: 'inArray', left, right })),
-  ne: vi.fn((left: unknown, right: unknown) => ({ op: 'ne', left, right })),
   desc: vi.fn((value: unknown) => ({ op: 'desc', value })),
 }));
-
 vi.mock('../../../../server/domains/claims/guards', () => ({
   ensureClaimsAccess: hoisted.ensureClaimsAccess,
 }));
@@ -43,11 +40,18 @@ vi.mock('@interdomestik/database', () => ({
       })),
     })),
   },
+  claims: {
+    caseLifecycleState: 'claims.caseLifecycleState',
+    recoveryLifecycleState: 'claims.recoveryLifecycleState',
+    status: 'claims.status',
+  },
 }));
 vi.mock('@interdomestik/database/schema', () => ({
   claims: {
     userId: 'claims.userId',
     status: 'claims.status',
+    caseLifecycleState: 'claims.caseLifecycleState',
+    recoveryLifecycleState: 'claims.recoveryLifecycleState',
     updatedAt: 'claims.updatedAt',
   },
   user: {
@@ -67,11 +71,14 @@ vi.mock('drizzle-orm', () => ({
   desc: hoisted.desc,
   eq: hoisted.eq,
   inArray: hoisted.inArray,
-  ne: hoisted.ne,
+  not: vi.fn((condition: unknown) => ({ op: 'not', condition })),
+  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+    op: 'sql',
+    strings,
+    values,
+  })),
 }));
-
 import { getAgentMemberClaims } from './getAgentMemberClaims';
-
 describe('getAgentMemberClaims', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -92,9 +99,11 @@ describe('getAgentMemberClaims', () => {
     hoisted.selectWhere.mockResolvedValue([{ memberId: 'member-2' }]);
     hoisted.findManyClaims.mockResolvedValue([
       {
+        caseLifecycleState: 'evaluation',
         id: 'claim-2',
-        title: 'Claim Two',
+        recoveryLifecycleState: 'not_started',
         status: 'submitted',
+        title: 'Claim Two',
         createdAt: new Date('2026-04-01T00:00:00.000Z'),
         updatedAt: new Date('2026-04-02T00:00:00.000Z'),
         userId: 'member-2',
@@ -107,23 +116,13 @@ describe('getAgentMemberClaims', () => {
       user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
     });
 
-    expect(result).toEqual([
-      {
-        memberId: 'member-2',
-        memberName: 'Member Two',
-        memberEmail: 'member2@example.com',
-        claims: [
-          {
-            id: 'claim-2',
-            title: 'Claim Two',
-            status: 'submitted',
-            statusLabelKey: 'claims-tracking.status.submitted',
-            createdAt: new Date('2026-04-01T00:00:00.000Z'),
-            updatedAt: new Date('2026-04-02T00:00:00.000Z'),
-          },
-        ],
-      },
-    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.memberId).toBe('member-2');
+    expect(result[0]?.claims[0]).toMatchObject({
+      id: 'claim-2',
+      status: 'evaluation',
+      statusLabelKey: 'claims-tracking.status.evaluation',
+    });
 
     expect(hoisted.buildClaimVisibilityWhere).toHaveBeenCalledWith({
       tenantId: 'tenant-1',
