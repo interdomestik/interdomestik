@@ -98,10 +98,9 @@ test('sonar check-run gate accepts PR quality gate API results when the Sonar ch
   const binDir = path.join(tempRoot, 'bin');
   const responsesDir = path.join(tempRoot, 'responses');
   const evidenceDir = path.join(tempRoot, 'evidence');
-  const eventPath = path.join(tempRoot, 'event.json');
+  const eventPath = path.join(tempRoot, 'event.json'), stepSummaryPath = path.join(tempRoot, 'github-step-summary.md');
 
-  fs.mkdirSync(binDir, { recursive: true });
-  fs.mkdirSync(responsesDir, { recursive: true });
+  for (const dir of [binDir, responsesDir]) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(eventPath, JSON.stringify({ pull_request: { number: 307 } }));
 
   const mockGhPath = path.join(binDir, 'gh');
@@ -183,6 +182,7 @@ process.stdout.write(fs.readFileSync(responsePath, 'utf8'));
       GH_TOKEN: 'test-gh-token',
       GITHUB_EVENT_PATH: eventPath,
       GITHUB_REPOSITORY: 'interdomestik/interdomestik',
+      GITHUB_STEP_SUMMARY: stepSummaryPath,
       MOCK_GH_RESPONSES_DIR: responsesDir,
       SONAR_CHECK_MAX_RETRIES: '1',
       SONAR_CHECK_RETRY_DELAY_SECONDS: '0',
@@ -194,10 +194,9 @@ process.stdout.write(fs.readFileSync(responsePath, 'utf8'));
 
     assert.equal(result.status, 0, result.stderr || result.stdout);
 
-    const summaryPath = path.join(evidenceDir, 'notes', 'sonar-summary.md');
-    const summary = fs.readFileSync(summaryPath, 'utf8');
-    assert.match(summary, /source: Sonar quality gate API/);
-    assert.match(summary, /conclusion: OK/);
+    for (const summary of [fs.readFileSync(path.join(evidenceDir, 'notes', 'sonar-summary.md'), 'utf8'), fs.readFileSync(stepSummaryPath, 'utf8')]) {
+      assert.match(summary, /source: Sonar quality gate API/); assert.match(summary, /conclusion: OK/);
+    }
   } finally {
     await server.close();
   }

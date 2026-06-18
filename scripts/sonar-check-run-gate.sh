@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
-
 RUN_ID="${GITHUB_RUN_ID:-local-$(date +%Y%m%d%H%M%S)}"
 EVIDENCE_DIR="${EVIDENCE_DIR:-tmp/pilot-evidence/${RUN_ID}}"
 LOG_DIR="${EVIDENCE_DIR}/logs"
@@ -12,9 +11,10 @@ QG_JSON="${LOG_DIR}/sonar-qualitygate.json"
 PRS_JSON="${LOG_DIR}/sonar-pull-requests.json"
 SUMMARY_MD="${NOTES_DIR}/sonar-summary.md"
 SCAN_LOG="${LOG_DIR}/sonar-scan.log"
-
 mkdir -p "$LOG_DIR" "$NOTES_DIR"
 
+publish_job_summary() { [[ -n "${GITHUB_STEP_SUMMARY:-}" && -f "${SUMMARY_MD}" ]] && { cat "${SUMMARY_MD}"; echo; } >>"${GITHUB_STEP_SUMMARY}" || true; }
+trap 'status=$?; publish_job_summary; exit "$status"' EXIT
 if [[ -n "${GITHUB_TOKEN:-}" && -z "${GH_TOKEN:-}" ]]; then
   export GH_TOKEN="${GITHUB_TOKEN}"
 fi
