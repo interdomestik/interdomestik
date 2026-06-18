@@ -59,7 +59,7 @@ export async function getAgentMembersList(params: {
       membershipNumber: user.memberNumber,
       userUpdatedAt: user.updatedAt,
       joinedAt: agentClients.joinedAt,
-      activeClaimsCount: sql<number>`coalesce(sum(case when ${claimLifecycleStatusIn([...ACTIVE_STATUSES])} then 1 else 0 end), 0)`,
+      activeClaimsCount: sql<number>`coalesce(sum(case when ${claims.id} is not null and ${claimLifecycleStatusIn([...ACTIVE_STATUSES])} then 1 else 0 end), 0)`,
       lastClaimUpdatedAt: sql<Date | null>`max(${claims.updatedAt})`,
     })
     .from(agentClients)

@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-// Mock database before imports
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockDb: any = {
   query: {
@@ -63,11 +62,15 @@ vi.mock('drizzle-orm', () => ({
   eq: vi.fn((a, b) => [a, b]),
   count: vi.fn(() => 'count'),
   desc: vi.fn(a => a),
-  sql: vi.fn(() => ({ as: vi.fn(() => 'sql_column') })),
+  sql: Object.assign(
+    vi.fn(() => ({ as: vi.fn(() => 'sql_column') })),
+    { raw: vi.fn(String) }
+  ),
   not: vi.fn(value => ({ not: value })),
   inArray: vi.fn((a, b) => [a, b]),
   lt: vi.fn((a, b) => [a, b]),
 }));
+
 describe('Branch Dashboard Core', () => {
   describe('getBranchById', () => {
     it('returns null for non-existent branch', async () => {
@@ -175,8 +178,6 @@ describe('Branch Dashboard Core', () => {
     });
 
     it('returns correct agent counts with seeded data', async () => {
-      // Deterministic seeded data:
-      // - 2 agents with known member/claim counts
       const seededAgents = [
         {
           agentId: 'agent-1',
@@ -207,7 +208,6 @@ describe('Branch Dashboard Core', () => {
       const { getBranchAgents } = await import('./branch-dashboard.core');
       const result = await getBranchAgents('branch-1', 'tenant-1');
 
-      // Assert exact values match seeded data
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual({
         agentId: 'agent-1',
@@ -224,7 +224,6 @@ describe('Branch Dashboard Core', () => {
         submittedClaimsLast30Days: 4,
       });
 
-      // Verify totals would be: 13 members, 4 active claims, 11 submitted
       const totalMembers = result.reduce((sum, a) => sum + a.memberCount, 0);
       const totalActive = result.reduce((sum, a) => sum + a.activeClaimCount, 0);
       expect(totalMembers).toBe(13);

@@ -30,7 +30,7 @@ const mocks = vi.hoisted(() => {
       joinedAt: 'agent_clients.joined_at',
     },
     claims: {
-      status: 'claims.status',
+      id: 'claims.id',
       updatedAt: 'claims.updated_at',
       userId: 'claims.user_id',
       tenantId: 'claims.tenant_id',
