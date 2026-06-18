@@ -6,6 +6,7 @@ import {
   CLAIM_STATUS_LIFECYCLE_STATE_MAP,
   mapClaimStatusToLifecycleStates,
 } from './lifecycle-state';
+import { authorizedRecoveryReadRow } from './recovery-evidence-test-support';
 import { transitionClaimStatusInTransaction, type TransitionTx } from './transition';
 
 type Row = Record<string, unknown>;
@@ -32,16 +33,7 @@ class FakeSelect {
   }
   async limit(): Promise<Row[]> {
     if (this.joined) {
-      return [
-        {
-          claimId: 'claim-1',
-          legalActionCapPercentage: 25,
-          lifecycleVersion: this.state.lifecycleVersion,
-          paymentAuthorizationState: 'authorized',
-          signedAt: new Date('2026-03-12T09:00:00Z'),
-          status: this.state.status,
-        },
-      ];
+      return [authorizedRecoveryReadRow(this.state)];
     }
     return [{ id: 'claim-1', ...this.state }];
   }

@@ -1,23 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
-  const returning = vi.fn();
   const claimLimit = vi.fn();
-  const tx = {
-    insert: vi.fn(() => ({
-      values: vi.fn(values => ({
-        onConflictDoUpdate: vi.fn(conflict => ({
-          returning: () => returning(values, conflict),
-        })),
-      })),
-    })),
-    select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => ({ limit: claimLimit })),
-      })),
-    })),
+  const from = vi.fn();
+  const insert = vi.fn();
+  const onConflictDoUpdate = vi.fn();
+  const returning = vi.fn();
+  const select = vi.fn();
+  const transaction = vi.fn();
+  const values = vi.fn();
+  const where = vi.fn();
+  return {
+    claimLimit,
+    from,
+    insert,
+    onConflictDoUpdate,
+    returning,
+    select,
+    transaction,
+    values,
+    where,
   };
-  return { claimLimit, returning, tx, transaction: vi.fn() };
 });
 
 vi.mock('@interdomestik/database', () => ({
@@ -63,6 +66,9 @@ const session = {
 describe('saveNoFeeEvidenceCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.onConflictDoUpdate.mockImplementation(conflict => ({
+      returning: () => mocks.returning(mocks.values.mock.calls.at(-1)?.[0], conflict),
+    }));
     mocks.returning.mockResolvedValue([
       {
         claimId: 'claim-1',
@@ -73,7 +79,14 @@ describe('saveNoFeeEvidenceCore', () => {
       },
     ]);
     mocks.claimLimit.mockResolvedValue([{ id: 'claim-1' }]);
-    mocks.transaction.mockImplementation(async cb => cb(mocks.tx));
+    mocks.values.mockReturnValue({ onConflictDoUpdate: mocks.onConflictDoUpdate });
+    mocks.insert.mockReturnValue({ values: mocks.values });
+    mocks.where.mockReturnValue({ limit: mocks.claimLimit });
+    mocks.from.mockReturnValue({ where: mocks.where });
+    mocks.select.mockReturnValue({ from: mocks.from });
+    mocks.transaction.mockImplementation(async cb =>
+      cb({ insert: mocks.insert, select: mocks.select })
+    );
   });
 
   it('upserts no-fee evidence after scoped staff claim access succeeds', async () => {
@@ -90,8 +103,8 @@ describe('saveNoFeeEvidenceCore', () => {
     );
 
     expect(result).toMatchObject({ success: true, data: { claimId: 'claim-1' } });
-    expect(mocks.tx.select).toHaveBeenCalled();
-    expect(mocks.tx.insert).toHaveBeenCalled();
+    expect(mocks.select).toHaveBeenCalled();
+    expect(mocks.insert).toHaveBeenCalled();
     const [insertValues, conflict] = mocks.returning.mock.calls[0];
     expect(insertValues).toMatchObject({
       tenantId: 'tenant-1',

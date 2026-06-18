@@ -1,6 +1,7 @@
 import { claimStageHistory, domainEvents } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 
+import { authorizedRecoveryReadRow } from './recovery-evidence-test-support';
 import { transitionClaimStatusInTransaction, type TransitionTx } from './transition';
 
 type Row = Record<string, unknown>;
@@ -34,16 +35,7 @@ class FakeSelect {
   }
   async limit(): Promise<Row[]> {
     if (this.joined) {
-      return [
-        {
-          claimId: 'claim-1',
-          legalActionCapPercentage: 25,
-          lifecycleVersion: this.state.lifecycleVersion,
-          paymentAuthorizationState: 'authorized',
-          signedAt: new Date('2026-03-12T09:00:00Z'),
-          status: this.state.status,
-        },
-      ];
+      return [authorizedRecoveryReadRow(this.state)];
     }
     return [{ ...this.state, id: 'claim-1' }];
   }

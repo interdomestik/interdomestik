@@ -14,7 +14,7 @@ export type RecoveryInvariantReadRow = {
   current:
     | {
         lifecycleVersion: number;
-        status: ClaimStatus | string | null;
+        status: ClaimStatus | null;
       }
     | undefined;
   evidence: RecoveryInvariantEvidence | null;

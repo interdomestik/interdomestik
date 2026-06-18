@@ -1,6 +1,5 @@
 import { and, claims, eq } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import type { SQL, SQLWrapper } from 'drizzle-orm';
 import { loadRecoveryInvariantReadRow } from './recovery-invariant-evidence';
 import { evaluateRecoveryInvariants, needsRecoveryInvariantEvidence } from './recovery-invariants';
@@ -11,7 +10,7 @@ export type TransitionReadContext = {
   current:
     | {
         lifecycleVersion: number;
-        status: ClaimStatus | string | null;
+        status: ClaimStatus | null;
       }
     | undefined;
   guardContext: ClaimTransitionContext;
@@ -27,10 +26,13 @@ export async function loadTransitionReadContext(
     toStatus: ClaimStatus;
   }
 ): Promise<TransitionReadContext> {
-  const scopedWhere = withTenant(params.tenantId, claims.tenantId, eq(claims.id, params.claimId));
-  const readWhere: SQL = (
+  const scopedWhere = and(
+    eq(claims.tenantId, params.tenantId),
+    eq(claims.id, params.claimId)
+  ) as SQL;
+  const readWhere = (
     params.requiredWhereCondition ? and(scopedWhere, params.requiredWhereCondition) : scopedWhere
-  )!;
+  ) as SQL;
 
   if (needsRecoveryInvariantEvidence(params.toStatus)) {
     const row = await loadRecoveryInvariantReadRow(tx, {
