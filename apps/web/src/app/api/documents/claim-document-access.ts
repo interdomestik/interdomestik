@@ -89,30 +89,31 @@ export async function canReadLegacyClaimDocument(args: {
 
   if (isFullTenantClaimsRole(userRole)) return true;
   if (
-    document.claimId &&
-    (await hasAnyCaseScopedGrant(db, tenantId, session, document.claimId, document.category))
-  ) {
-    return true;
-  }
-  if (
     userRole !== 'agent' &&
     (document.uploadedBy === session.user.id || claim.ownerId === session.user.id)
   ) {
     return true;
   }
-  if (!isScopedClaimReaderRole(userRole)) return false;
 
-  return hasScopedClaimReadAccess({
-    branchId: session.user.branchId ?? null,
-    claim: {
-      branchId: claim.branchId,
-      staffId: claim.staffId,
-      userId: claim.ownerId,
-      agentId: claim.agentId,
-    },
-    role: userRole,
-    userId: session.user.id,
-  });
+  if (
+    isScopedClaimReaderRole(userRole) &&
+    hasScopedClaimReadAccess({
+      branchId: session.user.branchId ?? null,
+      claim: {
+        branchId: claim.branchId,
+        staffId: claim.staffId,
+        userId: claim.ownerId,
+        agentId: claim.agentId,
+      },
+      role: userRole,
+      userId: session.user.id,
+    })
+  ) {
+    return true;
+  }
+
+  if (!document.claimId) return false;
+  return hasAnyCaseScopedGrant(db, tenantId, session, document.claimId, document.category);
 }
 
 async function hasAnyCaseScopedGrant(

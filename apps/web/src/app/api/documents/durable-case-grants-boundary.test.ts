@@ -88,6 +88,23 @@ describe('document durable case grant boundary', () => {
     );
   });
 
+  it('keeps same-tenant legacy owner access ahead of durable grant lookup', async () => {
+    setup(
+      [],
+      [
+        {
+          doc: { id: 'doc-1', claimId: 'claim-1', category: 'legal', uploadedBy: 'member-1' },
+          claimOwnerId: 'local-legal-1',
+        },
+      ]
+    );
+
+    await expect(
+      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+    ).resolves.toEqual(expect.objectContaining({ ok: true }));
+    expect(hasDurableCaseScopedDocumentGrant).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['member profile', { ...claimDoc(), entityId: 'member-1', entityType: 'member' }],
     ['membership entity', { ...claimDoc(), entityId: 'membership-1', entityType: 'membership' }],
