@@ -28,12 +28,14 @@ function dbWith(polyRows: unknown[], legacyRows: unknown[] = []) {
 
 function transactionalDbWith(polyRows: unknown[], legacyRows: unknown[] = []) {
   const tx = dbWith(polyRows, legacyRows);
+  const execute = vi.fn().mockResolvedValue(undefined);
   return {
+    execute,
     tx,
     db: {
       transaction: vi.fn(
         async (action: (innerTx: typeof tx & { execute: typeof vi.fn }) => unknown) =>
-          action({ ...tx, execute: vi.fn().mockResolvedValue(undefined) })
+          action({ ...tx, execute })
       ),
     },
   };
@@ -118,12 +120,28 @@ describe('lookupCrossGrantDoc', () => {
       id: 'doc-1',
       tenantId: 'tenant_home',
     };
-    const { db } = transactionalDbWith([doc]);
+    const { db, execute } = transactionalDbWith([doc]);
     mocks.hasDurableCaseScopedDocumentGrant.mockResolvedValueOnce(true);
 
     await expect(lookupCrossGrantDoc({ ...request, db: db as never })).resolves.toEqual(
       expect.objectContaining({ kind: 'poly' })
     );
     expect(db.transaction).toHaveBeenCalledTimes(1);
+    expect(execute.mock.calls.map(([statement]) => sqlParam(statement))).toEqual([
+      undefined,
+      'tenant_home',
+      'tenant_home',
+    ]);
+    expect(mocks.hasDurableCaseScopedDocumentGrant).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accessTenantId: 'tenant_mk',
+        caseId: 'claim-1',
+        homeTenantId: 'tenant_home',
+      })
+    );
   });
 });
+
+function sqlParam(statement: unknown) {
+  return (statement as { queryChunks?: unknown[] }).queryChunks?.[1];
+}

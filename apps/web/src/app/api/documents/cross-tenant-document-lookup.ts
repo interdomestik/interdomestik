@@ -116,9 +116,7 @@ async function withDocumentReadContext<T>(
   return args.db.transaction(async tx => {
     await tx.execute(sql`set local row_security = on`);
     await tx.execute(sql`select set_config('app.current_tenant_id', ${homeTenantId}, true)`);
-    await tx.execute(
-      sql`select set_config('app.current_access_tenant_id', ${args.accessTenantId}, true)`
-    );
+    await tx.execute(sql`select set_config('app.current_access_tenant_id', ${homeTenantId}, true)`);
     return action(tx);
   });
 }
