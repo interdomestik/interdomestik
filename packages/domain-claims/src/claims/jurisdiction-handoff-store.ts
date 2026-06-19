@@ -4,6 +4,10 @@ import type { HandoffClaimRow, HandoffTx } from './jurisdiction-handoff-types';
 
 export { insertHandoffGrant } from './jurisdiction-handoff-store-insert';
 
+export function isRecoveryGrantActorRole(role: string | null | undefined): boolean {
+  return role === 'staff' || role === 'admin' || role === 'tenant_admin' || role === 'super_admin';
+}
+
 export async function lockHandoffClaim(
   tx: HandoffTx,
   tenantId: string,
@@ -65,9 +69,15 @@ export async function isGrantActorInRecoveryTenant(
   recoveryTenantId: string
 ): Promise<boolean> {
   const [row] = await tx
-    .select({ id: user.id })
+    .select({ id: user.id, role: user.role })
     .from(user)
-    .where(sql`${user.id} = ${actorId} and ${user.tenantId} = ${recoveryTenantId}`)
+    .where(
+      sql`
+        ${user.id} = ${actorId}
+        and ${user.tenantId} = ${recoveryTenantId}
+        and ${user.role} in ('staff', 'admin', 'tenant_admin', 'super_admin')
+      `
+    )
     .limit(1);
-  return Boolean(row);
+  return isRecoveryGrantActorRole(row?.role);
 }
