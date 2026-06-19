@@ -6,34 +6,9 @@ import {
   appendPullRequestScannerProperties,
   appendScannerProperties,
   buildNativeScannerArgs,
+  normalizeSonarHostUrl,
+  waitForSonarUp,
 } from './sonar-scan-lib.mjs';
-
-async function waitForSonarUp({ statusUrl, timeoutMs }) {
-  const start = Date.now();
-  // Basic backoff: short sleeps, but don't hammer the server.
-  const sleepMs = 1500;
-
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const response = await fetch(statusUrl, {
-        // SonarQube can be slow to respond while booting.
-        signal: AbortSignal.timeout(2500),
-      });
-
-      if (response.ok) {
-        const data = await response.json().catch(() => null);
-        const status = data?.status;
-        if (status === 'UP') {
-          return;
-        }
-      }
-    } catch {
-      // ignore and retry
-    }
-
-    await new Promise(resolve => setTimeout(resolve, sleepMs));
-  }
-}
 
 function run(cmd, args, opts = {}) {
   const { allowFailure = false, ...spawnOptions } = opts;
@@ -109,7 +84,9 @@ if (!sonarToken) {
 // so we default to `host.docker.internal`.
 const cwd = process.cwd();
 
-const sonarHostUrl = process.env.SONAR_HOST_URL ?? 'http://host.docker.internal:9000';
+const sonarHostUrl = normalizeSonarHostUrl(
+  process.env.SONAR_HOST_URL ?? 'http://host.docker.internal:9000'
+);
 const skipJreProvisioning = process.env.SONAR_SCANNER_SKIP_JRE_PROVISIONING === 'true';
 const scannerProperties = appendScannerProperties([`-Dsonar.host.url=${sonarHostUrl}`], {
   skipJreProvisioning,
@@ -153,9 +130,9 @@ if (pullRequestKey && (!pullRequestBranch || !pullRequestBase)) {
   console.error(
     [
       'Missing pull request branch context for Sonar PR analysis.',
-      `SONAR_PULLREQUEST_KEY=${pullRequestKey}`,
-      `SONAR_PULLREQUEST_BRANCH=${pullRequestBranch || '<empty>'}`,
-      `SONAR_PULLREQUEST_BASE=${pullRequestBase || '<empty>'}`,
+      `pull request key present: ${pullRequestKey ? 'yes' : 'no'}`,
+      `pull request branch present: ${pullRequestBranch ? 'yes' : 'no'}`,
+      `pull request base present: ${pullRequestBase ? 'yes' : 'no'}`,
     ].join('\n')
   );
   process.exit(2);

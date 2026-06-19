@@ -123,7 +123,7 @@ async function main() {
       surface: 'POST /api/uploads',
       generatedAt: new Date().toISOString(),
       targetKind: new URL(config.targetUrl).hostname,
-      fixture: { tenantId: config.tenantId, actorId: config.actorId },
+      fixture: { tenantId: 'configured', actorId: 'configured' },
       samples: attempts.length,
       warmup: config.warmup,
       concurrency: 1,

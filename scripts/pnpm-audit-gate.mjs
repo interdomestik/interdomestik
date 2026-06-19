@@ -1,18 +1,16 @@
 import fs from 'node:fs';
-import path from 'node:path';
+import { resolveReadableInputPath } from './input-path-safety.mjs';
 
-const [,, auditFile, ...allowlist] = process.argv;
+const [, , auditFile, ...allowlist] = process.argv;
 
 if (!auditFile) {
   console.error('Usage: node scripts/pnpm-audit-gate.mjs <audit-json-file> [ALLOWLIST...]');
   process.exit(1);
 }
 
-const raw = fs.readFileSync(auditFile, 'utf8').trim();
+const raw = fs.readFileSync(resolveReadableInputPath(auditFile, 'Audit JSON file'), 'utf8').trim();
 
-if (!raw) {
-  process.exit(0);
-}
+if (!raw) process.exit(0);
 
 const allowed = new Set();
 const allowedPathRules = [];
@@ -22,14 +20,10 @@ function normalizeAllowlistEntry(entry) {
     return { id: String(entry), paths: [] };
   }
 
-  if (!entry || typeof entry !== 'object') {
-    return null;
-  }
+  if (!entry || typeof entry !== 'object') return null;
 
   const id = entry.id ?? entry.ghsaId;
-  if (!id) {
-    return null;
-  }
+  if (!id) return null;
 
   const paths = Array.isArray(entry.paths)
     ? entry.paths.map(pathEntry => String(pathEntry))
@@ -45,15 +39,20 @@ function normalizeAllowlistEntry(entry) {
   };
 }
 
+function isMissingInputError(error) {
+  return error instanceof Error && error.message.includes('does not exist');
+}
+
 function loadAllowlistFile(filePath) {
   try {
-    if (!filePath || !fs.existsSync(filePath)) {
-      return [];
-    }
-    const rawAllowlist = fs.readFileSync(filePath, 'utf8').trim();
-    if (!rawAllowlist) {
-      return [];
-    }
+    if (!filePath) return [];
+    const rawAllowlist = fs
+      .readFileSync(
+        resolveReadableInputPath(filePath, 'Audit allowlist file', { allowTemp: false }),
+        'utf8'
+      )
+      .trim();
+    if (!rawAllowlist) return [];
     const parsed = JSON.parse(rawAllowlist);
     if (Array.isArray(parsed)) {
       return parsed.map(normalizeAllowlistEntry).filter(Boolean);
@@ -62,18 +61,18 @@ function loadAllowlistFile(filePath) {
       return parsed.allowlist.map(normalizeAllowlistEntry).filter(Boolean);
     }
     return [];
-  } catch {
-    return [];
+  } catch (error) {
+    if (isMissingInputError(error)) return [];
+    throw error;
   }
 }
 
-const repoAllowlistPath = path.resolve(process.cwd(), 'scripts', 'pnpm-audit-allowlist.json');
-loadAllowlistFile(repoAllowlistPath).forEach(entry => {
+for (const entry of loadAllowlistFile('scripts/pnpm-audit-allowlist.json')) {
   allowed.add(entry.id);
   if (entry.paths.length > 0) {
     allowedPathRules.push(entry);
   }
-});
+}
 
 if (allowlist.length > 0) {
   allowlist.forEach(entry => {
@@ -92,6 +91,7 @@ if (allowlist.length > 0) {
     allowed.add(String(entry));
   });
 }
+
 const advisories = new Map();
 
 function ingestRecord(record) {

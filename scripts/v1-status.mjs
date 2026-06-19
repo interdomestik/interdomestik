@@ -1,13 +1,21 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
-import path from 'node:path';
+
+import { resolveReadableInputPath } from './input-path-safety.mjs';
 
 const DEFAULT_TRACKER = 'docs/plans/2026-02-22-v1-bulletproof-tracker.md';
-const trackerPath = path.resolve(process.cwd(), process.argv[2] || DEFAULT_TRACKER);
+let trackerPath;
 
-if (!fs.existsSync(trackerPath)) {
-  console.error(`Tracker not found: ${trackerPath}`);
+try {
+  trackerPath = resolveReadableInputPath(process.argv[2] || DEFAULT_TRACKER, 'Tracker path', {
+    allowTemp: false,
+  });
+} catch (error) {
+  if (!(error instanceof Error) || !error.message.includes('does not exist')) {
+    throw error;
+  }
+  console.error('Tracker not found: configured repository tracker path');
   process.exit(1);
 }
 
@@ -50,7 +58,7 @@ const nextActions = openActions.slice(0, 8);
 
 console.log('=== Interdomestik v1.0.0 Bulletproof Status (Legacy) ===');
 console.log('Use `pnpm plan:status` for the live program status.\n');
-console.log(`Tracker: ${trackerPath}`);
+console.log('Tracker: configured repository tracker path');
 console.log(`Historical last updated: ${getValue('Historical last updated:', 'Last updated:')}`);
 console.log(
   `Historical phase snapshot: ${getValue('Historical phase snapshot:', 'Current phase:')}`

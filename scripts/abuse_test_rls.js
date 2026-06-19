@@ -40,7 +40,7 @@ async function checkTable(tableName, description) {
 async function run() {
   console.log('🔒 Interdomestik RLS Abuse Test');
   console.log('===============================');
-  console.log('Target: ', SUPABASE_URL);
+  console.log('Target: configured Supabase endpoint');
 
   // Test Better Auth Tables (Likely Vulnerable)
   await checkTable('user', 'Better Auth User Table (PII)');

@@ -44,3 +44,35 @@ export function appendPullRequestScannerProperties(
 export function buildNativeScannerArgs(scannerProperties) {
   return ['dlx', '--package=@sonar/scan', 'sonar-scanner', ...scannerProperties];
 }
+
+export function normalizeSonarHostUrl(rawHostUrl) {
+  const parsed = new URL(rawHostUrl);
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('SONAR_HOST_URL must use http or https.');
+  }
+  if (parsed.username || parsed.password || parsed.search || parsed.hash) {
+    throw new Error('SONAR_HOST_URL must not include credentials, query parameters, or fragments.');
+  }
+  return `${parsed.origin}${parsed.pathname.replace(/\/+$/u, '')}`;
+}
+
+export async function waitForSonarUp({ statusUrl, timeoutMs }) {
+  const start = Date.now();
+  const sleepMs = 1500;
+
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const response = await fetch(statusUrl, { signal: AbortSignal.timeout(2500) });
+      if (response.ok) {
+        const data = await response.json().catch(() => null);
+        if (data?.status === 'UP') return;
+      }
+    } catch {
+      // ignore and retry
+    }
+
+    await new Promise(resolve => setTimeout(resolve, sleepMs));
+  }
+
+  throw new Error(`SonarQube did not become ready within ${timeoutMs}ms.`);
+}

@@ -5,6 +5,8 @@ import {
   appendPullRequestScannerProperties,
   appendScannerProperties,
   buildNativeScannerArgs,
+  normalizeSonarHostUrl,
+  waitForSonarUp,
 } from './sonar-scan-lib.mjs';
 
 test('appendScannerProperties adds skip JRE provisioning when requested', () => {
@@ -57,5 +59,19 @@ test('appendPullRequestScannerProperties leaves non-PR scans unchanged', () => {
   assert.deepEqual(
     appendPullRequestScannerProperties(['-Dsonar.host.url=https://sonarcloud.io'], {}),
     ['-Dsonar.host.url=https://sonarcloud.io']
+  );
+});
+
+test('normalizeSonarHostUrl rejects credential-bearing URLs', () => {
+  assert.throws(
+    () => normalizeSonarHostUrl('https://user:token@sonarcloud.io?token=secret'),
+    /must not include credentials/u
+  );
+});
+
+test('waitForSonarUp fails clearly when the server stays unavailable', async () => {
+  await assert.rejects(
+    () => waitForSonarUp({ statusUrl: 'http://127.0.0.1:1/api/system/status', timeoutMs: 1 }),
+    /did not become ready/u
   );
 });
