@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isGrantActorInRecoveryTenant,
   isRecoveryGrantActorRole,
-} from './jurisdiction-handoff-store';
+} from './jurisdiction-handoff-grant-actor';
 
 describe('isRecoveryGrantActorRole', () => {
   it('allows only recovery staff and admin-style actors to receive handoff grants', () => {

@@ -10,13 +10,23 @@ export type HandoffClaimRow = {
   staffId: string | null;
 };
 
+export type TrustedGrantActorSnapshot = {
+  role: string;
+  tenantId: string;
+};
+
+export type TrustedGrantActorResolver = (args: {
+  actorId: string;
+  recoveryTenantId: string;
+  tx: HandoffTx;
+}) => Promise<TrustedGrantActorSnapshot | null>;
+
 export type JurisdictionHandoffParams = {
   actor: { branchId?: string | null; id: string; role: string };
   claimId: string;
   correlationId?: string;
   grantActorId: string;
-  grantActorRole: string;
-  grantActorTenantId: string;
+  grantActorResolver: TrustedGrantActorResolver;
   grantExpiresAt?: Date | null;
   homeTenantId: string;
   now?: Date;

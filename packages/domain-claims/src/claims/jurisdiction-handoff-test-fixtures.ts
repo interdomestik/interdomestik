@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 export const tx = {} as never;
 
 export const baseClaim = {
@@ -12,8 +14,7 @@ export const baseParams = {
   actor: { branchId: 'branch-a', id: 'staff-1', role: 'staff' },
   claimId: 'claim-1',
   grantActorId: 'local-legal-1',
-  grantActorRole: 'staff',
-  grantActorTenantId: 'tenant_mk',
+  grantActorResolver: vi.fn(async () => ({ role: 'staff', tenantId: 'tenant_mk' })),
   homeTenantId: 'tenant_ks',
   now: new Date('2026-06-19T10:00:00Z'),
 };
@@ -36,8 +37,22 @@ export const preGrantCases = [
     undefined,
   ],
   ['handoff_grant_expired', { ...baseParams, grantExpiresAt: baseParams.now }, undefined],
-  ['grant_actor_not_recovery_tenant', { ...baseParams, grantActorRole: 'member' }, false],
-  ['grant_actor_not_recovery_tenant', { ...baseParams, grantActorTenantId: 'tenant_ks' }, false],
+  [
+    'grant_actor_not_recovery_tenant',
+    {
+      ...baseParams,
+      grantActorResolver: vi.fn(async () => ({ role: 'member', tenantId: 'tenant_mk' })),
+    },
+    false,
+  ],
+  [
+    'grant_actor_not_recovery_tenant',
+    {
+      ...baseParams,
+      grantActorResolver: vi.fn(async () => ({ role: 'staff', tenantId: 'tenant_ks' })),
+    },
+    false,
+  ],
 ] as const;
 
 export const rollbackCases = [

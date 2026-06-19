@@ -6,10 +6,10 @@ import { resolveJurisdictionHandoffEligibility } from './jurisdiction-handoff-el
 import { JurisdictionHandoffRollbackError } from './jurisdiction-handoff-errors';
 import type { JurisdictionHandoffRollbackCode } from './jurisdiction-handoff-errors';
 import { appendHandoffEvent } from './jurisdiction-handoff-event';
+import { resolveTrustedRecoveryGrantActor } from './jurisdiction-handoff-grant-actor';
 import { defaultHandoffCorrelationId, stableHandoffId } from './jurisdiction-handoff-ids';
 import {
   insertHandoffGrant,
-  isGrantActorInRecoveryTenant,
   loadHandoffClaim,
   lockHandoffClaim,
   setRecoveryLegalTenantIfUnset,
@@ -50,13 +50,13 @@ export async function recordJurisdictionHandoffInTransaction(
     return { success: false, error: 'handoff_grant_expired' };
   }
 
-  if (
-    !isGrantActorInRecoveryTenant({
-      actorTenantId: params.grantActorTenantId,
-      recoveryTenantId: recovery.recoveryLegalTenantId,
-      role: params.grantActorRole,
-    })
-  ) {
+  const canGrantActorReceiveAccess = await resolveTrustedRecoveryGrantActor({
+    actorId: params.grantActorId,
+    recoveryTenantId: recovery.recoveryLegalTenantId,
+    resolver: params.grantActorResolver,
+    tx,
+  });
+  if (!canGrantActorReceiveAccess) {
     return { success: false, error: 'grant_actor_not_recovery_tenant' };
   }
 

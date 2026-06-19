@@ -4,10 +4,6 @@ import type { HandoffClaimRow, HandoffTx } from './jurisdiction-handoff-types';
 
 export { insertHandoffGrant } from './jurisdiction-handoff-store-insert';
 
-export function isRecoveryGrantActorRole(role: string | null | undefined): boolean {
-  return role === 'staff' || role === 'admin' || role === 'tenant_admin' || role === 'super_admin';
-}
-
 export async function lockHandoffClaim(
   tx: HandoffTx,
   tenantId: string,
@@ -61,12 +57,4 @@ export async function setRecoveryLegalTenantIfUnset(args: {
     )
     .returning({ id: claims.id });
   return updated.length === 1;
-}
-
-export function isGrantActorInRecoveryTenant(args: {
-  actorTenantId: string;
-  recoveryTenantId: string;
-  role: string;
-}): boolean {
-  return args.actorTenantId === args.recoveryTenantId && isRecoveryGrantActorRole(args.role);
 }

@@ -16,13 +16,6 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('./jurisdiction-handoff-store', () => ({
   insertHandoffGrant: mocks.insertHandoffGrant,
-  isGrantActorInRecoveryTenant: (args: {
-    actorTenantId: string;
-    recoveryTenantId: string;
-    role: string;
-  }) =>
-    args.actorTenantId === args.recoveryTenantId &&
-    ['staff', 'admin', 'tenant_admin', 'super_admin'].includes(args.role),
   loadHandoffClaim: mocks.loadHandoffClaim,
   lockHandoffClaim: mocks.lockHandoffClaim,
   setRecoveryLegalTenantIfUnset: mocks.setRecoveryLegalTenantIfUnset,
@@ -78,6 +71,11 @@ describe('recordJurisdictionHandoffInTransaction', () => {
         recoveryLegalTenantId: 'tenant_mk',
       })
     );
+    expect(baseParams.grantActorResolver).toHaveBeenCalledWith({
+      actorId: 'local-legal-1',
+      recoveryTenantId: 'tenant_mk',
+      tx,
+    });
     expect(mocks.appendEvent).toHaveBeenCalledWith(
       tx,
       expect.objectContaining({
