@@ -1,9 +1,9 @@
 import { caseScopedAccessGrants } from '@interdomestik/database/schema';
+import { and, eq, isNull, ne, or, gt } from 'drizzle-orm';
 import {
   canUseCaseScopedDocumentGrant,
   type CaseScopedDocumentClass,
 } from '@interdomestik/shared-auth';
-import { and, eq } from 'drizzle-orm';
 
 import type { DocumentAccessDeps } from './_core';
 
@@ -14,6 +14,44 @@ const APPROVED_DURABLE_DOCUMENT_CLASSES = new Set<CaseScopedDocumentClass>([
   'legal',
   'receipt',
 ]);
+
+export type CrossGrantContext = {
+  homeTenantId: string;
+  caseId: string;
+  documentClasses: readonly string[];
+};
+
+/** Returns active, non-revoked, non-expired grants for an actor where the home tenant
+ *  differs from the actor's own access tenant (genuine cross-tenant grants). */
+export async function findActorCrossGrantContexts(args: {
+  actorId: string;
+  accessTenantId: string;
+  db: DocumentAccessDeps['db'];
+  now?: Date;
+}): Promise<CrossGrantContext[]> {
+  const now = args.now ?? new Date();
+  const rows = await args.db
+    .select({
+      tenantId: caseScopedAccessGrants.tenantId,
+      caseId: caseScopedAccessGrants.caseId,
+      documentClasses: caseScopedAccessGrants.documentClasses,
+    })
+    .from(caseScopedAccessGrants)
+    .where(
+      and(
+        eq(caseScopedAccessGrants.accessTenantId, args.accessTenantId),
+        ne(caseScopedAccessGrants.tenantId, args.accessTenantId),
+        eq(caseScopedAccessGrants.actorId, args.actorId),
+        isNull(caseScopedAccessGrants.revokedAt),
+        or(isNull(caseScopedAccessGrants.expiresAt), gt(caseScopedAccessGrants.expiresAt, now))
+      )
+    );
+  return rows.map(r => ({
+    homeTenantId: r.tenantId,
+    caseId: r.caseId,
+    documentClasses: r.documentClasses,
+  }));
+}
 
 export async function hasDurableCaseScopedDocumentGrant(args: {
   accessTenantId: string;
@@ -58,7 +96,7 @@ export async function hasDurableCaseScopedDocumentGrant(args: {
   });
 }
 
-function toApprovedDurableDocumentClass(value: unknown): CaseScopedDocumentClass | null {
+export function toApprovedDurableDocumentClass(value: unknown): CaseScopedDocumentClass | null {
   if (typeof value !== 'string') return null;
   return APPROVED_DURABLE_DOCUMENT_CLASSES.has(value as CaseScopedDocumentClass)
     ? (value as CaseScopedDocumentClass)

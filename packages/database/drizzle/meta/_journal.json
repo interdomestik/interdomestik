@@ -603,6 +603,13 @@
       "when": 1781846400000,
       "tag": "0085_case_scoped_access_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1781933000000,
+      "tag": "0086_fix_document_classes_check",
+      "breakpoints": true
     }
   ]
 }

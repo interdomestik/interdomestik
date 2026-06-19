@@ -4,7 +4,12 @@ vi.mock('./durable-case-grants', () => ({
   hasDurableCaseScopedDocumentGrant: vi.fn().mockResolvedValue(false),
 }));
 
+vi.mock('./cross-tenant-document-lookup', () => ({
+  lookupCrossGrantDoc: vi.fn().mockResolvedValue(null),
+}));
+
 import { getDocumentAccessCore, type DocumentAccessDeps } from './_core';
+import { lookupCrossGrantDoc } from './cross-tenant-document-lookup';
 import { hasDurableCaseScopedDocumentGrant } from './durable-case-grants';
 
 const mockDb = { select: vi.fn() };
@@ -42,8 +47,8 @@ function claimDoc(category = 'legal') {
 describe('document durable case grant boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(hasDurableCaseScopedDocumentGrant).mockReset();
     vi.mocked(hasDurableCaseScopedDocumentGrant).mockResolvedValue(false);
+    vi.mocked(lookupCrossGrantDoc).mockResolvedValue(null);
   });
 
   it('allows polymorphic claim documents when the durable grant authorizes the case', async () => {
@@ -96,45 +101,26 @@ describe('document durable case grant boundary', () => {
     expect(hasDurableCaseScopedDocumentGrant).not.toHaveBeenCalled();
   });
 
-  it('resolves approved home-tenant claim documents through durable grants', async () => {
-    vi.mocked(hasDurableCaseScopedDocumentGrant).mockResolvedValueOnce(true);
-    mockDb.select.mockReset();
-    mockDb.select.mockReturnValue(selectResult([]));
-    mockDb.select.mockReturnValueOnce(selectResult([]));
-    mockDb.select.mockReturnValueOnce(selectResult([], true));
-    mockDb.select.mockReturnValueOnce(selectResult([{ ...claimDoc(), tenantId: 'tenant_ks' }]));
+  it('allows cross-tenant document access via jurisdiction handoff grant', async () => {
+    const legacyDoc = { id: 'doc-1', claimId: 'claim-1', bucket: 'claim-evidence', filePath: 'f' };
+    vi.mocked(lookupCrossGrantDoc).mockResolvedValueOnce({
+      kind: 'legacy',
+      doc: legacyDoc as never,
+      homeTenantId: 'home-t',
+    });
+    setup([], [], true);
 
     await expect(
       getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
-    ).resolves.toEqual(expect.objectContaining({ ok: true, tenantId: 'tenant_ks' }));
-    expect(hasDurableCaseScopedDocumentGrant).toHaveBeenCalledWith(
-      expect.objectContaining({
-        accessTenantId: 't1',
-        actorId: 'local-legal-1',
-        caseId: 'claim-1',
-        documentClass: 'legal',
-        homeTenantId: 'tenant_ks',
-      })
-    );
+    ).resolves.toEqual(expect.objectContaining({ ok: true, tenantId: 'home-t' }));
   });
 
-  it.each([
-    [
-      'profile',
-      { ...claimDoc(), entityId: 'member-1', entityType: 'member', tenantId: 'tenant_ks' },
-    ],
-    [
-      'membership',
-      { ...claimDoc(), entityId: 'membership-1', entityType: 'membership', tenantId: 'tenant_ks' },
-    ],
-    ['wrong class', { ...claimDoc('identity'), tenantId: 'tenant_ks' }],
-  ])('does not resolve home-tenant %s documents through durable grants', async (_label, doc) => {
-    setup([], []);
-    mockDb.select.mockReturnValueOnce(selectResult([doc]));
-    mockDb.select.mockReturnValueOnce(selectResult([], true));
+  it('denies cross-tenant document access when grant does not cover the document class', async () => {
+    vi.mocked(lookupCrossGrantDoc).mockResolvedValueOnce({ kind: 'forbidden' });
+    setup([], [], true);
 
     await expect(
       getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
-    ).resolves.toEqual({ ok: false, code: 'NOT_FOUND', message: 'Document not found' });
+    ).resolves.toEqual({ ok: false, code: 'FORBIDDEN', message: 'Forbidden' });
   });
 });

@@ -2,7 +2,7 @@ import { ApiErrorCode } from '@/core-contracts';
 import type { AuditEvent } from '@/lib/audit';
 import type { TenantStorageFamily } from '@/lib/storage/tenant-prefix';
 import type * as DatabaseModule from '@interdomestik/database';
-import { claimDocuments, claims, documents, policies } from '@interdomestik/database/schema';
+import { claimDocuments, claims, documents } from '@interdomestik/database/schema';
 import {
   ensureAccessTenantId,
   type CaseScopedAccessGrant,
@@ -10,15 +10,9 @@ import {
 } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
-import { isFullTenantClaimsRole } from './access-policy';
-import {
-  canReadLegacyClaimDocument,
-  canReadPolymorphicClaimDocument,
-} from './claim-document-access';
-import {
-  findDurableGrantedLegacyClaimDocument,
-  findDurableGrantedPolymorphicClaimDocument,
-} from './durable-claim-document-lookup';
+import { canReadLegacyClaimDocument } from './claim-document-access';
+import { lookupCrossGrantDoc } from './cross-tenant-document-lookup';
+import { canReadPolymorphicDocument } from './polymorphic-document-access';
 
 type DatabaseClient = typeof DatabaseModule.db;
 
@@ -62,13 +56,6 @@ type DocumentRow = {
   fileSize: number | null;
 };
 type DocumentAccessMode = 'signed_url' | 'download';
-type PolymorphicDocumentRow = {
-  id: string;
-  entityId: string;
-  entityType: string;
-  category?: GrantDocumentClass | null;
-  uploadedBy: string | null;
-};
 type GrantDocumentClass = CaseScopedDocumentClass;
 export type DocumentAccessResult =
   | {
@@ -272,58 +259,6 @@ export async function logAllowedDocumentAccess(args: {
   });
 }
 
-async function canReadPolymorphicDocument(args: {
-  db: DatabaseClient;
-  polyDoc: PolymorphicDocumentRow;
-  session: SessionDTO;
-  tenantId: string;
-  userRole: string | undefined;
-}): Promise<boolean> {
-  const { db, polyDoc, session, tenantId, userRole } = args;
-
-  // 1. Full Tenant Roles always have access
-  if (isFullTenantClaimsRole(userRole)) {
-    return true;
-  }
-
-  // 2. Uploader access, except agents must still be assigned to claim documents and
-  // policy documents must pass the policy-owner check below.
-  if (
-    polyDoc.uploadedBy === session.user.id &&
-    !(userRole === 'agent' && polyDoc.entityType === 'claim') &&
-    polyDoc.entityType !== 'policy'
-  ) {
-    return true;
-  }
-
-  // 3. Member Access to their own User/Member profile documents
-  if (polyDoc.entityType === 'member' || polyDoc.entityType === 'user') {
-    return polyDoc.entityId === session.user.id;
-  }
-
-  // 4. Claim Document Access
-  if (polyDoc.entityType === 'claim') {
-    return canReadPolymorphicClaimDocument(args);
-  }
-
-  // 5. Policy Document Access
-  if (polyDoc.entityType === 'policy') {
-    const [policyRow] = await db
-      .select({ policyOwnerId: policies.userId })
-      .from(policies)
-      .where(and(eq(policies.id, polyDoc.entityId), eq(policies.tenantId, tenantId)));
-
-    if (!policyRow) return false;
-
-    return policyRow.policyOwnerId === session.user.id;
-  }
-
-  // 6. Thread / Communication Access (Future-proofing)
-  // Logic for threads would go here, currently returning false to fail-closed.
-
-  return false;
-}
-
 export async function getDocumentAccessCore(args: {
   session: SessionDTO;
   documentId: string;
@@ -388,54 +323,50 @@ export async function getDocumentAccessCore(args: {
     .where(and(eq(claimDocuments.id, documentId), eq(claimDocuments.tenantId, tenantId)));
 
   if (!row?.doc) {
-    const durablePolyDoc = await findDurableGrantedPolymorphicClaimDocument({
+    // 3. Cross-tenant fallback for jurisdiction-handoff recovery/legal actors.
+    const crossDoc = await lookupCrossGrantDoc({
+      actorId: session.user.id,
       accessTenantId: tenantId,
       db,
       documentId,
-      session,
     });
-    if (durablePolyDoc) {
-      const document = buildPolymorphicDocument(durablePolyDoc);
+    if (crossDoc === null) {
+      return { ok: false, code: 'NOT_FOUND', message: 'Document not found' };
+    }
+    if (crossDoc.kind === 'forbidden') {
+      return { ok: false, code: 'FORBIDDEN', message: 'Forbidden' };
+    }
+    if (crossDoc.kind === 'poly') {
+      const document = buildPolymorphicDocument(crossDoc.doc);
       return {
         ok: true,
         document,
         storageFamily: getStorageFamilyForDocument(document),
-        tenantId: durablePolyDoc.tenantId,
+        tenantId: crossDoc.homeTenantId,
         audit: buildDocumentAudit({
           actorRole: userRole,
           disposition: finalDisposition,
           document,
           documentId,
-          entityType: 'claim_document',
+          entityType: getPolymorphicDocumentAuditEntityType(crossDoc.doc.entityType),
           mode,
         }),
       };
     }
-
-    const durableLegacyRow = await findDurableGrantedLegacyClaimDocument({
-      accessTenantId: tenantId,
-      db,
-      documentId,
-      session,
-    });
-    if (durableLegacyRow?.doc) {
-      const doc = durableLegacyRow.doc as never as DocumentRow;
-      return {
-        ok: true,
-        document: doc,
-        storageFamily: getStorageFamilyForDocument(doc),
-        tenantId: durableLegacyRow.doc.tenantId,
-        audit: buildDocumentAudit({
-          actorRole: userRole,
-          disposition: finalDisposition,
-          document: doc,
-          documentId,
-          mode,
-        }),
-      };
-    }
-
-    return { ok: false, code: 'NOT_FOUND', message: 'Document not found' };
+    const crossLegacy: DocumentRow = crossDoc.doc;
+    return {
+      ok: true,
+      document: crossLegacy,
+      storageFamily: getStorageFamilyForDocument(crossLegacy),
+      tenantId: crossDoc.homeTenantId,
+      audit: buildDocumentAudit({
+        actorRole: userRole,
+        disposition: finalDisposition,
+        document: crossLegacy,
+        documentId,
+        mode,
+      }),
+    };
   }
 
   const doc = row.doc as never as DocumentRow;
