@@ -39,7 +39,6 @@ export const CLAIM_STATUS_FIXTURE_WRITERS = new Set([
   'packages/database/src/seed-full/claims.ts',
   'packages/database/src/seed-golden/claims.ts',
   'packages/database/src/seed-packs/ks-workflow-pack.ts',
-  'packages/database/test/case-scoped-access-grants-rls-fixture.ts',
   'packages/database/test/rls-engaged.test.ts',
   'scripts/ci/db-access-guard.test.mjs',
   'scripts/pilot/day1_multi_seeder.ts',
