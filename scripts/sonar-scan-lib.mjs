@@ -47,11 +47,14 @@ export function buildNativeScannerArgs(scannerProperties) {
 
 const SONARCLOUD_HOST_URL = 'https://sonarcloud.io';
 const LOCAL_SONAR_PROTOCOL = 'http:';
-const LOCAL_SONAR_HOSTS = new Set(['host.docker.internal:9000', 'sonarqube:9000']);
+const LOCAL_SONAR_URLS = new Map([
+  ['host.docker.internal:9000', 'http://host.docker.internal:9000'],
+  ['sonarqube:9000', 'http://sonarqube:9000'],
+]);
 
 function stripTrailingSlashes(pathname) {
   let end = pathname.length;
-  while (end > 1 && pathname.charCodeAt(end - 1) === 47) {
+  while (end > 1 && pathname.codePointAt(end - 1) === 47) {
     end -= 1;
   }
 
@@ -66,11 +69,6 @@ function parseSonarHostUrl(rawHostUrl) {
       'SONAR_HOST_URL must be a valid URL without credentials, query parameters, or fragments.'
     );
   }
-}
-
-function localStatusUrl(host) {
-  const statusUrl = new URL('/api/system/status', `${LOCAL_SONAR_PROTOCOL}//${host}`);
-  return statusUrl.toString();
 }
 
 export function normalizeSonarHostUrl(rawHostUrl = SONARCLOUD_HOST_URL) {
@@ -88,12 +86,9 @@ export function normalizeSonarHostUrl(rawHostUrl = SONARCLOUD_HOST_URL) {
   }
 
   const localHost = parsed.host.toLowerCase();
-  if (
-    parsed.protocol === LOCAL_SONAR_PROTOCOL &&
-    LOCAL_SONAR_HOSTS.has(localHost) &&
-    pathname === '/'
-  ) {
-    return `${LOCAL_SONAR_PROTOCOL}//${localHost}`;
+  const localUrl = LOCAL_SONAR_URLS.get(localHost);
+  if (parsed.protocol === LOCAL_SONAR_PROTOCOL && localUrl && pathname === '/') {
+    return localUrl;
   }
 
   throw new Error(
@@ -101,24 +96,38 @@ export function normalizeSonarHostUrl(rawHostUrl = SONARCLOUD_HOST_URL) {
   );
 }
 
-export function resolveSonarStatusUrl({ sonarHostUrl, forceNative = false } = {}) {
-  const parsed = parseSonarHostUrl(sonarHostUrl);
-  const localHost = parsed.host.toLowerCase();
-
-  if (parsed.protocol !== LOCAL_SONAR_PROTOCOL || !LOCAL_SONAR_HOSTS.has(localHost)) {
-    return null;
+export function resolveSonarStatusTarget({ sonarHostUrl, forceNative = false } = {}) {
+  if (sonarHostUrl === 'http://host.docker.internal:9000') {
+    return forceNative ? 'host-docker-native' : 'local-docker';
   }
-
-  return forceNative ? localStatusUrl(localHost) : localStatusUrl('localhost:9000');
+  if (sonarHostUrl === 'http://sonarqube:9000') {
+    return forceNative ? 'sonarqube-native' : 'local-docker';
+  }
+  return null;
 }
 
-export async function waitForSonarUp({ statusUrl, timeoutMs }) {
+function fetchSonarStatus(target) {
+  const options = { signal: AbortSignal.timeout(2500) };
+
+  switch (target) {
+    case 'local-docker':
+      return fetch('http://localhost:9000/api/system/status', options);
+    case 'host-docker-native':
+      return fetch('http://host.docker.internal:9000/api/system/status', options);
+    case 'sonarqube-native':
+      return fetch('http://sonarqube:9000/api/system/status', options);
+    default:
+      throw new Error('Unknown local SonarQube status target.');
+  }
+}
+
+export async function waitForSonarUp({ statusTarget, timeoutMs }) {
   const start = Date.now();
   const sleepMs = 1500;
 
   while (Date.now() - start < timeoutMs) {
     try {
-      const response = await fetch(statusUrl, { signal: AbortSignal.timeout(2500) });
+      const response = await fetchSonarStatus(statusTarget);
       if (response.ok) {
         const data = await response.json().catch(() => null);
         if (data?.status === 'UP') return;

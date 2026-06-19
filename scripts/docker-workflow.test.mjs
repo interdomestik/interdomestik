@@ -208,7 +208,7 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
 
   assert.match(sonarScan, /SONAR_SCANNER_FORCE_NATIVE/);
   assert.match(sonarScan, /shouldUseNativeScanner/);
-  assert.match(sonarScan, /resolveSonarStatusUrl\(\{ sonarHostUrl, forceNative \}\)/);
+  assert.match(sonarScan, /resolveSonarStatusTarget\(\{ sonarHostUrl, forceNative \}\)/);
   assert.match(sonarScan, /if \(forceNative\) \{\s*process\.exit\(nativeStatus \|\| 1\);/);
 });
 

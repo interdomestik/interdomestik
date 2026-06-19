@@ -7,7 +7,7 @@ import {
   appendScannerProperties,
   buildNativeScannerArgs,
   normalizeSonarHostUrl,
-  resolveSonarStatusUrl,
+  resolveSonarStatusTarget,
   waitForSonarUp,
 } from './sonar-scan-lib.mjs';
 
@@ -143,11 +143,11 @@ const forceDocker = process.env.SONAR_SCANNER_FORCE_DOCKER === 'true';
 const forceNative = process.env.SONAR_SCANNER_FORCE_NATIVE === 'true';
 const shouldUseNativeScanner =
   forceNative || (!forceDocker && process.platform === 'darwin' && process.arch === 'arm64');
-const sonarStatusUrl = resolveSonarStatusUrl({ sonarHostUrl, forceNative });
+const sonarStatusTarget = resolveSonarStatusTarget({ sonarHostUrl, forceNative });
 
-if (sonarStatusUrl) {
+if (sonarStatusTarget) {
   await waitForSonarUp({
-    statusUrl: sonarStatusUrl,
+    statusTarget: sonarStatusTarget,
     timeoutMs: 120_000,
   });
 }

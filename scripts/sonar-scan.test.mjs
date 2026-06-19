@@ -6,7 +6,7 @@ import {
   appendScannerProperties,
   buildNativeScannerArgs,
   normalizeSonarHostUrl,
-  resolveSonarStatusUrl,
+  resolveSonarStatusTarget,
   waitForSonarUp,
 } from './sonar-scan-lib.mjs';
 
@@ -83,27 +83,26 @@ test('normalizeSonarHostUrl defaults to SonarCloud and rejects arbitrary hosts',
   );
 });
 
-test('resolveSonarStatusUrl returns fixed URLs only for approved local hosts', () => {
+test('resolveSonarStatusTarget returns fixed targets only for approved local hosts', () => {
   const localUrl = host => `${'http:'}//${host}`;
 
-  assert.equal(resolveSonarStatusUrl({ sonarHostUrl: 'https://sonarcloud.io' }), null);
+  assert.equal(resolveSonarStatusTarget({ sonarHostUrl: 'https://sonarcloud.io' }), null);
   assert.equal(
-    resolveSonarStatusUrl({
+    resolveSonarStatusTarget({
       sonarHostUrl: localUrl('host.docker.internal:9000'),
       forceNative: true,
     }),
-    `${localUrl('host.docker.internal:9000')}/api/system/status`
+    'host-docker-native'
   );
   assert.equal(
-    resolveSonarStatusUrl({ sonarHostUrl: localUrl('sonarqube:9000'), forceNative: false }),
-    `${localUrl('localhost:9000')}/api/system/status`
+    resolveSonarStatusTarget({ sonarHostUrl: localUrl('sonarqube:9000'), forceNative: false }),
+    'local-docker'
   );
 });
 
 test('waitForSonarUp fails clearly when the server stays unavailable', async () => {
-  const unavailableUrl = `${'http:'}//127.0.0.1:1/api/system/status`;
   await assert.rejects(
-    () => waitForSonarUp({ statusUrl: unavailableUrl, timeoutMs: 1 }),
+    () => waitForSonarUp({ statusTarget: 'local-docker', timeoutMs: 1 }),
     /did not become ready/u
   );
 });
