@@ -1,13 +1,15 @@
 import { withTenantContext } from '@interdomestik/database';
-import type { CaseScopedAccessGrant } from '@interdomestik/shared-auth';
 
 import { toSessionGrant } from './jurisdiction-handoff-auth';
 import { resolveJurisdictionHandoffEligibility } from './jurisdiction-handoff-eligibility';
 import { JurisdictionHandoffRollbackError } from './jurisdiction-handoff-errors';
-import type { JurisdictionHandoffRollbackCode } from './jurisdiction-handoff-errors';
 import { appendHandoffEvent } from './jurisdiction-handoff-event';
 import { resolveTrustedRecoveryGrantActor } from './jurisdiction-handoff-grant-actor';
 import { defaultHandoffCorrelationId, stableHandoffId } from './jurisdiction-handoff-ids';
+import type {
+  JurisdictionHandoffResult,
+  JurisdictionHandoffTransactionResult,
+} from './jurisdiction-handoff-result';
 import {
   insertHandoffGrant,
   loadHandoffClaim,
@@ -17,26 +19,12 @@ import {
 import type { HandoffTx, JurisdictionHandoffParams } from './jurisdiction-handoff-types';
 
 export type { JurisdictionHandoffParams } from './jurisdiction-handoff-types';
-
-export type JurisdictionHandoffResult =
-  | { success: true; grant: CaseScopedAccessGrant; status: 'created' | 'already_exists' }
-  | { success: true; grant: null; status: 'not_required' }
-  | {
-      success: false;
-      error:
-        | 'actor_not_authorized'
-        | 'claim_not_found'
-        | 'grant_actor_not_recovery_tenant'
-        | JurisdictionHandoffRollbackCode
-        | 'recovery_legal_tenant_conflict'
-        | 'self_grant_denied'
-        | 'unsupported_incident_jurisdiction';
-    };
+export type { JurisdictionHandoffResult } from './jurisdiction-handoff-result';
 
 export async function recordJurisdictionHandoffInTransaction(
   tx: HandoffTx,
   params: JurisdictionHandoffParams
-): Promise<JurisdictionHandoffResult> {
+): Promise<JurisdictionHandoffTransactionResult> {
   const now = params.now ?? new Date();
   await lockHandoffClaim(tx, params.homeTenantId, params.claimId);
   const claim = await loadHandoffClaim(tx, params.homeTenantId, params.claimId);
@@ -47,7 +35,7 @@ export async function recordJurisdictionHandoffInTransaction(
   const { recovery } = eligibility;
 
   if (params.grantExpiresAt && params.grantExpiresAt <= now) {
-    return { success: false, error: 'handoff_grant_expired' };
+    throw new JurisdictionHandoffRollbackError('handoff_grant_expired');
   }
 
   const canGrantActorReceiveAccess = await resolveTrustedRecoveryGrantActor({

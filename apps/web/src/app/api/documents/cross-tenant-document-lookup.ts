@@ -26,7 +26,7 @@ export async function lookupCrossGrantDoc(args: {
 }): Promise<CrossGrantDoc | null> {
   const contexts = await findActorCrossGrantContexts(args);
   for (const grantContext of contexts) {
-    const result = await withDocumentReadContext(args, grantContext.homeTenantId, tx =>
+    const result = await withDocumentReadContext(args.db, grantContext.homeTenantId, tx =>
       lookupGrantedDocument({ ...args, db: tx, grantContext })
     );
     if (result) return result;
@@ -108,12 +108,12 @@ async function lookupLegacy(args: {
 }
 
 async function withDocumentReadContext<T>(
-  args: { accessTenantId: string; db: DatabaseClient },
+  db: DatabaseClient,
   homeTenantId: string,
   action: (tx: DocumentReadDb) => Promise<T>
 ): Promise<T> {
-  if (!hasTransaction(args.db)) return action(args.db);
-  return args.db.transaction(async tx => {
+  if (!hasTransaction(db)) return action(db);
+  return db.transaction(async tx => {
     await tx.execute(sql`set local row_security = on`);
     await tx.execute(sql`select set_config('app.current_tenant_id', ${homeTenantId}, true)`);
     await tx.execute(sql`select set_config('app.current_access_tenant_id', ${homeTenantId}, true)`);
