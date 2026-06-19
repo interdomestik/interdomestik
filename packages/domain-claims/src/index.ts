@@ -9,6 +9,7 @@ export * from './claims/ai-workflows';
 export * from './claims/diaspora-origin';
 export * from './claims/diaspora-origin-filter';
 export * from './claims/incident-country-backfill';
+export * from './claims/jurisdiction-handoff';
 export type { ClaimStatus } from './staff-claims/types';
 export * from './validators/claims';
 

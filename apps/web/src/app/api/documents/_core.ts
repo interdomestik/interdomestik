@@ -3,15 +3,18 @@ import type { AuditEvent } from '@/lib/audit';
 import type { TenantStorageFamily } from '@/lib/storage/tenant-prefix';
 import type * as DatabaseModule from '@interdomestik/database';
 import { claimDocuments, claims, documents, policies } from '@interdomestik/database/schema';
-import { ensureAccessTenantId, type CaseScopedAccessGrant } from '@interdomestik/shared-auth';
+import {
+  ensureAccessTenantId,
+  type CaseScopedAccessGrant,
+  type CaseScopedDocumentClass,
+} from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
+import { isFullTenantClaimsRole } from './access-policy';
 import {
-  hasCaseScopedDocumentGrant,
-  hasScopedClaimReadAccess,
-  isFullTenantClaimsRole,
-  isScopedClaimReaderRole,
-} from './access-policy';
+  canReadLegacyClaimDocument,
+  canReadPolymorphicClaimDocument,
+} from './claim-document-access';
 
 type DatabaseClient = typeof DatabaseModule.db;
 
@@ -62,7 +65,7 @@ type PolymorphicDocumentRow = {
   category?: GrantDocumentClass | null;
   uploadedBy: string | null;
 };
-type GrantDocumentClass = Parameters<typeof hasCaseScopedDocumentGrant>[0]['documentClass'];
+type GrantDocumentClass = CaseScopedDocumentClass;
 export type DocumentAccessResult =
   | {
       ok: true;
@@ -317,113 +320,6 @@ async function canReadPolymorphicDocument(args: {
   return false;
 }
 
-async function canReadPolymorphicClaimDocument(args: {
-  db: DatabaseClient;
-  polyDoc: PolymorphicDocumentRow;
-  session: SessionDTO;
-  tenantId: string;
-  userRole: string | undefined;
-}): Promise<boolean> {
-  const { db, polyDoc, session, tenantId, userRole } = args;
-  const [claimRow] = await db
-    .select({
-      claimOwnerId: claims.userId,
-      claimBranchId: claims.branchId,
-      claimStaffId: claims.staffId,
-      claimAgentId: claims.agentId,
-    })
-    .from(claims)
-    .where(and(eq(claims.id, polyDoc.entityId), eq(claims.tenantId, tenantId)));
-
-  if (!claimRow) return false;
-
-  if (
-    hasCaseScopedDocumentGrant({
-      accessTenantId: tenantId,
-      caseId: polyDoc.entityId,
-      documentClass: polyDoc.category ?? 'other',
-      session,
-    })
-  ) {
-    return true;
-  }
-
-  // Member can read any document attached to their own claim.
-  if (userRole !== 'agent' && claimRow.claimOwnerId === session.user.id) {
-    return true;
-  }
-
-  if (!isScopedClaimReaderRole(userRole)) {
-    return false;
-  }
-
-  return hasScopedClaimReadAccess({
-    branchId: session.user.branchId ?? null,
-    claim: {
-      branchId: claimRow.claimBranchId ?? null,
-      staffId: claimRow.claimStaffId ?? null,
-      userId: claimRow.claimOwnerId ?? null,
-      agentId: claimRow.claimAgentId ?? null,
-    },
-    role: userRole,
-    userId: session.user.id,
-  });
-}
-
-function canReadLegacyClaimDocument(args: {
-  claim: {
-    branchId: string | null;
-    ownerId: string | null;
-    staffId: string | null;
-    agentId: string | null;
-  };
-  document: DocumentRow;
-  tenantId: string;
-  session: SessionDTO;
-  userRole: string | undefined;
-}): boolean {
-  const { claim, document, session, tenantId, userRole } = args;
-
-  if (isFullTenantClaimsRole(userRole)) {
-    return true;
-  }
-
-  if (
-    document.claimId &&
-    hasCaseScopedDocumentGrant({
-      accessTenantId: tenantId,
-      caseId: document.claimId,
-      documentClass: document.category ?? 'other',
-      session,
-    })
-  ) {
-    return true;
-  }
-
-  if (
-    userRole !== 'agent' &&
-    (document.uploadedBy === session.user.id || claim.ownerId === session.user.id)
-  ) {
-    return true;
-  }
-
-  if (!isScopedClaimReaderRole(userRole)) {
-    return false;
-  }
-
-  return hasScopedClaimReadAccess({
-    branchId: session.user.branchId ?? null,
-    claim: {
-      branchId: claim.branchId,
-      staffId: claim.staffId,
-      userId: claim.ownerId,
-      agentId: claim.agentId,
-    },
-    role: userRole,
-    userId: session.user.id,
-  });
-}
-
 export async function getDocumentAccessCore(args: {
   session: SessionDTO;
   documentId: string;
@@ -492,13 +388,14 @@ export async function getDocumentAccessCore(args: {
   }
 
   const doc = row.doc as never as DocumentRow;
-  const canRead = canReadLegacyClaimDocument({
+  const canRead = await canReadLegacyClaimDocument({
     claim: {
       branchId: row.claimBranchId ?? null,
       ownerId: row.claimOwnerId ?? null,
       staffId: row.claimStaffId ?? null,
       agentId: row.claimAgentId ?? null,
     },
+    db,
     document: doc,
     tenantId,
     session,

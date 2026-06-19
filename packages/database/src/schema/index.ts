@@ -10,6 +10,7 @@ export * from './ai';
 export * from './auth';
 export * from './automation';
 export * from './billing';
+export * from './case-scoped-access-grants';
 export * from './commercial-action-idempotency';
 export * from './claim-commercial';
 export * from './claim-recovery-no-fee';
