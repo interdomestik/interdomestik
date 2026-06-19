@@ -6,7 +6,6 @@ import {
   recordJurisdictionHandoffInTransaction,
 } from './jurisdiction-handoff';
 import {
-  baseClaim,
   baseParams,
   preGrantCases,
   preWriteCases,
