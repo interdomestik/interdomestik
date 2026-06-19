@@ -10,6 +10,10 @@ vi.mock('drizzle-orm', async importOriginal => {
   return { ...actual, and: sqlMocks.and, eq: sqlMocks.eq };
 });
 
+vi.mock('./durable-case-grants', () => ({
+  hasDurableCaseScopedDocumentGrant: vi.fn().mockResolvedValue(false),
+}));
+
 import { getDocumentAccessCore, type DocumentAccessDeps } from './_core';
 
 const mockDb = { select: vi.fn() };

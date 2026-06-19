@@ -2,16 +2,17 @@ import { ApiErrorCode } from '@/core-contracts';
 import type { AuditEvent } from '@/lib/audit';
 import type { TenantStorageFamily } from '@/lib/storage/tenant-prefix';
 import type * as DatabaseModule from '@interdomestik/database';
-import { claimDocuments, claims, documents, policies } from '@interdomestik/database/schema';
-import { ensureAccessTenantId, type CaseScopedAccessGrant } from '@interdomestik/shared-auth';
+import { claimDocuments, claims, documents } from '@interdomestik/database/schema';
+import {
+  ensureAccessTenantId,
+  type CaseScopedAccessGrant,
+  type CaseScopedDocumentClass,
+} from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
-import {
-  hasCaseScopedDocumentGrant,
-  hasScopedClaimReadAccess,
-  isFullTenantClaimsRole,
-  isScopedClaimReaderRole,
-} from './access-policy';
+import { canReadLegacyClaimDocument } from './claim-document-access';
+import { lookupCrossGrantDoc } from './cross-tenant-document-lookup';
+import { canReadPolymorphicDocument } from './polymorphic-document-access';
 
 type DatabaseClient = typeof DatabaseModule.db;
 
@@ -55,14 +56,7 @@ type DocumentRow = {
   fileSize: number | null;
 };
 type DocumentAccessMode = 'signed_url' | 'download';
-type PolymorphicDocumentRow = {
-  id: string;
-  entityId: string;
-  entityType: string;
-  category?: GrantDocumentClass | null;
-  uploadedBy: string | null;
-};
-type GrantDocumentClass = Parameters<typeof hasCaseScopedDocumentGrant>[0]['documentClass'];
+type GrantDocumentClass = CaseScopedDocumentClass;
 export type DocumentAccessResult =
   | {
       ok: true;
@@ -265,165 +259,6 @@ export async function logAllowedDocumentAccess(args: {
   });
 }
 
-async function canReadPolymorphicDocument(args: {
-  db: DatabaseClient;
-  polyDoc: PolymorphicDocumentRow;
-  session: SessionDTO;
-  tenantId: string;
-  userRole: string | undefined;
-}): Promise<boolean> {
-  const { db, polyDoc, session, tenantId, userRole } = args;
-
-  // 1. Full Tenant Roles always have access
-  if (isFullTenantClaimsRole(userRole)) {
-    return true;
-  }
-
-  // 2. Uploader access, except agents must still be assigned to claim documents and
-  // policy documents must pass the policy-owner check below.
-  if (
-    polyDoc.uploadedBy === session.user.id &&
-    !(userRole === 'agent' && polyDoc.entityType === 'claim') &&
-    polyDoc.entityType !== 'policy'
-  ) {
-    return true;
-  }
-
-  // 3. Member Access to their own User/Member profile documents
-  if (polyDoc.entityType === 'member' || polyDoc.entityType === 'user') {
-    return polyDoc.entityId === session.user.id;
-  }
-
-  // 4. Claim Document Access
-  if (polyDoc.entityType === 'claim') {
-    return canReadPolymorphicClaimDocument(args);
-  }
-
-  // 5. Policy Document Access
-  if (polyDoc.entityType === 'policy') {
-    const [policyRow] = await db
-      .select({ policyOwnerId: policies.userId })
-      .from(policies)
-      .where(and(eq(policies.id, polyDoc.entityId), eq(policies.tenantId, tenantId)));
-
-    if (!policyRow) return false;
-
-    return policyRow.policyOwnerId === session.user.id;
-  }
-
-  // 6. Thread / Communication Access (Future-proofing)
-  // Logic for threads would go here, currently returning false to fail-closed.
-
-  return false;
-}
-
-async function canReadPolymorphicClaimDocument(args: {
-  db: DatabaseClient;
-  polyDoc: PolymorphicDocumentRow;
-  session: SessionDTO;
-  tenantId: string;
-  userRole: string | undefined;
-}): Promise<boolean> {
-  const { db, polyDoc, session, tenantId, userRole } = args;
-  const [claimRow] = await db
-    .select({
-      claimOwnerId: claims.userId,
-      claimBranchId: claims.branchId,
-      claimStaffId: claims.staffId,
-      claimAgentId: claims.agentId,
-    })
-    .from(claims)
-    .where(and(eq(claims.id, polyDoc.entityId), eq(claims.tenantId, tenantId)));
-
-  if (!claimRow) return false;
-
-  if (
-    hasCaseScopedDocumentGrant({
-      accessTenantId: tenantId,
-      caseId: polyDoc.entityId,
-      documentClass: polyDoc.category ?? 'other',
-      session,
-    })
-  ) {
-    return true;
-  }
-
-  // Member can read any document attached to their own claim.
-  if (userRole !== 'agent' && claimRow.claimOwnerId === session.user.id) {
-    return true;
-  }
-
-  if (!isScopedClaimReaderRole(userRole)) {
-    return false;
-  }
-
-  return hasScopedClaimReadAccess({
-    branchId: session.user.branchId ?? null,
-    claim: {
-      branchId: claimRow.claimBranchId ?? null,
-      staffId: claimRow.claimStaffId ?? null,
-      userId: claimRow.claimOwnerId ?? null,
-      agentId: claimRow.claimAgentId ?? null,
-    },
-    role: userRole,
-    userId: session.user.id,
-  });
-}
-
-function canReadLegacyClaimDocument(args: {
-  claim: {
-    branchId: string | null;
-    ownerId: string | null;
-    staffId: string | null;
-    agentId: string | null;
-  };
-  document: DocumentRow;
-  tenantId: string;
-  session: SessionDTO;
-  userRole: string | undefined;
-}): boolean {
-  const { claim, document, session, tenantId, userRole } = args;
-
-  if (isFullTenantClaimsRole(userRole)) {
-    return true;
-  }
-
-  if (
-    document.claimId &&
-    hasCaseScopedDocumentGrant({
-      accessTenantId: tenantId,
-      caseId: document.claimId,
-      documentClass: document.category ?? 'other',
-      session,
-    })
-  ) {
-    return true;
-  }
-
-  if (
-    userRole !== 'agent' &&
-    (document.uploadedBy === session.user.id || claim.ownerId === session.user.id)
-  ) {
-    return true;
-  }
-
-  if (!isScopedClaimReaderRole(userRole)) {
-    return false;
-  }
-
-  return hasScopedClaimReadAccess({
-    branchId: session.user.branchId ?? null,
-    claim: {
-      branchId: claim.branchId,
-      staffId: claim.staffId,
-      userId: claim.ownerId,
-      agentId: claim.agentId,
-    },
-    role: userRole,
-    userId: session.user.id,
-  });
-}
-
 export async function getDocumentAccessCore(args: {
   session: SessionDTO;
   documentId: string;
@@ -488,17 +323,58 @@ export async function getDocumentAccessCore(args: {
     .where(and(eq(claimDocuments.id, documentId), eq(claimDocuments.tenantId, tenantId)));
 
   if (!row?.doc) {
-    return { ok: false, code: 'NOT_FOUND', message: 'Document not found' };
+    // 3. Cross-tenant fallback for jurisdiction-handoff recovery/legal actors.
+    const crossDoc = await lookupCrossGrantDoc({
+      actorId: session.user.id,
+      accessTenantId: tenantId,
+      db,
+      documentId,
+    });
+    if (crossDoc === null) {
+      return { ok: false, code: 'NOT_FOUND', message: 'Document not found' };
+    }
+    if (crossDoc.kind === 'poly') {
+      const document = buildPolymorphicDocument(crossDoc.doc);
+      return {
+        ok: true,
+        document,
+        storageFamily: getStorageFamilyForDocument(document),
+        tenantId: crossDoc.homeTenantId,
+        audit: buildDocumentAudit({
+          actorRole: userRole,
+          disposition: finalDisposition,
+          document,
+          documentId,
+          entityType: getPolymorphicDocumentAuditEntityType(crossDoc.doc.entityType),
+          mode,
+        }),
+      };
+    }
+    const crossLegacy: DocumentRow = crossDoc.doc;
+    return {
+      ok: true,
+      document: crossLegacy,
+      storageFamily: getStorageFamilyForDocument(crossLegacy),
+      tenantId: crossDoc.homeTenantId,
+      audit: buildDocumentAudit({
+        actorRole: userRole,
+        disposition: finalDisposition,
+        document: crossLegacy,
+        documentId,
+        mode,
+      }),
+    };
   }
 
   const doc = row.doc as never as DocumentRow;
-  const canRead = canReadLegacyClaimDocument({
+  const canRead = await canReadLegacyClaimDocument({
     claim: {
       branchId: row.claimBranchId ?? null,
       ownerId: row.claimOwnerId ?? null,
       staffId: row.claimStaffId ?? null,
       agentId: row.claimAgentId ?? null,
     },
+    db,
     document: doc,
     tenantId,
     session,

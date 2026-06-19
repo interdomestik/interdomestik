@@ -596,6 +596,13 @@
       "when": 1781760000000,
       "tag": "0084_claim_recovery_no_fee_evidence",
       "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1781846400000,
+      "tag": "0085_case_scoped_access_grants",
+      "breakpoints": true
     }
   ]
 }

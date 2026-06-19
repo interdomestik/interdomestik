@@ -74,7 +74,7 @@ function createSelectMock(result: unknown[], isLegacy = false) {
 }
 
 function setupMocks(poly: unknown[] = [], legacy: unknown[] = []) {
-  mockDb.select.mockReset();
+  mockDb.select.mockReset().mockReturnValue(createSelectMock([], true));
   mockDb.select.mockReturnValueOnce(createSelectMock(poly));
   mockDb.select.mockReturnValueOnce(createSelectMock(legacy, true));
 }
