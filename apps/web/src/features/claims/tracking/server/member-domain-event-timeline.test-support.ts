@@ -24,6 +24,7 @@ export function memberTimelineEventRow(
     eventName: 'claim.status_changed',
     eventVersion: 1,
     id: 'event-1',
+    note: null,
     payload: { fromStatus: 'submitted', toStatus: 'evaluation' },
     ...overrides,
   };
@@ -32,6 +33,7 @@ export function memberTimelineEventRow(
 export function memberTimelineSelectChain(rows: MemberDomainEventTimelineRow[]) {
   return {
     from: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
     limit: vi.fn().mockResolvedValue(rows),
     orderBy: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),

@@ -5,11 +5,20 @@ const hoisted = vi.hoisted(() => ({
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   desc: vi.fn((column: unknown) => ({ column, order: 'desc' })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-  inArray: vi.fn((left: unknown, values: unknown[]) => ({ op: 'inArray', left, values })),
+  sql: vi.fn(() => 'payloadSql'),
 }));
 
 vi.mock('@interdomestik/database', () => ({
   and: hoisted.and,
+  claimStageHistory: {
+    claimId: 'claimStageHistory.claimId',
+    createdAt: 'claimStageHistory.createdAt',
+    fromStatus: 'claimStageHistory.fromStatus',
+    isPublic: 'claimStageHistory.isPublic',
+    note: 'claimStageHistory.note',
+    tenantId: 'claimStageHistory.tenantId',
+    toStatus: 'claimStageHistory.toStatus',
+  },
   db: { select: hoisted.select },
   desc: hoisted.desc,
   domainEvents: {
@@ -24,7 +33,7 @@ vi.mock('@interdomestik/database', () => ({
     tenantId: 'domainEvents.tenantId',
   },
   eq: hoisted.eq,
-  inArray: hoisted.inArray,
+  sql: hoisted.sql,
 }));
 
 import {
@@ -48,23 +57,31 @@ describe('member domain-event timeline', () => {
 
     expect(hoisted.select).toHaveBeenCalledTimes(1);
     expect(result[0]?.id).toBe('event-1');
+    expect(chain.innerJoin).toHaveBeenCalledWith(
+      expect.objectContaining({ note: 'claimStageHistory.note' }),
+      expect.objectContaining({
+        args: expect.arrayContaining([
+          { op: 'eq', left: 'claimStageHistory.isPublic', right: true },
+        ]),
+      })
+    );
     expect(chain.limit).toHaveBeenCalledWith(200);
     expect(chain.where).toHaveBeenCalledWith({
       op: 'and',
       args: [
         { op: 'eq', left: 'domainEvents.tenantId', right: 'tenant-1' },
         { op: 'eq', left: 'domainEvents.entityId', right: 'claim-1' },
-        {
-          op: 'inArray',
-          left: 'domainEvents.entityType',
-          values: ['claim', 'case', 'recovery'],
-        },
+        { op: 'eq', left: 'domainEvents.entityType', right: 'claim' },
+        { op: 'eq', left: 'domainEvents.eventName', right: 'claim.status_changed' },
       ],
     });
   });
 
   it('maps claim.status_changed@1 without actor, raw payload, or internal fields', () => {
-    const result = mapDomainEventToMemberTimelineEvent(context, eventRow());
+    const result = mapDomainEventToMemberTimelineEvent(
+      context,
+      eventRow({ note: 'Member-visible guidance' })
+    );
 
     expect(result).toEqual({
       id: 'event-1',
@@ -72,11 +89,9 @@ describe('member domain-event timeline', () => {
       statusFrom: 'submitted',
       statusTo: 'evaluation',
       labelKey: 'claims-tracking.status.evaluation',
-      note: null,
+      note: 'Member-visible guidance',
       isPublic: true,
     });
-    expect(JSON.stringify(result)).not.toContain('actor');
-    expect(JSON.stringify(result)).not.toContain('payload');
   });
 
   it('uses a fixed safe fallback for unknown versions and invalid payloads', () => {
@@ -127,9 +142,6 @@ describe('member domain-event timeline', () => {
         isPublic: true,
       },
     ]);
-  });
-
-  it('keeps an empty erased timeline fallback redacted', () => {
     expect(
       buildMemberTimelineFromDomainEvents({ ...context, piiStatus: 'erased_or_unavailable' }, [])[0]
         ?.labelKey

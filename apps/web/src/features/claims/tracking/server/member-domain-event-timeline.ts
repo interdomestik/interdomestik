@@ -1,8 +1,7 @@
-import { and, db, desc, domainEvents, eq, inArray } from '@interdomestik/database';
+import { and, claimStageHistory, db, desc, domainEvents, eq, sql } from '@interdomestik/database';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import type { ClaimTimelineEvent } from '../types';
 
-const TIMELINE_ENTITY_TYPES = ['claim', 'case', 'recovery'] as const;
 const GENERIC_EVENT_LABEL = 'claims-tracking.tracking.timeline.generic';
 const REDACTED_EVENT_LABEL = 'claims-tracking.tracking.timeline.redacted';
 const claimStatusSet = new Set<string>(CLAIM_STATUSES);
@@ -23,6 +22,7 @@ export type MemberDomainEventTimelineRow = {
   eventName: string;
   eventVersion: number;
   id: string;
+  note: string | null;
   payload: Record<string, unknown>;
 };
 
@@ -69,7 +69,7 @@ export function mapDomainEventToMemberTimelineEvent(
     statusFrom: fromStatus,
     statusTo: toStatus,
     labelKey: `claims-tracking.status.${toStatus}`,
-    note: null,
+    note: row.note,
     isPublic: true,
   };
 }
@@ -102,16 +102,27 @@ export async function getMemberTimelineFromDomainEvents(
       eventName: domainEvents.eventName,
       eventVersion: domainEvents.eventVersion,
       id: domainEvents.id,
+      note: claimStageHistory.note,
       payload: domainEvents.payload,
     })
     .from(domainEvents)
+    .innerJoin(
+      claimStageHistory,
+      and(
+        eq(claimStageHistory.tenantId, domainEvents.tenantId),
+        eq(claimStageHistory.claimId, domainEvents.entityId),
+        eq(claimStageHistory.createdAt, domainEvents.createdAt),
+        eq(claimStageHistory.fromStatus, sql<string>`${domainEvents.payload}->>'fromStatus'`),
+        eq(claimStageHistory.toStatus, sql<string>`${domainEvents.payload}->>'toStatus'`),
+        eq(claimStageHistory.isPublic, true)
+      )
+    )
     .where(
       and(
         eq(domainEvents.tenantId, context.tenantId),
         eq(domainEvents.entityId, context.claimId),
-        // Case and recovery events use the claim id when emitted into the claim lifecycle stream.
-        // Unknown event names render as fixed generic member-safe labels.
-        inArray(domainEvents.entityType, TIMELINE_ENTITY_TYPES)
+        eq(domainEvents.entityType, 'claim'),
+        eq(domainEvents.eventName, 'claim.status_changed')
       )
     )
     .orderBy(
