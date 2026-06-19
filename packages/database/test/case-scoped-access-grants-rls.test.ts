@@ -54,6 +54,30 @@ test('case-scoped access grants enforce live RLS and grant constraints', async t
       tx.select().from(caseScopedAccessGrants).where(eq(caseScopedAccessGrants.id, grantId))
     );
     assert.equal(visibleToAccessTenant.length, 1);
+    const accessTenantUpdate = await withTenantContext({ tenantId: ACCESS_TENANT_ID }, tx =>
+      tx
+        .update(caseScopedAccessGrants)
+        .set({ revokedAt: now })
+        .where(eq(caseScopedAccessGrants.id, grantId))
+        .returning({ id: caseScopedAccessGrants.id })
+    );
+    assert.equal(accessTenantUpdate.length, 0);
+    const accessTenantDelete = await withTenantContext({ tenantId: ACCESS_TENANT_ID }, tx =>
+      tx
+        .delete(caseScopedAccessGrants)
+        .where(eq(caseScopedAccessGrants.id, grantId))
+        .returning({ id: caseScopedAccessGrants.id })
+    );
+    assert.equal(accessTenantDelete.length, 0);
+
+    const homeTenantUpdate = await withTenantContext({ tenantId: HOME_TENANT_ID }, tx =>
+      tx
+        .update(caseScopedAccessGrants)
+        .set({ expiresAt: new Date(now.getTime() + 120_000) })
+        .where(eq(caseScopedAccessGrants.id, grantId))
+        .returning({ id: caseScopedAccessGrants.id })
+    );
+    assert.equal(homeTenantUpdate.length, 1);
 
     const hiddenFromWrongTenant = await withTenantContext({ tenantId: 'tenant_unknown' }, tx =>
       tx.select().from(caseScopedAccessGrants).where(eq(caseScopedAccessGrants.id, grantId))

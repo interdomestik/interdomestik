@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 
 import { caseScopedAccessGrants, claims, user } from '../src/schema';
+import { refreshCaseScopedGrantPolicies } from './case-scoped-access-grants-rls-policies';
 import {
   grantRlsTestRole,
   quoteIdentifier,
@@ -38,6 +39,12 @@ export async function allowRlsGrantTableAccess(adminDb: {
   await adminDb.execute(
     sql.raw(`grant insert on table "case_scoped_access_grants" to ${quoteIdentifier(TEST_DB_ROLE)}`)
   );
+  await adminDb.execute(
+    sql.raw(
+      `grant update, delete on table "case_scoped_access_grants" to ${quoteIdentifier(TEST_DB_ROLE)}`
+    )
+  );
+  await refreshCaseScopedGrantPolicies(adminDb);
 }
 
 export async function assertRejectsDb(

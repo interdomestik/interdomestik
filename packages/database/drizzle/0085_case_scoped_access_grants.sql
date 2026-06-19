@@ -39,24 +39,35 @@ ALTER TABLE public."case_scoped_access_grants" ENABLE ROW LEVEL SECURITY;
 --> statement-breakpoint
 DO $$
 DECLARE
-  policy_name constant text := 'tenant_isolation_case_scoped_access_grants';
   read_expr constant text := '(tenant_id = (select current_setting(''app.current_access_tenant_id'', true))::text OR access_tenant_id = (select current_setting(''app.current_access_tenant_id'', true))::text)';
   write_expr constant text :=
     'tenant_id = (select current_setting(''app.current_access_tenant_id'', true))::text';
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM pg_policies
-    WHERE schemaname = 'public'
-      AND tablename = 'case_scoped_access_grants'
-      AND policyname = policy_name
-  ) THEN
-    EXECUTE format(
-      'CREATE POLICY %I ON public."case_scoped_access_grants" USING (%s) WITH CHECK (%s)',
-      policy_name,
-      read_expr,
-      write_expr
-    );
-  END IF;
+  DROP POLICY IF EXISTS "tenant_isolation_case_scoped_access_grants" ON public."case_scoped_access_grants";
+  DROP POLICY IF EXISTS "tenant_write_case_scoped_access_grants" ON public."case_scoped_access_grants";
+  DROP POLICY IF EXISTS "tenant_update_case_scoped_access_grants" ON public."case_scoped_access_grants";
+  DROP POLICY IF EXISTS "tenant_delete_case_scoped_access_grants" ON public."case_scoped_access_grants";
+
+  EXECUTE format(
+    'CREATE POLICY %I ON public."case_scoped_access_grants" FOR SELECT USING (%s)',
+    'tenant_isolation_case_scoped_access_grants',
+    read_expr
+  );
+  EXECUTE format(
+    'CREATE POLICY %I ON public."case_scoped_access_grants" FOR INSERT WITH CHECK (%s)',
+    'tenant_write_case_scoped_access_grants',
+    write_expr
+  );
+  EXECUTE format(
+    'CREATE POLICY %I ON public."case_scoped_access_grants" FOR UPDATE USING (%s) WITH CHECK (%s)',
+    'tenant_update_case_scoped_access_grants',
+    write_expr,
+    write_expr
+  );
+  EXECUTE format(
+    'CREATE POLICY %I ON public."case_scoped_access_grants" FOR DELETE USING (%s)',
+    'tenant_delete_case_scoped_access_grants',
+    write_expr
+  );
 END;
 $$;

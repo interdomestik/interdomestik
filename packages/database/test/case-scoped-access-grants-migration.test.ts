@@ -34,7 +34,7 @@ test('T-209 migration keeps active grants unique and revocable', () => {
   assert.match(sql, /CREATE UNIQUE INDEX "case_scoped_access_grants_correlation_uq"/u);
 });
 
-test('T-209 migration limits approved document classes and enables two-sided RLS', () => {
+test('T-209 migration limits approved document classes and splits read/write RLS', () => {
   const sql = migrationSql();
 
   assert.match(sql, /case_scoped_access_grants_document_classes_check/u);
@@ -45,4 +45,8 @@ test('T-209 migration limits approved document classes and enables two-sided RLS
   assert.match(sql, /tenant_isolation_case_scoped_access_grants/u);
   assert.match(sql, /access_tenant_id = \(select current_setting/u);
   assert.match(sql, /tenant_id = \(select current_setting/u);
+  assert.match(sql, /FOR SELECT USING \(%s\)/u);
+  assert.match(sql, /FOR INSERT WITH CHECK \(%s\)/u);
+  assert.match(sql, /FOR UPDATE USING \(%s\) WITH CHECK \(%s\)/u);
+  assert.match(sql, /FOR DELETE USING \(%s\)/u);
 });
