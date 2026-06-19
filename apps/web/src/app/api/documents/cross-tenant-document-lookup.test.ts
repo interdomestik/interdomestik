@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  findActorCrossGrantContexts: vi.fn(),
   hasDurableCaseScopedDocumentGrant: vi.fn(),
 }));
 
 vi.mock('./durable-case-grants', () => ({
+  findActorCrossGrantContexts: mocks.findActorCrossGrantContexts,
   hasDurableCaseScopedDocumentGrant: mocks.hasDurableCaseScopedDocumentGrant,
 }));
 
@@ -24,6 +26,19 @@ function dbWith(polyRows: unknown[], legacyRows: unknown[] = []) {
   return db;
 }
 
+function transactionalDbWith(polyRows: unknown[], legacyRows: unknown[] = []) {
+  const tx = dbWith(polyRows, legacyRows);
+  return {
+    tx,
+    db: {
+      transaction: vi.fn(
+        async (action: (innerTx: typeof tx & { execute: typeof vi.fn }) => unknown) =>
+          action({ ...tx, execute: vi.fn().mockResolvedValue(undefined) })
+      ),
+    },
+  };
+}
+
 const request = {
   accessTenantId: 'tenant_mk',
   actorId: 'local-legal-1',
@@ -33,6 +48,9 @@ const request = {
 describe('lookupCrossGrantDoc', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.findActorCrossGrantContexts.mockResolvedValue([
+      { caseId: 'claim-1', documentClasses: ['legal'], homeTenantId: 'tenant_home' },
+    ]);
     mocks.hasDurableCaseScopedDocumentGrant.mockResolvedValue(false);
   });
 
@@ -51,6 +69,12 @@ describe('lookupCrossGrantDoc', () => {
       homeTenantId: 'tenant_home',
       kind: 'poly',
     });
+    expect(mocks.findActorCrossGrantContexts).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accessTenantId: 'tenant_mk',
+        actorId: 'local-legal-1',
+      })
+    );
   });
 
   it('returns not found for existing cross-tenant claim documents without a matching grant', async () => {
@@ -75,5 +99,31 @@ describe('lookupCrossGrantDoc', () => {
       })
     ).resolves.toBeNull();
     expect(mocks.hasDurableCaseScopedDocumentGrant).not.toHaveBeenCalled();
+  });
+
+  it('does not read document tables when no cross-tenant grant context exists', async () => {
+    const db = dbWith([{ id: 'doc-1' }]);
+    mocks.findActorCrossGrantContexts.mockResolvedValueOnce([]);
+
+    await expect(lookupCrossGrantDoc({ ...request, db: db as never })).resolves.toBeNull();
+    expect(db.select).not.toHaveBeenCalled();
+    expect(mocks.hasDurableCaseScopedDocumentGrant).not.toHaveBeenCalled();
+  });
+
+  it('sets home tenant context on the supplied db before reading granted documents', async () => {
+    const doc = {
+      category: 'legal',
+      entityId: 'claim-1',
+      entityType: 'claim',
+      id: 'doc-1',
+      tenantId: 'tenant_home',
+    };
+    const { db } = transactionalDbWith([doc]);
+    mocks.hasDurableCaseScopedDocumentGrant.mockResolvedValueOnce(true);
+
+    await expect(lookupCrossGrantDoc({ ...request, db: db as never })).resolves.toEqual(
+      expect.objectContaining({ kind: 'poly' })
+    );
+    expect(db.transaction).toHaveBeenCalledTimes(1);
   });
 });

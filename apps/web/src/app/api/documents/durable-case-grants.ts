@@ -17,7 +17,7 @@ export type CrossGrantContext = {
 export async function findActorCrossGrantContexts(args: {
   actorId: string;
   accessTenantId: string;
-  db: DocumentAccessDeps['db'];
+  db: GrantReader;
   now?: Date;
 }): Promise<CrossGrantContext[]> {
   return withGrantReadContext(args.db, args.accessTenantId, tx =>
@@ -61,7 +61,7 @@ export async function hasDurableCaseScopedDocumentGrant(args: {
   accessTenantId: string;
   actorId: string;
   caseId: string;
-  db: DocumentAccessDeps['db'];
+  db: GrantReader;
   documentClass: unknown;
   homeTenantId?: string | null;
   now?: Date;

@@ -75,8 +75,9 @@ describe('appendEvent handoff payload allowlist', () => {
         })
       );
 
-      assert.equal(capture.row?.payload.fromTenantId, tenantId);
-      assert.equal(capture.row?.payload.recoveryLegalTenantId, tenantId);
+      const payload = capture.row?.payload as ReturnType<typeof makeHandoffEvent>['payload'];
+      assert.equal(payload.fromTenantId, tenantId);
+      assert.equal(payload.recoveryLegalTenantId, tenantId);
     });
   }
 
