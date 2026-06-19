@@ -112,8 +112,14 @@ export async function getMemberTimelineFromDomainEvents(
         eq(claimStageHistory.tenantId, domainEvents.tenantId),
         eq(claimStageHistory.claimId, domainEvents.entityId),
         eq(claimStageHistory.createdAt, domainEvents.createdAt),
-        eq(claimStageHistory.fromStatus, sql<string>`${domainEvents.payload}->>'fromStatus'`),
-        eq(claimStageHistory.toStatus, sql<string>`${domainEvents.payload}->>'toStatus'`),
+        eq(
+          sql<string>`${claimStageHistory.fromStatus}::text`,
+          sql<string>`${domainEvents.payload}->>'fromStatus'`
+        ),
+        eq(
+          sql<string>`${claimStageHistory.toStatus}::text`,
+          sql<string>`${domainEvents.payload}->>'toStatus'`
+        ),
         eq(claimStageHistory.isPublic, true)
       )
     )

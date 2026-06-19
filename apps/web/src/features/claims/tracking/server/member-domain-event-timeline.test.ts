@@ -5,7 +5,7 @@ const hoisted = vi.hoisted(() => ({
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   desc: vi.fn((column: unknown) => ({ column, order: 'desc' })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-  sql: vi.fn(() => 'payloadSql'),
+  sql: vi.fn((strings: TemplateStringsArray) => [...strings].join('$')),
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -52,19 +52,19 @@ describe('member domain-event timeline', () => {
     vi.clearAllMocks();
     const chain = selectChain([eventRow()]);
     hoisted.select.mockReturnValueOnce(chain);
-
     const result = await getMemberTimelineFromDomainEvents(context);
-
     expect(hoisted.select).toHaveBeenCalledTimes(1);
     expect(result[0]?.id).toBe('event-1');
-    expect(chain.innerJoin).toHaveBeenCalledWith(
-      expect.objectContaining({ note: 'claimStageHistory.note' }),
-      expect.objectContaining({
-        args: expect.arrayContaining([
-          { op: 'eq', left: 'claimStageHistory.isPublic', right: true },
-        ]),
-      })
+    const joinArgs = chain.innerJoin.mock.calls[0]?.[1].args;
+    expect(joinArgs).toEqual(
+      expect.arrayContaining([{ op: 'eq', left: 'claimStageHistory.isPublic', right: true }])
     );
+    expect(hoisted.sql.mock.calls.map(([strings]) => [...strings].join('$'))).toEqual([
+      '$::text',
+      "$->>'fromStatus'",
+      '$::text',
+      "$->>'toStatus'",
+    ]);
     expect(chain.limit).toHaveBeenCalledWith(200);
     expect(chain.where).toHaveBeenCalledWith({
       op: 'and',
