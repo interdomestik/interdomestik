@@ -1,22 +1,12 @@
-import { type TenantTransaction, withTenantContext } from '@interdomestik/database';
+import { type TenantTransaction } from '@interdomestik/database';
 import { caseScopedAccessGrants } from '@interdomestik/database/schema';
-import { and, eq, isNull, ne, or, gt } from 'drizzle-orm';
-import {
-  canUseCaseScopedDocumentGrant,
-  type CaseScopedDocumentClass,
-} from '@interdomestik/shared-auth';
+import { and, eq, isNull, ne, or, gt, sql } from 'drizzle-orm';
+import { canUseCaseScopedDocumentGrant } from '@interdomestik/shared-auth';
 
 import type { DocumentAccessDeps } from './_core';
+import { toApprovedDurableDocumentClass } from './durable-document-classes';
 
 type GrantReader = DocumentAccessDeps['db'] | TenantTransaction;
-
-const APPROVED_DURABLE_DOCUMENT_CLASSES = new Set<CaseScopedDocumentClass>([
-  'correspondence',
-  'contract',
-  'evidence',
-  'legal',
-  'receipt',
-]);
 
 export type CrossGrantContext = {
   homeTenantId: string;
@@ -24,15 +14,15 @@ export type CrossGrantContext = {
   documentClasses: readonly string[];
 };
 
-/** Returns active, non-revoked, non-expired grants for an actor where the home tenant
- *  differs from the actor's own access tenant (genuine cross-tenant grants). */
 export async function findActorCrossGrantContexts(args: {
   actorId: string;
   accessTenantId: string;
   db: DocumentAccessDeps['db'];
   now?: Date;
 }): Promise<CrossGrantContext[]> {
-  return withGrantReadContext(args.accessTenantId, tx => selectActorCrossGrantContexts(tx, args));
+  return withGrantReadContext(args.db, args.accessTenantId, tx =>
+    selectActorCrossGrantContexts(tx, args)
+  );
 }
 
 async function selectActorCrossGrantContexts(
@@ -81,7 +71,9 @@ export async function hasDurableCaseScopedDocumentGrant(args: {
     return false;
   }
 
-  const grants = await withGrantReadContext(args.accessTenantId, tx => selectGrantRows(tx, args));
+  const grants = await withGrantReadContext(args.db, args.accessTenantId, tx =>
+    selectGrantRows(tx, args)
+  );
   return canUseCaseScopedDocumentGrant({
     accessTenantId: args.accessTenantId,
     actorId: args.actorId,
@@ -121,16 +113,23 @@ async function selectGrantRows(
     );
 }
 
-export function toApprovedDurableDocumentClass(value: unknown): CaseScopedDocumentClass | null {
-  if (typeof value !== 'string') return null;
-  return APPROVED_DURABLE_DOCUMENT_CLASSES.has(value as CaseScopedDocumentClass)
-    ? (value as CaseScopedDocumentClass)
-    : null;
+async function withGrantReadContext<T>(
+  db: GrantReader,
+  accessTenantId: string,
+  action: (tx: GrantReader) => Promise<T>
+): Promise<T> {
+  if (!hasTransaction(db)) return action(db);
+
+  return db.transaction(async tx => {
+    await tx.execute(sql`set local row_security = on`);
+    await tx.execute(sql`select set_config('app.current_tenant_id', ${accessTenantId}, true)`);
+    await tx.execute(
+      sql`select set_config('app.current_access_tenant_id', ${accessTenantId}, true)`
+    );
+    return action(tx);
+  });
 }
 
-function withGrantReadContext<T>(
-  accessTenantId: string,
-  action: (tx: TenantTransaction) => Promise<T>
-): Promise<T> {
-  return withTenantContext({ tenantId: accessTenantId, accessTenantId }, action);
+function hasTransaction(db: GrantReader): db is DocumentAccessDeps['db'] {
+  return typeof (db as { transaction?: unknown }).transaction === 'function';
 }

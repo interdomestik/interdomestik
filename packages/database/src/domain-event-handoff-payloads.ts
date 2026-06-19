@@ -26,7 +26,10 @@ const HANDOFF_DOCUMENT_CLASSES = new Set([
 const HANDOFF_REASON_CODES = new Set(['incident_jurisdiction']);
 
 function assertTenantIdentifier(value: unknown, field: string): string {
-  if (typeof value !== 'string' || !/^tenant[-_][a-z0-9_-]+$/u.test(value)) {
+  if (
+    typeof value !== 'string' ||
+    !/^(tenant|pilot)[-_][a-z0-9]+(?:[-_][a-z0-9]+)*$/u.test(value)
+  ) {
     throw new Error(`appendEvent requires payload.${field} to be a tenant identifier`);
   }
   return value;

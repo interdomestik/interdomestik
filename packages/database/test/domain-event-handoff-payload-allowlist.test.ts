@@ -60,4 +60,40 @@ describe('appendEvent handoff payload allowlist', () => {
 
     assert.deepEqual(capture.row?.payload, makeHandoffEvent().payload);
   });
+
+  for (const tenantId of ['tenant_ks', 'tenant-mk', 'pilot-mk'] as const) {
+    it(`accepts configured tenant id ${tenantId}`, async () => {
+      const { capture, tx } = makeEventTx();
+      await appendEvent(
+        tx,
+        makeHandoffEvent({
+          payload: {
+            ...makeHandoffEvent().payload,
+            fromTenantId: tenantId,
+            recoveryLegalTenantId: tenantId,
+          },
+        })
+      );
+
+      assert.equal(capture.row?.payload.fromTenantId, tenantId);
+      assert.equal(capture.row?.payload.recoveryLegalTenantId, tenantId);
+    });
+  }
+
+  for (const tenantId of ['', ' tenant_ks ', 'pilot.mk', '../tenant_ks'] as const) {
+    it(`rejects unsafe tenant id ${JSON.stringify(tenantId)}`, async () => {
+      const { capture, tx } = makeEventTx();
+      await assert.rejects(
+        () =>
+          appendEvent(
+            tx,
+            makeHandoffEvent({
+              payload: { ...makeHandoffEvent().payload, fromTenantId: tenantId },
+            })
+          ),
+        /tenant identifier/
+      );
+      assert.equal(capture.row, undefined);
+    });
+  }
 });

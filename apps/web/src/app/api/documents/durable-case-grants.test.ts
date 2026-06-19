@@ -1,25 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  tenantTx: null as GrantDbMock | null,
-  withTenantContext: vi.fn(
-    async (_context: unknown, action: (tx: GrantDbMock) => Promise<unknown>) => {
-      if (!mocks.tenantTx) throw new Error('tenantTx not configured');
-      return action(mocks.tenantTx);
-    }
-  ),
-}));
-
-vi.mock('@interdomestik/database', () => ({
-  withTenantContext: mocks.withTenantContext,
-}));
-
 import {
   findActorCrossGrantContexts,
   hasDurableCaseScopedDocumentGrant,
 } from './durable-case-grants';
 
-type GrantDbMock = { select: ReturnType<typeof vi.fn> };
+type GrantDbMock = { execute?: ReturnType<typeof vi.fn>; select: ReturnType<typeof vi.fn> };
 
 function dbWithGrantRows(rows: unknown[]): GrantDbMock {
   const chain = { where: vi.fn().mockResolvedValue(rows) };
@@ -27,6 +13,16 @@ function dbWithGrantRows(rows: unknown[]): GrantDbMock {
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue(chain),
     }),
+  };
+}
+
+function transactionalDbWithRows(rows: unknown[]) {
+  const tx = { ...dbWithGrantRows(rows), execute: vi.fn().mockResolvedValue(undefined) };
+  return {
+    tx,
+    db: {
+      transaction: vi.fn(async (action: (innerTx: GrantDbMock) => Promise<unknown>) => action(tx)),
+    },
   };
 }
 
@@ -47,28 +43,20 @@ const request = {
   now: new Date('2026-06-19T10:00:00Z'),
 };
 
-function expectGrantContext(): void {
-  expect(mocks.withTenantContext).toHaveBeenCalledWith(
-    { tenantId: 'tenant_mk', accessTenantId: 'tenant_mk' },
-    expect.any(Function)
-  );
-}
-
 describe('hasDurableCaseScopedDocumentGrant', () => {
   beforeEach(() => {
-    mocks.tenantTx = null;
-    mocks.withTenantContext.mockClear();
+    vi.clearAllMocks();
   });
 
   it('allows active durable grants for the actor, access tenant, case, and document class', async () => {
-    mocks.tenantTx = dbWithGrantRows([activeLegalGrant]);
+    const db = dbWithGrantRows([activeLegalGrant]);
     await expect(
       hasDurableCaseScopedDocumentGrant({
         ...request,
-        db: dbWithGrantRows([]) as never,
+        db: db as never,
       })
     ).resolves.toBe(true);
-    expectGrantContext();
+    expect(db.select).toHaveBeenCalledTimes(1);
   });
 
   it.each([
@@ -80,19 +68,18 @@ describe('hasDurableCaseScopedDocumentGrant', () => {
     ['revoked grant', { ...activeLegalGrant, revokedAt: '2026-06-19T09:00:00Z' }],
     ['unapproved identity grant row', { ...activeLegalGrant, documentClasses: ['identity'] }],
   ])('denies %s', async (_label, grant) => {
-    mocks.tenantTx = dbWithGrantRows([grant]);
+    const db = dbWithGrantRows([grant]);
     await expect(
       hasDurableCaseScopedDocumentGrant({
         ...request,
-        db: dbWithGrantRows([]) as never,
+        db: db as never,
       })
     ).resolves.toBe(false);
-    expectGrantContext();
+    expect(db.select).toHaveBeenCalledTimes(1);
   });
 
   it('denies unapproved document classes before durable rows can broaden access', async () => {
     const db = dbWithGrantRows([{ ...activeLegalGrant, documentClasses: ['identity'] }]);
-    mocks.tenantTx = db;
 
     await expect(
       hasDurableCaseScopedDocumentGrant({
@@ -102,17 +89,16 @@ describe('hasDurableCaseScopedDocumentGrant', () => {
       })
     ).resolves.toBe(false);
     expect(db.select).not.toHaveBeenCalled();
-    expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 
-  it('uses tenant context when listing cross-tenant grant lookup contexts', async () => {
-    mocks.tenantTx = dbWithGrantRows([{ ...activeLegalGrant, tenantId: 'tenant_home' }]);
+  it('sets tenant context on the supplied db when listing cross-tenant grants', async () => {
+    const { db, tx } = transactionalDbWithRows([{ ...activeLegalGrant, tenantId: 'tenant_home' }]);
 
     await expect(
       findActorCrossGrantContexts({
         accessTenantId: 'tenant_mk',
         actorId: 'local-legal-1',
-        db: dbWithGrantRows([]) as never,
+        db: db as never,
         now: request.now,
       })
     ).resolves.toEqual([
@@ -122,6 +108,8 @@ describe('hasDurableCaseScopedDocumentGrant', () => {
         homeTenantId: 'tenant_home',
       },
     ]);
-    expectGrantContext();
+    expect(db.transaction).toHaveBeenCalledTimes(1);
+    expect(tx.execute).toHaveBeenCalledTimes(3);
+    expect(tx.select).toHaveBeenCalledTimes(1);
   });
 });
