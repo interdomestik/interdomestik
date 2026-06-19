@@ -3,6 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ClaimsSession } from '../claims/types';
 import { upsertRecoveryDecisionRecord } from './recovery-decision-record';
 
+type RecoveryDecisionTx = Parameters<typeof upsertRecoveryDecisionRecord>[0]['tx'];
+
+function recoveryDecisionTx(tx: unknown): RecoveryDecisionTx {
+  return tx as RecoveryDecisionTx;
+}
+
 const mocks = vi.hoisted(() => ({
   appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
@@ -60,7 +66,7 @@ describe('upsertRecoveryDecisionRecord', () => {
       explanation: 'Declined after review',
       session,
       tenantId: 'tenant-1',
-      tx: tx as unknown as Parameters<typeof upsertRecoveryDecisionRecord>[0]['tx'],
+      tx: recoveryDecisionTx(tx),
     });
 
     expect(insertValues).toHaveBeenCalledWith(
@@ -99,7 +105,7 @@ describe('upsertRecoveryDecisionRecord', () => {
       explanation: 'Accepted after review',
       session,
       tenantId: 'tenant-1',
-      tx: tx as unknown as Parameters<typeof upsertRecoveryDecisionRecord>[0]['tx'],
+      tx: recoveryDecisionTx(tx),
     });
 
     expect(tx.insert).not.toHaveBeenCalled();
