@@ -4,6 +4,7 @@ import { cn } from '@interdomestik/ui/lib/utils';
 import { format } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import type { ClaimTimelineEvent } from '../types';
+import { useTrackingLabelTranslator } from './useTrackingLabelTranslator';
 
 interface ClaimTimelineProps {
   events: ClaimTimelineEvent[];
@@ -12,7 +13,7 @@ interface ClaimTimelineProps {
 
 export function ClaimTimeline({ events, className }: ClaimTimelineProps) {
   const t = useTranslations('claims-tracking.tracking.timeline');
-  const tStatus = useTranslations('claims-tracking.status');
+  const translateTrackingLabel = useTrackingLabelTranslator();
 
   return (
     <div
@@ -27,7 +28,7 @@ export function ClaimTimeline({ events, className }: ClaimTimelineProps) {
             <span className="text-xs text-muted-foreground">
               {format(new Date(event.date), 'PPP p')}
             </span>
-            <h4 className="font-semibold text-sm">{tStatus(`${event.statusTo}`)}</h4>
+            <h4 className="font-semibold text-sm">{translateTrackingLabel(event.labelKey)}</h4>
             {event.note && (
               <p className="text-sm text-muted-foreground bg-muted/30 p-2 rounded">{event.note}</p>
             )}

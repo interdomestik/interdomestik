@@ -9,7 +9,9 @@
         "share_dialog_desc": "Anyone with this link can view the current status of this claim. The link expires in 7 days."
       },
       "timeline": {
-        "empty": "No timeline events available."
+        "empty": "No timeline events available.",
+        "generic": "Case update",
+        "redacted": "Case update unavailable"
       },
       "documents": {
         "title": "Documents",

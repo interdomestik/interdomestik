@@ -5,6 +5,7 @@ const hoisted = vi.hoisted(() => ({
   timelineRows: vi.fn(),
   recoveryDecisionRows: vi.fn(),
   select: vi.fn(),
+  getMemberTimelineFromDomainEvents: vi.fn(),
   ensureClaimsAccess: vi.fn(),
   buildClaimVisibilityWhere: vi.fn(),
   getMatterAllowanceVisibility: vi.fn(),
@@ -85,6 +86,7 @@ vi.mock('@interdomestik/database', () => ({
     },
     select: hoisted.select,
   },
+  ERASURE_REDACTED_VALUE: '[erased]',
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -101,12 +103,6 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
   claims: {
     id: 'claims.id',
-  },
-  claimStageHistory: {
-    claimId: 'claimStageHistory.claimId',
-    tenantId: 'claimStageHistory.tenantId',
-    isPublic: 'claimStageHistory.isPublic',
-    createdAt: 'claimStageHistory.createdAt',
   },
 }));
 
@@ -126,24 +122,21 @@ vi.mock('@sentry/nextjs', () => ({
   withServerActionInstrumentation: hoisted.withServerActionInstrumentation,
 }));
 
+vi.mock('./member-domain-event-timeline', () => ({
+  getMemberTimelineFromDomainEvents: hoisted.getMemberTimelineFromDomainEvents,
+}));
+
 import { getMemberClaimDetail } from './getMemberClaimDetail';
+import { normalizeMemberTimelineMockRows } from './member-domain-event-timeline.test-support';
 
 function configureSelectMocks() {
-  hoisted.select
-    .mockReturnValueOnce({
-      from: () => ({
-        where: () => ({
-          orderBy: () => hoisted.timelineRows(),
-        }),
+  hoisted.select.mockReturnValueOnce({
+    from: () => ({
+      where: () => ({
+        limit: () => hoisted.recoveryDecisionRows(),
       }),
-    })
-    .mockReturnValueOnce({
-      from: () => ({
-        where: () => ({
-          limit: () => hoisted.recoveryDecisionRows(),
-        }),
-      }),
-    });
+    }),
+  });
 }
 
 describe('getMemberClaimDetail', () => {
@@ -157,6 +150,9 @@ describe('getMemberClaimDetail', () => {
     });
     hoisted.buildClaimVisibilityWhere.mockReturnValue({ visibility: 'member' });
     hoisted.getMatterAllowanceVisibility.mockResolvedValue(null);
+    hoisted.getMemberTimelineFromDomainEvents.mockImplementation(async context => {
+      return normalizeMemberTimelineMockRows(context, await hoisted.timelineRows());
+    });
     configureSelectMocks();
     hoisted.recoveryDecisionRows.mockResolvedValue([]);
   });
@@ -348,7 +344,9 @@ describe('getMemberClaimDetail', () => {
     });
   });
 
-  it('scopes timeline reads to tenant-owned public history only', async () => {
+  it('scopes timeline reads to the already-authorized claim context', async () => {
+    const createdAt = new Date('2025-01-01T00:00:00.000Z');
+    const updatedAt = new Date('2025-01-03T00:00:00.000Z');
     hoisted.ensureClaimsAccess.mockReturnValue({
       tenantId: 'tenant_mk',
       userId: 'member_1',
@@ -361,36 +359,34 @@ describe('getMemberClaimDetail', () => {
       id: 'claim_1',
       title: 'Missing baggage',
       status: 'verification',
-      createdAt: new Date('2025-01-01T00:00:00.000Z'),
-      updatedAt: new Date('2025-01-03T00:00:00.000Z'),
+      createdAt,
+      updatedAt,
       description: 'Need boarding pass',
       claimAmount: 120,
       currency: 'EUR',
       documents: [],
     });
-
-    const selectChain = {
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      orderBy: vi.fn().mockResolvedValue([]),
-    };
-    const recoveryDecisionChain = {
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue([]),
-    };
-    hoisted.select.mockReset();
-    hoisted.select.mockReturnValueOnce(selectChain).mockReturnValueOnce(recoveryDecisionChain);
+    hoisted.timelineRows.mockResolvedValueOnce([
+      {
+        id: 'event-1',
+        date: updatedAt,
+        statusFrom: 'submitted',
+        statusTo: 'verification',
+        labelKey: 'claims-tracking.status.verification',
+        note: null,
+        isPublic: true,
+      },
+    ]);
 
     await getMemberClaimDetail({ user: { id: 'member_1' } }, 'claim_1');
 
-    expect(selectChain.where).toHaveBeenCalledWith({
-      op: 'and',
-      args: [
-        { op: 'eq', left: 'claimStageHistory.claimId', right: 'claim_1' },
-        { op: 'eq', left: 'claimStageHistory.tenantId', right: 'tenant_mk' },
-        { op: 'eq', left: 'claimStageHistory.isPublic', right: true },
-      ],
+    expect(hoisted.getMemberTimelineFromDomainEvents).toHaveBeenCalledWith({
+      claimId: 'claim_1',
+      tenantId: 'tenant_mk',
+      currentStatus: 'verification',
+      createdAt,
+      piiStatus: 'available',
+      updatedAt,
     });
   });
 
