@@ -5,6 +5,9 @@ import {
   appendPullRequestScannerProperties,
   appendScannerProperties,
   buildNativeScannerArgs,
+  normalizeSonarHostUrl,
+  resolveSonarStatusTarget,
+  waitForSonarUp,
 } from './sonar-scan-lib.mjs';
 
 test('appendScannerProperties adds skip JRE provisioning when requested', () => {
@@ -29,11 +32,11 @@ test('appendScannerProperties does not duplicate skip JRE provisioning property'
 });
 
 test('buildNativeScannerArgs places dlx before package selection', () => {
-  assert.deepEqual(buildNativeScannerArgs(['-Dsonar.host.url=http://localhost:9000']), [
+  assert.deepEqual(buildNativeScannerArgs(['-Dsonar.host.url=https://sonarcloud.io']), [
     'dlx',
     '--package=@sonar/scan',
     'sonar-scanner',
-    '-Dsonar.host.url=http://localhost:9000',
+    '-Dsonar.host.url=https://sonarcloud.io',
   ]);
 });
 
@@ -57,5 +60,56 @@ test('appendPullRequestScannerProperties leaves non-PR scans unchanged', () => {
   assert.deepEqual(
     appendPullRequestScannerProperties(['-Dsonar.host.url=https://sonarcloud.io'], {}),
     ['-Dsonar.host.url=https://sonarcloud.io']
+  );
+});
+
+test('normalizeSonarHostUrl rejects credential-bearing URLs', () => {
+  assert.throws(
+    () => normalizeSonarHostUrl('https://user:token@sonarcloud.io?token=secret'),
+    /must not include credentials/u
+  );
+});
+
+test('normalizeSonarHostUrl rejects malformed URLs with a redacted error', () => {
+  assert.throws(() => normalizeSonarHostUrl('://user:token@example.com'), /must be a valid URL/u);
+});
+
+test('normalizeSonarHostUrl defaults to SonarCloud and rejects arbitrary hosts', () => {
+  assert.equal(normalizeSonarHostUrl(), 'https://sonarcloud.io');
+  assert.equal(normalizeSonarHostUrl('https://sonarcloud.io/'), 'https://sonarcloud.io');
+  assert.throws(
+    () => normalizeSonarHostUrl('https://example.test'),
+    /approved local SonarQube URL/u
+  );
+});
+
+test('resolveSonarStatusTarget returns fixed targets only for approved local hosts', () => {
+  const localUrl = host => `${'http:'}//${host}`;
+
+  assert.equal(resolveSonarStatusTarget({ sonarHostUrl: 'https://sonarcloud.io' }), null);
+  assert.equal(
+    resolveSonarStatusTarget({
+      sonarHostUrl: localUrl('host.docker.internal:9000'),
+      forceNative: true,
+    }),
+    'host-docker-native'
+  );
+  assert.equal(
+    resolveSonarStatusTarget({ sonarHostUrl: localUrl('sonarqube:9000'), forceNative: false }),
+    'local-docker'
+  );
+});
+
+test('waitForSonarUp fails clearly when the server stays unavailable', async () => {
+  await assert.rejects(
+    () => waitForSonarUp({ statusTarget: 'local-docker', timeoutMs: 1 }),
+    /did not become ready/u
+  );
+});
+
+test('waitForSonarUp fails fast for unknown status targets', async () => {
+  await assert.rejects(
+    () => waitForSonarUp({ statusTarget: 'unknown-target', timeoutMs: 10_000 }),
+    /Unknown local SonarQube status target/u
   );
 });

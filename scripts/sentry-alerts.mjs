@@ -89,9 +89,7 @@ async function runCheck({ jsonOutput, config }) {
 
   writeOutput(payload, jsonOutput);
 
-  if (diff.missing.length > 0 || diff.changed.length > 0) {
-    process.exitCode = 1;
-  }
+  if (diff.missing.length > 0 || diff.changed.length > 0) process.exitCode = 1;
 }
 
 async function runApply({ jsonOutput, config }) {
@@ -121,7 +119,12 @@ async function runApply({ jsonOutput, config }) {
 
     if (existing) {
       const updated = await putMetricAlertRule(config, existing.id, payload);
-      results.push({ id: alert.id, operation: 'updated', remoteId: updated.id, name: updated.name });
+      results.push({
+        id: alert.id,
+        operation: 'updated',
+        remoteId: updated.id,
+        name: updated.name,
+      });
       continue;
     }
 
@@ -140,9 +143,8 @@ async function runApply({ jsonOutput, config }) {
 
 function requireRemoteConfig(config) {
   const missing = ['authToken', 'org', 'project'].filter(key => !config[key]);
-  if (missing.length > 0) {
+  if (missing.length > 0)
     throw new Error(`Missing required Sentry configuration: ${missing.join(', ')}`);
-  }
 }
 
 async function listMetricAlertRules(config) {
@@ -182,9 +184,7 @@ async function sentryFetchJson(url, init) {
   const response = await fetch(url, init);
   const bodyText = await response.text();
 
-  if (!response.ok) {
-    throw new Error(`Sentry API request failed (${response.status}): ${bodyText}`);
-  }
+  if (!response.ok) throw new Error(`Sentry API request failed (${response.status}): ${bodyText}`);
 
   return bodyText ? JSON.parse(bodyText) : null;
 }
@@ -200,11 +200,8 @@ async function getAuthInfo(config) {
 
 function ensureScopes(authInfo, requiredScopes) {
   const missingScopes = findMissingScopes(authInfo?.auth?.scopes ?? [], requiredScopes);
-  if (missingScopes.length > 0) {
-    throw new Error(
-      `Sentry auth token is missing required scopes: ${missingScopes.join(', ')}`
-    );
-  }
+  if (missingScopes.length > 0)
+    throw new Error(`Sentry auth token is missing required scopes: ${missingScopes.join(', ')}`);
 }
 
 function writeOutput(payload, jsonOutput) {
@@ -222,7 +219,7 @@ function writeOutput(payload, jsonOutput) {
   }
 
   if (payload.mode === 'remote-check') {
-    console.log(`Sentry D07 alert check for project=${payload.project} environment=${payload.environment}`);
+    console.log('Sentry D07 alert check for configured project and environment');
     console.log(`- missing: ${payload.missing.length}`);
     console.log(`- changed: ${payload.changed.length}`);
     console.log(`- unchanged: ${payload.unchanged.length}`);

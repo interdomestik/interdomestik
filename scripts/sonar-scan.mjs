@@ -6,34 +6,10 @@ import {
   appendPullRequestScannerProperties,
   appendScannerProperties,
   buildNativeScannerArgs,
+  normalizeSonarHostUrl,
+  resolveSonarStatusTarget,
+  waitForSonarUp,
 } from './sonar-scan-lib.mjs';
-
-async function waitForSonarUp({ statusUrl, timeoutMs }) {
-  const start = Date.now();
-  // Basic backoff: short sleeps, but don't hammer the server.
-  const sleepMs = 1500;
-
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const response = await fetch(statusUrl, {
-        // SonarQube can be slow to respond while booting.
-        signal: AbortSignal.timeout(2500),
-      });
-
-      if (response.ok) {
-        const data = await response.json().catch(() => null);
-        const status = data?.status;
-        if (status === 'UP') {
-          return;
-        }
-      }
-    } catch {
-      // ignore and retry
-    }
-
-    await new Promise(resolve => setTimeout(resolve, sleepMs));
-  }
-}
 
 function run(cmd, args, opts = {}) {
   const { allowFailure = false, ...spawnOptions } = opts;
@@ -103,13 +79,9 @@ if (!sonarToken) {
 // Run the scanner via Docker so we don't require a global `sonar-scanner` or Java.
 // IMPORTANT: do NOT pass `-Dsonar.token=...` because SonarScanner logs the value.
 // We pass auth only through the `SONAR_TOKEN` env var.
-//
-// When running inside a container, `localhost` points to the container itself.
-// For local development, the SonarQube server is running on the host (Docker Desktop),
-// so we default to `host.docker.internal`.
 const cwd = process.cwd();
 
-const sonarHostUrl = process.env.SONAR_HOST_URL ?? 'http://host.docker.internal:9000';
+const sonarHostUrl = normalizeSonarHostUrl(process.env.SONAR_HOST_URL);
 const skipJreProvisioning = process.env.SONAR_SCANNER_SKIP_JRE_PROVISIONING === 'true';
 const scannerProperties = appendScannerProperties([`-Dsonar.host.url=${sonarHostUrl}`], {
   skipJreProvisioning,
@@ -153,9 +125,9 @@ if (pullRequestKey && (!pullRequestBranch || !pullRequestBase)) {
   console.error(
     [
       'Missing pull request branch context for Sonar PR analysis.',
-      `SONAR_PULLREQUEST_KEY=${pullRequestKey}`,
-      `SONAR_PULLREQUEST_BRANCH=${pullRequestBranch || '<empty>'}`,
-      `SONAR_PULLREQUEST_BASE=${pullRequestBase || '<empty>'}`,
+      `pull request key present: ${pullRequestKey ? 'yes' : 'no'}`,
+      `pull request branch present: ${pullRequestBranch ? 'yes' : 'no'}`,
+      `pull request base present: ${pullRequestBase ? 'yes' : 'no'}`,
     ].join('\n')
   );
   process.exit(2);
@@ -171,12 +143,11 @@ const forceDocker = process.env.SONAR_SCANNER_FORCE_DOCKER === 'true';
 const forceNative = process.env.SONAR_SCANNER_FORCE_NATIVE === 'true';
 const shouldUseNativeScanner =
   forceNative || (!forceDocker && process.platform === 'darwin' && process.arch === 'arm64');
+const sonarStatusTarget = resolveSonarStatusTarget({ sonarHostUrl, forceNative });
 
-if (sonarHostUrl.includes('host.docker.internal:9000') || sonarHostUrl.includes('sonarqube:9000')) {
+if (sonarStatusTarget) {
   await waitForSonarUp({
-    statusUrl: forceNative
-      ? `${sonarHostUrl.replace(/\/$/u, '')}/api/system/status`
-      : 'http://localhost:9000/api/system/status',
+    statusTarget: sonarStatusTarget,
     timeoutMs: 120_000,
   });
 }

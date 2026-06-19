@@ -350,8 +350,8 @@ run_security_checks() {
   run pnpm security:guard
   run_shell '
     attempt() {
-      pnpm audit --prod --audit-level=high --json > /tmp/pnpm-audit.json || true
-      node scripts/pnpm-audit-gate.mjs /tmp/pnpm-audit.json
+      audit_json="$(pnpm audit --prod --audit-level=high --json || true)"
+      printf "%s\n" "${audit_json}" | node scripts/pnpm-audit-gate.mjs
     }
 
     for i in 1 2 3; do

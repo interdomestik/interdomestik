@@ -48,8 +48,7 @@ test('e2e launchers resolve standalone server artifacts dynamically for worktree
   assert.match(stampScript, /CSP_NONCE_MODE/);
   assert.match(stampScript, /publicEnv/);
   assert.match(stampScript, /buildEnv/);
-  assert.match(stampScript, /billingTestMode=/);
-  assert.match(stampScript, /cspNonceMode=/);
+  assert.match(stampScript, /public\/build environment modes recorded/);
   assert.match(stampScript, /syncClientReferenceManifests/);
   assert.match(stampScript, /standalone client reference manifests synced=/);
   assert.match(stampScript, /aliasRouteGroupClientReferenceManifests/);

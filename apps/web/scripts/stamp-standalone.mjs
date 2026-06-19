@@ -8,7 +8,7 @@ function resolveGitSha() {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
-    if (sha) return sha;
+    if (/^[0-9a-f]{7,40}$/u.test(sha)) return sha;
   } catch {
     // Fall back to env-based commit SHA in containerized CI contexts without git.
   }
@@ -19,7 +19,8 @@ function resolveGitSha() {
     process.env.SOURCE_COMMIT ||
     process.env.COMMIT_SHA;
 
-  return envSha?.trim() || 'unknown';
+  const normalizedSha = envSha?.trim();
+  return normalizedSha && /^[0-9a-f]{7,40}$/u.test(normalizedSha) ? normalizedSha : 'unknown';
 }
 
 function normalizeBillingTestMode(value) {
@@ -28,7 +29,7 @@ function normalizeBillingTestMode(value) {
 
 function normalizeCspNonceMode(value) {
   if (value === undefined || value === 'off') return 'off';
-  return value;
+  return value === 'report' || value === 'enforce' ? value : 'off';
 }
 
 function stripRouteGroups(relativePath) {
@@ -141,9 +142,7 @@ const aliasCount = serverRoots.reduce(
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(outFile, `${JSON.stringify(stamp, null, 2)}\n`);
 
-console.log(
-  `[build-stamp] ${outFile} (${gitSha}, billingTestMode=${billingTestMode}, cspNonceMode=${cspNonceMode})`
-);
+console.log(`[build-stamp] ${outFile} (public/build environment modes recorded)`);
 if (syncCount > 0) {
   console.log(`[build-stamp] standalone client reference manifests synced=${syncCount}`);
 }

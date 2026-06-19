@@ -1,18 +1,10 @@
 import fs from 'node:fs';
-import path from 'node:path';
 
-const [,, auditFile, ...allowlist] = process.argv;
+const [, , ...allowlist] = process.argv;
 
-if (!auditFile) {
-  console.error('Usage: node scripts/pnpm-audit-gate.mjs <audit-json-file> [ALLOWLIST...]');
-  process.exit(1);
-}
+const raw = fs.readFileSync(0, 'utf8').trim();
 
-const raw = fs.readFileSync(auditFile, 'utf8').trim();
-
-if (!raw) {
-  process.exit(0);
-}
+if (!raw) process.exit(0);
 
 const allowed = new Set();
 const allowedPathRules = [];
@@ -22,14 +14,10 @@ function normalizeAllowlistEntry(entry) {
     return { id: String(entry), paths: [] };
   }
 
-  if (!entry || typeof entry !== 'object') {
-    return null;
-  }
+  if (!entry || typeof entry !== 'object') return null;
 
   const id = entry.id ?? entry.ghsaId;
-  if (!id) {
-    return null;
-  }
+  if (!id) return null;
 
   const paths = Array.isArray(entry.paths)
     ? entry.paths.map(pathEntry => String(pathEntry))
@@ -45,53 +33,38 @@ function normalizeAllowlistEntry(entry) {
   };
 }
 
-function loadAllowlistFile(filePath) {
-  try {
-    if (!filePath || !fs.existsSync(filePath)) {
-      return [];
-    }
-    const rawAllowlist = fs.readFileSync(filePath, 'utf8').trim();
-    if (!rawAllowlist) {
-      return [];
-    }
-    const parsed = JSON.parse(rawAllowlist);
-    if (Array.isArray(parsed)) {
-      return parsed.map(normalizeAllowlistEntry).filter(Boolean);
-    }
-    if (Array.isArray(parsed.allowlist)) {
-      return parsed.allowlist.map(normalizeAllowlistEntry).filter(Boolean);
-    }
-    return [];
-  } catch {
-    return [];
+function loadAllowlistFile() {
+  if (!fs.existsSync(new URL('./pnpm-audit-allowlist.json', import.meta.url))) return [];
+  const rawAllowlist = fs
+    .readFileSync(new URL('./pnpm-audit-allowlist.json', import.meta.url), 'utf8')
+    .trim();
+  if (!rawAllowlist) return [];
+  const parsed = JSON.parse(rawAllowlist);
+  if (Array.isArray(parsed)) {
+    return parsed.map(normalizeAllowlistEntry).filter(Boolean);
   }
+  if (Array.isArray(parsed.allowlist)) {
+    return parsed.allowlist.map(normalizeAllowlistEntry).filter(Boolean);
+  }
+  return [];
 }
 
-const repoAllowlistPath = path.resolve(process.cwd(), 'scripts', 'pnpm-audit-allowlist.json');
-loadAllowlistFile(repoAllowlistPath).forEach(entry => {
+for (const entry of loadAllowlistFile()) {
   allowed.add(entry.id);
   if (entry.paths.length > 0) {
     allowedPathRules.push(entry);
   }
-});
+}
 
 if (allowlist.length > 0) {
   allowlist.forEach(entry => {
     if (!entry) {
       return;
     }
-    if (fs.existsSync(entry)) {
-      loadAllowlistFile(entry).forEach(loadedEntry => {
-        allowed.add(loadedEntry.id);
-        if (loadedEntry.paths.length > 0) {
-          allowedPathRules.push(loadedEntry);
-        }
-      });
-      return;
-    }
     allowed.add(String(entry));
   });
 }
+
 const advisories = new Map();
 
 function ingestRecord(record) {

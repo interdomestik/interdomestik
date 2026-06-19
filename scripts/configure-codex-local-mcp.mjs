@@ -84,5 +84,5 @@ if (nextConfig !== currentConfig) {
   fs.writeFileSync(codexConfigPath, nextConfig);
 }
 
-console.log(`Codex local MCP config updated: ${codexConfigPath}`);
-console.log(`Configured ${serverName} with cwd: ${rootDir}`);
+console.log('Codex local MCP config updated.');
+console.log(`Configured ${serverName} with repository-scoped cwd.`);

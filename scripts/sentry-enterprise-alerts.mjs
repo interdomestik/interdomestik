@@ -62,18 +62,14 @@ function writeOutput(payload, asJson) {
     return;
   }
   if (payload.mode === 'remote-check') {
-    console.log(
-      `Enterprise Sentry alert check for project=${payload.project} environment=${payload.environment}`
-    );
+    console.log('Enterprise Sentry alert check for configured project and environment');
     console.log(`- missing: ${payload.missing.length}`);
     console.log(`- changed: ${payload.changed.length}`);
     console.log(`- unchanged: ${payload.unchanged.length}`);
     return;
   }
   if (payload.mode === 'apply') {
-    console.log(
-      `Applied enterprise Sentry alerts for project=${payload.project} environment=${payload.environment}`
-    );
+    console.log('Applied enterprise Sentry alerts for configured project and environment');
     console.log(`- routing owner set: ${payload.routing.ownerSet ? 'yes' : 'no'}`);
     console.log(`- reused D07 rules: ${payload.routing.reusedD07RuleIds.length}`);
     for (const result of payload.results) {

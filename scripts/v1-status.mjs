@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
-import path from 'node:path';
 
-const DEFAULT_TRACKER = 'docs/plans/2026-02-22-v1-bulletproof-tracker.md';
-const trackerPath = path.resolve(process.cwd(), process.argv[2] || DEFAULT_TRACKER);
+const trackerUrl = new URL('../docs/plans/2026-02-22-v1-bulletproof-tracker.md', import.meta.url);
 
-if (!fs.existsSync(trackerPath)) {
-  console.error(`Tracker not found: ${trackerPath}`);
+try {
+  fs.accessSync(trackerUrl, fs.constants.R_OK);
+} catch {
+  console.error('Tracker not found: configured repository tracker path');
   process.exit(1);
 }
 
-const text = fs.readFileSync(trackerPath, 'utf8');
+const text = fs.readFileSync(trackerUrl, 'utf8');
 const lines = text.split(/\r?\n/);
 
 const getValue = (...prefixes) => {
@@ -50,7 +50,7 @@ const nextActions = openActions.slice(0, 8);
 
 console.log('=== Interdomestik v1.0.0 Bulletproof Status (Legacy) ===');
 console.log('Use `pnpm plan:status` for the live program status.\n');
-console.log(`Tracker: ${trackerPath}`);
+console.log('Tracker: configured repository tracker path');
 console.log(`Historical last updated: ${getValue('Historical last updated:', 'Last updated:')}`);
 console.log(
   `Historical phase snapshot: ${getValue('Historical phase snapshot:', 'Current phase:')}`
