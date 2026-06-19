@@ -5,16 +5,17 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import { caseScopedAccessGrants, claims, user } from '../src/schema';
+import { caseScopedAccessGrants } from '../src/schema';
 import {
   ACCESS_TENANT_ID,
   allowRlsGrantTableAccess,
   assertRejectsDb,
+  cleanupGrantProofRows,
   grantRow,
   HOME_TENANT_ID,
   REQUIRED_RLS_TABLES,
+  seedGrantProofRows,
   uniqueId,
-  userRow,
 } from './case-scoped-access-grants-rls-fixture';
 import { applyRlsTestConnectionEnv, requireRlsPreconditions } from './rls-test-connection';
 
@@ -40,7 +41,6 @@ test('case-scoped access grants enforce live RLS and grant constraints', async t
   const claimId = uniqueId('rls_claim');
   const grantId = uniqueId('rls_grant');
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + 60_000);
   const rlsTestEnv = applyRlsTestConnectionEnv(process.env.DATABASE_URL);
   const [{ dbAdmin }, { withTenantContext }] = await Promise.all([
     import('../src/db'),
@@ -48,36 +48,7 @@ test('case-scoped access grants enforce live RLS and grant constraints', async t
   ]);
 
   try {
-    await dbAdmin
-      .insert(user)
-      .values([
-        userRow(homeUserId, HOME_TENANT_ID, now),
-        userRow(accessUserId, ACCESS_TENANT_ID, now),
-      ]);
-    await dbAdmin.insert(claims).values({
-      id: claimId,
-      tenantId: HOME_TENANT_ID,
-      userId: homeUserId,
-      title: 'Case-scoped grant RLS proof',
-      description: 'no sensitive narrative',
-      category: 'retail',
-      companyName: 'RLS Test Co',
-      status: 'draft',
-      origin: 'portal',
-    });
-    await dbAdmin.insert(caseScopedAccessGrants).values({
-      id: grantId,
-      tenantId: HOME_TENANT_ID,
-      accessTenantId: ACCESS_TENANT_ID,
-      caseId: claimId,
-      actorId: accessUserId,
-      documentClasses: ['legal'],
-      expiresAt,
-      revokedAt: null,
-      createdById: homeUserId,
-      correlationId: uniqueId('rls_corr'),
-      createdAt: now,
-    });
+    await seedGrantProofRows(dbAdmin, { accessUserId, claimId, grantId, homeUserId }, now);
 
     const visibleToAccessTenant = await withTenantContext({ tenantId: ACCESS_TENANT_ID }, tx =>
       tx.select().from(caseScopedAccessGrants).where(eq(caseScopedAccessGrants.id, grantId))
@@ -142,10 +113,7 @@ test('case-scoped access grants enforce live RLS and grant constraints', async t
     );
   } finally {
     rlsTestEnv.restore();
-    await adminDb.delete(caseScopedAccessGrants).where(eq(caseScopedAccessGrants.caseId, claimId));
-    await adminDb.delete(claims).where(eq(claims.id, claimId));
-    await adminDb.delete(user).where(eq(user.id, homeUserId));
-    await adminDb.delete(user).where(eq(user.id, accessUserId));
+    await cleanupGrantProofRows(dbAdmin, { accessUserId, claimId, homeUserId });
     await adminSql.end({ timeout: 5 });
   }
 });

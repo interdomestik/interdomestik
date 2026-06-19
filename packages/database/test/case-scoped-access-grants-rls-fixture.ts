@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
-import { caseScopedAccessGrants } from '../src/schema';
+import { caseScopedAccessGrants, claims, user } from '../src/schema';
 import {
   grantRlsTestRole,
   quoteIdentifier,
@@ -71,6 +71,7 @@ export function userRow(id: string, tenantId: string, now: Date) {
 }
 
 type GrantInsert = typeof caseScopedAccessGrants.$inferInsert;
+type DbAdmin = typeof import('../src/db').dbAdmin;
 
 export function grantRow(input: {
   id: string;
@@ -91,4 +92,46 @@ export function grantRow(input: {
     correlationId: input.correlationId ?? uniqueId('rls_corr'),
     createdAt: new Date(),
   };
+}
+
+export async function seedGrantProofRows(
+  dbAdmin: DbAdmin,
+  ids: { accessUserId: string; claimId: string; grantId: string; homeUserId: string },
+  now: Date
+): Promise<void> {
+  await dbAdmin
+    .insert(user)
+    .values([
+      userRow(ids.homeUserId, HOME_TENANT_ID, now),
+      userRow(ids.accessUserId, ACCESS_TENANT_ID, now),
+    ]);
+  await dbAdmin.insert(claims).values({
+    id: ids.claimId,
+    tenantId: HOME_TENANT_ID,
+    userId: ids.homeUserId,
+    title: 'Case-scoped grant RLS proof',
+    description: 'no sensitive narrative',
+    category: 'retail',
+    companyName: 'RLS Test Co',
+    status: 'draft',
+    origin: 'portal',
+  });
+  await dbAdmin.insert(caseScopedAccessGrants).values({
+    ...grantRow({ id: ids.grantId, actorId: ids.accessUserId, caseId: ids.claimId }),
+    expiresAt: new Date(now.getTime() + 60_000),
+    createdById: ids.homeUserId,
+    createdAt: now,
+  });
+}
+
+export async function cleanupGrantProofRows(
+  dbAdmin: DbAdmin,
+  ids: { accessUserId: string; claimId: string; homeUserId: string }
+): Promise<void> {
+  await dbAdmin
+    .delete(caseScopedAccessGrants)
+    .where(eq(caseScopedAccessGrants.caseId, ids.claimId));
+  await dbAdmin.delete(claims).where(eq(claims.id, ids.claimId));
+  await dbAdmin.delete(user).where(eq(user.id, ids.homeUserId));
+  await dbAdmin.delete(user).where(eq(user.id, ids.accessUserId));
 }

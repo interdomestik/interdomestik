@@ -1,6 +1,7 @@
 import { caseScopedAccessGrants, claims, sql, user } from '@interdomestik/database';
 
 import { HANDOFF_DOCUMENT_CLASSES } from './jurisdiction-handoff-document-classes';
+import { classifyExistingHandoffGrant } from './jurisdiction-handoff-store-conflicts';
 import type { HandoffClaimRow, HandoffTx } from './jurisdiction-handoff-types';
 
 export async function lockHandoffClaim(
@@ -137,22 +138,5 @@ export async function insertHandoffGrant(args: {
     )
     .limit(1);
 
-  const isSameGrant =
-    existing?.id === args.grantId &&
-    existing.tenantId === args.homeTenantId &&
-    existing.accessTenantId === args.recoveryLegalTenantId &&
-    existing.caseId === args.caseId &&
-    existing.actorId === args.actorId &&
-    existing.correlationId === args.correlationId;
-  if (isSameGrant) return existing.revokedAt ? 'revoked_exists' : 'already_exists';
-  if (
-    existing?.tenantId === args.homeTenantId &&
-    existing.accessTenantId === args.recoveryLegalTenantId &&
-    existing.caseId === args.caseId &&
-    existing.actorId === args.actorId &&
-    !existing.revokedAt
-  ) {
-    return 'active_grant_conflict';
-  }
-  return 'correlation_conflict';
+  return classifyExistingHandoffGrant(existing, args);
 }
