@@ -58,23 +58,25 @@ export async function canReadPolymorphicClaimDocument(args: {
     .where(and(eq(claims.id, polyDoc.entityId), eq(claims.tenantId, tenantId)));
 
   if (!claimRow) return false;
-  if (await hasAnyCaseScopedGrant(db, tenantId, session, polyDoc.entityId, polyDoc.category)) {
+  if (userRole !== 'agent' && claimRow.claimOwnerId === session.user.id) return true;
+  if (
+    isScopedClaimReaderRole(userRole) &&
+    hasScopedClaimReadAccess({
+      branchId: session.user.branchId ?? null,
+      claim: {
+        branchId: claimRow.claimBranchId ?? null,
+        staffId: claimRow.claimStaffId ?? null,
+        userId: claimRow.claimOwnerId ?? null,
+        agentId: claimRow.claimAgentId ?? null,
+      },
+      role: userRole,
+      userId: session.user.id,
+    })
+  ) {
     return true;
   }
-  if (userRole !== 'agent' && claimRow.claimOwnerId === session.user.id) return true;
-  if (!isScopedClaimReaderRole(userRole)) return false;
 
-  return hasScopedClaimReadAccess({
-    branchId: session.user.branchId ?? null,
-    claim: {
-      branchId: claimRow.claimBranchId ?? null,
-      staffId: claimRow.claimStaffId ?? null,
-      userId: claimRow.claimOwnerId ?? null,
-      agentId: claimRow.claimAgentId ?? null,
-    },
-    role: userRole,
-    userId: session.user.id,
-  });
+  return hasAnyCaseScopedGrant(db, tenantId, session, polyDoc.entityId, polyDoc.category);
 }
 
 export async function canReadLegacyClaimDocument(args: {
