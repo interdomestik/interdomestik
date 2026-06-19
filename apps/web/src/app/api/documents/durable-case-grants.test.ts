@@ -47,18 +47,18 @@ const request = {
   now: new Date('2026-06-19T10:00:00Z'),
 };
 
+function expectGrantContext(): void {
+  expect(mocks.withTenantContext).toHaveBeenCalledWith(
+    { tenantId: 'tenant_mk', accessTenantId: 'tenant_mk' },
+    expect.any(Function)
+  );
+}
+
 describe('hasDurableCaseScopedDocumentGrant', () => {
   beforeEach(() => {
     mocks.tenantTx = null;
     mocks.withTenantContext.mockClear();
   });
-
-  function expectGrantContext(): void {
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_mk', accessTenantId: 'tenant_mk' },
-      expect.any(Function)
-    );
-  }
 
   it('allows active durable grants for the actor, access tenant, case, and document class', async () => {
     mocks.tenantTx = dbWithGrantRows([activeLegalGrant]);
