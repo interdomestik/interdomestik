@@ -28,6 +28,12 @@ export const preWriteCases = [
 
 export const preGrantCases = [
   ['self_grant_denied', baseParams, undefined],
+  [
+    'handoff_grant_expired',
+    { ...baseParams, grantExpiresAt: new Date('2026-06-19T09:59:59Z') },
+    undefined,
+  ],
+  ['handoff_grant_expired', { ...baseParams, grantExpiresAt: baseParams.now }, undefined],
   ['grant_actor_not_recovery_tenant', { ...baseParams, grantActorId: 'other-local' }, false],
 ] as const;
 

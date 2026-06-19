@@ -112,6 +112,7 @@ describe('recordJurisdictionHandoffInTransaction', () => {
       error,
     });
     expect(mocks.insertHandoffGrant).not.toHaveBeenCalled();
+    expect(mocks.setRecoveryLegalTenantIfUnset).not.toHaveBeenCalled();
   });
 
   it('returns a typed conflict when the guarded tenant update loses a race', async () => {

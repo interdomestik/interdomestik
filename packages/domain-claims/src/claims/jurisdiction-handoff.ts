@@ -46,6 +46,10 @@ export async function recordJurisdictionHandoffInTransaction(
   if (eligibility.status === 'stop') return eligibility.result;
   const { recovery } = eligibility;
 
+  if (params.grantExpiresAt && params.grantExpiresAt <= now) {
+    return { success: false, error: 'handoff_grant_expired' };
+  }
+
   if (
     !(await isGrantActorInRecoveryTenant(tx, params.grantActorId, recovery.recoveryLegalTenantId))
   ) {
