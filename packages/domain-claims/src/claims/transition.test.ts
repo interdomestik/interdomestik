@@ -66,7 +66,7 @@ describe('transitionClaimStatusInTransaction', () => {
   });
   it('lets exactly one same-version transition win', async () => {
     let claimed = false;
-    const { tx } = makeTransitionTx({
+    const { calls, tx } = makeTransitionTx({
       current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
       updated: () => {
         if (claimed) return [];
@@ -85,6 +85,8 @@ describe('transitionClaimStatusInTransaction', () => {
     expect(results.find(result => result.status === 'rejected')).toEqual(
       expect.objectContaining({ reason: expect.any(ClaimTransitionConflictError) })
     );
+    expect(calls.historyWriteCount).toBe(1);
+    expect(calls.eventWriteCount).toBe(3);
   });
 
   it('rejects payment-gated transitions without signed authorized evidence before updating', async () => {

@@ -5,6 +5,7 @@ import { loadTransitionReadContext } from './transition-read-context';
 import {
   ClaimTransitionAuthorizationError,
   ClaimTransitionConflictError,
+  authorizedTransitionHookTx,
   recordTransitionSideEffects,
   type PersistAuthorizedTransitionArgs,
   type TransitionClaimStatusParams,
@@ -87,6 +88,7 @@ export async function transitionClaimStatusInTransaction(
 ): Promise<TransitionClaimStatusResult> {
   const {
     actor,
+    beforePersistAuthorized,
     claimId,
     correlationId,
     isPublic = true,
@@ -112,6 +114,12 @@ export async function transitionClaimStatusInTransaction(
     to: toStatus,
   });
   if (!decision.allowed) return { success: false, error: 'transition_rejected' };
+
+  if (beforePersistAuthorized) {
+    // Pre-CAS hooks are only for already-authorized prerequisite writes.
+    // They must respect the global order: agreement, no-fee evidence, claims CAS.
+    await beforePersistAuthorized(authorizedTransitionHookTx(tx));
+  }
 
   const { lifecycleVersion } = await persistAuthorizedTransition(tx, {
     actor,

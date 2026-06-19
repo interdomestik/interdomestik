@@ -7,6 +7,14 @@ import { recordTransitionDomainEvents } from './transition-domain-events';
 import type { CreateClaimValues } from '../validators/claims';
 
 export type TransitionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type AuthorizedTransitionHookTx = Pick<TransitionTx, 'insert' | 'select' | 'update'>;
+export function authorizedTransitionHookTx(tx: TransitionTx): AuthorizedTransitionHookTx {
+  return {
+    insert: tx.insert.bind(tx),
+    select: tx.select.bind(tx),
+    update: tx.update.bind(tx),
+  };
+}
 export type TransitionSideEffectsArgs = {
   actor: ClaimTransitionActor;
   claimId: string;
@@ -42,6 +50,7 @@ export class ClaimTransitionAuthorizationError extends Error {
 }
 export type TransitionClaimStatusParams = {
   actor: ClaimTransitionActor;
+  beforePersistAuthorized?: (tx: AuthorizedTransitionHookTx) => Promise<void>;
   claimId: string;
   correlationId?: string;
   isPublic?: boolean;

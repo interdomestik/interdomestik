@@ -93,6 +93,7 @@ function makeParams() {
 function makeTx(state: ClaimState, failOn?: FailOn) {
   const staged = { ...state, events: [...state.events], histories: [...state.histories] };
   const tx = {
+    execute: async () => [authorizedRecoveryReadRow(state)],
     select: () => new FakeSelect(state),
     update: () => new FakeUpdate(staged),
     insert: (table: unknown) => new FakeInsert(staged, table, failOn),

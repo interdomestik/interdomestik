@@ -75,6 +75,22 @@ const mocks = vi.hoisted(() => {
   const serviceUsageExistsSelectChain = createSelectChain();
   const serviceUsageCountSelectChain = createSelectChain();
   const txSelectChain = createSelectChain();
+  const txExecute = vi.fn(async query => {
+    const rendered = JSON.stringify(query).toLowerCase();
+    if (rendered.includes('claim_escalation_agreements') && rendered.includes('for update')) {
+      return [
+        {
+          legalActionCapPercentage: 25,
+          paymentAuthorizationState: 'authorized',
+          signedAt: new Date('2026-03-11T09:00:00Z'),
+        },
+      ];
+    }
+    if (rendered.includes('claim_recovery_no_fee_evidence') && rendered.includes('for update')) {
+      return [];
+    }
+    throw new Error(`unexpected recovery lock query: ${rendered}`);
+  });
   const txInsertReturning = vi.fn();
   const txInsertOnConflictDoNothing = vi.fn(() => ({ returning: txInsertReturning }));
   const txInsertValues = vi.fn(() => ({
@@ -87,11 +103,7 @@ const mocks = vi.hoisted(() => {
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
   const transaction = vi.fn(async cb =>
-    cb({
-      insert: txInsert,
-      select: txSelect,
-      update: txUpdate,
-    })
+    cb({ execute: txExecute, insert: txInsert, select: txSelect, update: txUpdate })
   );
   return {
     db: {
@@ -192,6 +204,7 @@ const mocks = vi.hoisted(() => {
     serviceUsageExistsSelectChain,
     serviceUsageCountSelectChain,
     txInsert,
+    txExecute,
     txSelect,
     txSelectChain,
     txInsertOnConflictDoNothing,
@@ -340,27 +353,12 @@ describe('staff updateClaimStatusCore', () => {
     mocks.serviceUsageExistsSelectChain.where.mockReturnValue(mocks.serviceUsageExistsSelectChain);
     mocks.serviceUsageCountSelectChain.from.mockReturnValue(mocks.serviceUsageCountSelectChain);
     mocks.serviceUsageCountSelectChain.where.mockReturnValue(mocks.serviceUsageCountSelectChain);
-    let joinedTransitionEvidence = false;
-    mocks.txSelectChain.from.mockImplementation(() => {
-      joinedTransitionEvidence = false;
-      return mocks.txSelectChain;
-    });
-    mocks.txSelectChain.leftJoin.mockImplementation(() => {
-      joinedTransitionEvidence = true;
-      return mocks.txSelectChain;
-    });
+    mocks.txSelectChain.from.mockReturnValue(mocks.txSelectChain);
+    mocks.txSelectChain.leftJoin.mockReturnValue(mocks.txSelectChain);
     mocks.txSelectChain.where.mockReturnValue(mocks.txSelectChain);
-    mocks.txSelectChain.limit.mockImplementation(async () =>
-      joinedTransitionEvidence
-        ? [
-            {
-              ...READY_ACCEPTED_RECOVERY_RECORD,
-              lifecycleVersion: 1,
-              status: 'evaluation',
-            },
-          ]
-        : [{ id: 'claim-1', lifecycleVersion: 1, status: 'evaluation' }]
-    );
+    mocks.txSelectChain.limit.mockResolvedValue([
+      { id: 'claim-1', lifecycleVersion: 1, status: 'evaluation' },
+    ]);
     mocks.txInsertReturning.mockResolvedValue([{ id: 'usage-claim-1' }]);
     mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
     mocks.projectClaimStatusAuditProjection.mockResolvedValue(undefined);

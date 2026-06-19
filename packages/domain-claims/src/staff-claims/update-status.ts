@@ -34,7 +34,10 @@ import {
   resolveScopedStaffClaimAccess,
   STAFF_SCOPE_ACCESS_DENIED_ERROR,
 } from './scope';
-import { transitionClaimStatusInTransaction } from '../claims/transition';
+import {
+  transitionClaimStatusInTransaction,
+  type AuthorizedTransitionHookTx,
+} from '../claims/transition';
 
 type StaffScopeWhere = ReturnType<typeof buildScopedStaffClaimWhere>;
 
@@ -229,11 +232,7 @@ async function handleStaffLedRecoveryStatusChange(
   }
 
   return finalizeClaimStatusChange({
-    auditMetadata: {
-      allowanceOverrideReason: trimmedAllowanceOverrideReason,
-      matterConsumptionServiceCode: matterServiceCode,
-    },
-    beforePersist: async tx => {
+    afterTransitionPersisted: async tx => {
       if (alreadyConsumedForClaim) {
         return;
       }
@@ -270,11 +269,7 @@ async function handleStaffLedRecoveryStatusChange(
   });
 }
 
-type ClaimsTransaction = {
-  insert: typeof db.insert;
-  select: typeof db.select;
-  update: typeof db.update;
-};
+type ClaimsTransaction = AuthorizedTransitionHookTx;
 
 async function assignClaimToActingStaffIfUnassigned(params: {
   currentStaffId: string | null;
@@ -345,8 +340,8 @@ function scheduleStatusChangeNotification(params: {
 }
 
 async function finalizeClaimStatusChange(params: {
-  auditMetadata?: Record<string, boolean | string | undefined>;
-  beforePersist?: (tx: ClaimsTransaction) => Promise<void>;
+  afterTransitionPersisted?: (tx: ClaimsTransaction) => Promise<void>;
+  beforePersistAuthorized?: (tx: AuthorizedTransitionHookTx) => Promise<void>;
   claimId: string;
   currentStatus: ClaimStatus | null;
   currentStaffId: string | null;
@@ -361,7 +356,7 @@ async function finalizeClaimStatusChange(params: {
   status: ClaimStatus;
   tenantId: string;
 }): Promise<ActionResult> {
-  const { beforePersist, ...rest } = params;
+  const { afterTransitionPersisted, beforePersistAuthorized, ...rest } = params;
 
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   const transitionResult = await db.transaction(async tx => {
@@ -375,6 +370,7 @@ async function finalizeClaimStatusChange(params: {
         requiredWhereCondition: rest.staffScopeWhere,
         tenantId: rest.tenantId,
         toStatus: rest.status,
+        beforePersistAuthorized,
       }
     );
 
@@ -382,8 +378,8 @@ async function finalizeClaimStatusChange(params: {
       return result;
     }
 
-    if (beforePersist) {
-      await beforePersist(tx);
+    if (afterTransitionPersisted) {
+      await afterTransitionPersisted(tx);
     }
 
     await assignClaimToActingStaffIfUnassigned({
@@ -504,13 +500,7 @@ export async function updateClaimStatusCore(
         trimmedNote || getRecoveryDeclineMemberDescription(params.declineReasonCode);
 
       return finalizeClaimStatusChange({
-        auditMetadata: {
-          decisionNextStatus: 'rejected',
-          declineReasonCode: params.declineReasonCode,
-          decisionReason: trimmedDecisionExplanation,
-          decisionType: 'declined',
-        },
-        beforePersist: async tx => {
+        beforePersistAuthorized: async tx => {
           await upsertRecoveryDecisionRecord({
             claimId,
             decisionType: 'declined',
