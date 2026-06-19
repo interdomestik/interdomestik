@@ -1,8 +1,8 @@
 import { db } from '@interdomestik/database';
-import { resolveRecoveryLaw } from '@interdomestik/domain-recovery';
 import type { CaseScopedAccessGrant } from '@interdomestik/shared-auth';
 
-import { canInitiateHandoff, toSessionGrant } from './jurisdiction-handoff-auth';
+import { toSessionGrant } from './jurisdiction-handoff-auth';
+import { resolveJurisdictionHandoffEligibility } from './jurisdiction-handoff-eligibility';
 import { JurisdictionHandoffRollbackError } from './jurisdiction-handoff-errors';
 import type { JurisdictionHandoffRollbackCode } from './jurisdiction-handoff-errors';
 import { appendHandoffEvent } from './jurisdiction-handoff-event';
@@ -41,24 +41,11 @@ export async function recordJurisdictionHandoffInTransaction(
   await lockHandoffClaim(tx, params.homeTenantId, params.claimId);
   const claim = await loadHandoffClaim(tx, params.homeTenantId, params.claimId);
   if (!claim) return { success: false, error: 'claim_not_found' };
-  if (!canInitiateHandoff(params.actor, claim))
-    return { success: false, error: 'actor_not_authorized' };
 
-  const recovery = resolveRecoveryLaw({ incidentCountryCode: claim.incidentCountryCode });
-  if (recovery.outcome !== 'recovery_law_resolved') {
-    return { success: false, error: 'unsupported_incident_jurisdiction' };
-  }
-  if (recovery.recoveryLegalTenantId === params.homeTenantId) {
-    return { success: true, grant: null, status: 'not_required' };
-  }
-  if (
-    claim.recoveryLegalTenantId &&
-    claim.recoveryLegalTenantId !== recovery.recoveryLegalTenantId
-  ) {
-    return { success: false, error: 'recovery_legal_tenant_conflict' };
-  }
-  if (params.grantActorId === params.actor.id)
-    return { success: false, error: 'self_grant_denied' };
+  const eligibility = resolveJurisdictionHandoffEligibility(claim, params);
+  if (eligibility.status === 'stop') return eligibility.result;
+  const { recovery } = eligibility;
+
   if (
     !(await isGrantActorInRecoveryTenant(tx, params.grantActorId, recovery.recoveryLegalTenantId))
   ) {

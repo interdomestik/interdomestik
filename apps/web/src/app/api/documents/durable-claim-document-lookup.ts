@@ -27,7 +27,7 @@ export async function findDurableGrantedPolymorphicClaimDocument(args: {
     .select()
     .from(documents)
     .where(and(eq(documents.id, args.documentId), eq(documents.entityType, 'claim')));
-  if (!polyDoc || polyDoc.entityType !== 'claim') return null;
+  if (polyDoc?.entityType !== 'claim') return null;
 
   const allowed = await hasDurableCaseScopedDocumentGrant({
     accessTenantId: args.accessTenantId,
