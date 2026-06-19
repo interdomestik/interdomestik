@@ -44,12 +44,20 @@ async function withServer(handler, testBody) {
 }
 
 test('upload advisory runner reports blocked when prerequisites are missing', () => {
-  const result = run([]);
+  const tempRoot = mkdtempSync(path.join(tmpdir(), 'ent-perf03-blocked-'));
+  const outputPath = path.join('tmp/performance', path.basename(tempRoot), 'blocked.json');
+  const absoluteOutputPath = path.join(repoRoot, outputPath);
+  const result = run([`--out=${outputPath}`]);
   assert.equal(result.status, 2);
+  const report = JSON.parse(readFileSync(absoluteOutputPath, 'utf8'));
+  assert.match(report.reasons.join('\n'), /missing target URL/u);
+  assert.match(report.reasons.join('\n'), /missing fixture session env/u);
   assert.match(result.stdout, /status=blocked/u);
-  assert.match(result.stdout, /reasonCount=5/u);
+  assert.match(result.stdout, /reasonCount=4/u);
   assert.doesNotMatch(result.stdout, /missing target URL|missing fixture session env/u);
   assert.doesNotMatch(result.stdout + result.stderr, /session=/u);
+  rmSync(path.dirname(absoluteOutputPath), { recursive: true, force: true });
+  rmSync(tempRoot, { recursive: true, force: true });
 });
 
 test('upload advisory runner requires a safe tmp performance output path', () => {

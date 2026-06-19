@@ -41,7 +41,7 @@ function writeReport(report, outputPath, publicSummary) {
 
 function blocked(reasons, outputPath) {
   writeReport(
-    { status: 'blocked', surface, reasonCodes: reasons },
+    { status: 'blocked', surface, reasons },
     outputPath,
     `performance_upload_advisory status=blocked surface=upload reasonCount=${reasons.length}`
   );
