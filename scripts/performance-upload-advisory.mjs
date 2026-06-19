@@ -5,6 +5,7 @@ import { performance } from 'node:perf_hooks';
 
 const repoRoot = process.cwd();
 const sessionEnvName = 'ENT_PERF_UPLOAD_SESSION_COOKIE';
+const surface = 'POST /api/uploads';
 const uploadBody = { fileName: 'ent-perf03-synthetic.txt', fileType: 'text/plain', fileSize: 128 };
 
 function arg(name, fallback) {
@@ -37,11 +38,18 @@ function writeReport(report, outputPath) {
     mkdirSync(path.dirname(outputPath), { recursive: true });
     writeFileSync(outputPath, body);
   }
-  console.log(body.trimEnd());
+
+  const publicBody =
+    report.status === 'blocked'
+      ? report
+      : (({ status, surface, samples, metrics }) => ({ status, surface, samples, metrics }))(
+          report
+        );
+  console.log(JSON.stringify(publicBody, null, 2));
 }
 
 function blocked(reasons, outputPath) {
-  writeReport({ status: 'blocked', surface: 'POST /api/uploads', reasons }, outputPath);
+  writeReport({ status: 'blocked', surface, reasonCodes: reasons }, outputPath);
   process.exitCode = 2;
 }
 
@@ -115,7 +123,7 @@ async function main() {
   writeReport(
     {
       status: attempts.some(attempt => !attempt.ok) ? 'advisory_failed' : 'advisory_passed',
-      surface: 'POST /api/uploads',
+      surface,
       generatedAt: new Date().toISOString(),
       targetKind: new URL(config.targetUrl).hostname,
       fixture: {
@@ -139,5 +147,4 @@ async function main() {
     config.outputPath
   );
 }
-
 await main();
