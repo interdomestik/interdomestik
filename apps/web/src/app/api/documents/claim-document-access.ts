@@ -24,7 +24,7 @@ type SessionDTO = {
 };
 
 type ClaimDocument = {
-  category?: GrantDocumentClass | null;
+  category?: unknown;
   claimId: string | null;
   uploadedBy: string | null;
 };
@@ -39,7 +39,7 @@ type ClaimAccessRow = {
 export async function canReadPolymorphicClaimDocument(args: {
   db: DatabaseClient;
   polyDoc: {
-    category?: GrantDocumentClass | null;
+    category?: unknown;
     entityId: string;
   };
   session: SessionDTO;
