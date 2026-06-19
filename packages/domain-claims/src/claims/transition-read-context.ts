@@ -36,6 +36,7 @@ export async function loadTransitionReadContext(
 
   if (needsRecoveryInvariantEvidence(params.toStatus)) {
     const row = await loadRecoveryInvariantReadRow(tx, {
+      claimId: params.claimId,
       readWhere,
       tenantId: params.tenantId,
     });

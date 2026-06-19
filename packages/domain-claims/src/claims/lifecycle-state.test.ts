@@ -76,6 +76,7 @@ class FakeInsert {
 
 function makeTx(state: ClaimState): TransitionTx {
   return {
+    execute: async () => [authorizedRecoveryReadRow(state)],
     select: () => new FakeSelect(state),
     update: () => new FakeUpdate(state),
     insert: (table: unknown) => new FakeInsert(table),

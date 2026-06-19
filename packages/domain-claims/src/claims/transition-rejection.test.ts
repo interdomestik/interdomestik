@@ -8,6 +8,7 @@ import {
   transitionClaimStatusInTransaction,
   type TransitionTx,
 } from './transition';
+import { authorizedRecoveryReadRow } from './recovery-evidence-test-support';
 import { canTransition } from './transition-guard';
 
 type FakeTxCalls = {
@@ -47,6 +48,10 @@ class FakeInsertStep {
 
 class FakeTx {
   constructor(private readonly calls: FakeTxCalls) {}
+
+  async execute(): Promise<unknown[]> {
+    return [authorizedRecoveryReadRow({ lifecycleVersion: 1, status: 'draft' })];
+  }
 
   select() {
     return selectStep;
