@@ -5,6 +5,10 @@ import { HANDOFF_DOCUMENT_CLASSES } from './jurisdiction-handoff-document-classe
 import { classifyExistingHandoffGrant } from './jurisdiction-handoff-store-conflicts';
 import type { HandoffClaimRow, HandoffTx } from './jurisdiction-handoff-types';
 
+export function isRecoveryGrantActorRole(role: string | null | undefined): boolean {
+  return role === 'staff' || role === 'admin' || role === 'tenant_admin' || role === 'super_admin';
+}
+
 export async function lockHandoffClaim(
   tx: HandoffTx,
   tenantId: string,
@@ -66,11 +70,17 @@ export async function isGrantActorInRecoveryTenant(
   recoveryTenantId: string
 ): Promise<boolean> {
   const [row] = await tx
-    .select({ id: user.id })
+    .select({ id: user.id, role: user.role })
     .from(user)
-    .where(sql`${user.id} = ${actorId} and ${user.tenantId} = ${recoveryTenantId}`)
+    .where(
+      sql`
+        ${user.id} = ${actorId}
+        and ${user.tenantId} = ${recoveryTenantId}
+        and ${user.role} in ('staff', 'admin', 'tenant_admin', 'super_admin')
+      `
+    )
     .limit(1);
-  return Boolean(row);
+  return isRecoveryGrantActorRole(row?.role);
 }
 
 export async function insertHandoffGrant(args: {
@@ -88,6 +98,7 @@ export async function insertHandoffGrant(args: {
   | 'active_grant_conflict'
   | 'already_exists'
   | 'correlation_conflict'
+  | 'expiry_conflict'
   | 'expired_exists'
   | 'inserted'
   | 'revoked_exists'

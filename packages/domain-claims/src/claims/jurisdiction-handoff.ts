@@ -103,6 +103,9 @@ export async function recordJurisdictionHandoffInTransaction(
   if (insertStatus === 'correlation_conflict') {
     throw new JurisdictionHandoffRollbackError('handoff_correlation_conflict');
   }
+  if (insertStatus === 'expiry_conflict') {
+    throw new JurisdictionHandoffRollbackError('handoff_grant_expiry_conflict');
+  }
   if (insertStatus === 'expired_exists') {
     throw new JurisdictionHandoffRollbackError('handoff_grant_expired');
   }

@@ -6,6 +6,7 @@ const args = {
   actorId: 'local-legal-1',
   caseId: 'claim-1',
   correlationId: 'corr-1',
+  expiresAt: null,
   grantId: 'grant-1',
   homeTenantId: 'tenant_ks',
   now: new Date('2026-06-19T10:00:00Z'),
@@ -34,11 +35,19 @@ describe('classifyExistingHandoffGrant', () => {
   });
 
   it('keeps active deterministic replay idempotent', () => {
+    const expiresAt = new Date('2026-06-19T10:00:01Z');
+
+    expect(classifyExistingHandoffGrant({ ...sameGrant, expiresAt }, { ...args, expiresAt })).toBe(
+      'already_exists'
+    );
+  });
+
+  it('classifies changed deterministic replay expiry as a conflict', () => {
     expect(
       classifyExistingHandoffGrant(
         { ...sameGrant, expiresAt: new Date('2026-06-19T10:00:01Z') },
-        args
+        { ...args, expiresAt: null }
       )
-    ).toBe('already_exists');
+    ).toBe('expiry_conflict');
   });
 });
