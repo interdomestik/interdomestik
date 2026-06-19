@@ -132,7 +132,10 @@ export async function waitForSonarUp({ statusTarget, timeoutMs }) {
         const data = await response.json().catch(() => null);
         if (data?.status === 'UP') return;
       }
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Unknown local SonarQube status target.') {
+        throw error;
+      }
       // ignore and retry
     }
 

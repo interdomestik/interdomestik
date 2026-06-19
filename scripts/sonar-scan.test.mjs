@@ -106,3 +106,10 @@ test('waitForSonarUp fails clearly when the server stays unavailable', async () 
     /did not become ready/u
   );
 });
+
+test('waitForSonarUp fails fast for unknown status targets', async () => {
+  await assert.rejects(
+    () => waitForSonarUp({ statusTarget: 'unknown-target', timeoutMs: 10_000 }),
+    /Unknown local SonarQube status target/u
+  );
+});
