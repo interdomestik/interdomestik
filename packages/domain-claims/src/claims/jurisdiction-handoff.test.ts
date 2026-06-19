@@ -100,6 +100,7 @@ describe('recordJurisdictionHandoffInTransaction', () => {
       success: false,
       error,
     });
+    expect(mocks.setRecoveryLegalTenantIfUnset).not.toHaveBeenCalled();
     expect(mocks.insertHandoffGrant).not.toHaveBeenCalled();
     expect(mocks.appendEvent).not.toHaveBeenCalled();
   });

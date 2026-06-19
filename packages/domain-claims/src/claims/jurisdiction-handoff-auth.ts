@@ -20,7 +20,7 @@ export function canInitiateHandoff(
   if (['admin', 'tenant_admin', 'super_admin', 'global_support'].includes(actor.role)) return true;
   if (actor.role === 'branch_manager')
     return Boolean(actor.branchId && actor.branchId === claim.branchId);
-  return claim.staffId === actor.id || Boolean(actor.branchId && actor.branchId === claim.branchId);
+  return claim.staffId === actor.id;
 }
 
 export function toSessionGrant(args: {

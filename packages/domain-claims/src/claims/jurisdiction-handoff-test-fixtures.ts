@@ -25,6 +25,11 @@ export const preWriteCases = [
   [
     'actor_not_authorized',
     baseClaim,
+    { ...baseParams, actor: { branchId: 'branch-a', id: 'staff-2', role: 'staff' } },
+  ],
+  [
+    'actor_not_authorized',
+    baseClaim,
     { ...baseParams, actor: { branchId: 'branch-b', id: 'manager-1', role: 'branch_manager' } },
   ],
 ] as const;
