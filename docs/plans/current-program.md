@@ -493,23 +493,48 @@ handoff, and M3/M4/M5 cutover. No replacement slice is started by this closeout;
 fresh current-authority resolution is required before `T-205` or any other
 follow-on implementation work.
 
+Rev 66 closeout: `T-205` completed in PR `#1113` / squash merge
+`5d45c768e87cd0d1ab23a65a21b991925185dcdd`, adding test-only state-machine
+transition suites for case and recovery. The suites cover the derived audit §9
+edge/invariant inventory for the `ClaimStatus` graph values `draft`,
+`submitted`, `verification`, `evaluation`, `negotiation`, `court`, `resolved`,
+and `rejected`; the case lifecycle mapping `draft`, `submitted`,
+`verification`, `evaluation`, `recovery` for `negotiation|court`, `resolved`,
+and `rejected`; and the recovery lifecycle mapping `not_started` for
+pre-recovery statuses, `negotiation`, `court`, `resolved`, and `closed` for
+rejected. They assert typed rejection reasons `illegal_transition`,
+`invalid_status`, `signed_agreement_authorization_required`,
+`legal_action_cap_required`, and `success_fee_or_no_fee_required` at the guard
+and invariant layers, while preserving the central command contract by proving
+rejected command paths return generic `transition_rejected` with no
+update/history/event side effects. Remote checks were green before merge:
+validation-surface, audit, static, unit, e2e, e2e-gate, ai-eval, Pilot Gate,
+commitlint, pr-finalizer, CodeQL, gitleaks, pnpm-audit, SonarCloud, and Vercel
+signals. SonarCloud quality gate passed with `0` new issues and `0` security
+hotspots; the Codex repo-size review thread was fixed, resolved, and outdated on
+the final head. Protected surfaces remained preserved: `apps/web/src/proxy.ts`,
+canonical routes, clarity markers, production source, auth, routing, tenancy,
+schema/RLS, billing, UI, README, AGENTS, and broad architecture docs. No
+replacement slice is started by this closeout; fresh current-authority
+resolution is required before any follow-on implementation work.
+
 ## Forward Architecture Roadmap & Downstream Programs
 
 This is the single canonical milestone architecture. Execution proceeds strictly through the active queue in `docs/plans/architecture-finalization-tracker-2026-05-29.md` (Rev 22); the downstream programs below are **registered and committed but gated** — they do not enter the active queue, Phase C, or the M0→M5 scope until their prerequisites are green and they are promoted via the governance flow. Nothing here changes the current active slice.
 
 1. **Architecture Finalization spine — `ARCH` (active).** M0 guardrails (complete through `ARCH-M0-19` plus Rev 22 `T-002d` in PR `#1006`) → M1 ida-first foundation + event/outbox (in progress; `ARCH-M1-09` complete (commit `624c6c5af2184dfbc359f3b7a24ef2c93415c1f8`); `ARCH-M1-10` complete (PR `#995`); `ARCH-M1-11` complete (PR `#997` / squash merge `0bd2eace04eb86a2b123b3348163a72f15acf3cb`); `ARCH-M1-12` complete (PR `#999` / squash merge `b11ae6d3ecc489e3a39b45a76c1e0565cb7c3ea9`); `ARCH-M1-13` / `T-104d` complete (PR `#1001` / squash merge `6e364a58ac4219512f7d8dcc9802eb85b812771a`); `T-104f` complete (PR `#1015` / squash merge `ec04913b1253db9e7aa4afa94063a8705a670b0f`); `T-104g` complete (PR `#1016` / squash merge `a900a84974cd133835a03264b850c8496f170b0b`); `T-104h` complete (PR `#1017` / squash merge `ac4f7cf39a93eb7916b531358bc17d3a340e72d4`); `OBR-COMMIT` complete as a blocker-record closeout; `OBR-DG02` complete; `T-407` complete; `OBR-DG03` complete; `T-108-MIN` complete; `T-113` complete; `OBR-DG04` complete; `T-201-MIN` complete; `OBR-DG05` complete; `T-208` complete; `OBR-DG06` complete; `SVC-CORE-b` complete in PR `#1034`; `T-208b` complete in PR `#1035`; `POST-T208B` complete; `T-105` complete in PR `#1044`; full `T-201` complete in PR `#1047`; `T-204` complete in PR `#1049`; `T-408` complete in PR `#1051`; `OBR-DG07` complete; `T-301` complete in PR `#1056`; `T-304` complete in PR `#1060`; `T-306` complete in PR `#1063`; `T-308` complete; `OBR-DG08` complete; `T-109` complete in PR `#1069`; `T-114` complete in PR `#1072`; `T-302` complete in PR `#1075`; `T-303` complete in PR `#1078`; `T-305` complete in PR `#1080`; `T-302b` complete in PR `#1085`; `T-302c` complete in PR `#1097`; `T-302d` complete in PR `#1099`; `T-202` complete in PR `#1104`; `T-203` complete in PR `#1107`; `T-203b` complete in PR `#1111`) → M2 case/recovery split → M3 four-context tenant model + access-tenant RLS migration + role de-collapse → M4 product-model + entity disclosure → M5 live cutover + entity-of-record billing. Rev 6 and Rev 22 refinements are part of this spine and tracked there: recovery/legal-entity governance, case-scoped cross-jurisdiction grants, ADR-09 separation-of-duties, audited break-glass, type-level guards, CQRS outbox-only read models, premium dashboard composition, and enterprise evidence duties.
 
-Rev 65 tracker overlay: `OBR-DG08`, `T-109`, `T-114`, `T-302`, `T-303`,
-`T-305`, `T-302b`, `T-302c`, `T-302d`, `T-202`, `T-203`, and `T-203b` are now complete in the active
-architecture spine; see the Rev 56 through Rev 65 closeouts above and the
-canonical tracker rows for merge evidence. Arben explicitly reauthorized
-architecture-product continuation after `T-203` and `T-203b` has now landed as
-that resolver-native current-authority slice. `ARCH-FINAL` remains the
-umbrella/governance program, not an implementation slice. No replacement slice is
-started by this closeout. `T-205`, `T-206`, `T-207`, `T-209`, broad M3/M4/M5,
-billing-provider expansion, product UI redesign, README, AGENTS, proxy/routing
-work, and broad architecture-doc rewrites remain unpromoted unless
-separately reauthorized or selected by a later closeout.
+Rev 66 tracker overlay: `OBR-DG08`, `T-109`, `T-114`, `T-302`, `T-303`,
+`T-305`, `T-302b`, `T-302c`, `T-302d`, `T-202`, `T-203`, `T-203b`, and
+`T-205` are now complete in the active architecture spine; see the Rev 56
+through Rev 66 closeouts above and the canonical tracker rows for merge
+evidence. Arben explicitly reauthorized architecture-product continuation for
+`T-205` after `T-203b`, while `ARCH-FINAL` remains the umbrella/governance
+program, not an implementation slice. No replacement slice is started by this
+closeout. `T-206`, `T-207`, `T-209`, broad M3/M4/M5, billing-provider
+expansion, product UI redesign, README, AGENTS, proxy/routing work, and broad
+architecture-doc rewrites remain unpromoted unless separately reauthorized or
+selected by a later closeout.
 
 2. **Passenger Rights / VONESA — `WS-F` (gated, rides the spine behind a feature flag).** Flight-delay (EC261) vertical. Tasks `FLIGHT-00…FLIGHT-11` already live in the architecture-finalization tracker; design in `docs/plans/vonesa-architecture-integration-2026-05-30.md`. It consumes M1 (outbox), M2 (case/recovery), M3 (access-tenant isolation), and M5 (entity-of-record billing) and ships behind its own flag, so it gates neither the Design Gate nor the `ida.*` Go-Live. Not started; promoted slice-by-slice after its spine prerequisites.
 
@@ -521,7 +546,7 @@ separately reauthorized or selected by a later closeout.
 
 ## Current Phase
 
-Architecture Finalization is now the active Phase C execution lane as of 2026-05-31. The canonical new-architecture program is `docs/plans/architecture-finalization-program-2026-05-29.md`, the active architecture queue is `docs/plans/architecture-finalization-tracker-2026-05-29.md`, and the next implementation work continues through the OBR-governed architecture sequence; `ARCH-M1-11` / `T-112` completed in PR `#997` / squash merge `0bd2eace04eb86a2b123b3348163a72f15acf3cb`; `ARCH-M1-12` / `T-106` is complete (PR `#999` / squash merge `b11ae6d3ecc489e3a39b45a76c1e0565cb7c3ea9`); `ARCH-M1-13` / `T-104d` is complete (PR `#1001` / squash merge `6e364a58ac4219512f7d8dcc9802eb85b812771a`); `T-104f` is complete (PR `#1015` / squash merge `ec04913b1253db9e7aa4afa94063a8705a670b0f`); `T-104g` is complete (PR `#1016` / squash merge `a900a84974cd133835a03264b850c8496f170b0b`); `T-104h` is complete (PR `#1017` / squash merge `ac4f7cf39a93eb7916b531358bc17d3a340e72d4`); `OBR-COMMIT` is complete as an accepted blocker-record closeout; `OBR-DG02` is complete; `T-407` is complete; `OBR-DG03` is complete; `T-108-MIN` is complete; `T-113` is complete; `OBR-DG04` is complete; `T-201-MIN` is complete; `OBR-DG05` is complete; `T-208` is complete; `OBR-DG06` is complete; `SVC-CORE-b` is complete in PR `#1034`; `T-208b` is complete in PR `#1035`; `POST-T208B` is complete; `T-105` is complete in PR `#1044`; full `T-201` is complete in PR `#1047`; `T-204` is complete in PR `#1049`; `T-408` is complete in PR `#1051`; `OBR-DG07` is complete; `T-301` is complete in PR `#1056`; `T-304` is complete in PR `#1060`; `T-306` is complete in PR `#1063`; `T-308` is complete via ADR closeout; `OBR-DG08` is complete as the post-ADR reauthorization gate; `T-109` is complete in PR `#1069`; `T-114` is complete in PR `#1072`; `T-302` is complete in PR `#1075`; `T-303` is complete in PR `#1078`; `T-305` is complete in PR `#1080`; `T-302b` is complete in PR `#1085`; `T-302c` is complete in PR `#1097`; `T-302d` is complete in PR `#1099`; `T-202` is complete in PR `#1104`; `T-203` is complete in PR `#1107`; and `T-203b` is complete in PR `#1111`. No replacement slice is started by this closeout; `T-205`, `T-206`, `T-207`, `T-209`, broad M3/M4/M5, billing-provider expansion, product UI redesign, README, AGENTS, proxy/routing work, and broad architecture-doc rewrites remain unpromoted unless separately selected by a later closeout. `IDA-MH03` is complete by Rev 62 verification-only product-over-architecture closeout without product/runtime changes.
+Architecture Finalization is now the active Phase C execution lane as of 2026-05-31. The canonical new-architecture program is `docs/plans/architecture-finalization-program-2026-05-29.md`, the active architecture queue is `docs/plans/architecture-finalization-tracker-2026-05-29.md`, and the next implementation work continues through the OBR-governed architecture sequence; `ARCH-M1-11` / `T-112` completed in PR `#997` / squash merge `0bd2eace04eb86a2b123b3348163a72f15acf3cb`; `ARCH-M1-12` / `T-106` is complete (PR `#999` / squash merge `b11ae6d3ecc489e3a39b45a76c1e0565cb7c3ea9`); `ARCH-M1-13` / `T-104d` is complete (PR `#1001` / squash merge `6e364a58ac4219512f7d8dcc9802eb85b812771a`); `T-104f` is complete (PR `#1015` / squash merge `ec04913b1253db9e7aa4afa94063a8705a670b0f`); `T-104g` is complete (PR `#1016` / squash merge `a900a84974cd133835a03264b850c8496f170b0b`); `T-104h` is complete (PR `#1017` / squash merge `ac4f7cf39a93eb7916b531358bc17d3a340e72d4`); `OBR-COMMIT` is complete as an accepted blocker-record closeout; `OBR-DG02` is complete; `T-407` is complete; `OBR-DG03` is complete; `T-108-MIN` is complete; `T-113` is complete; `OBR-DG04` is complete; `T-201-MIN` is complete; `OBR-DG05` is complete; `T-208` is complete; `OBR-DG06` is complete; `SVC-CORE-b` is complete in PR `#1034`; `T-208b` is complete in PR `#1035`; `POST-T208B` is complete; `T-105` is complete in PR `#1044`; full `T-201` is complete in PR `#1047`; `T-204` is complete in PR `#1049`; `T-408` is complete in PR `#1051`; `OBR-DG07` is complete; `T-301` is complete in PR `#1056`; `T-304` is complete in PR `#1060`; `T-306` is complete in PR `#1063`; `T-308` is complete via ADR closeout; `OBR-DG08` is complete as the post-ADR reauthorization gate; `T-109` is complete in PR `#1069`; `T-114` is complete in PR `#1072`; `T-302` is complete in PR `#1075`; `T-303` is complete in PR `#1078`; `T-305` is complete in PR `#1080`; `T-302b` is complete in PR `#1085`; `T-302c` is complete in PR `#1097`; `T-302d` is complete in PR `#1099`; `T-202` is complete in PR `#1104`; `T-203` is complete in PR `#1107`; `T-203b` is complete in PR `#1111`; and `T-205` is complete in PR `#1113` / squash merge `5d45c768e87cd0d1ab23a65a21b991925185dcdd`. No replacement slice is started by this closeout; `T-206`, `T-207`, `T-209`, broad M3/M4/M5, billing-provider expansion, product UI redesign, README, AGENTS, proxy/routing work, and broad architecture-doc rewrites remain unpromoted unless separately selected by a later closeout. `IDA-MH03` is complete by Rev 62 verification-only product-over-architecture closeout without product/runtime changes.
 
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
