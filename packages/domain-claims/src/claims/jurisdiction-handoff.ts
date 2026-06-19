@@ -4,6 +4,7 @@ import type { CaseScopedAccessGrant } from '@interdomestik/shared-auth';
 
 import { canInitiateHandoff, toSessionGrant } from './jurisdiction-handoff-auth';
 import { JurisdictionHandoffRollbackError } from './jurisdiction-handoff-errors';
+import type { JurisdictionHandoffRollbackCode } from './jurisdiction-handoff-errors';
 import { appendHandoffEvent } from './jurisdiction-handoff-event';
 import { defaultHandoffCorrelationId, stableHandoffId } from './jurisdiction-handoff-ids';
 import {
@@ -26,9 +27,7 @@ export type JurisdictionHandoffResult =
         | 'actor_not_authorized'
         | 'claim_not_found'
         | 'grant_actor_not_recovery_tenant'
-        | 'handoff_active_grant_conflict'
-        | 'handoff_correlation_conflict'
-        | 'handoff_grant_revoked'
+        | JurisdictionHandoffRollbackCode
         | 'recovery_legal_tenant_conflict'
         | 'self_grant_denied'
         | 'unsupported_incident_jurisdiction';
@@ -116,6 +115,9 @@ export async function recordJurisdictionHandoffInTransaction(
   }
   if (insertStatus === 'correlation_conflict') {
     throw new JurisdictionHandoffRollbackError('handoff_correlation_conflict');
+  }
+  if (insertStatus === 'expired_exists') {
+    throw new JurisdictionHandoffRollbackError('handoff_grant_expired');
   }
   if (insertStatus === 'revoked_exists') {
     throw new JurisdictionHandoffRollbackError('handoff_grant_revoked');

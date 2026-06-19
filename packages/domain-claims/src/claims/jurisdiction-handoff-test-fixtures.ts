@@ -34,5 +34,6 @@ export const preGrantCases = [
 export const rollbackCases = [
   ['active_grant_conflict', 'handoff_active_grant_conflict'],
   ['correlation_conflict', 'handoff_correlation_conflict'],
+  ['expired_exists', 'handoff_grant_expired'],
   ['revoked_exists', 'handoff_grant_revoked'],
 ] as const;

@@ -42,6 +42,7 @@ function claimDoc(category = 'legal') {
 describe('document durable case grant boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(hasDurableCaseScopedDocumentGrant).mockReset();
     vi.mocked(hasDurableCaseScopedDocumentGrant).mockResolvedValue(false);
   });
 
@@ -93,5 +94,47 @@ describe('document durable case grant boundary', () => {
       getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
     ).resolves.toEqual({ ok: false, code: 'FORBIDDEN', message: 'Forbidden' });
     expect(hasDurableCaseScopedDocumentGrant).not.toHaveBeenCalled();
+  });
+
+  it('resolves approved home-tenant claim documents through durable grants', async () => {
+    vi.mocked(hasDurableCaseScopedDocumentGrant).mockResolvedValueOnce(true);
+    mockDb.select.mockReset();
+    mockDb.select.mockReturnValue(selectResult([]));
+    mockDb.select.mockReturnValueOnce(selectResult([]));
+    mockDb.select.mockReturnValueOnce(selectResult([], true));
+    mockDb.select.mockReturnValueOnce(selectResult([{ ...claimDoc(), tenantId: 'tenant_ks' }]));
+
+    await expect(
+      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+    ).resolves.toEqual(expect.objectContaining({ ok: true, tenantId: 'tenant_ks' }));
+    expect(hasDurableCaseScopedDocumentGrant).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accessTenantId: 't1',
+        actorId: 'local-legal-1',
+        caseId: 'claim-1',
+        documentClass: 'legal',
+        homeTenantId: 'tenant_ks',
+      })
+    );
+  });
+
+  it.each([
+    [
+      'profile',
+      { ...claimDoc(), entityId: 'member-1', entityType: 'member', tenantId: 'tenant_ks' },
+    ],
+    [
+      'membership',
+      { ...claimDoc(), entityId: 'membership-1', entityType: 'membership', tenantId: 'tenant_ks' },
+    ],
+    ['wrong class', { ...claimDoc('identity'), tenantId: 'tenant_ks' }],
+  ])('does not resolve home-tenant %s documents through durable grants', async (_label, doc) => {
+    setup([], []);
+    mockDb.select.mockReturnValueOnce(selectResult([doc]));
+    mockDb.select.mockReturnValueOnce(selectResult([], true));
+
+    await expect(
+      getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
+    ).resolves.toEqual({ ok: false, code: 'NOT_FOUND', message: 'Document not found' });
   });
 });

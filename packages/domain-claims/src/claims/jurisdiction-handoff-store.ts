@@ -1,5 +1,6 @@
 import { caseScopedAccessGrants, claims, sql, user } from '@interdomestik/database';
 
+import { loadExistingHandoffGrantForConflict } from './jurisdiction-handoff-grant-conflict-query';
 import { HANDOFF_DOCUMENT_CLASSES } from './jurisdiction-handoff-document-classes';
 import { classifyExistingHandoffGrant } from './jurisdiction-handoff-store-conflicts';
 import type { HandoffClaimRow, HandoffTx } from './jurisdiction-handoff-types';
@@ -87,6 +88,7 @@ export async function insertHandoffGrant(args: {
   | 'active_grant_conflict'
   | 'already_exists'
   | 'correlation_conflict'
+  | 'expired_exists'
   | 'inserted'
   | 'revoked_exists'
 > {
@@ -109,47 +111,6 @@ export async function insertHandoffGrant(args: {
     .returning({ id: caseScopedAccessGrants.id });
   if (inserted.length === 1) return 'inserted';
 
-  const [existing] = await args.tx
-    .select({
-      actorId: caseScopedAccessGrants.actorId,
-      accessTenantId: caseScopedAccessGrants.accessTenantId,
-      caseId: caseScopedAccessGrants.caseId,
-      correlationId: caseScopedAccessGrants.correlationId,
-      id: caseScopedAccessGrants.id,
-      revokedAt: caseScopedAccessGrants.revokedAt,
-      tenantId: caseScopedAccessGrants.tenantId,
-    })
-    .from(caseScopedAccessGrants)
-    .where(
-      sql`
-      ${caseScopedAccessGrants.id} = ${args.grantId}
-      or (
-        ${caseScopedAccessGrants.tenantId} = ${args.homeTenantId}
-        and ${caseScopedAccessGrants.correlationId} = ${args.correlationId}
-      )
-      or (
-        ${caseScopedAccessGrants.tenantId} = ${args.homeTenantId}
-        and ${caseScopedAccessGrants.accessTenantId} = ${args.recoveryLegalTenantId}
-        and ${caseScopedAccessGrants.caseId} = ${args.caseId}
-        and ${caseScopedAccessGrants.actorId} = ${args.actorId}
-        and ${caseScopedAccessGrants.revokedAt} is null
-      )
-    `
-    )
-    .orderBy(
-      sql`case
-        when ${caseScopedAccessGrants.id} = ${args.grantId} then 1
-        when (
-          ${caseScopedAccessGrants.tenantId} = ${args.homeTenantId}
-          and ${caseScopedAccessGrants.accessTenantId} = ${args.recoveryLegalTenantId}
-          and ${caseScopedAccessGrants.caseId} = ${args.caseId}
-          and ${caseScopedAccessGrants.actorId} = ${args.actorId}
-          and ${caseScopedAccessGrants.revokedAt} is null
-        ) then 2
-        else 3
-      end`
-    )
-    .limit(1);
-
-  return classifyExistingHandoffGrant(existing, args);
+  const existing = await loadExistingHandoffGrantForConflict(args.tx, args);
+  return classifyExistingHandoffGrant(existing, { ...args, now: args.createdAt });
 }

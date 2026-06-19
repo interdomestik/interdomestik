@@ -52,7 +52,7 @@ export const caseScopedAccessGrants = pgTable(
     index('case_scoped_access_grants_case_idx').on(table.tenantId, table.caseId),
     check(
       'case_scoped_access_grants_document_classes_check',
-      sql`array_length(${table.documentClasses}, 1) > 0
+      sql`coalesce(array_length(${table.documentClasses}, 1), 0) > 0
         and ${table.documentClasses} <@ array['correspondence','contract','evidence','legal','receipt']::text[]`
     ),
   ]

@@ -38,6 +38,7 @@ test('T-209 migration limits approved document classes and enables two-sided RLS
   const sql = migrationSql();
 
   assert.match(sql, /case_scoped_access_grants_document_classes_check/u);
+  assert.match(sql, /coalesce\(array_length\("document_classes", 1\), 0\) > 0/u);
   assert.match(sql, /'correspondence','contract','evidence','legal','receipt'/u);
   assert.doesNotMatch(sql, /'identity'|'medical'|'export'/u);
   assert.match(sql, /ALTER TABLE public\."case_scoped_access_grants" ENABLE ROW LEVEL SECURITY/u);

@@ -12,7 +12,7 @@ CREATE TABLE "case_scoped_access_grants" (
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
   CONSTRAINT "case_scoped_access_grants_document_classes_check"
     CHECK (
-      array_length("document_classes", 1) > 0
+      coalesce(array_length("document_classes", 1), 0) > 0
       AND "document_classes" <@ ARRAY['correspondence','contract','evidence','legal','receipt']::text[]
     )
 );

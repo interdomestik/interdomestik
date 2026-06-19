@@ -15,6 +15,10 @@ import {
   canReadLegacyClaimDocument,
   canReadPolymorphicClaimDocument,
 } from './claim-document-access';
+import {
+  findDurableGrantedLegacyClaimDocument,
+  findDurableGrantedPolymorphicClaimDocument,
+} from './durable-claim-document-lookup';
 
 type DatabaseClient = typeof DatabaseModule.db;
 
@@ -384,6 +388,53 @@ export async function getDocumentAccessCore(args: {
     .where(and(eq(claimDocuments.id, documentId), eq(claimDocuments.tenantId, tenantId)));
 
   if (!row?.doc) {
+    const durablePolyDoc = await findDurableGrantedPolymorphicClaimDocument({
+      accessTenantId: tenantId,
+      db,
+      documentId,
+      session,
+    });
+    if (durablePolyDoc) {
+      const document = buildPolymorphicDocument(durablePolyDoc);
+      return {
+        ok: true,
+        document,
+        storageFamily: getStorageFamilyForDocument(document),
+        tenantId: durablePolyDoc.tenantId,
+        audit: buildDocumentAudit({
+          actorRole: userRole,
+          disposition: finalDisposition,
+          document,
+          documentId,
+          entityType: 'claim_document',
+          mode,
+        }),
+      };
+    }
+
+    const durableLegacyRow = await findDurableGrantedLegacyClaimDocument({
+      accessTenantId: tenantId,
+      db,
+      documentId,
+      session,
+    });
+    if (durableLegacyRow?.doc) {
+      const doc = durableLegacyRow.doc as never as DocumentRow;
+      return {
+        ok: true,
+        document: doc,
+        storageFamily: getStorageFamilyForDocument(doc),
+        tenantId: durableLegacyRow.doc.tenantId,
+        audit: buildDocumentAudit({
+          actorRole: userRole,
+          disposition: finalDisposition,
+          document: doc,
+          documentId,
+          mode,
+        }),
+      };
+    }
+
     return { ok: false, code: 'NOT_FOUND', message: 'Document not found' };
   }
 

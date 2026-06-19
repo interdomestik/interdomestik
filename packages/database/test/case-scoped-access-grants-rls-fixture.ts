@@ -113,7 +113,6 @@ export async function seedGrantProofRows(
     description: 'no sensitive narrative',
     category: 'retail',
     companyName: 'RLS Test Co',
-    status: 'draft',
     origin: 'portal',
   });
   await dbAdmin.insert(caseScopedAccessGrants).values({

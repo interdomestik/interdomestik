@@ -21,6 +21,7 @@ export async function hasDurableCaseScopedDocumentGrant(args: {
   caseId: string;
   db: DocumentAccessDeps['db'];
   documentClass: unknown;
+  homeTenantId?: string | null;
   now?: Date;
 }): Promise<boolean> {
   const documentClass = toApprovedDurableDocumentClass(args.documentClass);
@@ -42,7 +43,8 @@ export async function hasDurableCaseScopedDocumentGrant(args: {
       and(
         eq(caseScopedAccessGrants.accessTenantId, args.accessTenantId),
         eq(caseScopedAccessGrants.actorId, args.actorId),
-        eq(caseScopedAccessGrants.caseId, args.caseId)
+        eq(caseScopedAccessGrants.caseId, args.caseId),
+        ...(args.homeTenantId ? [eq(caseScopedAccessGrants.tenantId, args.homeTenantId)] : [])
       )
     );
 
