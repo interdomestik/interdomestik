@@ -17,9 +17,7 @@ export function appendPullRequestScannerProperties(
 ) {
   const properties = [...scannerProperties];
 
-  if (!pullRequestKey) {
-    return properties;
-  }
+  if (!pullRequestKey) return properties;
 
   const prProperties = [
     ['key', pullRequestKey],
