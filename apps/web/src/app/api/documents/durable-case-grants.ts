@@ -34,6 +34,7 @@ async function selectActorCrossGrantContexts(
   }
 ): Promise<CrossGrantContext[]> {
   const now = args.now ?? new Date();
+  // db-access-guard: tenant-scoped -- reason: grant read context constrains accessTenantId, actor, active grant, and expiry predicates
   const rows = await db
     .select({
       tenantId: caseScopedAccessGrants.tenantId,
@@ -120,9 +121,13 @@ async function withGrantReadContext<T>(
 ): Promise<T> {
   if (!hasTransaction(db)) return action(db);
 
+  // db-access-guard: tenant-scoped -- reason: sets row security and access-tenant GUCs before grant table reads
   return db.transaction(async tx => {
+    // db-access-guard: tenant-scoped -- reason: enables RLS before case_scoped_access_grants reads
     await tx.execute(sql`set local row_security = on`);
+    // db-access-guard: tenant-scoped -- reason: pins tenant context to validated accessTenantId for grant reads
     await tx.execute(sql`select set_config('app.current_tenant_id', ${accessTenantId}, true)`);
+    // db-access-guard: tenant-scoped -- reason: pins access context to validated accessTenantId for grant RLS
     await tx.execute(
       sql`select set_config('app.current_access_tenant_id', ${accessTenantId}, true)`
     );

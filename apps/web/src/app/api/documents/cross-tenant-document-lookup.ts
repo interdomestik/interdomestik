@@ -113,9 +113,13 @@ async function withDocumentReadContext<T>(
   action: (tx: DocumentReadDb) => Promise<T>
 ): Promise<T> {
   if (!hasTransaction(db)) return action(db);
+  // db-access-guard: tenant-scoped -- reason: sets row security and home tenant GUCs before grant-bound document reads
   return db.transaction(async tx => {
+    // db-access-guard: tenant-scoped -- reason: enables RLS before home-tenant claim document reads
     await tx.execute(sql`set local row_security = on`);
+    // db-access-guard: tenant-scoped -- reason: pins document read tenant context to validated homeTenantId
     await tx.execute(sql`select set_config('app.current_tenant_id', ${homeTenantId}, true)`);
+    // db-access-guard: tenant-scoped -- reason: pins access context to homeTenantId for document RLS visibility
     await tx.execute(sql`select set_config('app.current_access_tenant_id', ${homeTenantId}, true)`);
     return action(tx);
   });
