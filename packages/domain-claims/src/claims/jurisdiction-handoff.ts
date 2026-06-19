@@ -51,7 +51,11 @@ export async function recordJurisdictionHandoffInTransaction(
   }
 
   if (
-    !(await isGrantActorInRecoveryTenant(tx, params.grantActorId, recovery.recoveryLegalTenantId))
+    !isGrantActorInRecoveryTenant({
+      actorTenantId: params.grantActorTenantId,
+      recoveryTenantId: recovery.recoveryLegalTenantId,
+      role: params.grantActorRole,
+    })
   ) {
     return { success: false, error: 'grant_actor_not_recovery_tenant' };
   }

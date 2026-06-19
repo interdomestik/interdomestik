@@ -15,6 +15,8 @@ export type JurisdictionHandoffParams = {
   claimId: string;
   correlationId?: string;
   grantActorId: string;
+  grantActorRole: string;
+  grantActorTenantId: string;
   grantExpiresAt?: Date | null;
   homeTenantId: string;
   now?: Date;

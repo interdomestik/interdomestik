@@ -1,4 +1,4 @@
-import { claims, sql, user } from '@interdomestik/database';
+import { claims, sql } from '@interdomestik/database';
 
 import type { HandoffClaimRow, HandoffTx } from './jurisdiction-handoff-types';
 
@@ -63,21 +63,10 @@ export async function setRecoveryLegalTenantIfUnset(args: {
   return updated.length === 1;
 }
 
-export async function isGrantActorInRecoveryTenant(
-  tx: HandoffTx,
-  actorId: string,
-  recoveryTenantId: string
-): Promise<boolean> {
-  const [row] = await tx
-    .select({ id: user.id, role: user.role })
-    .from(user)
-    .where(
-      sql`
-        ${user.id} = ${actorId}
-        and ${user.tenantId} = ${recoveryTenantId}
-        and ${user.role} in ('staff', 'admin', 'tenant_admin', 'super_admin')
-      `
-    )
-    .limit(1);
-  return isRecoveryGrantActorRole(row?.role);
+export function isGrantActorInRecoveryTenant(args: {
+  actorTenantId: string;
+  recoveryTenantId: string;
+  role: string;
+}): boolean {
+  return args.actorTenantId === args.recoveryTenantId && isRecoveryGrantActorRole(args.role);
 }

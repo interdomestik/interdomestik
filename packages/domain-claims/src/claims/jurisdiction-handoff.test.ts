@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
   insertHandoffGrant: vi.fn(),
-  isGrantActorInRecoveryTenant: vi.fn(),
   loadHandoffClaim: vi.fn(),
   lockHandoffClaim: vi.fn(),
   setRecoveryLegalTenantIfUnset: vi.fn(),
@@ -17,7 +16,13 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('./jurisdiction-handoff-store', () => ({
   insertHandoffGrant: mocks.insertHandoffGrant,
-  isGrantActorInRecoveryTenant: mocks.isGrantActorInRecoveryTenant,
+  isGrantActorInRecoveryTenant: (args: {
+    actorTenantId: string;
+    recoveryTenantId: string;
+    role: string;
+  }) =>
+    args.actorTenantId === args.recoveryTenantId &&
+    ['staff', 'admin', 'tenant_admin', 'super_admin'].includes(args.role),
   loadHandoffClaim: mocks.loadHandoffClaim,
   lockHandoffClaim: mocks.lockHandoffClaim,
   setRecoveryLegalTenantIfUnset: mocks.setRecoveryLegalTenantIfUnset,
@@ -40,7 +45,6 @@ describe('recordJurisdictionHandoffInTransaction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.loadHandoffClaim.mockResolvedValue(baseClaim);
-    mocks.isGrantActorInRecoveryTenant.mockResolvedValue(true);
     mocks.setRecoveryLegalTenantIfUnset.mockResolvedValue(true);
     mocks.insertHandoffGrant.mockResolvedValue('inserted');
     mocks.appendEvent.mockResolvedValue(undefined);
@@ -102,8 +106,7 @@ describe('recordJurisdictionHandoffInTransaction', () => {
     expect(mocks.appendEvent).not.toHaveBeenCalled();
   });
 
-  it.each(preGrantCases)('returns %s before grant insert', async (error, params, actorInTenant) => {
-    if (actorInTenant === false) mocks.isGrantActorInRecoveryTenant.mockResolvedValueOnce(false);
+  it.each(preGrantCases)('returns %s before grant insert', async (error, params) => {
     const request =
       error === 'self_grant_denied' ? { ...params, grantActorId: params.actor.id } : params;
 
@@ -140,10 +143,7 @@ describe('recordJurisdictionHandoffInTransaction', () => {
     await expect(
       recordJurisdictionHandoff({ ...baseParams, correlationId: 'operator-supplied-id' })
     ).resolves.toEqual({ success: false, error });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_ks' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toEqual({ tenantId: 'tenant_ks' });
     expect(mocks.appendEvent).not.toHaveBeenCalled();
   });
 });
