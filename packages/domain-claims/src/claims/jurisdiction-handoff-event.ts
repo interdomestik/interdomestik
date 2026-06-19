@@ -1,4 +1,4 @@
-import { appendEvent, type DomainEventTx } from '@interdomestik/database';
+import { appendEvent } from '@interdomestik/database';
 
 import { HANDOFF_DOCUMENT_CLASSES } from './jurisdiction-handoff-document-classes';
 import { stableHandoffId } from './jurisdiction-handoff-ids';
@@ -16,7 +16,7 @@ export async function appendHandoffEvent(
     version: number;
   }
 ): Promise<void> {
-  await appendEvent(tx as DomainEventTx, {
+  await appendEvent(tx, {
     actor: { id: params.actor.id, role: params.actor.role },
     aggregateVersion: args.version,
     correlationId: args.correlationId,

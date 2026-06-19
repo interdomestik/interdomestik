@@ -49,7 +49,7 @@ function assertCountryCode(value: unknown): string {
 function assertGrantExpiry(value: unknown): string | null {
   if (value === null) return null;
   if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) {
-    throw new Error('appendEvent requires payload.grantExpiresAt to be ISO 8601 or null');
+    throw new TypeError('appendEvent requires payload.grantExpiresAt to be ISO 8601 or null');
   }
   return value;
 }

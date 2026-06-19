@@ -40,9 +40,7 @@ ALTER TABLE public."case_scoped_access_grants" ENABLE ROW LEVEL SECURITY;
 DO $$
 DECLARE
   policy_name constant text := 'tenant_isolation_case_scoped_access_grants';
-  read_expr constant text :=
-    '(tenant_id = (select current_setting(''app.current_access_tenant_id'', true))::text
-      OR access_tenant_id = (select current_setting(''app.current_access_tenant_id'', true))::text)';
+  read_expr constant text := '(tenant_id = (select current_setting(''app.current_access_tenant_id'', true))::text OR access_tenant_id = (select current_setting(''app.current_access_tenant_id'', true))::text)';
   write_expr constant text :=
     'tenant_id = (select current_setting(''app.current_access_tenant_id'', true))::text';
 BEGIN
