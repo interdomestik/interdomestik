@@ -136,6 +136,19 @@ export async function insertHandoffGrant(args: {
       )
     `
     )
+    .orderBy(
+      sql`case
+        when ${caseScopedAccessGrants.id} = ${args.grantId} then 1
+        when (
+          ${caseScopedAccessGrants.tenantId} = ${args.homeTenantId}
+          and ${caseScopedAccessGrants.accessTenantId} = ${args.recoveryLegalTenantId}
+          and ${caseScopedAccessGrants.caseId} = ${args.caseId}
+          and ${caseScopedAccessGrants.actorId} = ${args.actorId}
+          and ${caseScopedAccessGrants.revokedAt} is null
+        ) then 2
+        else 3
+      end`
+    )
     .limit(1);
 
   return classifyExistingHandoffGrant(existing, args);
