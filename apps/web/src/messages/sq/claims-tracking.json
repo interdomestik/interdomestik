@@ -9,7 +9,9 @@
         "share_dialog_desc": "Kushdo me këtë link mund të shohë statusin aktual. Linku skadon në 7 ditë."
       },
       "timeline": {
-        "empty": "Nuk ka ngjarje në kohështrirje."
+        "empty": "Nuk ka ngjarje në kohështrirje.",
+        "generic": "Përditësim i rastit",
+        "redacted": "Përditësimi i rastit nuk është i disponueshëm"
       },
       "documents": {
         "title": "Dokumentet",

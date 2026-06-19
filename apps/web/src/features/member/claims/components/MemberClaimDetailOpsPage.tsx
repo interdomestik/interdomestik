@@ -23,6 +23,7 @@ import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik
 import { LifeBuoy, Upload } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef } from 'react';
+import { useTrackingLabelTranslator } from '@/features/claims/tracking/components/useTrackingLabelTranslator';
 import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
 
 type SerializedClaimTrackingDocument = Omit<ClaimTrackingDocument, 'createdAt'> & {
@@ -80,19 +81,11 @@ export function MemberClaimDetailOpsPage({
   const messagingSectionRef = useRef<HTMLElement | null>(null);
   const locale = useLocale();
   const t = useTranslations('claims');
-  const tTrackingStatus = useTranslations('claims-tracking.status');
   const tTrackingNextStep = useTranslations('claims-tracking.status.next_step');
   const tTrackingSla = useTranslations('claims-tracking.tracking.sla');
   const tAssurance = useTranslations('claims-tracking.tracking.assurance');
   const tClaimStatus = useTranslations('claims.status');
-
-  const translateTrackingStatus = (labelKey: string) => {
-    if (!labelKey.startsWith('claims-tracking.status.')) {
-      return labelKey;
-    }
-
-    return tTrackingStatus(labelKey.replace('claims-tracking.status.', ''));
-  };
+  const translateTrackingLabel = useTrackingLabelTranslator();
 
   const translateAssurance = (labelKey: string) => {
     if (!labelKey.startsWith('claims-tracking.tracking.assurance.')) {
@@ -107,7 +100,7 @@ export function MemberClaimDetailOpsPage({
     ...e,
     // claim.timeline labelKey is a fully qualified key (e.g. "claims-tracking.status.evaluation").
     // Translating it within the "claims" namespace causes missing-message errors in production.
-    title: translateTrackingStatus(e.title),
+    title: translateTrackingLabel(e.title),
   }));
 
   const opsDocuments = toOpsDocuments(claim.documents);
@@ -209,7 +202,7 @@ export function MemberClaimDetailOpsPage({
                     {t('detail.progress.currentState')}
                   </span>
                   <p className="mt-1 font-semibold" data-testid="member-claim-current-state">
-                    {translateTrackingStatus(claim.progressSummary.currentStatusLabelKey)}
+                    {translateTrackingLabel(claim.progressSummary.currentStatusLabelKey)}
                   </p>
                 </div>
                 <div>
@@ -217,7 +210,7 @@ export function MemberClaimDetailOpsPage({
                     {t('detail.progress.latestUpdate')}
                   </span>
                   <p className="mt-1 font-semibold" data-testid="member-claim-latest-update">
-                    {translateTrackingStatus(claim.progressSummary.latestUpdateLabelKey)}
+                    {translateTrackingLabel(claim.progressSummary.latestUpdateLabelKey)}
                   </p>
                   <p
                     className="mt-1 text-xs text-muted-foreground"

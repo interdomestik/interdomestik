@@ -9,7 +9,9 @@
         "share_dialog_desc": "Svako ko ima ovaj link može da vidi trenutni status ovog zahteva. Link ističe za 7 dana."
       },
       "timeline": {
-        "empty": "Nema dostupnih događaja na vremenskoj liniji."
+        "empty": "Nema dostupnih događaja na vremenskoj liniji.",
+        "generic": "Ažuriranje slučaja",
+        "redacted": "Ažuriranje slučaja nije dostupno"
       },
       "documents": {
         "title": "Dokumenti",

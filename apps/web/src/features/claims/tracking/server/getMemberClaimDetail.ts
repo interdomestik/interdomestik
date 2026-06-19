@@ -7,14 +7,9 @@ import {
   resolveClaimLifecycleReadProjection,
   toMemberSafeRecoveryDecision,
 } from '@interdomestik/domain-claims';
-import { db } from '@interdomestik/database';
+import { db, ERASURE_REDACTED_VALUE } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
-import {
-  claimDocuments,
-  claimEscalationAgreements,
-  claims,
-  claimStageHistory,
-} from '@interdomestik/database/schema';
+import { claimDocuments, claimEscalationAgreements, claims } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { and, desc, eq } from 'drizzle-orm';
 import 'server-only';
@@ -25,22 +20,7 @@ import type {
   ClaimTrackingDocument,
 } from '../types';
 import { buildClaimVisibilityWhere } from '../utils';
-
-function buildFallbackTimelineEvent(args: {
-  claimId: string;
-  date: Date;
-  status: ClaimStatus;
-}): ClaimTimelineEvent {
-  return {
-    id: `fallback-${args.claimId}-${args.status}`,
-    date: args.date,
-    statusFrom: null,
-    statusTo: args.status,
-    labelKey: `claims-tracking.status.${args.status}`,
-    note: null,
-    isPublic: true,
-  };
-}
+import { getMemberTimelineFromDomainEvents } from './member-domain-event-timeline';
 
 function buildProgressSummary(args: {
   status: ClaimStatus;
@@ -103,18 +83,6 @@ export async function getMemberClaimDetail(
         },
       });
 
-      const timelineQuery = db
-        .select()
-        .from(claimStageHistory)
-        .where(
-          and(
-            eq(claimStageHistory.claimId, claimId),
-            eq(claimStageHistory.tenantId, tenantId),
-            eq(claimStageHistory.isPublic, true) // Only public events for member tracking
-          )
-        )
-        .orderBy(desc(claimStageHistory.createdAt));
-
       const recoveryDecisionQuery = db
         .select({
           acceptedAt: claimEscalationAgreements.acceptedAt,
@@ -131,11 +99,7 @@ export async function getMemberClaimDetail(
         )
         .limit(1);
 
-      const [claim, timelineRows, recoveryDecisionRows] = await Promise.all([
-        claimQuery,
-        timelineQuery,
-        recoveryDecisionQuery,
-      ]);
+      const [claim, recoveryDecisionRows] = await Promise.all([claimQuery, recoveryDecisionQuery]);
 
       if (!claim) {
         return null;
@@ -147,38 +111,14 @@ export async function getMemberClaimDetail(
       });
 
       const claimStatus = resolveClaimLifecycleReadProjection(claim).status;
-      let timeline: ClaimTimelineEvent[] = timelineRows.map(row => ({
-        id: row.id,
-        date: row.createdAt ?? new Date(),
-        statusFrom: row.fromStatus || null,
-        statusTo: row.toStatus,
-        labelKey: `claims-tracking.status.${row.toStatus}`,
-        note: row.note,
-        isPublic: row.isPublic,
-      }));
-
-      if (timeline.length === 0) {
-        const fallbackDate = claim.updatedAt ?? claim.createdAt ?? new Date();
-        timeline = [
-          buildFallbackTimelineEvent({
-            claimId: claim.id,
-            date: fallbackDate,
-            status: claimStatus,
-          }),
-        ];
-      } else if (
-        claim.createdAt &&
-        !timeline.find(event => event.statusTo === 'draft' || event.statusTo === 'submitted')
-      ) {
-        timeline = [
-          ...timeline,
-          buildFallbackTimelineEvent({
-            claimId: claim.id,
-            date: claim.createdAt,
-            status: claimStatus === 'draft' ? 'draft' : 'submitted',
-          }),
-        ];
-      }
+      const timeline = await getMemberTimelineFromDomainEvents({
+        claimId: claim.id,
+        tenantId,
+        currentStatus: claimStatus,
+        createdAt: claim.createdAt,
+        piiStatus: claim.userId === ERASURE_REDACTED_VALUE ? 'erased_or_unavailable' : 'available',
+        updatedAt: claim.updatedAt,
+      });
 
       const documents: ClaimTrackingDocument[] = claim.documents.map(doc => ({
         id: doc.id,
