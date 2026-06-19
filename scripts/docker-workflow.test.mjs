@@ -193,7 +193,7 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
   assert.match(parityScript, /pnpm -s release:gate:p0:raw --baseUrl http:\/\/127\.0\.0\.1:3000/);
   assert.match(parityScript, /pnpm security:guard/);
   assert.match(parityScript, /pnpm audit --prod --audit-level=high --json/);
-  assert.match(parityScript, /node scripts\/pnpm-audit-gate\.mjs \/tmp\/pnpm-audit\.json/);
+  assert.match(parityScript, /\| node scripts\/pnpm-audit-gate\.mjs/);
   assert.match(parityScript, /pnpm e2e:gate/);
   assert.match(parityScript, /ensure_sonar_server_ready\(\)/);
   assert.match(parityScript, /api\/system\/status/);
@@ -208,7 +208,7 @@ test('local CI parity runner mirrors required PR gate surfaces in Docker', () =>
 
   assert.match(sonarScan, /SONAR_SCANNER_FORCE_NATIVE/);
   assert.match(sonarScan, /shouldUseNativeScanner/);
-  assert.match(sonarScan, /statusUrl: forceNative/);
+  assert.match(sonarScan, /resolveSonarStatusUrl\(\{ sonarHostUrl, forceNative \}\)/);
   assert.match(sonarScan, /if \(forceNative\) \{\s*process\.exit\(nativeStatus \|\| 1\);/);
 });
 

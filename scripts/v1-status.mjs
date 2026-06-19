@@ -2,24 +2,16 @@
 
 import fs from 'node:fs';
 
-import { resolveReadableInputPath } from './input-path-safety.mjs';
-
-const DEFAULT_TRACKER = 'docs/plans/2026-02-22-v1-bulletproof-tracker.md';
-let trackerPath;
+const trackerUrl = new URL('../docs/plans/2026-02-22-v1-bulletproof-tracker.md', import.meta.url);
 
 try {
-  trackerPath = resolveReadableInputPath(process.argv[2] || DEFAULT_TRACKER, 'Tracker path', {
-    allowTemp: false,
-  });
-} catch (error) {
-  if (!(error instanceof Error) || !error.message.includes('does not exist')) {
-    throw error;
-  }
+  fs.accessSync(trackerUrl, fs.constants.R_OK);
+} catch {
   console.error('Tracker not found: configured repository tracker path');
   process.exit(1);
 }
 
-const text = fs.readFileSync(trackerPath, 'utf8');
+const text = fs.readFileSync(trackerUrl, 'utf8');
 const lines = text.split(/\r?\n/);
 
 const getValue = (...prefixes) => {

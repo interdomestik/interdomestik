@@ -5,6 +5,7 @@ import { performance } from 'node:perf_hooks';
 
 const repoRoot = process.cwd();
 const sessionEnvName = 'ENT_PERF_UPLOAD_SESSION_COOKIE';
+const uploadBody = { fileName: 'ent-perf03-synthetic.txt', fileType: 'text/plain', fileSize: 128 };
 
 function arg(name, fallback) {
   const prefix = `--${name}=`;
@@ -16,7 +17,6 @@ function toPositiveInt(value, fallback) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
-
 function safeOutputPath(input) {
   if (!input) return null;
   const resolved = path.resolve(repoRoot, input);
@@ -46,12 +46,13 @@ function blocked(reasons, outputPath) {
 }
 
 function validateConfig(config) {
-  const missing = [];
-  if (!config.targetUrl) missing.push('missing target URL');
-  if (!config.sessionCookie) missing.push(`missing fixture session env ${sessionEnvName}`);
-  if (!config.tenantId) missing.push('missing fixture tenant id');
-  if (!config.actorId) missing.push('missing fixture actor id');
-  if (!config.outputPath) missing.push('missing safe output path under tmp/performance');
+  const missing = [
+    !config.targetUrl && 'missing target URL',
+    !config.sessionCookie && `missing fixture session env ${sessionEnvName}`,
+    !config.tenantId && 'missing fixture tenant id',
+    !config.actorId && 'missing fixture actor id',
+    !config.outputPath && 'missing safe output path under tmp/performance',
+  ].filter(Boolean);
   if (missing.length > 0) return missing;
 
   let parsedUrl;
@@ -60,8 +61,7 @@ function validateConfig(config) {
   } catch {
     return ['target URL is invalid'];
   }
-  const hostname = parsedUrl.hostname.toLowerCase();
-  if (hostname === 'interdomestik.com' || hostname === 'www.interdomestik.com') {
+  if (['interdomestik.com', 'www.interdomestik.com'].includes(parsedUrl.hostname.toLowerCase())) {
     return ['production target URL is not allowed'];
   }
   return [];
@@ -75,16 +75,11 @@ async function timedUploadAttempt(config) {
     const response = await fetch(new URL('/api/uploads', config.targetUrl), {
       method: 'POST',
       headers: { 'content-type': 'application/json', cookie: config.sessionCookie },
-      body: JSON.stringify({
-        fileName: 'ent-perf03-synthetic.txt',
-        fileType: 'text/plain',
-        fileSize: 128,
-      }),
+      body: JSON.stringify(uploadBody),
       signal: controller.signal,
     });
-    const ok = response.ok;
     await response.body?.cancel().catch(() => {});
-    return { durationMs: Math.round(performance.now() - started), ok, timeout: false };
+    return { durationMs: Math.round(performance.now() - started), ok: response.ok, timeout: false };
   } catch (error) {
     return {
       durationMs: Math.round(performance.now() - started),
@@ -123,7 +118,10 @@ async function main() {
       surface: 'POST /api/uploads',
       generatedAt: new Date().toISOString(),
       targetKind: new URL(config.targetUrl).hostname,
-      fixture: { tenantId: 'configured', actorId: 'configured' },
+      fixture: {
+        tenantId: encodeURIComponent(String(config.tenantId).trim()).slice(0, 128) || 'missing',
+        actorId: encodeURIComponent(String(config.actorId).trim()).slice(0, 128) || 'missing',
+      },
       samples: attempts.length,
       warmup: config.warmup,
       concurrency: 1,

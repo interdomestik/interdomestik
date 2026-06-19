@@ -7,6 +7,7 @@ import {
   appendScannerProperties,
   buildNativeScannerArgs,
   normalizeSonarHostUrl,
+  resolveSonarStatusUrl,
   waitForSonarUp,
 } from './sonar-scan-lib.mjs';
 
@@ -78,15 +79,9 @@ if (!sonarToken) {
 // Run the scanner via Docker so we don't require a global `sonar-scanner` or Java.
 // IMPORTANT: do NOT pass `-Dsonar.token=...` because SonarScanner logs the value.
 // We pass auth only through the `SONAR_TOKEN` env var.
-//
-// When running inside a container, `localhost` points to the container itself.
-// For local development, the SonarQube server is running on the host (Docker Desktop),
-// so we default to `host.docker.internal`.
 const cwd = process.cwd();
 
-const sonarHostUrl = normalizeSonarHostUrl(
-  process.env.SONAR_HOST_URL ?? 'http://host.docker.internal:9000'
-);
+const sonarHostUrl = normalizeSonarHostUrl(process.env.SONAR_HOST_URL);
 const skipJreProvisioning = process.env.SONAR_SCANNER_SKIP_JRE_PROVISIONING === 'true';
 const scannerProperties = appendScannerProperties([`-Dsonar.host.url=${sonarHostUrl}`], {
   skipJreProvisioning,
@@ -148,12 +143,11 @@ const forceDocker = process.env.SONAR_SCANNER_FORCE_DOCKER === 'true';
 const forceNative = process.env.SONAR_SCANNER_FORCE_NATIVE === 'true';
 const shouldUseNativeScanner =
   forceNative || (!forceDocker && process.platform === 'darwin' && process.arch === 'arm64');
+const sonarStatusUrl = resolveSonarStatusUrl({ sonarHostUrl, forceNative });
 
-if (sonarHostUrl.includes('host.docker.internal:9000') || sonarHostUrl.includes('sonarqube:9000')) {
+if (sonarStatusUrl) {
   await waitForSonarUp({
-    statusUrl: forceNative
-      ? `${sonarHostUrl.replace(/\/$/u, '')}/api/system/status`
-      : 'http://localhost:9000/api/system/status',
+    statusUrl: sonarStatusUrl,
     timeoutMs: 120_000,
   });
 }

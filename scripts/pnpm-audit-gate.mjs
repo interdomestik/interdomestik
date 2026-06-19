@@ -1,14 +1,8 @@
 import fs from 'node:fs';
-import { resolveReadableInputPath } from './input-path-safety.mjs';
 
-const [, , auditFile, ...allowlist] = process.argv;
+const [, , ...allowlist] = process.argv;
 
-if (!auditFile) {
-  console.error('Usage: node scripts/pnpm-audit-gate.mjs <audit-json-file> [ALLOWLIST...]');
-  process.exit(1);
-}
-
-const raw = fs.readFileSync(resolveReadableInputPath(auditFile, 'Audit JSON file'), 'utf8').trim();
+const raw = fs.readFileSync(0, 'utf8').trim();
 
 if (!raw) process.exit(0);
 
@@ -39,35 +33,23 @@ function normalizeAllowlistEntry(entry) {
   };
 }
 
-function isMissingInputError(error) {
-  return error instanceof Error && error.message.includes('does not exist');
-}
-
-function loadAllowlistFile(filePath) {
-  try {
-    if (!filePath) return [];
-    const rawAllowlist = fs
-      .readFileSync(
-        resolveReadableInputPath(filePath, 'Audit allowlist file', { allowTemp: false }),
-        'utf8'
-      )
-      .trim();
-    if (!rawAllowlist) return [];
-    const parsed = JSON.parse(rawAllowlist);
-    if (Array.isArray(parsed)) {
-      return parsed.map(normalizeAllowlistEntry).filter(Boolean);
-    }
-    if (Array.isArray(parsed.allowlist)) {
-      return parsed.allowlist.map(normalizeAllowlistEntry).filter(Boolean);
-    }
-    return [];
-  } catch (error) {
-    if (isMissingInputError(error)) return [];
-    throw error;
+function loadAllowlistFile() {
+  if (!fs.existsSync(new URL('./pnpm-audit-allowlist.json', import.meta.url))) return [];
+  const rawAllowlist = fs
+    .readFileSync(new URL('./pnpm-audit-allowlist.json', import.meta.url), 'utf8')
+    .trim();
+  if (!rawAllowlist) return [];
+  const parsed = JSON.parse(rawAllowlist);
+  if (Array.isArray(parsed)) {
+    return parsed.map(normalizeAllowlistEntry).filter(Boolean);
   }
+  if (Array.isArray(parsed.allowlist)) {
+    return parsed.allowlist.map(normalizeAllowlistEntry).filter(Boolean);
+  }
+  return [];
 }
 
-for (const entry of loadAllowlistFile('scripts/pnpm-audit-allowlist.json')) {
+for (const entry of loadAllowlistFile()) {
   allowed.add(entry.id);
   if (entry.paths.length > 0) {
     allowedPathRules.push(entry);
@@ -77,15 +59,6 @@ for (const entry of loadAllowlistFile('scripts/pnpm-audit-allowlist.json')) {
 if (allowlist.length > 0) {
   allowlist.forEach(entry => {
     if (!entry) {
-      return;
-    }
-    if (fs.existsSync(entry)) {
-      loadAllowlistFile(entry).forEach(loadedEntry => {
-        allowed.add(loadedEntry.id);
-        if (loadedEntry.paths.length > 0) {
-          allowedPathRules.push(loadedEntry);
-        }
-      });
       return;
     }
     allowed.add(String(entry));
