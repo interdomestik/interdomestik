@@ -46,10 +46,9 @@ async function withServer(handler, testBody) {
 test('upload advisory runner reports blocked when prerequisites are missing', () => {
   const result = run([]);
   assert.equal(result.status, 2);
-  const report = JSON.parse(result.stdout);
-  assert.equal(report.status, 'blocked');
-  assert.match(report.reasonCodes.join('\n'), /missing target URL/u);
-  assert.match(report.reasonCodes.join('\n'), /missing fixture session env/u);
+  assert.match(result.stdout, /status=blocked/u);
+  assert.match(result.stdout, /reasonCount=5/u);
+  assert.doesNotMatch(result.stdout, /missing target URL|missing fixture session env/u);
   assert.doesNotMatch(result.stdout + result.stderr, /session=/u);
 });
 
@@ -61,10 +60,10 @@ test('upload advisory runner requires a safe tmp performance output path', () =>
     ENT_PERF_UPLOAD_ACTOR_ID: 'user_fixture',
   });
   assert.equal(result.status, 2);
-  assert.match(result.stdout, /missing safe output path/u);
+  assert.match(result.stdout, /status=blocked/u);
   assert.doesNotMatch(
     result.stdout + result.stderr,
-    /secret|127\.0\.0\.1:3000|tenant_fixture|user_fixture/u
+    /secret|127\.0\.0\.1:3000|tenant_fixture|user_fixture|missing safe output path/u
   );
 });
 
@@ -117,6 +116,8 @@ test('upload advisory runner writes aggregate-only metrics', async () => {
       assert.equal(report.metrics.errorCount, 0);
       assert.equal(typeof report.metrics.p95Ms, 'number');
       assert.equal(requests.length, 3);
+      assert.match(result.stdout, /status=advisory_passed/u);
+      assert.match(result.stdout, /samples=2/u);
       assert.ok(
         requests.every(
           request =>
@@ -127,6 +128,10 @@ test('upload advisory runner writes aggregate-only metrics', async () => {
         )
       );
       assert.doesNotMatch(output + result.stdout + result.stderr, /secret-token|session=secret/u);
+      assert.doesNotMatch(
+        result.stdout + result.stderr,
+        /127\.0\.0\.1|tenant_fixture|user_fixture/u
+      );
     }
   );
 

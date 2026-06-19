@@ -7,7 +7,6 @@ const repoRoot = process.cwd();
 const sessionEnvName = 'ENT_PERF_UPLOAD_SESSION_COOKIE';
 const surface = 'POST /api/uploads';
 const uploadBody = { fileName: 'ent-perf03-synthetic.txt', fileType: 'text/plain', fileSize: 128 };
-
 function arg(name, fallback) {
   const prefix = `--${name}=`;
   const value = process.argv.slice(2).find(item => item.startsWith(prefix));
@@ -32,24 +31,20 @@ function percentile(values, pct) {
   return sorted[Math.max(0, Math.min(sorted.length - 1, index))];
 }
 
-function writeReport(report, outputPath) {
-  const body = `${JSON.stringify(report, null, 2)}\n`;
+function writeReport(report, outputPath, publicSummary) {
   if (outputPath) {
     mkdirSync(path.dirname(outputPath), { recursive: true });
-    writeFileSync(outputPath, body);
+    writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`);
   }
-
-  const publicBody =
-    report.status === 'blocked'
-      ? report
-      : (({ status, surface, samples, metrics }) => ({ status, surface, samples, metrics }))(
-          report
-        );
-  console.log(JSON.stringify(publicBody, null, 2));
+  console.log(publicSummary);
 }
 
 function blocked(reasons, outputPath) {
-  writeReport({ status: 'blocked', surface, reasonCodes: reasons }, outputPath);
+  writeReport(
+    { status: 'blocked', surface, reasonCodes: reasons },
+    outputPath,
+    `performance_upload_advisory status=blocked surface=upload reasonCount=${reasons.length}`
+  );
   process.exitCode = 2;
 }
 
@@ -120,9 +115,21 @@ async function main() {
   for (let i = 0; i < config.samples; i += 1) attempts.push(await timedUploadAttempt(config));
 
   const durations = attempts.map(attempt => attempt.durationMs);
+  const status = attempts.some(attempt => !attempt.ok) ? 'advisory_failed' : 'advisory_passed';
+  const errorCount = attempts.filter(attempt => !attempt.ok).length;
+  const timeoutCount = attempts.filter(attempt => attempt.timeout).length;
+  const metrics = {
+    minMs: Math.min(...durations),
+    maxMs: Math.max(...durations),
+    p50Ms: percentile(durations, 50),
+    p95Ms: percentile(durations, 95),
+    p99Ms: percentile(durations, 99),
+    errorCount,
+    timeoutCount,
+  };
   writeReport(
     {
-      status: attempts.some(attempt => !attempt.ok) ? 'advisory_failed' : 'advisory_passed',
+      status,
       surface,
       generatedAt: new Date().toISOString(),
       targetKind: new URL(config.targetUrl).hostname,
@@ -134,17 +141,10 @@ async function main() {
       warmup: config.warmup,
       concurrency: 1,
       timeoutMs: config.timeoutMs,
-      metrics: {
-        minMs: Math.min(...durations),
-        maxMs: Math.max(...durations),
-        p50Ms: percentile(durations, 50),
-        p95Ms: percentile(durations, 95),
-        p99Ms: percentile(durations, 99),
-        errorCount: attempts.filter(attempt => !attempt.ok).length,
-        timeoutCount: attempts.filter(attempt => attempt.timeout).length,
-      },
+      metrics,
     },
-    config.outputPath
+    config.outputPath,
+    `performance_upload_advisory status=${status} surface=upload samples=${attempts.length} errorCount=${errorCount} timeoutCount=${timeoutCount}`
   );
 }
 await main();
