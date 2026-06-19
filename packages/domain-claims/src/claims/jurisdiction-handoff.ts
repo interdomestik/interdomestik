@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import type { CaseScopedAccessGrant } from '@interdomestik/shared-auth';
 
 import { toSessionGrant } from './jurisdiction-handoff-auth';
@@ -132,8 +132,9 @@ export async function recordJurisdictionHandoff(
   params: JurisdictionHandoffParams
 ): Promise<JurisdictionHandoffResult> {
   try {
-    // db-access-guard: tenant-scoped -- reason: homeTenantId is validated by the caller and every transaction read/write constrains tenant, claim, actor, or deterministic handoff identity.
-    return await db.transaction(tx => recordJurisdictionHandoffInTransaction(tx, params));
+    return await withTenantContext({ tenantId: params.homeTenantId }, tx =>
+      recordJurisdictionHandoffInTransaction(tx, params)
+    );
   } catch (error) {
     if (error instanceof JurisdictionHandoffRollbackError) {
       return { success: false, error: error.code };

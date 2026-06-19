@@ -2,17 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
-  dbTransaction: vi.fn(),
   insertHandoffGrant: vi.fn(),
   isGrantActorInRecoveryTenant: vi.fn(),
   loadHandoffClaim: vi.fn(),
   lockHandoffClaim: vi.fn(),
   setRecoveryLegalTenantIfUnset: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
   appendEvent: mocks.appendEvent,
-  db: { transaction: mocks.dbTransaction },
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('./jurisdiction-handoff-store', () => ({
@@ -44,8 +44,8 @@ describe('recordJurisdictionHandoffInTransaction', () => {
     mocks.setRecoveryLegalTenantIfUnset.mockResolvedValue(true);
     mocks.insertHandoffGrant.mockResolvedValue('inserted');
     mocks.appendEvent.mockResolvedValue(undefined);
-    mocks.dbTransaction.mockImplementation((callback: (innerTx: typeof tx) => unknown) =>
-      callback(tx)
+    mocks.withTenantContext.mockImplementation(
+      (_context: unknown, callback: (innerTx: typeof tx) => unknown) => callback(tx)
     );
   });
 
@@ -140,6 +140,10 @@ describe('recordJurisdictionHandoffInTransaction', () => {
     await expect(
       recordJurisdictionHandoff({ ...baseParams, correlationId: 'operator-supplied-id' })
     ).resolves.toEqual({ success: false, error });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_ks' },
+      expect.any(Function)
+    );
     expect(mocks.appendEvent).not.toHaveBeenCalled();
   });
 });

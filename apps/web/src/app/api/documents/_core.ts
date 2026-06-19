@@ -333,9 +333,6 @@ export async function getDocumentAccessCore(args: {
     if (crossDoc === null) {
       return { ok: false, code: 'NOT_FOUND', message: 'Document not found' };
     }
-    if (crossDoc.kind === 'forbidden') {
-      return { ok: false, code: 'FORBIDDEN', message: 'Forbidden' };
-    }
     if (crossDoc.kind === 'poly') {
       const document = buildPolymorphicDocument(crossDoc.doc);
       return {

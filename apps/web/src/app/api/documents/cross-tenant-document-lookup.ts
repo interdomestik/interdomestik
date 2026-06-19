@@ -9,7 +9,6 @@ type PolyDoc = typeof documents.$inferSelect;
 type LegacyDoc = typeof claimDocuments.$inferSelect;
 
 type CrossGrantDoc =
-  | { kind: 'forbidden' }
   | { kind: 'legacy'; doc: LegacyDoc; homeTenantId: string }
   | { kind: 'poly'; doc: PolyDoc; homeTenantId: string };
 
@@ -41,7 +40,7 @@ async function lookupPoly(args: {
     documentClass: doc.category,
     homeTenantId: doc.tenantId,
   });
-  return allowed ? { kind: 'poly', doc, homeTenantId: doc.tenantId } : { kind: 'forbidden' };
+  return allowed ? { kind: 'poly', doc, homeTenantId: doc.tenantId } : null;
 }
 
 async function lookupLegacy(args: {
@@ -64,7 +63,5 @@ async function lookupLegacy(args: {
     documentClass: row.doc.category,
     homeTenantId: row.doc.tenantId,
   });
-  return allowed
-    ? { kind: 'legacy', doc: row.doc, homeTenantId: row.doc.tenantId }
-    : { kind: 'forbidden' };
+  return allowed ? { kind: 'legacy', doc: row.doc, homeTenantId: row.doc.tenantId } : null;
 }

@@ -115,12 +115,12 @@ describe('document durable case grant boundary', () => {
     ).resolves.toEqual(expect.objectContaining({ ok: true, tenantId: 'home-t' }));
   });
 
-  it('denies cross-tenant document access when grant does not cover the document class', async () => {
-    vi.mocked(lookupCrossGrantDoc).mockResolvedValueOnce({ kind: 'forbidden' });
+  it('hides cross-tenant document access when grant does not cover the document class', async () => {
+    vi.mocked(lookupCrossGrantDoc).mockResolvedValueOnce(null);
     setup([], [], true);
 
     await expect(
       getDocumentAccessCore({ deps: mockDeps, documentId: 'doc-1', mode: 'download', session })
-    ).resolves.toEqual({ ok: false, code: 'FORBIDDEN', message: 'Forbidden' });
+    ).resolves.toEqual({ ok: false, code: 'NOT_FOUND', message: 'Document not found' });
   });
 });
