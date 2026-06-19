@@ -1,26 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  appendEvent: vi.fn(),
-  insertHandoffGrant: vi.fn(),
-  loadHandoffClaim: vi.fn(),
-  lockHandoffClaim: vi.fn(),
-  setRecoveryLegalTenantIfUnset: vi.fn(),
-  withTenantContext: vi.fn(),
-}));
-
-vi.mock('@interdomestik/database', () => ({
-  appendEvent: mocks.appendEvent,
-  withTenantContext: mocks.withTenantContext,
-}));
-
-vi.mock('./jurisdiction-handoff-store', () => ({
-  insertHandoffGrant: mocks.insertHandoffGrant,
-  loadHandoffClaim: mocks.loadHandoffClaim,
-  lockHandoffClaim: mocks.lockHandoffClaim,
-  setRecoveryLegalTenantIfUnset: mocks.setRecoveryLegalTenantIfUnset,
-}));
-
+import { getHandoffMocks, resetHandoffMocks } from './jurisdiction-handoff-test-mocks';
 import {
   recordJurisdictionHandoff,
   recordJurisdictionHandoffInTransaction,
@@ -34,16 +14,11 @@ import {
   tx,
 } from './jurisdiction-handoff-test-fixtures';
 
+const handoffMocks = getHandoffMocks();
+
 describe('recordJurisdictionHandoffInTransaction', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.loadHandoffClaim.mockResolvedValue(baseClaim);
-    mocks.setRecoveryLegalTenantIfUnset.mockResolvedValue(true);
-    mocks.insertHandoffGrant.mockResolvedValue('inserted');
-    mocks.appendEvent.mockResolvedValue(undefined);
-    mocks.withTenantContext.mockImplementation(
-      (_context: unknown, callback: (innerTx: typeof tx) => unknown) => callback(tx)
-    );
+    resetHandoffMocks({ tenantContext: true });
   });
 
   it('creates a cross-jurisdiction handoff, grant, and audited event', async () => {
@@ -59,11 +34,11 @@ describe('recordJurisdictionHandoffInTransaction', () => {
         documentClasses: ['correspondence', 'contract', 'evidence', 'legal', 'receipt'],
       }),
     });
-    expect(mocks.lockHandoffClaim).toHaveBeenCalledWith(tx, 'tenant_ks', 'claim-1');
-    expect(mocks.setRecoveryLegalTenantIfUnset).toHaveBeenCalledWith(
+    expect(handoffMocks.lockHandoffClaim).toHaveBeenCalledWith(tx, 'tenant_ks', 'claim-1');
+    expect(handoffMocks.setRecoveryLegalTenantIfUnset).toHaveBeenCalledWith(
       expect.objectContaining({ homeTenantId: 'tenant_ks', recoveryLegalTenantId: 'tenant_mk' })
     );
-    expect(mocks.insertHandoffGrant).toHaveBeenCalledWith(
+    expect(handoffMocks.insertHandoffGrant).toHaveBeenCalledWith(
       expect.objectContaining({
         actorId: 'local-legal-1',
         caseId: 'claim-1',
@@ -76,7 +51,7 @@ describe('recordJurisdictionHandoffInTransaction', () => {
       recoveryTenantId: 'tenant_mk',
       tx,
     });
-    expect(mocks.appendEvent).toHaveBeenCalledWith(
+    expect(handoffMocks.appendEvent).toHaveBeenCalledWith(
       tx,
       expect.objectContaining({
         eventName: 'recovery.handed_off_to_jurisdiction',
@@ -90,19 +65,19 @@ describe('recordJurisdictionHandoffInTransaction', () => {
     await expect(
       recordJurisdictionHandoffInTransaction(tx, { ...baseParams, homeTenantId: 'tenant_mk' })
     ).resolves.toEqual({ success: true, grant: null, status: 'not_required' });
-    expect(mocks.insertHandoffGrant).not.toHaveBeenCalled();
+    expect(handoffMocks.insertHandoffGrant).not.toHaveBeenCalled();
   });
 
   it.each(preWriteCases)('returns %s before writing', async (error, claim, params) => {
-    mocks.loadHandoffClaim.mockResolvedValueOnce(claim);
+    handoffMocks.loadHandoffClaim.mockResolvedValueOnce(claim);
 
     await expect(recordJurisdictionHandoffInTransaction(tx, params)).resolves.toEqual({
       success: false,
       error,
     });
-    expect(mocks.setRecoveryLegalTenantIfUnset).not.toHaveBeenCalled();
-    expect(mocks.insertHandoffGrant).not.toHaveBeenCalled();
-    expect(mocks.appendEvent).not.toHaveBeenCalled();
+    expect(handoffMocks.setRecoveryLegalTenantIfUnset).not.toHaveBeenCalled();
+    expect(handoffMocks.insertHandoffGrant).not.toHaveBeenCalled();
+    expect(handoffMocks.appendEvent).not.toHaveBeenCalled();
   });
 
   it.each(preGrantCases)('returns %s before grant insert', async (error, params) => {
@@ -113,36 +88,36 @@ describe('recordJurisdictionHandoffInTransaction', () => {
       success: false,
       error,
     });
-    expect(mocks.insertHandoffGrant).not.toHaveBeenCalled();
-    expect(mocks.setRecoveryLegalTenantIfUnset).not.toHaveBeenCalled();
+    expect(handoffMocks.insertHandoffGrant).not.toHaveBeenCalled();
+    expect(handoffMocks.setRecoveryLegalTenantIfUnset).not.toHaveBeenCalled();
   });
 
   it('returns a typed conflict when the guarded tenant update loses a race', async () => {
-    mocks.setRecoveryLegalTenantIfUnset.mockResolvedValueOnce(false);
+    handoffMocks.setRecoveryLegalTenantIfUnset.mockResolvedValueOnce(false);
 
     await expect(recordJurisdictionHandoffInTransaction(tx, baseParams)).resolves.toEqual({
       error: 'recovery_legal_tenant_conflict',
       success: false,
     });
-    expect(mocks.insertHandoffGrant).not.toHaveBeenCalled();
+    expect(handoffMocks.insertHandoffGrant).not.toHaveBeenCalled();
   });
 
   it('treats deterministic retry as already_exists without appending a duplicate event', async () => {
-    mocks.insertHandoffGrant.mockResolvedValueOnce('already_exists');
+    handoffMocks.insertHandoffGrant.mockResolvedValueOnce('already_exists');
 
     await expect(recordJurisdictionHandoffInTransaction(tx, baseParams)).resolves.toEqual(
       expect.objectContaining({ success: true, status: 'already_exists' })
     );
-    expect(mocks.appendEvent).not.toHaveBeenCalled();
+    expect(handoffMocks.appendEvent).not.toHaveBeenCalled();
   });
 
   it.each(rollbackCases)('rolls back and classifies %s', async (storeStatus, error) => {
-    mocks.insertHandoffGrant.mockResolvedValueOnce(storeStatus);
+    handoffMocks.insertHandoffGrant.mockResolvedValueOnce(storeStatus);
 
     await expect(
       recordJurisdictionHandoff({ ...baseParams, correlationId: 'operator-supplied-id' })
     ).resolves.toEqual({ success: false, error });
-    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toEqual({ tenantId: 'tenant_ks' });
-    expect(mocks.appendEvent).not.toHaveBeenCalled();
+    expect(handoffMocks.withTenantContext.mock.calls[0]?.[0]).toEqual({ tenantId: 'tenant_ks' });
+    expect(handoffMocks.appendEvent).not.toHaveBeenCalled();
   });
 });

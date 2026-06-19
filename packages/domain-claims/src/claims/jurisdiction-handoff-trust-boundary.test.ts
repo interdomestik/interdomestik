@@ -1,36 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  appendEvent: vi.fn(),
-  insertHandoffGrant: vi.fn(),
-  loadHandoffClaim: vi.fn(),
-  lockHandoffClaim: vi.fn(),
-  setRecoveryLegalTenantIfUnset: vi.fn(),
-  withTenantContext: vi.fn(),
-}));
-
-vi.mock('@interdomestik/database', () => ({
-  appendEvent: mocks.appendEvent,
-  withTenantContext: mocks.withTenantContext,
-}));
-
-vi.mock('./jurisdiction-handoff-store', () => ({
-  insertHandoffGrant: mocks.insertHandoffGrant,
-  loadHandoffClaim: mocks.loadHandoffClaim,
-  lockHandoffClaim: mocks.lockHandoffClaim,
-  setRecoveryLegalTenantIfUnset: mocks.setRecoveryLegalTenantIfUnset,
-}));
-
+import { getHandoffMocks, resetHandoffMocks } from './jurisdiction-handoff-test-mocks';
 import { recordJurisdictionHandoffInTransaction } from './jurisdiction-handoff';
-import { baseClaim, baseParams, tx } from './jurisdiction-handoff-test-fixtures';
+import { baseParams, tx } from './jurisdiction-handoff-test-fixtures';
+
+const handoffMocks = getHandoffMocks();
 
 describe('jurisdiction handoff grant actor trust boundary', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.loadHandoffClaim.mockResolvedValue(baseClaim);
-    mocks.setRecoveryLegalTenantIfUnset.mockResolvedValue(true);
-    mocks.insertHandoffGrant.mockResolvedValue('inserted');
-    mocks.appendEvent.mockResolvedValue(undefined);
+    resetHandoffMocks();
   });
 
   it('does not trust forged grant actor tenant or role fields', async () => {
@@ -51,7 +29,7 @@ describe('jurisdiction handoff grant actor trust boundary', () => {
       recoveryTenantId: 'tenant_mk',
       tx,
     });
-    expect(mocks.insertHandoffGrant).not.toHaveBeenCalled();
-    expect(mocks.appendEvent).not.toHaveBeenCalled();
+    expect(handoffMocks.insertHandoffGrant).not.toHaveBeenCalled();
+    expect(handoffMocks.appendEvent).not.toHaveBeenCalled();
   });
 });

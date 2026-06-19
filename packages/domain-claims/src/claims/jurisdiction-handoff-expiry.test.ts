@@ -1,36 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  appendEvent: vi.fn(),
-  insertHandoffGrant: vi.fn(),
-  loadHandoffClaim: vi.fn(),
-  lockHandoffClaim: vi.fn(),
-  setRecoveryLegalTenantIfUnset: vi.fn(),
-  withTenantContext: vi.fn(),
-}));
-
-vi.mock('@interdomestik/database', () => ({
-  appendEvent: mocks.appendEvent,
-  withTenantContext: mocks.withTenantContext,
-}));
-
-vi.mock('./jurisdiction-handoff-store', () => ({
-  insertHandoffGrant: mocks.insertHandoffGrant,
-  loadHandoffClaim: mocks.loadHandoffClaim,
-  lockHandoffClaim: mocks.lockHandoffClaim,
-  setRecoveryLegalTenantIfUnset: mocks.setRecoveryLegalTenantIfUnset,
-}));
-
+import { getHandoffMocks, resetHandoffMocks } from './jurisdiction-handoff-test-mocks';
 import { recordJurisdictionHandoff } from './jurisdiction-handoff';
-import { baseClaim, baseParams, tx } from './jurisdiction-handoff-test-fixtures';
+import { baseParams } from './jurisdiction-handoff-test-fixtures';
+
+const handoffMocks = getHandoffMocks();
 
 describe('recordJurisdictionHandoff grant expiry validation', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.loadHandoffClaim.mockResolvedValue(baseClaim);
-    mocks.withTenantContext.mockImplementation(
-      (_context: unknown, callback: (innerTx: typeof tx) => unknown) => callback(tx)
-    );
+    resetHandoffMocks({ tenantContext: true });
   });
 
   it.each([new Date('2026-06-19T09:59:59Z'), baseParams.now])(
@@ -40,8 +18,8 @@ describe('recordJurisdictionHandoff grant expiry validation', () => {
         success: false,
         error: 'handoff_grant_expired',
       });
-      expect(mocks.setRecoveryLegalTenantIfUnset).not.toHaveBeenCalled();
-      expect(mocks.insertHandoffGrant).not.toHaveBeenCalled();
+      expect(handoffMocks.setRecoveryLegalTenantIfUnset).not.toHaveBeenCalled();
+      expect(handoffMocks.insertHandoffGrant).not.toHaveBeenCalled();
     }
   );
 });
