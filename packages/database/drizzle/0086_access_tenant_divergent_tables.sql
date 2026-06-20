@@ -3,8 +3,7 @@ DECLARE
   read_expr constant text :=
     'coalesce(access_tenant_id, tenant_id) = (select current_setting(''app.current_access_tenant_id'', true))::text';
   write_expr constant text :=
-    'tenant_id = (select current_setting(''app.current_access_tenant_id'', true))::text ' ||
-    'and coalesce(access_tenant_id, tenant_id) = tenant_id';
+    'tenant_id = (select current_setting(''app.current_access_tenant_id'', true))::text';
   drop_policy_stmt constant text := 'DROP POLICY IF EXISTS %I ON public.%I';
   target record;
 BEGIN

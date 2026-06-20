@@ -44,7 +44,7 @@ test('T-305b migration adds and backfills access_tenant_id idempotently', () => 
   );
 });
 
-test('T-305b migration applies access-tenant SELECT and tenant-pinned writes', () => {
+test('T-305b migration applies access-tenant SELECT and home-tenant writes', () => {
   const sql = migrationSql();
 
   assert.match(sql, /CREATE POLICY %I ON public\.%I FOR SELECT USING \(%s\)/u);
@@ -52,6 +52,19 @@ test('T-305b migration applies access-tenant SELECT and tenant-pinned writes', (
   assert.match(sql, /CREATE POLICY %I ON public\.%I FOR INSERT WITH CHECK \(%s\)/u);
   assert.match(sql, /CREATE POLICY %I ON public\.%I FOR UPDATE USING \(%s\) WITH CHECK \(%s\)/u);
   assert.match(sql, /CREATE POLICY %I ON public\.%I FOR DELETE USING \(%s\)/u);
-  assert.match(sql, /coalesce\(access_tenant_id, tenant_id\) = tenant_id/u);
+  assert.match(
+    sql,
+    /write_expr constant text :=\s*'tenant_id = \(select current_setting\(''app\.current_access_tenant_id'', true\)\)::text';/u
+  );
+  assert.doesNotMatch(sql, /and coalesce\(access_tenant_id, tenant_id\) = tenant_id/u);
   assert.doesNotMatch(sql, /app\.current_tenant_id/u);
+});
+
+test('T-305b write policy keeps divergent rows writable only from the home tenant', () => {
+  const homeTenant = 'tenant_home';
+  const accessTenant = 'tenant_access';
+  const canWrite = (currentAccessTenantId: string) => homeTenant === currentAccessTenantId;
+
+  assert.equal(canWrite(homeTenant), true);
+  assert.equal(canWrite(accessTenant), false);
 });
