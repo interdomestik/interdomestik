@@ -33,15 +33,15 @@ tracker authority.
 
 ## Candidate Ranking
 
-| Rank | Candidate                                                                  | Decision   | Rationale                                                                                                                                                                                                                                                                          |
-| ---- | -------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | `T-404` mandatory `domain-ai` entrypoint context                           | Promote    | Smallest valuable unblocked follow-on after `T-403`. It turns the newly defined `AICallContext` contract into an enforced `domain-ai` boundary with compile-time and runtime proof, without brand minting, caller codemods, outbox AI events, provider calls, prompts, or UI work. |
-| 2    | `T-403b` brand-minted context                                              | Defer      | Depends on `T-404`; brand minting and runtime consent validation should build on mandatory `domain-ai` entrypoint enforcement.                                                                                                                                                     |
-| 3    | `T-405` codemod existing `domain-ai` callers                               | Defer      | Depends on `T-404`; broad caller churn should follow the entrypoint contract and rejection behavior.                                                                                                                                                                               |
-| 4    | `T-406` ADR-07/ADR-08/ADR-11                                               | Defer      | Depends on `T-404` and should record the proven mandatory-context posture after implementation evidence exists.                                                                                                                                                                    |
-| 5    | `T-310`, `T-410/T-411`, `T-115/T-116/T-117/T-118/T-210`                    | Defer      | These are broader product, UI, dashboard, performance, front-door, timeline, optimistic-boundary, or route-adjacent slices with larger browser, accessibility, or tenant-context proof obligations.                                                                                |
-| 6    | M5/entity migration, proxy/routing, billing, product redesign              | Reject now | Live cutover, entity migration, routing/proxy, provider/billing, and product redesign touch protected or broad milestone surfaces and are not this decision.                                                                                                                       |
-| 7    | Operational Brain runtime, model/provider calls, prompts, outbox AI events | Reject now | This gate promotes boundary enforcement only; runtime AI behavior, prompts, event emission, and Operational Brain work require later explicit gates.                                                                                                                               |
+| Rank | Candidate                                                                  | Decision   | Rationale                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ---- | -------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `T-404` mandatory `domain-ai` entrypoint context                           | Promote    | Smallest valuable unblocked follow-on after `T-403`. It turns the newly defined `AICallContext` contract into an enforced `domain-ai` boundary with compile-time and runtime proof, including only the minimal current caller updates required to compile against that boundary, without brand minting, broad caller codemod or cleanup migration, outbox AI events, provider calls, prompts, or UI work. |
+| 2    | `T-403b` brand-minted context                                              | Defer      | Depends on `T-404`; brand minting and runtime consent validation should build on mandatory `domain-ai` entrypoint enforcement.                                                                                                                                                                                                                                                                            |
+| 3    | `T-405` codemod existing `domain-ai` callers                               | Defer      | Depends on `T-404`; broad caller churn and cleanup migration should follow the entrypoint contract and rejection behavior, after T-404 handles only the minimal compile-required current callers.                                                                                                                                                                                                         |
+| 4    | `T-406` ADR-07/ADR-08/ADR-11                                               | Defer      | Depends on `T-404` and should record the proven mandatory-context posture after implementation evidence exists.                                                                                                                                                                                                                                                                                           |
+| 5    | `T-310`, `T-410/T-411`, `T-115/T-116/T-117/T-118/T-210`                    | Defer      | These are broader product, UI, dashboard, performance, front-door, timeline, optimistic-boundary, or route-adjacent slices with larger browser, accessibility, or tenant-context proof obligations.                                                                                                                                                                                                       |
+| 6    | M5/entity migration, proxy/routing, billing, product redesign              | Reject now | Live cutover, entity migration, routing/proxy, provider/billing, and product redesign touch protected or broad milestone surfaces and are not this decision.                                                                                                                                                                                                                                              |
+| 7    | Operational Brain runtime, model/provider calls, prompts, outbox AI events | Reject now | This gate promotes boundary enforcement only; runtime AI behavior, prompts, event emission, and Operational Brain work require later explicit gates.                                                                                                                                                                                                                                                      |
 
 ## Promoted Slice
 
@@ -57,7 +57,11 @@ Future implementation scope:
 - Fail closed in `client.ts` when the call path receives missing, null, or
   structurally invalid context at runtime.
 - Preserve the `domain-privacy` contract from `T-403` without adding brand
-  minting or caller codemods.
+  minting or broad caller codemod/cleanup migration.
+- Update only the current in-repo callers that must change for type-check to
+  pass against the mandatory boundary, such as current `extractClaimIntake` and
+  `extractLegalDocument` call sites. These updates must pass an explicit
+  `AICallContext`; they must not become a broad caller cleanup migration.
 - Add focused type and runtime proof that dropping context is both a type error
   and a runtime rejection.
 
@@ -65,6 +69,9 @@ Likely implementation surfaces:
 
 - `packages/domain-ai/src/client.ts`.
 - `packages/domain-ai/src/index.ts` and any current public entrypoint modules.
+- Minimal current caller updates required by type-check, currently expected in
+  `apps/web/src/lib/ai/claim-pipeline-input.ts` for the existing extraction
+  calls that cross the `domain-ai` boundary.
 - Focused `packages/domain-ai/src/**.test.ts` or type-fixture proof near the
   affected entry points.
 - Package exports only if the existing `domain-ai` boundary requires them.
@@ -76,6 +83,7 @@ Likely implementation surfaces:
 | Dropping context is a type error          | A compile-fail or `@ts-expect-error` type test at the `domain-ai` public entrypoint boundary.                                                                         |
 | Missing context is rejected at runtime    | Unit test proving `client.ts` rejects omitted, null, or invalid context before provider/model behavior can proceed.                                                   |
 | Every `domain-ai` entry point requires it | Public export/entrypoint inventory with tests or type coverage for all current `domain-ai` entry points.                                                              |
+| Current callers still compile             | Minimal current caller updates pass type-check by providing explicit `AICallContext`; no broad caller codemod or cleanup migration is included.                       |
 | No implicit default posture               | Negative proof that `domain-ai` does not synthesize a fallback `AICallContext` from tenant, host, session, purpose string, or provider defaults.                      |
 | No provider/prompt behavior expansion     | Diff and tests show no model/provider calls, prompts, Operational Brain runtime, extraction, summarization, embeddings, autonomous AI decisions, or outbox AI events. |
 
@@ -105,7 +113,9 @@ Expected future proof:
 - No `packages/domain-ai/**` changes in this gate PR.
 - No `packages/domain-privacy/**` changes.
 - No brand-minted or unforgeable `AICallContext` (`T-403b`).
-- No codemod of existing AI callers (`T-405`).
+- No broad caller codemod or cleanup migration beyond the minimal
+  compile-required current callers in future `T-404`; `T-405` remains deferred
+  for that broader migration.
 - No outbox `ai.call_executed` emission or AI event semantics.
 - No Operational Brain runtime, product integration, model/provider calls,
   prompts, autonomous AI decisioning, AI queues, agentic tool use, embeddings,
