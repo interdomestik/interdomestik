@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./annual-membership": "./src/annual-membership.ts",
     "./billing-snapshot": "./src/billing-snapshot.ts",
+    "./membership-hierarchy": "./src/membership-hierarchy.ts",
     "./paddle": "./src/paddle.ts",
     "./paddle-server": "./src/paddle-server.ts",
     "./subscription": "./src/subscription.ts",
