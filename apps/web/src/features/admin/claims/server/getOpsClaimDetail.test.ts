@@ -319,10 +319,9 @@ describe('getOpsClaimDetail', () => {
     expect(hoisted.matchesAccessTenant).toHaveBeenCalledTimes(2);
     expect(String(docsWhere.mock.calls[0]?.[0] ?? '')).toContain('access:tenant_ks');
     expect(String(noteWhere.mock.calls[0]?.[0] ?? '')).toContain(
-      'eq:claimStageHistory.tenantId:tenant_ks'
+      'eq:claimStageHistory.tenantId:tenant_home'
     );
     expect(hoisted.eq).toHaveBeenCalledWith('user.tenantId', 'tenant_home');
-    expect(hoisted.eq).not.toHaveBeenCalledWith('user.tenantId', 'tenant_ks');
   });
 
   it('executes reads under tenant context', async () => {

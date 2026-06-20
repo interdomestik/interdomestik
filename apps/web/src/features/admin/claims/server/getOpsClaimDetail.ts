@@ -75,7 +75,6 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
   if (!hostTenantId && !isNeutralDeploymentHost(requestHost)) return { kind: 'not_found' };
   const tenantId = hostTenantId ?? sessionAccessTenantId;
 
-  // 1-2. Read claim detail under tenant DB context (RLS where configured) + explicit tenant predicates.
   const { claim, userData, agentData, rawDocs, diasporaOrigin } = await withTenantContext(
     {
       tenantId,
@@ -104,7 +103,6 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
               name: true,
             },
           },
-          // Note: agent fetched separately as relation inference is tricky without schema export
         },
       })) as unknown as ClaimWithRelations | undefined;
 
@@ -162,7 +160,10 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
         })
         .from(claimStageHistory)
         .where(
-          and(eq(claimStageHistory.claimId, claimId), eq(claimStageHistory.tenantId, tenantId))
+          and(
+            eq(claimStageHistory.claimId, claimId),
+            eq(claimStageHistory.tenantId, claim.tenantId)
+          )
         )
         .orderBy(desc(claimStageHistory.createdAt), desc(claimStageHistory.id))
         .limit(1);
@@ -199,7 +200,6 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
     })
   );
 
-  // 3. Map to Operational Row
   const rawRow: RawClaimRow = {
     claim: {
       id: claim.id,
@@ -249,7 +249,6 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
 
   const opsRow = mapClaimToOperationalRow(rawRow);
 
-  // 4. Return combined Detail
   const detail: ClaimOpsDetail = {
     ...opsRow,
     description: claim.description,

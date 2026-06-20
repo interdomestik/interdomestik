@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 const h = vi.hoisted(() => {
   const dbSelect = vi.fn();
   const claimsFindFirst = vi.fn();
@@ -23,7 +22,6 @@ const h = vi.hoisted(() => {
     ),
   };
 });
-
 vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: h.getSession } } }));
 vi.mock('next/headers', () => ({ headers: h.headers }));
 vi.mock('@/lib/tenant/tenant-hosts', () => ({
@@ -48,7 +46,6 @@ vi.mock('@interdomestik/shared-auth', () => ({
 vi.mock('../mappers/mapClaimToOperationalRow', () => ({
   mapClaimToOperationalRow: h.mapClaimToOperationalRow,
 }));
-
 vi.mock('@interdomestik/database', () => ({
   withTenantContext: h.withTenantContext,
   and: h.and,
@@ -56,19 +53,13 @@ vi.mock('@interdomestik/database', () => ({
   desc: vi.fn((field: unknown) => `desc:${String(field)}`),
   claims: {
     id: 'claims.id',
-    tenantId: 'claims.tenantId',
     branchId: 'claims.branchId',
-    userId: 'claims.userId',
-    agentId: 'claims.agentId',
   },
   claimDocuments: {
     id: 'claimDocuments.id',
     claimId: 'claimDocuments.claimId',
     tenantId: 'claimDocuments.tenantId',
     name: 'claimDocuments.name',
-    fileSize: 'claimDocuments.fileSize',
-    fileType: 'claimDocuments.fileType',
-    createdAt: 'claimDocuments.createdAt',
     filePath: 'claimDocuments.filePath',
     bucket: 'claimDocuments.bucket',
   },
@@ -86,9 +77,7 @@ vi.mock('@interdomestik/database', () => ({
     tenantId: 'user.tenantId',
   },
 }));
-
 import { getOpsClaimDetail } from './getOpsClaimDetail';
-
 function queryFromRows(rows: unknown[]) {
   const whereResult = Object.assign(Promise.resolve(rows), {
     limit: vi.fn().mockResolvedValue(rows),
@@ -99,7 +88,6 @@ function queryFromRows(rows: unknown[]) {
     where: vi.fn().mockReturnValue(whereResult),
   };
 }
-
 describe('getOpsClaimDetail divergent document signing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -108,18 +96,20 @@ describe('getOpsClaimDetail divergent document signing', () => {
     });
     h.claimsFindFirst.mockResolvedValue({
       id: 'claim-1',
+      tenantId: 'tenant_home',
       userId: 'member-1',
-      agentId: null,
+      agentId: 'agent-1',
       staff: null,
       branch: null,
-      currency: 'EUR',
       createdAt: new Date('2026-02-22T00:00:00.000Z'),
     });
   });
-
-  it('uses the document home tenant when signing access-tenant-visible documents', async () => {
+  it('uses home-tenant dependent reads after access-tenant claim authorization', async () => {
     h.dbSelect
-      .mockImplementationOnce(() => queryFromRows([{ name: 'Member', email: 'm@example.test' }]))
+      .mockImplementationOnce(() =>
+        queryFromRows([{ name: 'Member', email: 'm@example.test', memberNumber: 'MEM-1' }])
+      )
+      .mockImplementationOnce(() => queryFromRows([{ name: 'Agent Home' }]))
       .mockImplementationOnce(() =>
         queryFromRows([
           {
@@ -131,12 +121,25 @@ describe('getOpsClaimDetail divergent document signing', () => {
           },
         ])
       )
-      .mockImplementationOnce(() => queryFromRows([]));
-
+      .mockImplementationOnce(() =>
+        queryFromRows([
+          {
+            note: 'Started from Diaspora / Green Card quickstart. Country: IT. Incident location: abroad.',
+          },
+        ])
+      );
     const result = await getOpsClaimDetail('claim-1');
-
     expect(result.kind).toBe('ok');
     expect(h.matchesAccessTenant).toHaveBeenCalledWith(expect.anything(), 'tenant_access');
+    expect(h.eq).toHaveBeenCalledWith('user.tenantId', 'tenant_home');
+    expect(h.eq).toHaveBeenCalledWith('claimStageHistory.tenantId', 'tenant_home');
+    expect(h.mapClaimToOperationalRow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claimant: expect.objectContaining({ email: 'm@example.test', memberNumber: 'MEM-1' }),
+        agent: { name: 'Agent Home' },
+        claim: expect.objectContaining({ diasporaCountry: 'IT' }),
+      })
+    );
     expect(h.createTenantSignedDownloadUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         path: 'pii/tenants/tenant_home/claims/claim-1/proof.pdf',
