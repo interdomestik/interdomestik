@@ -12,10 +12,6 @@ import { ClaimOpsDetail } from '../types';
 import { readOpsClaimHomeTenantDetails } from './getOpsClaimDetailHomeReads';
 
 export type OpsClaimDetailResult = { kind: 'not_found' } | { kind: 'ok'; data: ClaimOpsDetail };
-type ClaimWithRelations = typeof claims.$inferSelect & {
-  staff: { name: string; email: string } | null;
-  branch: { id: string; code: string; name: string } | null;
-};
 const NEUTRAL_DEPLOYMENT_HOSTS = new Set(['interdomestik-web.vercel.app']);
 
 function normalizeRequestHost(host: string): string {
@@ -72,7 +68,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
       role: session.user?.role ?? undefined,
     },
     async tx => {
-      const claim = (await tx.query.claims.findFirst({
+      const claim = await tx.query.claims.findFirst({
         where: and(
           eq(claims.id, claimId),
           mat(claims, tenantId),
@@ -80,22 +76,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
             ? eq(claims.branchId, visibility.branchId)
             : undefined
         ),
-        with: {
-          staff: {
-            columns: {
-              name: true,
-              email: true,
-            },
-          },
-          branch: {
-            columns: {
-              id: true,
-              code: true,
-              name: true,
-            },
-          },
-        },
-      })) as unknown as ClaimWithRelations | undefined;
+      });
 
       if (!claim) {
         return {
@@ -137,11 +118,12 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
   );
 
   if (!claim) return { kind: 'not_found' };
-  const { userData, agentData, diasporaOrigin } = await readOpsClaimHomeTenantDetails({
-    claim,
-    claimId,
-    role: session.user?.role ?? undefined,
-  });
+  const { agentData, branchData, diasporaOrigin, staffData, userData } =
+    await readOpsClaimHomeTenantDetails({
+      claim,
+      claimId,
+      role: session.user?.role ?? undefined,
+    });
 
   const docs = await Promise.all(
     rawDocs.map(async doc => {
@@ -190,17 +172,17 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
           memberNumber: userData.memberNumber,
         }
       : null,
-    staff: claim.staff
+    staff: staffData
       ? {
-          name: claim.staff.name,
-          email: claim.staff.email,
+          name: staffData.name,
+          email: staffData.email,
         }
       : null,
-    branch: claim.branch
+    branch: branchData
       ? {
-          id: claim.branch.id,
-          code: claim.branch.code,
-          name: claim.branch.name,
+          id: branchData.id,
+          code: branchData.code,
+          name: branchData.name,
         }
       : null,
     agent: agentData

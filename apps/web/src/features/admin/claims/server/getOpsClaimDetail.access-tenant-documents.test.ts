@@ -10,15 +10,10 @@ const h = vi.hoisted(() => {
     matchesAccessTenant: vi.fn((_table: unknown, tenantId: string) => `access:${tenantId}`),
     getSession: vi.fn(),
     headers: vi.fn(async () => new Headers([['host', 'ks.localhost:3000']])),
-    createTenantSignedDownloadUrl: vi.fn(async () => ({
-      data: { signedUrl: 'https://signed.example/doc' },
-    })),
+    createTenantSignedDownloadUrl: vi.fn(async () => ({ data: { signedUrl: 'signed' } })),
     mapClaimToOperationalRow: vi.fn(() => ({ id: 'claim-1', docs: [] })),
     withTenantContext: vi.fn(async (_ctx: unknown, action: (tx: unknown) => unknown) =>
-      action({
-        query: { claims: { findFirst: claimsFindFirst } },
-        select: dbSelect,
-      })
+      action({ query: { claims: { findFirst: claimsFindFirst } }, select: dbSelect })
     ),
   };
 });
@@ -42,37 +37,22 @@ vi.mock('@interdomestik/shared-auth', () => {
 vi.mock('../mappers/mapClaimToOperationalRow', () => ({
   mapClaimToOperationalRow: h.mapClaimToOperationalRow,
 }));
-vi.mock('@interdomestik/database', () => ({
-  withTenantContext: h.withTenantContext,
-  and: h.and,
-  eq: h.eq,
-  desc: vi.fn((field: unknown) => `desc:${String(field)}`),
-  claims: {
-    id: 'claims.id',
-    branchId: 'claims.branchId',
-  },
-  claimDocuments: {
-    id: 'claimDocuments.id',
-    claimId: 'claimDocuments.claimId',
-    tenantId: 'claimDocuments.tenantId',
-    name: 'claimDocuments.name',
-    filePath: 'claimDocuments.filePath',
-    bucket: 'claimDocuments.bucket',
-  },
-  claimStageHistory: {
-    id: 'claimStageHistory.id',
-    claimId: 'claimStageHistory.claimId',
-    tenantId: 'claimStageHistory.tenantId',
-    note: 'claimStageHistory.note',
-    createdAt: 'claimStageHistory.createdAt',
-  },
-  user: {
-    id: 'user.id',
-    name: 'user.name',
-    email: 'user.email',
-    tenantId: 'user.tenantId',
-  },
-}));
+vi.mock('@interdomestik/database', () => {
+  const cols = (p: string, keys: string[]) => Object.fromEntries(keys.map(k => [k, `${p}.${k}`]));
+  const docCols = ['id', 'claimId', 'tenantId', 'name', 'filePath', 'bucket'];
+  const historyCols = ['id', 'claimId', 'tenantId', 'note', 'createdAt'];
+  return {
+    withTenantContext: h.withTenantContext,
+    and: h.and,
+    eq: h.eq,
+    desc: vi.fn((field: unknown) => `desc:${String(field)}`),
+    claims: cols('claims', ['id', 'branchId']),
+    claimDocuments: cols('claimDocuments', docCols),
+    branches: cols('branches', ['id', 'tenantId', 'code', 'name']),
+    claimStageHistory: cols('claimStageHistory', historyCols),
+    user: cols('user', ['id', 'name', 'email', 'tenantId']),
+  };
+});
 import { getOpsClaimDetail } from './getOpsClaimDetail';
 function queryFromRows(rows: unknown[]) {
   const whereResult = Object.assign(Promise.resolve(rows), {
@@ -95,8 +75,8 @@ describe('getOpsClaimDetail divergent document signing', () => {
       tenantId: 'tenant_home',
       userId: 'member-1',
       agentId: 'agent-1',
-      staff: null,
-      branch: null,
+      staffId: 'staff-1',
+      branchId: 'branch-1',
       createdAt: new Date('2026-02-22T00:00:00.000Z'),
     });
   });
@@ -118,6 +98,12 @@ describe('getOpsClaimDetail divergent document signing', () => {
       )
       .mockImplementationOnce(() => queryFromRows([{ name: 'Agent Home' }]))
       .mockImplementationOnce(() =>
+        queryFromRows([{ name: 'Staff Home', email: 'staff-home@example.test' }])
+      )
+      .mockImplementationOnce(() =>
+        queryFromRows([{ id: 'branch-1', code: 'HOME-A', name: 'Home Branch' }])
+      )
+      .mockImplementationOnce(() =>
         queryFromRows([
           {
             note: 'Started from Diaspora / Green Card quickstart. Country: IT. Incident location: abroad.',
@@ -130,13 +116,22 @@ describe('getOpsClaimDetail divergent document signing', () => {
       expect.objectContaining({ tenantId: 'tenant_access' }),
       expect.objectContaining({ tenantId: 'tenant_home' }),
     ]);
+    const eqCalls = h.eq.mock.calls.map(call => call.join(':'));
     expect(h.matchesAccessTenant).toHaveBeenCalledWith(expect.anything(), 'tenant_access');
-    expect(h.eq).toHaveBeenCalledWith('user.tenantId', 'tenant_home');
-    expect(h.eq).toHaveBeenCalledWith('claimStageHistory.tenantId', 'tenant_home');
+    expect(eqCalls).toEqual(
+      expect.arrayContaining([
+        'user.tenantId:tenant_home',
+        'user.id:staff-1',
+        'branches.tenantId:tenant_home',
+        'claimStageHistory.tenantId:tenant_home',
+      ])
+    );
     expect(h.mapClaimToOperationalRow).toHaveBeenCalledWith(
       expect.objectContaining({
         claimant: expect.objectContaining({ email: 'm@example.test', memberNumber: 'MEM-1' }),
         agent: { name: 'Agent Home' },
+        staff: { name: 'Staff Home', email: 'staff-home@example.test' },
+        branch: { id: 'branch-1', code: 'HOME-A', name: 'Home Branch' },
         claim: expect.objectContaining({ diasporaCountry: 'IT' }),
       })
     );
