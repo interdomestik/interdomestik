@@ -2,6 +2,7 @@ import { and, claims, db, eq } from '@interdomestik/database';
 import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
+import { matchesAccessTenant } from '@/lib/db/access-tenant-predicate';
 import { DEFAULT_EVIDENCE_BUCKET } from '@/lib/storage/evidence-bucket';
 import { createInitialClaimUploadIntentToken } from '@/features/claims/upload/server/initial-claim-upload';
 import {
@@ -16,7 +17,6 @@ type SessionUser = {
   tenantId?: string | null;
 };
 type Session = { user: SessionUser };
-
 export const ALLOWED_MIME_TYPES = [
   'image/jpeg',
   'image/png',
@@ -96,7 +96,7 @@ export async function createSignedUploadCore(args: {
 
   if (claimId) {
     const claim = await db.query.claims.findFirst({
-      where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
+      where: and(eq(claims.id, claimId), matchesAccessTenant(claims, tenantId)),
       columns: {
         id: true,
         userId: true,

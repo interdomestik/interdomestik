@@ -13,14 +13,14 @@ import {
 } from '@interdomestik/database';
 import { parseDiasporaOriginFromPublicNote } from '@interdomestik/domain-claims';
 import { ClaimStatus } from '@interdomestik/database/constants';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
+import { matchesAccessTenant as mat } from '@/lib/db/access-tenant-predicate';
 import { mapClaimToOperationalRow, RawClaimRow } from '../mappers/mapClaimToOperationalRow';
 import { canViewAdminClaims, resolveClaimsVisibility } from './claimVisibility';
 import { ClaimOpsDetail } from '../types';
 
 export type OpsClaimDetailResult = { kind: 'not_found' } | { kind: 'ok'; data: ClaimOpsDetail };
-
 type ClaimWithRelations = typeof claims.$inferSelect & {
   staff: { name: string; email: string } | null;
   branch: { id: string; code: string; name: string } | null;
@@ -61,9 +61,9 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
   if (!session) return { kind: 'not_found' };
-  let sessionTenantId: string;
+  let sessionAccessTenantId: string;
   try {
-    sessionTenantId = ensureTenantId(session);
+    sessionAccessTenantId = ensureAccessTenantId(session);
   } catch {
     return { kind: 'not_found' };
   }
@@ -72,9 +72,9 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
   if (visibility.role === 'branch_manager' && !visibility.branchId) return { kind: 'not_found' };
   const requestHost = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
   const hostTenantId = resolveTenantFromHost(requestHost);
-  if (hostTenantId && hostTenantId !== sessionTenantId) return { kind: 'not_found' };
+  if (hostTenantId && hostTenantId !== sessionAccessTenantId) return { kind: 'not_found' };
   if (!hostTenantId && !isNeutralDeploymentHost(requestHost)) return { kind: 'not_found' };
-  const tenantId = hostTenantId ?? sessionTenantId;
+  const tenantId = hostTenantId ?? sessionAccessTenantId;
 
   // 1-2. Read claim detail under tenant DB context (RLS where configured) + explicit tenant predicates.
   const { claim, userData, agentData, rawDocs, diasporaOrigin } = await withTenantContext(
@@ -86,7 +86,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
       const claim = (await tx.query.claims.findFirst({
         where: and(
           eq(claims.id, claimId),
-          eq(claims.tenantId, tenantId),
+          mat(claims, tenantId),
           visibility.role === 'branch_manager' && visibility.branchId
             ? eq(claims.branchId, visibility.branchId)
             : undefined
@@ -154,7 +154,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
           bucket: claimDocuments.bucket,
         })
         .from(claimDocuments)
-        .where(and(eq(claimDocuments.claimId, claimId), eq(claimDocuments.tenantId, tenantId)));
+        .where(and(eq(claimDocuments.claimId, claimId), mat(claimDocuments, tenantId)));
 
       const [diasporaNote] = await tx
         .select({

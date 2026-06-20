@@ -19,6 +19,7 @@ export const domainEvents = pgTable(
     tenantId: text('tenant_id')
       .notNull()
       .references(() => tenants.id),
+    accessTenantId: text('access_tenant_id').references(() => tenants.id),
     actorId: text('actor_id').notNull(),
     actorRole: text('actor_role').notNull(),
     entityType: text('entity_type').notNull(),
@@ -32,6 +33,7 @@ export const domainEvents = pgTable(
   },
   table => [
     uniqueIndex('domain_events_tenant_id_id_uq').on(table.tenantId, table.id),
+    index('domain_events_access_tenant_idx').on(table.accessTenantId),
     index('domain_events_tenant_created_idx').on(table.tenantId, table.createdAt),
     index('domain_events_entity_idx').on(table.entityType, table.entityId, table.aggregateVersion),
     index('domain_events_correlation_idx').on(table.correlationId),

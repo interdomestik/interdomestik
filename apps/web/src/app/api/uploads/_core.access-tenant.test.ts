@@ -5,6 +5,7 @@ const hoisted = vi.hoisted(() => ({
   createTenantSignedUploadUrl: vi.fn(),
   eq: vi.fn(),
   findClaimFirst: vi.fn(),
+  matchesAccessTenant: vi.fn((_table: unknown, tenantId: string) => `access:${tenantId}`),
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -12,6 +13,10 @@ vi.mock('@interdomestik/database', () => ({
   claims: { id: 'id', tenantId: 'tenant_id' },
   db: { query: { claims: { findFirst: hoisted.findClaimFirst } } },
   eq: hoisted.eq,
+}));
+
+vi.mock('@/lib/db/access-tenant-predicate', () => ({
+  matchesAccessTenant: hoisted.matchesAccessTenant,
 }));
 
 vi.mock('@/lib/storage/service-role', () => ({
@@ -53,8 +58,11 @@ describe('createSignedUploadCore access tenant isolation', () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(hoisted.eq).toHaveBeenCalledWith('tenant_id', 'tenant_access');
-    expect(hoisted.eq).not.toHaveBeenCalledWith('tenant_id', 'tenant_legal_compat');
+    expect(hoisted.matchesAccessTenant).toHaveBeenCalledWith(expect.anything(), 'tenant_access');
+    expect(hoisted.matchesAccessTenant).not.toHaveBeenCalledWith(
+      expect.anything(),
+      'tenant_legal_compat'
+    );
     if (result.ok) {
       expect(result.body.upload.path).toBe(
         'pii/tenants/tenant_access/claims/claim-1/evidence-123.pdf'
