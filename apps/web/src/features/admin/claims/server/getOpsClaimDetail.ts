@@ -129,7 +129,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
       const [userData] = await tx
         .select()
         .from(user)
-        .where(and(eq(user.id, claim.userId), eq(user.tenantId, tenantId)))
+        .where(and(eq(user.id, claim.userId), eq(user.tenantId, claim.tenantId)))
         .limit(1);
 
       let agentData: { name: string } | null = null;
@@ -137,7 +137,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
         const [a] = await tx
           .select({ name: user.name })
           .from(user)
-          .where(and(eq(user.id, claim.agentId), eq(user.tenantId, tenantId)))
+          .where(and(eq(user.id, claim.agentId), eq(user.tenantId, claim.tenantId)))
           .limit(1);
         agentData = a ? { name: a.name } : null;
       }

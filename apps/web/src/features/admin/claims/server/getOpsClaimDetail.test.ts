@@ -143,6 +143,7 @@ function createClaim() {
   const now = new Date('2026-02-22T00:00:00.000Z');
   return {
     id: 'claim-1',
+    tenantId: 'tenant_home',
     title: 'Test claim',
     status: 'submitted',
     createdAt: now,
@@ -322,6 +323,8 @@ describe('getOpsClaimDetail', () => {
     expect(String(noteWhere.mock.calls[0]?.[0] ?? '')).toContain(
       'eq:claimStageHistory.tenantId:tenant_ks'
     );
+    expect(hoisted.eq).toHaveBeenCalledWith('user.tenantId', 'tenant_home');
+    expect(hoisted.eq).not.toHaveBeenCalledWith('user.tenantId', 'tenant_ks');
   });
 
   it('executes reads under tenant context', async () => {

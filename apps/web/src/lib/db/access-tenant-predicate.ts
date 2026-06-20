@@ -6,5 +6,8 @@ type AccessTenantColumns = {
 };
 
 export function matchesAccessTenant(table: AccessTenantColumns, accessTenantId: string): SQL {
-  return sql`coalesce(${table.accessTenantId}, ${table.tenantId}) = ${accessTenantId}`;
+  return sql`(
+    ${table.accessTenantId} = ${accessTenantId}
+    OR (${table.accessTenantId} IS NULL AND ${table.tenantId} = ${accessTenantId})
+  )`;
 }
