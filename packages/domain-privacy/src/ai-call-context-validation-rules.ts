@@ -6,7 +6,12 @@ import {
   AI_CALL_RETENTION_POSTURES,
   type AICallContextInvalidReason,
 } from './ai';
-import { hasOwnKey, readOwnValue } from './ai-call-context-own-value';
+import {
+  hasOwnKey,
+  readOwnTrimmedString,
+  readOwnValue,
+  UNREADABLE_OWN_VALUE,
+} from './ai-call-context-own-value';
 import { appendPurposeReasons } from './ai-call-context-purpose-rules';
 import { PROCESSING_PURPOSES, type PrivacyScope } from './types';
 
@@ -31,8 +36,9 @@ export function readPrivacyScope(value: unknown): PrivacyScope | undefined {
 
   const scope: PrivacyScope = {};
   for (const key of SCOPE_KEYS) {
-    const scopeValue = readOwnValue(value, key);
+    const scopeValue = readOwnTrimmedString(value, key);
     if (scopeValue === undefined) continue;
+    if (scopeValue === UNREADABLE_OWN_VALUE) return undefined;
     if (!isNonEmptyString(scopeValue)) return undefined;
     scope[key] = scopeValue;
   }
@@ -56,13 +62,13 @@ function appendIdentityReasons(
   input: Record<string, unknown>,
   reasons: AICallContextInvalidReason[]
 ): void {
-  if (!isNonEmptyString(readOwnValue(input, 'workflowId'))) reasons.push('workflow_id_missing');
-  if (!isNonEmptyString(readOwnValue(input, 'owner'))) reasons.push('owner_missing');
-  if (!isNonEmptyString(readOwnValue(input, 'tenantId'))) reasons.push('tenant_id_missing');
-  if (!isNonEmptyString(readOwnValue(input, 'actorId'))) reasons.push('actor_id_missing');
+  if (!isNonEmptyString(readOwnTrimmedString(input, 'workflowId'))) reasons.push('workflow_id_missing');
+  if (!isNonEmptyString(readOwnTrimmedString(input, 'owner'))) reasons.push('owner_missing');
+  if (!isNonEmptyString(readOwnTrimmedString(input, 'tenantId'))) reasons.push('tenant_id_missing');
+  if (!isNonEmptyString(readOwnTrimmedString(input, 'actorId'))) reasons.push('actor_id_missing');
 
   const consent = readOwnValue(input, 'consent');
-  const subjectId = readOwnValue(input, 'subjectId');
+  const subjectId = readOwnTrimmedString(input, 'subjectId');
   if (consent === 'required_granted' && subjectId === undefined) {
     reasons.push('subject_id_required_for_consent');
   }

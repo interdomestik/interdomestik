@@ -1,19 +1,19 @@
 import type { AICallContext } from './ai';
-import { readOwnValue } from './ai-call-context-own-value';
+import { readOwnTrimmedString, readOwnValue } from './ai-call-context-own-value';
 import type { PrivacyScope } from './types';
 
 export function buildAICallContext(
   input: Record<string, unknown>,
   scope: PrivacyScope
 ): AICallContext {
-  const subjectId = readOwnValue(input, 'subjectId');
+  const subjectId = readOwnTrimmedString(input, 'subjectId');
 
   return {
-    workflowId: readOwnValue(input, 'workflowId'),
-    owner: readOwnValue(input, 'owner'),
-    tenantId: readOwnValue(input, 'tenantId'),
-    actorId: readOwnValue(input, 'actorId'),
-    ...(subjectId === undefined ? {} : { subjectId }),
+    workflowId: readOwnTrimmedString(input, 'workflowId'),
+    owner: readOwnTrimmedString(input, 'owner'),
+    tenantId: readOwnTrimmedString(input, 'tenantId'),
+    actorId: readOwnTrimmedString(input, 'actorId'),
+    ...(typeof subjectId === 'string' ? { subjectId } : {}),
     scope,
     purpose: readOwnValue(input, 'purpose'),
     processingPurpose: readOwnValue(input, 'processingPurpose'),
