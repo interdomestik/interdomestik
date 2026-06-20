@@ -575,12 +575,12 @@ is required before follow-on implementation work.
 
 This is the single canonical milestone architecture. Execution proceeds strictly through the active queue in `docs/plans/architecture-finalization-tracker-2026-05-29.md` (Rev 22); the downstream programs below are **registered and committed but gated** — they do not enter the active queue, Phase C, or the M0→M5 scope until their prerequisites are green and they are promoted via the governance flow. Nothing here changes the current active slice.
 
-1. **Architecture Finalization spine — `ARCH` (active).** M0 guardrails (complete through `ARCH-M0-19` plus Rev 22 `T-002d` in PR `#1006`) → M1 ida-first foundation + event/outbox (in progress; `ARCH-M1-09` complete (commit `624c6c5af2184dfbc359f3b7a24ef2c93415c1f8`); `ARCH-M1-10` complete (PR `#995`); `ARCH-M1-11` complete (PR `#997` / squash merge `0bd2eace04eb86a2b123b3348163a72f15acf3cb`); `ARCH-M1-12` complete (PR `#999` / squash merge `b11ae6d3ecc489e3a39b45a76c1e0565cb7c3ea9`); `ARCH-M1-13` / `T-104d` complete (PR `#1001` / squash merge `6e364a58ac4219512f7d8dcc9802eb85b812771a`); `T-104f` complete (PR `#1015` / squash merge `ec04913b1253db9e7aa4afa94063a8705a670b0f`); `T-104g` complete (PR `#1016` / squash merge `a900a84974cd133835a03264b850c8496f170b0b`); `T-104h` complete (PR `#1017` / squash merge `ac4f7cf39a93eb7916b531358bc17d3a340e72d4`); `OBR-COMMIT` complete as a blocker-record closeout; `OBR-DG02` complete; `T-407` complete; `OBR-DG03` complete; `T-108-MIN` complete; `T-113` complete; `OBR-DG04` complete; `T-201-MIN` complete; `OBR-DG05` complete; `T-208` complete; `OBR-DG06` complete; `SVC-CORE-b` complete in PR `#1034`; `T-208b` complete in PR `#1035`; `POST-T208B` complete; `T-105` complete in PR `#1044`; full `T-201` complete in PR `#1047`; `T-204` complete in PR `#1049`; `T-408` complete in PR `#1051`; `OBR-DG07` complete; `T-301` complete in PR `#1056`; `T-304` complete in PR `#1060`; `T-306` complete in PR `#1063`; `T-308` complete; `OBR-DG08` complete; `T-109` complete in PR `#1069`; `T-114` complete in PR `#1072`; `T-302` complete in PR `#1075`; `T-303` complete in PR `#1078`; `T-305` complete in PR `#1080`; `T-302b` complete in PR `#1085`; `T-302c` complete in PR `#1097`; `T-302d` complete in PR `#1099`; `T-202` complete in PR `#1104`; `T-203` complete in PR `#1107`; `T-203b` complete in PR `#1111`; `T-205` complete in PR `#1113`; `T-206` complete in PR `#1115`; `T-207` complete via ADR-02; `T-209` complete in PR `#1118`; `T-305b` complete in PR `#1123`) → M2 case/recovery split → M3 four-context tenant model + access-tenant RLS migration + role de-collapse → M4 product-model + entity disclosure → M5 live cutover + entity-of-record billing. Rev 6 and Rev 22 refinements are part of this spine and tracked there: recovery/legal-entity governance, case-scoped cross-jurisdiction grants, ADR-09 separation-of-duties, audited break-glass, type-level guards, CQRS outbox-only read models, premium dashboard composition, and enterprise evidence duties.
+1. **Architecture Finalization spine — `ARCH` (active).** M0 guardrails (complete through `ARCH-M0-19` plus Rev 22 `T-002d` in PR `#1006`) → M1 ida-first foundation + event/outbox (in progress; `ARCH-M1-09` complete (commit `624c6c5af2184dfbc359f3b7a24ef2c93415c1f8`); `ARCH-M1-10` complete (PR `#995`); `ARCH-M1-11` complete (PR `#997` / squash merge `0bd2eace04eb86a2b123b3348163a72f15acf3cb`); `ARCH-M1-12` complete (PR `#999` / squash merge `b11ae6d3ecc489e3a39b45a76c1e0565cb7c3ea9`); `ARCH-M1-13` / `T-104d` complete (PR `#1001` / squash merge `6e364a58ac4219512f7d8dcc9802eb85b812771a`); `T-104f` complete (PR `#1015` / squash merge `ec04913b1253db9e7aa4afa94063a8705a670b0f`); `T-104g` complete (PR `#1016` / squash merge `a900a84974cd133835a03264b850c8496f170b0b`); `T-104h` complete (PR `#1017` / squash merge `ac4f7cf39a93eb7916b531358bc17d3a340e72d4`); `OBR-COMMIT` complete as a blocker-record closeout; `OBR-DG02` complete; `T-407` complete; `OBR-DG03` complete; `T-108-MIN` complete; `T-113` complete; `OBR-DG04` complete; `T-201-MIN` complete; `OBR-DG05` complete; `T-208` complete; `OBR-DG06` complete; `SVC-CORE-b` complete in PR `#1034`; `T-208b` complete in PR `#1035`; `POST-T208B` complete; `T-105` complete in PR `#1044`; full `T-201` complete in PR `#1047`; `T-204` complete in PR `#1049`; `T-408` complete in PR `#1051`; `OBR-DG07` complete; `T-301` complete in PR `#1056`; `T-304` complete in PR `#1060`; `T-306` complete in PR `#1063`; `T-308` complete; `OBR-DG08` complete; `T-109` complete in PR `#1069`; `T-114` complete in PR `#1072`; `T-302` complete in PR `#1075`; `T-303` complete in PR `#1078`; `T-305` complete in PR `#1080`; `T-302b` complete in PR `#1085`; `T-302c` complete in PR `#1097`; `T-302d` complete in PR `#1099`; `T-202` complete in PR `#1104`; `T-203` complete in PR `#1107`; `T-203b` complete in PR `#1111`; `T-205` complete in PR `#1113`; `T-206` complete in PR `#1115`; `T-207` complete via ADR-02; `T-209` complete in PR `#1118`; `T-305b` complete in PR `#1123`; `OBR-DG10` complete in PR `#1125`; `T-402` complete in PR `#1126`) → M2 case/recovery split → M3 four-context tenant model + access-tenant RLS migration + role de-collapse → M4 product-model + entity disclosure → M5 live cutover + entity-of-record billing. Rev 6 and Rev 22 refinements are part of this spine and tracked there: recovery/legal-entity governance, case-scoped cross-jurisdiction grants, ADR-09 separation-of-duties, audited break-glass, type-level guards, CQRS outbox-only read models, premium dashboard composition, and enterprise evidence duties.
 
 Rev 69 tracker overlay: `OBR-DG08`, `T-109`, `T-114`, `T-302`, `T-303`,
 `T-305`, `T-302b`, `T-302c`, `T-302d`, `T-202`, `T-203`, `T-203b`, `T-205`,
-`T-206`, `T-207`, and `T-209` are now complete in the active architecture spine; see the Rev 56
-through Rev 69 closeouts above and the canonical tracker rows for merge
+`T-206`, `T-207`, `T-209`, `T-305b`, `OBR-DG10`, and `T-402` are now complete in the active architecture spine; see the Rev 56
+through Rev 73 closeouts above and the canonical tracker rows for merge
 evidence. Arben explicitly reauthorized architecture-product continuation for
 `T-206` after `T-205`, then explicitly authorized `T-207` ADR selection after
 `T-206` closeout, then explicitly authorized `T-209` after the `T-207` closeout,
@@ -629,6 +629,30 @@ direct implementation, broad M3/M4/M5, proxy/routing work, billing-provider
 expansion, product UI redesign, AI posture, Operational Brain runtime, README,
 AGENTS, WS-F/G/H, OMG, DOM, CRM expansion, and broad architecture-doc rewrites
 remain unpromoted unless separately reauthorized or selected by a later gate.
+
+Rev 73 tracker overlay: `T-402` completed in PR `#1126` / merge
+`e0d4a7b567a90f39c28214db51f52d9e5fd72004` from final PR head
+`f2b46cd9bfd795903b98117169ede49e47c96203`. The implementation separates
+price-bearing `membership_offer` data from `membership_proof` and membership
+workspace plan projections, with focused type/projection proof that price,
+interval, tier, currency, and Paddle price identifiers do not attach to proof or
+workspace outputs. Current-head CI/security/Sonar/Pilot/PR E2E were green before
+merge; Sonar issues API total was `0`; Vercel was red only because of the
+external daily build-rate limit and was explicitly skipped by Arben. Local proof
+passed focused tests, `pnpm slice:verify` including `security:guard`, and clean
+`pr-feedback-intake`; local `e2e:gate` and `pr:verify` were blocked only by disk
+Gatekeeper `<4GiB`, with equivalent GitHub `e2e-gate` and PR E2E green.
+Copilot's current-head `MembershipOffer` export note was dispositioned
+non-blocking because T-402 intentionally introduced the type-level offer side
+without adding a runtime factory, provider, or schema surface. Senior-review
+rerun after remediation was attempted but blocked by reviewer no-output timeout
+after earlier Sonnet actionable findings were remediated and current-head
+CI/Copilot/Sonar were clean or classified. Protected surfaces remained
+unchanged: proxy, canonical routes, clarity markers, auth/session/tenancy,
+schema/RLS, billing-provider/Paddle provider behavior, invoice/tax behavior,
+product UI redesign, README, AGENTS, Operational Brain runtime, and next-slice
+work. No replacement slice is started by this closeout; fresh current-authority
+selection is required before follow-on implementation.
 
 2. **Passenger Rights / VONESA — `WS-F` (gated, rides the spine behind a feature flag).** Flight-delay (EC261) vertical. Tasks `FLIGHT-00…FLIGHT-11` already live in the architecture-finalization tracker; design in `docs/plans/vonesa-architecture-integration-2026-05-30.md`. It consumes M1 (outbox), M2 (case/recovery), M3 (access-tenant isolation), and M5 (entity-of-record billing) and ships behind its own flag, so it gates neither the Design Gate nor the `ida.*` Go-Live. Not started; promoted slice-by-slice after its spine prerequisites.
 
