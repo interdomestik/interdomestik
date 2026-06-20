@@ -10,6 +10,7 @@ import {
 import { callFirstArgumentName, collectDbAliases, escapeRegExp } from './ci/db-access-aliases.mjs';
 import { DIRECT_DB_METHODS } from './ci/db-access-constants.mjs';
 import { isSensitiveNewEntry } from './ci/db-access-sensitive-entry.mjs';
+import { stripCommentsAndStrings } from './ci/source-strip-comments.mjs';
 
 const DEFAULT_BASELINE_PATH = 'scripts/ci/db-access-baseline.json';
 const DEFAULT_REPORT_PATH = 'tmp/db-access-guard/report.json';
@@ -142,66 +143,6 @@ function walkFiles(rootDir, repoRoot, results = []) {
   }
 
   return results;
-}
-
-function stripCommentsAndStrings(source) {
-  let output = '';
-  let quote = null;
-  let escaped = false;
-
-  for (let index = 0; index < source.length; index += 1) {
-    const char = source[index];
-    const next = source[index + 1];
-
-    if (!quote && char === '/' && next === '/') {
-      while (index < source.length && source[index] !== '\n') {
-        output += ' ';
-        index += 1;
-      }
-      if (index < source.length) output += '\n';
-      continue;
-    }
-
-    if (!quote && char === '/' && next === '*') {
-      output += '  ';
-      index += 2;
-      while (index < source.length && !(source[index] === '*' && source[index + 1] === '/')) {
-        output += source[index] === '\n' ? '\n' : ' ';
-        index += 1;
-      }
-      if (index < source.length) {
-        output += '  ';
-        index += 1;
-      }
-      continue;
-    }
-
-    if (quote) {
-      output += char === '\n' ? '\n' : ' ';
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (char === '\\') {
-        escaped = true;
-        continue;
-      }
-      if (char === quote) {
-        quote = null;
-      }
-      continue;
-    }
-
-    if (char === '"' || char === "'" || char === '`') {
-      quote = char;
-      output += ' ';
-      continue;
-    }
-
-    output += char;
-  }
-
-  return output;
 }
 
 function normalizeSource(source) {
