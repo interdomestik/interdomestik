@@ -34,7 +34,7 @@ test('resolves recovery law from an injected law pack', async () => {
   assert.equal(resolution.posture, 'recovery_available');
 });
 
-test('T-208b unsupported incident country cannot fall back to membership governing law', async () => {
+test('T-208b unsupported incident country cannot fall back to tenant or session context', async () => {
   const requestedCountries: Array<string | null | undefined> = [];
 
   const resolution = await resolveRecoveryLawFromLawPack({
@@ -46,6 +46,10 @@ test('T-208b unsupported incident country cannot fall back to membership governi
       hostTenantId: 'tenant_host',
       membershipGoverningLaw: 'MK',
       membershipLegalTenantId: 'tenant_mk',
+      sessionCountryCode: 'MK',
+      sessionTenantId: 'tenant_session',
+      tenantCountryCode: 'MK',
+      tenantId: 'tenant_default',
     },
     loadLawPack: async countryCode => {
       requestedCountries.push(countryCode);
@@ -65,6 +69,8 @@ test('T-208b unsupported incident country cannot fall back to membership governi
   assert.notEqual(resolution.recoveryLegalTenantId, 'tenant_booking');
   assert.notEqual(resolution.recoveryLegalTenantId, 'tenant_host');
   assert.notEqual(resolution.recoveryLegalTenantId, 'tenant_access');
+  assert.notEqual(resolution.recoveryLegalTenantId, 'tenant_default');
+  assert.notEqual(resolution.recoveryLegalTenantId, 'tenant_session');
 });
 
 test('unexpected law-pack loader errors propagate', async () => {
