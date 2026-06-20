@@ -31,14 +31,18 @@ describe('createSignedUploadCore access tenant isolation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('CLAIM_UPLOAD_INTENT_SECRET', 'test-upload-intent-secret-value-123456');
-    hoisted.findClaimFirst.mockResolvedValue({ id: 'claim-1', userId: 'member-1' });
+    hoisted.findClaimFirst.mockResolvedValue({
+      id: 'claim-1',
+      tenantId: 'tenant_home',
+      userId: 'member-1',
+    });
     hoisted.createTenantSignedUploadUrl.mockResolvedValue({
       data: { token: 'tok', signedUrl: 'https://signed.example/upload' },
       error: null,
     });
   });
 
-  it('uses accessTenantId for claim lookup, storage path, and signed upload URL', async () => {
+  it('uses access tenant for claim lookup and claim home tenant for storage', async () => {
     const result = await createSignedUploadCore({
       bucket: 'claim-evidence',
       input: {
@@ -65,11 +69,14 @@ describe('createSignedUploadCore access tenant isolation', () => {
     );
     if (result.ok) {
       expect(result.body.upload.path).toBe(
-        'pii/tenants/tenant_access/claims/claim-1/evidence-123.pdf'
+        'pii/tenants/tenant_home/claims/claim-1/evidence-123.pdf'
       );
     }
+    expect(hoisted.findClaimFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ columns: expect.objectContaining({ tenantId: true }) })
+    );
     expect(hoisted.createTenantSignedUploadUrl).toHaveBeenCalledWith(
-      expect.objectContaining({ tenantId: 'tenant_access' })
+      expect.objectContaining({ tenantId: 'tenant_home' })
     );
   });
 });

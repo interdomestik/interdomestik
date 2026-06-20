@@ -37,3 +37,10 @@ test('T-305b divergent table schemas expose accessTenantId columns', () => {
     assert.match(text, /accessTenantId: text\('access_tenant_id'\)\.references/u);
   }
 });
+
+test('T-305b claim document schema declares access tenant index', () => {
+  assert.match(
+    source('../src/schema/claims.ts'),
+    /index\('claim_documents_access_tenant_idx'\)\.on\(table\.accessTenantId\)/u
+  );
+});

@@ -10,13 +10,11 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
-
 import { user } from './auth';
 import { documentCategoryEnum, statusEnum } from './enums';
 import { branches } from './rbac';
 import { tenants } from './tenants';
 import type { ClaimCaseLifecycleState, ClaimRecoveryLifecycleState } from '../constants';
-
 export const claims = pgTable(
   'claim',
   {
@@ -93,28 +91,31 @@ export const claims = pgTable(
     ),
   ]
 );
-export const claimDocuments = pgTable('claim_documents', {
-  id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  accessTenantId: text('access_tenant_id').references(() => tenants.id),
-  claimId: text('claim_id')
-    .notNull()
-    .references(() => claims.id),
-  name: text('name').notNull(),
-  filePath: text('file_path').notNull(),
-  fileType: text('file_type').notNull(),
-  fileSize: integer('file_size').notNull(),
-  bucket: text('bucket').notNull().default('claim-evidence'),
-  classification: text('classification').notNull().default('pii'),
-  category: documentCategoryEnum('category').default('evidence').notNull(),
-  uploadedBy: text('uploaded_by')
-    .notNull()
-    .references(() => user.id),
-  createdAt: timestamp('created_at').defaultNow(),
-});
-
+export const claimDocuments = pgTable(
+  'claim_documents',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    accessTenantId: text('access_tenant_id').references(() => tenants.id),
+    claimId: text('claim_id')
+      .notNull()
+      .references(() => claims.id),
+    name: text('name').notNull(),
+    filePath: text('file_path').notNull(),
+    fileType: text('file_type').notNull(),
+    fileSize: integer('file_size').notNull(),
+    bucket: text('bucket').notNull().default('claim-evidence'),
+    classification: text('classification').notNull().default('pii'),
+    category: documentCategoryEnum('category').default('evidence').notNull(),
+    uploadedBy: text('uploaded_by')
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  table => [index('claim_documents_access_tenant_idx').on(table.accessTenantId)]
+);
 export const claimMessages = pgTable('claim_messages', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
@@ -131,7 +132,6 @@ export const claimMessages = pgTable('claim_messages', {
   readAt: timestamp('read_at'),
   createdAt: timestamp('created_at').defaultNow(),
 });
-
 export const claimStageHistory = pgTable('claim_stage_history', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')

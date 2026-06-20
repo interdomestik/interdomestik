@@ -88,34 +88,31 @@ export async function createSignedUploadCore(args: {
     return { ok: false, status: 415, error: 'File type not allowed' };
   }
 
-  if (fileSize > MAX_FILE_SIZE_BYTES) {
-    return { ok: false, status: 413, error: 'File too large' };
-  }
+  if (fileSize > MAX_FILE_SIZE_BYTES) return { ok: false, status: 413, error: 'File too large' };
 
   const tenantId = ensureAccessTenantId(session);
-
+  let storageTenantId = tenantId;
   if (claimId) {
     const claim = await db.query.claims.findFirst({
       where: and(eq(claims.id, claimId), matchesAccessTenant(claims, tenantId)),
       columns: {
         id: true,
+        tenantId: true,
         userId: true,
         agentId: true,
       },
     });
 
-    if (!claim) {
-      return { ok: false, status: 404, error: 'Claim not found' };
-    }
+    if (!claim) return { ok: false, status: 404, error: 'Claim not found' };
 
     const role = session.user.role;
-
     const canUpload =
       claim.userId === session.user.id || (role === 'agent' && claim.agentId === session.user.id);
 
     if (!canUpload) {
       return { ok: false, status: 403, error: 'Forbidden' };
     }
+    storageTenantId = claim.tenantId;
   }
 
   const generatedEvidenceId = nanoid();
@@ -129,7 +126,7 @@ export async function createSignedUploadCore(args: {
     claimId,
     evidenceId,
     fileName,
-    tenantId,
+    tenantId: storageTenantId,
   });
 
   if (!pathResult.ok) return pathResult.result;
@@ -144,7 +141,7 @@ export async function createSignedUploadCore(args: {
       fileSize,
       fileType,
       path,
-      tenantId,
+      tenantId: storageTenantId,
     });
     if (!intent.ok) {
       return intent.result;
@@ -158,7 +155,7 @@ export async function createSignedUploadCore(args: {
     context: 'initial claim evidence upload',
     family: 'claims',
     path,
-    tenantId,
+    tenantId: storageTenantId,
     upsert: true,
   });
 
