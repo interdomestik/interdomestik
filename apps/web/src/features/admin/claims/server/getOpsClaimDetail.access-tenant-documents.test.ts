@@ -33,16 +33,12 @@ vi.mock('@/lib/db/access-tenant-predicate', () => ({
 vi.mock('@/lib/storage/service-role', () => ({
   createTenantSignedDownloadUrl: h.createTenantSignedDownloadUrl,
 }));
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureAccessTenantId: vi.fn(
-    (session: { user?: { accessTenantId?: string | null; tenantId?: string | null } }) =>
-      session.user?.accessTenantId ?? session.user?.tenantId ?? 'tenant_access'
-  ),
-  ensureTenantId: vi.fn(
-    (session: { user?: { accessTenantId?: string | null; tenantId?: string | null } }) =>
-      session.user?.accessTenantId ?? session.user?.tenantId ?? 'tenant_access'
-  ),
-}));
+vi.mock('@interdomestik/shared-auth', () => {
+  const tenant = (session: {
+    user?: { accessTenantId?: string | null; tenantId?: string | null };
+  }) => session.user?.accessTenantId ?? session.user?.tenantId ?? 'tenant_access';
+  return { ensureAccessTenantId: vi.fn(tenant), ensureTenantId: vi.fn(tenant) };
+});
 vi.mock('../mappers/mapClaimToOperationalRow', () => ({
   mapClaimToOperationalRow: h.mapClaimToOperationalRow,
 }));
@@ -107,10 +103,6 @@ describe('getOpsClaimDetail divergent document signing', () => {
   it('uses home-tenant dependent reads after access-tenant claim authorization', async () => {
     h.dbSelect
       .mockImplementationOnce(() =>
-        queryFromRows([{ name: 'Member', email: 'm@example.test', memberNumber: 'MEM-1' }])
-      )
-      .mockImplementationOnce(() => queryFromRows([{ name: 'Agent Home' }]))
-      .mockImplementationOnce(() =>
         queryFromRows([
           {
             id: 'doc-1',
@@ -122,6 +114,10 @@ describe('getOpsClaimDetail divergent document signing', () => {
         ])
       )
       .mockImplementationOnce(() =>
+        queryFromRows([{ name: 'Member', email: 'm@example.test', memberNumber: 'MEM-1' }])
+      )
+      .mockImplementationOnce(() => queryFromRows([{ name: 'Agent Home' }]))
+      .mockImplementationOnce(() =>
         queryFromRows([
           {
             note: 'Started from Diaspora / Green Card quickstart. Country: IT. Incident location: abroad.',
@@ -130,6 +126,10 @@ describe('getOpsClaimDetail divergent document signing', () => {
       );
     const result = await getOpsClaimDetail('claim-1');
     expect(result.kind).toBe('ok');
+    expect(h.withTenantContext.mock.calls.map(([ctx]) => ctx)).toEqual([
+      expect.objectContaining({ tenantId: 'tenant_access' }),
+      expect.objectContaining({ tenantId: 'tenant_home' }),
+    ]);
     expect(h.matchesAccessTenant).toHaveBeenCalledWith(expect.anything(), 'tenant_access');
     expect(h.eq).toHaveBeenCalledWith('user.tenantId', 'tenant_home');
     expect(h.eq).toHaveBeenCalledWith('claimStageHistory.tenantId', 'tenant_home');

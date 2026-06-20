@@ -199,8 +199,8 @@ function mockSelectChains() {
   };
 
   hoisted.dbSelect
-    .mockImplementationOnce(() => userQuery)
     .mockImplementationOnce(() => docsQuery)
+    .mockImplementationOnce(() => userQuery)
     .mockImplementationOnce(() => noteQuery);
 
   return { docsWhere, noteWhere };
@@ -239,11 +239,10 @@ describe('getOpsClaimDetail', () => {
     const result = await getOpsClaimDetail('claim-1');
 
     expect(result.kind).toBe('ok');
-    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toMatchObject({
-      tenantId: 'tenant_ks',
-      role: 'admin',
-    });
+    expect(hoisted.withTenantContext.mock.calls.map(call => call[0])).toEqual([
+      expect.objectContaining({ tenantId: 'tenant_ks', role: 'admin' }),
+      expect.objectContaining({ tenantId: 'tenant_home', role: 'admin' }),
+    ]);
   });
 
   it('returns not_found when host is unknown and not allowlisted', async () => {
@@ -327,10 +326,9 @@ describe('getOpsClaimDetail', () => {
   it('executes reads under tenant context', async () => {
     mockSelectChains();
     await getOpsClaimDetail('claim-1');
-    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toMatchObject({
-      tenantId: 'tenant_ks',
-      role: 'admin',
-    });
+    expect(hoisted.withTenantContext.mock.calls.map(call => call[0])).toEqual([
+      expect.objectContaining({ tenantId: 'tenant_ks', role: 'admin' }),
+      expect.objectContaining({ tenantId: 'tenant_home', role: 'admin' }),
+    ]);
   });
 });

@@ -1,17 +1,7 @@
 import { auth } from '@/lib/auth';
 import { createTenantSignedDownloadUrl } from '@/lib/storage/service-role';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import {
-  and,
-  claimStageHistory,
-  claimDocuments,
-  claims,
-  desc,
-  eq,
-  user,
-  withTenantContext,
-} from '@interdomestik/database';
-import { parseDiasporaOriginFromPublicNote } from '@interdomestik/domain-claims';
+import { and, claimDocuments, claims, eq, withTenantContext } from '@interdomestik/database';
 import { ClaimStatus } from '@interdomestik/database/constants';
 import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
@@ -19,6 +9,7 @@ import { matchesAccessTenant as mat } from '@/lib/db/access-tenant-predicate';
 import { mapClaimToOperationalRow, RawClaimRow } from '../mappers/mapClaimToOperationalRow';
 import { canViewAdminClaims, resolveClaimsVisibility } from './claimVisibility';
 import { ClaimOpsDetail } from '../types';
+import { readOpsClaimHomeTenantDetails } from './getOpsClaimDetailHomeReads';
 
 export type OpsClaimDetailResult = { kind: 'not_found' } | { kind: 'ok'; data: ClaimOpsDetail };
 type ClaimWithRelations = typeof claims.$inferSelect & {
@@ -75,7 +66,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
   if (!hostTenantId && !isNeutralDeploymentHost(requestHost)) return { kind: 'not_found' };
   const tenantId = hostTenantId ?? sessionAccessTenantId;
 
-  const { claim, userData, agentData, rawDocs, diasporaOrigin } = await withTenantContext(
+  const { claim, rawDocs } = await withTenantContext(
     {
       tenantId,
       role: session.user?.role ?? undefined,
@@ -113,6 +104,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
           agentData: null as { name: string } | null,
           rawDocs: [] as Array<{
             id: string;
+            tenantId: string;
             name: string | null;
             fileSize: number | null;
             fileType: string | null;
@@ -120,24 +112,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
             filePath: string | null;
             bucket: string | null;
           }>,
-          diasporaOrigin: null as ReturnType<typeof parseDiasporaOriginFromPublicNote>,
         };
-      }
-
-      const [userData] = await tx
-        .select()
-        .from(user)
-        .where(and(eq(user.id, claim.userId), eq(user.tenantId, claim.tenantId)))
-        .limit(1);
-
-      let agentData: { name: string } | null = null;
-      if (claim.agentId) {
-        const [a] = await tx
-          .select({ name: user.name })
-          .from(user)
-          .where(and(eq(user.id, claim.agentId), eq(user.tenantId, claim.tenantId)))
-          .limit(1);
-        agentData = a ? { name: a.name } : null;
       }
 
       const rawDocs = await tx
@@ -154,31 +129,19 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
         .from(claimDocuments)
         .where(and(eq(claimDocuments.claimId, claimId), mat(claimDocuments, tenantId)));
 
-      const [diasporaNote] = await tx
-        .select({
-          note: claimStageHistory.note,
-        })
-        .from(claimStageHistory)
-        .where(
-          and(
-            eq(claimStageHistory.claimId, claimId),
-            eq(claimStageHistory.tenantId, claim.tenantId)
-          )
-        )
-        .orderBy(desc(claimStageHistory.createdAt), desc(claimStageHistory.id))
-        .limit(1);
-
       return {
         claim,
-        userData: userData ?? null,
-        agentData,
         rawDocs,
-        diasporaOrigin: parseDiasporaOriginFromPublicNote(diasporaNote?.note),
       };
     }
   );
 
   if (!claim) return { kind: 'not_found' };
+  const { userData, agentData, diasporaOrigin } = await readOpsClaimHomeTenantDetails({
+    claim,
+    claimId,
+    role: session.user?.role ?? undefined,
+  });
 
   const docs = await Promise.all(
     rawDocs.map(async doc => {
