@@ -8,6 +8,7 @@ import { runRawRoleArrayGuard } from './check-raw-role-arrays.mjs';
 import { runServiceRoleStorageBoundaryGuard } from './check-service-role-storage-boundary.mjs';
 import { runClaimStatusWriterGuard } from './check-claim-status-writers.mjs';
 import { runSignedUrlExposureGuard } from './check-signed-url-exposure.mjs';
+import { runTenantCacheGuard } from './check-tenant-cache-guard.mjs';
 import { runWorkflowSeedCredentialGuard } from './check-workflow-seed-credentials.mjs';
 
 const LOCKFILE_PATH = path.join(process.cwd(), 'pnpm-lock.yaml');
@@ -110,6 +111,7 @@ async function runGuard() {
     runModularityGuard,
     runRawRoleArrayGuard,
     runClaimStatusWriterGuard,
+    runTenantCacheGuard,
     runBrandDisciplineGuard,
   ]) {
     runRequiredGuard(guard);
