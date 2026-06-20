@@ -34,6 +34,7 @@ export const claimEscalationAgreements = pgTable(
     tenantId: text('tenant_id')
       .notNull()
       .references(() => tenants.id),
+    accessTenantId: text('access_tenant_id').references(() => tenants.id),
     claimId: text('claim_id')
       .notNull()
       .references(() => claims.id),
@@ -84,6 +85,7 @@ export const claimEscalationAgreements = pgTable(
   },
   table => [
     uniqueIndex('claim_escalation_agreements_claim_uq').on(table.claimId),
+    index('claim_escalation_agreements_access_tenant_idx').on(table.accessTenantId),
     index('claim_escalation_agreements_tenant_idx').on(table.tenantId),
   ]
 );

@@ -75,6 +75,14 @@ function buildUploadRequest(overrides: Partial<UploadRequestPayload> = {}): Requ
   });
 }
 
+function mockClaim(overrides: Partial<{ userId: string; agentId: string }> = {}) {
+  hoisted.findClaimFirst.mockResolvedValue({
+    id: 'claim-1',
+    tenantId: 'tenant_mk',
+    userId: 'user-1',
+    ...overrides,
+  });
+}
 describe('POST /api/uploads', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -87,7 +95,7 @@ describe('POST /api/uploads', () => {
       data: { token: 'tok-1', signedUrl: 'https://signed.example.com/upload' },
       error: null,
     });
-    hoisted.findClaimFirst.mockResolvedValue({ id: 'claim-1', userId: 'user-1' });
+    mockClaim();
   });
 
   afterEach(() => {
@@ -200,7 +208,7 @@ describe('POST /api/uploads', () => {
     hoisted.getSession.mockResolvedValue({
       user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
     });
-    hoisted.findClaimFirst.mockResolvedValue({ id: 'claim-1', userId: 'user-OTHER' });
+    mockClaim({ userId: 'user-OTHER' });
 
     const req = new Request('http://localhost:3000/api/uploads', {
       method: 'POST',
@@ -225,11 +233,7 @@ describe('POST /api/uploads', () => {
     hoisted.getSession.mockResolvedValue({
       user: { id: 'agent-1', role: 'agent', tenantId: 'tenant_mk' },
     });
-    hoisted.findClaimFirst.mockResolvedValue({
-      id: 'claim-1',
-      userId: 'user-OTHER',
-      agentId: 'agent-OTHER',
-    });
+    mockClaim({ userId: 'user-OTHER', agentId: 'agent-OTHER' });
 
     const req = new Request('http://localhost:3000/api/uploads', {
       method: 'POST',
@@ -253,11 +257,7 @@ describe('POST /api/uploads', () => {
     hoisted.getSession.mockResolvedValue({
       user: { id: 'agent-1', role: 'agent', tenantId: 'tenant_mk' },
     });
-    hoisted.findClaimFirst.mockResolvedValue({
-      id: 'claim-1',
-      userId: 'user-OTHER',
-      agentId: 'agent-1',
-    });
+    mockClaim({ userId: 'user-OTHER', agentId: 'agent-1' });
 
     const req = new Request('http://localhost:3000/api/uploads', {
       method: 'POST',

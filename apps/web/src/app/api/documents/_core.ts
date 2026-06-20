@@ -9,7 +9,7 @@ import {
   type CaseScopedDocumentClass,
 } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
-
+import { matchesAccessTenant } from '@/lib/db/access-tenant-predicate';
 import { canReadLegacyClaimDocument } from './claim-document-access';
 import { lookupCrossGrantDoc } from './cross-tenant-document-lookup';
 import { canReadPolymorphicDocument } from './polymorphic-document-access';
@@ -320,7 +320,7 @@ export async function getDocumentAccessCore(args: {
     })
     .from(claimDocuments)
     .leftJoin(claims, eq(claimDocuments.claimId, claims.id))
-    .where(and(eq(claimDocuments.id, documentId), eq(claimDocuments.tenantId, tenantId)));
+    .where(and(eq(claimDocuments.id, documentId), matchesAccessTenant(claimDocuments, tenantId)));
 
   if (!row?.doc) {
     // 3. Cross-tenant fallback for jurisdiction-handoff recovery/legal actors.
@@ -389,7 +389,7 @@ export async function getDocumentAccessCore(args: {
     ok: true,
     document: doc,
     storageFamily: getStorageFamilyForDocument(doc),
-    tenantId,
+    tenantId: row.doc.tenantId ?? tenantId,
     audit: buildDocumentAudit({
       actorRole: userRole,
       disposition: finalDisposition,

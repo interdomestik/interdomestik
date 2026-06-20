@@ -16,6 +16,7 @@ export const claimRecoveryNoFeeEvidence = pgTable(
     tenantId: text('tenant_id')
       .notNull()
       .references(() => tenants.id),
+    accessTenantId: text('access_tenant_id').references(() => tenants.id),
     claimId: text('claim_id')
       .notNull()
       .references(() => claims.id),
@@ -30,6 +31,7 @@ export const claimRecoveryNoFeeEvidence = pgTable(
   },
   table => [
     uniqueIndex('claim_recovery_no_fee_evidence_claim_uq').on(table.tenantId, table.claimId),
+    index('claim_recovery_no_fee_evidence_access_tenant_idx').on(table.accessTenantId),
     index('claim_recovery_no_fee_evidence_tenant_idx').on(table.tenantId),
   ]
 );

@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 const hoisted = vi.hoisted(() => {
   const claimsFindFirst = vi.fn();
   const dbSelect = vi.fn();
@@ -7,11 +6,13 @@ const hoisted = vi.hoisted(() => {
   const and = vi.fn((...args: unknown[]) => `and:${args.map(String).join('|')}`);
   const getSession = vi.fn();
   const headersFn = vi.fn(async () => new Headers([['host', 'ks.localhost:3000']]));
-  const ensureTenantId = vi.fn((session: { user?: { tenantId?: string | null } }) => {
-    const tenantId = session?.user?.tenantId;
-    if (!tenantId) throw new Error('Missing tenant');
-    return tenantId;
-  });
+  const ensureTenantId = vi.fn(
+    (session: { user?: { accessTenantId?: string | null; tenantId?: string | null } }) => {
+      const tenantId = session?.user?.accessTenantId?.trim() || session?.user?.tenantId;
+      if (!tenantId) throw new Error('Missing tenant');
+      return tenantId;
+    }
+  );
   const withTenantContext = vi.fn(async (_ctx: unknown, action: (tx: unknown) => unknown) =>
     action({
       query: {
@@ -33,12 +34,12 @@ const hoisted = vi.hoisted(() => {
     isDiasporaOrigin: false,
     diasporaCountry: null,
   }));
-
   return {
     claimsFindFirst,
     dbSelect,
     eq,
     and,
+    matchesAccessTenant: vi.fn((_table: unknown, tenantId: string) => `access:${tenantId}`),
     getSession,
     headersFn,
     ensureTenantId,
@@ -46,7 +47,6 @@ const hoisted = vi.hoisted(() => {
     mapClaimToOperationalRow,
   };
 });
-
 vi.mock('@/lib/auth', () => ({
   auth: {
     api: {
@@ -58,7 +58,6 @@ vi.mock('@/lib/auth', () => ({
 vi.mock('next/headers', () => ({
   headers: hoisted.headersFn,
 }));
-
 vi.mock('@/lib/tenant/tenant-hosts', () => ({
   resolveTenantFromHost: vi.fn((host: string) => {
     if (host.includes('ks.localhost')) return 'tenant_ks';
@@ -68,9 +67,12 @@ vi.mock('@/lib/tenant/tenant-hosts', () => ({
 }));
 
 vi.mock('@interdomestik/shared-auth', () => ({
+  ensureAccessTenantId: hoisted.ensureTenantId,
   ensureTenantId: hoisted.ensureTenantId,
 }));
-
+vi.mock('@/lib/db/access-tenant-predicate', () => ({
+  matchesAccessTenant: hoisted.matchesAccessTenant,
+}));
 vi.mock('../mappers/mapClaimToOperationalRow', () => ({
   mapClaimToOperationalRow: hoisted.mapClaimToOperationalRow,
 }));
@@ -141,6 +143,7 @@ function createClaim() {
   const now = new Date('2026-02-22T00:00:00.000Z');
   return {
     id: 'claim-1',
+    tenantId: 'tenant_home',
     title: 'Test claim',
     status: 'submitted',
     createdAt: now,
@@ -196,8 +199,8 @@ function mockSelectChains() {
   };
 
   hoisted.dbSelect
-    .mockImplementationOnce(() => userQuery)
     .mockImplementationOnce(() => docsQuery)
+    .mockImplementationOnce(() => userQuery)
     .mockImplementationOnce(() => noteQuery);
 
   return { docsWhere, noteWhere };
@@ -236,11 +239,10 @@ describe('getOpsClaimDetail', () => {
     const result = await getOpsClaimDetail('claim-1');
 
     expect(result.kind).toBe('ok');
-    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toMatchObject({
-      tenantId: 'tenant_ks',
-      role: 'admin',
-    });
+    expect(hoisted.withTenantContext.mock.calls.map(call => call[0])).toEqual([
+      expect.objectContaining({ tenantId: 'tenant_ks', role: 'admin' }),
+      expect.objectContaining({ tenantId: 'tenant_home', role: 'admin' }),
+    ]);
   });
 
   it('returns not_found when host is unknown and not allowlisted', async () => {
@@ -253,7 +255,7 @@ describe('getOpsClaimDetail', () => {
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
-  it('returns not_found when host tenant and session tenant mismatch', async () => {
+  it('returns not_found when host tenant and access tenant mismatch', async () => {
     hoisted.headersFn.mockResolvedValueOnce(new Headers([['host', 'mk.localhost:3000']]));
 
     const result = await getOpsClaimDetail('claim-1');
@@ -309,30 +311,24 @@ describe('getOpsClaimDetail', () => {
     expect(hoisted.eq).toHaveBeenCalledWith('claims.branchId', 'branch-2');
   });
 
-  it('applies tenant predicate on claim document reads', async () => {
+  it('applies access tenant predicate on claim and document reads', async () => {
     const { docsWhere, noteWhere } = mockSelectChains();
-
     const result = await getOpsClaimDetail('claim-1');
-
     expect(result.kind).toBe('ok');
-    expect(docsWhere).toHaveBeenCalledTimes(1);
-    expect(String(docsWhere.mock.calls[0]?.[0] ?? '')).toContain(
-      'eq:claimDocuments.tenantId:tenant_ks'
-    );
+    expect(hoisted.matchesAccessTenant).toHaveBeenCalledTimes(2);
+    expect(String(docsWhere.mock.calls[0]?.[0] ?? '')).toContain('access:tenant_ks');
     expect(String(noteWhere.mock.calls[0]?.[0] ?? '')).toContain(
-      'eq:claimStageHistory.tenantId:tenant_ks'
+      'eq:claimStageHistory.tenantId:tenant_home'
     );
+    expect(hoisted.eq).toHaveBeenCalledWith('user.tenantId', 'tenant_home');
   });
 
   it('executes reads under tenant context', async () => {
     mockSelectChains();
-
     await getOpsClaimDetail('claim-1');
-
-    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toMatchObject({
-      tenantId: 'tenant_ks',
-      role: 'admin',
-    });
+    expect(hoisted.withTenantContext.mock.calls.map(call => call[0])).toEqual([
+      expect.objectContaining({ tenantId: 'tenant_ks', role: 'admin' }),
+      expect.objectContaining({ tenantId: 'tenant_home', role: 'admin' }),
+    ]);
   });
 });

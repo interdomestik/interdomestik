@@ -603,6 +603,13 @@
       "when": 1781846400000,
       "tag": "0085_case_scoped_access_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1781932800000,
+      "tag": "0086_access_tenant_divergent_tables",
+      "breakpoints": true
     }
   ]
 }

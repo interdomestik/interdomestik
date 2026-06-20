@@ -1,31 +1,17 @@
 import { auth } from '@/lib/auth';
 import { createTenantSignedDownloadUrl } from '@/lib/storage/service-role';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import {
-  and,
-  claimStageHistory,
-  claimDocuments,
-  claims,
-  desc,
-  eq,
-  user,
-  withTenantContext,
-} from '@interdomestik/database';
-import { parseDiasporaOriginFromPublicNote } from '@interdomestik/domain-claims';
+import { and, claimDocuments, claims, eq, withTenantContext } from '@interdomestik/database';
 import { ClaimStatus } from '@interdomestik/database/constants';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
+import { matchesAccessTenant as mat } from '@/lib/db/access-tenant-predicate';
 import { mapClaimToOperationalRow, RawClaimRow } from '../mappers/mapClaimToOperationalRow';
 import { canViewAdminClaims, resolveClaimsVisibility } from './claimVisibility';
 import { ClaimOpsDetail } from '../types';
+import { readOpsClaimHomeTenantDetails } from './getOpsClaimDetailHomeReads';
 
 export type OpsClaimDetailResult = { kind: 'not_found' } | { kind: 'ok'; data: ClaimOpsDetail };
-
-type ClaimWithRelations = typeof claims.$inferSelect & {
-  staff: { name: string; email: string } | null;
-  branch: { id: string; code: string; name: string } | null;
-};
-
 const NEUTRAL_DEPLOYMENT_HOSTS = new Set(['interdomestik-web.vercel.app']);
 
 function normalizeRequestHost(host: string): string {
@@ -61,9 +47,9 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
   if (!session) return { kind: 'not_found' };
-  let sessionTenantId: string;
+  let sessionAccessTenantId: string;
   try {
-    sessionTenantId = ensureTenantId(session);
+    sessionAccessTenantId = ensureAccessTenantId(session);
   } catch {
     return { kind: 'not_found' };
   }
@@ -72,42 +58,25 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
   if (visibility.role === 'branch_manager' && !visibility.branchId) return { kind: 'not_found' };
   const requestHost = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
   const hostTenantId = resolveTenantFromHost(requestHost);
-  if (hostTenantId && hostTenantId !== sessionTenantId) return { kind: 'not_found' };
+  if (hostTenantId && hostTenantId !== sessionAccessTenantId) return { kind: 'not_found' };
   if (!hostTenantId && !isNeutralDeploymentHost(requestHost)) return { kind: 'not_found' };
-  const tenantId = hostTenantId ?? sessionTenantId;
+  const tenantId = hostTenantId ?? sessionAccessTenantId;
 
-  // 1-2. Read claim detail under tenant DB context (RLS where configured) + explicit tenant predicates.
-  const { claim, userData, agentData, rawDocs, diasporaOrigin } = await withTenantContext(
+  const { claim, rawDocs } = await withTenantContext(
     {
       tenantId,
       role: session.user?.role ?? undefined,
     },
     async tx => {
-      const claim = (await tx.query.claims.findFirst({
+      const claim = await tx.query.claims.findFirst({
         where: and(
           eq(claims.id, claimId),
-          eq(claims.tenantId, tenantId),
+          mat(claims, tenantId),
           visibility.role === 'branch_manager' && visibility.branchId
             ? eq(claims.branchId, visibility.branchId)
             : undefined
         ),
-        with: {
-          staff: {
-            columns: {
-              name: true,
-              email: true,
-            },
-          },
-          branch: {
-            columns: {
-              id: true,
-              code: true,
-              name: true,
-            },
-          },
-          // Note: agent fetched separately as relation inference is tricky without schema export
-        },
-      })) as unknown as ClaimWithRelations | undefined;
+      });
 
       if (!claim) {
         return {
@@ -116,6 +85,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
           agentData: null as { name: string } | null,
           rawDocs: [] as Array<{
             id: string;
+            tenantId: string;
             name: string | null;
             fileSize: number | null;
             fileType: string | null;
@@ -123,29 +93,13 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
             filePath: string | null;
             bucket: string | null;
           }>,
-          diasporaOrigin: null as ReturnType<typeof parseDiasporaOriginFromPublicNote>,
         };
-      }
-
-      const [userData] = await tx
-        .select()
-        .from(user)
-        .where(and(eq(user.id, claim.userId), eq(user.tenantId, tenantId)))
-        .limit(1);
-
-      let agentData: { name: string } | null = null;
-      if (claim.agentId) {
-        const [a] = await tx
-          .select({ name: user.name })
-          .from(user)
-          .where(and(eq(user.id, claim.agentId), eq(user.tenantId, tenantId)))
-          .limit(1);
-        agentData = a ? { name: a.name } : null;
       }
 
       const rawDocs = await tx
         .select({
           id: claimDocuments.id,
+          tenantId: claimDocuments.tenantId,
           name: claimDocuments.name,
           fileSize: claimDocuments.fileSize,
           fileType: claimDocuments.fileType,
@@ -154,30 +108,22 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
           bucket: claimDocuments.bucket,
         })
         .from(claimDocuments)
-        .where(and(eq(claimDocuments.claimId, claimId), eq(claimDocuments.tenantId, tenantId)));
-
-      const [diasporaNote] = await tx
-        .select({
-          note: claimStageHistory.note,
-        })
-        .from(claimStageHistory)
-        .where(
-          and(eq(claimStageHistory.claimId, claimId), eq(claimStageHistory.tenantId, tenantId))
-        )
-        .orderBy(desc(claimStageHistory.createdAt), desc(claimStageHistory.id))
-        .limit(1);
+        .where(and(eq(claimDocuments.claimId, claimId), mat(claimDocuments, tenantId)));
 
       return {
         claim,
-        userData: userData ?? null,
-        agentData,
         rawDocs,
-        diasporaOrigin: parseDiasporaOriginFromPublicNote(diasporaNote?.note),
       };
     }
   );
 
   if (!claim) return { kind: 'not_found' };
+  const { agentData, branchData, diasporaOrigin, staffData, userData } =
+    await readOpsClaimHomeTenantDetails({
+      claim,
+      claimId,
+      role: session.user?.role ?? undefined,
+    });
 
   const docs = await Promise.all(
     rawDocs.map(async doc => {
@@ -186,7 +132,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
         context: 'ops claim document signed URL',
         family: 'claims',
         path: doc.filePath,
-        tenantId,
+        tenantId: doc.tenantId,
       });
       return {
         id: doc.id,
@@ -199,7 +145,6 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
     })
   );
 
-  // 3. Map to Operational Row
   const rawRow: RawClaimRow = {
     claim: {
       id: claim.id,
@@ -227,17 +172,17 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
           memberNumber: userData.memberNumber,
         }
       : null,
-    staff: claim.staff
+    staff: staffData
       ? {
-          name: claim.staff.name,
-          email: claim.staff.email,
+          name: staffData.name,
+          email: staffData.email,
         }
       : null,
-    branch: claim.branch
+    branch: branchData
       ? {
-          id: claim.branch.id,
-          code: claim.branch.code,
-          name: claim.branch.name,
+          id: branchData.id,
+          code: branchData.code,
+          name: branchData.name,
         }
       : null,
     agent: agentData
@@ -249,7 +194,6 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
 
   const opsRow = mapClaimToOperationalRow(rawRow);
 
-  // 4. Return combined Detail
   const detail: ClaimOpsDetail = {
     ...opsRow,
     description: claim.description,

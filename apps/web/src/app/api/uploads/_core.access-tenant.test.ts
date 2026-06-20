@@ -5,6 +5,7 @@ const hoisted = vi.hoisted(() => ({
   createTenantSignedUploadUrl: vi.fn(),
   eq: vi.fn(),
   findClaimFirst: vi.fn(),
+  matchesAccessTenant: vi.fn((_table: unknown, tenantId: string) => `access:${tenantId}`),
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -12,6 +13,10 @@ vi.mock('@interdomestik/database', () => ({
   claims: { id: 'id', tenantId: 'tenant_id' },
   db: { query: { claims: { findFirst: hoisted.findClaimFirst } } },
   eq: hoisted.eq,
+}));
+
+vi.mock('@/lib/db/access-tenant-predicate', () => ({
+  matchesAccessTenant: hoisted.matchesAccessTenant,
 }));
 
 vi.mock('@/lib/storage/service-role', () => ({
@@ -26,14 +31,18 @@ describe('createSignedUploadCore access tenant isolation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('CLAIM_UPLOAD_INTENT_SECRET', 'test-upload-intent-secret-value-123456');
-    hoisted.findClaimFirst.mockResolvedValue({ id: 'claim-1', userId: 'member-1' });
+    hoisted.findClaimFirst.mockResolvedValue({
+      id: 'claim-1',
+      tenantId: 'tenant_home',
+      userId: 'member-1',
+    });
     hoisted.createTenantSignedUploadUrl.mockResolvedValue({
       data: { token: 'tok', signedUrl: 'https://signed.example/upload' },
       error: null,
     });
   });
 
-  it('uses accessTenantId for claim lookup, storage path, and signed upload URL', async () => {
+  it('uses access tenant for claim lookup and claim home tenant for storage', async () => {
     const result = await createSignedUploadCore({
       bucket: 'claim-evidence',
       input: {
@@ -53,15 +62,21 @@ describe('createSignedUploadCore access tenant isolation', () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(hoisted.eq).toHaveBeenCalledWith('tenant_id', 'tenant_access');
-    expect(hoisted.eq).not.toHaveBeenCalledWith('tenant_id', 'tenant_legal_compat');
+    expect(hoisted.matchesAccessTenant).toHaveBeenCalledWith(expect.anything(), 'tenant_access');
+    expect(hoisted.matchesAccessTenant).not.toHaveBeenCalledWith(
+      expect.anything(),
+      'tenant_legal_compat'
+    );
     if (result.ok) {
       expect(result.body.upload.path).toBe(
-        'pii/tenants/tenant_access/claims/claim-1/evidence-123.pdf'
+        'pii/tenants/tenant_home/claims/claim-1/evidence-123.pdf'
       );
     }
+    expect(hoisted.findClaimFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ columns: expect.objectContaining({ tenantId: true }) })
+    );
     expect(hoisted.createTenantSignedUploadUrl).toHaveBeenCalledWith(
-      expect.objectContaining({ tenantId: 'tenant_access' })
+      expect.objectContaining({ tenantId: 'tenant_home' })
     );
   });
 });
