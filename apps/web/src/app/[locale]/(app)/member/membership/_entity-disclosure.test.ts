@@ -14,7 +14,10 @@ vi.mock('@/lib/entity-disclosure.core', () => ({
   getSubscriptionEntityDisclosureCore: hoisted.getSubscriptionEntityDisclosureCore,
 }));
 
-import { attachMembershipEntityDisclosures } from './_entity-disclosure';
+import {
+  attachMembershipEntityDisclosure,
+  attachMembershipEntityDisclosures,
+} from './_entity-disclosure';
 
 describe('membership entity disclosure attachment', () => {
   it('reuses disclosure reads for subscription rows with the same legal entity snapshot', async () => {
@@ -25,20 +28,50 @@ describe('membership entity disclosure attachment', () => {
       subscriptionRecord('sub-2', 'legal-ks', 'XK'),
     ];
 
-    await expect(attachMembershipEntityDisclosures(records)).resolves.toEqual([
+    await expect(attachMembershipEntityDisclosures(records as never)).resolves.toEqual([
       expect.objectContaining({ id: 'sub-1', entityDisclosure: hoisted.disclosure }),
       expect.objectContaining({ id: 'sub-2', entityDisclosure: hoisted.disclosure }),
     ]);
     expect(hoisted.getSubscriptionEntityDisclosureCore).toHaveBeenCalledTimes(1);
   });
+
+  it('strips price-bearing offer fields from the membership workspace plan', async () => {
+    hoisted.getSubscriptionEntityDisclosureCore.mockResolvedValue(hoisted.disclosure);
+
+    const record = await attachMembershipEntityDisclosure({
+      ...subscriptionRecord('sub-1', 'legal-ks', 'XK'),
+      plan: {
+        id: 'standard-year',
+        name: 'Standard',
+        price: '20.00',
+        interval: 'year',
+        tier: 'standard',
+        paddlePriceId: 'pri_standard',
+      },
+    } as never);
+
+    expect(record.plan).toEqual({
+      kind: 'membership_workspace_plan',
+      id: 'standard-year',
+      name: 'Standard',
+    });
+    expect(record.plan).not.toHaveProperty('price');
+    expect(record.plan).not.toHaveProperty('interval');
+    expect(record.plan).not.toHaveProperty('tier');
+    expect(record.plan).not.toHaveProperty('paddlePriceId');
+  });
 });
 
-function subscriptionRecord(id: string, legalTenantId: string, governingLawSnapshot: string) {
+function subscriptionRecord(
+  id: string,
+  legalTenantId: string,
+  governingLawSnapshot: string
+): Record<string, unknown> {
   return {
     id,
     tenantId: 'tenant-ks',
     legalTenantId,
     governingLawSnapshot,
     plan: null,
-  } as never;
+  };
 }

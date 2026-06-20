@@ -1,9 +1,6 @@
-export interface MemberCardSubscription {
-  readonly status: 'active' | 'past_due';
-  readonly planId: string;
-  readonly currentPeriodEnd: Date | null;
-  readonly gracePeriodEndsAt: Date | null;
-}
+import type { MembershipProof } from '@interdomestik/domain-membership-billing/membership-hierarchy';
+
+export type MemberCardSubscription = MembershipProof;
 
 export type MemberCardSubscriptionInput =
   | {
@@ -23,6 +20,7 @@ export function toMemberCardSubscription(
 
   if (subscription.status === 'active') {
     return {
+      kind: 'membership_proof',
       status: 'active',
       planId: subscription.planId,
       currentPeriodEnd: subscription.currentPeriodEnd ?? null,
@@ -36,6 +34,7 @@ export function toMemberCardSubscription(
   if (!gracePeriodEndsAt || gracePeriodEndsAt.getTime() < now.getTime()) return null;
 
   return {
+    kind: 'membership_proof',
     status: 'past_due',
     planId: subscription.planId,
     currentPeriodEnd: subscription.currentPeriodEnd ?? null,

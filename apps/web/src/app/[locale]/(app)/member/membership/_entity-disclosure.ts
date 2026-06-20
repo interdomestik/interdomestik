@@ -1,4 +1,8 @@
 import { membershipPlans, subscriptions } from '@interdomestik/database';
+import {
+  toMembershipWorkspacePlan,
+  type MembershipWorkspacePlan,
+} from '@interdomestik/domain-membership-billing/membership-hierarchy';
 import type { InferSelectModel } from 'drizzle-orm';
 
 import {
@@ -10,15 +14,19 @@ type SubscriptionWithPlan = InferSelectModel<typeof subscriptions> & {
   plan: InferSelectModel<typeof membershipPlans> | null;
 };
 
-export type SubscriptionRecord = SubscriptionWithPlan & {
+export type SubscriptionRecord = Omit<SubscriptionWithPlan, 'plan'> & {
+  plan: MembershipWorkspacePlan | null;
   entityDisclosure: EntityDisclosureModel;
 };
 
 export async function attachMembershipEntityDisclosure(
   subscription: SubscriptionWithPlan
 ): Promise<SubscriptionRecord> {
+  const { plan, ...subscriptionFields } = subscription;
+
   return {
-    ...subscription,
+    ...subscriptionFields,
+    plan: toMembershipWorkspacePlan(plan),
     entityDisclosure: await getSubscriptionEntityDisclosureCore(subscription),
   };
 }
@@ -29,10 +37,15 @@ export async function attachMembershipEntityDisclosures(
   const disclosureCache = new Map<string, Promise<EntityDisclosureModel>>();
 
   return Promise.all(
-    records.map(async record => ({
-      ...record,
-      entityDisclosure: await getCachedEntityDisclosure(record, disclosureCache),
-    }))
+    records.map(async record => {
+      const { plan, ...subscriptionFields } = record;
+
+      return {
+        ...subscriptionFields,
+        plan: toMembershipWorkspacePlan(plan),
+        entityDisclosure: await getCachedEntityDisclosure(record, disclosureCache),
+      };
+    })
   );
 }
 
