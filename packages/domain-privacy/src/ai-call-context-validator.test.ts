@@ -22,6 +22,10 @@ describe('validateAICallContext hardening', () => {
     const arrayScope = validateAICallContext({ ...validContext, scope: [] });
     const emptyScope = validateAICallContext({ ...validContext, scope: {} });
     const malformedScope = validateAICallContext({ ...validContext, scope: { caseId: '' } });
+    const inheritedScope = validateAICallContext({
+      ...validContext,
+      scope: Object.create({ caseId: 'case_1' }),
+    });
 
     expect(arrayScope.kind).toBe('invalid');
     expect(arrayScope.reasons).toContain('scope_invalid');
@@ -29,6 +33,8 @@ describe('validateAICallContext hardening', () => {
     expect(emptyScope.reasons).toContain('scope_invalid');
     expect(malformedScope.kind).toBe('invalid');
     expect(malformedScope.reasons).toContain('scope_invalid');
+    expect(inheritedScope.kind).toBe('invalid');
+    expect(inheritedScope.reasons).toContain('scope_invalid');
   });
 
   it('rejects mismatched purpose, processing purpose, and disabled posture combinations', () => {
@@ -116,5 +122,26 @@ describe('validateAICallContext hardening', () => {
 
     expect(decision.kind).toBe('invalid');
     expect(decision.reasons).toContain('invalidity_review_requires_zero_retention');
+  });
+
+  it('rejects inherited top-level fields instead of accepting prototype-backed input', () => {
+    const decision = validateAICallContext(Object.create(validContext));
+
+    expect(decision.kind).toBe('invalid');
+    expect(decision.reasons).toEqual(
+      expect.arrayContaining([
+        'workflow_id_missing',
+        'owner_missing',
+        'tenant_id_missing',
+        'actor_id_missing',
+        'scope_missing',
+        'processing_purpose_unsupported',
+        'purpose_unsupported',
+        'retention_unsupported',
+        'posture_missing',
+        'consent_missing',
+        'invalidity_posture_missing',
+      ])
+    );
   });
 });
