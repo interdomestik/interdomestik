@@ -314,9 +314,7 @@ describe('getOpsClaimDetail', () => {
 
   it('applies access tenant predicate on claim and document reads', async () => {
     const { docsWhere, noteWhere } = mockSelectChains();
-
     const result = await getOpsClaimDetail('claim-1');
-
     expect(result.kind).toBe('ok');
     expect(hoisted.matchesAccessTenant).toHaveBeenCalledTimes(2);
     expect(String(docsWhere.mock.calls[0]?.[0] ?? '')).toContain('access:tenant_ks');
@@ -329,9 +327,7 @@ describe('getOpsClaimDetail', () => {
 
   it('executes reads under tenant context', async () => {
     mockSelectChains();
-
     await getOpsClaimDetail('claim-1');
-
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
     expect(hoisted.withTenantContext.mock.calls[0]?.[0]).toMatchObject({
       tenantId: 'tenant_ks',
