@@ -22,13 +22,10 @@ export type SubscriptionRecord = Omit<SubscriptionWithPlan, 'plan'> & {
 export async function attachMembershipEntityDisclosure(
   subscription: SubscriptionWithPlan
 ): Promise<SubscriptionRecord> {
-  const { plan, ...subscriptionFields } = subscription;
-
-  return {
-    ...subscriptionFields,
-    plan: toMembershipWorkspacePlan(plan),
-    entityDisclosure: await getSubscriptionEntityDisclosureCore(subscription),
-  };
+  return toSubscriptionRecord(
+    subscription,
+    await getSubscriptionEntityDisclosureCore(subscription)
+  );
 }
 
 export async function attachMembershipEntityDisclosures(
@@ -37,16 +34,23 @@ export async function attachMembershipEntityDisclosures(
   const disclosureCache = new Map<string, Promise<EntityDisclosureModel>>();
 
   return Promise.all(
-    records.map(async record => {
-      const { plan, ...subscriptionFields } = record;
-
-      return {
-        ...subscriptionFields,
-        plan: toMembershipWorkspacePlan(plan),
-        entityDisclosure: await getCachedEntityDisclosure(record, disclosureCache),
-      };
-    })
+    records.map(async record =>
+      toSubscriptionRecord(record, await getCachedEntityDisclosure(record, disclosureCache))
+    )
   );
+}
+
+function toSubscriptionRecord(
+  subscription: SubscriptionWithPlan,
+  entityDisclosure: EntityDisclosureModel
+): SubscriptionRecord {
+  const { plan, ...subscriptionFields } = subscription;
+
+  return {
+    ...subscriptionFields,
+    plan: toMembershipWorkspacePlan(plan),
+    entityDisclosure,
+  };
 }
 
 function getCachedEntityDisclosure(

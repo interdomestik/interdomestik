@@ -67,7 +67,7 @@ const proofWithPrice = {
 } as const;
 
 // @ts-expect-error T-402: membership_proof cannot carry offer price data.
-const proofMustRejectPrice: MembershipProof = proofWithPrice;
+export const proofMustRejectPrice: MembershipProof = proofWithPrice;
 
 const workspacePlanWithTier = {
   kind: 'membership_workspace_plan',
@@ -77,7 +77,4 @@ const workspacePlanWithTier = {
 } as const;
 
 // @ts-expect-error T-402: membership_workspace_plan cannot carry offer tier data.
-const workspacePlanMustRejectTier: MembershipWorkspacePlan = workspacePlanWithTier;
-
-void proofMustRejectPrice;
-void workspacePlanMustRejectTier;
+export const workspacePlanMustRejectTier: MembershipWorkspacePlan = workspacePlanWithTier;

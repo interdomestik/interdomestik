@@ -1,13 +1,11 @@
 export type MembershipPriceInterval = 'month' | 'year';
 export type MembershipTier = 'standard' | 'family' | 'business' | (string & {});
 
-type PriceBearingMembershipFields = {
+type OfferPricingFieldsExcluded = {
   readonly currency?: never;
   readonly interval?: never;
   readonly paddlePriceId?: never;
   readonly price?: never;
-  readonly priceCents?: never;
-  readonly priceId?: never;
   readonly tier?: never;
 };
 
@@ -22,7 +20,7 @@ export type MembershipOffer = {
   readonly paddlePriceId: string | null;
 };
 
-export type MembershipProof = PriceBearingMembershipFields & {
+export type MembershipProof = OfferPricingFieldsExcluded & {
   readonly kind: 'membership_proof';
   readonly status: 'active' | 'past_due';
   readonly planId: string;
@@ -30,20 +28,10 @@ export type MembershipProof = PriceBearingMembershipFields & {
   readonly gracePeriodEndsAt: Date | null;
 };
 
-export type MembershipWorkspacePlan = PriceBearingMembershipFields & {
+export type MembershipWorkspacePlan = OfferPricingFieldsExcluded & {
   readonly kind: 'membership_workspace_plan';
   readonly id: string;
   readonly name: string;
-};
-
-export type MembershipWorkspace = PriceBearingMembershipFields & {
-  readonly kind: 'membership_workspace';
-  readonly id: string;
-  readonly status: string;
-  readonly planId: string;
-  readonly plan: MembershipWorkspacePlan | null;
-  readonly currentPeriodEnd: Date | null;
-  readonly gracePeriodEndsAt: Date | null;
 };
 
 export type MembershipWorkspacePlanSource =
