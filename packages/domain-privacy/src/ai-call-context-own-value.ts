@@ -18,6 +18,7 @@ export function readOwnValue(value: Record<string, unknown>, key: string): unkno
     return undefined;
   }
 
+  // Reject accessors instead of invoking getters on untrusted input.
   return 'value' in descriptor ? descriptor.value : UNREADABLE_OWN_VALUE;
 }
 
