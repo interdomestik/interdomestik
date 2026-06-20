@@ -25,7 +25,6 @@ type ClaimWithRelations = typeof claims.$inferSelect & {
   staff: { name: string; email: string } | null;
   branch: { id: string; code: string; name: string } | null;
 };
-
 const NEUTRAL_DEPLOYMENT_HOSTS = new Set(['interdomestik-web.vercel.app']);
 
 function normalizeRequestHost(host: string): string {
@@ -146,6 +145,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
       const rawDocs = await tx
         .select({
           id: claimDocuments.id,
+          tenantId: claimDocuments.tenantId,
           name: claimDocuments.name,
           fileSize: claimDocuments.fileSize,
           fileType: claimDocuments.fileType,
@@ -186,7 +186,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
         context: 'ops claim document signed URL',
         family: 'claims',
         path: doc.filePath,
-        tenantId,
+        tenantId: doc.tenantId,
       });
       return {
         id: doc.id,

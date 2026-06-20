@@ -88,10 +88,11 @@ describe('getDocumentAccessCore access tenant isolation', () => {
       {
         doc: {
           id: 'legacy-doc-1',
+          tenantId: 'tenant_home',
           claimId: 'claim-1',
           category: 'other',
           bucket: 'claim-evidence',
-          filePath: 'pii/tenants/tenant_access/claims/claim-1/legal.pdf',
+          filePath: 'pii/tenants/tenant_home/claims/claim-1/legal.pdf',
           uploadedBy: 'support-1',
           name: 'legal.pdf',
           fileType: 'application/pdf',
@@ -124,7 +125,7 @@ describe('getDocumentAccessCore access tenant isolation', () => {
       },
     });
 
-    expect(result).toEqual(expect.objectContaining({ ok: true, tenantId: 'tenant_access' }));
+    expect(result).toEqual(expect.objectContaining({ ok: true, tenantId: 'tenant_home' }));
     expect(sqlMocks.matchesAccessTenant).toHaveBeenCalledWith(expect.anything(), 'tenant_access');
   });
 });

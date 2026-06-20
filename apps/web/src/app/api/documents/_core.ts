@@ -389,7 +389,7 @@ export async function getDocumentAccessCore(args: {
     ok: true,
     document: doc,
     storageFamily: getStorageFamilyForDocument(doc),
-    tenantId,
+    tenantId: (row.doc as typeof claimDocuments.$inferSelect).tenantId,
     audit: buildDocumentAudit({
       actorRole: userRole,
       disposition: finalDisposition,
