@@ -14,7 +14,7 @@ export type MembershipOffer = {
   readonly id: string;
   readonly name: string;
   readonly currency: string;
-  readonly interval: MembershipPriceInterval | (string & {});
+  readonly interval: MembershipPriceInterval;
   readonly price: string;
   readonly tier: MembershipTier;
   readonly paddlePriceId: string | null;
@@ -41,13 +41,6 @@ export type MembershipWorkspacePlanSource =
     }
   | null
   | undefined;
-
-export function createMembershipOffer(offer: Omit<MembershipOffer, 'kind'>): MembershipOffer {
-  return {
-    kind: 'membership_offer',
-    ...offer,
-  };
-}
 
 export function toMembershipWorkspacePlan(
   plan: MembershipWorkspacePlanSource

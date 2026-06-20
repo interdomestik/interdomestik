@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
+
+import type { MembershipWorkspacePlan } from '@interdomestik/domain-membership-billing/membership-hierarchy';
 
 const hoisted = vi.hoisted(() => ({
   disclosure: {
@@ -32,8 +34,8 @@ describe('membership entity disclosure attachment', () => {
     ];
 
     await expect(attachMembershipEntityDisclosures(records)).resolves.toEqual([
-      expect.objectContaining({ id: 'sub-1', entityDisclosure: hoisted.disclosure }),
-      expect.objectContaining({ id: 'sub-2', entityDisclosure: hoisted.disclosure }),
+      expect.objectContaining({ id: 'sub-1', plan: null, entityDisclosure: hoisted.disclosure }),
+      expect.objectContaining({ id: 'sub-2', plan: null, entityDisclosure: hoisted.disclosure }),
     ]);
     expect(hoisted.getSubscriptionEntityDisclosureCore).toHaveBeenCalledTimes(1);
   });
@@ -62,6 +64,7 @@ describe('membership entity disclosure attachment', () => {
     expect(record.plan).not.toHaveProperty('interval');
     expect(record.plan).not.toHaveProperty('tier');
     expect(record.plan).not.toHaveProperty('paddlePriceId');
+    expectTypeOf(record.plan).toMatchTypeOf<MembershipWorkspacePlan | null>();
   });
 });
 

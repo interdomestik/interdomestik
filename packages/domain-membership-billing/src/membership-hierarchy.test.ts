@@ -1,7 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import {
-  createMembershipOffer,
   toMembershipWorkspacePlan,
   type MembershipOffer,
   type MembershipProof,
@@ -10,7 +9,8 @@ import {
 
 describe('membership hierarchy', () => {
   it('keeps price-bearing data on membership offers', () => {
-    const offer = createMembershipOffer({
+    const offer = {
+      kind: 'membership_offer',
       id: 'standard-year',
       name: 'Standard',
       currency: 'EUR',
@@ -18,7 +18,7 @@ describe('membership hierarchy', () => {
       price: '20.00',
       tier: 'standard',
       paddlePriceId: 'pri_standard',
-    });
+    } satisfies MembershipOffer;
 
     expect(offer).toEqual({
       kind: 'membership_offer',
