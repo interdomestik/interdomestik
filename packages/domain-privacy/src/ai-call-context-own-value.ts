@@ -1,3 +1,7 @@
+/**
+ * Sentinel returned when an own property is an accessor instead of a data property.
+ * This prevents getter/setter execution while validating untrusted input.
+ */
 export const UNREADABLE_OWN_VALUE = Symbol('unreadable-own-value');
 
 function ownDescriptor(
@@ -18,7 +22,7 @@ export function readOwnValue(value: Record<string, unknown>, key: string): unkno
     return undefined;
   }
 
-  // Reject accessors instead of invoking getters on untrusted input.
+  // Reject accessors (getters/setters) to prevent code execution on untrusted input.
   return 'value' in descriptor ? descriptor.value : UNREADABLE_OWN_VALUE;
 }
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-
 import type { AICallContext } from './ai';
 import { validateAICallContext } from './ai-call-context-validator';
 
+const GETTER_ERROR_MESSAGE = 'getter should not be invoked';
 const validContext: AICallContext = {
   workflowId: 'case-general-assist-v1',
   owner: 'platform-privacy',
@@ -24,7 +24,7 @@ describe('validateAICallContext hardening', () => {
     const malformedScope = validateAICallContext({ ...validContext, scope: { caseId: '' } });
     const inheritedScope = validateAICallContext({ ...validContext, scope: Object.create({ caseId: 'case_1' }) });
     const getterScopeInput = { ...validContext };
-    Object.defineProperty(getterScopeInput, 'scope', { enumerable: true, get: () => { throw new Error('getter should not be invoked'); } });
+    Object.defineProperty(getterScopeInput, 'scope', { enumerable: true, get: () => { throw new Error(GETTER_ERROR_MESSAGE); } });
     const getterScope = validateAICallContext(getterScopeInput);
     expect(arrayScope.kind).toBe('invalid');
     expect(arrayScope.reasons).toContain('scope_invalid');
@@ -127,7 +127,7 @@ describe('validateAICallContext hardening', () => {
   it('rejects inherited top-level fields instead of accepting prototype-backed input', () => {
     const decision = validateAICallContext(Object.create(validContext));
     const getterInput = { ...validContext };
-    Object.defineProperty(getterInput, 'workflowId', { enumerable: true, get: () => { throw new Error('getter should not be invoked'); } });
+    Object.defineProperty(getterInput, 'workflowId', { enumerable: true, get: () => { throw new Error(GETTER_ERROR_MESSAGE); } });
     const getterDecision = validateAICallContext(getterInput);
     expect(decision.kind).toBe('invalid');
     expect(decision.reasons).toEqual(expect.arrayContaining([
