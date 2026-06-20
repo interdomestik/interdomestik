@@ -26,6 +26,21 @@ export function readOwnValue(value: Record<string, unknown>, key: string): unkno
   return 'value' in descriptor ? descriptor.value : UNREADABLE_OWN_VALUE;
 }
 
+export function snapshotOwnValues(
+  value: Record<string, unknown>,
+  keys: readonly string[]
+): Record<string, unknown> {
+  const snapshot: Record<string, unknown> = {};
+
+  for (const key of keys) {
+    const descriptor = ownDescriptor(value, key);
+    if (!descriptor) continue;
+    snapshot[key] = 'value' in descriptor ? descriptor.value : UNREADABLE_OWN_VALUE;
+  }
+
+  return snapshot;
+}
+
 export function readOwnTrimmedString(
   value: Record<string, unknown>,
   key: string
