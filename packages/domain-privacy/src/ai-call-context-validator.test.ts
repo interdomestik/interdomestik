@@ -68,4 +68,14 @@ describe('validateAICallContext hardening', () => {
       expect('unsafe' in decision.context.scope).toBe(false);
     }
   });
+
+  it('omits subjectId from normalized context when callers do not provide it', () => {
+    const decision = validateAICallContext(validContext);
+
+    expect(decision.kind).toBe('valid');
+    if (decision.kind === 'valid') {
+      expect('subjectId' in decision.context).toBe(false);
+      expect(decision.context).toEqual(validContext);
+    }
+  });
 });

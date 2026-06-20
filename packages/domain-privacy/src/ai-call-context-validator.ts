@@ -133,7 +133,7 @@ export function validateAICallContext(input: unknown): AICallContextValidationDe
           owner: input.owner,
           tenantId: input.tenantId,
           actorId: input.actorId,
-          subjectId: input.subjectId,
+          ...(input.subjectId === undefined ? {} : { subjectId: input.subjectId }),
           scope: scope as PrivacyScope,
           purpose: input.purpose,
           processingPurpose: input.processingPurpose,
