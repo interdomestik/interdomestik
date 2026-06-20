@@ -35,5 +35,8 @@ function appendInvalidityReviewReasons(
   ) {
     reasons.push('invalidity_review_requires_human_review');
   }
+  if (input.retention !== 'zero_retention_no_training') {
+    reasons.push('invalidity_review_requires_zero_retention');
+  }
   if (input.consent !== 'required_granted') reasons.push('invalidity_review_requires_consent');
 }

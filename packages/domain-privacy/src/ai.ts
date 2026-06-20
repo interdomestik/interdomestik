@@ -45,6 +45,7 @@ export type AICallContextInvalidReason =
   | 'tenant_id_missing'
   | 'actor_id_missing'
   | 'subject_id_invalid'
+  | 'subject_id_required_for_consent'
   | 'scope_missing'
   | 'scope_invalid'
   | 'processing_purpose_unsupported'
@@ -61,6 +62,7 @@ export type AICallContextInvalidReason =
   | 'document_extraction_requires_zero_retention'
   | 'document_extraction_requires_consent'
   | 'invalidity_review_requires_human_review'
+  | 'invalidity_review_requires_zero_retention'
   | 'invalidity_review_requires_consent';
 
 export interface AICallContext {

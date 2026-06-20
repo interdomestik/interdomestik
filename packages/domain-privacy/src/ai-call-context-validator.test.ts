@@ -78,4 +78,43 @@ describe('validateAICallContext hardening', () => {
       expect(decision.context).toEqual(validContext);
     }
   });
+
+  it('rejects consent-gated contexts without a subject id', () => {
+    const documentDecision = validateAICallContext({
+      ...validContext,
+      purpose: 'document_extraction',
+      processingPurpose: 'ai_document_extraction',
+      retention: 'zero_retention_no_training',
+      consent: 'required_granted',
+    });
+    const invalidityDecision = validateAICallContext({
+      ...validContext,
+      purpose: 'invalidity_review',
+      processingPurpose: 'invalidity_review',
+      retention: 'zero_retention_no_training',
+      posture: 'human_review_required',
+      consent: 'required_granted',
+      invalidityPosture: 'human_review_required',
+    });
+
+    expect(documentDecision.kind).toBe('invalid');
+    expect(documentDecision.reasons).toContain('subject_id_required_for_consent');
+    expect(invalidityDecision.kind).toBe('invalid');
+    expect(invalidityDecision.reasons).toContain('subject_id_required_for_consent');
+  });
+
+  it('requires zero retention for invalidity review', () => {
+    const decision = validateAICallContext({
+      ...validContext,
+      subjectId: 'member_1',
+      purpose: 'invalidity_review',
+      processingPurpose: 'invalidity_review',
+      posture: 'human_review_required',
+      consent: 'required_granted',
+      invalidityPosture: 'human_review_required',
+    });
+
+    expect(decision.kind).toBe('invalid');
+    expect(decision.reasons).toContain('invalidity_review_requires_zero_retention');
+  });
 });

@@ -51,6 +51,7 @@ describe('AICallContext', () => {
       workflowId: 'invalidity-posture-review-v1',
       purpose: 'invalidity_review',
       processingPurpose: 'invalidity_review',
+      retention: 'zero_retention_no_training',
       posture: 'human_review_required',
       consent: 'required_granted',
       invalidityPosture: 'human_review_required',

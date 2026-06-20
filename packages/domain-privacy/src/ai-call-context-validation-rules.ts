@@ -58,6 +58,9 @@ function appendIdentityReasons(
   if (!isNonEmptyString(input.owner)) reasons.push('owner_missing');
   if (!isNonEmptyString(input.tenantId)) reasons.push('tenant_id_missing');
   if (!isNonEmptyString(input.actorId)) reasons.push('actor_id_missing');
+  if (input.consent === 'required_granted' && input.subjectId === undefined) {
+    reasons.push('subject_id_required_for_consent');
+  }
   if (input.subjectId !== undefined && !isNonEmptyString(input.subjectId)) {
     reasons.push('subject_id_invalid');
   }
