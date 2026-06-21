@@ -951,6 +951,27 @@ M5 live cutover, proxy/routing/auth, schema/RLS unless separately scoped,
 billing, product UI, entity migration, VONESA/WS-F, OMG, DOM, README, AGENTS,
 and broad architecture docs remain unpromoted unless separately authorized.
 
+Rev 88 tracker overlay: `T-405` completed in PR `#1149` / squash merge
+`df4b5c7e32383b8dc6f73bc41a9da07f178803e0` from final implementation head
+`ced6d1bd78e3fc8248d7bf5e4dd83b8c6f7a3df9`. Current `domain-ai` caller
+posture was cleaned so current callers use trusted brand-minted
+`AICallContext` or trusted consent-backed resolution; negative proof rejects
+nullable, omitted, default, tenant-only, host-only, session-only,
+upload-custody, provider-default, generic Terms/Privacy, and structural-copy
+contexts. `T-403b` brand/runtime trust validation and `T-404a` consent-backed
+document extraction remain intact. Required local gates passed:
+`pnpm pr:verify`, `pnpm security:guard`, and `pnpm e2e:gate` (`136` passed /
+`8` skipped). Current-head remote CI, PR E2E, Pilot Gate, CodeQL, gitleaks,
+pnpm-audit, SonarCloud, and `pr-finalizer` were green before merge;
+`pr-feedback-intake` was clean. Copilot was requested repeatedly but produced
+no visible current-head artifact after bounded monitoring and is recorded as
+reviewer-route latency, not approval. Protected surfaces stayed untouched:
+proxy/routing/auth/session/tenancy refactor, schema/RLS, billing, product UI,
+Operational Brain runtime, model/provider calls, prompts, outbox AI events,
+`T-406`, README, AGENTS, broad M3/M4/M5, VONESA/WS-F, OMG, DOM, and broad
+architecture-doc work. No replacement implementation slice is started by this
+closeout; fresh current-authority/design-gate selection is required next.
+
 2. **Passenger Rights / VONESA — `WS-F` (gated, rides the spine behind a feature flag).** Flight-delay (EC261) vertical. Tasks `FLIGHT-00…FLIGHT-11` already live in the architecture-finalization tracker; design in `docs/plans/vonesa-architecture-integration-2026-05-30.md`. It consumes M1 (outbox), M2 (case/recovery), M3 (access-tenant isolation), and M5 (entity-of-record billing) and ships behind its own flag, so it gates neither the Design Gate nor the `ida.*` Go-Live. Not started; promoted slice-by-slice after its spine prerequisites.
 
 3. **IDA Operating Model & Sales Governance — `OMG` (gated, post-M3 program).** Unifies the sales network and corporate org/governance. Packet: `docs/plans/2026-06-04-ida-operating-model-sales-governance-program.md`; inputs: `docs/plans/2026-06-04-sales-network-architecture-input.md`, `docs/plans/2026-06-04-operating-model-org-governance-input.md`. Milestones `OMG-00…OMG-09` (org-unit model → scoped permissions → sales-network core → partner/B2B activation, commission settlement, fleet, court escalation as gated commands → board cross-tenant read model → AL-under-MK shadow migration). Depends on M3 (isolation/role de-collapse), M1 (outbox), M5 (billing). Non-goals: no 25-role flat enum (base roles × `access_tenant_id` × `org_unit_id` × capabilities), no generic workflow engine in phase one, no relaxing tenant isolation for board dashboards, no sales access to claims/recovery, no Phase-C scope expansion. Stays `draft` input until promoted post-M3.
@@ -1666,6 +1687,14 @@ requires release-cycle dual-read evidence and fresh current-authority approval; 
 is started by this closeout.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
+
+Post-Rev 88, `T-405` is complete in PR `#1149` / squash merge
+`df4b5c7e32383b8dc6f73bc41a9da07f178803e0` from final implementation head
+`ced6d1bd78e3fc8248d7bf5e4dd83b8c6f7a3df9`. No replacement runtime slice is
+started by this closeout; fresh current-authority/design-gate selection is
+required before promoting `T-406`, Operational Brain runtime, broad M3/M4/M5,
+proxy/routing/auth, schema/RLS, billing, product UI, README, AGENTS, VONESA/WS-F,
+OMG, DOM, or broad architecture-doc work.
 
 ## Program Goals
 
