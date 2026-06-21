@@ -1,5 +1,6 @@
 import { claimIntakeExtractSchema, type ClaimIntakeExtract } from '../schemas/claim-intake-extract';
 import { extractFirstIsoLikeDate, normalizeText, toIsoDate } from '../shared/text';
+import { requireAICallContext, type DomainAiCallContext } from '../context';
 
 type ClaimContext = {
   title: string;
@@ -74,11 +75,14 @@ function parseAmount(value: string | number | null | undefined) {
 }
 
 export async function extractClaimIntake(args: {
+  aiCallContext: DomainAiCallContext;
   claim: ClaimContext;
   claimSnapshot?: ClaimSnapshot | null;
   documentText?: string | null;
   uploadedAt?: Date | string | null;
 }): Promise<ClaimIntakeExtract> {
+  requireAICallContext(args.aiCallContext);
+
   const documentText = normalizeText(args.documentText);
   const description = normalizeText(args.claim.description);
   const warnings: string[] = [];

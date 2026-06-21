@@ -7,6 +7,7 @@ import {
   validateExtractionCandidate,
 } from '@/lib/ai/extraction-pipeline';
 import { extractClaimIntake } from '@interdomestik/domain-ai/claims/intake-extract';
+import { requireAICallContext, type DomainAiCallContext } from '@interdomestik/domain-ai/context';
 import { extractLegalDocument } from '@interdomestik/domain-ai/legal/extract';
 import { claimIntakeExtractSchema } from '@interdomestik/domain-ai/schemas/claim-intake-extract';
 import { legalDocExtractSchema } from '@interdomestik/domain-ai/schemas/legal-doc-extract';
@@ -48,6 +49,12 @@ function getClaimSnapshotFromRequestJson(
   };
 }
 
+function getAiCallContextFromRequestJson(
+  requestJson: Record<string, unknown>
+): DomainAiCallContext {
+  return requireAICallContext(requestJson.aiCallContext);
+}
+
 export function validateClaimAiCandidate(
   workflow: ClaimedClaimAiRun['workflow'],
   candidate: unknown
@@ -80,14 +87,17 @@ export async function extractClaimAiCandidate(
 ): Promise<ExtractionCandidate> {
   const requestJson =
     input.requestJson && typeof input.requestJson === 'object' ? input.requestJson : {};
+  const aiCallContext = getAiCallContextFromRequestJson(requestJson);
   const candidate =
     input.workflow === 'legal_doc_extract'
       ? await extractLegalDocument({
+          aiCallContext,
           documentText: input.documentText,
           fileName: input.fileName,
           uploadedAt: input.uploadedAt,
         })
       : await extractClaimIntake({
+          aiCallContext,
           claim: {
             title: input.claimTitle,
             description: input.claimDescription,

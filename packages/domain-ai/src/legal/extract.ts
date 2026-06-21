@@ -1,5 +1,6 @@
 import { legalDocExtractSchema, type LegalDocExtract } from '../schemas/legal-doc-extract';
 import { extractFirstIsoLikeDate, normalizeText, toIsoDate } from '../shared/text';
+import { requireAICallContext, type DomainAiCallContext } from '../context';
 
 function extractAfterLabel(
   text: string,
@@ -87,10 +88,13 @@ function extractObligations(text: string) {
 }
 
 export async function extractLegalDocument(args: {
+  aiCallContext: DomainAiCallContext;
   documentText?: string | null;
   fileName?: string | null;
   uploadedAt?: Date | string | null;
 }): Promise<LegalDocExtract> {
+  requireAICallContext(args.aiCallContext);
+
   const text = normalizeText(args.documentText);
   const fileName = normalizeText(args.fileName);
   const warnings: string[] = [];

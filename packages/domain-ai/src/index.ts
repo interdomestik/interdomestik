@@ -1,4 +1,5 @@
 export * from './client';
+export * from './context';
 export * from './claims/intake-extract';
 export * from './claims/summary';
 export * from './legal/extract';

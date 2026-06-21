@@ -1,4 +1,5 @@
 import { claimSummarySchema, type ClaimSummary } from '../schemas/claim-summary';
+import { requireAICallContext, type DomainAiCallContext } from '../context';
 
 type ClaimSummaryContext = {
   title: string;
@@ -40,9 +41,12 @@ function getUrgency(amount: number): ClaimSummary['urgency'] {
 }
 
 export async function summarizeClaim(args: {
+  aiCallContext: DomainAiCallContext;
   claim: ClaimSummaryContext;
   extractions?: ExtractionSummary[] | null;
 }): Promise<ClaimSummary> {
+  requireAICallContext(args.aiCallContext);
+
   const amount = parseAmount(args.claim.claimAmount);
   const extractionWarnings = (args.extractions ?? []).flatMap(extraction =>
     Array.isArray(extraction.warnings) ? extraction.warnings.filter(Boolean) : []

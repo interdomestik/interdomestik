@@ -40,6 +40,7 @@ vi.mock('@interdomestik/domain-ai/claims/intake-extract', () => ({
 }));
 
 import { processClaimDocumentWorkflowRunService } from './claim-workflows';
+import { claimIntakeAiCallContext } from '@/test/ai-call-context';
 
 describe('processClaimDocumentWorkflowRunService critique gate', () => {
   beforeEach(() => {
@@ -56,7 +57,7 @@ describe('processClaimDocumentWorkflowRunService critique gate', () => {
         mimeType: 'text/plain',
         uploadedAt: new Date('2026-03-08T10:00:00.000Z'),
         status: 'queued',
-        requestJson: { bucket: 'claim-evidence' },
+        requestJson: { aiCallContext: claimIntakeAiCallContext, bucket: 'claim-evidence' },
         claimTitle: 'Flight delay claim',
         claimDescription: 'Delay overnight.',
         claimCategory: 'travel',

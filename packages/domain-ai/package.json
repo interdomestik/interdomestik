@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./client": "./src/client.ts",
+    "./context": "./src/context.ts",
     "./claims/intake-extract": "./src/claims/intake-extract.ts",
     "./claims/summary": "./src/claims/summary.ts",
     "./legal/extract": "./src/legal/extract.ts",
@@ -27,6 +28,7 @@
   },
   "dependencies": {
     "@interdomestik/database": "workspace:*",
+    "@interdomestik/domain-privacy": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "openai": "^6.42.0",
     "zod": "^4.2.1"

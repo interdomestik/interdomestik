@@ -10,6 +10,7 @@ import * as claimSummarySchemaModule from '../../../packages/domain-ai/src/schem
 import * as legalDocExtractSchemaModule from '../../../packages/domain-ai/src/schemas/legal-doc-extract.ts';
 import * as policyExtractSchemaModule from '../../../packages/domain-ai/src/schemas/policy-extract.ts';
 import * as telemetryModule from '../../../packages/domain-ai/src/telemetry.ts';
+import { createEvalWorkflowRunners } from './ai-call-context.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DATASET_FILES = [
@@ -24,28 +25,18 @@ const { claimSummarySchema } = unwrapModule(claimSummarySchemaModule);
 const { legalDocExtractSchema } = unwrapModule(legalDocExtractSchemaModule);
 const { policyExtractSchema } = unwrapModule(policyExtractSchemaModule);
 const { aggregateAiTelemetry, createAiTelemetryEvent } = unwrapModule(telemetryModule);
+const WORKFLOW_RUNNERS = createEvalWorkflowRunners({
+  analyzePolicyText,
+  summarizeClaim,
+  extractLegalDocument,
+  claimSummarySchema,
+  legalDocExtractSchema,
+  policyExtractSchema,
+});
 
 function unwrapModule(module) {
   return module.default ?? module['module.exports'] ?? module;
 }
-
-const WORKFLOW_RUNNERS = {
-  policy_extract: {
-    execute: async input => analyzePolicyText(String(input.documentText ?? '')),
-    normalizeForSchema: value => value,
-    schema: policyExtractSchema,
-  },
-  claim_summary: {
-    execute: async input => summarizeClaim(input),
-    normalizeForSchema: value => value,
-    schema: claimSummarySchema,
-  },
-  legal_doc_extract: {
-    execute: async input => extractLegalDocument(input),
-    normalizeForSchema: value => value,
-    schema: legalDocExtractSchema,
-  },
-};
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
