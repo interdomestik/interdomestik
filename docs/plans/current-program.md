@@ -1735,6 +1735,26 @@ runtime, broad M5, proxy/routing/auth, schema/RLS, billing, product UI, entity
 migration, README, AGENTS, VONESA/WS-F, OMG, DOM, and implementation-worker work
 remain unpromoted unless separately authorized.
 
+Rev 92 tracker overlay: `OBR-DG21` completed the post-PR `#1154`
+current-authority/design-gate selection in
+`docs/plans/2026-06-21-obr-dg21-t503a-readiness-gate.md`. PR `#1154` merged the
+`T-503` evidence packet at `c54f406d4f73f3c9d43635c8d58c4c28d30c3df8`; post-merge
+main at that SHA has CI success including `e2e-gate`, Sonar Main Gate success,
+CodeQL success, and Secret Scan success, with CD pending deployment-only and
+waived/skippable by Arben. The evidence conclusion remains
+`T-503_BLOCKED_RUNTIME_DEPENDENCY`: direct destructive `T-503` is blocked by
+missing qualifying release-cycle proof, runtime transition/current-state/CAS
+dependency on `claims.status`, status-shaped initialization/fixtures, and a
+missing rollback/backfill/observability package. The next active governed
+implementation goal is exactly one canonical tracker slice: `T-503a`. Future
+`T-503a` is limited to a read-only lifecycle consistency inventory/report for
+claim lifecycle pair validity and status/lifecycle mismatch risk plus a
+command-path deprecation design for replacing legacy `claims.status`
+current-state validation/CAS. No `claims.status` drop/rename, destructive
+schema/RLS migration, proxy/routing/auth/session/tenancy/billing/entity
+migration, product UI, Operational Brain runtime/live AI, broad M5, `T-504`,
+`T-507`, `T-501`, `T-502`, `T-505`, `T-506`, README, or AGENTS work is promoted.
+
 ## Program Goals
 
 1. Keep the completed `V01` through `V05` convergence work inspectable and stable.
