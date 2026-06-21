@@ -1696,6 +1696,19 @@ required before promoting `T-406`, Operational Brain runtime, broad M3/M4/M5,
 proxy/routing/auth, schema/RLS, billing, product UI, README, AGENTS, VONESA/WS-F,
 OMG, DOM, or broad architecture-doc work.
 
+Rev 89 tracker overlay: `OBR-DG19` completed the post-`T-405`
+current-authority/design-gate selection in
+`docs/plans/2026-06-21-obr-dg19-t406-adr-closeout-promotion.md`. `T-405`
+completed the AI posture cleanup chain, and OP Brain advisory recommends
+exactly `T-406` as the smallest valuable ADR closeout. The next active governed
+implementation goal is exactly one canonical tracker slice: `T-406`. Future
+`T-406` work is limited to ADR-only closeout for ADR-07 card derived view,
+ADR-08 AI posture required, and ADR-11 disclosure/tax binding. Operational Brain
+runtime, model/provider calls, prompts, outbox AI events, broad M3/M4/M5,
+proxy/routing/auth, schema/RLS, billing, product UI, entity migration, README,
+AGENTS, VONESA/WS-F, OMG, DOM, and runtime/product work remain unpromoted unless
+separately authorized.
+
 ## Program Goals
 
 1. Keep the completed `V01` through `V05` convergence work inspectable and stable.
