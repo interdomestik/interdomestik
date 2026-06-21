@@ -133,7 +133,7 @@ describe('queueClaimDocumentAiWorkflows', () => {
     expect(hoisted.txInsert).not.toHaveBeenCalled();
   });
 
-  it('queues an AI run that requires durable consent re-minting at execution time', async () => {
+  it('queues an AI run without storing a replayable AI context', async () => {
     const queuedRuns = await queueWith([acceptedConsent]);
 
     expect(queuedRuns).toEqual([
@@ -147,9 +147,6 @@ describe('queueClaimDocumentAiWorkflows', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: 'run-1',
-          requestJson: expect.objectContaining({
-            aiCallContextStorage: 'durable_consent_remint_required',
-          }),
         }),
       ])
     );

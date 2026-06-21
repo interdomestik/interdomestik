@@ -53,7 +53,22 @@ function validateConsentEvidence(
     return { kind: 'missing_consent', reasons: ['consent_evidence_missing'] };
   }
 
-  if (!hasAcceptedConsentEvidence(input, evidence)) {
+  if (
+    input.purpose === 'document_extraction' &&
+    evidence.documentPolicy &&
+    isGenericTermsPrivacyConsentSource(evidence.documentPolicy.sourceUploadSurface)
+  ) {
+    return { kind: 'missing_consent', reasons: ['consent_evidence_missing'] };
+  }
+
+  const specificEvidence = {
+    ...evidence,
+    consentEvents: evidence.consentEvents.filter(
+      event => !isGenericTermsPrivacyConsentSource(event.sourceSurface)
+    ),
+  };
+
+  if (!hasAcceptedConsentEvidence(input, specificEvidence)) {
     return { kind: 'missing_consent', reasons: ['consent_evidence_missing'] };
   }
 
@@ -61,7 +76,7 @@ function validateConsentEvidence(
     return undefined;
   }
 
-  const policyDecision = validateDocumentExtractionEvidence(input, scope, evidence);
+  const policyDecision = validateDocumentExtractionEvidence(input, scope, specificEvidence);
   if (policyDecision.kind === 'allowed') {
     return undefined;
   }
@@ -86,7 +101,6 @@ function hasAcceptedConsentEvidence(
       event.tenantId === input.tenantId &&
       event.subjectId === input.subjectId &&
       consentEvidenceMatchesPurpose(input, event) &&
-      !isGenericTermsPrivacyConsentSource(event.sourceSurface) &&
       consentScopeMatchesInput(input.scope, event.scope) &&
       event.status === 'accepted' &&
       Number.isFinite(Date.parse(event.recordedAt))

@@ -5,6 +5,7 @@ import {
 
 import { db } from '@/lib/db.server';
 
+import { ExtractionPipelineError } from './extraction-pipeline';
 import type { ClaimedClaimAiRun } from './claim-pipeline-run';
 
 export async function readClaimPipelineAiCallContext(run: ClaimedClaimAiRun) {
@@ -17,16 +18,24 @@ export async function readClaimPipelineAiCallContext(run: ClaimedClaimAiRun) {
   });
 
   if (consent.kind !== 'granted') {
-    throw new Error(`AI call context is required: ${consent.reason}`);
+    throw new ExtractionPipelineError(
+      'claim_ai_context_required',
+      `AI call context is required: ${consent.reason}`
+    );
   }
 
-  return mintClaimDocumentAiCallContext({
-    claimId: run.claimId,
-    documentId: run.documentId,
-    grant: consent.grant,
-    tenantId: run.tenantId,
-    userId: run.requestedBy,
-    subjectId: run.subjectId,
-    workflow: run.workflow,
-  });
+  try {
+    return mintClaimDocumentAiCallContext({
+      claimId: run.claimId,
+      documentId: run.documentId,
+      grant: consent.grant,
+      tenantId: run.tenantId,
+      userId: run.requestedBy,
+      subjectId: run.subjectId,
+      workflow: run.workflow,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'AI call context is invalid.';
+    throw new ExtractionPipelineError('claim_ai_context_invalid', message);
+  }
 }
