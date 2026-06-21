@@ -1721,6 +1721,20 @@ current-authority/design-gate selection is required before any runtime,
 Operational Brain, M5, proxy/routing/auth, schema/RLS, billing, product UI,
 README, AGENTS, VONESA/WS-F, OMG, DOM, or implementation-worker work.
 
+Rev 91 tracker overlay: `OBR-DG20` completed the post-`T-406`
+current-authority/design-gate selection in
+`docs/plans/2026-06-21-obr-dg20-t503-readiness-gate.md`. `T-503` is the first
+ranked M5 readiness candidate because `T-202` is complete, but the required
+release-cycle dual-read/dual-write evidence for dropping legacy `status` is not
+attached in current repo authority. `T-503` is explicitly parked until a bounded
+evidence/current-authority follow-up attaches the qualifying release-cycle proof,
+remaining legacy `status` dependency inventory, and destructive-migration
+rollback/data-repair plan. No runtime implementation slice is promoted by this
+gate; `T-504`, `T-507`, `T-501`, `T-502`, `T-505`, `T-506`, Operational Brain
+runtime, broad M5, proxy/routing/auth, schema/RLS, billing, product UI, entity
+migration, README, AGENTS, VONESA/WS-F, OMG, DOM, and implementation-worker work
+remain unpromoted unless separately authorized.
+
 ## Program Goals
 
 1. Keep the completed `V01` through `V05` convergence work inspectable and stable.
