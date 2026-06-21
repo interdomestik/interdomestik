@@ -166,7 +166,6 @@ function buildQueuedRun(
     uploadedAt: new Date('2026-03-08T10:00:00.000Z'),
     status: 'queued',
     requestJson: {
-      aiCallContext: claimIntakeAiCallContext,
       claimSnapshot: {
         incidentDate: '2026-02-15',
       },
@@ -318,7 +317,6 @@ describe('processClaimDocumentWorkflowRunService', () => {
         documentId: 'doc-2',
         storagePath: 'pii/tenants/tenant-1/claims/claim-1/demand-letter.pdf',
         fileName: 'demand-letter.pdf',
-        requestJson: { aiCallContext: createLegalAiCallContext('doc-2') },
       }),
     ]);
     mocks.mintClaimDocumentAiCallContext.mockReturnValue(createLegalAiCallContext('doc-2'));

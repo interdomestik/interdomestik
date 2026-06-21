@@ -20,6 +20,7 @@ vi.mock('@interdomestik/domain-claims', () => ({
 }));
 
 import { extractClaimAiCandidate } from './claim-pipeline-input';
+import { claimIntakeAiCallContext } from '@/test/ai-call-context';
 
 describe('extractClaimAiCandidate', () => {
   beforeEach(() => {
@@ -28,7 +29,7 @@ describe('extractClaimAiCandidate', () => {
       kind: 'granted',
       grant: { consentEventId: 'consent-1', recordedAt: '2026-06-21T10:00:00.000Z' },
     });
-    mocks.mintClaimDocumentAiCallContext.mockReturnValue({});
+    mocks.mintClaimDocumentAiCallContext.mockReturnValue(claimIntakeAiCallContext);
     mocks.extractClaimIntake.mockResolvedValue({
       title: 'Flight delay claim',
       summary: 'Extracted from claim context.',

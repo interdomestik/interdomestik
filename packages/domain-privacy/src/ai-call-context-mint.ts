@@ -1,36 +1,20 @@
-import { evaluateAiExtractionPolicy, type AICallContext, type AICallContextFields } from './ai';
+import { evaluateAiExtractionPolicy } from './ai';
+import { isGenericTermsPrivacyConsentSource } from './ai-call-context-consent-source';
 import { AI_CALL_CONTEXT_KEYS, PRIVACY_SCOPE_KEYS } from './ai-call-context-keys';
+import type {
+  AICallContextConsentEvidence,
+  AICallContextMintDecision,
+  AICallContextMintInput,
+} from './ai-call-context-mint-types';
 import { buildAICallContext } from './ai-call-context-validation-result';
 import {
   collectAICallContextInvalidReasons,
   readPrivacyScope,
 } from './ai-call-context-validation-rules';
 import { readOwnValue, snapshotOwnValues } from './ai-call-context-own-value';
-import type {
-  ConsentEvent,
-  DocumentProcessingPolicy,
-  PrivacyScope,
-  ProcessingPurpose,
-} from './types';
+import type { PrivacyScope } from './types';
 
-export type AICallContextMintDecision =
-  | { kind: 'valid'; context: AICallContext; reasons: readonly [] }
-  | { kind: 'invalid'; reasons: readonly string[] }
-  | { kind: 'missing_consent'; reasons: readonly string[] };
-
-export interface AICallContextConsentEvidence {
-  consentEvents: readonly ConsentEvent[];
-  documentPolicy?: DocumentProcessingPolicy;
-  modelBoundary?: string;
-  promptOrSchemaVersion?: string;
-  requestedPurpose?: ProcessingPurpose;
-  noTraining?: boolean;
-  zeroRetention?: boolean;
-}
-
-export type AICallContextMintInput = AICallContextFields & {
-  consentEvidence?: AICallContextConsentEvidence;
-};
+export type { AICallContextConsentEvidence, AICallContextMintDecision, AICallContextMintInput };
 
 export function mintAICallContext(input: AICallContextMintInput): AICallContextMintDecision {
   const snapshot = snapshotOwnValues(
@@ -69,7 +53,22 @@ function validateConsentEvidence(
     return { kind: 'missing_consent', reasons: ['consent_evidence_missing'] };
   }
 
-  if (!hasAcceptedConsentEvidence(input, evidence)) {
+  if (
+    input.purpose === 'document_extraction' &&
+    evidence.documentPolicy &&
+    isGenericTermsPrivacyConsentSource(evidence.documentPolicy.sourceUploadSurface)
+  ) {
+    return { kind: 'missing_consent', reasons: ['consent_evidence_missing'] };
+  }
+
+  const specificEvidence = {
+    ...evidence,
+    consentEvents: evidence.consentEvents.filter(
+      event => !isGenericTermsPrivacyConsentSource(event.sourceSurface)
+    ),
+  };
+
+  if (!hasAcceptedConsentEvidence(input, specificEvidence)) {
     return { kind: 'missing_consent', reasons: ['consent_evidence_missing'] };
   }
 
@@ -77,7 +76,7 @@ function validateConsentEvidence(
     return undefined;
   }
 
-  const policyDecision = validateDocumentExtractionEvidence(input, scope, evidence);
+  const policyDecision = validateDocumentExtractionEvidence(input, scope, specificEvidence);
   if (policyDecision.kind === 'allowed') {
     return undefined;
   }

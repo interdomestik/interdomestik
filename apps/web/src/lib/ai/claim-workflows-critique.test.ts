@@ -44,8 +44,8 @@ vi.mock('@interdomestik/domain-claims', () => ({
   mintClaimDocumentAiCallContext: mocks.mintClaimDocumentAiCallContext,
   resolveClaimDocumentAiExtractionConsent: mocks.resolveClaimDocumentAiExtractionConsent,
 }));
-
 import { processClaimDocumentWorkflowRunService } from './claim-workflows';
+import { claimIntakeAiCallContext } from '@/test/ai-call-context';
 
 describe('processClaimDocumentWorkflowRunService critique gate', () => {
   beforeEach(() => {
@@ -74,7 +74,7 @@ describe('processClaimDocumentWorkflowRunService critique gate', () => {
       kind: 'granted',
       grant: { consentEventId: 'consent-1', recordedAt: '2026-06-21T10:00:00.000Z' },
     });
-    mocks.mintClaimDocumentAiCallContext.mockReturnValue({});
+    mocks.mintClaimDocumentAiCallContext.mockReturnValue(claimIntakeAiCallContext);
     mocks.extractClaimIntake.mockResolvedValue({
       title: 'Flight delay claim',
       summary: 'Extraction had no usable content.',
@@ -112,17 +112,10 @@ describe('processClaimDocumentWorkflowRunService critique gate', () => {
     );
   });
 
-  it('marks the run failed before persistence when output is schema-invalid', async () => {
-    mocks.extractClaimIntake.mockResolvedValue({
-      title: 'Flight delay claim',
-      summary: 'Invalid amount.',
-      category: 'travel',
-      incidentDate: '2026-02-15',
-      countryCode: 'ZZ',
-      estimatedAmount: '0',
-      currency: 'EUR',
-      confidence: 0.8,
-      warnings: [],
+  it('marks the run failed before extraction when consent re-minting is blocked', async () => {
+    mocks.resolveClaimDocumentAiExtractionConsent.mockResolvedValue({
+      kind: 'blocked',
+      reason: 'consent_missing',
     });
 
     const result = await processClaimDocumentWorkflowRunService({
@@ -139,11 +132,12 @@ describe('processClaimDocumentWorkflowRunService critique gate', () => {
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
     });
+    expect(mocks.extractClaimIntake).not.toHaveBeenCalled();
     expect(mocks.txInsert).not.toHaveBeenCalled();
     expect(mocks.txUpdateSet).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'failed',
-        errorCode: 'claim_intake_extract_validation_failed',
+        errorCode: 'claim_ai_context_required',
       })
     );
   });

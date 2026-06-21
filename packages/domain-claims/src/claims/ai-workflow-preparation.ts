@@ -3,10 +3,6 @@ import { createHash } from 'node:crypto';
 import { getResponsesWorkflowConfig } from '@interdomestik/domain-ai/models';
 import { nanoid } from 'nanoid';
 
-import {
-  buildClaimDocumentAiCallContext,
-  type ClaimDocumentAiCallContext,
-} from './claim-ai-context';
 import { resolveClaimDocumentAiExtractionConsent } from './claim-document-ai-consent';
 import type {
   ClaimAiClaimSnapshot,
@@ -26,7 +22,6 @@ export type PreparedQueuedClaimAiRun = {
   promptCacheKey: string;
   file: ClaimAiWorkflowQueueInput['files'][number];
   inputHash: string;
-  aiCallContext: ClaimDocumentAiCallContext;
 };
 
 function normalizeCategory(category: string | null | undefined): ClaimAiDocumentCategory {
@@ -86,14 +81,6 @@ export async function prepareClaimDocumentAiRun(params: {
       path: file.path,
       category,
       claimSnapshot: args.claimSnapshot,
-    }),
-    aiCallContext: buildClaimDocumentAiCallContext({
-      claimId: args.claimId,
-      documentId,
-      grant: consent.grant,
-      tenantId: args.tenantId,
-      userId: args.userId,
-      workflow,
     }),
   };
 }
