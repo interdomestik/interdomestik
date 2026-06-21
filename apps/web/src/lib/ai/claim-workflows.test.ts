@@ -134,6 +134,7 @@ import {
   emitClaimAiRunRequestedService,
   processClaimDocumentWorkflowRunService,
 } from './claim-workflows';
+import { claimIntakeAiCallContext, createLegalAiCallContext } from '@/test/ai-call-context';
 
 function buildQueuedRun(
   overrides: Partial<{
@@ -156,6 +157,7 @@ function buildQueuedRun(
     uploadedAt: new Date('2026-03-08T10:00:00.000Z'),
     status: 'queued',
     requestJson: {
+      aiCallContext: claimIntakeAiCallContext,
       claimSnapshot: {
         incidentDate: '2026-02-15',
       },
@@ -294,7 +296,7 @@ describe('processClaimDocumentWorkflowRunService', () => {
         documentId: 'doc-2',
         storagePath: 'pii/tenants/tenant-1/claims/claim-1/demand-letter.pdf',
         fileName: 'demand-letter.pdf',
-        requestJson: {},
+        requestJson: { aiCallContext: createLegalAiCallContext('doc-2') },
       }),
     ]);
     mocks.extractLegalDocument.mockResolvedValue({
@@ -341,10 +343,8 @@ describe('processClaimDocumentWorkflowRunService', () => {
     mocks.selectWhere.mockResolvedValue([
       buildQueuedRun({
         requestJson: {
-          claimSnapshot: {
-            incidentDate: '15/02/2026',
-            other: 'ignored',
-          },
+          aiCallContext: claimIntakeAiCallContext,
+          claimSnapshot: { incidentDate: '15/02/2026', other: 'ignored' },
         },
       }),
     ]);

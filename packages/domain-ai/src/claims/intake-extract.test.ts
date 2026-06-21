@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import { createDocumentExtractionAiContext } from '../test-helpers/ai-call-context';
 import { extractClaimIntake } from './intake-extract';
 
 describe('extractClaimIntake', () => {
   it('maps claim context and document text into the typed intake schema', async () => {
     const result = await extractClaimIntake({
+      aiCallContext: createDocumentExtractionAiContext(),
       claim: {
         title: 'Flight cancellation reimbursement',
         description: 'My flight from Berlin to Rome was cancelled and I had to rebook.',
@@ -35,6 +37,7 @@ describe('extractClaimIntake', () => {
 
   it('falls back safely when the claim payload is sparse', async () => {
     const result = await extractClaimIntake({
+      aiCallContext: createDocumentExtractionAiContext(),
       claim: {
         title: 'Unknown issue',
         description: '',
@@ -51,5 +54,21 @@ describe('extractClaimIntake', () => {
     expect(result.currency).toBe('EUR');
     expect(result.estimatedAmount).toBe(0);
     expect(result.warnings.length).toBeGreaterThan(0);
+  });
+
+  it('rejects missing runtime AI context before extraction behavior', async () => {
+    await expect(
+      extractClaimIntake({
+        // @ts-expect-error T-404 runtime guard rejects null context.
+        aiCallContext: null,
+        claim: {
+          title: 'Unknown issue',
+          description: '',
+          category: 'mystery',
+          claimAmount: null,
+          currency: null,
+        },
+      })
+    ).rejects.toThrow(/AI call context is required: context_missing/);
   });
 });
