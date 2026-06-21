@@ -171,7 +171,7 @@ describe('submitClaimCore', () => {
     });
   });
 
-  it('queues claim AI after documents persist', async () => {
+  it('persists initial documents without queueing AI when no explicit extraction consent exists', async () => {
     const dispatchClaimAiRun = vi.fn().mockResolvedValue(undefined);
     const validateSubmittedClaimFile = vi.fn().mockResolvedValue(undefined);
 
@@ -214,22 +214,8 @@ describe('submitClaimCore', () => {
         tenantId: 'tenant-1',
       })
     );
-    expect(hoisted.queueClaimDocumentAiWorkflows).toHaveBeenCalledWith(
-      expect.objectContaining({
-        claimId: 'claim-1',
-        tenantId: 'tenant-1',
-        userId: 'member-1',
-        claimSnapshot: expect.objectContaining({
-          incidentDate: '2026-02-15',
-        }),
-      })
-    );
-    expect(dispatchClaimAiRun).toHaveBeenCalledWith(
-      expect.objectContaining({
-        runId: 'run-1',
-        workflow: 'claim_intake_extract',
-      })
-    );
+    expect(hoisted.queueClaimDocumentAiWorkflows).not.toHaveBeenCalled();
+    expect(dispatchClaimAiRun).not.toHaveBeenCalled();
     expect(validateSubmittedClaimFile).toHaveBeenCalledWith({
       actorId: 'member-1',
       tenantId: 'tenant-1',

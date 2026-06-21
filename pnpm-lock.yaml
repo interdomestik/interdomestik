@@ -587,6 +587,9 @@ importers:
       '@interdomestik/domain-membership-billing':
         specifier: workspace:*
         version: link:../domain-membership-billing
+      '@interdomestik/domain-privacy':
+        specifier: workspace:*
+        version: link:../domain-privacy
       '@interdomestik/domain-recovery':
         specifier: workspace:*
         version: link:../domain-recovery

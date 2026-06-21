@@ -11,6 +11,7 @@ import { findOwnedMemberUploadClaim } from '@/features/claims/upload/server/acce
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
+import { buildMemberAiExtractionConsent, type ConfirmUploadParams } from './upload-consent';
 
 export type GenerateUploadUrlResult =
   | {
@@ -77,19 +78,6 @@ export async function generateUploadUrl(
 export type ConfirmUploadResult =
   | { success: true }
   | { success: false; error: string; status: 401 | 404 | 409 | 500 };
-
-export type ConfirmUploadParams = {
-  claimId: string;
-  storagePath: string;
-  originalName: string;
-  mimeType: string;
-  fileSize: number;
-  fileId: string;
-  uploadIntentToken: string;
-  storageContentType?: string;
-  uploadedBucket?: string;
-  category?: 'evidence' | 'legal';
-};
 
 type ConfirmUploadContext =
   | {
@@ -191,6 +179,7 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
       storagePath,
       tenantId,
       userId: session.user.id,
+      aiExtractionConsent: buildMemberAiExtractionConsent(params),
     });
 
     revalidatePathForAllLocales(`/member/claims/${claimId}`);

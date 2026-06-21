@@ -160,11 +160,11 @@ describe('admin claim evidence upload actions', () => {
       })
     ).resolves.toEqual({ success: true });
 
-    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/mk/admin/claims');
     expect(hoisted.revalidatePath).toHaveBeenCalledWith('/mk/admin/claims/claim-1');
-    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/mk/staff/claims/claim-1');
+    expect(hoisted.persistClaimDocumentAndQueueWorkflows).toHaveBeenCalledWith(
+      expect.not.objectContaining({ aiExtractionConsent: expect.anything() })
+    );
   });
-
   it('rejects forged upload metadata before persistence', async () => {
     hoisted.validateConfirmedClaimUpload.mockResolvedValueOnce({
       success: false,

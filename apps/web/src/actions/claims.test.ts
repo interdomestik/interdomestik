@@ -3,6 +3,7 @@ import { db } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { submitClaim } from './claims.core';
 import { createClaim, updateClaimStatus } from './claims';
+import { createClaimActionTxSelect } from './claims.test-helpers';
 
 const mockGetSession = vi.fn();
 const mockDbInsert = vi.fn().mockReturnValue({
@@ -17,6 +18,7 @@ const mockTxSelectLimit = vi
   .mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 1, status: 'submitted' }]);
 const mockTxUpdateReturning = vi.fn().mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
 const mockPaymentLimit = vi.fn().mockResolvedValue([{ paymentAuthorizationState: 'authorized' }]);
+const mockEmptyConsentLimit = vi.fn().mockResolvedValue([]);
 const mockHasActiveMembership = vi.fn();
 const mockGetActiveSubscription = vi.fn();
 const mockValidateInitialClaimEvidenceUpload = vi.hoisted(() => vi.fn());
@@ -56,26 +58,20 @@ vi.mock('@interdomestik/database', () => ({
     transaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
       fn({
         insert: () => ({ values: mockDbInsert }),
-        select: () => ({ from: () => ({ where: () => ({ limit: mockTxSelectLimit }) }) }),
+        select: createClaimActionTxSelect({
+          emptyConsentLimit: mockEmptyConsentLimit,
+          paymentLimit: mockTxSelectLimit,
+        }),
         update: () => ({ set: () => ({ where: () => ({ returning: mockTxUpdateReturning }) }) }),
         query: {
           tenants: { findFirst: vi.fn().mockResolvedValue({ id: 'tenant_mk', countryCode: 'MK' }) },
         },
       }),
     query: {
-      subscriptions: {
-        findFirst: vi.fn().mockResolvedValue({
-          id: 'sub-1',
-          userId: 'user-123',
-          status: 'active',
-        }),
-      },
-      agentClients: {
-        findFirst: vi.fn().mockResolvedValue(null),
-      },
-      tenantSettings: {
-        findFirst: vi.fn().mockResolvedValue(null),
-      },
+      // prettier-ignore
+      subscriptions: { findFirst: vi.fn().mockResolvedValue({ id: 'sub-1', userId: 'user-123', status: 'active' }) },
+      agentClients: { findFirst: vi.fn().mockResolvedValue(null) },
+      tenantSettings: { findFirst: vi.fn().mockResolvedValue(null) },
       claims: {
         findFirst: vi.fn().mockResolvedValue({
           id: 'claim-1',
@@ -118,6 +114,8 @@ vi.mock('@interdomestik/database', () => ({
   },
   claimStageHistory: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   claimDocuments: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
+  // prettier-ignore
+  claimDocumentAiExtractionConsents: { id: { name: 'id' }, tenantId: { name: 'tenantId' }, actorId: { name: 'actorId' }, subjectId: { name: 'subjectId' }, claimId: { name: 'claimId' }, documentId: { name: 'documentId' }, consentType: { name: 'consentType' }, processingPurpose: { name: 'processingPurpose' }, status: { name: 'status' }, privacyVersion: { name: 'privacyVersion' }, locale: { name: 'locale' }, sourceSurface: { name: 'sourceSurface' }, recordedAt: { name: 'recordedAt' }, grantedAt: { name: 'grantedAt' }, withdrawnAt: { name: 'withdrawnAt' } },
   documents: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   aiRuns: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   user: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },

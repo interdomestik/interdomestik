@@ -610,6 +610,13 @@
       "when": 1781932800000,
       "tag": "0086_access_tenant_divergent_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1782019200000,
+      "tag": "0087_claim_document_ai_extraction_consents",
+      "breakpoints": true
     }
   ]
 }

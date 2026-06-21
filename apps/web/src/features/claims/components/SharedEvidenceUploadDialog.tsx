@@ -20,87 +20,18 @@ import {
 } from '@interdomestik/ui';
 import { Loader2, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   EVIDENCE_FILE_ACCEPT,
   resolveStorageUploadContentType,
   resolveUploadMimeType,
 } from '@/features/admin/claims/components/ops/file-upload-meta';
-
-type EvidenceCategory = 'evidence' | 'legal';
-
-type UploadUrlSuccess = {
-  success: true;
-  bucket: string;
-  path: string;
-  token: string;
-  intentToken: string;
-  id: string;
-};
-
-type UploadUrlFailure = {
-  success: false;
-  error: string;
-};
-
-type ConfirmUploadSuccess = {
-  success: true;
-};
-
-type ConfirmUploadFailure = {
-  success: false;
-  error: string;
-};
-
-type GenerateUploadUrlFn = (
-  claimId: string,
-  fileName: string,
-  contentType: string,
-  fileSize: number
-) => Promise<UploadUrlSuccess | UploadUrlFailure>;
-
-type ConfirmUploadFn = (params: {
-  claimId: string;
-  storagePath: string;
-  originalName: string;
-  mimeType: string;
-  fileSize: number;
-  fileId: string;
-  uploadIntentToken: string;
-  storageContentType?: string;
-  uploadedBucket: string;
-  category: EvidenceCategory;
-}) => Promise<ConfirmUploadSuccess | ConfirmUploadFailure>;
-
-interface SharedEvidenceUploadDialogMessages {
-  dialogTitle: string;
-  dialogDescription: string;
-  documentTypeLabel: string;
-  documentTypePlaceholder: string;
-  fileLabel: string;
-  uploadButton: string;
-  uploading: string;
-  cancel: string;
-  uploadSuccess: string;
-  uploadFailed: string;
-  storageUnavailable: string;
-  types: {
-    evidence: string;
-    legal: string;
-  };
-}
-
-interface SharedEvidenceUploadDialogProps {
-  categoryFieldId: string;
-  claimId: string;
-  confirmUpload: ConfirmUploadFn;
-  fileFieldId: string;
-  generateUploadUrl: GenerateUploadUrlFn;
-  locale: string;
-  messages: SharedEvidenceUploadDialogMessages;
-  trigger: React.ReactNode;
-}
+import { AiExtractionConsentField } from './ai-extraction-consent-field';
+import type {
+  EvidenceCategory,
+  SharedEvidenceUploadDialogProps,
+} from './shared-evidence-upload-types';
 
 export function SharedEvidenceUploadDialog({
   categoryFieldId,
@@ -115,6 +46,7 @@ export function SharedEvidenceUploadDialog({
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState<EvidenceCategory>('evidence');
+  const [aiExtractionConsentGranted, setAiExtractionConsentGranted] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -127,14 +59,21 @@ export function SharedEvidenceUploadDialog({
     }
   }, []);
 
+  useEffect(() => {
+    if (!open) {
+      setFile(null);
+      setAiExtractionConsentGranted(false);
+    }
+  }, [open]);
+
   const resetDialog = () => {
     setOpen(false);
-    setFile(null);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selected = event.target.files?.[0] ?? null;
     setFile(selected);
+    setAiExtractionConsentGranted(false);
   };
 
   const handleDirectUpload = async (selectedFile: File, selectedCategory: EvidenceCategory) => {
@@ -143,6 +82,7 @@ export function SharedEvidenceUploadDialog({
     formData.append('category', selectedCategory);
     formData.append('locale', locale);
     formData.append('file', selectedFile);
+    formData.append('aiExtractionConsentGranted', String(aiExtractionConsentGranted));
 
     const response = await fetch('/api/claims/evidence-upload', {
       method: 'POST',
@@ -209,6 +149,8 @@ export function SharedEvidenceUploadDialog({
       storageContentType,
       uploadedBucket: uploadUrlResult.bucket,
       category: selectedCategory,
+      aiExtractionConsentGranted,
+      aiExtractionConsentLocale: locale,
     });
 
     if (!confirmResult.success) {
@@ -272,6 +214,15 @@ export function SharedEvidenceUploadDialog({
               disabled={uploading}
             />
           </div>
+          {messages.aiExtractionConsent ? (
+            <AiExtractionConsentField
+              id={`${fileFieldId}-ai-consent`}
+              checked={aiExtractionConsentGranted}
+              disabled={uploading}
+              label={messages.aiExtractionConsent}
+              onCheckedChange={setAiExtractionConsentGranted}
+            />
+          ) : null}
         </div>
         <DialogFooter className="sm:justify-start">
           <Button type="button" variant="default" onClick={handleUpload} disabled={uploading}>

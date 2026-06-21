@@ -33,6 +33,8 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
         uploadSuccess: 'Evidence uploaded successfully',
         uploadFailed: 'Failed to upload evidence',
         storageUnavailable: 'Storage client unavailable',
+        aiExtractionConsent:
+          'I agree to AI document extraction for this uploaded file to prepare claim fields for human review.',
         types: {
           evidence: 'Evidence',
           legal: 'Legal document',

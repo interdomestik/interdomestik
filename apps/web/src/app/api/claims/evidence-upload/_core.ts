@@ -1,4 +1,3 @@
-import { confirmAdminUpload } from '@/features/admin/claims/actions';
 import {
   resolveStorageUploadContentType,
   resolveUploadMimeType,
@@ -12,7 +11,6 @@ import {
   findAccessibleAdminUploadClaim,
   findOwnedMemberUploadClaim,
 } from '@/features/claims/upload/server/access';
-import { confirmUpload } from '@/features/member/claims/actions';
 import { LOCALES } from '@/i18n/locales';
 import { auth } from '@/lib/auth';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
@@ -21,6 +19,8 @@ import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import * as Sentry from '@sentry/nextjs';
 import { randomUUID } from 'crypto';
+
+import { confirmEvidenceUpload } from './confirm';
 
 const ADMIN_UPLOAD_ROLES = new Set([
   'admin',
@@ -33,9 +33,11 @@ const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
 type UploadCategory = 'evidence' | 'legal';
 type EvidenceUploadForm = {
+  aiExtractionConsentGranted: boolean;
   category: UploadCategory;
   claimId: string;
   file: File;
+  locale: string;
 };
 
 type ResponseResult<T> = { success: true; data: T } | { success: false; response: Response };
@@ -98,6 +100,7 @@ async function parseEvidenceUploadForm(
   const claimId = formData.get('claimId');
   const category = formData.get('category');
   const locale = formData.get('locale');
+  const aiExtractionConsentGranted = formData.get('aiExtractionConsentGranted');
   const file = formData.get('file');
 
   if (
@@ -118,7 +121,16 @@ async function parseEvidenceUploadForm(
     return { success: false, response: jsonError('File too large (max 50MB)', 413) };
   }
 
-  return { success: true, data: { category, claimId, file } };
+  return {
+    success: true,
+    data: {
+      aiExtractionConsentGranted: aiExtractionConsentGranted === 'true',
+      category,
+      claimId,
+      file,
+      locale,
+    },
+  };
 }
 
 function resolveTenantId(
@@ -206,36 +218,6 @@ async function uploadEvidenceObject(params: {
   return null;
 }
 
-async function confirmEvidenceUpload(params: {
-  bucket: string;
-  category: UploadCategory;
-  claimAccess: { isAdminSurface: boolean };
-  claimId: string;
-  file: File;
-  fileId: string;
-  resolvedMimeType: string;
-  storageContentType: string;
-  storagePath: string;
-  uploadIntentToken: string;
-}) {
-  const confirmation = {
-    claimId: params.claimId,
-    storagePath: params.storagePath,
-    originalName: params.file.name,
-    mimeType: params.resolvedMimeType,
-    fileSize: params.file.size,
-    fileId: params.fileId,
-    uploadIntentToken: params.uploadIntentToken,
-    storageContentType: params.storageContentType,
-    uploadedBucket: params.bucket,
-    category: params.category,
-  };
-
-  return params.claimAccess.isAdminSurface
-    ? confirmAdminUpload(confirmation)
-    : confirmUpload(confirmation);
-}
-
 function captureConfirmFailure(params: {
   bucket: string;
   category: UploadCategory;
@@ -269,7 +251,7 @@ export async function POST(request: Request) {
   const evidenceBucket = resolveEvidenceBucket();
   if (!evidenceBucket.success) return evidenceBucket.response;
 
-  const { category, claimId, file } = form.data;
+  const { aiExtractionConsentGranted, category, claimId, file, locale } = form.data;
   const tenantId = tenant.data;
   const bucket = evidenceBucket.data;
   const role = session.user.role ?? null;
@@ -340,12 +322,14 @@ export async function POST(request: Request) {
   if (uploadError) return uploadError;
 
   const confirmResult = await confirmEvidenceUpload({
+    aiExtractionConsentGranted,
     bucket,
     category,
-    claimAccess,
     claimId,
     file,
     fileId,
+    isAdminSurface: claimAccess.isAdminSurface,
+    locale,
     resolvedMimeType,
     storageContentType,
     storagePath,

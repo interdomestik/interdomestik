@@ -92,6 +92,8 @@ export function runSharedEvidenceUploadDialogTests({
         );
         expect(uploadMocks.uploadToSignedUrl).toHaveBeenCalled();
         expect(uploadMocks.confirmUpload).toHaveBeenCalledWith({
+          aiExtractionConsentGranted: false,
+          aiExtractionConsentLocale: expect.any(String),
           claimId: 'claim-1',
           storagePath: 'pii/tenants/t1/claims/c1/file.pdf',
           originalName: 'evidence.pdf',
