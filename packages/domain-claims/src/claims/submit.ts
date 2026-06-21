@@ -7,7 +7,7 @@ import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
-import { queueClaimDocumentAiWorkflows, type QueuedClaimAiRun } from './ai-workflows';
+import type { QueuedClaimAiRun } from './ai-workflow-types';
 import { buildClaimDocumentRows } from './documents';
 import {
   buildClaimStartPublicNote,
@@ -133,14 +133,12 @@ async function persistSubmittedClaim(args: {
   handoffContext?: ClaimStartHandoffContext | null;
   data: CreateClaimValues;
 }): Promise<{ claimNumber: string; queuedRuns: QueuedClaimAiRun[] }> {
-  const { title, description, category, companyName, claimAmount, currency, incidentDate, files } =
-    args.data;
+  const { title, description, category, companyName, claimAmount, currency, files } = args.data;
   const publicNote = buildClaimStartPublicNote(args.handoffContext);
   const incidentCountry = resolveSubmittedClaimIncidentCountry({
     data: args.data,
     handoffContext: args.handoffContext,
   });
-  let queuedRuns: QueuedClaimAiRun[] = [];
   let claimNumber = '';
 
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
@@ -195,36 +193,11 @@ async function persistSubmittedClaim(args: {
 
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(claimDocuments).values(documentRows);
-
-    queuedRuns = await queueClaimDocumentAiWorkflows({
-      tx,
-      claimId: args.claimId,
-      tenantId: args.tenantId,
-      userId: args.userId,
-      files: documentRows.map(documentRow => ({
-        documentId: documentRow.id,
-        name: documentRow.name,
-        path: documentRow.filePath,
-        type: documentRow.fileType,
-        size: documentRow.fileSize,
-        bucket: documentRow.bucket,
-        category: documentRow.category,
-      })),
-      claimSnapshot: {
-        title,
-        description,
-        category,
-        companyName,
-        claimAmount,
-        currency,
-        incidentDate,
-      },
-    });
   });
 
   return {
     claimNumber,
-    queuedRuns,
+    queuedRuns: [],
   };
 }
 

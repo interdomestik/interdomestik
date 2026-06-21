@@ -13,6 +13,7 @@ export * from './billing';
 export * from './case-scoped-access-grants';
 export * from './commercial-action-idempotency';
 export * from './claim-commercial';
+export * from './claim-document-ai-consents';
 export * from './claim-recovery-no-fee';
 export * from './claim-threads';
 export * from './claims';

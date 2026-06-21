@@ -2,31 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => {
   const txInsertValues = vi.fn();
-  const txInsert = vi.fn(() => ({
-    values: txInsertValues,
-  }));
-
+  const txInsert = vi.fn(() => ({ values: txInsertValues }));
   return {
-    getResponsesWorkflowConfig: vi.fn((workflow: string) => {
-      const model = 'gpt-5.5';
-      const promptVersion =
-        workflow === 'legal_doc_extract' ? 'legal_doc_extract_v1' : 'claim_intake_extract_v1';
-
-      return {
-        workflow,
-        model,
-        promptVersion,
-        promptCacheKey: `interdomestik:${workflow}:${model}:${promptVersion}`,
-        reasoning: {
-          effort: workflow === 'legal_doc_extract' ? 'high' : 'medium',
-        },
-        text: {
-          verbosity: 'low',
-        },
-        maxOutputTokens: workflow === 'legal_doc_extract' ? 4_000 : 2_000,
-      };
-    }),
-    nanoid: vi.fn().mockReturnValueOnce('run-1').mockReturnValueOnce('run-2'),
+    getResponsesWorkflowConfig: vi.fn((workflow: string) => ({
+      workflow,
+      model: 'gpt-5.5',
+      promptVersion:
+        workflow === 'legal_doc_extract' ? 'legal_doc_extract_v1' : 'claim_intake_extract_v1',
+      promptCacheKey: `interdomestik:${workflow}:gpt-5.5`,
+    })),
+    nanoid: vi.fn(),
     txInsert,
     txInsertValues,
   };
@@ -35,131 +20,140 @@ const hoisted = vi.hoisted(() => {
 vi.mock('@interdomestik/database', () => ({
   aiRuns: { __name: 'ai_runs' },
   documents: { __name: 'documents' },
+  claimDocumentAiExtractionConsents: new Proxy(
+    { __name: 'claim_document_ai_extraction_consents' },
+    { get: (target, key) => Reflect.get(target, key) ?? String(key) }
+  ),
 }));
 
 vi.mock('@interdomestik/domain-ai/models', () => ({
   getResponsesWorkflowConfig: hoisted.getResponsesWorkflowConfig,
 }));
 
-vi.mock('nanoid', () => ({
-  nanoid: hoisted.nanoid,
-}));
+vi.mock('nanoid', () => ({ nanoid: hoisted.nanoid }));
+vi.mock('drizzle-orm', () => ({ and: vi.fn(), desc: vi.fn(), eq: vi.fn() }));
 
 import { queueClaimDocumentAiWorkflows } from './ai-workflows';
+
+const acceptedConsent = {
+  id: 'consent-1',
+  tenantId: 'tenant-1',
+  actorId: 'member-1',
+  subjectId: 'member-1',
+  claimId: 'claim-1',
+  documentId: 'doc-1',
+  consentType: 'ai_document_extraction',
+  processingPurpose: 'ai_document_extraction',
+  status: 'accepted',
+  privacyVersion: 'privacy-2026-05',
+  locale: 'en',
+  sourceSurface: 'member_claim_evidence_upload',
+  recordedAt: new Date('2026-06-21T10:00:00Z'),
+  grantedAt: new Date('2026-06-21T10:00:00Z'),
+  withdrawnAt: null,
+};
+
+function limitConsentRows(consentRows: unknown[]) {
+  return vi.fn(async () => consentRows);
+}
+
+function orderConsentRows(consentRows: unknown[]) {
+  return vi.fn(() => ({ limit: limitConsentRows(consentRows) }));
+}
+
+function whereConsentRows(consentRows: unknown[]) {
+  return vi.fn(() => ({ orderBy: orderConsentRows(consentRows) }));
+}
+
+function fromConsentRows(consentRows: unknown[]) {
+  return vi.fn(() => ({ where: whereConsentRows(consentRows) }));
+}
+
+function createTx(consentRows: unknown[]) {
+  return {
+    insert: hoisted.txInsert,
+    select: vi.fn(() => ({ from: fromConsentRows(consentRows) })),
+  };
+}
+
+function queueWith(consentRows: unknown[]) {
+  return queueClaimDocumentAiWorkflows({
+    tx: createTx(consentRows),
+    claimId: 'claim-1',
+    tenantId: 'tenant-1',
+    userId: 'member-1',
+    files: [
+      {
+        documentId: 'doc-1',
+        name: 'evidence.pdf',
+        path: 'pii/tenants/tenant-1/claims/claim-1/doc-1.pdf',
+        type: 'application/pdf',
+        size: 1024,
+        bucket: 'claim-evidence',
+        category: 'evidence',
+      },
+    ],
+  });
+}
 
 describe('queueClaimDocumentAiWorkflows', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    hoisted.nanoid.mockReturnValueOnce('run-1').mockReturnValueOnce('run-2');
+    hoisted.nanoid.mockReturnValue('run-1');
   });
 
-  it('dual-writes canonical documents and queued ai runs for claim and legal categories', async () => {
+  it('skips AI queueing when no trusted consent resolver exists', async () => {
     const queuedRuns = await queueClaimDocumentAiWorkflows({
-      tx: {
-        insert: hoisted.txInsert,
-      },
+      tx: { insert: hoisted.txInsert },
       claimId: 'claim-1',
       tenantId: 'tenant-1',
       userId: 'member-1',
       files: [
         {
-          documentId: 'legacy-doc-1',
+          documentId: 'doc-1',
           name: 'evidence.pdf',
-          path: 'pii/tenants/tenant-1/claims/member-1/evidence.pdf',
+          path: 'p',
           type: 'application/pdf',
-          size: 1024,
-          bucket: 'claim-evidence',
-          category: 'evidence',
-        },
-        {
-          documentId: 'legacy-doc-2',
-          name: 'demand-letter.pdf',
-          path: 'pii/tenants/tenant-1/claims/claim-1/demand-letter.pdf',
-          type: 'application/pdf',
-          size: 2048,
-          bucket: 'claim-evidence',
-          category: 'legal',
+          size: 1,
+          bucket: 'b',
         },
       ],
-      claimSnapshot: {
-        title: 'Damaged baggage',
-        description: 'The airline lost my luggage.',
-        category: 'travel',
-        companyName: 'Airline Co',
-        claimAmount: '1200.00',
-        currency: 'EUR',
-        incidentDate: '2026-02-15',
-      },
     });
 
-    expect(queuedRuns).toEqual([
-      expect.objectContaining({
-        runId: 'run-1',
-        workflow: 'claim_intake_extract',
-        claimId: 'claim-1',
-        documentId: 'legacy-doc-1',
-      }),
-      expect.objectContaining({
-        runId: 'run-2',
-        workflow: 'legal_doc_extract',
-        claimId: 'claim-1',
-        documentId: 'legacy-doc-2',
-      }),
-    ]);
+    expect(queuedRuns).toEqual([]);
+    expect(hoisted.txInsert).not.toHaveBeenCalled();
+  });
 
-    expect(hoisted.txInsert).toHaveBeenNthCalledWith(1, { __name: 'documents' });
-    expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(
-      1,
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: 'legacy-doc-1',
-          tenantId: 'tenant-1',
-          entityType: 'claim',
-          entityId: 'claim-1',
-          fileName: 'evidence.pdf',
-          category: 'evidence',
-          storagePath: 'pii/tenants/tenant-1/claims/member-1/evidence.pdf',
-          uploadedBy: 'member-1',
-          uploadedAt: expect.any(Date),
-        }),
-        expect.objectContaining({
-          id: 'legacy-doc-2',
-          category: 'legal',
-        }),
-      ])
+  it('skips AI queueing without matching accepted consent', async () => {
+    await expect(queueWith([])).resolves.toEqual([]);
+    await expect(queueWith([{ ...acceptedConsent, subjectId: 'other-member' }])).resolves.toEqual(
+      []
     );
+    await expect(queueWith([{ ...acceptedConsent, status: 'withdrawn' }])).resolves.toEqual([]);
+    expect(hoisted.txInsert).not.toHaveBeenCalled();
+  });
 
+  it('queues an AI run with auditable context for matching accepted consent', async () => {
+    const queuedRuns = await queueWith([acceptedConsent]);
+
+    expect(queuedRuns).toEqual([
+      { runId: 'run-1', workflow: 'claim_intake_extract', claimId: 'claim-1', documentId: 'doc-1' },
+    ]);
+    expect(hoisted.txInsert).toHaveBeenNthCalledWith(1, { __name: 'documents' });
     expect(hoisted.txInsert).toHaveBeenNthCalledWith(2, { __name: 'ai_runs' });
     expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(
       2,
       expect.arrayContaining([
         expect.objectContaining({
           id: 'run-1',
-          workflow: 'claim_intake_extract',
-          documentId: 'legacy-doc-1',
-          entityType: 'claim',
-          entityId: 'claim-1',
-          model: 'gpt-5.5',
-          promptVersion: 'claim_intake_extract_v1',
-          reviewStatus: 'pending',
           requestJson: expect.objectContaining({
-            category: 'evidence',
-            bucket: 'claim-evidence',
-            promptCacheKey: 'interdomestik:claim_intake_extract:gpt-5.5:claim_intake_extract_v1',
-            claimSnapshot: expect.objectContaining({
-              incidentDate: '2026-02-15',
+            aiCallContext: expect.objectContaining({
+              consent: 'required_granted',
+              consentEventId: 'consent-1',
+              consentRecordedAt: '2026-06-21T10:00:00.000Z',
+              processingPurpose: 'ai_document_extraction',
+              scope: { claimId: 'claim-1', documentId: 'doc-1' },
             }),
-          }),
-        }),
-        expect.objectContaining({
-          id: 'run-2',
-          workflow: 'legal_doc_extract',
-          documentId: 'legacy-doc-2',
-          model: 'gpt-5.5',
-          promptVersion: 'legal_doc_extract_v1',
-          requestJson: expect.objectContaining({
-            category: 'legal',
-            promptCacheKey: 'interdomestik:legal_doc_extract:gpt-5.5:legal_doc_extract_v1',
           }),
         }),
       ])

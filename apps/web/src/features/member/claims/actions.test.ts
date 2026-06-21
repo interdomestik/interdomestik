@@ -61,6 +61,7 @@ vi.mock('@interdomestik/database', () => ({
     transaction: hoisted.transaction,
   },
   claimDocuments: 'claim_documents',
+  claimDocumentAiExtractionConsents: 'claim_document_ai_extraction_consents',
 }));
 
 vi.mock('@interdomestik/domain-claims/claims/ai-workflows', () => ({
@@ -168,14 +169,7 @@ describe('member claim upload actions', () => {
       })
     );
     hoisted.insertValues.mockResolvedValue(undefined);
-    hoisted.queueClaimDocumentAiWorkflows.mockResolvedValue([
-      {
-        runId: 'run-1',
-        workflow: 'legal_doc_extract',
-        claimId: 'claim-1',
-        documentId: 'uuid-1',
-      },
-    ]);
+    hoisted.queueClaimDocumentAiWorkflows.mockResolvedValue([]);
 
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://supabase.example.com');
     vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
@@ -334,7 +328,7 @@ describe('member claim upload actions', () => {
     expect(hoisted.insert).not.toHaveBeenCalled();
   });
 
-  it('queues a legal-document ai run after confirming the upload metadata', async () => {
+  it('preserves upload and skips AI dispatch when member consent is unchecked', async () => {
     const result = await confirmUpload(
       createConfirmUploadParams({ originalName: 'demand-letter.pdf', category: 'legal' })
     );
@@ -342,6 +336,7 @@ describe('member claim upload actions', () => {
     expect(result).toEqual({ success: true });
     expect(hoisted.transaction).toHaveBeenCalledTimes(2);
     expect(hoisted.insert).toHaveBeenCalledWith('claim_documents');
+    expect(hoisted.insert).not.toHaveBeenCalledWith('claim_document_ai_extraction_consents');
     expect(hoisted.queueClaimDocumentAiWorkflows).toHaveBeenCalledWith(
       expect.objectContaining({
         claimId: 'claim-1',
@@ -356,31 +351,32 @@ describe('member claim upload actions', () => {
         ],
       })
     );
-    expect(hoisted.emitClaimAiRunRequestedService).toHaveBeenCalledWith(
-      expect.objectContaining({
-        runId: 'run-1',
-        workflow: 'legal_doc_extract',
-      })
-    );
-    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/sq/member/claims/claim-1');
+    expect(hoisted.emitClaimAiRunRequestedService).not.toHaveBeenCalled();
     expect(hoisted.revalidatePath).toHaveBeenCalledWith('/en/member/claims/claim-1');
-    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/sr/member/claims/claim-1');
-    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/mk/member/claims/claim-1');
-    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/sq/member/documents');
-    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/en/member/documents');
-    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/sr/member/documents');
-    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/mk/member/documents');
   });
 
-  it('keeps the upload persisted when ai queueing fails after metadata is saved', async () => {
-    hoisted.queueClaimDocumentAiWorkflows.mockRejectedValueOnce(new Error('ai queue unavailable'));
-
-    const result = await confirmUpload(createConfirmUploadParams({ category: 'evidence' }));
+  it('records scoped ai document extraction consent only when checked', async () => {
+    const result = await confirmUpload(
+      createConfirmUploadParams({
+        aiExtractionConsentGranted: true,
+        aiExtractionConsentLocale: 'sq',
+      })
+    );
 
     expect(result).toEqual({ success: true });
-    expect(hoisted.insert).toHaveBeenCalledWith('claim_documents');
-    expect(hoisted.queueClaimDocumentAiWorkflows).toHaveBeenCalledOnce();
-    expect(hoisted.emitClaimAiRunRequestedService).not.toHaveBeenCalled();
-    expect(hoisted.markClaimAiRunDispatchFailedService).not.toHaveBeenCalled();
+    expect(hoisted.insert).toHaveBeenCalledWith('claim_document_ai_extraction_consents');
+    expect(hoisted.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'member-1',
+        claimId: 'claim-1',
+        documentId: 'uuid-1',
+        locale: 'sq',
+        privacyVersion: 'privacy-2026-05',
+        sourceSurface: 'member_claim_evidence_upload',
+        status: 'accepted',
+        subjectId: 'member-1',
+        tenantId: 'tenant-1',
+      })
+    );
   });
 });

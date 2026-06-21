@@ -1,15 +1,13 @@
-import {
-  emitClaimAiRunRequestedService,
-  markClaimAiRunDispatchFailedService,
-} from '@/lib/ai/claim-workflows';
 import { LOCALES } from '@/i18n/locales';
 import { redactSignedUrlErrorDetails } from '@/lib/storage/signed-url-exposure';
-import { claimDocuments, db } from '@interdomestik/database';
-import { queueClaimDocumentAiWorkflows } from '@interdomestik/domain-claims/claims/ai-workflows';
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { revalidatePath } from 'next/cache';
 
 import { assertEvidenceStoragePath, buildEvidenceStoragePath } from './storage-path';
+export {
+  persistClaimDocumentAndQueueWorkflows,
+  type UploadCategory,
+} from './claim-document-persistence';
 
 const SIGNED_UPLOAD_MAX_ATTEMPTS = 3;
 const SIGNED_UPLOAD_RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 250;
@@ -27,8 +25,6 @@ const TRANSIENT_UPLOAD_ERROR_PATTERNS = [
   /service unavailable/i,
   /too many requests/i,
 ];
-
-export type UploadCategory = 'evidence' | 'legal';
 
 export type SharedGenerateUploadUrlResult =
   | {
@@ -487,90 +483,5 @@ export async function createSignedUploadUrl(params: {
   } catch (error) {
     console.error(`${logPrefix} generate upload URL error`, redactSignedUrlErrorDetails(error));
     return { success: false, error: 'Unexpected error', status: 500 };
-  }
-}
-
-export async function persistClaimDocumentAndQueueWorkflows(params: {
-  category: UploadCategory;
-  claimId: string;
-  fileId: string;
-  fileSize: number;
-  logPrefix: string;
-  mimeType: string;
-  originalName: string;
-  resolvedBucket: string;
-  storagePath: string;
-  tenantId: string;
-  userId: string;
-}): Promise<void> {
-  const {
-    category,
-    claimId,
-    fileId,
-    fileSize,
-    logPrefix,
-    mimeType,
-    originalName,
-    resolvedBucket,
-    storagePath,
-    tenantId,
-    userId,
-  } = params;
-
-  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  await db.transaction(async tx => {
-    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await tx.insert(claimDocuments).values({
-      id: fileId,
-      tenantId,
-      claimId,
-      name: originalName,
-      filePath: storagePath,
-      fileType: mimeType,
-      fileSize,
-      bucket: resolvedBucket,
-      category,
-      uploadedBy: userId,
-    });
-  });
-
-  try {
-    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    const queuedRuns = await db.transaction(async tx =>
-      queueClaimDocumentAiWorkflows({
-        tx,
-        claimId,
-        tenantId,
-        userId,
-        files: [
-          {
-            documentId: fileId,
-            name: originalName,
-            path: storagePath,
-            type: mimeType,
-            size: fileSize,
-            bucket: resolvedBucket,
-            category,
-          },
-        ],
-      })
-    );
-
-    for (const queuedRun of queuedRuns) {
-      try {
-        await emitClaimAiRunRequestedService(queuedRun);
-      } catch (error) {
-        await markClaimAiRunDispatchFailedService({
-          runId: queuedRun.runId,
-          message: error instanceof Error ? error.message : 'Failed to dispatch claim AI run.',
-        });
-      }
-    }
-  } catch (queueError) {
-    console.error(`${logPrefix} AI queue failed after metadata persisted`, {
-      claimId,
-      fileId,
-      message: queueError instanceof Error ? queueError.message : String(queueError),
-    });
   }
 }

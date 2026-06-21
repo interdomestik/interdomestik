@@ -54,6 +54,7 @@
     "@interdomestik/domain-case": "workspace:*",
     "@interdomestik/domain-crm": "workspace:*",
     "@interdomestik/domain-membership-billing": "workspace:*",
+    "@interdomestik/domain-privacy": "workspace:*",
     "@interdomestik/domain-recovery": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
     "drizzle-orm": "^0.45.2",

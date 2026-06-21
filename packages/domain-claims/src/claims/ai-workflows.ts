@@ -1,107 +1,60 @@
-import { createHash } from 'node:crypto';
-
 import { aiRuns, documents } from '@interdomestik/database';
-import { getResponsesWorkflowConfig } from '@interdomestik/domain-ai/models';
-import { nanoid } from 'nanoid';
 
-export type ClaimAiWorkflow = 'claim_intake_extract' | 'legal_doc_extract';
+import {
+  prepareClaimDocumentAiRun,
+  type PreparedQueuedClaimAiRun,
+} from './ai-workflow-preparation';
+import type { ClaimAiWorkflowQueueInput, QueuedClaimAiRun } from './ai-workflow-types';
 
-export type ClaimAiDocumentCategory = 'evidence' | 'legal';
-
-export type ClaimAiFileInput = {
-  documentId?: string;
-  name: string;
-  path: string;
-  type: string;
-  size: number;
-  bucket: string;
-  category?: string | null;
+type QueueInsertTx = {
+  insert: (table: unknown) => { values: (rows: unknown) => unknown };
 };
 
-export type ClaimAiClaimSnapshot = {
-  title: string;
-  description?: string | null;
-  category: string;
-  companyName: string;
-  claimAmount?: string | null;
-  currency?: string | null;
-  incidentDate?: string | null;
-};
+export type {
+  ClaimAiClaimSnapshot,
+  ClaimAiDocumentCategory,
+  ClaimAiFileInput,
+  ClaimAiWorkflow,
+  QueuedClaimAiRun,
+} from './ai-workflow-types';
 
-export type QueuedClaimAiRun = {
-  runId: string;
-  workflow: ClaimAiWorkflow;
-  claimId: string;
-  documentId: string;
-};
-
-type InsertableTx = {
-  insert: (table: any) => {
-    values: (value: Record<string, unknown> | Array<Record<string, unknown>>) => unknown;
-  };
-};
-
-function normalizeCategory(category: string | null | undefined): ClaimAiDocumentCategory {
-  return category === 'legal' ? 'legal' : 'evidence';
+function canInsertQueueRows(tx: unknown): tx is QueueInsertTx {
+  return typeof (tx as { insert?: unknown }).insert === 'function';
 }
 
-function resolveWorkflow(category: ClaimAiDocumentCategory): ClaimAiWorkflow {
-  return category === 'legal' ? 'legal_doc_extract' : 'claim_intake_extract';
-}
+async function insertQueueRows(tx: unknown, table: unknown, rows: unknown): Promise<void> {
+  if (!canInsertQueueRows(tx)) {
+    throw new Error('Claim document AI workflow queue requires an insert-capable transaction.');
+  }
 
-function buildInputHash(args: {
-  workflow: ClaimAiWorkflow;
-  claimId: string;
-  documentId: string;
-  path: string;
-  category: ClaimAiDocumentCategory;
-  claimSnapshot?: ClaimAiClaimSnapshot | null;
-}) {
-  return createHash('sha256').update(JSON.stringify(args)).digest('hex');
+  await tx.insert(table).values(rows);
 }
 
 export async function queueClaimDocumentAiWorkflows(args: {
-  tx: InsertableTx;
-  claimId: string;
-  tenantId: string;
-  userId: string;
-  files: ClaimAiFileInput[];
-  claimSnapshot?: ClaimAiClaimSnapshot | null;
+  tx: ClaimAiWorkflowQueueInput['tx'];
+  claimId: ClaimAiWorkflowQueueInput['claimId'];
+  tenantId: ClaimAiWorkflowQueueInput['tenantId'];
+  userId: ClaimAiWorkflowQueueInput['userId'];
+  files: ClaimAiWorkflowQueueInput['files'];
+  claimSnapshot?: ClaimAiWorkflowQueueInput['claimSnapshot'];
 }): Promise<QueuedClaimAiRun[]> {
   if (args.files.length === 0) {
     return [];
   }
 
+  const queuedRuns: PreparedQueuedClaimAiRun[] = [];
+  for (const file of args.files) {
+    const queuedRun = await prepareClaimDocumentAiRun({ args, file });
+    if (queuedRun) queuedRuns.push(queuedRun);
+  }
+
+  if (queuedRuns.length === 0) return [];
+
   const now = new Date();
-  const queuedRuns = args.files.map(file => {
-    const category = normalizeCategory(file.category);
-    const workflow = resolveWorkflow(category);
-    const documentId = file.documentId ?? nanoid();
-    const runId = nanoid();
-    const config = getResponsesWorkflowConfig(workflow);
 
-    return {
-      runId,
-      workflow,
-      claimId: args.claimId,
-      documentId,
-      category,
-      model: config.model,
-      promptVersion: config.promptVersion,
-      promptCacheKey: config.promptCacheKey,
-      file,
-      inputHash: buildInputHash({
-        workflow,
-        claimId: args.claimId,
-        documentId,
-        path: file.path,
-        category,
-        claimSnapshot: args.claimSnapshot,
-      }),
-    };
-  });
-
-  await args.tx.insert(documents).values(
+  await insertQueueRows(
+    args.tx,
+    documents,
     queuedRuns.map(queuedRun => ({
       id: queuedRun.documentId,
       tenantId: args.tenantId,
@@ -121,7 +74,9 @@ export async function queueClaimDocumentAiWorkflows(args: {
     }))
   );
 
-  await args.tx.insert(aiRuns).values(
+  await insertQueueRows(
+    args.tx,
+    aiRuns,
     queuedRuns.map(queuedRun => ({
       id: queuedRun.runId,
       tenantId: args.tenantId,
@@ -143,6 +98,7 @@ export async function queueClaimDocumentAiWorkflows(args: {
         bucket: queuedRun.file.bucket,
         category: queuedRun.category,
         promptCacheKey: queuedRun.promptCacheKey,
+        aiCallContext: queuedRun.aiCallContext,
         claimSnapshot: args.claimSnapshot ?? null,
       },
       reviewStatus: 'pending',
