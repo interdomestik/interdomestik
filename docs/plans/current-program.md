@@ -1745,15 +1745,32 @@ waived/skippable by Arben. The evidence conclusion remains
 `T-503_BLOCKED_RUNTIME_DEPENDENCY`: direct destructive `T-503` is blocked by
 missing qualifying release-cycle proof, runtime transition/current-state/CAS
 dependency on `claims.status`, status-shaped initialization/fixtures, and a
-missing rollback/backfill/observability package. The next active governed
-implementation goal is exactly one canonical tracker slice: `T-503a`. Future
-`T-503a` is limited to a read-only lifecycle consistency inventory/report for
-claim lifecycle pair validity and status/lifecycle mismatch risk plus a
-command-path deprecation design for replacing legacy `claims.status`
-current-state validation/CAS. No `claims.status` drop/rename, destructive
-schema/RLS migration, proxy/routing/auth/session/tenancy/billing/entity
-migration, product UI, Operational Brain runtime/live AI, broad M5, `T-504`,
-`T-507`, `T-501`, `T-502`, `T-505`, `T-506`, README, or AGENTS work is promoted.
+missing rollback/backfill/observability package. At that gate, the selected
+implementation-readiness goal was the canonical tracker slice `T-503a`. That
+promotion is now consumed by the completed `T-503a` closeout in Rev 93. Future
+direct `T-503` remains blocked until fresh current authority selects a next
+action. No `claims.status` drop/rename, destructive schema/RLS migration,
+proxy/routing/auth/session/tenancy/billing/entity migration, product UI,
+Operational Brain runtime/live AI, broad M5, `T-504`, `T-507`, `T-501`, `T-502`,
+`T-505`, `T-506`, README, or AGENTS work is promoted by this historical gate.
+
+Rev 93 tracker overlay: `T-503a` completed in PR `#1156` from final
+implementation head `02d00ff23779cf40584a5b858327035d8e368676` and squash merge
+`f708da4fa8fb24b705dbb2ddf1ffec817876fbf8`. The closeout records the checked-in
+read-only lifecycle inventory/report and command-path deprecation design in
+`docs/plans/2026-06-21-t503a-lifecycle-inventory-report.md`. The corrected
+admin/system inventory path found `121` aggregate `null_incomplete` rows and no
+valid, invalid, or mismatch aggregate rows in local proof, so lifecycle readiness
+debt is surfaced rather than hidden. Direct destructive `T-503` remains blocked
+by missing qualifying release-cycle proof, runtime transition/current-state/CAS
+dependency on `claims.status`, status-shaped initialization/fixtures, missing
+rollback/backfill/observability package, and the discovered null/incomplete
+lifecycle inventory debt. Closeout lesson learned: Codex review caught a
+false-zero inventory risk caused by execute-result row shape handling and
+RLS/no-tenant client context; the inventory now uses the admin/system path and
+correct row-shape handling. No replacement implementation slice is promoted by
+this closeout. The next action must be selected by current-authority, OP Brain,
+and tracker procedure after post-merge health settles.
 
 ## Program Goals
 
