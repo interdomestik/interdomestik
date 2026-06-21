@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createDocumentExtractionAiContext } from './test-helpers/ai-call-context';
 import { createAiClient } from './client';
+import { requireAICallContext } from './context';
 
 describe('createAiClient', () => {
   it('rejects missing context before checking provider configuration', () => {
@@ -40,5 +41,17 @@ describe('createAiClient', () => {
         process.env.OPENAI_API_KEY = previousApiKey;
       }
     }
+  });
+
+  it.each([
+    ['tenant-only context', { tenantId: 'tenant-1' }],
+    ['host-only context', { host: 'tenant.example.test' }],
+    ['session-only context', { sessionId: 'session-1', tenantId: 'tenant-1' }],
+    ['upload-custody context', { bucket: 'claim-evidence', storagePath: 'tenant-1/doc.pdf' }],
+    ['provider-default context', { model: 'gpt-5.5', provider: 'openai' }],
+    ['generic Terms/Privacy context', { termsAccepted: true, privacyAccepted: true }],
+    ['copied structural test context', { ...createDocumentExtractionAiContext() }],
+  ])('rejects %s before AI behavior', (_label, context) => {
+    expect(() => requireAICallContext(context)).toThrow(/AI call context is required/);
   });
 });

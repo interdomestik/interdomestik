@@ -1,36 +1,20 @@
-import { evaluateAiExtractionPolicy, type AICallContext, type AICallContextFields } from './ai';
+import { evaluateAiExtractionPolicy } from './ai';
+import { isGenericTermsPrivacyConsentSource } from './ai-call-context-consent-source';
 import { AI_CALL_CONTEXT_KEYS, PRIVACY_SCOPE_KEYS } from './ai-call-context-keys';
+import type {
+  AICallContextConsentEvidence,
+  AICallContextMintDecision,
+  AICallContextMintInput,
+} from './ai-call-context-mint-types';
 import { buildAICallContext } from './ai-call-context-validation-result';
 import {
   collectAICallContextInvalidReasons,
   readPrivacyScope,
 } from './ai-call-context-validation-rules';
 import { readOwnValue, snapshotOwnValues } from './ai-call-context-own-value';
-import type {
-  ConsentEvent,
-  DocumentProcessingPolicy,
-  PrivacyScope,
-  ProcessingPurpose,
-} from './types';
+import type { PrivacyScope } from './types';
 
-export type AICallContextMintDecision =
-  | { kind: 'valid'; context: AICallContext; reasons: readonly [] }
-  | { kind: 'invalid'; reasons: readonly string[] }
-  | { kind: 'missing_consent'; reasons: readonly string[] };
-
-export interface AICallContextConsentEvidence {
-  consentEvents: readonly ConsentEvent[];
-  documentPolicy?: DocumentProcessingPolicy;
-  modelBoundary?: string;
-  promptOrSchemaVersion?: string;
-  requestedPurpose?: ProcessingPurpose;
-  noTraining?: boolean;
-  zeroRetention?: boolean;
-}
-
-export type AICallContextMintInput = AICallContextFields & {
-  consentEvidence?: AICallContextConsentEvidence;
-};
+export type { AICallContextConsentEvidence, AICallContextMintDecision, AICallContextMintInput };
 
 export function mintAICallContext(input: AICallContextMintInput): AICallContextMintDecision {
   const snapshot = snapshotOwnValues(
@@ -102,6 +86,7 @@ function hasAcceptedConsentEvidence(
       event.tenantId === input.tenantId &&
       event.subjectId === input.subjectId &&
       consentEvidenceMatchesPurpose(input, event) &&
+      !isGenericTermsPrivacyConsentSource(event.sourceSurface) &&
       consentScopeMatchesInput(input.scope, event.scope) &&
       event.status === 'accepted' &&
       Number.isFinite(Date.parse(event.recordedAt))

@@ -132,5 +132,12 @@ describe('queueClaimDocumentAiWorkflows consented insert shape', () => {
         expect.objectContaining({ workflow: 'legal_doc_extract' }),
       ])
     );
+    expect(aiRunValues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          requestJson: expect.not.objectContaining({ aiCallContext: expect.anything() }),
+        }),
+      ])
+    );
   });
 });

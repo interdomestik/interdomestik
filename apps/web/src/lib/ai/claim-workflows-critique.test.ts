@@ -44,8 +44,8 @@ vi.mock('@interdomestik/domain-claims', () => ({
   mintClaimDocumentAiCallContext: mocks.mintClaimDocumentAiCallContext,
   resolveClaimDocumentAiExtractionConsent: mocks.resolveClaimDocumentAiExtractionConsent,
 }));
-
 import { processClaimDocumentWorkflowRunService } from './claim-workflows';
+import { claimIntakeAiCallContext } from '@/test/ai-call-context';
 
 describe('processClaimDocumentWorkflowRunService critique gate', () => {
   beforeEach(() => {
@@ -74,7 +74,7 @@ describe('processClaimDocumentWorkflowRunService critique gate', () => {
       kind: 'granted',
       grant: { consentEventId: 'consent-1', recordedAt: '2026-06-21T10:00:00.000Z' },
     });
-    mocks.mintClaimDocumentAiCallContext.mockReturnValue({});
+    mocks.mintClaimDocumentAiCallContext.mockReturnValue(claimIntakeAiCallContext);
     mocks.extractClaimIntake.mockResolvedValue({
       title: 'Flight delay claim',
       summary: 'Extraction had no usable content.',

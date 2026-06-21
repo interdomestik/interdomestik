@@ -98,7 +98,7 @@ export async function queueClaimDocumentAiWorkflows(args: {
         bucket: queuedRun.file.bucket,
         category: queuedRun.category,
         promptCacheKey: queuedRun.promptCacheKey,
-        aiCallContext: queuedRun.aiCallContext,
+        aiCallContextStorage: 'durable_consent_remint_required',
         claimSnapshot: args.claimSnapshot ?? null,
       },
       reviewStatus: 'pending',

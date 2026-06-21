@@ -133,7 +133,7 @@ describe('queueClaimDocumentAiWorkflows', () => {
     expect(hoisted.txInsert).not.toHaveBeenCalled();
   });
 
-  it('queues an AI run with auditable context for matching accepted consent', async () => {
+  it('queues an AI run that requires durable consent re-minting at execution time', async () => {
     const queuedRuns = await queueWith([acceptedConsent]);
 
     expect(queuedRuns).toEqual([
@@ -141,22 +141,18 @@ describe('queueClaimDocumentAiWorkflows', () => {
     ]);
     expect(hoisted.txInsert).toHaveBeenNthCalledWith(1, { __name: 'documents' });
     expect(hoisted.txInsert).toHaveBeenNthCalledWith(2, { __name: 'ai_runs' });
+    const aiRunValues = hoisted.txInsertValues.mock.calls[1][0];
     expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(
       2,
       expect.arrayContaining([
         expect.objectContaining({
           id: 'run-1',
           requestJson: expect.objectContaining({
-            aiCallContext: expect.objectContaining({
-              consent: 'required_granted',
-              consentEventId: 'consent-1',
-              consentRecordedAt: '2026-06-21T10:00:00.000Z',
-              processingPurpose: 'ai_document_extraction',
-              scope: { claimId: 'claim-1', documentId: 'doc-1' },
-            }),
+            aiCallContextStorage: 'durable_consent_remint_required',
           }),
         }),
       ])
     );
+    expect(aiRunValues[0].requestJson).not.toHaveProperty('aiCallContext');
   });
 });

@@ -1,7 +1,6 @@
 import {
   mintAICallContext,
   type AICallContext,
-  type AICallContextFields,
   type DocumentProcessingPolicy,
 } from '@interdomestik/domain-privacy';
 import { getResponsesWorkflowConfig } from '@interdomestik/domain-ai/models';
@@ -20,29 +19,6 @@ const CLAIM_DOCUMENT_AI_EXTRACTION_POLICY: DocumentProcessingPolicy = {
   redactionRequired: false,
   accessPolicyId: 'claim.document.ai_extraction.v1',
 };
-
-export type ClaimDocumentAiCallContext = AICallContextFields & {
-  consentEventId: string;
-  consentRecordedAt: string;
-};
-
-export function buildClaimDocumentAiCallContext(params: {
-  claimId: string;
-  documentId: string;
-  grant: ClaimAiConsentGrant;
-  subjectId?: string;
-  tenantId: string;
-  userId: string;
-  workflow: ClaimAiWorkflow;
-}): ClaimDocumentAiCallContext {
-  const context = mintClaimDocumentAiCallContext(params);
-
-  return {
-    ...context,
-    consentEventId: params.grant.consentEventId,
-    consentRecordedAt: params.grant.recordedAt,
-  };
-}
 
 export function mintClaimDocumentAiCallContext(params: {
   claimId: string;
