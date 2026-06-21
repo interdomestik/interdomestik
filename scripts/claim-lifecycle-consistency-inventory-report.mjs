@@ -48,6 +48,18 @@ order by category, status nulls first, case_lifecycle_state nulls first, recover
 
 const CATEGORIES = ['valid', 'invalid_lifecycle_pair', 'null_incomplete', 'status_lifecycle_mismatch'];
 
+export function normalizeInventoryExecuteRows(result) {
+  if (Array.isArray(result)) {
+    return result;
+  }
+
+  if (result && typeof result === 'object' && Array.isArray(result.rows)) {
+    return result.rows;
+  }
+
+  throw new Error('Unexpected lifecycle inventory query result shape');
+}
+
 function numericCount(value) {
   const count = Number(value ?? 0);
   if (!Number.isSafeInteger(count) || count < 0) {

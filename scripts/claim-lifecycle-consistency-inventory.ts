@@ -1,6 +1,7 @@
 import {
   CLAIM_LIFECYCLE_INVENTORY_SQL,
   formatLifecycleInventoryReport,
+  normalizeInventoryExecuteRows,
 } from './claim-lifecycle-consistency-inventory-report.mjs';
 
 type InventoryRow = {
@@ -12,10 +13,10 @@ type InventoryRow = {
 };
 
 async function readInventoryRows(): Promise<InventoryRow[]> {
-  const { db, sql } = await import('@interdomestik/database');
+  const { dbAdmin, sql } = await import('@interdomestik/database');
   // db-access-guard: system-exempt -- reason: read-only aggregate inventory emits no row-level claim data
-  const result = await db.execute(sql.raw(CLAIM_LIFECYCLE_INVENTORY_SQL));
-  return Array.from(result.rows ?? []) as InventoryRow[];
+  const result = await dbAdmin.execute(sql.raw(CLAIM_LIFECYCLE_INVENTORY_SQL));
+  return normalizeInventoryExecuteRows(result) as InventoryRow[];
 }
 
 async function main(): Promise<void> {

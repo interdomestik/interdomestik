@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
   CLAIM_LIFECYCLE_INVENTORY_SQL,
   formatLifecycleInventoryReport,
+  normalizeInventoryExecuteRows,
   summarizeLifecycleInventory,
 } from '../claim-lifecycle-consistency-inventory-report.mjs';
 
@@ -54,6 +56,34 @@ test('summarizes valid, invalid, incomplete, and mismatch categories', () => {
     null_incomplete: 1,
     status_lifecycle_mismatch: 4,
   });
+});
+
+test('normalizes repo db.execute row arrays without dropping live rows', () => {
+  const rows = [
+    {
+      category: 'valid',
+      status: 'submitted',
+      case_lifecycle_state: 'submitted',
+      recovery_lifecycle_state: 'not_started',
+      count: 2,
+    },
+  ];
+
+  assert.deepEqual(normalizeInventoryExecuteRows(rows), rows);
+  assert.deepEqual(normalizeInventoryExecuteRows({ rows }), rows);
+  assert.throws(
+    () => normalizeInventoryExecuteRows({ rowCount: 1 }),
+    /Unexpected lifecycle inventory query result shape/u
+  );
+});
+
+test('live inventory script uses the admin system connection for aggregate reads', () => {
+  const source = readFileSync('scripts/claim-lifecycle-consistency-inventory.ts', 'utf8');
+
+  assert.match(source, /\{\s*dbAdmin,\s*sql\s*\}\s*=\s*await import/u);
+  assert.match(source, /dbAdmin\.execute/u);
+  assert.doesNotMatch(source, /\{\s*db,\s*sql\s*\}\s*=\s*await import/u);
+  assert.doesNotMatch(source, /\bwithTenantContext\b/u);
 });
 
 test('formats a stable read-only JSON report', () => {

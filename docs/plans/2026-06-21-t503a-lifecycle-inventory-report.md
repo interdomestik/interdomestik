@@ -3,7 +3,7 @@ plan_role: input
 status: active
 source_of_truth: false
 owner: platform
-last_reviewed: 2026-06-21
+last_reviewed: 2026-06-22
 source_gate: docs/plans/2026-06-21-obr-dg21-t503a-readiness-gate.md
 ---
 
@@ -41,7 +41,9 @@ pnpm exec tsx scripts/claim-lifecycle-consistency-inventory.ts --sql
 
 The command aggregates `claim.status`, `claim.case_lifecycle_state`, and
 `claim.recovery_lifecycle_state` only. It emits no row-level claim IDs, member
-data, narratives, documents, or tenant identifiers.
+data, narratives, documents, or tenant identifiers. The live DB path uses
+`dbAdmin.execute(...)` as a read-only system aggregate so configured
+`DATABASE_URL_RLS` tenant context cannot hide rows from the inventory.
 
 ## Classification
 
@@ -54,18 +56,62 @@ The report classifies aggregate rows into four categories:
 | `null_incomplete`           | `status` or at least one lifecycle field is null.                     |
 | `status_lifecycle_mismatch` | Lifecycle pair is recognized but maps to a different legacy `status`. |
 
-Local live aggregate proof against the default local DB after dependency restore:
+Local live aggregate proof against the default local DB after the admin/system
+read-path fix:
 
 ```json
 {
   "byCategory": {
     "valid": 0,
     "invalid_lifecycle_pair": 0,
-    "null_incomplete": 0,
+    "null_incomplete": 121,
     "status_lifecycle_mismatch": 0
   },
-  "total": 0,
-  "groups": []
+  "total": 121,
+  "groups": [
+    {
+      "category": "null_incomplete",
+      "status": "court",
+      "caseLifecycleState": null,
+      "recoveryLifecycleState": null,
+      "count": 1
+    },
+    {
+      "category": "null_incomplete",
+      "status": "evaluation",
+      "caseLifecycleState": null,
+      "recoveryLifecycleState": null,
+      "count": 27
+    },
+    {
+      "category": "null_incomplete",
+      "status": "negotiation",
+      "caseLifecycleState": null,
+      "recoveryLifecycleState": null,
+      "count": 9
+    },
+    {
+      "category": "null_incomplete",
+      "status": "resolved",
+      "caseLifecycleState": null,
+      "recoveryLifecycleState": null,
+      "count": 8
+    },
+    {
+      "category": "null_incomplete",
+      "status": "submitted",
+      "caseLifecycleState": null,
+      "recoveryLifecycleState": null,
+      "count": 59
+    },
+    {
+      "category": "null_incomplete",
+      "status": "verification",
+      "caseLifecycleState": null,
+      "recoveryLifecycleState": null,
+      "count": 17
+    }
+  ]
 }
 ```
 
