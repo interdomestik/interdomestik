@@ -39,6 +39,7 @@ describe('summarizeClaim', () => {
   it('rejects null runtime AI context before summary behavior', async () => {
     await expect(
       summarizeClaim({
+        // @ts-expect-error T-404 runtime guard rejects null context.
         aiCallContext: null,
         claim: {
           title: 'Delayed baggage claim',
@@ -48,7 +49,7 @@ describe('summarizeClaim', () => {
           claimAmount: '1200.00',
           currency: 'EUR',
         },
-      } as never)
+      })
     ).rejects.toThrow(/context_missing/);
   });
 });

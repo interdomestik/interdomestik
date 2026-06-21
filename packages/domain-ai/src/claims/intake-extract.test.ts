@@ -59,6 +59,7 @@ describe('extractClaimIntake', () => {
   it('rejects missing runtime AI context before extraction behavior', async () => {
     await expect(
       extractClaimIntake({
+        // @ts-expect-error T-404 runtime guard rejects null context.
         aiCallContext: null,
         claim: {
           title: 'Unknown issue',
@@ -67,7 +68,7 @@ describe('extractClaimIntake', () => {
           claimAmount: null,
           currency: null,
         },
-      } as never)
+      })
     ).rejects.toThrow(/AI call context is required: context_missing/);
   });
 });

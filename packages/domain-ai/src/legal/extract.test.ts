@@ -42,9 +42,10 @@ describe('extractLegalDocument', () => {
   it('rejects structurally invalid runtime AI context before extraction behavior', async () => {
     await expect(
       extractLegalDocument({
+        // @ts-expect-error T-404 runtime guard rejects structurally invalid context.
         aiCallContext: { workflowId: 'legal_doc_extract' },
         documentText: 'Demand letter issued by Contoso Legal.',
-      } as never)
+      })
     ).rejects.toThrow(/tenant_id_missing/);
   });
 });
