@@ -934,6 +934,23 @@ resolution is required before promoting `T-405`, `T-406`, Operational Brain
 runtime, broad M3/M4/M5, proxy/routing, billing, README, AGENTS, or broad
 architecture-doc work.
 
+Rev 87 tracker overlay: `OBR-DG18` completed the post-`T-403b`
+current-authority/design-gate selection in
+`docs/plans/2026-06-21-obr-dg18-t405-ai-caller-posture-cleanup-promotion.md`.
+`T-403` defined the `AICallContext` contract, `T-404a` supplied durable explicit
+document-extraction consent, `T-404` made context mandatory at public
+`domain-ai` entry points, and `T-403b` made context trust brand-minted and
+unforgeable outside trusted `domain-privacy` minting paths. The next active
+governed implementation goal is exactly one canonical tracker slice: `T-405`.
+Future `T-405` work is limited to auditing and cleaning remaining current
+`domain-ai` caller posture so every call site uses explicit trusted
+brand-minted context or trusted consent-backed resolution, with no implicit
+defaults or caller-fabricated context. `T-406`, Operational Brain runtime,
+model/provider calls, prompts, outbox AI event implementation, broad M3/M4/M5,
+M5 live cutover, proxy/routing/auth, schema/RLS unless separately scoped,
+billing, product UI, entity migration, VONESA/WS-F, OMG, DOM, README, AGENTS,
+and broad architecture docs remain unpromoted unless separately authorized.
+
 2. **Passenger Rights / VONESA — `WS-F` (gated, rides the spine behind a feature flag).** Flight-delay (EC261) vertical. Tasks `FLIGHT-00…FLIGHT-11` already live in the architecture-finalization tracker; design in `docs/plans/vonesa-architecture-integration-2026-05-30.md`. It consumes M1 (outbox), M2 (case/recovery), M3 (access-tenant isolation), and M5 (entity-of-record billing) and ships behind its own flag, so it gates neither the Design Gate nor the `ida.*` Go-Live. Not started; promoted slice-by-slice after its spine prerequisites.
 
 3. **IDA Operating Model & Sales Governance — `OMG` (gated, post-M3 program).** Unifies the sales network and corporate org/governance. Packet: `docs/plans/2026-06-04-ida-operating-model-sales-governance-program.md`; inputs: `docs/plans/2026-06-04-sales-network-architecture-input.md`, `docs/plans/2026-06-04-operating-model-org-governance-input.md`. Milestones `OMG-00…OMG-09` (org-unit model → scoped permissions → sales-network core → partner/B2B activation, commission settlement, fleet, court escalation as gated commands → board cross-tenant read model → AL-under-MK shadow migration). Depends on M3 (isolation/role de-collapse), M1 (outbox), M5 (billing). Non-goals: no 25-role flat enum (base roles × `access_tenant_id` × `org_unit_id` × capabilities), no generic workflow engine in phase one, no relaxing tenant isolation for board dashboards, no sales access to claims/recovery, no Phase-C scope expansion. Stays `draft` input until promoted post-M3.
