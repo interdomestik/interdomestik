@@ -1772,6 +1772,28 @@ correct row-shape handling. No replacement implementation slice is promoted by
 this closeout. The next action must be selected by current-authority, OP Brain,
 and tracker procedure after post-merge health settles.
 
+Rev 94 tracker overlay: `OBR-DG22` completed the post-`T-503a`
+current-authority/design-gate selection in
+`docs/plans/2026-06-22-obr-dg22-post-t503a-next-authority.md`. PR `#1156` and
+PR `#1157` merge evidence was revalidated, and live `main` remains at
+`ec1eb6569ca14013857b09d4a10a2e0d3032ea94` with CI, Sonar Main Gate, Secret
+Scan, and CodeQL/Push-on-main success; CD remains pending as deployment-only
+evidence. The tracker no-hit issue is a read-path limitation because
+`current-tracker.md` is over 3 MB and the GitHub contents API reports
+`encoding:"none"`, while local tracker authority records `T-503a` completed and
+no active replacement before this gate. Direct destructive `T-503` remains
+blocked by missing qualifying release-cycle proof, legacy `claims.status`
+transition/current-state/CAS dependencies, status-shaped initialization and
+fixtures, missing rollback/backfill/observability package, and `121`
+null/incomplete lifecycle rows. The next active governed implementation goal is
+exactly one canonical tracker slice: `T-503b`. Future `T-503b` is limited to a
+non-destructive lifecycle completeness repair/backfill and initialization/fixture
+hardening package before command-path lifecycle CAS deprecation or destructive
+`T-503` can be reconsidered. No `claims.status` drop/rename, destructive
+schema/RLS migration, proxy/routing/auth/session/tenancy/billing change, product
+UI, Operational Brain runtime/live AI, broad M5, `T-504`, `T-507`, `T-501`,
+`T-502`, `T-505`, `T-506`, README, or AGENTS work is promoted.
+
 ## Program Goals
 
 1. Keep the completed `V01` through `V05` convergence work inspectable and stable.
