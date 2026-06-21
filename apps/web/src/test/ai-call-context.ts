@@ -11,6 +11,8 @@ export const claimIntakeAiCallContext = {
   posture: 'human_review_required',
   consent: 'required_granted',
   invalidityPosture: 'not_applicable',
+  consentEventId: 'consent-1',
+  consentRecordedAt: '2026-06-21T10:00:00.000Z',
 };
 
 export function createLegalAiCallContext(documentId: string) {

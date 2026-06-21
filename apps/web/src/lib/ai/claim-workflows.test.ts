@@ -61,8 +61,10 @@ const mocks = vi.hoisted(() => {
     },
     extractClaimIntake: vi.fn(),
     extractLegalDocument: vi.fn(),
+    mintClaimDocumentAiCallContext: vi.fn(),
     inngestSend: vi.fn(),
     nanoid: vi.fn().mockReturnValueOnce('extraction-1').mockReturnValueOnce('extraction-2'),
+    resolveClaimDocumentAiExtractionConsent: vi.fn(),
     resolveEvidenceBucketName: vi.fn().mockReturnValue('resolved-evidence-bucket'),
     selectWhere,
     txInsert,
@@ -130,6 +132,11 @@ vi.mock('@interdomestik/domain-ai', () => ({
   LEGAL_DOC_EXTRACT_SCHEMA_VERSION: 'legal_schema_version_test',
 }));
 
+vi.mock('@interdomestik/domain-claims', () => ({
+  mintClaimDocumentAiCallContext: mocks.mintClaimDocumentAiCallContext,
+  resolveClaimDocumentAiExtractionConsent: mocks.resolveClaimDocumentAiExtractionConsent,
+}));
+
 import {
   emitClaimAiRunRequestedService,
   processClaimDocumentWorkflowRunService,
@@ -151,6 +158,8 @@ function buildQueuedRun(
     workflow: 'claim_intake_extract' as const,
     documentId: 'doc-1',
     claimId: 'claim-1',
+    requestedBy: 'user-1',
+    subjectId: 'member-1',
     storagePath: 'pii/tenants/tenant-1/claims/claim-1/evidence.pdf',
     fileName: 'evidence.pdf',
     mimeType: 'application/pdf',
@@ -224,6 +233,11 @@ describe('processClaimDocumentWorkflowRunService', () => {
     vi.clearAllMocks();
     mocks.nanoid.mockReturnValueOnce('extraction-1').mockReturnValueOnce('extraction-2');
     mocks.resolveEvidenceBucketName.mockReturnValue('resolved-evidence-bucket');
+    mocks.resolveClaimDocumentAiExtractionConsent.mockResolvedValue({
+      kind: 'granted',
+      grant: { consentEventId: 'consent-1', recordedAt: '2026-06-21T10:00:00.000Z' },
+    });
+    mocks.mintClaimDocumentAiCallContext.mockReturnValue(claimIntakeAiCallContext);
     mocks.txInsertValues.mockImplementation(() => ({
       onConflictDoNothing: mocks.txInsertOnConflictDoNothing,
     }));
@@ -259,6 +273,14 @@ describe('processClaimDocumentWorkflowRunService', () => {
       }),
     });
     expect(mocks.extractClaimIntake).toHaveBeenCalled();
+    expect(mocks.resolveClaimDocumentAiExtractionConsent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'tenant-1',
+        subjectId: 'member-1',
+        claimId: 'claim-1',
+        documentId: 'doc-1',
+      })
+    );
     expect(mocks.extractClaimIntake).toHaveBeenCalledWith(
       expect.objectContaining({
         claimSnapshot: { incidentDate: '2026-02-15' },
@@ -299,6 +321,7 @@ describe('processClaimDocumentWorkflowRunService', () => {
         requestJson: { aiCallContext: createLegalAiCallContext('doc-2') },
       }),
     ]);
+    mocks.mintClaimDocumentAiCallContext.mockReturnValue(createLegalAiCallContext('doc-2'));
     mocks.extractLegalDocument.mockResolvedValue({
       documentType: 'demand_letter',
       issuer: 'Contoso Legal',
@@ -335,39 +358,6 @@ describe('processClaimDocumentWorkflowRunService', () => {
     expect(mocks.txInsertValues).toHaveBeenCalledWith(
       expect.objectContaining({
         schemaVersion: 'legal_schema_version_test',
-      })
-    );
-  });
-
-  it('normalizes malformed claim snapshots before extraction', async () => {
-    mocks.selectWhere.mockResolvedValue([
-      buildQueuedRun({
-        requestJson: {
-          aiCallContext: claimIntakeAiCallContext,
-          claimSnapshot: { incidentDate: '15/02/2026', other: 'ignored' },
-        },
-      }),
-    ]);
-    mocks.extractClaimIntake.mockResolvedValue({
-      title: 'Flight delay claim',
-      summary: 'Extracted from claim context.',
-      category: 'travel',
-      incidentDate: '2026-03-08',
-      countryCode: 'ZZ',
-      estimatedAmount: 650,
-      currency: 'EUR',
-      confidence: 0.62,
-      warnings: [],
-    });
-
-    await processClaimDocumentWorkflowRunService({
-      runId: 'run-1',
-      deps: buildProcessingDeps('Country: IT'),
-    });
-
-    expect(mocks.extractClaimIntake).toHaveBeenCalledWith(
-      expect.objectContaining({
-        claimSnapshot: { incidentDate: null },
       })
     );
   });

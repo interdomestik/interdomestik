@@ -6,6 +6,11 @@ export * from './claims/submit';
 export * from './claims/types';
 export * from './claims/constants';
 export * from './claims/ai-workflows';
+export {
+  buildClaimDocumentAiCallContext,
+  mintClaimDocumentAiCallContext,
+} from './claims/claim-ai-context';
+export { resolveClaimDocumentAiExtractionConsent } from './claims/claim-document-ai-consent';
 export * from './claims/diaspora-origin';
 export * from './claims/diaspora-origin-filter';
 export * from './claims/incident-country-backfill';

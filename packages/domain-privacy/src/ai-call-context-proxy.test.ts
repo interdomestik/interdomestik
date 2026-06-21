@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import type { AICallContext } from './ai';
+import type { AICallContextFields } from './ai';
 import { validateAICallContext } from './ai-call-context-validator';
 
-const baseContext: AICallContext = {
+const baseContext: AICallContextFields = {
   workflowId: 'case-general-assist-v1',
   owner: 'platform-privacy',
   tenantId: 'tenant_1',
@@ -39,8 +39,8 @@ describe('validateAICallContext proxy hardening', () => {
 
     const decision = validateAICallContext(input);
 
-    expect(decision.kind).toBe('valid');
+    expect(decision.kind).toBe('invalid');
     expect(purposeDescriptorReads).toBe(1);
-    if (decision.kind === 'valid') expect(decision.context.purpose).toBe('general_case');
+    expect(decision.reasons).toContain('context_untrusted');
   });
 });

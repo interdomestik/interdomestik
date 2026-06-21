@@ -40,6 +40,8 @@ describe('persistClaimAiExtraction', () => {
         workflow: 'legal_doc_extract',
         documentId: 'doc-1',
         claimId: 'claim-1',
+        requestedBy: 'user-1',
+        subjectId: 'member-1',
         storagePath: 'pii/tenants/tenant-1/claims/claim-1/legal.pdf',
         fileName: 'legal.pdf',
         mimeType: 'application/pdf',

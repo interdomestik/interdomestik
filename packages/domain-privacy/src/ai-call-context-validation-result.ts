@@ -1,4 +1,5 @@
-import type { AICallContext } from './ai';
+import type { AICallContextFields } from './ai';
+import { brandAICallContext } from './ai-call-context-brand';
 import {
   readOwnTrimmedString,
   readOwnValue,
@@ -9,10 +10,10 @@ import type { PrivacyScope } from './types';
 export function buildAICallContext(
   input: Record<string, unknown>,
   scope: PrivacyScope
-): AICallContext {
+): ReturnType<typeof brandAICallContext> {
   const subjectId = readOwnTrimmedString(input, 'subjectId');
 
-  return {
+  const fields: AICallContextFields = {
     workflowId: readOwnTrimmedString(input, 'workflowId'),
     owner: readOwnTrimmedString(input, 'owner'),
     tenantId: readOwnTrimmedString(input, 'tenantId'),
@@ -25,5 +26,7 @@ export function buildAICallContext(
     posture: readOwnValue(input, 'posture'),
     consent: readOwnValue(input, 'consent'),
     invalidityPosture: readOwnValue(input, 'invalidityPosture'),
-  } as AICallContext;
+  } as AICallContextFields;
+
+  return brandAICallContext(fields);
 }
