@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  type AICallContext,
+  type AICallContextFields,
   AI_CALL_CONSENT_POSTURES,
   AI_CALL_INVALIDITY_POSTURES,
   AI_CALL_POSTURES,
   AI_CALL_PURPOSES,
   AI_CALL_RETENTION_POSTURES,
 } from './ai';
+import { mintRequired, withAcceptedConsent } from './ai-call-context-test-helpers';
 import { validateAICallContext } from './ai-call-context-validator';
 
-const baseContext: AICallContext = {
+const baseContextInput: AICallContextFields = {
   workflowId: 'case-general-assist-v1',
   owner: 'platform-privacy',
   tenantId: 'tenant_1',
@@ -24,6 +25,8 @@ const baseContext: AICallContext = {
   consent: 'not_required',
   invalidityPosture: 'not_applicable',
 };
+
+const baseContext = mintRequired(baseContextInput);
 
 describe('AICallContext', () => {
   it('publishes literal contract sets for purpose, retention, posture, consent, and invalidity posture', () => {
@@ -46,16 +49,20 @@ describe('AICallContext', () => {
   });
 
   it('accepts invalidity review only with consent and human-review posture', () => {
-    const decision = validateAICallContext({
-      ...baseContext,
-      workflowId: 'invalidity-posture-review-v1',
-      purpose: 'invalidity_review',
-      processingPurpose: 'invalidity_review',
-      retention: 'zero_retention_no_training',
-      posture: 'human_review_required',
-      consent: 'required_granted',
-      invalidityPosture: 'human_review_required',
-    });
+    const context = mintRequired(
+      withAcceptedConsent({
+        ...baseContextInput,
+        subjectId: 'member_1',
+        workflowId: 'invalidity-posture-review-v1',
+        purpose: 'invalidity_review',
+        processingPurpose: 'invalidity_review',
+        retention: 'zero_retention_no_training',
+        posture: 'human_review_required',
+        consent: 'required_granted',
+        invalidityPosture: 'human_review_required',
+      })
+    );
+    const decision = validateAICallContext(context);
 
     expect(decision.kind).toBe('valid');
   });
@@ -131,5 +138,12 @@ describe('AICallContext', () => {
         'document_extraction_requires_consent',
       ])
     );
+  });
+
+  it('rejects structurally valid untrusted contexts', () => {
+    const decision = validateAICallContext(baseContextInput);
+
+    expect(decision.kind).toBe('invalid');
+    expect(decision.reasons).toContain('context_untrusted');
   });
 });

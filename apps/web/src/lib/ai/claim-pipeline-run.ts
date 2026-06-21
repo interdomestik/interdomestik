@@ -11,6 +11,8 @@ export type ClaimedClaimAiRun = {
   workflow: ClaimAiWorkflow;
   documentId: string;
   claimId: string;
+  requestedBy: string;
+  subjectId: string;
   storagePath: string;
   fileName: string;
   mimeType: string;
@@ -40,6 +42,8 @@ export async function claimClaimAiRun(
       workflow: aiRuns.workflow,
       documentId: aiRuns.documentId,
       claimId: aiRuns.entityId,
+      requestedBy: aiRuns.requestedBy,
+      subjectId: claims.userId,
       storagePath: documents.storagePath,
       fileName: documents.fileName,
       mimeType: documents.mimeType,
@@ -60,7 +64,15 @@ export async function claimClaimAiRun(
     .innerJoin(claims, and(eq(claims.id, aiRuns.entityId), eq(claims.tenantId, aiRuns.tenantId)))
     .where(and(eq(aiRuns.id, runId), eq(aiRuns.entityType, 'claim')));
 
-  if (!queuedRun?.documentId || !queuedRun.claimId || !isClaimAiWorkflow(queuedRun.workflow)) {
+  const requestedBy = typeof queuedRun?.requestedBy === 'string' ? queuedRun.requestedBy : '';
+  const subjectId = typeof queuedRun?.subjectId === 'string' ? queuedRun.subjectId : '';
+  if (
+    !queuedRun?.documentId ||
+    !queuedRun.claimId ||
+    !requestedBy ||
+    !subjectId ||
+    !isClaimAiWorkflow(queuedRun.workflow)
+  ) {
     throw new Error(`Queued claim AI run ${runId} was not found.`);
   }
 
@@ -90,6 +102,8 @@ export async function claimClaimAiRun(
       workflow: queuedRun.workflow,
       documentId: queuedRun.documentId,
       claimId: queuedRun.claimId,
+      requestedBy,
+      subjectId,
       storagePath: queuedRun.storagePath,
       fileName: queuedRun.fileName,
       mimeType: queuedRun.mimeType,

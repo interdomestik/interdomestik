@@ -7,12 +7,12 @@ import {
   validateExtractionCandidate,
 } from '@/lib/ai/extraction-pipeline';
 import { extractClaimIntake } from '@interdomestik/domain-ai/claims/intake-extract';
-import { requireAICallContext, type DomainAiCallContext } from '@interdomestik/domain-ai/context';
 import { extractLegalDocument } from '@interdomestik/domain-ai/legal/extract';
 import { claimIntakeExtractSchema } from '@interdomestik/domain-ai/schemas/claim-intake-extract';
 import { legalDocExtractSchema } from '@interdomestik/domain-ai/schemas/legal-doc-extract';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 
+import { readClaimPipelineAiCallContext } from './claim-pipeline-ai-context';
 import type { ClaimedClaimAiRun } from './claim-pipeline-run';
 
 export type ClaimPipelineDeps = {
@@ -49,12 +49,6 @@ function getClaimSnapshotFromRequestJson(
   };
 }
 
-function getAiCallContextFromRequestJson(
-  requestJson: Record<string, unknown>
-): DomainAiCallContext {
-  return requireAICallContext(requestJson.aiCallContext);
-}
-
 export function validateClaimAiCandidate(
   workflow: ClaimedClaimAiRun['workflow'],
   candidate: unknown
@@ -87,7 +81,7 @@ export async function extractClaimAiCandidate(
 ): Promise<ExtractionCandidate> {
   const requestJson =
     input.requestJson && typeof input.requestJson === 'object' ? input.requestJson : {};
-  const aiCallContext = getAiCallContextFromRequestJson(requestJson);
+  const aiCallContext = await readClaimPipelineAiCallContext(input);
   const candidate =
     input.workflow === 'legal_doc_extract'
       ? await extractLegalDocument({

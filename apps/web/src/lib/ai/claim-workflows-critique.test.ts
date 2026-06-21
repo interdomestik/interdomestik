@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => {
   return {
     db: { select },
     extractClaimIntake: vi.fn(),
+    mintClaimDocumentAiCallContext: vi.fn(),
+    resolveClaimDocumentAiExtractionConsent: vi.fn(),
     selectWhere,
     txInsert,
     txUpdateSet,
@@ -38,9 +40,12 @@ vi.mock('drizzle-orm', () => ({
 vi.mock('@interdomestik/domain-ai/claims/intake-extract', () => ({
   extractClaimIntake: mocks.extractClaimIntake,
 }));
+vi.mock('@interdomestik/domain-claims', () => ({
+  mintClaimDocumentAiCallContext: mocks.mintClaimDocumentAiCallContext,
+  resolveClaimDocumentAiExtractionConsent: mocks.resolveClaimDocumentAiExtractionConsent,
+}));
 
 import { processClaimDocumentWorkflowRunService } from './claim-workflows';
-import { claimIntakeAiCallContext } from '@/test/ai-call-context';
 
 describe('processClaimDocumentWorkflowRunService critique gate', () => {
   beforeEach(() => {
@@ -52,19 +57,24 @@ describe('processClaimDocumentWorkflowRunService critique gate', () => {
         workflow: 'claim_intake_extract',
         documentId: 'doc-1',
         claimId: 'claim-1',
+        requestedBy: 'user-1',
+        subjectId: 'member-1',
         storagePath: 'pii/tenants/tenant-1/claims/claim-1/evidence.txt',
         fileName: 'evidence.txt',
         mimeType: 'text/plain',
         uploadedAt: new Date('2026-03-08T10:00:00.000Z'),
         status: 'queued',
-        requestJson: { aiCallContext: claimIntakeAiCallContext, bucket: 'claim-evidence' },
+        requestJson: { bucket: 'claim-evidence' },
         claimTitle: 'Flight delay claim',
-        claimDescription: 'Delay overnight.',
         claimCategory: 'travel',
-        claimAmount: '0',
         claimCurrency: 'EUR',
       },
     ]);
+    mocks.resolveClaimDocumentAiExtractionConsent.mockResolvedValue({
+      kind: 'granted',
+      grant: { consentEventId: 'consent-1', recordedAt: '2026-06-21T10:00:00.000Z' },
+    });
+    mocks.mintClaimDocumentAiCallContext.mockReturnValue({});
     mocks.extractClaimIntake.mockResolvedValue({
       title: 'Flight delay claim',
       summary: 'Extraction had no usable content.',

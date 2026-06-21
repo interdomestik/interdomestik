@@ -1,3 +1,4 @@
+import type { AICallContextInvalidReason } from './ai-call-context-invalid-reason';
 import { evaluateConsentRequirement } from './consent';
 import type {
   AiExtractionDecision,
@@ -38,34 +39,9 @@ export const AI_CALL_INVALIDITY_POSTURES = [
 
 export type AICallInvalidityPosture = (typeof AI_CALL_INVALIDITY_POSTURES)[number];
 
-export type AICallContextInvalidReason =
-  | 'context_missing'
-  | 'workflow_id_missing'
-  | 'owner_missing'
-  | 'tenant_id_missing'
-  | 'actor_id_missing'
-  | 'subject_id_invalid'
-  | 'subject_id_required_for_consent'
-  | 'scope_missing'
-  | 'scope_invalid'
-  | 'processing_purpose_unsupported'
-  | 'processing_purpose_mismatch'
-  | 'purpose_unsupported'
-  | 'retention_unsupported'
-  | 'posture_missing'
-  | 'posture_unsupported'
-  | 'consent_missing'
-  | 'consent_unsupported'
-  | 'invalidity_posture_missing'
-  | 'invalidity_posture_unsupported'
-  | 'disabled_posture_requires_general_case'
-  | 'document_extraction_requires_zero_retention'
-  | 'document_extraction_requires_consent'
-  | 'invalidity_review_requires_human_review'
-  | 'invalidity_review_requires_zero_retention'
-  | 'invalidity_review_requires_consent';
+export type { AICallContextInvalidReason } from './ai-call-context-invalid-reason';
 
-export interface AICallContext {
+export interface AICallContextFields {
   workflowId: string;
   owner: string;
   tenantId: string;
@@ -78,6 +54,12 @@ export interface AICallContext {
   posture: AICallPosture;
   consent: AICallConsentPosture;
   invalidityPosture: AICallInvalidityPosture;
+}
+
+declare const AI_CALL_CONTEXT_BRAND: unique symbol;
+
+export interface AICallContext extends AICallContextFields {
+  readonly [AI_CALL_CONTEXT_BRAND]: true;
 }
 
 export type AICallContextValidationDecision =

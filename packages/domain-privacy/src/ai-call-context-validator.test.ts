@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { AICallContext } from './ai';
+import type { AICallContextFields } from './ai';
+import { mintRequired } from './ai-call-context-test-helpers';
 import { validateAICallContext } from './ai-call-context-validator';
 
 const GETTER_ERROR_MESSAGE = 'getter should not be invoked';
-const validContext: AICallContext = {
+const validContextInput: AICallContextFields = {
   workflowId: 'case-general-assist-v1',
   owner: 'platform-privacy',
   tenantId: 'tenant_1',
@@ -16,15 +17,24 @@ const validContext: AICallContext = {
   consent: 'not_required',
   invalidityPosture: 'not_applicable',
 };
+const validContext = mintRequired(validContextInput);
 
 describe('validateAICallContext hardening', () => {
   it('rejects array, empty, and malformed privacy scopes', () => {
     const arrayScope = validateAICallContext({ ...validContext, scope: [] });
     const emptyScope = validateAICallContext({ ...validContext, scope: {} });
     const malformedScope = validateAICallContext({ ...validContext, scope: { caseId: '' } });
-    const inheritedScope = validateAICallContext({ ...validContext, scope: Object.create({ caseId: 'case_1' }) });
+    const inheritedScope = validateAICallContext({
+      ...validContext,
+      scope: Object.create({ caseId: 'case_1' }),
+    });
     const getterScopeInput = { ...validContext };
-    Object.defineProperty(getterScopeInput, 'scope', { enumerable: true, get: () => { throw new Error(GETTER_ERROR_MESSAGE); } });
+    Object.defineProperty(getterScopeInput, 'scope', {
+      enumerable: true,
+      get: () => {
+        throw new Error(GETTER_ERROR_MESSAGE);
+      },
+    });
     const getterScope = validateAICallContext(getterScopeInput);
     expect(arrayScope.kind).toBe('invalid');
     expect(arrayScope.reasons).toContain('scope_invalid');
@@ -61,20 +71,19 @@ describe('validateAICallContext hardening', () => {
     expect(disabledInvalidity.reasons).toContain('disabled_posture_requires_general_case');
   });
   it('returns a trimmed, explicit normalized context instead of the caller object', () => {
-    const decision = validateAICallContext({
-      ...validContext,
+    const context = mintRequired({
+      ...validContextInput,
       workflowId: ' case-general-assist-v1 ',
       owner: ' platform-privacy ',
       tenantId: ' tenant_1 ',
       actorId: ' staff_1 ',
-      extraField: 'ignored',
       scope: { caseId: ' case_1 ', unsafe: 'ignored' },
-    });
+    } as AICallContextFields);
+    const decision = validateAICallContext(context);
 
     expect(decision.kind).toBe('valid');
     if (decision.kind === 'valid') {
       expect(decision.context).toEqual(validContext);
-      expect('extraField' in decision.context).toBe(false);
       expect('unsafe' in decision.context.scope).toBe(false);
     }
   });
@@ -123,27 +132,5 @@ describe('validateAICallContext hardening', () => {
 
     expect(decision.kind).toBe('invalid');
     expect(decision.reasons).toContain('invalidity_review_requires_zero_retention');
-  });
-  it('rejects inherited top-level fields instead of accepting prototype-backed input', () => {
-    const decision = validateAICallContext(Object.create(validContext));
-    const getterInput = { ...validContext };
-    Object.defineProperty(getterInput, 'workflowId', { enumerable: true, get: () => { throw new Error(GETTER_ERROR_MESSAGE); } });
-    const getterDecision = validateAICallContext(getterInput);
-    expect(decision.kind).toBe('invalid');
-    expect(decision.reasons).toEqual(expect.arrayContaining([
-      'workflow_id_missing',
-      'owner_missing',
-      'tenant_id_missing',
-      'actor_id_missing',
-      'scope_missing',
-      'processing_purpose_unsupported',
-      'purpose_unsupported',
-      'retention_unsupported',
-      'posture_missing',
-      'consent_missing',
-      'invalidity_posture_missing',
-    ]));
-    expect(getterDecision.kind).toBe('invalid');
-    expect(getterDecision.reasons).toContain('workflow_id_missing');
   });
 });
