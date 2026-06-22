@@ -454,7 +454,7 @@ export async function updateClaimStatusCore(
     }
     const { currentClaim } = currentClaimResult;
 
-    if (currentClaim.status === status && !trimmedNote) {
+    if (currentClaim.status === status && currentClaim.legacyStatus === status && !trimmedNote) {
       return { success: true }; // No change needed
     }
 

@@ -541,6 +541,24 @@ describe('staff updateClaimStatusCore', () => {
     );
   });
 
+  it('routes stale staff same-status requests through transition compat repair', async () => {
+    const staleClaim = claimFixture('evaluation', { title: 'Vehicle claim', staffId: 'staff-1' });
+    staleClaim.status = 'submitted';
+    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([staleClaim]);
+    mocks.txSelectChain.limit.mockResolvedValueOnce([transitionClaimFixture('evaluation', 6)]);
+    const result = await updateClaimStatusCore({
+      claimId: 'claim-1',
+      newStatus: 'evaluation',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'evaluation', updatedAt: expect.any(Date) })
+    );
+  });
+
   it('sends a tenant-scoped notification for public staff status changes', async () => {
     const notifyStatusChanged = vi.fn().mockResolvedValue({ success: true });
     mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);

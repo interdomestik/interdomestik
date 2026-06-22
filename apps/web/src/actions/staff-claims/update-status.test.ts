@@ -46,6 +46,7 @@ describe('updateClaimStatusCore', () => {
     mocks.dbSelect.mockResolvedValue([
       {
         caseLifecycleState: 'submitted',
+        legacyStatus: 'submitted',
         recoveryLifecycleState: 'not_started',
         status: 'submitted',
       },

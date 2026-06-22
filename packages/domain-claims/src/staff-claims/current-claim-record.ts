@@ -6,6 +6,7 @@ import type { ClaimStatus } from './types';
 
 export type CurrentClaimRecord = {
   category: string;
+  legacyStatus: ClaimStatus | null;
   staffId: string | null;
   status: ClaimStatus;
   title: string;
@@ -26,6 +27,7 @@ export async function loadStaffCurrentClaimRecord(
       caseLifecycleState: claims.caseLifecycleState,
       category: claims.category,
       recoveryLifecycleState: claims.recoveryLifecycleState,
+      legacyStatus: claims.status,
       title: claims.title,
       userId: claims.userId,
       staffId: claims.staffId,
