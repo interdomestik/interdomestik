@@ -1524,10 +1524,10 @@ test('resolveReachableBaseUrl keeps configured base when probe succeeds', async 
   globalThis.fetch = async () => new Response('', { status: 200 });
 
   try {
-    const resolved = await resolveReachableBaseUrl('https://primary.example.com', {
+    const resolved = await resolveReachableBaseUrl(RELEASE_GATE_BASE_URL, {
       deploymentUrl: 'https://deploy.example.vercel.app',
     });
-    assert.equal(resolved.baseUrl, 'https://primary.example.com');
+    assert.equal(resolved.baseUrl, RELEASE_GATE_BASE_URL);
     assert.equal(resolved.source, 'configured');
     assert.equal(resolved.probeStatus, 200);
     assert.equal(resolved.failures.length, 0);
@@ -1542,14 +1542,14 @@ test('resolveReachableBaseUrl falls back to deployment URL when configured base 
   globalThis.fetch = async () => {
     attempt += 1;
     if (attempt <= 3) {
-      throw new Error('connect ECONNREFUSED primary.example.com:443');
+      throw new Error('connect ECONNREFUSED interdomestik-web.vercel.app:443');
     }
     return new Response('', { status: 200 });
   };
 
   try {
     const resolved = await resolveReachableBaseUrl(
-      'https://primary.example.com',
+      RELEASE_GATE_BASE_URL,
       {
         deploymentUrl: 'https://deploy.example.vercel.app',
       },
@@ -1558,7 +1558,7 @@ test('resolveReachableBaseUrl falls back to deployment URL when configured base 
     assert.equal(resolved.baseUrl, 'https://deploy.example.vercel.app');
     assert.equal(resolved.source, 'deployment_fallback');
     assert.equal(resolved.probeStatus, 200);
-    assert.ok(resolved.failures[0].includes('probe_failed candidate=https://primary.example.com'));
+    assert.ok(resolved.failures[0].includes(`probe_failed candidate=${RELEASE_GATE_BASE_URL}`));
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -1570,22 +1570,22 @@ test('resolveReachableBaseUrl retries the configured base before considering fal
   globalThis.fetch = async input => {
     const url = String(input);
     attempt += 1;
-    if (url.includes('primary.example.com') && attempt < 3) {
+    if (url.includes('interdomestik-web.vercel.app') && attempt < 3) {
       throw new Error('fetch failed');
     }
     return new Response('', { status: 307 });
   };
 
   try {
-    const resolved = await resolveReachableBaseUrl('https://primary.example.com', {
+    const resolved = await resolveReachableBaseUrl(RELEASE_GATE_BASE_URL, {
       deploymentUrl: 'https://deploy.example.vercel.app',
     });
-    assert.equal(resolved.baseUrl, 'https://primary.example.com');
+    assert.equal(resolved.baseUrl, RELEASE_GATE_BASE_URL);
     assert.equal(resolved.source, 'configured');
     assert.equal(resolved.probeStatus, 307);
     assert.equal(
       resolved.failures.filter(failure =>
-        failure.includes('probe_failed candidate=https://primary.example.com')
+        failure.includes(`probe_failed candidate=${RELEASE_GATE_BASE_URL}`)
       ).length,
       2
     );
@@ -1598,21 +1598,21 @@ test('resolveReachableBaseUrl rejects protected deployment fallback candidates',
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async input => {
     const url = String(input);
-    if (url.includes('primary.example.com')) {
-      throw new Error('connect ECONNREFUSED primary.example.com:443');
+    if (url.includes('interdomestik-web.vercel.app')) {
+      throw new Error('connect ECONNREFUSED interdomestik-web.vercel.app:443');
     }
     return new Response('', { status: 401 });
   };
 
   try {
     const resolved = await resolveReachableBaseUrl(
-      'https://primary.example.com',
+      RELEASE_GATE_BASE_URL,
       {
         deploymentUrl: 'https://deploy.example.vercel.app',
       },
       { allowDeploymentFallback: true }
     );
-    assert.equal(resolved.baseUrl, 'https://primary.example.com');
+    assert.equal(resolved.baseUrl, RELEASE_GATE_BASE_URL);
     assert.equal(resolved.source, 'configured_unreachable');
     assert.equal(resolved.probeStatus, null);
     assert.ok(
