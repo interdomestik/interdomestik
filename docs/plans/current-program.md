@@ -1912,16 +1912,22 @@ they cannot be treated as completed or ownerless. Reviewer disposition: Codex
 P1 thread `PRRT_kwDOQ0Mhjc6LUADh` on PR `#1166` is accepted as actionable and
 requires the unresolved criticals to stay owned with exact classification.
 
-The Rev 99 active governed implementation selection was exactly one canonical
-tracker slice: `SEC-CQL-01b`. That selection is now consumed by the completed
-Rev 100 `SEC-CQL-01b` closeout below. High/medium CodeQL batches, Dependabot
-PRs `#1128`/`#1106`, and non-critical security backlog remain out of scope and
-require separate current-authority/design-gate selection.
+The Rev 99 active governed implementation selection remains exactly one
+canonical tracker slice: `SEC-CQL-01b`, now narrowed to residual CodeQL alert
+`#44` ownership after the PR `#1167` code remediation merged.
+The next active governed implementation goal is exactly one canonical tracker slice: `SEC-CQL-01b`.
+That owner is not authorized to start new code in this closeout; it exists to
+keep alert `#44` governed until GitHub CodeQL reports it fixed or a separate
+follow-up owner/disposition is recorded by current authority.
+High/medium CodeQL batches, Dependabot PRs `#1128`/`#1106`, and non-critical
+security backlog remain out of scope and require separate
+current-authority/design-gate selection.
 
-Rev 100 tracker overlay: `SEC-CQL-01b` completed in PR `#1167`
+Rev 100 tracker overlay: `SEC-CQL-01b` implementation evidence merged in PR `#1167`;
+alert `#44` remains owned until GitHub CodeQL closes it
 (`https://github.com/interdomestik/interdomestik/pull/1167`) from final
 implementation head `8d5cf902f0858b4fddbd099b5a866965d723eb2f` and squash
-merge `3d8d392d58064b4ca9c640eb67620ce4fc1df9f2`. The implementation closed
+merge `3d8d392d58064b4ca9c640eb67620ce4fc1df9f2`. The implementation remediated
 the bounded residual critical request-forgery follow-up for release-gate URL
 fetching without changing product/runtime surfaces: no `apps/web/src/proxy.ts`,
 auth/session/tenancy/schema/RLS/migration/billing/product UI, canonical routes,
@@ -1965,14 +1971,17 @@ CodeQL API revalidation after merge shows alerts `#45` and `#46` fixed at
 PR `#1167` source remediation is present in `scripts/release-gate/session-navigation.ts`.
 That remaining alert-state ingestion is tracked as residual CodeQL API state,
 not as authorization for new remediation in this closeout. Residual high/medium
-CodeQL and Dependabot backlog remain out of scope. No replacement
-implementation slice is promoted by this closeout; fresh current-authority
-selection is required before any next work starts. Post-closeout resolver proof:
+CodeQL and Dependabot backlog remain out of scope. No replacement implementation
+slice is promoted by this closeout; `SEC-CQL-01b` remains the explicit residual
+owner for alert `#44` only, with no new code work started here. The next
+authorized closeout action is to revalidate GitHub CodeQL alert `#44` and mark
+`SEC-CQL-01b` complete only after GitHub reports `state=fixed`/closed or after
+current authority records a separate follow-up owner/disposition. Post-correction
+resolver proof for PR `#1168`:
 `node /Users/arbenlila/.codex/skills/interdomestik-slice-runner/scripts/next-slice.mjs .`
-exited `1` with `ok=false`,
-`resolution.status=blocked_requires_current_authority`,
-`resolution.reason=umbrella_without_concrete_promoted_slice`,
-`resolution.sourceFile=docs/plans/current-tracker.md`, and `activeSlice=null`.
+exited `0` with `ok=true`, `resolution.status=ready`,
+`resolution.sourceFile=docs/plans/current-program.md`,
+`activeSlice.id=SEC-CQL-01b`, and `activeSlice.status=in_progress`.
 
 ## Program Goals
 
