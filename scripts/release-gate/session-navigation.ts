@@ -1,7 +1,7 @@
 const { TIMEOUTS } = require('./config.ts');
 const { gotoWithTransientRetry, loginAs, sleep } = require('./shared.ts');
 const {
-  assertTrustedReleaseGateBaseUrl,
+  assertTrustedReleaseGateProbeOrigin,
   normalizeTrustedVercelDeploymentBaseUrl,
 } = require('./url-policy.ts');
 
@@ -16,7 +16,7 @@ function compactErrorMessage(raw, maxLength = 420) {
 }
 
 async function probeBaseUrl(candidateBaseUrl, options = {}) {
-  const origin = new URL(assertTrustedReleaseGateBaseUrl(candidateBaseUrl, options).origin);
+  const origin = new URL(assertTrustedReleaseGateProbeOrigin(candidateBaseUrl, options));
   const response = await fetch(origin, {
     method: 'GET',
     redirect: 'manual',

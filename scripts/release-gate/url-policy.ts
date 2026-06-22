@@ -7,6 +7,14 @@ const { normalizeBaseUrl } = require('./shared.ts');
 
 const RELEASE_GATE_HOSTNAME_SUFFIXES = ['.interdomestik.com'];
 const RELEASE_GATE_HOSTNAMES = new Set(['interdomestik.com', 'interdomestik-web.vercel.app']);
+const RELEASE_GATE_KNOWN_ORIGINS = new Map([
+  ['app.interdomestik.com', 'https://app.interdomestik.com'],
+  ['interdomestik.com', 'https://interdomestik.com'],
+  ['interdomestik-web.vercel.app', 'https://interdomestik-web.vercel.app'],
+  ['mk.interdomestik.com', 'https://mk.interdomestik.com'],
+  ['staging.interdomestik.com', 'https://staging.interdomestik.com'],
+  ['www.interdomestik.com', 'https://www.interdomestik.com'],
+]);
 
 function normalizedHostname(hostname) {
   return String(hostname || '').toLowerCase();
@@ -32,6 +40,44 @@ function assertTrustedReleaseGateBaseUrl(rawValue, options = {}) {
     throw new Error(`Release gate base URL host is not allowed: ${parsed.hostname}`);
   }
   return parsed;
+}
+
+function buildTrustedOrigin(parsed) {
+  const normalized = normalizedHostname(parsed.hostname);
+  if (parsed.protocol !== 'https:') {
+    throw new Error(`Release gate public base URL must use https: ${parsed.hostname}`);
+  }
+  if (parsed.port) {
+    throw new Error(`Release gate public base URL must use the default https port: ${parsed.host}`);
+  }
+  const knownOrigin = RELEASE_GATE_KNOWN_ORIGINS.get(normalized);
+  if (knownOrigin) return knownOrigin;
+  return `https://${encodeURIComponent(normalized)}`;
+}
+
+function buildTrustedLoopbackOrigin(parsed) {
+  const protocol = parsed.protocol === 'https:' ? 'https:' : 'http:';
+  const port = parsed.port ? `:${encodeURIComponent(parsed.port)}` : '';
+  return `${protocol}//${encodeURIComponent(normalizedHostname(parsed.hostname))}${port}`;
+}
+
+function assertTrustedReleaseGateProbeOrigin(rawValue, options = {}) {
+  const parsed = assertTrustedReleaseGateBaseUrl(rawValue, options);
+  const normalized = normalizedHostname(parsed.hostname);
+  const extraHostname = normalizedHostname(options.allowedExtraHostname);
+  if (isLoopbackOrPrivateHost(parsed.hostname)) return buildTrustedLoopbackOrigin(parsed);
+  if (extraHostname && normalized === extraHostname && normalized.endsWith('.vercel.app')) {
+    if (parsed.protocol !== 'https:') {
+      throw new Error(`Release gate public base URL must use https: ${parsed.hostname}`);
+    }
+    if (parsed.port) {
+      throw new Error(
+        `Release gate public base URL must use the default https port: ${parsed.host}`
+      );
+    }
+    return `https://${encodeURIComponent(extraHostname)}`;
+  }
+  return buildTrustedOrigin(parsed);
 }
 
 function parseSafeOrigin(value) {
@@ -93,6 +139,7 @@ function buildAuthEndpointUrls(baseUrl, options = {}) {
 
 module.exports = {
   assertTrustedReleaseGateBaseUrl,
+  assertTrustedReleaseGateProbeOrigin,
   buildAuthEndpointUrls,
   isAllowedReleaseGateHostname,
   normalizeTrustedVercelDeploymentBaseUrl,
