@@ -38,7 +38,10 @@ export async function loadStaffCurrentClaimRecord(
 
   if (!currentClaimRow) return { status: 'not_found' };
 
-  const currentState = resolveClaimLifecycleCommandProjection(currentClaimRow);
+  const currentState = resolveClaimLifecycleCommandProjection({
+    ...currentClaimRow,
+    status: currentClaimRow.legacyStatus,
+  });
   if (!currentState.success) return { status: 'invalid_current_status' };
 
   return {

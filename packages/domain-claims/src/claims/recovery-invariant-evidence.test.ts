@@ -52,6 +52,7 @@ describe('loadRecoveryInvariantReadRow', () => {
       })
     ).resolves.toEqual({
       current: {
+        authority: 'lifecycle',
         caseLifecycleState: 'recovery',
         lifecycleVersion: 4,
         recoveryLifecycleState: 'negotiation',

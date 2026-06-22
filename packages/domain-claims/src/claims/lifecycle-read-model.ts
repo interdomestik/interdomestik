@@ -16,7 +16,7 @@ type LifecycleAuthority = 'lifecycle' | 'status_fallback';
 type LifecycleConsistency = 'consistent' | 'status_mismatch' | 'invalid_lifecycle_pair';
 
 export type ClaimLifecycleReadInput = {
-  status: string | null | undefined;
+  status?: string | null | undefined;
   caseLifecycleState: string | null | undefined;
   recoveryLifecycleState: string | null | undefined;
 };
@@ -31,6 +31,7 @@ export type ClaimLifecycleReadProjection = {
 
 export type ClaimLifecycleCommandProjection =
   | {
+      authority: LifecycleAuthority;
       success: true;
       caseLifecycleState: CaseLifecycleState;
       recoveryLifecycleState: RecoveryLifecycleState;
@@ -105,24 +106,34 @@ export function resolveClaimLifecycleReadProjection(
 }
 
 export function resolveClaimLifecycleCommandProjection(
-  input: Pick<ClaimLifecycleReadInput, 'caseLifecycleState' | 'recoveryLifecycleState'>
+  input: ClaimLifecycleReadInput
 ): ClaimLifecycleCommandProjection {
   const inputCaseState = input.caseLifecycleState;
   const inputRecoveryState = input.recoveryLifecycleState;
 
-  if (!isCaseLifecycleState(inputCaseState) || !isRecoveryLifecycleState(inputRecoveryState)) {
-    return { success: false, error: 'invalid_lifecycle_state' };
+  if (isCaseLifecycleState(inputCaseState) && isRecoveryLifecycleState(inputRecoveryState)) {
+    const status = STATUS_BY_LIFECYCLE_PAIR[lifecyclePairKey(inputCaseState, inputRecoveryState)];
+    if (!status) {
+      return { success: false, error: 'invalid_lifecycle_pair' };
+    }
+
+    return {
+      authority: 'lifecycle',
+      success: true,
+      caseLifecycleState: inputCaseState,
+      recoveryLifecycleState: inputRecoveryState,
+      status,
+    };
   }
 
-  const status = STATUS_BY_LIFECYCLE_PAIR[lifecyclePairKey(inputCaseState, inputRecoveryState)];
-  if (!status) {
-    return { success: false, error: 'invalid_lifecycle_pair' };
+  if (inputCaseState == null && inputRecoveryState == null && isClaimStatus(input.status)) {
+    return {
+      authority: 'status_fallback',
+      success: true,
+      ...mapClaimStatusToLifecycleStates(input.status),
+      status: input.status,
+    };
   }
 
-  return {
-    success: true,
-    caseLifecycleState: inputCaseState,
-    recoveryLifecycleState: inputRecoveryState,
-    status,
-  };
+  return { success: false, error: 'invalid_lifecycle_state' };
 }

@@ -142,10 +142,7 @@ export async function updateClaimStatusCore(
     throwTransitionFailure(result);
   }
 
-  const persistedOldStatus = result.fromStatus;
-  const persistedNewStatus = result.status;
-
   await activateClaimStatusAuditProjection({ deps, tenantId });
 
-  notifyClaimOwner(deps, claimWithUser, persistedOldStatus, persistedNewStatus);
+  notifyClaimOwner(deps, claimWithUser, result.fromStatus, result.status);
 }

@@ -2,6 +2,7 @@ import { and, claims, db, eq, sql } from '@interdomestik/database';
 import { canTransition } from './transition-guard';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import { loadTransitionReadContext } from './transition-read-context';
+import { transitionCurrentStateCas } from './transition-current-state-cas';
 import { isValidTransitionCurrentState } from './transition-current-state';
 import {
   ClaimTransitionAuthorizationError,
@@ -50,7 +51,6 @@ export async function persistAuthorizedTransition(
           statusUpdatedAt: now,
           updatedAt: now,
         };
-
   // db-access-guard: tenant-scoped -- reason: tenant scope plus lifecycle CAS are in the where clause.
   const updated = await tx
     .update(claims)
@@ -58,8 +58,7 @@ export async function persistAuthorizedTransition(
     .where(
       and(
         readWhere,
-        eq(claims.caseLifecycleState, current.caseLifecycleState),
-        eq(claims.recoveryLifecycleState, current.recoveryLifecycleState),
+        transitionCurrentStateCas(current),
         eq(claims.lifecycleVersion, current.lifecycleVersion)
       )
     )

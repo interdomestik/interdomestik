@@ -59,6 +59,7 @@ export async function loadTransitionReadContext(
       caseLifecycleState: claims.caseLifecycleState,
       lifecycleVersion: claims.lifecycleVersion,
       recoveryLifecycleState: claims.recoveryLifecycleState,
+      status: claims.status,
     })
     .from(claims)
     .where(readWhere)

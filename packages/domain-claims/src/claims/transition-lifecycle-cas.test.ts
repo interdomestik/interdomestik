@@ -32,6 +32,14 @@ function expectLifecycleCas(whereConditions: unknown[]) {
   expect(updateWhere).not.toContain('claims.status');
 }
 
+function expectLegacyStatusFallbackCas(whereConditions: unknown[]) {
+  const updateWhere = inspect(whereConditions.at(-1), { depth: 20 });
+  for (const column of ['case_lifecycle_state', 'recovery_lifecycle_state', 'lifecycle_version']) {
+    expect(updateWhere).toContain(column);
+  }
+  expect(updateWhere).toContain("name: 'status'");
+}
+
 describe('transition lifecycle CAS deprecation readiness', () => {
   it('authorizes from lifecycle state when legacy compat status is stale', async () => {
     const { calls, tx } = makeTransitionTx({
@@ -51,6 +59,29 @@ describe('transition lifecycle CAS deprecation readiness', () => {
       expect.objectContaining({ fromStatus: 'evaluation', toStatus: 'negotiation' })
     );
     expectLifecycleCas(calls.whereConditions);
+  });
+
+  it('transitions legacy rows with null lifecycle fields from compat status fallback', async () => {
+    const { calls, tx } = makeTransitionTx({
+      current: {
+        id: 'claim-1',
+        lifecycleVersion: 6,
+        status: 'evaluation',
+        caseLifecycleState: null,
+        recoveryLifecycleState: null,
+      },
+      updated: [{ id: 'claim-1', lifecycleVersion: 7 }],
+    });
+
+    const result = await transitionClaimStatusInTransaction(tx, params());
+
+    expect(result).toEqual({
+      success: true,
+      fromStatus: 'evaluation',
+      lifecycleVersion: 7,
+      status: 'negotiation',
+    });
+    expectLegacyStatusFallbackCas(calls.whereConditions);
   });
 
   it('rejects from lifecycle state even when legacy compat status would permit', async () => {

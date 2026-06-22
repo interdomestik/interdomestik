@@ -94,6 +94,7 @@ export async function loadRecoveryInvariantReadRow(
       caseLifecycleState: claims.caseLifecycleState,
       lifecycleVersion: claims.lifecycleVersion,
       recoveryLifecycleState: claims.recoveryLifecycleState,
+      status: claims.status,
     })
     .from(claims)
     .where(params.readWhere)

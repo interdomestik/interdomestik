@@ -7,9 +7,11 @@ export type TransitionCurrentReadRow = {
   lifecycleVersion: number;
   caseLifecycleState: string | null | undefined;
   recoveryLifecycleState: string | null | undefined;
+  status: string | null | undefined;
 };
 
 export type TransitionCurrentState = {
+  authority?: 'lifecycle' | 'status_fallback';
   lifecycleVersion: number;
   status: ClaimStatus;
   caseLifecycleState: CaseLifecycleState;
@@ -37,6 +39,7 @@ export function resolveTransitionCurrentState(
   }
 
   return {
+    authority: projection.authority,
     lifecycleVersion: row.lifecycleVersion,
     caseLifecycleState: projection.caseLifecycleState,
     recoveryLifecycleState: projection.recoveryLifecycleState,
