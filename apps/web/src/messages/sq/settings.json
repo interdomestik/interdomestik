@@ -37,6 +37,21 @@
       "selectPlaceholder": "Zgjidhni një gjuhë",
       "hint": "Kjo do të ndryshojë gjuhën në të gjithë aplikacionin."
     },
+    "residenceCountry": {
+      "sectionTitle": "Shteti i banimit",
+      "title": "Shteti i banimit",
+      "description": "Mbani të përditësuar shtetin e deklaruar të banimit për kushtet e anëtarësimit dhe privatësinë.",
+      "label": "Kodi i shtetit",
+      "placeholder": "AL",
+      "save": "Ruaj shtetin",
+      "saving": "Duke ruajtur...",
+      "success": "Shteti i banimit u përditësua",
+      "error": "Dështoi përditësimi i shtetit të banimit",
+      "decision": {
+        "pending_terms_reacceptance": "U përditësua. Ri-pranimi i kushteve është në pritje për rinovim.",
+        "deferred_active_recovery_runoff": "U përditësua. Rikuperimi aktiv mbetet në run-off derisa çështja të jetë terminale."
+      }
+    },
     "notifications": {
       "sectionTitle": "Njoftimet",
       "title": "Preferencat e Njoftimeve",

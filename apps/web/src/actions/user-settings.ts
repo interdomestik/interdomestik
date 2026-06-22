@@ -1,5 +1,9 @@
 'use server';
-import { getNotificationPreferences, updateNotificationPreferences } from './user-settings.core';
+import {
+  getNotificationPreferences,
+  updateNotificationPreferences,
+  updateResidenceCountry,
+} from './user-settings.core';
 
 export type { NotificationPreferences } from './user-settings.core';
-export { getNotificationPreferences, updateNotificationPreferences };
+export { getNotificationPreferences, updateNotificationPreferences, updateResidenceCountry };

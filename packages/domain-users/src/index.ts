@@ -7,6 +7,8 @@ export * from './admin/update-user-agent';
 export * from './agent/get-users';
 export * from './types';
 export * from './user-settings/get';
+export * from './user-settings/residence-country';
+export * from './user-settings/residence-country-policy';
 export * from './user-settings/types';
 export * from './user-settings/update';
 export * from './utils/ensure-tenant';

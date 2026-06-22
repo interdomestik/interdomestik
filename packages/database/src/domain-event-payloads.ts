@@ -17,6 +17,7 @@ import {
   recoverySuccessFeeCollectedPayload,
 } from './domain-event-recovery-payloads';
 import { recoveryHandedOffToJurisdictionPayload } from './domain-event-handoff-payloads';
+import { memberResidenceCountryChangedPayload } from './domain-event-member-payloads';
 import {
   legacyMembershipAgentClientBoundPayload,
   membershipAttributionRecordedPayload,
@@ -122,6 +123,7 @@ const PAYLOAD_VALIDATORS: Record<
   'recovery.escalation_agreement_recorded@1': recoveryEscalationAgreementRecordedPayload,
   'recovery.success_fee_collected@1': recoverySuccessFeeCollectedPayload,
   'recovery.handed_off_to_jurisdiction@1': recoveryHandedOffToJurisdictionPayload,
+  'member.residence_country_changed@1': memberResidenceCountryChangedPayload,
   'membership.agent_client_bound@1': legacyMembershipAgentClientBoundPayload,
   'membership.agent_attribution_recorded@1': membershipAttributionRecordedPayload,
   'membership.subscription_changed@1': membershipSubscriptionChangedPayload,
