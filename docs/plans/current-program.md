@@ -1912,10 +1912,10 @@ they cannot be treated as completed or ownerless. Reviewer disposition: Codex
 P1 thread `PRRT_kwDOQ0Mhjc6LUADh` on PR `#1166` is accepted as actionable and
 requires the unresolved criticals to stay owned with exact classification.
 
-The Rev 99 active governed implementation selection remains exactly one
-canonical tracker slice: `SEC-CQL-01b`, now narrowed to residual CodeQL alert
-`#44` ownership after the PR `#1167` code remediation merged.
-The next active governed implementation goal is exactly one canonical tracker slice: `SEC-CQL-01b`.
+The Rev 99 active governed implementation selection was exactly one
+canonical tracker slice: `SEC-CQL-01b`, narrowed to residual CodeQL alert
+`#44` ownership after the PR `#1167` code remediation merged. That temporary
+active selection is superseded by the Rev 101 closeout below.
 That owner is not authorized to start new code in this closeout; it exists to
 keep alert `#44` governed until GitHub CodeQL reports it fixed or a separate
 follow-up owner/disposition is recorded by current authority.
@@ -1982,6 +1982,37 @@ resolver proof for PR `#1168`:
 exited `0` with `ok=true`, `resolution.status=ready`,
 `resolution.sourceFile=docs/plans/current-program.md`,
 `activeSlice.id=SEC-CQL-01b`, and `activeSlice.status=in_progress`.
+
+Rev 101 tracker overlay: `SEC-CQL-01b` is complete after the alert `#44`
+follow-up implementation merged in PR `#1169`
+(`https://github.com/interdomestik/interdomestik/pull/1169`) from final
+implementation head `186fcb279f52df74c9b519fe695d5ad00e4351d6` and merge
+commit/current `main` SHA `7a4b44eb2aefb6df94f1ee0a214936a42ee6c217`.
+Post-merge `main` health at `7a4b44e` is green for CI, Sonar Main Gate, Secret
+Scan/gitleaks, and CodeQL; CD/Vercel is deployment-only and not product-readiness
+evidence unless branch protection changes. GitHub CodeQL alert `#44`
+(`js/request-forgery`, `scripts/release-gate/session-navigation.ts`) reports
+`state=fixed`, `fixed_at=2026-06-22T20:41:37Z`, and `dismissed_at=null` on
+`refs/heads/main`; alerts `#45` and `#46` were already fixed at
+`2026-06-22T18:00:41Z`.
+
+Reviewer/security disposition for the completed `SEC-CQL-01b` chain: PR `#1167`
+recorded final Sonnet 4.6 and Gemini 3.1 Pro bounded reviews with no blocker
+findings, Codex P2 deployment-fallback feedback fixed and intake-clean, Copilot
+requested by explicit `@copilot review` comments with no visible review/comment
+before bounded readiness, and optional Codex Security diff scan not used due
+interactive/manual-start friction. PR `#1169` recorded Codex review on
+intermediate commit `89e72a9934`, SonarCloud quality gate passed with `0` new
+issues, `0` accepted issues, `0` security hotspots, and `0.0%` duplication on
+new code; current-head CI, PR E2E, Pilot Gate, CodeQL, gitleaks, pnpm-audit, and
+`pr-finalizer` were green before merge. Residual high/medium CodeQL alerts,
+Dependabot backlog, direct destructive `T-503`, broad M3/M4/M5, Operational
+Brain runtime/live AI, proxy/routing/auth/session/tenancy/RLS/schema/migration,
+billing, product UI, README, AGENTS, broad architecture rewrites, canonical-route
+changes, clarity-marker changes, and next implementation slice work remain out
+of scope. No replacement runtime slice is started by this closeout; fresh
+current-authority/design-gate selection is required before any follow-on
+implementation.
 
 ## Program Goals
 
