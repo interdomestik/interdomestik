@@ -1867,17 +1867,43 @@ PR `#1163` evidence is treated as merged current authority, live `main` is
 `ebcfc84a67dcc09b6d12fd2a1f876dfa0cc04556`, and pre-gate `next-slice.mjs .`
 returned `blocked_requires_current_authority` with `activeSlice=null` after the
 `T-503c` closeout. Live GitHub CodeQL API evidence shows `86` open CodeQL
-alerts: `9` critical, `47` high, and `30` medium. The next active governed
-implementation goal is exactly one canonical tracker slice: `SEC-CQL-01`.
-Future `SEC-CQL-01` is limited to the 9 critical CodeQL SSRF/request-forgery
-and command-line-injection alerts recorded in `OBR-DG24`; high/medium batches,
-XSS, redirects, URL substring sanitization, ReDoS, path injection,
-workflow-permission hardening, clear-text logging, dependency updates, broad
-M3/M4/M5, product work, Operational Brain runtime/live AI, direct destructive
-`T-503`, proxy/routing/auth/session/tenancy/RLS/schema/migration/billing/UI
-redesign, README, AGENTS, broad architecture-doc rewrites, canonical-route
-changes, and clarity-marker changes remain out of scope unless separately
-promoted.
+alerts: `9` critical, `47` high, and `30` medium. At that gate, the promoted
+implementation goal was exactly one canonical tracker slice: `SEC-CQL-01`.
+That promotion is now consumed by the completed Rev 99 `SEC-CQL-01` closeout
+below. Future security follow-up must be selected by fresh current authority;
+high/medium batches, XSS, redirects, URL substring sanitization, ReDoS, path
+injection, workflow-permission hardening, clear-text logging, dependency
+updates, broad M3/M4/M5, product work, Operational Brain runtime/live AI,
+direct destructive `T-503`,
+proxy/routing/auth/session/tenancy/RLS/schema/migration/billing/UI redesign,
+README, AGENTS, broad architecture-doc rewrites, canonical-route changes, and
+clarity-marker changes remain out of scope unless separately promoted.
+
+Rev 99 tracker overlay: `SEC-CQL-01` is implementation-complete through PR
+`#1165` (`https://github.com/interdomestik/interdomestik/pull/1165`) from final
+implementation head `0a839a97471c31c3b1ea705d3793cd7b463cb8a5` and merge commit
+`0318b7acd6521a012bf0f98802465e098578e47d`. Required implementation evidence
+recorded on PR `#1165` passed before merge: focused SEC-CQL proof,
+`pnpm security:guard`, `pnpm pr:verify`, `pnpm e2e:gate`, clean
+`pr-feedback-intake`, GitHub CI, CodeQL, gitleaks, pnpm-audit, SonarCloud,
+`pr-finalizer`, Pilot Gate, and PR E2E. SonarCloud reported `0` new issues and
+`0` security hotspots; Copilot/Codex current-head feedback was unavailable after
+bounded request/comment evidence and no actionable current-head findings were
+visible; optional Codex Security diff scan was not used due manual-start
+friction. Post-merge `main` health at `0318b7ac` showed CI, Sonar Main Gate,
+Secret Scan, and CodeQL green; CD/Vercel are deployment-only evidence. PR
+`#1165` recorded the 9 promoted critical alerts as fixed and the worker's
+pre-merge PR-head GitHub CodeQL API check returned no open critical alerts, but
+this closeout's live post-merge `refs/heads/main` API revalidation still returns
+open critical `js/request-forgery` alerts `#44`, `#45`, and `#46` in
+`scripts/release-gate/**`; this closeout performs no remediation and records
+those records for separate current-authority/security follow-up. High/medium
+CodeQL batches, Dependabot PRs `#1128`/`#1106`, and non-critical security
+backlog remain out of scope and require separate current-authority/design-gate
+selection. No replacement runtime slice is started by this closeout; fresh
+current-authority resolution is required next. `blocked_requires_current_authority`
+with `activeSlice=null` is the expected resolver state until a fresh
+current-authority/design-gate selection promotes exactly one next slice.
 
 ## Program Goals
 
