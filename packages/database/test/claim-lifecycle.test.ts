@@ -9,7 +9,10 @@ import {
 import { withClaimLifecycleFields } from '../src/seed-utils/claim-lifecycle';
 
 test('claim lifecycle helper covers every status and fixture state', () => {
-  assert.deepEqual(Object.keys(CLAIM_STATUS_LIFECYCLE_FIELDS).sort(), [...CLAIM_STATUSES].sort());
+  assert.deepEqual(
+    Object.keys(CLAIM_STATUS_LIFECYCLE_FIELDS).sort((left, right) => left.localeCompare(right)),
+    [...CLAIM_STATUSES].sort((left, right) => left.localeCompare(right))
+  );
   assert.deepEqual(claimLifecycleFieldsForStatus('submitted'), {
     caseLifecycleState: 'submitted',
     recoveryLifecycleState: 'not_started',

@@ -20,7 +20,10 @@ test('repair SQL is dry-run-first, aggregate-only, and non-destructive', () => {
   assert.doesNotMatch(CLAIM_LIFECYCLE_REPAIR_APPLY_SQL, /\b(delete|drop|alter)\b/iu);
   assert.doesNotMatch(CLAIM_LIFECYCLE_REPAIR_APPLY_SQL, /\breturning\s+c\.id\b/iu);
   assert.match(CLAIM_LIFECYCLE_REPAIR_APPLY_SQL, /"updatedAt" = now\(\)/u);
-  assert.doesNotMatch(CLAIM_LIFECYCLE_REPAIR_APPLY_SQL, /(^|\n)\s+updatedAt = now\(\)/u);
+  assert.equal(
+    CLAIM_LIFECYCLE_REPAIR_APPLY_SQL.split('\n').some(line => line.trim() === 'updatedAt = now()'),
+    false
+  );
 });
 
 test('repair SQL does not overwrite non-null lifecycle mismatches', () => {
