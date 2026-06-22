@@ -12,6 +12,7 @@
     "./server": "./src/server.ts",
     "./db": "./src/db.ts",
     "./schema": "./src/schema.ts",
+    "./claim-lifecycle": "./src/claim-lifecycle.ts",
     "./tenant-security": "./src/tenant-security.ts",
     "./member-number": "./src/member-number.ts",
     "./claim-number": "./src/claim-number.ts"

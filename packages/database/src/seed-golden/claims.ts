@@ -1,11 +1,12 @@
 import { goldenId } from '../seed-utils/seed-ids';
+import { withClaimLifecycleFields } from '../seed-utils/claim-lifecycle';
 import {
   buildCommercialAgreementsToSeed,
   upsertCommercialAgreements,
 } from './commercial-agreements';
 import { TENANTS } from './constants';
-import type { ClaimInsert, SeedGoldenContext } from './types';
-
+import type { ClaimStatus } from '../constants';
+import type { SeedGoldenContext } from './types';
 const ksAStatuses = [
   'submitted',
   'submitted',
@@ -28,12 +29,9 @@ const ksAStatuses = [
   'negotiation',
   'negotiation',
   'court',
-] as any[];
+] as ClaimStatus[];
 
-export function buildClaimsToSeed({
-  at,
-  schema,
-}: Pick<SeedGoldenContext, 'at' | 'schema'>): ClaimInsert[] {
+export function buildClaimsToSeed({ at, schema }: Pick<SeedGoldenContext, 'at' | 'schema'>) {
   const now = at();
   const claimsToSeed: (typeof schema.claims.$inferInsert)[] = [];
 
@@ -180,7 +178,7 @@ export function buildClaimsToSeed({
     }
   );
 
-  return claimsToSeed;
+  return claimsToSeed.map(withClaimLifecycleFields);
 }
 
 export async function seedClaims(context: SeedGoldenContext) {
@@ -196,6 +194,8 @@ export async function seedClaims(context: SeedGoldenContext) {
         target: schema.claims.id,
         set: {
           status: c.status,
+          caseLifecycleState: c.caseLifecycleState,
+          recoveryLifecycleState: c.recoveryLifecycleState,
           staffId: c.staffId,
           branchId: c.branchId,
           createdAt: c.createdAt,

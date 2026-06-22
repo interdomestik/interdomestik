@@ -1,4 +1,5 @@
 import { E2E_USERS, agentClients, claimMessages, claims, db, user } from '@interdomestik/database';
+import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
 import { and, desc, eq, like, ne } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '../fixtures/auth.fixture';
@@ -8,12 +9,10 @@ import { gotoApp } from '../utils/navigation';
 function isMkProject(testInfo: import('@playwright/test').TestInfo): boolean {
   return testInfo.project.name.includes('mk');
 }
-
 type AccessibleClaimResult = {
   claimId: string;
   createdFallback: boolean;
 };
-
 type CrossAgentClaimResult = {
   claimId: string;
   assignmentId: string | null;
@@ -24,7 +23,6 @@ type CrossAgentClaimResult = {
   createdMember: boolean;
   createdOtherAgent: boolean;
 };
-
 async function resolveAccessibleClaimId(agentEmail: string): Promise<AccessibleClaimResult> {
   const seededAgent = await db.query.user.findFirst({
     where: eq(user.email, agentEmail),
@@ -78,6 +76,7 @@ async function resolveAccessibleClaimId(agentEmail: string): Promise<AccessibleC
     category: 'vehicle',
     branchId: seededAgent.branchId ?? null,
     status: 'submitted',
+    ...claimLifecycleFieldsForStatus('submitted'),
   });
 
   return { claimId: fallbackClaimId, createdFallback: true };
@@ -212,6 +211,7 @@ async function resolveCrossAgentClaimId(agentEmail: string): Promise<CrossAgentC
     companyName: 'Interdomestik QA',
     category: 'vehicle',
     status: 'submitted',
+    ...claimLifecycleFieldsForStatus('submitted'),
   });
 
   return {
