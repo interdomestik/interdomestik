@@ -23,7 +23,9 @@ describe('loadRecoveryInvariantReadRow', () => {
       noFeeReasonCode: 'no_recovery',
     };
     const current = {
+      caseLifecycleState: 'recovery',
       lifecycleVersion: 4,
+      recoveryLifecycleState: 'negotiation',
       status: 'negotiation',
     };
     const tx = {
@@ -49,7 +51,13 @@ describe('loadRecoveryInvariantReadRow', () => {
         tenantId: 'tenant-1',
       })
     ).resolves.toEqual({
-      current: { lifecycleVersion: 4, status: 'negotiation' },
+      current: {
+        authority: 'lifecycle',
+        caseLifecycleState: 'recovery',
+        lifecycleVersion: 4,
+        recoveryLifecycleState: 'negotiation',
+        status: 'negotiation',
+      },
       evidence: { claimId: 'claim-1', ...agreement, ...noFee },
     });
 

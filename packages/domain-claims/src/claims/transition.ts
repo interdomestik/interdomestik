@@ -1,7 +1,9 @@
 import { and, claims, db, eq, sql } from '@interdomestik/database';
-import { canTransition, isClaimStatus } from './transition-guard';
+import { canTransition } from './transition-guard';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import { loadTransitionReadContext } from './transition-read-context';
+import { transitionCurrentStateCas } from './transition-current-state-cas';
+import { isValidTransitionCurrentState } from './transition-current-state';
 import {
   ClaimTransitionAuthorizationError,
   ClaimTransitionConflictError,
@@ -41,7 +43,7 @@ export async function persistAuthorizedTransition(
   const now = new Date();
   const updateData =
     current.status === toStatus
-      ? { updatedAt: now }
+      ? { status: toStatus, updatedAt: now }
       : {
           ...mapClaimStatusToLifecycleStates(toStatus),
           lifecycleVersion: sql`${claims.lifecycleVersion} + 1`,
@@ -49,7 +51,6 @@ export async function persistAuthorizedTransition(
           statusUpdatedAt: now,
           updatedAt: now,
         };
-
   // db-access-guard: tenant-scoped -- reason: tenant scope plus lifecycle CAS are in the where clause.
   const updated = await tx
     .update(claims)
@@ -57,7 +58,7 @@ export async function persistAuthorizedTransition(
     .where(
       and(
         readWhere,
-        eq(claims.status, current.status),
+        transitionCurrentStateCas(current),
         eq(claims.lifecycleVersion, current.lifecycleVersion)
       )
     )
@@ -105,7 +106,9 @@ export async function transitionClaimStatusInTransaction(
   });
 
   if (!current) return { success: false, error: 'claim_not_found' };
-  if (!isClaimStatus(current.status)) return { success: false, error: 'invalid_current_status' };
+  if (!isValidTransitionCurrentState(current)) {
+    return { success: false, error: 'invalid_current_status' };
+  }
 
   const decision = canTransition({
     actor,
@@ -126,7 +129,7 @@ export async function transitionClaimStatusInTransaction(
     authorization: decision.authorization,
     claimId,
     correlationId,
-    current: { lifecycleVersion: current.lifecycleVersion, status: current.status },
+    current,
     isPublic,
     note: note ?? null,
     readWhere,

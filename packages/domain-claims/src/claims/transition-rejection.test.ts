@@ -1,4 +1,3 @@
-import type { ClaimStatus } from '@interdomestik/database/constants';
 import { sql } from '@interdomestik/database';
 import { describe, expect, it } from 'vitest';
 
@@ -10,6 +9,7 @@ import {
 } from './transition';
 import { authorizedRecoveryReadRow } from './recovery-evidence-test-support';
 import { canTransition } from './transition-guard';
+import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 
 type FakeTxCalls = {
   historyValues?: unknown;
@@ -21,8 +21,8 @@ const selectFromStep = { leftJoin: () => selectFromStep, where: () => selectWher
 const selectWhereStep = { limit: limitCurrentClaim };
 const updateWhereStep = { returning: returnUpdatedClaim };
 
-function limitCurrentClaim(): Array<{ id: string; lifecycleVersion: number; status: ClaimStatus }> {
-  return [{ id: 'claim-1', lifecycleVersion: 1, status: 'draft' }];
+function limitCurrentClaim() {
+  return [authorizedRecoveryReadRow({ lifecycleVersion: 1, status: 'draft' })];
 }
 
 function returnUpdatedClaim(): Array<{ id: string; lifecycleVersion: number }> {
@@ -110,6 +110,10 @@ function mintProof(from: 'evaluation', to: 'negotiation') {
   return decision.authorization;
 }
 
+function current(status: 'draft' | 'evaluation') {
+  return { lifecycleVersion: 3, status, ...mapClaimStatusToLifecycleStates(status) };
+}
+
 describe('persistAuthorizedTransition runtime re-check (T-002d)', () => {
   it('rejects a proof minted for a different current status before any write', async () => {
     await expect(
@@ -117,7 +121,7 @@ describe('persistAuthorizedTransition runtime re-check (T-002d)', () => {
         actor,
         authorization: mintProof('evaluation', 'negotiation'),
         claimId: 'claim-1',
-        current: { lifecycleVersion: 3, status: 'draft' },
+        current: current('draft'),
         isPublic: true,
         note: null,
         readWhere: sql`tenant_scoped_claim = true`,
@@ -132,7 +136,7 @@ describe('persistAuthorizedTransition runtime re-check (T-002d)', () => {
         actor: { id: 'someone-else', role: 'staff' },
         authorization: mintProof('evaluation', 'negotiation'),
         claimId: 'claim-1',
-        current: { lifecycleVersion: 3, status: 'evaluation' },
+        current: current('evaluation'),
         isPublic: true,
         note: null,
         readWhere: sql`tenant_scoped_claim = true`,

@@ -1,4 +1,5 @@
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 import { transitionAdminClaimStatus } from '@interdomestik/domain-claims/admin-claims/status-transition';
 
 import {
@@ -25,7 +26,8 @@ export async function updateStatusAction(
     if (!ctx) return { success: false, error: 'Unauthorized' };
 
     const claim = await getClaimForMutation(claimId, ctx.tenantId);
-    const currentStatus = claim.status as ClaimStatus;
+    const currentLifecycle = resolveClaimLifecycleReadProjection(claim);
+    const currentStatus = currentLifecycle.status;
     assertCanMutateClaim(claim, ctx.session.user.role, 'status_change');
     assertTransitionAllowed(currentStatus, newStatus);
 
@@ -39,8 +41,11 @@ export async function updateStatusAction(
 
     const transitionResult = await transitionAdminClaimStatus({
       actor: { id: ctx.session.user.id, role: ctx.session.user.role ?? null },
+      expectedCaseLifecycleState: currentLifecycle.caseLifecycleState,
+      expectedLifecycleAuthority: currentLifecycle.authority,
+      expectedRecoveryLifecycleState: currentLifecycle.recoveryLifecycleState,
+      expectedStatus: currentStatus,
       claimId,
-      fromStatus: currentStatus,
       tenantId: ctx.tenantId,
       toStatus: newStatus,
     });

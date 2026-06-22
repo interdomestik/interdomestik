@@ -56,6 +56,33 @@ describe('admin updateClaimStatusCore', () => {
     await runStatusUpdate('resolved');
 
     expect(mocks.transitionClaimStatus).not.toHaveBeenCalled();
+    expect(mocks.dbUpdate).not.toHaveBeenCalled();
+  });
+
+  it('repairs stale compat status when lifecycle state already matches the request', async () => {
+    mockClaim('resolved', 'verification');
+
+    await runStatusUpdate('resolved');
+
+    expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
+      actor: { id: 'admin-1', role: 'tenant_admin' },
+      claimId: 'claim-1',
+      tenantId: 'tenant-1',
+      toStatus: 'resolved',
+    });
+    expect(mocks.dbUpdate).not.toHaveBeenCalled();
+  });
+
+  it('surfaces stale compat repair failures without pretending the no-op succeeded', async () => {
+    mockClaim('resolved', 'verification');
+    mocks.transitionClaimStatus.mockResolvedValueOnce({
+      success: false,
+      error: 'claim_not_found',
+    });
+
+    await expect(runStatusUpdate('resolved')).rejects.toThrow('Claim not found');
+
+    expect(mocks.dbUpdate).not.toHaveBeenCalled();
   });
 
   it('routes admin status changes through the transition command', async () => {

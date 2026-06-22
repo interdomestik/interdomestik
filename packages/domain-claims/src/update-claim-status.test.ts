@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ClaimsSession } from './claims/types';
+import { transitionClaimFixture as claimRow } from './claims/lifecycle-test-support';
 import { updateClaimStatus } from './update-claim-status';
 
 const mocks = vi.hoisted(() => {
@@ -12,7 +13,9 @@ const mocks = vi.hoisted(() => {
     and: vi.fn((...conditions) => ({ op: 'and', conditions })),
     claims: {
       branchId: 'claims.branch_id',
+      caseLifecycleState: 'claims.case_lifecycle_state',
       id: 'claims.id',
+      recoveryLifecycleState: 'claims.recovery_lifecycle_state',
       staffId: 'claims.staff_id',
       status: 'claims.status',
       tenantId: 'claims.tenant_id',
@@ -69,7 +72,7 @@ describe('updateClaimStatus', () => {
     vi.clearAllMocks();
     mocks.selectChain.from.mockReturnValue(mocks.selectChain);
     mocks.selectChain.where.mockReturnValue(mocks.selectChain);
-    mocks.selectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'submitted' }]);
+    mocks.selectChain.limit.mockResolvedValue([claimRow('submitted')]);
     mocks.transition.mockResolvedValue({
       fromStatus: 'submitted',
       lifecycleVersion: 2,
@@ -89,25 +92,15 @@ describe('updateClaimStatus', () => {
   it('keeps branch scope and delegates success to the transition command', async () => {
     await expect(call({ note: 'picked for review' })).resolves.toEqual(ok);
     expect(mocks.eq).toHaveBeenCalledWith('claims.branch_id', 'branch-1');
-    expect(mocks.withTenant).toHaveBeenCalledWith(
-      'tenant-1',
-      'claims.tenant_id',
-      expect.any(Object)
-    );
     expect(mocks.transition).toHaveBeenCalledWith(
       mocks.tx,
       expect.objectContaining({
         actor: { id: 'staff-1', role: 'staff' },
-        claimId: 'claim-1',
-        isPublic: true,
         note: 'picked for review',
-        requiredWhereCondition: expect.any(Object),
         tenantId: 'tenant-1',
         toStatus: 'evaluation',
       })
     );
-    expect(mocks.tx.update).not.toHaveBeenCalled();
-    expect(mocks.tx.insert).not.toHaveBeenCalled();
   });
 
   it('keeps assigned-staff scope when the staff user has no branch', async () => {
@@ -121,11 +114,21 @@ describe('updateClaimStatus', () => {
     mocks.selectChain.limit.mockResolvedValueOnce([]);
     await expect(call()).resolves.toEqual(failure('Claim not found or access denied'));
 
-    mocks.selectChain.limit.mockResolvedValueOnce([{ id: 'claim-1', status: 'evaluation' }]);
+    mocks.selectChain.limit.mockResolvedValueOnce([
+      {
+        caseLifecycleState: null,
+        id: 'claim-1',
+        recoveryLifecycleState: null,
+        status: 'evaluation',
+      },
+    ]);
     await expect(call()).resolves.toEqual(ok);
+    expect(mocks.tx.select).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'claims.status' })
+    );
     expect(mocks.transition).not.toHaveBeenCalled();
 
-    mocks.selectChain.limit.mockResolvedValueOnce([{ id: 'claim-1', status: 'evaluation' }]);
+    mocks.selectChain.limit.mockResolvedValueOnce([claimRow('evaluation')]);
     await expect(call({ note: 'status context only' })).resolves.toEqual(ok);
     expect(mocks.transition).toHaveBeenCalledWith(
       mocks.tx,

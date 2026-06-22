@@ -25,14 +25,29 @@ vi.mock('@interdomestik/domain-claims/admin-claims/status-transition', () => ({
 
 import { updateStatusAction } from './ops-status-action';
 
-const session = {
-  user: { id: 'admin-1', role: 'admin' },
-};
+const session = { user: { id: 'admin-1', role: 'admin' } };
 const claim = {
+  caseLifecycleState: 'evaluation',
   id: 'claim-1',
+  recoveryLifecycleState: 'not_started',
   staffId: 'staff-1',
   status: 'evaluation',
 };
+
+type TransitionParamOverrides = { toStatus: string; [key: string]: string };
+
+function expectTransitionParams(params: TransitionParamOverrides) {
+  expect(mocks.transitionAdminClaimStatus).toHaveBeenCalledWith({
+    actor: { id: 'admin-1', role: 'admin' },
+    expectedCaseLifecycleState: params.expectedCaseLifecycleState ?? 'evaluation',
+    expectedLifecycleAuthority: params.expectedLifecycleAuthority ?? 'lifecycle',
+    expectedRecoveryLifecycleState: params.expectedRecoveryLifecycleState ?? 'not_started',
+    expectedStatus: params.expectedStatus ?? 'evaluation',
+    claimId: 'claim-1',
+    tenantId: 'tenant-1',
+    toStatus: params.toStatus,
+  });
+}
 
 describe('updateStatusAction', () => {
   beforeEach(() => {
@@ -54,13 +69,7 @@ describe('updateStatusAction', () => {
 
     expect(mocks.assertCanMutateClaim).toHaveBeenCalledWith(claim, 'admin', 'status_change');
     expect(mocks.assertTransitionAllowed).toHaveBeenCalledWith('evaluation', 'negotiation');
-    expect(mocks.transitionAdminClaimStatus).toHaveBeenCalledWith({
-      actor: { id: 'admin-1', role: 'admin' },
-      claimId: 'claim-1',
-      fromStatus: 'evaluation',
-      tenantId: 'tenant-1',
-      toStatus: 'negotiation',
-    });
+    expectTransitionParams({ toStatus: 'negotiation' });
     expect(mocks.logAudit).toHaveBeenCalledWith('tenant-1', 'admin-1', 'update_status', 'claim-1', {
       previousStatus: 'evaluation',
       newStatus: 'negotiation',
@@ -94,13 +103,7 @@ describe('updateStatusAction', () => {
       error: 'Illegal transition from evaluation to court',
     });
 
-    expect(mocks.transitionAdminClaimStatus).toHaveBeenCalledWith({
-      actor: { id: 'admin-1', role: 'admin' },
-      claimId: 'claim-1',
-      fromStatus: 'evaluation',
-      tenantId: 'tenant-1',
-      toStatus: 'court',
-    });
+    expectTransitionParams({ toStatus: 'court' });
     expect(mocks.logAudit).not.toHaveBeenCalled();
     expect(mocks.revalidateClaim).not.toHaveBeenCalled();
   });
@@ -118,5 +121,28 @@ describe('updateStatusAction', () => {
 
     expect(mocks.transitionAdminClaimStatus).not.toHaveBeenCalled();
     expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
+  it('passes fallback authority for legacy null lifecycle rows', async () => {
+    const legacyClaim = {
+      ...claim,
+      caseLifecycleState: null,
+      recoveryLifecycleState: null,
+      status: 'submitted',
+    };
+    mocks.getClaimForMutation.mockResolvedValueOnce(legacyClaim);
+
+    await expect(updateStatusAction('claim-1', 'verification', 'sq')).resolves.toEqual({
+      success: true,
+    });
+
+    expect(mocks.assertTransitionAllowed).toHaveBeenCalledWith('submitted', 'verification');
+    expectTransitionParams({
+      expectedCaseLifecycleState: 'submitted',
+      expectedLifecycleAuthority: 'status_fallback',
+      expectedRecoveryLifecycleState: 'not_started',
+      expectedStatus: 'submitted',
+      toStatus: 'verification',
+    });
   });
 });

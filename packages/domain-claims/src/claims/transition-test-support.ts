@@ -2,12 +2,20 @@ import { inspect } from 'node:util';
 
 import { domainEvents } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import type { RecoveryInvariantEvidence } from './recovery-invariants';
 import type { TransitionTx } from './transition';
 
 type UpdatedRows = Array<{ id: string; lifecycleVersion: number }>;
+type CurrentFixture = {
+  id: string;
+  lifecycleVersion: number;
+  status?: ClaimStatus | null;
+  caseLifecycleState?: string | null;
+  recoveryLifecycleState?: string | null;
+};
 type TransitionTxOptions = {
-  current?: { id: string; lifecycleVersion: number; status: ClaimStatus | null };
+  current?: CurrentFixture;
   evidence?: RecoveryInvariantEvidence | null;
   updated?: UpdatedRows | (() => UpdatedRows);
 };
@@ -29,6 +37,14 @@ export const authorizedRecoveryEvidence: RecoveryInvariantEvidence = {
   signedAt: new Date('2026-03-12T09:00:00Z'),
 };
 
+function withLifecycleStateDefaults(current: CurrentFixture): CurrentFixture {
+  if (current.caseLifecycleState !== undefined || current.recoveryLifecycleState !== undefined) {
+    return current;
+  }
+  if (!current.status) return current;
+  return { ...current, ...mapClaimStatusToLifecycleStates(current.status) };
+}
+
 class FakeSelect {
   constructor(
     private readonly options: TransitionTxOptions,
@@ -47,7 +63,7 @@ class FakeSelect {
   async limit(): Promise<Record<string, unknown>[]> {
     if (!this.options.current) return [];
     this.calls.operations.push('select:current');
-    return [this.options.current];
+    return [withLifecycleStateDefaults(this.options.current)];
   }
 }
 

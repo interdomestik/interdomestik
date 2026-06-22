@@ -114,9 +114,9 @@ describe('claim lifecycle state mapping', () => {
 
   it('persists mapped states during status-changing transitions', async () => {
     const state: ClaimState = {
-      caseLifecycleState: null,
+      caseLifecycleState: 'evaluation',
       lifecycleVersion: 6,
-      recoveryLifecycleState: null,
+      recoveryLifecycleState: 'not_started',
       status: 'evaluation',
     };
 

@@ -5,6 +5,7 @@ import type { SQLWrapper } from 'drizzle-orm';
 import type { AuthorizedTransition } from './transition-guard';
 import { persistAuthorizedTransition } from './transition';
 import type { TransitionTx } from './transition-side-effects';
+import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 
 declare const tx: TransitionTx;
 declare const from: ClaimStatus;
@@ -20,7 +21,7 @@ export async function rawPersistenceCallMustFail(): Promise<void> {
     // @ts-expect-error T-002d: unbranded object is not proof.
     authorization: { actorId: 'actor-1', from, to },
     claimId: 'claim-1',
-    current: { lifecycleVersion: 1, status: from },
+    current: { lifecycleVersion: 1, status: from, ...mapClaimStatusToLifecycleStates(from) },
     isPublic: true,
     note: null,
     readWhere: scopedReadWhere,
@@ -34,7 +35,7 @@ export async function rawStatusOverloadMustNotExist(): Promise<void> {
     // @ts-expect-error T-002d: bare status cannot replace proof.
     authorization: to,
     claimId: 'claim-1',
-    current: { lifecycleVersion: 1, status: from },
+    current: { lifecycleVersion: 1, status: from, ...mapClaimStatusToLifecycleStates(from) },
     isPublic: true,
     note: null,
     readWhere: scopedReadWhere,
@@ -48,7 +49,7 @@ export async function scopedWhereMustBeProvided(): Promise<void> {
     actor: { id: 'actor-1', role: 'staff' },
     authorization: proof,
     claimId: 'claim-1',
-    current: { lifecycleVersion: 1, status: from },
+    current: { lifecycleVersion: 1, status: from, ...mapClaimStatusToLifecycleStates(from) },
     isPublic: true,
     note: null,
     // @ts-expect-error T-002d: scoped predicate is required.

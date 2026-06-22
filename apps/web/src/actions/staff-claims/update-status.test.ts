@@ -7,7 +7,13 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  claims: { id: { name: 'id' }, tenantId: { name: 'tenantId' }, status: { name: 'status' } },
+  claims: {
+    caseLifecycleState: { name: 'caseLifecycleState' },
+    id: { name: 'id' },
+    recoveryLifecycleState: { name: 'recoveryLifecycleState' },
+    tenantId: { name: 'tenantId' },
+    status: { name: 'status' },
+  },
   claimStageHistory: { tenantId: { name: 'tenantId' } },
   db: {
     select: () => ({
@@ -37,7 +43,14 @@ describe('updateClaimStatusCore', () => {
   });
 
   it('no-ops when status unchanged and no note', async () => {
-    mocks.dbSelect.mockResolvedValue([{ status: 'submitted' }]);
+    mocks.dbSelect.mockResolvedValue([
+      {
+        caseLifecycleState: 'submitted',
+        legacyStatus: 'submitted',
+        recoveryLifecycleState: 'not_started',
+        status: 'submitted',
+      },
+    ]);
 
     const result = await updateClaimStatusCore({
       claimId: 'claim-1',

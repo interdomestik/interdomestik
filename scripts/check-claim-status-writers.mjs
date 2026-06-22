@@ -34,6 +34,8 @@ export const CLAIM_STATUS_INITIALIZATION_WRITERS = new Set([
   'packages/domain-claims/src/claims/submit.ts',
 ]);
 
+export const CLAIM_STATUS_COMPAT_REPAIR_WRITERS = new Set([]);
+
 export const CLAIM_STATUS_FIXTURE_WRITERS = new Set([
   'apps/web/e2e/gate/agent-workspace-claims-selection.spec.ts',
   'packages/database/src/seed-full/claims.ts',
@@ -50,6 +52,7 @@ export const CLAIM_STATUS_FIXTURE_WRITERS = new Set([
 export const CLAIM_STATUS_WRITER_ALLOWLIST = new Set([
   ...CLAIM_STATUS_TRANSITION_WRITERS,
   ...CLAIM_STATUS_INITIALIZATION_WRITERS,
+  ...CLAIM_STATUS_COMPAT_REPAIR_WRITERS,
   ...CLAIM_STATUS_FIXTURE_WRITERS,
 ]);
 

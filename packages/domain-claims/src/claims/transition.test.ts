@@ -43,7 +43,9 @@ describe('transitionClaimStatusInTransaction', () => {
     );
     const updateWhere = inspect(calls.whereConditions.at(-1), { depth: 20 });
     expect(updateWhere).toContain('lifecycle_version');
-    expect(updateWhere).toContain('status');
+    expect(updateWhere).toContain('case_lifecycle_state');
+    expect(updateWhere).toContain('recovery_lifecycle_state');
+    expect(updateWhere).not.toContain('claims.status');
     expect(calls.historyValues).toEqual(
       expect.objectContaining({
         changedById: 'staff-1',
@@ -120,10 +122,13 @@ describe('transitionClaimStatusInTransaction', () => {
       lifecycleVersion: 6,
       status: 'evaluation',
     });
-    expect(calls.updateValues).toEqual({ updatedAt: expect.any(Date) });
+    expect(calls.updateValues?.status).toBe('evaluation');
+    expect(calls.updateValues?.updatedAt).toBeInstanceOf(Date);
     const updateWhere = inspect(calls.whereConditions.at(-1), { depth: 20 });
     expect(updateWhere).toContain('lifecycle_version');
-    expect(updateWhere).toContain('status');
+    expect(updateWhere).toContain('case_lifecycle_state');
+    expect(updateWhere).toContain('recovery_lifecycle_state');
+    expect(updateWhere).not.toContain('claims.status');
     expect(calls.historyValues).toEqual(
       expect.objectContaining({
         fromStatus: 'evaluation',

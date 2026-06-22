@@ -56,7 +56,6 @@ export async function updateClaimStatusCore(
     .select({
       id: claims.id,
       title: claims.title,
-      status: claims.status,
       staffId: claims.staffId,
       userId: claims.userId,
       userEmail: user.email,
