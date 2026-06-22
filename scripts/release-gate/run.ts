@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-const { assertSafeHttpUrl, isLoopbackOrPrivateHost } = require('../security/egress.cjs');
 const {
   DEFAULTS,
   SUITES,
@@ -68,6 +67,11 @@ const {
   sessionCacheKeyForAccount,
   sleep,
 } = require('./shared.ts');
+const {
+  assertTrustedReleaseGateBaseUrl,
+  buildAuthEndpointUrls,
+  shouldAllowConfiguredLoopbackBaseUrl,
+} = require('./url-policy.ts');
 const VERCEL_LOG_STREAM_TIMEOUT_MS = 12_000;
 const AUTH_PREFLIGHT_TIMEOUT_MS = 8_000;
 const AUTH_PREFLIGHT_MAX_ATTEMPTS = 3;
@@ -227,39 +231,6 @@ function parseBooleanEnv(value) {
   return null;
 }
 
-function parseSafeOrigin(value) {
-  if (!value) return null;
-  try {
-    return assertSafeHttpUrl(value, { allowLoopback: true }).origin;
-  } catch {
-    return null;
-  }
-}
-
-function isTrustedCiPlaywrightLoopbackBaseUrl(configuredBaseUrl, env = process.env) {
-  if (String(env.CI || '').toLowerCase() !== 'true') return false;
-  if (String(env.PLAYWRIGHT || '') !== '1') return false;
-
-  let configured;
-  try {
-    configured = assertSafeHttpUrl(configuredBaseUrl, { allowLoopback: true });
-  } catch {
-    return false;
-  }
-
-  if (!isLoopbackOrPrivateHost(configured.hostname)) return false;
-  const trustedOrigins = [env.NEXT_PUBLIC_APP_URL, env.BETTER_AUTH_URL]
-    .map(parseSafeOrigin)
-    .filter(Boolean);
-  return trustedOrigins.includes(configured.origin);
-}
-
-function shouldAllowConfiguredLoopbackBaseUrl(configuredBaseUrl, envName, env = process.env) {
-  if (String(envName || '').toLowerCase() !== 'production') return true;
-  if (env.RELEASE_GATE_ALLOW_LOOPBACK_BASE_URL === '1') return true;
-  return isTrustedCiPlaywrightLoopbackBaseUrl(configuredBaseUrl, env);
-}
-
 function shouldDisallowSkippedChecks(envName) {
   const explicit = parseBooleanEnv(process.env.RELEASE_GATE_DISALLOW_SKIP);
   if (explicit != null) return explicit;
@@ -392,16 +363,12 @@ function evaluateCredentialPreflightResults(results) {
 async function runAuthEndpointPreflight(runCtx) {
   const evidence = [];
   const signatures = [];
-  const origin = assertSafeHttpUrl(runCtx.baseUrl, {
+  const { endpoints, origin } = buildAuthEndpointUrls(runCtx.baseUrl, {
     allowLoopback: runCtx.envName !== 'production',
-  }).origin;
-  const endpointPaths = [
-    '/api/auth/get-session?disableCookieCache=true&disableRefresh=true',
-    '/api/auth/sign-in/email',
-  ];
+    allowedExtraHostname: runCtx.allowedExtraHostname,
+  });
 
-  for (const endpointPath of endpointPaths) {
-    const endpoint = `${origin}${endpointPath}`;
+  for (const { path: endpointPath, url: endpoint } of endpoints) {
     let reached = false;
 
     for (let attempt = 1; attempt <= AUTH_PREFLIGHT_MAX_ATTEMPTS; attempt += 1) {
@@ -416,7 +383,9 @@ async function runAuthEndpointPreflight(runCtx) {
           signal: AbortSignal.timeout(AUTH_PREFLIGHT_TIMEOUT_MS),
         });
 
-        evidence.push(preflightEvidenceLine({ endpoint, attempt, status: response.status }));
+        evidence.push(
+          preflightEvidenceLine({ endpoint: endpoint.href, attempt, status: response.status })
+        );
         if (AUTH_PREFLIGHT_ACCEPTED_STATUSES.has(response.status)) {
           reached = true;
           break;
@@ -428,7 +397,7 @@ async function runAuthEndpointPreflight(runCtx) {
         return { status: 'FAIL', evidence, signatures };
       } catch (error) {
         const message = compactErrorMessage(error?.message || error);
-        evidence.push(preflightEvidenceLine({ endpoint, attempt, message }));
+        evidence.push(preflightEvidenceLine({ endpoint: endpoint.href, attempt, message }));
         const infraMessage = classifyInfraNetworkFailure(message);
 
         if (infraMessage && attempt < AUTH_PREFLIGHT_MAX_ATTEMPTS) {
@@ -461,10 +430,10 @@ async function runAuthEndpointPreflight(runCtx) {
 async function runAuthCredentialPreflight(runCtx) {
   const evidence = [];
   const signatures = [];
-  const origin = assertSafeHttpUrl(runCtx.baseUrl, {
+  const { origin, signInEmailUrl: loginUrl } = buildAuthEndpointUrls(runCtx.baseUrl, {
     allowLoopback: runCtx.envName !== 'production',
-  }).origin;
-  const loginUrl = `${origin}/api/auth/sign-in/email`;
+    allowedExtraHostname: runCtx.allowedExtraHostname,
+  });
   const accountKeys = selectCredentialPreflightAccounts();
   const results = [];
 
@@ -851,7 +820,7 @@ async function main() {
     configuredBaseUrl,
     args.envName
   );
-  const safeConfiguredBaseUrl = assertSafeHttpUrl(configuredBaseUrl, {
+  const safeConfiguredBaseUrl = assertTrustedReleaseGateBaseUrl(configuredBaseUrl, {
     allowLoopback: allowLoopbackBaseUrl,
   }).href;
 
@@ -874,6 +843,7 @@ async function main() {
       credentials,
       deployment,
       authState: createAuthState(),
+      allowedExtraHostname: resolvedBase.allowedExtraHostname,
     };
     console.log(
       `[release-gate] base_url source=${resolvedBase.source} url=${baseUrl} probe_status=${String(
@@ -1127,6 +1097,7 @@ async function main() {
 }
 
 module.exports = {
+  buildAuthEndpointUrls,
   buildCommercialPromiseScenarios,
   buildEscalationAgreementCollectionFallbackScenarios,
   buildFreeStartGroupPrivacyScenarios,
