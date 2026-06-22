@@ -1867,17 +1867,59 @@ PR `#1163` evidence is treated as merged current authority, live `main` is
 `ebcfc84a67dcc09b6d12fd2a1f876dfa0cc04556`, and pre-gate `next-slice.mjs .`
 returned `blocked_requires_current_authority` with `activeSlice=null` after the
 `T-503c` closeout. Live GitHub CodeQL API evidence shows `86` open CodeQL
-alerts: `9` critical, `47` high, and `30` medium. The next active governed
-implementation goal is exactly one canonical tracker slice: `SEC-CQL-01`.
-Future `SEC-CQL-01` is limited to the 9 critical CodeQL SSRF/request-forgery
-and command-line-injection alerts recorded in `OBR-DG24`; high/medium batches,
-XSS, redirects, URL substring sanitization, ReDoS, path injection,
-workflow-permission hardening, clear-text logging, dependency updates, broad
-M3/M4/M5, product work, Operational Brain runtime/live AI, direct destructive
-`T-503`, proxy/routing/auth/session/tenancy/RLS/schema/migration/billing/UI
-redesign, README, AGENTS, broad architecture-doc rewrites, canonical-route
-changes, and clarity-marker changes remain out of scope unless separately
-promoted.
+alerts: `9` critical, `47` high, and `30` medium. At that gate, the promoted
+implementation goal was exactly one canonical tracker slice: `SEC-CQL-01`.
+That promotion is now consumed by the completed Rev 99 `SEC-CQL-01` closeout
+below. Future security follow-up must be selected by fresh current authority;
+high/medium batches, XSS, redirects, URL substring sanitization, ReDoS, path
+injection, workflow-permission hardening, clear-text logging, dependency
+updates, broad M3/M4/M5, product work, Operational Brain runtime/live AI,
+direct destructive `T-503`,
+proxy/routing/auth/session/tenancy/RLS/schema/migration/billing/UI redesign,
+README, AGENTS, broad architecture-doc rewrites, canonical-route changes, and
+clarity-marker changes remain out of scope unless separately promoted.
+
+Rev 99 tracker overlay: `SEC-CQL-01` is only partially closeout-complete through
+PR `#1165` (`https://github.com/interdomestik/interdomestik/pull/1165`) from
+final implementation head `0a839a97471c31c3b1ea705d3793cd7b463cb8a5` and merge
+commit `0318b7acd6521a012bf0f98802465e098578e47d`. PR `#1165` preserves valid
+non-residual implementation evidence for the promoted critical batch, including
+focused SEC-CQL proof, `pnpm security:guard`, `pnpm pr:verify`,
+`pnpm e2e:gate`, clean `pr-feedback-intake`, GitHub CI, CodeQL, gitleaks,
+pnpm-audit, SonarCloud, `pr-finalizer`, Pilot Gate, and PR E2E before merge.
+SonarCloud reported `0` new issues and `0` security hotspots; Copilot/Codex
+current-head feedback was unavailable after bounded request/comment evidence and
+no actionable current-head findings were visible; optional Codex Security diff
+scan was not used due manual-start friction. Post-merge `main` health at
+`0318b7ac` showed CI, Sonar Main Gate, Secret Scan, and CodeQL green; CD/Vercel
+are deployment-only evidence.
+
+The non-residual portion consumed by PR `#1165` is the accepted evidence for
+alerts `#40`, `#41`, `#147`, `#51`, `#52`, and `#53` plus PR-head proof that the
+full batch had no open critical alerts before merge. It does not close the
+post-merge residual criticals because this closeout's live `refs/heads/main`
+CodeQL API revalidation still returns open, undismissed, unfixed critical
+`js/request-forgery` records: `#44`
+(`https://github.com/interdomestik/interdomestik/security/code-scanning/44`,
+`scripts/release-gate/session-navigation.ts:17-21`), `#45`
+(`https://github.com/interdomestik/interdomestik/security/code-scanning/45`,
+`scripts/release-gate/run.ts:409-417`), and `#46`
+(`https://github.com/interdomestik/interdomestik/security/code-scanning/46`,
+`scripts/release-gate/run.ts:492-506`). Rationale: these remain critical
+CodeQL SSRF/request-forgery findings on `refs/heads/main`, all with no
+`fixed_at`, no `dismissed_at`, and no accepted false-positive disposition, so
+they cannot be treated as completed or ownerless. Reviewer disposition: Codex
+P1 thread `PRRT_kwDOQ0Mhjc6LUADh` on PR `#1166` is accepted as actionable and
+requires the unresolved criticals to stay owned with exact classification.
+
+The next active governed implementation goal is exactly one canonical tracker
+slice: `SEC-CQL-01b`. `SEC-CQL-01b` is a bounded residual critical CodeQL
+follow-up limited to alerts `#44`, `#45`, and `#46`, requiring either closure on
+`refs/heads/main` or explicit false-positive/residual-risk/follow-up
+classification with reviewer/security disposition. High/medium CodeQL batches,
+Dependabot PRs `#1128`/`#1106`, and non-critical security backlog remain out of
+scope and require separate current-authority/design-gate selection. This
+closeout starts no implementation branch or code remediation.
 
 ## Program Goals
 
