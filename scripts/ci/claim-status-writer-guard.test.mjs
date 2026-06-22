@@ -5,6 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  CLAIM_STATUS_COMPAT_REPAIR_WRITERS,
   CLAIM_STATUS_FIXTURE_WRITERS,
   CLAIM_STATUS_INITIALIZATION_WRITERS,
   CLAIM_STATUS_TRANSITION_WRITERS,
@@ -74,6 +75,17 @@ test('classifies claim creation and submit as initial status writers', () => {
   );
   assert.equal(
     CLAIM_STATUS_FIXTURE_WRITERS.has('packages/domain-claims/src/claims/submit.ts'),
+    false
+  );
+});
+
+test('classifies admin stale compat repair as a compatibility writer', () => {
+  assert.deepEqual(
+    [...CLAIM_STATUS_COMPAT_REPAIR_WRITERS],
+    ['packages/domain-claims/src/admin-claims/update-status.ts']
+  );
+  assert.equal(
+    CLAIM_STATUS_TRANSITION_WRITERS.has('packages/domain-claims/src/admin-claims/update-status.ts'),
     false
   );
 });

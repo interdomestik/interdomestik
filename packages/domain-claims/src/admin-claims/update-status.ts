@@ -58,6 +58,7 @@ export async function updateClaimStatusCore(
       caseLifecycleState: claims.caseLifecycleState,
       id: claims.id,
       recoveryLifecycleState: claims.recoveryLifecycleState,
+      status: claims.status,
       title: claims.title,
       userId: claims.userId,
       userEmail: user.email,
@@ -72,6 +73,12 @@ export async function updateClaimStatusCore(
 
   const currentState = resolveClaimLifecycleCommandProjection(claimWithUser);
   if (currentState.success && currentState.status === newStatus) {
+    if (claimWithUser.status !== newStatus) {
+      await db
+        .update(claims)
+        .set({ status: newStatus })
+        .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
+    }
     return;
   }
 
