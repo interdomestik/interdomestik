@@ -14,16 +14,28 @@ function params(toStatus: ClaimStatus = 'negotiation') {
   };
 }
 
+function staleEvaluationClaim() {
+  return {
+    id: 'claim-1',
+    lifecycleVersion: 6,
+    status: 'draft' as const,
+    caseLifecycleState: 'evaluation',
+    recoveryLifecycleState: 'not_started',
+  };
+}
+
+function expectLifecycleCas(whereConditions: unknown[]) {
+  const updateWhere = inspect(whereConditions.at(-1), { depth: 20 });
+  for (const column of ['case_lifecycle_state', 'recovery_lifecycle_state', 'lifecycle_version']) {
+    expect(updateWhere).toContain(column);
+  }
+  expect(updateWhere).not.toContain('claims.status');
+}
+
 describe('transition lifecycle CAS deprecation readiness', () => {
   it('authorizes from lifecycle state when legacy compat status is stale', async () => {
     const { calls, tx } = makeTransitionTx({
-      current: {
-        id: 'claim-1',
-        lifecycleVersion: 6,
-        status: 'draft',
-        caseLifecycleState: 'evaluation',
-        recoveryLifecycleState: 'not_started',
-      },
+      current: staleEvaluationClaim(),
       updated: [{ id: 'claim-1', lifecycleVersion: 7 }],
     });
 
@@ -38,11 +50,7 @@ describe('transition lifecycle CAS deprecation readiness', () => {
     expect(calls.historyValues).toEqual(
       expect.objectContaining({ fromStatus: 'evaluation', toStatus: 'negotiation' })
     );
-    const updateWhere = inspect(calls.whereConditions.at(-1), { depth: 20 });
-    expect(updateWhere).toContain('case_lifecycle_state');
-    expect(updateWhere).toContain('recovery_lifecycle_state');
-    expect(updateWhere).toContain('lifecycle_version');
-    expect(updateWhere).not.toContain('claims.status');
+    expectLifecycleCas(calls.whereConditions);
   });
 
   it('rejects from lifecycle state even when legacy compat status would permit', async () => {
@@ -67,13 +75,7 @@ describe('transition lifecycle CAS deprecation readiness', () => {
 
   it('repairs stale legacy status on same-status transitions under lifecycle CAS', async () => {
     const { calls, tx } = makeTransitionTx({
-      current: {
-        id: 'claim-1',
-        lifecycleVersion: 6,
-        status: 'draft',
-        caseLifecycleState: 'evaluation',
-        recoveryLifecycleState: 'not_started',
-      },
+      current: staleEvaluationClaim(),
       updated: [{ id: 'claim-1', lifecycleVersion: 6 }],
     });
 
@@ -89,11 +91,7 @@ describe('transition lifecycle CAS deprecation readiness', () => {
       status: 'evaluation',
       updatedAt: expect.any(Date),
     });
-    const updateWhere = inspect(calls.whereConditions.at(-1), { depth: 20 });
-    expect(updateWhere).toContain('case_lifecycle_state');
-    expect(updateWhere).toContain('recovery_lifecycle_state');
-    expect(updateWhere).toContain('lifecycle_version');
-    expect(updateWhere).not.toContain('claims.status');
+    expectLifecycleCas(calls.whereConditions);
   });
 
   it('fails stale lifecycle-pair CAS before history or events are recorded', async () => {

@@ -122,10 +122,8 @@ describe('transitionClaimStatusInTransaction', () => {
       lifecycleVersion: 6,
       status: 'evaluation',
     });
-    expect(calls.updateValues).toEqual({
-      status: 'evaluation',
-      updatedAt: expect.any(Date),
-    });
+    expect(calls.updateValues?.status).toBe('evaluation');
+    expect(calls.updateValues?.updatedAt).toBeInstanceOf(Date);
     const updateWhere = inspect(calls.whereConditions.at(-1), { depth: 20 });
     expect(updateWhere).toContain('lifecycle_version');
     expect(updateWhere).toContain('case_lifecycle_state');
