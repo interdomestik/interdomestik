@@ -1860,6 +1860,25 @@ closeout PR lands, `blocked_requires_current_authority` with `activeSlice=null`
 is the expected resolver state until a fresh current-authority/design-gate
 selection promotes exactly one next slice.
 
+Rev 98 tracker overlay: `OBR-DG24` completed the post-`T-503c`
+current-authority/design-gate selection in
+`docs/plans/2026-06-22-obr-dg24-codeql-critical-gate.md`. PR `#1162` and
+PR `#1163` evidence is treated as merged current authority, live `main` is
+`ebcfc84a67dcc09b6d12fd2a1f876dfa0cc04556`, and pre-gate `next-slice.mjs .`
+returned `blocked_requires_current_authority` with `activeSlice=null` after the
+`T-503c` closeout. Live GitHub CodeQL API evidence shows `86` open CodeQL
+alerts: `9` critical, `47` high, and `30` medium. The next active governed
+implementation goal is exactly one canonical tracker slice: `SEC-CQL-01`.
+Future `SEC-CQL-01` is limited to the 9 critical CodeQL SSRF/request-forgery
+and command-line-injection alerts recorded in `OBR-DG24`; high/medium batches,
+XSS, redirects, URL substring sanitization, ReDoS, path injection,
+workflow-permission hardening, clear-text logging, dependency updates, broad
+M3/M4/M5, product work, Operational Brain runtime/live AI, direct destructive
+`T-503`, proxy/routing/auth/session/tenancy/RLS/schema/migration/billing/UI
+redesign, README, AGENTS, broad architecture-doc rewrites, canonical-route
+changes, and clarity-marker changes remain out of scope unless separately
+promoted.
+
 ## Program Goals
 
 1. Keep the completed `V01` through `V05` convergence work inspectable and stable.
