@@ -1785,14 +1785,33 @@ no active replacement before this gate. Direct destructive `T-503` remains
 blocked by missing qualifying release-cycle proof, legacy `claims.status`
 transition/current-state/CAS dependencies, status-shaped initialization and
 fixtures, missing rollback/backfill/observability package, and `121`
-null/incomplete lifecycle rows. The next active governed implementation goal is
-exactly one canonical tracker slice: `T-503b`. Future `T-503b` is limited to a
-non-destructive lifecycle completeness repair/backfill and initialization/fixture
-hardening package before command-path lifecycle CAS deprecation or destructive
-`T-503` can be reconsidered. No `claims.status` drop/rename, destructive
+null/incomplete lifecycle rows. At that gate, the promoted governed
+implementation goal was exactly one canonical tracker slice: `T-503b`; that
+slice is now completed by PR `#1159`. `T-503b` was limited to a non-destructive
+lifecycle completeness repair/backfill and initialization/fixture hardening
+package before command-path lifecycle CAS deprecation or destructive `T-503`
+can be reconsidered. No `claims.status` drop/rename, destructive
 schema/RLS migration, proxy/routing/auth/session/tenancy/billing change, product
 UI, Operational Brain runtime/live AI, broad M5, `T-504`, `T-507`, `T-501`,
 `T-502`, `T-505`, `T-506`, README, or AGENTS work is promoted.
+
+Rev 95 tracker overlay: `T-503b` completed in PR `#1159` from final
+implementation head `4f2508bb00adbb85ba85a9f5695a913648181475` and squash
+merge `1776e5095f021373878001697ee1c4ccb10ffe1c`. The readiness slice added
+non-destructive, dry-run-first lifecycle completeness repair/backfill tooling
+for mappable null/incomplete `claims` lifecycle rows, hardened lifecycle-shaped
+claim initialization and seed/test/E2E fixture posture, preserved aggregate-only
+reporting with no row-level PII, and recorded rollback/data-repair/observability
+handoff evidence for later lifecycle-CAS work. Sonar remediation cleared the
+current-head quality gate, and required PR CI, PR E2E, Pilot Gate, Secret
+Scan/gitleaks, Security/pnpm-audit, CodeQL, and pr-finalizer were green before
+merge; Copilot review was supervisor-classified unavailable/no-response after
+GitHub rejected the normal reviewer request and the fallback `@copilot review`
+received no bounded response. Direct destructive `T-503` remains blocked by
+missing qualifying release-cycle proof plus legacy `claims.status`
+transition/current-state/CAS dependencies. No replacement runtime slice is
+started by this closeout; fresh current-authority/design-gate selection is
+required before any next product/runtime work.
 
 ## Program Goals
 
