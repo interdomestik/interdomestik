@@ -1,5 +1,6 @@
 import { db } from '../db';
 import * as schema from '../schema';
+import { withClaimLifecycleFields } from '../seed-utils/claim-lifecycle';
 import { BRANCHES, TENANTS } from './constants';
 
 import type { SeedConfig } from '../seed-types';
@@ -76,7 +77,7 @@ export async function seedClaimsAndFlows(config: SeedConfig) {
         userId: c.userId,
         tenantId: tenantId,
         branchId: c.branchId,
-        status: c.status as any,
+        ...withClaimLifecycleFields({ status: c.status as any }),
         title: c.title,
         claimAmount: c.amount,
         currency: 'EUR',
@@ -86,7 +87,10 @@ export async function seedClaimsAndFlows(config: SeedConfig) {
         createdAt: at(),
         updatedAt: at(),
       })
-      .onConflictDoUpdate({ target: schema.claims.id, set: { status: c.status as any } });
+      .onConflictDoUpdate({
+        target: schema.claims.id,
+        set: withClaimLifecycleFields({ status: c.status as any }),
+      });
 
     if (c.id === 'full_claim_mk_1') {
       await db

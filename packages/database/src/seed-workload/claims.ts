@@ -1,4 +1,5 @@
 import type { SeedConfig } from '../seed-types';
+import { withClaimLifecycleFields } from '../seed-utils/claim-lifecycle';
 import { statuses, TENANTS, WORKLOAD_PREFIX } from './constants';
 
 export async function seedWorkloadClaims(
@@ -81,7 +82,7 @@ export async function seedWorkloadClaims(
   }
 
   if (claims.length > 0) {
-    const chunks = chunkArray(claims, 20);
+    const chunks = chunkArray(claims.map(withClaimLifecycleFields), 20);
     for (const chunk of chunks) {
       await db.insert(schema.claims).values(chunk).onConflictDoNothing();
     }

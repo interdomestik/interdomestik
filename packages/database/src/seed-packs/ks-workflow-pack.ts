@@ -1,8 +1,8 @@
 import { cleanupByPrefixes } from '../seed-utils/cleanup';
 import { hashPassword } from '../seed-utils/hash-password';
+import { withClaimLifecycleFields } from '../seed-utils/claim-lifecycle';
 import { goldenId, packId } from '../seed-utils/seed-ids';
 import { E2E_PASSWORD } from '../e2e-users';
-// Needed imports for sanity check
 import { inArray, sql } from 'drizzle-orm';
 import type { SeedConfig } from '../seed-types';
 
@@ -54,7 +54,6 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
     KS: 'tenant_ks',
   };
 
-  // 1.0 Ensure Tenants Exist (Both KS and MK for Isolation Testing)
   const allTenants = [
     {
       id: TENANTS.KS,
@@ -86,10 +85,8 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
       set: { name: sql`excluded.name` },
     });
 
-  // 1. Cleanup previous Pack Data specifically
   await cleanupByPrefixes(db, schema, ['pack_ks_'], false);
 
-  // 2. Ensure Branches Exist (A/B/C)
   const BRANCHES = [
     {
       id: packId('ks', 'branch_a'),
@@ -123,7 +120,6 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
       set: { name: schema.branches.name, code: schema.branches.code },
     });
 
-  // 3. Seed Users
   console.log('👥 Seeding Pack Users...');
   const PACK_PASSWORD = E2E_PASSWORD;
   const hashedPass = hashPassword(PACK_PASSWORD);
@@ -489,33 +485,35 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
       await withTransientDbWriteRetry(`${claimId}:claim`, () =>
         db
           .insert(schema.claims)
-          .values({
-            id: claimId,
-            userId: memberId,
-            staffId: status !== 'submitted' ? staffId : null,
-            tenantId: TENANTS.KS,
-            branchId: branchId,
-            claimNumber: makeClaimNumber(globalClaimIdx),
-            status: status as any,
-            title: title,
-            description: description,
-            category: category,
-            companyName: 'Siguria Kosova',
-            claimAmount: randomAmount(),
-            currency: 'EUR',
-            createdAt: createdAt,
-            updatedAt: createdAt,
-            statusUpdatedAt: createdAt,
-          })
+          .values(
+            withClaimLifecycleFields({
+              id: claimId,
+              userId: memberId,
+              staffId: status !== 'submitted' ? staffId : null,
+              tenantId: TENANTS.KS,
+              branchId: branchId,
+              claimNumber: makeClaimNumber(globalClaimIdx),
+              status: status as any,
+              title: title,
+              description: description,
+              category: category,
+              companyName: 'Siguria Kosova',
+              claimAmount: randomAmount(),
+              currency: 'EUR',
+              createdAt: createdAt,
+              updatedAt: createdAt,
+              statusUpdatedAt: createdAt,
+            })
+          )
           .onConflictDoUpdate({
             target: schema.claims.id,
-            set: {
+            set: withClaimLifecycleFields({
               status: status as any,
               description,
               title,
               staffId: status !== 'submitted' ? staffId : null,
               updatedAt: createdAt,
-            },
+            }),
           })
       );
 
@@ -541,23 +539,25 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
     await withTransientDbWriteRetry(`sla-claim:${i}`, () =>
       db
         .insert(schema.claims)
-        .values({
-          id: packId('ks', 'claim', 'ks_a', 'sla', i),
-          userId: getPackMemberId(i),
-          tenantId: TENANTS.KS,
-          branchId: packId('ks', 'branch_a'),
-          claimNumber: makeClaimNumber(globalClaimIdx),
-          status: 'submitted',
-          title: `Vonesë Kritike SLA - ${days} ditë`,
-          category: 'vehicle',
-          companyName: 'Siguria Kosova',
-          claimAmount: '2500.00',
-          currency: 'EUR',
-          createdAt: date,
-        })
+        .values(
+          withClaimLifecycleFields({
+            id: packId('ks', 'claim', 'ks_a', 'sla', i),
+            userId: getPackMemberId(i),
+            tenantId: TENANTS.KS,
+            branchId: packId('ks', 'branch_a'),
+            claimNumber: makeClaimNumber(globalClaimIdx),
+            status: 'submitted',
+            title: `Vonesë Kritike SLA - ${days} ditë`,
+            category: 'vehicle',
+            companyName: 'Siguria Kosova',
+            claimAmount: '2500.00',
+            currency: 'EUR',
+            createdAt: date,
+          })
+        )
         .onConflictDoUpdate({
           target: schema.claims.id,
-          set: { status: 'submitted', createdAt: date },
+          set: withClaimLifecycleFields({ status: 'submitted', createdAt: date }),
         })
     );
   }

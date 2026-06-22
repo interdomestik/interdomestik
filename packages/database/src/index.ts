@@ -54,6 +54,11 @@ export {
   relayClaimStatusAuditProjectionEvents,
   type ProjectClaimStatusChangedAuditResult,
 } from './domain-event-audit-projection';
+export {
+  CLAIM_STATUS_LIFECYCLE_FIELDS,
+  claimLifecycleFieldsForStatus,
+  type ClaimLifecycleFields,
+} from './claim-lifecycle';
 export { withTenantContext, withTenantDb, type TenantTransaction } from './tenant';
 
 // Export Drizzle instance and schema
