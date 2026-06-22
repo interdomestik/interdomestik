@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   and: vi.fn((...conditions) => ({ op: 'and', conditions })),
   dbTransaction: vi.fn(async callback => callback({ tx: true })),
   eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
+  isNull: vi.fn(value => ({ op: 'isNull', value })),
   transition: vi.fn(),
 }));
 
@@ -21,6 +22,7 @@ vi.mock('@interdomestik/database', () => ({
   },
   db: { transaction: mocks.dbTransaction },
   eq: mocks.eq,
+  isNull: mocks.isNull,
   sql: vi.fn(() => ({ op: 'sql' })),
 }));
 
@@ -45,7 +47,9 @@ describe('transitionAdminClaimStatus', () => {
     await transitionAdminClaimStatus({
       actor: { id: 'admin-1', role: 'admin' },
       expectedCaseLifecycleState: 'submitted',
+      expectedLifecycleAuthority: 'lifecycle',
       expectedRecoveryLifecycleState: 'not_started',
+      expectedStatus: 'submitted',
       claimId: 'claim-1',
       tenantId: 'tenant-1',
       toStatus: 'verification',
@@ -64,5 +68,65 @@ describe('transitionAdminClaimStatus', () => {
       })
     );
     expect(mocks.eq).not.toHaveBeenCalledWith('claims.status', expect.anything());
+  });
+
+  it('allows legacy null lifecycle rows through the fallback precondition', async () => {
+    await transitionAdminClaimStatus({
+      actor: { id: 'admin-1', role: 'admin' },
+      expectedCaseLifecycleState: 'submitted',
+      expectedLifecycleAuthority: 'status_fallback',
+      expectedRecoveryLifecycleState: 'not_started',
+      expectedStatus: 'submitted',
+      claimId: 'claim-1',
+      tenantId: 'tenant-1',
+      toStatus: 'verification',
+    });
+
+    expect(mocks.transition).toHaveBeenCalledWith(
+      { tx: true },
+      expect.objectContaining({
+        requiredWhereCondition: {
+          op: 'and',
+          conditions: [
+            { op: 'isNull', value: 'claims.case_lifecycle_state' },
+            { op: 'isNull', value: 'claims.recovery_lifecycle_state' },
+            { op: 'eq', left: 'claims.status', right: 'submitted' },
+          ],
+        },
+      })
+    );
+  });
+
+  it('layers payment authorization on top of the fallback precondition', async () => {
+    await transitionAdminClaimStatus({
+      actor: { id: 'admin-1', role: 'admin' },
+      expectedCaseLifecycleState: 'evaluation',
+      expectedLifecycleAuthority: 'status_fallback',
+      expectedRecoveryLifecycleState: 'not_started',
+      expectedStatus: 'evaluation',
+      claimId: 'claim-1',
+      tenantId: 'tenant-1',
+      toStatus: 'court',
+    });
+
+    expect(mocks.transition).toHaveBeenCalledWith(
+      { tx: true },
+      expect.objectContaining({
+        requiredWhereCondition: {
+          op: 'and',
+          conditions: [
+            {
+              op: 'and',
+              conditions: [
+                { op: 'isNull', value: 'claims.case_lifecycle_state' },
+                { op: 'isNull', value: 'claims.recovery_lifecycle_state' },
+                { op: 'eq', left: 'claims.status', right: 'evaluation' },
+              ],
+            },
+            { op: 'sql' },
+          ],
+        },
+      })
+    );
   });
 });

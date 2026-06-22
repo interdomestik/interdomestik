@@ -42,7 +42,9 @@ export async function updateStatusAction(
     const transitionResult = await transitionAdminClaimStatus({
       actor: { id: ctx.session.user.id, role: ctx.session.user.role ?? null },
       expectedCaseLifecycleState: currentLifecycle.caseLifecycleState,
+      expectedLifecycleAuthority: currentLifecycle.authority,
       expectedRecoveryLifecycleState: currentLifecycle.recoveryLifecycleState,
+      expectedStatus: currentStatus,
       claimId,
       tenantId: ctx.tenantId,
       toStatus: newStatus,
