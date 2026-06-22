@@ -1879,31 +1879,47 @@ proxy/routing/auth/session/tenancy/RLS/schema/migration/billing/UI redesign,
 README, AGENTS, broad architecture-doc rewrites, canonical-route changes, and
 clarity-marker changes remain out of scope unless separately promoted.
 
-Rev 99 tracker overlay: `SEC-CQL-01` is implementation-complete through PR
-`#1165` (`https://github.com/interdomestik/interdomestik/pull/1165`) from final
-implementation head `0a839a97471c31c3b1ea705d3793cd7b463cb8a5` and merge commit
-`0318b7acd6521a012bf0f98802465e098578e47d`. Required implementation evidence
-recorded on PR `#1165` passed before merge: focused SEC-CQL proof,
-`pnpm security:guard`, `pnpm pr:verify`, `pnpm e2e:gate`, clean
-`pr-feedback-intake`, GitHub CI, CodeQL, gitleaks, pnpm-audit, SonarCloud,
-`pr-finalizer`, Pilot Gate, and PR E2E. SonarCloud reported `0` new issues and
-`0` security hotspots; Copilot/Codex current-head feedback was unavailable after
-bounded request/comment evidence and no actionable current-head findings were
-visible; optional Codex Security diff scan was not used due manual-start
-friction. Post-merge `main` health at `0318b7ac` showed CI, Sonar Main Gate,
-Secret Scan, and CodeQL green; CD/Vercel are deployment-only evidence. PR
-`#1165` recorded the 9 promoted critical alerts as fixed and the worker's
-pre-merge PR-head GitHub CodeQL API check returned no open critical alerts, but
-this closeout's live post-merge `refs/heads/main` API revalidation still returns
-open critical `js/request-forgery` alerts `#44`, `#45`, and `#46` in
-`scripts/release-gate/**`; this closeout performs no remediation and records
-those records for separate current-authority/security follow-up. High/medium
-CodeQL batches, Dependabot PRs `#1128`/`#1106`, and non-critical security
-backlog remain out of scope and require separate current-authority/design-gate
-selection. No replacement runtime slice is started by this closeout; fresh
-current-authority resolution is required next. `blocked_requires_current_authority`
-with `activeSlice=null` is the expected resolver state until a fresh
-current-authority/design-gate selection promotes exactly one next slice.
+Rev 99 tracker overlay: `SEC-CQL-01` is only partially closeout-complete through
+PR `#1165` (`https://github.com/interdomestik/interdomestik/pull/1165`) from
+final implementation head `0a839a97471c31c3b1ea705d3793cd7b463cb8a5` and merge
+commit `0318b7acd6521a012bf0f98802465e098578e47d`. PR `#1165` preserves valid
+non-residual implementation evidence for the promoted critical batch, including
+focused SEC-CQL proof, `pnpm security:guard`, `pnpm pr:verify`,
+`pnpm e2e:gate`, clean `pr-feedback-intake`, GitHub CI, CodeQL, gitleaks,
+pnpm-audit, SonarCloud, `pr-finalizer`, Pilot Gate, and PR E2E before merge.
+SonarCloud reported `0` new issues and `0` security hotspots; Copilot/Codex
+current-head feedback was unavailable after bounded request/comment evidence and
+no actionable current-head findings were visible; optional Codex Security diff
+scan was not used due manual-start friction. Post-merge `main` health at
+`0318b7ac` showed CI, Sonar Main Gate, Secret Scan, and CodeQL green; CD/Vercel
+are deployment-only evidence.
+
+The non-residual portion consumed by PR `#1165` is the accepted evidence for
+alerts `#40`, `#41`, `#147`, `#51`, `#52`, and `#53` plus PR-head proof that the
+full batch had no open critical alerts before merge. It does not close the
+post-merge residual criticals because this closeout's live `refs/heads/main`
+CodeQL API revalidation still returns open, undismissed, unfixed critical
+`js/request-forgery` records: `#44`
+(`https://github.com/interdomestik/interdomestik/security/code-scanning/44`,
+`scripts/release-gate/session-navigation.ts:17-21`), `#45`
+(`https://github.com/interdomestik/interdomestik/security/code-scanning/45`,
+`scripts/release-gate/run.ts:409-417`), and `#46`
+(`https://github.com/interdomestik/interdomestik/security/code-scanning/46`,
+`scripts/release-gate/run.ts:492-506`). Rationale: these remain critical
+CodeQL SSRF/request-forgery findings on `refs/heads/main`, all with no
+`fixed_at`, no `dismissed_at`, and no accepted false-positive disposition, so
+they cannot be treated as completed or ownerless. Reviewer disposition: Codex
+P1 thread `PRRT_kwDOQ0Mhjc6LUADh` on PR `#1166` is accepted as actionable and
+requires the unresolved criticals to stay owned with exact classification.
+
+The next active governed implementation goal is exactly one canonical tracker
+slice: `SEC-CQL-01b`. `SEC-CQL-01b` is a bounded residual critical CodeQL
+follow-up limited to alerts `#44`, `#45`, and `#46`, requiring either closure on
+`refs/heads/main` or explicit false-positive/residual-risk/follow-up
+classification with reviewer/security disposition. High/medium CodeQL batches,
+Dependabot PRs `#1128`/`#1106`, and non-critical security backlog remain out of
+scope and require separate current-authority/design-gate selection. This
+closeout starts no implementation branch or code remediation.
 
 ## Program Goals
 
