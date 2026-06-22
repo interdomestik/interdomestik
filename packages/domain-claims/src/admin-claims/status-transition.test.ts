@@ -44,8 +44,9 @@ describe('transitionAdminClaimStatus', () => {
   it('binds expected lifecycle state instead of legacy status in the precondition', async () => {
     await transitionAdminClaimStatus({
       actor: { id: 'admin-1', role: 'admin' },
+      expectedCaseLifecycleState: 'submitted',
+      expectedRecoveryLifecycleState: 'not_started',
       claimId: 'claim-1',
-      fromStatus: 'submitted',
       tenantId: 'tenant-1',
       toStatus: 'verification',
     });

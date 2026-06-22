@@ -73,6 +73,18 @@ describe('admin updateClaimStatusCore', () => {
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
   });
 
+  it('surfaces stale compat repair failures without pretending the no-op succeeded', async () => {
+    mockClaim('resolved', 'verification');
+    mocks.transitionClaimStatus.mockResolvedValueOnce({
+      success: false,
+      error: 'claim_not_found',
+    });
+
+    await expect(runStatusUpdate('resolved')).rejects.toThrow('Claim not found');
+
+    expect(mocks.dbUpdate).not.toHaveBeenCalled();
+  });
+
   it('routes admin status changes through the transition command', async () => {
     const logAuditEvent = vi.fn();
     const projectClaimStatusAuditProjection = vi.fn();

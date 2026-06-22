@@ -29,7 +29,9 @@ const session = {
   user: { id: 'admin-1', role: 'admin' },
 };
 const claim = {
+  caseLifecycleState: 'evaluation',
   id: 'claim-1',
+  recoveryLifecycleState: 'not_started',
   staffId: 'staff-1',
   status: 'evaluation',
 };
@@ -56,8 +58,9 @@ describe('updateStatusAction', () => {
     expect(mocks.assertTransitionAllowed).toHaveBeenCalledWith('evaluation', 'negotiation');
     expect(mocks.transitionAdminClaimStatus).toHaveBeenCalledWith({
       actor: { id: 'admin-1', role: 'admin' },
+      expectedCaseLifecycleState: 'evaluation',
+      expectedRecoveryLifecycleState: 'not_started',
       claimId: 'claim-1',
-      fromStatus: 'evaluation',
       tenantId: 'tenant-1',
       toStatus: 'negotiation',
     });
@@ -96,8 +99,9 @@ describe('updateStatusAction', () => {
 
     expect(mocks.transitionAdminClaimStatus).toHaveBeenCalledWith({
       actor: { id: 'admin-1', role: 'admin' },
+      expectedCaseLifecycleState: 'evaluation',
+      expectedRecoveryLifecycleState: 'not_started',
       claimId: 'claim-1',
-      fromStatus: 'evaluation',
       tenantId: 'tenant-1',
       toStatus: 'court',
     });
@@ -118,5 +122,24 @@ describe('updateStatusAction', () => {
 
     expect(mocks.transitionAdminClaimStatus).not.toHaveBeenCalled();
     expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
+  it('derives admin transition guards and CAS from lifecycle state when compat status is stale', async () => {
+    const staleCompatClaim = { ...claim, status: 'submitted' };
+    mocks.getClaimForMutation.mockResolvedValueOnce(staleCompatClaim);
+
+    await expect(updateStatusAction('claim-1', 'negotiation', 'sq')).resolves.toEqual({
+      success: true,
+    });
+
+    expect(mocks.assertTransitionAllowed).toHaveBeenCalledWith('evaluation', 'negotiation');
+    expect(mocks.transitionAdminClaimStatus).toHaveBeenCalledWith({
+      actor: { id: 'admin-1', role: 'admin' },
+      expectedCaseLifecycleState: 'evaluation',
+      expectedRecoveryLifecycleState: 'not_started',
+      claimId: 'claim-1',
+      tenantId: 'tenant-1',
+      toStatus: 'negotiation',
+    });
   });
 });

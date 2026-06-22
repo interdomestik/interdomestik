@@ -4,7 +4,7 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import { activateClaimStatusAuditProjection } from '../claims/audit-projection';
 import { resolveClaimLifecycleCommandProjection } from '../claims/lifecycle-read-model';
-import { transitionClaimStatus } from '../claims/transition';
+import { transitionClaimStatus, type TransitionClaimStatusResult } from '../claims/transition';
 
 type ClaimStatus =
   | 'draft'
@@ -60,6 +60,18 @@ function notifyClaimOwner(
   ).catch((err: Error) => console.error('Failed to send status notification:', err));
 }
 
+function throwTransitionFailure(
+  result: Extract<TransitionClaimStatusResult, { success: false }>
+): never {
+  if (result.error === 'claim_not_found') {
+    throw new Error('Claim not found');
+  }
+  if (result.error === 'transition_rejected') {
+    throw new Error('Invalid status transition');
+  }
+  throw new Error('Failed to update claim status');
+}
+
 export async function updateClaimStatusCore(
   params: {
     claimId: string;
@@ -106,12 +118,15 @@ export async function updateClaimStatusCore(
   const currentState = resolveClaimLifecycleCommandProjection(claimWithUser);
   if (currentState.success && currentState.status === newStatus) {
     if (claimWithUser.status !== newStatus) {
-      await transitionClaimStatus({
+      const repairResult = await transitionClaimStatus({
         actor: { id: session.user.id, role: session.user.role ?? null },
         claimId,
         tenantId,
         toStatus: newStatus,
       });
+      if (!repairResult.success) {
+        throwTransitionFailure(repairResult);
+      }
     }
     return;
   }
@@ -124,13 +139,7 @@ export async function updateClaimStatusCore(
   });
 
   if (!result.success) {
-    if (result.error === 'claim_not_found') {
-      throw new Error('Claim not found');
-    }
-    if (result.error === 'transition_rejected') {
-      throw new Error('Invalid status transition');
-    }
-    throw new Error('Failed to update claim status');
+    throwTransitionFailure(result);
   }
 
   const persistedOldStatus = result.fromStatus;

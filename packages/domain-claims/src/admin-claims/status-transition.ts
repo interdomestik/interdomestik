@@ -6,15 +6,16 @@ import {
   transitionClaimStatusInTransaction,
   type TransitionClaimStatusResult,
 } from '../claims/transition';
+import type { CaseLifecycleState, RecoveryLifecycleState } from '../claims/lifecycle-state';
 import type { ClaimTransitionActor } from '../claims/transition-guard';
-import { mapClaimStatusToLifecycleStates } from '../claims/lifecycle-state';
 
 const paymentGatedStatuses = new Set<ClaimStatus>(['negotiation', 'court']);
 
 export type TransitionAdminClaimStatusParams = {
   actor: ClaimTransitionActor;
+  expectedCaseLifecycleState: CaseLifecycleState;
+  expectedRecoveryLifecycleState: RecoveryLifecycleState;
   claimId: string;
-  fromStatus: ClaimStatus;
   tenantId: string;
   toStatus: ClaimStatus;
 };
@@ -29,10 +30,9 @@ function paymentAuthorizationRequired(params: { claimId: string; tenantId: strin
 }
 
 function requiredTransitionCondition(params: TransitionAdminClaimStatusParams): SQLWrapper {
-  const fromState = mapClaimStatusToLifecycleStates(params.fromStatus);
   const fromStateCondition = and(
-    eq(claims.caseLifecycleState, fromState.caseLifecycleState),
-    eq(claims.recoveryLifecycleState, fromState.recoveryLifecycleState)
+    eq(claims.caseLifecycleState, params.expectedCaseLifecycleState),
+    eq(claims.recoveryLifecycleState, params.expectedRecoveryLifecycleState)
   ) as SQLWrapper;
   if (!paymentGatedStatuses.has(params.toStatus)) return fromStateCondition;
 
