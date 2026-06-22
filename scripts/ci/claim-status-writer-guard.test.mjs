@@ -79,14 +79,15 @@ test('classifies claim creation and submit as initial status writers', () => {
   );
 });
 
-test('classifies admin stale compat repair as a compatibility writer', () => {
-  assert.deepEqual(
-    [...CLAIM_STATUS_COMPAT_REPAIR_WRITERS],
-    ['packages/domain-claims/src/admin-claims/update-status.ts']
-  );
+test('keeps stale compat repair transition-owned', () => {
+  assert.deepEqual([...CLAIM_STATUS_COMPAT_REPAIR_WRITERS], []);
   assert.equal(
     CLAIM_STATUS_TRANSITION_WRITERS.has('packages/domain-claims/src/admin-claims/update-status.ts'),
     false
+  );
+  assert.equal(
+    CLAIM_STATUS_TRANSITION_WRITERS.has('packages/domain-claims/src/claims/transition.ts'),
+    true
   );
 });
 

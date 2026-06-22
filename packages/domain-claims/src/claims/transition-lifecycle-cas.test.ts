@@ -65,6 +65,37 @@ describe('transition lifecycle CAS deprecation readiness', () => {
     expect(calls.eventValues).toBeUndefined();
   });
 
+  it('repairs stale legacy status on same-status transitions under lifecycle CAS', async () => {
+    const { calls, tx } = makeTransitionTx({
+      current: {
+        id: 'claim-1',
+        lifecycleVersion: 6,
+        status: 'draft',
+        caseLifecycleState: 'evaluation',
+        recoveryLifecycleState: 'not_started',
+      },
+      updated: [{ id: 'claim-1', lifecycleVersion: 6 }],
+    });
+
+    const result = await transitionClaimStatusInTransaction(tx, params('evaluation'));
+
+    expect(result).toEqual({
+      success: true,
+      fromStatus: 'evaluation',
+      lifecycleVersion: 6,
+      status: 'evaluation',
+    });
+    expect(calls.updateValues).toEqual({
+      status: 'evaluation',
+      updatedAt: expect.any(Date),
+    });
+    const updateWhere = inspect(calls.whereConditions.at(-1), { depth: 20 });
+    expect(updateWhere).toContain('case_lifecycle_state');
+    expect(updateWhere).toContain('recovery_lifecycle_state');
+    expect(updateWhere).toContain('lifecycle_version');
+    expect(updateWhere).not.toContain('claims.status');
+  });
+
   it('fails stale lifecycle-pair CAS before history or events are recorded', async () => {
     const { calls, tx } = makeTransitionTx({
       current: {

@@ -1,5 +1,4 @@
-import { claims, db, eq, user } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
+import { and, claims, db, eq, user } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
@@ -27,6 +26,39 @@ const validStatuses: ClaimStatus[] = [
   'resolved',
   'rejected',
 ];
+
+type ClaimOwnerNotificationRow = {
+  id: string;
+  title: string;
+  userEmail: string | null;
+  userId: string | null;
+};
+
+function claimTenantWhere(tenantId: string, claimId: string) {
+  return and(eq(claims.tenantId, tenantId), eq(claims.id, claimId));
+}
+
+function notifyClaimOwner(
+  deps: ClaimsDeps,
+  claim: ClaimOwnerNotificationRow,
+  oldStatus: ClaimStatus,
+  newStatus: ClaimStatus
+): void {
+  const notifyStatusChanged = deps.notifyStatusChanged;
+  if (!claim.userId || !claim.userEmail || oldStatus === newStatus || !notifyStatusChanged) {
+    return;
+  }
+
+  Promise.resolve(
+    notifyStatusChanged(
+      claim.userId,
+      claim.userEmail,
+      { id: claim.id, title: claim.title },
+      oldStatus,
+      newStatus
+    )
+  ).catch((err: Error) => console.error('Failed to send status notification:', err));
+}
 
 export async function updateClaimStatusCore(
   params: {
@@ -65,7 +97,7 @@ export async function updateClaimStatusCore(
     })
     .from(claims)
     .leftJoin(user, eq(claims.userId, user.id))
-    .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
+    .where(claimTenantWhere(tenantId, claimId));
 
   if (!claimWithUser) {
     throw new Error('Claim not found');
@@ -74,10 +106,12 @@ export async function updateClaimStatusCore(
   const currentState = resolveClaimLifecycleCommandProjection(claimWithUser);
   if (currentState.success && currentState.status === newStatus) {
     if (claimWithUser.status !== newStatus) {
-      await db
-        .update(claims)
-        .set({ status: newStatus })
-        .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
+      await transitionClaimStatus({
+        actor: { id: session.user.id, role: session.user.role ?? null },
+        claimId,
+        tenantId,
+        toStatus: newStatus,
+      });
     }
     return;
   }
@@ -104,22 +138,5 @@ export async function updateClaimStatusCore(
 
   await activateClaimStatusAuditProjection({ deps, tenantId });
 
-  // Send notification to claim owner (fire-and-forget)
-  if (
-    claimWithUser.userId &&
-    claimWithUser.userEmail &&
-    persistedOldStatus !== persistedNewStatus
-  ) {
-    if (deps.notifyStatusChanged) {
-      Promise.resolve(
-        deps.notifyStatusChanged(
-          claimWithUser.userId,
-          claimWithUser.userEmail,
-          { id: claimWithUser.id, title: claimWithUser.title },
-          persistedOldStatus,
-          persistedNewStatus
-        )
-      ).catch((err: Error) => console.error('Failed to send status notification:', err));
-    }
-  }
+  notifyClaimOwner(deps, claimWithUser, persistedOldStatus, persistedNewStatus);
 }

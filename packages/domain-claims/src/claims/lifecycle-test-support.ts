@@ -1,7 +1,7 @@
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 
-type LifecycleFixtureStatus = ClaimStatus | string | null;
+type LifecycleFixtureStatus = string | null;
 
 export function withClaimLifecycle<T extends { status: LifecycleFixtureStatus }>(claim: T): T {
   if (!claim.status) return claim;

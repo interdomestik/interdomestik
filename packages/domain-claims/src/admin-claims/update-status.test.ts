@@ -64,16 +64,13 @@ describe('admin updateClaimStatusCore', () => {
 
     await runStatusUpdate('resolved');
 
-    expect(mocks.transitionClaimStatus).not.toHaveBeenCalled();
-    expect(mocks.dbUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'claims.status' })
-    );
-    expect(mocks.updateSet).toHaveBeenCalledWith({ status: 'resolved' });
-    expect(mocks.updateWhere).toHaveBeenCalledWith({
-      condition: { left: 'claims.id', right: 'claim-1' },
-      tenantColumn: 'claims.tenant_id',
+    expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
+      actor: { id: 'admin-1', role: 'tenant_admin' },
+      claimId: 'claim-1',
       tenantId: 'tenant-1',
+      toStatus: 'resolved',
     });
+    expect(mocks.dbUpdate).not.toHaveBeenCalled();
   });
 
   it('routes admin status changes through the transition command', async () => {

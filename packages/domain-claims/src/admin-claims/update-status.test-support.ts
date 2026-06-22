@@ -6,6 +6,7 @@ type UpdateStatusMocks = {
   agreementFrom: MockFunction;
   agreementLimit: MockFunction;
   agreementWhere: MockFunction;
+  and: MockFunction;
   claimFrom: MockFunction;
   claimLeftJoin: MockFunction;
   claimWhere: MockFunction;
@@ -21,6 +22,7 @@ const updateStatusMocks: UpdateStatusMocks = vi.hoisted(() => ({
   agreementFrom: vi.fn(),
   agreementLimit: vi.fn(),
   agreementWhere: vi.fn(),
+  and: vi.fn((...conditions) => ({ conditions })),
   claimFrom: vi.fn(),
   claimLeftJoin: vi.fn(),
   claimWhere: vi.fn(),
@@ -45,6 +47,7 @@ updateStatusMocks.dbSelect.mockImplementation((fields: { paymentAuthorizationSta
 );
 
 vi.mock('@interdomestik/database', () => ({
+  and: updateStatusMocks.and,
   db: {
     select: updateStatusMocks.dbSelect,
     update: updateStatusMocks.dbUpdate,
@@ -86,14 +89,7 @@ export const adminSession = {
 export const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 
 export function mockClaim(status: string, compatStatus = status): void {
-  const states =
-    status === 'resolved'
-      ? { caseLifecycleState: 'resolved', recoveryLifecycleState: 'resolved' }
-      : status === 'submitted'
-        ? { caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started' }
-        : status === 'evaluation'
-          ? { caseLifecycleState: 'evaluation', recoveryLifecycleState: 'not_started' }
-          : {};
+  const states = lifecycleStatesForStatus(status);
   updateStatusMocks.claimWhere.mockResolvedValueOnce([
     {
       ...states,
@@ -108,4 +104,17 @@ export function mockClaim(status: string, compatStatus = status): void {
 
 export function getUpdateStatusMocks(): UpdateStatusMocks {
   return updateStatusMocks;
+}
+
+function lifecycleStatesForStatus(status: string): Record<string, string> {
+  if (status === 'resolved') {
+    return { caseLifecycleState: 'resolved', recoveryLifecycleState: 'resolved' };
+  }
+  if (status === 'submitted') {
+    return { caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started' };
+  }
+  if (status === 'evaluation') {
+    return { caseLifecycleState: 'evaluation', recoveryLifecycleState: 'not_started' };
+  }
+  return {};
 }
