@@ -1,9 +1,5 @@
 #!/usr/bin/env node
-
-const { spawnSync } = require('node:child_process');
-const fs = require('node:fs');
-const path = require('node:path');
-
+const { assertSafeHttpUrl, isLoopbackOrPrivateHost } = require('../security/egress.cjs');
 const {
   DEFAULTS,
   SUITES,
@@ -72,7 +68,6 @@ const {
   sessionCacheKeyForAccount,
   sleep,
 } = require('./shared.ts');
-
 const VERCEL_LOG_STREAM_TIMEOUT_MS = 12_000;
 const AUTH_PREFLIGHT_TIMEOUT_MS = 8_000;
 const AUTH_PREFLIGHT_MAX_ATTEMPTS = 3;
@@ -92,66 +87,22 @@ const LOGIN_DEPENDENT_CHECKS = new Set([
   'G09',
   'G10',
 ]);
-
-const TRUSTED_EXECUTABLE_DIRS = [
-  '/opt/homebrew/bin',
-  '/usr/local/bin',
-  '/usr/bin',
-  '/bin',
-  '/usr/sbin',
-  '/sbin',
-];
-
-function resolveVercelExecutable(env = process.env) {
-  const envCandidates = [env.VERCEL_BIN, env.PNPM_HOME && path.join(env.PNPM_HOME, 'vercel')]
-    .filter(Boolean)
-    .map(candidate => path.resolve(String(candidate)));
-  const trustedCandidates = TRUSTED_EXECUTABLE_DIRS.map(dir => path.join(dir, 'vercel'));
-
-  for (const candidate of [...envCandidates, ...trustedCandidates]) {
-    try {
-      if (fs.existsSync(candidate)) {
-        return candidate;
-      }
-    } catch {
-      // Ignore unusable candidates and continue searching.
-    }
-  }
-
+function resolveVercelExecutable() {
   return null;
 }
 
-function buildTrustedSpawnEnv(env = process.env) {
+function runVercelCommand() {
+  const error = new Error('vercel cli disabled for safe release gate execution');
+  error.code = 'VERCEL_CLI_DISABLED';
   return {
-    ...env,
-    PATH: TRUSTED_EXECUTABLE_DIRS.join(path.delimiter),
+    pid: 0,
+    output: ['', '', ''],
+    stdout: '',
+    stderr: '',
+    status: null,
+    signal: null,
+    error,
   };
-}
-
-function runVercelCommand(args, options = {}) {
-  const { env: requestedEnv, ...spawnOptions } = options;
-  const childEnv = requestedEnv || process.env;
-  const command = resolveVercelExecutable(childEnv);
-  if (!command) {
-    const error = new Error('vercel executable not found');
-    error.code = 'VERCEL_CLI_NOT_FOUND';
-    return {
-      pid: 0,
-      output: ['', '', ''],
-      stdout: '',
-      stderr: '',
-      status: null,
-      signal: null,
-      error,
-    };
-  }
-
-  return spawnSync(command, args, {
-    encoding: 'utf8',
-    env: buildTrustedSpawnEnv(childEnv),
-    killSignal: 'SIGKILL',
-    ...spawnOptions,
-  });
 }
 
 function isLegacyVercelLogsArgsUnsupported(output) {
@@ -274,6 +225,39 @@ function parseBooleanEnv(value) {
   if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
   if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
   return null;
+}
+
+function parseSafeOrigin(value) {
+  if (!value) return null;
+  try {
+    return assertSafeHttpUrl(value, { allowLoopback: true }).origin;
+  } catch {
+    return null;
+  }
+}
+
+function isTrustedCiPlaywrightLoopbackBaseUrl(configuredBaseUrl, env = process.env) {
+  if (String(env.CI || '').toLowerCase() !== 'true') return false;
+  if (String(env.PLAYWRIGHT || '') !== '1') return false;
+
+  let configured;
+  try {
+    configured = assertSafeHttpUrl(configuredBaseUrl, { allowLoopback: true });
+  } catch {
+    return false;
+  }
+
+  if (!isLoopbackOrPrivateHost(configured.hostname)) return false;
+  const trustedOrigins = [env.NEXT_PUBLIC_APP_URL, env.BETTER_AUTH_URL]
+    .map(parseSafeOrigin)
+    .filter(Boolean);
+  return trustedOrigins.includes(configured.origin);
+}
+
+function shouldAllowConfiguredLoopbackBaseUrl(configuredBaseUrl, envName, env = process.env) {
+  if (String(envName || '').toLowerCase() !== 'production') return true;
+  if (env.RELEASE_GATE_ALLOW_LOOPBACK_BASE_URL === '1') return true;
+  return isTrustedCiPlaywrightLoopbackBaseUrl(configuredBaseUrl, env);
 }
 
 function shouldDisallowSkippedChecks(envName) {
@@ -408,7 +392,9 @@ function evaluateCredentialPreflightResults(results) {
 async function runAuthEndpointPreflight(runCtx) {
   const evidence = [];
   const signatures = [];
-  const origin = new URL(runCtx.baseUrl).origin;
+  const origin = assertSafeHttpUrl(runCtx.baseUrl, {
+    allowLoopback: runCtx.envName !== 'production',
+  }).origin;
   const endpointPaths = [
     '/api/auth/get-session?disableCookieCache=true&disableRefresh=true',
     '/api/auth/sign-in/email',
@@ -475,7 +461,9 @@ async function runAuthEndpointPreflight(runCtx) {
 async function runAuthCredentialPreflight(runCtx) {
   const evidence = [];
   const signatures = [];
-  const origin = new URL(runCtx.baseUrl).origin;
+  const origin = assertSafeHttpUrl(runCtx.baseUrl, {
+    allowLoopback: runCtx.envName !== 'production',
+  }).origin;
   const loginUrl = `${origin}/api/auth/sign-in/email`;
   const accountKeys = selectCredentialPreflightAccounts();
   const results = [];
@@ -859,10 +847,18 @@ async function main() {
   const { chromium } = resolvePlaywright();
   const browser = await chromium.launch({ headless: true });
   const checks = [];
+  const allowLoopbackBaseUrl = shouldAllowConfiguredLoopbackBaseUrl(
+    configuredBaseUrl,
+    args.envName
+  );
+  const safeConfiguredBaseUrl = assertSafeHttpUrl(configuredBaseUrl, {
+    allowLoopback: allowLoopbackBaseUrl,
+  }).href;
 
   try {
-    const deployment = await detectDeploymentMetadata(configuredBaseUrl, browser);
-    const resolvedBase = await resolveReachableBaseUrl(configuredBaseUrl, deployment, {
+    const deployment = await detectDeploymentMetadata(safeConfiguredBaseUrl, browser);
+    const resolvedBase = await resolveReachableBaseUrl(safeConfiguredBaseUrl, deployment, {
+      allowLoopback: allowLoopbackBaseUrl,
       allowDeploymentFallback:
         process.env.RELEASE_GATE_ALLOW_DEPLOYMENT_FALLBACK === '1' ||
         process.env.RELEASE_GATE_ALLOW_DEPLOYMENT_FALLBACK === 'true'
@@ -1164,6 +1160,7 @@ module.exports = {
   selectAlternativeActionableStatus,
   sessionCacheKeyForAccount,
   skipAllowanceReasonForCheck,
+  shouldAllowConfiguredLoopbackBaseUrl,
   shouldRunAuthEndpointPreflight,
   shouldDisallowSkippedChecks,
   shouldRunProductionStaffSynthetic,

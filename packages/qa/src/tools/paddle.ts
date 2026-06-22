@@ -3,6 +3,23 @@ type PaddleResourceArgs = {
   id: string;
 };
 
+const PADDLE_API_ORIGINS = new Set(['https://api.paddle.com', 'https://sandbox-api.paddle.com']);
+
+function buildPaddleResourceUrl(baseUrl: string, args: PaddleResourceArgs): URL {
+  const parsed = new URL(baseUrl);
+  if (parsed.username || parsed.password || !PADDLE_API_ORIGINS.has(parsed.origin)) {
+    throw new Error('Paddle API base URL is not allowed.');
+  }
+  const url = new URL(
+    `/${encodeURIComponent(args.resource)}/${encodeURIComponent(args.id)}`,
+    parsed.origin
+  );
+  if (!PADDLE_API_ORIGINS.has(url.origin)) {
+    throw new Error('Paddle API resource URL is not allowed.');
+  }
+  return url;
+}
+
 export async function getPaddleResource(args: PaddleResourceArgs) {
   const apiKey = process.env.PADDLE_API_KEY;
   if (!apiKey) {
@@ -16,10 +33,9 @@ export async function getPaddleResource(args: PaddleResourceArgs) {
     };
   }
 
-  const baseUrl = process.env.PADDLE_API_BASE || 'https://api.paddle.com';
-  const url = `${baseUrl}/${args.resource}/${encodeURIComponent(args.id)}`;
-
   try {
+    const baseUrl = process.env.PADDLE_API_BASE || 'https://api.paddle.com';
+    const url = buildPaddleResourceUrl(baseUrl, args);
     const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -47,12 +63,13 @@ export async function getPaddleResource(args: PaddleResourceArgs) {
         },
       ],
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown Paddle fetch error';
     return {
       content: [
         {
           type: 'text',
-          text: `Failed to fetch Paddle resource: ${error.message}`,
+          text: `Failed to fetch Paddle resource: ${message}`,
         },
       ],
     };

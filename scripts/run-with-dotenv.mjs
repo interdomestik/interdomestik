@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import process from 'node:process';
+import safeCommand from './security/safe-command.cjs';
 
 try {
   const { config: dotenvConfig } = await import('dotenv');
@@ -35,16 +36,17 @@ for (const key of ['KS_HOST', 'MK_HOST', 'AL_HOST', 'PILOT_HOST']) {
 }
 
 const [command, ...args] = process.argv.slice(2);
+const resolvedCommand = command ? safeCommand.resolveAllowedCommand(command, args) : '';
 
-if (!command) {
+if (!resolvedCommand) {
   console.error('Usage: node scripts/run-with-dotenv.mjs <command> [args...]');
   process.exit(2);
 }
 
-const child = spawn(command, args, {
+const child = spawn(resolvedCommand, args, {
   stdio: 'inherit',
   env: process.env,
-  shell: process.platform === 'win32',
+  shell: false,
 });
 
 child.on('exit', code => {
