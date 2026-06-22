@@ -16,7 +16,7 @@ type LifecycleAuthority = 'lifecycle' | 'status_fallback';
 type LifecycleConsistency = 'consistent' | 'status_mismatch' | 'invalid_lifecycle_pair';
 
 export type ClaimLifecycleReadInput = {
-  status?: string | null | undefined;
+  status?: string | null;
   caseLifecycleState: string | null | undefined;
   recoveryLifecycleState: string | null | undefined;
 };
