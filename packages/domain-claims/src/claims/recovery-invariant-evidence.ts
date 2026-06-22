@@ -1,16 +1,15 @@
 import { claims, sql } from '@interdomestik/database';
-import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { SQL } from 'drizzle-orm';
 import type { TransitionTx } from './transition-side-effects';
 import type { RecoveryInvariantEvidence } from './recovery-invariants';
+import type {
+  InvalidTransitionCurrentState,
+  TransitionCurrentState,
+} from './transition-current-state';
+import { resolveTransitionCurrentState } from './transition-current-state';
 
 export type RecoveryInvariantReadRow = {
-  current:
-    | {
-        lifecycleVersion: number;
-        status: ClaimStatus | null;
-      }
-    | undefined;
+  current: TransitionCurrentState | InvalidTransitionCurrentState | undefined;
   evidence: RecoveryInvariantEvidence | null;
 };
 
@@ -92,8 +91,9 @@ export async function loadRecoveryInvariantReadRow(
   const noFee = await lockNoFeeEvidence(tx, params);
   const [current] = await tx
     .select({
+      caseLifecycleState: claims.caseLifecycleState,
       lifecycleVersion: claims.lifecycleVersion,
-      status: claims.status,
+      recoveryLifecycleState: claims.recoveryLifecycleState,
     })
     .from(claims)
     .where(params.readWhere)
@@ -102,10 +102,7 @@ export async function loadRecoveryInvariantReadRow(
   if (!current) return { current: undefined, evidence: null };
 
   return {
-    current: {
-      lifecycleVersion: current.lifecycleVersion,
-      status: current.status,
-    },
+    current: resolveTransitionCurrentState(current),
     evidence: { claimId: params.claimId, ...agreement, ...noFee },
   };
 }

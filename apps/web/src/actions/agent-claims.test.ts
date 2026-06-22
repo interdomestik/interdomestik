@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   dbUpdate: vi.fn(),
@@ -57,7 +56,8 @@ vi.mock('@interdomestik/database', () => ({
           from: () => ({
             where: () => ({
               limit: () =>
-                Promise.resolve([{ id: 'claim-1', lifecycleVersion: 1, status: 'submitted' }]),
+                // prettier-ignore
+                Promise.resolve([{ id: 'claim-1', lifecycleVersion: 1, caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started', status: 'submitted' }]),
             }),
           }),
         }),

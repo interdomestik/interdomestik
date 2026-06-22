@@ -1,7 +1,8 @@
 import { and, claims, db, eq, sql } from '@interdomestik/database';
-import { canTransition, isClaimStatus } from './transition-guard';
+import { canTransition } from './transition-guard';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import { loadTransitionReadContext } from './transition-read-context';
+import { isValidTransitionCurrentState } from './transition-current-state';
 import {
   ClaimTransitionAuthorizationError,
   ClaimTransitionConflictError,
@@ -57,7 +58,8 @@ export async function persistAuthorizedTransition(
     .where(
       and(
         readWhere,
-        eq(claims.status, current.status),
+        eq(claims.caseLifecycleState, current.caseLifecycleState),
+        eq(claims.recoveryLifecycleState, current.recoveryLifecycleState),
         eq(claims.lifecycleVersion, current.lifecycleVersion)
       )
     )
@@ -105,7 +107,9 @@ export async function transitionClaimStatusInTransaction(
   });
 
   if (!current) return { success: false, error: 'claim_not_found' };
-  if (!isClaimStatus(current.status)) return { success: false, error: 'invalid_current_status' };
+  if (!isValidTransitionCurrentState(current)) {
+    return { success: false, error: 'invalid_current_status' };
+  }
 
   const decision = canTransition({
     actor,
@@ -126,7 +130,7 @@ export async function transitionClaimStatusInTransaction(
     authorization: decision.authorization,
     claimId,
     correlationId,
-    current: { lifecycleVersion: current.lifecycleVersion, status: current.status },
+    current,
     isPublic,
     note: note ?? null,
     readWhere,

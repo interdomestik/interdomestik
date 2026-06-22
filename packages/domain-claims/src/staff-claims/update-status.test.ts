@@ -1,6 +1,11 @@
 import { inspect } from 'node:util';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ClaimsSession } from '../claims/types';
+import {
+  claimFixture,
+  transitionClaimFixture,
+  withClaimLifecycle,
+} from '../claims/lifecycle-test-support';
 import type {
   PaymentAuthorizationState,
   RecoveryDeclineReasonCode,
@@ -122,11 +127,13 @@ const mocks = vi.hoisted(() => {
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
       branchId: 'claims.branch_id',
+      caseLifecycleState: 'claims.case_lifecycle_state',
       category: 'claims.category',
       staffId: 'claims.staff_id',
       assignedAt: 'claims.assigned_at',
       assignedById: 'claims.assigned_by_id',
       lifecycleVersion: 'claims.lifecycle_version',
+      recoveryLifecycleState: 'claims.recovery_lifecycle_state',
       status: 'claims.status',
       updatedAt: 'claims.updated_at',
       userId: 'claims.user_id',
@@ -290,16 +297,18 @@ function mockRecoverySelects(options?: {
     mocks.db.select.mockReturnValueOnce(mocks.serviceUsageCountSelectChain);
   }
   mocks.claimSelectChain.limit.mockResolvedValue(
-    options?.claim ?? [
-      {
-        id: 'claim-1',
-        status: 'evaluation',
-        userId: 'member-1',
-        category: 'vehicle',
-        title: 'Vehicle claim',
-        staffId: null,
-      },
-    ]
+    (
+      options?.claim ?? [
+        {
+          id: 'claim-1',
+          status: 'evaluation',
+          userId: 'member-1',
+          category: 'vehicle',
+          title: 'Vehicle claim',
+          staffId: null,
+        },
+      ]
+    ).map(withClaimLifecycle)
   );
   mocks.agreementSelectChain.limit.mockResolvedValue(
     options?.agreement ?? [READY_ACCEPTED_RECOVERY_RECORD]
@@ -356,9 +365,7 @@ describe('staff updateClaimStatusCore', () => {
     mocks.txSelectChain.from.mockReturnValue(mocks.txSelectChain);
     mocks.txSelectChain.leftJoin.mockReturnValue(mocks.txSelectChain);
     mocks.txSelectChain.where.mockReturnValue(mocks.txSelectChain);
-    mocks.txSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', lifecycleVersion: 1, status: 'evaluation' },
-    ]);
+    mocks.txSelectChain.limit.mockResolvedValue([transitionClaimFixture('evaluation')]);
     mocks.txInsertReturning.mockResolvedValue([{ id: 'usage-claim-1' }]);
     mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
     mocks.projectClaimStatusAuditProjection.mockResolvedValue(undefined);
@@ -478,14 +485,7 @@ describe('staff updateClaimStatusCore', () => {
   it('auto-assigns the acting staff member when an unassigned claim is triaged', async () => {
     mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
     mocks.claimSelectChain.limit.mockResolvedValue([
-      {
-        id: 'claim-1',
-        status: 'submitted',
-        userId: 'member-1',
-        category: 'vehicle',
-        title: 'Vehicle claim',
-        staffId: null,
-      },
+      claimFixture('submitted', { title: 'Vehicle claim', staffId: null }),
     ]);
 
     const result = await updateClaimStatusCore({
@@ -509,7 +509,9 @@ describe('staff updateClaimStatusCore', () => {
     const transitionWhere = inspect(transitionWhereArg, { depth: 20 });
     expect(transitionWhere).toContain('claims.branch_id');
     expect(transitionWhere).toContain('claims.lifecycle_version');
-    expect(transitionWhere).toContain('claims.status');
+    expect(transitionWhere).toContain('claims.case_lifecycle_state');
+    expect(transitionWhere).toContain('claims.recovery_lifecycle_state');
+    expect(transitionWhere).not.toContain('claims.status');
     expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
@@ -543,18 +545,9 @@ describe('staff updateClaimStatusCore', () => {
     const notifyStatusChanged = vi.fn().mockResolvedValue({ success: true });
     mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
     mocks.claimSelectChain.limit.mockResolvedValue([
-      {
-        id: 'claim-1',
-        status: 'submitted',
-        userId: 'member-1',
-        category: 'vehicle',
-        title: 'Vehicle claim',
-        staffId: 'staff-1',
-      },
+      claimFixture('submitted', { title: 'Vehicle claim', staffId: 'staff-1' }),
     ]);
-    mocks.txSelectChain.limit.mockResolvedValueOnce([
-      { id: 'claim-1', lifecycleVersion: 1, status: 'submitted' },
-    ]);
+    mocks.txSelectChain.limit.mockResolvedValueOnce([transitionClaimFixture('submitted')]);
 
     const result = await updateClaimStatusCore(
       {
@@ -606,14 +599,7 @@ describe('staff updateClaimStatusCore', () => {
   it('rejects invalid guarded transitions before status, history, or assignment writes', async () => {
     mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
     mocks.claimSelectChain.limit.mockResolvedValue([
-      {
-        id: 'claim-1',
-        status: 'submitted',
-        userId: 'member-1',
-        category: 'vehicle',
-        title: 'Vehicle claim',
-        staffId: null,
-      },
+      claimFixture('submitted', { title: 'Vehicle claim', staffId: null }),
     ]);
     mocks.txSelectChain.limit.mockResolvedValueOnce([
       { id: 'claim-1', lifecycleVersion: 1, status: null },
@@ -753,9 +739,7 @@ describe('staff updateClaimStatusCore', () => {
 
   it('requires an explicit reason when staff reject a recovery matter', async () => {
     mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', status: 'negotiation', userId: 'member-1', category: 'vehicle' },
-    ]);
+    mocks.claimSelectChain.limit.mockResolvedValue([claimFixture('negotiation')]);
 
     const result = await updateClaimStatusCore({
       claimId: 'claim-1',
@@ -775,11 +759,9 @@ describe('staff updateClaimStatusCore', () => {
     const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 
     mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', status: 'negotiation', userId: 'member-1', category: 'vehicle' },
-    ]);
+    mocks.claimSelectChain.limit.mockResolvedValue([claimFixture('negotiation')]);
     mocks.txSelectChain.limit
-      .mockResolvedValueOnce([{ id: 'claim-1', lifecycleVersion: 1, status: 'negotiation' }])
+      .mockResolvedValueOnce([transitionClaimFixture('negotiation')])
       .mockResolvedValueOnce([]);
 
     const result = await updateClaimStatusCore(

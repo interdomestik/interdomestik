@@ -29,6 +29,15 @@ export type ClaimLifecycleReadProjection = {
   consistency: LifecycleConsistency;
 };
 
+export type ClaimLifecycleCommandProjection =
+  | {
+      success: true;
+      caseLifecycleState: CaseLifecycleState;
+      recoveryLifecycleState: RecoveryLifecycleState;
+      status: ClaimStatus;
+    }
+  | { success: false; error: 'invalid_lifecycle_state' | 'invalid_lifecycle_pair' };
+
 const CASE_STATE_SET = new Set<string>(CLAIM_CASE_LIFECYCLE_STATES);
 const RECOVERY_STATE_SET = new Set<string>(CLAIM_RECOVERY_LIFECYCLE_STATES);
 
@@ -92,5 +101,28 @@ export function resolveClaimLifecycleReadProjection(
     recoveryLifecycleState,
     status,
     consistency,
+  };
+}
+
+export function resolveClaimLifecycleCommandProjection(
+  input: Pick<ClaimLifecycleReadInput, 'caseLifecycleState' | 'recoveryLifecycleState'>
+): ClaimLifecycleCommandProjection {
+  const inputCaseState = input.caseLifecycleState;
+  const inputRecoveryState = input.recoveryLifecycleState;
+
+  if (!isCaseLifecycleState(inputCaseState) || !isRecoveryLifecycleState(inputRecoveryState)) {
+    return { success: false, error: 'invalid_lifecycle_state' };
+  }
+
+  const status = STATUS_BY_LIFECYCLE_PAIR[lifecyclePairKey(inputCaseState, inputRecoveryState)];
+  if (!status) {
+    return { success: false, error: 'invalid_lifecycle_pair' };
+  }
+
+  return {
+    success: true,
+    caseLifecycleState: inputCaseState,
+    recoveryLifecycleState: inputRecoveryState,
+    status,
   };
 }

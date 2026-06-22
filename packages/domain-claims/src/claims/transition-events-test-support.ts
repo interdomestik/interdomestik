@@ -6,17 +6,21 @@ import { transitionClaimStatusInTransaction, type TransitionTx } from './transit
 
 type Row = Record<string, unknown>;
 export type ClaimState = {
+  caseLifecycleState: string;
   events: Row[];
   histories: Row[];
   lifecycleVersion: number;
+  recoveryLifecycleState: string;
   status: ClaimStatus;
 };
 type FailOn = 'history' | 'event';
 
 export const initialState = (): ClaimState => ({
+  caseLifecycleState: 'evaluation',
   events: [],
   histories: [],
   lifecycleVersion: 6,
+  recoveryLifecycleState: 'not_started',
   status: 'evaluation',
 });
 
@@ -52,8 +56,15 @@ class FakeUpdate {
     return this;
   }
   async returning(): Promise<Row[]> {
-    if (typeof this.values.status === 'string')
+    if (typeof this.values.status === 'string') {
       this.staged.status = this.values.status as ClaimStatus;
+    }
+    if (typeof this.values.caseLifecycleState === 'string') {
+      this.staged.caseLifecycleState = this.values.caseLifecycleState;
+    }
+    if (typeof this.values.recoveryLifecycleState === 'string') {
+      this.staged.recoveryLifecycleState = this.values.recoveryLifecycleState;
+    }
     if ('lifecycleVersion' in this.values) this.staged.lifecycleVersion += 1;
     return [{ id: 'claim-1', lifecycleVersion: this.staged.lifecycleVersion }];
   }

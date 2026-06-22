@@ -49,7 +49,13 @@ vi.mock('@interdomestik/database', () => ({
     paymentAuthorizationState: 'claim_escalation_agreements.payment_authorization_state',
     tenantId: 'claim_escalation_agreements.tenant_id',
   },
-  claims: { id: 'claims.id', tenantId: 'claims.tenant_id', userId: 'claims.user_id' },
+  claims: {
+    caseLifecycleState: 'claims.case_lifecycle_state',
+    id: 'claims.id',
+    recoveryLifecycleState: 'claims.recovery_lifecycle_state',
+    tenantId: 'claims.tenant_id',
+    userId: 'claims.user_id',
+  },
   user: { id: 'user.id', email: 'user.email' },
   eq: vi.fn((left, right) => ({ left, right })),
 }));
@@ -73,8 +79,17 @@ export const adminSession = {
 export const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 
 export function mockClaim(status: string): void {
+  const states =
+    status === 'resolved'
+      ? { caseLifecycleState: 'resolved', recoveryLifecycleState: 'resolved' }
+      : status === 'submitted'
+        ? { caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started' }
+        : status === 'evaluation'
+          ? { caseLifecycleState: 'evaluation', recoveryLifecycleState: 'not_started' }
+          : {};
   updateStatusMocks.claimWhere.mockResolvedValueOnce([
     {
+      ...states,
       id: 'claim-1',
       title: 'Claim',
       status,

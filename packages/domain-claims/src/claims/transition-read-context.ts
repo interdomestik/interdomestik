@@ -3,16 +3,16 @@ import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { SQL, SQLWrapper } from 'drizzle-orm';
 import { loadRecoveryInvariantReadRow } from './recovery-invariant-evidence';
 import { evaluateRecoveryInvariants, needsRecoveryInvariantEvidence } from './recovery-invariants';
+import type {
+  InvalidTransitionCurrentState,
+  TransitionCurrentState,
+} from './transition-current-state';
+import { resolveTransitionCurrentState } from './transition-current-state';
 import type { ClaimTransitionContext } from './transition-guard';
 import type { TransitionTx } from './transition-side-effects';
 
 export type TransitionReadContext = {
-  current:
-    | {
-        lifecycleVersion: number;
-        status: ClaimStatus | null;
-      }
-    | undefined;
+  current: TransitionCurrentState | InvalidTransitionCurrentState | undefined;
   guardContext: ClaimTransitionContext;
   readWhere: SQLWrapper;
 };
@@ -56,15 +56,16 @@ export async function loadTransitionReadContext(
 
   const [current] = await tx
     .select({
+      caseLifecycleState: claims.caseLifecycleState,
       lifecycleVersion: claims.lifecycleVersion,
-      status: claims.status,
+      recoveryLifecycleState: claims.recoveryLifecycleState,
     })
     .from(claims)
     .where(readWhere)
     .limit(1);
 
   return {
-    current,
+    current: current ? resolveTransitionCurrentState(current) : undefined,
     guardContext: {
       paymentAuthorizationState: null,
       recoveryInvariantRejection: null,

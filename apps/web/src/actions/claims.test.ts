@@ -13,9 +13,9 @@ const mockDbInsert = vi.fn().mockReturnValue({
   returning: vi.fn().mockResolvedValue([{ id: 'claim-1' }]),
 });
 const mockDbUpdate = vi.fn();
-const mockTxSelectLimit = vi
-  .fn()
-  .mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 1, status: 'submitted' }]);
+// prettier-ignore
+const submittedLifecycleCurrentClaim = { id: 'claim-1', lifecycleVersion: 1, caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started', status: 'submitted' };
+const mockTxSelectLimit = vi.fn().mockResolvedValue([submittedLifecycleCurrentClaim]);
 const mockTxUpdateReturning = vi.fn().mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
 const mockPaymentLimit = vi.fn().mockResolvedValue([{ paymentAuthorizationState: 'authorized' }]);
 const mockEmptyConsentLimit = vi.fn().mockResolvedValue([]);
@@ -173,9 +173,7 @@ describe('Claim Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockValidateInitialClaimEvidenceUpload.mockResolvedValue(undefined);
-    mockTxSelectLimit.mockResolvedValue([
-      { id: 'claim-1', lifecycleVersion: 1, status: 'submitted' },
-    ]);
+    mockTxSelectLimit.mockResolvedValue([submittedLifecycleCurrentClaim]);
     mockTxUpdateReturning.mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
     mockHasActiveMembership.mockResolvedValue(true);
     mockGetActiveSubscription.mockResolvedValue({
@@ -544,9 +542,7 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue({
         user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
       });
-      mockTxSelectLimit.mockResolvedValueOnce([
-        { id: 'claim-1', lifecycleVersion: 1, status: 'submitted' },
-      ]);
+      mockTxSelectLimit.mockResolvedValueOnce([submittedLifecycleCurrentClaim]);
       const result = await updateClaimStatus('claim-1', 'submitted');
       expect(result).toEqual({ success: true });
     });

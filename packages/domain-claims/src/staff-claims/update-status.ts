@@ -38,6 +38,7 @@ import {
   transitionClaimStatusInTransaction,
   type AuthorizedTransitionHookTx,
 } from '../claims/transition';
+import { loadStaffCurrentClaimRecord, type CurrentClaimRecord } from './current-claim-record';
 
 type StaffScopeWhere = ReturnType<typeof buildScopedStaffClaimWhere>;
 
@@ -60,13 +61,6 @@ type UpdateClaimStatusParams = {
   isPublicChange?: boolean;
   session: ClaimsSession | null;
   requestHeaders?: Headers;
-};
-type CurrentClaimRecord = {
-  category: string;
-  staffId: string | null;
-  status: ClaimStatus | null;
-  title: string;
-  userId: string;
 };
 type RecoveryStatusChangeParams = {
   claimId: string;
@@ -451,22 +445,14 @@ export async function updateClaimStatusCore(
   const trimmedDecisionExplanation = params.decisionExplanation?.trim() || undefined;
 
   try {
-    // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
-    const [currentClaim] = await db
-      .select({
-        category: claims.category,
-        status: claims.status,
-        title: claims.title,
-        userId: claims.userId,
-        staffId: claims.staffId,
-      })
-      .from(claims)
-      .where(staffScopeWhere)
-      .limit(1);
-
-    if (!currentClaim) {
+    const currentClaimResult = await loadStaffCurrentClaimRecord(staffScopeWhere);
+    if (currentClaimResult.status === 'not_found') {
       return { success: false, error: STAFF_SCOPE_ACCESS_DENIED_ERROR };
     }
+    if (currentClaimResult.status === 'invalid_current_status') {
+      return { success: false, error: 'Invalid current claim status' };
+    }
+    const { currentClaim } = currentClaimResult;
 
     if (currentClaim.status === status && !trimmedNote) {
       return { success: true }; // No change needed

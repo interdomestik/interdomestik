@@ -2,6 +2,7 @@ import { claimStageHistory, db } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { SQLWrapper } from 'drizzle-orm';
 import type { AuthorizedTransition, ClaimTransitionActor } from './transition-guard';
+import type { TransitionCurrentState } from './transition-current-state';
 import { recordCaseCreatedEvent } from './case-created-event';
 import { recordTransitionDomainEvents } from './transition-domain-events';
 import type { CreateClaimValues } from '../validators/claims';
@@ -67,7 +68,7 @@ export type PersistAuthorizedTransitionArgs = {
   authorization: AuthorizedTransition;
   claimId: string;
   correlationId?: string;
-  current: { lifecycleVersion: number; status: ClaimStatus };
+  current: TransitionCurrentState;
   isPublic: boolean;
   note: string | null;
   readWhere: SQLWrapper;

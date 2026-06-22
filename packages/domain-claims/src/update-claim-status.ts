@@ -3,6 +3,7 @@ import type { ClaimStatus } from '@interdomestik/database/constants';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
+import { resolveClaimLifecycleCommandProjection } from './claims/lifecycle-read-model';
 import {
   ClaimTransitionConflictError,
   transitionClaimStatusInTransaction,
@@ -42,8 +43,9 @@ export async function updateClaimStatus(params: {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       const [existingClaim] = await tx
         .select({
+          caseLifecycleState: claims.caseLifecycleState,
           id: claims.id,
-          status: claims.status,
+          recoveryLifecycleState: claims.recoveryLifecycleState,
         })
         .from(claims)
         .where(scopedWhere)
@@ -53,7 +55,8 @@ export async function updateClaimStatus(params: {
         return { success: false, error: 'Claim not found or access denied', data: undefined };
       }
 
-      if (existingClaim.status === parsed.data.status && !note) {
+      const currentState = resolveClaimLifecycleCommandProjection(existingClaim);
+      if (currentState.success && currentState.status === parsed.data.status && !note) {
         return { success: true, error: undefined };
       }
 

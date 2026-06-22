@@ -53,7 +53,7 @@ describe('transitionClaimStatusInTransaction event atomicity', () => {
 
     await expect(runTransaction(state, 'event')).rejects.toThrow('event failed');
 
-    expect(state).toEqual({ events: [], histories: [], lifecycleVersion: 6, status: 'evaluation' });
+    expect(state).toEqual(initialState());
   });
 
   it('does not commit status or event when history insert fails', async () => {
@@ -61,6 +61,6 @@ describe('transitionClaimStatusInTransaction event atomicity', () => {
 
     await expect(runTransaction(state, 'history')).rejects.toThrow('history failed');
 
-    expect(state).toEqual({ events: [], histories: [], lifecycleVersion: 6, status: 'evaluation' });
+    expect(state).toEqual(initialState());
   });
 });

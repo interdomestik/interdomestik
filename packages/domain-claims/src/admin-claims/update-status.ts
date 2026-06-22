@@ -4,6 +4,7 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import { activateClaimStatusAuditProjection } from '../claims/audit-projection';
+import { resolveClaimLifecycleCommandProjection } from '../claims/lifecycle-read-model';
 import { transitionClaimStatus } from '../claims/transition';
 
 type ClaimStatus =
@@ -54,9 +55,10 @@ export async function updateClaimStatusCore(
   // Fetch claim with user info before update
   const [claimWithUser] = await db
     .select({
+      caseLifecycleState: claims.caseLifecycleState,
       id: claims.id,
+      recoveryLifecycleState: claims.recoveryLifecycleState,
       title: claims.title,
-      status: claims.status,
       userId: claims.userId,
       userEmail: user.email,
     })
@@ -68,9 +70,8 @@ export async function updateClaimStatusCore(
     throw new Error('Claim not found');
   }
 
-  const oldStatus = claimWithUser.status || 'draft';
-
-  if (oldStatus === newStatus) {
+  const currentState = resolveClaimLifecycleCommandProjection(claimWithUser);
+  if (currentState.success && currentState.status === newStatus) {
     return;
   }
 
