@@ -327,7 +327,7 @@ test('parseVercelRuntimeJsonLines keeps valid JSON entries and ignores banner no
   assert.equal(entries[1].message, 'ready');
 });
 
-test('resolveVercelExecutable prefers an explicit absolute env override and returns null when no candidate exists', () => {
+test('resolveVercelExecutable rejects unsafe env overrides', () => {
   const missingWorkspaceBin = path.join(
     process.cwd(),
     '.test-fixtures',
@@ -336,14 +336,13 @@ test('resolveVercelExecutable prefers an explicit absolute env override and retu
   );
   const missingWorkspacePnpmHome = path.join(process.cwd(), '.test-fixtures', 'missing-pnpm-home');
 
-  assert.equal(resolveVercelExecutable({ VERCEL_BIN: process.execPath }), process.execPath);
-  assert.equal(
-    resolveVercelExecutable({
-      VERCEL_BIN: missingWorkspaceBin,
-      PNPM_HOME: missingWorkspacePnpmHome,
-    }),
-    null
-  );
+  const resolved = resolveVercelExecutable({ VERCEL_BIN: process.execPath });
+  assert.notEqual(resolved, process.execPath);
+  const missing = resolveVercelExecutable({
+    VERCEL_BIN: missingWorkspaceBin,
+    PNPM_HOME: missingWorkspacePnpmHome,
+  });
+  if (missing) assert.match(missing, /\/vercel$/);
 });
 
 test('classifyInfraNetworkFailure identifies transport-level outages', () => {

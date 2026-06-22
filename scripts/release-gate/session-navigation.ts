@@ -1,5 +1,6 @@
 const { TIMEOUTS } = require('./config.ts');
 const { gotoWithTransientRetry, loginAs, normalizeBaseUrl, sleep } = require('./shared.ts');
+const { assertSafeHttpUrl, assertTrustedVercelDeploymentUrl } = require('../security/egress.cjs');
 
 const REACHABILITY_RETRY_ATTEMPTS = 3;
 const REACHABILITY_RETRY_DELAY_MS = 1_000;
@@ -11,8 +12,8 @@ function compactErrorMessage(raw, maxLength = 420) {
     .slice(0, maxLength);
 }
 
-async function probeBaseUrl(candidateBaseUrl) {
-  const origin = new URL(candidateBaseUrl).origin;
+async function probeBaseUrl(candidateBaseUrl, options = {}) {
+  const origin = assertSafeHttpUrl(candidateBaseUrl, options).origin;
   const response = await fetch(origin, {
     method: 'GET',
     redirect: 'manual',
@@ -28,26 +29,16 @@ function isUsableProbeStatus(status) {
 function normalizeDeploymentBaseUrl(deploymentUrl) {
   if (!deploymentUrl || deploymentUrl === 'unknown') return null;
   try {
-    return normalizeBaseUrl(deploymentUrl);
+    return normalizeBaseUrl(assertTrustedVercelDeploymentUrl(deploymentUrl).origin);
   } catch {
     return null;
   }
 }
 
-function buildReachabilityCandidates(
-  configuredBaseUrl,
-  deploymentBaseUrl,
-  allowDeploymentFallback
-) {
-  return Array.from(
-    new Set([configuredBaseUrl, allowDeploymentFallback ? deploymentBaseUrl : null].filter(Boolean))
-  );
-}
-
-async function probeReachabilityCandidate(candidate, source, maxAttempts, failures) {
+async function probeReachabilityCandidate(candidate, source, maxAttempts, failures, options = {}) {
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      const status = await probeBaseUrl(candidate);
+      const status = await probeBaseUrl(candidate, { allowLoopback: options.allowLoopback });
       if (isUsableProbeStatus(status)) {
         return { baseUrl: candidate, source, probeStatus: status, failures };
       }
@@ -69,10 +60,8 @@ async function probeReachabilityCandidate(candidate, source, maxAttempts, failur
 async function resolveReachableBaseUrl(configuredBaseUrl, deployment, options = {}) {
   const deploymentBaseUrl = normalizeDeploymentBaseUrl(deployment?.deploymentUrl);
   const allowDeploymentFallback = options.allowDeploymentFallback !== false;
-  const candidates = buildReachabilityCandidates(
-    configuredBaseUrl,
-    deploymentBaseUrl,
-    allowDeploymentFallback
+  const candidates = Array.from(
+    new Set([configuredBaseUrl, allowDeploymentFallback ? deploymentBaseUrl : null].filter(Boolean))
   );
   const failures = [];
 
@@ -81,7 +70,13 @@ async function resolveReachableBaseUrl(configuredBaseUrl, deployment, options = 
     const source = index === 0 ? 'configured' : 'deployment_fallback';
     const maxAttempts = index === 0 ? REACHABILITY_RETRY_ATTEMPTS : 1;
 
-    const resolved = await probeReachabilityCandidate(candidate, source, maxAttempts, failures);
+    const resolved = await probeReachabilityCandidate(
+      candidate,
+      source,
+      maxAttempts,
+      failures,
+      options
+    );
     if (resolved) {
       return resolved;
     }

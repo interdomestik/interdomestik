@@ -19,6 +19,7 @@ vi.mock('@interdomestik/database/schema/auth', () => ({
 describe('performHealthCheck', () => {
   beforeEach(() => {
     vi.resetModules();
+    vi.unstubAllGlobals();
     delete process.env.COMMIT_SHA;
     delete process.env.GITHUB_SHA;
     delete process.env.VERCEL_GIT_COMMIT_SHA;
@@ -42,5 +43,20 @@ describe('performHealthCheck', () => {
       commitSha: 'abc123',
       deployEnv: 'staging',
     });
+  });
+
+  it('rejects unsafe Redis REST URLs without performing fetch', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'http://127.0.0.1:6379';
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { performHealthCheck } = await import('./health.service');
+
+    const result = await performHealthCheck();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.status).toBe('degraded');
+    expect(result.services.redis?.status).toBe('unhealthy');
+    expect(result.services.redis?.error).toMatch(/Invalid Upstash Redis REST URL/i);
   });
 });

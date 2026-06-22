@@ -1,3 +1,6 @@
+import egress from './security/egress.cjs';
+
+export const SENTRY_API_BASE_URL = 'https://sentry.io';
 const D07_DOC_REFS = Object.freeze([
   'docs/SLOS.md',
   'docs/RUNBOOK.md',
@@ -124,7 +127,9 @@ export function buildMetricAlertPayload(alert, context) {
     throw new Error('Alert definition is required.');
   }
 
-  const problems = validateSingleAlertDefinition(alert);
+  const problems = validateAlertCatalog([alert]).filter(
+    problem => !problem.startsWith('expected 3 D07 alerts')
+  );
   if (problems.length > 0) {
     throw new Error(`Invalid alert definition: ${problems.join('; ')}`);
   }
@@ -345,31 +350,24 @@ function validateAlertField(problems, alertId, label, valid, value = undefined) 
   problems.push(`alert ${alertId} ${label}`);
 }
 
-function validateSingleAlertDefinition(alert) {
-  return validateAlertCatalog([alert]).filter(
-    problem => !problem.startsWith('expected 3 D07 alerts')
-  );
-}
-
 export function findMissingScopes(grantedScopes, requiredScopes) {
   const granted = new Set(grantedScopes ?? []);
   return (requiredScopes ?? []).filter(scope => !granted.has(scope));
 }
 
-function trimTrailingSlashes(value) {
-  let normalized = value;
+export function normalizeSentryBaseUrl(baseUrl = SENTRY_API_BASE_URL) {
+  if (baseUrl == null || baseUrl === '') return SENTRY_API_BASE_URL;
 
-  while (normalized.endsWith('/')) {
-    normalized = normalized.slice(0, -1);
-  }
-
-  return normalized;
+  const parsed = assertSentryRequestUrl(baseUrl);
+  if (parsed.pathname.replaceAll('/', '') !== '')
+    throw new Error('Sentry API base URL must not include a path');
+  return SENTRY_API_BASE_URL;
 }
 
-export function normalizeSentryBaseUrl(baseUrl = 'https://sentry.io') {
-  if (baseUrl == null || baseUrl === '') {
-    return 'https://sentry.io';
-  }
-
-  return trimTrailingSlashes(baseUrl) || 'https://sentry.io';
+export function assertSentryRequestUrl(url) {
+  const parsed = egress.assertSafeHttpUrl(url);
+  if (parsed.protocol !== 'https:') throw new Error('Sentry API base URL must use HTTPS');
+  if (parsed.origin !== SENTRY_API_BASE_URL)
+    throw new Error('Sentry API base URL must use https://sentry.io');
+  return parsed;
 }

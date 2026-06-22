@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-
 import {
   buildMetricAlertPayload,
   diffMetricAlertRules,
   D07_SENTRY_ALERTS,
+  SENTRY_API_BASE_URL,
+  assertSentryRequestUrl,
   findMissingScopes,
   normalizeSentryBaseUrl,
   resolveActionsByLabel,
@@ -11,8 +12,7 @@ import {
 } from './sentry-alerts-lib.mjs';
 
 const [, , command = 'check', ...restArgs] = process.argv;
-const flags = new Set(restArgs);
-const jsonOutput = flags.has('--json');
+const jsonOutput = new Set(restArgs).has('--json');
 
 const validationProblems = validateAlertCatalog(D07_SENTRY_ALERTS);
 if (validationProblems.length > 0) {
@@ -24,14 +24,13 @@ if (validationProblems.length > 0) {
 }
 
 const config = {
-  baseUrl: normalizeSentryBaseUrl(process.env.SENTRY_API_BASE_URL),
   authToken: process.env.SENTRY_AUTH_TOKEN ?? '',
   org: process.env.SENTRY_ORG ?? '',
   project: process.env.SENTRY_PROJECT ?? '',
   environment: process.env.SENTRY_ENVIRONMENT ?? 'production',
   owner: process.env.SENTRY_ALERT_OWNER ?? '',
 };
-
+normalizeSentryBaseUrl(process.env.SENTRY_API_BASE_URL);
 switch (command) {
   case 'check':
     await runCheck({ jsonOutput, config });
@@ -148,8 +147,7 @@ function requireRemoteConfig(config) {
 }
 
 async function listMetricAlertRules(config) {
-  const url = new URL(`/api/0/organizations/${config.org}/alert-rules/`, config.baseUrl);
-  return sentryFetchJson(url, {
+  return sentryFetchJson(sentryApiPath(config, 'alert-rules'), {
     headers: {
       Authorization: `Bearer ${config.authToken}`,
     },
@@ -157,8 +155,7 @@ async function listMetricAlertRules(config) {
 }
 
 async function postMetricAlertRule(config, payload) {
-  const url = new URL(`/api/0/organizations/${config.org}/alert-rules/`, config.baseUrl);
-  return sentryFetchJson(url, {
+  return sentryFetchJson(sentryApiPath(config, 'alert-rules'), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${config.authToken}`,
@@ -169,8 +166,7 @@ async function postMetricAlertRule(config, payload) {
 }
 
 async function putMetricAlertRule(config, ruleId, payload) {
-  const url = new URL(`/api/0/organizations/${config.org}/alert-rules/${ruleId}/`, config.baseUrl);
-  return sentryFetchJson(url, {
+  return sentryFetchJson(sentryApiPath(config, 'alert-rules', ruleId), {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${config.authToken}`,
@@ -180,8 +176,13 @@ async function putMetricAlertRule(config, ruleId, payload) {
   });
 }
 
-async function sentryFetchJson(url, init) {
-  const response = await fetch(url, init);
+function sentryApiPath(config, resource, id = null) {
+  const suffix = id == null ? '' : `${encodeURIComponent(String(id))}/`;
+  return `/api/0/organizations/${encodeURIComponent(config.org)}/${encodeURIComponent(resource)}/${suffix}`;
+}
+async function sentryFetchJson(relativePath, init) {
+  const requestUrl = assertSentryRequestUrl(new URL(relativePath, SENTRY_API_BASE_URL));
+  const response = await fetch(requestUrl, init);
   const bodyText = await response.text();
 
   if (!response.ok) throw new Error(`Sentry API request failed (${response.status}): ${bodyText}`);
@@ -190,8 +191,7 @@ async function sentryFetchJson(url, init) {
 }
 
 async function getAuthInfo(config) {
-  const url = new URL('/api/0/', config.baseUrl);
-  return sentryFetchJson(url, {
+  return sentryFetchJson('/api/0/', {
     headers: {
       Authorization: `Bearer ${config.authToken}`,
     },

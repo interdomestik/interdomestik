@@ -1,6 +1,8 @@
 import { db } from '@interdomestik/database';
 import { user } from '@interdomestik/database/schema/auth';
 
+import { buildUpstashRedisPingUrl } from './upstash-redis-url';
+
 export interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: string;
@@ -66,7 +68,11 @@ async function checkDatabaseHealth(): Promise<ServiceHealth> {
 async function checkRedisHealth(): Promise<ServiceHealth> {
   try {
     const redisStartTime = Date.now();
-    const response = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/ping`, {
+    const pingUrl = buildUpstashRedisPingUrl(process.env.UPSTASH_REDIS_REST_URL);
+    if (!pingUrl) {
+      throw new Error('Upstash Redis REST URL is not configured');
+    }
+    const response = await fetch(pingUrl, {
       headers: {
         Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
       },
