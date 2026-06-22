@@ -1813,6 +1813,25 @@ transition/current-state/CAS dependencies. No replacement runtime slice is
 started by this closeout; fresh current-authority/design-gate selection is
 required before any next product/runtime work.
 
+Rev 96 tracker overlay: `OBR-DG23` completed the post-`T-503b`
+current-authority/design-gate selection in
+`docs/plans/2026-06-22-obr-dg23-t503c-lifecycle-cas-gate.md`. PR `#1159` and
+PR `#1160` evidence is treated as merged current authority, live `main` at
+handoff was `550bb219909ce82ce4888a2c56825b9949b9b648`, and pre-gate
+`next-slice.mjs .` returned `blocked_requires_current_authority` with
+`activeSlice=null` after the `T-503b` closeout. Direct destructive `T-503`
+remains blocked by missing qualifying release-cycle proof plus legacy
+`claims.status` transition/current-state/CAS dependency. The next active
+governed implementation goal is exactly one canonical tracker slice: `T-503c`.
+Future `T-503c` is non-destructive command-path lifecycle CAS deprecation
+readiness: prove transition/current-state reads, lifecycle-pair/version CAS,
+`lifecycle_version`, event/history/audit behavior, status compatibility, and
+fixture/initialization posture without dropping or renaming `claims.status`.
+No direct `T-503`, destructive schema/RLS migration, proxy/routing/auth/session/
+tenancy/billing/product UI, Operational Brain runtime/live AI, broad M3/M4/M5,
+`T-501`, `T-502`, `T-504`, `T-505`, `T-506`, `T-507`, README, AGENTS, or
+architecture-doc rewrite is promoted.
+
 ## Program Goals
 
 1. Keep the completed `V01` through `V05` convergence work inspectable and stable.
