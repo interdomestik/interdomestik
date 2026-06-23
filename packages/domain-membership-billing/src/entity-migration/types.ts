@@ -1,5 +1,6 @@
 import type {
   EntityMigrationReadinessCandidate,
+  EntityMigrationReadinessOptions,
   EntityMigrationReadinessResult,
   EntityMigrationRepairCategory,
 } from '../entity-migration-readiness';
@@ -55,6 +56,7 @@ export interface MemberEntityMigrationPlan {
 export interface MemberEntityMigrationCommand {
   readonly candidate: EntityMigrationReadinessCandidate;
   readonly mode: MemberEntityMigrationMode;
+  readonly readinessOptions?: EntityMigrationReadinessOptions;
   readonly approval?: MemberEntityMigrationApproval | null;
 }
 

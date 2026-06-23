@@ -56,6 +56,46 @@ describe('member entity migration planning', () => {
     expect(plan.writesPlanned).toBe(false);
   });
 
+  it('carries supported residence options through dry-run and apply planning', () => {
+    const candidate = readinessCandidate({
+      residenceCountry: 'RS',
+      targetLegalEntity: {
+        id: 'le-rs',
+        tenantId: 'tenant-home',
+        countryCode: 'RS',
+        governingLaw: 'RS',
+        termsVersion: 'terms-2026-07',
+        isActive: true,
+      },
+      defaultBookingLink: {
+        id: 'booking-link-rs',
+        tenantId: 'tenant-home',
+        defaultBookingTenantId: 'tenant-home',
+        legalEntityId: 'le-rs',
+      },
+    });
+    const readinessOptions = { supportedResidenceCountries: ['DE'] };
+
+    const dryRun = buildMemberEntityMigrationPlan({
+      candidate,
+      mode: 'dry_run',
+      readinessOptions,
+    });
+    const apply = buildMemberEntityMigrationPlan({
+      approval,
+      candidate,
+      mode: 'apply',
+      readinessOptions,
+    });
+
+    expect(dryRun.status).toBe('blocked_repair_required');
+    expect(apply.status).toBe('blocked_repair_required');
+    expect(dryRun.dataRepairCategories).toContain('unsupported_jurisdiction');
+    expect(apply.dataRepairCategories).toContain('unsupported_jurisdiction');
+    expect(dryRun.writesPlanned).toBe(false);
+    expect(apply.writesPlanned).toBe(false);
+  });
+
   it('distinguishes malformed approvals from missing approvals', () => {
     const plan = buildMemberEntityMigrationPlan({
       approval: { ...approval, reference: '   ' },

@@ -94,4 +94,41 @@ describe('member entity migration executor', () => {
     expect(port.appendMigrationHistory).not.toHaveBeenCalled();
     expect(port.appendEntityMigratedEvent).not.toHaveBeenCalled();
   });
+
+  it('does not write apply commands when readiness options block the jurisdiction', async () => {
+    const port = writePort();
+    const result = await executeMemberEntityMigration(
+      {
+        approval,
+        candidate: readinessCandidate({
+          residenceCountry: 'RS',
+          targetLegalEntity: {
+            id: 'le-rs',
+            tenantId: 'tenant-home',
+            countryCode: 'RS',
+            governingLaw: 'RS',
+            termsVersion: 'terms-2026-07',
+            isActive: true,
+          },
+          defaultBookingLink: {
+            id: 'booking-link-rs',
+            tenantId: 'tenant-home',
+            defaultBookingTenantId: 'tenant-home',
+            legalEntityId: 'le-rs',
+          },
+        }),
+        mode: 'apply',
+        readinessOptions: { supportedResidenceCountries: ['DE'] },
+      },
+      port
+    );
+
+    expect(result).toMatchObject({ ok: false, reason: 'blocked_repair_required' });
+    expect(result.plan.dataRepairCategories).toContain('unsupported_jurisdiction');
+    expect(port.withTransaction).not.toHaveBeenCalled();
+    expect(port.updateSubscriptionLegalEntity).not.toHaveBeenCalled();
+    expect(port.recordTermsAcceptance).not.toHaveBeenCalled();
+    expect(port.appendMigrationHistory).not.toHaveBeenCalled();
+    expect(port.appendEntityMigratedEvent).not.toHaveBeenCalled();
+  });
 });

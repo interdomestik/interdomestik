@@ -75,6 +75,7 @@ export async function rollbackMemberEntityMigration(
   if (command.activeRecoveryCaseCount > 0) {
     throw new Error('member entity migration rollback blocked by active recovery cases');
   }
+  assertRollbackTargetBelongsToTenant(command.previous, command.tenantId);
 
   return port.withTransaction(async () => {
     await port.updateSubscriptionLegalEntity({
@@ -107,6 +108,15 @@ export async function rollbackMemberEntityMigration(
     });
     return payload;
   });
+}
+
+function assertRollbackTargetBelongsToTenant(
+  previous: MemberEntitySnapshot,
+  tenantId: string
+): void {
+  if (!previous.legalTenantId || previous.legalTenantId !== tenantId) {
+    throw new Error('member entity migration rollback target is outside tenant legal boundary');
+  }
 }
 
 function buildEntityMigratedEventPayload(

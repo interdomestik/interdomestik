@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { rollbackMemberEntityMigration } from './executor';
 
-import type { MemberEntityMigrationWritePort } from './types';
+import type { MemberEntityMigrationWritePort, MemberEntityRollbackCommand } from './types';
 
 const approval = {
   approvedBy: 'ops-lead',
@@ -20,13 +20,15 @@ function writePort(): MemberEntityMigrationWritePort {
   };
 }
 
-function rollbackCommand(activeRecoveryCaseCount = 0) {
+function rollbackCommand(
+  overrides: Partial<MemberEntityRollbackCommand> = {}
+): MemberEntityRollbackCommand {
   return {
     approval,
     memberId: 'member-1',
     tenantId: 'tenant-home',
     subscriptionId: 'sub-1',
-    activeRecoveryCaseCount,
+    activeRecoveryCaseCount: 0,
     current: {
       legalTenantId: 'tenant-home',
       legalEntityId: 'le-de',
@@ -39,6 +41,7 @@ function rollbackCommand(activeRecoveryCaseCount = 0) {
       governingLawSnapshot: 'MK',
       termsVersionAccepted: 'terms-2026-06',
     },
+    ...overrides,
   };
 }
 
@@ -70,9 +73,41 @@ describe('member entity migration rollback', () => {
   it('blocks rollback when active recovery evidence is not terminal', async () => {
     const port = writePort();
 
-    await expect(rollbackMemberEntityMigration(rollbackCommand(1), port)).rejects.toThrow(
-      /active recovery cases/u
-    );
+    await expect(
+      rollbackMemberEntityMigration(rollbackCommand({ activeRecoveryCaseCount: 1 }), port)
+    ).rejects.toThrow(/active recovery cases/u);
+
+    expect(port.withTransaction).not.toHaveBeenCalled();
+    expect(port.updateSubscriptionLegalEntity).not.toHaveBeenCalled();
+    expect(port.appendEntityMigratedEvent).not.toHaveBeenCalled();
+  });
+
+  it('blocks rollback when the previous legal tenant is missing', async () => {
+    const port = writePort();
+
+    await expect(
+      rollbackMemberEntityMigration(
+        rollbackCommand({ previous: { ...rollbackCommand().previous, legalTenantId: null } }),
+        port
+      )
+    ).rejects.toThrow(/outside tenant legal boundary/u);
+
+    expect(port.withTransaction).not.toHaveBeenCalled();
+    expect(port.updateSubscriptionLegalEntity).not.toHaveBeenCalled();
+    expect(port.appendEntityMigratedEvent).not.toHaveBeenCalled();
+  });
+
+  it('blocks rollback when the previous legal tenant is cross-tenant', async () => {
+    const port = writePort();
+
+    await expect(
+      rollbackMemberEntityMigration(
+        rollbackCommand({
+          previous: { ...rollbackCommand().previous, legalTenantId: 'tenant-other' },
+        }),
+        port
+      )
+    ).rejects.toThrow(/outside tenant legal boundary/u);
 
     expect(port.withTransaction).not.toHaveBeenCalled();
     expect(port.updateSubscriptionLegalEntity).not.toHaveBeenCalled();

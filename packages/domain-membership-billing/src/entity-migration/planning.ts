@@ -13,7 +13,10 @@ import type {
 export function buildMemberEntityMigrationPlan(
   command: MemberEntityMigrationCommand
 ): MemberEntityMigrationPlan {
-  const readiness = classifyEntityMigrationReadinessCandidate(command.candidate);
+  const readiness = classifyEntityMigrationReadinessCandidate(
+    command.candidate,
+    command.readinessOptions
+  );
   const previous = buildPreviousSnapshot(command.candidate);
   const target = buildTarget(command.candidate);
   const approval = normalizeApproval(command.approval);
