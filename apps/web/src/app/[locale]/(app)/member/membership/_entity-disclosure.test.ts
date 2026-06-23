@@ -102,6 +102,7 @@ function subscriptionRecord(
     branchId: null,
     agentId: null,
     legalTenantId,
+    legalEntityId: null,
     billingEntity: null,
     governingLawSnapshot,
     termsVersionAccepted: null,

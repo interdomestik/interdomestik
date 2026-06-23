@@ -617,6 +617,13 @@
       "when": 1782019200000,
       "tag": "0087_claim_document_ai_extraction_consents",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1782105600000,
+      "tag": "0088_tenant_entity_decomposition",
+      "breakpoints": true
     }
   ]
 }

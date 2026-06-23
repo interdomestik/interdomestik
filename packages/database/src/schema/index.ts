@@ -32,6 +32,7 @@ export * from './notifications';
 export * from './policies';
 export * from './rbac';
 export * from './services';
+export * from './tenant-entity-decomposition';
 export * from './tenants';
 export * from './webhooks';
 
