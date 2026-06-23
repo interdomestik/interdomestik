@@ -12,6 +12,7 @@ export * from './ownership-attribution';
 export * from './commissions/summary';
 export * from './commissions/types';
 export * from './enterprise-controls';
+export * from './entity-migration';
 export * from './entity-migration-readiness';
 export * from './membership-hierarchy';
 export * from './paddle';
