@@ -37,6 +37,21 @@
       "selectPlaceholder": "Select a language",
       "hint": "This will change the language throughout the application."
     },
+    "residenceCountry": {
+      "sectionTitle": "Residence Country",
+      "title": "Residence country",
+      "description": "Keep your declared residence country current for membership terms and privacy handling.",
+      "label": "Country code",
+      "placeholder": "DE",
+      "save": "Save country",
+      "saving": "Saving...",
+      "success": "Residence country updated",
+      "error": "Failed to update residence country",
+      "decision": {
+        "pending_terms_reacceptance": "Updated. Terms re-acceptance is pending for renewal.",
+        "deferred_active_recovery_runoff": "Updated. Active recovery remains on run-off until the recovery matter is terminal."
+      }
+    },
     "notifications": {
       "sectionTitle": "Notifications",
       "title": "Notification Preferences",

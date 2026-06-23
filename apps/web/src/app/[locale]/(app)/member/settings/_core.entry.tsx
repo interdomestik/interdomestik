@@ -5,7 +5,10 @@ import { ProfileForm } from '@/components/auth/profile-form';
 import { getSessionSafe } from '@/components/shell/session';
 import { LanguageSettings } from '@/components/settings/language-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
+import { ResidenceCountrySettings } from '@/components/settings/residence-country-settings';
 import { redirect } from '@/i18n/routing';
+import { db, eq, user } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { Separator } from '@interdomestik/ui/components/separator';
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
 import { getTranslations } from 'next-intl/server';
@@ -23,6 +26,25 @@ interface SettingsPageProps {
   params: Promise<{ locale: string }>;
 }
 
+type MemberSettingsSession = NonNullable<Awaited<ReturnType<typeof getSessionSafe>>>;
+
+async function getResidenceCountry(session: MemberSettingsSession) {
+  const tenantId = session.user.tenantId;
+  if (!tenantId) return null;
+
+  try {
+    // db-access-guard: tenant-scoped -- reason: member settings reads the signed-in user by session tenant and user id
+    const row = await db.query.user.findFirst({
+      where: withTenant(tenantId, user.tenantId, eq(user.id, session.user.id)),
+      columns: { residenceCountry: true },
+    });
+    return row?.residenceCountry ?? null;
+  } catch (error) {
+    console.error('Failed to load residence country:', error);
+    return null;
+  }
+}
+
 export default async function SettingsPage({ params }: SettingsPageProps) {
   const { locale } = await params;
   const session = await getSessionSafe('MemberSettingsPage');
@@ -31,9 +53,10 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     redirect({ href: '/login', locale });
   }
 
-  const [t, commercialTerms] = await Promise.all([
+  const [t, commercialTerms, residenceCountry] = await Promise.all([
     getTranslations('settings'),
     getTranslations({ locale, namespace: 'commercialTerms' }),
+    getResidenceCountry(session as MemberSettingsSession),
   ]);
 
   return (
@@ -59,6 +82,13 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
                   image: session!.user.image,
                 }}
               />
+            </Suspense>
+          </section>
+
+          <section id="residence-country">
+            <h3 className="text-lg font-medium mb-4">{t('residenceCountry.sectionTitle')}</h3>
+            <Suspense fallback={<SettingsSkeleton />}>
+              <ResidenceCountrySettings initialResidenceCountry={residenceCountry} />
             </Suspense>
           </section>
 

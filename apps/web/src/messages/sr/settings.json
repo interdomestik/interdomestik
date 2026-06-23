@@ -37,6 +37,21 @@
       "selectPlaceholder": "Izaberite jezik",
       "hint": "Ovo će promeniti jezik kroz celu aplikaciju."
     },
+    "residenceCountry": {
+      "sectionTitle": "Država prebivališta",
+      "title": "Država prebivališta",
+      "description": "Održavajte deklarisanu državu prebivališta ažurnom za uslove članstva i privatnost.",
+      "label": "Kod države",
+      "placeholder": "RS",
+      "save": "Sačuvaj državu",
+      "saving": "Čuvanje...",
+      "success": "Država prebivališta je ažurirana",
+      "error": "Ažuriranje države prebivališta nije uspelo",
+      "decision": {
+        "pending_terms_reacceptance": "Ažurirano. Ponovno prihvatanje uslova čeka obnovu.",
+        "deferred_active_recovery_runoff": "Ažurirano. Aktivni oporavak ostaje u run-off režimu dok predmet ne postane terminalan."
+      }
+    },
     "notifications": {
       "sectionTitle": "Obaveštenja",
       "title": "Podešavanja obaveštenja",
