@@ -995,10 +995,13 @@ Post-Rev 98, `SEC-CQL-01` and `SEC-CQL-01b` are complete through PRs `#1165`,
 `c1e03b2773aa6f92ab5ae977fc9c19ab725ab8fc`. The post-merge main health record
 for `c1e03b2` is green for CI, Sonar Main Gate, Secret Scan/gitleaks, and
 CodeQL; CD/Vercel remains deployment-only evidence. `OBR-DG25` in
-`docs/plans/2026-06-22-obr-dg25-t507-residence-change-gate.md` now promotes
-exactly one next governed implementation goal from the canonical tracker:
-`T-507` residence-change flow plus DSR. Future implementation must wait until
-that gate is merged and the current-authority resolver returns exactly `T-507`;
+`docs/plans/2026-06-22-obr-dg25-t507-residence-change-gate.md` historically
+promoted exactly one governed implementation goal from the canonical tracker:
+`T-507` residence-change flow plus DSR. That promotion is now consumed and
+superseded by the Rev 102 `T-507` closeout below; `T-507` is complete, no
+replacement implementation slice is promoted, and follow-on work must wait for a
+fresh current-authority/design-gate selection rather than resolver selection of
+`T-507`;
 `T-506`, tenant/entity migration, direct destructive `T-503`, proxy/routing/auth,
 schema/RLS/migrations, billing, product UI, Operational Brain runtime/live AI,
 README, AGENTS, broad M3/M4/M5, and broad architecture-doc work remain
@@ -2027,6 +2030,34 @@ changes, clarity-marker changes, and next implementation slice work remain out
 of scope. No replacement runtime slice is started by this closeout; fresh
 current-authority/design-gate selection is required before any follow-on
 implementation.
+
+Rev 102 tracker overlay: `T-507` is complete through implementation PR `#1172`
+(`https://github.com/interdomestik/interdomestik/pull/1172`) from final
+implementation head `e61e5c8403eaff7336f48a6312ef050c871fbd45` and merge/main
+SHA `aa42c92c75076d5a43f23ff1c33a8cb84a7cadff`. The merged implementation
+consumes the `OBR-DG25` promotion for residence-change flow plus DSR policy.
+Pre-merge implementation evidence passed focused domain/web/database tests,
+modularity, DB-access, repo-size, i18n, E2E-contract, architecture, and diff
+checks, local `pnpm security:guard`, `pnpm pr:verify`, and `pnpm e2e:gate`;
+GitHub current-head checks were clean before merge. Post-merge main health at
+`aa42c92c` is green for CI, Sonar Main Gate, Secret Scan/gitleaks, and CodeQL.
+CD/Vercel is deployment-only/pending and is not product-readiness evidence unless
+branch protection changes.
+
+Reviewer disposition for `T-507`: Codex PR threads
+`PRRT_kwDOQ0Mhjc6LbWIE` and `PRRT_kwDOQ0Mhjc6LbWIH` were fixed/resolved.
+Copilot was unavailable because the bot was not a collaborator. Senior/model
+review findings were addressed or classified. Sonar PR analysis reported `11`
+new low maintainability/code-smell issues that the supervisor classified
+non-blocking; no security hotspot blocker remained. Scope boundaries remain
+closed for follow-on work: no `T-506`, tenant/entity migration, direct
+destructive `T-503`, proxy/routing/auth/session/tenancy/RLS/schema/migration,
+billing, product UI, Operational Brain runtime/live AI, high/medium CodeQL or
+Dependabot work, README, AGENTS, broad M3/M4/M5, or broad architecture rewrite
+is promoted by this closeout. No replacement implementation slice is promoted;
+fresh current-authority/design-gate selection is required before follow-on
+implementation, and post-closeout `next-slice.mjs` is expected to report
+`blocked_requires_current_authority` with `activeSlice=null`.
 
 ## Program Goals
 
