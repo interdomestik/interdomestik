@@ -157,15 +157,15 @@ END;
 $$;--> statement-breakpoint
 
 CREATE OR REPLACE VIEW public."tenant_entity_boundaries" AS
-SELECT t."id" AS "home_tenant_id", le."id" AS "legal_entity_id", mh."id" AS "marketing_host_id",
+SELECT dbl."tenant_id" AS "home_tenant_id", le."id" AS "legal_entity_id", mh."id" AS "marketing_host_id",
   dbl."id" AS "default_booking_link_id", dbl."default_booking_tenant_id",
-  t."name" AS "tenant_name", le."legal_name", le."governing_law", le."terms_version",
+  coalesce(t."name", le."legal_name") AS "tenant_name", le."legal_name", le."governing_law", le."terms_version",
   mh."host" AS "marketing_host", mh."label" AS "marketing_host_label"
-FROM public."tenants" t
-LEFT JOIN public."default_booking_links" dbl ON dbl."tenant_id" = t."id"
+FROM public."default_booking_links" dbl
+LEFT JOIN public."tenants" t ON t."id" = dbl."tenant_id"
 LEFT JOIN public."legal_entities" le ON le."id" = dbl."legal_entity_id"
 LEFT JOIN public."marketing_hosts" mh ON mh."id" = dbl."marketing_host_id"
-WHERE t."id" = (select current_setting('app.current_tenant_id', true))::text;--> statement-breakpoint
+WHERE dbl."tenant_id" = (select current_setting('app.current_tenant_id', true))::text;--> statement-breakpoint
 ALTER VIEW public."tenant_entity_boundaries" SET (security_invoker = true);--> statement-breakpoint
 
 COMMENT ON TABLE public."legal_entities" IS 'T-504 legal entity authority split from tenants; one row per existing tenant at backfill, no member migration.';--> statement-breakpoint

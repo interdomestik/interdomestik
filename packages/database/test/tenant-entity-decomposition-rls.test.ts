@@ -6,7 +6,12 @@ import { inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import { defaultBookingLinks, legalEntities, marketingHosts } from '../src/schema';
+import {
+  defaultBookingLinks,
+  legalEntities,
+  marketingHosts,
+  tenantEntityBoundaries,
+} from '../src/schema';
 import {
   grantRlsTestRole,
   quoteIdentifier,
@@ -73,7 +78,11 @@ test('T-504 entity tables use home tenant RLS, not access or booking tenant hint
         $$;
       `)
     );
-    await grantRlsTestRole(adminDb, REQUIRED_RLS_TABLES);
+    await grantRlsTestRole(adminDb, [
+      ...REQUIRED_RLS_TABLES,
+      'tenants',
+      'tenant_entity_boundaries',
+    ]);
 
     await adminDb
       .insert(legalEntities)
@@ -96,7 +105,7 @@ test('T-504 entity tables use home tenant RLS, not access or booking tenant hint
         sql`select set_config('app.current_access_tenant_id', ${MK_TENANT_ID}, true)`
       );
 
-      const [legalRows, hostRows, bookingRows] = await Promise.all([
+      const [legalRows, hostRows, bookingRows, boundaryRows] = await Promise.all([
         tx
           .select({ id: legalEntities.id, tenantId: legalEntities.tenantId })
           .from(legalEntities)
@@ -109,13 +118,18 @@ test('T-504 entity tables use home tenant RLS, not access or booking tenant hint
           .select({ id: defaultBookingLinks.id, tenantId: defaultBookingLinks.tenantId })
           .from(defaultBookingLinks)
           .where(inArray(defaultBookingLinks.id, [ksBookingId, mkBookingId])),
+        tx
+          .select({ homeTenantId: tenantEntityBoundaries.homeTenantId })
+          .from(tenantEntityBoundaries)
+          .where(inArray(tenantEntityBoundaries.homeTenantId, [KS_TENANT_ID, MK_TENANT_ID])),
       ]);
-      return { bookingRows, hostRows, legalRows };
+      return { bookingRows, boundaryRows, hostRows, legalRows };
     });
 
     assert.deepEqual(rows.legalRows, [{ id: ksLegalId, tenantId: KS_TENANT_ID }]);
     assert.deepEqual(rows.hostRows, [{ id: ksHostId, tenantId: KS_TENANT_ID }]);
     assert.deepEqual(rows.bookingRows, [{ id: ksBookingId, tenantId: KS_TENANT_ID }]);
+    assert.deepEqual(rows.boundaryRows, [{ homeTenantId: KS_TENANT_ID }]);
   } finally {
     await adminDb.delete(marketingHosts).where(inArray(marketingHosts.id, [ksHostId, mkHostId]));
     await adminDb.delete(legalEntities).where(inArray(legalEntities.id, [ksLegalId, mkLegalId]));

@@ -53,10 +53,17 @@ test('T-504 migration adds compatibility view, aggregate proof, and repair postu
   const sql = migrationSql();
 
   assert.match(sql, /CREATE OR REPLACE VIEW public\."tenant_entity_boundaries"/u);
+  assert.match(sql, /SELECT dbl\."tenant_id" AS "home_tenant_id"/u);
+  assert.match(sql, /FROM public\."default_booking_links" dbl/u);
+  assert.match(sql, /LEFT JOIN public\."tenants" t ON t\."id" = dbl\."tenant_id"/u);
   assert.match(sql, /LEFT JOIN public\."legal_entities" le ON le\."id" = dbl\."legal_entity_id"/u);
   assert.match(
     sql,
-    /WHERE t\."id" = \(select current_setting\('app\.current_tenant_id', true\)\)::text/u
+    /WHERE dbl\."tenant_id" = \(select current_setting\('app\.current_tenant_id', true\)\)::text/u
+  );
+  assert.doesNotMatch(
+    sql,
+    /FROM public\."tenants" t\s+LEFT JOIN public\."default_booking_links" dbl/u
   );
   assert.match(
     sql,
