@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   pgTable,
@@ -14,6 +15,7 @@ import { user } from './auth';
 import { membershipPlans } from './membership-plans';
 import { subscriptionStatusEnum } from './enums';
 import { branches } from './rbac';
+import { legalEntities } from './tenant-entity-decomposition';
 import { tenants } from './tenants';
 
 export const subscriptions = pgTable(
@@ -58,6 +60,7 @@ export const subscriptions = pgTable(
     billingEntity: text('billing_entity'),
     governingLawSnapshot: text('governing_law_snapshot'),
     termsVersionAccepted: text('terms_version_accepted'),
+    legalEntityId: text('legal_entity_id'),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
   },
@@ -67,9 +70,15 @@ export const subscriptions = pgTable(
     uniqueIndex('idx_subscriptions_user').on(table.userId),
     uniqueIndex('idx_subscriptions_provider_subscription').on(table.providerSubscriptionId),
     uniqueIndex('subscriptions_tenant_id_id_uq').on(table.tenantId, table.id),
+    index('subscriptions_legal_entity_idx').on(table.legalEntityId),
     check(
       'subscriptions_governing_law_snapshot_check',
       sql`${table.governingLawSnapshot} IS NULL OR ${table.governingLawSnapshot} ~ '^[A-Z]{2}$'`
     ),
+    foreignKey({
+      columns: [table.legalEntityId],
+      foreignColumns: [legalEntities.id],
+      name: 'subscriptions_legal_entity_id_fk',
+    }),
   ]
 );
