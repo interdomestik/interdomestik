@@ -18,9 +18,7 @@ export function normalizeCountryCode(value: string | null | undefined): string |
 }
 
 export function isActiveRecoveryLifecycleState(state: RecoveryLifecycleState): boolean {
-  if (state === null) {
-    return false;
-  }
+  if (state === null) return true;
   return !NON_BLOCKING_RECOVERY_LIFECYCLE_STATES.includes(
     state as (typeof NON_BLOCKING_RECOVERY_LIFECYCLE_STATES)[number]
   );

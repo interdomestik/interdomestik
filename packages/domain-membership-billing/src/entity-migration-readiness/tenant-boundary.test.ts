@@ -31,6 +31,31 @@ describe('entity migration readiness tenant boundaries', () => {
     expect(result.repairCategories).toEqual(['target_legal_entity_tenant_mismatch']);
   });
 
+  it('blocks a target legal entity from a different residence country', () => {
+    const result = classifyEntityMigrationReadinessCandidate(
+      readinessCandidate({
+        residenceCountry: 'DE',
+        targetLegalEntity: {
+          id: 'le-fr',
+          tenantId: 'tenant-home',
+          countryCode: 'FR',
+          governingLaw: 'FR',
+          termsVersion: 'terms-2026-07',
+          isActive: true,
+        },
+        defaultBookingLink: {
+          id: 'booking-link-1',
+          tenantId: 'tenant-home',
+          defaultBookingTenantId: 'tenant-home',
+          legalEntityId: 'le-fr',
+        },
+      })
+    );
+
+    expect(result.status).toBe('blocked_repair_required');
+    expect(result.repairCategories).toEqual(['target_legal_entity_country_mismatch']);
+  });
+
   it('blocks booking links with either tenant boundary out of scope', () => {
     const bookingTenantResult = classifyEntityMigrationReadinessCandidate(
       readinessCandidate({

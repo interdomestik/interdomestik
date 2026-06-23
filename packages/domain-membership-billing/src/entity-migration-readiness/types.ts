@@ -22,6 +22,7 @@ export const ENTITY_MIGRATION_REPAIR_CATEGORIES = [
   'ambiguous_legal_entity',
   'inactive_target_legal_entity',
   'target_legal_entity_tenant_mismatch',
+  'target_legal_entity_country_mismatch',
   'missing_target_governing_law',
   'missing_target_terms_version',
   'missing_default_booking_link',

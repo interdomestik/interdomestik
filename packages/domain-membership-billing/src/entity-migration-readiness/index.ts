@@ -1,4 +1,5 @@
 export * from './classifier';
+export { isActiveRecoveryLifecycleState } from './guards';
 export * from './report';
 export type {
   EntityMigrationDefaultBookingLinkEvidence,

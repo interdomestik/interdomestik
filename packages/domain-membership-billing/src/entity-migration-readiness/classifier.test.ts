@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  classifyEntityMigrationReadinessCandidate,
-  isActiveRecoveryLifecycleState,
-} from './classifier';
+import { classifyEntityMigrationReadinessCandidate } from './classifier';
+import { isActiveRecoveryLifecycleState } from './guards';
 import { readinessCandidate } from './test-support';
 
 describe('entity migration readiness classifier', () => {
@@ -54,7 +52,7 @@ describe('entity migration readiness classifier', () => {
     expect(result.repairCategories).toContain('missing_governing_law_snapshot');
   });
 
-  it('treats terminal and inactive recovery lifecycle states as non-blocking', () => {
+  it('treats terminal states as non-blocking and missing recovery evidence as active', () => {
     const result = classifyEntityMigrationReadinessCandidate(
       readinessCandidate({
         activeRecoveryCases: [
@@ -66,11 +64,12 @@ describe('entity migration readiness classifier', () => {
       })
     );
 
-    expect(result.status).toBe('eligible');
-    expect(result.activeRecoveryCaseCount).toBe(0);
+    expect(result.status).toBe('blocked_active_recovery_runoff');
+    expect(result.activeRecoveryCaseCount).toBe(1);
+    expect(result.repairCategories).toContain('active_recovery_runoff_required');
     expect(isActiveRecoveryLifecycleState('negotiation')).toBe(true);
     expect(isActiveRecoveryLifecycleState('resolved')).toBe(false);
-    expect(isActiveRecoveryLifecycleState(null)).toBe(false);
+    expect(isActiveRecoveryLifecycleState(null)).toBe(true);
   });
 
   it('fails closed for unrecognized recovery lifecycle states until proven terminal', () => {

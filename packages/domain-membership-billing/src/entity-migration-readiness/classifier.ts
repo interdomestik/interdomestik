@@ -9,8 +9,6 @@ import type {
   EntityMigrationRepairCategory,
 } from './types';
 
-export { isActiveRecoveryLifecycleState } from './guards';
-
 export function classifyEntityMigrationReadinessCandidate(
   candidate: EntityMigrationReadinessCandidate,
   options: EntityMigrationReadinessOptions = {}
@@ -37,7 +35,12 @@ export function classifyEntityMigrationReadinessCandidate(
     memberId: candidate.memberId,
     tenantId: candidate.tenantId,
     subscriptionId: candidate.subscriptionId,
-    status: resolveStatus(activeRecoveryCaseCount, repairCategories),
+    status:
+      activeRecoveryCaseCount > 0
+        ? 'blocked_active_recovery_runoff'
+        : repairCategories.length > 0
+          ? 'blocked_repair_required'
+          : 'eligible',
     repairCategories,
     evidence: buildEntityMigrationReadinessEvidence(candidate),
     activeRecoveryCaseCount,
@@ -88,6 +91,12 @@ function addResidenceRepairs(
   if (supportedResidenceCountries && !supportedResidenceCountries.includes(residenceCountry)) {
     repairs.add('unsupported_jurisdiction');
   }
+  if (
+    candidate.targetLegalEntity &&
+    normalizeCountryCode(candidate.targetLegalEntity.countryCode) !== residenceCountry
+  ) {
+    repairs.add('target_legal_entity_country_mismatch');
+  }
 }
 
 function addLegalEntityRepairs(
@@ -137,12 +146,4 @@ function addBookingRepairs(
   ) {
     repairs.add('booking_tenant_mismatch');
   }
-}
-
-function resolveStatus(
-  activeRecoveryCaseCount: number,
-  repairs: readonly EntityMigrationRepairCategory[]
-): EntityMigrationReadinessResult['status'] {
-  if (activeRecoveryCaseCount > 0) return 'blocked_active_recovery_runoff';
-  return repairs.length > 0 ? 'blocked_repair_required' : 'eligible';
 }
