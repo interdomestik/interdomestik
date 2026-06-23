@@ -2028,6 +2028,34 @@ of scope. No replacement runtime slice is started by this closeout; fresh
 current-authority/design-gate selection is required before any follow-on
 implementation.
 
+Rev 102 tracker overlay: `T-507` is complete through implementation PR `#1172`
+(`https://github.com/interdomestik/interdomestik/pull/1172`) from final
+implementation head `e61e5c8403eaff7336f48a6312ef050c871fbd45` and merge/main
+SHA `aa42c92c75076d5a43f23ff1c33a8cb84a7cadff`. The merged implementation
+consumes the `OBR-DG25` promotion for residence-change flow plus DSR policy.
+Pre-merge implementation evidence passed focused domain/web/database tests,
+modularity, DB-access, repo-size, i18n, E2E-contract, architecture, and diff
+checks, local `pnpm security:guard`, `pnpm pr:verify`, and `pnpm e2e:gate`;
+GitHub current-head checks were clean before merge. Post-merge main health at
+`aa42c92c` is green for CI, Sonar Main Gate, Secret Scan/gitleaks, and CodeQL.
+CD/Vercel is deployment-only/pending and is not product-readiness evidence unless
+branch protection changes.
+
+Reviewer disposition for `T-507`: Codex PR threads
+`PRRT_kwDOQ0Mhjc6LbWIE` and `PRRT_kwDOQ0Mhjc6LbWIH` were fixed/resolved.
+Copilot was unavailable because the bot was not a collaborator. Senior/model
+review findings were addressed or classified. Sonar PR analysis reported `11`
+new low maintainability/code-smell issues that the supervisor classified
+non-blocking; no security hotspot blocker remained. Scope boundaries remain
+closed for follow-on work: no `T-506`, tenant/entity migration, direct
+destructive `T-503`, proxy/routing/auth/session/tenancy/RLS/schema/migration,
+billing, product UI, Operational Brain runtime/live AI, high/medium CodeQL or
+Dependabot work, README, AGENTS, broad M3/M4/M5, or broad architecture rewrite
+is promoted by this closeout. No replacement implementation slice is promoted;
+fresh current-authority/design-gate selection is required before follow-on
+implementation, and post-closeout `next-slice.mjs` is expected to report
+`blocked_requires_current_authority` with `activeSlice=null`.
+
 ## Program Goals
 
 1. Keep the completed `V01` through `V05` convergence work inspectable and stable.
