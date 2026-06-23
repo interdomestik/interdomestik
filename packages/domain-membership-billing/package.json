@@ -38,7 +38,8 @@
     "./commissions/admin/get-all": "./src/commissions/admin/get-all.ts",
     "./commissions/admin/update-status": "./src/commissions/admin/update-status.ts",
     "./commissions/admin/bulk-approve": "./src/commissions/admin/bulk-approve.ts",
-    "./commissions/admin/summary": "./src/commissions/admin/summary.ts"
+    "./commissions/admin/summary": "./src/commissions/admin/summary.ts",
+    "./entity-migration-readiness": "./src/entity-migration-readiness/index.ts"
   },
   "scripts": {
     "test:unit": "vitest run",
