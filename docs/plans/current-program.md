@@ -1029,6 +1029,39 @@ Operational Brain runtime/live AI, high/medium CodeQL, Dependabot, README,
 AGENTS, broad M3/M4/M5, and broad architecture-doc work remain unpromoted unless
 separately authorized.
 
+Post-Rev 104, `T-504` is complete through PR `#1175` / merge-main SHA
+`1f77d7d38d83031b76a1858d1259cd51a5573f68` from final implementation head
+`b18d525933c29f5a5ea8304d6b41d29ba7bafb64`, consuming the `OBR-DG26`
+promotion. The merged foundation mechanically decomposes overloaded `tenants`
+authority into `legal_entities`, `marketing_hosts`, and `default_booking_links`
+with additive/idempotent migration posture, referential integrity,
+rollback/data-repair notes, compatibility reads/helpers/views, Drizzle/schema/RLS
+safety, and tenant/legal/booking boundary proof. Implementation evidence passed
+focused schema/migration/RLS tests, `pnpm check:db-access`,
+`pnpm db:rls:test:required`, modularity/repo-size/architecture checks,
+`pnpm security:guard`, `pnpm pr:verify`, and `pnpm e2e:gate`. Post-merge main
+health at `1f77d7d` is green by public GitHub Actions evidence: CI `#4070`,
+Sonar Main Gate `#996`, Secret Scan/gitleaks `#4090`, and CodeQL `#1081`;
+CD/Vercel remains deployment-only evidence. Review disposition: Codex P2 RLS
+compatibility-view issue `PRRT_kwDOQ0Mhjc6LiKE5` was reproduced, fixed,
+regression-tested under low-privilege tenant-scoped reads, and resolved; Sonnet
+and Gemini final reviews were clean; Opus was not used because no unresolved
+high-risk migration/design ambiguity remained; Codex Security scan completion is
+explicitly waived due workbench manual-start friction and is not claimed
+complete. Lessons learned: multi-agent shell runtime failure was recovered
+through the user-owned worktree; `security_invoker` compatibility views must be
+tested under low-privilege tenant-scoped roles before merge; GitHub web/remote
+evidence may be needed when connector status APIs do not expose check-runs. No
+replacement implementation slice is promoted by this closeout, so
+`blocked_requires_current_authority` with `activeSlice=null` is expected until a
+fresh current-authority/design-gate record promotes exactly one next governed
+slice. `T-506`, member/entity migration capability, terms re-issue, acceptance
+recapture, active-case guard implementation, ADR-12, direct destructive `T-503`,
+proxy/routing/auth/session/tenancy, schema/RLS/migrations beyond completed
+`T-504`, billing, product UI, Operational Brain runtime/live AI, high/medium
+CodeQL, Dependabot, README, AGENTS, broad M3/M4/M5, and broad architecture-doc
+work remain unpromoted unless separately authorized.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
