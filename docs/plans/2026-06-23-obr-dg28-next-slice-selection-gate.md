@@ -1,3 +1,18 @@
+---
+plan_role: input
+status: active
+source_of_truth: false
+owner: platform
+last_reviewed: 2026-06-23
+tracker_path: docs/plans/current-tracker.md
+---
+
+> Status: Tier 0 current-authority/design-gate record. This document supports
+> `current-program.md`, `current-tracker.md`, and the architecture tracker; it is
+> not a source of truth by itself and does not implement runtime, product,
+> schema, RLS, migration, auth, tenancy, routing, billing, or security
+> remediation work.
+
 # OBR-DG28 Post-T506a Next Slice Selection Gate
 
 ## Decision
