@@ -32,6 +32,24 @@ function makeEntityMigratedEvent(overrides: Partial<Parameters<typeof appendEven
   };
 }
 
+type EntityMigratedPayload = ReturnType<typeof makeEntityMigratedEvent>['payload'];
+
+function assertEntityMigratedPayload(value: unknown): asserts value is EntityMigratedPayload {
+  assert.equal(typeof value, 'object');
+  assert.notEqual(value, null);
+  const payload = value as Record<string, unknown>;
+  assert.equal(typeof payload.fromLegalEntityId, 'string');
+  assert.equal(typeof payload.toLegalTenantId, 'string');
+}
+
+function capturedEntityMigratedPayload(
+  capture: ReturnType<typeof makeEventTx>['capture']
+): EntityMigratedPayload {
+  const payload = capture.row?.payload;
+  assertEntityMigratedPayload(payload);
+  return payload;
+}
+
 describe('appendEvent membership.entity_migrated payload allowlist', () => {
   it('allows sanitized migration payload fields without inline PII', async () => {
     const { capture, tx } = makeEventTx();
@@ -53,8 +71,9 @@ describe('appendEvent membership.entity_migrated payload allowlist', () => {
       })
     );
 
-    assert.equal(capture.row?.payload.fromLegalEntityId, 'le-old');
-    assert.equal(capture.row?.payload.toLegalTenantId, 'tenant-home');
+    const payload = capturedEntityMigratedPayload(capture);
+    assert.equal(payload.fromLegalEntityId, 'le-old');
+    assert.equal(payload.toLegalTenantId, 'tenant-home');
   });
 
   for (const [name, payload, error] of [
