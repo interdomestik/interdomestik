@@ -1007,6 +1007,28 @@ schema/RLS/migrations, billing, product UI, Operational Brain runtime/live AI,
 README, AGENTS, broad M3/M4/M5, and broad architecture-doc work remain
 unpromoted unless separately authorized.
 
+Post-Rev 103, `OBR-DG26` in
+`docs/plans/2026-06-23-obr-dg26-t504-selection-gate.md` records the completed
+`T-507` implementation PR `#1172` / merge
+`aa42c92c75076d5a43f23ff1c33a8cb84a7cadff`, the completed `T-507` closeout PR
+`#1173` / merge `fbdfd4589e0b0b2f190d2941b36f5407f39cd207`, post-closeout main
+health green for CI, Sonar Main Gate, Secret Scan/gitleaks, and CodeQL, and the
+pre-gate resolver state (`blocked_requires_current_authority`, `activeSlice=null`,
+`umbrella_without_concrete_promoted_slice`). `OBR-DG26` promotes exactly one
+canonical tracker slice: `T-504`. The next active governed implementation goal
+is exactly one canonical tracker slice: `T-504`. Future `T-504` is limited to
+the mechanical entity-decomposition foundation for splitting overloaded
+`tenants` authority into legal entities, marketing hosts, and default booking
+links with referential-integrity, migration/rollback, compatibility, and
+tenant/RLS safety proof. Direct implementation must wait until the gate merges
+and the current-authority resolver promotes exactly `T-504`; `T-506`, member or
+entity migration capability, terms re-issue, acceptance recapture, active-case
+guard implementation, ADR-12, direct destructive `T-503`, proxy/routing/auth,
+schema/RLS/migrations beyond the promoted `T-504` envelope, billing, product UI,
+Operational Brain runtime/live AI, high/medium CodeQL, Dependabot, README,
+AGENTS, broad M3/M4/M5, and broad architecture-doc work remain unpromoted unless
+separately authorized.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
