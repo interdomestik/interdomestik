@@ -995,10 +995,13 @@ Post-Rev 98, `SEC-CQL-01` and `SEC-CQL-01b` are complete through PRs `#1165`,
 `c1e03b2773aa6f92ab5ae977fc9c19ab725ab8fc`. The post-merge main health record
 for `c1e03b2` is green for CI, Sonar Main Gate, Secret Scan/gitleaks, and
 CodeQL; CD/Vercel remains deployment-only evidence. `OBR-DG25` in
-`docs/plans/2026-06-22-obr-dg25-t507-residence-change-gate.md` now promotes
-exactly one next governed implementation goal from the canonical tracker:
-`T-507` residence-change flow plus DSR. Future implementation must wait until
-that gate is merged and the current-authority resolver returns exactly `T-507`;
+`docs/plans/2026-06-22-obr-dg25-t507-residence-change-gate.md` historically
+promoted exactly one governed implementation goal from the canonical tracker:
+`T-507` residence-change flow plus DSR. That promotion is now consumed and
+superseded by the Rev 102 `T-507` closeout below; `T-507` is complete, no
+replacement implementation slice is promoted, and follow-on work must wait for a
+fresh current-authority/design-gate selection rather than resolver selection of
+`T-507`;
 `T-506`, tenant/entity migration, direct destructive `T-503`, proxy/routing/auth,
 schema/RLS/migrations, billing, product UI, Operational Brain runtime/live AI,
 README, AGENTS, broad M3/M4/M5, and broad architecture-doc work remain
