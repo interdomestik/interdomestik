@@ -1118,6 +1118,27 @@ completed `T-506a`, billing, product UI, Operational Brain runtime/live AI,
 high/medium CodeQL, Dependabot, README, AGENTS, broad M3/M4/M5, and broad
 architecture-doc work remain unpromoted unless separately authorized.
 
+Post-Rev 107, `OBR-DG28` in
+`docs/plans/2026-06-23-obr-dg28-next-slice-selection-gate.md` records the
+completed `T-506a` implementation PR `#1178` / merge
+`710e0a5e80045ead2e98379aa11d9e39da19e366`, the completed `T-506a` closeout PR
+`#1179` / merge `16ec017996d19345b063329101697ecec8c1e0d7`, post-closeout main
+health green for CI, Sonar Main Gate, Secret Scan/gitleaks, and CodeQL, and the
+pre-gate resolver state (`blocked_requires_current_authority`, `activeSlice=null`,
+`umbrella_without_concrete_promoted_slice`). `OBR-DG28` promotes exactly one
+canonical tracker slice: `T-506`. The next active governed implementation goal
+is exactly one canonical tracker slice: `T-506`. Future `T-506` is limited to
+write-capable member/entity migration with active-case guard, terms re-issue,
+acceptance recapture, history preservation, `membership.entity_migrated`,
+dry-run/apply/rollback/data-repair proof, ADR-12 migration semantics,
+low-privilege DB/RLS proof, and explicit human approval or waiver before merge
+readiness. Direct implementation must wait until the gate merges and the
+current-authority resolver promotes exactly `T-506`; `T-501`, `T-502`, direct
+destructive `T-503`, `T-505`, proxy/routing/auth/session/tenancy beyond the
+promoted migration envelope, billing, product UI, Operational Brain runtime/live
+AI, high/medium CodeQL, Dependabot, README, AGENTS, broad M3/M4/M5, and broad
+architecture-doc work remain unpromoted unless separately authorized.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
