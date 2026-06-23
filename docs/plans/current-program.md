@@ -1085,6 +1085,39 @@ UI, Operational Brain runtime/live AI, high/medium CodeQL, Dependabot, README,
 AGENTS, broad M3/M4/M5, and broad architecture-doc work remain unpromoted unless
 separately authorized.
 
+Post-Rev 106, `T-506a` is complete through PR `#1178` / merge-main SHA
+`710e0a5e80045ead2e98379aa11d9e39da19e366` from final implementation head
+`ce678228540258524fb3032ad6f96117cc64eef0`, consuming the `OBR-DG27`
+dry-run-first entity-migration readiness promotion. The merged implementation
+provides deterministic eligibility classification, active recovery lifecycle
+guard proof, country/legal-entity mismatch repair classification, aggregate
+repair-needed categories, durable evidence inventory for terms/acceptance/legal
+entity inputs, and rollback/data-repair posture without moving members,
+re-issuing terms, recapturing acceptance, emitting `membership.entity_migrated`,
+writing migration state, or changing schema/RLS/migrations/proxy/auth/session/routing.
+Required implementation proof passed focused readiness tests, no-write/static
+guard proof, type-check, repo-size/modularity/architecture and current-authority
+checks, `pnpm security:guard`, `pnpm pr:verify`, and
+`pnpm e2e:gate`; local `pnpm e2e:gate` initially hit infrastructure disk-space
+friction and passed after safe cleanup of ignored/generated artifacts. Codex P2
+review threads for null recovery lifecycle evidence and target-entity country
+validation were fixed with regressions and resolved. Sonnet/Gemini implementation
+reviews left no unresolved blocker; Opus was not used because no unresolved
+high-risk ambiguity remained. Codex Security diff scan completion is not claimed
+because manual-start friction remained. Post-merge main health at `710e0a5e` is
+green for CI, Sonar Main Gate, Secret Scan/gitleaks, and CodeQL; dynamic
+Dependabot/security was still in progress at closeout polling and CD/Vercel
+remains deployment-only evidence. No replacement implementation slice is
+promoted by this closeout, so `blocked_requires_current_authority` with
+`activeSlice=null` is expected until a fresh current-authority/design-gate record
+promotes exactly one next governed slice. Full `T-506`, member/entity migration
+writes, terms re-issue, acceptance recapture, active-case guard implementation,
+ADR-12 migration semantics, direct destructive `T-503`, `T-501`, `T-502`,
+`T-505`, proxy/routing/auth/session/tenancy, schema/RLS/migrations beyond
+completed `T-506a`, billing, product UI, Operational Brain runtime/live AI,
+high/medium CodeQL, Dependabot, README, AGENTS, broad M3/M4/M5, and broad
+architecture-doc work remain unpromoted unless separately authorized.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
