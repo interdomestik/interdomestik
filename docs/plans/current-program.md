@@ -1209,6 +1209,24 @@ billing/product UI, Dependabot, README, AGENTS, Operational Brain runtime/live
 AI, high/medium CodeQL batches, and broad M3/M4/M5 remain unpromoted unless
 separately authorized.
 
+Post-Rev 113, `T-505` is complete through ADR closeout. ADR-06 is now recorded
+in `docs/architecture/adr-06-ida-neutral-host-live-cutover.md`, consuming the
+completed `T-108` PR `#1184` and `T-501` PR `#1186` evidence. The accepted
+decision is that `ida.*` is the canonical neutral no-tenant public and login
+front door; country hosts remain compatibility aliases that redirect login to
+IDA with only a default booking tenant hint; server-side email sign-in validates
+that hint before better-auth; authenticated session context outranks booking
+hints and stale cookies; stale cookies, hostile hosts, invalid hints, and
+session conflicts fail closed or stay neutral; and public `ida.*` branding
+remains tenant-neutral until session context resolves. This closeout changed
+only ADR/current-authority documentation. No runtime route/auth/session/tenancy
+code, `apps/web/src/proxy.ts`, canonical route, clarity marker, schema, RLS,
+migration, billing/product UI, T-502, direct destructive T-503, T-307,
+additional entity migration, Dependabot, README, AGENTS, Operational Brain
+runtime/live AI, high/medium CodeQL batch, or broad M3/M4/M5 work is promoted
+or completed by this closeout. No replacement implementation slice is promoted;
+fresh current-authority/design-gate selection is required before follow-on work.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
