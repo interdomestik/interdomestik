@@ -1192,6 +1192,23 @@ manual-start friction blocked scan submission. No replacement implementation
 slice is promoted by this closeout; fresh current-authority/design-gate
 selection is required before follow-on implementation.
 
+Post-Rev 112, `OBR-DG30` records the post-`T-501` current-authority selection
+in `docs/plans/2026-06-24-obr-dg30-post-t501-next-authority.md` and promotes
+only `T-505` as the next governed slice. `T-501` implementation PR `#1186` and
+closeout PR `#1187` are complete, post-closeout main health at `3e1161d1` is
+green for CI including `unit` and `e2e-gate`, Sonar Main Gate, Secret
+Scan/gitleaks, and CodeQL, and the pre-gate resolver state was
+`blocked_requires_current_authority` with `activeSlice=null`. `T-505` is
+selected because its `T-501` prerequisite is now complete and it is the smallest
+remaining M5 closeout: finalizing ADR-06 live cutover and cookie/session
+precedence from the completed `T-108`/`T-501` evidence. `T-502` remains parked
+behind `T-307`; direct destructive `T-503` remains parked behind
+release/destructive-migration proof; `T-307`, additional entity migration,
+runtime route/auth/session/tenancy changes, schema/RLS/migrations,
+billing/product UI, Dependabot, README, AGENTS, Operational Brain runtime/live
+AI, high/medium CodeQL batches, and broad M3/M4/M5 remain unpromoted unless
+separately authorized.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
