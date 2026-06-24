@@ -31,6 +31,23 @@ describe('tenant-hosts public context', () => {
     });
   });
 
+  it('returns public context for arbitrary ida subdomains despite stale tenant hints', () => {
+    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = 'tenant_ks';
+
+    expect(
+      resolveTenantContextFromSources({
+        host: 'ida.staging.interdomestik.com:443',
+        cookieTenantId: 'tenant_mk',
+        headerTenantId: 'tenant_al',
+        queryTenantId: 'pilot-mk',
+      })
+    ).toEqual({
+      kind: 'public',
+      tenantId: null,
+      source: 'ida_front_door',
+    });
+  });
+
   it('keeps neutral fallback on the legacy default tenant path', () => {
     mutableEnv.DEFAULT_PUBLIC_TENANT_ID = 'tenant_ks';
 

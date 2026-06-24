@@ -56,6 +56,22 @@ describe('tenant-request public context', () => {
     );
   });
 
+  it('returns public no-tenant context for arbitrary ida subdomains with stale hints', async () => {
+    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = 'tenant_ks';
+    mocks.headers.mockResolvedValue(
+      new Headers({ host: 'ida.staging.interdomestik.com:443', 'x-tenant-id': 'tenant_mk' })
+    );
+    mocks.cookieGet.mockReturnValue({ value: 'tenant_al' });
+
+    await expect(
+      resolveTenantContextFromRequest({ tenantIdFromQuery: 'pilot-mk' })
+    ).resolves.toEqual({
+      kind: 'public',
+      tenantId: null,
+      source: 'ida_front_door',
+    });
+  });
+
   it('supports configured IDA_HOST as a public no-tenant context', async () => {
     mutableEnv.IDA_HOST = 'front-door.localhost:3000';
     mocks.headers.mockResolvedValue(new Headers({ host: 'front-door.localhost:3000' }));
