@@ -40,7 +40,7 @@ describe('staff update-status.core audit wiring', () => {
   });
 
   it('passes the audit logger into the staff domain status mutation', async () => {
-    const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
+    const requestHeaders = new Headers({ host: 'ks.localhost:3000', 'user-agent': 'Vitest' });
 
     const result = await updateClaimStatusCore({
       claimId: 'claim-1',
@@ -57,6 +57,7 @@ describe('staff update-status.core audit wiring', () => {
     expect(hoisted.domainUpdateStatus).toHaveBeenCalledWith(
       expect.objectContaining({
         claimId: 'claim-1',
+        hostId: 'tenant_ks',
         requestHeaders,
       }),
       { logAuditEvent: hoisted.logAuditEvent, notifyStatusChanged: hoisted.notifyStatusChanged }

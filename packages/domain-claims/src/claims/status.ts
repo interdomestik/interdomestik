@@ -36,14 +36,16 @@ async function runStatusTransition(args: {
   actorId: string;
   actorRole: string | null | undefined;
   claimId: string;
+  hostId?: string | null;
   status: ClaimStatus;
   tenantId: string;
 }): Promise<TransitionClaimStatusResult> {
-  const { actorId, actorRole, claimId, status, tenantId } = args;
+  const { actorId, actorRole, claimId, hostId, status, tenantId } = args;
 
   return transitionClaimStatus({
     actor: { id: actorId, role: actorRole ?? null },
     claimId,
+    hostId,
     tenantId,
     toStatus: status,
   });
@@ -54,6 +56,7 @@ export async function updateClaimStatusCore(
     session: ClaimsSession | null;
     requestHeaders: Headers;
     claimId: string;
+    hostId?: string | null;
     newStatus: string;
   },
   deps: ClaimsDeps = {}
@@ -88,6 +91,7 @@ export async function updateClaimStatusCore(
       actorId: session.user.id,
       actorRole: session.user.role,
       claimId,
+      hostId: params.hostId,
       status,
       tenantId,
     });

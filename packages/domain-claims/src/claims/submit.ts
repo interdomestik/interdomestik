@@ -5,7 +5,6 @@ import { getActiveSubscription } from '@interdomestik/domain-membership-billing/
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
 import type { QueuedClaimAiRun } from './ai-workflow-types';
 import { buildClaimDocumentRows } from './documents';
@@ -128,6 +127,7 @@ async function persistSubmittedClaim(args: {
   userId: string;
   createdAt: Date;
   changedByRole: string;
+  hostId?: string | null;
   branchId: string | null;
   agentId: string | null;
   handoffContext?: ClaimStartHandoffContext | null;
@@ -175,6 +175,7 @@ async function persistSubmittedClaim(args: {
       claimId: args.claimId,
       createdAt: args.createdAt,
       data: args.data,
+      hostId: args.hostId,
       publicNote,
       tenantId: args.tenantId,
       userId: args.userId,
@@ -285,6 +286,7 @@ export async function submitClaimCore(
   params: {
     session: ClaimsSession | null;
     requestHeaders: Headers;
+    hostId?: string | null;
     data: CreateClaimValues;
     handoffContext?: ClaimStartHandoffContext | null;
   },
@@ -298,13 +300,10 @@ export async function submitClaimCore(
 
   const tenantId = ensureTenantId(session);
   const assignment = await loadClaimAssignmentContext(session.user.id, tenantId);
-
   if (!assignment.subscription) {
     throw new ClaimValidationError('Membership required to file a claim.', 'MEMBERSHIP_REQUIRED');
   }
-
   const result = createClaimSchema.safeParse(data);
-
   if (!result.success) {
     throw new ClaimValidationError('Validation failed', 'INVALID_PAYLOAD');
   }
@@ -328,6 +327,7 @@ export async function submitClaimCore(
       agentId: assignment.agentId,
       handoffContext,
       data: result.data,
+      hostId: params.hostId,
     });
     queuedRuns = persistedClaim.queuedRuns;
     claimNumber = persistedClaim.claimNumber;

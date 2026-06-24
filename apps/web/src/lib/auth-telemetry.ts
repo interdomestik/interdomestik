@@ -1,4 +1,10 @@
 import { captureEnterpriseAuthAlertTags } from './auth-enterprise-alert-tags';
+import {
+  normalizeAuthTelemetryHostClass,
+  normalizeAuthTelemetryHostId,
+  type AuthTelemetryHostClass,
+} from './auth-telemetry-host';
+
 export type AuthTelemetryEventName =
   | 'staff_post_login_redirect_failed'
   | 'protected_route_bounce_to_login'
@@ -13,7 +19,6 @@ export type AuthTelemetryReason =
   | 'unsupported_redirect_target'
   | 'ready_probe_skipped';
 export type AuthTelemetrySurface = 'staff' | 'member' | 'admin' | 'agent' | 'unknown';
-export type AuthTelemetryHostClass = 'nipio' | 'canonical' | 'localhost' | 'other';
 
 export type AuthTelemetryPayload = {
   event_type: 'auth_telemetry';
@@ -23,6 +28,7 @@ export type AuthTelemetryPayload = {
   locale: string;
   surface: AuthTelemetrySurface;
   host_class: AuthTelemetryHostClass;
+  host_id: string;
   reason: AuthTelemetryReason;
   pathname_family: string;
 };
@@ -33,6 +39,7 @@ export type AuthTelemetryInput = {
   locale?: string | null;
   surface?: string | null;
   host?: string | null;
+  hostId?: string | null;
   pathname?: string | null;
   reason: AuthTelemetryReason;
   occurredAt?: string | Date | number | null;
@@ -69,19 +76,6 @@ function normalizeSurface(surface: AuthTelemetryInput['surface']): AuthTelemetry
   }
 
   return 'unknown';
-}
-
-function normalizeHostClass(host: string | null | undefined): AuthTelemetryHostClass {
-  const normalized = normalizeScalar(host?.toLowerCase() ?? null, '');
-
-  if (!normalized) return 'other';
-  if (normalized.includes('nip.io')) return 'nipio';
-  if (normalized.includes('localhost') || normalized.includes('127.0.0.1')) return 'localhost';
-  if (normalized === 'interdomestik.com' || normalized.endsWith('.interdomestik.com')) {
-    return 'canonical';
-  }
-
-  return 'other';
 }
 
 function normalizeOccurredAt(occurredAt: AuthTelemetryInput['occurredAt']): string {
@@ -136,7 +130,8 @@ export function normalizeAuthTelemetryPayload(input: AuthTelemetryInput): AuthTe
     tenant: normalizeTenant(input.tenant),
     locale: normalizeLocale(input.locale),
     surface: normalizeSurface(input.surface),
-    host_class: normalizeHostClass(input.host),
+    host_class: normalizeAuthTelemetryHostClass(input.host),
+    host_id: normalizeAuthTelemetryHostId(input.host, input.hostId),
     reason: input.reason,
     pathname_family: normalizeAuthPathnameFamily(input.pathname ?? '/'),
   };

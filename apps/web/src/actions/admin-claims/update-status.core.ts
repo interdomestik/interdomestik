@@ -14,6 +14,7 @@ import type { Session } from './context';
 
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import { claimStatusSchema } from '@interdomestik/domain-claims/validators/claims';
+import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
 
 // ...
 
@@ -92,6 +93,7 @@ export async function updateClaimStatusCore(params: {
   await updateClaimStatusCoreDomain(
     {
       claimId,
+      hostId: resolveEntryHostIdFromHeaders(requestHeaders),
       newStatus: status,
       session,
       requestHeaders,

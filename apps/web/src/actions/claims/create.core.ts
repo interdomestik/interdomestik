@@ -2,6 +2,7 @@ import { createClaimCore as createClaimCoreDomain } from '@interdomestik/domain-
 
 import { logAuditEvent } from '@/lib/audit';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
 
 import type { Session } from './context';
 
@@ -22,5 +23,8 @@ export async function createClaimCore(params: {
     return { error: 'Too many requests. Please try again later.' };
   }
 
-  return createClaimCoreDomain(params, { logAuditEvent });
+  return createClaimCoreDomain(
+    { ...params, hostId: resolveEntryHostIdFromHeaders(params.requestHeaders) },
+    { logAuditEvent }
+  );
 }

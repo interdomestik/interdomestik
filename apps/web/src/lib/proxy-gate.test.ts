@@ -82,11 +82,24 @@ describe('resolveProtectedRouteGuardResponse', () => {
     expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: 'protected_route_bounce_to_login',
+        hostId: 'tenant_ks',
         reason: 'missing_cookie',
       })
     );
-  });
+    mockEmitAuthTelemetryEvent.mockClear();
+    await resolveProtectedRouteGuardResponse(
+      new NextRequest('http://attacker.test/sq/member', { headers: { host: 'attacker.test' } }),
+      makeContext({
+        host: 'attacker.test',
+        tenant: null,
+        tenantContext: resolveTenantHostContext('attacker.test'),
+      })
+    );
 
+    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ host: 'attacker.test', hostId: null })
+    );
+  });
   it('redirects protected routes when the signed cookie is invalid', async () => {
     mockIsSignedSessionCookieValid.mockResolvedValue(false);
 
@@ -101,7 +114,6 @@ describe('resolveProtectedRouteGuardResponse', () => {
       })
     );
   });
-
   it('allows a recently cached active session without introspection', async () => {
     mockHasRecentActiveSession.mockReturnValue(true);
 
@@ -110,7 +122,6 @@ describe('resolveProtectedRouteGuardResponse', () => {
     expect(response).toBeNull();
     expect(mockIntrospectSessionState).not.toHaveBeenCalled();
   });
-
   it('does not retry unknown introspection results for tolerant tenants', async () => {
     mockIsStaffAuthTolerantTenant.mockReturnValue(true);
     mockIntrospectSessionState.mockResolvedValue({ state: 'unknown', throttled: true });

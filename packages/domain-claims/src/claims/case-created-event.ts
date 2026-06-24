@@ -8,6 +8,7 @@ export async function recordCaseCreatedEvent(
     claimId: string;
     createdAt: Date;
     hasDocuments: boolean;
+    hostId?: string | null;
     initialStatus: ClaimStatus;
     tenantId: string;
   }
@@ -20,6 +21,7 @@ export async function recordCaseCreatedEvent(
     entity: { id: params.claimId, type: 'case' },
     eventName: 'case.created',
     eventVersion: 1,
+    hostId: params.hostId,
     payload: {
       hasDocuments: params.hasDocuments,
       initialStatus: params.initialStatus,

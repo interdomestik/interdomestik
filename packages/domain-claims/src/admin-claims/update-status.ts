@@ -75,6 +75,7 @@ function throwTransitionFailure(
 export async function updateClaimStatusCore(
   params: {
     claimId: string;
+    hostId?: string | null;
     newStatus: ClaimStatus;
     session: ClaimsSession | null;
     requestHeaders: Headers;
@@ -96,7 +97,6 @@ export async function updateClaimStatusCore(
 
   const tenantId = ensureTenantId(session);
 
-  // Fetch claim with user info before update
   const [claimWithUser] = await db
     .select({
       caseLifecycleState: claims.caseLifecycleState,
@@ -121,6 +121,7 @@ export async function updateClaimStatusCore(
       const repairResult = await transitionClaimStatus({
         actor: { id: session.user.id, role: session.user.role ?? null },
         claimId,
+        hostId: params.hostId,
         tenantId,
         toStatus: newStatus,
       });
@@ -134,6 +135,7 @@ export async function updateClaimStatusCore(
   const result = await transitionClaimStatus({
     actor: { id: session.user.id, role: session.user.role ?? null },
     claimId,
+    hostId: params.hostId,
     tenantId,
     toStatus: newStatus,
   });

@@ -9,7 +9,6 @@ import {
 import { withTenant } from '@interdomestik/database/tenant-security';
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import type { ActionResult, ClaimStatus, RecoveryDeclineReasonCode } from './types';
-
 import {
   buildAcceptedRecoveryPrerequisitesSnapshot,
   buildCommercialAgreementSnapshot,
@@ -39,9 +38,7 @@ import {
   type AuthorizedTransitionHookTx,
 } from '../claims/transition';
 import { loadStaffCurrentClaimRecord, type CurrentClaimRecord } from './current-claim-record';
-
 type StaffScopeWhere = ReturnType<typeof buildScopedStaffClaimWhere>;
-
 const STAFF_LED_RECOVERY_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
 const RECOVERY_DECISION_REQUIRED_ERROR =
   'Staff must accept the recovery decision before staff-led recovery can begin.';
@@ -55,6 +52,7 @@ type UpdateClaimStatusParams = {
   claimId: string;
   declineReasonCode?: RecoveryDeclineReasonCode;
   decisionExplanation?: string;
+  hostId?: string | null;
   newStatus: string;
   note?: string;
   allowanceOverrideReason?: string;
@@ -66,6 +64,7 @@ type RecoveryStatusChangeParams = {
   claimId: string;
   currentClaim: CurrentClaimRecord;
   deps: ClaimsDeps;
+  hostId?: string | null;
   isPublicChange: boolean;
   note?: string;
   requestHeaders?: Headers;
@@ -75,7 +74,6 @@ type RecoveryStatusChangeParams = {
   tenantId: string;
   trimmedAllowanceOverrideReason?: string;
 };
-
 async function handleStaffLedRecoveryStatusChange(
   params: RecoveryStatusChangeParams
 ): Promise<ActionResult> {
@@ -83,6 +81,7 @@ async function handleStaffLedRecoveryStatusChange(
     claimId,
     currentClaim,
     deps,
+    hostId,
     isPublicChange,
     note,
     requestHeaders,
@@ -97,14 +96,12 @@ async function handleStaffLedRecoveryStatusChange(
       claimCategory: currentClaim.category,
       fallbackError: 'Staff-led recovery is not available for this claim.',
     });
-
   if (commercialScopeError) {
     return {
       success: false,
       error: commercialScopeError,
     };
   }
-
   const [agreement] = await db
     .select({
       acceptedAt: claimEscalationAgreements.acceptedAt,
@@ -253,6 +250,7 @@ async function handleStaffLedRecoveryStatusChange(
     currentTitle: currentClaim.title,
     currentUserId: currentClaim.userId,
     deps,
+    hostId,
     isPublicChange,
     note,
     requestHeaders,
@@ -262,9 +260,7 @@ async function handleStaffLedRecoveryStatusChange(
     tenantId,
   });
 }
-
 type ClaimsTransaction = AuthorizedTransitionHookTx;
-
 async function assignClaimToActingStaffIfUnassigned(params: {
   currentStaffId: string | null;
   session: ClaimsSession;
@@ -275,7 +271,6 @@ async function assignClaimToActingStaffIfUnassigned(params: {
   if (params.currentStaffId != null) {
     return;
   }
-
   const now = new Date();
   // db-access-guard: tenant-scoped -- reason: staffScopeWhere includes tenant, claim, branch, and assignment scope
   await params.tx
@@ -342,6 +337,7 @@ async function finalizeClaimStatusChange(params: {
   currentTitle: string;
   currentUserId: string;
   deps: ClaimsDeps;
+  hostId?: string | null;
   isPublicChange: boolean;
   note?: string;
   staffScopeWhere: StaffScopeWhere;
@@ -359,6 +355,7 @@ async function finalizeClaimStatusChange(params: {
       {
         actor: { id: rest.session.user.id, role: 'staff' },
         claimId: rest.claimId,
+        hostId: rest.hostId,
         isPublic: rest.isPublicChange,
         note: rest.note ?? null,
         requiredWhereCondition: rest.staffScopeWhere,
@@ -470,6 +467,7 @@ export async function updateClaimStatusCore(
         claimId,
         currentClaim,
         deps,
+        hostId: params.hostId,
         isPublicChange,
         note: trimmedNote,
         requestHeaders: params.requestHeaders,
@@ -503,6 +501,7 @@ export async function updateClaimStatusCore(
         currentTitle: currentClaim.title,
         currentUserId: currentClaim.userId,
         deps,
+        hostId: params.hostId,
         isPublicChange,
         note: publicDeclineNote,
         requestHeaders: params.requestHeaders,
@@ -520,6 +519,7 @@ export async function updateClaimStatusCore(
       currentTitle: currentClaim.title,
       currentUserId: currentClaim.userId,
       deps,
+      hostId: params.hostId,
       isPublicChange,
       note: trimmedNote,
       requestHeaders: params.requestHeaders,

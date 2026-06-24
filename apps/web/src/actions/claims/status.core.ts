@@ -5,6 +5,7 @@ import { notifyStatusChanged } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
+import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
 import type { Session } from './context';
 
 export async function updateClaimStatusCore(params: {
@@ -27,11 +28,10 @@ export async function updateClaimStatusCore(params: {
     }
   }
 
-  const result = await updateClaimStatusCoreDomain(params, {
-    logAuditEvent,
-    notifyStatusChanged,
-    revalidatePath,
-  });
+  const result = await updateClaimStatusCoreDomain(
+    { ...params, hostId: resolveEntryHostIdFromHeaders(params.requestHeaders) },
+    { logAuditEvent, notifyStatusChanged, revalidatePath }
+  );
 
   if (result.error) {
     return { success: false, error: result.error };
