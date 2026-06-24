@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 
+import { isCountryHostLiveLoginBlocked } from '@/lib/tenant/ida-live-login-cutover';
 import { isKnownIdaFrontDoorHost, normalizeTenantHost } from '@/lib/tenant/tenant-front-door';
 import {
   coerceTenantId,
@@ -10,6 +11,7 @@ import {
 } from '@/lib/tenant/tenant-hosts';
 
 export type AuthMethod = 'GET' | 'POST';
+export type AuthRateLimitConfig = { name: string; limit: number; windowSeconds: number };
 
 const EMAIL_SIGN_IN_PATH_SUFFIXES = ['/api/auth/sign-in/email', '/api/auth/sign-in/email-otp'];
 
@@ -21,14 +23,7 @@ function getAuthPathname(url: string): string | null {
   }
 }
 
-export function getAuthRateLimitConfig(
-  method: AuthMethod,
-  url: string
-): {
-  name: string;
-  limit: number;
-  windowSeconds: number;
-} {
+export function getAuthRateLimitConfig(method: AuthMethod, url: string): AuthRateLimitConfig {
   const pathname = getAuthPathname(url);
 
   if (pathname?.endsWith('/api/auth/get-session')) {
@@ -177,6 +172,10 @@ export function isEmailSignInUrl(url: string): boolean {
 }
 
 export function resolveTenantIdForEmailSignIn(headers: Headers): TenantId | null {
+  if (isCountryHostLiveLoginBlocked(getDirectRequestHost(headers))) {
+    return null;
+  }
+
   if (hasKnownDirectFrontDoorHost(headers)) {
     return resolveFrontDoorTenantHint(headers);
   }

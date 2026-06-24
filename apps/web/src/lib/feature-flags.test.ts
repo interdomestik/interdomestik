@@ -35,3 +35,32 @@ describe('staff auth tolerant tenants flag', () => {
     expect(isStaffAuthTolerantTenant('pilot-mk')).toBe(true);
   });
 });
+
+describe('ida live login cutover flag', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = { ...originalEnv };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  it('defaults to disabled', async () => {
+    delete process.env.FEATURE_IDA_LIVE_LOGIN_CUTOVER;
+
+    const { isIdaLiveLoginCutoverEnabled } = await import('./feature-flags');
+
+    expect(isIdaLiveLoginCutoverEnabled()).toBe(false);
+  });
+
+  it('enables only on explicit true', async () => {
+    process.env.FEATURE_IDA_LIVE_LOGIN_CUTOVER = 'true';
+
+    const { isIdaLiveLoginCutoverEnabled } = await import('./feature-flags');
+
+    expect(isIdaLiveLoginCutoverEnabled()).toBe(true);
+  });
+});

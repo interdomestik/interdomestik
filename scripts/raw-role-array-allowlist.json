@@ -34,7 +34,7 @@
     "apps/web/src/features/admin/verification/components/v2/VerificationOpsCenterPage.tsx:23:24:admin,super_admin,branch_manager,tenant_admin,staff",
     "apps/web/src/features/claims/upload/server/access.ts:13:42:admin,tenant_admin,super_admin",
     "apps/web/src/lib/canonical-routes.ts:3:29:admin,super_admin,tenant_admin,branch_manager",
-    "apps/web/src/lib/proxy-logic.ts:15:37:member,admin,staff,agent",
+    "apps/web/src/lib/proxy-logic.ts:16:37:member,admin,staff,agent",
     "apps/web/src/lib/rbac-portals.ts:1:36:admin,super_admin,tenant_admin,branch_manager",
     "apps/web/src/server/domains/claims/queries.ts:57:14:admin,tenant_admin,super_admin",
     "packages/domain-activities/src/log-lead.ts:11:31:admin,staff,agent",
