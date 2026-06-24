@@ -1310,6 +1310,29 @@ additional entity migration, dependencies, README, AGENTS, Operational Brain
 runtime/live AI, high/medium CodeQL batches, and broad M3/M4/M5 remain out of
 scope unless separately authorized.
 
+Post-Rev 118, `OBR-DG33` is the post-`T-502` current-authority gate in
+`docs/plans/2026-06-24-obr-dg33-post-t502-next-authority.md` and promotes
+exactly one canonical tracker slice: `T-107`. `T-502` implementation PR `#1194`
+and closeout PR `#1195` are complete through merge
+`d098c202721d10ebbf2bf16515f21af3102fadd0`; post-closeout main health is green
+for CI `28127500665` including unit job `83295005224` and DB-backed
+`e2e-gate` job `83295005252`, Sonar Main Gate `28127500667`, Secret
+Scan/gitleaks `28127500649`, and CodeQL `28127500281`; and the pre-gate
+resolver state was `blocked_requires_current_authority` with `activeSlice=null`.
+`T-107` is selected because its dependencies `T-101`, `T-104`, `T-108`,
+`T-111`, and `T-114` are complete and it is ADR/current-authority closeout that
+reduces governance debt before further implementation or destructive work. The
+next active governed implementation goal is exactly one canonical tracker
+slice: `T-107`. Future `T-107` is limited to ADR-01 tenant decomposition, ADR-03
+event stream, the ADR-06 `ida.*` neutral-host model half, ADR-10
+entity-of-record, and validator-required current-authority/tracker surfaces.
+Direct work must wait until this gate merges and the resolver promotes exactly
+`T-107`. `T-110`, `T-002b`, direct destructive `T-503`, M6/product expansion,
+VONESA/SVC/CQRS/UI/UX implementation, proxy/routing/auth/session/tenancy
+runtime, schema/RLS/migrations, billing/product UI, Dependabot work, README,
+AGENTS, and broad architecture rewrites remain out of scope unless separately
+promoted.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
