@@ -1245,6 +1245,29 @@ billing/product UI, additional entity migration, Dependabot, README, AGENTS,
 Operational Brain runtime/live AI, high/medium CodeQL batches, and broad
 M3/M4/M5 remain unpromoted unless separately authorized.
 
+Post-Rev 115, `T-307` is complete in PR `#1191` / squash merge
+`33c8bde2ad397e5a2af448a9f7806596e186fb7c` from final implementation head
+`143cc1a175674651a6a6a343990216cdcb795802`. The merged implementation
+completed the OBR-DG31-promoted proxy-logic separation by splitting
+`apps/web/src/lib/proxy-logic.ts` into focused resolve, security-header, gate,
+and session-state helpers while preserving current route/proxy behavior,
+tenant/session handling, public IDA and country-host behavior, login redirects,
+stale-cookie/session-conflict behavior, CSP/HSTS behavior, canonical role
+routes, and E2E baseline behavior. `apps/web/src/proxy.ts` was untouched.
+Post-merge main health at `33c8bde2` is green for CI `28114069661` including
+`validation-surface`, `audit`, `static`, `unit`, `ai-eval`, and DB-backed
+`e2e-gate`, Sonar Main Gate `28114069705`, Secret Scan/gitleaks
+`28114069669`, and CodeQL `28114069295` for Actions and JavaScript/TypeScript
+analyses; CD/Vercel is deployment-only. Local `pnpm pr:verify` and
+`pnpm e2e:gate` were blocked by local Docker/Supabase/Postgres availability, so
+current-head PR and post-merge main CI supplied the DB-backed proof. No
+replacement implementation slice is promoted by this closeout; `T-502` remains
+parked until a fresh current-authority/design-gate PR explicitly selects it or
+another exact governed slice. Direct destructive `T-503`, schema/RLS/migrations,
+billing/product UI, additional entity migration, Dependabot, README, AGENTS,
+Operational Brain runtime/live AI, high/medium CodeQL batches, and broad
+M3/M4/M5 remain unpromoted unless separately authorized.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
