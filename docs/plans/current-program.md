@@ -1333,6 +1333,28 @@ runtime, schema/RLS/migrations, billing/product UI, Dependabot work, README,
 AGENTS, and broad architecture rewrites remain out of scope unless separately
 promoted.
 
+Post-Rev 119, `T-107` is complete through ADR/current-authority closeout.
+ADR-01, ADR-03, ADR-06, and ADR-10 now record the accepted tenant-decomposition,
+domain-event-stream, IDA neutral-host model, and entity-of-record decisions from
+completed dependency evidence. ADR-01 separates home/storage tenant,
+access-tenant, membership legal tenant, recovery legal tenant, country-host
+alias, booking hint, and neutral IDA public context. ADR-03 records
+`domain_events` as the canonical transactional outbox/event stream with
+tenant-scoped delivery, allowlisted payloads, PII reference boundaries, and
+bounded current proof for `claim.status_changed@1`. ADR-06 now explicitly
+states that `ida.*` is a public/no-tenant entry model and not tenant, legal
+entity, booking, recovery, or access authority. ADR-10 records subscription
+legal-entity snapshots as the membership entity-of-record boundary. Scope
+stayed ADR/current-authority docs only: no runtime source, tests, dependencies,
+lockfiles, proxy, routing, auth/session, tenancy runtime, schema/RLS/migrations,
+billing/product UI, README, AGENTS, broad architecture rewrite, M6/product
+expansion, VONESA/SVC/CQRS/UI/UX implementation, `T-110`, `T-002b`, or direct
+destructive `T-503` work was changed or promoted. No replacement runtime slice
+is started by this closeout; fresh current-authority resolution is required
+before follow-on work, and `blocked_requires_current_authority` with
+`activeSlice=null` is expected until a fresh current-authority/design-gate
+record promotes exactly one next governed action.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
