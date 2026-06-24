@@ -89,17 +89,17 @@ describe('resolveTenantContext session precedence', () => {
     const result = resolveTenantContext(
       request('https://ida.localhost/member', {
         cookie: 'tenantId=tenant_mk',
-        host: 'localhost:3000',
+        host: 'ida.localhost:3000',
       }),
       { user: { tenantId: 'tenant_unknown' } }
     );
 
     expect(result).toMatchObject({
       status: 'missing_session_tenant',
-      booking_tenant_id: 'tenant_mk',
+      booking_tenant_id: null,
       access_tenant_id: null,
       legal_tenant_id: null,
-      source: 'cookie',
+      source: 'ida_front_door',
     });
   });
 });

@@ -16,7 +16,7 @@ type RequestLike = {
 
 type TenantContextBase = {
   host_id: TenantId | null;
-  booking_tenant_id: TenantId;
+  booking_tenant_id: TenantId | null;
   source: TenantResolutionSource;
 };
 
@@ -89,9 +89,15 @@ export function resolveTenantContext(
     },
     options
   );
-  const hostId = requestContext.source === 'compatibility_alias' ? requestContext.tenantId : null;
+  const hostId =
+    requestContext.kind === 'tenant' && requestContext.source === 'compatibility_alias'
+      ? requestContext.tenantId
+      : null;
   const { accessTenantId, bookingTenantId, legalTenantId } = resolveSessionTenantConcepts(session);
-  const requestBookingTenantId = requestContext.defaultBookingTenantId ?? requestContext.tenantId;
+  const requestBookingTenantId =
+    requestContext.kind === 'tenant'
+      ? (requestContext.defaultBookingTenantId ?? requestContext.tenantId)
+      : null;
   const requestBase = {
     host_id: hostId,
     booking_tenant_id: requestBookingTenantId,

@@ -3,11 +3,13 @@ import {
   envHostForTenant,
   localHostForTenant,
   resolveCountryHostCompatibilityAlias,
-  type CountryHostAliasLabel,
   type TenantId,
 } from './tenant-host-aliases';
+import { isKnownIdaFrontDoorHost } from './tenant-front-door';
+import type { TenantResolutionResult } from './tenant-resolution-types';
 
 export type { TenantId } from './tenant-host-aliases';
+export type { TenantResolutionResult, TenantResolutionSource } from './tenant-resolution-types';
 export type TenantLocale = 'sq' | 'en' | 'sr' | 'mk';
 
 export const TENANT_COOKIE_NAME = 'tenantId';
@@ -25,23 +27,8 @@ export type TenantResolutionOptions = {
   allowLoopbackFallback?: boolean;
 };
 
-export type TenantResolutionSource =
-  | 'compatibility_alias'
-  | 'cookie'
-  | 'header'
-  | 'query'
-  | 'default_public';
-
-export type TenantResolutionResult = {
-  tenantId: TenantId;
-  source: TenantResolutionSource;
-  defaultBookingTenantId?: TenantId;
-  hostAlias?: CountryHostAliasLabel;
-};
-
 export function resolveDefaultPublicTenantId(): TenantId {
-  const configured = coerceTenantId(process.env.DEFAULT_PUBLIC_TENANT_ID);
-  return configured ?? 'tenant_ks';
+  return coerceTenantId(process.env.DEFAULT_PUBLIC_TENANT_ID) ?? 'tenant_ks';
 }
 
 function normalizeHost(host: string): string {
@@ -99,11 +86,18 @@ function isLoopbackHost(host: string | null | undefined): boolean {
   return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
 }
 
+const publicContext = (): TenantResolutionResult => ({
+  kind: 'public',
+  tenantId: null,
+  source: 'ida_front_door',
+});
+
 export function resolveTenantIdFromSources(
   sources: TenantResolutionSources,
   options: TenantResolutionOptions = {}
 ): TenantId {
-  return resolveTenantContextFromSources(sources, options).tenantId;
+  const context = resolveTenantContextFromSources(sources, options);
+  return context.kind === 'tenant' ? context.tenantId : resolveDefaultPublicTenantId();
 }
 
 export function resolveTenantContextFromSources(
@@ -113,12 +107,15 @@ export function resolveTenantContextFromSources(
   const hostAlias = resolveCountryHostCompatibilityAlias(sources.host ?? '');
   if (hostAlias) {
     return {
+      kind: 'tenant',
       tenantId: hostAlias.tenantId,
       source: 'compatibility_alias',
       defaultBookingTenantId: hostAlias.defaultBookingTenantId,
       hostAlias: hostAlias.label,
     };
   }
+
+  if (isKnownIdaFrontDoorHost(sources.host)) return publicContext();
 
   const productionSensitive = options.productionSensitive ?? true;
   const isLocalLoopbackFallbackAllowed =
@@ -127,16 +124,16 @@ export function resolveTenantContextFromSources(
     isLocalLoopbackFallbackAllowed || !(productionSensitive && isProductionLikeEnvironment());
   if (allowUserControlledFallback) {
     const cookieTenant = coerceTenantId(sources.cookieTenantId);
-    if (cookieTenant) return { tenantId: cookieTenant, source: 'cookie' };
+    if (cookieTenant) return { kind: 'tenant', tenantId: cookieTenant, source: 'cookie' };
 
     const headerTenant = coerceTenantId(sources.headerTenantId);
-    if (headerTenant) return { tenantId: headerTenant, source: 'header' };
+    if (headerTenant) return { kind: 'tenant', tenantId: headerTenant, source: 'header' };
 
     const queryTenant = coerceTenantId(sources.queryTenantId);
-    if (queryTenant) return { tenantId: queryTenant, source: 'query' };
+    if (queryTenant) return { kind: 'tenant', tenantId: queryTenant, source: 'query' };
   }
 
-  return { tenantId: resolveDefaultPublicTenantId(), source: 'default_public' };
+  return { kind: 'tenant', tenantId: resolveDefaultPublicTenantId(), source: 'default_public' };
 }
 
 export function hasHostSessionTenantMismatch(

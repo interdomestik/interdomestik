@@ -4,7 +4,7 @@ import { TenantSelector, type TenantOption } from '@/components/auth/tenant-sele
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
 import { hasGitHubOAuthCredentials } from '@/lib/auth/social-providers';
 import { coerceTenantId } from '@/lib/tenant/tenant-hosts';
-import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
+import { resolveTenantContextFromRequest } from '@/lib/tenant/tenant-request';
 import { FileText, Globe2, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
@@ -93,7 +93,8 @@ export default async function LoginPage({ params, searchParams }: Props) {
   }
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const tenantIdFromContext = await resolveTenantIdFromRequest();
+  const tenantContext = await resolveTenantContextFromRequest();
+  const tenantIdFromContext = tenantContext.kind === 'tenant' ? tenantContext.tenantId : null;
   const bootstrapRedirect = getLoginTenantBootstrapRedirect({
     locale,
     tenantIdFromQuery: resolvedSearchParams?.tenantId ?? null,
@@ -171,5 +172,4 @@ export default async function LoginPage({ params, searchParams }: Props) {
     </main>
   );
 }
-
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';

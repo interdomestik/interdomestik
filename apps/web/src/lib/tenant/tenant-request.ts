@@ -1,6 +1,7 @@
 import { cookies, headers } from 'next/headers';
 import {
   resolveTenantContextFromSources,
+  resolveDefaultPublicTenantId,
   TENANT_COOKIE_NAME,
   TENANT_HEADER_NAME,
   type TenantId,
@@ -21,6 +22,7 @@ function getRequestHost(h: Headers): string {
  * 2) Cookie `tenantId`
  * 3) Header `x-tenant-id`
  * 4) Query param `tenantId` (back-compat)
+ * 5) Public no-tenant context for ida/front-door hosts or neutral fallbacks
  *
  * This helper uses the production-sensitive resolver default. In production-like
  * environments, user-controlled cookie/header/query hints are ignored on neutral
@@ -30,7 +32,7 @@ export async function resolveTenantIdFromRequest(
   options: ResolveTenantOptions = {}
 ): Promise<TenantId> {
   const context = await resolveTenantContextFromRequest(options);
-  return context.tenantId;
+  return context.kind === 'tenant' ? context.tenantId : resolveDefaultPublicTenantId();
 }
 
 export async function resolveTenantContextFromRequest(

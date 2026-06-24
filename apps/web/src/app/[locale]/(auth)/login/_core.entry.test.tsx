@@ -3,12 +3,20 @@ import { join } from 'node:path';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type MockTenantContext =
+  | { kind: 'tenant'; tenantId: string; source: string }
+  | { kind: 'public'; tenantId: null; source: string };
+
 const hoisted = vi.hoisted(() => ({
   getSessionSafeMock: vi.fn(async () => null),
   loadTenantOptionsMock: vi.fn(async () => [{ id: 'tenant_ks', name: 'KS', countryCode: 'XK' }]),
   loginFormMock: vi.fn((_: unknown) => <div>login-form</div>),
   redirectMock: vi.fn(),
-  resolveTenantIdFromRequestMock: vi.fn<() => Promise<string | null>>(async () => 'tenant_ks'),
+  resolveTenantContextFromRequestMock: vi.fn<() => Promise<MockTenantContext>>(async () => ({
+    kind: 'tenant',
+    tenantId: 'tenant_ks',
+    source: 'compatibility_alias',
+  })),
   setRequestLocaleMock: vi.fn(),
   tenantSelectorMock: vi.fn((_: unknown) => <div>tenant-selector</div>),
 }));
@@ -39,7 +47,7 @@ vi.mock('@/lib/canonical-routes', () => ({
 }));
 
 vi.mock('@/lib/tenant/tenant-request', () => ({
-  resolveTenantIdFromRequest: hoisted.resolveTenantIdFromRequestMock,
+  resolveTenantContextFromRequest: hoisted.resolveTenantContextFromRequestMock,
 }));
 
 vi.mock('./_core', () => ({
@@ -56,7 +64,11 @@ describe('LoginPage tenant selection', () => {
     hoisted.loadTenantOptionsMock.mockResolvedValue([
       { id: 'tenant_ks', name: 'KS', countryCode: 'XK' },
     ]);
-    hoisted.resolveTenantIdFromRequestMock.mockResolvedValue('tenant_ks');
+    hoisted.resolveTenantContextFromRequestMock.mockResolvedValue({
+      kind: 'tenant',
+      tenantId: 'tenant_ks',
+      source: 'compatibility_alias',
+    });
   });
 
   it('renders the portal shell and resolves tenant context without rendering the chooser', async () => {
@@ -79,8 +91,12 @@ describe('LoginPage tenant selection', () => {
     );
   });
 
-  it('renders the tenant chooser inside the portal form region when no tenant is resolved', async () => {
-    hoisted.resolveTenantIdFromRequestMock.mockResolvedValueOnce(null);
+  it('renders the tenant chooser inside the portal form region for public ida context', async () => {
+    hoisted.resolveTenantContextFromRequestMock.mockResolvedValueOnce({
+      kind: 'public',
+      tenantId: null,
+      source: 'ida_front_door',
+    });
 
     const tree = await LoginPage({
       params: Promise.resolve({ locale: 'en' }),
