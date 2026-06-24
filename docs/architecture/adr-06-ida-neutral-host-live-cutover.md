@@ -2,7 +2,7 @@
 status: accepted
 date: 2026-06-24
 owner: platform + architecture + qa
-tracker: T-505
+tracker: T-505, T-107
 ---
 
 # ADR-06: IDA Neutral Host And Live Login Cutover
@@ -66,6 +66,13 @@ Public `ida.*` pages render neutral no-tenant branding until session context is
 known. Tenant logos, theme tokens, tenant chrome, and country-host identity must
 not leak into the public IDA shell.
 
+The `T-107` model-half closeout records the context model behind that runtime
+contract: IDA is a public/no-tenant entry context. It is not an access tenant,
+home tenant, legal tenant, booking tenant, recovery legal tenant, or country
+host authority. Any later dashboard gate may consume the stabilized session
+context that follows IDA login, but it must not treat public IDA host resolution
+as tenant, entity-of-record, or recovery authority.
+
 ## Consequences
 
 Positive:
@@ -87,10 +94,10 @@ Negative:
 
 ## Boundaries
 
-This ADR records the accepted architecture proven by `T-108` and `T-501`. It
-does not change runtime code, proxy behavior, auth/session code, tenancy logic,
-schema, RLS, migrations, billing behavior, Paddle integration, product UI,
-README, or AGENTS.
+This ADR records the accepted architecture proven by `T-108`, `T-501`, and the
+`T-107` model closeout. It does not change runtime code, proxy behavior,
+auth/session code, tenancy logic, schema, RLS, migrations, billing behavior,
+Paddle integration, product UI, README, or AGENTS.
 
 The test paths listed below are evidence landed by prior implementation PRs,
 not new runtime or test scope for this ADR closeout.
@@ -107,6 +114,7 @@ isolation authority. Canonical routes remain `/member`, `/agent`, `/staff`, and
 - `docs/plans/current-tracker.md`
 - `docs/plans/2026-06-24-t501-closeout-current-authority.md`
 - `docs/plans/2026-06-24-obr-dg30-post-t501-next-authority.md`
+- `docs/architecture/adr-01-tenant-decomposition.md`
 - `apps/web/src/lib/proxy-front-door.test.ts`
 - `apps/web/e2e/gate/front-door-session-context.spec.ts`
 - `apps/web/e2e/gate/ida-live-login-cutover.spec.ts`
