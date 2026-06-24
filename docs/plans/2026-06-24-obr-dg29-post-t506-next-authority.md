@@ -17,10 +17,10 @@ tracker_path: docs/plans/current-tracker.md
 
 ## Decision
 
-Promote exactly one next governed implementation slice: `T-501`.
+Promote exactly one next governed implementation slice: `T-108`.
 
 Direct implementation remains blocked until this gate merges and
-`next-slice.mjs` resolves exactly `T-501`, class `implementation`, Tier 3.
+`next-slice.mjs` resolves exactly `T-108`, class `implementation`, Tier 3.
 
 ## Evidence
 
@@ -36,12 +36,17 @@ Direct implementation remains blocked until this gate merges and
 - Pre-gate resolver proof on clean main:
   `blocked_requires_current_authority`, `activeSlice=null`, reason
   `umbrella_without_concrete_promoted_slice`.
+- `T-108-MIN` completed in PR `#1024` / squash merge `50af5e27`,
+  proving the minimal ida public-context subset, but the canonical
+  architecture tracker still lists full `T-108` as `TODO`. This gate must not
+  treat `T-108-MIN` as completion of full `T-108`.
 
 ## Candidate Comparison
 
 | Candidate                                      | Disposition | Rationale                                                                                                                                                                                         |
 | ---------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T-501`                                        | Selected    | Its listed prerequisites are complete (`T-108`, `T-302`, and `T-202`). It is the next ready M5 live-cutover slice after entity migration, and it unblocks later `T-505`.                          |
+| `T-108`                                        | Selected    | Full `T-108` remains `TODO` in the canonical architecture tracker. Completing it is the smallest prerequisite correction before `T-501` can be safely promoted.                                   |
+| `T-501`                                        | Parked      | It depends on full `T-108`, not only `T-108-MIN`. It remains blocked until the canonical `T-108` row is completed with merged proof.                                                              |
 | `T-502`                                        | Parked      | It depends on `T-307`, which remains TODO, and it deletes/consolidates broad route/layout surfaces. It should not bypass the missing prerequisite or the narrower live-login flag/redirect proof. |
 | `T-503`                                        | Parked      | Direct destructive `claims.status` removal remains blocked by the release-cycle proof requirement in the T-503 evidence packet and still needs a fresh destructive-migration approval package.    |
 | `T-505`                                        | Parked      | ADR-06 live cutover/cookie-session precedence depends on `T-501`, so it is not independently ready before the live-login flip proof exists.                                                       |
@@ -49,40 +54,45 @@ Direct implementation remains blocked until this gate merges and
 
 ## Promoted Scope
 
-`T-501` is limited to flipping `ida.*` to the sole live login behind a flag and
-making country hosts (`ks`, `mk`, `al`, `pilot`) redirect to `ida.*` while
-carrying `default_booking_tenant_id`.
+`T-108` is limited to closing the full canonical ida-first neutral-host
+foundation: `ida.interdomestik.com` / `IDA_HOST` / `ida.localhost` must resolve
+as a real no-tenant public context with a discriminated public result, no tenant
+cookie, and a neutral no-tenant public shell before session context resolves.
 
 The future worker must preserve:
 
 - `apps/web/src/proxy.ts` as the explicit routing/access authority unless the
-  `T-501` implementation requires a directly scoped, reviewed change;
+  `T-108` implementation requires a directly scoped, reviewed change;
 - canonical `/member`, `/agent`, `/staff`, and `/admin` routes;
 - session tenant/access/legal/booking boundaries from `T-302`/`T-305`;
 - completed `T-504` tenant/legal/booking split and `T-506` entity-migration
   semantics;
-- country-host alias compatibility behavior from `T-109` except where replaced
-  by the promoted redirect behavior under the flag.
+- completed `T-108-MIN`, `T-109`, and `T-114` ida-host/session evidence without
+  expanding into `T-501` live-login redirects.
 
 ## Forbidden Scope
 
 This gate does not authorize implementation. It also does not authorize `T-502`,
-direct destructive `T-503`, `T-505`, additional entity migration work, billing
-or product UI, schema/RLS/migrations, Operational Brain runtime/live AI,
-high/medium CodeQL batches, Dependabot work, README, AGENTS, broad M3/M4/M5, or
-broad architecture rewrites.
+direct destructive `T-503`, `T-505`, `T-501` live-login cutover or country-host
+redirects, additional entity migration work, billing or product UI,
+schema/RLS/migrations, Operational Brain runtime/live AI, high/medium CodeQL
+batches, Dependabot work, README, AGENTS, broad M3/M4/M5, or broad architecture
+rewrites.
 
 ## Required Future Evidence
 
-The future `T-501` worker must provide:
+The future `T-108` worker must provide:
 
-- active-slice proof resolving exactly `T-501`, implementation, Tier 3;
-- feature-flag behavior proof for off and on states;
-- redirect proof for `ks`, `mk`, `al`, and `pilot` hosts to `ida.*` carrying
-  `default_booking_tenant_id`;
-- login/session continuity proof for member, agent, staff, and admin flows;
+- active-slice proof resolving exactly `T-108`, implementation, Tier 3;
+- `TenantResolutionResult` discriminated-union proof for tenant versus public
+  context;
+- `ida.*` / `IDA_HOST` / `ida.localhost` public-context proof with no tenant
+  cookie and no host-as-tenant shortcut;
+- neutral public-shell proof with no tenant branding, theme token, or logo until
+  a session resolves;
+- compatibility proof that completed `T-109` country-host aliases and `T-114`
+  session lanes still work;
 - hostile/lookalike host and stale-cookie/session-conflict negative proof;
-- no tenant-branding or host-as-tenant regression proof for neutral `ida.*`;
 - focused route/proxy/auth/session tests proportional to the touched surface;
 - Playwright proof for canonical role flows where route behavior changes;
 - `pnpm security:guard`, `pnpm pr:verify`, and `pnpm e2e:gate`;

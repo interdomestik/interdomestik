@@ -1133,19 +1133,22 @@ next governed slice.
 
 Post-Rev 109, `OBR-DG29` records the post-`T-506` current-authority selection
 in `docs/plans/2026-06-24-obr-dg29-post-t506-next-authority.md` and promotes
-only `T-501` as the next implementation goal. `T-506` implementation PR `#1181`
-and closeout PR `#1182` are complete, post-closeout main health at `3051cd87`
-is green for CI including `e2e-gate`, Sonar Main Gate, Secret Scan/gitleaks,
-and CodeQL, and the pre-gate resolver state was `blocked_requires_current_authority`
-with `activeSlice=null`. `T-501` is selected because its listed prerequisites
-(`T-108`, `T-302`, and `T-202`) are complete and it unblocks `T-505`. `T-502`
-remains parked behind `T-307`; direct destructive `T-503` remains parked behind
+only full `T-108` as the next implementation goal. `T-506` implementation PR
+`#1181` and closeout PR `#1182` are complete, post-closeout main health at
+`3051cd87` is green for CI including `e2e-gate`, Sonar Main Gate, Secret
+Scan/gitleaks, and CodeQL, and the pre-gate resolver state was
+`blocked_requires_current_authority` with `activeSlice=null`. This corrects the
+candidate screen: `T-108-MIN` completed in PR `#1024` / squash merge
+`50af5e27`, but the canonical architecture tracker still lists full `T-108` as
+`TODO`, so `T-501` remains blocked until full `T-108` closes. `T-502` remains
+parked behind `T-307`; direct destructive `T-503` remains parked behind
 release/destructive-migration proof; `T-505` remains parked behind `T-501`.
-The future `T-501` worker is limited to the flagged `ida.*` sole-live-login
-flip and country-host redirects to `ida.*` carrying `default_booking_tenant_id`,
-with route/proxy/auth/session proof, canonical-role login continuity proof, and
-human approval or explicit waiver for routing/auth/session/proxy risk before
-merge readiness.
+The future `T-108` worker is limited to closing the canonical ida neutral-host
+foundation: `ida.*` / `IDA_HOST` / `ida.localhost` must resolve as a real
+no-tenant public context with a discriminated public result, no tenant cookie,
+and a neutral no-tenant public shell before session context resolves, while
+preserving completed `T-108-MIN`, `T-109`, and `T-114` evidence and avoiding
+`T-501` live-login cutover or country-host redirects.
 
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
