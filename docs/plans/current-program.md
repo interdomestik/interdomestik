@@ -1378,6 +1378,32 @@ refactors, schema/RLS/migrations outside the promoted `T-110` envelope,
 billing/product UI, Dependabot work, README, AGENTS, and broad architecture
 rewrites remain out of scope unless separately promoted.
 
+Post-Rev 121, `T-110` is complete through PR `#1199` / merge
+`9bea383d202330a9c81e26a7c89c21feb8ad9909` from final implementation head
+`6bfb28fce91a34ac47b75cf77f446b706bcfee8f`, consuming the `OBR-DG34`
+host-id telemetry promotion. The merged implementation records bounded
+`host_id` telemetry/data for auth/proxy telemetry and claim/domain events, adds
+nullable `domain_events.host_id`, and keeps `host_id` non-load-bearing for
+tenant resolution, access tenancy, legal entity, booking tenant, recovery,
+routing, auth/session, and billing decisions. `apps/web/src/proxy.ts` was
+untouched. Current-head PR proof was green for CI `28135742047` including
+DB-backed `e2e-gate` job `83322058880`, PR E2E `28135742065`, Pilot Gate
+`28135742078`, Secret Scan/gitleaks `28135742099`, Security/pnpm-audit
+`28135742060`, Commitlint `28135742063`, `pr-finalizer` `28135742045`,
+SonarCloud Code Analysis, and CodeQL `28135740105`; CodeQL thread
+`PRRT_kwDOQ0Mhjc6MDxvU` and Codex P2 threads `PRRT_kwDOQ0Mhjc6MDzYL`,
+`PRRT_kwDOQ0Mhjc6MDzYO`, and `PRRT_kwDOQ0Mhjc6MDzYS` were resolved before
+merge. Post-merge main health at `9bea383d` is green for CI `28136293686`
+including unit job `83323799137` and DB-backed `e2e-gate` job `83323799139`,
+Sonar Main Gate `28136293641`, Secret Scan/gitleaks `28136293658`, and CodeQL
+`28136293153`; CD/Vercel remains deployment-only evidence. This closeout
+promotes no replacement implementation slice. Remaining status-bearing M0-M5
+rows are `T-002b` and direct destructive `T-503`; fresh
+current-authority/design-gate selection is required before follow-on work, and
+`blocked_requires_current_authority` with `activeSlice=null` is expected until a
+fresh current-authority/design-gate record promotes exactly one next governed
+action.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
