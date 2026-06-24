@@ -1355,6 +1355,29 @@ before follow-on work, and `blocked_requires_current_authority` with
 `activeSlice=null` is expected until a fresh current-authority/design-gate
 record promotes exactly one next governed action.
 
+Post-Rev 120, `OBR-DG34` is the post-`T-107` current-authority gate in
+`docs/plans/2026-06-24-obr-dg34-t110-host-id-authority.md` and promotes
+exactly one canonical tracker slice: `T-110`. `T-107` closeout PR `#1197` is
+complete through merge `86e285cc0e20ff9078cbd59efc1472e47443578c` from final
+head `010b52df1588f5b9ce5b1868fa01e485a7b7d041`; post-closeout main health is
+green for CI `28130841708` including unit job `83306410114` and DB-backed
+`e2e-gate` job `83306410115`, Sonar Main Gate `28130841694`, Secret
+Scan/gitleaks `28130841703`, and CodeQL `28130841013`; and the pre-gate
+resolver state was `blocked_requires_current_authority` with `activeSlice=null`.
+Remaining status-bearing M0-M5 rows are `T-002b`, `T-110`, and direct
+destructive `T-503`. `T-110` is selected because its dependency `T-108` is
+complete and it is the smallest remaining core host-model continuation: record
+entry `host_id` as telemetry/data distinct from resolved tenant while keeping it
+non-load-bearing for tenant, access-tenant, legal-entity, booking, recovery,
+routing, auth/session, and billing decisions. The next active governed
+implementation goal is exactly one canonical tracker slice: `T-110`. Direct work
+must wait until this gate merges and the resolver promotes exactly `T-110`.
+`T-002b`, direct destructive `T-503`, M6/product expansion,
+VONESA/SVC/CQRS/UI/UX implementation, proxy/routing/auth/session/tenancy
+refactors, schema/RLS/migrations outside the promoted `T-110` envelope,
+billing/product UI, Dependabot work, README, AGENTS, and broad architecture
+rewrites remain out of scope unless separately promoted.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
