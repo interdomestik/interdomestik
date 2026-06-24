@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/nextjs';
-
 import {
   ClaimValidationError,
   submitClaimCore as submitClaimCoreDomain,
@@ -23,6 +22,7 @@ import { revalidatePath } from 'next/cache';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import { validateInitialClaimEvidenceUpload } from '@/features/claims/upload/server/initial-claim-upload';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
+import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
 import type { Session } from './context';
 
 type CommercialEscalationDecision = 'requested' | 'declined';
@@ -107,20 +107,23 @@ export async function submitClaimCore(params: {
       }
 
       try {
-        const result = await submitClaimCoreDomain(params, {
-          dispatchClaimAiRun: emitClaimAiRunRequestedService,
-          logAuditEvent,
-          markClaimAiRunDispatchFailed: markClaimAiRunDispatchFailedService,
-          notifyClaimSubmitted,
-          revalidatePath,
-          validateSubmittedClaimFile: ({ actorId, file, tenantId }) =>
-            validateInitialClaimEvidenceUpload({
-              actorId,
-              expectedBucket: resolveEvidenceBucketName(),
-              file,
-              tenantId,
-            }),
-        });
+        const result = await submitClaimCoreDomain(
+          { ...params, hostId: resolveEntryHostIdFromHeaders(requestHeaders) },
+          {
+            dispatchClaimAiRun: emitClaimAiRunRequestedService,
+            logAuditEvent,
+            markClaimAiRunDispatchFailed: markClaimAiRunDispatchFailedService,
+            notifyClaimSubmitted,
+            revalidatePath,
+            validateSubmittedClaimFile: ({ actorId, file, tenantId }) =>
+              validateInitialClaimEvidenceUpload({
+                actorId,
+                expectedBucket: resolveEvidenceBucketName(),
+                file,
+                tenantId,
+              }),
+          }
+        );
         if (result.success && typeof result.claimId === 'string') {
           return {
             success: true,

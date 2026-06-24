@@ -2,6 +2,8 @@ import { db } from './db';
 import { assertAllowlistedPayload } from './domain-event-payloads';
 import { domainEvents } from './schema/domain-events';
 
+const HOST_IDS = new Set(['tenant_mk', 'tenant_ks', 'tenant_al', 'pilot-mk']);
+
 export type DomainEventTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export type AppendEventParams = {
@@ -12,6 +14,7 @@ export type AppendEventParams = {
   entity: { id: string; type: string };
   eventName: string;
   eventVersion: number;
+  hostId?: string | null;
   id?: string;
   payload?: Record<string, unknown>;
   tenantId: string;
@@ -27,6 +30,11 @@ function assertIntegerAtLeast(value: number, minimum: number, field: string): vo
   if (!Number.isInteger(value) || value < minimum) {
     throw new Error(`appendEvent requires ${field} >= ${minimum}`);
   }
+}
+function assertHostId(value: string | null | undefined): string | null | undefined {
+  if (value === null || value === undefined) return value;
+  if (!HOST_IDS.has(value)) throw new Error('appendEvent requires hostId to be allowlisted');
+  return value;
 }
 export async function appendEvent(
   tx: DomainEventTx,
@@ -44,6 +52,7 @@ export async function appendEvent(
   assertNonEmpty(params.correlationId, 'correlationId');
   assertIntegerAtLeast(params.eventVersion, 1, 'eventVersion');
   assertIntegerAtLeast(params.aggregateVersion, 0, 'aggregateVersion');
+  const hostId = assertHostId(params.hostId);
   const payload = assertAllowlistedPayload(params);
 
   const [row] = await tx
@@ -51,6 +60,7 @@ export async function appendEvent(
     .values({
       id: eventId,
       tenantId: params.tenantId,
+      ...(hostId !== undefined ? { hostId } : {}),
       actorId: params.actor.id,
       actorRole: params.actor.role,
       entityType: params.entity.type,

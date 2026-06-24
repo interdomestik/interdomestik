@@ -94,7 +94,6 @@ describe('actions/claims/submit', () => {
       claimId: 'claim-1',
       claimNumber: 'CLM-T1-2026-000001',
     });
-
     const result = await submitClaimCore({
       idempotencyKey: 'claim-submit-1',
       session: validSession,
@@ -148,11 +147,8 @@ describe('actions/claims/submit', () => {
 
     const result = await submitClaimCore({
       session: validSession,
-      requestHeaders: new Headers(),
-      data: {
-        ...validData,
-        category: 'vehicle',
-      },
+      requestHeaders: new Headers({ host: 'ks.localhost:3000' }),
+      data: { ...validData, category: 'vehicle' },
     });
 
     expect(result).toEqual({
@@ -170,6 +166,10 @@ describe('actions/claims/submit', () => {
         },
       },
     });
+    expect(submitClaimCoreDomain).toHaveBeenCalledWith(
+      expect.objectContaining({ hostId: 'tenant_ks' }),
+      expect.any(Object)
+    );
   });
 
   it('forwards diaspora handoff context to the domain submit path', async () => {

@@ -30,6 +30,7 @@ export async function createClaimCore(
   params: {
     session: ClaimsSession | null;
     requestHeaders: Headers;
+    hostId?: string | null;
     formData: FormData;
   },
   deps: ClaimsDeps = {}
@@ -112,6 +113,7 @@ export async function createClaimCore(
         claimId,
         createdAt: now,
         hasDocuments: false,
+        hostId: params.hostId,
         initialStatus: 'draft',
         tenantId,
       });

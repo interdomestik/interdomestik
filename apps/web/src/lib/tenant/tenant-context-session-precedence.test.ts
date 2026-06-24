@@ -85,6 +85,30 @@ describe('resolveTenantContext session precedence', () => {
     });
   });
 
+  it('does not let hostile or IDA entry hosts become tenant authority through host_id', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', 'tenant_ks');
+
+    for (const host of ['ks.attacker.test', 'ida.localhost:3000']) {
+      const result = resolveTenantContext(
+        request('https://ida.localhost/member?tenantId=tenant_mk', {
+          cookie: 'tenantId=tenant_mk',
+          host,
+          'x-tenant-id': 'tenant_mk',
+        }),
+        SESSION_KS
+      );
+
+      expect(result).toMatchObject({
+        status: 'resolved',
+        host_id: null,
+        booking_tenant_id: 'tenant_ks',
+        access_tenant_id: 'tenant_ks',
+        source: 'session',
+      });
+    }
+  });
+
   it('treats invalid session tenant as missing instead of widening access to hints', () => {
     const result = resolveTenantContext(
       request('https://ida.localhost/member', {

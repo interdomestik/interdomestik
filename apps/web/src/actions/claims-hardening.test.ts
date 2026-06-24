@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { updateClaimStatusCore as adminUpdate } from './admin-claims/update-status.core';
 import { updateClaimStatusCore as agentUpdate } from './agent-claims/update-status.core';
 import { updateClaimStatusCore as staffUpdate } from './staff-claims/update-status.core';
+import { updateClaimStatusCore as agentDomainUpdate } from '@interdomestik/domain-claims/agent-claims/update-status';
 
 // Mock Dependencies
 vi.mock('@interdomestik/domain-claims/admin-claims/update-status', () => ({
@@ -85,6 +86,24 @@ describe('Claims Action Hardening Verification', () => {
           requestHeaders: new Headers(),
         })
       ).rejects.toThrow('Too many requests');
+    });
+
+    it('passes the entry host id into the domain mutation', async () => {
+      mockRateLimit.mockResolvedValueOnce({ limited: false });
+      vi.mocked(agentDomainUpdate).mockResolvedValueOnce({ success: true } as never);
+
+      await agentUpdate({
+        claimId: 'c1',
+        newStatus: 'submitted',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        session: baseSession as any,
+        requestHeaders: new Headers({ host: 'ks.localhost:3000' }),
+      });
+
+      expect(agentDomainUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ hostId: 'tenant_ks' }),
+        expect.any(Object)
+      );
     });
   });
 

@@ -6,7 +6,6 @@ import type { TransitionCurrentState } from './transition-current-state';
 import { recordCaseCreatedEvent } from './case-created-event';
 import { recordTransitionDomainEvents } from './transition-domain-events';
 import type { CreateClaimValues } from '../validators/claims';
-
 export type TransitionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 export type AuthorizedTransitionHookTx = Pick<TransitionTx, 'insert' | 'select' | 'update'>;
 export function authorizedTransitionHookTx(tx: TransitionTx): AuthorizedTransitionHookTx {
@@ -21,6 +20,7 @@ export type TransitionSideEffectsArgs = {
   claimId: string;
   correlationId?: string;
   fromStatus: ClaimStatus;
+  hostId?: string | null;
   isPublic: boolean;
   lifecycleVersion: number;
   note: string | null;
@@ -33,6 +33,7 @@ export type RecordSubmittedClaimLifecycleArgs = {
   claimId: string;
   createdAt: Date;
   data: Pick<CreateClaimValues, 'files'>;
+  hostId?: string | null;
   publicNote: string | null;
   tenantId: string;
   userId: string;
@@ -54,6 +55,7 @@ export type TransitionClaimStatusParams = {
   beforePersistAuthorized?: (tx: AuthorizedTransitionHookTx) => Promise<void>;
   claimId: string;
   correlationId?: string;
+  hostId?: string | null;
   isPublic?: boolean;
   note?: string | null;
   requiredWhereCondition?: SQLWrapper;
@@ -68,6 +70,7 @@ export type PersistAuthorizedTransitionArgs = {
   authorization: AuthorizedTransition;
   claimId: string;
   correlationId?: string;
+  hostId?: string | null;
   current: TransitionCurrentState;
   isPublic: boolean;
   note: string | null;
@@ -96,13 +99,12 @@ export async function recordSubmittedClaimLifecycle(
     claimId: args.claimId,
     createdAt: args.createdAt,
     hasDocuments: Boolean(args.data.files?.length),
+    hostId: args.hostId,
     initialStatus: 'submitted',
     tenantId: args.tenantId,
   });
 }
-// T-002d Boy Scout split from transition.ts: stage-history + outbox side
-// effects for an authorized status transition. Must always run inside the
-// SAME Postgres transaction as the status write; this module does not write claims.status.
+// T-002d side effects must stay in the same transaction as the status write.
 export async function recordTransitionSideEffects(
   tx: TransitionTx,
   args: TransitionSideEffectsArgs
@@ -138,6 +140,7 @@ export async function recordTransitionSideEffects(
     claimId,
     correlationId,
     fromStatus,
+    hostId: args.hostId,
     lifecycleVersion,
     now,
     tenantId,

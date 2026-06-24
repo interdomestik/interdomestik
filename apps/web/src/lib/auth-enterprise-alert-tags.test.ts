@@ -24,6 +24,7 @@ function makePayload(overrides: Partial<AuthTelemetryPayload>): AuthTelemetryPay
     locale: 'sq',
     surface: 'member',
     host_class: 'canonical',
+    host_id: 'tenant_ks',
     reason: 'inactive_session',
     pathname_family: '/member/claims',
     ...overrides,

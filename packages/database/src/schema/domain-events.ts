@@ -20,6 +20,7 @@ export const domainEvents = pgTable(
       .notNull()
       .references(() => tenants.id),
     accessTenantId: text('access_tenant_id').references(() => tenants.id),
+    hostId: text('host_id'),
     actorId: text('actor_id').notNull(),
     actorRole: text('actor_role').notNull(),
     entityType: text('entity_type').notNull(),
@@ -37,6 +38,10 @@ export const domainEvents = pgTable(
     index('domain_events_tenant_created_idx').on(table.tenantId, table.createdAt),
     index('domain_events_entity_idx').on(table.entityType, table.entityId, table.aggregateVersion),
     index('domain_events_correlation_idx').on(table.correlationId),
+    check(
+      'domain_events_host_id_check',
+      sql`${table.hostId} IS NULL OR ${table.hostId} IN ('tenant_mk', 'tenant_ks', 'tenant_al', 'pilot-mk')`
+    ),
     check('domain_events_event_version_check', sql`${table.eventVersion} >= 1`),
     check('domain_events_aggregate_version_check', sql`${table.aggregateVersion} >= 0`),
   ]

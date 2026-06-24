@@ -30,6 +30,7 @@ function transitionFailureMessage(error: string): string {
 export async function updateClaimStatusCore(
   params: {
     claimId: string;
+    hostId?: string | null;
     newStatus: string;
     session: ClaimsSession | null;
     requestHeaders: Headers;
@@ -75,6 +76,7 @@ export async function updateClaimStatusCore(
   const transitionResult = await transitionClaimStatus({
     actor: { id: session.user.id, role: session.user.role ?? null },
     claimId,
+    hostId: params.hostId,
     tenantId,
     toStatus: status,
   });

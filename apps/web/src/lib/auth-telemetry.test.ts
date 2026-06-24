@@ -57,6 +57,7 @@ describe('auth telemetry', () => {
       locale: 'sq',
       surface: 'staff',
       host_class: 'nipio',
+      host_id: 'tenant_ks',
       reason: 'inactive_session',
       pathname_family: '/staff/claims',
     });
@@ -68,6 +69,7 @@ describe('auth telemetry', () => {
       'locale',
       'surface',
       'host_class',
+      'host_id',
       'reason',
       'pathname_family',
     ]);
@@ -88,6 +90,24 @@ describe('auth telemetry', () => {
     expect(normalizeAuthPathnameFamily('/sq/staff/claims')).toBe('/staff/claims');
     expect(normalizeAuthPathnameFamily('/sq/staff/claims/pack_ks_claim_123')).toBe('/staff/claims');
     expect(normalizeAuthPathnameFamily('/sq/admin/users/123')).toBe('/admin/users');
+  });
+
+  it('classifies host families using normalized host boundaries', () => {
+    expect(
+      normalizeAuthTelemetryPayload({
+        eventName: 'protected_route_bounce_to_login',
+        host: 'https://ks.127.0.0.1.nip.io:3000/member',
+        reason: 'missing_cookie',
+      }).host_class
+    ).toBe('nipio');
+
+    expect(
+      normalizeAuthTelemetryPayload({
+        eventName: 'protected_route_bounce_to_login',
+        host: 'safe-nip.io.attacker.test',
+        reason: 'missing_cookie',
+      }).host_class
+    ).toBe('other');
   });
 
   it('returns a flat scalar payload when normalizing unsupported fields', () => {
@@ -111,6 +131,7 @@ describe('auth telemetry', () => {
       locale: 'mk',
       surface: 'unknown',
       host_class: 'localhost',
+      host_id: 'host_unknown',
       reason: 'ready_probe_skipped',
       pathname_family: '/member',
     });

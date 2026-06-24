@@ -71,25 +71,25 @@ describe('updateClaimStatusCore', () => {
     hoisted.claimFindFirst
       .mockResolvedValueOnce({ id: 'claim-1', status: 'submitted' })
       .mockResolvedValueOnce({ id: 'claim-1', status: 'resolved' });
-
     const formData = new FormData();
     formData.set('claimId', 'claim-1');
     formData.set('status', 'resolved');
     formData.set('locale', 'en');
-
+    const requestHeaders = new Headers({ host: 'mk.localhost:3000' });
     await updateClaimStatusCore({
       formData,
       session,
-      requestHeaders: new Headers(),
+      requestHeaders,
     });
-
     expect(hoisted.revalidatePath).toHaveBeenNthCalledWith(1, '/en/admin/claims');
     expect(hoisted.revalidatePath).toHaveBeenNthCalledWith(2, '/en/admin/claims/claim-1');
     expect(hoisted.revalidatePath).toHaveBeenNthCalledWith(3, '/en/member/claims/claim-1');
     expect(hoisted.revalidatePath).toHaveBeenCalledTimes(3);
-    expect(hoisted.domainUpdateStatus).toHaveBeenCalledTimes(1);
+    expect(hoisted.domainUpdateStatus).toHaveBeenCalledWith(
+      expect.objectContaining({ hostId: 'tenant_mk', requestHeaders }),
+      expect.any(Object)
+    );
   });
-
   it('does not revalidate when domain mutation is denied/fails', async () => {
     hoisted.domainUpdateStatus.mockRejectedValueOnce(new Error('Claim not found'));
 

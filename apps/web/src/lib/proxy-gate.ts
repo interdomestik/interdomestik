@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { isStaffAuthTolerantTenant } from '@/lib/feature-flags';
 import { emitAuthTelemetryEvent } from '@/lib/telemetry';
+import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
 
 import type { ProxyRequestContext } from './proxy-resolve';
 import {
@@ -43,6 +44,7 @@ function emitProtectedRouteTelemetry(params: {
     locale: params.context.locale,
     surface: params.context.surface,
     host: params.context.request.headers.get('host'),
+    hostId: resolveEntryHostIdFromHeaders(params.context.request.headers),
     pathname: params.context.request.nextUrl.pathname,
     reason: params.reason,
   });

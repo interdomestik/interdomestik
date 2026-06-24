@@ -130,9 +130,10 @@ function buildClaimData(files: SubmitClaimFile[] = [buildEvidenceFile()]): Submi
     files,
   };
 }
-
 function buildSubmitArgs(
-  overrides: Partial<Pick<SubmitClaimArgs, 'handoffContext'>> & { files?: SubmitClaimFile[] } = {}
+  overrides: Partial<Pick<SubmitClaimArgs, 'handoffContext' | 'hostId'>> & {
+    files?: SubmitClaimFile[];
+  } = {}
 ): SubmitClaimArgs {
   return {
     session: {
@@ -145,10 +146,10 @@ function buildSubmitArgs(
     },
     requestHeaders: new Headers(),
     handoffContext: overrides.handoffContext,
+    hostId: overrides.hostId,
     data: buildClaimData(overrides.files),
   };
 }
-
 describe('submitClaimCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -170,11 +171,9 @@ describe('submitClaimCore', () => {
       agentId: 'agent-1',
     });
   });
-
   it('persists initial documents without queueing AI when no explicit extraction consent exists', async () => {
     const dispatchClaimAiRun = vi.fn().mockResolvedValue(undefined);
     const validateSubmittedClaimFile = vi.fn().mockResolvedValue(undefined);
-
     const result = await submitClaimCore(
       buildSubmitArgs({
         handoffContext: {
@@ -182,13 +181,13 @@ describe('submitClaimCore', () => {
           country: 'IT',
           incidentLocation: 'abroad',
         },
+        hostId: 'tenant_ks',
       }),
       {
         dispatchClaimAiRun,
         validateSubmittedClaimFile,
       }
     );
-
     expect(result).toEqual({
       success: true,
       claimId: 'claim-1',
@@ -207,6 +206,7 @@ describe('submitClaimCore', () => {
         entity: { id: 'claim-1', type: 'case' },
         eventName: 'case.created',
         eventVersion: 1,
+        hostId: 'tenant_ks',
         payload: {
           hasDocuments: true,
           initialStatus: 'submitted',

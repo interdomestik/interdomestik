@@ -9,6 +9,7 @@ type TransitionEventArgs = {
   claimId: string;
   correlationId?: string;
   fromStatus: ClaimStatus;
+  hostId?: string | null;
   lifecycleVersion: number;
   now: Date;
   tenantId: string;
@@ -31,6 +32,7 @@ async function appendTransitionEvent(
     entity: { id: args.claimId, type: args.entityType },
     eventName: args.eventName,
     eventVersion: 1,
+    hostId: args.hostId,
     payload: args.payload,
     tenantId: args.tenantId,
   });

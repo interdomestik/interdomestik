@@ -8,6 +8,7 @@ import type { Session } from './context';
 import type { ActionResult, ClaimStatus, RecoveryDeclineReasonCode } from './types';
 
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
+import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
 // ...
 
 const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
@@ -44,7 +45,10 @@ export async function updateClaimStatusCore(params: {
     }
   }
 
-  const result = await updateClaimStatusCoreDomain(params, { logAuditEvent, notifyStatusChanged });
+  const result = await updateClaimStatusCoreDomain(
+    { ...params, hostId: resolveEntryHostIdFromHeaders(requestHeaders) },
+    { logAuditEvent, notifyStatusChanged }
+  );
 
   if (result.success) {
     revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);

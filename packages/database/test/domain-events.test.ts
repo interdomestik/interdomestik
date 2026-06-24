@@ -45,6 +45,7 @@ describe('appendEvent', () => {
       entity: { id: 'claim-1', type: 'claim' },
       eventName: 'claim.status_changed',
       eventVersion: 1,
+      hostId: 'tenant_ks',
       id: 'event-1',
       payload: { fromStatus: 'draft', toStatus: 'submitted' },
       tenantId: 'tenant-1',
@@ -61,6 +62,7 @@ describe('appendEvent', () => {
       entityId: 'claim-1',
       eventName: 'claim.status_changed',
       eventVersion: 1,
+      hostId: 'tenant_ks',
       aggregateVersion: 7,
       correlationId: 'corr-1',
       payload: { fromStatus: 'draft', toStatus: 'submitted' },
@@ -83,6 +85,27 @@ describe('appendEvent', () => {
           tenantId: 'tenant-1',
         }),
       /eventVersion >= 1/
+    );
+    assert.equal(capture.row, undefined);
+  });
+
+  it('rejects non-allowlisted host telemetry before inserting', async () => {
+    const { capture, tx } = makeTx();
+
+    await assert.rejects(
+      () =>
+        appendEvent(tx, {
+          actor: { id: 'staff-1', role: 'staff' },
+          aggregateVersion: 1,
+          correlationId: 'corr-1',
+          entity: { id: 'claim-1', type: 'claim' },
+          eventName: 'claim.status_changed',
+          eventVersion: 1,
+          hostId: 'attacker.test',
+          payload: { fromStatus: 'draft', toStatus: 'submitted' },
+          tenantId: 'tenant-1',
+        }),
+      /hostId to be allowlisted/
     );
     assert.equal(capture.row, undefined);
   });

@@ -624,6 +624,13 @@
       "when": 1782105600000,
       "tag": "0088_tenant_entity_decomposition",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1782192000000,
+      "tag": "0089_domain_events_host_id",
+      "breakpoints": true
     }
   ]
 }

@@ -46,6 +46,7 @@ describe('auth fixture probe reduction', () => {
       locale: string;
       surface: string;
       host_class: string;
+      host_id: string;
       reason: string;
       pathname_family: string;
     };
@@ -57,6 +58,7 @@ describe('auth fixture probe reduction', () => {
       locale: kosovoLocale,
       surface: 'staff',
       host_class: 'nipio',
+      host_id: 'tenant_ks',
       reason: 'ready_probe_skipped',
       pathname_family: '/staff/claims',
     });
