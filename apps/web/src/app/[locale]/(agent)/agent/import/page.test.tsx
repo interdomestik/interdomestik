@@ -44,6 +44,8 @@ vi.mock('@/features/agent/import/components/group-dashboard-summary', () => ({
 import AgentImportPage from './page';
 
 describe('AgentImportPage', () => {
+  const params = Promise.resolve({ locale: 'sq' });
+
   it('redirects non-agents to the member portal', async () => {
     hoisted.getSession.mockResolvedValueOnce({ user: { role: 'member' } });
 
@@ -52,7 +54,7 @@ describe('AgentImportPage', () => {
       throw new Error(`redirect:${url}`);
     });
 
-    await expect(AgentImportPage()).rejects.toThrow('redirect:/member');
+    await expect(AgentImportPage({ params })).rejects.toThrow('redirect:/sq/member');
   });
 
   it('hides the page from non-office agents', async () => {
@@ -66,7 +68,7 @@ describe('AgentImportPage', () => {
       throw new Error('notFound');
     });
 
-    await expect(AgentImportPage()).rejects.toThrow('notFound');
+    await expect(AgentImportPage({ params })).rejects.toThrow('notFound');
   });
 
   it('renders the aggregate dashboard and uploader for office agents', async () => {
@@ -82,7 +84,7 @@ describe('AgentImportPage', () => {
       sla: { breachCount: 1, incompleteCount: 2, notApplicableCount: 0, runningCount: 3 },
     });
 
-    render(await AgentImportPage());
+    render(await AgentImportPage({ params }));
 
     expect(screen.getByText('Sponsored Member Import')).toBeInTheDocument();
     expect(screen.getByText('Group summary 7 / 43')).toBeInTheDocument();

@@ -42,19 +42,11 @@ test.describe('C1: Clarity Hardening - No Mixed Surfaces', () => {
     ).toBeVisible(); // Or any dashboard element
   });
 
-  test('Agent: legacy route shows banner + link to v3', async ({ page }, testInfo) => {
+  test('Agent: canonical route has no legacy banner', async ({ page }, testInfo) => {
     await performAgentLogin(page, testInfo);
 
     const locale = routes.getLocale(testInfo);
-    await gotoApp(page, `/${locale}/legacy/agent`, testInfo, { marker: 'legacy-surface-ready' });
-
-    const legacyReady = page.getByTestId('legacy-surface-ready');
-    await expect(legacyReady).toBeVisible();
-
-    const banner = page.getByTestId('legacy-banner');
-    await expect(banner).toBeVisible();
-
-    const link = page.getByTestId('legacy-banner-link');
-    await expect(link).toHaveAttribute('href', /\/(sq\/)?agent$/);
+    await gotoApp(page, `/${locale}/agent`, testInfo, { marker: 'dashboard-page-ready' });
+    await expect(page.getByTestId('legacy-banner')).toHaveCount(0);
   });
 });
