@@ -12,6 +12,7 @@ vi.mock('@/i18n/routing', () => ({
 }));
 
 vi.mock('@/lib/feature-flags', () => ({
+  isIdaLiveLoginCutoverEnabled: () => false,
   isStaffAuthTolerantTenant: () => false,
 }));
 

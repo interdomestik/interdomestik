@@ -3,6 +3,7 @@ import { isStaffAuthTolerantTenant } from '@/lib/feature-flags';
 import { isE2EDiagnosticsEnabled, isProductionDeployment } from '@/lib/runtime-environment';
 import { emitAuthTelemetryEvent } from '@/lib/telemetry';
 import { resolveTenantHostContext } from '@/lib/tenant/tenant-front-door';
+import { buildIdaLiveLoginRedirectUrl } from '@/lib/tenant/ida-live-login-cutover';
 import { applyTenantCookie } from '@/lib/tenant/tenant-cookie';
 import { NextRequest, NextResponse } from 'next/server';
 import {
@@ -423,20 +424,20 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   const host = request.headers.get('host') ?? '';
   const tenantContext = resolveTenantHostContext(host);
   const tenant = tenantContext.tenantId;
+  const securityHeaders = createSecurityHeaders(request);
+  const idaLiveLoginRedirectUrl = buildIdaLiveLoginRedirectUrl(request.nextUrl, host);
+  if (idaLiveLoginRedirectUrl) {
+    const redirectResponse = NextResponse.redirect(idaLiveLoginRedirectUrl, 301);
+    redirectResponse.headers.set('x-ida-live-login-cutover', 'country-host-redirect');
+    return applyResponseHardening(redirectResponse, request, null, securityHeaders);
+  }
 
-  // 1. Force nip.io in Dev (Optional, if env var set)
-  // Logic simplified/removed to prevent loops - rely on manual access for now
-  // or user-provided "Force Redirect" if absolutely needed.
-  // Given "restart loop" history, we are being conservative.
-
-  // 2. Auth Guard (Edge Safe)
   const segments = pathname.split('/');
   const possibleLocale = segments[1];
   const isLocale = routing.locales.includes(possibleLocale as (typeof routing.locales)[number]);
   const topLevel = isLocale ? segments[2] : segments[1];
   const locale = isLocale ? possibleLocale : 'sq';
   const surface = getTelemetrySurface(topLevel);
-  const securityHeaders = createSecurityHeaders(request);
 
   const isProtected = PROTECTED_TOP_LEVEL.has(topLevel);
   const sessionCookieValue = isProtected ? getSessionCookieValue(request) : null;
@@ -473,7 +474,6 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // 3. Tenant Resolution
   const response = securityHeaders.requestHeaders
     ? NextResponse.next({ request: { headers: securityHeaders.requestHeaders } })
     : NextResponse.next();

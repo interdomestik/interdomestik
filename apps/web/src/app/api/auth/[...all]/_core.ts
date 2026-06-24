@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 
+import { isCountryHostLiveLoginBlocked } from '@/lib/tenant/ida-live-login-cutover';
 import { isKnownIdaFrontDoorHost, normalizeTenantHost } from '@/lib/tenant/tenant-front-door';
 import {
   coerceTenantId,
@@ -9,26 +10,18 @@ import {
   type TenantId,
 } from '@/lib/tenant/tenant-hosts';
 
+import { resolveSignInAdditionalTenantHint } from './sign-in-tenant-hint';
+
 export type AuthMethod = 'GET' | 'POST';
+export type AuthRateLimitConfig = { name: string; limit: number; windowSeconds: number };
 
 const EMAIL_SIGN_IN_PATH_SUFFIXES = ['/api/auth/sign-in/email', '/api/auth/sign-in/email-otp'];
 
 function getAuthPathname(url: string): string | null {
-  try {
-    return new URL(url).pathname;
-  } catch {
-    return null;
-  }
+  return URL.canParse(url) ? new URL(url).pathname : null;
 }
 
-export function getAuthRateLimitConfig(
-  method: AuthMethod,
-  url: string
-): {
-  name: string;
-  limit: number;
-  windowSeconds: number;
-} {
+export function getAuthRateLimitConfig(method: AuthMethod, url: string): AuthRateLimitConfig {
   const pathname = getAuthPathname(url);
 
   if (pathname?.endsWith('/api/auth/get-session')) {
@@ -67,7 +60,7 @@ export function getAuthRateLimitKeySuffix(args: {
     return null;
   }
 
-  const tenantId = resolveTenantIdForEmailSignIn(headers);
+  const tenantId = resolveTenantIdForEmailSignIn(headers, body);
   if (!tenantId) {
     return null;
   }
@@ -131,12 +124,15 @@ function hasUnambiguousFrontDoorHost(headers: Headers): boolean {
   return normalizeTenantHost(forwardedHost) === host;
 }
 
-function resolveFrontDoorTenantHint(headers: Headers): TenantId | null {
+function resolveFrontDoorTenantHint(headers: Headers, body?: unknown): TenantId | null {
   if (!hasUnambiguousFrontDoorHost(headers)) return null;
-
+  const bodyTenant = resolveSignInAdditionalTenantHint(body);
   return (
     coerceTenantId(headers.get(TENANT_HEADER_NAME)) ??
-    coerceTenantId(parseCookieValue(headers.get('cookie'), TENANT_COOKIE_NAME))
+    (bodyTenant.kind === 'valid' ? bodyTenant.tenantId : null) ??
+    (bodyTenant.kind === 'invalid'
+      ? null
+      : coerceTenantId(parseCookieValue(headers.get('cookie'), TENANT_COOKIE_NAME)))
   );
 }
 
@@ -168,17 +164,17 @@ export function resolveTenantIdForPasswordResetAudit(
 }
 
 export function isEmailSignInUrl(url: string): boolean {
-  try {
-    const pathname = new URL(url).pathname;
-    return EMAIL_SIGN_IN_PATH_SUFFIXES.some(suffix => pathname.endsWith(suffix));
-  } catch {
-    return false;
-  }
+  const pathname = getAuthPathname(url);
+  return pathname ? EMAIL_SIGN_IN_PATH_SUFFIXES.some(suffix => pathname.endsWith(suffix)) : false;
 }
 
-export function resolveTenantIdForEmailSignIn(headers: Headers): TenantId | null {
+export function resolveTenantIdForEmailSignIn(headers: Headers, body?: unknown): TenantId | null {
+  if (isCountryHostLiveLoginBlocked(getDirectRequestHost(headers))) {
+    return null;
+  }
+
   if (hasKnownDirectFrontDoorHost(headers)) {
-    return resolveFrontDoorTenantHint(headers);
+    return resolveFrontDoorTenantHint(headers, body);
   }
 
   return resolveTenantIdFromSources(
@@ -208,7 +204,7 @@ export async function evaluateEmailSignInTenantGuard(args: {
   const { url, headers, body, lookupUserTenantByEmail } = args;
   if (!isEmailSignInUrl(url)) return null;
 
-  const resolvedTenantId = resolveTenantIdForEmailSignIn(headers);
+  const resolvedTenantId = resolveTenantIdForEmailSignIn(headers, body);
   if (!resolvedTenantId) {
     return {
       decision: 'deny',

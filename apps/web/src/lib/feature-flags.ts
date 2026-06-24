@@ -14,6 +14,11 @@ export function isBranchDashboardEnabled(): boolean {
 }
 
 const STAFF_AUTH_TOLERANT_TENANTS_FLAG = 'STAFF_AUTH_TOLERANT_TENANTS';
+const IDA_LIVE_LOGIN_CUTOVER_FLAG = 'FEATURE_IDA_LIVE_LOGIN_CUTOVER';
+
+export function isIdaLiveLoginCutoverEnabled(): boolean {
+  return process.env[IDA_LIVE_LOGIN_CUTOVER_FLAG] === 'true';
+}
 
 export function getStaffAuthTolerantTenants(): Set<string> {
   const rawValue = process.env[STAFF_AUTH_TOLERANT_TENANTS_FLAG];

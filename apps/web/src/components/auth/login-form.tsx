@@ -1,6 +1,7 @@
 'use client';
 
 import { canAccessAdmin } from '@/actions/admin-access';
+import { resolveLoginTenantHint } from '@/components/auth/login-tenant-hint';
 import { Link } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import { emitAuthTelemetryEvent } from '@/lib/auth-telemetry';
@@ -114,10 +115,9 @@ export function LoginForm({
   const common = useTranslations('common');
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const tenantIdFromQuery = searchParams.get('tenantId') || undefined;
   const planIdFromQuery = searchParams.get('plan') || undefined;
   const nextPathFromQuery = searchParams.get('next');
-  const resolvedTenantId = tenantId ?? tenantIdFromQuery;
+  const resolvedTenantId = resolveLoginTenantHint(searchParams, tenantId);
   const signupHref = getPublicMembershipEntryHref(planIdFromQuery);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -154,6 +154,7 @@ export function LoginForm({
               const { error } = await authClient.signIn.email({
                 email,
                 password,
+                ...(resolvedTenantId ? { additionalData: { tenantId: resolvedTenantId } } : {}),
               });
 
               if (error) {
@@ -184,7 +185,6 @@ export function LoginForm({
                   return;
                 }
               }
-              // V3 canonical routing standardizes branch_manager to admin overview.
               const canonical = getCanonicalRouteForRole(role, locale);
               if (!canonical) {
                 emitPostLoginFailureTelemetry(
