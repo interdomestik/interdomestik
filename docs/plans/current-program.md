@@ -1268,6 +1268,26 @@ billing/product UI, additional entity migration, Dependabot, README, AGENTS,
 Operational Brain runtime/live AI, high/medium CodeQL batches, and broad
 M3/M4/M5 remain unpromoted unless separately authorized.
 
+Post-Rev 116, `OBR-DG32` in
+`docs/plans/2026-06-24-obr-dg32-post-t307-next-authority.md` records `T-307`
+implementation PR `#1191`, closeout PR `#1192` / merge
+`14cfb959d5583deff1e021c8dfd163c4607e9613`, post-closeout main health green
+for CI `28115601701` including DB-backed `e2e-gate`, Sonar Main Gate
+`28115601745`, Secret Scan/gitleaks `28115601756`, and CodeQL / Push on main
+`28115600961`, and pre-gate resolver state (`blocked_requires_current_authority`,
+`activeSlice=null`, `umbrella_without_concrete_promoted_slice`). At this gate,
+the next active governed implementation goal is exactly one canonical tracker
+slice: `T-502`. Future `T-502` is limited to consolidating to exactly four
+portal layout groups, actively retiring `legacy/` and duplicate agent layout
+surfaces, preserving canonical routes and clarity markers, keeping one
+protected-route gate, removing per-country host branching, and proving
+consolidated-layout behavior on `ida.localhost`. Direct implementation must
+wait until this gate merges and the resolver promotes exactly `T-502`. Direct
+destructive `T-503`, schema/RLS/migrations, billing/product UI, additional
+entity migration, Dependabot, README, AGENTS, Operational Brain runtime/live AI,
+high/medium CodeQL batches, and broad M3/M4/M5 remain unpromoted unless
+separately authorized.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
