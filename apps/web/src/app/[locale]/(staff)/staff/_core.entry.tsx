@@ -1,6 +1,5 @@
 import { requireTenantAdminSession } from '@interdomestik/domain-users/admin/access';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { LegacyBanner } from '@/components/dashboard/legacy-banner';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
 import { toClientShellUser } from '@/components/shell/client-shell-user';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
@@ -48,9 +47,6 @@ export default async function StaffLayout({
             adminAccess={adminAccess}
             prefetchNotifications={false}
           />
-          <div className="px-6 pt-4 md:px-8">
-            <LegacyBanner role={shellUser.role} />
-          </div>
           <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>

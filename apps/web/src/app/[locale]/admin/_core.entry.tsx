@@ -1,7 +1,6 @@
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import type { AdminTenantOption } from '@/components/admin/admin-tenant-selector';
 import { AdminTenantSelector } from '@/components/admin/admin-tenant-selector';
-import { LegacyBanner } from '@/components/dashboard/legacy-banner';
 import { PortalSurfaceIndicator } from '@/components/dashboard/portal-surface-indicator';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
 import { NavigationFeedback } from '@/components/shell/navigation-feedback';
@@ -106,9 +105,6 @@ export default async function AdminLayout({
                 </div>
               </div>
             </header>
-            <div className="px-6 pt-4 md:px-8">
-              <LegacyBanner role={role} />
-            </div>
             {/* SidebarInset renders as <main>, so use <div> here to avoid nested landmarks */}
             <div className="flex-1 overflow-y-auto p-6 md:p-8">
               <div className="container mx-auto">{children}</div>

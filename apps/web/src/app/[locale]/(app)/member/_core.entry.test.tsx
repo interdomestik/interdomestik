@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   dashboardSidebarMock: vi.fn(() => null),
   dashboardHeaderMock: vi.fn(() => null),
-  legacyBannerMock: vi.fn(() => null),
   getSessionSafeMock: vi.fn(async () => ({
     user: {
       id: 'agent-1',
@@ -59,10 +58,6 @@ vi.mock('@/components/dashboard/dashboard-sidebar', () => ({
   DashboardSidebar: hoisted.dashboardSidebarMock,
 }));
 
-vi.mock('@/components/dashboard/legacy-banner', () => ({
-  LegacyBanner: hoisted.legacyBannerMock,
-}));
-
 import DashboardLayout from './_core.entry';
 
 describe('MemberDashboard layout role handling', () => {
@@ -89,10 +84,6 @@ describe('MemberDashboard layout role handling', () => {
     );
     expect(hoisted.dashboardHeaderMock).toHaveBeenCalledWith(
       expect.objectContaining({ user: expect.objectContaining({ role: 'member' }) }),
-      undefined
-    );
-    expect(hoisted.legacyBannerMock).toHaveBeenCalledWith(
-      expect.objectContaining({ role: 'member' }),
       undefined
     );
   });

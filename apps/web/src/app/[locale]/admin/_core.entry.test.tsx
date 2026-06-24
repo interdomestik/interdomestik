@@ -63,10 +63,6 @@ vi.mock('@/components/admin/admin-tenant-selector', () => ({
   AdminTenantSelector: () => null,
 }));
 
-vi.mock('@/components/dashboard/legacy-banner', () => ({
-  LegacyBanner: () => null,
-}));
-
 vi.mock('@/components/dashboard/portal-surface-indicator', () => ({
   PortalSurfaceIndicator: () => null,
 }));

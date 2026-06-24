@@ -7,13 +7,14 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 
-export default async function AgentImportPage() {
+export default async function AgentImportPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (session?.user?.role !== 'agent') {
-    redirect('/member');
+    redirect(`/${locale}/member`);
   }
 
   const tier = await getAgentTier({ agentId: session.user.id, tenantId: session.user.tenantId });

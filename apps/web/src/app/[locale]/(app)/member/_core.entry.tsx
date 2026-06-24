@@ -1,6 +1,5 @@
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
-import { LegacyBanner } from '@/components/dashboard/legacy-banner';
 import { toClientShellUser } from '@/components/shell/client-shell-user';
 import { NavigationFeedback } from '@/components/shell/navigation-feedback';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
@@ -57,9 +56,6 @@ export default async function DashboardLayout({
             <SidebarInset className="bg-mesh flex min-h-screen w-screen max-w-[100svw] flex-col overflow-x-hidden md:w-auto">
               <div className="hidden md:block">
                 <DashboardHeader user={shellUser} adminAccess={false} />
-              </div>
-              <div className="hidden px-6 pt-4 md:block md:px-8">
-                <LegacyBanner role={shellUser.role} />
               </div>
               <main className="flex-1 p-0 md:p-8 md:pt-6">{children}</main>
             </SidebarInset>

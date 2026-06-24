@@ -21,20 +21,4 @@ test.describe('C0.5: Admin Clarity Hardening', () => {
     // No Legacy Banner check
     await expect(page.getByTestId('legacy-banner')).toHaveCount(0);
   });
-
-  test('admin legacy route shows legacy banner', async ({ page, loginAs }, testInfo) => {
-    await loginAs('admin');
-    const locale = routes.getLocale(testInfo);
-    const legacyPath = `/${locale}/legacy/admin`;
-
-    // Legacy route check
-    await gotoApp(page, legacyPath, testInfo, { marker: 'legacy-surface-ready' });
-    await expect(page.getByTestId('legacy-banner')).toBeVisible();
-
-    // Ensure link points to canonical
-    await expect(page.getByTestId('legacy-banner-link')).toHaveAttribute(
-      'href',
-      routes.admin(testInfo)
-    );
-  });
 });

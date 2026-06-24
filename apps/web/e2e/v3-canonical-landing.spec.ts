@@ -42,20 +42,6 @@ test.describe('V3 Canonical Landing', () => {
       }
     });
   }
-
-  test('legacy agent banner points to v3', async ({ page, loginAs }, testInfo) => {
-    await loginAs('agent');
-
-    const locale = routes.getLocale(testInfo);
-    await gotoApp(page, `/${locale}/legacy/agent`, testInfo, { marker: 'legacy-banner' });
-
-    await expect(page.getByTestId('legacy-banner')).toBeVisible();
-    await expect(page.getByTestId('legacy-banner-link')).toHaveAttribute(
-      'href',
-      routes.agentMembers(testInfo)
-    );
-  });
-
   test('agent root redirects to canonical members list', async ({ page, loginAs }, testInfo) => {
     await loginAs('agent');
 
