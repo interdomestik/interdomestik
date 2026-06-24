@@ -1288,6 +1288,28 @@ entity migration, Dependabot, README, AGENTS, Operational Brain runtime/live AI,
 high/medium CodeQL batches, and broad M3/M4/M5 remain unpromoted unless
 separately authorized.
 
+Post-Rev 117, `T-502` is complete in PR `#1194` / squash merge
+`6610a392532a5b7f2d3e8d0f139c9fc4a896967b` from final implementation head
+`39ed70ddade9bf6f85e51f4f778e45620eb4ad31`, consuming the `OBR-DG32`
+portal-layout consolidation promotion. The merged implementation consolidates
+to exactly four portal layout groups, actively retires legacy and duplicate
+agent layout surfaces, preserves canonical role routes and contractual clarity
+markers, keeps a single protected-route gate, removes per-country host
+branching, and proves consolidated-layout behavior on `ida.localhost`.
+`apps/web/src/proxy.ts` was untouched. Post-merge main health at `6610a392` is
+green for CI `28125155945` including `unit` job `83287001222` and DB-backed
+`e2e-gate` job `83287001273`, Sonar Main Gate `28125155976` /
+`sonar-gate` job `83286962885` plus SonarCloud Code Analysis, Secret
+Scan/gitleaks `28125156007`, and CodeQL `28125155597` for Actions and
+JavaScript/TypeScript analyses; CD/Vercel is deployment-only, and Dependabot
+dynamic runs remain out of scope unless they become required main protection.
+No replacement implementation slice is promoted by this closeout; fresh
+current-authority/design-gate selection is required before follow-on work.
+Direct destructive `T-503`, schema/RLS/migrations, billing/product UI,
+additional entity migration, dependencies, README, AGENTS, Operational Brain
+runtime/live AI, high/medium CodeQL batches, and broad M3/M4/M5 remain out of
+scope unless separately authorized.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
