@@ -1118,26 +1118,18 @@ completed `T-506a`, billing, product UI, Operational Brain runtime/live AI,
 high/medium CodeQL, Dependabot, README, AGENTS, broad M3/M4/M5, and broad
 architecture-doc work remain unpromoted unless separately authorized.
 
-Post-Rev 107, `OBR-DG28` in
-`docs/plans/2026-06-23-obr-dg28-next-slice-selection-gate.md` records the
-completed `T-506a` implementation PR `#1178` / merge
-`710e0a5e80045ead2e98379aa11d9e39da19e366`, the completed `T-506a` closeout PR
-`#1179` / merge `16ec017996d19345b063329101697ecec8c1e0d7`, post-closeout main
-health green for CI, Sonar Main Gate, Secret Scan/gitleaks, and CodeQL, and the
-pre-gate resolver state (`blocked_requires_current_authority`, `activeSlice=null`,
-`umbrella_without_concrete_promoted_slice`). `OBR-DG28` promotes exactly one
-canonical tracker slice: `T-506`. The next active governed implementation goal
-is exactly one canonical tracker slice: `T-506`. Future `T-506` is limited to
-write-capable member/entity migration with active-case guard, terms re-issue,
-acceptance recapture, history preservation, `membership.entity_migrated`,
-dry-run/apply/rollback/data-repair proof, ADR-12 migration semantics,
-low-privilege DB/RLS proof, and explicit human approval or waiver before merge
-readiness. Direct implementation must wait until the gate merges and the
-current-authority resolver promotes exactly `T-506`; `T-501`, `T-502`, direct
-destructive `T-503`, `T-505`, proxy/routing/auth/session/tenancy beyond the
-promoted migration envelope, billing, product UI, Operational Brain runtime/live
-AI, high/medium CodeQL, Dependabot, README, AGENTS, broad M3/M4/M5, and broad
-architecture-doc work remain unpromoted unless separately authorized.
+Post-Rev 108, `T-506` is complete through PR `#1181` / merge-main SHA
+`8c0b27916a8012c74ce68ce56f90c964d89e50e0` from final implementation head
+`f36e88d8c3a073083b9e9e022568b7e9689d0b8b`, consuming the `OBR-DG28`
+promotion. Local proof passed focused tests, type-check, repo-size/modularity/
+architecture, `pnpm check:db-access`, `pnpm db:rls:test:required`,
+`pnpm security:guard`, `pnpm pr:verify`, and `pnpm e2e:gate`. Main health at
+`8c0b2791` is green for CI, Sonar Main Gate, Secret Scan/gitleaks, and CodeQL;
+no main-push `Security/pnpm-audit` check-run was present and CD/Vercel remains
+deployment-only. No replacement implementation slice is promoted by this
+closeout, so `blocked_requires_current_authority` with `activeSlice=null` is
+expected until a fresh current-authority/design-gate record promotes exactly one
+next governed slice.
 
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
