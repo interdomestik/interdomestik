@@ -1227,6 +1227,24 @@ runtime/live AI, high/medium CodeQL batch, or broad M3/M4/M5 work is promoted
 or completed by this closeout. No replacement implementation slice is promoted;
 fresh current-authority/design-gate selection is required before follow-on work.
 
+Post-Rev 114, `OBR-DG31` records the post-`T-505` current-authority selection
+in `docs/plans/2026-06-24-obr-dg31-post-t505-next-authority.md` and promotes
+only `T-307` as the next governed slice. `T-505` PR `#1189` is complete,
+post-merge main health at `c2840317` is green for CI including
+`validation-surface`, `audit`, `static`, `unit`, `ai-eval`, and `e2e-gate`,
+Sonar Main Gate, Secret Scan/gitleaks, and CodeQL, and the pre-gate resolver
+state was `blocked_requires_current_authority` with `activeSlice=null`. `T-307`
+is selected because it is the smallest remaining unblocked prerequisite for
+`T-502`: route/proxy separation of `apps/web/src/lib/proxy-logic.ts` into
+resolve, security-header, and gate modules while preserving behavior and E2E
+baseline. `T-502` remains parked behind `T-307`; direct destructive `T-503`
+remains parked behind release/destructive-migration proof and fresh explicit
+risk review; `apps/web/src/proxy.ts` edits without fresh explicit approval,
+canonical route changes, clarity marker changes, schema/RLS/migrations,
+billing/product UI, additional entity migration, Dependabot, README, AGENTS,
+Operational Brain runtime/live AI, high/medium CodeQL batches, and broad
+M3/M4/M5 remain unpromoted unless separately authorized.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
