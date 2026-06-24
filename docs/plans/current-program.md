@@ -1174,6 +1174,24 @@ additional entity migration, Dependabot, README, AGENTS, Operational Brain
 runtime/live AI, high/medium CodeQL batches, and broad M3/M4/M5 remain
 unpromoted unless separately authorized.
 
+Post-Rev 111, `T-501` is complete through PR `#1186` / merge-main SHA
+`5fa1ed76fba9a0f7e8ae8eaeb2fc2961956f2d30`, consuming the T-108 closeout
+promotion for the flagged `ida.*` sole live-login cutover. The merged
+implementation redirects country hosts to `ida.*` with a default booking tenant
+hint, keeps `ida.*` as neutral no-tenant public branding, validates the sign-in
+tenant hint server-side for the email sign-in guard, preserves
+member/agent/staff/admin login and session continuity, and covers
+hostile/lookalike/stale-cookie/session-conflict negative paths. Post-merge main
+health at `5fa1ed76` is green for CI run `28100625834`, including `unit` job
+`83201422360` and `e2e-gate` job `83201422407`, Sonar Main Gate run
+`28100625943` with `sonar-gate` job `83201368203`, Secret Scan/gitleaks run
+`28100625978`, and CodeQL run `28100625150`; CD/Vercel remains deployment-only
+evidence. Codex P1 review thread `PRRT_kwDOQ0Mhjc6L5Fch` was fixed and
+resolved. Codex Security diff scan completion is not claimed because
+manual-start friction blocked scan submission. No replacement implementation
+slice is promoted by this closeout; fresh current-authority/design-gate
+selection is required before follow-on implementation.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
