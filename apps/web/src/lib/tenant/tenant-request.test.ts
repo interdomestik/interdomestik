@@ -19,6 +19,13 @@ describe('tenant-request', () => {
   const originalNodeEnv = process.env.NODE_ENV;
   const originalVercelEnv = process.env.VERCEL_ENV;
   const originalDefaultPublicTenantId = process.env.DEFAULT_PUBLIC_TENANT_ID;
+  const restoreEnv = (key: string, value: string | undefined): void => {
+    if (value === undefined) {
+      delete mutableEnv[key];
+      return;
+    }
+    mutableEnv[key] = value;
+  };
 
   beforeEach(() => {
     mocks.headers.mockReset();
@@ -26,9 +33,9 @@ describe('tenant-request', () => {
   });
 
   afterEach(() => {
-    mutableEnv.NODE_ENV = originalNodeEnv;
-    mutableEnv.VERCEL_ENV = originalVercelEnv;
-    mutableEnv.DEFAULT_PUBLIC_TENANT_ID = originalDefaultPublicTenantId;
+    restoreEnv('NODE_ENV', originalNodeEnv);
+    restoreEnv('VERCEL_ENV', originalVercelEnv);
+    restoreEnv('DEFAULT_PUBLIC_TENANT_ID', originalDefaultPublicTenantId);
   });
 
   it('Host wins over cookie/header/query', async () => {

@@ -66,6 +66,7 @@ describe('tenant host compatibility aliases', () => {
         queryTenantId: 'tenant_mk',
       })
     ).toEqual({
+      kind: 'tenant',
       tenantId: 'tenant_ks',
       source: 'compatibility_alias',
       defaultBookingTenantId: 'tenant_ks',

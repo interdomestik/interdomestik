@@ -97,10 +97,10 @@ describe('resolveTenantContext', () => {
     expect(result).toEqual({
       status: 'missing_session_tenant',
       host_id: null,
-      booking_tenant_id: 'tenant_ks',
+      booking_tenant_id: null,
       access_tenant_id: null,
       legal_tenant_id: null,
-      source: 'default_public',
+      source: 'ida_front_door',
     });
   });
 });

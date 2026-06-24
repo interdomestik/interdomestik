@@ -50,6 +50,7 @@ export function isKnownIdaFrontDoorHost(host: string | null | undefined): boolea
   const configuredIdaHost = normalizeTenantHost(process.env.IDA_HOST);
 
   return (
+    normalized.startsWith('ida.') ||
     DEFAULT_IDA_FRONT_DOOR_HOSTS.has(normalized) ||
     (configuredIdaHost.length > 0 && normalized === configuredIdaHost)
   );

@@ -64,10 +64,10 @@ describe('resolveTenantContext tenant concept separation', () => {
 
     expect(result).toMatchObject({
       status: 'missing_session_tenant',
-      booking_tenant_id: 'tenant_mk',
+      booking_tenant_id: null,
       access_tenant_id: null,
       legal_tenant_id: null,
-      source: 'cookie',
+      source: 'ida_front_door',
     });
   });
 });
