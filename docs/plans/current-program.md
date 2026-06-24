@@ -1150,6 +1150,30 @@ and a neutral no-tenant public shell before session context resolves, while
 preserving completed `T-108-MIN`, `T-109`, and `T-114` evidence and avoiding
 `T-501` live-login cutover or country-host redirects.
 
+Post-Rev 110, full canonical `T-108` is complete through PR `#1184` /
+merge-main SHA `06a3a15f7320c7ebd68d9c8067885e3cb0f6c182`, consuming the
+`OBR-DG29` ida neutral-host foundation promotion. The merged implementation
+closes `ida.*`, `IDA_HOST`, and `ida.localhost` as real no-tenant public
+contexts with a discriminated public result, no tenant cookie, and neutral
+no-tenant public-shell behavior with no tenant branding/theme/logo tokens before
+session context resolves while preserving completed `T-108-MIN`, `T-109`, and
+`T-114` evidence. No `apps/web/src/proxy.ts` diff was made. Post-merge main
+health at `06a3a15f` is green for CI run `28089475310`, including `unit` job
+`83163630000` and `e2e-gate` job `83163629982`, Sonar Main Gate run
+`28089475303` with `sonar-gate` job `83163585111`, Secret Scan/gitleaks run
+`28089475324`, and CodeQL run `28089474688`; CD/Vercel remains deployment-only
+evidence. Codex Security diff scan session
+`211f425a-78f2-465a-b625-695221ff6dd3` remained blocked on manual Start scan
+and is recorded as residual security-review risk, not a completed scan. Because
+`T-108`, `T-302`, and `T-202` are now complete, the next active governed
+implementation goal is exactly one canonical tracker slice: `T-501`. `T-501`
+remains limited to the flagged `ida.*` sole live-login cutover and country-host
+301 redirect behavior recorded in the architecture tracker; `T-502`, direct
+destructive `T-503`, `T-505`, schema/RLS/migrations, billing/product UI,
+additional entity migration, Dependabot, README, AGENTS, Operational Brain
+runtime/live AI, high/medium CodeQL batches, and broad M3/M4/M5 remain
+unpromoted unless separately authorized.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
