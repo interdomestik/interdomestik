@@ -77,9 +77,9 @@ runs:
         deploy_target="${DEPLOY_ENVIRONMENT}"; [[ "${deploy_target}" == staging ]] && deploy_target=preview
         target_args=(--target="${deploy_target}")
         if [[ "${DEPLOY_PRODUCTION}" == "true" ]]; then
-          target_args=(--prod)
+          deploy_target=production; target_args=(--prod)
         fi
-        npx --yes vercel@latest build "${target_args[@]}"
+        npx --yes vercel@latest env run -e "${deploy_target}" -- npx --yes vercel@latest build "${target_args[@]}"
     - name: Write Vercel output attestation metadata
       id: artifact
       shell: bash
