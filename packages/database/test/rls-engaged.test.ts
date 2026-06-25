@@ -9,7 +9,6 @@ import postgres from 'postgres';
 import { claims, crmTaskHistory, crmTasks, domainEvents, user } from '../src/schema';
 import {
   applyRlsTestConnectionEnv,
-  grantRlsTestRole,
   quoteIdentifier,
   quoteSqlLiteral,
   requireRlsPreconditions,
@@ -17,6 +16,7 @@ import {
   TEST_DB_PASSWORD,
   TEST_DB_ROLE,
 } from './rls-test-connection';
+import { grantRlsTestRole } from './rls-test-grants';
 import { assertRlsWriteBoundaries } from './rls-write-boundary-proof';
 
 const KS_TENANT_ID = 'tenant_ks';

@@ -5,12 +5,12 @@ import { eq, sql } from 'drizzle-orm';
 import { caseScopedAccessGrants, claims, user } from '../src/schema';
 import { refreshCaseScopedGrantPolicies } from './case-scoped-access-grants-rls-policies';
 import {
-  grantRlsTestRole,
   quoteIdentifier,
   quoteSqlLiteral,
   TEST_DB_PASSWORD,
   TEST_DB_ROLE,
 } from './rls-test-connection';
+import { grantRlsTestRole } from './rls-test-grants';
 
 export const HOME_TENANT_ID = 'tenant_ks';
 export const ACCESS_TENANT_ID = 'tenant_mk';
