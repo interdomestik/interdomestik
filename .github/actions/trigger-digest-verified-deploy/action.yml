@@ -27,9 +27,7 @@ runs:
         set -euo pipefail
         missing=()
         for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
-          if [[ -z "${!name:-}" ]]; then
-            missing+=("${name}")
-          fi
+          [[ -n "${!name:-}" ]] || missing+=("${name}")
         done
         if (( ${#missing[@]} > 0 )); then
           echo "::error::Missing Vercel deployment configuration: ${missing[*]}"
@@ -63,9 +61,12 @@ runs:
         set -euo pipefail
         vercel_env="${DEPLOY_ENVIRONMENT}"; [[ "${vercel_env}" == staging ]] && vercel_env=preview
         [[ "${DEPLOY_PRODUCTION}" == "true" ]] && vercel_env=production
-        npx --yes vercel@latest pull \
-          --yes \
-          --environment="${vercel_env}"
+        pull_args=(--yes --environment="${vercel_env}")
+        if [[ "${vercel_env}" == preview ]]; then
+          preview_branch="${GITHUB_REF_NAME:-main}"; [[ "${GITHUB_REF_TYPE:-}" == tag ]] && preview_branch=main
+          pull_args+=(--git-branch="${preview_branch}")
+        fi
+        npx --yes vercel@latest pull "${pull_args[@]}"
     - name: Build Vercel artifact
       shell: bash
       env:
@@ -75,11 +76,9 @@ runs:
       run: |
         set -euo pipefail
         deploy_target="${DEPLOY_ENVIRONMENT}"; [[ "${deploy_target}" == staging ]] && deploy_target=preview
-        target_args=(--target="${deploy_target}")
-        if [[ "${DEPLOY_PRODUCTION}" == "true" ]]; then
-          deploy_target=production; target_args=(--prod)
-        fi
-        npx --yes vercel@latest env run -e "${deploy_target}" -- npx --yes vercel@latest build "${target_args[@]}"
+        target_args=()
+        if [[ "${DEPLOY_PRODUCTION}" == "true" ]]; then deploy_target=production; target_args=(--prod); fi
+        node scripts/ci/run-with-vercel-env-file.mjs "${deploy_target}" "${target_args[@]}"
     - name: Write Vercel output attestation metadata
       id: artifact
       shell: bash

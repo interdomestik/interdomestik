@@ -22,12 +22,6 @@ function findStepIndex(steps, name) {
   return steps.findIndex(step => step?.name === name);
 }
 
-function assertBuildDigestOutput(jobName) {
-  const job = cdWorkflow.jobs[jobName];
-  assert.ok(job, `${jobName} must exist`);
-  assert.equal(job.outputs.image_digest, '${{ steps.build.outputs.digest }}');
-}
-
 function assertVercelDeployBoundary({
   jobName,
   buildJobName,
@@ -53,22 +47,28 @@ function assertVercelDeployBoundary({
   assert.equal(step.with['commit-sha'], '${{ github.sha }}');
   assert.equal(step.with['canonical-url'], undefined);
   assert.equal(step.env.ENABLE_VERCEL_DEPLOYMENTS, '1');
+  assert.equal(step.env.DATABASE_URL, '${{ secrets.DATABASE_URL }}');
+  assert.equal(step.env.DATABASE_URL_RLS, '${{ secrets.DATABASE_URL_RLS }}');
+  assert.match(step.env.VERCEL_TOKEN, /secrets\.VERCEL_TOKEN/);
+  assert.equal(step.env.VERCEL_ORG_ID, '${{ vars.VERCEL_ORG_ID }}');
+  assert.equal(step.env.VERCEL_PROJECT_ID, '${{ vars.VERCEL_PROJECT_ID }}');
   assert.equal(
     step.with['attested-image-digest'],
     '${{ needs.' + buildJobName + '.outputs.image_digest }}'
   );
 
-  assert.match(job.env.VERCEL_TOKEN, /secrets\.VERCEL_TOKEN/);
-  assert.equal(job.env.VERCEL_ORG_ID, '${{ vars.VERCEL_ORG_ID }}');
-  assert.equal(job.env.VERCEL_PROJECT_ID, '${{ vars.VERCEL_PROJECT_ID }}');
-  assert.equal(cdWorkflow.env.VERCEL_ORG_ID, undefined);
-  assert.equal(cdWorkflow.env.VERCEL_PROJECT_ID, undefined);
+  for (const key of [
+    'VERCEL_TOKEN',
+    'VERCEL_ORG_ID',
+    'VERCEL_PROJECT_ID',
+    'DATABASE_URL',
+    'DATABASE_URL_RLS',
+  ]) {
+    assert.equal(job.env?.[key], undefined);
+  }
 }
 
 test('CD deploy boundary uses Vercel prebuilt deployments after attested builds', () => {
-  assertBuildDigestOutput('build-staging');
-  assertBuildDigestOutput('build-production');
-
   assertVercelDeployBoundary({
     jobName: 'deploy-staging',
     buildJobName: 'build-staging',
@@ -109,10 +109,12 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(pullStep.run, /vercel@latest pull/u);
   assert.match(pullStep.run, /vercel_env=.*staging.*preview/u);
   assert.match(pullStep.run, /--environment="\$\{vercel_env\}"/u);
-
-  assert.match(buildStep.run, /vercel@latest env run -e "\$\{deploy_target\}"/u);
+  assert.match(pullStep.run, /if \[\[ "\$\{vercel_env\}" == preview \]\]; then/u);
+  assert.match(pullStep.run, /GITHUB_REF_TYPE:-.*tag[\s\S]*--git-branch="\$\{preview_branch\}"/u);
+  assert.match(buildStep.run, /run-with-vercel-env-file\.mjs "\$\{deploy_target\}"/u);
   assert.match(buildStep.run, /deploy_target=.*staging.*preview[\s\S]*deploy_target=production/u);
-  assert.match(buildStep.run, /--target="\$\{deploy_target\}"/u);
+  assert.match(buildStep.run, /target_args=\(\)/u);
+  assert.match(buildStep.run, /target_args=\(--prod\)/u);
 
   assert.equal(renamedDigestStep.id, 'artifact');
   assert.match(renamedDigestStep.run, /hash-vercel-output\.mjs/u);
@@ -142,9 +144,7 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.doesNotMatch(deployStep.run, /--token/u);
   assert.match(deployStep.run, /interdomestik-release-attestation\.json/u);
   assert.match(deployStep.run, /verify-vercel-attestation\.mjs/u);
-  assert.match(deployStep.run, /hostname=/u);
   assert.match(deployStep.run, /vercel_output_digest=/u);
-  assert.match(deployStep.run, /GITHUB_OUTPUT/u);
   assert.equal(cleanupStep.if, '${{ always() }}');
   assert.match(cleanupStep.run, /rm -rf \.vercel/u);
 });

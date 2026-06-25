@@ -6,14 +6,12 @@ on:
       - main
     tags:
       - 'v*'
-
 concurrency:
   group: cd-${{ github.ref }}-${{ github.run_id }}
   cancel-in-progress: false
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-
 jobs:
   build-staging:
     runs-on: [self-hosted, interdomestik-mac]
@@ -74,9 +72,6 @@ jobs:
       hostname: ${{ steps.vercel.outputs.hostname }}
     env:
       EXPECTED_COMMIT_SHA: ${{ github.sha }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
@@ -84,7 +79,12 @@ jobs:
         id: vercel
         uses: ./.github/actions/trigger-digest-verified-deploy
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_RLS: ${{ secrets.DATABASE_URL_RLS }}
           ENABLE_VERCEL_DEPLOYMENTS: '1'
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
         with:
           environment: staging
           production: 'false'
@@ -110,7 +110,6 @@ jobs:
           done
           echo "::error::Staging health check failed after ${max_attempts} attempts."
           exit 1
-
       - name: Verify Staging Build Provenance
         shell: bash
         env:
@@ -220,7 +219,6 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-
       - name: Build, attest, and verify Docker image
         id: build
         uses: ./.github/actions/build-attested-image
@@ -244,19 +242,19 @@ jobs:
       contents: read
       id-token: write
       attestations: write
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
-
       - name: Deploy Production to Vercel
         id: vercel
         uses: ./.github/actions/trigger-digest-verified-deploy
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_RLS: ${{ secrets.DATABASE_URL_RLS }}
           ENABLE_VERCEL_DEPLOYMENTS: '1'
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
         with:
           environment: production
           production: 'true'
