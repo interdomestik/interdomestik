@@ -1511,6 +1511,32 @@ work, README, AGENTS, Operational Brain runtime/live AI, and broad architecture
 rewrites remain out of scope unless separately promoted. The next active
 governed implementation goal is exactly one canonical tracker slice: `T-002b`.
 
+Post-Rev 127, `T-002b` completes through PR `#1206` / merge-main SHA
+`fa018a53fd6c3423cd2a6240957f9efbc12f5aa2` from final implementation head
+`757991e1f5b8e3ff87de1b7380fb343635f50ed5`, consuming the `OBR-DG38`
+runtime-envelope promotion. The merged implementation adds first-class
+`submitted_to_airline` claim lifecycle/status semantics, tenant-scoped
+claim-transition evidence, assignment/POA plus accepted-fee plus airline-consent
+guards, vehicle-damage valuation-delta plus service-consent guards,
+sensitive/invalidity medical-consent plus human-review guards, atomic
+status/history/event behavior, and event payload evidence identifiers without raw
+evidence content. Pre-merge proof was green for CI `28146743529` including unit
+job `83355429676` and DB-backed `e2e-gate` job `83355429669`, PR E2E
+`28146743533`, Pilot Gate `28146743492`, Secret Scan/gitleaks `28146743495`,
+Security/pnpm-audit `28146743511`, Commitlint `28146743498`, `pr-finalizer`
+`28146743497`, SonarCloud Code Analysis with `0` new open/confirmed issues, and
+CodeQL `28146741739` plus branch-protection CodeQL check `83355471081`.
+Post-merge main health at `fa018a53` is green for CI `28147599904` including
+unit job `83358029016` and DB-backed `e2e-gate` job `83358029023`, Sonar Main
+Gate `28147599893`, scheduled Sonar Main Gate `28147794817`, Secret
+Scan/gitleaks `28147599899`, manual main Security/pnpm-audit `28147791688` /
+job `83358584777`, and CodeQL `28147599561`. CD/Vercel/Sentry remain
+deployment-only/non-readiness evidence. No replacement runtime slice is started
+by this closeout; fresh current-authority/design-gate selection is required
+before follow-on work, and `blocked_requires_current_authority` with
+`activeSlice=null` is expected until a fresh gate selects exactly one next
+governed action.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
