@@ -28,13 +28,29 @@ runs:
           exit 0
         fi
 
-        apt_cmd="apt-get"
-        if command -v sudo >/dev/null 2>&1; then
-          apt_cmd="sudo apt-get"
-        fi
+        case "${RUNNER_OS}" in
+          Linux)
+            apt_cmd="apt-get"
+            if command -v sudo >/dev/null 2>&1; then
+              apt_cmd="sudo apt-get"
+            fi
 
-        ${apt_cmd} update
-        ${apt_cmd} install -y ripgrep
+            ${apt_cmd} update
+            ${apt_cmd} install -y ripgrep
+            ;;
+          macOS)
+            if command -v brew >/dev/null 2>&1; then
+              brew install ripgrep
+            else
+              echo "::error::ripgrep is missing and Homebrew is not available on macOS runner."
+              exit 1
+            fi
+            ;;
+          *)
+            echo "::error::ripgrep is missing and automatic install is not supported on ${RUNNER_OS}."
+            exit 1
+            ;;
+        esac
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --prefer-offline
@@ -57,7 +73,7 @@ runs:
         set -euo pipefail
 
         # Most CI paths only run Chromium projects; avoid downloading unused engines.
-        if [[ "${{ steps.playwright-cache.outputs.cache-hit }}" == "true" ]]; then
+        if [[ "${{ steps.playwright-cache.outputs.cache-hit }}" == "true" || "${RUNNER_OS}" != "Linux" ]]; then
           pnpm --filter @interdomestik/web exec playwright install chromium
         else
           pnpm --filter @interdomestik/web exec playwright install --with-deps chromium
