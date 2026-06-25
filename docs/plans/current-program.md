@@ -1446,6 +1446,25 @@ required before implementation, with `blocked_requires_current_authority` and
 semantics, smallest durable evidence envelope, and transition read-context
 lock/read order.
 
+Post-Rev 124, `OBR-DG37` is the post-`OBR-DG36` current-authority gate in
+`docs/plans/2026-06-25-obr-dg37-t002b-readiness-gate.md`. It records
+`OBR-DG36` PR `#1202` / merge
+`d53860bb54c14299f21117b7355e4172e0547faa`, post-merge main health green for CI
+`28139490697` including DB-backed `e2e-gate` job `83333544092`, Sonar Main Gate
+`28139490672`, Secret Scan/gitleaks `28139490677`, and CodeQL `28139490479`,
+and the pre-gate resolver state `blocked_requires_current_authority` with
+`activeSlice=null`. It promotes exactly one next governed
+implementation-readiness slice: `T-002b-a`, limited to a readiness/design packet
+for submitted-to-airline target semantics, the smallest durable evidence
+envelope, and transition read-context lock/read order before runtime
+status/history/event side effects. Direct `T-002b` runtime implementation,
+direct destructive `T-503`, M6/product expansion, broad SVC/FLIGHT/VONESA
+rollout, CQRS/read-model work, UI/UX implementation, proxy/routing/auth/session
+or tenancy runtime, schema/RLS/migrations, billing/product UI, Dependabot work,
+README, AGENTS, and broad architecture rewrites remain unpromoted unless
+separately reauthorized. The next active governed implementation goal is exactly
+one canonical tracker slice: `T-002b-a`.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
