@@ -1415,21 +1415,36 @@ DB-backed `e2e-gate` job `83327351880`, Sonar Main Gate `28137465926`, Secret
 Scan/gitleaks `28137465884`, and CodeQL `28137465577`; and the pre-gate
 resolver state was `blocked_requires_current_authority` with `activeSlice=null`.
 Remaining status-bearing M0-M5 rows are `T-002b` and direct destructive `T-503`.
-`T-002b` is selected because its direct prerequisite `T-001` is complete, the
-central transition command spine is already established, and it is the only
-non-destructive remaining core row. The next active governed implementation goal
-is exactly one canonical tracker slice: `T-002b`. Direct work must wait until
-this gate merges and the resolver promotes exactly `T-002b`. Future `T-002b` is
-limited to central claim-transition invariants and proof: airline submission
-requires signed assignment or POA plus accepted fee and consent, vehicle-damage
-negotiation requires valuation-delta plus signed service consent, and sensitive
-services require medical consent with invalidity human-review evidence where
-supported. Direct destructive `T-503`, broad SVC/FLIGHT/VONESA rollout,
-M6/product expansion, CQRS/read-model work, UI/UX redesign,
+At merge time, `T-002b` was selected because its direct prerequisite `T-001` is
+complete, the central transition command spine is already established, and it is
+the only non-destructive remaining core row. That selection is superseded by the
+Post-Rev 123 evidence-envelope addendum before runtime work starts. Future
+`T-002b` was limited to central claim-transition invariants and proof: airline
+submission requires signed assignment or POA plus accepted fee and consent,
+vehicle-damage negotiation requires valuation-delta plus signed service consent,
+and sensitive services require medical consent with invalidity human-review
+evidence where supported. Direct destructive `T-503`, broad SVC/FLIGHT/VONESA
+rollout, M6/product expansion, CQRS/read-model work, UI/UX redesign,
 proxy/routing/auth/session/tenancy refactors, schema/RLS/migrations outside the
 smallest justified `T-002b` evidence envelope, billing/product UI, Dependabot
 work, README, AGENTS, and broad architecture rewrites remain out of scope unless
 separately promoted.
+
+Post-Rev 123, `OBR-DG36` is the post-`OBR-DG35` evidence-envelope addendum in
+`docs/plans/2026-06-25-obr-dg36-t002b-evidence-envelope-addendum.md`. It records
+that `OBR-DG35` merged through PR `#1201` at
+`d50de4ce7e8929a709c918790eba44e3172d65f7` and post-merge main health was green
+for CI `28138436353`, Sonar Main Gate `28138436364`, Secret Scan/gitleaks
+`28138436438`, and CodeQL `28138436049`, but bounded T-002b proof-source
+inventory found a pre-runtime authority gap. The current claim status set has no
+`submitted_to_airline` target, and the central transition read context does not
+load durable assignment/POA, airline submission consent, valuation-delta, service
+consent, medical consent, or invalidity human-review proof. No replacement
+runtime slice is promoted by this addendum; fresh current-authority resolution is
+required before implementation, with `blocked_requires_current_authority` and
+`activeSlice=null` expected until a gate defines the target status/lifecycle
+semantics, smallest durable evidence envelope, and transition read-context
+lock/read order.
 
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
