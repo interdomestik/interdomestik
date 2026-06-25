@@ -7,15 +7,12 @@ import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const cdWorkflow = yaml.load(
-  fs.readFileSync(path.join(rootDir, '.github/workflows/cd.yml'), 'utf8')
-);
-const deployAction = yaml.load(
-  fs.readFileSync(
-    path.join(rootDir, '.github/actions/trigger-digest-verified-deploy/action.yml'),
-    'utf8'
-  )
-);
+const cdWorkflow = readYaml('.github/workflows/cd.yml');
+const deployAction = readYaml('.github/actions/trigger-digest-verified-deploy/action.yml');
+
+function readYaml(relativePath) {
+  return yaml.load(fs.readFileSync(path.join(rootDir, relativePath), 'utf8'));
+}
 
 function findStep(steps, name) {
   return steps.find(step => step?.name === name);
@@ -110,10 +107,12 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(validateStep.run, /ENABLE_VERCEL_DEPLOYMENTS=1/u);
 
   assert.match(pullStep.run, /vercel@latest pull/u);
+  assert.match(pullStep.run, /vercel_env=.*staging.*preview/u);
   assert.match(pullStep.run, /--environment="\$\{vercel_env\}"/u);
 
   assert.match(buildStep.run, /vercel@latest build/u);
-  assert.match(buildStep.run, /--target="\$\{DEPLOY_ENVIRONMENT\}"/u);
+  assert.match(buildStep.run, /deploy_target=.*staging.*preview/u);
+  assert.match(buildStep.run, /--target="\$\{deploy_target\}"/u);
 
   assert.equal(renamedDigestStep.id, 'artifact');
   assert.match(renamedDigestStep.run, /hash-vercel-output\.mjs/u);
@@ -137,7 +136,8 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(deployStep.run, /vercel@latest deploy/u);
   assert.match(deployStep.run, /--prebuilt/u);
   assert.match(deployStep.run, /--env "COMMIT_SHA=\$\{COMMIT_SHA\}"/u);
-  assert.match(deployStep.run, /--target="\$\{DEPLOY_ENVIRONMENT\}"/u);
+  assert.match(deployStep.run, /deploy_target=.*staging.*preview/u);
+  assert.match(deployStep.run, /--target="\$\{deploy_target\}"/u);
   assert.match(deployStep.run, /base_url="\$\{deployment_url\}"/u);
   assert.doesNotMatch(deployStep.run, /--token/u);
   assert.match(deployStep.run, /interdomestik-release-attestation\.json/u);
