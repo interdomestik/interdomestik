@@ -61,7 +61,7 @@ runs:
         DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
       run: |
         set -euo pipefail
-        vercel_env="${DEPLOY_ENVIRONMENT}"
+        vercel_env="${DEPLOY_ENVIRONMENT}"; [[ "${vercel_env}" == staging ]] && vercel_env=preview
         [[ "${DEPLOY_PRODUCTION}" == "true" ]] && vercel_env=production
         npx --yes vercel@latest pull \
           --yes \
@@ -74,7 +74,8 @@ runs:
         INTERDOMESTIK_DEPLOY_ENV: ${{ inputs.environment }}
       run: |
         set -euo pipefail
-        target_args=(--target="${DEPLOY_ENVIRONMENT}")
+        deploy_target="${DEPLOY_ENVIRONMENT}"; [[ "${deploy_target}" == staging ]] && deploy_target=preview
+        target_args=(--target="${deploy_target}")
         if [[ "${DEPLOY_PRODUCTION}" == "true" ]]; then
           target_args=(--prod)
         fi
@@ -111,7 +112,8 @@ runs:
         VERCEL_OUTPUT_DIGEST: ${{ steps.artifact.outputs.vercel_output_digest }}
       run: |
         set -euo pipefail
-        target_args=(--target="${DEPLOY_ENVIRONMENT}")
+        deploy_target="${DEPLOY_ENVIRONMENT}"; [[ "${deploy_target}" == staging ]] && deploy_target=preview
+        target_args=(--target="${deploy_target}")
         if [[ "${DEPLOY_PRODUCTION}" == "true" ]]; then
           target_args=(--prod)
         fi
