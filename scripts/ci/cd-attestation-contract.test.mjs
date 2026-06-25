@@ -91,6 +91,7 @@ function assertAttestedImageAction() {
   assert.ok(attestSbomStep, 'attested image action must create a signed SBOM attestation');
   assert.ok(verifyStep, 'attested image action must verify signed provenance and SBOM');
   assert.match(sbomStep.uses, /^anchore\/sbom-action@[a-f0-9]{40}$/u);
+  assert.equal(sbomStep.env.SYFT_PLATFORM, 'linux/amd64');
   assert.equal(sbomStep.with.format, 'spdx-json');
   assert.equal(sbomStep.with['output-file'], 'image.sbom.spdx.json');
   assert.equal(sbomStep.with['upload-artifact'], false);

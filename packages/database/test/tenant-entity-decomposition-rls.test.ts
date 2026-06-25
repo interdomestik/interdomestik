@@ -12,12 +12,8 @@ import {
   marketingHosts,
   tenantEntityBoundaries,
 } from '../src/schema';
-import {
-  grantRlsTestRole,
-  quoteIdentifier,
-  requireRlsPreconditions,
-  TEST_DB_ROLE,
-} from './rls-test-connection';
+import { quoteIdentifier, requireRlsPreconditions, TEST_DB_ROLE } from './rls-test-connection';
+import { grantRlsTestRole } from './rls-test-grants';
 
 const KS_TENANT_ID = 'tenant_ks';
 const MK_TENANT_ID = 'tenant_mk';

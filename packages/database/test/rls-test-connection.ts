@@ -131,19 +131,3 @@ export async function requireRlsPreconditions(
     t.skip(`tenant-isolation policies are not present: ${missingPolicyTables.join(', ')}`);
   }
 }
-
-export async function grantRlsTestRole(
-  adminDb: ReturnType<typeof drizzle>,
-  tableNames: readonly string[]
-): Promise<void> {
-  await adminDb.execute(sql.raw(`grant usage on schema public to "${TEST_DB_ROLE}"`));
-  for (const tableName of tableNames) {
-    await adminDb.execute(
-      sql.raw(`grant select on table ${quoteIdentifier(tableName)} to "${TEST_DB_ROLE}"`)
-    );
-  }
-  const [{ currentUser }] = await adminDb.execute<{ currentUser: string }>(
-    sql`select current_user as "currentUser"`
-  );
-  await adminDb.execute(sql.raw(`grant "${TEST_DB_ROLE}" to ${quoteIdentifier(currentUser)}`));
-}

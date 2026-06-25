@@ -9,13 +9,13 @@ import postgres from 'postgres';
 import { claimTransitionEvidence, claims, user } from '../src/schema';
 import {
   applyRlsTestConnectionEnv,
-  grantRlsTestRole,
   quoteIdentifier,
   quoteSqlLiteral,
   requireRlsPreconditions,
   TEST_DB_PASSWORD,
   TEST_DB_ROLE,
 } from './rls-test-connection';
+import { grantRlsTestRole } from './rls-test-grants';
 
 const KS_TENANT_ID = 'tenant_ks';
 const MK_TENANT_ID = 'tenant_mk';
