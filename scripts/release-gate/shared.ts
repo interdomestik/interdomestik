@@ -1,5 +1,4 @@
 const path = require('node:path');
-
 const { ROUTES, MARKERS, SELECTORS, TIMEOUTS, ROLE_IPS, ACCOUNTS } = require('./config.ts');
 
 const TRANSIENT_NAVIGATION_ERROR_PATTERNS = [
@@ -318,6 +317,7 @@ async function loginAs(page, params) {
     }
 
     const origin = new URL(baseUrl).origin;
+    const authOrigin = params.authOrigin || origin;
     const loginUrl = `${origin}/api/auth/sign-in/email`;
     const tenantId = ACCOUNTS[account]?.tenantId;
 
@@ -337,8 +337,8 @@ async function loginAs(page, params) {
             password: credentials.password,
           },
           headers: {
-            Origin: origin,
-            Referer: `${origin}/${locale}/login`,
+            Origin: authOrigin,
+            Referer: `${authOrigin}/${locale}/login`,
             'x-forwarded-for': resolveForwardedForIp(account),
             ...(tenantId ? { 'x-tenant-id': tenantId } : {}),
           },

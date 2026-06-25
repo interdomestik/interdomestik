@@ -136,6 +136,7 @@ async function loginWithRunContext(page, runCtx, account, options = {}) {
     account,
     credentials: runCtx.credentials[account],
     baseUrl: runCtx.baseUrl,
+    authOrigin: runCtx.authOrigin,
     locale: runCtx.locale,
     authState: runCtx.authState,
     forceFresh: options.forceFresh === true,

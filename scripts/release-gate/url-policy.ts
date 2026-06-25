@@ -20,23 +20,24 @@ function normalizedHostname(hostname) {
   return String(hostname || '').toLowerCase();
 }
 
-function isAllowedReleaseGateHostname(hostname) {
-  const normalized = normalizedHostname(hostname);
-  return (
-    RELEASE_GATE_HOSTNAMES.has(normalized) ||
-    RELEASE_GATE_HOSTNAME_SUFFIXES.some(suffix => normalized.endsWith(suffix))
+function configuredExtraHostname(options) {
+  return normalizedHostname(
+    options.allowedExtraHostname || process.env.RELEASE_GATE_EXTRA_HOSTNAME
   );
 }
 
 function assertTrustedReleaseGateBaseUrl(rawValue, options = {}) {
   const parsed = assertSafeHttpUrl(rawValue, { allowLoopback: options.allowLoopback === true });
   const normalized = normalizedHostname(parsed.hostname);
-  const extraHostname = normalizedHostname(options.allowedExtraHostname);
+  const extraHostname = configuredExtraHostname(options);
+  const allowed =
+    RELEASE_GATE_HOSTNAMES.has(normalized) ||
+    RELEASE_GATE_HOSTNAME_SUFFIXES.some(suffix => normalized.endsWith(suffix));
   if (isLoopbackOrPrivateHost(parsed.hostname)) return parsed;
   if (extraHostname && normalized === extraHostname && normalized.endsWith('.vercel.app')) {
     return parsed;
   }
-  if (!isAllowedReleaseGateHostname(parsed.hostname)) {
+  if (!allowed) {
     throw new Error(`Release gate base URL host is not allowed: ${parsed.hostname}`);
   }
   return parsed;
@@ -64,7 +65,7 @@ function buildTrustedLoopbackOrigin(parsed) {
 function assertTrustedReleaseGateProbeOrigin(rawValue, options = {}) {
   const parsed = assertTrustedReleaseGateBaseUrl(rawValue, options);
   const normalized = normalizedHostname(parsed.hostname);
-  const extraHostname = normalizedHostname(options.allowedExtraHostname);
+  const extraHostname = configuredExtraHostname(options);
   if (isLoopbackOrPrivateHost(parsed.hostname)) return buildTrustedLoopbackOrigin(parsed);
   if (extraHostname && normalized === extraHostname && normalized.endsWith('.vercel.app')) {
     if (parsed.protocol !== 'https:') {
@@ -141,7 +142,6 @@ module.exports = {
   assertTrustedReleaseGateBaseUrl,
   assertTrustedReleaseGateProbeOrigin,
   buildAuthEndpointUrls,
-  isAllowedReleaseGateHostname,
   normalizeTrustedVercelDeploymentBaseUrl,
   shouldAllowConfiguredLoopbackBaseUrl,
 };

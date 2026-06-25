@@ -71,6 +71,15 @@ test('release gate base URL policy rejects untrusted public egress hosts', () =>
       .origin,
     'https://deploy.example.vercel.app'
   );
+  const originalExtraHostname = process.env.RELEASE_GATE_EXTRA_HOSTNAME;
+  try {
+    process.env.RELEASE_GATE_EXTRA_HOSTNAME = 'deploy.example.vercel.app';
+    const allowed = assertTrustedReleaseGateBaseUrl('https://deploy.example.vercel.app');
+    assert.equal(allowed.origin, 'https://deploy.example.vercel.app');
+  } finally {
+    if (originalExtraHostname == null) delete process.env.RELEASE_GATE_EXTRA_HOSTNAME;
+    else process.env.RELEASE_GATE_EXTRA_HOSTNAME = originalExtraHostname;
+  }
   assertThrowsMessage(
     () => assertTrustedReleaseGateBaseUrl('https://attacker.vercel.app', DEPLOY_HOST_OPTIONS),
     RELEASE_GATE_HOST_ERROR
@@ -119,31 +128,18 @@ test('auth preflight allows only the exact validated deployment fallback host', 
 });
 
 test('production release gate allows only trusted CI Playwright loopback base URL', () => {
+  const loopback = 'http://127.0.0.1:3000';
   assert.equal(
-    shouldAllowConfiguredLoopbackBaseUrl('http://127.0.0.1:3000', 'production', {
+    shouldAllowConfiguredLoopbackBaseUrl(loopback, 'production', {
       CI: 'true',
       PLAYWRIGHT: '1',
-      NEXT_PUBLIC_APP_URL: 'http://127.0.0.1:3000',
-      BETTER_AUTH_URL: 'http://127.0.0.1:3000',
+      NEXT_PUBLIC_APP_URL: loopback,
+      BETTER_AUTH_URL: loopback,
     }),
     true
   );
 
-  assert.equal(
-    shouldAllowConfiguredLoopbackBaseUrl('http://127.0.0.1:3000', 'production', {
-      CI: 'true',
-      PLAYWRIGHT: '1',
-      NEXT_PUBLIC_APP_URL: 'https://interdomestik-web.vercel.app',
-      BETTER_AUTH_URL: 'https://interdomestik-web.vercel.app',
-    }),
-    false
-  );
-
-  assert.equal(
-    shouldAllowConfiguredLoopbackBaseUrl('http://127.0.0.1:3000', 'production', {
-      PLAYWRIGHT: '1',
-      NEXT_PUBLIC_APP_URL: 'http://127.0.0.1:3000',
-    }),
-    false
-  );
+  for (const env of [{ CI: 'true' }, { PLAYWRIGHT: '1', NEXT_PUBLIC_APP_URL: loopback }]) {
+    assert.equal(shouldAllowConfiguredLoopbackBaseUrl(loopback, 'production', env), false);
+  }
 });
