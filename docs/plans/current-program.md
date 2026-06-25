@@ -1489,6 +1489,28 @@ required before follow-on implementation, and `blocked_requires_current_authorit
 with `activeSlice=null` is expected until a later gate promotes exactly one
 concrete runtime envelope.
 
+Post-Rev 126, `OBR-DG38` is the post-`T-002b-a` current-authority gate in
+`docs/plans/2026-06-25-obr-dg38-t002b-runtime-envelope.md`. It records
+`T-002b-a` PR `#1204` / merge
+`a348e0dad719f9ea572e85616be6b88098ac6318`, post-merge main health green for CI
+`28141301565` including unit job `83339067553` and DB-backed `e2e-gate` job
+`83339067550`, Sonar Main Gate `28141301568`, Secret Scan/gitleaks
+`28141301577`, and CodeQL `28141301219`, and the pre-gate resolver state
+`blocked_requires_current_authority` with `activeSlice=null`. It promotes
+exactly one next governed implementation slice: `T-002b`, limited to the central
+transition runtime envelope defined by the completed readiness packet:
+first-class `submitted_to_airline` semantics, assignment/POA plus accepted-fee
+plus airline-consent guard proof, vehicle-damage valuation-delta plus
+service-consent guard proof, sensitive/invalidity medical-consent plus
+human-review proof, atomic transition/history/event behavior, and the smallest
+tenant-scoped durable evidence envelope needed for those invariants. Direct
+destructive `T-503`, destructive `claims.status` removal, M6/product expansion,
+broad SVC/FLIGHT/VONESA rollout, CQRS/read-model work, UI/UX implementation,
+proxy/routing/auth/session/tenancy refactors, billing/product UI, Dependabot
+work, README, AGENTS, Operational Brain runtime/live AI, and broad architecture
+rewrites remain out of scope unless separately promoted. The next active
+governed implementation goal is exactly one canonical tracker slice: `T-002b`.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
