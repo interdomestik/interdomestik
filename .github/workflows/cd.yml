@@ -1,6 +1,6 @@
 name: CD
-
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -185,8 +185,8 @@ jobs:
           path: ${{ env.EVIDENCE_DIR }}/**
           if-no-files-found: error
           retention-days: 14
-
   build-production:
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     needs: e2e-staging
     runs-on: [self-hosted, interdomestik-mac]
     environment:
