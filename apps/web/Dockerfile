@@ -37,7 +37,9 @@ ENV NEXT_IGNORE_ESLINT 1
 ENV INTERDOMESTIK_BUILDING 1
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-RUN pnpm --filter @interdomestik/web build
+RUN DATABASE_URL="postgres://p:p@127.0.0.1:54322/postgres" \
+  DATABASE_URL_RLS="postgres://p:p@127.0.0.1:54322/postgres" \
+  pnpm --filter @interdomestik/web build
 
 FROM base AS runner
 WORKDIR /app

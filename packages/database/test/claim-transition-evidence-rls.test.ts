@@ -48,7 +48,7 @@ test('claim_transition_evidence RLS scopes reads by access tenant and writes by 
     do $$
     begin
       create role ${quoteIdentifier(TEST_DB_ROLE)} login password ${quoteSqlLiteral(TEST_DB_PASSWORD)};
-    exception when duplicate_object then
+    exception when duplicate_object or unique_violation then
       alter role ${quoteIdentifier(TEST_DB_ROLE)} with login password ${quoteSqlLiteral(TEST_DB_PASSWORD)};
     end
     $$;

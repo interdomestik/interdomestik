@@ -73,7 +73,7 @@ test('T-504 entity tables use home tenant RLS, not access or booking tenant hint
         begin
           create role ${quoteIdentifier(TEST_DB_ROLE)} nologin;
         exception
-          when duplicate_object then null;
+          when duplicate_object or unique_violation then null;
         end
         $$;
       `)
