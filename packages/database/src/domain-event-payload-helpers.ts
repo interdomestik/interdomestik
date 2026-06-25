@@ -55,3 +55,24 @@ export function assertIntegerPayloadField(
   }
   return value;
 }
+
+export function evidenceReferencePayload(
+  payload: Record<string, unknown>
+): Record<string, unknown> {
+  const evidenceCount = payload.evidenceCount;
+  const evidenceIds = payload.evidenceIds;
+  if (evidenceCount === undefined && evidenceIds === undefined) return {};
+  if (!Number.isInteger(evidenceCount) || Number(evidenceCount) < 0) {
+    throw new Error('appendEvent requires payload.evidenceCount to be a non-negative integer');
+  }
+  if (!Array.isArray(evidenceIds)) {
+    throw new TypeError('appendEvent requires payload.evidenceIds to be an array');
+  }
+  if (evidenceIds.some(evidenceId => typeof evidenceId !== 'string' || evidenceId.trim() === '')) {
+    throw new Error('appendEvent requires payload.evidenceIds to be non-empty string ids');
+  }
+  if (evidenceCount !== evidenceIds.length) {
+    throw new Error('appendEvent requires payload.evidenceCount to match payload.evidenceIds');
+  }
+  return { evidenceCount, evidenceIds: [...evidenceIds] };
+}

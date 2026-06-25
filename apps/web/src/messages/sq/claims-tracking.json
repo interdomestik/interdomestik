@@ -51,6 +51,7 @@
     "status": {
       "draft": "Skicë",
       "submitted": "E dorëzuar",
+      "submitted_to_airline": "Dorëzuar te linja ajrore",
       "verification": "Verifikim",
       "evaluation": "Vlerësim",
       "negotiation": "Negociim",
@@ -60,6 +61,7 @@
       "next_step": {
         "draft": "Ju lutemi dorëzoni kërkesën tuaj për shqyrtim.",
         "submitted": "Kemi marrë kërkesën tuaj dhe do ta caktojmë te një menaxher rasti së shpejti.",
+        "submitted_to_airline": "Paketën e kërkesës e kemi dorëzuar te linja ajrore.",
         "verification": "Po verifikojmë dokumentet dhe provat e ofruara.",
         "evaluation": "Ekspertët tanë po vlerësojnë dëmet dhe përgjegjësinë.",
         "negotiation": "Po negociojmë me kompaninë e sigurimeve për një zgjidhje të drejtë.",

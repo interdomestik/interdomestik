@@ -8,6 +8,7 @@ describe('loadRecoveryInvariantReadRow', () => {
   it('locks recovery prerequisite rows in order before loading the current claim', async () => {
     const calls: { executedSql: string[]; where?: unknown } = { executedSql: [] };
     const agreement = {
+      acceptedAt: new Date('2026-03-11T09:00:00Z'),
       legalActionCapPercentage: 25,
       paymentAuthorizationState: 'authorized',
       signedAt: new Date('2026-03-11T09:00:00Z'),
@@ -54,6 +55,7 @@ describe('loadRecoveryInvariantReadRow', () => {
       current: {
         authority: 'lifecycle',
         caseLifecycleState: 'recovery',
+        category: null,
         lifecycleVersion: 4,
         recoveryLifecycleState: 'negotiation',
         status: 'negotiation',

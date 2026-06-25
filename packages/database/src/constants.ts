@@ -3,6 +3,7 @@
 export const CLAIM_STATUSES = [
   'draft',
   'submitted',
+  'submitted_to_airline',
   'verification',
   'evaluation',
   'negotiation',
@@ -27,6 +28,7 @@ export type ClaimCaseLifecycleState = (typeof CLAIM_CASE_LIFECYCLE_STATES)[numbe
 
 export const CLAIM_RECOVERY_LIFECYCLE_STATES = [
   'not_started',
+  'submitted_to_airline',
   'negotiation',
   'court',
   'resolved',

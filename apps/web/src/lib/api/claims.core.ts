@@ -9,6 +9,7 @@ export type ClaimsScope =
 export type ClaimStatus =
   | 'draft'
   | 'submitted'
+  | 'submitted_to_airline'
   | 'verification'
   | 'evaluation'
   | 'negotiation'

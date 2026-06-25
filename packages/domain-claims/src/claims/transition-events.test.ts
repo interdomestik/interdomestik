@@ -19,7 +19,12 @@ describe('transitionClaimStatusInTransaction event atomicity', () => {
         aggregateVersion: 7,
         entityType: 'claim',
         eventName: 'claim.status_changed',
-        payload: { fromStatus: 'evaluation', toStatus: 'negotiation' },
+        payload: {
+          evidenceCount: 0,
+          evidenceIds: [],
+          fromStatus: 'evaluation',
+          toStatus: 'negotiation',
+        },
       }),
       expect.objectContaining({
         entityType: 'case',
@@ -29,6 +34,8 @@ describe('transitionClaimStatusInTransaction event atomicity', () => {
           fromStatus: 'evaluation',
           toState: 'recovery',
           toStatus: 'negotiation',
+          evidenceCount: 0,
+          evidenceIds: [],
         },
       }),
       expect.objectContaining({
@@ -39,6 +46,8 @@ describe('transitionClaimStatusInTransaction event atomicity', () => {
           fromStatus: 'evaluation',
           toState: 'negotiation',
           toStatus: 'negotiation',
+          evidenceCount: 0,
+          evidenceIds: [],
         },
       }),
     ]);

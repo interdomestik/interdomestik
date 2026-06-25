@@ -6,6 +6,7 @@ import { desc, eq } from 'drizzle-orm';
 type ClaimStatus =
   | 'draft'
   | 'submitted'
+  | 'submitted_to_airline'
   | 'verification'
   | 'evaluation'
   | 'negotiation'
@@ -16,6 +17,7 @@ type ClaimStatus =
 const OPEN_STATUSES = new Set<ClaimStatus>([
   'draft',
   'submitted',
+  'submitted_to_airline',
   'verification',
   'evaluation',
   'negotiation',

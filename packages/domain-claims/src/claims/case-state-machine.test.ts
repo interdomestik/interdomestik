@@ -13,6 +13,7 @@ const actor = { id: 'staff-1', role: 'staff' };
 const EXPECTED_CASE_STATES = {
   draft: 'draft',
   submitted: 'submitted',
+  submitted_to_airline: 'recovery',
   verification: 'verification',
   evaluation: 'evaluation',
   negotiation: 'recovery',
@@ -23,9 +24,10 @@ const EXPECTED_CASE_STATES = {
 
 const EXPECTED_GRAPH = {
   draft: ['submitted'],
-  submitted: ['verification', 'evaluation', 'rejected'],
+  submitted: ['verification', 'evaluation', 'rejected', 'submitted_to_airline'],
+  submitted_to_airline: ['negotiation', 'resolved', 'evaluation', 'rejected'],
   verification: ['evaluation', 'submitted'],
-  evaluation: ['negotiation', 'verification', 'rejected', 'resolved'],
+  evaluation: ['negotiation', 'submitted_to_airline', 'verification', 'rejected', 'resolved'],
   negotiation: ['court', 'resolved', 'evaluation', 'rejected'],
   court: ['resolved', 'rejected', 'negotiation'],
   resolved: ['evaluation', 'negotiation'],

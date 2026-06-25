@@ -2,14 +2,12 @@ import {
   CLAIM_CASE_LIFECYCLE_STATES,
   CLAIM_RECOVERY_LIFECYCLE_STATES,
   CLAIM_STATUSES,
-  type ClaimCaseLifecycleState,
-  type ClaimRecoveryLifecycleState,
-  type ClaimStatus,
 } from './constants';
 import {
   assertBooleanPayloadField,
+  evidenceReferencePayload,
   assertNoUnexpectedPayloadFields,
-  assertRequiredPayloadField,
+  assertStringSetPayloadField,
 } from './domain-event-payload-helpers';
 import {
   recoveryDecisionRecordedPayload,
@@ -27,53 +25,60 @@ import {
 import type { AppendEventParams } from './domain-events';
 
 const CASE_CREATED_KEYS = new Set(['hasDocuments', 'initialStatus']);
-const CASE_LIFECYCLE_CHANGED_KEYS = new Set(['fromState', 'fromStatus', 'toState', 'toStatus']);
-const CLAIM_STATUS_CHANGED_KEYS = new Set(['fromStatus', 'toStatus']);
+const EVIDENCE_KEYS = ['evidenceCount', 'evidenceIds'] as const;
+const CASE_LIFECYCLE_CHANGED_KEYS = new Set([
+  ...EVIDENCE_KEYS,
+  'fromState',
+  'fromStatus',
+  'toState',
+  'toStatus',
+]);
+const CLAIM_STATUS_CHANGED_KEYS = new Set([...EVIDENCE_KEYS, 'fromStatus', 'toStatus']);
 const RECOVERY_LIFECYCLE_CHANGED_KEYS = CASE_LIFECYCLE_CHANGED_KEYS;
 const CASE_LIFECYCLE_STATE_SET = new Set<string>(CLAIM_CASE_LIFECYCLE_STATES);
 const CLAIM_STATUS_SET = new Set<string>(CLAIM_STATUSES);
 const RECOVERY_LIFECYCLE_STATE_SET = new Set<string>(CLAIM_RECOVERY_LIFECYCLE_STATES);
 
-function assertClaimStatus(value: unknown, field: string): asserts value is ClaimStatus {
-  if (typeof value !== 'string' || !CLAIM_STATUS_SET.has(value)) {
-    throw new Error(`appendEvent requires payload.${field} to be a claim status`);
-  }
+function claimStatusPayload(payload: Record<string, unknown>, field: string): string {
+  return assertStringSetPayloadField(payload, field, CLAIM_STATUS_SET, 'a claim status');
 }
 
-function assertCaseLifecycleState(
-  value: unknown,
-  field: string
-): asserts value is ClaimCaseLifecycleState {
-  if (typeof value !== 'string' || !CASE_LIFECYCLE_STATE_SET.has(value)) {
-    throw new Error(`appendEvent requires payload.${field} to be a case lifecycle state`);
-  }
+function caseLifecycleStatePayload(payload: Record<string, unknown>, field: string): string {
+  return assertStringSetPayloadField(
+    payload,
+    field,
+    CASE_LIFECYCLE_STATE_SET,
+    'a case lifecycle state'
+  );
 }
 
-function assertRecoveryLifecycleState(
-  value: unknown,
-  field: string
-): asserts value is ClaimRecoveryLifecycleState {
-  if (typeof value !== 'string' || !RECOVERY_LIFECYCLE_STATE_SET.has(value)) {
-    throw new Error(`appendEvent requires payload.${field} to be a recovery lifecycle state`);
-  }
+function recoveryLifecycleStatePayload(payload: Record<string, unknown>, field: string): string {
+  return assertStringSetPayloadField(
+    payload,
+    field,
+    RECOVERY_LIFECYCLE_STATE_SET,
+    'a recovery lifecycle state'
+  );
 }
 
 function claimStatusChangedPayload(payload: Record<string, unknown>): Record<string, unknown> {
   assertNoUnexpectedPayloadFields(payload, 'claim.status_changed', CLAIM_STATUS_CHANGED_KEYS);
   for (const field of CLAIM_STATUS_CHANGED_KEYS) {
-    assertRequiredPayloadField(payload, field);
-    assertClaimStatus(payload[field], field);
+    if (field === 'evidenceCount' || field === 'evidenceIds') continue;
+    claimStatusPayload(payload, field);
   }
-  return { fromStatus: payload.fromStatus, toStatus: payload.toStatus };
+  return {
+    ...evidenceReferencePayload(payload),
+    fromStatus: payload.fromStatus,
+    toStatus: payload.toStatus,
+  };
 }
 
 function caseCreatedPayload(payload: Record<string, unknown>): Record<string, unknown> {
   assertNoUnexpectedPayloadFields(payload, 'case.created', CASE_CREATED_KEYS);
-  const initialStatus = assertRequiredPayloadField(payload, 'initialStatus');
-  assertClaimStatus(initialStatus, 'initialStatus');
   return {
     hasDocuments: assertBooleanPayloadField(payload, 'hasDocuments'),
-    initialStatus,
+    initialStatus: claimStatusPayload(payload, 'initialStatus'),
   };
 }
 
@@ -81,18 +86,17 @@ function lifecycleChangedPayload(
   payload: Record<string, unknown>,
   eventName: string,
   keys: Set<string>,
-  assertState: (value: unknown, field: string) => void
+  statePayload: (payload: Record<string, unknown>, field: string) => string
 ): Record<string, unknown> {
   assertNoUnexpectedPayloadFields(payload, eventName, keys);
   for (const field of ['fromStatus', 'toStatus'] as const) {
-    assertRequiredPayloadField(payload, field);
-    assertClaimStatus(payload[field], field);
+    claimStatusPayload(payload, field);
   }
   for (const field of ['fromState', 'toState'] as const) {
-    assertRequiredPayloadField(payload, field);
-    assertState(payload[field], field);
+    statePayload(payload, field);
   }
   return {
+    ...evidenceReferencePayload(payload),
     fromState: payload.fromState,
     fromStatus: payload.fromStatus,
     toState: payload.toState,
@@ -110,7 +114,7 @@ const PAYLOAD_VALIDATORS: Record<
       payload,
       'case.lifecycle_changed',
       CASE_LIFECYCLE_CHANGED_KEYS,
-      assertCaseLifecycleState
+      caseLifecycleStatePayload
     ),
   'claim.status_changed@1': claimStatusChangedPayload,
   'recovery.lifecycle_changed@1': payload =>
@@ -118,7 +122,7 @@ const PAYLOAD_VALIDATORS: Record<
       payload,
       'recovery.lifecycle_changed',
       RECOVERY_LIFECYCLE_CHANGED_KEYS,
-      assertRecoveryLifecycleState
+      recoveryLifecycleStatePayload
     ),
   'recovery.decision_recorded@1': recoveryDecisionRecordedPayload,
   'recovery.escalation_agreement_recorded@1': recoveryEscalationAgreementRecordedPayload,

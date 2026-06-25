@@ -8,6 +8,7 @@ export type CaseLifecycleState = ClaimCaseLifecycleState;
 export const CASE_STATUS_LIFECYCLE_STATE_MAP = {
   draft: 'draft',
   submitted: 'submitted',
+  submitted_to_airline: 'recovery',
   verification: 'verification',
   evaluation: 'evaluation',
   negotiation: 'recovery',

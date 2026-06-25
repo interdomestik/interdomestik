@@ -34,7 +34,6 @@ export async function persistAuthorizedTransition(
     tenantId,
   } = args;
 
-  // Runtime re-check retained: the proof must match the row and actor.
   if (authorization.from !== current.status || authorization.actorId !== actor.id) {
     throw new ClaimTransitionAuthorizationError(claimId);
   }
@@ -71,6 +70,8 @@ export async function persistAuthorizedTransition(
     actor,
     claimId,
     correlationId,
+    evidenceCount: authorization.evidenceCount,
+    evidenceIds: authorization.evidenceIds,
     fromStatus: current.status,
     hostId: args.hostId,
     isPublic,
@@ -120,8 +121,6 @@ export async function transitionClaimStatusInTransaction(
   if (!decision.allowed) return { success: false, error: 'transition_rejected' };
 
   if (beforePersistAuthorized) {
-    // Pre-CAS hooks are only for already-authorized prerequisite writes.
-    // They must respect the global order: agreement, no-fee evidence, claims CAS.
     await beforePersistAuthorized(authorizedTransitionHookTx(tx));
   }
 

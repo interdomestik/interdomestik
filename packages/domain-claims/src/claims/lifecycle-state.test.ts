@@ -1,3 +1,5 @@
+import { inspect } from 'node:util';
+
 import { claimStageHistory, domainEvents } from '@interdomestik/database';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { describe, expect, it } from 'vitest';
@@ -76,7 +78,11 @@ class FakeInsert {
 
 function makeTx(state: ClaimState): TransitionTx {
   return {
-    execute: async () => [authorizedRecoveryReadRow(state)],
+    execute: async (query: unknown) => {
+      const rendered = String(inspect(query, { depth: 20 }));
+      if (rendered.includes('claim_transition_evidence')) return [];
+      return [authorizedRecoveryReadRow(state)];
+    },
     select: () => new FakeSelect(state),
     update: () => new FakeUpdate(state),
     insert: (table: unknown) => new FakeInsert(table),
@@ -96,13 +102,13 @@ describe('claim lifecycle state mapping', () => {
       caseLifecycleState: 'recovery',
       recoveryLifecycleState: 'negotiation',
     });
-    expect(mapClaimStatusToLifecycleStates('court')).toEqual({
-      caseLifecycleState: 'recovery',
-      recoveryLifecycleState: 'court',
-    });
     expect(CLAIM_STATUS_LIFECYCLE_STATE_MAP).toEqual({
       draft: { caseLifecycleState: 'draft', recoveryLifecycleState: 'not_started' },
       submitted: { caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started' },
+      submitted_to_airline: {
+        caseLifecycleState: 'recovery',
+        recoveryLifecycleState: 'submitted_to_airline',
+      },
       verification: { caseLifecycleState: 'verification', recoveryLifecycleState: 'not_started' },
       evaluation: { caseLifecycleState: 'evaluation', recoveryLifecycleState: 'not_started' },
       negotiation: { caseLifecycleState: 'recovery', recoveryLifecycleState: 'negotiation' },

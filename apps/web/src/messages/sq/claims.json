@@ -23,14 +23,13 @@
     "status": {
       "draft": "Skicë",
       "submitted": "Dorëzuar",
+      "submitted_to_airline": "Dorëzuar te linja ajrore",
       "verification": "Në Verifikim",
       "evaluation": "Në Vlerësim",
       "negotiation": "Në Negociata",
       "court": "Në gjyq",
       "resolved": "Zgjidhur",
       "rejected": "Refuzuar",
-      "assigned": "Caktuar",
-      "investigating": "Në Hetim",
       "contacting": "Në Kontaktim",
       "negotiating": "Në Negociata",
       "mediation": "Në Ndërmjetësim",
@@ -39,6 +38,7 @@
     "stage": {
       "draft": "Skicë",
       "submitted": "Dorëzuar",
+      "submitted_to_airline": "Dorëzuar te linja ajrore",
       "verification": "Në verifikim",
       "evaluation": "Në vlerësim",
       "negotiation": "Në negociata",

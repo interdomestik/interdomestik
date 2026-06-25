@@ -16,6 +16,7 @@ export type RecoveryInvariantReadRow = {
 type EscalationAgreementEvidence = Pick<
   RecoveryInvariantEvidence,
   | 'legalActionCapPercentage'
+  | 'acceptedAt'
   | 'paymentAuthorizationState'
   | 'signedAt'
   | 'successFeeAmount'
@@ -39,6 +40,7 @@ async function lockEscalationAgreementEvidence(
 ): Promise<EscalationAgreementEvidence | undefined> {
   const [row] = await tx.execute<EscalationAgreementEvidence>(sql`
     select
+      "accepted_at" as "acceptedAt",
       "legal_action_cap_percentage" as "legalActionCapPercentage",
       "payment_authorization_state" as "paymentAuthorizationState",
       "signed_at" as "signedAt",
@@ -92,6 +94,7 @@ export async function loadRecoveryInvariantReadRow(
   const [current] = await tx
     .select({
       caseLifecycleState: claims.caseLifecycleState,
+      category: claims.category,
       lifecycleVersion: claims.lifecycleVersion,
       recoveryLifecycleState: claims.recoveryLifecycleState,
       status: claims.status,

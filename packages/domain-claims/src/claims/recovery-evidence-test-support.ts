@@ -15,6 +15,7 @@ export function authorizedRecoveryReadRow(params: {
   return {
     caseLifecycleState: params.caseLifecycleState ?? lifecycleStates.caseLifecycleState ?? null,
     claimId: params.claimId ?? 'claim-1',
+    acceptedAt: new Date('2026-03-12T09:00:00Z'),
     legalActionCapPercentage: 25,
     lifecycleVersion: params.lifecycleVersion,
     paymentAuthorizationState: 'authorized',

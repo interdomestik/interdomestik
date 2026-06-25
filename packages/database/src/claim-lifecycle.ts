@@ -12,6 +12,10 @@ export type ClaimLifecycleFields = {
 export const CLAIM_STATUS_LIFECYCLE_FIELDS = {
   draft: { caseLifecycleState: 'draft', recoveryLifecycleState: 'not_started' },
   submitted: { caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started' },
+  submitted_to_airline: {
+    caseLifecycleState: 'recovery',
+    recoveryLifecycleState: 'submitted_to_airline',
+  },
   verification: { caseLifecycleState: 'verification', recoveryLifecycleState: 'not_started' },
   evaluation: { caseLifecycleState: 'evaluation', recoveryLifecycleState: 'not_started' },
   negotiation: { caseLifecycleState: 'recovery', recoveryLifecycleState: 'negotiation' },

@@ -12,6 +12,7 @@ interface ClaimStatusBadgeProps {
 const STATUS_VARIANTS: Record<ClaimStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   draft: 'secondary',
   submitted: 'default',
+  submitted_to_airline: 'default',
   verification: 'default', // maybe warning color if available?
   evaluation: 'default',
   negotiation: 'default',

@@ -14,6 +14,12 @@ type StagePolicy = {
 const STAGE_POLICIES: Record<ClaimStatus, StagePolicy> = {
   draft: { stuckThreshold: 7, slaThreshold: 0, requiresStaff: false, waitingOn: 'member' },
   submitted: { stuckThreshold: 2, slaThreshold: 3, requiresStaff: true, waitingOn: 'staff' },
+  submitted_to_airline: {
+    stuckThreshold: 7,
+    slaThreshold: 14,
+    requiresStaff: true,
+    waitingOn: 'staff',
+  },
   verification: { stuckThreshold: 5, slaThreshold: 7, requiresStaff: true, waitingOn: 'member' },
   evaluation: { stuckThreshold: 3, slaThreshold: 5, requiresStaff: true, waitingOn: 'staff' },
   negotiation: { stuckThreshold: 7, slaThreshold: 14, requiresStaff: true, waitingOn: 'staff' },

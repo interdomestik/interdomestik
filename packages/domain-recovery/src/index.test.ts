@@ -32,6 +32,7 @@ test('domain-recovery owns the recovery status to lifecycle mapping', () => {
   assert.deepEqual(RECOVERY_STATUS_LIFECYCLE_STATE_MAP, {
     draft: 'not_started',
     submitted: 'not_started',
+    submitted_to_airline: 'submitted_to_airline',
     verification: 'not_started',
     evaluation: 'not_started',
     negotiation: 'negotiation',
