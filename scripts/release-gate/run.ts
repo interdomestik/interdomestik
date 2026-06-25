@@ -94,7 +94,6 @@ const LOGIN_DEPENDENT_CHECKS = new Set([
 function resolveVercelExecutable() {
   return null;
 }
-
 function runVercelCommand() {
   const error = new Error('vercel cli disabled for safe release gate execution');
   error.code = 'VERCEL_CLI_DISABLED';
@@ -108,11 +107,9 @@ function runVercelCommand() {
     error,
   };
 }
-
 function isLegacyVercelLogsArgsUnsupported(output) {
   return /unknown or unexpected option:\s*--environment/i.test(String(output || ''));
 }
-
 function parseVercelRuntimeJsonLines(raw) {
   const entries = [];
   for (const line of String(raw || '')
@@ -128,42 +125,34 @@ function parseVercelRuntimeJsonLines(raw) {
   }
   return entries;
 }
-
 function runtimeEntryMessage(entry) {
   if (!entry || typeof entry !== 'object') return '';
   return String(entry.message || entry.text || entry.msg || '').trim();
 }
-
 function runtimeEntryLevel(entry) {
   if (!entry || typeof entry !== 'object') return '';
   return String(entry.level || entry.severity || '')
     .trim()
     .toLowerCase();
 }
-
 function isErrorRuntimeLevel(level) {
   return level === 'error' || level === 'fatal';
 }
-
 function isLoginDependentCheck(checkId) {
   return LOGIN_DEPENDENT_CHECKS.has(checkId);
 }
-
 function findMissingCommercialPromiseSections(requiredTestIds, observedByTestId) {
   return requiredTestIds.filter(testId => observedByTestId[testId] !== true);
 }
-
 function normalizeBoundaryText(value) {
   return String(value || '')
     .toLowerCase()
     .replaceAll(/\s+/g, ' ')
     .trim();
 }
-
 function compactBoundaryText(value) {
   return normalizeBoundaryText(value).replaceAll(/\s+/g, '');
 }
-
 function resolveAccountPasswordVar(accountKey) {
   const account = ACCOUNTS[accountKey];
   if (!account) {
@@ -176,7 +165,6 @@ function resolveAccountPasswordVar(accountKey) {
 
   return account.passwordVar ?? null;
 }
-
 function findMissingBoundaryPhrases(requiredPhrases, observedText) {
   const normalizedObserved = normalizeBoundaryText(observedText);
   const compactObserved = compactBoundaryText(observedText);
@@ -186,14 +174,12 @@ function findMissingBoundaryPhrases(requiredPhrases, observedText) {
       !compactObserved.includes(compactBoundaryText(phrase))
   );
 }
-
 function findPresentBoundaryLeaks(forbiddenPhrases, observedText) {
   const normalizedObserved = normalizeBoundaryText(observedText);
   return forbiddenPhrases.filter(phrase =>
     normalizedObserved.includes(normalizeBoundaryText(phrase))
   );
 }
-
 function findMismatchedMatterAllowanceValues(expectedValues, observedValues) {
   return Object.entries(expectedValues).flatMap(([key, expected]) => {
     const actual = observedValues[key];
@@ -363,11 +349,11 @@ function evaluateCredentialPreflightResults(results) {
 async function runAuthEndpointPreflight(runCtx) {
   const evidence = [];
   const signatures = [];
-  const { endpoints, origin } = buildAuthEndpointUrls(runCtx.baseUrl, {
+  const { endpoints, origin: baseOrigin } = buildAuthEndpointUrls(runCtx.baseUrl, {
     allowLoopback: runCtx.envName !== 'production',
     allowedExtraHostname: runCtx.allowedExtraHostname,
   });
-
+  const origin = runCtx.authOrigin || baseOrigin;
   for (const { path: endpointPath, url: endpoint } of endpoints) {
     let reached = false;
 
@@ -430,10 +416,11 @@ async function runAuthEndpointPreflight(runCtx) {
 async function runAuthCredentialPreflight(runCtx) {
   const evidence = [];
   const signatures = [];
-  const { origin, signInEmailUrl: loginUrl } = buildAuthEndpointUrls(runCtx.baseUrl, {
+  const { origin: baseOrigin, signInEmailUrl: loginUrl } = buildAuthEndpointUrls(runCtx.baseUrl, {
     allowLoopback: runCtx.envName !== 'production',
     allowedExtraHostname: runCtx.allowedExtraHostname,
   });
+  const origin = runCtx.authOrigin || baseOrigin;
   const accountKeys = selectCredentialPreflightAccounts();
   const results = [];
 
@@ -519,6 +506,7 @@ function selectCredentialPreflightAccounts() {
 function parseArgs(argv) {
   const parsed = {
     baseUrl: DEFAULTS.baseUrl,
+    authBaseUrl: '',
     envName: DEFAULTS.envName,
     locale: DEFAULTS.locale,
     suite: DEFAULTS.suite,
@@ -531,6 +519,11 @@ function parseArgs(argv) {
     const next = argv[i + 1];
     if (token === '--baseUrl' && next) {
       parsed.baseUrl = next;
+      i += 1;
+      continue;
+    }
+    if (token === '--authBaseUrl' && next) {
+      parsed.authBaseUrl = next;
       i += 1;
       continue;
     }
@@ -581,6 +574,7 @@ function printHelp() {
     '',
     'Flags:',
     `  --baseUrl  (default: ${DEFAULTS.baseUrl})`,
+    '  --authBaseUrl  (optional trusted auth Origin/Referer base URL)',
     `  --envName  (default: ${DEFAULTS.envName})`,
     `  --locale   (default: ${DEFAULTS.locale})`,
     `  --suite    (default: ${DEFAULTS.suite}; options: ${Object.keys(SUITES).join('|')})`,
@@ -793,6 +787,7 @@ async function detectDeploymentMetadata(baseUrl, browser) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const configuredBaseUrl = normalizeBaseUrl(args.baseUrl);
+  const configuredAuthBaseUrl = args.authBaseUrl ? normalizeBaseUrl(args.authBaseUrl) : '';
   const requiredEnv = REQUIRED_ENV_BY_SUITE[args.suite] || REQUIRED_ENV_BY_SUITE.all;
   const missingEnv = getMissingEnv(requiredEnv);
   if (missingEnv.length > 0) {
@@ -823,7 +818,11 @@ async function main() {
   const safeConfiguredBaseUrl = assertTrustedReleaseGateBaseUrl(configuredBaseUrl, {
     allowLoopback: allowLoopbackBaseUrl,
   }).href;
-
+  const safeAuthBaseUrl = configuredAuthBaseUrl
+    ? assertTrustedReleaseGateBaseUrl(configuredAuthBaseUrl, {
+        allowLoopback: allowLoopbackBaseUrl,
+      }).href
+    : '';
   try {
     const deployment = await detectDeploymentMetadata(safeConfiguredBaseUrl, browser);
     const resolvedBase = await resolveReachableBaseUrl(safeConfiguredBaseUrl, deployment, {
@@ -837,6 +836,7 @@ async function main() {
     const baseUrl = resolvedBase.baseUrl;
     const runCtx = {
       baseUrl,
+      authOrigin: safeAuthBaseUrl ? new URL(safeAuthBaseUrl).origin : '',
       locale: args.locale,
       suite: args.suite,
       envName: args.envName,

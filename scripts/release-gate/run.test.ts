@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-
 const {
   buildCommercialPromiseScenarios,
   buildEscalationAgreementCollectionFallbackScenarios,
@@ -55,17 +54,14 @@ const {
   resolveForwardedForIp,
 } = require('./shared.ts');
 const { REQUIRED_ENV_BY_SUITE, ROLE_IPS, SELECTORS } = require('./config.ts');
-
 const RELEASE_GATE_BASE_URL = 'https://interdomestik-web.vercel.app';
 const RELEASE_GATE_LOCALE = 'en';
 const DEFAULT_MATTER_ALLOWANCE = { used: '0', remaining: '2', total: '2' };
 const ORIGINAL_DISALLOW_SKIP = process.env.RELEASE_GATE_DISALLOW_SKIP;
 const ORIGINAL_REQUIRE_ROLE_PANEL = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL;
-
 function createTestCredentialValue() {
   return ['test', 'credential', '2026'].join('-');
 }
-
 function restoreDisallowSkipEnv() {
   if (ORIGINAL_DISALLOW_SKIP === undefined) {
     delete process.env.RELEASE_GATE_DISALLOW_SKIP;
@@ -73,7 +69,6 @@ function restoreDisallowSkipEnv() {
     process.env.RELEASE_GATE_DISALLOW_SKIP = ORIGINAL_DISALLOW_SKIP;
   }
 }
-
 function restoreRequireRolePanelEnv() {
   if (ORIGINAL_REQUIRE_ROLE_PANEL === undefined) {
     delete process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL;
@@ -81,11 +76,9 @@ function restoreRequireRolePanelEnv() {
     process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL = ORIGINAL_REQUIRE_ROLE_PANEL;
   }
 }
-
 test('parseRetryAfterSeconds parses integer seconds value', () => {
   assert.equal(parseRetryAfterSeconds('15', 0), 15);
 });
-
 test('parseRetryAfterSeconds parses HTTP date values', () => {
   const nowMs = Date.parse('2026-02-21T00:00:00.000Z');
   const retryAt = new Date(nowMs + 6_000).toUTCString();
@@ -220,6 +213,7 @@ test('loginAs honors shared auth cooldown before posting another login request',
     account: 'member',
     credentials: { email: 'member@example.com', password: createTestCredentialValue() },
     baseUrl: RELEASE_GATE_BASE_URL,
+    authOrigin: 'https://staging.interdomestik.com',
     locale: RELEASE_GATE_LOCALE,
     authState,
     nowFn: () => nowMs,
@@ -232,6 +226,12 @@ test('loginAs honors shared auth cooldown before posting another login request',
   assert.equal(sleepCalls.length, 1);
   assert.equal(sleepCalls[0], 5_000);
   assert.equal(requestCalls.length, 1);
+  assert.equal(requestCalls[0][0], `${RELEASE_GATE_BASE_URL}/api/auth/sign-in/email`);
+  assert.equal(requestCalls[0][1].headers.Origin, 'https://staging.interdomestik.com');
+  assert.equal(
+    requestCalls[0][1].headers.Referer,
+    `https://staging.interdomestik.com/${RELEASE_GATE_LOCALE}/login`
+  );
 });
 
 test('loginAs applies a longer fallback cooldown for platform 429 responses without Retry-After', async () => {

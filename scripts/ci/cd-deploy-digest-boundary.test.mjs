@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -33,94 +31,120 @@ function assertBuildDigestOutput(jobName) {
   assert.equal(job.outputs.image_digest, '${{ steps.build.outputs.digest }}');
 }
 
-function assertDeployDigestBoundary({ jobName, buildJobName, stepName, environmentName }) {
+function assertVercelDeployBoundary({
+  jobName,
+  buildJobName,
+  stepName,
+  environmentName,
+  production,
+  outputsBaseUrl,
+}) {
   const job = cdWorkflow.jobs[jobName];
   assert.ok(job, `${jobName} must exist`);
+  if (outputsBaseUrl) {
+    assert.equal(job.outputs.base_url, '${{ steps.vercel.outputs.base_url }}');
+    assert.equal(job.outputs.hostname, '${{ steps.vercel.outputs.hostname }}');
+  }
 
   const step = findStep(job.steps, stepName);
-  assert.ok(step, `${jobName} must trigger deployment`);
+  assert.ok(step, `${jobName} must deploy through Vercel`);
   assert.ok(findStepIndex(job.steps, 'Checkout repository') < findStepIndex(job.steps, stepName));
+  assert.equal(step.id, 'vercel');
   assert.equal(step.uses, './.github/actions/trigger-digest-verified-deploy');
   assert.equal(step.with.environment, environmentName);
-  assert.equal(step.with['image-tag'], `\${{ needs.${buildJobName}.outputs.image_tag }}`);
-  assert.equal(step.with['image-digest'], `\${{ needs.${buildJobName}.outputs.image_digest }}`);
-  assert.equal(step.with.sha, '${{ github.sha }}');
+  assert.equal(step.with.production, production);
+  assert.equal(step.with['commit-sha'], '${{ github.sha }}');
+  assert.equal(step.with['canonical-url'], undefined);
+  assert.equal(step.env.ENABLE_VERCEL_DEPLOYMENTS, '1');
+  assert.equal(
+    step.with['attested-image-digest'],
+    '${{ needs.' + buildJobName + '.outputs.image_digest }}'
+  );
+
+  assert.match(job.env.VERCEL_TOKEN, /secrets\.VERCEL_TOKEN/);
+  assert.equal(job.env.VERCEL_ORG_ID, '${{ vars.VERCEL_ORG_ID }}');
+  assert.equal(job.env.VERCEL_PROJECT_ID, '${{ vars.VERCEL_PROJECT_ID }}');
+  assert.equal(cdWorkflow.env.VERCEL_ORG_ID, undefined);
+  assert.equal(cdWorkflow.env.VERCEL_PROJECT_ID, undefined);
 }
 
-function assertDeployActionDigestVerification() {
-  const step = findStep(deployAction.runs.steps, 'Trigger deploy webhook');
-  assert.ok(step, 'deploy action must trigger the webhook');
-  assert.equal(step.env.IMAGE_DIGEST, '${{ inputs.image-digest }}');
-  assert.match(step.run, /"image_digest":"%s"/u);
-  assert.match(step.run, /missing\+=\("webhook-url"\)/u);
-  assert.match(step.run, /missing\+=\("image-digest"\)/u);
-  assert.match(step.run, /--connect-timeout 10 --max-time 120/u);
-  assert.match(step.run, /\$\{IMAGE_DIGEST\}/u);
-  assert.match(step.run, /DEPLOY_WEBHOOK_RESPONSE_FILE/u);
-  assert.match(step.run, /try \{\s+response = JSON\.parse\(raw\);/u);
-  assert.match(step.run, /deploy webhook must confirm image_digest in JSON/u);
-  assert.match(step.run, /response\?\.image_digest/u);
-  assert.match(step.run, /deploy digest mismatch/u);
-  assert.match(step.run, /deploy webhook confirmed image digest/u);
-  return step.run;
-}
-
-function extractDigestVerifierScript(runScript) {
-  const match = runScript.match(/node --input-type=module <<'NODE'\n([\s\S]+?)\nNODE/u);
-  assert.ok(match, 'deploy action must keep digest verifier in a node heredoc');
-  return match[1].replace(/^ {2}/gmu, '');
-}
-
-function runDigestVerifier(script, responseBody) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'deploy-digest-'));
-  const responseFile = path.join(tempDir, 'response.json');
-  fs.writeFileSync(responseFile, responseBody);
-  try {
-    return spawnSync(process.execPath, ['--input-type=module'], {
-      input: script,
-      encoding: 'utf8',
-      env: {
-        ...process.env,
-        DEPLOY_ENVIRONMENT: 'staging',
-        DEPLOY_WEBHOOK_RESPONSE_FILE: responseFile,
-        IMAGE_DIGEST: 'sha256:expected',
-      },
-    });
-  } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true });
-  }
-}
-
-function assertDigestVerifierRejects(script, responseBody, expectedMessage) {
-  const result = runDigestVerifier(script, responseBody);
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr.toString(), expectedMessage);
-}
-
-test('CD deploy boundary requires immutable image digest confirmation', () => {
+test('CD deploy boundary uses Vercel prebuilt deployments after attested builds', () => {
   assertBuildDigestOutput('build-staging');
   assertBuildDigestOutput('build-production');
-  assertDeployDigestBoundary({
+
+  assertVercelDeployBoundary({
     jobName: 'deploy-staging',
     buildJobName: 'build-staging',
-    stepName: 'Trigger Staging Deploy',
+    stepName: 'Deploy Staging to Vercel',
     environmentName: 'staging',
+    production: 'false',
+    outputsBaseUrl: true,
   });
-  assertDeployDigestBoundary({
+  assertVercelDeployBoundary({
     jobName: 'deploy-production',
     buildJobName: 'build-production',
-    stepName: 'Trigger Production Deploy',
+    stepName: 'Deploy Production to Vercel',
     environmentName: 'production',
+    production: 'true',
+    outputsBaseUrl: false,
   });
-  const verifierScript = extractDigestVerifierScript(assertDeployActionDigestVerification());
-  const success = runDigestVerifier(verifierScript, '{"image_digest":"sha256:expected"}');
-  assert.equal(success.status, 0);
-  assert.match(success.stdout, /confirmed image digest/u);
-  assertDigestVerifierRejects(
-    verifierScript,
-    '{"image_digest":"sha256:other"}',
-    /deploy digest mismatch/u
+});
+
+test('Vercel deploy action validates config, builds, deploys, and exports base URL', () => {
+  const steps = deployAction.runs.steps;
+  const validateStep = findStep(steps, 'Validate Vercel configuration');
+  const pullStep = findStep(steps, 'Pull Vercel environment');
+  const buildStep = findStep(steps, 'Build Vercel artifact');
+  const renamedDigestStep = findStep(steps, 'Write Vercel output attestation metadata');
+  const attestStep = findStep(steps, 'Attest Vercel output artifact');
+  const deployStep = findStep(steps, 'Deploy Vercel artifact');
+  const cleanupStep = findStep(steps, 'Clean Vercel environment cache');
+
+  assert.equal(deployAction.inputs['commit-sha'].required, true);
+  assert.equal(deployAction.inputs['attested-image-digest'].required, true);
+  assert.equal(
+    deployAction.outputs.vercel_output_digest.value,
+    '${{ steps.deploy.outputs.vercel_output_digest }}'
   );
-  assertDigestVerifierRejects(verifierScript, '{"status":"ok"}', /got missing/u);
-  assertDigestVerifierRejects(verifierScript, 'not json', /must confirm image_digest in JSON/u);
+  assert.match(validateStep.run, /VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID/u);
+  assert.match(validateStep.run, /ENABLE_VERCEL_DEPLOYMENTS=1/u);
+
+  assert.match(pullStep.run, /vercel@latest pull/u);
+  assert.match(pullStep.run, /--environment="\$\{vercel_env\}"/u);
+
+  assert.match(buildStep.run, /vercel@latest build/u);
+  assert.match(buildStep.run, /--target="\$\{DEPLOY_ENVIRONMENT\}"/u);
+
+  assert.equal(renamedDigestStep.id, 'artifact');
+  assert.match(renamedDigestStep.run, /hash-vercel-output\.mjs/u);
+  assert.match(renamedDigestStep.run, /interdomestik-release-attestation\.json/u);
+  assert.match(renamedDigestStep.run, /vercelOutputDigest/u);
+  assert.match(renamedDigestStep.env.SOURCE_IMAGE_DIGEST, /inputs\.attested-image-digest/u);
+
+  assert.match(attestStep.uses, /^actions\/attest@[a-f0-9]{40}$/u);
+  assert.equal(attestStep.with['subject-name'], 'vercel-output/${{ inputs.environment }}');
+  assert.equal(
+    attestStep.with['subject-digest'],
+    '${{ steps.artifact.outputs.vercel_output_digest }}'
+  );
+
+  assert.equal(deployStep.id, 'deploy');
+  assert.match(
+    deployStep.run,
+    /current_vercel_output_digest="\$\(node scripts\/ci\/hash-vercel-output\.mjs\)"/u
+  );
+  assert.match(deployStep.run, /Vercel output digest changed after attestation/u);
+  assert.match(deployStep.run, /vercel@latest deploy/u);
+  assert.match(deployStep.run, /--prebuilt/u);
+  assert.match(deployStep.run, /--env "COMMIT_SHA=\$\{COMMIT_SHA\}"/u);
+  assert.match(deployStep.run, /--target="\$\{DEPLOY_ENVIRONMENT\}"/u);
+  assert.match(deployStep.run, /base_url="\$\{deployment_url\}"/u);
+  assert.doesNotMatch(deployStep.run, /--token/u);
+  assert.match(deployStep.run, /interdomestik-release-attestation\.json/u);
+  assert.match(deployStep.run, /verify-vercel-attestation\.mjs/u);
+  assert.match(deployStep.run, /hostname=/u);
+  assert.match(deployStep.run, /vercel_output_digest=/u);
+  assert.match(deployStep.run, /GITHUB_OUTPUT/u);
+  assert.equal(cleanupStep.if, '${{ always() }}');
+  assert.match(cleanupStep.run, /rm -rf \.vercel/u);
 });

@@ -10,7 +10,6 @@ on:
 concurrency:
   group: cd-${{ github.ref }}-${{ github.run_id }}
   cancel-in-progress: false
-
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -31,19 +30,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
         with:
           driver: docker-container
-
       - name: Log in to the Container registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
@@ -51,7 +47,6 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=staging-${{ github.sha }}
-
       - name: Build, attest, and verify Docker image
         id: build
         uses: ./.github/actions/build-attested-image
@@ -65,87 +60,88 @@ jobs:
           supabase-url: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
           supabase-anon-key: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           supabase-production-project-ref: ${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
-
   deploy-staging:
     needs: build-staging
     runs-on: [self-hosted, interdomestik-mac]
     environment:
       name: staging
-      url: https://staging.interdomestik.com
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    outputs:
+      base_url: ${{ steps.vercel.outputs.base_url }}
+      hostname: ${{ steps.vercel.outputs.hostname }}
     env:
-      BASE_URL: https://staging.interdomestik.com
       EXPECTED_COMMIT_SHA: ${{ github.sha }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
-
-      - name: Trigger Staging Deploy
+      - name: Deploy Staging to Vercel
+        id: vercel
         uses: ./.github/actions/trigger-digest-verified-deploy
+        env:
+          ENABLE_VERCEL_DEPLOYMENTS: '1'
         with:
           environment: staging
-          webhook-url: ${{ secrets.INTERDOMESTIK_STAGING_DEPLOY_WEBHOOK_URL }}
-          webhook-token: ${{ secrets.INTERDOMESTIK_STAGING_DEPLOY_TOKEN }}
-          registry: ${{ env.REGISTRY }}
-          image-name: ${{ env.IMAGE_NAME }}
-          image-tag: ${{ needs.build-staging.outputs.image_tag }}
-          image-digest: ${{ needs.build-staging.outputs.image_digest }}
-          sha: ${{ github.sha }}
-
+          production: 'false'
+          commit-sha: ${{ github.sha }}
+          attested-image-digest: ${{ needs.build-staging.outputs.image_digest }}
       - name: Wait for Staging Health
         shell: bash
+        env:
+          BASE_URL: ${{ steps.vercel.outputs.base_url }}
         run: |
           set -euo pipefail
           max_attempts=30
           sleep_seconds=5
-
           for attempt in $(seq 1 "${max_attempts}"); do
             echo "Attempt ${attempt}/${max_attempts}: checking ${BASE_URL}/api/health..."
-
             if curl -fsS "${BASE_URL}/api/health"; then
               echo "Staging health check succeeded."
               exit 0
             fi
-
             if [[ "${attempt}" -lt "${max_attempts}" ]]; then
               sleep "${sleep_seconds}"
             fi
           done
-
           echo "::error::Staging health check failed after ${max_attempts} attempts."
           exit 1
 
       - name: Verify Staging Build Provenance
         shell: bash
+        env:
+          BASE_URL: ${{ steps.vercel.outputs.base_url }}
         run: |
           set -euo pipefail
-
           node --input-type=module -e '
             const expected = process.env.EXPECTED_COMMIT_SHA;
             const baseUrl = process.env.BASE_URL;
             if (!expected || !baseUrl) {
               throw new Error("EXPECTED_COMMIT_SHA and BASE_URL are required");
             }
-
             const res = await fetch(new URL("/api/health", baseUrl));
             if (!res.ok) {
               throw new Error(`Health endpoint returned ${res.status}`);
             }
-
             const health = await res.json();
             const actual = health?.build?.commitSha;
             if (actual !== expected) {
               throw new Error(`Deployed build provenance mismatch: expected ${expected}, got ${actual || "missing"}`);
             }
-
             console.log(`Deployed build provenance verified: ${actual}`);
           '
-
   e2e-staging:
     needs: deploy-staging
     runs-on: [self-hosted, interdomestik-mac]
     env:
-      BASE_URL: https://staging.interdomestik.com
+      BASE_URL: ${{ needs.deploy-staging.outputs.base_url }}
+      AUTH_BASE_URL: https://staging.interdomestik.com
       EVIDENCE_DIR: tmp/cd-evidence/${{ github.run_id }}/staging
+      RELEASE_GATE_EXTRA_HOSTNAME: ${{ needs.deploy-staging.outputs.hostname }}
       RELEASE_GATE_EXPECTED_SHA: ${{ github.sha }}
       RELEASE_GATE_MEMBER_EMAIL: ${{ secrets.RELEASE_GATE_MEMBER_EMAIL }}
       RELEASE_GATE_MEMBER_PASSWORD: ${{ secrets.RELEASE_GATE_MEMBER_PASSWORD }}
@@ -160,11 +156,9 @@ jobs:
       RELEASE_GATE_ADMIN_MK_PASSWORD: ${{ secrets.RELEASE_GATE_ADMIN_MK_PASSWORD }}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
-
       - uses: ./.github/actions/setup
         with:
           install-playwright: 'true'
-
       - name: Run Staging Release Gate
         shell: bash
         run: |
@@ -174,6 +168,7 @@ jobs:
             --envName staging \
             --suite p0 \
             --baseUrl "${BASE_URL}" \
+            --authBaseUrl "${AUTH_BASE_URL}" \
             --outDir "${EVIDENCE_DIR}/release-gates" \
             2>&1 | tee "${EVIDENCE_DIR}/logs/release-gate-staging.log"
 
@@ -239,29 +234,34 @@ jobs:
           supabase-url: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
           supabase-anon-key: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           supabase-production-project-ref: ${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
-
   deploy-production:
     needs: build-production
     runs-on: [self-hosted, interdomestik-mac]
     environment:
       name: production
       url: https://www.interdomestik.com
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
 
-      - name: Trigger Production Deploy
+      - name: Deploy Production to Vercel
+        id: vercel
         uses: ./.github/actions/trigger-digest-verified-deploy
+        env:
+          ENABLE_VERCEL_DEPLOYMENTS: '1'
         with:
           environment: production
-          webhook-url: ${{ secrets.INTERDOMESTIK_PRODUCTION_DEPLOY_WEBHOOK_URL }}
-          webhook-token: ${{ secrets.INTERDOMESTIK_PRODUCTION_DEPLOY_TOKEN }}
-          registry: ${{ env.REGISTRY }}
-          image-name: ${{ env.IMAGE_NAME }}
-          image-tag: ${{ needs.build-production.outputs.image_tag }}
-          image-digest: ${{ needs.build-production.outputs.image_digest }}
-          sha: ${{ github.sha }}
-
+          production: 'true'
+          commit-sha: ${{ github.sha }}
+          attested-image-digest: ${{ needs.build-production.outputs.image_digest }}
   verify-production:
     needs: deploy-production
     runs-on: [self-hosted, interdomestik-mac]

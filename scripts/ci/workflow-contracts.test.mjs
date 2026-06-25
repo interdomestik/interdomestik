@@ -485,19 +485,18 @@ test('Composite CI setup action uses Node 24-compatible hosted actions', () => {
   assert.equal(findStep(steps, 'Playwright Browser Cache').uses, 'actions/cache@v5');
 });
 
-test('V3 onboarding and env docs describe Paddle-only runtime and deploy proof secrets', () => {
+test('V3 onboarding and env docs describe Paddle-only runtime and Vercel deployment config', () => {
   const readme = readRepoText('README.md');
-  const architecture = readRepoText('docs/ARCHITECTURE.md');
   const envExample = readRepoText('.env.example');
 
   assert.match(readme, /V3 pilot billing uses Paddle only/);
-  assert.match(architecture, /environment-scoped deploy webhook secrets/);
   assert.match(envExample, /CLAIM_UPLOAD_INTENT_SECRET/);
   assert.match(envExample, /SUPABASE_PRODUCTION_PROJECT_REF/);
-  assert.match(envExample, /INTERDOMESTIK_STAGING_DEPLOY_WEBHOOK_URL/);
-  assert.match(envExample, /INTERDOMESTIK_STAGING_DEPLOY_TOKEN/);
-  assert.match(envExample, /INTERDOMESTIK_PRODUCTION_DEPLOY_WEBHOOK_URL/);
-  assert.match(envExample, /INTERDOMESTIK_PRODUCTION_DEPLOY_TOKEN/);
+  assert.match(envExample, /VERCEL_ORG_ID/);
+  assert.match(envExample, /VERCEL_PROJECT_ID/);
+  assert.match(envExample, /VERCEL_TOKEN/);
+  assert.doesNotMatch(envExample, /INTERDOMESTIK_STAGING_DEPLOY_WEBHOOK_URL/);
+  assert.doesNotMatch(envExample, /INTERDOMESTIK_PRODUCTION_DEPLOY_WEBHOOK_URL/);
   assert.doesNotMatch(
     envExample,
     /NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET/
@@ -514,6 +513,8 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   const deployProductionJob = cdWorkflow.jobs['deploy-production'];
   const verifyProductionJob = cdWorkflow.jobs['verify-production'];
 
+  assert.equal(cdWorkflow.env.VERCEL_ORG_ID, undefined);
+  assert.equal(cdWorkflow.env.VERCEL_PROJECT_ID, undefined);
   assert.equal(cdWorkflow.jobs['build-push'], undefined);
   assert.doesNotMatch(cdWorkflowSource, /Actual deployment command here/);
   assert.doesNotMatch(cdWorkflowSource, /pnpm test:e2e:smoke/);
@@ -549,32 +550,38 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.equal(buildProductionStep.with['app-url'], 'https://www.interdomestik.com');
 
   assert.deepEqual(normalizeNeeds(deployStagingJob.needs), ['build-staging']);
+  assert.equal(deployStagingJob.outputs.base_url, '${{ steps.vercel.outputs.base_url }}');
+  assert.equal(deployStagingJob.outputs.hostname, '${{ steps.vercel.outputs.hostname }}');
   assert.equal(deployStagingJob.env.EXPECTED_COMMIT_SHA, '${{ github.sha }}');
-  const triggerStagingDeployStep = findStep(deployStagingJob.steps, 'Trigger Staging Deploy');
-  assert.ok(triggerStagingDeployStep);
-  assert.equal(triggerStagingDeployStep.uses, './.github/actions/trigger-digest-verified-deploy');
-  assert.equal(triggerStagingDeployStep.with.environment, 'staging');
-  assert.match(triggerStagingDeployStep.with['webhook-url'], /INTERDOMESTIK_STAGING_DEPLOY/);
-  assert.equal(
-    triggerStagingDeployStep.with['image-tag'],
-    '${{ needs.build-staging.outputs.image_tag }}'
-  );
-  assert.equal(
-    triggerStagingDeployStep.with['image-digest'],
-    '${{ needs.build-staging.outputs.image_digest }}'
-  );
+  assert.match(deployStagingJob.env.VERCEL_TOKEN, /secrets\.VERCEL_TOKEN/);
+  const vercelStagingDeployStep = findStep(deployStagingJob.steps, 'Deploy Staging to Vercel');
+  assert.ok(vercelStagingDeployStep);
+  assert.equal(vercelStagingDeployStep.id, 'vercel');
+  assert.equal(vercelStagingDeployStep.uses, './.github/actions/trigger-digest-verified-deploy');
+  assert.equal(vercelStagingDeployStep.env.ENABLE_VERCEL_DEPLOYMENTS, '1');
+  assert.equal(vercelStagingDeployStep.with.environment, 'staging');
+  assert.equal(vercelStagingDeployStep.with.production, 'false');
   const stagingHealthIndex = findStepIndex(deployStagingJob.steps, 'Wait for Staging Health');
   const stagingProvenanceIndex = findStepIndex(
     deployStagingJob.steps,
     'Verify Staging Build Provenance'
   );
-  assert.ok(stagingHealthIndex >= 0);
+  assert.ok(stagingHealthIndex > findStepIndex(deployStagingJob.steps, 'Deploy Staging to Vercel'));
   assert.ok(stagingProvenanceIndex > stagingHealthIndex);
+  const stagingHealthStep = deployStagingJob.steps[stagingHealthIndex];
+  assert.equal(stagingHealthStep.env.BASE_URL, '${{ steps.vercel.outputs.base_url }}');
   const stagingProvenanceStep = deployStagingJob.steps[stagingProvenanceIndex];
+  assert.equal(stagingProvenanceStep.env.BASE_URL, '${{ steps.vercel.outputs.base_url }}');
   assert.match(stagingProvenanceStep.run, /build\?\.commitSha/);
   assert.match(stagingProvenanceStep.run, /EXPECTED_COMMIT_SHA/);
 
   assert.deepEqual(normalizeNeeds(e2eStagingJob.needs), ['deploy-staging']);
+  assert.equal(e2eStagingJob.env.BASE_URL, '${{ needs.deploy-staging.outputs.base_url }}');
+  assert.equal(e2eStagingJob.env.AUTH_BASE_URL, 'https://staging.interdomestik.com');
+  assert.equal(
+    e2eStagingJob.env.RELEASE_GATE_EXTRA_HOSTNAME,
+    '${{ needs.deploy-staging.outputs.hostname }}'
+  );
   assert.equal(e2eStagingJob.env.RELEASE_GATE_EXPECTED_SHA, '${{ github.sha }}');
   for (const envName of RELEASE_GATE_ENV_VARS) {
     assert.match(e2eStagingJob.env[envName], new RegExp(String.raw`secrets\.${envName}`));
@@ -588,6 +595,7 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.match(stagingGateStep.run, /release:gate:raw/);
   assert.match(stagingGateStep.run, /--envName staging/);
   assert.match(stagingGateStep.run, /--suite p0/);
+  assert.match(stagingGateStep.run, /--authBaseUrl "\$\{AUTH_BASE_URL\}"/);
   const stagingArtifactsStep = findStep(
     e2eStagingJob.steps,
     'Upload staging verification artifacts'
@@ -597,25 +605,17 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.equal(stagingArtifactsStep.with['if-no-files-found'], 'error');
 
   assert.deepEqual(normalizeNeeds(deployProductionJob.needs), ['build-production']);
-  const triggerProductionDeployStep = findStep(
+  assert.match(deployProductionJob.env.VERCEL_TOKEN, /secrets\.VERCEL_TOKEN/);
+  const vercelProductionDeployStep = findStep(
     deployProductionJob.steps,
-    'Trigger Production Deploy'
+    'Deploy Production to Vercel'
   );
-  assert.ok(triggerProductionDeployStep);
-  assert.equal(
-    triggerProductionDeployStep.uses,
-    './.github/actions/trigger-digest-verified-deploy'
-  );
-  assert.equal(triggerProductionDeployStep.with.environment, 'production');
-  assert.match(triggerProductionDeployStep.with['webhook-url'], /INTERDOMESTIK_PRODUCTION_DEPLOY/);
-  assert.equal(
-    triggerProductionDeployStep.with['image-tag'],
-    '${{ needs.build-production.outputs.image_tag }}'
-  );
-  assert.equal(
-    triggerProductionDeployStep.with['image-digest'],
-    '${{ needs.build-production.outputs.image_digest }}'
-  );
+  assert.ok(vercelProductionDeployStep);
+  assert.equal(vercelProductionDeployStep.id, 'vercel');
+  assert.equal(vercelProductionDeployStep.uses, './.github/actions/trigger-digest-verified-deploy');
+  assert.equal(vercelProductionDeployStep.env.ENABLE_VERCEL_DEPLOYMENTS, '1');
+  assert.equal(vercelProductionDeployStep.with.environment, 'production');
+  assert.equal(vercelProductionDeployStep.with.production, 'true');
 
   assert.deepEqual(normalizeNeeds(verifyProductionJob.needs), ['deploy-production']);
   assert.equal(verifyProductionJob.env.EXPECTED_COMMIT_SHA, '${{ github.sha }}');

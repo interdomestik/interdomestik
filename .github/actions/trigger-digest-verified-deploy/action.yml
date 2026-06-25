@@ -1,120 +1,148 @@
-name: Trigger digest-verified deploy
-description: Trigger an environment deploy webhook and require immutable image digest confirmation.
-
+name: Deploy Vercel Prebuilt Artifact
+description: Pulls Vercel env, builds locally, and deploys a prebuilt artifact.
 inputs:
   environment:
     required: true
-  webhook-url:
+  production:
     required: true
-  webhook-token:
+  commit-sha:
     required: true
-  registry:
+  attested-image-digest:
     required: true
-  image-name:
-    required: true
-  image-tag:
-    required: true
-  image-digest:
-    required: true
-  sha:
-    required: true
-
+outputs:
+  deployment_url:
+    value: ${{ steps.deploy.outputs.deployment_url }}
+  base_url:
+    value: ${{ steps.deploy.outputs.base_url }}
+  hostname:
+    value: ${{ steps.deploy.outputs.hostname }}
+  vercel_output_digest:
+    value: ${{ steps.deploy.outputs.vercel_output_digest }}
 runs:
   using: composite
   steps:
-    - name: Trigger deploy webhook
+    - name: Validate Vercel configuration
+      shell: bash
+      run: |
+        set -euo pipefail
+        missing=()
+        for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+          if [[ -z "${!name:-}" ]]; then
+            missing+=("${name}")
+          fi
+        done
+        if (( ${#missing[@]} > 0 )); then
+          echo "::error::Missing Vercel deployment configuration: ${missing[*]}"
+          exit 1
+        fi
+        if [[ "${ENABLE_VERCEL_DEPLOYMENTS:-}" != "1" ]]; then
+          echo "::error::ENABLE_VERCEL_DEPLOYMENTS=1 is required for CD Vercel deploys"
+          exit 1
+        fi
+        if [[ ! "${COMMIT_SHA}" =~ ^[a-f0-9]{40}$ ]]; then
+          echo "::error::commit-sha must be a full lowercase git SHA"
+          exit 1
+        fi
+        if [[ ! "${ATTESTED_IMAGE_DIGEST}" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+          echo "::error::attested-image-digest must be an immutable sha256 digest"
+          exit 1
+        fi
+      env:
+        COMMIT_SHA: ${{ inputs.commit-sha }}
+        ATTESTED_IMAGE_DIGEST: ${{ inputs.attested-image-digest }}
+    - name: Setup Node
+      uses: actions/setup-node@v5
+      with:
+        node-version: '24'
+    - name: Pull Vercel environment
+      shell: bash
+      env:
+        DEPLOY_PRODUCTION: ${{ inputs.production }}
+        DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+      run: |
+        set -euo pipefail
+        vercel_env="${DEPLOY_ENVIRONMENT}"
+        [[ "${DEPLOY_PRODUCTION}" == "true" ]] && vercel_env=production
+        npx --yes vercel@latest pull \
+          --yes \
+          --environment="${vercel_env}"
+    - name: Build Vercel artifact
       shell: bash
       env:
         DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
-        DEPLOY_WEBHOOK_URL: ${{ inputs.webhook-url }}
-        DEPLOY_WEBHOOK_TOKEN: ${{ inputs.webhook-token }}
-        IMAGE_REGISTRY: ${{ inputs.registry }}
-        IMAGE_NAME: ${{ inputs.image-name }}
-        IMAGE_TAG: ${{ inputs.image-tag }}
-        IMAGE_DIGEST: ${{ inputs.image-digest }}
-        COMMIT_SHA: ${{ inputs.sha }}
+        DEPLOY_PRODUCTION: ${{ inputs.production }}
+        INTERDOMESTIK_DEPLOY_ENV: ${{ inputs.environment }}
       run: |
         set -euo pipefail
-
-        missing=()
-        [[ -n "${DEPLOY_ENVIRONMENT:-}" ]] || missing+=("environment")
-        [[ -n "${DEPLOY_WEBHOOK_URL:-}" ]] || missing+=("webhook-url")
-        [[ -n "${DEPLOY_WEBHOOK_TOKEN:-}" ]] || missing+=("webhook-token")
-        [[ -n "${IMAGE_REGISTRY:-}" ]] || missing+=("registry")
-        [[ -n "${IMAGE_NAME:-}" ]] || missing+=("image-name")
-        [[ -n "${IMAGE_TAG:-}" ]] || missing+=("image-tag")
-        [[ -n "${IMAGE_DIGEST:-}" ]] || missing+=("image-digest")
-        [[ -n "${COMMIT_SHA:-}" ]] || missing+=("sha")
-
-        if (( ${#missing[@]} > 0 )); then
-          echo "::error::Missing ${DEPLOY_ENVIRONMENT:-unknown} deploy prerequisite(s): ${missing[*]}."
+        target_args=(--target="${DEPLOY_ENVIRONMENT}")
+        if [[ "${DEPLOY_PRODUCTION}" == "true" ]]; then
+          target_args=(--prod)
+        fi
+        npx --yes vercel@latest build "${target_args[@]}"
+    - name: Write Vercel output attestation metadata
+      id: artifact
+      shell: bash
+      env:
+        COMMIT_SHA: ${{ inputs.commit-sha }}
+        DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+        SOURCE_IMAGE_DIGEST: ${{ inputs.attested-image-digest }}
+      run: |
+        set -euo pipefail
+        metadata_dir=".vercel/output/static/.well-known"
+        mkdir -p "${metadata_dir}"
+        vercel_output_digest="$(node scripts/ci/hash-vercel-output.mjs)"
+        cat > "${metadata_dir}/interdomestik-release-attestation.json" <<JSON
+        {"environment":"${DEPLOY_ENVIRONMENT}","commitSha":"${COMMIT_SHA}","sourceImageDigest":"${SOURCE_IMAGE_DIGEST}","vercelOutputDigest":"${vercel_output_digest}"}
+        JSON
+        echo "vercel_output_digest=${vercel_output_digest}" >> "${GITHUB_OUTPUT}"
+    - name: Attest Vercel output artifact
+      uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+      with:
+        subject-name: vercel-output/${{ inputs.environment }}
+        subject-digest: ${{ steps.artifact.outputs.vercel_output_digest }}
+    - name: Deploy Vercel artifact
+      id: deploy
+      shell: bash
+      env:
+        ATTESTED_IMAGE_DIGEST: ${{ inputs.attested-image-digest }}
+        COMMIT_SHA: ${{ inputs.commit-sha }}
+        DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+        DEPLOY_PRODUCTION: ${{ inputs.production }}
+        VERCEL_OUTPUT_DIGEST: ${{ steps.artifact.outputs.vercel_output_digest }}
+      run: |
+        set -euo pipefail
+        target_args=(--target="${DEPLOY_ENVIRONMENT}")
+        if [[ "${DEPLOY_PRODUCTION}" == "true" ]]; then
+          target_args=(--prod)
+        fi
+        current_vercel_output_digest="$(node scripts/ci/hash-vercel-output.mjs)"
+        if [[ "${current_vercel_output_digest}" != "${VERCEL_OUTPUT_DIGEST}" ]]; then
+          echo "::error::Vercel output digest changed after attestation"
           exit 1
         fi
-
-        image_ref="${IMAGE_REGISTRY}/${IMAGE_NAME}"
-        payload_file="$(mktemp)"
-        response_file="$(mktemp)"
-        trap 'rm -f "${payload_file}" "${response_file}"' EXIT
-
-        printf '{"environment":"%s","image":"%s","image_tag":"%s","image_digest":"%s","sha":"%s"}' \
-          "${DEPLOY_ENVIRONMENT}" \
-          "${image_ref}" \
-          "${IMAGE_TAG}" \
-          "${IMAGE_DIGEST}" \
-          "${COMMIT_SHA}" > "${payload_file}"
-
-        curl_exit=0
-        http_status="$(
-          curl --silent --show-error --output "${response_file}" --write-out '%{http_code}' \
-            --connect-timeout 10 --max-time 120 \
-            --retry 3 --retry-delay 5 \
-            -H 'content-type: application/json' \
-            -H "authorization: Bearer ${DEPLOY_WEBHOOK_TOKEN}" \
-            --data-binary @"${payload_file}" \
-            "${DEPLOY_WEBHOOK_URL}"
-        )" || curl_exit=$?
-
-        if (( curl_exit != 0 )); then
-          echo "::error::Failed to trigger ${DEPLOY_ENVIRONMENT} deploy webhook."
-          if [[ -s "${response_file}" ]]; then
-            cat "${response_file}"
-          fi
-          exit "${curl_exit}"
+        deployment_url="$(
+          npx --yes vercel@latest deploy \
+            --prebuilt \
+            --env "COMMIT_SHA=${COMMIT_SHA}" \
+            "${target_args[@]}"
+        )"
+        deployment_url="$(printf '%s\n' "${deployment_url}" | tail -n 1)"
+        base_url="${deployment_url}"
+        if [[ "${base_url}" != https://* ]]; then
+          base_url="https://${base_url}"
         fi
-
-        if [[ ! "${http_status}" =~ ^2[0-9][0-9]$ ]]; then
-          echo "::error::${DEPLOY_ENVIRONMENT} deploy webhook returned HTTP ${http_status}."
-          cat "${response_file}"
-          exit 1
-        fi
-
-        DEPLOY_WEBHOOK_RESPONSE_FILE="${response_file}" node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-
-          const expected = process.env.IMAGE_DIGEST;
-          const environment = process.env.DEPLOY_ENVIRONMENT || 'unknown';
-          const responseFile = process.env.DEPLOY_WEBHOOK_RESPONSE_FILE;
-          if (!expected || !responseFile) {
-            throw new Error('IMAGE_DIGEST and DEPLOY_WEBHOOK_RESPONSE_FILE are required');
-          }
-
-          const raw = fs.readFileSync(responseFile, 'utf8').trim();
-          if (!raw) {
-            throw new Error(`${environment} deploy webhook must confirm image_digest in JSON`);
-          }
-
-          let response;
-          try {
-            response = JSON.parse(raw);
-          } catch (error) {
-            throw new Error(`${environment} deploy webhook must confirm image_digest in JSON`, {
-              cause: error,
-            });
-          }
-          const actual = response?.image_digest;
-          if (actual !== expected) {
-            throw new Error(`${environment} deploy digest mismatch: expected ${expected}, got ${actual || 'missing'}`);
-          }
-
-          console.log(`${environment} deploy webhook confirmed image digest: ${actual}`);
-        NODE
+        hostname="${base_url#https://}"
+        hostname="${hostname%%/*}"
+        hostname="${hostname%%:*}"
+        metadata_url="${base_url}/.well-known/interdomestik-release-attestation.json"
+        metadata="$(curl -fsS --retry 6 --retry-delay 5 "${metadata_url}")"
+        METADATA="${metadata}" node scripts/ci/verify-vercel-attestation.mjs
+        echo "deployment_url=${deployment_url}" >> "${GITHUB_OUTPUT}"
+        echo "base_url=${base_url}" >> "${GITHUB_OUTPUT}"
+        echo "hostname=${hostname}" >> "${GITHUB_OUTPUT}"
+        echo "vercel_output_digest=${VERCEL_OUTPUT_DIGEST}" >> "${GITHUB_OUTPUT}"
+        echo "Deployed ${DEPLOY_ENVIRONMENT} to ${base_url}"
+    - name: Clean Vercel environment cache
+      if: ${{ always() }}
+      shell: bash
+      run: rm -rf .vercel
