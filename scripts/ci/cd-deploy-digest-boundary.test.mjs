@@ -110,7 +110,7 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(pullStep.run, /vercel_env=.*staging.*preview/u);
   assert.match(pullStep.run, /--environment="\$\{vercel_env\}"/u);
 
-  assert.match(buildStep.run, /vercel@latest build/u);
+  assert.match(buildStep.run, /vercel@latest env run -e "\$\{deploy_target\}"/u);
   assert.match(buildStep.run, /deploy_target=.*staging.*preview/u);
   assert.match(buildStep.run, /--target="\$\{deploy_target\}"/u);
 
