@@ -111,7 +111,7 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(pullStep.run, /--environment="\$\{vercel_env\}"/u);
 
   assert.match(buildStep.run, /vercel@latest env run -e "\$\{deploy_target\}"/u);
-  assert.match(buildStep.run, /deploy_target=.*staging.*preview/u);
+  assert.match(buildStep.run, /deploy_target=.*staging.*preview[\s\S]*deploy_target=production/u);
   assert.match(buildStep.run, /--target="\$\{deploy_target\}"/u);
 
   assert.equal(renamedDigestStep.id, 'artifact');
