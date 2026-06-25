@@ -88,7 +88,7 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
       begin
         create role ${quoteIdentifier(TEST_DB_ROLE)} login password ${quoteSqlLiteral(TEST_DB_PASSWORD)};
       exception
-        when duplicate_object then
+        when duplicate_object or unique_violation then
           alter role ${quoteIdentifier(TEST_DB_ROLE)} with login password ${quoteSqlLiteral(TEST_DB_PASSWORD)};
       end
       $$;
