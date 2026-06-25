@@ -546,7 +546,7 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.equal(buildProductionStep.id, 'build');
   assert.equal(buildProductionStep.uses, './.github/actions/build-attested-image');
   assert.equal(buildProductionStep.with['deploy-env'], 'production');
-  assert.equal(buildProductionStep.with['app-url'], 'https://app.interdomestik.com');
+  assert.equal(buildProductionStep.with['app-url'], 'https://www.interdomestik.com');
 
   assert.deepEqual(normalizeNeeds(deployStagingJob.needs), ['build-staging']);
   assert.equal(deployStagingJob.env.EXPECTED_COMMIT_SHA, '${{ github.sha }}');

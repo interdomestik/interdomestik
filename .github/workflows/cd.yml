@@ -235,7 +235,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           deploy-env: production
-          app-url: https://app.interdomestik.com
+          app-url: https://www.interdomestik.com
           supabase-url: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
           supabase-anon-key: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           supabase-production-project-ref: ${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
@@ -245,7 +245,7 @@ jobs:
     runs-on: [self-hosted, interdomestik-linux]
     environment:
       name: production
-      url: https://app.interdomestik.com
+      url: https://www.interdomestik.com
     steps:
       - name: Checkout repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
@@ -267,7 +267,7 @@ jobs:
     runs-on: [self-hosted, interdomestik-linux]
     timeout-minutes: 20
     env:
-      BASE_URL: https://app.interdomestik.com
+      BASE_URL: https://www.interdomestik.com
       EVIDENCE_DIR: tmp/cd-evidence/${{ github.run_id }}
       EXPECTED_COMMIT_SHA: ${{ github.sha }}
       RELEASE_GATE_EXPECTED_SHA: ${{ github.sha }}
