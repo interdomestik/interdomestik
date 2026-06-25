@@ -1,0 +1,30 @@
+name: Mac Runner Smoke
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: [self-hosted, interdomestik-mac]
+    steps:
+      - name: Runner identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "runner=${RUNNER_NAME}"
+          echo "os=${RUNNER_OS}"
+          echo "arch=${RUNNER_ARCH}"
+          uname -a
+
+      - name: Tool availability
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v node
+          node --version
+          command -v pnpm
+          pnpm --version
+          command -v docker
+          docker version
