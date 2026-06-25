@@ -1545,20 +1545,24 @@ implementation PR `#1206` / merge
 main health green for CI `28148443726`, Sonar Main Gate `28148443728`, Secret
 Scan/gitleaks `28148443763`, CodeQL `28148443379`, and manual main
 Security/pnpm-audit `28148459680`, and the pre-gate resolver state
-`blocked_requires_current_authority` with `activeSlice=null`. It promotes
-exactly one next governed implementation slice: `T-503`, the final remaining
-status-bearing M0-M5 row. Future `T-503` is limited to refreshing qualifying
-release-cycle or explicitly approved equivalent evidence, proving current
-lifecycle data quality, dropping legacy `claims.status` and obsolete status
-indexes/predicates with rollback/data-repair/observability proof, preserving any
-status-shaped public/member/agent/staff/admin output only as derived lifecycle
-compatibility, and satisfying Tier 3 DB/RLS/migration/reviewer/security gates
-plus explicit human approval or waiver before implementation merge readiness.
-M6/product expansion, broad VONESA/SVC/CQRS/UI/UX work, proxy/routing/auth/
-session/tenancy changes, billing/product UI, Dependabot work, README, AGENTS,
-Operational Brain runtime/live AI, and broad architecture rewrites remain out of
-scope unless separately promoted. The next active governed implementation goal
-is exactly one canonical tracker slice: `T-503`.
+`blocked_requires_current_authority` with `activeSlice=null`. It identified
+`T-503` as the final remaining status-bearing M0-M5 row, but
+`docs/plans/2026-06-25-t503-preflight-blocker.md` now records that direct
+destructive implementation is blocked until qualifying release-cycle or
+explicitly approved equivalent evidence exists. Future `T-503` is limited to
+refreshing qualifying release-cycle or explicitly approved equivalent evidence,
+proving current lifecycle data quality, dropping legacy `claims.status` and
+obsolete status indexes/predicates with rollback/data-repair/observability
+proof, preserving any status-shaped public/member/agent/staff/admin output only
+as derived lifecycle compatibility, and satisfying Tier 3 DB/RLS/migration/
+reviewer/security gates plus explicit human approval or waiver before
+implementation merge readiness. M6/product expansion, broad
+VONESA/SVC/CQRS/UI/UX work, proxy/routing/auth/session/tenancy changes,
+billing/product UI, Dependabot work, README, AGENTS, Operational Brain
+runtime/live AI, and broad architecture rewrites remain out of scope unless
+separately promoted. No replacement runtime slice is started by this blocker
+record; fresh current-authority resolution is required after release-cycle or
+equivalent evidence exists.
 
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
