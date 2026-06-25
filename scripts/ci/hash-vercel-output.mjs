@@ -39,7 +39,9 @@ if (!statSync(outputRoot).isDirectory()) {
 }
 
 const digest = createHash('sha256');
-for (const relativePath of collectFiles(outputRoot).sort()) {
+for (const relativePath of collectFiles(outputRoot).sort((left, right) =>
+  left.localeCompare(right)
+)) {
   const absolutePath = resolveOutputPath(...relativePath.split('/'));
   const fileDigest = createHash('sha256').update(readFileSync(absolutePath)).digest('hex');
   digest.update(relativePath);
