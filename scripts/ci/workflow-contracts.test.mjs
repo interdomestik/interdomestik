@@ -553,12 +553,12 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.equal(deployStagingJob.outputs.base_url, '${{ steps.vercel.outputs.base_url }}');
   assert.equal(deployStagingJob.outputs.hostname, '${{ steps.vercel.outputs.hostname }}');
   assert.equal(deployStagingJob.env.EXPECTED_COMMIT_SHA, '${{ github.sha }}');
-  assert.match(deployStagingJob.env.VERCEL_TOKEN, /secrets\.VERCEL_TOKEN/);
   const vercelStagingDeployStep = findStep(deployStagingJob.steps, 'Deploy Staging to Vercel');
   assert.ok(vercelStagingDeployStep);
   assert.equal(vercelStagingDeployStep.id, 'vercel');
   assert.equal(vercelStagingDeployStep.uses, './.github/actions/trigger-digest-verified-deploy');
   assert.equal(vercelStagingDeployStep.env.ENABLE_VERCEL_DEPLOYMENTS, '1');
+  assert.match(vercelStagingDeployStep.env.VERCEL_TOKEN, /secrets\.VERCEL_TOKEN/);
   assert.equal(vercelStagingDeployStep.with.environment, 'staging');
   assert.equal(vercelStagingDeployStep.with.production, 'false');
   const stagingHealthIndex = findStepIndex(deployStagingJob.steps, 'Wait for Staging Health');
@@ -605,7 +605,6 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.equal(stagingArtifactsStep.with['if-no-files-found'], 'error');
 
   assert.deepEqual(normalizeNeeds(deployProductionJob.needs), ['build-production']);
-  assert.match(deployProductionJob.env.VERCEL_TOKEN, /secrets\.VERCEL_TOKEN/);
   const vercelProductionDeployStep = findStep(
     deployProductionJob.steps,
     'Deploy Production to Vercel'
@@ -614,6 +613,7 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.equal(vercelProductionDeployStep.id, 'vercel');
   assert.equal(vercelProductionDeployStep.uses, './.github/actions/trigger-digest-verified-deploy');
   assert.equal(vercelProductionDeployStep.env.ENABLE_VERCEL_DEPLOYMENTS, '1');
+  assert.match(vercelProductionDeployStep.env.VERCEL_TOKEN, /secrets\.VERCEL_TOKEN/);
   assert.equal(vercelProductionDeployStep.with.environment, 'production');
   assert.equal(vercelProductionDeployStep.with.production, 'true');
 
