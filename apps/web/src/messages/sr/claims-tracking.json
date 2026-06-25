@@ -51,6 +51,7 @@
     "status": {
       "draft": "Nacrt",
       "submitted": "Podneto",
+      "submitted_to_airline": "Podneto avio-kompaniji",
       "verification": "Verifikacija",
       "evaluation": "Procena",
       "negotiation": "Pregovori",
@@ -60,6 +61,7 @@
       "next_step": {
         "draft": "Molimo podnesite svoj zahtev na pregled.",
         "submitted": "Primili smo vaš zahtev i uskoro ćemo ga dodeliti menadžeru slučaja.",
+        "submitted_to_airline": "Paket zahteva smo podneli avio-kompaniji.",
         "verification": "Proveravamo dostavljene dokumente i dokaze.",
         "evaluation": "Naši stručnjaci procenjuju štetu i odgovornost.",
         "negotiation": "Pregovaramo sa osiguravajućom kompanijom radi pravične nagodbe.",

@@ -1,5 +1,6 @@
 import { claimStageHistory, domainEvents } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import { inspect } from 'node:util';
 
 import { authorizedRecoveryReadRow } from './recovery-evidence-test-support';
 import { transitionClaimStatusInTransaction, type TransitionTx } from './transition';
@@ -104,7 +105,10 @@ function makeParams() {
 function makeTx(state: ClaimState, failOn?: FailOn) {
   const staged = { ...state, events: [...state.events], histories: [...state.histories] };
   const tx = {
-    execute: async () => [authorizedRecoveryReadRow(state)],
+    execute: async (query: unknown) => {
+      if (inspect(query, { depth: 20 }).includes('claim_transition_evidence')) return [];
+      return [authorizedRecoveryReadRow(state)];
+    },
     select: () => new FakeSelect(state),
     update: () => new FakeUpdate(staged),
     insert: (table: unknown) => new FakeInsert(staged, table, failOn),

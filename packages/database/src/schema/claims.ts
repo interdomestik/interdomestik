@@ -75,7 +75,7 @@ export const claims = pgTable(
     ),
     check(
       'claim_recovery_lifecycle_state_check',
-      sql`${table.recoveryLifecycleState} is null or ${table.recoveryLifecycleState} in ('not_started', 'negotiation', 'court', 'resolved', 'closed')`
+      sql`${table.recoveryLifecycleState} is null or ${table.recoveryLifecycleState} in ('not_started', 'submitted_to_airline', 'negotiation', 'court', 'resolved', 'closed')`
     ),
     check(
       'claim_incident_country_code_check',

@@ -12,6 +12,7 @@ const actor = { id: 'staff-1', role: 'staff' };
 const EXPECTED_RECOVERY_STATES = {
   draft: 'not_started',
   submitted: 'not_started',
+  submitted_to_airline: 'submitted_to_airline',
   verification: 'not_started',
   evaluation: 'not_started',
   negotiation: 'negotiation',
@@ -46,6 +47,8 @@ describe('T-205 recovery state machine transitions', () => {
 
   it.each([
     ['evaluation', 'negotiation', 'negotiation'],
+    ['evaluation', 'submitted_to_airline', 'submitted_to_airline'],
+    ['submitted_to_airline', 'negotiation', 'negotiation'],
     ['negotiation', 'court', 'court'],
     ['negotiation', 'resolved', 'resolved'],
     ['court', 'resolved', 'resolved'],

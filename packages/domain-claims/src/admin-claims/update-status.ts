@@ -1,4 +1,5 @@
 import { and, claims, db, eq, user } from '@interdomestik/database';
+import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
@@ -6,26 +7,7 @@ import { activateClaimStatusAuditProjection } from '../claims/audit-projection';
 import { resolveClaimLifecycleCommandProjection } from '../claims/lifecycle-read-model';
 import { transitionClaimStatus, type TransitionClaimStatusResult } from '../claims/transition';
 
-type ClaimStatus =
-  | 'draft'
-  | 'submitted'
-  | 'verification'
-  | 'evaluation'
-  | 'negotiation'
-  | 'court'
-  | 'resolved'
-  | 'rejected';
-
-const validStatuses: ClaimStatus[] = [
-  'draft',
-  'submitted',
-  'verification',
-  'evaluation',
-  'negotiation',
-  'court',
-  'resolved',
-  'rejected',
-];
+const validStatuses: readonly ClaimStatus[] = CLAIM_STATUSES;
 
 type ClaimOwnerNotificationRow = {
   id: string;

@@ -23,14 +23,13 @@
     "status": {
       "draft": "Draft",
       "submitted": "Submitted",
+      "submitted_to_airline": "Submitted to airline",
       "verification": "Verification",
       "evaluation": "Evaluation",
       "negotiation": "Negotiation",
       "court": "Court",
       "resolved": "Resolved",
       "rejected": "Rejected",
-      "assigned": "Assigned",
-      "investigating": "Investigating",
       "contacting": "Contacting",
       "negotiating": "Negotiating",
       "mediation": "Mediation",
@@ -39,6 +38,7 @@
     "stage": {
       "draft": "Draft",
       "submitted": "Submitted",
+      "submitted_to_airline": "Submitted to airline",
       "verification": "Verification",
       "evaluation": "Evaluation",
       "negotiation": "Negotiation",

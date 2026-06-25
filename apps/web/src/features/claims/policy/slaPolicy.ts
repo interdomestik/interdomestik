@@ -8,9 +8,7 @@
 
 import type { ClaimStatus } from '@interdomestik/database/constants';
 
-// ============================================================================
 // TYPES
-// ============================================================================
 
 export type WaitingOn = 'member' | 'staff' | 'system' | null;
 export type ClaimSlaPhase = 'not_applicable' | 'incomplete' | 'running';
@@ -31,9 +29,7 @@ export interface StageThreshold {
   requiresStaff: boolean;
 }
 
-// ============================================================================
 // STAGE THRESHOLDS (Configurable per-stage)
-// ============================================================================
 
 /**
  * Default thresholds per claim status.
@@ -50,6 +46,7 @@ export const STAGE_THRESHOLDS: Record<ClaimStatus, StageThreshold> = {
     slaThreshold: 3,
     requiresStaff: true,
   },
+  submitted_to_airline: { stuckThreshold: 7, slaThreshold: 14, requiresStaff: true },
   verification: {
     stuckThreshold: 5,
     slaThreshold: 7,
@@ -93,6 +90,7 @@ export const STAGE_THRESHOLDS: Record<ClaimStatus, StageThreshold> = {
 export const STATUS_TO_WAITING_ON: Record<ClaimStatus, WaitingOn> = {
   draft: 'member',
   submitted: 'staff',
+  submitted_to_airline: 'staff',
   verification: 'member',
   evaluation: 'staff',
   negotiation: 'staff',

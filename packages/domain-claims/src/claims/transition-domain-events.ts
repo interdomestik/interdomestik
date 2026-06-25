@@ -8,6 +8,8 @@ type TransitionEventArgs = {
   actor: ClaimTransitionActor;
   claimId: string;
   correlationId?: string;
+  evidenceCount: number;
+  evidenceIds: readonly string[];
   fromStatus: ClaimStatus;
   hostId?: string | null;
   lifecycleVersion: number;
@@ -44,7 +46,12 @@ export async function recordTransitionDomainEvents(args: TransitionEventArgs): P
   const correlationId = args.correlationId ?? crypto.randomUUID();
   const fromLifecycle = mapClaimStatusToLifecycleStates(args.fromStatus);
   const toLifecycle = mapClaimStatusToLifecycleStates(args.toStatus);
-  const statusPayload = { fromStatus: args.fromStatus, toStatus: args.toStatus };
+  const statusPayload = {
+    evidenceCount: args.evidenceCount,
+    evidenceIds: [...args.evidenceIds],
+    fromStatus: args.fromStatus,
+    toStatus: args.toStatus,
+  };
 
   await appendTransitionEvent({
     ...args,

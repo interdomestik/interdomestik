@@ -13,7 +13,7 @@ import {
   resolveSubmittedClaimIncidentCountry,
 } from './incident-country';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
-import { recordSubmittedClaimLifecycle } from './transition-side-effects';
+import { recordSubmittedClaimLifecycle } from './submitted-claim-lifecycle';
 import type { ClaimStartHandoffContext, ClaimsDeps, ClaimsSession } from './types';
 
 export class ClaimValidationError extends Error {

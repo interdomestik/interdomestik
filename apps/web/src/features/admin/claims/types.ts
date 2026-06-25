@@ -94,12 +94,11 @@ export interface AdminClaimsV2Filters {
   diasporaOrigin?: DiasporaOriginFilter;
 }
 
-/**
- * Status to lifecycle stage mapping.
- */
+/** Status to lifecycle stage mapping. */
 export const STATUS_TO_LIFECYCLE: Record<ClaimStatus, LifecycleStage> = {
   draft: 'intake',
   submitted: 'intake',
+  submitted_to_airline: 'negotiation',
   verification: 'verification',
   evaluation: 'processing',
   negotiation: 'negotiation',
@@ -108,12 +107,11 @@ export const STATUS_TO_LIFECYCLE: Record<ClaimStatus, LifecycleStage> = {
   rejected: 'completed',
 };
 
-/**
- * Status to owner role mapping (who needs to act next).
- */
+/** Status to owner role mapping (who needs to act next). */
 export const STATUS_TO_OWNER: Record<ClaimStatus, OwnerRole> = {
   draft: 'member',
   submitted: 'staff',
+  submitted_to_airline: 'staff',
   verification: 'member',
   evaluation: 'staff',
   negotiation: 'staff',
@@ -122,11 +120,10 @@ export const STATUS_TO_OWNER: Record<ClaimStatus, OwnerRole> = {
   rejected: 'system',
 };
 
-/**
- * Days threshold before claim is considered stuck.
- */
+/** Days threshold before claim is considered stuck. */
 export const STUCK_THRESHOLDS: Partial<Record<ClaimStatus, number>> = {
   submitted: 3,
+  submitted_to_airline: 7,
   verification: 3,
   evaluation: 5,
   negotiation: 7,

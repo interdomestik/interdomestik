@@ -14,6 +14,7 @@ export type BadgeVariant = 'default' | 'secondary' | 'outline' | 'destructive';
 const CLAIM_STATUS_BADGE_VARIANTS: Record<ClaimStatus, BadgeVariant> = {
   draft: 'outline',
   submitted: 'secondary',
+  submitted_to_airline: 'default',
   verification: 'secondary',
   evaluation: 'default',
   negotiation: 'default',
@@ -38,6 +39,7 @@ export function getClaimStatusBadgeVariant(status: string | null | undefined): B
 const STAFF_CLAIM_STATUS_LABELS: Record<ClaimStatus, string> = {
   draft: 'Draft',
   submitted: 'Submitted',
+  submitted_to_airline: 'Submitted to airline',
   verification: 'In Verification',
   evaluation: 'Evaluation',
   negotiation: 'Negotiation',
@@ -76,6 +78,13 @@ export const CLAIM_TIMELINE_PHASES: readonly {
     label: 'Evaluation',
     description: 'Assessing value',
     icon: Scale,
+  },
+  {
+    id: 'submitted_to_airline',
+    label: 'Airline submission',
+    description: 'Submitted to airline',
+    icon: FileCheck,
+    optional: true,
   },
   {
     id: 'negotiation',

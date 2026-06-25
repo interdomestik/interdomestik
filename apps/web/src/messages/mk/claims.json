@@ -23,14 +23,13 @@
     "status": {
       "draft": "Нацрт",
       "submitted": "Поднесено",
+      "submitted_to_airline": "Поднесено до авиокомпанијата",
       "verification": "Верификација",
       "evaluation": "Проценка",
       "negotiation": "Преговори",
       "court": "Суд",
       "resolved": "Решено",
       "rejected": "Одбиено",
-      "assigned": "Доделено",
-      "investigating": "Истрага",
       "contacting": "Контактирање",
       "negotiating": "Преговарање",
       "mediation": "Медијација",
@@ -39,6 +38,7 @@
     "stage": {
       "draft": "Нацрт",
       "submitted": "Поднесено",
+      "submitted_to_airline": "Поднесено до авиокомпанијата",
       "verification": "Верификација",
       "evaluation": "Проценка",
       "negotiation": "Преговори",

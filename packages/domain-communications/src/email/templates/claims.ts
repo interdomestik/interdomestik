@@ -5,6 +5,7 @@ import { buildEmailTemplate, DEFAULT_APP_URL, joinUrl } from './base';
 const STATUS_LABELS = {
   draft: 'Draft',
   submitted: 'Submitted',
+  submitted_to_airline: 'Submitted to airline',
   verification: 'Verification',
   evaluation: 'Evaluation',
   negotiation: 'Negotiation',

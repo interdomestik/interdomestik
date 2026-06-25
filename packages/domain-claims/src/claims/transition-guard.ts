@@ -4,6 +4,10 @@ import {
   needsRecoveryInvariantEvidence,
   type RecoveryInvariantRejectionReason,
 } from './recovery-invariants';
+import type {
+  TransitionEvidenceRejectionReason,
+  TransitionEvidenceSummary,
+} from './transition-evidence';
 
 export type ClaimTransitionActor = {
   id: string;
@@ -13,6 +17,8 @@ export type ClaimTransitionActor = {
 export type ClaimTransitionContext = {
   paymentAuthorizationState?: PaymentAuthorizationState | null;
   recoveryInvariantRejection?: RecoveryInvariantRejectionReason | null;
+  transitionEvidenceRejection?: TransitionEvidenceRejectionReason | null;
+  transitionEvidenceSummary?: TransitionEvidenceSummary;
 };
 
 // T-002d: module-private brand for the transition proof.
@@ -21,6 +27,8 @@ declare const AuthorizedTransitionBrand: unique symbol;
 export type AuthorizedTransition = {
   readonly [AuthorizedTransitionBrand]: 'claim-status-transition';
   readonly actorId: string;
+  readonly evidenceCount: number;
+  readonly evidenceIds: readonly string[];
   readonly from: ClaimStatus;
   readonly to: ClaimStatus;
 };
@@ -29,7 +37,11 @@ export type ClaimTransitionDecision =
   | { allowed: true; authorization: AuthorizedTransition }
   | {
       allowed: false;
-      reason: 'invalid_status' | 'illegal_transition' | RecoveryInvariantRejectionReason;
+      reason:
+        | 'invalid_status'
+        | 'illegal_transition'
+        | RecoveryInvariantRejectionReason
+        | TransitionEvidenceRejectionReason;
     };
 
 const STATUS_SET = new Set<string>(CLAIM_STATUSES);
@@ -37,9 +49,10 @@ const PAYMENT_GATED_STATUSES = new Set<ClaimStatus>(['negotiation', 'court']);
 
 export const ALLOWED_CLAIM_STATUS_TRANSITIONS = {
   draft: ['submitted'],
-  submitted: ['verification', 'evaluation', 'rejected'],
+  submitted: ['verification', 'evaluation', 'rejected', 'submitted_to_airline'],
+  submitted_to_airline: ['negotiation', 'resolved', 'evaluation', 'rejected'],
   verification: ['evaluation', 'submitted'],
-  evaluation: ['negotiation', 'verification', 'rejected', 'resolved'],
+  evaluation: ['negotiation', 'submitted_to_airline', 'verification', 'rejected', 'resolved'],
   negotiation: ['court', 'resolved', 'evaluation', 'rejected'],
   court: ['resolved', 'rejected', 'negotiation'],
   resolved: ['evaluation', 'negotiation'],
@@ -59,9 +72,16 @@ export function isClaimStatusTransitionInGraph(from: ClaimStatus, to: ClaimStatu
 function mintAuthorizedTransition(
   actorId: string,
   from: ClaimStatus,
-  to: ClaimStatus
+  to: ClaimStatus,
+  evidenceSummary?: TransitionEvidenceSummary
 ): AuthorizedTransition {
-  return { actorId, from, to } as AuthorizedTransition;
+  return {
+    actorId,
+    evidenceCount: evidenceSummary?.evidenceCount ?? 0,
+    evidenceIds: evidenceSummary?.evidenceIds ?? [],
+    from,
+    to,
+  } as AuthorizedTransition;
 }
 
 export function canTransition(params: {
@@ -84,11 +104,18 @@ export function canTransition(params: {
     return { allowed: false, reason: context.recoveryInvariantRejection };
   }
 
+  if (context?.transitionEvidenceRejection) {
+    return { allowed: false, reason: context.transitionEvidenceRejection };
+  }
+
   if (PAYMENT_GATED_STATUSES.has(to) && context?.paymentAuthorizationState !== 'authorized') {
     return { allowed: false, reason: 'signed_agreement_authorization_required' };
   }
 
-  return { allowed: true, authorization: mintAuthorizedTransition(actor.id, from, to) };
+  return {
+    allowed: true,
+    authorization: mintAuthorizedTransition(actor.id, from, to, context?.transitionEvidenceSummary),
+  };
 }
 
 export const canTransitionClaimStatus = canTransition;

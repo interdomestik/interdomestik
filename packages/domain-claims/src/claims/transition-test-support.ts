@@ -4,11 +4,13 @@ import { domainEvents } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import type { RecoveryInvariantEvidence } from './recovery-invariants';
+import type { TransitionEvidenceProof } from './transition-evidence';
 import type { TransitionTx } from './transition';
 
 type UpdatedRows = Array<{ id: string; lifecycleVersion: number }>;
 type CurrentFixture = {
   id: string;
+  category?: string | null;
   lifecycleVersion: number;
   status?: ClaimStatus | null;
   caseLifecycleState?: string | null;
@@ -17,6 +19,7 @@ type CurrentFixture = {
 type TransitionTxOptions = {
   current?: CurrentFixture;
   evidence?: RecoveryInvariantEvidence | null;
+  transitionEvidence?: readonly TransitionEvidenceProof[];
   updated?: UpdatedRows | (() => UpdatedRows);
 };
 type TransitionTxCalls = {
@@ -31,6 +34,7 @@ type TransitionTxCalls = {
 };
 
 export const authorizedRecoveryEvidence: RecoveryInvariantEvidence = {
+  acceptedAt: new Date('2026-03-12T09:00:00Z'),
   claimId: 'claim-1',
   legalActionCapPercentage: 25,
   paymentAuthorizationState: 'authorized',
@@ -130,6 +134,10 @@ export function makeTransitionTx(options: TransitionTxOptions) {
       if (rendered.includes('claim_recovery_no_fee_evidence')) {
         calls.operations.push('lock:no-fee');
         return evidence?.noFeeReasonCode ? [evidence] : [];
+      }
+      if (rendered.includes('claim_transition_evidence')) {
+        calls.operations.push('lock:transition-evidence');
+        return options.transitionEvidence ?? [];
       }
       return [];
     },

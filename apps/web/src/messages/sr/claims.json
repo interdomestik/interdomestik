@@ -23,14 +23,13 @@
     "status": {
       "draft": "Nacrt",
       "submitted": "Podneto",
+      "submitted_to_airline": "Podneto avio-kompaniji",
       "verification": "Verifikacija",
       "evaluation": "Procena",
       "negotiation": "Pregovori",
       "court": "Sud",
       "resolved": "Rešeno",
       "rejected": "Odbijeno",
-      "assigned": "Dodeljeno",
-      "investigating": "Istraga",
       "contacting": "Kontaktiranje",
       "negotiating": "Pregovaranje",
       "mediation": "Medijacija",
@@ -39,6 +38,7 @@
     "stage": {
       "draft": "Nacrt",
       "submitted": "Podneto",
+      "submitted_to_airline": "Podneto avio-kompaniji",
       "verification": "Verifikacija",
       "evaluation": "Procena",
       "negotiation": "Pregovori",

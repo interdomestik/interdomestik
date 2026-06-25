@@ -4,6 +4,7 @@ import { inArray, not, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 
 export const LIFECYCLE_ACTIVE_STATUSES: ClaimStatus[] = [
   'submitted',
+  'submitted_to_airline',
   'verification',
   'evaluation',
   'negotiation',
@@ -26,6 +27,8 @@ function claimLifecycleStatusSqlFromColumns(
       and ${columns.recoveryLifecycleState} = 'not_started' then 'draft'
     when ${columns.caseLifecycleState} = 'submitted'
       and ${columns.recoveryLifecycleState} = 'not_started' then 'submitted'
+    when ${columns.caseLifecycleState} = 'recovery'
+      and ${columns.recoveryLifecycleState} = 'submitted_to_airline' then 'submitted_to_airline'
     when ${columns.caseLifecycleState} = 'verification'
       and ${columns.recoveryLifecycleState} = 'not_started' then 'verification'
     when ${columns.caseLifecycleState} = 'evaluation'
@@ -39,8 +42,8 @@ function claimLifecycleStatusSqlFromColumns(
     when ${columns.caseLifecycleState} = 'rejected'
       and ${columns.recoveryLifecycleState} = 'closed' then 'rejected'
     when ${columns.status} in (
-      'draft', 'submitted', 'verification', 'evaluation', 'negotiation', 'court',
-      'resolved', 'rejected'
+      'draft', 'submitted', 'submitted_to_airline', 'verification', 'evaluation',
+      'negotiation', 'court', 'resolved', 'rejected'
     ) then ${columns.status}
     else 'draft'
   end`;

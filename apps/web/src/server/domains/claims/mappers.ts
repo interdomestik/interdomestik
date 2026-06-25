@@ -13,6 +13,7 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const STATUS_STAGE_MAP: Record<ClaimStatus, ClaimLifecycleStage> = {
   draft: 'draft',
   submitted: 'submitted',
+  submitted_to_airline: 'negotiation',
   verification: 'verification',
   evaluation: 'evaluation',
   negotiation: 'negotiation',
@@ -24,6 +25,7 @@ const STATUS_STAGE_MAP: Record<ClaimStatus, ClaimLifecycleStage> = {
 const STATUS_OWNER_ROLE_MAP: Record<ClaimStatus, ClaimOwnerRole> = {
   draft: 'member',
   submitted: 'staff',
+  submitted_to_airline: 'staff',
   verification: 'member',
   evaluation: 'staff',
   negotiation: 'staff',
@@ -34,6 +36,7 @@ const STATUS_OWNER_ROLE_MAP: Record<ClaimStatus, ClaimOwnerRole> = {
 
 const STUCK_THRESHOLDS: Partial<Record<ClaimStatus, number>> = {
   submitted: 3,
+  submitted_to_airline: 7,
   verification: 3,
   evaluation: 5,
   negotiation: 7,
@@ -78,9 +81,6 @@ export function mapClaimsToDto(
   const mappedRows: ClaimsListV2Row[] = rows.map(row => {
     const { claim, claimant, branch, staff, unreadCount } = row;
 
-    // Status Label Mapping
-    // "no ghost statuses" - we rely on the enum.
-    // UI will translate `claims.status.${status}`
     const status = resolveClaimLifecycleReadProjection(claim).status;
     const statusLabelKey = `claims.status.${status}`;
 

@@ -5,6 +5,7 @@ import { resolveClaimLifecycleCommandProjection } from './lifecycle-read-model';
 
 export type TransitionCurrentReadRow = {
   lifecycleVersion: number;
+  category?: string | null;
   caseLifecycleState: string | null | undefined;
   recoveryLifecycleState: string | null | undefined;
   status: string | null | undefined;
@@ -12,6 +13,7 @@ export type TransitionCurrentReadRow = {
 
 export type TransitionCurrentState = {
   authority?: 'lifecycle' | 'status_fallback';
+  category?: string | null;
   lifecycleVersion: number;
   status: ClaimStatus;
   caseLifecycleState: CaseLifecycleState;
@@ -20,6 +22,7 @@ export type TransitionCurrentState = {
 
 export type InvalidTransitionCurrentState = {
   lifecycleVersion: number;
+  category?: string | null;
   status: null;
   caseLifecycleState: string | null;
   recoveryLifecycleState: string | null;
@@ -32,6 +35,7 @@ export function resolveTransitionCurrentState(
   if (!projection.success) {
     return {
       lifecycleVersion: row.lifecycleVersion,
+      category: row.category ?? null,
       status: null,
       caseLifecycleState: row.caseLifecycleState ?? null,
       recoveryLifecycleState: row.recoveryLifecycleState ?? null,
@@ -40,6 +44,7 @@ export function resolveTransitionCurrentState(
 
   return {
     authority: projection.authority,
+    category: row.category ?? null,
     lifecycleVersion: row.lifecycleVersion,
     caseLifecycleState: projection.caseLifecycleState,
     recoveryLifecycleState: projection.recoveryLifecycleState,

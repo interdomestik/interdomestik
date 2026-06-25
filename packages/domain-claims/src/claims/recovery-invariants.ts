@@ -8,6 +8,7 @@ export type RecoveryInvariantRejectionReason =
   | 'success_fee_or_no_fee_required';
 
 export type RecoveryInvariantEvidence = {
+  acceptedAt?: Date | null;
   claimId: string;
   legalActionCapPercentage?: number | null;
   noFeeDocumentedAt?: Date | null;
@@ -29,7 +30,11 @@ export type RecoveryInvariantEvidence = {
 const SIGNED_AUTHORIZATION_STATUSES = new Set<ClaimStatus>(['negotiation', 'court']);
 
 export function needsRecoveryInvariantEvidence(toStatus: ClaimStatus): boolean {
-  return SIGNED_AUTHORIZATION_STATUSES.has(toStatus) || toStatus === 'resolved';
+  return (
+    SIGNED_AUTHORIZATION_STATUSES.has(toStatus) ||
+    toStatus === 'resolved' ||
+    toStatus === 'submitted_to_airline'
+  );
 }
 
 function hasSignedPaymentAuthorization(evidence: RecoveryInvariantEvidence | null): boolean {

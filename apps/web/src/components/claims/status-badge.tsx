@@ -6,6 +6,8 @@ import { Badge } from '@interdomestik/ui';
 const STATUS_BADGE_STYLES: Record<string, string> = {
   submitted:
     'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/40',
+  submitted_to_airline:
+    'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/40',
   verification:
     'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/40',
   evaluation:

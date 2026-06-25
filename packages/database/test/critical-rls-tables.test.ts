@@ -12,6 +12,7 @@ type CriticalRlsRow = {
 
 const CRITICAL_TABLES = [
   'claim',
+  'claim_transition_evidence',
   'claim_messages',
   'crm_task_history',
   'crm_tasks',
@@ -27,7 +28,7 @@ test('critical tables keep row level security enabled', async t => {
 
   const client = postgres(process.env.DATABASE_URL);
   const db = drizzle(client);
-  const criticalTableNames = [...CRITICAL_TABLES];
+  const criticalTableNames = [...CRITICAL_TABLES].sort((left, right) => left.localeCompare(right));
   const criticalTableList = sql.join(
     criticalTableNames.map(tableName => sql`${tableName}`),
     sql`, `

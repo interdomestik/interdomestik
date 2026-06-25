@@ -631,6 +631,13 @@
       "when": 1782192000000,
       "tag": "0089_domain_events_host_id",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1782278400000,
+      "tag": "0090_t002b_claim_transition_evidence",
+      "breakpoints": true
     }
   ]
 }

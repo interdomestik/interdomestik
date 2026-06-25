@@ -24,6 +24,10 @@ export const CLAIM_STATUS_LIFECYCLE_STATE_MAP = {
     caseLifecycleState: CASE_STATUS_LIFECYCLE_STATE_MAP.submitted,
     recoveryLifecycleState: RECOVERY_STATUS_LIFECYCLE_STATE_MAP.submitted,
   },
+  submitted_to_airline: {
+    caseLifecycleState: CASE_STATUS_LIFECYCLE_STATE_MAP.submitted_to_airline,
+    recoveryLifecycleState: RECOVERY_STATUS_LIFECYCLE_STATE_MAP.submitted_to_airline,
+  },
   verification: {
     caseLifecycleState: CASE_STATUS_LIFECYCLE_STATE_MAP.verification,
     recoveryLifecycleState: RECOVERY_STATUS_LIFECYCLE_STATE_MAP.verification,

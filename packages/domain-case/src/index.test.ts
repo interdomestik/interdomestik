@@ -23,6 +23,7 @@ test('domain-case owns the case status to lifecycle mapping', () => {
   assert.deepEqual(CASE_STATUS_LIFECYCLE_STATE_MAP, {
     draft: 'draft',
     submitted: 'submitted',
+    submitted_to_airline: 'recovery',
     verification: 'verification',
     evaluation: 'evaluation',
     negotiation: 'recovery',
