@@ -1404,6 +1404,33 @@ current-authority/design-gate selection is required before follow-on work, and
 fresh current-authority/design-gate record promotes exactly one next governed
 action.
 
+Post-Rev 122, `OBR-DG35` is the post-`T-110` current-authority gate in
+`docs/plans/2026-06-25-obr-dg35-t002b-transition-invariants-gate.md` and
+promotes exactly one canonical tracker slice: `T-002b`. `T-110` implementation
+PR `#1199` and closeout/current-authority PR `#1200` are complete through merge
+`2e0fe1b036b38df99729ef73327183aeffb430c6` from final closeout head
+`14e97cd7e3beaf9b0024333f300445cacee64a7f`; post-closeout main health at
+`2e0fe1b` is green for CI `28137465854` including unit job `83327351883` and
+DB-backed `e2e-gate` job `83327351880`, Sonar Main Gate `28137465926`, Secret
+Scan/gitleaks `28137465884`, and CodeQL `28137465577`; and the pre-gate
+resolver state was `blocked_requires_current_authority` with `activeSlice=null`.
+Remaining status-bearing M0-M5 rows are `T-002b` and direct destructive `T-503`.
+`T-002b` is selected because its direct prerequisite `T-001` is complete, the
+central transition command spine is already established, and it is the only
+non-destructive remaining core row. The next active governed implementation goal
+is exactly one canonical tracker slice: `T-002b`. Direct work must wait until
+this gate merges and the resolver promotes exactly `T-002b`. Future `T-002b` is
+limited to central claim-transition invariants and proof: airline submission
+requires signed assignment or POA plus accepted fee and consent, vehicle-damage
+negotiation requires valuation-delta plus signed service consent, and sensitive
+services require medical consent with invalidity human-review evidence where
+supported. Direct destructive `T-503`, broad SVC/FLIGHT/VONESA rollout,
+M6/product expansion, CQRS/read-model work, UI/UX redesign,
+proxy/routing/auth/session/tenancy refactors, schema/RLS/migrations outside the
+smallest justified `T-002b` evidence envelope, billing/product UI, Dependabot
+work, README, AGENTS, and broad architecture rewrites remain out of scope unless
+separately promoted.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
