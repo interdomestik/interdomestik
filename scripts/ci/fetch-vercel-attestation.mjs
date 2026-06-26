@@ -26,6 +26,15 @@ function assertExpectedUrl(url, expectedHost) {
   }
 }
 
+function assertJsonResponse(response, url) {
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.toLowerCase().includes('application/json')) {
+    throw new Error(
+      `Attestation fetch failed for ${url.href}: expected JSON, got ${contentType || 'missing'}`
+    );
+  }
+}
+
 async function sleep(ms) {
   await new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -37,8 +46,8 @@ export async function fetchVercelAttestation({
   maxRedirects = 1,
   timeoutMs = 30_000,
 }) {
-  const host = requireValue('expectedHost', expectedHost);
   let currentUrl = new URL(requireValue('metadataUrl', metadataUrl));
+  const host = expectedHost ?? currentUrl.host;
   assertExpectedUrl(currentUrl, host);
 
   for (let redirects = 0; ; redirects += 1) {
@@ -66,6 +75,7 @@ export async function fetchVercelAttestation({
     if (!response.ok) {
       throw new Error(`Attestation fetch failed: ${response.status} ${response.statusText}`);
     }
+    assertJsonResponse(response, currentUrl);
     return response.text();
   }
 }
@@ -111,7 +121,6 @@ async function main() {
 
   const metadata = await fetchVercelAttestationWithRetries({
     metadataUrl: process.env.METADATA_URL,
-    expectedHost: process.env.ATTESTATION_HOST,
     retries,
     retryDelayMs,
     timeoutMs,

@@ -139,7 +139,7 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.doesNotMatch(deployStep.run, /--token/u);
   assert.match(
     deployStep.run,
-    /interdomestik-release-attestation\.json[\s\S]*ATTESTATION_HOST="\$\{hostname\}" METADATA_URL="\$\{metadata_url\}" node scripts\/ci\/fetch-vercel-attestation\.mjs/u
+    /interdomestik-release-attestation\.json[\s\S]*METADATA_URL="\$\{metadata_url\}" node scripts\/ci\/fetch-vercel-attestation\.mjs/u
   );
   assert.match(deployStep.run, /verify-vercel-attestation\.mjs/u);
   assert.match(deployStep.run, /vercel_output_digest=/u);
