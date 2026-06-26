@@ -125,7 +125,7 @@ runs:
           echo "::error::Vercel output digest changed after attestation"
           exit 1
         fi
-        deployment_url="$(npx --yes vercel@latest deploy --prebuilt --env "COMMIT_SHA=${COMMIT_SHA}" "${target_args[@]}")"
+        deployment_url="$(npx --yes vercel@latest deploy --prebuilt --archive=tgz --env "COMMIT_SHA=${COMMIT_SHA}" "${target_args[@]}")"
         deployment_url="$(printf '%s\n' "${deployment_url}" | tail -n 1)"
         base_url="${deployment_url}"
         if [[ "${base_url}" != https://* ]]; then

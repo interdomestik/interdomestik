@@ -129,6 +129,7 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(deployStep.run, /Vercel output digest changed after attestation/u);
   assert.match(deployStep.run, /vercel@latest deploy/u);
   assert.match(deployStep.run, /--prebuilt/u);
+  assert.match(deployStep.run, /--archive=tgz/u);
   assert.match(deployStep.run, /--env "COMMIT_SHA=\$\{COMMIT_SHA\}"/u);
   assert.match(deployStep.run, /deploy_target=.*staging.*preview/u);
   assert.match(deployStep.run, /--target="\$\{deploy_target\}"/u);
