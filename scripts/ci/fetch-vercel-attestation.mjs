@@ -70,6 +70,26 @@ export async function fetchVercelAttestation({
   }
 }
 
+export async function fetchVercelAttestationWithRetries({
+  retries,
+  retryDelayMs,
+  sleepImpl = sleep,
+  ...fetchOptions
+}) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await fetchVercelAttestation(fetchOptions);
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        await sleepImpl(retryDelayMs);
+      }
+    }
+  }
+  throw lastError;
+}
+
 async function main() {
   const retries = parsePositiveInteger(
     'ATTESTATION_FETCH_RETRIES',
@@ -80,29 +100,29 @@ async function main() {
       'ATTESTATION_FETCH_RETRY_DELAY_SECONDS',
       process.env.ATTESTATION_FETCH_RETRY_DELAY_SECONDS ?? '5'
     ) * 1000;
-  let lastError;
+  const timeoutMs = parsePositiveInteger(
+    'ATTESTATION_FETCH_TIMEOUT_MS',
+    process.env.ATTESTATION_FETCH_TIMEOUT_MS ?? '30000'
+  );
+  const maxRedirects = parsePositiveInteger(
+    'ATTESTATION_FETCH_MAX_REDIRECTS',
+    process.env.ATTESTATION_FETCH_MAX_REDIRECTS ?? '1'
+  );
 
-  for (let attempt = 0; attempt <= retries; attempt += 1) {
-    try {
-      const metadata = await fetchVercelAttestation({
-        metadataUrl: process.env.METADATA_URL,
-        expectedHost: process.env.ATTESTATION_HOST,
-      });
-      process.stdout.write(metadata);
-      return;
-    } catch (error) {
-      lastError = error;
-      if (attempt < retries) {
-        await sleep(retryDelayMs);
-      }
-    }
-  }
-  throw lastError;
+  const metadata = await fetchVercelAttestationWithRetries({
+    metadataUrl: process.env.METADATA_URL,
+    expectedHost: process.env.ATTESTATION_HOST,
+    retries,
+    retryDelayMs,
+    timeoutMs,
+    maxRedirects,
+  });
+  process.stdout.write(metadata);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch(error => {
-    console.error(error instanceof Error ? error.message : String(error));
+    console.error(error);
     process.exit(1);
   });
 }

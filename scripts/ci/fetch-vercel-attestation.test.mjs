@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { fetchVercelAttestation } from './fetch-vercel-attestation.mjs';
+import {
+  fetchVercelAttestation,
+  fetchVercelAttestationWithRetries,
+} from './fetch-vercel-attestation.mjs';
 
 function headers(location) {
   return { get: name => (name.toLowerCase() === 'location' ? location : null) };
@@ -93,4 +96,43 @@ test('fetchVercelAttestation rejects unsafe URLs and failed responses', async ()
     }),
     /Attestation fetch failed/u
   );
+});
+
+test('fetchVercelAttestation times out stalled requests', async () => {
+  const fetchImpl = async (_url, { signal }) =>
+    new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () =>
+        reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))
+      );
+    });
+
+  await assert.rejects(
+    fetchVercelAttestation({
+      metadataUrl: 'https://preview.vercel.app/.well-known/interdomestik-release-attestation.json',
+      expectedHost: 'preview.vercel.app',
+      fetchImpl,
+      timeoutMs: 1,
+    }),
+    /aborted/u
+  );
+});
+
+test('fetchVercelAttestationWithRetries retries transient failures', async () => {
+  let calls = 0;
+  const delays = [];
+  const actual = await fetchVercelAttestationWithRetries({
+    metadataUrl: 'https://preview.vercel.app/.well-known/interdomestik-release-attestation.json',
+    expectedHost: 'preview.vercel.app',
+    retries: 2,
+    retryDelayMs: 5,
+    sleepImpl: async ms => delays.push(ms),
+    fetchImpl: async () => {
+      calls += 1;
+      return calls < 3 ? response(503) : response(200, '{"ok":true}');
+    },
+  });
+
+  assert.equal(actual, '{"ok":true}');
+  assert.equal(calls, 3);
+  assert.deepEqual(delays, [5, 5]);
 });
