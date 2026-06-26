@@ -72,6 +72,7 @@ const {
   buildAuthEndpointUrls,
   shouldAllowConfiguredLoopbackBaseUrl,
 } = require('./url-policy.ts');
+const { isTrustedAuthPreflightRedirect } = require('./auth-preflight-redirect.ts');
 const VERCEL_LOG_STREAM_TIMEOUT_MS = 12_000;
 const AUTH_PREFLIGHT_TIMEOUT_MS = 8_000;
 const AUTH_PREFLIGHT_MAX_ATTEMPTS = 3;
@@ -356,7 +357,6 @@ async function runAuthEndpointPreflight(runCtx) {
   const origin = runCtx.authOrigin || baseOrigin;
   for (const { path: endpointPath, url: endpoint } of endpoints) {
     let reached = false;
-
     for (let attempt = 1; attempt <= AUTH_PREFLIGHT_MAX_ATTEMPTS; attempt += 1) {
       try {
         const response = await fetch(endpoint, {
@@ -372,11 +372,13 @@ async function runAuthEndpointPreflight(runCtx) {
         evidence.push(
           preflightEvidenceLine({ endpoint: endpoint.href, attempt, status: response.status })
         );
-        if (AUTH_PREFLIGHT_ACCEPTED_STATUSES.has(response.status)) {
+        const trustedRedirect =
+          (response.status === 307 || response.status === 308) &&
+          isTrustedAuthPreflightRedirect(endpoint, response);
+        if (AUTH_PREFLIGHT_ACCEPTED_STATUSES.has(response.status) || trustedRedirect) {
           reached = true;
           break;
         }
-
         signatures.push(
           `AUTH_PREFLIGHT_ENDPOINT_UNHEALTHY endpoint=${endpointPath} status=${response.status}`
         );
@@ -1028,7 +1030,6 @@ async function main() {
     } else if (selected.includes('P1.5.1')) {
       checks.push(await executeCheck('P1.5.1', () => Promise.resolve(runVercelLogsSweep(runCtx))));
     }
-
     const normalizedChecks = enforceNoSkipOnSelectedChecks(checks, selected, runCtx.envName);
 
     const generatedAt = new Date();
@@ -1085,7 +1086,6 @@ async function main() {
         console.error(`[release-gate] signature ${signature}`);
       }
     }
-
     const hasFailure = normalizedChecks.some(check => check.status === 'FAIL');
     const hasMisconfig = normalizedChecks.some(check =>
       (check.signatures || []).some(signature => signature.includes('_MISCONFIG_'))
@@ -1095,7 +1095,6 @@ async function main() {
     await browser.close();
   }
 }
-
 module.exports = {
   buildAuthEndpointUrls,
   buildCommercialPromiseScenarios,
@@ -1121,6 +1120,7 @@ module.exports = {
   resolveVercelExecutable,
   resolveAccountPasswordVar,
   isInfraNavigationFailure,
+  runAuthEndpointPreflight,
   runCheckWithInfraRetry,
   resolveConfiguredRolePanelTarget,
   resolveConfiguredStaffClaimDetailUrl,
