@@ -22,6 +22,22 @@ test('fetchVercelHealth sends bypass header for Vercel preview hosts', async () 
   assert.equal(receivedHeaders['x-vercel-protection-bypass'], 'bypass-secret');
 });
 
+test('fetchVercelHealth allows Vercel deployment hosts without the web infix', async () => {
+  process.env.VERCEL_AUTOMATION_BYPASS_SECRET = 'bypass-secret';
+  let receivedUrl;
+  let receivedHeaders;
+  await fetchVercelHealth({
+    healthUrl: 'https://interdomestik-5w2sgjmdp-ecohub.vercel.app/api/health',
+    requestImpl: async (url, headers) => {
+      receivedUrl = url;
+      receivedHeaders = headers;
+      return response(200);
+    },
+  });
+  assert.equal(receivedUrl.href, 'https://interdomestik-5w2sgjmdp-ecohub.vercel.app/api/health');
+  assert.equal(receivedHeaders['x-vercel-protection-bypass'], 'bypass-secret');
+});
+
 test('fetchVercelHealth rejects redirects before reading health body', async () => {
   await assert.rejects(
     fetchVercelHealth({
