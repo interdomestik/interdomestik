@@ -12,7 +12,7 @@ function requireValue(name, value) {
 
 function isVercelAppUrl(value) {
   const hostname = value.hostname.toLowerCase();
-  return /^interdomestik-web(?:-[a-z0-9-]+)?-ecohub\.vercel\.app$/u.test(hostname);
+  return /^interdomestik(?:-web)?(?:-[a-z0-9-]+)?-ecohub\.vercel\.app$/u.test(hostname);
 }
 
 function isAllowedHealthUrl(value) {
