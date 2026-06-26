@@ -136,7 +136,7 @@ runs:
         hostname="${hostname%%/*}"
         hostname="${hostname%%:*}"
         metadata_url="${base_url}/.well-known/interdomestik-release-attestation.json"
-        metadata="$(curl -fsS --retry 6 --retry-delay 5 "${metadata_url}")"
+        metadata="$(curl -fsSL --retry 6 --retry-delay 5 "${metadata_url}")"
         METADATA="${metadata}" node scripts/ci/verify-vercel-attestation.mjs
         echo "deployment_url=${deployment_url}" >> "${GITHUB_OUTPUT}"
         echo "base_url=${base_url}" >> "${GITHUB_OUTPUT}"

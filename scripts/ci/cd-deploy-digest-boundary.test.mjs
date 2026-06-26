@@ -142,7 +142,7 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(deployStep.run, /--target="\$\{deploy_target\}"/u);
   assert.match(deployStep.run, /base_url="\$\{deployment_url\}"/u);
   assert.doesNotMatch(deployStep.run, /--token/u);
-  assert.match(deployStep.run, /interdomestik-release-attestation\.json/u);
+  assert.match(deployStep.run, /curl -fsSL --retry 6 --retry-delay 5 "\$\{metadata_url\}"/u);
   assert.match(deployStep.run, /verify-vercel-attestation\.mjs/u);
   assert.match(deployStep.run, /vercel_output_digest=/u);
   assert.equal(cleanupStep.if, '${{ always() }}');
