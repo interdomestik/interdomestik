@@ -9,6 +9,9 @@ inputs:
     required: true
   attested-image-digest:
     required: true
+  vercel-automation-bypass-secret:
+    required: false
+    default: ''
 outputs:
   deployment_url:
     value: ${{ steps.deploy.outputs.deployment_url }}
@@ -108,6 +111,7 @@ runs:
         COMMIT_SHA: ${{ inputs.commit-sha }}
         DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
         DEPLOY_PRODUCTION: ${{ inputs.production }}
+        VERCEL_AUTOMATION_BYPASS_SECRET: ${{ inputs.vercel-automation-bypass-secret }}
         VERCEL_OUTPUT_DIGEST: ${{ steps.artifact.outputs.vercel_output_digest }}
       run: |
         set -euo pipefail
@@ -121,12 +125,7 @@ runs:
           echo "::error::Vercel output digest changed after attestation"
           exit 1
         fi
-        deployment_url="$(
-          npx --yes vercel@latest deploy \
-            --prebuilt \
-            --env "COMMIT_SHA=${COMMIT_SHA}" \
-            "${target_args[@]}"
-        )"
+        deployment_url="$(npx --yes vercel@latest deploy --prebuilt --env "COMMIT_SHA=${COMMIT_SHA}" "${target_args[@]}")"
         deployment_url="$(printf '%s\n' "${deployment_url}" | tail -n 1)"
         base_url="${deployment_url}"
         if [[ "${base_url}" != https://* ]]; then
@@ -136,7 +135,7 @@ runs:
         hostname="${hostname%%/*}"
         hostname="${hostname%%:*}"
         metadata_url="${base_url}/.well-known/interdomestik-release-attestation.json"
-        metadata="$(METADATA_URL="${metadata_url}" node scripts/ci/fetch-vercel-attestation.mjs)"
+        metadata="$(METADATA_URL="${metadata_url}" VERCEL_AUTOMATION_BYPASS_SECRET="${VERCEL_AUTOMATION_BYPASS_SECRET:-}" node scripts/ci/fetch-vercel-attestation.mjs)"
         METADATA="${metadata}" node scripts/ci/verify-vercel-attestation.mjs
         echo "deployment_url=${deployment_url}" >> "${GITHUB_OUTPUT}"
         echo "base_url=${base_url}" >> "${GITHUB_OUTPUT}"

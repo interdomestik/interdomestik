@@ -807,10 +807,6 @@ async function main() {
       password: passwordVar ? process.env[passwordVar] || '' : '',
     };
   }
-
-  const { chromium } = resolvePlaywright();
-  const browser = await chromium.launch({ headless: true });
-  const checks = [];
   const allowLoopbackBaseUrl = shouldAllowConfiguredLoopbackBaseUrl(
     configuredBaseUrl,
     args.envName
@@ -823,6 +819,10 @@ async function main() {
         allowLoopback: allowLoopbackBaseUrl,
       }).href
     : '';
+  const { chromium } = resolvePlaywright();
+  const browser = await chromium.launch({ headless: true });
+  require('./vercel-protection.ts').installVercelProtection(safeConfiguredBaseUrl, browser);
+  const checks = [];
   try {
     const deployment = await detectDeploymentMetadata(safeConfiguredBaseUrl, browser);
     const resolvedBase = await resolveReachableBaseUrl(safeConfiguredBaseUrl, deployment, {
