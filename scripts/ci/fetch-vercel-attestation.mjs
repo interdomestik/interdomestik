@@ -42,6 +42,7 @@ async function sleep(ms) {
 export async function fetchVercelAttestation({
   metadataUrl,
   expectedHost,
+  bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET,
   fetchImpl = fetch,
   maxRedirects = 1,
   timeoutMs = 30_000,
@@ -49,6 +50,7 @@ export async function fetchVercelAttestation({
   const host = requireValue('expectedHost', expectedHost ?? new URL(metadataUrl).host)
     .trim()
     .toLowerCase();
+  const secret = typeof bypassSecret === 'string' ? bypassSecret.trim() : '';
   if (!host.endsWith('.vercel.app') && host !== 'vercel.app') {
     throw new Error('Host must be vercel.app or *.vercel.app');
   }
@@ -60,7 +62,9 @@ export async function fetchVercelAttestation({
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     let response;
     try {
-      response = await fetchImpl(currentUrl, { redirect: 'manual', signal: controller.signal });
+      const init = { redirect: 'manual', signal: controller.signal };
+      if (secret) init.headers = { 'x-vercel-protection-bypass': secret };
+      response = await fetchImpl(currentUrl, init);
     } finally {
       clearTimeout(timer);
     }
@@ -73,6 +77,9 @@ export async function fetchVercelAttestation({
         throw new Error('Attestation redirect missing Location header');
       }
       currentUrl = new URL(location, currentUrl);
+      if (currentUrl.hostname === 'vercel.com' && currentUrl.pathname.startsWith('/sso-api')) {
+        throw new Error('Attestation requires VERCEL_AUTOMATION_BYPASS_SECRET');
+      }
       assertExpectedUrl(currentUrl, host);
       continue;
     }

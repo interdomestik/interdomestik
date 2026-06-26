@@ -52,13 +52,21 @@ function assertVercelDeployBoundary({
   assert.match(step.env.VERCEL_TOKEN, /secrets\.VERCEL_TOKEN/);
   assert.equal(step.env.VERCEL_ORG_ID, '${{ vars.VERCEL_ORG_ID }}');
   assert.equal(step.env.VERCEL_PROJECT_ID, '${{ vars.VERCEL_PROJECT_ID }}');
+  assert.equal(step.env.VERCEL_AUTOMATION_BYPASS_SECRET, undefined);
+  assert.match(step.with['vercel-automation-bypass-secret'], /secrets\.VERCEL_AUTOMATION/u);
   assert.equal(
     step.with['attested-image-digest'],
     '${{ needs.' + buildJobName + '.outputs.image_digest }}'
   );
 
-  const secretKeys = 'VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID DATABASE_URL DATABASE_URL_RLS';
-  for (const key of secretKeys.split(' ')) {
+  for (const key of [
+    'VERCEL_TOKEN',
+    'VERCEL_ORG_ID',
+    'VERCEL_PROJECT_ID',
+    'DATABASE_URL',
+    'DATABASE_URL_RLS',
+    'VERCEL_AUTOMATION_BYPASS_SECRET',
+  ]) {
     assert.equal(job.env?.[key], undefined);
   }
 }
@@ -94,10 +102,8 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
 
   assert.equal(deployAction.inputs['commit-sha'].required, true);
   assert.equal(deployAction.inputs['attested-image-digest'].required, true);
-  assert.equal(
-    deployAction.outputs.vercel_output_digest.value,
-    '${{ steps.deploy.outputs.vercel_output_digest }}'
-  );
+  assert.equal(deployAction.inputs['vercel-automation-bypass-secret'].required, false);
+  assert.equal(deployAction.outputs.vercel_output_digest.value, '${{ steps.deploy.outputs.vercel_output_digest }}');
   assert.match(validateStep.run, /VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID/u);
   assert.match(validateStep.run, /ENABLE_VERCEL_DEPLOYMENTS=1/u);
   assert.match(pullStep.run, /vercel@latest pull/u);
@@ -116,15 +122,10 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(renamedDigestStep.env.SOURCE_IMAGE_DIGEST, /inputs\.attested-image-digest/u);
   assert.match(attestStep.uses, /^actions\/attest@[a-f0-9]{40}$/u);
   assert.equal(attestStep.with['subject-name'], 'vercel-output/${{ inputs.environment }}');
-  assert.equal(
-    attestStep.with['subject-digest'],
-    '${{ steps.artifact.outputs.vercel_output_digest }}'
-  );
+  assert.equal(attestStep.with['subject-digest'], '${{ steps.artifact.outputs.vercel_output_digest }}');
   assert.equal(deployStep.id, 'deploy');
-  assert.match(
-    deployStep.run,
-    /current_vercel_output_digest="\$\(node scripts\/ci\/hash-vercel-output\.mjs\)"/u
-  );
+  assert.match(deployStep.env.VERCEL_AUTOMATION_BYPASS_SECRET, /inputs\.vercel-automation-bypass-secret/u);
+  assert.match(deployStep.run, /current_vercel_output_digest="\$\(node scripts\/ci\/hash-vercel-output\.mjs\)"/u);
   assert.match(deployStep.run, /Vercel output digest changed after attestation/u);
   assert.match(deployStep.run, /vercel@latest deploy/u);
   assert.match(deployStep.run, /--prebuilt/u);
@@ -132,15 +133,9 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(deployStep.run, /deploy_target=.*staging.*preview/u);
   assert.match(deployStep.run, /--target="\$\{deploy_target\}"/u);
   assert.match(deployStep.run, /base_url="\$\{deployment_url\}"/u);
-  assert.match(
-    deployStep.run,
-    /metadata_url="\$\{base_url\}\/\.well-known\/interdomestik-release-attestation\.json"/u
-  );
+  assert.match(deployStep.run, /metadata_url="\$\{base_url\}\/\.well-known\/interdomestik-release-attestation\.json"/u);
   assert.doesNotMatch(deployStep.run, /--token/u);
-  assert.match(
-    deployStep.run,
-    /interdomestik-release-attestation\.json[\s\S]*METADATA_URL="\$\{metadata_url\}" node scripts\/ci\/fetch-vercel-attestation\.mjs/u
-  );
+  assert.match(deployStep.run, /interdomestik-release-attestation\.json[\s\S]*VERCEL_AUTOMATION_BYPASS_SECRET="\$\{VERCEL_AUTOMATION_BYPASS_SECRET:-\}" node scripts\/ci\/fetch-vercel-attestation\.mjs/u);
   assert.match(deployStep.run, /verify-vercel-attestation\.mjs/u);
   assert.match(deployStep.run, /vercel_output_digest=/u);
   assert.equal(cleanupStep.if, '${{ always() }}');
