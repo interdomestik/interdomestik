@@ -19,10 +19,10 @@ function parsePositiveInteger(name, value) {
 
 function assertExpectedUrl(url, expectedHost) {
   if (url.protocol !== 'https:') {
-    throw new Error(`Attestation URL must use https: ${url.href}`);
+    throw new Error('URL must use https');
   }
   if (url.host !== expectedHost) {
-    throw new Error(`Attestation redirect crossed host boundary: ${expectedHost} -> ${url.host}`);
+    throw new Error('Attestation crossed host boundary');
   }
 }
 
@@ -46,8 +46,13 @@ export async function fetchVercelAttestation({
   maxRedirects = 1,
   timeoutMs = 30_000,
 }) {
+  const host = requireValue('expectedHost', expectedHost ?? new URL(metadataUrl).host)
+    .trim()
+    .toLowerCase();
+  if (!host.endsWith('.vercel.app') && host !== 'vercel.app') {
+    throw new Error('Host must be vercel.app or *.vercel.app');
+  }
   let currentUrl = new URL(requireValue('metadataUrl', metadataUrl));
-  const host = expectedHost ?? currentUrl.host;
   assertExpectedUrl(currentUrl, host);
 
   for (let redirects = 0; ; redirects += 1) {
@@ -61,11 +66,11 @@ export async function fetchVercelAttestation({
     }
     if (REDIRECT_STATUSES.has(response.status)) {
       if (redirects >= maxRedirects) {
-        throw new Error(`Attestation redirect limit exceeded for ${currentUrl.href}`);
+        throw new Error('Attestation redirect limit exceeded');
       }
       const location = response.headers.get('location');
       if (!location) {
-        throw new Error(`Attestation redirect missing Location header for ${currentUrl.href}`);
+        throw new Error('Attestation redirect missing Location header');
       }
       currentUrl = new URL(location, currentUrl);
       assertExpectedUrl(currentUrl, host);
@@ -73,7 +78,7 @@ export async function fetchVercelAttestation({
     }
 
     if (!response.ok) {
-      throw new Error(`Attestation fetch failed: ${response.status} ${response.statusText}`);
+      throw new Error(`Attestation fetch failed: ${response.status}`);
     }
     assertJsonResponse(response, currentUrl);
     return response.text();
@@ -121,6 +126,7 @@ async function main() {
 
   const metadata = await fetchVercelAttestationWithRetries({
     metadataUrl: process.env.METADATA_URL,
+    expectedHost: process.env.ATTESTATION_HOST,
     retries,
     retryDelayMs,
     timeoutMs,
