@@ -100,7 +100,6 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   );
   assert.match(validateStep.run, /VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID/u);
   assert.match(validateStep.run, /ENABLE_VERCEL_DEPLOYMENTS=1/u);
-
   assert.match(pullStep.run, /vercel@latest pull/u);
   assert.match(pullStep.run, /vercel_env=.*staging.*preview/u);
   assert.match(pullStep.run, /--environment="\$\{vercel_env\}"/u);
@@ -110,20 +109,17 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(buildStep.run, /deploy_target=.*staging.*preview[\s\S]*deploy_target=production/u);
   assert.match(buildStep.run, /target_args=\(\)/u);
   assert.match(buildStep.run, /target_args=\(--prod\)/u);
-
   assert.equal(renamedDigestStep.id, 'artifact');
   assert.match(renamedDigestStep.run, /hash-vercel-output\.mjs/u);
   assert.match(renamedDigestStep.run, /interdomestik-release-attestation\.json/u);
   assert.match(renamedDigestStep.run, /vercelOutputDigest/u);
   assert.match(renamedDigestStep.env.SOURCE_IMAGE_DIGEST, /inputs\.attested-image-digest/u);
-
   assert.match(attestStep.uses, /^actions\/attest@[a-f0-9]{40}$/u);
   assert.equal(attestStep.with['subject-name'], 'vercel-output/${{ inputs.environment }}');
   assert.equal(
     attestStep.with['subject-digest'],
     '${{ steps.artifact.outputs.vercel_output_digest }}'
   );
-
   assert.equal(deployStep.id, 'deploy');
   assert.match(
     deployStep.run,
@@ -136,6 +132,10 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(deployStep.run, /deploy_target=.*staging.*preview/u);
   assert.match(deployStep.run, /--target="\$\{deploy_target\}"/u);
   assert.match(deployStep.run, /base_url="\$\{deployment_url\}"/u);
+  assert.match(
+    deployStep.run,
+    /metadata_url="\$\{base_url\}\/\.well-known\/interdomestik-release-attestation\.json"/u
+  );
   assert.doesNotMatch(deployStep.run, /--token/u);
   assert.match(
     deployStep.run,
