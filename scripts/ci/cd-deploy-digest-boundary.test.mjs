@@ -57,13 +57,8 @@ function assertVercelDeployBoundary({
     '${{ needs.' + buildJobName + '.outputs.image_digest }}'
   );
 
-  for (const key of [
-    'VERCEL_TOKEN',
-    'VERCEL_ORG_ID',
-    'VERCEL_PROJECT_ID',
-    'DATABASE_URL',
-    'DATABASE_URL_RLS',
-  ]) {
+  const secretKeys = 'VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID DATABASE_URL DATABASE_URL_RLS';
+  for (const key of secretKeys.split(' ')) {
     assert.equal(job.env?.[key], undefined);
   }
 }
@@ -142,7 +137,10 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(deployStep.run, /--target="\$\{deploy_target\}"/u);
   assert.match(deployStep.run, /base_url="\$\{deployment_url\}"/u);
   assert.doesNotMatch(deployStep.run, /--token/u);
-  assert.match(deployStep.run, /curl -fsSL --retry 6 --retry-delay 5 "\$\{metadata_url\}"/u);
+  assert.match(
+    deployStep.run,
+    /interdomestik-release-attestation\.json[\s\S]*fetch-vercel-attestation\.mjs/u
+  );
   assert.match(deployStep.run, /verify-vercel-attestation\.mjs/u);
   assert.match(deployStep.run, /vercel_output_digest=/u);
   assert.equal(cleanupStep.if, '${{ always() }}');
