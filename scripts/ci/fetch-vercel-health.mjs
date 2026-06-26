@@ -36,6 +36,14 @@ function buildHeaders(url) {
   return { 'x-vercel-protection-bypass': secret };
 }
 
+function sanitizeHealthBody(body) {
+  return body
+    .replace(/postgres(?:ql)?:\/\/[^"'\s]+/giu, 'postgres://[redacted]')
+    .replace(/(DATABASE_URL(?:_RLS)?=)[^"'\s]+/giu, '$1[redacted]')
+    .replace(/(password|token|secret|key)["']?\s*[:=]\s*["']?[^"',\s}]+/giu, '$1:[redacted]')
+    .slice(0, 1_200);
+}
+
 async function requestVercelHealth(url, headers, timeoutMs, execFileImpl = execFile) {
   const args = [
     '--silent',
@@ -75,8 +83,12 @@ export async function fetchVercelHealth({
   if (response.status >= 300 && response.status < 400) {
     throw new Error('Health endpoint redirected before returning /api/health');
   }
-  if (!response.ok) throw new Error(`Health endpoint returned ${response.status}`);
   const body = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      `Health endpoint returned ${response.status}: ${sanitizeHealthBody(body) || '[empty body]'}`
+    );
+  }
   if (!expectedCommitSha) return body;
   const actual = JSON.parse(body)?.build?.commitSha;
   if (actual !== expectedCommitSha) {

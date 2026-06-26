@@ -48,6 +48,32 @@ test('fetchVercelHealth rejects redirects before reading health body', async () 
   );
 });
 
+test('fetchVercelHealth includes a sanitized non-OK response body', async () => {
+  const body = JSON.stringify({
+    status: 'unhealthy',
+    services: {
+      database: {
+        status: 'unhealthy',
+        error:
+          'DATABASE_URL_RLS=postgresql://user:pass@example.com/app role posture could not be verified',
+      },
+    },
+  });
+
+  await assert.rejects(
+    fetchVercelHealth({
+      healthUrl: PREVIEW_HEALTH_URL,
+      requestImpl: async () => response(503, body),
+    }),
+    error => {
+      assert.match(error.message, /Health endpoint returned 503/u);
+      assert.match(error.message, /DATABASE_URL_RLS=\[redacted\]/u);
+      assert.doesNotMatch(error.message, /user:pass@example/u);
+      return true;
+    }
+  );
+});
+
 test('fetchVercelHealth validates the deployed commit SHA', async () => {
   const body = JSON.stringify({ build: { commitSha: 'abc123' } });
   await fetchVercelHealth({
