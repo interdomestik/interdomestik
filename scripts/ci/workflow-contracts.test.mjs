@@ -577,6 +577,7 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.match(stagingProvenanceStep.run, /fetch-vercel-health\.mjs[\s\S]*EXPECTED_COMMIT_SHA/u);
 
   assert.deepEqual(normalizeNeeds(e2eStagingJob.needs), ['deploy-staging']);
+  assert.deepEqual(e2eStagingJob.environment, { name: 'staging', deployment: false });
   assert.equal(e2eStagingJob.env.BASE_URL, '${{ needs.deploy-staging.outputs.base_url }}');
   assert.equal(e2eStagingJob.env.AUTH_BASE_URL, 'https://staging.interdomestik.com');
   assert.equal(
@@ -595,7 +596,6 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.match(stagingGateStep.run, /--envName staging/);
   assert.match(stagingGateStep.run, /--suite p0/);
   assert.match(stagingGateStep.run, /--authBaseUrl "\$\{AUTH_BASE_URL\}"/);
-
   assert.deepEqual(normalizeNeeds(deployProductionJob.needs), ['build-production']);
   const vercelProductionDeployStep = findStep(
     deployProductionJob.steps,
@@ -613,8 +613,8 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
     vercelProductionDeployStep.with['vercel-automation-bypass-secret'],
     /secrets\.VERCEL_AUTOMATION/u
   );
-
   assert.deepEqual(normalizeNeeds(verifyProductionJob.needs), ['deploy-production']);
+  assert.deepEqual(verifyProductionJob.environment, { name: 'production', deployment: false });
   assert.equal(verifyProductionJob.env.EXPECTED_COMMIT_SHA, '${{ github.sha }}');
   assert.equal(verifyProductionJob.env.RELEASE_GATE_EXPECTED_SHA, '${{ github.sha }}');
   for (const envName of RELEASE_GATE_ENV_VARS) {

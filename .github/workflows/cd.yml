@@ -123,6 +123,7 @@ jobs:
   e2e-staging:
     needs: deploy-staging
     runs-on: [self-hosted, interdomestik-mac]
+    environment: { name: staging, deployment: false }
     env:
       BASE_URL: ${{ needs.deploy-staging.outputs.base_url }}
       AUTH_BASE_URL: https://staging.interdomestik.com
@@ -189,14 +190,12 @@ jobs:
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
         with:
           driver: docker-container
-
       - name: Log in to the Container registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
@@ -253,6 +252,7 @@ jobs:
     needs: deploy-production
     runs-on: [self-hosted, interdomestik-mac]
     timeout-minutes: 20
+    environment: { name: production, deployment: false }
     env:
       BASE_URL: https://www.interdomestik.com
       EVIDENCE_DIR: tmp/cd-evidence/${{ github.run_id }}
