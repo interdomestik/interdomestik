@@ -53,3 +53,44 @@ test('fetchVercelAttestation rejects cross-host redirects', async () => {
     /crossed host boundary/u
   );
 });
+
+test('fetchVercelAttestation rejects redirect chains past the limit', async () => {
+  const fetchImpl = async url => response(302, '', url.pathname.includes('/one') ? '/two' : '/one');
+
+  await assert.rejects(
+    fetchVercelAttestation({
+      metadataUrl: 'https://preview.vercel.app/.well-known/interdomestik-release-attestation.json',
+      expectedHost: 'preview.vercel.app',
+      fetchImpl,
+    }),
+    /redirect limit exceeded/u
+  );
+});
+
+test('fetchVercelAttestation rejects unsafe URLs and failed responses', async () => {
+  await assert.rejects(
+    fetchVercelAttestation({
+      metadataUrl: 'http://preview.vercel.app/.well-known/interdomestik-release-attestation.json',
+      expectedHost: 'preview.vercel.app',
+    }),
+    /must use https/u
+  );
+
+  await assert.rejects(
+    fetchVercelAttestation({
+      metadataUrl: 'https://preview.vercel.app/.well-known/interdomestik-release-attestation.json',
+      expectedHost: 'preview.vercel.app',
+      fetchImpl: async () => response(302),
+    }),
+    /missing Location header/u
+  );
+
+  await assert.rejects(
+    fetchVercelAttestation({
+      metadataUrl: 'https://preview.vercel.app/.well-known/interdomestik-release-attestation.json',
+      expectedHost: 'preview.vercel.app',
+      fetchImpl: async () => response(500),
+    }),
+    /Attestation fetch failed/u
+  );
+});

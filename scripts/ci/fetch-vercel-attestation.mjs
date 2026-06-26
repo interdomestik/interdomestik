@@ -21,10 +21,8 @@ function assertExpectedUrl(url, expectedHost) {
   if (url.protocol !== 'https:') {
     throw new Error(`Attestation URL must use https: ${url.href}`);
   }
-  if (url.hostname !== expectedHost) {
-    throw new Error(
-      `Attestation redirect crossed host boundary: ${expectedHost} -> ${url.hostname}`
-    );
+  if (url.host !== expectedHost) {
+    throw new Error(`Attestation redirect crossed host boundary: ${expectedHost} -> ${url.host}`);
   }
 }
 
@@ -37,13 +35,21 @@ export async function fetchVercelAttestation({
   expectedHost,
   fetchImpl = fetch,
   maxRedirects = 1,
+  timeoutMs = 30_000,
 }) {
   const host = requireValue('expectedHost', expectedHost);
   let currentUrl = new URL(requireValue('metadataUrl', metadataUrl));
   assertExpectedUrl(currentUrl, host);
 
   for (let redirects = 0; ; redirects += 1) {
-    const response = await fetchImpl(currentUrl, { redirect: 'manual' });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let response;
+    try {
+      response = await fetchImpl(currentUrl, { redirect: 'manual', signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
     if (REDIRECT_STATUSES.has(response.status)) {
       if (redirects >= maxRedirects) {
         throw new Error(`Attestation redirect limit exceeded for ${currentUrl.href}`);
@@ -76,7 +82,7 @@ async function main() {
     ) * 1000;
   let lastError;
 
-  for (let attempt = 0; attempt < retries; attempt += 1) {
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {
       const metadata = await fetchVercelAttestation({
         metadataUrl: process.env.METADATA_URL,
@@ -86,7 +92,7 @@ async function main() {
       return;
     } catch (error) {
       lastError = error;
-      if (attempt + 1 < retries) {
+      if (attempt < retries) {
         await sleep(retryDelayMs);
       }
     }
