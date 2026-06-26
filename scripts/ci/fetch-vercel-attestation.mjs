@@ -17,6 +17,10 @@ function parsePositiveInteger(name, value) {
   return parsed;
 }
 
+function envInteger(name, fallback) {
+  return parsePositiveInteger(name, process.env[name] ?? fallback);
+}
+
 function assertExpectedUrl(url, expectedHost) {
   if (url.protocol !== 'https:') {
     throw new Error('URL must use https');
@@ -35,6 +39,24 @@ function assertJsonResponse(response, url) {
   }
 }
 
+function buildRequestInit(secret, controller) {
+  const init = { redirect: 'manual', signal: controller.signal };
+  if (secret) init.headers = { 'x-vercel-protection-bypass': secret };
+  return init;
+}
+
+function nextRedirectUrl(response, currentUrl, redirects, maxRedirects, host) {
+  if (!REDIRECT_STATUSES.has(response.status)) return null;
+  if (redirects >= maxRedirects) throw new Error('Attestation redirect limit exceeded');
+  const location = response.headers.get('location');
+  if (!location) throw new Error('Attestation redirect missing Location header');
+  const nextUrl = new URL(location, currentUrl);
+  if (nextUrl.hostname === 'vercel.com' && nextUrl.pathname.startsWith('/sso-api')) {
+    throw new Error('Attestation requires VERCEL_AUTOMATION_BYPASS_SECRET');
+  }
+  assertExpectedUrl(nextUrl, host);
+  return nextUrl;
+}
 async function sleep(ms) {
   await new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -62,25 +84,13 @@ export async function fetchVercelAttestation({
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     let response;
     try {
-      const init = { redirect: 'manual', signal: controller.signal };
-      if (secret) init.headers = { 'x-vercel-protection-bypass': secret };
-      response = await fetchImpl(currentUrl, init);
+      response = await fetchImpl(currentUrl, buildRequestInit(secret, controller));
     } finally {
       clearTimeout(timer);
     }
-    if (REDIRECT_STATUSES.has(response.status)) {
-      if (redirects >= maxRedirects) {
-        throw new Error('Attestation redirect limit exceeded');
-      }
-      const location = response.headers.get('location');
-      if (!location) {
-        throw new Error('Attestation redirect missing Location header');
-      }
-      currentUrl = new URL(location, currentUrl);
-      if (currentUrl.hostname === 'vercel.com' && currentUrl.pathname.startsWith('/sso-api')) {
-        throw new Error('Attestation requires VERCEL_AUTOMATION_BYPASS_SECRET');
-      }
-      assertExpectedUrl(currentUrl, host);
+    const redirectUrl = nextRedirectUrl(response, currentUrl, redirects, maxRedirects, host);
+    if (redirectUrl) {
+      currentUrl = redirectUrl;
       continue;
     }
 
@@ -113,23 +123,10 @@ export async function fetchVercelAttestationWithRetries({
 }
 
 async function main() {
-  const retries = parsePositiveInteger(
-    'ATTESTATION_FETCH_RETRIES',
-    process.env.ATTESTATION_FETCH_RETRIES ?? '6'
-  );
-  const retryDelayMs =
-    parsePositiveInteger(
-      'ATTESTATION_FETCH_RETRY_DELAY_SECONDS',
-      process.env.ATTESTATION_FETCH_RETRY_DELAY_SECONDS ?? '5'
-    ) * 1000;
-  const timeoutMs = parsePositiveInteger(
-    'ATTESTATION_FETCH_TIMEOUT_MS',
-    process.env.ATTESTATION_FETCH_TIMEOUT_MS ?? '30000'
-  );
-  const maxRedirects = parsePositiveInteger(
-    'ATTESTATION_FETCH_MAX_REDIRECTS',
-    process.env.ATTESTATION_FETCH_MAX_REDIRECTS ?? '1'
-  );
+  const retries = envInteger('ATTESTATION_FETCH_RETRIES', '6');
+  const retryDelayMs = envInteger('ATTESTATION_FETCH_RETRY_DELAY_SECONDS', '5') * 1000;
+  const timeoutMs = envInteger('ATTESTATION_FETCH_TIMEOUT_MS', '30000');
+  const maxRedirects = envInteger('ATTESTATION_FETCH_MAX_REDIRECTS', '1');
 
   const metadata = await fetchVercelAttestationWithRetries({
     metadataUrl: process.env.METADATA_URL,

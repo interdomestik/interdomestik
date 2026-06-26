@@ -47,12 +47,13 @@ function installVercelProtectionBrowser(baseUrl, browser) {
   const protectedHost = vercelAppHost(baseUrl);
   browser.newContext = async options => {
     const context = await originalNewContext(options);
-    if (Object.keys(headers).length === 0) return context;
-    await context.route('**/*', route => {
-      const request = route.request();
-      if (vercelAppHost(request.url()) !== protectedHost) return route.continue();
-      return route.continue({ headers: { ...request.headers(), ...headers } });
-    });
+    if (Object.keys(headers).length > 0) {
+      await context.route('**/*', route => {
+        const request = route.request();
+        if (vercelAppHost(request.url()) !== protectedHost) return route.continue();
+        return route.continue({ headers: { ...request.headers(), ...headers } });
+      });
+    }
     return context;
   };
 }
