@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Interdomestik production evidence manifest",
+  "type": "object",
+  "required": ["gates"],
+  "properties": {
+    "gates": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "required_artifacts", "owner", "status", "signoff"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^G(0[1-9]|10)$" },
+          "description": { "type": "string", "minLength": 1 },
+          "owner": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "enum": ["pending", "supplied", "approved", "verified"] },
+          "required_artifacts": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["path", "sha256"],
+              "properties": {
+                "path": { "type": "string" },
+                "sha256": { "type": "string" }
+              }
+            }
+          },
+          "signoff": {
+            "type": "object",
+            "required": ["name", "role", "signed_at"],
+            "properties": {
+              "name": { "type": "string" },
+              "role": { "type": "string" },
+              "signed_at": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

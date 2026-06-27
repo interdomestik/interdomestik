@@ -142,6 +142,7 @@ async function run(command, args, env = baseEnv) {
   }
 }
 
+if (lane.gatekeeper && process.env.SKIP_DOCKER_DOCTOR !== '1') await run('pnpm', ['run', 'doctor'], laneEnv);
 if (lane.gatekeeper) await run('bash', ['scripts/m4-gatekeeper.sh'], laneEnv);
 if (lane.state) await run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], stateEnv);
 await run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], finalEnv);
