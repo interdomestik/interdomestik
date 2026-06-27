@@ -1,5 +1,5 @@
 const { TIMEOUTS } = require('./config.ts');
-const { gotoWithTransientRetry, loginAs, sleep } = require('./shared.ts');
+const { gotoWithTransientRetry, loginAs, normalizeBaseUrl, sleep } = require('./shared.ts');
 const {
   assertTrustedReleaseGateProbeOrigin,
   normalizeTrustedVercelDeploymentBaseUrl,
@@ -39,7 +39,7 @@ async function probeReachabilityCandidate(candidate, source, maxAttempts, failur
       });
       if (isUsableProbeStatus(status)) {
         return {
-          baseUrl: candidate,
+          baseUrl: normalizeBaseUrl(candidate),
           source,
           probeStatus: status,
           failures,
@@ -67,9 +67,9 @@ async function resolveReachableBaseUrl(configuredBaseUrl, deployment, options = 
   const allowDeploymentFallback = options.allowDeploymentFallback !== false;
   const candidates = Array.from(
     new Set(
-      [configuredBaseUrl, allowDeploymentFallback ? deploymentBaseUrl?.baseUrl : null].filter(
-        Boolean
-      )
+      [configuredBaseUrl, allowDeploymentFallback ? deploymentBaseUrl?.baseUrl : null]
+        .filter(Boolean)
+        .map(candidate => normalizeBaseUrl(candidate))
     )
   );
   const failures = [];
@@ -89,7 +89,7 @@ async function resolveReachableBaseUrl(configuredBaseUrl, deployment, options = 
   }
 
   return {
-    baseUrl: configuredBaseUrl,
+    baseUrl: normalizeBaseUrl(configuredBaseUrl),
     source: 'configured_unreachable',
     probeStatus: null,
     failures,
