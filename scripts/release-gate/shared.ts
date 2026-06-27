@@ -3,6 +3,8 @@ const { ROUTES, MARKERS, SELECTORS, TIMEOUTS, ROLE_IPS, ACCOUNTS } = require('./
 const {
   assertLoginResponseOrigin,
   buildLoginRequestHeaders,
+  defaultPathForAccount,
+  postLoginRequestWithTrustedRedirect,
   resolveForwardedForIp,
 } = require('./login-request-guard.ts');
 
@@ -160,14 +162,6 @@ function computeRetryDelayMs({ attempt, retryAfterSeconds, randomFn = Math.rando
     jitterMs,
     totalMs: baseMs + jitterMs,
   };
-}
-
-function defaultPathForAccount(account) {
-  const roleMarker = ACCOUNTS[account]?.roleMarker;
-  if (roleMarker && ROUTES.rbacTargets.includes(roleMarker)) {
-    return roleMarker;
-  }
-  return account.replace('_ks', '').replace('_mk', '');
 }
 
 function logLoginAttempt({ account, attempt, status, retryAfterSeconds }) {
@@ -331,15 +325,17 @@ async function loginAs(page, params) {
       }
 
       try {
-        response = await page.request.post(loginUrl, {
-          data: {
-            email: credentials.email,
-            password: credentials.password,
+        response = await postLoginRequestWithTrustedRedirect({
+          request: page.request,
+          loginUrl,
+          requestOptions: {
+            data: { email: credentials.email, password: credentials.password },
+            headers: loginHeaders,
+            maxRedirects: 0,
           },
-          headers: loginHeaders,
-          maxRedirects: 0,
+          origin,
+          recordAttempt: () => recordAuthLoginAttempt(authState, nowFn()),
         });
-        recordAuthLoginAttempt(authState, nowFn());
       } catch (networkError) {
         logLoginAttempt({
           account,
