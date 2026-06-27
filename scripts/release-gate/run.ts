@@ -813,13 +813,12 @@ async function main() {
     configuredBaseUrl,
     args.envName
   );
-  const safeConfiguredBaseUrl = assertTrustedReleaseGateBaseUrl(configuredBaseUrl, {
-    allowLoopback: allowLoopbackBaseUrl,
-  }).href;
+  const trustOptions = { allowLoopback: allowLoopbackBaseUrl };
+  const safeConfiguredBaseUrl = normalizeBaseUrl(
+    assertTrustedReleaseGateBaseUrl(configuredBaseUrl, trustOptions).href
+  );
   const safeAuthBaseUrl = configuredAuthBaseUrl
-    ? assertTrustedReleaseGateBaseUrl(configuredAuthBaseUrl, {
-        allowLoopback: allowLoopbackBaseUrl,
-      }).href
+    ? normalizeBaseUrl(assertTrustedReleaseGateBaseUrl(configuredAuthBaseUrl, trustOptions).href)
     : '';
   const { chromium } = resolvePlaywright();
   const browser = await chromium.launch({ headless: true });
