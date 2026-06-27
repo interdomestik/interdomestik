@@ -1,5 +1,10 @@
 const path = require('node:path');
 const { ROUTES, MARKERS, SELECTORS, TIMEOUTS, ROLE_IPS, ACCOUNTS } = require('./config.ts');
+const {
+  assertLoginResponseOrigin,
+  buildLoginRequestHeaders,
+  resolveForwardedForIp,
+} = require('./login-request-guard.ts');
 
 const TRANSIENT_NAVIGATION_ERROR_PATTERNS = [
   /ERR_CONNECTION_REFUSED/i,
@@ -61,11 +66,6 @@ function getMissingEnv(requiredVars) {
   return requiredVars.filter(
     varName => !process.env[varName] || String(process.env[varName]).trim() === ''
   );
-}
-
-function resolveForwardedForIp(account) {
-  const roleMarker = ACCOUNTS[account]?.roleMarker;
-  return ROLE_IPS[account] || ROLE_IPS[roleMarker] || ROLE_IPS.member;
 }
 
 function checkResult(id, status, evidence, signatures) {
@@ -319,7 +319,7 @@ async function loginAs(page, params) {
     const origin = new URL(baseUrl).origin;
     const authOrigin = params.authOrigin || origin;
     const loginUrl = `${origin}/api/auth/sign-in/email`;
-    const tenantId = ACCOUNTS[account]?.tenantId;
+    const loginHeaders = buildLoginRequestHeaders({ account, authOrigin, baseUrl, locale });
 
     await page.context().clearCookies();
 
@@ -336,12 +336,8 @@ async function loginAs(page, params) {
             email: credentials.email,
             password: credentials.password,
           },
-          headers: {
-            Origin: authOrigin,
-            Referer: `${authOrigin}/${locale}/login`,
-            'x-forwarded-for': resolveForwardedForIp(account),
-            ...(tenantId ? { 'x-tenant-id': tenantId } : {}),
-          },
+          headers: loginHeaders,
+          maxRedirects: 0,
         });
         recordAuthLoginAttempt(authState, nowFn());
       } catch (networkError) {
@@ -402,6 +398,7 @@ async function loginAs(page, params) {
       const url = response ? response.url() : loginUrl;
       throw new Error(`AUTH_LOGIN_FAILED account=${account} status=${status} url=${url}`);
     }
+    assertLoginResponseOrigin({ account, response, origin });
 
     let storageState = await page.context().storageState();
     if (!Array.isArray(storageState.cookies) || storageState.cookies.length === 0) {
