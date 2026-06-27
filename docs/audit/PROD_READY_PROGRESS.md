@@ -69,3 +69,8 @@ Branch: `chore/prod-ready-sync`
   - `Butel AD Skopje docs.pdf` is a signed/stamped corporate membership employee-list confirmation for 90 employees, invoice `0307/04/2026`, valid `05/01/2026` to `05/01/2027`.
   - These PDFs are candidates for G01 roster/list signoff evidence and possibly supplemental G03 invoice-acceptance context. They are not payment proof, legal/privacy approval, access matrix, activation evidence, POA/consent, or closure evidence.
   - They contain employee names and should be stored only in the agreed evidence location with hashes recorded; do not commit them casually to the repo.
+
+## Task 8 - CD Production Evidence Wiring
+
+- Change: added a `production-evidence` CD job after `e2e-staging` and before `build-production`; it runs `pnpm release:evidence:check` so pending G01-G10 blocks the production leg before any production build or deploy.
+- Verification: focused workflow/script contract tests passed; `corepack pnpm release:evidence:check` still fails closed with pending G01-G10 and pending signoffs.

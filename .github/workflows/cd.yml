@@ -16,11 +16,7 @@ jobs:
   build-staging:
     runs-on: [self-hosted, interdomestik-mac]
     environment: { name: staging }
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-      attestations: write
+    permissions: { contents: read, packages: write, id-token: write, attestations: write }
     outputs:
       image_tag: ${{ steps.meta.outputs.version }}
       image_digest: ${{ steps.build.outputs.digest }}
@@ -63,10 +59,7 @@ jobs:
     timeout-minutes: 25
     environment:
       name: staging
-    permissions:
-      contents: read
-      id-token: write
-      attestations: write
+    permissions: { contents: read, id-token: write, attestations: write }
     outputs:
       base_url: ${{ steps.vercel.outputs.base_url }}
       hostname: ${{ steps.vercel.outputs.hostname }}
@@ -144,8 +137,7 @@ jobs:
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
       - uses: ./.github/actions/setup
-        with:
-          install-playwright: 'true'
+        with: { install-playwright: 'true' }
       - name: Run Staging Release Gate
         shell: bash
         env:
@@ -169,17 +161,28 @@ jobs:
           path: ${{ env.EVIDENCE_DIR }}/**
           if-no-files-found: error
           retention-days: 14
-  build-production:
+  production-evidence:
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     needs: e2e-staging
+    runs-on: ubuntu-latest
+    environment: { name: production, deployment: false }
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - uses: ./.github/actions/setup
+        with: { install-playwright: 'false' }
+      - name: Check Production Human Evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm release:evidence:check
+  build-production:
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    needs: production-evidence
     runs-on: [self-hosted, interdomestik-mac]
     environment:
       name: production
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-      attestations: write
+    permissions: { contents: read, packages: write, id-token: write, attestations: write }
     outputs:
       image_tag: ${{ steps.meta.outputs.version }}
       image_digest: ${{ steps.build.outputs.digest }}
@@ -224,10 +227,7 @@ jobs:
     runs-on: [self-hosted, interdomestik-mac]
     timeout-minutes: 25
     environment: { name: production, url: https://www.interdomestik.com }
-    permissions:
-      contents: read
-      id-token: write
-      attestations: write
+    permissions: { contents: read, id-token: write, attestations: write }
     steps:
       - name: Checkout repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
@@ -277,8 +277,7 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
 
       - uses: ./.github/actions/setup
-        with:
-          install-playwright: 'true'
+        with: { install-playwright: 'true' }
 
       - name: Validate optional Sentry Seer configuration
         shell: bash
