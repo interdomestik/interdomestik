@@ -113,7 +113,7 @@ test('pilot readiness commands keep local verification and production proof dist
     pilotFlow,
     'node scripts/run-with-dotenv.mjs bash scripts/pilot-verify.sh --print-ranked-flow'
   );
-  assert.equal(releaseGateProd, 'node scripts/run-with-dotenv.mjs pnpm -s release:gate:prod:raw');
+  assert.equal(releaseGateProd, 'pnpm release:evidence:check && node scripts/run-with-dotenv.mjs pnpm -s release:gate:prod:raw');
   assert.equal(
     releaseGateProdRaw,
     'tsx scripts/release-gate/run.ts --envName production --suite all'

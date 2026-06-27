@@ -1,0 +1,81 @@
+gates:
+  - id: G01
+    description: Signed HR roster file/version/hash signoff.
+    owner: HR owner
+    status: pending
+    required_artifacts:
+      - path: docs/release/evidence/G01-roster-signoff.pdf
+        sha256: pending
+    signoff: { name: pending, role: HR owner, signed_at: pending }
+  - id: G02
+    description: Production supervisor approval artifact.
+    owner: Release supervisor
+    status: pending
+    required_artifacts:
+      - path: docs/release/evidence/G02-supervisor-approval.pdf
+        sha256: pending
+    signoff: { name: pending, role: Release supervisor, signed_at: pending }
+  - id: G03
+    description: Sponsor invoice receipt or acceptance evidence.
+    owner: Finance owner
+    status: pending
+    required_artifacts:
+      - path: docs/release/evidence/G03-sponsor-invoice-acceptance.pdf
+        sha256: pending
+    signoff: { name: pending, role: Finance owner, signed_at: pending }
+  - id: G04
+    description: Original bank payment proof.
+    owner: Finance owner
+    status: pending
+    required_artifacts:
+      - path: docs/release/evidence/G04-bank-payment-proof.pdf
+        sha256: pending
+    signoff: { name: pending, role: Finance owner, signed_at: pending }
+  - id: G05
+    description: Approved reconciliation resolving the 600 MKD difference.
+    owner: Finance owner
+    status: pending
+    required_artifacts:
+      - path: docs/release/evidence/G05-600-mkd-reconciliation.pdf
+        sha256: pending
+    signoff: { name: pending, role: Finance owner, signed_at: pending }
+  - id: G06
+    description: Signed terms and privacy approval.
+    owner: Legal/privacy owner
+    status: pending
+    required_artifacts:
+      - path: docs/release/evidence/G06-terms-privacy-approval.pdf
+        sha256: pending
+    signoff: { name: pending, role: Legal/privacy owner, signed_at: pending }
+  - id: G07
+    description: Approved access matrix.
+    owner: Security owner
+    status: pending
+    required_artifacts:
+      - path: docs/release/evidence/G07-access-matrix.pdf
+        sha256: pending
+    signoff: { name: pending, role: Security owner, signed_at: pending }
+  - id: G08
+    description: Signed activation rule and member acceptance event.
+    owner: Product owner
+    status: pending
+    required_artifacts:
+      - path: docs/release/evidence/G08-activation-acceptance.pdf
+        sha256: pending
+    signoff: { name: pending, role: Product owner, signed_at: pending }
+  - id: G09
+    description: Signed POA, consent, service agreement, and fee terms as applicable.
+    owner: Claims/legal owner
+    status: pending
+    required_artifacts:
+      - path: docs/release/evidence/G09-poa-consent-terms.pdf
+        sha256: pending
+    signoff: { name: pending, role: Claims/legal owner, signed_at: pending }
+  - id: G10
+    description: Settlement, payment, fee, reconciliation, and client-closure evidence.
+    owner: Claims/finance owner
+    status: pending
+    required_artifacts:
+      - path: docs/release/evidence/G10-closure-evidence.pdf
+        sha256: pending
+    signoff: { name: pending, role: Claims/finance owner, signed_at: pending }

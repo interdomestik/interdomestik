@@ -124,7 +124,7 @@ Before pushing _any_ code, run the verifier:
 pnpm pr:verify
 ```
 
-_Runs: memory precheck, release-gate unit coverage, E2E contract checks, production lint-warning baseline, DB/RLS checks, i18n checks, coverage gate, fast checks, and Web Smoke Tests._
+_Runs: memory precheck, release-gate unit coverage, E2E contract checks, production lint-warning baseline, DB/RLS checks, i18n checks, coverage gate, fast checks, and Web Smoke Tests. Use `pnpm prod:ready:code` for the Docker-free code gate; local E2E lanes run `pnpm run doctor` first._
 
 For pilot-launch release proof, also run:
 
@@ -151,7 +151,7 @@ pnpm security:guard
 
 ## 🚢 Release Readiness
 
-The GitHub CD workflow builds separate staging and production Docker artifacts with explicit Supabase environment separation. Promotion is fail-closed: staging and production deploy jobs require environment-scoped deploy webhook secrets, then run health checks and release-gate evidence capture before production verification artifacts are retained.
+The GitHub CD workflow builds separate staging and production Docker artifacts with explicit Supabase environment separation. Promotion is fail-closed: staging and production deploy jobs require environment-scoped deploy webhook secrets, then run health checks and release-gate evidence capture before production verification artifacts are retained. Production also runs `pnpm release:evidence:check` against `docs/release/production-evidence.yaml`; pending G01-G10 evidence keeps `pnpm release:gate:prod` fail-closed.
 
 ## 🌍 Internationalization
 

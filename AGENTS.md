@@ -98,7 +98,7 @@ pnpm e2e:gate
 ```
 
 PRs that fail either check are invalid.
-For deterministic local host-routed verification, use `pnpm pr:verify:hosts`; CI should continue using `pnpm pr:verify` with explicit host env.
+For deterministic local host-routed verification, use `pnpm pr:verify:hosts`; CI should continue using `pnpm pr:verify` with explicit host env. For Docker-free code proof use `pnpm prod:ready:code`; local E2E lanes run `pnpm run doctor`; production release gates run `pnpm release:evidence:check` for G01-G10 artifacts and hashes.
 
 ### Single Test Commands
 
