@@ -31,10 +31,10 @@ RUN pnpm install --frozen-lockfile
 
 # Build the project
 # This assumes the build command in package.json runs turbo build
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
 # Skip linting during build to speed up
-ENV NEXT_IGNORE_ESLINT 1
-ENV INTERDOMESTIK_BUILDING 1
+ENV NEXT_IGNORE_ESLINT=1
+ENV INTERDOMESTIK_BUILDING=1
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 RUN DATABASE_URL="postgres://p:p@127.0.0.1:54322/postgres" \
@@ -44,8 +44,8 @@ RUN DATABASE_URL="postgres://p:p@127.0.0.1:54322/postgres" \
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -65,8 +65,8 @@ USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
+ENV PORT=3000
 # set hostname to localhost
-ENV HOSTNAME "0.0.0.0"
+ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "apps/web/server.js"]

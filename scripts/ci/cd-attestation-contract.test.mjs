@@ -59,6 +59,8 @@ function assertAttestedImageAction() {
   assert.equal(buildStep.with.push, true);
   assert.equal(buildStep.with.provenance, 'mode=max');
   assert.equal(buildStep.with.sbom, true);
+  assert.equal(buildStep.with['cache-from'], undefined);
+  assert.equal(buildStep.with['cache-to'], undefined);
   assert.match(buildStep.with.tags, /\$\{\{\s*inputs\.tags\s*\}\}/u);
   assert.match(buildStep.with['build-args'], /COMMIT_SHA=\$\{\{\s*github\.sha\s*\}\}/u);
   assert.match(

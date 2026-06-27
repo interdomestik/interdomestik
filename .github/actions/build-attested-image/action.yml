@@ -40,8 +40,6 @@ runs:
         sbom: true
         tags: ${{ inputs.tags }}
         labels: ${{ inputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
         build-args: |
           COMMIT_SHA=${{ github.sha }}
           INTERDOMESTIK_DEPLOY_ENV=${{ inputs.deploy-env }}
