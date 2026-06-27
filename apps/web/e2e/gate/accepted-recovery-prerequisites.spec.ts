@@ -111,8 +111,9 @@ test.describe('Accepted recovery prerequisites', () => {
 
       const expectedPrerequisites = getExpectedPrerequisiteCopy(testInfo.project.name);
       const expectedCollectionEmptyCopy = getExpectedCollectionEmptyCopy(testInfo.project.name);
-      const prerequisiteSummary = staffPage.getByTestId('staff-accepted-recovery-prerequisites');
-      const collectionSummary = staffPage.getByTestId('staff-success-fee-collection-summary');
+      const readyPage = staffPage.getByTestId('dashboard-page-ready');
+      const prerequisiteSummary = readyPage.getByTestId('staff-accepted-recovery-prerequisites');
+      const collectionSummary = readyPage.getByTestId('staff-success-fee-collection-summary');
 
       await expect(prerequisiteSummary).toBeVisible();
       await expect(prerequisiteSummary.getByText(expectedPrerequisites.title)).toBeVisible();
@@ -126,7 +127,6 @@ test.describe('Accepted recovery prerequisites', () => {
       await expect(
         prerequisiteSummary.getByText(/Missing|Mungon|Недостасува/, { exact: true })
       ).toBeVisible();
-
       await expect(collectionSummary.getByText(expectedCollectionEmptyCopy)).toBeVisible();
     } finally {
       if (existingAgreement?.id) {

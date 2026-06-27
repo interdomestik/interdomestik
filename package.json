@@ -162,7 +162,7 @@
     "v1:status": "node scripts/v1-status.mjs",
     "ci:audit:docker": "bash scripts/ci-audit-docker.sh",
     "purity:audit": "node scripts/purity-audit.mjs",
-    "pr:verify": "pnpm memory:precheck && pnpm repo:size:check && pnpm test:release-gate && pnpm check:e2e-contracts && pnpm lint:production-warnings && pnpm db:migrations:check-journal && pnpm db:rls:test:required && pnpm i18n:check && pnpm i18n:purity:check && pnpm check:db-access && pnpm check:architecture-boundaries && pnpm coverage:gate && pnpm check:fast && node scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web run e2e:smoke",
+    "pr:verify": "pnpm memory:precheck && pnpm repo:size:check && pnpm test:ci:contracts && pnpm test:release-gate && pnpm check:e2e-contracts && pnpm lint:production-warnings && pnpm db:migrations:check-journal && pnpm db:rls:test:required && pnpm i18n:check && pnpm i18n:purity:check && pnpm check:db-access && pnpm check:architecture-boundaries && pnpm coverage:gate && pnpm check:fast && node scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web run e2e:smoke",
     "pr:verify:hosts": "bash scripts/pr-verify-hosts.sh",
     "pr:finalize": "bash scripts/pr-finalizer.sh",
     "pr:governance:report": "node scripts/github-pr-governance-report.mjs",

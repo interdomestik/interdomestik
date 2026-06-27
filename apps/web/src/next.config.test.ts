@@ -9,3 +9,14 @@ describe('next.config sentry tunnel route', () => {
     expect(configSource).toContain("tunnelRoute: '/api/monitoring'");
   });
 });
+
+describe('next.config build memory controls', () => {
+  it('keeps Docker CD build worker and webpack memory knobs explicit', async () => {
+    const configSource = await readFile(path.join(process.cwd(), 'next.config.mjs'), 'utf8');
+
+    expect(configSource).toContain('NEXT_BUILD_CPUS');
+    expect(configSource).toContain('NEXT_WEBPACK_MEMORY_OPTIMIZATIONS');
+    expect(configSource).toContain('cpus: buildCpus');
+    expect(configSource).toContain('webpackMemoryOptimizations: true');
+  });
+});
