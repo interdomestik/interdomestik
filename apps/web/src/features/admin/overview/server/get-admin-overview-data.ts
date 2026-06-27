@@ -5,7 +5,7 @@ import {
   claimLifecycleStatusIn,
   claimLifecycleStatusSql,
 } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
-import { db } from '@interdomestik/database/db';
+import { withTenantContext } from '@interdomestik/database';
 import { branches, claims, user } from '@interdomestik/database/schema';
 import { and, count, desc, eq, gte } from 'drizzle-orm';
 
@@ -41,50 +41,58 @@ export async function getAdminOverviewData(params: {
     updated24hRes,
     claimsByStageRes,
     claimsByBranchRes,
-  ] = await Promise.all([
-    db
-      .select({ value: count() })
-      .from(user)
-      .where(and(eq(user.tenantId, tenantId), eq(user.role, 'member'))),
-    db
-      .select({ value: count() })
-      .from(user)
-      .where(and(eq(user.tenantId, tenantId), eq(user.role, 'agent'))),
-    db
-      .select({ value: count() })
-      .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES))),
-    db
-      .select({ value: count() })
-      .from(claims)
-      .where(
-        and(
-          eq(claims.tenantId, tenantId),
-          claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES),
-          gte(claims.updatedAt, last24h)
+  ] = await withTenantContext({ tenantId, role: 'admin' }, tx =>
+    Promise.all([
+      tx
+        .select({ value: count() })
+        .from(user)
+        .where(and(eq(user.tenantId, tenantId), eq(user.role, 'member'))),
+      tx
+        .select({ value: count() })
+        .from(user)
+        .where(and(eq(user.tenantId, tenantId), eq(user.role, 'agent'))),
+      tx
+        .select({ value: count() })
+        .from(claims)
+        .where(
+          and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES))
+        ),
+      tx
+        .select({ value: count() })
+        .from(claims)
+        .where(
+          and(
+            eq(claims.tenantId, tenantId),
+            claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES),
+            gte(claims.updatedAt, last24h)
+          )
+        ),
+      tx
+        .select({
+          stage: lifecycleStatus,
+          count: count(),
+        })
+        .from(claims)
+        .where(
+          and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES))
         )
-      ),
-    db
-      .select({
-        stage: lifecycleStatus,
-        count: count(),
-      })
-      .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES)))
-      .groupBy(lifecycleStatus)
-      .orderBy(desc(count())),
-    db
-      .select({
-        branchId: claims.branchId,
-        branchName: branches.name,
-        count: count(),
-      })
-      .from(claims)
-      .leftJoin(branches, and(eq(branches.id, claims.branchId), eq(branches.tenantId, tenantId)))
-      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES)))
-      .groupBy(claims.branchId, branches.name)
-      .orderBy(desc(count())),
-  ]);
+        .groupBy(lifecycleStatus)
+        .orderBy(desc(count())),
+      tx
+        .select({
+          branchId: claims.branchId,
+          branchName: branches.name,
+          count: count(),
+        })
+        .from(claims)
+        .leftJoin(branches, and(eq(branches.id, claims.branchId), eq(branches.tenantId, tenantId)))
+        .where(
+          and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(ACTIONABLE_CLAIM_STATUSES))
+        )
+        .groupBy(claims.branchId, branches.name)
+        .orderBy(desc(count())),
+    ])
+  );
 
   return {
     kpis: {

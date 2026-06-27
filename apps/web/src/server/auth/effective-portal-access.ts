@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database/db';
+import { dbAdmin } from '@interdomestik/database/db';
 import { eq } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 
@@ -16,7 +16,8 @@ async function getExplicitTenantRolesFor(
   tenantId: string | null | undefined
 ): Promise<string[]> {
   if (!userId || !tenantId) return [];
-  const rows = await db.query.userRoles.findMany({
+  // db-access-guard: system-exempt -- reason: authz gate resolves role metadata before tenant-scoped RLS context exists
+  const rows = await dbAdmin.query.userRoles.findMany({
     where: (r, { and: andFn }) => andFn(eq(r.userId, userId), eq(r.tenantId, tenantId)),
     columns: { role: true },
   });
@@ -24,8 +25,8 @@ async function getExplicitTenantRolesFor(
 }
 
 async function isActiveTenant(tenantId: string): Promise<boolean> {
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const tenant = await db.query.tenants.findFirst({
+  // db-access-guard: system-exempt -- reason: super-admin authz gate validates active tenant metadata before tenant-scoped RLS context exists
+  const tenant = await dbAdmin.query.tenants.findFirst({
     where: (t, { and: andFn }) => andFn(eq(t.id, tenantId), eq(t.isActive, true)),
     columns: { id: true },
   });

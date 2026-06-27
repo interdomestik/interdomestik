@@ -48,11 +48,13 @@ export function normalizeTenantHost(host: string | null | undefined): string {
 export function isKnownIdaFrontDoorHost(host: string | null | undefined): boolean {
   const normalized = normalizeTenantHost(host);
   const configuredIdaHost = normalizeTenantHost(process.env.IDA_HOST);
+  const configuredVercelUrl = normalizeTenantHost(process.env.VERCEL_URL);
 
   return (
     normalized.startsWith('ida.') ||
     DEFAULT_IDA_FRONT_DOOR_HOSTS.has(normalized) ||
-    (configuredIdaHost.length > 0 && normalized === configuredIdaHost)
+    (configuredIdaHost.length > 0 && normalized === configuredIdaHost) ||
+    (configuredVercelUrl.length > 0 && normalized === configuredVercelUrl)
   );
 }
 
