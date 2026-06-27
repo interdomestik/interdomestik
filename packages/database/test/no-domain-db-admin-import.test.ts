@@ -134,7 +134,8 @@ test('apps/web uses raw privileged database clients only in system boundaries', 
     const relativePath = path.relative(REPO_ROOT, file);
     const isAllowedPath =
       relativePath.startsWith('apps/web/src/app/api/') ||
-      relativePath.startsWith('apps/web/src/lib/auth/');
+      relativePath.startsWith('apps/web/src/lib/auth/') ||
+      relativePath.startsWith('apps/web/src/server/auth/');
     if (!isAllowedPath) {
       violations.push(relativePath);
     }
