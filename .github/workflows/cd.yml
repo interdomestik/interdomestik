@@ -15,8 +15,7 @@ env:
 jobs:
   build-staging:
     runs-on: [self-hosted, interdomestik-mac]
-    environment:
-      name: staging
+    environment: { name: staging }
     permissions:
       contents: read
       packages: write
@@ -61,6 +60,7 @@ jobs:
   deploy-staging:
     needs: build-staging
     runs-on: [self-hosted, interdomestik-mac]
+    timeout-minutes: 25
     environment:
       name: staging
     permissions:
@@ -222,9 +222,8 @@ jobs:
   deploy-production:
     needs: build-production
     runs-on: [self-hosted, interdomestik-mac]
-    environment:
-      name: production
-      url: https://www.interdomestik.com
+    timeout-minutes: 25
+    environment: { name: production, url: https://www.interdomestik.com }
     permissions:
       contents: read
       id-token: write
