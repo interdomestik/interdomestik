@@ -23,13 +23,7 @@ function parseEnvInt(value: string | undefined, fallback: number): number {
 
 function isLocalDatabaseUrl(databaseUrl: string): boolean {
   try {
-    const hostname = new URL(databaseUrl).hostname;
-    return (
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '::1' ||
-      hostname === '[::1]'
-    );
+    return ['localhost', '127.0.0.1', '::1', '[::1]'].includes(new URL(databaseUrl).hostname);
   } catch {
     return false;
   }
@@ -45,6 +39,7 @@ function createQueryClient(databaseUrl: string, label: 'admin' | 'rls'): postgre
 
   return postgres(databaseUrl, {
     max: safeMax,
+    ssl: isProduction && !isLocalDatabaseUrl(databaseUrl) ? 'require' : false,
     idle_timeout: parseEnvInt(process.env.DB_IDLE_TIMEOUT, isProduction ? 10 : 20),
     connect_timeout: parseEnvInt(process.env.DB_CONNECT_TIMEOUT, 10),
     max_lifetime: parseEnvInt(process.env.DB_MAX_LIFETIME, 1800),
