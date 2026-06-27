@@ -137,7 +137,7 @@ async function runP01(browser, runCtx, deps) {
       await loginWithRunContext(page, runCtx, account);
 
       const matrix = expectedMatrixForAccount(account);
-      for (const portal of ROUTES.rbacTargets) {
+      for (const portal of new Set([matrix.canonical, ...ROUTES.rbacTargets])) {
         const route = `/${portal}`;
         await gotoWithSessionRetry({
           page,
@@ -150,7 +150,7 @@ async function runP01(browser, runCtx, deps) {
         });
         await page.waitForTimeout(450);
 
-        const current = await collectMarkersWithWait(page, matrix.canonical);
+        const current = await collectMarkersWithWait(page, portal === matrix.canonical && portal);
         evidence.push(`${account} ${markerSummary(route, current)}`);
 
         const rbacResult = collectRbacFailures({
@@ -458,7 +458,7 @@ async function runP03AndP04(browser, runCtx, deps) {
       const context = await browser.newContext();
       const page = await context.newPage();
       try {
-        await loginWithRunContext(page, runCtx, 'admin_ks');
+        await loginWithRunContext(page, runCtx, 'admin_ks', { forceFresh: true });
 
         const resolvedTarget = await ensureRolePanelLoaded(page, targetUrl);
         evidenceP03.push(

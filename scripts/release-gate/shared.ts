@@ -227,9 +227,9 @@ async function bootstrapAccountLanding(page, params) {
 
   page.on('response', onResponse);
   try {
-    // Keep login bootstrap tolerant: account data can drift, and strict role marker
-    // assertions here create false exceptions before route-specific checks run.
-    // Route checks (P0.1/P0.6/etc.) remain authoritative for marker semantics.
+    // Keep bootstrap tolerant: account data can drift.
+    // Strict assertions here can false-fail before route checks.
+    // P0 route checks remain authoritative for markers.
     await gotoWithTransientRetry({
       navigate: () => page.goto(targetUrl, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav }),
     });
@@ -529,11 +529,11 @@ async function assertUrlMarkers(page, label, url, expected) {
 async function collectMarkersWithWait(page, preferredMarker) {
   const start = Date.now();
   let current = await markerSnapshot(page);
+
   while (Date.now() - start < TIMEOUTS.marker) {
-    if (current.notFound) break;
     if (preferredMarker) {
       if (current[preferredMarker]) break;
-    } else if (Object.values(current).some(Boolean)) {
+    } else if (current.notFound || Object.values(current).some(Boolean)) {
       break;
     }
     await sleep(300);
