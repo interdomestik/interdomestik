@@ -41,11 +41,7 @@ const strictArgs = ['--max-failures=1', ...reportArgs];
 const workerArgs = ['--workers=1', ...reportArgs];
 const strictWorkers = ['--workers=1', ...strictArgs];
 const gateArgs = ['e2e/gate', ...strictWorkers];
-const setupArgs = [
-  'e2e/setup.state.spec.ts',
-  '--project=setup-ks',
-  '--project=setup-mk',
-];
+const setupArgs = ['e2e/setup.state.spec.ts', '--project=setup-ks', '--project=setup-mk'];
 const mergeArgs = ['e2e/gate', 'e2e/golden', '--grep-invert', '@quarantine|@visual|@legacy'];
 const pwArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];
 const fastEnv = { PW_FAST_GATES: '1' };
@@ -100,9 +96,7 @@ const laneDefinitions = {
 
 function usage() {
   const lanes = Object.keys(laneDefinitions).join(', ');
-  console.error(
-    `Usage: node scripts/run-e2e-lane.mjs <lane> [playwright args...]\n\nLanes: ${lanes}`
-  );
+  console.error(`Usage: node scripts/run-e2e-lane.mjs <lane> [playwright args...]\n\nLanes: ${lanes}`);
 }
 
 const laneName = process.argv[2] || 'gate';
@@ -114,6 +108,11 @@ if (laneName === '-h' || laneName === '--help' || laneName === 'help') {
 }
 
 const lane = laneDefinitions[laneName];
+const shouldRunLocalDoctor =
+  lane?.gatekeeper &&
+  process.env.SKIP_DOCKER_DOCTOR !== '1' &&
+  process.env.CI !== 'true' &&
+  !process.env.E2E_DATABASE_URL;
 
 if (!lane) {
   usage();
@@ -142,7 +141,7 @@ async function run(command, args, env = baseEnv) {
   }
 }
 
-if (lane.gatekeeper && process.env.SKIP_DOCKER_DOCTOR !== '1') await run('pnpm', ['run', 'doctor'], laneEnv);
+if (shouldRunLocalDoctor) await run('pnpm', ['run', 'doctor'], laneEnv);
 if (lane.gatekeeper) await run('bash', ['scripts/m4-gatekeeper.sh'], laneEnv);
 if (lane.state) await run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], stateEnv);
 await run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], finalEnv);

@@ -29,4 +29,6 @@ test('e2e lane runner calls doctor before the gatekeeper', async () => {
 
   assert.ok(doctorIndex > 0);
   assert.ok(gatekeeperIndex > doctorIndex);
+  assert.match(source, /process\.env\.CI !== 'true'/);
+  assert.match(source, /!process\.env\.E2E_DATABASE_URL/);
 });

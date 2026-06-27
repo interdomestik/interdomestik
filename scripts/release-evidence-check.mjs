@@ -3,12 +3,13 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import yaml from 'js-yaml';
 
 const rootDir = process.cwd();
 const defaultManifest = 'docs/release/production-evidence.yaml';
 const passingStatuses = new Set(['supplied', 'approved', 'verified']);
-const requiredGateFields = ['id', 'description', 'required_artifacts', 'owner', 'status'];
-const gateScalarKeys = ['description', 'owner', 'status'];
+const requiredGateFields = ['id', 'description', 'required_artifacts', 'owner', 'status', 'signoff'];
+const requiredSignoffFields = ['name', 'role', 'signed_at'];
 
 function argValue(name) {
   const index = process.argv.indexOf(name);
@@ -18,62 +19,11 @@ function argValue(name) {
 function readManifest(filePath) {
   const absolute = path.resolve(rootDir, filePath);
   if (!fs.existsSync(absolute)) throw new Error(`manifest not found: ${filePath}`);
-  return parseManifest(fs.readFileSync(absolute, 'utf8'));
+  return yaml.load(fs.readFileSync(absolute, 'utf8'));
 }
 
-function scalar(value) {
-  return String(value || '').trim().replace(/^['"]|['"]$/g, '');
-}
-
-function startGate(line, gates) {
-  const gate = { id: scalar(line.slice(6)), required_artifacts: [] };
-  gates.push(gate);
-  return { gate, artifact: null, inArtifacts: false };
-}
-
-function applyArtifactLine(line, state) {
-  if (line === 'required_artifacts:') return { ...state, inArtifacts: true };
-  if (!state.inArtifacts) return null;
-  if (line.startsWith('- path: ')) {
-    const artifact = { path: scalar(line.slice(8)) };
-    state.gate.required_artifacts.push(artifact);
-    return { ...state, artifact };
-  }
-  if (line.startsWith('sha256: ')) {
-    if (state.artifact) state.artifact.sha256 = scalar(line.slice(8));
-    return state;
-  }
-  return null;
-}
-
-function applyGateScalarLine(line, gate) {
-  for (const key of gateScalarKeys) {
-    const prefix = `${key}: `;
-    if (line.startsWith(prefix)) gate[key] = scalar(line.slice(prefix.length));
-  }
-  if (line.startsWith('signoff: ')) gate.signoff = scalar(line.slice(9));
-}
-
-function parseManifest(source) {
-  const gates = [];
-  let state = { gate: null, artifact: null, inArtifacts: false };
-  for (const rawLine of source.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line === 'gates:') continue;
-    if (line.startsWith('- id: ')) {
-      state = startGate(line, gates);
-      continue;
-    }
-    if (!state.gate) continue;
-    const artifactState = applyArtifactLine(line, state);
-    if (artifactState) {
-      state = artifactState;
-      continue;
-    }
-    state = { ...state, inArtifacts: false };
-    applyGateScalarLine(line, state.gate);
-  }
-  return { gates };
+function isPending(value) {
+  return value == null || String(value).trim() === '' || String(value).trim().toLowerCase() === 'pending';
 }
 
 function sha256(filePath) {
@@ -90,7 +40,16 @@ function validateGateShape(gate) {
   if (!Array.isArray(gate.required_artifacts) || gate.required_artifacts.length === 0) {
     errors.push('required_artifacts must list at least one artifact');
   }
+  if (gate.signoff != null && (typeof gate.signoff !== 'object' || Array.isArray(gate.signoff))) {
+    errors.push('signoff must be an object');
+  }
   return errors;
+}
+
+function validateSignoff(gate) {
+  return requiredSignoffFields
+    .filter(field => isPending(gate.signoff?.[field]))
+    .map(field => `${gate.id}: signoff.${field} is missing or pending`);
 }
 
 function validateArtifact(gateId, artifact) {
@@ -115,6 +74,7 @@ function validateGate(gate) {
   if (!passingStatuses.has(String(gate.status).toLowerCase())) {
     errors.push(`${gate.id}: status=${gate.status} is not one of supplied, approved, verified`);
   }
+  errors.push(...validateSignoff(gate));
   for (const artifact of gate.required_artifacts) {
     errors.push(...validateArtifact(gate.id, artifact));
   }

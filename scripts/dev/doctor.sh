@@ -49,6 +49,8 @@ recover_docker_desktop() {
   fi
 
   command -v docker >/dev/null 2>&1 || fail docker "docker CLI disappeared during recovery"
+  docker desktop version >/dev/null 2>&1 ||
+    fail docker "docker info unhealthy and Docker Desktop CLI is unavailable; start Docker manually"
   echo "doctor: docker info timed out; restarting Docker Desktop"
   docker desktop stop --force --timeout 45 >/dev/null 2>&1 || true
   docker desktop start --timeout 120 >/dev/null 2>&1 || fail docker "docker desktop start failed"
