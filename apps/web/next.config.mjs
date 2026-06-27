@@ -12,6 +12,14 @@ const bundleAnalyzer = withBundleAnalyzer({
 
 validateSupabaseDeploymentSeparation(process.env);
 
+const buildCpus = Number.parseInt(process.env.NEXT_BUILD_CPUS ?? '', 10);
+const nextBuildWorkerLimit =
+  Number.isInteger(buildCpus) && buildCpus > 0 ? { cpus: buildCpus } : {};
+const webpackMemoryOptimizations =
+  process.env.NEXT_WEBPACK_MEMORY_OPTIMIZATIONS === '1'
+    ? { webpackMemoryOptimizations: true }
+    : {};
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: [
@@ -43,6 +51,8 @@ const nextConfig = {
     '*.127.0.0.1.nip.io',
   ],
   experimental: {
+    ...nextBuildWorkerLimit,
+    ...webpackMemoryOptimizations,
     serverActions: {
       bodySizeLimit: '2mb',
       allowedOrigins: ['127.0.0.1:3000', 'localhost:3000', '*.127.0.0.1.nip.io:3000'],
