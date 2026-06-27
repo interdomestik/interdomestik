@@ -3,7 +3,6 @@ import { auth } from '@/lib/auth';
 import { lookupUserTenantByEmail } from '@/lib/auth/tenant-lookup';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { toNextJsHandler } from 'better-auth/next-js';
-
 import {
   evaluateEmailSignInTenantGuard,
   getAuthRateLimitConfig,
@@ -12,6 +11,7 @@ import {
   getPasswordResetAuditEventFromUrl,
   resolveTenantIdForPasswordResetAudit,
 } from './_core';
+import { evaluateEmailSignUpTenantGuard, isEmailSignUpUrl } from './sign-up-tenant-guard';
 
 const handler = toNextJsHandler(auth);
 function isLocalLoopbackAuthHost(headers: Headers): boolean {
@@ -24,13 +24,8 @@ function isLocalLoopbackAuthHost(headers: Headers): boolean {
 }
 
 function shouldBypassAuthRateLimit(headers: Headers): boolean {
-  if (process.env.NODE_ENV === 'production') {
-    return false;
-  }
-
-  return isLocalLoopbackAuthHost(headers);
+  return process.env.NODE_ENV !== 'production' && isLocalLoopbackAuthHost(headers);
 }
-
 async function parseJsonBody(req: Request): Promise<unknown> {
   try {
     return await req.clone().json();
@@ -38,7 +33,6 @@ async function parseJsonBody(req: Request): Promise<unknown> {
     return null;
   }
 }
-
 async function enforcePostAuthRateLimit(req: Request) {
   return enforceRateLimit({
     ...getAuthRateLimitConfig('POST', req.url),
@@ -46,7 +40,6 @@ async function enforcePostAuthRateLimit(req: Request) {
     productionSensitive: true,
   });
 }
-
 export async function GET(req: Request) {
   if (!shouldBypassAuthRateLimit(req.headers)) {
     const limited = await enforceRateLimit({
@@ -58,10 +51,10 @@ export async function GET(req: Request) {
   }
   return handler.GET(req as unknown as Parameters<typeof handler.GET>[0]);
 }
-
 export async function POST(req: Request) {
   const emailSignIn = isEmailSignInUrl(req.url);
-  const signInBody = emailSignIn ? await parseJsonBody(req) : null;
+  const emailSignUp = isEmailSignUpUrl(req.url);
+  const authBody = emailSignIn || emailSignUp ? await parseJsonBody(req) : null;
   const postRateLimitConfig = getAuthRateLimitConfig('POST', req.url);
 
   if (!shouldBypassAuthRateLimit(req.headers)) {
@@ -70,7 +63,7 @@ export async function POST(req: Request) {
         method: 'POST',
         url: req.url,
         headers: req.headers,
-        body: signInBody,
+        body: authBody,
       });
 
       if (identityKeySuffix) {
@@ -97,7 +90,7 @@ export async function POST(req: Request) {
     const tenantGuard = await evaluateEmailSignInTenantGuard({
       url: req.url,
       headers: req.headers,
-      body: signInBody,
+      body: authBody,
       lookupUserTenantByEmail,
     });
 
@@ -116,7 +109,6 @@ export async function POST(req: Request) {
           // Ignore audit failures
         }
       }
-
       return Response.json(
         { code: tenantGuard.code, message: tenantGuard.message },
         { status: 401 }
@@ -124,6 +116,19 @@ export async function POST(req: Request) {
     }
   }
 
+  if (emailSignUp) {
+    const tenantGuard = evaluateEmailSignUpTenantGuard({
+      url: req.url,
+      headers: req.headers,
+      body: authBody,
+    });
+    if (tenantGuard?.decision === 'deny') {
+      return Response.json(
+        { code: tenantGuard.code, message: tenantGuard.message },
+        { status: 401 }
+      );
+    }
+  }
   const audit = getPasswordResetAuditEventFromUrl(req.url);
   if (audit) {
     try {
