@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database/db';
+import { dbAdmin } from '@interdomestik/database/db';
 import { generateMemberNumberWithRetry } from '@interdomestik/database/member-number';
 import * as Sentry from '@sentry/nextjs';
 import { BetterAuthOptions } from 'better-auth';
@@ -41,7 +41,7 @@ export const databaseHooks: BetterAuthOptions['databaseHooks'] = {
             const joinedAt = new Date(dateSource);
             const createdYear = joinedAt.getFullYear();
 
-            const result = await generateMemberNumberWithRetry(db, {
+            const result = await generateMemberNumberWithRetry(dbAdmin, {
               userId: user.id,
               joinedAt,
             });
@@ -97,8 +97,8 @@ export const databaseHooks: BetterAuthOptions['databaseHooks'] = {
             // Quick read to check if we need to do anything + get createdAt for year
             const { user: userTable } = await import('@interdomestik/database/schema');
             const { eq } = await import('drizzle-orm');
-            // db-access-guard: tenant-scoped -- reason: userId comes from authenticated session creation hook
-            const existing = await db
+            // db-access-guard: system-exempt -- reason: auth hook resolves a just-created session before tenant context is established
+            const existing = await dbAdmin
               .select({
                 role: userTable.role,
                 memberNumber: userTable.memberNumber,
@@ -134,7 +134,7 @@ export const databaseHooks: BetterAuthOptions['databaseHooks'] = {
               createdYear,
             });
 
-            const result = await generateMemberNumberWithRetry(db, {
+            const result = await generateMemberNumberWithRetry(dbAdmin, {
               userId: session.userId,
               joinedAt,
             });

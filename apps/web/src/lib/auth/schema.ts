@@ -1,9 +1,9 @@
-import { db } from '@interdomestik/database/db';
+import { dbAdmin } from '@interdomestik/database/db';
 import * as schema from '@interdomestik/database/schema';
 import { BetterAuthOptions } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 
-export const databaseAdapter = drizzleAdapter(db, {
+export const databaseAdapter = drizzleAdapter(dbAdmin, {
   provider: 'pg',
   schema: {
     user: schema.user,

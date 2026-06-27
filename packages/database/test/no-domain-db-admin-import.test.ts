@@ -121,7 +121,7 @@ test('domain packages do not import raw privileged database clients', async () =
   );
 });
 
-test('apps/web uses raw privileged database clients only in /app/api routes', async () => {
+test('apps/web uses raw privileged database clients only in system boundaries', async () => {
   const files = await getSourceFiles(WEB_SRC_DIR);
   const violations: string[] = [];
 
@@ -132,8 +132,10 @@ test('apps/web uses raw privileged database clients only in /app/api routes', as
     }
 
     const relativePath = path.relative(REPO_ROOT, file);
-    const isAllowedApiPath = relativePath.startsWith('apps/web/src/app/api/');
-    if (!isAllowedApiPath) {
+    const isAllowedPath =
+      relativePath.startsWith('apps/web/src/app/api/') ||
+      relativePath.startsWith('apps/web/src/lib/auth/');
+    if (!isAllowedPath) {
       violations.push(relativePath);
     }
   }
@@ -141,6 +143,6 @@ test('apps/web uses raw privileged database clients only in /app/api routes', as
   assert.deepEqual(
     violations,
     [],
-    `Forbidden raw privileged DB imports found outside apps/web/src/app/api:\n${violations.join('\n')}`
+    `Forbidden raw privileged DB imports found outside apps/web API/auth boundaries:\n${violations.join('\n')}`
   );
 });

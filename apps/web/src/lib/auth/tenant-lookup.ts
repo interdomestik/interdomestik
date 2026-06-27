@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database/db';
+import { dbAdmin } from '@interdomestik/database/db';
 import { user as userTable } from '@interdomestik/database/schema';
 import { eq } from 'drizzle-orm';
 
@@ -6,7 +6,7 @@ import { coerceTenantId, type TenantId } from '@/lib/tenant/tenant-hosts';
 
 export async function lookupUserTenantByEmail(email: string): Promise<TenantId | null> {
   // db-access-guard: system-exempt -- reason: login bootstrap resolves tenant by normalized email before tenant session exists
-  const rows = await db
+  const rows = await dbAdmin
     .select({ tenantId: userTable.tenantId })
     .from(userTable)
     .where(eq(userTable.email, email))
