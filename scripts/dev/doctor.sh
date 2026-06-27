@@ -8,7 +8,9 @@ POSTGRES_PORT="${POSTGRES_PORT:-54322}"
 DOCKER_INFO_TIMEOUT="${DOCKER_INFO_TIMEOUT:-10}"
 
 fail() {
-  echo "doctor: FAIL step=$1 detail=$2" >&2
+  local step="$1"
+  local detail="$2"
+  echo "doctor: FAIL step=${step} detail=${detail}" >&2
   exit 1
 }
 
