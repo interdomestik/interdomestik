@@ -125,8 +125,10 @@ runs:
           echo "::error::Vercel output digest changed after attestation"
           exit 1
         fi
-        deployment_url="$(npx --yes vercel@latest deploy --prebuilt --archive=tgz --env "COMMIT_SHA=${COMMIT_SHA}" "${target_args[@]}")"
-        deployment_url="$(printf '%s\n' "${deployment_url}" | tail -n 1)"
+        deployment_url="$(node scripts/ci/run-vercel-deploy-with-timeout.mjs \
+          --timeout-seconds "${VERCEL_DEPLOY_TIMEOUT_SECONDS:-900}" \
+          -- deploy --yes --prebuilt --archive=tgz \
+          --env "COMMIT_SHA=${COMMIT_SHA}" "${target_args[@]}")"
         base_url="${deployment_url}"
         if [[ "${base_url}" != https://* ]]; then
           base_url="https://${base_url}"

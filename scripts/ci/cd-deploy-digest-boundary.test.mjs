@@ -127,7 +127,10 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(deployStep.env.VERCEL_AUTOMATION_BYPASS_SECRET, /inputs\.vercel-automation-bypass-secret/u);
   assert.match(deployStep.run, /current_vercel_output_digest="\$\(node scripts\/ci\/hash-vercel-output\.mjs\)"/u);
   assert.match(deployStep.run, /Vercel output digest changed after attestation/u);
-  assert.match(deployStep.run, /vercel@latest deploy/u);
+  assert.match(deployStep.run, /-- deploy --yes --prebuilt/u);
+  assert.match(deployStep.run, /VERCEL_DEPLOY_TIMEOUT_SECONDS:-900/u);
+  assert.match(deployStep.run, /run-vercel-deploy-with-timeout\.mjs/u);
+  assert.match(deployStep.run, /--yes --prebuilt/u);
   assert.match(deployStep.run, /--prebuilt/u);
   assert.match(deployStep.run, /--archive=tgz/u);
   assert.match(deployStep.run, /--env "COMMIT_SHA=\$\{COMMIT_SHA\}"/u);

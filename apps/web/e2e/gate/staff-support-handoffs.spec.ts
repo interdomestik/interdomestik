@@ -452,7 +452,8 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
     const secondSubject = `${subject} second`;
     const claimHelpPath = `${routes.memberHelp(testInfo)}?claimId=${encodeURIComponent(claimId)}`;
     const currentMemberSurface = () => memberPage.getByTestId('member-page-ready').last();
-
+    const supportForm = () =>
+      currentMemberSurface().locator('[data-testid="member-support-handoff-form"]:visible').last();
     await cleanupHandoffBySubject(subject);
     await cleanupHandoffBySubject(secondSubject);
 
@@ -460,14 +461,14 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       await gotoApp(memberPage, claimHelpPath, testInfo, {
         marker: 'member-page-ready',
       });
-      await expect(memberPage.getByTestId('member-support-handoff-form')).toBeVisible();
-      await expect(memberPage.getByTestId('member-support-handoff-claim')).toHaveValue(claimId);
+      await expect(supportForm()).toBeVisible();
+      await expect(supportForm().getByTestId('member-support-handoff-claim')).toHaveValue(claimId);
 
-      await memberPage.getByTestId('member-support-handoff-subject').fill(subject);
-      await memberPage
+      await supportForm().getByTestId('member-support-handoff-subject').fill(subject);
+      await supportForm()
         .getByTestId('member-support-handoff-message')
         .fill('First advisory test handoff with enough detail for submission.');
-      await memberPage.getByTestId('member-support-handoff-submit').click();
+      await supportForm().getByTestId('member-support-handoff-submit').click();
 
       await expect(memberPage).toHaveURL(/\/member\/help\?support=created$/, {
         timeout: 15000,
@@ -493,17 +494,13 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
         'member-support-handoff-advisory-claim'
       );
       await expect(claimAdvisory).toBeVisible({ timeout: 15000 });
-      await expect(currentMemberSurface().getByTestId('member-support-handoff-claim')).toHaveValue(
-        claimId
-      );
+      await expect(supportForm().getByTestId('member-support-handoff-claim')).toHaveValue(claimId);
 
-      await currentMemberSurface()
-        .getByTestId('member-support-handoff-subject')
-        .fill(secondSubject);
-      await currentMemberSurface()
+      await supportForm().getByTestId('member-support-handoff-subject').fill(secondSubject);
+      await supportForm()
         .getByTestId('member-support-handoff-message')
         .fill('Second advisory test handoff proving the advisory remains non-blocking.');
-      await currentMemberSurface().getByTestId('member-support-handoff-submit').click();
+      await supportForm().getByTestId('member-support-handoff-submit').click();
 
       await expect(memberPage).toHaveURL(/\/member\/help\?support=created$/, {
         timeout: 15000,
