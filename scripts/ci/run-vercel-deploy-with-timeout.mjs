@@ -3,33 +3,33 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const DEFAULT_TIMEOUT_SECONDS = 900;
+const DEFAULT_TIMEOUT = 900;
 const SAFE_SYSTEM_PATH = '/usr/bin:/bin:/usr/sbin:/sbin';
 
 function parseArgs(argv) {
   const separatorIndex = argv.indexOf('--');
   const options = separatorIndex === -1 ? argv : argv.slice(0, separatorIndex);
   const vercelArgs = separatorIndex === -1 ? [] : argv.slice(separatorIndex + 1);
-  let timeoutSeconds = DEFAULT_TIMEOUT_SECONDS;
+  let timeout = DEFAULT_TIMEOUT;
 
   for (let index = 0; index < options.length; index += 1) {
     const option = options[index];
     if (option === '--timeout-seconds') {
-      timeoutSeconds = Number.parseInt(options[index + 1] || '', 10);
+      timeout = Number.parseInt(options[index + 1] || '', 10);
       index += 1;
       continue;
     }
     throw new Error(`Unknown option: ${option}`);
   }
 
-  if (!Number.isFinite(timeoutSeconds) || timeoutSeconds <= 0) {
+  if (!Number.isFinite(timeout) || timeout <= 0) {
     throw new Error('--timeout-seconds must be a positive integer');
   }
   if (vercelArgs[0] !== 'deploy') {
     throw new Error('Vercel deploy arguments must be provided after --');
   }
 
-  return { timeoutSeconds, vercelArgs };
+  return { timeout, vercelArgs };
 }
 
 function appendTail(current, chunk, maxChars = 12_000) {
@@ -58,7 +58,7 @@ function resolveNpxCliPath() {
 }
 
 async function main() {
-  const { timeoutSeconds, vercelArgs } = parseArgs(process.argv.slice(2));
+  const { timeout, vercelArgs } = parseArgs(process.argv.slice(2));
   let stdoutTail = '';
   let stderrTail = '';
   let timedOut = false;
@@ -68,7 +68,7 @@ async function main() {
     [resolveNpxCliPath(), '--yes', 'vercel@latest', ...vercelArgs],
     {
       detached: process.platform !== 'win32',
-      env: { ...process.env, PATH: SAFE_SYSTEM_PATH },
+      env: { ...process.env, PATH: `${path.dirname(process.execPath)}${path.delimiter}${SAFE_SYSTEM_PATH}` },
       stdio: ['ignore', 'pipe', 'pipe'],
     }
   );
@@ -86,7 +86,7 @@ async function main() {
         process.kill(killTarget, 'SIGKILL');
       } catch {}
     }, 2_000).unref();
-  }, timeoutSeconds * 1000);
+  }, timeout * 1000);
 
   child.stdout.on('data', chunk => {
     stdoutTail = appendTail(stdoutTail, chunk.toString());
@@ -104,7 +104,7 @@ async function main() {
   clearTimeout(timer);
 
   if (timedOut) {
-    console.error(`::error::Vercel deploy timed out after ${timeoutSeconds}s`);
+    console.error(`::error::Vercel deploy timed out after ${timeout}s`);
     const outputTail = compactTail(`${stdoutTail}\n${stderrTail}`);
     if (outputTail) console.error(outputTail);
     process.exit(124);
