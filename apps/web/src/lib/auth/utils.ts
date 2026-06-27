@@ -32,3 +32,42 @@ export function getTrustedOrigins(): string[] | undefined {
   if (origins.length === 0) return undefined;
   return origins;
 }
+
+const DYNAMIC_AUTH_ALLOWED_HOSTS = [
+  'interdomestik.com',
+  'www.interdomestik.com',
+  'app.interdomestik.com',
+  'ida.interdomestik.com',
+  'staging.interdomestik.com',
+  'ks.interdomestik.com',
+  'mk.interdomestik.com',
+  'interdomestik-web.vercel.app',
+  'interdomestik-*-ecohub.vercel.app',
+];
+
+type DynamicAuthBaseURL = {
+  allowedHosts: string[];
+  fallback: string;
+  protocol: 'https';
+};
+
+type AuthBaseURL = string | DynamicAuthBaseURL;
+
+export function getAuthBaseURL(): AuthBaseURL {
+  if (process.env.VERCEL === '1' || process.env.VERCEL_URL) {
+    return {
+      allowedHosts: DYNAMIC_AUTH_ALLOWED_HOSTS,
+      fallback:
+        process.env.BETTER_AUTH_URL ||
+        process.env.NEXT_PUBLIC_APP_URL ||
+        'https://www.interdomestik.com',
+      protocol: 'https' as const,
+    };
+  }
+
+  return (
+    process.env.BETTER_AUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'https://www.interdomestik.com'
+  );
+}
