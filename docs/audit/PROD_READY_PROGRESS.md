@@ -73,4 +73,5 @@ Branch: `chore/prod-ready-sync`
 ## Task 8 - CD Production Evidence Wiring
 
 - Change: added a `production-evidence` CD job after `e2e-staging` and before `build-production`; it runs `pnpm release:evidence:check` so pending G01-G10 blocks the production leg before any production build or deploy.
+- Follow-up: production jobs now run only on a `v*` tag or `workflow_dispatch`; pushes to `main` exercise staging only. The GitHub `production` environment requires reviewer `arbenl`, with self-review allowed for the one-reviewer setup.
 - Verification: focused workflow/script contract tests passed; `corepack pnpm release:evidence:check` still fails closed with pending G01-G10 and pending signoffs.

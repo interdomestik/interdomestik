@@ -162,7 +162,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   production-evidence:
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: e2e-staging
     runs-on: ubuntu-latest
     environment: { name: production, deployment: false }
@@ -177,11 +177,10 @@ jobs:
           set -euo pipefail
           pnpm release:evidence:check
   build-production:
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: production-evidence
     runs-on: [self-hosted, interdomestik-mac]
-    environment:
-      name: production
+    environment: { name: production }
     permissions: { contents: read, packages: write, id-token: write, attestations: write }
     outputs:
       image_tag: ${{ steps.meta.outputs.version }}
@@ -223,6 +222,7 @@ jobs:
           supabase-anon-key: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           supabase-production-project-ref: ${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
   deploy-production:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: build-production
     runs-on: [self-hosted, interdomestik-mac]
     timeout-minutes: 25
@@ -248,6 +248,7 @@ jobs:
           attested-image-digest: ${{ needs.build-production.outputs.image_digest }}
           vercel-automation-bypass-secret: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
   verify-production:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: deploy-production
     runs-on: [self-hosted, interdomestik-mac]
     timeout-minutes: 20

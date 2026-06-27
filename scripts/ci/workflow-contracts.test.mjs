@@ -521,34 +521,21 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.doesNotMatch(cdWorkflowSource, /pnpm test:e2e:smoke/);
   assert.doesNotMatch(cdWorkflowSource, /Example: ssh/);
 
-  assert.ok(buildStagingJob);
-  assert.equal(buildStagingJob.environment.name, 'staging');
-  assert.equal(buildStagingJob.outputs.image_tag, '${{ steps.meta.outputs.version }}');
-  assert.equal(buildStagingJob.outputs.image_digest, '${{ steps.build.outputs.digest }}');
-  const buildStagingStep = findStep(
-    buildStagingJob.steps,
-    'Build, attest, and verify Docker image'
-  );
-  assert.ok(buildStagingStep);
-  assert.equal(buildStagingStep.id, 'build');
-  assert.equal(buildStagingStep.uses, './.github/actions/build-attested-image');
-  assert.equal(buildStagingStep.with['deploy-env'], 'staging');
-  assert.equal(buildStagingStep.with['app-url'], 'https://staging.interdomestik.com');
-
-  assert.ok(buildProductionJob);
+  const assertBuildJob = (job, envName, appUrl) => {
+    assert.ok(job);
+    assert.equal(job.environment.name, envName);
+    assert.equal(job.outputs.image_tag, '${{ steps.meta.outputs.version }}');
+    assert.equal(job.outputs.image_digest, '${{ steps.build.outputs.digest }}');
+    const buildStep = findStep(job.steps, 'Build, attest, and verify Docker image');
+    assert.ok(buildStep);
+    assert.equal(buildStep.id, 'build');
+    assert.equal(buildStep.uses, './.github/actions/build-attested-image');
+    assert.equal(buildStep.with['deploy-env'], envName);
+    assert.equal(buildStep.with['app-url'], appUrl);
+  };
+  assertBuildJob(buildStagingJob, 'staging', 'https://staging.interdomestik.com');
+  assertBuildJob(buildProductionJob, 'production', 'https://www.interdomestik.com');
   assert.deepEqual(normalizeNeeds(buildProductionJob.needs), ['production-evidence']);
-  assert.equal(buildProductionJob.environment.name, 'production');
-  assert.equal(buildProductionJob.outputs.image_tag, '${{ steps.meta.outputs.version }}');
-  assert.equal(buildProductionJob.outputs.image_digest, '${{ steps.build.outputs.digest }}');
-  const buildProductionStep = findStep(
-    buildProductionJob.steps,
-    'Build, attest, and verify Docker image'
-  );
-  assert.ok(buildProductionStep);
-  assert.equal(buildProductionStep.id, 'build');
-  assert.equal(buildProductionStep.uses, './.github/actions/build-attested-image');
-  assert.equal(buildProductionStep.with['deploy-env'], 'production');
-  assert.equal(buildProductionStep.with['app-url'], 'https://www.interdomestik.com');
   assert.deepEqual(normalizeNeeds(deployStagingJob.needs), ['build-staging']);
   assert.equal(deployStagingJob['timeout-minutes'], 25);
   assert.equal(deployStagingJob.outputs.base_url, '${{ steps.vercel.outputs.base_url }}');
@@ -560,7 +547,10 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.equal(vercelStagingDeployStep.env.VERCEL_AUTOMATION_BYPASS_SECRET, undefined);
   assert.match(vercelStagingDeployStep.with['vercel-automation-bypass-secret'], /secrets\.VERCEL/u);
   const stagingHealthIndex = findStepIndex(deployStagingJob.steps, 'Wait for Staging Health');
-  const stagingProvenanceIndex = findStepIndex(deployStagingJob.steps, 'Verify Staging Build Provenance');
+  const stagingProvenanceIndex = findStepIndex(
+    deployStagingJob.steps,
+    'Verify Staging Build Provenance'
+  );
   assert.ok(stagingHealthIndex > findStepIndex(deployStagingJob.steps, 'Deploy Staging to Vercel'));
   assert.ok(stagingProvenanceIndex > stagingHealthIndex);
   const stagingHealthStep = deployStagingJob.steps[stagingHealthIndex];
@@ -574,7 +564,10 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.deepEqual(e2eStagingJob.environment, { name: 'staging', deployment: false });
   assert.equal(e2eStagingJob.env.BASE_URL, '${{ needs.deploy-staging.outputs.base_url }}');
   assert.equal(e2eStagingJob.env.AUTH_BASE_URL, 'https://staging.interdomestik.com');
-  assert.equal(e2eStagingJob.env.RELEASE_GATE_EXTRA_HOSTNAME, '${{ needs.deploy-staging.outputs.hostname }}');
+  assert.equal(
+    e2eStagingJob.env.RELEASE_GATE_EXTRA_HOSTNAME,
+    '${{ needs.deploy-staging.outputs.hostname }}'
+  );
   assert.equal(e2eStagingJob.env.RELEASE_GATE_EXPECTED_SHA, '${{ github.sha }}');
   assert.equal(e2eStagingJob.env.VERCEL_AUTOMATION_BYPASS_SECRET, undefined);
   for (const envName of RELEASE_GATE_ENV_VARS) {
@@ -589,10 +582,18 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.match(stagingGateStep.run, /--authBaseUrl "\$\{AUTH_BASE_URL\}"/);
   assert.deepEqual(normalizeNeeds(productionEvidenceJob.needs), ['e2e-staging']);
   assert.deepEqual(productionEvidenceJob.environment, { name: 'production', deployment: false });
-  assert.match(
-    findStep(productionEvidenceJob.steps, 'Check Production Human Evidence')?.run,
-    /pnpm release:evidence:check/
-  );
+  const evidenceStep = findStep(productionEvidenceJob.steps, 'Check Production Human Evidence');
+  assert.match(evidenceStep?.run, /pnpm release:evidence:check/);
+  const productionLegTriggerGuard =
+    "startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'";
+  for (const productionLegJob of [
+    productionEvidenceJob,
+    buildProductionJob,
+    deployProductionJob,
+    verifyProductionJob,
+  ]) {
+    assert.equal(productionLegJob.if, productionLegTriggerGuard);
+  }
   assert.deepEqual(normalizeNeeds(deployProductionJob.needs), ['build-production']);
   assert.equal(deployProductionJob['timeout-minutes'], 25);
   const vercelProductionDeployStep = findStep(
