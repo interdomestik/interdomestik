@@ -9,6 +9,7 @@ const packageJson = JSON.parse(
 );
 
 test('E2E lane runner delegates subprocess cleanup to the detached command helper', () => {
+  assert.match(runner, /ensureLocalTestHosts/);
   assert.match(runner, /import \{ runDetachedCommand \} from '\.\/ci\/run-detached-command\.mjs'/);
   assert.match(runner, /await runDetachedCommand\(command, args, \{ cwd: rootDir, env \}\)/);
 });
