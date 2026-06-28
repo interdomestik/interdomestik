@@ -33,7 +33,7 @@ const ROUTES = {
   rbacTargets: ['member', 'agent', 'staff', 'admin'],
   memberDocuments: '/member/documents',
   staffClaimsList: '/staff/claims',
-  defaultAdminUserUrl: '/admin/users/golden_ks_a_member_6?tenantId=tenant_ks',
+  defaultAdminUserUrl: '/admin/users/golden_ks_a_member_1?tenantId=tenant_ks',
   crossTenantProbe: '/admin/users/golden_ks_staff?tenantId=tenant_ks',
   tenantOverrideProbeFallback: '/admin/users/golden_mk_staff?tenantId=tenant_mk',
 };

@@ -19,6 +19,7 @@ const {
   waitForPortalMarkerState,
 } = require('./admin-checks-locators.ts');
 const { buildP06CanonicalRouteScenarios } = require('./p06-scenarios.ts');
+const { buildRolePanelDiscoveryUrls } = require('./role-panel-targets.ts');
 
 const INFRA_NAVIGATION_ERROR_PATTERNS = [
   /ERR_CONNECTION_REFUSED/i,
@@ -321,7 +322,6 @@ async function runP03AndP04(browser, runCtx, deps) {
   }
 
   const rolePanelTarget = resolveConfiguredRolePanelTarget(runCtx);
-  const hasExplicitTarget = rolePanelTarget.source !== 'default';
   const targetUrl = rolePanelTarget.targetUrl;
   async function waitForRolePanelVisible(page, timeoutMs = TIMEOUTS.nav) {
     const startedAt = Date.now();
@@ -363,17 +363,11 @@ async function runP03AndP04(browser, runCtx, deps) {
     return ok ? page.url() : null;
   }
 
-  async function ensureRolePanelLoaded(page, initialTargetUrl) {
-    const initialResolved = await tryRolePanelTarget(page, initialTargetUrl).catch(() => null);
-    if (initialResolved) return initialResolved;
-
-    if (hasExplicitTarget && !rolePanelTarget.allowFallbackDiscovery) return null;
-
-    const safeDefaultTarget = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl);
-    if (safeDefaultTarget !== initialTargetUrl) {
-      return await tryRolePanelTarget(page, safeDefaultTarget).catch(() => null);
+  async function ensureRolePanelLoaded(page) {
+    for (const candidateUrl of buildRolePanelDiscoveryUrls(runCtx, rolePanelTarget)) {
+      const resolved = await tryRolePanelTarget(page, candidateUrl).catch(() => null);
+      if (resolved) return resolved;
     }
-
     return null;
   }
 
@@ -384,7 +378,7 @@ async function runP03AndP04(browser, runCtx, deps) {
       try {
         await loginWithRunContext(page, runCtx, 'admin_ks', { forceFresh: true });
 
-        const resolvedTarget = await ensureRolePanelLoaded(page, targetUrl);
+        const resolvedTarget = await ensureRolePanelLoaded(page);
         evidenceP03.push(
           `attempt=${attempt} target_source=${rolePanelTarget.source}`,
           `target_fallback_allowed=${rolePanelTarget.allowFallbackDiscovery}`
