@@ -5,13 +5,19 @@ const {
   buildRoute,
   buildRouteAllowingLocalePath,
   checkResult,
-  collectMarkersWithWait,
   expectedMatrixForAccount,
   markerSummary,
   markersToString,
   sleep,
   waitForReadyMarker,
 } = require('./shared.ts');
+const {
+  addRole,
+  createMutationResponseCapture,
+  removeRoleFromTable,
+  roleRowLocator,
+  waitForPortalMarkerState,
+} = require('./admin-checks-locators.ts');
 
 const INFRA_NAVIGATION_ERROR_PATTERNS = [
   /ERR_CONNECTION_REFUSED/i,
@@ -148,9 +154,10 @@ async function runP01(browser, runCtx, deps) {
             }),
           retryLogin: () => loginWithRunContext(page, runCtx, account),
         });
-        await page.waitForTimeout(450);
-
-        const current = await collectMarkersWithWait(page, portal === matrix.canonical && portal);
+        const current = await waitForPortalMarkerState(
+          page,
+          portal === matrix.canonical ? portal : null
+        );
         evidence.push(`${account} ${markerSummary(route, current)}`);
 
         const rbacResult = collectRbacFailures({
@@ -223,30 +230,6 @@ async function runP02(browser, runCtx, deps) {
   return checkResult('P0.2', failures.length ? 'FAIL' : 'PASS', evidence, failures);
 }
 
-async function removeRoleFromTable(page, roleName) {
-  const startedAt = Date.now();
-
-  while (Date.now() - startedAt < TIMEOUTS.marker) {
-    const targetRow = await findRoleRowByText(page, roleName);
-    if (targetRow) {
-      const removeButton = resolveRoleRowActionButton(targetRow);
-      const visible = await removeButton
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      const enabled = visible ? await removeButton.isEnabled().catch(() => false) : false;
-      if (visible && enabled) {
-        await removeButton.click();
-        await page.waitForTimeout(800);
-        return true;
-      }
-    }
-
-    await page.waitForTimeout(300);
-  }
-
-  return false;
-}
-
 async function findRoleRowByText(page, roleName) {
   const table = page.locator(SELECTORS.userRolesTable);
   const normalizedRoleName = String(roleName || '')
@@ -266,43 +249,6 @@ async function findRoleRowByText(page, roleName) {
   }
 
   return null;
-}
-
-function resolveRoleRowActionButton(row) {
-  const byRoleButton = row.getByRole?.('button', { name: SELECTORS.removeRoleButtonName });
-  if (byRoleButton?.first) {
-    return byRoleButton.first();
-  }
-  const genericButton = row.locator('button');
-  return genericButton?.first ? genericButton.first() : genericButton;
-}
-
-async function addRole(page, roleName) {
-  const trigger = page.locator(SELECTORS.roleSelectTrigger);
-  await trigger.waitFor({ state: 'visible', timeout: TIMEOUTS.action });
-  await trigger.click();
-
-  const roleOption = page.locator(`[data-testid="role-option-${roleName}"]`);
-  const opened = await Promise.race([
-    page
-      .locator(SELECTORS.roleSelectContent)
-      .waitFor({ state: 'visible', timeout: TIMEOUTS.action })
-      .then(() => true)
-      .catch(() => false),
-    roleOption
-      .waitFor({ state: 'visible', timeout: TIMEOUTS.action })
-      .then(() => true)
-      .catch(() => false),
-  ]);
-
-  if (!opened) {
-    await trigger.click().catch(() => {});
-    await roleOption.waitFor({ state: 'visible', timeout: TIMEOUTS.action });
-  }
-
-  await page.locator(`[data-testid="role-option-${roleName}"]`).click();
-  await page.getByRole('button', { name: SELECTORS.grantRoleButtonName }).click();
-  await page.waitForTimeout(1200);
 }
 
 function collectRbacFailures(input) {
@@ -485,23 +431,22 @@ async function runP03AndP04(browser, runCtx, deps) {
           `pre-clean removed_existing_role_entries=${cleanupCount}`
         );
 
+        const grantCapture = createMutationResponseCapture(page, runCtx.baseUrl);
         await addRole(page, roleToToggle);
-        const afterAddStart = Date.now();
-        let afterAdd = false;
-        while (Date.now() - afterAddStart < TIMEOUTS.marker) {
-          afterAdd = await page
-            .locator(SELECTORS.userRolesTable)
-            .getByText(new RegExp(String.raw`\b${roleToToggle}\b`, 'i'))
-            .isVisible({ timeout: TIMEOUTS.quickMarker })
-            .catch(() => false);
-          if (afterAdd) break;
-          await sleep(300);
+        const afterAdd = await roleRowLocator(page, roleToToggle)
+          .waitFor({ state: 'visible', timeout: TIMEOUTS.marker })
+          .then(() => true)
+          .catch(() => false);
+        const grantResponses = await grantCapture.stop();
+        if (grantResponses.length > 0) {
+          evidenceP03.push(`grant_responses=${grantResponses.join(' | ')}`);
         }
         evidenceP03.push(`added_role=${roleToToggle} visible_in_roles_table=${afterAdd}`);
         if (!afterAdd) {
           failuresP03.push(`P0.3_ROLE_ADD_FAILED role=${roleToToggle} target=${resolvedTarget}`);
         }
 
+        const revokeCapture = createMutationResponseCapture(page, runCtx.baseUrl);
         const removedAddedRole = await removeRoleFromTable(page, roleToToggle);
         if (!removedAddedRole) {
           failuresP04.push(
@@ -509,16 +454,13 @@ async function runP03AndP04(browser, runCtx, deps) {
           );
         }
 
-        const removalStart = Date.now();
-        let stillVisible = true;
-        while (Date.now() - removalStart < TIMEOUTS.marker) {
-          stillVisible = await page
-            .locator(SELECTORS.userRolesTable)
-            .getByText(new RegExp(String.raw`\b${roleToToggle}\b`, 'i'))
-            .isVisible({ timeout: TIMEOUTS.quickMarker })
-            .catch(() => false);
-          if (!stillVisible) break;
-          await sleep(300);
+        const stillVisible = await roleRowLocator(page, roleToToggle)
+          .waitFor({ state: 'hidden', timeout: TIMEOUTS.marker })
+          .then(() => false)
+          .catch(() => true);
+        const revokeResponses = await revokeCapture.stop();
+        if (revokeResponses.length > 0) {
+          evidenceP04.push(`revoke_responses=${revokeResponses.join(' | ')}`);
         }
         evidenceP04.push(`removed_role=${roleToToggle} remaining_in_roles_table=${stillVisible}`);
         if (stillVisible) {

@@ -67,51 +67,53 @@ export default async function AdminLayout({
   }
 
   return (
-    <AuthenticatedShell locale={locale} messages={messages} enableNavigationFeedback={false}>
-      <NavigationFeedback>
-        <SidebarProvider defaultOpen={true}>
-          <AdminSidebar
-            user={{
-              branchId: sessionNonNull.user.branchId,
-              name: sessionNonNull.user.name || 'Admin',
-              email: sessionNonNull.user.email,
-              role: sessionNonNull.user.role,
-            }}
-          />
-          <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-            <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md sticky top-0 z-30 px-6 transition-all">
-              <div className="flex items-center gap-2">
-                <SidebarTrigger
-                  className="-ml-1"
-                  title={tNav('toggleSidebar')}
-                  aria-label={tNav('toggleSidebar')}
-                />
-                <Separator orientation="vertical" className="mr-2 h-4" />
-              </div>
-              <div className="flex-1 flex items-center justify-between">
-                <h1 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  {tSidebar('title')}
-                </h1>
-                <div className="flex items-center gap-3">
-                  <PortalSurfaceIndicator role={role} />
-                  {isSuperAdmin ? (
-                    <div className="flex items-center gap-2">
-                      <AdminTenantSelector
-                        tenants={tenantOptions}
-                        defaultTenantId={sessionNonNull.user.tenantId}
-                      />
-                    </div>
-                  ) : null}
+    <div data-testid="admin-page-ready">
+      <AuthenticatedShell locale={locale} messages={messages} enableNavigationFeedback={false}>
+        <NavigationFeedback>
+          <SidebarProvider defaultOpen={true}>
+            <AdminSidebar
+              user={{
+                branchId: sessionNonNull.user.branchId,
+                name: sessionNonNull.user.name || 'Admin',
+                email: sessionNonNull.user.email,
+                role: sessionNonNull.user.role,
+              }}
+            />
+            <SidebarInset className="bg-mesh flex flex-col min-h-screen">
+              <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md sticky top-0 z-30 px-6 transition-all">
+                <div className="flex items-center gap-2">
+                  <SidebarTrigger
+                    className="-ml-1"
+                    title={tNav('toggleSidebar')}
+                    aria-label={tNav('toggleSidebar')}
+                  />
+                  <Separator orientation="vertical" className="mr-2 h-4" />
                 </div>
+                <div className="flex-1 flex items-center justify-between">
+                  <h1 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                    {tSidebar('title')}
+                  </h1>
+                  <div className="flex items-center gap-3">
+                    <PortalSurfaceIndicator role={role} />
+                    {isSuperAdmin ? (
+                      <div className="flex items-center gap-2">
+                        <AdminTenantSelector
+                          tenants={tenantOptions}
+                          defaultTenantId={sessionNonNull.user.tenantId}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </header>
+              {/* SidebarInset renders as <main>, so use <div> here to avoid nested landmarks */}
+              <div className="flex-1 overflow-y-auto p-6 md:p-8">
+                <div className="container mx-auto">{children}</div>
               </div>
-            </header>
-            {/* SidebarInset renders as <main>, so use <div> here to avoid nested landmarks */}
-            <div className="flex-1 overflow-y-auto p-6 md:p-8">
-              <div className="container mx-auto">{children}</div>
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
-      </NavigationFeedback>
-    </AuthenticatedShell>
+            </SidebarInset>
+          </SidebarProvider>
+        </NavigationFeedback>
+      </AuthenticatedShell>
+    </div>
   );
 }
