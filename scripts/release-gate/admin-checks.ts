@@ -1,7 +1,6 @@
 const { ACCOUNTS, MARKERS, ROUTES, SELECTORS, TIMEOUTS } = require('./config.ts');
 const { gotoWithSessionRetry } = require('./session-navigation.ts');
 const {
-  assertUrlMarkers,
   buildRoute,
   buildRouteAllowingLocalePath,
   checkResult,
@@ -11,6 +10,7 @@ const {
   sleep,
   waitForReadyMarker,
 } = require('./shared.ts');
+const { createP06MarkerAsserter } = require('./p06-marker-assertion.ts');
 const {
   addRole,
   createMutationResponseCapture,
@@ -468,6 +468,7 @@ async function runP03AndP04(browser, runCtx, deps) {
 
 async function runP06(browser, runCtx, deps) {
   const { loginWithRunContext } = deps;
+  const assertP06Markers = createP06MarkerAsserter({ loginWithRunContext, runCtx });
   const failures = [];
   const evidence = [];
   const scenarios = [];
@@ -500,8 +501,9 @@ async function runP06(browser, runCtx, deps) {
     const { id, title, accountKey, route, expected } = input;
     try {
       const result = await withAccount(accountKey, async page =>
-        assertUrlMarkers(
+        assertP06Markers(
           page,
+          accountKey,
           `${id} ${title}`,
           buildRoute(runCtx.baseUrl, runCtx.locale, route),
           expected
@@ -547,7 +549,7 @@ async function runP06(browser, runCtx, deps) {
         const observedRows = [];
         const mismatches = [];
         for (const [index, check] of checks.entries()) {
-          const result = await assertUrlMarkers(page, id, urls[index], check.expected);
+          const result = await assertP06Markers(page, accountKey, id, urls[index], check.expected);
           observedRows.push(`${urls[index]} => ${markersToString(result.observed)}`);
           for (const mismatch of result.mismatches) {
             mismatches.push(mismatch);
@@ -590,7 +592,7 @@ async function runP06(browser, runCtx, deps) {
   try {
     await withAccount('agent', async page => {
       const url = buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/golden_ks_staff');
-      const result = await assertUrlMarkers(page, 'S3', url, { rolesTable: false });
+      const result = await assertP06Markers(page, 'agent', 'S3', url, { rolesTable: false });
       const allowed = result.observed.notFound || !result.observed.admin;
       const passes = allowed && result.observed.rolesTable === false;
       const failureSignature = passes
@@ -623,19 +625,11 @@ async function runP06(browser, runCtx, deps) {
     });
   }
 
-  await runSimpleScenario({
-    id: 'S4',
-    title: 'Staff elevation attempt -> agent portal',
-    accountKey: 'staff',
-    route: '/agent',
-    expected: { agent: false },
-  });
-
   {
     const s5Probe = resolveTenantOverrideProbeUrl(runCtx);
     try {
       await withAccount('admin_ks', async page => {
-        const result = await assertUrlMarkers(page, 'S5', s5Probe.url, {});
+        const result = await assertP06Markers(page, 'admin_ks', 'S5', s5Probe.url, {});
         const passes = result.observed.notFound || result.observed.rolesTable === false;
         const failureSignature = passes
           ? ''

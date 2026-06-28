@@ -498,14 +498,8 @@ function compareExpectedMarkers(expected, observed) {
   }
   return mismatches;
 }
-
-async function assertUrlMarkers(page, label, url, expected) {
-  await gotoWithTransientRetry({
-    navigate: () => page.goto(url, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
-  });
-  const preferredKeys = Object.entries(expected)
-    .filter(([, value]) => value === true)
-    .map(([key]) => key);
+async function collectUrlMarkerAssertion(page, label, url, expected) {
+  const preferredKeys = Object.keys(expected).filter(key => expected[key] === true);
   const observed = await waitForReadyMarker(page, 10_000, preferredKeys);
   const hasReadyMarker =
     observed.notFound || observed.member || observed.agent || observed.staff || observed.admin;
@@ -523,7 +517,12 @@ async function assertUrlMarkers(page, label, url, expected) {
     mismatches,
   };
 }
-
+async function assertUrlMarkers(page, label, url, expected) {
+  await gotoWithTransientRetry({
+    navigate: () => page.goto(url, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
+  });
+  return collectUrlMarkerAssertion(page, label, url, expected);
+}
 async function collectMarkersWithWait(page, preferredMarker) {
   const start = Date.now();
   let current = await markerSnapshot(page);
@@ -552,13 +551,13 @@ function expectedMatrixForAccount(account) {
   }
   return { canonical: 'admin', absentOnAllRoutes: ['agent', 'staff'] };
 }
-
 module.exports = {
   assertUrlMarkers,
   buildRoute,
   buildRouteAllowingLocalePath,
   checkPortalMarkers,
   checkResult,
+  collectUrlMarkerAssertion,
   collectMarkersWithWait,
   computeRetryDelayMs,
   createAuthState,

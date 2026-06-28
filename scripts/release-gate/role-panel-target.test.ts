@@ -5,7 +5,7 @@ import test from 'node:test';
 const require = createRequire(import.meta.url);
 const { resolveConfiguredRolePanelTarget } = require('./admin-checks.ts');
 
-test('resolveConfiguredRolePanelTarget uses clean subscribed member as default role probe', () => {
+test('resolveConfiguredRolePanelTarget uses a non-login member as default role probe', () => {
   const originalTarget = process.env.RELEASE_GATE_TARGET_USER_URL;
   try {
     delete process.env.RELEASE_GATE_TARGET_USER_URL;
@@ -18,7 +18,7 @@ test('resolveConfiguredRolePanelTarget uses clean subscribed member as default r
     assert.equal(resolved.allowFallbackDiscovery, true);
     assert.equal(
       resolved.targetUrl,
-      'https://interdomestik-web.vercel.app/en/admin/users/golden_ks_a_member_2?tenantId=tenant_ks'
+      'https://interdomestik-web.vercel.app/en/admin/users/golden_ks_a_member_6?tenantId=tenant_ks'
     );
   } finally {
     if (originalTarget !== undefined) {
