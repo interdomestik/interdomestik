@@ -1,10 +1,10 @@
 const { MARKERS, SELECTORS, TIMEOUTS } = require('./config.ts');
+const { createMutationResponseCapture } = require('./admin-checks-response-capture.ts');
 const { markerSnapshot, resolvePlaywright } = require('./shared.ts');
 
 function terminalMarkerKeys(preferredMarker) {
-  return preferredMarker
-    ? [preferredMarker, 'notFound']
-    : ['member', 'agent', 'staff', 'admin', 'notFound'];
+  if (preferredMarker) return [preferredMarker, 'notFound'];
+  return ['member', 'agent', 'staff', 'admin', 'notFound'];
 }
 
 function hasTerminalMarker(snapshot, preferredMarker) {
@@ -91,51 +91,6 @@ async function addRole(page, roleName) {
   await roleOption.click();
   await expect(trigger).toContainText(roleTextPattern(roleName), { timeout: TIMEOUTS.action });
   await page.getByRole('button', { name: SELECTORS.grantRoleButtonName }).click();
-}
-
-function compactResponseUrl(rawUrl) {
-  try {
-    const url = new URL(rawUrl);
-    return `${url.pathname}${url.search ? '?…' : ''}`;
-  } catch {
-    return String(rawUrl || '').slice(0, 120);
-  }
-}
-
-function compactResponseBody(raw, maxLength = 180) {
-  return String(raw || '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, maxLength);
-}
-
-function createMutationResponseCapture(page, baseUrl) {
-  const origin = new URL(baseUrl).origin;
-  const entries = [];
-  const pending = [];
-  const onResponse = response => {
-    const task = (async () => {
-      const request = response.request();
-      const method = request.method();
-      if (method === 'GET' || !response.url().startsWith(origin)) return;
-      const status = response.status();
-      const contentType = String(response.headers?.()['content-type'] || '').split(';')[0];
-      const body = status >= 400 ? compactResponseBody(await response.text().catch(() => '')) : '';
-      entries.push(
-        `${method} ${status} ${compactResponseUrl(response.url())} content_type=${contentType || 'unknown'}${body ? ` body=${body}` : ''}`
-      );
-    })();
-    pending.push(task);
-  };
-
-  page.on('response', onResponse);
-  return {
-    async stop() {
-      page.off('response', onResponse);
-      await Promise.allSettled(pending);
-      return entries;
-    },
-  };
 }
 
 module.exports = {

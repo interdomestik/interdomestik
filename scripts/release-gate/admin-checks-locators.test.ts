@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 import test from 'node:test';
 
+const require = createRequire(import.meta.url);
 const { waitForPortalMarkerState } = require('./admin-checks-locators.ts');
+const {
+  compactResponseBody,
+  shouldCaptureResponseBody,
+} = require('./admin-checks-response-capture.ts');
 
 class FakeLocator {
   page: FakePage;
@@ -66,4 +72,20 @@ test('canonical portal marker wait requires the preferred marker snapshot', asyn
   assert.equal(snapshot.member, true);
   assert.equal(snapshot.admin, true);
   assert.ok(page.adminMarkerReads > 1);
+});
+
+test('shouldCaptureResponseBody keeps mutation response details for actionable responses', () => {
+  assert.equal(shouldCaptureResponseBody(200, 'text/x-component'), true);
+  assert.equal(shouldCaptureResponseBody(200, 'application/json'), true);
+  assert.equal(shouldCaptureResponseBody(500, 'text/html'), true);
+  assert.equal(shouldCaptureResponseBody(200, 'text/html'), false);
+});
+
+test('compactResponseBody redacts common secret fields before evidence capture', () => {
+  const body = compactResponseBody(
+    '{"access_token":"abc123","refresh_token":"def456","ok":true} Authorization: Bearer xyz'
+  );
+
+  assert.match(body, /\[REDACTED\]/);
+  assert.doesNotMatch(body, /abc123|def456|Bearer xyz/);
 });

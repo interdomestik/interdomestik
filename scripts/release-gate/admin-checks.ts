@@ -129,6 +129,19 @@ function resolveConfiguredRolePanelTarget(runCtx) {
   };
 }
 
+async function compactRoleTableText(page) {
+  return page
+    .locator(SELECTORS.userRolesTable)
+    .innerText({ timeout: TIMEOUTS.quickMarker })
+    .then(text =>
+      String(text || '')
+        .replaceAll(/\s+/g, ' ')
+        .trim()
+        .slice(0, 240)
+    )
+    .catch(error => `unavailable:${String(error?.message || error).slice(0, 120)}`);
+}
+
 async function runP01(browser, runCtx, deps) {
   const { loginWithRunContext } = deps;
   const accounts = ['member', 'agent', 'staff', 'admin_ks'];
@@ -355,45 +368,9 @@ async function runP03AndP04(browser, runCtx, deps) {
 
     if (hasExplicitTarget && !rolePanelTarget.allowFallbackDiscovery) return null;
 
-    const fallbackSeedTargets = [
-      buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl),
-      buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/pack_ks_staff_extra'),
-    ];
-    const uniqueTargets = [...new Set(fallbackSeedTargets)];
-
-    for (const target of uniqueTargets) {
-      const resolved = await tryRolePanelTarget(page, target).catch(() => null);
-      if (resolved) return resolved;
-    }
-
-    await gotoWithSessionRetry({
-      page,
-      navigate: () =>
-        page.goto(buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users'), {
-          waitUntil: 'domcontentloaded',
-          timeout: TIMEOUTS.nav,
-        }),
-      retryLogin: () => loginWithRunContext(page, runCtx, 'admin_ks'),
-    });
-    await page
-      .getByTestId('admin-users-page')
-      .first()
-      .waitFor({ state: 'visible', timeout: TIMEOUTS.nav })
-      .catch(() => {});
-
-    const profileHrefs = await page
-      .$$eval('a[href*="/admin/users/"]', anchors =>
-        anchors
-          .map(anchor => anchor.getAttribute('href'))
-          .filter(Boolean)
-          .slice(0, 8)
-      )
-      .catch(() => []);
-
-    for (const href of profileHrefs) {
-      const candidateUrl = buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, href);
-      const resolved = await tryRolePanelTarget(page, candidateUrl).catch(() => null);
-      if (resolved) return resolved;
+    const safeDefaultTarget = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl);
+    if (safeDefaultTarget !== initialTargetUrl) {
+      return await tryRolePanelTarget(page, safeDefaultTarget).catch(() => null);
     }
 
     return null;
@@ -428,7 +405,8 @@ async function runP03AndP04(browser, runCtx, deps) {
         }
         evidenceP03.push(
           `target=${resolvedTarget}`,
-          `pre-clean removed_existing_role_entries=${cleanupCount}`
+          `pre-clean removed_existing_role_entries=${cleanupCount}`,
+          `table_before_grant=${await compactRoleTableText(page)}`
         );
 
         const grantCapture = createMutationResponseCapture(page, runCtx.baseUrl);
@@ -441,7 +419,10 @@ async function runP03AndP04(browser, runCtx, deps) {
         if (grantResponses.length > 0) {
           evidenceP03.push(`grant_responses=${grantResponses.join(' | ')}`);
         }
-        evidenceP03.push(`added_role=${roleToToggle} visible_in_roles_table=${afterAdd}`);
+        evidenceP03.push(
+          `table_after_grant=${await compactRoleTableText(page)}`,
+          `added_role=${roleToToggle} visible_in_roles_table=${afterAdd}`
+        );
         if (!afterAdd) {
           failuresP03.push(`P0.3_ROLE_ADD_FAILED role=${roleToToggle} target=${resolvedTarget}`);
         }
@@ -462,7 +443,10 @@ async function runP03AndP04(browser, runCtx, deps) {
         if (revokeResponses.length > 0) {
           evidenceP04.push(`revoke_responses=${revokeResponses.join(' | ')}`);
         }
-        evidenceP04.push(`removed_role=${roleToToggle} remaining_in_roles_table=${stillVisible}`);
+        evidenceP04.push(
+          `table_after_revoke=${await compactRoleTableText(page)}`,
+          `removed_role=${roleToToggle} remaining_in_roles_table=${stillVisible}`
+        );
         if (stillVisible) {
           failuresP04.push(`P0.4_ROLE_REMOVE_FAILED role=${roleToToggle} target=${resolvedTarget}`);
         }
