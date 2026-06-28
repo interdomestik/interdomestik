@@ -17,7 +17,7 @@ import {
 } from './staff-claims-list-filters';
 import { mapStaffClaimsListRows, type StaffClaimsListItem } from './staff-claims-list-mapper';
 
-export type { StaffClaimsAssignmentFilter };
+export type { StaffClaimsAssignmentFilter, StaffClaimsListItem };
 
 export async function getStaffClaimsList(params: {
   staffId: string;

@@ -2,6 +2,7 @@ import {
   SUPPORT_HANDOFF_SOURCES,
   type CreateSupportHandoffInput,
   type SupportHandoffContactPreference,
+  type SupportHandoffSource,
 } from './types';
 
 const MAX_SUBJECT_LENGTH = 120;
@@ -45,8 +46,10 @@ function hasForbiddenOwnershipFields(input: Record<string, unknown>) {
   );
 }
 
-function normalizeSource(value: unknown) {
-  return typeof value === 'string' && SUPPORT_HANDOFF_SOURCE_VALUES.has(value) ? value : null;
+function normalizeSource(value: unknown): SupportHandoffSource | null {
+  return typeof value === 'string' && SUPPORT_HANDOFF_SOURCE_VALUES.has(value)
+    ? (value as SupportHandoffSource)
+    : null;
 }
 
 export function parseMemberSupportHandoffInput(
