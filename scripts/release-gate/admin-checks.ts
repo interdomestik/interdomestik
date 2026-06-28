@@ -398,8 +398,9 @@ async function runP03AndP04(browser, runCtx, deps) {
         page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
       retryLogin: () => loginWithRunContext(page, runCtx, 'admin_ks'),
     });
-    const visible = await waitForRolePanelVisible(page, TIMEOUTS.nav);
-    return visible ? page.url() : null;
+    const ok = await waitForRolePanelVisible(page, TIMEOUTS.nav);
+    evidenceP03.push(`rp ${page.url()} ${ok}`);
+    return ok ? page.url() : null;
   }
 
   async function ensureRolePanelLoaded(page, initialTargetUrl) {
@@ -411,9 +412,8 @@ async function runP03AndP04(browser, runCtx, deps) {
     const fallbackSeedTargets = [
       buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl),
       buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/pack_ks_staff_extra'),
-      buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/golden_ks_a_member_1'),
     ];
-    const uniqueTargets = [...new Set(fallbackSeedTargets.filter(Boolean))];
+    const uniqueTargets = [...new Set(fallbackSeedTargets)];
 
     for (const target of uniqueTargets) {
       const resolved = await tryRolePanelTarget(page, target).catch(() => null);
