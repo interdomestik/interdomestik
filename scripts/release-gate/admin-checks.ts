@@ -18,6 +18,7 @@ const {
   roleRowLocator,
   waitForPortalMarkerState,
 } = require('./admin-checks-locators.ts');
+const { buildP06CanonicalRouteScenarios } = require('./p06-scenarios.ts');
 
 const INFRA_NAVIGATION_ERROR_PATTERNS = [
   /ERR_CONNECTION_REFUSED/i,
@@ -582,33 +583,9 @@ async function runP06(browser, runCtx, deps) {
     }
   }
 
-  await runMultiRouteScenario({
-    id: 'S1',
-    title: 'Mixed roles: member+agent',
-    accountKey: 'agent',
-    checks: [
-      { route: '/member', expected: { member: true } },
-      { route: '/agent', expected: { agent: true } },
-      { route: '/staff', expected: { staff: false } },
-      { route: '/admin', expected: { admin: false } },
-    ],
-    expectedSummary:
-      '/member member=true; /agent agent=true; /staff staff=false; /admin admin=false',
-  });
-
-  await runMultiRouteScenario({
-    id: 'S2',
-    title: 'Mixed roles: member+staff',
-    accountKey: 'staff',
-    checks: [
-      { route: '/member', expected: { member: true } },
-      { route: '/staff', expected: { staff: true } },
-      { route: '/agent', expected: { agent: false } },
-      { route: '/admin', expected: { admin: false } },
-    ],
-    expectedSummary:
-      '/member member=true; /staff staff=true; /agent agent=false; /admin admin=false',
-  });
+  for (const scenario of buildP06CanonicalRouteScenarios()) {
+    await runMultiRouteScenario(scenario);
+  }
 
   try {
     await withAccount('agent', async page => {
