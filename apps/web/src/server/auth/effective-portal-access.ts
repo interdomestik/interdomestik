@@ -50,18 +50,23 @@ export async function hasEffectivePortalAccess(
   const requestedTenantId = options.requestedTenantId ?? sessionTenantId ?? null;
   const userId = session?.user?.id ?? null;
   const legacyRole = session?.user?.role ?? null;
+  const hasAllowedLegacyRole = Boolean(legacyRole && allowedRoles.includes(legacyRole));
 
   if (!requestedTenantId) {
-    return Boolean(legacyRole && allowedRoles.includes(legacyRole));
+    return hasAllowedLegacyRole;
   }
 
   const explicitRoles = await getExplicitTenantRolesFor(userId, requestedTenantId);
-  if (explicitRoles.length > 0) {
-    return explicitRoles.some(role => allowedRoles.includes(role));
+  if (explicitRoles.some(role => allowedRoles.includes(role))) {
+    return true;
   }
 
-  if (sessionTenantId && requestedTenantId === sessionTenantId) {
-    return Boolean(legacyRole && allowedRoles.includes(legacyRole));
+  if (sessionTenantId && requestedTenantId === sessionTenantId && hasAllowedLegacyRole) {
+    return true;
+  }
+
+  if (explicitRoles.length > 0) {
+    return false;
   }
 
   if (legacyRole === 'super_admin' && allowedRoles.includes('super_admin')) {

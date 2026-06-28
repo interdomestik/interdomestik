@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ensureLocalTestHosts } from './ci/ensure-local-test-hosts.mjs';
 import { runDetachedCommand } from './ci/run-detached-command.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -142,6 +143,7 @@ async function run(command, args, env = baseEnv) {
 }
 
 if (shouldRunLocalDoctor) await run('pnpm', ['run', 'doctor'], laneEnv);
+await ensureLocalTestHosts({ required: process.env.CI === 'true' });
 if (lane.gatekeeper) await run('bash', ['scripts/m4-gatekeeper.sh'], laneEnv);
 if (lane.state) await run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], stateEnv);
 await run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], finalEnv);

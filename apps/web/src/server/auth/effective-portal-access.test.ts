@@ -70,7 +70,15 @@ describe('hasEffectivePortalAccess', () => {
     ).resolves.toBe(true);
   });
 
-  it('treats user_roles as authoritative when rows exist for requested tenant', async () => {
+  it('keeps the same-tenant legacy primary role effective when explicit rows omit it', async () => {
+    mocks.findUserRoles.mockResolvedValueOnce([{ role: 'member' }]);
+
+    await expect(
+      hasEffectivePortalAccess(session('staff'), ['staff'], { requestedTenantId: 'tenant_ks' })
+    ).resolves.toBe(true);
+  });
+
+  it('treats cross-tenant user_roles as authoritative when rows exist for requested tenant', async () => {
     mocks.findUserRoles.mockResolvedValueOnce([{ role: 'member' }]);
 
     await expect(
