@@ -445,8 +445,9 @@ async function checkPortalMarkers(page) {
   const snapshot = {};
   for (const markerKey of markerKeys) {
     snapshot[markerKey] = await page
-      .getByTestId(MARKERS[markerKey])
-      .isVisible({ timeout: TIMEOUTS.quickMarker })
+      .locator(`[data-testid="${MARKERS[markerKey]}"]:visible`)
+      .count()
+      .then(count => count > 0)
       .catch(() => false);
   }
 

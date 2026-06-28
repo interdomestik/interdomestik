@@ -1,28 +1,31 @@
 const { MARKERS, SELECTORS, TIMEOUTS } = require('./config.ts');
 const { markerSnapshot, resolvePlaywright } = require('./shared.ts');
 
-function markerSelector(markerKey) {
-  return `[data-testid="${MARKERS[markerKey]}"]`;
+function terminalMarkerKeys(preferredMarker) {
+  return preferredMarker
+    ? [preferredMarker, 'notFound']
+    : ['member', 'agent', 'staff', 'admin', 'notFound'];
+}
+
+function hasTerminalMarker(snapshot, preferredMarker) {
+  return terminalMarkerKeys(preferredMarker).some(key => snapshot[key] === true);
 }
 
 async function waitForPortalMarkerState(page, preferredMarker) {
-  if (preferredMarker) {
-    await page
-      .getByTestId(MARKERS[preferredMarker])
-      .waitFor({ state: 'visible', timeout: TIMEOUTS.marker })
-      .catch(() => {});
-    return markerSnapshot(page);
-  }
-
-  const anyPortalSelector = ['member', 'agent', 'staff', 'admin', 'notFound']
-    .map(markerSelector)
-    .join(',');
-  await page
-    .locator(anyPortalSelector)
-    .first()
-    .waitFor({ state: 'visible', timeout: TIMEOUTS.marker })
+  const { expect } = resolvePlaywright();
+  let snapshot = await markerSnapshot(page);
+  if (hasTerminalMarker(snapshot, preferredMarker)) return snapshot;
+  await expect
+    .poll(
+      async () => {
+        snapshot = await markerSnapshot(page);
+        return hasTerminalMarker(snapshot, preferredMarker);
+      },
+      { timeout: TIMEOUTS.marker }
+    )
+    .toBe(true)
     .catch(() => {});
-  return markerSnapshot(page);
+  return snapshot;
 }
 
 async function removeRoleFromTable(page, roleName) {
