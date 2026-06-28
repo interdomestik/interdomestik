@@ -66,6 +66,8 @@ const mocks = vi.hoisted(() => {
 });
 vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
+  withTenantContext: (_context: unknown, action: (db: typeof mocks.db) => unknown) =>
+    action(mocks.db),
   claims: mocks.claims,
   claimStageHistory: mocks.claimStageHistory,
   user: mocks.user,
@@ -84,11 +86,7 @@ vi.mock('drizzle-orm', () => ({
   inArray: mocks.inArray,
   or: mocks.or,
   isNull: mocks.isNull,
-  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
-    op: 'sql',
-    strings,
-    values,
-  })),
+  sql: vi.fn(() => ({ op: 'sql' })),
 }));
 import { getStaffClaimsList } from './get-staff-claims-list';
 function expectOwnOrUnassignedQueueScope(args: { staffId: string; tenantId: string }) {
@@ -133,7 +131,7 @@ describe('getStaffClaimsList', () => {
     mocks.diasporaClaimsChain.where.mockReturnValue('diaspora-subquery');
   });
 
-  it('returns all branch claims for branch managers when branchId exists', async () => {
+  it('returns branch claims for branch managers', async () => {
     mocks.claimChain.limit.mockResolvedValue([
       {
         id: 'claim-1',
@@ -175,7 +173,7 @@ describe('getStaffClaimsList', () => {
     expect(result[0].isDiasporaOrigin).toBe(false);
   });
 
-  it('falls back to own and unassigned claims when branch manager branch context is missing', async () => {
+  it('falls back when branch-manager branch is missing', async () => {
     mocks.claimChain.limit.mockResolvedValue([]);
 
     await getStaffClaimsList({
@@ -189,7 +187,7 @@ describe('getStaffClaimsList', () => {
     expectOwnOrUnassignedQueueScope({ staffId: 'staff-1', tenantId: 'tenant-ks' });
   });
 
-  it('maps assignee details for queue operator context', async () => {
+  it('maps assignee details', async () => {
     mocks.claimChain.limit.mockResolvedValue([
       {
         id: 'claim-1',
@@ -219,7 +217,7 @@ describe('getStaffClaimsList', () => {
     expect(result.isDiasporaOrigin).toBe(false);
   });
 
-  it('maps diaspora origin fields when the latest canonical note exists', async () => {
+  it('maps diaspora origin fields from the latest note', async () => {
     mocks.claimChain.limit.mockResolvedValue([
       {
         id: 'claim-1',
@@ -258,7 +256,7 @@ describe('getStaffClaimsList', () => {
     expect(result.diasporaCountry).toBe('IT');
   });
 
-  it('applies the diaspora subquery at the query boundary when the diaspora filter is selected', async () => {
+  it('applies the diaspora subquery at the query boundary', async () => {
     mocks.db.select
       .mockReset()
       .mockReturnValueOnce(mocks.diasporaClaimsChain)
@@ -308,7 +306,7 @@ describe('getStaffClaimsList', () => {
     expect(result[0]?.isDiasporaOrigin).toBe(true);
   });
 
-  it('limits the default staff queue to assigned-to-me and unassigned claims even when branchId exists', async () => {
+  it('limits default staff queue to own and unassigned claims', async () => {
     mocks.claimChain.limit.mockResolvedValue([]);
 
     await getStaffClaimsList({
@@ -365,7 +363,7 @@ describe('getStaffClaimsList', () => {
     expectOwnOrUnassignedQueueScope({ staffId: 'staff-3', tenantId: 'tenant-ks' });
   });
 
-  it('applies assignment, status, and search filters within the actionable queue scope', async () => {
+  it('applies assignment, status, and search filters', async () => {
     mocks.claimChain.limit.mockResolvedValue([]);
 
     await getStaffClaimsList({

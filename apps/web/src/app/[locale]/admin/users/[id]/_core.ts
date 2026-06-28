@@ -1,3 +1,4 @@
+import { withTenantContext, type TenantTransaction } from '@interdomestik/database';
 import { db } from '@interdomestik/database/db';
 import {
   subscriptions,
@@ -70,8 +71,10 @@ export type AdminUserProfileOk = {
 
 export type AdminUserProfileResult = { kind: 'not_found' } | AdminUserProfileOk;
 
-async function getMemberWithAgent(userId: string, tenantId: string) {
-  return db.query.user.findFirst({
+type DbClient = typeof db | TenantTransaction;
+
+async function getMemberWithAgent(dbClient: DbClient, userId: string, tenantId: string) {
+  return dbClient.query.user.findFirst({
     where: and(eq(userTable.id, userId), eq(userTable.tenantId, tenantId)),
     with: {
       agent: true,
@@ -86,39 +89,42 @@ export async function getAdminUserProfileCore(args: {
 }): Promise<AdminUserProfileResult> {
   if (!args.tenantId) return { kind: 'not_found' };
 
-  const member = await getMemberWithAgent(args.userId, args.tenantId);
+  return withTenantContext({ tenantId: args.tenantId, role: 'admin' }, async tx => {
+    const member = await getMemberWithAgent(tx, args.userId, args.tenantId!);
 
-  if (!member) return { kind: 'not_found' };
+    if (!member) return { kind: 'not_found' };
 
-  const [subscription, preferences, claimSummary] = await Promise.all([
-    db.query.subscriptions.findFirst({
-      where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, args.tenantId)),
-      orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
-    }),
-    db.query.userNotificationPreferences.findFirst({
-      where: and(
-        eq(userNotificationPreferences.userId, member.id),
-        eq(userNotificationPreferences.tenantId, args.tenantId)
-      ),
-    }),
-    getAdminUserClaimSummary({
-      recentClaimsLimit: args.recentClaimsLimit,
-      tenantId: args.tenantId,
-      userId: member.id,
-    }),
-  ]);
+    const [subscription, preferences, claimSummary] = await Promise.all([
+      tx.query.subscriptions.findFirst({
+        where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, args.tenantId!)),
+        orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
+      }),
+      tx.query.userNotificationPreferences.findFirst({
+        where: and(
+          eq(userNotificationPreferences.userId, member.id),
+          eq(userNotificationPreferences.tenantId, args.tenantId!)
+        ),
+      }),
+      getAdminUserClaimSummary({
+        db: tx,
+        recentClaimsLimit: args.recentClaimsLimit,
+        tenantId: args.tenantId!,
+        userId: member.id,
+      }),
+    ]);
 
-  const membershipStatus = getAdminUserMembershipStatus(subscription);
+    const membershipStatus = getAdminUserMembershipStatus(subscription);
 
-  return {
-    kind: 'ok',
-    member,
-    subscription: (subscription ?? null) as SubscriptionRow | null,
-    preferences: (preferences ?? null) as PreferencesRow | null,
-    counts: claimSummary.counts,
-    recentClaims: claimSummary.recentClaims,
-    membershipStatus,
-  };
+    return {
+      kind: 'ok',
+      member,
+      subscription: (subscription ?? null) as SubscriptionRow | null,
+      preferences: (preferences ?? null) as PreferencesRow | null,
+      counts: claimSummary.counts,
+      recentClaims: claimSummary.recentClaims,
+      membershipStatus,
+    };
+  });
 }
 
 type MemberWithAgent = NonNullable<Awaited<ReturnType<typeof getMemberWithAgent>>>;
