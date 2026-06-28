@@ -1,10 +1,12 @@
-import { db } from '@interdomestik/database/db';
+import { db as defaultDb } from '@interdomestik/database/db';
 import { claims } from '@interdomestik/database/schema';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, desc, eq } from 'drizzle-orm';
 
 import type { AdminUserClaimCounts } from './_core';
+
+type DbClient = Pick<typeof defaultDb, 'select'>;
 
 function computeClaimCounts(rows: Array<{ status: string | null; total: unknown }>) {
   const counts: AdminUserClaimCounts = { total: 0, open: 0, resolved: 0, rejected: 0 };
@@ -19,10 +21,12 @@ function computeClaimCounts(rows: Array<{ status: string | null; total: unknown 
 }
 
 export async function getAdminUserClaimSummary(args: {
+  db?: DbClient;
   recentClaimsLimit: number;
   tenantId: string;
   userId: string;
 }) {
+  const db = args.db ?? defaultDb;
   const [claimCounts, recentClaims] = await Promise.all([
     db
       .select({ status: claimLifecycleStatusSql(), total: count() })

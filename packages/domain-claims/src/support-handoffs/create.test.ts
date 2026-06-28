@@ -48,12 +48,11 @@ const mocks = vi.hoisted(() => {
     },
     supportHandoffs: 'support_handoffs',
     withTenant: vi.fn((_tenantId, _column, condition) => ({ condition, scoped: true })),
+    withTenantContext: vi.fn((_context, action) => action(mocks.db)),
   };
 });
 
-vi.mock('node:crypto', () => ({
-  randomUUID: mocks.randomUUID,
-}));
+vi.mock('node:crypto', () => ({ randomUUID: mocks.randomUUID }));
 
 vi.mock('@interdomestik/database', () => ({
   claims: mocks.claims,
@@ -62,6 +61,7 @@ vi.mock('@interdomestik/database', () => ({
   eq: mocks.eq,
   subscriptions: mocks.subscriptions,
   supportHandoffs: mocks.supportHandoffs,
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({

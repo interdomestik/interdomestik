@@ -2,6 +2,7 @@
 
 import { createMemberSupportHandoff } from '@/actions/support-handoffs/create';
 import { Button } from '@interdomestik/ui/components/button';
+import { useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
 type MemberClaimOption = {
@@ -32,11 +33,15 @@ type MemberSupportHandoffFormProps = {
   sourceClaimId?: string | null;
 };
 
-function SubmitButton({ label }: { label: string }) {
+function SubmitButton({ isHydrated, label }: { isHydrated: boolean; label: string }) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" disabled={pending} data-testid="member-support-handoff-submit">
+    <Button
+      type="submit"
+      disabled={!isHydrated || pending}
+      data-testid="member-support-handoff-submit"
+    >
       {label}
     </Button>
   );
@@ -49,10 +54,17 @@ export function MemberSupportHandoffForm({
   selectedClaimId = null,
   sourceClaimId = null,
 }: MemberSupportHandoffFormProps) {
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   return (
     <form
       action={createMemberSupportHandoff}
       className="space-y-4"
+      data-hydrated={isHydrated ? 'true' : 'false'}
       data-testid="member-support-handoff-form"
     >
       <input type="hidden" name="locale" value={locale} />
@@ -127,7 +139,7 @@ export function MemberSupportHandoffForm({
           </select>
         </div>
       </div>
-      <SubmitButton label={labels.submit} />
+      <SubmitButton isHydrated={isHydrated} label={labels.submit} />
     </form>
   );
 }

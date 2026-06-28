@@ -3,8 +3,6 @@ import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
-// ═══════════════════════════════════════════════════════════════════════════════
-
 // Canonical users - tenant-aware
 const USERS = {
   SUPER_ADMIN: { email: E2E_USERS.SUPER_ADMIN.email, password: E2E_PASSWORD, tenant: 'tenant_mk' },
@@ -32,9 +30,7 @@ const SEEDED_DATA = {
   CLAIM_MK_1: { title: 'Rear ended in Skopje (Baseline)', amount: '500.00' }, // Branch A
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // LOGIN HELPER
-// ═══════════════════════════════════════════════════════════════════════════════
 
 async function performLocalLogin(
   page: import('@playwright/test').Page,
@@ -78,9 +74,7 @@ function isMkProject(testInfo: import('@playwright/test').TestInfo): boolean {
   return testInfo.project.name.includes('mk');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // GATE TESTS - CRITICAL PATH ONLY
-// ═══════════════════════════════════════════════════════════════════════════════
 
 test.describe('Golden Gate: Critical Path', () => {
   test.describe('1. Member Core Flow', () => {
@@ -184,9 +178,7 @@ test.describe('Golden Gate: Critical Path', () => {
       }
       await performLocalLogin(page, USERS.SUPER_ADMIN, testInfo, 'admin');
 
-      await expect(page.getByTestId('admin-page-ready')).toBeVisible({
-        timeout: 20000,
-      });
+      await expect(page.getByTestId('admin-page-ready').last()).toBeVisible({ timeout: 20000 });
       await expect(page.locator('main')).toContainText(/[0-9]+/);
     });
 
