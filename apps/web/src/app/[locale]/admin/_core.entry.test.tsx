@@ -98,4 +98,13 @@ describe('AdminLayout i18n initialization', () => {
 
     expect(renderToStaticMarkup(view)).toContain('Localized Admin Shell');
   });
+
+  it('renders the admin readiness marker at the layout boundary', async () => {
+    const view = await AdminLayout({
+      children: null,
+      params: Promise.resolve({ locale: 'en' }),
+    });
+
+    expect(renderToStaticMarkup(view)).toContain('data-testid="admin-page-ready"');
+  });
 });

@@ -48,9 +48,9 @@
     "packages/domain-users/src/admin/get-staff.ts:15:67:staff,admin",
     "packages/domain-users/src/admin/role-rules.ts:1:38:agent,branch_manager",
     "scripts/release-gate/config.ts:33:16:member,agent,staff,admin",
-    "scripts/release-gate/shared.ts:547:54:agent,staff,admin",
-    "scripts/release-gate/shared.ts:550:53:staff,admin",
-    "scripts/release-gate/shared.ts:553:53:agent,admin",
-    "scripts/release-gate/shared.ts:555:51:agent,staff"
+    "scripts/release-gate/shared.ts:545:54:agent,staff,admin",
+    "scripts/release-gate/shared.ts:548:53:staff,admin",
+    "scripts/release-gate/shared.ts:551:53:agent,admin",
+    "scripts/release-gate/shared.ts:553:51:agent,staff"
   ]
 }

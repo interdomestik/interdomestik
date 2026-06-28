@@ -1,5 +1,6 @@
 const path = require('node:path');
 const { ROUTES, MARKERS, SELECTORS, TIMEOUTS, ROLE_IPS, ACCOUNTS } = require('./config.ts');
+const { hasVisibleTestId } = require('./visible-marker.ts');
 const {
   assertLoginResponseOrigin,
   buildLoginRequestHeaders,
@@ -444,10 +445,7 @@ async function checkPortalMarkers(page) {
   const markerKeys = ['member', 'agent', 'staff', 'admin', 'notFound'];
   const snapshot = {};
   for (const markerKey of markerKeys) {
-    snapshot[markerKey] = await page
-      .getByTestId(MARKERS[markerKey])
-      .isVisible({ timeout: TIMEOUTS.quickMarker })
-      .catch(() => false);
+    snapshot[markerKey] = await hasVisibleTestId(page, MARKERS[markerKey]);
   }
 
   if (!snapshot.notFound) {

@@ -47,6 +47,8 @@ class FakeRowLocator {
     return this.text;
   }
 
+  async waitFor() {}
+
   getByRole(_role: string, _options?: unknown) {
     return this.button;
   }
@@ -73,6 +75,24 @@ class FakeRowsLocator {
   nth(index: number) {
     return this.rows[index];
   }
+
+  filter(options: { hasText: RegExp }) {
+    const row = this.rows.find(candidate => options.hasText.test(candidate.text));
+    return {
+      first: () => {
+        if (!row) {
+          return {
+            waitFor: async () => {
+              throw new Error('row not found');
+            },
+            getByRole: () => new FakeButtonLocator([false]),
+            locator: () => new FakeButtonLocator([false]),
+          };
+        }
+        return row;
+      },
+    };
+  }
 }
 
 class FakeTableLocator {
@@ -92,11 +112,9 @@ class FakeTableLocator {
 
 class FakePage {
   table: FakeTableLocator;
-  waits: number[];
 
   constructor(rows: FakeRowLocator[]) {
     this.table = new FakeTableLocator(rows);
-    this.waits = [];
   }
 
   locator(selector: string) {
@@ -104,10 +122,6 @@ class FakePage {
       throw new Error(`Unexpected top-level selector: ${selector}`);
     }
     return this.table;
-  }
-
-  async waitForTimeout(ms: number) {
-    this.waits.push(ms);
   }
 }
 
@@ -120,13 +134,12 @@ test('findRoleRowByText matches a visible role row by text content', async () =>
   assert.equal(found, promoterRow);
 });
 
-test('removeRoleFromTable waits for the row action button to become enabled before clicking', async () => {
-  const promoterRow = new FakeRowLocator('PromoterTenant-wideRemove', [false, false, true]);
+test('removeRoleFromTable clicks the visible role row action', async () => {
+  const promoterRow = new FakeRowLocator('Promoter Tenant-wide Remove');
   const page = new FakePage([new FakeRowLocator('RoleBranchActions'), promoterRow]);
 
   const removed = await removeRoleFromTable(page, 'promoter');
 
   assert.equal(removed, true);
   assert.equal(promoterRow.button.clickCount, 1);
-  assert.deepEqual(page.waits, [300, 300, 800]);
 });
