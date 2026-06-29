@@ -4,18 +4,27 @@ import { grantUserRoleCore } from '@interdomestik/domain-users/admin/rbac';
 
 const hoisted = vi.hoisted(() => ({
   branchesFindFirst: vi.fn(),
-  transaction: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
+function makeGrantTx(updatedUsers = [{ id: 'user-1' }]) {
+  return {
+    query: { branches: { findFirst: hoisted.branchesFindFirst } },
+    update: vi.fn(() => ({
+      set: vi.fn(() => ({
+        where: vi.fn(() => ({ returning: vi.fn().mockResolvedValue(updatedUsers) })),
+      })),
+    })),
+    delete: vi.fn(() => ({ where: vi.fn().mockResolvedValue(undefined) })),
+    insert: vi.fn(() => ({
+      values: vi.fn(() => ({ returning: vi.fn().mockResolvedValue([{ id: 'role-1' }]) })),
+    })),
+  };
+}
+
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      branches: {
-        findFirst: hoisted.branchesFindFirst,
-      },
-    },
-    transaction: hoisted.transaction,
-  },
+  db: {},
+  withTenantContext: (...args: unknown[]) => hoisted.withTenantContext(...args),
   and: vi.fn(() => ({})),
   eq: vi.fn(() => ({})),
   branches: {
@@ -53,27 +62,9 @@ describe('domain-users rbac: branch required roles', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    hoisted.transaction.mockImplementation(async fn => {
-      const tx = {
-        update: vi.fn(() => ({
-          set: vi.fn(() => ({
-            where: vi.fn(() => ({
-              returning: vi.fn().mockResolvedValue([{ id: 'user-1' }]),
-            })),
-          })),
-        })),
-        delete: vi.fn(() => ({
-          where: vi.fn().mockResolvedValue(undefined),
-        })),
-        insert: vi.fn(() => ({
-          values: vi.fn(() => ({
-            returning: vi.fn().mockResolvedValue([{ id: 'role-1' }]),
-          })),
-        })),
-      };
-
-      return fn(tx);
-    });
+    hoisted.withTenantContext.mockImplementation(
+      async (_context: unknown, fn: (tx: unknown) => Promise<unknown>) => fn(makeGrantTx())
+    );
   });
 
   it('rejects assigning agent role without branchId', async () => {
@@ -87,7 +78,7 @@ describe('domain-users rbac: branch required roles', () => {
 
     expect(result).toEqual({ error: 'Branch is required for role: agent' });
     expect(hoisted.branchesFindFirst).not.toHaveBeenCalled();
-    expect(hoisted.transaction).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('allows restoring a legacy tenant-wide agent role without branchId when explicitly flagged', async () => {
@@ -102,7 +93,7 @@ describe('domain-users rbac: branch required roles', () => {
 
     expect(result).toEqual({ success: true });
     expect(hoisted.branchesFindFirst).not.toHaveBeenCalled();
-    expect(hoisted.transaction).toHaveBeenCalled();
+    expect(hoisted.withTenantContext).toHaveBeenCalled();
   });
 
   it('rejects assigning branch_manager role without branchId', async () => {
@@ -116,7 +107,7 @@ describe('domain-users rbac: branch required roles', () => {
 
     expect(result).toEqual({ error: 'Branch is required for role: branch_manager' });
     expect(hoisted.branchesFindFirst).not.toHaveBeenCalled();
-    expect(hoisted.transaction).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('rejects assigning branch-scoped role to inactive branch', async () => {
@@ -131,7 +122,7 @@ describe('domain-users rbac: branch required roles', () => {
     });
 
     expect(result).toEqual({ error: 'Cannot assign role to inactive branch' });
-    expect(hoisted.transaction).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
   });
 
   it('rejects assigning branch-scoped role to branch outside tenant', async () => {
@@ -146,32 +137,24 @@ describe('domain-users rbac: branch required roles', () => {
     });
 
     expect(result).toEqual({ error: 'Invalid branch' });
-    expect(hoisted.transaction).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
   });
 
   it('returns error when grant cannot update a tenant-scoped user', async () => {
     hoisted.branchesFindFirst.mockResolvedValue({ id: 'b-1', isActive: true });
-    hoisted.transaction.mockImplementationOnce(async fn => {
-      const tx = {
-        update: vi.fn(() => ({
-          set: vi.fn(() => ({
-            where: vi.fn(() => ({
-              returning: vi.fn().mockResolvedValue([]),
-            })),
-          })),
-        })),
-        delete: vi.fn(() => ({
-          where: vi.fn().mockResolvedValue(undefined),
-        })),
-        insert: vi.fn(() => ({
-          values: vi.fn(() => ({
-            returning: vi.fn().mockResolvedValue([{ id: 'role-1' }]),
-          })),
-        })),
-      };
-
-      return fn(tx);
-    });
+    hoisted.withTenantContext
+      .mockImplementationOnce(async (_context: unknown, fn: (tx: unknown) => Promise<unknown>) =>
+        fn({
+          query: {
+            branches: {
+              findFirst: hoisted.branchesFindFirst,
+            },
+          },
+        })
+      )
+      .mockImplementationOnce(async (_context: unknown, fn: (tx: unknown) => Promise<unknown>) => {
+        return fn(makeGrantTx([]));
+      });
 
     await expect(
       grantUserRoleCore({
