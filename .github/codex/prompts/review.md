@@ -9,7 +9,7 @@ Phase C constraints are mandatory:
 - Canonical routes `/member`, `/agent`, `/staff`, and `/admin` must not be renamed, bypassed, or shadowed.
 - Clarity markers such as `*-page-ready` are contractual and enforced by E2E gates.
 - No architectural refactors in routing, auth, domains, or tenancy unless explicitly requested.
-- Stripe is not part of V3 pilot flows.
+- Paddle is the only V3 pilot billing provider; do not introduce Stripe or another payment provider.
 - Do not ask for README, AGENTS.md, or architecture-doc changes unless the PR explicitly targets docs.
 
 Review expectations:

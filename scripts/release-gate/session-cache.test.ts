@@ -81,7 +81,7 @@ test('loginAs ignores empty cached session state and replaces it with fresh cook
   authState.sessionStateByAccount.set('Member-only', { cookies: [] });
 
   const counters = createCounters();
-  const page = createLoginPage([{ cookies: [] }, { cookies: [sessionCookie('fresh')] }], counters);
+  const page = createLoginPage([{ cookies: [sessionCookie('fresh')] }], counters);
 
   await loginAs(page, {
     account: 'member',
@@ -116,4 +116,26 @@ test('loginAs deletes stale cache when fresh login still yields no cookies', asy
   assert.equal(counters.post, 1);
   assert.equal(counters.goto, 1);
   assert.equal(authState.sessionStateByAccount.has('Member-only'), false);
+});
+
+test('loginAs bootstraps account landing before caching fresh cookies', async () => {
+  const authState = createAuthState();
+  const counters = createCounters();
+  const page = createLoginPage([{ cookies: [sessionCookie('pre-bootstrap')] }], counters);
+
+  await loginAs(page, {
+    account: 'staff',
+    credentials: { email: 'staff@example.com', password: 'test-credential-2026' },
+    baseUrl: RELEASE_GATE_BASE_URL,
+    locale: RELEASE_GATE_LOCALE,
+    authState,
+  });
+
+  assert.equal(counters.post, 1);
+  assert.deepEqual(counters.gotoUrls, [`${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff`]);
+  assert.equal(
+    authState.sessionStateByAccount.get('Staff')?.cookies?.find(cookie => cookie.name === 'session')
+      ?.value,
+    'pre-bootstrap'
+  );
 });

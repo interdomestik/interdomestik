@@ -149,15 +149,16 @@ require_gh_checks() {
   mapfile -t active_required_checks < <(required_check_names)
 
   for check_name in "${active_required_checks[@]}"; do
+    # Skip validating the finalizer job itself to avoid circular dependency checks.
+    if [[ "${check_name}" == "pr-finalizer" ]]; then
+      continue
+    fi
+
     local matching_checks
     local check_result
     local check_count
 
-  # Skip validating the finalizer job itself to avoid circular dependency checks.
-  local excluded_check="pr-finalizer"
-
     matching_checks="$(resolve_matching_checks "${check_name}" "${checks_json}")"
-    matching_checks="$(echo "${matching_checks}" | jq --arg EXCLUDED "$excluded_check" '[.[] | select((.name // .workflow_name // "") != $EXCLUDED)]')"
 
     for attempt in $(seq 1 "${max_check_retries}"); do
       check_count="$(echo "${matching_checks}" | jq 'length')"
@@ -170,7 +171,6 @@ require_gh_checks() {
         sleep "${check_retry_delay_seconds}"
         checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=latest&per_page=100")"
         matching_checks="$(resolve_matching_checks "${check_name}" "${checks_json}")"
-        matching_checks="$(echo "${matching_checks}" | jq --arg EXCLUDED "$excluded_check" '[.[] | select((.name // .workflow_name // "") != $EXCLUDED)]')"
         continue
       fi
 
@@ -192,7 +192,6 @@ require_gh_checks() {
       sleep "${check_retry_delay_seconds}"
       checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=latest&per_page=100")"
       matching_checks="$(resolve_matching_checks "${check_name}" "${checks_json}")"
-      matching_checks="$(echo "${matching_checks}" | jq --arg EXCLUDED "$excluded_check" '[.[] | select((.name // .workflow_name // "") != $EXCLUDED)]')"
     done
 
     check_result="$(echo "${matching_checks}" | jq 'map(select((.status | ascii_downcase) != "completed" or (.conclusion | ascii_downcase) != "success")) | length')"

@@ -391,11 +391,8 @@ async function loginAs(page, params) {
     }
     assertLoginResponseOrigin({ account, response, origin });
 
-    let storageState = await page.context().storageState();
-    if (!Array.isArray(storageState.cookies) || storageState.cookies.length === 0) {
-      await bootstrapAccountLanding(page, { account, baseUrl, locale });
-      storageState = await page.context().storageState();
-    }
+    await bootstrapAccountLanding(page, { account, baseUrl, locale });
+    const storageState = await page.context().storageState();
     storeUsableSessionState(authState, accountCacheKey, storageState);
   });
 }
