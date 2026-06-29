@@ -122,7 +122,6 @@ jobs:
           SONAR_CHECK_MAX_RETRIES: '36'
           SONAR_CHECK_RETRY_DELAY_SECONDS: '10'
         run: bash scripts/sonar-check-run-gate.sh
-
       - name: Decide Sonar gate strategy
         id: sonar_strategy
         shell: bash
@@ -307,6 +306,7 @@ jobs:
       - pilot-gate-preflight
       - pilot-gate-runner
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Enforce pilot gate preflight/result contract
         shell: bash

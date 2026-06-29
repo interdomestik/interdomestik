@@ -117,6 +117,7 @@ jobs:
     needs: deploy-staging
     runs-on: [self-hosted, interdomestik-mac]
     environment: { name: staging, deployment: false }
+    permissions: { contents: read }
     env:
       BASE_URL: ${{ needs.deploy-staging.outputs.base_url }}
       AUTH_BASE_URL: https://staging.interdomestik.com
@@ -152,7 +153,6 @@ jobs:
             --authBaseUrl "${AUTH_BASE_URL}" \
             --outDir "${EVIDENCE_DIR}/release-gates" \
             2>&1 | tee "${EVIDENCE_DIR}/logs/release-gate-staging.log"
-
       - name: Upload staging verification artifacts
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -253,6 +253,7 @@ jobs:
     runs-on: [self-hosted, interdomestik-mac]
     timeout-minutes: 20
     environment: { name: production, deployment: false }
+    permissions: { contents: read }
     env:
       BASE_URL: https://www.interdomestik.com
       EVIDENCE_DIR: tmp/cd-evidence/${{ github.run_id }}
@@ -276,7 +277,6 @@ jobs:
       SENTRY_SEVERITY_THRESHOLD: error
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
-
       - uses: ./.github/actions/setup
         with: { install-playwright: 'true' }
 
