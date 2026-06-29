@@ -52,8 +52,15 @@ function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function caseInsensitiveLiteral(value) {
+  return String(value).replace(/[a-z]/gi, char => `[${char.toLowerCase()}${char.toUpperCase()}]`);
+}
+
 function roleTextPattern(roleName) {
-  return new RegExp(String.raw`\b${escapeRegExp(roleName)}`, 'i');
+  const normalizedRoleName = String(roleName || '').trim();
+  if (!normalizedRoleName) return /a^/;
+  const roleLiteral = caseInsensitiveLiteral(escapeRegExp(normalizedRoleName));
+  return new RegExp(String.raw`\b${roleLiteral}(?=\b|Tenant-wide)`);
 }
 
 function roleRowLocator(page, roleName) {

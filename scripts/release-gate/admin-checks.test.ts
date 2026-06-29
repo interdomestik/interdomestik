@@ -128,11 +128,16 @@ class FakePage {
 }
 
 test('removeRoleFromTable clicks the visible role row action', async () => {
+  const backupRow = new FakeRowLocator('promoter_backupTenant-wideRemove');
   const promoterRow = new FakeRowLocator('PromoterTenant-wideRemove');
-  const page = new FakePage([new FakeRowLocator('RoleBranchActions'), promoterRow]);
+  const page = new FakePage([new FakeRowLocator('RoleBranchActions'), backupRow, promoterRow]);
 
   const removed = await removeRoleFromTable(page, 'promoter');
 
   assert.equal(removed, true);
+  assert.equal(backupRow.button.clickCount, 0);
+  assert.equal(promoterRow.button.clickCount, 1);
+
+  assert.equal(await removeRoleFromTable(page, ' '), false);
   assert.equal(promoterRow.button.clickCount, 1);
 });
