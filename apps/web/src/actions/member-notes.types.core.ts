@@ -12,16 +12,20 @@ export function sanitizeNoteContent(content: string): string {
 
 function stripHtmlTags(content: string): string {
   const plainText: string[] = [];
-  for (let index = 0; index < content.length; index += 1) {
-    if (content[index] !== '<') {
-      plainText.push(content[index] ?? '');
+  let cursor = 0;
+  while (cursor < content.length) {
+    const char = content[cursor] ?? '';
+    if (char !== '<') {
+      plainText.push(char);
+      cursor += 1;
       continue;
     }
-    const tagEnd = content.indexOf('>', index + 1);
+    const tagEnd = content.indexOf('>', cursor + 1);
     if (tagEnd === -1) {
-      plainText.push(content[index] ?? '');
+      plainText.push(char);
+      cursor += 1;
     } else {
-      index = tagEnd;
+      cursor = tagEnd + 1;
     }
   }
   return plainText.join('');

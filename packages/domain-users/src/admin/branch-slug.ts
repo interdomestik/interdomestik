@@ -1,5 +1,5 @@
 function isAsciiLetterOrDigit(char: string): boolean {
-  const code = char.charCodeAt(0);
+  const code = char.codePointAt(0) ?? -1;
   return (code >= 48 && code <= 57) || (code >= 97 && code <= 122);
 }
 

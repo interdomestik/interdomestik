@@ -13,7 +13,7 @@ const defaults: ContactInfo = {
 };
 
 function isDigit(char: string): boolean {
-  const code = char.charCodeAt(0);
+  const code = char.codePointAt(0) ?? -1;
   return code >= 48 && code <= 57;
 }
 

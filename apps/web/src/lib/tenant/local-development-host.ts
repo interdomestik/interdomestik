@@ -9,7 +9,7 @@ function isDecimalOctet(value: string): boolean {
   if (value.length === 0 || value.length > 3) return false;
   let parsed = 0;
   for (let index = 0; index < value.length; index += 1) {
-    const code = value.charCodeAt(index);
+    const code = value.codePointAt(index) ?? -1;
     if (code < 48 || code > 57) return false;
     parsed = parsed * 10 + (code - 48);
   }
