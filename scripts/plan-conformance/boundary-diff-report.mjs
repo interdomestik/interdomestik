@@ -5,6 +5,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { matchesGlobPattern } from './glob-match.mjs';
+
 const DEFAULT_TAXONOMY_PATH = path.join('scripts', 'plan-conformance', 'boundary-taxonomy.json');
 const DEFAULT_OUT_PATH = path.join('tmp', 'plan-conformance', 'boundary-diff-report.json');
 const DEFAULT_BASE_REF = 'HEAD~1';
@@ -23,42 +25,9 @@ function normalizePaths(paths) {
   return [...new Set(paths.map(file => String(file || '').trim()).filter(Boolean))].sort();
 }
 
-function escapeRegexChar(char) {
-  if (/[-/\\^$*+?.()|[\]{}]/.test(char)) {
-    return `\\${char}`;
-  }
-  return char;
-}
-
-function globToRegExp(pattern) {
-  const normalized = String(pattern || '').split(path.sep).join('/');
-  let out = '^';
-
-  for (let index = 0; index < normalized.length; index += 1) {
-    const char = normalized[index];
-    const next = normalized[index + 1];
-
-    if (char === '*' && next === '*') {
-      out += '.*';
-      index += 1;
-      continue;
-    }
-
-    if (char === '*') {
-      out += '[^/]*';
-      continue;
-    }
-
-    out += escapeRegexChar(char);
-  }
-
-  out += '$';
-  return new RegExp(out);
-}
-
 function matchesAnyPattern(filePath, patterns) {
   const normalized = String(filePath || '').split(path.sep).join('/');
-  return patterns.some(pattern => globToRegExp(pattern).test(normalized));
+  return patterns.some(pattern => matchesGlobPattern(normalized, pattern));
 }
 
 function maybeReason(filePath) {
