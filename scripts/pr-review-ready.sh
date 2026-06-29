@@ -144,6 +144,6 @@ run_boundary_check() {
   fi
 }
 
-bash scripts/pr-finalizer.sh
+GITHUB_EVENT_PATH="" bash scripts/pr-finalizer.sh
 run_boundary_check
 node scripts/github-pr-governance-report.mjs --strict ${pr_number:+"${pr_number}"}

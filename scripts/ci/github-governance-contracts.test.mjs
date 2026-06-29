@@ -96,7 +96,7 @@ test('review-ready script composes finalizer and strict governance report', () =
   assert.match(script, /PR_FINALIZER_SKIP_CHECK_POLLING/);
   assert.match(script, /\[\[ "\$\{1:-\}" == "--" \]\]/);
   assert.match(script, /shift/);
-  assert.match(script, /bash scripts\/pr-finalizer\.sh/);
+  assert.match(script, /GITHUB_EVENT_PATH="" bash scripts\/pr-finalizer\.sh/);
   assert.match(script, /boundary-diff-report\.mjs/);
   assert.match(script, /gh api --paginate "repos\/\$\{repo\}\/pulls\/\$\{pr_number\}\/files\?per_page=100"/);
   assert.match(script, /\.\[\]\.filename/);
