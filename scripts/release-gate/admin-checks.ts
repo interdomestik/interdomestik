@@ -450,7 +450,7 @@ async function runP06(browser, runCtx, deps) {
     const context = await browser.newContext();
     const page = await context.newPage();
     try {
-      await loginWithRunContext(page, runCtx, accountKey, { forceFresh: true });
+      await loginWithRunContext(page, runCtx, accountKey);
       return await fn(page);
     } finally {
       await context.close();

@@ -39,7 +39,7 @@ test('P0.6 canonical scenarios stay aligned with P0.1 role matrix', () => {
   );
 });
 
-test('P0.6 account setup uses forceFresh login before scenario navigation', async () => {
+test('P0.6 canonical scenarios reuse established sessions before forcing fresh login', async () => {
   const loginCalls: Array<{ accountKey: string; forceFresh: boolean }> = [];
   let activePage: any = null;
   const browser = {
@@ -54,7 +54,7 @@ test('P0.6 account setup uses forceFresh login before scenario navigation', asyn
     },
   };
 
-  await runP06(
+  const result = await runP06(
     browser,
     { baseUrl: 'https://interdomestik-web.vercel.app', locale: 'en' },
     {
@@ -66,27 +66,30 @@ test('P0.6 account setup uses forceFresh login before scenario navigation', asyn
       ) => {
         loginCalls.push({ accountKey, forceFresh: options?.forceFresh === true });
         activePage.currentAccount = accountKey;
+        activePage.sessionMode = options?.forceFresh === true ? 'fresh' : 'cached';
       },
     }
   );
 
-  assert.equal(loginCalls.length > 0, true);
-  assert.equal(
-    loginCalls.every(call => call.forceFresh),
-    true
-  );
+  assert.equal(result.status, 'PASS');
+  const firstAgentLogin = loginCalls.find(call => call.accountKey === 'agent');
+  const firstStaffLogin = loginCalls.find(call => call.accountKey === 'staff');
+  assert.equal(firstAgentLogin?.forceFresh, false);
+  assert.equal(firstStaffLogin?.forceFresh, false);
 });
 
 function createPage(): any {
   return {
     currentAccount: '',
+    sessionMode: 'cached',
     currentUrl: '',
     async goto(url: string) {
       this.currentUrl = url;
     },
     locator(selector: string) {
       return {
-        count: async () => markerCountFor(selector, this.currentAccount, this.currentUrl),
+        count: async () =>
+          markerCountFor(selector, this.currentAccount, this.currentUrl, this.sessionMode),
         isVisible: async () => false,
         first: () => ({
           isVisible: async () => false,
@@ -103,7 +106,12 @@ function createPage(): any {
   };
 }
 
-function markerCountFor(selector: string, account: string, url: string): number {
+function markerCountFor(
+  selector: string,
+  account: string,
+  url: string,
+  sessionMode: string
+): number {
   const route = new URL(url || 'https://interdomestik-web.vercel.app/en/member').pathname;
   const canonicalByAccount: Record<string, string> = {
     agent: '/en/agent',
@@ -117,7 +125,23 @@ function markerCountFor(selector: string, account: string, url: string): number 
   };
   const canonical = canonicalByAccount[account];
   const marker = markerByAccount[account];
-  if (canonical && marker && route === canonical && selector.includes(marker)) return 1;
+  if (
+    canonical &&
+    marker &&
+    route === canonical &&
+    sessionMode === 'cached' &&
+    selector.includes(marker)
+  ) {
+    return 1;
+  }
   if (canonical && route !== canonical && selector.includes(MARKERS.notFound)) return 1;
+  if (
+    canonical &&
+    route === canonical &&
+    sessionMode === 'fresh' &&
+    selector.includes(MARKERS.notFound)
+  ) {
+    return 1;
+  }
   return 0;
 }
