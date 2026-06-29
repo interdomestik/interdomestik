@@ -30,14 +30,10 @@ if [[ "${1:-}" == "--" ]]; then
   shift
 fi
 
-pr_number="${1:-}"
-if [[ -n "${pr_number}" && ! "${pr_number}" =~ ^[0-9]+$ ]]; then
+input_pr_number="${1:-}"
+if [[ -n "${input_pr_number}" && ! "${input_pr_number}" =~ ^[0-9]+$ ]]; then
   echo "pr-review-ready failed: PR_NUMBER must be numeric" >&2
   exit 1
-fi
-
-if [[ -n "${pr_number}" ]]; then
-  export PR_NUMBER="${pr_number}"
 fi
 
 export PR_FINALIZER_SKIP_CHECK_POLLING="${PR_FINALIZER_SKIP_CHECK_POLLING:-false}"
@@ -49,6 +45,42 @@ env_flag() {
     *) return 1 ;;
   esac
 }
+
+resolve_pr_number() {
+  local resolved=""
+
+  if [[ -n "${input_pr_number}" ]]; then
+    echo "${input_pr_number}"
+    return 0
+  fi
+
+  if [[ -n "${PR_NUMBER:-}" ]]; then
+    echo "${PR_NUMBER}"
+    return 0
+  fi
+
+  if [[ -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
+    resolved="$(jq -r '.pull_request.number // empty' "${GITHUB_EVENT_PATH}" 2>/dev/null || true)"
+    if [[ -n "${resolved}" ]]; then
+      echo "${resolved}"
+      return 0
+    fi
+  fi
+
+  if command -v gh >/dev/null 2>&1; then
+    gh pr view --json number --jq '.number // empty' 2>/dev/null || true
+  fi
+}
+
+pr_number="$(resolve_pr_number)"
+if [[ -n "${pr_number}" && ! "${pr_number}" =~ ^[0-9]+$ ]]; then
+  echo "pr-review-ready failed: resolved PR_NUMBER must be numeric" >&2
+  exit 1
+fi
+
+if [[ -n "${pr_number}" ]]; then
+  export PR_NUMBER="${pr_number}"
+fi
 
 has_no_touch_authorization() {
   if env_flag PR_REVIEW_READY_ALLOW_NO_TOUCH; then
