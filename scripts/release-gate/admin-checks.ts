@@ -11,6 +11,7 @@ const {
   waitForReadyMarker,
 } = require('./shared.ts');
 const { createP06MarkerAsserter } = require('./p06-marker-assertion.ts');
+const { collectP06MultiRouteScenario } = require('./p06-multi-route-runner.ts');
 const {
   addRole,
   createMutationResponseCapture,
@@ -446,11 +447,13 @@ async function runP06(browser, runCtx, deps) {
   const evidence = [];
   const scenarios = [];
 
-  async function withAccount(accountKey, fn) {
+  async function withAccount(accountKey, fn, options = {}) {
     const context = await browser.newContext();
-    const page = await context.newPage();
     try {
-      await loginWithRunContext(page, runCtx, accountKey);
+      const page = await context.newPage();
+      await loginWithRunContext(page, runCtx, accountKey, {
+        forceFresh: options.forceFresh === true,
+      });
       return await fn(page);
     } finally {
       await context.close();
@@ -515,32 +518,28 @@ async function runP06(browser, runCtx, deps) {
 
   async function runMultiRouteScenario(input) {
     const { id, title, accountKey, checks, expectedSummary } = input;
-    const urls = checks.map(check => buildRoute(runCtx.baseUrl, runCtx.locale, check.route));
 
     try {
-      await withAccount(accountKey, async page => {
-        const observedRows = [];
-        const mismatches = [];
-        for (const [index, check] of checks.entries()) {
-          const result = await assertP06Markers(page, accountKey, id, urls[index], check.expected);
-          observedRows.push(`${urls[index]} => ${markersToString(result.observed)}`);
-          for (const mismatch of result.mismatches) {
-            mismatches.push(mismatch);
-          }
-        }
-
-        const failureSignature = mismatches[0] ? mismatchSignatureFor(id, mismatches[0]) : '';
-        if (failureSignature) failures.push(failureSignature);
-        recordScenario({
-          id,
-          title,
-          account: accountKey,
-          urls,
-          expectedSummary,
-          observedSummary: observedRows.join(' || '),
-          result: failureSignature ? 'FAIL' : 'PASS',
-          failureSignature,
-        });
+      const { urls, observedSummary, mismatches } = await collectP06MultiRouteScenario({
+        id,
+        accountKey,
+        assertP06Markers,
+        browser,
+        checks,
+        loginWithRunContext,
+        runCtx,
+      });
+      const failureSignature = mismatches[0] ? mismatchSignatureFor(id, mismatches[0]) : '';
+      if (failureSignature) failures.push(failureSignature);
+      recordScenario({
+        id,
+        title,
+        account: accountKey,
+        urls,
+        expectedSummary,
+        observedSummary,
+        result: failureSignature ? 'FAIL' : 'PASS',
+        failureSignature,
       });
     } catch (error) {
       const failureSignature = `P0.6_${id}_EXCEPTION message=${String(error.message || error)}`;
@@ -549,7 +548,7 @@ async function runP06(browser, runCtx, deps) {
         id,
         title,
         account: accountKey,
-        urls,
+        urls: checks.map(check => buildRoute(runCtx.baseUrl, runCtx.locale, check.route)),
         expectedSummary,
         observedSummary: 'exception',
         result: 'FAIL',
