@@ -58,7 +58,7 @@
     "@interdomestik/domain-recovery": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
     "drizzle-orm": "^0.45.2",
-    "nanoid": "^5.1.11",
+    "nanoid": "^5.1.16",
     "zod": "^4.2.1"
   },
   "devDependencies": {

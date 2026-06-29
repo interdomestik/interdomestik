@@ -30,7 +30,7 @@
     "@interdomestik/database": "workspace:*",
     "@interdomestik/domain-privacy": "workspace:*",
     "drizzle-orm": "^0.45.2",
-    "openai": "^6.42.0",
+    "openai": "^6.45.0",
     "zod": "^4.2.1"
   },
   "devDependencies": {
