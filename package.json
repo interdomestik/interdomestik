@@ -290,6 +290,10 @@
       "smol-toml": "1.6.1",
       "yaml@>=2.0.0 <2.8.3": "2.8.3",
       "ip-address": "10.1.1",
+      "shell-quote": "1.8.4",
+      "dompurify": "3.4.11",
+      "@babel/core": "7.29.7",
+      "@opentelemetry/core": "2.8.0",
       "@opentelemetry/auto-instrumentations-node": "0.75.0",
       "@opentelemetry/sdk-node": "0.217.0",
       "@opentelemetry/exporter-prometheus": "0.217.0"
