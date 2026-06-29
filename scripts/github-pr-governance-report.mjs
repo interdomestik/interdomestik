@@ -3,17 +3,8 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 
 const REQUIRED_CHECKS = [
-  'audit',
-  'e2e',
-  'pnpm-audit',
-  'gitleaks',
-  'pilot-gate',
-  'validation-surface',
-  'pr-finalizer',
-  'commitlint',
-  'CodeQL',
-  'Analyze (actions)',
-  'Analyze (javascript-typescript)',
+  'audit', 'e2e', 'pnpm-audit', 'gitleaks', 'pilot-gate', 'validation-surface',
+  'pr-finalizer', 'commitlint', 'CodeQL', 'Analyze (actions)', 'Analyze (javascript-typescript)',
 ];
 const MONITORED_CHECKS = ['static', 'unit', 'e2e-gate', 'SonarCloud Code Analysis'];
 
@@ -24,9 +15,7 @@ const SUCCESS_STATES = new Set(['SUCCESS', 'COMPLETED/SUCCESS']);
 const CURRENT_HEAD_PREFIX_LENGTHS = [7, 8, 10];
 function resolveGhBinary() {
   const binary = GH_BINARY_CANDIDATES.find(candidate => fs.existsSync(candidate));
-  if (!binary) {
-    throw new Error(`GitHub CLI not found in: ${GH_BINARY_CANDIDATES.join(', ')}`);
-  }
+  if (!binary) throw new Error(`GitHub CLI not found in: ${GH_BINARY_CANDIDATES.join(', ')}`);
   return binary;
 }
 function prNumberArg() {
@@ -37,22 +26,36 @@ function prNumberArg() {
   return prArg;
 }
 const isStrictMode = () => process.argv.includes('--strict');
+function ghJson(args) {
+  return JSON.parse(execFileSync(resolveGhBinary(), args, { encoding: 'utf8' }));
+}
 function readPr() {
   const prArg = prNumberArg();
-  const args = ['pr', 'view'];
-  if (prArg) {
-    args.push(prArg);
+  return ghJson([
+    'pr', 'view', ...(prArg ? [prArg] : []), '--json',
+    'number,headRefOid,statusCheckRollup,comments',
+  ]);
+}
+const repoNameWithOwner = () => ghJson(['repo', 'view', '--json', 'nameWithOwner']).nameWithOwner;
+function readPaginated(endpoint) {
+  const rows = [];
+  for (let page = 1; ; page += 1) {
+    const batch = ghJson(['api', `${endpoint}?per_page=100&page=${page}`]);
+    rows.push(...batch);
+    if (batch.length < 100) break;
   }
-  args.push('--json', 'number,headRefOid,statusCheckRollup,reviews,comments');
-  const output = execFileSync(resolveGhBinary(), args, { encoding: 'utf8' });
-  return JSON.parse(output);
+  return rows;
+}
+function readReviews(prNumber) {
+  const repo = repoNameWithOwner();
+  return readPaginated(`repos/${repo}/pulls/${prNumber}/reviews`).map(review => ({
+    author: { login: review?.user?.login ?? '' }, body: review?.body ?? '',
+    commit: review?.commit_id ?? '', state: review?.state ?? '',
+  }));
 }
 const actorLogin = item => item?.author?.login ?? '';
 const checkLabel = check => check?.name ?? check?.context ?? check?.workflowName ?? 'unknown';
-const itemCommitOid = item => {
-  if (typeof item?.commit === 'string') return item.commit;
-  return item?.commit?.oid ?? '';
-};
+const itemCommitOid = item => typeof item?.commit === 'string' ? item.commit : item?.commit?.oid ?? '';
 function checkState(check) {
   if (!check) return 'missing';
   return check.__typename === 'StatusContext'
@@ -65,9 +68,8 @@ const authorItems = (items, authors) => items.filter(item => authors.has(actorLo
 function itemBody(item) {
   return typeof item?.body === 'string' ? item.body : '';
 }
-function currentHeadPrefixes(head) {
-  return [head, ...CURRENT_HEAD_PREFIX_LENGTHS.map(length => head.slice(0, length))].filter(Boolean);
-}
+const currentHeadPrefixes = head =>
+  [head, ...CURRENT_HEAD_PREFIX_LENGTHS.map(length => head.slice(0, length))].filter(Boolean);
 function itemReferencesCurrentHead(item, head) {
   const commitOid = itemCommitOid(item);
   if (commitOid) {
@@ -89,18 +91,16 @@ function strictFailures(pr, checks, reviews, comments) {
       failures.push(`required check is not green: ${checkName}`);
     }
   }
-  if (
+  const missingCopilot =
     !hasCurrentHeadSignal(pr, reviews, COPILOT_AUTHORS) &&
-    !envFlag('PR_REVIEW_READY_ALLOW_MISSING_COPILOT')
-  ) {
-    failures.push(
-      'Copilot current-head review is absent; request Copilot review or set an explicit waiver env'
-    );
-  }
-  if (
+    !envFlag('PR_REVIEW_READY_ALLOW_MISSING_COPILOT');
+  const missingCodex =
     !hasCurrentHeadSignal(pr, [...reviews, ...comments], CODEX_AUTHORS) &&
-    !envFlag('PR_REVIEW_READY_ALLOW_MISSING_CODEX')
-  ) {
+    !envFlag('PR_REVIEW_READY_ALLOW_MISSING_CODEX');
+  if (missingCopilot) {
+    failures.push('Copilot current-head review is absent; request Copilot review or set a waiver env');
+  }
+  if (missingCodex) {
     failures.push('Codex current-head review is absent; request @codex review or set a waiver env');
   }
   return failures;
@@ -114,7 +114,7 @@ function printSection(title, rows) {
 const strict = isStrictMode();
 const pr = readPr();
 const checks = pr.statusCheckRollup ?? [];
-const reviews = pr.reviews ?? [];
+const reviews = readReviews(pr.number);
 const comments = pr.comments ?? [];
 console.log(`PR #${pr.number} governance report`);
 printSection(

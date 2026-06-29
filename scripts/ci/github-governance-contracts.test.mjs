@@ -66,6 +66,8 @@ test('governance report script is wired and names external reviewer signals', ()
   assert.match(reportScript, /copilot-pull-request-reviewer/);
   assert.match(reportScript, /chatgpt-codex-connector/);
   assert.match(reportScript, /itemCommitOid/);
+  assert.match(reportScript, /repos\/\$\{repo\}\/pulls\/\$\{prNumber\}\/reviews/);
+  assert.match(reportScript, /commit_id/);
   assert.match(reportScript, /MONITORED_CHECKS/);
   assert.match(reportScript, /CURRENT_HEAD_PREFIX_LENGTHS = \[7, 8, 10\]/);
   assert.match(reportScript, /hasCurrentHeadSignal/);
@@ -94,6 +96,8 @@ test('review-ready script composes finalizer and strict governance report', () =
   assert.match(script, /shift/);
   assert.match(script, /bash scripts\/pr-finalizer\.sh/);
   assert.match(script, /boundary-diff-report\.mjs/);
+  assert.match(script, /gh api --paginate "repos\/\$\{repo\}\/pulls\/\$\{pr_number\}\/files\?per_page=100"/);
+  assert.match(script, /\.\[\]\.filename/);
   assert.match(script, /Phase C no-touch files changed/);
   assert.match(script, /return 1/);
   assert.match(script, /node scripts\/github-pr-governance-report\.mjs --strict/);

@@ -43,7 +43,11 @@ run_boundary_check() {
   trap 'rm -f "${changed_list}"' RETURN
 
   if [[ -n "${pr_number}" ]]; then
-    gh pr view "${pr_number}" --json files --jq '[.files[].path]' >"${changed_list}"
+    local repo
+    repo="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
+    gh api --paginate "repos/${repo}/pulls/${pr_number}/files?per_page=100" \
+      --jq '.[].filename' \
+      | jq -R -s 'split("\n") | map(select(length > 0))' >"${changed_list}"
   else
     git diff --name-only origin/main...HEAD | jq -R -s 'split("\n") | map(select(length > 0))' >"${changed_list}"
   fi
