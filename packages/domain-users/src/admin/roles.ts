@@ -1,4 +1,4 @@
-import { and, branches, db, eq, user, userRoles } from '@interdomestik/database';
+import { and, branches, eq, user, userRoles, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/shared-auth';
 import { isNull } from 'drizzle-orm';
@@ -17,47 +17,49 @@ export async function listUserRolesCore(params: {
   requirePermission(session, PERMISSIONS['roles.manage'], hasPermission);
   const tenantId = resolveTenantId(session, params.tenantId);
 
-  if (params.userId) {
-    const explicitRoles = await db.query.userRoles.findMany({
-      where: withTenant(tenantId, userRoles.tenantId, eq(userRoles.userId, params.userId)),
-    });
+  return withTenantContext({ tenantId, role: session.user.role }, async tx => {
+    if (params.userId) {
+      const explicitRoles = await tx.query.userRoles.findMany({
+        where: withTenant(tenantId, userRoles.tenantId, eq(userRoles.userId, params.userId)),
+      });
 
-    const legacyUser = await db.query.user.findFirst({
-      where: withTenant(tenantId, user.tenantId, eq(user.id, params.userId)),
-      columns: {
-        id: true,
-        role: true,
-        branchId: true,
-      },
-    });
+      const legacyUser = await tx.query.user.findFirst({
+        where: withTenant(tenantId, user.tenantId, eq(user.id, params.userId)),
+        columns: {
+          id: true,
+          role: true,
+          branchId: true,
+        },
+      });
 
-    if (!legacyUser || !legacyUser.role || legacyUser.role === 'member') {
-      return explicitRoles;
+      if (!legacyUser || !legacyUser.role || legacyUser.role === 'member') {
+        return explicitRoles;
+      }
+
+      const hasPrimaryRoleRow = explicitRoles.some(
+        row => row.role === legacyUser.role && row.branchId === (legacyUser.branchId ?? null)
+      );
+
+      if (hasPrimaryRoleRow) {
+        return explicitRoles;
+      }
+
+      const legacyPrimaryRole = [
+        {
+          id: `legacy-${legacyUser.id}-${legacyUser.role}-${legacyUser.branchId ?? 'tenant'}`,
+          tenantId,
+          userId: legacyUser.id,
+          role: legacyUser.role,
+          branchId: legacyUser.branchId ?? null,
+        },
+      ];
+
+      return [...legacyPrimaryRole, ...explicitRoles];
     }
 
-    const hasPrimaryRoleRow = explicitRoles.some(
-      row => row.role === legacyUser.role && row.branchId === (legacyUser.branchId ?? null)
-    );
-
-    if (hasPrimaryRoleRow) {
-      return explicitRoles;
-    }
-
-    const legacyPrimaryRole = [
-      {
-        id: `legacy-${legacyUser.id}-${legacyUser.role}-${legacyUser.branchId ?? 'tenant'}`,
-        tenantId,
-        userId: legacyUser.id,
-        role: legacyUser.role,
-        branchId: legacyUser.branchId ?? null,
-      },
-    ];
-
-    return [...legacyPrimaryRole, ...explicitRoles];
-  }
-
-  return db.query.userRoles.findMany({
-    where: withTenant(tenantId, userRoles.tenantId),
+    return tx.query.userRoles.findMany({
+      where: withTenant(tenantId, userRoles.tenantId),
+    });
   });
 }
 
@@ -80,17 +82,18 @@ export async function grantUserRoleCore(
   const role = params.role.trim();
   if (!role) return { error: 'Role is required' };
 
-  // Ensure branch belongs to this tenant and is ACTIVE (when provided).
   let branchId = params.branchId ?? null;
   if (branchId) {
-    const branch = await db.query.branches.findFirst({
-      where: withTenant(tenantId, branches.tenantId, eq(branches.id, branchId)),
-    });
+    const branchIdForLookup = branchId;
+    const branch = await withTenantContext({ tenantId, role: session.user.role }, tx =>
+      tx.query.branches.findFirst({
+        where: withTenant(tenantId, branches.tenantId, eq(branches.id, branchIdForLookup)),
+      })
+    );
     if (!branch) return { error: 'Invalid branch' };
     if (!branch.isActive) return { error: 'Cannot assign role to inactive branch' };
   }
 
-  // Branch Scoping Rules
   if (isBranchRequiredRole(role)) {
     if (params.allowLegacyTenantWide && role === 'agent' && !branchId) {
       branchId = null;
@@ -98,14 +101,10 @@ export async function grantUserRoleCore(
       return { error: `Branch is required for role: ${role}` };
     }
   } else {
-    // For non-branch roles (admin, staff), ensure branchId is null (unless we allow branch-staff later)
-    // For now, clean it up to avoid confusion.
     branchId = null;
   }
 
-  await db.transaction(async tx => {
-    // 1. Update user table (Source of Truth for Session)
-    // We treat this grant as setting the PRIMARY role.
+  await withTenantContext({ tenantId, role: session.user.role }, async tx => {
     const updatedUsers = await tx
       .update(user)
       .set({
@@ -119,8 +118,6 @@ export async function grantUserRoleCore(
       throw new Error('Role grant did not update the user');
     }
 
-    // 2. Add to userRoles (Audit/Multi-role future safe)
-    // First remove existing entry for same role to avoid duplicates if any
     await tx
       .delete(userRoles)
       .where(
@@ -182,7 +179,7 @@ export async function revokeUserRoleCore(
   if (!role) return { error: 'Role is required' };
 
   const branchId = params.branchId ?? null;
-  const deletedRoles = await db.transaction(async tx => {
+  const deletedRoles = await withTenantContext({ tenantId, role: session.user.role }, async tx => {
     const roleDeleteScope =
       branchId === null ? isNull(userRoles.branchId) : eq(userRoles.branchId, branchId);
 

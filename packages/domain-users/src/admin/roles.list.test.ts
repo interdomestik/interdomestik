@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   findUserRoles: vi.fn(),
   findUser: vi.fn(),
+  withTenantContext: vi.fn(),
   withTenant: vi.fn((tenantId: string, _tenantColumn: unknown, condition?: unknown) => ({
     tenantId,
     condition,
@@ -11,16 +12,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      userRoles: {
-        findMany: (...args: unknown[]) => mocks.findUserRoles(...args),
-      },
-      user: {
-        findFirst: (...args: unknown[]) => mocks.findUser(...args),
-      },
-    },
-  },
+  db: {},
+  withTenantContext: (...args: unknown[]) => mocks.withTenantContext(...args),
   user: {
     id: 'user.id',
     tenantId: 'user.tenantId',
@@ -58,14 +51,21 @@ vi.mock('drizzle-orm', () => ({
 import { listUserRolesCore } from './roles';
 
 describe('listUserRolesCore', () => {
-  const session = {
-    user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_ks' },
-  };
+  const session = { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_ks' } };
 
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.findUserRoles.mockResolvedValue([]);
     mocks.findUser.mockResolvedValue(null);
+    mocks.withTenantContext.mockImplementation(
+      async (_context: unknown, action: (tx: unknown) => Promise<unknown>) =>
+        action({
+          query: {
+            userRoles: { findMany: mocks.findUserRoles },
+            user: { findFirst: mocks.findUser },
+          },
+        })
+    );
   });
 
   it('falls back to the legacy primary role for elevated seeded users without user_roles rows', async () => {
