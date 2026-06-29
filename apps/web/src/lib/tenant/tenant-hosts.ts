@@ -6,7 +6,6 @@ import {
   type TenantId,
 } from './tenant-host-aliases';
 import { isKnownIdaFrontDoorHost } from './tenant-front-door';
-import { isLocalDevelopmentHost } from './local-development-host';
 import type { TenantResolutionResult } from './tenant-resolution-types';
 
 export type { TenantId } from './tenant-host-aliases';
@@ -73,7 +72,8 @@ export function preferredHostForTenant(tenantId: TenantId): string {
 
 export function resolveTenantAppOrigin(tenantId: TenantId): string {
   const host = preferredHostForTenant(tenantId);
-  const useHttp = isLocalDevelopmentHost(host);
+  const useHttp =
+    host.includes('localhost') || host.includes('127.0.0.1') || host.includes('.nip.io');
   return `${useHttp ? 'http' : 'https'}://${host}`;
 }
 
