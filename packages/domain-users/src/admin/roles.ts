@@ -1,4 +1,4 @@
-import { and, branches, db, eq, user, userRoles, withTenantContext } from '@interdomestik/database';
+import { and, branches, eq, user, userRoles, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/shared-auth';
 import { isNull } from 'drizzle-orm';
