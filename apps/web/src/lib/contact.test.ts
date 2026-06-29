@@ -52,12 +52,36 @@ describe('Contact Info', () => {
     expect(contactInfo.phone).toBe('+1 555 123 4567');
   });
 
+  it('should reject unsafe phone env values', async () => {
+    process.env.NEXT_PUBLIC_CONTACT_PHONE = 'javascript:alert(1)';
+
+    const { contactInfo } = await import('./contact');
+
+    expect(contactInfo.phone).toBe('+383 49 900 600');
+  });
+
   it('should use env var for whatsapp when set', async () => {
     process.env.NEXT_PUBLIC_CONTACT_WHATSAPP = 'https://wa.me/15551234567';
 
     const { contactInfo } = await import('./contact');
 
     expect(contactInfo.whatsapp).toBe('https://wa.me/15551234567');
+  });
+
+  it('should reject non-wa.me whatsapp env values', async () => {
+    process.env.NEXT_PUBLIC_CONTACT_WHATSAPP = 'javascript:alert(1)';
+
+    const { contactInfo } = await import('./contact');
+
+    expect(contactInfo.whatsapp).toBe('https://wa.me/38349900600');
+  });
+
+  it('should reject whatsapp env values with query payloads', async () => {
+    process.env.NEXT_PUBLIC_CONTACT_WHATSAPP = 'https://wa.me/15551234567?text=hello';
+
+    const { contactInfo } = await import('./contact');
+
+    expect(contactInfo.whatsapp).toBe('https://wa.me/38349900600');
   });
 
   it('should use env var for address when set', async () => {

@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { matchesGlobPattern } from './glob-match.mjs';
+
 const DEFAULT_CHARTER_MAP = path.join('scripts', 'plan-conformance', 'charter-map.json');
 const DEFAULT_NO_TOUCH_MANIFEST = path.join('scripts', 'release-gate', 'v1-required-specs.json');
 
@@ -23,46 +25,11 @@ function getNoTouchZones(manifestPath = DEFAULT_NO_TOUCH_MANIFEST) {
   return Array.isArray(zones) ? zones : [];
 }
 
-function escapeRegexChar(char) {
-  if (/[\^$+?.()|{}[\]\\]/.test(char)) {
-    return `\\${char}`;
-  }
-  return char;
-}
-
-function globToRegExp(pattern) {
-  const normalized = String(pattern || '')
-    .split(path.sep)
-    .join('/');
-  let out = '^';
-
-  for (let index = 0; index < normalized.length; index += 1) {
-    const char = normalized[index];
-    const next = normalized[index + 1];
-
-    if (char === '*' && next === '*') {
-      out += '.*';
-      index += 1;
-      continue;
-    }
-
-    if (char === '*') {
-      out += '[^/]*';
-      continue;
-    }
-
-    out += escapeRegexChar(char);
-  }
-
-  out += '$';
-  return new RegExp(out);
-}
-
 function matchesPattern(filePath, pattern) {
   const normalizedPath = String(filePath || '')
     .split(path.sep)
     .join('/');
-  return globToRegExp(String(pattern || '')).test(normalizedPath);
+  return matchesGlobPattern(normalizedPath, pattern);
 }
 
 function matchesAnyPattern(filePath, patterns) {

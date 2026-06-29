@@ -91,7 +91,7 @@ if (sonarProjectKey) {
   scannerProperties.push(`-Dsonar.projectKey=${sonarProjectKey}`);
 }
 
-const isSonarCloud = sonarHostUrl.includes('sonarcloud.io');
+const isSonarCloud = sonarHostUrl === 'https://sonarcloud.io';
 if (isSonarCloud) {
   if (!sonarOrganization) {
     console.error(

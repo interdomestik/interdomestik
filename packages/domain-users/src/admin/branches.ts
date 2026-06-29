@@ -3,6 +3,7 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/shared-auth';
 import { randomUUID } from 'node:crypto'; // NOSONAR
 import type { ActionResult, UserDomainDeps, UserSession } from '../types';
+import { branchSlugFromName } from './branch-slug';
 import { resolveTenantId } from './utils';
 
 export async function listBranchesCore(params: {
@@ -42,12 +43,7 @@ export async function createBranchCore(
     return { error: 'Branch name is required' } satisfies ActionResult;
   }
 
-  const slug = name
-    .toLowerCase()
-    .trim()
-    .replaceAll(/[^\w\s-]/g, '')
-    .replaceAll(/[\s_-]+/g, '-')
-    .replaceAll(/(^-+)|(-+$)/g, '');
+  const slug = branchSlugFromName(name);
 
   if (!slug) {
     return { error: 'Invalid name generates empty slug' } satisfies ActionResult;
@@ -121,12 +117,7 @@ export async function updateBranchCore(
     return { error: 'Branch name is required' } satisfies ActionResult;
   }
 
-  const slug = name
-    .toLowerCase()
-    .trim()
-    .replaceAll(/[^\w\s-]/g, '')
-    .replaceAll(/[\s_-]+/g, '-')
-    .replaceAll(/(^-+)|(-+$)/g, '');
+  const slug = branchSlugFromName(name);
 
   const existing = await db.query.branches.findFirst({
     where: withTenant(tenantId, branches.tenantId, eq(branches.slug, slug)),
