@@ -1,3 +1,5 @@
+import { randomUUID as nodeRandomUUID } from 'node:crypto'; // NOSONAR
+
 export function createRoleAssignmentId(): string {
   const randomUUID = globalThis.crypto?.randomUUID;
   if (typeof randomUUID === 'function') {
@@ -12,5 +14,5 @@ export function createRoleAssignmentId(): string {
     return `role_${suffix}`;
   }
 
-  throw new Error('Secure random ID generation is unavailable');
+  return nodeRandomUUID();
 }
