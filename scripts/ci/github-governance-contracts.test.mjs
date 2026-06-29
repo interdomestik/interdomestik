@@ -65,6 +65,8 @@ test('governance report script is wired and names external reviewer signals', ()
   assert.match(reportScript, /CodeQL/);
   assert.match(reportScript, /copilot-pull-request-reviewer/);
   assert.match(reportScript, /chatgpt-codex-connector/);
+  assert.match(reportScript, /normalizeActorLogin/);
+  assert.match(reportScript, /\\\[bot\\\]/);
   assert.match(reportScript, /itemCommitOid/);
   assert.match(reportScript, /repos\/\$\{repo\}\/pulls\/\$\{prNumber\}\/reviews/);
   assert.match(reportScript, /commit_id/);
@@ -103,6 +105,9 @@ test('review-ready script composes finalizer and strict governance report', () =
   assert.match(script, /node scripts\/github-pr-governance-report\.mjs --strict/);
   assert.match(script, /PR_REVIEW_READY_ALLOW_MISSING_COPILOT/);
   assert.match(script, /PR_REVIEW_READY_ALLOW_MISSING_CODEX/);
+  assert.match(script, /phase-c-no-touch-authorized/);
+  assert.match(script, /PR_REVIEW_READY_ALLOW_NO_TOUCH/); assert.match(script, /PR_REVIEW_READY_NO_TOUCH_REASON/);
+  assert.match(script, /has_no_touch_authorization/);
 });
 
 test('Codex review prompt names current billing provider', () => {

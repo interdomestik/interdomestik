@@ -53,7 +53,8 @@ function readReviews(prNumber) {
     commit: review?.commit_id ?? '', state: review?.state ?? '',
   }));
 }
-const actorLogin = item => item?.author?.login ?? '';
+const normalizeActorLogin = login => login.replace(/\[bot\]$/u, '');
+const actorLogin = item => normalizeActorLogin(item?.author?.login ?? '');
 const checkLabel = check => check?.name ?? check?.context ?? check?.workflowName ?? 'unknown';
 const itemCommitOid = item => typeof item?.commit === 'string' ? item.commit : item?.commit?.oid ?? '';
 function checkState(check) {
@@ -111,8 +112,7 @@ function printSection(title, rows) {
     console.log(`- ${row}`);
   }
 }
-const strict = isStrictMode();
-const pr = readPr();
+const strict = isStrictMode(); const pr = readPr();
 const checks = pr.statusCheckRollup ?? [];
 const reviews = readReviews(pr.number);
 const comments = pr.comments ?? [];

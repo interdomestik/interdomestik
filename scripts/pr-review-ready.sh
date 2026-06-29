@@ -13,6 +13,11 @@ Runs the Interdomestik PR reviewer sequence gate:
 Waiver environment variables, when explicitly accepted:
   PR_REVIEW_READY_ALLOW_MISSING_COPILOT=true
   PR_REVIEW_READY_ALLOW_MISSING_CODEX=true
+  PR_REVIEW_READY_ALLOW_NO_TOUCH=true
+  PR_REVIEW_READY_NO_TOUCH_REASON="approved release-gate/governance change"
+
+Protected-file authorization:
+  Add the PR label phase-c-no-touch-authorized for reviewed Phase C protected-file changes.
 EOF
 }
 
@@ -36,6 +41,34 @@ if [[ -n "${pr_number}" ]]; then
 fi
 
 export PR_FINALIZER_SKIP_CHECK_POLLING="${PR_FINALIZER_SKIP_CHECK_POLLING:-false}"
+NO_TOUCH_AUTH_LABEL="phase-c-no-touch-authorized"
+
+env_flag() {
+  case "${!1:-}" in
+    1 | true | TRUE | yes | YES | on | ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+has_no_touch_authorization() {
+  if env_flag PR_REVIEW_READY_ALLOW_NO_TOUCH; then
+    if [[ -z "${PR_REVIEW_READY_NO_TOUCH_REASON:-}" ]]; then
+      echo "pr-review-ready failed: PR_REVIEW_READY_NO_TOUCH_REASON is required" >&2
+      return 1
+    fi
+    return 0
+  fi
+
+  if [[ -n "${pr_number}" ]]; then
+    [[ "$(
+      gh pr view "${pr_number}" --json labels \
+        --jq ".labels | map(.name) | index(\"${NO_TOUCH_AUTH_LABEL}\") != null"
+    )" == "true" ]]
+    return
+  fi
+
+  return 1
+}
 
 run_boundary_check() {
   local changed_list
@@ -60,8 +93,21 @@ run_boundary_check() {
   )"
 
   if [[ "$(echo "${report}" | jq -r '.no_go')" == "true" ]]; then
+    local no_touch_files
+    no_touch_files="$(
+      echo "${report}" | jq -r '.findings[]? | select(.classification == "no_touch") | "- " + .file'
+    )"
+    if [[ -n "${no_touch_files}" ]] && has_no_touch_authorization; then
+      echo "pr-review-ready: Phase C no-touch authorization accepted" >&2
+      return 0
+    fi
+
     echo "pr-review-ready failed: Phase C no-touch files changed" >&2
-    echo "${report}" | jq -r '.findings[] | select(.classification == "no_touch") | "- " + .file' >&2
+    if [[ -n "${no_touch_files}" ]]; then
+      echo "${no_touch_files}" >&2
+    else
+      echo "${report}" | jq -r '.findings[]? | "- " + .file' >&2
+    fi
     return 1
   fi
 }
