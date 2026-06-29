@@ -16,9 +16,11 @@ test('qa server loads the same root env file precedence as the repo runtime', ()
   const utilsSource = readText('packages/qa/src/tools/audits/utils.ts');
 
   assert.match(utilsSource, /findRootEnvFile/);
+  assert.match(utilsSource, /ROOT_ENV_FILE_CANDIDATES/);
   assert.match(utilsSource, /\.env\.local/);
   assert.match(utilsSource, /\.env\.development\.local/);
   assert.match(utilsSource, /'\.env'/);
+  assert.doesNotMatch(utilsSource, /readdirSync/);
   assert.match(serverSource, /findRootEnvFile/);
   assert.doesNotMatch(serverSource, /dotenv\.config\(\{ path: path\.join\(REPO_ROOT, '\.env'\)/);
 });

@@ -1,5 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { canonicalizeRepoRoot, resolveRepoPath } from '../../utils/paths.js';
+
+const ROOT_ENV_FILE_CANDIDATES = ['.env.local', '.env.development.local', '.env'] as const;
 
 export function checkFileExists(
   filePath: string,
@@ -27,11 +30,14 @@ export function checkFileContains(
 }
 
 export function findRootEnvFile(repoRoot: string): string | null {
-  const candidates = ['.env.local', '.env.development.local', '.env'];
+  const canonicalRoot = canonicalizeRepoRoot(repoRoot);
+  if (!canonicalRoot) {
+    return null;
+  }
 
-  for (const candidate of candidates) {
-    const candidatePath = path.join(repoRoot, candidate);
-    if (fs.existsSync(candidatePath)) {
+  for (const candidate of ROOT_ENV_FILE_CANDIDATES) {
+    const candidatePath = resolveRepoPath(candidate, canonicalRoot).resolvedPath;
+    if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile()) {
       return candidatePath;
     }
   }

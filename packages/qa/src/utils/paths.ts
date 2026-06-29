@@ -5,26 +5,112 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function isRepoRoot(dir: string): boolean {
-  return (
-    fs.existsSync(path.join(dir, 'turbo.json')) ||
-    fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'))
-  );
+type RepoRootSource = 'MCP_REPO_ROOT' | 'module-relative' | 'cwd-search';
+
+const REPO_MARKERS = ['turbo.json', 'pnpm-workspace.yaml'] as const;
+
+function realpathIfPossible(resolvedPath: string): string {
+  try {
+    return fs.realpathSync.native(resolvedPath);
+  } catch {
+    return resolvedPath;
+  }
 }
 
-// Find repo root by walking up from a starting point.
-function findRepoRoot(currentDir: string): string {
-  if (isRepoRoot(currentDir)) {
-    return currentDir;
+function canonicalizeAbsoluteCandidate(candidate: string): string | null {
+  if (!candidate || candidate.includes('\0') || !path.isAbsolute(candidate)) {
+    return null;
   }
 
-  const parentDir = path.dirname(currentDir);
-  if (parentDir === currentDir) {
-    // Reached system root, fallback to CWD
-    return process.cwd();
+  return realpathIfPossible(candidate);
+}
+
+function realpathWithExistingParent(resolvedPath: string): string {
+  const missingSegments: string[] = [];
+  let currentPath = resolvedPath;
+  while (true) {
+    try {
+      const canonicalCurrent = fs.realpathSync.native(currentPath);
+      return path.join(canonicalCurrent, ...missingSegments.reverse());
+    } catch {
+      const parentPath = path.dirname(currentPath);
+      if (parentPath === currentPath) {
+        return resolvedPath;
+      }
+      missingSegments.push(path.basename(currentPath));
+      currentPath = parentPath;
+    }
+  }
+}
+
+function hasRepoMarker(dir: string): boolean {
+  return REPO_MARKERS.some(marker => fs.existsSync(path.join(dir, marker)));
+}
+
+export function canonicalizeRepoRoot(candidate: string): string | null {
+  const canonicalCandidate = canonicalizeAbsoluteCandidate(candidate);
+  return canonicalCandidate === REPO_ROOT ? REPO_ROOT : null;
+}
+
+function findRepoRoot(startDir: string): string | null {
+  let currentDir = realpathIfPossible(path.resolve(startDir));
+
+  while (true) {
+    if (hasRepoMarker(currentDir)) {
+      return currentDir;
+    }
+
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      return null;
+    }
+
+    currentDir = parentDir;
+  }
+}
+
+function selectTrustedEnvRoot(candidate: string | undefined, trustedRoots: Array<string | null>) {
+  if (!candidate) {
+    return null;
   }
 
-  return findRepoRoot(parentDir);
+  const canonicalCandidate = canonicalizeAbsoluteCandidate(candidate);
+  for (const trustedRoot of trustedRoots) {
+    if (trustedRoot && canonicalCandidate === trustedRoot) {
+      return trustedRoot;
+    }
+  }
+
+  return null;
+}
+
+function resolveRepoRoot(): { repoRoot: string; source: RepoRootSource } {
+  const cwdRoot = findRepoRoot(process.cwd());
+  const moduleRoot = findRepoRoot(path.resolve(__dirname, '../../../..'));
+  const envRoot = selectTrustedEnvRoot(process.env.MCP_REPO_ROOT, [cwdRoot, moduleRoot]);
+  if (envRoot) {
+    return { repoRoot: envRoot, source: 'MCP_REPO_ROOT' };
+  }
+
+  if (moduleRoot) {
+    return { repoRoot: moduleRoot, source: 'module-relative' };
+  }
+
+  if (cwdRoot) {
+    return { repoRoot: cwdRoot, source: 'cwd-search' };
+  }
+
+  throw new Error('Unable to resolve a repository root with required repo markers');
+}
+
+function assertRelativeInput(relativePath: string): void {
+  if (!relativePath || relativePath.includes('\0')) {
+    throw new Error('Path must be a non-empty repository-relative path');
+  }
+
+  if (path.isAbsolute(relativePath)) {
+    throw new Error(`Path must be repository-relative: ${relativePath}`);
+  }
 }
 
 function isWithin(childPath: string, parentPath: string): boolean {
@@ -32,29 +118,32 @@ function isWithin(childPath: string, parentPath: string): boolean {
   return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
 }
 
-const cwdRoot = findRepoRoot(process.cwd());
-const envRoot = process.env.MCP_REPO_ROOT ? path.resolve(process.env.MCP_REPO_ROOT) : null;
-
-// Fallback: Resolve root relative to this file (dist/utils/paths.js -> ../../../..)
-// src/utils/paths.ts -> dist/utils/paths.js
-const relativeRoot = path.resolve(__dirname, '../../../..');
-
-const resolvedEnvRoot = envRoot && isRepoRoot(envRoot) ? envRoot : null;
-const resolvedRelativeRoot = isRepoRoot(relativeRoot) ? relativeRoot : null;
-
-function resolveRepoRootSource(): 'MCP_REPO_ROOT' | 'module-relative' | 'cwd-search' {
-  if (resolvedEnvRoot) {
-    return 'MCP_REPO_ROOT';
+export function resolveRepoPath(relativePath: string, repoRoot = REPO_ROOT) {
+  const canonicalRoot = canonicalizeRepoRoot(repoRoot);
+  if (!canonicalRoot) {
+    throw new Error(`Repository root must be the canonical trusted repo root: ${repoRoot}`);
   }
 
-  if (resolvedRelativeRoot) {
-    return 'module-relative';
+  assertRelativeInput(relativePath);
+  const resolvedPath = path.resolve(canonicalRoot, relativePath);
+  if (!isWithin(resolvedPath, canonicalRoot)) {
+    throw new Error(`Path escapes repository root: ${relativePath}`);
   }
 
-  return 'cwd-search';
+  const canonicalPath = realpathWithExistingParent(resolvedPath);
+  if (!isWithin(canonicalPath, canonicalRoot)) {
+    throw new Error(`Path escapes repository root: ${relativePath}`);
+  }
+
+  return {
+    relativePath: path.relative(canonicalRoot, resolvedPath),
+    resolvedPath,
+  };
 }
 
-export const REPO_ROOT = resolvedEnvRoot ?? resolvedRelativeRoot ?? cwdRoot;
-export const REPO_ROOT_SOURCE = resolveRepoRootSource();
+const resolvedRoot = resolveRepoRoot();
 
-export const WEB_APP = path.join(REPO_ROOT, 'apps/web');
+export const REPO_ROOT = resolvedRoot.repoRoot;
+export const REPO_ROOT_SOURCE = resolvedRoot.source;
+
+export const WEB_APP = resolveRepoPath('apps/web').resolvedPath;
