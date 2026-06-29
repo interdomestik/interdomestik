@@ -11,20 +11,20 @@ export function sanitizeNoteContent(content: string): string {
 }
 
 function stripHtmlTags(content: string): string {
-  let plainText = '';
+  const plainText: string[] = [];
   for (let index = 0; index < content.length; index += 1) {
     if (content[index] !== '<') {
-      plainText += content[index];
+      plainText.push(content[index] ?? '');
       continue;
     }
     const tagEnd = content.indexOf('>', index + 1);
     if (tagEnd === -1) {
-      plainText += content[index];
+      plainText.push(content[index] ?? '');
     } else {
       index = tagEnd;
     }
   }
-  return plainText;
+  return plainText.join('');
 }
 
 export const createNoteSchema = z.object({
