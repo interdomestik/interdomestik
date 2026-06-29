@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import test from 'node:test';
 
 const require = createRequire(import.meta.url);
-const { findRoleRowByText, removeRoleFromTable } = require('./admin-checks.ts');
+const { removeRoleFromTable } = require('./admin-checks.ts');
 
 class FakeButtonLocator {
   states: boolean[];
@@ -127,17 +127,8 @@ class FakePage {
   }
 }
 
-test('findRoleRowByText matches a visible role row by text content', async () => {
-  const promoterRow = new FakeRowLocator('PromoterTenant-wideRemove');
-  const page = new FakePage([new FakeRowLocator('RoleBranchActions'), promoterRow]);
-
-  const found = await findRoleRowByText(page, 'promoter');
-
-  assert.equal(found, promoterRow);
-});
-
 test('removeRoleFromTable clicks the visible role row action', async () => {
-  const promoterRow = new FakeRowLocator('Promoter Tenant-wide Remove');
+  const promoterRow = new FakeRowLocator('PromoterTenant-wideRemove');
   const page = new FakePage([new FakeRowLocator('RoleBranchActions'), promoterRow]);
 
   const removed = await removeRoleFromTable(page, 'promoter');

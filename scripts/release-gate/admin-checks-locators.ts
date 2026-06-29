@@ -53,7 +53,7 @@ function escapeRegExp(value) {
 }
 
 function roleTextPattern(roleName) {
-  return new RegExp(String.raw`\b${escapeRegExp(roleName)}\b`, 'i');
+  return new RegExp(String.raw`\b${escapeRegExp(roleName)}`, 'i');
 }
 
 function roleRowLocator(page, roleName) {

@@ -245,27 +245,6 @@ async function runP02(browser, runCtx, deps) {
   return checkResult('P0.2', failures.length ? 'FAIL' : 'PASS', evidence, failures);
 }
 
-async function findRoleRowByText(page, roleName) {
-  const table = page.locator(SELECTORS.userRolesTable);
-  const normalizedRoleName = String(roleName || '')
-    .trim()
-    .toLowerCase();
-  const rows = table.locator('tr');
-  const rowCount = await rows.count();
-
-  for (let index = 0; index < rowCount; index += 1) {
-    const row = rows.nth(index);
-    const text = String((await row.textContent().catch(() => '')) || '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    if (text.toLowerCase().includes(normalizedRoleName)) {
-      return row;
-    }
-  }
-
-  return null;
-}
-
 function collectRbacFailures(input) {
   const { account, portal, route, matrix, current, runCtx, memberDriftSignatureAdded } = input;
   const failures = [];
@@ -740,7 +719,6 @@ async function runP06(browser, runCtx, deps) {
 }
 
 module.exports = {
-  findRoleRowByText,
   isInfraNavigationFailure,
   removeRoleFromTable,
   runCheckWithInfraRetry,
