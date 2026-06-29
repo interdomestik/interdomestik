@@ -2,8 +2,8 @@ import { and, branches, db, eq, user, userRoles } from '@interdomestik/database'
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/shared-auth';
 import { isNull } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto'; // NOSONAR
 import type { ActionResult, UserDomainDeps, UserSession } from '../types';
+import { createRoleAssignmentId } from './role-id';
 import { isBranchRequiredRole } from './role-rules';
 import { resolveTenantId } from './utils';
 
@@ -135,7 +135,7 @@ export async function grantUserRoleCore(
     const insertedRoles = await tx
       .insert(userRoles)
       .values({
-        id: randomUUID(),
+        id: createRoleAssignmentId(),
         tenantId,
         userId: params.userId,
         role,
