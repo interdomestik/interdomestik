@@ -5,6 +5,8 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { scriptInventory, summarizeScripts } from './next-csp-script-inventory.mjs';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 const webRoot = path.join(repoRoot, 'apps/web');
@@ -245,107 +247,6 @@ async function prepareApp() {
   );
 }
 
-function isWhitespace(char) {
-  return /\s/.test(char ?? '');
-}
-
-function skipWhitespace(value, index) {
-  while (index < value.length) {
-    if (!isWhitespace(value[index])) break;
-    index += 1;
-  }
-  return index;
-}
-
-function isAttributeNameChar(char) {
-  return Boolean(char && !/[\s=/>]/.test(char));
-}
-
-function readAttributeName(tag, index) {
-  const start = index;
-  while (index < tag.length && isAttributeNameChar(tag[index])) {
-    index += 1;
-  }
-  return { name: tag.slice(start, index).toLowerCase(), index };
-}
-
-function readQuotedValue(tag, index, quote) {
-  const start = index + 1;
-  const end = tag.indexOf(quote, start);
-  if (end === -1) return { value: tag.slice(start), index: tag.length };
-  return { value: tag.slice(start, end), index: end + 1 };
-}
-
-function readBareValue(tag, index) {
-  const start = index;
-  while (index < tag.length && !isWhitespace(tag[index]) && tag[index] !== '>') {
-    index += 1;
-  }
-  return { value: tag.slice(start, index), index };
-}
-
-function readAttributeValue(tag, index) {
-  index = skipWhitespace(tag, index);
-  if (tag[index] !== '=') return { value: '', index };
-
-  index = skipWhitespace(tag, index + 1);
-  const quote = tag[index];
-  if (quote === '"' || quote === "'") return readQuotedValue(tag, index, quote);
-  return readBareValue(tag, index);
-}
-
-function parseAttributes(tag) {
-  const attributes = {};
-  let index = tag.search(/\s/);
-  if (index === -1) return attributes;
-
-  while (index < tag.length) {
-    index = skipWhitespace(tag, index);
-    if (index >= tag.length || tag[index] === '>' || tag[index] === '/') break;
-
-    const parsedName = readAttributeName(tag, index);
-    if (!parsedName.name) break;
-
-    const parsedValue = readAttributeValue(tag, parsedName.index);
-    attributes[parsedName.name] = parsedValue.value;
-    index = parsedValue.index;
-  }
-
-  return attributes;
-}
-
-function scriptInventory(html) {
-  const scripts = [];
-  const pattern = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
-  let index = 0;
-  for (const match of html.matchAll(pattern)) {
-    const attributes = parseAttributes(`script${match[1]}`);
-    scripts.push({
-      index,
-      src: attributes.src ?? null,
-      nonce: attributes.nonce ?? null,
-      async: Object.hasOwn(attributes, 'async'),
-      defer: Object.hasOwn(attributes, 'defer'),
-      inlineLength: match[2]?.length ?? 0,
-      firstParty:
-        !attributes.src || attributes.src.startsWith('/_next/') || attributes.src.startsWith('/'),
-    });
-    index += 1;
-  }
-  return scripts;
-}
-
-function summarizeScripts(scripts) {
-  const firstParty = scripts.filter(script => script.firstParty);
-  const missingNonce = firstParty.filter(script => script.nonce !== nonce);
-  return {
-    scriptTagCount: scripts.length,
-    firstPartyScriptCount: firstParty.length,
-    missingFirstPartyNonceCount: missingNonce.length,
-    firstMissingFirstPartyScripts: missingNonce.slice(0, 10),
-  };
-}
-
 function request(url) {
   return new Promise((resolve, reject) => {
     http
@@ -542,7 +443,7 @@ async function captureBrowser(url) {
     return {
       canary,
       domScripts,
-      domScriptSummary: summarizeScripts(domScripts),
+      domScriptSummary: summarizeScripts(domScripts, nonce),
       violations,
       scriptFamilyViolationGroups: groupViolations(violations),
     };
@@ -579,7 +480,7 @@ async function runCase(testCase, port) {
           response.headers['content-security-policy-report-only'] ?? null,
       },
       expectedNonce: nonce,
-      rawHtmlScriptSummary: summarizeScripts(rawScripts),
+      rawHtmlScriptSummary: summarizeScripts(rawScripts, nonce),
       firstRawHtmlScripts: rawScripts.slice(0, 10),
       browser,
     };
