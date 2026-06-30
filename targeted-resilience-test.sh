@@ -19,7 +19,7 @@ test_database_pool() {
         
         echo "Health check $i: HTTP $status (${duration}ms)"
         
-        if [ "$status" != "200" ]; then
+        if [[ "$status" != "200" ]]; then
             echo "❌ Health check failed at iteration $i"
             return 1
         fi
@@ -54,10 +54,10 @@ test_rate_limiting() {
         
         status_code="${response: -3}"
         
-        if [ "$status_code" = "200" ]; then
+        if [[ "$status_code" = "200" ]]; then
             ((success_count++))
             echo "✅ Registration $i: SUCCESS"
-        elif [ "$status_code" = "429" ]; then
+        elif [[ "$status_code" = "429" ]]; then
             ((rate_limit_count++))
             echo "⚠️ Registration $i: RATE LIMITED"
         else
@@ -66,7 +66,7 @@ test_rate_limiting() {
     done
     
     echo "📈 Rate limiting results: $success_count successful, $rate_limit_count rate limited"
-    if [ $rate_limit_count -gt 0 ]; then
+    if [[ $rate_limit_count -gt 0 ]]; then
         echo "✅ Rate limiting is working correctly"
     else
         echo "⚠️ Rate limiting may not be engaged"
@@ -129,7 +129,7 @@ test_circuit_breaker() {
         # Try to access a non-existent endpoint
         response=$(curl -s -w "%{http_code}" "$BASE_URL/api/nonexistent" 2>/dev/null | tail -c 3)
         
-        if [ "$response" = "404" ]; then
+        if [[ "$response" = "404" ]]; then
             ((failure_count++))
             echo "❌ Request $i: NOT FOUND (expected)"
         else
