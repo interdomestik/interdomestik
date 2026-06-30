@@ -65,7 +65,9 @@ test('mcp setup verifies Codex project config as well as local QA server prerequ
 test('Codex local MCP generator writes machine-specific user config without changing project config', () => {
   const localConfigGenerator = readText('scripts/configure-codex-local-mcp.mjs');
 
-  assert.match(localConfigGenerator, /CODEX_HOME/);
+  assert.match(localConfigGenerator, /process\.env\.CODEX_HOME/);
+  assert.match(localConfigGenerator, /refusing to update local MCP config/);
+  assert.match(localConfigGenerator, /os\.homedir\(\)/);
   assert.match(localConfigGenerator, /config\.toml/);
   assert.match(localConfigGenerator, /mcp_servers\.\$\{serverName\}/);
   assert.match(localConfigGenerator, /scripts\/start-repo-qa\.sh/);
