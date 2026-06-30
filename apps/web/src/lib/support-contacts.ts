@@ -1,4 +1,8 @@
-import { buildSafeTelHref, buildSafeWhatsappHref, normalizeE164Phone } from './safe-contact-hrefs';
+import {
+  buildSafeTelHref,
+  buildSafeWhatsappHref,
+  resolveSafeContactPhone,
+} from './safe-contact-hrefs';
 
 type SupportContactsInput = {
   tenantId?: string | null;
@@ -33,8 +37,8 @@ export function getSupportContacts(params: SupportContactsInput): SupportContact
   const ksWhatsapp = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP_KS || defaultWhatsapp;
   const mkWhatsapp = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP_MK || mkPhone;
 
-  const phoneE164 = normalizeE164Phone(market === 'mk' ? mkPhone : ksPhone);
-  const whatsappE164 = normalizeE164Phone(market === 'mk' ? mkWhatsapp : ksWhatsapp);
+  const phoneE164 = resolveSafeContactPhone(market === 'mk' ? mkPhone : ksPhone);
+  const whatsappE164 = resolveSafeContactPhone(market === 'mk' ? mkWhatsapp : ksWhatsapp);
 
   return {
     phoneE164,

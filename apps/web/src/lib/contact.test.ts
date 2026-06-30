@@ -44,12 +44,22 @@ describe('Contact Info', () => {
     expect(contactInfo.hours).toBe('Mon–Fri, 09:00–17:00');
   });
 
-  it('should use env var for phone when set', async () => {
+  it('should use allowlisted env var for phone when set', async () => {
+    process.env.NEXT_PUBLIC_CONTACT_PHONE = '+38970337140';
+
+    const { contactInfo } = await import('./contact');
+
+    expect(contactInfo.phone).toBe('+389 70 337 140');
+    expect(contactInfo.telHref).toBe('tel:+38970337140');
+  });
+
+  it('should reject phone env values outside the support allowlist', async () => {
     process.env.NEXT_PUBLIC_CONTACT_PHONE = '+1 555 123 4567';
 
     const { contactInfo } = await import('./contact');
 
-    expect(contactInfo.phone).toBe('+1 555 123 4567');
+    expect(contactInfo.phone).toBe('+383 49 900 600');
+    expect(contactInfo.telHref).toBe('tel:+38349900600');
   });
 
   it('should reject unsafe phone env values', async () => {

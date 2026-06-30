@@ -1,6 +1,7 @@
 const DEFAULT_PHONE_E164 = '+38349900600';
 const MK_PHONE_E164 = '+38970337140';
 
+export type SafeContactPhoneE164 = '+38349900600' | '+38970337140';
 export type SafeTelHref = 'tel:+38349900600' | 'tel:+38970337140';
 export type SafeWhatsappHref = 'https://wa.me/38349900600' | 'https://wa.me/38970337140';
 
@@ -28,8 +29,25 @@ export function normalizeE164Phone(value: string | null | undefined): string {
   return DEFAULT_PHONE_E164;
 }
 
-export function buildSafeTelHref(value: string | null | undefined): SafeTelHref {
+export function resolveSafeContactPhone(value: string | null | undefined): SafeContactPhoneE164 {
   const phone = normalizeE164Phone(value);
+  if (phone === MK_PHONE_E164) {
+    return MK_PHONE_E164;
+  }
+
+  return DEFAULT_PHONE_E164;
+}
+
+export function formatSafeContactPhone(phone: SafeContactPhoneE164): string {
+  if (phone === MK_PHONE_E164) {
+    return '+389 70 337 140';
+  }
+
+  return '+383 49 900 600';
+}
+
+export function buildSafeTelHref(value: string | null | undefined): SafeTelHref {
+  const phone = resolveSafeContactPhone(value);
   if (phone === MK_PHONE_E164) {
     return 'tel:+38970337140';
   }
