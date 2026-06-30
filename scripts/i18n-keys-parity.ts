@@ -18,6 +18,7 @@ const __dirname = path.dirname(__filename);
 const LOCALES = ['en', 'sq', 'mk', 'sr'] as const;
 const NAMESPACES = ['admin-claims', 'claims'] as const;
 const MESSAGES_DIR = path.join(__dirname, '../apps/web/src/messages');
+const compareText = (left: string, right: string) => left.localeCompare(right);
 
 type KeyPath = string;
 
@@ -31,7 +32,7 @@ function getKeyPaths(obj: Record<string, unknown>, prefix = ''): KeyPath[] {
       keys.push(fullPath);
     }
   }
-  return keys.sort();
+  return keys.sort(compareText);
 }
 
 function loadNamespace(locale: string, namespace: string): Record<string, unknown> | null {

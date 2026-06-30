@@ -183,7 +183,7 @@ function computeFlaky(entries) {
 
   return {
     flaky_check_count: flaky_checks.length,
-    flaky_checks: flaky_checks.sort(),
+    flaky_checks: flaky_checks.sort((left, right) => left.localeCompare(right)),
   };
 }
 

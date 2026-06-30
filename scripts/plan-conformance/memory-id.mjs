@@ -3,6 +3,7 @@
 import crypto from 'node:crypto';
 
 const DEFAULT_SEED_VERSION = 'v1';
+const compareText = (left, right) => left.localeCompare(right);
 
 function stableSort(value) {
   if (Array.isArray(value)) {
@@ -11,7 +12,7 @@ function stableSort(value) {
 
   if (value && typeof value === 'object') {
     return Object.keys(value)
-      .sort()
+      .sort(compareText)
       .reduce((acc, key) => {
         acc[key] = stableSort(value[key]);
         return acc;

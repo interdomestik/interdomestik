@@ -20,9 +20,9 @@ function writeJson(filePath, payload) {
   fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
   fs.writeFileSync(absolutePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
 }
-
 function normalizePaths(paths) {
-  return [...new Set(paths.map(file => String(file || '').trim()).filter(Boolean))].sort();
+  const cleanPaths = paths.map(file => String(file || '').trim()).filter(Boolean);
+  return [...new Set(cleanPaths)].sort((left, right) => left.localeCompare(right));
 }
 
 function matchesAnyPattern(filePath, patterns) {
