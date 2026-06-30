@@ -45,6 +45,9 @@ test('branch-protection documentation and PR template list current governance ch
     assert.match(prTemplate, new RegExp(`\`${escapedName}\``));
   }
 
+  assert.match(prTemplate, /@codex review/);
+  assert.match(prTemplate, /current-head Copilot review/);
+  assert.match(prTemplate, /pnpm pr:review-ready -- <PR_NUMBER>/);
   assert.doesNotMatch(protectionDoc, /multi-agent-dry-run/);
   assert.match(protectionDoc, /Copilot review is expected but not deterministic/);
   assert.match(protectionDoc, /Codex GitHub review is\s+expected when enabled/);
