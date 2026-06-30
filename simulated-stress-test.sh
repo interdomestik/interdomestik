@@ -20,7 +20,7 @@ fi
 # Test 2: Circuit breaker implementation
 echo ""
 echo "2. ✅ Circuit Breaker Patterns:"
-if [ -f "packages/shared-utils/src/circuit-breaker.ts" ]; then
+if [[ -f "packages/shared-utils/src/circuit-breaker.ts" ]]; then
     echo "   ✓ Circuit breaker class implemented"
     echo "   ✓ State management (OPEN/CLOSED/HALF_OPEN)"
     echo "   ✓ Pre-configured breakers for services"
@@ -32,7 +32,7 @@ fi
 # Test 3: Transaction retry logic
 echo ""
 echo "3. ✅ Transaction Retry Logic:"
-if [ -f "packages/shared-utils/src/resilience.ts" ]; then
+if [[ -f "packages/shared-utils/src/resilience.ts" ]]; then
     echo "   ✓ Exponential backoff retry implemented"
     echo "   ✓ Deadlock detection logic"
     echo "   ✓ Consistent lock ordering"
@@ -44,7 +44,7 @@ fi
 # Test 4: Health monitoring
 echo ""
 echo "4. ✅ Health Monitoring:"
-if [ -f "apps/web/src/app/api/health/route.ts" ]; then
+if [[ -f "apps/web/src/app/api/health/route.ts" ]]; then
     echo "   ✓ Health endpoint created"
     echo "   ✓ Database health checks"
     echo "   ✓ Service dependency monitoring"
@@ -56,7 +56,7 @@ fi
 # Test 5: Background job queue
 echo ""
 echo "5. ✅ Background Job Queue:"
-if [ -f "packages/shared-utils/src/job-queue.ts" ]; then
+if [[ -f "packages/shared-utils/src/job-queue.ts" ]]; then
     echo "   ✓ Job queue implementation"
     echo "   ✓ Priority-based processing"
     echo "   ✓ Auto-retry mechanism"
@@ -143,13 +143,13 @@ done
 
 echo "Implementation Coverage: $FINAL_SCORE/100 ($(($FINAL_SCORE * 100 / $TOTAL_SCORE))%)"
 
-if [ $FINAL_SCORE -ge 90 ]; then
+if [[ $FINAL_SCORE -ge 90 ]]; then
     echo "🎉 ASSESSMENT: EXCELLENT - Production Ready!"
     echo "   ✓ All critical resilience patterns implemented"
     echo "   ✓ Handles high-load scenarios effectively"
     echo "   ✓ Graceful degradation under stress"
     echo "   ✓ Automatic recovery from failures"
-elif [ $FINAL_SCORE -ge 70 ]; then
+elif [[ $FINAL_SCORE -ge 70 ]]; then
     echo "⚠️ ASSESSMENT: GOOD - Mostly Production Ready"
     echo "   ✓ Most resilience patterns implemented"
     echo "   ⚠️ Some areas need improvement"
