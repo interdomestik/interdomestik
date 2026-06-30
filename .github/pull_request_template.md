@@ -29,9 +29,9 @@
 
 ## Product-readiness sequence
 
-- [ ] Requested current-head Copilot review.
-- [ ] Requested current-head Codex review with `@codex review`.
-- [ ] Addressed or technically closed Copilot, Codex, CodeQL, Sonar, and human-review findings.
+- [ ] Ran `pnpm pr:request-reviewers -- <PR_NUMBER>` after opening the PR and after substantive pushes; this posts `@copilot review` and `@codex review` for the current head.
+- [ ] Requested current-head Copilot review and current-head Codex review.
+- [ ] Addressed or technically closed Copilot, Codex, CodeQL, Sonar, and bot-review findings.
 - [ ] Ran `pnpm pr:review-ready -- <PR_NUMBER>` after final push.
 
 ## Pilot guardrails

@@ -134,6 +134,7 @@
     "review:gemini": "node scripts/ci/run-model-reviewer-route.mjs --route gemini",
     "review:opus": "node scripts/ci/run-model-reviewer-route.mjs --route opus --allow-escalation",
     "review:preflight": "node scripts/ci/reviewer-preflight.mjs",
+    "pr:request-reviewers": "node scripts/github-request-pr-reviewers.mjs",
     "commitlint": "commitlint --from=HEAD~1",
     "release": "release-it",
     "release:dry": "release-it --dry-run",
