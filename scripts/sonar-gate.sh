@@ -29,13 +29,12 @@ fi
 
 SONAR_ENFORCEMENT="${SONAR_ENFORCEMENT:-enforce}"
 SONAR_RUN_COVERAGE="${SONAR_RUN_COVERAGE:-true}"
-SONAR_PULLREQUEST_KEY="${SONAR_PULLREQUEST_KEY:-}"
-
-if [[ -z "${SONAR_PULLREQUEST_KEY}" && -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
-  SONAR_PULLREQUEST_KEY="$(
-    node -e "const fs=require('node:fs');const event=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String(event?.pull_request?.number || '').trim());" "${GITHUB_EVENT_PATH}" 2>/dev/null || true
-  )"
+SONAR_PULLREQUEST_KEY="${SONAR_PULLREQUEST_KEY:-}"; SONAR_PULLREQUEST_BRANCH="${SONAR_PULLREQUEST_BRANCH:-${GITHUB_HEAD_REF:-}}"; SONAR_PULLREQUEST_BASE="${SONAR_PULLREQUEST_BASE:-${GITHUB_BASE_REF:-}}"
+if [[ -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
+  IFS='|' read -r event_pr_key event_pr_branch event_pr_base < <(node -e "const fs=require('node:fs');try{const e=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));const p=e?.pull_request;process.stdout.write([p?.number,p?.head?.ref,p?.base?.ref].map(v=>String(v??'').trim().replace(/[|\\r\\n]/gu,'')).join('|')+'\\n');}catch{process.stdout.write('\\n')}" "${GITHUB_EVENT_PATH}" 2>/dev/null || true)
+  SONAR_PULLREQUEST_KEY="${SONAR_PULLREQUEST_KEY:-${event_pr_key}}"; SONAR_PULLREQUEST_BRANCH="${SONAR_PULLREQUEST_BRANCH:-${event_pr_branch}}"; SONAR_PULLREQUEST_BASE="${SONAR_PULLREQUEST_BASE:-${event_pr_base}}"
 fi
+export SONAR_PULLREQUEST_KEY SONAR_PULLREQUEST_BRANCH SONAR_PULLREQUEST_BASE
 
 if [[ "$SONAR_RUN_COVERAGE" == "true" ]]; then
   echo "Running coverage before Sonar scan..."
