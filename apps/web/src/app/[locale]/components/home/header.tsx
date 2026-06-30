@@ -12,8 +12,7 @@ export function Header() {
   const t = useTranslations('nav');
   const hero = useTranslations('hero');
   const common = useTranslations('common');
-  const { phone, whatsapp } = contactInfo;
-  const telHref = phone ? `tel:${phone.replace(/\s+/g, '')}` : undefined;
+  const { phone, telHref, whatsapp } = contactInfo;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
