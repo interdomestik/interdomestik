@@ -128,7 +128,7 @@ generate_env_file() {
     local cron_secret=$(generate_secret 24)
     local internal_actions_secret=$(generate_secret 32)
     local jwt_secret=$(generate_secret 24)
-    local session_secret=$(generate_hex_secret 16)
+    local session_secret=$(generate_hex_secret 16) local_db_auth=postgres
     
     log_info "Generated all required secrets"
     
@@ -155,7 +155,7 @@ EOF
     echo "JWT_SECRET=$jwt_secret" >> "$env_file"
     echo "SESSION_SECRET=$session_secret" >> "$env_file"
     
-    cat >> "$env_file" << 'EOF'
+    cat >> "$env_file" << EOF
 
 # 🌐 Supabase Local Development
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
@@ -165,7 +165,7 @@ NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET=claim-evidence
 NEXT_PUBLIC_SUPABASE_POLICY_BUCKET=policies
 
 # 🗄️ Database Configuration
-DATABASE_URL=postgresql://postgres:StrongDevPassword123!@127.0.0.1:54322/postgres
+DATABASE_URL=postgresql://postgres:${local_db_auth}@127.0.0.1:54322/postgres
 
 # 🚀 Application Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000

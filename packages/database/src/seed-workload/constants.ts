@@ -1,5 +1,5 @@
 export const WORKLOAD_PREFIX = 'work_';
-export const WORKLOAD_PASSWORD = 'WorkloadPass123!';
+export const WORKLOAD_PASSWORD = 'WorkloadPass123!'; // NOSONAR - deterministic non-production workload seed fixture.
 
 export const TENANTS = {
   MK: 'tenant_mk',
