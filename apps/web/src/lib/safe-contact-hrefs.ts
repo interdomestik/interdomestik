@@ -1,5 +1,8 @@
 const DEFAULT_PHONE_E164 = '+38349900600';
-const DEFAULT_WHATSAPP_HREF = `https://wa.me/${DEFAULT_PHONE_E164.slice(1)}` as const;
+const MK_PHONE_E164 = '+38970337140';
+
+export type SafeTelHref = 'tel:+38349900600' | 'tel:+38970337140';
+export type SafeWhatsappHref = 'https://wa.me/38349900600' | 'https://wa.me/38970337140';
 
 function isDigit(char: string): boolean {
   const code = char.codePointAt(0) ?? -1;
@@ -25,29 +28,39 @@ export function normalizeE164Phone(value: string | null | undefined): string {
   return DEFAULT_PHONE_E164;
 }
 
-export function buildSafeTelHref(value: string | null | undefined): `tel:${string}` {
+export function buildSafeTelHref(value: string | null | undefined): SafeTelHref {
   const phone = normalizeE164Phone(value);
-  return `tel:${phone}`;
+  if (phone === MK_PHONE_E164) {
+    return 'tel:+38970337140';
+  }
+
+  return 'tel:+38349900600';
 }
 
-export function buildSafeWhatsappHref(value: string | null | undefined): `https://${string}` {
+function whatsappHrefForPhone(phone: string): SafeWhatsappHref {
+  if (phone === MK_PHONE_E164) {
+    return 'https://wa.me/38970337140';
+  }
+
+  return 'https://wa.me/38349900600';
+}
+
+export function buildSafeWhatsappHref(value: string | null | undefined): SafeWhatsappHref {
   try {
-    const candidate = new URL(value || DEFAULT_WHATSAPP_HREF);
-    const phone = candidate.pathname.slice(1);
+    const candidate = new URL(value || whatsappHrefForPhone(DEFAULT_PHONE_E164));
+    const phone = `+${candidate.pathname.slice(1)}`;
     if (
       candidate.protocol === 'https:' &&
       candidate.hostname === 'wa.me' &&
       !candidate.search &&
       !candidate.hash &&
-      phone.length >= 6 &&
-      phone.length <= 15 &&
-      [...phone].every(isDigit)
+      (phone === DEFAULT_PHONE_E164 || phone === MK_PHONE_E164)
     ) {
-      return candidate.toString() as `https://${string}`;
+      return whatsappHrefForPhone(phone);
     }
   } catch {
     // Fall through to the safe default.
   }
 
-  return DEFAULT_WHATSAPP_HREF;
+  return whatsappHrefForPhone(DEFAULT_PHONE_E164);
 }
