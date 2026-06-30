@@ -17,7 +17,12 @@ function isVercelAppUrl(value) {
 
 function isAllowedHealthUrl(value) {
   const hostname = value.hostname.toLowerCase();
-  return isVercelAppUrl(value) || hostname === 'www.interdomestik.com' || hostname === 'interdomestik.com';
+  return (
+    isVercelAppUrl(value) ||
+    hostname === 'staging.interdomestik.com' ||
+    hostname === 'www.interdomestik.com' ||
+    hostname === 'interdomestik.com'
+  );
 }
 
 function parseVercelHealthUrl(value) {
@@ -32,7 +37,8 @@ function parseVercelHealthUrl(value) {
 
 function buildHeaders(url) {
   const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim();
-  if (!secret || !isVercelAppUrl(url)) return {};
+  const hostname = url.hostname.toLowerCase();
+  if (!secret || (!isVercelAppUrl(url) && hostname !== 'staging.interdomestik.com')) return {};
   return { 'x-vercel-protection-bypass': secret };
 }
 

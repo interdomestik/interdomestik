@@ -159,11 +159,9 @@ function resolveAccountPasswordVar(accountKey) {
   if (!account) {
     return null;
   }
-
   if (account.credentialSource) {
     return ACCOUNTS[account.credentialSource]?.passwordVar ?? null;
   }
-
   return account.passwordVar ?? null;
 }
 function findMissingBoundaryPhrases(requiredPhrases, observedText) {
@@ -569,7 +567,6 @@ function parseArgs(argv) {
 
   return parsed;
 }
-
 function printHelp() {
   const lines = [
     'Release Gate runner',
@@ -826,13 +823,16 @@ async function main() {
   const checks = [];
   try {
     const deployment = await detectDeploymentMetadata(safeConfiguredBaseUrl, browser);
+    const fallbackOverride = (
+      process.env.RELEASE_GATE_ALLOW_DEPLOYMENT_FALLBACK || ''
+    ).toLowerCase();
+    const fallbackForcedOn = ['1', 'true'].includes(fallbackOverride);
+    const fallbackForcedOff = ['0', 'false'].includes(fallbackOverride);
+    const allowDeploymentFallback =
+      fallbackForcedOn || (!fallbackForcedOff && args.envName !== 'production');
     const resolvedBase = await resolveReachableBaseUrl(safeConfiguredBaseUrl, deployment, {
       allowLoopback: allowLoopbackBaseUrl,
-      allowDeploymentFallback:
-        process.env.RELEASE_GATE_ALLOW_DEPLOYMENT_FALLBACK === '1' ||
-        process.env.RELEASE_GATE_ALLOW_DEPLOYMENT_FALLBACK === 'true'
-          ? true
-          : args.envName !== 'production',
+      allowDeploymentFallback,
     });
     const baseUrl = resolvedBase.baseUrl;
     const runCtx = {
