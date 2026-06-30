@@ -7,7 +7,7 @@ on:
     tags:
       - 'v*'
 concurrency:
-  group: cd-${{ github.ref }}-${{ github.run_id }}
+  group: cd-staging-canonical-${{ github.repository }}
   cancel-in-progress: false
 env:
   REGISTRY: ghcr.io

@@ -19,6 +19,10 @@ function findStep(steps, name) {
 
 test('CD staging gate runs only against canonical staging without deployment fallback', () => {
   const workflow = readCdWorkflow();
+  assert.equal(workflow.concurrency.group, 'cd-staging-canonical-${{ github.repository }}');
+  assert.equal(workflow.concurrency['cancel-in-progress'], false);
+  assert.doesNotMatch(workflow.concurrency.group, /github\.(?:ref|run_id)/u);
+
   const e2eStagingJob = workflow.jobs['e2e-staging'];
   assert.equal(e2eStagingJob.env.BASE_URL, '${{ needs.deploy-staging.outputs.gate_base_url }}');
   assert.equal(e2eStagingJob.env.AUTH_BASE_URL, 'https://staging.interdomestik.com');
