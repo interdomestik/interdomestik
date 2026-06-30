@@ -8,6 +8,8 @@
 import '@testing-library/jest-dom';
 import { afterEach, beforeAll, vi } from 'vitest';
 
+import { installConsoleErrorFilter } from './console-error-filter';
+
 // Set critical env vars at module load time.
 // Some app modules (e.g. Supabase client) are initialized during import, which happens
 // before `beforeAll()` hooks run.
@@ -140,17 +142,7 @@ beforeAll(() => {
   // Mock scrollTo
   vi.stubGlobal('scrollTo', vi.fn());
 
-  // Suppress console.error for expected errors in tests
-  const originalError = console.error;
-  console.error = (...args: unknown[]) => {
-    // Filter out known React/testing-library warnings
-    const message = args[0];
-    if (typeof message === 'string') {
-      if (message.includes('Warning: ReactDOM.render')) return;
-      if (message.includes('act(...)')) return;
-    }
-    originalError.apply(console, args);
-  };
+  installConsoleErrorFilter();
 });
 
 afterEach(() => {
