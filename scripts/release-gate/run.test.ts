@@ -520,9 +520,9 @@ test('loginAs forceFresh bypasses cached session state and performs a real login
   assert.equal(authState.sessionStateByAccount.get('Member-only')?.cookies?.[0]?.value, 'fresh');
 });
 
-test('loginAs skips bootstrap when the successful login response already populated session cookies', async () => {
+test('loginAs bootstraps even when the successful login response populated session cookies', async () => {
   const authState = createAuthState();
-  let gotoCalls = 0;
+  const gotoUrls = [];
   const page = {
     context: () => ({
       clearCookies: async () => {},
@@ -546,8 +546,8 @@ test('loginAs skips bootstrap when the successful login response already populat
         url: () => 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
       }),
     },
-    goto: async () => {
-      gotoCalls += 1;
+    goto: async url => {
+      gotoUrls.push(url);
     },
     waitForTimeout: async () => {},
     on: () => {},
@@ -562,7 +562,7 @@ test('loginAs skips bootstrap when the successful login response already populat
     authState,
   });
 
-  assert.equal(gotoCalls, 0);
+  assert.deepEqual(gotoUrls, [`${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/member`]);
   assert.equal(authState.sessionStateByAccount.get('Member-only')?.cookies?.[0]?.value, 'fresh');
 });
 

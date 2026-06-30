@@ -169,6 +169,7 @@
     "pr:verify:hosts": "bash scripts/pr-verify-hosts.sh",
     "pr:finalize": "bash scripts/pr-finalizer.sh",
     "pr:governance:report": "node scripts/github-pr-governance-report.mjs",
+    "pr:review-ready": "bash scripts/pr-review-ready.sh",
     "multiagent:preflight": "bash scripts/multi-agent/preflight-agent.sh",
     "multiagent:marketing": "bash scripts/multi-agent/marketing-agent.sh",
     "multiagent:testing": "bash scripts/multi-agent/testing-agent.sh",
