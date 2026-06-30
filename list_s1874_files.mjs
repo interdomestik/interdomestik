@@ -1,5 +1,7 @@
 import fs from 'fs';
 
+const compareText = (left, right) => left.localeCompare(right);
+
 const data = JSON.parse(fs.readFileSync('sonarqube_top_500_issues.json', 'utf8'));
 const issues = data.issues || [];
 
@@ -18,4 +20,4 @@ issues.forEach(issue => {
 });
 
 console.log(`Files with ${targetRule} (${files.length}):`);
-files.sort().forEach(f => console.log(f));
+files.sort(compareText).forEach(f => console.log(f));

@@ -21,7 +21,7 @@ function stableSort(value) {
 
   if (value && typeof value === 'object') {
     return Object.keys(value)
-      .sort()
+      .sort((left, right) => left.localeCompare(right))
       .reduce((acc, key) => {
         acc[key] = stableSort(value[key]);
         return acc;

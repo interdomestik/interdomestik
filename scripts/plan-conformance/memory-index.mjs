@@ -46,7 +46,7 @@ function toSortedArrayMap(setMap) {
   return Array.from(setMap.entries())
     .sort(([left], [right]) => left.localeCompare(right))
     .reduce((acc, [key, values]) => {
-      acc[key] = Array.from(values).sort();
+      acc[key] = Array.from(values).sort((left, right) => left.localeCompare(right));
       return acc;
     }, Object.create(null));
 }
