@@ -17,6 +17,7 @@
  * - Retry with jitter for commit-time conflicts
  */
 
+import { randomInt } from 'node:crypto';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { PgTransaction } from 'drizzle-orm/pg-core';
 
@@ -214,8 +215,7 @@ export async function generateMemberNumberWithRetry(
       if (attempt >= MAX_RETRIES) {
         throw error;
       }
-      // Jitter before retry
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 50 + 10));
+      await new Promise(resolve => setTimeout(resolve, randomInt(10, 60)));
     }
   }
 
