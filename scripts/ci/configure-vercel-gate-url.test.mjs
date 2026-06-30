@@ -77,7 +77,7 @@ test('aliasStagingDeployment assigns aliases through the Vercel REST API', async
   await aliasStagingDeployment(
     'deploy.vercel.app',
     'staging.interdomestik.com',
-    { VERCEL_TOKEN: 'token', VERCEL_ORG_ID: 'team_123' },
+    { VERCEL_TOKEN: 'token' },
     async (url, init) => {
       calls.push({ url: String(url), init });
       return new Response('', { status: 200 });
@@ -85,7 +85,7 @@ test('aliasStagingDeployment assigns aliases through the Vercel REST API', async
   );
   assert.equal(
     calls[0].url,
-    'https://api.vercel.com/v2/deployments/deploy.vercel.app/aliases?teamId=team_123'
+    'https://api.vercel.com/v2/deployments/deploy.vercel.app/aliases?slug=ecohub'
   );
   assert.equal(calls[0].init.headers.authorization, 'Bearer token');
   assert.equal(
@@ -106,7 +106,6 @@ test('aliasStagingDeployment retries transient Vercel alias readiness failures',
     'staging.interdomestik.com',
     {
       VERCEL_TOKEN: 'token',
-      VERCEL_ORG_ID: 'team_123',
       STAGING_ALIAS_ATTEMPTS: '2',
       STAGING_ALIAS_RETRY_MS: '1',
     },
@@ -123,7 +122,7 @@ test('aliasStagingDeployment includes response body on hard alias failure', asyn
       aliasStagingDeployment(
         'deploy.vercel.app',
         'staging.interdomestik.com',
-        { VERCEL_TOKEN: 'token', VERCEL_ORG_ID: 'team_123', STAGING_ALIAS_ATTEMPTS: '1' },
+        { VERCEL_TOKEN: 'token', STAGING_ALIAS_ATTEMPTS: '1' },
         async () => new Response('The supplied alias is invalid', { status: 400 })
       ),
     /Failed to assign canonical staging alias: 400 The supplied alias is invalid/u
