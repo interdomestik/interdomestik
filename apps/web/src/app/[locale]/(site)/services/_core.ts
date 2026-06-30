@@ -1,12 +1,19 @@
+import { buildSafeTelHref, buildSafeWhatsappHref } from '@/lib/safe-contact-hrefs';
+
 export type ServicesPageContactModel = {
   phone: string | null;
-  whatsapp: string | null;
-  telHref?: string;
+  whatsapp: `https://${string}` | null;
+  telHref?: `tel:${string}`;
 };
 
-export function buildTelHref(phone: string | null | undefined): string | undefined {
+export function buildTelHref(phone: string | null | undefined): `tel:${string}` | undefined {
   if (!phone) return undefined;
-  return `tel:${phone.replace(/\s+/g, '')}`;
+  return buildSafeTelHref(phone);
+}
+
+function buildWhatsappHref(whatsapp: string | null | undefined): `https://${string}` | null {
+  if (!whatsapp) return null;
+  return buildSafeWhatsappHref(whatsapp);
 }
 
 export function getServicesPageContactModel(input: {
@@ -14,11 +21,10 @@ export function getServicesPageContactModel(input: {
   whatsapp?: string | null;
 }): ServicesPageContactModel {
   const phone = input.phone ?? null;
-  const whatsapp = input.whatsapp ?? null;
 
   return {
     phone,
-    whatsapp,
+    whatsapp: buildWhatsappHref(input.whatsapp),
     telHref: buildTelHref(phone),
   };
 }

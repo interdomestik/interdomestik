@@ -14,10 +14,20 @@ describe('services page core', () => {
   });
 
   it('getServicesPageContactModel normalizes nulls and computes telHref', () => {
-    expect(getServicesPageContactModel({ phone: '123 456', whatsapp: null })).toEqual({
+    expect(
+      getServicesPageContactModel({ phone: '123 456', whatsapp: 'https://wa.me/38349900600' })
+    ).toEqual({
       phone: '123 456',
-      whatsapp: null,
-      telHref: 'tel:123456',
+      whatsapp: 'https://wa.me/38349900600',
+      telHref: 'tel:+123456',
+    });
+  });
+
+  it('getServicesPageContactModel rejects non-wa.me whatsapp links', () => {
+    expect(getServicesPageContactModel({ phone: null, whatsapp: 'https://example.com' })).toEqual({
+      phone: null,
+      whatsapp: 'https://wa.me/38349900600',
+      telHref: undefined,
     });
   });
 });

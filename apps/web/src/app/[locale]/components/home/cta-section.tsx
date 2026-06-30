@@ -7,8 +7,7 @@ import { useTranslations } from 'next-intl';
 
 export function CTASection() {
   const t = useTranslations('hero');
-  const { phone, whatsapp } = contactInfo;
-  const telHref = phone ? `tel:${phone.replace(/\s+/g, '')}` : undefined;
+  const { phone, telHref, whatsapp } = contactInfo;
 
   return (
     <section className="py-24 bg-[#051C3E] relative overflow-hidden">

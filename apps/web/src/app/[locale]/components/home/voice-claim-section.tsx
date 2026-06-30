@@ -5,8 +5,7 @@ import { useTranslations } from 'next-intl';
 
 export function VoiceClaimSection() {
   const t = useTranslations('voiceClaim');
-  const { phone, whatsapp } = contactInfo;
-  const telHref = phone ? `tel:${phone.replace(/\s+/g, '')}` : undefined;
+  const { telHref, whatsapp } = contactInfo;
 
   const steps = [
     { number: '1', text: t('step1'), color: 'from-amber-400 to-orange-500' },

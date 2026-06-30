@@ -1,3 +1,5 @@
+import { buildSafeTelHref, buildSafeWhatsappHref, normalizeE164Phone } from './safe-contact-hrefs';
+
 type SupportContactsInput = {
   tenantId?: string | null;
   locale?: string | null;
@@ -6,18 +8,10 @@ type SupportContactsInput = {
 export type SupportContacts = {
   phoneE164: string;
   phoneDisplay: string;
-  telHref: string;
+  telHref: `tel:${string}`;
   whatsappE164?: string;
-  whatsappHref?: string;
+  whatsappHref?: `https://${string}`;
 };
-
-function toE164(value: string): string {
-  const cleaned = value.trim().replace(/[^\d+]/g, '');
-  if (!cleaned.startsWith('+')) {
-    return `+${cleaned}`;
-  }
-  return cleaned;
-}
 
 function inferMarket(params: SupportContactsInput): 'ks' | 'mk' {
   const tenant = (params.tenantId || '').toLowerCase();
@@ -39,14 +33,14 @@ export function getSupportContacts(params: SupportContactsInput): SupportContact
   const ksWhatsapp = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP_KS || defaultWhatsapp;
   const mkWhatsapp = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP_MK || mkPhone;
 
-  const phoneE164 = toE164(market === 'mk' ? mkPhone : ksPhone);
-  const whatsappE164 = toE164(market === 'mk' ? mkWhatsapp : ksWhatsapp);
+  const phoneE164 = normalizeE164Phone(market === 'mk' ? mkPhone : ksPhone);
+  const whatsappE164 = normalizeE164Phone(market === 'mk' ? mkWhatsapp : ksWhatsapp);
 
   return {
     phoneE164,
     phoneDisplay: phoneE164,
-    telHref: `tel:${phoneE164}`,
+    telHref: buildSafeTelHref(phoneE164),
     whatsappE164,
-    whatsappHref: `https://wa.me/${whatsappE164.replace('+', '')}`,
+    whatsappHref: buildSafeWhatsappHref(`https://wa.me/${whatsappE164.replace('+', '')}`),
   };
 }
