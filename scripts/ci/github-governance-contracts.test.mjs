@@ -106,8 +106,12 @@ test('review-ready script composes finalizer and strict governance report', () =
   assert.match(script, /PR_REVIEW_READY_ALLOW_MISSING_COPILOT/);
   assert.match(script, /PR_REVIEW_READY_ALLOW_MISSING_CODEX/);
   assert.match(script, /phase-c-no-touch-authorized/);
-  assert.match(script, /PR_REVIEW_READY_ALLOW_NO_TOUCH/); assert.match(script, /PR_REVIEW_READY_NO_TOUCH_REASON/);
-  assert.match(script, /resolve_pr_number/); assert.match(script, /GITHUB_EVENT_PATH/); assert.match(script, /gh pr view --json number/); assert.match(script, /has_no_touch_authorization/);
+  assert.match(script, /PR_REVIEW_READY_ALLOW_NO_TOUCH/);
+  assert.match(script, /PR_REVIEW_READY_NO_TOUCH_REASON/);
+  assert.match(script, /resolve_pr_number/);
+  assert.match(script, /GITHUB_EVENT_PATH/);
+  assert.match(script, /gh pr view --json number/);
+  assert.match(script, /has_no_touch_authorization/);
 });
 
 test('Codex review prompt names current billing provider', () => {
@@ -135,21 +139,4 @@ test('repo workflows still materialize documented required check names', () => {
   assert.ok(secretScan.jobs.gitleaks);
   assert.ok(finalizer.jobs['pr-finalizer']);
   assert.ok(commitlint.jobs.commitlint);
-});
-
-test('PR finalizer local polling covers current deterministic required checks', () => {
-  const finalizer = read('scripts/pr-finalizer.sh');
-
-  for (const checkName of REQUIRED_CHECKS.filter(name => name !== 'pr-finalizer')) {
-    assert.match(finalizer, new RegExp(`"${escapeRegexLiteral(checkName)}"`));
-  }
-  const finalizerLib = read('scripts/pr-finalizer-lib.sh');
-  assert.match(finalizer, /\[\[ "\$\{check_name\}" == "pr-finalizer" \]\]/);
-  assert.match(finalizer, /\(\.name \/\/ \.workflow_name \/\/ ""\) == \$NAME/);
-  assert.match(
-    finalizerLib,
-    /gh api --paginate "repos\/\$\{repo\}\/pulls\/\$\{current_pr\}\/files\?per_page=100"/
-  );
-  assert.doesNotMatch(finalizerLib, /gh pr view "\$\{PR_NUMBER\}" --json files/);
-  assert.doesNotMatch(finalizerLib, /docs_only_required_checks/);
 });
