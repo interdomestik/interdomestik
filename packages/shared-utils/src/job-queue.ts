@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 export interface Job {
   id: string;
   type: string;
@@ -25,7 +26,6 @@ class SimpleJobQueue {
   registerHandler<T>(handler: JobHandler<T>) {
     this.handlers.set(handler.type, handler);
   }
-
   async addJob<T>(
     type: string,
     data: T,
@@ -33,7 +33,7 @@ class SimpleJobQueue {
     delayMs = 0
   ): Promise<string> {
     const job: Job = {
-      id: `job_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      id: `job_${Date.now()}_${randomUUID().replaceAll('-', '').slice(0, 9)}`,
       type,
       data,
       priority,
