@@ -1,4 +1,4 @@
-export const DEFAULT_E2E_PASSWORD = 'GoldenPass123!';
+export const DEFAULT_E2E_PASSWORD = 'GoldenPass123!'; // NOSONAR - deterministic local E2E fixture credential; CI injects a generated override.
 
 type E2EPasswordEnv = Record<string, string | undefined>;
 

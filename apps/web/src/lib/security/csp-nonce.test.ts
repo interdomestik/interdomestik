@@ -38,14 +38,24 @@ describe('csp-nonce', () => {
     mutableEnv.NODE_ENV = 'production';
     mutableEnv.CSP_NONCE_MODE = 'repor';
 
-    await expect(importCspNonceModule()).rejects.toThrow('Invalid CSP_NONCE_MODE "repor"');
+    await expect(importCspNonceModule()).rejects.toThrow('Invalid CSP_NONCE_MODE value');
   });
 
   it('throws on explicitly empty production mode values', async () => {
     mutableEnv.NODE_ENV = 'production';
     mutableEnv.CSP_NONCE_MODE = '';
 
-    await expect(importCspNonceModule()).rejects.toThrow('Invalid CSP_NONCE_MODE ""');
+    await expect(importCspNonceModule()).rejects.toThrow('Invalid CSP_NONCE_MODE value');
+  });
+
+  it('does not echo invalid mode values in non-production warnings', async () => {
+    mutableEnv.NODE_ENV = 'test';
+    mutableEnv.CSP_NONCE_MODE = 'secret-ish-value';
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await importCspNonceModule();
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.not.stringContaining('secret-ish-value'));
   });
 
   it('rejects enforce mode during Phase 0', async () => {

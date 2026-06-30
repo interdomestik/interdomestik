@@ -97,7 +97,7 @@ const ACCOUNTS = {
     roleMarker: 'member',
     tenantId: 'tenant_ks',
     emailVar: 'RELEASE_GATE_MEMBER_EMAIL',
-    passwordVar: 'RELEASE_GATE_MEMBER_PASSWORD',
+    passwordVar: 'RELEASE_GATE_MEMBER_PASSWORD', // NOSONAR - env var name only; value is read from GitHub secrets at runtime.
     label: 'Member-only',
   },
   agent: {
@@ -105,7 +105,7 @@ const ACCOUNTS = {
     roleMarker: 'agent',
     tenantId: 'tenant_ks',
     emailVar: 'RELEASE_GATE_AGENT_EMAIL',
-    passwordVar: 'RELEASE_GATE_AGENT_PASSWORD',
+    passwordVar: 'RELEASE_GATE_AGENT_PASSWORD', // NOSONAR - env var name only; value is read from GitHub secrets at runtime.
     label: 'Agent',
   },
   office_agent: {
@@ -121,7 +121,7 @@ const ACCOUNTS = {
     roleMarker: 'staff',
     tenantId: 'tenant_ks',
     emailVar: 'RELEASE_GATE_STAFF_EMAIL',
-    passwordVar: 'RELEASE_GATE_STAFF_PASSWORD',
+    passwordVar: 'RELEASE_GATE_STAFF_PASSWORD', // NOSONAR - env var name only; value is read from GitHub secrets at runtime.
     label: 'Staff',
   },
   admin_ks: {
@@ -129,7 +129,7 @@ const ACCOUNTS = {
     roleMarker: 'admin',
     tenantId: 'tenant_ks',
     emailVar: 'RELEASE_GATE_ADMIN_KS_EMAIL',
-    passwordVar: 'RELEASE_GATE_ADMIN_KS_PASSWORD',
+    passwordVar: 'RELEASE_GATE_ADMIN_KS_PASSWORD', // NOSONAR - env var name only; value is read from GitHub secrets at runtime.
     label: 'Admin (KS)',
   },
   admin_mk: {
@@ -137,7 +137,7 @@ const ACCOUNTS = {
     roleMarker: 'admin',
     tenantId: 'tenant_mk',
     emailVar: 'RELEASE_GATE_ADMIN_MK_EMAIL',
-    passwordVar: 'RELEASE_GATE_ADMIN_MK_PASSWORD',
+    passwordVar: 'RELEASE_GATE_ADMIN_MK_PASSWORD', // NOSONAR - env var name only; value is read from GitHub secrets at runtime.
     label: 'Admin (MK)',
   },
 };

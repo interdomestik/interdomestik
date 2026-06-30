@@ -3,6 +3,7 @@ import { check, sleep } from 'k6';
 import { Rate } from 'k6/metrics';
 
 const errorRate = new Rate('errors');
+const LOAD_TEST_CREDENTIAL = __ENV.LOAD_TEST_CREDENTIAL || 'load-test-only-credential';
 
 export let options = {
   stages: [
@@ -34,7 +35,7 @@ export default function () {
     email: `agent-${__VU}-${__ITER}@test.com`,
     name: `Test Agent ${__VU}`,
     role: 'agent',
-    password: 'testpassword123',
+    password: LOAD_TEST_CREDENTIAL, // NOSONAR - synthetic load-test credential only.
   });
 
   let agentSuccess = check(agentRes, {
@@ -49,7 +50,7 @@ export default function () {
     email: `member-${__VU}-${__ITER}@test.com`,
     name: `Test Member ${__VU}`,
     role: 'member',
-    password: 'testpassword123',
+    password: LOAD_TEST_CREDENTIAL, // NOSONAR - synthetic load-test credential only.
   });
 
   let memberSuccess = check(memberRes, {

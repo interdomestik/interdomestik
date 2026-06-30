@@ -3,6 +3,7 @@ import { check, sleep } from 'k6/metrics';
 import { Rate } from 'k6/metrics';
 
 const errorRate = new Rate('errors');
+const STRESS_TEST_CREDENTIAL = __ENV.STRESS_TEST_CREDENTIAL || 'stress-test-only-credential';
 
 export let options = {
   stages: [
@@ -24,7 +25,6 @@ export let options = {
 };
 
 const BASE_URL = 'http://127.0.0.1:3000';
-
 // Test data generators
 function generateEmail() {
   return `test+${Date.now()}_${Math.random().toString(36).substr(2, 9)}@example.com`;
@@ -34,6 +34,16 @@ function generateName() {
   const firstNames = ['John', 'Jane', 'Bob', 'Alice', 'Charlie', 'Diana', 'Eve', 'Frank'];
   const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis'];
   return `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`;
+}
+
+function buildRegistrationPayload(email, name, role) {
+  return {
+    email,
+    name,
+    role,
+    password: STRESS_TEST_CREDENTIAL, // NOSONAR - synthetic stress-test credential only.
+    phone: `+${Math.floor(Math.random() * 9000000000) + 1000000000}`,
+  };
 }
 
 // Test functions
@@ -78,13 +88,7 @@ export default function () {
 function testAgentRegistration(email, name) {
   const response = http.post(
     `${BASE_URL}/api/auth/register`,
-    {
-      email: email,
-      name: name,
-      role: 'agent',
-      password: 'testpassword123',
-      phone: `+${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-    },
+    buildRegistrationPayload(email, name, 'agent'),
     {
       headers: { 'Content-Type': 'application/json' },
     }
@@ -105,13 +109,7 @@ function testAgentRegistration(email, name) {
 function testMemberRegistration(email, name) {
   const response = http.post(
     `${BASE_URL}/api/auth/register`,
-    {
-      email: email,
-      name: name,
-      role: 'user',
-      password: 'testpassword123',
-      phone: `+${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-    },
+    buildRegistrationPayload(email, name, 'user'),
     {
       headers: { 'Content-Type': 'application/json' },
     }

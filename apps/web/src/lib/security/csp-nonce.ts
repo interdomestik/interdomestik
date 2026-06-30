@@ -3,6 +3,9 @@ export type CspNonceMode = 'off' | 'report';
 const PHASE_0_ENFORCE_MESSAGE =
   'CSP_NONCE_MODE=enforce is not supported in Phase 0; use Phase 1 once Report-Only observation is complete.';
 
+const INVALID_MODE_MESSAGE =
+  'Invalid CSP_NONCE_MODE value. Expected "off", "report", or "enforce".';
+
 function parseCspNonceMode(rawMode = process.env.CSP_NONCE_MODE): CspNonceMode {
   if (rawMode === undefined) return 'off';
 
@@ -14,12 +17,11 @@ function parseCspNonceMode(rawMode = process.env.CSP_NONCE_MODE): CspNonceMode {
     return rawMode;
   }
 
-  const message = `Invalid CSP_NONCE_MODE "${rawMode}". Expected "off", "report", or "enforce".`;
   if (process.env.NODE_ENV === 'production') {
-    throw new Error(message);
+    throw new Error(INVALID_MODE_MESSAGE);
   }
 
-  console.warn(`${message} Falling back to "off" outside production.`);
+  console.warn(`${INVALID_MODE_MESSAGE} Falling back to "off" outside production.`);
   return 'off';
 }
 
