@@ -18,7 +18,7 @@ test.describe('Group access privacy', () => {
 
       const summary = page.locator('[data-testid="group-dashboard-summary"]:visible').first();
       await expect(summary).toBeVisible();
-      await expect(page.getByText('Aggregate group access dashboard')).toBeVisible();
+      await expect(summary.getByText('Aggregate group access dashboard')).toBeVisible();
       await expect(
         page.getByText(
           'This view stays aggregate-only. No claim facts, notes, or documents are visible here without explicit member consent.'
