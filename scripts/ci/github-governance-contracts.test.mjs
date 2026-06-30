@@ -143,7 +143,13 @@ test('PR finalizer local polling covers current deterministic required checks', 
   for (const checkName of REQUIRED_CHECKS.filter(name => name !== 'pr-finalizer')) {
     assert.match(finalizer, new RegExp(`"${escapeRegexLiteral(checkName)}"`));
   }
+  const finalizerLib = read('scripts/pr-finalizer-lib.sh');
   assert.match(finalizer, /\[\[ "\$\{check_name\}" == "pr-finalizer" \]\]/);
   assert.match(finalizer, /\(\.name \/\/ \.workflow_name \/\/ ""\) == \$NAME/);
-  assert.doesNotMatch(read('scripts/pr-finalizer-lib.sh'), /docs_only_required_checks/);
+  assert.match(
+    finalizerLib,
+    /gh api --paginate "repos\/\$\{repo\}\/pulls\/\$\{current_pr\}\/files\?per_page=100"/
+  );
+  assert.doesNotMatch(finalizerLib, /gh pr view "\$\{PR_NUMBER\}" --json files/);
+  assert.doesNotMatch(finalizerLib, /docs_only_required_checks/);
 });
