@@ -70,7 +70,7 @@ test('aliasStagingDeployment assigns aliases through the Vercel REST API', async
   );
   assert.equal(
     calls[0].url,
-    'https://api.vercel.com/v2/deployments/deploy.vercel.app/aliases?teamSlug=ecohub'
+    'https://api.vercel.com/v2/deployments/deploy.vercel.app/aliases?slug=ecohub'
   );
   assert.equal(calls[0].init.headers.authorization, 'Bearer token');
   assert.equal(calls[0].init.body, JSON.stringify({ alias: 'staging.interdomestik.com' }));

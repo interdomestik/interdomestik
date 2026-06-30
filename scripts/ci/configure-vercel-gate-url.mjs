@@ -34,7 +34,7 @@ export async function aliasStagingDeployment(
   const endpoint = new URL(
     `https://api.vercel.com/v2/deployments/${encodeURIComponent(deploymentHostname)}/aliases`
   );
-  endpoint.searchParams.set('teamSlug', VERCEL_TEAM_SLUG);
+  endpoint.searchParams.set('slug', VERCEL_TEAM_SLUG);
 
   const response = await fetchImpl(endpoint, {
     method: 'POST',
