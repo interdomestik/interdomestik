@@ -15,6 +15,10 @@ test('buildVercelProtectionHeaders adds Vercel bypass and cookie headers for pro
     'x-vercel-protection-bypass': 'bypass-secret',
     'x-vercel-set-bypass-cookie': 'true',
   });
+  assert.deepEqual(buildVercelProtectionHeaders('https://staging.interdomestik.com'), {
+    'x-vercel-protection-bypass': 'bypass-secret',
+    'x-vercel-set-bypass-cookie': 'true',
+  });
 });
 
 test('installVercelProtectionBrowser scopes bypass headers to Vercel requests', async () => {
@@ -31,7 +35,7 @@ test('installVercelProtectionBrowser scopes bypass headers to Vercel requests', 
       };
     },
   };
-  installVercelProtectionBrowser('https://preview.vercel.app', browser);
+  installVercelProtectionBrowser('https://staging.interdomestik.com', browser);
   await browser.newContext({ viewport: { width: 800, height: 600 } });
   assert.ok(routeHandler, 'route handler was registered');
 
@@ -39,14 +43,14 @@ test('installVercelProtectionBrowser scopes bypass headers to Vercel requests', 
   routeHandler({
     request: () => ({
       headers: () => ({ accept: 'text/html' }),
-      url: () => 'https://preview.vercel.app/member',
+      url: () => 'https://staging.interdomestik.com/member',
     }),
     continue: params => continuations.push(params),
   });
   routeHandler({
     request: () => ({
       headers: () => ({ accept: 'text/html' }),
-      url: () => 'https://other.vercel.app/asset.js',
+      url: () => 'https://preview.vercel.app/asset.js',
     }),
     continue: params => continuations.push(params),
   });
@@ -66,9 +70,9 @@ test('installVercelProtectionFetch scopes bypass headers to the protected host',
   };
   delete globalThis.fetch.__vercelProtectionWrapped;
   try {
-    installVercelProtectionFetch('https://preview.vercel.app');
+    installVercelProtectionFetch('https://staging.interdomestik.com');
+    await globalThis.fetch('https://staging.interdomestik.com/api/health');
     await globalThis.fetch('https://preview.vercel.app/api/health');
-    await globalThis.fetch('https://other.vercel.app/api/health');
   } finally {
     globalThis.fetch = originalFetch;
   }

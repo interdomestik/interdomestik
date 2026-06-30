@@ -35,10 +35,11 @@ test('Vercel and database credentials stay out of workflow-level env', () => {
   }
 });
 
-test('Vercel deploy action still exports deployment hostname', () => {
+test('Vercel deploy action still exports deployment and gate hostnames', () => {
   const deployStep = deployAction.runs.steps.find(step => step?.name === 'Deploy Vercel artifact');
 
   assert.ok(deployStep);
   assert.match(deployStep.run, /hostname=/u);
+  assert.match(deployStep.run, /configure-vercel-gate-url\.mjs/u);
   assert.match(deployStep.run, /GITHUB_OUTPUT/u);
 });
