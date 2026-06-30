@@ -36,9 +36,7 @@ function aliasEndpoint(deploymentHostname, env) {
   const endpoint = new URL(
     `https://api.vercel.com/v2/deployments/${encodeURIComponent(deploymentHostname)}/aliases`
   );
-  const teamId = env.VERCEL_ORG_ID || '';
-  if (teamId) endpoint.searchParams.set('teamId', teamId);
-  else endpoint.searchParams.set('slug', env.VERCEL_TEAM_SLUG || VERCEL_TEAM_SLUG);
+  endpoint.searchParams.set('slug', VERCEL_TEAM_SLUG);
   return endpoint;
 }
 
