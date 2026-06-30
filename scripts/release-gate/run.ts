@@ -73,6 +73,7 @@ const {
   shouldAllowConfiguredLoopbackBaseUrl,
 } = require('./url-policy.ts');
 const { isTrustedAuthPreflightRedirect } = require('./auth-preflight-redirect.ts');
+const { formatMissingEnvSummary } = require('./env-log-redaction.ts');
 const VERCEL_LOG_STREAM_TIMEOUT_MS = 12_000;
 const AUTH_PREFLIGHT_TIMEOUT_MS = 8_000;
 const AUTH_PREFLIGHT_MAX_ATTEMPTS = 3;
@@ -790,10 +791,7 @@ async function main() {
   const requiredEnv = REQUIRED_ENV_BY_SUITE[args.suite] || REQUIRED_ENV_BY_SUITE.all;
   const missingEnv = getMissingEnv(requiredEnv);
   if (missingEnv.length > 0) {
-    console.error('[release-gate] Missing required env vars:');
-    for (const name of missingEnv) {
-      console.error(`- ${name}`);
-    }
+    console.error(formatMissingEnvSummary(missingEnv.length));
     process.exit(2);
   }
 
