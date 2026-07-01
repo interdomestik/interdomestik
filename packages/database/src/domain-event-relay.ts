@@ -58,6 +58,9 @@ export async function selectDomainEventsForRelay(
   const eventVersionFilter = params.eventVersion
     ? sql`and e."event_version" = ${params.eventVersion}`
     : sql``;
+  const replayFromEventId = replayFrom?.eventId
+    ? assertNonBlank(replayFrom.eventId, 'replayFrom.eventId')
+    : '';
   const deliveryFilter =
     mode === 'replay'
       ? sql``
@@ -68,9 +71,7 @@ export async function selectDomainEventsForRelay(
   const offsetFilter = replayFrom
     ? sql`and (
         e."created_at" > ${replayFrom.createdAt}
-        or (e."created_at" = ${replayFrom.createdAt} and e."id" >= ${
-          replayFrom.eventId ? assertNonBlank(replayFrom.eventId, 'replayFrom.eventId') : ''
-        })
+        or (e."created_at" = ${replayFrom.createdAt} and e."id" >= ${replayFromEventId})
       )`
     : sql``;
   const lockClause = mode === 'replay' ? sql`` : sql`for update skip locked`;
