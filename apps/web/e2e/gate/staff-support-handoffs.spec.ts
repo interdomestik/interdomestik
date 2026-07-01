@@ -174,6 +174,19 @@ async function openAcceptedSupportHandoffRow(
   return row;
 }
 
+async function openSupportHandoffDetail(row: Locator): Promise<void> {
+  const toggle = row.getByTestId('staff-support-handoff-detail-toggle');
+  const panel = row.getByTestId('staff-support-handoff-detail-panel');
+  await expectVisible(toggle);
+  await expect(async () => {
+    if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true', { timeout: 1000 });
+    await expect(panel).toBeVisible({ timeout: 1000 });
+  }).toPass({ intervals: [250, 500, 1000], timeout: 15000 });
+}
+
+const expectVisible = (locator: Locator) => expect(locator).toBeVisible({ timeout: 15000 });
+
 async function expectPublicResponseVersion(
   subject: string,
   response: string,
@@ -426,10 +439,7 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       const row = memberPage.getByTestId('staff-support-handoffs-row').filter({ hasText: subject });
       await expect(row).toBeVisible({ timeout: 15000 });
       await expect(row.getByTestId('staff-support-handoff-claim-link')).toContainText(claimLabel);
-      await row.getByTestId('staff-support-handoff-detail-toggle').click();
-      await expect(row.getByTestId('staff-support-handoff-detail-panel')).toBeVisible({
-        timeout: 15000,
-      });
+      await openSupportHandoffDetail(row);
       await expect(row.getByTestId('staff-support-handoff-contact-preference')).toContainText(
         /Phone callback|Телефон|telefon/i
       );
@@ -566,10 +576,8 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
         .toBe('accepted');
 
       const acceptedRow = await openAcceptedSupportHandoffRow(staffPage, subject, testInfo);
-      await acceptedRow.getByTestId('staff-support-handoff-detail-toggle').click();
-      await expect(
-        acceptedRow.getByTestId('staff-support-handoff-public-response-form')
-      ).toBeVisible({ timeout: 15000 });
+      await openSupportHandoffDetail(acceptedRow);
+      await expectVisible(acceptedRow.getByTestId('staff-support-handoff-public-response-form'));
       await acceptedRow
         .getByTestId('staff-support-handoff-public-response-input')
         .fill(firstResponse);
@@ -613,27 +621,19 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       const updateRow = staffPage
         .getByTestId('staff-support-handoffs-row')
         .filter({ hasText: subject });
-      await expect(
-        updateRow.getByTestId('staff-support-handoff-public-response-badge')
-      ).toBeVisible({
-        timeout: 15000,
-      });
-      await expect(
-        updateRow.getByTestId('staff-support-handoff-needs-follow-up-badge')
-      ).toBeVisible({ timeout: 15000 });
-      await updateRow.getByTestId('staff-support-handoff-detail-toggle').click();
+      await expectVisible(updateRow.getByTestId('staff-support-handoff-public-response-badge'));
+      await expectVisible(updateRow.getByTestId('staff-support-handoff-needs-follow-up-badge'));
+      await openSupportHandoffDetail(updateRow);
       await expect(
         updateRow.getByTestId('staff-support-handoff-public-response-input')
       ).toHaveValue(firstResponse, { timeout: 15000 });
-      await expect(
+      await expectVisible(
         updateRow.getByTestId('staff-support-handoff-public-response-acknowledged')
-      ).toBeVisible({ timeout: 15000 });
+      );
       await expect(updateRow.getByTestId('handoff-member-reply')).toContainText(memberReply, {
         timeout: 15000,
       });
-      await expect(updateRow.getByTestId('staff-support-handoff-member-reply-warning')).toBeVisible(
-        { timeout: 15000 }
-      );
+      await expectVisible(updateRow.getByTestId('staff-support-handoff-member-reply-warning'));
       await updateRow
         .getByTestId('staff-support-handoff-public-response-input')
         .fill(updatedResponse);
@@ -646,10 +646,10 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       ).toHaveCount(0, { timeout: 15000 });
 
       const followedUpRow = await openAcceptedSupportHandoffRow(staffPage, subject, testInfo);
-      await followedUpRow.getByTestId('staff-support-handoff-detail-toggle').click();
-      await expect(
+      await openSupportHandoffDetail(followedUpRow);
+      await expectVisible(
         followedUpRow.getByTestId('staff-support-handoff-public-response-awaiting-acknowledgement')
-      ).toBeVisible({ timeout: 15000 });
+      );
       await expect(followedUpRow.getByTestId('handoff-member-reply')).toContainText(memberReply, {
         timeout: 15000,
       });
@@ -691,14 +691,14 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
       const managerRow = branchManagerPage
         .getByTestId('staff-support-handoffs-row')
         .filter({ hasText: subject });
-      await expect(managerRow).toBeVisible({ timeout: 15000 });
-      await managerRow.getByTestId('staff-support-handoff-detail-toggle').click();
+      await expectVisible(managerRow);
+      await openSupportHandoffDetail(managerRow);
       await expect(
         managerRow.getByTestId('staff-support-handoff-public-response-existing')
       ).toContainText(updatedResponse, { timeout: 15000 });
-      await expect(
+      await expectVisible(
         managerRow.getByTestId('staff-support-handoff-public-response-acknowledged')
-      ).toBeVisible({ timeout: 15000 });
+      );
       await expect(
         managerRow.getByTestId('staff-support-handoff-public-response-form')
       ).toHaveCount(0);
