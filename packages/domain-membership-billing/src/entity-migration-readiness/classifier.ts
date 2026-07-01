@@ -30,17 +30,18 @@ export function classifyEntityMigrationReadinessCandidate(
   const repairCategories = ENTITY_MIGRATION_REPAIR_CATEGORIES.filter(category =>
     repairs.has(category)
   );
+  let status: EntityMigrationReadinessResult['status'] = 'eligible';
+  if (activeRecoveryCaseCount > 0) {
+    status = 'blocked_active_recovery_runoff';
+  } else if (repairCategories.length > 0) {
+    status = 'blocked_repair_required';
+  }
 
   return {
     memberId: candidate.memberId,
     tenantId: candidate.tenantId,
     subscriptionId: candidate.subscriptionId,
-    status:
-      activeRecoveryCaseCount > 0
-        ? 'blocked_active_recovery_runoff'
-        : repairCategories.length > 0
-          ? 'blocked_repair_required'
-          : 'eligible',
+    status,
     repairCategories,
     evidence: buildEntityMigrationReadinessEvidence(candidate),
     activeRecoveryCaseCount,

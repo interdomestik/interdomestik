@@ -1,6 +1,6 @@
 const SECRET_BODY_FIELD_PATTERN =
   /(["']?(?:access_token|authorization|id_token|password|refresh_token|secret|session|token)["']?\s*[:=]\s*)["']?[^"',\s}]+["']?/gi;
-const BEARER_PATTERN = /\b(Bearer)\s+[A-Za-z0-9._~+/-]+=*/gi;
+const BEARER_PATTERN = /\b(Bearer)\s+[-A-Za-z0-9._~+/=]+/gi;
 
 function redactResponseBody(raw) {
   return String(raw || '')
@@ -38,8 +38,9 @@ function createMutationResponseCapture(page, baseUrl) {
       const body = shouldCaptureResponseBody(status, contentType)
         ? compactResponseBody(await response.text().catch(() => ''), 420)
         : '';
+      const bodySuffix = body ? ` body=${body}` : '';
       entries.push(
-        `${method} ${status} ${compactResponseUrl(response.url())} content_type=${contentType || 'unknown'}${body ? ` body=${body}` : ''}`
+        `${method} ${status} ${compactResponseUrl(response.url())} content_type=${contentType || 'unknown'}${bodySuffix}`
       );
     })();
     pending.push(task);

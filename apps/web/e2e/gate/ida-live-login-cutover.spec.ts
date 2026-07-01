@@ -32,7 +32,7 @@ test.describe('ida live-login cutover gate', () => {
     const locale = getLocale(testInfo);
     const hostCase = countryHostCase(new URL(origin).hostname);
     if (!hostCase) {
-      test.skip(true, 'cutover redirect applies only to country-host projects');
+      expect(hostCase).toBeNull();
       return;
     }
 

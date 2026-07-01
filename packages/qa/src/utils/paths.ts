@@ -31,7 +31,8 @@ function realpathWithExistingParent(resolvedPath: string): string {
   while (true) {
     try {
       const canonicalCurrent = fs.realpathSync.native(currentPath);
-      return path.join(canonicalCurrent, ...missingSegments.reverse());
+      missingSegments.reverse();
+      return path.join(canonicalCurrent, ...missingSegments);
     } catch {
       const parentPath = path.dirname(currentPath);
       if (parentPath === currentPath) {

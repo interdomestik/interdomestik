@@ -51,6 +51,7 @@ authTest.describe('E2E Setup', () => {
 
     // Verify file exists
     expect(fs.existsSync(outFile)).toBeTruthy();
+    expect(path.basename(outFile)).toBe(`${getAuthStateScopeFromTestInfo(testInfo)}.json`);
     console.log(`[Setup] Successfully saved state to ${outFile}`);
   });
 });

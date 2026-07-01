@@ -24,10 +24,10 @@ const FORBIDDEN_PATHS = [
 const ROUTE_ROOT = 'apps/web/src/app/[locale]';
 const comparePath = (left, right) => left.localeCompare(right);
 const PORTAL_ROOTS = PORTAL_LAYOUTS.map(file => file.replace(/\/layout\.tsx$/u, ''));
-const FORBIDDEN_GROUP_LAYOUTS = [
+const FORBIDDEN_GROUP_LAYOUTS = new Set([
   'apps/web/src/app/[locale]/(agent)/layout.tsx',
   'apps/web/src/app/[locale]/(staff)/layout.tsx',
-];
+]);
 
 function toPosix(value) {
   return value.split(path.sep).join('/');
@@ -56,7 +56,7 @@ function walkFiles(root, dir, results = []) {
 function isPortalLayoutCandidate(file) {
   if (!file.endsWith('/layout.tsx')) return false;
   if (PORTAL_LAYOUTS.includes(file)) return true;
-  if (FORBIDDEN_GROUP_LAYOUTS.includes(file)) return true;
+  if (FORBIDDEN_GROUP_LAYOUTS.has(file)) return true;
   if (PORTAL_ROOTS.some(portalRoot => file.startsWith(`${portalRoot}/`))) return true;
   if (file.includes('/legacy/')) return true;
   if (file.includes('/(dashboard)/agent/')) return true;

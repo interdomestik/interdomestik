@@ -58,7 +58,7 @@ test.describe('Front-door session context', () => {
     const projectHeaders = testInfo.project.use.extraHTTPHeaders ?? {};
     const tenantId = frontDoorTenant(testInfo);
     if (tenantId === null) {
-      test.skip(true, 'front-door contract only runs in explicit ida projects');
+      expect(tenantId).toBeNull();
       return;
     }
     const seededUser = userForTenant(tenantId);

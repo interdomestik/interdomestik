@@ -58,9 +58,9 @@ export function hasRecentActiveSession(cacheKey: string): boolean {
 
 function base64UrlToBytes(value: string): Uint8Array | null {
   try {
-    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+    const normalized = value.replaceAll('-', '+').replaceAll('_', '/');
     const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
-    return Uint8Array.from(atob(padded), char => char.charCodeAt(0));
+    return Uint8Array.from(atob(padded), char => char.codePointAt(0) ?? 0);
   } catch {
     return null;
   }
@@ -106,12 +106,10 @@ function isActiveSessionPayload(payload: unknown): boolean {
   const session = (payload as { session?: { expiresAt?: unknown } }).session;
   if (!session || typeof session !== 'object' || !session.expiresAt) return false;
   const rawExpiresAt = session.expiresAt;
-  const expiresAt =
-    rawExpiresAt instanceof Date
-      ? rawExpiresAt.getTime()
-      : typeof rawExpiresAt === 'number'
-        ? rawExpiresAt
-        : Date.parse(String(rawExpiresAt));
+  let expiresAt = Number.NaN;
+  if (rawExpiresAt instanceof Date) expiresAt = rawExpiresAt.getTime();
+  if (typeof rawExpiresAt === 'number') expiresAt = rawExpiresAt;
+  if (typeof rawExpiresAt === 'string') expiresAt = Date.parse(rawExpiresAt);
   return Number.isFinite(expiresAt) && expiresAt > Date.now();
 }
 
