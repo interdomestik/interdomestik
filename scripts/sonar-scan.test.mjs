@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   appendPullRequestScannerProperties,
@@ -9,6 +12,34 @@ import {
   resolveSonarStatusTarget,
   waitForSonarUp,
 } from './sonar-scan-lib.mjs';
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+
+test('sonar scan has a static contract against event-path PR context reads', () => {
+  const sonarScan = fs.readFileSync(path.join(scriptDir, 'sonar-scan.mjs'), 'utf8');
+
+  assert.doesNotMatch(sonarScan, /GITHUB_EVENT_PATH/);
+  assert.doesNotMatch(sonarScan, /readFileSync/);
+  assert.match(sonarScan, /SONAR_PULLREQUEST_KEY/);
+  assert.match(sonarScan, /GITHUB_HEAD_REF/);
+  assert.match(sonarScan, /GITHUB_BASE_REF/);
+});
+
+test('sonar gate exports explicit PR context before running the scanner', () => {
+  const sonarGate = fs.readFileSync(path.join(scriptDir, 'sonar-gate.sh'), 'utf8');
+  const exportIndex = sonarGate.indexOf(
+    'export SONAR_PULLREQUEST_KEY SONAR_PULLREQUEST_BRANCH SONAR_PULLREQUEST_BASE'
+  );
+  const scanIndex = sonarGate.indexOf('pnpm sonar:scan');
+
+  assert.match(sonarGate, /SONAR_PULLREQUEST_BRANCH="\$\{SONAR_PULLREQUEST_BRANCH:-\$\{GITHUB_HEAD_REF:-\}\}"/);
+  assert.match(sonarGate, /SONAR_PULLREQUEST_BASE="\$\{SONAR_PULLREQUEST_BASE:-\$\{GITHUB_BASE_REF:-\}\}"/);
+  assert.match(sonarGate, /catch\{process\.stdout\.write\('\\\\n'\)\}/);
+  assert.match(sonarGate, /event_pr_key/);
+  assert.ok(exportIndex > 0);
+  assert.ok(scanIndex > 0);
+  assert.ok(exportIndex < scanIndex);
+});
 
 test('appendScannerProperties adds skip JRE provisioning when requested', () => {
   assert.deepEqual(

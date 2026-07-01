@@ -384,24 +384,23 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
           url.searchParams.get('source') === 'member_claim_detail',
         { timeout: 15000 }
       );
-
-      await expect(memberPage.getByTestId('member-support-handoff-form')).toBeVisible();
+      const supportForm = memberPage
+        .locator('[data-testid="member-support-handoff-form"][data-hydrated="true"]:visible')
+        .last();
+      await expect(supportForm).toBeVisible();
       await expect(memberPage.getByTestId('member-support-handoff-claim-context')).toContainText(
         claimLabel
       );
-      await expect(memberPage.getByTestId('member-support-handoff-claim')).toHaveValue(claimId);
-
-      await memberPage.getByTestId('member-support-handoff-subject').fill(subject);
-      await memberPage.getByTestId('member-support-handoff-message').fill(message);
-      await memberPage
+      await expect(supportForm.getByTestId('member-support-handoff-claim')).toHaveValue(claimId);
+      await supportForm.getByTestId('member-support-handoff-subject').fill(subject);
+      await supportForm.getByTestId('member-support-handoff-message').fill(message);
+      await supportForm
         .getByTestId('member-support-handoff-contact-preference')
         .selectOption('phone');
-      await memberPage.getByTestId('member-support-handoff-submit').click();
-
+      await supportForm.getByTestId('member-support-handoff-submit').click();
       await expect(memberPage).toHaveURL(/\/member\/help\?support=created$/, {
         timeout: 15000,
       });
-
       await expect
         .poll(
           async () => {

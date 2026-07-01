@@ -39,16 +39,12 @@ export function buildMemberEntityMigrationPlan(
   }
 
   if (command.mode === 'dry_run') {
-    return readyPlan(
-      command,
-      previous,
-      target,
-      approval,
+    return readyPlan(command, previous, target, approval, {
       readiness,
       subscriptionId,
-      'dry_run_ready',
-      false
-    );
+      status: 'dry_run_ready',
+      writesPlanned: false,
+    });
   }
 
   if (command.approval && !approval) {
@@ -59,7 +55,12 @@ export function buildMemberEntityMigrationPlan(
     return blockedPlan(command, previous, target, null, readiness, 'blocked_approval_required');
   }
 
-  return readyPlan(command, previous, target, approval, readiness, subscriptionId, 'ready', true);
+  return readyPlan(command, previous, target, approval, {
+    readiness,
+    subscriptionId,
+    status: 'ready',
+    writesPlanned: true,
+  });
 }
 
 function buildPreviousSnapshot(candidate: EntityMigrationReadinessCandidate): MemberEntitySnapshot {
@@ -123,23 +124,25 @@ function readyPlan(
   previous: MemberEntitySnapshot,
   target: MemberEntityMigrationTarget,
   approval: MemberEntityMigrationApproval | null,
-  readiness: ReturnType<typeof classifyEntityMigrationReadinessCandidate>,
-  subscriptionId: string,
-  status: 'ready' | 'dry_run_ready',
-  writesPlanned: boolean
+  options: {
+    readiness: ReturnType<typeof classifyEntityMigrationReadinessCandidate>;
+    subscriptionId: string;
+    status: 'ready' | 'dry_run_ready';
+    writesPlanned: boolean;
+  }
 ): MemberEntityMigrationPlan {
   return {
     memberId: command.candidate.memberId,
     tenantId: command.candidate.tenantId,
-    subscriptionId,
+    subscriptionId: options.subscriptionId,
     mode: command.mode,
-    status,
+    status: options.status,
     previous,
     target,
-    readiness,
+    readiness: options.readiness,
     termsAction: 'reissue_and_recapture',
     approval,
     dataRepairCategories: [],
-    writesPlanned,
+    writesPlanned: options.writesPlanned,
   };
 }

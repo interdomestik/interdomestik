@@ -9,15 +9,29 @@ describe('services page core', () => {
     expect(buildTelHref('')).toBeUndefined();
   });
 
-  it('buildTelHref strips whitespace', () => {
-    expect(buildTelHref('+1 234  567')).toBe('tel:+1234567');
+  it('buildTelHref falls back for numbers outside the support allowlist', () => {
+    expect(buildTelHref('+1 234  567')).toBe('tel:+38349900600');
+  });
+
+  it('buildTelHref keeps allowed MK support numbers', () => {
+    expect(buildTelHref('+389 70 337 140')).toBe('tel:+38970337140');
   });
 
   it('getServicesPageContactModel normalizes nulls and computes telHref', () => {
-    expect(getServicesPageContactModel({ phone: '123 456', whatsapp: null })).toEqual({
+    expect(
+      getServicesPageContactModel({ phone: '123 456', whatsapp: 'https://wa.me/38349900600' })
+    ).toEqual({
       phone: '123 456',
-      whatsapp: null,
-      telHref: 'tel:123456',
+      whatsapp: 'https://wa.me/38349900600',
+      telHref: 'tel:+38349900600',
+    });
+  });
+
+  it('getServicesPageContactModel rejects non-wa.me whatsapp links', () => {
+    expect(getServicesPageContactModel({ phone: null, whatsapp: 'https://example.com' })).toEqual({
+      phone: null,
+      whatsapp: 'https://wa.me/38349900600',
+      telHref: undefined,
     });
   });
 });

@@ -4,8 +4,8 @@ import type { useTranslations } from 'next-intl';
 import { PhoneCall, Sparkles } from 'lucide-react';
 
 type SupportContacts = {
-  telHref: string;
-  whatsappHref?: string | null;
+  telHref: `tel:${string}`;
+  whatsappHref?: `https://${string}` | null;
 };
 
 export function ClaimCreatedSuccess(

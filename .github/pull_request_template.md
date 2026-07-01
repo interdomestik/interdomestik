@@ -27,6 +27,13 @@
 - Screenshots: `tmp/pilot-evidence/<day>/<timestamp>/screenshots/...`
 - Runbooks: `tmp/pilot-evidence/<day>/<timestamp>/runbooks/...`
 
+## Product-readiness sequence
+
+- [ ] Ran `pnpm pr:request-reviewers -- <PR_NUMBER>` after opening the PR and after substantive pushes; this posts `@copilot review` and `@codex review` for the current head.
+- [ ] Requested current-head Copilot review and current-head Codex review.
+- [ ] Addressed or technically closed Copilot, Codex, CodeQL, Sonar, and bot-review findings.
+- [ ] Ran `pnpm pr:review-ready -- <PR_NUMBER>` after final push.
+
 ## Pilot guardrails
 
 - [ ] No changes to auth, routing, proxy, or API contract files were made.

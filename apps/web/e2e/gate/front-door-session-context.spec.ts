@@ -28,10 +28,8 @@ function userForTenant(tenantId: FrontDoorTenant) {
 test.describe('Front-door session context', () => {
   test('renders ida.* public landing without a tenant cookie', async ({ browser }, testInfo) => {
     const { origin, locale } = projectInfo(testInfo.project.use.baseURL?.toString());
-    if (!new URL(origin).hostname.startsWith('ida.')) {
-      test.skip(true, 'front-door public contract only runs in ida projects');
-      return;
-    }
+    const isIdaHost = new URL(origin).hostname.startsWith('ida.');
+    test.skip(!isIdaHost, 'front-door public contract only runs in ida projects');
 
     const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
     try {
@@ -57,9 +55,9 @@ test.describe('Front-door session context', () => {
     const { origin, locale } = projectInfo(testInfo.project.use.baseURL?.toString());
     const projectHeaders = testInfo.project.use.extraHTTPHeaders ?? {};
     const tenantId = frontDoorTenant(testInfo);
+    test.skip(tenantId === null, 'front-door session contract only runs in front-door projects');
     if (tenantId === null) {
-      test.skip(true, 'front-door contract only runs in explicit ida projects');
-      return;
+      throw new Error('unreachable: front-door session skip did not abort the test');
     }
     const seededUser = userForTenant(tenantId);
     const forwardedHostHeader = 'x-forwarded-host';

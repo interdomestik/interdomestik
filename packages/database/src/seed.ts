@@ -68,7 +68,7 @@ function buildReceipt(mode: SeedMode, seedBaseTime: Date): SeedReceipt {
     gitSha: getGitSha(),
     seedBaseTime,
     runAt: new Date(),
-    runBy: process.env.CI ? `ci-${process.env.CI_JOB_ID || 'unknown'}` : 'local',
+    runBy: process.env.CI ? 'ci' : 'local',
   };
 }
 

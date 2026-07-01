@@ -12,12 +12,16 @@ collect_changed_files() {
     node scripts/ci/github-pr-files.mjs --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
     return 0
   fi
-  if [[ -n "${PR_NUMBER:-}" ]]; then
-    gh pr view "${PR_NUMBER}" --json files --jq '.files[].path' >"${changed_files_path}"
-    return 0
-  fi
-  if gh pr view --json files --jq '.files[].path' >"${changed_files_path}" 2>/dev/null; then
-    return 0
+  if command -v gh >/dev/null 2>&1; then
+    local repo current_pr
+    repo="${GITHUB_REPOSITORY:-}"
+    [[ -n "${repo}" ]] || repo="$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null || true)"
+    current_pr="${PR_NUMBER:-}"
+    [[ -n "${current_pr}" ]] || current_pr="$(gh pr view --json number --jq '.number // empty' 2>/dev/null || true)"
+    if [[ -n "${repo}" && -n "${current_pr}" ]]; then
+      gh api --paginate "repos/${repo}/pulls/${current_pr}/files?per_page=100" --jq '.[].filename' >"${changed_files_path}"
+      return 0
+    fi
   fi
   git fetch --no-tags origin main --depth=1 >/dev/null 2>&1 || true
   git diff --name-only origin/main...HEAD >"${changed_files_path}" || true

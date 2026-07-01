@@ -19,6 +19,7 @@ const REPO_ROOT = resolveRepoRoot();
 const DRIZZLE_DIR = path.resolve(REPO_ROOT, 'packages/database/drizzle');
 const JOURNAL_PATH = path.join(DRIZZLE_DIR, 'meta', '_journal.json');
 const MIGRATION_FILE_PATTERN = /^\d{4}_.+\.sql$/;
+const compareText = (left, right) => left.localeCompare(right);
 
 // Baseline exceptions currently present on main. Keep this list short and temporary.
 const LEGACY_ORPHAN_ALLOWLIST = new Set([
@@ -81,14 +82,14 @@ const journalSql = new Set(journal.entries.map(entry => `${entry.tag.trim()}.sql
 const sqlFiles = fs
   .readdirSync(DRIZZLE_DIR)
   .filter(name => MIGRATION_FILE_PATTERN.test(name))
-  .sort();
+  .sort(compareText);
 
-const missingFromDisk = [...journalSql].filter(file => !sqlFiles.includes(file)).sort();
-const orphanedAll = sqlFiles.filter(file => !journalSql.has(file)).sort();
+const missingFromDisk = [...journalSql].filter(file => !sqlFiles.includes(file)).sort(compareText);
+const orphanedAll = sqlFiles.filter(file => !journalSql.has(file)).sort(compareText);
 const orphanedUnexpected = orphanedAll.filter(file => !LEGACY_ORPHAN_ALLOWLIST.has(file));
 const allowlistStale = [...LEGACY_ORPHAN_ALLOWLIST]
   .filter(file => !orphanedAll.includes(file))
-  .sort();
+  .sort(compareText);
 
 if (missingFromDisk.length > 0) {
   fail(

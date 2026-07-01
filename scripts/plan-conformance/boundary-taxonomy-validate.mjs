@@ -18,7 +18,7 @@ function isStringArray(value) {
 }
 
 function uniqueSorted(values) {
-  return [...new Set(values)].sort();
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
 }
 
 function validateRepoRelative(patterns, errors, label) {

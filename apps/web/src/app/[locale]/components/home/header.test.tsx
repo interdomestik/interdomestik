@@ -33,6 +33,7 @@ vi.mock('@/i18n/routing', () => ({
 vi.mock('@/lib/contact', () => ({
   contactInfo: {
     phone: '+383 49 900 600',
+    telHref: 'tel:+38349900600',
     whatsapp: 'https://wa.me/38349900600',
   },
 }));

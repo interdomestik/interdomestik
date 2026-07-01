@@ -33,6 +33,20 @@ test('report marks no-go and rollback when no-touch files are changed', () => {
   assert.equal(report.summary.protected_touched, 1);
 });
 
+test('taxonomy glob matching treats regex metacharacters as literals', () => {
+  const report = buildBoundaryDiffReport({
+    taxonomy: {
+      no_touch_patterns: [],
+      protected_patterns: ['docs/plans/F1.0/**'],
+      advisory_watch_patterns: [],
+    },
+    changedFiles: ['docs/plans/F1x0/notes.md'],
+  });
+
+  assert.equal(report.summary.protected_touched, 0);
+  assert.equal(report.findings[0].classification, 'unclassified');
+});
+
 test('report suggests pause when protected boundaries change without no-touch violations', () => {
   const report = buildBoundaryDiffReport({
     taxonomy: TAXONOMY,

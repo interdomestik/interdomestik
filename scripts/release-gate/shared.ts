@@ -1,5 +1,6 @@
 const path = require('node:path');
 const { ROUTES, MARKERS, SELECTORS, TIMEOUTS, ROLE_IPS, ACCOUNTS } = require('./config.ts');
+const { restoreCachedSession, storeUsableSessionState } = require('./session-cache.ts');
 const { hasVisibleTestId } = require('./visible-marker.ts');
 const {
   assertLoginResponseOrigin,
@@ -301,15 +302,8 @@ async function loginAs(page, params) {
     const nowFn = params.nowFn || Date.now;
     const forceFresh = params.forceFresh === true;
     const accountCacheKey = sessionCacheKeyForAccount(account);
-    const cachedSessionState = authState.sessionStateByAccount.get(accountCacheKey);
 
-    if (!forceFresh && cachedSessionState && Array.isArray(cachedSessionState.cookies)) {
-      await page.context().clearCookies();
-      if (cachedSessionState.cookies.length > 0) {
-        await page.context().addCookies(cachedSessionState.cookies);
-      }
-      return;
-    }
+    if (await restoreCachedSession({ page, authState, accountCacheKey, forceFresh })) return;
 
     const origin = new URL(baseUrl).origin;
     const authOrigin = params.authOrigin || origin;
@@ -397,12 +391,9 @@ async function loginAs(page, params) {
     }
     assertLoginResponseOrigin({ account, response, origin });
 
-    let storageState = await page.context().storageState();
-    if (!Array.isArray(storageState.cookies) || storageState.cookies.length === 0) {
-      await bootstrapAccountLanding(page, { account, baseUrl, locale });
-      storageState = await page.context().storageState();
-    }
-    authState.sessionStateByAccount.set(accountCacheKey, storageState);
+    await bootstrapAccountLanding(page, { account, baseUrl, locale });
+    const storageState = await page.context().storageState();
+    storeUsableSessionState(authState, accountCacheKey, storageState);
   });
 }
 

@@ -7,10 +7,28 @@ export const MAX_NOTE_CONTENT_LENGTH = 2000;
 
 /** Sanitize note content - strip HTML and limit length */
 export function sanitizeNoteContent(content: string): string {
-  // Strip any HTML tags (whitelist: plain text only)
-  const plainText = content.replaceAll(/<[^>]*>/g, '');
-  // Trim and limit to max length
-  return plainText.trim().slice(0, MAX_NOTE_CONTENT_LENGTH);
+  return stripHtmlTags(content).trim().slice(0, MAX_NOTE_CONTENT_LENGTH);
+}
+
+function stripHtmlTags(content: string): string {
+  const plainText: string[] = [];
+  let cursor = 0;
+  while (cursor < content.length) {
+    const char = content[cursor] ?? '';
+    if (char !== '<') {
+      plainText.push(char);
+      cursor += 1;
+      continue;
+    }
+    const tagEnd = content.indexOf('>', cursor + 1);
+    if (tagEnd === -1) {
+      plainText.push(char);
+      cursor += 1;
+    } else {
+      cursor = tagEnd + 1;
+    }
+  }
+  return plainText.join('');
 }
 
 export const createNoteSchema = z.object({

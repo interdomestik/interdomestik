@@ -14,8 +14,8 @@ import { ClaimWizardStepContent } from './step-content';
 import type { ClaimWizardHandoffContext, ClaimWizardStep } from './types';
 
 type SupportContacts = {
-  telHref: string;
-  whatsappHref?: string | null;
+  telHref: `tel:${string}`;
+  whatsappHref?: `https://${string}` | null;
 };
 
 export function getNextStepLabel(params: {

@@ -1,5 +1,4 @@
 import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
 import process from 'node:process';
 
 import {
@@ -31,32 +30,6 @@ function run(cmd, args, opts = {}) {
   }
 
   return result.status ?? 0;
-}
-
-function readPullRequestContextFromEventPath() {
-  const eventPath = process.env.GITHUB_EVENT_PATH;
-  if (!eventPath) {
-    return {
-      pullRequestBase: '',
-      pullRequestBranch: '',
-      pullRequestKey: '',
-    };
-  }
-
-  try {
-    const event = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
-    return {
-      pullRequestBase: String(event?.pull_request?.base?.ref || '').trim(),
-      pullRequestBranch: String(event?.pull_request?.head?.ref || '').trim(),
-      pullRequestKey: String(event?.pull_request?.number || '').trim(),
-    };
-  } catch {
-    return {
-      pullRequestBase: '',
-      pullRequestBranch: '',
-      pullRequestKey: '',
-    };
-  }
 }
 
 const sonarToken = process.env.SONAR_TOKEN;
@@ -91,7 +64,7 @@ if (sonarProjectKey) {
   scannerProperties.push(`-Dsonar.projectKey=${sonarProjectKey}`);
 }
 
-const isSonarCloud = sonarHostUrl.includes('sonarcloud.io');
+const isSonarCloud = sonarHostUrl === 'https://sonarcloud.io';
 if (isSonarCloud) {
   if (!sonarOrganization) {
     console.error(
@@ -106,19 +79,12 @@ if (isSonarCloud) {
   scannerProperties.push(`-Dsonar.organization=${sonarOrganization}`);
 }
 
-const eventPullRequestContext = readPullRequestContextFromEventPath();
-const pullRequestKey = String(
-  process.env.SONAR_PULLREQUEST_KEY || eventPullRequestContext.pullRequestKey
-).trim();
+const pullRequestKey = String(process.env.SONAR_PULLREQUEST_KEY || '').trim();
 const pullRequestBranch = String(
-  process.env.SONAR_PULLREQUEST_BRANCH ||
-    process.env.GITHUB_HEAD_REF ||
-    eventPullRequestContext.pullRequestBranch
+  process.env.SONAR_PULLREQUEST_BRANCH || process.env.GITHUB_HEAD_REF || ''
 ).trim();
 const pullRequestBase = String(
-  process.env.SONAR_PULLREQUEST_BASE ||
-    process.env.GITHUB_BASE_REF ||
-    eventPullRequestContext.pullRequestBase
+  process.env.SONAR_PULLREQUEST_BASE || process.env.GITHUB_BASE_REF || ''
 ).trim();
 
 if (pullRequestKey && (!pullRequestBranch || !pullRequestBase)) {

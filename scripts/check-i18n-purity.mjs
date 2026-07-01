@@ -89,7 +89,7 @@ function flattenMessages(value, prefix = '') {
   }
 
   const entries = [];
-  for (const key of Object.keys(value).sort()) {
+  for (const key of Object.keys(value).sort((left, right) => left.localeCompare(right))) {
     const nextPrefix = prefix ? `${prefix}.${key}` : key;
     entries.push(...flattenMessages(value[key], nextPrefix));
   }
@@ -115,7 +115,7 @@ function collectNamespaces(messagesDir, baseLocale) {
   return fs
     .readdirSync(baseDir)
     .filter(name => name.endsWith('.json'))
-    .sort();
+    .sort((left, right) => left.localeCompare(right));
 }
 
 function collectEqualStringEntries({ messagesDir, baseLocale, locales, namespaces }) {
@@ -233,7 +233,7 @@ function main() {
       baseLocale: options.baseLocale,
       locales: options.locales.filter(locale => locale !== options.baseLocale),
       namespaces,
-      equalStringEntries: [...currentKeys].sort(),
+      equalStringEntries: [...currentKeys].sort((left, right) => left.localeCompare(right)),
     };
 
     ensureDirForFile(baselinePath);

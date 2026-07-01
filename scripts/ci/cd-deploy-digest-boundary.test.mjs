@@ -35,6 +35,8 @@ function assertVercelDeployBoundary({
   if (outputsBaseUrl) {
     assert.equal(job.outputs.base_url, '${{ steps.vercel.outputs.base_url }}');
     assert.equal(job.outputs.hostname, '${{ steps.vercel.outputs.hostname }}');
+    assert.equal(job.outputs.gate_base_url, '${{ steps.vercel.outputs.gate_base_url }}');
+    assert.equal(job.outputs.gate_hostname, '${{ steps.vercel.outputs.gate_hostname }}');
   }
 
   const step = findStep(job.steps, stepName);
@@ -104,6 +106,8 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.equal(deployAction.inputs['attested-image-digest'].required, true);
   assert.equal(deployAction.inputs['vercel-automation-bypass-secret'].required, false);
   assert.equal(deployAction.outputs.vercel_output_digest.value, '${{ steps.deploy.outputs.vercel_output_digest }}');
+  assert.equal(deployAction.outputs.gate_base_url.value, '${{ steps.deploy.outputs.gate_base_url }}');
+  assert.equal(deployAction.outputs.gate_hostname.value, '${{ steps.deploy.outputs.gate_hostname }}');
   assert.match(validateStep.run, /VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID/u);
   assert.match(validateStep.run, /ENABLE_VERCEL_DEPLOYMENTS=1/u);
   assert.match(pullStep.run, /vercel@latest pull/u);
@@ -130,14 +134,13 @@ test('Vercel deploy action validates config, builds, deploys, and exports base U
   assert.match(deployStep.run, /-- deploy --yes --prebuilt/u);
   assert.match(deployStep.run, /VERCEL_DEPLOY_TIMEOUT_SECONDS:-900/u);
   assert.match(deployStep.run, /run-vercel-deploy-with-timeout\.mjs/u);
-  assert.match(deployStep.run, /--yes --prebuilt/u);
-  assert.match(deployStep.run, /--prebuilt/u);
   assert.match(deployStep.run, /--archive=tgz/u);
   assert.match(deployStep.run, /--env "COMMIT_SHA=\$\{COMMIT_SHA\}"/u);
   assert.match(deployStep.run, /deploy_target=.*staging.*preview/u);
   assert.match(deployStep.run, /--target="\$\{deploy_target\}"/u);
   assert.match(deployStep.run, /base_url="\$\{deployment_url\}"/u);
   assert.match(deployStep.run, /metadata_url="\$\{base_url\}\/\.well-known\/interdomestik-release-attestation\.json"/u);
+  assert.match(deployStep.run, /configure-vercel-gate-url\.mjs "\$\{base_url\}" "\$\{hostname\}"/u);
   assert.doesNotMatch(deployStep.run, /--token/u);
   assert.match(deployStep.run, /interdomestik-release-attestation\.json[\s\S]*VERCEL_AUTOMATION_BYPASS_SECRET="\$\{VERCEL_AUTOMATION_BYPASS_SECRET:-\}" node scripts\/ci\/fetch-vercel-attestation\.mjs/u);
   assert.match(deployStep.run, /verify-vercel-attestation\.mjs/u);

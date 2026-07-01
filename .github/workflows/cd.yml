@@ -7,7 +7,7 @@ on:
     tags:
       - 'v*'
 concurrency:
-  group: cd-${{ github.ref }}-${{ github.run_id }}
+  group: cd-staging-canonical-${{ github.repository }}
   cancel-in-progress: false
 env:
   REGISTRY: ghcr.io
@@ -63,6 +63,8 @@ jobs:
     outputs:
       base_url: ${{ steps.vercel.outputs.base_url }}
       hostname: ${{ steps.vercel.outputs.hostname }}
+      gate_base_url: ${{ steps.vercel.outputs.gate_base_url }}
+      gate_hostname: ${{ steps.vercel.outputs.gate_hostname }}
     env:
       EXPECTED_COMMIT_SHA: ${{ github.sha }}
     steps:
@@ -91,20 +93,7 @@ jobs:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           set -euo pipefail
-          max_attempts=30
-          sleep_seconds=5
-          for attempt in $(seq 1 "${max_attempts}"); do
-            echo "Attempt ${attempt}/${max_attempts}: checking ${BASE_URL}/api/health..."
-            if node scripts/ci/fetch-vercel-health.mjs "${BASE_URL}/api/health"; then
-              echo "Staging health check succeeded."
-              exit 0
-            fi
-            if [[ "${attempt}" -lt "${max_attempts}" ]]; then
-              sleep "${sleep_seconds}"
-            fi
-          done
-          echo "::error::Staging health check failed after ${max_attempts} attempts."
-          exit 1
+          node scripts/ci/wait-for-vercel-health.mjs "${BASE_URL}/api/health"
       - name: Verify Staging Build Provenance
         shell: bash
         env:
@@ -113,17 +102,26 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/ci/fetch-vercel-health.mjs "${BASE_URL}/api/health" "${EXPECTED_COMMIT_SHA}"
+      - name: Verify Staging Canonical Alias Provenance
+        shell: bash
+        env:
+          BASE_URL: ${{ steps.vercel.outputs.gate_base_url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          set -euo pipefail
+          node scripts/ci/wait-for-vercel-health.mjs "${BASE_URL}/api/health" "${EXPECTED_COMMIT_SHA}"
   e2e-staging:
     needs: deploy-staging
     runs-on: [self-hosted, interdomestik-mac]
     environment: { name: staging, deployment: false }
     permissions: { contents: read }
     env:
-      BASE_URL: ${{ needs.deploy-staging.outputs.base_url }}
+      BASE_URL: ${{ needs.deploy-staging.outputs.gate_base_url }}
       AUTH_BASE_URL: https://staging.interdomestik.com
       EVIDENCE_DIR: tmp/cd-evidence/${{ github.run_id }}/staging
       RELEASE_GATE_EXTRA_HOSTNAME: ${{ needs.deploy-staging.outputs.hostname }}
       RELEASE_GATE_EXPECTED_SHA: ${{ github.sha }}
+      RELEASE_GATE_ALLOW_DEPLOYMENT_FALLBACK: 'false'
       RELEASE_GATE_MEMBER_EMAIL: ${{ secrets.RELEASE_GATE_MEMBER_EMAIL }}
       RELEASE_GATE_MEMBER_PASSWORD: ${{ secrets.RELEASE_GATE_MEMBER_PASSWORD }}
       RELEASE_GATE_AGENT_EMAIL: ${{ secrets.RELEASE_GATE_AGENT_EMAIL }}
@@ -312,25 +310,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/notes" "${EVIDENCE_DIR}/release-gates"
-          max_attempts=30
-          sleep_seconds=5
-
-          for attempt in $(seq 1 "${max_attempts}"); do
-            echo "🏥 Attempt ${attempt}/${max_attempts}: checking health of ${BASE_URL}..."
-
-            if node scripts/ci/fetch-vercel-health.mjs "${BASE_URL}/api/health"; then
-              echo "✅ Health check succeeded on attempt ${attempt}."
-              exit 0
-            fi
-
-            if [[ "${attempt}" -lt "${max_attempts}" ]]; then
-              echo "Health check failed on attempt ${attempt}, retrying in ${sleep_seconds}s..."
-              sleep "${sleep_seconds}"
-            fi
-          done
-
-          echo "❌ Health check failed after ${max_attempts} attempts."
-          exit 1
+          node scripts/ci/wait-for-vercel-health.mjs "${BASE_URL}/api/health"
       - name: Verify Production Build Provenance
         shell: bash
         run: |

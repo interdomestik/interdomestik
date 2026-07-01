@@ -73,6 +73,7 @@ const {
   shouldAllowConfiguredLoopbackBaseUrl,
 } = require('./url-policy.ts');
 const { isTrustedAuthPreflightRedirect } = require('./auth-preflight-redirect.ts');
+const { formatMissingEnvSummary } = require('./env-log-redaction.ts');
 const VERCEL_LOG_STREAM_TIMEOUT_MS = 12_000;
 const AUTH_PREFLIGHT_TIMEOUT_MS = 8_000;
 const AUTH_PREFLIGHT_MAX_ATTEMPTS = 3;
@@ -159,11 +160,9 @@ function resolveAccountPasswordVar(accountKey) {
   if (!account) {
     return null;
   }
-
   if (account.credentialSource) {
     return ACCOUNTS[account.credentialSource]?.passwordVar ?? null;
   }
-
   return account.passwordVar ?? null;
 }
 function findMissingBoundaryPhrases(requiredPhrases, observedText) {
@@ -569,7 +568,6 @@ function parseArgs(argv) {
 
   return parsed;
 }
-
 function printHelp() {
   const lines = [
     'Release Gate runner',
@@ -793,10 +791,7 @@ async function main() {
   const requiredEnv = REQUIRED_ENV_BY_SUITE[args.suite] || REQUIRED_ENV_BY_SUITE.all;
   const missingEnv = getMissingEnv(requiredEnv);
   if (missingEnv.length > 0) {
-    console.error('[release-gate] Missing required env vars:');
-    for (const name of missingEnv) {
-      console.error(`- ${name}`);
-    }
+    console.error(formatMissingEnvSummary(missingEnv.length));
     process.exit(2);
   }
 
@@ -826,13 +821,16 @@ async function main() {
   const checks = [];
   try {
     const deployment = await detectDeploymentMetadata(safeConfiguredBaseUrl, browser);
+    const fallbackOverride = (
+      process.env.RELEASE_GATE_ALLOW_DEPLOYMENT_FALLBACK || ''
+    ).toLowerCase();
+    const fallbackForcedOn = ['1', 'true'].includes(fallbackOverride);
+    const fallbackForcedOff = ['0', 'false'].includes(fallbackOverride);
+    const allowDeploymentFallback =
+      fallbackForcedOn || (!fallbackForcedOff && args.envName !== 'production');
     const resolvedBase = await resolveReachableBaseUrl(safeConfiguredBaseUrl, deployment, {
       allowLoopback: allowLoopbackBaseUrl,
-      allowDeploymentFallback:
-        process.env.RELEASE_GATE_ALLOW_DEPLOYMENT_FALLBACK === '1' ||
-        process.env.RELEASE_GATE_ALLOW_DEPLOYMENT_FALLBACK === 'true'
-          ? true
-          : args.envName !== 'production',
+      allowDeploymentFallback,
     });
     const baseUrl = resolvedBase.baseUrl;
     const runCtx = {

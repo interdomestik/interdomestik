@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 export function Footer() {
   const t = useTranslations('footer');
   const common = useTranslations('common');
-  const { phone, whatsapp, address, hours } = contactInfo;
+  const { phone, telHref, whatsapp, address, hours } = contactInfo;
   const safetyNetChips = Array.isArray(t.raw('safetyNet.chips'))
     ? (t.raw('safetyNet.chips') as string[])
     : [];
@@ -53,7 +53,7 @@ export function Footer() {
                 {phone ? (
                   <a
                     data-testid="footer-safety-net-call"
-                    href={`tel:${phone.replaceAll(' ', '')}`}
+                    href={telHref}
                     className="inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
                   >
                     <Phone className="h-4 w-4" aria-hidden="true" />
@@ -90,7 +90,7 @@ export function Footer() {
             <div className="space-y-3">
               {phone && (
                 <a
-                  href={`tel:${phone.replaceAll(' ', '')}`}
+                  href={telHref}
                   className="flex items-center gap-3 text-white hover:text-primary transition-colors group"
                 >
                   <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center group-hover:bg-primary/10 transition-colors">

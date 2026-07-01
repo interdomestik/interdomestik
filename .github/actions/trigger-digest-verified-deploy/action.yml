@@ -19,6 +19,10 @@ outputs:
     value: ${{ steps.deploy.outputs.base_url }}
   hostname:
     value: ${{ steps.deploy.outputs.hostname }}
+  gate_base_url:
+    value: ${{ steps.deploy.outputs.gate_base_url }}
+  gate_hostname:
+    value: ${{ steps.deploy.outputs.gate_hostname }}
   vercel_output_digest:
     value: ${{ steps.deploy.outputs.vercel_output_digest }}
 runs:
@@ -125,23 +129,18 @@ runs:
           echo "::error::Vercel output digest changed after attestation"
           exit 1
         fi
-        deployment_url="$(node scripts/ci/run-vercel-deploy-with-timeout.mjs \
-          --timeout-seconds "${VERCEL_DEPLOY_TIMEOUT_SECONDS:-900}" \
-          -- deploy --yes --prebuilt --archive=tgz \
-          --env "COMMIT_SHA=${COMMIT_SHA}" "${target_args[@]}")"
+        deployment_url="$(node scripts/ci/run-vercel-deploy-with-timeout.mjs --timeout-seconds "${VERCEL_DEPLOY_TIMEOUT_SECONDS:-900}" -- deploy --yes --prebuilt --archive=tgz --env "COMMIT_SHA=${COMMIT_SHA}" "${target_args[@]}")"
         base_url="${deployment_url}"
-        if [[ "${base_url}" != https://* ]]; then
-          base_url="https://${base_url}"
-        fi
-        hostname="${base_url#https://}"
-        hostname="${hostname%%/*}"
-        hostname="${hostname%%:*}"
+        if [[ "${base_url}" != https://* ]]; then base_url="https://${base_url}"; fi
+        hostname="${base_url#https://}"; hostname="${hostname%%/*}"; hostname="${hostname%%:*}"
         metadata_url="${base_url}/.well-known/interdomestik-release-attestation.json"
         metadata="$(METADATA_URL="${metadata_url}" VERCEL_AUTOMATION_BYPASS_SECRET="${VERCEL_AUTOMATION_BYPASS_SECRET:-}" node scripts/ci/fetch-vercel-attestation.mjs)"
         METADATA="${metadata}" node scripts/ci/verify-vercel-attestation.mjs
         echo "deployment_url=${deployment_url}" >> "${GITHUB_OUTPUT}"
         echo "base_url=${base_url}" >> "${GITHUB_OUTPUT}"
         echo "hostname=${hostname}" >> "${GITHUB_OUTPUT}"
+        DEPLOY_ENVIRONMENT="${DEPLOY_ENVIRONMENT}" DEPLOY_PRODUCTION="${DEPLOY_PRODUCTION}" \
+          node scripts/ci/configure-vercel-gate-url.mjs "${base_url}" "${hostname}" >> "${GITHUB_OUTPUT}"
         echo "vercel_output_digest=${VERCEL_OUTPUT_DIGEST}" >> "${GITHUB_OUTPUT}"
         echo "Deployed ${DEPLOY_ENVIRONMENT} to ${base_url}"
     - name: Clean Vercel environment cache

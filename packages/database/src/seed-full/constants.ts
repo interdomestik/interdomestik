@@ -1,4 +1,4 @@
-export const SEED_PASSWORD = 'FullSeedPass123!';
+export const SEED_PASSWORD = 'FullSeedPass123!'; // NOSONAR - deterministic non-production full seed fixture.
 
 export const TENANTS = {
   MK: 'tenant_mk',

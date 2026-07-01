@@ -91,17 +91,22 @@ test('fetchVercelHealth validates the deployed commit SHA', async () => {
   );
 });
 
-test('fetchVercelHealth allows production host without bypass header', async () => {
+test('fetchVercelHealth handles canonical host bypass policy', async () => {
   process.env.VERCEL_AUTOMATION_BYPASS_SECRET = 'bypass-secret';
-  let receivedHeaders;
-  await fetchVercelHealth({
-    healthUrl: 'https://www.interdomestik.com/api/health',
-    requestImpl: async (_url, headers) => {
-      receivedHeaders = headers;
-      return response(200);
-    },
-  });
-  assert.deepEqual(receivedHeaders, {});
+  for (const [healthUrl, expectedBypass] of [
+    ['https://www.interdomestik.com/api/health', undefined],
+    ['https://staging.interdomestik.com/api/health', 'bypass-secret'],
+  ]) {
+    let receivedHeaders;
+    await fetchVercelHealth({
+      healthUrl,
+      requestImpl: async (_url, headers) => {
+        receivedHeaders = headers;
+        return response(200);
+      },
+    });
+    assert.equal(receivedHeaders['x-vercel-protection-bypass'], expectedBypass);
+  }
 });
 
 test('fetchVercelHealth normalizes duplicate slashes in the health path', async () => {

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '..');
-const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), '.codex');
+const codexHome = path.join(os.homedir(), '.codex');
 const codexConfigPath = path.join(codexHome, 'config.toml');
 const serverName = 'interdomestik_qa';
 const requiredRepoQaTools = [
@@ -24,6 +24,14 @@ const requiredRepoQaTools = [
   'security_guard',
   'e2e_gate',
 ];
+
+if (typeof process.env.CODEX_HOME === 'string' && process.env.CODEX_HOME.trim() !== '') {
+  console.error(
+    'CODEX_HOME is set; refusing to update local MCP config because this script only manages the default ~/.codex/config.toml.'
+  );
+  console.error('Unset CODEX_HOME first, or update $CODEX_HOME/config.toml manually.');
+  process.exit(1);
+}
 
 function tomlString(value) {
   return JSON.stringify(value);

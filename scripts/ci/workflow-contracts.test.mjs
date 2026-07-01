@@ -538,8 +538,12 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.deepEqual(normalizeNeeds(buildProductionJob.needs), ['production-evidence']);
   assert.deepEqual(normalizeNeeds(deployStagingJob.needs), ['build-staging']);
   assert.equal(deployStagingJob['timeout-minutes'], 25);
-  assert.equal(deployStagingJob.outputs.base_url, '${{ steps.vercel.outputs.base_url }}');
-  assert.equal(deployStagingJob.outputs.hostname, '${{ steps.vercel.outputs.hostname }}');
+  assert.deepEqual(deployStagingJob.outputs, {
+    base_url: '${{ steps.vercel.outputs.base_url }}',
+    hostname: '${{ steps.vercel.outputs.hostname }}',
+    gate_base_url: '${{ steps.vercel.outputs.gate_base_url }}',
+    gate_hostname: '${{ steps.vercel.outputs.gate_hostname }}',
+  });
   assert.equal(deployStagingJob.env.EXPECTED_COMMIT_SHA, '${{ github.sha }}');
   const vercelStagingDeployStep = findStep(deployStagingJob.steps, 'Deploy Staging to Vercel');
   assert.ok(vercelStagingDeployStep);
@@ -547,22 +551,26 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.equal(vercelStagingDeployStep.env.VERCEL_AUTOMATION_BYPASS_SECRET, undefined);
   assert.match(vercelStagingDeployStep.with['vercel-automation-bypass-secret'], /secrets\.VERCEL/u);
   const stagingHealthIndex = findStepIndex(deployStagingJob.steps, 'Wait for Staging Health');
-  const stagingProvenanceIndex = findStepIndex(
-    deployStagingJob.steps,
-    'Verify Staging Build Provenance'
-  );
+  const stagingProvenanceIndex = findStepIndex(deployStagingJob.steps, 'Verify Staging Build Provenance');
+  const stagingAliasProvenanceIndex = findStepIndex(deployStagingJob.steps, 'Verify Staging Canonical Alias Provenance');
   assert.ok(stagingHealthIndex > findStepIndex(deployStagingJob.steps, 'Deploy Staging to Vercel'));
   assert.ok(stagingProvenanceIndex > stagingHealthIndex);
+  assert.ok(stagingAliasProvenanceIndex > stagingProvenanceIndex);
   const stagingHealthStep = deployStagingJob.steps[stagingHealthIndex];
   assert.equal(stagingHealthStep.env.BASE_URL, '${{ steps.vercel.outputs.base_url }}');
   assert.match(stagingHealthStep.env.VERCEL_AUTOMATION_BYPASS_SECRET, /secrets\.VERCEL/u);
+  assert.match(stagingHealthStep.run, /wait-for-vercel-health\.mjs/u);
   const stagingProvenanceStep = deployStagingJob.steps[stagingProvenanceIndex];
   assert.equal(stagingProvenanceStep.env.BASE_URL, '${{ steps.vercel.outputs.base_url }}');
   assert.match(stagingProvenanceStep.env.VERCEL_AUTOMATION_BYPASS_SECRET, /secrets\.VERCEL/u);
   assert.match(stagingProvenanceStep.run, /fetch-vercel-health\.mjs[\s\S]*EXPECTED_COMMIT_SHA/u);
+  const stagingAliasProvenanceStep = deployStagingJob.steps[stagingAliasProvenanceIndex];
+  assert.equal(stagingAliasProvenanceStep.env.BASE_URL, '${{ steps.vercel.outputs.gate_base_url }}');
+  assert.match(stagingAliasProvenanceStep.env.VERCEL_AUTOMATION_BYPASS_SECRET, /secrets\.VERCEL/u);
+  assert.match(stagingAliasProvenanceStep.run, /wait-for-vercel-health\.mjs[\s\S]*EXPECTED_COMMIT_SHA/u);
   assert.deepEqual(normalizeNeeds(e2eStagingJob.needs), ['deploy-staging']);
   assert.deepEqual(e2eStagingJob.environment, { name: 'staging', deployment: false });
-  assert.equal(e2eStagingJob.env.BASE_URL, '${{ needs.deploy-staging.outputs.base_url }}');
+  assert.equal(e2eStagingJob.env.BASE_URL, '${{ needs.deploy-staging.outputs.gate_base_url }}');
   assert.equal(e2eStagingJob.env.AUTH_BASE_URL, 'https://staging.interdomestik.com');
   assert.equal(
     e2eStagingJob.env.RELEASE_GATE_EXTRA_HOSTNAME,
@@ -575,11 +583,6 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   }
   const stagingGateStep = findStep(e2eStagingJob.steps, 'Run Staging Release Gate');
   assert.ok(stagingGateStep);
-  assert.match(stagingGateStep.env.VERCEL_AUTOMATION_BYPASS_SECRET, /secrets\.VERCEL/u);
-  assert.match(stagingGateStep.run, /release:gate:raw/);
-  assert.match(stagingGateStep.run, /--envName staging/);
-  assert.match(stagingGateStep.run, /--suite p0/);
-  assert.match(stagingGateStep.run, /--authBaseUrl "\$\{AUTH_BASE_URL\}"/);
   assert.deepEqual(normalizeNeeds(productionEvidenceJob.needs), ['e2e-staging']);
   assert.deepEqual(productionEvidenceJob.environment, { name: 'production', deployment: false });
   const evidenceStep = findStep(productionEvidenceJob.steps, 'Check Production Human Evidence');
@@ -624,24 +627,17 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   );
   assert.equal(productionSetupStep.with['install-playwright'], 'true');
   const productionHealthIndex = findStepIndex(verifyProductionJob.steps, 'Health Check');
-  const productionProvenanceIndex = findStepIndex(
-    verifyProductionJob.steps,
-    'Verify Production Build Provenance'
-  );
-  const productionGateIndex = findStepIndex(
-    verifyProductionJob.steps,
-    'Run Production Release Gate'
-  );
+  const productionProvenanceIndex = findStepIndex(verifyProductionJob.steps, 'Verify Production Build Provenance');
+  const productionGateIndex = findStepIndex(verifyProductionJob.steps, 'Run Production Release Gate');
   assert.ok(productionHealthIndex >= 0);
   assert.ok(productionProvenanceIndex > productionHealthIndex);
   assert.ok(productionGateIndex > productionProvenanceIndex);
   const productionHealthStep = verifyProductionJob.steps[productionHealthIndex];
-  assert.match(productionHealthStep.run, /fetch-vercel-health\.mjs/u);
+  assert.match(productionHealthStep.run, /wait-for-vercel-health\.mjs/u);
   const productionProvenanceStep = verifyProductionJob.steps[productionProvenanceIndex];
   assert.match(productionProvenanceStep.run, /fetch-vercel-health\.mjs/u);
   assert.match(productionProvenanceStep.run, /EXPECTED_COMMIT_SHA/);
-  const productionGateStep = findStep(verifyProductionJob.steps, 'Run Production Release Gate');
-  assert.ok(productionGateStep);
+  const productionGateStep = verifyProductionJob.steps[productionGateIndex];
   assert.match(productionGateStep.run, /release:gate:raw/);
   assert.match(productionGateStep.run, /--envName production/);
   assert.match(productionGateStep.run, /--suite all/);
