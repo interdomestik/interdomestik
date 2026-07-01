@@ -37,6 +37,21 @@ function collectRbacFailures(input) {
   return { driftRecorded, failures };
 }
 
+function isPositiveCanonicalNotFoundFailure(failure) {
+  return (
+    String(failure).startsWith('P0.1_RBAC_CANONICAL_MARKER_MISSING ') &&
+    String(failure).includes('"notFound":true')
+  );
+}
+
+function shouldRetryP01FreshContext(firstAttempt) {
+  return (
+    firstAttempt.positiveCanonicalNotFound &&
+    firstAttempt.failures.length > 0 &&
+    firstAttempt.failures.every(isPositiveCanonicalNotFoundFailure)
+  );
+}
+
 async function collectP01AccountAttempt(input) {
   const { account, browser, forceFresh, loginWithRunContext, memberDriftSignatureAdded, runCtx } =
     input;
@@ -105,14 +120,14 @@ async function runP01(browser, runCtx, deps) {
         memberDriftSignatureAdded,
         runCtx,
       });
-      const shouldRetryFresh = first.positiveCanonicalNotFound && first.failures.length > 0;
+      const shouldRetryFresh = shouldRetryP01FreshContext(first);
       const finalAttempt = shouldRetryFresh
         ? await collectP01AccountAttempt({
             account,
             browser,
             forceFresh: true,
             loginWithRunContext,
-            memberDriftSignatureAdded,
+            memberDriftSignatureAdded: first.driftRecorded,
             runCtx,
           })
         : first;
@@ -128,8 +143,8 @@ async function runP01(browser, runCtx, deps) {
 
   return checkResult('P0.1', failures.length ? 'FAIL' : 'PASS', evidence, failures);
 }
-
 module.exports = {
   collectP01AccountAttempt,
   runP01,
+  shouldRetryP01FreshContext,
 };

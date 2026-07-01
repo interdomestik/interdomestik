@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import test from 'node:test';
 
 const require = createRequire(import.meta.url);
-const { runP01 } = require('./p01-rbac-runner.ts');
+const { runP01, shouldRetryP01FreshContext } = require('./p01-rbac-runner.ts');
 
 test('P0.1 retries a positive canonical not-found in a fresh browser context', async () => {
   const loginCalls: Array<{ account: string; forceFresh: boolean }> = [];
@@ -42,6 +42,31 @@ test('P0.1 retries a positive canonical not-found in a fresh browser context', a
   assert.ok(result.evidence.includes('retry=fresh-context account=staff'));
   assert.ok(loginCalls.some(call => call.account === 'staff' && call.forceFresh === true));
   assert.ok(result.signatures.length === 0);
+});
+
+test('P0.1 fresh retry is limited to positive canonical not-found failures', () => {
+  assert.equal(
+    shouldRetryP01FreshContext({
+      positiveCanonicalNotFound: true,
+      failures: [
+        'P0.1_RBAC_CANONICAL_MARKER_MISSING account=staff route=/en/staff expected=staff visible={"member":false,"agent":false,"staff":false,"admin":false,"notFound":true,"rolesTable":false}',
+      ],
+    }),
+    true
+  );
+});
+
+test('P0.1 fresh retry preserves unrelated RBAC failures', () => {
+  assert.equal(
+    shouldRetryP01FreshContext({
+      positiveCanonicalNotFound: true,
+      failures: [
+        'P0.1_RBAC_CANONICAL_MARKER_MISSING account=staff route=/en/staff expected=staff visible={"member":false,"agent":false,"staff":false,"admin":false,"notFound":true,"rolesTable":false}',
+        'P0.1_RBAC_MARKER_MISMATCH account=staff route=/en/member must_absent=admin visible={"member":true,"agent":false,"staff":false,"admin":true,"notFound":false,"rolesTable":false}',
+      ],
+    }),
+    false
+  );
 });
 
 function createPage(contextId: number, contextModes: string[]): any {
