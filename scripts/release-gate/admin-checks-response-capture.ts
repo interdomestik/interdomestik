@@ -1,6 +1,6 @@
 const SECRET_BODY_FIELD_PATTERN =
   /(["']?(?:access_token|authorization|id_token|password|refresh_token|secret|session|token)["']?\s*[:=]\s*)["']?[^"',\s}]+["']?/gi;
-const BEARER_PATTERN = /\b(Bearer)\s+[-A-Za-z0-9._~+/=]+/gi;
+const BEARER_PATTERN = /\b(Bearer)\s+[A-Za-z0-9._~+/=-]+/gi;
 
 function redactResponseBody(raw) {
   return String(raw || '')

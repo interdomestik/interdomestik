@@ -18,7 +18,7 @@ import { uploadTenantObject } from '@/lib/storage/service-role';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import * as Sentry from '@sentry/nextjs';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 
 import { confirmEvidenceUpload } from './confirm';
 
