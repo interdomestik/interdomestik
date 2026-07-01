@@ -25,15 +25,17 @@ export let options = {
 };
 
 const BASE_URL = 'http://127.0.0.1:3000';
-// Test data generators
+const firstNames = ['John', 'Jane', 'Bob', 'Alice', 'Charlie', 'Diana', 'Eve', 'Frank'];
+const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis'];
+const sequenceValue = (offset = 0) => __VU * 1000003 + __ITER + offset;
+const pickBySequence = (values, offset = 0) => values[sequenceValue(offset) % values.length];
+
 function generateEmail() {
-  return `test+${Date.now()}_${Math.random().toString(36).substr(2, 9)}@example.com`;
+  return `test+${Date.now()}_${__VU}_${__ITER}@example.com`;
 }
 
 function generateName() {
-  const firstNames = ['John', 'Jane', 'Bob', 'Alice', 'Charlie', 'Diana', 'Eve', 'Frank'];
-  const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis'];
-  return `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`;
+  return `${pickBySequence(firstNames)} ${pickBySequence(lastNames, 17)}`;
 }
 
 function buildRegistrationPayload(email, name, role) {
@@ -42,16 +44,14 @@ function buildRegistrationPayload(email, name, role) {
     name,
     role,
     password: STRESS_TEST_CREDENTIAL, // NOSONAR - synthetic stress-test credential only.
-    phone: `+${Math.floor(Math.random() * 9000000000) + 1000000000}`,
+    phone: `+${1000000000 + (sequenceValue(31) % 9000000000)}`,
   };
 }
 
-// Test functions
 export function setup() {
   console.log('🚀 Starting Stress Test for Interdomestik Production Readiness');
   console.log(`Target: ${BASE_URL}`);
 
-  // Health check before test
   const healthCheck = http.get(`${BASE_URL}/api/health`);
   if (healthCheck.status !== 200) {
     throw new Error('Health check failed - application not ready');
@@ -64,25 +64,21 @@ export default function () {
   const email = generateEmail();
   const name = generateName();
 
-  // Test 1: Concurrent Agent Registration (25% of users)
-  if (Math.random() < 0.25) {
+  const scenario = sequenceValue() % 4;
+
+  if (scenario === 0) {
     testAgentRegistration(email, name);
-  }
-  // Test 2: Concurrent Member Registration (50% of users)
-  else if (Math.random() < 0.75) {
+  } else if (scenario === 1 || scenario === 2) {
     testMemberRegistration(email, name);
-  }
-  // Test 3: Concurrent Claim Submission (25% of users)
-  else {
+  } else {
     testClaimSubmission();
   }
 
-  // Test 4: Health check monitoring (every 10 requests)
   if (__ITER % 10 === 0) {
     testHealthEndpoint();
   }
 
-  sleep(Math.random() * 2); // 0-2s random delay
+  sleep((sequenceValue(43) % 5) * 0.4); // 0-1.6s deterministic delay
 }
 
 function testAgentRegistration(email, name) {
