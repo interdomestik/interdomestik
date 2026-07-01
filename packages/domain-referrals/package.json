@@ -26,8 +26,8 @@
     "nanoid": "^5.1.16"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.8",
-    "postcss": "^8.5.15",
-    "vitest": "^4.1.8"
+    "@vitest/coverage-v8": "^4.1.9",
+    "postcss": "^8.5.16",
+    "vitest": "^4.1.9"
   }
 }
