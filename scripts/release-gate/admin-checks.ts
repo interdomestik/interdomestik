@@ -4,8 +4,6 @@ const {
   buildRoute,
   buildRouteAllowingLocalePath,
   checkResult,
-  expectedMatrixForAccount,
-  markerSummary,
   markersToString,
   sleep,
   waitForReadyMarker,
@@ -17,8 +15,8 @@ const {
   createMutationResponseCapture,
   removeRoleFromTable,
   roleRowLocator,
-  waitForPortalMarkerState,
 } = require('./admin-checks-locators.ts');
+const { runP01 } = require('./p01-rbac-runner.ts');
 const { buildP06CanonicalRouteScenarios } = require('./p06-scenarios.ts');
 const { buildRolePanelDiscoveryUrls } = require('./role-panel-targets.ts');
 
@@ -145,59 +143,6 @@ async function compactRoleTableText(page) {
     .catch(error => `unavailable:${String(error?.message || error).slice(0, 120)}`);
 }
 
-async function runP01(browser, runCtx, deps) {
-  const { loginWithRunContext } = deps;
-  const accounts = ['member', 'agent', 'staff', 'admin_ks'];
-  const evidence = [];
-  const failures = [];
-  let memberDriftSignatureAdded = false;
-
-  for (const account of accounts) {
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    try {
-      await loginWithRunContext(page, runCtx, account);
-
-      const matrix = expectedMatrixForAccount(account);
-      for (const portal of new Set([matrix.canonical, ...ROUTES.rbacTargets])) {
-        const route = `/${portal}`;
-        await gotoWithSessionRetry({
-          page,
-          navigate: () =>
-            page.goto(buildRoute(runCtx.baseUrl, runCtx.locale, route), {
-              waitUntil: 'domcontentloaded',
-              timeout: TIMEOUTS.nav,
-            }),
-          retryLogin: () => loginWithRunContext(page, runCtx, account),
-        });
-        const current = await waitForPortalMarkerState(
-          page,
-          portal === matrix.canonical ? portal : null
-        );
-        evidence.push(`${account} ${markerSummary(route, current)}`);
-
-        const rbacResult = collectRbacFailures({
-          account,
-          portal,
-          route,
-          matrix,
-          current,
-          runCtx,
-          memberDriftSignatureAdded,
-        });
-        memberDriftSignatureAdded = rbacResult.driftRecorded;
-        failures.push(...rbacResult.failures);
-      }
-    } catch (error) {
-      failures.push(`P0.1_EXCEPTION account=${account} message=${String(error.message || error)}`);
-    } finally {
-      await context.close();
-    }
-  }
-
-  return checkResult('P0.1', failures.length ? 'FAIL' : 'PASS', evidence, failures);
-}
-
 async function runP02(browser, runCtx, deps) {
   const { loginWithRunContext } = deps;
   const evidence = [];
@@ -244,40 +189,6 @@ async function runP02(browser, runCtx, deps) {
     failures.push(`P0.2_EXCEPTION message=${String(error.message || error)}`);
   }
   return checkResult('P0.2', failures.length ? 'FAIL' : 'PASS', evidence, failures);
-}
-
-function collectRbacFailures(input) {
-  const { account, portal, route, matrix, current, runCtx, memberDriftSignatureAdded } = input;
-  const failures = [];
-  let driftRecorded = memberDriftSignatureAdded;
-
-  if (
-    account === 'member' &&
-    portal === 'member' &&
-    current.member === true &&
-    (current.agent === true || current.staff === true || current.admin === true) &&
-    !driftRecorded
-  ) {
-    driftRecorded = true;
-    failures.push(
-      `P0.1_MISCONFIG_MEMBER_ROLE_DRIFT account=member route=/${runCtx.locale}${route} visible=${JSON.stringify(current)}`
-    );
-  }
-
-  if (portal === matrix.canonical && current[matrix.canonical] !== true) {
-    failures.push(
-      `P0.1_RBAC_CANONICAL_MARKER_MISSING account=${account} route=/${runCtx.locale}${route} expected=${matrix.canonical} visible=${JSON.stringify(current)}`
-    );
-  }
-
-  const unexpectedVisible = matrix.absentOnAllRoutes.filter(key => current[key] === true);
-  if (unexpectedVisible.length > 0) {
-    failures.push(
-      `P0.1_RBAC_MARKER_MISMATCH account=${account} route=/${runCtx.locale}${route} must_absent=${unexpectedVisible.join(',')} visible=${JSON.stringify(current)}`
-    );
-  }
-
-  return { driftRecorded, failures };
 }
 
 async function runP03AndP04(browser, runCtx, deps) {
