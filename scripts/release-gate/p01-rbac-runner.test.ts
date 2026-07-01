@@ -20,28 +20,27 @@ test('P0.1 retries a positive canonical not-found in a fresh browser context', a
       };
     },
   };
+  const runCtx = { baseUrl: 'https://interdomestik-web.vercel.app', locale: 'en' };
 
-  const result = await runP01(
-    browser,
-    { baseUrl: 'https://interdomestik-web.vercel.app', locale: 'en' },
-    {
-      loginWithRunContext: async (
-        page: any,
-        _runCtx: unknown,
-        account: string,
-        options?: { forceFresh?: boolean }
-      ) => {
-        page.account = account;
-        contextModes[page.contextId] = options?.forceFresh === true ? 'fresh' : 'cached';
-        loginCalls.push({ account, forceFresh: options?.forceFresh === true });
-      },
-    }
-  );
+  const result = await runP01(browser, runCtx, {
+    loginWithRunContext: async (
+      page: any,
+      _runCtx: unknown,
+      account: string,
+      options?: { forceFresh?: boolean }
+    ) => {
+      page.account = account;
+      contextModes[page.contextId] = options?.forceFresh === true ? 'fresh' : 'cached';
+      loginCalls.push({ account, forceFresh: options?.forceFresh === true });
+    },
+  });
 
   assert.equal(result.status, 'PASS');
   assert.ok(result.evidence.includes('retry=fresh-context account=staff'));
   assert.ok(loginCalls.some(call => call.account === 'staff' && call.forceFresh === true));
   assert.ok(result.signatures.length === 0);
+  assert.equal((runCtx as any).p01CanonicalProofByAccount.get('agent')?.marker, 'agent');
+  assert.equal((runCtx as any).p01CanonicalProofByAccount.get('staff')?.marker, 'staff');
 });
 
 test('P0.1 fresh retry is limited to positive canonical not-found failures', () => {
