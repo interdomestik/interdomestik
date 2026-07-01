@@ -20,4 +20,5 @@ issues.forEach(issue => {
 });
 
 console.log(`Files with ${targetRule} (${files.length}):`);
-files.sort(compareText).forEach(f => console.log(f));
+files.sort(compareText);
+files.forEach(f => console.log(f));

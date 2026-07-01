@@ -4,7 +4,11 @@ import {
   prepareClaimDocumentAiRun,
   type PreparedQueuedClaimAiRun,
 } from './ai-workflow-preparation';
-import type { ClaimAiWorkflowQueueInput, QueuedClaimAiRun } from './ai-workflow-types';
+import type {
+  ClaimAiClaimSnapshot,
+  ClaimAiWorkflowQueueInput,
+  QueuedClaimAiRun,
+} from './ai-workflow-types';
 
 type QueueInsertTx = {
   insert: (table: unknown) => { values: (rows: unknown) => unknown };
@@ -36,7 +40,7 @@ export async function queueClaimDocumentAiWorkflows(args: {
   tenantId: ClaimAiWorkflowQueueInput['tenantId'];
   userId: ClaimAiWorkflowQueueInput['userId'];
   files: ClaimAiWorkflowQueueInput['files'];
-  claimSnapshot?: ClaimAiWorkflowQueueInput['claimSnapshot'];
+  claimSnapshot?: ClaimAiClaimSnapshot | null;
 }): Promise<QueuedClaimAiRun[]> {
   if (args.files.length === 0) {
     return [];

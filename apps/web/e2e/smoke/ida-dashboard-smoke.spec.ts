@@ -53,11 +53,9 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       if (!baseURL) throw new Error('smoke-ida requires project.use.baseURL');
 
       const origin = new URL(baseURL).origin;
+      const isIdaHost = new URL(origin).hostname.startsWith('ida.');
       const forwardedHostHeader = ['x-forwarded', 'host'].join('-');
-      if (!new URL(origin).hostname.startsWith('ida.')) {
-        test.skip(true, 'ida dashboard smoke only runs in canonical ida projects');
-        return;
-      }
+      test.skip(!isIdaHost, 'ida dashboard smoke only runs in ida projects');
 
       expect(projectHeaders[forwardedHostHeader]).toBeUndefined();
       expect(projectHeaders['x-tenant-id']).toBe('tenant_ks');

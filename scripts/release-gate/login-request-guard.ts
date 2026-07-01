@@ -29,7 +29,11 @@ function getResponseHeader(response, name) {
 }
 
 function normalizePathname(pathname) {
-  return pathname.replace(/\/+$/, '') || '/';
+  let normalized = pathname;
+  while (normalized.endsWith('/') && normalized !== '/') {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized || '/';
 }
 
 function resolveTrustedLoginRedirectUrl({ response, origin }) {
