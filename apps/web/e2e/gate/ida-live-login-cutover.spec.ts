@@ -31,9 +31,9 @@ test.describe('ida live-login cutover gate', () => {
     const origin = getRootURL(testInfo);
     const locale = getLocale(testInfo);
     const hostCase = countryHostCase(new URL(origin).hostname);
+    test.skip(hostCase === null, 'live-login cutover gate only runs on country-host projects');
     if (!hostCase) {
-      expect(hostCase).toBeNull();
-      return;
+      throw new Error('unreachable: live-login cutover skip did not abort the test');
     }
 
     const loginUrl = new URL(path(testInfo, '/login'));
