@@ -1,4 +1,5 @@
 const { ROUTES, TIMEOUTS } = require('./config.ts');
+const { recordP01CanonicalProof } = require('./p01-canonical-proof.ts');
 const { gotoWithSessionRetry } = require('./session-navigation.ts');
 const { buildRoute, checkResult, expectedMatrixForAccount, markerSummary } = require('./shared.ts');
 const { waitForPortalMarkerState } = require('./admin-checks-locators.ts');
@@ -84,6 +85,9 @@ async function collectP01AccountAttempt(input) {
       );
       evidence.push(`${account} ${markerSummary(route, current)}`);
       positiveCanonicalNotFound ||= portal === matrix.canonical && current.notFound === true;
+      if (portal === matrix.canonical) {
+        recordP01CanonicalProof(runCtx, account, route, matrix.canonical, current);
+      }
 
       const rbacResult = collectRbacFailures({
         account,
@@ -143,8 +147,4 @@ async function runP01(browser, runCtx, deps) {
 
   return checkResult('P0.1', failures.length ? 'FAIL' : 'PASS', evidence, failures);
 }
-module.exports = {
-  collectP01AccountAttempt,
-  runP01,
-  shouldRetryP01FreshContext,
-};
+module.exports = { collectP01AccountAttempt, runP01, shouldRetryP01FreshContext };

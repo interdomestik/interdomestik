@@ -16,6 +16,7 @@ const {
   removeRoleFromTable,
   roleRowLocator,
 } = require('./admin-checks-locators.ts');
+const { invalidateP01ProofForRoleTarget } = require('./p01-canonical-proof.ts');
 const { runP01 } = require('./p01-rbac-runner.ts');
 const { buildP06CanonicalRouteScenarios } = require('./p06-scenarios.ts');
 const { buildRolePanelDiscoveryUrls } = require('./role-panel-targets.ts');
@@ -44,7 +45,6 @@ const DEFAULT_SCENARIO_EXPECTED_MARKERS = {
 function mismatchSignatureFor(id, mismatch) {
   return `P0.6_${id}_MARKER_MISMATCH ${mismatch}`;
 }
-
 function isInfraNavigationFailure(raw) {
   const message = String(raw || '')
     .replaceAll(/\s+/g, ' ')
@@ -52,7 +52,6 @@ function isInfraNavigationFailure(raw) {
   if (!message) return false;
   return INFRA_NAVIGATION_ERROR_PATTERNS.some(pattern => pattern.test(message));
 }
-
 async function runCheckWithInfraRetry(run, options = {}) {
   const maxAttempts = options.maxAttempts || 2;
   const retryDelayMs = options.retryDelayMs || 1_500;
@@ -294,6 +293,7 @@ async function runP03AndP04(browser, runCtx, deps) {
           `pre-clean removed_existing_role_entries=${cleanupCount}`,
           `table_before_grant=${await compactRoleTableText(page)}`
         );
+        invalidateP01ProofForRoleTarget(runCtx, resolvedTarget);
 
         const grantCapture = createMutationResponseCapture(page, runCtx.baseUrl);
         await addRole(page, roleToToggle);
