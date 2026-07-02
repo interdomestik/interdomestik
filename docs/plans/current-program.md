@@ -1564,6 +1564,22 @@ separately promoted. No replacement runtime slice is started by this blocker
 record; fresh current-authority resolution is required after release-cycle or
 equivalent evidence exists.
 
+Post-Rev 129, `OBR-DG40` is the T-503 controlled-continuation authority gate in
+`docs/plans/2026-07-02-obr-dg40-t503-controlled-continuation-authority.md`. It
+records the T-503 continuity evidence row, Day 1 pilot index, controlled
+release-gate report, Gazmendi supervisor approval for
+`CONTINUE_WITH_CONTROLLED_EXCEPTIONS`, corrected `DATABASE_URL_RLS` production/
+preview/pre-production posture, and green local `pnpm pilot:check` after the RLS
+posture fix. This authority permits only controlled release-cycle validation and
+evidence custody. It does not authorize destructive `claims.status` removal,
+final `PAID`, final finance closeout, individual legal/insurer representation,
+or final `CLOSED`. Direct destructive `T-503` implementation remains blocked
+until a later current-authority gate records qualifying final production
+release-cycle or explicitly approved equivalent evidence, including final
+G04/G05/G09/G10 disposition or explicit waiver. No replacement runtime slice is
+started by this gate; fresh current-authority resolution is required before any
+follow-on implementation.
+
 Post-Rev 56, `T-303` is complete in PR `#1078` / squash merge
 `972e40649f7aee8622d3e28639fd458e81a1222b`.
 
