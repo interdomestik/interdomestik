@@ -53,7 +53,7 @@ Qualifies as real evidence:
 - claimant-specific consent to process case/personal data;
 - claimant-specific service-fee terms or fee acceptance;
 - case identifier tying the documents to T-503;
-- legal/case owner and release owner signoff.
+- Claims/legal owner and release owner signoff.
 
 Does not qualify by itself:
 
@@ -73,7 +73,7 @@ Qualifies as real evidence:
 - Interdomestik fee calculation and receipt or ledger treatment;
 - final finance reconciliation;
 - client/member/claimant acknowledgement;
-- legal/case owner, finance owner, and release owner signoff.
+- Claims/legal owner, Claims/finance owner, and release owner signoff.
 
 Allowed final statuses:
 

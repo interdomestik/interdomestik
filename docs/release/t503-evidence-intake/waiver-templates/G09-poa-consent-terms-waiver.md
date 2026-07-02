@@ -5,7 +5,7 @@ Artifact type: controlled waiver
 
 ## Decision
 
-The claims/legal owner and release owner approve continuing T-503 release-cycle
+The Claims/legal owner and release owner approve continuing T-503 release-cycle
 validation without final claimant-specific POA, consent, or service-fee terms.
 
 ## Known Gap
@@ -21,7 +21,7 @@ validation without final claimant-specific POA, consent, or service-fee terms.
 Sponsor-level contracts may support eligibility and service relationship. They
 do not replace claimant-specific authorization for individual legal or insurer
 representation. This waiver must not be used to start or claim final individual
-representation unless the legal/case owner explicitly accepts that risk.
+representation unless the Claims/legal owner explicitly accepts that risk.
 
 ## Signoff
 

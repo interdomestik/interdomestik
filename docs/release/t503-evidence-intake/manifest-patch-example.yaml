@@ -3,6 +3,9 @@
 #
 # Target file when ready:
 # docs/release/production-evidence.yaml
+#
+# This is a partial patch example. Merge these fields into existing gate entries
+# and preserve required manifest fields such as `description` and `owner`.
 
 gates:
   - id: G04

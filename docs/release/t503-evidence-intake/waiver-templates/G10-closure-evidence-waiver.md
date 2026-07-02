@@ -5,8 +5,8 @@ Artifact type: controlled waiver
 
 ## Decision
 
-The legal/case owner, finance owner, and release owner approve continuing T-503
-release-cycle validation without final case closure evidence.
+The Claims/legal owner, Claims/finance owner, and release owner approve
+continuing T-503 release-cycle validation without final case closure evidence.
 
 ## Known Gap
 
@@ -30,7 +30,7 @@ unless the owners explicitly select and approve one final status:
 
 ## Signoff
 
-- Legal/case owner:
-- Finance owner:
+- Claims/legal owner:
+- Claims/finance owner:
 - Release owner:
 - Signed at:

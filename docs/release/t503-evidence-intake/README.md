@@ -48,9 +48,13 @@ Then update only the matching gate in `docs/release/production-evidence.yaml`
 with:
 
 - `status: supplied`, `approved`, `verified`, or `waived`;
-- the artifact path;
-- the SHA-256 hash;
+- the matching `required_artifacts[*].path`;
+- the matching `required_artifacts[*].sha256`;
 - signoff name, role, and signed date.
+
+Preserve the existing gate entry shape, including `id`, `description`, `owner`,
+and any unrelated artifacts. Do not replace a full gate entry with only the
+partial fields shown in the example.
 
 Finally run:
 
