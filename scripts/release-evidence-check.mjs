@@ -7,7 +7,8 @@ import yaml from 'js-yaml';
 
 const rootDir = process.cwd();
 const defaultManifest = 'docs/release/production-evidence.yaml';
-const passingStatuses = new Set(['supplied', 'approved', 'verified']);
+const passingStatuses = new Set(['supplied', 'approved', 'verified', 'waived']);
+const passingStatusList = Array.from(passingStatuses).join(', ');
 const requiredGateFields = ['id', 'description', 'required_artifacts', 'owner', 'status', 'signoff'];
 const requiredSignoffFields = ['name', 'role', 'signed_at'];
 
@@ -72,7 +73,7 @@ function validateGate(gate) {
   if (shapeErrors.length > 0) return shapeErrors.map(error => `${gate.id || '<unknown>'}: ${error}`);
   const errors = [];
   if (!passingStatuses.has(String(gate.status).toLowerCase())) {
-    errors.push(`${gate.id}: status=${gate.status} is not one of supplied, approved, verified`);
+    errors.push(`${gate.id}: status=${gate.status} is not one of ${passingStatusList}`);
   }
   errors.push(...validateSignoff(gate));
   for (const artifact of gate.required_artifacts) {

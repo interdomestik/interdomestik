@@ -56,3 +56,37 @@ test('release evidence check accepts supplied artifact with matching hash', () =
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('release evidence check accepts waived gates with signed waiver artifact', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'release-evidence-waiver-'));
+  try {
+    const artifact = path.join(dir, 'waiver.md');
+    writeFileSync(artifact, 'signed controlled waiver\n');
+    const manifest = path.join(dir, 'manifest.yaml');
+    writeFileSync(
+      manifest,
+      [
+        'gates:',
+        ...Array.from({ length: 10 }, (_, index) => {
+          const id = `G${String(index + 1).padStart(2, '0')}`;
+          return [
+            `  - id: ${id}`,
+            `    description: waived test ${id}`,
+            '    owner: release owner',
+            '    status: waived',
+            '    required_artifacts:',
+            `      - path: ${artifact}`,
+            '        sha256: 04c7840e69cd191db3b94c370cabe913bbd11bcb233f794a9b0ff8658c76751f',
+            '    signoff: { name: test, role: release owner, signed_at: 2026-07-02 }',
+          ].join('\n');
+        }),
+      ].join('\n')
+    );
+
+    const result = run(manifest);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /PASS gates=10/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
