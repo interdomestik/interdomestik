@@ -1,0 +1,49 @@
+# Copy-only example. Do not apply until the referenced artifacts exist and their
+# hashes are computed. This file is not read by `pnpm release:evidence:check`.
+#
+# Target file when ready:
+# docs/release/production-evidence.yaml
+#
+# This is a partial patch example. Merge these fields into existing gate entries
+# and preserve required manifest fields such as `description` and `owner`.
+
+gates:
+  - id: G04
+    status: waived
+    required_artifacts:
+      - path: docs/release/evidence/G04-bank-payment-proof-waiver.md
+        sha256: REPLACE_WITH_ACTUAL_SHA256
+    signoff:
+      name: REPLACE_WITH_SIGNER_NAME
+      role: Finance owner / Release owner
+      signed_at: 2026-07-02
+
+  - id: G05
+    status: waived
+    required_artifacts:
+      - path: docs/release/evidence/G05-600-mkd-reconciliation-waiver.md
+        sha256: REPLACE_WITH_ACTUAL_SHA256
+    signoff:
+      name: REPLACE_WITH_SIGNER_NAME
+      role: Finance owner / Release owner
+      signed_at: 2026-07-02
+
+  - id: G09
+    status: waived
+    required_artifacts:
+      - path: docs/release/evidence/G09-poa-consent-terms-waiver.md
+        sha256: REPLACE_WITH_ACTUAL_SHA256
+    signoff:
+      name: REPLACE_WITH_SIGNER_NAME
+      role: Claims/legal owner / Release owner
+      signed_at: 2026-07-02
+
+  - id: G10
+    status: waived
+    required_artifacts:
+      - path: docs/release/evidence/G10-closure-evidence-waiver.md
+        sha256: REPLACE_WITH_ACTUAL_SHA256
+    signoff:
+      name: REPLACE_WITH_SIGNER_NAME
+      role: Claims/finance owner / Release owner
+      signed_at: 2026-07-02
