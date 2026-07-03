@@ -32,7 +32,7 @@ interface ReviewBadgeProps {
 }
 ```
 
-Invariants: rendered on **every** pre-check, eligibility, or assessment output with no exceptions; reviewer label copy comes only from the reviewed `markers.*` clarity-marker catalog; never dismissible; never renders a numeric confidence score. States: pending (muted, clock icon), reviewed (green check + reviewer label + date), informational (grey info). A11y: role=status, read after the main content.
+Invariants: rendered on **every** pre-check, eligibility, or assessment output with no exceptions; reviewer label copy comes only from the `review.*` namespace (reviewed; changes require L5 legal review); never dismissible; never renders a numeric confidence score. States: pending (muted, clock icon), reviewed (green check + reviewer label + date), informational (grey info). A11y: role=status, read after the main content.
 
 ## 2. `OwnerChip` — first slice: MOB-02
 
