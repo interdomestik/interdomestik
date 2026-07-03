@@ -1,4 +1,4 @@
-import { ExtractionPipelineError, type ExtractionCritique } from '@/lib/ai/extraction-pipeline';
+import type { ExtractionCritique } from '@/lib/ai/extraction-pipeline';
 import { sql, type TenantTransaction, withTenantContext } from '@interdomestik/database';
 import { aiRuns, documentExtractions } from '@interdomestik/database/schema';
 import {
@@ -8,11 +8,11 @@ import {
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
+import {
+  buildDeletedClaimRunFailure,
+  throwDeletedClaimDocumentError,
+} from './claim-pipeline-document-lifecycle';
 import type { ClaimedClaimAiRun, ClaimAiWorkflow } from './claim-pipeline-run';
-
-const DELETED_DOCUMENT_ERROR_CODE = 'claim_ai_document_deleted';
-const DELETED_DOCUMENT_ERROR_MESSAGE =
-  'Claim AI run skipped because the source document was deleted.';
 
 function getEventName(workflow: ClaimAiWorkflow) {
   return workflow === 'legal_doc_extract'
@@ -24,10 +24,6 @@ function getSchemaVersion(workflow: ClaimAiWorkflow) {
   return workflow === 'legal_doc_extract'
     ? LEGAL_DOC_EXTRACT_SCHEMA_VERSION
     : CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION;
-}
-
-function throwDeletedDocumentError(): never {
-  throw new ExtractionPipelineError(DELETED_DOCUMENT_ERROR_CODE, DELETED_DOCUMENT_ERROR_MESSAGE);
 }
 
 async function lockActiveDocument(
@@ -61,17 +57,9 @@ export async function persistClaimAiExtraction(args: {
     if (!activeDocument) {
       await tx
         .update(aiRuns)
-        .set({
-          status: 'failed',
-          completedAt,
-          errorCode: DELETED_DOCUMENT_ERROR_CODE,
-          errorMessage: DELETED_DOCUMENT_ERROR_MESSAGE,
-          requestJson: {},
-          outputJson: null,
-          responseJson: null,
-        })
+        .set(buildDeletedClaimRunFailure(completedAt))
         .where(eq(aiRuns.id, args.run.runId));
-      throwDeletedDocumentError();
+      throwDeletedClaimDocumentError();
     }
 
     await tx
@@ -127,17 +115,9 @@ export async function persistClaimAiExtraction(args: {
         );
       await tx
         .update(aiRuns)
-        .set({
-          status: 'failed',
-          completedAt,
-          errorCode: DELETED_DOCUMENT_ERROR_CODE,
-          errorMessage: DELETED_DOCUMENT_ERROR_MESSAGE,
-          requestJson: {},
-          outputJson: null,
-          responseJson: null,
-        })
+        .set(buildDeletedClaimRunFailure(completedAt))
         .where(eq(aiRuns.id, args.run.runId));
-      throwDeletedDocumentError();
+      throwDeletedClaimDocumentError();
     }
   });
 }

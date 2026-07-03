@@ -5,11 +5,9 @@ import {
   readCandidateWarnings,
   type SanitizedContentMetrics,
 } from '@/lib/ai/extraction-pipeline';
-import { db } from '@/lib/db.server';
-import { aiRuns, documents } from '@interdomestik/database/schema';
-import { and, eq, isNull } from 'drizzle-orm';
+import { assertProcessingRunHasActiveDocument } from '@/lib/ai/document-run-lifecycle';
 
-import { throwDeletedDocumentError } from './_document-lifecycle-guard';
+import { POLICY_DELETED_DOCUMENT_FAILURE } from './_document-lifecycle-guard';
 import type { ClaimedPolicyRun, PolicyExtractionDeps } from './_pipeline-input';
 
 export type LoadedPolicyInput = ClaimedPolicyRun & {
@@ -44,25 +42,7 @@ function getRequestFileUrl(requestJson: Record<string, unknown>, fallback: unkno
 }
 
 async function assertActivePolicyDocument(run: ClaimedPolicyRun) {
-  // db-access-guard: tenant-scoped -- reason: pre-download liveness check is constrained by exact runId, tenantId, and documentId before policy AI processing
-  const [activeRun] = await db
-    .select({ id: aiRuns.id })
-    .from(aiRuns)
-    .innerJoin(
-      documents,
-      and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
-    )
-    .where(
-      and(
-        eq(aiRuns.id, run.runId),
-        eq(aiRuns.status, 'processing'),
-        eq(documents.id, run.documentId),
-        eq(documents.tenantId, run.tenantId),
-        isNull(documents.deletedAt)
-      )
-    );
-
-  if (!activeRun) throwDeletedDocumentError();
+  await assertProcessingRunHasActiveDocument(run, POLICY_DELETED_DOCUMENT_FAILURE);
 }
 
 export async function loadPolicyInput(

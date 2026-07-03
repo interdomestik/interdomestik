@@ -1,5 +1,4 @@
 import {
-  ExtractionPipelineError,
   type ExtractionCandidate,
   buildSanitizedContentMetrics,
   readCandidateConfidence,
@@ -7,16 +6,15 @@ import {
   type SanitizedContentMetrics,
   validateExtractionCandidate,
 } from '@/lib/ai/extraction-pipeline';
+import { assertProcessingRunHasActiveDocument } from '@/lib/ai/document-run-lifecycle';
+import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { extractClaimIntake } from '@interdomestik/domain-ai/claims/intake-extract';
 import { extractLegalDocument } from '@interdomestik/domain-ai/legal/extract';
 import { claimIntakeExtractSchema } from '@interdomestik/domain-ai/schemas/claim-intake-extract';
 import { legalDocExtractSchema } from '@interdomestik/domain-ai/schemas/legal-doc-extract';
-import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
-import { db } from '@/lib/db.server';
-import { aiRuns, documents } from '@interdomestik/database/schema';
-import { and, eq, isNull } from 'drizzle-orm';
 
 import { readClaimPipelineAiCallContext } from './claim-pipeline-ai-context';
+import { CLAIM_DELETED_DOCUMENT_FAILURE } from './claim-pipeline-document-lifecycle';
 import type { ClaimedClaimAiRun } from './claim-pipeline-run';
 
 export type ClaimPipelineDeps = {
@@ -68,28 +66,7 @@ export async function loadClaimAiInput(
 ): Promise<LoadedClaimAiInput> {
   const requestJson = run.requestJson && typeof run.requestJson === 'object' ? run.requestJson : {};
   const bucket = getBucketFromRequestJson(requestJson);
-  const [activeRun] = await db
-    .select({ id: aiRuns.id })
-    .from(aiRuns)
-    .innerJoin(
-      documents,
-      and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
-    )
-    .where(
-      and(
-        eq(aiRuns.id, run.runId),
-        eq(aiRuns.status, 'processing'),
-        eq(documents.id, run.documentId),
-        eq(documents.tenantId, run.tenantId),
-        isNull(documents.deletedAt)
-      )
-    );
-  if (!activeRun) {
-    throw new ExtractionPipelineError(
-      'claim_ai_document_deleted',
-      'Claim AI run skipped because the source document was deleted.'
-    );
-  }
+  await assertProcessingRunHasActiveDocument(run, CLAIM_DELETED_DOCUMENT_FAILURE);
   const fileBuffer = await deps.downloadFile(bucket, run.storagePath, run.tenantId);
   const documentText = await deps.analyzePdf(fileBuffer, run.mimeType);
 

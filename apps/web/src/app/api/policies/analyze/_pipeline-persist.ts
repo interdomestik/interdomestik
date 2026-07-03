@@ -8,7 +8,7 @@ import { nanoid } from 'nanoid';
 
 import {
   DELETED_DOCUMENT_ERROR_CODE,
-  DELETED_DOCUMENT_ERROR_MESSAGE,
+  buildDeletedPolicyRunFailure,
   lockActiveDocument,
   throwDeletedDocumentError,
 } from './_document-lifecycle-guard';
@@ -32,15 +32,7 @@ export async function persistPolicyExtraction(args: {
     if (!activeDocument) {
       await tx
         .update(aiRuns)
-        .set({
-          status: 'failed',
-          completedAt,
-          errorCode: DELETED_DOCUMENT_ERROR_CODE,
-          errorMessage: DELETED_DOCUMENT_ERROR_MESSAGE,
-          requestJson: {},
-          outputJson: null,
-          responseJson: null,
-        })
+        .set(buildDeletedPolicyRunFailure(completedAt))
         .where(eq(aiRuns.id, args.run.runId));
       throwDeletedDocumentError();
     }
@@ -69,15 +61,7 @@ export async function persistPolicyExtraction(args: {
     if (!completedRun) {
       await tx
         .update(aiRuns)
-        .set({
-          status: 'failed',
-          completedAt,
-          errorCode: DELETED_DOCUMENT_ERROR_CODE,
-          errorMessage: DELETED_DOCUMENT_ERROR_MESSAGE,
-          requestJson: {},
-          outputJson: null,
-          responseJson: null,
-        })
+        .set(buildDeletedPolicyRunFailure(completedAt))
         .where(eq(aiRuns.id, args.run.runId));
       throwDeletedDocumentError();
     }

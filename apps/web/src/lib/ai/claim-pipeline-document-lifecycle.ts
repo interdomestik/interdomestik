@@ -3,9 +3,27 @@ import { withTenantContext } from '@interdomestik/database';
 import { aiRuns, documents } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 
+import {
+  buildDeletedDocumentFailure,
+  throwDeletedDocumentError,
+  type DeletedDocumentFailure,
+} from './document-run-lifecycle';
 import type { ClaimAiWorkflow } from './claim-pipeline-run';
 
 type SkippedRun = { status: 'skipped'; claimId: string; workflow: ClaimAiWorkflow };
+
+export const CLAIM_DELETED_DOCUMENT_FAILURE: DeletedDocumentFailure = {
+  errorCode: 'claim_ai_document_deleted',
+  errorMessage: 'Claim AI run skipped because the source document was deleted.',
+};
+
+export function buildDeletedClaimRunFailure(completedAt: Date) {
+  return buildDeletedDocumentFailure(completedAt, CLAIM_DELETED_DOCUMENT_FAILURE);
+}
+
+export function throwDeletedClaimDocumentError(): never {
+  throwDeletedDocumentError(CLAIM_DELETED_DOCUMENT_FAILURE);
+}
 
 export async function failDeletedDocumentClaimAiRun(
   runId: string,
@@ -46,15 +64,7 @@ export async function failDeletedDocumentClaimAiRun(
     async tx =>
       tx
         .update(aiRuns)
-        .set({
-          status: 'failed',
-          completedAt: new Date(),
-          errorCode: 'claim_ai_document_deleted',
-          errorMessage: 'Claim AI run skipped because the source document was deleted.',
-          requestJson: {},
-          outputJson: null,
-          responseJson: null,
-        })
+        .set(buildDeletedClaimRunFailure(new Date()))
         .where(and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued')))
         .returning({ id: aiRuns.id })
   );
