@@ -2,7 +2,7 @@ import { ProtectedActionContext } from '@/lib/safe-action';
 import { db } from '@interdomestik/database';
 import { auditLog, branches, documents, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
-import { aliasedTable, and, desc, eq } from 'drizzle-orm';
+import { aliasedTable, and, desc, eq, isNull } from 'drizzle-orm';
 import {
   CashVerificationDetailsDTO,
   CashVerificationRequestDTO,
@@ -11,7 +11,6 @@ import {
 
 type VerificationDetailsRow = Omit<CashVerificationRequestDTO, 'documentId' | 'documentPath'>;
 
-// 2. Query: Get Details with Timeline
 export async function getVerificationRequestDetails(
   ctx: ProtectedActionContext,
   attemptId: string
@@ -33,7 +32,6 @@ export async function getVerificationRequestDetails(
   // db-access-guard: tenant-scoped -- reason: tenant predicate built in local conditions array before verification details query
   const [row] = (await db
     .select({
-      // Base DTO
       id: leadPaymentAttempts.id,
       leadId: memberLeads.id,
       firstName: memberLeads.firstName,
@@ -63,7 +61,6 @@ export async function getVerificationRequestDetails(
 
   if (!row) return null;
 
-  // Fetch all documents
   const docs = await db
     .select()
     .from(documents)
@@ -71,12 +68,12 @@ export async function getVerificationRequestDetails(
       and(
         eq(documents.entityType, 'payment_attempt'),
         eq(documents.entityId, attemptId),
-        eq(documents.tenantId, tenantId)
+        eq(documents.tenantId, tenantId),
+        isNull(documents.deletedAt)
       )
     )
     .orderBy(desc(documents.uploadedAt));
 
-  // Fetch Audit Log for Timeline
   const logs = await db
     .select({
       id: auditLog.id,
@@ -96,10 +93,8 @@ export async function getVerificationRequestDetails(
     )
     .orderBy(desc(auditLog.createdAt));
 
-  // Construct Timeline
   const timeline: VerificationTimelineEvent[] = [];
 
-  // 1. Creation
   timeline.push({
     id: `create-${row.id}`,
     type: 'created',
@@ -109,7 +104,6 @@ export async function getVerificationRequestDetails(
     actorName: row.agentName,
   });
 
-  // 2. Documents
   docs.forEach(d => {
     timeline.push({
       id: `doc-${d.id}`,
@@ -120,7 +114,6 @@ export async function getVerificationRequestDetails(
     });
   });
 
-  // 3. Actions
   logs.forEach(l => {
     const meta =
       typeof l.metadata === 'object' && l.metadata !== null
@@ -142,10 +135,8 @@ export async function getVerificationRequestDetails(
     });
   });
 
-  // Sort Descending
   timeline.sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  // Map docs to simple structure
   const documentList = docs.map(d => ({
     id: d.id,
     name: d.fileName,

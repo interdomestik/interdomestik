@@ -1,6 +1,6 @@
 import type { TenantTransaction } from '@interdomestik/database';
 import { claimDocuments, claims, documents } from '@interdomestik/database/schema';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import type { DocumentAccessDeps } from './_core';
 import {
@@ -61,7 +61,8 @@ async function lookupPoly(args: {
         eq(documents.id, args.documentId),
         eq(documents.tenantId, args.grantContext.homeTenantId),
         eq(documents.entityType, 'claim'),
-        eq(documents.entityId, args.grantContext.caseId)
+        eq(documents.entityId, args.grantContext.caseId),
+        isNull(documents.deletedAt)
       )
     );
   if (!doc) return null;

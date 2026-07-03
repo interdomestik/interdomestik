@@ -2,25 +2,26 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => {
   const and = vi.fn((...args: unknown[]) => ({ op: 'and', args }));
   const eq = vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right }));
-
+  const isNull = vi.fn((field: unknown) => ({ op: 'isNull', field }));
   const disclosure = {
     contractingCompany: 'Interdomestik KS LLC',
     governingLaw: 'XK',
     unavailable: false,
     source: 'subscription' as const,
   };
-
   return {
     and,
     eq,
     findSubscriptionMany: vi.fn(),
     findDocumentsMany: vi.fn(),
     getSubscriptionEntityDisclosureCore: vi.fn(async () => disclosure),
+    isNull,
   };
 });
 vi.mock('@interdomestik/database', () => ({
   and: hoisted.and,
   eq: hoisted.eq,
+  isNull: hoisted.isNull,
   subscriptions: {
     userId: 'subscriptions.user_id',
     tenantId: 'subscriptions.tenant_id',
@@ -36,11 +37,9 @@ vi.mock('@interdomestik/database', () => ({
     },
   },
 }));
-
 vi.mock('@/lib/entity-disclosure.core', () => ({
   getSubscriptionEntityDisclosureCore: hoisted.getSubscriptionEntityDisclosureCore,
 }));
-
 import {
   computeDunningState,
   getMemberDocumentsCore,
@@ -174,7 +173,7 @@ describe('membership core', () => {
     const queryArg = hoisted.findDocumentsMany.mock.calls[0]?.[0] as
       | {
           where?: (
-            docs: { entityType: string; entityId: string; tenantId: string },
+            docs: { deletedAt: string; entityType: string; entityId: string; tenantId: string },
             operators: {
               and: (...args: unknown[]) => unknown;
               eq: (left: unknown, right: unknown) => unknown;
@@ -191,6 +190,7 @@ describe('membership core', () => {
 
     queryArg?.where?.(
       {
+        deletedAt: 'documents.deleted_at',
         entityType: 'documents.entity_type',
         entityId: 'documents.entity_id',
         tenantId: 'documents.tenant_id',
