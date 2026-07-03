@@ -85,7 +85,6 @@ describe('softDeleteDocument', () => {
     expect(mocks.updateSet).toHaveBeenNthCalledWith(2, {
       requestJson: {},
       outputJson: null,
-      requestJson: {},
       responseJson: null,
     });
     expect(mocks.updateSet).toHaveBeenNthCalledWith(
@@ -95,7 +94,6 @@ describe('softDeleteDocument', () => {
         errorCode: 'claim_ai_document_deleted',
         requestJson: {},
         outputJson: null,
-        requestJson: {},
         responseJson: null,
       })
     );
