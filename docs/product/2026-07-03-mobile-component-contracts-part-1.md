@@ -27,7 +27,7 @@ Purpose: the single, uniform way any automated output declares it is not final. 
 interface ReviewBadgeProps {
   kind: 'legal' | 'medical' | 'damage' | 'eligibility' | 'generic';
   reviewState: 'pending_human_review' | 'human_reviewed' | 'informational_only';
-  reviewerLabelKey: string; // e.g. "markers.review.legalWithin24h" → "Confirmed by our legal team within 1 business day"
+  reviewerLabelKey: string; // e.g. "review.legal.within24h" → "Confirmed by our legal team within 1 business day"
   reviewedAt?: string; // ISO date, required when human_reviewed
 }
 ```
