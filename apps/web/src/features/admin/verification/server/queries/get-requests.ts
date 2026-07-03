@@ -2,7 +2,7 @@ import { ProtectedActionContext } from '@/lib/safe-action';
 import { db } from '@interdomestik/database';
 import { branches, documents, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
-import { aliasedTable, and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { aliasedTable, and, asc, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 import { CashVerificationRequestDTO, VerificationView } from '../types';
 
 // 1. Query: Get Verification Requests (Queue or History)
@@ -91,7 +91,8 @@ export async function getVerificationRequests(
       and(
         eq(documents.entityId, leadPaymentAttempts.id),
         eq(documents.entityType, 'payment_attempt'),
-        eq(documents.tenantId, tenantId)
+        eq(documents.tenantId, tenantId),
+        isNull(documents.deletedAt)
       )
     );
 

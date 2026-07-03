@@ -1,4 +1,4 @@
-import { and, db, eq, subscriptions } from '@interdomestik/database';
+import { and, db, eq, isNull, subscriptions } from '@interdomestik/database';
 import {
   attachMembershipEntityDisclosure,
   attachMembershipEntityDisclosures,
@@ -127,7 +127,8 @@ export async function getMemberDocumentsCore(args: {
       andFn(
         eqFn(docs.entityType, 'member'),
         eqFn(docs.entityId, args.userId),
-        eqFn(docs.tenantId, tenantId)
+        eqFn(docs.tenantId, tenantId),
+        isNull(docs.deletedAt)
       ),
     orderBy: (docs, { desc }) => [desc(docs.uploadedAt)],
   });
