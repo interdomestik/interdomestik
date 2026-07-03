@@ -36,6 +36,14 @@ Phase C guardrails still apply during architecture finalization: `apps/web/src/p
 
 Rev 22 of the architecture-finalization program/tracker is adopted as an additive constitution and Definition-of-Done enhancement: type-level guards, transactional outbox discipline, CQRS read-model boundaries, premium RSC dashboard discipline, and `ent-*` evidence duties are now binding for architecture-finalization work. This does not re-sequence the M0→M5 path and does not change the next promoted slice.
 
+Rev 86 closeout authority: `OBR-DG41` in
+`docs/plans/2026-07-03-obr-dg41-t503-evidence-ready-authority.md` records the
+G01-G10 evidence-ready waiver/intake package and promotes exactly one canonical
+tracker slice, `T-503`, for Tier 3 implementation. G04/G05/G09/G10 are accepted
+only as controlled waivers for implementation readiness and do not authorize
+final paid, finance closure, individual claimant representation, final
+settlement, or final closed proof.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
