@@ -1,11 +1,11 @@
 import type { ExtractionCritique, ExtractionPipelineError } from '@/lib/ai/extraction-pipeline';
 import { withTenantContext } from '@interdomestik/database';
-import { aiRuns, documentExtractions } from '@interdomestik/database/schema';
+import { aiRuns, documentExtractions, documents } from '@interdomestik/database/schema';
 import {
   CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION,
   LEGAL_DOC_EXTRACT_SCHEMA_VERSION,
 } from '@interdomestik/domain-ai';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import type { ClaimedClaimAiRun, ClaimAiWorkflow } from './claim-pipeline-run';
@@ -30,6 +30,32 @@ export async function persistClaimAiExtraction(args: {
   const completedAt = new Date();
 
   await withTenantContext({ tenantId: args.run.tenantId, role: 'system' }, async tx => {
+    const [activeDocument] = await tx
+      .select({ id: documents.id })
+      .from(documents)
+      .where(
+        and(
+          eq(documents.id, args.run.documentId),
+          eq(documents.tenantId, args.run.tenantId),
+          isNull(documents.deletedAt)
+        )
+      );
+
+    if (!activeDocument) {
+      await tx
+        .update(aiRuns)
+        .set({
+          status: 'failed',
+          completedAt,
+          errorCode: 'claim_ai_document_deleted',
+          errorMessage: 'Claim AI run skipped because the source document was deleted.',
+          outputJson: null,
+          responseJson: null,
+        })
+        .where(eq(aiRuns.id, args.run.runId));
+      return;
+    }
+
     await tx
       .insert(documentExtractions)
       .values({

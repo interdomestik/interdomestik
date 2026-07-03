@@ -31,11 +31,12 @@ vi.mock('@interdomestik/database/schema', () => ({
   aiRuns: { __name: 'ai_runs', id: { __name: 'ai_runs.id' }, status: {}, entityType: {} },
   claims: { __name: 'claim', id: {}, tenantId: {} },
   documentExtractions: { __name: 'document_extractions', sourceRunId: {} },
-  documents: { __name: 'documents', id: {}, tenantId: {} },
+  documents: { __name: 'documents', deletedAt: {}, id: {}, tenantId: {} },
 }));
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ left, right })),
+  isNull: vi.fn((field: unknown) => ({ field })),
 }));
 vi.mock('@interdomestik/domain-ai/claims/intake-extract', () => ({
   extractClaimIntake: mocks.extractClaimIntake,

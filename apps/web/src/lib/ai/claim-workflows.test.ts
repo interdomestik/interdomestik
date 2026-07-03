@@ -3,9 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => {
   const txInsertOnConflictDoNothing = vi.fn().mockResolvedValue(undefined);
   const txInsertValues = vi.fn();
-  const txInsert = vi.fn(() => ({
-    values: txInsertValues,
-  }));
+  const txInsert = vi.fn(() => ({ values: txInsertValues }));
   const txUpdateReturning = vi.fn();
   const txUpdateWhere = vi.fn(() => ({
     returning: txUpdateReturning,
@@ -13,23 +11,7 @@ const mocks = vi.hoisted(() => {
   const txUpdateSet = vi.fn(() => ({
     where: txUpdateWhere,
   }));
-  const txUpdate = vi.fn(() => ({
-    set: txUpdateSet,
-  }));
-  const tenantWriteTx = {
-    insert: txInsert,
-    update: txUpdate,
-  };
-  const transaction = vi.fn(
-    async (
-      callback: (tx: { insert: typeof txInsert; update: typeof txUpdate }) => Promise<unknown>
-    ) =>
-      callback({
-        insert: txInsert,
-        update: txUpdate,
-      })
-  );
-
+  const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
   const selectWhere = vi.fn();
   const selectInnerJoin = vi.fn(() => ({
     innerJoin: selectInnerJoin,
@@ -42,6 +24,21 @@ const mocks = vi.hoisted(() => {
   const select = vi.fn(() => ({
     from: selectFrom,
   }));
+  const tenantWriteTx = {
+    insert: txInsert,
+    select,
+    update: txUpdate,
+  };
+  const transaction = vi.fn(
+    async (
+      callback: (tx: { insert: typeof txInsert; update: typeof txUpdate }) => Promise<unknown>
+    ) =>
+      callback({
+        insert: txInsert,
+        update: txUpdate,
+      })
+  );
+
   const updateReturning = vi.fn();
   const updateWhere = vi.fn(() => ({
     returning: updateReturning,
@@ -107,12 +104,12 @@ vi.mock('@interdomestik/database/schema', () => ({
     __name: 'document_extractions',
     sourceRunId: { __name: 'document_extractions.source_run_id' },
   },
-  documents: { __name: 'documents', id: { __name: 'documents.id' } },
+  documents: { __name: 'documents', deletedAt: {}, id: { __name: 'documents.id' } },
 }));
-
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ __op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ __op: 'eq', left, right })),
+  isNull: vi.fn((field: unknown) => ({ __op: 'isNull', field })),
 }));
 
 vi.mock('nanoid', () => ({
