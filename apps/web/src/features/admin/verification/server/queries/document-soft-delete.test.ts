@@ -102,9 +102,7 @@ const ctx = {
 } as never;
 
 describe('verification payment proof document lifecycle filters', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  beforeEach(vi.clearAllMocks);
 
   it('filters soft-deleted payment proof documents from request joins', async () => {
     const requestsQuery = chain([]);
