@@ -34,12 +34,13 @@ vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantC
 vi.mock('@interdomestik/database/schema', () => ({
   aiRuns: { __name: 'ai_runs', id: { __name: 'ai_runs.id' }, status: {} },
   documentExtractions: { __name: 'document_extractions', sourceRunId: {} },
-  documents: { __name: 'documents', id: {} },
+  documents: { __name: 'documents', deletedAt: {}, id: {} },
   policies: { __name: 'policies' },
 }));
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ left, right })),
+  isNull: vi.fn((field: unknown) => ({ field })),
 }));
 
 import { processPolicyAnalysisRunService } from './_services';

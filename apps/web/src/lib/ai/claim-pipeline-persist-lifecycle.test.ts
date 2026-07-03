@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => {
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const tx = {
     delete: vi.fn(() => ({ where: txDeleteWhere })),
+    execute: vi.fn(),
     insert: vi.fn(() => ({ values: txInsertValues })),
     select: vi.fn(() => ({ from: vi.fn(() => ({ where: selectWhere })) })),
     update: vi.fn(() => ({ set: txUpdateSet })),
@@ -27,7 +28,10 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantContext }));
+vi.mock('@interdomestik/database', () => ({
+  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
+  withTenantContext: mocks.withTenantContext,
+}));
 vi.mock('@interdomestik/database/schema', () => ({
   aiRuns: { __name: 'ai_runs', id: {}, status: 'ai_runs.status' },
   documentExtractions: {
@@ -82,17 +86,19 @@ const critique = {
 describe('persistClaimAiExtraction lifecycle guards', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.tx.execute.mockResolvedValue([{ id: 'doc-1' }]);
     mocks.selectWhere.mockResolvedValue([{ id: 'doc-1' }]);
     mocks.txUpdateReturning.mockResolvedValue([{ id: 'run-1' }]);
   });
 
   it('fails and redacts the run when the document was already deleted', async () => {
-    mocks.selectWhere.mockResolvedValue([]);
+    mocks.tx.execute.mockResolvedValue([]);
 
     await expect(
       persistClaimAiExtraction({ run, extraction: { summary: 'derived PII' }, critique })
     ).rejects.toMatchObject({ errorCode: 'claim_ai_document_deleted' });
 
+    expect(mocks.tx.execute).toHaveBeenCalled();
     expect(mocks.tx.insert).not.toHaveBeenCalled();
     expect(mocks.txUpdateSet).toHaveBeenCalledWith(
       expect.objectContaining({

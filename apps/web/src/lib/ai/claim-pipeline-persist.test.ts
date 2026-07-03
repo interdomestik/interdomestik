@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => {
   const select = vi.fn(() => ({ from: selectFrom }));
   const txDeleteWhere = vi.fn();
   const txDelete = vi.fn(() => ({ where: txDeleteWhere }));
+  const txExecute = vi.fn();
   const txInsertOnConflictDoNothing = vi.fn();
   const txInsertValues = vi.fn(() => ({ onConflictDoNothing: txInsertOnConflictDoNothing }));
   const txUpdateReturning = vi.fn();
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => {
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const tx = {
     delete: txDelete,
+    execute: txExecute,
     insert: vi.fn(() => ({ values: txInsertValues })),
     select,
     update: vi.fn(() => ({ set: txUpdateSet })),
@@ -23,6 +25,7 @@ const mocks = vi.hoisted(() => {
     selectWhere,
     tx,
     txDeleteWhere,
+    txExecute,
     txInsertValues,
     txUpdateReturning,
     txUpdateSet,
@@ -33,7 +36,10 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantContext }));
+vi.mock('@interdomestik/database', () => ({
+  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
+  withTenantContext: mocks.withTenantContext,
+}));
 vi.mock('@interdomestik/database/schema', () => ({
   aiRuns: { __name: 'ai_runs', id: {}, status: 'ai_runs.status' },
   documentExtractions: {
@@ -59,6 +65,7 @@ import { persistClaimAiExtraction } from './claim-pipeline-persist';
 describe('persistClaimAiExtraction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.txExecute.mockResolvedValue([{ id: 'doc-1' }]);
     mocks.selectWhere.mockResolvedValue([{ id: 'doc-1' }]);
     mocks.txUpdateReturning.mockResolvedValue([{ id: 'run-1' }]);
   });

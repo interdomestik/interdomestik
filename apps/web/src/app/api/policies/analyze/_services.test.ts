@@ -4,50 +4,25 @@ const mocks = vi.hoisted(() => {
   const txInsertOnConflictDoNothing = vi.fn().mockResolvedValue(undefined);
   const txInsertValues = vi.fn();
   const txInsertReturning = vi.fn();
-  const txInsert = vi.fn(() => ({
-    values: txInsertValues,
-  }));
+  const txInsert = vi.fn(() => ({ values: txInsertValues }));
   const txUpdateReturning = vi.fn();
-  const txUpdateWhere = vi.fn(() => ({
-    returning: txUpdateReturning,
-  }));
-  const txUpdateSet = vi.fn(() => ({
-    where: txUpdateWhere,
-  }));
-  const txUpdate = vi.fn(() => ({
-    set: txUpdateSet,
-  }));
-  const transaction = vi.fn(
-    async (
-      callback: (tx: { insert: typeof txInsert; update: typeof txUpdate }) => Promise<unknown>
-    ) =>
-      callback({
-        insert: txInsert,
-        update: txUpdate,
-      })
+  const txUpdateWhere = vi.fn(() => ({ returning: txUpdateReturning }));
+  const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
+  const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
+  const txExecute = vi.fn();
+  type Tx = { execute: typeof txExecute; insert: typeof txInsert; update: typeof txUpdate };
+  const transaction = vi.fn(async (callback: (tx: Tx) => Promise<unknown>) =>
+    callback({ execute: txExecute, insert: txInsert, update: txUpdate })
   );
 
   const selectWhere = vi.fn();
-  const selectInnerJoin = vi.fn(() => ({
-    where: selectWhere,
-  }));
-  const selectFrom = vi.fn(() => ({
-    innerJoin: selectInnerJoin,
-    where: selectWhere,
-  }));
-  const select = vi.fn(() => ({
-    from: selectFrom,
-  }));
+  const selectInnerJoin = vi.fn(() => ({ where: selectWhere }));
+  const selectFrom = vi.fn(() => ({ innerJoin: selectInnerJoin, where: selectWhere }));
+  const select = vi.fn(() => ({ from: selectFrom }));
   const updateReturning = vi.fn();
-  const updateWhere = vi.fn(() => ({
-    returning: updateReturning,
-  }));
-  const updateSet = vi.fn(() => ({
-    where: updateWhere,
-  }));
-  const update = vi.fn(() => ({
-    set: updateSet,
-  }));
+  const updateWhere = vi.fn(() => ({ returning: updateReturning }));
+  const updateSet = vi.fn(() => ({ where: updateWhere }));
+  const update = vi.fn(() => ({ set: updateSet }));
 
   return {
     createAdminClient: vi.fn(),
@@ -71,23 +46,16 @@ const mocks = vi.hoisted(() => {
     txInsertOnConflictDoNothing,
     txInsertReturning,
     txInsertValues,
+    txExecute,
     txUpdate,
     txUpdateReturning,
     txUpdateSet,
-    txUpdateWhere,
-    update,
     updateReturning,
-    updateSet,
-    updateWhere,
     withTenantContext: vi.fn(
       async (
         _context: { tenantId: string; role?: string },
-        callback: (tx: { insert: typeof txInsert; update: typeof txUpdate }) => Promise<unknown>
-      ) =>
-        callback({
-          insert: txInsert,
-          update: txUpdate,
-        })
+        callback: (tx: Tx) => Promise<unknown>
+      ) => callback({ execute: txExecute, insert: txInsert, update: txUpdate })
     ),
   };
 });
@@ -98,22 +66,29 @@ vi.mock('@/lib/db.server', () => ({
 
 vi.mock('@interdomestik/database', () => ({
   createAdminClient: mocks.createAdminClient,
+  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
   withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
-  aiRuns: { __name: 'ai_runs' },
+  aiRuns: { __name: 'ai_runs', errorCode: {}, id: {}, status: {} },
   documentExtractions: {
     __name: 'document_extractions',
     sourceRunId: { __name: 'document_extractions.source_run_id' },
   },
-  documents: { __name: 'documents', id: { __name: 'documents.id' } },
+  documents: {
+    __name: 'documents',
+    deletedAt: { __name: 'documents.deleted_at' },
+    id: { __name: 'documents.id' },
+    tenantId: { __name: 'documents.tenant_id' },
+  },
   policies: { __name: 'policies' },
 }));
 
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ __op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ __op: 'eq', left, right })),
+  isNull: vi.fn((field: unknown) => ({ __op: 'isNull', field })),
 }));
 
 vi.mock('nanoid', () => ({
@@ -137,6 +112,7 @@ describe('queuePolicyAnalysisService', () => {
     mocks.txInsertReturning.mockResolvedValue([{ id: 'policy-1' }]);
     mocks.txInsertOnConflictDoNothing.mockResolvedValue(undefined);
     mocks.txUpdateReturning.mockResolvedValue([{ id: 'run-1' }]);
+    mocks.txExecute.mockResolvedValue([{ id: 'document-1' }]);
   });
 
   it('persists a placeholder policy, document, and queued ai run in one transaction', async () => {
@@ -193,7 +169,10 @@ describe('queuePolicyAnalysisService', () => {
       })
     );
 
-    expect(mocks.txInsert).toHaveBeenNthCalledWith(3, { __name: 'ai_runs' });
+    expect(mocks.txInsert).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({ __name: 'ai_runs' })
+    );
     expect(mocks.txInsertValues).toHaveBeenNthCalledWith(
       3,
       expect.objectContaining({
@@ -288,7 +267,7 @@ describe('processPolicyAnalysisRunService', () => {
       { tenantId: 'tenant-1', role: 'system' },
       expect.any(Function)
     );
-    expect(mocks.txUpdate).toHaveBeenCalledWith({ __name: 'ai_runs' });
+    expect(mocks.txUpdate).toHaveBeenCalledWith(expect.objectContaining({ __name: 'ai_runs' }));
     expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
@@ -296,12 +275,24 @@ describe('processPolicyAnalysisRunService', () => {
         startedAt: expect.any(Date),
       })
     );
-    expect(mocks.txUpdateReturning).toHaveBeenCalledWith({ id: undefined });
+    expect(mocks.txUpdateReturning).toHaveBeenCalledWith({ id: {} });
     expect(mocks.transaction).not.toHaveBeenCalled();
     expect(mocks.txUpdate).toHaveBeenCalledTimes(3);
-    expect(mocks.txUpdate).toHaveBeenNthCalledWith(2, { __name: 'policies' });
+    expect(mocks.txUpdate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ __name: 'ai_runs' })
+    );
     expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
       2,
+      expect.objectContaining({
+        status: 'completed',
+        outputJson: analysis,
+        completedAt: expect.any(Date),
+      })
+    );
+    expect(mocks.txUpdate).toHaveBeenNthCalledWith(3, { __name: 'policies' });
+    expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
+      3,
       expect.objectContaining({
         provider: 'Acme Insurance',
         policyNumber: 'POL-123',
@@ -331,15 +322,6 @@ describe('processPolicyAnalysisRunService', () => {
     expect(mocks.txInsertOnConflictDoNothing).toHaveBeenCalledWith({
       target: { __name: 'document_extractions.source_run_id' },
     });
-    expect(mocks.txUpdate).toHaveBeenNthCalledWith(3, { __name: 'ai_runs' });
-    expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
-      3,
-      expect.objectContaining({
-        status: 'completed',
-        outputJson: analysis,
-        completedAt: expect.any(Date),
-      })
-    );
   });
 
   it('fails the run before persistence when policy extraction does not satisfy the strict schema', async () => {

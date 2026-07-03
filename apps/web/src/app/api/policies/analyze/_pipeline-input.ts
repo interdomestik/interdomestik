@@ -2,7 +2,7 @@ import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
 import { db } from '@/lib/db.server';
 import { withTenantContext } from '@interdomestik/database';
 import { aiRuns, documents } from '@interdomestik/database/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 
 const POLICY_EXTRACT_WORKFLOW = 'policy_extract' as const;
 
@@ -39,7 +39,11 @@ export async function claimPolicyExtractionRun(
     .from(aiRuns)
     .innerJoin(
       documents,
-      and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
+      and(
+        eq(documents.id, aiRuns.documentId),
+        eq(documents.tenantId, aiRuns.tenantId),
+        isNull(documents.deletedAt)
+      )
     )
     .where(
       and(
@@ -50,6 +54,28 @@ export async function claimPolicyExtractionRun(
     );
 
   if (!queuedRun?.documentId || !queuedRun.policyId) {
+    // db-access-guard: system-exempt -- reason: fallback resolves an already-failed deleted policy AI run by opaque runId after the active-document join intentionally returns no row
+    const [deletedRun] = await db
+      .select({
+        errorCode: aiRuns.errorCode,
+        policyId: aiRuns.entityId,
+        status: aiRuns.status,
+      })
+      .from(aiRuns)
+      .where(
+        and(
+          eq(aiRuns.id, runId),
+          eq(aiRuns.workflow, POLICY_EXTRACT_WORKFLOW),
+          eq(aiRuns.entityType, 'policy')
+        )
+      );
+    if (
+      deletedRun?.policyId &&
+      deletedRun.status === 'failed' &&
+      deletedRun.errorCode === 'document_ai_document_deleted'
+    ) {
+      return { status: 'skipped', policyId: deletedRun.policyId };
+    }
     throw new Error(`Queued policy analysis run ${runId} was not found.`);
   }
 

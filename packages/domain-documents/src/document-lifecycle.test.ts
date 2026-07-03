@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => {
   const deleteWhere = vi.fn();
   const deleteFrom = vi.fn(() => ({ where: deleteWhere }));
+  const updateReturning = vi.fn();
   const updateWhere = vi.fn();
-  const updateSet = vi.fn(() => ({ where: updateWhere }));
+  const updateWhereReturning = vi.fn(() => ({ returning: updateReturning }));
+  const updateSet = vi.fn(() => ({ where: updateWhereReturning }));
   const update = vi.fn(() => ({ set: updateSet }));
   const tx = { delete: deleteFrom, update };
 
@@ -18,8 +20,10 @@ const mocks = vi.hoisted(() => {
     logAuditEvent: vi.fn(),
     tx,
     update,
+    updateReturning,
     updateSet,
     updateWhere,
+    updateWhereReturning,
   };
 });
 
@@ -44,8 +48,17 @@ vi.mock('@interdomestik/database/schema', () => ({
   documents: {
     deletedAt: 'documents.deleted_at',
     deletedBy: 'documents.deleted_by',
+    entityId: 'documents.entity_id',
+    entityType: 'documents.entity_type',
     id: 'documents.id',
     tenantId: 'documents.tenant_id',
+  },
+  policies: {
+    analysisJson: 'policies.analysis_json',
+    id: 'policies.id',
+    policyNumber: 'policies.policy_number',
+    provider: 'policies.provider',
+    tenantId: 'policies.tenant_id',
   },
 }));
 vi.mock('drizzle-orm', () => ({
@@ -61,6 +74,8 @@ describe('softDeleteDocument', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('soft-deletes the document and clears AI-derived data for the tenant document', async () => {
+    mocks.updateReturning.mockResolvedValue([{ entityType: 'policy', entityId: 'policy-1' }]);
+
     await softDeleteDocument({
       tenantId: 'tenant-1',
       documentId: 'doc-1',
@@ -68,21 +83,24 @@ describe('softDeleteDocument', () => {
     });
 
     expect(mocks.db.transaction).toHaveBeenCalledTimes(1);
-    expect(mocks.update).toHaveBeenNthCalledWith(1, {
-      deletedAt: 'documents.deleted_at',
-      deletedBy: 'documents.deleted_by',
-      id: 'documents.id',
-      tenantId: 'documents.tenant_id',
-    });
-    expect(mocks.deleteFrom).toHaveBeenCalledWith({
-      documentId: 'document_extractions.document_id',
-      tenantId: 'document_extractions.tenant_id',
-    });
+    expect(mocks.update).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        deletedAt: 'documents.deleted_at',
+        deletedBy: 'documents.deleted_by',
+        id: 'documents.id',
+        tenantId: 'documents.tenant_id',
+      })
+    );
     expect(mocks.update).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({ documentId: 'ai_runs.document_id' })
     );
     expect(mocks.updateSet).toHaveBeenNthCalledWith(2, {
+      status: 'failed',
+      completedAt: expect.any(Date),
+      errorCode: 'document_ai_document_deleted',
+      errorMessage: 'AI run skipped because the source document was deleted.',
       requestJson: {},
       outputJson: null,
       responseJson: null,
@@ -90,19 +108,29 @@ describe('softDeleteDocument', () => {
     expect(mocks.updateSet).toHaveBeenNthCalledWith(
       3,
       expect.objectContaining({
-        status: 'failed',
         errorCode: 'claim_ai_document_deleted',
-        requestJson: {},
-        outputJson: null,
-        responseJson: null,
       })
     );
+    expect(mocks.updateSet).toHaveBeenNthCalledWith(4, {
+      requestJson: {},
+      outputJson: null,
+      responseJson: null,
+    });
     expect(mocks.eq).toHaveBeenCalledWith('ai_runs.entity_type', 'claim');
     expect(mocks.inArray).toHaveBeenCalledWith('ai_runs.status', [
       'queued',
       'processing',
       'in_progress',
     ]);
+    expect(mocks.deleteFrom).toHaveBeenCalledWith({
+      documentId: 'document_extractions.document_id',
+      tenantId: 'document_extractions.tenant_id',
+    });
+    expect(mocks.updateSet).toHaveBeenLastCalledWith({
+      analysisJson: {},
+      provider: null,
+      policyNumber: null,
+    });
     expect(mocks.logAuditEvent).toHaveBeenCalledWith({
       tenantId: 'tenant-1',
       documentId: 'doc-1',

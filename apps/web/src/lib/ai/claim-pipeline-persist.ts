@@ -1,11 +1,11 @@
 import { ExtractionPipelineError, type ExtractionCritique } from '@/lib/ai/extraction-pipeline';
-import { withTenantContext } from '@interdomestik/database';
-import { aiRuns, documentExtractions, documents } from '@interdomestik/database/schema';
+import { sql, type TenantTransaction, withTenantContext } from '@interdomestik/database';
+import { aiRuns, documentExtractions } from '@interdomestik/database/schema';
 import {
   CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION,
   LEGAL_DOC_EXTRACT_SCHEMA_VERSION,
 } from '@interdomestik/domain-ai';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import type { ClaimedClaimAiRun, ClaimAiWorkflow } from './claim-pipeline-run';
@@ -30,6 +30,21 @@ function throwDeletedDocumentError(): never {
   throw new ExtractionPipelineError(DELETED_DOCUMENT_ERROR_CODE, DELETED_DOCUMENT_ERROR_MESSAGE);
 }
 
+async function lockActiveDocument(
+  tx: TenantTransaction,
+  args: { documentId: string; tenantId: string }
+) {
+  // db-access-guard: tenant-scoped -- reason: row lock is constrained by exact tenantId and documentId before claim AI extraction persistence
+  return tx.execute<{ id: string }>(sql`
+    select "id"
+    from "documents"
+    where "id" = ${args.documentId}
+      and "tenant_id" = ${args.tenantId}
+      and "deleted_at" is null
+    for update
+  `);
+}
+
 export async function persistClaimAiExtraction(args: {
   run: ClaimedClaimAiRun;
   extraction: Record<string, unknown>;
@@ -38,16 +53,10 @@ export async function persistClaimAiExtraction(args: {
   const completedAt = new Date();
 
   await withTenantContext({ tenantId: args.run.tenantId, role: 'system' }, async tx => {
-    const [activeDocument] = await tx
-      .select({ id: documents.id })
-      .from(documents)
-      .where(
-        and(
-          eq(documents.id, args.run.documentId),
-          eq(documents.tenantId, args.run.tenantId),
-          isNull(documents.deletedAt)
-        )
-      );
+    const [activeDocument] = await lockActiveDocument(tx, {
+      documentId: args.run.documentId,
+      tenantId: args.run.tenantId,
+    });
 
     if (!activeDocument) {
       await tx

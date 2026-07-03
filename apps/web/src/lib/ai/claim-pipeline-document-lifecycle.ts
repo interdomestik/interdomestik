@@ -31,7 +31,11 @@ export async function failDeletedDocumentClaimAiRun(
     return null;
   }
 
-  if (run.status === 'failed' && run.errorCode === 'claim_ai_document_deleted') {
+  if (
+    run.status === 'failed' &&
+    (run.errorCode === 'claim_ai_document_deleted' ||
+      run.errorCode === 'document_ai_document_deleted')
+  ) {
     return { status: 'skipped', claimId: run.claimId, workflow: run.workflow };
   }
 

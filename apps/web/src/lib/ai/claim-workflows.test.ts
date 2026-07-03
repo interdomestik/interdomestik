@@ -5,26 +5,16 @@ const mocks = vi.hoisted(() => {
   const txInsertValues = vi.fn();
   const txInsert = vi.fn(() => ({ values: txInsertValues }));
   const txUpdateReturning = vi.fn();
-  const txUpdateWhere = vi.fn(() => ({
-    returning: txUpdateReturning,
-  }));
-  const txUpdateSet = vi.fn(() => ({
-    where: txUpdateWhere,
-  }));
+  const txUpdateWhere = vi.fn(() => ({ returning: txUpdateReturning }));
+  const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
+  const txExecute = vi.fn();
   const selectWhere = vi.fn();
-  const selectInnerJoin = vi.fn(() => ({
-    innerJoin: selectInnerJoin,
-    where: selectWhere,
-  }));
-  const selectFrom = vi.fn(() => ({
-    innerJoin: selectInnerJoin,
-    where: selectWhere,
-  }));
-  const select = vi.fn(() => ({
-    from: selectFrom,
-  }));
+  const selectInnerJoin = vi.fn(() => ({ innerJoin: selectInnerJoin, where: selectWhere }));
+  const selectFrom = vi.fn(() => ({ innerJoin: selectInnerJoin, where: selectWhere }));
+  const select = vi.fn(() => ({ from: selectFrom }));
   const tenantWriteTx = {
+    execute: txExecute,
     insert: txInsert,
     select,
     update: txUpdate,
@@ -32,11 +22,7 @@ const mocks = vi.hoisted(() => {
   const transaction = vi.fn(
     async (
       callback: (tx: { insert: typeof txInsert; update: typeof txUpdate }) => Promise<unknown>
-    ) =>
-      callback({
-        insert: txInsert,
-        update: txUpdate,
-      })
+    ) => callback({ insert: txInsert, update: txUpdate })
   );
 
   const updateReturning = vi.fn();
@@ -67,6 +53,7 @@ const mocks = vi.hoisted(() => {
     txInsert,
     txInsertOnConflictDoNothing,
     txInsertValues,
+    txExecute,
     txUpdate,
     txUpdateReturning,
     txUpdateSet,
@@ -94,6 +81,7 @@ vi.mock('@/lib/storage/evidence-bucket', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
   withTenantContext: mocks.withTenantContext,
 }));
 
@@ -237,6 +225,7 @@ describe('processClaimDocumentWorkflowRunService', () => {
     mocks.txInsertValues.mockImplementation(() => ({
       onConflictDoNothing: mocks.txInsertOnConflictDoNothing,
     }));
+    mocks.txExecute.mockResolvedValue([{ id: 'doc-1' }]);
     mocks.txUpdateReturning.mockResolvedValue([{ id: 'run-1' }]);
   });
 
