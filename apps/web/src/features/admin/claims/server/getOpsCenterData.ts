@@ -196,7 +196,7 @@ export async function getOpsCenterData(
         claim: {
           id: claims.id,
           title: claims.title,
-          status: claims.status,
+          status: lifecycleSql.claimLifecycleStatusSql(),
           caseLifecycleState: claims.caseLifecycleState,
           recoveryLifecycleState: claims.recoveryLifecycleState,
           createdAt: claims.createdAt,

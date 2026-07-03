@@ -24,7 +24,6 @@ export async function getAgentClientClaimSummary(memberId: string, tenantId: str
     db
       .select({
         id: claims.id,
-        status: claims.status,
         caseLifecycleState: claims.caseLifecycleState,
         recoveryLifecycleState: claims.recoveryLifecycleState,
       })

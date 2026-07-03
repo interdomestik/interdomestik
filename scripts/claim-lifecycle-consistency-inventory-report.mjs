@@ -1,6 +1,7 @@
 export const VALID_LIFECYCLE_PAIRS = {
   draft: ['draft', 'not_started'],
   submitted: ['submitted', 'not_started'],
+  submitted_to_airline: ['recovery', 'submitted_to_airline'],
   verification: ['verification', 'not_started'],
   evaluation: ['evaluation', 'not_started'],
   negotiation: ['recovery', 'negotiation'],
@@ -14,6 +15,7 @@ with expected(status, case_lifecycle_state, recovery_lifecycle_state) as (
   values
     ('draft', 'draft', 'not_started'),
     ('submitted', 'submitted', 'not_started'),
+    ('submitted_to_airline', 'recovery', 'submitted_to_airline'),
     ('verification', 'verification', 'not_started'),
     ('evaluation', 'evaluation', 'not_started'),
     ('negotiation', 'recovery', 'negotiation'),
@@ -23,16 +25,14 @@ with expected(status, case_lifecycle_state, recovery_lifecycle_state) as (
 ),
 classified as (
   select
-    c.status::text as status,
+    pair.status::text as status,
     c.case_lifecycle_state::text as case_lifecycle_state,
     c.recovery_lifecycle_state::text as recovery_lifecycle_state,
     case
-      when c.status is null
-        or c.case_lifecycle_state is null
+      when c.case_lifecycle_state is null
         or c.recovery_lifecycle_state is null
         then 'null_incomplete'
       when pair.status is null then 'invalid_lifecycle_pair'
-      when pair.status <> c.status::text then 'status_lifecycle_mismatch'
       else 'valid'
     end as category
   from claim c
@@ -46,7 +46,7 @@ group by category, status, case_lifecycle_state, recovery_lifecycle_state
 order by category, status nulls first, case_lifecycle_state nulls first, recovery_lifecycle_state nulls first;
 `.trim();
 
-const CATEGORIES = ['valid', 'invalid_lifecycle_pair', 'null_incomplete', 'status_lifecycle_mismatch'];
+const CATEGORIES = ['valid', 'invalid_lifecycle_pair', 'null_incomplete'];
 
 export function normalizeInventoryExecuteRows(result) {
   if (Array.isArray(result)) {
@@ -101,12 +101,11 @@ export function formatLifecycleInventoryReport(rows, meta = {}) {
       report: 'claim_lifecycle_consistency_inventory',
       generatedAt: meta.generatedAt ?? new Date().toISOString(),
       mode: 'read_only_aggregate',
-      durableSource: 'claim(status, case_lifecycle_state, recovery_lifecycle_state)',
+      durableSource: 'claim(case_lifecycle_state, recovery_lifecycle_state)',
       categories: {
-        valid: 'Lifecycle pair is recognized and maps back to legacy status.',
+        valid: 'Lifecycle pair is recognized and maps to a derived status.',
         invalid_lifecycle_pair: 'Both lifecycle fields are present but not a recognized pair.',
-        null_incomplete: 'Status or at least one lifecycle field is null.',
-        status_lifecycle_mismatch: 'Lifecycle pair is recognized but maps to a different status.',
+        null_incomplete: 'At least one lifecycle field is null.',
       },
       ...summarizeLifecycleInventory(rows),
     },

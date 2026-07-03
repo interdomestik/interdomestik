@@ -1,5 +1,6 @@
 import { updateClaimStatusCore as updateClaimStatusCoreDomain } from '@interdomestik/domain-claims/admin-claims/update-status';
 import { db } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 import { logAuditEvent } from '@/lib/audit';
@@ -77,7 +78,8 @@ export async function updateClaimStatusCore(params: {
     where: (claimsTable, { eq }) =>
       withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
     columns: {
-      status: true,
+      caseLifecycleState: true,
+      recoveryLifecycleState: true,
     },
   });
 
@@ -85,7 +87,7 @@ export async function updateClaimStatusCore(params: {
     throw new Error('Claim not found');
   }
 
-  const currentStatus = claim.status ?? 'draft';
+  const currentStatus = claimStatusFromLifecycleFields(claim);
   if (currentStatus === status) {
     return;
   }
@@ -108,7 +110,8 @@ export async function updateClaimStatusCore(params: {
     where: (claimsTable, { eq }) =>
       withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
     columns: {
-      status: true,
+      caseLifecycleState: true,
+      recoveryLifecycleState: true,
     },
   });
 
@@ -116,7 +119,7 @@ export async function updateClaimStatusCore(params: {
     return;
   }
 
-  const persistedStatus = updatedClaim.status ?? 'draft';
+  const persistedStatus = claimStatusFromLifecycleFields(updatedClaim);
   if (persistedStatus !== currentStatus) {
     revalidatePath(`/${locale}/admin/claims`);
     revalidatePath(`/${locale}/admin/claims/${claimId}`);

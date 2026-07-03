@@ -1,8 +1,8 @@
 import { E2E_PASSWORD, claimStageHistory, claims, db, eq, user } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-
 const PILOT_TENANT_ID = 'pilot-mk';
 
 test.describe('C1 Pilot: Staff to member status loop', () => {
@@ -197,9 +197,9 @@ test.describe('C1 Pilot: Staff to member status loop', () => {
           async () => {
             const updated = await db.query.claims.findFirst({
               where: eq(claims.id, createdClaim.id),
-              columns: { status: true },
+              columns: { caseLifecycleState: true, recoveryLifecycleState: true },
             });
-            return updated?.status ?? null;
+            return updated ? claimStatusFromLifecycleFields(updated) : null;
           },
           { timeout: 15_000 }
         )

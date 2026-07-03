@@ -8,11 +8,10 @@ export type TransitionCurrentReadRow = {
   category?: string | null;
   caseLifecycleState: string | null | undefined;
   recoveryLifecycleState: string | null | undefined;
-  status: string | null | undefined;
 };
 
 export type TransitionCurrentState = {
-  authority?: 'lifecycle' | 'status_fallback';
+  authority?: 'lifecycle';
   category?: string | null;
   lifecycleVersion: number;
   status: ClaimStatus;

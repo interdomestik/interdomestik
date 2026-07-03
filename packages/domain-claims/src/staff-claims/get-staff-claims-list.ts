@@ -11,6 +11,7 @@ import {
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { aliasedTable } from 'drizzle-orm';
 import type { DiasporaOriginFilter } from '../claims/diaspora-origin-filter';
+import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
 import {
   buildStaffClaimsListConditions,
   type StaffClaimsAssignmentFilter,
@@ -64,7 +65,7 @@ export async function getStaffClaimsList(params: {
           claimNumber: claims.claimNumber,
           companyName: claims.companyName,
           title: claims.title,
-          status: claims.status,
+          status: claimLifecycleStatusSql(),
           caseLifecycleState: claims.caseLifecycleState,
           recoveryLifecycleState: claims.recoveryLifecycleState,
           staffId: claims.staffId,

@@ -232,7 +232,7 @@ describe('Claim Actions', () => {
           title: 'Test Claim',
           companyName: 'Bad Company',
           userId: 'user-123',
-          status: 'draft',
+          caseLifecycleState: 'draft', recoveryLifecycleState: 'not_started',
         })
       );
     });
@@ -379,7 +379,7 @@ describe('Claim Actions', () => {
         expect.objectContaining({
           title: 'Valid title here',
           userId: 'user-123',
-          status: 'submitted',
+          caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started',
         })
       );
 
@@ -417,7 +417,7 @@ describe('Claim Actions', () => {
         1,
         expect.objectContaining({
           userId: 'user-123',
-          status: 'submitted',
+          caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started',
         })
       );
       expect(mockDbInsert).toHaveBeenNthCalledWith(

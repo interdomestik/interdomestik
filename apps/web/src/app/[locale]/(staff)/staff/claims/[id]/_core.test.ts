@@ -81,7 +81,8 @@ describe('getStaffClaimDetailsCore', () => {
   it('returns claim, documents (with fileName), and stage history', async () => {
     hoisted.claimsFindFirst.mockResolvedValue({
       id: 'c1',
-      status: 'submitted',
+      caseLifecycleState: 'submitted',
+      recoveryLifecycleState: 'not_started',
       user: { id: 'u1', tenantId: 'tenant_mk' },
     });
 

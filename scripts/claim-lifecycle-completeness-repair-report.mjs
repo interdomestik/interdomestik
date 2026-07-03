@@ -1,38 +1,15 @@
 export const CLAIM_LIFECYCLE_REPAIR_DRY_RUN_SQL = `
-with expected(status, case_lifecycle_state, recovery_lifecycle_state) as (
-  values
-    ('draft', 'draft', 'not_started'),
-    ('submitted', 'submitted', 'not_started'),
-    ('verification', 'verification', 'not_started'),
-    ('evaluation', 'evaluation', 'not_started'),
-    ('negotiation', 'recovery', 'negotiation'),
-    ('court', 'recovery', 'court'),
-    ('resolved', 'resolved', 'resolved'),
-    ('rejected', 'rejected', 'closed')
-),
-classified as (
+with classified as (
   select
-    c.status::text as status,
+    null::text as status,
     c.case_lifecycle_state::text as case_lifecycle_state,
     c.recovery_lifecycle_state::text as recovery_lifecycle_state,
     case
-      when e.status is null and (
-        c.case_lifecycle_state is null or c.recovery_lifecycle_state is null
-      ) then 'unmappable_incomplete'
-      when e.status is not null
-       and (c.case_lifecycle_state is null or c.recovery_lifecycle_state is null)
-       and (c.case_lifecycle_state is null or c.case_lifecycle_state::text = e.case_lifecycle_state)
-       and (
-         c.recovery_lifecycle_state is null
-         or c.recovery_lifecycle_state::text = e.recovery_lifecycle_state
-       ) then 'repairable'
-      when e.status is not null
-       and (c.case_lifecycle_state is null or c.recovery_lifecycle_state is null)
-        then 'blocked_partial_mismatch'
+      when c.case_lifecycle_state is null or c.recovery_lifecycle_state is null
+        then 'blocked_missing_lifecycle'
       else 'not_in_scope'
     end as action
   from claim c
-  left join expected e on e.status = c.status::text
 )
 select action, status, case_lifecycle_state, recovery_lifecycle_state, count(*)::int as count
 from classified
@@ -42,44 +19,15 @@ order by action, status nulls first, case_lifecycle_state nulls first, recovery_
 `.trim();
 
 export const CLAIM_LIFECYCLE_REPAIR_APPLY_SQL = `
-with expected(status, case_lifecycle_state, recovery_lifecycle_state) as (
-  values
-    ('draft', 'draft', 'not_started'),
-    ('submitted', 'submitted', 'not_started'),
-    ('verification', 'verification', 'not_started'),
-    ('evaluation', 'evaluation', 'not_started'),
-    ('negotiation', 'recovery', 'negotiation'),
-    ('court', 'recovery', 'court'),
-    ('resolved', 'resolved', 'resolved'),
-    ('rejected', 'rejected', 'closed')
-),
-updated as (
-  update claim c
-     set case_lifecycle_state = coalesce(c.case_lifecycle_state::text, e.case_lifecycle_state),
-         recovery_lifecycle_state = coalesce(
-           c.recovery_lifecycle_state::text,
-           e.recovery_lifecycle_state
-         ),
-         "updatedAt" = now()
-    from expected e
-   where e.status = c.status::text
-     and (c.case_lifecycle_state is null or c.recovery_lifecycle_state is null)
-     and (c.case_lifecycle_state is null or c.case_lifecycle_state::text = e.case_lifecycle_state)
-     and (
-       c.recovery_lifecycle_state is null
-       or c.recovery_lifecycle_state::text = e.recovery_lifecycle_state
-     )
- returning c.status::text as status,
-           c.case_lifecycle_state::text as case_lifecycle_state,
-           c.recovery_lifecycle_state::text as recovery_lifecycle_state
-)
-select 'repaired' as action, status, case_lifecycle_state, recovery_lifecycle_state, count(*)::int as count
-from updated
-group by status, case_lifecycle_state, recovery_lifecycle_state
-order by status, case_lifecycle_state, recovery_lifecycle_state;
+select 'blocked_post_status_drop' as action,
+       null::text as status,
+       null::text as case_lifecycle_state,
+       null::text as recovery_lifecycle_state,
+       0::int as count
+where false;
 `.trim();
 
-const ACTIONS = ['repairable', 'blocked_partial_mismatch', 'unmappable_incomplete', 'repaired'];
+const ACTIONS = ['blocked_missing_lifecycle', 'blocked_post_status_drop'];
 
 function countValue(value) {
   const count = Number(value ?? 0);
@@ -123,10 +71,10 @@ export function formatLifecycleRepairReport(rows, meta = {}) {
       report: 'claim_lifecycle_completeness_repair',
       generatedAt: meta.generatedAt ?? new Date().toISOString(),
       mode: meta.mode ?? 'dry_run',
-      durableSource: 'claim(status, case_lifecycle_state, recovery_lifecycle_state)',
+      durableSource: 'claim(case_lifecycle_state, recovery_lifecycle_state)',
       pii: 'aggregate_counts_only',
       rollback:
-        'Re-run inventory; restore lifecycle fields from backup/snapshot if apply output differs from expected aggregate counts.',
+        'Re-run inventory; restore lifecycle fields from backup/snapshot if blocked missing lifecycle rows are present.',
       ...summarizeLifecycleRepair(rows),
     },
     null,

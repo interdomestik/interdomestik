@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-
+const SUBMITTED_LIFECYCLE = claimLifecycleFieldsForStatus('submitted');
 function isMkProject(testInfo: import('@playwright/test').TestInfo): boolean {
   return testInfo.project.name.includes('mk');
 }
@@ -55,7 +55,8 @@ async function resolveAccessibleClaimId(agentEmail: string): Promise<AccessibleC
     where: and(
       eq(claims.tenantId, seededAgent.tenantId),
       eq(claims.userId, seededAssignment.memberId),
-      eq(claims.status, 'submitted'),
+      eq(claims.caseLifecycleState, SUBMITTED_LIFECYCLE.caseLifecycleState),
+      eq(claims.recoveryLifecycleState, SUBMITTED_LIFECYCLE.recoveryLifecycleState),
       ...(seededAgent.branchId ? [eq(claims.branchId, seededAgent.branchId)] : [])
     ),
     columns: { id: true },
@@ -75,7 +76,6 @@ async function resolveAccessibleClaimId(agentEmail: string): Promise<AccessibleC
     companyName: 'Interdomestik QA',
     category: 'vehicle',
     branchId: seededAgent.branchId ?? null,
-    status: 'submitted',
     ...claimLifecycleFieldsForStatus('submitted'),
   });
 
@@ -118,7 +118,8 @@ async function resolveCrossAgentClaimId(agentEmail: string): Promise<CrossAgentC
   const existingSameBranchPeerClaims = await db.query.claims.findMany({
     where: and(
       eq(claims.tenantId, seededAgent.tenantId),
-      eq(claims.status, 'submitted'),
+      eq(claims.caseLifecycleState, SUBMITTED_LIFECYCLE.caseLifecycleState),
+      eq(claims.recoveryLifecycleState, SUBMITTED_LIFECYCLE.recoveryLifecycleState),
       ...(seededAgent.branchId ? [eq(claims.branchId, seededAgent.branchId)] : [])
     ),
     columns: { id: true, userId: true, agentId: true },
@@ -210,7 +211,6 @@ async function resolveCrossAgentClaimId(agentEmail: string): Promise<CrossAgentC
     title: `D02 cross-agent claim ${suffix}`,
     companyName: 'Interdomestik QA',
     category: 'vehicle',
-    status: 'submitted',
     ...claimLifecycleFieldsForStatus('submitted'),
   });
 

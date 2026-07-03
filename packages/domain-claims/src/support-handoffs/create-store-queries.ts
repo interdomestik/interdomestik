@@ -2,6 +2,7 @@ import { claims, desc, eq, subscriptions, type TenantTransaction } from '@interd
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { and } from 'drizzle-orm';
+import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
 
 export type ClaimContext = {
   id: string;
@@ -42,7 +43,7 @@ export async function getOwnedClaimContext(args: {
       id: claims.id,
       branchId: claims.branchId,
       staffId: claims.staffId,
-      status: claims.status,
+      status: claimLifecycleStatusSql(),
       createdAt: claims.createdAt,
       updatedAt: claims.updatedAt,
       statusUpdatedAt: claims.statusUpdatedAt,

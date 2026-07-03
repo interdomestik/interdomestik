@@ -29,17 +29,12 @@ export const CLAIM_STATUS_TRANSITION_WRITERS = new Set([
   'packages/domain-claims/src/claims/transition.ts',
 ]);
 
-export const CLAIM_STATUS_INITIALIZATION_WRITERS = new Set([
-  'packages/domain-claims/src/claims/create.ts',
-  'packages/domain-claims/src/claims/submit.ts',
-]);
+export const CLAIM_STATUS_INITIALIZATION_WRITERS = new Set([]);
 
 export const CLAIM_STATUS_COMPAT_REPAIR_WRITERS = new Set([]);
 
 export const CLAIM_STATUS_FIXTURE_WRITERS = new Set([
-  'apps/web/e2e/gate/agent-workspace-claims-selection.spec.ts',
   'packages/database/src/seed-full/claims.ts',
-  'packages/database/src/seed-golden/claims.ts',
   'packages/database/src/seed-packs/ks-workflow-pack.ts',
   'packages/database/test/rls-engaged.test.ts',
   'scripts/ci/db-access-guard.test.mjs',

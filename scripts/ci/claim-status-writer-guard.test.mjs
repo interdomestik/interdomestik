@@ -67,7 +67,7 @@ test('ignores claim status reads', () => {
 test('classifies claim creation and submit as initial status writers', () => {
   assert.deepEqual(
     [...CLAIM_STATUS_INITIALIZATION_WRITERS].sort((a, b) => a.localeCompare(b)),
-    ['packages/domain-claims/src/claims/create.ts', 'packages/domain-claims/src/claims/submit.ts']
+    []
   );
   assert.equal(
     CLAIM_STATUS_TRANSITION_WRITERS.has('packages/domain-claims/src/claims/create.ts'),

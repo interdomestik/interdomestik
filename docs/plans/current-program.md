@@ -44,6 +44,19 @@ only as controlled waivers for implementation readiness and do not authorize
 final paid, finance closure, individual claimant representation, final
 settlement, or final closed proof.
 
+Rev 87 closeout: `T-503` completed local implementation/readiness proof in
+`docs/plans/2026-07-03-t503-drop-claim-status-closeout.md`, removing the
+physical `claims.status` column and preserving any status-shaped output only as
+derived lifecycle compatibility from `case_lifecycle_state` and
+`recovery_lifecycle_state`. Local proof passed `pnpm pr:verify`,
+`pnpm security:guard`, `pnpm e2e:gate` (`134 passed`, `8 skipped`), coverage,
+repo-size, migration-journal, and focused type/test lanes. This completes the
+final status-bearing M0-M5 row locally. No replacement runtime slice is
+promoted; fresh current-authority/design-gate selection is required before
+follow-on work. G04/G05/G09/G10 waiver limits remain unchanged and do not
+authorize final paid, finance closure, individual claimant representation,
+final settlement, or final closed proof.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the

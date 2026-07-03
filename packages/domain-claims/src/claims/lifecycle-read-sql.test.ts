@@ -14,7 +14,7 @@ describe('claim lifecycle read SQL', () => {
 
     expect(query.sql).toContain('"claims"."case_lifecycle_state"');
     expect(query.sql).toContain('"claims"."recovery_lifecycle_state"');
-    expect(query.sql).toContain('"claims"."status"');
+    expect(query.sql).not.toContain('"claims"."status"');
     expect(query.sql).not.toContain('"claim"."case_lifecycle_state"');
   });
 

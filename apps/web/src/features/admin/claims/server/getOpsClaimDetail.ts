@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { createTenantSignedDownloadUrl } from '@/lib/storage/service-role';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import { and, claimDocuments, claims, eq, withTenantContext } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { ClaimStatus } from '@interdomestik/database/constants';
 import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
@@ -10,7 +11,6 @@ import { mapClaimToOperationalRow, RawClaimRow } from '../mappers/mapClaimToOper
 import { canViewAdminClaims, resolveClaimsVisibility } from './claimVisibility';
 import { ClaimOpsDetail } from '../types';
 import { readOpsClaimHomeTenantDetails } from './getOpsClaimDetailHomeReads';
-
 export type OpsClaimDetailResult = { kind: 'not_found' } | { kind: 'ok'; data: ClaimOpsDetail };
 const NEUTRAL_DEPLOYMENT_HOSTS = new Set(['interdomestik-web.vercel.app']);
 
@@ -149,7 +149,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
     claim: {
       id: claim.id,
       title: claim.title,
-      status: claim.status as ClaimStatus,
+      status: claimStatusFromLifecycleFields(claim) as ClaimStatus,
       caseLifecycleState: claim.caseLifecycleState,
       recoveryLifecycleState: claim.recoveryLifecycleState,
       createdAt: claim.createdAt,

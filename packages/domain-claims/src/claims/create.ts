@@ -91,7 +91,6 @@ export async function createClaimCore(
         description,
         category,
         companyName,
-        status: 'draft',
         ...mapClaimStatusToLifecycleStates('draft'),
         ...incidentCountry,
         claimAmount: claimAmount || undefined,

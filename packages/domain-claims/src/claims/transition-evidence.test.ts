@@ -122,6 +122,11 @@ describe('T-002b transition evidence invariants', () => {
     await expect(transitionClaimStatusInTransaction(tx, params('verification'))).resolves.toEqual(
       expect.objectContaining({ success: true, status: 'verification' })
     );
-    expect(calls.updateValues).toEqual(expect.objectContaining({ status: 'verification' }));
+    expect(calls.updateValues).toEqual(
+      expect.objectContaining({
+        caseLifecycleState: 'verification',
+        recoveryLifecycleState: 'not_started',
+      })
+    );
   });
 });

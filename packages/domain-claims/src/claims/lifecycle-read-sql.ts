@@ -16,7 +16,6 @@ export const LIFECYCLE_DRAFT_STATUSES: ClaimStatus[] = ['draft'];
 type ClaimLifecycleStatusColumns = {
   caseLifecycleState: SQLWrapper;
   recoveryLifecycleState: SQLWrapper;
-  status: SQLWrapper;
 };
 
 function claimLifecycleStatusSqlFromColumns(
@@ -41,10 +40,6 @@ function claimLifecycleStatusSqlFromColumns(
       and ${columns.recoveryLifecycleState} = 'resolved' then 'resolved'
     when ${columns.caseLifecycleState} = 'rejected'
       and ${columns.recoveryLifecycleState} = 'closed' then 'rejected'
-    when ${columns.status} in (
-      'draft', 'submitted', 'submitted_to_airline', 'verification', 'evaluation',
-      'negotiation', 'court', 'resolved', 'rejected'
-    ) then ${columns.status}
     else 'draft'
   end`;
 }
@@ -61,7 +56,6 @@ export function claimLifecycleStatusSql(): SQL<ClaimStatus> {
   return claimLifecycleStatusSqlFromColumns({
     caseLifecycleState: claims.caseLifecycleState,
     recoveryLifecycleState: claims.recoveryLifecycleState,
-    status: claims.status,
   });
 }
 
@@ -69,7 +63,6 @@ export function claimLifecycleStatusSqlForAlias(alias: string): SQL<ClaimStatus>
   return claimLifecycleStatusSqlFromColumns({
     caseLifecycleState: claimAliasColumn(alias, 'case_lifecycle_state'),
     recoveryLifecycleState: claimAliasColumn(alias, 'recovery_lifecycle_state'),
-    status: claimAliasColumn(alias, 'status'),
   });
 }
 

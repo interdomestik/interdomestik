@@ -8,7 +8,8 @@ describe('transitionClaimStatusInTransaction event atomicity', () => {
 
     await expect(runTransaction(state)).resolves.toMatchObject({ success: true });
 
-    expect(state.status).toBe('negotiation');
+    expect(state.caseLifecycleState).toBe('recovery');
+    expect(state.recoveryLifecycleState).toBe('negotiation');
     expect(state.lifecycleVersion).toBe(7);
     expect(state.histories).toHaveLength(1);
     expect(state.histories[0]).toEqual(

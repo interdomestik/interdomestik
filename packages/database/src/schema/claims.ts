@@ -1,15 +1,5 @@
 import { sql } from 'drizzle-orm';
-import {
-  boolean,
-  check,
-  decimal,
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-} from 'drizzle-orm/pg-core';
+import { boolean, check, decimal, index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { user } from './auth';
 import { documentCategoryEnum, statusEnum } from './enums';
 import { branches } from './rbac';
@@ -34,11 +24,8 @@ export const claims = pgTable(
     assignedById: text('assignedById').references(() => user.id),
     title: text('title').notNull(),
     description: text('description'),
-    status: statusEnum('status').default('draft'),
-    caseLifecycleState: text('case_lifecycle_state').$type<ClaimCaseLifecycleState | null>(),
-    recoveryLifecycleState: text(
-      'recovery_lifecycle_state'
-    ).$type<ClaimRecoveryLifecycleState | null>(),
+    caseLifecycleState: text('case_lifecycle_state').$type<ClaimCaseLifecycleState>().notNull().default('draft'),
+    recoveryLifecycleState: text('recovery_lifecycle_state').$type<ClaimRecoveryLifecycleState>().notNull().default('not_started'),
     incidentCountryCode: text('incident_country_code'),
     incidentJurisdiction: text('incident_jurisdiction'),
     recoveryLaw: text('recovery_law'),
@@ -58,15 +45,11 @@ export const claims = pgTable(
     index('idx_claims_branch').on(table.branchId),
     index('idx_claims_agent').on(table.agentId),
     index('idx_claims_user_created').on(table.userId, table.createdAt),
-    index('idx_claims_status').on(table.status),
+    index('idx_claims_lifecycle').on(table.caseLifecycleState, table.recoveryLifecycleState),
     index('idx_claims_tenant_branch').on(table.tenantId, table.branchId),
-    index('idx_claims_tenant_branch_status').on(table.tenantId, table.branchId, table.status),
-    index('idx_claims_tenant_status_created').on(table.tenantId, table.status, table.createdAt),
-    index('idx_claims_tenant_incident_country').on(
-      table.tenantId,
-      table.incidentCountryCode,
-      table.createdAt
-    ),
+    index('idx_claims_tenant_branch_lifecycle').on(table.tenantId, table.branchId, table.caseLifecycleState, table.recoveryLifecycleState),
+    index('idx_claims_tenant_lifecycle_created').on(table.tenantId, table.caseLifecycleState, table.recoveryLifecycleState, table.createdAt),
+    index('idx_claims_tenant_incident_country').on(table.tenantId, table.incidentCountryCode, table.createdAt),
     index('idx_claims_access_tenant').on(table.accessTenantId),
     uniqueIndex('idx_claims_tenant_number').on(table.tenantId, table.claimNumber),
     check(

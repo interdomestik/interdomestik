@@ -27,3 +27,32 @@ export const CLAIM_STATUS_LIFECYCLE_FIELDS = {
 export function claimLifecycleFieldsForStatus(status: ClaimStatus): ClaimLifecycleFields {
   return CLAIM_STATUS_LIFECYCLE_FIELDS[status];
 }
+
+export function claimStatusFromLifecycleFields(input: {
+  caseLifecycleState: ClaimCaseLifecycleState | string | null | undefined;
+  recoveryLifecycleState: ClaimRecoveryLifecycleState | string | null | undefined;
+}): ClaimStatus {
+  const pair = `${input.caseLifecycleState ?? ''}:${input.recoveryLifecycleState ?? ''}`;
+  switch (pair) {
+    case 'draft:not_started':
+      return 'draft';
+    case 'submitted:not_started':
+      return 'submitted';
+    case 'recovery:submitted_to_airline':
+      return 'submitted_to_airline';
+    case 'verification:not_started':
+      return 'verification';
+    case 'evaluation:not_started':
+      return 'evaluation';
+    case 'recovery:negotiation':
+      return 'negotiation';
+    case 'recovery:court':
+      return 'court';
+    case 'resolved:resolved':
+      return 'resolved';
+    case 'rejected:closed':
+      return 'rejected';
+    default:
+      throw new Error(`Invalid claim lifecycle state pair: ${pair}`);
+  }
+}

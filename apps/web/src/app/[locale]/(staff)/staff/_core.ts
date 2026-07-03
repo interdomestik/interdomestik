@@ -104,7 +104,6 @@ export async function getStaffDashboardCore(params: {
       id: c.id as string,
       title: c.title as string,
       status: resolveClaimLifecycleReadProjection({
-        status: c.status as string | null,
         caseLifecycleState: c.caseLifecycleState as string | null,
         recoveryLifecycleState: c.recoveryLifecycleState as string | null,
       }).status,

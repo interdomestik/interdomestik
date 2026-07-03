@@ -1,12 +1,4 @@
-import {
-  and,
-  claimEscalationAgreements,
-  claims,
-  db,
-  eq,
-  isNull,
-  sql,
-} from '@interdomestik/database';
+import { and, claimEscalationAgreements, claims, db, eq, sql } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { SQLWrapper } from 'drizzle-orm';
 
@@ -41,14 +33,6 @@ function paymentAuthorizationRequired(params: { claimId: string; tenantId: strin
 }
 
 function expectedFromStateCondition(params: TransitionAdminClaimStatusParams): SQLWrapper {
-  if (params.expectedLifecycleAuthority === 'status_fallback') {
-    return and(
-      isNull(claims.caseLifecycleState),
-      isNull(claims.recoveryLifecycleState),
-      eq(claims.status, params.expectedStatus)
-    ) as SQLWrapper;
-  }
-
   return and(
     eq(claims.caseLifecycleState, params.expectedCaseLifecycleState),
     eq(claims.recoveryLifecycleState, params.expectedRecoveryLifecycleState)

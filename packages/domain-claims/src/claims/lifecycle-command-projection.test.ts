@@ -12,7 +12,7 @@ describe('claim lifecycle command projection map', () => {
     expect(new Set(pairKeys).size).toBe(pairKeys.length);
   });
 
-  it('uses lifecycle pairs and preserves status fallback for legacy rows', () => {
+  it('uses lifecycle pairs and rejects legacy status fallback for command authority', () => {
     expect(
       resolveClaimLifecycleCommandProjection({
         caseLifecycleState: 'recovery',
@@ -39,13 +39,7 @@ describe('claim lifecycle command projection map', () => {
         recoveryLifecycleState: null,
         status: 'evaluation',
       })
-    ).toEqual({
-      authority: 'status_fallback',
-      success: true,
-      caseLifecycleState: 'evaluation',
-      recoveryLifecycleState: 'not_started',
-      status: 'evaluation',
-    });
+    ).toEqual({ success: false, error: 'invalid_lifecycle_state' });
 
     expect(
       resolveClaimLifecycleCommandProjection({

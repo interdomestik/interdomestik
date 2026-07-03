@@ -15,7 +15,7 @@ import {
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasSupportHandoffCurrentCycleMemberReply } from '@interdomestik/domain-crm/support-handoffs';
 import { aliasedTable, gt, isNotNull, isNull, type SQL } from 'drizzle-orm';
-
+import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
 import type {
   SupportHandoffContactPreference,
   SupportHandoffQueueAssignmentFilter,
@@ -208,7 +208,7 @@ export async function getStaffSupportHandoffQueue(params: {
       claimId: claims.id,
       claimNumber: claims.claimNumber,
       claimTitle: claims.title,
-      claimStatus: claims.status,
+      claimStatus: claimLifecycleStatusSql(),
       branchName: branches.name,
       planName: membershipPlans.name,
       membershipStatus: subscriptions.status,
