@@ -1,3 +1,16 @@
+---
+plan_role: input
+status: draft
+source_of_truth: false
+owner: product-design
+last_reviewed: 2026-07-03
+related:
+  - docs/product/2026-07-03-mobile-program-authority-packet.md
+  - docs/product/2026-07-03-mob-execution-sequence.md
+  - docs/plans/current-program.md
+  - docs/plans/current-tracker.md
+---
+
 # Interdomestik IDA — Mobile Experience Blueprint
 
 > Status: **Design input — no implementation authority.**
