@@ -43,11 +43,16 @@ interface FeeMathSheetProps {
   feeRule: { baseRatePct: number; memberRatePct: number; tierLabelKey: string }; // from c02 calculator logic
   entityDisclosure: { contractingEntityKey: string; governingLawKey: string }; // T-407, mandatory
   examples: readonly number[]; // preset recovery amounts; interactive slider optional
+  thirdPartyCostTreatment?: {
+    mode: 'absorbed_on_loss' | 'member_payable_on_loss' | 'covered_until_cap';
+    capAmount?: MoneyRef;
+    reviewedCopyKey: string;
+  }; // required for expert_cost after Memo 1 decision
   fullRulesLink: string;
 }
 ```
 
-Invariants: renders **before** any signature affordance is reachable; "recover nothing → pay nothing" line is structural (component-rendered, not caller-supplied, so it cannot be omitted); all figures labeled with the reviewed "example" wording (legal template L5), never "estimate/projection"; entity + governing law always visible (T-407); math delegates to the `c02` calculator — the component contains no fee arithmetic of its own.
+Invariants: renders **before** any signature affordance is reachable; the loss-case promise is structural (component-rendered, not caller-supplied, so it cannot be omitted), but `context: 'expert_cost'` must render the Memo 1 / L5-reviewed third-party-cost treatment instead of hard-coding the absolute promise; all figures labeled with the reviewed "example" wording (legal template L5), never "estimate/projection"; entity + governing law always visible (T-407); math delegates to the `c02` calculator — the component contains no fee arithmetic of its own.
 
 ## 9. `ConsentSheet` — first slice: MOB-03 _(stress-flow)_
 

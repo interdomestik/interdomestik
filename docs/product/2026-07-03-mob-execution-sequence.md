@@ -36,7 +36,7 @@ No `apps/web/src/proxy.ts` changes; no routing/auth/session/tenancy refactor; Pa
 Start legal templates **L1** (POA/e-sign matrix) and **L2** (country content sign-off, KS first) immediately — they are the program's long poles. Translate Help Now content (sq/mk/de). Finalize consent-sheet UX review (feeds L3 DPIA). None of this is runtime work.
 
 **Step 1 — M0→M5 closeout:**
-Final `T-503` authority/evidence/destructive `claims.status` removal lands under the OBR-DG40 continuation authority; tracker records it. _(Architecture track — not this program's work; the mobile program waits.)_
+Final `T-503` controlled-continuation evidence lands under OBR-DG40; direct destructive `claims.status` removal remains stopped until a later current-authority gate records final qualifying production release-cycle or explicitly approved equivalent evidence. _(Architecture track — not this program's work; the mobile program waits for M0→M5 completion.)_
 
 **Step 2 — fresh current-authority resolution:**
 From `activeSlice=null`, register the `MOB-*` namespace; schedule `MOB-DG01`.
