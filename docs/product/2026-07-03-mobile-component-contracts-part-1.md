@@ -27,12 +27,12 @@ Purpose: the single, uniform way any automated output declares it is not final. 
 interface ReviewBadgeProps {
   kind: 'legal' | 'medical' | 'damage' | 'eligibility' | 'generic';
   reviewState: 'pending_human_review' | 'human_reviewed' | 'informational_only';
-  reviewerLabelKey: string; // e.g. "review.legal.within24h" → "Confirmed by our legal team within 1 business day"
+  reviewerLabelKey: string; // e.g. "markers.review.legalWithin24h" → "Confirmed by our legal team within 1 business day"
   reviewedAt?: string; // ISO date, required when human_reviewed
 }
 ```
 
-Invariants: rendered on **every** pre-check, eligibility, or assessment output with no exceptions; copy comes only from the reviewed clarity-marker catalog; never dismissible; never renders a numeric confidence score. States: pending (muted, clock icon), reviewed (green check + reviewer label + date), informational (grey info). A11y: role=status, read after the main content.
+Invariants: rendered on **every** pre-check, eligibility, or assessment output with no exceptions; reviewer label copy comes only from the reviewed `markers.*` clarity-marker catalog; never dismissible; never renders a numeric confidence score. States: pending (muted, clock icon), reviewed (green check + reviewer label + date), informational (grey info). A11y: role=status, read after the main content.
 
 ## 2. `OwnerChip` — first slice: MOB-02
 

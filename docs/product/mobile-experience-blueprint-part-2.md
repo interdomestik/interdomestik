@@ -1,3 +1,11 @@
+---
+plan_role: input
+status: draft
+source_of_truth: false
+owner: product-design
+last_reviewed: 2026-07-03
+---
+
 # Interdomestik IDA — Mobile Experience Blueprint — Part 2
 
 > Status: **Design input — no implementation authority.**

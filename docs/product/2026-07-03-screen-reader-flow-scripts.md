@@ -43,22 +43,32 @@ related:
 **HN-3 · Police or EAS.** Screen announce: "Police, or the accident form?"
 
 1. "Call the police if any of these apply." [heading 2]
-   2–7. Rule items, each: "{rule sentence}." [checkbox, unchecked] → toggles ("checked")
-2. Live region (polite), updates as boxes change: "One rule applies — call the police, 1 9 2." / "No rules apply — the European Accident Statement is enough."
-3. "Call the police, 1 9 2." [button, phone — present only when ≥1 checked]
-4. "Open the accident form." [button]
-5. "Reviewed for Kosovo, {review date}. General guidance — see full note." [button, ReviewBadge] → marker detail
-6. "Call Interdomestik, {hotline}." [button, phone]
+2. "Rule item 1: {rule sentence}." [checkbox, unchecked] → toggles ("checked")
+3. "Rule item 2: {rule sentence}." [checkbox, unchecked] → toggles ("checked")
+4. "Rule item 3: {rule sentence}." [checkbox, unchecked] → toggles ("checked")
+5. "Rule item 4: {rule sentence}." [checkbox, unchecked] → toggles ("checked")
+6. "Rule item 5: {rule sentence}." [checkbox, unchecked] → toggles ("checked")
+7. "Rule item 6: {rule sentence}." [checkbox, unchecked] → toggles ("checked")
+8. Live region (polite), updates as boxes change: "One rule applies — call the police, 1 9 2." / "No rules apply — the European Accident Statement is enough."
+9. "Call the police, 1 9 2." [button, phone — present only when ≥1 checked]
+10. "Open the accident form." [button]
+11. "Reviewed for Kosovo, {review date}. General guidance — see full note." [button, ReviewBadge] → marker detail
+12. "Call Interdomestik, {hotline}." [button, phone]
 
 **HN-4 · Scene actions.** Screen announce: "At the scene — 6 steps. 2 done."
 
 1. "At the scene." [heading 1]
 2. "2 of 6 done." [static, live region polite — updates on each tick]
-   3–8. Items, each: "{instruction sentence}. {Done / Not done}." [checkbox] — the photo item adds: "Opens the camera coach." → EC-1
-3. "Don't admit fault at the scene. Let the facts decide." [static text]
-4. "I'm done here." [button] → HN-5
-5. "Call Interdomestik, {hotline}." [button, phone]
-   Haptic ticks pair with the announcement "Done — {n} of 6."
+3. "Step 1: {instruction sentence}. {Done / Not done}." [checkbox]
+4. "Step 2: {instruction sentence}. {Done / Not done}." [checkbox]
+5. "Step 3: {instruction sentence}. {Done / Not done}." [checkbox — the photo item adds: "Opens the camera coach."] → EC-1
+6. "Step 4: {instruction sentence}. {Done / Not done}." [checkbox]
+7. "Step 5: {instruction sentence}. {Done / Not done}." [checkbox]
+8. "Step 6: {instruction sentence}. {Done / Not done}." [checkbox]
+9. "Don't admit fault at the scene. Let the facts decide." [static text]
+10. "I'm done here." [button] → HN-5
+11. "Call Interdomestik, {hotline}." [button, phone]
+    Haptic ticks pair with the announcement "Done — {n} of 6."
 
 ---
 

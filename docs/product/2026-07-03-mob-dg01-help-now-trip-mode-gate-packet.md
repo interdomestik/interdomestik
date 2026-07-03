@@ -32,7 +32,7 @@ No structural/boundary/modularity argument is used or needed. Note: the OBR sele
 
 ### In scope (all of it Phase-C-safe by construction)
 
-1. **Country content packs** (new feature module): scene guides for car accident / injury / property, police-vs-EAS decision content, Green Card context, emergency numbers per country (KS, MK, AL at launch; transit corridors DE/AT/HU/RS/HR/ME for Trip Mode).
+1. **Country content packs** (new feature module): scene guides for car accident / injury / property, police-vs-EAS decision content, Green Card context, emergency numbers per country (machine codes: `XK`, `MK`, `AL` at launch; Kosovo may appear as `KS` only as a market label in reviewer-facing prose; transit corridors `DE`/`AT`/`HU`/`RS`/`HR`/`ME` for Trip Mode).
 2. **Offline capability** for the above: service-worker caching of content packs; pre-departure "download for the road" action (Trip Mode). Cache holds public content only — a guard test proves no member-scoped or session-derived data is ever cached.
 3. **Evidence coach**: camera-first guided shot lists with ghost overlays; photos + timestamps stored **locally on device** into an incident bundle; nothing uploaded, no account required. The local bundle may contain personal data (plates, faces, documents, time/location context), so MOB-01's privacy claim is **zero server-side PII / no upload / no account**, not absolute zero PII.
 4. **Mobile-first presentation of the existing claim pack** (`t02` generator unchanged in capability; presentation/entry redesigned per blueprint §7.2 step 6, free fork only).
@@ -96,5 +96,5 @@ Content packs are config-off per country; the whole feature is flag-off; no sche
 - [ ] Final `T-503` closeout recorded in `current-program.md` / `current-tracker.md`.
 - [ ] Fresh current-authority resolution run from `activeSlice=null`; `MOB-*` namespace registered.
 - [ ] OBR selection rule still in force (or successor rule consulted).
-- [ ] At least one country content pack (KS recommended) has recorded sign-off, so the slice can ship non-dark.
+- [ ] At least one country content pack (`XK` / Kosovo recommended) has recorded sign-off, so the slice can ship non-dark.
 - [ ] This packet's scope re-read against `current-program.md` for new constraints since 2026-07-03.

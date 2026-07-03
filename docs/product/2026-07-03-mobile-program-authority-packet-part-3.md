@@ -74,4 +74,4 @@ Platform gates (standing repo discipline, restated for the launch decision):
 
 ---
 
-_Relationship to authority: this packet is an `input`. Promotion of any MOB-_ slice requires a fresh current-authority resolution and a recorded design gate. If this packet conflicts with `current-program.md` or the architecture-finalization tracker, those documents win.*
+_Relationship to authority: this packet is an `input`. Promotion of any `MOB-*` slice requires a fresh current-authority resolution and a recorded design gate. If this packet conflicts with `current-program.md` or the architecture-finalization tracker, those documents win._
