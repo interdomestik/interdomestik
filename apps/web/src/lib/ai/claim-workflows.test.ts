@@ -3,45 +3,28 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => {
   const txInsertOnConflictDoNothing = vi.fn().mockResolvedValue(undefined);
   const txInsertValues = vi.fn();
-  const txInsert = vi.fn(() => ({
-    values: txInsertValues,
-  }));
+  const txInsert = vi.fn(() => ({ values: txInsertValues }));
   const txUpdateReturning = vi.fn();
-  const txUpdateWhere = vi.fn(() => ({
-    returning: txUpdateReturning,
-  }));
-  const txUpdateSet = vi.fn(() => ({
-    where: txUpdateWhere,
-  }));
-  const txUpdate = vi.fn(() => ({
-    set: txUpdateSet,
-  }));
+  const txUpdateWhere = vi.fn(() => ({ returning: txUpdateReturning }));
+  const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
+  const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
+  const txExecute = vi.fn();
+  const selectWhere = vi.fn();
+  const selectInnerJoin = vi.fn(() => ({ innerJoin: selectInnerJoin, where: selectWhere }));
+  const selectFrom = vi.fn(() => ({ innerJoin: selectInnerJoin, where: selectWhere }));
+  const select = vi.fn(() => ({ from: selectFrom }));
   const tenantWriteTx = {
+    execute: txExecute,
     insert: txInsert,
+    select,
     update: txUpdate,
   };
   const transaction = vi.fn(
     async (
       callback: (tx: { insert: typeof txInsert; update: typeof txUpdate }) => Promise<unknown>
-    ) =>
-      callback({
-        insert: txInsert,
-        update: txUpdate,
-      })
+    ) => callback({ insert: txInsert, update: txUpdate })
   );
 
-  const selectWhere = vi.fn();
-  const selectInnerJoin = vi.fn(() => ({
-    innerJoin: selectInnerJoin,
-    where: selectWhere,
-  }));
-  const selectFrom = vi.fn(() => ({
-    innerJoin: selectInnerJoin,
-    where: selectWhere,
-  }));
-  const select = vi.fn(() => ({
-    from: selectFrom,
-  }));
   const updateReturning = vi.fn();
   const updateWhere = vi.fn(() => ({
     returning: updateReturning,
@@ -70,6 +53,7 @@ const mocks = vi.hoisted(() => {
     txInsert,
     txInsertOnConflictDoNothing,
     txInsertValues,
+    txExecute,
     txUpdate,
     txUpdateReturning,
     txUpdateSet,
@@ -97,6 +81,7 @@ vi.mock('@/lib/storage/evidence-bucket', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
   withTenantContext: mocks.withTenantContext,
 }));
 
@@ -107,12 +92,12 @@ vi.mock('@interdomestik/database/schema', () => ({
     __name: 'document_extractions',
     sourceRunId: { __name: 'document_extractions.source_run_id' },
   },
-  documents: { __name: 'documents', id: { __name: 'documents.id' } },
+  documents: { __name: 'documents', deletedAt: {}, id: { __name: 'documents.id' } },
 }));
-
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ __op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ __op: 'eq', left, right })),
+  isNull: vi.fn((field: unknown) => ({ __op: 'isNull', field })),
 }));
 
 vi.mock('nanoid', () => ({
@@ -240,6 +225,7 @@ describe('processClaimDocumentWorkflowRunService', () => {
     mocks.txInsertValues.mockImplementation(() => ({
       onConflictDoNothing: mocks.txInsertOnConflictDoNothing,
     }));
+    mocks.txExecute.mockResolvedValue([{ id: 'doc-1' }]);
     mocks.txUpdateReturning.mockResolvedValue([{ id: 'run-1' }]);
   });
 

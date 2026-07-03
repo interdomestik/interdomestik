@@ -5,7 +5,9 @@ import {
   readCandidateWarnings,
   type SanitizedContentMetrics,
 } from '@/lib/ai/extraction-pipeline';
+import { assertProcessingRunHasActiveDocument } from '@/lib/ai/document-run-lifecycle';
 
+import { POLICY_DELETED_DOCUMENT_FAILURE } from './_document-lifecycle-guard';
 import type { ClaimedPolicyRun, PolicyExtractionDeps } from './_pipeline-input';
 
 export type LoadedPolicyInput = ClaimedPolicyRun & {
@@ -39,6 +41,10 @@ function getRequestFileUrl(requestJson: Record<string, unknown>, fallback: unkno
   return typeof fallback === 'string' ? fallback : '';
 }
 
+async function assertActivePolicyDocument(run: ClaimedPolicyRun) {
+  await assertProcessingRunHasActiveDocument(run, POLICY_DELETED_DOCUMENT_FAILURE);
+}
+
 export async function loadPolicyInput(
   run: ClaimedPolicyRun,
   deps: PolicyExtractionDeps
@@ -48,6 +54,8 @@ export async function loadPolicyInput(
   const mimeType = getRequestStringValue(requestJson, 'mimeType');
   const fileUrl = getRequestFileUrl(requestJson, run.storagePath);
   if (!fileUrl) throw new Error('Queued policy analysis run is missing a storage path.');
+
+  await assertActivePolicyDocument(run);
 
   const fileBuffer = await deps.downloadFile(fileUrl, run.tenantId);
   const parsedText = isImageUpload(fileName, mimeType) ? null : await deps.analyzePdf(fileBuffer);

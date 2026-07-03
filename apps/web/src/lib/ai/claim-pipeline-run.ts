@@ -1,7 +1,9 @@
 import { db } from '@/lib/db.server';
 import { withTenantContext } from '@interdomestik/database';
 import { aiRuns, claims, documents } from '@interdomestik/database/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
+
+import { failDeletedDocumentClaimAiRun } from './claim-pipeline-document-lifecycle';
 
 export type ClaimAiWorkflow = 'claim_intake_extract' | 'legal_doc_extract';
 
@@ -59,15 +61,25 @@ export async function claimClaimAiRun(
     .from(aiRuns)
     .innerJoin(
       documents,
-      and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
+      and(
+        eq(documents.id, aiRuns.documentId),
+        eq(documents.tenantId, aiRuns.tenantId),
+        isNull(documents.deletedAt)
+      )
     )
     .innerJoin(claims, and(eq(claims.id, aiRuns.entityId), eq(claims.tenantId, aiRuns.tenantId)))
     .where(and(eq(aiRuns.id, runId), eq(aiRuns.entityType, 'claim')));
 
-  const requestedBy = typeof queuedRun?.requestedBy === 'string' ? queuedRun.requestedBy : '';
-  const subjectId = typeof queuedRun?.subjectId === 'string' ? queuedRun.subjectId : '';
+  if (!queuedRun) {
+    const deletedRun = await failDeletedDocumentClaimAiRun(runId, isClaimAiWorkflow);
+    if (deletedRun) return deletedRun;
+    throw new Error(`Queued claim AI run ${runId} was not found.`);
+  }
+
+  const requestedBy = typeof queuedRun.requestedBy === 'string' ? queuedRun.requestedBy : '';
+  const subjectId = typeof queuedRun.subjectId === 'string' ? queuedRun.subjectId : '';
   if (
-    !queuedRun?.documentId ||
+    !queuedRun.documentId ||
     !queuedRun.claimId ||
     !requestedBy ||
     !subjectId ||

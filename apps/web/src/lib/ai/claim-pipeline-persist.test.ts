@@ -1,36 +1,74 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
+  const selectWhere = vi.fn();
+  const selectFrom = vi.fn(() => ({ where: selectWhere }));
+  const select = vi.fn(() => ({ from: selectFrom }));
+  const txDeleteWhere = vi.fn();
+  const txDelete = vi.fn(() => ({ where: txDeleteWhere }));
+  const txExecute = vi.fn();
   const txInsertOnConflictDoNothing = vi.fn();
   const txInsertValues = vi.fn(() => ({ onConflictDoNothing: txInsertOnConflictDoNothing }));
-  const txUpdateSet = vi.fn(() => ({ where: vi.fn() }));
+  const txUpdateReturning = vi.fn();
+  const txUpdateWhere = vi.fn(() => ({ returning: txUpdateReturning }));
+  const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const tx = {
+    delete: txDelete,
+    execute: txExecute,
     insert: vi.fn(() => ({ values: txInsertValues })),
+    select,
     update: vi.fn(() => ({ set: txUpdateSet })),
   };
 
   return {
     nanoid: vi.fn(() => 'extraction-1'),
+    selectWhere,
+    tx,
+    txDeleteWhere,
+    txExecute,
     txInsertValues,
+    txUpdateReturning,
     txUpdateSet,
+    txUpdateWhere,
     withTenantContext: vi.fn(async (_context: unknown, callback: (txArg: typeof tx) => unknown) =>
       callback(tx)
     ),
   };
 });
 
-vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantContext }));
-vi.mock('@interdomestik/database/schema', () => ({
-  aiRuns: { __name: 'ai_runs', id: {} },
-  documentExtractions: { __name: 'document_extractions', sourceRunId: {} },
+vi.mock('@interdomestik/database', () => ({
+  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
+  withTenantContext: mocks.withTenantContext,
 }));
-vi.mock('drizzle-orm', () => ({ eq: vi.fn((left: unknown, right: unknown) => ({ left, right })) }));
+vi.mock('@interdomestik/database/schema', () => ({
+  aiRuns: { __name: 'ai_runs', id: {}, status: 'ai_runs.status' },
+  documentExtractions: {
+    __name: 'document_extractions',
+    sourceRunId: 'document_extractions.source_run_id',
+    tenantId: 'document_extractions.tenant_id',
+  },
+  documents: {
+    deletedAt: 'documents.deleted_at',
+    id: 'documents.id',
+    tenantId: 'documents.tenant_id',
+  },
+}));
+vi.mock('drizzle-orm', () => ({
+  and: vi.fn((...args: unknown[]) => ({ args, op: 'and' })),
+  eq: vi.fn((left: unknown, right: unknown) => ({ left, right, op: 'eq' })),
+  isNull: vi.fn((field: unknown) => ({ field, op: 'isNull' })),
+}));
 vi.mock('nanoid', () => ({ nanoid: mocks.nanoid }));
 
 import { persistClaimAiExtraction } from './claim-pipeline-persist';
 
 describe('persistClaimAiExtraction', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.txExecute.mockResolvedValue([{ id: 'doc-1' }]);
+    mocks.selectWhere.mockResolvedValue([{ id: 'doc-1' }]);
+    mocks.txUpdateReturning.mockResolvedValue([{ id: 'run-1' }]);
+  });
 
   it('persists legal extraction output with confidence and critique metadata', async () => {
     await persistClaimAiExtraction({

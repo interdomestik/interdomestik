@@ -8,14 +8,10 @@ const mocks = vi.hoisted(() => {
   const selectFrom = vi.fn(() => ({ where: selectWhere }));
   const select = vi.fn(() => ({ from: selectFrom }));
 
-  const updateWhere = vi.fn();
-  const updateSet = vi.fn(() => ({ where: updateWhere }));
-  const update = vi.fn(() => ({ set: updateSet }));
-
   return {
     and: vi.fn((...conditions: unknown[]) => ({ conditions, op: 'and' })),
     captureAudit: vi.fn(),
-    db: { insert, select, update },
+    db: { insert, select },
     eq: vi.fn((left: unknown, right: unknown) => ({ left, right, op: 'eq' })),
     insert,
     insertValues,
@@ -25,9 +21,6 @@ const mocks = vi.hoisted(() => {
     select,
     selectFrom,
     selectWhere,
-    update,
-    updateSet,
-    updateWhere,
   };
 });
 
@@ -60,7 +53,7 @@ vi.mock('./audit', () => ({
   logAuditEvent: mocks.logAuditEvent,
 }));
 
-import { getDocumentsForEntity, recordUpload, softDeleteDocument } from './upload';
+import { getDocumentsForEntity, recordUpload } from './upload';
 
 describe('document upload helpers', () => {
   beforeEach(() => {
@@ -145,32 +138,5 @@ describe('document upload helpers', () => {
       tenantId: 'documents.tenantId',
     });
     expect(mocks.selectWhere).toHaveBeenCalledTimes(1);
-  });
-
-  it('soft-deletes tenant-scoped documents and logs the deletion', async () => {
-    await softDeleteDocument({
-      tenantId: 'tenant-1',
-      documentId: 'doc-1',
-      deletedBy: 'admin-1',
-    });
-
-    expect(mocks.update).toHaveBeenCalledWith({
-      deletedAt: 'documents.deletedAt',
-      entityId: 'documents.entityId',
-      entityType: 'documents.entityType',
-      id: 'documents.id',
-      tenantId: 'documents.tenantId',
-    });
-    expect(mocks.updateSet).toHaveBeenCalledWith({
-      deletedAt: expect.any(Date),
-      deletedBy: 'admin-1',
-    });
-    expect(mocks.updateWhere).toHaveBeenCalledTimes(1);
-    expect(mocks.logAuditEvent).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
-      documentId: 'doc-1',
-      accessType: 'delete',
-      accessedBy: 'admin-1',
-    });
   });
 });

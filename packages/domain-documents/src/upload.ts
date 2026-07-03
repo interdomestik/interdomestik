@@ -1,9 +1,3 @@
-/**
- * Document Upload - M3.1
- *
- * Upload handler that stores documents with tenant isolation
- * and emits audit events for all uploads.
- */
 import { db } from '@interdomestik/database/db';
 import * as schema from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -11,6 +5,8 @@ import { nanoid } from 'nanoid';
 
 import { captureAudit, logAuditEvent } from './audit';
 import { buildStoragePath, validateTenantOwnership } from './storage';
+
+export { softDeleteDocument } from './document-lifecycle';
 
 export interface UploadParams {
   tenantId: string;
@@ -147,33 +143,4 @@ export async function getDocumentsForEntity(params: {
     );
 
   return docs;
-}
-
-/**
- * Soft delete a document.
- * The file remains in storage but is marked as deleted.
- */
-export async function softDeleteDocument(params: {
-  tenantId: string;
-  documentId: string;
-  deletedBy: string;
-}): Promise<void> {
-  const { tenantId, documentId, deletedBy } = params;
-
-  // Update MUST include tenantId for isolation
-  await db
-    .update(schema.documents)
-    .set({
-      deletedAt: new Date(),
-      deletedBy,
-    })
-    .where(and(eq(schema.documents.id, documentId), eq(schema.documents.tenantId, tenantId)));
-
-  // Log deletion
-  await logAuditEvent({
-    tenantId,
-    documentId,
-    accessType: 'delete',
-    accessedBy: deletedBy,
-  });
 }

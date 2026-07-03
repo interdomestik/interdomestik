@@ -1,11 +1,17 @@
-import type { ExtractionCritique, ExtractionPipelineError } from '@/lib/ai/extraction-pipeline';
+import { ExtractionPipelineError, type ExtractionCritique } from '@/lib/ai/extraction-pipeline';
 import { withTenantContext } from '@interdomestik/database';
 import { aiRuns, documentExtractions, policies } from '@interdomestik/database/schema';
 import { getResponsesWorkflowConfig } from '@interdomestik/domain-ai/models';
 import type { PolicyExtract } from '@interdomestik/domain-ai/schemas/policy-extract';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
+import {
+  DELETED_DOCUMENT_ERROR_CODE,
+  buildDeletedPolicyRunFailure,
+  lockActiveDocument,
+  throwDeletedDocumentError,
+} from './_document-lifecycle-guard';
 import type { ClaimedPolicyRun } from './_pipeline-input';
 
 const POLICY_EXTRACT_WORKFLOW = 'policy_extract' as const;
@@ -19,6 +25,47 @@ export async function persistPolicyExtraction(args: {
   const completedAt = new Date();
 
   await withTenantContext({ tenantId: args.run.tenantId, role: 'system' }, async tx => {
+    const [activeDocument] = await lockActiveDocument(tx, {
+      documentId: args.run.documentId,
+      tenantId: args.run.tenantId,
+    });
+    if (!activeDocument) {
+      await tx
+        .update(aiRuns)
+        .set(buildDeletedPolicyRunFailure(completedAt))
+        .where(eq(aiRuns.id, args.run.runId));
+      throwDeletedDocumentError();
+    }
+
+    const [completedRun] = await tx
+      .update(aiRuns)
+      .set({
+        status: 'completed',
+        responseJson: {
+          event: 'policy/extract.requested',
+          runId: args.run.runId,
+          critique: {
+            decision: args.critique.decision,
+            warningCodes: args.critique.warningCodes,
+            escalationRecommended: args.critique.escalationRecommended,
+          },
+        },
+        outputJson: args.extraction,
+        reviewStatus: 'pending',
+        completedAt,
+        errorCode: null,
+        errorMessage: null,
+      })
+      .where(and(eq(aiRuns.id, args.run.runId), eq(aiRuns.status, 'processing')))
+      .returning({ id: aiRuns.id });
+    if (!completedRun) {
+      await tx
+        .update(aiRuns)
+        .set(buildDeletedPolicyRunFailure(completedAt))
+        .where(eq(aiRuns.id, args.run.runId));
+      throwDeletedDocumentError();
+    }
+
     await tx
       .update(policies)
       .set({
@@ -47,27 +94,6 @@ export async function persistPolicyExtraction(args: {
         updatedAt: completedAt,
       })
       .onConflictDoNothing({ target: documentExtractions.sourceRunId });
-
-    await tx
-      .update(aiRuns)
-      .set({
-        status: 'completed',
-        responseJson: {
-          event: 'policy/extract.requested',
-          runId: args.run.runId,
-          critique: {
-            decision: args.critique.decision,
-            warningCodes: args.critique.warningCodes,
-            escalationRecommended: args.critique.escalationRecommended,
-          },
-        },
-        outputJson: args.extraction,
-        reviewStatus: 'pending',
-        completedAt,
-        errorCode: null,
-        errorMessage: null,
-      })
-      .where(eq(aiRuns.id, args.run.runId));
   });
 }
 
@@ -88,6 +114,9 @@ export async function markPolicyExtractionRunFailed(args: {
         completedAt: new Date(),
         errorCode,
         errorMessage: message,
+        ...(errorCode === DELETED_DOCUMENT_ERROR_CODE
+          ? { requestJson: {}, outputJson: null, responseJson: null }
+          : {}),
       })
       .where(eq(aiRuns.id, args.run.runId));
   });

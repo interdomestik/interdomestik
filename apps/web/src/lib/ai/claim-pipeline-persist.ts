@@ -1,13 +1,17 @@
-import type { ExtractionCritique, ExtractionPipelineError } from '@/lib/ai/extraction-pipeline';
-import { withTenantContext } from '@interdomestik/database';
+import type { ExtractionCritique } from '@/lib/ai/extraction-pipeline';
+import { sql, type TenantTransaction, withTenantContext } from '@interdomestik/database';
 import { aiRuns, documentExtractions } from '@interdomestik/database/schema';
 import {
   CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION,
   LEGAL_DOC_EXTRACT_SCHEMA_VERSION,
 } from '@interdomestik/domain-ai';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
+import {
+  buildDeletedClaimRunFailure,
+  throwDeletedClaimDocumentError,
+} from './claim-pipeline-document-lifecycle';
 import type { ClaimedClaimAiRun, ClaimAiWorkflow } from './claim-pipeline-run';
 
 function getEventName(workflow: ClaimAiWorkflow) {
@@ -22,6 +26,21 @@ function getSchemaVersion(workflow: ClaimAiWorkflow) {
     : CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION;
 }
 
+async function lockActiveDocument(
+  tx: TenantTransaction,
+  args: { documentId: string; tenantId: string }
+) {
+  // db-access-guard: tenant-scoped -- reason: row lock is constrained by exact tenantId and documentId before claim AI extraction persistence
+  return tx.execute<{ id: string }>(sql`
+    select "id"
+    from "documents"
+    where "id" = ${args.documentId}
+      and "tenant_id" = ${args.tenantId}
+      and "deleted_at" is null
+    for update
+  `);
+}
+
 export async function persistClaimAiExtraction(args: {
   run: ClaimedClaimAiRun;
   extraction: Record<string, unknown>;
@@ -30,6 +49,19 @@ export async function persistClaimAiExtraction(args: {
   const completedAt = new Date();
 
   await withTenantContext({ tenantId: args.run.tenantId, role: 'system' }, async tx => {
+    const [activeDocument] = await lockActiveDocument(tx, {
+      documentId: args.run.documentId,
+      tenantId: args.run.tenantId,
+    });
+
+    if (!activeDocument) {
+      await tx
+        .update(aiRuns)
+        .set(buildDeletedClaimRunFailure(completedAt))
+        .where(eq(aiRuns.id, args.run.runId));
+      throwDeletedClaimDocumentError();
+    }
+
     await tx
       .insert(documentExtractions)
       .values({
@@ -50,7 +82,7 @@ export async function persistClaimAiExtraction(args: {
       })
       .onConflictDoNothing({ target: documentExtractions.sourceRunId });
 
-    await tx
+    const [completedRun] = await tx
       .update(aiRuns)
       .set({
         status: 'completed',
@@ -69,27 +101,23 @@ export async function persistClaimAiExtraction(args: {
         errorCode: null,
         errorMessage: null,
       })
-      .where(eq(aiRuns.id, args.run.runId));
-  });
-}
+      .where(and(eq(aiRuns.id, args.run.runId), eq(aiRuns.status, 'processing')))
+      .returning({ id: aiRuns.id });
 
-export async function markClaimAiRunFailed(args: { run: ClaimedClaimAiRun; error: unknown }) {
-  const pipelineError = args.error as Partial<ExtractionPipelineError>;
-  const errorCode =
-    typeof pipelineError.errorCode === 'string'
-      ? pipelineError.errorCode
-      : 'claim_ai_processing_failed';
-  const message = args.error instanceof Error ? args.error.message : 'Claim AI workflow failed.';
-
-  await withTenantContext({ tenantId: args.run.tenantId, role: 'system' }, async tx => {
-    await tx
-      .update(aiRuns)
-      .set({
-        status: 'failed',
-        completedAt: new Date(),
-        errorCode,
-        errorMessage: message,
-      })
-      .where(eq(aiRuns.id, args.run.runId));
+    if (!completedRun) {
+      await tx
+        .delete(documentExtractions)
+        .where(
+          and(
+            eq(documentExtractions.sourceRunId, args.run.runId),
+            eq(documentExtractions.tenantId, args.run.tenantId)
+          )
+        );
+      await tx
+        .update(aiRuns)
+        .set(buildDeletedClaimRunFailure(completedAt))
+        .where(eq(aiRuns.id, args.run.runId));
+      throwDeletedClaimDocumentError();
+    }
   });
 }

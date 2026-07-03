@@ -6,13 +6,15 @@ import {
   type SanitizedContentMetrics,
   validateExtractionCandidate,
 } from '@/lib/ai/extraction-pipeline';
+import { assertProcessingRunHasActiveDocument } from '@/lib/ai/document-run-lifecycle';
+import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { extractClaimIntake } from '@interdomestik/domain-ai/claims/intake-extract';
 import { extractLegalDocument } from '@interdomestik/domain-ai/legal/extract';
 import { claimIntakeExtractSchema } from '@interdomestik/domain-ai/schemas/claim-intake-extract';
 import { legalDocExtractSchema } from '@interdomestik/domain-ai/schemas/legal-doc-extract';
-import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 
 import { readClaimPipelineAiCallContext } from './claim-pipeline-ai-context';
+import { CLAIM_DELETED_DOCUMENT_FAILURE } from './claim-pipeline-document-lifecycle';
 import type { ClaimedClaimAiRun } from './claim-pipeline-run';
 
 export type ClaimPipelineDeps = {
@@ -64,6 +66,7 @@ export async function loadClaimAiInput(
 ): Promise<LoadedClaimAiInput> {
   const requestJson = run.requestJson && typeof run.requestJson === 'object' ? run.requestJson : {};
   const bucket = getBucketFromRequestJson(requestJson);
+  await assertProcessingRunHasActiveDocument(run, CLAIM_DELETED_DOCUMENT_FAILURE);
   const fileBuffer = await deps.downloadFile(bucket, run.storagePath, run.tenantId);
   const documentText = await deps.analyzePdf(fileBuffer, run.mimeType);
 

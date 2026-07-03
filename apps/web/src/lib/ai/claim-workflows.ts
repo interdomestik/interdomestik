@@ -10,7 +10,8 @@ import {
   validateClaimAiCandidate,
   type ClaimPipelineDeps,
 } from './claim-pipeline-input';
-import { markClaimAiRunFailed, persistClaimAiExtraction } from './claim-pipeline-persist';
+import { markClaimAiRunFailed } from './claim-pipeline-failure';
+import { persistClaimAiExtraction } from './claim-pipeline-persist';
 import { claimClaimAiRun, type ClaimAiWorkflow } from './claim-pipeline-run';
 
 type QueuedClaimAiRun = {
