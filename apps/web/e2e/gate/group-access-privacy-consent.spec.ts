@@ -20,7 +20,7 @@ test.describe('Group access privacy', () => {
       await expect(summary).toBeVisible();
       await expect(summary.getByText('Aggregate group access dashboard')).toBeVisible();
       await expect(
-        page.getByText(
+        summary.getByText(
           'This view stays aggregate-only. No claim facts, notes, or documents are visible here without explicit member consent.'
         )
       ).toBeVisible();

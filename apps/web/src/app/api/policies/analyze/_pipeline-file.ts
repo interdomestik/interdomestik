@@ -5,7 +5,11 @@ import {
   readCandidateWarnings,
   type SanitizedContentMetrics,
 } from '@/lib/ai/extraction-pipeline';
+import { db } from '@/lib/db.server';
+import { aiRuns, documents } from '@interdomestik/database/schema';
+import { and, eq, isNull } from 'drizzle-orm';
 
+import { throwDeletedDocumentError } from './_document-lifecycle-guard';
 import type { ClaimedPolicyRun, PolicyExtractionDeps } from './_pipeline-input';
 
 export type LoadedPolicyInput = ClaimedPolicyRun & {
@@ -39,6 +43,28 @@ function getRequestFileUrl(requestJson: Record<string, unknown>, fallback: unkno
   return typeof fallback === 'string' ? fallback : '';
 }
 
+async function assertActivePolicyDocument(run: ClaimedPolicyRun) {
+  // db-access-guard: tenant-scoped -- reason: pre-download liveness check is constrained by exact runId, tenantId, and documentId before policy AI processing
+  const [activeRun] = await db
+    .select({ id: aiRuns.id })
+    .from(aiRuns)
+    .innerJoin(
+      documents,
+      and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
+    )
+    .where(
+      and(
+        eq(aiRuns.id, run.runId),
+        eq(aiRuns.status, 'processing'),
+        eq(documents.id, run.documentId),
+        eq(documents.tenantId, run.tenantId),
+        isNull(documents.deletedAt)
+      )
+    );
+
+  if (!activeRun) throwDeletedDocumentError();
+}
+
 export async function loadPolicyInput(
   run: ClaimedPolicyRun,
   deps: PolicyExtractionDeps
@@ -48,6 +74,8 @@ export async function loadPolicyInput(
   const mimeType = getRequestStringValue(requestJson, 'mimeType');
   const fileUrl = getRequestFileUrl(requestJson, run.storagePath);
   if (!fileUrl) throw new Error('Queued policy analysis run is missing a storage path.');
+
+  await assertActivePolicyDocument(run);
 
   const fileBuffer = await deps.downloadFile(fileUrl, run.tenantId);
   const parsedText = isImageUpload(fileName, mimeType) ? null : await deps.analyzePdf(fileBuffer);
