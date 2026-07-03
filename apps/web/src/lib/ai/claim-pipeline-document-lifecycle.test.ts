@@ -28,6 +28,7 @@ vi.mock('@interdomestik/database/schema', () => ({
     documentId: 'ai_runs.document_id',
     entityId: 'ai_runs.entity_id',
     entityType: 'ai_runs.entity_type',
+    errorCode: 'ai_runs.error_code',
     id: 'ai_runs.id',
     outputJson: 'ai_runs.output_json',
     requestJson: 'ai_runs.request_json',
@@ -64,6 +65,7 @@ describe('failDeletedDocumentClaimAiRun', () => {
       {
         claimId: 'claim-1',
         deletedAt: new Date('2026-07-03T00:00:00Z'),
+        errorCode: null,
         status: 'queued',
         tenantId: 'tenant-1',
         workflow: 'claim_intake_extract',
@@ -91,11 +93,32 @@ describe('failDeletedDocumentClaimAiRun', () => {
     );
   });
 
+  it('returns skipped for runs already failed by document deletion', async () => {
+    mocks.where.mockResolvedValue([
+      {
+        claimId: 'claim-1',
+        deletedAt: new Date('2026-07-03T00:00:00Z'),
+        errorCode: 'claim_ai_document_deleted',
+        status: 'failed',
+        tenantId: 'tenant-1',
+        workflow: 'claim_intake_extract',
+      },
+    ]);
+
+    await expect(failDeletedDocumentClaimAiRun('run-1', isWorkflow)).resolves.toEqual({
+      status: 'skipped',
+      claimId: 'claim-1',
+      workflow: 'claim_intake_extract',
+    });
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
+  });
+
   it('does not skip deleted-document runs that are no longer queued', async () => {
     mocks.where.mockResolvedValue([
       {
         claimId: 'claim-1',
         deletedAt: new Date('2026-07-03T00:00:00Z'),
+        errorCode: null,
         status: 'completed',
         tenantId: 'tenant-1',
         workflow: 'claim_intake_extract',
@@ -111,6 +134,7 @@ describe('failDeletedDocumentClaimAiRun', () => {
       {
         claimId: 'claim-1',
         deletedAt: new Date('2026-07-03T00:00:00Z'),
+        errorCode: null,
         status: 'queued',
         tenantId: 'tenant-1',
         workflow: 'claim_intake_extract',

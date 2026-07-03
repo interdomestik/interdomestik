@@ -1,4 +1,4 @@
-import type { ExtractionCritique, ExtractionPipelineError } from '@/lib/ai/extraction-pipeline';
+import { ExtractionPipelineError, type ExtractionCritique } from '@/lib/ai/extraction-pipeline';
 import { withTenantContext } from '@interdomestik/database';
 import { aiRuns, documentExtractions, documents } from '@interdomestik/database/schema';
 import {
@@ -10,6 +10,10 @@ import { nanoid } from 'nanoid';
 
 import type { ClaimedClaimAiRun, ClaimAiWorkflow } from './claim-pipeline-run';
 
+const DELETED_DOCUMENT_ERROR_CODE = 'claim_ai_document_deleted';
+const DELETED_DOCUMENT_ERROR_MESSAGE =
+  'Claim AI run skipped because the source document was deleted.';
+
 function getEventName(workflow: ClaimAiWorkflow) {
   return workflow === 'legal_doc_extract'
     ? 'legal/extract.requested'
@@ -20,6 +24,10 @@ function getSchemaVersion(workflow: ClaimAiWorkflow) {
   return workflow === 'legal_doc_extract'
     ? LEGAL_DOC_EXTRACT_SCHEMA_VERSION
     : CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION;
+}
+
+function throwDeletedDocumentError(): never {
+  throw new ExtractionPipelineError(DELETED_DOCUMENT_ERROR_CODE, DELETED_DOCUMENT_ERROR_MESSAGE);
 }
 
 export async function persistClaimAiExtraction(args: {
@@ -47,14 +55,14 @@ export async function persistClaimAiExtraction(args: {
         .set({
           status: 'failed',
           completedAt,
-          errorCode: 'claim_ai_document_deleted',
-          errorMessage: 'Claim AI run skipped because the source document was deleted.',
+          errorCode: DELETED_DOCUMENT_ERROR_CODE,
+          errorMessage: DELETED_DOCUMENT_ERROR_MESSAGE,
           requestJson: {},
           outputJson: null,
           responseJson: null,
         })
         .where(eq(aiRuns.id, args.run.runId));
-      return;
+      throwDeletedDocumentError();
     }
 
     await tx
@@ -77,7 +85,7 @@ export async function persistClaimAiExtraction(args: {
       })
       .onConflictDoNothing({ target: documentExtractions.sourceRunId });
 
-    await tx
+    const [completedRun] = await tx
       .update(aiRuns)
       .set({
         status: 'completed',
@@ -96,27 +104,31 @@ export async function persistClaimAiExtraction(args: {
         errorCode: null,
         errorMessage: null,
       })
-      .where(eq(aiRuns.id, args.run.runId));
-  });
-}
+      .where(and(eq(aiRuns.id, args.run.runId), eq(aiRuns.status, 'processing')))
+      .returning({ id: aiRuns.id });
 
-export async function markClaimAiRunFailed(args: { run: ClaimedClaimAiRun; error: unknown }) {
-  const pipelineError = args.error as Partial<ExtractionPipelineError>;
-  const errorCode =
-    typeof pipelineError.errorCode === 'string'
-      ? pipelineError.errorCode
-      : 'claim_ai_processing_failed';
-  const message = args.error instanceof Error ? args.error.message : 'Claim AI workflow failed.';
-
-  await withTenantContext({ tenantId: args.run.tenantId, role: 'system' }, async tx => {
-    await tx
-      .update(aiRuns)
-      .set({
-        status: 'failed',
-        completedAt: new Date(),
-        errorCode,
-        errorMessage: message,
-      })
-      .where(eq(aiRuns.id, args.run.runId));
+    if (!completedRun) {
+      await tx
+        .delete(documentExtractions)
+        .where(
+          and(
+            eq(documentExtractions.sourceRunId, args.run.runId),
+            eq(documentExtractions.tenantId, args.run.tenantId)
+          )
+        );
+      await tx
+        .update(aiRuns)
+        .set({
+          status: 'failed',
+          completedAt,
+          errorCode: DELETED_DOCUMENT_ERROR_CODE,
+          errorMessage: DELETED_DOCUMENT_ERROR_MESSAGE,
+          requestJson: {},
+          outputJson: null,
+          responseJson: null,
+        })
+        .where(eq(aiRuns.id, args.run.runId));
+      throwDeletedDocumentError();
+    }
   });
 }

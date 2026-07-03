@@ -41,7 +41,7 @@ export async function softDeleteDocument(params: {
       .set({ requestJson: {}, outputJson: null, responseJson: null })
       .where(and(eq(schema.aiRuns.documentId, documentId), eq(schema.aiRuns.tenantId, tenantId)));
 
-    // db-access-guard: tenant-scoped -- reason: non-terminal AI run failure is constrained by exact tenantId, documentId, and status.
+    // db-access-guard: tenant-scoped -- reason: non-terminal claim AI run failure is constrained by exact tenantId, documentId, entity type, and status.
     await tx
       .update(schema.aiRuns)
       .set({
@@ -57,6 +57,7 @@ export async function softDeleteDocument(params: {
         and(
           eq(schema.aiRuns.documentId, documentId),
           eq(schema.aiRuns.tenantId, tenantId),
+          eq(schema.aiRuns.entityType, 'claim'),
           inArray(schema.aiRuns.status, DELETED_DOCUMENT_RUN_STATUSES)
         )
       );

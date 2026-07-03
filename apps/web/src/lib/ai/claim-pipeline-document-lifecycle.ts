@@ -17,6 +17,7 @@ export async function failDeletedDocumentClaimAiRun(
       workflow: aiRuns.workflow,
       claimId: aiRuns.entityId,
       status: aiRuns.status,
+      errorCode: aiRuns.errorCode,
       deletedAt: documents.deletedAt,
     })
     .from(aiRuns)
@@ -24,11 +25,17 @@ export async function failDeletedDocumentClaimAiRun(
       documents,
       and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
     )
-    .where(and(eq(aiRuns.id, runId), eq(aiRuns.entityType, 'claim'), eq(aiRuns.status, 'queued')));
+    .where(and(eq(aiRuns.id, runId), eq(aiRuns.entityType, 'claim')));
 
-  if (run?.status !== 'queued' || !run.deletedAt || !run.claimId || !isWorkflow(run.workflow)) {
+  if (!run?.deletedAt || !run.claimId || !isWorkflow(run.workflow)) {
     return null;
   }
+
+  if (run.status === 'failed' && run.errorCode === 'claim_ai_document_deleted') {
+    return { status: 'skipped', claimId: run.claimId, workflow: run.workflow };
+  }
+
+  if (run.status !== 'queued') return null;
 
   const [failedRun] = await withTenantContext(
     { tenantId: run.tenantId, role: 'system' },

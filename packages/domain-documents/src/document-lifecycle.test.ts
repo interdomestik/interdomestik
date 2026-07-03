@@ -28,6 +28,7 @@ vi.mock('@interdomestik/database/schema', () => ({
   aiRuns: {
     completedAt: 'ai_runs.completed_at',
     documentId: 'ai_runs.document_id',
+    entityType: 'ai_runs.entity_type',
     errorCode: 'ai_runs.error_code',
     errorMessage: 'ai_runs.error_message',
     outputJson: 'ai_runs.output_json',
@@ -84,6 +85,7 @@ describe('softDeleteDocument', () => {
     expect(mocks.updateSet).toHaveBeenNthCalledWith(2, {
       requestJson: {},
       outputJson: null,
+      requestJson: {},
       responseJson: null,
     });
     expect(mocks.updateSet).toHaveBeenNthCalledWith(
@@ -93,9 +95,11 @@ describe('softDeleteDocument', () => {
         errorCode: 'claim_ai_document_deleted',
         requestJson: {},
         outputJson: null,
+        requestJson: {},
         responseJson: null,
       })
     );
+    expect(mocks.eq).toHaveBeenCalledWith('ai_runs.entity_type', 'claim');
     expect(mocks.inArray).toHaveBeenCalledWith('ai_runs.status', [
       'queued',
       'processing',
