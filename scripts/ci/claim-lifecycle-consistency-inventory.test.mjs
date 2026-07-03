@@ -14,10 +14,10 @@ test('inventory SQL is read-only and covers all required lifecycle fields', () =
   assert.doesNotMatch(CLAIM_LIFECYCLE_INVENTORY_SQL, /\b(update|insert|delete|drop|alter)\b/iu);
   assert.match(CLAIM_LIFECYCLE_INVENTORY_SQL, /case_lifecycle_state/u);
   assert.match(CLAIM_LIFECYCLE_INVENTORY_SQL, /recovery_lifecycle_state/u);
-  assert.match(CLAIM_LIFECYCLE_INVENTORY_SQL, /status/u);
+  assert.doesNotMatch(CLAIM_LIFECYCLE_INVENTORY_SQL, /c\.status/u);
 });
 
-test('summarizes valid, invalid, incomplete, and mismatch categories', () => {
+test('summarizes valid, invalid, and incomplete categories', () => {
   const summary = summarizeLifecycleInventory([
     {
       category: 'valid',
@@ -40,21 +40,13 @@ test('summarizes valid, invalid, incomplete, and mismatch categories', () => {
       recovery_lifecycle_state: 'not_started',
       count: 1,
     },
-    {
-      category: 'status_lifecycle_mismatch',
-      status: 'resolved',
-      case_lifecycle_state: 'recovery',
-      recovery_lifecycle_state: 'court',
-      count: 4,
-    },
   ]);
 
-  assert.equal(summary.total, 10);
+  assert.equal(summary.total, 6);
   assert.deepEqual(summary.byCategory, {
     valid: 3,
     invalid_lifecycle_pair: 2,
     null_incomplete: 1,
-    status_lifecycle_mismatch: 4,
   });
 });
 

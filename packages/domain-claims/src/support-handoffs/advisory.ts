@@ -1,6 +1,7 @@
 import { claims, db, desc, eq, supportHandoffs } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { and, count, inArray } from 'drizzle-orm';
+import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
 
 import {
   ACTIVE_HANDOFF_STATUSES,
@@ -71,7 +72,7 @@ export async function getMemberActiveHandoffAdvisory(args: {
       source: supportHandoffs.source,
       claimNumber: claims.claimNumber,
       claimTitle: claims.title,
-      claimStatus: claims.status,
+      claimStatus: claimLifecycleStatusSql(),
     })
     .from(supportHandoffs)
     .leftJoin(

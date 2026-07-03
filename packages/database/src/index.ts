@@ -56,6 +56,7 @@ export {
 } from './domain-event-audit-projection';
 export {
   CLAIM_STATUS_LIFECYCLE_FIELDS,
+  claimStatusFromLifecycleFields,
   claimLifecycleFieldsForStatus,
   type ClaimLifecycleFields,
 } from './claim-lifecycle';

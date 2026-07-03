@@ -1,5 +1,6 @@
 import { agentClients, and, claims, db, desc, eq } from '@interdomestik/database';
-import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
+import type { ClaimStatus } from '@interdomestik/database/constants';
 
 export type AgentMemberDetail = {
   member: {
@@ -59,17 +60,15 @@ export async function getAgentMemberDetail(params: {
     columns: {
       id: true,
       claimNumber: true,
-      status: true,
+      caseLifecycleState: true,
+      recoveryLifecycleState: true,
       createdAt: true,
       updatedAt: true,
     },
   });
 
   const recentClaims = rawClaims.map(claim => {
-    const rawStatus = claim.status ?? 'draft';
-    const status: ClaimStatus = (CLAIM_STATUSES as readonly string[]).includes(rawStatus)
-      ? (rawStatus as ClaimStatus)
-      : 'draft';
+    const status = claimStatusFromLifecycleFields(claim);
     const updatedAt = normalizeDate(claim.updatedAt ?? claim.createdAt);
     return {
       id: claim.id,

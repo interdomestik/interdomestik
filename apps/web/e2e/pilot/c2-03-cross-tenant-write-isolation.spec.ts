@@ -8,6 +8,7 @@ import {
   eq,
   user,
 } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { updateClaimStatusCore as updateAdminClaimStatusCore } from '@interdomestik/domain-claims/admin-claims/update-status';
 import { sendMessageDbCore } from '@interdomestik/domain-communications/messages/send';
 import { expect, test } from '../fixtures/auth.fixture';
@@ -35,13 +36,6 @@ type AdminSession = {
 
 type AdminClaimStatus = Parameters<typeof updateAdminClaimStatusCore>[0]['newStatus'];
 
-type KsClaimTarget = {
-  claimId: string;
-  claimTitle: string;
-  claimStatus: string | null;
-  documentId: string;
-};
-
 function pickAlternateStatus(currentStatus: string | null): AdminClaimStatus {
   const candidates: AdminClaimStatus[] = [
     'verification',
@@ -61,7 +55,7 @@ function pickAlternateStatus(currentStatus: string | null): AdminClaimStatus {
   return 'verification';
 }
 
-async function findKsClaimTarget(): Promise<KsClaimTarget> {
+async function findKsClaimTarget() {
   const ksDocuments = await db.query.claimDocuments.findMany({
     where: eq(claimDocuments.tenantId, TARGET_TENANT_ID),
     columns: { id: true, claimId: true },
@@ -78,7 +72,7 @@ async function findKsClaimTarget(): Promise<KsClaimTarget> {
   const ksClaims = await db.query.claims.findMany({
     where: (table, { and: andInner, eq: eqInner, inArray: inArrayInner }) =>
       andInner(inArrayInner(table.id, claimIds), eqInner(table.tenantId, TARGET_TENANT_ID)),
-    columns: { id: true, title: true, status: true },
+    columns: { id: true, title: true, caseLifecycleState: true, recoveryLifecycleState: true },
   });
 
   const claimById = new Map(ksClaims.map(claim => [claim.id, claim]));
@@ -90,10 +84,10 @@ async function findKsClaimTarget(): Promise<KsClaimTarget> {
     }
 
     return {
+      caseLifecycleState: claim.caseLifecycleState,
       claimId: claim.id,
-      claimTitle: claim.title,
-      claimStatus: claim.status,
       documentId: document.id,
+      recoveryLifecycleState: claim.recoveryLifecycleState,
     };
   }
 
@@ -126,7 +120,7 @@ test('C2-03: cross-tenant write attempts are denied without mutation', async ({}
     },
   } satisfies { user: SessionUser };
 
-  const originalStatus = target.claimStatus;
+  const originalStatus = claimStatusFromLifecycleFields(target);
   const attemptedStatus = pickAlternateStatus(originalStatus);
 
   await expect(
@@ -140,9 +134,13 @@ test('C2-03: cross-tenant write attempts are denied without mutation', async ({}
 
   const persistedClaim = await db.query.claims.findFirst({
     where: and(eq(claims.id, target.claimId), eq(claims.tenantId, TARGET_TENANT_ID)),
-    columns: { status: true },
+    columns: { caseLifecycleState: true, recoveryLifecycleState: true },
   });
-  expect(persistedClaim?.status ?? null).toBe(originalStatus ?? null);
+  expect(persistedClaim).toEqual({
+    caseLifecycleState: target.caseLifecycleState,
+    recoveryLifecycleState: target.recoveryLifecycleState,
+  });
+  expect(persistedClaim ? claimStatusFromLifecycleFields(persistedClaim) : null).toBe(originalStatus ?? null);
 
   const messageProbe = `C2-03 cross-tenant message probe ${Date.now()}`;
   const messageResult = await sendMessageDbCore({
@@ -202,5 +200,4 @@ test('C2-03: cross-tenant write attempts are denied without mutation', async ({}
   console.log(`C2_03_ACTOR_HOST=${actorHost}`);
   console.log(`C2_03_TARGET_CLAIM_ID=${target.claimId}`);
   console.log(`C2_03_TARGET_DOCUMENT_ID=${target.documentId}`);
-  console.log(`C2_03_TARGET_CLAIM_TITLE=${target.claimTitle}`);
 });

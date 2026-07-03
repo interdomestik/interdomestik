@@ -46,8 +46,7 @@ function resolveDefaultBranchId(value: unknown): string | null {
   }
 
   const normalizedValue = value as
-    | { branchId?: string; defaultBranchId?: string; id?: string; value?: string }
-    | string;
+    { branchId?: string; defaultBranchId?: string; id?: string; value?: string } | string;
   if (typeof normalizedValue === 'string') {
     return normalizedValue;
   }
@@ -156,7 +155,6 @@ async function persistSubmittedClaim(args: {
       companyName,
       claimAmount: claimAmount || undefined,
       currency: currency || 'EUR',
-      status: 'submitted',
       ...mapClaimStatusToLifecycleStates('submitted'),
       ...incidentCountry,
       claimNumber: null,

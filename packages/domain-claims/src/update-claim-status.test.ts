@@ -17,7 +17,6 @@ const mocks = vi.hoisted(() => {
       id: 'claims.id',
       recoveryLifecycleState: 'claims.recovery_lifecycle_state',
       staffId: 'claims.staff_id',
-      status: 'claims.status',
       tenantId: 'claims.tenant_id',
     },
     db: { transaction: vi.fn(async cb => cb(tx)) },
@@ -114,17 +113,13 @@ describe('updateClaimStatus', () => {
     mocks.selectChain.limit.mockResolvedValueOnce([]);
     await expect(call()).resolves.toEqual(failure('Claim not found or access denied'));
 
-    mocks.selectChain.limit.mockResolvedValueOnce([
-      {
-        caseLifecycleState: null,
-        id: 'claim-1',
-        recoveryLifecycleState: null,
-        status: 'evaluation',
-      },
-    ]);
+    mocks.selectChain.limit.mockResolvedValueOnce([claimRow('evaluation')]);
     await expect(call()).resolves.toEqual(ok);
     expect(mocks.tx.select).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'claims.status' })
+      expect.objectContaining({
+        caseLifecycleState: 'claims.case_lifecycle_state',
+        recoveryLifecycleState: 'claims.recovery_lifecycle_state',
+      })
     );
     expect(mocks.transition).not.toHaveBeenCalled();
 

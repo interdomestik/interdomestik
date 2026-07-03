@@ -5,6 +5,7 @@ import {
   notifications,
   claimDocuments,
   claimEscalationAgreements,
+  claimLifecycleFieldsForStatus,
   db,
   eq,
   user,
@@ -20,7 +21,6 @@ async function main() {
   if (!staff) {
     throw new Error('Could not find required Staff user for handling simulation');
   }
-
   const tenantId = 'tenant_ks';
   const categories = ['vehicle', 'home', 'medical'];
   const createdClaims: any[] = [];
@@ -70,7 +70,7 @@ async function main() {
         category: cat,
         companyName: 'Interdomestik Test Group',
         origin: 'portal',
-        status: 'submitted',
+        ...claimLifecycleFieldsForStatus('submitted'),
         createdAt: new Date(),
       });
 
@@ -143,7 +143,7 @@ async function main() {
     await db
       .update(claims)
       .set({
-        status: 'resolved',
+        ...claimLifecycleFieldsForStatus('resolved'),
         statusUpdatedAt: new Date(),
       })
       .where(eq(claims.id, c.id));

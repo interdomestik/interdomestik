@@ -1,4 +1,5 @@
 import { claimDocuments, claims, db, eq } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
@@ -38,7 +39,7 @@ export async function updateDraftClaimCore(
     return { success: false, error: 'Access denied' };
   }
 
-  if (claim.status !== 'draft') {
+  if (claimStatusFromLifecycleFields(claim) !== 'draft') {
     return { success: false, error: 'Only draft claims can be edited' };
   }
 

@@ -33,7 +33,7 @@ const ksAStatuses = [
 
 export function buildClaimsToSeed({ at, schema }: Pick<SeedGoldenContext, 'at' | 'schema'>) {
   const now = at();
-  const claimsToSeed: (typeof schema.claims.$inferInsert)[] = [];
+  const claimsToSeed: (typeof schema.claims.$inferInsert & { status: ClaimStatus })[] = [];
 
   ksAStatuses.forEach((status, i) => {
     const dayOffset = i < 9 ? i % 3 : i % 21;
@@ -193,7 +193,6 @@ export async function seedClaims(context: SeedGoldenContext) {
       .onConflictDoUpdate({
         target: schema.claims.id,
         set: {
-          status: c.status,
           caseLifecycleState: c.caseLifecycleState,
           recoveryLifecycleState: c.recoveryLifecycleState,
           staffId: c.staffId,

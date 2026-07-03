@@ -5,8 +5,8 @@ import test from 'node:test';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-
 import { claims, crmTaskHistory, crmTasks, domainEvents, user } from '../src/schema';
+import { claimLifecycleFieldsForStatus } from '../src/claim-lifecycle';
 import {
   applyRlsTestConnectionEnv,
   quoteIdentifier,
@@ -157,7 +157,7 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
       description: 'cross-tenant row must not leak',
       category: 'retail',
       companyName: 'RLS Test Co',
-      status: 'draft',
+      ...claimLifecycleFieldsForStatus('draft'),
       origin: 'portal',
     });
 

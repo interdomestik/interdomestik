@@ -14,16 +14,15 @@ import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
 import { SQL, count, desc, isNotNull, isNull } from 'drizzle-orm';
-import { claimLifecycleStatusIn, claimLifecycleStatusNotIn } from './lifecycle-read-sql';
+import {
+  claimLifecycleStatusIn,
+  claimLifecycleStatusNotIn,
+  claimLifecycleStatusSql,
+} from './lifecycle-read-sql';
 import { mapClaimsToResponse } from './list-response';
 
 export type ClaimsScope =
-  | 'member'
-  | 'admin'
-  | 'staff_queue'
-  | 'staff_all'
-  | 'staff_unassigned'
-  | 'agent_queue';
+  'member' | 'admin' | 'staff_queue' | 'staff_all' | 'staff_unassigned' | 'agent_queue';
 
 export type ClaimItem = {
   id: string;
@@ -292,7 +291,7 @@ async function fetchClaimRows(params: {
     .select({
       id: claims.id,
       title: claims.title,
-      status: claims.status,
+      status: claimLifecycleStatusSql(),
       caseLifecycleState: claims.caseLifecycleState,
       recoveryLifecycleState: claims.recoveryLifecycleState,
       createdAt: claims.createdAt,

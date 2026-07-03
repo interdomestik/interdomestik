@@ -62,7 +62,6 @@ vi.mock('@interdomestik/database', () => ({
     caseLifecycleState: 'claims.case_lifecycle_state',
     id: 'claims.id',
     recoveryLifecycleState: 'claims.recovery_lifecycle_state',
-    status: 'claims.status',
     tenantId: 'claims.tenant_id',
     userId: 'claims.user_id',
   },
@@ -88,14 +87,13 @@ export const adminSession = {
 
 export const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 
-export function mockClaim(status: string, compatStatus = status): void {
+export function mockClaim(status: string): void {
   const states = lifecycleStatesForStatus(status);
   updateStatusMocks.claimWhere.mockResolvedValueOnce([
     {
       ...states,
       id: 'claim-1',
       title: 'Claim',
-      status: compatStatus,
       userId: 'member-1',
       userEmail: 'member@example.com',
     },

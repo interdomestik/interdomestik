@@ -77,6 +77,8 @@ describe('getOpsClaimDetail divergent document signing', () => {
       agentId: 'agent-1',
       staffId: 'staff-1',
       branchId: 'branch-1',
+      caseLifecycleState: 'submitted',
+      recoveryLifecycleState: 'not_started',
       createdAt: new Date('2026-02-22T00:00:00.000Z'),
     });
   });

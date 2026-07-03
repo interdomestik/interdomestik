@@ -3,7 +3,7 @@ import {
   buildDiasporaOriginClaimIdsSubquery,
   parseDiasporaOriginFromPublicNote,
 } from '@interdomestik/domain-claims';
-import { claimLifecycleStatusIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
+import { claimLifecycleStatusIn, claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { branches, claimStageHistory, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { aliasedTable, and, count, desc, eq, ilike, inArray, or, SQL } from 'drizzle-orm';
@@ -92,7 +92,7 @@ export async function getAdminClaimsV2(
           claimNumber: claims.claimNumber,
           userId: claims.userId,
           title: claims.title,
-          status: claims.status,
+          status: claimLifecycleStatusSql(),
           caseLifecycleState: claims.caseLifecycleState,
           recoveryLifecycleState: claims.recoveryLifecycleState,
           createdAt: claims.createdAt,

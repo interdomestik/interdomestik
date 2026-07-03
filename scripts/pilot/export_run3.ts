@@ -4,7 +4,7 @@ dotenv.config({ path: '.env.local' });
 import fs from 'node:fs';
 import path from 'node:path';
 
-const { db } = await import('@interdomestik/database');
+const { claimStatusFromLifecycleFields, db } = await import('@interdomestik/database');
 const { claims } = await import('@interdomestik/database/schema/claims');
 const { desc } = await import('drizzle-orm');
 
@@ -26,7 +26,7 @@ async function main() {
   let csvContent = 'id,member_email,category,status,created_at\n';
 
   for (const c of run3Claims) {
-    csvContent += `${c.id},${c.user.email},${c.category},${c.status},${c.createdAt?.toISOString()}\n`;
+    csvContent += `${c.id},${c.user.email},${c.category},${claimStatusFromLifecycleFields(c)},${c.createdAt?.toISOString()}\n`;
   }
 
   const outPath = path.join(

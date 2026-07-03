@@ -638,6 +638,13 @@
       "when": 1782278400000,
       "tag": "0090_t002b_claim_transition_evidence",
       "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1783080000000,
+      "tag": "0091_t503_drop_claim_status",
+      "breakpoints": true
     }
   ]
 }

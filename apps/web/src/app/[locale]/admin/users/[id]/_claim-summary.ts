@@ -37,7 +37,6 @@ export async function getAdminUserClaimSummary(args: {
       .select({
         id: claims.id,
         title: claims.title,
-        status: claims.status,
         caseLifecycleState: claims.caseLifecycleState,
         recoveryLifecycleState: claims.recoveryLifecycleState,
         claimAmount: claims.claimAmount,

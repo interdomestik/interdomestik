@@ -20,7 +20,7 @@ function makeParams(overrides: Partial<Params> = {}): Params {
 }
 
 describe('transitionClaimStatusInTransaction', () => {
-  it('updates status with a lifecycle-version compare-and-set and appends history', async () => {
+  it('updates lifecycle fields with a lifecycle-version compare-and-set and appends history', async () => {
     const { calls, tx } = makeTransitionTx({
       current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
       updated: [{ id: 'claim-1', lifecycleVersion: 7 }],
@@ -36,7 +36,8 @@ describe('transitionClaimStatusInTransaction', () => {
     });
     expect(calls.updateValues).toEqual(
       expect.objectContaining({
-        status: 'negotiation',
+        caseLifecycleState: 'recovery',
+        recoveryLifecycleState: 'negotiation',
         statusUpdatedAt: expect.any(Date),
         updatedAt: expect.any(Date),
       })
@@ -122,8 +123,7 @@ describe('transitionClaimStatusInTransaction', () => {
       lifecycleVersion: 6,
       status: 'evaluation',
     });
-    expect(calls.updateValues?.status).toBe('evaluation');
-    expect(calls.updateValues?.updatedAt).toBeInstanceOf(Date);
+    expect(calls.updateValues).toEqual({ updatedAt: expect.any(Date) });
     const updateWhere = inspect(calls.whereConditions.at(-1), { depth: 20 });
     expect(updateWhere).toContain('lifecycle_version');
     expect(updateWhere).toContain('case_lifecycle_state');

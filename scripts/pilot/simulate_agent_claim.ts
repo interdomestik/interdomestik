@@ -3,7 +3,7 @@ dotenv.config({ path: '.env.local' });
 
 import crypto from 'node:crypto';
 
-const { db } = await import('@interdomestik/database');
+const { claimLifecycleFieldsForStatus, db } = await import('@interdomestik/database');
 const { claims } = await import('@interdomestik/database/schema/claims');
 const { user } = await import('@interdomestik/database/schema/auth');
 const { eq } = await import('drizzle-orm');
@@ -41,7 +41,7 @@ async function main() {
     category: 'vehicle',
     companyName: 'SIGAL UNIQA Group Austria',
     origin: 'agent',
-    status: 'submitted',
+    ...claimLifecycleFieldsForStatus('submitted'),
     statusUpdatedAt: new Date(),
     createdAt: new Date(),
   });

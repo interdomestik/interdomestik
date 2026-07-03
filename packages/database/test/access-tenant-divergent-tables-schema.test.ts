@@ -5,8 +5,12 @@ import test from 'node:test';
 
 const SCHEMA_FILES = [
   {
-    file: '../src/schema/claims.ts',
-    names: ['claims', 'claimDocuments'],
+    file: '../src/schema/claim-core.ts',
+    names: ['claims'],
+  },
+  {
+    file: '../src/schema/claim-support-tables.ts',
+    names: ['claimDocuments'],
   },
   {
     file: '../src/schema/claim-commercial.ts',
@@ -40,7 +44,7 @@ test('T-305b divergent table schemas expose accessTenantId columns', () => {
 
 test('T-305b claim document schema declares access tenant index', () => {
   assert.match(
-    source('../src/schema/claims.ts'),
+    source('../src/schema/claim-support-tables.ts'),
     /index\('claim_documents_access_tenant_idx'\)\.on\(table\.accessTenantId\)/u
   );
 });

@@ -106,7 +106,6 @@ describe('claim lifecycle state initialization', () => {
       expect.objectContaining({
         caseLifecycleState: 'draft',
         recoveryLifecycleState: 'not_started',
-        status: 'draft',
       })
     );
     const claimRow = hoisted.txInsertValues.mock.calls[0]?.[0] as { createdAt?: Date };
@@ -143,7 +142,6 @@ describe('claim lifecycle state initialization', () => {
       expect.objectContaining({
         caseLifecycleState: 'submitted',
         recoveryLifecycleState: 'not_started',
-        status: 'submitted',
       })
     );
   });

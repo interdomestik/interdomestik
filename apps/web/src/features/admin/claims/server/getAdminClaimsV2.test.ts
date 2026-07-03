@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => {
   const mainQuery = {
-    from: vi.fn().mockReturnThis(),
-    leftJoin: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(), leftJoin: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
     orderBy: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
@@ -18,8 +17,7 @@ const hoisted = vi.hoisted(() => {
 
   const historyQuery = {
     from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    orderBy: vi.fn(),
+    where: vi.fn().mockReturnThis(), orderBy: vi.fn(),
   };
   return {
     dbSelect: vi.fn(),
@@ -54,7 +52,7 @@ vi.mock('@interdomestik/database/schema', () => ({
     staffId: 'claims.staffId',
     branchId: 'claims.branchId',
     title: 'claims.title',
-    status: 'claims.status',
+    caseLifecycleState: 'claims.caseLifecycleState', recoveryLifecycleState: 'claims.recoveryLifecycleState',
     createdAt: 'claims.createdAt',
     updatedAt: 'claims.updatedAt',
     assignedAt: 'claims.assignedAt',
@@ -106,6 +104,8 @@ vi.mock('@interdomestik/domain-claims', () => ({
       : null,
   buildDiasporaOriginClaimIdsSubquery: hoisted.buildDiasporaOriginClaimIdsSubquery,
 }));
+
+vi.mock('@interdomestik/domain-claims/claims/lifecycle-read-sql', () => ({ claimLifecycleStatusIn: vi.fn((statuses: unknown[]) => ({ type: 'lifecycle-in', statuses })), claimLifecycleStatusSql: vi.fn(() => 'claims.lifecycleStatus') }));
 
 vi.mock('./getAdminClaimStats', () => ({
   getAdminClaimStats: hoisted.getAdminClaimStats,

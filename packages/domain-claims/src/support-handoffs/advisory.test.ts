@@ -5,11 +5,11 @@ const mocks = vi.hoisted(() => ({
   claims: {
     claimNumber: 'claims.claim_number',
     id: 'claims.id',
-    status: 'claims.status',
+    caseLifecycleState: 'claims.case_lifecycle_state', recoveryLifecycleState: 'claims.recovery_lifecycle_state',
     tenantId: 'claims.tenant_id',
     title: 'claims.title',
   },
-  count: vi.fn(() => 'count()'),
+  count: vi.fn(() => 'count()'), sql: vi.fn((strings, ...values) => ({ op: 'sql', strings, values })),
   db: {
     select: vi.fn(),
   },
@@ -44,7 +44,7 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
 vi.mock('drizzle-orm', () => ({
   and: mocks.and,
   count: mocks.count,
-  inArray: mocks.inArray,
+  inArray: mocks.inArray, sql: mocks.sql,
 }));
 
 import { getMemberActiveHandoffAdvisory } from './advisory';

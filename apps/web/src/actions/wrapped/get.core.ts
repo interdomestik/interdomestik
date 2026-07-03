@@ -1,4 +1,5 @@
 import { claims, db, subscriptions } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { differenceInDays } from 'date-fns';
@@ -30,17 +31,22 @@ export async function getWrappedStatsCore(params: { session: Session | null }) {
     where: and(eq(claims.userId, userId), eq(claims.tenantId, tenantId)),
   });
 
-  const resolvedCount = userClaims.filter(c => c.status === 'resolved').length;
+  const claimsWithStatus = userClaims.map(claim => ({
+    ...claim,
+    status: claimStatusFromLifecycleFields(claim),
+  }));
+
+  const resolvedCount = claimsWithStatus.filter(c => c.status === 'resolved').length;
 
   const inProgressStatuses = CLAIM_STATUSES.filter(
     status => status !== 'draft' && status !== 'resolved' && status !== 'rejected'
   ) as ClaimStatus[];
 
-  const inProgressCount = userClaims.filter(
-    c => !!c.status && inProgressStatuses.includes(c.status as ClaimStatus)
+  const inProgressCount = claimsWithStatus.filter(c =>
+    inProgressStatuses.includes(c.status)
   ).length;
 
-  const totalRecovered = userClaims
+  const totalRecovered = claimsWithStatus
     .filter(c => c.status === 'resolved')
     .reduce((acc, c) => acc + Number(c.claimAmount || 0), 0);
 

@@ -464,7 +464,7 @@ describe('staff updateClaimStatusCore', () => {
     expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.txUpdateSet).toHaveBeenCalledWith(
       expect.objectContaining({
-        status: 'negotiation',
+        caseLifecycleState: 'recovery', recoveryLifecycleState: 'negotiation',
         updatedAt: expect.any(Date),
       })
     );
@@ -500,7 +500,7 @@ describe('staff updateClaimStatusCore', () => {
       1,
       expect.objectContaining({
         lifecycleVersion: expect.objectContaining({ op: 'sql' }),
-        status: 'verification',
+        caseLifecycleState: 'verification', recoveryLifecycleState: 'not_started',
         statusUpdatedAt: expect.any(Date),
         updatedAt: expect.any(Date),
       })
@@ -541,12 +541,11 @@ describe('staff updateClaimStatusCore', () => {
     );
   });
 
-  it('routes stale staff same-status requests through transition compat repair', async () => {
+  it('skips lifecycle-derived same-status requests without writing', async () => {
     const staleClaim = claimFixture('evaluation', { title: 'Vehicle claim', staffId: 'staff-1' });
     staleClaim.status = 'submitted';
     mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
     mocks.claimSelectChain.limit.mockResolvedValue([staleClaim]);
-    mocks.txSelectChain.limit.mockResolvedValueOnce([transitionClaimFixture('evaluation', 6)]);
     const result = await updateClaimStatusCore({
       claimId: 'claim-1',
       newStatus: 'evaluation',
@@ -554,9 +553,7 @@ describe('staff updateClaimStatusCore', () => {
     });
 
     expect(result).toEqual({ success: true, error: undefined });
-    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'evaluation', updatedAt: expect.any(Date) })
-    );
+    expect(mocks.db.transaction).not.toHaveBeenCalled();
   });
 
   it('sends a tenant-scoped notification for public staff status changes', async () => {

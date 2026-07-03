@@ -2,6 +2,7 @@
 
 import { auth } from '@/lib/auth';
 import { and, auditLog, claims, db, eq } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { isClaimStatusTransitionInGraph } from '@interdomestik/domain-claims/claims/transition-guard';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -15,15 +16,14 @@ import { TERMINAL_STATUSES } from '../types';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type OpsActionResponse =
-  | { success: true; message?: string; data?: unknown }
-  | { success: false; error: string };
+  { success: true; message?: string; data?: unknown } | { success: false; error: string };
 
 export type MutationIntent = 'assign' | 'status_change' | 'poke' | 'sla_ack';
 
 export interface ActionContext {
   session: Awaited<ReturnType<typeof auth.api.getSession>> & { user: { id: string; role: string } };
   tenantId: string;
-  claim: typeof claims.$inferSelect;
+  claim: typeof claims.$inferSelect & { status: ClaimStatus };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,11 +49,11 @@ export async function getClaimForMutation(claimId: string, tenantId: string) {
   if (!claim) {
     throw new Error('Claim not found or access denied');
   }
-  return claim;
+  return { ...claim, status: claimStatusFromLifecycleFields(claim) };
 }
 
 export function assertCanMutateClaim(
-  claim: typeof claims.$inferSelect,
+  claim: typeof claims.$inferSelect & { status: ClaimStatus },
   _actorRole: string,
   intent: MutationIntent
 ) {

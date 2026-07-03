@@ -10,7 +10,7 @@ export type MemberClaimOption = {
   createdAt: Date | null;
 };
 
-type RawMemberClaimOption = MemberClaimOption & {
+type RawMemberClaimOption = Omit<MemberClaimOption, 'status'> & {
   caseLifecycleState: string | null;
   recoveryLifecycleState: string | null;
 };
@@ -19,7 +19,6 @@ const memberClaimOptionSelection = {
   id: claims.id,
   claimNumber: claims.claimNumber,
   title: claims.title,
-  status: claims.status,
   caseLifecycleState: claims.caseLifecycleState,
   recoveryLifecycleState: claims.recoveryLifecycleState,
   createdAt: claims.createdAt,

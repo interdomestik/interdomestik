@@ -10,11 +10,8 @@ import { getMatterAllowanceVisibilityForUser } from './matter-allowance';
 import { buildRecoveryDecisionSnapshot } from './recovery-decision';
 import { buildScopedStaffClaimWhere } from './scope';
 import { resolveClaimLifecycleReadProjection } from '../claims/lifecycle-read-model';
-import type {
-  AcceptedRecoveryPrerequisitesSnapshot,
-  ClaimEscalationAgreementSnapshot,
-  RecoveryDecisionSnapshot,
-} from './types';
+import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
+import type { AcceptedRecoveryPrerequisitesSnapshot, ClaimEscalationAgreementSnapshot, RecoveryDecisionSnapshot } from './types';
 
 export type StaffClaimDetail = {
   claim: {
@@ -72,7 +69,7 @@ export async function getStaffClaimDetail(params: {
       claimId: claims.id,
       claimCategory: claims.category,
       claimNumber: claims.claimNumber,
-      status: claims.status,
+      status: claimLifecycleStatusSql(),
       caseLifecycleState: claims.caseLifecycleState,
       recoveryLifecycleState: claims.recoveryLifecycleState,
       staffId: claims.staffId,

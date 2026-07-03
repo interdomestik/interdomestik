@@ -67,7 +67,7 @@ test('ignores claim status reads', () => {
 test('classifies claim creation and submit as initial status writers', () => {
   assert.deepEqual(
     [...CLAIM_STATUS_INITIALIZATION_WRITERS].sort((a, b) => a.localeCompare(b)),
-    ['packages/domain-claims/src/claims/create.ts', 'packages/domain-claims/src/claims/submit.ts']
+    []
   );
   assert.equal(
     CLAIM_STATUS_TRANSITION_WRITERS.has('packages/domain-claims/src/claims/create.ts'),
@@ -87,8 +87,20 @@ test('keeps stale compat repair transition-owned', () => {
   );
   assert.equal(
     CLAIM_STATUS_TRANSITION_WRITERS.has('packages/domain-claims/src/claims/transition.ts'),
-    true
+    false
   );
+});
+
+test('keeps claim status writer allowlist empty after lifecycle migration', () => {
+  assert.equal(CLAIM_STATUS_WRITER_ALLOWLIST.size, 0);
+  assert.deepEqual([...CLAIM_STATUS_FIXTURE_WRITERS], []);
+});
+
+test('detects variable-based claims.status updates', () => {
+  const source =
+    "const updateData = { status: 'resolved', updatedAt: new Date() };" +
+    'await db.update(claims).set(updateData).where(eq(claims.id, claimId));';
+  assert.equal(containsClaimStatusWrite(source), true);
 });
 
 test('initial status writers do not update existing claim statuses', () => {
@@ -132,5 +144,6 @@ test('repo inventory has no unlisted direct claims.status writers', () => {
   const result = findClaimStatusWriterViolations(process.cwd());
   assert.deepEqual(result.unexpected, []);
   assert.deepEqual(result.missing, []);
+  assert.deepEqual(result.discovered, []);
   assert.equal(result.discovered.length, CLAIM_STATUS_WRITER_ALLOWLIST.size);
 });

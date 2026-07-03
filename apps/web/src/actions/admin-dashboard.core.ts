@@ -1,4 +1,5 @@
 import { type ClaimStatus } from '@interdomestik/database/constants';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { db } from '@interdomestik/database/db';
 import { claims, user } from '@interdomestik/database/schema';
 import { claimLifecycleStatusIs } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
@@ -53,7 +54,7 @@ export async function getAdminDashboardStats(tenantId: string): Promise<Dashboar
 }
 
 export async function getRecentClaims(tenantId: string, limit = 5) {
-  return await db.query.claims.findMany({
+  const recentClaims = await db.query.claims.findMany({
     where: (claims, { eq }) => eq(claims.tenantId, tenantId),
     with: {
       user: true,
@@ -61,6 +62,11 @@ export async function getRecentClaims(tenantId: string, limit = 5) {
     limit,
     orderBy: [desc(claims.createdAt)],
   });
+
+  return recentClaims.map(claim => ({
+    ...claim,
+    status: claimStatusFromLifecycleFields(claim),
+  }));
 }
 
 export async function getUnassignedClaims(tenantId: string, limit = 5) {

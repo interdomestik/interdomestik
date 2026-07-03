@@ -38,10 +38,20 @@ import { cancelClaimCore } from './draft';
 const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 const memberSession = { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } } as never;
 
+function lifecycleStatesForStatus(status: string) {
+  if (status === 'resolved') {
+    return { caseLifecycleState: 'resolved', recoveryLifecycleState: 'resolved' };
+  }
+  if (status === 'submitted') {
+    return { caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started' };
+  }
+  return { caseLifecycleState: 'draft', recoveryLifecycleState: 'not_started' };
+}
+
 function mockClaim(status = 'draft') {
   mocks.findFirst.mockResolvedValueOnce({
+    ...lifecycleStatesForStatus(status),
     id: 'claim-1',
-    status,
     tenantId: 'tenant-1',
     title: 'Claim',
     userId: 'member-1',

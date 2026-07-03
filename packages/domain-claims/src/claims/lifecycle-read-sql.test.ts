@@ -14,7 +14,7 @@ describe('claim lifecycle read SQL', () => {
 
     expect(query.sql).toContain('"claims"."case_lifecycle_state"');
     expect(query.sql).toContain('"claims"."recovery_lifecycle_state"');
-    expect(query.sql).toContain('"claims"."status"');
+    expect(query.sql).not.toContain('"claims"."status"');
     expect(query.sql).not.toContain('"claim"."case_lifecycle_state"');
   });
 
@@ -24,6 +24,13 @@ describe('claim lifecycle read SQL', () => {
     expect(query.sql).toContain('"claims"."case_lifecycle_state"');
     expect(query.sql).toContain('not');
     expect(query.params).toEqual(['resolved']);
+  });
+
+  it('does not silently classify invalid lifecycle pairs as draft', () => {
+    const query = dialect.sqlToQuery(claimLifecycleStatusSqlForAlias('claims'));
+
+    expect(query.sql).toContain('else null');
+    expect(query.sql).not.toContain("else 'draft'");
   });
 
   it('rejects unsafe raw SQL aliases', () => {
