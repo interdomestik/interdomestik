@@ -10,11 +10,11 @@
 
 The current product is a web dashboard organized by internal structure (member / agent / staff / admin route groups, a services catalog page, a claims list). That works for a pilot. It fails commercially on mobile for three reasons:
 
-**1. It sells a taxonomy, not a moment.** Eleven services presented as eleven cards forces the user to self-diagnose ("Is my problem a Legal Basis Pre-check or a Procedure Guide?"). Nobody who just had a car crash knows — or should need to know — the difference. The service catalog is Interdomestik's org chart, not the user's mental model. Users arrive in exactly three states: *something just happened* (adrenaline, one-handed phone use, roadside), *I have an ongoing problem* (a claim in flight, checking status), or *I'm evaluating whether this is worth €20/year* (skeptical browsing). The IA must be built around these three states.
+**1. It sells a taxonomy, not a moment.** Eleven services presented as eleven cards forces the user to self-diagnose ("Is my problem a Legal Basis Pre-check or a Procedure Guide?"). Nobody who just had a car crash knows — or should need to know — the difference. The service catalog is Interdomestik's org chart, not the user's mental model. Users arrive in exactly three states: _something just happened_ (adrenaline, one-handed phone use, roadside), _I have an ongoing problem_ (a claim in flight, checking status), or _I'm evaluating whether this is worth €20/year_ (skeptical browsing). The IA must be built around these three states.
 
 **2. The dashboard pattern is wrong for the median user.** A dashboard assumes recurring engagement with varied data. A member touches this app perhaps 4–10 times a year, in bursts around an incident. The right pattern is a **case companion**: one clear "here's where you are, here's the single next step" surface, not KPI tiles.
 
-**3. Trust is asserted, not demonstrated.** Legal-service apps win trust by showing competence fast: a useful checklist in 30 seconds, a claim pack you can hold, a named human reviewing your file. The current pilot buries the first useful output behind registration. Meanwhile the legal boundaries (not an insurer, not final decisions) risk being handled as disclaimer walls — which reads as evasion. Boundaries should be woven into confident language ("a human expert reviews this before anything is final" is a *feature*, not a warning).
+**3. Trust is asserted, not demonstrated.** Legal-service apps win trust by showing competence fast: a useful checklist in 30 seconds, a claim pack you can hold, a named human reviewing your file. The current pilot buries the first useful output behind registration. Meanwhile the legal boundaries (not an insurer, not final decisions) risk being handled as disclaimer walls — which reads as evasion. Boundaries should be woven into confident language ("a human expert reviews this before anything is final" is a _feature_, not a warning).
 
 **What's right and must be kept:** the shared case/document/timeline/event spine, the role model, the free→member→professional-recovery ladder, and VONESA on the same spine. The redesign is about presentation and flow, not the domain model.
 
@@ -24,13 +24,13 @@ The current product is a web dashboard organized by internal structure (member /
 
 **Decision: collapse the 11 services into 4 member-facing missions plus 1 vertical. The 11 services survive as internal capabilities and case stages — never as a browsing catalog.**
 
-| Mission (user-facing) | Absorbs these canonical services |
-|---|---|
-| **Help Now** — "Something just happened" | #6 Incident Scene Guide (Police vs EAS, Green Card, evidence preservation) |
-| **Start a Claim** — "I want compensation" | #1 Legal Basis Pre-check, #2 Procedure Guide, #3 Injury Pre-check, #4 Vehicle/Material Damage Review — all become *steps inside intake*, auto-selected by incident type |
-| **My Cases** — "Where do I stand?" | #5 Invalidity Coefficient Review, #7 Professional Expertise, #9 Court Path, #10 Legal Representation — all become *stages and escalations on the case timeline*, surfaced only when relevant |
-| **Membership** — "What do I get, what does it cost?" | #8 Member Discounts / Success-Fee Benefit — becomes transparent fee math shown at every agreement moment, plus a benefits page |
-| **Flight Delay (VONESA)** — first-class vertical | #11 Passenger Rights, with its own entry point and 3-minute flow, on the shared case spine |
+| Mission (user-facing)                                | Absorbs these canonical services                                                                                                                                                             |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Help Now** — "Something just happened"             | #6 Incident Scene Guide (Police vs EAS, Green Card, evidence preservation)                                                                                                                   |
+| **Start a Claim** — "I want compensation"            | #1 Legal Basis Pre-check, #2 Procedure Guide, #3 Injury Pre-check, #4 Vehicle/Material Damage Review — all become _steps inside intake_, auto-selected by incident type                      |
+| **My Cases** — "Where do I stand?"                   | #5 Invalidity Coefficient Review, #7 Professional Expertise, #9 Court Path, #10 Legal Representation — all become _stages and escalations on the case timeline_, surfaced only when relevant |
+| **Membership** — "What do I get, what does it cost?" | #8 Member Discounts / Success-Fee Benefit — becomes transparent fee math shown at every agreement moment, plus a benefits page                                                               |
+| **Flight Delay (VONESA)** — first-class vertical     | #11 Passenger Rights, with its own entry point and 3-minute flow, on the shared case spine                                                                                                   |
 
 Rules this taxonomy enforces:
 
@@ -95,17 +95,17 @@ VONESA lives as a prominent Home entry + Help Now branch, not a sixth tab. Its c
 
 ## 5. Role-by-Role Mobile Strategy
 
-| Role | Surface | Scope on mobile |
-|---|---|---|
-| Public visitor | **Mobile app / PWA, Free Zone** | Help Now, incident checklists, claim-pack generation (no PII), VONESA eligibility check, pricing. Full width of the free funnel. |
-| Member | **Mobile app — the primary product** | Everything in §3. |
-| Family/household user | Same app, invited seat | Own login, own cases, shared plan. Household admin sees seat list, never case contents. |
-| Sponsored member | Same app | Identical to member + "Provided by {Sponsor}" badge. Zero data flows to sponsor beyond aggregate counts. |
-| Agent | **Companion mode in the same app** (role-switch), phone-first | Lead capture, membership sale + instant activation (QR / code / payment link), member lookup, claim *stage* visibility only. No claim content. |
-| Staff / claims operator | **Desktop-first (existing web)**; mobile = triage companion | Push-notified queue, approve/route/comment on the go. No full case editing on phone. |
-| Professional reviewer / partner | **Desktop web, case-scoped invite links**; mobile read-only | Upload findings, sign off. Case-specific access, watermarked docs, audit-logged. |
-| Admin / branch / tenant admin | **Desktop only** | Do not spend mobile budget here. |
-| Sponsor/group admin | **Desktop web portal** | Roster upload, seat activation stats, aggregate usage. Never individual claims. |
+| Role                            | Surface                                                       | Scope on mobile                                                                                                                                                                        |
+| ------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public visitor                  | **Mobile app / PWA, Free Zone**                               | Help Now, incident checklists, claim-pack generation with no account and no server-side PII before explicit handoff, VONESA eligibility check, pricing. Full width of the free funnel. |
+| Member                          | **Mobile app — the primary product**                          | Everything in §3.                                                                                                                                                                      |
+| Family/household user           | Same app, invited seat                                        | Own login, own cases, shared plan. Household admin sees seat list, never case contents.                                                                                                |
+| Sponsored member                | Same app                                                      | Identical to member + "Provided by {Sponsor}" badge. Zero data flows to sponsor beyond aggregate counts.                                                                               |
+| Agent                           | **Companion mode in the same app** (role-switch), phone-first | Lead capture, membership sale + instant activation (QR / code / payment link), member lookup, claim _stage_ visibility only. No claim content.                                         |
+| Staff / claims operator         | **Desktop-first (existing web)**; mobile = triage companion   | Push-notified queue, approve/route/comment on the go. No full case editing on phone.                                                                                                   |
+| Professional reviewer / partner | **Desktop web, case-scoped invite links**; mobile read-only   | Upload findings, sign off. Case-specific access, watermarked docs, audit-logged.                                                                                                       |
+| Admin / branch / tenant admin   | **Desktop only**                                              | Do not spend mobile budget here.                                                                                                                                                       |
+| Sponsor/group admin             | **Desktop web portal**                                        | Roster upload, seat activation stats, aggregate usage. Never individual claims.                                                                                                        |
 
 The commercial insight: **one app binary, three modes** (Member, Agent, Staff-triage) selected by role at login. Separate apps fragment distribution and double maintenance.
 
@@ -114,7 +114,7 @@ The commercial insight: **one app binary, three modes** (Member, Agent, Staff-tr
 The diaspora (Balkan nationals in DE/CH/AT/IT/Nordics) is arguably the highest-value segment and cuts across every layer above. Three distinct diaspora jobs-to-be-done, each with a product answer:
 
 1. **"I'm driving home this summer."** The August corridor (DE/CH → XK/AL/MK) is the single most predictable incident spike: foreign plates, Green Card questions, cross-border liability, language barriers with local police. Product answer: a **Trip Mode** in the preparedness module — "Driving to Kosovo? Get road-ready": Green Card check, EAS in two languages side-by-side (German + Albanian/Macedonian), border/emergency numbers per transit country, offline pack downloaded before departure. Help Now already handles GPS-country ≠ home-country; Trip Mode pre-arms it.
-2. **"I want my parents covered back home."** Diaspora members are *buyers* more often than *users*. Product answer: **Gift/Remote membership** — buy Standard/Familja for family in-country in one flow, payer and beneficiary decoupled (payer gets renewal + payment receipts only; beneficiary gets the app, the cases, full privacy from the payer — same boundary discipline as sponsors). This is the digital version of sending remittances and should be marketed exactly that way.
+2. **"I want my parents covered back home."** Diaspora members are _buyers_ more often than _users_. Product answer: **Gift/Remote membership** — buy Standard/Familja for family in-country in one flow, payer and beneficiary decoupled (payer gets renewal + payment receipts only; beneficiary gets the app, the cases, full privacy from the payer — same boundary discipline as sponsors). This is the digital version of sending remittances and should be marketed exactly that way.
 3. **"My incident happened abroad / my counterparty is foreign."** Cross-border claims (foreign insurer, home-country damage or vice versa) are where DIY fails hardest and success-fee recovery is most defensible. Product answer: intake already captures country; a cross-border case badges as such and routes to the specialized desk; copy sells it plainly ("Accident in Germany, insurer ignoring you at home? This is exactly what we do.").
 
 VONESA compounds here: diaspora corridors (ZRH/GVA/FRA/DUS ↔ PRN/SKP/TIA) are chronically disrupted routes — flight-delay checks are a natural acquisition wedge into the diaspora audience before they ever have an accident.
@@ -128,11 +128,13 @@ Implications enforced elsewhere in this document: German added to the launch lan
 The home screen is **state-aware** — it renders one of three layouts:
 
 **State A — Active case (the most common member state):**
-1. **Next Step card** (hero, top): case name, status phrase in plain words ("Insurer reviewing — we chase them Tuesday"), and the one action: *yours* ("Upload the police report") or *ours* ("Nothing needed from you — we're on it," with expected date). One card even if multiple cases; others stack beneath, collapsed.
+
+1. **Next Step card** (hero, top): case name, status phrase in plain words ("Insurer reviewing — we chase them Tuesday"), and the one action: _yours_ ("Upload the police report") or _ours_ ("Nothing needed from you — we're on it," with expected date). One card even if multiple cases; others stack beneath, collapsed.
 2. Quiet secondary row: Vault shortcut, message-your-handler, VONESA check.
 3. Membership strip (renewal, plan, family seats) at the bottom, small.
 
 **State B — Member, no active case:**
+
 1. Greeting + **"What happened?"** launcher: four big tappable situations — Car accident · Injury · Property damage · Flight delayed — plus "Something else."
 2. **Preparedness module** (this is what makes the app feel alive between incidents): "Your glovebox is ready — European Accident Statement saved offline · Emergency numbers for 🇽🇰🇦🇱🇲🇰 · Green Card explainer." Seasonal **Trip Mode** variant for diaspora members (§5b): "Driving home? Get road-ready" with bilingual EAS and transit-country packs. Quiet value; drives retention without fabricating engagement.
 3. Benefits strip: "0% upfront. We take a success fee only if you recover." → fee explainer.
@@ -147,36 +149,42 @@ No KPI tiles. No "recent activity" feed. No empty-state dashboards.
 ## 7. Top Workflows (the six that matter)
 
 ### 7.1 Help Now (roadside, 30 seconds to value)
+
 1. Tap center tab → four giant buttons: **Car accident / Injury / Property / Flight**. Works logged-out, works offline (bundled content).
-2. Car accident path: immediate triage — *"Anyone hurt?"* → yes: call-emergency button with local number auto-set by GPS country; no: continue.
+2. Car accident path: immediate triage — _"Anyone hurt?"_ → yes: call-emergency button with local number auto-set by GPS country; no: continue.
 3. **Police or European Accident Statement?** One decision screen, country-aware ("In {country}, call police if: injury, dispute, foreign vehicle, drunk driver. Otherwise the EAS is enough."). EAS available as annotated offline form with a fill-together guide.
-4. **Evidence coach:** guided camera — shot list with ghost overlays (wide scene, plates, damage close-ups, documents, road signs, witnesses' contacts). Photos geo/time-stamped into a local incident bundle.
+4. **Evidence coach:** guided camera — shot list with ghost overlays (wide scene, plates, damage close-ups, documents, road signs, witnesses' contacts). Photos are stored in a local-only incident bundle until the user explicitly shares or attaches them; the app must make clear that the bundle stays on this device and can be deleted.
 5. Green Card / cross-border context appears only when GPS country ≠ home country or a foreign plate is flagged.
 6. Exit: "You're covered for now. Want us to take it from here?" → creates a case draft pre-filled with everything captured (free account → member conversion point).
 
 ### 7.2 Claim intake ("Start a claim")
+
 One wizard, 6–9 screens, conversational one-question-per-screen:
+
 1. What happened? (situation picker — sets the internal service routing)
 2. When & where? (date, country → drives Procedure Guide selection and deadline math; show deadline reassurance immediately: "In {country} you have until ~{date}. You're in time.")
 3. Who was involved? (parties, insurer if known, injuries y/n → injury path adds explicit medical-consent screen before any health question)
 4. What do you have? (evidence quick-add from Help Now bundle or camera/files — skippable)
 5. **Instant read-back:** "Here's what we see" — basis pre-check result in plain language with a confidence band ("Workable basis: {reason}. A specialist confirms this within 24h."), procedural next steps for that country, document checklist.
-6. Fork: **Free** → downloadable/shareable Claim Pack (PDF: facts, checklist, deadlines, EAS, letter template) — real value, zero PII beyond what they typed. **Member** → "We take it from here" → case created, handler assigned, 24h SLA promise on screen.
+6. Fork: **Free** → downloadable/shareable Claim Pack (PDF: facts, checklist, deadlines, EAS, letter template) — real value, with no server-side PII until the user explicitly creates, shares, or submits the pack. **Member** → "We take it from here" → case created, handler assigned, 24h SLA promise on screen.
 
 The pre-checks (#1–#4) run inside step 5 invisibly. The user never chooses between them.
 
 ### 7.3 Evidence & document upload
+
 - **Camera-first.** Every upload entry opens the camera with a context-aware shot list; gallery/files behind a secondary tab.
 - Auto-categorization by prompt context ("this is your police report") with a one-tap correct.
 - Every item shows: which case, who can see it (Just you / Your handler / + Expert / + Partner lawyer), and for medical items a distinct consent chip that was explicitly granted and is revocable.
 - Checklist-driven: the case's document checklist shows ✅/⏳ per required item; uploads tick items; the Next Step card updates automatically. Uploading feels like progress, not filing.
 
 ### 7.4 Case timeline & next-step model
+
 - **The invariant: every case shows exactly one Next Step, owned by exactly one party** (You / Interdomestik / Insurer / Court), with a date expectation. If the ball is with the insurer: "Waiting on {insurer} — they have until {date}. If they miss it, we escalate." This single rule kills the #1 complaint in claims UX: silence.
 - Timeline below: member-visible events only, newest first, human phrasing ("We sent your file to the insurer," not "Status → SUBMITTED"). Milestones (Filed → Verified → Assessed → Negotiating → Resolved) as a compact progress rail on top.
 - Escalation moments (expert, court, lawyer) appear here as **proposal cards** with the Fee Math Sheet and explicit approval — never automatic.
 
 ### 7.5 VONESA flight-delay flow (3 minutes, mostly automatic)
+
 1. Entry: Home tile / Help Now → Flight. "Flight delayed or cancelled? Check in 30 seconds."
 2. Flight number + date → flight-data lookup auto-fills route, delay, distance → **eligibility read**: "Likely eligible: €400 under EC261. Here's why." (band: likely / possible / unlikely — with reason, never a promise).
 3. Passenger details + boarding pass photo (OCR).
@@ -185,7 +193,9 @@ The pre-checks (#1–#4) run inside step 5 invisibly. The user never chooses bet
 6. Free users can run steps 1–2 without an account; the eligibility result is the conversion hook.
 
 ### 7.6 Professional Recovery authorization (the Agreement Ceremony)
+
 This is the legally and commercially critical moment; it gets a deliberate, unhurried 4-screen ceremony, always triggered by a human-reviewed proposal, never self-serve from a menu:
+
 1. **What we'll do** — scope in plain language, named handler, what happens first, expected timeline.
 2. **What it costs** — the Fee Math Sheet: interactive example ("If we recover €5,000 → success fee {tier %} = €750 → you receive €4,250. If we recover €0 → you pay €0."), member-tier discount shown, expert/court costs handled as separate explicit approvals later.
 3. **What you're signing** — service agreement + POA/assignment, summarized in 5 bullets, full text one tap away, e-sign (draw or typed + OTP). Sensitive-document access consent is its own toggle set, not bundled.
@@ -213,9 +223,9 @@ This is the legally and commercially critical moment; it gets a deliberate, unhu
 
 **Help Now hub.** Full-screen, high contrast, works offline; four buttons ≥88pt tall with icons (car, cross, house, plane), country auto-detected shown top-right ("📍 North Macedonia — emergency 192/193/194"). Beneath: "I just need the accident form (EAS)" text link. No nav chrome except a close X. Loads in <1s from cold; content pack cached on install.
 
-**Intake read-back ("Here's what we see").** The trust-critical screen. Card 1: *Basis* — green/amber/grey band with one-sentence reason ("The other driver was cited — liability basis looks workable") and the reviewer line ("Confirmed by our legal team within 24h" with a face avatar row). Card 2: *Your deadlines* — country flag, statute window, "you're in time" reassurance. Card 3: *Documents you'll need* — checklist with have/need states pre-ticked from uploads. Footer fork: "Get my free Claim Pack" (secondary) / "Have Interdomestik handle it" (primary).
+**Intake read-back ("Here's what we see").** The trust-critical screen. Card 1: _Basis_ — green/amber/grey band with one-sentence reason ("The other driver was cited — liability basis looks workable") and the reviewer line ("Confirmed by our legal team within 24h" with a face avatar row). Card 2: _Your deadlines_ — country flag, statute window, "you're in time" reassurance. Card 3: _Documents you'll need_ — checklist with have/need states pre-ticked from uploads. Footer fork: "Get my free Claim Pack" (secondary) / "Have Interdomestik handle it" (primary).
 
-**Fee Math Sheet (component, bottom sheet).** Slider or three preset recovery amounts; live math: recovered → success fee (tier-discounted %, struck-through base rate for members) → *you receive* in the largest type on screen; a fixed line: "Recover nothing → pay nothing." Link: "Full fee rules." This sheet renders identically in claims, VONESA, and expert-cost approvals — one component, one mental model.
+**Fee Math Sheet (component, bottom sheet).** Slider or three preset recovery amounts; live math: recovered → success fee (tier-discounted %, struck-through base rate for members) → _you receive_ in the largest type on screen; a fixed line: "Recover nothing → pay nothing." Link: "Full fee rules." This sheet renders identically in claims, VONESA, and expert-cost approvals — one component, one mental model.
 
 **Consent sheet (medical/sensitive).** Appears exactly when an injury question or medical upload begins. Title: "Your medical information." Three plain statements with toggles: share with my Interdomestik handler / share with a certified medical reviewer / share with partner lawyer if my case goes legal. Footnote: "Change any of this later in Vault. Revoking hides documents from that party." Continue disabled until at least handler-consent is on. No legalese on-screen; policy one tap away.
 
@@ -242,15 +252,15 @@ This is the legally and commercially critical moment; it gets a deliberate, unhu
 
 **Voice: "We'll take it from here."** First-person plural, active verbs, no passive insurance-speak, no exclamation marks.
 
-| Instead of | Write |
-|---|---|
-| "Claim status: SUBMITTED" | "We sent your file to the insurer on 3 July." |
-| "This does not constitute legal advice…" (wall) | "Initial assessment — our legal team confirms it within 24h." |
-| "Compensation is not guaranteed" (banner) | "If we recover nothing, you pay nothing." (same fact, framed as the fee promise) |
-| "Automated injury categorization" | "A first look at your injury category. A certified doctor reviews it before it counts." |
-| "Upload required documents" | "Two documents left — then we can file." |
+| Instead of                                      | Write                                                                                   |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------- |
+| "Claim status: SUBMITTED"                       | "We sent your file to the insurer on 3 July."                                           |
+| "This does not constitute legal advice…" (wall) | "Initial assessment — our legal team confirms it within 24h."                           |
+| "Compensation is not guaranteed" (banner)       | "If we recover nothing, you pay nothing." (same fact, framed as the fee promise)        |
+| "Automated injury categorization"               | "A first look at your injury category. A certified doctor reviews it before it counts." |
+| "Upload required documents"                     | "Two documents left — then we can file."                                                |
 
-Rules: never promise an outcome, always promise the *next action and its date*; name humans (handler avatar + first name) at every review point; render limitations as the presence of humans, not the absence of guarantees; all legal texts complete and one tap away, never in the flow's critical path except at signature ceremonies.
+Rules: never promise an outcome, always promise the _next action and its date_; name humans (handler avatar + first name) at every review point; render limitations as the presence of humans, not the absence of guarantees; all legal texts complete and one tap away, never in the flow's critical path except at signature ceremonies.
 
 ---
 
@@ -262,7 +272,7 @@ Rules: never promise an outcome, always promise the *next action and its date*; 
 
 **C. Emergency vs. planned split (two apps/modes: "SOS" and "Claims").** Pros: extremely clear at the roadside. Cons: splits the funnel exactly where conversion happens (scene → case draft), doubles surface area. **Rejected**, but its core insight — emergency reachable in one tap — is kept via the center Help Now tab.
 
-**D. Claim-type verticals (Car / Injury / Property / Flight as four mini-apps).** Pros: deep tailoring per vertical, VONESA proves the pattern. Cons: 4× flows to maintain, shared spine erodes, cross-type incidents (crash *with* injury — very common) get awkward. **Partially adopted:** VONESA alone earns vertical treatment because its data source, agreement model, and counterparty are genuinely different; everything else shares one intake with type-specific branches.
+**D. Claim-type verticals (Car / Injury / Property / Flight as four mini-apps).** Pros: deep tailoring per vertical, VONESA proves the pattern. Cons: 4× flows to maintain, shared spine erodes, cross-type incidents (crash _with_ injury — very common) get awkward. **Partially adopted:** VONESA alone earns vertical treatment because its data source, agreement model, and counterparty are genuinely different; everything else shares one intake with type-specific branches.
 
 ---
 
@@ -270,7 +280,7 @@ Rules: never promise an outcome, always promise the *next action and its date*; 
 
 **Wave 1 — the free funnel that proves value (weeks 1–6):**
 Help Now hub + car-accident scene guide + evidence coach (offline) · intake wizard with read-back · free Claim Pack PDF · account creation · app shell with 5-tab nav.
-*Why first: this is the 30-second value promise and the entire top of funnel. No backend novelty — content + camera + PDF.*
+_Why first: this is the 30-second value promise and the entire top of funnel. No backend novelty — content + camera + PDF._
 
 **Wave 2 — the member spine (weeks 4–10, overlapping):**
 Membership purchase (Paddle exists) + sponsored-code activation + **gift/remote membership for diaspora buyers** (payer/beneficiary decoupled) · case creation from intake · Next Step card + timeline + document checklist · Vault + consent sheets · handler messaging (reuse existing messaging) · push notifications.
@@ -294,13 +304,13 @@ Insurer response OCR ("photograph the rejection letter → we read it and propos
 
 ## 15. Risks & Open Business Questions
 
-1. **POA / assignment validity per country.** E-signature (draw/OTP) may not satisfy POA formality in every target jurisdiction (notarization requirements). Need a per-country legal matrix before the Agreement Ceremony ships; fallback = print-and-sign with in-app tracking. *Owner: legal. Blocks Wave 3.*
-2. **Medical data (GDPR Art. 9).** Injury pre-check processes special-category data. The consent sheet is necessary but not sufficient — need DPIA, retention rules, and reviewer-access logging before injury intake goes public. *Blocks injury path, not car/property.*
+1. **POA / assignment validity per country.** E-signature (draw/OTP) may not satisfy POA formality in every target jurisdiction (notarization requirements). Need a per-country legal matrix before the Agreement Ceremony ships; fallback = print-and-sign with in-app tracking. _Owner: legal. Blocks Wave 3._
+2. **Medical data (GDPR Art. 9).** Injury pre-check processes special-category data. The consent sheet is necessary but not sufficient — need DPIA, retention rules, and reviewer-access logging before injury intake goes public. _Blocks injury path, not car/property._
 3. **Cession vs. POA default in VONESA per airline/jurisdiction** — some airlines reject assignment; the fallback switch must be case-level, and the fee math may differ. Confirm with the recovery partner.
-4. **24h human-review SLA capacity.** The read-back screen promises specialist confirmation in 24h. If review staffing can't hold that at launch volume, soften to "within 1 business day" *before* launch — a broken trust promise in week one is unrecoverable.
+4. **24h human-review SLA capacity.** The read-back screen promises specialist confirmation in 24h. If review staffing can't hold that at launch volume, soften to "within 1 business day" _before_ launch — a broken trust promise in week one is unrecoverable.
 5. **Success-fee display vs. regulation.** Displaying fee math as quasi-financial projection may attract consumer-credit/claims-management regulation in some markets. Verify wording ("example," not "estimate") per country.
 6. **Sponsor privacy boundary** is a contractual promise, not just UI — sponsor agreements must mirror the "aggregate only" rule, and the API must enforce it (no individual endpoints for sponsor-admin role, period).
-7. **App store vs. PWA.** Recommendation: ship as installable PWA for pilot markets *plus* store-wrapped build (Capacitor-class) for launch — store presence is a trust signal in the Balkans' consumer market; PWA alone under-converts. Decide by Wave 2.
+7. **App store vs. PWA.** Recommendation: ship as installable PWA for pilot markets _plus_ store-wrapped build (Capacitor-class) for launch — store presence is a trust signal in the Balkans' consumer market; PWA alone under-converts. Decide by Wave 2.
 8. **Agent cash sales** (street sales culture) vs. Paddle-only rails — the "cash-marked" activation needs a reconciliation process or it becomes a fraud vector.
 9. **Free Claim Pack cannibalization?** Bet: no — the pack converts skeptics and the people who only ever wanted the form were never buyers. Measure pack→member conversion; if <3% after 90 days, gate the letter template (not the checklist).
 10. **Family/household abuse** (one Familja plan shared beyond household) — accept at launch, monitor case-per-plan ratio.
@@ -317,7 +327,7 @@ Ship-gate for every member-facing release:
 - [ ] Help Now reachable in one tap from every screen; car-accident guide works in airplane mode.
 - [ ] First useful output (checklist or eligibility read) reachable in <30s from cold install, no account.
 - [ ] No automated output presented as final: every pre-check carries the `ReviewBadge`; bands + reasons, never bare scores.
-- [ ] Fee math shown *before* every signature; "recover nothing → pay nothing" present at every agreement moment.
+- [ ] Fee math shown _before_ every signature; "recover nothing → pay nothing" present at every agreement moment.
 - [ ] No PII collected in the Free Zone before the fork screen; medical questions always preceded by the Consent Sheet.
 - [ ] POA/agreement full text accessible within one tap of every summary; signed copies land in Vault immediately.
 - [ ] Sponsor-admin role has no route, API, or export exposing individual case data.
@@ -330,4 +340,4 @@ Ship-gate for every member-facing release:
 
 ---
 
-*The one-line thesis: stop selling eleven services; sell one promise — "something happened, we'll take it from here" — and let the case spine, the Next Step invariant, and honest fee math do the trust-building that disclaimers never will.*
+_The one-line thesis: stop selling eleven services; sell one promise — "something happened, we'll take it from here" — and let the case spine, the Next Step invariant, and honest fee math do the trust-building that disclaimers never will._
