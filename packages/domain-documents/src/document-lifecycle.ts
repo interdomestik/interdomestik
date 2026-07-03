@@ -38,7 +38,7 @@ export async function softDeleteDocument(params: {
     // db-access-guard: tenant-scoped -- reason: AI output redaction is constrained by exact tenantId and documentId.
     await tx
       .update(schema.aiRuns)
-      .set({ outputJson: null, responseJson: null })
+      .set({ requestJson: {}, outputJson: null, responseJson: null })
       .where(and(eq(schema.aiRuns.documentId, documentId), eq(schema.aiRuns.tenantId, tenantId)));
 
     // db-access-guard: tenant-scoped -- reason: non-terminal AI run failure is constrained by exact tenantId, documentId, and status.
@@ -49,6 +49,7 @@ export async function softDeleteDocument(params: {
         completedAt: deletedAt,
         errorCode: 'claim_ai_document_deleted',
         errorMessage: 'Claim AI run skipped because the source document was deleted.',
+        requestJson: {},
         outputJson: null,
         responseJson: null,
       })

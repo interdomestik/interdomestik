@@ -40,6 +40,9 @@ export async function failDeletedDocumentClaimAiRun(
           completedAt: new Date(),
           errorCode: 'claim_ai_document_deleted',
           errorMessage: 'Claim AI run skipped because the source document was deleted.',
+          requestJson: {},
+          outputJson: null,
+          responseJson: null,
         })
         .where(and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued')))
         .returning({ id: aiRuns.id })

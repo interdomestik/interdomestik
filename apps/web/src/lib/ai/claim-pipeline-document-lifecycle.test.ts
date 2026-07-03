@@ -29,6 +29,9 @@ vi.mock('@interdomestik/database/schema', () => ({
     entityId: 'ai_runs.entity_id',
     entityType: 'ai_runs.entity_type',
     id: 'ai_runs.id',
+    outputJson: 'ai_runs.output_json',
+    requestJson: 'ai_runs.request_json',
+    responseJson: 'ai_runs.response_json',
     status: 'ai_runs.status',
     tenantId: 'ai_runs.tenant_id',
     workflow: 'ai_runs.workflow',
@@ -81,6 +84,9 @@ describe('failDeletedDocumentClaimAiRun', () => {
         status: 'failed',
         errorCode: 'claim_ai_document_deleted',
         completedAt: expect.any(Date),
+        requestJson: {},
+        outputJson: null,
+        responseJson: null,
       })
     );
   });

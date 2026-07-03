@@ -140,6 +140,7 @@ describe('persistClaimAiExtraction', () => {
       expect.objectContaining({
         status: 'failed',
         errorCode: 'claim_ai_document_deleted',
+        requestJson: {},
         outputJson: null,
         responseJson: null,
       })

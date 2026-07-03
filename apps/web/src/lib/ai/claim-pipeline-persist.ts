@@ -49,6 +49,7 @@ export async function persistClaimAiExtraction(args: {
           completedAt,
           errorCode: 'claim_ai_document_deleted',
           errorMessage: 'Claim AI run skipped because the source document was deleted.',
+          requestJson: {},
           outputJson: null,
           responseJson: null,
         })

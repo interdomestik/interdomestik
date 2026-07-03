@@ -31,6 +31,7 @@ vi.mock('@interdomestik/database/schema', () => ({
     errorCode: 'ai_runs.error_code',
     errorMessage: 'ai_runs.error_message',
     outputJson: 'ai_runs.output_json',
+    requestJson: 'ai_runs.request_json',
     responseJson: 'ai_runs.response_json',
     status: 'ai_runs.status',
     tenantId: 'ai_runs.tenant_id',
@@ -81,6 +82,7 @@ describe('softDeleteDocument', () => {
       expect.objectContaining({ documentId: 'ai_runs.document_id' })
     );
     expect(mocks.updateSet).toHaveBeenNthCalledWith(2, {
+      requestJson: {},
       outputJson: null,
       responseJson: null,
     });
@@ -89,6 +91,7 @@ describe('softDeleteDocument', () => {
       expect.objectContaining({
         status: 'failed',
         errorCode: 'claim_ai_document_deleted',
+        requestJson: {},
         outputJson: null,
         responseJson: null,
       })
