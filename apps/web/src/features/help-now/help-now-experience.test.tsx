@@ -134,15 +134,17 @@ describe('HelpNowExperience', () => {
   it('distinguishes unsupported and failed Trip Mode offline saves', async () => {
     const user = userEvent.setup();
     render(<HelpNowExperience locale="en" />);
+    const downloadButton = screen.getByTestId('help-now-trip-download');
 
-    await user.click(screen.getByTestId('help-now-trip-download'));
+    await user.click(downloadButton);
     expect(screen.getByText('Offline save is not supported in this browser.')).toHaveClass(
       'text-amber-900'
     );
+    await waitFor(() => expect(downloadButton).not.toBeDisabled());
 
     hoisted.offlineSaveMock.mockResolvedValueOnce('failed');
-    await user.click(screen.getByTestId('help-now-trip-download'));
-    expect(screen.getByText('Offline save failed. Try again before you travel.')).toHaveClass(
+    await user.click(downloadButton);
+    expect(await screen.findByText('Offline save failed. Try again before you travel.')).toHaveClass(
       'text-amber-900'
     );
   });
