@@ -80,7 +80,6 @@ export function EvidenceCoach({ copy, onBundleChange }: EvidenceCoachProps) {
                   onBundleChange(next.length);
                   trackHelpNowEvent('evidence_bundle_created', {
                     item_count_bucket: bucketFor(next.length),
-                    camera_denied: false,
                   });
                 }}
               />

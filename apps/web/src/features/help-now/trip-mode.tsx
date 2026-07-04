@@ -7,14 +7,22 @@ import { saveTripModePackForOffline } from './offline';
 import { trackHelpNowEvent } from './analytics';
 import { HelpNowPanel } from './help-now-ui';
 
+type TripModeStatus = 'saved' | 'unsupported' | 'failed';
+
 type TripModeProps = Readonly<{
   copy: HelpNowCopy;
   country: HelpNowCountry;
   packs: readonly HelpNowCountryPack[];
 }>;
 
+function getStatusMessage(copy: HelpNowCopy, status: TripModeStatus): string {
+  if (status === 'saved') return copy.downloadDone;
+  if (status === 'unsupported') return copy.downloadUnsupported;
+  return copy.downloadFailed;
+}
+
 export function TripMode({ copy, country, packs }: TripModeProps) {
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<TripModeStatus | null>(null);
 
   return (
     <HelpNowPanel title="Trip Mode" titleId="trip-mode-title">
@@ -33,7 +41,7 @@ export function TripMode({ copy, country, packs }: TripModeProps) {
         data-testid="help-now-trip-download"
         onClick={async () => {
           const result = await saveTripModePackForOffline();
-          setStatus(result === 'saved' ? copy.downloadDone : 'Offline save is unavailable here.');
+          setStatus(result);
           if (result === 'saved') {
             trackHelpNowEvent('trip_pack_downloaded', {
               country,
@@ -46,7 +54,15 @@ export function TripMode({ copy, country, packs }: TripModeProps) {
       >
         {copy.download}
       </button>
-      {status ? <p className="mt-3 text-sm font-medium text-emerald-800">{status}</p> : null}
+      {status ? (
+        <p
+          className={`mt-3 text-sm font-medium ${
+            status === 'saved' ? 'text-emerald-800' : 'text-amber-900'
+          }`}
+        >
+          {getStatusMessage(copy, status)}
+        </p>
+      ) : null}
       <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
         <p className="font-semibold">{copy.darkTitle}</p>
         <p className="mt-1">{copy.darkBody}</p>

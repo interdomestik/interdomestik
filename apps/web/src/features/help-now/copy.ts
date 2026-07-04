@@ -1,24 +1,7 @@
 import type { HelpNowContentLocale } from './content-packs';
+import type { HelpNowCopy } from './copy-types';
 
-export type HelpNowCopy = {
-  title: string;
-  subtitle: string;
-  offline: string;
-  emergency: string;
-  continueSafe: string;
-  darkTitle: string;
-  darkBody: string;
-  privacy: string;
-  clear: string;
-  download: string;
-  downloadDone: string;
-  packTitle: string;
-  packBody: string;
-  scenarios: readonly string[];
-  checklist: readonly string[];
-  shots: readonly string[];
-  tripChecklist: readonly string[];
-};
+export type { HelpNowCopy } from './copy-types';
 
 const en: HelpNowCopy = {
   title: 'What happened?',
@@ -34,6 +17,8 @@ const en: HelpNowCopy = {
   clear: 'Clear local bundle',
   download: 'Download public Trip Mode pack',
   downloadDone: 'Public pack saved for offline use.',
+  downloadFailed: 'Offline save failed. Try again before you travel.',
+  downloadUnsupported: 'Offline save is not supported in this browser.',
   packTitle: 'Free Claim Pack preview',
   packBody: 'Checklist, evidence prompts, and handoff options only. No case is created here.',
   scenarios: ['Car accident', 'Injury', 'Property damage', 'Flight: coming soon'],
@@ -55,7 +40,6 @@ const en: HelpNowCopy = {
   ],
   tripChecklist: ['Green Card', 'EAS form', 'Vehicle documents', 'Family contact', 'Offline pack'],
 };
-
 const sq: HelpNowCopy = {
   ...en,
   title: 'Çfarë ndodhi?',
@@ -67,6 +51,8 @@ const sq: HelpNowCopy = {
   clear: 'Fshi paketën lokale',
   download: 'Shkarko paketën publike Trip Mode',
   downloadDone: 'Paketa publike u ruajt për përdorim offline.',
+  downloadFailed: 'Ruajtja offline dështoi. Provoni përsëri para udhëtimit.',
+  downloadUnsupported: 'Ruajtja offline nuk mbështetet në këtë shfletues.',
   scenarios: ['Aksident me veturë', 'Lëndim', 'Dëm prone', 'Fluturim: së shpejti'],
   checklist: [
     'Dilni në vend të sigurt',
@@ -77,7 +63,6 @@ const sq: HelpNowCopy = {
     'Mos pranoni fajin',
   ],
 };
-
 const mk: HelpNowCopy = {
   ...en,
   title: 'Што се случи?',
@@ -89,6 +74,8 @@ const mk: HelpNowCopy = {
   clear: 'Исчисти локален пакет',
   download: 'Преземи јавен Trip Mode пакет',
   downloadDone: 'Јавниот пакет е зачуван за offline употреба.',
+  downloadFailed: 'Offline зачувувањето не успеа. Обидете се повторно пред патување.',
+  downloadUnsupported: 'Offline зачувување не е поддржано во овој прелистувач.',
   scenarios: ['Сообраќајка', 'Повреда', 'Имотна штета', 'Лет: наскоро'],
   checklist: [
     'Преместете се на безбедно',
@@ -99,7 +86,6 @@ const mk: HelpNowCopy = {
     'Не признавајте вина',
   ],
 };
-
 const sr: HelpNowCopy = {
   ...en,
   title: 'Šta se dogodilo?',
@@ -111,6 +97,8 @@ const sr: HelpNowCopy = {
   clear: 'Obriši lokalni paket',
   download: 'Preuzmi javni Trip Mode paket',
   downloadDone: 'Javni paket je sačuvan za offline upotrebu.',
+  downloadFailed: 'Offline čuvanje nije uspelo. Pokušajte ponovo pre puta.',
+  downloadUnsupported: 'Offline čuvanje nije podržano u ovom pregledaču.',
   scenarios: ['Saobraćajna nezgoda', 'Povreda', 'Šteta na imovini', 'Let: uskoro'],
   checklist: [
     'Pomerite se na sigurno',
@@ -121,7 +109,6 @@ const sr: HelpNowCopy = {
     'Ne priznajte krivicu',
   ],
 };
-
 const de: HelpNowCopy = {
   ...en,
   title: 'Was ist passiert?',
@@ -133,11 +120,10 @@ const de: HelpNowCopy = {
   clear: 'Lokales Paket löschen',
   download: 'Öffentliches Trip-Mode-Paket speichern',
   downloadDone: 'Öffentliches Paket wurde offline gespeichert.',
+  downloadFailed: 'Offline-Speichern fehlgeschlagen. Versuchen Sie es vor der Reise erneut.',
+  downloadUnsupported: 'Offline-Speichern wird in diesem Browser nicht unterstützt.',
   scenarios: ['Autounfall', 'Verletzung', 'Sachschaden', 'Flug: bald'],
 };
-
 const COPY: Record<HelpNowContentLocale, HelpNowCopy> = { en, sq, mk, sr, de };
 
-export function getHelpNowCopy(locale: HelpNowContentLocale): HelpNowCopy {
-  return COPY[locale];
-}
+export const getHelpNowCopy = (locale: HelpNowContentLocale): HelpNowCopy => COPY[locale];
