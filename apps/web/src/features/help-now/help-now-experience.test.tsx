@@ -89,4 +89,17 @@ describe('HelpNowExperience', () => {
 
     setItemSpy.mockRestore();
   });
+
+  it('keeps the clear action responsive when storage removal fails', async () => {
+    const user = userEvent.setup();
+    const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+
+    render(<HelpNowExperience locale="en" />);
+    await user.click(screen.getByTestId('help-now-clear-bundle'));
+
+    expect(screen.getByTestId('help-now-local-only')).toHaveTextContent('0 items');
+    removeItemSpy.mockRestore();
+  });
 });

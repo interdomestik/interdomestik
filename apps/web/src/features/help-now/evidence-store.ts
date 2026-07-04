@@ -47,5 +47,9 @@ export function saveEvidenceItem(promptId: string, file: File): EvidenceItem {
 
 export function clearEvidenceItems() {
   if (globalThis.localStorage === undefined) return;
-  globalThis.localStorage.removeItem(STORAGE_KEY);
+  try {
+    globalThis.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Clearing is best-effort when browser storage is blocked.
+  }
 }
