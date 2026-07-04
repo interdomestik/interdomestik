@@ -19,9 +19,9 @@ export function TripMode({ copy, country, packs }: TripModeProps) {
   return (
     <HelpNowPanel title="Trip Mode" titleId="trip-mode-title">
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {copy.tripChecklist.map(item => (
+        {copy.tripChecklist.map((item, index) => (
           <div
-            key={item}
+            key={`trip-${index}`}
             className="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700"
           >
             {item}

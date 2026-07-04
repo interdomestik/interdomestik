@@ -58,7 +58,7 @@ export function EvidenceCoach({ copy, onBundleChange }: EvidenceCoachProps) {
         {copy.shots.map((shot, index) => {
           const existing = items.find(item => item.promptId === `shot-${index}`);
           return (
-            <label key={shot} className="rounded-md border border-slate-200 p-3 text-sm">
+            <label key={`shot-${index}`} className="rounded-md border border-slate-200 p-3 text-sm">
               <span className="block font-semibold text-slate-900">{shot}</span>
               <span className="mt-1 block text-slate-600">
                 {existing
