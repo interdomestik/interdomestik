@@ -61,7 +61,7 @@ export function TripMode({ copy, country, packs }: TripModeProps) {
           }
         }}
         disabled={isSaving}
-        className="mt-4 rounded-md bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+        className="mt-4 rounded-md bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
       >
         {copy.download}
       </button>
