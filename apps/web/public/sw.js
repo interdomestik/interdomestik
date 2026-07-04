@@ -1,5 +1,54 @@
 const CACHE_NAME = 'interdomestik-offline-v1';
+const HELP_NOW_CACHE_NAME = 'interdomestik-help-now-v1';
 const OFFLINE_URL = '/offline.html'; // Offline fallback page
+const HELP_NOW_PUBLIC_ASSETS = new Set(['/help-now-packs/content-packs.v1.json']);
+const HELP_NOW_PUBLIC_ROUTE = /^\/(sq|en|sr|mk|hr|de)\/help-now\/?$/;
+
+function isSameOrigin(url) {
+  return url.origin === self.location.origin;
+}
+
+function isHelpNowPublicRequest(url) {
+  return isSameOrigin(url) && HELP_NOW_PUBLIC_ROUTE.test(url.pathname);
+}
+
+async function helpNowFallbackResponse(request) {
+  if (new URL(request.url).pathname.endsWith('.json')) {
+    return new Response(JSON.stringify({ ok: false, reason: 'offline_without_cached_pack' }), {
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+      status: 503,
+    });
+  }
+
+  return (
+    (await caches.match(request)) ||
+    (await caches.match(OFFLINE_URL)) ||
+    new Response('Offline', { status: 503 })
+  );
+}
+
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(HELP_NOW_CACHE_NAME);
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    return helpNowFallbackResponse(request);
+  }
+}
+
+async function cacheHelpNowNavigation(request) {
+  try {
+    return await fetch(request);
+  } catch {
+    return helpNowFallbackResponse(request);
+  }
+}
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -17,11 +66,43 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches
+      .keys()
+      .then(keys =>
+        Promise.all(
+          keys
+            .filter(
+              key =>
+                key.startsWith('interdomestik-') &&
+                key !== CACHE_NAME &&
+                key !== HELP_NOW_CACHE_NAME
+            )
+            .map(key => caches.delete(key))
+        )
+      )
+      .then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', event => {
+  const requestUrl = new URL(event.request.url);
+
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  if (isSameOrigin(requestUrl) && HELP_NOW_PUBLIC_ASSETS.has(requestUrl.pathname)) {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+
   if (event.request.mode === 'navigate') {
+    if (isHelpNowPublicRequest(requestUrl)) {
+      event.respondWith(cacheHelpNowNavigation(event.request));
+      return;
+    }
+
     event.respondWith(
       fetch(event.request).catch(() => {
         return caches.match(event.request).then(response => {

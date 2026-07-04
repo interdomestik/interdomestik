@@ -1,0 +1,76 @@
+{
+  "version": "mob-01-help-now-dark-packs-2026-07-04-v1",
+  "generatedAt": "2026-07-04T00:00:00.000Z",
+  "publicOnly": true,
+  "containsPersonalData": false,
+  "countries": [
+    {
+      "country": "XK",
+      "marketLabel": "Kosovo",
+      "exposure": "dark",
+      "l2SignOff": null,
+      "reviewStatus": "not_started"
+    },
+    {
+      "country": "MK",
+      "marketLabel": "North Macedonia",
+      "exposure": "dark",
+      "l2SignOff": null,
+      "reviewStatus": "not_started"
+    },
+    {
+      "country": "AL",
+      "marketLabel": "Albania",
+      "exposure": "dark",
+      "l2SignOff": null,
+      "reviewStatus": "not_started"
+    },
+    {
+      "country": "DE",
+      "marketLabel": "Germany",
+      "exposure": "dark",
+      "l2SignOff": null,
+      "reviewStatus": "not_started"
+    },
+    {
+      "country": "AT",
+      "marketLabel": "Austria",
+      "exposure": "dark",
+      "l2SignOff": null,
+      "reviewStatus": "not_started"
+    },
+    {
+      "country": "HU",
+      "marketLabel": "Hungary",
+      "exposure": "dark",
+      "l2SignOff": null,
+      "reviewStatus": "not_started"
+    },
+    {
+      "country": "RS",
+      "marketLabel": "Serbia",
+      "exposure": "dark",
+      "l2SignOff": null,
+      "reviewStatus": "not_started"
+    },
+    {
+      "country": "HR",
+      "marketLabel": "Croatia",
+      "exposure": "dark",
+      "l2SignOff": null,
+      "reviewStatus": "not_started"
+    },
+    {
+      "country": "ME",
+      "marketLabel": "Montenegro",
+      "exposure": "dark",
+      "l2SignOff": null,
+      "reviewStatus": "not_started"
+    }
+  ],
+  "privacy": {
+    "serviceWorkerCache": "public-pack-manifest-only",
+    "localEvidenceBundle": "excluded-from-service-worker-cache",
+    "uploadEndpoint": null
+  }
+}
