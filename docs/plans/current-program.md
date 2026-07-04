@@ -44,18 +44,30 @@ only as controlled waivers for implementation readiness and do not authorize
 final paid, finance closure, individual claimant representation, final
 settlement, or final closed proof.
 
-Rev 87 closeout: `T-503` completed local implementation/readiness proof in
-`docs/plans/2026-07-03-t503-drop-claim-status-closeout.md`, removing the
-physical `claims.status` column and preserving any status-shaped output only as
-derived lifecycle compatibility from `case_lifecycle_state` and
-`recovery_lifecycle_state`. Local proof passed `pnpm pr:verify`,
+Rev 87 closeout: `T-503` completed through PR `#1292` / merge-main SHA
+`45cc038b9fa036f516fef5c7b9844f2cc3c92d78` from final implementation head
+`98e7f1a0e82efcc90d6c0ceb61eeb247c125bc7b`, consuming `OBR-DG41` and the
+evidence-ready waiver/intake authority in
+`docs/plans/2026-07-03-t503-drop-claim-status-closeout.md`. The merged
+implementation removes the physical `claims.status` column, preserves
+status-shaped output only as derived lifecycle compatibility from
+`case_lifecycle_state` and `recovery_lifecycle_state`, and completes the final
+status-bearing M0-M5 row. Local proof passed `pnpm pr:verify`,
 `pnpm security:guard`, `pnpm e2e:gate` (`134 passed`, `8 skipped`), coverage,
-repo-size, migration-journal, and focused type/test lanes. This completes the
-final status-bearing M0-M5 row locally. No replacement runtime slice is
-promoted; fresh current-authority/design-gate selection is required before
-follow-on work. G04/G05/G09/G10 waiver limits remain unchanged and do not
-authorize final paid, finance closure, individual claimant representation,
-final settlement, or final closed proof.
+repo-size, migration-journal, and focused type/test lanes. Post-merge main
+health at `45cc038b` is green for CI `28699456461` including DB-backed
+`e2e-gate`, Sonar Main Gate `28699456477`, Secret Scan/gitleaks `28699456463`,
+manual main Security/pnpm-audit `28699539840`, and CodeQL runs `28699456262`,
+`28699456311`, and `28699494956`. CD `28699456479` build/deploy staging jobs
+were green, but `e2e-staging` failed on both attempt 1 job `85115834639` and
+attempt 2 job `85116379208`: P0.1 missed role clarity markers on staging
+agent/staff surfaces after successful login, and attempt 2 also failed P0.3
+role-add proof. This is recorded as deployment-smoke residual risk, not
+product-readiness evidence. No replacement runtime slice is promoted; fresh
+current-authority/design-gate selection is required before follow-on work.
+G04/G05/G09/G10 waiver limits remain unchanged and do not authorize final paid,
+finance closure, individual claimant representation, final settlement, or final
+closed proof.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
