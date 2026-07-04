@@ -38,7 +38,7 @@ test('0091 claim status drop migration enforces canonical pairs', () => {
   const sql = fs.readFileSync(dropStatusMigrationPath, 'utf8');
 
   assert.match(sql, /ADD CONSTRAINT "claim_lifecycle_state_pair_check" CHECK/u);
-  assert.match(sql, /CASE "status"::text/u);
+  assert.match(sql, /CASE \("status"::text\)/u);
   assert.match(sql, /\("case_lifecycle_state","recovery_lifecycle_state"\) IN/u);
   assert.match(sql, /\('recovery','submitted_to_airline'\)/u);
   assert.match(sql, /\('rejected','closed'\)/u);
