@@ -69,6 +69,29 @@ G04/G05/G09/G10 waiver limits remain unchanged and do not authorize final paid,
 finance closure, individual claimant representation, final settlement, or final
 closed proof.
 
+Rev 88 current-authority/design-gate: `MOB-DG01` in
+`docs/plans/2026-07-04-mob-dg01-help-now-trip-mode-current-authority.md`
+records the first post-M0-M5 mobile-lane selection from clean main
+`d12c61414e1415cbe7da15eb826399266ff0156b` after the current-authority resolver
+returned `blocked_requires_current_authority`, `activeSlice=null`, and
+`umbrella_without_concrete_promoted_slice`. This gate promotes exactly one
+canonical tracker slice: `MOB-01`. The next active governed implementation goal
+is exactly one canonical tracker slice: `MOB-01`. Future `MOB-01` is limited to
+Help Now / no-account free funnel implementation with Diaspora Trip Mode folded
+into the same bounded slice: no-account Help Now guidance, Trip Mode
+country/corridor content packaging, offline content-pack controls, local-only
+evidence coach and incident-bundle controls, mobile presentation of the existing
+claim-pack artifact shape, minimal anonymous funnel instrumentation, and `de`
+locale support within reviewed copy. Unsigned country packs must remain dark or
+placeholder-only until L2 country-content sign-off records a named reviewer and
+date. `MOB-01` must not touch proxy/routing/auth/session/tenancy, member account
+creation, member surfaces, schema/RLS/migrations, billing/Paddle,
+VONESA/flight, service authorization, claim-transition writers, Operational
+Brain runtime, README, AGENTS, or broad architecture refactors. The T-503
+CD/staging RBAC/role-marker residual is not a blocker for this design
+promotion, but it blocks launch/live-operationality claims if it reproduces on
+current main or staging.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
