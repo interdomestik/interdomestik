@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { HelpNowCountry, HelpNowCountryPack } from './content-packs';
 import type { HelpNowCopy } from './copy';
 import { saveTripModePackForOffline } from './offline';
@@ -23,6 +23,8 @@ function getStatusMessage(copy: HelpNowCopy, status: TripModeStatus): string {
 
 export function TripMode({ copy, country, packs }: TripModeProps) {
   const [status, setStatus] = useState<TripModeStatus | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
 
   return (
     <HelpNowPanel title="Trip Mode" titleId="trip-mode-title">
@@ -40,17 +42,26 @@ export function TripMode({ copy, country, packs }: TripModeProps) {
         type="button"
         data-testid="help-now-trip-download"
         onClick={async () => {
-          const result = await saveTripModePackForOffline();
-          setStatus(result);
-          if (result === 'saved') {
-            trackHelpNowEvent('trip_pack_downloaded', {
-              country,
-              pack_count: 1,
-              total_mb_bucket: 'under_1',
-            });
+          if (isSavingRef.current) return;
+          isSavingRef.current = true;
+          setIsSaving(true);
+          try {
+            const result = await saveTripModePackForOffline();
+            setStatus(result);
+            if (result === 'saved') {
+              trackHelpNowEvent('trip_pack_downloaded', {
+                country,
+                pack_count: 1,
+                total_mb_bucket: 'under_1',
+              });
+            }
+          } finally {
+            isSavingRef.current = false;
+            setIsSaving(false);
           }
         }}
-        className="mt-4 rounded-md bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+        disabled={isSaving}
+        className="mt-4 rounded-md bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
       >
         {copy.download}
       </button>

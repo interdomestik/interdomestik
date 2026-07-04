@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HelpNowExperience } from './help-now-experience';
@@ -145,5 +145,28 @@ describe('HelpNowExperience', () => {
     expect(screen.getByText('Offline save failed. Try again before you travel.')).toHaveClass(
       'text-amber-900'
     );
+  });
+
+  it('prevents concurrent Trip Mode save attempts', async () => {
+    const user = userEvent.setup();
+    let resolveSave: ((value: 'saved') => void) | undefined;
+    hoisted.offlineSaveMock.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolveSave = resolve;
+        })
+    );
+    render(<HelpNowExperience locale="en" />);
+
+    const button = screen.getByTestId('help-now-trip-download');
+    const firstClick = user.click(button);
+    const secondClick = user.click(button);
+    await Promise.all([firstClick, secondClick]);
+
+    expect(hoisted.offlineSaveMock).toHaveBeenCalledTimes(1);
+    expect(button).toBeDisabled();
+
+    resolveSave?.('saved');
+    await waitFor(() => expect(button).not.toBeDisabled());
   });
 });
