@@ -69,7 +69,7 @@
     }
   ],
   "privacy": {
-    "serviceWorkerCache": "public-pack-manifest-only",
+    "serviceWorkerCache": "public-help-now-route-and-pack-manifest-only",
     "localEvidenceBundle": "excluded-from-service-worker-cache",
     "uploadEndpoint": null
   }
