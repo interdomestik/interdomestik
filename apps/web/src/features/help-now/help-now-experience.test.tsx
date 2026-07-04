@@ -4,13 +4,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HelpNowExperience } from './help-now-experience';
 
 const hoisted = vi.hoisted(() => ({
+  offlineSaveMock: vi.fn(),
   trackEventMock: vi.fn(),
 }));
 
 vi.mock('@/lib/analytics', () => ({ trackEvent: hoisted.trackEventMock }));
+vi.mock('./offline', () => ({ saveTripModePackForOffline: hoisted.offlineSaveMock }));
 
 describe('HelpNowExperience', () => {
   beforeEach(() => {
+    hoisted.offlineSaveMock.mockReset();
+    hoisted.offlineSaveMock.mockResolvedValue('unsupported');
     hoisted.trackEventMock.mockClear();
     localStorage.clear();
   });
@@ -125,5 +129,21 @@ describe('HelpNowExperience', () => {
 
     expect(screen.getByTestId('help-now-local-only')).toHaveTextContent('0 items');
     removeItemSpy.mockRestore();
+  });
+
+  it('distinguishes unsupported and failed Trip Mode offline saves', async () => {
+    const user = userEvent.setup();
+    render(<HelpNowExperience locale="en" />);
+
+    await user.click(screen.getByTestId('help-now-trip-download'));
+    expect(screen.getByText('Offline save is not supported in this browser.')).toHaveClass(
+      'text-amber-900'
+    );
+
+    hoisted.offlineSaveMock.mockResolvedValueOnce('failed');
+    await user.click(screen.getByTestId('help-now-trip-download'));
+    expect(screen.getByText('Offline save failed. Try again before you travel.')).toHaveClass(
+      'text-amber-900'
+    );
   });
 });
