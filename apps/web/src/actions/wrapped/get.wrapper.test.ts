@@ -19,9 +19,18 @@ vi.mock('@interdomestik/database', () => {
   };
 });
 
-// Mock constants separately if needed, but get.core.ts imports from @interdomestik/database/constants
 vi.mock('@interdomestik/database/constants', () => ({
-  CLAIM_STATUSES: ['draft', 'pending', 'resolved', 'rejected'],
+  CLAIM_STATUSES: [
+    'draft',
+    'submitted',
+    'submitted_to_airline',
+    'verification',
+    'evaluation',
+    'negotiation',
+    'court',
+    'resolved',
+    'rejected',
+  ],
 }));
 
 describe('getWrappedStatsCore', () => {
@@ -61,8 +70,12 @@ describe('getWrappedStatsCore', () => {
     } as never);
 
     vi.mocked(db.query.claims.findMany).mockResolvedValue([
-      { status: 'resolved', claimAmount: '1000' },
-      { status: 'pending', claimAmount: '500' },
+      { caseLifecycleState: 'resolved', recoveryLifecycleState: 'resolved', claimAmount: '1000' },
+      {
+        caseLifecycleState: 'evaluation',
+        recoveryLifecycleState: 'not_started',
+        claimAmount: '500',
+      },
     ] as never);
 
     const result = await getWrappedStatsCore({ session: mockSession as never });

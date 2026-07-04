@@ -2,12 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createTrackingDrizzleMock, trackingSchemaMock } from './tracking-test-mocks';
 
-type ClaimRow = {
-  id: string;
-  tenantId: string;
-  status: string;
-  updatedAt: Date;
-};
+type ClaimRow = { caseLifecycleState: string; id: string; recoveryLifecycleState: string; tenantId: string; updatedAt: Date };
 
 type TokenRow = {
   claimId: string;
@@ -46,8 +41,10 @@ function resolveField(value: unknown, row: QueryRow): unknown {
     case 'claims.tenantId':
     case 'claimTrackingTokens.tenantId':
       return row.tenantId;
-    case 'claims.status':
-      return 'status' in row ? row.status : value;
+    case 'claims.caseLifecycleState':
+      return 'caseLifecycleState' in row ? row.caseLifecycleState : value;
+    case 'claims.recoveryLifecycleState':
+      return 'recoveryLifecycleState' in row ? row.recoveryLifecycleState : value;
     case 'claims.updatedAt':
       return 'updatedAt' in row ? row.updatedAt : value;
     case 'claimTrackingTokens.tokenHash':
@@ -212,8 +209,8 @@ describe('tracking link lifecycle', () => {
     hoisted.store.claims = [
       {
         id: 'claim-1',
+        caseLifecycleState: 'evaluation', recoveryLifecycleState: 'not_started',
         tenantId: 'tenant-ks',
-        status: 'evaluation',
         updatedAt: new Date('2026-04-10T09:00:00.000Z'),
       },
     ];

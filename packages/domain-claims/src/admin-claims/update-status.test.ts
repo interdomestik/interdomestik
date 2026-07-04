@@ -59,29 +59,21 @@ describe('admin updateClaimStatusCore', () => {
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
   });
 
-  it('repairs stale compat status when lifecycle state already matches the request', async () => {
-    mockClaim('resolved', 'verification');
+  it('treats the lifecycle projection as authoritative for unchanged requests', async () => {
+    mockClaim('resolved');
 
     await runStatusUpdate('resolved');
 
-    expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
-      actor: { id: 'admin-1', role: 'tenant_admin' },
-      claimId: 'claim-1',
-      tenantId: 'tenant-1',
-      toStatus: 'resolved',
-    });
+    expect(mocks.transitionClaimStatus).not.toHaveBeenCalled();
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
   });
 
-  it('surfaces stale compat repair failures without pretending the no-op succeeded', async () => {
-    mockClaim('resolved', 'verification');
-    mocks.transitionClaimStatus.mockResolvedValueOnce({
-      success: false,
-      error: 'claim_not_found',
-    });
+  it('does not run repair transitions for removed compat status drift', async () => {
+    mockClaim('resolved');
 
-    await expect(runStatusUpdate('resolved')).rejects.toThrow('Claim not found');
+    await expect(runStatusUpdate('resolved')).resolves.toBeUndefined();
 
+    expect(mocks.transitionClaimStatus).not.toHaveBeenCalled();
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
   });
 

@@ -1,5 +1,6 @@
 import { and, claims, db, eq } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
 import { resolveClaimLifecycleReadProjection } from '../claims/lifecycle-read-model';
 
 export type MemberClaimDetail = {
@@ -28,7 +29,7 @@ export async function getMemberClaimDetail(params: {
     .select({
       id: claims.id,
       claimNumber: claims.claimNumber,
-      status: claims.status,
+      status: claimLifecycleStatusSql(),
       caseLifecycleState: claims.caseLifecycleState,
       recoveryLifecycleState: claims.recoveryLifecycleState,
       createdAt: claims.createdAt,

@@ -63,7 +63,6 @@ export async function getPublicClaimStatus(token: string): Promise<PublicClaimSt
         where: and(eq(claims.id, record.claimId), eq(claims.tenantId, record.tenantId)),
         columns: {
           id: true,
-          status: true,
           caseLifecycleState: true,
           recoveryLifecycleState: true,
           updatedAt: true,

@@ -40,13 +40,14 @@ const session = {
   user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_mk' },
   session: { id: 'session-1' },
 } as unknown as NonNullable<import('./context').Session>;
+const state = (caseLifecycleState: string, recoveryLifecycleState: string) => ({ id: 'claim-1', caseLifecycleState, recoveryLifecycleState });
 
 describe('updateClaimStatusCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.enforceRateLimitForAction.mockResolvedValue({ limited: false });
     hoisted.domainUpdateStatus.mockResolvedValue(undefined);
-    hoisted.claimFindFirst.mockResolvedValue({ id: 'claim-1', status: 'submitted' });
+    hoisted.claimFindFirst.mockResolvedValue(state('submitted', 'not_started'));
   });
 
   it('throws on invalid status before hitting domain mutation', async () => {
@@ -68,9 +69,7 @@ describe('updateClaimStatusCore', () => {
   });
 
   it('revalidates deterministic paths only on successful mutation', async () => {
-    hoisted.claimFindFirst
-      .mockResolvedValueOnce({ id: 'claim-1', status: 'submitted' })
-      .mockResolvedValueOnce({ id: 'claim-1', status: 'resolved' });
+    hoisted.claimFindFirst.mockResolvedValueOnce(state('submitted', 'not_started')).mockResolvedValueOnce(state('resolved', 'resolved'));
     const formData = new FormData();
     formData.set('claimId', 'claim-1');
     formData.set('status', 'resolved');
@@ -110,7 +109,7 @@ describe('updateClaimStatusCore', () => {
   });
 
   it('status no-op does not mutate or revalidate', async () => {
-    hoisted.claimFindFirst.mockResolvedValueOnce({ id: 'claim-1', status: 'resolved' });
+    hoisted.claimFindFirst.mockResolvedValueOnce(state('resolved', 'resolved'));
 
     const formData = new FormData();
     formData.set('claimId', 'claim-1');
@@ -129,8 +128,8 @@ describe('updateClaimStatusCore', () => {
 
   it('does not revalidate when persisted status remains unchanged after domain call', async () => {
     hoisted.claimFindFirst
-      .mockResolvedValueOnce({ id: 'claim-1', status: 'submitted' })
-      .mockResolvedValueOnce({ id: 'claim-1', status: 'submitted' });
+      .mockResolvedValueOnce(state('submitted', 'not_started'))
+      .mockResolvedValueOnce(state('submitted', 'not_started'));
 
     const formData = new FormData();
     formData.set('claimId', 'claim-1');
@@ -149,7 +148,7 @@ describe('updateClaimStatusCore', () => {
 
   it('does not revalidate when post-mutation claim re-read is missing', async () => {
     hoisted.claimFindFirst
-      .mockResolvedValueOnce({ id: 'claim-1', status: 'submitted' })
+      .mockResolvedValueOnce(state('submitted', 'not_started'))
       .mockResolvedValueOnce(null);
 
     const formData = new FormData();

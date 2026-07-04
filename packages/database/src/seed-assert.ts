@@ -24,7 +24,7 @@ loadEnvFromRoot();
 async function assertSeed() {
   const { db } = await import('./db');
   const schema = await import('./schema');
-  const { and, eq, inArray, ne } = await import('drizzle-orm');
+  const { and, eq, inArray, ne, or } = await import('drizzle-orm');
   // We can use a raw query or import schema if needed, but raw is safer for a quick check.
   // seed_meta table: id, version, mode, run_at
 
@@ -68,7 +68,10 @@ async function assertSeed() {
       where: and(
         eq(schema.claims.tenantId, tenantId),
         inArray(schema.claims.userId, memberIds),
-        ne(schema.claims.status, 'draft')
+        or(
+          ne(schema.claims.caseLifecycleState, 'draft'),
+          ne(schema.claims.recoveryLifecycleState, 'not_started')
+        )
       ),
       columns: { id: true },
     });

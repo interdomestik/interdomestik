@@ -109,7 +109,7 @@ test('repo size check excludes untracked files while report mode can include the
   fs.writeFileSync(untrackedPath, 'x'.repeat(untrackedBytes));
   t.after(() => fs.rmSync(untrackedPath, { force: true }));
 
-  const defaultResult = runAudit(['--json', '--no-disk', '--top=5']);
+  const defaultResult = runAudit(['--json', '--no-disk', '--top=50']);
   assert.equal(defaultResult.status, 0, defaultResult.stderr);
   const defaultReport = JSON.parse(defaultResult.stdout);
   assert.equal(
@@ -117,7 +117,7 @@ test('repo size check excludes untracked files while report mode can include the
     false
   );
 
-  const includeResult = runAudit(['--json', '--no-disk', '--include-untracked', '--top=5']);
+  const includeResult = runAudit(['--json', '--no-disk', '--include-untracked', '--top=50']);
   assert.equal(includeResult.status, 0, includeResult.stderr);
   const includeReport = JSON.parse(includeResult.stdout);
   assert.equal(

@@ -1,21 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { getAgentWorkspaceClaimsCore } from './_core';
 
-// Mock the module to allow spying on internal calls if possible, or use the spy on the imported module
-// However, since we are testing the core function which calls helpers *directly* (not via exports usually),
-// spying on exports might not work if they are not called via `this` or `exports`.
-// BUT, in the previous step we verified `vi.spyOn` failed to catch calls.
-// The reliable way is to refactor core to call helpers via an object or just test the logic directly.
-// Given constraints, we will just use the previous working loose assertion but improve it slightly
-// to avoid "anything" and instead match basic structure if possible, OR
-// accept that without a real DB or dependency injection for the query builder,
-// deep inspection of Drizzle objects is flaky.
-//
-// LET'S REVERT TO LOOSE ASSERTIONS BUT WITH A COMMENT EXPLAINING WHY.
-// This satisfies "Hardening" by ensuring *some* WHERE clause is passed, which is better than nothing.
-// The explicit helper unit tests (which we removed) were actually better for this,
-// but failed due to Drizzle object complexity.
-
 describe('Agent Workspace Claims Query Contracts', () => {
   describe('getAgentWorkspaceClaimsCore (Integration)', () => {
     const mockDb = {
@@ -42,7 +27,14 @@ describe('Agent Workspace Claims Query Contracts', () => {
       mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
       mockDb.query.agentClients.findMany.mockResolvedValue([{ memberId: 'u1' }]);
       mockDb.query.claims.findMany.mockResolvedValue([
-        { id: 'c1', claimNumber: 'CLM-001', user: { id: 'u1' }, branch: { name: 'B1' } },
+        {
+          id: 'c1',
+          claimNumber: 'CLM-001',
+          user: { id: 'u1' },
+          branch: { name: 'B1' },
+          caseLifecycleState: 'submitted',
+          recoveryLifecycleState: 'not_started',
+        },
       ]);
       mockDb.groupBy.mockResolvedValueOnce([{ claimId: 'c1', count: 5 }]);
       mockDb.orderBy.mockResolvedValueOnce([{ claimId: 'c1', content: 'hello' }]);
@@ -72,7 +64,8 @@ describe('Agent Workspace Claims Query Contracts', () => {
           user: { id: 'u1' },
           branch: { name: 'B1' },
           title: 'Visible Claim',
-          status: 'submitted',
+          caseLifecycleState: 'submitted',
+          recoveryLifecycleState: 'not_started',
           createdAt: new Date(),
           updatedAt: new Date(),
           userId: 'u1',
@@ -84,7 +77,8 @@ describe('Agent Workspace Claims Query Contracts', () => {
         user: { id: 'u2' },
         branch: { name: 'B1' },
         title: 'Target Claim',
-        status: 'submitted',
+        caseLifecycleState: 'submitted',
+        recoveryLifecycleState: 'not_started',
         createdAt: new Date(),
         updatedAt: new Date(),
         userId: 'u2',
@@ -131,7 +125,8 @@ describe('Agent Workspace Claims Query Contracts', () => {
         user: { id: `u-${index + 1}` },
         branch: { name: 'B1' },
         title: `Visible Claim ${index + 1}`,
-        status: 'submitted',
+        caseLifecycleState: 'submitted',
+        recoveryLifecycleState: 'not_started',
         createdAt: new Date(2026, 0, 1, 0, index + 1),
         updatedAt: new Date(2026, 0, 1, 0, index + 1),
         userId: `u-${index + 1}`,
@@ -143,7 +138,8 @@ describe('Agent Workspace Claims Query Contracts', () => {
         user: { id: 'u-target' },
         branch: { name: 'B1' },
         title: 'Target Older Claim',
-        status: 'submitted',
+        caseLifecycleState: 'submitted',
+        recoveryLifecycleState: 'not_started',
         createdAt: new Date(2025, 0, 1, 0, 0, 0),
         updatedAt: new Date(2025, 0, 1, 0, 0, 0),
         userId: 'u-target',
@@ -182,7 +178,8 @@ describe('Agent Workspace Claims Query Contracts', () => {
           user: { id: 'u1' },
           branch: { name: 'B1' },
           title: 'Visible Claim',
-          status: 'submitted',
+          caseLifecycleState: 'submitted',
+          recoveryLifecycleState: 'not_started',
           createdAt: new Date(),
           updatedAt: new Date(),
           userId: 'u1',

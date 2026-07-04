@@ -25,29 +25,10 @@ const EXCLUDED_DIRS = new Set([
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 
-export const CLAIM_STATUS_TRANSITION_WRITERS = new Set([
-  'packages/domain-claims/src/claims/transition.ts',
-]);
-
-export const CLAIM_STATUS_INITIALIZATION_WRITERS = new Set([
-  'packages/domain-claims/src/claims/create.ts',
-  'packages/domain-claims/src/claims/submit.ts',
-]);
-
+export const CLAIM_STATUS_TRANSITION_WRITERS = new Set([]);
+export const CLAIM_STATUS_INITIALIZATION_WRITERS = new Set([]);
 export const CLAIM_STATUS_COMPAT_REPAIR_WRITERS = new Set([]);
-
-export const CLAIM_STATUS_FIXTURE_WRITERS = new Set([
-  'apps/web/e2e/gate/agent-workspace-claims-selection.spec.ts',
-  'packages/database/src/seed-full/claims.ts',
-  'packages/database/src/seed-golden/claims.ts',
-  'packages/database/src/seed-packs/ks-workflow-pack.ts',
-  'packages/database/test/rls-engaged.test.ts',
-  'scripts/ci/db-access-guard.test.mjs',
-  'scripts/pilot/day1_multi_seeder.ts',
-  'scripts/pilot/day1_run3_lifecycle.ts',
-  'scripts/pilot/simulate_agent_claim.ts',
-  'scripts/pilot/simulate_triage.ts',
-]);
+export const CLAIM_STATUS_FIXTURE_WRITERS = new Set([]);
 
 export const CLAIM_STATUS_WRITER_ALLOWLIST = new Set([
   ...CLAIM_STATUS_TRANSITION_WRITERS,
@@ -61,26 +42,43 @@ const RAW_CLAIM_TABLE_REF = String.raw`(?:(?:"[^"]+"|[A-Za-z_]\w*)\.)?(?:"claim"
 const STATUS_UPDATE_PATTERNS = [
   // Drizzle updates with status in set
   new RegExp(
-    String.raw`\.update\(\s*${CLAIMS_REF}\s*\)[\s\S]{0,1200}\.set\(\s*\{[\s\S]{0,800}\bstatus\b`,
-    'u'
-  ),
-  new RegExp(
-    String.raw`\.update\(\s*${CLAIMS_REF}\s*\)[\s\S]{0,1200}\.set\(\s*updateData\s*\)`,
+    String.raw`\.update\(\s*${CLAIMS_REF}\s*\)(?:(?!;)[\s\S]){0,1200}\.set\(\s*\{(?:(?!\n\s*\}\s*\))[\s\S]){0,800}\bstatus\s*:`,
     'u'
   ),
   // Drizzle inserts with status
   new RegExp(
-    String.raw`\.insert\(\s*${CLAIMS_REF}\s*\)[\s\S]{0,1400}\.values\(\s*\{[\s\S]{0,1000}\bstatus\s*:`,
+    String.raw`\.insert\(\s*${CLAIMS_REF}\s*\)(?:(?!;)[\s\S]){0,1400}\.values\(\s*\{(?:(?!\n\s*\}\s*\);)[\s\S]){0,1000}\bstatus\s*:`,
     'u'
   ),
   new RegExp(
-    String.raw`\.insert\(\s*${CLAIMS_REF}\s*\)[\s\S]{0,1800}\.onConflictDoUpdate\([\s\S]{0,900}\bstatus\s*:`,
+    String.raw`\.insert\(\s*${CLAIMS_REF}\s*\)(?:(?!;)[\s\S]){0,1800}\.onConflictDoUpdate\(\s*\{(?:(?!\n\s*\}\s*\))[\s\S]){0,900}\bset\s*:\s*\{(?:(?!\n\s*\}\s*\))[\s\S]){0,800}\bstatus\s*:`,
     'u'
   ),
   // Raw SQL updates/inserts
   new RegExp(String.raw`UPDATE\s+${RAW_CLAIM_TABLE_REF}\s+SET\s+[\s\S]{0,150}\bstatus\b`, 'iu'),
   new RegExp(String.raw`INSERT\s+INTO\s+${RAW_CLAIM_TABLE_REF}\s+[\s\S]{0,250}\bstatus\b`, 'iu'),
 ];
+
+const SET_VARIABLE_PATTERN = new RegExp(
+  String.raw`\.update\(\s*${CLAIMS_REF}\s*\)(?:(?!;)[\s\S]){0,1200}\.set\(\s*([A-Za-z_$][\w$]*)\s*\)`,
+  'gu'
+);
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
+function containsClaimStatusVariableSet(source) {
+  for (const match of source.matchAll(SET_VARIABLE_PATTERN)) {
+    const variableName = match[1];
+    const declaration = new RegExp(
+      String.raw`\b(?:const|let|var)\s+${escapeRegex(variableName)}\s*=\s*\{[\s\S]{0,800}\bstatus\s*:`,
+      'u'
+    );
+    if (declaration.test(source)) return true;
+  }
+  return false;
+}
 
 function toPosix(value) {
   return value.split(path.sep).join('/');
@@ -101,7 +99,10 @@ function walkFiles(root, files = []) {
 }
 
 export function containsClaimStatusWrite(source) {
-  return STATUS_UPDATE_PATTERNS.some(pattern => pattern.test(source));
+  return (
+    STATUS_UPDATE_PATTERNS.some(pattern => pattern.test(source)) ||
+    containsClaimStatusVariableSet(source)
+  );
 }
 
 export function findClaimStatusWriterViolations(root = process.cwd()) {

@@ -4,7 +4,8 @@ dotenv.config({ path: '.env.local' });
 import crypto from 'node:crypto';
 import { desc, eq } from 'drizzle-orm';
 
-const { db } = await import('@interdomestik/database');
+const { claimLifecycleFieldsForStatus, claimStatusFromLifecycleFields, db } =
+  await import('@interdomestik/database');
 const { claims, claimStageHistory } = await import('@interdomestik/database/schema/claims');
 const { user } = await import('@interdomestik/database/schema/auth');
 
@@ -35,7 +36,9 @@ async function main() {
 
   console.log(`[Triage] Targeting Claim: ${targetClaim.id} ("${targetClaim.title}")`);
 
-  if (targetClaim.status === 'verification') {
+  const targetStatus = claimStatusFromLifecycleFields(targetClaim);
+
+  if (targetStatus === 'verification') {
     console.log('[Triage] Claim is ALREADY in verification status.');
     return;
   }
@@ -47,7 +50,7 @@ async function main() {
     .update(claims)
     .set({
       staffId: staff.id,
-      status: 'verification',
+      ...claimLifecycleFieldsForStatus('verification'),
       statusUpdatedAt: new Date(),
     })
     .where(eq(claims.id, targetClaim.id));
@@ -58,7 +61,7 @@ async function main() {
   await db.insert(claimStageHistory).values({
     id: crypto.randomUUID(),
     claimId: targetClaim.id,
-    fromStatus: targetClaim.status,
+    fromStatus: targetStatus,
     toStatus: 'verification',
     changedById: staff.id,
     changedByRole: 'staff',

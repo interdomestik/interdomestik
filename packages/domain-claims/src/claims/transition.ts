@@ -42,11 +42,10 @@ export async function persistAuthorizedTransition(
   const now = new Date();
   const updateData =
     current.status === toStatus
-      ? { status: toStatus, updatedAt: now }
+      ? { updatedAt: now }
       : {
           ...mapClaimStatusToLifecycleStates(toStatus),
           lifecycleVersion: sql`${claims.lifecycleVersion} + 1`,
-          status: toStatus,
           statusUpdatedAt: now,
           updatedAt: now,
         };

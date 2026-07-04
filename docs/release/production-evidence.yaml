@@ -2,80 +2,110 @@ gates:
   - id: G01
     description: Signed HR roster file/version/hash signoff.
     owner: HR owner
-    status: pending
+    status: supplied
     required_artifacts:
       - path: docs/release/evidence/G01-roster-signoff.pdf
-        sha256: pending
-    signoff: { name: pending, role: HR owner, signed_at: pending }
+        sha256: 54f97ae8268b5f54c859715313228018c0d29ab47a4697f27697377cc5f0ca8a
+    signoff:
+      name: Gazmend Abazi
+      role: Admin owner / release owner for operationality testing
+      signed_at: 2026-07-03
   - id: G02
     description: Production supervisor approval artifact.
     owner: Release supervisor
-    status: pending
+    status: supplied
     required_artifacts:
       - path: docs/release/evidence/G02-supervisor-approval.pdf
-        sha256: pending
-    signoff: { name: pending, role: Release supervisor, signed_at: pending }
+        sha256: fbf7a946f78ddb63e86262da61e1c184fe5eadcd367b9247704d1c047ac09d32
+    signoff:
+      name: Gazmend Abazi
+      role: Release supervisor / T-503 file owner
+      signed_at: 2026-07-02
   - id: G03
     description: Sponsor invoice receipt or acceptance evidence.
     owner: Finance owner
-    status: pending
+    status: supplied
     required_artifacts:
       - path: docs/release/evidence/G03-sponsor-invoice-acceptance.pdf
-        sha256: pending
-    signoff: { name: pending, role: Finance owner, signed_at: pending }
+        sha256: 5c91fee21d67a47b8a444fc742bb2b5b936932b5119ee0c0efdc7c8b668a6764
+    signoff:
+      name: Gazmend Abazi
+      role: Finance/file owner
+      signed_at: 2026-07-02
   - id: G04
     description: Original bank payment proof.
     owner: Finance owner
-    status: pending
+    status: waived
     required_artifacts:
       - path: docs/release/evidence/G04-bank-payment-proof.pdf
-        sha256: pending
-    signoff: { name: pending, role: Finance owner, signed_at: pending }
+        sha256: 4e0cd9485c90cbf43f3c0b569345bd6db0ea5423400139c39f506697082cdfed
+    signoff:
+      name: Gazmend Abazi
+      role: Finance owner / T-503 file owner / supervisor
+      signed_at: 2026-07-03
   - id: G05
     description: Approved reconciliation resolving the 600 MKD difference.
     owner: Finance owner
-    status: pending
+    status: waived
     required_artifacts:
       - path: docs/release/evidence/G05-600-mkd-reconciliation.pdf
-        sha256: pending
-    signoff: { name: pending, role: Finance owner, signed_at: pending }
+        sha256: e756768eea569f0f3aeb43f4c5fcbad7ea52811ac969e6404e3853476e088ae4
+    signoff:
+      name: Gazmend Abazi
+      role: Finance owner / supervisor / T-503 file owner
+      signed_at: 2026-07-03
   - id: G06
     description: Signed terms and privacy approval.
     owner: Legal/privacy owner
-    status: pending
+    status: supplied
     required_artifacts:
       - path: docs/release/evidence/G06-terms-privacy-approval.pdf
-        sha256: pending
-    signoff: { name: pending, role: Legal/privacy owner, signed_at: pending }
+        sha256: cd15790e15c2f162e78310259ff476f6dee480b1ac646207efd9f8e99899e16c
+    signoff:
+      name: Sanja Jovanovska
+      role: Legal/privacy owner
+      signed_at: 2026-07-03
   - id: G07
     description: Approved access matrix.
     owner: Security owner
-    status: pending
+    status: supplied
     required_artifacts:
       - path: docs/release/evidence/G07-access-matrix.pdf
-        sha256: pending
-    signoff: { name: pending, role: Security owner, signed_at: pending }
+        sha256: 92874cb3efd86f1b61755a5e24cade8d467f7a3ff4038b0b004d7e2ffc094bd4
+    signoff:
+      name: Arben Lila
+      role: Admin owner
+      signed_at: 2026-07-03
   - id: G08
     description: Signed activation rule and member acceptance event.
     owner: Product owner
-    status: pending
+    status: supplied
     required_artifacts:
       - path: docs/release/evidence/G08-activation-acceptance.pdf
-        sha256: pending
-    signoff: { name: pending, role: Product owner, signed_at: pending }
+        sha256: be6b3eae79ec4c199a47b098b499926b81c2e7eaee44c18e77db13d1a7f87348
+    signoff:
+      name: Gazmend Abazi
+      role: Product/ops owner
+      signed_at: 2026-07-03
   - id: G09
     description: Signed POA, consent, service agreement, and fee terms as applicable.
     owner: Claims/legal owner
-    status: pending
+    status: waived
     required_artifacts:
       - path: docs/release/evidence/G09-poa-consent-terms.pdf
-        sha256: pending
-    signoff: { name: pending, role: Claims/legal owner, signed_at: pending }
+        sha256: cdf8f2b260864dc129eea51af63b7447a91832a7a2a3433070fa30e74e64c84c
+    signoff:
+      name: Sanja Jovanovska
+      role: Legal owner / authority boundary approver
+      signed_at: 2026-07-04
   - id: G10
     description: Settlement, payment, fee, reconciliation, and client-closure evidence.
     owner: Claims/finance owner
-    status: pending
+    status: waived
     required_artifacts:
       - path: docs/release/evidence/G10-closure-evidence.pdf
-        sha256: pending
-    signoff: { name: pending, role: Claims/finance owner, signed_at: pending }
+        sha256: 97013588c9786db84115db7e4a5efec85f5aa530def1135575c6f099a05fe7a0
+    signoff:
+      name: Sanja Jovanovska
+      role: Legal owner / closure boundary approver
+      signed_at: 2026-07-04

@@ -22,7 +22,7 @@ const mocks = vi.hoisted(() => {
       createdAt: 'claims.created_at',
       id: 'claims.id',
       staffId: 'claims.staff_id',
-      status: 'claims.status',
+      caseLifecycleState: 'claims.case_lifecycle_state', recoveryLifecycleState: 'claims.recovery_lifecycle_state',
       statusUpdatedAt: 'claims.status_updated_at',
       tenantId: 'claims.tenant_id',
       updatedAt: 'claims.updated_at',
@@ -72,9 +72,7 @@ vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: mocks.ensureTenantId,
 }));
 
-vi.mock('drizzle-orm', () => ({
-  and: mocks.and,
-}));
+vi.mock('drizzle-orm', () => ({ and: mocks.and, sql: vi.fn((strings, ...values) => ({ op: 'sql', strings, values })) }));
 
 function memberSession(overrides: Partial<SupportHandoffSession['user']> = {}) {
   return {

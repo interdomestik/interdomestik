@@ -148,7 +148,6 @@ export async function getBranchAgents(
         SELECT COUNT(*) FROM claims 
         WHERE claims.agent_id = ${user.id} 
         AND ${lifecycleSql.claimLifecycleStatusNotInForAlias('claims', ['resolved', 'rejected'])}
-        AND claims.status <> 'paid'
       )`.as('active_claim_count'),
       submittedClaimsLast30Days: sql<number>`(
         SELECT COUNT(*) FROM claims 

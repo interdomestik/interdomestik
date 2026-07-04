@@ -6,7 +6,6 @@ import type { ClaimStatus } from './types';
 
 export type CurrentClaimRecord = {
   category: string;
-  legacyStatus: ClaimStatus | null;
   staffId: string | null;
   status: ClaimStatus;
   title: string;
@@ -27,7 +26,6 @@ export async function loadStaffCurrentClaimRecord(
       caseLifecycleState: claims.caseLifecycleState,
       category: claims.category,
       recoveryLifecycleState: claims.recoveryLifecycleState,
-      legacyStatus: claims.status,
       title: claims.title,
       userId: claims.userId,
       staffId: claims.staffId,
@@ -38,10 +36,7 @@ export async function loadStaffCurrentClaimRecord(
 
   if (!currentClaimRow) return { status: 'not_found' };
 
-  const currentState = resolveClaimLifecycleCommandProjection({
-    ...currentClaimRow,
-    status: currentClaimRow.legacyStatus,
-  });
+  const currentState = resolveClaimLifecycleCommandProjection(currentClaimRow);
   if (!currentState.success) return { status: 'invalid_current_status' };
 
   return {

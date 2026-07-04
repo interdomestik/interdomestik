@@ -121,7 +121,6 @@ export async function getAgentClaimsCore(params: {
       columns: {
         id: true,
         title: true,
-        status: true,
         caseLifecycleState: true,
         recoveryLifecycleState: true,
         createdAt: true,

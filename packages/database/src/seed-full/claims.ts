@@ -69,6 +69,7 @@ export async function seedClaimsAndFlows(config: SeedConfig) {
 
   for (const c of CLAIMS_DATA) {
     const tenantId = c.branchId.startsWith('mk') ? TENANTS.MK : TENANTS.KS;
+    const lifecycleFields = withClaimLifecycleFields({ status: c.status as any });
 
     await db
       .insert(schema.claims)
@@ -77,7 +78,7 @@ export async function seedClaimsAndFlows(config: SeedConfig) {
         userId: c.userId,
         tenantId: tenantId,
         branchId: c.branchId,
-        ...withClaimLifecycleFields({ status: c.status as any }),
+        ...lifecycleFields,
         title: c.title,
         claimAmount: c.amount,
         currency: 'EUR',
@@ -89,7 +90,7 @@ export async function seedClaimsAndFlows(config: SeedConfig) {
       })
       .onConflictDoUpdate({
         target: schema.claims.id,
-        set: withClaimLifecycleFields({ status: c.status as any }),
+        set: lifecycleFields,
       });
 
     if (c.id === 'full_claim_mk_1') {

@@ -46,7 +46,6 @@ export async function updateClaimStatus(params: {
           caseLifecycleState: claims.caseLifecycleState,
           id: claims.id,
           recoveryLifecycleState: claims.recoveryLifecycleState,
-          status: claims.status,
         })
         .from(claims)
         .where(scopedWhere)

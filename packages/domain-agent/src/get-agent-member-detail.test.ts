@@ -43,9 +43,10 @@ describe('getAgentMemberDetail', () => {
     });
     mocks.findClaims.mockResolvedValue([
       {
+        caseLifecycleState: 'submitted',
         id: 'claim-1',
         claimNumber: 'CLM-1',
-        status: 'submitted',
+        recoveryLifecycleState: 'not_started',
         updatedAt: new Date('2026-01-10T00:00:00Z'),
       },
     ]);

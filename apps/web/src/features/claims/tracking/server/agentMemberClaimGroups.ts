@@ -6,7 +6,7 @@ type AgentMemberRow = { id: string; name: string; email: string };
 type AgentMemberClaimRow = {
   id: string;
   title: string;
-  status: string | null;
+  status?: string | null;
   caseLifecycleState: string | null;
   recoveryLifecycleState: string | null;
   createdAt: Date | null;

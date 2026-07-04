@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
@@ -36,7 +37,8 @@ function cancellationAccessError(
     return 'Access denied';
   }
 
-  if (claim.status === 'resolved' || claim.status === 'rejected') {
+  const status = claimStatusFromLifecycleFields(claim);
+  if (status === 'resolved' || status === 'rejected') {
     return 'Claim cannot be cancelled';
   }
 

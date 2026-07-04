@@ -72,7 +72,7 @@ checks:
     description: Schema must include claimNumber.
     type: regex
     targets:
-      - packages/database/src/schema/claims.ts
+      - packages/database/src/schema/claim-core.ts
     must_match:
       - "claimNumber: text\\('claim_number'\\)"
 
@@ -212,7 +212,7 @@ checks:
     description: Claims table must have unique index on (tenantId, claimNumber).
     type: regex
     targets:
-      - packages/database/src/schema/claims.ts
+      - packages/database/src/schema/claim-core.ts
     must_match:
       - "uniqueIndex\\([\\s\\S]*?\\)\\.on\\(table\\.tenantId,\\s*table\\.claimNumber\\)"
 

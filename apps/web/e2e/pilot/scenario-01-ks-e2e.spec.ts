@@ -1,4 +1,5 @@
 import { E2E_PASSWORD, E2E_USERS, claims, db, eq } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
@@ -199,11 +200,8 @@ test('Scenario S1 KS Chain', async ({
   // ═══════════════════════════════════════════════════════════════════════
   // ADMIN: verify claim and capture state
   // ═══════════════════════════════════════════════════════════════════════
-  const persistedClaim = await db.query.claims.findFirst({
-    where: eq(claims.id, claimId),
-    columns: { status: true },
-  });
-  if (!persistedClaim?.status) {
+  const persistedClaim = await db.query.claims.findFirst({ where: eq(claims.id, claimId), columns: { caseLifecycleState: true, recoveryLifecycleState: true } });
+  if (!persistedClaim) {
     throw new Error('ADMIN step failed: persisted KS claim status not found');
   }
 
@@ -227,7 +225,7 @@ test('Scenario S1 KS Chain', async ({
   console.log('MARKER_ADMIN_READY');
   process.env.SCENARIO_S1_CLAIM_ID = claimId;
   console.log(`SCENARIO_S1_CLAIM_ID=${claimId}`);
-  console.log(`SCENARIO_S1_ADMIN_STATE=${persistedClaim.status}`);
+  console.log(`SCENARIO_S1_ADMIN_STATE=${claimStatusFromLifecycleFields(persistedClaim)}`);
 });
 
 test('Scenario S1 KS Isolation', async ({ browser }) => {

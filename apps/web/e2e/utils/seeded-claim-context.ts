@@ -6,6 +6,7 @@ import {
   eq,
   user,
 } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { TestInfo } from '@playwright/test';
 import { and, desc } from 'drizzle-orm';
 
@@ -36,7 +37,7 @@ export async function resolveSeededClaimContext(testInfo: TestInfo) {
 
   const claim = await db.query.claims.findFirst({
     where: and(eq(claims.tenantId, member.tenantId), eq(claims.userId, member.id)),
-    columns: { id: true, status: true },
+    columns: { id: true, caseLifecycleState: true, recoveryLifecycleState: true },
     orderBy: [desc(claims.createdAt)],
   });
 
@@ -53,7 +54,7 @@ export async function resolveSeededClaimContext(testInfo: TestInfo) {
 
   return {
     claimId: claim.id,
-    currentStatus: claim.status ?? 'submitted',
+    currentStatus: claimStatusFromLifecycleFields(claim),
     existingAgreement,
     memberId: member.id,
     staffId: staff.id,

@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const h = vi.hoisted(() => {
-  const draftClaim = { id: 'claim-1', status: 'draft', tenantId: 'tenant-1', userId: 'member-1' };
+  const draftClaim = {
+    caseLifecycleState: 'draft',
+    id: 'claim-1',
+    recoveryLifecycleState: 'not_started',
+    tenantId: 'tenant-1',
+    userId: 'member-1',
+  };
   const values = vi.fn();
   const where = vi.fn();
   const set = vi.fn(() => ({ where }));

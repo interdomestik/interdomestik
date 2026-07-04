@@ -84,7 +84,6 @@ export async function updateClaimStatusCore(
       caseLifecycleState: claims.caseLifecycleState,
       id: claims.id,
       recoveryLifecycleState: claims.recoveryLifecycleState,
-      status: claims.status,
       title: claims.title,
       userId: claims.userId,
       userEmail: user.email,
@@ -99,18 +98,6 @@ export async function updateClaimStatusCore(
 
   const currentState = resolveClaimLifecycleCommandProjection(claimWithUser);
   if (currentState.success && currentState.status === newStatus) {
-    if (claimWithUser.status !== newStatus) {
-      const repairResult = await transitionClaimStatus({
-        actor: { id: session.user.id, role: session.user.role ?? null },
-        claimId,
-        hostId: params.hostId,
-        tenantId,
-        toStatus: newStatus,
-      });
-      if (!repairResult.success) {
-        throwTransitionFailure(repairResult);
-      }
-    }
     return;
   }
 

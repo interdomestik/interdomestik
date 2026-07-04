@@ -40,16 +40,12 @@ describe('updateClaimStatusCore', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.dbTransaction.mockResolvedValue({ success: true });
   });
 
   it('no-ops when status unchanged and no note', async () => {
     mocks.dbSelect.mockResolvedValue([
-      {
-        caseLifecycleState: 'submitted',
-        legacyStatus: 'submitted',
-        recoveryLifecycleState: 'not_started',
-        status: 'submitted',
-      },
+      { caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started' },
     ]);
 
     const result = await updateClaimStatusCore({

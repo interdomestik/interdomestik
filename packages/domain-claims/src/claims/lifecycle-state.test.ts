@@ -53,8 +53,6 @@ class FakeUpdate {
   }
   async returning(): Promise<Row[]> {
     this.state.updateValues = this.values;
-    if (typeof this.values.status === 'string')
-      this.state.status = this.values.status as ClaimStatus;
     if (typeof this.values.caseLifecycleState === 'string') {
       this.state.caseLifecycleState = this.values.caseLifecycleState;
     }
@@ -138,7 +136,6 @@ describe('claim lifecycle state mapping', () => {
       expect.objectContaining({
         caseLifecycleState: 'recovery',
         recoveryLifecycleState: 'negotiation',
-        status: 'negotiation',
       })
     );
     expect(state.caseLifecycleState).toBe('recovery');

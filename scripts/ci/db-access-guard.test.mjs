@@ -273,7 +273,7 @@ test('db access guard recognizes only same-statement tenant predicates with non-
     "import { db } from '@interdomestik/database';",
     "import { withTenant } from '@interdomestik/database/tenant-security';",
     'export async function unsafeWrite(tenantId) {',
-    '  return db.update(claims).set({ status: "closed" }).where(withTenant(tenantId, claims.tenantId));',
+    '  return db.update(claims).set({ updatedAt: new Date() }).where(withTenant(tenantId, claims.tenantId));',
     '}',
   ]);
   const writeFailingResult = runAppGuard(tempRoot);

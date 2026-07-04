@@ -1,4 +1,5 @@
 import { db, type TenantTransaction, withTenantContext } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { claims, user } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { desc, eq } from 'drizzle-orm';
@@ -103,14 +104,15 @@ async function getMemberDashboardDataWithDb(params: {
     columns: {
       id: true,
       claimNumber: true,
-      status: true,
+      caseLifecycleState: true,
+      recoveryLifecycleState: true,
       createdAt: true,
       updatedAt: true,
     },
   });
 
   const claimsData = rawClaims.map(claim => {
-    const status = (claim.status || 'draft') as ClaimStatus;
+    const status = claimStatusFromLifecycleFields(claim);
     return {
       id: claim.id,
       claimNumber: claim.claimNumber,

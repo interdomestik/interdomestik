@@ -2,7 +2,8 @@ export const trackingSchemaMock = {
   claims: {
     id: 'claims.id',
     tenantId: 'claims.tenantId',
-    status: 'claims.status',
+    caseLifecycleState: 'claims.caseLifecycleState',
+    recoveryLifecycleState: 'claims.recoveryLifecycleState',
     updatedAt: 'claims.updatedAt',
   },
   claimTrackingTokens: {

@@ -8,6 +8,7 @@ import {
   eq,
   user,
 } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { cancelClaimCore, updateDraftClaimCore } from '@interdomestik/domain-claims/claims/draft';
 import { assignClaimCore as assignStaffClaimCore } from '@interdomestik/domain-claims/staff-claims/assign';
 import { updateClaimStatusCore as updateStaffClaimStatusCore } from '@interdomestik/domain-claims/staff-claims/update-status';
@@ -21,33 +22,23 @@ const ACTOR_MEMBER_TENANT_ID = process.env.C2_MEMBER_TENANT_ID ?? E2E_USERS.MK_M
 const TARGET_TENANT_ID = process.env.C2_TARGET_TENANT_ID ?? E2E_USERS.KS_MEMBER.tenantId;
 
 type StaffSession = {
-  user: {
-    id: string;
-    role: string | null;
-    tenantId: string | null;
-    branchId: string | null;
-  };
+  user: { id: string; role: string | null; tenantId: string | null; branchId: string | null };
 };
+type MemberSession = { user: { id: string; role: string | null; tenantId: string | null } };
+type KsClaimTarget = { id: string; title: string; status: string | null; staffId: string | null };
 
-type MemberSession = {
-  user: {
-    id: string;
-    role: string | null;
-    tenantId: string | null;
-  };
-};
-
-type KsClaimTarget = {
-  id: string;
-  title: string;
-  status: string | null;
-  staffId: string | null;
-};
+const CLAIM_TARGET_COLUMNS = {
+  id: true,
+  title: true,
+  caseLifecycleState: true,
+  recoveryLifecycleState: true,
+  staffId: true,
+} as const;
 
 async function findKsMutableClaim(): Promise<KsClaimTarget> {
   const ksClaims = await db.query.claims.findMany({
     where: eq(claims.tenantId, TARGET_TENANT_ID),
-    columns: { id: true, title: true, status: true, staffId: true },
+    columns: CLAIM_TARGET_COLUMNS,
     orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
     limit: 80,
   });
@@ -56,14 +47,18 @@ async function findKsMutableClaim(): Promise<KsClaimTarget> {
     throw new Error('Expected seeded KS claims to exist');
   }
 
-  const preferred = ksClaims.find(
+  const claimsWithStatus = ksClaims.map(claim => ({
+    ...claim,
+    status: claimStatusFromLifecycleFields(claim),
+  }));
+  const preferred = claimsWithStatus.find(
     claim => claim.staffId == null && claim.status !== 'resolved' && claim.status !== 'rejected'
   );
-  const fallback = ksClaims.find(
+  const fallback = claimsWithStatus.find(
     claim => claim.status !== 'resolved' && claim.status !== 'rejected'
   );
 
-  return preferred ?? fallback ?? ksClaims[0];
+  return preferred ?? fallback ?? claimsWithStatus[0];
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -106,7 +101,7 @@ test('C2-04: staff/member cross-tenant writes are denied without mutation', asyn
 
   const baseline = await db.query.claims.findFirst({
     where: and(eq(claims.id, targetClaim.id), eq(claims.tenantId, TARGET_TENANT_ID)),
-    columns: { title: true, status: true, staffId: true },
+    columns: CLAIM_TARGET_COLUMNS,
   });
 
   if (!baseline) {
@@ -181,11 +176,15 @@ test('C2-04: staff/member cross-tenant writes are denied without mutation', asyn
 
   const persistedClaim = await db.query.claims.findFirst({
     where: and(eq(claims.id, targetClaim.id), eq(claims.tenantId, TARGET_TENANT_ID)),
-    columns: { title: true, status: true, staffId: true },
+    columns: CLAIM_TARGET_COLUMNS,
   });
 
   expect(persistedClaim?.title).toBe(baseline.title);
-  expect(persistedClaim?.status ?? null).toBe(baseline.status ?? null);
+  expect(persistedClaim?.caseLifecycleState).toBe(baseline.caseLifecycleState);
+  expect(persistedClaim?.recoveryLifecycleState).toBe(baseline.recoveryLifecycleState);
+  expect(persistedClaim ? claimStatusFromLifecycleFields(persistedClaim) : null).toBe(
+    claimStatusFromLifecycleFields(baseline)
+  );
   expect(persistedClaim?.staffId ?? null).toBe(baseline.staffId ?? null);
 
   const persistedStatusProbe = await db.query.claimStageHistory.findFirst({

@@ -1,7 +1,7 @@
 import { agentClients, claimMessages, claims, user } from '@interdomestik/database/schema';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type * as DatabaseModule from '@interdomestik/database';
 import { and, count, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
-
 type DatabaseClient = typeof DatabaseModule.db;
 
 export interface AgentProClaimDTO {
@@ -34,7 +34,7 @@ type ClaimRow = {
   id: string;
   title: string | null;
   claimNumber: string | null;
-  status: string | null;
+  caseLifecycleState: string | null; recoveryLifecycleState: string | null;
   createdAt: Date | string | null;
   updatedAt: Date | string | null;
   user?: {
@@ -58,7 +58,7 @@ function mapToAgentProClaim(c: ClaimRow): AgentProClaimDTO {
     id: c.id,
     title: c.title ?? 'Untitled',
     claimNumber: c.claimNumber ?? 'N/A',
-    status: c.status ?? 'draft',
+    status: claimStatusFromLifecycleFields(c),
     createdAt: normalizeClaimDate(c.createdAt),
     updatedAt: normalizeClaimDate(c.updatedAt),
     member: c.user

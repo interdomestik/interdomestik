@@ -1,4 +1,11 @@
-import { db, claims, eq, desc, user } from '@interdomestik/database';
+import {
+  claimStatusFromLifecycleFields,
+  db,
+  claims,
+  eq,
+  desc,
+  user,
+} from '@interdomestik/database';
 
 async function main() {
   console.log('[Script] Connecting to Database...');
@@ -26,7 +33,7 @@ async function main() {
     console.log(`Member: ${member?.email || 'Unknown'} (ID: ${c.userId})`);
     console.log(`Category: ${c.category}`);
     console.log(`Created: ${c.createdAt?.toISOString()}`);
-    console.log(`Status: ${c.status}`);
+    console.log(`Status: ${claimStatusFromLifecycleFields(c)}`);
   }
 }
 

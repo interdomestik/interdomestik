@@ -1,6 +1,7 @@
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
 import { buildStaffClaimReadScope } from '@interdomestik/domain-claims/staff-claims/scope';
 import { claimDocuments, claimStageHistory, claims, db, eq, user } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { and, desc, isNotNull } from 'drizzle-orm';
 
@@ -60,7 +61,7 @@ export async function getStaffClaimDetailsCore(args: {
 
   if (!claim) return { kind: 'not_found' };
 
-  const status = (claim.status || 'draft') as ClaimStatus;
+  const status = claimStatusFromLifecycleFields(claim);
 
   const [documents, stageHistory] = await Promise.all([
     db
@@ -99,7 +100,7 @@ export async function getStaffClaimDetailsCore(args: {
 
   return {
     kind: 'ok',
-    claim,
+    claim: { ...claim, status },
     slaPhase: deriveClaimSlaPhase(status),
     documents: documents.map(doc => ({
       id: doc.id,
@@ -132,4 +133,6 @@ export async function getLatestPublicStatusNoteCore(args: {
   return row ?? null;
 }
 
-type ClaimWithUser = NonNullable<Awaited<ReturnType<typeof db.query.claims.findFirst>>>;
+type ClaimWithUser = NonNullable<Awaited<ReturnType<typeof db.query.claims.findFirst>>> & {
+  status: ClaimStatus;
+};

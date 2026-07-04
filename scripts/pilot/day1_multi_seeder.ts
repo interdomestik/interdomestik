@@ -4,6 +4,7 @@ import {
   claimStageHistory,
   notifications,
   emailCampaignLogs,
+  claimLifecycleFieldsForStatus,
   db,
   eq,
   user,
@@ -24,7 +25,6 @@ async function main() {
   if (!agent || !member || !staff) {
     throw new Error('Could not find all required users (Agent, Member, Staff)');
   }
-
   console.log(
     `[Seeder] Resolved Users:\n - Member: ${member.id}\n - Agent: ${agent.id}\n - Staff: ${staff.id}`
   );
@@ -48,7 +48,7 @@ async function main() {
       category: 'vehicle',
       companyName: 'SIGAL UNIQA Group Austria',
       origin: isAgentAssisted ? 'agent' : 'portal',
-      status: 'submitted',
+      ...claimLifecycleFieldsForStatus('submitted'),
       createdAt: new Date(),
     });
 
@@ -77,7 +77,7 @@ async function main() {
       .update(claims)
       .set({
         staffId: staff.id,
-        status: 'verification',
+        ...claimLifecycleFieldsForStatus('verification'),
         statusUpdatedAt: new Date(),
       })
       .where(eq(claims.id, c.id));

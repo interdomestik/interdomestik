@@ -480,7 +480,6 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
         description =
           'Përshkrim i detajuar i kërkesës së rimbursimit për shpenzimet e bëra sipas policës.';
       }
-
       const claimId = packId('ks', 'claim', prefix, i);
       await withTransientDbWriteRetry(`${claimId}:claim`, () =>
         db

@@ -32,14 +32,6 @@ function expectLifecycleCas(whereConditions: unknown[]) {
   expect(updateWhere).not.toContain('claims.status');
 }
 
-function expectLegacyStatusFallbackCas(whereConditions: unknown[]) {
-  const updateWhere = inspect(whereConditions.at(-1), { depth: 20 });
-  for (const column of ['case_lifecycle_state', 'recovery_lifecycle_state', 'lifecycle_version']) {
-    expect(updateWhere).toContain(column);
-  }
-  expect(updateWhere).toContain("name: 'status'");
-}
-
 describe('transition lifecycle CAS deprecation readiness', () => {
   it('authorizes from lifecycle state when legacy compat status is stale', async () => {
     const { calls, tx } = makeTransitionTx({
@@ -61,7 +53,7 @@ describe('transition lifecycle CAS deprecation readiness', () => {
     expectLifecycleCas(calls.whereConditions);
   });
 
-  it('transitions legacy rows with null lifecycle fields from compat status fallback', async () => {
+  it('rejects legacy rows with null lifecycle fields instead of using status fallback', async () => {
     const { calls, tx } = makeTransitionTx({
       current: {
         id: 'claim-1',
@@ -75,13 +67,10 @@ describe('transition lifecycle CAS deprecation readiness', () => {
 
     const result = await transitionClaimStatusInTransaction(tx, params());
 
-    expect(result).toEqual({
-      success: true,
-      fromStatus: 'evaluation',
-      lifecycleVersion: 7,
-      status: 'negotiation',
-    });
-    expectLegacyStatusFallbackCas(calls.whereConditions);
+    expect(result).toEqual({ success: false, error: 'invalid_current_status' });
+    expect(calls.updateValues).toBeUndefined();
+    expect(calls.historyValues).toBeUndefined();
+    expect(calls.eventValues).toBeUndefined();
   });
 
   it('rejects from lifecycle state even when legacy compat status would permit', async () => {
@@ -104,7 +93,7 @@ describe('transition lifecycle CAS deprecation readiness', () => {
     expect(calls.eventValues).toBeUndefined();
   });
 
-  it('repairs stale legacy status on same-status transitions under lifecycle CAS', async () => {
+  it('does not rewrite stale legacy status on same-status transitions', async () => {
     const { calls, tx } = makeTransitionTx({
       current: staleEvaluationClaim(),
       updated: [{ id: 'claim-1', lifecycleVersion: 6 }],
@@ -118,10 +107,7 @@ describe('transition lifecycle CAS deprecation readiness', () => {
       lifecycleVersion: 6,
       status: 'evaluation',
     });
-    expect(calls.updateValues).toEqual({
-      status: 'evaluation',
-      updatedAt: expect.any(Date),
-    });
+    expect(calls.updateValues).toEqual({ updatedAt: expect.any(Date) });
     expectLifecycleCas(calls.whereConditions);
   });
 

@@ -13,6 +13,7 @@ import {
 import { isClaimStatus } from './transition-guard';
 
 type LifecycleAuthority = 'lifecycle' | 'status_fallback';
+type CommandLifecycleAuthority = 'lifecycle';
 type LifecycleConsistency = 'consistent' | 'status_mismatch' | 'invalid_lifecycle_pair';
 
 export type ClaimLifecycleReadInput = {
@@ -31,7 +32,7 @@ export type ClaimLifecycleReadProjection = {
 
 export type ClaimLifecycleCommandProjection =
   | {
-      authority: LifecycleAuthority;
+      authority: CommandLifecycleAuthority;
       success: true;
       caseLifecycleState: CaseLifecycleState;
       recoveryLifecycleState: RecoveryLifecycleState;
@@ -123,15 +124,6 @@ export function resolveClaimLifecycleCommandProjection(
       caseLifecycleState: inputCaseState,
       recoveryLifecycleState: inputRecoveryState,
       status,
-    };
-  }
-
-  if (inputCaseState == null && inputRecoveryState == null && isClaimStatus(input.status)) {
-    return {
-      authority: 'status_fallback',
-      success: true,
-      ...mapClaimStatusToLifecycleStates(input.status),
-      status: input.status,
     };
   }
 

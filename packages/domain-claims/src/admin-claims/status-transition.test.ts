@@ -70,7 +70,7 @@ describe('transitionAdminClaimStatus', () => {
     expect(mocks.eq).not.toHaveBeenCalledWith('claims.status', expect.anything());
   });
 
-  it('allows legacy null lifecycle rows through the fallback precondition', async () => {
+  it('uses lifecycle preconditions even when a legacy fallback authority is supplied', async () => {
     await transitionAdminClaimStatus({
       actor: { id: 'admin-1', role: 'admin' },
       expectedCaseLifecycleState: 'submitted',
@@ -88,16 +88,15 @@ describe('transitionAdminClaimStatus', () => {
         requiredWhereCondition: {
           op: 'and',
           conditions: [
-            { op: 'isNull', value: 'claims.case_lifecycle_state' },
-            { op: 'isNull', value: 'claims.recovery_lifecycle_state' },
-            { op: 'eq', left: 'claims.status', right: 'submitted' },
+            { op: 'eq', left: 'claims.case_lifecycle_state', right: 'submitted' },
+            { op: 'eq', left: 'claims.recovery_lifecycle_state', right: 'not_started' },
           ],
         },
       })
     );
   });
 
-  it('layers payment authorization on top of the fallback precondition', async () => {
+  it('layers payment authorization on top of the lifecycle precondition', async () => {
     await transitionAdminClaimStatus({
       actor: { id: 'admin-1', role: 'admin' },
       expectedCaseLifecycleState: 'evaluation',
@@ -118,9 +117,8 @@ describe('transitionAdminClaimStatus', () => {
             {
               op: 'and',
               conditions: [
-                { op: 'isNull', value: 'claims.case_lifecycle_state' },
-                { op: 'isNull', value: 'claims.recovery_lifecycle_state' },
-                { op: 'eq', left: 'claims.status', right: 'evaluation' },
+                { op: 'eq', left: 'claims.case_lifecycle_state', right: 'evaluation' },
+                { op: 'eq', left: 'claims.recovery_lifecycle_state', right: 'not_started' },
               ],
             },
             { op: 'sql' },
