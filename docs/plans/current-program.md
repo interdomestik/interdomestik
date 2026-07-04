@@ -85,11 +85,12 @@ claim-pack artifact shape, minimal anonymous funnel instrumentation, and `de`
 locale support within reviewed copy. Unsigned country packs must remain dark or
 placeholder-only until L2 country-content sign-off records a named reviewer and
 date. `MOB-01` must not touch proxy/routing/auth/session/tenancy, member account
-creation, schema/RLS/migrations, billing/Paddle, VONESA/flight, service
-authorization, claim-transition writers, Operational Brain runtime, README,
-AGENTS, or broad architecture refactors. The T-503 CD/staging RBAC/role-marker
-residual is not a blocker for this design promotion, but it blocks
-launch/live-operationality claims if it reproduces on current main or staging.
+creation, member surfaces, schema/RLS/migrations, billing/Paddle,
+VONESA/flight, service authorization, claim-transition writers, Operational
+Brain runtime, README, AGENTS, or broad architecture refactors. The T-503
+CD/staging RBAC/role-marker residual is not a blocker for this design
+promotion, but it blocks launch/live-operationality claims if it reproduces on
+current main or staging.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
