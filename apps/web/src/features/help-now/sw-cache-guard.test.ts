@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { HELP_NOW_CACHE_NAME } from './content-packs';
 
-const swSource = fs.readFileSync(path.resolve(process.cwd(), 'public/sw.js'), 'utf8');
+const swPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../public/sw.js');
+const swSource = fs.readFileSync(swPath, 'utf8');
 
 describe('MOB-01 service worker cache guard', () => {
   it('allowlists public Help Now assets without caching member or API data', () => {
