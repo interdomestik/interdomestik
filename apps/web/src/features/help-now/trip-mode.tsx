@@ -1,13 +1,18 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import type { HelpNowCountry, HelpNowCountryPack } from './content-packs';
+import {
+  getTripModeDownloadAssets,
+  type HelpNowCountry,
+  type HelpNowCountryPack,
+} from './content-packs';
 import type { HelpNowCopy } from './copy';
 import { saveTripModePackForOffline } from './offline';
 import { trackHelpNowEvent } from './analytics';
 import { HelpNowPanel } from './help-now-ui';
 
 type TripModeStatus = 'saved' | 'unsupported' | 'failed';
+const tripModeAssetCount = getTripModeDownloadAssets().length;
 
 type TripModeProps = Readonly<{
   copy: HelpNowCopy;
@@ -52,7 +57,7 @@ export function TripMode({ copy, country, packs }: TripModeProps) {
             if (result === 'saved') {
               trackHelpNowEvent('trip_pack_downloaded', {
                 country,
-                pack_count: 1,
+                pack_count: tripModeAssetCount,
                 total_mb_bucket: 'under_1',
               });
             }
@@ -68,6 +73,7 @@ export function TripMode({ copy, country, packs }: TripModeProps) {
       </button>
       {status ? (
         <p
+          role="status"
           className={`mt-3 text-sm font-medium ${
             status === 'saved' ? 'text-emerald-800' : 'text-amber-900'
           }`}
