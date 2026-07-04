@@ -24,6 +24,7 @@ function getStatusMessage(copy: HelpNowCopy, status: TripModeStatus): string {
 export function TripMode({ copy, country, packs }: TripModeProps) {
   const [status, setStatus] = useState<TripModeStatus | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  // Keep a synchronous lock for same-tick clicks while state drives disabled UI feedback.
   const isSavingRef = useRef(false);
 
   return (
