@@ -23,10 +23,24 @@ async function expectOnlyPublicHelpNowSurface(page: Page) {
   await expect(page.getByTestId('admin-page-ready')).toHaveCount(0);
 }
 
+function watchProtectedSurfaceRequests(page: Page) {
+  const protectedRequests: string[] = [];
+  page.on('request', request => {
+    const pathname = new URL(request.url()).pathname;
+    const isProtectedApi = /^\/api\/(member|agent|staff|admin)(\/|$)/.test(pathname);
+    const isProtectedRoute = /^\/(sq|en|sr|mk|hr|de)\/(member|agent|staff|admin)(\/|$)/.test(
+      pathname
+    );
+    if (isProtectedApi || isProtectedRoute) protectedRequests.push(pathname);
+  });
+  return protectedRequests;
+}
+
 test.describe('MOB-01 public Help Now route', () => {
   test('anonymous visitor opens Help Now without auth redirect', async ({ browser }, testInfo) => {
     const context = await browser.newContext(publicContextOptions(testInfo));
     const page = await context.newPage();
+    const protectedRequests = watchProtectedSurfaceRequests(page);
 
     try {
       const response = await gotoApp(page, routes.helpNow(testInfo), testInfo, {
@@ -34,8 +48,12 @@ test.describe('MOB-01 public Help Now route', () => {
       });
 
       expect(response?.status(), 'help-now should not redirect to auth').toBe(200);
+      expect(response?.headers().location, 'help-now should not emit a redirect location').toBe(
+        undefined
+      );
       await expect(page).toHaveURL(new RegExp(`${routes.helpNow(testInfo)}$`));
       await expectOnlyPublicHelpNowSurface(page);
+      expect(protectedRequests).toEqual([]);
     } finally {
       await context.close();
     }
@@ -43,6 +61,8 @@ test.describe('MOB-01 public Help Now route', () => {
 
   test('signed-in member stays on Help Now public route', async ({ page, loginAs }, testInfo) => {
     await loginAs('member');
+    await page.waitForLoadState('networkidle');
+    const protectedRequests = watchProtectedSurfaceRequests(page);
 
     const response = await gotoApp(page, routes.helpNow(testInfo), testInfo, {
       marker: 'help-now-page-ready',
@@ -51,5 +71,6 @@ test.describe('MOB-01 public Help Now route', () => {
     expect(response?.status(), 'member should not be redirected away from Help Now').toBe(200);
     await expect(page).toHaveURL(new RegExp(`${routes.helpNow(testInfo)}$`));
     await expectOnlyPublicHelpNowSurface(page);
+    expect(protectedRequests).toEqual([]);
   });
 });

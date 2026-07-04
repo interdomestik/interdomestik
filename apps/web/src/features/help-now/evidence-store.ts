@@ -9,10 +9,19 @@ export type EvidenceItem = {
 
 const STORAGE_KEY = 'interdomestik.helpNow.evidenceBundle.v1';
 
-function readItems(): EvidenceItem[] {
-  if (globalThis.localStorage === undefined) return [];
+function getLocalStorage(): Storage | null {
   try {
-    const raw = globalThis.localStorage.getItem(STORAGE_KEY);
+    return globalThis.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function readItems(): EvidenceItem[] {
+  const storage = getLocalStorage();
+  if (!storage) return [];
+  try {
+    const raw = storage.getItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as EvidenceItem[]) : [];
   } catch {
     return [];
@@ -20,9 +29,10 @@ function readItems(): EvidenceItem[] {
 }
 
 function writeItems(items: EvidenceItem[]) {
-  if (globalThis.localStorage === undefined) return;
+  const storage = getLocalStorage();
+  if (!storage) return;
   try {
-    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    storage.setItem(STORAGE_KEY, JSON.stringify(items));
   } catch {
     // Storage can be blocked or quota-limited; capture remains local UI state only.
   }
@@ -46,9 +56,10 @@ export function saveEvidenceItem(promptId: string, file: File): EvidenceItem {
 }
 
 export function clearEvidenceItems() {
-  if (globalThis.localStorage === undefined) return;
+  const storage = getLocalStorage();
+  if (!storage) return;
   try {
-    globalThis.localStorage.removeItem(STORAGE_KEY);
+    storage.removeItem(STORAGE_KEY);
   } catch {
     // Clearing is best-effort when browser storage is blocked.
   }

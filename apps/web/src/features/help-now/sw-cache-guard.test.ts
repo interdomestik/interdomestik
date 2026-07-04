@@ -14,11 +14,13 @@ describe('MOB-01 service worker cache guard', () => {
     expect(swSource).toContain('.keys()');
     expect(swSource).toContain("key.startsWith('interdomestik-')");
     expect(swSource).toContain('caches.delete(key)');
+    expect(swSource).toContain('async function cacheFreshResponse(request, response)');
+    expect(swSource).toMatch(/networkFirst[\s\S]*cacheFreshResponse\(request, response\)/);
     expect(swSource).toMatch(
-      /async function cacheHelpNowNavigation\(request\) \{[\s\S]*?return await fetch\(request\);[\s\S]*?helpNowFallbackResponse\(request\);[\s\S]*?\}/
+      /HELP_NOW_PUBLIC_ROUTE[\s\S]*event\.respondWith\(networkFirst\(event\.request\)\)/
     );
-    expect(swSource.match(/cacheHelpNowNavigation[\s\S]*?cache\.put/)).toBeNull();
-    expect(swSource).toContain('await cache.put(request, response.clone());');
+    expect(swSource).toContain('await (await caches.open(HELP_NOW_CACHE_NAME)).put');
+    expect(swSource).toContain('response.clone()');
     expect(swSource).not.toContain('/_next/static/');
     expect(swSource).not.toContain('/api/');
     expect(swSource).not.toContain('/member/');

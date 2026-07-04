@@ -23,4 +23,26 @@ describe('MOB-01 anonymous funnel analytics', () => {
       offline: true,
     });
   });
+
+  it('applies the property allowlist across all anonymous funnel events', () => {
+    const events = [
+      'help_now_opened',
+      'checklist_item_done',
+      'trip_pack_downloaded',
+      'evidence_bundle_created',
+      'claim_pack_generated',
+    ] as const;
+
+    events.forEach(event => {
+      trackHelpNowEvent(event, {
+        country: 'XK',
+        // @ts-expect-error guard test for accidental free-text leakage
+        description: 'private crash note',
+      });
+    });
+
+    events.forEach((event, index) => {
+      expect(trackEvent).toHaveBeenNthCalledWith(index + 1, event, { country: 'XK' });
+    });
+  });
 });

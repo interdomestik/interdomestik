@@ -33,27 +33,21 @@ async function helpNowFallbackResponse(request) {
   );
 }
 
+async function cacheFreshResponse(request, response) {
+  if (!response.ok) return;
+  try {
+    await (await caches.open(HELP_NOW_CACHE_NAME)).put(request, response.clone());
+  } catch {}
+}
+
 async function networkFirst(request) {
   try {
     const response = await fetch(request);
-    if (response.ok) {
-      try {
-        const cache = await caches.open(HELP_NOW_CACHE_NAME);
-        await cache.put(request, response.clone());
-      } catch {}
-    }
+    await cacheFreshResponse(request, response);
     return response;
   } catch {
     const cached = await caches.match(request);
     if (cached) return cached;
-    return helpNowFallbackResponse(request);
-  }
-}
-
-async function cacheHelpNowNavigation(request) {
-  try {
-    return await fetch(request);
-  } catch {
     return helpNowFallbackResponse(request);
   }
 }
@@ -98,7 +92,7 @@ globalThis.addEventListener('fetch', event => {
 
   if (event.request.mode === 'navigate') {
     if (isSameOrigin(requestUrl) && HELP_NOW_PUBLIC_ROUTE.test(requestUrl.pathname)) {
-      event.respondWith(cacheHelpNowNavigation(event.request));
+      event.respondWith(networkFirst(event.request));
       return;
     }
 

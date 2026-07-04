@@ -90,6 +90,30 @@ describe('HelpNowExperience', () => {
     setItemSpy.mockRestore();
   });
 
+  it('keeps evidence UI responsive when storage access is blocked', async () => {
+    const user = userEvent.setup();
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get: () => {
+        throw new DOMException('blocked', 'SecurityError');
+      },
+    });
+
+    try {
+      render(<HelpNowExperience locale="en" />);
+      const file = new File(['local'], 'blocked-access.jpg', { type: 'image/jpeg' });
+      await user.upload(screen.getByTestId('help-now-shot-0'), file);
+
+      expect(screen.getByText(/blocked-access.jpg/)).toBeInTheDocument();
+      expect(screen.getByTestId('help-now-local-only')).toHaveTextContent('1 items');
+    } finally {
+      if (descriptor) {
+        Object.defineProperty(globalThis, 'localStorage', descriptor);
+      }
+    }
+  });
+
   it('keeps the clear action responsive when storage removal fails', async () => {
     const user = userEvent.setup();
     const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
