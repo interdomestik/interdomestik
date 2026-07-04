@@ -22,9 +22,9 @@ import { EvidenceCoach } from './evidence-coach';
 import { SceneGuide } from './scene-guide';
 import { TripMode } from './trip-mode';
 
-type HelpNowExperienceProps = {
+type HelpNowExperienceProps = Readonly<{
   locale: string;
-};
+}>;
 
 const icons = [Car, ShieldAlert, Home, Plane] as const;
 
@@ -78,7 +78,7 @@ export function HelpNowExperience({ locale }: HelpNowExperienceProps) {
                   key={value}
                   type="button"
                   disabled={isDisabled}
-                  aria-pressed={!isDisabled ? isSelected : undefined}
+                  aria-pressed={isDisabled ? undefined : isSelected}
                   onClick={() => setScenario(value)}
                   className={`flex min-h-20 items-center gap-4 rounded-lg border px-4 text-left text-lg font-semibold ${
                     isSelected
@@ -93,7 +93,7 @@ export function HelpNowExperience({ locale }: HelpNowExperienceProps) {
             })}
           </div>
           <label className="mt-5 block max-w-sm text-sm font-semibold text-slate-800">
-            Trip country
+            <span>Trip country</span>
             <select
               className="mt-2 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
               value={country}

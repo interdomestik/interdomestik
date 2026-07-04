@@ -9,11 +9,12 @@ import {
 } from './evidence-store';
 import type { HelpNowCopy } from './copy';
 import { trackHelpNowEvent } from './analytics';
+import { HelpNowPanel } from './help-now-ui';
 
-type EvidenceCoachProps = {
+type EvidenceCoachProps = Readonly<{
   copy: HelpNowCopy;
   onBundleChange: (count: number) => void;
-};
+}>;
 
 function bucketFor(count: number): '0' | '1_2' | '3_5' | '6_plus' {
   if (count === 0) return '0';
@@ -32,10 +33,7 @@ export function EvidenceCoach({ copy, onBundleChange }: EvidenceCoachProps) {
   }, [onBundleChange]);
 
   return (
-    <section
-      className="rounded-lg border border-slate-200 bg-white p-4"
-      aria-labelledby="evidence-title"
-    >
+    <HelpNowPanel titleId="evidence-title">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 id="evidence-title" className="text-lg font-semibold text-slate-950">
@@ -93,6 +91,6 @@ export function EvidenceCoach({ copy, onBundleChange }: EvidenceCoachProps) {
       <p className="mt-4 text-xs font-semibold text-emerald-800" data-testid="help-now-local-only">
         Local metadata checklist · {items.length} items · nothing sent
       </p>
-    </section>
+    </HelpNowPanel>
   );
 }

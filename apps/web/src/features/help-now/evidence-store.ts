@@ -10,7 +10,7 @@ export type EvidenceItem = {
 const STORAGE_KEY = 'interdomestik.helpNow.evidenceBundle.v1';
 
 function readItems(): EvidenceItem[] {
-  if (typeof globalThis.localStorage === 'undefined') return [];
+  if (globalThis.localStorage === undefined) return [];
   try {
     const raw = globalThis.localStorage.getItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as EvidenceItem[]) : [];
@@ -20,7 +20,7 @@ function readItems(): EvidenceItem[] {
 }
 
 function writeItems(items: EvidenceItem[]) {
-  if (typeof globalThis.localStorage === 'undefined') return;
+  if (globalThis.localStorage === undefined) return;
   globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
@@ -42,6 +42,6 @@ export function saveEvidenceItem(promptId: string, file: File): EvidenceItem {
 }
 
 export function clearEvidenceItems() {
-  if (typeof globalThis.localStorage === 'undefined') return;
+  if (globalThis.localStorage === undefined) return;
   globalThis.localStorage.removeItem(STORAGE_KEY);
 }

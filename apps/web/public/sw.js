@@ -5,7 +5,7 @@ const HELP_NOW_PUBLIC_ASSETS = new Set(['/help-now-packs/content-packs.v1.json']
 const HELP_NOW_PUBLIC_ROUTE = /^\/(sq|en|sr|mk|hr|de)\/help-now\/?$/;
 
 function isSameOrigin(url) {
-  return url.origin === self.location.origin;
+  return url.origin === globalThis.location.origin;
 }
 
 function isHelpNowPublicRequest(url) {
@@ -50,7 +50,7 @@ async function cacheHelpNowNavigation(request) {
   }
 }
 
-self.addEventListener('install', event => {
+globalThis.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll([
@@ -62,10 +62,10 @@ self.addEventListener('install', event => {
       ]);
     })
   );
-  self.skipWaiting();
+  globalThis.skipWaiting();
 });
 
-self.addEventListener('activate', event => {
+globalThis.addEventListener('activate', event => {
   event.waitUntil(
     caches
       .keys()
@@ -81,11 +81,11 @@ self.addEventListener('activate', event => {
             .map(key => caches.delete(key))
         )
       )
-      .then(() => self.clients.claim())
+      .then(() => globalThis.clients.claim())
   );
 });
 
-self.addEventListener('fetch', event => {
+globalThis.addEventListener('fetch', event => {
   const requestUrl = new URL(event.request.url);
 
   if (event.request.method !== 'GET') {
@@ -113,7 +113,7 @@ self.addEventListener('fetch', event => {
   }
 });
 
-self.addEventListener('push', event => {
+globalThis.addEventListener('push', event => {
   let payload = {};
 
   try {
@@ -132,19 +132,19 @@ self.addEventListener('push', event => {
     },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(globalThis.registration.showNotification(title, options));
 });
 
-self.addEventListener('notificationclick', event => {
+globalThis.addEventListener('notificationclick', event => {
   event.notification.close();
 
   const url = event.notification?.data?.url || '/';
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+    globalThis.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
       for (const client of clientList) {
         if ('focus' in client) return client.focus();
       }
-      if (self.clients.openWindow) return self.clients.openWindow(url);
+      if (globalThis.clients.openWindow) return globalThis.clients.openWindow(url);
     })
   );
 });

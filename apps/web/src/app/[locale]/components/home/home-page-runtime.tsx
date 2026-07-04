@@ -68,7 +68,7 @@ export function HomePageRuntime({ locale, uiV2Enabled }: HomePageRuntimeProps) {
     locale,
     session: landingSession,
   });
-  const publicHelpNowHref = `/${locale}/help-now`;
+  const publicHelpNowHref = '/help-now';
   const primaryHref = landingSession === null ? publicHelpNowHref : '/member';
   const secondaryHref = landingSession === null ? PUBLIC_FREE_START_ANCHOR_HREF : continueHref;
 

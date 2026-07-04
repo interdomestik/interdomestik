@@ -4,16 +4,27 @@ export const HELP_NOW_PACK_ASSET = '/help-now-packs/content-packs.v1.json';
 export const HELP_NOW_CONTENT_LOCALES = ['en', 'sq', 'mk', 'sr', 'de'] as const;
 export type HelpNowContentLocale = (typeof HELP_NOW_CONTENT_LOCALES)[number];
 export type HelpNowScenario = 'car' | 'injury' | 'property' | 'flight';
+const HELP_NOW_COUNTRY_LABELS = {
+  XK: 'Kosovo',
+  MK: 'North Macedonia',
+  AL: 'Albania',
+  DE: 'Germany',
+  AT: 'Austria',
+  HU: 'Hungary',
+  RS: 'Serbia',
+  HR: 'Croatia',
+  ME: 'Montenegro',
+} as const;
+
+export type HelpNowCountry = keyof typeof HELP_NOW_COUNTRY_LABELS;
 
 export type HelpNowCountryPack = {
-  country: 'XK' | 'MK' | 'AL' | 'DE' | 'AT' | 'HU' | 'RS' | 'HR' | 'ME';
+  country: HelpNowCountry;
   marketLabel: string;
   exposure: 'dark' | 'public';
   l2SignOff: { reviewer: string; date: string; packHash: string } | null;
   reviewStatus: 'not_started';
 };
-
-export type HelpNowCountry = HelpNowCountryPack['country'];
 
 export const HELP_NOW_SCENARIOS: readonly HelpNowScenario[] = [
   'car',
@@ -22,71 +33,19 @@ export const HELP_NOW_SCENARIOS: readonly HelpNowScenario[] = [
   'flight',
 ] as const;
 
-export const HELP_NOW_COUNTRY_PACKS: readonly HelpNowCountryPack[] = [
-  {
-    country: 'XK',
-    marketLabel: 'Kosovo',
+function createDarkCountryPack(country: HelpNowCountry): HelpNowCountryPack {
+  return {
+    country,
+    marketLabel: HELP_NOW_COUNTRY_LABELS[country],
     exposure: 'dark',
     l2SignOff: null,
     reviewStatus: 'not_started',
-  },
-  {
-    country: 'MK',
-    marketLabel: 'North Macedonia',
-    exposure: 'dark',
-    l2SignOff: null,
-    reviewStatus: 'not_started',
-  },
-  {
-    country: 'AL',
-    marketLabel: 'Albania',
-    exposure: 'dark',
-    l2SignOff: null,
-    reviewStatus: 'not_started',
-  },
-  {
-    country: 'DE',
-    marketLabel: 'Germany',
-    exposure: 'dark',
-    l2SignOff: null,
-    reviewStatus: 'not_started',
-  },
-  {
-    country: 'AT',
-    marketLabel: 'Austria',
-    exposure: 'dark',
-    l2SignOff: null,
-    reviewStatus: 'not_started',
-  },
-  {
-    country: 'HU',
-    marketLabel: 'Hungary',
-    exposure: 'dark',
-    l2SignOff: null,
-    reviewStatus: 'not_started',
-  },
-  {
-    country: 'RS',
-    marketLabel: 'Serbia',
-    exposure: 'dark',
-    l2SignOff: null,
-    reviewStatus: 'not_started',
-  },
-  {
-    country: 'HR',
-    marketLabel: 'Croatia',
-    exposure: 'dark',
-    l2SignOff: null,
-    reviewStatus: 'not_started',
-  },
-  {
-    country: 'ME',
-    marketLabel: 'Montenegro',
-    exposure: 'dark',
-    l2SignOff: null,
-    reviewStatus: 'not_started',
-  },
-] as const;
+  };
+}
+
+export const HELP_NOW_COUNTRY_PACKS: readonly HelpNowCountryPack[] = (
+  Object.keys(HELP_NOW_COUNTRY_LABELS) as HelpNowCountry[]
+).map(createDarkCountryPack);
 
 export function hasHelpNowContentLocale(locale: string): locale is HelpNowContentLocale {
   return HELP_NOW_CONTENT_LOCALES.includes(locale as HelpNowContentLocale);

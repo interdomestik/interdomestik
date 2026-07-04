@@ -5,15 +5,16 @@ import type { IncidentScenePack } from '@interdomestik/domain-assistance';
 import type { HelpNowCopy } from './copy';
 import { trackHelpNowEvent } from './analytics';
 import type { HelpNowCountry, HelpNowScenario } from './content-packs';
+import { HelpNowMetric, HelpNowPanel } from './help-now-ui';
 
-type ClaimPackPreviewProps = {
+type ClaimPackPreviewProps = Readonly<{
   copy: HelpNowCopy;
   pack: IncidentScenePack | null;
   completedCount: number;
   country: HelpNowCountry;
   evidenceCount: number;
   scenario: HelpNowScenario;
-};
+}>;
 
 export function ClaimPackPreview({
   copy,
@@ -36,35 +37,21 @@ export function ClaimPackPreview({
     });
   }
 
+  const metrics = [
+    { label: 'Zone', value: pack?.zone },
+    { label: 'Checklist', value: completedCount },
+    { label: 'Local evidence', value: evidenceCount },
+  ];
+
   return (
-    <section
-      className="rounded-lg border border-slate-200 bg-white p-4"
-      aria-labelledby="claim-pack-title"
-    >
-      <h2 id="claim-pack-title" className="text-lg font-semibold text-slate-950">
-        {copy.packTitle}
-      </h2>
+    <HelpNowPanel title={copy.packTitle} titleId="claim-pack-title">
       <p className="mt-1 text-sm text-slate-600">{copy.packBody}</p>
-      {!pack ? (
-        <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
-          <p className="font-semibold">{copy.darkTitle}</p>
-          <p className="mt-1">{copy.darkBody}</p>
-        </div>
-      ) : (
+      {pack ? (
         <>
           <dl className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-md bg-slate-50 p-3">
-              <dt className="text-xs font-semibold uppercase text-slate-500">Zone</dt>
-              <dd className="mt-1 text-sm font-semibold text-slate-950">{pack.zone}</dd>
-            </div>
-            <div className="rounded-md bg-slate-50 p-3">
-              <dt className="text-xs font-semibold uppercase text-slate-500">Checklist</dt>
-              <dd className="mt-1 text-sm font-semibold text-slate-950">{completedCount}</dd>
-            </div>
-            <div className="rounded-md bg-slate-50 p-3">
-              <dt className="text-xs font-semibold uppercase text-slate-500">Local evidence</dt>
-              <dd className="mt-1 text-sm font-semibold text-slate-950">{evidenceCount}</dd>
-            </div>
+            {metrics.map(metric => (
+              <HelpNowMetric key={metric.label} label={metric.label} value={metric.value} />
+            ))}
           </dl>
           <button
             type="button"
@@ -75,13 +62,18 @@ export function ClaimPackPreview({
             Generate local preview
           </button>
           {isPreviewReady ? (
-            <p className="mt-3 text-sm font-medium text-emerald-800" role="status">
+            <output className="mt-3 block text-sm font-medium text-emerald-800">
               Local preview ready for {country}: {completedCount} checklist items and{' '}
               {evidenceCount} evidence notes.
-            </p>
+            </output>
           ) : null}
         </>
+      ) : (
+        <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+          <p className="font-semibold">{copy.darkTitle}</p>
+          <p className="mt-1">{copy.darkBody}</p>
+        </div>
       )}
-    </section>
+    </HelpNowPanel>
   );
 }

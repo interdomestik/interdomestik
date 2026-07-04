@@ -5,9 +5,9 @@ import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 export { generateLocaleStaticParams as generateStaticParams } from '@/app/_locale-static-params';
 
-type HelpNowPageProps = {
+type HelpNowPageProps = Readonly<{
   params: Promise<{ locale: string }>;
-};
+}>;
 
 export async function generateMetadata({ params }: HelpNowPageProps): Promise<Metadata> {
   const { locale } = await params;

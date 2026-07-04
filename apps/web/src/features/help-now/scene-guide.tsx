@@ -3,14 +3,15 @@
 import type { HelpNowCopy } from './copy';
 import { trackHelpNowEvent } from './analytics';
 import type { HelpNowCountry, HelpNowScenario } from './content-packs';
+import { HelpNowPanel } from './help-now-ui';
 
-type SceneGuideProps = {
+type SceneGuideProps = Readonly<{
   copy: HelpNowCopy;
   completed: readonly number[];
   country: HelpNowCountry;
   scenario: HelpNowScenario;
   onToggle: (index: number) => void;
-};
+}>;
 
 export function SceneGuide({ copy, completed, country, scenario, onToggle }: SceneGuideProps) {
   return (
@@ -20,7 +21,7 @@ export function SceneGuide({ copy, completed, country, scenario, onToggle }: Sce
           {copy.emergency}
         </h2>
       </div>
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <HelpNowPanel>
         <p className="font-semibold text-slate-950">{copy.continueSafe}</p>
         <ul className="mt-4 space-y-2">
           {copy.checklist.map((item, index) => {
@@ -57,7 +58,7 @@ export function SceneGuide({ copy, completed, country, scenario, onToggle }: Sce
             );
           })}
         </ul>
-      </div>
+      </HelpNowPanel>
     </section>
   );
 }

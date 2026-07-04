@@ -5,24 +5,19 @@ import type { HelpNowCountry, HelpNowCountryPack } from './content-packs';
 import type { HelpNowCopy } from './copy';
 import { saveTripModePackForOffline } from './offline';
 import { trackHelpNowEvent } from './analytics';
+import { HelpNowPanel } from './help-now-ui';
 
-type TripModeProps = {
+type TripModeProps = Readonly<{
   copy: HelpNowCopy;
   country: HelpNowCountry;
   packs: readonly HelpNowCountryPack[];
-};
+}>;
 
 export function TripMode({ copy, country, packs }: TripModeProps) {
   const [status, setStatus] = useState<string | null>(null);
 
   return (
-    <section
-      className="rounded-lg border border-slate-200 bg-white p-4"
-      aria-labelledby="trip-mode-title"
-    >
-      <h2 id="trip-mode-title" className="text-lg font-semibold text-slate-950">
-        Trip Mode
-      </h2>
+    <HelpNowPanel title="Trip Mode" titleId="trip-mode-title">
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {copy.tripChecklist.map(item => (
           <div
@@ -57,6 +52,6 @@ export function TripMode({ copy, country, packs }: TripModeProps) {
         <p className="mt-1">{copy.darkBody}</p>
         <p className="mt-2 text-xs font-semibold">Signed packs: {packs.length}</p>
       </div>
-    </section>
+    </HelpNowPanel>
   );
 }
