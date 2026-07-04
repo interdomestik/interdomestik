@@ -15,7 +15,10 @@ function withServiceWorkerController(controller: unknown) {
 }
 
 describe('saveTripModePackForOffline', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    globalThis.history.pushState(null, '', '/');
+    vi.unstubAllGlobals();
+  });
 
   it('does not report saved without a controlling service worker', async () => {
     const open = vi.fn();
@@ -30,14 +33,28 @@ describe('saveTripModePackForOffline', () => {
     }
   });
 
+  it('does not report saved outside the public Help Now route', async () => {
+    const open = vi.fn();
+    vi.stubGlobal('caches', { open });
+    const restore = withServiceWorkerController({});
+
+    try {
+      await expect(saveTripModePackForOffline()).resolves.toBe('unsupported');
+      expect(open).not.toHaveBeenCalled();
+    } finally {
+      restore();
+    }
+  });
+
   it('saves public Trip Mode assets when the service worker controls the page', async () => {
     const addAll = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal('caches', { open: vi.fn().mockResolvedValue({ addAll }) });
     const restore = withServiceWorkerController({});
+    globalThis.history.pushState(null, '', '/en/help-now');
 
     try {
       await expect(saveTripModePackForOffline()).resolves.toBe('saved');
-      expect(addAll).toHaveBeenCalledWith([HELP_NOW_PACK_ASSET]);
+      expect(addAll).toHaveBeenCalledWith([HELP_NOW_PACK_ASSET, '/en/help-now']);
     } finally {
       restore();
     }
@@ -48,6 +65,7 @@ describe('saveTripModePackForOffline', () => {
       open: vi.fn().mockResolvedValue({ addAll: vi.fn().mockRejectedValue(new Error('quota')) }),
     });
     const restore = withServiceWorkerController({});
+    globalThis.history.pushState(null, '', '/sq/help-now');
 
     try {
       await expect(saveTripModePackForOffline()).resolves.toBe('failed');

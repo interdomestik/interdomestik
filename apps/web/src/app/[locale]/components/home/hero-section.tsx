@@ -5,6 +5,7 @@ import { Button } from '@interdomestik/ui';
 import { ArrowRight, CheckCircle2, Clock, Shield, ShieldCheck, Star, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { DigitalIDCard } from './digital-id-card';
+import { getHeroPrimaryLabel } from './hero-cta-label';
 
 type HeroSectionProps = Readonly<{
   locale?: string;
@@ -26,9 +27,7 @@ export function HeroSection({
   const titleHasQuestionBreak = title.includes('?');
   const titleLead = titleHasQuestionBreak ? `${title.split('?').slice(0, -1).join('?')}?` : title;
   const titleAccent = titleHasQuestionBreak ? (title.split('?').slice(-1)[0]?.trim() ?? '') : '';
-  const primaryLabel = primaryHref.includes(PUBLIC_FREE_START_ANCHOR_HREF)
-    ? t('callNow')
-    : t('cta');
+  const primaryLabel = getHeroPrimaryLabel(primaryHref, t);
 
   return (
     <section className="relative overflow-hidden bg-[#FAF9F6] pt-20 lg:min-h-[88vh]">
