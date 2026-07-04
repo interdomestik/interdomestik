@@ -137,7 +137,7 @@ describe('HelpNowExperience', () => {
     const downloadButton = screen.getByTestId('help-now-trip-download');
 
     await user.click(downloadButton);
-    expect(screen.getByText('Offline save is not supported in this browser.')).toHaveClass(
+    expect(await screen.findByText('Offline save is not supported in this browser.')).toHaveClass(
       'text-amber-900'
     );
     await waitFor(() => expect(downloadButton).not.toBeDisabled());
