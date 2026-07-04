@@ -34,7 +34,8 @@ async function helpNowFallbackResponse(request) {
 }
 
 async function cacheFreshResponse(request, response) {
-  if (!response.ok) return;
+  const pathname = new URL(request.url).pathname;
+  if (!response.ok || !HELP_NOW_PUBLIC_ASSETS.has(pathname)) return;
   try {
     await (await caches.open(HELP_NOW_CACHE_NAME)).put(request, response.clone());
   } catch {}

@@ -15,6 +15,7 @@ describe('MOB-01 service worker cache guard', () => {
     expect(swSource).toContain("key.startsWith('interdomestik-')");
     expect(swSource).toContain('caches.delete(key)');
     expect(swSource).toContain('async function cacheFreshResponse(request, response)');
+    expect(swSource).toContain('HELP_NOW_PUBLIC_ASSETS.has(pathname)');
     expect(swSource).toMatch(/networkFirst[\s\S]*cacheFreshResponse\(request, response\)/);
     expect(swSource).toMatch(
       /HELP_NOW_PUBLIC_ROUTE[\s\S]*event\.respondWith\(networkFirst\(event\.request\)\)/

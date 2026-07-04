@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 
-type HelpNowPanelProps = Readonly<{
-  children: ReactNode;
-  title?: string;
-  titleId?: string;
-}>;
+type HelpNowPanelProps = Readonly<
+  { children: ReactNode } & (
+    { title: string; titleId: string } | { title?: undefined; titleId?: string }
+  )
+>;
 
 type HelpNowMetricProps = Readonly<{
   label: string;

@@ -35,7 +35,7 @@ const ALLOWED_KEYS = new Set([
 
 export function trackHelpNowEvent(event: HelpNowEventName, props: HelpNowEventProps = {}) {
   const safeProps = Object.fromEntries(
-    Object.entries(props).filter(([key]) => ALLOWED_KEYS.has(key))
+    Object.entries(props).filter(([key, value]) => ALLOWED_KEYS.has(key) && value !== undefined)
   );
 
   trackEvent(event, safeProps);

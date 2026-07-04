@@ -36,6 +36,7 @@ describe('MOB-01 anonymous funnel analytics', () => {
     events.forEach(event => {
       trackHelpNowEvent(event, {
         country: 'XK',
+        scenario: undefined,
         // @ts-expect-error guard test for accidental free-text leakage
         description: 'private crash note',
       });
