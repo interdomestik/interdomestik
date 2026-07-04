@@ -7,11 +7,11 @@ import {
   type HelpNowCountryPack,
 } from './content-packs';
 import type { HelpNowCopy } from './copy';
-import { saveTripModePackForOffline } from './offline';
+import { saveTripModePackForOffline, type OfflineSaveResult } from './offline';
 import { trackHelpNowEvent } from './analytics';
 import { HelpNowPanel } from './help-now-ui';
 
-type TripModeStatus = 'saved' | 'unsupported' | 'failed';
+type TripModeStatus = OfflineSaveResult;
 const tripModeAssetCount = getTripModeDownloadAssets().length;
 
 type TripModeProps = Readonly<{

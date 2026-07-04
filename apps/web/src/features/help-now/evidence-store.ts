@@ -22,7 +22,9 @@ function readItems(): EvidenceItem[] {
   if (!storage) return [];
   try {
     const raw = storage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as EvidenceItem[]) : [];
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as EvidenceItem[]) : [];
   } catch {
     return [];
   }
