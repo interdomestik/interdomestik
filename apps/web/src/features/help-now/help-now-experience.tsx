@@ -31,11 +31,10 @@ const icons = [Car, ShieldAlert, Home, Plane] as const;
 export function HelpNowExperience({ locale }: HelpNowExperienceProps) {
   const contentLocale = getHelpNowContentLocale(locale);
   const copy = getHelpNowCopy(contentLocale);
+  const defaultCountry = getDefaultHelpNowCountry(contentLocale);
   const [completed, setCompleted] = useState<number[]>([]);
   const [evidenceCount, setEvidenceCount] = useState(0);
-  const [country, setCountry] = useState<HelpNowCountry>(() =>
-    getDefaultHelpNowCountry(contentLocale)
-  );
+  const [country, setCountry] = useState<HelpNowCountry>(defaultCountry);
   const [scenario, setScenario] = useState<HelpNowScenario>('car');
   const updateEvidenceCount = useCallback((count: number) => setEvidenceCount(count), []);
   const signedOffPacks = getSignedOffHelpNowPacks();
@@ -53,8 +52,8 @@ export function HelpNowExperience({ locale }: HelpNowExperienceProps) {
 
   useEffect(() => {
     setEvidenceCount(listEvidenceItems().length);
-    trackHelpNowEvent('help_now_opened', { country, offline: !navigator.onLine });
-  }, [country]);
+    trackHelpNowEvent('help_now_opened', { country: defaultCountry, offline: !navigator.onLine });
+  }, [defaultCountry]);
 
   return (
     <main

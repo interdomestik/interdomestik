@@ -3,10 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HelpNowExperience } from './help-now-experience';
 
-vi.mock('@/lib/analytics', () => ({ trackEvent: vi.fn() }));
+const hoisted = vi.hoisted(() => ({
+  trackEventMock: vi.fn(),
+}));
+
+vi.mock('@/lib/analytics', () => ({ trackEvent: hoisted.trackEventMock }));
 
 describe('HelpNowExperience', () => {
   beforeEach(() => {
+    hoisted.trackEventMock.mockClear();
     localStorage.clear();
   });
 
@@ -38,6 +43,21 @@ describe('HelpNowExperience', () => {
 
     expect(screen.queryByText('Zone')).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('tracks page open once when the trip country changes', async () => {
+    const user = userEvent.setup();
+    render(<HelpNowExperience locale="en" />);
+
+    expect(hoisted.trackEventMock).toHaveBeenCalledTimes(1);
+    expect(hoisted.trackEventMock).toHaveBeenCalledWith('help_now_opened', {
+      country: 'XK',
+      offline: false,
+    });
+
+    await user.selectOptions(screen.getByLabelText('Trip country'), 'AL');
+    expect(screen.getByLabelText('Trip country')).toHaveValue('AL');
+    expect(hoisted.trackEventMock).toHaveBeenCalledTimes(1);
   });
 
   it('keeps evidence local and allows clearing the bundle', async () => {
