@@ -27,7 +27,7 @@ export function SceneGuide({ copy, completed, country, scenario, onToggle }: Sce
           {copy.checklist.map((item, index) => {
             const done = completed.includes(index);
             return (
-              <li key={`scene-${index}`}>
+              <li key={item}>
                 <button
                   type="button"
                   data-testid={`help-now-checklist-${index}`}
