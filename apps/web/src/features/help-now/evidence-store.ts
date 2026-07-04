@@ -21,7 +21,11 @@ function readItems(): EvidenceItem[] {
 
 function writeItems(items: EvidenceItem[]) {
   if (globalThis.localStorage === undefined) return;
-  globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  try {
+    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  } catch {
+    // Storage can be blocked or quota-limited; capture remains local UI state only.
+  }
 }
 
 export function listEvidenceItems(): EvidenceItem[] {

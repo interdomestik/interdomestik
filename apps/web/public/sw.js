@@ -8,8 +8,14 @@ function isSameOrigin(url) {
   return url.origin === globalThis.location.origin;
 }
 
-function isHelpNowPublicRequest(url) {
-  return isSameOrigin(url) && HELP_NOW_PUBLIC_ROUTE.test(url.pathname);
+function deleteOldInterdomestikCaches(keys) {
+  return Promise.all(
+    keys
+      .filter(
+        key => key.startsWith('interdomestik-') && key !== CACHE_NAME && key !== HELP_NOW_CACHE_NAME
+      )
+      .map(key => caches.delete(key))
+  );
 }
 
 async function helpNowFallbackResponse(request) {
@@ -31,8 +37,10 @@ async function networkFirst(request) {
   try {
     const response = await fetch(request);
     if (response.ok) {
-      const cache = await caches.open(HELP_NOW_CACHE_NAME);
-      await cache.put(request, response.clone());
+      try {
+        const cache = await caches.open(HELP_NOW_CACHE_NAME);
+        await cache.put(request, response.clone());
+      } catch {}
     }
     return response;
   } catch {
@@ -52,15 +60,17 @@ async function cacheHelpNowNavigation(request) {
 
 globalThis.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll([
-        '/favicon.ico',
-        '/manifest.json',
-        OFFLINE_URL,
-        '/icon-192.png',
-        '/icon-512.png',
-      ]);
-    })
+    caches
+      .open(CACHE_NAME)
+      .then(cache =>
+        cache.addAll([
+          '/favicon.ico',
+          '/manifest.json',
+          OFFLINE_URL,
+          '/icon-192.png',
+          '/icon-512.png',
+        ])
+      )
   );
   globalThis.skipWaiting();
 });
@@ -69,18 +79,7 @@ globalThis.addEventListener('activate', event => {
   event.waitUntil(
     caches
       .keys()
-      .then(keys =>
-        Promise.all(
-          keys
-            .filter(
-              key =>
-                key.startsWith('interdomestik-') &&
-                key !== CACHE_NAME &&
-                key !== HELP_NOW_CACHE_NAME
-            )
-            .map(key => caches.delete(key))
-        )
-      )
+      .then(deleteOldInterdomestikCaches)
       .then(() => globalThis.clients.claim())
   );
 });
@@ -98,7 +97,7 @@ globalThis.addEventListener('fetch', event => {
   }
 
   if (event.request.mode === 'navigate') {
-    if (isHelpNowPublicRequest(requestUrl)) {
+    if (isSameOrigin(requestUrl) && HELP_NOW_PUBLIC_ROUTE.test(requestUrl.pathname)) {
       event.respondWith(cacheHelpNowNavigation(event.request));
       return;
     }

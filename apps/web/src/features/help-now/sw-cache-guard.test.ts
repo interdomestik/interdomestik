@@ -18,6 +18,7 @@ describe('MOB-01 service worker cache guard', () => {
       /async function cacheHelpNowNavigation\(request\) \{[\s\S]*?return await fetch\(request\);[\s\S]*?helpNowFallbackResponse\(request\);[\s\S]*?\}/
     );
     expect(swSource.match(/cacheHelpNowNavigation[\s\S]*?cache\.put/)).toBeNull();
+    expect(swSource).toContain('await cache.put(request, response.clone());');
     expect(swSource).not.toContain('/_next/static/');
     expect(swSource).not.toContain('/api/');
     expect(swSource).not.toContain('/member/');

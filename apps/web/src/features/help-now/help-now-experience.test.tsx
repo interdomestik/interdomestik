@@ -73,4 +73,20 @@ describe('HelpNowExperience', () => {
     await user.click(screen.getByTestId('help-now-clear-bundle'));
     expect(localStorage.getItem('interdomestik.helpNow.evidenceBundle.v1')).toBeNull();
   });
+
+  it('keeps evidence UI responsive when storage writes fail', async () => {
+    const user = userEvent.setup();
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+
+    render(<HelpNowExperience locale="en" />);
+    const file = new File(['local'], 'blocked-storage.jpg', { type: 'image/jpeg' });
+    await user.upload(screen.getByTestId('help-now-shot-0'), file);
+
+    expect(screen.getByText(/blocked-storage.jpg/)).toBeInTheDocument();
+    expect(screen.getByTestId('help-now-local-only')).toHaveTextContent('1 items');
+
+    setItemSpy.mockRestore();
+  });
 });
