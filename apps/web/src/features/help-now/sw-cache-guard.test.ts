@@ -9,7 +9,7 @@ describe('MOB-01 service worker cache guard', () => {
   it('allowlists public Help Now assets without caching member or API data', () => {
     expect(swSource).toContain('/help-now-packs/content-packs.v1.json');
     expect(swSource).toContain(HELP_NOW_CACHE_NAME);
-    expect(swSource).toContain('sq|en|sr|mk|hr|de');
+    expect(swSource).toContain('sq|en|sr|mk');
     expect(swSource).toContain('url.origin === globalThis.location.origin');
     expect(swSource).toContain('.keys()');
     expect(swSource).toContain("key.startsWith('interdomestik-')");

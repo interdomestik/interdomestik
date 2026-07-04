@@ -2,7 +2,7 @@ const CACHE_NAME = 'interdomestik-offline-v1';
 const HELP_NOW_CACHE_NAME = 'interdomestik-help-now-v1';
 const OFFLINE_URL = '/offline.html'; // Offline fallback page
 const HELP_NOW_PUBLIC_ASSETS = new Set(['/help-now-packs/content-packs.v1.json']);
-const HELP_NOW_PUBLIC_ROUTE = /^\/(sq|en|sr|mk|hr|de)\/help-now\/?$/;
+const HELP_NOW_PUBLIC_ROUTE = /^\/(sq|en|sr|mk)\/help-now\/?$/;
 
 function isSameOrigin(url) {
   return url.origin === globalThis.location.origin;

@@ -109,21 +109,6 @@ const sr: HelpNowCopy = {
     'Ne priznajte krivicu',
   ],
 };
-const de: HelpNowCopy = {
-  ...en,
-  title: 'Was ist passiert?',
-  subtitle: 'Hilfe unterwegs, bevor ein Konto nötig ist.',
-  emergency: 'Wenn jemand verletzt ist, rufen Sie den lokalen Notdienst.',
-  continueSafe: 'Niemand ist verletzt: weiter mit der Unfall-Checkliste.',
-  privacy:
-    'Fotoauswahlen werden nur als lokale Metadaten notiert; Originale bleiben unter Ihrer Kontrolle.',
-  clear: 'Lokales Paket löschen',
-  download: 'Öffentliches Trip-Mode-Paket speichern',
-  downloadDone: 'Öffentliches Paket wurde offline gespeichert.',
-  downloadFailed: 'Offline-Speichern fehlgeschlagen. Versuchen Sie es vor der Reise erneut.',
-  downloadUnsupported: 'Offline-Speichern wird in diesem Browser nicht unterstützt.',
-  scenarios: ['Autounfall', 'Verletzung', 'Sachschaden', 'Flug: bald'],
-};
-const COPY: Record<HelpNowContentLocale, HelpNowCopy> = { en, sq, mk, sr, de };
+const COPY: Record<HelpNowContentLocale, HelpNowCopy> = { en, sq, mk, sr };
 
 export const getHelpNowCopy = (locale: HelpNowContentLocale): HelpNowCopy => COPY[locale];

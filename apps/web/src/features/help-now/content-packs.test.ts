@@ -5,7 +5,6 @@ import {
   HELP_NOW_CONTENT_LOCALES,
   HELP_NOW_PACK_ASSET,
   canExposeCountryPack,
-  getDefaultHelpNowCountry,
   getHelpNowContentLocale,
   getSignedOffHelpNowPacks,
   getTripModeDownloadAssets,
@@ -18,9 +17,10 @@ describe('MOB-01 content-pack gating', () => {
     expect(HELP_NOW_COUNTRY_PACKS.every(pack => !canExposeCountryPack(pack))).toBe(true);
   });
 
-  it('supports de only inside the Help Now content envelope', () => {
-    expect(HELP_NOW_CONTENT_LOCALES).toContain('de');
-    expect(getDefaultHelpNowCountry('de')).toBe('DE');
+  it('keeps unsupported route locales on English copy while preserving Germany as a trip country', () => {
+    expect(HELP_NOW_CONTENT_LOCALES).not.toContain('de');
+    expect(getHelpNowContentLocale('de')).toBe('en');
+    expect(HELP_NOW_COUNTRY_PACKS.some(pack => pack.country === 'DE')).toBe(true);
   });
 
   it('keeps hr routable with the English fallback until localized copy is signed off', () => {

@@ -36,11 +36,11 @@ describe('HelpNowExperience', () => {
 
   it('keeps scenario and country explicit for local pack context', async () => {
     const user = userEvent.setup();
-    render(<HelpNowExperience locale="de" />);
+    render(<HelpNowExperience locale="mk" />);
 
-    expect(screen.getByLabelText('Trip country')).toHaveValue('DE');
-    await user.click(screen.getByRole('button', { name: 'Sachschaden' }));
-    expect(screen.getByRole('button', { name: 'Sachschaden' })).toHaveAttribute(
+    expect(screen.getByLabelText('Trip country')).toHaveValue('MK');
+    await user.click(screen.getByRole('button', { name: 'Имотна штета' }));
+    expect(screen.getByRole('button', { name: 'Имотна штета' })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
