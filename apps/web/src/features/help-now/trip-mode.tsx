@@ -72,14 +72,14 @@ export function TripMode({ copy, country, packs }: TripModeProps) {
         {copy.download}
       </button>
       {status ? (
-        <p
-          role="status"
+        <output
+          aria-live="polite"
           className={`mt-3 text-sm font-medium ${
             status === 'saved' ? 'text-emerald-800' : 'text-amber-900'
           }`}
         >
           {getStatusMessage(copy, status)}
-        </p>
+        </output>
       ) : null}
       <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
         <p className="font-semibold">{copy.darkTitle}</p>
