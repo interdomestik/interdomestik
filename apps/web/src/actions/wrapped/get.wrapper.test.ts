@@ -19,18 +19,8 @@ vi.mock('@interdomestik/database', () => {
   };
 });
 
-// Mock constants separately if needed, but get.core.ts imports from @interdomestik/database/constants
 vi.mock('@interdomestik/database/constants', () => ({
-  CLAIM_STATUSES: [
-    'draft',
-    'submitted',
-    'verification',
-    'evaluation',
-    'negotiation',
-    'court',
-    'resolved',
-    'rejected',
-  ],
+  CLAIM_STATUSES: ['draft', 'submitted', 'submitted_to_airline', 'verification', 'evaluation', 'negotiation', 'court', 'resolved', 'rejected'],
 }));
 
 describe('getWrappedStatsCore', () => {

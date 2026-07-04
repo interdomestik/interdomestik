@@ -41,50 +41,55 @@ export const claims = pgTable(
     updatedAt: timestamp('updatedAt').$onUpdate(() => new Date()),
     statusUpdatedAt: timestamp('statusUpdatedAt'),
   },
-  table => [
-    index('idx_claims_branch').on(table.branchId),
-    index('idx_claims_agent').on(table.agentId),
-    index('idx_claims_user_created').on(table.userId, table.createdAt),
-    index('idx_claims_lifecycle').on(table.caseLifecycleState, table.recoveryLifecycleState),
-    index('idx_claims_tenant_branch').on(table.tenantId, table.branchId),
-    index('idx_claims_tenant_branch_lifecycle').on(table.tenantId, table.branchId, table.caseLifecycleState, table.recoveryLifecycleState),
-    index('idx_claims_tenant_lifecycle_created').on(table.tenantId, table.caseLifecycleState, table.recoveryLifecycleState, table.createdAt),
-    index('idx_claims_tenant_incident_country').on(table.tenantId, table.incidentCountryCode, table.createdAt),
-    index('idx_claims_access_tenant').on(table.accessTenantId),
-    uniqueIndex('idx_claims_tenant_number').on(table.tenantId, table.claimNumber),
+  table => {
+    const t = table;
+    const c = t.caseLifecycleState;
+    const r = t.recoveryLifecycleState;
+    return [
+    index('idx_claims_branch').on(t.branchId),
+    index('idx_claims_agent').on(t.agentId),
+    index('idx_claims_user_created').on(t.userId, t.createdAt),
+    index('idx_claims_lifecycle').on(c, r),
+    index('idx_claims_tenant_branch').on(t.tenantId, t.branchId),
+    index('idx_claims_tenant_branch_lifecycle').on(t.tenantId, t.branchId, c, r),
+    index('idx_claims_tenant_lifecycle_created').on(t.tenantId, c, r, t.createdAt),
+    index('idx_claims_tenant_incident_country').on(t.tenantId, t.incidentCountryCode, t.createdAt),
+    index('idx_claims_access_tenant').on(t.accessTenantId),
+    uniqueIndex('idx_claims_tenant_number').on(t.tenantId, t.claimNumber),
     check(
       'claim_case_lifecycle_state_check',
-      sql`${table.caseLifecycleState} is null or ${table.caseLifecycleState} in ('draft', 'submitted', 'verification', 'evaluation', 'recovery', 'resolved', 'rejected')`
+    sql`${c} is null or ${c} in ('draft','submitted','verification','evaluation','recovery','resolved','rejected')`
     ),
     check(
       'claim_recovery_lifecycle_state_check',
-      sql`${table.recoveryLifecycleState} is null or ${table.recoveryLifecycleState} in ('not_started', 'submitted_to_airline', 'negotiation', 'court', 'resolved', 'closed')`
+    sql`${r} is null or ${r} in ('not_started','submitted_to_airline','negotiation','court','resolved','closed')`
+    ),
+    check(
+      'claim_lifecycle_state_pair_check',
+    sql`(${c},${r}) in (('draft','not_started'),('submitted','not_started'),('recovery','submitted_to_airline'),('verification','not_started'),('evaluation','not_started'),('recovery','negotiation'),('recovery','court'),('resolved','resolved'),('rejected','closed'))`
     ),
     check(
       'claim_incident_country_code_check',
-      sql`${table.incidentCountryCode} is null or ${table.incidentCountryCode} ~ '^[A-Z]{2}$'`
+      sql`${t.incidentCountryCode} is null or ${t.incidentCountryCode} ~ '^[A-Z]{2}$'`
     ),
     check(
       'claim_incident_jurisdiction_check',
-      sql`${table.incidentJurisdiction} is null or ${table.incidentJurisdiction} ~ '^country:[A-Z]{2}$'`
+      sql`${t.incidentJurisdiction} is null or ${t.incidentJurisdiction} ~ '^country:[A-Z]{2}$'`
     ),
     check(
       'claim_recovery_law_check',
-      sql`${table.recoveryLaw} is null or ${table.recoveryLaw} ~ '^[A-Z]{2}$'`
+      sql`${t.recoveryLaw} is null or ${t.recoveryLaw} ~ '^[A-Z]{2}$'`
     ),
-  ]
+    ];
+  }
 );
 export const claimDocuments = pgTable(
   'claim_documents',
   {
     id: text('id').primaryKey(),
-    tenantId: text('tenant_id')
-      .notNull()
-      .references(() => tenants.id),
+    tenantId: text('tenant_id').notNull().references(() => tenants.id),
     accessTenantId: text('access_tenant_id').references(() => tenants.id),
-    claimId: text('claim_id')
-      .notNull()
-      .references(() => claims.id),
+    claimId: text('claim_id').notNull().references(() => claims.id),
     name: text('name').notNull(),
     filePath: text('file_path').notNull(),
     fileType: text('file_type').notNull(),
@@ -92,24 +97,16 @@ export const claimDocuments = pgTable(
     bucket: text('bucket').notNull().default('claim-evidence'),
     classification: text('classification').notNull().default('pii'),
     category: documentCategoryEnum('category').default('evidence').notNull(),
-    uploadedBy: text('uploaded_by')
-      .notNull()
-      .references(() => user.id),
+    uploadedBy: text('uploaded_by').notNull().references(() => user.id),
     createdAt: timestamp('created_at').defaultNow(),
   },
   table => [index('claim_documents_access_tenant_idx').on(table.accessTenantId)]
 );
 export const claimMessages = pgTable('claim_messages', {
   id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  claimId: text('claim_id')
-    .notNull()
-    .references(() => claims.id),
-  senderId: text('sender_id')
-    .notNull()
-    .references(() => user.id),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  claimId: text('claim_id').notNull().references(() => claims.id),
+  senderId: text('sender_id').notNull().references(() => user.id),
   content: text('content').notNull(),
   isInternal: boolean('is_internal').default(false),
   readAt: timestamp('read_at'),
@@ -117,12 +114,8 @@ export const claimMessages = pgTable('claim_messages', {
 });
 export const claimStageHistory = pgTable('claim_stage_history', {
   id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  claimId: text('claim_id')
-    .notNull()
-    .references(() => claims.id),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  claimId: text('claim_id').notNull().references(() => claims.id),
   fromStatus: statusEnum('from_status'),
   toStatus: statusEnum('to_status').notNull(),
   changedById: text('changed_by_id').references(() => user.id),
