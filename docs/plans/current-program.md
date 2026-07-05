@@ -74,9 +74,10 @@ Rev 88 current-authority/design-gate: `MOB-DG01` in
 records the first post-M0-M5 mobile-lane selection from clean main
 `d12c61414e1415cbe7da15eb826399266ff0156b` after the current-authority resolver
 returned `blocked_requires_current_authority`, `activeSlice=null`, and
-`umbrella_without_concrete_promoted_slice`. This gate promotes exactly one
-canonical tracker slice: `MOB-01`. The next active governed implementation goal
-is exactly one canonical tracker slice: `MOB-01`. Future `MOB-01` is limited to
+`umbrella_without_concrete_promoted_slice`. This gate promoted exactly one
+canonical tracker slice, `MOB-01`; that promotion is now consumed by Rev 89 and
+the merged PR `#1296` / PR `#1297` evidence. The historical `MOB-01` scope was
+limited to:
 Help Now / no-account free funnel implementation with Diaspora Trip Mode folded
 into the same bounded slice: no-account Help Now guidance, Trip Mode
 country/corridor content packaging, offline content-pack controls, local-only
@@ -91,6 +92,32 @@ Brain runtime, README, AGENTS, or broad architecture refactors. The T-503
 CD/staging RBAC/role-marker residual is not a blocker for this design
 promotion, but it blocks launch/live-operationality claims if it reproduces on
 current main or staging.
+
+Rev 89 closeout: `MOB-01` completed through PR `#1296` / merge-main SHA
+`85aa63a50177c212c75f3cc6a69a985e18722547`, with accessibility follow-up PR
+`#1297` / merge-main SHA `f699615f99be239574cbb5bc9624e5be93eab66f`.
+The merged implementation consumed the `MOB-DG01` authority and added the
+public `/:locale/help-now` Help Now / Trip Mode surface, public same-origin
+content-pack manifest, offline public-content cache guards, local-only evidence
+controls, anonymous funnel event allowlist, public home CTA routing, and
+dark/placeholder rendering for unsigned country packs. PR `#1297` added the
+immediate accessibility state follow-up for scene checklist pressed state and
+Trip Mode save feedback. PR `#1296` recorded green `pnpm pr:verify`,
+`pnpm security:guard`, and `pnpm e2e:gate`; PR `#1297` recorded focused Help
+Now unit proof, web type-check, web lint, repo-size check, and modularity guard.
+This proves dark-pack public implementation readiness only. It does not prove
+non-dark Help Now launch, country legal/content correctness, paid launch,
+live-operationality, final `PAID`, finance closure, individual claimant
+representation, final settlement, or final `CLOSED`. The real next blocker for
+a non-dark Help Now launch is L2 country-content sign-off for at least one
+country pack, with named reviewer/date plus emergency-number, police/EAS
+threshold, Green Card/travel guidance, and language/copy review. The prior
+T-503 CD/staging RBAC/role-marker residual remains a launch/live-operationality
+blocker only if reproduced on current main or staging. No replacement
+implementation slice is promoted by this closeout; fresh
+current-authority/design-gate selection is required before follow-on runtime
+work, and `blocked_requires_current_authority` with `activeSlice=null` is the
+expected resolver state.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the

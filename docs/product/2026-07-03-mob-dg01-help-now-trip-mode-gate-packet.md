@@ -15,6 +15,8 @@ related:
 
 > Status: **Prepared gate packet — the gate has not been run.** Repo state at preparation: `T-002b` complete; final `T-503` authority/evidence/destructive `claims.status` removal still blocking runtime UI/UX; tracker `activeSlice=null / blocked_requires_current_authority`. This document authorizes nothing. It exists so that, once M0→M5 closes and a fresh current-authority resolution occurs, `MOB-DG01` can be run same-day from a complete packet.
 
+> Post-MOB-01 reconciliation (2026-07-05): this status is historical. `MOB-DG01` later ran in `docs/plans/2026-07-04-mob-dg01-help-now-trip-mode-current-authority.md`, `MOB-01` was implemented in PR `#1296`, and the accessibility follow-up landed in PR `#1297`. Use this packet as the original gate input, not current blocker authority. The current non-dark Help Now blocker is L2 country-content sign-off; unsigned packs remain dark/placeholder-only.
+
 ## 1. Decision Requested (when the gate runs)
 
 Promote exactly one bounded runtime slice, `MOB-01` (Help Now / no-account free funnel, with Diaspora Trip Mode content folded in), into the active queue — or record a dated blocker. No other MOB-* slice is promoted by this gate.
