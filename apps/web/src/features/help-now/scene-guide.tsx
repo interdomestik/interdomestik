@@ -30,6 +30,7 @@ export function SceneGuide({ copy, completed, country, scenario, onToggle }: Sce
               <li key={item}>
                 <button
                   type="button"
+                  aria-pressed={done}
                   data-testid={`help-now-checklist-${index}`}
                   onClick={() => {
                     onToggle(index);
