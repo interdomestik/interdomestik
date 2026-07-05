@@ -11,6 +11,7 @@ related:
   - docs/plans/2026-07-05-b2-staging-rbac-residual-check.md
   - docs/plans/2026-07-05-rbac-01-current-authority.md
   - docs/product/2026-07-05-mobile-uiux-review-input-package.md
+  - docs/product/2026-07-05-business-memo-signing-packet.md
 ---
 
 # Nine-Step Enterprise Sequence
@@ -35,7 +36,7 @@ local proof as staging proof.
 | 1    | Verify ENT-A01 / RBAC-01      | Closed, caveated | PR `#1299` fixed the narrow release-gate stabilization path; PR `#1300` recorded two consecutive green staging jobs after one post-deploy P0.1 staff miss. | Reopen/freeze if any future current-main staging P0.1 agent/staff marker miss appears. |
 | 2    | Appoint country reviewer      | In progress      | MK signature package sent to `Interdomestik@gmail.com`; wait for named professional signatures and preserve returned PDFs.                                 | Required before L2 review can complete for the selected country.                       |
 | 3    | UI/UX design preparation only | Prepared         | Review input package: `docs/product/2026-07-05-mobile-uiux-review-input-package.md`; no shipped UI changes.                                                | Allowed in parallel, but cannot promote runtime.                                       |
-| 4    | Sign business memos           | Not started      | Complete Memo 1 and Memo 2 in `docs/product/2026-07-03-business-decision-memos.md`; add dated decision notes.                                              | Required before MOB-05a and MOB-02 gates.                                              |
+| 4    | Sign business memos           | Ready to sign    | Signing packet plus decision records: `docs/product/2026-07-05-business-memo-signing-packet.md`; records still unsigned.                                   | Required before MOB-05a and MOB-02 gates.                                              |
 | 5    | Complete B6/B7                | In progress      | B6 runbook and B7 alert-coverage contract are drafted; staging hotfix exercise and synthetic alert proof are still required.                               | Required before non-dark Help Now exposure.                                            |
 | 6    | Draft MOB-01b gate            | Not started      | Draft only after Step 1 path is clear enough to cite entry evidence; keep it docs-only.                                                                    | Drafting is allowed; promotion is not.                                                 |
 | 7    | Implement MOB-01b             | Blocked          | Requires ENT-A01 closed, L2 MK signed, B6 done, B7 done, and a later `MOB-DG01B` authority record.                                                         | No flag flip or runtime config until CA+DG.                                            |
@@ -66,4 +67,6 @@ current-authority/design-gate are complete.
 3. Decide who signs Memo 1 and Memo 2 if not Arben.
 4. Assign the UI/UX review package to the design reviewers and collect dated
    findings before Figma/runtime decisions.
-5. Draft the MOB-01b gate only after the entry evidence can be cited.
+5. Fill and sign both business-memo decision records, then commit the signed
+   files.
+6. Draft the MOB-01b gate only after the entry evidence can be cited.
