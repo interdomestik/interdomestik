@@ -1,6 +1,8 @@
 import { type TestInfo } from '@playwright/test';
 
 export type Locale = 'sq' | 'en' | 'mk' | 'sr' | 'de' | 'hr';
+
+type RouteLocaleInput = Locale | (string & {}) | TestInfo;
 const SUPPORTED_LOCALES: Locale[] = ['sq', 'en', 'mk', 'sr', 'de', 'hr'];
 
 /**
@@ -24,7 +26,7 @@ function parseLocaleFromUrl(urlStr: string): Locale {
  * Strictly Rule #7: Fail fast on invalid types.
  * Strictly Rule #1: Deterministic derivation from project baseURL.
  */
-export function getLocale(input?: Locale | string | TestInfo): Locale {
+export function getLocale(input?: RouteLocaleInput): Locale {
   // Backward compatibility: If no locale provided, default to 'en'
   if (!input) {
     return 'en';
@@ -55,7 +57,7 @@ export function getLocale(input?: Locale | string | TestInfo): Locale {
   );
 }
 
-function withLocale(pathname: string, localeInput: Locale | string | TestInfo): string {
+function withLocale(pathname: string, localeInput: RouteLocaleInput): string {
   const loc = getLocale(localeInput);
   const path = pathname.startsWith('/') ? pathname : `/${pathname}`;
 
@@ -68,53 +70,54 @@ function withLocale(pathname: string, localeInput: Locale | string | TestInfo): 
 
 export const routes = {
   getLocale,
-  home: (l?: Locale | string | TestInfo) => withLocale('/', l || 'en'),
-  stats: (l?: Locale | string | TestInfo) => withLocale('/stats', l || 'en'),
-  partners: (l?: Locale | string | TestInfo) => withLocale('/partners', l || 'en'),
-  pricing: (l?: Locale | string | TestInfo) => withLocale('/pricing', l || 'en'),
-  businessMembership: (l?: Locale | string | TestInfo) =>
+  home: (l?: RouteLocaleInput) => withLocale('/', l || 'en'),
+  stats: (l?: RouteLocaleInput) => withLocale('/stats', l || 'en'),
+  partners: (l?: RouteLocaleInput) => withLocale('/partners', l || 'en'),
+  pricing: (l?: RouteLocaleInput) => withLocale('/pricing', l || 'en'),
+  helpNow: (l?: RouteLocaleInput) => withLocale('/help-now', l || 'en'),
+  businessMembership: (l?: RouteLocaleInput) =>
     withLocale('/business-membership', l || 'en'),
-  publicMembershipEntry: (l?: Locale | string | TestInfo) => withLocale('/pricing', l || 'en'),
-  login: (l?: Locale | string | TestInfo) => withLocale('/login', l || 'en'),
-  forgotPassword: (l?: Locale | string | TestInfo) => withLocale('/forgot-password', l || 'en'),
-  register: (l?: Locale | string | TestInfo) => withLocale('/register', l || 'en'),
-  resetPassword: (l?: Locale | string | TestInfo) => withLocale('/reset-password', l || 'en'),
-  member: (l?: Locale | string | TestInfo) => withLocale('/member', l || 'en'),
-  memberClaims: (l?: Locale | string | TestInfo) => withLocale('/member/claims', l || 'en'),
-  memberHelp: (l?: Locale | string | TestInfo) => withLocale('/member/help', l || 'en'),
-  memberNewClaim: (l?: Locale | string | TestInfo) => withLocale('/member/claims/new', l || 'en'),
-  memberSettings: (l?: Locale | string | TestInfo) => withLocale('/member/settings', l || 'en'),
-  memberMembership: (l?: Locale | string | TestInfo) => withLocale('/member/membership', l || 'en'),
-  memberDiaspora: (l?: Locale | string | TestInfo) => withLocale('/member/diaspora', l || 'en'),
-  memberClaimDetail: (claimId: string, l?: Locale | string | TestInfo) =>
+  publicMembershipEntry: (l?: RouteLocaleInput) => withLocale('/pricing', l || 'en'),
+  login: (l?: RouteLocaleInput) => withLocale('/login', l || 'en'),
+  forgotPassword: (l?: RouteLocaleInput) => withLocale('/forgot-password', l || 'en'),
+  register: (l?: RouteLocaleInput) => withLocale('/register', l || 'en'),
+  resetPassword: (l?: RouteLocaleInput) => withLocale('/reset-password', l || 'en'),
+  member: (l?: RouteLocaleInput) => withLocale('/member', l || 'en'),
+  memberClaims: (l?: RouteLocaleInput) => withLocale('/member/claims', l || 'en'),
+  memberHelp: (l?: RouteLocaleInput) => withLocale('/member/help', l || 'en'),
+  memberNewClaim: (l?: RouteLocaleInput) => withLocale('/member/claims/new', l || 'en'),
+  memberSettings: (l?: RouteLocaleInput) => withLocale('/member/settings', l || 'en'),
+  memberMembership: (l?: RouteLocaleInput) => withLocale('/member/membership', l || 'en'),
+  memberDiaspora: (l?: RouteLocaleInput) => withLocale('/member/diaspora', l || 'en'),
+  memberClaimDetail: (claimId: string, l?: RouteLocaleInput) =>
     withLocale(`/member/claims/${encodeURIComponent(claimId)}`, l || 'en'),
-  staff: (l?: Locale | string | TestInfo) => withLocale('/staff/claims', l || 'en'),
-  staffClaims: (l?: Locale | string | TestInfo) => withLocale('/staff/claims', l || 'en'),
-  staffSupportHandoffs: (l?: Locale | string | TestInfo) =>
+  staff: (l?: RouteLocaleInput) => withLocale('/staff/claims', l || 'en'),
+  staffClaims: (l?: RouteLocaleInput) => withLocale('/staff/claims', l || 'en'),
+  staffSupportHandoffs: (l?: RouteLocaleInput) =>
     withLocale('/staff/support-handoffs', l || 'en'),
-  staffClaimDetail: (claimId: string, l?: Locale | string | TestInfo) =>
+  staffClaimDetail: (claimId: string, l?: RouteLocaleInput) =>
     withLocale(`/staff/claims/${encodeURIComponent(claimId)}`, l || 'en'),
-  admin: (l?: Locale | string | TestInfo) => withLocale('/admin/overview', l || 'en'),
-  adminClaims: (l?: Locale | string | TestInfo) => withLocale('/admin/claims', l || 'en'),
-  adminUsers: (l?: Locale | string | TestInfo) => withLocale('/admin/users', l || 'en'),
-  adminAnalytics: (l?: Locale | string | TestInfo) => withLocale('/admin/analytics', l || 'en'),
-  adminSettings: (l?: Locale | string | TestInfo) => withLocale('/admin/settings', l || 'en'),
-  adminBranches: (l?: Locale | string | TestInfo) => withLocale('/admin/branches', l || 'en'),
-  adminBranchDetail: (branchId: string, l?: Locale | string | TestInfo) =>
+  admin: (l?: RouteLocaleInput) => withLocale('/admin/overview', l || 'en'),
+  adminClaims: (l?: RouteLocaleInput) => withLocale('/admin/claims', l || 'en'),
+  adminUsers: (l?: RouteLocaleInput) => withLocale('/admin/users', l || 'en'),
+  adminAnalytics: (l?: RouteLocaleInput) => withLocale('/admin/analytics', l || 'en'),
+  adminSettings: (l?: RouteLocaleInput) => withLocale('/admin/settings', l || 'en'),
+  adminBranches: (l?: RouteLocaleInput) => withLocale('/admin/branches', l || 'en'),
+  adminBranchDetail: (branchId: string, l?: RouteLocaleInput) =>
     withLocale(`/admin/branches/${encodeURIComponent(branchId)}`, l || 'en'),
-  adminLeads: (l?: Locale | string | TestInfo) => withLocale('/admin/leads', l || 'en'),
-  agent: (l?: Locale | string | TestInfo) => withLocale('/agent/members', l || 'en'),
-  agentMembers: (l?: Locale | string | TestInfo) => withLocale('/agent/members', l || 'en'),
-  agentImport: (l?: Locale | string | TestInfo) => withLocale('/agent/import', l || 'en'),
-  agentMemberDetail: (memberId: string, l?: Locale | string | TestInfo) =>
+  adminLeads: (l?: RouteLocaleInput) => withLocale('/admin/leads', l || 'en'),
+  agent: (l?: RouteLocaleInput) => withLocale('/agent/members', l || 'en'),
+  agentMembers: (l?: RouteLocaleInput) => withLocale('/agent/members', l || 'en'),
+  agentImport: (l?: RouteLocaleInput) => withLocale('/agent/import', l || 'en'),
+  agentMemberDetail: (memberId: string, l?: RouteLocaleInput) =>
     withLocale(`/agent/members/${encodeURIComponent(memberId)}`, l || 'en'),
-  agentLeads: (l?: Locale | string | TestInfo) => withLocale('/agent/leads', l || 'en'),
-  agentCrm: (l?: Locale | string | TestInfo) => withLocale('/agent/crm', l || 'en'),
-  agentClients: (l?: Locale | string | TestInfo) => withLocale('/agent/clients', l || 'en'),
-  agentCommissions: (l?: Locale | string | TestInfo) => withLocale('/agent/commissions', l || 'en'),
-  agentWorkspace: (l?: Locale | string | TestInfo) => withLocale('/agent/workspace', l || 'en'),
-  agentWorkspaceLeads: (l?: Locale | string | TestInfo) =>
+  agentLeads: (l?: RouteLocaleInput) => withLocale('/agent/leads', l || 'en'),
+  agentCrm: (l?: RouteLocaleInput) => withLocale('/agent/crm', l || 'en'),
+  agentClients: (l?: RouteLocaleInput) => withLocale('/agent/clients', l || 'en'),
+  agentCommissions: (l?: RouteLocaleInput) => withLocale('/agent/commissions', l || 'en'),
+  agentWorkspace: (l?: RouteLocaleInput) => withLocale('/agent/workspace', l || 'en'),
+  agentWorkspaceLeads: (l?: RouteLocaleInput) =>
     withLocale('/agent/workspace/leads', l || 'en'),
-  agentWorkspaceClaims: (l?: Locale | string | TestInfo) =>
+  agentWorkspaceClaims: (l?: RouteLocaleInput) =>
     withLocale('/agent/workspace/claims', l || 'en'),
 } as const;

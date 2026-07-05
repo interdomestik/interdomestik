@@ -1,0 +1,21 @@
+export type HelpNowCopy = {
+  title: string;
+  subtitle: string;
+  offline: string;
+  emergency: string;
+  continueSafe: string;
+  darkTitle: string;
+  darkBody: string;
+  privacy: string;
+  clear: string;
+  download: string;
+  downloadDone: string;
+  downloadFailed: string;
+  downloadUnsupported: string;
+  packTitle: string;
+  packBody: string;
+  scenarios: readonly string[];
+  checklist: readonly string[];
+  shots: readonly string[];
+  tripChecklist: readonly string[];
+};
