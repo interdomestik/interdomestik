@@ -1,57 +1,25 @@
 const { ROUTES, TIMEOUTS } = require('./config.ts');
+const { collectRbacFailures, shouldRetryP01FreshContext } = require('./p01-rbac-failures.ts');
+const { collectFreshUntilStable } = require('./p01-rbac-stabilization.ts');
 const { recordP01CanonicalProof } = require('./p01-canonical-proof.ts');
 const { gotoWithSessionRetry } = require('./session-navigation.ts');
-const { buildRoute, checkResult, expectedMatrixForAccount, markerSummary } = require('./shared.ts');
+const {
+  buildRoute,
+  checkResult,
+  expectedMatrixForAccount,
+  markerSummary,
+  sleep,
+} = require('./shared.ts');
 const { waitForPortalMarkerState } = require('./admin-checks-locators.ts');
 
-function collectRbacFailures(input) {
-  const { account, portal, route, matrix, current, runCtx, memberDriftSignatureAdded } = input;
-  const failures = [];
-  let driftRecorded = memberDriftSignatureAdded;
-
-  if (
-    account === 'member' &&
-    portal === 'member' &&
-    current.member === true &&
-    (current.agent === true || current.staff === true || current.admin === true) &&
-    !driftRecorded
-  ) {
-    driftRecorded = true;
-    failures.push(
-      `P0.1_MISCONFIG_MEMBER_ROLE_DRIFT account=member route=/${runCtx.locale}${route} visible=${JSON.stringify(current)}`
-    );
-  }
-
-  if (portal === matrix.canonical && current[matrix.canonical] !== true) {
-    failures.push(
-      `P0.1_RBAC_CANONICAL_MARKER_MISSING account=${account} route=/${runCtx.locale}${route} expected=${matrix.canonical} visible=${JSON.stringify(current)}`
-    );
-  }
-
-  const unexpectedVisible = matrix.absentOnAllRoutes.filter(key => current[key] === true);
-  if (unexpectedVisible.length > 0) {
-    failures.push(
-      `P0.1_RBAC_MARKER_MISMATCH account=${account} route=/${runCtx.locale}${route} must_absent=${unexpectedVisible.join(',')} visible=${JSON.stringify(current)}`
-    );
-  }
-
-  return { driftRecorded, failures };
-}
-
-function isPositiveCanonicalNotFoundFailure(failure) {
-  return (
-    String(failure).startsWith('P0.1_RBAC_CANONICAL_MARKER_MISSING ') &&
-    String(failure).includes('"notFound":true')
-  );
-}
-
-function shouldRetryP01FreshContext(firstAttempt) {
-  return (
-    firstAttempt.positiveCanonicalNotFound &&
-    firstAttempt.failures.length > 0 &&
-    firstAttempt.failures.every(isPositiveCanonicalNotFoundFailure)
-  );
-}
+const P01_STABILIZATION_RETRY_WINDOW_MS = Number.parseInt(
+  process.env.RELEASE_GATE_P01_STABILIZATION_RETRY_WINDOW_MS || '5000',
+  10
+);
+const P01_STABILIZATION_RETRY_INTERVAL_MS = Number.parseInt(
+  process.env.RELEASE_GATE_P01_STABILIZATION_RETRY_INTERVAL_MS || '1000',
+  10
+);
 
 async function collectP01AccountAttempt(input) {
   const { account, browser, forceFresh, loginWithRunContext, memberDriftSignatureAdded, runCtx } =
@@ -110,6 +78,13 @@ async function collectP01AccountAttempt(input) {
 
 async function runP01(browser, runCtx, deps) {
   const { loginWithRunContext } = deps;
+  const sleepFn = deps.sleep || sleep;
+  const stabilizationRetryWindowMs = Number.isFinite(deps.stabilizationRetryWindowMs)
+    ? deps.stabilizationRetryWindowMs
+    : P01_STABILIZATION_RETRY_WINDOW_MS;
+  const stabilizationRetryIntervalMs = Number.isFinite(deps.stabilizationRetryIntervalMs)
+    ? deps.stabilizationRetryIntervalMs
+    : P01_STABILIZATION_RETRY_INTERVAL_MS;
   const evidence = [];
   const failures = [];
   let memberDriftSignatureAdded = false;
@@ -125,7 +100,7 @@ async function runP01(browser, runCtx, deps) {
         runCtx,
       });
       const shouldRetryFresh = shouldRetryP01FreshContext(first);
-      const finalAttempt = shouldRetryFresh
+      let finalAttempt = shouldRetryFresh
         ? await collectP01AccountAttempt({
             account,
             browser,
@@ -137,6 +112,23 @@ async function runP01(browser, runCtx, deps) {
         : first;
 
       if (shouldRetryFresh) evidence.push(`retry=fresh-context account=${account}`);
+      if (shouldRetryP01FreshContext(finalAttempt)) {
+        const stabilized = await collectFreshUntilStable({
+          account,
+          browser,
+          collectAttempt: collectP01AccountAttempt,
+          intervalMs: stabilizationRetryIntervalMs,
+          loginWithRunContext,
+          runCtx,
+          sleepFn,
+          startingAttempt: finalAttempt,
+          windowMs: stabilizationRetryWindowMs,
+        });
+        evidence.push(
+          `retry=stabilized-fresh-context account=${account} probes=${stabilized.probes}`
+        );
+        finalAttempt = stabilized.attempt;
+      }
       evidence.push(...finalAttempt.evidence);
       memberDriftSignatureAdded = finalAttempt.driftRecorded;
       failures.push(...finalAttempt.failures);
