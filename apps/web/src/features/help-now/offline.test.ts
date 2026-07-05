@@ -50,11 +50,11 @@ describe('saveTripModePackForOffline', () => {
     const addAll = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal('caches', { open: vi.fn().mockResolvedValue({ addAll }) });
     const restore = withServiceWorkerController({});
-    globalThis.history.pushState(null, '', '/en/help-now');
+    globalThis.history.pushState(null, '', '/de/help-now');
 
     try {
       await expect(saveTripModePackForOffline()).resolves.toBe('saved');
-      expect(addAll).toHaveBeenCalledWith([HELP_NOW_PACK_ASSET, '/en/help-now']);
+      expect(addAll).toHaveBeenCalledWith([HELP_NOW_PACK_ASSET, '/de/help-now']);
     } finally {
       restore();
     }

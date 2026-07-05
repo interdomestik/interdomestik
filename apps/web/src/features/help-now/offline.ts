@@ -1,7 +1,7 @@
 import { getTripModeDownloadAssets, HELP_NOW_CACHE_NAME } from './content-packs';
 
 export type OfflineSaveResult = 'saved' | 'unsupported' | 'failed';
-const HELP_NOW_PUBLIC_ROUTE = /^\/(sq|en|sr|mk)\/help-now\/?$/;
+const HELP_NOW_PUBLIC_ROUTE = /^\/(sq|en|sr|mk|de|hr)\/help-now\/?$/;
 
 function hasServiceWorkerController(): boolean {
   return globalThis.navigator?.serviceWorker?.controller != null;
