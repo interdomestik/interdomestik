@@ -29,35 +29,38 @@ local proof as staging proof.
 
 ## Sequence
 
-| Step | Work                          | Current status | Evidence / next action                                                                                         | Advancement rule                                           |
-| ---- | ----------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 1    | Verify ENT-A01 / RBAC-01      | In progress    | Local RBAC-01 proof is green; deploy/merge is still needed so staging can run two same-day `e2e-staging` jobs. | Close only after both staging jobs are green and recorded. |
-| 2    | Appoint KS reviewer           | Not started    | Name one licensed KS lawyer, or KS ops reviewer plus counsel countersign, in the KS sign-off sheet.            | Required before L2 review can start.                       |
-| 3    | UI/UX design preparation only | Not started    | Prepare Figma/design review inputs from the mobile dossier; no shipped UI changes.                             | Allowed in parallel, but cannot promote runtime.           |
-| 4    | Sign business memos           | Not started    | Complete Memo 1 and Memo 2 in `docs/product/2026-07-03-business-decision-memos.md`; add dated decision notes.  | Required before MOB-05a and MOB-02 gates.                  |
-| 5    | Complete B6/B7                | Not started    | B6 hotfix runbook plus staging exercise; B7 `/help-now` alert catalog plus synthetic alert proof.              | Required before non-dark Help Now exposure.                |
-| 6    | Draft MOB-01b gate            | Not started    | Draft only after Step 1 path is clear enough to cite entry evidence; keep it docs-only.                        | Drafting is allowed; promotion is not.                     |
-| 7    | Implement MOB-01b             | Blocked        | Requires ENT-A01 closed, L2 KS signed, B6 done, B7 done, and a later `MOB-DG01B` authority record.             | No flag flip or runtime config until CA+DG.                |
-| 8    | Prepare MOB-05a               | Blocked        | Start gate prep after Memo 1 and fee-wording review kickoff.                                                   | Runtime waits for CA+DG.                                   |
-| 9    | Prepare MOB-02                | Blocked        | Start design prep after Memo 2 and ops-SLA reconciliation inputs.                                              | Runtime waits for CA+DG.                                   |
+| Step | Work                          | Current status   | Evidence / next action                                                                                                                                     | Advancement rule                                                                       |
+| ---- | ----------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 1    | Verify ENT-A01 / RBAC-01      | Closed, caveated | PR `#1299` fixed the narrow release-gate stabilization path; PR `#1300` recorded two consecutive green staging jobs after one post-deploy P0.1 staff miss. | Reopen/freeze if any future current-main staging P0.1 agent/staff marker miss appears. |
+| 2    | Appoint country reviewer      | In progress      | MK signature package sent to `Interdomestik@gmail.com`; wait for named professional signatures and preserve returned PDFs.                                 | Required before L2 review can complete for the selected country.                       |
+| 3    | UI/UX design preparation only | Not started      | Prepare Figma/design review inputs from the mobile dossier; no shipped UI changes.                                                                         | Allowed in parallel, but cannot promote runtime.                                       |
+| 4    | Sign business memos           | Not started      | Complete Memo 1 and Memo 2 in `docs/product/2026-07-03-business-decision-memos.md`; add dated decision notes.                                              | Required before MOB-05a and MOB-02 gates.                                              |
+| 5    | Complete B6/B7                | Not started      | B6 hotfix runbook plus staging exercise; B7 `/help-now` alert catalog plus synthetic alert proof.                                                          | Required before non-dark Help Now exposure.                                            |
+| 6    | Draft MOB-01b gate            | Not started      | Draft only after Step 1 path is clear enough to cite entry evidence; keep it docs-only.                                                                    | Drafting is allowed; promotion is not.                                                 |
+| 7    | Implement MOB-01b             | Blocked          | Requires ENT-A01 closed, L2 KS signed, B6 done, B7 done, and a later `MOB-DG01B` authority record.                                                         | No flag flip or runtime config until CA+DG.                                            |
+| 8    | Prepare MOB-05a               | Blocked          | Start gate prep after Memo 1 and fee-wording review kickoff.                                                                                               | Runtime waits for CA+DG.                                                               |
+| 9    | Prepare MOB-02                | Blocked          | Start design prep after Memo 2 and ops-SLA reconciliation inputs.                                                                                          | Runtime waits for CA+DG.                                                               |
 
-## Active Step 1 State
+## Step 1 State
 
-`RBAC-01` is the active governed implementation slice. It may close ENT-A01 only
-by proving the contractual role markers on current-main staging:
+`RBAC-01` is closed as operationally unblocked with caveat by:
 
-- agent and staff canonical markers pass, including `/en/agent` and `/en/staff`;
-- member and admin controls remain green;
-- P0.3 role-add remains green;
-- `pnpm pr:verify`, `pnpm security:guard`, and `pnpm e2e:gate` remain green;
-- two consecutive same-day current-main staging `e2e-staging` jobs pass.
+- PR `#1299`, merge `73aa5589cc87efde67f9910ef7413c3484786b3e`;
+- PR `#1300`, merge `d8ed345767e5aa9102bf48bbe4a4e956bf361771`;
+- `docs/plans/2026-07-05-b2-staging-rbac-residual-check.md`;
+- `docs/plans/2026-07-05-rbac-01-closeout.md`.
 
-Until that is true, `MOB-01b` remains blocked.
+The close is not clean enough to say the residual "never reproduced." Any
+future current-main staging P0.1 agent/staff marker miss freezes `MOB-01b`
+again.
+
+`MOB-01b` remains blocked until country L2, B6, B7, and a later
+current-authority/design-gate are complete.
 
 ## Next Human Actions
 
-1. Review/merge or otherwise deploy the RBAC-01 branch to staging.
-2. Run `e2e-staging` twice on the deployed current-main staging SHA.
-3. Appoint the KS reviewer by name and record qualification/countersign path.
-4. Choose owners for B6 hotfix runbook and B7 alert catalog.
-5. Decide who signs Memo 1 and Memo 2 if not Arben.
+1. Collect the signed MK professional review PDFs and record the reviewer name,
+   qualification, date, and scope.
+2. Choose owners for B6 hotfix runbook and B7 alert catalog.
+3. Decide who signs Memo 1 and Memo 2 if not Arben.
+4. Draft the MOB-01b gate only after the entry evidence can be cited.
