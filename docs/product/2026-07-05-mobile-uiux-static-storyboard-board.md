@@ -8,15 +8,19 @@ related:
   - docs/product/2026-07-05-mobile-uiux-storyboard-package.md
   - docs/product/2026-07-05-mobile-uiux-storyboard-frame-inventory.md
   - docs/product/2026-07-05-mobile-uiux-review-input-package.md
+  - output/pdf/2026-07-05-mobile-uiux-static-storyboard-board/interdomestik-mobile-uiux-static-storyboard-board.pdf
   - docs/reviews/2026-07-05-nine-step-enterprise-sequence.md
 ---
 
 # Mobile UI/UX Static Storyboard Board Contract
 
-> Status: **static board contract only.** This is not an implemented UI, a
-> browser prototype, an exported Figma/PDF board, a Figma approval, or runtime
-> authority. It defines the board humans must create and review before any UI
+> Status: **static board contract plus generated PDF export.** This is not an
+> implemented UI, browser prototype, Figma approval, human review finding, or
+> runtime authority. It defines the board humans must review before any UI
 > package is installed.
+
+Current generated PDF export:
+`output/pdf/2026-07-05-mobile-uiux-static-storyboard-board/interdomestik-mobile-uiux-static-storyboard-board.pdf`.
 
 ## Board Contract
 
@@ -101,9 +105,10 @@ Each reviewer returns one note using this format:
 
 ## Completion Rule
 
-The static board is ready only after every frame ID in
+The static board export is ready only after every frame ID in
 `docs/product/2026-07-05-mobile-uiux-storyboard-frame-inventory.md` exists in a
 Figma/PDF/exported board and every card includes a reviewer-mark field that is
-still unfilled.
+still unfilled. The generated PDF export currently satisfies this export-level
+condition for all 43 inventory frame IDs.
 
 Step 3 is still not complete until dated human findings are returned and stored.

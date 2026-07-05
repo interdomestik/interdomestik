@@ -32,8 +32,7 @@ related:
 Convert the existing mobile dossier into a reviewer-ready work package before
 the next governed runtime decision. The goal is to make the UI/UX review
 answerable without reopening the whole strategy conversation.
-Use it when asking a product designer, Figma designer, accessibility reviewer,
-or legal-copy reviewer to inspect the mobile lane.
+Use it when asking reviewers to inspect the mobile lane.
 
 ## Authority Boundary
 
@@ -47,17 +46,18 @@ or legal-copy reviewer to inspect the mobile lane.
 
 ## Source Pack To Give Reviewers
 
-| Source                                                               | Why reviewer needs it                                                   |
-| -------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `docs/product/2026-07-05-mobile-uiux-storyboard-package.md`          | Required Figma rows, frame IDs, variants, and review procedure          |
-| `docs/product/mobile-experience-blueprint.md`                        | Screen inventory, IA, primary mobile flows                              |
-| `docs/product/2026-07-03-mobile-excellence-dossier.md`               | Product principles, performance budgets, measurement, red-team critique |
-| `docs/product/2026-07-03-mobile-design-review-enterprise.md`         | Existing enterprise UX critique and missing artifacts                   |
-| `docs/product/2026-07-03-mobile-component-contracts.md`              | Component API/state contracts for design consistency                    |
-| `docs/product/2026-07-03-mobile-copy-system.md`                      | Tone, boundary copy, trust language                                     |
-| `docs/product/2026-07-03-mobile-error-taxonomy.md`                   | Error-state grammar to keep flows consistent                            |
-| `docs/product/2026-07-03-mobile-visual-benchmark-moodboard-brief.md` | Visual direction for calm institutional mobile UI                       |
-| `docs/product/2026-07-05-mk-help-now-signature-package/README.md`    | MK country-content sign-off context                                     |
+| Source                                                                                                            | Why reviewer needs it                                                        |
+| ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `docs/product/2026-07-05-mobile-uiux-storyboard-package.md`                                                       | Required Figma rows, frame IDs, variants, and review procedure               |
+| `output/pdf/2026-07-05-mobile-uiux-static-storyboard-board/interdomestik-mobile-uiux-static-storyboard-board.pdf` | Current static board export with all 43 frame cards and blank reviewer marks |
+| `docs/product/mobile-experience-blueprint.md`                                                                     | Screen inventory, IA, primary mobile flows                                   |
+| `docs/product/2026-07-03-mobile-excellence-dossier.md`                                                            | Product principles, performance budgets, measurement, red-team critique      |
+| `docs/product/2026-07-03-mobile-design-review-enterprise.md`                                                      | Existing enterprise UX critique and missing artifacts                        |
+| `docs/product/2026-07-03-mobile-component-contracts.md`                                                           | Component API/state contracts for design consistency                         |
+| `docs/product/2026-07-03-mobile-copy-system.md`                                                                   | Tone, boundary copy, trust language                                          |
+| `docs/product/2026-07-03-mobile-error-taxonomy.md`                                                                | Error-state grammar to keep flows consistent                                 |
+| `docs/product/2026-07-03-mobile-visual-benchmark-moodboard-brief.md`                                              | Visual direction for calm institutional mobile UI                            |
+| `docs/product/2026-07-05-mk-help-now-signature-package/README.md`                                                 | MK country-content sign-off context                                          |
 
 ## Review Scope
 
@@ -143,8 +143,8 @@ Each reviewer returns one dated note with:
 
 ## Done Definition For Step 3
 
-Step 3 is reviewable when this package and the storyboard companion are merged
-and assigned to the design reviewers. Step 3 is complete only after dated human
-findings return for the storyboard/Figma board. The actual Figma frames,
-accessibility scripts, and artifact template files are design deliverables; they
-authorize no runtime work.
+Step 3 is reviewable from this package, the storyboard companion, and the
+generated PDF board. Step 3 is complete only after dated human findings return
+for the storyboard/Figma/PDF board. The actual Figma frames, accessibility
+scripts, and artifact template files are design deliverables; they authorize no
+runtime work.
