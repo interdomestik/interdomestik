@@ -5,6 +5,7 @@ source_of_truth: false
 owner: product-design
 last_reviewed: 2026-07-05
 related:
+  - docs/product/2026-07-05-mobile-uiux-static-storyboard-board.md
   - docs/product/2026-07-05-mobile-uiux-storyboard-package.md
   - docs/product/2026-07-05-mobile-uiux-review-input-package.md
 ---
