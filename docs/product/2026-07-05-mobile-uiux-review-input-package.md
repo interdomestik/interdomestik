@@ -5,6 +5,8 @@ source_of_truth: false
 owner: product-design
 last_reviewed: 2026-07-05
 related:
+  - docs/product/2026-07-05-mobile-uiux-storyboard-package.md
+  - docs/product/2026-07-05-mobile-uiux-storyboard-frame-inventory.md
   - docs/reviews/2026-07-05-nine-step-enterprise-sequence.md
   - docs/product/mobile-experience-blueprint.md
   - docs/product/2026-07-03-mobile-excellence-dossier.md
@@ -20,6 +22,10 @@ related:
 > authority, promotes no `MOB-*` slice, changes no runtime behavior, and does
 > not approve any public exposure. It is a handoff checklist for product design,
 > Figma, accessibility, legal-copy, and commercial reviewers.
+> The storyboard companion in
+> `docs/product/2026-07-05-mobile-uiux-storyboard-package.md` defines the first
+> Figma/static-board pass reviewers should inspect before any UI package is
+> installed.
 
 ## Purpose
 
@@ -43,6 +49,7 @@ or legal-copy reviewer to inspect the mobile lane.
 
 | Source                                                               | Why reviewer needs it                                                   |
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `docs/product/2026-07-05-mobile-uiux-storyboard-package.md`          | Required Figma rows, frame IDs, variants, and review procedure          |
 | `docs/product/mobile-experience-blueprint.md`                        | Screen inventory, IA, primary mobile flows                              |
 | `docs/product/2026-07-03-mobile-excellence-dossier.md`               | Product principles, performance budgets, measurement, red-team critique |
 | `docs/product/2026-07-03-mobile-design-review-enterprise.md`         | Existing enterprise UX critique and missing artifacts                   |
@@ -66,17 +73,8 @@ implementation details unless they expose a defect in the component contracts.
 
 ## Required Figma Frames
 
-The first Figma pass is useful only if it includes these states.
-
-| Flow               | Required frames                                                                                   |
-| ------------------ | ------------------------------------------------------------------------------------------------- |
-| Help Now           | default, country detected, offline, stale pack, emergency-number hotfix, dark country placeholder |
-| Scene guide        | car accident, medical/injury, property/home, flight disruption, permission denied                 |
-| Evidence coach     | camera allowed, camera denied, low light, saved locally, clear/delete confirmation                |
-| Trip Mode          | download ready, downloading, verified road-ready, pack stale/needs refresh, storage unavailable   |
-| Claim Pack         | read-back, deadlines, documents needed, free-pack path, handle-it path                            |
-| Fee Math Sheet     | three recovery amounts, zero recovery, member discount, expert-cost-on-loss edge                  |
-| Agreement Ceremony | service agreement, POA/e-sign, signature error, 135% dynamic type                                 |
+Use the storyboard package and frame inventory for the exact row and frame IDs.
+The first Figma pass is incomplete if any required frame is missing.
 
 ## Artifact Templates
 
@@ -145,6 +143,8 @@ Each reviewer returns one dated note with:
 
 ## Done Definition For Step 3
 
-Step 3 is complete when this package is merged and assigned to the design
-reviewers. The actual Figma frames, accessibility scripts, and artifact template
-files are follow-on design deliverables; they authorize no runtime work.
+Step 3 is reviewable when this package and the storyboard companion are merged
+and assigned to the design reviewers. Step 3 is complete only after dated human
+findings return for the storyboard/Figma board. The actual Figma frames,
+accessibility scripts, and artifact template files are design deliverables; they
+authorize no runtime work.
