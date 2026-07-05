@@ -5,6 +5,7 @@ source_of_truth: false
 owner: product-design
 last_reviewed: 2026-07-05
 related:
+  - docs/product/2026-07-05-mobile-uiux-static-storyboard-board.md
   - docs/product/2026-07-05-mobile-uiux-storyboard-frame-inventory.md
   - docs/product/2026-07-05-mobile-uiux-review-input-package.md
   - docs/product/mobile-experience-blueprint.md
@@ -32,8 +33,9 @@ flow order, trust hierarchy, crisis-state copy, legal/commercial boundaries,
 accessibility intent, and whether unresolved business decisions require visible
 variants.
 
-Use this package to create a Figma board or equivalent static storyboard. Do not
-use it as proof that the app works in a browser.
+Use this package and the static board companion to create a Figma board or
+equivalent storyboard. Do not use either as proof that the app works in a
+browser.
 
 ## Reviewer Boundary
 
