@@ -17,6 +17,8 @@ related:
 
 > Status: **Input document — design authority only.** This packet defines the governed design intent for the mobile commercial experience. It creates **no execution authority** and promotes **no slice**: every `MOB-*` item below enters the active queue only through a fresh current-authority resolution and a recorded design gate in `docs/plans/current-program.md` / `docs/plans/current-tracker.md`. If this packet conflicts with those documents, they win.
 
+> Post-MOB-01 reconciliation (2026-07-05): this packet is now historical design input for the mobile lane. `origin/main` records `T-503` complete, `MOB-DG01` promotion of `MOB-01`, PR `#1296` dark-pack Help Now / Trip Mode implementation, and PR `#1297` accessibility follow-up. The real blocker for a non-dark Help Now launch is L2 country-content sign-off for at least one pack; the prior T-503 staging RBAC/role-marker residual remains a launch/live-operationality blocker only if reproduced.
+
 This file is the modular index for the packet. The content is split into companion files so the docs stay inside the repository modularity guard while retaining the same governance status.
 
 ## Contents

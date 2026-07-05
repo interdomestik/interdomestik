@@ -17,6 +17,8 @@ related:
 
 > Status: **Input document — design authority only.** This packet defines the governed design intent for the mobile commercial experience. It creates **no execution authority** and promotes **no slice**: every `MOB-*` item below enters the active queue only through a fresh current-authority resolution and a recorded design gate in `docs/plans/current-program.md` / `docs/plans/current-tracker.md`. If this packet conflicts with those documents, they win.
 
+> Post-MOB-01 reconciliation (2026-07-05): this companion part is historical design input. `MOB-01` is no longer a candidate; it completed through PR `#1296` with PR `#1297` accessibility follow-up. Future Help Now work requires fresh current-authority/design-gate selection, and non-dark launch remains blocked on L2 country-content sign-off.
+
 Part 2 of [2026-07-03-mobile-program-authority-packet.md](./2026-07-03-mobile-program-authority-packet.md).
 
 ## 3. Slice Detail
