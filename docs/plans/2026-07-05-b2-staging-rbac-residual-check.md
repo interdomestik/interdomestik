@@ -131,13 +131,71 @@ were made healthy; `pnpm e2e:gate` passed with 138 tests passed and 8 skipped.
 ENT-A01 remains open until this change is deployed to current-main staging and
 two consecutive same-day `e2e-staging` jobs pass.
 
-## Verdict
+## Historical Verdict Before RBAC-01
 
 **REPRODUCED:** the T-503 staging RBAC residual reproduced on
 `main@2d0411a40620ad34170a0dc15556ea6db6e9d8ca` in CD run `28732941926`, job
 `85207127377`, with `P0.1_RBAC_CANONICAL_MARKER_MISSING` for `/en/agent` and
 `/en/staff` after successful login.
 
-ENT-A01 is not closed. The launch track remains halted under audit
-stop-condition 6, and `MOB-01b` must remain blocked. The active implementation
-slice is `RBAC-01`, not a MOB exposure slice.
+That verdict selected `RBAC-01` as the active implementation slice and kept
+`MOB-01b` blocked.
+
+## Post-RBAC-01 Deployment Addendum
+
+RBAC-01 merged as PR `#1299` and deployed to current-main staging:
+
+- Main SHA tested: `73aa5589cc87efde67f9910ef7413c3484786b3e`
+- Commit: `fix: stabilize RBAC release-gate proof (#1299)`
+- CD run: `https://github.com/interdomestik/interdomestik/actions/runs/28740614586`
+- `build-staging`: success, job
+  `https://github.com/interdomestik/interdomestik/actions/runs/28740614586/job/85222561532`
+- `deploy-staging`: success, job
+  `https://github.com/interdomestik/interdomestik/actions/runs/28740614586/job/85223016446`
+- Staging base URL: `https://staging.interdomestik.com`
+- Release-gate expected SHA: `73aa5589cc87efde67f9910ef7413c3484786b3e`
+
+Three same-day `e2e-staging` executions were dispositioned on 2026-07-05:
+
+1. Attempt 1 failed, job
+   `https://github.com/interdomestik/interdomestik/actions/runs/28740614586/job/85223538874`.
+   Artifact:
+   `https://github.com/interdomestik/interdomestik/actions/runs/28740614586/artifacts/8091916940`
+2. Attempt 2 passed, job
+   `https://github.com/interdomestik/interdomestik/actions/runs/28740614586/job/85224725930`.
+   Artifact:
+   `https://github.com/interdomestik/interdomestik/actions/runs/28740614586/artifacts/8092014099`
+3. Attempt 3 passed, job
+   `https://github.com/interdomestik/interdomestik/actions/runs/28740614586/job/85225352625`.
+   Artifact:
+   `https://github.com/interdomestik/interdomestik/actions/runs/28740614586/artifacts/8092085269`
+
+Attempt 1 failure signature:
+
+- `P0.1=FAIL`
+- `P0.2=PASS`
+- `P0.3=PASS`
+- `P0.4=PASS`
+- `P0.6=PASS`
+- `P0.1_RBAC_CANONICAL_MARKER_MISSING account=staff route=/en/staff expected=staff visible={"member":false,"agent":false,"staff":false,"admin":false,"notFound":true,"rolesTable":false}`
+
+The attempt 1 artifact also recorded P0.6 S2 passing later in the same gate:
+`/en/staff => member=true, agent=false, staff=true, admin=false,
+notFound=false, rolesTable=false`. This narrows the remaining issue to an
+intermittent P0.1 stabilization failure rather than a deterministic staff route
+denial.
+
+## Current Verdict
+
+**CONDITIONALLY DISPOSITIONED, NOT A CLEAN CLOSE:** RBAC-01 removed the
+deterministic T-503 residual class on `main@73aa5589cc87efde67f9910ef7413c3484786b3e`
+to the extent that two consecutive same-day `e2e-staging` executions passed
+after deployment. However, the first post-deploy execution still produced a
+narrow P0.1 staff marker miss before P0.6 proved the staff route in the same
+gate.
+
+ENT-A01 should be treated as operationally unblocked only with this caveat:
+quote the two consecutive green jobs for forward movement, but do not describe
+the residual as "never reproduced." Any further staging P0.1 marker miss should
+freeze `MOB-01b` again and make the P0.1 stabilization path the next
+current-authority candidate.
