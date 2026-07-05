@@ -8,7 +8,7 @@ related:
   - docs/reviews/2026-07-05-nine-step-enterprise-sequence.md
   - docs/reviews/2026-07-05-week1-execution-packet.md
   - docs/product/2026-07-03-business-decision-memos.md
-  - docs/product/2026-07-03-ks-help-now-content-dossier-draft.md
+  - docs/product/2026-07-05-mk-help-now-signature-package/README.md
 ---
 
 # Week 1 Human Action Packet
@@ -16,18 +16,19 @@ related:
 > Status: docs/ops packet only. This appoints nobody by itself, signs no memo,
 > and creates no runtime authority.
 
-## 1. KS Reviewer Appointment
+## 1. MK Reviewer Appointment
 
-**Goal:** name the person who can complete ENT-A04 / L2 KS content sign-off.
+**Goal:** name the person who can complete ENT-A04 / L2 North Macedonia
+content sign-off.
 
 **Required record:** add reviewer name, qualification, counsel countersign path
-if needed, date, and signature to
-`docs/product/2026-07-03-ks-help-now-content-dossier-draft.md`.
+if needed, date, signature, and scope acceptance to the MK signature package
+introduced by PR `#1301`.
 
 **Message to send:**
 
 ```text
-We need an L2 factual/legal review for Interdomestik's Kosovo Help Now content
+We need an L2 factual/legal review for Interdomestik's North Macedonia Help Now content
 before any public exposure. Please verify emergency numbers, police/EAS rules,
 Green Card/border-insurance status, evidence checklist, roadside do/don't copy,
 deadline statements, bilingual rendering, and native sq wording. Each row must
@@ -35,8 +36,8 @@ include source/citation, retrieval date, correction status, reviewer name,
 qualification, date, and signature. No unsigned row can ship.
 ```
 
-**Acceptance:** named reviewer recorded by date; if reviewer is not licensed KS
-counsel, a counsel countersign path is recorded.
+**Acceptance:** named reviewer recorded by date; if reviewer is not licensed
+North Macedonia counsel, a counsel countersign path is recorded.
 
 ## 2. Memo 1 Routing
 
