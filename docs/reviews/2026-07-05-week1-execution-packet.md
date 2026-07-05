@@ -8,7 +8,7 @@ related:
   - docs/reviews/2026-07-05-enterprise-transformation-register.md
   - docs/reviews/2026-07-05-target-state-enterprise-readiness-audit.md
   - docs/plans/2026-07-03-t503-drop-claim-status-closeout.md
-  - docs/product/2026-07-03-ks-help-now-content-dossier-draft.md
+  - docs/product/2026-07-05-mk-help-now-signature-package/README.md
   - docs/product/2026-07-03-business-decision-memos.md
 ---
 
@@ -75,10 +75,10 @@ Two same-day `e2e-staging` executions against current-main staging, both disposi
 - **Reviewer:** product/design (affects MOB-02/ceremony Figma layouts).
 - **Target:** 2026-07-17. **Blocker if missed:** MOB-02 design work (Figma sprint scope) proceeds two-tracked or stalls.
 
-## 4. ENT-A04 — L2 KS Content Sign-Off (workflow defined in §4 below)
+## 4. ENT-A04 — L2 MK Content Sign-Off (workflow defined in §4 below)
 
-- **Owner:** Arben Lila (accountable); **executing reviewer: a licensed Kosovo lawyer or the KS operations lead with counsel access — appointing this person by name is the day-1 subtask** (target for appointment: 2026-07-08).
-- **Evidence file:** completed sign-off table inside `docs/product/2026-07-03-ks-help-now-content-dossier-draft.md` (rename copy on freeze: `docs/product/2026-07-XX-ks-help-now-content-signoff-v1.md`).
+- **Owner:** Arben Lila (accountable); **executing reviewer: a licensed North Macedonia lawyer or the MK operations lead with counsel access — appointing this person by name is the day-1 subtask** (target for appointment: 2026-07-08).
+- **Evidence file:** completed MK signature package introduced by PR `#1301`, with returned signed PDFs preserved and a content-pack hash recorded before any non-dark exposure.
 - **Target:** 2026-07-26. **Blocker if missed:** MOB-01b unreachable; August corridor at risk; the fallback (MOB-05a first) activates per the audit §5.
 
 ## 5. ENT-A05 — B6: Content-Pack Hotfix Runbook
@@ -102,11 +102,11 @@ Two same-day `e2e-staging` executions against current-main staging, both disposi
 
 ---
 
-## §4 Detail — KS L2 Sign-Off Workflow
+## §4 Detail — MK L2 Sign-Off Workflow
 
-1. **Named owner:** Arben Lila accountable; **KS reviewer appointed by 2026-07-08** (licensed KS lawyer preferred; alternatively KS ops lead + counsel countersign). The appointment is recorded at the top of the sign-off sheet.
-2. **Authoritative sources (the reviewer verifies against, and cites — draft list, reviewer may substitute better):** Kosovo Police official publications (emergency numbers, accident-reporting obligations); Law on Obligations (limitation periods); Law on Compulsory Motor Liability Insurance (insurer deadlines, EAS standing); **Kosovo Insurance Bureau (Byroja Kosovare e Sigurimit)** for Green Card/border-insurance status — _this row requires a written, dated source; no shipping on memory_; AMRKS or successor for road assistance. Each sign-off row cites source + retrieval date.
-3. **Reviewer/signatory:** the appointed KS reviewer signs each of the 8 table rows individually; the full-pack signature closes the sheet. Corrections are made in the dossier _before_ signature — a signed sheet with pending edits is invalid.
+1. **Named owner:** Arben Lila accountable; **MK reviewer appointed by 2026-07-08** (licensed North Macedonia lawyer preferred; alternatively MK ops lead + counsel countersign). The appointment is recorded at the top of the sign-off sheet.
+2. **Authoritative sources (the reviewer verifies against, and cites — draft list, reviewer may substitute better):** official North Macedonia police or emergency publications; applicable road-traffic, obligations, and motor-liability insurance sources; the official insurance/Green Card or border-insurance source for North Macedonia; official EAS or accident-statement guidance; and the current roadside-assistance source. Each sign-off row cites source + retrieval date. No shipping on memory.
+3. **Reviewer/signatory:** the appointed MK reviewer signs each matrix row individually; the full-pack signature closes the sheet. Corrections are made in the dossier _before_ signature — a signed sheet with pending edits is invalid.
 4. **Pack hash binding:** on completion of corrections, the content pack is frozen; compute the manifest hash (same mechanism the shipped pack manifest uses, SHA-256); write it into the sheet's `Pack version/hash` field; **any subsequent content change invalidates the sheet** (re-open, re-sign the affected rows, re-hash).
 5. **Emergency-number hotfix path:** the B6 runbook (ENT-A05) is the out-of-cycle path — severity-1 corrections deploy first, re-sign within 48h; the sheet gains a hotfix annex row (change, date, re-signature). The ≤12-month validity cycle stands for routine review; emergency numbers and Green Card status are explicitly exempt from waiting for the cycle.
 6. **Non-dark eligibility (all four, none waivable):** (a) sheet complete — all 8 rows signed, dated, sourced; (b) deployed pack manifest hash equals the signed hash; (c) B6 runbook exercised (ENT-A05 done); (d) B7 alert coverage live (ENT-A06 done). Only then may the MOB-01b gate packet cite the pack as exposure-eligible — and the flag flip itself still requires the MOB-01b promotion (§5).
@@ -127,14 +127,14 @@ Two same-day `e2e-staging` executions against current-main staging, both disposi
 
 ## §6 — Critical-Path Summary (as of 2026-07-05)
 
-**This week (by 2026-07-12):** ENT-A01 executed and dispositioned (the single most important action in the program — see §1); KS reviewer appointed (A04 subtask); A14 placeholder copy review done; both memos circulated for signature; A06 synthetic-alert test run; MOB-01b gate packet drafted (docs-only).
+**This week (by 2026-07-12):** ENT-A01 executed and dispositioned (the single most important action in the program — see §1); MK reviewer appointed (A04 subtask); A14 placeholder copy review done; both memos circulated for signature; A06 synthetic-alert test run; MOB-01b gate packet drafted (docs-only).
 
-**Next 14 days (by 2026-07-19):** memos signed (A02/A03); A06 closed; A05 runbook written + staging exercise; KS dossier corrections in review; L5 (A17) and L1 (A18) intake letters sent; A09 findings register + A10 tm10 started.
+**Next 14 days (by 2026-07-19):** memos signed (A02/A03); A06 closed; A05 runbook written + staging exercise; MK package corrections in review; L5 (A17) and L1 (A18) intake letters sent; A09 findings register + A10 tm10 started.
 
-**Next 30 days (by 2026-08-04):** L2-KS signed and hash-bound (A04); fresh current-authority resolution + `MOB-DG01B` run; **MOB-01b live in KS** (A15) — inside the August corridor window; KPI dashboard on real events (A16); A07 rota + ack test; A08 DPA register; A11 RC checklist; A12 first reconciliation report; A13 CODEOWNERS rule.
+**Next 30 days (by 2026-08-04):** L2-MK signed and hash-bound (A04); fresh current-authority resolution + `MOB-DG01B` run; **MOB-01b live in MK** (A15) — inside the August corridor window; KPI dashboard on real events (A16); A07 rota + ack test; A08 DPA register; A11 RC checklist; A12 first reconciliation report; A13 CODEOWNERS rule.
 
 **Blocks paid launch (Stage 1):** A01 verdict CLOSED · L2 for every exposed country · Memo 1 + L5-reviewed fee lines · B4 review-SLA validation · B5 imprint page · B6 exercised · B7 live · first reconciliation report · refund E2E · KPI dashboard · RC checklist in use. _(Register rows: A01–A06, A11, A12, A16, B01–B03, B10.)_
 
 **Blocks enterprise scale (Stage 2):** consolidated tenant-isolation proof + role-session coverage on all four surfaces (B07/B08) · pen test passed, highs closed (C04/C05) · DPA register + retention + DSR rehearsal (A08/B09/C08) · DPIA for any medical scope (B17) · L1 + ceremony live (C02/C03) · load test with SLO headroom (C06) · 10 runbooks + game day (B12/B14) · status page + notice procedure (B12) · sponsor privacy negative-tests in kit (C09) · succession note + two-approval rule (A13/B19) · clean monthly reconciliation routine (B10/B15).
 
-**The two dates most worth defending:** 2026-07-26 (L2-KS — the August corridor pivots on it) and 2026-09-05 (ENT-B13 OBR successor — every promotion after 2026-09-10 depends on it).
+**The two dates most worth defending:** 2026-07-26 (L2-MK — the August corridor pivots on it) and 2026-09-05 (ENT-B13 OBR successor — every promotion after 2026-09-10 depends on it).

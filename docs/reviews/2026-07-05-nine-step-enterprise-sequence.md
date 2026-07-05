@@ -37,7 +37,7 @@ local proof as staging proof.
 | 4    | Sign business memos           | Not started      | Complete Memo 1 and Memo 2 in `docs/product/2026-07-03-business-decision-memos.md`; add dated decision notes.                                              | Required before MOB-05a and MOB-02 gates.                                              |
 | 5    | Complete B6/B7                | Not started      | B6 hotfix runbook plus staging exercise; B7 `/help-now` alert catalog plus synthetic alert proof.                                                          | Required before non-dark Help Now exposure.                                            |
 | 6    | Draft MOB-01b gate            | Not started      | Draft only after Step 1 path is clear enough to cite entry evidence; keep it docs-only.                                                                    | Drafting is allowed; promotion is not.                                                 |
-| 7    | Implement MOB-01b             | Blocked          | Requires ENT-A01 closed, L2 KS signed, B6 done, B7 done, and a later `MOB-DG01B` authority record.                                                         | No flag flip or runtime config until CA+DG.                                            |
+| 7    | Implement MOB-01b             | Blocked          | Requires ENT-A01 closed, L2 MK signed, B6 done, B7 done, and a later `MOB-DG01B` authority record.                                                         | No flag flip or runtime config until CA+DG.                                            |
 | 8    | Prepare MOB-05a               | Blocked          | Start gate prep after Memo 1 and fee-wording review kickoff.                                                                                               | Runtime waits for CA+DG.                                                               |
 | 9    | Prepare MOB-02                | Blocked          | Start design prep after Memo 2 and ops-SLA reconciliation inputs.                                                                                          | Runtime waits for CA+DG.                                                               |
 
@@ -54,7 +54,7 @@ The close is not clean enough to say the residual "never reproduced." Any
 future current-main staging P0.1 agent/staff marker miss freezes `MOB-01b`
 again.
 
-`MOB-01b` remains blocked until country L2, B6, B7, and a later
+`MOB-01b` remains blocked until MK L2, B6, B7, and a later
 current-authority/design-gate are complete.
 
 ## Next Human Actions
