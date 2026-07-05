@@ -64,6 +64,17 @@ describe('HelpNowExperience', () => {
     expect(hoisted.trackEventMock).toHaveBeenCalledTimes(1);
   });
 
+  it('exposes checklist completion as toggle state', async () => {
+    const user = userEvent.setup();
+    render(<HelpNowExperience locale="en" />);
+
+    const checklistItem = screen.getByTestId('help-now-checklist-0');
+    expect(checklistItem).toHaveAttribute('aria-pressed', 'false');
+
+    await user.click(checklistItem);
+    expect(checklistItem).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('keeps evidence local and allows clearing the bundle', async () => {
     const user = userEvent.setup();
     render(<HelpNowExperience locale="en" />);
