@@ -125,18 +125,35 @@ reproduced the T-503 staging RBAC/role-marker residual on current main staging
 at `2d0411a40620ad34170a0dc15556ea6db6e9d8ca` in CD run `28732941926`.
 The first same-day `e2e-staging` job `85202744051` passed, but rerun job
 `85207127377` failed with `P0.1_RBAC_CANONICAL_MARKER_MISSING` for `/en/agent`
-and `/en/staff`. The gate promotes exactly one canonical tracker slice:
-`RBAC-01`. The next active governed implementation goal is exactly one
-canonical tracker slice: `RBAC-01`. Future `RBAC-01` is limited to restoring
-authenticated agent/staff canonical marker proof on staging and proving the fix
-with local mandatory gates plus two same-day green `e2e-staging` executions on
-current-main staging. `apps/web/src/proxy.ts` remains read-only unless the
-implementation first proves no narrower fix exists and returns for explicit
+and `/en/staff`. The gate historically promoted exactly one canonical tracker
+slice: `RBAC-01`. That promotion is now consumed by the Rev 91 closeout below.
+The authorized implementation scope was limited to restoring authenticated
+agent/staff canonical marker proof on staging and proving the fix with local
+mandatory gates plus two same-day green `e2e-staging` executions on
+current-main staging. `apps/web/src/proxy.ts` remained read-only unless the
+implementation first proved no narrower fix existed and returned for explicit
 authority before touching it. `MOB-01b`, `MOB-05a`, `MOB-02`, country-content
 launch exposure, billing/Paddle, schema/RLS/migrations, claim-transition
 writers, Operational Brain runtime, README, AGENTS, and broad architecture docs
-remain unpromoted. `MOB-01b` remains blocked until `RBAC-01` closes ENT-A01 and
-ENT-A04/ENT-A05/ENT-A06 are complete under a later gate.
+remain unpromoted.
+
+Rev 91 closeout: `RBAC-01` is closed by
+`docs/plans/2026-07-05-rbac-01-closeout.md`. PR `#1299` / merge
+`73aa5589cc87efde67f9910ef7413c3484786b3e` implemented the narrow
+release-gate stabilization for the reproduced staging RBAC role-marker
+residual without touching `apps/web/src/proxy.ts`, canonical routes, marker
+contracts, launch flags, billing, schema/RLS, migrations, README, AGENTS, or
+Help Now exposure. Current-main staging CD run `28740614586` produced one
+post-deploy P0.1 staff marker miss followed by two consecutive same-day green
+`e2e-staging` jobs `85224725930` and `85225352625`; PR `#1300` / merge
+`d8ed345767e5aa9102bf48bbe4a4e956bf361771` recorded that evidence. The
+residual is operationally unblocked with caveat, not "never reproduced." Any
+future current-main staging P0.1 agent/staff marker miss freezes `MOB-01b` and
+returns to current authority. No replacement implementation slice is promoted;
+the expected resolver state is `blocked_requires_current_authority` with
+`activeSlice=null` until a fresh gate selects exactly one next governed action.
+`MOB-01b` remains blocked on L2 country-content sign-off, B6 hotfix-runbook
+proof, B7 alert coverage, and a later current-authority/design-gate.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
