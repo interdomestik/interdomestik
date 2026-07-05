@@ -20,10 +20,10 @@ related:
 
 # Mobile UI/UX Storyboard Package
 
-> Status: **Figma/storyboard preparation only.** This package installs no UI
-> package, ships no prototype, promotes no `MOB-*` slice, and grants no runtime
-> authority. It exists so human reviewers can inspect the intended mobile
-> experience before implementation.
+> Status: **storyboard preparation plus generated PDF board.** This package
+> installs no UI package, ships no prototype, promotes no `MOB-*` slice, and
+> grants no runtime authority. It exists so human reviewers can inspect the
+> intended mobile experience before implementation.
 
 ## Why This Comes First
 
@@ -141,9 +141,8 @@ Each reviewer returns a dated note containing:
 
 ## Step 3 Done Definition
 
-Step 3 becomes reviewable when this package and the existing review input package
-are merged. Step 3 becomes complete only after human reviewers return dated
-findings for the storyboard/Figma board.
+Step 3 is reviewable from the generated PDF board and complete only after dated
+human findings return for the storyboard/Figma/PDF board.
 
 Completion does not install the UI package, prove browser behavior, or unblock
 runtime exposure. It only reduces product-design uncertainty before `MOB-01b`,
