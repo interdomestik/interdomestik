@@ -119,6 +119,25 @@ current-authority/design-gate selection is required before follow-on runtime
 work, and `blocked_requires_current_authority` with `activeSlice=null` is the
 expected resolver state.
 
+Rev 90 current-authority/design-gate: `RBAC-01` in
+`docs/plans/2026-07-05-rbac-01-current-authority.md` records that ENT-A01
+reproduced the T-503 staging RBAC/role-marker residual on current main staging
+at `2d0411a40620ad34170a0dc15556ea6db6e9d8ca` in CD run `28732941926`.
+The first same-day `e2e-staging` job `85202744051` passed, but rerun job
+`85207127377` failed with `P0.1_RBAC_CANONICAL_MARKER_MISSING` for `/en/agent`
+and `/en/staff`. The gate promotes exactly one canonical tracker slice:
+`RBAC-01`. The next active governed implementation goal is exactly one
+canonical tracker slice: `RBAC-01`. Future `RBAC-01` is limited to restoring
+authenticated agent/staff canonical marker proof on staging and proving the fix
+with local mandatory gates plus two same-day green `e2e-staging` executions on
+current-main staging. `apps/web/src/proxy.ts` remains read-only unless the
+implementation first proves no narrower fix exists and returns for explicit
+authority before touching it. `MOB-01b`, `MOB-05a`, `MOB-02`, country-content
+launch exposure, billing/Paddle, schema/RLS/migrations, claim-transition
+writers, Operational Brain runtime, README, AGENTS, and broad architecture docs
+remain unpromoted. `MOB-01b` remains blocked until `RBAC-01` closes ENT-A01 and
+ENT-A04/ENT-A05/ENT-A06 are complete under a later gate.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
