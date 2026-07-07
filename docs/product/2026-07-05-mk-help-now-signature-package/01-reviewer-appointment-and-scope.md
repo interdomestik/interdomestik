@@ -4,6 +4,9 @@ status: draft
 source_of_truth: false
 owner: product-design
 last_reviewed: 2026-07-05
+related:
+  - docs/product/2026-07-06-mk-reviewer-appointment-intake.md
+  - docs/product/2026-07-06-mk-reviewer-return-packet-albanian.md
 ---
 
 # 01 - MK Reviewer Appointment And Scope Acceptance
@@ -16,6 +19,15 @@ Country pack: North Macedonia / Makedonia (`MK`)
 > This document appoints the professional reviewer(s) for the MK Help Now
 > content pack. It does not approve the content. Approval happens only when the
 > required rows are completed in the later sign-off documents.
+
+Before accepting the returned appointment, check it against
+`docs/product/2026-07-06-mk-reviewer-appointment-intake.md`. Gazmend can be the
+working MK ops/UIUX reviewer candidate, but legal/factual L2 rows still require
+licensed North Macedonia counsel or a recorded counsel countersign path if he is
+not licensed counsel.
+
+Use `docs/product/2026-07-06-mk-reviewer-return-packet-albanian.md` for the
+Albanian step-by-step return instructions.
 
 ## A. Reviewer Appointment
 

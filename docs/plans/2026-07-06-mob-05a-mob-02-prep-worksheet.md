@@ -1,0 +1,133 @@
+---
+plan_role: input
+status: draft
+source_of_truth: false
+owner: product-design
+last_reviewed: 2026-07-06
+related:
+  - docs/reviews/2026-07-05-nine-step-enterprise-sequence.md
+  - docs/product/2026-07-03-business-decision-memos.md
+  - docs/product/2026-07-05-business-memo-signing-packet.md
+  - docs/product/2026-07-06-business-memo-return-packet-albanian.md
+  - docs/product/2026-07-06-business-memo-signature-intake.md
+  - docs/product/2026-07-05-memo1-expert-cost-on-loss-decision-record.md
+  - docs/product/2026-07-05-memo2-handler-model-decision-record.md
+  - docs/product/2026-07-03-mobile-excellence-dossier-part-5.md
+---
+
+# MOB-05a / MOB-02 Preparation Worksheet
+
+> Status: prep worksheet only. This does not sign Memo 1 or Memo 2, promote
+> `MOB-05a`, promote `MOB-02`, authorize runtime work, or approve copy. It
+> records what the later gates need once the business decisions are signed.
+
+## Purpose
+
+Reduce the delay between business decision and implementation gate by mapping
+the two unsigned memos to their downstream product, copy, legal, and verification
+requirements.
+
+- Memo 1 feeds `MOB-05a` Fee Math Sheet.
+- Memo 2 feeds `MOB-02` Case Companion / Next Step read model.
+
+Both runtime slices remain blocked until the required memo decision records are
+signed and a later current-authority/design-gate promotes exactly one concrete
+slice.
+
+## Execution Rule
+
+Use the Interdomestik slice-runner skill for any gate, authority, verification,
+PR, or implementation work. The skill is advisory workflow machinery; repo
+`AGENTS.md`, `docs/plans/current-program.md`,
+`docs/plans/current-tracker.md`, resolver state, and merged gate records remain
+the actual authority.
+
+## Current State
+
+| Item                                | Evidence path                                                              | Current disposition                           |
+| ----------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------- |
+| Memo 1 expert-cost-on-loss decision | `docs/product/2026-07-05-memo1-expert-cost-on-loss-decision-record.md`     | Unsigned. No option selected.                 |
+| Memo 2 handler-model decision       | `docs/product/2026-07-05-memo2-handler-model-decision-record.md`           | Unsigned. No option selected.                 |
+| Memo return packet                  | `docs/product/2026-07-06-business-memo-return-packet-albanian.md`          | Ready; human return still missing.            |
+| Memo return acceptance              | `docs/product/2026-07-06-business-memo-signature-intake.md`                | Intake ready; both memos still blocked.       |
+| `MOB-05a` prep                      | This worksheet                                                             | Prepared only; gate blocked.                  |
+| `MOB-02` prep                       | This worksheet                                                             | Prepared only; gate blocked.                  |
+| Runtime authority                   | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, resolver | Missing; resolver remains `activeSlice=null`. |
+
+## Memo 1 To MOB-05a Consequence Map
+
+| Memo 1 option                                            | Product promise                                  | Fee Math / copy consequence                                                                                              | Additional evidence before gate                                        |
+| -------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| A - Interdomestik absorbs approved costs on lost cases   | Strongest "recover nothing, pay nothing" promise | Fee Math can keep the unqualified zero-loss line; ProposalCard can frame approved expert/court costs as covered on loss. | Finance range/cap, L5 review of `fees.*`, quarterly cost-review owner. |
+| B - Member remains liable for approved third-party costs | Qualified no-success-fee promise                 | Fee Math needs `thirdPartyCosts`; ProposalCard must show worst case; AC-2 needs total-cost row.                          | L5 review, explicit worst-case examples, abandonment-risk metric plan. |
+| C - Interdomestik absorbs up to cap                      | Hybrid promise                                   | Fee Math needs covered-vs-at-risk distinction; ProposalCard must show cap boundary and member approval state.            | Cap governance, L5 review, cap-edge copy examples.                     |
+
+`MOB-05a` must not use the unqualified "recover nothing, pay nothing" line if
+Memo 1 chooses B or C.
+
+## Draft MOB-05a Entry Criteria
+
+`MOB-05a` gate prep is ready only after:
+
+1. Memo 1 has exactly one selected option.
+2. Finance has filled a defensible expert/court-cost range.
+3. Cap amount is filled if option A or C relies on a cap.
+4. Counsel / L5 owner has reviewed the selected fee promise.
+5. A `fees.*` copy key inventory exists for the selected option.
+6. Fee Math delegates arithmetic to the canonical `C02` calculator, with zero
+   new component arithmetic.
+7. Fee Math examples include the expert-cost edge when the selected option
+   requires it.
+8. `fee_sheet_viewed` instrumentation and no-PII event fields are specified.
+9. Offline/public rendering behavior is defined without member/session leakage.
+10. The future gate lists exact unit, copy, accessibility, and Playwright proof.
+
+## Memo 2 To MOB-02 Consequence Map
+
+| Memo 2 option                                       | Member-facing promise         | Case Companion / copy consequence                                                                     | Additional evidence before gate                                              |
+| --------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| A - Named handler from launch                       | Personal handler relationship | Requires stable assignment, per-handler SLA tracking, handover moment, staff identity/privacy review. | Ops stability evidence, SLA measurement, HR/privacy approval.                |
+| B - Case team from launch                           | Team-owned case relationship  | Copy says "your Interdomestik team"; named people appear only for signature-level facts.              | Team SLA wording, ceremony reviewer-name boundary.                           |
+| C - Launch case team, earn named handler per branch | Honest staged rollout         | Both copy variants designed; per-branch eligibility controls future named-handler exposure.           | Stability threshold, SLA threshold, measurement period, branch rollout rule. |
+
+`MOB-02` must not imply a stable named handler unless Memo 2 chooses A or a
+branch satisfies the signed option C thresholds.
+
+## Draft MOB-02 Entry Criteria
+
+`MOB-02` gate prep is ready only after:
+
+1. Memo 2 has exactly one selected option.
+2. If option C is selected, branch stability and SLA thresholds are filled.
+3. `G09` SLA reconciliation inputs are available or explicitly blocked.
+4. Status-sentence catalog exists for post-T-503 transition states and supported
+   locales.
+5. Notification choreography and cold-render contract are written.
+6. Copy inventory names handler/team keys affected by the decision.
+7. Handover copy exists if named-handler behavior can appear.
+8. Staff identity/privacy note is reviewed before public names/photos ship.
+9. Empty, delayed, reassigned, and unavailable-handler states are defined.
+10. The future gate lists exact read-model, copy, accessibility, and Playwright
+    proof.
+
+## Immediate Human Actions
+
+| Action                                              | Owner type               | Blocks              |
+| --------------------------------------------------- | ------------------------ | ------------------- |
+| Name the accountable signer for Memo 1              | managing director / CEO  | `MOB-05a` gate prep |
+| Fill expert/court-cost range and cap recommendation | finance                  | `MOB-05a` gate prep |
+| Name counsel / L5 reviewer for fee wording          | counsel / legal reviewer | `MOB-05a` gate prep |
+| Name the accountable signer for Memo 2              | ops lead / CEO           | `MOB-02` gate prep  |
+| Choose handler model A/B/C                          | ops + product            | `MOB-02` gate prep  |
+| If C, fill branch stability and SLA thresholds      | ops                      | `MOB-02` gate prep  |
+
+## Completion Rule
+
+This worksheet is complete as a prep artifact when it is committed and linked
+from the nine-step control sheet. It does not make steps 8 or 9 complete.
+
+Step 8 advances only after signed Memo 1 and fee-wording review inputs exist.
+Step 9 advances only after signed Memo 2 and ops-SLA reconciliation inputs exist.
+Both signed memo returns must be accepted by
+`docs/product/2026-07-06-business-memo-signature-intake.md` before either gate
+can cite them as evidence.

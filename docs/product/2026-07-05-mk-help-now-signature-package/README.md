@@ -8,6 +8,8 @@ related:
   - docs/product/2026-07-03-mobile-legal-compliance-input-templates.md
   - docs/product/2026-07-03-mob-dg01-help-now-trip-mode-gate-packet.md
   - docs/product/2026-07-03-artifact-pdf-template-specs.md
+  - docs/product/2026-07-06-mk-reviewer-appointment-intake.md
+  - docs/product/2026-07-06-mk-reviewer-return-packet-albanian.md
 ---
 
 # MK Help Now Signature Package
@@ -21,11 +23,21 @@ Purpose: give Interdomestik a practical PDF packet that real North Macedonia
 professionals can sign now: local counsel, traffic/insurance practice reviewer,
 language reviewer, and Interdomestik release owner.
 
+First intake check: use
+`docs/product/2026-07-06-mk-reviewer-appointment-intake.md` to decide which rows
+the named reviewer can close and which rows need counsel countersign. Gazmend is
+currently only a working MK reviewer candidate until that intake and document 01
+are signed.
+
+Reviewer-facing return instructions are in
+`docs/product/2026-07-06-mk-reviewer-return-packet-albanian.md`.
+
 ## Package Documents
 
 1. `01-reviewer-appointment-and-scope.md` / PDF
    - Names the reviewer(s), qualification, independence, countersign path, and
-     accepted scope.
+     accepted scope. Its returned fields must also pass
+     `docs/product/2026-07-06-mk-reviewer-appointment-intake.md`.
 2. `02-source-verification-workbook.md` / PDF
    - Captures dated sources for emergency numbers, police/EAS rules, insurance,
      deadlines, privacy, and UPL-safe phrasing.
@@ -59,6 +71,9 @@ Generated PDFs belong under:
 
 The MK package is complete only when:
 
+- the reviewer appointment intake is accepted;
+- any reviewer return is accepted or corrected through the Albanian return
+  packet;
 - all six documents are filled;
 - required professionals have signed;
 - source links/citations and retrieval dates are present;
