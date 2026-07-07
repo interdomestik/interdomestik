@@ -25,7 +25,7 @@ standalone reviewer portal's local save/submit/status path with fake data.
 
 | Field       | Value                                                    |
 | ----------- | -------------------------------------------------------- |
-| Portal path | `output/review/2026-07-06-mobile-uiux-review-interface/` |
+| Portal path | `output/review/2026-07-06-mobile-uiux-review-interface/` (local-only, out-of-repo — standalone reviewer portal app) |
 | Command     | `PORT=4180 node server.js`                               |
 | Test time   | 2026-07-07 07:16 CEST                                    |
 | Data        | Fake `Mock Reviewer` / `ENT-A04` / `MK-EMERGENCY`        |

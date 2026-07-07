@@ -68,7 +68,7 @@ by reducing the time between:
 | ----- | ------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------- |
 | 1     | Reviewer portal hardening audit | `docs/reviews/2026-07-07-reviewer-portal-hardening-audit.md`                | Known ready/blocked items are listed before Vercel use   |
 | 2     | Evidence intake processor       | `docs/reviews/2026-07-07-evidence-intake-processor.md`                      | Every submission decision maps to register/gate action   |
-| 3     | Obsidian checkpoint             | `Notes/annotations/interdomestik-preparation-only-workstream-2026-07-07.md` | Wiki memory points to repo evidence                      |
+| 3     | Obsidian checkpoint             | `Notes/annotations/interdomestik-preparation-only-workstream-2026-07-07.md` (out-of-repo Obsidian wiki path — not a committed repo file) | Wiki memory points to repo evidence                      |
 | 4     | Gate-prep cleanup               | Update draft references only if needed                                      | Missing evidence remains visibly marked                  |
 | 5     | Mock test                       | Local portal submission with non-sensitive fake data                        | Status proves autosave/submission/correction path works  |
 | 6     | Live reviewer portal deployment | `docs/reviews/2026-07-07-reviewer-portal-vercel-deployment-record.md`       | Gazmend can use the Basic Auth protected URL             |

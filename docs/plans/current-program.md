@@ -152,8 +152,9 @@ future current-main staging P0.1 agent/staff marker miss freezes `MOB-01b` and
 returns to current authority. No replacement implementation slice is promoted;
 the expected resolver state is `blocked_requires_current_authority` with
 `activeSlice=null` until a fresh gate selects exactly one next governed action.
-`MOB-01b` remains blocked on L2 country-content sign-off, B6 hotfix-runbook
-proof, B7 alert coverage, and a later current-authority/design-gate.
+Prior to Rev 92, `MOB-01b` remained blocked on L2 country-content sign-off,
+B6 hotfix-runbook proof, B7 alert coverage, and a later
+current-authority/design-gate.
 
 Rev 92 current-authority/design-gate: `MOB-DG01B` in
 `docs/plans/2026-07-07-mob-dg01b-current-authority.md` records that the MK
