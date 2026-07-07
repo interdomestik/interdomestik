@@ -135,7 +135,10 @@ intake, but cannot close `ENT-A04` by itself.
 
 ## Current Verdict
 
-`ENT-A04` remains blocked. Gazmend is the working MK reviewer candidate for
-ops, UI/UX, local trust, and native/readability feedback. A signed appointment
-and the legal/factual countersign path are still required before the MK pack can
-be treated as launchable evidence.
+This intake template was originally written while `ENT-A04` was blocked. The
+2026-07-07 return from Gazmend supersedes that dispatch-only state for
+current-authority review. Treat `ENT-A04` as accepted only through the dated
+intake row in
+`docs/reviews/2026-07-06-nine-step-evidence-intake-register-part-02.md`; reopen
+it if signature status, counsel/factual scope, source citations, or evidence
+dates are later disputed.

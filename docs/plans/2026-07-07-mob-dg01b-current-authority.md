@@ -88,6 +88,13 @@ slice: `MOB-01b`.
 
 No other `MOB-*` slice is promoted by this gate.
 
+This decision relies on the superseding accepted return rows recorded on
+2026-07-07. It does not rely on the earlier dispatch-only appointment state. If
+future review proves that `ENT-A04`, `ENT-A05`, or `ENT-A06` was mis-scoped,
+unsigned where signature is required, contradicted by source evidence, or
+missing required counsel/factual authority, `MOB-01b` must freeze before
+exposure and return to current authority.
+
 ## Scope
 
 Future `MOB-01b` is limited to the smallest non-dark MK Help Now enablement:
@@ -186,4 +193,6 @@ After this gate text is applied, `next-slice.mjs` is expected to return
 After this gate merges, resolver state is expected to promote `MOB-01b` as the
 only active governed implementation slice. Direct implementation must start
 from a clean branch after that merge and must keep runtime scope within the
-non-dark MK Help Now enablement envelope above.
+non-dark MK Help Now enablement envelope above. Runtime exposure remains
+conditional on the stop conditions above staying false during implementation
+proof.

@@ -165,7 +165,9 @@ review, the `ENT-A01` RBAC caveat closeout, and `ENT-A02-A03` Memo 1/Memo 2
 prep evidence. `ENT-A05`/`ENT-A06` remain reviewer/operator attestations; if
 the future worker needs stronger machine proof such as SHA, manifest hash,
 provider alert logs, or synthetic-event job URLs, it must stop and return to
-authority. This gate promotes exactly one canonical tracker slice: `MOB-01b`.
+authority. This gate relies on the superseding 2026-07-07 accepted intake rows
+rather than the earlier dispatched/awaiting-return state, and promotes exactly
+one canonical tracker slice: `MOB-01b`.
 The next active governed implementation goal is exactly one canonical tracker
 slice: `MOB-01b`. Future `MOB-01b` is limited to exposing only accepted MK Help
 Now content through the already-merged `MOB-01` dark-pack mechanism, proving MK
