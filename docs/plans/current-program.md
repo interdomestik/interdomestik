@@ -152,8 +152,34 @@ future current-main staging P0.1 agent/staff marker miss freezes `MOB-01b` and
 returns to current authority. No replacement implementation slice is promoted;
 the expected resolver state is `blocked_requires_current_authority` with
 `activeSlice=null` until a fresh gate selects exactly one next governed action.
-`MOB-01b` remains blocked on L2 country-content sign-off, B6 hotfix-runbook
-proof, B7 alert coverage, and a later current-authority/design-gate.
+Prior to Rev 92, `MOB-01b` remained blocked on L2 country-content sign-off,
+B6 hotfix-runbook proof, B7 alert coverage, and a later
+current-authority/design-gate.
+
+Rev 92 current-authority/design-gate: `MOB-DG01B` in
+`docs/plans/2026-07-07-mob-dg01b-current-authority.md` records that the MK
+evidence lane is ready for bounded non-dark Help Now enablement. The gate
+accepts `ENT-A04` country-content evidence, `ENT-A05` B6 hotfix/re-darken
+corrections, `ENT-A06` B7 alert corrections, `ENT-A14` placeholder/trust
+review, the `ENT-A01` RBAC caveat closeout, and `ENT-A02-A03` Memo 1/Memo 2
+prep evidence. `ENT-A05`/`ENT-A06` remain reviewer/operator attestations; if
+the future worker needs stronger machine proof such as SHA, manifest hash,
+provider alert logs, or synthetic-event job URLs, it must stop and return to
+authority. This gate relies on the superseding 2026-07-07 accepted intake rows
+rather than the earlier dispatched/awaiting-return state, and promotes exactly
+one canonical tracker slice: `MOB-01b`.
+The next active governed implementation goal is exactly one canonical tracker
+slice: `MOB-01b`. Future `MOB-01b` is limited to exposing only accepted MK Help
+Now content through the already-merged `MOB-01` dark-pack mechanism, proving MK
+public route behavior, preserving dark/placeholder state for unsupported
+countries, proving service-worker/cache revalidation, and proving anonymous
+PII-free funnel events. It does not promote KS/AL exposure,
+VONESA/CRM/DOM/OMG/member expansion, billing/Paddle/fee math, paid launch,
+auth/session/tenancy/routing/proxy, schema/RLS/migrations, claim writers,
+Operational Brain runtime/live AI,
+README, AGENTS, or broad UI package implementation. Any future current-main
+staging P0.1 agent/staff marker miss freezes `MOB-01b` and returns to current
+authority.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the

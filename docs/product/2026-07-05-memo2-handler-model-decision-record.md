@@ -6,6 +6,8 @@ owner: product-design
 last_reviewed: 2026-07-05
 related:
   - docs/product/2026-07-03-business-decision-memos.md
+  - docs/product/2026-07-06-business-memo-return-packet-albanian.md
+  - docs/product/2026-07-06-business-memo-signature-intake.md
   - docs/reviews/2026-07-05-enterprise-transformation-register.md
   - docs/reviews/2026-07-05-nine-step-enterprise-sequence.md
 ---
@@ -15,6 +17,10 @@ related:
 > Status: **signature record only.** This file is not signed and does not choose
 > an option. It is the evidence target for ENT-A03 after the ops decider
 > completes Memo 2 in `docs/product/2026-07-03-business-decision-memos.md`.
+
+Use `docs/product/2026-07-06-business-memo-return-packet-albanian.md` before
+signing, then accept the returned record through
+`docs/product/2026-07-06-business-memo-signature-intake.md`.
 
 ## Decision To Record
 
