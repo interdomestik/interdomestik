@@ -142,7 +142,7 @@
           "minimumApplied": "Дали важи минимумот",
           "minimumAppliedTrue": "Да",
           "minimumAppliedFalse": "Не",
-          "noRecovery": "Нема наплата, нема тарифа"
+          "noRecovery": "Нема наплата, нема надомест за Interdomestik"
         }
       },
       "plans": {

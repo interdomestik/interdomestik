@@ -4,7 +4,7 @@ export type EntityDisclosureNoticeModel = {
   unavailable: boolean;
 };
 
-type EntityDisclosureNoticeLabels = {
+export type EntityDisclosureNoticeLabels = {
   title: string;
   contractingCompany: string;
   governingLaw: string;

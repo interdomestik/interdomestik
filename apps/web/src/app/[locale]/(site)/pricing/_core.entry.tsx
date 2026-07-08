@@ -5,8 +5,7 @@ import { CoverageMatrix } from '@/components/commercial/coverage-matrix';
 import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matrix-content';
 import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
 import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tree-content';
-import { SuccessFeeCalculator } from '@/components/commercial/success-fee-calculator';
-import { buildSuccessFeeCalculatorProps } from '@/components/commercial/success-fee-calculator-content';
+import { SuccessFeeCalculatorSurface as FeeSheet } from '@/components/commercial/success-fee-calculator-surface';
 import { generateLocaleStaticParams } from '@/app/_locale-static-params';
 import { Link } from '@/i18n/routing';
 import { PUBLIC_FREE_START_ENTRY_HREF } from '@/lib/public-membership-entry';
@@ -114,13 +113,13 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
         entityDisclosure={checkoutConfig?.entityDisclosure ?? null}
       />
 
-      <div className="mt-16">
-        <div data-testid={isRegisterEntry ? 'register-success-fee-calculator' : undefined}>
-          <SuccessFeeCalculator
-            {...buildSuccessFeeCalculatorProps(t, 'pricing-success-fee-calculator', locale)}
-          />
-        </div>
-      </div>
+      <FeeSheet
+        entity={checkoutConfig?.entityDisclosure}
+        locale={locale}
+        registerEntry={isRegisterEntry}
+        surface="pricing"
+        t={t}
+      />
 
       <div className="mt-16">
         <div data-testid={isRegisterEntry ? 'register-billing-terms' : undefined}>

@@ -142,7 +142,7 @@
           "minimumApplied": "Minimum fee applies",
           "minimumAppliedTrue": "Yes",
           "minimumAppliedFalse": "No",
-          "noRecovery": "No recovery, no fee"
+          "noRecovery": "No recovery, no success fee to Interdomestik"
         }
       },
       "plans": {

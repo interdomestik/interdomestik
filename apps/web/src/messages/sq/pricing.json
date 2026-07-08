@@ -142,7 +142,7 @@
           "minimumApplied": "A zbatohet minimumi",
           "minimumAppliedTrue": "Po",
           "minimumAppliedFalse": "Jo",
-          "noRecovery": "Pa rikuperim, pa tarifë"
+          "noRecovery": "Pa rikuperim, pa success fee për Interdomestik"
         }
       },
       "plans": {
