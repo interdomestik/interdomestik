@@ -19,16 +19,11 @@ related:
 > `MOB-DG03`, promote `MOB-02` or `MOB-02a`, authorize runtime work, approve
 > public copy, or change `current-program.md` / `current-tracker.md`.
 
-## Brain Task
+## Retrieval Source
 
-```bash
-cd "/Users/arbenlila/Documents/Knowledge Manager and Systems Architect"
-
-node tools/brain-task.mjs \
-  "Interdomestik MOB-DG03 MOB-02a PR 1319 feedback ENT-B04 status sentence catalog ENT-B05 G09 SLA reconciliation read model no mutation proof" \
-  --project interdomestik \
-  --require-current
-```
+Current-authority retrieval was run through Arben's AI OS before repo authority
+checks. This packet records only the repo-safe result; it does not edit or
+commit Brain tooling, generated Wiki content, or local AI OS paths.
 
 ## Resolver State
 
@@ -49,7 +44,7 @@ is accepted through the repo current-authority/design-gate process.
 | Thread                  | Required action                                                            | Disposition                                                                                                                                                                                                  | Blocks MOB-DG03? |
 | ----------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------: |
 | `PRRT_kwDOQ0Mhjc6PVZvS` | Remove local absolute Memo 2 PDF path from repo evidence.                  | Addendum now records the filename only and intentionally omits the local path.                                                                                                                               |               no |
-| `PRRT_kwDOQ0Mhjc6PVZvu` | Use the enterprise-register status vocabulary for `ENT-A03`.               | `ENT-A03` uses `in_progress`; prep-only evidence acceptance moved to artifact/notes language.                                                                                                                |               no |
+| `PRRT_kwDOQ0Mhjc6PVZvu` | Use the enterprise-register status vocabulary for `ENT-A03`.               | `ENT-A03` uses `done(...)` for the signed Memo 2 artifact/custody correction; remaining MOB-DG03 gaps stay in blocking-risk language.                                                                        |               no |
 | `PRRT_kwDOQ0Mhjc6PVZwM` | Keep the nine-step safe reference column to the Vercel Blob pathname only. | Memo 2 row keeps only the correction JSON path in the safe reference column; repo addendum path moved to notes.                                                                                              |               no |
 | `PRRT_kwDOQ0Mhjc6PVaZA` | Same enterprise-register status-vocabulary issue as above.                 | Same disposition: existing vocabulary retained; no new status token.                                                                                                                                         |               no |
 | `PRRT_kwDOQ0Mhjc6PVaZG` | Reconcile Memo 2 acceptance with unresolved A/B/C model mapping.           | Memo 2 is clarified as artifact/custody evidence accepted for prep/current-authority review. Runtime decision acceptance remains incomplete until `MOB-DG03` maps the evidence to exactly one display model. |              yes |
