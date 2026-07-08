@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import { expect } from 'vitest';
 
-import { buildSuccessFeeCalculatorProps } from '@/components/commercial/success-fee-calculator-content';
+import { buildSuccessFeeCalculatorProps } from '@/components/commercial/success-fee-calculator-props';
 
 type SuccessFeeCalculatorAssertion = Readonly<{
   sectionTestId: string;
@@ -17,8 +17,10 @@ const successFeeCalculatorMessages = {
   'successFeeCalculator.calculator.breakdown.minimumAppliedFalse': 'No',
   'successFeeCalculator.calculator.breakdown.minimumAppliedTrue': 'Yes',
   'successFeeCalculator.calculator.breakdown.minimumFee': 'Minimum fee',
-  'successFeeCalculator.calculator.breakdown.noRecovery': 'No recovery, no fee',
+  'successFeeCalculator.calculator.breakdown.noRecovery':
+    'No recovery, no success fee to Interdomestik',
   'successFeeCalculator.calculator.breakdown.recoveryAmount': 'Recovered amount',
+  'successFeeCalculator.calculator.breakdown.userNetAmount': 'You receive before court costs',
   'successFeeCalculator.calculator.description': 'Public calculator description',
   'successFeeCalculator.calculator.planLabel': 'Membership plan',
   'successFeeCalculator.calculator.title': 'Public fee calculator',
@@ -35,6 +37,24 @@ const successFeeCalculatorMessages = {
   'successFeeCalculator.eyebrow': 'Before escalation',
   'successFeeCalculator.footer.body': 'Cap footer body',
   'successFeeCalculator.footer.title': 'Cap footer title',
+  'successFeeCalculator.fees.body':
+    'No recovery means no success fee to Interdomestik. External court-path costs are not promised as always zero; they are controlled by the written court-path agreement before the cost is created.',
+  'successFeeCalculator.fees.courtPathCosts.body':
+    'Court-path costs must be disclosed in writing before the case enters court.',
+  'successFeeCalculator.fees.courtPathCosts.label': 'Court path is disclosed first',
+  'successFeeCalculator.fees.eyebrow': 'Court-path cost treatment',
+  'successFeeCalculator.fees.lossPromise.body':
+    'If there is no recovery, there is no success fee to Interdomestik.',
+  'successFeeCalculator.fees.lossPromise.label': 'No success fee on no recovery',
+  'successFeeCalculator.fees.reimbursement.body':
+    'Reimbursement for costs Interdomestik paid upfront returns to Interdomestik when awarded by court decision.',
+  'successFeeCalculator.fees.reimbursement.label': 'Court-awarded reimbursement',
+  'successFeeCalculator.fees.thirdPartyCosts.body':
+    "Fixed court fees, decision fees, and super-expertise costs may remain the client's responsibility if agreed in writing.",
+  'successFeeCalculator.fees.thirdPartyCosts.label': 'Third-party costs can remain separate',
+  'successFeeCalculator.fees.title':
+    'Court costs are agreed in writing before the court path starts',
+  'successFeeCalculator.fees.treatmentLabel': 'Written agreement required',
   'successFeeCalculator.plans.family.feeRate': '12%',
   'successFeeCalculator.plans.family.label': 'Asistenca+ Family',
   'successFeeCalculator.plans.family.legalActionCap': '22% cap with written opt-in',
@@ -52,7 +72,20 @@ export function getSuccessFeeCalculatorMessage(key: string) {
 }
 
 export function buildSuccessFeeCalculatorTestProps(sectionTestId = 'test-success-fee-calculator') {
-  return buildSuccessFeeCalculatorProps(getSuccessFeeCalculatorMessage, sectionTestId, 'en');
+  return buildSuccessFeeCalculatorProps(getSuccessFeeCalculatorMessage, sectionTestId, 'en', {
+    entityDisclosure: {
+      contractingCompany: 'Interdomestik KS LLC',
+      governingLaw: 'XK',
+      unavailable: false,
+    },
+    entityDisclosureLabels: {
+      title: 'Contracting entity',
+      contractingCompany: 'Contracting company',
+      governingLaw: 'Governing law',
+      unavailableTitle: 'Contracting entity unavailable',
+      unavailableBody: 'Contact support before continuing.',
+    },
+  });
 }
 
 export function expectSuccessFeeCalculator({ sectionTestId }: SuccessFeeCalculatorAssertion) {

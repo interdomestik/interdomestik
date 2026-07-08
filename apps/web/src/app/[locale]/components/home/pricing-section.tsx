@@ -2,8 +2,7 @@
 
 import { CommercialBillingTerms } from '@/components/commercial/billing-terms';
 import { buildCommercialTermsProps } from '@/components/commercial/billing-terms-content';
-import { SuccessFeeCalculator } from '@/components/commercial/success-fee-calculator';
-import { buildSuccessFeeCalculatorProps } from '@/components/commercial/success-fee-calculator-content';
+import { SuccessFeeCalculatorSurface as FeeSheet } from '@/components/commercial/success-fee-calculator-surface';
 import { Link } from '@/i18n/routing';
 import { getPublicMembershipEntryHref } from '@/lib/public-membership-entry';
 import { Button } from '@interdomestik/ui';
@@ -197,11 +196,7 @@ export function PricingSection() {
           ))}
         </div>
 
-        <div className="mt-16">
-          <SuccessFeeCalculator
-            {...buildSuccessFeeCalculatorProps(t, 'home-pricing-success-fee-calculator', locale)}
-          />
-        </div>
+        <FeeSheet locale={locale} surface="home" t={t} />
 
         <div className="mt-16">
           <CommercialBillingTerms
