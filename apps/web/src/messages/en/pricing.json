@@ -127,7 +127,7 @@
     "successFeeCalculator": {
       "eyebrow": "Success-fee math",
       "title": "See the success-fee math before you escalate",
-      "subtitle": "Use the public calculator to estimate the fee on money Interdomestik actually recovers for you. No recovery means no fee, and the legal-action cap is shown separately before any written opt-in.",
+      "subtitle": "Use the public calculator to estimate the fee on money Interdomestik actually recovers for you. No recovery means no success fee to Interdomestik; court-path and third-party costs stay separate and require written agreement before legal action.",
       "calculator": {
         "title": "Public fee calculator",
         "description": "The default success fee stays at 15% on Asistenca and 12% on Asistenca+ Family, both with a EUR 25 minimum. Legal-action work needs separate written opt-in and a higher cap.",

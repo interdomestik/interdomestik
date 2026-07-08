@@ -127,7 +127,7 @@
     "successFeeCalculator": {
       "eyebrow": "Matematika e success fee",
       "title": "Shihni llogaritjen e success fee para përshkallëzimit",
-      "subtitle": "Përdorni kalkulatorin publik për të vlerësuar tarifën mbi shumën që Interdomestik e rikuperon realisht për ju. Pa rikuperim nuk ka tarifë, ndërsa tavani për veprim ligjor shfaqet veçmas para çdo pëlqimi me shkrim.",
+      "subtitle": "Përdorni kalkulatorin publik për të vlerësuar tarifën mbi shumën që Interdomestik e rikuperon realisht për ju. Pa rikuperim nuk ka success fee për Interdomestik; shpenzimet gjyqësore dhe kostot e treta mbeten të ndara dhe kërkojnë marrëveshje me shkrim para veprimit ligjor.",
       "calculator": {
         "title": "Kalkulator publik i tarifës",
         "description": "Tarifa bazë mbetet 15% për Asistenca dhe 12% për Asistenca+ Family, të dyja me minimum EUR 25. Puna me veprim ligjor kërkon pëlqim të veçantë me shkrim dhe një tavan më të lartë.",

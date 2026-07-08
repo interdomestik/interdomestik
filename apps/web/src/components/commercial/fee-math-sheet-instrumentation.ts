@@ -2,8 +2,10 @@ import { trackEvent } from '@/lib/analytics';
 
 import type { ThirdPartyCostTreatment } from './fee-math-sheet-copy';
 
+export const FEE_SHEET_VIEWED_CONTEXT = 'recovery_agreement' as const;
+
 export type FeeSheetViewedProperties = Readonly<{
-  context: 'membership' | 'recovery_agreement' | 'vonesa' | 'expert_cost';
+  context: typeof FEE_SHEET_VIEWED_CONTEXT;
   locale: string;
   source_surface: string;
   third_party_cost_mode: ThirdPartyCostTreatment['mode'];
