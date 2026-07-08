@@ -273,10 +273,7 @@ test('createbuckets waits for MinIO readiness before creating the claim-evidence
       'ERROR: Timed out waiting for MinIO to accept connections after $$MAX_ATTEMPTS attempts (about $$((MAX_ATTEMPTS * SLEEP_INTERVAL)) seconds).'
     )
   );
-  assert.match(
-    compose,
-    /\/usr\/bin\/mc mb -p myminio\/claim-evidence >\/dev\/null 2>&1 \|\| true;/
-  );
+  assert.match(compose, /\/usr\/bin\/mc mb -p myminio\/claim-evidence >\/dev\/null 2>&1 \|\| true;/);
   assert.match(compose, /\/usr\/bin\/mc anonymous set public myminio\/claim-evidence >/);
 });
 
