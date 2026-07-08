@@ -23,7 +23,7 @@ repo-safe Memo 1 finance/court-path evidence summary:
 
 | Attachment               | Kerkohet? | Evidence                                                                                                                                                                                                                       |
 | ------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Signed Memo 1            | yes       | `/Users/arbenlila/Downloads/Mem01_rdc.pdf`; SHA-256 `1c258983a9d54d60b618cad8ec07b24c57d0c5e3532a35b9842628f59e84f8d0`; portal attachment `Mem01_rdc.pdf`, `application/pdf`, size `1762488`.                                  |
+| Signed Memo 1            | yes       | Portal attachment `Mem01_rdc.pdf`, `application/pdf`, size `1762488`; SHA-256 `1c258983a9d54d60b618cad8ec07b24c57d0c5e3532a35b9842628f59e84f8d0`.                                                                              |
 | Portal export evidence   | yes       | `ENT-A02-A03`; latest signed addendum correction `corrections/2026-07-08T12-08-32-309Z-ent-a02-a03-gazmend/review.json`; attachment `Memo1_Court_Path_Cost_Addendum_Gazmend_Signature.pdf`, `application/pdf`, size `1480112`. |
 | Finance/counsel evidence | yes       | Signed Memo 1 page 3 contains business, finance, legal/counsel, and release/platform signature rows dated 2026-07-07.                                                                                                          |
 | Approved public wording  | yes       | Section 7 of `docs/product/2026-07-08-memo1-finance-cap-evidence-addendum.md`.                                                                                                                                                 |
@@ -45,5 +45,5 @@ shpenzimeve ne rruge gjyqesore.
 | Emri       | Gazmend Abazi                                          |
 | Roli       | Business owner / CEO, Ops and UI/UX - Interdomestik MK |
 | Vendimi    | Approve                                                |
-| Data       |                                                        |
-| Nenshkrimi |                                                        |
+| Data       | See signed PDF in reviewer portal.                     |
+| Nenshkrimi | See signed PDF in reviewer portal.                     |

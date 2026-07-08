@@ -130,7 +130,7 @@ This intake does not authorize:
 - `pnpm plan:status`
 - `pnpm plan:audit`
 - `pnpm track:audit`
-- `node /Users/arbenlila/.codex/skills/interdomestik-slice-runner/scripts/next-slice.mjs /Users/arbenlila/development/interdomestik-crystal-home`
+- `node "$HOME/.codex/skills/interdomestik-slice-runner/scripts/next-slice.mjs" .`
 
 The expected resolver state after this update remains
 `blocked_requires_current_authority`, `activeSlice=null`, because this intake

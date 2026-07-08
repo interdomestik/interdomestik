@@ -275,7 +275,7 @@ Tier 0 proof required for this gate:
 - `pnpm plan:status`
 - `pnpm plan:audit`
 - `pnpm track:audit`
-- `node /Users/arbenlila/.codex/skills/interdomestik-slice-runner/scripts/next-slice.mjs .`
+- `node "$HOME/.codex/skills/interdomestik-slice-runner/scripts/next-slice.mjs" .`
 - `mcp__interdomestik_qa.scope_audit`
 
 After this gate text and the matching program/tracker rows are applied,
