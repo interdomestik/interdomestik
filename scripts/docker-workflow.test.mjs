@@ -258,6 +258,8 @@ test('createbuckets waits for MinIO readiness before creating the claim-evidence
   const compose = readRepoFile('docker-compose.yml');
 
   assert.match(compose, /createbuckets:[\s\S]*profiles: \['infra', 'gate'\]/);
+  assert.match(compose, /\/usr\/bin\/mc alias set myminio http:\/\/minio:9000 minioadmin minioadmin/);
+  assert.doesNotMatch(compose, /\/usr\/bin\/mc config host add/);
   assert.ok(compose.includes('MAX_ATTEMPTS=30;'));
   assert.ok(compose.includes('ATTEMPT=1;'));
   assert.ok(compose.includes(String.raw`while [ \"$$ATTEMPT\" -le \"$$MAX_ATTEMPTS\" ]; do`));
