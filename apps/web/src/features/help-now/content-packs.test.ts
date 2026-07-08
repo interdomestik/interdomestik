@@ -11,10 +11,22 @@ import {
 } from './content-packs';
 
 describe('MOB-01 content-pack gating', () => {
-  it('keeps unsigned country packs dark until L2 sign-off exists', () => {
-    expect(getSignedOffHelpNowPacks()).toHaveLength(0);
-    expect(HELP_NOW_COUNTRY_PACKS.every(pack => pack.exposure === 'dark')).toBe(true);
-    expect(HELP_NOW_COUNTRY_PACKS.every(pack => !canExposeCountryPack(pack))).toBe(true);
+  it('exposes only the accepted MK country pack', () => {
+    const signedPacks = getSignedOffHelpNowPacks();
+    const mkPack = HELP_NOW_COUNTRY_PACKS.find(pack => pack.country === 'MK');
+    const unsignedPacks = HELP_NOW_COUNTRY_PACKS.filter(pack => pack.country !== 'MK');
+
+    expect(signedPacks).toHaveLength(1);
+    expect(signedPacks[0]?.country).toBe('MK');
+    expect(mkPack).toBeDefined();
+    expect(mkPack?.exposure).toBe('public');
+    expect(mkPack?.reviewStatus).toBe('accepted');
+    expect(mkPack?.l2SignOff?.packHash).toBe(
+      'evidence-center:2026-07-07:gazmend:mk-country-content'
+    );
+    expect(mkPack ? canExposeCountryPack(mkPack) : false).toBe(true);
+    expect(unsignedPacks.every(pack => pack.exposure === 'dark')).toBe(true);
+    expect(unsignedPacks.every(pack => !canExposeCountryPack(pack))).toBe(true);
   });
 
   it('keeps unsupported route locales on English copy while preserving Germany as a trip country', () => {

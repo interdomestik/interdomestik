@@ -73,4 +73,27 @@ test.describe('MOB-01 public Help Now route', () => {
     await expectOnlyPublicHelpNowSurface(page);
     expect(protectedRequests).toEqual([]);
   });
+
+  test('MK Help Now exposes the accepted public pack only', async ({ browser }, testInfo) => {
+    const context = await browser.newContext(publicContextOptions(testInfo));
+    const page = await context.newPage();
+    const protectedRequests = watchProtectedSurfaceRequests(page);
+
+    try {
+      const response = await gotoApp(page, routes.helpNow('mk'), testInfo, {
+        marker: 'help-now-page-ready',
+      });
+
+      expect(response?.status(), 'MK Help Now should load as a public route').toBe(200);
+      await expect(page).toHaveURL(/\/mk\/help-now/);
+      await expectOnlyPublicHelpNowSurface(page);
+      await expect(page.getByLabel('Trip country')).toHaveValue('MK');
+      await expect(page.getByText('Signed packs: 1')).toBeVisible();
+      await expect(page.getByTestId('help-now-generate-pack')).toBeVisible();
+      await expect(page.getByText(/112|192/)).toHaveCount(0);
+      expect(protectedRequests).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
 });

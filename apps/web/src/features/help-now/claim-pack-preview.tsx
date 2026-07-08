@@ -38,7 +38,7 @@ export function ClaimPackPreview({
   }
 
   const metrics = [
-    { label: 'Zone', value: pack?.zone },
+    { label: 'Access zone', value: pack?.zone },
     { label: 'Checklist', value: completedCount },
     { label: 'Local evidence', value: evidenceCount },
   ];

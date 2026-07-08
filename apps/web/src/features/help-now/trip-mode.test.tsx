@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { HELP_NOW_COUNTRY_PACKS, getTripModeDownloadAssets } from './content-packs';
+import { getSignedOffHelpNowPacks, getTripModeDownloadAssets } from './content-packs';
 import { getHelpNowCopy } from './copy';
 import { TripMode } from './trip-mode';
 
@@ -14,8 +14,12 @@ vi.mock('@/lib/analytics', () => ({ trackEvent: hoisted.trackEventMock }));
 vi.mock('./offline', () => ({ saveTripModePackForOffline: hoisted.offlineSaveMock }));
 
 function renderTripMode() {
-  render(<TripMode copy={getHelpNowCopy('en')} country="XK" packs={HELP_NOW_COUNTRY_PACKS} />);
+  render(<TripMode copy={getHelpNowCopy('en')} country="XK" packs={getSignedOffHelpNowPacks()} />);
   return screen.getByTestId('help-now-trip-download');
+}
+
+function renderSignedTripMode() {
+  render(<TripMode copy={getHelpNowCopy('en')} country="MK" packs={getSignedOffHelpNowPacks()} />);
 }
 
 describe('TripMode', () => {
@@ -69,5 +73,13 @@ describe('TripMode', () => {
       pack_count: getTripModeDownloadAssets().length,
       total_mb_bucket: 'under_1',
     });
+  });
+
+  it('shows signed status for the accepted MK pack only', () => {
+    renderSignedTripMode();
+
+    expect(screen.getByText('Country pack signed off')).toBeInTheDocument();
+    expect(screen.getByText('Signed packs: 1')).toBeInTheDocument();
+    expect(screen.queryByText('Country pack awaiting L2 sign-off')).not.toBeInTheDocument();
   });
 });

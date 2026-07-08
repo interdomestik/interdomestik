@@ -12,6 +12,8 @@ const en: HelpNowCopy = {
   darkTitle: 'Country pack awaiting L2 sign-off',
   darkBody:
     'Country-specific numbers and police thresholds stay dark until a named reviewer signs the pack version.',
+  signedTitle: 'Country pack signed off',
+  signedBody: 'Public preview is available for this country. It still creates no case or account.',
   privacy:
     'Photo selections are recorded only as local metadata; originals stay under your control.',
   clear: 'Clear local bundle',
@@ -48,6 +50,8 @@ const sq: HelpNowCopy = {
   continueSafe: 'Nëse nuk ka të lënduar, vazhdoni listën e vendit të ngjarjes.',
   privacy:
     'Zgjedhjet e fotove ruhen vetëm si metadata lokale; origjinalet mbeten nën kontrollin tuaj.',
+  signedTitle: 'Paketa e vendit është nënshkruar',
+  signedBody: 'Parapamja publike është e hapur për këtë vend. Ende nuk hap rast ose llogari.',
   clear: 'Fshi paketën lokale',
   download: 'Shkarko paketën publike Trip Mode',
   downloadDone: 'Paketa publike u ruajt për përdorim offline.',
@@ -71,6 +75,8 @@ const mk: HelpNowCopy = {
   continueSafe: 'Ако нема повредени, продолжете со списокот за местото.',
   privacy:
     'Изборите на фотографии се бележат само како локални metadata; оригиналите остануваат под ваша контрола.',
+  signedTitle: 'Пакетот за земјата е одобрен',
+  signedBody: 'Јавниот преглед е достапен за оваа земја. Сè уште не отвора случај или сметка.',
   clear: 'Исчисти локален пакет',
   download: 'Преземи јавен Trip Mode пакет',
   downloadDone: 'Јавниот пакет е зачуван за offline употреба.',
@@ -94,6 +100,8 @@ const sr: HelpNowCopy = {
   continueSafe: 'Ako nema povređenih, nastavite listu na mestu događaja.',
   privacy:
     'Izbori fotografija se beleže samo kao lokalni metadata; originali ostaju pod vašom kontrolom.',
+  signedTitle: 'Paket za zemlju je odobren',
+  signedBody: 'Javni pregled je dostupan za ovu zemlju. I dalje ne otvara slučaj ili nalog.',
   clear: 'Obriši lokalni paket',
   download: 'Preuzmi javni Trip Mode paket',
   downloadDone: 'Javni paket je sačuvan za offline upotrebu.',

@@ -6,6 +6,8 @@ export type HelpNowCopy = {
   continueSafe: string;
   darkTitle: string;
   darkBody: string;
+  signedTitle: string;
+  signedBody: string;
   privacy: string;
   clear: string;
   download: string;

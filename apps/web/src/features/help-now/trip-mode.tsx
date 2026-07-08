@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import {
+  canExposeCountryPack,
   getTripModeDownloadAssets,
   type HelpNowCountry,
   type HelpNowCountryPack,
@@ -29,6 +30,7 @@ function getStatusMessage(copy: HelpNowCopy, status: TripModeStatus): string {
 export function TripMode({ copy, country, packs }: TripModeProps) {
   const [status, setStatus] = useState<TripModeStatus | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const currentPack = packs.find(pack => pack.country === country && canExposeCountryPack(pack));
   // Keep a synchronous lock for same-tick clicks while state drives disabled UI feedback.
   const isSavingRef = useRef(false);
 
@@ -82,9 +84,15 @@ export function TripMode({ copy, country, packs }: TripModeProps) {
           {getStatusMessage(copy, status)}
         </p>
       ) : null}
-      <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
-        <p className="font-semibold">{copy.darkTitle}</p>
-        <p className="mt-1">{copy.darkBody}</p>
+      <div
+        className={`mt-4 rounded-md border p-3 text-sm ${
+          currentPack
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-950'
+            : 'border-amber-200 bg-amber-50 text-amber-950'
+        }`}
+      >
+        <p className="font-semibold">{currentPack ? copy.signedTitle : copy.darkTitle}</p>
+        <p className="mt-1">{currentPack ? copy.signedBody : copy.darkBody}</p>
         <p className="mt-2 text-xs font-semibold">Signed packs: {packs.length}</p>
       </div>
     </HelpNowPanel>
