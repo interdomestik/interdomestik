@@ -44,15 +44,15 @@ the actual authority.
 
 ## Current State
 
-| Item                                | Evidence path                                                                                                                      | Current disposition                                                           |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Memo 1 expert-cost-on-loss decision | `docs/product/2026-07-08-memo1-finance-cap-evidence-addendum.md`; portal `ENT-A02-A03` / `MEMO1-FINANCE`                           | Accepted for `MOB-05a` preparation only; qualified / hybrid court-path model. |
-| Memo 2 handler-model decision       | `docs/product/2026-07-05-memo2-handler-model-decision-record.md`; `docs/product/2026-07-08-memo2-handler-sla-evidence-addendum.md` | Accepted for `MOB-02` preparation / CA review only; no runtime authority.     |
-| Memo return packet                  | `docs/product/2026-07-06-business-memo-return-packet-albanian.md`                                                                  | Superseded by accepted Memo 1 / Memo 2 correction evidence.                   |
-| Memo return acceptance              | `docs/product/2026-07-06-business-memo-signature-intake.md`                                                                        | Memo 1 and Memo 2 accepted for preparation; runtime gates still blocked.      |
-| `MOB-05a` prep                      | This worksheet; `docs/plans/2026-07-08-mob-05a-memo1-evidence-intake-current-authority.md`                                         | Memo 1 blocker resolved for preparation; implementation gate still blocked.   |
-| `MOB-02` prep                       | This worksheet                                                                                                                     | Prepared only; gate blocked.                                                  |
-| Runtime authority                   | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, resolver                                                         | Missing; resolver remains `activeSlice=null`.                                 |
+| Item                                | Evidence path                                                                                                                      | Current disposition                                                                                                                   |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Memo 1 expert-cost-on-loss decision | `docs/product/2026-07-08-memo1-finance-cap-evidence-addendum.md`; portal `ENT-A02-A03` / `MEMO1-FINANCE`                           | Accepted for `MOB-05a` preparation only; qualified / hybrid court-path model.                                                         |
+| Memo 2 handler-model decision       | `docs/product/2026-07-05-memo2-handler-model-decision-record.md`; `docs/product/2026-07-08-memo2-handler-sla-evidence-addendum.md` | Artifact/custody evidence accepted for `MOB-02` preparation / CA review only; display-model mapping incomplete; no runtime authority. |
+| Memo return packet                  | `docs/product/2026-07-06-business-memo-return-packet-albanian.md`                                                                  | Superseded by accepted Memo 1 / Memo 2 correction evidence.                                                                           |
+| Memo return acceptance              | `docs/product/2026-07-06-business-memo-signature-intake.md`                                                                        | Memo 1 accepted for preparation; Memo 2 artifact/custody accepted for preparation; runtime gates still blocked.                       |
+| `MOB-05a` prep                      | This worksheet; `docs/plans/2026-07-08-mob-05a-memo1-evidence-intake-current-authority.md`                                         | Memo 1 blocker resolved for preparation; implementation gate still blocked.                                                           |
+| `MOB-02` prep                       | This worksheet                                                                                                                     | Prepared only; gate blocked.                                                                                                          |
+| Runtime authority                   | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, resolver                                                         | Missing; resolver remains `activeSlice=null`.                                                                                         |
 
 ## 2026-07-08 Memo 1 Evidence Intake Result
 
@@ -76,8 +76,9 @@ conditions.
 
 ## 2026-07-08 Memo 2 Evidence Reconciliation Result
 
-The signed Memo 2 handler/SLA PDF correction is accepted for `MOB-02`
-preparation and current-authority review. The repo-safe addendum records the
+The signed Memo 2 handler/SLA PDF correction artifact/custody evidence is
+accepted for `MOB-02` preparation and current-authority review. The repo-safe
+addendum records the
 artifact hash, accepted correction reference, visible signed role coverage,
 country scope, declared business-hours window, allowed SLA values, and stop
 conditions without committing the raw PDF.
@@ -164,7 +165,8 @@ This worksheet is complete as a prep artifact when it is committed and linked
 from the nine-step control sheet. It does not make steps 8 or 9 complete.
 
 Step 8 advances only after signed Memo 1 and fee-wording review inputs exist.
-Step 9 advances only after accepted Memo 2 evidence and ops-SLA reconciliation
-inputs exist. Both signed memo returns must be accepted by
+Step 9 advances only after accepted Memo 2 artifact/custody evidence, exact
+display-model mapping, and ops-SLA reconciliation inputs exist. Both signed memo
+returns must be accepted by
 `docs/product/2026-07-06-business-memo-signature-intake.md` before either gate
 can cite them as evidence.

@@ -45,7 +45,7 @@ Signer-facing return instructions are in
 | Memo 1 accountable signer      | Gazmend Abazi, Business owner / CEO, Ops and UI/UX - Interdomestik MK |
 | Memo 1 finance input           | accepted for preparation; court-path cost split and ranges recorded   |
 | Memo 1 counsel/L5 review owner | accepted for preparation; qualified wording only                      |
-| Memo 2 decision record         | accepted for `MOB-02` preparation / CA review via signed correction   |
+| Memo 2 artifact/custody record | accepted for `MOB-02` preparation / CA review via signed correction   |
 | Memo 2 accountable signer      | signed role coverage recorded in repo-safe addendum                   |
 | Memo 2 ops input               | accepted for prep; staged service model and stop conditions recorded  |
 | Memo 2 SLA/stability threshold | prep-only business-hours and SLA values recorded; runtime still gated |
@@ -81,21 +81,24 @@ As of 2026-07-08, Memo 1 is accepted for preparation only; runtime still
 requires a later current-authority/design gate promoting exactly one concrete
 slice.
 
-## Memo 2 Return Acceptance
+## Memo 2 Return Intake
 
-Memo 2 is accepted for preparation and current-authority review by the latest
-`ENT-A02-A03` correction. This does not create runtime handler authority.
+Memo 2 artifact/custody evidence is accepted for preparation and
+current-authority review by the latest `ENT-A02-A03` correction. The decision
+record is not complete for runtime gate entry because the accepted evidence has
+not yet been mapped by `MOB-DG03` to exactly one A/B/C display model. This does
+not create runtime handler authority.
 
-| Required field                   | Acceptable value                            | Result                      | Evidence reference                                                                  |
-| -------------------------------- | ------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------- |
-| Accountable signer name and role | ops lead/CEO or delegated accountable owner | `pass_for_prep`             | 2026-07-08 addendum; accepted correction `20260707-ent-a02-a03-memo2-correction-02` |
-| Exactly one option selected      | A / B / C, not multiple                     | `requires_MOB-DG03_mapping` | The returned Memo 2 records handler/SLA model facts, not runtime promotion          |
-| Ops feasibility input            | stable assignment/SLA reality stated        | `pass_for_prep`             | Declared owners, phases, business hours, and stop conditions in addendum            |
-| If option C, stability threshold | numeric threshold and measurement period    | `not_authorized`            | Future gate must define any branch named-handler threshold                          |
-| If option C, SLA threshold       | numeric SLA target and measurement period   | `pass_for_prep_only`        | Business hours 08:00-20:00; ack/review/escalation values in addendum                |
-| Handover rule                    | required for any named-handler exposure     | `blocked_for_runtime`       | Claim handling and escalation require consent/agreement/approved scope              |
-| Staff identity/privacy note      | reviewed or explicitly blocked              | `pass_for_prep`             | Role coverage signed; public names/photos remain future-gate work                   |
-| Date and signature               | dated signer approval                       | `pass_for_prep`             | Signed artifact dated 2026-07-07; SHA-256 recorded in addendum                      |
+| Required field                   | Acceptable value                            | Result                    | Evidence reference                                                                                                          |
+| -------------------------------- | ------------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Accountable signer name and role | ops lead/CEO or delegated accountable owner | `pass_for_prep`           | 2026-07-08 addendum; accepted correction `20260707-ent-a02-a03-memo2-correction-02`                                         |
+| Exactly one option selected      | A / B / C, not multiple                     | `incomplete_for_decision` | The returned Memo 2 records handler/SLA model facts; `MOB-DG03` must map them to one display model before runtime promotion |
+| Ops feasibility input            | stable assignment/SLA reality stated        | `pass_for_prep`           | Declared owners, phases, business hours, and stop conditions in addendum                                                    |
+| If option C, stability threshold | numeric threshold and measurement period    | `not_authorized`          | Future gate must define any branch named-handler threshold                                                                  |
+| If option C, SLA threshold       | numeric SLA target and measurement period   | `pass_for_prep_only`      | Business hours 08:00-20:00; ack/review/escalation values in addendum                                                        |
+| Handover rule                    | required for any named-handler exposure     | `blocked_for_runtime`     | Claim handling and escalation require consent/agreement/approved scope                                                      |
+| Staff identity/privacy note      | reviewed or explicitly blocked              | `pass_for_prep`           | Role coverage signed; public names/photos remain future-gate work                                                           |
+| Date and signature               | dated signer approval                       | `pass_for_prep`           | Signed artifact dated 2026-07-07; SHA-256 recorded in addendum                                                              |
 
 ## Memo 2 Gate Consequence
 
@@ -106,11 +109,12 @@ Memo 2 is accepted for preparation and current-authority review by the latest
 | C               | Case Companion must design both variants and gate named-handler exposure per branch thresholds.   |
 
 Do not request `MOB-02` authority from the old "Memo 2 missing / unsigned"
-blocker. The corrected blocker is that Memo 2 exists and is accepted for
-preparation, but `MOB-02` / `MOB-02a` remains unpromoted until `MOB-DG03`
-exists and the remaining entry evidence is complete. The accepted Memo 2
-correction must not be used to infer named-handler reliability, notifications,
-claim writers, Agreement Ceremony behavior, or runtime SLA display by itself.
+blocker. The corrected blocker is that Memo 2 artifact/custody evidence exists
+and is accepted for preparation, but the decision-model mapping remains
+incomplete. `MOB-02` / `MOB-02a` remains unpromoted until `MOB-DG03` exists and
+the remaining entry evidence is complete. The accepted Memo 2 correction must
+not be used to infer named-handler reliability, notifications, claim writers,
+Agreement Ceremony behavior, or runtime SLA display by itself.
 
 ## Safe Evidence Rules
 
@@ -130,8 +134,10 @@ Forbidden in this repo record:
 
 ## Completion Rule
 
-Step 4 is complete only when both returned decision records are accepted by this
-intake, dated, signed, and committed.
+Step 4 evidence custody is complete for preparation when the returned memo
+artifacts are dated, signed, committed, and accepted by this intake. Decision
+acceptance for runtime gate entry is still incomplete when required fields such
+as exact display-model mapping remain unresolved.
 
 If a returned memo is incomplete, contradictory, unsigned, or unsafe to store in
 the repo, the correct result is `blocked`. Do not let `MOB-05a` or `MOB-02`
