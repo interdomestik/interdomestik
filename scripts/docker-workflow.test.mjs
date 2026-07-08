@@ -258,6 +258,8 @@ test('createbuckets waits for MinIO readiness before creating the claim-evidence
   const compose = readRepoFile('docker-compose.yml');
 
   assert.match(compose, /createbuckets:[\s\S]*profiles: \['infra', 'gate'\]/);
+  assert.match(compose, /\/usr\/bin\/mc alias set myminio http:\/\/minio:9000 minioadmin minioadmin/);
+  assert.doesNotMatch(compose, /\/usr\/bin\/mc config host add/);
   assert.ok(compose.includes('MAX_ATTEMPTS=30;'));
   assert.ok(compose.includes('ATTEMPT=1;'));
   assert.ok(compose.includes(String.raw`while [ \"$$ATTEMPT\" -le \"$$MAX_ATTEMPTS\" ]; do`));
@@ -271,10 +273,7 @@ test('createbuckets waits for MinIO readiness before creating the claim-evidence
       'ERROR: Timed out waiting for MinIO to accept connections after $$MAX_ATTEMPTS attempts (about $$((MAX_ATTEMPTS * SLEEP_INTERVAL)) seconds).'
     )
   );
-  assert.match(
-    compose,
-    /\/usr\/bin\/mc mb -p myminio\/claim-evidence >\/dev\/null 2>&1 \|\| true;/
-  );
+  assert.match(compose, /\/usr\/bin\/mc mb -p myminio\/claim-evidence >\/dev\/null 2>&1 \|\| true;/);
   assert.match(compose, /\/usr\/bin\/mc anonymous set public myminio\/claim-evidence >/);
 });
 

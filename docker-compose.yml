@@ -240,7 +240,7 @@ services:
       SLEEP_INTERVAL=2;
       ATTEMPT=1;
       while [ \"$$ATTEMPT\" -le \"$$MAX_ATTEMPTS\" ]; do
-        if /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then
+        if /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then
           break;
         fi;
         echo \"Waiting for MinIO to accept connections... (attempt $$ATTEMPT/$$MAX_ATTEMPTS)\";
