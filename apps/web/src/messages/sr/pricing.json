@@ -127,7 +127,7 @@
     "successFeeCalculator": {
       "eyebrow": "Success-fee matematika",
       "title": "Pogledajte success-fee računicu pre eskalacije",
-      "subtitle": "Koristite javni kalkulator da procenite naknadu na novac koji Interdomestik zaista naplati za vas. Ako nema naplate, nema ni naknade, a limit za pravnu akciju prikazuje se odvojeno pre bilo kakve pisane saglasnosti.",
+      "subtitle": "Koristite javni kalkulator da procenite naknadu na novac koji Interdomestik zaista naplati za vas. Ako nema naplate, nema success fee za Interdomestik; sudski troškovi i troškovi trećih strana ostaju odvojeni i traže pisani dogovor pre pravne akcije.",
       "calculator": {
         "title": "Javni kalkulator naknade",
         "description": "Podrazumevana success fee ostaje 15% za Asistencu i 12% za Asistenca+ Family, uz minimum od EUR 25 za oba plana. Pravna akcija traži posebnu pisanu saglasnost i viši limit.",
