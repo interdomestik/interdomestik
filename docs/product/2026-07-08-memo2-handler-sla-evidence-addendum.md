@@ -20,21 +20,22 @@ related:
 
 ## Artifact Reference
 
-| Field                        | Value                                                                                                 |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Local artifact reviewed      | `/Users/arbenlila/Downloads/MEMO 2 -Handler ModelSLA Promise_rdc.pdf`                                 |
-| SHA-256                      | `9af76474f14eba3999255c5fd3608b3a8f63a47aa7d74fd20bb4d98708db572f`                                    |
-| Title visible in artifact    | `MEMO 2 - Handler Model / SLA Promise`                                                                |
-| PDF metadata                 | 3 pages; created and modified 2026-07-07 22:33:51 CEST; PDF 1.3; not encrypted                        |
-| Text extraction              | Image-only / no useful text layer; repo fields below come from visual review plus accepted intake row |
-| Accepted intake row          | `20260707-ent-a02-a03-memo2-correction-02`                                                            |
-| Safe evidence reference      | `corrections/2026-07-07T21-05-48-145Z-ent-a02-a03-gazmend/review.json`                                |
-| Sensitive evidence reference | `evidence-center:2026-07-07:gazmend:memo2-pdf:MEMO 2 -Handler ModelSLA Promise_rdc.pdf`               |
+| Field                        | Value                                                                                                    |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Local artifact observed      | `MEMO 2 -Handler ModelSLA Promise_rdc.pdf` (local path intentionally omitted; artifact remains external) |
+| SHA-256                      | `9af76474f14eba3999255c5fd3608b3a8f63a47aa7d74fd20bb4d98708db572f`                                       |
+| Title visible in artifact    | `MEMO 2 - Handler Model / SLA Promise`                                                                   |
+| PDF metadata                 | 3 pages; created and modified 2026-07-07 22:33:51 CEST; PDF 1.3; not encrypted                           |
+| Text extraction              | Image-only / no useful text layer; repo fields below come from visual review plus accepted intake row    |
+| Accepted intake row          | `20260707-ent-a02-a03-memo2-correction-02`                                                               |
+| Safe evidence reference      | `corrections/2026-07-07T21-05-48-145Z-ent-a02-a03-gazmend/review.json`                                   |
+| Sensitive evidence reference | `evidence-center:2026-07-07:gazmend:memo2-pdf:MEMO 2 -Handler ModelSLA Promise_rdc.pdf`                  |
 
 ## Public-Safe Accepted Facts
 
-- The accepted correction exists for `ENT-A02-A03` / `MEMO2-HANDLER` and is
-  accepted for `MOB-02` preparation and current-authority review only.
+- The accepted correction exists for `ENT-A02-A03` / `MEMO2-HANDLER` and the
+  artifact/custody evidence is accepted for `MOB-02` preparation and
+  current-authority review only.
 - The artifact is visibly signed and dated 2026-07-07. Visible role rows cover
   business owner / CEO, operations / handler owner, Help Now alert owner,
   support / intake owner, legal/counsel reviewer, privacy/DSR owner, and release
