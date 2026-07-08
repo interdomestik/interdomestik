@@ -8,20 +8,16 @@ related:
   - docs/product/2026-07-06-business-memo-signature-intake.md
   - docs/plans/2026-07-06-mob-05a-mob-02-prep-worksheet.md
   - docs/product/2026-07-05-memo1-expert-cost-on-loss-decision-record.md
+  - docs/plans/2026-07-08-memo1-finance-cap-evidence-addendum-appendix.md
 ---
 
 # Aneks Memo 1 - Financat Dhe Shpenzimet Ne Rruge Gjyqesore
 
-> Status: repo-safe source and summary for signed external evidence. Signed PDF
-> lives in the reviewer portal; this file grants no runtime authority.
->
-> Dokument mbeshtetes, jo autoritet runtime. Ky aneks vetem kompleton evidencen
-> financiare per Memo 1 dhe shpenzimet ne rruge gjyqesore. Nuk autorizon
-> runtime work, public wording, MOB-05a, ose implementim ne repository.
->
-> Signed evidence is stored in the reviewer portal for `ENT-A02-A03` /
-> `MEMO1-FINANCE` as `Memo1_Court_Path_Cost_Addendum_Gazmend_Signature.pdf`.
-> This repo file is the repo-safe source/summary text for that signed PDF.
+> Status: repo-safe summary for signed external evidence. Dokument mbeshtetes,
+> jo autoritet runtime. Ky aneks kompleton evidencen financiare per Memo 1 dhe
+> shpenzimet ne rruge gjyqesore, por nuk autorizon runtime work, public wording,
+> MOB-05a, ose implementim ne repository. Signed evidence is stored in the
+> reviewer portal for `ENT-A02-A03` / `MEMO1-FINANCE`.
 
 ## 1. Identiteti I Evidences
 
@@ -148,31 +144,7 @@ nenshkruar me vone:
 | `fees.thirdPartyCosts` / `ProposalCard`                    | Taksat fikse gjyqesore, tarifat per vendim dhe super-ekspertizat mund te mbeten pergjegjesi e klientit nese dakordohen me shkrim.         | yes, under this addendum |
 | `fees.reimbursement` / Agreement Ceremony and ProposalCard | Rimbursimi i kostove qe Interdomestik i ka paguar paraprakisht i kthehet Interdomestikut kur njihet nga vendimi gjyqesor.                 | yes, under this addendum |
 
-## 10. Attachments / Evidence
+## 10. Attachments / Stop Condition / Approval Appendix
 
-| Attachment               | Kerkohet? | Evidence                                                                                                                                                                                                                       |
-| ------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Signed Memo 1            | yes       | `/Users/arbenlila/Downloads/Mem01_rdc.pdf`; SHA-256 `1c258983a9d54d60b618cad8ec07b24c57d0c5e3532a35b9842628f59e84f8d0`; portal attachment `Mem01_rdc.pdf`, `application/pdf`, size `1762488`.                                  |
-| Portal export evidence   | yes       | `ENT-A02-A03`; latest signed addendum correction `corrections/2026-07-08T12-08-32-309Z-ent-a02-a03-gazmend/review.json`; attachment `Memo1_Court_Path_Cost_Addendum_Gazmend_Signature.pdf`, `application/pdf`, size `1480112`. |
-| Finance/counsel evidence | yes       | Signed Memo 1 page 3 contains business, finance, legal/counsel, and release/platform signature rows dated 2026-07-07.                                                                                                          |
-| Approved public wording  | yes       | Section 7 of this addendum.                                                                                                                                                                                                    |
-
-## 11. Stop Condition
-
-Ky aneks nuk promovon MOB-05a. Mos kerko runtime authority per MOB-05a pervec
-nese current authority/design gate promovon saktesisht nje slice konkrete dhe
-future gate e pranon kete aneks te nenshkruar si evidence.
-
-## 12. Miratimi I Gazmendit
-
-Une e aprovoj kete Aneks Memo 1 - Financat Dhe Shpenzimet Ne Rruge Gjyqesore si
-pozicionin aktual biznesor per Interdomestik MK per wording dhe evidence te
-shpenzimeve ne rruge gjyqesore.
-
-| Fushe      | Vlera                                                  |
-| ---------- | ------------------------------------------------------ |
-| Emri       | Gazmend Abazi                                          |
-| Roli       | Business owner / CEO, Ops and UI/UX - Interdomestik MK |
-| Vendimi    | Approve                                                |
-| Data       |                                                        |
-| Nenshkrimi |                                                        |
+Attachments, stop condition, and Gazmend approval fields are recorded in
+`docs/plans/2026-07-08-memo1-finance-cap-evidence-addendum-appendix.md`.
