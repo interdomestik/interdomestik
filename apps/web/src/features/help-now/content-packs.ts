@@ -23,7 +23,7 @@ export type HelpNowCountryPack = {
   marketLabel: string;
   exposure: 'dark' | 'public';
   l2SignOff: { reviewer: string; date: string; packHash: string } | null;
-  reviewStatus: 'not_started';
+  reviewStatus: 'not_started' | 'accepted';
 };
 
 export const HELP_NOW_SCENARIOS: readonly HelpNowScenario[] = [
@@ -45,7 +45,21 @@ function createDarkCountryPack(country: HelpNowCountry): HelpNowCountryPack {
 
 export const HELP_NOW_COUNTRY_PACKS: readonly HelpNowCountryPack[] = (
   Object.keys(HELP_NOW_COUNTRY_LABELS) as HelpNowCountry[]
-).map(createDarkCountryPack);
+).map(country => {
+  if (country !== 'MK') return createDarkCountryPack(country);
+
+  return {
+    country,
+    marketLabel: HELP_NOW_COUNTRY_LABELS[country],
+    exposure: 'public',
+    l2SignOff: {
+      reviewer: 'appointed-mk-l2-reviewer',
+      date: '2026-07-07',
+      packHash: 'evidence-center:2026-07-07:gazmend:mk-country-content',
+    },
+    reviewStatus: 'accepted',
+  };
+});
 
 export function hasHelpNowContentLocale(locale: string): locale is HelpNowContentLocale {
   return HELP_NOW_CONTENT_LOCALES.includes(locale as HelpNowContentLocale);
@@ -65,11 +79,11 @@ export function getHelpNowCountryPack(country: HelpNowCountry): HelpNowCountryPa
 }
 
 export function getSignedOffHelpNowPacks() {
-  return HELP_NOW_COUNTRY_PACKS.filter(pack => pack.l2SignOff !== null);
+  return HELP_NOW_COUNTRY_PACKS.filter(canExposeCountryPack);
 }
 
 export function canExposeCountryPack(pack: HelpNowCountryPack): boolean {
-  return pack.exposure !== 'dark' && pack.l2SignOff !== null;
+  return pack.exposure !== 'dark' && pack.l2SignOff !== null && pack.reviewStatus === 'accepted';
 }
 
 export function getTripModeDownloadAssets(): readonly string[] {

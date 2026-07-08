@@ -27,7 +27,7 @@ describe('HelpNowExperience', () => {
       'public-no-account'
     );
     expect(screen.getAllByText('Country pack awaiting L2 sign-off')).toHaveLength(2);
-    expect(screen.getByText('Signed packs: 0')).toBeInTheDocument();
+    expect(screen.getByText('Signed packs: 1')).toBeInTheDocument();
     expect(screen.queryByText(/112|192/)).not.toBeInTheDocument();
     expect(screen.queryByTestId('help-now-generate-pack')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Flight: coming soon' })).toBeDisabled();
@@ -45,8 +45,14 @@ describe('HelpNowExperience', () => {
       'true'
     );
 
-    expect(screen.queryByText('Zone')).not.toBeInTheDocument();
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByText('Пакетот за земјата е одобрен')).toBeInTheDocument();
+    expect(screen.getByText('Signed packs: 1')).toBeInTheDocument();
+    expect(screen.getByTestId('help-now-generate-pack')).toBeInTheDocument();
+    expect(screen.queryByText(/112|192/)).not.toBeInTheDocument();
+    expect(screen.getByText('Access zone')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('help-now-generate-pack'));
+    expect(screen.getByText(/Local preview ready for MK/)).toBeInTheDocument();
   });
 
   it('tracks page open once when the trip country changes', async () => {

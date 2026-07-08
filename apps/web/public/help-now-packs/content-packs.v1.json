@@ -1,6 +1,6 @@
 {
-  "version": "mob-01-help-now-dark-packs-2026-07-04-v1",
-  "generatedAt": "2026-07-04T00:00:00.000Z",
+  "version": "mob-01b-mk-help-now-public-2026-07-08-v1",
+  "generatedAt": "2026-07-08T00:00:00.000Z",
   "publicOnly": true,
   "containsPersonalData": false,
   "countries": [
@@ -14,9 +14,13 @@
     {
       "country": "MK",
       "marketLabel": "North Macedonia",
-      "exposure": "dark",
-      "l2SignOff": null,
-      "reviewStatus": "not_started"
+      "exposure": "public",
+      "l2SignOff": {
+        "reviewer": "appointed-mk-l2-reviewer",
+        "date": "2026-07-07",
+        "packHash": "evidence-center:2026-07-07:gazmend:mk-country-content"
+      },
+      "reviewStatus": "accepted"
     },
     {
       "country": "AL",
