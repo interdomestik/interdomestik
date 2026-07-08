@@ -218,17 +218,40 @@ product-control action is a future `MOB-DG02` current-authority/design gate for
 Rev 95 current-authority/design-gate: `MOB-DG02` in
 `docs/plans/2026-07-08-mob-dg02-fee-math-sheet-current-authority.md` records
 the accepted signed Memo 1 finance/court-path addendum and promotes exactly one
-canonical tracker slice: `MOB-05a`. The next active governed implementation
-goal is exactly one canonical tracker slice: `MOB-05a`. Future `MOB-05a` is
-limited to the Fee Math Sheet display layer: display, copy, math-sheet
-presentation, allowed `fees.*` keys, qualified / hybrid court-path cost wording,
-no-PII `fee_sheet_viewed` instrumentation, and public/offline display behavior
-where relevant. It must use the signed addendum's qualified court-path model and
-must not invent new fee/court-cost language. It does not promote `MOB-02`,
-`MOB-03`, `MOB-05b`, Agreement Ceremony writers, billing, payment, claim
-writers, proxy/routing/auth/session/tenancy, schema/RLS/migrations, CRM,
-VONESA, DOM, OMG, live AI, KS/AL exposure, broad Help Now runtime continuation,
-generated wiki, Brain tooling, README, AGENTS, or broad UI package work.
+canonical tracker slice: `MOB-05a`. That promotion is now consumed by Rev 96
+and the merged PR `#1316` / PR `#1317` evidence. The historical `MOB-05a`
+scope was limited to the Fee Math Sheet display layer: display, copy,
+math-sheet presentation, allowed `fees.*` keys, qualified / hybrid court-path
+cost wording, no-PII `fee_sheet_viewed` instrumentation, and public/offline
+display behavior where relevant. It required the signed addendum's qualified
+court-path model and did not authorize invented fee/court-cost language. It did
+not promote `MOB-02`, `MOB-03`, `MOB-05b`, Agreement Ceremony writers,
+billing, payment, claim writers, proxy/routing/auth/session/tenancy,
+schema/RLS/migrations, CRM, VONESA, DOM, OMG, live AI, KS/AL exposure, broad
+Help Now runtime continuation, generated wiki, Brain tooling, README, AGENTS,
+or broad UI package work.
+
+Rev 96 closeout: `MOB-05a` completed through PR `#1316` / merge-main SHA
+`40efd3876fa149a8b9f13a4c6e6f24b61187bd0b`, with closeout-hardening PR
+`#1317` / merge-main SHA `9811897a1be40fdf1943405b9f4af8904a4f0cce`,
+recorded in `docs/plans/2026-07-08-mob-05a-closeout.md`. The merged work
+consumed the `MOB-DG02` authority and delivered only the Fee Math Sheet display
+layer: qualified / hybrid court-path cost copy from the signed Memo 1 addendum,
+allowed `fees.*` copy treatment, C02 calculator-lineage display, no-PII
+`fee_sheet_viewed` instrumentation, accessibility/disclosure hardening, broad
+"no fee" copy qualification across locales, narrowed runtime instrumentation
+context, and `offline_available` assertion. The extra pre-squash PR `#1317`
+gate-hygiene work is preserved in the reachable PR `#1317` squash merge
+`9811897a1be40fdf1943405b9f4af8904a4f0cce`, which synced
+`scripts/repo-size-budget.json` for the focused closeout-hardening test file.
+No replacement implementation slice is promoted by this closeout; expected
+resolver state is `blocked_requires_current_authority`, `activeSlice=null`
+until a fresh current-authority/design-gate selects exactly one next governed
+action. `MOB-02`, `MOB-03`, `MOB-05b`, Agreement Ceremony writers,
+ProposalCard reuse, billing, payment, claim writers, proxy/routing/auth/session
+/tenancy, schema/RLS/migrations, CRM, VONESA, DOM, OMG, live AI, KS/AL
+exposure, broad Help Now continuation, generated wiki, Brain tooling, README,
+AGENTS, and broad UI package work remain unpromoted.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
