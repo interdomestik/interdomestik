@@ -38,33 +38,33 @@ Signer-facing return instructions are in
 
 ## Current State
 
-| Item                           | State    |
-| ------------------------------ | -------- |
-| Memo 1 decision record         | unsigned |
-| Memo 1 accountable signer      | `TBD`    |
-| Memo 1 finance input           | `TBD`    |
-| Memo 1 counsel/L5 review owner | `TBD`    |
-| Memo 2 decision record         | unsigned |
-| Memo 2 accountable signer      | `TBD`    |
-| Memo 2 ops input               | `TBD`    |
-| Memo 2 SLA/stability threshold | `TBD`    |
-| Runtime authority              | none     |
+| Item                           | State                                                                 |
+| ------------------------------ | --------------------------------------------------------------------- |
+| Memo 1 decision record         | accepted for `MOB-05a` preparation via signed court-path addendum     |
+| Memo 1 accountable signer      | Gazmend Abazi, Business owner / CEO, Ops and UI/UX - Interdomestik MK |
+| Memo 1 finance input           | accepted for preparation; court-path cost split and ranges recorded   |
+| Memo 1 counsel/L5 review owner | accepted for preparation; qualified wording only                      |
+| Memo 2 decision record         | unsigned                                                              |
+| Memo 2 accountable signer      | `TBD`                                                                 |
+| Memo 2 ops input               | `TBD`                                                                 |
+| Memo 2 SLA/stability threshold | `TBD`                                                                 |
+| Runtime authority              | none                                                                  |
 
 ## Memo 1 Return Acceptance
 
 Memo 1 can be accepted only if every required field below is filled. Leave
 unknown fields blank rather than guessing.
 
-| Required field                   | Acceptable value                                     | Result | Evidence reference |
-| -------------------------------- | ---------------------------------------------------- | ------ | ------------------ |
-| Accountable signer name and role | CEO/managing director or delegated accountable owner | `TBD`  | `TBD`              |
-| Exactly one option selected      | A / B / C, not multiple                              | `TBD`  | `TBD`              |
-| Expert/court-cost range          | numeric range, currency, source/assumption           | `TBD`  | `TBD`              |
-| Cap decision                     | amount if applicable, or explicit no-cap rationale   | `TBD`  | `TBD`              |
-| Finance input                    | named finance reviewer or accountable substitute     | `TBD`  | `TBD`              |
-| Counsel/L5 input                 | named reviewer or explicit blocker                   | `TBD`  | `TBD`              |
-| Fee promise consequence          | unqualified / qualified / capped wording noted       | `TBD`  | `TBD`              |
-| Date and signature               | dated signer approval                                | `TBD`  | `TBD`              |
+| Required field                   | Acceptable value                                     | Result | Evidence reference                                                                                      |
+| -------------------------------- | ---------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------- |
+| Accountable signer name and role | CEO/managing director or delegated accountable owner | `pass` | `ENT-A02-A03` / `MEMO1-FINANCE`; signed addendum approval block                                         |
+| Exactly one option selected      | A / B / C, not multiple                              | `pass` | Qualified / hybrid court-path model in `docs/product/2026-07-08-memo1-finance-cap-evidence-addendum.md` |
+| Expert/court-cost range          | numeric range, currency, source/assumption           | `pass` | Addendum section 4: expert `EUR 150-300`, court/admin `EUR 30-100`, translation/notary `EUR 10-100`     |
+| Cap decision                     | amount if applicable, or explicit no-cap rationale   | `pass` | Addendum section 5: written court-path cost split; no general public zero-external-cost promise         |
+| Finance input                    | named finance reviewer or accountable substitute     | `pass` | Addendum sections 5 and 12; prior signed Memo 1 signature table                                         |
+| Counsel/L5 input                 | named reviewer or explicit blocker                   | `pass` | Addendum sections 6-9; unqualified zero-external-cost wording blocked                                   |
+| Fee promise consequence          | unqualified / qualified / capped wording noted       | `pass` | Qualified no-success-fee / court-path cost wording                                                      |
+| Date and signature               | dated signer approval                                | `pass` | Portal correction `corrections/2026-07-08T12-08-32-309Z-ent-a02-a03-gazmend/review.json`                |
 
 ## Memo 1 Gate Consequence
 
@@ -74,8 +74,11 @@ unknown fields blank rather than guessing.
 | B               | Fee Math must model third-party costs and explicit worst-case member liability.                 |
 | C               | Fee Math must model covered-vs-at-risk cost boundary and cap governance.                        |
 
-Do not request `MOB-05a` authority from an unsigned Memo 1, a multi-selected
-Memo 1, or a Memo 1 with missing finance/counsel consequences.
+Do not request `MOB-05a` runtime authority from an unsigned Memo 1, a
+multi-selected Memo 1, or a Memo 1 with missing finance/counsel consequences.
+As of 2026-07-08, Memo 1 is accepted for preparation only; runtime still
+requires a later current-authority/design gate promoting exactly one concrete
+slice.
 
 ## Memo 2 Return Acceptance
 

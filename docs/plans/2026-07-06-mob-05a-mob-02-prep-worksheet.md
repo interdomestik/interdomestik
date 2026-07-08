@@ -1,6 +1,6 @@
 ---
 plan_role: input
-status: draft
+status: active
 source_of_truth: false
 owner: product-design
 last_reviewed: 2026-07-06
@@ -44,23 +44,44 @@ the actual authority.
 
 ## Current State
 
-| Item                                | Evidence path                                                              | Current disposition                           |
-| ----------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------- |
-| Memo 1 expert-cost-on-loss decision | `docs/product/2026-07-05-memo1-expert-cost-on-loss-decision-record.md`     | Unsigned. No option selected.                 |
-| Memo 2 handler-model decision       | `docs/product/2026-07-05-memo2-handler-model-decision-record.md`           | Unsigned. No option selected.                 |
-| Memo return packet                  | `docs/product/2026-07-06-business-memo-return-packet-albanian.md`          | Ready; human return still missing.            |
-| Memo return acceptance              | `docs/product/2026-07-06-business-memo-signature-intake.md`                | Intake ready; both memos still blocked.       |
-| `MOB-05a` prep                      | This worksheet                                                             | Prepared only; gate blocked.                  |
-| `MOB-02` prep                       | This worksheet                                                             | Prepared only; gate blocked.                  |
-| Runtime authority                   | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, resolver | Missing; resolver remains `activeSlice=null`. |
+| Item                                | Evidence path                                                                                            | Current disposition                                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Memo 1 expert-cost-on-loss decision | `docs/product/2026-07-08-memo1-finance-cap-evidence-addendum.md`; portal `ENT-A02-A03` / `MEMO1-FINANCE` | Accepted for `MOB-05a` preparation only; qualified / hybrid court-path model. |
+| Memo 2 handler-model decision       | `docs/product/2026-07-05-memo2-handler-model-decision-record.md`                                         | Unsigned. No option selected.                                                 |
+| Memo return packet                  | `docs/product/2026-07-06-business-memo-return-packet-albanian.md`                                        | Ready; human return still missing.                                            |
+| Memo return acceptance              | `docs/product/2026-07-06-business-memo-signature-intake.md`                                              | Memo 1 accepted for preparation; Memo 2 still blocked.                        |
+| `MOB-05a` prep                      | This worksheet; `docs/plans/2026-07-08-mob-05a-memo1-evidence-intake-current-authority.md`               | Memo 1 blocker resolved for preparation; implementation gate still blocked.   |
+| `MOB-02` prep                       | This worksheet                                                                                           | Prepared only; gate blocked.                                                  |
+| Runtime authority                   | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, resolver                               | Missing; resolver remains `activeSlice=null`.                                 |
+
+## 2026-07-08 Memo 1 Evidence Intake Result
+
+The signed Memo 1 finance/court-path addendum is accepted for `MOB-05a`
+preparation. It records a qualified / hybrid court-path model:
+
+- Interdomestik may say there is no success fee owed to Interdomestik when
+  there is no recovery.
+- Interdomestik must not imply that every external court-path cost is always
+  zero for the client.
+- Fixed court fees, decision fees, super-expertise, and other external costs
+  are controlled by the written court-path agreement before the cost is created.
+- Any court-awarded reimbursement for costs paid upfront by Interdomestik
+  returns to Interdomestik.
+
+This resolves the Memo 1 business-decision blocker for preparation only. It does
+not promote `MOB-05a` implementation. A later `MOB-DG02` gate must still define
+the exact Fee Math display scope, `thirdPartyCostTreatment`, examples,
+instrumentation, offline behavior, copy/a11y/Playwright proof, and stop
+conditions.
 
 ## Memo 1 To MOB-05a Consequence Map
 
-| Memo 1 option                                            | Product promise                                  | Fee Math / copy consequence                                                                                              | Additional evidence before gate                                        |
-| -------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| A - Interdomestik absorbs approved costs on lost cases   | Strongest "recover nothing, pay nothing" promise | Fee Math can keep the unqualified zero-loss line; ProposalCard can frame approved expert/court costs as covered on loss. | Finance range/cap, L5 review of `fees.*`, quarterly cost-review owner. |
-| B - Member remains liable for approved third-party costs | Qualified no-success-fee promise                 | Fee Math needs `thirdPartyCosts`; ProposalCard must show worst case; AC-2 needs total-cost row.                          | L5 review, explicit worst-case examples, abandonment-risk metric plan. |
-| C - Interdomestik absorbs up to cap                      | Hybrid promise                                   | Fee Math needs covered-vs-at-risk distinction; ProposalCard must show cap boundary and member approval state.            | Cap governance, L5 review, cap-edge copy examples.                     |
+| Memo 1 option                                                           | Product promise                                                                                    | Fee Math / copy consequence                                                                                                                                     | Additional evidence before gate                                                                |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| A - Interdomestik absorbs approved costs on lost cases                  | Strongest "recover nothing, pay nothing" promise                                                   | Fee Math can keep the unqualified zero-loss line; ProposalCard can frame approved expert/court costs as covered on loss.                                        | Finance range/cap, L5 review of `fees.*`, quarterly cost-review owner.                         |
+| B - Member remains liable for approved third-party costs                | Qualified no-success-fee promise                                                                   | Fee Math needs `thirdPartyCosts`; ProposalCard must show worst case; AC-2 needs total-cost row.                                                                 | L5 review, explicit worst-case examples, abandonment-risk metric plan.                         |
+| C - Interdomestik absorbs up to cap                                     | Hybrid promise                                                                                     | Fee Math needs covered-vs-at-risk distinction; ProposalCard must show cap boundary and member approval state.                                                   | Cap governance, L5 review, cap-edge copy examples.                                             |
+| Signed court-path addendum - qualified / hybrid written-agreement model | No success fee to Interdomestik on no recovery; external court-path costs follow written agreement | Fee Math needs reviewed court-path `thirdPartyCostTreatment`; ProposalCard and AC-2 must show fixed-cost/super-expertise responsibility and reimbursement rule. | Later `MOB-DG02` must lock examples, no-PII instrumentation, offline behavior, and proof plan. |
 
 `MOB-05a` must not use the unqualified "recover nothing, pay nothing" line if
 Memo 1 chooses B or C.
@@ -112,14 +133,14 @@ branch satisfies the signed option C thresholds.
 
 ## Immediate Human Actions
 
-| Action                                              | Owner type               | Blocks              |
-| --------------------------------------------------- | ------------------------ | ------------------- |
-| Name the accountable signer for Memo 1              | managing director / CEO  | `MOB-05a` gate prep |
-| Fill expert/court-cost range and cap recommendation | finance                  | `MOB-05a` gate prep |
-| Name counsel / L5 reviewer for fee wording          | counsel / legal reviewer | `MOB-05a` gate prep |
-| Name the accountable signer for Memo 2              | ops lead / CEO           | `MOB-02` gate prep  |
-| Choose handler model A/B/C                          | ops + product            | `MOB-02` gate prep  |
-| If C, fill branch stability and SLA thresholds      | ops                      | `MOB-02` gate prep  |
+| Action                                              | Owner type               | Blocks                                                                                        |
+| --------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------- |
+| Name the accountable signer for Memo 1              | managing director / CEO  | Done for preparation via signed addendum                                                      |
+| Fill expert/court-cost range and cap recommendation | finance                  | Done for preparation via signed addendum; exact implementation examples remain for `MOB-DG02` |
+| Name counsel / L5 reviewer for fee wording          | counsel / legal reviewer | Done for preparation via signed addendum; final public copy review remains for `MOB-DG02`     |
+| Name the accountable signer for Memo 2              | ops lead / CEO           | `MOB-02` gate prep                                                                            |
+| Choose handler model A/B/C                          | ops + product            | `MOB-02` gate prep                                                                            |
+| If C, fill branch stability and SLA thresholds      | ops                      | `MOB-02` gate prep                                                                            |
 
 ## Completion Rule
 
