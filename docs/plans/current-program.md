@@ -168,8 +168,9 @@ provider alert logs, or synthetic-event job URLs, it must stop and return to
 authority. This gate relies on the superseding 2026-07-07 accepted intake rows
 rather than the earlier dispatched/awaiting-return state, and promotes exactly
 one canonical tracker slice: `MOB-01b`.
-The next active governed implementation goal is exactly one canonical tracker
-slice: `MOB-01b`. Future `MOB-01b` is limited to exposing only accepted MK Help
+That Rev 92 promotion is now consumed by Rev 93 / PR `#1312`. Future follow-on
+Help Now work requires a fresh current-authority/design-gate. The historical
+`MOB-01b` scope was limited to exposing only accepted MK Help
 Now content through the already-merged `MOB-01` dark-pack mechanism, proving MK
 public route behavior, preserving dark/placeholder state for unsupported
 countries, proving service-worker/cache revalidation, and proving anonymous
@@ -180,6 +181,21 @@ Operational Brain runtime/live AI,
 README, AGENTS, or broad UI package implementation. Any future current-main
 staging P0.1 agent/staff marker miss freezes `MOB-01b` and returns to current
 authority.
+
+Rev 93 closeout: `MOB-01b` completed through PR `#1312` / merge-main SHA
+`cc6604ebd1679e3400d6a55ffa6784140b1d4c0a`, recorded in
+`docs/plans/2026-07-08-mob-01b-closeout.md`. The implementation consumed the
+`MOB-DG01B` authority and exposed only accepted MK Help Now content through the
+existing `MOB-01` dark-pack mechanism. Unsupported countries remain dark, public
+reviewer metadata is non-personal, and no emergency number, legal-service,
+claim-handling, billing, KS/AL, member, proxy, auth, tenancy, schema/RLS,
+migration, or broad UI package scope was promoted. Current-head CI, PR E2E,
+Pilot Gate, CodeQL, gitleaks, pnpm-audit, Dependency Review, OSV, Semgrep,
+SonarCloud, commitlint, reviewdog, and `pr-finalizer` were green before merge.
+No replacement implementation slice is promoted by this closeout; expected
+resolver state is `blocked_requires_current_authority`, `activeSlice=null`
+until a fresh current-authority/design-gate selects exactly one next governed
+action.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
