@@ -3,7 +3,7 @@ plan_role: input
 status: active
 source_of_truth: false
 owner: product-design
-last_reviewed: 2026-07-06
+last_reviewed: 2026-07-08
 related:
   - docs/reviews/2026-07-05-nine-step-enterprise-sequence.md
   - docs/product/2026-07-03-business-decision-memos.md
@@ -12,6 +12,7 @@ related:
   - docs/product/2026-07-06-business-memo-signature-intake.md
   - docs/product/2026-07-05-memo1-expert-cost-on-loss-decision-record.md
   - docs/product/2026-07-05-memo2-handler-model-decision-record.md
+  - docs/product/2026-07-08-memo2-handler-sla-evidence-addendum.md
   - docs/product/2026-07-03-mobile-excellence-dossier-part-5.md
 ---
 
@@ -24,15 +25,14 @@ related:
 ## Purpose
 
 Reduce the delay between business decision and implementation gate by mapping
-the two unsigned memos to their downstream product, copy, legal, and verification
+the business memos to their downstream product, copy, legal, and verification
 requirements.
 
 - Memo 1 feeds `MOB-05a` Fee Math Sheet.
 - Memo 2 feeds `MOB-02` Case Companion / Next Step read model.
 
-Both runtime slices remain blocked until the required memo decision records are
-signed and a later current-authority/design-gate promotes exactly one concrete
-slice.
+Both runtime slices remain blocked until a later current-authority/design-gate
+promotes exactly one concrete slice.
 
 ## Execution Rule
 
@@ -44,15 +44,15 @@ the actual authority.
 
 ## Current State
 
-| Item                                | Evidence path                                                                                            | Current disposition                                                           |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Memo 1 expert-cost-on-loss decision | `docs/product/2026-07-08-memo1-finance-cap-evidence-addendum.md`; portal `ENT-A02-A03` / `MEMO1-FINANCE` | Accepted for `MOB-05a` preparation only; qualified / hybrid court-path model. |
-| Memo 2 handler-model decision       | `docs/product/2026-07-05-memo2-handler-model-decision-record.md`                                         | Unsigned. No option selected.                                                 |
-| Memo return packet                  | `docs/product/2026-07-06-business-memo-return-packet-albanian.md`                                        | Ready; human return still missing.                                            |
-| Memo return acceptance              | `docs/product/2026-07-06-business-memo-signature-intake.md`                                              | Memo 1 accepted for preparation; Memo 2 still blocked.                        |
-| `MOB-05a` prep                      | This worksheet; `docs/plans/2026-07-08-mob-05a-memo1-evidence-intake-current-authority.md`               | Memo 1 blocker resolved for preparation; implementation gate still blocked.   |
-| `MOB-02` prep                       | This worksheet                                                                                           | Prepared only; gate blocked.                                                  |
-| Runtime authority                   | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, resolver                               | Missing; resolver remains `activeSlice=null`.                                 |
+| Item                                | Evidence path                                                                                                                      | Current disposition                                                           |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Memo 1 expert-cost-on-loss decision | `docs/product/2026-07-08-memo1-finance-cap-evidence-addendum.md`; portal `ENT-A02-A03` / `MEMO1-FINANCE`                           | Accepted for `MOB-05a` preparation only; qualified / hybrid court-path model. |
+| Memo 2 handler-model decision       | `docs/product/2026-07-05-memo2-handler-model-decision-record.md`; `docs/product/2026-07-08-memo2-handler-sla-evidence-addendum.md` | Accepted for `MOB-02` preparation / CA review only; no runtime authority.     |
+| Memo return packet                  | `docs/product/2026-07-06-business-memo-return-packet-albanian.md`                                                                  | Superseded by accepted Memo 1 / Memo 2 correction evidence.                   |
+| Memo return acceptance              | `docs/product/2026-07-06-business-memo-signature-intake.md`                                                                        | Memo 1 and Memo 2 accepted for preparation; runtime gates still blocked.      |
+| `MOB-05a` prep                      | This worksheet; `docs/plans/2026-07-08-mob-05a-memo1-evidence-intake-current-authority.md`                                         | Memo 1 blocker resolved for preparation; implementation gate still blocked.   |
+| `MOB-02` prep                       | This worksheet                                                                                                                     | Prepared only; gate blocked.                                                  |
+| Runtime authority                   | `docs/plans/current-program.md`, `docs/plans/current-tracker.md`, resolver                                                         | Missing; resolver remains `activeSlice=null`.                                 |
 
 ## 2026-07-08 Memo 1 Evidence Intake Result
 
@@ -73,6 +73,20 @@ not promote `MOB-05a` implementation. A later `MOB-DG02` gate must still define
 the exact Fee Math display scope, `thirdPartyCostTreatment`, examples,
 instrumentation, offline behavior, copy/a11y/Playwright proof, and stop
 conditions.
+
+## 2026-07-08 Memo 2 Evidence Reconciliation Result
+
+The signed Memo 2 handler/SLA PDF correction is accepted for `MOB-02`
+preparation and current-authority review. The repo-safe addendum records the
+artifact hash, accepted correction reference, visible signed role coverage,
+country scope, declared business-hours window, allowed SLA values, and stop
+conditions without committing the raw PDF.
+
+This resolves the "Memo 2 missing / unsigned" inconsistency for preparation
+only. It does not promote `MOB-02` or `MOB-02a`, create `MOB-DG03`, authorize
+runtime work, approve public copy, or authorize named-handler display. A later
+`MOB-DG03` must still narrow the read-only Case Companion / Next Step scope and
+prove the remaining entry evidence.
 
 ## Memo 1 To MOB-05a Consequence Map
 
@@ -118,8 +132,10 @@ branch satisfies the signed option C thresholds.
 
 `MOB-02` gate prep is ready only after:
 
-1. Memo 2 has exactly one selected option.
-2. If option C is selected, branch stability and SLA thresholds are filled.
+1. Memo 2 accepted evidence is mapped by the future gate into exactly one
+   concrete display model.
+2. If named-handler behavior can appear, branch stability and SLA thresholds are
+   filled.
 3. `G09` SLA reconciliation inputs are available or explicitly blocked.
 4. Status-sentence catalog exists for post-T-503 transition states and supported
    locales.
@@ -133,14 +149,14 @@ branch satisfies the signed option C thresholds.
 
 ## Immediate Human Actions
 
-| Action                                              | Owner type               | Blocks                                                                                        |
-| --------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------- |
-| Name the accountable signer for Memo 1              | managing director / CEO  | Done for preparation via signed addendum                                                      |
-| Fill expert/court-cost range and cap recommendation | finance                  | Done for preparation via signed addendum; exact implementation examples remain for `MOB-DG02` |
-| Name counsel / L5 reviewer for fee wording          | counsel / legal reviewer | Done for preparation via signed addendum; final public copy review remains for `MOB-DG02`     |
-| Name the accountable signer for Memo 2              | ops lead / CEO           | `MOB-02` gate prep                                                                            |
-| Choose handler model A/B/C                          | ops + product            | `MOB-02` gate prep                                                                            |
-| If C, fill branch stability and SLA thresholds      | ops                      | `MOB-02` gate prep                                                                            |
+| Action                                                                         | Owner type               | Blocks                                                                                        |
+| ------------------------------------------------------------------------------ | ------------------------ | --------------------------------------------------------------------------------------------- |
+| Name the accountable signer for Memo 1                                         | managing director / CEO  | Done for preparation via signed addendum                                                      |
+| Fill expert/court-cost range and cap recommendation                            | finance                  | Done for preparation via signed addendum; exact implementation examples remain for `MOB-DG02` |
+| Name counsel / L5 reviewer for fee wording                                     | counsel / legal reviewer | Done for preparation via signed addendum; final public copy review remains for `MOB-DG02`     |
+| Name the accountable signer for Memo 2                                         | ops lead / CEO           | Done for preparation via accepted Memo 2 correction                                           |
+| Map accepted Memo 2 handler/SLA evidence to one display model                  | ops + product            | `MOB-DG03`; no runtime inference before gate                                                  |
+| If named-handler behavior can appear, fill branch stability and SLA thresholds | ops                      | `MOB-DG03`                                                                                    |
 
 ## Completion Rule
 
@@ -148,7 +164,7 @@ This worksheet is complete as a prep artifact when it is committed and linked
 from the nine-step control sheet. It does not make steps 8 or 9 complete.
 
 Step 8 advances only after signed Memo 1 and fee-wording review inputs exist.
-Step 9 advances only after signed Memo 2 and ops-SLA reconciliation inputs exist.
-Both signed memo returns must be accepted by
+Step 9 advances only after accepted Memo 2 evidence and ops-SLA reconciliation
+inputs exist. Both signed memo returns must be accepted by
 `docs/product/2026-07-06-business-memo-signature-intake.md` before either gate
 can cite them as evidence.
