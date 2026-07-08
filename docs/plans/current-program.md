@@ -197,6 +197,39 @@ resolver state is `blocked_requires_current_authority`, `activeSlice=null`
 until a fresh current-authority/design-gate selects exactly one next governed
 action.
 
+Rev 94 evidence intake:
+`docs/plans/2026-07-08-mob-05a-memo1-evidence-intake-current-authority.md`
+records the signed Memo 1 finance/court-path addendum uploaded to reviewer
+portal `ENT-A02-A03` / `MEMO1-FINANCE` at
+`corrections/2026-07-08T12-08-32-309Z-ent-a02-a03-gazmend/review.json`.
+The addendum is accepted for `MOB-05a` preparation only. It establishes a
+qualified / hybrid court-path cost model: no success fee to Interdomestik on no
+recovery, no public zero-external-cost promise, fixed court-path costs governed
+by written agreement, and reimbursement to Interdomestik for costs it paid
+upfront when awarded by court decision. This evidence intake does not promote
+`MOB-05a`, `MOB-02`, `MOB-03`, `MOB-05b`, billing, Agreement Ceremony writers,
+claim writers, proxy/routing/auth/session/tenancy, schema/RLS/migrations,
+README, AGENTS, Brain tooling, generated wiki, or runtime work. No replacement
+implementation slice is promoted; expected resolver state remains
+`blocked_requires_current_authority`, `activeSlice=null`. The next concrete
+product-control action is a future `MOB-DG02` current-authority/design gate for
+`MOB-05a` Fee Math Sheet display-layer authority.
+
+Rev 95 current-authority/design-gate: `MOB-DG02` in
+`docs/plans/2026-07-08-mob-dg02-fee-math-sheet-current-authority.md` records
+the accepted signed Memo 1 finance/court-path addendum and promotes exactly one
+canonical tracker slice: `MOB-05a`. The next active governed implementation
+goal is exactly one canonical tracker slice: `MOB-05a`. Future `MOB-05a` is
+limited to the Fee Math Sheet display layer: display, copy, math-sheet
+presentation, allowed `fees.*` keys, qualified / hybrid court-path cost wording,
+no-PII `fee_sheet_viewed` instrumentation, and public/offline display behavior
+where relevant. It must use the signed addendum's qualified court-path model and
+must not invent new fee/court-cost language. It does not promote `MOB-02`,
+`MOB-03`, `MOB-05b`, Agreement Ceremony writers, billing, payment, claim
+writers, proxy/routing/auth/session/tenancy, schema/RLS/migrations, CRM,
+VONESA, DOM, OMG, live AI, KS/AL exposure, broad Help Now runtime continuation,
+generated wiki, Brain tooling, README, AGENTS, or broad UI package work.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
