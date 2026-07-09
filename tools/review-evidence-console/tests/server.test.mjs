@@ -99,3 +99,18 @@ test('validates PORT and starts on loopback only', async t => {
   t.after(() => server.close());
   assert.equal(server.address().address, '127.0.0.1');
 });
+
+test('serves every external shell reference from the real public root', async t => {
+  const server = await startConsoleServer({ port: 0 });
+  t.after(() => server.close());
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const references = [
+    '/styles/tokens.css',
+    '/styles/base.css',
+    '/styles/layout.css',
+    '/styles/components.css',
+    '/styles/responsive.css',
+    '/src/app.mjs',
+  ];
+  for (const pathname of references) assert.equal((await fetch(origin + pathname)).status, 200);
+});
