@@ -258,19 +258,42 @@ Rev 97 current-authority/design-gate: `MOB-DG03` in
 records the accepted reviewer-portal entry evidence in
 `docs/plans/2026-07-09-mob-dg03-entry-evidence-acceptance.md` after PR `#1319`
 reconciled Memo 2 and the remaining `ENT-B04`, `ENT-B05`, Memo 2 display
-mapping, and read-model/no-mutation proof submissions returned complete. This
-gate promotes exactly one canonical tracker slice: `MOB-02a`. The next active
-governed implementation goal is exactly one canonical tracker slice: `MOB-02a`.
-Future `MOB-02a` is limited to the read-only Case Companion / Next Step display
-foundation: derive one Next Step per displayable case, one owner, one accepted
-status-sentence key, one action/no-action state, and one date or awaiting-date
-reason from approved read-side sources, while preserving erased-subject
-rendering and proving no writer side effects. It does not promote full `MOB-02`,
-claim writers, Agreement Ceremony writers, ProposalCard approval, status
-mutation, outbox writes, schema/RLS/migrations, auth/proxy/routing/session/
-tenancy changes, billing/payment/Paddle, notifications, live AI, KS/AL exposure,
-named-handler display, generated Wiki, Brain tooling, README, AGENTS, or
-architecture docs.
+mapping, and read-model/no-mutation proof submissions returned complete. That
+gate historically selected `MOB-02a`, and the selection is now consumed by Rev
+98 / PR `#1322`. The historical `MOB-02a` scope was limited to the read-only
+Case Companion / Next Step display foundation: derive one Next Step per
+displayable case, one owner, one accepted status-sentence key, one
+action/no-action state, and one date or awaiting-date reason from approved
+read-side sources, while preserving erased-subject rendering and proving no
+writer side effects. It did not promote full `MOB-02`, claim writers, Agreement
+Ceremony writers, ProposalCard approval, status mutation, outbox writes,
+schema/RLS/migrations, auth/proxy/routing/session/tenancy changes,
+billing/payment/Paddle, notifications, live AI, KS/AL exposure, named-handler
+display, generated Wiki, Brain tooling, README, AGENTS, or architecture docs.
+
+Rev 98 closeout: `MOB-02a` completed through PR `#1322` / merge-main SHA
+`4881e003aa11bd8eb0f3f858372490ad360c157c`, recorded in
+`docs/plans/2026-07-09-mob-02a-closeout.md`. The merged work consumed the
+`MOB-DG03` authority and delivered only the read-only Case Companion / Next Step
+display foundation: one derived Next Step per accepted display state, owner,
+accepted status-sentence key, action/no-action state, date or awaiting-date
+reason from approved read-side sources, erased-subject rendering, neutral
+unavailable-date fallback, and member claim-detail display integration. The
+implementation uses public timeline/progress dates for final outcome timing and
+does not rely on administrative `claims.updatedAt` as member-facing final
+outcome evidence. Current-head CI, PR E2E, Pilot Gate, CodeQL, gitleaks,
+pnpm-audit, Dependency Review, OSV, Semgrep, SonarCloud, commitlint, reviewdog,
+and `pr-finalizer` were green before merge; Copilot post-remediation review had
+no blocking findings, and all actionable review threads were resolved. No
+replacement implementation slice is promoted by this closeout; expected
+resolver state is `blocked_requires_current_authority`, `activeSlice=null`
+until a fresh current-authority/design-gate selects exactly one next governed
+action. Full `MOB-02`, claim writers, Agreement Ceremony writers, ProposalCard
+approval, status mutation, outbox writes, schema/RLS/migrations,
+auth/proxy/routing/session/tenancy changes, billing/payment/Paddle,
+notifications, live AI, KS/AL exposure, named-handler display, generated Wiki,
+Brain tooling, README, AGENTS, architecture docs, and broad Help Now
+continuation remain unpromoted.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
