@@ -53,6 +53,7 @@
       "ownerLabel": "Одговорен",
       "statusLabel": "Тековен следен чекор",
       "expectationLabel": "Рок",
+      "dateUnavailableLabel": "Датумот не е достапен.",
       "owner": {
         "member": "Вие",
         "interdomestik": "Тимот за случај на Interdomestik",

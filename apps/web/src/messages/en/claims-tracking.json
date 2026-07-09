@@ -53,6 +53,7 @@
       "ownerLabel": "Owner",
       "statusLabel": "Current next step",
       "expectationLabel": "Timing",
+      "dateUnavailableLabel": "Date unavailable.",
       "owner": {
         "member": "You",
         "interdomestik": "Interdomestik case team",

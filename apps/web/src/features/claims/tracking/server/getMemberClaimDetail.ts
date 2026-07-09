@@ -117,6 +117,10 @@ export async function getMemberClaimDetail(
       );
 
       const slaPhase = deriveClaimSlaPhase(claimStatus);
+      const progressSummary = buildProgressSummary({
+        status: claimStatus,
+        timeline,
+      });
       const dto: ClaimTrackingDetailDto = {
         id: claim.id,
         title: claim.title,
@@ -131,13 +135,10 @@ export async function getMemberClaimDetail(
         documents,
         timeline,
         canShare: true, // TODO: Logic for enabling share button
-        progressSummary: buildProgressSummary({
-          status: claimStatus,
-          timeline,
-        }),
+        progressSummary,
         caseCompanionNextStep: deriveCaseCompanionNextStep({
           status: claimStatus,
-          latestUpdateAt: claim.updatedAt ?? claim.createdAt ?? null,
+          latestUpdateAt: progressSummary.latestUpdateAt,
           piiStatus,
         }),
         memberTrustSummary: buildMemberClaimTrustSummary({

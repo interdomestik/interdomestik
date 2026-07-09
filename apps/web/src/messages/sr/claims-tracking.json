@@ -53,6 +53,7 @@
       "ownerLabel": "Odgovoran",
       "statusLabel": "Trenutni sledeći korak",
       "expectationLabel": "Rok",
+      "dateUnavailableLabel": "Datum nije dostupan.",
       "owner": {
         "member": "Vi",
         "interdomestik": "Interdomestik tim za slučaj",

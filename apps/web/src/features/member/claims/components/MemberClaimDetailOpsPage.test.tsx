@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { deriveCaseCompanionNextStep } from '@interdomestik/domain-claims';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { MemberClaimDetailOpsPage } from './MemberClaimDetailOpsPage';
@@ -138,12 +139,7 @@ vi.mock('next-intl', () => ({
 
 type TestClaim = Parameters<typeof MemberClaimDetailOpsPage>[0]['claim'];
 
-const memberUser = {
-  id: 'member-1',
-  name: 'Member One',
-  image: null,
-  role: 'member',
-} as const;
+const memberUser = { id: 'member-1', name: 'Member One', image: null, role: 'member' } as const;
 
 const testNow = new Date('2026-03-14T10:00:00.000Z');
 
@@ -176,7 +172,7 @@ function buildClaim(now: Date, overrides: Partial<TestClaim> = {}): TestClaim {
       latestUpdateNote: null,
       nextStepKey: 'claims-tracking.status.next_step.evaluation',
     },
-    caseCompanionNextStep: {} as never,
+    caseCompanionNextStep: deriveCaseCompanionNextStep({ status: 'evaluation' }),
     ...overrides,
   };
 }

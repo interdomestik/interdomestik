@@ -25,7 +25,7 @@ export function CaseCompanionNextStepCard({
   const actionLabel = t(translationKey(nextStep.actionKey, 'claims-tracking.case_companion.'));
   const expectation =
     nextStep.nextStepDate !== null
-      ? formatPilotDateTime(nextStep.nextStepDate, locale, t('awaiting_date.outcome_recorded'))
+      ? formatPilotDateTime(nextStep.nextStepDate, locale, t('dateUnavailableLabel'))
       : t(`awaiting_date.${nextStep.awaitingDateReason ?? 'case_team_review'}`);
 
   return (

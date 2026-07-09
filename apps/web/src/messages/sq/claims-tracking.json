@@ -53,6 +53,7 @@
       "ownerLabel": "Përgjegjësi",
       "statusLabel": "Hapi aktual i radhës",
       "expectationLabel": "Afati",
+      "dateUnavailableLabel": "Data nuk është e disponueshme.",
       "owner": {
         "member": "Ju",
         "interdomestik": "Ekipi i rastit Interdomestik",

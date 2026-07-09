@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  caseCompanionNextStep: {
+    owner: 'interdomestik',
+    statusSentenceKey: 'claims-tracking.case_companion.status_sentence.evaluation',
+    actionKind: 'no_action',
+    actionKey: 'claims-tracking.case_companion.action.no_action',
+    nextStepDate: null,
+    awaitingDateReason: 'case_team_review',
+    renderMode: 'standard',
+  },
   claimFindFirst: vi.fn(),
   timelineRows: vi.fn(),
   recoveryDecisionRows: vi.fn(),
@@ -9,7 +18,7 @@ const hoisted = vi.hoisted(() => ({
   ensureClaimsAccess: vi.fn(),
   buildClaimVisibilityWhere: vi.fn(),
   getMatterAllowanceVisibility: vi.fn(),
-  deriveCaseCompanionNextStep: vi.fn(() => null),
+  deriveCaseCompanionNextStep: vi.fn(),
   resolveClaimLifecycleReadProjection: vi.fn((claim: { status?: string | null }) => ({
     status: claim.status ?? 'draft',
   })),
@@ -129,6 +138,14 @@ vi.mock('./member-domain-event-timeline', () => ({
 import { getMemberClaimDetail } from './getMemberClaimDetail';
 import { normalizeMemberTimelineMockRows } from './member-domain-event-timeline.test-support';
 
+const memberSession = {
+  user: {
+    id: 'member-1',
+    role: 'member',
+    tenantId: 'tenant-1',
+  },
+} as const;
+
 function configureSelectMocks() {
   hoisted.select.mockReturnValueOnce({
     from: () => ({
@@ -150,6 +167,7 @@ describe('getMemberClaimDetail', () => {
     });
     hoisted.buildClaimVisibilityWhere.mockReturnValue({ visibility: 'member' });
     hoisted.getMatterAllowanceVisibility.mockResolvedValue(null);
+    hoisted.deriveCaseCompanionNextStep.mockReturnValue(hoisted.caseCompanionNextStep);
     hoisted.getMemberTimelineFromDomainEvents.mockImplementation(async context => {
       return normalizeMemberTimelineMockRows(context, await hoisted.timelineRows());
     });
@@ -173,16 +191,7 @@ describe('getMemberClaimDetail', () => {
     });
     hoisted.timelineRows.mockResolvedValueOnce([]);
 
-    const result = await getMemberClaimDetail(
-      {
-        user: {
-          id: 'member-1',
-          role: 'member',
-          tenantId: 'tenant-1',
-        },
-      },
-      'claim-1'
-    );
+    const result = await getMemberClaimDetail(memberSession, 'claim-1');
 
     expect(result).not.toBeNull();
     expect(result?.timeline).toHaveLength(1);
@@ -246,15 +255,16 @@ describe('getMemberClaimDetail', () => {
     );
   });
 
-  it('derives member progress summary from the latest public timeline event', async () => {
-    const latestUpdate = new Date('2026-04-15T12:30:00.000Z');
+  it('derives progress and Case Companion timing from the latest public timeline event', async () => {
+    const claimUpdatedAt = new Date('2026-04-16T12:30:00.000Z');
+    const latestPublicUpdate = new Date('2026-04-15T12:30:00.000Z');
 
     hoisted.claimFindFirst.mockResolvedValueOnce({
       id: 'claim_progress',
       title: 'Delayed flight',
       status: 'evaluation',
       createdAt: new Date('2026-04-14T09:00:00.000Z'),
-      updatedAt: latestUpdate,
+      updatedAt: claimUpdatedAt,
       description: 'Compensation review',
       claimAmount: 250,
       currency: 'EUR',
@@ -263,7 +273,7 @@ describe('getMemberClaimDetail', () => {
     hoisted.timelineRows.mockResolvedValueOnce([
       {
         id: 'history_latest',
-        createdAt: latestUpdate,
+        createdAt: latestPublicUpdate,
         fromStatus: 'verification',
         toStatus: 'evaluation',
         note: 'We reviewed the boarding pass and moved the case to evaluation.',
@@ -279,24 +289,23 @@ describe('getMemberClaimDetail', () => {
       },
     ]);
 
-    const result = await getMemberClaimDetail(
-      {
-        user: {
-          id: 'member-1',
-          role: 'member',
-          tenantId: 'tenant-1',
-        },
-      },
-      'claim_progress'
-    );
+    const result = await getMemberClaimDetail(memberSession, 'claim_progress');
 
     expect(result?.progressSummary).toEqual({
       currentStatusLabelKey: 'claims-tracking.status.evaluation',
-      latestUpdateAt: latestUpdate,
+      latestUpdateAt: latestPublicUpdate,
       latestUpdateLabelKey: 'claims-tracking.status.evaluation',
       latestUpdateNote: 'We reviewed the boarding pass and moved the case to evaluation.',
       nextStepKey: 'claims-tracking.status.next_step.evaluation',
     });
+    expect(hoisted.deriveCaseCompanionNextStep).toHaveBeenCalledWith({
+      status: 'evaluation',
+      latestUpdateAt: latestPublicUpdate,
+      piiStatus: 'available',
+    });
+    expect(hoisted.deriveCaseCompanionNextStep).not.toHaveBeenCalledWith(
+      expect.objectContaining({ latestUpdateAt: claimUpdatedAt })
+    );
   });
 
   it('maps annual matter allowance visibility onto the member claim detail dto', async () => {
@@ -320,16 +329,7 @@ describe('getMemberClaimDetail', () => {
       windowEnd: new Date('2026-12-31T23:59:59.000Z'),
     });
 
-    const result = await getMemberClaimDetail(
-      {
-        user: {
-          id: 'member-1',
-          role: 'member',
-          tenantId: 'tenant-1',
-        },
-      },
-      'claim_2'
-    );
+    const result = await getMemberClaimDetail(memberSession, 'claim_2');
 
     expect(hoisted.getMatterAllowanceVisibility).toHaveBeenCalledWith({
       tenantId: 'tenant-1',
@@ -412,16 +412,7 @@ describe('getMemberClaimDetail', () => {
       },
     ]);
 
-    const result = await getMemberClaimDetail(
-      {
-        user: {
-          id: 'member-1',
-          role: 'member',
-          tenantId: 'tenant-1',
-        },
-      },
-      'claim_accepted'
-    );
+    const result = await getMemberClaimDetail(memberSession, 'claim_accepted');
 
     expect((result as { recoveryDecision?: unknown } | null)?.recoveryDecision).toEqual({
       status: 'accepted',

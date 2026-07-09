@@ -10,6 +10,7 @@ vi.mock('next-intl', () => ({
       'claims-tracking.case_companion.ownerLabel': 'Owner',
       'claims-tracking.case_companion.statusLabel': 'Status',
       'claims-tracking.case_companion.expectationLabel': 'Expected timing',
+      'claims-tracking.case_companion.dateUnavailableLabel': 'Date unavailable.',
       'claims-tracking.case_companion.owner.interdomestik': 'Interdomestik case team',
       'claims-tracking.case_companion.status_sentence.evaluation':
         'The case team is reviewing the safe case details.',
@@ -81,6 +82,29 @@ describe('CaseCompanionNextStepCard', () => {
       '2026-07-09T08:00:00.000Z'
     );
     expect(screen.getByTestId('member-claim-next-step-expectation')).toHaveTextContent('2026');
+  });
+
+  it('uses a neutral fallback when a serialized outcome date is invalid', () => {
+    render(
+      <CaseCompanionNextStepCard
+        nextStep={{
+          owner: 'interdomestik',
+          statusSentenceKey: 'claims-tracking.case_companion.status_sentence.resolved',
+          actionKind: 'no_action',
+          actionKey: 'claims-tracking.case_companion.action.no_action',
+          nextStepDate: 'not-a-date',
+          awaitingDateReason: null,
+          renderMode: 'standard',
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('member-claim-next-step-expectation')).toHaveTextContent(
+      'Date unavailable.'
+    );
+    expect(screen.getByTestId('member-claim-next-step-expectation')).not.toHaveTextContent(
+      'Final outcome recorded'
+    );
   });
 
   it('renders erased state without subject detail', () => {
