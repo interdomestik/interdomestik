@@ -253,6 +253,25 @@ ProposalCard reuse, billing, payment, claim writers, proxy/routing/auth/session
 exposure, broad Help Now continuation, generated wiki, Brain tooling, README,
 AGENTS, and broad UI package work remain unpromoted.
 
+Rev 97 current-authority/design-gate: `MOB-DG03` in
+`docs/plans/2026-07-09-mob-dg03-mob-02a-read-only-case-companion-current-authority.md`
+records the accepted reviewer-portal entry evidence in
+`docs/plans/2026-07-09-mob-dg03-entry-evidence-acceptance.md` after PR `#1319`
+reconciled Memo 2 and the remaining `ENT-B04`, `ENT-B05`, Memo 2 display
+mapping, and read-model/no-mutation proof submissions returned complete. This
+gate promotes exactly one canonical tracker slice: `MOB-02a`. The next active
+governed implementation goal is exactly one canonical tracker slice: `MOB-02a`.
+Future `MOB-02a` is limited to the read-only Case Companion / Next Step display
+foundation: derive one Next Step per displayable case, one owner, one accepted
+status-sentence key, one action/no-action state, and one date or awaiting-date
+reason from approved read-side sources, while preserving erased-subject
+rendering and proving no writer side effects. It does not promote full `MOB-02`,
+claim writers, Agreement Ceremony writers, ProposalCard approval, status
+mutation, outbox writes, schema/RLS/migrations, auth/proxy/routing/session/
+tenancy changes, billing/payment/Paddle, notifications, live AI, KS/AL exposure,
+named-handler display, generated Wiki, Brain tooling, README, AGENTS, or
+architecture docs.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the

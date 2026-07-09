@@ -37,16 +37,20 @@ Process only one of these input types:
 
 ## Step Mapping
 
-| Returned step | Primary register row                                            | Can unblock                                             | Cannot do alone              |
-| ------------- | --------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------- |
-| `ENT-A04`     | Step 2 / MK reviewer appointment plus country-content decisions | MK content evidence for `MOB-DG01B`                     | Public Help Now exposure     |
-| `ENT-A14`     | Step 3 / UI-UX trust findings                                   | Placeholder/trust copy cleanup                          | Runtime launch               |
-| `ENT-A05`     | Step 5 / B6 ops proof                                           | Content-pack hotfix/re-darken acceptance                | Runtime deploy               |
-| `ENT-A06`     | Step 5 / B7 ops proof                                           | Alert owner/proof acceptance or instrumentation blocker | Observability implementation |
-| `ENT-A02-A03` | Step 4 / memos plus Steps 8-9 prep                              | Fee/handler assumptions                                 | Billing/case runtime         |
-| `STEP3-UIUX`  | Step 3 / UI-UX disposition                                      | UI package blocker/polish classification                | Runtime UI rewrite           |
-| `KS-FUTURE`   | Future KS note only                                             | KS planning input                                       | KS sign-off                  |
-| `AL-BLOCKED`  | Future AL note only                                             | AL reviewer identification                              | AL launch                    |
+| Returned step            | Primary register row                                            | Can unblock                                             | Cannot do alone              |
+| ------------------------ | --------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------- |
+| `ENT-A04`                | Step 2 / MK reviewer appointment plus country-content decisions | MK content evidence for `MOB-DG01B`                     | Public Help Now exposure     |
+| `ENT-A14`                | Step 3 / UI-UX trust findings                                   | Placeholder/trust copy cleanup                          | Runtime launch               |
+| `ENT-A05`                | Step 5 / B6 ops proof                                           | Content-pack hotfix/re-darken acceptance                | Runtime deploy               |
+| `ENT-A06`                | Step 5 / B7 ops proof                                           | Alert owner/proof acceptance or instrumentation blocker | Observability implementation |
+| `ENT-A02-A03`            | Step 4 / memos plus Steps 8-9 prep                              | Fee/handler assumptions                                 | Billing/case runtime         |
+| `ENT-B04`                | MOB-DG03 prep / status-sentence catalog                         | `MOB-02a` copy-entry evidence                           | Runtime Case Companion       |
+| `ENT-B05`                | MOB-DG03 prep / G09 Next Step SLA reconciliation                | `MOB-02a` SLA/date-entry evidence                       | Runtime SLA display          |
+| `MOB02A-MEMO2-MAPPING`   | MOB-DG03 prep / Memo 2 display-model mapping                    | `MOB-02a` handler/team display-model evidence           | Named-handler runtime        |
+| `MOB02A-READMODEL-PROOF` | MOB-DG03 prep / read-model and no-mutation proof                | `MOB-02a` read-only proof evidence                      | Runtime implementation       |
+| `STEP3-UIUX`             | Step 3 / UI-UX disposition                                      | UI package blocker/polish classification                | Runtime UI rewrite           |
+| `KS-FUTURE`              | Future KS note only                                             | KS planning input                                       | KS sign-off                  |
+| `AL-BLOCKED`             | Future AL note only                                             | AL reviewer identification                              | AL launch                    |
 
 ## Decision Translation
 
@@ -102,6 +106,10 @@ After processing a return:
 | `ENT-A06` needs instrumentation                  | Prepare a separate minimal instrumentation candidate; do not implement without authority                                          |
 | Memo 1 accepted                                  | Update `MOB-05a` fee-math assumptions as signed                                                                                   |
 | Memo 2 accepted                                  | Update `MOB-02` handler/SLA assumptions as signed                                                                                 |
+| `ENT-B04` accepted                               | Update MOB-DG03 blocker packet/register pointers for status-sentence catalog evidence; do not promote runtime                     |
+| `ENT-B05` accepted                               | Update MOB-DG03 blocker packet/register pointers for G09/SLA reconciliation evidence; do not promote runtime                      |
+| `MOB02A-MEMO2-MAPPING` accepted                  | Update Memo 2 display-model mapping evidence; do not infer named-handler runtime unless the selected model explicitly permits it  |
+| `MOB02A-READMODEL-PROOF` accepted                | Update MOB-DG03 read-model/no-mutation proof evidence; runtime still waits for current-authority/design-gate                      |
 | UI/UX blocker found                              | Feed blocker into UI package/gate prep before runtime                                                                             |
 
 ## Non-Negotiable Rule

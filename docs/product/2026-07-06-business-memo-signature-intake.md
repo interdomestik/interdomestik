@@ -108,13 +108,14 @@ not create runtime handler authority.
 | B               | Case Companion must use case-team language; names appear only as signature-level facts.           |
 | C               | Case Companion must design both variants and gate named-handler exposure per branch thresholds.   |
 
-Do not request `MOB-02` authority from the old "Memo 2 missing / unsigned"
-blocker. The corrected blocker is that Memo 2 artifact/custody evidence exists
-and is accepted for preparation, but the decision-model mapping remains
-incomplete. `MOB-02` / `MOB-02a` remains unpromoted until `MOB-DG03` exists and
-the remaining entry evidence is complete. The accepted Memo 2 correction must
-not be used to infer named-handler reliability, notifications, claim writers,
-Agreement Ceremony behavior, or runtime SLA display by itself.
+The old "Memo 2 missing / unsigned" blocker is closed and must not be cited as
+a reason to deny `MOB-02` / `MOB-02a` authority review. The corrected blocker is
+that Memo 2 artifact/custody evidence exists and is accepted for preparation,
+but the decision-model mapping remains incomplete. `MOB-02` / `MOB-02a` remains
+unpromoted until `MOB-DG03` exists and the remaining entry evidence is complete.
+The accepted Memo 2 correction must not be used to infer named-handler
+reliability, notifications, claim writers, Agreement Ceremony behavior, or
+runtime SLA display by itself.
 
 ## Safe Evidence Rules
 
