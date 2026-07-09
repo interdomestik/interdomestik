@@ -295,6 +295,30 @@ notifications, live AI, KS/AL exposure, named-handler display, generated Wiki,
 Brain tooling, README, AGENTS, architecture docs, and broad Help Now
 continuation remain unpromoted.
 
+Rev 99 current-authority/design-gate: `MOB-DG04` in
+`docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md` records the
+post-`MOB-02a` next-slice selection after reviewer-portal correction items for
+`MOB-DG04`, `MOB03-DPIA-CONSENT`, `MOB03-ACCESS-THREAT`, and
+`MOB05B-POA-ESIGN` reached latest per-item `correctionStatus=confirmed`.
+The reviewer corrections close the prior evidence-intake correction state, but
+they are requirements and constraints rather than signed/accepted runtime
+authority. `MOB-DG04` therefore promotes no runtime slice. `MOB-03` remains an
+umbrella and is not promoted. The nearest future candidate is a narrow
+`MOB-03a` non-medical, car/property-only vault + consent display foundation,
+but it still requires repo-safe privacy/legal owner evidence, explicit
+medical/injury disablement or signed DPIA/Art. 9 authority, consent-record
+authority, access-role and document-boundary proof, threat-model recheck,
+erasure/redaction proof, exact scope, exclusions, and stop conditions before
+any runtime promotion. `MOB-05b` remains blocked behind `MOB-03` consent
+records and the L1 POA/e-sign matrix. Expected resolver state remains
+`blocked_requires_current_authority`, `activeSlice=null`; full `MOB-03`,
+medical/injury data, `MOB-05b`, claim writers, Agreement Ceremony writers,
+ProposalCard approval, status mutation, outbox writes, schema/RLS/migrations,
+auth/proxy/routing/session/tenancy, billing/payment/Paddle, sponsor/payer/
+partner exposure, KS/AL exposure, notifications, live AI, generated Wiki,
+Brain tooling, README, AGENTS, architecture docs, and broad product expansion
+remain unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
