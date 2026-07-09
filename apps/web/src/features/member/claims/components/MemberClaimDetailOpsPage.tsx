@@ -24,6 +24,10 @@ import { LifeBuoy, Upload } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef } from 'react';
 import { useTrackingLabelTranslator } from '@/features/claims/tracking/components/useTrackingLabelTranslator';
+import {
+  CaseCompanionNextStepCard,
+  type SerializedCaseCompanionNextStep,
+} from './CaseCompanionNextStepCard';
 import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
 
 type SerializedClaimTrackingDocument = Omit<ClaimTrackingDocument, 'createdAt'> & {
@@ -54,12 +58,14 @@ type MemberClaimDetailOpsClaim = Omit<
   | 'matterAllowance'
   | 'recoveryDecision'
   | 'progressSummary'
+  | 'caseCompanionNextStep'
 > & {
   createdAt: ClaimTrackingDetailDto['createdAt'] | string;
   updatedAt: ClaimTrackingDetailDto['updatedAt'] | string | null;
   documents: SerializedClaimTrackingDocument[];
   timeline: SerializedClaimTimelineEvent[];
   progressSummary: SerializedClaimProgressSummary;
+  caseCompanionNextStep: SerializedCaseCompanionNextStep;
   matterAllowance?: SerializedClaimMatterAllowance | null;
   recoveryDecision?: SerializedClaimRecoveryDecision | null;
 };
@@ -81,7 +87,6 @@ export function MemberClaimDetailOpsPage({
   const messagingSectionRef = useRef<HTMLElement | null>(null);
   const locale = useLocale();
   const t = useTranslations('claims');
-  const tTrackingNextStep = useTranslations('claims-tracking.status.next_step');
   const tTrackingSla = useTranslations('claims-tracking.tracking.sla');
   const tAssurance = useTranslations('claims-tracking.tracking.assurance');
   const tClaimStatus = useTranslations('claims.status');
@@ -138,13 +143,6 @@ export function MemberClaimDetailOpsPage({
     locale,
     String(claim.progressSummary.latestUpdateAt)
   );
-  const nextStepLabel = claim.progressSummary.nextStepKey.startsWith(
-    'claims-tracking.status.next_step.'
-  )
-    ? tTrackingNextStep(
-        claim.progressSummary.nextStepKey.replace('claims-tracking.status.next_step.', '')
-      )
-    : claim.progressSummary.nextStepKey;
   const hasMemberSlaStatus = claim.slaPhase === 'incomplete' || claim.slaPhase === 'running';
 
   return (
@@ -196,7 +194,7 @@ export function MemberClaimDetailOpsPage({
               <CardTitle>{t('detail.progress.title')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <span className="text-xs uppercase text-muted-foreground">
                     {t('detail.progress.currentState')}
@@ -224,20 +222,11 @@ export function MemberClaimDetailOpsPage({
                     </p>
                   ) : null}
                 </div>
-                <div>
-                  <span className="text-xs uppercase text-muted-foreground">
-                    {t('detail.progress.nextAction')}
-                  </span>
-                  <p
-                    className="mt-1 text-sm leading-6"
-                    data-testid="member-claim-expected-next-action"
-                  >
-                    {nextStepLabel}
-                  </p>
-                </div>
               </div>
             </CardContent>
           </Card>
+
+          <CaseCompanionNextStepCard nextStep={claim.caseCompanionNextStep} />
 
           {hasMemberSlaStatus ? (
             <Card data-testid="member-claim-sla-status">

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { deriveCaseCompanionNextStep } from '@interdomestik/domain-claims';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { MemberClaimDetailOpsPage } from './MemberClaimDetailOpsPage';
@@ -29,6 +30,9 @@ const hoisted = vi.hoisted(() => ({
       </div>
     )
   ),
+  caseCompanionNextStepCardMock: vi.fn((_props: unknown) => (
+    <div data-testid="member-claim-case-companion-next-step" />
+  )),
 }));
 
 vi.mock('@/components/messaging/messaging-panel', () => ({
@@ -38,6 +42,10 @@ vi.mock('@/components/messaging/messaging-panel', () => ({
 vi.mock('./ClaimEvidenceUploadDialog', () => ({
   ClaimEvidenceUploadDialog: (props: unknown) =>
     hoisted.claimEvidenceUploadDialogMock(props as never),
+}));
+
+vi.mock('./CaseCompanionNextStepCard', () => ({
+  CaseCompanionNextStepCard: (props: unknown) => hoisted.caseCompanionNextStepCardMock(props),
 }));
 
 vi.mock('@/i18n/routing', () => ({
@@ -56,15 +64,6 @@ vi.mock('next-intl', () => ({
         if (key === 'evaluation') return 'Evaluation';
         if (key === 'verification') return 'Verification';
         return `claims-tracking.status.${key}`;
-      };
-    }
-    if (namespace === 'claims-tracking.status.next_step') {
-      return (key: string) => {
-        const translations: Record<string, string> = {
-          evaluation: 'Our experts are evaluating the damages and liability.',
-          verification: 'We are verifying the provided documents and evidence.',
-        };
-        return translations[key] || `claims-tracking.status.next_step.${key}`;
       };
     }
     if (namespace === 'claims-tracking.tracking.sla') {
@@ -117,7 +116,6 @@ vi.mock('next-intl', () => ({
           'detail.progress.title': 'Progress summary',
           'detail.progress.currentState': 'Current state',
           'detail.progress.latestUpdate': 'Latest update',
-          'detail.progress.nextAction': 'Expected next action',
           'table.amount': 'Amount',
         };
 
@@ -141,12 +139,7 @@ vi.mock('next-intl', () => ({
 
 type TestClaim = Parameters<typeof MemberClaimDetailOpsPage>[0]['claim'];
 
-const memberUser = {
-  id: 'member-1',
-  name: 'Member One',
-  image: null,
-  role: 'member',
-} as const;
+const memberUser = { id: 'member-1', name: 'Member One', image: null, role: 'member' } as const;
 
 const testNow = new Date('2026-03-14T10:00:00.000Z');
 
@@ -179,6 +172,7 @@ function buildClaim(now: Date, overrides: Partial<TestClaim> = {}): TestClaim {
       latestUpdateNote: null,
       nextStepKey: 'claims-tracking.status.next_step.evaluation',
     },
+    caseCompanionNextStep: deriveCaseCompanionNextStep({ status: 'evaluation' }),
     ...overrides,
   };
 }
@@ -283,7 +277,7 @@ describe('MemberClaimDetailOpsPage', () => {
     );
   });
 
-  it('shows current state, latest public update, and expected next action', () => {
+  it('shows current state and latest public update separately from the Case Companion card', () => {
     renderPage({
       progressSummary: {
         currentStatusLabelKey: 'claims-tracking.status.verification',
@@ -302,9 +296,8 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(screen.getByTestId('member-claim-latest-update-note')).toHaveTextContent(
       'We reviewed your boarding pass and moved the case forward.'
     );
-    expect(screen.getByTestId('member-claim-expected-next-action')).toHaveTextContent(
-      'Our experts are evaluating the damages and liability.'
-    );
+    expect(screen.queryByTestId('member-claim-expected-next-action')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('member-claim-case-companion-next-step')).toHaveLength(1);
   });
 
   it('shows annual matter usage and remaining allowance when the snapshot is available', () => {

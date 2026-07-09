@@ -2,45 +2,21 @@ import { ensureClaimsAccess, type ClaimsSession } from '@/server/domains/claims/
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
 import { buildMemberClaimTrustSummary } from '@/features/claims/tracking/memberTrustSummary';
 import {
-  getMatterAllowanceVisibilityForUser,
+  deriveCaseCompanionNextStep,
   buildRecoveryDecisionSnapshot,
+  getMatterAllowanceVisibilityForUser,
   resolveClaimLifecycleReadProjection,
   toMemberSafeRecoveryDecision,
 } from '@interdomestik/domain-claims';
 import { db, ERASURE_REDACTED_VALUE } from '@interdomestik/database';
-import type { ClaimStatus } from '@interdomestik/database/constants';
 import { claimDocuments, claimEscalationAgreements, claims } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { and, desc, eq } from 'drizzle-orm';
 import 'server-only';
-import type {
-  ClaimProgressSummaryDto,
-  ClaimTimelineEvent,
-  ClaimTrackingDetailDto,
-  ClaimTrackingDocument,
-} from '../types';
+import type { ClaimTrackingDetailDto, ClaimTrackingDocument } from '../types';
 import { buildClaimVisibilityWhere } from '../utils';
 import { getMemberTimelineFromDomainEvents } from './member-domain-event-timeline';
-
-function buildProgressSummary(args: {
-  status: ClaimStatus;
-  timeline: ClaimTimelineEvent[];
-}): ClaimProgressSummaryDto {
-  const currentStatusLabelKey = `claims-tracking.status.${args.status}`;
-  const latestUpdate = args.timeline[0];
-
-  if (!latestUpdate) {
-    throw new Error('buildProgressSummary requires a non-empty timeline');
-  }
-
-  return {
-    currentStatusLabelKey,
-    latestUpdateAt: latestUpdate.date,
-    latestUpdateLabelKey: latestUpdate.labelKey,
-    latestUpdateNote: latestUpdate.note,
-    nextStepKey: `claims-tracking.status.next_step.${args.status}`,
-  };
-}
+import { buildProgressSummary } from './member-progress-summary';
 
 export async function getMemberClaimDetail(
   session: ClaimsSession | null,
@@ -111,12 +87,14 @@ export async function getMemberClaimDetail(
       });
 
       const claimStatus = resolveClaimLifecycleReadProjection(claim).status;
+      const piiStatus =
+        claim.userId === ERASURE_REDACTED_VALUE ? 'erased_or_unavailable' : 'available';
       const timeline = await getMemberTimelineFromDomainEvents({
         claimId: claim.id,
         tenantId,
         currentStatus: claimStatus,
         createdAt: claim.createdAt,
-        piiStatus: claim.userId === ERASURE_REDACTED_VALUE ? 'erased_or_unavailable' : 'available',
+        piiStatus,
         updatedAt: claim.updatedAt,
       });
 
@@ -139,6 +117,10 @@ export async function getMemberClaimDetail(
       );
 
       const slaPhase = deriveClaimSlaPhase(claimStatus);
+      const progressSummary = buildProgressSummary({
+        status: claimStatus,
+        timeline,
+      });
       const dto: ClaimTrackingDetailDto = {
         id: claim.id,
         title: claim.title,
@@ -153,9 +135,11 @@ export async function getMemberClaimDetail(
         documents,
         timeline,
         canShare: true, // TODO: Logic for enabling share button
-        progressSummary: buildProgressSummary({
+        progressSummary,
+        caseCompanionNextStep: deriveCaseCompanionNextStep({
           status: claimStatus,
-          timeline,
+          latestUpdateAt: progressSummary.latestUpdateAt,
+          piiStatus,
         }),
         memberTrustSummary: buildMemberClaimTrustSummary({
           claimId: claim.id,

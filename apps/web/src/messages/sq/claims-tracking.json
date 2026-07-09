@@ -48,6 +48,45 @@
         }
       }
     },
+    "case_companion": {
+      "title": "Ndihmësi i rastit",
+      "ownerLabel": "Përgjegjësi",
+      "statusLabel": "Hapi aktual i radhës",
+      "expectationLabel": "Afati",
+      "dateUnavailableLabel": "Data nuk është e disponueshme.",
+      "owner": {
+        "member": "Ju",
+        "interdomestik": "Ekipi i rastit Interdomestik",
+        "insurer": "Pala e jashtme",
+        "court": "Gjykata"
+      },
+      "status_sentence": {
+        "draft": "Kërkesa juaj ende nuk është dorëzuar.",
+        "submitted": "Ekipi i rastit po kontrollon kërkesën e dorëzuar.",
+        "submitted_to_airline": "Paketa e rastit është te pala e jashtme.",
+        "verification": "Na duhet informacioni i kërkuar para se rasti të ecë përpara.",
+        "evaluation": "Ekipi i rastit po shqyrton detajet e sigurta të rastit.",
+        "negotiation": "Përgjigjja e palës së jashtme po ndiqet.",
+        "court": "Përditësimi i radhës varet nga orari i gjykatës.",
+        "resolved": "Ky rast ka rezultat final.",
+        "rejected": "Ky rast nuk mund të vazhdojë brenda fushës aktuale.",
+        "redacted": "Ky rast është i disponueshëm në një pamje të kufizuar të mbrojtur."
+      },
+      "action": {
+        "submit_claim": "Dorëzo kërkesën kur informacioni juaj është gati.",
+        "upload_evidence": "Ngarko provat e kërkuara kur janë të disponueshme.",
+        "no_action": "Nuk kërkohet veprim nga ju tani.",
+        "complete": "Shqyrto përditësimin final dhe kontakto mbështetjen nëse diçka duket gabim."
+      },
+      "awaiting_date": {
+        "member_action_required": "Data pret veprimin tuaj.",
+        "case_team_review": "Data pret shqyrtimin nga ekipi i rastit.",
+        "external_party": "Data pret përgjigjen e palës së jashtme.",
+        "court_schedule": "Data pret orarin e gjykatës.",
+        "outcome_recorded": "Rezultati përfundimtar është regjistruar; nuk nevojitet datë për hap tjetër.",
+        "erased_subject": "Data është fshehur sepse të dhënat e subjektit janë fshirë."
+      }
+    },
     "status": {
       "draft": "Skicë",
       "submitted": "E dorëzuar",
@@ -60,7 +99,7 @@
       "rejected": "E Refuzuar",
       "next_step": {
         "draft": "Ju lutemi dorëzoni kërkesën tuaj për shqyrtim.",
-        "submitted": "Kemi marrë kërkesën tuaj dhe do ta caktojmë te një menaxher rasti së shpejti.",
+        "submitted": "Kemi marrë kërkesën tuaj dhe ekipi i rastit do ta shqyrtojë së shpejti.",
         "submitted_to_airline": "Paketën e kërkesës e kemi dorëzuar te linja ajrore.",
         "verification": "Po verifikojmë dokumentet dhe provat e ofruara.",
         "evaluation": "Ekspertët tanë po vlerësojnë dëmet dhe përgjegjësinë.",

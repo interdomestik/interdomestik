@@ -48,6 +48,45 @@
         }
       }
     },
+    "case_companion": {
+      "title": "Case Companion",
+      "ownerLabel": "Owner",
+      "statusLabel": "Current next step",
+      "expectationLabel": "Timing",
+      "dateUnavailableLabel": "Date unavailable.",
+      "owner": {
+        "member": "You",
+        "interdomestik": "Interdomestik case team",
+        "insurer": "External party",
+        "court": "Court"
+      },
+      "status_sentence": {
+        "draft": "Your claim is not submitted yet.",
+        "submitted": "The case team is checking the submitted claim.",
+        "submitted_to_airline": "The case package is with the external party.",
+        "verification": "We need the requested information before the case can move forward.",
+        "evaluation": "The case team is reviewing the safe case details.",
+        "negotiation": "The external party response is being followed through.",
+        "court": "The next update depends on the court schedule.",
+        "resolved": "This case has a final outcome.",
+        "rejected": "This case cannot continue under the current scope.",
+        "redacted": "This case is available in a protected limited view."
+      },
+      "action": {
+        "submit_claim": "Submit the claim when your information is ready.",
+        "upload_evidence": "Upload the requested evidence when available.",
+        "no_action": "No action is needed from you right now.",
+        "complete": "Review the final update and contact support if something looks wrong."
+      },
+      "awaiting_date": {
+        "member_action_required": "Date awaiting your action.",
+        "case_team_review": "Date awaiting case-team review.",
+        "external_party": "Date awaiting the external party response.",
+        "court_schedule": "Date awaiting the court schedule.",
+        "outcome_recorded": "Final outcome recorded; no next-step date is needed.",
+        "erased_subject": "Date hidden because the subject data is erased."
+      }
+    },
     "status": {
       "draft": "Draft",
       "submitted": "Submitted",
@@ -60,7 +99,7 @@
       "rejected": "Rejected",
       "next_step": {
         "draft": "Please submit your claim for review.",
-        "submitted": "We have received your claim and will assign it to a case manager shortly.",
+        "submitted": "We have received your claim and the case team will review it shortly.",
         "submitted_to_airline": "We have submitted your claim package to the airline.",
         "verification": "We are verifying the provided documents and evidence.",
         "evaluation": "Our experts are evaluating the damages and liability.",
