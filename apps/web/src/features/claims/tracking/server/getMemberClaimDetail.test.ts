@@ -9,6 +9,7 @@ const hoisted = vi.hoisted(() => ({
   ensureClaimsAccess: vi.fn(),
   buildClaimVisibilityWhere: vi.fn(),
   getMatterAllowanceVisibility: vi.fn(),
+  deriveCaseCompanionNextStep: vi.fn(() => null),
   resolveClaimLifecycleReadProjection: vi.fn((claim: { status?: string | null }) => ({
     status: claim.status ?? 'draft',
   })),
@@ -55,7 +56,6 @@ const hoisted = vi.hoisted(() => ({
       description: snapshot.memberDescription ?? null,
     };
   }),
-  captureException: vi.fn(),
   setTag: vi.fn(),
   withServerActionInstrumentation: vi.fn(
     async (_name: string, _options: unknown, callback: () => Promise<unknown>) => callback()
@@ -68,6 +68,7 @@ vi.mock('@/server/domains/claims/guards', () => ({
 
 vi.mock('@interdomestik/domain-claims', () => ({
   getMatterAllowanceVisibilityForUser: hoisted.getMatterAllowanceVisibility,
+  deriveCaseCompanionNextStep: hoisted.deriveCaseCompanionNextStep,
   resolveClaimLifecycleReadProjection: hoisted.resolveClaimLifecycleReadProjection,
   buildRecoveryDecisionSnapshot: hoisted.buildRecoveryDecisionSnapshot,
   toMemberSafeRecoveryDecision: hoisted.toMemberSafeRecoveryDecision,
@@ -117,7 +118,6 @@ vi.mock('drizzle-orm', () => ({
 }));
 
 vi.mock('@sentry/nextjs', () => ({
-  captureException: hoisted.captureException,
   setTag: hoisted.setTag,
   withServerActionInstrumentation: hoisted.withServerActionInstrumentation,
 }));

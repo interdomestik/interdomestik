@@ -48,6 +48,44 @@
         }
       }
     },
+    "case_companion": {
+      "title": "Pratilac slučaja",
+      "ownerLabel": "Odgovoran",
+      "statusLabel": "Trenutni sledeći korak",
+      "expectationLabel": "Rok",
+      "owner": {
+        "member": "Vi",
+        "interdomestik": "Interdomestik tim za slučaj",
+        "insurer": "Spoljna strana",
+        "court": "Sud"
+      },
+      "status_sentence": {
+        "draft": "Vaš zahtev još nije podnet.",
+        "submitted": "Tim za slučaj proverava podneti zahtev.",
+        "submitted_to_airline": "Paket slučaja je kod spoljne strane.",
+        "verification": "Potrebne su nam tražene informacije pre nego što slučaj može dalje.",
+        "evaluation": "Tim za slučaj pregleda bezbedne detalje slučaja.",
+        "negotiation": "Prati se odgovor spoljne strane.",
+        "court": "Sledeće ažuriranje zavisi od rasporeda suda.",
+        "resolved": "Ovaj slučaj ima konačan ishod.",
+        "rejected": "Ovaj slučaj ne može da se nastavi u trenutnom opsegu.",
+        "redacted": "Ovaj slučaj je dostupan u zaštićenom ograničenom prikazu."
+      },
+      "action": {
+        "submit_claim": "Podnesite zahtev kada su vaše informacije spremne.",
+        "upload_evidence": "Otpremite tražene dokaze kada budu dostupni.",
+        "no_action": "Trenutno nije potrebna vaša radnja.",
+        "complete": "Pregledajte konačno ažuriranje i kontaktirajte podršku ako nešto izgleda pogrešno."
+      },
+      "awaiting_date": {
+        "member_action_required": "Datum čeka vašu radnju.",
+        "case_team_review": "Datum čeka pregled tima za slučaj.",
+        "external_party": "Datum čeka odgovor spoljne strane.",
+        "court_schedule": "Datum čeka raspored suda.",
+        "outcome_recorded": "Konačni ishod je evidentiran; datum za sledeći korak nije potreban.",
+        "erased_subject": "Datum je skriven jer su podaci subjekta izbrisani."
+      }
+    },
     "status": {
       "draft": "Nacrt",
       "submitted": "Podneto",
@@ -60,7 +98,7 @@
       "rejected": "Odbijeno",
       "next_step": {
         "draft": "Molimo podnesite svoj zahtev na pregled.",
-        "submitted": "Primili smo vaš zahtev i uskoro ćemo ga dodeliti menadžeru slučaja.",
+        "submitted": "Primili smo vaš zahtev i tim za slučaj će ga uskoro pregledati.",
         "submitted_to_airline": "Paket zahteva smo podneli avio-kompaniji.",
         "verification": "Proveravamo dostavljene dokumente i dokaze.",
         "evaluation": "Naši stručnjaci procenjuju štetu i odgovornost.",
