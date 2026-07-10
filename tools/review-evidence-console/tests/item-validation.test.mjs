@@ -1,0 +1,49 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { validateItem } from '../public/src/validation/item.mjs';
+import { baseItem, completeDecision, medicalItem } from './validation-fixtures.mjs';
+
+test('requires a DPIA reference only when medical data is allowed', () => {
+  const allowed = validateItem(
+    medicalItem,
+    completeDecision({ responses: { medicalBoundary: 'allowed', dpiaRef: '' } })
+  );
+  assert.deepEqual(allowed.errors.map(error => error.key), ['dpiaRef']);
+
+  const excluded = validateItem(
+    medicalItem,
+    completeDecision({
+      responses: { medicalBoundary: 'excluded', disabledScope: 'Medical data stays disabled.' },
+    })
+  );
+  assert.equal(excluded.valid, true);
+});
+
+test('requires requested change for change and block decisions', () => {
+  for (const decision of ['change', 'block']) {
+    const result = validateItem(baseItem, completeDecision({ decision, requestedChange: '' }));
+    assert.equal(result.errors.some(error => error.key === 'requestedChange'), true);
+  }
+});
+
+test('accepts a complete base decision', () => {
+  assert.deepEqual(validateItem(baseItem, completeDecision()), { valid: true, errors: [] });
+});
+
+test('rejects option values outside the descriptor', () => {
+  const result = validateItem(
+    medicalItem,
+    completeDecision({ responses: { medicalBoundary: 'unknown' } })
+  );
+  assert.equal(result.errors.some(error => error.key === 'medicalBoundary'), true);
+});
+
+test('rejects invalid dates and guarded nested fields', () => {
+  const invalidDate = validateItem(baseItem, completeDecision({ verifiedAt: 'not-a-date' }));
+  const unsafeReason = validateItem(
+    baseItem,
+    completeDecision({ reason: 'contact me at reviewer@example.com' })
+  );
+  assert.equal(invalidDate.errors.some(error => error.key === 'verifiedAt'), true);
+  assert.equal(unsafeReason.errors.some(error => error.key === 'reason'), true);
+});

@@ -79,3 +79,36 @@ const fixtures = new Map([
 ]);
 
 export const fakeLoader = async path => structuredClone(fixtures.get(path));
+
+export const baseItem = { id: 'item', requiredResponses: [] };
+
+export const medicalItem = {
+  id: 'medical',
+  requiredResponses: [
+    { key: 'medicalBoundary', type: 'option', required: true, options: ['allowed', 'excluded'] },
+    {
+      key: 'dpiaRef',
+      type: 'evidenceRef',
+      requiredWhen: { key: 'medicalBoundary', equals: 'allowed' },
+    },
+    {
+      key: 'disabledScope',
+      type: 'text',
+      maxLength: 240,
+      requiredWhen: { key: 'medicalBoundary', equals: 'excluded' },
+    },
+  ],
+};
+
+export const completeDecision = (overrides = {}) => ({
+  decision: 'approve',
+  concreteAnswer: 'Approved for the fixture boundary.',
+  reason: 'The source authority supports this decision.',
+  evidenceRef: 'docs/product/packet.md#L21',
+  verifiedAt: '2026-07-09',
+  riskCategory: 'privacy',
+  severity: 'high',
+  requestedChange: '',
+  responses: {},
+  ...overrides,
+});
