@@ -2,7 +2,10 @@ import { element, replaceChildren, text } from './dom.mjs';
 
 let liveRegion;
 
-export function createHeader(reviewerRole = 'Rishikues privatësie') {
+export function createHeader(
+  reviewerRole = 'Rishikues privatësie',
+  saveStatus = 'Ruajtja lokale aktive'
+) {
   liveRegion = element('span', {
     attributes: {
       class: 'sr-only',
@@ -25,7 +28,9 @@ export function createHeader(reviewerRole = 'Rishikues privatësie') {
       identity,
       element('div', { attributes: { class: 'reviewer-context' } }, [
         element('span', { attributes: { class: 'role-badge' } }, [text(reviewerRole)]),
-        element('span', { attributes: { class: 'save-state' } }, [text('Ruajtja lokale aktive')]),
+        element('span', { attributes: { class: 'save-state', 'aria-live': 'polite' } }, [
+          text(saveStatus),
+        ]),
         menu,
         liveRegion,
       ]),
