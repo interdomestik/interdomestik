@@ -7,6 +7,7 @@ export async function importReceipt({ assignmentId, file, repository, receiptSto
   if (!read.ok) return read;
   const metadata = {
     packetId: bundle.value.packet.id,
+    packetVersion: bundle.value.packet.version,
     assignmentId: bundle.value.assignment.id,
     reviewerFixtureId: bundle.value.reviewer.id,
     reviewerRole: bundle.value.reviewer.role,

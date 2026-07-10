@@ -43,6 +43,7 @@ test('rejects a self-hashed false risk summary without storage mutation', async 
   });
   const metadata = {
     packetId: receipt.packetId,
+    packetVersion: receipt.packetVersion,
     assignmentId: receipt.assignmentId,
     reviewerFixtureId: receipt.reviewerFixtureId,
     reviewerRole: receipt.reviewerRole,

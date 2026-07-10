@@ -21,11 +21,13 @@ const reviewRoutes = createReviewRouteLoaders({
   navigate: value => {
     window.location.hash = formatRoute(value);
   },
-  render: (content, role) =>
+  render: (content, role, focusId) => {
     replaceChildren(
       app,
       shell(Array.isArray(content) ? element('div', {}, content) : content, role)
-    ),
+    );
+    if (focusId) queueMicrotask(() => document.querySelector(`#${focusId}`)?.focus());
+  },
 });
 
 function shell(content, role = 'Rishikues privatësie', saveStatus) {

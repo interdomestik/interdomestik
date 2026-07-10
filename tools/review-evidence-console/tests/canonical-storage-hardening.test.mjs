@@ -7,6 +7,7 @@ import { makeStorage, receiptInput, submittedAt } from './state-fixtures.mjs';
 
 const metadata = {
   packetId: receiptInput.packetId,
+  packetVersion: receiptInput.packetVersion,
   assignmentId: receiptInput.assignmentId,
   reviewerFixtureId: receiptInput.reviewerFixtureId,
   reviewerRole: receiptInput.reviewerRole,

@@ -95,6 +95,13 @@ export function validateReceipt(receipt, schemaVersion) {
 }
 
 export function matchesMetadata(receipt, metadata) {
-  const fields = ['packetId', 'assignmentId', 'reviewerFixtureId', 'reviewerRole', 'packetRole'];
+  const fields = [
+    'packetId',
+    'packetVersion',
+    'assignmentId',
+    'reviewerFixtureId',
+    'reviewerRole',
+    'packetRole',
+  ];
   return isRecord(metadata) && fields.every(field => metadata[field] === receipt[field]);
 }

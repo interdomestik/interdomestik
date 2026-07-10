@@ -1,33 +1,27 @@
 import { createReceiptStore } from '../state/receipt-store.mjs';
 import { verifyReceipt } from '../state/receipt-builder.mjs';
 import { exportReceipt } from './receipt-io.mjs';
-import { importReceipt as importLocalReceipt } from './import-controller.mjs';
 import { startCorrection } from './correction-controller.mjs';
-import { loadValidationRoute } from './validation-route.mjs';
-import { awaitCurrent } from './current-async.mjs';
+import { createValidationHandler } from './validation-route.mjs';
+import { awaitCurrent, takeValue } from './current-async.mjs';
+import { clearReceipt, createImportHandler } from './receipt-route-actions.mjs';
 import { renderJsonFallback } from './result-fallback.mjs';
 import { renderReceipt } from '../views/receipt.mjs';
 import { renderCorrection } from '../views/correction.mjs';
 
 export function createReviewRouteLoaders({ repository, render, navigate, isCurrent }) {
   const receiptStore = createReceiptStore({ verifyReceipt, schemaVersion: 1 });
-  let pendingFocus = null;
+  const pendingFocus = { value: null };
   const imported = new Set();
 
-  async function validation(route, token) {
-    if (!isCurrent(token)) return;
-    return loadValidationRoute({
-      route,
-      repository,
-      receiptStore,
-      render,
-      navigate,
-      current: () => isCurrent(token),
-      focus: controlId => {
-        pendingFocus = controlId;
-      },
-    });
-  }
+  const validation = createValidationHandler({
+    repository,
+    receiptStore,
+    render,
+    navigate,
+    isCurrent,
+    pendingFocus,
+  });
 
   async function receipt(route, token) {
     const loaded = await receiptStore.load(route.receiptId);
@@ -38,7 +32,11 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
     let correctionError = '';
     const correction = { itemId: '', reason: '', impact: '' };
     const current = () => isCurrent(token);
-    const draw = () =>
+    let focusId = 'receipt-heading';
+    let routeError = null;
+    const draw = () => {
+      const nextFocus = focusId;
+      focusId = null;
       render(
         [
           renderReceipt({
@@ -52,17 +50,27 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
                 current
               );
               if (!completed.ok) return;
-              fallback = completed.value;
+              if (completed.value.code === 'download_failed') fallback = completed.value;
+              else if (!completed.value.ok) routeError = completed.value;
               draw();
             },
             onClear: id => {
               if (confirm(`Clear receipt ${id}? Drafts will remain.`)) {
-                receiptStore.remove(id);
-                navigate({ name: 'inbox' });
+                clearReceipt({
+                  id,
+                  store: receiptStore,
+                  current,
+                  navigate,
+                  onError: error => {
+                    routeError = error;
+                    draw();
+                  },
+                });
               }
             },
             onCorrect: () => {
               correcting = true;
+              focusId = 'correction-heading';
               draw();
             },
           }),
@@ -115,36 +123,28 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
                 draw();
               })
             : null,
+          routeError ? renderJsonFallback(routeError) : null,
         ],
-        loaded.value.reviewerDisplayName
+        loaded.value.reviewerDisplayName,
+        nextFocus
       );
+    };
     draw();
   }
 
-  async function importReceipt(assignmentId, file, token) {
-    const current = () => token === undefined || isCurrent(token);
-    const completed = await awaitCurrent(
-      importLocalReceipt({ assignmentId, file, repository, receiptStore }),
-      current
-    );
-    if (!completed.ok) return completed;
-    const result = completed.value;
-    if (result.ok) {
-      imported.add(result.value.receiptId);
-      navigate({ name: 'receipt', receiptId: result.value.receiptId });
-    }
-    return result;
-  }
+  const importReceipt = createImportHandler({
+    repository,
+    receiptStore,
+    imported,
+    navigate,
+    isCurrent,
+  });
 
   return {
     validation,
     receipt,
     importReceipt,
     receiptStore,
-    takePendingFocus: () => {
-      const value = pendingFocus;
-      pendingFocus = null;
-      return value;
-    },
+    takePendingFocus: () => takeValue(pendingFocus),
   };
 }

@@ -6,6 +6,7 @@ import { makeStorage, receiptInput, submittedAt, withReceiptId } from './state-f
 
 const metadata = {
   packetId: receiptInput.packetId,
+  packetVersion: receiptInput.packetVersion,
   assignmentId: receiptInput.assignmentId,
   reviewerFixtureId: receiptInput.reviewerFixtureId,
   reviewerRole: receiptInput.reviewerRole,

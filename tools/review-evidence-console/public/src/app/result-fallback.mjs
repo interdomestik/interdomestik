@@ -1,6 +1,11 @@
 import { element, text } from '../components/dom.mjs';
 
 export function renderJsonFallback(result, onCopy) {
+  if (!result.text) {
+    return element('p', { attributes: { role: 'alert', 'aria-live': 'assertive' } }, [
+      text(result.message || 'Receipt operation failed.'),
+    ]);
+  }
   const area = element('textarea', {
     attributes: { readonly: 'readonly', rows: '12', 'aria-label': 'Receipt JSON fallback' },
   });

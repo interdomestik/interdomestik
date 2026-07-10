@@ -28,10 +28,10 @@ export async function loadValidationRoute({
   const controller = createSubmissionController({
     bundle,
     receiptStore,
-    onNavigate: receiptId => navigate({ name: 'receipt', receiptId }),
-    onStatus: () => draw(),
+    onNavigate: receiptId => current() && navigate({ name: 'receipt', receiptId }),
+    onStatus: () => current() && draw(false),
   });
-  function draw() {
+  function draw(focusHeading = false) {
     const status = controller.getStatus();
     render(
       renderValidation({
@@ -48,8 +48,23 @@ export async function loadValidationRoute({
         },
         onSubmit: () => controller.submit(session.getSnapshot(), safe),
       }),
-      bundle.reviewer.displayName
+      bundle.reviewer.displayName,
+      focusHeading ? 'validation-heading' : null
     );
   }
-  draw();
+  draw(true);
+}
+
+export function createValidationHandler(options) {
+  return (route, token) => {
+    if (!options.isCurrent(token)) return;
+    return loadValidationRoute({
+      ...options,
+      route,
+      current: () => options.isCurrent(token),
+      focus: controlId => {
+        options.pendingFocus.value = controlId;
+      },
+    });
+  };
 }
