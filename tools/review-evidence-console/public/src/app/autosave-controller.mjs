@@ -85,6 +85,12 @@ export function createAutosaveController({
     return true;
   }
 
+  function flushLatest() {
+    if (!latestDraft || conflicted || disposed) return { ok: false, code: 'unavailable' };
+    clearTimer(timer);
+    return save();
+  }
+
   function dispose() {
     disposed = true;
     clearTimer(timer);
@@ -93,6 +99,7 @@ export function createAutosaveController({
   return {
     schedule,
     retry,
+    flushLatest,
     dispose,
     exportLocalText: () => (latestDraft ? JSON.stringify(latestDraft) : null),
     handleStorage,

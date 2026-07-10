@@ -112,6 +112,26 @@ test('two sequential edits retain the complete latest value', () => {
   assert.equal(saved.itemDecisions.item_a.concreteAnswer, 'ab');
 });
 
+test('flushLatest synchronously persists the newest scheduled draft', () => {
+  let saved;
+  const controller = createAutosaveController({
+    store: { save: (_key, value) => ((saved = value), { ok: true }) },
+    key: 'draft-key',
+    editorId: 'tab-a',
+    now: () => '2026-07-10T10:00:00.000Z',
+    setTimer: () => 1,
+    clearTimer: () => {},
+  });
+  controller.schedule({
+    ...draft(),
+    activeItem: 'item_b',
+    decisions: { item_a: { concreteAnswer: 'latest' } },
+  });
+  assert.equal(controller.flushLatest().ok, true);
+  assert.equal(saved.activeItem, 'item_b');
+  assert.equal(saved.itemDecisions.item_a.concreteAnswer, 'latest');
+});
+
 function draft() {
   return {
     assignmentId: 'a',

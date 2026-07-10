@@ -78,6 +78,12 @@ export function createWorkspaceRuntime({
   function selectItem(itemId) {
     session.selectItem(itemId);
     render(true);
+    const saved = autosave.flushLatest();
+    if (!saved.ok) {
+      recovery = { code: 'save_failed', ...recoveryActions() };
+      render(false);
+      return;
+    }
     onNavigate(bundle.assignment.id, itemId);
   }
   function recoveryActions() {
