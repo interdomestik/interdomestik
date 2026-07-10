@@ -86,7 +86,12 @@ export function createAutosaveController({
   }
 
   function flushLatest() {
-    if (!latestDraft || conflicted || disposed) return { ok: false, code: 'unavailable' };
+    if (conflicted || disposed) return { ok: false, code: 'unavailable' };
+    if (!latestDraft) {
+      return expectedUpdatedAt
+        ? { ok: true, code: 'already_saved' }
+        : { ok: false, code: 'unavailable' };
+    }
     clearTimer(timer);
     return save();
   }
