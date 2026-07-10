@@ -49,7 +49,7 @@ export function createWorkspaceRuntime({
   function draftFrom(state) {
     return { ...state, safeEvidenceConfirmed };
   }
-  function render(focusHeading = false) {
+  function render(focusHeading = false, focusControlId = null) {
     const state = session.getSnapshot();
     onRender({
       bundle,
@@ -57,21 +57,30 @@ export function createWorkspaceRuntime({
       safeEvidenceConfirmed,
       saveStatus,
       focusHeading,
+      focusControlId,
       recovery: recovery ? { ...recoveryActions(), ...recovery } : null,
       onSelectItem: selectItem,
       onUseGuidance: itemId => {
         session.useGuidance(itemId);
-        render(false);
+        render(false, `guidance-start-${itemId}`);
       },
       onDecision: (itemId, value) => {
         session.setDecision(itemId, value);
-        render(false);
+        render(false, `decision-${itemId}-${value}`);
       },
       onField: session.setField,
-      onResponse: session.setResponse,
+      onResponse: (itemId, key, value) => {
+        session.setResponse(itemId, key, value);
+        const item = bundle.packet.items.find(entry => entry.id === itemId);
+        if (item.requiredResponses.some(entry => entry.requiredWhen?.key === key)) {
+          const descriptor = item.requiredResponses.find(entry => entry.key === key);
+          const optionGroup = ['radio', 'checkbox_group', 'multi_select'].includes(descriptor.type);
+          render(false, `response-${key}${optionGroup ? '-0' : ''}`);
+        }
+      },
       onSafeEvidence: value => {
         safeEvidenceConfirmed = value === true;
-        autosave.schedule(draftFrom(state));
+        autosave.schedule(draftFrom(session.getSnapshot()));
       },
     });
   }

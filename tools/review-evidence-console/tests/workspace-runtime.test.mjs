@@ -62,3 +62,30 @@ test('edit then immediate item navigation restores value and active item after r
   assert.equal(restored[0].state.decisions.item_a.concreteAnswer, 'ruaje këtë');
   next.dispose();
 });
+
+test('acknowledgement saves the latest session snapshot and structural focus intent', async () => {
+  const values = new Map();
+  globalThis.localStorage = {
+    getItem: key => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+    removeItem: key => values.delete(key),
+  };
+  globalThis.addEventListener = () => {};
+  globalThis.removeEventListener = () => {};
+  const renders = [];
+  const runtime = createWorkspaceRuntime({
+    bundle,
+    initialItemId: 'item_a',
+    onRender: props => renders.push(props),
+    onNavigate() {},
+  });
+  renders[0].onField('item_a', 'concreteAnswer', 'latest edit');
+  renders[0].onSafeEvidence(true);
+  await new Promise(resolve => setTimeout(resolve, 500));
+  const raw = [...values.values()][0];
+  assert.match(raw, /latest edit/);
+  assert.match(raw, /"safeEvidenceConfirmed":true/);
+  renders[0].onDecision('item_a', 'change');
+  assert.equal(renders.at(-1).focusControlId, 'decision-item_a-change');
+  runtime.dispose();
+});

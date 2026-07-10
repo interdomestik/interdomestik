@@ -1,5 +1,9 @@
 import { element, text } from './dom.mjs';
 import { formField, selectField } from './form-field.mjs';
+import {
+  descriptorIsApplicable,
+  descriptorIsRequired,
+} from '../validation/descriptor-required.mjs';
 
 const DECISIONS = [
   ['approve', 'Mirato'],
@@ -37,9 +41,9 @@ export function renderDecision({
       value: decision.reason,
       onInput: value => onField('reason', value),
     }),
-    ...item.requiredResponses.map(descriptor =>
-      descriptorField(descriptor, decision.responses[descriptor.key], onResponse)
-    ),
+    ...item.requiredResponses
+      .filter(descriptor => descriptorIsApplicable(descriptor, decision.responses))
+      .map(descriptor => descriptorField(descriptor, decision.responses, onResponse)),
     decision.decision === 'change' || decision.decision === 'block'
       ? formField({
           id: 'requestedChange',
@@ -53,7 +57,7 @@ export function renderDecision({
 }
 
 function radio(itemId, value, label, selected, onDecision) {
-  const id = `decision-${value}`;
+  const id = `decision-${itemId}-${value}`;
   const input = element('input', {
     attributes: { id, name: `decision-${itemId}`, type: 'radio', value },
     on: { change: () => onDecision(value) },
@@ -67,16 +71,17 @@ function radio(itemId, value, label, selected, onDecision) {
   ]);
 }
 
-function descriptorField(descriptor, value, onResponse) {
+function descriptorField(descriptor, responses, onResponse) {
+  const value = responses[descriptor.key];
   const common = {
     id: `response-${descriptor.key}`,
     label: descriptor.labelSq,
     value,
-    required: descriptor.required,
+    required: descriptorIsRequired(descriptor, responses),
     onInput: next => onResponse(descriptor.key, next),
   };
   if (['radio', 'checkbox_group', 'multi_select'].includes(descriptor.type)) {
-    return optionGroup(descriptor, value, onResponse);
+    return optionGroup(descriptor, value, onResponse, common.required);
   }
   if (descriptor.type === 'select') return selectField({ ...common, options: descriptor.options });
   return formField({
@@ -87,36 +92,46 @@ function descriptorField(descriptor, value, onResponse) {
   });
 }
 
-function optionGroup(descriptor, current, onResponse) {
+function optionGroup(descriptor, current, onResponse, required) {
   const checkbox = descriptor.type !== 'radio';
   const selected = checkbox && Array.isArray(current) ? current : [];
-  return element('fieldset', { attributes: { class: 'descriptor-options' } }, [
-    element('legend', {}, [text(descriptor.labelSq)]),
-    ...descriptor.options.map((option, index) => {
-      const id = `response-${descriptor.key}-${index}`;
-      const input = element('input', {
-        attributes: {
-          id,
-          name: `response-${descriptor.key}`,
-          type: checkbox ? 'checkbox' : 'radio',
-          value: option,
-        },
-        on: {
-          change: event =>
-            onResponse(
-              descriptor.key,
-              checkbox ? toggle(selected, option, event.target.checked) : option
-            ),
-        },
-      });
-      input.value = option;
-      input.checked = checkbox ? selected.includes(option) : current === option;
-      return element('label', { attributes: { class: 'decision-option', for: id } }, [
-        input,
-        text(option),
-      ]);
-    }),
-  ]);
+  return element(
+    'fieldset',
+    {
+      attributes: {
+        class: 'descriptor-options',
+        ...(required ? { 'aria-required': 'true' } : {}),
+      },
+    },
+    [
+      element('legend', {}, [text(descriptor.labelSq)]),
+      ...descriptor.options.map((option, index) => {
+        const id = `response-${descriptor.key}-${index}`;
+        const input = element('input', {
+          attributes: {
+            id,
+            name: `response-${descriptor.key}`,
+            type: checkbox ? 'checkbox' : 'radio',
+            value: option,
+            ...(required && !checkbox ? { required: 'required' } : {}),
+          },
+          on: {
+            change: event =>
+              onResponse(
+                descriptor.key,
+                checkbox ? toggle(selected, option, event.target.checked) : option
+              ),
+          },
+        });
+        input.value = option;
+        input.checked = checkbox ? selected.includes(option) : current === option;
+        return element('label', { attributes: { class: 'decision-option', for: id } }, [
+          input,
+          text(option),
+        ]);
+      }),
+    ]
+  );
 }
 
 function toggle(values, option, checked) {

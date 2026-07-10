@@ -36,7 +36,11 @@ export function renderWorkspace({
           element(
             'button',
             {
-              attributes: { type: 'button', class: 'secondary-action' },
+              attributes: {
+                type: 'button',
+                class: 'secondary-action',
+                id: `guidance-start-${item.id}`,
+              },
               on: { click: () => onUseGuidance?.(item.id) },
             },
             [text('Përdor si pikënisje')]

@@ -4,6 +4,7 @@ import { element, replaceChildren, text } from './components/dom.mjs';
 import { formatRoute } from './router.mjs';
 import { parseRoute } from './router.mjs';
 import { createWorkspaceRuntime } from './app/workspace-runtime.mjs';
+import { createRouteCoordinator } from './app/route-coordinator.mjs';
 import { loadInboxRows } from './views/inbox-data.mjs';
 import { renderInbox } from './views/inbox.mjs';
 import { renderWorkspace } from './views/workspace.mjs';
@@ -12,6 +13,7 @@ const REVIEWER_ID = 'reviewer_privacy_mk';
 const repository = createFixtureRepository();
 const app = document.querySelector('#app');
 let workspaceRuntime;
+const routes = createRouteCoordinator();
 
 function shell(content, role = 'Rishikues privatësie', saveStatus) {
   return [
@@ -23,7 +25,7 @@ function shell(content, role = 'Rishikues privatësie', saveStatus) {
   ];
 }
 
-async function loadInbox() {
+async function loadInbox(token) {
   workspaceRuntime?.dispose();
   workspaceRuntime = undefined;
   replaceChildren(app, shell(renderInbox({ state: 'loading' })));
@@ -31,6 +33,7 @@ async function loadInbox() {
     repository.loadReviewerProfile(REVIEWER_ID),
     loadInboxRows(repository, REVIEWER_ID),
   ]);
+  if (!routes.isCurrent(token)) return;
   if (!profile.ok || !rows.ok) {
     const message = profile.message ?? rows.message;
     replaceChildren(app, shell(renderInbox({ state: 'unavailable', message })));
@@ -49,9 +52,10 @@ async function loadInbox() {
   );
 }
 
-async function loadWorkspace(route) {
+async function loadWorkspace(route, token) {
   workspaceRuntime?.dispose();
   const result = await repository.loadAssignmentBundle(route.assignmentId);
+  if (!routes.isCurrent(token)) return;
   if (!result.ok || !result.value.packet.itemIds.includes(route.itemId)) {
     window.location.hash = '#/';
     return;
@@ -70,6 +74,8 @@ async function loadWorkspace(route) {
       replaceChildren(app, shell(renderWorkspace(props), 'Rishikues privatësie', props.saveStatus));
       if (props.focusHeading)
         queueMicrotask(() => document.querySelector('#item-heading')?.focus());
+      else if (props.focusControlId)
+        queueMicrotask(() => document.querySelector(`#${props.focusControlId}`)?.focus());
     },
   });
 }
@@ -83,9 +89,10 @@ function openAssignment(assignment) {
 }
 
 function route() {
+  const token = routes.begin();
   const current = parseRoute(window.location.hash);
-  if (current.name === 'workspace') loadWorkspace(current);
-  else loadInbox();
+  if (current.name === 'workspace') loadWorkspace(current, token);
+  else loadInbox(token);
 }
 
 window.addEventListener('hashchange', route);

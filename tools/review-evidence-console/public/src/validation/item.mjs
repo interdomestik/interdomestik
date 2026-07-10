@@ -1,4 +1,5 @@
 import { validateEvidenceRef, validateSafeText } from './input-guards.mjs';
+import { descriptorIsRequired } from './descriptor-required.mjs';
 
 const DECISIONS = ['approve', 'change', 'block'];
 const SEVERITIES = ['low', 'medium', 'high'];
@@ -42,7 +43,11 @@ function validateBase(item, decision, errors) {
   const changeRequired = ['change', 'block'].includes(decision.decision);
   if (changeRequired && isEmpty(decision.requestedChange)) errors.push(missing('requestedChange'));
   else if (!isEmpty(decision.requestedChange)) {
-    addGuardError(errors, 'requestedChange', validateSafeText(decision.requestedChange, { maxLength: 1000 }));
+    addGuardError(
+      errors,
+      'requestedChange',
+      validateSafeText(decision.requestedChange, { maxLength: 1000 })
+    );
   }
 }
 
@@ -50,18 +55,11 @@ function addGuardError(errors, key, result) {
   if (!result.ok) errors.push(fieldError(key, result.code, result.message));
 }
 
-function descriptorRequired(descriptor, responses) {
-  if (descriptor.requiredWhen) {
-    return responses[descriptor.requiredWhen.key] === descriptor.requiredWhen.equals;
-  }
-  return descriptor.required === true;
-}
-
 function validateDescriptor(descriptor, responses, errors) {
   const value = responses[descriptor.key];
   const empty = isEmpty(value) || (Array.isArray(value) && value.length === 0);
   if (empty) {
-    if (descriptorRequired(descriptor, responses)) errors.push(missing(descriptor.key));
+    if (descriptorIsRequired(descriptor, responses)) errors.push(missing(descriptor.key));
     return;
   }
   if (SCALAR_OPTIONS.includes(descriptor.type) && typeof value !== 'string') {
