@@ -1,6 +1,7 @@
 import { composeDraftKey, createDraftStore } from '../state/draft-store.mjs';
 import { createReviewSession } from '../state/review-session.mjs';
 import { createAutosaveController } from './autosave-controller.mjs';
+import { downloadText } from './download-text.mjs';
 
 export function createWorkspaceRuntime({
   bundle,
@@ -8,6 +9,7 @@ export function createWorkspaceRuntime({
   onRender,
   onNavigate,
   onConflict,
+  onStatus = () => {},
 }) {
   const key = composeDraftKey({
     assignmentId: bundle.assignment.id,
@@ -33,53 +35,74 @@ export function createWorkspaceRuntime({
     onStatus: status => {
       saveStatus = status;
       if (status.startsWith('Conflict')) recovery = { code: 'conflict', ...recoveryActions() };
-      render();
+      if (status.startsWith('Save failed'))
+        recovery = { code: 'save_failed', ...recoveryActions() };
+      if (status.startsWith('Conflict') || status.startsWith('Save failed')) render(false);
+      else onStatus(status);
       if (status.startsWith('Conflict')) onConflict?.(recovery);
     },
   });
 
   function changed(state) {
-    render();
     autosave?.schedule(draftFrom(state));
   }
   function draftFrom(state) {
     return { ...state, safeEvidenceConfirmed };
   }
-  function render() {
+  function render(focusHeading = false) {
     const state = session.getSnapshot();
     onRender({
       bundle,
       state,
       safeEvidenceConfirmed,
       saveStatus,
+      focusHeading,
       recovery: recovery ? { ...recoveryActions(), ...recovery } : null,
       onSelectItem: selectItem,
-      onUseGuidance: session.useGuidance,
-      onDecision: session.setDecision,
+      onUseGuidance: itemId => {
+        session.useGuidance(itemId);
+        render(false);
+      },
+      onDecision: (itemId, value) => {
+        session.setDecision(itemId, value);
+        render(false);
+      },
       onField: session.setField,
       onResponse: session.setResponse,
       onSafeEvidence: value => {
         safeEvidenceConfirmed = value === true;
-        changed(state);
+        autosave.schedule(draftFrom(state));
       },
     });
   }
   function selectItem(itemId) {
     session.selectItem(itemId);
+    render(true);
     onNavigate(bundle.assignment.id, itemId);
   }
   function recoveryActions() {
+    const rawRecovery = () => store.exportRecovery(key).value;
     return {
       reload: () => location.reload(),
-      exportLocal: () => store.exportRecovery(key),
+      retry: () => autosave.retry(),
+      exportLocal: () =>
+        downloadText(
+          ['conflict', 'save_failed'].includes(recovery?.code)
+            ? autosave.exportLocalText()
+            : rawRecovery(),
+          'review-draft-recovery.json'
+        ),
       deleteDraft: () => store.remove(key),
     };
   }
   const storageHandler = event => autosave.handleStorage(event);
   addEventListener('storage', storageHandler);
-  render();
+  render(true);
   return {
-    dispose: () => removeEventListener('storage', storageHandler),
+    dispose: () => {
+      autosave.dispose();
+      removeEventListener('storage', storageHandler);
+    },
     recovery:
       loaded.ok || loaded.code === 'not_found' ? null : { code: loaded.code, ...recoveryActions() },
   };

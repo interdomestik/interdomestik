@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createAutosaveController } from '../public/src/app/autosave-controller.mjs';
-
 test('debounced autosave persists packet acknowledgement and restores active item', () => {
   const calls = [];
   const timers = [];
@@ -30,7 +29,6 @@ test('debounced autosave persists packet acknowledgement and restores active ite
   assert.equal(calls[1][1].safeEvidenceConfirmed, true);
   assert.equal(calls[1][1].activeItem, 'item_b');
 });
-
 test('quota failure stays failed and storage conflict stops later autosaves', () => {
   const statuses = [];
   let timer;
@@ -54,7 +52,6 @@ test('quota failure stays failed and storage conflict stops later autosaves', ()
   assert.equal(statuses.at(-1), 'Conflict — choose reload or export');
   assert.equal(controller.schedule(draft()), false);
 });
-
 test('restored draft passes its exact revision into the first save', () => {
   let timer;
   let expected;
@@ -74,6 +71,70 @@ test('restored draft passes its exact revision into the first save', () => {
   controller.schedule(draft());
   timer();
   assert.equal(expected, '2026-07-10T09:00:00.000Z');
+});
+
+test('conflicts only on a valid strictly newer external revision', () => {
+  const controller = createAutosaveController({
+    store: { save: () => ({ ok: true }) },
+    key: 'draft-key',
+    editorId: 'tab-a',
+    initialUpdatedAt: '2026-07-10T10:00:00.000Z',
+  });
+  for (const updatedAt of ['bad', '2026-07-10T09:59:00.000Z', '2026-07-10T10:00:00.000Z']) {
+    assert.equal(
+      controller.handleStorage({
+        key: 'draft-key',
+        newValue: JSON.stringify({ editorId: 'tab-b', updatedAt }),
+      }),
+      false
+    );
+  }
+  assert.equal(
+    controller.handleStorage({
+      key: 'draft-key',
+      newValue: JSON.stringify({ editorId: 'tab-b', updatedAt: '2026-07-10T10:01:00.000Z' }),
+    }),
+    true
+  );
+});
+
+test('exports this tab latest snapshot, retries failure, and dispose cancels stale save', () => {
+  let timer;
+  let cleared = 0;
+  let saves = 0;
+  const controller = createAutosaveController({
+    store: { save: () => (saves++, { ok: false, code: 'quota' }) },
+    key: 'draft-key',
+    editorId: 'tab-a',
+    now: () => '2026-07-10T10:00:00.000Z',
+    setTimer: callback => (timer = callback),
+    clearTimer: () => cleared++,
+  });
+  controller.schedule({ ...draft(), activeItem: 'item_b' });
+  assert.match(controller.exportLocalText(), /"activeItem":"item_b"/);
+  timer();
+  assert.equal(controller.retry(), true);
+  controller.dispose();
+  timer();
+  assert.equal(saves, 1);
+  assert.ok(cleared >= 2);
+});
+
+test('two sequential edits retain the complete latest value', () => {
+  const timers = [];
+  let saved;
+  const controller = createAutosaveController({
+    store: { save: (_key, value) => ((saved = value), { ok: true }) },
+    key: 'draft-key',
+    editorId: 'tab-a',
+    now: () => '2026-07-10T10:00:00.000Z',
+    setTimer: callback => (timers.push(callback), timers.length),
+    clearTimer: () => {},
+  });
+  controller.schedule({ ...draft(), decisions: { item_a: { concreteAnswer: 'a' } } });
+  controller.schedule({ ...draft(), decisions: { item_a: { concreteAnswer: 'ab' } } });
+  timers.at(-1)();
+  assert.equal(saved.itemDecisions.item_a.concreteAnswer, 'ab');
 });
 
 function draft() {

@@ -46,7 +46,7 @@ export function renderEvidenceRail({
         label: 'Ashpërsia',
         required: true,
         value: decision.severity,
-        options: ['none', 'low', 'medium', 'high'],
+        options: ['low', 'medium', 'high'],
         onInput: value => onField('severity', value),
       }),
       element('label', { attributes: { class: 'safe-evidence', for: 'safe-evidence-confirmed' } }, [

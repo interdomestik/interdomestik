@@ -13,26 +13,32 @@ export function createAutosaveController({
   let timer;
   let expectedUpdatedAt = initialUpdatedAt;
   let conflicted = false;
+  let disposed = false;
+  let latestDraft;
 
   function schedule(source) {
-    if (conflicted) return false;
+    if (conflicted || disposed) return false;
     clearTimer(timer);
     onStatus('Saving');
-    timer = setTimer(() => save(source), SAVE_DELAY);
+    latestDraft = makeDraft(source);
+    timer = setTimer(() => !disposed && save(), SAVE_DELAY);
     return true;
   }
 
-  function save(source) {
-    const updatedAt = now();
+  function makeDraft(source) {
     const draft = {
       ...source,
       itemDecisions: source.decisions,
       schemaVersion: 1,
       editorId,
-      updatedAt,
+      updatedAt: now(),
     };
     delete draft.decisions;
-    const result = store.save(key, draft, expectedUpdatedAt);
+    return draft;
+  }
+
+  function save() {
+    const result = store.save(key, latestDraft, expectedUpdatedAt);
     if (!result.ok) {
       if (result.code === 'conflict') conflicted = true;
       onStatus(
@@ -40,9 +46,9 @@ export function createAutosaveController({
       );
       return result;
     }
-    expectedUpdatedAt = updatedAt;
+    expectedUpdatedAt = latestDraft.updatedAt;
     onStatus(
-      `Saved at ${new Date(updatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+      `Saved at ${new Date(expectedUpdatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
     );
     return result;
   }
@@ -51,7 +57,14 @@ export function createAutosaveController({
     if (event.key !== key || !event.newValue) return false;
     try {
       const external = JSON.parse(event.newValue);
-      if (external.editorId === editorId) return false;
+      const externalTime = Date.parse(external.updatedAt);
+      const localTime = Date.parse(expectedUpdatedAt ?? latestDraft?.updatedAt ?? '');
+      if (
+        external.editorId === editorId ||
+        !Number.isFinite(externalTime) ||
+        externalTime <= localTime
+      )
+        return false;
       conflicted = true;
       clearTimer(timer);
       onStatus('Conflict — choose reload or export');
@@ -61,5 +74,25 @@ export function createAutosaveController({
     }
   }
 
-  return { schedule, handleStorage, isConflicted: () => conflicted };
+  function retry() {
+    if (!latestDraft || conflicted || disposed) return false;
+    clearTimer(timer);
+    timer = setTimer(() => !disposed && save(), SAVE_DELAY);
+    onStatus('Saving');
+    return true;
+  }
+
+  function dispose() {
+    disposed = true;
+    clearTimer(timer);
+  }
+
+  return {
+    schedule,
+    retry,
+    dispose,
+    exportLocalText: () => (latestDraft ? JSON.stringify(latestDraft) : null),
+    handleStorage,
+    isConflicted: () => conflicted,
+  };
 }

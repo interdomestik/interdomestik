@@ -1,11 +1,13 @@
 import { element, text } from './dom.mjs';
+import { validateItem } from '../validation/item.mjs';
 
-function itemStatus(itemId, state) {
+function itemStatus(item, state) {
+  const itemId = item.id;
   const decision = state.decisions[itemId];
   if (itemId === state.activeItem) return ['Në rishikim', 'in-review'];
   if (decision?.decision === 'block') return ['Bllokuar', 'blocked'];
   if (decision?.decision === 'change') return ['Kërkon ndryshim', 'needs-change'];
-  if (decision?.decision) return ['Përfunduar', 'complete'];
+  if (decision?.decision && validateItem(item, decision).valid) return ['Përfunduar', 'complete'];
   return ['Pa filluar', 'not-started'];
 }
 
@@ -25,7 +27,7 @@ export function renderPacketRail({ packet, state, onSelectItem = () => {} }) {
           'ul',
           { attributes: { class: 'packet-steps' } },
           packet.items.map(item => {
-            const [label, status] = itemStatus(item.id, state);
+            const [label, status] = itemStatus(item, state);
             return element('li', {}, [
               element(
                 'button',

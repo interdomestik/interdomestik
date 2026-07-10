@@ -61,7 +61,12 @@ export function createReviewSession(bundle, draft, { onChange } = {}) {
     setDecision,
     setField,
     setResponse,
-    useGuidance: itemId => setField(itemId, 'concreteAnswer', itemFor(itemId).guidance),
+    useGuidance: itemId =>
+      updateDecision(itemId, current => ({
+        ...current,
+        concreteAnswer: itemFor(itemId).guidance,
+        reason: itemFor(itemId).guidance,
+      })),
     validate: safeEvidenceConfirmed =>
       validatePacket(ownedBundle.packet, state.decisions, safeEvidenceConfirmed === true),
     createCorrection,

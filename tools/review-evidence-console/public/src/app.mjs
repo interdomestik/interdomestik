@@ -62,9 +62,14 @@ async function loadWorkspace(route) {
     onNavigate: (assignmentId, itemId) => {
       window.location.hash = formatRoute({ name: 'workspace', assignmentId, itemId });
     },
+    onStatus: status => {
+      const target = document.querySelector('.save-state');
+      if (target) target.textContent = status;
+    },
     onRender: props => {
       replaceChildren(app, shell(renderWorkspace(props), 'Rishikues privatësie', props.saveStatus));
-      queueMicrotask(() => document.querySelector('#item-heading')?.focus());
+      if (props.focusHeading)
+        queueMicrotask(() => document.querySelector('#item-heading')?.focus());
     },
   });
 }

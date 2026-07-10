@@ -64,6 +64,7 @@ test('uses guidance as prose without selecting a decision or completing the item
   const snapshot = session.useGuidance('item_a');
   assert.equal(snapshot.decisions.item_a.decision, null);
   assert.equal(snapshot.decisions.item_a.concreteAnswer, bundle.packet.items[0].guidance);
+  assert.equal(snapshot.decisions.item_a.reason, bundle.packet.items[0].guidance);
   assert.equal(session.validate(true).valid, false);
 });
 
