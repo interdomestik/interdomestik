@@ -32,6 +32,15 @@
       "maxLength": 240,
       "options": [],
       "requiredWhen": { "key": "medicalBoundary", "equals": "excluded" }
+    },
+    {
+      "key": "dpiaRef",
+      "labelSq": "Referenca e evidencës DPIA / Neni 9",
+      "type": "evidenceRef",
+      "required": true,
+      "maxLength": 160,
+      "options": [],
+      "requiredWhen": { "key": "medicalBoundary", "equals": "allowed" }
     }
   ]
 }

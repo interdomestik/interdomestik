@@ -31,6 +31,30 @@
       "required": true,
       "maxLength": 80,
       "options": []
+    },
+    {
+      "key": "decisionDate",
+      "labelSq": "Data e vendimit",
+      "type": "date",
+      "required": true,
+      "maxLength": 10,
+      "options": []
+    },
+    {
+      "key": "ownerEvidenceRef",
+      "labelSq": "Referenca e evidencës së pronarit",
+      "type": "evidenceRef",
+      "required": true,
+      "maxLength": 160,
+      "options": []
+    },
+    {
+      "key": "reviewerRole",
+      "labelSq": "Roli i shqyrtuesit",
+      "type": "text",
+      "required": true,
+      "maxLength": 80,
+      "options": []
     }
   ]
 }

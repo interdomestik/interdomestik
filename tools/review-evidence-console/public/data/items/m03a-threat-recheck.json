@@ -31,6 +31,14 @@
       "required": true,
       "maxLength": 8,
       "options": ["clear", "change", "stop"]
+    },
+    {
+      "key": "threatRecheckEvidenceRef",
+      "labelSq": "Referenca e evidencës së rikontrollit",
+      "type": "evidenceRef",
+      "required": true,
+      "maxLength": 160,
+      "options": []
     }
   ]
 }
