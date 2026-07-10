@@ -82,7 +82,17 @@ export async function verifyReceipt(receipt) {
   const validation = validateReceipt(receipt, receipt?.schemaVersion);
   if (!validation.ok) return validation;
   const { receiptId, ...payload } = receipt;
-  const expectedId = await receiptIdFor(payload);
+  try {
+    canonicalStringify(payload);
+  } catch {
+    return failure('invalid_data', 'Receipt contains non-canonical JSON values.');
+  }
+  let expectedId;
+  try {
+    expectedId = await receiptIdFor(payload);
+  } catch {
+    return failure('unavailable', 'Receipt verification is unavailable.');
+  }
   if (receiptId !== expectedId) return failure('hash_mismatch', 'Receipt hash does not match.');
   return { ok: true, value: receipt };
 }

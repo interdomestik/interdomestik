@@ -10,6 +10,19 @@ export function createReceiptStore({
   verifyReceipt,
   schemaVersion,
 }) {
+  async function verifySafely(receipt) {
+    try {
+      canonicalStringify(receipt);
+    } catch {
+      return failure('invalid_data', 'Receipt contains non-canonical JSON values.');
+    }
+    try {
+      return await verifyReceipt(receipt);
+    } catch {
+      return failure('unavailable', 'Receipt verification is unavailable.');
+    }
+  }
+
   function read(receiptId) {
     try {
       const text = storage.getItem(keyFor(receiptId));
@@ -28,36 +41,42 @@ export function createReceiptStore({
     const result = read(receiptId);
     if (!result.ok) return result;
     const validation = validateReceipt(result.value, schemaVersion);
-    return validation.ok ? verifyReceipt(result.value) : validation;
+    return validation.ok ? verifySafely(result.value) : validation;
   }
 
-  return {
-    async save(receipt) {
-      const validation = validateReceipt(receipt, schemaVersion);
-      if (!validation.ok) return validation;
-      const verification = await verifyReceipt(receipt);
-      if (!verification.ok) return verification;
-      try {
-        const key = keyFor(receipt.receiptId);
-        const current = storage.getItem(key);
-        if (current !== null) {
-          let stored;
-          try {
-            stored = JSON.parse(current);
-          } catch {
-            return failure('hash_mismatch', 'Stored receipt has changed.');
-          }
+  async function save(receipt) {
+    const validation = validateReceipt(receipt, schemaVersion);
+    if (!validation.ok) return validation;
+    const verification = await verifySafely(receipt);
+    if (!verification.ok) return verification;
+    try {
+      const key = keyFor(receipt.receiptId);
+      const current = storage.getItem(key);
+      if (current !== null) {
+        let stored;
+        try {
+          stored = JSON.parse(current);
+        } catch {
+          return failure('hash_mismatch', 'Stored receipt has changed.');
+        }
+        try {
           if (canonicalStringify(stored) !== canonicalStringify(receipt)) {
             return failure('hash_mismatch', 'Receipt ID already has different content.');
           }
-          return { ok: true, value: stored };
+        } catch {
+          return failure('invalid_data', 'Stored receipt contains non-canonical JSON values.');
         }
-        storage.setItem(key, JSON.stringify(receipt));
-        return { ok: true, value: receipt };
-      } catch (error) {
-        return storageFailure(error);
+        return { ok: true, value: stored };
       }
-    },
+      storage.setItem(key, JSON.stringify(receipt));
+      return { ok: true, value: receipt };
+    } catch (error) {
+      return storageFailure(error);
+    }
+  }
+
+  return {
+    save,
     load: verified,
     async list(packetId) {
       try {
@@ -92,9 +111,9 @@ export function createReceiptStore({
       if (!matchesMetadata(receipt, metadata)) {
         return failure('invalid_data', 'Receipt metadata does not match this assignment.');
       }
-      const verification = await verifyReceipt(receipt);
+      const verification = await verifySafely(receipt);
       if (!verification.ok) return verification;
-      return this.save(receipt);
+      return save(receipt);
     },
     remove(receiptId) {
       try {

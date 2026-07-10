@@ -3,7 +3,11 @@ function normalize(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (Array.isArray(value)) return value.map(normalize);
   if (typeof value !== 'object') throw new TypeError('Value is not canonical JSON.');
-  const normalized = {};
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw new TypeError('Value is not canonical JSON.');
+  }
+  const normalized = Object.create(null);
   for (const key of Object.keys(value).sort()) {
     if (value[key] === undefined) throw new TypeError('Value is not canonical JSON.');
     normalized[key] = normalize(value[key]);
