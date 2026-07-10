@@ -16,7 +16,7 @@ Use fixture-owned suggestions for each item.
 
 ## Safety Boundary
 
-Suggestions may prefill editable text, structured responses, risk, severity, evidence references that exist in the repository, and the current local date.
+Suggestions may prefill editable text, structured responses, risk, severity, evidence references that exist in the repository, and the captured session date.
 
 Suggestions must never set:
 
@@ -30,12 +30,27 @@ The workspace shows: `Sugjerime të paraplotësuara — verifikoji dhe ndryshoji
 ## State And Persistence
 
 - Add a validated `suggestedReview` object to every item fixture.
-- Apply suggestions when a new review session starts.
-- Use an injected clock for `verifiedAt` and descriptor date defaults so tests remain deterministic.
+- Capture one `sessionDate` from an injected `getLocalDate()` dependency when the session starts. It returns the reviewer’s local calendar date as `YYYY-MM-DD`. Store the resulting values in the draft and never recompute them on restore.
 - Store `suggestionVersion: 1` in the local draft, not in the receipt.
-- On a legacy draft without this version, fill only empty fields once and preserve every non-empty reviewer value.
-- After version 1 is stored, never restore a suggestion over a value the reviewer cleared or changed.
+- Initialize in this order:
+  1. A correction seeded from a receipt wins unchanged; apply no suggestions.
+  2. A compatible draft with `suggestionVersion: 1` wins exactly, including blank values.
+  3. A compatible legacy draft keeps every own property, including blank values. Fill absent properties only, set version 1, and persist once.
+  4. A fresh session applies all allowed suggestions and version 1.
+- “Absent” means `Object.hasOwn(record, key) === false`; an empty string or empty array is an intentional reviewer value, not an absent value.
 - The final receipt contains only the reviewer’s resulting values. Suggestion metadata and provenance remain outside canonical JSON.
+
+## Suggestion Schema And Validation
+
+`suggestedReview` allows only these keys:
+
+- `concreteAnswer`, `reason`, `evidenceRef`, `riskCategory`, and `severity`;
+- `responses`, containing only keys declared by that item’s `requiredResponses`;
+- `useSessionDateFor`, an array containing `verifiedAt` or descriptor keys whose type is `date`.
+
+Reject `decision`, `requestedChange`, `safeEvidenceConfirmed`, `verifiedAt`, unknown top-level keys, unknown response keys, and date keys duplicated between `responses` and `useSessionDateFor`.
+
+Normalize suggestions through the existing text limits and safe-text/evidence guards, item risk allowlist, severity allowlist, descriptor types, option allowlists, conditional applicability, and maximum lengths. `useSessionDateFor` keys must be unique and refer only to supported date fields. An invalid suggestion makes the packet unavailable; the repository must not fall back to partial or invented defaults.
 
 ## Common Evidence Reference
 
@@ -47,7 +62,7 @@ Use `docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md` only as the
 
 - Answer: require a named privacy/legal owner before runtime promotion.
 - Reason: `MOB-DG04` records the owner evidence as missing.
-- Responses: fixture-only owner label; role `Privacy / Legal owner`; reviewer role `privacy`; current date; the common evidence reference.
+- Responses: leave `ownerDisplayName` unset for manual entry; prefill role `Privacy / Legal owner`, reviewer role `privacy`, session date, and the common evidence reference.
 - Risk/severity: `legal` / `high`.
 
 ### M03A-MEDICAL-BOUNDARY
@@ -101,7 +116,7 @@ Use `docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md` only as the
 
 ## Verification
 
-- Fixture normalization rejects missing, unknown, over-length, or invalid suggestion values.
-- Unit tests prove new-session defaults, legacy one-time migration, restored-draft precedence, and manual safety controls.
+- Fixture normalization rejects missing, unknown, forbidden, over-length, or invalid suggestion values and date-key conflicts.
+- Unit tests prove correction precedence, new-session defaults, absent-only legacy migration, exact restored-draft precedence, one-time local-date capture, and manual safety controls.
 - Receipt tests prove suggestions do not alter schema, hashing, import, correction, or write-once behavior.
 - Browser proof shows suggestions at desktop/mobile sizes and proves the reviewer can edit, clear, reload, validate, and submit final values.
