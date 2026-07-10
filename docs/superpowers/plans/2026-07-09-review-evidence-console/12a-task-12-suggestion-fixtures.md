@@ -133,31 +133,8 @@ const expected = {
 
 Assert each normalized `item.suggestedReview` deep-equals its complete object above. `ownerDisplayName`, every decision, and every safety confirmation are absent.
 
-- [ ] **Step 2: Verify RED**
-
-Run `node --test tools/review-evidence-console/tests/review-suggestion.test.mjs`.
-
-Expected: FAIL because the normalizer and fixture contract do not exist.
-
-- [ ] **Step 3: Implement the strict normalizer**
-
-Keep `normalize-suggestion.mjs` under 150 lines. Allow only the spec keys; reuse safe-text/evidence guards, exact risk/severity/descriptor contracts, conditional applicability, and exact-key checks. Require a valid suggestion on every item. Add a minimal valid suggestion to `validation-fixtures.mjs`.
-
-- [ ] **Step 4: Add JSON suggestions and generate modules**
-
-Encode the exact values above in all eight JSON fixtures; edit no generated module by hand. Run `pnpm --dir tools/review-evidence-console run fixtures:generate`.
-
-- [ ] **Step 5: Verify GREEN and all normalization regressions**
-
-Run:
-
-```bash
-pnpm --dir tools/review-evidence-console run test:unit
-pnpm --dir tools/review-evidence-console run fixtures:check
-```
-
-Expected: all tests pass and generated modules match JSON.
-
-- [ ] **Step 6: Commit exact files**
-
-Stage only the files listed in this chunk and commit `feat: define reviewer suggestion fixtures`.
+- [ ] **Step 2: Verify RED.** Run `node --test tools/review-evidence-console/tests/review-suggestion.test.mjs`. Expected: FAIL because the normalizer and fixture contract do not exist.
+- [ ] **Step 3: Implement the strict normalizer.** Keep `normalize-suggestion.mjs` under 150 lines. Allow only the spec keys; reuse safe-text/evidence guards, exact risk/severity/descriptor contracts, conditional applicability, and exact-key checks. Require a valid suggestion on every item. Add a minimal valid suggestion to `validation-fixtures.mjs`.
+- [ ] **Step 4: Add JSON suggestions and generate modules.** Encode the exact values above in all eight JSON fixtures; edit no generated module by hand. Run `pnpm --dir tools/review-evidence-console run fixtures:generate`.
+- [ ] **Step 5: Verify GREEN and all normalization regressions.** Run `pnpm --dir tools/review-evidence-console run test:unit` and `pnpm --dir tools/review-evidence-console run fixtures:check`. Expected: all tests pass and generated modules match JSON.
+- [ ] **Step 6: Commit exact files.** Stage only the files listed in this chunk and commit `feat: define reviewer suggestion fixtures`.
