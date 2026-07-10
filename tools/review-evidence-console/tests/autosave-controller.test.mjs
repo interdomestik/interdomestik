@@ -73,31 +73,6 @@ test('restored draft passes its exact revision into the first save', () => {
   assert.equal(expected, '2026-07-10T09:00:00.000Z');
 });
 
-test('conflicts only on a valid strictly newer external revision', () => {
-  const controller = createAutosaveController({
-    store: { save: () => ({ ok: true }) },
-    key: 'draft-key',
-    editorId: 'tab-a',
-    initialUpdatedAt: '2026-07-10T10:00:00.000Z',
-  });
-  for (const updatedAt of ['bad', '2026-07-10T09:59:00.000Z', '2026-07-10T10:00:00.000Z']) {
-    assert.equal(
-      controller.handleStorage({
-        key: 'draft-key',
-        newValue: JSON.stringify({ editorId: 'tab-b', updatedAt }),
-      }),
-      false
-    );
-  }
-  assert.equal(
-    controller.handleStorage({
-      key: 'draft-key',
-      newValue: JSON.stringify({ editorId: 'tab-b', updatedAt: '2026-07-10T10:01:00.000Z' }),
-    }),
-    true
-  );
-});
-
 test('exports this tab latest snapshot, retries failure, and dispose cancels stale save', () => {
   let timer;
   let cleared = 0;

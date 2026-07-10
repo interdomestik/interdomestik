@@ -58,7 +58,10 @@ export function createAutosaveController({
     try {
       const external = JSON.parse(event.newValue);
       const externalTime = Date.parse(external.updatedAt);
-      const localTime = Date.parse(expectedUpdatedAt ?? latestDraft?.updatedAt ?? '');
+      const localTime = Math.max(
+        Date.parse(expectedUpdatedAt ?? '') || 0,
+        Date.parse(latestDraft?.updatedAt ?? '') || 0
+      );
       if (
         external.editorId === editorId ||
         !Number.isFinite(externalTime) ||
