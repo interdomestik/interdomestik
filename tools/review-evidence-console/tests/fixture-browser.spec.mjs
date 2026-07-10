@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 
 import { startConsoleServer } from '../server/start.mjs';
+import { waitForPersistedDraft } from './browser-draft-state.mjs';
 
 const requireFromWeb = createRequire(new URL('../../../apps/web/package.json', import.meta.url));
 const { expect, test } = requireFromWeb('@playwright/test');
@@ -102,7 +103,7 @@ async function proveSuggestionFlow(page, viewport) {
   await openItem(page, items[1]);
   await page.locator('#response-medicalBoundary').selectOption('allowed');
   await openItem(page, items[0]);
-  await page.waitForTimeout(500);
+  await waitForPersistedDraft(page, items);
   await page.reload();
   await expect(page.locator('#concreteAnswer')).toHaveValue('Përgjigjja finale e redaktuar');
   await expect(page.locator('#reason')).toHaveValue('');
@@ -130,6 +131,8 @@ async function proveSuggestionFlow(page, viewport) {
   expect(receipt.decisions[items[0]].concreteAnswer).toBe('Përgjigjja finale e redaktuar');
   expect(receipt.decisions[items[0]].reason).toBe('Arsyeja finale e shqyrtuesit');
   expect(receipt.structuredResponses[items[1]].medicalBoundary).toBe('allowed');
+  expect(receipt.structuredResponses[items[1]].dpiaRef).toBe('docs/final-review.md');
+  expect(receipt.structuredResponses[items[1]]).not.toHaveProperty('disabledScope');
   for (const key of ['suggestionVersion', 'suggestedReview', 'useSessionDateFor']) {
     expect(receipt).not.toHaveProperty(key);
   }

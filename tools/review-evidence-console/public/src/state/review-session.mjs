@@ -3,6 +3,7 @@ import { initializeSuggestedDecisions } from './review-suggestions.mjs';
 import { assertField, clone, deepFreeze, initialState, same } from './review-session-state.mjs';
 import { ownSessionBundle } from './session-bundle.mjs';
 import { validatePacket } from '../validation/packet.mjs';
+import { pruneInapplicableResponses } from '../validation/prune-inapplicable-responses.mjs';
 
 const DECISIONS = new Set([null, 'approve', 'change', 'block']);
 
@@ -61,10 +62,13 @@ export function createReviewSession(
     if (!item.requiredResponses.some(descriptor => descriptor.key === key)) {
       throw new TypeError('Unknown structured response field.');
     }
-    return updateDecision(itemId, current => ({
-      ...current,
-      responses: { ...current.responses, [key]: clone(value) },
-    }));
+    return updateDecision(itemId, current => {
+      const responses = { ...current.responses, [key]: clone(value) };
+      return {
+        ...current,
+        responses: pruneInapplicableResponses(item.requiredResponses, responses),
+      };
+    });
   }
 
   async function createCorrection(previousReceipt, metadata = {}) {

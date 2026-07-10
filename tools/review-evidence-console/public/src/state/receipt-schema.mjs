@@ -5,7 +5,7 @@ const ID = /^rec_[a-f0-9]{24}$/;
 const SEVERITIES = new Set(['none', 'low', 'medium', 'high']);
 const DECISION_SEVERITIES = new Set(['low', 'medium', 'high']);
 const DECISIONS = new Set(['approve', 'change', 'block']);
-const FORBIDDEN_TOP_LEVEL = ['suggestionVersion', 'suggestedReview', 'useSessionDateFor'];
+const FORBIDDEN_METADATA = new Set(['suggestionVersion', 'suggestedReview', 'useSessionDateFor']);
 const CORRECTION_FIELDS = [
   'previousReceiptId',
   'correctionItemId',
@@ -23,9 +23,17 @@ const requiredStrings = [
   'authorityDisclaimer',
 ];
 
+function containsForbiddenOwnKey(value, seen = new WeakSet()) {
+  if (value === null || typeof value !== 'object' || seen.has(value)) return false;
+  seen.add(value);
+  return Object.keys(value).some(
+    key => FORBIDDEN_METADATA.has(key) || containsForbiddenOwnKey(value[key], seen)
+  );
+}
+
 export function validateReceipt(receipt, schemaVersion) {
   if (!isRecord(receipt)) return failure('invalid_data', 'Vërtetimi duhet të jetë objekt.');
-  if (FORBIDDEN_TOP_LEVEL.some(field => Object.hasOwn(receipt, field))) {
+  if (containsForbiddenOwnKey(receipt)) {
     return failure('invalid_data', 'Vërtetimi përmban metadata sugjerimesh jo-kanonike.');
   }
   if (receipt.schemaVersion !== schemaVersion) {
