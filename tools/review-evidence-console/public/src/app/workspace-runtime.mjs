@@ -25,9 +25,6 @@ export function createWorkspaceRuntime({
   let recovery = loaded.ok || loaded.code === 'not_found' ? null : { code: loaded.code };
   let autosave;
   const session = createReviewSession(bundle, draft, { onChange: state => changed(state) });
-  if (initialItemId && initialItemId !== session.getSnapshot().activeItem)
-    session.selectItem(initialItemId);
-
   autosave = createAutosaveController({
     store,
     key,
@@ -43,6 +40,8 @@ export function createWorkspaceRuntime({
       if (status.startsWith('Conflict')) onConflict?.(recovery);
     },
   });
+  if (initialItemId && initialItemId !== session.getSnapshot().activeItem)
+    session.selectItem(initialItemId);
 
   function changed(state) {
     autosave?.schedule(draftFrom(state));
