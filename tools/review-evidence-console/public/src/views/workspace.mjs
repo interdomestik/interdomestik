@@ -71,7 +71,7 @@ export function renderWorkspace({
     element(
       'button',
       {
-        attributes: { type: 'button', class: 'primary-action' },
+        attributes: { type: 'button', class: 'primary-action workspace-submit' },
         on: { click: () => onValidate?.() },
       },
       [text('Review and submit')]
