@@ -1,0 +1,43 @@
+const SEGMENT = /^[a-zA-Z0-9._-]+$/;
+const INBOX = Object.freeze({ name: 'inbox' });
+
+function segments(hash) {
+  if (typeof hash !== 'string' || !hash.startsWith('#/')) return null;
+  try {
+    const values = hash.slice(2).split('/').filter(Boolean).map(decodeURIComponent);
+    return values.every(value => SEGMENT.test(value)) ? values : null;
+  } catch {
+    return null;
+  }
+}
+
+export function parseRoute(hash) {
+  const values = segments(hash);
+  if (!values) return INBOX;
+  if (values.length === 0) return INBOX;
+  if (values.length === 2 && values[0] === 'receipt') {
+    return { name: 'receipt', receiptId: values[1] };
+  }
+  if (values.length === 3 && values[0] === 'review') {
+    return values[2] === 'validate'
+      ? { name: 'validation', assignmentId: values[1] }
+      : { name: 'workspace', assignmentId: values[1], itemId: values[2] };
+  }
+  return INBOX;
+}
+
+function safe(value) {
+  return typeof value === 'string' && SEGMENT.test(value);
+}
+
+export function formatRoute(route) {
+  if (route?.name === 'inbox') return '#/';
+  if (route?.name === 'receipt' && safe(route.receiptId)) return `#/receipt/${route.receiptId}`;
+  if (route?.name === 'validation' && safe(route.assignmentId)) {
+    return `#/review/${route.assignmentId}/validate`;
+  }
+  if (route?.name === 'workspace' && safe(route.assignmentId) && safe(route.itemId)) {
+    return `#/review/${route.assignmentId}/${route.itemId}`;
+  }
+  return '#/';
+}
