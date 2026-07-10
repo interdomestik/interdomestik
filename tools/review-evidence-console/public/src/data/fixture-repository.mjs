@@ -1,15 +1,15 @@
-import assignments from '../../data/assignments.json' with { type: 'json' };
-import accessRoles from '../../data/items/m03a-access-roles.json' with { type: 'json' };
-import consentFields from '../../data/items/m03a-consent-fields.json' with { type: 'json' };
-import documentBoundary from '../../data/items/m03a-document-boundary.json' with { type: 'json' };
-import erasureRevocation from '../../data/items/m03a-erasure-revocation.json' with { type: 'json' };
-import medicalBoundary from '../../data/items/m03a-medical-boundary.json' with { type: 'json' };
-import privacyOwner from '../../data/items/m03a-privacy-owner.json' with { type: 'json' };
-import scopeStops from '../../data/items/m03a-scope-stops.json' with { type: 'json' };
-import threatRecheck from '../../data/items/m03a-threat-recheck.json' with { type: 'json' };
-import partAMetadata from '../../data/packets/mob-03a-part-a.json' with { type: 'json' };
-import partBMetadata from '../../data/packets/mob-03a-part-b.json' with { type: 'json' };
-import reviewers from '../../data/reviewers.json' with { type: 'json' };
+import assignments from '../../data/assignments.mjs';
+import accessRoles from '../../data/items/m03a-access-roles.mjs';
+import consentFields from '../../data/items/m03a-consent-fields.mjs';
+import documentBoundary from '../../data/items/m03a-document-boundary.mjs';
+import erasureRevocation from '../../data/items/m03a-erasure-revocation.mjs';
+import medicalBoundary from '../../data/items/m03a-medical-boundary.mjs';
+import privacyOwner from '../../data/items/m03a-privacy-owner.mjs';
+import scopeStops from '../../data/items/m03a-scope-stops.mjs';
+import threatRecheck from '../../data/items/m03a-threat-recheck.mjs';
+import partAMetadata from '../../data/packets/mob-03a-part-a.mjs';
+import partBMetadata from '../../data/packets/mob-03a-part-b.mjs';
+import reviewers from '../../data/reviewers.mjs';
 
 import {
   normalizeAssignment,

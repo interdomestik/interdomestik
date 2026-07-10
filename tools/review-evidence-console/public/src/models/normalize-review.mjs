@@ -1,3 +1,5 @@
+import { normalizeDescriptors } from './normalize-descriptor.mjs';
+
 const BASE_FIELDS = [
   'decision',
   'concreteAnswer',
@@ -27,38 +29,13 @@ function stringList(value, key, allowEmpty = false) {
   return value;
 }
 
-function normalizeDescriptor(descriptor) {
-  const key = requiredString(descriptor, 'key');
-  requiredString(descriptor, 'labelSq');
-  requiredString(descriptor, 'type');
-  if (typeof descriptor.required !== 'boolean') throw new TypeError('required must be boolean.');
-  if (!Number.isInteger(descriptor.maxLength) || descriptor.maxLength < 1) {
-    throw new TypeError('maxLength must be a positive integer.');
-  }
-  stringList(descriptor.options, 'options', true);
-  if (descriptor.requiredWhen !== undefined) {
-    if (descriptor.requiredWhen === null || Array.isArray(descriptor.requiredWhen)) {
-      throw new TypeError('requiredWhen must be an object.');
-    }
-    requiredString(descriptor.requiredWhen, 'key');
-    requiredString(descriptor.requiredWhen, 'equals');
-  }
-  return { ...descriptor, key };
-}
-
 export function normalizeItem(item) {
   for (const key of ['id', 'prompt', 'need', 'repoImpact', 'guidance']) requiredString(item, key);
   const baseFields = stringList(item.baseFields, 'baseFields');
   for (const key of BASE_FIELDS) {
     if (!baseFields.includes(key)) throw new TypeError(`baseFields must include ${key}.`);
   }
-  if (!Array.isArray(item.requiredResponses) || item.requiredResponses.length === 0) {
-    throw new TypeError('requiredResponses must be a non-empty array.');
-  }
-  const descriptors = item.requiredResponses.map(normalizeDescriptor);
-  if (new Set(descriptors.map(entry => entry.key)).size !== descriptors.length) {
-    throw new TypeError('requiredResponses keys must be unique.');
-  }
+  const descriptors = normalizeDescriptors(item.requiredResponses);
   return {
     ...item,
     baseFields: [...baseFields],

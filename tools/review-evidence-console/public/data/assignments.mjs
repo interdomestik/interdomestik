@@ -1,0 +1,22 @@
+export default [
+  {
+    id: 'assign_mob03a_part_a',
+    packetId: 'mob-03a-part-a',
+    reviewerFixtureId: 'reviewer_privacy_mk',
+    reviewerRole: 'privacy',
+    status: 'in_progress',
+    dueDate: '2026-07-15',
+    risk: 'high',
+    fixture: true,
+  },
+  {
+    id: 'assign_mob03a_part_b',
+    packetId: 'mob-03a-part-b',
+    reviewerFixtureId: 'reviewer_privacy_mk',
+    reviewerRole: 'privacy',
+    status: 'not_started',
+    dueDate: '2026-07-16',
+    risk: 'medium',
+    fixture: true,
+  },
+];
