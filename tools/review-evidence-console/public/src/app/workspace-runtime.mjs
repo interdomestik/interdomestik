@@ -9,6 +9,7 @@ export function createWorkspaceRuntime({
   onRender,
   onNavigate,
   onConflict,
+  onValidate,
   onStatus = () => {},
 }) {
   const key = composeDraftKey({
@@ -79,6 +80,15 @@ export function createWorkspaceRuntime({
       onSafeEvidence: value => {
         safeEvidenceConfirmed = value === true;
         autosave.schedule(draftFrom(session.getSnapshot()));
+      },
+      onValidate: () => {
+        const saved = autosave.flushLatest();
+        if (!saved.ok) return;
+        onValidate?.(
+          session.validate(safeEvidenceConfirmed),
+          session.getSnapshot(),
+          safeEvidenceConfirmed
+        );
       },
     });
   }

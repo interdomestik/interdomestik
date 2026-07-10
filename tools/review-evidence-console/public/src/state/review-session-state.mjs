@@ -90,5 +90,10 @@ export function initialState(bundle, draft) {
     ])
   );
   const activeItem = itemIds.includes(draft?.activeItem) ? draft.activeItem : itemIds[0];
-  return deepFreeze({ ...identities, activeItem, decisions, correction: null });
+  return deepFreeze({
+    ...identities,
+    activeItem,
+    decisions,
+    correction: clone(draft?.correction ?? null),
+  });
 }

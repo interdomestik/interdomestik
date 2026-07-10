@@ -2,7 +2,13 @@ import { element, text } from '../components/dom.mjs';
 
 const RISK = { high: 'Rrezik i lartë', medium: 'Rrezik mesatar', low: 'Rrezik i ulët' };
 
-export function renderInbox({ state, assignments = [], message = '', onOpen = () => {} }) {
+export function renderInbox({
+  state,
+  assignments = [],
+  message = '',
+  onOpen = () => {},
+  onImport = () => {},
+}) {
   const heading = element('div', { attributes: { class: 'page-heading' } }, [
     element('span', { attributes: { class: 'eyebrow' } }, [text('Detyrat e mia')]),
     element('h1', { attributes: { id: 'inbox-title' } }, [text('Paketat për rishikim')]),
@@ -16,7 +22,7 @@ export function renderInbox({ state, assignments = [], message = '', onOpen = ()
       statePanel('Detyrat nuk mund të hapen.', message || 'Provo përsëri më vonë.')
     );
   }
-  return inboxSection(heading, ...assignments.map(row => assignmentCard(row, onOpen)));
+  return inboxSection(heading, ...assignments.map(row => assignmentCard(row, onOpen, onImport)));
 }
 
 function inboxSection(...children) {
@@ -27,7 +33,15 @@ function inboxSection(...children) {
   );
 }
 
-function assignmentCard(assignment, onOpen) {
+function assignmentCard(assignment, onOpen, onImport) {
+  const file = element('input', {
+    attributes: {
+      type: 'file',
+      accept: 'application/json,.json',
+      'aria-label': `Import receipt for ${assignment.title}`,
+    },
+    on: { change: event => event.target.files?.[0] && onImport(assignment, event.target.files[0]) },
+  });
   const action = assignment.status === 'in_progress' ? 'Vazhdo paketën' : 'Hap paketën';
   return element('article', { attributes: { class: 'assignment-card' } }, [
     element('span', { attributes: { class: 'canonical-id' } }, [text(assignment.packetId)]),
@@ -50,6 +64,10 @@ function assignmentCard(assignment, onOpen) {
       },
       [text(action)]
     ),
+    element('label', { attributes: { class: 'import-receipt' } }, [
+      text('Import local receipt JSON'),
+      file,
+    ]),
   ]);
 }
 

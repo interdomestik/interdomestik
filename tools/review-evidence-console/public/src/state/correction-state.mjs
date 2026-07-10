@@ -1,6 +1,7 @@
 import { verifyReceipt } from './receipt-builder.mjs';
 import { clone, deepFreeze } from './review-session-state.mjs';
 import { validatePacket } from '../validation/packet.mjs';
+import { validateSafeText } from '../validation/input-guards.mjs';
 
 function exactKeys(record, itemIds) {
   const keys = record && typeof record === 'object' ? Object.keys(record) : [];
@@ -32,7 +33,9 @@ export async function prepareCorrection(bundle, state, previousReceipt, metadata
   }
   itemFor(metadata.itemId);
   if (
-    ![metadata.reason, metadata.impact].every(value => typeof value === 'string' && value.trim())
+    ![metadata.reason, metadata.impact].every(
+      value => validateSafeText(value, { maxLength: 1000 }).ok
+    )
   ) {
     throw new TypeError('Correction item, reason, and impact are required.');
   }

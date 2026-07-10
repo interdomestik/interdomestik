@@ -43,6 +43,8 @@ const ATTRIBUTES = new Set([
   'maxlength',
   'name',
   'required',
+  'readonly',
+  'accept',
   'role',
   'rows',
   'tabindex',

@@ -15,6 +15,7 @@ export function renderWorkspace({
   onField,
   onResponse,
   onSafeEvidence,
+  onValidate,
 }) {
   const item = bundle.packet.items.find(entry => entry.id === state.activeItem);
   if (!item) throw new TypeError('Active review item was not found.');
@@ -67,5 +68,13 @@ export function renderWorkspace({
       onField: (field, value) => onField?.(item.id, field, value),
       onSafeEvidence,
     }),
+    element(
+      'button',
+      {
+        attributes: { type: 'button', class: 'primary-action' },
+        on: { click: () => onValidate?.() },
+      },
+      [text('Review and submit')]
+    ),
   ]);
 }

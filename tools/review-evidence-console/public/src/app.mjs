@@ -8,12 +8,25 @@ import { createRouteCoordinator } from './app/route-coordinator.mjs';
 import { loadInboxRows } from './views/inbox-data.mjs';
 import { renderInbox } from './views/inbox.mjs';
 import { renderWorkspace } from './views/workspace.mjs';
+import { createReviewRouteLoaders } from './app/review-routes.mjs';
 
 const REVIEWER_ID = 'reviewer_privacy_mk';
 const repository = createFixtureRepository();
 const app = document.querySelector('#app');
 let workspaceRuntime;
 const routes = createRouteCoordinator();
+const reviewRoutes = createReviewRouteLoaders({
+  repository,
+  isCurrent: token => routes.isCurrent(token),
+  navigate: value => {
+    window.location.hash = formatRoute(value);
+  },
+  render: (content, role) =>
+    replaceChildren(
+      app,
+      shell(Array.isArray(content) ? element('div', {}, content) : content, role)
+    ),
+});
 
 function shell(content, role = 'Rishikues privatësie', saveStatus) {
   return [
@@ -45,6 +58,10 @@ async function loadInbox(token) {
     state: rows.value.length ? 'populated' : 'empty',
     assignments: rows.value,
     onOpen: openAssignment,
+    onImport: async (assignment, file) => {
+      const result = await reviewRoutes.importReceipt(assignment.id, file);
+      if (!result.ok) announce(result.message);
+    },
   });
   replaceChildren(app, shell(view, role));
   announce(
@@ -70,9 +87,14 @@ async function loadWorkspace(route, token) {
       const target = document.querySelector('.save-state');
       if (target) target.textContent = status;
     },
+    onValidate: () => {
+      window.location.hash = formatRoute({ name: 'validation', assignmentId: route.assignmentId });
+    },
     onRender: props => {
       replaceChildren(app, shell(renderWorkspace(props), 'Rishikues privatësie', props.saveStatus));
-      if (props.focusHeading)
+      const pendingFocus = reviewRoutes.takePendingFocus();
+      if (pendingFocus) queueMicrotask(() => document.querySelector(`#${pendingFocus}`)?.focus());
+      else if (props.focusHeading)
         queueMicrotask(() => document.querySelector('#item-heading')?.focus());
       else if (props.focusControlId)
         queueMicrotask(() => document.querySelector(`#${props.focusControlId}`)?.focus());
@@ -92,6 +114,8 @@ function route() {
   const token = routes.begin();
   const current = parseRoute(window.location.hash);
   if (current.name === 'workspace') loadWorkspace(current, token);
+  else if (current.name === 'validation') reviewRoutes.validation(current, token);
+  else if (current.name === 'receipt') reviewRoutes.receipt(current, token);
   else loadInbox(token);
 }
 
