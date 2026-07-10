@@ -59,7 +59,7 @@ test('focuses receipt then correction headings on deliberate view changes', asyn
   await context.loaders.receipt({ name: 'receipt', receiptId: receipt.receiptId }, 1);
   assert.equal(context.renders.at(-1).focus, 'receipt-heading');
   const button = nodes(context.renders.at(-1).content).find(
-    node => copy(node).includes('Create correction') && node.tagName === 'BUTTON'
+    node => copy(node).includes('Krijo korrigjim') && node.tagName === 'BUTTON'
   );
   button.listeners.click();
   assert.equal(context.renders.at(-1).focus, 'correction-heading');
@@ -72,17 +72,21 @@ test('keeps receipt visible and reports delete and export storage failures', asy
   context.base.setItem('review-console:v1:draft:assign_a:reviewer_a:1', 'draft');
   await context.loaders.receipt({ name: 'receipt', receiptId: receipt.receiptId }, 1);
   context.fail();
-  globalThis.confirm = () => true;
+  let confirmation;
+  globalThis.confirm = message => ((confirmation = message), true);
   let current = nodes(context.renders.at(-1).content);
-  current.find(node => node.tagName === 'BUTTON' && copy(node).includes('Clear')).listeners.click();
+  current
+    .find(node => node.tagName === 'BUTTON' && copy(node).includes('Pastro'))
+    .listeners.click();
+  assert.match(confirmation, /Të pastrohet vërtetimi .* Draftet do të ruhen/);
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(context.navigations.length, 0);
-  assert.match(copy(nodes(context.renders.at(-1).content)[0]), /Local storage is unavailable/);
+  assert.match(copy(nodes(context.renders.at(-1).content)[0]), /Ruajtja lokale nuk është/);
   current = nodes(context.renders.at(-1).content);
   current
-    .find(node => node.tagName === 'BUTTON' && copy(node).includes('Export'))
+    .find(node => node.tagName === 'BUTTON' && copy(node).includes('Eksporto'))
     .listeners.click();
   await new Promise(resolve => setImmediate(resolve));
-  assert.match(copy(nodes(context.renders.at(-1).content)[0]), /Local storage is unavailable/);
+  assert.match(copy(nodes(context.renders.at(-1).content)[0]), /Ruajtja lokale nuk është/);
   assert.equal(context.base.getItem('review-console:v1:draft:assign_a:reviewer_a:1'), 'draft');
 });

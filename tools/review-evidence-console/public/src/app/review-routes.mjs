@@ -5,15 +5,14 @@ import { startCorrection } from './correction-controller.mjs';
 import { createValidationHandler } from './validation-route.mjs';
 import { awaitCurrent, takeValue } from './current-async.mjs';
 import { clearReceipt, createImportHandler } from './receipt-route-actions.mjs';
+import { confirmClearReceipt } from './receipt-confirmation.mjs';
 import { renderJsonFallback } from './result-fallback.mjs';
 import { renderReceipt } from '../views/receipt.mjs';
 import { renderCorrection } from '../views/correction.mjs';
-
 export function createReviewRouteLoaders({ repository, render, navigate, isCurrent }) {
   const receiptStore = createReceiptStore({ verifyReceipt, schemaVersion: 1 });
   const pendingFocus = { value: null };
   const imported = new Set();
-
   const validation = createValidationHandler({
     repository,
     receiptStore,
@@ -42,7 +41,7 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
           renderReceipt({
             receipt: loaded.value,
             importNotice: imported.has(route.receiptId)
-              ? 'Read on this device; never uploaded'
+              ? 'Lexohet në këtë pajisje; nuk ngarkohet kurrë'
               : '',
             onExport: async () => {
               const completed = await awaitCurrent(
@@ -55,7 +54,7 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
               draw();
             },
             onClear: id => {
-              if (confirm(`Clear receipt ${id}? Drafts will remain.`)) {
+              if (confirmClearReceipt(id)) {
                 clearReceipt({
                   id,
                   store: receiptStore,

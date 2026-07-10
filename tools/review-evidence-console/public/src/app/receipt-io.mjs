@@ -4,24 +4,24 @@ const MAX_FILE_BYTES = 1_048_576;
 
 export async function readReceiptFile(file) {
   if (!file || typeof file.name !== 'string' || !file.name.toLowerCase().endsWith('.json')) {
-    return { ok: false, code: 'file_type', message: 'Choose a file whose name ends in .json.' };
+    return { ok: false, code: 'file_type', message: 'Zgjidh një skedar me emër që mbaron me .json.' };
   }
   if (!Number.isFinite(file.size) || file.size > MAX_FILE_BYTES) {
-    return { ok: false, code: 'file_size', message: 'Receipt JSON must be 1 MiB or smaller.' };
+    return { ok: false, code: 'file_size', message: 'JSON-i i vërtetimit duhet të jetë deri në 1 MiB.' };
   }
   try {
     return { ok: true, value: await file.text() };
   } catch {
-    return { ok: false, code: 'read_failed', message: 'Receipt file could not be read.' };
+    return { ok: false, code: 'read_failed', message: 'Skedari i vërtetimit nuk mund të lexohej.' };
   }
 }
 
 async function copyText(text, clipboard) {
   try {
     await clipboard.writeText(text);
-    return { ok: true, value: undefined, message: 'Receipt JSON copied.' };
+    return { ok: true, value: undefined, message: 'JSON-i i vërtetimit u kopjua.' };
   } catch {
-    return { ok: false, code: 'copy_failed', message: 'Receipt JSON could not be copied.' };
+    return { ok: false, code: 'copy_failed', message: 'JSON-i i vërtetimit nuk mund të kopjohej.' };
   }
 }
 
@@ -36,7 +36,7 @@ export async function exportReceipt(receiptId, store, options = {}) {
     return {
       ok: false,
       code: 'download_failed',
-      message: 'Download was blocked. Use the read-only JSON fallback.',
+      message: 'Shkarkimi u bllokua. Përdor JSON-in rezervë vetëm për lexim.',
       text: result.value,
       copy: () => copyText(result.value, options.clipboard ?? navigator.clipboard),
     };

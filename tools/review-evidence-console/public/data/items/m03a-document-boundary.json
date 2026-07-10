@@ -1,9 +1,9 @@
 {
   "id": "M03A-DOCUMENT-BOUNDARY",
-  "prompt": "Which metadata is allowed?",
-  "need": "Document boundaries remain explicit.",
-  "repoImpact": "Prevents source-document display.",
-  "guidance": "Use metadata labels only.",
+  "prompt": "Kufiri i dokumenteve",
+  "need": "Kufijtë e dokumenteve duhet të mbeten të qartë.",
+  "repoImpact": "Parandalon shfaqjen e dokumentit burimor.",
+  "guidance": "Përdor vetëm etiketat e metadatave.",
   "baseFields": [
     "decision",
     "concreteAnswer",
@@ -22,7 +22,12 @@
       "type": "checkbox_group",
       "required": true,
       "maxLength": 160,
-      "options": ["state", "category", "updatedAt"]
+      "options": ["state", "category", "updatedAt"],
+      "optionLabelsSq": {
+        "state": "Gjendja",
+        "category": "Kategoria",
+        "updatedAt": "Data e përditësimit"
+      }
     },
     {
       "key": "forbiddenCategories",
@@ -30,7 +35,13 @@
       "type": "checkbox_group",
       "required": true,
       "maxLength": 24,
-      "options": ["raw_document", "payment", "medical", "legal_private"]
+      "options": ["raw_document", "payment", "medical", "legal_private"],
+      "optionLabelsSq": {
+        "raw_document": "Dokumenti burimor",
+        "payment": "Pagesa",
+        "medical": "Të dhënat mjekësore",
+        "legal_private": "Të dhënat private ligjore"
+      }
     }
   ]
 }

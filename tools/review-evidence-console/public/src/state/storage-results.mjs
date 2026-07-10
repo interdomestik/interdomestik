@@ -2,9 +2,9 @@ export const failure = (code, message) => ({ ok: false, code, message });
 
 export function storageFailure(error) {
   if (error?.name === 'QuotaExceededError') {
-    return failure('quota', 'Local storage is full. Export a recovery copy and retry.');
+    return failure('quota', 'Ruajtja lokale është plot. Eksporto një kopje rikuperimi dhe provo përsëri.');
   }
-  return failure('unavailable', 'Local storage is unavailable on this device.');
+  return failure('unavailable', 'Ruajtja lokale nuk është e disponueshme në këtë pajisje.');
 }
 
 export const isRecord = value =>

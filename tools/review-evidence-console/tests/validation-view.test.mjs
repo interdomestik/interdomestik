@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { fakeDocument, walk } from './fake-dom.mjs';
+import { copy, fakeDocument, walk } from './fake-dom.mjs';
 
 globalThis.document = fakeDocument;
 const { renderValidation } = await import('../public/src/views/validation.mjs');
@@ -10,6 +10,7 @@ test('groups every invalid field and routes to its exact control', () => {
   const node = renderValidation({
     validation: {
       valid: false,
+      errorCount: 3,
       errors: [{ key: 'safeEvidenceConfirmed', message: 'Confirm safe evidence.' }],
       items: [
         {
@@ -24,6 +25,8 @@ test('groups every invalid field and routes to its exact control', () => {
     onFocusError: (...args) => calls.push(args),
   });
   const buttons = walk(node).filter(entry => entry.tagName === 'BUTTON');
+  assert.match(copy(node), /Përfundo shqyrtimin/);
+  assert.match(copy(node), /3 fusha kërkojnë vëmendje para dërgimit/);
   assert.equal(buttons.length, 3);
   buttons[0].listeners.click();
   assert.deepEqual(calls[0], [null, 'safe-evidence-confirmed']);
@@ -39,6 +42,8 @@ test('uses native and ARIA busy-disabled submission semantics', () => {
     submitting: true,
   });
   const button = walk(node).find(entry => entry.tagName === 'BUTTON');
+  assert.equal(copy(button).trim(), 'Duke dërguar…');
+  assert.equal(button.attributes['aria-label'], copy(button).trim());
   assert.equal(button.attributes.disabled, 'disabled');
   assert.equal(button.attributes['aria-disabled'], 'true');
   assert.equal(button.attributes['aria-busy'], 'true');

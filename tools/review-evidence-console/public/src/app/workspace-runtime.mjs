@@ -32,12 +32,12 @@ export function createWorkspaceRuntime({
     initialUpdatedAt: draft?.updatedAt,
     onStatus: status => {
       saveStatus = status;
-      if (status.startsWith('Conflict')) recovery = { code: 'conflict', ...recoveryActions() };
-      if (status.startsWith('Save failed'))
+      if (status.startsWith('Konflikt')) recovery = { code: 'conflict', ...recoveryActions() };
+      if (status.startsWith('Ruajtja dështoi'))
         recovery = { code: 'save_failed', ...recoveryActions() };
-      if (status.startsWith('Conflict') || status.startsWith('Save failed')) render(false);
+      if (status.startsWith('Konflikt') || status.startsWith('Ruajtja dështoi')) render(false);
       else onStatus(status);
-      if (status.startsWith('Conflict')) onConflict?.(recovery);
+      if (status.startsWith('Konflikt')) onConflict?.(recovery);
     },
   });
   if (initialItemId && initialItemId !== session.getSnapshot().activeItem)

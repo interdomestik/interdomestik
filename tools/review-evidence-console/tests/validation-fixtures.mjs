@@ -53,6 +53,7 @@ const item = {
       required: true,
       maxLength: 80,
       options: [],
+      optionLabelsSq: {},
     },
   ],
 };

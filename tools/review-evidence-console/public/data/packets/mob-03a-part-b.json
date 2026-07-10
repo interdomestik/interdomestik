@@ -2,11 +2,11 @@
   "id": "mob-03a-part-b",
   "version": "1",
   "reviewerRole": "privacy",
-  "title": "MOB-03a fixture authority review — part B",
-  "scope": "Repo-safe car and property display planning only; no documents or sensitive content are included.",
+  "title": "Rishikimi i autoritetit të mostrës MOB-03a — pjesa B",
+  "scope": "Vetëm planifikim i sigurt për repo për shfaqjen e makinës dhe pronës; nuk përfshihen dokumente ose përmbajtje sensitive.",
   "stopConditions": [
-    "Stop if a raw document is requested",
-    "Stop if scope becomes medical or injury related"
+    "Ndal nëse kërkohet një dokument burimor",
+    "Ndal nëse fusha kalon te të dhënat mjekësore ose të lëndimeve"
   ],
   "itemIds": [
     "M03A-DOCUMENT-BOUNDARY",

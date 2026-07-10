@@ -2,9 +2,9 @@
   "id": "mob-03a-part-a",
   "version": "1",
   "reviewerRole": "privacy",
-  "title": "MOB-03a fixture authority review — part A",
-  "scope": "Repo-safe car and property display planning only; medical and injury data are excluded.",
-  "stopConditions": ["Stop if sensitive data is supplied", "Stop if authority is missing"],
+  "title": "Rishikimi i autoritetit të mostrës MOB-03a — pjesa A",
+  "scope": "Vetëm planifikim i sigurt për repo për shfaqjen e makinës dhe pronës; të dhënat mjekësore dhe të lëndimeve përjashtohen.",
+  "stopConditions": ["Ndal nëse jepen të dhëna sensitive", "Ndal nëse mungon autoriteti"],
   "itemIds": [
     "M03A-PRIVACY-OWNER",
     "M03A-MEDICAL-BOUNDARY",

@@ -1,9 +1,9 @@
 {
   "id": "M03A-SCOPE-STOPS",
-  "prompt": "What scope and stop conditions apply?",
-  "need": "The implementation boundary stays narrow.",
-  "repoImpact": "Blocks unauthorized runtime expansion.",
-  "guidance": "State allowed and excluded fixture scope.",
+  "prompt": "Fusha dhe kushtet e ndalimit",
+  "need": "Kufiri i zbatimit duhet të mbetet i ngushtë.",
+  "repoImpact": "Bllokon zgjerimin e paautorizuar gjatë ekzekutimit.",
+  "guidance": "Përcakto fushën e lejuar dhe të përjashtuar të mostrës.",
   "baseFields": [
     "decision",
     "concreteAnswer",
@@ -22,7 +22,8 @@
       "type": "textarea",
       "required": true,
       "maxLength": 240,
-      "options": []
+      "options": [],
+      "optionLabelsSq": {}
     },
     {
       "key": "excludedScope",
@@ -30,7 +31,8 @@
       "type": "textarea",
       "required": true,
       "maxLength": 240,
-      "options": []
+      "options": [],
+      "optionLabelsSq": {}
     },
     {
       "key": "stopCondition",
@@ -38,7 +40,12 @@
       "type": "radio",
       "required": true,
       "maxLength": 24,
-      "options": ["missing_authority", "sensitive_data", "scope_expansion"]
+      "options": ["missing_authority", "sensitive_data", "scope_expansion"],
+      "optionLabelsSq": {
+        "missing_authority": "Mungon autoriteti",
+        "sensitive_data": "Të dhëna sensitive",
+        "scope_expansion": "Zgjerim i fushës"
+      }
     }
   ]
 }

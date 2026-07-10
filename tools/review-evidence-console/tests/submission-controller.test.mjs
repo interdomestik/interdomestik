@@ -38,6 +38,20 @@ test('awaits receipt save before navigating and ignores duplicate submission', a
   assert.equal((await first).ok, true);
   assert.equal(events.at(-1)[0], 'navigate');
   assert.deepEqual(events[0][1].structuredResponses, { item: {} });
+  assert.equal(events[0][1].authorityDisclaimer, 'Advisory evidence only.');
+  assert.equal(events[0][1].decisions.item.decision, 'approve');
+  assert.equal(events[0][1].decisions.item.severity, 'high');
+});
+
+test('keeps the canonical default authority disclaimer in the receipt input', async () => {
+  let input;
+  const controller = createSubmissionController({
+    bundle,
+    buildReceipt: async value => ((input = value), { receiptId: 'rec_abc' }),
+    receiptStore: { save: async receipt => ({ ok: true, value: receipt }) },
+  });
+  await controller.submit(state, true);
+  assert.equal(input.authorityDisclaimer, 'Local fixture review only; not runtime authority.');
 });
 
 test('requires safe evidence and preserves state when save fails', async () => {

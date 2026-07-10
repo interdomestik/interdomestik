@@ -1,7 +1,65 @@
 import { element, text } from '../components/dom.mjs';
+import {
+  displayDecision,
+  displayRisk,
+  displaySeverity,
+} from '../components/display-labels.mjs';
+
+const RESPONSE_OPTIONS = Object.freeze({
+  access: 'Qasja',
+  allowed: 'Lejo',
+  category: 'Kategoria',
+  change: 'Kërkon ndryshim',
+  clear: 'Pa pengesa',
+  consentStatus: 'Statusi i pëlqimit',
+  consentVersion: 'Versioni i pëlqimit',
+  disclosure: 'Zbulimi',
+  escalate: 'Përshkallëzo',
+  exclude: 'Përjashto',
+  excluded: 'Përjashto',
+  hide_metadata: 'Fshih metadatat',
+  legal_private: 'Të dhënat private ligjore',
+  medical: 'Të dhënat mjekësore',
+  missing_authority: 'Mungon autoriteti',
+  payment: 'Pagesa',
+  raw_document: 'Dokumenti burimor',
+  recordedAt: 'Data e regjistrimit',
+  retention: 'Ruajtja',
+  sensitive_data: 'Të dhëna sensitive',
+  show_revoked_state: 'Shfaq gjendjen e revokuar',
+  scope_expansion: 'Zgjerim i fushës',
+  state: 'Gjendja',
+  stop: 'Ndalo',
+  updatedAt: 'Data e përditësimit',
+  view: 'Shfaq',
+});
 
 function row(label, value) {
-  return element('p', {}, [element('strong', {}, [text(`${label}: `)]), text(value)]);
+  const values = Array.isArray(value) ? value : [typeof value === 'string' ? text(value) : value];
+  return element('p', {}, [element('strong', {}, [text(`${label}: `)]), ...values]);
+}
+
+function audit(value) {
+  return element('code', { attributes: { lang: 'en' } }, [text(value)]);
+}
+
+function labeled(label, raw) {
+  return [text(`${label} `), audit(raw)];
+}
+
+function responseValue(value) {
+  return RESPONSE_OPTIONS[value] ? labeled(RESPONSE_OPTIONS[value], value) : [text(value)];
+}
+
+function technicalRow(key, value) {
+  const values = Array.isArray(value) ? value : [value];
+  return element('p', {}, [
+    audit(key),
+    text(': '),
+    ...values
+      .flatMap((entry, index) => [index ? text(', ') : null, ...responseValue(entry)])
+      .filter(Boolean),
+  ]);
 }
 
 function itemSection(itemId, decision, responses) {
@@ -10,15 +68,21 @@ function itemSection(itemId, decision, responses) {
     { attributes: { class: 'receipt-item', 'aria-labelledby': `receipt-${itemId}` } },
     [
       element('h2', { attributes: { id: `receipt-${itemId}` } }, [text(itemId)]),
-      row('Decision', decision.decision),
-      row('Severity', decision.severity),
-      row('Risk category', decision.riskCategory),
-      ...['concreteAnswer', 'reason', 'evidenceRef', 'verifiedAt', 'requestedChange']
-        .filter(key => decision[key])
-        .map(key => row(key, decision[key])),
-      element('h2', {}, [text('Structured responses')]),
+      row('Vendimi', labeled(displayDecision(decision.decision), decision.decision)),
+      row('Ashpërsia', labeled(displaySeverity(decision.severity), decision.severity)),
+      row('Kategoria e rrezikut', labeled(displayRisk(decision.riskCategory), decision.riskCategory)),
+      ...Object.entries({
+        concreteAnswer: 'Përgjigjja konkrete',
+        reason: 'Arsyeja',
+        evidenceRef: 'Referenca e evidencës',
+        verifiedAt: 'Data e verifikimit',
+        requestedChange: 'Ndryshimi i kërkuar',
+      })
+        .filter(([key]) => decision[key])
+        .map(([key, label]) => row(label, decision[key])),
+      element('h2', {}, [text('Përgjigjet e strukturuara')]),
       ...Object.entries(responses ?? {}).map(([key, value]) =>
-        row(key, Array.isArray(value) ? value.join(', ') : value)
+        technicalRow(key, value)
       ),
     ]
   );
@@ -30,22 +94,34 @@ export function renderReceipt({ receipt, importNotice, onExport, onCorrect, onCl
     { attributes: { class: 'receipt-view', 'aria-labelledby': 'receipt-heading' } },
     [
       element('h1', { attributes: { id: 'receipt-heading', tabindex: '-1' } }, [
-        text('Review receipt'),
+        text('Vërtetimi i shqyrtimit'),
       ]),
-      row('Receipt ID', receipt.receiptId),
-      row('Packet', `${receipt.packetId} · ${receipt.packetVersion}`),
-      element('p', {}, [text(`Version ${receipt.receiptVersion}`)]),
-      receipt.previousReceiptId ? row('Previous receipt', receipt.previousReceiptId) : null,
-      receipt.correctionItemId ? row('Correction item', receipt.correctionItemId) : null,
-      receipt.correctionReason ? row('Correction reason', receipt.correctionReason) : null,
-      receipt.correctionImpact ? row('Correction impact', receipt.correctionImpact) : null,
-      row('Reviewer', `${receipt.reviewerDisplayName} · ${receipt.reviewerRole}`),
-      row('Submitted', receipt.submittedAt),
+      row('ID-ja e vërtetimit', audit(receipt.receiptId)),
+      row('Paketa', [audit(receipt.packetId), text(` · ${receipt.packetVersion}`)]),
+      element('p', {}, [text(`Versioni ${receipt.receiptVersion}`)]),
+      receipt.previousReceiptId ? row('Vërtetimi i mëparshëm', audit(receipt.previousReceiptId)) : null,
+      receipt.correctionItemId ? row('Artikulli i korrigjimit', audit(receipt.correctionItemId)) : null,
+      receipt.correctionReason ? row('Arsyeja e korrigjimit', receipt.correctionReason) : null,
+      receipt.correctionImpact ? row('Ndikimi i korrigjimit', receipt.correctionImpact) : null,
+      row('Shqyrtuesi', [text(`${receipt.reviewerDisplayName} · `), audit(receipt.reviewerRole)]),
+      row('Dërguar më', receipt.submittedAt),
       row(
-        'Risk',
-        `${receipt.riskSummary.severity} · ${receipt.riskSummary.categories.join(', ') || 'none'}`
+        'Rreziku',
+        [
+          ...labeled(displaySeverity(receipt.riskSummary.severity), receipt.riskSummary.severity),
+          text(' · '),
+          ...(receipt.riskSummary.categories.length
+            ? receipt.riskSummary.categories.flatMap((value, index) => [
+                index ? text(', ') : null,
+                ...labeled(displayRisk(value), value),
+              ])
+            : labeled(displaySeverity('none'), 'none')),
+        ].filter(Boolean)
       ),
-      row('Authority', receipt.authorityDisclaimer),
+      row('Autoriteti', [
+        text('Vetëm shqyrtim lokal; nuk është autoritet ekzekutimi. '),
+        audit(receipt.authorityDisclaimer),
+      ]),
       importNotice
         ? element('p', { attributes: { class: 'local-only-notice' } }, [text(importNotice)])
         : null,
@@ -53,15 +129,15 @@ export function renderReceipt({ receipt, importNotice, onExport, onCorrect, onCl
         itemSection(id, decision, receipt.structuredResponses[id])
       ),
       element('button', { attributes: { type: 'button' }, on: { click: () => onExport?.() } }, [
-        text('Export JSON'),
+        text('Eksporto JSON'),
       ]),
       element('button', { attributes: { type: 'button' }, on: { click: () => onCorrect?.() } }, [
-        text('Create correction'),
+        text('Krijo korrigjim'),
       ]),
       element(
         'button',
         { attributes: { type: 'button' }, on: { click: () => onClear?.(receipt.receiptId) } },
-        [text('Clear this receipt')]
+        [text('Pastro këtë vërtetim')]
       ),
     ]
   );

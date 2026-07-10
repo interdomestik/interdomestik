@@ -1,9 +1,9 @@
 {
   "id": "M03A-THREAT-RECHECK",
-  "prompt": "Which threat areas were rechecked?",
-  "need": "The review captures a repo-safe threat signal.",
-  "repoImpact": "Keeps the design gate observable.",
-  "guidance": "Reference repository evidence only.",
+  "prompt": "Rikontrolli i kërcënimeve",
+  "need": "Shqyrtimi duhet të kapë një sinjal të sigurt për repo të kërcënimit.",
+  "repoImpact": "E mban të vëzhgueshme portën e dizajnit.",
+  "guidance": "Refero vetëm evidencën e repos.",
   "baseFields": [
     "decision",
     "concreteAnswer",
@@ -22,7 +22,8 @@
       "type": "multi_select",
       "required": true,
       "maxLength": 160,
-      "options": ["access", "retention", "disclosure"]
+      "options": ["access", "retention", "disclosure"],
+      "optionLabelsSq": { "access": "Qasja", "retention": "Ruajtja", "disclosure": "Zbulimi" }
     },
     {
       "key": "recheckOutcome",
@@ -30,7 +31,8 @@
       "type": "radio",
       "required": true,
       "maxLength": 8,
-      "options": ["clear", "change", "stop"]
+      "options": ["clear", "change", "stop"],
+      "optionLabelsSq": { "clear": "Pa pengesa", "change": "Kërkon ndryshim", "stop": "Ndalo" }
     },
     {
       "key": "threatRecheckEvidenceRef",
@@ -38,7 +40,8 @@
       "type": "evidenceRef",
       "required": true,
       "maxLength": 160,
-      "options": []
+      "options": [],
+      "optionLabelsSq": {}
     }
   ]
 }

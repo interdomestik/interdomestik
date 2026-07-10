@@ -1,9 +1,9 @@
 {
   "id": "M03A-ERASURE-REVOCATION",
-  "prompt": "What rendering rule applies after revocation?",
-  "need": "The fixture communicates the removal boundary.",
-  "repoImpact": "Avoids stale display assumptions.",
-  "guidance": "Choose one rendering rule.",
+  "prompt": "Fshirja dhe revokimi",
+  "need": "Mostra duhet të komunikojë kufirin e heqjes.",
+  "repoImpact": "Shmang supozimet e vjetruara të shfaqjes.",
+  "guidance": "Zgjidh një rregull shfaqjeje.",
   "baseFields": [
     "decision",
     "concreteAnswer",
@@ -22,7 +22,11 @@
       "type": "select",
       "required": true,
       "maxLength": 32,
-      "options": ["hide_metadata", "show_revoked_state"]
+      "options": ["hide_metadata", "show_revoked_state"],
+      "optionLabelsSq": {
+        "hide_metadata": "Fshih metadatat",
+        "show_revoked_state": "Shfaq gjendjen e revokuar"
+      }
     },
     {
       "key": "retentionNote",
@@ -31,6 +35,7 @@
       "required": true,
       "maxLength": 160,
       "options": [],
+      "optionLabelsSq": {},
       "requiredWhen": { "key": "renderingRule", "equals": "show_revoked_state" }
     }
   ]

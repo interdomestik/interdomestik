@@ -25,6 +25,7 @@ const item = (id, guidance = 'Use fixture guidance as editable prose.') => ({
       required: true,
       maxLength: 80,
       options: [],
+      optionLabelsSq: {},
     },
   ],
 });

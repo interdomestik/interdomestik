@@ -19,7 +19,7 @@ export function createAutosaveController({
   function schedule(source) {
     if (conflicted || disposed) return false;
     clearTimer(timer);
-    onStatus('Saving');
+    onStatus('Duke ruajtur');
     latestDraft = makeDraft(source);
     timer = setTimer(() => !disposed && save(), SAVE_DELAY);
     return true;
@@ -42,13 +42,19 @@ export function createAutosaveController({
     if (!result.ok) {
       if (result.code === 'conflict') conflicted = true;
       onStatus(
-        result.code === 'conflict' ? 'Conflict — choose reload or export' : 'Save failed — retry'
+        result.code === 'conflict'
+          ? 'Konflikt — zgjidh ringarkimin ose eksportimin'
+          : 'Ruajtja dështoi — provo përsëri'
       );
       return result;
     }
     expectedUpdatedAt = latestDraft.updatedAt;
     onStatus(
-      `Saved at ${new Date(expectedUpdatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+      `U ruajt në ${new Date(expectedUpdatedAt).toLocaleTimeString('sq-AL', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })}`
     );
     return result;
   }
@@ -70,7 +76,7 @@ export function createAutosaveController({
         return false;
       conflicted = true;
       clearTimer(timer);
-      onStatus('Conflict — choose reload or export');
+      onStatus('Konflikt — zgjidh ringarkimin ose eksportimin');
       return true;
     } catch {
       return false;
@@ -81,7 +87,7 @@ export function createAutosaveController({
     if (!latestDraft || conflicted || disposed) return false;
     clearTimer(timer);
     timer = setTimer(() => !disposed && save(), SAVE_DELAY);
-    onStatus('Saving');
+    onStatus('Duke ruajtur');
     return true;
   }
 

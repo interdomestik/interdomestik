@@ -1,9 +1,9 @@
 {
   "id": "M03A-ACCESS-ROLES",
-  "prompt": "Which fixture roles may view metadata?",
-  "need": "Access assumptions need review.",
-  "repoImpact": "Preserves role-bound display planning.",
-  "guidance": "Do not imply authorization changes.",
+  "prompt": "Rolet me qasje",
+  "need": "Supozimet për qasjen duhet të shqyrtohen.",
+  "repoImpact": "Ruan planifikimin e shfaqjes sipas roleve.",
+  "guidance": "Mos nënkupto ndryshime autorizimi.",
   "baseFields": [
     "decision",
     "concreteAnswer",
@@ -22,7 +22,8 @@
       "type": "radio",
       "required": true,
       "maxLength": 8,
-      "options": ["view", "exclude"]
+      "options": ["view", "exclude"],
+      "optionLabelsSq": { "view": "Shfaq", "exclude": "Përjashto" }
     },
     {
       "key": "internalCaseRoleDecision",
@@ -30,7 +31,8 @@
       "type": "radio",
       "required": true,
       "maxLength": 8,
-      "options": ["view", "exclude"]
+      "options": ["view", "exclude"],
+      "optionLabelsSq": { "view": "Shfaq", "exclude": "Përjashto" }
     },
     {
       "key": "sponsorDecision",
@@ -38,7 +40,8 @@
       "type": "radio",
       "required": true,
       "maxLength": 8,
-      "options": ["exclude", "escalate"]
+      "options": ["exclude", "escalate"],
+      "optionLabelsSq": { "exclude": "Përjashto", "escalate": "Përshkallëzo" }
     },
     {
       "key": "payerDecision",
@@ -46,7 +49,8 @@
       "type": "radio",
       "required": true,
       "maxLength": 8,
-      "options": ["exclude", "escalate"]
+      "options": ["exclude", "escalate"],
+      "optionLabelsSq": { "exclude": "Përjashto", "escalate": "Përshkallëzo" }
     },
     {
       "key": "externalPartyDecision",
@@ -54,7 +58,8 @@
       "type": "radio",
       "required": true,
       "maxLength": 8,
-      "options": ["exclude", "escalate"]
+      "options": ["exclude", "escalate"],
+      "optionLabelsSq": { "exclude": "Përjashto", "escalate": "Përshkallëzo" }
     }
   ]
 }

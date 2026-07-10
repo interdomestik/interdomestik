@@ -35,6 +35,9 @@ export function formField({
 }
 
 export function selectField({ id, label, value = '', options, required = false, onInput }) {
+  const entries = options.map(option =>
+    typeof option === 'string' ? { label: option, value: option } : option
+  );
   const select = element(
     'select',
     {
@@ -47,8 +50,8 @@ export function selectField({ id, label, value = '', options, required = false, 
     },
     [
       element('option', { attributes: { value: '' } }, [text('Zgjidh')]),
-      ...options.map(option =>
-        element('option', { attributes: { value: option } }, [text(option)])
+      ...entries.map(option =>
+        element('option', { attributes: { value: option.value } }, [text(option.label)])
       ),
     ]
   );
@@ -59,5 +62,6 @@ export function selectField({ id, label, value = '', options, required = false, 
       required ? text(' (e detyrueshme)') : null,
     ]),
     select,
+    value ? element('code', { attributes: { lang: 'en' } }, [text(value)]) : null,
   ]);
 }

@@ -7,12 +7,14 @@ export function renderCorrection({ receipt, itemIds, values, error, onChange, on
     { attributes: { class: 'correction-view', 'aria-labelledby': 'correction-heading' } },
     [
       element('h1', { attributes: { id: 'correction-heading', tabindex: '-1' } }, [
-        text('Create a correction'),
+        text('Krijo një korrigjim'),
       ]),
-      element('p', {}, [text(`The prior receipt ${receipt.receiptId} remains immutable.`)]),
+      element('p', {}, [
+        text(`Vërtetimi i mëparshëm ${receipt.receiptId} mbetet i pandryshueshëm.`),
+      ]),
       selectField({
         id: 'correction-item',
-        label: 'Exact item',
+        label: 'Artikulli i saktë',
         required: true,
         value: values.itemId,
         options: itemIds,
@@ -20,7 +22,7 @@ export function renderCorrection({ receipt, itemIds, values, error, onChange, on
       }),
       formField({
         id: 'correction-reason',
-        label: 'Repo-safe reason',
+        label: 'Arsyeja e sigurt për repo',
         required: true,
         value: values.reason,
         maxLength: 1000,
@@ -28,7 +30,7 @@ export function renderCorrection({ receipt, itemIds, values, error, onChange, on
       }),
       formField({
         id: 'correction-impact',
-        label: 'Repo-safe impact',
+        label: 'Ndikimi i sigurt për repo',
         required: true,
         value: values.impact,
         maxLength: 1000,
@@ -38,7 +40,7 @@ export function renderCorrection({ receipt, itemIds, values, error, onChange, on
       element(
         'button',
         { attributes: { type: 'button', class: 'primary-action' }, on: { click: onSubmit } },
-        [text('Open correction workspace')]
+        [text('Hap hapësirën e korrigjimit')]
       ),
     ]
   );

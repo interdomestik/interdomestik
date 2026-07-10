@@ -34,7 +34,7 @@ test('returns stable missing and role-mismatch errors', async () => {
   assert.deepEqual(await repository.loadPacket('missing'), {
     ok: false,
     code: 'not_found',
-    message: 'Packet fixture was not found.',
+    message: 'Mostra e paketës nuk u gjet.',
   });
   const mismatch = async path =>
     path.endsWith('mob-03a-part-a.json') ? { ...partA, reviewerRole: 'legal' } : fakeLoader(path);
@@ -43,7 +43,7 @@ test('returns stable missing and role-mismatch errors', async () => {
     {
       ok: false,
       code: 'invalid_data',
-      message: 'Assignment, reviewer, and packet roles do not match.',
+      message: 'Rolet e detyrës, shqyrtuesit dhe paketës nuk përputhen.',
     }
   );
 });
@@ -64,7 +64,7 @@ test('converts a packet loader failure into invalid_data', async () => {
   assert.deepEqual(await createFixtureRepository({ loadJson: brokenLoader }).loadPacket(partA.id), {
     ok: false,
     code: 'invalid_data',
-    message: 'Packet fixture is invalid.',
+    message: 'Mostra e paketës është e pavlefshme.',
   });
 });
 

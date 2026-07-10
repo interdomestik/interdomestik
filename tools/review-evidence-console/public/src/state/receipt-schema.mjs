@@ -23,25 +23,25 @@ const requiredStrings = [
 ];
 
 export function validateReceipt(receipt, schemaVersion) {
-  if (!isRecord(receipt)) return failure('invalid_data', 'Receipt must be an object.');
+  if (!isRecord(receipt)) return failure('invalid_data', 'Vërtetimi duhet të jetë objekt.');
   if (receipt.schemaVersion !== schemaVersion) {
-    return failure('schema_mismatch', 'Receipt schema is incompatible.');
+    return failure('schema_mismatch', 'Skema e vërtetimit është e papajtueshme.');
   }
   if (
     !ID.test(receipt.receiptId) ||
     !Number.isInteger(receipt.receiptVersion) ||
     receipt.receiptVersion < 1
   ) {
-    return failure('invalid_data', 'Receipt identity is invalid.');
+    return failure('invalid_data', 'Identiteti i vërtetimit është i pavlefshëm.');
   }
   if (requiredStrings.some(field => typeof receipt[field] !== 'string' || !receipt[field])) {
-    return failure('invalid_data', 'Receipt metadata is incomplete.');
+    return failure('invalid_data', 'Metadatat e vërtetimit janë të paplota.');
   }
   if (!isIsoDate(receipt.submittedAt) || !isRecord(receipt.decisions)) {
-    return failure('invalid_data', 'Receipt content is incomplete.');
+    return failure('invalid_data', 'Përmbajtja e vërtetimit është e paplotë.');
   }
   if (!isRecord(receipt.structuredResponses) || !isRecord(receipt.riskSummary)) {
-    return failure('invalid_data', 'Receipt content is incomplete.');
+    return failure('invalid_data', 'Përmbajtja e vërtetimit është e paplotë.');
   }
   const { severity, categories } = receipt.riskSummary;
   if (
@@ -49,7 +49,7 @@ export function validateReceipt(receipt, schemaVersion) {
     !Array.isArray(categories) ||
     categories.some(value => typeof value !== 'string')
   ) {
-    return failure('invalid_data', 'Receipt risk summary is invalid.');
+    return failure('invalid_data', 'Përmbledhja e rrezikut e vërtetimit është e pavlefshme.');
   }
   for (const decision of Object.values(receipt.decisions)) {
     if (
@@ -59,11 +59,11 @@ export function validateReceipt(receipt, schemaVersion) {
       typeof decision.riskCategory !== 'string' ||
       decision.riskCategory.trim() === ''
     ) {
-      return failure('invalid_data', 'Receipt decision content is invalid.');
+      return failure('invalid_data', 'Përmbajtja e vendimit të vërtetimit është e pavlefshme.');
     }
   }
   if (Object.values(receipt.structuredResponses).some(value => !isRecord(value))) {
-    return failure('invalid_data', 'Receipt structured responses are invalid.');
+    return failure('invalid_data', 'Përgjigjet e strukturuara të vërtetimit janë të pavlefshme.');
   }
   const expectedRisk = aggregateRisk(Object.values(receipt.decisions));
   const riskKeys = Object.keys(receipt.riskSummary).sort();
@@ -73,10 +73,10 @@ export function validateReceipt(receipt, schemaVersion) {
     receipt.riskSummary.categories.length !== expectedRisk.categories.length ||
     receipt.riskSummary.categories.some((value, index) => value !== expectedRisk.categories[index])
   ) {
-    return failure('invalid_data', 'Receipt risk summary does not match its decisions.');
+    return failure('invalid_data', 'Përmbledhja e rrezikut nuk përputhet me vendimet.');
   }
   if (receipt.receiptVersion === 1 && CORRECTION_FIELDS.some(field => field in receipt)) {
-    return failure('invalid_data', 'Initial receipts cannot contain correction metadata.');
+    return failure('invalid_data', 'Vërtetimet fillestare nuk mund të kenë metadata korrigjimi.');
   }
   if (receipt.receiptVersion > 1) {
     if (
@@ -85,10 +85,10 @@ export function validateReceipt(receipt, schemaVersion) {
         field => typeof receipt[field] !== 'string' || receipt[field].trim() === ''
       )
     ) {
-      return failure('invalid_data', 'Correction metadata is incomplete.');
+      return failure('invalid_data', 'Metadatat e korrigjimit janë të paplota.');
     }
     if (receipt.previousReceiptId === receipt.receiptId) {
-      return failure('invalid_data', 'Correction receipt cannot link to itself.');
+      return failure('invalid_data', 'Vërtetimi i korrigjimit nuk mund të lidhet me vetveten.');
     }
   }
   return { ok: true, value: receipt };

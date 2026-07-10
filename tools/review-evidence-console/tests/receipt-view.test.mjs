@@ -19,13 +19,25 @@ test('renders complete read-only receipt metadata, risk, evidence, and disclaime
   const receipt = await buildReceipt({
     ...receiptInput,
     decisions: { item_a: complete },
+    structuredResponses: {
+      item_a: { ...receiptInput.structuredResponses.item_a, medicalBoundary: 'excluded' },
+    },
     submittedAt,
   });
-  const node = renderReceipt({ receipt, importNotice: 'Read on this device; never uploaded' });
+  const node = renderReceipt({
+    receipt,
+    importNotice: 'Lexohet në këtë pajisje; nuk ngarkohet kurrë',
+  });
   const content = copy(node);
+  assert.match(content, /Vetëm shqyrtim lokal; nuk është autoritet ekzekutimi/);
+  assert.match(content, /Mirato.*approve/s);
+  assert.match(content, /E lartë.*high/s);
+  assert.match(content, /Përjashto.*excluded/s);
+  const auditCodes = walk(node).filter(entry => entry.tagName === 'CODE');
+  assert.ok(auditCodes.every(entry => entry.attributes.lang === 'en'));
   for (const value of [
     receipt.receiptId,
-    'Version 1',
+    'Versioni 1',
     receipt.reviewerDisplayName,
     receipt.reviewerRole,
     receipt.submittedAt,
@@ -40,7 +52,7 @@ test('renders complete read-only receipt metadata, risk, evidence, and disclaime
     complete.requestedChange,
     'ownerRole',
     'Privacy lead',
-    'Read on this device; never uploaded',
+    'Lexohet në këtë pajisje; nuk ngarkohet kurrë',
   ])
     assert.match(content, new RegExp(value));
   assert.equal(

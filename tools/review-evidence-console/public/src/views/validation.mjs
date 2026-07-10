@@ -42,9 +42,11 @@ export function renderValidation({
     { attributes: { class: 'validation-view', 'aria-labelledby': 'validation-heading' } },
     [
       element('h1', { attributes: { id: 'validation-heading', tabindex: '-1' } }, [
-        text('Complete the review'),
+        text('Përfundo shqyrtimin'),
       ]),
-      element('p', {}, [text(`${validation.errorCount} fields need attention before submission.`)]),
+      element('p', {}, [
+        text(`${validation.errorCount} fusha kërkojnë vëmendje para dërgimit.`),
+      ]),
       ...validation.errors.map(entry => errorButton(entry, null, onFocusError)),
       ...groups.map(group =>
         element('section', { attributes: { class: 'validation-group' } }, [
@@ -61,14 +63,14 @@ export function renderValidation({
                 attributes: {
                   type: 'button',
                   class: 'primary-action',
-                  'aria-label': submitting ? 'Submitting receipt' : 'Submit review',
+                  'aria-label': submitting ? 'Duke dërguar…' : 'Dërgo shqyrtimin',
                   ...(submitting
                     ? { disabled: 'disabled', 'aria-disabled': 'true', 'aria-busy': 'true' }
                     : {}),
                 },
                 on: { click: () => !submitting && onSubmit?.() },
               },
-              [text(submitting ? 'Submitting…' : 'Submit review')]
+              [text(submitting ? 'Duke dërguar…' : 'Dërgo shqyrtimin')]
             );
             button.disabled = submitting;
             return button;

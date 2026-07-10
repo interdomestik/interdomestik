@@ -25,7 +25,7 @@ export async function loadInboxRows(repository, reviewerId) {
     return {
       ok: false,
       code: 'invalid_data',
-      message: 'Assignment bundle identity is inconsistent.',
+      message: 'Identiteti i paketës së detyrës është jokonsistent.',
     };
   }
   return { ok: true, value: rows };
@@ -43,16 +43,11 @@ function bundleMatches({ assignment, reviewer, packet }, expected, reviewerId) {
 }
 
 function toInboxRow({ assignment, packet }) {
-  const part = assignment.packetId.endsWith('part-a') ? 'A' : 'B';
-  const purpose =
-    part === 'A'
-      ? 'Verifiko kufijtë e privatësisë, pëlqimin dhe rolet e aksesit.'
-      : 'Verifiko kufijtë e dokumenteve, kërcënimet dhe kushtet e ndalimit.';
   return {
     ...assignment,
     firstItemId: packet.itemIds[0],
-    title: `Rishikimi i autoritetit — Pjesa ${part}`,
-    purpose,
+    title: assignment.titleSq,
+    purpose: assignment.purposeSq,
     progress: progressCopy(assignment.status),
   };
 }

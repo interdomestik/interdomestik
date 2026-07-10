@@ -11,7 +11,7 @@ const TEXT_FIELDS = [
 ];
 
 const fieldError = (key, code, message) => ({ key, code, message });
-const missing = key => fieldError(key, 'required', 'Complete this required field.');
+const missing = key => fieldError(key, 'required', 'Plotëso këtë fushë të detyrueshme.');
 const isEmpty = value =>
   value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
 
@@ -30,15 +30,15 @@ function validateBase(item, decision, errors) {
   if (isEmpty(decision.evidenceRef)) errors.push(missing('evidenceRef'));
   else addGuardError(errors, 'evidenceRef', validateEvidenceRef(decision.evidenceRef));
   if (!isIsoDate(decision.verifiedAt)) {
-    errors.push(fieldError('verifiedAt', 'invalid_date', 'Use a valid ISO date.'));
+    errors.push(fieldError('verifiedAt', 'invalid_date', 'Përdor një datë ISO të vlefshme.'));
   }
   const risks = item.allowedRiskCategories;
   if (isEmpty(decision.riskCategory)) errors.push(missing('riskCategory'));
   else if (risks?.length && !risks.includes(decision.riskCategory)) {
-    errors.push(fieldError('riskCategory', 'invalid_option', 'Choose an allowed option.'));
+    errors.push(fieldError('riskCategory', 'invalid_option', 'Zgjidh një mundësi të lejuar.'));
   }
   if (!SEVERITIES.includes(decision.severity)) {
-    errors.push(fieldError('severity', 'invalid_option', 'Choose an allowed option.'));
+    errors.push(fieldError('severity', 'invalid_option', 'Zgjidh një mundësi të lejuar.'));
   }
   const changeRequired = ['change', 'block'].includes(decision.decision);
   if (changeRequired && isEmpty(decision.requestedChange)) errors.push(missing('requestedChange'));
@@ -63,11 +63,11 @@ function validateDescriptor(descriptor, responses, errors) {
     return;
   }
   if (SCALAR_OPTIONS.includes(descriptor.type) && typeof value !== 'string') {
-    errors.push(fieldError(descriptor.key, 'invalid_type', 'Use a single option value.'));
+    errors.push(fieldError(descriptor.key, 'invalid_type', 'Përdor një vlerë të vetme.'));
     return;
   }
   if (ARRAY_OPTIONS.includes(descriptor.type) && !Array.isArray(value)) {
-    errors.push(fieldError(descriptor.key, 'invalid_type', 'Use a list of option values.'));
+    errors.push(fieldError(descriptor.key, 'invalid_type', 'Përdor një listë vlerash.'));
     return;
   }
   if (descriptor.type === 'text' || descriptor.type === 'textarea') {
@@ -83,11 +83,11 @@ function validateDescriptor(descriptor, responses, errors) {
       validateEvidenceRef(value, { maxLength: descriptor.maxLength ?? 240 })
     );
   } else if (descriptor.type === 'date' && !isIsoDate(value)) {
-    errors.push(fieldError(descriptor.key, 'invalid_date', 'Use a valid ISO date.'));
+    errors.push(fieldError(descriptor.key, 'invalid_date', 'Përdor një datë ISO të vlefshme.'));
   } else if (descriptor.options?.length) {
     const values = Array.isArray(value) ? value : [value];
     if (values.some(option => !descriptor.options.includes(option))) {
-      errors.push(fieldError(descriptor.key, 'invalid_option', 'Choose an allowed option.'));
+      errors.push(fieldError(descriptor.key, 'invalid_option', 'Zgjidh një mundësi të lejuar.'));
     }
   }
 }

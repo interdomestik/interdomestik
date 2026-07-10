@@ -26,7 +26,7 @@ test('ordinary sequential edits autosave without rerendering or moving heading f
   controls.onField('item_a', 'concreteAnswer', 'ab');
   assert.equal(renders.length, 1);
   assert.equal(renders[0].focusHeading, true);
-  assert.deepEqual(statuses, ['Saving', 'Saving']);
+  assert.deepEqual(statuses, ['Duke ruajtur', 'Duke ruajtur']);
   controls.onDecision('item_a', 'approve');
   assert.equal(renders.at(-1).focusHeading, false);
   runtime.dispose();
@@ -116,5 +116,6 @@ test('dependent rerenders retain exact non-first option focus', () => {
 });
 
 function descriptor(key, type, options) {
-  return { key, labelSq: key, type, required: true, maxLength: 80, options };
+  const optionLabelsSq = Object.fromEntries(options.map(option => [option, option]));
+  return { key, labelSq: key, type, required: true, maxLength: 80, options, optionLabelsSq };
 }

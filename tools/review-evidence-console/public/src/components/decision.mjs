@@ -1,15 +1,12 @@
 import { element, text } from './dom.mjs';
+import { displayDecision, displayOption } from './display-labels.mjs';
 import { formField, selectField } from './form-field.mjs';
 import {
   descriptorIsApplicable,
   descriptorIsRequired,
 } from '../validation/descriptor-required.mjs';
 
-const DECISIONS = [
-  ['approve', 'Mirato'],
-  ['change', 'Kërkon ndryshim'],
-  ['block', 'Blloko'],
-];
+const DECISIONS = ['approve', 'change', 'block'];
 
 export function renderDecision({
   item,
@@ -21,8 +18,8 @@ export function renderDecision({
   return element('div', { attributes: { class: 'decision-form' } }, [
     element('fieldset', {}, [
       element('legend', {}, [text('Vendimi')]),
-      ...DECISIONS.map(([value, label]) =>
-        radio(item.id, value, label, decision.decision, onDecision)
+      ...DECISIONS.map(value =>
+        radio(item.id, value, displayDecision(value), decision.decision, onDecision)
       ),
     ]),
     formField({
@@ -68,6 +65,7 @@ function radio(itemId, value, label, selected, onDecision) {
   return element('label', { attributes: { class: 'decision-option', for: id } }, [
     input,
     text(label),
+    element('code', { attributes: { lang: 'en' } }, [text(value)]),
   ]);
 }
 
@@ -83,7 +81,12 @@ function descriptorField(descriptor, responses, onResponse) {
   if (['radio', 'checkbox_group', 'multi_select'].includes(descriptor.type)) {
     return optionGroup(descriptor, value, onResponse, common.required);
   }
-  if (descriptor.type === 'select') return selectField({ ...common, options: descriptor.options });
+  if (descriptor.type === 'select') {
+    return selectField({
+      ...common,
+      options: descriptor.options.map(option => displayOption(descriptor, option)),
+    });
+  }
   return formField({
     ...common,
     type:
@@ -106,6 +109,7 @@ function optionGroup(descriptor, current, onResponse, required) {
     [
       element('legend', {}, [text(descriptor.labelSq)]),
       ...descriptor.options.map((option, index) => {
+        const displayed = displayOption(descriptor, option);
         const id = `response-${descriptor.key}-${index}`;
         const input = element('input', {
           attributes: {
@@ -127,7 +131,8 @@ function optionGroup(descriptor, current, onResponse, required) {
         input.checked = checkbox ? selected.includes(option) : current === option;
         return element('label', { attributes: { class: 'decision-option', for: id } }, [
           input,
-          text(option),
+          text(displayed.label),
+          element('code', { attributes: { lang: 'en' } }, [text(displayed.value)]),
         ]);
       }),
     ]

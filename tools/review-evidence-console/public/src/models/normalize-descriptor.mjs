@@ -31,6 +31,24 @@ function normalizeOptions(value, type) {
   return [...value];
 }
 
+function normalizeOptionLabels(value, options) {
+  if (value === null || Array.isArray(value) || typeof value !== 'object') {
+    throw new TypeError('optionLabelsSq must be an object.');
+  }
+  const keys = Object.keys(value);
+  if (keys.length !== options.length || keys.some(key => !options.includes(key))) {
+    throw new TypeError('optionLabelsSq keys must exactly match options.');
+  }
+  const labels = options.map(option => value[option]);
+  if (labels.some(label => typeof label !== 'string' || label.trim() === '')) {
+    throw new TypeError('optionLabelsSq must contain non-empty strings.');
+  }
+  if (new Set(labels).size !== labels.length) {
+    throw new TypeError('optionLabelsSq labels must be unique.');
+  }
+  return Object.fromEntries(options.map((option, index) => [option, labels[index]]));
+}
+
 function normalizeRequiredWhen(value) {
   if (value === undefined) return undefined;
   if (value === null || Array.isArray(value) || typeof value !== 'object') {
@@ -55,11 +73,13 @@ function normalizeDescriptor(descriptor) {
   if (type === 'date' && descriptor.maxLength !== 10) {
     throw new TypeError('date maxLength must be 10.');
   }
+  const options = normalizeOptions(descriptor.options, type);
   return {
     ...descriptor,
     key,
     type,
-    options: normalizeOptions(descriptor.options, type),
+    options,
+    optionLabelsSq: normalizeOptionLabels(descriptor.optionLabelsSq, options),
     ...(descriptor.requiredWhen === undefined
       ? {}
       : { requiredWhen: normalizeRequiredWhen(descriptor.requiredWhen) }),

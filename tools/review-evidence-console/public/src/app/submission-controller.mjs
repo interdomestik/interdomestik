@@ -54,7 +54,7 @@ export function createSubmissionController({
       return {
         ok: false,
         code: 'validation_failed',
-        message: 'Complete every required review field.',
+        message: 'Plotëso çdo fushë të detyrueshme të shqyrtimit.',
         validation,
       };
     }
@@ -71,7 +71,7 @@ export function createSubmissionController({
       onNavigate(receipt.receiptId);
       return saved;
     } catch {
-      error = { ok: false, code: 'unavailable', message: 'Receipt could not be created.' };
+      error = { ok: false, code: 'unavailable', message: 'Vërtetimi nuk mund të krijohej.' };
       return error;
     } finally {
       submitting = false;

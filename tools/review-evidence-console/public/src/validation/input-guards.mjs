@@ -10,10 +10,10 @@ const failure = (code, message) => ({ ok: false, code, message });
 
 export function validateSafeText(value, { maxLength = 2000 } = {}) {
   if (typeof value !== 'string') {
-    return failure('invalid_text', 'Enter text in the expected format.');
+    return failure('invalid_text', 'Shkruaj tekst në formatin e pritur.');
   }
   if (value.length > maxLength) {
-    return failure('too_long', `Use no more than ${maxLength} characters.`);
+    return failure('too_long', `Përdor jo më shumë se ${maxLength} shenja.`);
   }
   if (
     CONTROL_CHARACTERS.test(value) ||
@@ -22,14 +22,14 @@ export function validateSafeText(value, { maxLength = 2000 } = {}) {
     CREDENTIAL.test(value) ||
     NUMERIC_SEQUENCE.test(value)
   ) {
-    return failure('sensitive_input', 'Use repo-safe operational text only.');
+    return failure('sensitive_input', 'Përdor vetëm tekst operacional të sigurt për repo.');
   }
   return { ok: true };
 }
 
 export function validateEvidenceRef(value, { maxLength = 240 } = {}) {
   if (typeof value !== 'string') {
-    return failure('invalid_reference', 'Use a repo-relative evidence reference.');
+    return failure('invalid_reference', 'Përdor një referencë evidence brenda repos.');
   }
   const reference = value.trim();
   if (
@@ -39,7 +39,7 @@ export function validateEvidenceRef(value, { maxLength = 240 } = {}) {
     reference.includes('//') ||
     !REPO_REFERENCE.test(reference)
   ) {
-    return failure('invalid_reference', 'Use a repo-relative evidence reference.');
+    return failure('invalid_reference', 'Përdor një referencë evidence brenda repos.');
   }
   return { ok: true };
 }

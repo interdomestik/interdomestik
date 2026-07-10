@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createReviewSession } from '../public/src/state/review-session.mjs';
+import { setDocument } from '../public/src/components/dom.mjs';
+import { renderCorrection } from '../public/src/views/correction.mjs';
 import { bundle, completeDecision, priorReceipt } from './review-session-fixtures.mjs';
+import { copy, fakeDocument } from './fake-dom.mjs';
+
+setDocument(fakeDocument);
 
 const metadata = {
   itemId: 'item_a',
@@ -16,6 +21,9 @@ test('restores every complete receipt decision and structured response', async (
   assert.equal(snapshot.decisions.item_b.reason, completeDecision.reason);
   assert.equal(snapshot.decisions.item_a.responses.ownerRole, 'Privacy lead');
   assert.equal(snapshot.decisions.item_b.responses.ownerRole, 'Privacy lead');
+  assert.equal(snapshot.correction.previousReceipt.receiptId, 'rec_27c9edce5f66ca4faa44799b');
+  assert.equal(snapshot.correction.previousReceipt.decisions.item_a.decision, 'approve');
+  assert.equal(snapshot.correction.itemId, 'item_a');
 });
 
 test('rejects missing or extra decision item keys', async () => {
@@ -100,4 +108,19 @@ test('rejects blank correction reason and impact', async () => {
       }),
     /required/i
   );
+});
+
+test('renders the correction workflow in Albanian', async () => {
+  const receipt = await priorReceipt();
+  const node = renderCorrection({
+    receipt,
+    itemIds: ['item_a'],
+    values: { itemId: '', reason: '', impact: '' },
+    onChange() {},
+    onSubmit() {},
+  });
+  const content = copy(node);
+  assert.match(content, /Krijo një korrigjim/);
+  assert.match(content, /Vërtetimi i mëparshëm .* mbetet i pandryshueshëm/);
+  assert.match(content, /Hap hapësirën e korrigjimit/);
 });

@@ -32,7 +32,7 @@ export async function startCorrection({
     return {
       ok: false,
       code: 'invalid_data',
-      message: 'Choose an item and enter a repo-safe reason and impact.',
+      message: 'Zgjidh një artikull dhe shkruaj arsye e ndikim të sigurt për repo.',
     };
   }
 }

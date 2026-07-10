@@ -31,7 +31,7 @@ const FIXTURES = new Map([
   ['/data/packets/mob-03a-part-a.json', partA],
   ['/data/packets/mob-03a-part-b.json', partB],
 ]);
-const missing = (message = 'Fixture was not found.') => ({ ok: false, code: 'not_found', message });
+const missing = (message = 'Fixture-i nuk u gjet.') => ({ ok: false, code: 'not_found', message });
 const invalid = message => ({ ok: false, code: 'invalid_data', message });
 
 export async function defaultJsonLoader(pathname) {
@@ -55,7 +55,7 @@ export function createFixtureRepository({ loadJson = defaultJsonLoader } = {}) {
         },
       };
     } catch {
-      return invalid('Fixture records are invalid.');
+      return invalid('Regjistrimet e mostrës janë të pavlefshme.');
     }
   }
 
@@ -73,16 +73,18 @@ export function createFixtureRepository({ loadJson = defaultJsonLoader } = {}) {
     const all = await loadAll();
     if (!all.ok) return all;
     const reviewer = all.value.reviewers.find(row => row.id === reviewerFixtureId);
-    return reviewer ? { ok: true, value: reviewer } : missing('Reviewer fixture was not found.');
+    return reviewer
+      ? { ok: true, value: reviewer }
+      : missing('Mostra e shqyrtuesit nuk u gjet.');
   }
 
   async function loadPacket(packetId) {
     try {
       const value = await loadJson(`/data/packets/${packetId}.json`);
-      if (value === undefined) return missing('Packet fixture was not found.');
+      if (value === undefined) return missing('Mostra e paketës nuk u gjet.');
       return { ok: true, value: normalizePacket(value) };
     } catch {
-      return invalid('Packet fixture is invalid.');
+      return invalid('Mostra e paketës është e pavlefshme.');
     }
   }
 
@@ -90,9 +92,9 @@ export function createFixtureRepository({ loadJson = defaultJsonLoader } = {}) {
     const all = await loadAll();
     if (!all.ok) return all;
     const assignment = all.value.assignments.find(row => row.id === assignmentId);
-    if (!assignment) return missing('Assignment fixture was not found.');
+    if (!assignment) return missing('Mostra e detyrës nuk u gjet.');
     const reviewer = all.value.reviewers.find(row => row.id === assignment.reviewerFixtureId);
-    if (!reviewer) return invalid('Assignment reviewer fixture is invalid.');
+    if (!reviewer) return invalid('Mostra e shqyrtuesit të detyrës është e pavlefshme.');
     const packet = await loadPacket(assignment.packetId);
     if (!packet.ok) return packet;
     if (
@@ -100,7 +102,7 @@ export function createFixtureRepository({ loadJson = defaultJsonLoader } = {}) {
       assignment.reviewerRole !== reviewer.role ||
       reviewer.role !== packet.value.reviewerRole
     ) {
-      return invalid('Assignment, reviewer, and packet roles do not match.');
+      return invalid('Rolet e detyrës, shqyrtuesit dhe paketës nuk përputhen.');
     }
     return { ok: true, value: { assignment, reviewer, packet: packet.value } };
   }

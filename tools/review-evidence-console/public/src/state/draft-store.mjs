@@ -30,32 +30,32 @@ function validateDraft(key, draft, schemaVersion) {
 export function composeDraftKey(parts) {
   const values = [parts?.assignmentId, parts?.reviewerFixtureId, parts?.packetVersion];
   if (values.some(value => typeof value !== 'string' || !SEGMENT.test(value))) {
-    throw new TypeError('Draft key segments must be repo-safe identifiers.');
+    throw new TypeError('Segmentet e çelësit të draftit duhet të jenë identifikues të sigurt për repo.');
   }
   return `${PREFIX}${values.join(':')}`;
 }
 
 export function createDraftStore({ storage = globalThis.localStorage, schemaVersion }) {
   const invalidKey = key =>
-    parseKey(key) ? null : failure('invalid_data', 'Draft key is not owned by this store.');
+    parseKey(key) ? null : failure('invalid_data', 'Çelësi i draftit nuk i përket kësaj ruajtjeje.');
   return {
     load(key) {
       const keyFailure = invalidKey(key);
       if (keyFailure) return keyFailure;
       try {
         const text = storage.getItem(key);
-        if (text === null) return failure('not_found', 'Draft was not found.');
+        if (text === null) return failure('not_found', 'Drafti nuk u gjet.');
         let value;
         try {
           value = JSON.parse(text);
         } catch {
-          return failure('invalid_data', 'Stored draft is not valid JSON.');
+          return failure('invalid_data', 'Drafti i ruajtur nuk është JSON i vlefshëm.');
         }
         if (value?.schemaVersion !== schemaVersion) {
-          return failure('schema_mismatch', 'Stored draft uses an incompatible schema.');
+          return failure('schema_mismatch', 'Drafti i ruajtur përdor një skemë të papajtueshme.');
         }
         if (!validateDraft(key, value, schemaVersion)) {
-          return failure('invalid_data', 'Stored draft is incomplete or inconsistent.');
+          return failure('invalid_data', 'Drafti i ruajtur është i paplotë ose jokonsistent.');
         }
         return { ok: true, value };
       } catch (error) {
@@ -66,7 +66,7 @@ export function createDraftStore({ storage = globalThis.localStorage, schemaVers
       const keyFailure = invalidKey(key);
       if (keyFailure) return keyFailure;
       if (!validateDraft(key, draft, schemaVersion)) {
-        return failure('invalid_data', 'Draft is incomplete or inconsistent.');
+        return failure('invalid_data', 'Drafti është i paplotë ose jokonsistent.');
       }
       try {
         const currentText = storage.getItem(key);
@@ -75,10 +75,10 @@ export function createDraftStore({ storage = globalThis.localStorage, schemaVers
           try {
             current = JSON.parse(currentText);
           } catch {
-            return failure('conflict', 'Stored draft changed in another tab.');
+            return failure('conflict', 'Drafti i ruajtur ndryshoi në një skedë tjetër.');
           }
           if (current.updatedAt !== expectedUpdatedAt) {
-            return failure('conflict', 'Stored draft changed in another tab.');
+            return failure('conflict', 'Drafti i ruajtur ndryshoi në një skedë tjetër.');
           }
         }
         storage.setItem(key, JSON.stringify(draft));
@@ -102,7 +102,7 @@ export function createDraftStore({ storage = globalThis.localStorage, schemaVers
       if (keyFailure) return keyFailure;
       try {
         const value = storage.getItem(key);
-        return value === null ? failure('not_found', 'Draft was not found.') : { ok: true, value };
+        return value === null ? failure('not_found', 'Drafti nuk u gjet.') : { ok: true, value };
       } catch (error) {
         return storageFailure(error);
       }

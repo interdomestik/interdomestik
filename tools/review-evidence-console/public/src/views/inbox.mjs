@@ -1,6 +1,8 @@
 import { element, text } from '../components/dom.mjs';
+import { displaySeverity } from '../components/display-labels.mjs';
 
 const RISK = { high: 'Rrezik i lartë', medium: 'Rrezik mesatar', low: 'Rrezik i ulët' };
+const riskCopy = value => RISK[value] ?? `Rrezik ${displaySeverity(value)}`;
 
 export function renderInbox({
   state,
@@ -39,7 +41,6 @@ function assignmentCard(assignment, onOpen, onImport) {
     attributes: {
       type: 'file',
       accept: 'application/json,.json',
-      'aria-label': `Import receipt for ${assignment.title}`,
       'aria-describedby': helpId,
     },
     on: { change: event => event.target.files?.[0] && onImport(assignment, event.target.files[0]) },
@@ -50,9 +51,9 @@ function assignmentCard(assignment, onOpen, onImport) {
     element('h2', {}, [text(assignment.title)]),
     element('p', { attributes: { class: 'card-purpose' } }, [text(assignment.purpose)]),
     element('div', { attributes: { class: 'card-meta' } }, [
-      label(RISK[assignment.risk] ?? 'Rrezik i pacaktuar', `risk risk--${assignment.risk}`),
+      label(riskCopy(assignment.risk), `risk risk--${assignment.risk}`, assignment.risk),
       label(assignment.progress, 'progress'),
-      label(`Afati ${assignment.dueDate}`, 'due-date'),
+      label(`Afati: ${assignment.dueDate}`, 'due-date'),
     ]),
     element(
       'button',
@@ -60,21 +61,26 @@ function assignmentCard(assignment, onOpen, onImport) {
         attributes: {
           class: 'primary-action',
           type: 'button',
-          'aria-label': `${action}: ${assignment.title}`,
+          'aria-label': action,
         },
         on: { click: () => onOpen(assignment) },
       },
       [text(action)]
     ),
     element('div', { attributes: { class: 'import-receipt' } }, [
-      element('label', {}, [text('Import local receipt JSON'), file]),
-      element('p', { attributes: { id: helpId } }, [text('Read on this device; never uploaded')]),
+      element('label', {}, [text('Importo vërtetimin lokal JSON'), file]),
+      element('p', { attributes: { id: helpId } }, [
+        text('Lexohet në këtë pajisje; nuk ngarkohet kurrë'),
+      ]),
     ]),
   ]);
 }
 
-function label(copy, className) {
-  return element('span', { attributes: { class: className } }, [text(copy)]);
+function label(copy, className, raw) {
+  return element('span', { attributes: { class: className } }, [
+    text(copy),
+    raw ? element('code', { attributes: { lang: 'en' } }, [text(raw)]) : null,
+  ]);
 }
 
 function statePanel(title, detail) {

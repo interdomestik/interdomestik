@@ -1,9 +1,9 @@
 {
   "id": "M03A-PRIVACY-OWNER",
-  "prompt": "Who owns the fixture decision?",
-  "need": "Ownership is explicit.",
-  "repoImpact": "Keeps responsibility local.",
-  "guidance": "Use fixture roles only.",
+  "prompt": "Pronari i privatësisë",
+  "need": "Pronësia duhet të jetë e qartë.",
+  "repoImpact": "E mban përgjegjësinë lokale.",
+  "guidance": "Përdor vetëm rolet e mostrës.",
   "baseFields": [
     "decision",
     "concreteAnswer",
@@ -22,7 +22,8 @@
       "type": "text",
       "required": true,
       "maxLength": 80,
-      "options": []
+      "options": [],
+      "optionLabelsSq": {}
     },
     {
       "key": "ownerRole",
@@ -30,7 +31,8 @@
       "type": "text",
       "required": true,
       "maxLength": 80,
-      "options": []
+      "options": [],
+      "optionLabelsSq": {}
     },
     {
       "key": "decisionDate",
@@ -38,7 +40,8 @@
       "type": "date",
       "required": true,
       "maxLength": 10,
-      "options": []
+      "options": [],
+      "optionLabelsSq": {}
     },
     {
       "key": "ownerEvidenceRef",
@@ -46,7 +49,8 @@
       "type": "evidenceRef",
       "required": true,
       "maxLength": 160,
-      "options": []
+      "options": [],
+      "optionLabelsSq": {}
     },
     {
       "key": "reviewerRole",
@@ -54,7 +58,8 @@
       "type": "text",
       "required": true,
       "maxLength": 80,
-      "options": []
+      "options": [],
+      "optionLabelsSq": {}
     }
   ]
 }

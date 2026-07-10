@@ -1,9 +1,9 @@
 {
   "id": "M03A-CONSENT-FIELDS",
-  "prompt": "Which minimum consent fields are accepted?",
-  "need": "The fixture field boundary is reviewable.",
-  "repoImpact": "Limits displayed consent metadata.",
-  "guidance": "List fixture-only field labels.",
+  "prompt": "Fushat minimale të pëlqimit",
+  "need": "Kufiri i fushave të mostrës duhet të jetë i shqyrtueshëm.",
+  "repoImpact": "Kufizon metadatat e shfaqura të pëlqimit.",
+  "guidance": "Listo vetëm etiketat e fushave të mostrës.",
   "baseFields": [
     "decision",
     "concreteAnswer",
@@ -22,7 +22,12 @@
       "type": "multi_select",
       "required": true,
       "maxLength": 160,
-      "options": ["consentStatus", "recordedAt", "consentVersion"]
+      "options": ["consentStatus", "recordedAt", "consentVersion"],
+      "optionLabelsSq": {
+        "consentStatus": "Statusi i pëlqimit",
+        "recordedAt": "Data e regjistrimit",
+        "consentVersion": "Versioni i pëlqimit"
+      }
     },
     {
       "key": "additions",
@@ -30,7 +35,8 @@
       "type": "textarea",
       "required": true,
       "maxLength": 240,
-      "options": []
+      "options": [],
+      "optionLabelsSq": {}
     },
     {
       "key": "excludedFields",
@@ -38,7 +44,8 @@
       "type": "textarea",
       "required": true,
       "maxLength": 240,
-      "options": []
+      "options": [],
+      "optionLabelsSq": {}
     }
   ]
 }

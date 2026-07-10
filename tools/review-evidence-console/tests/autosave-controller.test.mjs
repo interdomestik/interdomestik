@@ -23,9 +23,9 @@ test('debounced autosave persists packet acknowledgement and restores active ite
     decisions: {},
     safeEvidenceConfirmed: true,
   });
-  assert.equal(calls[0], 'Saving');
+  assert.equal(calls[0], 'Duke ruajtur');
   timers[0]();
-  assert.equal(calls.at(-1), 'Saved at 12:00');
+  assert.equal(calls.at(-1), 'U ruajt në 12:00');
   assert.equal(calls[1][1].safeEvidenceConfirmed, true);
   assert.equal(calls[1][1].activeItem, 'item_b');
 });
@@ -43,13 +43,13 @@ test('quota failure stays failed and storage conflict stops later autosaves', ()
   });
   controller.schedule(draft());
   timer();
-  assert.equal(statuses.at(-1), 'Save failed — retry');
+  assert.equal(statuses.at(-1), 'Ruajtja dështoi — provo përsëri');
   controller.handleStorage({
     key: 'draft-key',
     newValue: JSON.stringify({ editorId: 'tab-b', updatedAt: '2026-07-10T10:01:00.000Z' }),
   });
   assert.equal(controller.isConflicted(), true);
-  assert.equal(statuses.at(-1), 'Conflict — choose reload or export');
+  assert.equal(statuses.at(-1), 'Konflikt — zgjidh ringarkimin ose eksportimin');
   assert.equal(controller.schedule(draft()), false);
 });
 test('restored draft passes its exact revision into the first save', () => {

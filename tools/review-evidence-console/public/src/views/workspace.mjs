@@ -18,7 +18,7 @@ export function renderWorkspace({
   onValidate,
 }) {
   const item = bundle.packet.items.find(entry => entry.id === state.activeItem);
-  if (!item) throw new TypeError('Active review item was not found.');
+  if (!item) throw new TypeError('Artikulli aktiv i shqyrtimit nuk u gjet.');
   const decision = state.decisions[item.id];
   const canvas = element(
     'section',
@@ -74,7 +74,7 @@ export function renderWorkspace({
         attributes: { type: 'button', class: 'primary-action workspace-submit' },
         on: { click: () => onValidate?.() },
       },
-      [text('Review and submit')]
+      [text('Shqyrto dhe dërgo')]
     ),
   ]);
 }

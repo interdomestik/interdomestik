@@ -122,7 +122,9 @@ test('verifies forged first writes and idempotent saves before returning', async
   const store = createReceiptStore({ storage, verifyReceipt: countingVerify, schemaVersion: 1 });
   const receipt = await buildReceipt({ ...receiptInput, submittedAt });
   const forged = { ...receipt, receiptId: 'rec_aaaaaaaaaaaaaaaaaaaaaaaa' };
-  assert.equal((await store.save(forged)).code, 'hash_mismatch');
+  const rejected = await store.save(forged);
+  assert.equal(rejected.code, 'hash_mismatch');
+  assert.equal(rejected.message, 'Vërtetimi dështoi verifikimin e integritetit.');
   assert.equal(storage.length, 0);
   assert.equal((await store.save(receipt)).ok, true);
   assert.equal((await store.save(structuredClone(receipt))).ok, true);

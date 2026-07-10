@@ -22,7 +22,7 @@ test('discloses local-only import before selection and associates its help', () 
       },
     ],
   });
-  assert.match(copy(node), /Read on this device; never uploaded/);
+  assert.match(copy(node), /Lexohet në këtë pajisje; nuk ngarkohet kurrë/);
   const input = walk(node).find(entry => entry.tagName === 'INPUT');
   assert.equal(input.attributes['aria-describedby'], 'import-help-assign_a');
   assert.equal(input.attributes.accept, 'application/json,.json');

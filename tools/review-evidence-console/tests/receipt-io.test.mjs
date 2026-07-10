@@ -27,7 +27,7 @@ test('returns stable read and clipboard failures', async () => {
         },
       })
     ).message,
-    'Receipt file could not be read.'
+    'Skedari i vërtetimit nuk mund të lexohej.'
   );
   const result = await exportReceipt(
     'rec_abc',
@@ -44,7 +44,7 @@ test('returns stable read and clipboard failures', async () => {
     }
   );
   assert.equal(result.code, 'download_failed');
-  assert.equal((await result.copy()).message, 'Receipt JSON could not be copied.');
+  assert.equal((await result.copy()).message, 'JSON-i i vërtetimit nuk mund të kopjohej.');
   assert.equal(result.text, '{}');
 });
 

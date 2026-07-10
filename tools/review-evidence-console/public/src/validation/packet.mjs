@@ -3,7 +3,7 @@ import { validateItem } from './item.mjs';
 const SAFETY_ERROR = {
   key: 'safeEvidenceConfirmed',
   code: 'required',
-  message: 'Confirm that this packet contains repo-safe evidence only.',
+  message: 'Konfirmo se kjo paketë përmban vetëm evidencë të sigurt për repo.',
 };
 
 export function validatePacket(packet, decisions = {}, safeEvidenceConfirmed = false) {

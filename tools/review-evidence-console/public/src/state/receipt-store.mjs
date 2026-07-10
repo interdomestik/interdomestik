@@ -14,23 +14,26 @@ export function createReceiptStore({
     try {
       canonicalStringify(receipt);
     } catch {
-      return failure('invalid_data', 'Receipt contains non-canonical JSON values.');
+      return failure('invalid_data', 'Vërtetimi përmban vlera JSON jokanonike.');
     }
     try {
-      return await verifyReceipt(receipt);
+      const result = await verifyReceipt(receipt);
+      return result.ok
+        ? result
+        : failure(result.code, 'Vërtetimi dështoi verifikimin e integritetit.');
     } catch {
-      return failure('unavailable', 'Receipt verification is unavailable.');
+      return failure('unavailable', 'Verifikimi i vërtetimit nuk është i disponueshëm.');
     }
   }
 
   function read(receiptId) {
     try {
       const text = storage.getItem(keyFor(receiptId));
-      if (text === null) return failure('not_found', 'Receipt was not found.');
+      if (text === null) return failure('not_found', 'Vërtetimi nuk u gjet.');
       try {
         return { ok: true, value: JSON.parse(text) };
       } catch {
-        return failure('invalid_data', 'Stored receipt is not valid JSON.');
+        return failure('invalid_data', 'Vërtetimi i ruajtur nuk është JSON i vlefshëm.');
       }
     } catch (error) {
       return storageFailure(error);
@@ -57,14 +60,14 @@ export function createReceiptStore({
         try {
           stored = JSON.parse(current);
         } catch {
-          return failure('hash_mismatch', 'Stored receipt has changed.');
+          return failure('hash_mismatch', 'Vërtetimi i ruajtur ka ndryshuar.');
         }
         try {
           if (canonicalStringify(stored) !== canonicalStringify(receipt)) {
-            return failure('hash_mismatch', 'Receipt ID already has different content.');
+            return failure('hash_mismatch', 'ID-ja e vërtetimit ka tashmë përmbajtje tjetër.');
           }
         } catch {
-          return failure('invalid_data', 'Stored receipt contains non-canonical JSON values.');
+          return failure('invalid_data', 'Vërtetimi i ruajtur përmban vlera JSON jokanonike.');
         }
         return { ok: true, value: stored };
       }
@@ -99,17 +102,17 @@ export function createReceiptStore({
       return result.ok ? { ok: true, value: JSON.stringify(result.value) } : result;
     },
     async import(jsonText, metadata) {
-      if (typeof jsonText !== 'string') return failure('invalid_data', 'Import JSON text only.');
+      if (typeof jsonText !== 'string') return failure('invalid_data', 'Importo vetëm tekst JSON.');
       let receipt;
       try {
         receipt = JSON.parse(jsonText);
       } catch {
-        return failure('invalid_data', 'Receipt import is not valid JSON.');
+        return failure('invalid_data', 'Importi i vërtetimit nuk është JSON i vlefshëm.');
       }
       const validation = validateReceipt(receipt, schemaVersion);
       if (!validation.ok) return validation;
       if (!matchesMetadata(receipt, metadata)) {
-        return failure('invalid_data', 'Receipt metadata does not match this assignment.');
+        return failure('invalid_data', 'Metadatat e vërtetimit nuk përputhen me këtë detyrë.');
       }
       const verification = await verifySafely(receipt);
       if (!verification.ok) return verification;

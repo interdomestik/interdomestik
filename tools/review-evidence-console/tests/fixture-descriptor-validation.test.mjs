@@ -6,7 +6,13 @@ import { partA } from './validation-fixtures.mjs';
 
 const baseDescriptor = partA.items[0].requiredResponses[0];
 
-const descriptor = overrides => ({ ...baseDescriptor, ...overrides });
+const descriptor = overrides => {
+  const value = { ...baseDescriptor, ...overrides };
+  if (!Object.hasOwn(overrides, 'optionLabelsSq')) {
+    value.optionLabelsSq = Object.fromEntries(value.options.map(option => [option, option]));
+  }
+  return value;
+};
 
 function packetWith(requiredResponses) {
   const id = 'M03A-DESCRIPTOR-TEST';
@@ -38,6 +44,47 @@ test('requires unique nonempty options for option descriptors', () => {
   assert.throws(
     () => normalizePacket(packetWith([descriptor({ type: 'select', options: [''] })])),
     /options must contain non-empty strings/
+  );
+});
+
+test('requires optionLabelsSq to match option keys exactly', () => {
+  const options = ['allowed', 'excluded'];
+  const base = { type: 'select', options };
+  assert.throws(
+    () => normalizePacket(packetWith([descriptor({ ...base, optionLabelsSq: undefined })])),
+    /optionLabelsSq must be an object/
+  );
+  assert.throws(
+    () => normalizePacket(packetWith([descriptor({ ...base, optionLabelsSq: { allowed: 'Lejo' } })])),
+    /optionLabelsSq keys must exactly match options/
+  );
+  assert.throws(
+    () =>
+      normalizePacket(
+        packetWith([
+          descriptor({
+            ...base,
+            optionLabelsSq: { allowed: 'Lejo', excluded: 'Përjashto', extra: 'Tjetër' },
+          }),
+        ])
+      ),
+    /optionLabelsSq keys must exactly match options/
+  );
+  assert.throws(
+    () =>
+      normalizePacket(
+        packetWith([descriptor({ ...base, optionLabelsSq: { allowed: '', excluded: 'Përjashto' } })])
+      ),
+    /optionLabelsSq must contain non-empty strings/
+  );
+  assert.throws(
+    () =>
+      normalizePacket(
+        packetWith([
+          descriptor({ ...base, optionLabelsSq: { allowed: 'Lejo', excluded: 'Lejo' } }),
+        ])
+      ),
+    /optionLabelsSq labels must be unique/
   );
 });
 

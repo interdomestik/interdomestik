@@ -16,12 +16,14 @@ export function createHeader(
     },
   });
   const identity = element('div', { attributes: { class: 'brand' } }, [
-    element('span', { attributes: { class: 'eyebrow' } }, [text('Local review fixture')]),
-    element('span', { attributes: { class: 'brand__title' } }, [text('Review & Evidence Console')]),
+    element('span', { attributes: { class: 'eyebrow' } }, [text('Shqyrtim lokal i evidencës')]),
+    element('span', { attributes: { class: 'brand__title', lang: 'en' } }, [
+      text('Review & Evidence Console'),
+    ]),
   ]);
   const menu = element('details', { attributes: { class: 'local-menu' } }, [
     element('summary', {}, [text('Të dhëna lokale')]),
-    element('p', {}, [text('Vetëm fixture repo-safe në këtë pajisje. Pa hyrje ose prodhim.')]),
+    element('p', {}, [text('Vetëm mostër e sigurt për repo në këtë pajisje. Pa hyrje ose prodhim.')]),
   ]);
   return element('header', { attributes: { class: 'topbar' } }, [
     element('div', { attributes: { class: 'topbar__inner' } }, [

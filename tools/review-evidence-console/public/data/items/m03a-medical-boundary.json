@@ -1,9 +1,9 @@
 {
   "id": "M03A-MEDICAL-BOUNDARY",
-  "prompt": "Is medical or injury data excluded?",
-  "need": "The sensitive-data boundary must remain closed.",
-  "repoImpact": "Prevents scope expansion.",
-  "guidance": "Confirm excluded for this fixture.",
+  "prompt": "Kufiri i të dhënave mjekësore",
+  "need": "Kufiri i të dhënave sensitive duhet të mbetet i mbyllur.",
+  "repoImpact": "Parandalon zgjerimin e fushës.",
+  "guidance": "Konfirmo përjashtimin për këtë mostër.",
   "baseFields": [
     "decision",
     "concreteAnswer",
@@ -22,7 +22,8 @@
       "type": "select",
       "required": true,
       "maxLength": 8,
-      "options": ["excluded", "allowed"]
+      "options": ["excluded", "allowed"],
+      "optionLabelsSq": { "excluded": "Përjashto", "allowed": "Lejo" }
     },
     {
       "key": "disabledScope",
@@ -31,6 +32,7 @@
       "required": true,
       "maxLength": 240,
       "options": [],
+      "optionLabelsSq": {},
       "requiredWhen": { "key": "medicalBoundary", "equals": "excluded" }
     },
     {
@@ -40,6 +42,7 @@
       "required": true,
       "maxLength": 160,
       "options": [],
+      "optionLabelsSq": {},
       "requiredWhen": { "key": "medicalBoundary", "equals": "allowed" }
     }
   ]
