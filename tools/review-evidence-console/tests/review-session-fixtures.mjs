@@ -2,10 +2,30 @@ import { buildReceipt } from '../public/src/state/receipt-builder.mjs';
 
 const item = (id, guidance = 'Use fixture guidance as editable prose.') => ({
   id,
+  prompt: 'Who owns the fixture decision?',
+  need: 'Fixture ownership is recorded.',
+  repoImpact: 'Keeps the review boundary repo-safe.',
   guidance,
+  baseFields: [
+    'decision',
+    'concreteAnswer',
+    'reason',
+    'evidenceRef',
+    'verifiedAt',
+    'riskCategory',
+    'severity',
+    'requestedChange',
+  ],
   allowedRiskCategories: ['privacy'],
   requiredResponses: [
-    { key: 'ownerRole', type: 'text', required: true, maxLength: 80, options: [] },
+    {
+      key: 'ownerRole',
+      labelSq: 'Roli i pronarit',
+      type: 'text',
+      required: true,
+      maxLength: 80,
+      options: [],
+    },
   ],
 });
 
@@ -15,12 +35,24 @@ export const bundle = {
     packetId: 'packet_a',
     reviewerFixtureId: 'reviewer_a',
     reviewerRole: 'privacy',
+    status: 'in_progress',
+    dueDate: '2026-07-15',
+    risk: 'high',
+    fixture: true,
   },
-  reviewer: { id: 'reviewer_a', displayName: 'Privacy reviewer', role: 'privacy' },
+  reviewer: {
+    id: 'reviewer_a',
+    displayName: 'Privacy reviewer',
+    role: 'privacy',
+    repoSafe: true,
+  },
   packet: {
     id: 'packet_a',
     version: '1',
     reviewerRole: 'privacy',
+    title: 'Fixture review',
+    scope: 'Repo-safe fixture scope.',
+    stopConditions: ['Sensitive data supplied'],
     itemIds: ['item_a', 'item_b'],
     items: [item('item_a'), item('item_b', 'Second fixture guidance.')],
   },
@@ -38,7 +70,12 @@ export const completeDecision = {
   responses: { ownerRole: 'Privacy lead' },
 };
 
-export async function priorReceipt() {
+export async function priorReceipt(overrides = {}) {
+  const decisions = { item_a: completeDecision, item_b: completeDecision };
+  const structuredResponses = {
+    item_a: completeDecision.responses,
+    item_b: completeDecision.responses,
+  };
   return buildReceipt({
     schemaVersion: 1,
     packetId: bundle.packet.id,
@@ -49,8 +86,9 @@ export async function priorReceipt() {
     reviewerRole: bundle.reviewer.role,
     packetRole: bundle.packet.reviewerRole,
     authorityDisclaimer: 'Fixture authority only; no production decision.',
-    decisions: { item_a: completeDecision },
-    structuredResponses: { item_a: completeDecision.responses },
+    decisions,
+    structuredResponses,
     submittedAt: '2026-07-09T12:00:00.000Z',
+    ...overrides,
   });
 }

@@ -1,12 +1,14 @@
-import { verifyReceipt } from './receipt-builder.mjs';
+import { prepareCorrection } from './correction-state.mjs';
 import { assertField, clone, deepFreeze, initialState, same } from './review-session-state.mjs';
+import { ownSessionBundle } from './session-bundle.mjs';
 import { validatePacket } from '../validation/packet.mjs';
 
 const DECISIONS = new Set([null, 'approve', 'change', 'block']);
 
 export function createReviewSession(bundle, draft, { onChange } = {}) {
-  let state = initialState(bundle, draft);
-  const items = new Map(bundle.packet.items.map(item => [item.id, item]));
+  const ownedBundle = ownSessionBundle(bundle);
+  let state = initialState(ownedBundle, draft);
+  const items = new Map(ownedBundle.packet.items.map(item => [item.id, item]));
 
   function itemFor(itemId) {
     const item = items.get(itemId);
@@ -49,46 +51,7 @@ export function createReviewSession(bundle, draft, { onChange } = {}) {
   }
 
   async function createCorrection(previousReceipt, metadata = {}) {
-    const verified = await verifyReceipt(previousReceipt);
-    const matches =
-      verified.ok &&
-      previousReceipt.assignmentId === bundle.assignment.id &&
-      previousReceipt.packetId === bundle.packet.id &&
-      previousReceipt.packetVersion === bundle.packet.version &&
-      previousReceipt.reviewerFixtureId === bundle.reviewer.id &&
-      previousReceipt.reviewerRole === bundle.reviewer.role &&
-      previousReceipt.packetRole === bundle.packet.reviewerRole;
-    if (!matches) throw new TypeError('Previous receipt is invalid for this assignment.');
-    itemFor(metadata.itemId);
-    if (
-      ![metadata.reason, metadata.impact].every(value => typeof value === 'string' && value.trim())
-    ) {
-      throw new TypeError('Correction item, reason, and impact are required.');
-    }
-    const prior = deepFreeze(clone(previousReceipt));
-    const decisions = Object.fromEntries(
-      bundle.packet.itemIds.map(itemId => [
-        itemId,
-        previousReceipt.decisions[itemId]
-          ? {
-              ...state.decisions[itemId],
-              ...clone(previousReceipt.decisions[itemId]),
-              responses: clone(previousReceipt.structuredResponses[itemId] ?? {}),
-            }
-          : state.decisions[itemId],
-      ])
-    );
-    return commit({
-      ...state,
-      activeItem: metadata.itemId,
-      decisions,
-      correction: {
-        previousReceipt: prior,
-        itemId: metadata.itemId,
-        reason: metadata.reason,
-        impact: metadata.impact,
-      },
-    });
+    return commit(await prepareCorrection(ownedBundle, state, previousReceipt, metadata, itemFor));
   }
 
   return {
@@ -100,7 +63,7 @@ export function createReviewSession(bundle, draft, { onChange } = {}) {
     setResponse,
     useGuidance: itemId => setField(itemId, 'concreteAnswer', itemFor(itemId).guidance),
     validate: safeEvidenceConfirmed =>
-      validatePacket(bundle.packet, state.decisions, safeEvidenceConfirmed === true),
+      validatePacket(ownedBundle.packet, state.decisions, safeEvidenceConfirmed === true),
     createCorrection,
   };
 }

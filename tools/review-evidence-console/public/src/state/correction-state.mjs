@@ -1,0 +1,62 @@
+import { verifyReceipt } from './receipt-builder.mjs';
+import { clone, deepFreeze } from './review-session-state.mjs';
+import { validatePacket } from '../validation/packet.mjs';
+
+function exactKeys(record, itemIds) {
+  const keys = record && typeof record === 'object' ? Object.keys(record) : [];
+  return keys.length === itemIds.length && itemIds.every(itemId => keys.includes(itemId));
+}
+
+function metadataMatches(receipt, bundle) {
+  return (
+    receipt.assignmentId === bundle.assignment.id &&
+    receipt.packetId === bundle.packet.id &&
+    receipt.packetVersion === bundle.packet.version &&
+    receipt.reviewerFixtureId === bundle.reviewer.id &&
+    receipt.reviewerRole === bundle.reviewer.role &&
+    receipt.packetRole === bundle.packet.reviewerRole
+  );
+}
+
+export async function prepareCorrection(bundle, state, previousReceipt, metadata, itemFor) {
+  const verified = await verifyReceipt(previousReceipt);
+  const itemIds = bundle.packet.itemIds;
+  if (
+    !verified.ok ||
+    !metadataMatches(previousReceipt, bundle) ||
+    !exactKeys(previousReceipt.decisions, itemIds) ||
+    !exactKeys(previousReceipt.structuredResponses, itemIds)
+  ) {
+    throw new TypeError('Previous receipt is invalid for this assignment.');
+  }
+  itemFor(metadata.itemId);
+  if (
+    ![metadata.reason, metadata.impact].every(value => typeof value === 'string' && value.trim())
+  ) {
+    throw new TypeError('Correction item, reason, and impact are required.');
+  }
+  const decisions = Object.fromEntries(
+    itemIds.map(itemId => [
+      itemId,
+      {
+        ...state.decisions[itemId],
+        ...clone(previousReceipt.decisions[itemId]),
+        responses: clone(previousReceipt.structuredResponses[itemId]),
+      },
+    ])
+  );
+  if (!validatePacket(bundle.packet, decisions, true).valid) {
+    throw new TypeError('Previous receipt contains an incomplete packet review.');
+  }
+  return {
+    ...state,
+    activeItem: metadata.itemId,
+    decisions,
+    correction: {
+      previousReceipt: deepFreeze(clone(previousReceipt)),
+      itemId: metadata.itemId,
+      reason: metadata.reason,
+      impact: metadata.impact,
+    },
+  };
+}
