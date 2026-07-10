@@ -24,6 +24,12 @@ function validateDraft(key, draft, schemaVersion) {
   if (requiredStrings.some(field => typeof draft[field] !== 'string' || !draft[field]))
     return false;
   if (!isRecord(draft.itemDecisions) || !isIsoDate(draft.updatedAt)) return false;
+  if (
+    Object.hasOwn(draft, 'suggestionVersion') &&
+    (!Number.isInteger(draft.suggestionVersion) || draft.suggestionVersion !== 1)
+  ) {
+    return false;
+  }
   return Object.entries(identity).every(([field, value]) => draft[field] === value);
 }
 

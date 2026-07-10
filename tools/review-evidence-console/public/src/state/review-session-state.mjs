@@ -63,7 +63,7 @@ export function initialState(bundle, draft) {
   ) {
     throw new TypeError('Packet item identities must match.');
   }
-  const source = draft?.itemDecisions ?? draft?.decisions ?? {};
+  const source = draft?.decisions ?? draft?.itemDecisions ?? {};
   if (Object.keys(source).some(id => !itemIds.includes(id))) {
     throw new TypeError('Draft contains an unknown item identity.');
   }
@@ -92,6 +92,7 @@ export function initialState(bundle, draft) {
   const activeItem = itemIds.includes(draft?.activeItem) ? draft.activeItem : itemIds[0];
   return deepFreeze({
     ...identities,
+    suggestionVersion: draft?.suggestionVersion,
     activeItem,
     decisions,
     correction: clone(draft?.correction ?? null),

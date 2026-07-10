@@ -1,13 +1,30 @@
 import { prepareCorrection } from './correction-state.mjs';
+import { initializeSuggestedDecisions } from './review-suggestions.mjs';
 import { assertField, clone, deepFreeze, initialState, same } from './review-session-state.mjs';
 import { ownSessionBundle } from './session-bundle.mjs';
 import { validatePacket } from '../validation/packet.mjs';
 
 const DECISIONS = new Set([null, 'approve', 'change', 'block']);
 
-export function createReviewSession(bundle, draft, { onChange } = {}) {
+function currentLocalDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function createReviewSession(
+  bundle,
+  draft,
+  { onChange, applySuggestions = true, getLocalDate = currentLocalDate } = {}
+) {
   const ownedBundle = ownSessionBundle(bundle);
-  let state = initialState(ownedBundle, draft);
+  const initialized = initializeSuggestedDecisions(ownedBundle, draft, {
+    applySuggestions,
+    getLocalDate,
+  });
+  let state = initialState(ownedBundle, initialized);
   const items = new Map(ownedBundle.packet.items.map(item => [item.id, item]));
 
   function itemFor(itemId) {

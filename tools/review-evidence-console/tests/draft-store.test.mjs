@@ -75,6 +75,19 @@ test('preserves incompatible and corrupt data for untouched recovery', () => {
   assert.equal(storage.getItem(key), '{bad');
 });
 
+test('accepts legacy and version-1 suggestions but rejects owned unsupported versions', () => {
+  const storage = makeStorage();
+  const store = createDraftStore({ storage, schemaVersion: 1 });
+  for (const suggestionVersion of [undefined, 1]) {
+    const candidate = { ...draft, suggestionVersion };
+    if (suggestionVersion === undefined) delete candidate.suggestionVersion;
+    storage.setItem(key, JSON.stringify(candidate));
+    assert.equal(store.load(key).ok, true);
+  }
+  storage.setItem(key, JSON.stringify({ ...draft, suggestionVersion: 2 }));
+  assert.equal(store.load(key).code, 'invalid_data');
+});
+
 test('removes only the requested draft', () => {
   const storage = makeStorage();
   storage.setItem(key, JSON.stringify(draft));

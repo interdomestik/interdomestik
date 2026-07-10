@@ -15,8 +15,14 @@ const metadata = {
 };
 
 test('restores every complete receipt decision and structured response', async () => {
-  const session = createReviewSession(bundle);
+  let dateCalls = 0;
+  const session = createReviewSession(bundle, undefined, {
+    applySuggestions: false,
+    getLocalDate: () => (++dateCalls, '2026-07-10'),
+  });
   const snapshot = await session.createCorrection(await priorReceipt(), metadata);
+  assert.equal(dateCalls, 0);
+  assert.equal(snapshot.suggestionVersion, 1);
   assert.equal(snapshot.decisions.item_a.decision, 'approve');
   assert.equal(snapshot.decisions.item_b.reason, completeDecision.reason);
   assert.equal(snapshot.decisions.item_a.responses.ownerRole, 'Privacy lead');

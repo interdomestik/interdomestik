@@ -12,6 +12,7 @@ test('writes a correction draft linked to an immutable verified receipt', async 
     bundle,
     receipt,
     storage,
+    getLocalDate: () => assert.fail('correction must not read the local date'),
     metadata: {
       itemId: 'item_a',
       reason: 'Clarify the boundary.',
@@ -21,6 +22,14 @@ test('writes a correction draft linked to an immutable verified receipt', async 
   assert.equal(result.ok, true);
   assert.equal(result.value.correction.previousReceipt.receiptId, receipt.receiptId);
   assert.equal(result.value.activeItem, 'item_a');
+  assert.equal(result.value.safeEvidenceConfirmed, false);
+  assert.equal(result.value.suggestionVersion, 1);
+  assert.equal(result.value.itemDecisions.item_a.decision, receipt.decisions.item_a.decision);
+  assert.deepEqual(
+    result.value.itemDecisions.item_a.responses,
+    receipt.structuredResponses.item_a
+  );
+  assert.equal(result.value.itemDecisions.item_a.requestedChange, '');
   assert.deepEqual(receipt, snapshot);
 });
 

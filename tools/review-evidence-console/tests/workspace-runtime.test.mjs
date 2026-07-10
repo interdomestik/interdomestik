@@ -20,13 +20,18 @@ test('ordinary sequential edits autosave without rerendering or moving heading f
     onRender: props => renders.push(props),
     onNavigate() {},
     onStatus: status => statuses.push(status),
+    getLocalDate: () => '2026-07-10',
   });
   const controls = renders[0];
+  assert.equal(controls.state.suggestionVersion, 1);
+  assert.equal(controls.state.decisions.item_a.decision, null);
+  assert.equal(controls.state.decisions.item_a.requestedChange, '');
+  assert.equal(controls.safeEvidenceConfirmed, false);
   controls.onField('item_a', 'concreteAnswer', 'a');
   controls.onField('item_a', 'concreteAnswer', 'ab');
   assert.equal(renders.length, 1);
   assert.equal(renders[0].focusHeading, true);
-  assert.deepEqual(statuses, ['Duke ruajtur', 'Duke ruajtur']);
+  assert.deepEqual(statuses, ['Duke ruajtur', 'Duke ruajtur', 'Duke ruajtur']);
   controls.onDecision('item_a', 'approve');
   assert.equal(renders.at(-1).focusHeading, false);
   runtime.dispose();

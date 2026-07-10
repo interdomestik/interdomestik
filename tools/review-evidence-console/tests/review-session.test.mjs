@@ -15,7 +15,7 @@ test('returns new deeply frozen snapshots while preserving earlier snapshots', (
   const before = session.getSnapshot();
   const after = session.setField('item_a', 'reason', 'Repo-safe reason.');
   assert.notEqual(after, before);
-  assert.equal(before.decisions.item_a.reason, '');
+  assert.equal(before.decisions.item_a.reason, 'The fixture authority supports this boundary.');
   assert.equal(Object.isFrozen(after.decisions.item_a), true);
   assert.throws(() => {
     after.decisions.item_a.reason = 'mutation';

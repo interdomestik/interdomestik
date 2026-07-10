@@ -6,9 +6,13 @@ export async function startCorrection({
   receipt,
   metadata,
   storage = globalThis.localStorage,
+  getLocalDate,
 }) {
   try {
-    const session = createReviewSession(bundle);
+    const session = createReviewSession(bundle, undefined, {
+      applySuggestions: false,
+      getLocalDate,
+    });
     const state = await session.createCorrection(receipt, metadata);
     const key = composeDraftKey({
       assignmentId: receipt.assignmentId,
@@ -23,7 +27,7 @@ export async function startCorrection({
       schemaVersion: 1,
       editorId: crypto.randomUUID(),
       updatedAt: new Date().toISOString(),
-      safeEvidenceConfirmed: true,
+      safeEvidenceConfirmed: false,
     };
     delete draft.decisions;
     const saved = store.save(key, draft, current.ok ? current.value.updatedAt : undefined);

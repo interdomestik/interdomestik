@@ -2,7 +2,6 @@ import { composeDraftKey, createDraftStore } from '../state/draft-store.mjs';
 import { createReviewSession } from '../state/review-session.mjs';
 import { createAutosaveController } from './autosave-controller.mjs';
 import { downloadText } from './download-text.mjs';
-
 export function createWorkspaceRuntime({
   bundle,
   initialItemId,
@@ -11,6 +10,7 @@ export function createWorkspaceRuntime({
   onConflict,
   onValidate,
   onStatus = () => {},
+  getLocalDate,
 }) {
   const key = composeDraftKey({
     assignmentId: bundle.assignment.id,
@@ -20,11 +20,23 @@ export function createWorkspaceRuntime({
   const store = createDraftStore({ schemaVersion: 1 });
   const loaded = store.load(key);
   const draft = loaded.ok ? loaded.value : undefined;
+  const canInitialize = loaded.ok || loaded.code === 'not_found';
+  const needsInitialSave =
+    loaded.code === 'not_found' || (loaded.ok && !Object.hasOwn(loaded.value, 'suggestionVersion'));
   let safeEvidenceConfirmed = draft?.safeEvidenceConfirmed === true;
   let saveStatus = loaded.ok ? 'Drafti u rikthye' : 'Ruajtja lokale aktive';
   let recovery = loaded.ok || loaded.code === 'not_found' ? null : { code: loaded.code };
-  let autosave;
-  const session = createReviewSession(bundle, draft, { onChange: state => changed(state) });
+  let autosave, initializing = true;
+  let routeSelectionPending = false;
+  const session = createReviewSession(bundle, draft, {
+    applySuggestions: canInitialize,
+    getLocalDate,
+    onChange: state => changed(state),
+  });
+  if (initialItemId && initialItemId !== session.getSnapshot().activeItem) {
+    session.selectItem(initialItemId);
+    routeSelectionPending = true;
+  }
   autosave = createAutosaveController({
     store,
     key,
@@ -40,11 +52,13 @@ export function createWorkspaceRuntime({
       if (status.startsWith('Konflikt')) onConflict?.(recovery);
     },
   });
-  if (initialItemId && initialItemId !== session.getSnapshot().activeItem)
-    session.selectItem(initialItemId);
-
+  initializing = false;
+  if (needsInitialSave) autosave.schedule(draftFrom(session.getSnapshot()));
   function changed(state) {
-    autosave?.schedule(draftFrom(state));
+    if (canInitialize && !initializing) {
+      autosave?.schedule(draftFrom(state));
+      routeSelectionPending = false;
+    }
   }
   function draftFrom(state) {
     return { ...state, safeEvidenceConfirmed };
@@ -72,15 +86,21 @@ export function createWorkspaceRuntime({
       onResponse: (itemId, key, value, controlId) => {
         session.setResponse(itemId, key, value);
         const item = bundle.packet.items.find(entry => entry.id === itemId);
-        if (item.requiredResponses.some(entry => entry.requiredWhen?.key === key)) {
+        if (item.requiredResponses.some(entry => entry.requiredWhen?.key === key))
           render(false, controlId ?? `response-${key}`);
-        }
       },
       onSafeEvidence: value => {
         safeEvidenceConfirmed = value === true;
-        autosave.schedule(draftFrom(session.getSnapshot()));
+        if (canInitialize) {
+          autosave.schedule(draftFrom(session.getSnapshot()));
+          routeSelectionPending = false;
+        }
       },
       onValidate: () => {
+        if (routeSelectionPending) {
+          autosave.schedule(draftFrom(session.getSnapshot()));
+          routeSelectionPending = false;
+        }
         const saved = autosave.flushLatest();
         if (!saved.ok) return;
         onValidate?.(
@@ -125,7 +145,6 @@ export function createWorkspaceRuntime({
       autosave.dispose();
       removeEventListener('storage', storageHandler);
     },
-    recovery:
-      loaded.ok || loaded.code === 'not_found' ? null : { code: loaded.code, ...recoveryActions() },
+    recovery: loaded.ok || loaded.code === 'not_found' ? null : { code: loaded.code, ...recoveryActions() },
   };
 }
