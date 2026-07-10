@@ -75,34 +75,58 @@ For `M03A-ERASURE-REVOCATION`, activating `show_revoked_state` also suggests:
 
 ## Interaction Rules
 
+### Persisted note state
+
+Draft schema version 2 adds `contextualNoteState` per item and field. This sidecar
+never enters a receipt. Each tracked note has one status:
+
+- `unseen`: the recommendation has not been offered;
+- `suggested`: the displayed value still equals the recommendation;
+- `custom`: the reviewer supplied a different non-empty value;
+- `dismissed`: the reviewer intentionally cleared the field.
+
+Conditional `custom` notes also retain their exact safe-text value in the sidecar
+while the response is inapplicable. `dismissed` retains no value. Unknown item IDs,
+field paths, statuses, or unsafe sidecar values make the draft invalid and recoverable
+under the existing fail-closed recovery flow.
+
 ### Decision activation
 
 When the reviewer selects `change` or `block`, show `requestedChange` with the
-item-specific recommendation if the field is empty. Selecting `approve` does not add
-the note to the receipt. Returning to `change` or `block` must preserve existing
-reviewer text.
+item-specific recommendation only when its status is `unseen` or `suggested` and the
+field is empty. Input equal to the recommendation stays `suggested`; different
+non-empty input becomes `custom`; clearing becomes `dismissed`. Selecting `approve`
+keeps the draft text and note state for a later return, but approve receipts omit the
+`requestedChange` key entirely. Returning to `change` or `block` restores `custom`
+text, keeps `dismissed` blank, or offers the default for `unseen`/`suggested`.
 
 ### Conditional response activation
 
 After a controlling response changes, prune fields that are no longer applicable as
-today. When a safe conditional text field becomes applicable, apply its recommendation
-only if the response is absent. Do not apply a default to `dpiaRef`.
+today. Before pruning a contextual note, retain `custom` text and its status in the
+sidecar; retain `dismissed` as a tombstone. When the field becomes applicable again,
+restore `custom` text, keep `dismissed` blank, or apply the recommendation for
+`unseen`/`suggested`. Do not track or apply a default to `dpiaRef`.
 
 ### Draft recovery
 
-Fresh and legacy initialization may add allowed recommendations under the existing
-suggestion-version rules. A versioned draft restores exact values, including blanks,
-without reapplying defaults. Autosave and conflict behavior remain unchanged.
+This feature bumps `suggestionVersion` from 1 to 2. Fresh and unversioned legacy
+initialization may add allowed recommendations and creates valid version-2 note state.
+Version-1 drafts migrate without applying new contextual notes: every blank contextual
+field becomes `dismissed`, every non-empty field becomes `custom`, and all other
+reviewer values restore exactly. Version-2 drafts restore exact values and sidecar
+state without reapplying defaults. Unsupported owned versions remain recoverable.
+Autosave and conflict behavior remain unchanged.
 
 ## Components And Boundaries
 
 - Fixture JSON owns the exact Albanian recommendations.
 - Suggestion normalization validates the extended strict contract.
 - Review initialization applies fresh and legacy defaults.
-- Session-state decision and response transitions apply contextual defaults without
-  owning UI copy.
+- Session state owns the validated `contextualNoteState` sidecar and applies exact
+  decision/response transition rules without owning UI copy.
 - Receipt construction removes inapplicable `requestedChange` text and all suggestion
-  metadata.
+  or contextual-note metadata; approve receipts omit the `requestedChange` key.
 - Existing rendering components remain presentation-only.
 
 No new route, page, dependency, network call, storage service, auth behavior, or
@@ -120,9 +144,10 @@ not overwrite the current draft or select a decision.
 - Normalization tests reject missing, unknown, unsafe, over-limit, identity, and
   evidence-reference conditional defaults.
 - State tests prove first-use application, non-overwrite, versioned blank recovery,
-  conditional activation, pruning, and immutable snapshots.
-- Receipt tests prove approve omits hidden requested-change content and every receipt
-  excludes suggestion metadata.
+  version-1 migration, custom/dismissed tombstones, conditional deactivate/reactivate,
+  pruning, and immutable snapshots.
+- Receipt tests prove approve omits the `requestedChange` key and every receipt excludes
+  suggestion and contextual-note metadata recursively.
 - Browser tests prove recommendations are visible and editable while decision and
   safe-evidence controls remain manual on desktop and mobile.
 
