@@ -39,6 +39,8 @@ export const bundle = {
     status: 'in_progress',
     dueDate: '2026-07-15',
     risk: 'high',
+    titleSq: 'Rishikimi i autoritetit',
+    purposeSq: 'Verifiko kufijtë e mostrës.',
     fixture: true,
   },
   reviewer: {

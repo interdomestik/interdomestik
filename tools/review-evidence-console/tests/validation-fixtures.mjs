@@ -14,6 +14,8 @@ export const assignments = [
     status: 'in_progress',
     dueDate: '2026-07-15',
     risk: 'high',
+    titleSq: 'Rishikimi i autoritetit — Pjesa A',
+    purposeSq: 'Verifiko privatësinë, pëlqimin dhe qasjen.',
     fixture: true,
   },
   {
@@ -24,6 +26,8 @@ export const assignments = [
     status: 'not_started',
     dueDate: '2026-07-16',
     risk: 'medium',
+    titleSq: 'Rishikimi i autoritetit — Pjesa B',
+    purposeSq: 'Verifiko dokumentet, kërcënimet dhe ndalimet.',
     fixture: true,
   },
 ];

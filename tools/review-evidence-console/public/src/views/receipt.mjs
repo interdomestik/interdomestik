@@ -4,35 +4,7 @@ import {
   displayRisk,
   displaySeverity,
 } from '../components/display-labels.mjs';
-
-const RESPONSE_OPTIONS = Object.freeze({
-  access: 'Qasja',
-  allowed: 'Lejo',
-  category: 'Kategoria',
-  change: 'Kërkon ndryshim',
-  clear: 'Pa pengesa',
-  consentStatus: 'Statusi i pëlqimit',
-  consentVersion: 'Versioni i pëlqimit',
-  disclosure: 'Zbulimi',
-  escalate: 'Përshkallëzo',
-  exclude: 'Përjashto',
-  excluded: 'Përjashto',
-  hide_metadata: 'Fshih metadatat',
-  legal_private: 'Të dhënat private ligjore',
-  medical: 'Të dhënat mjekësore',
-  missing_authority: 'Mungon autoriteti',
-  payment: 'Pagesa',
-  raw_document: 'Dokumenti burimor',
-  recordedAt: 'Data e regjistrimit',
-  retention: 'Ruajtja',
-  sensitive_data: 'Të dhëna sensitive',
-  show_revoked_state: 'Shfaq gjendjen e revokuar',
-  scope_expansion: 'Zgjerim i fushës',
-  state: 'Gjendja',
-  stop: 'Ndalo',
-  updatedAt: 'Data e përditësimit',
-  view: 'Shfaq',
-});
+import { renderReceiptResponses } from './receipt-responses.mjs';
 
 function row(label, value) {
   const values = Array.isArray(value) ? value : [typeof value === 'string' ? text(value) : value];
@@ -47,22 +19,7 @@ function labeled(label, raw) {
   return [text(`${label} `), audit(raw)];
 }
 
-function responseValue(value) {
-  return RESPONSE_OPTIONS[value] ? labeled(RESPONSE_OPTIONS[value], value) : [text(value)];
-}
-
-function technicalRow(key, value) {
-  const values = Array.isArray(value) ? value : [value];
-  return element('p', {}, [
-    audit(key),
-    text(': '),
-    ...values
-      .flatMap((entry, index) => [index ? text(', ') : null, ...responseValue(entry)])
-      .filter(Boolean),
-  ]);
-}
-
-function itemSection(itemId, decision, responses) {
+function itemSection(itemId, decision, responses, item) {
   return element(
     'section',
     { attributes: { class: 'receipt-item', 'aria-labelledby': `receipt-${itemId}` } },
@@ -81,14 +38,12 @@ function itemSection(itemId, decision, responses) {
         .filter(([key]) => decision[key])
         .map(([key, label]) => row(label, decision[key])),
       element('h2', {}, [text('Përgjigjet e strukturuara')]),
-      ...Object.entries(responses ?? {}).map(([key, value]) =>
-        technicalRow(key, value)
-      ),
+      ...renderReceiptResponses(item, responses),
     ]
   );
 }
 
-export function renderReceipt({ receipt, importNotice, onExport, onCorrect, onClear }) {
+export function renderReceipt({ receipt, packet, importNotice, onExport, onCorrect, onClear }) {
   return element(
     'article',
     { attributes: { class: 'receipt-view', 'aria-labelledby': 'receipt-heading' } },
@@ -126,7 +81,12 @@ export function renderReceipt({ receipt, importNotice, onExport, onCorrect, onCl
         ? element('p', { attributes: { class: 'local-only-notice' } }, [text(importNotice)])
         : null,
       ...Object.entries(receipt.decisions).map(([id, decision]) =>
-        itemSection(id, decision, receipt.structuredResponses[id])
+        itemSection(
+          id,
+          decision,
+          receipt.structuredResponses[id],
+          packet?.items.find(item => item.id === id)
+        )
       ),
       element('button', { attributes: { type: 'button' }, on: { click: () => onExport?.() } }, [
         text('Eksporto JSON'),

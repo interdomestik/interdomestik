@@ -8,6 +8,17 @@ import { makeStorage, receiptInput, submittedAt } from './state-fixtures.mjs';
 
 setDocument(fakeDocument);
 
+const packet = {
+  id: receiptInput.packetId,
+  version: receiptInput.packetVersion,
+  items: [
+    {
+      id: 'item_a',
+      requiredResponses: [{ key: 'ownerRole', labelSq: 'Roli i pronarit', type: 'text' }],
+    },
+  ],
+};
+
 function setup() {
   const base = makeStorage();
   let failStorage = false;
@@ -30,7 +41,9 @@ function setup() {
   const renders = [];
   const navigations = [];
   const loaders = createReviewRouteLoaders({
-    repository: {},
+    repository: {
+      loadAssignmentBundle: async () => ({ ok: true, value: { packet } }),
+    },
     isCurrent: token => token === 1,
     render: (content, role, focus) => renders.push({ content, focus }),
     navigate: route => navigations.push(route),

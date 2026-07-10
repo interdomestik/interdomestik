@@ -1,7 +1,7 @@
 import { normalizeItem } from './normalize-review.mjs';
 
 function requiredString(record, key) {
-  if (typeof record?.[key] !== 'string' || record[key] === '') {
+  if (typeof record?.[key] !== 'string' || record[key].trim() === '') {
     throw new TypeError(`${key} must be a non-empty string.`);
   }
   return record[key];
@@ -33,6 +33,8 @@ export function normalizeAssignment(assignment) {
     'status',
     'dueDate',
     'risk',
+    'titleSq',
+    'purposeSq',
   ]) {
     requiredString(assignment, key);
   }

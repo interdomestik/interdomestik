@@ -7,6 +7,23 @@ import { buildReceipt } from '../public/src/state/receipt-builder.mjs';
 globalThis.document = fakeDocument;
 const { renderReceipt } = await import('../public/src/views/receipt.mjs');
 
+const packet = {
+  items: [
+    {
+      id: 'item_a',
+      requiredResponses: [
+        { key: 'ownerRole', labelSq: 'Roli i pronarit', type: 'text' },
+        {
+          key: 'medicalBoundary',
+          labelSq: 'Kufiri mjekësor',
+          type: 'select',
+          optionLabelsSq: { excluded: 'Përjashto' },
+        },
+      ],
+    },
+  ],
+};
+
 test('renders complete read-only receipt metadata, risk, evidence, and disclaimer', async () => {
   const complete = {
     ...receiptInput.decisions.item_a,
@@ -26,6 +43,7 @@ test('renders complete read-only receipt metadata, risk, evidence, and disclaime
   });
   const node = renderReceipt({
     receipt,
+    packet,
     importNotice: 'Lexohet në këtë pajisje; nuk ngarkohet kurrë',
   });
   const content = copy(node);
@@ -71,7 +89,7 @@ test('renders complete correction lineage metadata', async () => {
     correctionReason: 'Clarify boundary.',
     correctionImpact: 'Improves auditability.',
   });
-  const content = copy(renderReceipt({ receipt: correction }));
+  const content = copy(renderReceipt({ receipt: correction, packet }));
   for (const value of [first.receiptId, 'item_a', 'Clarify boundary.', 'Improves auditability.'])
     assert.match(content, new RegExp(value));
 });
