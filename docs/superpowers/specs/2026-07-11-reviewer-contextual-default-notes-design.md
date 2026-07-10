@@ -77,8 +77,9 @@ For `M03A-ERASURE-REVOCATION`, activating `show_revoked_state` also suggests:
 
 ### Persisted note state
 
-Draft schema version 2 adds `contextualNoteState` per item and field. This sidecar
-never enters a receipt. Each tracked note has one status:
+Drafts with `suggestionVersion: 2` add `contextualNoteState` per item and field. The
+draft store's independent `schemaVersion` remains unchanged. This sidecar never enters
+a receipt. Each tracked note has one status:
 
 - `unseen`: the recommendation has not been offered;
 - `suggested`: the displayed value still equals the recommendation;
