@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { element, replaceChildren, setDocument, text } from '../public/src/components/dom.mjs';
+import { loadInboxRows, progressCopy } from '../public/src/views/inbox-data.mjs';
 import { renderInbox } from '../public/src/views/inbox.mjs';
 
 class FakeNode {
@@ -79,7 +80,7 @@ test('populated inbox uses reviewer-first cards with one primary action each', (
         dueDate: '2026-07-15',
         title: 'Rishikimi i autoritetit — Pjesa A',
         purpose: 'Verifiko kufijtë e privatësisë dhe rolet e aksesit.',
-        progress: '2 nga 4 pika',
+        progress: 'Në progres — hap paketën për detaje',
       },
     ],
   });
@@ -87,9 +88,61 @@ test('populated inbox uses reviewer-first cards with one primary action each', (
   assert.match(copy, /mob-03a-part-a/);
   assert.match(copy, /Rishikimi i autoritetit/);
   assert.match(copy, /Rrezik i lartë/);
-  assert.match(copy, /2 nga 4 pika/);
+  assert.match(copy, /Në progres — hap paketën për detaje/);
   assert.match(copy, /Vazhdo paketën/);
   const button = inbox.childNodes[1].childNodes.find(node => node.tagName === 'BUTTON');
   button.listeners.click();
   assert.deepEqual(opened, ['assign_mob03a_part_a']);
+});
+
+test('progress copy never fabricates numeric completion', () => {
+  assert.equal(progressCopy('not_started'), 'Nuk ka filluar');
+  assert.equal(progressCopy('in_progress'), 'Në progres — hap paketën për detaje');
+  assert.equal(progressCopy('ready'), 'Gati për dorëzim');
+  assert.equal(progressCopy('submitted'), 'Dërguar');
+});
+
+test('inbox rows fail closed when an assignment bundle is inconsistent', async () => {
+  const calls = [];
+  const repository = {
+    listAssignments: async () => ({
+      ok: true,
+      value: [{ id: 'assign_a', reviewerFixtureId: 'reviewer_a' }],
+    }),
+    loadAssignmentBundle: async assignmentId => {
+      calls.push(assignmentId);
+      return { ok: false, code: 'invalid_data', message: 'Roles do not match.' };
+    },
+  };
+  const result = await loadInboxRows(repository, 'reviewer_a');
+  assert.deepEqual(calls, ['assign_a']);
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'invalid_data',
+    message: 'Roles do not match.',
+  });
+});
+
+test('inbox rows reject an ok bundle whose cross-record roles disagree', async () => {
+  const assignment = {
+    id: 'assign_a',
+    packetId: 'packet_a',
+    reviewerFixtureId: 'reviewer_a',
+    reviewerRole: 'privacy',
+    status: 'not_started',
+  };
+  const repository = {
+    listAssignments: async () => ({ ok: true, value: [assignment] }),
+    loadAssignmentBundle: async () => ({
+      ok: true,
+      value: {
+        assignment,
+        reviewer: { id: 'reviewer_a', role: 'privacy' },
+        packet: { id: 'packet_a', reviewerRole: 'security', itemIds: ['ITEM-1'] },
+      },
+    }),
+  };
+  const result = await loadInboxRows(repository, 'reviewer_a');
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'invalid_data');
 });
