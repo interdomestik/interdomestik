@@ -35,7 +35,7 @@ export function createWorkspaceRuntime({
   });
   if (initialItemId && initialItemId !== session.getSnapshot().activeItem) {
     session.selectItem(initialItemId);
-    routeSelectionPending = true;
+    routeSelectionPending = canInitialize;
   }
   autosave = createAutosaveController({
     store,
@@ -55,10 +55,9 @@ export function createWorkspaceRuntime({
   initializing = false;
   if (needsInitialSave) autosave.schedule(draftFrom(session.getSnapshot()));
   function changed(state) {
-    if (canInitialize && !initializing) {
-      autosave?.schedule(draftFrom(state));
-      routeSelectionPending = false;
-    }
+    if (!canInitialize || initializing) return;
+    autosave?.schedule(draftFrom(state));
+    routeSelectionPending = false;
   }
   function draftFrom(state) {
     return { ...state, safeEvidenceConfirmed };
@@ -91,12 +90,12 @@ export function createWorkspaceRuntime({
       },
       onSafeEvidence: value => {
         safeEvidenceConfirmed = value === true;
-        if (canInitialize) {
-          autosave.schedule(draftFrom(session.getSnapshot()));
-          routeSelectionPending = false;
-        }
+        if (!canInitialize) return;
+        autosave.schedule(draftFrom(session.getSnapshot()));
+        routeSelectionPending = false;
       },
       onValidate: () => {
+        if (!canInitialize) return;
         if (routeSelectionPending) {
           autosave.schedule(draftFrom(session.getSnapshot()));
           routeSelectionPending = false;
@@ -114,6 +113,7 @@ export function createWorkspaceRuntime({
   function selectItem(itemId) {
     session.selectItem(itemId);
     render(true);
+    if (!canInitialize) return;
     const saved = autosave.flushLatest();
     if (!saved.ok) {
       recovery = { code: 'save_failed', ...recoveryActions() };
