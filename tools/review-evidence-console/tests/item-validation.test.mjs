@@ -47,3 +47,24 @@ test('rejects invalid dates and guarded nested fields', () => {
   assert.equal(invalidDate.errors.some(error => error.key === 'verifiedAt'), true);
   assert.equal(unsafeReason.errors.some(error => error.key === 'reason'), true);
 });
+
+test('enforces descriptor-specific evidence reference length', () => {
+  const item = {
+    ...baseItem,
+    requiredResponses: [
+      { key: 'shortRef', type: 'evidenceRef', required: true, maxLength: 20, options: [] },
+    ],
+  };
+  const exact = completeDecision({ responses: { shortRef: 'docs/a12345678901.md' } });
+  const over = completeDecision({ responses: { shortRef: 'docs/a123456789012.md' } });
+  assert.equal(validateItem(item, exact).valid, true);
+  assert.equal(
+    validateItem(item, over).errors.some(error => error.key === 'shortRef'),
+    true
+  );
+});
+
+test('rejects unsupported critical severity', () => {
+  const result = validateItem(baseItem, completeDecision({ severity: 'critical' }));
+  assert.equal(result.errors.some(error => error.key === 'severity'), true);
+});

@@ -1,7 +1,7 @@
 import { validateEvidenceRef, validateSafeText } from './input-guards.mjs';
 
 const DECISIONS = ['approve', 'change', 'block'];
-const SEVERITIES = ['low', 'medium', 'high', 'critical'];
+const SEVERITIES = ['low', 'medium', 'high'];
 const TEXT_FIELDS = [
   ['concreteAnswer', 2000],
   ['reason', 2000],
@@ -68,7 +68,11 @@ function validateDescriptor(descriptor, responses, errors) {
       validateSafeText(value, { maxLength: descriptor.maxLength ?? 2000 })
     );
   } else if (descriptor.type === 'evidenceRef') {
-    addGuardError(errors, descriptor.key, validateEvidenceRef(value));
+    addGuardError(
+      errors,
+      descriptor.key,
+      validateEvidenceRef(value, { maxLength: descriptor.maxLength ?? 240 })
+    );
   } else if (descriptor.type === 'date' && !isIsoDate(value)) {
     errors.push(fieldError(descriptor.key, 'invalid_date', 'Use a valid ISO date.'));
   } else if (descriptor.options?.length) {

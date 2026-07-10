@@ -22,3 +22,8 @@ test('validates packet-level repo-safe evidence acknowledgement', () => {
   const result = validatePacket({ items: [baseItem] }, { item: completeDecision() }, false);
   assert.equal(result.errors.some(error => error.key === 'safeEvidenceConfirmed'), true);
 });
+
+test('fails closed when the safety acknowledgement is omitted', () => {
+  const result = validatePacket({ items: [baseItem] }, { item: completeDecision() });
+  assert.equal(result.errors.some(error => error.key === 'safeEvidenceConfirmed'), true);
+});

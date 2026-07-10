@@ -27,13 +27,13 @@ export function validateSafeText(value, { maxLength = 2000 } = {}) {
   return { ok: true };
 }
 
-export function validateEvidenceRef(value) {
+export function validateEvidenceRef(value, { maxLength = 240 } = {}) {
   if (typeof value !== 'string') {
     return failure('invalid_reference', 'Use a repo-relative evidence reference.');
   }
   const reference = value.trim();
   if (
-    reference.length > 240 ||
+    reference.length > Math.min(maxLength, 240) ||
     CONTROL_CHARACTERS.test(reference) ||
     reference.includes('..') ||
     reference.includes('//') ||

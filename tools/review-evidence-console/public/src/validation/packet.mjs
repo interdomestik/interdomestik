@@ -6,7 +6,7 @@ const SAFETY_ERROR = {
   message: 'Confirm that this packet contains repo-safe evidence only.',
 };
 
-export function validatePacket(packet, decisions = {}, safeEvidenceConfirmed = true) {
+export function validatePacket(packet, decisions = {}, safeEvidenceConfirmed = false) {
   const items = (packet.items ?? []).map(item => ({
     itemId: item.id,
     ...validateItem(item, decisions[item.id] ?? {}),
