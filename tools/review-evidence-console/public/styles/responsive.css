@@ -1,1 +1,55 @@
-/* Reserved for reviewer-console responsive styles. */
+@media (max-width: 840px) {
+  .topbar__inner {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 1rem 0;
+    gap: 0.8rem;
+  }
+
+  .reviewer-context {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .local-menu {
+    margin-left: auto;
+  }
+
+  .inbox {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .topbar__inner,
+  .page-shell {
+    width: min(100% - 2rem, 1180px);
+  }
+
+  .page-shell {
+    padding-top: 2.2rem;
+  }
+
+  .save-state {
+    order: 3;
+  }
+
+  .assignment-card,
+  .state-panel {
+    padding: 1.15rem;
+  }
+
+  .local-menu p {
+    right: -0.25rem;
+    width: min(280px, calc(100vw - 2rem));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

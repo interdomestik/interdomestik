@@ -1,1 +1,134 @@
-/* Reserved for reviewer-console component styles. */
+.eyebrow,
+.canonical-id {
+  font-size: 0.76rem;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.brand .eyebrow {
+  color: hsl(175 55% 78%);
+}
+
+.brand__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.role-badge,
+.save-state,
+.local-menu summary {
+  font-size: 0.86rem;
+}
+
+.role-badge,
+.save-state {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid hsl(200 35% 65% / 0.45);
+  border-radius: 999px;
+}
+
+.save-state::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.45rem;
+  background: hsl(175 65% 62%);
+  border-radius: 50%;
+}
+
+.local-menu {
+  position: relative;
+}
+
+.local-menu summary {
+  cursor: pointer;
+  padding: 0.55rem 0;
+}
+
+.local-menu p {
+  position: absolute;
+  right: 0;
+  width: 260px;
+  margin-top: 0.5rem;
+  padding: 1rem;
+  color: var(--ink);
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.page-heading .eyebrow,
+.canonical-id {
+  color: var(--teal-700);
+}
+
+.page-heading h1 {
+  margin: 0.35rem 0 0.65rem;
+  color: var(--blue-900);
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.08;
+}
+
+.page-heading p,
+.card-purpose {
+  color: var(--muted);
+}
+
+.assignment-card,
+.state-panel {
+  padding: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.assignment-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.assignment-card h2 {
+  margin: 0.55rem 0;
+  color: var(--blue-900);
+  font-size: 1.35rem;
+}
+
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: auto 0 1.4rem;
+}
+
+.card-meta span {
+  padding: 0.35rem 0.65rem;
+  color: var(--muted);
+  background: var(--canvas);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.card-meta .risk--high {
+  color: var(--warning-ink);
+  background: var(--warning-bg);
+}
+
+.primary-action {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  color: white;
+  background: var(--blue-800);
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.primary-action:hover {
+  background: var(--blue-900);
+}

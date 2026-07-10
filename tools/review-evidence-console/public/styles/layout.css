@@ -1,1 +1,50 @@
-/* Reserved for reviewer-console layout styles. */
+.topbar {
+  color: white;
+  background: var(--blue-800);
+  border-bottom: 4px solid var(--teal-700);
+}
+
+.topbar__inner {
+  width: min(1180px, calc(100% - 3rem));
+  min-height: 86px;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.brand,
+.reviewer-context {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.page-shell {
+  width: min(1180px, calc(100% - 3rem));
+  margin: 0 auto;
+  padding: 3.5rem 0 5rem;
+}
+
+.inbox {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.page-heading,
+.state-panel {
+  grid-column: 1 / -1;
+}
+
+.page-heading {
+  max-width: 720px;
+  margin-bottom: 1rem;
+}
