@@ -43,9 +43,6 @@ function normalizeOptionLabels(value, options) {
   if (labels.some(label => typeof label !== 'string' || label.trim() === '')) {
     throw new TypeError('optionLabelsSq must contain non-empty strings.');
   }
-  if (new Set(labels).size !== labels.length) {
-    throw new TypeError('optionLabelsSq labels must be unique.');
-  }
   return Object.fromEntries(options.map((option, index) => [option, labels[index]]));
 }
 

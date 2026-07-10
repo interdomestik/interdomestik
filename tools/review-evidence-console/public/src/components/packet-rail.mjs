@@ -17,11 +17,17 @@ export function renderPacketRail({ packet, state, onSelectItem = () => {} }) {
     { attributes: { class: 'packet-rail', 'aria-label': 'Hapat e paketës' } },
     [
       element('span', { attributes: { class: 'canonical-id' } }, [text(packet.id)]),
+      element('p', { attributes: { class: 'packet-title' } }, [text(packet.title)]),
       element('h2', {}, [text('Përparimi i paketës')]),
       element('p', { attributes: { class: 'scope-copy' } }, [text(packet.scope)]),
       element('p', { attributes: { class: 'scope-guard', role: 'note' } }, [
         text('Të dhënat mjekësore nuk lejohen. Ndal nëse shfaqen të dhëna sensitive.'),
       ]),
+      element(
+        'ul',
+        { attributes: { class: 'stop-conditions' } },
+        packet.stopConditions.map(condition => element('li', {}, [text(condition)]))
+      ),
       element('nav', { attributes: { 'aria-label': 'Artikujt e rishikimit' } }, [
         element(
           'ul',

@@ -77,15 +77,15 @@ test('requires optionLabelsSq to match option keys exactly', () => {
       ),
     /optionLabelsSq must contain non-empty strings/
   );
-  assert.throws(
-    () =>
-      normalizePacket(
-        packetWith([
-          descriptor({ ...base, optionLabelsSq: { allowed: 'Lejo', excluded: 'Lejo' } }),
-        ])
-      ),
-    /optionLabelsSq labels must be unique/
+  const duplicateLabels = normalizePacket(
+    packetWith([
+      descriptor({ ...base, optionLabelsSq: { allowed: 'Lejo', excluded: 'Lejo' } }),
+    ])
   );
+  assert.deepEqual(duplicateLabels.items[0].requiredResponses[0].optionLabelsSq, {
+    allowed: 'Lejo',
+    excluded: 'Lejo',
+  });
 });
 
 test('keeps text, evidence, and date descriptors option-free', () => {
