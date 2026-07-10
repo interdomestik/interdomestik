@@ -255,7 +255,7 @@ Stores assignment ID, packet ID and version, reviewer fixture ID, item decisions
 
 ### `SubmissionReceipt`
 
-Stores the immutable submitted snapshot, receipt ID, previous receipt ID when correcting, and authority disclaimer.
+Stores the application-level write-once, tamper-evident submitted snapshot, receipt ID, previous receipt ID when correcting, and authority disclaimer.
 
 Packet definitions, reviewer profiles, and example assignments live in repo-safe JSON. State helpers consume and return plain objects. UI components do not read or write browser storage directly.
 
@@ -274,7 +274,7 @@ Packet definitions, reviewer profiles, and example assignments live in repo-safe
 - `remove(draftKey)`;
 - `exportRecovery(draftKey)`.
 
-`ReceiptStore` owns immutable receipts:
+`ReceiptStore` owns application-level write-once, tamper-evident receipts:
 
 - `list(packetId)`;
 - `load(receiptId)`;
@@ -282,7 +282,7 @@ Packet definitions, reviewer profiles, and example assignments live in repo-safe
 - `import(jsonText)`;
 - `remove(receiptId)`.
 
-Saving an existing receipt ID with the same canonical body is idempotent and returns the stored receipt. Saving the same ID with different content returns `hash_mismatch`.
+Saving an existing receipt ID with the same canonical body is idempotent and returns the stored receipt. Saving the same ID with different content returns `hash_mismatch`. Load and export re-verify the canonical hash before returning data; nested mutation is treated as corruption, not immutability.
 
 Every loader and store method returns:
 
@@ -470,7 +470,7 @@ If a mandatory repository gate is blocked by environment or infrastructure, repo
 
 The implementation is acceptable when:
 
-1. It stays entirely under `tools/review-evidence-console/`, except its approved spec and plan.
+1. Authorized tracked paths are limited to `tools/review-evidence-console/**`, this approved spec and plan, `docs/plans/2026-07-10-rec-dg01-review-evidence-console-current-authority.md`, the REC rows in `docs/plans/current-program.md` and `docs/plans/current-tracker.md`, and a measured `scripts/repo-size-budget.json` inventory update. Local `.superpowers/` brainstorming evidence remains ignored and untracked.
 2. It does not modify Interdomestik runtime, routing, auth, tenancy, billing, schema, RLS, README, AGENTS, or architecture files.
 3. It demonstrates the four primary product states with realistic `MOB-03a` repo-safe content.
 4. A reviewer can complete, validate, submit, export, reload, and correct a packet.

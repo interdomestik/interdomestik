@@ -39,7 +39,7 @@ tools/review-evidence-console/
 │   │   ├── validation/packet.mjs      # Ordered packet validation and error grouping
 │   │   ├── state/canonical-json.mjs   # Stable recursive key ordering and serialization
 │   │   ├── state/draft-store.mjs      # Draft keys, optimistic saves, conflicts, recovery
-│   │   ├── state/receipt-builder.mjs  # Risk summary, SHA-256 ID, immutable receipt payload
+│   │   ├── state/receipt-builder.mjs  # Risk summary, SHA-256 ID, tamper-evident payload
 │   │   ├── state/receipt-store.mjs    # Receipt persistence, import, hash validation, deletion
 │   │   ├── state/review-session.mjs   # In-memory reviewer state and item transitions
 │   │   ├── components/dom.mjs         # Safe DOM helpers using textContent only
@@ -926,7 +926,7 @@ const metadata = {
 };
 const okVerify = async receipt => ({ ok: true, value: receipt });
 
-test('saves, lists, and loads one immutable receipt', () => {
+test('saves, lists, and loads one write-once receipt', () => {
   const store = createReceiptStore({
     storage: makeStorage(),
     verifyReceipt: okVerify,
@@ -1024,7 +1024,7 @@ Expected: FAIL because state modules do not exist.
 
 - [ ] **Step 5: Implement canonical JSON and receipt building**
 
-Recursively sort object keys, preserve array order, use the injected `submittedAt` or call an injected `now()` once, aggregate the highest severity, hash canonical UTF-8 bytes through `crypto.subtle`, and prefix the first 24 hex characters with `rec_`. Freeze the returned receipt object in development.
+Recursively sort object keys, preserve array order, use the injected `submittedAt` or call an injected `now()` once, aggregate the highest severity, hash canonical UTF-8 bytes through `crypto.subtle`, and prefix the first 24 hex characters with `rec_`. Deep-freeze the returned receipt object and verify its canonical hash on load, export, and import; add a nested-mutation corruption test.
 
 - [ ] **Step 6: Implement injected storage adapters**
 
@@ -1282,7 +1282,7 @@ With Browser/Playwright MCP:
 5. Start a correction for `Access roles`.
 6. Submit the correction and confirm version `2` plus the original receipt link.
 
-Expected: immutable version history, no network request for import, and no browser errors or warnings.
+Expected: application-level write-once, tamper-evident version history, no network request for import, and no browser errors or warnings.
 
 - [ ] **Step 7: Commit validation and receipts**
 
@@ -1320,7 +1320,7 @@ Move focus to the view heading after route changes, to the first invalid control
 
 - [ ] **Step 4: Run keyboard and responsive browser proof**
 
-Use the in-app Browser and its viewport control at desktop, tablet, and `390x844` mobile sizes. Verify:
+Use the in-app Browser and its viewport control at `1440x1000`, `1024x768`, `390x844`, and `320x720`, then repeat the 320px workflow at 200% zoom and WCAG text spacing. Verify measured 44px targets, no horizontal overflow, semantic landmarks/headings/labels, keyboard order, focus entry/return, live-region announcements, reduced motion, and automated WCAG 2.2 AA results.
 
 - all actions are reachable in a logical Tab order;
 - focus is visible;
@@ -1391,7 +1391,7 @@ Expected: every command exits `0`. Record the exact failing command and environm
 
 - [ ] **Step 5: Run the final browser acceptance flow**
 
-Start the local server and use the in-app Browser/Playwright MCP to execute inbox → review → validation → receipt → reload → import → correction at desktop and mobile widths. Capture accepted screenshots of inbox, workspace, validation, receipt, and mobile workspace. Compare the rendered workspace with the approved visual companion target and fix visible hierarchy, spacing, radius, typography, and responsive mismatches.
+Start the local server and use the in-app Browser/Playwright MCP to execute inbox → review → validation → receipt → reload → import → correction at every required viewport. Use `/tmp/interdomestik-reviewer-audit/` as the identified protected-reference screenshots and write implementation captures to `/tmp/interdomestik-rec01-visual-proof/`. Compare paired screenshots at matching viewports and states, then fix visible hierarchy, spacing, radius, typography, overflow, focus, and responsive mismatches.
 
 - [ ] **Step 6: Audit scope**
 
@@ -1402,7 +1402,7 @@ git status --short
 git diff --name-only origin/main...HEAD
 ```
 
-Expected: implementation files remain under `tools/review-evidence-console/`; the only other files are the approved spec and this plan.
+Expected: implementation files remain under `tools/review-evidence-console/`; other authorized tracked paths are the approved spec and plan, `docs/plans/2026-07-10-rec-dg01-review-evidence-console-current-authority.md`, REC rows in `docs/plans/current-program.md` and `docs/plans/current-tracker.md`, and a measured `scripts/repo-size-budget.json` update. `.superpowers/` remains ignored local brainstorming evidence, not slice scope.
 
 - [ ] **Step 7: Commit verification fixes, if any**
 
