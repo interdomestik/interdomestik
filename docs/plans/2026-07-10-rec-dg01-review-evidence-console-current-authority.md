@@ -86,11 +86,11 @@ Authorized tracked paths are limited to:
 
 - `tools/review-evidence-console/**`;
 - this gate, `docs/plans/current-program.md`, and `docs/plans/current-tracker.md`;
-- the approved console design spec and implementation plan;
+- the approved console design spec and `docs/superpowers/specs/2026-07-09-review-evidence-console-design/**`;
+- the approved implementation plan and `docs/superpowers/plans/2026-07-09-review-evidence-console/**`;
 - `scripts/repo-size-budget.json` only for measured slice-owned inventory drift.
-
-`.superpowers/` is preserved as ignored local brainstorming evidence and is not
-part of the slice, commit, PR, deployment, or scope claim.
+  `.superpowers/` is preserved as ignored local brainstorming evidence and is not
+  part of the slice, commit, PR, deployment, or scope claim.
 
 No receipt grants Interdomestik execution authority. It records local review
 evidence only and carries an explicit authority disclaimer.
