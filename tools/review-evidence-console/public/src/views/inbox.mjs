@@ -37,8 +37,11 @@ function inboxSection(...children) {
 
 function assignmentCard(assignment, onOpen, onImport) {
   const helpId = `import-help-${assignment.id}`;
+  const fileId = `receipt-file-${assignment.id}`;
   const file = element('input', {
     attributes: {
+      id: fileId,
+      class: 'receipt-picker__input',
       type: 'file',
       accept: 'application/json,.json',
       'aria-describedby': helpId,
@@ -68,7 +71,15 @@ function assignmentCard(assignment, onOpen, onImport) {
       [text(action)]
     ),
     element('div', { attributes: { class: 'import-receipt' } }, [
-      element('label', {}, [text('Importo vërtetimin lokal JSON'), file]),
+      element('label', { attributes: { class: 'receipt-picker', for: fileId } }, [
+        element('span', { attributes: { class: 'receipt-picker__label' } }, [
+          text('Importo vërtetimin lokal JSON'),
+        ]),
+        element('span', { attributes: { class: 'receipt-picker__button' } }, [
+          text('Zgjidh vërtetimin JSON'),
+        ]),
+        file,
+      ]),
       element('p', { attributes: { id: helpId } }, [
         text('Lexohet në këtë pajisje; nuk ngarkohet kurrë'),
       ]),
@@ -79,7 +90,7 @@ function assignmentCard(assignment, onOpen, onImport) {
 function label(copy, className, raw) {
   return element('span', { attributes: { class: className } }, [
     text(copy),
-    raw ? element('code', { attributes: { lang: 'en' } }, [text(raw)]) : null,
+    raw ? element('code', { attributes: { class: 'audit-code', lang: 'en' } }, [text(raw)]) : null,
   ]);
 }
 

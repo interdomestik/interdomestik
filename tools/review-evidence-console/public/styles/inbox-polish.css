@@ -1,0 +1,57 @@
+.audit-code {
+  display: inline-block;
+  margin-inline-start: 0.45em;
+  font-size: 0.78em;
+}
+
+.import-receipt {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.receipt-picker {
+  position: relative;
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+  color: var(--blue-900);
+}
+
+.receipt-picker__label {
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.receipt-picker__button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 0.9rem;
+  color: var(--blue-900);
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.receipt-picker__input {
+  position: absolute;
+  inset: auto 0 0;
+  width: 100%;
+  height: 44px;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.receipt-picker:has(.receipt-picker__input:focus-visible) .receipt-picker__button {
+  outline: 3px solid var(--teal-700);
+  outline-offset: 3px;
+}
+
+.import-receipt p {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
