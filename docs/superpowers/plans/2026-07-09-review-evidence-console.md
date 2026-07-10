@@ -34,6 +34,7 @@ tools/review-evidence-console/
 │   │   ├── data/fixture-repository.mjs# Fixture loading and cross-record validation
 │   │   ├── models/normalize-fixture.mjs# Reviewer, assignment, and packet normalization
 │   │   ├── models/normalize-review.mjs# Item, decision, and draft normalization
+│   │   ├── models/normalize-suggestion.mjs# Strict fixture suggestion contract
 │   │   ├── validation/input-guards.mjs# Repo-reference and sensitive-input validation
 │   │   ├── validation/item.mjs        # Descriptor-driven item validation
 │   │   ├── validation/packet.mjs      # Ordered packet validation and error grouping
@@ -42,14 +43,17 @@ tools/review-evidence-console/
 │   │   ├── state/receipt-builder.mjs  # Risk summary, SHA-256 ID, tamper-evident payload
 │   │   ├── state/receipt-store.mjs    # Receipt persistence, import, hash validation, deletion
 │   │   ├── state/review-session.mjs   # In-memory reviewer state and item transitions
+│   │   ├── state/review-suggestions.mjs# One-time suggestion initialization
 │   │   ├── components/dom.mjs         # Safe DOM helpers using textContent only
+│   │   ├── components/display-labels.mjs# Albanian labels for canonical values
 │   │   ├── components/packet-rail.mjs # Packet progress and item navigation
 │   │   ├── components/decision.mjs    # Explicit decision and evidence form controls
 │   │   ├── components/status.mjs      # Autosave, scope, validation, and risk notices
 │   │   ├── views/inbox.mjs            # Fixture assignment inbox
 │   │   ├── views/workspace.mjs        # Three-region guided review workspace
 │   │   ├── views/validation.mjs       # Grouped missing-field summary
-│   │   └── views/receipt.mjs          # Receipt, export, import, and correction entry
+│   │   ├── views/receipt.mjs          # Receipt, export, import, and correction entry
+│   │   └── app/receipt-confirmation.mjs# Localized clear-receipt confirmation
 │   └── styles/
 │       ├── tokens.css                 # Interdomestik-derived colors, type, radius, spacing
 │       ├── base.css                   # Reset, typography, focus, form primitives
@@ -68,7 +72,12 @@ tools/review-evidence-console/
     ├── draft-store.test.mjs
     ├── receipt-builder.test.mjs
     ├── receipt-store.test.mjs
-    └── review-session.test.mjs
+    ├── review-session.test.mjs
+    ├── albanian-copy.test.mjs
+    ├── display-labels.test.mjs
+    ├── workspace-albanian.test.mjs
+    ├── review-suggestion.test.mjs
+    └── review-suggestions.test.mjs
 ```
 
 Keep every JavaScript and CSS file below 150 lines. If a task would cross that limit, extract the named responsibility before adding more code.
@@ -95,6 +104,10 @@ Execute these files in order; task continuations retain the original step and co
 14. [Task 8 — validation and receipts](./2026-07-09-review-evidence-console/08-task-8-validation-and-receipts.md)
 15. [Task 9 — responsive accessibility](./2026-07-09-review-evidence-console/09-task-9-responsive-accessibility.md)
 16. [Task 10 — mandatory verification](./2026-07-09-review-evidence-console/10-task-10-mandatory-verification.md)
+17. [Task 11 — Albanian-first localization](./2026-07-09-review-evidence-console/11-task-11-albanian-first-localization.md)
+18. [Task 12A — suggestion fixture contract](./2026-07-09-review-evidence-console/12a-task-12-suggestion-fixtures.md)
+19. [Task 12B — suggestion session state](./2026-07-09-review-evidence-console/12b-task-12-suggestion-state.md)
+20. [Task 12C — suggestion UX and receipt proof](./2026-07-09-review-evidence-console/12c-task-12-suggestion-ux-proof.md)
 
 ## Exact Authorized Paths
 
