@@ -42,14 +42,16 @@ function responseValue(descriptor, value) {
   const { key, type } = descriptor;
   if (type === 'date') fail(`responses.${key} must use useSessionDateFor.`);
   if (ARRAY_TYPES.has(type)) {
-    if (!Array.isArray(value) || value.length === 0 || value.some(entry => typeof entry !== 'string')) {
+    if (!Array.isArray(value)) fail(`responses.${key} must be a non-empty string array.`);
+    const entries = Array.from(value);
+    if (entries.length === 0 || entries.some(entry => typeof entry !== 'string')) {
       fail(`responses.${key} must be a non-empty string array.`);
     }
-    if (new Set(value).size !== value.length) fail(`responses.${key} must be unique.`);
-    if (value.some(entry => !descriptor.options.includes(entry))) {
+    if (new Set(entries).size !== entries.length) fail(`responses.${key} must be unique.`);
+    if (entries.some(entry => !descriptor.options.includes(entry))) {
       fail(`responses.${key} contains an invalid option.`);
     }
-    return [...value];
+    return entries;
   }
   if (typeof value !== 'string' || value.trim() === '') {
     fail(`responses.${key} must be a non-empty string.`);
@@ -80,12 +82,14 @@ function normalizeResponses(value, descriptors) {
 }
 
 function normalizeDates(value, descriptors, responses) {
-  if (!Array.isArray(value) || value.some(key => typeof key !== 'string' || key === '')) {
+  if (!Array.isArray(value)) fail('useSessionDateFor must be a string array.');
+  const entries = Array.from(value);
+  if (entries.some(key => typeof key !== 'string' || key === '')) {
     fail('useSessionDateFor must be a string array.');
   }
-  if (new Set(value).size !== value.length) fail('useSessionDateFor must be unique.');
+  if (new Set(entries).size !== entries.length) fail('useSessionDateFor must be unique.');
   const byKey = new Map(descriptors.map(descriptor => [descriptor.key, descriptor]));
-  for (const key of value) {
+  for (const key of entries) {
     if (key === 'verifiedAt') continue;
     const descriptor = byKey.get(key);
     if (!descriptor || descriptor.type !== 'date') fail(`useSessionDateFor.${key} must be a date.`);
@@ -93,7 +97,7 @@ function normalizeDates(value, descriptors, responses) {
       fail(`useSessionDateFor.${key} is not applicable.`);
     }
   }
-  return [...value];
+  return entries;
 }
 
 export function normalizeSuggestion(value, { allowedRiskCategories, requiredResponses }) {

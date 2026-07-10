@@ -85,6 +85,11 @@ test('requires an exact response object with canonical scalar and array values',
   for (const responses of invalid) rejects(replace('responses', responses));
 });
 
+test('rejects sparse response and session-date arrays', () => {
+  rejects(replace('responses', { ...suggestion.responses, many: new Array(1) }));
+  rejects(replace('useSessionDateFor', new Array(1)));
+});
+
 test('keeps date descriptors session-owned with unique date keys', () => {
   rejects(replace('responses', { ...suggestion.responses, reviewedAt: '2026-07-10' }));
   rejects(replace('useSessionDateFor', ['reviewedAt', 'reviewedAt']));
