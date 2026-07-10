@@ -1,0 +1,46 @@
+{
+  "id": "M03A-MEDICAL-BOUNDARY",
+  "prompt": "Is medical or injury data excluded?",
+  "need": "The sensitive-data boundary must remain closed.",
+  "repoImpact": "Prevents scope expansion.",
+  "guidance": "Confirm excluded for this fixture.",
+  "baseFields": [
+    "decision",
+    "concreteAnswer",
+    "reason",
+    "evidenceRef",
+    "verifiedAt",
+    "riskCategory",
+    "severity",
+    "requestedChange"
+  ],
+  "allowedRiskCategories": ["privacy", "legal"],
+  "requiredResponses": [
+    {
+      "key": "medicalBoundary",
+      "labelSq": "Kufiri mjekësor",
+      "type": "select",
+      "required": true,
+      "maxLength": 8,
+      "options": ["excluded", "allowed"]
+    },
+    {
+      "key": "disabledScope",
+      "labelSq": "Deklarata e çaktivizimit",
+      "type": "textarea",
+      "required": true,
+      "maxLength": 240,
+      "options": [],
+      "requiredWhen": { "key": "medicalBoundary", "equals": "excluded" }
+    },
+    {
+      "key": "dpiaRef",
+      "labelSq": "Referenca e evidencës DPIA / Neni 9",
+      "type": "evidenceRef",
+      "required": true,
+      "maxLength": 160,
+      "options": [],
+      "requiredWhen": { "key": "medicalBoundary", "equals": "allowed" }
+    }
+  ]
+}

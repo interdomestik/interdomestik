@@ -1,36 +1,3 @@
-export default {
-  id: 'M03A-DOCUMENT-BOUNDARY',
-  prompt: 'Which metadata is allowed?',
-  need: 'Document boundaries remain explicit.',
-  repoImpact: 'Prevents source-document display.',
-  guidance: 'Use metadata labels only.',
-  baseFields: [
-    'decision',
-    'concreteAnswer',
-    'reason',
-    'evidenceRef',
-    'verifiedAt',
-    'riskCategory',
-    'severity',
-    'requestedChange',
-  ],
-  allowedRiskCategories: ['privacy', 'security'],
-  requiredResponses: [
-    {
-      key: 'allowedMetadata',
-      labelSq: 'Metadatat e lejuara',
-      type: 'checkbox_group',
-      required: true,
-      maxLength: 160,
-      options: ['state', 'category', 'updatedAt'],
-    },
-    {
-      key: 'forbiddenCategories',
-      labelSq: 'Kategoritë e ndaluara',
-      type: 'checkbox_group',
-      required: true,
-      maxLength: 24,
-      options: ['raw_document', 'payment', 'medical', 'legal_private'],
-    },
-  ],
-};
+export default JSON.parse(
+  '{\n  "id": "M03A-DOCUMENT-BOUNDARY",\n  "prompt": "Which metadata is allowed?",\n  "need": "Document boundaries remain explicit.",\n  "repoImpact": "Prevents source-document display.",\n  "guidance": "Use metadata labels only.",\n  "baseFields": [\n    "decision",\n    "concreteAnswer",\n    "reason",\n    "evidenceRef",\n    "verifiedAt",\n    "riskCategory",\n    "severity",\n    "requestedChange"\n  ],\n  "allowedRiskCategories": ["privacy", "security"],\n  "requiredResponses": [\n    {\n      "key": "allowedMetadata",\n      "labelSq": "Metadatat e lejuara",\n      "type": "checkbox_group",\n      "required": true,\n      "maxLength": 160,\n      "options": ["state", "category", "updatedAt"]\n    },\n    {\n      "key": "forbiddenCategories",\n      "labelSq": "Kategoritë e ndaluara",\n      "type": "checkbox_group",\n      "required": true,\n      "maxLength": 24,\n      "options": ["raw_document", "payment", "medical", "legal_private"]\n    }\n  ]\n}'
+);

@@ -1,6 +1,9 @@
-import { expect, test } from '../../../apps/web/node_modules/@playwright/test/index.mjs';
+import { createRequire } from 'node:module';
 
 import { startConsoleServer } from '../server/start.mjs';
+
+const requireFromWeb = createRequire(new URL('../../../apps/web/package.json', import.meta.url));
+const { expect, test } = requireFromWeb('@playwright/test');
 
 let origin;
 let server;
