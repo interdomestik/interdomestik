@@ -2,6 +2,8 @@ import { validateEvidenceRef, validateSafeText } from './input-guards.mjs';
 
 const DECISIONS = ['approve', 'change', 'block'];
 const SEVERITIES = ['low', 'medium', 'high'];
+const SCALAR_OPTIONS = ['option', 'radio', 'select'];
+const ARRAY_OPTIONS = ['multi_select', 'checkbox_group'];
 const TEXT_FIELDS = [
   ['concreteAnswer', 2000],
   ['reason', 2000],
@@ -9,7 +11,8 @@ const TEXT_FIELDS = [
 
 const fieldError = (key, code, message) => ({ key, code, message });
 const missing = key => fieldError(key, 'required', 'Complete this required field.');
-const isEmpty = value => value === undefined || value === null || value === '';
+const isEmpty = value =>
+  value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
 
 function isIsoDate(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -59,6 +62,14 @@ function validateDescriptor(descriptor, responses, errors) {
   const empty = isEmpty(value) || (Array.isArray(value) && value.length === 0);
   if (empty) {
     if (descriptorRequired(descriptor, responses)) errors.push(missing(descriptor.key));
+    return;
+  }
+  if (SCALAR_OPTIONS.includes(descriptor.type) && typeof value !== 'string') {
+    errors.push(fieldError(descriptor.key, 'invalid_type', 'Use a single option value.'));
+    return;
+  }
+  if (ARRAY_OPTIONS.includes(descriptor.type) && !Array.isArray(value)) {
+    errors.push(fieldError(descriptor.key, 'invalid_type', 'Use a list of option values.'));
     return;
   }
   if (descriptor.type === 'text' || descriptor.type === 'textarea') {

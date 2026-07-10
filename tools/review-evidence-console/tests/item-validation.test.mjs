@@ -68,3 +68,61 @@ test('rejects unsupported critical severity', () => {
   const result = validateItem(baseItem, completeDecision({ severity: 'critical' }));
   assert.equal(result.errors.some(error => error.key === 'severity'), true);
 });
+
+test('treats whitespace-only required base text as empty', () => {
+  for (const key of ['concreteAnswer', 'reason']) {
+    const result = validateItem(baseItem, completeDecision({ [key]: '   \n' }));
+    assert.equal(result.errors.find(error => error.key === key)?.code, 'required');
+  }
+  const change = validateItem(
+    baseItem,
+    completeDecision({ decision: 'change', requestedChange: '  ' })
+  );
+  assert.equal(change.errors.find(error => error.key === 'requestedChange')?.code, 'required');
+});
+
+test('treats whitespace-only required descriptor text as empty', () => {
+  const item = {
+    ...baseItem,
+    requiredResponses: [
+      { key: 'note', type: 'text', required: true, maxLength: 80, options: [] },
+      {
+        key: 'detail',
+        type: 'textarea',
+        requiredWhen: { key: 'control', equals: 'yes' },
+        maxLength: 80,
+        options: [],
+      },
+      { key: 'control', type: 'radio', required: true, options: ['yes', 'no'] },
+    ],
+  };
+  const result = validateItem(
+    item,
+    completeDecision({ responses: { note: ' ', detail: '\n ', control: 'yes' } })
+  );
+  assert.deepEqual(
+    result.errors.filter(error => ['note', 'detail'].includes(error.key)).map(error => error.code),
+    ['required', 'required']
+  );
+});
+
+test('enforces canonical descriptor response cardinality', () => {
+  for (const type of ['radio', 'select']) {
+    const item = {
+      ...baseItem,
+      requiredResponses: [{ key: 'choice', type, required: true, options: ['yes'] }],
+    };
+    const result = validateItem(item, completeDecision({ responses: { choice: ['yes'] } }));
+    assert.equal(result.errors.find(error => error.key === 'choice')?.code, 'invalid_type');
+  }
+  for (const type of ['multi_select', 'checkbox_group']) {
+    const item = {
+      ...baseItem,
+      requiredResponses: [{ key: 'choices', type, required: true, options: ['yes'] }],
+    };
+    const wrongType = validateItem(item, completeDecision({ responses: { choices: 'yes' } }));
+    const wrongOption = validateItem(item, completeDecision({ responses: { choices: ['no'] } }));
+    assert.equal(wrongType.errors.find(error => error.key === 'choices')?.code, 'invalid_type');
+    assert.equal(wrongOption.errors.find(error => error.key === 'choices')?.code, 'invalid_option');
+  }
+});
