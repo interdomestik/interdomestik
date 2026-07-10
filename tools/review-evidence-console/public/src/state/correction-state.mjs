@@ -34,7 +34,8 @@ export async function prepareCorrection(bundle, state, previousReceipt, metadata
   itemFor(metadata.itemId);
   if (
     ![metadata.reason, metadata.impact].every(
-      value => validateSafeText(value, { maxLength: 1000 }).ok
+      value =>
+        typeof value === 'string' && value.trim() && validateSafeText(value, { maxLength: 1000 }).ok
     )
   ) {
     throw new TypeError('Correction item, reason, and impact are required.');

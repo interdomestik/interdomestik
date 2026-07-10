@@ -1,6 +1,7 @@
 import { element, text } from '../components/dom.mjs';
 
 function controlId(itemId, key) {
+  if (key === 'safeEvidenceConfirmed') return 'safe-evidence-confirmed';
   if (key === 'decision') return `decision-${itemId}-approve`;
   if (
     [
@@ -53,18 +54,25 @@ export function renderValidation({
       ),
       error ? element('p', { attributes: { role: 'alert' } }, [text(error.message)]) : null,
       validation.valid
-        ? element(
-            'button',
-            {
-              attributes: {
-                type: 'button',
-                class: 'primary-action',
-                'aria-label': submitting ? 'Submitting receipt' : 'Submit review',
+        ? (() => {
+            const button = element(
+              'button',
+              {
+                attributes: {
+                  type: 'button',
+                  class: 'primary-action',
+                  'aria-label': submitting ? 'Submitting receipt' : 'Submit review',
+                  ...(submitting
+                    ? { disabled: 'disabled', 'aria-disabled': 'true', 'aria-busy': 'true' }
+                    : {}),
+                },
+                on: { click: () => !submitting && onSubmit?.() },
               },
-              on: { click: () => !submitting && onSubmit?.() },
-            },
-            [text(submitting ? 'Submitting…' : 'Submit review')]
-          )
+              [text(submitting ? 'Submitting…' : 'Submit review')]
+            );
+            button.disabled = submitting;
+            return button;
+          })()
         : null,
     ]
   );

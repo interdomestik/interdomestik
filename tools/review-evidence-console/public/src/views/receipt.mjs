@@ -13,10 +13,13 @@ function itemSection(itemId, decision, responses) {
       row('Decision', decision.decision),
       row('Severity', decision.severity),
       row('Risk category', decision.riskCategory),
-      ...['concreteAnswer', 'reason', 'citation', 'note']
+      ...['concreteAnswer', 'reason', 'evidenceRef', 'verifiedAt', 'requestedChange']
         .filter(key => decision[key])
         .map(key => row(key, decision[key])),
-      row('Structured data', JSON.stringify(responses ?? {})),
+      element('h2', {}, [text('Structured responses')]),
+      ...Object.entries(responses ?? {}).map(([key, value]) =>
+        row(key, Array.isArray(value) ? value.join(', ') : value)
+      ),
     ]
   );
 }
@@ -30,8 +33,12 @@ export function renderReceipt({ receipt, importNotice, onExport, onCorrect, onCl
         text('Review receipt'),
       ]),
       row('Receipt ID', receipt.receiptId),
+      row('Packet', `${receipt.packetId} · ${receipt.packetVersion}`),
       element('p', {}, [text(`Version ${receipt.receiptVersion}`)]),
       receipt.previousReceiptId ? row('Previous receipt', receipt.previousReceiptId) : null,
+      receipt.correctionItemId ? row('Correction item', receipt.correctionItemId) : null,
+      receipt.correctionReason ? row('Correction reason', receipt.correctionReason) : null,
+      receipt.correctionImpact ? row('Correction impact', receipt.correctionImpact) : null,
       row('Reviewer', `${receipt.reviewerDisplayName} · ${receipt.reviewerRole}`),
       row('Submitted', receipt.submittedAt),
       row(

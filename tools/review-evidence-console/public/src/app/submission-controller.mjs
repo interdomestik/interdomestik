@@ -1,4 +1,5 @@
 import { buildReceipt as defaultBuildReceipt } from '../state/receipt-builder.mjs';
+import { validatePacket } from '../validation/packet.mjs';
 
 function receiptInput(bundle, state, authorityDisclaimer) {
   const decisions = {};
@@ -44,7 +45,19 @@ export function createSubmissionController({
   let error = null;
   async function submit(state, safeEvidenceConfirmed) {
     if (submitting) return { ok: false, code: 'submitting' };
-    if (safeEvidenceConfirmed !== true) return { ok: false, code: 'unsafe' };
+    const validation = validatePacket(
+      bundle.packet,
+      state.decisions,
+      safeEvidenceConfirmed === true
+    );
+    if (!validation.valid) {
+      return {
+        ok: false,
+        code: 'validation_failed',
+        message: 'Complete every required review field.',
+        validation,
+      };
+    }
     submitting = true;
     error = null;
     onStatus({ submitting, error });

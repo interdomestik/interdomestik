@@ -59,7 +59,7 @@ async function loadInbox(token) {
     assignments: rows.value,
     onOpen: openAssignment,
     onImport: async (assignment, file) => {
-      const result = await reviewRoutes.importReceipt(assignment.id, file);
+      const result = await reviewRoutes.importReceipt(assignment.id, file, token);
       if (!result.ok) announce(result.message);
     },
   });

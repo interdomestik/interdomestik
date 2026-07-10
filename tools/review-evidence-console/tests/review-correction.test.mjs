@@ -88,3 +88,16 @@ test('snapshots the caller receipt before asynchronous verification', async () =
   assert.equal(snapshot.decisions.item_a.reason, completeDecision.reason);
   assert.equal(snapshot.decisions.item_a.responses.ownerRole, 'Privacy lead');
 });
+
+test('rejects blank correction reason and impact', async () => {
+  const receipt = await priorReceipt();
+  await assert.rejects(
+    () =>
+      createReviewSession(bundle).createCorrection(receipt, {
+        itemId: 'item_a',
+        reason: '   ',
+        impact: 'Impact.',
+      }),
+    /required/i
+  );
+});

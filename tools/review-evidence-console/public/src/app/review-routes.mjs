@@ -4,6 +4,7 @@ import { exportReceipt } from './receipt-io.mjs';
 import { importReceipt as importLocalReceipt } from './import-controller.mjs';
 import { startCorrection } from './correction-controller.mjs';
 import { loadValidationRoute } from './validation-route.mjs';
+import { awaitCurrent } from './current-async.mjs';
 import { renderJsonFallback } from './result-fallback.mjs';
 import { renderReceipt } from '../views/receipt.mjs';
 import { renderCorrection } from '../views/correction.mjs';
@@ -36,6 +37,7 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
     let correcting = false;
     let correctionError = '';
     const correction = { itemId: '', reason: '', impact: '' };
+    const current = () => isCurrent(token);
     const draw = () =>
       render(
         [
@@ -45,7 +47,12 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
               ? 'Read on this device; never uploaded'
               : '',
             onExport: async () => {
-              fallback = await exportReceipt(route.receiptId, receiptStore);
+              const completed = await awaitCurrent(
+                exportReceipt(route.receiptId, receiptStore),
+                current
+              );
+              if (!completed.ok) return;
+              fallback = completed.value;
               draw();
             },
             onClear: id => {
@@ -69,14 +76,24 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
                   correction[key] = value;
                 },
                 onSubmit: async () => {
-                  const bundle = await repository.loadAssignmentBundle(loaded.value.assignmentId);
-                  const result = bundle.ok
-                    ? await startCorrection({
-                        bundle: bundle.value,
-                        receipt: loaded.value,
-                        metadata: correction,
-                      })
-                    : bundle;
+                  const bundleDone = await awaitCurrent(
+                    repository.loadAssignmentBundle(loaded.value.assignmentId),
+                    current
+                  );
+                  if (!bundleDone.ok) return;
+                  const bundle = bundleDone.value;
+                  const correctionDone = bundle.ok
+                    ? await awaitCurrent(
+                        startCorrection({
+                          bundle: bundle.value,
+                          receipt: loaded.value,
+                          metadata: correction,
+                        }),
+                        current
+                      )
+                    : { ok: true, value: bundle };
+                  if (!correctionDone.ok) return;
+                  const result = correctionDone.value;
                   if (!result.ok) {
                     correctionError = result.message;
                     return draw();
@@ -91,7 +108,9 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
             : null,
           fallback?.text
             ? renderJsonFallback(fallback, async () => {
-                const copied = await fallback.copy();
+                const completed = await awaitCurrent(fallback.copy(), current);
+                if (!completed.ok) return;
+                const copied = completed.value;
                 fallback = { ...fallback, message: copied.message };
                 draw();
               })
@@ -102,8 +121,14 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
     draw();
   }
 
-  async function importReceipt(assignmentId, file) {
-    const result = await importLocalReceipt({ assignmentId, file, repository, receiptStore });
+  async function importReceipt(assignmentId, file, token) {
+    const current = () => token === undefined || isCurrent(token);
+    const completed = await awaitCurrent(
+      importLocalReceipt({ assignmentId, file, repository, receiptStore }),
+      current
+    );
+    if (!completed.ok) return completed;
+    const result = completed.value;
     if (result.ok) {
       imported.add(result.value.receiptId);
       navigate({ name: 'receipt', receiptId: result.value.receiptId });

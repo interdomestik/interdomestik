@@ -34,11 +34,13 @@ function inboxSection(...children) {
 }
 
 function assignmentCard(assignment, onOpen, onImport) {
+  const helpId = `import-help-${assignment.id}`;
   const file = element('input', {
     attributes: {
       type: 'file',
       accept: 'application/json,.json',
       'aria-label': `Import receipt for ${assignment.title}`,
+      'aria-describedby': helpId,
     },
     on: { change: event => event.target.files?.[0] && onImport(assignment, event.target.files[0]) },
   });
@@ -64,9 +66,9 @@ function assignmentCard(assignment, onOpen, onImport) {
       },
       [text(action)]
     ),
-    element('label', { attributes: { class: 'import-receipt' } }, [
-      text('Import local receipt JSON'),
-      file,
+    element('div', { attributes: { class: 'import-receipt' } }, [
+      element('label', {}, [text('Import local receipt JSON'), file]),
+      element('p', { attributes: { id: helpId } }, [text('Read on this device; never uploaded')]),
     ]),
   ]);
 }
