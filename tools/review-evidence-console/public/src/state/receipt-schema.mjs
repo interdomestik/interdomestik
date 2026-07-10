@@ -2,6 +2,14 @@ import { failure, isIsoDate, isRecord } from './storage-results.mjs';
 
 const ID = /^rec_[a-f0-9]{24}$/;
 const SEVERITIES = new Set(['none', 'low', 'medium', 'high']);
+const DECISION_SEVERITIES = new Set(['low', 'medium', 'high']);
+const DECISIONS = new Set(['approve', 'change', 'block']);
+const CORRECTION_FIELDS = [
+  'previousReceiptId',
+  'correctionItemId',
+  'correctionReason',
+  'correctionImpact',
+];
 const requiredStrings = [
   'packetId',
   'packetVersion',
@@ -18,7 +26,11 @@ export function validateReceipt(receipt, schemaVersion) {
   if (receipt.schemaVersion !== schemaVersion) {
     return failure('schema_mismatch', 'Receipt schema is incompatible.');
   }
-  if (!ID.test(receipt.receiptId) || !Number.isInteger(receipt.receiptVersion)) {
+  if (
+    !ID.test(receipt.receiptId) ||
+    !Number.isInteger(receipt.receiptVersion) ||
+    receipt.receiptVersion < 1
+  ) {
     return failure('invalid_data', 'Receipt identity is invalid.');
   }
   if (requiredStrings.some(field => typeof receipt[field] !== 'string' || !receipt[field])) {
@@ -38,15 +50,34 @@ export function validateReceipt(receipt, schemaVersion) {
   ) {
     return failure('invalid_data', 'Receipt risk summary is invalid.');
   }
+  for (const decision of Object.values(receipt.decisions)) {
+    if (
+      !isRecord(decision) ||
+      !DECISIONS.has(decision.decision) ||
+      !DECISION_SEVERITIES.has(decision.severity) ||
+      typeof decision.riskCategory !== 'string' ||
+      decision.riskCategory.trim() === ''
+    ) {
+      return failure('invalid_data', 'Receipt decision content is invalid.');
+    }
+  }
+  if (Object.values(receipt.structuredResponses).some(value => !isRecord(value))) {
+    return failure('invalid_data', 'Receipt structured responses are invalid.');
+  }
+  if (receipt.receiptVersion === 1 && CORRECTION_FIELDS.some(field => field in receipt)) {
+    return failure('invalid_data', 'Initial receipts cannot contain correction metadata.');
+  }
   if (receipt.receiptVersion > 1) {
-    const correctionFields = [
-      'previousReceiptId',
-      'correctionItemId',
-      'correctionReason',
-      'correctionImpact',
-    ];
-    if (correctionFields.some(field => typeof receipt[field] !== 'string' || !receipt[field])) {
+    if (
+      !ID.test(receipt.previousReceiptId) ||
+      CORRECTION_FIELDS.slice(1).some(
+        field => typeof receipt[field] !== 'string' || receipt[field].trim() === ''
+      )
+    ) {
       return failure('invalid_data', 'Correction metadata is incomplete.');
+    }
+    if (receipt.previousReceiptId === receipt.receiptId) {
+      return failure('invalid_data', 'Correction receipt cannot link to itself.');
     }
   }
   return { ok: true, value: receipt };

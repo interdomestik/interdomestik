@@ -32,9 +32,11 @@ export function createReceiptStore({
   }
 
   return {
-    save(receipt) {
+    async save(receipt) {
       const validation = validateReceipt(receipt, schemaVersion);
       if (!validation.ok) return validation;
+      const verification = await verifyReceipt(receipt);
+      if (!verification.ok) return verification;
       try {
         const key = keyFor(receipt.receiptId);
         const current = storage.getItem(key);

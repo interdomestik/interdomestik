@@ -69,6 +69,17 @@ test('links a complete correction without mutating the first receipt', async () 
 test('requires all correction linkage fields', async () => {
   const previousReceipt = await buildReceipt({ ...receiptInput, submittedAt });
   await assert.rejects(() => buildReceipt({ ...receiptInput, previousReceipt }), /correction/i);
+  await assert.rejects(
+    () =>
+      buildReceipt({
+        ...receiptInput,
+        previousReceipt,
+        correctionItemId: 'item_a',
+        correctionReason: '   ',
+        correctionImpact: 'Improves auditability.',
+      }),
+    /correction/i
+  );
 });
 
 test('deep-freezes the complete returned receipt', async () => {
@@ -85,4 +96,31 @@ test('detects canonical hash corruption', async () => {
   const corrupted = structuredClone(receipt);
   corrupted.structuredResponses.item_a.ownerRole = 'Changed';
   assert.equal((await verifyReceipt(corrupted)).code, 'hash_mismatch');
+});
+
+test('rejects invalid previous receipt identity, version, schema, semantics, and self-linkage', async () => {
+  const previousReceipt = await buildReceipt({ ...receiptInput, submittedAt });
+  const invalidReceipts = [
+    { ...previousReceipt, receiptVersion: 0 },
+    { ...previousReceipt, receiptId: 'bad' },
+    { ...previousReceipt, schemaVersion: 2 },
+    {
+      ...previousReceipt,
+      decisions: { item_a: { decision: 'maybe', severity: 'high', riskCategory: 'privacy' } },
+    },
+    { ...previousReceipt, previousReceiptId: previousReceipt.receiptId },
+  ];
+  for (const previous of invalidReceipts) {
+    await assert.rejects(
+      () =>
+        buildReceipt({
+          ...receiptInput,
+          previousReceipt: previous,
+          correctionItemId: 'item_a',
+          correctionReason: 'Clarify evidence boundary.',
+          correctionImpact: 'Improves auditability.',
+        }),
+      /previous receipt/i
+    );
+  }
 });

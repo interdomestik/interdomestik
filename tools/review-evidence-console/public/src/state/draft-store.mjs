@@ -36,8 +36,12 @@ export function composeDraftKey(parts) {
 }
 
 export function createDraftStore({ storage = globalThis.localStorage, schemaVersion }) {
+  const invalidKey = key =>
+    parseKey(key) ? null : failure('invalid_data', 'Draft key is not owned by this store.');
   return {
     load(key) {
+      const keyFailure = invalidKey(key);
+      if (keyFailure) return keyFailure;
       try {
         const text = storage.getItem(key);
         if (text === null) return failure('not_found', 'Draft was not found.');
@@ -59,6 +63,8 @@ export function createDraftStore({ storage = globalThis.localStorage, schemaVers
       }
     },
     save(key, draft, expectedUpdatedAt) {
+      const keyFailure = invalidKey(key);
+      if (keyFailure) return keyFailure;
       if (!validateDraft(key, draft, schemaVersion)) {
         return failure('invalid_data', 'Draft is incomplete or inconsistent.');
       }
@@ -82,6 +88,8 @@ export function createDraftStore({ storage = globalThis.localStorage, schemaVers
       }
     },
     remove(key) {
+      const keyFailure = invalidKey(key);
+      if (keyFailure) return keyFailure;
       try {
         storage.removeItem(key);
         return { ok: true, value: undefined };
@@ -90,6 +98,8 @@ export function createDraftStore({ storage = globalThis.localStorage, schemaVers
       }
     },
     exportRecovery(key) {
+      const keyFailure = invalidKey(key);
+      if (keyFailure) return keyFailure;
       try {
         const value = storage.getItem(key);
         return value === null ? failure('not_found', 'Draft was not found.') : { ok: true, value };

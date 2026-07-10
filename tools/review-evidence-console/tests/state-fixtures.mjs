@@ -1,3 +1,5 @@
+import { canonicalStringify } from '../public/src/state/canonical-json.mjs';
+
 export function makeStorage() {
   const values = new Map();
   return {
@@ -28,3 +30,13 @@ export const receiptInput = {
 };
 
 export const submittedAt = '2026-07-09T12:00:00.000Z';
+
+export async function withReceiptId(receipt) {
+  const { receiptId: ignored, ...payload } = receipt;
+  const bytes = new TextEncoder().encode(canonicalStringify(payload));
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  const hex = [...new Uint8Array(digest)]
+    .map(value => value.toString(16).padStart(2, '0'))
+    .join('');
+  return { ...receipt, receiptId: `rec_${hex.slice(0, 24)}` };
+}

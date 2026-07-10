@@ -101,3 +101,27 @@ test('maps quota and browser storage exceptions to stable errors', () => {
     'unavailable'
   );
 });
+
+test('rejects non-owned keys before any storage access or mutation', () => {
+  let accesses = 0;
+  const storage = {
+    getItem: () => {
+      accesses += 1;
+      return '{}';
+    },
+    setItem: () => {
+      accesses += 1;
+    },
+    removeItem: () => {
+      accesses += 1;
+    },
+  };
+  const store = createDraftStore({ storage, schemaVersion: 1 });
+  for (const invalidKey of ['other', 'review-console:v1:draft:../bad:r:1', `${key}:extra`]) {
+    assert.equal(store.load(invalidKey).code, 'invalid_data');
+    assert.equal(store.save(invalidKey, draft, null).code, 'invalid_data');
+    assert.equal(store.remove(invalidKey).code, 'invalid_data');
+    assert.equal(store.exportRecovery(invalidKey).code, 'invalid_data');
+  }
+  assert.equal(accesses, 0);
+});

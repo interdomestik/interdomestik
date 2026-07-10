@@ -37,8 +37,15 @@ export async function buildReceipt(input, { now = () => new Date().toISOString()
   const submittedAt = input.submittedAt ?? now();
   const previous = input.previousReceipt;
   if (previous) {
+    const previousValidation = validateReceipt(previous, input.schemaVersion);
+    const previousVerification = previousValidation.ok
+      ? await verifyReceipt(previous)
+      : previousValidation;
+    if (!previousVerification.ok) {
+      throw new TypeError('Previous receipt identity, version, schema, or content is invalid.');
+    }
     const fields = ['correctionItemId', 'correctionReason', 'correctionImpact'];
-    if (fields.some(field => typeof input[field] !== 'string' || !input[field])) {
+    if (fields.some(field => typeof input[field] !== 'string' || input[field].trim() === '')) {
       throw new TypeError('Correction item, reason, and impact are required.');
     }
   }
