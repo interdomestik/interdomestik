@@ -1,8 +1,21 @@
 import { canonicalStringify } from './canonical-json.mjs';
 import { validateReceipt } from './receipt-schema.mjs';
+import { aggregateRisk } from './risk-summary.mjs';
 import { failure } from './storage-results.mjs';
 
-const RANK = { none: 0, low: 1, medium: 2, high: 3 };
+export { aggregateRisk } from './risk-summary.mjs';
+
+const LINEAGE_FIELDS = [
+  'schemaVersion',
+  'packetId',
+  'packetVersion',
+  'assignmentId',
+  'reviewerFixtureId',
+  'reviewerRole',
+  'packetRole',
+  'reviewerDisplayName',
+  'authorityDisclaimer',
+];
 
 function deepFreeze(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -19,20 +32,6 @@ async function receiptIdFor(payload) {
   return `rec_${hex.slice(0, 24)}`;
 }
 
-export function aggregateRisk(decisions) {
-  let severity = 'none';
-  const categories = new Set();
-  for (const decision of decisions) {
-    const candidate = decision?.severity;
-    if (candidate in RANK && RANK[candidate] > RANK[severity]) severity = candidate;
-  }
-  for (const decision of decisions) {
-    if (decision?.severity === severity && decision.riskCategory)
-      categories.add(decision.riskCategory);
-  }
-  return { severity, categories: [...categories].sort() };
-}
-
 export async function buildReceipt(input, { now = () => new Date().toISOString() } = {}) {
   const submittedAt = input.submittedAt ?? now();
   const previous = input.previousReceipt;
@@ -41,7 +40,8 @@ export async function buildReceipt(input, { now = () => new Date().toISOString()
     const previousVerification = previousValidation.ok
       ? await verifyReceipt(previous)
       : previousValidation;
-    if (!previousVerification.ok) {
+    const lineageMatches = LINEAGE_FIELDS.every(field => previous[field] === input[field]);
+    if (!previousVerification.ok || !lineageMatches) {
       throw new TypeError('Previous receipt identity, version, schema, or content is invalid.');
     }
     const fields = ['correctionItemId', 'correctionReason', 'correctionImpact'];

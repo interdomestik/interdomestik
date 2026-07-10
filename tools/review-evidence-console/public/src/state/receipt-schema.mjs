@@ -1,3 +1,5 @@
+import { canonicalStringify } from './canonical-json.mjs';
+import { aggregateRisk } from './risk-summary.mjs';
 import { failure, isIsoDate, isRecord } from './storage-results.mjs';
 
 const ID = /^rec_[a-f0-9]{24}$/;
@@ -63,6 +65,10 @@ export function validateReceipt(receipt, schemaVersion) {
   }
   if (Object.values(receipt.structuredResponses).some(value => !isRecord(value))) {
     return failure('invalid_data', 'Receipt structured responses are invalid.');
+  }
+  const expectedRisk = aggregateRisk(Object.values(receipt.decisions));
+  if (canonicalStringify(receipt.riskSummary) !== canonicalStringify(expectedRisk)) {
+    return failure('invalid_data', 'Receipt risk summary does not match its decisions.');
   }
   if (receipt.receiptVersion === 1 && CORRECTION_FIELDS.some(field => field in receipt)) {
     return failure('invalid_data', 'Initial receipts cannot contain correction metadata.');
