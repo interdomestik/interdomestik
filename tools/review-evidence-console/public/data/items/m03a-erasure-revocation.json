@@ -38,5 +38,14 @@
       "optionLabelsSq": {},
       "requiredWhen": { "key": "renderingRule", "equals": "show_revoked_state" }
     }
-  ]
+  ],
+  "suggestedReview": {
+    "concreteAnswer": "Fshih metadata-t pas fshirjes ose revokimit.",
+    "reason": "Të dhënat e revokuara nuk duhet të mbeten të dukshme.",
+    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "riskCategory": "privacy",
+    "severity": "high",
+    "responses": { "renderingRule": "hide_metadata" },
+    "useSessionDateFor": ["verifiedAt"]
+  }
 }

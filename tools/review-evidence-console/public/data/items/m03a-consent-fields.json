@@ -47,5 +47,18 @@
       "options": [],
       "optionLabelsSq": {}
     }
-  ]
+  ],
+  "suggestedReview": {
+    "concreteAnswer": "Prano vetëm metadata-t minimale të pëlqimit si kërkesë shqyrtimi.",
+    "reason": "Fushat e pranuara nuk japin autoritet për schema ose runtime.",
+    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "riskCategory": "compliance",
+    "severity": "high",
+    "responses": {
+      "acceptedMinimumFields": ["consentStatus", "recordedAt", "consentVersion"],
+      "additions": "Asnjë shtesë pa autoritet të ri.",
+      "excludedFields": "Dokumente burimore dhe të dhëna mjekësore, ligjore private ose pagese."
+    },
+    "useSessionDateFor": ["verifiedAt"]
+  }
 }

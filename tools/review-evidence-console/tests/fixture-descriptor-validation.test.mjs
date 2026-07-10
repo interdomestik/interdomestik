@@ -19,7 +19,14 @@ function packetWith(requiredResponses) {
   return {
     ...partA,
     itemIds: [id],
-    items: [{ ...partA.items[0], id, requiredResponses }],
+    items: [
+      {
+        ...partA.items[0],
+        id,
+        requiredResponses,
+        suggestedReview: { ...partA.items[0].suggestedReview, responses: {} },
+      },
+    ],
   };
 }
 

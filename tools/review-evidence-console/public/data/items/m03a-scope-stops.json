@@ -47,5 +47,18 @@
         "scope_expansion": "Zgjerim i fushës"
       }
     }
-  ]
+  ],
+  "suggestedReview": {
+    "concreteAnswer": "Kufizo planifikimin te metadata jo-mjekësore për automjet dhe pronë.",
+    "reason": "Runtime, të dhënat sensitive dhe zgjerimi i autoritetit mbeten jashtë fixture-it.",
+    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "riskCategory": "scope",
+    "severity": "high",
+    "responses": {
+      "allowedScope": "Vetëm planifikim i shfaqjes së metadata-ve për automjet dhe pronë, pa runtime.",
+      "excludedScope": "Të dhëna mjekësore ose lëndimesh, dokumente burimore, auth, schema, RLS dhe shkrues runtime.",
+      "stopCondition": "missing_authority"
+    },
+    "useSessionDateFor": ["verifiedAt"]
+  }
 }

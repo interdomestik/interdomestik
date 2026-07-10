@@ -43,5 +43,18 @@
       "options": [],
       "optionLabelsSq": {}
     }
-  ]
+  ],
+  "suggestedReview": {
+    "concreteAnswer": "Rikontrollo qasjen, ruajtjen dhe zbulimin para çdo promovimi runtime.",
+    "reason": "Gate-i aktual e shënon provën e konsoliduar të kërcënimeve si të munguar.",
+    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "riskCategory": "security",
+    "severity": "high",
+    "responses": {
+      "threatAreas": ["access", "retention", "disclosure"],
+      "recheckOutcome": "stop",
+      "threatRecheckEvidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md"
+    },
+    "useSessionDateFor": ["verifiedAt"]
+  }
 }

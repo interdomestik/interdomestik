@@ -28,6 +28,15 @@ const item = (id, guidance = 'Use fixture guidance as editable prose.') => ({
       optionLabelsSq: {},
     },
   ],
+  suggestedReview: {
+    concreteAnswer: 'Keep the fixture boundary.',
+    reason: 'The fixture authority supports this boundary.',
+    evidenceRef: 'docs/fixture.md',
+    riskCategory: 'privacy',
+    severity: 'high',
+    responses: {},
+    useSessionDateFor: [],
+  },
 });
 
 export const bundle = {

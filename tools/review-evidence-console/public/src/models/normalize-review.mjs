@@ -1,4 +1,5 @@
 import { normalizeDescriptors } from './normalize-descriptor.mjs';
+import { normalizeSuggestion } from './normalize-suggestion.mjs';
 
 const BASE_FIELDS = [
   'decision',
@@ -36,11 +37,16 @@ export function normalizeItem(item) {
     if (!baseFields.includes(key)) throw new TypeError(`baseFields must include ${key}.`);
   }
   const descriptors = normalizeDescriptors(item.requiredResponses);
+  const allowedRiskCategories = stringList(item.allowedRiskCategories, 'allowedRiskCategories');
   return {
     ...item,
     baseFields: [...baseFields],
-    allowedRiskCategories: [...stringList(item.allowedRiskCategories, 'allowedRiskCategories')],
+    allowedRiskCategories: [...allowedRiskCategories],
     requiredResponses: descriptors,
+    suggestedReview: normalizeSuggestion(item.suggestedReview, {
+      allowedRiskCategories,
+      requiredResponses: descriptors,
+    }),
   };
 }
 

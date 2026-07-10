@@ -60,6 +60,15 @@ const item = {
       optionLabelsSq: {},
     },
   ],
+  suggestedReview: {
+    concreteAnswer: 'Keep the fixture boundary.',
+    reason: 'The fixture authority supports this boundary.',
+    evidenceRef: 'docs/fixture.md',
+    riskCategory: 'privacy',
+    severity: 'high',
+    responses: { ownerRole: 'Privacy owner' },
+    useSessionDateFor: [],
+  },
 };
 
 export const partA = {

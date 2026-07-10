@@ -11,12 +11,10 @@ import { normalizeDecision, normalizeDraft } from '../public/src/models/normaliz
 import { assignments, fakeLoader, partA, reviewer } from './validation-fixtures.mjs';
 
 test('filters assignments by reviewer fixture', async () => {
-  const result = await createFixtureRepository({ loadJson: fakeLoader }).listAssignments(
-    reviewer.id
-  );
+  const repository = createFixtureRepository({ loadJson: fakeLoader });
+  const result = await repository.listAssignments(reviewer.id);
   assert.deepEqual(result, { ok: true, value: assignments });
 });
-
 test('loads a validated reviewer, packet, and assignment bundle', async () => {
   const repository = createFixtureRepository({ loadJson: fakeLoader });
   assert.deepEqual(await repository.loadReviewerProfile(reviewer.id), {
@@ -28,7 +26,6 @@ test('loads a validated reviewer, packet, and assignment bundle', async () => {
   assert.equal(bundle.ok, true);
   assert.equal(bundle.value.packet.id, partA.id);
 });
-
 test('returns stable missing and role-mismatch errors', async () => {
   const repository = createFixtureRepository({ loadJson: fakeLoader });
   assert.deepEqual(await repository.loadPacket('missing'), {
@@ -47,7 +44,6 @@ test('returns stable missing and role-mismatch errors', async () => {
     }
   );
 });
-
 test('rejects a same-role packet whose ID disagrees with its assignment', async () => {
   const mismatch = async path =>
     path.endsWith('mob-03a-part-a.json') ? { ...partA, id: 'mob-03a-part-b' } : fakeLoader(path);
@@ -56,12 +52,21 @@ test('rejects a same-role packet whose ID disagrees with its assignment', async 
   );
   assert.equal(result.code, 'invalid_data');
 });
-
 test('converts a packet loader failure into invalid_data', async () => {
-  const brokenLoader = async () => {
-    throw new Error('unavailable fixture');
-  };
+  const brokenLoader = async () => Promise.reject(new Error('unavailable fixture'));
   assert.deepEqual(await createFixtureRepository({ loadJson: brokenLoader }).loadPacket(partA.id), {
+    ok: false,
+    code: 'invalid_data',
+    message: 'Mostra e paketës është e pavlefshme.',
+  });
+});
+test('returns invalid_data without falling back from an invalid suggestion', async () => {
+  const loader = async path =>
+    path.endsWith('mob-03a-part-a.json')
+      ? { ...partA, items: [{ ...partA.items[0], suggestedReview: undefined }, partA.items[1]] }
+      : fakeLoader(path);
+  const result = await createFixtureRepository({ loadJson: loader }).loadPacket(partA.id);
+  assert.deepEqual(result, {
     ok: false,
     code: 'invalid_data',
     message: 'Mostra e paketës është e pavlefshme.',
