@@ -56,3 +56,89 @@ test('loads complete fixture bundles under connect-src none without fetch or XHR
     networkCalls: { fetch: 0, xhr: 0 },
   });
 });
+
+const noteText = 'Sugjerime të paraplotësuara — verifikoji dhe ndryshoji para dërgimit.';
+const items = [
+  'M03A-PRIVACY-OWNER',
+  'M03A-MEDICAL-BOUNDARY',
+  'M03A-CONSENT-FIELDS',
+  'M03A-ACCESS-ROLES',
+];
+
+async function fillEmptyRequiredFields(page) {
+  const fields = page.locator('.decision-form input[required], .decision-form textarea[required]');
+  for (let index = 0; index < (await fields.count()); index += 1) {
+    const field = fields.nth(index);
+    const type = await field.getAttribute('type');
+    if (['radio', 'checkbox'].includes(type) || (await field.inputValue())) continue;
+    const id = await field.getAttribute('id');
+    const value =
+      type === 'date'
+        ? '2026-07-10'
+        : id?.toLowerCase().includes('ref')
+          ? 'docs/final-review.md'
+          : 'Vlerë finale e shqyrtuesit';
+    await field.fill(value);
+  }
+}
+
+async function openItem(page, itemId) {
+  if (decodeURIComponent(new URL(page.url()).hash).endsWith(`/${itemId}`)) return;
+  await page.locator(`[data-item-id="${itemId}"]`).click();
+  await expect(page.locator('.save-state')).toHaveText('Drafti u rikthye');
+}
+
+async function proveSuggestionFlow(page, viewport) {
+  await page.setViewportSize(viewport);
+  await page.goto(origin);
+  await page.getByRole('button', { name: 'Vazhdo paketën' }).click();
+  await expect(page.getByRole('note')).toHaveText(noteText);
+  await expect(page.getByRole('note')).toHaveCount(1);
+  expect(await page.locator('.decision-form input[type="radio"]:checked').count()).toBe(0);
+  await expect(page.locator('#safe-evidence-confirmed')).not.toBeChecked();
+
+  await page.locator('#concreteAnswer').fill('Përgjigjja finale e redaktuar');
+  await page.locator('#reason').fill('');
+  await openItem(page, items[1]);
+  await page.locator('#response-medicalBoundary').selectOption('allowed');
+  await openItem(page, items[0]);
+  await page.waitForTimeout(500);
+  await page.reload();
+  await expect(page.locator('#concreteAnswer')).toHaveValue('Përgjigjja finale e redaktuar');
+  await expect(page.locator('#reason')).toHaveValue('');
+  expect(await page.locator('.decision-form input[type="radio"]:checked').count()).toBe(0);
+  await expect(page.locator('#safe-evidence-confirmed')).not.toBeChecked();
+  await page.locator('#reason').fill('Arsyeja finale e shqyrtuesit');
+
+  for (const itemId of items) {
+    await openItem(page, itemId);
+    await page.locator('.decision-form input[type="radio"][value="approve"]').check();
+    await fillEmptyRequiredFields(page);
+  }
+  await openItem(page, items[1]);
+  await expect(page.locator('#response-medicalBoundary')).toHaveValue('allowed');
+  await page.locator('#safe-evidence-confirmed').check();
+  await page.getByRole('button', { name: 'Shqyrto dhe dërgo' }).click();
+  await page.getByRole('button', { name: 'Dërgo shqyrtimin' }).click();
+  await expect(page.getByRole('heading', { name: 'Vërtetimi i shqyrtimit' })).toBeVisible();
+  const receipt = await page.evaluate(() => {
+    const key = Object.keys(localStorage).find(value =>
+      value.startsWith('review-console:v1:receipt:')
+    );
+    return JSON.parse(localStorage.getItem(key));
+  });
+  expect(receipt.decisions[items[0]].concreteAnswer).toBe('Përgjigjja finale e redaktuar');
+  expect(receipt.decisions[items[0]].reason).toBe('Arsyeja finale e shqyrtuesit');
+  expect(receipt.structuredResponses[items[1]].medicalBoundary).toBe('allowed');
+  for (const key of ['suggestionVersion', 'suggestedReview', 'useSessionDateFor']) {
+    expect(receipt).not.toHaveProperty(key);
+  }
+}
+
+test('desktop reviewer suggestions stay editable and canonical', async ({ page }) => {
+  await proveSuggestionFlow(page, { width: 1280, height: 900 });
+});
+
+test('mobile reviewer suggestions stay editable and canonical', async ({ page }) => {
+  await proveSuggestionFlow(page, { width: 390, height: 844 });
+});

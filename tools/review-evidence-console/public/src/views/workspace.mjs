@@ -48,6 +48,9 @@ export function renderWorkspace({
           ),
         ]
       ),
+      element('p', { attributes: { class: 'reviewer-suggestion-note', role: 'note' } }, [
+        text('Sugjerime të paraplotësuara — verifikoji dhe ndryshoji para dërgimit.'),
+      ]),
       renderDecision({
         item,
         decision,

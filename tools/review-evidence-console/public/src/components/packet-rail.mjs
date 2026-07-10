@@ -20,7 +20,7 @@ export function renderPacketRail({ packet, state, onSelectItem = () => {} }) {
       element('p', { attributes: { class: 'packet-title' } }, [text(packet.title)]),
       element('h2', {}, [text('Përparimi i paketës')]),
       element('p', { attributes: { class: 'scope-copy' } }, [text(packet.scope)]),
-      element('p', { attributes: { class: 'scope-guard', role: 'note' } }, [
+      element('p', { attributes: { class: 'scope-guard' } }, [
         text('Të dhënat mjekësore nuk lejohen. Ndal nëse shfaqen të dhëna sensitive.'),
       ]),
       element(

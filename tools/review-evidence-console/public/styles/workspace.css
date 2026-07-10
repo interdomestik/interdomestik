@@ -4,17 +4,14 @@
   gap: 1.25rem;
   align-items: start;
 }
-.packet-rail,
-.decision-canvas,
-.evidence-rail {
+:is(.packet-rail, .decision-canvas, .evidence-rail) {
   padding: 1.25rem;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
-.packet-rail,
-.evidence-rail {
+:is(.packet-rail, .evidence-rail) {
   position: sticky;
   top: 1rem;
 }
@@ -33,8 +30,7 @@
   border: 1px solid var(--line);
   border-radius: 10px;
 }
-.packet-step strong,
-.packet-step span {
+.packet-step :is(strong, span) {
   display: block;
 }
 .packet-step span {
@@ -63,8 +59,13 @@
   background: hsl(175 45% 95%);
   border-left: 4px solid var(--teal-700);
 }
-.decision-form,
-.evidence-rail {
+.reviewer-suggestion-note {
+  padding: 0.8rem 1rem;
+  color: var(--blue-900);
+  background: var(--teal-100);
+  border-left: 4px solid var(--teal-700);
+}
+:is(.decision-form, .evidence-rail) {
   display: grid;
   gap: 1rem;
 }
@@ -88,8 +89,7 @@
   display: grid;
   gap: 0.35rem;
 }
-.form-field label,
-.decision-form legend {
+:is(.form-field label, .decision-form legend) {
   color: var(--blue-900);
   font-weight: 700;
 }
@@ -137,7 +137,6 @@
     grid-column: 2;
   }
 }
-
 @media (max-width: 680px) {
   .workspace {
     grid-template-columns: 1fr;
