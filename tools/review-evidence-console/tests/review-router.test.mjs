@@ -40,3 +40,23 @@ test('falls back to inbox for malformed, unknown, or injectable routes', () => {
   }
   assert.equal(formatRoute({ name: 'receipt', receiptId: '../admin' }), '#/');
 });
+
+test('keeps workspace route formatting and parsing unambiguous', () => {
+  const route = { name: 'workspace', assignmentId: 'assign_a', itemId: 'item_a' };
+  assert.deepEqual(parseRoute(formatRoute(route)), route);
+  assert.equal(formatRoute({ ...route, itemId: 'validate' }), '#/');
+});
+
+test('rejects decoded, encoded, and formatted dot segments', () => {
+  for (const hash of [
+    '#/receipt/.',
+    '#/receipt/%2E%2E',
+    '#/review/./item_a',
+    '#/review/assign_a/%2e%2e',
+  ]) {
+    assert.deepEqual(parseRoute(hash), { name: 'inbox' });
+  }
+  assert.equal(formatRoute({ name: 'receipt', receiptId: '.' }), '#/');
+  assert.equal(formatRoute({ name: 'validation', assignmentId: '..' }), '#/');
+  assert.equal(formatRoute({ name: 'workspace', assignmentId: 'a', itemId: '..' }), '#/');
+});

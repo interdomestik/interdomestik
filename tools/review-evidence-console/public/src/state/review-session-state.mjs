@@ -54,7 +54,13 @@ export function initialState(bundle, draft) {
     throw new TypeError('Assignment, reviewer, and packet identities must match.');
   }
   const itemIds = packet.itemIds ?? [];
-  if (!itemIds.length || itemIds.some((id, index) => packet.items?.[index]?.id !== id)) {
+  const objectIds = packet.items?.map(item => item?.id) ?? [];
+  if (
+    !itemIds.length ||
+    new Set(itemIds).size !== itemIds.length ||
+    new Set(objectIds).size !== objectIds.length ||
+    itemIds.some((id, index) => objectIds[index] !== id)
+  ) {
     throw new TypeError('Packet item identities must match.');
   }
   const source = draft?.itemDecisions ?? draft?.decisions ?? {};

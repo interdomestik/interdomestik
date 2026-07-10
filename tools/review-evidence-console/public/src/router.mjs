@@ -5,7 +5,7 @@ function segments(hash) {
   if (typeof hash !== 'string' || !hash.startsWith('#/')) return null;
   try {
     const values = hash.slice(2).split('/').filter(Boolean).map(decodeURIComponent);
-    return values.every(value => SEGMENT.test(value)) ? values : null;
+    return values.every(safe) ? values : null;
   } catch {
     return null;
   }
@@ -27,7 +27,7 @@ export function parseRoute(hash) {
 }
 
 function safe(value) {
-  return typeof value === 'string' && SEGMENT.test(value);
+  return typeof value === 'string' && value !== '.' && value !== '..' && SEGMENT.test(value);
 }
 
 export function formatRoute(route) {
@@ -36,7 +36,12 @@ export function formatRoute(route) {
   if (route?.name === 'validation' && safe(route.assignmentId)) {
     return `#/review/${route.assignmentId}/validate`;
   }
-  if (route?.name === 'workspace' && safe(route.assignmentId) && safe(route.itemId)) {
+  if (
+    route?.name === 'workspace' &&
+    safe(route.assignmentId) &&
+    safe(route.itemId) &&
+    route.itemId !== 'validate'
+  ) {
     return `#/review/${route.assignmentId}/${route.itemId}`;
   }
   return '#/';
