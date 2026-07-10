@@ -10,6 +10,8 @@
 4. [Local server, security, and privacy](./2026-07-09-review-evidence-console-design/04-server-security-and-privacy.md)
 5. [Error states, accessibility, and verification](./2026-07-09-review-evidence-console-design/05-errors-accessibility-and-verification.md)
 6. [Acceptance criteria and implementation decision](./2026-07-09-review-evidence-console-design/06-acceptance-and-implementation.md)
+7. [Albanian-first language contract](./2026-07-09-review-evidence-console-design/07-albanian-first-language-contract.md)
+8. [Editable reviewer suggestions](./2026-07-09-review-evidence-console-design/08-editable-reviewer-suggestions.md)
 
 Read the appendices in order. Together with this index they are the complete approved design.
 
