@@ -34,7 +34,16 @@ const item = {
   need: 'Fixture ownership is recorded.',
   repoImpact: 'Keeps the review boundary repo-safe.',
   guidance: 'Use a fixture role only.',
-  baseFields: ['decision', 'concreteAnswer', 'reason', 'evidenceRef', 'verifiedAt'],
+  baseFields: [
+    'decision',
+    'concreteAnswer',
+    'reason',
+    'evidenceRef',
+    'verifiedAt',
+    'riskCategory',
+    'severity',
+    'requestedChange',
+  ],
   allowedRiskCategories: ['privacy', 'legal'],
   requiredResponses: [
     {

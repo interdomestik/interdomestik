@@ -1,6 +1,14 @@
 import assignments from '../../data/assignments.json' with { type: 'json' };
-import partA from '../../data/packets/mob-03a-part-a.json' with { type: 'json' };
-import partB from '../../data/packets/mob-03a-part-b.json' with { type: 'json' };
+import accessRoles from '../../data/items/m03a-access-roles.json' with { type: 'json' };
+import consentFields from '../../data/items/m03a-consent-fields.json' with { type: 'json' };
+import documentBoundary from '../../data/items/m03a-document-boundary.json' with { type: 'json' };
+import erasureRevocation from '../../data/items/m03a-erasure-revocation.json' with { type: 'json' };
+import medicalBoundary from '../../data/items/m03a-medical-boundary.json' with { type: 'json' };
+import privacyOwner from '../../data/items/m03a-privacy-owner.json' with { type: 'json' };
+import scopeStops from '../../data/items/m03a-scope-stops.json' with { type: 'json' };
+import threatRecheck from '../../data/items/m03a-threat-recheck.json' with { type: 'json' };
+import partAMetadata from '../../data/packets/mob-03a-part-a.json' with { type: 'json' };
+import partBMetadata from '../../data/packets/mob-03a-part-b.json' with { type: 'json' };
 import reviewers from '../../data/reviewers.json' with { type: 'json' };
 
 import {
@@ -9,6 +17,14 @@ import {
   normalizeReviewer,
 } from '../models/normalize-fixture.mjs';
 
+const partA = {
+  ...partAMetadata,
+  items: [privacyOwner, medicalBoundary, consentFields, accessRoles],
+};
+const partB = {
+  ...partBMetadata,
+  items: [documentBoundary, threatRecheck, erasureRevocation, scopeStops],
+};
 const FIXTURES = new Map([
   ['/data/reviewers.json', reviewers],
   ['/data/assignments.json', assignments],
@@ -79,7 +95,11 @@ export function createFixtureRepository({ loadJson = defaultJsonLoader } = {}) {
     if (!reviewer) return invalid('Assignment reviewer fixture is invalid.');
     const packet = await loadPacket(assignment.packetId);
     if (!packet.ok) return packet;
-    if (assignment.reviewerRole !== reviewer.role || reviewer.role !== packet.value.reviewerRole) {
+    if (
+      assignment.packetId !== packet.value.id ||
+      assignment.reviewerRole !== reviewer.role ||
+      reviewer.role !== packet.value.reviewerRole
+    ) {
       return invalid('Assignment, reviewer, and packet roles do not match.');
     }
     return { ok: true, value: { assignment, reviewer, packet: packet.value } };

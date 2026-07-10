@@ -1,0 +1,36 @@
+{
+  "id": "M03A-PRIVACY-OWNER",
+  "prompt": "Who owns the fixture decision?",
+  "need": "Ownership is explicit.",
+  "repoImpact": "Keeps responsibility local.",
+  "guidance": "Use fixture roles only.",
+  "baseFields": [
+    "decision",
+    "concreteAnswer",
+    "reason",
+    "evidenceRef",
+    "verifiedAt",
+    "riskCategory",
+    "severity",
+    "requestedChange"
+  ],
+  "allowedRiskCategories": ["privacy", "legal"],
+  "requiredResponses": [
+    {
+      "key": "ownerDisplayName",
+      "labelSq": "Emri i pronarit",
+      "type": "text",
+      "required": true,
+      "maxLength": 80,
+      "options": []
+    },
+    {
+      "key": "ownerRole",
+      "labelSq": "Roli i pronarit",
+      "type": "text",
+      "required": true,
+      "maxLength": 80,
+      "options": []
+    }
+  ]
+}
