@@ -19,13 +19,14 @@ function metadataMatches(receipt, bundle) {
 }
 
 export async function prepareCorrection(bundle, state, previousReceipt, metadata, itemFor) {
-  const verified = await verifyReceipt(previousReceipt);
+  const prior = deepFreeze(clone(previousReceipt));
+  const verified = await verifyReceipt(prior);
   const itemIds = bundle.packet.itemIds;
   if (
     !verified.ok ||
-    !metadataMatches(previousReceipt, bundle) ||
-    !exactKeys(previousReceipt.decisions, itemIds) ||
-    !exactKeys(previousReceipt.structuredResponses, itemIds)
+    !metadataMatches(prior, bundle) ||
+    !exactKeys(prior.decisions, itemIds) ||
+    !exactKeys(prior.structuredResponses, itemIds)
   ) {
     throw new TypeError('Previous receipt is invalid for this assignment.');
   }
@@ -40,8 +41,8 @@ export async function prepareCorrection(bundle, state, previousReceipt, metadata
       itemId,
       {
         ...state.decisions[itemId],
-        ...clone(previousReceipt.decisions[itemId]),
-        responses: clone(previousReceipt.structuredResponses[itemId]),
+        ...clone(prior.decisions[itemId]),
+        responses: clone(prior.structuredResponses[itemId]),
       },
     ])
   );
@@ -53,7 +54,7 @@ export async function prepareCorrection(bundle, state, previousReceipt, metadata
     activeItem: metadata.itemId,
     decisions,
     correction: {
-      previousReceipt: deepFreeze(clone(previousReceipt)),
+      previousReceipt: prior,
       itemId: metadata.itemId,
       reason: metadata.reason,
       impact: metadata.impact,

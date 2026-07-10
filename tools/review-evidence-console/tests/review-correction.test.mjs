@@ -75,3 +75,16 @@ test('rejects incomplete base and descriptor fields in a hash-valid receipt', as
     /receipt/i
   );
 });
+
+test('snapshots the caller receipt before asynchronous verification', async () => {
+  const receipt = structuredClone(await priorReceipt());
+  const pending = createReviewSession(bundle).createCorrection(receipt, metadata);
+  receipt.assignmentId = 'mutated_assignment';
+  receipt.decisions.item_a.reason = 'Mutated caller reason.';
+  receipt.structuredResponses.item_a.ownerRole = 'Mutated caller role';
+
+  const snapshot = await pending;
+  assert.equal(snapshot.correction.previousReceipt.assignmentId, 'assign_a');
+  assert.equal(snapshot.decisions.item_a.reason, completeDecision.reason);
+  assert.equal(snapshot.decisions.item_a.responses.ownerRole, 'Privacy lead');
+});
