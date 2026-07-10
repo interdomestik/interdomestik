@@ -3,49 +3,10 @@ import test from 'node:test';
 
 import { setDocument } from '../public/src/components/dom.mjs';
 import { renderWorkspace } from '../public/src/views/workspace.mjs';
+import { byId, copy, fakeDocument, walk } from './fake-dom.mjs';
 import { bundle } from './review-session-fixtures.mjs';
 
-class FakeNode {
-  constructor(tagName = '#text', value = '') {
-    this.tagName = tagName.toUpperCase();
-    this.textContent = value;
-    this.attributes = {};
-    this.childNodes = [];
-    this.listeners = {};
-    this.value = '';
-    this.checked = false;
-  }
-  append(...nodes) {
-    this.childNodes.push(...nodes);
-  }
-  setAttribute(name, value) {
-    this.attributes[name] = String(value);
-  }
-  addEventListener(name, handler) {
-    this.listeners[name] = handler;
-  }
-  focus() {
-    this.focused = true;
-  }
-}
-
-setDocument({
-  createElement: tag => new FakeNode(tag),
-  createTextNode: value => new FakeNode('#text', String(value)),
-});
-
-function walk(node) {
-  return [node, ...node.childNodes.flatMap(walk)];
-}
-function copy(node) {
-  return walk(node)
-    .map(entry => entry.textContent)
-    .join(' ');
-}
-function byId(node, id) {
-  return walk(node).find(entry => entry.attributes.id === id);
-}
-
+setDocument(fakeDocument);
 test('workspace renders three labelled regions, scope guard, and ordered text statuses', () => {
   const view = renderWorkspace({ bundle, state: initialState(), safeEvidenceConfirmed: false });
   assert.match(view.attributes.class, /workspace/);
@@ -109,6 +70,53 @@ test('conflict recovery offers reload and export without a destructive action', 
   assert.match(rendered, /Ringarko draftin më të ri/);
   assert.match(rendered, /Eksporto kopjen lokale/);
   assert.doesNotMatch(rendered, /Fshi draftin lokal/);
+});
+
+test('structured response controls follow descriptor types instead of hard-coded rows', () => {
+  const typedBundle = structuredClone(bundle);
+  typedBundle.packet.items[0].requiredResponses = [
+    {
+      key: 'scope',
+      labelSq: 'Fusha',
+      type: 'radio',
+      required: true,
+      options: ['allowed', 'excluded'],
+    },
+    {
+      key: 'areas',
+      labelSq: 'Zonat',
+      type: 'checkbox_group',
+      required: true,
+      options: ['auth', 'privacy'],
+    },
+    {
+      key: 'refs',
+      labelSq: 'Referencat',
+      type: 'multi_select',
+      required: true,
+      options: ['one', 'two'],
+    },
+    {
+      key: 'notes',
+      labelSq: 'Shënime',
+      type: 'textarea',
+      required: true,
+      maxLength: 80,
+      options: [],
+    },
+  ];
+  const view = renderWorkspace({
+    bundle: typedBundle,
+    state: initialState(),
+    safeEvidenceConfirmed: false,
+  });
+  const nodes = walk(view);
+  assert.equal(nodes.filter(node => node.attributes.name === 'response-scope').length, 2);
+  assert.equal(nodes.filter(node => node.attributes.name === 'response-areas').length, 2);
+  assert.equal(nodes.filter(node => node.attributes.name === 'response-refs').length, 2);
+  assert.ok(
+    nodes.some(node => node.tagName === 'TEXTAREA' && node.attributes.id === 'response-notes')
+  );
 });
 
 function initialState() {

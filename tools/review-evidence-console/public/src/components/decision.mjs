@@ -75,11 +75,50 @@ function descriptorField(descriptor, value, onResponse) {
     required: descriptor.required,
     onInput: next => onResponse(descriptor.key, next),
   };
-  if (descriptor.type === 'select' || descriptor.type === 'multiselect')
-    return selectField({ ...common, options: descriptor.options });
+  if (['radio', 'checkbox_group', 'multi_select'].includes(descriptor.type)) {
+    return optionGroup(descriptor, value, onResponse);
+  }
+  if (descriptor.type === 'select') return selectField({ ...common, options: descriptor.options });
   return formField({
     ...common,
-    type: descriptor.type === 'date' ? 'date' : 'text',
+    type:
+      descriptor.type === 'date' ? 'date' : descriptor.type === 'textarea' ? 'textarea' : 'text',
     maxLength: descriptor.maxLength,
   });
+}
+
+function optionGroup(descriptor, current, onResponse) {
+  const checkbox = descriptor.type !== 'radio';
+  const selected = checkbox && Array.isArray(current) ? current : [];
+  return element('fieldset', { attributes: { class: 'descriptor-options' } }, [
+    element('legend', {}, [text(descriptor.labelSq)]),
+    ...descriptor.options.map((option, index) => {
+      const id = `response-${descriptor.key}-${index}`;
+      const input = element('input', {
+        attributes: {
+          id,
+          name: `response-${descriptor.key}`,
+          type: checkbox ? 'checkbox' : 'radio',
+          value: option,
+        },
+        on: {
+          change: event =>
+            onResponse(
+              descriptor.key,
+              checkbox ? toggle(selected, option, event.target.checked) : option
+            ),
+        },
+      });
+      input.value = option;
+      input.checked = checkbox ? selected.includes(option) : current === option;
+      return element('label', { attributes: { class: 'decision-option', for: id } }, [
+        input,
+        text(option),
+      ]);
+    }),
+  ]);
+}
+
+function toggle(values, option, checked) {
+  return checked ? [...new Set([...values, option])] : values.filter(value => value !== option);
 }
