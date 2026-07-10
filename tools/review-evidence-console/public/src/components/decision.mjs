@@ -78,7 +78,7 @@ function descriptorField(descriptor, responses, onResponse) {
     label: descriptor.labelSq,
     value,
     required: descriptorIsRequired(descriptor, responses),
-    onInput: next => onResponse(descriptor.key, next),
+    onInput: next => onResponse(descriptor.key, next, `response-${descriptor.key}`),
   };
   if (['radio', 'checkbox_group', 'multi_select'].includes(descriptor.type)) {
     return optionGroup(descriptor, value, onResponse, common.required);
@@ -119,7 +119,8 @@ function optionGroup(descriptor, current, onResponse, required) {
             change: event =>
               onResponse(
                 descriptor.key,
-                checkbox ? toggle(selected, option, event.target.checked) : option
+                checkbox ? toggle(selected, option, event.target.checked) : option,
+                id
               ),
           },
         });

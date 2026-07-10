@@ -89,3 +89,32 @@ test('acknowledgement saves the latest session snapshot and structural focus int
   assert.equal(renders.at(-1).focusControlId, 'decision-item_a-change');
   runtime.dispose();
 });
+
+test('dependent rerenders retain exact non-first option focus', () => {
+  const typed = structuredClone(bundle);
+  typed.packet.items[0].requiredResponses = [
+    descriptor('choice', 'radio', ['no', 'yes']),
+    { ...descriptor('detail', 'text', []), requiredWhen: { key: 'choice', equals: 'yes' } },
+    descriptor('areas', 'checkbox_group', ['one', 'two']),
+    { ...descriptor('areaDetail', 'text', []), requiredWhen: { key: 'areas', equals: 'two' } },
+  ];
+  globalThis.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
+  globalThis.addEventListener = () => {};
+  globalThis.removeEventListener = () => {};
+  const renders = [];
+  const runtime = createWorkspaceRuntime({
+    bundle: typed,
+    initialItemId: 'item_a',
+    onRender: props => renders.push(props),
+    onNavigate() {},
+  });
+  renders[0].onResponse('item_a', 'choice', 'yes', 'response-choice-1');
+  assert.equal(renders.at(-1).focusControlId, 'response-choice-1');
+  renders.at(-1).onResponse('item_a', 'areas', ['two'], 'response-areas-1');
+  assert.equal(renders.at(-1).focusControlId, 'response-areas-1');
+  runtime.dispose();
+});
+
+function descriptor(key, type, options) {
+  return { key, labelSq: key, type, required: true, maxLength: 80, options };
+}

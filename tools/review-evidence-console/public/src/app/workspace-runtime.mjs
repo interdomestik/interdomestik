@@ -69,13 +69,11 @@ export function createWorkspaceRuntime({
         render(false, `decision-${itemId}-${value}`);
       },
       onField: session.setField,
-      onResponse: (itemId, key, value) => {
+      onResponse: (itemId, key, value, controlId) => {
         session.setResponse(itemId, key, value);
         const item = bundle.packet.items.find(entry => entry.id === itemId);
         if (item.requiredResponses.some(entry => entry.requiredWhen?.key === key)) {
-          const descriptor = item.requiredResponses.find(entry => entry.key === key);
-          const optionGroup = ['radio', 'checkbox_group', 'multi_select'].includes(descriptor.type);
-          render(false, `response-${key}${optionGroup ? '-0' : ''}`);
+          render(false, controlId ?? `response-${key}`);
         }
       },
       onSafeEvidence: value => {

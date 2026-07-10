@@ -36,3 +36,27 @@ test('required option groups expose native and group required semantics', () => 
   assert.equal(input.attributes.required, 'required');
   assert.equal(input.attributes.name, 'response-choice');
 });
+
+test('option groups report the exact activated radio and checkbox control IDs', () => {
+  const events = [];
+  const item = {
+    ...medical,
+    requiredResponses: [
+      { key: 'choice', labelSq: 'Zgjedhja', type: 'radio', required: true, options: ['no', 'yes'] },
+      {
+        key: 'areas',
+        labelSq: 'Zonat',
+        type: 'checkbox_group',
+        required: true,
+        options: ['one', 'two'],
+      },
+    ],
+  };
+  const view = renderDecision({ item, decision: base, onResponse: (...args) => events.push(args) });
+  byId(view, 'response-choice-1').listeners.change({ target: { checked: true } });
+  byId(view, 'response-areas-1').listeners.change({ target: { checked: true } });
+  assert.deepEqual(
+    events.map(event => event[2]),
+    ['response-choice-1', 'response-areas-1']
+  );
+});

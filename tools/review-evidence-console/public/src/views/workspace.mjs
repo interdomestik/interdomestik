@@ -52,7 +52,7 @@ export function renderWorkspace({
         decision,
         onDecision: value => onDecision?.(item.id, value),
         onField: (field, value) => onField?.(item.id, field, value),
-        onResponse: (key, value) => onResponse?.(item.id, key, value),
+        onResponse: (key, value, controlId) => onResponse?.(item.id, key, value, controlId),
       }),
     ]
   );
