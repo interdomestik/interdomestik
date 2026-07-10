@@ -60,3 +60,38 @@ test('option groups report the exact activated radio and checkbox control IDs', 
     ['response-choice-1', 'response-areas-1']
   );
 });
+
+test('checkbox groups retain cumulative values across changes without a rerender', () => {
+  const events = [];
+  const item = {
+    ...medical,
+    requiredResponses: [
+      {
+        key: 'evidence',
+        labelSq: 'Dëshmitë',
+        type: 'multi_select',
+        required: true,
+        options: ['consentStatus', 'recordedAt', 'consentVersion'],
+      },
+    ],
+  };
+  const view = renderDecision({ item, decision: base, onResponse: (...args) => events.push(args) });
+  const consent = byId(view, 'response-evidence-0');
+  const recorded = byId(view, 'response-evidence-1');
+  const version = byId(view, 'response-evidence-2');
+
+  consent.listeners.change({ target: { checked: true } });
+  recorded.listeners.change({ target: { checked: true } });
+  version.listeners.change({ target: { checked: true } });
+  recorded.listeners.change({ target: { checked: false } });
+
+  assert.deepEqual(
+    events.map(event => event[1]),
+    [
+      ['consentStatus'],
+      ['consentStatus', 'recordedAt'],
+      ['consentStatus', 'recordedAt', 'consentVersion'],
+      ['consentStatus', 'consentVersion'],
+    ]
+  );
+});

@@ -94,7 +94,7 @@ function descriptorField(descriptor, responses, onResponse) {
 
 function optionGroup(descriptor, current, onResponse, required) {
   const checkbox = descriptor.type !== 'radio';
-  const selected = checkbox && Array.isArray(current) ? current : [];
+  let selected = checkbox && Array.isArray(current) ? [...current] : [];
   return element(
     'fieldset',
     {
@@ -116,12 +116,11 @@ function optionGroup(descriptor, current, onResponse, required) {
             ...(required && !checkbox ? { required: 'required' } : {}),
           },
           on: {
-            change: event =>
-              onResponse(
-                descriptor.key,
-                checkbox ? toggle(selected, option, event.target.checked) : option,
-                id
-              ),
+            change: event => {
+              if (!checkbox) return onResponse(descriptor.key, option, id);
+              selected = toggle(selected, option, event.target.checked);
+              return onResponse(descriptor.key, [...selected], id);
+            },
           },
         });
         input.value = option;
