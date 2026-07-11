@@ -106,9 +106,18 @@ export function initializeContextualNoteState(bundle, draft) {
   );
 }
 
-export function setContextualNote(state, itemId, path, value, { suggestion } = {}) {
+export function setContextualNote(
+  state,
+  itemId,
+  path,
+  value,
+  { suggestion, maxLength = 2000 } = {}
+) {
+  if (!state?.[itemId]?.[path]) throw new TypeError('Unknown contextual note field.');
+  if (typeof value !== 'string' || !validateSafeText(value, { maxLength }).ok) {
+    throw new TypeError('Unsafe contextual note length or content.');
+  }
   const next = clone(state);
-  if (!next[itemId]?.[path]) throw new TypeError('Unknown contextual note field.');
   next[itemId][path] =
     value.trim() === ''
       ? { status: 'dismissed' }
@@ -121,6 +130,8 @@ export function setContextualNote(state, itemId, path, value, { suggestion } = {
 export function setContextualNoteActive(state, itemId, path, active, { suggestion } = {}) {
   const note = state?.[itemId]?.[path];
   if (!note) throw new TypeError('Unknown contextual note field.');
+  const next = clone(state);
+  if (active && note.status === 'unseen') next[itemId][path] = { status: 'suggested' };
   const value = !active
     ? undefined
     : note.status === 'custom'
@@ -128,5 +139,5 @@ export function setContextualNoteActive(state, itemId, path, active, { suggestio
       : note.status === 'dismissed'
         ? ''
         : suggestion;
-  return { noteState: deepFreeze(clone(state)), value };
+  return { noteState: deepFreeze(next), value };
 }

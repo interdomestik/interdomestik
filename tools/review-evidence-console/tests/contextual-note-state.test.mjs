@@ -74,6 +74,31 @@ test('inactive conditional custom values survive deactivate and reactivate exact
   assert.equal(active.value, '  custom value  ');
 });
 
+test('note edits reject unsafe and over-limit custom text without changing state', () => {
+  const initial = initializeContextualNoteState(bundleWithConditional());
+  for (const value of ['reviewer@example.com', 'https://private.example', 'Bearer secret', '123456789']) {
+    assert.throws(
+      () =>
+        setContextualNote(initial, 'item_a', 'responses.ownerRole', value, {
+          suggestion: 'Keep the exact safe owner role.',
+          maxLength: 8,
+        }),
+      /safe|length/i
+    );
+    assert.deepEqual(initial.item_a['responses.ownerRole'], { status: 'unseen' });
+  }
+});
+
+test('activating an unseen note returns its recommendation and suggested state atomically', () => {
+  const initial = initializeContextualNoteState(bundleWithConditional());
+  const active = setContextualNoteActive(initial, 'item_a', 'responses.ownerRole', true, {
+    suggestion: 'Keep the exact safe owner role.',
+  });
+  assert.equal(active.value, 'Keep the exact safe owner role.');
+  assert.deepEqual(active.noteState.item_a['responses.ownerRole'], { status: 'suggested' });
+  assert.deepEqual(initial.item_a['responses.ownerRole'], { status: 'unseen' });
+});
+
 test('returned state snapshots are deeply immutable', () => {
   const state = initializeContextualNoteState(bundleWithConditional());
   assert.equal(Object.isFrozen(state), true);
