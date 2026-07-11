@@ -1,10 +1,10 @@
 import { validateEvidenceRef, validateSafeText } from './input-guards.mjs';
 import { descriptorIsRequired } from './descriptor-required.mjs';
 
-const DECISIONS = ['approve', 'change', 'block'];
-const SEVERITIES = ['low', 'medium', 'high'];
-const SCALAR_OPTIONS = ['option', 'radio', 'select'];
-const ARRAY_OPTIONS = ['multi_select', 'checkbox_group'];
+const DECISIONS = new Set(['approve', 'change', 'block']);
+const SEVERITIES = new Set(['low', 'medium', 'high']);
+const SCALAR_OPTIONS = new Set(['option', 'radio', 'select']);
+const ARRAY_OPTIONS = new Set(['multi_select', 'checkbox_group']);
 const TEXT_FIELDS = [
   ['concreteAnswer', 2000],
   ['reason', 2000],
@@ -22,7 +22,7 @@ function isIsoDate(value) {
 }
 
 function validateBase(item, decision, errors) {
-  if (!DECISIONS.includes(decision.decision)) errors.push(missing('decision'));
+  if (!DECISIONS.has(decision.decision)) errors.push(missing('decision'));
   for (const [key, maxLength] of TEXT_FIELDS) {
     if (isEmpty(decision[key])) errors.push(missing(key));
     else addGuardError(errors, key, validateSafeText(decision[key], { maxLength }));
@@ -37,7 +37,7 @@ function validateBase(item, decision, errors) {
   else if (risks?.length && !risks.includes(decision.riskCategory)) {
     errors.push(fieldError('riskCategory', 'invalid_option', 'Zgjidh një mundësi të lejuar.'));
   }
-  if (!SEVERITIES.includes(decision.severity)) {
+  if (!SEVERITIES.has(decision.severity)) {
     errors.push(fieldError('severity', 'invalid_option', 'Zgjidh një mundësi të lejuar.'));
   }
   const changeRequired = ['change', 'block'].includes(decision.decision);
@@ -62,14 +62,23 @@ function validateDescriptor(descriptor, responses, errors) {
     if (descriptorIsRequired(descriptor, responses)) errors.push(missing(descriptor.key));
     return;
   }
-  if (SCALAR_OPTIONS.includes(descriptor.type) && typeof value !== 'string') {
+  if (!validateDescriptorType(descriptor, value, errors)) return;
+  validateDescriptorContent(descriptor, value, errors);
+}
+
+function validateDescriptorType(descriptor, value, errors) {
+  if (SCALAR_OPTIONS.has(descriptor.type) && typeof value !== 'string') {
     errors.push(fieldError(descriptor.key, 'invalid_type', 'Përdor një vlerë të vetme.'));
-    return;
+    return false;
   }
-  if (ARRAY_OPTIONS.includes(descriptor.type) && !Array.isArray(value)) {
+  if (ARRAY_OPTIONS.has(descriptor.type) && !Array.isArray(value)) {
     errors.push(fieldError(descriptor.key, 'invalid_type', 'Përdor një listë vlerash.'));
-    return;
+    return false;
   }
+  return true;
+}
+
+function validateDescriptorContent(descriptor, value, errors) {
   if (descriptor.type === 'text' || descriptor.type === 'textarea') {
     addGuardError(
       errors,

@@ -74,7 +74,7 @@ export function validateReceipt(receipt, schemaVersion) {
     return failure('invalid_data', 'Përgjigjet e strukturuara të vërtetimit janë të pavlefshme.');
   }
   const expectedRisk = aggregateRisk(Object.values(receipt.decisions));
-  const riskKeys = Object.keys(receipt.riskSummary).sort();
+  const riskKeys = Object.keys(receipt.riskSummary).sort((left, right) => left.localeCompare(right));
   if (
     riskKeys.join(',') !== 'categories,severity' ||
     receipt.riskSummary.severity !== expectedRisk.severity ||

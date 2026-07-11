@@ -12,5 +12,5 @@ export function aggregateRisk(decisions) {
       categories.add(decision.riskCategory);
     }
   }
-  return { severity, categories: [...categories].sort() };
+  return { severity, categories: [...categories].sort((left, right) => left.localeCompare(right)) };
 }

@@ -6,9 +6,7 @@ import { createValidationHandler } from './validation-route.mjs';
 import { awaitCurrent, takeValue } from './current-async.mjs';
 import { clearReceipt, createImportHandler } from './receipt-route-actions.mjs';
 import { confirmClearReceipt } from './receipt-confirmation.mjs';
-import { renderJsonFallback } from './result-fallback.mjs';
-import { renderReceipt } from '../views/receipt.mjs';
-import { renderCorrection } from '../views/correction.mjs';
+import { renderReceiptView } from './receipt-view.mjs';
 export function createReviewRouteLoaders({ repository, render, navigate, isCurrent }) {
   const receiptStore = createReceiptStore({ verifyReceipt, schemaVersion: 1 });
   const pendingFocus = { value: null };
@@ -41,90 +39,74 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
     const current = () => isCurrent(token);
     let focusId = 'receipt-heading';
     let routeError = null;
+    const onExport = async () => {
+      const completed = await awaitCurrent(exportReceipt(route.receiptId, receiptStore), current);
+      if (!completed.ok) return;
+      if (completed.value.code === 'download_failed') fallback = completed.value;
+      else if (!completed.value.ok) routeError = completed.value;
+      draw();
+    };
+    const onClear = id => {
+      if (!confirmClearReceipt(id)) return;
+      clearReceipt({ id, store: receiptStore, current, navigate, onError: error => {
+        routeError = error;
+        draw();
+      }});
+    };
+    const onCorrect = () => {
+      correcting = true;
+      focusId = 'correction-heading';
+      draw();
+    };
+    const onCorrectionChange = (key, value) => {
+      correction[key] = value;
+    };
+    const onCorrectionSubmit = async () => {
+      const correctionDone = await awaitCurrent(
+        startCorrection({ bundle, receipt: loaded.value, metadata: correction }),
+        current
+      );
+      if (!correctionDone.ok) return;
+      const result = correctionDone.value;
+      if (!result.ok) {
+        correctionError = result.message;
+        return draw();
+      }
+      navigate({
+        name: 'workspace',
+        assignmentId: loaded.value.assignmentId,
+        itemId: result.itemId,
+      });
+    };
+    const onCopyFallback = async () => {
+      const completed = await awaitCurrent(fallback.copy(), current);
+      if (!completed.ok) return;
+      fallback = { ...fallback, message: completed.value.message };
+      draw();
+    };
     const draw = () => {
       const nextFocus = focusId;
       focusId = null;
       render(
-        [
-          renderReceipt({
-            receipt: loaded.value,
-            packet: bundle.packet,
-            importNotice: imported.has(route.receiptId)
-              ? 'Lexohet në këtë pajisje; nuk ngarkohet kurrë'
-              : '',
-            onExport: async () => {
-              const completed = await awaitCurrent(
-                exportReceipt(route.receiptId, receiptStore),
-                current
-              );
-              if (!completed.ok) return;
-              if (completed.value.code === 'download_failed') fallback = completed.value;
-              else if (!completed.value.ok) routeError = completed.value;
-              draw();
-            },
-            onClear: id => {
-              if (confirmClearReceipt(id)) {
-                clearReceipt({
-                  id,
-                  store: receiptStore,
-                  current,
-                  navigate,
-                  onError: error => {
-                    routeError = error;
-                    draw();
-                  },
-                });
-              }
-            },
-            onCorrect: () => {
-              correcting = true;
-              focusId = 'correction-heading';
-              draw();
-            },
-          }),
-          correcting
-            ? renderCorrection({
-                receipt: loaded.value,
-                itemIds: Object.keys(loaded.value.decisions),
-                values: correction,
-                error: correctionError,
-                onChange: (key, value) => {
-                  correction[key] = value;
-                },
-                onSubmit: async () => {
-                  const correctionDone = await awaitCurrent(
-                    startCorrection({
-                      bundle,
-                      receipt: loaded.value,
-                      metadata: correction,
-                    }),
-                    current
-                  );
-                  if (!correctionDone.ok) return;
-                  const result = correctionDone.value;
-                  if (!result.ok) {
-                    correctionError = result.message;
-                    return draw();
-                  }
-                  navigate({
-                    name: 'workspace',
-                    assignmentId: loaded.value.assignmentId,
-                    itemId: result.itemId,
-                  });
-                },
-              })
-            : null,
-          fallback?.text
-            ? renderJsonFallback(fallback, async () => {
-                const completed = await awaitCurrent(fallback.copy(), current);
-                if (!completed.ok) return;
-                const copied = completed.value;
-                fallback = { ...fallback, message: copied.message };
-                draw();
-              })
-            : null,
-          routeError ? renderJsonFallback(routeError) : null,
-        ],
+        renderReceiptView({
+          receipt: loaded.value,
+          packet: bundle.packet,
+          importNotice: imported.has(route.receiptId)
+            ? 'Lexohet në këtë pajisje; nuk ngarkohet kurrë'
+            : '',
+          onExport,
+          onClear,
+          onCorrect,
+          correcting,
+          correction,
+          correctionError,
+          itemIds: Object.keys(loaded.value.decisions),
+          onCorrectionChange,
+          onCorrectionSubmit,
+          fallback,
+          onCopyFallback,
+          routeError,
+        }),
         loaded.value.reviewerDisplayName,
         nextFocus
       );
