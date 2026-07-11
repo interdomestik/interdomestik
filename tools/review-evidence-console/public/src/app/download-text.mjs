@@ -5,6 +5,6 @@ export function downloadText(text, filename, { documentRef = document, urlRef = 
   link.href = href;
   link.download = filename;
   link.click();
-  urlRef.revokeObjectURL(href);
+  setTimeout(() => urlRef.revokeObjectURL(href), 0);
   return true;
 }

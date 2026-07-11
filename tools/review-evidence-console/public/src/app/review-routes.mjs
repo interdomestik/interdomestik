@@ -7,6 +7,7 @@ import { awaitCurrent, takeValue } from './current-async.mjs';
 import { clearReceipt, createImportHandler } from './receipt-route-actions.mjs';
 import { confirmClearReceipt } from './receipt-confirmation.mjs';
 import { renderReceiptView } from './receipt-view.mjs';
+import { importedReceiptMatchesPacket } from './receipt-packet-guard.mjs';
 export function createReviewRouteLoaders({ repository, render, navigate, isCurrent }) {
   const receiptStore = createReceiptStore({ verifyReceipt, schemaVersion: 1 });
   const pendingFocus = { value: null };
@@ -32,6 +33,9 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
       bundle.packet.version !== loaded.value.packetVersion
     )
       return navigate({ name: 'inbox' });
+    if (!importedReceiptMatchesPacket(loaded.value, bundle.packet, imported.has(route.receiptId))) {
+      return navigate({ name: 'inbox' });
+    }
     let fallback = null;
     let correcting = false;
     let correctionError = '';

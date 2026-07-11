@@ -45,7 +45,7 @@ export function createConsoleServer({ publicRoot = defaultPublicRoot } = {}) {
 
   return createServer(async (request, response) => {
     if (!['GET', 'HEAD'].includes(request.method)) return sendError(response, request.method, 405);
-    const pathname = request.url.split('?')[0];
+    const pathname = (request.url ?? '/').split('?')[0];
     let decodedPath;
     try {
       decodedPath = decodeURIComponent(pathname);

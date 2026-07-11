@@ -15,6 +15,13 @@ const repository = createFixtureRepository();
 const app = document.querySelector('#app');
 let workspaceRuntime;
 const routes = createRouteCoordinator();
+
+function focusControl(controlId) {
+  const selector = `#${controlId}`;
+  const direct = document.querySelector(selector);
+  const grouped = direct ?? document.querySelector(`[name="${controlId}"]`);
+  grouped?.focus();
+}
 const reviewRoutes = createReviewRouteLoaders({
   repository,
   isCurrent: token => routes.isCurrent(token),
@@ -26,7 +33,7 @@ const reviewRoutes = createReviewRouteLoaders({
       app,
       shell(Array.isArray(content) ? element('div', {}, content) : content, role)
     );
-    if (focusId) queueMicrotask(() => document.querySelector(`#${focusId}`)?.focus());
+    if (focusId) queueMicrotask(() => focusControl(focusId));
   },
 });
 
@@ -95,11 +102,11 @@ async function loadWorkspace(route, token) {
     onRender: props => {
       replaceChildren(app, shell(renderWorkspace(props), 'Rishikues privatësie', props.saveStatus));
       const pendingFocus = reviewRoutes.takePendingFocus();
-      if (pendingFocus) queueMicrotask(() => document.querySelector(`#${pendingFocus}`)?.focus());
+      if (pendingFocus) queueMicrotask(() => focusControl(pendingFocus));
       else if (props.focusHeading)
         queueMicrotask(() => document.querySelector('#item-heading')?.focus());
       else if (props.focusControlId)
-        queueMicrotask(() => document.querySelector(`#${props.focusControlId}`)?.focus());
+        queueMicrotask(() => focusControl(props.focusControlId));
     },
   });
 }
