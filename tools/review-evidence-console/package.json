@@ -1,0 +1,14 @@
+{
+  "name": "@interdomestik/review-evidence-console",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fixtures:generate": "node scripts/generate-fixture-modules.mjs --write",
+    "fixtures:check": "node scripts/generate-fixture-modules.mjs --check",
+    "test:unit": "node --test tests/*.test.mjs",
+    "test:browser": "pnpm --filter @interdomestik/web exec playwright test --config ../../tools/review-evidence-console/playwright.config.mjs",
+    "test": "pnpm run test:unit && pnpm run test:browser",
+    "verify": "pnpm run fixtures:check && pnpm run test"
+  }
+}

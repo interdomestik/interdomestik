@@ -1,0 +1,10 @@
+.workspace-submit {
+  grid-column: 2 / -1;
+  min-height: 44px;
+}
+
+@media (max-width: 680px) {
+  .workspace-submit {
+    grid-column: 1;
+  }
+}

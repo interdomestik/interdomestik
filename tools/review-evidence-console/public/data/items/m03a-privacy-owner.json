@@ -1,0 +1,79 @@
+{
+  "id": "M03A-PRIVACY-OWNER",
+  "prompt": "Pronari i privatësisë",
+  "need": "Pronësia duhet të jetë e qartë.",
+  "repoImpact": "E mban përgjegjësinë lokale.",
+  "guidance": "Përdor vetëm rolet e mostrës.",
+  "baseFields": [
+    "decision",
+    "concreteAnswer",
+    "reason",
+    "evidenceRef",
+    "verifiedAt",
+    "riskCategory",
+    "severity",
+    "requestedChange"
+  ],
+  "allowedRiskCategories": ["privacy", "legal"],
+  "requiredResponses": [
+    {
+      "key": "ownerDisplayName",
+      "labelSq": "Emri i pronarit",
+      "type": "text",
+      "required": true,
+      "maxLength": 80,
+      "options": [],
+      "optionLabelsSq": {}
+    },
+    {
+      "key": "ownerRole",
+      "labelSq": "Roli i pronarit",
+      "type": "text",
+      "required": true,
+      "maxLength": 80,
+      "options": [],
+      "optionLabelsSq": {}
+    },
+    {
+      "key": "decisionDate",
+      "labelSq": "Data e vendimit",
+      "type": "date",
+      "required": true,
+      "maxLength": 10,
+      "options": [],
+      "optionLabelsSq": {}
+    },
+    {
+      "key": "ownerEvidenceRef",
+      "labelSq": "Referenca e evidencës së pronarit",
+      "type": "evidenceRef",
+      "required": true,
+      "maxLength": 160,
+      "options": [],
+      "optionLabelsSq": {}
+    },
+    {
+      "key": "reviewerRole",
+      "labelSq": "Roli i shqyrtuesit",
+      "type": "text",
+      "required": true,
+      "maxLength": 80,
+      "options": [],
+      "optionLabelsSq": {}
+    }
+  ],
+  "suggestedReview": {
+    "concreteAnswer": "Kërko pronar të emërtuar të privatësisë ose ligjor para promovimit runtime.",
+    "reason": "MOB-DG04 e shënon evidencën e pronarit si të munguar.",
+    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "riskCategory": "legal",
+    "severity": "high",
+    "requestedChange": "Emërto një pronar real të privatësisë ose ligjor dhe bashkëngjit evidencën e pranimit para promovimit.",
+    "responses": {
+      "ownerRole": "Privacy / Legal owner",
+      "ownerEvidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+      "reviewerRole": "privacy"
+    },
+    "useSessionDateFor": ["verifiedAt", "decisionDate"]
+  }
+}

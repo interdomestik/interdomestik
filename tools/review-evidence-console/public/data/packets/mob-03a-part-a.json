@@ -1,0 +1,14 @@
+{
+  "id": "mob-03a-part-a",
+  "version": "1",
+  "reviewerRole": "privacy",
+  "title": "Rishikimi i autoritetit të mostrës MOB-03a — pjesa A",
+  "scope": "Vetëm planifikim i sigurt për repo për shfaqjen e makinës dhe pronës; të dhënat mjekësore dhe të lëndimeve përjashtohen.",
+  "stopConditions": ["Ndal nëse jepen të dhëna sensitive", "Ndal nëse mungon autoriteti"],
+  "itemIds": [
+    "M03A-PRIVACY-OWNER",
+    "M03A-MEDICAL-BOUNDARY",
+    "M03A-CONSENT-FIELDS",
+    "M03A-ACCESS-ROLES"
+  ]
+}

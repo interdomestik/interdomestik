@@ -1,0 +1,81 @@
+{
+  "id": "M03A-ACCESS-ROLES",
+  "prompt": "Rolet me qasje",
+  "need": "Supozimet për qasjen duhet të shqyrtohen.",
+  "repoImpact": "Ruan planifikimin e shfaqjes sipas roleve.",
+  "guidance": "Mos nënkupto ndryshime autorizimi.",
+  "baseFields": [
+    "decision",
+    "concreteAnswer",
+    "reason",
+    "evidenceRef",
+    "verifiedAt",
+    "riskCategory",
+    "severity",
+    "requestedChange"
+  ],
+  "allowedRiskCategories": ["access", "privacy"],
+  "requiredResponses": [
+    {
+      "key": "memberDecision",
+      "labelSq": "Vendimi për anëtarin",
+      "type": "radio",
+      "required": true,
+      "maxLength": 8,
+      "options": ["view", "exclude"],
+      "optionLabelsSq": { "view": "Shfaq", "exclude": "Përjashto" }
+    },
+    {
+      "key": "internalCaseRoleDecision",
+      "labelSq": "Vendimi për rolin e brendshëm",
+      "type": "radio",
+      "required": true,
+      "maxLength": 8,
+      "options": ["view", "exclude"],
+      "optionLabelsSq": { "view": "Shfaq", "exclude": "Përjashto" }
+    },
+    {
+      "key": "sponsorDecision",
+      "labelSq": "Vendimi për sponsorin",
+      "type": "radio",
+      "required": true,
+      "maxLength": 8,
+      "options": ["exclude", "escalate"],
+      "optionLabelsSq": { "exclude": "Përjashto", "escalate": "Përshkallëzo" }
+    },
+    {
+      "key": "payerDecision",
+      "labelSq": "Vendimi për paguesin",
+      "type": "radio",
+      "required": true,
+      "maxLength": 8,
+      "options": ["exclude", "escalate"],
+      "optionLabelsSq": { "exclude": "Përjashto", "escalate": "Përshkallëzo" }
+    },
+    {
+      "key": "externalPartyDecision",
+      "labelSq": "Vendimi për palën e jashtme",
+      "type": "radio",
+      "required": true,
+      "maxLength": 8,
+      "options": ["exclude", "escalate"],
+      "optionLabelsSq": { "exclude": "Përjashto", "escalate": "Përshkallëzo" }
+    }
+  ],
+  "suggestedReview": {
+    "concreteAnswer": "Lejo vetëm metadata të kufizuara për anëtarin dhe rolin e brendshëm të rastit.",
+    "reason": "Qasja për sponsorin, paguesin dhe palët e jashtme nuk ka autoritet të pranuar.",
+    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "riskCategory": "access",
+    "severity": "high",
+    "requestedChange": "Lejo vetëm rolet e mostrës dhe përjashto sponsorin, paguesin dhe palët e jashtme pa autoritet të ri.",
+    "responses": {
+      "memberDecision": "view",
+      "internalCaseRoleDecision": "view",
+      "sponsorDecision": "exclude",
+      "payerDecision": "exclude",
+      "externalPartyDecision": "exclude"
+    },
+    "useSessionDateFor": ["verifiedAt"]
+  }
+}

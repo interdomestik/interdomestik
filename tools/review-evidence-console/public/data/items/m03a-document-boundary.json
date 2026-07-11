@@ -1,0 +1,60 @@
+{
+  "id": "M03A-DOCUMENT-BOUNDARY",
+  "prompt": "Kufiri i dokumenteve",
+  "need": "Kufijtë e dokumenteve duhet të mbeten të qartë.",
+  "repoImpact": "Parandalon shfaqjen e dokumentit burimor.",
+  "guidance": "Përdor vetëm etiketat e metadatave.",
+  "baseFields": [
+    "decision",
+    "concreteAnswer",
+    "reason",
+    "evidenceRef",
+    "verifiedAt",
+    "riskCategory",
+    "severity",
+    "requestedChange"
+  ],
+  "allowedRiskCategories": ["privacy", "security"],
+  "requiredResponses": [
+    {
+      "key": "allowedMetadata",
+      "labelSq": "Metadatat e lejuara",
+      "type": "checkbox_group",
+      "required": true,
+      "maxLength": 160,
+      "options": ["state", "category", "updatedAt"],
+      "optionLabelsSq": {
+        "state": "Gjendja",
+        "category": "Kategoria",
+        "updatedAt": "Data e përditësimit"
+      }
+    },
+    {
+      "key": "forbiddenCategories",
+      "labelSq": "Kategoritë e ndaluara",
+      "type": "checkbox_group",
+      "required": true,
+      "maxLength": 24,
+      "options": ["raw_document", "payment", "medical", "legal_private"],
+      "optionLabelsSq": {
+        "raw_document": "Dokumenti burimor",
+        "payment": "Pagesa",
+        "medical": "Të dhënat mjekësore",
+        "legal_private": "Të dhënat private ligjore"
+      }
+    }
+  ],
+  "suggestedReview": {
+    "concreteAnswer": "Shfaq vetëm metadata; mos shfaq përmbajtjen e dokumentit burimor.",
+    "reason": "Fixture-i duhet të ruajë kufirin e dokumenteve.",
+    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "riskCategory": "privacy",
+    "severity": "high",
+    "requestedChange": "Shfaq vetëm metadata të lejuara dhe mos shfaq dokumentin burimor ose kategoritë e ndaluara.",
+    "responses": {
+      "allowedMetadata": ["state", "category", "updatedAt"],
+      "forbiddenCategories": ["raw_document", "payment", "medical", "legal_private"]
+    },
+    "useSessionDateFor": ["verifiedAt"]
+  }
+}

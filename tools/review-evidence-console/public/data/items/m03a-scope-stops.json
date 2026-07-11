@@ -1,0 +1,65 @@
+{
+  "id": "M03A-SCOPE-STOPS",
+  "prompt": "Fusha dhe kushtet e ndalimit",
+  "need": "Kufiri i zbatimit duhet të mbetet i ngushtë.",
+  "repoImpact": "Bllokon zgjerimin e paautorizuar gjatë ekzekutimit.",
+  "guidance": "Përcakto fushën e lejuar dhe të përjashtuar të mostrës.",
+  "baseFields": [
+    "decision",
+    "concreteAnswer",
+    "reason",
+    "evidenceRef",
+    "verifiedAt",
+    "riskCategory",
+    "severity",
+    "requestedChange"
+  ],
+  "allowedRiskCategories": ["scope", "legal"],
+  "requiredResponses": [
+    {
+      "key": "allowedScope",
+      "labelSq": "Fusha e lejuar",
+      "type": "textarea",
+      "required": true,
+      "maxLength": 240,
+      "options": [],
+      "optionLabelsSq": {}
+    },
+    {
+      "key": "excludedScope",
+      "labelSq": "Fusha e përjashtuar",
+      "type": "textarea",
+      "required": true,
+      "maxLength": 240,
+      "options": [],
+      "optionLabelsSq": {}
+    },
+    {
+      "key": "stopCondition",
+      "labelSq": "Kushti i ndalimit",
+      "type": "radio",
+      "required": true,
+      "maxLength": 24,
+      "options": ["missing_authority", "sensitive_data", "scope_expansion"],
+      "optionLabelsSq": {
+        "missing_authority": "Mungon autoriteti",
+        "sensitive_data": "Të dhëna sensitive",
+        "scope_expansion": "Zgjerim i fushës"
+      }
+    }
+  ],
+  "suggestedReview": {
+    "concreteAnswer": "Kufizo planifikimin te metadata jo-mjekësore për automjet dhe pronë.",
+    "reason": "Runtime, të dhënat sensitive dhe zgjerimi i autoritetit mbeten jashtë fixture-it.",
+    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "riskCategory": "scope",
+    "severity": "high",
+    "requestedChange": "Kufizo fushën te metadata jo-mjekësore për automjet dhe pronë; ndalo kur mungon autoriteti ose zgjerohet fusha.",
+    "responses": {
+      "allowedScope": "Vetëm planifikim i shfaqjes së metadata-ve për automjet dhe pronë, pa runtime.",
+      "excludedScope": "Të dhëna mjekësore ose lëndimesh, dokumente burimore, auth, schema, RLS dhe shkrues runtime.",
+      "stopCondition": "missing_authority"
+    },
+    "useSessionDateFor": ["verifiedAt"]
+  }
+}

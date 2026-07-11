@@ -1,0 +1,65 @@
+{
+  "id": "M03A-CONSENT-FIELDS",
+  "prompt": "Fushat minimale të pëlqimit",
+  "need": "Kufiri i fushave të mostrës duhet të jetë i shqyrtueshëm.",
+  "repoImpact": "Kufizon metadatat e shfaqura të pëlqimit.",
+  "guidance": "Listo vetëm etiketat e fushave të mostrës.",
+  "baseFields": [
+    "decision",
+    "concreteAnswer",
+    "reason",
+    "evidenceRef",
+    "verifiedAt",
+    "riskCategory",
+    "severity",
+    "requestedChange"
+  ],
+  "allowedRiskCategories": ["privacy", "compliance"],
+  "requiredResponses": [
+    {
+      "key": "acceptedMinimumFields",
+      "labelSq": "Fushat minimale të pranuara",
+      "type": "multi_select",
+      "required": true,
+      "maxLength": 160,
+      "options": ["consentStatus", "recordedAt", "consentVersion"],
+      "optionLabelsSq": {
+        "consentStatus": "Statusi i pëlqimit",
+        "recordedAt": "Data e regjistrimit",
+        "consentVersion": "Versioni i pëlqimit"
+      }
+    },
+    {
+      "key": "additions",
+      "labelSq": "Shtesat e kërkuara",
+      "type": "textarea",
+      "required": true,
+      "maxLength": 240,
+      "options": [],
+      "optionLabelsSq": {}
+    },
+    {
+      "key": "excludedFields",
+      "labelSq": "Fushat e përjashtuara",
+      "type": "textarea",
+      "required": true,
+      "maxLength": 240,
+      "options": [],
+      "optionLabelsSq": {}
+    }
+  ],
+  "suggestedReview": {
+    "concreteAnswer": "Prano vetëm metadata-t minimale të pëlqimit si kërkesë shqyrtimi.",
+    "reason": "Fushat e pranuara nuk japin autoritet për schema ose runtime.",
+    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "riskCategory": "compliance",
+    "severity": "high",
+    "requestedChange": "Kufizo fushat te statusi, data dhe versioni i pëlqimit; çdo shtesë kërkon autoritet të ri.",
+    "responses": {
+      "acceptedMinimumFields": ["consentStatus", "recordedAt", "consentVersion"],
+      "additions": "Asnjë shtesë pa autoritet të ri.",
+      "excludedFields": "Dokumente burimore dhe të dhëna mjekësore, ligjore private ose pagese."
+    },
+    "useSessionDateFor": ["verifiedAt"]
+  }
+}

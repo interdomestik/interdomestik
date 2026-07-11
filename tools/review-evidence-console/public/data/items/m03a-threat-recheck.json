@@ -1,0 +1,61 @@
+{
+  "id": "M03A-THREAT-RECHECK",
+  "prompt": "Rikontrolli i kërcënimeve",
+  "need": "Shqyrtimi duhet të kapë një sinjal të sigurt për repo të kërcënimit.",
+  "repoImpact": "E mban të vëzhgueshme portën e dizajnit.",
+  "guidance": "Refero vetëm evidencën e repos.",
+  "baseFields": [
+    "decision",
+    "concreteAnswer",
+    "reason",
+    "evidenceRef",
+    "verifiedAt",
+    "riskCategory",
+    "severity",
+    "requestedChange"
+  ],
+  "allowedRiskCategories": ["security", "access"],
+  "requiredResponses": [
+    {
+      "key": "threatAreas",
+      "labelSq": "Fushat e kërcënimit",
+      "type": "multi_select",
+      "required": true,
+      "maxLength": 160,
+      "options": ["access", "retention", "disclosure"],
+      "optionLabelsSq": { "access": "Qasja", "retention": "Ruajtja", "disclosure": "Zbulimi" }
+    },
+    {
+      "key": "recheckOutcome",
+      "labelSq": "Rezultati i rikontrollit",
+      "type": "radio",
+      "required": true,
+      "maxLength": 8,
+      "options": ["clear", "change", "stop"],
+      "optionLabelsSq": { "clear": "Pa pengesa", "change": "Kërkon ndryshim", "stop": "Ndalo" }
+    },
+    {
+      "key": "threatRecheckEvidenceRef",
+      "labelSq": "Referenca e evidencës së rikontrollit",
+      "type": "evidenceRef",
+      "required": true,
+      "maxLength": 160,
+      "options": [],
+      "optionLabelsSq": {}
+    }
+  ],
+  "suggestedReview": {
+    "concreteAnswer": "Rikontrollo qasjen, ruajtjen dhe zbulimin para çdo promovimi runtime.",
+    "reason": "Gate-i aktual e shënon provën e konsoliduar të kërcënimeve si të munguar.",
+    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "riskCategory": "security",
+    "severity": "high",
+    "requestedChange": "Ndalo promovimin derisa rikontrolli i qasjes, ruajtjes dhe zbulimit të ketë evidencë të pranueshme.",
+    "responses": {
+      "threatAreas": ["access", "retention", "disclosure"],
+      "recheckOutcome": "stop",
+      "threatRecheckEvidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md"
+    },
+    "useSessionDateFor": ["verifiedAt"]
+  }
+}

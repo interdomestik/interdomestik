@@ -319,6 +319,30 @@ partner exposure, KS/AL exposure, notifications, live AI, generated Wiki,
 Brain tooling, README, AGENTS, architecture docs, and broad product expansion
 remain unpromoted.
 
+Rev 100 current-authority/design-gate: `REC-DG01` in
+`docs/plans/2026-07-10-rec-dg01-review-evidence-console-current-authority.md`
+promotes exactly one non-runtime implementation slice: `REC-01`. The next active
+governed implementation goal is exactly one canonical tracker slice: `REC-01`.
+An isolated independent review approved the remediated gate with no blocker or
+important findings. Scope is limited to
+`tools/review-evidence-console/`, repo-safe fixture
+packets, localStorage drafts/receipts, responsive and accessible reviewer flow,
+and reference comparison. Deployment is excluded from `REC-01` and requires a
+separate approved operation with an isolated console-root Vercel link.
+Production routes, `apps/web`, proxy, auth, identity, tenancy,
+customer data, uploads, APIs, schema/RLS, databases, billing, and runtime
+integration remain unpromoted.
+
+Rev 101 protected deployment authority: `REC-DG02` in
+`docs/plans/2026-07-10-rec-dg02-protected-vercel-deployment-current-authority.md`
+authorizes one fail-closed Basic-Auth-preserving preview and production deployment
+of the standalone console to the existing `interdomestik-reviewer-portal` Vercel
+project and `reviewer-ecohub.vercel.app` alias. The prior production deployment is
+the explicit rollback target. Legacy reviewer APIs become unavailable after cutover,
+while existing Blob data remains untouched. No Interdomestik runtime slice, customer
+data, upload, Blob access, auth architecture, product route, API, database, schema/RLS,
+billing, or tenancy integration is promoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the

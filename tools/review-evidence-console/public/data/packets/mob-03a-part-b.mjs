@@ -1,0 +1,3 @@
+export default JSON.parse(
+  '{\n  "id": "mob-03a-part-b",\n  "version": "1",\n  "reviewerRole": "privacy",\n  "title": "Rishikimi i autoritetit të mostrës MOB-03a — pjesa B",\n  "scope": "Vetëm planifikim i sigurt për repo për shfaqjen e makinës dhe pronës; nuk përfshihen dokumente ose përmbajtje sensitive.",\n  "stopConditions": [\n    "Ndal nëse kërkohet një dokument burimor",\n    "Ndal nëse fusha kalon te të dhënat mjekësore ose të lëndimeve"\n  ],\n  "itemIds": [\n    "M03A-DOCUMENT-BOUNDARY",\n    "M03A-THREAT-RECHECK",\n    "M03A-ERASURE-REVOCATION",\n    "M03A-SCOPE-STOPS"\n  ]\n}'
+);
