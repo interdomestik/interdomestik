@@ -1,5 +1,10 @@
 import { createRequire } from 'node:module';
 import { startConsoleServer } from '../server/start.mjs';
+import {
+  installDirectoryScenario,
+  submissionArtifacts,
+  submitCompleteReview,
+} from './receipt-submission-browser-fixture.mjs';
 
 const requireFromWeb = createRequire(new URL('../../../apps/web/package.json', import.meta.url));
 const { expect, test } = requireFromWeb('@playwright/test');
@@ -14,70 +19,33 @@ test.afterAll(async () => {
   await new Promise(resolve => server.close(resolve));
 });
 
-test('writes a validated receipt through the browser directory handle', async ({ page }) => {
-  await page.addInitScript(() => {
-    globalThis.privateInboxWrites = [];
-    globalThis.privateInboxFail = false;
-    globalThis.showDirectoryPicker = async options => ({
-      async getFileHandle(name, fileOptions) {
-        return {
-          async createWritable() {
-            return {
-              async write(value) {
-                if (globalThis.privateInboxFail) throw new Error('disk');
-                globalThis.privateInboxWrites.push({ name, fileOptions, options, value });
-              },
-              async close() {},
-            };
-          },
-        };
-      },
-    });
-  });
-  await page.goto(origin);
-  const receiptId = await page.evaluate(async () => {
-    const { buildReceipt } = await import('/src/state/receipt-builder.mjs');
-    const itemIds = [
-      'M03A-PRIVACY-OWNER',
-      'M03A-MEDICAL-BOUNDARY',
-      'M03A-CONSENT-FIELDS',
-      'M03A-ACCESS-ROLES',
-    ];
-    const decisions = Object.fromEntries(
-      itemIds.map(id => [id, { decision: 'approve', severity: 'high', riskCategory: 'privacy' }])
-    );
-    const receipt = await buildReceipt({
-      schemaVersion: 1,
-      packetId: 'mob-03a-part-a',
-      packetVersion: '3',
-      assignmentId: 'assign_mob03a_part_a',
-      reviewerFixtureId: 'reviewer_governance_mk',
-      reviewerDisplayName: 'Gazmend Abazi',
-      reviewerRole: 'governance',
-      packetRole: 'governance',
-      authorityDisclaimer: 'Local fixture review only; not runtime authority.',
-      decisions,
-      structuredResponses: Object.fromEntries(itemIds.map(id => [id, {}])),
-      submittedAt: '2026-07-11T20:00:00.000Z',
-    });
-    localStorage.setItem(`review-console:v1:receipt:${receipt.receiptId}`, JSON.stringify(receipt));
-    return receipt.receiptId;
-  });
-  await page.goto(`${origin}/#/receipt/${receiptId}`);
-  await page.getByRole('button', { name: 'Ruaj në inbox privat' }).click();
-  await expect(page.locator('p[role="status"]')).toContainText('u ruajt në inbox-in privat');
-  const writes = await page.evaluate(() => globalThis.privateInboxWrites);
-  expect(writes).toHaveLength(1);
-  expect(writes[0].name).toBe(`${receiptId}.json`);
-  expect(writes[0].fileOptions).toEqual({ create: true });
-  expect(writes[0].options).toEqual({
-    id: 'interdomestik-reviewer-receipts',
-    mode: 'readwrite',
-  });
-  expect(JSON.parse(writes[0].value).receiptId).toBe(receiptId);
-  await page.evaluate(() => {
-    globalThis.privateInboxFail = true;
-  });
-  await page.getByRole('button', { name: 'Ruaj në inbox privat' }).click();
-  await expect(page.locator('p[role="alert"]')).toContainText('nuk mund të ruhej');
+test('submit synchronously picks a directory, stores canonical receipt, writes once, and opens inbox', async ({
+  page,
+}) => {
+  await installDirectoryScenario(page);
+  await submitCompleteReview(page, origin);
+  const { probe, receipt } = await submissionArtifacts(page);
+  expect(probe.pickerCalls).toBe(1);
+  expect(probe.boundary).toBe(true);
+  expect(probe.writes).toHaveLength(1);
+  expect(probe.writes[0].name).toBe(`${receipt.receiptId}.json`);
+  expect(probe.writes[0].fileOptions).toEqual({ create: true });
+  expect(JSON.parse(probe.writes[0].text)).toEqual(receipt);
+  await expect(page).toHaveURL(/\/#\/$/);
+  expect(new URL(page.url()).hash).toBe('#/');
 });
+
+for (const scenario of ['unsupported', 'cancelled', 'denied', 'write_failed']) {
+  test(`${scenario} stores the receipt and opens export recovery`, async ({ page }) => {
+    await installDirectoryScenario(page, scenario);
+    await submitCompleteReview(page, origin);
+    await expect(page.getByRole('heading', { name: 'Vërtetimi i shqyrtimit' })).toBeVisible();
+    const { probe, receipt } = await submissionArtifacts(page);
+    expect(receipt.receiptId).toMatch(/^rec_[a-f0-9]{24}$/);
+    expect(probe.pickerCalls).toBe(scenario === 'unsupported' ? 0 : 1);
+    await expect(page.getByRole('button', { name: 'Eksporto JSON' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ruaj në inbox privat' })).toHaveCount(
+      scenario === 'unsupported' ? 0 : 1
+    );
+  });
+}

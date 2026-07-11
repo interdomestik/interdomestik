@@ -3,10 +3,10 @@ import test from 'node:test';
 import { fakeDocument, walk } from './fake-dom.mjs';
 import { setDocument } from '../public/src/components/dom.mjs';
 import { loadValidationRoute } from '../public/src/app/validation-route.mjs';
-import { bundle, completeDecision } from './review-session-fixtures.mjs';
+import { bundle } from './review-session-fixtures.mjs';
 import { makeStorage } from './state-fixtures.mjs';
-import { createDraftStore, composeDraftKey } from '../public/src/state/draft-store.mjs';
 import { contextualDraftKey, draftWithUnknownField } from './contextual-draft-fixtures.mjs';
+import { completedValidationDraft } from './completed-validation-draft.mjs';
 
 setDocument(fakeDocument);
 
@@ -40,24 +40,7 @@ test('packet safety error navigates then preserves its exact focus target', asyn
 });
 
 test('stale deferred submission neither redraws nor navigates', async () => {
-  globalThis.localStorage = makeStorage();
-  const key = composeDraftKey({
-    assignmentId: 'assign_a',
-    reviewerFixtureId: 'reviewer_a',
-    packetVersion: '1',
-  });
-  createDraftStore({ schemaVersion: 1 }).save(key, {
-    schemaVersion: 1,
-    assignmentId: 'assign_a',
-    packetId: 'packet_a',
-    reviewerFixtureId: 'reviewer_a',
-    packetVersion: '1',
-    activeItem: 'item_a',
-    editorId: 'editor_a',
-    updatedAt: '2026-07-10T12:00:00.000Z',
-    safeEvidenceConfirmed: true,
-    itemDecisions: { item_a: completeDecision, item_b: completeDecision },
-  });
+  globalThis.localStorage = completedValidationDraft();
   let current = true;
   const renders = [];
   const navigations = [];
@@ -102,4 +85,36 @@ test('derives packet context before loading validation draft state', async () =>
     /Plotëso/
   );
   assert.equal(storage.getItem(contextualDraftKey), JSON.stringify(draftWithUnknownField()));
+});
+
+test('submission uses the route directory writer and opens inbox only after its save', async () => {
+  globalThis.localStorage = completedValidationDraft();
+  const events = [];
+  let view;
+  await loadValidationRoute({
+    route: { assignmentId: 'assign_a' },
+    repository: { loadAssignmentBundle: async () => ({ ok: true, value: bundle }) },
+    receiptStore: {
+      save: async receipt => (events.push(['store', receipt]), { ok: true, value: receipt }),
+    },
+    directoryWriter: {
+      requestDirectory: () => (events.push(['picker']), Promise.resolve({ ok: true, value: {} })),
+      save: async receipt => (events.push(['write', receipt]), { ok: true }),
+    },
+    render: value => {
+      view = value;
+    },
+    navigate: value => events.push(['navigate', value]),
+    focus() {},
+  });
+  walk(view)
+    .find(entry => entry.tagName === 'BUTTON')
+    .listeners.click();
+  assert.deepEqual(events, [['picker']]);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(
+    events.map(event => event[0]),
+    ['picker', 'store', 'write', 'navigate']
+  );
+  assert.deepEqual(events.at(-1)[1], { name: 'inbox' });
 });

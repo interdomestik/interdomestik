@@ -8,6 +8,7 @@ export async function loadValidationRoute({
   route,
   repository,
   receiptStore,
+  directoryWriter,
   render,
   navigate,
   focus,
@@ -32,7 +33,9 @@ export async function loadValidationRoute({
   const controller = createSubmissionController({
     bundle,
     receiptStore,
-    onNavigate: receiptId => current() && navigate({ name: 'receipt', receiptId }),
+    directoryWriter,
+    onInbox: () => current() && navigate({ name: 'inbox' }),
+    onReceipt: receiptId => current() && navigate({ name: 'receipt', receiptId }),
     onStatus: () => current() && draw(false),
   });
   function draw(focusHeading = false) {

@@ -17,7 +17,7 @@ export function createReviewRouteLoaders({
   const pendingFocus = { value: null };
   const imported = new Set();
   const shared = { repository, receiptStore, render, navigate, isCurrent };
-  const validation = createValidationHandler({ ...shared, pendingFocus });
+  const validation = createValidationHandler({ ...shared, pendingFocus, directoryWriter });
   const receipt = createReceiptRoute({ ...shared, imported, directoryWriter });
   const importReceipt = createImportHandler({
     repository,
