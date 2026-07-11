@@ -1,5 +1,6 @@
 import { descriptorIsApplicable } from '../validation/descriptor-required.mjs';
 import { validateEvidenceRef, validateSafeText } from '../validation/input-guards.mjs';
+import { normalizeConditionalSuggestions } from './normalize-conditional-suggestions.mjs';
 
 const FIELDS = [
   'concreteAnswer',
@@ -11,6 +12,7 @@ const FIELDS = [
   'responses',
   'useSessionDateFor',
 ];
+const OPTIONAL_FIELDS = ['conditionalResponses'];
 const SEVERITIES = ['low', 'medium', 'high'];
 const ARRAY_TYPES = new Set(['multi_select', 'checkbox_group']);
 const OPTION_TYPES = new Set(['select', 'radio', ...ARRAY_TYPES]);
@@ -22,7 +24,10 @@ const fail = message => {
 function exactObject(value, allowed, name) {
   if (!isObject(value)) fail(`${name} must be an object.`);
   const keys = Object.keys(value);
-  if (keys.length !== allowed.length || keys.some(key => !allowed.includes(key))) {
+  if (
+    allowed.some(key => !keys.includes(key)) ||
+    keys.some(key => !allowed.includes(key) && !OPTIONAL_FIELDS.includes(key))
+  ) {
     fail(`${name} keys must match the contract.`);
   }
 }
@@ -115,6 +120,14 @@ export function normalizeSuggestion(value, { allowedRiskCategories, requiredResp
     riskCategory,
     severity,
     requestedChange: safeText(value.requestedChange, 'requestedChange', 2000),
+    ...(value.conditionalResponses === undefined
+      ? {}
+      : {
+          conditionalResponses: normalizeConditionalSuggestions(
+            value.conditionalResponses,
+            requiredResponses
+          ),
+        }),
     responses,
     useSessionDateFor: normalizeDates(value.useSessionDateFor, requiredResponses, responses),
   };

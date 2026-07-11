@@ -100,7 +100,8 @@ const expectedSuggestions = {
 test('ships exact normalized reviewer suggestions', async () => {
   const items = await loadItems();
   for (const [id, expected] of Object.entries(expectedSuggestions)) {
-    const { requestedChange, ...normalized } = find(items, id).suggestedReview;
+    const { requestedChange, conditionalResponses, ...normalized } =
+      find(items, id).suggestedReview;
     assert.deepEqual(normalized, expected);
     assert.ok(requestedChange.trim());
   }

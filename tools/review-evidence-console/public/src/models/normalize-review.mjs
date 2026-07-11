@@ -1,5 +1,4 @@
 import { normalizeDescriptors } from './normalize-descriptor.mjs';
-import { normalizeConditionalSuggestions } from './normalize-conditional-suggestions.mjs';
 import { normalizeSuggestion } from './normalize-suggestion.mjs';
 
 const BASE_FIELDS = [
@@ -39,10 +38,6 @@ export function normalizeItem(item) {
   }
   const descriptors = normalizeDescriptors(item.requiredResponses);
   const allowedRiskCategories = stringList(item.allowedRiskCategories, 'allowedRiskCategories');
-  const conditionalResponses =
-    item.conditionalResponses === undefined
-      ? undefined
-      : normalizeConditionalSuggestions(item.conditionalResponses, descriptors);
   return {
     ...item,
     baseFields: [...baseFields],
@@ -52,7 +47,6 @@ export function normalizeItem(item) {
       allowedRiskCategories,
       requiredResponses: descriptors,
     }),
-    ...(conditionalResponses === undefined ? {} : { conditionalResponses }),
   };
 }
 

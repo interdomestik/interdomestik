@@ -44,7 +44,11 @@ const candidate = overrides => ({
   ...overrides,
 });
 const rejectsConditional = conditionalResponses =>
-  assert.throws(() => normalizeItem(candidate({ conditionalResponses })));
+  assert.throws(() =>
+    normalizeItem(
+      candidate({ suggestedReview: { ...suggestedReview, conditionalResponses } })
+    )
+  );
 
 test('requires requestedChange and clones valid conditional text suggestions', () => {
   const missing = { ...suggestedReview };
@@ -52,9 +56,11 @@ test('requires requestedChange and clones valid conditional text suggestions', (
   assert.throws(() => normalizeItem(candidate({ suggestedReview: missing })));
 
   const source = { retentionNote: 'Retain only the revoked status.' };
-  const normalized = normalizeItem(candidate({ conditionalResponses: source }));
-  assert.deepEqual(normalized.conditionalResponses, source);
-  assert.notEqual(normalized.conditionalResponses, source);
+  const normalized = normalizeItem(
+    candidate({ suggestedReview: { ...suggestedReview, conditionalResponses: source } })
+  );
+  assert.deepEqual(normalized.suggestedReview.conditionalResponses, source);
+  assert.notEqual(normalized.suggestedReview.conditionalResponses, source);
 });
 
 test('rejects malformed, unknown, sparse, unsafe, and over-limit conditional suggestions', () => {

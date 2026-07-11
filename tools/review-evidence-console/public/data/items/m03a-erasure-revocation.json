@@ -47,9 +47,9 @@
     "severity": "high",
     "requestedChange": "Fshih metadatat pas fshirjes ose revokimit; çdo gjendje e dukshme kërkon rregull të dokumentuar ruajtjeje.",
     "responses": { "renderingRule": "hide_metadata" },
-    "useSessionDateFor": ["verifiedAt"]
-  },
-  "conditionalResponses": {
-    "retentionNote": "Shfaq vetëm statusin e revokuar dhe afatin e dokumentuar të ruajtjes; mos shfaq metadata të tjera."
+    "useSessionDateFor": ["verifiedAt"],
+    "conditionalResponses": {
+      "retentionNote": "Shfaq vetëm statusin e revokuar dhe afatin e dokumentuar të ruajtjes; mos shfaq metadata të tjera."
+    }
   }
 }

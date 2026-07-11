@@ -33,11 +33,11 @@ test('ships exact Albanian requested-change and conditional recommendations', as
   for (const [id, requestedChange] of Object.entries(expectedRequestedChanges)) {
     assert.equal(find(id).suggestedReview.requestedChange, requestedChange);
   }
-  assert.deepEqual(find('M03A-ERASURE-REVOCATION').conditionalResponses, {
+  assert.deepEqual(find('M03A-ERASURE-REVOCATION').suggestedReview.conditionalResponses, {
     retentionNote:
       'Shfaq vetëm statusin e revokuar dhe afatin e dokumentuar të ruajtjes; mos shfaq metadata të tjera.',
   });
   for (const item of items.filter(({ id }) => id !== 'M03A-ERASURE-REVOCATION')) {
-    assert.equal(Object.hasOwn(item, 'conditionalResponses'), false);
+    assert.equal(Object.hasOwn(item.suggestedReview, 'conditionalResponses'), false);
   }
 });
