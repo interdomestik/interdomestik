@@ -9,7 +9,7 @@ import { copy, fakeDocument, walk } from './fake-dom.mjs';
 setDocument(fakeDocument);
 
 const headings = new Map([
-  ['M03A-PRIVACY-OWNER', 'Pronari i privatësisë'],
+  ['M03A-PRIVACY-OWNER', 'Autoriteti ligjor dhe ndarja e roleve'],
   ['M03A-MEDICAL-BOUNDARY', 'Kufiri i të dhënave mjekësore'],
   ['M03A-CONSENT-FIELDS', 'Fushat minimale të pëlqimit'],
   ['M03A-ACCESS-ROLES', 'Rolet me qasje'],

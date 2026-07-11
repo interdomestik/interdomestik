@@ -1,9 +1,9 @@
 {
   "id": "M03A-PRIVACY-OWNER",
-  "prompt": "Pronari i privatësisë",
-  "need": "Pronësia duhet të jetë e qartë.",
-  "repoImpact": "E mban përgjegjësinë lokale.",
-  "guidance": "Përdor vetëm rolet e mostrës.",
+  "prompt": "Autoriteti ligjor dhe ndarja e roleve",
+  "need": "Autoriteti Legal/Privacy dhe ndarja e përgjegjësive duhet të jenë të qarta.",
+  "repoImpact": "Dokumenton separation of duties për Interdomestik MK.",
+  "guidance": "Kontrollo Sanjën, Gazmendin, Fionën, Arbenin dhe CA+DG.",
   "baseFields": [
     "decision",
     "concreteAnswer",
@@ -18,7 +18,7 @@
   "requiredResponses": [
     {
       "key": "ownerDisplayName",
-      "labelSq": "Emri i pronarit",
+      "labelSq": "Emri i autoritetit Legal/Privacy",
       "type": "text",
       "required": true,
       "maxLength": 80,
@@ -27,7 +27,7 @@
     },
     {
       "key": "ownerRole",
-      "labelSq": "Roli i pronarit",
+      "labelSq": "Roli Legal/Privacy",
       "type": "text",
       "required": true,
       "maxLength": 80,
@@ -36,7 +36,7 @@
     },
     {
       "key": "decisionDate",
-      "labelSq": "Data e vendimit",
+      "labelSq": "Data e verifikimit",
       "type": "date",
       "required": true,
       "maxLength": 10,
@@ -45,7 +45,7 @@
     },
     {
       "key": "ownerEvidenceRef",
-      "labelSq": "Referenca e evidencës së pronarit",
+      "labelSq": "Evidenca e autoritetit Legal/Privacy",
       "type": "evidenceRef",
       "required": true,
       "maxLength": 160,
@@ -54,26 +54,56 @@
     },
     {
       "key": "reviewerRole",
-      "labelSq": "Roli i shqyrtuesit",
+      "labelSq": "Reviewer biznesi/governance",
       "type": "text",
       "required": true,
       "maxLength": 80,
       "options": [],
       "optionLabelsSq": {}
+    },
+    {
+      "key": "executiveOwner",
+      "labelSq": "Executive/Business Owner",
+      "type": "text",
+      "required": true,
+      "maxLength": 100,
+      "options": [],
+      "optionLabelsSq": {}
+    },
+    {
+      "key": "technicalGuardian",
+      "labelSq": "Platform Technical Guardian",
+      "type": "text",
+      "required": true,
+      "maxLength": 100,
+      "options": [],
+      "optionLabelsSq": {}
+    },
+    {
+      "key": "runtimeAuthority",
+      "labelSq": "Runtime authority",
+      "type": "text",
+      "required": true,
+      "maxLength": 100,
+      "options": [],
+      "optionLabelsSq": {}
     }
   ],
   "suggestedReview": {
-    "concreteAnswer": "Gazmend Abazi është pronari Privacy / Legal për MOB-03a në Interdomestik MK.",
-    "reason": "Pronari është emërtuar në evidencën kanonike; dispozita e Arben Lilës mbetet e hapur.",
+    "concreteAnswer": "Sanja Jovanovska mban autoritetin Legal/Privacy; Gazmendi shqyrton governance; Fiona zotëron biznesin; Arbeni konsultohet teknikisht; CA+DG autorizon runtime.",
+    "reason": "Vendimet juridike dhe biznesore mbeten në strukturën MK, ndërsa kufijtë teknikë dhe runtime kanë autoritet të ndarë.",
     "evidenceRef": "docs/product/2026-07-11-mob-03a-owner-jurisdiction-attestation.md",
     "riskCategory": "legal",
     "severity": "high",
-    "requestedChange": "Kontrollo rolin e Gazmend Abazit dhe evidencën e pronarit; ndrysho ose blloko nëse nuk përputhen.",
+    "requestedChange": "Ndrysho ose blloko nëse autoriteti i Sanjës ose ndarja e roleve nuk përputhet me strukturën MK.",
     "responses": {
-      "ownerDisplayName": "Gazmend Abazi",
-      "ownerRole": "Privacy / Legal Owner, Interdomestik MK",
+      "ownerDisplayName": "Sanja Jovanovska",
+      "ownerRole": "Legal / Privacy Authority, Interdomestik MK",
       "ownerEvidenceRef": "docs/product/2026-07-11-mob-03a-owner-jurisdiction-attestation.md",
-      "reviewerRole": "Independent reviewer — Arben Lila"
+      "reviewerRole": "Independent Business / Governance Reviewer — Gazmend Abazi",
+      "executiveOwner": "Fiona Abazi — Executive / Business Owner, Interdomestik MK",
+      "technicalGuardian": "Arben Lila — Platform Technical Guardian / consulted",
+      "runtimeAuthority": "CA+DG — Current Authority + Design Gate"
     },
     "useSessionDateFor": ["verifiedAt", "decisionDate"]
   }

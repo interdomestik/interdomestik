@@ -127,7 +127,7 @@ test('ships exact Albanian option labels and assignment display copy', async () 
     assert.deepEqual(Object.keys(descriptor.optionLabelsSq), descriptor.options);
     assert.ok(Object.values(descriptor.optionLabelsSq).every(label => label.trim()));
   }
-  const listed = await createFixtureRepository().listAssignments('reviewer_privacy_mk');
+  const listed = await createFixtureRepository().listAssignments('reviewer_governance_mk');
   assert.deepEqual(listed.value.map(({ titleSq }) => titleSq), [
     'Rishikimi i autoritetit — Pjesa A', 'Rishikimi i autoritetit — Pjesa B',
   ]);
@@ -137,6 +137,7 @@ test('preserves owner, conditional DPIA, and threat evidence descriptors', async
   const items = await loadItems();
   assert.deepEqual(keys(items, 'M03A-PRIVACY-OWNER'), [
     'ownerDisplayName', 'ownerRole', 'decisionDate', 'ownerEvidenceRef', 'reviewerRole',
+    'executiveOwner', 'technicalGuardian', 'runtimeAuthority',
   ]);
   const dpia = response(items, 'M03A-MEDICAL-BOUNDARY', 'dpiaRef');
   assert.deepEqual(dpia.requiredWhen, { key: 'medicalBoundary', equals: 'allowed' });

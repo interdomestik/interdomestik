@@ -13,19 +13,22 @@ related:
 
 > Status: repo-safe review form. This document does not promote runtime work.
 
-## 1. Privacy / Legal Owner
+## 1. Legal / Privacy Authority And Governance Reviewer
 
 Kjo duhet te plotesohet nga personi qe mban pergjegjesine privacy/legal per
 scope-in `MOB-03a`.
 
 | Field              | Answer                                                              |
 | ------------------ | ------------------------------------------------------------------- |
-| Owner name         | Gazmend Abazi                                                       |
-| Owner role         | Privacy / Legal Owner, Interdomestik MK                             |
+| Owner name         | Sanja Jovanovska                                                    |
+| Owner role         | Legal / Privacy Authority, Interdomestik MK                         |
 | Decision date      | Pending independent reviewer disposition                            |
 | Evidence reference | `docs/product/2026-07-11-mob-03a-owner-jurisdiction-attestation.md` |
-| Reviewer name      | Arben Lila                                                          |
-| Reviewer role      | Independent reviewer; responsible contact for Kosovo                |
+| Reviewer name      | Gazmend Abazi                                                       |
+| Reviewer role      | Independent Business / Governance Reviewer                          |
+| Executive owner    | Fiona Abazi — Executive / Business Owner                            |
+| Technical guardian | Arben Lila — Platform Technical Guardian / consulted                |
+| Runtime authority  | `CA+DG` — Current Authority + Design Gate                           |
 
 Decision:
 
@@ -36,8 +39,8 @@ Decision:
 Reason / notes:
 
 ```text
-Recommended default: approve for non-medical planning only. This records the
-named owner but does not represent the owner's or reviewer's signed approval.
+Recommended default: confirm the separated MK role model. This does not replace
+Sanja's Legal / Privacy confirmation, Gazmend's reviewer disposition, or `CA+DG`.
 ```
 
 ## 2. Medical / Injury Boundary
@@ -52,7 +55,8 @@ exists.
 | If yes, DPIA / Art. 9 evidence reference      |                                                      |
 | If no, disabled-scope statement               | Medical and injury data are excluded from `MOB-03a`. |
 | Decision date                                 | Pending independent reviewer disposition             |
-| Reviewer                                      | Arben Lila                                           |
+| Legal / Privacy authority                     | Sanja Jovanovska                                     |
+| Business / Governance reviewer                | Gazmend Abazi                                        |
 
 Decision:
 

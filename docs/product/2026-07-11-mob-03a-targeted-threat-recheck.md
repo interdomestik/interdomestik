@@ -57,8 +57,10 @@ related:
 ## Recommendation
 
 `clear` for independent review of the exact design boundary above. This result
-does not auto-approve the packet. Arben Lila must confirm the evidence and select
-the disposition. Gazmend Abazi must confirm the Privacy / Legal boundary.
+does not auto-approve the packet. Gazmend Abazi selects the independent Business /
+Governance disposition after Sanja Jovanovska confirms the Legal / Privacy
+boundary. Arben Lila is consulted on platform constraints. Runtime still requires
+a separate canonical `CA+DG`.
 
 Stop and reopen the gate if implementation requires document content or links,
 external-party visibility, medical/injury data, storage access, a writer,

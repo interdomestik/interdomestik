@@ -88,11 +88,11 @@ async function proveSuggestionFlow(page, viewport) {
   await expect(page.getByRole('note')).toHaveCount(1);
   expect(await page.locator('.decision-form input[type="radio"]:checked').count()).toBe(0);
   await expect(page.locator('#safe-evidence-confirmed')).not.toBeChecked();
-  await expect(page.locator('#response-ownerDisplayName')).toHaveValue('Gazmend Abazi');
+  await expect(page.locator('#response-ownerDisplayName')).toHaveValue('Sanja Jovanovska');
 
   await page.locator('.decision-form input[type="radio"][value="change"]').check();
   await expect(page.locator('#requestedChange')).toHaveValue(
-    'Kontrollo rolin e Gazmend Abazit dhe evidencën e pronarit; ndrysho ose blloko nëse nuk përputhen.'
+    'Ndrysho ose blloko nëse autoriteti i Sanjës ose ndarja e roleve nuk përputhet me strukturën MK.'
   );
   await page.locator('#requestedChange').fill('Ndryshim i redaktuar');
   await expect(page.locator('#requestedChange')).toHaveValue('Ndryshim i redaktuar');

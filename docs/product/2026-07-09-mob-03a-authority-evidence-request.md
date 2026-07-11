@@ -38,8 +38,10 @@ The named owner and jurisdiction facts are recorded in the
 Recommended answers are prefilled to reduce reviewer effort; they are proposals,
 not completed reviewer decisions.
 
-Arben Lila is the assigned independent reviewer. Gazmend Abazi remains the
-Privacy / Legal Owner. Fiona Abazi remains CEO of Interdomestik MK.
+Sanja Jovanovska is the Legal / Privacy Authority. Gazmend Abazi is the assigned
+independent Business / Governance Reviewer. Fiona Abazi is the Executive /
+Business Owner. Arben Lila is the consulted Platform Technical Guardian. Only
+the canonical `CA+DG` can authorize runtime implementation.
 
 ## Completion Rule
 

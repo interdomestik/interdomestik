@@ -14,8 +14,9 @@ related:
 
 > Status: repo-safe review form. This document does not promote runtime work.
 
-Assigned independent reviewer: Arben Lila. This reviewer assignment does not
-authorize Kosovo exposure or change the Interdomestik MK-only boundary.
+Assigned independent Business / Governance reviewer: Gazmend Abazi. Sanja
+Jovanovska owns the Legal / Privacy boundary; Arben Lila is consulted as
+Platform Technical Guardian. Only a canonical `CA+DG` may authorize runtime.
 
 ## 5. Document Boundary
 
@@ -137,6 +138,6 @@ Reason / notes:
 ```text
 Recommended default: approve this exact MK-only scope. Stop on missing
 authority, sensitive data, scope expansion, or any need to touch a forbidden
-surface. Arben Lila's Kosovo responsibility does not authorize Kosovo exposure
-in this slice.
+surface. Arben Lila's technical consultation does not authorize Kosovo exposure
+or replace the canonical `CA+DG`.
 ```

@@ -12,10 +12,13 @@ const expected = {
   'M03A-PRIVACY-OWNER': {
     evidenceRef: owner,
     responses: {
-      ownerDisplayName: 'Gazmend Abazi',
-      ownerRole: 'Privacy / Legal Owner, Interdomestik MK',
+      ownerDisplayName: 'Sanja Jovanovska',
+      ownerRole: 'Legal / Privacy Authority, Interdomestik MK',
       ownerEvidenceRef: owner,
-      reviewerRole: 'Independent reviewer — Arben Lila',
+      reviewerRole: 'Independent Business / Governance Reviewer — Gazmend Abazi',
+      executiveOwner: 'Fiona Abazi — Executive / Business Owner, Interdomestik MK',
+      technicalGuardian: 'Arben Lila — Platform Technical Guardian / consulted',
+      runtimeAuthority: 'CA+DG — Current Authority + Design Gate',
     },
   },
   'M03A-MEDICAL-BOUNDARY': {
@@ -72,7 +75,14 @@ test('prefills every MOB-03a item from specific authority evidence without auto-
   ]);
   const items = bundles.flatMap(bundle => bundle.value.packet.items);
 
-  assert.deepEqual(bundles.map(bundle => bundle.value.packet.version), ['2', '2']);
+  assert.deepEqual(bundles.map(bundle => bundle.value.packet.version), ['3', '3']);
+  assert.deepEqual(
+    bundles.map(bundle => [bundle.value.reviewer.id, bundle.value.reviewer.displayName, bundle.value.reviewer.role]),
+    [
+      ['reviewer_governance_mk', 'Gazmend Abazi', 'governance'],
+      ['reviewer_governance_mk', 'Gazmend Abazi', 'governance'],
+    ]
+  );
   for (const item of items) {
     const wanted = expected[item.id];
     assert.equal(item.suggestedReview.evidenceRef, wanted.evidenceRef, item.id);

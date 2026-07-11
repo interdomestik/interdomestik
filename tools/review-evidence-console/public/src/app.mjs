@@ -10,7 +10,7 @@ import { renderInbox } from './views/inbox.mjs';
 import { renderWorkspace } from './views/workspace.mjs';
 import { createReviewRouteLoaders } from './app/review-routes.mjs';
 
-const REVIEWER_ID = 'reviewer_privacy_mk';
+const REVIEWER_ID = 'reviewer_governance_mk';
 const repository = createFixtureRepository();
 const app = document.querySelector('#app');
 let workspaceRuntime;

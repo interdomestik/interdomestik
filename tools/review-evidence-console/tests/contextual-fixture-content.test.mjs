@@ -4,7 +4,7 @@ import test from 'node:test';
 
 export const expectedRequestedChanges = {
   'M03A-PRIVACY-OWNER':
-    'Kontrollo rolin e Gazmend Abazit dhe evidencën e pronarit; ndrysho ose blloko nëse nuk përputhen.',
+    'Ndrysho ose blloko nëse autoriteti i Sanjës ose ndarja e roleve nuk përputhet me strukturën MK.',
   'M03A-MEDICAL-BOUNDARY':
     'Mbaji të dhënat mjekësore dhe të lëndimeve të çaktivizuara derisa të ketë autoritet të nënshkruar DPIA/Neni 9.',
   'M03A-CONSENT-FIELDS':
