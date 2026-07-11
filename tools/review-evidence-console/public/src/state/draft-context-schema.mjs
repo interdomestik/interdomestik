@@ -1,6 +1,4 @@
-import { assertContextualText } from './contextual-note-validation.mjs';
-
-const STATUSES = new Set(['unseen', 'suggested', 'custom', 'dismissed']);
+import { isValidContextualNote } from './contextual-note-validation.mjs';
 
 export function createDraftContextSchema(packet) {
   if (!Array.isArray(packet?.items) || !Array.isArray(packet?.itemIds)) {
@@ -23,23 +21,9 @@ export function createDraftContextSchema(packet) {
   if (Object.keys(items).length !== packet.itemIds.length) {
     throw new TypeError('Packet item identities are inconsistent.');
   }
-  for (const id of packet.itemIds) if (!Object.hasOwn(items, id)) throw new TypeError('Unknown item.');
+  for (const id of packet.itemIds)
+    if (!Object.hasOwn(items, id)) throw new TypeError('Unknown item.');
   return Object.freeze({ items: Object.freeze(items) });
-}
-
-function validNote(note, maxLength) {
-  if (!note || typeof note !== 'object' || Array.isArray(note) || !STATUSES.has(note.status)) {
-    return false;
-  }
-  const keys = Object.keys(note);
-  if (note.status !== 'custom') return keys.length === 1;
-  if (keys.length !== 2 || typeof note.value !== 'string' || !note.value.trim()) return false;
-  try {
-    assertContextualText(note.value, maxLength);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export function validateDraftContext(state, schema) {
@@ -53,7 +37,7 @@ export function validateDraftContext(state, schema) {
     const paths = Object.keys(fields);
     return (
       Object.keys(record).length === paths.length &&
-      paths.every(path => validNote(record[path], fields[path]))
+      paths.every(path => isValidContextualNote(record[path], fields[path]))
     );
   });
 }

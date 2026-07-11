@@ -1,23 +1,18 @@
-import { composeDraftKey, createDraftStore } from '../state/draft-store.mjs';
-import { createDraftContextSchema } from '../state/draft-context-schema.mjs';
 import { createReviewSession } from '../state/review-session.mjs';
 import { createAutosaveController } from './autosave-controller.mjs';
 import { downloadText } from './download-text.mjs';
+import { createWorkspaceDraftStore } from './workspace-draft-store.mjs';
 export function createWorkspaceRuntime({
   bundle,
   initialItemId,
   onRender,
   onNavigate,
   onConflict,
-  onValidate, onStatus = () => {}, getLocalDate,
+  onValidate,
+  onStatus = () => {},
+  getLocalDate,
 }) {
-  const key = composeDraftKey({
-    assignmentId: bundle.assignment.id,
-    reviewerFixtureId: bundle.reviewer.id,
-    packetVersion: bundle.packet.version,
-  });
-  const contextSchema = createDraftContextSchema(bundle.packet);
-  const store = createDraftStore({ schemaVersion: 1, contextSchema });
+  const { key, store } = createWorkspaceDraftStore(bundle);
   const loaded = store.load(key);
   const draft = loaded.ok ? loaded.value : undefined;
   const canInitialize = loaded.ok || loaded.code === 'not_found';
@@ -26,7 +21,8 @@ export function createWorkspaceRuntime({
   let safeEvidenceConfirmed = draft?.safeEvidenceConfirmed === true;
   let saveStatus = loaded.ok ? 'Drafti u rikthye' : 'Ruajtja lokale aktive';
   let recovery = loaded.ok || loaded.code === 'not_found' ? null : { code: loaded.code };
-  let autosave, initializing = true;
+  let autosave,
+    initializing = true;
   let routeSelectionPending = false;
   const session = createReviewSession(bundle, draft, {
     applySuggestions: canInitialize,
@@ -145,6 +141,7 @@ export function createWorkspaceRuntime({
       autosave.dispose();
       removeEventListener('storage', storageHandler);
     },
-    recovery: loaded.ok || loaded.code === 'not_found' ? null : { code: loaded.code, ...recoveryActions() },
+    recovery:
+      loaded.ok || loaded.code === 'not_found' ? null : { code: loaded.code, ...recoveryActions() },
   };
 }

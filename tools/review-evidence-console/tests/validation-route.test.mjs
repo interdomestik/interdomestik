@@ -85,10 +85,21 @@ test('derives packet context before loading validation draft state', async () =>
   storage.setItem(contextualDraftKey, JSON.stringify(draftWithUnknownField()));
   globalThis.localStorage = storage;
   let view;
-  await loadValidationRoute({ route: { assignmentId: 'assign_a' },
+  await loadValidationRoute({
+    route: { assignmentId: 'assign_a' },
     repository: { loadAssignmentBundle: async () => ({ ok: true, value: bundle }) },
     receiptStore: { save: async () => assert.fail('invalid draft must not submit') },
-    render: value => { view = value; }, navigate() {}, focus() {} });
-  assert.match(walk(view).map(node => node.textContent).join(' '), /Plotëso/);
+    render: value => {
+      view = value;
+    },
+    navigate() {},
+    focus() {},
+  });
+  assert.match(
+    walk(view)
+      .map(node => node.textContent)
+      .join(' '),
+    /Plotëso/
+  );
   assert.equal(storage.getItem(contextualDraftKey), JSON.stringify(draftWithUnknownField()));
 });

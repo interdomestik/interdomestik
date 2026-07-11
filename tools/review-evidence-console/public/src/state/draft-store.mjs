@@ -31,7 +31,10 @@ function validateDraft(key, draft, schemaVersion, contextSchema) {
   ) {
     return false;
   }
-  if (draft.suggestionVersion === 2 && !validateDraftContext(draft.contextualNoteState, contextSchema)) {
+  if (
+    draft.suggestionVersion === 2 &&
+    !validateDraftContext(draft.contextualNoteState, contextSchema)
+  ) {
     return false;
   }
   return Object.entries(identity).every(([field, value]) => draft[field] === value);
@@ -40,14 +43,22 @@ function validateDraft(key, draft, schemaVersion, contextSchema) {
 export function composeDraftKey(parts) {
   const values = [parts?.assignmentId, parts?.reviewerFixtureId, parts?.packetVersion];
   if (values.some(value => typeof value !== 'string' || !SEGMENT.test(value))) {
-    throw new TypeError('Segmentet e çelësit të draftit duhet të jenë identifikues të sigurt për repo.');
+    throw new TypeError(
+      'Segmentet e çelësit të draftit duhet të jenë identifikues të sigurt për repo.'
+    );
   }
   return `${PREFIX}${values.join(':')}`;
 }
 
-export function createDraftStore({ storage = globalThis.localStorage, schemaVersion, contextSchema }) {
+export function createDraftStore({
+  storage = globalThis.localStorage,
+  schemaVersion,
+  contextSchema,
+}) {
   const invalidKey = key =>
-    parseKey(key) ? null : failure('invalid_data', 'Çelësi i draftit nuk i përket kësaj ruajtjeje.');
+    parseKey(key)
+      ? null
+      : failure('invalid_data', 'Çelësi i draftit nuk i përket kësaj ruajtjeje.');
   return {
     load(key) {
       const keyFailure = invalidKey(key);

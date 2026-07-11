@@ -26,10 +26,7 @@ test('writes a correction draft linked to an immutable verified receipt', async 
   assert.equal(result.value.safeEvidenceConfirmed, false);
   assert.equal(result.value.suggestionVersion, 2);
   assert.equal(result.value.itemDecisions.item_a.decision, receipt.decisions.item_a.decision);
-  assert.deepEqual(
-    result.value.itemDecisions.item_a.responses,
-    receipt.structuredResponses.item_a
-  );
+  assert.deepEqual(result.value.itemDecisions.item_a.responses, receipt.structuredResponses.item_a);
   assert.equal(result.value.itemDecisions.item_a.requestedChange, '');
   assert.deepEqual(receipt, snapshot);
 });
@@ -48,8 +45,12 @@ test('derives packet context for correction load and save boundaries', async () 
   const storage = makeStorage();
   const raw = JSON.stringify(draftWithUnknownField());
   storage.setItem(contextualDraftKey, raw);
-  const result = await startCorrection({ bundle, receipt: await priorReceipt(), storage,
-    metadata: { itemId: 'item_a', reason: 'Clarify boundary.', impact: 'Improves auditability.' } });
+  const result = await startCorrection({
+    bundle,
+    receipt: await priorReceipt(),
+    storage,
+    metadata: { itemId: 'item_a', reason: 'Clarify boundary.', impact: 'Improves auditability.' },
+  });
   assert.equal(result.code, 'conflict');
   assert.equal(storage.getItem(contextualDraftKey), raw);
 });

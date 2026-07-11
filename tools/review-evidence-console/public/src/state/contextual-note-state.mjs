@@ -1,8 +1,7 @@
-import { assertContextualText } from './contextual-note-validation.mjs';
+import { assertContextualNote, assertContextualText } from './contextual-note-validation.mjs';
 
 export const SUGGESTION_VERSION = 2;
 
-const STATUSES = new Set(['unseen', 'suggested', 'custom', 'dismissed']);
 const clone = value => structuredClone(value);
 
 function deepFreeze(value) {
@@ -43,21 +42,6 @@ function migratedNote(value, blanksDismissed, maxLength) {
   return { status: blanksDismissed ? 'dismissed' : 'unseen' };
 }
 
-function validateNote(note, maxLength) {
-  if (!note || typeof note !== 'object' || Array.isArray(note) || !STATUSES.has(note.status)) {
-    throw new TypeError('Invalid contextual note state.');
-  }
-  const keys = Object.keys(note);
-  if (note.status === 'custom') {
-    if (keys.length !== 2) {
-      throw new TypeError('Invalid contextual custom note state.');
-    }
-    assertContextualText(note.value, maxLength);
-  } else if (keys.length !== 1) {
-    throw new TypeError('Invalid contextual note tombstone.');
-  }
-}
-
 function validateRestored(bundle, state) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) {
     throw new TypeError('Invalid contextual note state.');
@@ -72,7 +56,7 @@ function validateRestored(bundle, state) {
     if (!record || Object.keys(record).length !== fields.length) {
       throw new TypeError('Invalid contextual note field paths.');
     }
-    for (const [field, , maxLength] of fields) validateNote(record[field], maxLength);
+    for (const [field, , maxLength] of fields) assertContextualNote(record[field], maxLength);
   }
   return deepFreeze(clone(state));
 }

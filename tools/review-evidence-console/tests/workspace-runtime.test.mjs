@@ -123,13 +123,20 @@ test('dependent rerenders retain exact non-first option focus', () => {
 
 test('derives packet context before loading a workspace draft', () => {
   const raw = JSON.stringify(draftWithUnknownField());
-  globalThis.localStorage = { getItem: key => key === contextualDraftKey ? raw : null,
-    setItem: () => assert.fail('invalid contextual draft must not save'), removeItem() {} };
+  globalThis.localStorage = {
+    getItem: key => (key === contextualDraftKey ? raw : null),
+    setItem: () => assert.fail('invalid contextual draft must not save'),
+    removeItem() {},
+  };
   globalThis.addEventListener = () => {};
   globalThis.removeEventListener = () => {};
   const renders = [];
-  const runtime = createWorkspaceRuntime({ bundle, initialItemId: 'item_a',
-    onRender: value => renders.push(value), onNavigate() {} });
+  const runtime = createWorkspaceRuntime({
+    bundle,
+    initialItemId: 'item_a',
+    onRender: value => renders.push(value),
+    onNavigate() {},
+  });
   assert.equal(runtime.recovery.code, 'invalid_data');
   assert.equal(renders[0].recovery.code, 'invalid_data');
   runtime.dispose();

@@ -1,5 +1,8 @@
 import { composeDraftKey } from '../public/src/state/draft-store.mjs';
+import { createDraftContextSchema } from '../public/src/state/draft-context-schema.mjs';
 import { bundle } from './review-session-fixtures.mjs';
+
+export const contextualDraftSchema = createDraftContextSchema(bundle.packet);
 
 export const contextualDraftKey = composeDraftKey({
   assignmentId: bundle.assignment.id,
@@ -32,3 +35,9 @@ export function draftWithUnknownField() {
   draft.contextualNoteState.item_a.unknown = { status: 'unseen' };
   return draft;
 }
+
+export const contextualFixtures = {
+  draft: contextualDraft,
+  key: contextualDraftKey,
+  schema: contextualDraftSchema,
+};
