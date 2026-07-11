@@ -4,7 +4,7 @@ import test from 'node:test';
 
 export const expectedRequestedChanges = {
   'M03A-PRIVACY-OWNER':
-    'Emërto një pronar real të privatësisë ose ligjor dhe bashkëngjit evidencën e pranimit para promovimit.',
+    'Kontrollo rolin e Gazmend Abazit dhe evidencën e pronarit; ndrysho ose blloko nëse nuk përputhen.',
   'M03A-MEDICAL-BOUNDARY':
     'Mbaji të dhënat mjekësore dhe të lëndimeve të çaktivizuara derisa të ketë autoritet të nënshkruar DPIA/Neni 9.',
   'M03A-CONSENT-FIELDS':

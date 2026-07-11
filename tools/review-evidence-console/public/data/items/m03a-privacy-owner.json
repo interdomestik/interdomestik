@@ -63,16 +63,17 @@
     }
   ],
   "suggestedReview": {
-    "concreteAnswer": "Kërko pronar të emërtuar të privatësisë ose ligjor para promovimit runtime.",
-    "reason": "MOB-DG04 e shënon evidencën e pronarit si të munguar.",
-    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "concreteAnswer": "Gazmend Abazi është pronari Privacy / Legal për MOB-03a në Interdomestik MK.",
+    "reason": "Pronari është emërtuar në evidencën kanonike; dispozita e Arben Lilës mbetet e hapur.",
+    "evidenceRef": "docs/product/2026-07-11-mob-03a-owner-jurisdiction-attestation.md",
     "riskCategory": "legal",
     "severity": "high",
-    "requestedChange": "Emërto një pronar real të privatësisë ose ligjor dhe bashkëngjit evidencën e pranimit para promovimit.",
+    "requestedChange": "Kontrollo rolin e Gazmend Abazit dhe evidencën e pronarit; ndrysho ose blloko nëse nuk përputhen.",
     "responses": {
-      "ownerRole": "Privacy / Legal owner",
-      "ownerEvidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
-      "reviewerRole": "privacy"
+      "ownerDisplayName": "Gazmend Abazi",
+      "ownerRole": "Privacy / Legal Owner, Interdomestik MK",
+      "ownerEvidenceRef": "docs/product/2026-07-11-mob-03a-owner-jurisdiction-attestation.md",
+      "reviewerRole": "Independent reviewer — Arben Lila"
     },
     "useSessionDateFor": ["verifiedAt", "decisionDate"]
   }

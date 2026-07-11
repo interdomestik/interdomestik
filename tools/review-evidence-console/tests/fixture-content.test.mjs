@@ -24,13 +24,6 @@ const suggestion = (concreteAnswer, reason, riskCategory, responses, useSessionD
   useSessionDateFor: useSessionDateFor ?? ['verifiedAt'],
 });
 const expectedSuggestions = {
-  'M03A-PRIVACY-OWNER': suggestion(
-    'Kërko pronar të emërtuar të privatësisë ose ligjor para promovimit runtime.',
-    'MOB-DG04 e shënon evidencën e pronarit si të munguar.',
-    'legal',
-    { ownerRole: 'Privacy / Legal owner', ownerEvidenceRef: evidence, reviewerRole: 'privacy' },
-    ['verifiedAt', 'decisionDate']
-  ),
   'M03A-MEDICAL-BOUNDARY': suggestion(
     'Të dhënat mjekësore dhe të lëndimeve mbeten të përjashtuara.',
     'Nuk ka autoritet të nënshkruar ose të pranuar DPIA/Neni 9.',

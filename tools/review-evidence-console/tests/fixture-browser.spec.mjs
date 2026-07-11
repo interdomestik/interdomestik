@@ -88,11 +88,11 @@ async function proveSuggestionFlow(page, viewport) {
   await expect(page.getByRole('note')).toHaveCount(1);
   expect(await page.locator('.decision-form input[type="radio"]:checked').count()).toBe(0);
   await expect(page.locator('#safe-evidence-confirmed')).not.toBeChecked();
-  await expect(page.locator('#response-ownerDisplayName')).toHaveValue('');
+  await expect(page.locator('#response-ownerDisplayName')).toHaveValue('Gazmend Abazi');
 
   await page.locator('.decision-form input[type="radio"][value="change"]').check();
   await expect(page.locator('#requestedChange')).toHaveValue(
-    'Emërto një pronar real të privatësisë ose ligjor dhe bashkëngjit evidencën e pranimit para promovimit.'
+    'Kontrollo rolin e Gazmend Abazit dhe evidencën e pronarit; ndrysho ose blloko nëse nuk përputhen.'
   );
   await page.locator('#requestedChange').fill('Ndryshim i redaktuar');
   await expect(page.locator('#requestedChange')).toHaveValue('Ndryshim i redaktuar');
