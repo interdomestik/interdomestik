@@ -66,6 +66,7 @@ const item = {
     evidenceRef: 'docs/fixture.md',
     riskCategory: 'privacy',
     severity: 'high',
+    requestedChange: 'Document the requested change.',
     responses: { ownerRole: 'Privacy owner' },
     useSessionDateFor: [],
   },

@@ -38,6 +38,7 @@ export function suggestionBundle() {
       evidenceRef: `docs/${item.id}.md`,
       riskCategory: 'privacy',
       severity: 'high',
+      requestedChange: `Requested change for ${item.id}.`,
       responses: { ownerRole: 'Privacy lead', areas: ['one', 'two'] },
       useSessionDateFor: ['verifiedAt', 'reviewedAt'],
     };

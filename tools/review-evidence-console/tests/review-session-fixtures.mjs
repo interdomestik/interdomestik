@@ -34,6 +34,7 @@ const item = (id, guidance = 'Use fixture guidance as editable prose.') => ({
     evidenceRef: 'docs/fixture.md',
     riskCategory: 'privacy',
     severity: 'high',
+    requestedChange: 'Document the requested change.',
     responses: {},
     useSessionDateFor: [],
   },

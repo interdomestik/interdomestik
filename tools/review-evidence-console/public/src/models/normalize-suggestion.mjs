@@ -7,6 +7,7 @@ const FIELDS = [
   'evidenceRef',
   'riskCategory',
   'severity',
+  'requestedChange',
   'responses',
   'useSessionDateFor',
 ];
@@ -113,6 +114,7 @@ export function normalizeSuggestion(value, { allowedRiskCategories, requiredResp
     evidenceRef: evidenceRef(value.evidenceRef, 'evidenceRef'),
     riskCategory,
     severity,
+    requestedChange: safeText(value.requestedChange, 'requestedChange', 2000),
     responses,
     useSessionDateFor: normalizeDates(value.useSessionDateFor, requiredResponses, responses),
   };

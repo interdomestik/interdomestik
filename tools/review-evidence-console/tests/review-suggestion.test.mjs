@@ -41,6 +41,7 @@ const suggestion = {
   evidenceRef: 'docs/review.md',
   riskCategory: 'privacy',
   severity: 'high',
+  requestedChange: 'Keep this boundary in place.',
   responses: { control: 'no', single: 'one', many: ['a', 'b'], note: 'Safe note', ref: 'docs/ref.md' },
   useSessionDateFor: ['verifiedAt', 'reviewedAt'],
 };
@@ -62,7 +63,7 @@ test('requires a strict suggestion object and all common fields', () => {
 });
 
 test('rejects forbidden and unknown suggestion keys', () => {
-  for (const key of ['decision', 'requestedChange', 'safeEvidenceConfirmed', 'verifiedAt', 'unknown']) {
+  for (const key of ['decision', 'safeEvidenceConfirmed', 'verifiedAt', 'unknown']) {
     rejects(withSuggestion({ ...suggestion, [key]: 'forbidden' }));
   }
 });
@@ -98,7 +99,7 @@ test('keeps date descriptors session-owned with unique date keys', () => {
 });
 
 test('guards common values and exact risk and severity contracts', () => {
-  for (const key of ['concreteAnswer', 'reason']) {
+  for (const key of ['concreteAnswer', 'reason', 'requestedChange']) {
     rejects(replace(key, 'reviewer@example.com'));
     rejects(replace(key, 'x'.repeat(2001)));
   }
