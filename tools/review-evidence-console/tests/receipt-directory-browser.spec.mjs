@@ -35,6 +35,15 @@ test('submit synchronously picks a directory, stores canonical receipt, writes o
   expect(probe.writes[0].fileOptions).toEqual({ create: true });
   expect(JSON.parse(probe.writes[0].text)).toEqual(receipt);
   expect(new URL(page.url()).hash).toBe('#/');
+  const cards = page.locator('.assignment-card');
+  await expect(cards.nth(0)).toContainText('Dorëzuar');
+  await expect(cards.nth(0)).toContainText(`Versioni i paketës: ${receipt.packetVersion}`);
+  await expect(cards.nth(0)).toContainText(`Dorëzuar më: ${receipt.submittedAt}`);
+  await expect(cards.nth(0).locator('code', { hasText: receipt.receiptId })).toBeVisible();
+  await expect(cards.nth(0).getByRole('button', { name: 'Shiko vërtetimin' })).toBeVisible();
+  await expect(cards.nth(1)).toContainText('Hapi i radhës');
+  await cards.nth(0).getByRole('button', { name: 'Shiko vërtetimin' }).click();
+  await expect(page).toHaveURL(`${origin}/#/receipt/${receipt.receiptId}`);
 });
 
 for (const scenario of ['unsupported', 'cancelled', 'denied', 'write_failed']) {

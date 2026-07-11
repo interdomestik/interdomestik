@@ -11,6 +11,9 @@ export class FakeNode {
   append(...nodes) {
     this.childNodes.push(...nodes);
   }
+  replaceChildren(...nodes) {
+    this.childNodes = [...nodes];
+  }
   setAttribute(name, value) {
     this.attributes[name] = String(value);
   }
