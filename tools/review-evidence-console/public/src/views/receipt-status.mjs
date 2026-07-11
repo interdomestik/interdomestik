@@ -18,17 +18,27 @@ function matchesVersion(receipt, identity, packetVersion) {
 
 function lineageValidator(identity, byId) {
   const cache = new Map();
-  function validate(receipt, packetVersion, visiting = new Set()) {
-    const key = `${packetVersion}\0${receipt.receiptId}`;
-    if (cache.has(key)) return cache.get(key);
-    if (visiting.has(key) || !matchesVersion(receipt, identity, packetVersion)) return false;
-    visiting.add(key);
-    const previous = receipt.previousReceiptId;
-    const valid =
-      previous === undefined ||
-      (byId.has(previous) && validate(byId.get(previous), packetVersion, visiting));
-    visiting.delete(key);
-    cache.set(key, valid);
+  function validate(receipt, packetVersion) {
+    const path = [];
+    const visiting = new Set();
+    let current = receipt;
+    let valid = false;
+    while (current) {
+      const key = `${packetVersion}\0${current.receiptId}`;
+      if (cache.has(key)) {
+        valid = cache.get(key);
+        break;
+      }
+      if (visiting.has(key) || !matchesVersion(current, identity, packetVersion)) break;
+      visiting.add(key);
+      path.push(key);
+      if (current.previousReceiptId === undefined) {
+        valid = true;
+        break;
+      }
+      current = byId.get(current.previousReceiptId);
+    }
+    path.forEach(key => cache.set(key, valid));
     return valid;
   }
   return validate;

@@ -59,3 +59,16 @@ test('lineage keeps schema version one without enforcing receipt revision decrem
   assert.equal(correction.schemaVersion, 1);
   assert.equal(receiptStatus([root, correction], identity).receiptId, 'correction');
 });
+
+test('derives status from a deep valid lineage without overflowing the call stack', () => {
+  const chain = Array.from({ length: 8_000 }, (_, index) =>
+    receipt(`receipt_${index}`, {
+      ...(index > 0 ? { previousReceiptId: `receipt_${index - 1}` } : {}),
+    })
+  ).reverse();
+  let result;
+  assert.doesNotThrow(() => {
+    result = receiptStatus(chain, identity);
+  });
+  assert.equal(result.submissionStatus, 'submitted');
+});
