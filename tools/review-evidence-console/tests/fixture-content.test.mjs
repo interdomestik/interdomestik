@@ -13,11 +13,10 @@ const find = (items, id) => items.find(item => item.id === id);
 const keys = (items, id) => find(items, id).requiredResponses.map(entry => entry.key);
 const response = (items, id, key) =>
   find(items, id).requiredResponses.find(entry => entry.key === key);
-const evidence = 'docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md';
+const threatEvidence = 'docs/product/2026-07-11-mob-03a-targeted-threat-recheck.md';
 const suggestion = (concreteAnswer, reason, riskCategory, responses, useSessionDateFor) => ({
   concreteAnswer,
   reason,
-  evidenceRef: evidence,
   riskCategory,
   severity: 'high',
   responses,
@@ -41,7 +40,8 @@ const expectedSuggestions = {
     {
       acceptedMinimumFields: ['consentStatus', 'recordedAt', 'consentVersion'],
       additions: 'Asnjë shtesë pa autoritet të ri.',
-      excludedFields: 'Dokumente burimore dhe të dhëna mjekësore, ligjore private ose pagese.',
+      excludedFields:
+        'Evidencë e papërpunuar, identitet, përmbajtje dokumenti, nënshkrime, tekst personal, të dhëna mjekësore ose pagese.',
     }
   ),
   'M03A-ACCESS-ROLES': suggestion(
@@ -55,7 +55,7 @@ const expectedSuggestions = {
   ),
   'M03A-DOCUMENT-BOUNDARY': suggestion(
     'Shfaq vetëm metadata; mos shfaq përmbajtjen e dokumentit burimor.',
-    'Fixture-i duhet të ruajë kufirin e dokumenteve.',
+    'Kufiri i pranuar lejon vetëm gjendjen, kategorinë dhe datën e përditësimit.',
     'privacy',
     {
       allowedMetadata: ['state', 'category', 'updatedAt'],
@@ -63,28 +63,29 @@ const expectedSuggestions = {
     }
   ),
   'M03A-THREAT-RECHECK': suggestion(
-    'Rikontrollo qasjen, ruajtjen dhe zbulimin para çdo promovimi runtime.',
-    'Gate-i aktual e shënon provën e konsoliduar të kërcënimeve si të munguar.',
+    'Rikontrolli është clear për kufirin MK, jo-mjekësor dhe vetëm shfaqje.',
+    'Përmbajtja, lidhjet, storage, palët e jashtme dhe writer-at mbeten të përjashtuara.',
     'security',
     {
-      threatAreas: ['access', 'retention', 'disclosure'], recheckOutcome: 'stop',
-      threatRecheckEvidenceRef: evidence,
+      threatAreas: ['access', 'retention', 'disclosure'], recheckOutcome: 'clear',
+      threatRecheckEvidenceRef: threatEvidence,
     }
   ),
   'M03A-ERASURE-REVOCATION': suggestion(
-    'Fshih metadata-t pas fshirjes ose revokimit.',
-    'Të dhënat e revokuara nuk duhet të mbeten të dukshme.',
+    'Ruaj vetëm skeletin jo-sensitiv; fshih të dhënat e subjektit dhe lidhjet pas fshirjes ose revokimit.',
+    'Konteksti operacional mund të ruhet pa ekspozuar subjektin e fshirë ose pëlqimin e revokuar.',
     'privacy',
     { renderingRule: 'hide_metadata' }
   ),
   'M03A-SCOPE-STOPS': suggestion(
-    'Kufizo planifikimin te metadata jo-mjekësore për automjet dhe pronë.',
-    'Runtime, të dhënat sensitive dhe zgjerimi i autoritetit mbeten jashtë fixture-it.',
+    'Kufizo MOB-03a te baza Vault + Consent për automjet/pronë, vetëm MK dhe jo-mjekësore.',
+    'Scope-i i ngushtë shmang writer-at, sipërfaqet e mbrojtura dhe ekspozimin KS/AL.',
     'scope',
     {
-      allowedScope: 'Vetëm planifikim i shfaqjes së metadata-ve për automjet dhe pronë, pa runtime.',
+      allowedScope:
+        'Vetëm Interdomestik MK: bazë shfaqjeje Vault + Consent për automjet/pronë, jo-mjekësore.',
       excludedScope:
-        'Të dhëna mjekësore ose lëndimesh, dokumente burimore, auth, schema, RLS dhe shkrues runtime.',
+        'Mjekësore/lëndime; dokumente ose lidhje; writer/status; schema/RLS; auth/proxy; billing; palë të jashtme; KS/AL.',
       stopCondition: 'missing_authority',
     }
   ),
@@ -93,8 +94,9 @@ const expectedSuggestions = {
 test('ships exact normalized reviewer suggestions', async () => {
   const items = await loadItems();
   for (const [id, expected] of Object.entries(expectedSuggestions)) {
-    const { requestedChange, conditionalResponses, ...normalized } =
+    const { requestedChange, conditionalResponses, evidenceRef, ...normalized } =
       find(items, id).suggestedReview;
+    assert.ok(evidenceRef);
     assert.deepEqual(normalized, expected);
     assert.ok(requestedChange.trim());
   }

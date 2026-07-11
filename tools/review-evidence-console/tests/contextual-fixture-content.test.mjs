@@ -14,7 +14,7 @@ export const expectedRequestedChanges = {
   'M03A-DOCUMENT-BOUNDARY':
     'Shfaq vetëm metadata të lejuara dhe mos shfaq dokumentin burimor ose kategoritë e ndaluara.',
   'M03A-THREAT-RECHECK':
-    'Ndalo promovimin derisa rikontrolli i qasjes, ruajtjes dhe zbulimit të ketë evidencë të pranueshme.',
+    'Ndalo dhe rihap gate-in nëse kërkohet një sipërfaqe e përjashtuar nga targeted threat recheck.',
   'M03A-ERASURE-REVOCATION':
     'Fshih metadatat pas fshirjes ose revokimit; çdo gjendje e dukshme kërkon rregull të dokumentuar ruajtjeje.',
   'M03A-SCOPE-STOPS':

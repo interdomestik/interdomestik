@@ -65,7 +65,7 @@
   "suggestedReview": {
     "concreteAnswer": "Lejo vetëm metadata të kufizuara për anëtarin dhe rolin e brendshëm të rastit.",
     "reason": "Qasja për sponsorin, paguesin dhe palët e jashtme nuk ka autoritet të pranuar.",
-    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "evidenceRef": "docs/product/2026-07-09-mob-03a-authority-evidence-request-part-a.md",
     "riskCategory": "access",
     "severity": "high",
     "requestedChange": "Lejo vetëm rolet e mostrës dhe përjashto sponsorin, paguesin dhe palët e jashtme pa autoritet të ri.",

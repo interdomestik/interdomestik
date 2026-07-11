@@ -46,8 +46,8 @@
   ],
   "suggestedReview": {
     "concreteAnswer": "Shfaq vetëm metadata; mos shfaq përmbajtjen e dokumentit burimor.",
-    "reason": "Fixture-i duhet të ruajë kufirin e dokumenteve.",
-    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "reason": "Kufiri i pranuar lejon vetëm gjendjen, kategorinë dhe datën e përditësimit.",
+    "evidenceRef": "docs/product/2026-07-09-mob-03a-authority-evidence-request-part-b.md",
     "riskCategory": "privacy",
     "severity": "high",
     "requestedChange": "Shfaq vetëm metadata të lejuara dhe mos shfaq dokumentin burimor ose kategoritë e ndaluara.",

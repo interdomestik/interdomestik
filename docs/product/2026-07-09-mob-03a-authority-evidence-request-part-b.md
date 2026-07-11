@@ -7,6 +7,7 @@ last_reviewed: 2026-07-11
 related:
   - docs/product/2026-07-09-mob-03a-authority-evidence-request.md
   - docs/product/2026-07-11-mob-03a-owner-jurisdiction-attestation.md
+  - docs/product/2026-07-11-mob-03a-targeted-threat-recheck.md
 ---
 
 # MOB-03a Evidence Request Part B
@@ -52,33 +53,29 @@ content, link, identifier, or new category stops the slice for a new gate.
 
 ## 6. Threat Recheck
 
-Recommended decision: require a targeted threat recheck before promotion, even
-for non-medical scope, because this is member-facing document/consent behavior.
+Recommended decision: accept the targeted recheck for this exact non-medical,
+display-only boundary after the independent reviewer confirms it.
 
 Threat areas: document access; consent revocation; sponsor/payer visibility;
 erased-subject rendering; audit trail.
 
 Decision:
 
-- [ ] Approve with threat recheck required before runtime PR.
+- [ ] Approve the targeted threat recheck for this exact boundary.
 - [ ] Request change.
 - [ ] Block.
 
 Threat recheck evidence reference:
 
 ```text
-Baseline inputs pending independent recheck:
-- docs/plans/ent-tm03-authenticated-claim-evidence-uploads-threat-model-2026-06-06.md
-- docs/plans/ent-tm04-document-signed-urls-and-downloads-threat-model-2026-06-06.md
-- docs/plans/ent-tm05-share-packs-threat-model-2026-06-06.md
-- docs/security/storage-access-baseline.md
+docs/product/2026-07-11-mob-03a-targeted-threat-recheck.md
 ```
 
 Reason / notes:
 
 ```text
-Recommended default: require an independent targeted recheck before runtime
-promotion. The baseline references above do not by themselves complete it.
+Recommended default: clear for review only within the exact MK, non-medical,
+display-only boundary. Reopen the gate on any excluded-surface requirement.
 ```
 
 ## 7. Erasure / Revocation Rendering

@@ -45,16 +45,16 @@
     }
   ],
   "suggestedReview": {
-    "concreteAnswer": "Rikontrollo qasjen, ruajtjen dhe zbulimin para çdo promovimi runtime.",
-    "reason": "Gate-i aktual e shënon provën e konsoliduar të kërcënimeve si të munguar.",
-    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "concreteAnswer": "Rikontrolli është clear për kufirin MK, jo-mjekësor dhe vetëm shfaqje.",
+    "reason": "Përmbajtja, lidhjet, storage, palët e jashtme dhe writer-at mbeten të përjashtuara.",
+    "evidenceRef": "docs/product/2026-07-11-mob-03a-targeted-threat-recheck.md",
     "riskCategory": "security",
     "severity": "high",
-    "requestedChange": "Ndalo promovimin derisa rikontrolli i qasjes, ruajtjes dhe zbulimit të ketë evidencë të pranueshme.",
+    "requestedChange": "Ndalo dhe rihap gate-in nëse kërkohet një sipërfaqe e përjashtuar nga targeted threat recheck.",
     "responses": {
       "threatAreas": ["access", "retention", "disclosure"],
-      "recheckOutcome": "stop",
-      "threatRecheckEvidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md"
+      "recheckOutcome": "clear",
+      "threatRecheckEvidenceRef": "docs/product/2026-07-11-mob-03a-targeted-threat-recheck.md"
     },
     "useSessionDateFor": ["verifiedAt"]
   }

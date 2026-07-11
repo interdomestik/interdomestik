@@ -51,14 +51,14 @@
   "suggestedReview": {
     "concreteAnswer": "Prano vetëm metadata-t minimale të pëlqimit si kërkesë shqyrtimi.",
     "reason": "Fushat e pranuara nuk japin autoritet për schema ose runtime.",
-    "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
+    "evidenceRef": "docs/product/2026-07-09-mob-03a-authority-evidence-request-part-a.md",
     "riskCategory": "compliance",
     "severity": "high",
     "requestedChange": "Kufizo fushat te statusi, data dhe versioni i pëlqimit; çdo shtesë kërkon autoritet të ri.",
     "responses": {
       "acceptedMinimumFields": ["consentStatus", "recordedAt", "consentVersion"],
       "additions": "Asnjë shtesë pa autoritet të ri.",
-      "excludedFields": "Dokumente burimore dhe të dhëna mjekësore, ligjore private ose pagese."
+      "excludedFields": "Evidencë e papërpunuar, identitet, përmbajtje dokumenti, nënshkrime, tekst personal, të dhëna mjekësore ose pagese."
     },
     "useSessionDateFor": ["verifiedAt"]
   }
