@@ -1,23 +1,16 @@
 import { createRequire } from 'node:module';
-
 import { startConsoleServer } from '../server/start.mjs';
 import { waitForPersistedDraft } from './browser-draft-state.mjs';
-
 const requireFromWeb = createRequire(new URL('../../../apps/web/package.json', import.meta.url));
 const { expect, test } = requireFromWeb('@playwright/test');
-
-let origin;
-let server;
-
+let origin, server;
 test.beforeAll(async () => {
   server = await startConsoleServer({ port: 0 });
   origin = `http://127.0.0.1:${server.address().port}`;
 });
-
 test.afterAll(async () => {
   await new Promise(resolve => server.close(resolve));
 });
-
 test('loads complete fixture bundles under connect-src none without fetch or XHR', async ({
   page,
 }) => {
@@ -50,14 +43,12 @@ test('loads complete fixture bundles under connect-src none without fetch or XHR
       networkCalls: globalThis.fixtureNetworkCalls,
     };
   });
-
   expect(result).toEqual({
     bundleIds: ['mob-03a-part-a', 'mob-03a-part-b'],
     itemCounts: [4, 4],
     networkCalls: { fetch: 0, xhr: 0 },
   });
 });
-
 const noteText = 'Sugjerime të paraplotësuara — verifikoji dhe ndryshoji para dërgimit.';
 const items = [
   'M03A-PRIVACY-OWNER',
@@ -97,11 +88,23 @@ async function proveSuggestionFlow(page, viewport) {
   await expect(page.getByRole('note')).toHaveCount(1);
   expect(await page.locator('.decision-form input[type="radio"]:checked').count()).toBe(0);
   await expect(page.locator('#safe-evidence-confirmed')).not.toBeChecked();
+  await expect(page.locator('#response-ownerDisplayName')).toHaveValue('');
 
+  await page.locator('.decision-form input[type="radio"][value="change"]').check();
+  await expect(page.locator('#requestedChange')).toHaveValue(
+    'Emërto një pronar real të privatësisë ose ligjor dhe bashkëngjit evidencën e pranimit para promovimit.'
+  );
+  await page.locator('#requestedChange').fill('Ndryshim i redaktuar');
+  await expect(page.locator('#requestedChange')).toHaveValue('Ndryshim i redaktuar');
+  await page.locator('#requestedChange').fill('');
+  await page.locator('.decision-form input[type="radio"][value="approve"]').check();
+  await page.locator('.decision-form input[type="radio"][value="change"]').check();
+  await expect(page.locator('#requestedChange')).toHaveValue('');
   await page.locator('#concreteAnswer').fill('Përgjigjja finale e redaktuar');
   await page.locator('#reason').fill('');
   await openItem(page, items[1]);
   await page.locator('#response-medicalBoundary').selectOption('allowed');
+  await expect(page.locator('#response-dpiaRef')).toHaveValue('');
   await openItem(page, items[0]);
   await waitForPersistedDraft(page, items);
   await page.reload();

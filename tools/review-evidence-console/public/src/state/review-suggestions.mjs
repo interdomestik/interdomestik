@@ -1,4 +1,9 @@
-const VERSION = 1;
+import {
+  initializeContextualNoteState,
+  SUGGESTION_VERSION,
+} from './contextual-note-state.mjs';
+
+const VERSION = SUGGESTION_VERSION;
 const SUGGESTED_FIELDS = [
   'concreteAnswer',
   'reason',
@@ -76,17 +81,34 @@ export function initializeSuggestedDecisions(
     throw new TypeError('Review bundle is required for suggestion initialization.');
   }
   if (!applySuggestions) {
-    return { ...clone(draft ?? {}), suggestionVersion: VERSION, decisions: withoutSuggestions(bundle, draft) };
+    return {
+      ...clone(draft ?? {}),
+      suggestionVersion: VERSION,
+      decisions: withoutSuggestions(bundle, draft),
+      contextualNoteState: initializeContextualNoteState(bundle, draft),
+    };
   }
   if (
     draft &&
     Object.hasOwn(draft, 'suggestionVersion') &&
-    draft.suggestionVersion !== VERSION
+    ![1, VERSION].includes(draft.suggestionVersion)
   ) {
     throw new TypeError('Unsupported suggestion version.');
   }
   if (draft?.suggestionVersion === VERSION) {
-    return { ...clone(draft), decisions: clone(sourceDecisions(draft)) };
+    return {
+      ...clone(draft),
+      decisions: clone(sourceDecisions(draft)),
+      contextualNoteState: initializeContextualNoteState(bundle, draft),
+    };
+  }
+  if (draft?.suggestionVersion === 1) {
+    return {
+      ...clone(draft),
+      suggestionVersion: VERSION,
+      decisions: clone(sourceDecisions(draft)),
+      contextualNoteState: initializeContextualNoteState(bundle, draft),
+    };
   }
   const sessionDate = getLocalDate?.();
   if (!validCalendarDate(sessionDate)) {
@@ -104,5 +126,10 @@ export function initializeSuggestedDecisions(
       ];
     })
   );
-  return { ...clone(draft ?? {}), suggestionVersion: VERSION, decisions };
+  return {
+    ...clone(draft ?? {}),
+    suggestionVersion: VERSION,
+    decisions,
+    contextualNoteState: initializeContextualNoteState(bundle, draft),
+  };
 }

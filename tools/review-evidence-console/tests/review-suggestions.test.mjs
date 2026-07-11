@@ -13,7 +13,8 @@ test('fresh state applies every allowed suggestion once without manual controls'
   const result = initializeSuggestedDecisions(suggestionBundle(), undefined, {
     getLocalDate: localDate(counter),
   });
-  assert.equal(result.suggestionVersion, 1);
+  assert.equal(result.suggestionVersion, 2);
+  assert.equal(result.contextualNoteState.item_a.requestedChange.status, 'unseen');
   assert.equal(counter.calls, 1);
   for (const decision of Object.values(result.decisions)) {
     assert.match(decision.concreteAnswer, /^Answer for item_/);
@@ -51,7 +52,7 @@ test('legacy draft fills absent own fields and nested responses only', () => {
     getLocalDate: localDate(counter),
   });
   assert.equal(counter.calls, 1);
-  assert.equal(result.suggestionVersion, 1);
+  assert.equal(result.suggestionVersion, 2);
   assert.equal(result.decisions.item_a.concreteAnswer, '');
   assert.equal(result.decisions.item_a.reason, 'Reason for item_a.');
   assert.equal(result.decisions.item_a.responses.ownerRole, '');
@@ -66,7 +67,7 @@ test('suggestion bypass initializes only version metadata and never reads the da
     getLocalDate: localDate(counter),
   });
   assert.equal(counter.calls, 0);
-  assert.equal(result.suggestionVersion, 1);
+  assert.equal(result.suggestionVersion, 2);
   assert.equal(result.decisions.item_a.concreteAnswer, '');
   assert.deepEqual(result.decisions.item_a.responses, {});
 });
@@ -75,7 +76,7 @@ test('unsupported owned suggestion version fails before reading the date', () =>
   const counter = { calls: 0 };
   assert.throws(
     () =>
-      initializeSuggestedDecisions(suggestionBundle(), storedDraft({ suggestionVersion: 2 }), {
+      initializeSuggestedDecisions(suggestionBundle(), storedDraft({ suggestionVersion: 3 }), {
         getLocalDate: localDate(counter),
       }),
     /version/i
