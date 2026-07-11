@@ -19,7 +19,7 @@ const packet = {
   ],
 };
 
-function setup() {
+function setup(packetOverride = packet) {
   const base = makeStorage();
   let failStorage = false;
   const storage = {
@@ -42,7 +42,7 @@ function setup() {
   const navigations = [];
   const loaders = createReviewRouteLoaders({
     repository: {
-      loadAssignmentBundle: async () => ({ ok: true, value: { packet } }),
+      loadAssignmentBundle: async () => ({ ok: true, value: { packet: packetOverride } }),
     },
     isCurrent: token => token === 1,
     render: (content, role, focus) => renders.push({ content, focus }),
@@ -76,6 +76,34 @@ test('focuses receipt then correction headings on deliberate view changes', asyn
   );
   button.listeners.click();
   assert.equal(context.renders.at(-1).focus, 'correction-heading');
+});
+
+test('returns from a completed Part A receipt to the packet list', async () => {
+  const context = setup();
+  const receipt = await buildReceipt({ ...receiptInput, submittedAt });
+  await context.loaders.receiptStore.save(receipt);
+  await context.loaders.receipt({ name: 'receipt', receiptId: receipt.receiptId }, 1);
+  const button = nodes(context.renders.at(-1).content).find(
+    node =>
+      node.tagName === 'BUTTON' && copy(node).trim() === 'Kthehu te paketat — vazhdo me Pjesën B'
+  );
+  assert.ok(button, 'receipt should expose a return-to-packets action');
+  button.listeners.click();
+  assert.deepEqual(context.navigations, [{ name: 'inbox' }]);
+});
+
+test('returns from a completed Part B receipt with the generic label', async () => {
+  const partB = { ...packet, id: 'mob-03a-part-b' };
+  const context = setup(partB);
+  const receipt = await buildReceipt({ ...receiptInput, packetId: partB.id, submittedAt });
+  await context.loaders.receiptStore.save(receipt);
+  await context.loaders.receipt({ name: 'receipt', receiptId: receipt.receiptId }, 1);
+  const button = nodes(context.renders.at(-1).content).find(
+    node => node.tagName === 'BUTTON' && copy(node).trim() === 'Kthehu te paketat'
+  );
+  assert.ok(button);
+  button.listeners.click();
+  assert.deepEqual(context.navigations, [{ name: 'inbox' }]);
 });
 
 test('keeps receipt visible and reports delete and export storage failures', async () => {

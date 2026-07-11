@@ -52,10 +52,16 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
     };
     const onClear = id => {
       if (!confirmClearReceipt(id)) return;
-      clearReceipt({ id, store: receiptStore, current, navigate, onError: error => {
-        routeError = error;
-        draw();
-      }});
+      clearReceipt({
+        id,
+        store: receiptStore,
+        current,
+        navigate,
+        onError: error => {
+          routeError = error;
+          draw();
+        },
+      });
     };
     const onCorrect = () => {
       correcting = true;
@@ -98,6 +104,11 @@ export function createReviewRouteLoaders({ repository, render, navigate, isCurre
           importNotice: imported.has(route.receiptId)
             ? 'Lexohet në këtë pajisje; nuk ngarkohet kurrë'
             : '',
+          backLabel:
+            loaded.value.packetId === 'mob-03a-part-a'
+              ? 'Kthehu te paketat — vazhdo me Pjesën B'
+              : 'Kthehu te paketat',
+          onBack: () => navigate({ name: 'inbox' }),
           onExport,
           onClear,
           onCorrect,

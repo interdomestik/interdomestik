@@ -94,3 +94,12 @@ test('renders complete correction lineage metadata', async () => {
   for (const value of [first.receiptId, 'item_a', 'Clarify boundary.', 'Improves auditability.'])
     assert.match(content, new RegExp(value));
 });
+
+test('omits the return action when no navigation handler is supplied', async () => {
+  const receipt = await buildReceipt({ ...receiptInput, submittedAt });
+  const node = renderReceipt({ receipt, packet });
+  assert.equal(
+    walk(node).some(entry => entry.tagName === 'BUTTON' && copy(entry).includes('Kthehu')),
+    false
+  );
+});

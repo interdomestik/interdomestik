@@ -14,9 +14,10 @@ export function importedReceiptMatchesPacket(receipt, packet, validateContent = 
   const hasValidationContract = packet.items?.every(item => Array.isArray(item.baseFields));
   if (!validateContent || !hasValidationContract) return true;
   const decisions = Object.fromEntries(
-    itemIds.map(id => ({
-      [id]: { ...receipt.decisions[id], responses: receipt.structuredResponses[id] },
-    }))
+    itemIds.map(id => [
+      id,
+      { ...receipt.decisions[id], responses: receipt.structuredResponses[id] },
+    ])
   );
   return validatePacket(packet, decisions, true).valid;
 }
