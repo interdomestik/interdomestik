@@ -97,9 +97,53 @@ test('renders complete correction lineage metadata', async () => {
 
 test('omits the return action when no navigation handler is supplied', async () => {
   const receipt = await buildReceipt({ ...receiptInput, submittedAt });
-  const node = renderReceipt({ receipt, packet });
+  const node = renderReceipt({ receipt, packet, onSaveDirectory() {} });
   assert.equal(
     walk(node).some(entry => entry.tagName === 'BUTTON' && copy(entry).includes('Kthehu')),
     false
   );
+  const liveRegion = walk(node).find(entry => entry.attributes.role === 'status');
+  assert.ok(liveRegion);
+  assert.equal(copy(liveRegion).trim(), '');
+  assert.equal(liveRegion.attributes['aria-live'], 'polite');
+  assert.equal(liveRegion.attributes['aria-atomic'], 'true');
+});
+
+test('renders a direct private-inbox action and its latest result', async () => {
+  const receipt = await buildReceipt({ ...receiptInput, submittedAt });
+  let saves = 0;
+  const node = renderReceipt({
+    receipt,
+    packet,
+    onSaveDirectory: () => {
+      saves += 1;
+    },
+    directoryResult: { ok: true, message: 'Receipt-i u ruajt në inbox-in privat.' },
+  });
+  const button = walk(node).find(
+    entry => entry.tagName === 'BUTTON' && copy(entry).includes('Ruaj në inbox privat')
+  );
+  assert.ok(button);
+  button.listeners.click();
+  assert.equal(saves, 1);
+  assert.match(copy(node), /Receipt-i u ruajt në inbox-in privat/);
+  const children = node.childNodes.filter(Boolean);
+  const buttonIndex = children.indexOf(button);
+  assert.equal(children[buttonIndex + 1].attributes.role, 'status');
+});
+
+test('announces a private-inbox failure as an alert next to its action', async () => {
+  const receipt = await buildReceipt({ ...receiptInput, submittedAt });
+  const node = renderReceipt({
+    receipt,
+    packet,
+    onSaveDirectory() {},
+    directoryResult: { ok: false, message: 'Ruajtja dështoi.' },
+  });
+  const children = node.childNodes.filter(Boolean);
+  const buttonIndex = children.findIndex(
+    entry => entry.tagName === 'BUTTON' && copy(entry).includes('Ruaj në inbox privat')
+  );
+  assert.equal(children[buttonIndex + 1].attributes.role, 'alert');
+  assert.match(copy(children[buttonIndex + 1]), /Ruajtja dështoi/);
 });

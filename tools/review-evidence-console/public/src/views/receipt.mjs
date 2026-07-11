@@ -1,12 +1,10 @@
 import { element, text } from '../components/dom.mjs';
 import { displayDecision, displayRisk, displaySeverity } from '../components/display-labels.mjs';
 import { renderReceiptResponses } from './receipt-responses.mjs';
-
 function row(label, value) {
   const values = Array.isArray(value) ? value : [typeof value === 'string' ? text(value) : value];
   return element('p', {}, [element('strong', {}, [text(`${label}: `)]), ...values]);
 }
-
 function audit(value) {
   return element('code', { attributes: { lang: 'en' } }, [text(value)]);
 }
@@ -48,6 +46,8 @@ export function renderReceipt({
   importNotice,
   backLabel = 'Kthehu te paketat',
   onBack,
+  onSaveDirectory,
+  directoryResult,
   onExport,
   onCorrect,
   onClear,
@@ -110,6 +110,30 @@ export function renderReceipt({
           packet?.items.find(item => item.id === id)
         )
       ),
+      typeof onSaveDirectory === 'function'
+        ? element(
+            'button',
+            {
+              attributes: { class: 'secondary-action', type: 'button' },
+              on: { click: onSaveDirectory },
+            },
+            [text('Ruaj në inbox privat')]
+          )
+        : null,
+      typeof onSaveDirectory === 'function'
+        ? element(
+            'p',
+            {
+              attributes: {
+                class: 'local-only-notice',
+                role: directoryResult?.ok === false ? 'alert' : 'status',
+                'aria-live': directoryResult?.ok === false ? 'assertive' : 'polite',
+                'aria-atomic': 'true',
+              },
+            },
+            [text(directoryResult?.message ?? '')]
+          )
+        : null,
       element('button', { attributes: { type: 'button' }, on: { click: () => onExport?.() } }, [
         text('Eksporto JSON'),
       ]),
