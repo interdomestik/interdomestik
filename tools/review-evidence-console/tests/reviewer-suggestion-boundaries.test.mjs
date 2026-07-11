@@ -10,7 +10,8 @@ import { bundle } from './review-session-fixtures.mjs';
 import { makeStorage, receiptInput, submittedAt, withReceiptId } from './state-fixtures.mjs';
 
 const forbidden = ['suggestionVersion', 'suggestedReview', 'useSessionDateFor'];
-const noteText = 'Sugjerime të paraplotësuara — verifikoji dhe ndryshoji para dërgimit.';
+const noteText =
+  'Disa shënime janë sugjeruar për ta përshpejtuar shqyrtimin; mund t’i ndryshoni ose t’i hiqni.';
 const metadata = Object.fromEntries(
   [
     'packetId',

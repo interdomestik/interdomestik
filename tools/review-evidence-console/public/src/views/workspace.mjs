@@ -49,7 +49,9 @@ export function renderWorkspace({
         ]
       ),
       element('p', { attributes: { class: 'reviewer-suggestion-note', role: 'note' } }, [
-        text('Sugjerime të paraplotësuara — verifikoji dhe ndryshoji para dërgimit.'),
+        text(
+          'Disa shënime janë sugjeruar për ta përshpejtuar shqyrtimin; mund t’i ndryshoni ose t’i hiqni.'
+        ),
       ]),
       renderDecision({
         item,

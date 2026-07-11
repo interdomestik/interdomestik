@@ -49,14 +49,14 @@ test('loads complete fixture bundles under connect-src none without fetch or XHR
     networkCalls: { fetch: 0, xhr: 0 },
   });
 });
-const noteText = 'Sugjerime të paraplotësuara — verifikoji dhe ndryshoji para dërgimit.';
+const noteText =
+  'Disa shënime janë sugjeruar për ta përshpejtuar shqyrtimin; mund t’i ndryshoni ose t’i hiqni.';
 const items = [
   'M03A-PRIVACY-OWNER',
   'M03A-MEDICAL-BOUNDARY',
   'M03A-CONSENT-FIELDS',
   'M03A-ACCESS-ROLES',
 ];
-
 async function fillEmptyRequiredFields(page) {
   const fields = page.locator('.decision-form input[required], .decision-form textarea[required]');
   for (let index = 0; index < (await fields.count()); index += 1) {
@@ -110,7 +110,7 @@ async function proveSuggestionFlow(page, viewport) {
   await page.reload();
   await expect(page.locator('#concreteAnswer')).toHaveValue('Përgjigjja finale e redaktuar');
   await expect(page.locator('#reason')).toHaveValue('');
-  expect(await page.locator('.decision-form input[type="radio"]:checked').count()).toBe(0);
+  await expect(page.locator('.decision-form input[type="radio"][value="change"]')).toBeChecked();
   await expect(page.locator('#safe-evidence-confirmed')).not.toBeChecked();
   await page.locator('#reason').fill('Arsyeja finale e shqyrtuesit');
 

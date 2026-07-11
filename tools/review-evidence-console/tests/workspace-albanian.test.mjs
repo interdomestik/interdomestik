@@ -22,9 +22,7 @@ const headings = new Map([
 test('renders all eight Albanian headings beside unchanged copyable IDs', async () => {
   const repository = createFixtureRepository();
   const bundles = await Promise.all(
-    ['assign_mob03a_part_a', 'assign_mob03a_part_b'].map(id =>
-      repository.loadAssignmentBundle(id)
-    )
+    ['assign_mob03a_part_a', 'assign_mob03a_part_b'].map(id => repository.loadAssignmentBundle(id))
   );
   for (const { value: bundle } of bundles) {
     for (const item of bundle.packet.items) {
@@ -57,6 +55,20 @@ test('renders Albanian enum labels before canonical English audit codes', async 
   assert.match(copy(view), /Mirato.*approve/s);
   assert.match(copy(view), /Përjashto.*excluded/s);
   assert.match(copy(view), /E lartë.*high/s);
+});
+
+test('explains that suggested notes remain editable and removable', async () => {
+  const repository = createFixtureRepository();
+  const { value: bundle } = await repository.loadAssignmentBundle('assign_mob03a_part_a');
+  const view = renderWorkspace({
+    bundle,
+    state: stateFor(bundle, bundle.packet.itemIds[0]),
+    safeEvidenceConfirmed: false,
+  });
+  assert.match(
+    copy(view),
+    /Disa shënime janë sugjeruar për ta përshpejtuar shqyrtimin; mund t’i ndryshoni ose t’i hiqni\./
+  );
 });
 
 function stateFor(bundle, activeItem, selected = false) {
