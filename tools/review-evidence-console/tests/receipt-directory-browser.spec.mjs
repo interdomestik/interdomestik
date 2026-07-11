@@ -46,7 +46,12 @@ test('submit synchronously picks a directory, stores canonical receipt, writes o
   await expect(partA.locator('time')).toHaveAttribute('datetime', receipt.submittedAt);
   await expect(partA.locator('code', { hasText: receipt.receiptId })).toBeVisible();
   await expect(partB.locator('[data-status="next-action"]')).toHaveText('Hapi i radhës');
-  await partA.getByRole('button', { name: /Shiko vërtetimin/ }).click();
+  await partA
+    .getByRole('button', {
+      name: 'Shiko vërtetimin — mob-03a-part-a — assign_mob03a_part_a',
+      exact: true,
+    })
+    .click();
   await expect(page).toHaveURL(`${origin}/#/receipt/${receipt.receiptId}`);
 });
 

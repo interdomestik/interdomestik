@@ -50,7 +50,7 @@ function assignmentCard(assignment, onOpen, onOpenReceipt, onImport) {
       type: 'file',
       accept: 'application/json,.json',
       'aria-describedby': helpId,
-      'aria-label': `Importo vërtetimin lokal JSON — ${assignment.packetId}`,
+      'aria-label': `Importo vërtetimin lokal JSON — ${assignment.packetId} — ${assignment.id}`,
     },
     on: { change: event => event.target.files?.[0] && onImport(assignment, event.target.files[0]) },
   });
@@ -75,7 +75,7 @@ function assignmentCard(assignment, onOpen, onOpenReceipt, onImport) {
         attributes: {
           class: 'primary-action',
           type: 'button',
-          'aria-label': `${action} — ${assignment.packetId}`,
+          'aria-label': `${action} — ${assignment.packetId} — ${assignment.id}`,
         },
         on: { click: open },
       },

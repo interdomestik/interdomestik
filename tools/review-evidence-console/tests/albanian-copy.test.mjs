@@ -39,7 +39,7 @@ test('uses visible Albanian action text as the accessible action name', () => {
     ],
   });
   const button = walk(inbox).find(node => node.tagName === 'BUTTON');
-  assert.equal(button.attributes['aria-label'], `${copy(button).trim()} — packet_a`);
+  assert.equal(button.attributes['aria-label'], `${copy(button).trim()} — packet_a — assign_a`);
   assert.match(copy(inbox), /Importo vërtetimin lokal JSON/);
   assert.match(copy(inbox), /Lexohet në këtë pajisje; nuk ngarkohet kurrë/);
 });

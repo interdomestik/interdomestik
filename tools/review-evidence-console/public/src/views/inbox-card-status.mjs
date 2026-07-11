@@ -27,7 +27,7 @@ export function submissionDetails(assignment) {
       element('span', { attributes: { class: 'submission-status' } }, [
         text('Dorëzuar më: '),
         element('time', { attributes: { datetime: assignment.submittedAt } }, [
-          text(`${formatSubmittedAt(assignment.submittedAt)} — Ora e Evropës Qendrore`),
+          text(`${formatSubmittedAt(assignment.submittedAt)} — Ora lokale e Shkupit`),
         ]),
       ]),
       element('span', { attributes: { class: 'submission-status' } }, [
