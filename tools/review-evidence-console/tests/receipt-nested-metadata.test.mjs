@@ -6,7 +6,13 @@ import { createReviewSession } from '../public/src/state/review-session.mjs';
 import { bundle, priorReceipt } from './review-session-fixtures.mjs';
 import { makeStorage, receiptInput, submittedAt, withReceiptId } from './state-fixtures.mjs';
 
-const forbidden = ['suggestionVersion', 'suggestedReview', 'useSessionDateFor'];
+const forbidden = [
+  'suggestionVersion',
+  'suggestedReview',
+  'useSessionDateFor',
+  'contextualNoteState',
+  'retainedSidecar',
+];
 const contextualSidecars = ['contextualNoteState', 'statuses', 'retainedSidecar'];
 const metadata = Object.fromEntries(
   [
@@ -41,6 +47,10 @@ mutations.push({
       '{"__proto__":{"suggestedReview":{"source":"suggestion"}}}'
     );
   },
+});
+mutations.push({
+  label: 'decision.unknownMetadata',
+  apply: receipt => (receipt.decisions.item_a.unknownMetadata = 'not canonical'),
 });
 
 async function poisonedReceipt(apply, source = buildReceipt({ ...receiptInput, submittedAt })) {

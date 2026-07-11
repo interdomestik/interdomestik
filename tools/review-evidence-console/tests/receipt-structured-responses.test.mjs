@@ -85,6 +85,17 @@ test('keeps structured responses separate from decision sidecar state', async ()
   assert.equal(Object.hasOwn(receipt.decisions.item_a, 'statuses'), false);
 });
 
+test('preserves legitimate structured response status fields recursively', async () => {
+  const input = structuredClone(receiptInput);
+  input.structuredResponses.item_a = {
+    status: 'reviewed',
+    workflow: { statuses: ['ready', 'verified'] },
+  };
+  const receipt = await buildReceipt({ ...input, submittedAt });
+  assert.deepEqual(receipt.structuredResponses.item_a, input.structuredResponses.item_a);
+  assert.equal((await buildReceipt({ ...input, submittedAt })).receiptId, receipt.receiptId);
+});
+
 async function structuredReceipt() {
   return buildReceipt({
     ...receiptInput,

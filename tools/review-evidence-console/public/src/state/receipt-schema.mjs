@@ -1,11 +1,14 @@
 import { aggregateRisk } from './risk-summary.mjs';
+import {
+  containsContextualMetadata,
+  hasCanonicalDecisionKeys,
+} from './receipt-canonicalization.mjs';
 import { failure, isIsoDate, isRecord } from './storage-results.mjs';
 
 const ID = /^rec_[a-f0-9]{24}$/;
 const SEVERITIES = new Set(['none', 'low', 'medium', 'high']);
 const DECISION_SEVERITIES = new Set(['low', 'medium', 'high']);
 const DECISIONS = new Set(['approve', 'change', 'block']);
-const FORBIDDEN_METADATA = new Set(['suggestionVersion', 'suggestedReview', 'useSessionDateFor']);
 const CORRECTION_FIELDS = [
   'previousReceiptId',
   'correctionItemId',
@@ -23,17 +26,9 @@ const requiredStrings = [
   'authorityDisclaimer',
 ];
 
-function containsForbiddenOwnKey(value, seen = new WeakSet()) {
-  if (value === null || typeof value !== 'object' || seen.has(value)) return false;
-  seen.add(value);
-  return Object.keys(value).some(
-    key => FORBIDDEN_METADATA.has(key) || containsForbiddenOwnKey(value[key], seen)
-  );
-}
-
 export function validateReceipt(receipt, schemaVersion) {
   if (!isRecord(receipt)) return failure('invalid_data', 'Vërtetimi duhet të jetë objekt.');
-  if (containsForbiddenOwnKey(receipt)) {
+  if (containsContextualMetadata(receipt)) {
     return failure('invalid_data', 'Vërtetimi përmban metadata sugjerimesh jo-kanonike.');
   }
   if (receipt.schemaVersion !== schemaVersion) {
@@ -66,6 +61,7 @@ export function validateReceipt(receipt, schemaVersion) {
   for (const decision of Object.values(receipt.decisions)) {
     if (
       !isRecord(decision) ||
+      !hasCanonicalDecisionKeys(decision) ||
       !DECISIONS.has(decision.decision) ||
       !DECISION_SEVERITIES.has(decision.severity) ||
       typeof decision.riskCategory !== 'string' ||

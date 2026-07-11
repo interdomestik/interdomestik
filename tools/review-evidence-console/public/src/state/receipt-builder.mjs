@@ -1,4 +1,5 @@
 import { canonicalStringify } from './canonical-json.mjs';
+import { canonicalDecisions, canonicalStructuredResponses } from './receipt-canonicalization.mjs';
 import { validateReceipt } from './receipt-schema.mjs';
 import { aggregateRisk } from './risk-summary.mjs';
 import { failure } from './storage-results.mjs';
@@ -16,55 +17,6 @@ const LINEAGE_FIELDS = [
   'reviewerDisplayName',
   'authorityDisclaimer',
 ];
-const DECISION_FIELDS = [
-  'decision',
-  'concreteAnswer',
-  'reason',
-  'evidenceRef',
-  'verifiedAt',
-  'riskCategory',
-  'severity',
-];
-const SIDECAR_FIELDS = new Set([
-  'contextualNoteState',
-  'retainedSidecar',
-  'statuses',
-  'status',
-  'suggestedReview',
-  'suggestionVersion',
-  'useSessionDateFor',
-]);
-
-function canonicalDecision(decision = {}) {
-  const canonical = Object.fromEntries(
-    DECISION_FIELDS.filter(field => decision[field] !== undefined).map(field => [
-      field,
-      decision[field],
-    ])
-  );
-  const requestedChange = decision.requestedChange?.trim();
-  if (['change', 'block'].includes(decision.decision) && requestedChange) {
-    canonical.requestedChange = requestedChange;
-  }
-  return canonical;
-}
-
-function canonicalDecisions(decisions = {}) {
-  return Object.fromEntries(
-    Object.entries(decisions).map(([itemId, decision]) => [itemId, canonicalDecision(decision)])
-  );
-}
-
-function pruneSidecars(value) {
-  if (Array.isArray(value)) return value.map(pruneSidecars);
-  if (!value || typeof value !== 'object') return value;
-  return Object.fromEntries(
-    Object.entries(value)
-      .filter(([key]) => !SIDECAR_FIELDS.has(key))
-      .map(([key, nested]) => [key, pruneSidecars(nested)])
-  );
-}
-
 function deepFreeze(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
     Object.freeze(value);
@@ -109,7 +61,7 @@ export async function buildReceipt(input, { now = () => new Date().toISOString()
     packetRole: input.packetRole,
     authorityDisclaimer: input.authorityDisclaimer,
     decisions,
-    structuredResponses: pruneSidecars(input.structuredResponses),
+    structuredResponses: canonicalStructuredResponses(input.structuredResponses),
     submittedAt,
     receiptVersion: previous ? previous.receiptVersion + 1 : 1,
     riskSummary: aggregateRisk(Object.values(decisions)),
