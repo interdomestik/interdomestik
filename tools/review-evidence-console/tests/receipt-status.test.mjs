@@ -74,3 +74,70 @@ test('does not treat an invalid current correction as stale evidence', () => {
   });
   assert.deepEqual(receiptStatus([invalid], identity), { submissionStatus: null });
 });
+
+test('does not treat future or opaque versions as older evidence', () => {
+  for (const packetVersion of ['4', 'draft']) {
+    const evidence = receipt(`receipt_${packetVersion}`, '2026-07-10T00:00:00Z', {
+      packetVersion,
+    });
+    assert.deepEqual(receiptStatus([evidence], identity), { submissionStatus: null });
+  }
+});
+
+test('requires valid lineage before stale corrections trigger review', () => {
+  const cases = [
+    [
+      receipt('orphan', '2026-07-10T00:00:00Z', {
+        packetVersion: '2',
+        previousReceiptId: 'missing',
+      }),
+    ],
+    [
+      receipt('cycle_a', '2026-07-10T00:00:00Z', {
+        packetVersion: '2',
+        previousReceiptId: 'cycle_b',
+      }),
+      receipt('cycle_b', '2026-07-10T00:00:01Z', {
+        packetVersion: '2',
+        previousReceiptId: 'cycle_a',
+      }),
+    ],
+    [
+      receipt('other_root', '2026-07-09T00:00:00Z', {
+        packetVersion: '2',
+        assignmentId: 'assign_b',
+      }),
+      receipt('cross_identity', '2026-07-10T00:00:00Z', {
+        packetVersion: '2',
+        previousReceiptId: 'other_root',
+      }),
+    ],
+    [
+      receipt('future_root', '2026-07-09T00:00:00Z', { packetVersion: '4' }),
+      receipt('cross_version', '2026-07-10T00:00:00Z', {
+        packetVersion: '2',
+        previousReceiptId: 'future_root',
+      }),
+    ],
+  ];
+  for (const evidence of cases) {
+    assert.deepEqual(receiptStatus(evidence, identity), { submissionStatus: null });
+  }
+});
+
+test('accepts valid older roots and correction lineage for numeric and dotted versions', () => {
+  const root = receipt('old_root', '2026-07-09T00:00:00Z', { packetVersion: '2' });
+  const correction = receipt('old_correction', '2026-07-10T00:00:00Z', {
+    packetVersion: '2',
+    previousReceiptId: 'old_root',
+  });
+  assert.equal(receiptStatus([root], identity).submissionStatus, 'review_required');
+  assert.equal(receiptStatus([root, correction], identity).submissionStatus, 'review_required');
+  const dottedIdentity = { ...identity, packetVersion: '3.2' };
+  const dottedOlder = receipt('dotted', '2026-07-10T00:00:00Z', { packetVersion: '3.1' });
+  const dottedFuture = receipt('dotted_future', '2026-07-10T00:00:00Z', {
+    packetVersion: '3.10',
+  });
+  assert.equal(receiptStatus([dottedOlder], dottedIdentity).submissionStatus, 'review_required');
+  assert.equal(receiptStatus([dottedFuture], dottedIdentity).submissionStatus, null);
+});
