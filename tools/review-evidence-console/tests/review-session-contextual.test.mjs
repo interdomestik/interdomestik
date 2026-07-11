@@ -49,6 +49,28 @@ test('version-2 drafts round-trip custom, blank, and default behavior', () => {
   }
 });
 
+test('restored unseen or suggested state never overwrites nonempty reviewer text', () => {
+  for (const status of ['unseen', 'suggested']) {
+    const draft = structuredClone(createReviewSession(bundle).getSnapshot());
+    draft.decisions.item_a.requestedChange = 'Existing reviewer text';
+    draft.contextualNoteState.item_a.requestedChange = { status };
+    const snapshot = createReviewSession(bundle, draft).setDecision('item_a', 'change');
+    assert.equal(snapshot.decisions.item_a.requestedChange, 'Existing reviewer text');
+    assert.deepEqual(snapshot.contextualNoteState.item_a.requestedChange, {
+      status: 'custom', value: 'Existing reviewer text',
+    });
+  }
+});
+
+test('restored recommendation text may remain suggested', () => {
+  const draft = structuredClone(createReviewSession(bundle).getSnapshot());
+  draft.decisions.item_a.requestedChange = recommendation;
+  draft.contextualNoteState.item_a.requestedChange = { status: 'unseen' };
+  const snapshot = createReviewSession(bundle, draft).setDecision('item_a', 'block');
+  assert.equal(snapshot.decisions.item_a.requestedChange, recommendation);
+  assert.deepEqual(snapshot.contextualNoteState.item_a.requestedChange, { status: 'suggested' });
+});
+
 test('failed contextual field transition is atomic and silent', () => {
   let changes = 0;
   const session = createReviewSession(bundle, undefined, { onChange: () => changes++ });

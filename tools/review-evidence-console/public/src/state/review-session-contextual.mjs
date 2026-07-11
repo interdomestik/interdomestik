@@ -14,6 +14,19 @@ function contextualPath(state, itemId, path) {
 
 export function transitionDecision(state, item, decision) {
   if (!['change', 'block'].includes(decision)) return state;
+  const current = state.decisions[item.id].requestedChange;
+  if (current.trim() !== '') {
+    return {
+      ...state,
+      contextualNoteState: setContextualNote(
+        state.contextualNoteState,
+        item.id,
+        'requestedChange',
+        current,
+        { suggestion: recommendation(item, 'requestedChange'), maxLength: 1000 }
+      ),
+    };
+  }
   const result = setContextualNoteActive(
     state.contextualNoteState,
     item.id,
