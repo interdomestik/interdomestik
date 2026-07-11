@@ -15,29 +15,34 @@ export function createReceiptDirectoryWriter({
   let directory;
   let directoryPromise;
 
-  async function selectDirectory() {
-    if (directory) return { ok: true, value: directory };
+  async function requestDirectory() {
     if (typeof pickDirectory !== 'function') {
       return failure(
         'unsupported',
         'Ky browser nuk e mbështet inbox-in privat. Përdor Eksporto JSON.'
       );
     }
-    try {
-      directoryPromise ??= pickDirectory(PICKER_OPTIONS);
-      directory = await directoryPromise;
-      directoryPromise = undefined;
-      return { ok: true, value: directory };
-    } catch (error) {
-      directoryPromise = undefined;
-      const cancelled = error?.name === 'AbortError';
-      return failure(
-        cancelled ? 'cancelled' : 'permission_failed',
-        cancelled
-          ? 'Zgjedhja e inbox-it privat u anulua. Receipt-i nuk u ruajt.'
-          : 'Inbox-i privat nuk mund të hapej. Përdor Eksporto JSON.'
-      );
-    }
+    directoryPromise ??= (async () => {
+      try {
+        directory = await pickDirectory(PICKER_OPTIONS);
+        return { ok: true, value: directory };
+      } catch (error) {
+        const cancelled = error?.name === 'AbortError';
+        return failure(
+          cancelled ? 'cancelled' : 'permission_failed',
+          cancelled
+            ? 'Zgjedhja e inbox-it privat u anulua. Receipt-i nuk u ruajt.'
+            : 'Inbox-i privat nuk mund të hapej. Përdor Eksporto JSON.'
+        );
+      } finally {
+        directoryPromise = undefined;
+      }
+    })();
+    return directoryPromise;
+  }
+
+  function selectDirectory() {
+    return directory ? Promise.resolve({ ok: true, value: directory }) : requestDirectory();
   }
 
   async function save(receipt) {
@@ -64,5 +69,5 @@ export function createReceiptDirectoryWriter({
     }
   }
 
-  return { save, supported };
+  return { requestDirectory, save, supported };
 }

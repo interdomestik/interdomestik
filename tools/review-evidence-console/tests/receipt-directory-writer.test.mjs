@@ -59,6 +59,14 @@ test('writes canonical receipt JSON and reuses the selected folder in this sessi
   assert.equal(fixture.calls.closes, 2);
 });
 
+test('requests a directory again for each sequential submission', async () => {
+  const fixture = writableFixture();
+  const writer = createReceiptDirectoryWriter({ pickDirectory: fixture.pickDirectory });
+  assert.equal((await writer.requestDirectory()).ok, true);
+  assert.equal((await writer.requestDirectory()).ok, true);
+  assert.equal(fixture.calls.picker, 2);
+});
+
 test('reports unsupported browsers without attempting a write', async () => {
   const writer = createReceiptDirectoryWriter({ pickDirectory: undefined });
   assert.equal(writer.supported, false);
@@ -67,7 +75,7 @@ test('reports unsupported browsers without attempting a write', async () => {
   assert.match(result.message, /Eksporto JSON/);
 });
 
-test('shares one pending directory picker across concurrent saves', async () => {
+test('shares one pending directory picker across concurrent requests', async () => {
   const fixture = writableFixture();
   let release;
   const pending = new Promise(resolve => {
@@ -79,25 +87,28 @@ test('shares one pending directory picker across concurrent saves', async () => 
       return fixture.pickDirectory(options);
     },
   });
-  const first = writer.save(receipt);
-  const second = writer.save(receipt);
+  const first = writer.requestDirectory();
+  const second = writer.requestDirectory();
   release();
   assert.equal((await first).ok, true);
   assert.equal((await second).ok, true);
   assert.equal(fixture.calls.picker, 1);
 });
 
-test('reports a cancelled picker without retaining a directory', async () => {
+test('allows a cancelled directory request to be retried without writing', async () => {
   let calls = 0;
+  const fixture = writableFixture();
   const writer = createReceiptDirectoryWriter({
-    pickDirectory: async () => {
+    pickDirectory: async options => {
       calls += 1;
-      throw new DOMException('cancelled', 'AbortError');
+      if (calls === 1) throw new DOMException('cancelled', 'AbortError');
+      return fixture.pickDirectory(options);
     },
   });
-  assert.equal((await writer.save(receipt)).code, 'cancelled');
-  assert.equal((await writer.save(receipt)).code, 'cancelled');
+  assert.equal((await writer.requestDirectory()).code, 'cancelled');
+  assert.equal((await writer.requestDirectory()).ok, true);
   assert.equal(calls, 2);
+  assert.equal(fixture.calls.files.length, 0);
 });
 
 test('rejects an unsafe receipt id before opening the picker', async () => {
