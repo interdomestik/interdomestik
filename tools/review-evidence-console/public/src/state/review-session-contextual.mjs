@@ -63,10 +63,19 @@ export function transitionResponses(state, item, key, value) {
     });
   }
   const raw = { ...state.decisions[item.id].responses, [key]: value };
+  const conditionalSuggestions = item.suggestedReview.conditionalResponses ?? {};
+  for (const [conditionalKey, suggestion] of Object.entries(conditionalSuggestions)) {
+    const current = raw[conditionalKey];
+    if (typeof current === 'string' && current.trim() !== '') {
+      const conditional = item.requiredResponses.find(field => field.key === conditionalKey);
+      noteState = setContextualNote(noteState, item.id, `responses.${conditionalKey}`, current, {
+        suggestion,
+        maxLength: conditional.maxLength,
+      });
+    }
+  }
   const responses = pruneInapplicableResponses(item.requiredResponses, raw);
-  for (const [conditionalKey, suggestion] of Object.entries(
-    item.suggestedReview.conditionalResponses ?? {}
-  )) {
+  for (const [conditionalKey, suggestion] of Object.entries(conditionalSuggestions)) {
     const conditionalPath = `responses.${conditionalKey}`;
     const conditional = item.requiredResponses.find(field => field.key === conditionalKey);
     const active = descriptorIsApplicable(conditional, responses);
