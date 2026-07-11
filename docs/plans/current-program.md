@@ -321,8 +321,8 @@ remain unpromoted.
 
 Rev 100 current-authority/design-gate: `REC-DG01` in
 `docs/plans/2026-07-10-rec-dg01-review-evidence-console-current-authority.md`
-promotes exactly one non-runtime implementation slice: `REC-01`. The next active
-governed implementation goal is exactly one canonical tracker slice: `REC-01`.
+historically promoted exactly one non-runtime implementation slice: `REC-01`;
+that promotion is now consumed by PR `#1326` and the closeout below.
 An isolated independent review approved the remediated gate with no blocker or
 important findings. Scope is limited to
 `tools/review-evidence-console/`, repo-safe fixture
@@ -331,7 +331,17 @@ and reference comparison. Deployment is excluded from `REC-01` and requires a
 separate approved operation with an isolated console-root Vercel link.
 Production routes, `apps/web`, proxy, auth, identity, tenancy,
 customer data, uploads, APIs, schema/RLS, databases, billing, and runtime
-integration remain unpromoted.
+integration remain unpromoted. No replacement implementation slice is promoted
+by `REC-DG01` closeout.
+
+Rev 102 `REC-01` closeout: PR `#1326` merged as
+`155e1ac4292a175b841b048acf7e9ae2f12d853d` from implementation head
+`24e2bb9f86f7651522ab57fdfac8da3b1e9f517d`. The standalone reviewer console
+passed local unit/browser/fixture/modularity proof and all required remote
+CI, E2E, Pilot Gate, SonarCloud, CodeQL, security, and `pr-finalizer` checks.
+`docs/plans/2026-07-11-rec-01-closeout.md` is the detailed evidence record.
+`REC-01` is complete; no replacement implementation slice is promoted, and
+fresh current-authority/design-gate selection is required before follow-on work.
 
 Rev 101 protected deployment authority: `REC-DG02` in
 `docs/plans/2026-07-10-rec-dg02-protected-vercel-deployment-current-authority.md`
