@@ -1,8 +1,8 @@
 import { validatePacket } from '../validation/packet.mjs';
 
 function exactKeys(record, itemIds) {
-  const keys = Object.keys(record).sort();
-  const expected = [...itemIds].sort();
+  const keys = Object.keys(record).sort((left, right) => left.localeCompare(right));
+  const expected = [...itemIds].sort((left, right) => left.localeCompare(right));
   return keys.length === expected.length && expected.every((id, index) => id === keys[index]);
 }
 
