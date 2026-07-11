@@ -13,6 +13,9 @@ related:
 
 > Status: repo-safe review form. This document does not promote runtime work.
 
+Assigned independent reviewer: Arben Lila. This reviewer assignment does not
+authorize Kosovo exposure or change the Interdomestik MK-only boundary.
+
 ## 5. Document Boundary
 
 Recommended decision: `MOB-03a` may display only safe document-state metadata

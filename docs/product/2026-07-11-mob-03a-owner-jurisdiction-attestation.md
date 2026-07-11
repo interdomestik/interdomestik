@@ -16,17 +16,18 @@ related:
 
 ## Recorded Roles
 
-| Person        | Recorded role for this gate         | Jurisdiction / boundary                  |
-| ------------- | ----------------------------------- | ---------------------------------------- |
-| Gazmend Abazi | Privacy / Legal Owner for `MOB-03a` | Interdomestik MK                         |
-| Fiona Abazi   | CEO, Interdomestik MK               | North Macedonia                          |
-| Arben Lila    | Responsible contact for Kosovo      | Kosovo; excluded from this MK-only slice |
+| Person        | Recorded role for this gate                          | Jurisdiction / boundary                                     |
+| ------------- | ---------------------------------------------------- | ----------------------------------------------------------- |
+| Gazmend Abazi | Privacy / Legal Owner for `MOB-03a`                  | Interdomestik MK                                            |
+| Fiona Abazi   | CEO, Interdomestik MK                                | North Macedonia                                             |
+| Arben Lila    | Independent reviewer; responsible contact for Kosovo | Reviews MK gate; Kosovo remains excluded from runtime scope |
 
 ## Source And Date
 
-These facts were supplied explicitly by Arben Lila in the governing Codex task
-on 2026-07-11. An independent reviewer must confirm or correct them before any
-promotion decision relies on them.
+These facts and the reviewer assignment were supplied explicitly by Arben Lila
+in the governing Codex task on 2026-07-11. The recorded assignment is not a
+completed disposition; Arben Lila must still confirm or correct the packet and
+record decisions before any promotion decision relies on it.
 
 ## Scope Effect
 

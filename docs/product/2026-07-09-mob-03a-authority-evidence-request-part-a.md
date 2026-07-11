@@ -24,8 +24,8 @@ scope-in `MOB-03a`.
 | Owner role         | Privacy / Legal Owner, Interdomestik MK                             |
 | Decision date      | Pending independent reviewer disposition                            |
 | Evidence reference | `docs/product/2026-07-11-mob-03a-owner-jurisdiction-attestation.md` |
-| Reviewer name      | To be completed by the independent reviewer                         |
-| Reviewer role      | To be completed by the independent reviewer                         |
+| Reviewer name      | Arben Lila                                                          |
+| Reviewer role      | Independent reviewer; responsible contact for Kosovo                |
 
 Decision:
 
@@ -52,7 +52,7 @@ exists.
 | If yes, DPIA / Art. 9 evidence reference      |                                                      |
 | If no, disabled-scope statement               | Medical and injury data are excluded from `MOB-03a`. |
 | Decision date                                 | Pending independent reviewer disposition             |
-| Reviewer                                      | To be completed by the independent reviewer          |
+| Reviewer                                      | Arben Lila                                           |
 
 Decision:
 

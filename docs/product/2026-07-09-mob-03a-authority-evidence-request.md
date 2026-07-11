@@ -38,6 +38,9 @@ The named owner and jurisdiction facts are recorded in the
 Recommended answers are prefilled to reduce reviewer effort; they are proposals,
 not completed reviewer decisions.
 
+Arben Lila is the assigned independent reviewer. Gazmend Abazi remains the
+Privacy / Legal Owner. Fiona Abazi remains CEO of Interdomestik MK.
+
 ## Completion Rule
 
 This request is complete only when every section in Part A and Part B has a
