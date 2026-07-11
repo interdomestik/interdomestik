@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "maxTrackedBytes": 56158928,
+  "maxTrackedBytes": 56159496,
   "maxTrackedFiles": 5083,
   "maxCategoryBytes": {
     "other": 18855691,
     "large support/generated-ish": 16099211,
     "source/scripts": 7376524,
-    "docs/text": 6896251,
-    "tests/e2e": 5340351,
+    "docs/text": 6896735,
+    "tests/e2e": 5340435,
     "config/data/messages": 1590900
   },
   "maxLargestFileBytes": 3266530,

@@ -72,6 +72,7 @@ test('prefills every MOB-03a item from specific authority evidence without auto-
   ]);
   const items = bundles.flatMap(bundle => bundle.value.packet.items);
 
+  assert.deepEqual(bundles.map(bundle => bundle.value.packet.version), ['2', '2']);
   for (const item of items) {
     const wanted = expected[item.id];
     assert.equal(item.suggestedReview.evidenceRef, wanted.evidenceRef, item.id);
