@@ -53,12 +53,12 @@ test('stale deferred submission neither redraws nor navigates', async () => {
     current: () => current,
     focus: () => {},
   });
-  walk(renders.at(-1))
+  const pending = walk(renders.at(-1))
     .find(entry => entry.tagName === 'BUTTON')
     .listeners.click();
   const count = renders.length;
   current = false;
-  await new Promise(resolve => setImmediate(resolve));
+  await pending;
   assert.equal(renders.length, count);
   assert.deepEqual(navigations, []);
 });
