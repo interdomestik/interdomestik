@@ -24,14 +24,16 @@ test('submit synchronously picks a directory, stores canonical receipt, writes o
 }) => {
   await installDirectoryScenario(page);
   await submitCompleteReview(page, origin);
+  await expect(page).toHaveURL(/\/#\/$/);
   const { probe, receipt } = await submissionArtifacts(page);
   expect(probe.pickerCalls).toBe(1);
-  expect(probe.boundary).toBe(true);
+  expect(probe.clickTrusted).toBe(true);
+  expect(probe.pickerDuringClick).toBe(true);
+  expect(probe.userActivationActive).toBe(true);
   expect(probe.writes).toHaveLength(1);
   expect(probe.writes[0].name).toBe(`${receipt.receiptId}.json`);
   expect(probe.writes[0].fileOptions).toEqual({ create: true });
   expect(JSON.parse(probe.writes[0].text)).toEqual(receipt);
-  await expect(page).toHaveURL(/\/#\/$/);
   expect(new URL(page.url()).hash).toBe('#/');
 });
 
@@ -42,7 +44,10 @@ for (const scenario of ['unsupported', 'cancelled', 'denied', 'write_failed']) {
     await expect(page.getByRole('heading', { name: 'Vërtetimi i shqyrtimit' })).toBeVisible();
     const { probe, receipt } = await submissionArtifacts(page);
     expect(receipt.receiptId).toMatch(/^rec_[a-f0-9]{24}$/);
+    expect(probe.clickTrusted).toBe(true);
     expect(probe.pickerCalls).toBe(scenario === 'unsupported' ? 0 : 1);
+    expect(probe.pickerDuringClick).toBe(scenario === 'unsupported' ? null : true);
+    expect(probe.userActivationActive).toBe(scenario === 'unsupported' ? null : true);
     await expect(page.getByRole('button', { name: 'Eksporto JSON' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Ruaj në inbox privat' })).toHaveCount(
       scenario === 'unsupported' ? 0 : 1

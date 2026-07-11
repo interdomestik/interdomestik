@@ -7,7 +7,26 @@ const itemIds = [
 
 export async function installDirectoryScenario(page, scenario = 'success') {
   await page.addInitScript(value => {
-    globalThis.directoryProbe = { boundary: false, pickerCalls: 0, writes: [] };
+    globalThis.directoryProbe = {
+      clickTrusted: null,
+      dispatchActive: false,
+      pickerCalls: 0,
+      pickerDuringClick: null,
+      userActivationActive: null,
+      writes: [],
+    };
+    addEventListener(
+      'click',
+      event => {
+        if (!event.target?.textContent?.includes('Dërgo shqyrtimin')) return;
+        globalThis.directoryProbe.clickTrusted = event.isTrusted;
+        globalThis.directoryProbe.dispatchActive = true;
+      },
+      true
+    );
+    addEventListener('click', () => {
+      globalThis.directoryProbe.dispatchActive = false;
+    });
     if (value === 'unsupported') {
       globalThis.showDirectoryPicker = undefined;
       return;
@@ -15,7 +34,9 @@ export async function installDirectoryScenario(page, scenario = 'success') {
     globalThis.showDirectoryPicker = options => {
       const probe = globalThis.directoryProbe;
       probe.pickerCalls += 1;
-      if (probe.boundary) throw new Error('picker invoked after click microtask boundary');
+      probe.pickerDuringClick = probe.dispatchActive;
+      probe.userActivationActive = navigator.userActivation?.isActive === true;
+      if (!probe.pickerDuringClick) throw new Error('picker invoked after trusted click dispatch');
       if (value === 'cancelled') return Promise.reject(new DOMException('cancelled', 'AbortError'));
       if (value === 'denied') return Promise.reject(new DOMException('denied', 'NotAllowedError'));
       return Promise.resolve({
@@ -66,12 +87,7 @@ export async function submitCompleteReview(page, origin) {
   }
   await page.locator('#safe-evidence-confirmed').check();
   await page.getByRole('button', { name: 'Shqyrto dhe dërgo' }).click();
-  await page.getByRole('button', { name: 'Dërgo shqyrtimin' }).evaluate(button => {
-    button.click();
-    queueMicrotask(() => {
-      globalThis.directoryProbe.boundary = true;
-    });
-  });
+  await page.getByRole('button', { name: 'Dërgo shqyrtimin' }).click();
 }
 
 export async function submissionArtifacts(page) {

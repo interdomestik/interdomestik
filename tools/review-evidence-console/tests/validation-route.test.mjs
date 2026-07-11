@@ -90,6 +90,10 @@ test('derives packet context before loading validation draft state', async () =>
 test('submission uses the route directory writer and opens inbox only after its save', async () => {
   globalThis.localStorage = completedValidationDraft();
   const events = [];
+  let resolveNavigation;
+  const navigation = new Promise(resolve => {
+    resolveNavigation = resolve;
+  });
   let view;
   await loadValidationRoute({
     route: { assignmentId: 'assign_a' },
@@ -104,14 +108,17 @@ test('submission uses the route directory writer and opens inbox only after its 
     render: value => {
       view = value;
     },
-    navigate: value => events.push(['navigate', value]),
+    navigate: value => {
+      events.push(['navigate', value]);
+      resolveNavigation(value);
+    },
     focus() {},
   });
   walk(view)
     .find(entry => entry.tagName === 'BUTTON')
     .listeners.click();
   assert.deepEqual(events, [['picker']]);
-  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(await navigation, { name: 'inbox' });
   assert.deepEqual(
     events.map(event => event[0]),
     ['picker', 'store', 'write', 'navigate']
