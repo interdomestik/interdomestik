@@ -53,6 +53,7 @@ apps/web/e2e/.auth/
 
 # Misc
 .DS_Store
+/.private/
 *.pem
 *.log
 *.backup
