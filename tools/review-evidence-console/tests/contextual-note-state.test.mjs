@@ -1,13 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import {
   initializeContextualNoteState,
   setContextualNote,
   setContextualNoteActive,
 } from '../public/src/state/contextual-note-state.mjs';
 import { suggestionBundle, storedDraft } from './suggestion-state-fixtures.mjs';
-
 function bundleWithConditional() {
   const bundle = suggestionBundle();
   bundle.packet.items[0].suggestedReview.conditionalResponses = {
@@ -42,6 +40,30 @@ test('unversioned legacy initialization preserves existing custom notes and leav
   const state = initializeContextualNoteState(bundleWithConditional(), draft);
   assert.deepEqual(state.item_a.requestedChange, { status: 'unseen' });
   assert.deepEqual(state.item_b.requestedChange, { status: 'custom', value: 'Legacy exact' });
+});
+
+test('migration fails closed for unsafe and field-over-limit contextual text', () => {
+  const unsafeValues = [
+    'reviewer@example.com',
+    'https://private.example',
+    'Bearer secret',
+    'unsafe\u0007text',
+    'x'.repeat(2001),
+    'x'.repeat(81),
+  ];
+  for (const suggestionVersion of [undefined, 1]) {
+    for (const value of unsafeValues) {
+      const draft = storedDraft();
+      if (suggestionVersion === undefined) delete draft.suggestionVersion;
+      else draft.suggestionVersion = suggestionVersion;
+      const path = value.length === 81 ? 'ownerRole' : 'requestedChange';
+      if (path === 'ownerRole') draft.itemDecisions.item_a.responses.ownerRole = value;
+      else draft.itemDecisions.item_a.requestedChange = value;
+      const before = structuredClone(draft);
+      assert.throws(() => initializeContextualNoteState(bundleWithConditional(), draft), /contextual/i);
+      assert.deepEqual(draft, before);
+    }
+  }
 });
 
 test('version-2 restoration preserves exact custom values and dismissed tombstones', () => {

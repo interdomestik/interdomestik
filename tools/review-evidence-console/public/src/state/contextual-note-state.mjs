@@ -1,4 +1,4 @@
-import { validateSafeText } from '../validation/input-guards.mjs';
+import { assertContextualText } from './contextual-note-validation.mjs';
 
 export const SUGGESTION_VERSION = 2;
 
@@ -14,11 +14,13 @@ function deepFreeze(value) {
 }
 
 function trackedFields(item) {
+  const limits = new Map(item.requiredResponses.map(field => [field.key, field.maxLength]));
   return [
-    ['requestedChange', item.suggestedReview.requestedChange],
+    ['requestedChange', item.suggestedReview.requestedChange, 1000],
     ...Object.entries(item.suggestedReview.conditionalResponses ?? {}).map(([key, value]) => [
       `responses.${key}`,
       value,
+      limits.get(key),
     ]),
   ];
 }
@@ -33,25 +35,24 @@ function readField(decision, path) {
     : decision[path];
 }
 
-function migratedNote(value, blanksDismissed) {
-  if (typeof value === 'string' && value.trim().length > 0) return { status: 'custom', value };
+function migratedNote(value, blanksDismissed, maxLength) {
+  if (typeof value === 'string' && value.trim().length > 0) {
+    assertContextualText(value, maxLength);
+    return { status: 'custom', value };
+  }
   return { status: blanksDismissed ? 'dismissed' : 'unseen' };
 }
 
-function validateNote(note) {
+function validateNote(note, maxLength) {
   if (!note || typeof note !== 'object' || Array.isArray(note) || !STATUSES.has(note.status)) {
     throw new TypeError('Invalid contextual note state.');
   }
   const keys = Object.keys(note);
   if (note.status === 'custom') {
-    if (
-      keys.length !== 2 ||
-      typeof note.value !== 'string' ||
-      note.value.trim().length === 0 ||
-      !validateSafeText(note.value).ok
-    ) {
+    if (keys.length !== 2) {
       throw new TypeError('Invalid contextual custom note state.');
     }
+    assertContextualText(note.value, maxLength);
   } else if (keys.length !== 1) {
     throw new TypeError('Invalid contextual note tombstone.');
   }
@@ -67,11 +68,11 @@ function validateRestored(bundle, state) {
   }
   for (const item of bundle.packet.items) {
     const record = state[item.id];
-    const fields = trackedFields(item).map(([path]) => path);
+    const fields = trackedFields(item);
     if (!record || Object.keys(record).length !== fields.length) {
       throw new TypeError('Invalid contextual note field paths.');
     }
-    for (const field of fields) validateNote(record[field]);
+    for (const [field, , maxLength] of fields) validateNote(record[field], maxLength);
   }
   return deepFreeze(clone(state));
 }
@@ -95,9 +96,9 @@ export function initializeContextualNoteState(bundle, draft) {
         return [
           item.id,
           Object.fromEntries(
-            trackedFields(item).map(([path]) => [
+            trackedFields(item).map(([path, , maxLength]) => [
               path,
-              migratedNote(readField(decision, path), blanksDismissed),
+              migratedNote(readField(decision, path), blanksDismissed, maxLength),
             ])
           ),
         ];
@@ -114,9 +115,8 @@ export function setContextualNote(
   { suggestion, maxLength = 2000 } = {}
 ) {
   if (!state?.[itemId]?.[path]) throw new TypeError('Unknown contextual note field.');
-  if (typeof value !== 'string' || !validateSafeText(value, { maxLength }).ok) {
-    throw new TypeError('Unsafe contextual note length or content.');
-  }
+  if (typeof value !== 'string') throw new TypeError('Invalid contextual note text.');
+  if (value.trim() !== '') assertContextualText(value, maxLength);
   const next = clone(state);
   next[itemId][path] =
     value.trim() === ''
