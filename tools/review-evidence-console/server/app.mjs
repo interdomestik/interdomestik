@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { readFile, realpath, stat } from 'node:fs/promises';
+import { readdir, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -39,20 +39,25 @@ export function resolvePublicFile(pathname, publicRoot = defaultPublicRoot) {
 }
 
 export function createConsoleServer({ publicRoot = defaultPublicRoot } = {}) {
+  let publicIndexPromise;
+  const getPublicIndex = () =>
+    (publicIndexPromise ??= buildPublicIndex(publicRoot));
+
   return createServer(async (request, response) => {
     if (!['GET', 'HEAD'].includes(request.method)) return sendError(response, request.method, 405);
     const pathname = request.url.split('?')[0];
-    const resolved = resolvePublicFile(pathname, publicRoot);
-    if (resolved.code) return sendError(response, request.method, resolved.code);
-    const mime = MIME_TYPES[path.extname(resolved.filePath).toLowerCase()];
+    let decodedPath;
+    try {
+      decodedPath = decodeURIComponent(pathname);
+    } catch {
+      return sendError(response, request.method, 400);
+    }
+    const publicPath = decodedPath === '/' ? '/index.html' : decodedPath;
+    const mime = MIME_TYPES[path.extname(publicPath).toLowerCase()];
     if (!mime) return sendError(response, request.method, 415);
     try {
-      const root = await realpath(publicRoot);
-      const filePath = await realpath(resolved.filePath);
-      if (filePath !== root && !filePath.startsWith(`${root}${path.sep}`)) {
-        return sendError(response, request.method, 403);
-      }
-      if (!(await stat(filePath)).isFile()) return sendError(response, request.method, 404);
+      const filePath = (await getPublicIndex()).get(publicPath);
+      if (!filePath) return sendError(response, request.method, 404);
       const body = await readFile(filePath);
       response.writeHead(200, {
         ...SECURITY_HEADERS,
@@ -68,6 +73,21 @@ export function createConsoleServer({ publicRoot = defaultPublicRoot } = {}) {
       }
     }
   });
+}
+
+async function buildPublicIndex(publicRoot) {
+  const root = await realpath(publicRoot);
+  const files = new Map();
+  async function visit(directory, prefix = '') {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) await visit(entryPath, relative);
+      else if (entry.isFile()) files.set(`/${relative}`, entryPath);
+    }
+  }
+  await visit(root);
+  return files;
 }
 
 function sendError(response, method, code) {
