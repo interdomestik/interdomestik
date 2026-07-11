@@ -3,7 +3,11 @@ import { initializeSuggestedDecisions } from './review-suggestions.mjs';
 import { assertField, clone, deepFreeze, initialState, same } from './review-session-state.mjs';
 import { ownSessionBundle } from './session-bundle.mjs';
 import { validatePacket } from '../validation/packet.mjs';
-import { pruneInapplicableResponses } from '../validation/prune-inapplicable-responses.mjs';
+import {
+  transitionDecision,
+  transitionField,
+  transitionResponses,
+} from './review-session-contextual.mjs';
 
 const DECISIONS = new Set([null, 'approve', 'change', 'block']);
 
@@ -49,12 +53,29 @@ export function createReviewSession(
 
   function setDecision(itemId, decision) {
     if (!DECISIONS.has(decision)) throw new TypeError('Unknown review decision.');
-    return updateDecision(itemId, current => ({ ...current, decision }));
+    const item = itemFor(itemId);
+    const transitioned = transitionDecision(state, item, decision);
+    return commit({
+      ...transitioned,
+      decisions: {
+        ...transitioned.decisions,
+        [itemId]: { ...transitioned.decisions[itemId], decision },
+      },
+    });
   }
 
   function setField(itemId, field, value) {
     assertField(field);
-    return updateDecision(itemId, current => ({ ...current, [field]: clone(value) }));
+    const item = itemFor(itemId);
+    const contextualNoteState = transitionField(state, item, field, value);
+    return commit({
+      ...state,
+      contextualNoteState,
+      decisions: {
+        ...state.decisions,
+        [itemId]: { ...state.decisions[itemId], [field]: clone(value) },
+      },
+    });
   }
 
   function setResponse(itemId, key, value) {
@@ -62,12 +83,14 @@ export function createReviewSession(
     if (!item.requiredResponses.some(descriptor => descriptor.key === key)) {
       throw new TypeError('Unknown structured response field.');
     }
-    return updateDecision(itemId, current => {
-      const responses = { ...current.responses, [key]: clone(value) };
-      return {
-        ...current,
-        responses: pruneInapplicableResponses(item.requiredResponses, responses),
-      };
+    const transitioned = transitionResponses(state, item, key, clone(value));
+    return commit({
+      ...state,
+      contextualNoteState: transitioned.noteState,
+      decisions: {
+        ...state.decisions,
+        [itemId]: { ...state.decisions[itemId], responses: transitioned.responses },
+      },
     });
   }
 

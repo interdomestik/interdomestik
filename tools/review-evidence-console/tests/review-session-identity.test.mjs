@@ -40,3 +40,13 @@ test('owns normalized bundle data after construction', async () => {
   });
   assert.equal(corrected.correction.previousReceipt.assignmentId, 'assign_a');
 });
+
+test('owns contextual note state restored from a draft', () => {
+  const seed = createReviewSession(bundle).getSnapshot();
+  const draft = structuredClone(seed);
+  const session = createReviewSession(bundle, draft);
+  draft.contextualNoteState.item_a.requestedChange.status = 'dismissed';
+  assert.deepEqual(session.getSnapshot().contextualNoteState.item_a.requestedChange, {
+    status: 'unseen',
+  });
+});

@@ -127,9 +127,13 @@ export function setContextualNote(
   return deepFreeze(next);
 }
 
-export function setContextualNoteActive(state, itemId, path, active, { suggestion } = {}) {
+export function setContextualNoteActive(state, itemId, path, active, options = {}) {
+  const { suggestion, maxLength = 2000 } = options;
   const note = state?.[itemId]?.[path];
   if (!note) throw new TypeError('Unknown contextual note field.');
+  if (active && ['unseen', 'suggested'].includes(note.status)) {
+    assertContextualText(suggestion, maxLength);
+  }
   const next = clone(state);
   if (active && note.status === 'unseen') next[itemId][path] = { status: 'suggested' };
   const value = !active

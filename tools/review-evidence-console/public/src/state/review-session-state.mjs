@@ -93,6 +93,7 @@ export function initialState(bundle, draft) {
   return deepFreeze({
     ...identities,
     suggestionVersion: draft?.suggestionVersion,
+    contextualNoteState: clone(draft?.contextualNoteState),
     activeItem,
     decisions,
     correction: clone(draft?.correction ?? null),
