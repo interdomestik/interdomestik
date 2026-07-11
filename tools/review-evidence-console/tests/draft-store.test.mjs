@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { composeDraftKey, createDraftStore } from '../public/src/state/draft-store.mjs';
 import { makeStorage } from './state-fixtures.mjs';
+import { createDraftContextSchema } from '../public/src/state/draft-context-schema.mjs';
+import { bundle } from './review-session-fixtures.mjs';
+import { contextualDraft, contextualDraftKey } from './contextual-draft-fixtures.mjs';
 
 const keyParts = {
   assignmentId: 'assign_a',
@@ -137,4 +140,10 @@ test('rejects non-owned keys before any storage access or mutation', () => {
     assert.equal(store.exportRecovery(invalidKey).code, 'invalid_data');
   }
   assert.equal(accesses, 0);
+});
+
+test('accepts packet-shaped v2 contextual draft state', () => {
+  const store = createDraftStore({ storage: makeStorage(), schemaVersion: 1,
+    contextSchema: createDraftContextSchema(bundle.packet) });
+  assert.equal(store.save(contextualDraftKey, contextualDraft(), null).ok, true);
 });

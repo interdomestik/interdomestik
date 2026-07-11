@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createWorkspaceRuntime } from '../public/src/app/workspace-runtime.mjs';
 import { bundle } from './review-session-fixtures.mjs';
+import { contextualDraftKey, draftWithUnknownField } from './contextual-draft-fixtures.mjs';
 
 test('ordinary sequential edits autosave without rerendering or moving heading focus', () => {
   const values = new Map();
@@ -117,6 +118,20 @@ test('dependent rerenders retain exact non-first option focus', () => {
   assert.equal(renders.at(-1).focusControlId, 'response-choice-1');
   renders.at(-1).onResponse('item_a', 'areas', ['two'], 'response-areas-1');
   assert.equal(renders.at(-1).focusControlId, 'response-areas-1');
+  runtime.dispose();
+});
+
+test('derives packet context before loading a workspace draft', () => {
+  const raw = JSON.stringify(draftWithUnknownField());
+  globalThis.localStorage = { getItem: key => key === contextualDraftKey ? raw : null,
+    setItem: () => assert.fail('invalid contextual draft must not save'), removeItem() {} };
+  globalThis.addEventListener = () => {};
+  globalThis.removeEventListener = () => {};
+  const renders = [];
+  const runtime = createWorkspaceRuntime({ bundle, initialItemId: 'item_a',
+    onRender: value => renders.push(value), onNavigate() {} });
+  assert.equal(runtime.recovery.code, 'invalid_data');
+  assert.equal(renders[0].recovery.code, 'invalid_data');
   runtime.dispose();
 });
 

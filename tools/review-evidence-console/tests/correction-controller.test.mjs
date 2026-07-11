@@ -3,6 +3,7 @@ import test from 'node:test';
 import { startCorrection } from '../public/src/app/correction-controller.mjs';
 import { bundle, priorReceipt } from './review-session-fixtures.mjs';
 import { makeStorage } from './state-fixtures.mjs';
+import { contextualDraftKey, draftWithUnknownField } from './contextual-draft-fixtures.mjs';
 
 test('writes a correction draft linked to an immutable verified receipt', async () => {
   const receipt = await priorReceipt();
@@ -41,4 +42,14 @@ test('rejects unsafe correction metadata without creating a draft', async () => 
     metadata: { itemId: 'item_a', reason: 'reviewer@example.com', impact: 'Impact.' },
   });
   assert.equal(result.code, 'invalid_data');
+});
+
+test('derives packet context for correction load and save boundaries', async () => {
+  const storage = makeStorage();
+  const raw = JSON.stringify(draftWithUnknownField());
+  storage.setItem(contextualDraftKey, raw);
+  const result = await startCorrection({ bundle, receipt: await priorReceipt(), storage,
+    metadata: { itemId: 'item_a', reason: 'Clarify boundary.', impact: 'Improves auditability.' } });
+  assert.equal(result.code, 'conflict');
+  assert.equal(storage.getItem(contextualDraftKey), raw);
 });
