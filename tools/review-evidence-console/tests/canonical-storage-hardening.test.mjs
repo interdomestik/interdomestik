@@ -4,6 +4,7 @@ import { canonicalStringify } from '../public/src/state/canonical-json.mjs';
 import { buildReceipt, verifyReceipt } from '../public/src/state/receipt-builder.mjs';
 import { createReceiptStore } from '../public/src/state/receipt-store.mjs';
 import { makeStorage, receiptInput, submittedAt } from './state-fixtures.mjs';
+import { createDraftStore } from '../public/src/state/draft-store.mjs';
 
 const metadata = {
   packetId: receiptInput.packetId,
@@ -73,4 +74,14 @@ test('maps verifier failures across async store methods without mutation', async
   assert.equal((await store.export(receipt.receiptId)).code, 'unavailable');
   assert.equal((await store.import(JSON.stringify(receipt), metadata)).code, 'unavailable');
   assert.equal(storage.length, 1);
+});
+
+test('preserves invalid contextual draft bytes for recovery', () => {
+  const storage = makeStorage();
+  const key = 'review-console:v1:draft:assign_a:reviewer_a:1';
+  const raw = '{"schemaVersion":1,"suggestionVersion":2}';
+  storage.setItem(key, raw);
+  const store = createDraftStore({ storage, schemaVersion: 1, contextSchema: { items: {} } });
+  assert.equal(store.load(key).code, 'invalid_data');
+  assert.deepEqual(store.exportRecovery(key), { ok: true, value: raw });
 });

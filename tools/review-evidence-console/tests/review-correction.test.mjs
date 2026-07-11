@@ -22,7 +22,7 @@ test('restores every complete receipt decision and structured response', async (
   });
   const snapshot = await session.createCorrection(await priorReceipt(), metadata);
   assert.equal(dateCalls, 0);
-  assert.equal(snapshot.suggestionVersion, 1);
+  assert.equal(snapshot.suggestionVersion, 2);
   assert.equal(snapshot.decisions.item_a.decision, 'approve');
   assert.equal(snapshot.decisions.item_b.reason, completeDecision.reason);
   assert.equal(snapshot.decisions.item_a.responses.ownerRole, 'Privacy lead');

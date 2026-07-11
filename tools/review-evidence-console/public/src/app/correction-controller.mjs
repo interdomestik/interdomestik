@@ -1,4 +1,5 @@
 import { composeDraftKey, createDraftStore } from '../state/draft-store.mjs';
+import { createDraftContextSchema } from '../state/draft-context-schema.mjs';
 import { createReviewSession } from '../state/review-session.mjs';
 
 export async function startCorrection({
@@ -19,7 +20,11 @@ export async function startCorrection({
       reviewerFixtureId: receipt.reviewerFixtureId,
       packetVersion: receipt.packetVersion,
     });
-    const store = createDraftStore({ storage, schemaVersion: 1 });
+    const store = createDraftStore({
+      storage,
+      schemaVersion: 1,
+      contextSchema: createDraftContextSchema(bundle.packet),
+    });
     const current = store.load(key);
     const draft = {
       ...state,

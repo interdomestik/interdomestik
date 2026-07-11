@@ -46,7 +46,7 @@ test('fresh workspace captures one date and persists one initialized draft', asy
   const saved = JSON.parse(fixture.storage.getItem(key));
   assert.equal(dates, 1);
   assert.equal(fixture.writes(), 1);
-  assert.equal(saved.suggestionVersion, 1);
+  assert.equal(saved.suggestionVersion, 2);
   assert.equal(saved.itemDecisions.item_a.verifiedAt, '2026-07-10');
   assert.equal(saved.safeEvidenceConfirmed, false);
   fixture.runtime.dispose();
@@ -77,7 +77,7 @@ test('legacy workspace migrates absent fields with one date read and one save', 
   const saved = JSON.parse(fixture.storage.getItem(key));
   assert.equal(dates, 1);
   assert.equal(fixture.writes(), 1);
-  assert.equal(saved.suggestionVersion, 1);
+  assert.equal(saved.suggestionVersion, 2);
   assert.equal(saved.itemDecisions.item_a.concreteAnswer, '');
   assert.deepEqual(saved.itemDecisions.item_a.responses.areas, []);
   assert.equal(saved.itemDecisions.item_a.responses.reviewedAt, '2026-07-10');

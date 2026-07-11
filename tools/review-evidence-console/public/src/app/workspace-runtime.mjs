@@ -1,4 +1,5 @@
 import { composeDraftKey, createDraftStore } from '../state/draft-store.mjs';
+import { createDraftContextSchema } from '../state/draft-context-schema.mjs';
 import { createReviewSession } from '../state/review-session.mjs';
 import { createAutosaveController } from './autosave-controller.mjs';
 import { downloadText } from './download-text.mjs';
@@ -8,16 +9,15 @@ export function createWorkspaceRuntime({
   onRender,
   onNavigate,
   onConflict,
-  onValidate,
-  onStatus = () => {},
-  getLocalDate,
+  onValidate, onStatus = () => {}, getLocalDate,
 }) {
   const key = composeDraftKey({
     assignmentId: bundle.assignment.id,
     reviewerFixtureId: bundle.reviewer.id,
     packetVersion: bundle.packet.version,
   });
-  const store = createDraftStore({ schemaVersion: 1 });
+  const contextSchema = createDraftContextSchema(bundle.packet);
+  const store = createDraftStore({ schemaVersion: 1, contextSchema });
   const loaded = store.load(key);
   const draft = loaded.ok ? loaded.value : undefined;
   const canInitialize = loaded.ok || loaded.code === 'not_found';

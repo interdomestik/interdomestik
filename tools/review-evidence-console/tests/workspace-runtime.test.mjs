@@ -23,7 +23,7 @@ test('ordinary sequential edits autosave without rerendering or moving heading f
     getLocalDate: () => '2026-07-10',
   });
   const controls = renders[0];
-  assert.equal(controls.state.suggestionVersion, 1);
+  assert.equal(controls.state.suggestionVersion, 2);
   assert.equal(controls.state.decisions.item_a.decision, null);
   assert.equal(controls.state.decisions.item_a.requestedChange, '');
   assert.equal(controls.safeEvidenceConfirmed, false);

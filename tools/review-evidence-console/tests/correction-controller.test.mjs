@@ -23,7 +23,7 @@ test('writes a correction draft linked to an immutable verified receipt', async 
   assert.equal(result.value.correction.previousReceipt.receiptId, receipt.receiptId);
   assert.equal(result.value.activeItem, 'item_a');
   assert.equal(result.value.safeEvidenceConfirmed, false);
-  assert.equal(result.value.suggestionVersion, 1);
+  assert.equal(result.value.suggestionVersion, 2);
   assert.equal(result.value.itemDecisions.item_a.decision, receipt.decisions.item_a.decision);
   assert.deepEqual(
     result.value.itemDecisions.item_a.responses,

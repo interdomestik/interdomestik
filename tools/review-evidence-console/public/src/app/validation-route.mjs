@@ -1,4 +1,5 @@
 import { composeDraftKey, createDraftStore } from '../state/draft-store.mjs';
+import { createDraftContextSchema } from '../state/draft-context-schema.mjs';
 import { createReviewSession } from '../state/review-session.mjs';
 import { createSubmissionController } from './submission-controller.mjs';
 import { renderValidation } from '../views/validation.mjs';
@@ -21,7 +22,10 @@ export async function loadValidationRoute({
     reviewerFixtureId: bundle.reviewer.id,
     packetVersion: bundle.packet.version,
   });
-  const stored = createDraftStore({ schemaVersion: 1 }).load(key);
+  const stored = createDraftStore({
+    schemaVersion: 1,
+    contextSchema: createDraftContextSchema(bundle.packet),
+  }).load(key);
   const draft = stored.ok ? stored.value : undefined;
   const session = createReviewSession(bundle, draft);
   const safe = draft?.safeEvidenceConfirmed === true;
