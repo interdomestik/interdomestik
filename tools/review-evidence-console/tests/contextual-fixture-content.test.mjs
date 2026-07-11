@@ -4,7 +4,7 @@ import test from 'node:test';
 
 export const expectedRequestedChanges = {
   'M03A-PRIVACY-OWNER':
-    'Emërto një pronar real të privatësisë ose ligjor dhe bashkëngjit evidencën e pranimit para promovimit.',
+    'Ndrysho ose blloko nëse autoriteti i Sanjës ose ndarja e roleve nuk përputhet me strukturën MK.',
   'M03A-MEDICAL-BOUNDARY':
     'Mbaji të dhënat mjekësore dhe të lëndimeve të çaktivizuara derisa të ketë autoritet të nënshkruar DPIA/Neni 9.',
   'M03A-CONSENT-FIELDS':
@@ -14,7 +14,7 @@ export const expectedRequestedChanges = {
   'M03A-DOCUMENT-BOUNDARY':
     'Shfaq vetëm metadata të lejuara dhe mos shfaq dokumentin burimor ose kategoritë e ndaluara.',
   'M03A-THREAT-RECHECK':
-    'Ndalo promovimin derisa rikontrolli i qasjes, ruajtjes dhe zbulimit të ketë evidencë të pranueshme.',
+    'Ndalo dhe rihap gate-in nëse kërkohet një sipërfaqe e përjashtuar nga targeted threat recheck.',
   'M03A-ERASURE-REVOCATION':
     'Fshih metadatat pas fshirjes ose revokimit; çdo gjendje e dukshme kërkon rregull të dokumentuar ruajtjeje.',
   'M03A-SCOPE-STOPS':

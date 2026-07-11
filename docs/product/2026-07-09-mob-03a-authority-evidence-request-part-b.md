@@ -1,16 +1,22 @@
 ---
 plan_role: input
-status: draft
+status: active
 source_of_truth: false
 owner: product
-last_reviewed: 2026-07-09
+last_reviewed: 2026-07-11
 related:
   - docs/product/2026-07-09-mob-03a-authority-evidence-request.md
+  - docs/product/2026-07-11-mob-03a-owner-jurisdiction-attestation.md
+  - docs/product/2026-07-11-mob-03a-targeted-threat-recheck.md
 ---
 
 # MOB-03a Evidence Request Part B
 
 > Status: repo-safe review form. This document does not promote runtime work.
+
+Assigned independent Business / Governance reviewer: Gazmend Abazi. Sanja
+Jovanovska owns the Legal / Privacy boundary; Arben Lila is consulted as
+Platform Technical Guardian. Only a canonical `CA+DG` may authorize runtime.
 
 ## 5. Document Boundary
 
@@ -28,7 +34,8 @@ Decision:
 Explicitly allowed display data:
 
 ```text
-
+Document state; document category; last-updated timestamp. Values must be
+non-sensitive and case-scoped.
 ```
 
 Explicitly forbidden display data:
@@ -41,33 +48,35 @@ document links without separate authority.
 Reason / notes:
 
 ```text
-
+Recommended default: approve this minimum-metadata boundary. Any document
+content, link, identifier, or new category stops the slice for a new gate.
 ```
 
 ## 6. Threat Recheck
 
-Recommended decision: require a targeted threat recheck before promotion, even
-for non-medical scope, because this is member-facing document/consent behavior.
+Recommended decision: accept the targeted recheck for this exact non-medical,
+display-only boundary after the independent reviewer confirms it.
 
 Threat areas: document access; consent revocation; sponsor/payer visibility;
 erased-subject rendering; audit trail.
 
 Decision:
 
-- [ ] Approve with threat recheck required before runtime PR.
+- [ ] Approve the targeted threat recheck for this exact boundary.
 - [ ] Request change.
 - [ ] Block.
 
 Threat recheck evidence reference:
 
 ```text
-
+docs/product/2026-07-11-mob-03a-targeted-threat-recheck.md
 ```
 
 Reason / notes:
 
 ```text
-
+Recommended default: clear for review only within the exact MK, non-medical,
+display-only boundary. Reopen the gate on any excluded-surface requirement.
 ```
 
 ## 7. Erasure / Revocation Rendering
@@ -91,7 +100,9 @@ revoked/erased subjects.
 Reason / notes:
 
 ```text
-
+Recommended default: approve the rendering rule as a design requirement. Cite
+MOB-02a no-mutation proof where relevant, but do not claim a completed DSR
+rehearsal or end-to-end erasure proof.
 ```
 
 ## 8. Exact Runtime Scope And Stop Conditions
@@ -103,6 +114,7 @@ Allowed scope:
 
 ```text
 Non-medical, car/property-only Vault + Consent display foundation.
+Interdomestik MK only.
 ```
 
 Forbidden scope:
@@ -124,5 +136,8 @@ Decision:
 Reason / notes:
 
 ```text
-
+Recommended default: approve this exact MK-only scope. Stop on missing
+authority, sensitive data, scope expansion, or any need to touch a forbidden
+surface. Arben Lila's technical consultation does not authorize Kosovo exposure
+or replace the canonical `CA+DG`.
 ```

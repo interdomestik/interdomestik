@@ -1,8 +1,8 @@
 [
   {
-    "id": "reviewer_privacy_mk",
-    "displayName": "Shqyrtues privatësie",
-    "role": "privacy",
+    "id": "reviewer_governance_mk",
+    "displayName": "Gazmend Abazi",
+    "role": "governance",
     "repoSafe": true
   }
 ]
