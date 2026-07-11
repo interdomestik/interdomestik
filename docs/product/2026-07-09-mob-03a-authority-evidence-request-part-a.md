@@ -1,11 +1,12 @@
 ---
 plan_role: input
-status: draft
+status: active
 source_of_truth: false
 owner: product
-last_reviewed: 2026-07-09
+last_reviewed: 2026-07-11
 related:
   - docs/product/2026-07-09-mob-03a-authority-evidence-request.md
+  - docs/product/2026-07-11-mob-03a-owner-jurisdiction-attestation.md
 ---
 
 # MOB-03a Evidence Request Part A
@@ -17,14 +18,14 @@ related:
 Kjo duhet te plotesohet nga personi qe mban pergjegjesine privacy/legal per
 scope-in `MOB-03a`.
 
-| Field              | Answer |
-| ------------------ | ------ |
-| Owner name         |        |
-| Owner role         |        |
-| Decision date      |        |
-| Evidence reference |        |
-| Reviewer name      |        |
-| Reviewer role      |        |
+| Field              | Answer                                                              |
+| ------------------ | ------------------------------------------------------------------- |
+| Owner name         | Gazmend Abazi                                                       |
+| Owner role         | Privacy / Legal Owner, Interdomestik MK                             |
+| Decision date      | Pending independent reviewer disposition                            |
+| Evidence reference | `docs/product/2026-07-11-mob-03a-owner-jurisdiction-attestation.md` |
+| Reviewer name      | To be completed by the independent reviewer                         |
+| Reviewer role      | To be completed by the independent reviewer                         |
 
 Decision:
 
@@ -35,7 +36,8 @@ Decision:
 Reason / notes:
 
 ```text
-
+Recommended default: approve for non-medical planning only. This records the
+named owner but does not represent the owner's or reviewer's signed approval.
 ```
 
 ## 2. Medical / Injury Boundary
@@ -49,8 +51,8 @@ exists.
 | Is medical/injury data allowed in this slice? | No                                                   |
 | If yes, DPIA / Art. 9 evidence reference      |                                                      |
 | If no, disabled-scope statement               | Medical and injury data are excluded from `MOB-03a`. |
-| Decision date                                 |                                                      |
-| Reviewer                                      |                                                      |
+| Decision date                                 | Pending independent reviewer disposition             |
+| Reviewer                                      | To be completed by the independent reviewer          |
 
 Decision:
 
@@ -61,7 +63,8 @@ Decision:
 Reason / notes:
 
 ```text
-
+Recommended default: approve the non-medical boundary. Stop and return to a
+new privacy/legal gate if medical or injury data enters scope.
 ```
 
 ## 3. Consent Record Fields
@@ -69,8 +72,12 @@ Reason / notes:
 Recommended decision: accept these fields as the minimum authority requirement,
 but do not treat this as migration/runtime authority.
 
-Required fields: `consentType`, `subject`, `scope`, `grantedBy`, `grantedAt`,
-`revokedAt`, `evidenceRef`, `retentionOrErasureRule`, `reviewer`.
+Required authority fields: `consentType`, `subject`, `scope`, `grantedBy`,
+`grantedAt`, `revokedAt`, `evidenceRef`, `retentionOrErasureRule`, `reviewer`.
+
+Recommended display fields for this narrow slice: consent `status`,
+`recordedAt`, and `version`. Raw consent evidence and personal data remain
+outside the display boundary.
 
 Decision:
 
@@ -81,13 +88,15 @@ Decision:
 Additional required fields or exclusions:
 
 ```text
-
+Recommended default: exclude raw/source consent fields, identity data,
+document contents, signatures, and free-text personal data from the display.
 ```
 
 Reason / notes:
 
 ```text
-
+Recommended default: approve these as evidence requirements only. This is not
+schema, migration, RLS, or runtime authority.
 ```
 
 ## 4. Access Roles
@@ -113,5 +122,7 @@ Decision:
 Reason / notes:
 
 ```text
-
+Recommended default: approve member access to the member's own case and
+case-scoped access for authorized internal roles. Exclude all external parties;
+escalate any requested external visibility to a separate consent authority.
 ```

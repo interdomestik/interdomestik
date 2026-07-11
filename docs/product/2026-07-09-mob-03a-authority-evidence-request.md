@@ -1,13 +1,14 @@
 ---
 plan_role: input
-status: draft
+status: active
 source_of_truth: false
 owner: product
-last_reviewed: 2026-07-09
+last_reviewed: 2026-07-11
 related:
   - docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md
   - docs/product/2026-07-03-mobile-program-authority-packet-part-2.md
   - docs/product/2026-07-03-mobile-legal-compliance-input-templates.md
+  - docs/product/2026-07-11-mob-03a-owner-jurisdiction-attestation.md
 ---
 
 # MOB-03a Authority Evidence Request
@@ -31,6 +32,11 @@ current-authority/design-gate PR:
 
 - [Part A - owner, medical boundary, consent, access](2026-07-09-mob-03a-authority-evidence-request-part-a.md)
 - [Part B - document boundary, threat recheck, erasure, scope](2026-07-09-mob-03a-authority-evidence-request-part-b.md)
+
+The named owner and jurisdiction facts are recorded in the
+[owner and jurisdiction attestation](2026-07-11-mob-03a-owner-jurisdiction-attestation.md).
+Recommended answers are prefilled to reduce reviewer effort; they are proposals,
+not completed reviewer decisions.
 
 ## Completion Rule
 
