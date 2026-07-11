@@ -16,6 +16,54 @@ const LINEAGE_FIELDS = [
   'reviewerDisplayName',
   'authorityDisclaimer',
 ];
+const DECISION_FIELDS = [
+  'decision',
+  'concreteAnswer',
+  'reason',
+  'evidenceRef',
+  'verifiedAt',
+  'riskCategory',
+  'severity',
+];
+const SIDECAR_FIELDS = new Set([
+  'contextualNoteState',
+  'retainedSidecar',
+  'statuses',
+  'status',
+  'suggestedReview',
+  'suggestionVersion',
+  'useSessionDateFor',
+]);
+
+function canonicalDecision(decision = {}) {
+  const canonical = Object.fromEntries(
+    DECISION_FIELDS.filter(field => decision[field] !== undefined).map(field => [
+      field,
+      decision[field],
+    ])
+  );
+  const requestedChange = decision.requestedChange?.trim();
+  if (['change', 'block'].includes(decision.decision) && requestedChange) {
+    canonical.requestedChange = requestedChange;
+  }
+  return canonical;
+}
+
+function canonicalDecisions(decisions = {}) {
+  return Object.fromEntries(
+    Object.entries(decisions).map(([itemId, decision]) => [itemId, canonicalDecision(decision)])
+  );
+}
+
+function pruneSidecars(value) {
+  if (Array.isArray(value)) return value.map(pruneSidecars);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !SIDECAR_FIELDS.has(key))
+      .map(([key, nested]) => [key, pruneSidecars(nested)])
+  );
+}
 
 function deepFreeze(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -34,6 +82,7 @@ async function receiptIdFor(payload) {
 
 export async function buildReceipt(input, { now = () => new Date().toISOString() } = {}) {
   const submittedAt = input.submittedAt ?? now();
+  const decisions = canonicalDecisions(input.decisions);
   const previous = input.previousReceipt;
   if (previous) {
     const previousValidation = validateReceipt(previous, input.schemaVersion);
@@ -59,11 +108,11 @@ export async function buildReceipt(input, { now = () => new Date().toISOString()
     reviewerRole: input.reviewerRole,
     packetRole: input.packetRole,
     authorityDisclaimer: input.authorityDisclaimer,
-    decisions: input.decisions,
-    structuredResponses: input.structuredResponses,
+    decisions,
+    structuredResponses: pruneSidecars(input.structuredResponses),
     submittedAt,
     receiptVersion: previous ? previous.receiptVersion + 1 : 1,
-    riskSummary: aggregateRisk(Object.values(input.decisions ?? {})),
+    riskSummary: aggregateRisk(Object.values(decisions)),
     ...(previous
       ? {
           previousReceiptId: previous.receiptId,

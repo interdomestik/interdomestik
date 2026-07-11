@@ -23,17 +23,15 @@ test('canonical JSON preserves own nested __proto__ keys without collisions', ()
   assert.equal(Object.getPrototypeOf({}), Object.prototype);
 });
 
-test('different nested __proto__ values produce different receipt hashes and detect corruption', async () => {
+test('unknown nested decision metadata is omitted from canonical receipt hashes', async () => {
   const firstInput = structuredClone(receiptInput);
   firstInput.decisions.item_a.audit = JSON.parse('{"__proto__":{"value":"one"}}');
   const secondInput = structuredClone(receiptInput);
   secondInput.decisions.item_a.audit = JSON.parse('{"__proto__":{"value":"two"}}');
   const first = await buildReceipt({ ...firstInput, submittedAt });
   const second = await buildReceipt({ ...secondInput, submittedAt });
-  assert.notEqual(first.receiptId, second.receiptId);
-  const corrupted = structuredClone(first);
-  corrupted.decisions.item_a.audit.__proto__.value = 'changed';
-  assert.equal((await verifyReceipt(corrupted)).code, 'hash_mismatch');
+  assert.equal(first.receiptId, second.receiptId);
+  assert.equal(Object.hasOwn(first.decisions.item_a, 'audit'), false);
 });
 
 test('supports destructured receipt import', async () => {

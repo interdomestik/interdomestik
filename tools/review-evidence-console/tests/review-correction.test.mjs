@@ -20,14 +20,15 @@ test('restores every complete receipt decision and structured response', async (
     applySuggestions: false,
     getLocalDate: () => (++dateCalls, '2026-07-10'),
   });
-  const snapshot = await session.createCorrection(await priorReceipt(), metadata);
+  const prior = await priorReceipt();
+  const snapshot = await session.createCorrection(prior, metadata);
   assert.equal(dateCalls, 0);
   assert.equal(snapshot.suggestionVersion, 2);
   assert.equal(snapshot.decisions.item_a.decision, 'approve');
   assert.equal(snapshot.decisions.item_b.reason, completeDecision.reason);
   assert.equal(snapshot.decisions.item_a.responses.ownerRole, 'Privacy lead');
   assert.equal(snapshot.decisions.item_b.responses.ownerRole, 'Privacy lead');
-  assert.equal(snapshot.correction.previousReceipt.receiptId, 'rec_27c9edce5f66ca4faa44799b');
+  assert.equal(snapshot.correction.previousReceipt.receiptId, prior.receiptId);
   assert.equal(snapshot.correction.previousReceipt.decisions.item_a.decision, 'approve');
   assert.equal(snapshot.correction.itemId, 'item_a');
 });

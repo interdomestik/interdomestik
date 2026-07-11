@@ -43,7 +43,10 @@ test('formats structured responses from field descriptors without free-text coll
   assert.match(responseCopy(node, 'ownerEvidenceRef'), /docs\/review.md#L1/s);
   for (const key of ['ownerRole', 'decisionDate', 'ownerEvidenceRef']) {
     const codes = walk(responseRow(node, key)).filter(entry => entry.tagName === 'CODE');
-    assert.deepEqual(codes.map(entry => copy(entry).trim()), [key]);
+    assert.deepEqual(
+      codes.map(entry => copy(entry).trim()),
+      [key]
+    );
     assert.ok(codes.every(entry => entry.attributes.lang === 'en'));
   }
   assert.equal(JSON.stringify(receipt), before);
@@ -55,10 +58,7 @@ test('receipt route loads and passes validated packet descriptor context', async
   let rendered;
   const loaders = createReviewRouteLoaders({
     repository: {
-      loadAssignmentBundle: async () => (
-        contextLoads++,
-        { ok: true, value: { packet } }
-      ),
+      loadAssignmentBundle: async () => (contextLoads++, { ok: true, value: { packet } }),
     },
     render: content => (rendered = content[0]),
     navigate() {},
@@ -69,6 +69,20 @@ test('receipt route loads and passes validated packet descriptor context', async
   await loaders.receipt({ receiptId: receipt.receiptId }, 1);
   assert.equal(contextLoads, 1);
   assert.match(responseCopy(rendered, 'ownerRole'), /Roli i pronarit.*access/s);
+});
+
+test('keeps structured responses separate from decision sidecar state', async () => {
+  const input = structuredClone(receiptInput);
+  input.decisions.item_a.responses = {
+    ownerRole: 'Wrong retained response',
+    contextualNoteState: { status: 'retained' },
+  };
+  input.decisions.item_a.statuses = { ownerRole: 'retained' };
+  input.structuredResponses.item_a = { ownerRole: 'Canonical response' };
+  const receipt = await buildReceipt({ ...input, submittedAt });
+  assert.deepEqual(receipt.structuredResponses.item_a, { ownerRole: 'Canonical response' });
+  assert.equal(Object.hasOwn(receipt.decisions.item_a, 'responses'), false);
+  assert.equal(Object.hasOwn(receipt.decisions.item_a, 'statuses'), false);
 });
 
 async function structuredReceipt() {

@@ -7,6 +7,7 @@ import { bundle, priorReceipt } from './review-session-fixtures.mjs';
 import { makeStorage, receiptInput, submittedAt, withReceiptId } from './state-fixtures.mjs';
 
 const forbidden = ['suggestionVersion', 'suggestedReview', 'useSessionDateFor'];
+const contextualSidecars = ['contextualNoteState', 'statuses', 'retainedSidecar'];
 const metadata = Object.fromEntries(
   [
     'packetId',
@@ -107,4 +108,17 @@ test('nested response values may contain suggestion metadata words as ordinary t
   const receipt = await buildReceipt({ ...input, submittedAt });
   assert.equal((await verifyReceipt(receipt)).ok, true);
   assert.equal((await storeFor().store.save(receipt)).ok, true);
+});
+
+test('builder recursively excludes contextual sidecars from canonical decisions', async () => {
+  const input = structuredClone(receiptInput);
+  input.decisions.item_a.contextualNoteState = {
+    requestedChange: {
+      statuses: ['retained'],
+      retainedSidecar: { suggestionVersion: 7 },
+    },
+  };
+  const receipt = await buildReceipt({ ...input, submittedAt });
+  const serialized = JSON.stringify(receipt.decisions);
+  for (const key of contextualSidecars) assert.equal(serialized.includes(key), false, key);
 });

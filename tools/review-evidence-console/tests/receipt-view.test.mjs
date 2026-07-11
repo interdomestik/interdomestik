@@ -27,6 +27,7 @@ const packet = {
 test('renders complete read-only receipt metadata, risk, evidence, and disclaimer', async () => {
   const complete = {
     ...receiptInput.decisions.item_a,
+    decision: 'change',
     concreteAnswer: 'Approve boundary.',
     reason: 'Evidence matches.',
     evidenceRef: 'docs/review.md#L1',
@@ -48,7 +49,7 @@ test('renders complete read-only receipt metadata, risk, evidence, and disclaime
   });
   const content = copy(node);
   assert.match(content, /Vetëm shqyrtim lokal; nuk është autoritet ekzekutimi/);
-  assert.match(content, /Mirato.*approve/s);
+  assert.match(content, /Kërkon ndryshim.*change/s);
   assert.match(content, /E lartë.*high/s);
   assert.match(content, /Përjashto.*excluded/s);
   const auditCodes = walk(node).filter(entry => entry.tagName === 'CODE');
