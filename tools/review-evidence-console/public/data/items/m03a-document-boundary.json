@@ -50,6 +50,7 @@
     "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
     "riskCategory": "privacy",
     "severity": "high",
+    "requestedChange": "Shfaq vetëm metadata të lejuara dhe mos shfaq dokumentin burimor ose kategoritë e ndaluara.",
     "responses": {
       "allowedMetadata": ["state", "category", "updatedAt"],
       "forbiddenCategories": ["raw_document", "payment", "medical", "legal_private"]

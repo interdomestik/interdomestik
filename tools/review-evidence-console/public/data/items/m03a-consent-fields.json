@@ -54,6 +54,7 @@
     "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
     "riskCategory": "compliance",
     "severity": "high",
+    "requestedChange": "Kufizo fushat te statusi, data dhe versioni i pëlqimit; çdo shtesë kërkon autoritet të ri.",
     "responses": {
       "acceptedMinimumFields": ["consentStatus", "recordedAt", "consentVersion"],
       "additions": "Asnjë shtesë pa autoritet të ri.",

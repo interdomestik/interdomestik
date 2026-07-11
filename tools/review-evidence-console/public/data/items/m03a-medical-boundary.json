@@ -52,6 +52,7 @@
     "evidenceRef": "docs/plans/2026-07-09-mob-dg04-next-slice-current-authority.md",
     "riskCategory": "privacy",
     "severity": "high",
+    "requestedChange": "Mbaji të dhënat mjekësore dhe të lëndimeve të çaktivizuara derisa të ketë autoritet të nënshkruar DPIA/Neni 9.",
     "responses": {
       "medicalBoundary": "excluded",
       "disabledScope": "Çaktivizo pranimin, shfaqjen, ngarkimin, ruajtjen dhe përpunimin e të dhënave mjekësore ose të lëndimeve."
