@@ -22,6 +22,7 @@ export function createReceiptDirectoryWriter({
         'Ky browser nuk e mbështet inbox-in privat. Përdor Eksporto JSON.'
       );
     }
+    if (!directoryPromise) directory = undefined;
     directoryPromise ??= (async () => {
       try {
         directory = await pickDirectory(PICKER_OPTIONS);

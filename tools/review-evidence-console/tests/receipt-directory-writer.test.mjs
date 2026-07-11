@@ -52,10 +52,7 @@ test('writes canonical receipt JSON and reuses the selected folder in this sessi
     { name: `${receipt.receiptId}.json`, options: { create: true } },
     { name: `${receipt.receiptId}.json`, options: { create: true } },
   ]);
-  assert.deepEqual(fixture.calls.writes, [
-    canonicalStringify(receipt),
-    canonicalStringify(receipt),
-  ]);
+  assert.deepEqual(fixture.calls.writes, [canonicalStringify(receipt), canonicalStringify(receipt)]);
   assert.equal(fixture.calls.closes, 2);
 });
 
@@ -95,20 +92,32 @@ test('shares one pending directory picker across concurrent requests', async () 
   assert.equal(fixture.calls.picker, 1);
 });
 
-test('allows a cancelled directory request to be retried without writing', async () => {
+test('clears a stale directory while a fresh request is pending or cancelled', async () => {
   let calls = 0;
-  const fixture = writableFixture();
+  let cancel;
+  const firstFixture = writableFixture();
+  const retryFixture = writableFixture();
+  const pending = new Promise((resolve, reject) => {
+    cancel = reject;
+  });
   const writer = createReceiptDirectoryWriter({
     pickDirectory: async options => {
       calls += 1;
-      if (calls === 1) throw new DOMException('cancelled', 'AbortError');
-      return fixture.pickDirectory(options);
+      if (calls === 1) return firstFixture.pickDirectory(options);
+      if (calls === 2) return pending;
+      return retryFixture.pickDirectory(options);
     },
   });
-  assert.equal((await writer.requestDirectory()).code, 'cancelled');
   assert.equal((await writer.requestDirectory()).ok, true);
-  assert.equal(calls, 2);
-  assert.equal(fixture.calls.files.length, 0);
+  const freshRequest = writer.requestDirectory();
+  const pendingSave = writer.save(receipt);
+  cancel(new DOMException('cancelled', 'AbortError'));
+  assert.equal((await freshRequest).code, 'cancelled');
+  assert.equal((await pendingSave).code, 'cancelled');
+  assert.equal(firstFixture.calls.files.length, 0);
+  assert.equal((await writer.save(receipt)).ok, true);
+  assert.equal(retryFixture.calls.files.length, 1);
+  assert.equal(calls, 3);
 });
 
 test('rejects an unsafe receipt id before opening the picker', async () => {
