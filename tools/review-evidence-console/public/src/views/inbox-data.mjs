@@ -32,10 +32,18 @@ export async function loadInboxRows(repository, reviewerId, receiptStore) {
   }
   if (!receiptStore) return { ok: true, value: rows };
   let receiptLists;
+  const receiptListsByPacket = new Map();
+  const listReceipts = packetId => {
+    if (!receiptListsByPacket.has(packetId)) {
+      receiptListsByPacket.set(
+        packetId,
+        Promise.resolve().then(() => receiptStore.list(packetId))
+      );
+    }
+    return receiptListsByPacket.get(packetId);
+  };
   try {
-    receiptLists = await Promise.all(
-      bundles.map(bundle => receiptStore.list(bundle.value.packet.id))
-    );
+    receiptLists = await Promise.all(bundles.map(bundle => listReceipts(bundle.value.packet.id)));
   } catch {
     return {
       ok: false,

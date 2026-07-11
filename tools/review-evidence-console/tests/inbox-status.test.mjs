@@ -104,3 +104,19 @@ test('attaches review_required for only stale same-identity receipt evidence', a
   assert.equal(result.value[0].submissionStatus, 'review_required');
   assert.equal(result.value[0].nextAction, undefined);
 });
+
+test('lists receipts once for assignments sharing a packet', async () => {
+  const first = bundle('assign_a', 'packet_shared');
+  const second = bundle('assign_b', 'packet_shared');
+  let calls = 0;
+  const result = await loadInboxRows(repositoryFor(first, second), reviewerId, {
+    list: async () => {
+      calls += 1;
+      return { ok: true, value: [receiptFor(first)] };
+    },
+  });
+  assert.equal(result.ok, true);
+  assert.equal(calls, 1);
+  assert.equal(result.value[0].submissionStatus, 'submitted');
+  assert.equal(result.value[1].submissionStatus, null);
+});

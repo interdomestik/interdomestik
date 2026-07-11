@@ -5,6 +5,8 @@ const IDENTITY_FIELDS = [
   'packetId',
   'packetRole',
 ];
+const MAX_VERSION_SEGMENTS = 16;
+const MAX_VERSION_SEGMENT_LENGTH = 64;
 
 function matchesIdentity(receipt, identity) {
   return IDENTITY_FIELDS.every(field => receipt?.[field] === identity?.[field]);
@@ -14,18 +16,22 @@ function matchesVersion(receipt, identity, packetVersion) {
   return matchesIdentity(receipt, identity) && receipt.packetVersion === packetVersion;
 }
 
-function hasValidLineage(receipt, identity, packetVersion, byId) {
-  const visited = new Set();
-  let current = receipt;
-  while (current) {
-    if (visited.has(current.receiptId) || !matchesVersion(current, identity, packetVersion)) {
-      return false;
-    }
-    visited.add(current.receiptId);
-    if (current.previousReceiptId === undefined) return true;
-    current = byId.get(current.previousReceiptId);
+function lineageValidator(identity, byId) {
+  const cache = new Map();
+  function validate(receipt, packetVersion, visiting = new Set()) {
+    const key = `${packetVersion}\0${receipt.receiptId}`;
+    if (cache.has(key)) return cache.get(key);
+    if (visiting.has(key) || !matchesVersion(receipt, identity, packetVersion)) return false;
+    visiting.add(key);
+    const previous = receipt.previousReceiptId;
+    const valid =
+      previous === undefined ||
+      (byId.has(previous) && validate(byId.get(previous), packetVersion, visiting));
+    visiting.delete(key);
+    cache.set(key, valid);
+    return valid;
   }
-  return false;
+  return validate;
 }
 
 function compareReceipts(left, right) {
@@ -33,16 +39,26 @@ function compareReceipts(left, right) {
   return byTime || left.receiptId.localeCompare(right.receiptId);
 }
 
+function versionParts(value) {
+  const maxLength = MAX_VERSION_SEGMENTS * (MAX_VERSION_SEGMENT_LENGTH + 1) - 1;
+  if (typeof value !== 'string' || value.length > maxLength) return null;
+  const parts = value.split('.');
+  if (parts.length > MAX_VERSION_SEGMENTS) return null;
+  if (parts.some(part => !/^\d+$/.test(part) || part.length > MAX_VERSION_SEGMENT_LENGTH)) {
+    return null;
+  }
+  return parts.map(part => part.replace(/^0+(?=\d)/, ''));
+}
+
 function isOlderVersion(candidate, current) {
-  const pattern = /^\d+(?:\.\d+)*$/;
-  if (typeof candidate !== 'string' || typeof current !== 'string') return false;
-  if (!pattern.test(candidate) || !pattern.test(current)) return false;
-  const candidateParts = candidate.split('.').map(BigInt);
-  const currentParts = current.split('.').map(BigInt);
+  const candidateParts = versionParts(candidate);
+  const currentParts = versionParts(current);
+  if (!candidateParts || !currentParts) return false;
   const length = Math.max(candidateParts.length, currentParts.length);
   for (let index = 0; index < length; index += 1) {
-    const left = candidateParts[index] ?? 0n;
-    const right = currentParts[index] ?? 0n;
+    const left = candidateParts[index] ?? '0';
+    const right = currentParts[index] ?? '0';
+    if (left.length !== right.length) return left.length < right.length;
     if (left !== right) return left < right;
   }
   return false;
@@ -51,9 +67,10 @@ function isOlderVersion(candidate, current) {
 export function receiptStatus(receipts, identity) {
   const evidence = Array.isArray(receipts) ? receipts : [];
   const byId = new Map(evidence.map(receipt => [receipt.receiptId, receipt]));
+  const hasValidLineage = lineageValidator(identity, byId);
   const current = evidence
     .filter(receipt => matchesVersion(receipt, identity, identity.packetVersion))
-    .filter(receipt => hasValidLineage(receipt, identity, identity.packetVersion, byId))
+    .filter(receipt => hasValidLineage(receipt, identity.packetVersion))
     .reduce(
       (latest, receipt) => (!latest || compareReceipts(receipt, latest) > 0 ? receipt : latest),
       null
@@ -72,7 +89,7 @@ export function receiptStatus(receipts, identity) {
       receipt =>
         matchesIdentity(receipt, identity) &&
         isOlderVersion(receipt.packetVersion, identity.packetVersion) &&
-        hasValidLineage(receipt, identity, receipt.packetVersion, byId)
+        hasValidLineage(receipt, receipt.packetVersion)
     )
       ? 'review_required'
       : null,
