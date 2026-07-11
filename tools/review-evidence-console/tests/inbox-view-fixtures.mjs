@@ -40,7 +40,7 @@ export function assertSubmittedCard(view, receiptId) {
   const visible = copy(view);
   assert.match(visible, /Dorëzuar/);
   assert.match(visible, /Versioni i paketës: 7/);
-  assert.match(visible, /Dorëzuar më: 2026-07-12T10:30:00.000Z/);
+  assert.match(visible, /Dorëzuar më:.*Ora e Evropës Qendrore/);
   assert.match(visible, /ID-ja e vërtetimit/);
   assert.match(visible, /Shiko vërtetimin/);
   const audit = walk(view).find(node => node.tagName === 'CODE' && copy(node).trim() === receiptId);

@@ -50,6 +50,7 @@ function assignmentCard(assignment, onOpen, onOpenReceipt, onImport) {
       type: 'file',
       accept: 'application/json,.json',
       'aria-describedby': helpId,
+      'aria-label': `Importo vërtetimin lokal JSON — ${assignment.packetId}`,
     },
     on: { change: event => event.target.files?.[0] && onImport(assignment, event.target.files[0]) },
   });
@@ -64,10 +65,7 @@ function assignmentCard(assignment, onOpen, onOpenReceipt, onImport) {
     element('p', { attributes: { class: 'card-purpose' } }, [text(assignment.purpose)]),
     element('div', { attributes: { class: 'card-meta' } }, [
       label(riskCopy(assignment.risk), `risk risk--${assignment.risk}`, assignment.risk),
-      label(
-        assignment.submissionStatus === 'submitted' ? 'Dorëzuar' : assignment.progress,
-        'progress'
-      ),
+      assignment.submissionStatus === 'submitted' ? null : label(assignment.progress, 'progress'),
       label(`Afati: ${assignment.dueDate}`, 'due-date'),
       ...submissionDetails(assignment),
     ]),
@@ -77,7 +75,7 @@ function assignmentCard(assignment, onOpen, onOpenReceipt, onImport) {
         attributes: {
           class: 'primary-action',
           type: 'button',
-          'aria-label': action,
+          'aria-label': `${action} — ${assignment.packetId}`,
         },
         on: { click: open },
       },

@@ -31,19 +31,9 @@ export async function loadInboxRows(repository, reviewerId, receiptStore) {
     };
   }
   if (!receiptStore) return { ok: true, value: rows };
-  let receiptLists;
-  const receiptListsByPacket = new Map();
-  const listReceipts = packetId => {
-    if (!receiptListsByPacket.has(packetId)) {
-      receiptListsByPacket.set(
-        packetId,
-        Promise.resolve().then(() => receiptStore.list(packetId))
-      );
-    }
-    return receiptListsByPacket.get(packetId);
-  };
+  let receiptBatch;
   try {
-    receiptLists = await Promise.all(bundles.map(bundle => listReceipts(bundle.value.packet.id)));
+    receiptBatch = await receiptStore.listAll();
   } catch {
     return {
       ok: false,
@@ -51,17 +41,32 @@ export async function loadInboxRows(repository, reviewerId, receiptStore) {
       message: 'Statusi i dorëzimit nuk është i disponueshëm.',
     };
   }
-  const receiptFailure = receiptLists.find(result => !result.ok);
-  if (receiptFailure) return receiptFailure;
+  if (!receiptBatch.ok) return receiptBatch;
+  const receiptsByPacket = groupByPacket(receiptBatch.value);
   rows = rows.map((row, index) => ({
     ...row,
-    ...receiptStatus(receiptLists[index].value, receiptIdentity(bundles[index].value)),
+    ...receiptStatus(
+      receiptsByPacket.get(bundles[index].value.packet.id) ?? [],
+      receiptIdentity(bundles[index].value)
+    ),
   }));
-  if (rows.some(row => row.submissionStatus === 'submitted')) {
-    const nextIndex = rows.findIndex(row => row.submissionStatus !== 'submitted');
-    if (nextIndex >= 0) rows[nextIndex] = { ...rows[nextIndex], nextAction: true };
+  for (const row of rows) {
+    if (row.submissionStatus !== 'submitted' || !row.continuesWithAssignmentId) continue;
+    const nextIndex = rows.findIndex(candidate => candidate.id === row.continuesWithAssignmentId);
+    if (nextIndex >= 0 && rows[nextIndex].submissionStatus !== 'submitted') {
+      rows[nextIndex] = { ...rows[nextIndex], nextAction: true };
+    }
   }
   return { ok: true, value: rows };
+}
+
+function groupByPacket(receipts) {
+  const grouped = new Map();
+  for (const receipt of receipts) {
+    if (!grouped.has(receipt.packetId)) grouped.set(receipt.packetId, []);
+    grouped.get(receipt.packetId).push(receipt);
+  }
+  return grouped;
 }
 
 function receiptIdentity({ assignment, reviewer, packet }) {

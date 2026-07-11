@@ -1,13 +1,35 @@
 import { element, text } from '../components/dom.mjs';
 
-const status = copy =>
-  element('span', { attributes: { class: 'submission-status' } }, [text(copy)]);
+const DATE_FORMATTER = new Intl.DateTimeFormat('sq-AL', {
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  month: 'long',
+  timeZone: 'Europe/Skopje',
+  year: 'numeric',
+});
+const status = (copy, value) =>
+  element(
+    'span',
+    { attributes: { class: 'submission-status', ...(value ? { 'data-status': value } : {}) } },
+    [text(copy)]
+  );
+
+export function formatSubmittedAt(value, formatter = DATE_FORMATTER) {
+  return formatter.format(new Date(value));
+}
 
 export function submissionDetails(assignment) {
   if (assignment.submissionStatus === 'submitted') {
     return [
+      status('Dorëzuar', 'submitted'),
       status(`Versioni i paketës: ${assignment.packetVersion}`),
-      status(`Dorëzuar më: ${assignment.submittedAt}`),
+      element('span', { attributes: { class: 'submission-status' } }, [
+        text('Dorëzuar më: '),
+        element('time', { attributes: { datetime: assignment.submittedAt } }, [
+          text(`${formatSubmittedAt(assignment.submittedAt)} — Ora e Evropës Qendrore`),
+        ]),
+      ]),
       element('span', { attributes: { class: 'submission-status' } }, [
         text('ID-ja e vërtetimit: '),
         element('code', { attributes: { class: 'audit-code', lang: 'en' } }, [
@@ -17,9 +39,9 @@ export function submissionDetails(assignment) {
     ];
   }
   if (assignment.submissionStatus === 'review_required') {
-    return [status('Kërkon rishqyrtim — disponohet version i ri')];
+    return [status('Kërkon rishqyrtim — disponohet version i ri', 'review-required')];
   }
-  return assignment.nextAction ? [status('Hapi i radhës')] : [];
+  return assignment.nextAction ? [status('Hapi i radhës', 'next-action')] : [];
 }
 
 export function cardAction(assignment) {

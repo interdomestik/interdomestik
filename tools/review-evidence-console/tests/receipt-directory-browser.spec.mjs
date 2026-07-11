@@ -35,14 +35,18 @@ test('submit synchronously picks a directory, stores canonical receipt, writes o
   expect(probe.writes[0].fileOptions).toEqual({ create: true });
   expect(JSON.parse(probe.writes[0].text)).toEqual(receipt);
   expect(new URL(page.url()).hash).toBe('#/');
-  const cards = page.locator('.assignment-card');
-  await expect(cards.nth(0)).toContainText('Dorëzuar');
-  await expect(cards.nth(0)).toContainText(`Versioni i paketës: ${receipt.packetVersion}`);
-  await expect(cards.nth(0)).toContainText(`Dorëzuar më: ${receipt.submittedAt}`);
-  await expect(cards.nth(0).locator('code', { hasText: receipt.receiptId })).toBeVisible();
-  await expect(cards.nth(0).getByRole('button', { name: 'Shiko vërtetimin' })).toBeVisible();
-  await expect(cards.nth(1)).toContainText('Hapi i radhës');
-  await cards.nth(0).getByRole('button', { name: 'Shiko vërtetimin' }).click();
+  const partA = page.locator('.assignment-card').filter({
+    has: page.getByText('mob-03a-part-a', { exact: true }),
+  });
+  const partB = page.locator('.assignment-card').filter({
+    has: page.getByText('mob-03a-part-b', { exact: true }),
+  });
+  await expect(partA.locator('[data-status="submitted"]')).toHaveText('Dorëzuar');
+  await expect(partA.getByText(`Versioni i paketës: ${receipt.packetVersion}`)).toBeVisible();
+  await expect(partA.locator('time')).toHaveAttribute('datetime', receipt.submittedAt);
+  await expect(partA.locator('code', { hasText: receipt.receiptId })).toBeVisible();
+  await expect(partB.locator('[data-status="next-action"]')).toHaveText('Hapi i radhës');
+  await partA.getByRole('button', { name: /Shiko vërtetimin/ }).click();
   await expect(page).toHaveURL(`${origin}/#/receipt/${receipt.receiptId}`);
 });
 

@@ -38,8 +38,30 @@ export function normalizeAssignment(assignment) {
   ]) {
     requiredString(assignment, key);
   }
+  if (assignment.continuesWithAssignmentId !== undefined) {
+    requiredString(assignment, 'continuesWithAssignmentId');
+  }
   if (assignment.fixture !== true) throw new TypeError('fixture must be true.');
   return { ...assignment };
+}
+
+export function validateAssignmentContinuations(assignments) {
+  const byId = new Map(assignments.map(assignment => [assignment.id, assignment]));
+  for (const assignment of assignments) {
+    const continuationId = assignment.continuesWithAssignmentId;
+    if (continuationId === undefined) continue;
+    const continuation = byId.get(continuationId);
+    if (
+      !continuation ||
+      continuation === assignment ||
+      continuation.reviewerFixtureId !== assignment.reviewerFixtureId
+    ) {
+      throw new TypeError(
+        'continuesWithAssignmentId must name another assignment for this reviewer.'
+      );
+    }
+  }
+  return assignments;
 }
 
 export function normalizePacket(packet) {

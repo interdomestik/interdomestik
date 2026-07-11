@@ -78,24 +78,32 @@ export function createReceiptStore({
     }
   }
 
+  async function listAll() {
+    try {
+      const receipts = [];
+      for (let index = 0; index < storage.length; index += 1) {
+        const key = storage.key(index);
+        if (!key?.startsWith(PREFIX)) continue;
+        const result = await verified(key.slice(PREFIX.length));
+        if (!result.ok) return result;
+        receipts.push(result.value);
+      }
+      receipts.sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
+      return { ok: true, value: receipts };
+    } catch (error) {
+      return storageFailure(error);
+    }
+  }
+
   return {
     save,
     load: verified,
+    listAll,
     async list(packetId) {
-      try {
-        const receipts = [];
-        for (let index = 0; index < storage.length; index += 1) {
-          const key = storage.key(index);
-          if (!key?.startsWith(PREFIX)) continue;
-          const result = await verified(key.slice(PREFIX.length));
-          if (!result.ok) return result;
-          if (result.value.packetId === packetId) receipts.push(result.value);
-        }
-        receipts.sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
-        return { ok: true, value: receipts };
-      } catch (error) {
-        return storageFailure(error);
-      }
+      const result = await listAll();
+      return result.ok
+        ? { ok: true, value: result.value.filter(receipt => receipt.packetId === packetId) }
+        : result;
     },
     async export(receiptId) {
       const result = await verified(receiptId);
