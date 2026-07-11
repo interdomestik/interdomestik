@@ -333,6 +333,16 @@ Production routes, `apps/web`, proxy, auth, identity, tenancy,
 customer data, uploads, APIs, schema/RLS, databases, billing, and runtime
 integration remain unpromoted.
 
+Rev 101 protected deployment authority: `REC-DG02` in
+`docs/plans/2026-07-10-rec-dg02-protected-vercel-deployment-current-authority.md`
+authorizes one fail-closed Basic-Auth-preserving preview and production deployment
+of the standalone console to the existing `interdomestik-reviewer-portal` Vercel
+project and `reviewer-ecohub.vercel.app` alias. The prior production deployment is
+the explicit rollback target. Legacy reviewer APIs become unavailable after cutover,
+while existing Blob data remains untouched. No Interdomestik runtime slice, customer
+data, upload, Blob access, auth architecture, product route, API, database, schema/RLS,
+billing, or tenancy integration is promoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the

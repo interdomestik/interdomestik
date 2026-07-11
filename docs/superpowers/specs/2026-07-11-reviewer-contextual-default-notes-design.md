@@ -1,6 +1,7 @@
 ---
 plan_role: input
-status: approved
+status: active
+source_of_truth: false
 owner: product-design + qa
 last_reviewed: 2026-07-11
 related:
@@ -9,6 +10,8 @@ related:
 ---
 
 # Reviewer Contextual Default Notes Design
+
+> Status: approved design input; repository current-authority documents remain canonical.
 
 ## Goal
 
