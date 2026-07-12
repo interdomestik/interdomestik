@@ -73,8 +73,10 @@ clean post-remediation independent review.
 Fail closed on malformed configuration, secrets, invalid/disabled accounts, duplicate
 identity, live claim mismatch, expired/tampered cookies, origin mismatch, cross-role
 access, public/client fixture leakage, receipt-envelope override, signature/key mismatch,
-or correction-lineage mismatch. No secret, password, hash, private key, cookie, identity,
-or review content may enter logs, browser bundles, screenshots, CI, or Git.
+or correction-lineage mismatch. No secret, password, hash, private key, cookie, private
+account identifier, or review content may enter logs, browser bundles, screenshots, CI,
+or Git. Approved display names may appear only in authenticated UI; screenshots and CI
+proof must use synthetic identities or redact them.
 
 This gate authorizes implementation and one protected preview only. It does not
 authorize reassignment of `reviewer-ecohub.vercel.app`. Production cutover requires a
