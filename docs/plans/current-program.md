@@ -395,6 +395,21 @@ replacement implementation slice is promoted; expected resolver state is
 `blocked_requires_current_authority`, `activeSlice=null` until a fresh
 current-authority/design gate promotes exactly one next governed action.
 
+Rev 106 current-authority/design-gate: `REC-DG03` in
+`docs/plans/2026-07-12-rec-dg03-named-reviewer-access-current-authority.md`
+closes the shared reviewer-account attribution risk recorded by `MOB-DG04b` and
+promotes exactly one implementation slice: `REC-02`. The approved slice replaces
+shared Basic Auth with administrator-managed named console accounts, a safe credential
+rotation CLI, targeted session-version invalidation, signed short-lived sessions,
+server-enforced reviewer-fixture and role filtering, and server-attested canonical
+Ed25519 receipts. Protected preview and Vercel Firewall rate-limit proof precede any
+separately approved production cutover. It remains isolated under
+`tools/review-evidence-console/` and
+adds no Interdomestik runtime auth, Supabase, database/schema/RLS, customer data,
+uploads, server-side receipt storage, product route, proxy, tenancy, billing, or MOB
+runtime behavior. The gate permits implementation and one protected preview only;
+production alias cutover requires separate operational approval.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
