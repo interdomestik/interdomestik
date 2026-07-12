@@ -11,8 +11,8 @@ describe('buildVaultConsentDisplay gates', () => {
     });
   });
 
-  it('fails closed outside vehicle and property claims', () => {
-    expect(buildVaultConsentDisplay(input({ claimCategory: 'injury' }))).toEqual({
+  it.each(['injury', 'medical', 'travel', 'unknown'])('fails closed for %s claims', category => {
+    expect(buildVaultConsentDisplay(input({ claimCategory: category }))).toEqual({
       kind: 'hidden',
     });
   });
@@ -24,7 +24,13 @@ describe('buildVaultConsentDisplay gates', () => {
     expect('items' in result).toBe(false);
   });
 
-  it('opens an empty safe display for an eligible claim', () => {
-    expect(buildVaultConsentDisplay(input())).toEqual({ kind: 'ready', items: [] });
-  });
+  it.each(['vehicle', 'property'])(
+    'opens an empty safe display for an eligible %s claim',
+    category => {
+      expect(buildVaultConsentDisplay(input({ claimCategory: category }))).toEqual({
+        kind: 'ready',
+        items: [],
+      });
+    }
+  );
 });

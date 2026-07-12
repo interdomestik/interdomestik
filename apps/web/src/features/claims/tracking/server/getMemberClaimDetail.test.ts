@@ -408,9 +408,7 @@ describe('getMemberClaimDetail', () => {
     });
     hoisted.timelineRows.mockResolvedValueOnce([]);
     hoisted.getMemberVaultConsentDisplay.mockResolvedValueOnce({ kind: 'ready', items: [] });
-
     const result = await getMemberClaimDetail(memberSession, 'claim-vault');
-
     expect(hoisted.getMemberVaultConsentDisplay).toHaveBeenCalledWith({
       tenantId: 'tenant-1',
       memberId: 'member-1',
@@ -419,5 +417,7 @@ describe('getMemberClaimDetail', () => {
       piiStatus: 'available',
     });
     expect(result?.vaultConsentDisplay).toEqual({ kind: 'ready', items: [] });
+    const [, sentryOptions] = hoisted.withServerActionInstrumentation.mock.calls[0]!;
+    expect(sentryOptions).toEqual({ recordResponse: false });
   });
 });

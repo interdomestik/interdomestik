@@ -20,9 +20,11 @@ export function serializeMemberVaultConsentDisplay(
   return {
     kind: 'ready',
     items: display.items.map(item => ({
-      ...item,
+      category: item.category,
       updatedAt: item.updatedAt?.toISOString() ?? null,
+      consentStatus: item.consentStatus,
       consentRecordedAt: item.consentRecordedAt?.toISOString() ?? null,
+      consentVersion: item.consentVersion,
     })),
   };
 }

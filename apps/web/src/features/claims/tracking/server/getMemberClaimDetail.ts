@@ -26,7 +26,7 @@ export async function getMemberClaimDetail(
 ): Promise<ClaimTrackingDetailDto | null> {
   return Sentry.withServerActionInstrumentation(
     'claims.tracking.detail',
-    { recordResponse: true },
+    { recordResponse: false },
     async () => {
       const access = ensureClaimsAccess(session);
       const { tenantId, userId, role, branchId } = access;

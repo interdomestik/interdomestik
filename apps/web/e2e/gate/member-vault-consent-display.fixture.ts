@@ -11,6 +11,11 @@ interface MemberVaultConsentFixtureContext {
   documentPath: string | null;
   privacyVersion: string | null;
   recordedDate: string | null;
+  foreignPrivacyVersion: string | null;
+}
+
+export function isMkVaultConsentProject(projectName: string): boolean {
+  return projectName === 'gate-mk-mk' || projectName === 'gate-mk-contract';
 }
 
 export async function withMemberVaultConsentFixture(
@@ -18,7 +23,7 @@ export async function withMemberVaultConsentFixture(
   run: (context: MemberVaultConsentFixtureContext) => Promise<void>
 ) {
   const { claimId, memberId, staffId, tenantId } = await resolveSeededClaimContext(testInfo);
-  if (testInfo.project.name !== 'gate-mk-mk') {
+  if (!isMkVaultConsentProject(testInfo.project.name)) {
     return run({
       claimId,
       documentId: null,
@@ -26,15 +31,18 @@ export async function withMemberVaultConsentFixture(
       documentPath: null,
       privacyVersion: null,
       recordedDate: null,
+      foreignPrivacyVersion: null,
     });
   }
 
   const suffix = randomUUID();
   const documentId = `e2e-mob03a-doc-${suffix}`;
   const consentId = `e2e-mob03a-consent-${suffix}`;
+  const foreignConsentId = `e2e-mob03a-foreign-consent-${suffix}`;
   const documentName = `MOB03A-private-${suffix}.pdf`;
   const documentPath = `e2e/mob03a/${suffix}.pdf`;
   const privacyVersion = `privacy-mob03a-${suffix}`;
+  const foreignPrivacyVersion = `privacy-foreign-subject-${suffix}`;
   const recordedAt = new Date('2026-07-12T10:00:00.000Z');
 
   try {
@@ -68,6 +76,22 @@ export async function withMemberVaultConsentFixture(
       recordedAt,
       grantedAt: recordedAt,
     });
+    await db.insert(claimDocumentAiExtractionConsents).values({
+      id: foreignConsentId,
+      tenantId,
+      subjectId: staffId,
+      actorId: staffId,
+      claimId,
+      documentId,
+      consentType: 'ai_document_extraction',
+      processingPurpose: 'ai_document_extraction',
+      status: 'accepted',
+      privacyVersion: foreignPrivacyVersion,
+      locale: 'mk',
+      sourceSurface: 'e2e_mob_03a_foreign_subject',
+      recordedAt: new Date('2026-07-13T10:00:00.000Z'),
+      grantedAt: new Date('2026-07-13T10:00:00.000Z'),
+    });
 
     await run({
       claimId,
@@ -76,8 +100,12 @@ export async function withMemberVaultConsentFixture(
       documentPath,
       privacyVersion,
       recordedDate: '12.07.2026',
+      foreignPrivacyVersion,
     });
   } finally {
+    await db
+      .delete(claimDocumentAiExtractionConsents)
+      .where(eq(claimDocumentAiExtractionConsents.id, foreignConsentId));
     await db
       .delete(claimDocumentAiExtractionConsents)
       .where(eq(claimDocumentAiExtractionConsents.id, consentId));

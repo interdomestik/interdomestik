@@ -1,7 +1,10 @@
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-import { withMemberVaultConsentFixture } from './member-vault-consent-display.fixture';
+import {
+  isMkVaultConsentProject,
+  withMemberVaultConsentFixture,
+} from './member-vault-consent-display.fixture';
 
 test.describe('MOB-03a member Vault consent display', () => {
   test('shows only safe AI extraction metadata for MK and fails closed for KS', async ({
@@ -10,7 +13,7 @@ test.describe('MOB-03a member Vault consent display', () => {
     test.setTimeout(90_000);
 
     await withMemberVaultConsentFixture(testInfo, async context => {
-      const isMk = testInfo.project.name === 'gate-mk-mk';
+      const isMk = isMkVaultConsentProject(testInfo.project.name);
       await gotoApp(page, routes.memberClaimDetail(context.claimId, testInfo), testInfo, {
         marker: isMk ? 'member-vault-consent' : 'member-claim-detail-messaging',
       });
@@ -25,9 +28,12 @@ test.describe('MOB-03a member Vault consent display', () => {
       await expect(
         card.getByRole('heading', { name: 'Согласност за AI извлекување податоци од документи' })
       ).toBeVisible();
-      await expect(card.getByRole('status')).toHaveText(/Прифатено за AI извлекување податоци/);
+      await expect(
+        card.locator('dd').filter({ hasText: 'Прифатено за AI извлекување податоци' })
+      ).toHaveCount(1);
       await expect(card).toContainText(context.privacyVersion!);
       await expect(card).toContainText(context.recordedDate!);
+      await expect(card).not.toContainText(context.foreignPrivacyVersion!);
 
       for (const rawValue of [context.documentId, context.documentName, context.documentPath]) {
         await expect(card).not.toContainText(rawValue!);

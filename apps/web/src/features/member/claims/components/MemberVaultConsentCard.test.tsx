@@ -62,7 +62,7 @@ describe('MemberVaultConsentCard', () => {
           updatedAt: null,
           consentStatus: 'withdrawn',
           consentRecordedAt: '2026-07-03T09:00:00.000Z',
-          consentVersion: null,
+          consentVersion: 'withdrawn-private-version',
         },
         {
           category: 'evidence',
@@ -86,6 +86,14 @@ describe('MemberVaultConsentCard', () => {
     expect(region).toHaveTextContent('Not recorded for AI document extraction');
     expect(region).toHaveTextContent('privacy-accepted');
     expect(region).toHaveTextContent('DATE:2026-07-05T10:00:00.000Z');
+    const withdrawnItem = screen.getAllByRole('listitem')[1];
+    expect(withdrawnItem).toHaveTextContent('Withdrawn for AI document extraction');
+    expect(withdrawnItem).toHaveTextContent('DATE:2026-07-03T09:00:00.000Z');
+    expect(withdrawnItem).not.toHaveTextContent('Category');
+    expect(withdrawnItem).not.toHaveTextContent('Evidence');
+    expect(withdrawnItem).not.toHaveTextContent('Metadata updated');
+    expect(withdrawnItem).not.toHaveTextContent('Privacy version');
+    expect(withdrawnItem).not.toHaveTextContent('withdrawn-private-version');
     expect(region.querySelectorAll('a,button,input,select,textarea')).toHaveLength(0);
   });
 

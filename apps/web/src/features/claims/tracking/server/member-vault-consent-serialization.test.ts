@@ -11,7 +11,7 @@ describe('serializeMemberVaultConsentDisplay', () => {
   });
 
   it('serializes only the allowlisted display dates', () => {
-    const result = serializeMemberVaultConsentDisplay({
+    const unsafeRuntimeDisplay = {
       kind: 'ready',
       items: [
         {
@@ -20,9 +20,14 @@ describe('serializeMemberVaultConsentDisplay', () => {
           consentStatus: 'accepted',
           consentRecordedAt: new Date('2026-07-04T09:00:00Z'),
           consentVersion: 'privacy-2026-07',
+          id: 'forbidden-document-id',
+          name: 'forbidden-document-name.pdf',
+          filePath: '/forbidden/storage/path',
+          subjectId: 'forbidden-subject-id',
         },
       ],
-    });
+    } as unknown as Parameters<typeof serializeMemberVaultConsentDisplay>[0];
+    const result = serializeMemberVaultConsentDisplay(unsafeRuntimeDisplay);
 
     expect(result).toEqual({
       kind: 'ready',
@@ -36,6 +41,8 @@ describe('serializeMemberVaultConsentDisplay', () => {
         },
       ],
     });
-    expect(JSON.stringify(result)).not.toMatch(/"(?:id|name|path|file|subject|user)"\s*:/i);
+    expect(JSON.stringify(result)).not.toMatch(
+      /forbidden|"(?:id|name|path|file|subject|user)"\s*:/i
+    );
   });
 });

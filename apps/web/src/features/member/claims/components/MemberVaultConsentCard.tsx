@@ -74,16 +74,20 @@ export function MemberVaultConsentCard({ display }: MemberVaultConsentCardProps)
                       {t(statusKeys[item.consentStatus])}
                     </dd>
                   </div>
-                  <div>
-                    <dt className="text-slate-500">{t('categoryLabel')}</dt>
-                    <dd className="mt-1 font-medium text-slate-900">{t('categoryEvidence')}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-slate-500">{t('metadataUpdatedLabel')}</dt>
-                    <dd className="mt-1 break-words font-medium text-slate-900">
-                      {formatDate(item.updatedAt)}
-                    </dd>
-                  </div>
+                  {item.consentStatus !== 'withdrawn' ? (
+                    <>
+                      <div>
+                        <dt className="text-slate-500">{t('categoryLabel')}</dt>
+                        <dd className="mt-1 font-medium text-slate-900">{t('categoryEvidence')}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-500">{t('metadataUpdatedLabel')}</dt>
+                        <dd className="mt-1 break-words font-medium text-slate-900">
+                          {formatDate(item.updatedAt)}
+                        </dd>
+                      </div>
+                    </>
+                  ) : null}
                   <div>
                     <dt className="text-slate-500">{t('recordedAtLabel')}</dt>
                     <dd className="mt-1 break-words font-medium text-slate-900">
