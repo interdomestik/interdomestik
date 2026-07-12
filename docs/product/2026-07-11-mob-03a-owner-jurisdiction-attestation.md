@@ -11,8 +11,9 @@ related:
 
 # MOB-03a Authority And Jurisdiction Attestation
 
-> Status: factual intake for independent review. This document is not a signed
-> legal decision, DPIA, reviewer disposition, or runtime authority.
+> Status: accepted factual intake. Sanja Jovanovska confirmed the MK Legal /
+> Privacy boundary, and Gazmend Abazi confirmed his independent disposition on
+> 2026-07-12. This document is not a DPIA or runtime authority.
 
 ## Recorded Roles
 
@@ -27,9 +28,9 @@ related:
 ## Source And Date
 
 These facts and assignments were supplied explicitly in the governing Codex task
-on 2026-07-11. The recorded roles are not a completed disposition. Sanja
-Jovanovska must confirm the Legal / Privacy boundary and Gazmend Abazi must
-record the independent Business / Governance decisions.
+on 2026-07-11. On 2026-07-12, the same task recorded that Sanja Jovanovska had
+confirmed the Legal / Privacy boundary and that Gazmend Abazi had personally
+checked and approved both reviewer receipts.
 
 ## Scope Effect
 
@@ -41,7 +42,7 @@ platform boundaries but is not the tenant's legal or business approver.
 
 ## Required Independent Disposition
 
-Gazmend Abazi must record date, decision, notes, and evidence references in both
-forms after Sanja Jovanovska confirms the Legal / Privacy boundary. Runtime work
-still requires a separate canonical `CA+DG`; until that gate promotes exactly
-one slice, the resolver remains `blocked_requires_current_authority`.
+Gazmend Abazi recorded the required decisions through the Part A and Part B
+reviewer receipts accepted in
+`docs/product/2026-07-12-mob-03a-reviewer-receipt-acceptance.md`. Runtime work
+still requires a separate canonical `CA+DG` that promotes exactly one slice.

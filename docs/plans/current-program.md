@@ -353,6 +353,23 @@ while existing Blob data remains untouched. No Interdomestik runtime slice, cust
 data, upload, Blob access, auth architecture, product route, API, database, schema/RLS,
 billing, or tenancy integration is promoted.
 
+Rev 103 current-authority/design-gate: `MOB-DG04b` in
+`docs/plans/2026-07-12-mob-dg04b-mob-03a-current-authority.md` accepts the two
+valid version-3 Part A and Part B receipts recorded in
+`docs/product/2026-07-12-mob-03a-reviewer-receipt-acceptance.md`. Sanja
+Jovanovska confirmed the Interdomestik MK Legal / Privacy boundary, and Gazmend
+Abazi personally checked and approved all eight decisions. The gate promotes
+exactly one implementation slice: `MOB-03a`, limited to the existing member
+claim-detail surface for MK `vehicle` and `property` claims. The slice may
+derive and render evidence category, consent state, last metadata update,
+consent status, recorded time, and version from existing tenant- and
+member-scoped rows. It excludes medical/injury and private-legal data, document
+content/name/ID/link/path, storage/upload, writers, status/outbox, schema/RLS/
+migrations, auth/proxy/routing/session/tenancy, external-party or staff/agent/
+admin surfaces, billing, Agreement Ceremony, KS/AL, live AI, and full `MOB-03`.
+Shared reviewer credentials remain an audit caveat; named role-scoped reviewer
+access is a separate future `REC-02` candidate and is not promoted here.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
