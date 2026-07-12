@@ -87,6 +87,22 @@
         "erased_subject": "Datum je skriven jer su podaci subjekta izbrisani."
       }
     },
+    "vault_consent": {
+      "title": "Сагласност за AI издвајање података из докумената",
+      "description": "Приказује евидентирани статус само за AI издвајање података из прихватљивих доказа у овом захтеву. Ово није општа сагласност за чување, приступ, дељење, медицинску или правну обраду.",
+      "categoryLabel": "Категорија",
+      "categoryEvidence": "Докази",
+      "metadataUpdatedLabel": "Метаподаци су ажурирани",
+      "consentStatusLabel": "Статус за AI издвајање података",
+      "statusAccepted": "Прихваћено за AI издвајање података",
+      "statusWithdrawn": "Повучено за AI издвајање података",
+      "statusMissing": "Није евидентирано за AI издвајање података",
+      "recordedAtLabel": "Евидентирано",
+      "versionLabel": "Верзија приватности",
+      "unavailable": "Недоступно",
+      "empty": "Нема доступних метаподатака за прихватљиве доказе.",
+      "erased": "Метаподаци о доказима нису доступни за овај заштићени субјект."
+    },
     "status": {
       "draft": "Nacrt",
       "submitted": "Podneto",

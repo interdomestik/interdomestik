@@ -87,6 +87,22 @@
         "erased_subject": "Data është fshehur sepse të dhënat e subjektit janë fshirë."
       }
     },
+    "vault_consent": {
+      "title": "Pëlqimi për nxjerrjen e të dhënave nga dokumentet me AI",
+      "description": "Tregon statusin e regjistruar vetëm për nxjerrjen e të dhënave me AI nga provat e pranueshme në këtë kërkesë. Nuk është pëlqim i përgjithshëm për ruajtje, qasje, shpërndarje, përpunim mjekësor ose juridik.",
+      "categoryLabel": "Kategoria",
+      "categoryEvidence": "Prova",
+      "metadataUpdatedLabel": "Metadatat u përditësuan",
+      "consentStatusLabel": "Statusi për nxjerrjen e të dhënave me AI",
+      "statusAccepted": "Pranuar për nxjerrjen e të dhënave me AI",
+      "statusWithdrawn": "Tërhequr për nxjerrjen e të dhënave me AI",
+      "statusMissing": "Nuk është regjistruar për nxjerrjen e të dhënave me AI",
+      "recordedAtLabel": "Regjistruar",
+      "versionLabel": "Versioni i privatësisë",
+      "unavailable": "E padisponueshme",
+      "empty": "Nuk ka metadata të pranueshme të provave.",
+      "erased": "Metadatat e provave nuk janë të disponueshme për këtë subjekt të mbrojtur."
+    },
     "status": {
       "draft": "Skicë",
       "submitted": "E dorëzuar",
