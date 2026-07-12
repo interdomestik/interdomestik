@@ -33,6 +33,14 @@ test('fails closed without throwing for unbounded version segments', () => {
   }
 });
 
+test('normalizes a zero-padded older packet version', () => {
+  const zeroPadded = receipt('zero_padded', { packetVersion: '00' });
+  assert.equal(
+    receiptStatus([zeroPadded], { ...identity, packetVersion: '1' }).submissionStatus,
+    'review_required'
+  );
+});
+
 test('memoizes shared lineage validity within one derivation', () => {
   let rootVisits = 0;
   const root = receipt('root');

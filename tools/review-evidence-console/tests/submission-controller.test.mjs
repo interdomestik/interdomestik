@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createSubmissionController } from '../public/src/app/submission-controller.mjs';
 import { completeDecision } from './validation-fixtures.mjs';
-import { bundle, state, submissionDeps } from './submission-controller-fixtures.mjs';
+import { state, submissionDeps } from './submission-controller-fixtures.mjs';
 
 test('opens the directory picker synchronously before submit returns a promise', async () => {
   const events = [];
