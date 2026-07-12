@@ -8,6 +8,8 @@
 - [ ] In `gate-mk-mk`, assert exact title/status/version/date, no new keyboard
       action, 320×740 responsiveness/no overflow, and absence of unique raw fields
       and forbidden categories. In KS, marker count is zero.
+- [ ] Run the focused spec without an argument-separator after the npm script:
+      `pnpm --filter @interdomestik/web test:e2e e2e/gate/member-vault-consent-display.spec.ts --project=gate-mk-mk --project=gate-ks-sq --workers=1`.
 - [ ] Run focused Playwright projects and watched MCP desktop/mobile/a11y/console
       proof. Save screenshots only in `/tmp/interdomestik-pilot-evidence/`.
 - [ ] Commit: `test: prove MOB-03a member display`.
