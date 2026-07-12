@@ -10,6 +10,9 @@ related:
 
 # REC-DG03 Independent Design Review Evidence
 
+> Status: Active supporting input. Canonical authority remains the linked REC-DG03
+> current-authority record.
+
 The bounded review loop completed on 2026-07-12:
 
 - Sonnet 4.6 was skipped because the user reported its quota exhausted and instructed
