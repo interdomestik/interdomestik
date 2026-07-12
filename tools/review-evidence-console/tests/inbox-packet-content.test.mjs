@@ -69,11 +69,11 @@ const repository = {
   }),
 };
 
-async function receiptFor(decisions, structuredResponses) {
+async function receiptFor(decisions, structuredResponses, packetVersion = first.packet.version) {
   return buildReceipt({
     schemaVersion: 1,
     packetId: first.packet.id,
-    packetVersion: first.packet.version,
+    packetVersion,
     assignmentId: first.assignment.id,
     reviewerFixtureId: reviewer.id,
     reviewerDisplayName: 'Reviewer A',
@@ -108,4 +108,15 @@ test('packet-complete built receipt still submits and unlocks continuation', asy
   assert.equal(result.value[0].submissionStatus, 'submitted');
   assert.equal(result.value[0].receiptId, receipt.receiptId);
   assert.equal(result.value[1].nextAction, true);
+});
+
+test('older verified receipt remains review-required after the packet adds requirements', async () => {
+  const receipt = await receiptFor({ [item.id]: decision }, { [item.id]: {} }, '2');
+  assert.equal((await verifyReceipt(receipt)).ok, true);
+  const result = await loadInboxRows(repository, reviewer.id, {
+    listAll: async () => ({ ok: true, value: [receipt] }),
+  });
+  assert.equal(result.value[0].submissionStatus, 'review_required');
+  assert.equal(result.value[0].receiptId, undefined);
+  assert.equal(result.value[1].nextAction, undefined);
 });

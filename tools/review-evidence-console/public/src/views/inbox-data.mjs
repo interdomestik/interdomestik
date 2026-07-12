@@ -63,7 +63,11 @@ export async function loadInboxRows(repository, reviewerId, receiptStore) {
 
 function matchingPacketReceipts(receiptsByPacket, packet) {
   const receipts = receiptsByPacket.get(packet.id) ?? [];
-  return receipts.filter(receipt => importedReceiptMatchesPacket(receipt, packet, true));
+  return receipts.filter(
+    receipt =>
+      receipt.packetVersion !== packet.version ||
+      importedReceiptMatchesPacket(receipt, packet, true)
+  );
 }
 
 function groupByPacket(receipts) {
