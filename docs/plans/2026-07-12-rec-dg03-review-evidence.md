@@ -26,7 +26,7 @@ The bounded review loop completed on 2026-07-12:
   validation, enumeration resistance, Ed25519 canonicalization, account-scoped drafts,
   Vercel update provenance, and regression tests. The gate adopted every finding. Its
   post-remediation review returned: `No actionable findings. The prior nine findings are
-fully addressed. VERDICT: READY`.
+  fully addressed. VERDICT: READY`.
 
-The routes edited no repository files. Repository gates, PR checks, and human approval
+The reviewers edited no repository files. Repository gates, PR checks, and human approval
 remain authoritative.
