@@ -50,7 +50,8 @@ export async function getMemberVaultConsentDisplay(
         eq(claimDocuments.claimId, params.claimId),
         eq(claimDocuments.category, 'evidence')
       )
-    );
+    )
+    .orderBy(desc(claimDocuments.createdAt), desc(claimDocuments.id));
   if (documents.length === 0) return gated;
 
   // db-access-guard: tenant-scoped -- reason: exact tenant, member, claim, document, consent-type, and purpose predicates bound this read

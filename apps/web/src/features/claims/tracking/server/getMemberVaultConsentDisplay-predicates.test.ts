@@ -11,7 +11,6 @@ const hoisted = vi.hoisted(() => ({
 import {
   baseParams,
   orderedRowsChain,
-  rowsChain,
   tenantChain,
 } from './getMemberVaultConsentDisplay.test-support';
 
@@ -53,7 +52,7 @@ describe('getMemberVaultConsentDisplay predicates', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('skips consent reads when no eligible evidence exists', async () => {
-    const documents = rowsChain([]);
+    const documents = orderedRowsChain([]);
     hoisted.select
       .mockReturnValueOnce(tenantChain([{ code: 'MK', countryCode: 'MK' }]))
       .mockReturnValueOnce(documents);
@@ -70,12 +69,16 @@ describe('getMemberVaultConsentDisplay predicates', () => {
         { op: 'eq', left: 'documents.category', right: 'evidence' },
       ],
     });
+    expect(documents.orderBy).toHaveBeenCalledWith(
+      { op: 'desc', column: 'documents.createdAt' },
+      { op: 'desc', column: 'documents.id' }
+    );
     expect(hoisted.select).toHaveBeenCalledTimes(2);
   });
 
   it('uses the full member consent scope and deterministic ordering', async () => {
     const document = { id: 'document-1', category: 'evidence', createdAt: null };
-    const documents = rowsChain([document]);
+    const documents = orderedRowsChain([document]);
     const consents = orderedRowsChain([]);
     hoisted.select
       .mockReturnValueOnce(tenantChain([{ code: 'MK', countryCode: 'MK' }]))
@@ -83,6 +86,11 @@ describe('getMemberVaultConsentDisplay predicates', () => {
       .mockReturnValueOnce(consents);
 
     await getMemberVaultConsentDisplay(baseParams);
+
+    expect(documents.orderBy).toHaveBeenCalledWith(
+      { op: 'desc', column: 'documents.createdAt' },
+      { op: 'desc', column: 'documents.id' }
+    );
 
     const consentWhere = consents.where.mock.calls[0]?.[0] as { args: unknown[] };
     expect(consentWhere.args).toEqual(
