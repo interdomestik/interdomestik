@@ -370,6 +370,17 @@ admin surfaces, billing, Agreement Ceremony, KS/AL, live AI, and full `MOB-03`.
 Shared reviewer credentials remain an audit caveat; named role-scoped reviewer
 access is a separate future `REC-02` candidate and is not promoted here.
 
+Rev 104 `MOB-DG04b` read-contract addendum: implementation planning identified
+two ambiguities before runtime work. The exact tenant gate is now
+`tenants.code=MK` and `tenants.countryCode=MK`; every other or mismatched tenant
+returns `hidden` before document or consent reads. The existing consent source
+is specifically `claim_document_ai_extraction_consents`, so reads must match
+`consentType=ai_document_extraction` and
+`processingPurpose=ai_document_extraction`, and all UI copy must name AI
+document extraction rather than implying general storage, access, sharing,
+medical, legal, or privacy consent. This addendum narrows `MOB-03a`; it promotes
+no additional row, table, writer, route, role, tenant, or product behavior.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the

@@ -65,6 +65,8 @@ outside the allowlist render no MOB-03a surface.
 
 The implementation may read only existing rows:
 
+- `tenants`: the row matching the session tenant ID, with `code` and
+  `countryCode` used only for the exact MK fail-closed boundary;
 - `claim`: claim ID, tenant ID, owner user ID, category, and erased-subject
   state already used by the member claim detail;
 - `claim_documents`: internal document ID for server-side joining, category,
@@ -96,16 +98,19 @@ VaultConsentDisplayItem
   consentVersion: string | null
 ```
 
-Only document category `evidence` is allowed. The existing `legal` category is
-excluded because the current schema cannot distinguish public legal metadata
-from private legal material. The implementation must not infer values when the
-source row is absent.
+Only `tenants.code=MK` with `tenants.countryCode=MK` may return `ready` or
+`subject_erased`. Every other tenant returns `hidden` before any document or
+consent query. Only document category `evidence` is allowed. The existing
+`legal` category is excluded because the current schema cannot distinguish
+public legal metadata from private legal material. The implementation must not
+infer values when the source row is absent.
 
 The read must preserve the existing member own-case and tenant predicates. It
 must select the latest matching consent by `recordedAt DESC, id DESC`; the
 consent primary key is an internal server-side tie-breaker and never enters the
-DTO. The read must not call storage, download, upload, share-pack, mutation, or
-event/outbox code.
+DTO. It must match `consentType=ai_document_extraction` and
+`processingPurpose=ai_document_extraction`. The read must not call storage,
+download, upload, share-pack, mutation, or event/outbox code.
 
 ## Rendering Contract
 
@@ -117,6 +122,10 @@ The member UI displays labels for:
 - consent status;
 - consent recorded time;
 - consent version.
+
+Every consent label and explanation must say that this is consent for AI
+document extraction. It must not imply document-storage, document-access,
+sharing, medical, legal, or general privacy consent.
 
 It never displays document name, file type, file size, raw document ID, consent
 ID, user ID, file content, link, signed URL, storage path, medical data, payment
@@ -156,18 +165,24 @@ helper can carry the change.
 
 The implementation must prove:
 
-1. `vehicle` and `property` claims render the safe DTO; `injury`, medical,
-   travel, unknown, and erased subjects fail closed.
-2. The read filters by tenant, member, claim, document, consent purpose, and
-   subject; latest consent selection uses `recordedAt DESC, id DESC`.
-3. Withdrawn and missing consent never render granted copy or version data.
-4. The client receives none of the forbidden fields.
-5. The implementation imports or calls no writer, upload, storage, share-pack,
+1. Only the exact MK tenant may render the surface; KS, AL, unknown, and
+   mismatched tenant code/country combinations return `hidden` before document
+   reads.
+2. MK `vehicle` and `property` claims render the safe DTO; `injury`, medical,
+   travel, and unknown categories fail closed. Erased subjects return only
+   `subject_erased` without an item array or count.
+3. The read filters by tenant, member, claim, document, consent type, consent
+   purpose, and subject; latest consent selection uses
+   `recordedAt DESC, id DESC`.
+4. Withdrawn and missing consent never render granted copy or version data.
+5. The client receives none of the forbidden fields.
+6. The implementation imports or calls no writer, upload, storage, share-pack,
    signed-URL, mutation, event, or outbox path.
-6. Albanian, Macedonian, and English copy passes i18n integrity.
-7. The card works by keyboard and screen reader at desktop and 320-pixel mobile
+7. Albanian, Macedonian, and English copy names AI document extraction and
+   passes i18n integrity.
+8. The card works by keyboard and screen reader at desktop and 320-pixel mobile
    width.
-8. Existing `/member`, `/agent`, `/staff`, and `/admin` clarity-marker gates
+9. Existing `/member`, `/agent`, `/staff`, and `/admin` clarity-marker gates
    remain green.
 
 The persisted acceptance sources are the existing tenant-scoped rows listed in
@@ -203,6 +218,9 @@ Design-review routes on 2026-07-12:
   objection. The gate removed the duplicate field and rejected the runtime
   linkage for the reasons above.
 - Opus 4.8 escalation: `blocked` after `2308 ms`; Claude session limit.
+- Gemini 3.1 Pro Preview addendum review: `ran` in `31088 ms`; approved the
+  exact MK tenant fail-closed check and AI-document-extraction-only semantics
+  with no blocker or important finding.
 
 The unresolved review item is therefore a documented governance-evidence
 attribution risk, not a runtime consent-source ambiguity. Tier 3 implementation
