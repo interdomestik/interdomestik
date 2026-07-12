@@ -33,10 +33,19 @@ function lineageValidator(identity, byId) {
       visiting.add(key);
       path.push(key);
       if (current.previousReceiptId === undefined) {
-        valid = true;
+        valid = current.receiptVersion === 1;
         break;
       }
-      current = byId.get(current.previousReceiptId);
+      const parent = byId.get(current.previousReceiptId);
+      if (
+        !parent ||
+        !Number.isInteger(current.receiptVersion) ||
+        !Number.isInteger(parent.receiptVersion) ||
+        current.receiptVersion !== parent.receiptVersion + 1
+      ) {
+        break;
+      }
+      current = parent;
     }
     path.forEach(key => cache.set(key, valid));
     return valid;

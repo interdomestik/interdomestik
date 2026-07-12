@@ -13,7 +13,8 @@ const identity = Object.freeze({
 });
 
 function receipt(receiptId, submittedAt, overrides = {}) {
-  return { ...identity, receiptId, submittedAt, ...overrides };
+  const receiptVersion = overrides.previousReceiptId === undefined ? 1 : 2;
+  return { ...identity, receiptId, receiptVersion, submittedAt, ...overrides };
 }
 
 test('returns no status without same-identity receipt evidence', () => {

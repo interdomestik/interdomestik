@@ -36,6 +36,7 @@ function repositoryFor(...bundles) {
 function receiptFor(value, overrides = {}) {
   return {
     receiptId: `receipt_${value.assignment.id}`,
+    receiptVersion: 1,
     submittedAt: '2026-07-10T00:00:00Z',
     assignmentId: value.assignment.id,
     reviewerFixtureId: value.reviewer.id,

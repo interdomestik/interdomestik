@@ -16,6 +16,7 @@ function receipt(receiptId, overrides = {}) {
   return {
     ...identity,
     receiptId,
+    receiptVersion: 1,
     submittedAt: '2026-07-10T00:00:00Z',
     ...overrides,
   };
@@ -41,28 +42,50 @@ test('memoizes shared lineage validity within one derivation', () => {
       return undefined;
     },
   });
-  const first = receipt('first', { previousReceiptId: 'root' });
-  const second = receipt('second', { previousReceiptId: 'root' });
+  const first = receipt('first', { receiptVersion: 2, previousReceiptId: 'root' });
+  const second = receipt('second', { receiptVersion: 2, previousReceiptId: 'root' });
   assert.equal(receiptStatus([root, first, second], identity).submissionStatus, 'submitted');
   assert.equal(rootVisits, 1);
 });
 
-test('lineage keeps schema version one without enforcing receipt revision decrement', () => {
-  const root = receipt('root', { schemaVersion: 1, receiptVersion: 1 });
+test('enforces canonical receipt revision lineage', () => {
+  const root = receipt('root');
   const correction = receipt('correction', {
-    schemaVersion: 1,
-    receiptVersion: 9,
+    receiptVersion: 2,
     previousReceiptId: 'root',
     submittedAt: '2026-07-11T00:00:00Z',
   });
-  assert.equal(root.schemaVersion, 1);
-  assert.equal(correction.schemaVersion, 1);
   assert.equal(receiptStatus([root, correction], identity).receiptId, 'correction');
+
+  const skipped = receipt('skipped', {
+    receiptVersion: 9,
+    previousReceiptId: 'root',
+    submittedAt: '2026-07-12T00:00:00Z',
+  });
+  assert.equal(receiptStatus([root, skipped], identity).receiptId, 'root');
+
+  const repeated = receipt('repeated', {
+    receiptVersion: 2,
+    previousReceiptId: 'correction',
+    submittedAt: '2026-07-12T00:00:00Z',
+  });
+  assert.equal(receiptStatus([root, correction, repeated], identity).receiptId, 'correction');
+
+  const decreasing = receipt('decreasing', {
+    receiptVersion: 1,
+    previousReceiptId: 'correction',
+    submittedAt: '2026-07-12T00:00:00Z',
+  });
+  assert.equal(receiptStatus([root, correction, decreasing], identity).receiptId, 'correction');
+  assert.deepEqual(receiptStatus([receipt('bad_root', { receiptVersion: 2 })], identity), {
+    submissionStatus: null,
+  });
 });
 
 test('derives status from a deep valid lineage without overflowing the call stack', () => {
   const chain = Array.from({ length: 8_000 }, (_, index) =>
     receipt(`receipt_${index}`, {
+      receiptVersion: index + 1,
       ...(index > 0 ? { previousReceiptId: `receipt_${index - 1}` } : {}),
     })
   ).reverse();
