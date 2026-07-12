@@ -44,6 +44,8 @@ function receiptFor(value, overrides = {}) {
     packetId: value.packet.id,
     packetRole: value.packet.reviewerRole,
     packetVersion: value.packet.version,
+    decisions: { 'ITEM-1': {} },
+    structuredResponses: { 'ITEM-1': {} },
     ...overrides,
   };
 }

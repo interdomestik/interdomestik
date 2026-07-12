@@ -1,3 +1,4 @@
+import { importedReceiptMatchesPacket } from '../validation/receipt-packet.mjs';
 import { receiptStatus } from './receipt-status.mjs';
 
 const PROGRESS = Object.freeze({
@@ -46,7 +47,7 @@ export async function loadInboxRows(repository, reviewerId, receiptStore) {
   rows = rows.map((row, index) => ({
     ...row,
     ...receiptStatus(
-      receiptsByPacket.get(bundles[index].value.packet.id) ?? [],
+      matchingPacketReceipts(receiptsByPacket, bundles[index].value.packet),
       receiptIdentity(bundles[index].value)
     ),
   }));
@@ -58,6 +59,11 @@ export async function loadInboxRows(repository, reviewerId, receiptStore) {
     }
   }
   return { ok: true, value: rows };
+}
+
+function matchingPacketReceipts(receiptsByPacket, packet) {
+  const receipts = receiptsByPacket.get(packet.id) ?? [];
+  return receipts.filter(receipt => importedReceiptMatchesPacket(receipt, packet, true));
 }
 
 function groupByPacket(receipts) {
