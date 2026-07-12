@@ -13,10 +13,12 @@ import { claimDocuments, claimEscalationAgreements, claims } from '@interdomesti
 import * as Sentry from '@sentry/nextjs';
 import { and, desc, eq } from 'drizzle-orm';
 import 'server-only';
-import type { ClaimTrackingDetailDto, ClaimTrackingDocument } from '../types';
+import type { ClaimTrackingDetailDto } from '../types';
 import { buildClaimVisibilityWhere } from '../utils';
+import { mapMemberClaimDocuments } from './member-claim-documents';
 import { getMemberTimelineFromDomainEvents } from './member-domain-event-timeline';
 import { buildProgressSummary } from './member-progress-summary';
+import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
 
 export async function getMemberClaimDetail(
   session: ClaimsSession | null,
@@ -24,30 +26,23 @@ export async function getMemberClaimDetail(
 ): Promise<ClaimTrackingDetailDto | null> {
   return Sentry.withServerActionInstrumentation(
     'claims.tracking.detail',
-    { recordResponse: true },
+    { recordResponse: false },
     async () => {
-      // 1. Auth & Context
       const access = ensureClaimsAccess(session);
       const { tenantId, userId, role, branchId } = access;
 
       Sentry.setTag('tenantId', tenantId);
       Sentry.setTag('claimId', claimId);
 
-      // TODO: Fetch agent's members if role is agent
-      // For now, we rely on direct assignment or fallback in Utils.
-
-      // 2. Build Query
       const visibilityCondition = buildClaimVisibilityWhere({
         tenantId,
         userId,
         role,
         branchId,
-        // agentMemberIds: ... // fetch if needed
       });
 
       const whereClause = and(eq(claims.id, claimId), visibilityCondition);
 
-      // 3. Fetch Data (Parallel)
       // db-access-guard: tenant-scoped -- reason: tenant predicate built by claim visibility helper before member claim detail lookup
       const claimQuery = db.query.claims.findFirst({
         where: whereClause,
@@ -55,7 +50,6 @@ export async function getMemberClaimDetail(
           documents: {
             orderBy: desc(claimDocuments.createdAt),
           },
-          // We can fetch stage history or separate query
         },
       });
 
@@ -81,31 +75,29 @@ export async function getMemberClaimDetail(
         return null;
       }
 
-      const matterAllowance = await getMatterAllowanceVisibilityForUser({
-        tenantId,
-        userId: claim.userId ?? userId,
-      });
-
       const claimStatus = resolveClaimLifecycleReadProjection(claim).status;
       const piiStatus =
         claim.userId === ERASURE_REDACTED_VALUE ? 'erased_or_unavailable' : 'available';
-      const timeline = await getMemberTimelineFromDomainEvents({
-        claimId: claim.id,
-        tenantId,
-        currentStatus: claimStatus,
-        createdAt: claim.createdAt,
-        piiStatus,
-        updatedAt: claim.updatedAt,
-      });
-
-      const documents: ClaimTrackingDocument[] = claim.documents.map(doc => ({
-        id: doc.id,
-        name: doc.name,
-        category: doc.category,
-        createdAt: doc.createdAt ?? new Date(),
-        fileType: doc.fileType,
-        fileSize: doc.fileSize,
-      }));
+      const memberId = claim.userId ?? userId;
+      const [matterAllowance, timeline, vaultConsentDisplay] = await Promise.all([
+        getMatterAllowanceVisibilityForUser({ tenantId, userId: memberId }),
+        getMemberTimelineFromDomainEvents({
+          claimId: claim.id,
+          tenantId,
+          currentStatus: claimStatus,
+          createdAt: claim.createdAt,
+          piiStatus,
+          updatedAt: claim.updatedAt,
+        }),
+        getMemberVaultConsentDisplay({
+          tenantId,
+          memberId,
+          claimId: claim.id,
+          claimCategory: claim.category ?? '',
+          piiStatus,
+        }),
+      ]);
+      const documents = mapMemberClaimDocuments(claim.documents);
 
       const recoveryDecision = toMemberSafeRecoveryDecision(
         buildRecoveryDecisionSnapshot({
@@ -148,6 +140,7 @@ export async function getMemberClaimDetail(
         }),
         matterAllowance,
         recoveryDecision,
+        vaultConsentDisplay,
       };
 
       return dto;

@@ -1,22 +1,13 @@
 'use client';
 
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
-import { OpsActionBar, OpsDocumentsPanel, OpsStatusBadge, OpsTimeline } from '@/components/ops';
+import { OpsActionBar, OpsStatusBadge, OpsTimeline } from '@/components/ops';
 import {
   getClaimActions,
   OpsActionConfig,
-  toOpsDocuments,
   toOpsStatus,
   toOpsTimelineEvents,
 } from '@/components/ops/adapters/claims';
-import type {
-  ClaimMatterAllowanceDto,
-  ClaimProgressSummaryDto,
-  ClaimRecoveryDecisionDto,
-  ClaimTrackingDetailDto,
-  ClaimTrackingDocument,
-  ClaimTimelineEvent,
-} from '@/features/claims/tracking/types';
 import { Link } from '@/i18n/routing';
 import { formatPilotDateTime } from '@/lib/utils/date';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
@@ -24,51 +15,10 @@ import { LifeBuoy, Upload } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef } from 'react';
 import { useTrackingLabelTranslator } from '@/features/claims/tracking/components/useTrackingLabelTranslator';
-import {
-  CaseCompanionNextStepCard,
-  type SerializedCaseCompanionNextStep,
-} from './CaseCompanionNextStepCard';
+import { CaseCompanionNextStepCard } from './CaseCompanionNextStepCard';
 import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
-
-type SerializedClaimTrackingDocument = Omit<ClaimTrackingDocument, 'createdAt'> & {
-  createdAt: ClaimTrackingDocument['createdAt'] | string;
-};
-
-type SerializedClaimTimelineEvent = Omit<ClaimTimelineEvent, 'date'> & {
-  date: ClaimTimelineEvent['date'] | string;
-};
-
-type SerializedClaimMatterAllowance = Omit<ClaimMatterAllowanceDto, 'windowStart' | 'windowEnd'> & {
-  windowStart: ClaimMatterAllowanceDto['windowStart'] | string;
-  windowEnd: ClaimMatterAllowanceDto['windowEnd'] | string;
-};
-
-type SerializedClaimRecoveryDecision = ClaimRecoveryDecisionDto;
-
-type SerializedClaimProgressSummary = Omit<ClaimProgressSummaryDto, 'latestUpdateAt'> & {
-  latestUpdateAt: ClaimProgressSummaryDto['latestUpdateAt'] | string;
-};
-
-type MemberClaimDetailOpsClaim = Omit<
-  ClaimTrackingDetailDto,
-  | 'createdAt'
-  | 'updatedAt'
-  | 'documents'
-  | 'timeline'
-  | 'matterAllowance'
-  | 'recoveryDecision'
-  | 'progressSummary'
-  | 'caseCompanionNextStep'
-> & {
-  createdAt: ClaimTrackingDetailDto['createdAt'] | string;
-  updatedAt: ClaimTrackingDetailDto['updatedAt'] | string | null;
-  documents: SerializedClaimTrackingDocument[];
-  timeline: SerializedClaimTimelineEvent[];
-  progressSummary: SerializedClaimProgressSummary;
-  caseCompanionNextStep: SerializedCaseCompanionNextStep;
-  matterAllowance?: SerializedClaimMatterAllowance | null;
-  recoveryDecision?: SerializedClaimRecoveryDecision | null;
-};
+import { MemberClaimEvidenceSection } from './MemberClaimEvidenceSection';
+import type { MemberClaimDetailOpsClaim } from './member-claim-detail-types';
 
 interface MemberClaimDetailOpsPageProps {
   claim: MemberClaimDetailOpsClaim;
@@ -108,7 +58,6 @@ export function MemberClaimDetailOpsPage({
     title: translateTrackingLabel(e.title),
   }));
 
-  const opsDocuments = toOpsDocuments(claim.documents);
   const localizedStatusLabel = (() => {
     try {
       return tClaimStatus(claim.status as never);
@@ -364,21 +313,10 @@ export function MemberClaimDetailOpsPage({
             </CardContent>
           </Card>
 
-          <OpsDocumentsPanel
-            title={t('detail.evidence')}
-            documents={opsDocuments}
-            emptyLabel={t('detail.documentsEmpty')}
-            viewLabel={t('detail.viewDocument')}
-            headerActions={
-              <ClaimEvidenceUploadDialog
-                claimId={claim.id}
-                trigger={
-                  <Button size="sm" variant="outline">
-                    <Upload className="w-4 h-4 mr-2" /> {t('claimsPro.actions.uploadEvidence')}
-                  </Button>
-                }
-              />
-            }
+          <MemberClaimEvidenceSection
+            claimId={claim.id}
+            documents={claim.documents}
+            vaultConsentDisplay={claim.vaultConsentDisplay}
           />
 
           <section

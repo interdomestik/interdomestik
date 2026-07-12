@@ -87,6 +87,22 @@
         "erased_subject": "Date hidden because the subject data is erased."
       }
     },
+    "vault_consent": {
+      "title": "AI document extraction consent",
+      "description": "Shows the recorded status for AI document extraction from eligible evidence in this claim. It is not a general consent for storage, access, sharing, medical, or legal processing.",
+      "categoryLabel": "Category",
+      "categoryEvidence": "Evidence",
+      "metadataUpdatedLabel": "Metadata updated",
+      "consentStatusLabel": "AI document extraction status",
+      "statusAccepted": "Accepted for AI document extraction",
+      "statusWithdrawn": "Withdrawn for AI document extraction",
+      "statusMissing": "Not recorded for AI document extraction",
+      "recordedAtLabel": "Recorded",
+      "versionLabel": "Privacy version",
+      "unavailable": "Unavailable",
+      "empty": "No eligible evidence metadata is available.",
+      "erased": "Evidence metadata is unavailable for this protected subject."
+    },
     "status": {
       "draft": "Draft",
       "submitted": "Submitted",

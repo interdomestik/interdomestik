@@ -1,6 +1,7 @@
 import { getSessionSafe } from '@/components/shell/session';
 import { notFound, redirect } from 'next/navigation';
 import { getMemberClaimDetail } from '@/features/claims/tracking/server/getMemberClaimDetail';
+import { serializeMemberVaultConsentDisplay } from '@/features/claims/tracking/server/member-vault-consent-serialization';
 import { MemberClaimDetailOpsPage } from '@/features/member/claims/components/MemberClaimDetailOpsPage';
 import { setRequestLocale } from 'next-intl/server';
 import { withMemberActorRoleOnSession } from '../../actor-role-on-session';
@@ -54,6 +55,7 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
       ...claim.progressSummary,
       latestUpdateAt: claim.progressSummary.latestUpdateAt.toISOString(),
     },
+    vaultConsentDisplay: serializeMemberVaultConsentDisplay(claim.vaultConsentDisplay),
   };
 
   return (

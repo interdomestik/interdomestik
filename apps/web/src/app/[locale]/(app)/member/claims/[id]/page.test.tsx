@@ -40,6 +40,18 @@ const hoisted = vi.hoisted(() => ({
       nextStepKey: 'claims-tracking.status.next_step.evaluation',
     },
     matterAllowance: null,
+    vaultConsentDisplay: {
+      kind: 'ready',
+      items: [
+        {
+          category: 'evidence',
+          updatedAt: new Date('2026-03-14T12:00:00.000Z'),
+          consentStatus: 'accepted',
+          consentRecordedAt: new Date('2026-03-14T11:30:00.000Z'),
+          consentVersion: 'privacy-2026-03',
+        },
+      ],
+    },
   })),
   memberClaimDetailOpsPageMock: vi.fn((props: unknown) => (
     <div data-testid="member-claim-detail-ops-page">{JSON.stringify(props)}</div>
@@ -94,6 +106,21 @@ describe('ClaimDetailsPage', () => {
           image: null,
           role: 'member',
         },
+      })
+    );
+    expect(hoisted.memberClaimDetailOpsPageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claim: expect.objectContaining({
+          vaultConsentDisplay: {
+            kind: 'ready',
+            items: [
+              expect.objectContaining({
+                updatedAt: '2026-03-14T12:00:00.000Z',
+                consentRecordedAt: '2026-03-14T11:30:00.000Z',
+              }),
+            ],
+          },
+        }),
       })
     );
   });

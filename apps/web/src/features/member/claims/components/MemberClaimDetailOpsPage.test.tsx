@@ -174,6 +174,7 @@ function buildClaim(now: Date, overrides: Partial<TestClaim> = {}): TestClaim {
     },
     caseCompanionNextStep: deriveCaseCompanionNextStep({ status: 'evaluation' }),
     ...overrides,
+    vaultConsentDisplay: overrides.vaultConsentDisplay ?? { kind: 'hidden' },
   };
 }
 
@@ -202,7 +203,6 @@ describe('MemberClaimDetailOpsPage', () => {
       ],
     });
 
-    // If the old bug regresses, we'd render "claims.claims-tracking.status.evaluation".
     expect(screen.getAllByText('Evaluation').length).toBeGreaterThan(0);
   });
 
