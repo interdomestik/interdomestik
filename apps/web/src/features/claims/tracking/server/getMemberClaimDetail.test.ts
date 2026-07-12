@@ -15,6 +15,7 @@ const hoisted = vi.hoisted(() => ({
   recoveryDecisionRows: vi.fn(),
   select: vi.fn(),
   getMemberTimelineFromDomainEvents: vi.fn(),
+  getMemberVaultConsentDisplay: vi.fn(),
   ensureClaimsAccess: vi.fn(),
   buildClaimVisibilityWhere: vi.fn(),
   getMatterAllowanceVisibility: vi.fn(),
@@ -22,49 +23,8 @@ const hoisted = vi.hoisted(() => ({
   resolveClaimLifecycleReadProjection: vi.fn((claim: { status?: string | null }) => ({
     status: claim.status ?? 'draft',
   })),
-  buildRecoveryDecisionSnapshot: vi.fn((record: Record<string, unknown> | null | undefined) => {
-    if (!record?.decisionType) {
-      return {
-        status: 'pending',
-        decidedAt: null,
-        explanation: null,
-        declineReasonCode: null,
-        staffLabel: 'Pending staff decision',
-        memberLabel: null,
-        memberDescription: null,
-      };
-    }
-    if (record.decisionType === 'accepted') {
-      return {
-        status: 'accepted',
-        decidedAt: record.decidedAt ?? null,
-        explanation: record.explanation ?? null,
-        declineReasonCode: null,
-        staffLabel: 'Accepted for staff-led recovery',
-        memberLabel: 'Accepted for staff-led recovery',
-        memberDescription: 'We accepted this matter for staff-led recovery.',
-      };
-    }
-    return {
-      status: 'declined',
-      decidedAt: record.decidedAt ?? null,
-      explanation: record.explanation ?? null,
-      declineReasonCode: record.declineReasonCode ?? null,
-      staffLabel: 'Guidance-only or referral-only under current scope',
-      memberLabel: 'Guidance-only or referral-only matter',
-      memberDescription:
-        'This matter stays guidance-only or referral-only under the current launch scope.',
-    };
-  }),
-  toMemberSafeRecoveryDecision: vi.fn((snapshot: Record<string, unknown> | null | undefined) => {
-    if (!snapshot || snapshot.status === 'pending') return null;
-
-    return {
-      status: snapshot.status,
-      title: snapshot.memberLabel,
-      description: snapshot.memberDescription ?? null,
-    };
-  }),
+  buildRecoveryDecisionSnapshot: vi.fn(),
+  toMemberSafeRecoveryDecision: vi.fn(),
   setTag: vi.fn(),
   withServerActionInstrumentation: vi.fn(
     async (_name: string, _options: unknown, callback: () => Promise<unknown>) => callback()
@@ -135,7 +95,15 @@ vi.mock('./member-domain-event-timeline', () => ({
   getMemberTimelineFromDomainEvents: hoisted.getMemberTimelineFromDomainEvents,
 }));
 
+vi.mock('./getMemberVaultConsentDisplay', () => ({
+  getMemberVaultConsentDisplay: hoisted.getMemberVaultConsentDisplay,
+}));
+
 import { getMemberClaimDetail } from './getMemberClaimDetail';
+import {
+  buildRecoveryDecisionSnapshotMock,
+  toMemberSafeRecoveryDecisionMock,
+} from './getMemberClaimDetail-recovery.test-support';
 import { normalizeMemberTimelineMockRows } from './member-domain-event-timeline.test-support';
 
 const memberSession = {
@@ -167,6 +135,9 @@ describe('getMemberClaimDetail', () => {
     });
     hoisted.buildClaimVisibilityWhere.mockReturnValue({ visibility: 'member' });
     hoisted.getMatterAllowanceVisibility.mockResolvedValue(null);
+    hoisted.getMemberVaultConsentDisplay.mockResolvedValue({ kind: 'hidden' });
+    hoisted.buildRecoveryDecisionSnapshot.mockImplementation(buildRecoveryDecisionSnapshotMock);
+    hoisted.toMemberSafeRecoveryDecision.mockImplementation(toMemberSafeRecoveryDecisionMock);
     hoisted.deriveCaseCompanionNextStep.mockReturnValue(hoisted.caseCompanionNextStep);
     hoisted.getMemberTimelineFromDomainEvents.mockImplementation(async context => {
       return normalizeMemberTimelineMockRows(context, await hoisted.timelineRows());
@@ -419,5 +390,34 @@ describe('getMemberClaimDetail', () => {
       title: 'Accepted for staff-led recovery',
       description: 'We accepted this matter for staff-led recovery.',
     });
+  });
+
+  it('adds the safe Vault display after resolving the member-owned claim', async () => {
+    hoisted.claimFindFirst.mockResolvedValueOnce({
+      id: 'claim-vault',
+      userId: 'member-1',
+      category: 'vehicle',
+      title: 'Vehicle evidence',
+      status: 'evaluation',
+      createdAt: new Date('2026-07-01Z'),
+      updatedAt: null,
+      description: null,
+      claimAmount: null,
+      currency: 'EUR',
+      documents: [],
+    });
+    hoisted.timelineRows.mockResolvedValueOnce([]);
+    hoisted.getMemberVaultConsentDisplay.mockResolvedValueOnce({ kind: 'ready', items: [] });
+
+    const result = await getMemberClaimDetail(memberSession, 'claim-vault');
+
+    expect(hoisted.getMemberVaultConsentDisplay).toHaveBeenCalledWith({
+      tenantId: 'tenant-1',
+      memberId: 'member-1',
+      claimId: 'claim-vault',
+      claimCategory: 'vehicle',
+      piiStatus: 'available',
+    });
+    expect(result?.vaultConsentDisplay).toEqual({ kind: 'ready', items: [] });
   });
 });

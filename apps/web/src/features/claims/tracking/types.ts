@@ -1,5 +1,5 @@
 import type { ClaimStatus } from '@interdomestik/database/constants';
-import type { CaseCompanionNextStep } from '@interdomestik/domain-claims';
+import type { CaseCompanionNextStep, VaultConsentDisplay } from '@interdomestik/domain-claims';
 import type { ClaimSlaPhase } from '../policy';
 import type { ClaimMemberTrustSummaryDto } from './memberTrustSummary';
 
@@ -49,6 +49,7 @@ export interface ClaimTrackingDetailDto {
   memberTrustSummary: ClaimMemberTrustSummaryDto;
   matterAllowance?: ClaimMatterAllowanceDto | null;
   recoveryDecision?: ClaimRecoveryDecisionDto | null;
+  vaultConsentDisplay: VaultConsentDisplay;
 }
 
 export interface ClaimTrackingDocument {
