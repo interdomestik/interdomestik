@@ -23,6 +23,7 @@ export * from './claims/lifecycle-state';
 export * from './claims/lifecycle-read-model';
 export * from './claims/lifecycle-read-sql';
 export * from './claims/case-companion-next-step';
+export * from './claims/vault-consent-display';
 export * from './claims/transition-guard';
 export { updateClaimStatusCore } from './claims/status';
 export { assignClaimCore as assignStaffClaimCore } from './staff-claims/assign';
