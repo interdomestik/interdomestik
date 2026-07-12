@@ -381,6 +381,20 @@ document extraction rather than implying general storage, access, sharing,
 medical, legal, or privacy consent. This addendum narrows `MOB-03a`; it promotes
 no additional row, table, writer, route, role, tenant, or product behavior.
 
+Rev 105 closeout: `MOB-03a` completed through PR `#1332` / merge-main SHA
+`52226618c93029dde8c5511c6b943888125646c3`, recorded in
+`docs/plans/2026-07-12-mob-03a-closeout.md`. The merged implementation consumed
+the `MOB-DG04b` authority and delivered only the MK member claim-detail Vault
+consent display foundation with exact tenant identity, vehicle/property,
+evidence-only, AI-document-extraction, deterministic ordering, withdrawn-state,
+erased-subject, forbidden-field, i18n, accessibility, and KS fail-closed proof.
+It introduced no writer, storage/upload, schema/RLS/migration, auth/proxy/
+routing/session/tenancy, billing, Agreement Ceremony, external-party, KS/AL,
+medical/injury, private-legal, live-AI, or broad `MOB-03` behavior. No
+replacement implementation slice is promoted; expected resolver state is
+`blocked_requires_current_authority`, `activeSlice=null` until a fresh
+current-authority/design gate promotes exactly one next governed action.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
