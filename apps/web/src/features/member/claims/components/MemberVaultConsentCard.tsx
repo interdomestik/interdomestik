@@ -16,6 +16,12 @@ const statusStyles = {
   missing: 'border-slate-200 bg-slate-50 text-slate-700',
 } as const;
 
+const statusKeys = {
+  accepted: 'statusAccepted',
+  withdrawn: 'statusWithdrawn',
+  missing: 'statusMissing',
+} as const;
+
 export function MemberVaultConsentCard({ display }: MemberVaultConsentCardProps) {
   const locale = useLocale();
   const t = useTranslations('claims-tracking.vault_consent');
@@ -53,16 +59,21 @@ export function MemberVaultConsentCard({ display }: MemberVaultConsentCardProps)
         ) : display.items.length === 0 ? (
           <p className="text-sm text-slate-600">{t('empty')}</p>
         ) : (
-          <ul className="space-y-3" aria-label={t('title')}>
+          <ul className="space-y-3" role="list">
             {display.items.map((item, index) => (
-              <li key={index} className="min-w-0 rounded-lg border border-slate-200 p-4">
-                <div
-                  role="status"
-                  className={`inline-flex max-w-full rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyles[item.consentStatus]}`}
-                >
-                  {t(`status${item.consentStatus[0]?.toUpperCase()}${item.consentStatus.slice(1)}`)}
-                </div>
-                <dl className="mt-4 grid min-w-0 grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+              <li
+                key={`${item.consentStatus}:${item.updatedAt ?? 'unknown'}:${item.consentRecordedAt ?? 'none'}:${index}`}
+                className="min-w-0 rounded-lg border border-slate-200 p-4"
+              >
+                <dl className="grid min-w-0 grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <dt className="sr-only">{t('consentStatusLabel')}</dt>
+                    <dd
+                      className={`inline-flex max-w-full rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyles[item.consentStatus]}`}
+                    >
+                      {t(statusKeys[item.consentStatus])}
+                    </dd>
+                  </div>
                   <div>
                     <dt className="text-slate-500">{t('categoryLabel')}</dt>
                     <dd className="mt-1 font-medium text-slate-900">{t('categoryEvidence')}</dd>

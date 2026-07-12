@@ -76,7 +76,11 @@ describe('MemberVaultConsentCard', () => {
     render(<MemberVaultConsentCard display={display} />);
 
     const region = screen.getByRole('region', { name: 'AI document extraction consent' });
-    expect(screen.getAllByRole('status')).toHaveLength(3);
+    expect(screen.queryAllByRole('status')).toHaveLength(0);
+    expect(screen.getAllByText('AI document extraction status')).toHaveLength(3);
+    const list = screen.getByRole('list');
+    expect(list).toHaveAttribute('role', 'list');
+    expect(list).not.toHaveAccessibleName();
     expect(region).toHaveTextContent('Accepted for AI document extraction');
     expect(region).toHaveTextContent('Withdrawn for AI document extraction');
     expect(region).toHaveTextContent('Not recorded for AI document extraction');
