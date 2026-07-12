@@ -31,6 +31,18 @@ export async function installDirectoryScenario(page, scenario = 'success') {
       globalThis.showDirectoryPicker = undefined;
       return;
     }
+    globalThis.createDirectoryWritable = (name, fileOptions, options) => ({
+      async write(text) {
+        if (value === 'write_failed') throw new Error('disk');
+        globalThis.directoryProbe.writes.push({ name, fileOptions, options, text });
+      },
+      async close() {},
+    });
+    globalThis.createDirectoryFileHandle = (name, fileOptions, options) => ({
+      async createWritable() {
+        return globalThis.createDirectoryWritable(name, fileOptions, options);
+      },
+    });
     globalThis.showDirectoryPicker = options => {
       const probe = globalThis.directoryProbe;
       probe.pickerCalls += 1;
@@ -41,21 +53,17 @@ export async function installDirectoryScenario(page, scenario = 'success') {
       if (value === 'denied') return Promise.reject(new DOMException('denied', 'NotAllowedError'));
       return Promise.resolve({
         async getFileHandle(name, fileOptions) {
-          return {
-            async createWritable() {
-              return {
-                async write(text) {
-                  if (value === 'write_failed') throw new Error('disk');
-                  probe.writes.push({ name, fileOptions, options, text });
-                },
-                async close() {},
-              };
-            },
-          };
+          return globalThis.createDirectoryFileHandle(name, fileOptions, options);
         },
       });
     };
   }, scenario);
+}
+
+function requiredFieldValue(type, id) {
+  if (type === 'date') return '2026-07-10';
+  if (id?.toLowerCase().includes('ref')) return 'docs/final-review.md';
+  return 'Vlerë finale e shqyrtuesit';
 }
 
 async function fillRequired(page) {
@@ -65,13 +73,7 @@ async function fillRequired(page) {
     const type = await field.getAttribute('type');
     if (['radio', 'checkbox'].includes(type) || (await field.inputValue())) continue;
     const id = await field.getAttribute('id');
-    await field.fill(
-      type === 'date'
-        ? '2026-07-10'
-        : id?.toLowerCase().includes('ref')
-          ? 'docs/final-review.md'
-          : 'Vlerë finale e shqyrtuesit'
-    );
+    await field.fill(requiredFieldValue(type, id));
   }
 }
 
