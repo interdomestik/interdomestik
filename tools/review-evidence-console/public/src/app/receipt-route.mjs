@@ -101,10 +101,9 @@ export function createReceiptRoute(options) {
           importNotice: imported.has(route.receiptId)
             ? 'Lexohet në këtë pajisje; nuk ngarkohet kurrë'
             : '',
-          backLabel:
-            loaded.value.packetId === 'mob-03a-part-a'
-              ? 'Kthehu te paketat — vazhdo me Pjesën B'
-              : 'Kthehu te paketat',
+          backLabel: bundle.assignment?.continuesWithAssignmentId
+            ? 'Kthehu te paketat — vazhdo me Pjesën B'
+            : 'Kthehu te paketat',
           onBack: () => navigate({ name: 'inbox' }),
           onSaveDirectory: directoryWriter.supported ? onSaveDirectory : undefined,
           directoryResult,

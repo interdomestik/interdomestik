@@ -19,7 +19,7 @@ const packet = {
   ],
 };
 
-function setup(packetOverride = packet) {
+function setup(packetOverride = packet, assignment = {}) {
   const base = makeStorage();
   let failStorage = false;
   const storage = {
@@ -42,7 +42,10 @@ function setup(packetOverride = packet) {
   const navigations = [];
   const loaders = createReviewRouteLoaders({
     repository: {
-      loadAssignmentBundle: async () => ({ ok: true, value: { packet: packetOverride } }),
+      loadAssignmentBundle: async () => ({
+        ok: true,
+        value: { assignment, packet: packetOverride },
+      }),
     },
     isCurrent: token => token === 1,
     render: (content, role, focus) => renders.push({ content, focus }),
@@ -78,9 +81,14 @@ test('focuses receipt then correction headings on deliberate view changes', asyn
   assert.equal(context.renders.at(-1).focus, 'correction-heading');
 });
 
-test('returns from a completed Part A receipt to the packet list', async () => {
-  const context = setup();
-  const receipt = await buildReceipt({ ...receiptInput, submittedAt });
+test('uses continuation authority for the return-to-packets label', async () => {
+  const continuedPacket = { ...packet, id: 'continued-packet' };
+  const context = setup(continuedPacket, { continuesWithAssignmentId: 'assign_b' });
+  const receipt = await buildReceipt({
+    ...receiptInput,
+    packetId: continuedPacket.id,
+    submittedAt,
+  });
   await context.loaders.receiptStore.save(receipt);
   await context.loaders.receipt({ name: 'receipt', receiptId: receipt.receiptId }, 1);
   const button = nodes(context.renders.at(-1).content).find(

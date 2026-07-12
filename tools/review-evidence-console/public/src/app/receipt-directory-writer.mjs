@@ -32,7 +32,7 @@ export function createReceiptDirectoryWriter({
         return failure(
           cancelled ? 'cancelled' : 'permission_failed',
           cancelled
-            ? 'Zgjedhja e inbox-it privat u anulua. Receipt-i nuk u ruajt.'
+            ? 'Zgjedhja u anulua. Receipt-i mbetet i ruajtur lokalisht; vetëm ruajtja në inbox-in privat u anulua.'
             : 'Inbox-i privat nuk mund të hapej. Përdor Eksporto JSON.'
         );
       } finally {

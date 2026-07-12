@@ -2,13 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { canonicalStringify } from '../public/src/state/canonical-json.mjs';
 import { createReceiptDirectoryWriter } from '../public/src/app/receipt-directory-writer.mjs';
-
 const receipt = {
   receiptId: 'rec_1234567890abcdef12345678',
   packetId: 'mob-03a-part-b',
   reviewerDisplayName: 'Gazmend Abazi',
 };
-
 function writableFixture({ writeError = false } = {}) {
   const calls = { picker: 0, files: [], writes: [], closes: 0 };
   const directory = {
@@ -36,7 +34,6 @@ function writableFixture({ writeError = false } = {}) {
   };
   return { calls, pickDirectory };
 }
-
 test('writes canonical receipt JSON and reuses the selected folder in this session', async () => {
   const fixture = writableFixture();
   const writer = createReceiptDirectoryWriter({ pickDirectory: fixture.pickDirectory });
@@ -52,7 +49,10 @@ test('writes canonical receipt JSON and reuses the selected folder in this sessi
     { name: `${receipt.receiptId}.json`, options: { create: true } },
     { name: `${receipt.receiptId}.json`, options: { create: true } },
   ]);
-  assert.deepEqual(fixture.calls.writes, [canonicalStringify(receipt), canonicalStringify(receipt)]);
+  assert.deepEqual(fixture.calls.writes, [
+    canonicalStringify(receipt),
+    canonicalStringify(receipt),
+  ]);
   assert.equal(fixture.calls.closes, 2);
 });
 
@@ -112,7 +112,7 @@ test('clears a stale directory while a fresh request is pending or cancelled', a
   const freshRequest = writer.requestDirectory();
   const pendingSave = writer.save(receipt);
   cancel(new DOMException('cancelled', 'AbortError'));
-  assert.equal((await freshRequest).code, 'cancelled');
+  assert.match((await freshRequest).message, /receipt-i mbetet i ruajtur lokalisht/i);
   assert.equal((await pendingSave).code, 'cancelled');
   assert.equal(firstFixture.calls.files.length, 0);
   assert.equal((await writer.save(receipt)).ok, true);
