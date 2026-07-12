@@ -38,7 +38,9 @@ export function createSubmissionController({
   authorityDisclaimer = 'Local fixture review only; not runtime authority.',
   buildReceipt = defaultBuildReceipt,
   receiptStore,
-  onNavigate = () => {},
+  directoryWriter,
+  onInbox = () => {},
+  onReceipt = () => {},
   onStatus = () => {},
 }) {
   let submitting = false;
@@ -61,6 +63,17 @@ export function createSubmissionController({
     submitting = true;
     error = null;
     onStatus({ submitting, error });
+    let directorySelection;
+    try {
+      directorySelection = Promise.resolve(
+        directoryWriter?.requestDirectory?.() ?? { ok: false, code: 'unsupported' }
+      ).then(
+        value => value,
+        () => ({ ok: false, code: 'permission_failed' })
+      );
+    } catch {
+      directorySelection = Promise.resolve({ ok: false, code: 'permission_failed' });
+    }
     try {
       const receipt = await buildReceipt(receiptInput(bundle, state, authorityDisclaimer));
       const saved = await receiptStore.save(receipt);
@@ -68,7 +81,17 @@ export function createSubmissionController({
         error = saved;
         return saved;
       }
-      onNavigate(receipt.receiptId);
+      const selected = await directorySelection;
+      let written = selected;
+      if (selected.ok) {
+        try {
+          written = await directoryWriter.save(receipt);
+        } catch {
+          written = { ok: false, code: 'write_failed' };
+        }
+      }
+      if (written.ok) onInbox();
+      else onReceipt(receipt.receiptId);
       return saved;
     } catch {
       error = { ok: false, code: 'unavailable', message: 'Vërtetimi nuk mund të krijohej.' };

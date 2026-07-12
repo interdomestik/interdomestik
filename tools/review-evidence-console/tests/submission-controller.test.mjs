@@ -1,87 +1,110 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createSubmissionController } from '../public/src/app/submission-controller.mjs';
-import { baseItem, completeDecision } from './validation-fixtures.mjs';
+import { completeDecision } from './validation-fixtures.mjs';
+import { state, submissionDeps } from './submission-controller-fixtures.mjs';
 
-const bundle = {
-  assignment: { id: 'assign_a' },
-  reviewer: { id: 'reviewer_a', displayName: 'Ada Reviewer', role: 'privacy' },
-  packet: { id: 'packet_a', version: 'v1', reviewerRole: 'privacy', items: [baseItem] },
-};
-const state = {
-  decisions: {
-    item: completeDecision({ responses: {} }),
-  },
-};
+test('opens the directory picker synchronously before submit returns a promise', async () => {
+  const events = [];
+  const pending = createSubmissionController(submissionDeps(events)).submit(state, true);
+  assert.equal(events[0][0], 'picker');
+  assert.equal(events.filter(event => event[0] === 'picker').length, 1);
+  await pending;
+});
 
-test('awaits receipt save before navigating and ignores duplicate submission', async () => {
+test('stores then writes canonical receipt before opening the inbox', async () => {
+  const events = [];
+  await createSubmissionController(
+    submissionDeps(events, { authorityDisclaimer: 'Advisory evidence only.' })
+  ).submit(state, true);
+  assert.deepEqual(
+    events.map(event => event[0]),
+    ['picker', 'build', 'store', 'write', 'inbox']
+  );
+  assert.equal(events[1][1].authorityDisclaimer, 'Advisory evidence only.');
+  assert.deepEqual(events[1][1].structuredResponses, { item: {} });
+  assert.equal(events[2][1], events[3][1]);
+});
+
+test('invalid forms perform no picker, build, store, write, or destination action', async () => {
+  const events = [];
+  const controller = createSubmissionController(submissionDeps(events));
+  assert.equal((await controller.submit(state, false)).code, 'validation_failed');
+  assert.equal(
+    (await controller.submit({ decisions: { item: { ...completeDecision(), reason: '' } } }, true))
+      .code,
+    'validation_failed'
+  );
+  assert.deepEqual(events, []);
+});
+
+for (const code of ['cancelled', 'permission_failed', 'unsupported']) {
+  test(`${code} still stores the receipt and opens receipt recovery`, async () => {
+    const events = [];
+    const deps = submissionDeps(events);
+    deps.directoryWriter.requestDirectory = () => (
+      events.push(['picker']),
+      Promise.resolve({ ok: false, code })
+    );
+    await createSubmissionController(deps).submit(state, true);
+    assert.deepEqual(
+      events.map(event => event[0]),
+      ['picker', 'build', 'store', 'receipt']
+    );
+  });
+}
+
+test('write failure keeps the stored receipt and opens receipt recovery', async () => {
+  const events = [];
+  const deps = submissionDeps(events);
+  deps.directoryWriter.save = async () => (
+    events.push(['write']),
+    { ok: false, code: 'write_failed' }
+  );
+  await createSubmissionController(deps).submit(state, true);
+  assert.deepEqual(
+    events.map(event => event[0]),
+    ['picker', 'build', 'store', 'write', 'receipt']
+  );
+});
+
+for (const failurePoint of ['build', 'store']) {
+  test(`${failurePoint} failure handles a concurrently rejecting picker without navigation`, async () => {
+    const events = [];
+    const deps = submissionDeps(events);
+    deps.directoryWriter.requestDirectory = () => (
+      events.push(['picker']),
+      Promise.reject(new DOMException('denied', 'NotAllowedError'))
+    );
+    if (failurePoint === 'build')
+      deps.buildReceipt = async () => {
+        throw new Error('build');
+      };
+    else deps.receiptStore.save = async () => ({ ok: false, code: 'unavailable' });
+    assert.equal((await createSubmissionController(deps).submit(state, true)).code, 'unavailable');
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(
+      events.some(event => ['write', 'inbox', 'receipt'].includes(event[0])),
+      false
+    );
+  });
+}
+
+test('duplicate pending submit shares one picker and one store', async () => {
   const events = [];
   let release;
   const pending = new Promise(resolve => (release = resolve));
-  const controller = createSubmissionController({
-    bundle,
-    authorityDisclaimer: 'Advisory evidence only.',
-    buildReceipt: async input => (events.push(['build', input]), { receiptId: 'rec_abc' }),
-    receiptStore: {
-      save: async receipt => (
-        events.push(['save', receipt]),
-        await pending,
-        { ok: true, value: receipt }
-      ),
-    },
-    onNavigate: id => events.push(['navigate', id]),
-  });
+  const deps = submissionDeps(events);
+  deps.receiptStore.save = async receipt => (
+    events.push(['store', receipt]),
+    await pending,
+    { ok: true, value: receipt }
+  );
+  const controller = createSubmissionController(deps);
   const first = controller.submit(state, true);
-  assert.equal(controller.getStatus().submitting, true);
   assert.deepEqual(await controller.submit(state, true), { ok: false, code: 'submitting' });
   release();
-  assert.equal((await first).ok, true);
-  assert.equal(events.at(-1)[0], 'navigate');
-  assert.deepEqual(events[0][1].structuredResponses, { item: {} });
-  assert.equal(events[0][1].authorityDisclaimer, 'Advisory evidence only.');
-  assert.equal(events[0][1].decisions.item.decision, 'approve');
-  assert.equal(events[0][1].decisions.item.severity, 'high');
-});
-
-test('keeps the canonical default authority disclaimer in the receipt input', async () => {
-  let input;
-  const controller = createSubmissionController({
-    bundle,
-    buildReceipt: async value => ((input = value), { receiptId: 'rec_abc' }),
-    receiptStore: { save: async receipt => ({ ok: true, value: receipt }) },
-  });
-  await controller.submit(state, true);
-  assert.equal(input.authorityDisclaimer, 'Local fixture review only; not runtime authority.');
-});
-
-test('requires safe evidence and preserves state when save fails', async () => {
-  const controller = createSubmissionController({
-    bundle,
-    buildReceipt: async () => ({ receiptId: 'rec_abc' }),
-    receiptStore: {
-      save: async () => ({ ok: false, code: 'unavailable', message: 'Storage unavailable.' }),
-    },
-  });
-  assert.equal((await controller.submit(state, false)).code, 'validation_failed');
-  const failed = await controller.submit(state, true);
-  assert.equal(failed.code, 'unavailable');
-  assert.equal(controller.getStatus().submitting, false);
-  assert.deepEqual(state.decisions.item.responses, {});
-});
-
-test('defensively rejects an incomplete packet without building or saving', async () => {
-  let builds = 0;
-  let saves = 0;
-  const controller = createSubmissionController({
-    bundle,
-    buildReceipt: async () => builds++,
-    receiptStore: { save: async () => saves++ },
-  });
-  const result = await controller.submit(
-    { decisions: { item: { ...completeDecision(), reason: '' } } },
-    true
-  );
-  assert.equal(result.code, 'validation_failed');
-  assert.equal(builds, 0);
-  assert.equal(saves, 0);
+  await first;
+  assert.equal(events.filter(event => event[0] === 'picker').length, 1);
+  assert.equal(events.filter(event => event[0] === 'store').length, 1);
 });

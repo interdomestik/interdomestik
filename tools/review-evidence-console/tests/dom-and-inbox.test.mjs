@@ -4,39 +4,11 @@ import test from 'node:test';
 import { element, replaceChildren, setDocument, text } from '../public/src/components/dom.mjs';
 import { loadInboxRows, progressCopy } from '../public/src/views/inbox-data.mjs';
 import { renderInbox } from '../public/src/views/inbox.mjs';
-
-class FakeNode {
-  constructor(tagName = '#text', value = '') {
-    this.tagName = tagName.toUpperCase();
-    this.textContent = value;
-    this.attributes = {};
-    this.childNodes = [];
-    this.listeners = {};
-  }
-  append(...nodes) {
-    this.childNodes.push(...nodes);
-  }
-  replaceChildren(...nodes) {
-    this.childNodes = [...nodes];
-  }
-  setAttribute(name, value) {
-    this.attributes[name] = String(value);
-  }
-  addEventListener(name, handler) {
-    this.listeners[name] = handler;
-  }
-}
-
-const fakeDocument = {
-  createElement: tag => new FakeNode(tag),
-  createTextNode: value => new FakeNode('#text', String(value)),
-};
+import { copy, FakeNode, fakeDocument } from './fake-dom.mjs';
+import { inboxRow, primaryAction } from './inbox-view-fixtures.mjs';
+import { assertSubmittedCard, submittedInbox, submittedReceiptId } from './inbox-view-fixtures.mjs';
 
 setDocument(fakeDocument);
-
-function flattened(node) {
-  return [node.textContent, ...node.childNodes.map(flattened)].join(' ');
-}
 
 test('safe DOM helpers use text nodes and reject HTML injection', () => {
   assert.throws(() => element('p', { innerHTML: '<img src=x>' }), /innerHTML/);
@@ -56,14 +28,14 @@ test('safe DOM helpers enforce tag, attribute, URL, and event allowlists', () =>
 });
 
 test('inbox renders loading, empty, and unavailable states accessibly', () => {
-  assert.match(flattened(renderInbox({ state: 'loading' })), /Po ngarkohen detyrat/);
-  assert.match(flattened(renderInbox({ state: 'empty' })), /Nuk ka paketa të caktuara/);
+  assert.match(copy(renderInbox({ state: 'loading' })), /Po ngarkohen detyrat/);
+  assert.match(copy(renderInbox({ state: 'empty' })), /Nuk ka paketa të caktuara/);
   const unavailable = renderInbox({
     state: 'unavailable',
     message: 'Fixture records are invalid.',
   });
-  assert.match(flattened(unavailable), /Detyrat nuk mund të hapen/);
-  assert.match(flattened(unavailable), /Fixture records are invalid/);
+  assert.match(copy(unavailable), /Detyrat nuk mund të hapen/);
+  assert.match(copy(unavailable), /Fixture records are invalid/);
 });
 
 test('populated inbox uses reviewer-first cards with one primary action each', () => {
@@ -72,27 +44,54 @@ test('populated inbox uses reviewer-first cards with one primary action each', (
     state: 'populated',
     onOpen: assignment => opened.push(assignment.id),
     assignments: [
-      {
+      inboxRow({
         id: 'assign_mob03a_part_a',
         packetId: 'mob-03a-part-a',
-        status: 'in_progress',
-        risk: 'high',
-        dueDate: '2026-07-15',
-        title: 'Rishikimi i autoritetit — Pjesa A',
-        purpose: 'Verifiko kufijtë e privatësisë dhe rolet e aksesit.',
         progress: 'Në progres — hap paketën për detaje',
-      },
+      }),
     ],
   });
-  const copy = flattened(inbox);
-  assert.match(copy, /mob-03a-part-a/);
-  assert.match(copy, /Rishikimi i autoritetit/);
-  assert.match(copy, /Rrezik i lartë/);
-  assert.match(copy, /Në progres — hap paketën për detaje/);
-  assert.match(copy, /Vazhdo paketën/);
+  const visible = copy(inbox);
+  assert.match(visible, /mob-03a-part-a/);
+  assert.match(visible, /Rishikimi i autoritetit/);
+  assert.match(visible, /Rrezik i lartë/);
+  assert.match(visible, /Në progres — hap paketën për detaje/);
+  assert.match(visible, /Vazhdo paketën/);
   const button = inbox.childNodes[1].childNodes.find(node => node.tagName === 'BUTTON');
   button.listeners.click();
   assert.deepEqual(opened, ['assign_mob03a_part_a']);
+});
+
+test('submitted card opens its receipt with visible audit metadata', () => {
+  const opened = [];
+  const inbox = submittedInbox(value => opened.push(value));
+  assertSubmittedCard(inbox, submittedReceiptId);
+  primaryAction(inbox).listeners.click();
+  assert.deepEqual(opened, [submittedReceiptId]);
+});
+
+test('review-required card shows new-version guidance and opens the assignment', () => {
+  const opened = [];
+  const inbox = renderInbox({
+    state: 'populated',
+    onOpen: row => opened.push(row.id),
+    assignments: [inboxRow({ submissionStatus: 'review_required' })],
+  });
+  assert.match(copy(inbox), /Kërkon rishqyrtim — disponohet version i ri/);
+  primaryAction(inbox).listeners.click();
+  assert.deepEqual(opened, ['assign_a']);
+});
+
+test('next-action card visibly identifies the next step and opens the assignment', () => {
+  const opened = [];
+  const inbox = renderInbox({
+    state: 'populated',
+    onOpen: row => opened.push(row.id),
+    assignments: [inboxRow({ nextAction: true })],
+  });
+  assert.match(copy(inbox), /Hapi i radhës/);
+  primaryAction(inbox).listeners.click();
+  assert.deepEqual(opened, ['assign_a']);
 });
 
 test('progress copy never fabricates numeric completion', () => {

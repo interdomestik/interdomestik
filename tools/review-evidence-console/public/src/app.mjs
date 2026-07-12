@@ -53,7 +53,7 @@ async function loadInbox(token) {
   replaceChildren(app, shell(renderInbox({ state: 'loading' })));
   const [profile, rows] = await Promise.all([
     repository.loadReviewerProfile(REVIEWER_ID),
-    loadInboxRows(repository, REVIEWER_ID),
+    loadInboxRows(repository, REVIEWER_ID, reviewRoutes.receiptStore),
   ]);
   if (!routes.isCurrent(token)) return;
   if (!profile.ok || !rows.ok) {
@@ -67,6 +67,11 @@ async function loadInbox(token) {
     state: rows.value.length ? 'populated' : 'empty',
     assignments: rows.value,
     onOpen: openAssignment,
+    onOpenReceipt: receiptId => {
+      if (routes.isCurrent(token)) {
+        window.location.hash = formatRoute({ name: 'receipt', receiptId });
+      }
+    },
     onImport: async (assignment, file) => {
       const result = await reviewRoutes.importReceipt(assignment.id, file, token);
       if (!result.ok) announce(result.message);
@@ -105,8 +110,7 @@ async function loadWorkspace(route, token) {
       if (pendingFocus) queueMicrotask(() => focusControl(pendingFocus));
       else if (props.focusHeading)
         queueMicrotask(() => document.querySelector('#item-heading')?.focus());
-      else if (props.focusControlId)
-        queueMicrotask(() => focusControl(props.focusControlId));
+      else if (props.focusControlId) queueMicrotask(() => focusControl(props.focusControlId));
     },
   });
 }

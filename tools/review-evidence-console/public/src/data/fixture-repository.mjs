@@ -15,6 +15,7 @@ import {
   normalizeAssignment,
   normalizePacket,
   normalizeReviewer,
+  validateAssignmentContinuations,
 } from '../models/normalize-fixture.mjs';
 
 const partA = {
@@ -51,7 +52,7 @@ export function createFixtureRepository({ loadJson = defaultJsonLoader } = {}) {
         ok: true,
         value: {
           reviewers: reviewerRows.map(normalizeReviewer),
-          assignments: assignmentRows.map(normalizeAssignment),
+          assignments: validateAssignmentContinuations(assignmentRows.map(normalizeAssignment)),
         },
       };
     } catch {
@@ -73,9 +74,7 @@ export function createFixtureRepository({ loadJson = defaultJsonLoader } = {}) {
     const all = await loadAll();
     if (!all.ok) return all;
     const reviewer = all.value.reviewers.find(row => row.id === reviewerFixtureId);
-    return reviewer
-      ? { ok: true, value: reviewer }
-      : missing('Mostra e shqyrtuesit nuk u gjet.');
+    return reviewer ? { ok: true, value: reviewer } : missing('Mostra e shqyrtuesit nuk u gjet.');
   }
 
   async function loadPacket(packetId) {

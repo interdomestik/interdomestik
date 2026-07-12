@@ -6,6 +6,10 @@ export function renderReceiptView({
   receipt,
   packet,
   importNotice,
+  backLabel,
+  onBack,
+  onSaveDirectory,
+  directoryResult,
   onExport,
   onClear,
   onCorrect,
@@ -20,7 +24,18 @@ export function renderReceiptView({
   routeError,
 }) {
   return [
-    renderReceipt({ receipt, packet, importNotice, onExport, onClear, onCorrect }),
+    renderReceipt({
+      receipt,
+      packet,
+      importNotice,
+      backLabel,
+      onBack,
+      onSaveDirectory,
+      directoryResult,
+      onExport,
+      onClear,
+      onCorrect,
+    }),
     correcting
       ? renderCorrection({
           receipt,

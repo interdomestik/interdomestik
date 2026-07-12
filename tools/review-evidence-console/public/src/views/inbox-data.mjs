@@ -1,3 +1,6 @@
+import { importedReceiptMatchesPacket } from '../validation/receipt-packet.mjs';
+import { receiptStatus } from './receipt-status.mjs';
+
 const PROGRESS = Object.freeze({
   not_started: 'Nuk ka filluar',
   in_progress: 'Në progres — hap paketën për detaje',
@@ -9,7 +12,7 @@ export function progressCopy(status) {
   return PROGRESS[status] ?? 'Status i panjohur';
 }
 
-export async function loadInboxRows(repository, reviewerId) {
+export async function loadInboxRows(repository, reviewerId, receiptStore) {
   const assignments = await repository.listAssignments(reviewerId);
   if (!assignments.ok) return assignments;
   const bundles = await Promise.all(
@@ -17,7 +20,7 @@ export async function loadInboxRows(repository, reviewerId) {
   );
   const failed = bundles.find(bundle => !bundle.ok);
   if (failed) return failed;
-  const rows = bundles.map((bundle, index) => {
+  let rows = bundles.map((bundle, index) => {
     const expected = assignments.value[index];
     return bundleMatches(bundle.value, expected, reviewerId) ? toInboxRow(bundle.value) : null;
   });
@@ -28,7 +31,63 @@ export async function loadInboxRows(repository, reviewerId) {
       message: 'Identiteti i paketës së detyrës është jokonsistent.',
     };
   }
+  if (!receiptStore) return { ok: true, value: rows };
+  let receiptBatch;
+  try {
+    receiptBatch = await receiptStore.listAll();
+  } catch {
+    return {
+      ok: false,
+      code: 'unavailable',
+      message: 'Statusi i dorëzimit nuk është i disponueshëm.',
+    };
+  }
+  if (!receiptBatch.ok) return receiptBatch;
+  const receiptsByPacket = groupByPacket(receiptBatch.value);
+  rows = rows.map((row, index) => ({
+    ...row,
+    ...receiptStatus(
+      matchingPacketReceipts(receiptsByPacket, bundles[index].value.packet),
+      receiptIdentity(bundles[index].value)
+    ),
+  }));
+  for (const row of rows) {
+    if (row.submissionStatus !== 'submitted' || !row.continuesWithAssignmentId) continue;
+    const nextIndex = rows.findIndex(candidate => candidate.id === row.continuesWithAssignmentId);
+    if (nextIndex >= 0 && rows[nextIndex].submissionStatus !== 'submitted') {
+      rows[nextIndex] = { ...rows[nextIndex], nextAction: true };
+    }
+  }
   return { ok: true, value: rows };
+}
+
+function matchingPacketReceipts(receiptsByPacket, packet) {
+  const receipts = receiptsByPacket.get(packet.id) ?? [];
+  return receipts.filter(
+    receipt =>
+      receipt.packetVersion !== packet.version ||
+      importedReceiptMatchesPacket(receipt, packet, true)
+  );
+}
+
+function groupByPacket(receipts) {
+  const grouped = new Map();
+  for (const receipt of receipts) {
+    if (!grouped.has(receipt.packetId)) grouped.set(receipt.packetId, []);
+    grouped.get(receipt.packetId).push(receipt);
+  }
+  return grouped;
+}
+
+function receiptIdentity({ assignment, reviewer, packet }) {
+  return {
+    assignmentId: assignment.id,
+    reviewerFixtureId: reviewer.id,
+    reviewerRole: reviewer.role,
+    packetId: packet.id,
+    packetRole: packet.reviewerRole,
+    packetVersion: packet.version,
+  };
 }
 
 function bundleMatches({ assignment, reviewer, packet }, expected, reviewerId) {

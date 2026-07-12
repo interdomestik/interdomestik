@@ -1,16 +1,10 @@
 import { element, text } from '../components/dom.mjs';
-import {
-  displayDecision,
-  displayRisk,
-  displaySeverity,
-} from '../components/display-labels.mjs';
+import { displayDecision, displayRisk, displaySeverity } from '../components/display-labels.mjs';
 import { renderReceiptResponses } from './receipt-responses.mjs';
-
 function row(label, value) {
   const values = Array.isArray(value) ? value : [typeof value === 'string' ? text(value) : value];
   return element('p', {}, [element('strong', {}, [text(`${label}: `)]), ...values]);
 }
-
 function audit(value) {
   return element('code', { attributes: { lang: 'en' } }, [text(value)]);
 }
@@ -27,7 +21,10 @@ function itemSection(itemId, decision, responses, item) {
       element('h2', { attributes: { id: `receipt-${itemId}` } }, [text(itemId)]),
       row('Vendimi', labeled(displayDecision(decision.decision), decision.decision)),
       row('Ashpërsia', labeled(displaySeverity(decision.severity), decision.severity)),
-      row('Kategoria e rrezikut', labeled(displayRisk(decision.riskCategory), decision.riskCategory)),
+      row(
+        'Kategoria e rrezikut',
+        labeled(displayRisk(decision.riskCategory), decision.riskCategory)
+      ),
       ...Object.entries({
         concreteAnswer: 'Përgjigjja konkrete',
         reason: 'Arsyeja',
@@ -43,7 +40,18 @@ function itemSection(itemId, decision, responses, item) {
   );
 }
 
-export function renderReceipt({ receipt, packet, importNotice, onExport, onCorrect, onClear }) {
+export function renderReceipt({
+  receipt,
+  packet,
+  importNotice,
+  backLabel = 'Kthehu te paketat',
+  onBack,
+  onSaveDirectory,
+  directoryResult,
+  onExport,
+  onCorrect,
+  onClear,
+}) {
   return element(
     'article',
     { attributes: { class: 'receipt-view', 'aria-labelledby': 'receipt-heading' } },
@@ -51,11 +59,25 @@ export function renderReceipt({ receipt, packet, importNotice, onExport, onCorre
       element('h1', { attributes: { id: 'receipt-heading', tabindex: '-1' } }, [
         text('Vërtetimi i shqyrtimit'),
       ]),
+      typeof onBack === 'function'
+        ? element(
+            'button',
+            {
+              attributes: { class: 'secondary-action', type: 'button' },
+              on: { click: onBack },
+            },
+            [text(backLabel)]
+          )
+        : null,
       row('ID-ja e vërtetimit', audit(receipt.receiptId)),
       row('Paketa', [audit(receipt.packetId), text(` · ${receipt.packetVersion}`)]),
       element('p', {}, [text(`Versioni ${receipt.receiptVersion}`)]),
-      receipt.previousReceiptId ? row('Vërtetimi i mëparshëm', audit(receipt.previousReceiptId)) : null,
-      receipt.correctionItemId ? row('Artikulli i korrigjimit', audit(receipt.correctionItemId)) : null,
+      receipt.previousReceiptId
+        ? row('Vërtetimi i mëparshëm', audit(receipt.previousReceiptId))
+        : null,
+      receipt.correctionItemId
+        ? row('Artikulli i korrigjimit', audit(receipt.correctionItemId))
+        : null,
       receipt.correctionReason ? row('Arsyeja e korrigjimit', receipt.correctionReason) : null,
       receipt.correctionImpact ? row('Ndikimi i korrigjimit', receipt.correctionImpact) : null,
       row('Shqyrtuesi', [text(`${receipt.reviewerDisplayName} · `), audit(receipt.reviewerRole)]),
@@ -88,6 +110,30 @@ export function renderReceipt({ receipt, packet, importNotice, onExport, onCorre
           packet?.items.find(item => item.id === id)
         )
       ),
+      typeof onSaveDirectory === 'function'
+        ? element(
+            'button',
+            {
+              attributes: { class: 'secondary-action', type: 'button' },
+              on: { click: onSaveDirectory },
+            },
+            [text('Ruaj në inbox privat')]
+          )
+        : null,
+      typeof onSaveDirectory === 'function'
+        ? element(
+            'p',
+            {
+              attributes: {
+                class: 'local-only-notice',
+                role: directoryResult?.ok === false ? 'alert' : 'status',
+                'aria-live': directoryResult?.ok === false ? 'assertive' : 'polite',
+                'aria-atomic': 'true',
+              },
+            },
+            [text(directoryResult?.message ?? '')]
+          )
+        : null,
       element('button', { attributes: { type: 'button' }, on: { click: () => onExport?.() } }, [
         text('Eksporto JSON'),
       ]),

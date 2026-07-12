@@ -1,5 +1,6 @@
 import { element, text } from '../components/dom.mjs';
 import { displaySeverity } from '../components/display-labels.mjs';
+import { cardAction, submissionDetails } from './inbox-card-status.mjs';
 
 const RISK = { high: 'Rrezik i lartë', medium: 'Rrezik mesatar', low: 'Rrezik i ulët' };
 const riskCopy = value => RISK[value] ?? `Rrezik ${displaySeverity(value)}`;
@@ -9,6 +10,7 @@ export function renderInbox({
   assignments = [],
   message = '',
   onOpen = () => {},
+  onOpenReceipt = () => {},
   onImport = () => {},
 }) {
   const heading = element('div', { attributes: { class: 'page-heading' } }, [
@@ -24,7 +26,10 @@ export function renderInbox({
       statePanel('Detyrat nuk mund të hapen.', message || 'Provo përsëri më vonë.')
     );
   }
-  return inboxSection(heading, ...assignments.map(row => assignmentCard(row, onOpen, onImport)));
+  return inboxSection(
+    heading,
+    ...assignments.map(row => assignmentCard(row, onOpen, onOpenReceipt, onImport))
+  );
 }
 
 function inboxSection(...children) {
@@ -35,7 +40,7 @@ function inboxSection(...children) {
   );
 }
 
-function assignmentCard(assignment, onOpen, onImport) {
+function assignmentCard(assignment, onOpen, onOpenReceipt, onImport) {
   const helpId = `import-help-${assignment.id}`;
   const fileId = `receipt-file-${assignment.id}`;
   const file = element('input', {
@@ -45,18 +50,24 @@ function assignmentCard(assignment, onOpen, onImport) {
       type: 'file',
       accept: 'application/json,.json',
       'aria-describedby': helpId,
+      'aria-label': `Importo vërtetimin lokal JSON — ${assignment.packetId} — ${assignment.id}`,
     },
     on: { change: event => event.target.files?.[0] && onImport(assignment, event.target.files[0]) },
   });
-  const action = assignment.status === 'in_progress' ? 'Vazhdo paketën' : 'Hap paketën';
+  const action = cardAction(assignment);
+  const open =
+    assignment.submissionStatus === 'submitted'
+      ? () => onOpenReceipt(assignment.receiptId)
+      : () => onOpen(assignment);
   return element('article', { attributes: { class: 'assignment-card' } }, [
     element('span', { attributes: { class: 'canonical-id' } }, [text(assignment.packetId)]),
     element('h2', {}, [text(assignment.title)]),
     element('p', { attributes: { class: 'card-purpose' } }, [text(assignment.purpose)]),
     element('div', { attributes: { class: 'card-meta' } }, [
       label(riskCopy(assignment.risk), `risk risk--${assignment.risk}`, assignment.risk),
-      label(assignment.progress, 'progress'),
+      assignment.submissionStatus === 'submitted' ? null : label(assignment.progress, 'progress'),
       label(`Afati: ${assignment.dueDate}`, 'due-date'),
+      ...submissionDetails(assignment),
     ]),
     element(
       'button',
@@ -64,9 +75,9 @@ function assignmentCard(assignment, onOpen, onImport) {
         attributes: {
           class: 'primary-action',
           type: 'button',
-          'aria-label': action,
+          'aria-label': `${action} — ${assignment.packetId} — ${assignment.id}`,
         },
-        on: { click: () => onOpen(assignment) },
+        on: { click: open },
       },
       [text(action)]
     ),

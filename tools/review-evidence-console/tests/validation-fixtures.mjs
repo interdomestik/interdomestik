@@ -16,6 +16,7 @@ export const assignments = [
     risk: 'high',
     titleSq: 'Rishikimi i autoritetit — Pjesa A',
     purposeSq: 'Verifiko privatësinë, pëlqimin dhe qasjen.',
+    continuesWithAssignmentId: 'assign_mob03a_part_b',
     fixture: true,
   },
   {

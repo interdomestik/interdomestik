@@ -23,6 +23,7 @@ const TAGS = new Set([
   'strong',
   'summary',
   'textarea',
+  'time',
   'ul',
   'option',
 ]);
@@ -50,6 +51,7 @@ const ATTRIBUTES = new Set([
   'readonly',
   'accept',
   'disabled',
+  'datetime',
   'role',
   'rows',
   'tabindex',

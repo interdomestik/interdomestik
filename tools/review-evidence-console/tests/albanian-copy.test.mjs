@@ -39,7 +39,31 @@ test('uses visible Albanian action text as the accessible action name', () => {
     ],
   });
   const button = walk(inbox).find(node => node.tagName === 'BUTTON');
-  assert.equal(button.attributes['aria-label'], copy(button).trim());
+  assert.equal(button.attributes['aria-label'], `${copy(button).trim()} — packet_a — assign_a`);
   assert.match(copy(inbox), /Importo vërtetimin lokal JSON/);
   assert.match(copy(inbox), /Lexohet në këtë pajisje; nuk ngarkohet kurrë/);
+});
+
+test('uses Albanian submission and next-step labels while retaining canonical audit IDs', () => {
+  const inbox = renderInbox({
+    state: 'populated',
+    assignments: [
+      {
+        id: 'assign_a',
+        packetId: 'packet_a',
+        submissionStatus: 'submitted',
+        receiptId: 'rec_1234567890abcdef12345678',
+        packetVersion: '7',
+        submittedAt: '2026-07-12T10:30:00.000Z',
+        risk: 'high',
+        dueDate: '2026-07-15',
+        title: 'Pjesa A',
+        purpose: 'Verifiko kufirin.',
+        progress: 'Dërguar',
+      },
+    ],
+  });
+  assert.match(copy(inbox), /Dorëzuar.*Versioni i paketës.*Shiko vërtetimin/);
+  const audit = walk(inbox).find(node => node.tagName === 'CODE');
+  assert.equal(audit?.attributes.lang, 'en');
 });
