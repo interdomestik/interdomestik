@@ -55,6 +55,8 @@ export function createApiClient({ fetchImpl = globalThis.fetch } = {}) {
     submitReceipt: judgments => request('/api/receipts', { method: 'POST', body: judgments }),
     correctReceipt: correction =>
       request('/api/receipts/correct', { method: 'POST', body: correction }),
+    migrateReceipt: migration =>
+      request('/api/receipts/migrate', { method: 'POST', body: migration }),
     receiptKeys: () => request('/api/receipts/keys'),
   });
 }

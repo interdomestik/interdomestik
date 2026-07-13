@@ -4,9 +4,76 @@
   font-size: 0.78em;
 }
 
+.card-header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.85rem;
+  width: 100%;
+  align-items: center;
+}
+
+.card-header > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.packet-mark {
+  display: grid;
+  width: 2.7rem;
+  height: 2.7rem;
+  place-items: center;
+  color: white;
+  background: var(--blue-900);
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+
+.card-state {
+  padding: 0.25rem 0.55rem;
+  color: var(--warning-ink);
+  background: var(--warning-bg);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.assignment-card--submitted .card-state {
+  color: var(--success-ink);
+  background: var(--success-bg);
+}
+
 .import-receipt {
   width: 100%;
   margin-top: 1rem;
+}
+
+.receipt-import-disclosure {
+  width: 100%;
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.receipt-import-disclosure summary {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 680;
+}
+
+.receipt-import-disclosure summary::after {
+  content: '+';
+  margin-left: auto;
+  color: var(--teal-700);
+  font-size: 1.2rem;
+}
+
+.receipt-import-disclosure[open] summary::after {
+  content: '−';
 }
 
 .receipt-picker {
@@ -43,6 +110,12 @@
   height: 44px;
   opacity: 0;
   cursor: pointer;
+}
+
+.receipt-picker--legacy .receipt-picker__button {
+  color: white;
+  background: var(--blue-800);
+  border-color: var(--blue-800);
 }
 
 .receipt-picker:has(.receipt-picker__input:focus-visible) .receipt-picker__button {

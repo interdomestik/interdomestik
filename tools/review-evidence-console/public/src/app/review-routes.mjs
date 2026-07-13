@@ -3,6 +3,7 @@ import { verifyReceipt } from '../state/receipt-builder.mjs';
 import { createValidationHandler } from './validation-route.mjs';
 import { takeValue } from './current-async.mjs';
 import { createImportHandler } from './receipt-route-actions.mjs';
+import { createHistoryRoute } from './history-route.mjs';
 import { createReceiptDirectoryWriter } from './receipt-directory-writer.mjs';
 import { createReceiptRoute } from './receipt-route.mjs';
 
@@ -32,6 +33,7 @@ export function createReviewRouteLoaders({
   };
   const validation = createValidationHandler({ ...shared, pendingFocus, directoryWriter });
   const receipt = createReceiptRoute({ ...shared, imported, directoryWriter });
+  const history = createHistoryRoute(shared);
   const importReceipt = createImportHandler({
     repository,
     receiptStore,
@@ -43,6 +45,7 @@ export function createReviewRouteLoaders({
   return {
     validation,
     receipt,
+    history,
     importReceipt,
     receiptStore,
     takePendingFocus: () => takeValue(pendingFocus),

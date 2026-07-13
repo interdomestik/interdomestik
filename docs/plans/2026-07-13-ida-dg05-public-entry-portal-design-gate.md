@@ -1,9 +1,9 @@
 ---
 plan_role: input
-status: active
+status: draft
 source_of_truth: false
 slice: IDA-DG05
-implementation_slice: IDA-UI01a
+proposed_implementation_slice: IDA-UI01a
 owner: platform + product + design + qa
 date: 2026-07-13
 last_reviewed: 2026-07-13
@@ -11,34 +11,32 @@ last_reviewed: 2026-07-13
 
 # IDA-DG05 — Single Public Entry UI Foundation Design Gate
 
-> Status: Approved by Arben and promoted as branch-local current-authority input
-> for exactly `IDA-UI01a` on `codex/interdomestik-ui-ux-foundation`.
+> Status: Review-ready post-REC-02b candidate. This document does not promote
+> runtime work; exactly one slice may be promoted only after the fresh gate review.
 
 ## Gate outcome sought
 
-This gate approves one Tier 2 presentation slice: a neutral,
+This gate proposes one Tier 2 presentation slice: a neutral,
 problem-led public hero and action foundation on the existing `ida.*` front door.
 The slice helps an anonymous visitor choose the next useful action while preserving
 one brand, one login, one governed funnel, and every existing runtime boundary.
 
-This document becomes runtime authority only through its matching canonical
-`current-program.md` and `current-tracker.md` overlays. Those overlays promote
-`IDA-UI01a` for this isolated UI branch; they do not mutate, reset, or supersede
-the separate REC evidence worktree.
+This document becomes runtime authority only through matching canonical
+`current-program.md` and `current-tracker.md` records after review. Until then the
+resolver must remain `blocked_requires_current_authority` with `activeSlice=null`.
 
 ## Authority check and advisory conflict
 
-| Source                                                             | Evidence on 2026-07-13                                                                                                  | Disposition                                                                  |
-| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Repo `docs/plans/current-program.md` and resolver at this worktree | Pre-promotion resolution was `REC-02b`; this revision records the user-approved branch-local `IDA-UI01a` overlay.       | Authoritative for this UI branch after the matching canonical overlay lands. |
-| Repo architecture program                                          | `ida.*` is the single canonical entry point; the dashboard premise is one brand and one login.                          | Binding design premise.                                                      |
-| AI OS observation `a396071b...`                                    | Reported `activeSlice=none`, `runtime=not_authorized`, and session-integrity drift from a different canonical checkout. | Advisory and stale relative to this worktree; repo authority wins.           |
-| This gate                                                          | Arben approved execution on 2026-07-13 after confirming the REC and UI branches may run concurrently.                   | Promotes only `IDA-UI01a` through the canonical branch overlays.             |
+| Source                                                             | Evidence on 2026-07-13                                                                                               | Disposition                                                                  |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Repo `docs/plans/current-program.md` and resolver at this worktree | REC-02b is closed; no replacement slice is promoted and expected resolution is `activeSlice=null`.                   | Authoritative; runtime work remains blocked during this review.              |
+| Repo architecture program                                          | `ida.*` is the single canonical entry point; the dashboard premise is one brand and one login.                       | Binding design premise.                                                      |
+| AI OS observation `4eb4c5a4...`                                    | Reported `activeSlice=none` and `runtime=not_authorized`; its targeted retrieval missed the merged REC-02b closeout. | Advisory state agrees; the retrieval miss is reconciled from repo authority. |
+| This gate                                                          | Arben authorized the UI/UX journey and required a fresh, single-slice post-closeout selection on 2026-07-13.         | Design input only until its review and canonical promotion complete.         |
 
-The REC workstream remains isolated in its own worktree and branch. This UI
-branch has exactly one implementation target, `IDA-UI01a`; concurrent branch
-execution does not imply concurrent merge, production exposure, or permission to
-touch REC evidence files.
+REC-02b is complete on merged `main`; its files and evidence remain preserved.
+This UI branch has one proposed implementation target, `IDA-UI01a`, and no active
+runtime slice while the design gate is under review.
 
 ## Locked earlier decision: one path, not three portals
 
@@ -111,10 +109,10 @@ member sees continuation of existing work, not competing public acquisition card
 - campaign/acquisition pages that converge into the same governed journey;
 - dead hero cleanup or shared design-token changes.
 
-## Promoted first slice: `IDA-UI01a`
+## Proposed first slice: `IDA-UI01a`
 
-`IDA-UI01a` is the promoted branch-local implementation identifier. Its authority
-comes from this approved gate plus the matching canonical program/tracker overlay.
+`IDA-UI01a` is the candidate implementation identifier. It gains authority only
+if this gate is accepted and the canonical program/tracker promote exactly it.
 
 ### Included
 
@@ -301,7 +299,7 @@ unavailable, record the exact MCP error before using the repo Playwright lane.
 7. **Final Phase C gates:** run `pnpm pr:verify`, `pnpm security:guard`, and
    `pnpm e2e:gate`; no PR or merge claim before all applicable evidence is green.
 
-## Reviewer matrix for the promoted slice
+## Reviewer matrix for the candidate slice
 
 | Focus                      | Repo role / route                | Required result                                                       |
 | -------------------------- | -------------------------------- | --------------------------------------------------------------------- |
@@ -385,15 +383,17 @@ Residual risks after the first slice:
 
 Promotion evidence, in order:
 
-1. **Complete:** Arben explicitly approved execution in this task on 2026-07-13.
-2. **Complete for implementation:** unsupported quantitative, guarantee, coverage,
+1. **Complete:** Arben authorized the UI/UX design journey and fresh gate selection
+   in this task on 2026-07-13.
+2. **Required before promotion:** unsupported quantitative, guarantee, coverage,
    fee, eligibility, and outcome claims remain prohibited by the claim ledger.
    Human linguistic sign-off for the final SQ/EN/SR/MK wording remains a merge gate.
-3. **Complete on this branch:** canonical current authority names exactly
-   `IDA-UI01a`; the REC workstream remains isolated on its own branch/worktree.
-4. **Complete:** fresh AI OS observation `a396071b...` was reconciled as advisory
-   drift; branch-local repo authority remains controlling.
-5. **Required next:** test-first implementation on the authorized branch only.
+3. **Required before promotion:** canonical current authority must name exactly
+   `IDA-UI01a`; REC-02b closeout must remain intact.
+4. **Complete:** fresh AI OS observation `4eb4c5a4...` agrees that no slice is active;
+   its REC-02b retrieval miss was reconciled against merged repo authority.
+5. **Required after promotion:** test-first implementation on the authorized branch
+   only.
 
 Stop and return to design/current authority if implementation would require:
 
@@ -406,7 +406,6 @@ Stop and return to design/current authority if implementation would require:
 
 ## Gate status
 
-**Approved and promoted for branch-local implementation of exactly `IDA-UI01a`.**
-Merge readiness still requires human linguistic disposition, bounded independent
-implementation review, browser/accessibility evidence, and all applicable Phase C
-gates. No other runtime slice or protected surface is authorized here.
+**Review-ready; not promoted.** The candidate is exactly `IDA-UI01a`. Promotion
+requires a fresh post-REC-02b design disposition and matching canonical authority.
+No runtime slice or protected surface is authorized by this draft.

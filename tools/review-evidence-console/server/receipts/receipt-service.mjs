@@ -1,5 +1,6 @@
 import { verifyReceipt } from '../../public/src/state/receipt-builder.mjs';
 import { buildServerCorrection, buildServerReceipt } from './receipt-envelope.mjs';
+import { ACCEPTED_LEGACY_RECEIPTS, buildServerMigration } from './legacy-receipt-migration.mjs';
 import { signReceipt, verifySignedReceipt } from './receipt-signature.mjs';
 
 const invalid = code => ({ ok: false, code });
@@ -9,7 +10,11 @@ const withoutAttestation = receipt => {
   return unsigned;
 };
 
-export function createReceiptService({ keyring, now = () => new Date().toISOString() }) {
+export function createReceiptService({
+  keyring,
+  now = () => new Date().toISOString(),
+  acceptedLegacyReceipts = ACCEPTED_LEGACY_RECEIPTS,
+}) {
   function trustedKeys() {
     const compare = (left, right) => left.id.localeCompare(right.id, 'en');
     const keys = [...keyring.publicKeys]
@@ -50,5 +55,17 @@ export function createReceiptService({ keyring, now = () => new Date().toISOStri
     }
   }
 
-  return Object.freeze({ correct, create, trustedKeys, verify });
+  async function migrate(account, bundle, submission) {
+    try {
+      const payload = await buildServerMigration(account, bundle, submission, {
+        now,
+        acceptedLegacyReceipts,
+      });
+      return { ok: true, value: await signReceipt(payload, keyring) };
+    } catch (error) {
+      return invalid(error?.code === 'invalid_receipt' ? 'invalid_receipt' : 'invalid_request');
+    }
+  }
+
+  return Object.freeze({ correct, create, migrate, trustedKeys, verify });
 }

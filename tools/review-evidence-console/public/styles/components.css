@@ -7,22 +7,35 @@
 }
 
 .brand .eyebrow {
-  color: hsl(175 55% 78%);
+  color: hsl(168 56% 74%);
 }
 
 .brand__title {
-  font-size: 1.2rem;
-  font-weight: 700;
+  font-size: 1.05rem;
+  font-weight: 760;
 }
 
-.role-badge,
-.save-state,
-.local-menu summary {
-  font-size: 0.86rem;
+.brand__copy {
+  display: grid;
+  gap: 0.05rem;
+}
+
+.brand__mark {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  color: var(--blue-950);
+  background: hsl(164 52% 84%);
+  border: 1px solid hsl(164 55% 72%);
+  border-radius: 12px;
+  font-weight: 850;
+  letter-spacing: -0.07em;
 }
 
 .role-badge,
 .save-state {
+  font-size: 0.86rem;
   padding: 0.35rem 0.65rem;
   border: 1px solid hsl(200 35% 65% / 0.45);
   border-radius: 999px;
@@ -38,37 +51,17 @@
   border-radius: 50%;
 }
 
-.local-menu {
-  position: relative;
-}
-
-.local-menu summary {
-  cursor: pointer;
-  padding: 0.55rem 0;
-}
-
-.local-menu p {
-  position: absolute;
-  right: 0;
-  width: 260px;
-  margin-top: 0.5rem;
-  padding: 1rem;
-  color: var(--ink);
-  background: white;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
 .page-heading .eyebrow,
 .canonical-id {
   color: var(--teal-700);
 }
 
 .page-heading h1 {
-  margin: 0.35rem 0 0.65rem;
+  max-width: 780px;
+  margin: 0.35rem 0 0.55rem;
   color: var(--blue-900);
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 1.08;
+  font-size: clamp(2.15rem, 5vw, 3.7rem);
+  line-height: 1.02;
 }
 
 .page-heading p,
@@ -78,17 +71,29 @@
 
 .assignment-card,
 .state-panel {
-  padding: 1.5rem;
+  padding: clamp(1.25rem, 2.5vw, 1.75rem);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-soft);
 }
 
 .assignment-card {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  min-height: 390px;
+  overflow: hidden;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.assignment-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
 }
 
 .assignment-card h2 {
@@ -101,7 +106,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin: auto 0 1.4rem;
+  margin: auto 0 1.25rem;
 }
 
 .card-meta span {
@@ -124,11 +129,17 @@
   color: white;
   background: var(--blue-800);
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-weight: 750;
 }
 
 .primary-action:hover {
   background: var(--blue-900);
+}
+
+.assignment-card--submitted .primary-action {
+  color: var(--blue-900);
+  background: var(--teal-100);
+  border: 1px solid hsl(171 38% 77%);
 }

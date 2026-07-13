@@ -42,12 +42,15 @@ export async function buildReceipt(input, { now = () => new Date().toISOString()
     const previousVerification = previousValidation.ok
       ? await verifyReceipt(previous)
       : previousValidation;
-    const lineageMatches = LINEAGE_FIELDS.every(
-      field => field === 'reviewerAccountId' && previous[field] === undefined
+    const lineageMatches = LINEAGE_FIELDS.every(field =>
+      field === 'reviewerAccountId' && previous[field] === undefined
         ? true
         : previous[field] === input[field]
     );
-    if (!previousVerification.ok || !lineageMatches) {
+    const migrationMatches =
+      canonicalStringify(previous.migration ?? null) ===
+      canonicalStringify(input.migration ?? null);
+    if (!previousVerification.ok || !lineageMatches || !migrationMatches) {
       throw new TypeError('Previous receipt identity, version, schema, or content is invalid.');
     }
     const fields = ['correctionItemId', 'correctionReason', 'correctionImpact'];
@@ -71,6 +74,7 @@ export async function buildReceipt(input, { now = () => new Date().toISOString()
     submittedAt,
     receiptVersion: previous ? previous.receiptVersion + 1 : 1,
     riskSummary: aggregateRisk(Object.values(decisions)),
+    ...(input.migration ? { migration: input.migration } : {}),
     ...(previous
       ? {
           previousReceiptId: previous.receiptId,

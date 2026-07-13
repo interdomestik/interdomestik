@@ -34,11 +34,11 @@ export function createReceiptRoute(options) {
     let fallback = null;
     let directoryResult = null;
     let directorySavePending = false;
-    let correcting = false;
+    let correcting = route.correcting === true;
     let correctionError = '';
     const correction = { itemId: '', reason: '', impact: '' };
     const current = () => isCurrent(token);
-    let focusId = 'receipt-heading';
+    let focusId = correcting ? 'correction-heading' : 'receipt-heading';
     let routeError = null;
     const onExport = async () => {
       const completed = await awaitCurrent(exportReceipt(route.receiptId, receiptStore), current);

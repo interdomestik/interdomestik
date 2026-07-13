@@ -18,6 +18,7 @@ export async function authenticateRequest(request, context) {
 
 export function publicAccount(account, expiresAt) {
   return {
+    accountId: account.id,
     displayName: account.displayName,
     role: account.role,
     fixtureId: account.fixtureId,

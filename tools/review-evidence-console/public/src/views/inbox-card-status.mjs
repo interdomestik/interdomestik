@@ -38,6 +38,23 @@ export function submissionDetails(assignment) {
       ]),
     ];
   }
+  if (assignment.submissionStatus === 'legacy_submitted') {
+    return [
+      status('Dorëzuar më parë — migrimi në pritje', 'legacy-submitted'),
+      element('span', { attributes: { class: 'submission-status' } }, [
+        text('Dorëzuar më: '),
+        element('time', { attributes: { datetime: assignment.legacySubmittedAt } }, [
+          text(`${formatSubmittedAt(assignment.legacySubmittedAt)} — Ora lokale e Shkupit`),
+        ]),
+      ]),
+      element('span', { attributes: { class: 'submission-status' } }, [
+        text('ID-ja e vërtetimit: '),
+        element('code', { attributes: { class: 'audit-code', lang: 'en' } }, [
+          text(assignment.legacyReceiptId),
+        ]),
+      ]),
+    ];
+  }
   if (assignment.submissionStatus === 'review_required') {
     return [status('Kërkon rishqyrtim — disponohet version i ri', 'review-required')];
   }

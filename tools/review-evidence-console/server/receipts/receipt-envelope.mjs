@@ -38,7 +38,7 @@ export function isInitialSubmission(value) {
   );
 }
 
-function validateJudgments(bundle, submission) {
+export function validateReceiptJudgments(bundle, submission) {
   const itemIds = bundle.packet.itemIds;
   const exactPacketKeys = record => {
     const actual = Object.keys(record).sort(compareStrings);
@@ -66,7 +66,7 @@ function validateJudgments(bundle, submission) {
   if (!validation.valid) throw new TypeError('Receipt judgments are incomplete.');
 }
 
-function receiptInput(account, bundle, submission) {
+export function serverReceiptInput(account, bundle, submission) {
   return {
     schemaVersion: 1,
     packetId: bundle.packet.id,
@@ -87,8 +87,8 @@ export async function buildServerReceipt(account, bundle, submission, { now }) {
   if (!isInitialSubmission(submission) || submission.assignmentId !== bundle.assignment.id) {
     throw new TypeError('Invalid receipt submission.');
   }
-  validateJudgments(bundle, submission);
-  return buildReceipt(receiptInput(account, bundle, submission), { now });
+  validateReceiptJudgments(bundle, submission);
+  return buildReceipt(serverReceiptInput(account, bundle, submission), { now });
 }
 
 export async function buildServerCorrection(
@@ -109,10 +109,11 @@ export async function buildServerCorrection(
     !bundle.packet.itemIds.includes(submission.correctionItemId)
   )
     throw new TypeError('Invalid receipt correction.');
-  validateJudgments(bundle, submission);
+  validateReceiptJudgments(bundle, submission);
   return buildReceipt(
     {
-      ...receiptInput(account, bundle, submission),
+      ...serverReceiptInput(account, bundle, submission),
+      ...(unsignedPrevious.migration ? { migration: unsignedPrevious.migration } : {}),
       previousReceipt: unsignedPrevious,
       correctionItemId: submission.correctionItemId,
       correctionReason: submission.correctionReason,
