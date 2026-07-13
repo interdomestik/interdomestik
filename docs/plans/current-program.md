@@ -426,6 +426,20 @@ replacement implementation slice is promoted; expected resolver state is
 `blocked_requires_current_authority`, `activeSlice=null` until a fresh
 current-authority/design gate promotes exactly one next governed action.
 
+Rev 108 current-authority/design-gate: `REC-DG04` in
+`docs/plans/2026-07-13-rec-dg04-vercel-node-function-current-authority.md`
+promotes exactly one implementation slice: `REC-02a`. The governed REC-02
+preview attempt proved that Vercel's generic project bundled the root
+`middleware.js` as Edge code and rejected required `node:crypto` and `node:net`
+imports before a usable preview existed. REC-02a is limited to replacing that
+deployment entrypoint with one Node.js Vercel Function for `/api/*`, preserving
+the existing private Fetch handler and every named-account, session, role,
+fixture, receipt, origin, cache, and logging boundary. It permits one protected
+preview retry only. It does not authorize `reviewer-ecohub.vercel.app` alias
+reassignment, `apps/web`, Interdomestik runtime integration, schema/RLS,
+customer data, uploads, or UI/UX redesign.
+The next active governed implementation goal is exactly one canonical tracker slice: `REC-02a`, the API routing/auth compatibility fix.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
